@@ -2,7 +2,8 @@
 // This schema is based on the SQL migration: 20241205000001_phase1_core_schema.sql
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
