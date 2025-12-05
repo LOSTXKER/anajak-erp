@@ -6,12 +6,18 @@ import prisma from '@/lib/prisma'
 import type { OrderType, WorkType } from './types'
 
 export async function getAllOrderTypes(): Promise<OrderType[]> {
-  const types = await prisma.orderType.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: 'asc' }
-  })
-
-  return types.map(mapPrismaToOrderType)
+  console.log('[Service] getAllOrderTypes called')
+  try {
+    const types = await prisma.orderType.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' }
+    })
+    console.log('[Service] Found types:', types.length)
+    return types.map(mapPrismaToOrderType)
+  } catch (error: any) {
+    console.error('[Service] Prisma error:', error?.message)
+    throw error
+  }
 }
 
 export async function getWorkTypesByCategory(category?: string): Promise<WorkType[]> {
