@@ -1,0 +1,476 @@
+// Prisma Schema for Anajak ERP
+// This schema is based on the SQL migration: 20241205000001_phase1_core_schema.sql
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================
+// USER PROFILES
+// =============================================
+model UserProfile {
+  id                   String    @id @db.Uuid
+  email                String    @unique
+  fullName             String?   @map("full_name")
+  displayName          String?   @map("display_name")
+  phone                String?
+  avatarUrl            String?   @map("avatar_url")
+  role                 String    @default("staff")
+  department           String?
+  canApproveDesigns    Boolean   @default(false) @map("can_approve_designs")
+  canApproveOrders     Boolean   @default(false) @map("can_approve_orders")
+  canManageInventory   Boolean   @default(false) @map("can_manage_inventory")
+  isActive             Boolean   @default(true) @map("is_active")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  customersAsigned     Customer[]        @relation("AssignedSales")
+  ordersCreated        Order[]           @relation("OrderCreator")
+  ordersAssigned       Order[]           @relation("AssignedSales")
+  ordersProduction     Order[]           @relation("AssignedProduction")
+  changeRequestsQuoted ChangeRequest[]   @relation("QuotedBy")
+  changeRequestsCreated ChangeRequest[]  @relation("CreatedBy")
+  approvalGates        ApprovalGate[]
+  designsUploaded      DesignVersion[]   @relation("DesignUploader")
+  designsApproved      DesignVersion[]   @relation("DesignApprover")
+  designsRejected      DesignVersion[]   @relation("DesignRejecter")
+  productionJobs       ProductionJob[]   @relation("ProductionWorker")
+  qcInspections        QcRecord[]        @relation("QcInspector")
+
+  @@map("user_profiles")
+}
+
+// =============================================
+// CUSTOMERS
+// =============================================
+model Customer {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerCode       String    @unique @map("customer_code")
+  customerType       String    @default("individual") @map("customer_type")
+  companyName        String?   @map("company_name")
+  contactPerson      String    @map("contact_person")
+  email              String?
+  phone              String
+  lineId             String?   @map("line_id")
+  address            String?
+  district           String?
+  city               String?
+  province           String?
+  postalCode         String?   @map("postal_code")
+  taxId              String?   @map("tax_id")
+  branch             String    @default("สำนักงานใหญ่")
+  assignedSalesId    String?   @map("assigned_sales_id") @db.Uuid
+  customerTier       String    @default("standard") @map("customer_tier")
+  discountPercentage Decimal   @default(0) @map("discount_percentage") @db.Decimal(5, 2)
+  creditLimit        Decimal   @default(0) @map("credit_limit") @db.Decimal(12, 2)
+  creditDays         Int       @default(0) @map("credit_days")
+  totalOrders        Int       @default(0) @map("total_orders")
+  totalRevenue       Decimal   @default(0) @map("total_revenue") @db.Decimal(15, 2)
+  lastOrderDate      DateTime? @map("last_order_date") @db.Date
+  isActive           Boolean   @default(true) @map("is_active")
+  notes              String?
+  tags               String[]
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  assignedSales      UserProfile? @relation("AssignedSales", fields: [assignedSalesId], references: [id])
+  orders             Order[]
+
+  @@map("customers")
+}
+
+// =============================================
+// PRODUCTS
+// =============================================
+model Product {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sku                 String    @unique
+  productType         String    @map("product_type")
+  name                String
+  nameTh              String    @map("name_th")
+  description         String?
+  materialType        String?   @map("material_type")
+  weightGsm           Int?      @map("weight_gsm")
+  baseColor           String?   @map("base_color")
+  availableSizes      String[]  @map("available_sizes")
+  costPrice           Decimal   @default(0) @map("cost_price") @db.Decimal(10, 2)
+  basePrice           Decimal   @map("base_price") @db.Decimal(10, 2)
+  trackInventory      Boolean   @default(true) @map("track_inventory")
+  lowStockThreshold   Int       @default(10) @map("low_stock_threshold")
+  imageUrl            String?   @map("image_url")
+  mockupTemplateUrl   String?   @map("mockup_template_url")
+  isActive            Boolean   @default(true) @map("is_active")
+  isFeatured          Boolean   @default(false) @map("is_featured")
+  slug                String?   @unique
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  orderItems          OrderItem[]
+
+  @@map("products")
+}
+
+// =============================================
+// ORDER TYPES
+// =============================================
+model OrderType {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code            String   @unique
+  name            String
+  nameTh          String   @map("name_th")
+  description     String?
+  defaultLeadDays Int      @default(7) @map("default_lead_days")
+  requiresPattern Boolean  @default(false) @map("requires_pattern")
+  requiresFabric  Boolean  @default(false) @map("requires_fabric")
+  sortOrder       Int      @default(0) @map("sort_order")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  orders          Order[]
+
+  @@map("order_types")
+}
+
+// =============================================
+// ORDERS
+// =============================================
+model Order {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderNumber            String    @unique @map("order_number")
+  customerId             String    @map("customer_id") @db.Uuid
+  customerName           String    @map("customer_name")
+  customerPhone          String?   @map("customer_phone")
+  orderTypeCode          String    @default("ready_made") @map("order_type_code")
+  orderDate              DateTime  @default(now()) @map("order_date") @db.Date
+  dueDate                DateTime? @map("due_date") @db.Date
+  productionMode         String    @default("in_house") @map("production_mode")
+  priorityLevel          Int       @default(0) @map("priority_level")
+  prioritySurcharge      Decimal   @default(0) @map("priority_surcharge") @db.Decimal(10, 2)
+  revisionCount          Int       @default(0) @map("revision_count")
+  freeRevisions          Int       @default(2) @map("free_revisions")
+  allDesignsApproved     Boolean   @default(false) @map("all_designs_approved")
+  mockupApproved         Boolean   @default(false) @map("mockup_approved")
+  mockupApprovedAt       DateTime? @map("mockup_approved_at") @db.Timestamptz
+  materialsReady         Boolean   @default(false) @map("materials_ready")
+  productionUnlocked     Boolean   @default(false) @map("production_unlocked")
+  changeRequestCount     Int       @default(0) @map("change_request_count")
+  changeRequestTotal     Decimal   @default(0) @map("change_request_total") @db.Decimal(12, 2)
+  subtotal               Decimal   @default(0) @db.Decimal(12, 2)
+  discountAmount         Decimal   @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  discountPercentage     Decimal   @default(0) @map("discount_percentage") @db.Decimal(5, 2)
+  taxAmount              Decimal   @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  shippingFee            Decimal   @default(0) @map("shipping_fee") @db.Decimal(10, 2)
+  totalAmount            Decimal   @default(0) @map("total_amount") @db.Decimal(12, 2)
+  paymentStatus          String    @default("unpaid") @map("payment_status")
+  paidAmount             Decimal   @default(0) @map("paid_amount") @db.Decimal(12, 2)
+  status                 String    @default("draft")
+  deliveryMethod         String?   @map("delivery_method")
+  deliveryAddress        String?   @map("delivery_address")
+  trackingNumber         String?   @map("tracking_number")
+  shippedAt              DateTime? @map("shipped_at") @db.Timestamptz
+  deliveredAt            DateTime? @map("delivered_at") @db.Timestamptz
+  notes                  String?
+  internalNotes          String?   @map("internal_notes")
+  assignedSalesId        String?   @map("assigned_sales_id") @db.Uuid
+  assignedProductionId   String?   @map("assigned_production_id") @db.Uuid
+  createdBy              String?   @map("created_by") @db.Uuid
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  completedAt            DateTime? @map("completed_at") @db.Timestamptz
+  cancelledAt            DateTime? @map("cancelled_at") @db.Timestamptz
+  cancellationReason     String?   @map("cancellation_reason")
+
+  // Relations
+  customer               Customer     @relation(fields: [customerId], references: [id])
+  orderType              OrderType?   @relation(fields: [orderTypeCode], references: [code])
+  assignedSales          UserProfile? @relation("AssignedSales", fields: [assignedSalesId], references: [id])
+  assignedProduction     UserProfile? @relation("AssignedProduction", fields: [assignedProductionId], references: [id])
+  creator                UserProfile? @relation("OrderCreator", fields: [createdBy], references: [id])
+  items                  OrderItem[]
+  addons                 OrderAddon[]
+  approvalGates          ApprovalGate[]
+  changeRequests         ChangeRequest[]
+  productionJobs         ProductionJob[]
+
+  @@map("orders")
+}
+
+// =============================================
+// ORDER ITEMS
+// =============================================
+model OrderItem {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId          String    @map("order_id") @db.Uuid
+  itemNumber       Int       @map("item_number")
+  productId        String?   @map("product_id") @db.Uuid
+  productSku       String?   @map("product_sku")
+  productName      String    @map("product_name")
+  size             String?
+  color            String?
+  quantity         Int       @default(1)
+  unitPrice        Decimal   @map("unit_price") @db.Decimal(10, 2)
+  lineTotal        Decimal   @map("line_total") @db.Decimal(12, 2)
+  designFiles      String[]  @map("design_files")
+  designStatus     String    @default("pending") @map("design_status")
+  mockupUrl        String?   @map("mockup_url")
+  productionStatus String    @default("pending") @map("production_status")
+  notes            String?
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  order            Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          Product?  @relation(fields: [productId], references: [id])
+  designVersions   DesignVersion[]
+  productionJobs   ProductionJob[]
+
+  @@unique([orderId, itemNumber])
+  @@map("order_items")
+}
+
+// =============================================
+// ADDON TYPES
+// =============================================
+model AddonType {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code            String   @unique
+  name            String
+  nameTh          String   @map("name_th")
+  category        String
+  basePrice       Decimal  @default(0) @map("base_price") @db.Decimal(10, 2)
+  priceType       String   @default("per_piece") @map("price_type")
+  requiresDesign  Boolean  @default(false) @map("requires_design")
+  requiresMaterial Boolean @default(false) @map("requires_material")
+  sortOrder       Int      @default(0) @map("sort_order")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  orderAddons     OrderAddon[]
+
+  @@map("addon_types")
+}
+
+// =============================================
+// ORDER ADDONS
+// =============================================
+model OrderAddon {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId       String?    @map("order_id") @db.Uuid
+  orderItemId   String?    @map("order_item_id") @db.Uuid
+  addonTypeId   String?    @map("addon_type_id") @db.Uuid
+  addonCode     String     @map("addon_code")
+  addonName     String     @map("addon_name")
+  quantity      Int        @default(1)
+  unitPrice     Decimal    @default(0) @map("unit_price") @db.Decimal(10, 2)
+  totalPrice    Decimal    @default(0) @map("total_price") @db.Decimal(12, 2)
+  status        String     @default("pending")
+  designFileUrl String?    @map("design_file_url")
+  designStatus  String?    @map("design_status")
+  notes         String?
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  order         Order?     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  addonType     AddonType? @relation(fields: [addonTypeId], references: [id])
+
+  @@map("order_addons")
+}
+
+// =============================================
+// APPROVAL GATES
+// =============================================
+model ApprovalGate {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId              String    @map("order_id") @db.Uuid
+  gateType             String    @map("gate_type")
+  gateName             String    @map("gate_name")
+  status               String    @default("pending")
+  approvedBy           String?   @map("approved_by") @db.Uuid
+  approvedAt           DateTime? @map("approved_at") @db.Timestamptz
+  customerConfirmedAt  DateTime? @map("customer_confirmed_at") @db.Timestamptz
+  customerIp           String?   @map("customer_ip")
+  customerSignature    String?   @map("customer_signature")
+  notes                String?
+  rejectionReason      String?   @map("rejection_reason")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  order                Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  approver             UserProfile? @relation(fields: [approvedBy], references: [id])
+
+  @@map("approval_gates")
+}
+
+// =============================================
+// DESIGN VERSION TRACKING
+// =============================================
+model DesignVersion {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderItemId      String    @map("order_item_id") @db.Uuid
+  versionNumber    Int       @map("version_number")
+  designFiles      String[]  @map("design_files")
+  mockupUrl        String?   @map("mockup_url")
+  status           String    @default("draft")
+  uploadedBy       String?   @map("uploaded_by") @db.Uuid
+  uploadedAt       DateTime  @default(now()) @map("uploaded_at") @db.Timestamptz
+  approvedBy       String?   @map("approved_by") @db.Uuid
+  approvedAt       DateTime? @map("approved_at") @db.Timestamptz
+  rejectedBy       String?   @map("rejected_by") @db.Uuid
+  rejectedAt       DateTime? @map("rejected_at") @db.Timestamptz
+  rejectionReason  String?   @map("rejection_reason")
+  revisionNotes    String?   @map("revision_notes")
+  isCurrentVersion Boolean   @default(false) @map("is_current_version")
+  isBillable       Boolean   @default(false) @map("is_billable")
+  revisionFee      Decimal   @default(0) @map("revision_fee") @db.Decimal(10, 2)
+
+  // Relations
+  orderItem        OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  uploader         UserProfile? @relation("DesignUploader", fields: [uploadedBy], references: [id])
+  approver         UserProfile? @relation("DesignApprover", fields: [approvedBy], references: [id])
+  rejecter         UserProfile? @relation("DesignRejecter", fields: [rejectedBy], references: [id])
+
+  @@map("design_versions")
+  @@index([orderItemId, versionNumber])
+}
+
+// =============================================
+// CHANGE REQUESTS
+// =============================================
+model ChangeRequest {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requestNumber       String    @unique @map("request_number")
+  orderId             String    @map("order_id") @db.Uuid
+  orderPhase          String    @map("order_phase")
+  changeType          String    @map("change_type")
+  description         String
+  affectedWorkItems   String[]  @map("affected_work_items") @db.Uuid
+  baseFee             Decimal   @default(0) @map("base_fee") @db.Decimal(10, 2)
+  designFee           Decimal   @default(0) @map("design_fee") @db.Decimal(10, 2)
+  reworkFee           Decimal   @default(0) @map("rework_fee") @db.Decimal(10, 2)
+  materialFee         Decimal   @default(0) @map("material_fee") @db.Decimal(10, 2)
+  totalFee            Decimal   @default(0) @map("total_fee") @db.Decimal(12, 2)
+  daysDelayed         Int       @default(0) @map("days_delayed")
+  newDueDate          DateTime? @map("new_due_date") @db.Date
+  status              String    @default("pending")
+  quotedAt            DateTime? @map("quoted_at") @db.Timestamptz
+  quotedBy            String?   @map("quoted_by") @db.Uuid
+  customerApprovedAt  DateTime? @map("customer_approved_at") @db.Timestamptz
+  paymentStatus       String    @default("unpaid") @map("payment_status")
+  referenceFiles      String[]  @map("reference_files")
+  customerReason      String?   @map("customer_reason")
+  adminNotes          String?   @map("admin_notes")
+  createdBy           String?   @map("created_by") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  order               Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  quoter              UserProfile? @relation("QuotedBy", fields: [quotedBy], references: [id])
+  creator             UserProfile? @relation("CreatedBy", fields: [createdBy], references: [id])
+
+  @@map("change_requests")
+}
+
+// =============================================
+// WORK TYPES
+// =============================================
+model WorkType {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code               String    @unique
+  name               String
+  nameTh             String    @map("name_th")
+  category           String    // PRINTING, EMBROIDERY, GARMENT, LABELING, FINISHING
+  requiresDesign     Boolean   @default(false) @map("requires_design")
+  requiresMaterial   Boolean   @default(false) @map("requires_material")
+  defaultPrice       Decimal   @default(0) @map("default_price") @db.Decimal(10, 2)
+  sortOrder          Int       @default(0) @map("sort_order")
+  isActive           Boolean   @default(true) @map("is_active")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("work_types")
+}
+
+// =============================================
+// PRODUCTION MANAGEMENT
+// =============================================
+model ProductionJob {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobNumber         String    @unique @map("job_number")
+  orderId           String    @map("order_id") @db.Uuid
+  orderItemId       String?   @map("order_item_id") @db.Uuid
+  workType          String    @map("work_type")
+  workName          String    @map("work_name")
+  quantity          Int
+  priorityScore     Int       @default(50) @map("priority_score")
+  status            String    @default("queued")
+  assignedTo        String?   @map("assigned_to") @db.Uuid
+  machineId         String?   @map("machine_id")
+  startedAt         DateTime? @map("started_at") @db.Timestamptz
+  completedAt       DateTime? @map("completed_at") @db.Timestamptz
+  actualQuantity    Int       @default(0) @map("actual_quantity")
+  defectQuantity    Int       @default(0) @map("defect_quantity")
+  reworkQuantity    Int       @default(0) @map("rework_quantity")
+  notes             String?
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  order             Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem         OrderItem?   @relation(fields: [orderItemId], references: [id])
+  worker            UserProfile? @relation("ProductionWorker", fields: [assignedTo], references: [id])
+  qcRecords         QcRecord[]
+
+  @@map("production_jobs")
+  @@index([status, priorityScore])
+}
+
+model QcStage {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code             String    @unique
+  name             String
+  nameTh           String    @map("name_th")
+  description      String?
+  checklistItems   String[]  @map("checklist_items")
+  sortOrder        Int       @default(0) @map("sort_order")
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  qcRecords        QcRecord[]
+
+  @@map("qc_stages")
+}
+
+model QcRecord {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productionJobId    String    @map("production_job_id") @db.Uuid
+  qcStageId          String    @map("qc_stage_id") @db.Uuid
+  inspectedBy        String?   @map("inspected_by") @db.Uuid
+  inspectedAt        DateTime? @map("inspected_at") @db.Timestamptz
+  result             String    @default("pending")
+  passedQuantity     Int       @default(0) @map("passed_quantity")
+  failedQuantity     Int       @default(0) @map("failed_quantity")
+  defectTypes        String[]  @map("defect_types")
+  notes              String?
+  photos             String[]
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  productionJob      ProductionJob @relation(fields: [productionJobId], references: [id], onDelete: Cascade)
+  qcStage            QcStage       @relation(fields: [qcStageId], references: [id])
+  inspector          UserProfile?  @relation("QcInspector", fields: [inspectedBy], references: [id])
+
+  @@map("qc_records")
+  @@index([productionJobId, qcStageId])
+}
+

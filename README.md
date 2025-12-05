@@ -1,36 +1,131 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Anajak ERP v2.0
 
-## Getting Started
+ระบบ ERP ครบวงจรสำหรับโรงงานผลิตเสื้อและงานสกรีน พัฒนาด้วย Next.js + Supabase
 
-First, run the development server:
+## 🚀 Tech Stack
+
+- **Framework:** Next.js 14+ (App Router)
+- **Language:** TypeScript
+- **Database:** Supabase (PostgreSQL)
+- **Styling:** Tailwind CSS + Shadcn/UI
+- **State Management:** Zustand + TanStack Query
+- **Icons:** Lucide React
+
+## 📁 Project Structure
+
+```
+anajaktshirt-superappv2/
+├── docs/                        # เอกสารแผนงาน ERP
+│   └── ERP-FLOW-REDESIGN.md    # แผนแม่บทระบบ ERP (ครบถ้วน)
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── page.tsx           # Dashboard หน้าแรก
+│   │   └── globals.css        # Global styles
+│   ├── components/
+│   │   └── ui/                # Shadcn UI components
+│   ├── features/              # Feature modules (Order, Production, etc.)
+│   ├── lib/
+│   │   └── supabase/          # Supabase client config
+│   ├── services/              # API services
+│   ├── store/                 # Zustand stores
+│   ├── types/
+│   │   └── database.ts        # Database type definitions
+│   └── middleware.ts          # Auth middleware
+├── supabase/
+│   └── migrations/            # SQL migration files
+│       └── 20241205000001_phase1_core_schema.sql
+└── env.template               # Environment variables template
+```
+
+## 🛠️ การติดตั้ง (Setup)
+
+### 1. Clone Repository
+
+```bash
+git clone <repository-url>
+cd anajaktshirt-superappv2
+npm install
+```
+
+### 2. สร้าง Supabase Project
+
+1. ไปที่ [supabase.com](https://supabase.com) สร้างบัญชี (ฟรี)
+2. สร้างโปรเจกต์ใหม่ เลือก Region `Southeast Asia (Singapore)`
+3. รอสร้างเสร็จประมาณ 1-2 นาที
+
+### 3. รัน Database Migration
+
+1. เปิด Supabase Dashboard > **SQL Editor**
+2. คัดลอกเนื้อหาจากไฟล์ `supabase/migrations/20241205000001_phase1_core_schema.sql`
+3. Paste และกด **Run** (ระบบจะสร้างตารางทั้งหมดให้อัตโนมัติ)
+
+### 4. ตั้งค่า Environment Variables
+
+1. Copy `env.template` เป็น `.env.local`
+   ```bash
+   cp env.template .env.local
+   ```
+
+2. เปิด Supabase Dashboard > **Settings** > **API**
+3. คัดลอก **Project URL** และ **anon public key** ใส่ใน `.env.local`
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
+```
+
+### 5. รันโปรเจกต์
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+เปิดเบราว์เซอร์ที่ [http://localhost:3000](http://localhost:3000) 🎉
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📋 Development Roadmap
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+ดูแผนการพัฒนาฉบับเต็มได้ที่ `docs/ERP-FLOW-REDESIGN.md`
 
-## Learn More
+### ✅ Phase 0: Setup (เสร็จแล้ว)
+- [x] Project initialization
+- [x] Database schema design
+- [x] Supabase integration
+- [x] UI library setup
 
-To learn more about Next.js, take a look at the following resources:
+### 🔄 Phase 1: Order & Sales (กำลังทำ - 3-4 สัปดาห์)
+- [ ] Customer Management (เพิ่ม/แก้ไขลูกค้า)
+- [ ] Product Catalog (แค็ตตาล็อกสินค้า)
+- [ ] Order Creation (สร้างออเดอร์)
+- [ ] Pricing Engine (คำนวณราคาอัตโนมัติ)
+- [ ] Quotation System (ใบเสนอราคา)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 📅 Phase 2-8 (ดูใน docs/)
+- Phase 2: Design & Approval
+- Phase 3-5: Production Management
+- Phase 6: Testing & Go-Live
+- Phase 7: Enterprise (HR, Finance, WMS)
+- Phase 8: Smart Factory (Gantt, Kiosk, Fleet)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📚 เอกสารเพิ่มเติม
 
-## Deploy on Vercel
+- **แผนแม่บท ERP:** `docs/ERP-FLOW-REDESIGN.md`
+- **Database Schema:** `supabase/migrations/`
+- **Component Library:** [Shadcn/UI Docs](https://ui.shadcn.com)
+- **Supabase Docs:** [docs.supabase.com](https://supabase.com/docs)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🤝 การมีส่วนร่วม
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+โปรเจกต์นี้อยู่ในช่วงพัฒนาเบื้องต้น หากต้องการมีส่วนร่วม:
+1. Fork repository
+2. สร้าง feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. เปิด Pull Request
+
+## 📞 ติดต่อ
+
+สำหรับข้อสงสัยหรือข้อเสนอแนะ กรุณาเปิด Issue ใน GitHub
+
+---
+
+**สร้างด้วย ❤️ สำหรับอุตสาหกรรม Garment & Screen Printing ในไทย**
