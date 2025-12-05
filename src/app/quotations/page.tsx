@@ -146,8 +146,6 @@ export default function QuotationsPage() {
   )
 }
 
-import { CheckCircle, Clock } from 'lucide-react'
-
 function StatCard({ 
   label, 
   value, 
