@@ -21,7 +21,12 @@ import {
   Settings,
   User,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  DollarSign,
+  Truck,
+  AlertTriangle,
+  Calendar,
+  ShoppingBag
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -37,7 +42,14 @@ const navItems = [
   { href: '/customers', label: 'ลูกค้า', icon: Users },
   { href: '/products', label: 'สินค้า', icon: Package },
   { href: '/orders', label: 'ออเดอร์', icon: ShoppingCart },
-  { href: '/reports', label: 'รายงาน', icon: FileText, disabled: true },
+  { href: '/quotations', label: 'ใบเสนอราคา', icon: FileText },
+  { href: '/invoices', label: 'ใบแจ้งหนี้', icon: DollarSign },
+  { href: '/outsource', label: 'ส่งงานนอก', icon: Truck },
+  { href: '/issues', label: 'ปัญหา', icon: AlertTriangle },
+  { href: '/procurement', label: 'จัดซื้อ', icon: ShoppingBag },
+  { href: '/shipments', label: 'จัดส่ง', icon: Truck },
+  { href: '/calendar', label: 'ปฏิทิน', icon: Calendar },
+  { href: '/reports', label: 'รายงาน', icon: FileText },
 ]
 
 export function Navbar() {
