@@ -83,6 +83,8 @@ model Customer {
   // Relations
   assignedSales      UserProfile? @relation("AssignedSales", fields: [assignedSalesId], references: [id])
   orders             Order[]
+  quotations         Quotation[]
+  invoices           Invoice[]
 
   @@map("customers")
 }
@@ -115,8 +117,34 @@ model Product {
 
   // Relations
   orderItems          OrderItem[]
+  quotationItems      QuotationItem[]
 
   @@map("products")
+}
+
+// =============================================
+// MATERIALS
+// =============================================
+model Material {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code                String    @unique
+  name                String
+  nameTh              String    @map("name_th")
+  category            String    // fabric, thread, ink, label, packaging
+  unit                String    @default("pcs")
+  costPrice           Decimal   @default(0) @map("cost_price") @db.Decimal(10, 2)
+  currentStock        Decimal   @default(0) @map("current_stock") @db.Decimal(10, 2)
+  reservedStock       Decimal   @default(0) @map("reserved_stock") @db.Decimal(10, 2)
+  lowStockThreshold   Decimal   @default(10) @map("low_stock_threshold") @db.Decimal(10, 2)
+  isActive            Boolean   @default(true) @map("is_active")
+  notes               String?
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  purchaseRequests    PurchaseRequest[]
+
+  @@map("materials")
 }
 
 // =============================================
@@ -201,6 +229,11 @@ model Order {
   approvalGates          ApprovalGate[]
   changeRequests         ChangeRequest[]
   productionJobs         ProductionJob[]
+  productionIssues       ProductionIssue[]
+  outsourceJobs          OutsourceJob[]
+  purchaseRequests       PurchaseRequest[]
+  invoices               Invoice[]
+  shipments              Shipment[]
 
   @@map("orders")
 }
@@ -430,6 +463,7 @@ model ProductionJob {
   orderItem         OrderItem?   @relation(fields: [orderItemId], references: [id])
   worker            UserProfile? @relation("ProductionWorker", fields: [assignedTo], references: [id])
   qcRecords         QcRecord[]
+  productionIssues  ProductionIssue[]
 
   @@map("production_jobs")
   @@index([status, priorityScore])
@@ -473,5 +507,328 @@ model QcRecord {
 
   @@map("qc_records")
   @@index([productionJobId, qcStageId])
+}
+
+// =============================================
+// OPERATIONS: ISSUE & ERROR TRACKING
+// =============================================
+model ProductionIssue {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  issueNumber        String    @unique @map("issue_number")
+  orderId            String    @map("order_id") @db.Uuid
+  productionJobId    String?   @map("production_job_id") @db.Uuid
+  issueType          String    @map("issue_type") // defect, material_shortage, machine_error, human_error, delay
+  severity           String    @default("medium") // low, medium, high, critical
+  title              String
+  description        String
+  affectedQuantity   Int       @default(0) @map("affected_quantity")
+  photos             String[]
+  reportedBy         String?   @map("reported_by") @db.Uuid
+  reportedAt         DateTime  @default(now()) @map("reported_at") @db.Timestamptz
+  assignedTo         String?   @map("assigned_to") @db.Uuid
+  status             String    @default("open") // open, investigating, resolved, closed
+  resolution         String?
+  resolvedBy         String?   @map("resolved_by") @db.Uuid
+  resolvedAt         DateTime? @map("resolved_at") @db.Timestamptz
+  costImpact         Decimal   @default(0) @map("cost_impact") @db.Decimal(10, 2)
+  timeImpactHours    Int       @default(0) @map("time_impact_hours")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  order              Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productionJob      ProductionJob? @relation(fields: [productionJobId], references: [id])
+
+  @@map("production_issues")
+}
+
+// =============================================
+// OPERATIONS: OUTSOURCE SYSTEM
+// =============================================
+model OutsourceVendor {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code               String    @unique
+  name               String
+  contactPerson      String?   @map("contact_person")
+  phone              String?
+  email              String?
+  address            String?
+  capabilities       String[]  // dtg, silkscreen, embroidery, cutting, sewing
+  leadTimeDays       Int       @default(3) @map("lead_time_days")
+  rating             Decimal   @default(0) @map("rating") @db.Decimal(2, 1)
+  isActive           Boolean   @default(true) @map("is_active")
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  outsourceJobs      OutsourceJob[]
+
+  @@map("outsource_vendors")
+}
+
+model OutsourceJob {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobNumber          String    @unique @map("job_number")
+  orderId            String    @map("order_id") @db.Uuid
+  vendorId           String    @map("vendor_id") @db.Uuid
+  workType           String    @map("work_type")
+  description        String?
+  quantity           Int       @default(0)
+  unitPrice          Decimal   @default(0) @map("unit_price") @db.Decimal(10, 2)
+  totalPrice         Decimal   @default(0) @map("total_price") @db.Decimal(12, 2)
+  sentAt             DateTime? @map("sent_at") @db.Timestamptz
+  expectedReturnAt   DateTime? @map("expected_return_at") @db.Timestamptz
+  actualReturnAt     DateTime? @map("actual_return_at") @db.Timestamptz
+  status             String    @default("pending") // pending, sent, in_progress, completed, returned, rejected
+  receivedQuantity   Int       @default(0) @map("received_quantity")
+  defectQuantity     Int       @default(0) @map("defect_quantity")
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  order              Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendor             OutsourceVendor @relation(fields: [vendorId], references: [id])
+
+  @@map("outsource_jobs")
+}
+
+// =============================================
+// OPERATIONS: MATERIAL PROCUREMENT
+// =============================================
+model PurchaseRequest {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requestNumber      String    @unique @map("request_number")
+  orderId            String?   @map("order_id") @db.Uuid
+  materialId         String?   @map("material_id") @db.Uuid
+  itemName           String    @map("item_name")
+  itemDescription    String?   @map("item_description")
+  quantity           Decimal   @map("quantity") @db.Decimal(10, 2)
+  unit               String
+  estimatedPrice     Decimal   @default(0) @map("estimated_price") @db.Decimal(10, 2)
+  actualPrice        Decimal   @default(0) @map("actual_price") @db.Decimal(10, 2)
+  supplierId         String?   @map("supplier_id") @db.Uuid
+  requestedBy        String?   @map("requested_by") @db.Uuid
+  requestedAt        DateTime  @default(now()) @map("requested_at") @db.Timestamptz
+  approvedBy         String?   @map("approved_by") @db.Uuid
+  approvedAt         DateTime? @map("approved_at") @db.Timestamptz
+  status             String    @default("pending") // pending, approved, ordered, received, cancelled
+  priority           String    @default("normal") // low, normal, high, urgent
+  expectedDate       DateTime? @map("expected_date") @db.Date
+  receivedDate       DateTime? @map("received_date") @db.Date
+  receivedQuantity   Decimal   @default(0) @map("received_quantity") @db.Decimal(10, 2)
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  order              Order?    @relation(fields: [orderId], references: [id])
+  material           Material? @relation(fields: [materialId], references: [id])
+  supplier           Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@map("purchase_requests")
+}
+
+model Supplier {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code               String    @unique
+  name               String
+  contactPerson      String?   @map("contact_person")
+  phone              String?
+  email              String?
+  address            String?
+  taxId              String?   @map("tax_id")
+  paymentTerms       String?   @map("payment_terms")
+  leadTimeDays       Int       @default(7) @map("lead_time_days")
+  rating             Decimal   @default(0) @map("rating") @db.Decimal(2, 1)
+  isActive           Boolean   @default(true) @map("is_active")
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  purchaseRequests   PurchaseRequest[]
+
+  @@map("suppliers")
+}
+
+// =============================================
+// OPERATIONS: STATUS HISTORY (Reversion)
+// =============================================
+model StatusHistory {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityType         String    @map("entity_type") // order, production_job, outsource_job
+  entityId           String    @map("entity_id") @db.Uuid
+  fromStatus         String    @map("from_status")
+  toStatus           String    @map("to_status")
+  changedBy          String?   @map("changed_by") @db.Uuid
+  changedAt          DateTime  @default(now()) @map("changed_at") @db.Timestamptz
+  reason             String?
+  notes              String?
+
+  @@map("status_history")
+  @@index([entityType, entityId])
+}
+
+// =============================================
+// FINANCE: QUOTATION SYSTEM
+// =============================================
+model Quotation {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quotationNumber    String    @unique @map("quotation_number")
+  customerId         String    @map("customer_id") @db.Uuid
+  title              String?
+  description        String?
+  subtotal           Decimal   @default(0) @map("subtotal") @db.Decimal(12, 2)
+  discountPercent    Decimal   @default(0) @map("discount_percent") @db.Decimal(5, 2)
+  discountAmount     Decimal   @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  vatPercent         Decimal   @default(7) @map("vat_percent") @db.Decimal(5, 2)
+  vatAmount          Decimal   @default(0) @map("vat_amount") @db.Decimal(10, 2)
+  totalAmount        Decimal   @default(0) @map("total_amount") @db.Decimal(12, 2)
+  validUntil         DateTime? @map("valid_until") @db.Date
+  status             String    @default("draft") // draft, sent, approved, rejected, expired, converted
+  sentAt             DateTime? @map("sent_at") @db.Timestamptz
+  approvedAt         DateTime? @map("approved_at") @db.Timestamptz
+  rejectedAt         DateTime? @map("rejected_at") @db.Timestamptz
+  rejectionReason    String?   @map("rejection_reason")
+  convertedOrderId   String?   @map("converted_order_id") @db.Uuid
+  terms              String?
+  notes              String?
+  createdBy          String?   @map("created_by") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  customer           Customer        @relation(fields: [customerId], references: [id])
+  items              QuotationItem[]
+
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quotationId        String    @map("quotation_id") @db.Uuid
+  productId          String?   @map("product_id") @db.Uuid
+  description        String
+  quantity           Int       @default(1)
+  unitPrice          Decimal   @default(0) @map("unit_price") @db.Decimal(10, 2)
+  totalPrice         Decimal   @default(0) @map("total_price") @db.Decimal(12, 2)
+  notes              String?
+  sortOrder          Int       @default(0) @map("sort_order")
+
+  // Relations
+  quotation          Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product            Product?  @relation(fields: [productId], references: [id])
+
+  @@map("quotation_items")
+}
+
+// =============================================
+// FINANCE: INVOICE & PAYMENT
+// =============================================
+model Invoice {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceNumber      String    @unique @map("invoice_number")
+  orderId            String    @map("order_id") @db.Uuid
+  customerId         String    @map("customer_id") @db.Uuid
+  invoiceType        String    @default("full") @map("invoice_type") // deposit, partial, full
+  subtotal           Decimal   @default(0) @map("subtotal") @db.Decimal(12, 2)
+  discountAmount     Decimal   @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  vatAmount          Decimal   @default(0) @map("vat_amount") @db.Decimal(10, 2)
+  totalAmount        Decimal   @default(0) @map("total_amount") @db.Decimal(12, 2)
+  paidAmount         Decimal   @default(0) @map("paid_amount") @db.Decimal(12, 2)
+  balanceDue         Decimal   @default(0) @map("balance_due") @db.Decimal(12, 2)
+  dueDate            DateTime? @map("due_date") @db.Date
+  status             String    @default("draft") // draft, sent, partial, paid, overdue, cancelled
+  sentAt             DateTime? @map("sent_at") @db.Timestamptz
+  paidAt             DateTime? @map("paid_at") @db.Timestamptz
+  notes              String?
+  createdBy          String?   @map("created_by") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  order              Order     @relation(fields: [orderId], references: [id])
+  customer           Customer  @relation(fields: [customerId], references: [id])
+  payments           Payment[]
+
+  @@map("invoices")
+}
+
+model Payment {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  paymentNumber      String    @unique @map("payment_number")
+  invoiceId          String    @map("invoice_id") @db.Uuid
+  amount             Decimal   @map("amount") @db.Decimal(12, 2)
+  paymentMethod      String    @map("payment_method") // cash, transfer, credit_card, qr_code
+  paymentDate        DateTime  @map("payment_date") @db.Date
+  referenceNumber    String?   @map("reference_number")
+  bankAccount        String?   @map("bank_account")
+  proofUrl           String?   @map("proof_url")
+  status             String    @default("pending") // pending, confirmed, rejected
+  confirmedBy        String?   @map("confirmed_by") @db.Uuid
+  confirmedAt        DateTime? @map("confirmed_at") @db.Timestamptz
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  invoice            Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+// =============================================
+// DELIVERY: SHIPPING & DELIVERY
+// =============================================
+model Shipment {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shipmentNumber     String    @unique @map("shipment_number")
+  orderId            String    @map("order_id") @db.Uuid
+  shippingMethod     String    @map("shipping_method") // pickup, delivery, courier
+  courierName        String?   @map("courier_name")
+  trackingNumber     String?   @map("tracking_number")
+  shippingCost       Decimal   @default(0) @map("shipping_cost") @db.Decimal(10, 2)
+  recipientName      String    @map("recipient_name")
+  recipientPhone     String    @map("recipient_phone")
+  shippingAddress    String    @map("shipping_address")
+  scheduledDate      DateTime? @map("scheduled_date") @db.Date
+  scheduledTime      String?   @map("scheduled_time")
+  shippedAt          DateTime? @map("shipped_at") @db.Timestamptz
+  deliveredAt        DateTime? @map("delivered_at") @db.Timestamptz
+  status             String    @default("pending") // pending, preparing, shipped, in_transit, delivered, returned
+  proofOfDelivery    String?   @map("proof_of_delivery")
+  receiverSignature  String?   @map("receiver_signature")
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  order              Order     @relation(fields: [orderId], references: [id])
+
+  @@map("shipments")
+}
+
+// =============================================
+// COMMUNICATION: NOTIFICATIONS
+// =============================================
+model Notification {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String?   @map("user_id") @db.Uuid
+  customerId         String?   @map("customer_id") @db.Uuid
+  type               String    // order_status, payment_received, design_approved, shipment_update
+  title              String
+  message            String
+  entityType         String?   @map("entity_type")
+  entityId           String?   @map("entity_id") @db.Uuid
+  channels           String[]  // app, email, line, sms
+  sentChannels       String[]  @map("sent_channels")
+  isRead             Boolean   @default(false) @map("is_read")
+  readAt             DateTime? @map("read_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("notifications")
+  @@index([userId, isRead])
+  @@index([customerId, isRead])
 }
 
