@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "prisma generate",
     "test:db": "tsx scripts/test-db.ts",
     "db:seed:addons": "tsx scripts/seed-addons.ts",
     "db:seed:demo": "tsx scripts/seed-demo-data.ts",
