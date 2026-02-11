@@ -7,7 +7,7 @@ export const productRouter = router({
       z.object({
         search: z.string().optional(),
         productType: z.string().optional(),
-        productGroup: z.string().optional(),
+        itemType: z.string().optional(),
         source: z.string().optional(),
         category: z.string().optional(),
         isActive: z.boolean().optional(),
@@ -27,7 +27,7 @@ export const productRouter = router({
         ];
       }
       if (input.productType) where.productType = input.productType;
-      if (input.productGroup) where.productGroup = input.productGroup;
+      if (input.itemType) where.itemType = input.itemType;
       if (input.source) where.source = input.source;
       if (input.category) where.category = input.category;
       if (input.isActive !== undefined) where.isActive = input.isActive;
@@ -59,7 +59,7 @@ export const productRouter = router({
     .input(
       z.object({
         search: z.string().optional(),
-        productGroup: z.string().optional(),
+        itemType: z.string().optional(),
         limit: z.number().default(20),
       })
     )
@@ -73,7 +73,7 @@ export const productRouter = router({
           { barcode: { contains: input.search, mode: "insensitive" } },
         ];
       }
-      if (input.productGroup) where.productGroup = input.productGroup;
+      if (input.itemType) where.itemType = input.itemType;
 
       return ctx.prisma.product.findMany({
         where,

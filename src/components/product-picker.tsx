@@ -34,18 +34,18 @@ export interface ProductPickerProps {
   open: boolean;
   onClose: () => void;
   onSelect: (product: SelectedProduct) => void;
-  productGroup?: string; // "GARMENT" | "MATERIAL" | "SUPPLY"
+  itemType?: string; // "FINISHED_GOOD" | "RAW_MATERIAL" | "CONSUMABLE"
 }
 
 // ============================================================
 // CONSTANTS
 // ============================================================
 
-const GROUP_FILTERS = [
+const ITEM_TYPE_FILTERS = [
   { key: undefined as string | undefined, label: "ทั้งหมด" },
-  { key: "GARMENT", label: "เสื้อสำเร็จ" },
-  { key: "MATERIAL", label: "วัตถุดิบ" },
-  { key: "SUPPLY", label: "อุปกรณ์" },
+  { key: "FINISHED_GOOD", label: "สินค้าสำเร็จรูป" },
+  { key: "RAW_MATERIAL", label: "วัตถุดิบ" },
+  { key: "CONSUMABLE", label: "วัสดุสิ้นเปลือง" },
 ] as const;
 
 const PRODUCT_TYPE_LABELS: Record<string, string> = {
@@ -70,7 +70,7 @@ export function ProductPickerDialog({
   open,
   onClose,
   onSelect,
-  productGroup: initialGroup,
+  itemType: initialGroup,
 }: ProductPickerProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -102,7 +102,7 @@ export function ProductPickerDialog({
   const { data: products, isLoading } = trpc.product.searchForOrder.useQuery(
     {
       search: debouncedSearch || undefined,
-      productGroup: selectedGroup,
+      itemType: selectedGroup,
       limit: 20,
     },
     { enabled: open },
@@ -182,7 +182,7 @@ export function ProductPickerDialog({
 
             {/* Group filter pills */}
             <div className="flex flex-wrap gap-1.5">
-              {GROUP_FILTERS.map((g) => (
+              {ITEM_TYPE_FILTERS.map((g) => (
                 <button
                   key={g.label}
                   type="button"
@@ -257,13 +257,13 @@ export function ProductPickerDialog({
                               {PRODUCT_TYPE_LABELS[product.productType] ??
                                 product.productType}
                             </span>
-                            {product.productGroup && product.productGroup !== "GARMENT" && (
+                            {product.itemType && product.itemType !== "FINISHED_GOOD" && (
                               <span className="inline-flex flex-shrink-0 items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                                {product.productGroup === "MATERIAL"
+                                {product.itemType === "RAW_MATERIAL"
                                   ? "วัตถุดิบ"
-                                  : product.productGroup === "SUPPLY"
-                                    ? "อุปกรณ์"
-                                    : product.productGroup}
+                                  : product.itemType === "CONSUMABLE"
+                                    ? "วัสดุสิ้นเปลือง"
+                                    : product.itemType}
                               </span>
                             )}
                           </div>

@@ -45,6 +45,7 @@ export interface StockProduct {
   lastCost: number;
   reorderPoint: number;
   hasVariants: boolean;
+  itemType?: string; // FINISHED_GOOD | RAW_MATERIAL | CONSUMABLE
   totalStock: number;
   stockByLocation: StockLocation[];
   variants: StockVariant[];

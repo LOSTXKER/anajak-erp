@@ -24,11 +24,10 @@ const typeConfig: Record<string, { label: string; variant: "default" | "secondar
   OTHER: { label: "อื่นๆ", variant: "secondary" },
 };
 
-const groupLabels: Record<string, string> = {
-  GARMENT: "เสื้อสำเร็จ",
-  MATERIAL: "วัตถุดิบ",
-  SUPPLY: "อุปกรณ์",
-  FINISHED_GOOD: "สินค้าผลิตเสร็จ",
+const itemTypeLabels: Record<string, string> = {
+  FINISHED_GOOD: "สินค้าสำเร็จรูป",
+  RAW_MATERIAL: "วัตถุดิบ",
+  CONSUMABLE: "วัสดุสิ้นเปลือง",
 };
 
 // ============================================================
@@ -199,7 +198,7 @@ export default function ProductDetailPage({
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">กลุ่มสินค้า</span>
                   <Badge variant="secondary">
-                    {groupLabels[product.productGroup] || product.productGroup}
+                    {itemTypeLabels[product.itemType] || product.itemType}
                   </Badge>
                 </div>
                 {product.category && (

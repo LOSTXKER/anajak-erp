@@ -59,7 +59,7 @@ export function MaterialUsage({ productionId, orderNumber }: MaterialUsageProps)
   // ---- search products query ----
   const { data: searchResults, isLoading: isSearching } =
     trpc.product.searchForOrder.useQuery(
-      { search: searchTerm || undefined, productGroup: "MATERIAL", limit: 15 },
+      { search: searchTerm || undefined, itemType: "RAW_MATERIAL", limit: 15 },
       { enabled: showPicker && searchTerm.length >= 1 }
     );
 

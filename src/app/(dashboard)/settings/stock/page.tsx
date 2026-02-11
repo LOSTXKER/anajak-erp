@@ -33,13 +33,13 @@ import { toast } from "sonner";
 const STOCK_API_URL_KEY = "stock_api_url";
 const STOCK_API_KEY_KEY = "stock_api_key";
 
-// ─── Category Mapping Data ──────────────────────────────────
-const categoryMappings = [
-  { stockCategory: "เสื้อ", erpGroup: "เสื้อสำเร็จ", erpCode: "GARMENT" },
-  { stockCategory: "กางเกง", erpGroup: "เสื้อสำเร็จ", erpCode: "GARMENT" },
-  { stockCategory: "เสื้อแจ็คเก็ต", erpGroup: "เสื้อสำเร็จ", erpCode: "GARMENT" },
-  { stockCategory: "วัตถุดิบ", erpGroup: "วัตถุดิบ", erpCode: "MATERIAL" },
-  { stockCategory: "อุปกรณ์", erpGroup: "อุปกรณ์", erpCode: "SUPPLY" },
+// ─── Item Type Mapping Data ──────────────────────────────────
+const itemTypeMappings = [
+  { stockCategory: "เสื้อ", erpItemType: "สินค้าสำเร็จรูป", erpCode: "FINISHED_GOOD" },
+  { stockCategory: "กางเกง", erpItemType: "สินค้าสำเร็จรูป", erpCode: "FINISHED_GOOD" },
+  { stockCategory: "เสื้อแจ็คเก็ต", erpItemType: "สินค้าสำเร็จรูป", erpCode: "FINISHED_GOOD" },
+  { stockCategory: "วัตถุดิบ", erpItemType: "วัตถุดิบ", erpCode: "RAW_MATERIAL" },
+  { stockCategory: "อุปกรณ์", erpItemType: "วัสดุสิ้นเปลือง", erpCode: "CONSUMABLE" },
 ];
 
 export default function StockSettingsPage() {
@@ -480,12 +480,12 @@ export default function StockSettingsPage() {
                       →
                     </th>
                     <th className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
-                      กลุ่มสินค้า ERP
+                      ประเภทสินค้า ERP
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {categoryMappings.map((mapping, i) => (
+                  {itemTypeMappings.map((mapping, i) => (
                     <tr
                       key={i}
                       className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -497,7 +497,7 @@ export default function StockSettingsPage() {
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <span className="text-slate-900 dark:text-white">
-                            {mapping.erpGroup}
+                            {mapping.erpItemType}
                           </span>
                           <Badge variant="secondary" className="text-[10px]">
                             {mapping.erpCode}

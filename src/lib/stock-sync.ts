@@ -9,20 +9,23 @@ import { prisma } from "@/lib/prisma";
 import { StockApiClient, type StockProduct, type StockVariant } from "@/lib/stock-api";
 
 // ============================================================
-// CATEGORY MAPPING
+// ITEM TYPE + PRODUCT TYPE MAPPING
 // ============================================================
 
-const DEFAULT_CATEGORY_MAP: Record<string, string> = {
-  เสื้อ: "GARMENT",
-  กางเกง: "GARMENT",
-  เสื้อแจ็คเก็ต: "GARMENT",
-  วัตถุดิบ: "MATERIAL",
-  อุปกรณ์: "SUPPLY",
+/** Fallback: derive itemType from category name (for Stock instances without itemType) */
+const CATEGORY_TO_ITEM_TYPE: Record<string, string> = {
+  วัตถุดิบ: "RAW_MATERIAL",
+  อุปกรณ์: "CONSUMABLE",
 };
 
-function mapCategory(stockCategory: string | null): string {
-  if (!stockCategory) return "GARMENT";
-  return DEFAULT_CATEGORY_MAP[stockCategory] ?? "GARMENT";
+function resolveItemType(sp: StockProduct): string {
+  // Prefer explicit itemType from Stock API
+  if (sp.itemType) return sp.itemType;
+  // Fallback: map from category name
+  if (sp.category && CATEGORY_TO_ITEM_TYPE[sp.category]) {
+    return CATEGORY_TO_ITEM_TYPE[sp.category];
+  }
+  return "FINISHED_GOOD";
 }
 
 function mapProductType(stockCategory: string | null): string {
@@ -114,7 +117,7 @@ async function upsertProduct(
     costPrice: sp.lastCost || sp.standardCost || 0,
     stockProductId: sp.id,
     source: "STOCK",
-    productGroup: mapCategory(sp.category),
+    itemType: resolveItemType(sp),
     barcode: sp.barcode,
     unit: sp.unit,
     unitName: sp.unitName,

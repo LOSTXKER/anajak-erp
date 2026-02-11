@@ -13,12 +13,11 @@ import { Package, RefreshCw, Search, Cloud, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 // ─── Product Group Tabs ─────────────────────────────────────
-const productGroups = [
+const itemTypes = [
   { value: "", label: "ทั้งหมด" },
-  { value: "GARMENT", label: "เสื้อสำเร็จ" },
-  { value: "MATERIAL", label: "วัตถุดิบ" },
-  { value: "SUPPLY", label: "อุปกรณ์" },
-  { value: "FINISHED_GOOD", label: "สินค้าผลิตเสร็จ" },
+  { value: "FINISHED_GOOD", label: "สินค้าสำเร็จรูป" },
+  { value: "RAW_MATERIAL", label: "วัตถุดิบ" },
+  { value: "CONSUMABLE", label: "วัสดุสิ้นเปลือง" },
 ] as const;
 
 // ─── Product Type Config ────────────────────────────────────
@@ -61,7 +60,7 @@ const selectClass =
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [productType, setProductType] = useState("");
-  const [productGroup, setProductGroup] = useState("");
+  const [itemType, setItemType] = useState("");
   const [page, setPage] = useState(1);
   const limit = 24;
 
@@ -69,7 +68,7 @@ export default function ProductsPage() {
   const { data, isLoading } = trpc.product.list.useQuery({
     search: search || undefined,
     productType: productType || undefined,
-    productGroup: productGroup || undefined,
+    itemType: itemType || undefined,
     page,
     limit,
   });
@@ -92,8 +91,8 @@ export default function ProductsPage() {
   });
 
   // Reset page when filters change
-  const handleGroupChange = (value: string) => {
-    setProductGroup(value);
+  const handleItemTypeChange = (value: string) => {
+    setItemType(value);
     setPage(1);
   };
 
@@ -145,12 +144,12 @@ export default function ProductsPage() {
 
       {/* ─── Group Tabs ──────────────────────────────────────── */}
       <div className="flex gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800/50">
-        {productGroups.map((g) => (
+        {itemTypes.map((g) => (
           <button
             key={g.value}
-            onClick={() => handleGroupChange(g.value)}
+            onClick={() => handleItemTypeChange(g.value)}
             className={`whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              productGroup === g.value
+              itemType === g.value
                 ? "bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             }`}
@@ -255,13 +254,11 @@ export default function ProductsPage() {
                     {/* Product group badge */}
                     <div className="absolute top-3 left-3">
                       <Badge className="bg-black/50 text-white backdrop-blur-sm">
-                        {product.productGroup === "MATERIAL"
+                        {product.itemType === "RAW_MATERIAL"
                           ? "วัตถุดิบ"
-                          : product.productGroup === "SUPPLY"
-                            ? "อุปกรณ์"
-                            : product.productGroup === "FINISHED_GOOD"
-                              ? "สินค้าผลิตเสร็จ"
-                              : "เสื้อสำเร็จ"}
+                          : product.itemType === "CONSUMABLE"
+                            ? "วัสดุสิ้นเปลือง"
+                            : "สินค้าสำเร็จรูป"}
                       </Badge>
                     </div>
 

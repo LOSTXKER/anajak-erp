@@ -179,7 +179,7 @@ async function main() {
       costPrice: 120,
       source: "STOCK",
       stockProductId: "seed-stock-product-1",
-      productGroup: "GARMENT",
+      itemType: "FINISHED_GOOD",
       lastSyncAt: new Date(),
       variants: {
         create: [
@@ -207,7 +207,7 @@ async function main() {
       costPrice: 130,
       source: "STOCK",
       stockProductId: "seed-stock-product-2",
-      productGroup: "GARMENT",
+      itemType: "FINISHED_GOOD",
       lastSyncAt: new Date(),
       variants: {
         create: [
@@ -232,7 +232,7 @@ async function main() {
       costPrice: 60,
       source: "STOCK",
       stockProductId: "seed-stock-product-3",
-      productGroup: "GARMENT",
+      itemType: "FINISHED_GOOD",
       lastSyncAt: new Date(),
       variants: {
         create: [
