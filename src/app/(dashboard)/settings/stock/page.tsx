@@ -218,7 +218,7 @@ export default function StockSettingsPage() {
                   <Input
                     value={apiUrl}
                     onChange={(e) => setApiUrl(e.target.value)}
-                    placeholder="https://stock.anajak.com/api/erp"
+                    placeholder="https://stock.anajak.com/api"
                     className="font-mono text-sm"
                   />
                   <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
@@ -545,7 +545,7 @@ export default function StockSettingsPage() {
                     คัดลอก API URL และ API Key
                   </p>
                   <p className="text-xs">
-                    ในหน้า Integrations ของ Stock จะแสดง API URL (เช่น https://stock.anajak.com/api/erp) และ API Key ที่สร้างไว้
+                    ในหน้า Integrations ของ Stock จะแสดง API URL (เช่น https://stock.anajak.com/api) และ API Key ที่สร้างไว้
                   </p>
                 </div>
               </div>
