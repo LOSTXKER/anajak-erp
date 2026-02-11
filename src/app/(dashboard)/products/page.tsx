@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { Package, RefreshCw, Search, Cloud, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { SyncDialog } from "@/components/sync-dialog";
 
 // ─── Product Group Tabs ─────────────────────────────────────
 const itemTypes = [
@@ -75,20 +76,47 @@ export default function ProductsPage() {
 
   const { data: syncStatus } = trpc.stockSync.status.useQuery();
 
+  // ─── Sync Dialog State ───────────────────────────────────
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [syncResult, setSyncResult] = useState<{
+    productsCreated: number;
+    productsUpdated: number;
+    variantsCreated: number;
+    variantsUpdated: number;
+    errors: string[];
+  } | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
   // ─── Mutations ────────────────────────────────────────────
   const utils = trpc.useUtils();
   const syncAll = trpc.stockSync.syncAll.useMutation({
     onSuccess: (result) => {
-      toast.success("Sync สำเร็จ", {
-        description: `สร้างใหม่ ${result.productsCreated} รายการ, อัพเดท ${result.productsUpdated} รายการ`,
-      });
+      setSyncResult(result);
+      setSyncError(null);
       utils.product.list.invalidate();
       utils.stockSync.status.invalidate();
     },
     onError: (error) => {
-      toast.error("Sync ล้มเหลว", { description: error.message });
+      setSyncResult(null);
+      setSyncError(error.message);
     },
   });
+
+  const handleOpenSync = () => {
+    setSyncResult(null);
+    setSyncError(null);
+    setSyncDialogOpen(true);
+  };
+
+  const handleSync = () => {
+    setSyncResult(null);
+    setSyncError(null);
+    syncAll.mutate();
+  };
+
+  const handleCloseSync = () => {
+    setSyncDialogOpen(false);
+  };
 
   // Reset page when filters change
   const handleItemTypeChange = (value: string) => {
@@ -120,10 +148,7 @@ export default function ProductsPage() {
           </Link>
 
           {/* Sync button */}
-          <Button
-            onClick={() => syncAll.mutate()}
-            disabled={syncAll.isPending}
-          >
+          <Button onClick={handleOpenSync} disabled={syncAll.isPending}>
             <RefreshCw
               className={`h-4 w-4 ${syncAll.isPending ? "animate-spin" : ""}`}
             />
@@ -213,7 +238,7 @@ export default function ProductsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => syncAll.mutate()}
+                onClick={handleOpenSync}
                 disabled={syncAll.isPending}
               >
                 <RefreshCw className={`h-4 w-4 ${syncAll.isPending ? "animate-spin" : ""}`} />
@@ -310,6 +335,16 @@ export default function ProductsPage() {
           })}
         </div>
       )}
+
+      {/* ─── Sync Dialog ─────────────────────────────────────── */}
+      <SyncDialog
+        open={syncDialogOpen}
+        onClose={handleCloseSync}
+        onSync={handleSync}
+        isPending={syncAll.isPending}
+        result={syncResult}
+        error={syncError}
+      />
 
       {/* ─── Pagination ──────────────────────────────────────── */}
       {data && data.total > 0 && (
