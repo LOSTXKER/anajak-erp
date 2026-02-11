@@ -6,7 +6,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { StockApiClient, type StockProduct } from "@/lib/stock-api";
+import { StockApiClient, type StockProduct, type StockVariant } from "@/lib/stock-api";
 
 // ============================================================
 // CATEGORY MAPPING
@@ -156,11 +156,27 @@ async function upsertProduct(
 
 async function upsertVariant(
   productId: string,
-  sv: { id: string; sku: string; barcode: string | null; name: string | null; costPrice: number; sellingPrice: number; totalStock: number },
+  sv: StockVariant,
   result: SyncResult
 ): Promise<void> {
-  // Parse variant name to extract size/color (e.g., "แดง / M" -> color="แดง", size="M")
-  const { size, color } = parseVariantName(sv.name);
+  // 1. Try structured options from API (preferred)
+  let size = "FREE";
+  let color = "-";
+
+  const sizeOption = sv.options?.find((o) =>
+    /ไซส์|size/i.test(o.type)
+  );
+  const colorOption = sv.options?.find((o) =>
+    /สี|color/i.test(o.type)
+  );
+
+  if (sizeOption || colorOption) {
+    size = sizeOption?.value?.toUpperCase() || "FREE";
+    color = colorOption?.value || "-";
+  } else {
+    // 2. Fallback: parse variant name string
+    ({ size, color } = parseVariantName(sv.name));
+  }
 
   const existing = await prisma.productVariant.findFirst({
     where: {
@@ -207,9 +223,9 @@ function parseVariantName(name: string | null): {
 } {
   if (!name) return { size: "FREE", color: "-" };
 
-  // Common patterns: "แดง / M", "M / แดง", "M-แดง", "แดง-M"
+  // Common patterns: "แดง / M", "M / แดง", "M-แดง", "แดง-M", "แดง, S"
   const parts = name
-    .split(/\s*[\/\-]\s*/)
+    .split(/\s*[\/\-,]\s*/)
     .map((p) => p.trim())
     .filter(Boolean);
 

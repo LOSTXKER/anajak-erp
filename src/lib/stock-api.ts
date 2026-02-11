@@ -15,6 +15,11 @@ export interface StockLocation {
   qty: number;
 }
 
+export interface StockVariantOption {
+  type: string;   // e.g. "สี", "ไซส์"
+  value: string;  // e.g. "แดง", "S"
+}
+
 export interface StockVariant {
   id: string;
   sku: string;
@@ -24,6 +29,7 @@ export interface StockVariant {
   sellingPrice: number;
   totalStock: number;
   stockByLocation: StockLocation[];
+  options?: StockVariantOption[];
 }
 
 export interface StockProduct {

@@ -496,7 +496,7 @@ model Product {
 
   // Stock sync fields
   stockProductId  String?   @unique @map("stock_product_id")
-  source          String    @default("LOCAL") // "STOCK" | "LOCAL"
+  source          String    @default("STOCK") // "STOCK" | "LOCAL"
   productGroup    String    @default("GARMENT") @map("product_group") // GARMENT, MATERIAL, SUPPLY, FINISHED_GOOD
   barcode         String?
   unit            String?   // PCS, M, KG, etc.

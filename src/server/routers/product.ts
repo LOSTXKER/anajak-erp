@@ -1,15 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 
-const variantSchema = z.object({
-  size: z.string(),
-  color: z.string(),
-  sku: z.string(),
-  priceAdj: z.number().default(0),
-  stock: z.number().default(0),
-  isActive: z.boolean().default(true),
-});
-
 export const productRouter = router({
   list: protectedProcedure
     .input(
@@ -119,45 +110,11 @@ export const productRouter = router({
       });
     }),
 
-  create: protectedProcedure
-    .input(
-      z.object({
-        sku: z.string().min(1),
-        name: z.string().min(1),
-        description: z.string().optional(),
-        productType: z.string(),
-        category: z.string().optional(),
-        basePrice: z.number().min(0),
-        costPrice: z.number().optional(),
-        imageUrl: z.string().optional(),
-        images: z.array(z.string()).default([]),
-        variants: z.array(variantSchema).default([]),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { variants, ...data } = input;
-
-      return ctx.prisma.product.create({
-        data: {
-          ...data,
-          variants: {
-            create: variants,
-          },
-        },
-        include: { variants: true },
-      });
-    }),
-
+  // Update limited to ERP-specific overrides only (synced fields come from Stock)
   update: protectedProcedure
     .input(
       z.object({
         id: z.string(),
-        name: z.string().optional(),
-        description: z.string().optional(),
-        productType: z.string().optional(),
-        category: z.string().optional(),
-        basePrice: z.number().optional(),
-        costPrice: z.number().optional(),
         imageUrl: z.string().optional(),
         images: z.array(z.string()).optional(),
         isActive: z.boolean().optional(),
@@ -168,41 +125,17 @@ export const productRouter = router({
       return ctx.prisma.product.update({ where: { id }, data });
     }),
 
-  addVariant: protectedProcedure
-    .input(
-      z.object({
-        productId: z.string(),
-        size: z.string(),
-        color: z.string(),
-        sku: z.string(),
-        priceAdj: z.number().default(0),
-        stock: z.number().default(0),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { productId, ...data } = input;
-      return ctx.prisma.productVariant.create({
-        data: { productId, ...data },
-      });
-    }),
-
+  // Variant update limited to ERP-level price adjustment and active status
   updateVariant: protectedProcedure
     .input(
       z.object({
         id: z.string(),
         priceAdj: z.number().optional(),
-        stock: z.number().optional(),
         isActive: z.boolean().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
       return ctx.prisma.productVariant.update({ where: { id }, data });
-    }),
-
-  deleteVariant: protectedProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.productVariant.delete({ where: { id: input.id } });
     }),
 });

@@ -257,16 +257,15 @@ export function ProductPickerDialog({
                               {PRODUCT_TYPE_LABELS[product.productType] ??
                                 product.productType}
                             </span>
-                            <span
-                              className={cn(
-                                "inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
-                                product.source === "STOCK"
-                                  ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                                  : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
-                              )}
-                            >
-                              {product.source === "STOCK" ? "Stock" : "Local"}
-                            </span>
+                            {product.productGroup && product.productGroup !== "GARMENT" && (
+                              <span className="inline-flex flex-shrink-0 items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                                {product.productGroup === "MATERIAL"
+                                  ? "วัตถุดิบ"
+                                  : product.productGroup === "SUPPLY"
+                                    ? "อุปกรณ์"
+                                    : product.productGroup}
+                              </span>
+                            )}
                           </div>
                           <div className="mt-0.5 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                             <span className="font-mono">{product.sku}</span>

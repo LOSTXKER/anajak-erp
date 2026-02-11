@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { Package, Plus, RefreshCw, Search, Cloud } from "lucide-react";
+import { Package, RefreshCw, Search, Cloud, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 // ─── Product Group Tabs ─────────────────────────────────────
@@ -113,9 +113,15 @@ export default function ProductsPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Stock settings */}
+          <Link href="/settings/stock">
+            <Button variant="ghost" size="icon" title="ตั้งค่าการเชื่อมต่อ Stock">
+              <Settings className="h-4 w-4" />
+            </Button>
+          </Link>
+
           {/* Sync button */}
           <Button
-            variant="outline"
             onClick={() => syncAll.mutate()}
             disabled={syncAll.isPending}
           >
@@ -124,14 +130,6 @@ export default function ProductsPage() {
             />
             {syncAll.isPending ? "กำลัง Sync..." : "Sync จาก Anajak Stock"}
           </Button>
-
-          {/* Add product */}
-          <Link href="/products/new">
-            <Button>
-              <Plus className="h-4 w-4" />
-              เพิ่มสินค้า
-            </Button>
-          </Link>
         </div>
       </div>
 
@@ -139,12 +137,9 @@ export default function ProductsPage() {
       {syncStatus?.lastSyncAt && (
         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
           <Cloud className="h-3.5 w-3.5" />
-          <span>อัพเดทล่าสุด: {formatDateTime(syncStatus.lastSyncAt)}</span>
+          <span>Sync ล่าสุด: {formatDateTime(syncStatus.lastSyncAt)}</span>
           <span className="text-slate-300 dark:text-slate-600">|</span>
-          <span>
-            Stock {syncStatus.totalStockProducts} รายการ · Local{" "}
-            {syncStatus.totalLocalProducts} รายการ
-          </span>
+          <span>ทั้งหมด {syncStatus.totalProducts} รายการ</span>
         </div>
       )}
 
@@ -212,14 +207,26 @@ export default function ProductsPage() {
       ) : data?.products?.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Package className="h-12 w-12 text-slate-300 dark:text-slate-600" />
-            <p className="mt-3 text-sm text-slate-500">ไม่พบสินค้า</p>
-            <Link href="/products/new" className="mt-4">
-              <Button variant="outline" size="sm">
-                <Plus className="h-4 w-4" />
-                เพิ่มสินค้าใหม่
+            <Cloud className="h-12 w-12 text-slate-300 dark:text-slate-600" />
+            <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-300">ไม่พบสินค้า</p>
+            <p className="mt-1 text-xs text-slate-400">สินค้าจะถูกดึงมาจาก Anajak Stock อัตโนมัติ</p>
+            <div className="mt-4 flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => syncAll.mutate()}
+                disabled={syncAll.isPending}
+              >
+                <RefreshCw className={`h-4 w-4 ${syncAll.isPending ? "animate-spin" : ""}`} />
+                {syncAll.isPending ? "กำลัง Sync..." : "Sync ตอนนี้"}
               </Button>
-            </Link>
+              <Link href="/settings/stock">
+                <Button variant="ghost" size="sm">
+                  <Settings className="h-4 w-4" />
+                  ตั้งค่าการเชื่อมต่อ
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -245,16 +252,17 @@ export default function ProductsPage() {
                       <Package className="h-16 w-16 text-white/40" />
                     )}
 
-                    {/* Source badge */}
+                    {/* Product group badge */}
                     <div className="absolute top-3 left-3">
-                      {product.source === "STOCK" ? (
-                        <Badge className="bg-blue-600 text-white dark:bg-blue-500">
-                          <Cloud className="mr-1 h-3 w-3" />
-                          Stock
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">Local</Badge>
-                      )}
+                      <Badge className="bg-black/50 text-white backdrop-blur-sm">
+                        {product.productGroup === "MATERIAL"
+                          ? "วัตถุดิบ"
+                          : product.productGroup === "SUPPLY"
+                            ? "อุปกรณ์"
+                            : product.productGroup === "FINISHED_GOOD"
+                              ? "สินค้าผลิตเสร็จ"
+                              : "เสื้อสำเร็จ"}
+                      </Badge>
                     </div>
 
                     {/* Status indicator */}
