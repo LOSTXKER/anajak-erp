@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
-import { StockApiClient, getStockClient } from "@/lib/stock-api";
+import { StockApiClient, getStockClientFromSettings } from "@/lib/stock-api";
 import { syncAllProducts, syncStockLevels, getSyncStatus } from "@/lib/stock-sync";
 
 export const stockSyncRouter = router({
@@ -14,29 +14,33 @@ export const stockSyncRouter = router({
         .optional()
     )
     .mutation(async ({ input }) => {
-      const client = input?.apiUrl && input?.apiKey
-        ? new StockApiClient(input.apiUrl, input.apiKey)
-        : getStockClient();
+      // If explicit URL/Key provided (testing before save), use those directly
+      if (input?.apiUrl && input?.apiKey) {
+        const client = new StockApiClient(input.apiUrl, input.apiKey);
+        return client.testConnection();
+      }
 
+      // Otherwise, resolve from DB settings (with env fallback)
+      const client = await getStockClientFromSettings();
       if (!client) {
-        return { connected: false, error: "Stock API ยังไม่ได้ตั้งค่า (ตรวจสอบ ENV)" };
+        return { connected: false, error: "Stock API ยังไม่ได้ตั้งค่า — กรุณาใส่ API URL และ API Key ด้านบน" };
       }
 
       return client.testConnection();
     }),
 
   syncAll: protectedProcedure.mutation(async () => {
-    const client = getStockClient();
+    const client = await getStockClientFromSettings();
     if (!client) {
-      throw new Error("Stock API ยังไม่ได้ตั้งค่า");
+      throw new Error("Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock");
     }
     return syncAllProducts(client);
   }),
 
   syncStock: protectedProcedure.mutation(async () => {
-    const client = getStockClient();
+    const client = await getStockClientFromSettings();
     if (!client) {
-      throw new Error("Stock API ยังไม่ได้ตั้งค่า");
+      throw new Error("Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock");
     }
     return syncStockLevels(client);
   }),
@@ -64,9 +68,9 @@ export const stockSyncRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const client = getStockClient();
+      const client = await getStockClientFromSettings();
       if (!client) {
-        throw new Error("Stock API ยังไม่ได้ตั้งค่า");
+        throw new Error("Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock");
       }
 
       // Create ISSUE movement in Stock
@@ -136,9 +140,9 @@ export const stockSyncRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      const client = getStockClient();
+      const client = await getStockClientFromSettings();
       if (!client) {
-        throw new Error("Stock API ยังไม่ได้ตั้งค่า");
+        throw new Error("Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock");
       }
 
       const movement = await client.createMovement({

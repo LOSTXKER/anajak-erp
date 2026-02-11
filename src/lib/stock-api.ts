@@ -261,3 +261,32 @@ export function getStockClient(): StockApiClient | null {
   if (!url || !key || key === "your-api-key") return null;
   return new StockApiClient(url, key);
 }
+
+/**
+ * Get stock client from DB settings first, then fall back to env vars.
+ * This is the preferred method — settings are saved via the web UI.
+ */
+export async function getStockClientFromSettings(): Promise<StockApiClient | null> {
+  try {
+    // Dynamic import to avoid circular deps at module level
+    const { prisma } = await import("@/lib/prisma");
+
+    const settings = await prisma.setting.findMany({
+      where: { key: { in: ["stock_api_url", "stock_api_key"] } },
+    });
+
+    const map: Record<string, string> = {};
+    for (const s of settings) {
+      map[s.key] = s.value;
+    }
+
+    const url = map["stock_api_url"] || process.env.ANAJAK_STOCK_API_URL;
+    const key = map["stock_api_key"] || process.env.ANAJAK_STOCK_API_KEY;
+
+    if (!url || !key || key === "your-api-key") return null;
+    return new StockApiClient(url, key);
+  } catch {
+    // Fallback to env-only if DB is unreachable
+    return getStockClient();
+  }
+}

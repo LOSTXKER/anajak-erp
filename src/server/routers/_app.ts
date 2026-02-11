@@ -14,6 +14,7 @@ import { costRouter } from "./cost";
 import { attachmentRouter } from "./attachment";
 import { serviceCatalogRouter } from "./service-catalog";
 import { stockSyncRouter } from "./stock-sync";
+import { settingsRouter } from "./settings";
 
 export const appRouter = router({
   customer: customerRouter,
@@ -31,6 +32,7 @@ export const appRouter = router({
   attachment: attachmentRouter,
   serviceCatalog: serviceCatalogRouter,
   stockSync: stockSyncRouter,
+  settings: settingsRouter,
 });
 
 export type AppRouter = typeof appRouter;
