@@ -80,7 +80,7 @@ export const productRouter = router({
         include: {
           variants: {
             where: { isActive: true },
-            orderBy: [{ size: "asc" }, { color: "asc" }],
+            orderBy: { sku: "asc" },
             select: {
               id: true,
               size: true,
@@ -105,7 +105,7 @@ export const productRouter = router({
       return ctx.prisma.product.findUniqueOrThrow({
         where: { id: input.id },
         include: {
-          variants: { orderBy: [{ size: "asc" }, { color: "asc" }] },
+          variants: { orderBy: { sku: "asc" } },
         },
       });
     }),
