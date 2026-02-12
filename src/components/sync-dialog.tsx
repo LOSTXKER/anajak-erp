@@ -37,6 +37,12 @@ interface SyncTotals {
   errors: string[];
 }
 
+interface LogEntry {
+  type: "info" | "product" | "error";
+  text: string;
+  productEntry?: SyncProductEntry;
+}
+
 type SyncPhase = "idle" | "syncing" | "done" | "error";
 type SyncMode = "full" | "incremental";
 
@@ -73,6 +79,10 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
 
+  // Real-time activity status & log
+  const [activityStatus, setActivityStatus] = useState("");
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
+
   // For retry: remember where we stopped
   const [lastFailedPage, setLastFailedPage] = useState<number | null>(null);
 
@@ -102,13 +112,23 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
     setErrorMessage(null);
     setCancelled(false);
     setLastFailedPage(null);
+    setActivityStatus("");
+    setLogEntries([]);
     abortRef.current = false;
   }, []);
 
   // Auto-scroll log
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [recentProducts.length]);
+  }, [logEntries.length]);
+
+  // ─── Log helper ──────────────────────────────────────────
+  const pushLog = useCallback(
+    (type: LogEntry["type"], text: string, productEntry?: SyncProductEntry) => {
+      setLogEntries((prev) => [...prev, { type, text, productEntry }].slice(-50));
+    },
+    []
+  );
 
   // ─── Start sync ───────────────────────────────────────────
   const startSync = useCallback(
@@ -119,6 +139,10 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
       setCancelled(false);
       abortRef.current = false;
       startTimeRef.current = Date.now();
+
+      // Immediate activity feedback
+      setActivityStatus("กำลังเชื่อมต่อ Anajak Stock...");
+      setLogEntries([{ type: "info", text: "เชื่อมต่อ Anajak Stock..." }]);
 
       timerRef.current = setInterval(() => {
         setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
@@ -147,11 +171,35 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
         while (hasMore && !abortRef.current) {
           setCurrentPage(page);
 
+          // Activity: fetching page
+          setActivityStatus(`กำลังดึงข้อมูลหน้า ${page}...`);
+          pushLog("info", `ดึงข้อมูลสินค้า หน้า ${page}...`);
+
           const pageResult = await syncPage.mutateAsync({
             page,
             mode: syncMode,
             updatedAfter,
           });
+
+          // Activity: processing result
+          const count = pageResult.syncedProducts.length;
+          setActivityStatus(
+            `ได้รับ ${count} สินค้า — กำลังบันทึก...`
+          );
+          pushLog(
+            "info",
+            `หน้า ${page}: ได้รับ ${count} สินค้า, ${pageResult.variantsCreated + pageResult.variantsUpdated} variants`
+          );
+
+          // Push individual product entries to log
+          for (const entry of pageResult.syncedProducts) {
+            pushLog("product", "", entry);
+          }
+
+          // Push errors to log
+          for (const err of pageResult.errors) {
+            pushLog("error", err);
+          }
 
           // Accumulate
           accumulated.productsCreated += pageResult.productsCreated;
@@ -169,6 +217,9 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
           );
 
           hasMore = pageResult.hasMore;
+          if (hasMore) {
+            setActivityStatus(`กำลังดึงข้อมูลหน้าถัดไป...`);
+          }
           page++;
         }
 
@@ -177,8 +228,12 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
 
         if (abortRef.current) {
           setCancelled(true);
+          setActivityStatus("Sync ถูกยกเลิก");
+          pushLog("info", "Sync ถูกยกเลิก");
           setPhase("done");
         } else {
+          setActivityStatus("Sync สำเร็จ!");
+          pushLog("info", "Sync สำเร็จ!");
           setPhase("done");
         }
 
@@ -187,14 +242,16 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
       } catch (err) {
         clearInterval(timerRef.current);
         setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
-        setErrorMessage(
-          err instanceof Error ? err.message : "เกิดข้อผิดพลาดไม่ทราบสาเหตุ"
-        );
+        const msg =
+          err instanceof Error ? err.message : "เกิดข้อผิดพลาดไม่ทราบสาเหตุ";
+        setErrorMessage(msg);
+        setActivityStatus("เกิดข้อผิดพลาด");
+        pushLog("error", msg);
         setLastFailedPage(page);
         setPhase("error");
       }
     },
-    [resetState, syncPage, utils, syncStatus?.lastSyncAt, totals]
+    [resetState, pushLog, syncPage, utils, syncStatus?.lastSyncAt, totals]
   );
 
   // ─── Cancel ───────────────────────────────────────────────
@@ -223,7 +280,7 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
   ) {
     const style = document.createElement("style");
     style.id = "sync-dialog-keyframes";
-    style.textContent = `@keyframes dialogIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}`;
+    style.textContent = `@keyframes dialogIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}@keyframes logPulse{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:translateY(0)}}@keyframes dotPulse{0%,100%{opacity:.3}50%{opacity:1}}`;
     document.head.appendChild(style);
   }
 
@@ -326,8 +383,9 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                   </div>
                 </div>
 
+                {/* Dynamic activity status */}
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                  กำลัง Sync...
+                  {activityStatus || "กำลัง Sync..."}
                 </h2>
 
                 {/* Mode badge */}
@@ -365,38 +423,120 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                 </div>
               )}
 
-              {/* Live log */}
-              {recentProducts.length > 0 && (
-                <div className="mt-4 max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-left dark:border-slate-700 dark:bg-slate-800/50">
-                  {recentProducts.map((entry, i) => (
-                    <div
-                      key={`${entry.sku}-${i}`}
-                      className={`flex items-start gap-2 py-1 text-xs ${
-                        i === recentProducts.length - 1
-                          ? "font-medium text-slate-700 dark:text-slate-200"
-                          : "text-slate-400 dark:text-slate-500"
-                      }`}
-                    >
-                      {entry.status === "error" ? (
-                        <XCircle className="mt-0.5 h-3 w-3 flex-shrink-0 text-red-500" />
-                      ) : entry.status === "created" ? (
-                        <Package className="mt-0.5 h-3 w-3 flex-shrink-0 text-blue-500" />
-                      ) : (
-                        <CheckCircle2 className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-500" />
-                      )}
-                      <span className="truncate">
-                        {entry.sku} — {entry.name}
-                        {entry.variantCount > 0 && (
-                          <span className="ml-1 text-slate-400">
-                            ({entry.variantCount} variants)
-                          </span>
-                        )}
+              {/* Live running counters */}
+              {(totals.productsCreated + totals.productsUpdated > 0 ||
+                totals.variantsCreated + totals.variantsUpdated > 0) && (
+                <div className="mt-3 flex items-center justify-center gap-3 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  <span>
+                    <Package className="mr-1 inline h-3 w-3" />
+                    สินค้า{" "}
+                    {totals.productsCreated + totals.productsUpdated}
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-600">|</span>
+                  <span>
+                    <Layers className="mr-1 inline h-3 w-3" />
+                    Variants{" "}
+                    {totals.variantsCreated + totals.variantsUpdated}
+                  </span>
+                  {totals.errors.length > 0 && (
+                    <>
+                      <span className="text-slate-300 dark:text-slate-600">|</span>
+                      <span className="text-red-500">
+                        <AlertTriangle className="mr-1 inline h-3 w-3" />
+                        {totals.errors.length}
                       </span>
-                    </div>
-                  ))}
-                  <div ref={logEndRef} />
+                    </>
+                  )}
                 </div>
               )}
+
+              {/* Live log — always visible */}
+              <div className="mt-4 max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-left dark:border-slate-700 dark:bg-slate-800/50">
+                {logEntries.length === 0 ? (
+                  <div className="flex items-center gap-2 py-1 text-xs text-slate-400">
+                    <span
+                      className="inline-block h-2 w-2 rounded-full bg-blue-400"
+                      style={{ animation: "dotPulse 1.2s ease-in-out infinite" }}
+                    />
+                    <span>เริ่มต้น Sync...</span>
+                  </div>
+                ) : (
+                  logEntries.map((entry, i) => {
+                    const isLast = i === logEntries.length - 1;
+
+                    // System info message
+                    if (entry.type === "info") {
+                      return (
+                        <div
+                          key={`log-${i}`}
+                          className={`flex items-center gap-2 py-1 text-xs ${
+                            isLast
+                              ? "font-medium text-blue-600 dark:text-blue-400"
+                              : "text-slate-400 dark:text-slate-500"
+                          }`}
+                          style={isLast ? { animation: "logPulse 0.3s ease-out" } : undefined}
+                        >
+                          {isLast ? (
+                            <span
+                              className="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-blue-400"
+                              style={{ animation: "dotPulse 1.2s ease-in-out infinite" }}
+                            />
+                          ) : (
+                            <span className="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-slate-300 dark:bg-slate-600" />
+                          )}
+                          <span className="truncate">{entry.text}</span>
+                        </div>
+                      );
+                    }
+
+                    // Error message
+                    if (entry.type === "error") {
+                      return (
+                        <div
+                          key={`log-${i}`}
+                          className="flex items-start gap-2 py-1 text-xs text-red-500"
+                          style={isLast ? { animation: "logPulse 0.3s ease-out" } : undefined}
+                        >
+                          <XCircle className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{entry.text}</span>
+                        </div>
+                      );
+                    }
+
+                    // Product entry
+                    const pe = entry.productEntry;
+                    if (!pe) return null;
+                    return (
+                      <div
+                        key={`log-${i}`}
+                        className={`flex items-start gap-2 py-1 text-xs ${
+                          isLast
+                            ? "font-medium text-slate-700 dark:text-slate-200"
+                            : "text-slate-400 dark:text-slate-500"
+                        }`}
+                        style={isLast ? { animation: "logPulse 0.3s ease-out" } : undefined}
+                      >
+                        {pe.status === "error" ? (
+                          <XCircle className="mt-0.5 h-3 w-3 flex-shrink-0 text-red-500" />
+                        ) : pe.status === "created" ? (
+                          <Package className="mt-0.5 h-3 w-3 flex-shrink-0 text-blue-500" />
+                        ) : (
+                          <CheckCircle2 className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-500" />
+                        )}
+                        <span className="truncate">
+                          {pe.sku} — {pe.name}
+                          {pe.variantCount > 0 && (
+                            <span className="ml-1 text-slate-400">
+                              ({pe.variantCount} variants)
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={logEndRef} />
+              </div>
 
               {/* Cancel button */}
               <div className="mt-4 text-center">
