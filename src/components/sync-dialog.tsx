@@ -142,7 +142,7 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
 
       // Immediate activity feedback
       setActivityStatus("กำลังเชื่อมต่อ Anajak Stock...");
-      setLogEntries([{ type: "info", text: "เชื่อมต่อ Anajak Stock..." }]);
+      setLogEntries([{ type: "info", text: "กำลังเชื่อมต่อ Anajak Stock..." }]);
 
       timerRef.current = setInterval(() => {
         setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
@@ -172,8 +172,8 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
           setCurrentPage(page);
 
           // Activity: fetching page
-          setActivityStatus(`กำลังดึงข้อมูลหน้า ${page}...`);
-          pushLog("info", `ดึงข้อมูลสินค้า หน้า ${page}...`);
+          setActivityStatus("กำลังดึงรายการสินค้า...");
+          pushLog("info", "กำลังดึงรายการสินค้าจาก Stock...");
 
           const pageResult = await syncPage.mutateAsync({
             page,
@@ -183,12 +183,13 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
 
           // Activity: processing result
           const count = pageResult.syncedProducts.length;
+          const variantTotal = pageResult.variantsCreated + pageResult.variantsUpdated;
           setActivityStatus(
-            `ได้รับ ${count} สินค้า — กำลังบันทึก...`
+            `กำลังบันทึก ${count} สินค้า...`
           );
           pushLog(
             "info",
-            `หน้า ${page}: ได้รับ ${count} สินค้า, ${pageResult.variantsCreated + pageResult.variantsUpdated} variants`
+            `พบ ${count} สินค้า${variantTotal > 0 ? `, ${variantTotal} ตัวเลือก` : ""}`
           );
 
           // Push individual product entries to log
@@ -218,7 +219,7 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
 
           hasMore = pageResult.hasMore;
           if (hasMore) {
-            setActivityStatus(`กำลังดึงข้อมูลหน้าถัดไป...`);
+            setActivityStatus("กำลังดึงสินค้าเพิ่มเติม...");
           }
           page++;
         }
@@ -397,12 +398,6 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                 {totalProducts > 0 && (
                   <p className="mt-2 text-sm font-medium tabular-nums text-blue-600 dark:text-blue-400">
                     {processedCount}/{totalProducts} สินค้า
-                    {totalPages > 1 && (
-                      <span className="font-normal text-slate-400">
-                        {" "}
-                        (หน้า {currentPage}/{totalPages})
-                      </span>
-                    )}
                   </p>
                 )}
               </div>
@@ -435,7 +430,7 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                   <span className="text-slate-300 dark:text-slate-600">|</span>
                   <span>
                     <Layers className="mr-1 inline h-3 w-3" />
-                    Variants{" "}
+                    ตัวเลือก{" "}
                     {totals.variantsCreated + totals.variantsUpdated}
                   </span>
                   {totals.errors.length > 0 && (
@@ -458,7 +453,7 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                       className="inline-block h-2 w-2 rounded-full bg-blue-400"
                       style={{ animation: "dotPulse 1.2s ease-in-out infinite" }}
                     />
-                    <span>เริ่มต้น Sync...</span>
+                    <span>กำลังเริ่มต้น...</span>
                   </div>
                 ) : (
                   logEntries.map((entry, i) => {
@@ -527,7 +522,7 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                           {pe.sku} — {pe.name}
                           {pe.variantCount > 0 && (
                             <span className="ml-1 text-slate-400">
-                              ({pe.variantCount} variants)
+                              ({pe.variantCount} ตัวเลือก)
                             </span>
                           )}
                         </span>
@@ -602,13 +597,13 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                 />
                 <StatCard
                   icon={<Layers className="h-4 w-4" />}
-                  label="Variant ใหม่"
+                  label="ตัวเลือกใหม่"
                   value={totals.variantsCreated}
                   color="purple"
                 />
                 <StatCard
                   icon={<Layers className="h-4 w-4" />}
-                  label="Variant อัปเดต"
+                  label="ตัวเลือกอัปเดต"
                   value={totals.variantsUpdated}
                   color="violet"
                 />
