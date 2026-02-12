@@ -1,9 +1,14 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { StockApiClient, getStockClientFromSettings } from "@/lib/stock-api";
-import { syncProductPage, syncStockLevels, getSyncStatus } from "@/lib/stock-sync";
+import {
+  syncProductPage,
+  syncStockLevels,
+  getSyncStatus,
+} from "@/lib/stock-sync";
 
 export const stockSyncRouter = router({
+  // ── Test connection ───────────────────────────────────────
   testConnection: protectedProcedure
     .input(
       z
@@ -14,44 +19,62 @@ export const stockSyncRouter = router({
         .optional()
     )
     .mutation(async ({ input }) => {
-      // If explicit URL/Key provided (testing before save), use those directly
       if (input?.apiUrl && input?.apiKey) {
         const client = new StockApiClient(input.apiUrl, input.apiKey);
         return client.testConnection();
       }
-
-      // Otherwise, resolve from DB settings (with env fallback)
       const client = await getStockClientFromSettings();
       if (!client) {
-        return { connected: false, error: "Stock API ยังไม่ได้ตั้งค่า — กรุณาใส่ API URL และ API Key ด้านบน" };
+        return {
+          connected: false,
+          error:
+            "Stock API ยังไม่ได้ตั้งค่า — กรุณาใส่ API URL และ API Key ด้านบน",
+        };
       }
-
       return client.testConnection();
     }),
 
-  // Sync one page at a time — client drives pagination
+  // ── Sync one page (client drives pagination) ──────────────
   syncPage: protectedProcedure
-    .input(z.object({ page: z.number().min(1).default(1) }))
+    .input(
+      z.object({
+        page: z.number().min(1).default(1),
+        mode: z.enum(["full", "incremental"]).default("full"),
+        updatedAfter: z.string().nullish(),
+      })
+    )
     .mutation(async ({ input }) => {
       const client = await getStockClientFromSettings();
       if (!client) {
-        throw new Error("Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock");
+        throw new Error(
+          "Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock"
+        );
       }
-      return syncProductPage(client, input.page);
+      return syncProductPage(
+        client,
+        input.page,
+        input.mode,
+        input.updatedAfter
+      );
     }),
 
+  // ── Sync stock levels only ────────────────────────────────
   syncStock: protectedProcedure.mutation(async () => {
     const client = await getStockClientFromSettings();
     if (!client) {
-      throw new Error("Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock");
+      throw new Error(
+        "Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock"
+      );
     }
     return syncStockLevels(client);
   }),
 
+  // ── Sync status ───────────────────────────────────────────
   status: protectedProcedure.query(async () => {
     return getSyncStatus();
   }),
 
+  // ── Issue materials to Stock ──────────────────────────────
   issueMaterials: protectedProcedure
     .input(
       z.object({
@@ -73,10 +96,11 @@ export const stockSyncRouter = router({
     .mutation(async ({ ctx, input }) => {
       const client = await getStockClientFromSettings();
       if (!client) {
-        throw new Error("Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock");
+        throw new Error(
+          "Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock"
+        );
       }
 
-      // Create ISSUE movement in Stock
       const movement = await client.createMovement({
         type: "ISSUE",
         refNo: input.orderNumber,
@@ -90,7 +114,6 @@ export const stockSyncRouter = router({
         })),
       });
 
-      // Record MaterialUsage in ERP
       for (const m of input.materials) {
         await ctx.prisma.materialUsage.create({
           data: {
@@ -107,12 +130,14 @@ export const stockSyncRouter = router({
         });
       }
 
-      // Update local stock cache
       for (const m of input.materials) {
         if (m.productVariantId) {
           await ctx.prisma.productVariant.updateMany({
             where: { id: m.productVariantId },
-            data: { stock: { decrement: Math.ceil(m.quantity) }, totalStock: { decrement: Math.ceil(m.quantity) } },
+            data: {
+              stock: { decrement: Math.ceil(m.quantity) },
+              totalStock: { decrement: Math.ceil(m.quantity) },
+            },
           });
         }
         await ctx.prisma.product.updateMany({
@@ -127,6 +152,7 @@ export const stockSyncRouter = router({
       };
     }),
 
+  // ── Receive finished goods ────────────────────────────────
   receiveFinished: protectedProcedure
     .input(
       z.object({
@@ -145,13 +171,17 @@ export const stockSyncRouter = router({
     .mutation(async ({ input }) => {
       const client = await getStockClientFromSettings();
       if (!client) {
-        throw new Error("Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock");
+        throw new Error(
+          "Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock"
+        );
       }
 
       const movement = await client.createMovement({
         type: "RECEIVE",
         refNo: input.orderNumber,
-        note: input.note || `สินค้าสำเร็จรูปจากออเดอร์ ${input.orderNumber}`,
+        note:
+          input.note ||
+          `สินค้าสำเร็จรูปจากออเดอร์ ${input.orderNumber}`,
         lines: input.items.map((item) => ({
           sku: item.sku,
           toLocation: input.toLocation,

@@ -28,6 +28,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SyncDialog } from "@/components/sync-dialog";
 
 // ─── Setting Keys ──────────────────────────────────────────
 const STOCK_API_URL_KEY = "stock_api_url";
@@ -58,14 +59,8 @@ export default function StockSettingsPage() {
     error?: string;
   } | null>(null);
 
-  // ─── Sync Results ────────────────────────────────────────
-  const [lastSyncResult, setLastSyncResult] = useState<{
-    productsCreated: number;
-    productsUpdated: number;
-    variantsCreated: number;
-    variantsUpdated: number;
-    errors: string[];
-  } | null>(null);
+  // ─── Sync Dialog ────────────────────────────────────────
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
 
   const [lastStockResult, setLastStockResult] = useState<{
     updated: number;
@@ -130,36 +125,6 @@ export default function StockSettingsPage() {
       toast.error("เกิดข้อผิดพลาด", { description: error.message });
     },
   });
-
-  const syncPage = trpc.stockSync.syncPage.useMutation();
-  const [isSyncingAll, setIsSyncingAll] = useState(false);
-
-  const handleSyncAll = async () => {
-    setIsSyncingAll(true);
-    try {
-      let page = 1;
-      let hasMore = true;
-      const accumulated = { productsCreated: 0, productsUpdated: 0, variantsCreated: 0, variantsUpdated: 0 };
-      while (hasMore) {
-        const result = await syncPage.mutateAsync({ page });
-        accumulated.productsCreated += result.productsCreated;
-        accumulated.productsUpdated += result.productsUpdated;
-        accumulated.variantsCreated += result.variantsCreated;
-        accumulated.variantsUpdated += result.variantsUpdated;
-        hasMore = result.hasMore;
-        page++;
-      }
-      setLastSyncResult({ ...accumulated, errors: [] });
-      toast.success("Sync สินค้าสำเร็จ", {
-        description: `สร้างใหม่ ${accumulated.productsCreated}, อัพเดท ${accumulated.productsUpdated}`,
-      });
-      utils.stockSync.status.invalidate();
-    } catch (error) {
-      toast.error("Sync ล้มเหลว", { description: error instanceof Error ? error.message : "Unknown error" });
-    } finally {
-      setIsSyncingAll(false);
-    }
-  };
 
   const syncStock = trpc.stockSync.syncStock.useMutation({
     onSuccess: (result) => {
@@ -397,16 +362,12 @@ export default function StockSettingsPage() {
             {/* Sync buttons */}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Button
-                onClick={handleSyncAll}
-                disabled={isSyncingAll || !hasCredentials}
+                onClick={() => setSyncDialogOpen(true)}
+                disabled={!hasCredentials}
                 className="w-full"
               >
-                {isSyncingAll ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Cloud className="h-4 w-4" />
-                )}
-                {isSyncingAll ? "กำลัง Sync..." : "Sync สินค้าทั้งหมด"}
+                <Cloud className="h-4 w-4" />
+                Sync สินค้า
               </Button>
               <Button
                 variant="outline"
@@ -422,38 +383,6 @@ export default function StockSettingsPage() {
                 {syncStock.isPending ? "กำลัง Sync..." : "Sync เฉพาะสต็อค"}
               </Button>
             </div>
-
-            {/* Last sync result */}
-            {lastSyncResult && (
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/50">
-                <p className="mb-1 text-sm font-medium text-blue-700 dark:text-blue-400">
-                  ผลลัพธ์ Sync สินค้า
-                </p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-blue-600 dark:text-blue-300">
-                  <span>สร้างใหม่: {lastSyncResult.productsCreated}</span>
-                  <span>อัพเดท: {lastSyncResult.productsUpdated}</span>
-                  <span>Variant ใหม่: {lastSyncResult.variantsCreated}</span>
-                  <span>Variant อัพเดท: {lastSyncResult.variantsUpdated}</span>
-                </div>
-                {lastSyncResult.errors.length > 0 && (
-                  <div className="mt-2 border-t border-blue-200 pt-2 dark:border-blue-800">
-                    <p className="text-xs font-medium text-red-600 dark:text-red-400">
-                      ข้อผิดพลาด ({lastSyncResult.errors.length}):
-                    </p>
-                    {lastSyncResult.errors.slice(0, 3).map((err, i) => (
-                      <p key={i} className="text-xs text-red-500 dark:text-red-400">
-                        {err}
-                      </p>
-                    ))}
-                    {lastSyncResult.errors.length > 3 && (
-                      <p className="text-xs text-red-400">
-                        ...อีก {lastSyncResult.errors.length - 3} รายการ
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Last stock sync result */}
             {lastStockResult && (
@@ -590,6 +519,12 @@ export default function StockSettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ─── Sync Dialog ─────────────────────────────────────── */}
+      <SyncDialog
+        open={syncDialogOpen}
+        onClose={() => setSyncDialogOpen(false)}
+      />
     </div>
   );
 }
