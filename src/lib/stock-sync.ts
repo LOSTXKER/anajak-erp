@@ -108,41 +108,24 @@ export async function syncAllProducts(
 
   updateProgress({ phase: "connecting", currentProduct: null });
 
+  // ── Phase 1: Fetch ALL products from Stock API ──────────────
+  const allStockProducts: StockProduct[] = [];
   let page = 1;
   let totalPages = 1;
-  let processedCount = 0;
 
   while (page <= totalPages) {
-    try {
-      updateProgress({ phase: page === 1 ? "fetching" : "syncing", currentPage: page, totalPages });
+    updateProgress({
+      phase: page === 1 ? "fetching" : "fetching",
+      currentPage: page,
+      totalPages,
+      currentProduct: `กำลังดึงหน้า ${page}...`,
+    });
 
+    try {
       const res = await client.getProducts({ page, limit: 100 });
       totalPages = res.data.pagination.totalPages;
-      const totalCount = res.data.pagination.total;
-
-      updateProgress({ phase: "syncing", totalPages, totalCount });
-
-      for (const stockProduct of res.data.items) {
-        updateProgress({
-          currentProduct: `${stockProduct.sku} — ${stockProduct.name}`,
-        });
-
-        try {
-          await upsertProduct(stockProduct, result);
-        } catch (err) {
-          result.errors.push(
-            `Product ${stockProduct.sku}: ${err instanceof Error ? err.message : "Unknown error"}`
-          );
-        }
-
-        processedCount++;
-        const recent = _syncProgress?.recentProducts ?? [];
-        updateProgress({
-          processedCount,
-          recentProducts: [...recent, `${stockProduct.sku} — ${stockProduct.name}`].slice(-RECENT_PRODUCTS_LIMIT),
-        });
-      }
-
+      allStockProducts.push(...res.data.items);
+      updateProgress({ totalPages, totalCount: res.data.pagination.total });
       page++;
     } catch (err) {
       result.errors.push(
@@ -152,135 +135,201 @@ export async function syncAllProducts(
     }
   }
 
+  if (allStockProducts.length === 0) {
+    updateProgress({ phase: "done", currentProduct: null });
+    return result;
+  }
+
+  // ── Phase 2: Pre-fetch existing records in bulk (2 queries) ─
+  updateProgress({
+    phase: "syncing",
+    currentProduct: "กำลังเตรียมข้อมูล...",
+    totalCount: allStockProducts.length,
+  });
+
+  const allProductSkus = allStockProducts.map((p) => p.sku);
+  const allProductStockIds = allStockProducts.map((p) => p.id);
+  const allVariantSkus = allStockProducts.flatMap((p) => p.variants.map((v) => v.sku));
+  const allVariantStockIds = allStockProducts.flatMap((p) => p.variants.map((v) => v.id));
+
+  const [existingProducts, existingVariants] = await Promise.all([
+    prisma.product.findMany({
+      where: {
+        OR: [
+          { sku: { in: allProductSkus } },
+          { stockProductId: { in: allProductStockIds } },
+        ],
+      },
+      select: { id: true, sku: true, stockProductId: true },
+    }),
+    prisma.productVariant.findMany({
+      where: {
+        OR: [
+          { sku: { in: allVariantSkus } },
+          { stockVariantId: { in: allVariantStockIds } },
+        ],
+      },
+      select: { id: true, sku: true, stockVariantId: true },
+    }),
+  ]);
+
+  // Build O(1) lookup maps
+  const productBySku = new Map(existingProducts.map((p) => [p.sku, p]));
+  const productByStockId = new Map(
+    existingProducts.filter((p) => p.stockProductId).map((p) => [p.stockProductId!, p])
+  );
+  const variantBySku = new Map(existingVariants.map((v) => [v.sku, v]));
+  const variantByStockId = new Map(
+    existingVariants.filter((v) => v.stockVariantId).map((v) => [v.stockVariantId!, v])
+  );
+
+  // ── Phase 3: Batch upsert products ─────────────────────────
+  let processedCount = 0;
+
+  // Process in batches of ~5 products at a time using $transaction
+  const BATCH_SIZE = 5;
+
+  for (let i = 0; i < allStockProducts.length; i += BATCH_SIZE) {
+    const batch = allStockProducts.slice(i, i + BATCH_SIZE);
+    const txOps: ReturnType<typeof prisma.product.upsert>[] = [];
+
+    for (const sp of batch) {
+      const existing = productByStockId.get(sp.id) || productBySku.get(sp.sku);
+      const productData = {
+        sku: sp.sku,
+        name: sp.name,
+        description: sp.description,
+        productType: mapProductType(sp.category),
+        category: sp.category,
+        basePrice: sp.lastCost || sp.standardCost || 0,
+        costPrice: sp.lastCost || sp.standardCost || 0,
+        stockProductId: sp.id,
+        source: "STOCK",
+        itemType: resolveItemType(sp),
+        barcode: sp.barcode,
+        unit: sp.unit,
+        unitName: sp.unitName,
+        reorderPoint: sp.reorderPoint || 0,
+        totalStock: sp.totalStock || 0,
+        lastSyncAt: new Date(),
+        isActive: true,
+      };
+
+      if (existing) {
+        txOps.push(
+          prisma.product.update({ where: { id: existing.id }, data: productData })
+        );
+        result.productsUpdated++;
+      } else {
+        txOps.push(
+          prisma.product.create({ data: productData }) as ReturnType<typeof prisma.product.upsert>
+        );
+        result.productsCreated++;
+      }
+    }
+
+    // Execute product batch
+    try {
+      const upsertedProducts = await prisma.$transaction(txOps);
+
+      // Build a map of sku -> id for the just-upserted products
+      const upsertedMap = new Map<string, string>();
+      for (const p of upsertedProducts) {
+        upsertedMap.set(p.sku, p.id);
+      }
+
+      // Now batch upsert variants for these products
+      const variantTxOps: ReturnType<typeof prisma.productVariant.update>[] = [];
+
+      for (const sp of batch) {
+        const productId = upsertedMap.get(sp.sku);
+        if (!productId || !sp.hasVariants || sp.variants.length === 0) continue;
+
+        for (const sv of sp.variants) {
+          try {
+            const { size, color } = resolveVariantOptions(sv);
+            const existingVar = variantByStockId.get(sv.id) || variantBySku.get(sv.sku);
+
+            const variantData = {
+              size,
+              color,
+              sku: sv.sku,
+              stockVariantId: sv.id,
+              barcode: sv.barcode,
+              costPrice: sv.costPrice || 0,
+              sellingPrice: sv.sellingPrice || 0,
+              stock: sv.totalStock || 0,
+              totalStock: sv.totalStock || 0,
+              isActive: true,
+            };
+
+            if (existingVar) {
+              variantTxOps.push(
+                prisma.productVariant.update({
+                  where: { id: existingVar.id },
+                  data: variantData,
+                })
+              );
+              result.variantsUpdated++;
+            } else {
+              variantTxOps.push(
+                prisma.productVariant.create({
+                  data: { ...variantData, productId },
+                }) as ReturnType<typeof prisma.productVariant.update>
+              );
+              result.variantsCreated++;
+            }
+          } catch (err) {
+            result.errors.push(
+              `Variant ${sv.sku}: ${err instanceof Error ? err.message : "Unknown error"}`
+            );
+          }
+        }
+      }
+
+      if (variantTxOps.length > 0) {
+        await prisma.$transaction(variantTxOps);
+      }
+    } catch (err) {
+      // If batch fails, report errors for each product in the batch
+      for (const sp of batch) {
+        result.errors.push(
+          `Product ${sp.sku}: ${err instanceof Error ? err.message : "Unknown error"}`
+        );
+      }
+    }
+
+    // Update progress after each batch
+    processedCount += batch.length;
+    const recent = _syncProgress?.recentProducts ?? [];
+    const newNames = batch.map((sp) => `${sp.sku} — ${sp.name}`);
+    updateProgress({
+      processedCount,
+      currentProduct: batch[batch.length - 1]
+        ? `${batch[batch.length - 1].sku} — ${batch[batch.length - 1].name}`
+        : null,
+      recentProducts: [...recent, ...newNames].slice(-RECENT_PRODUCTS_LIMIT),
+    });
+  }
+
   updateProgress({ phase: "done", currentProduct: null });
 
   return result;
 }
 
-async function upsertProduct(
-  sp: StockProduct,
-  result: SyncResult
-): Promise<void> {
-  const existing = await prisma.product.findFirst({
-    where: {
-      OR: [
-        { stockProductId: sp.id },
-        { sku: sp.sku },
-      ],
-    },
-  });
-
-  const data = {
-    sku: sp.sku,
-    name: sp.name,
-    description: sp.description,
-    productType: mapProductType(sp.category),
-    category: sp.category,
-    basePrice: sp.lastCost || sp.standardCost || 0,
-    costPrice: sp.lastCost || sp.standardCost || 0,
-    stockProductId: sp.id,
-    source: "STOCK",
-    itemType: resolveItemType(sp),
-    barcode: sp.barcode,
-    unit: sp.unit,
-    unitName: sp.unitName,
-    reorderPoint: sp.reorderPoint || 0,
-    totalStock: sp.totalStock || 0,
-    lastSyncAt: new Date(),
-    isActive: true,
-  };
-
-  if (existing) {
-    await prisma.product.update({
-      where: { id: existing.id },
-      data,
-    });
-    result.productsUpdated++;
-  } else {
-    await prisma.product.create({ data });
-    result.productsCreated++;
-  }
-
-  // Sync variants
-  if (sp.hasVariants && sp.variants.length > 0) {
-    const product = await prisma.product.findUnique({
-      where: { sku: sp.sku },
-    });
-    if (!product) return;
-
-    for (const sv of sp.variants) {
-      try {
-        await upsertVariant(product.id, sv, result);
-      } catch (err) {
-        result.errors.push(
-          `Variant ${sv.sku}: ${err instanceof Error ? err.message : "Unknown error"}`
-        );
-      }
-    }
-  }
-}
-
-async function upsertVariant(
-  productId: string,
-  sv: StockVariant,
-  result: SyncResult
-): Promise<void> {
-  // 1. Try structured options from API (preferred)
-  let size = "FREE";
-  let color = "-";
-
-  const sizeOption = sv.options?.find((o) =>
-    /ไซส์|size/i.test(o.type)
-  );
-  const colorOption = sv.options?.find((o) =>
-    /สี|color/i.test(o.type)
-  );
+/** Extract size/color from variant options or name */
+function resolveVariantOptions(sv: StockVariant): { size: string; color: string } {
+  const sizeOption = sv.options?.find((o) => /ไซส์|size/i.test(o.type));
+  const colorOption = sv.options?.find((o) => /สี|color/i.test(o.type));
 
   if (sizeOption || colorOption) {
-    size = sizeOption?.value?.toUpperCase() || "FREE";
-    color = colorOption?.value || "-";
-  } else {
-    // 2. Fallback: parse variant name string
-    ({ size, color } = parseVariantName(sv.name));
+    return {
+      size: sizeOption?.value?.toUpperCase() || "FREE",
+      color: colorOption?.value || "-",
+    };
   }
 
-  const existing = await prisma.productVariant.findFirst({
-    where: {
-      OR: [
-        { stockVariantId: sv.id },
-        { sku: sv.sku },
-      ],
-    },
-  });
-
-  const data = {
-    productId,
-    size,
-    color,
-    sku: sv.sku,
-    stockVariantId: sv.id,
-    barcode: sv.barcode,
-    costPrice: sv.costPrice || 0,
-    sellingPrice: sv.sellingPrice || 0,
-    stock: sv.totalStock || 0,
-    totalStock: sv.totalStock || 0,
-    isActive: true,
-  };
-
-  if (existing) {
-    await prisma.productVariant.update({
-      where: { id: existing.id },
-      data: {
-        ...data,
-        // Don't update productId on existing variants to avoid unique constraint issues
-        productId: undefined,
-      },
-    });
-    result.variantsUpdated++;
-  } else {
-    await prisma.productVariant.create({ data });
-    result.variantsCreated++;
-  }
+  return parseVariantName(sv.name);
 }
 
 function parseVariantName(name: string | null): {
