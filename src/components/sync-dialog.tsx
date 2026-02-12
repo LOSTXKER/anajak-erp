@@ -14,6 +14,7 @@ import {
   ChevronUp,
   Cloud,
 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -38,11 +39,13 @@ interface SyncDialogProps {
 
 // ─── Phase Config ──────────────────────────────────────────
 
-const PHASES: { key: SyncPhase; label: string; duration: number }[] = [
-  { key: "connecting", label: "กำลังเชื่อมต่อ Anajak Stock...", duration: 1500 },
-  { key: "fetching", label: "กำลังดึงข้อมูลสินค้า...", duration: 2000 },
-  { key: "syncing", label: "กำลัง Sync สินค้าและ Variant...", duration: 0 }, // runs until done
-];
+const PHASE_LABELS: Record<string, string> = {
+  connecting: "กำลังเชื่อมต่อ Anajak Stock...",
+  fetching: "กำลังดึงข้อมูลสินค้า...",
+  syncing: "กำลัง Sync สินค้าและ Variant...",
+};
+
+const PHASE_ORDER: SyncPhase[] = ["connecting", "fetching", "syncing"];
 
 // ─── Component ─────────────────────────────────────────────
 
@@ -59,8 +62,25 @@ export function SyncDialog({
   const [showErrors, setShowErrors] = useState(false);
   const startTimeRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const logEndRef = useRef<HTMLDivElement>(null);
 
-  // Drive phase transitions when syncing
+  // ─── Poll sync progress from server ───────────────────────
+  const { data: progress } = trpc.stockSync.syncProgress.useQuery(undefined, {
+    enabled: isPending,
+    refetchInterval: isPending ? 800 : false,
+  });
+
+  // Drive phase from server progress
+  useEffect(() => {
+    if (isPending && progress) {
+      const serverPhase = progress.phase;
+      if (serverPhase === "connecting" || serverPhase === "fetching" || serverPhase === "syncing") {
+        setPhase(serverPhase);
+      }
+    }
+  }, [isPending, progress]);
+
+  // Start timer when syncing begins
   useEffect(() => {
     if (isPending) {
       startTimeRef.current = Date.now();
@@ -68,18 +88,11 @@ export function SyncDialog({
       setElapsed(0);
       setShowErrors(false);
 
-      // Phase transitions
-      const t1 = setTimeout(() => setPhase("fetching"), 1500);
-      const t2 = setTimeout(() => setPhase("syncing"), 3500);
-
-      // Elapsed timer
       timerRef.current = setInterval(() => {
         setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
       }, 1000);
 
       return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
         clearInterval(timerRef.current);
       };
     }
@@ -101,6 +114,11 @@ export function SyncDialog({
       setElapsed(0);
     }
   }, [open, isPending, result, error]);
+
+  // Auto-scroll log
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [progress?.recentProducts?.length]);
 
   if (!open) return null;
 
@@ -182,16 +200,26 @@ export function SyncDialog({
                 กำลัง Sync...
               </h2>
 
+              {/* Progress counter */}
+              {progress && progress.totalCount > 0 && (
+                <p className="mt-1 text-sm tabular-nums text-blue-600 dark:text-blue-400">
+                  {progress.processedCount}/{progress.totalCount} สินค้า
+                  {progress.totalPages > 1 && (
+                    <span className="text-slate-400"> (หน้า {progress.currentPage}/{progress.totalPages})</span>
+                  )}
+                </p>
+              )}
+
               {/* Phase steps */}
               <div className="mt-4 space-y-2 text-left">
-                {PHASES.map((p, i) => {
-                  const phaseIndex = PHASES.findIndex((pp) => pp.key === phase);
-                  const isActive = p.key === phase;
+                {PHASE_ORDER.map((phaseKey, i) => {
+                  const phaseIndex = PHASE_ORDER.indexOf(phase as SyncPhase);
+                  const isActive = phaseKey === phase;
                   const isDone = i < phaseIndex;
 
                   return (
                     <div
-                      key={p.key}
+                      key={phaseKey}
                       className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
                         isActive
                           ? "bg-blue-50 dark:bg-blue-950/50"
@@ -214,12 +242,41 @@ export function SyncDialog({
                             : "text-slate-600 dark:text-slate-400"
                         }`}
                       >
-                        {p.label}
+                        {PHASE_LABELS[phaseKey]}
                       </span>
                     </div>
                   );
                 })}
               </div>
+
+              {/* Current product */}
+              {progress?.currentProduct && (
+                <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/50 px-3 py-2 dark:border-blue-900 dark:bg-blue-950/30">
+                  <p className="truncate text-xs text-blue-600 dark:text-blue-400">
+                    {progress.currentProduct}
+                  </p>
+                </div>
+              )}
+
+              {/* Live log of recent products */}
+              {progress?.recentProducts && progress.recentProducts.length > 0 && (
+                <div className="mt-3 max-h-32 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-left dark:border-slate-700 dark:bg-slate-800/50">
+                  {progress.recentProducts.map((name, i) => (
+                    <p
+                      key={i}
+                      className={`truncate py-0.5 text-xs ${
+                        i === progress.recentProducts.length - 1
+                          ? "font-medium text-slate-700 dark:text-slate-200"
+                          : "text-slate-400 dark:text-slate-500"
+                      }`}
+                    >
+                      <CheckCircle2 className="mr-1 inline-block h-3 w-3 text-green-500" />
+                      {name}
+                    </p>
+                  ))}
+                  <div ref={logEndRef} />
+                </div>
+              )}
 
               {/* Elapsed time */}
               <p className="mt-4 text-xs tabular-nums text-slate-400">

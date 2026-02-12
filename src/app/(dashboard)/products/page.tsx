@@ -318,7 +318,19 @@ export default function ProductsPage() {
 
                     <div className="flex items-center justify-between pt-1">
                       <span className="text-sm font-bold tabular-nums text-blue-600 dark:text-blue-400">
-                        {formatCurrency(product.basePrice)}
+                        {(() => {
+                          const prices = product.variants
+                            ?.map((v) => v.sellingPrice)
+                            .filter((p) => p > 0);
+                          if (prices && prices.length > 0) {
+                            const min = Math.min(...prices);
+                            const max = Math.max(...prices);
+                            return min === max
+                              ? formatCurrency(min)
+                              : `${formatCurrency(min)} - ${formatCurrency(max)}`;
+                          }
+                          return formatCurrency(product.basePrice);
+                        })()}
                       </span>
                       <span className="text-xs text-slate-500">
                         สต็อก{" "}

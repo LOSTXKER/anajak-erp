@@ -37,7 +37,7 @@ export const productRouter = router({
           where,
           include: {
             _count: { select: { variants: true } },
-            variants: { where: { isActive: true }, select: { stock: true } },
+            variants: { where: { isActive: true }, select: { stock: true, sellingPrice: true } },
           },
           orderBy: { createdAt: "desc" },
           skip: (input.page - 1) * input.limit,

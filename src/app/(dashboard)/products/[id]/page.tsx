@@ -171,12 +171,26 @@ export default function ProductDetailPage({
             </CardHeader>
             <CardContent>
               <div className="space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500">ราคาขาย</span>
-                  <span className="font-bold tabular-nums text-blue-600 dark:text-blue-400">
-                    {formatCurrency(product.basePrice)}
-                  </span>
-                </div>
+                {(() => {
+                  const variantPrices = product.variants
+                    .map((v) => v.sellingPrice)
+                    .filter((p) => p > 0);
+                  const minPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
+                  const maxPrice = variantPrices.length > 0 ? Math.max(...variantPrices) : 0;
+                  const displayPrice = minPrice > 0
+                    ? minPrice === maxPrice
+                      ? formatCurrency(minPrice)
+                      : `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`
+                    : formatCurrency(product.basePrice);
+                  return (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">ราคาขาย</span>
+                      <span className="font-bold tabular-nums text-blue-600 dark:text-blue-400">
+                        {displayPrice}
+                      </span>
+                    </div>
+                  );
+                })()}
                 {product.costPrice && product.costPrice > 0 && (
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">ราคาทุน</span>
@@ -302,7 +316,9 @@ export default function ProductDetailPage({
                           </td>
                           <td className="px-3 py-2.5 text-right text-sm tabular-nums">
                             <span className="font-medium text-slate-900 dark:text-white">
-                              {formatCurrency(product.basePrice + variant.priceAdj)}
+                              {formatCurrency(
+                                (variant.sellingPrice > 0 ? variant.sellingPrice : product.basePrice) + variant.priceAdj
+                              )}
                             </span>
                           </td>
                           <td className="px-3 py-2.5 text-right">

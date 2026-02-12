@@ -42,6 +42,48 @@ function mapProductType(stockCategory: string | null): string {
 }
 
 // ============================================================
+// SYNC PROGRESS TRACKING
+// ============================================================
+
+export interface SyncProgress {
+  phase: "connecting" | "fetching" | "syncing" | "done" | "error";
+  currentProduct: string | null;
+  currentPage: number;
+  totalPages: number;
+  processedCount: number;
+  totalCount: number;
+  recentProducts: string[]; // last ~20 product names synced
+}
+
+const RECENT_PRODUCTS_LIMIT = 20;
+
+// Module-level progress store (shared across requests in same process)
+let _syncProgress: SyncProgress | null = null;
+
+export function getSyncProgress(): SyncProgress | null {
+  return _syncProgress;
+}
+
+export function resetSyncProgress(): void {
+  _syncProgress = null;
+}
+
+function updateProgress(update: Partial<SyncProgress>): void {
+  if (!_syncProgress) {
+    _syncProgress = {
+      phase: "connecting",
+      currentProduct: null,
+      currentPage: 0,
+      totalPages: 0,
+      processedCount: 0,
+      totalCount: 0,
+      recentProducts: [],
+    };
+  }
+  Object.assign(_syncProgress, update);
+}
+
+// ============================================================
 // SYNC ALL PRODUCTS
 // ============================================================
 
@@ -64,15 +106,27 @@ export async function syncAllProducts(
     errors: [],
   };
 
+  updateProgress({ phase: "connecting", currentProduct: null });
+
   let page = 1;
   let totalPages = 1;
+  let processedCount = 0;
 
   while (page <= totalPages) {
     try {
+      updateProgress({ phase: page === 1 ? "fetching" : "syncing", currentPage: page, totalPages });
+
       const res = await client.getProducts({ page, limit: 100 });
       totalPages = res.data.pagination.totalPages;
+      const totalCount = res.data.pagination.total;
+
+      updateProgress({ phase: "syncing", totalPages, totalCount });
 
       for (const stockProduct of res.data.items) {
+        updateProgress({
+          currentProduct: `${stockProduct.sku} — ${stockProduct.name}`,
+        });
+
         try {
           await upsertProduct(stockProduct, result);
         } catch (err) {
@@ -80,6 +134,13 @@ export async function syncAllProducts(
             `Product ${stockProduct.sku}: ${err instanceof Error ? err.message : "Unknown error"}`
           );
         }
+
+        processedCount++;
+        const recent = _syncProgress?.recentProducts ?? [];
+        updateProgress({
+          processedCount,
+          recentProducts: [...recent, `${stockProduct.sku} — ${stockProduct.name}`].slice(-RECENT_PRODUCTS_LIMIT),
+        });
       }
 
       page++;
@@ -90,6 +151,8 @@ export async function syncAllProducts(
       break;
     }
   }
+
+  updateProgress({ phase: "done", currentProduct: null });
 
   return result;
 }

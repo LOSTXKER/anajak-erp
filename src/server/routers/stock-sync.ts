@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { StockApiClient, getStockClientFromSettings } from "@/lib/stock-api";
-import { syncAllProducts, syncStockLevels, getSyncStatus } from "@/lib/stock-sync";
+import { syncAllProducts, syncStockLevels, getSyncStatus, getSyncProgress, resetSyncProgress } from "@/lib/stock-sync";
 
 export const stockSyncRouter = router({
   testConnection: protectedProcedure
@@ -34,7 +34,14 @@ export const stockSyncRouter = router({
     if (!client) {
       throw new Error("Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock");
     }
-    return syncAllProducts(client);
+    resetSyncProgress();
+    try {
+      const result = await syncAllProducts(client);
+      return result;
+    } catch (err) {
+      resetSyncProgress();
+      throw err;
+    }
   }),
 
   syncStock: protectedProcedure.mutation(async () => {
@@ -47,6 +54,10 @@ export const stockSyncRouter = router({
 
   status: protectedProcedure.query(async () => {
     return getSyncStatus();
+  }),
+
+  syncProgress: protectedProcedure.query(() => {
+    return getSyncProgress();
   }),
 
   issueMaterials: protectedProcedure
