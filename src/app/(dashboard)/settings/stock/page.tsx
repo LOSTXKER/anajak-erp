@@ -131,18 +131,35 @@ export default function StockSettingsPage() {
     },
   });
 
-  const syncAll = trpc.stockSync.syncAll.useMutation({
-    onSuccess: (result) => {
-      setLastSyncResult(result);
+  const syncPage = trpc.stockSync.syncPage.useMutation();
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
+
+  const handleSyncAll = async () => {
+    setIsSyncingAll(true);
+    try {
+      let page = 1;
+      let hasMore = true;
+      const accumulated = { productsCreated: 0, productsUpdated: 0, variantsCreated: 0, variantsUpdated: 0 };
+      while (hasMore) {
+        const result = await syncPage.mutateAsync({ page });
+        accumulated.productsCreated += result.productsCreated;
+        accumulated.productsUpdated += result.productsUpdated;
+        accumulated.variantsCreated += result.variantsCreated;
+        accumulated.variantsUpdated += result.variantsUpdated;
+        hasMore = result.hasMore;
+        page++;
+      }
+      setLastSyncResult({ ...accumulated, errors: [] });
       toast.success("Sync สินค้าสำเร็จ", {
-        description: `สร้างใหม่ ${result.productsCreated}, อัพเดท ${result.productsUpdated}`,
+        description: `สร้างใหม่ ${accumulated.productsCreated}, อัพเดท ${accumulated.productsUpdated}`,
       });
       utils.stockSync.status.invalidate();
-    },
-    onError: (error) => {
-      toast.error("Sync ล้มเหลว", { description: error.message });
-    },
-  });
+    } catch (error) {
+      toast.error("Sync ล้มเหลว", { description: error instanceof Error ? error.message : "Unknown error" });
+    } finally {
+      setIsSyncingAll(false);
+    }
+  };
 
   const syncStock = trpc.stockSync.syncStock.useMutation({
     onSuccess: (result) => {
@@ -380,16 +397,16 @@ export default function StockSettingsPage() {
             {/* Sync buttons */}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Button
-                onClick={() => syncAll.mutate()}
-                disabled={syncAll.isPending || !hasCredentials}
+                onClick={handleSyncAll}
+                disabled={isSyncingAll || !hasCredentials}
                 className="w-full"
               >
-                {syncAll.isPending ? (
+                {isSyncingAll ? (
                   <RefreshCw className="h-4 w-4 animate-spin" />
                 ) : (
                   <Cloud className="h-4 w-4" />
                 )}
-                {syncAll.isPending ? "กำลัง Sync..." : "Sync สินค้าทั้งหมด"}
+                {isSyncingAll ? "กำลัง Sync..." : "Sync สินค้าทั้งหมด"}
               </Button>
               <Button
                 variant="outline"

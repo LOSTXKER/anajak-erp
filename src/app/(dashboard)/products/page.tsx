@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { Package, RefreshCw, Search, Cloud, Settings } from "lucide-react";
-import { toast } from "sonner";
+
 import { SyncDialog } from "@/components/sync-dialog";
 
 // ─── Product Group Tabs ─────────────────────────────────────
@@ -78,45 +78,6 @@ export default function ProductsPage() {
 
   // ─── Sync Dialog State ───────────────────────────────────
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
-  const [syncResult, setSyncResult] = useState<{
-    productsCreated: number;
-    productsUpdated: number;
-    variantsCreated: number;
-    variantsUpdated: number;
-    errors: string[];
-  } | null>(null);
-  const [syncError, setSyncError] = useState<string | null>(null);
-
-  // ─── Mutations ────────────────────────────────────────────
-  const utils = trpc.useUtils();
-  const syncAll = trpc.stockSync.syncAll.useMutation({
-    onSuccess: (result) => {
-      setSyncResult(result);
-      setSyncError(null);
-      utils.product.list.invalidate();
-      utils.stockSync.status.invalidate();
-    },
-    onError: (error) => {
-      setSyncResult(null);
-      setSyncError(error.message);
-    },
-  });
-
-  const handleOpenSync = () => {
-    setSyncResult(null);
-    setSyncError(null);
-    setSyncDialogOpen(true);
-  };
-
-  const handleSync = () => {
-    setSyncResult(null);
-    setSyncError(null);
-    syncAll.mutate();
-  };
-
-  const handleCloseSync = () => {
-    setSyncDialogOpen(false);
-  };
 
   // Reset page when filters change
   const handleItemTypeChange = (value: string) => {
@@ -148,11 +109,9 @@ export default function ProductsPage() {
           </Link>
 
           {/* Sync button */}
-          <Button onClick={handleOpenSync} disabled={syncAll.isPending}>
-            <RefreshCw
-              className={`h-4 w-4 ${syncAll.isPending ? "animate-spin" : ""}`}
-            />
-            {syncAll.isPending ? "กำลัง Sync..." : "Sync จาก Anajak Stock"}
+          <Button onClick={() => setSyncDialogOpen(true)}>
+            <RefreshCw className="h-4 w-4" />
+            Sync จาก Anajak Stock
           </Button>
         </div>
       </div>
@@ -238,11 +197,10 @@ export default function ProductsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleOpenSync}
-                disabled={syncAll.isPending}
+                onClick={() => setSyncDialogOpen(true)}
               >
-                <RefreshCw className={`h-4 w-4 ${syncAll.isPending ? "animate-spin" : ""}`} />
-                {syncAll.isPending ? "กำลัง Sync..." : "Sync ตอนนี้"}
+                <RefreshCw className="h-4 w-4" />
+                Sync ตอนนี้
               </Button>
               <Link href="/settings/stock">
                 <Button variant="ghost" size="sm">
@@ -351,11 +309,7 @@ export default function ProductsPage() {
       {/* ─── Sync Dialog ─────────────────────────────────────── */}
       <SyncDialog
         open={syncDialogOpen}
-        onClose={handleCloseSync}
-        onSync={handleSync}
-        isPending={syncAll.isPending}
-        result={syncResult}
-        error={syncError}
+        onClose={() => setSyncDialogOpen(false)}
       />
 
       {/* ─── Pagination ──────────────────────────────────────── */}
