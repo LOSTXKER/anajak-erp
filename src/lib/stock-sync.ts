@@ -5,8 +5,9 @@
  * into the local ERP Product/ProductVariant tables.
  *
  * Architecture: Client-driven page-by-page sync.
- * Each syncProductPage() call handles one page (~100 products)
- * and completes within Vercel's serverless timeout (<10s).
+ * Each syncProductPage() call handles one page (~20 products)
+ * and uses batch operations (createMany) to stay within
+ * Vercel's serverless timeout (<10s).
  */
 
 import { prisma } from "@/lib/prisma";
@@ -143,9 +144,10 @@ export async function syncProductPage(
   };
 
   // ── 1. Fetch one page from Stock API ────────────────────────
+  // Keep page size small to fit within Vercel serverless timeout
   const apiParams: Parameters<StockApiClient["getProducts"]>[0] = {
     page,
-    limit: 100,
+    limit: 20,
   };
   if (mode === "incremental" && updatedAfter) {
     apiParams.updated_after = updatedAfter;
@@ -257,7 +259,24 @@ export async function syncProductPage(
       }
 
       // ── 3b. Upsert variants for this product ───────────────
+      // Uses createMany for new variants (single query) to stay
+      // within Vercel serverless timeout.
       if (sp.hasVariants && sp.variants.length > 0) {
+        const newVariants: Array<{
+          productId: string;
+          size: string;
+          color: string;
+          sku: string;
+          stockVariantId: string;
+          barcode: string | null;
+          costPrice: number;
+          sellingPrice: number;
+          stock: number;
+          totalStock: number;
+          isActive: boolean;
+        }> = [];
+        const updateOps: Array<Promise<unknown>> = [];
+
         for (const sv of sp.variants) {
           try {
             const { size, color } = resolveVariantOptions(sv);
@@ -278,22 +297,59 @@ export async function syncProductPage(
             };
 
             if (existingVar) {
-              await prisma.productVariant.update({
-                where: { id: existingVar.id },
-                data: variantData,
-              });
-              result.variantsUpdated++;
+              // Queue update for parallel execution
+              updateOps.push(
+                prisma.productVariant
+                  .update({
+                    where: { id: existingVar.id },
+                    data: variantData,
+                  })
+                  .then(() => {
+                    result.variantsUpdated++;
+                  })
+                  .catch((vErr) => {
+                    result.errors.push(
+                      `Variant ${sv.sku}: ${vErr instanceof Error ? vErr.message : "Unknown error"}`
+                    );
+                  })
+              );
             } else {
-              await prisma.productVariant.create({
-                data: { ...variantData, productId },
-              });
-              result.variantsCreated++;
+              // Collect for batch create
+              newVariants.push({ ...variantData, productId });
             }
           } catch (vErr) {
             result.errors.push(
               `Variant ${sv.sku}: ${vErr instanceof Error ? vErr.message : "Unknown error"}`
             );
           }
+        }
+
+        // Execute batch create (single query, much faster)
+        if (newVariants.length > 0) {
+          try {
+            const created = await prisma.productVariant.createMany({
+              data: newVariants,
+              skipDuplicates: true,
+            });
+            result.variantsCreated += created.count;
+          } catch (bErr) {
+            // If batch fails, fall back to individual creates
+            for (const nv of newVariants) {
+              try {
+                await prisma.productVariant.create({ data: nv });
+                result.variantsCreated++;
+              } catch (vErr) {
+                result.errors.push(
+                  `Variant ${nv.sku}: ${vErr instanceof Error ? vErr.message : "Unknown error"}`
+                );
+              }
+            }
+          }
+        }
+
+        // Execute all updates in parallel
+        if (updateOps.length > 0) {
+          await Promise.allSettled(updateOps);
         }
       }
     } catch (pErr) {
