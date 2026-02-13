@@ -197,6 +197,15 @@ export class StockApiClient {
     return res.data.items.find((p) => p.sku === sku) ?? null;
   }
 
+  async deleteProduct(
+    stockProductId: string
+  ): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(
+      `/erp/products/${stockProductId}`,
+      { method: "DELETE" }
+    );
+  }
+
   // ============================================================
   // STOCK BALANCES
   // ============================================================

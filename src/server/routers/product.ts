@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { getStockClientFromSettings } from "@/lib/stock-api";
 
 export const productRouter = router({
   list: protectedProcedure
@@ -137,5 +138,50 @@ export const productRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
       return ctx.prisma.productVariant.update({ where: { id }, data });
+    }),
+
+  // Delete product from ERP + soft-delete from Stock
+  delete: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const product = await ctx.prisma.product.findUniqueOrThrow({
+        where: { id: input.id },
+        select: {
+          id: true,
+          sku: true,
+          name: true,
+          stockProductId: true,
+          _count: { select: { orderItems: true } },
+        },
+      });
+
+      // Atomically clean up relations and delete product
+      await ctx.prisma.$transaction([
+        // Nullify product link on order items (orders themselves are kept)
+        ctx.prisma.orderItem.updateMany({
+          where: { productId: input.id },
+          data: { productId: null, productVariantId: null },
+        }),
+        // Remove material usage records for this product
+        ctx.prisma.materialUsage.deleteMany({
+          where: { productId: input.id },
+        }),
+        // Delete the product (variants cascade automatically)
+        ctx.prisma.product.delete({ where: { id: input.id } }),
+      ]);
+
+      // Soft-delete from Stock (non-blocking — don't fail if Stock API errors)
+      if (product.stockProductId) {
+        try {
+          const client = await getStockClientFromSettings();
+          if (client) {
+            await client.deleteProduct(product.stockProductId);
+          }
+        } catch {
+          // Stock deletion is best-effort
+        }
+      }
+
+      return { deleted: true, sku: product.sku, name: product.name };
     }),
 });

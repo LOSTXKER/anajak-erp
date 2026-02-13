@@ -1,7 +1,8 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { ArrowLeft, Package, Cloud } from "lucide-react";
+import { ArrowLeft, Package, Cloud, Trash2, AlertTriangle } from "lucide-react";
 
 // ============================================================
 // CONSTANTS
@@ -40,7 +41,9 @@ export default function ProductDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const utils = trpc.useUtils();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { data: product, isLoading } = trpc.product.getById.useQuery({ id });
 
@@ -57,10 +60,21 @@ export default function ProductDetailPage({
     },
   });
 
+  const deleteProduct = trpc.product.delete.useMutation({
+    onSuccess: () => {
+      utils.product.list.invalidate();
+      router.push("/products");
+    },
+  });
+
   // ---- handlers ----
   const handleToggleProductActive = () => {
     if (!product) return;
     updateProduct.mutate({ id, isActive: !product.isActive });
+  };
+
+  const handleDelete = () => {
+    deleteProduct.mutate({ id });
   };
 
   const handleToggleVariantActive = (variantId: string, isActive: boolean) => {
@@ -130,15 +144,75 @@ export default function ProductDetailPage({
             <p className="text-sm text-slate-500">{product.sku}</p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleToggleProductActive}
-          disabled={updateProduct.isPending}
-        >
-          {product.isActive ? "ปิดใช้งาน" : "เปิดใช้งาน"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleToggleProductActive}
+            disabled={updateProduct.isPending}
+          >
+            {product.isActive ? "ปิดใช้งาน" : "เปิดใช้งาน"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !deleteProduct.isPending && setShowDeleteConfirm(false)}
+          />
+          <div className="relative mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 dark:bg-red-950">
+                <AlertTriangle className="h-7 w-7 text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                ลบสินค้า
+              </h3>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                ต้องการลบ <strong>{product.name}</strong> ({product.sku})?
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                สินค้านี้จะถูกลบออกจากระบบ ERP และ Anajak Stock ไม่สามารถกู้คืนได้
+              </p>
+
+              {deleteProduct.isError && (
+                <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                  {deleteProduct.error?.message}
+                </div>
+              )}
+
+              <div className="mt-5 flex flex-col gap-2">
+                <Button
+                  onClick={handleDelete}
+                  disabled={deleteProduct.isPending}
+                  className="w-full bg-red-600 text-white hover:bg-red-700"
+                >
+                  {deleteProduct.isPending ? "กำลังลบ..." : "ยืนยันลบ"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleteProduct.isPending}
+                  className="w-full"
+                >
+                  ยกเลิก
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left: Product image + info */}
