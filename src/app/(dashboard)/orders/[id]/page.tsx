@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,15 @@ import {
   BarChart3,
   Store,
   Hash,
+  Edit3,
 } from "lucide-react";
+
+// Section components
+import { OrderDesignSection } from "@/components/orders/order-design-section";
+import { OrderBillingSection } from "@/components/orders/order-billing-section";
+import { OrderProductionSection } from "@/components/orders/order-production-section";
+import { OrderDeliverySection } from "@/components/orders/order-delivery-section";
+import { OrderEditDialog } from "@/components/orders/order-edit-dialog";
 
 // ============================================================
 // Loading skeleton
@@ -81,6 +89,7 @@ export default function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const { data: order, isLoading } = trpc.order.getById.useQuery({ id });
   const utils = trpc.useUtils();
@@ -140,6 +149,12 @@ export default function OrderDetailPage({
     hasCostEntries && totalAmount > 0
       ? ((totalAmount - totalCost) / totalAmount) * 100
       : null;
+
+  // Can edit items (before production starts)
+  const canEditItems = ![
+    "PRODUCING", "QUALITY_CHECK", "PACKING", "READY_TO_SHIP",
+    "SHIPPED", "COMPLETED", "CANCELLED",
+  ].includes(order.internalStatus);
 
   // ----------------------------------------------------------
   // Handlers
@@ -229,6 +244,17 @@ export default function OrderDetailPage({
         {/* Action buttons */}
         {!isTerminal && (
           <div className="flex shrink-0 flex-wrap gap-2">
+            {canEditItems && (
+              <Button
+                variant="outline"
+                onClick={() => setShowEditDialog(true)}
+                className="gap-1.5"
+              >
+                <Edit3 className="h-4 w-4" />
+                แก้ไข
+              </Button>
+            )}
+
             {forwardStatuses.map((status) => (
               <Button
                 key={status}
@@ -389,45 +415,25 @@ export default function OrderDetailPage({
                               <table className="w-full text-sm">
                                 <thead>
                                   <tr className="border-b border-slate-100 dark:border-slate-800">
-                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">
-                                      ไซส์
-                                    </th>
-                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">
-                                      สี
-                                    </th>
-                                    <th className="pb-2 text-right text-xs font-medium text-slate-500">
-                                      จำนวน
-                                    </th>
+                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ไซส์</th>
+                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">สี</th>
+                                    <th className="pb-2 text-right text-xs font-medium text-slate-500">จำนวน</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                   {item.variants.map((v: any) => (
                                     <tr key={v.id}>
-                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">
-                                        {v.size || "-"}
-                                      </td>
-                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">
-                                        {v.color || "-"}
-                                      </td>
-                                      <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">
-                                        {v.quantity}
-                                      </td>
+                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.size || "-"}</td>
+                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.color || "-"}</td>
+                                      <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{v.quantity}</td>
                                     </tr>
                                   ))}
                                 </tbody>
                                 <tfoot>
                                   <tr className="border-t border-slate-100 dark:border-slate-800">
-                                    <td
-                                      colSpan={2}
-                                      className="pt-1.5 text-xs font-medium text-slate-500"
-                                    >
-                                      รวม
-                                    </td>
+                                    <td colSpan={2} className="pt-1.5 text-xs font-medium text-slate-500">รวม</td>
                                     <td className="pt-1.5 text-right tabular-nums text-sm font-bold text-slate-900 dark:text-white">
-                                      {item.variants.reduce(
-                                        (s: number, v: any) => s + v.quantity,
-                                        0,
-                                      )}
+                                      {item.variants.reduce((s: number, v: any) => s + v.quantity, 0)}
                                     </td>
                                   </tr>
                                 </tfoot>
@@ -447,35 +453,19 @@ export default function OrderDetailPage({
                               <table className="w-full text-sm">
                                 <thead>
                                   <tr className="border-b border-slate-100 dark:border-slate-800">
-                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">
-                                      ตำแหน่ง
-                                    </th>
-                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">
-                                      ประเภท
-                                    </th>
-                                    <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">
-                                      สี
-                                    </th>
-                                    <th className="pb-2 text-right text-xs font-medium text-slate-500">
-                                      ราคา/ชิ้น
-                                    </th>
+                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ตำแหน่ง</th>
+                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
+                                    <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">สี</th>
+                                    <th className="pb-2 text-right text-xs font-medium text-slate-500">ราคา/ชิ้น</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                   {item.prints.map((p: any) => (
                                     <tr key={p.id}>
-                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">
-                                        {p.position || "-"}
-                                      </td>
-                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">
-                                        {p.printType || "-"}
-                                      </td>
-                                      <td className="py-1.5 pr-4 text-right tabular-nums text-slate-700 dark:text-slate-300">
-                                        {p.colors ?? "-"}
-                                      </td>
-                                      <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">
-                                        {formatCurrency(p.unitPrice)}
-                                      </td>
+                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{p.position || "-"}</td>
+                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{p.printType || "-"}</td>
+                                      <td className="py-1.5 pr-4 text-right tabular-nums text-slate-700 dark:text-slate-300">{p.colorCount ?? "-"}</td>
+                                      <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{formatCurrency(p.unitPrice)}</td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -495,45 +485,23 @@ export default function OrderDetailPage({
                               <table className="w-full text-sm">
                                 <thead>
                                   <tr className="border-b border-slate-100 dark:border-slate-800">
-                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">
-                                      ชื่อ
-                                    </th>
-                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">
-                                      ประเภท
-                                    </th>
-                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">
-                                      คิดราคา
-                                    </th>
-                                    <th className="pb-2 text-right text-xs font-medium text-slate-500">
-                                      ราคา
-                                    </th>
+                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ชื่อ</th>
+                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
+                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">คิดราคา</th>
+                                    <th className="pb-2 text-right text-xs font-medium text-slate-500">ราคา</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                   {item.addons.map((a: any) => (
                                     <tr key={a.id}>
-                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">
-                                        {a.name || "-"}
-                                      </td>
-                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">
-                                        {a.addonType || "-"}
-                                      </td>
+                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{a.name || "-"}</td>
+                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{a.addonType || "-"}</td>
                                       <td className="py-1.5 pr-4">
-                                        <Badge
-                                          variant={
-                                            a.pricingType === "PER_PIECE"
-                                              ? "default"
-                                              : "secondary"
-                                          }
-                                        >
-                                          {a.pricingType === "PER_PIECE"
-                                            ? "ต่อชิ้น"
-                                            : "ต่อออเดอร์"}
+                                        <Badge variant={a.pricingType === "PER_PIECE" ? "default" : "secondary"}>
+                                          {a.pricingType === "PER_PIECE" ? "ต่อชิ้น" : "ต่อออเดอร์"}
                                         </Badge>
                                       </td>
-                                      <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">
-                                        {formatCurrency(a.unitPrice)}
-                                      </td>
+                                      <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{formatCurrency(a.unitPrice)}</td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -545,12 +513,8 @@ export default function OrderDetailPage({
                         {/* Item subtotal */}
                         {item.subtotal != null && (
                           <div className="flex justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-                            <span className="text-sm font-medium text-slate-500">
-                              ยอดรวมรายการ
-                            </span>
-                            <span className="tabular-nums text-sm font-bold text-slate-900 dark:text-white">
-                              {formatCurrency(item.subtotal)}
-                            </span>
+                            <span className="text-sm font-medium text-slate-500">ยอดรวมรายการ</span>
+                            <span className="tabular-nums text-sm font-bold text-slate-900 dark:text-white">{formatCurrency(item.subtotal)}</span>
                           </div>
                         )}
                       </div>
@@ -599,59 +563,31 @@ export default function OrderDetailPage({
           )}
 
           {/* ------------------------------------------
-              DELIVERIES SECTION
+              DESIGN SECTION (new)
           ------------------------------------------ */}
-          {order.deliveries && order.deliveries.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Truck className="h-4 w-4" />
-                  ข้อมูลจัดส่ง
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {order.deliveries.map((delivery: any, i: number) => (
-                      <div
-                        key={delivery.id ?? i}
-                        className="rounded-lg border border-slate-100 p-4 dark:border-slate-800"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            {delivery.carrier && (
-                              <p className="text-sm font-medium text-slate-900 dark:text-white">
-                                {delivery.carrier}
-                              </p>
-                            )}
-                            {delivery.trackingNumber && (
-                              <p className="font-mono text-sm text-blue-600 dark:text-blue-400">
-                                {delivery.trackingNumber}
-                              </p>
-                            )}
-                            {delivery.method && (
-                              <Badge variant="secondary">
-                                {delivery.method}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-right text-xs text-slate-500">
-                            {delivery.shippedAt && (
-                              <p>ส่ง: {formatDateTime(delivery.shippedAt)}</p>
-                            )}
-                            {delivery.deliveredAt && (
-                              <p>
-                                ถึง: {formatDateTime(delivery.deliveredAt)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ),
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <OrderDesignSection
+            orderId={id}
+            orderNumber={order.orderNumber}
+            internalStatus={order.internalStatus}
+          />
+
+          {/* ------------------------------------------
+              PRODUCTION SECTION (new)
+          ------------------------------------------ */}
+          <OrderProductionSection
+            orderId={id}
+            internalStatus={order.internalStatus}
+          />
+
+          {/* ------------------------------------------
+              DELIVERY SECTION (new, replaces old read-only)
+          ------------------------------------------ */}
+          <OrderDeliverySection
+            orderId={id}
+            internalStatus={order.internalStatus}
+            customerName={order.customer?.name}
+            customerPhone={order.customer?.phone ?? undefined}
+          />
 
           {/* ------------------------------------------
               REVISION HISTORY
@@ -715,19 +651,13 @@ export default function OrderDetailPage({
                     {order.customer.name}
                   </Link>
                   {order.customer.company && (
-                    <p className="text-sm text-slate-500">
-                      {order.customer.company}
-                    </p>
+                    <p className="text-sm text-slate-500">{order.customer.company}</p>
                   )}
                   {order.customer.phone && (
-                    <p className="text-sm text-slate-500">
-                      {order.customer.phone}
-                    </p>
+                    <p className="text-sm text-slate-500">{order.customer.phone}</p>
                   )}
                   {order.customer.email && (
-                    <p className="text-sm text-slate-500">
-                      {order.customer.email}
-                    </p>
+                    <p className="text-sm text-slate-500">{order.customer.email}</p>
                   )}
                 </>
               )}
@@ -747,19 +677,13 @@ export default function OrderDetailPage({
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500">ประเภท</span>
-                <Badge
-                  variant={
-                    order.orderType === "CUSTOM" ? "purple" : "default"
-                  }
-                >
+                <Badge variant={order.orderType === "CUSTOM" ? "purple" : "default"}>
                   {ORDER_TYPE_LABELS[order.orderType]}
                 </Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">ช่องทาง</span>
-                <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${channelColor.bg} ${channelColor.text}`}
-                >
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${channelColor.bg} ${channelColor.text}`}>
                   {CHANNEL_LABELS[order.channel] ?? order.channel}
                 </span>
               </div>
@@ -767,32 +691,24 @@ export default function OrderDetailPage({
                 <div className="flex justify-between">
                   <span className="text-slate-500">สร้างโดย</span>
                   <span className="text-slate-900 dark:text-white">
-                    {typeof order.createdBy === "string"
-                      ? order.createdBy
-                      : order.createdBy.name}
+                    {typeof order.createdBy === "string" ? order.createdBy : order.createdBy.name}
                   </span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-slate-500">วันที่สร้าง</span>
-                <span className="text-slate-900 dark:text-white">
-                  {formatDate(order.createdAt)}
-                </span>
+                <span className="text-slate-900 dark:text-white">{formatDate(order.createdAt)}</span>
               </div>
               {order.updatedAt && (
                 <div className="flex justify-between">
                   <span className="text-slate-500">แก้ไขล่าสุด</span>
-                  <span className="text-slate-900 dark:text-white">
-                    {formatDateTime(order.updatedAt)}
-                  </span>
+                  <span className="text-slate-900 dark:text-white">{formatDateTime(order.updatedAt)}</span>
                 </div>
               )}
               {order.deadline && (
                 <div className="flex justify-between">
                   <span className="text-slate-500">กำหนดส่ง</span>
-                  <span className="font-medium text-slate-900 dark:text-white">
-                    {formatDate(order.deadline)}
-                  </span>
+                  <span className="font-medium text-slate-900 dark:text-white">{formatDate(order.deadline)}</span>
                 </div>
               )}
               {order.description && (
@@ -827,9 +743,7 @@ export default function OrderDetailPage({
                       <Hash className="h-3.5 w-3.5" />
                       หมายเลขภายนอก
                     </span>
-                    <span className="font-mono text-xs text-slate-900 dark:text-white">
-                      {order.externalOrderId}
-                    </span>
+                    <span className="font-mono text-xs text-slate-900 dark:text-white">{order.externalOrderId}</span>
                   </div>
                 )}
                 {order.platformFee != null && (
@@ -849,9 +763,7 @@ export default function OrderDetailPage({
                       <Truck className="h-3.5 w-3.5" />
                       เลขพัสดุ
                     </span>
-                    <span className="font-mono text-xs text-slate-900 dark:text-white">
-                      {order.trackingNumber}
-                    </span>
+                    <span className="font-mono text-xs text-slate-900 dark:text-white">{order.trackingNumber}</span>
                   </div>
                 )}
               </CardContent>
@@ -871,33 +783,23 @@ export default function OrderDetailPage({
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500">ยอดรวมสินค้า</span>
-                <span className="tabular-nums text-slate-900 dark:text-white">
-                  {formatCurrency(subtotalItems)}
-                </span>
+                <span className="tabular-nums text-slate-900 dark:text-white">{formatCurrency(subtotalItems)}</span>
               </div>
               {subtotalFees > 0 && (
                 <div className="flex justify-between">
                   <span className="text-slate-500">ค่าธรรมเนียม</span>
-                  <span className="tabular-nums text-slate-900 dark:text-white">
-                    {formatCurrency(subtotalFees)}
-                  </span>
+                  <span className="tabular-nums text-slate-900 dark:text-white">{formatCurrency(subtotalFees)}</span>
                 </div>
               )}
               {discount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-slate-500">ส่วนลด</span>
-                  <span className="tabular-nums text-red-600 dark:text-red-400">
-                    -{formatCurrency(discount)}
-                  </span>
+                  <span className="tabular-nums text-red-600 dark:text-red-400">-{formatCurrency(discount)}</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-slate-200 pt-3 dark:border-slate-700">
-                <span className="text-base font-semibold text-slate-900 dark:text-white">
-                  ยอดรวมทั้งหมด
-                </span>
-                <span className="tabular-nums text-lg font-bold text-blue-600 dark:text-blue-400">
-                  {formatCurrency(totalAmount)}
-                </span>
+                <span className="text-base font-semibold text-slate-900 dark:text-white">ยอดรวมทั้งหมด</span>
+                <span className="tabular-nums text-lg font-bold text-blue-600 dark:text-blue-400">{formatCurrency(totalAmount)}</span>
               </div>
 
               {/* Cost tracking */}
@@ -910,15 +812,11 @@ export default function OrderDetailPage({
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-slate-500">ต้นทุนรวม</span>
-                      <span className="tabular-nums text-slate-900 dark:text-white">
-                        {formatCurrency(totalCost)}
-                      </span>
+                      <span className="tabular-nums text-slate-900 dark:text-white">{formatCurrency(totalCost)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">กำไร</span>
-                      <span className="tabular-nums font-medium text-slate-900 dark:text-white">
-                        {formatCurrency(totalAmount - totalCost)}
-                      </span>
+                      <span className="tabular-nums font-medium text-slate-900 dark:text-white">{formatCurrency(totalAmount - totalCost)}</span>
                     </div>
                     {profitMargin != null && (
                       <div className="flex justify-between">
@@ -943,58 +841,27 @@ export default function OrderDetailPage({
           </Card>
 
           {/* ------------------------------------------
-              INVOICES
+              BILLING SECTION (new, replaces old read-only invoices)
           ------------------------------------------ */}
-          {order.invoices && order.invoices.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Receipt className="h-4 w-4" />
-                  บิล/ใบแจ้งหนี้
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {order.invoices.map((inv: any) => (
-                    <div
-                      key={inv.id}
-                      className="flex items-center justify-between rounded-lg border border-slate-100 p-3 dark:border-slate-800"
-                    >
-                      <div className="space-y-1">
-                        {inv.invoiceNumber && (
-                          <p className="text-xs font-medium text-slate-900 dark:text-white">
-                            {inv.invoiceNumber}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-1.5">
-                          {inv.type && (
-                            <Badge variant="secondary">{inv.type}</Badge>
-                          )}
-                          {inv.paymentStatus && (
-                            <Badge
-                              variant={
-                                inv.paymentStatus === "PAID"
-                                  ? "success"
-                                  : inv.paymentStatus === "OVERDUE"
-                                    ? "destructive"
-                                    : "warning"
-                              }
-                            >
-                              {inv.paymentStatus}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <span className="tabular-nums text-sm font-medium text-slate-900 dark:text-white">
-                        {formatCurrency(inv.totalAmount)}
-                      </span>
-                    </div>
-                  ),
-                )}
-              </CardContent>
-            </Card>
-          )}
+          <OrderBillingSection
+            orderId={id}
+            customerId={order.customerId}
+            totalAmount={totalAmount}
+            internalStatus={order.internalStatus}
+          />
         </div>
       </div>
+
+      {/* ====================================================
+          EDIT DIALOG
+      ==================================================== */}
+      <OrderEditDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        orderId={id}
+        orderType={order.orderType}
+        order={order}
+      />
     </div>
   );
 }

@@ -99,6 +99,12 @@ export const designRouter = router({
           where: { id: design.orderId },
           data: { internalStatus: "DESIGN_APPROVED", customerStatus: "PREPARING" },
         });
+      } else {
+        // Revision requested – move back to DESIGNING
+        await ctx.prisma.order.update({
+          where: { id: design.orderId },
+          data: { internalStatus: "DESIGNING", customerStatus: "PREPARING" },
+        });
       }
 
       // Record revision
@@ -106,11 +112,58 @@ export const designRouter = router({
         data: {
           orderId: design.orderId,
           version: (await ctx.prisma.orderRevision.count({ where: { orderId: design.orderId } })) + 1,
-          changedBy: "ลูกค้า",
+          changedBy: ctx.userId,
           changeType: "DESIGN",
           description: input.approved
             ? `อนุมัติแบบ v${design.versionNumber}`
             : `ขอแก้ไขแบบ v${design.versionNumber}: ${input.comment ?? ""}`,
+        },
+      });
+
+      return design;
+    }),
+
+  // Public mutation for customer approval via token (no login required)
+  approveByToken: publicProcedure
+    .input(
+      z.object({
+        token: z.string(),
+        approved: z.boolean(),
+        comment: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const design = await ctx.prisma.designVersion.update({
+        where: { approvalToken: input.token },
+        data: {
+          approvalStatus: input.approved ? "APPROVED" : "REVISION_REQUESTED",
+          customerComment: input.comment,
+          approvedAt: input.approved ? new Date() : null,
+        },
+        include: { order: { include: { customer: { select: { name: true } } } } },
+      });
+
+      if (input.approved) {
+        await ctx.prisma.order.update({
+          where: { id: design.orderId },
+          data: { internalStatus: "DESIGN_APPROVED", customerStatus: "PREPARING" },
+        });
+      } else {
+        await ctx.prisma.order.update({
+          where: { id: design.orderId },
+          data: { internalStatus: "DESIGNING", customerStatus: "PREPARING" },
+        });
+      }
+
+      await ctx.prisma.orderRevision.create({
+        data: {
+          orderId: design.orderId,
+          version: (await ctx.prisma.orderRevision.count({ where: { orderId: design.orderId } })) + 1,
+          changedBy: "ลูกค้า",
+          changeType: "DESIGN",
+          description: input.approved
+            ? `ลูกค้าอนุมัติแบบ v${design.versionNumber}`
+            : `ลูกค้าขอแก้ไขแบบ v${design.versionNumber}: ${input.comment ?? ""}`,
         },
       });
 

@@ -411,6 +411,201 @@ export const orderRouter = router({
       return order;
     }),
 
+  updateItems: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        items: z.array(orderItemSchema).min(1, "กรุณาเพิ่มรายการอย่างน้อย 1 รายการ"),
+        discount: z.number().default(0),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const order = await ctx.prisma.order.findUniqueOrThrow({
+        where: { id: input.id },
+        include: { fees: true },
+      });
+
+      // Block editing once production has started
+      const blockedStatuses = [
+        "PRODUCING", "QUALITY_CHECK", "PACKING", "READY_TO_SHIP",
+        "SHIPPED", "COMPLETED", "CANCELLED",
+      ];
+      if (blockedStatuses.includes(order.internalStatus)) {
+        throw new Error("ไม่สามารถแก้ไขรายการได้เมื่อเริ่มผลิตแล้ว");
+      }
+
+      // Calculate pricing
+      const itemsWithCalc = input.items.map((item, index) => {
+        const totalQuantity = calculateTotalQuantity(item.variants);
+        const subtotal = calculateItemSubtotal({
+          baseUnitPrice: item.baseUnitPrice,
+          totalQuantity,
+          prints: item.prints,
+          addons: item.addons,
+        });
+        return { ...item, totalQuantity, subtotal, sortOrder: index };
+      });
+
+      const subtotalItems = itemsWithCalc.reduce((sum, i) => sum + i.subtotal, 0);
+      const subtotalFees = order.fees.reduce((sum, f) => sum + f.amount, 0);
+      const totalAmount = subtotalItems + subtotalFees - (input.discount || 0);
+
+      // Use transaction: delete old items → create new → update pricing
+      const updatedOrder = await ctx.prisma.$transaction(async (tx) => {
+        // Delete old items (cascades to variants, prints, addons)
+        await tx.orderItem.deleteMany({ where: { orderId: input.id } });
+
+        // Create new items
+        for (const item of itemsWithCalc) {
+          await tx.orderItem.create({
+            data: {
+              orderId: input.id,
+              sortOrder: item.sortOrder,
+              productType: item.productType,
+              description: item.description,
+              material: item.material,
+              baseUnitPrice: item.baseUnitPrice,
+              totalQuantity: item.totalQuantity,
+              subtotal: item.subtotal,
+              notes: item.notes,
+              variants: {
+                create: item.variants.map((v) => ({
+                  size: v.size,
+                  color: v.color,
+                  quantity: v.quantity,
+                })),
+              },
+              prints: {
+                create: item.prints.map((p) => ({
+                  position: p.position,
+                  printType: p.printType,
+                  colorCount: p.colorCount,
+                  width: p.width,
+                  height: p.height,
+                  designNote: p.designNote,
+                  unitPrice: p.unitPrice,
+                })),
+              },
+              addons: {
+                create: item.addons.map((a) => ({
+                  addonType: a.addonType,
+                  name: a.name,
+                  description: a.description,
+                  pricingType: a.pricingType,
+                  unitPrice: a.unitPrice,
+                  quantity: a.quantity,
+                  notes: a.notes,
+                })),
+              },
+            },
+          });
+        }
+
+        // Update order pricing
+        return tx.order.update({
+          where: { id: input.id },
+          data: {
+            subtotalItems,
+            subtotalFees,
+            discount: input.discount || 0,
+            totalAmount: Math.max(0, totalAmount),
+          },
+        });
+      });
+
+      // Record revision
+      const revisionCount = await ctx.prisma.orderRevision.count({ where: { orderId: input.id } });
+      await ctx.prisma.orderRevision.create({
+        data: {
+          orderId: input.id,
+          version: revisionCount + 1,
+          changedBy: ctx.userId,
+          changeType: "ITEMS",
+          description: `แก้ไขรายการสินค้า (${input.items.length} รายการ)`,
+          oldValue: JSON.stringify({ subtotalItems: order.subtotalItems, totalAmount: order.totalAmount }),
+          newValue: JSON.stringify({ subtotalItems, totalAmount: Math.max(0, totalAmount) }),
+        },
+      });
+
+      await ctx.prisma.auditLog.create({
+        data: {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "ORDER",
+          entityId: input.id,
+          newValue: { action: "updateItems", itemCount: input.items.length, totalAmount: Math.max(0, totalAmount) },
+        },
+      });
+
+      return updatedOrder;
+    }),
+
+  updateFees: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        fees: z.array(orderFeeSchema).default([]),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const order = await ctx.prisma.order.findUniqueOrThrow({
+        where: { id: input.id },
+      });
+
+      const subtotalFees = input.fees.reduce((sum, f) => sum + f.amount, 0);
+      const totalAmount = order.subtotalItems + subtotalFees - order.discount;
+
+      const updatedOrder = await ctx.prisma.$transaction(async (tx) => {
+        await tx.orderFee.deleteMany({ where: { orderId: input.id } });
+
+        for (const fee of input.fees) {
+          await tx.orderFee.create({
+            data: {
+              orderId: input.id,
+              feeType: fee.feeType,
+              name: fee.name,
+              description: fee.description,
+              amount: fee.amount,
+              notes: fee.notes,
+            },
+          });
+        }
+
+        return tx.order.update({
+          where: { id: input.id },
+          data: {
+            subtotalFees,
+            totalAmount: Math.max(0, totalAmount),
+          },
+        });
+      });
+
+      const revisionCount = await ctx.prisma.orderRevision.count({ where: { orderId: input.id } });
+      await ctx.prisma.orderRevision.create({
+        data: {
+          orderId: input.id,
+          version: revisionCount + 1,
+          changedBy: ctx.userId,
+          changeType: "FEES",
+          description: `แก้ไขค่าธรรมเนียม (${input.fees.length} รายการ)`,
+          oldValue: JSON.stringify({ subtotalFees: order.subtotalFees }),
+          newValue: JSON.stringify({ subtotalFees }),
+        },
+      });
+
+      await ctx.prisma.auditLog.create({
+        data: {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "ORDER",
+          entityId: input.id,
+          newValue: { action: "updateFees", feeCount: input.fees.length, subtotalFees },
+        },
+      });
+
+      return updatedOrder;
+    }),
+
   stats: protectedProcedure.query(async ({ ctx }) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
