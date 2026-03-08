@@ -9,8 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
-import { Plus, Search, Users, UserPlus, Crown, UserX } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { Plus, Search, Users, UserPlus, Crown, UserX, Building2, User } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const segmentConfig: Record<string, { label: string; variant: "default" | "success" | "warning" | "destructive" | "secondary" | "purple" }> = {
   VIP: { label: "VIP", variant: "success" },
@@ -27,6 +29,12 @@ export default function CustomersPage() {
   const [formData, setFormData] = useState({
     name: "", company: "", email: "", phone: "",
     lineId: "", address: "", notes: "",
+    customerType: "INDIVIDUAL" as "INDIVIDUAL" | "CORPORATE",
+    taxId: "", branchNumber: "",
+    billingAddress: "", billingSubDistrict: "", billingDistrict: "",
+    billingProvince: "", billingPostalCode: "",
+    creditLimit: "",
+    defaultPaymentTerms: "",
   });
 
   const utils = trpc.useUtils();
@@ -41,19 +49,38 @@ export default function CustomersPage() {
       utils.customer.list.invalidate();
       utils.customer.stats.invalidate();
       setShowForm(false);
-      setFormData({ name: "", company: "", email: "", phone: "", lineId: "", address: "", notes: "" });
+      setFormData({
+        name: "", company: "", email: "", phone: "", lineId: "", address: "", notes: "",
+        customerType: "INDIVIDUAL", taxId: "", branchNumber: "",
+        billingAddress: "", billingSubDistrict: "", billingDistrict: "",
+        billingProvince: "", billingPostalCode: "",
+        creditLimit: "", defaultPaymentTerms: "",
+      });
     },
   });
+
+  const isCorporate = formData.customerType === "CORPORATE";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createCustomer.mutate({
-      ...formData,
+      name: formData.name,
+      company: formData.company || undefined,
       email: formData.email || undefined,
       phone: formData.phone || undefined,
       lineId: formData.lineId || undefined,
       address: formData.address || undefined,
       notes: formData.notes || undefined,
+      customerType: formData.customerType,
+      taxId: formData.taxId || undefined,
+      branchNumber: formData.branchNumber || undefined,
+      billingAddress: formData.billingAddress || undefined,
+      billingSubDistrict: formData.billingSubDistrict || undefined,
+      billingDistrict: formData.billingDistrict || undefined,
+      billingProvince: formData.billingProvince || undefined,
+      billingPostalCode: formData.billingPostalCode || undefined,
+      creditLimit: formData.creditLimit ? parseFloat(formData.creditLimit) : undefined,
+      defaultPaymentTerms: formData.defaultPaymentTerms || undefined,
     });
   };
 
@@ -66,16 +93,16 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">ลูกค้า</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">จัดการข้อมูลลูกค้าและ CRM</p>
-        </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="h-4 w-4" />
-          เพิ่มลูกค้า
-        </Button>
-      </div>
+      <PageHeader
+        title="ลูกค้า"
+        description="จัดการข้อมูลลูกค้าและ CRM"
+        action={
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-4 w-4" />
+            เพิ่มลูกค้า
+          </Button>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -102,22 +129,54 @@ export default function CustomersPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Customer Type Toggle */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">ประเภทลูกค้า</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, customerType: "INDIVIDUAL" })}
+                    className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                      !isCorporate
+                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                        : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <User className="h-4 w-4" /> บุคคลธรรมดา
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, customerType: "CORPORATE" })}
+                    className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                      isCorporate
+                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                        : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <Building2 className="h-4 w-4" /> นิติบุคคล
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium">ชื่อ *</label>
+                  <label className="mb-1.5 block text-sm font-medium">ชื่อ {isCorporate ? "ผู้ติดต่อ" : ""} *</label>
                   <Input
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="ชื่อลูกค้า"
+                    placeholder={isCorporate ? "ชื่อผู้ติดต่อ" : "ชื่อลูกค้า"}
                     required
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium">บริษัท</label>
+                  <label className="mb-1.5 block text-sm font-medium">
+                    บริษัท {isCorporate && <span className="text-red-500">*</span>}
+                  </label>
                   <Input
                     value={formData.company}
                     onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                     placeholder="ชื่อบริษัท/แบรนด์"
+                    required={isCorporate}
                   />
                 </div>
                 <div>
@@ -146,7 +205,7 @@ export default function CustomersPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium">ที่อยู่</label>
+                  <label className="mb-1.5 block text-sm font-medium">ที่อยู่ (ทั่วไป)</label>
                   <Input
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
@@ -154,6 +213,107 @@ export default function CustomersPage() {
                   />
                 </div>
               </div>
+
+              {/* Corporate-specific fields */}
+              {isCorporate && (
+                <>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                    <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">ข้อมูลนิติบุคคล</h4>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium">
+                          เลขประจำตัวผู้เสียภาษี <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          value={formData.taxId}
+                          onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                          placeholder="เลข 13 หลัก"
+                          required={isCorporate}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium">สาขา</label>
+                        <Input
+                          value={formData.branchNumber}
+                          onChange={(e) => setFormData({ ...formData, branchNumber: e.target.value })}
+                          placeholder="00000 = สำนักงานใหญ่"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium">วงเงินเครดิต (บาท)</label>
+                        <Input
+                          type="number"
+                          value={formData.creditLimit}
+                          onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
+                          placeholder="เช่น 50000"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <label className="mb-1.5 block text-sm font-medium">เงื่อนไขการชำระเงิน (ค่าเริ่มต้น)</label>
+                      <Select
+                        value={formData.defaultPaymentTerms}
+                        onValueChange={(v) => setFormData({ ...formData, defaultPaymentTerms: v })}
+                      >
+                        <SelectTrigger className="w-full md:w-64">
+                          <SelectValue placeholder="เลือกเงื่อนไข" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="COD">เก็บเงินปลายทาง (COD)</SelectItem>
+                          <SelectItem value="FULL_PREPAY">ชำระเต็มล่วงหน้า</SelectItem>
+                          <SelectItem value="DEPOSIT_50">มัดจำ 50%</SelectItem>
+                          <SelectItem value="NET_15">เครดิต 15 วัน</SelectItem>
+                          <SelectItem value="NET_30">เครดิต 30 วัน</SelectItem>
+                          <SelectItem value="NET_60">เครดิต 60 วัน</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                    <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">ที่อยู่ออกใบกำกับภาษี</h4>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="md:col-span-2">
+                        <label className="mb-1.5 block text-sm font-medium">ที่อยู่</label>
+                        <Input
+                          value={formData.billingAddress}
+                          onChange={(e) => setFormData({ ...formData, billingAddress: e.target.value })}
+                          placeholder="เลขที่ ถนน"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium">แขวง/ตำบล</label>
+                        <Input
+                          value={formData.billingSubDistrict}
+                          onChange={(e) => setFormData({ ...formData, billingSubDistrict: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium">เขต/อำเภอ</label>
+                        <Input
+                          value={formData.billingDistrict}
+                          onChange={(e) => setFormData({ ...formData, billingDistrict: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium">จังหวัด</label>
+                        <Input
+                          value={formData.billingProvince}
+                          onChange={(e) => setFormData({ ...formData, billingProvince: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium">รหัสไปรษณีย์</label>
+                        <Input
+                          value={formData.billingPostalCode}
+                          onChange={(e) => setFormData({ ...formData, billingPostalCode: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div>
                 <label className="mb-1.5 block text-sm font-medium">หมายเหตุ</label>
                 <Textarea
@@ -192,6 +352,7 @@ export default function CustomersPage() {
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800">
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">ลูกค้า</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">ประเภท</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">ติดต่อ</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">กลุ่ม</th>
                 <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">ออเดอร์</th>
@@ -200,7 +361,7 @@ export default function CustomersPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading && [...Array(5)].map((_, i) => (
-                <tr key={i}>{[...Array(5)].map((_, j) => (
+                <tr key={i}>{[...Array(6)].map((_, j) => (
                   <td key={j} className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
                 ))}</tr>
               ))}
@@ -213,6 +374,15 @@ export default function CustomersPage() {
                         {customer.name}
                       </Link>
                       {customer.company && <p className="text-xs text-slate-400">{customer.company}</p>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {customer.customerType === "CORPORATE" ? (
+                        <Badge variant="default" className="gap-1 text-xs">
+                          <Building2 className="h-3 w-3" /> นิติบุคคล
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-slate-400">บุคคล</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-500">
                       {customer.phone || customer.email || "-"}
@@ -230,7 +400,7 @@ export default function CustomersPage() {
                 );
               })}
               {data?.customers?.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-slate-400">ไม่พบลูกค้า</td></tr>
+                <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-400">ไม่พบลูกค้า</td></tr>
               )}
             </tbody>
           </table>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,16 +86,12 @@ export default function ServicesPage() {
     },
   });
 
-  const deleteItem = trpc.serviceCatalog.delete.useMutation({
-    onSuccess: () => {
-      utils.serviceCatalog.list.invalidate();
-    },
+  const deleteItem = useMutationWithInvalidation(trpc.serviceCatalog.delete, {
+    invalidate: [utils.serviceCatalog.list],
   });
 
-  const toggleActive = trpc.serviceCatalog.update.useMutation({
-    onSuccess: () => {
-      utils.serviceCatalog.list.invalidate();
-    },
+  const toggleActive = useMutationWithInvalidation(trpc.serviceCatalog.update, {
+    invalidate: [utils.serviceCatalog.list],
   });
 
   // ---- handlers ----

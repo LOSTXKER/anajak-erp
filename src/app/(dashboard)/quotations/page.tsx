@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
+import { PageHeader } from "@/components/page-header";
 import {
   Plus,
   Search,
@@ -16,10 +18,6 @@ import {
   ChevronRight,
   FileText,
 } from "lucide-react";
-
-// ============================================================
-// STATUS CONFIG
-// ============================================================
 
 const QUOTATION_STATUSES = [
   { value: "", label: "ทั้งหมด" },
@@ -30,31 +28,6 @@ const QUOTATION_STATUSES = [
   { value: "EXPIRED", label: "หมดอายุ" },
   { value: "CONVERTED", label: "แปลงแล้ว" },
 ];
-
-const STATUS_BADGE_VARIANT: Record<
-  string,
-  "secondary" | "default" | "success" | "destructive" | "warning" | "purple"
-> = {
-  DRAFT: "secondary",
-  SENT: "default",
-  ACCEPTED: "success",
-  REJECTED: "destructive",
-  EXPIRED: "warning",
-  CONVERTED: "purple",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "ฉบับร่าง",
-  SENT: "ส่งแล้ว",
-  ACCEPTED: "อนุมัติ",
-  REJECTED: "ปฏิเสธ",
-  EXPIRED: "หมดอายุ",
-  CONVERTED: "แปลงเป็นออเดอร์",
-};
-
-// ============================================================
-// COMPONENT
-// ============================================================
 
 export default function QuotationsPage() {
   const [search, setSearch] = useState("");
@@ -70,23 +43,18 @@ export default function QuotationsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            ใบเสนอราคา
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            จัดการใบเสนอราคาทั้งหมด
-          </p>
-        </div>
-        <Link href="/quotations/new">
-          <Button>
-            <Plus className="h-4 w-4" />
-            สร้างใบเสนอราคา
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="ใบเสนอราคา"
+        description="จัดการใบเสนอราคาทั้งหมด"
+        action={
+          <Link href="/quotations/new">
+            <Button>
+              <Plus className="h-4 w-4" />
+              สร้างใบเสนอราคา
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -194,8 +162,8 @@ export default function QuotationsPage() {
                     {formatCurrency(q.totalAmount)}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={STATUS_BADGE_VARIANT[q.status] ?? "secondary"}>
-                      {STATUS_LABELS[q.status] ?? q.status}
+                    <Badge variant={QUOTATION_STATUS_VARIANTS[q.status as keyof typeof QUOTATION_STATUS_VARIANTS] ?? "secondary"}>
+                      {QUOTATION_STATUS_LABELS[q.status as keyof typeof QUOTATION_STATUS_LABELS] ?? q.status}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-500">

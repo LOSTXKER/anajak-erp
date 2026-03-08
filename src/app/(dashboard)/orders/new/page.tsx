@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
@@ -8,167 +8,137 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   CHANNEL_LABELS,
   ORDER_TYPE_LABELS,
+  PRIORITY_LABELS,
+  PAYMENT_TERMS_LABELS,
   isMarketplaceChannel,
 } from "@/lib/order-status";
 import {
   calculateItemSubtotal,
   calculateTotalQuantity,
-  formatCurrency,
 } from "@/lib/pricing";
-import { ArrowLeft, Plus, Trash2, Package, Search } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import {
+  ArrowLeft,
+  Plus,
+  Search,
+  Package,
+  Palette,
+  ShoppingBag,
+  RefreshCw,
+  Save,
+  Zap,
+  ListChecks,
+  ImageIcon,
+  Upload,
+  X,
+  Loader2,
+} from "lucide-react";
 import {
   ProductPickerDialog,
-  type SelectedProduct,
+  type SelectedVariantItem,
 } from "@/components/product-picker";
-
-// ============================================================
-// TYPES
-// ============================================================
-
-type Variant = { size: string; color: string; quantity: number };
-type Print = {
-  position: string;
-  printType: string;
-  colorCount: number;
-  unitPrice: number;
-};
-type Addon = {
-  addonType: string;
-  name: string;
-  pricingType: "PER_PIECE" | "PER_ORDER";
-  unitPrice: number;
-};
-type OrderItem = {
-  productId?: string;
-  productType: string;
-  description: string;
-  material: string;
-  baseUnitPrice: number;
-  variants: Variant[];
-  prints: Print[];
-  addons: Addon[];
-  notes: string;
-};
-type OrderFee = {
-  feeType: string;
-  name: string;
-  amount: number;
-};
-
-// ============================================================
-// DEFAULTS
-// ============================================================
-
-const emptyVariant: Variant = { size: "", color: "", quantity: 1 };
-const emptyPrint: Print = {
-  position: "FRONT",
-  printType: "SILK_SCREEN",
-  colorCount: 1,
-  unitPrice: 0,
-};
-const emptyAddon: Addon = {
-  addonType: "",
-  name: "",
-  pricingType: "PER_PIECE",
-  unitPrice: 0,
-};
-const emptyItem: OrderItem = {
-  productType: "T_SHIRT",
-  description: "",
-  material: "",
-  baseUnitPrice: 0,
-  variants: [{ ...emptyVariant }],
-  prints: [],
-  addons: [],
-  notes: "",
-};
-const emptyFee: OrderFee = { feeType: "", name: "", amount: 0 };
-
-// ============================================================
-// CONSTANTS
-// ============================================================
-
-const PRODUCT_TYPES: Record<string, string> = {
-  T_SHIRT: "เสื้อยืด",
-  POLO: "เสื้อโปโล",
-  HOODIE: "ฮู้ด",
-  JACKET: "แจ็คเก็ต",
-  TOTE_BAG: "ถุงผ้า",
-  OTHER: "อื่นๆ",
-};
-
-const PRINT_POSITIONS: Record<string, string> = {
-  FRONT: "หน้า",
-  BACK: "หลัง",
-  SLEEVE_L: "แขนซ้าย",
-  SLEEVE_R: "แขนขวา",
-  COLLAR: "ปก",
-  POCKET: "กระเป๋า",
-};
-
-const PRINT_TYPES: Record<string, string> = {
-  SILK_SCREEN: "Silk Screen",
-  DTG: "DTG",
-  SUBLIMATION: "Sublimation",
-  HEAT_TRANSFER: "Heat Transfer",
-  EMBROIDERY: "ปัก",
-};
+import { uploadFile } from "@/lib/supabase";
+import {
+  useOrderItemsForm,
+  useOrderFeesForm,
+  clearDraft,
+} from "@/hooks/use-order-items-form";
+import type { OrderItemForm, ReferenceImage } from "@/types/order-form";
+import {
+  EMPTY_ITEM,
+  PRINT_POSITIONS,
+  deriveProcessingType,
+  validateOrderItem,
+} from "@/types/order-form";
+import { toast } from "sonner";
+import {
+  OrderTypeSelector,
+  OrderItemCard,
+  OrderFeeSection,
+  OrderShippingSection,
+  OrderPriceSummary,
+} from "@/components/orders/new";
 
 const CHANNELS = Object.keys(CHANNEL_LABELS) as string[];
 
 const selectClass =
   "flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
-const labelClass =
-  "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
-
 const sectionLabelClass =
   "mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300";
-
-// ============================================================
-// COMPONENT
-// ============================================================
 
 export default function NewOrderPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
 
-  // -- Step 0 --
+  const [typeSelected, setTypeSelected] = useState(false);
+  const [customMode, setCustomMode] = useState<"quick" | "full">("quick");
+
   const [channel, setChannel] = useState("LINE");
   const [orderType, setOrderType] = useState<"READY_MADE" | "CUSTOM">("CUSTOM");
   const [externalOrderId, setExternalOrderId] = useState("");
 
-  // -- Step 1 --
   const [customerId, setCustomerId] = useState("");
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
+  const [estimatedQuantity, setEstimatedQuantity] = useState<number | "">("");
 
-  // -- Step 2 --
-  const [items, setItems] = useState<OrderItem[]>([
-    JSON.parse(JSON.stringify(emptyItem)),
-  ]);
+  const {
+    items, setItems,
+    addItem, removeItem, updateItem,
+    addPrint, removePrint, updatePrint,
+    addAddon, removeAddon, updateAddon,
+    hasDraft, dismissDraft,
+  } = useOrderItemsForm(undefined, { enableDraft: true });
 
-  // -- Step 3 --
-  const [fees, setFees] = useState<OrderFee[]>([]);
+  const [expandedItemIdx, setExpandedItemIdx] = useState<number | null>(0);
 
-  // -- Step 4 --
+  const { fees, addFee, removeFee, updateFee } = useOrderFeesForm();
+
   const [platformFee, setPlatformFee] = useState(0);
   const [discount, setDiscount] = useState(0);
+  const [taxRate, setTaxRate] = useState(0);
 
-  // -- Product picker --
+  const [priority, setPriority] = useState<"LOW" | "NORMAL" | "HIGH" | "URGENT">("NORMAL");
+  const [paymentTerms, setPaymentTerms] = useState("");
+  const [poNumber, setPoNumber] = useState("");
+
+  const [showShipping, setShowShipping] = useState(false);
+  const [shippingRecipientName, setShippingRecipientName] = useState("");
+  const [shippingPhone, setShippingPhone] = useState("");
+  const [shippingAddr, setShippingAddr] = useState("");
+  const [shippingSubDistrict, setShippingSubDistrict] = useState("");
+  const [shippingDistrict, setShippingDistrict] = useState("");
+  const [shippingProvince, setShippingProvince] = useState("");
+  const [shippingPostalCode, setShippingPostalCode] = useState("");
+
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerItemIndex, setPickerItemIndex] = useState<number | null>(null);
 
-  // ---- data ----
+  const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+
   const { data: customers } = trpc.customer.list.useQuery({ limit: 100 });
+
+  const { data: printCatalog } = trpc.serviceCatalog.list.useQuery(
+    { category: "PRINT", isActive: true },
+  );
+  const { data: addonCatalog } = trpc.serviceCatalog.list.useQuery(
+    { category: "ADDON", isActive: true },
+  );
+  const { data: feeCatalog } = trpc.serviceCatalog.list.useQuery(
+    { category: "FEE", isActive: true },
+  );
 
   const createOrder = trpc.order.create.useMutation({
     onSuccess: (data) => {
+      clearDraft();
       utils.order.list.invalidate();
       router.push(`/orders/${data.id}`);
     },
@@ -176,9 +146,57 @@ export default function NewOrderPage() {
 
   const isCustom = orderType === "CUSTOM";
   const isMarketplace = isMarketplaceChannel(channel);
+  const isQuickInquiry = isCustom && customMode === "quick";
 
-  // ---- pricing calculations ----
+  const showFeeSections = isCustom && customMode === "full";
+  const showItemsSection = !isQuickInquiry;
+
+  useEffect(() => {
+    if (!deadline) return;
+    const deadlineDate = new Date(deadline);
+    const now = new Date();
+    const daysUntil = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysUntil <= 3) {
+      setPriority("URGENT");
+    } else if (daysUntil <= 7) {
+      setPriority("HIGH");
+    }
+  }, [deadline]);
+
+  useEffect(() => {
+    if (isMarketplace && !paymentTerms) {
+      setPaymentTerms("COD");
+    }
+  }, [isMarketplace, paymentTerms]);
+
+  const selectedCustomer = customers?.customers.find(c => c.id === customerId);
+  useEffect(() => {
+    if (selectedCustomer?.address && !shippingAddr && !shippingRecipientName) {
+      setShippingRecipientName(selectedCustomer.name);
+      setShippingPhone(selectedCustomer.phone ?? "");
+      setShippingAddr(selectedCustomer.address);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerId]);
+
+  const isCorporateCustomer = selectedCustomer?.customerType === "CORPORATE";
+  useEffect(() => {
+    if (!selectedCustomer) return;
+    if (selectedCustomer.customerType === "CORPORATE") {
+      if (selectedCustomer.defaultPaymentTerms && !paymentTerms) {
+        setPaymentTerms(selectedCustomer.defaultPaymentTerms);
+      }
+      if (taxRate === 0) {
+        setTaxRate(7);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerId]);
+
   const pricingSummary = useMemo(() => {
+    if (isQuickInquiry) {
+      return { subtotalItems: 0, subtotalFees: 0, platformFee: 0, discount: 0, taxAmount: 0, grandTotal: 0 };
+    }
     const subtotalItems = items.reduce((sum, item) => {
       const totalQuantity = calculateTotalQuantity(item.variants);
       return (
@@ -193,1088 +211,681 @@ export default function NewOrderPage() {
     }, 0);
     const subtotalFees = fees.reduce((sum, f) => sum + f.amount, 0);
     const pf = isMarketplace ? platformFee : 0;
-    const grandTotal = Math.max(0, subtotalItems + subtotalFees + pf - discount);
-    return { subtotalItems, subtotalFees, platformFee: pf, discount, grandTotal };
-  }, [items, fees, platformFee, discount, isMarketplace]);
+    const subtotalBeforeTax = subtotalItems + subtotalFees + pf - discount;
+    const taxAmount = taxRate > 0 ? subtotalBeforeTax * (taxRate / 100) : 0;
+    const grandTotal = Math.max(0, subtotalBeforeTax + taxAmount);
+    return { subtotalItems, subtotalFees, platformFee: pf, discount, taxAmount, grandTotal };
+  }, [items, fees, platformFee, discount, isMarketplace, taxRate, isQuickInquiry]);
 
-  // ---- item helpers ----
-  const addItem = () =>
-    setItems([...items, JSON.parse(JSON.stringify(emptyItem))]);
+  const handleVariantsSelected = (selected: SelectedVariantItem[]) => {
+    const grouped = new Map<string, { product: SelectedVariantItem; variants: { size: string; color: string; quantity: number }[]; totalStock: number }>();
+    for (const v of selected) {
+      const existing = grouped.get(v.productId);
+      if (existing) {
+        existing.variants.push({ size: v.size, color: v.color, quantity: v.quantity });
+        existing.totalStock += v.stock;
+      } else {
+        grouped.set(v.productId, {
+          product: v,
+          variants: [{ size: v.size, color: v.color, quantity: v.quantity }],
+          totalStock: v.stock,
+        });
+      }
+    }
 
-  const removeItem = (idx: number) =>
-    setItems(items.filter((_, i) => i !== idx));
-
-  const updateItem = <K extends keyof OrderItem>(
-    idx: number,
-    field: K,
-    value: OrderItem[K],
-  ) => {
-    const copy = [...items];
-    copy[idx] = { ...copy[idx], [field]: value };
-    setItems(copy);
-  };
-
-  // variant helpers
-  const addVariant = (itemIdx: number) => {
-    const copy = [...items];
-    copy[itemIdx] = {
-      ...copy[itemIdx],
-      variants: [...copy[itemIdx].variants, { ...emptyVariant }],
-    };
-    setItems(copy);
-  };
-  const removeVariant = (itemIdx: number, vIdx: number) => {
-    const copy = [...items];
-    copy[itemIdx] = {
-      ...copy[itemIdx],
-      variants: copy[itemIdx].variants.filter((_, i) => i !== vIdx),
-    };
-    setItems(copy);
-  };
-  const updateVariant = <K extends keyof Variant>(
-    itemIdx: number,
-    vIdx: number,
-    field: K,
-    value: Variant[K],
-  ) => {
-    const copy = [...items];
-    const variants = [...copy[itemIdx].variants];
-    variants[vIdx] = { ...variants[vIdx], [field]: value };
-    copy[itemIdx] = { ...copy[itemIdx], variants };
-    setItems(copy);
-  };
-
-  // print helpers
-  const addPrint = (itemIdx: number) => {
-    const copy = [...items];
-    copy[itemIdx] = {
-      ...copy[itemIdx],
-      prints: [...copy[itemIdx].prints, { ...emptyPrint }],
-    };
-    setItems(copy);
-  };
-  const removePrint = (itemIdx: number, pIdx: number) => {
-    const copy = [...items];
-    copy[itemIdx] = {
-      ...copy[itemIdx],
-      prints: copy[itemIdx].prints.filter((_, i) => i !== pIdx),
-    };
-    setItems(copy);
-  };
-  const updatePrint = <K extends keyof Print>(
-    itemIdx: number,
-    pIdx: number,
-    field: K,
-    value: Print[K],
-  ) => {
-    const copy = [...items];
-    const prints = [...copy[itemIdx].prints];
-    prints[pIdx] = { ...prints[pIdx], [field]: value };
-    copy[itemIdx] = { ...copy[itemIdx], prints };
-    setItems(copy);
-  };
-
-  // addon helpers
-  const addAddon = (itemIdx: number) => {
-    const copy = [...items];
-    copy[itemIdx] = {
-      ...copy[itemIdx],
-      addons: [...copy[itemIdx].addons, { ...emptyAddon }],
-    };
-    setItems(copy);
-  };
-  const removeAddon = (itemIdx: number, aIdx: number) => {
-    const copy = [...items];
-    copy[itemIdx] = {
-      ...copy[itemIdx],
-      addons: copy[itemIdx].addons.filter((_, i) => i !== aIdx),
-    };
-    setItems(copy);
-  };
-  const updateAddon = <K extends keyof Addon>(
-    itemIdx: number,
-    aIdx: number,
-    field: K,
-    value: Addon[K],
-  ) => {
-    const copy = [...items];
-    const addons = [...copy[itemIdx].addons];
-    addons[aIdx] = { ...addons[aIdx], [field]: value };
-    copy[itemIdx] = { ...copy[itemIdx], addons };
-    setItems(copy);
-  };
-
-  // fee helpers
-  const addFee = () => setFees([...fees, { ...emptyFee }]);
-  const removeFee = (idx: number) => setFees(fees.filter((_, i) => i !== idx));
-  const updateFee = <K extends keyof OrderFee>(
-    idx: number,
-    field: K,
-    value: OrderFee[K],
-  ) => {
-    const copy = [...fees];
-    copy[idx] = { ...copy[idx], [field]: value };
-    setFees(copy);
-  };
-
-  // ---- product picker handler ----
-  const openPickerForItem = (idx: number) => {
-    setPickerItemIndex(idx);
-    setPickerOpen(true);
-  };
-
-  const handleProductSelected = (product: SelectedProduct) => {
-    if (pickerItemIndex === null) return;
-    const copy = [...items];
-    copy[pickerItemIndex] = {
-      ...copy[pickerItemIndex],
+    const newItems: OrderItemForm[] = Array.from(grouped.values()).map(({ product, variants, totalStock }) => ({
+      ...structuredClone(EMPTY_ITEM),
       productId: product.productId,
+      itemSource: "FROM_STOCK",
       productType: product.productType,
       description: product.name,
       baseUnitPrice: product.basePrice,
-      material: "",
-      variants:
-        product.variants.length > 0
-          ? product.variants.map((v) => ({
-              size: v.size,
-              color: v.color,
-              quantity: 0,
-            }))
-          : [{ ...emptyVariant }],
-    };
-    setItems(copy);
-    setPickerItemIndex(null);
+      variants,
+      productImageUrl: product.imageUrl,
+      productSku: product.productSku,
+      productName: product.name,
+      stockAvailable: totalStock,
+    }));
+
+    setItems((prev) => {
+      const filtered = prev.filter(
+        (it) => it.description || it.productId || it.variants.some((vr) => vr.size),
+      );
+      const result = filtered.length > 0 ? [...filtered, ...newItems] : newItems;
+      setExpandedItemIdx(result.length - newItems.length);
+      return result;
+    });
   };
 
-  // ---- submit ----
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const maxFiles = 5 - referenceImages.length;
+    const filesToUpload = Array.from(files).slice(0, maxFiles);
+
+    setUploading(true);
+    try {
+      for (const file of filesToUpload) {
+        if (file.size > 10 * 1024 * 1024) {
+          toast.warning(`ไฟล์ "${file.name}" มีขนาดเกิน 10MB — ข้ามไฟล์นี้`);
+          continue;
+        }
+
+        const preview = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve(ev.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+
+        const ext = file.name.split(".").pop() || "file";
+        const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const path = `orders/references/${uniqueName}`;
+        const url = await uploadFile("designs", path, file);
+
+        setReferenceImages((prev) => [
+          ...prev,
+          { fileUrl: url, fileName: file.name, fileSize: file.size, preview },
+        ]);
+      }
+    } catch {
+      // Upload error - silently continue with already uploaded images
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeReferenceImage = (idx: number) => {
+    setReferenceImages((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const validateForm = (): string[] => {
+    const errors: string[] = [];
+
+    if (!customerId) errors.push("กรุณาเลือกลูกค้า");
+    if (!title.trim()) errors.push("กรุณาระบุชื่องาน");
+
+    if (deadline) {
+      const deadlineDate = new Date(deadline + "T23:59:59");
+      if (deadlineDate < new Date()) {
+        errors.push("กำหนดส่งต้องไม่เป็นวันที่ผ่านมาแล้ว");
+      }
+    }
+
+    if (!isQuickInquiry) {
+      items.forEach((item, idx) => {
+        const itemErrors = validateOrderItem(item);
+        const errMsgs = Object.values(itemErrors).filter(Boolean);
+        if (errMsgs.length > 0) {
+          errors.push(`รายการ #${idx + 1}: ${errMsgs.join(", ")}`);
+        }
+      });
+
+      const subtotal = pricingSummary.subtotalItems + pricingSummary.subtotalFees;
+      if (discount > subtotal) {
+        errors.push(`ส่วนลด (${formatCurrency(discount)}) มากกว่ายอดรวมก่อนหักส่วนลด (${formatCurrency(subtotal)})`);
+      }
+    }
+
+    if (showShipping) {
+      if (!shippingRecipientName.trim()) errors.push("กรุณาระบุชื่อผู้รับ (ที่อยู่จัดส่ง)");
+      if (!shippingAddr.trim()) errors.push("กรุณาระบุที่อยู่จัดส่ง");
+      if (shippingPhone && !/^0\d{8,9}$/.test(shippingPhone)) {
+        errors.push("เบอร์โทรต้องขึ้นต้นด้วย 0 และมี 9-10 หลัก");
+      }
+      if (shippingPostalCode && !/^\d{5}$/.test(shippingPostalCode)) {
+        errors.push("รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก");
+      }
+    }
+
+    return errors;
+  };
+
+  const buildMutationInput = (isDraft: boolean) => ({
+    orderType,
+    channel: channel as "SHOPEE" | "LAZADA" | "TIKTOK" | "LINE" | "WALK_IN" | "PHONE" | "WEBSITE",
+    customerId,
+    title,
+    description: description || undefined,
+    deadline: deadline || undefined,
+    notes: notes || undefined,
+    externalOrderId: isMarketplace && externalOrderId ? externalOrderId : undefined,
+    platformFee: isMarketplace && platformFee ? platformFee : undefined,
+    discount,
+    isDraft,
+    isQuickInquiry,
+    priority,
+    paymentTerms: paymentTerms || undefined,
+    poNumber: poNumber || undefined,
+    taxRate,
+    estimatedQuantity: estimatedQuantity ? Number(estimatedQuantity) : undefined,
+    ...(showShipping && shippingRecipientName && {
+      shippingAddress: {
+        recipientName: shippingRecipientName,
+        phone: shippingPhone,
+        address: shippingAddr,
+        subDistrict: shippingSubDistrict || undefined,
+        district: shippingDistrict || undefined,
+        province: shippingProvince || undefined,
+        postalCode: shippingPostalCode || undefined,
+      },
+    }),
+    items: isQuickInquiry
+      ? []
+      : items.map((item) => ({
+          productId: item.productId,
+          productType: item.productType,
+          description: item.description,
+          material: item.material || undefined,
+          baseUnitPrice: item.baseUnitPrice,
+          itemSource: (item.itemSource || undefined) as "FROM_STOCK" | "CUSTOM_MADE" | "CUSTOMER_PROVIDED" | undefined,
+          fabricType: item.fabricType || undefined,
+          fabricWeight: item.fabricWeight || undefined,
+          fabricColor: item.fabricColor || undefined,
+          processingType: deriveProcessingType(item.itemSource, item.needsPrinting) as "PRINT_ONLY" | "CUT_AND_SEW_PRINT" | "CUT_AND_SEW_ONLY" | "PACK_ONLY" | "FULL_PRODUCTION",
+          variants: item.variants.map((v) => ({
+            size: v.size,
+            color: v.color || undefined,
+            quantity: v.quantity,
+          })),
+          prints: item.needsPrinting
+            ? item.prints.map((p) => ({
+                position: p.position,
+                printType: p.printType,
+                colorCount: p.colorCount || undefined,
+                printSize: p.printSize || undefined,
+                width: p.width || undefined,
+                height: p.height || undefined,
+                designNote: p.designNote || undefined,
+                designImageUrl: p.designImageUrl || undefined,
+                unitPrice: p.unitPrice,
+              }))
+            : [],
+          addons: item.addons.map((a) => ({
+            addonType: a.addonType,
+            name: a.name,
+            pricingType: a.pricingType as "PER_PIECE" | "PER_ORDER",
+            unitPrice: a.unitPrice,
+          })),
+          notes: item.notes || undefined,
+          // Garment spec (CUSTOM_MADE)
+          patternId: item.patternId || undefined,
+          collarType: item.collarType || undefined,
+          sleeveType: item.sleeveType || undefined,
+          bodyFit: item.bodyFit || undefined,
+          patternFileUrl: item.patternFileUrl || undefined,
+          patternNote: item.patternNote || undefined,
+          // Receive tracking (CUSTOMER_PROVIDED)
+          garmentCondition: item.garmentCondition || undefined,
+          receivedInspected: item.receivedInspected,
+          receiveNote: item.receiveNote || undefined,
+        })),
+    fees: showFeeSections
+      ? fees.map((f) => ({
+          feeType: f.feeType,
+          name: f.name,
+          amount: f.amount,
+        }))
+      : [],
+    referenceImages: referenceImages.map((img) => ({
+      fileUrl: img.fileUrl,
+      fileName: img.fileName,
+      fileSize: img.fileSize,
+      printPosition: img.printPosition || undefined,
+    })),
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const errors = validateForm();
+    setFormErrors(errors);
+    if (errors.length > 0) return;
 
-    createOrder.mutate({
-      orderType,
-      channel: channel as "SHOPEE" | "LAZADA" | "TIKTOK" | "LINE" | "WALK_IN" | "PHONE" | "WEBSITE",
-      customerId,
-      title,
-      description: description || undefined,
-      deadline: deadline || undefined,
-      notes: notes || undefined,
-      externalOrderId: isMarketplace && externalOrderId ? externalOrderId : undefined,
-      platformFee: isMarketplace && platformFee ? platformFee : undefined,
-      discount,
-      items: items.map((item) => ({
-        productType: item.productType,
-        description: item.description,
-        material: item.material || undefined,
-        baseUnitPrice: item.baseUnitPrice,
-        variants: item.variants.map((v) => ({
-          size: v.size,
-          color: v.color || undefined,
-          quantity: v.quantity,
-        })),
-        prints: isCustom
-          ? item.prints.map((p) => ({
-              position: p.position,
-              printType: p.printType,
-              colorCount: p.colorCount || undefined,
-              unitPrice: p.unitPrice,
-            }))
-          : [],
-        addons: isCustom
-          ? item.addons.map((a) => ({
-              addonType: a.addonType,
-              name: a.name,
-              pricingType: a.pricingType,
-              unitPrice: a.unitPrice,
-            }))
-          : [],
-        notes: item.notes || undefined,
-      })),
-      fees: isCustom
-        ? fees.map((f) => ({
-            feeType: f.feeType,
-            name: f.name,
-            amount: f.amount,
-          }))
-        : [],
-    });
+    const summary = isQuickInquiry
+      ? `สร้างการสอบถาม "${title}"?`
+      : `สร้างออเดอร์ ${title} - ${items.length} รายการ - ยอดรวม ${formatCurrency(pricingSummary.grandTotal)} บาท?`;
+    if (!window.confirm(summary)) return;
+
+    createOrder.mutate(buildMutationInput(false));
   };
 
-  // ---- item subtotal helper ----
-  const getItemSubtotal = (item: OrderItem) => {
-    const totalQuantity = calculateTotalQuantity(item.variants);
-    return calculateItemSubtotal({
-      baseUnitPrice: item.baseUnitPrice,
-      totalQuantity,
-      prints: item.prints,
-      addons: item.addons,
-    });
+  const handleSaveDraft = () => {
+    const errors = validateForm();
+    setFormErrors(errors);
+    if (errors.length > 0) return;
+    createOrder.mutate(buildMutationInput(true));
+  };
+
+  const handleSelectType = (type: "READY_MADE" | "CUSTOM") => {
+    setOrderType(type);
+    setTypeSelected(true);
   };
 
   // ============================================================
-  // RENDER
+  // TYPE SELECTION SCREEN
+  // ============================================================
+
+  if (!typeSelected) {
+    return <OrderTypeSelector onSelect={handleSelectType} />;
+  }
+
+  // ============================================================
+  // MAIN FORM
   // ============================================================
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with type badge */}
       <div className="flex items-center gap-3">
         <Link href="/orders">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            สร้างออเดอร์ใหม่
-          </h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              สร้างออเดอร์ใหม่
+            </h1>
+            <Badge
+              variant="outline"
+              className={
+                isCustom
+                  ? "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-400"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
+              }
+            >
+              {isCustom ? (
+                <Palette className="mr-1 h-3 w-3" />
+              ) : (
+                <ShoppingBag className="mr-1 h-3 w-3" />
+              )}
+              {ORDER_TYPE_LABELS[orderType]}
+            </Badge>
+            <button
+              type="button"
+              onClick={() => setTypeSelected(false)}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            >
+              <RefreshCw className="h-3 w-3" />
+              เปลี่ยนประเภท
+            </button>
+          </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            กรอกรายละเอียดออเดอร์
+            {isQuickInquiry
+              ? "บันทึกข้อมูลเบื้องต้น — รายละเอียดเพิ่มเติมภายหลัง"
+              : "กรอกรายละเอียดออเดอร์"}
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* MODE TOGGLE (CUSTOM only) */}
+      {isCustom && (
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
+          <button
+            type="button"
+            onClick={() => setCustomMode("quick")}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+              customMode === "quick"
+                ? "bg-purple-100 text-purple-800 shadow-sm dark:bg-purple-900 dark:text-purple-200"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            }`}
+          >
+            <Zap className="h-4 w-4" />
+            สอบถามเบื้องต้น
+            <span className="hidden text-xs opacity-70 sm:inline">
+              (ข้อมูลน้อย ใส่รายละเอียดภายหลัง)
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCustomMode("full")}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+              customMode === "full"
+                ? "bg-purple-100 text-purple-800 shadow-sm dark:bg-purple-900 dark:text-purple-200"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            }`}
+          >
+            <ListChecks className="h-4 w-4" />
+            ระบุรายละเอียดครบ
+            <span className="hidden text-xs opacity-70 sm:inline">
+              (รู้ราคา จำนวน ตำแหน่งพิมพ์)
+            </span>
+          </button>
+        </div>
+      )}
+
+      {hasDraft && (
+        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950">
+          <span className="text-sm text-amber-800 dark:text-amber-200">
+            พบข้อมูลร่างที่ยังไม่ได้บันทึก — กรอกต่อจากเดิมหรือเริ่มใหม่?
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={dismissDraft}
+            className="ml-auto border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300"
+          >
+            เริ่มใหม่
+          </Button>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         {/* ============================================================ */}
-        {/* STEP 0 — Channel + Type                                      */}
+        {/* LEFT COLUMN — Items + Images + Fees                          */}
         {/* ============================================================ */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">ช่องทาง &amp; ประเภท</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {/* Channel selector */}
-            <div>
-              <label className={sectionLabelClass}>ช่องทางการขาย *</label>
-              <div className="flex flex-wrap gap-2">
-                {CHANNELS.map((ch) => (
-                  <button
-                    key={ch}
-                    type="button"
-                    onClick={() => setChannel(ch)}
-                    className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-                      channel === ch
-                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950 dark:text-blue-300"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-slate-600"
-                    }`}
-                  >
-                    {CHANNEL_LABELS[ch]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Order type toggle */}
-            <div>
-              <label className={sectionLabelClass}>ประเภทออเดอร์ *</label>
-              <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700">
-                {(["READY_MADE", "CUSTOM"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setOrderType(t)}
-                    className={`px-4 py-2 text-sm font-medium transition-colors first:rounded-l-lg last:rounded-r-lg ${
-                      orderType === t
-                        ? "bg-blue-600 text-white"
-                        : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    {ORDER_TYPE_LABELS[t]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* External order ID (marketplace only) */}
-            {isMarketplace && (
-              <div className="max-w-md">
-                <label className={sectionLabelClass}>
-                  เลขออเดอร์ {CHANNEL_LABELS[channel]}
-                </label>
-                <Input
-                  value={externalOrderId}
-                  onChange={(e) => setExternalOrderId(e.target.value)}
-                  placeholder="เช่น 2502120001234"
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* ============================================================ */}
-        {/* STEP 1 — Basic Info                                          */}
-        {/* ============================================================ */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">ข้อมูลทั่วไป</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className={sectionLabelClass}>ลูกค้า *</label>
-                <select
-                  value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
-                  required
-                  className={selectClass}
-                >
-                  <option value="">-- เลือกลูกค้า --</option>
-                  {customers?.customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} {c.company ? `(${c.company})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={sectionLabelClass}>กำหนดส่ง</label>
-                <Input
-                  type="date"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                />
-              </div>
-            </div>
-            <div>
-              <label className={sectionLabelClass}>ชื่องาน *</label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="เช่น เสื้อยืดทีม ABC, ถุงผ้ารณรงค์..."
-                required
-              />
-            </div>
-            <div>
-              <label className={sectionLabelClass}>รายละเอียด</label>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="รายละเอียดเพิ่มเติม..."
-                rows={3}
-              />
-            </div>
-            <div>
-              <label className={sectionLabelClass}>หมายเหตุ</label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="หมายเหตุภายใน..."
-                rows={2}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ============================================================ */}
-        {/* STEP 2 — Product Lines                                       */}
-        {/* ============================================================ */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Package className="h-4 w-4" />
-              รายการสินค้า
-            </CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={addItem}>
-              <Plus className="mr-1 h-4 w-4" />
-              เพิ่มรายการ
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {items.map((item, itemIdx) => {
-              const totalQty = calculateTotalQuantity(item.variants);
-              const itemSubtotal = getItemSubtotal(item);
-
-              return (
-                <div
-                  key={itemIdx}
-                  className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/30"
-                >
-                  {/* Item header */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                        รายการ #{itemIdx + 1}
-                      </span>
-                      {item.productId && (
-                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                          จากแค็ตตาล็อก
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openPickerForItem(itemIdx)}
-                        className="h-7 gap-1 border-blue-200 px-2 text-xs text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
-                      >
-                        <Search className="h-3 w-3" />
-                        เลือกจากแค็ตตาล็อก
-                      </Button>
-                      <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                        {formatCurrency(itemSubtotal)}
-                      </span>
-                      {items.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeItem(itemIdx)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Product type, description, material, base price */}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div>
-                      <label className={labelClass}>ประเภทสินค้า</label>
-                      <select
-                        value={item.productType}
-                        onChange={(e) =>
-                          updateItem(itemIdx, "productType", e.target.value)
-                        }
-                        className={selectClass}
-                      >
-                        {Object.entries(PRODUCT_TYPES).map(([k, v]) => (
-                          <option key={k} value={k}>
-                            {v}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelClass}>คำอธิบาย *</label>
-                      <Input
-                        value={item.description}
-                        onChange={(e) =>
-                          updateItem(itemIdx, "description", e.target.value)
-                        }
-                        placeholder="รายละเอียดงาน..."
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>วัสดุ</label>
-                      <Input
-                        value={item.material}
-                        onChange={(e) =>
-                          updateItem(itemIdx, "material", e.target.value)
-                        }
-                        placeholder="เช่น Cotton 100%"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>ราคาตัวเปล่า/ชิ้น *</label>
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        value={item.baseUnitPrice || ""}
-                        onChange={(e) =>
-                          updateItem(
-                            itemIdx,
-                            "baseUnitPrice",
-                            parseFloat(e.target.value) || 0,
-                          )
-                        }
-                        placeholder="0.00"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* ---- Variants (Size/Color grid) ---- */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                        ไซส์ / สี / จำนวน
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          รวม:{" "}
-                          <span className="font-semibold text-slate-700 dark:text-slate-200">
-                            {totalQty}
-                          </span>{" "}
-                          ชิ้น
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => addVariant(itemIdx)}
-                          className="h-7 px-2 text-xs"
-                        >
-                          <Plus className="mr-1 h-3 w-3" />
-                          แถว
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      {item.variants.map((v, vIdx) => (
-                        <div
-                          key={vIdx}
-                          className="grid grid-cols-[1fr_1fr_100px_32px] items-end gap-2"
-                        >
-                          <div>
-                            {vIdx === 0 && (
-                              <label className={labelClass}>ไซส์ *</label>
-                            )}
-                            <Input
-                              value={v.size}
-                              onChange={(e) =>
-                                updateVariant(
-                                  itemIdx,
-                                  vIdx,
-                                  "size",
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="S, M, L..."
-                              required
-                            />
-                          </div>
-                          <div>
-                            {vIdx === 0 && (
-                              <label className={labelClass}>สี</label>
-                            )}
-                            <Input
-                              value={v.color}
-                              onChange={(e) =>
-                                updateVariant(
-                                  itemIdx,
-                                  vIdx,
-                                  "color",
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="ขาว, ดำ..."
-                            />
-                          </div>
-                          <div>
-                            {vIdx === 0 && (
-                              <label className={labelClass}>จำนวน *</label>
-                            )}
-                            <Input
-                              type="number"
-                              min={1}
-                              value={v.quantity}
-                              onChange={(e) =>
-                                updateVariant(
-                                  itemIdx,
-                                  vIdx,
-                                  "quantity",
-                                  parseInt(e.target.value) || 1,
-                                )
-                              }
-                              required
-                            />
-                          </div>
-                          <div>
-                            {vIdx === 0 && (
-                              <span className="mb-1 block text-xs">&nbsp;</span>
-                            )}
-                            {item.variants.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-9 w-9 text-red-400 hover:text-red-600"
-                                onClick={() => removeVariant(itemIdx, vIdx)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* ---- Print Positions (CUSTOM only) ---- */}
-                  {isCustom && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                          ตำแหน่งพิมพ์
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => addPrint(itemIdx)}
-                          className="h-7 px-2 text-xs"
-                        >
-                          <Plus className="mr-1 h-3 w-3" />
-                          ตำแหน่ง
-                        </Button>
-                      </div>
-                      {item.prints.length === 0 && (
-                        <p className="text-xs italic text-slate-400 dark:text-slate-500">
-                          ยังไม่มีตำแหน่งพิมพ์ — กดเพิ่มเพื่อเริ่ม
-                        </p>
-                      )}
-                      <div className="space-y-1.5">
-                        {item.prints.map((p, pIdx) => (
-                          <div
-                            key={pIdx}
-                            className="grid grid-cols-[1fr_1fr_80px_100px_32px] items-end gap-2"
-                          >
-                            <div>
-                              {pIdx === 0 && (
-                                <label className={labelClass}>ตำแหน่ง</label>
-                              )}
-                              <select
-                                value={p.position}
-                                onChange={(e) =>
-                                  updatePrint(
-                                    itemIdx,
-                                    pIdx,
-                                    "position",
-                                    e.target.value,
-                                  )
-                                }
-                                className={selectClass}
-                              >
-                                {Object.entries(PRINT_POSITIONS).map(
-                                  ([k, v]) => (
-                                    <option key={k} value={k}>
-                                      {v}
-                                    </option>
-                                  ),
-                                )}
-                              </select>
-                            </div>
-                            <div>
-                              {pIdx === 0 && (
-                                <label className={labelClass}>วิธีพิมพ์</label>
-                              )}
-                              <select
-                                value={p.printType}
-                                onChange={(e) =>
-                                  updatePrint(
-                                    itemIdx,
-                                    pIdx,
-                                    "printType",
-                                    e.target.value,
-                                  )
-                                }
-                                className={selectClass}
-                              >
-                                {Object.entries(PRINT_TYPES).map(([k, v]) => (
-                                  <option key={k} value={k}>
-                                    {v}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              {pIdx === 0 && (
-                                <label className={labelClass}>จำนวนสี</label>
-                              )}
-                              <Input
-                                type="number"
-                                min={1}
-                                value={p.colorCount}
-                                onChange={(e) =>
-                                  updatePrint(
-                                    itemIdx,
-                                    pIdx,
-                                    "colorCount",
-                                    parseInt(e.target.value) || 1,
-                                  )
-                                }
-                              />
-                            </div>
-                            <div>
-                              {pIdx === 0 && (
-                                <label className={labelClass}>
-                                  ราคา/ชิ้น *
-                                </label>
-                              )}
-                              <Input
-                                type="number"
-                                min={0}
-                                step={0.01}
-                                value={p.unitPrice || ""}
-                                onChange={(e) =>
-                                  updatePrint(
-                                    itemIdx,
-                                    pIdx,
-                                    "unitPrice",
-                                    parseFloat(e.target.value) || 0,
-                                  )
-                                }
-                                placeholder="0.00"
-                              />
-                            </div>
-                            <div>
-                              {pIdx === 0 && (
-                                <span className="mb-1 block text-xs">
-                                  &nbsp;
-                                </span>
-                              )}
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-9 w-9 text-red-400 hover:text-red-600"
-                                onClick={() => removePrint(itemIdx, pIdx)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ---- Add-ons (CUSTOM only) ---- */}
-                  {isCustom && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                          ส่วนเสริม (Add-ons)
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => addAddon(itemIdx)}
-                          className="h-7 px-2 text-xs"
-                        >
-                          <Plus className="mr-1 h-3 w-3" />
-                          Add-on
-                        </Button>
-                      </div>
-                      {item.addons.length === 0 && (
-                        <p className="text-xs italic text-slate-400 dark:text-slate-500">
-                          ไม่มีส่วนเสริม
-                        </p>
-                      )}
-                      <div className="space-y-1.5">
-                        {item.addons.map((a, aIdx) => (
-                          <div
-                            key={aIdx}
-                            className="grid grid-cols-[1fr_1fr_120px_100px_32px] items-end gap-2"
-                          >
-                            <div>
-                              {aIdx === 0 && (
-                                <label className={labelClass}>ประเภท</label>
-                              )}
-                              <Input
-                                value={a.addonType}
-                                onChange={(e) =>
-                                  updateAddon(
-                                    itemIdx,
-                                    aIdx,
-                                    "addonType",
-                                    e.target.value,
-                                  )
-                                }
-                                placeholder="LABEL, TAG..."
-                              />
-                            </div>
-                            <div>
-                              {aIdx === 0 && (
-                                <label className={labelClass}>ชื่อ</label>
-                              )}
-                              <Input
-                                value={a.name}
-                                onChange={(e) =>
-                                  updateAddon(
-                                    itemIdx,
-                                    aIdx,
-                                    "name",
-                                    e.target.value,
-                                  )
-                                }
-                                placeholder="ชื่อ add-on"
-                              />
-                            </div>
-                            <div>
-                              {aIdx === 0 && (
-                                <label className={labelClass}>คิดราคา</label>
-                              )}
-                              <select
-                                value={a.pricingType}
-                                onChange={(e) =>
-                                  updateAddon(
-                                    itemIdx,
-                                    aIdx,
-                                    "pricingType",
-                                    e.target.value as "PER_PIECE" | "PER_ORDER",
-                                  )
-                                }
-                                className={selectClass}
-                              >
-                                <option value="PER_PIECE">ต่อชิ้น</option>
-                                <option value="PER_ORDER">ต่อออเดอร์</option>
-                              </select>
-                            </div>
-                            <div>
-                              {aIdx === 0 && (
-                                <label className={labelClass}>ราคา *</label>
-                              )}
-                              <Input
-                                type="number"
-                                min={0}
-                                step={0.01}
-                                value={a.unitPrice || ""}
-                                onChange={(e) =>
-                                  updateAddon(
-                                    itemIdx,
-                                    aIdx,
-                                    "unitPrice",
-                                    parseFloat(e.target.value) || 0,
-                                  )
-                                }
-                                placeholder="0.00"
-                              />
-                            </div>
-                            <div>
-                              {aIdx === 0 && (
-                                <span className="mb-1 block text-xs">
-                                  &nbsp;
-                                </span>
-                              )}
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-9 w-9 text-red-400 hover:text-red-600"
-                                onClick={() => removeAddon(itemIdx, aIdx)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Item notes */}
-                  <div>
-                    <label className={labelClass}>หมายเหตุรายการ</label>
-                    <Input
-                      value={item.notes}
-                      onChange={(e) =>
-                        updateItem(itemIdx, "notes", e.target.value)
-                      }
-                      placeholder="หมายเหตุเพิ่มเติมสำหรับรายการนี้..."
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        {/* ============================================================ */}
-        {/* STEP 3 — Order Fees (CUSTOM only)                            */}
-        {/* ============================================================ */}
-        {isCustom && (
+        <div className="space-y-6">
+          {/* Reference Images */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">ค่าใช้จ่ายเพิ่มเติม</CardTitle>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addFee}
-              >
-                <Plus className="mr-1 h-4 w-4" />
-                เพิ่มค่าใช้จ่าย
-              </Button>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ImageIcon className="h-4 w-4" />
+                ภาพอ้างอิง / ไฟล์แบบ
+                {isQuickInquiry && (
+                  <span className="text-xs font-normal text-purple-500">(แนะนำ)</span>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              {fees.length === 0 && (
-                <p className="text-sm text-slate-400 dark:text-slate-500">
-                  ไม่มีค่าใช้จ่ายเพิ่มเติม
-                </p>
-              )}
-              <div className="space-y-2">
-                {fees.map((f, fIdx) => (
-                  <div
-                    key={fIdx}
-                    className="grid grid-cols-[1fr_1fr_120px_32px] items-end gap-2"
-                  >
-                    <div>
-                      {fIdx === 0 && (
-                        <label className={labelClass}>ประเภท</label>
-                      )}
-                      <Input
-                        value={f.feeType}
-                        onChange={(e) =>
-                          updateFee(fIdx, "feeType", e.target.value)
-                        }
-                        placeholder="SHIPPING, SETUP..."
-                      />
-                    </div>
-                    <div>
-                      {fIdx === 0 && <label className={labelClass}>ชื่อ</label>}
-                      <Input
-                        value={f.name}
-                        onChange={(e) =>
-                          updateFee(fIdx, "name", e.target.value)
-                        }
-                        placeholder="ค่าจัดส่ง, ค่าเซ็ตอัพ..."
-                      />
-                    </div>
-                    <div>
-                      {fIdx === 0 && (
-                        <label className={labelClass}>จำนวนเงิน *</label>
-                      )}
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        value={f.amount || ""}
-                        onChange={(e) =>
-                          updateFee(
-                            fIdx,
-                            "amount",
-                            parseFloat(e.target.value) || 0,
-                          )
-                        }
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div>
-                      {fIdx === 0 && (
-                        <span className="mb-1 block text-xs">&nbsp;</span>
-                      )}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-red-400 hover:text-red-600"
-                        onClick={() => removeFee(fIdx)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+              <div className="space-y-3">
+                {referenceImages.length > 0 && (
+                  <div className="flex flex-wrap gap-3">
+                    {referenceImages.map((img, idx) => (
+                      <div key={idx} className="group relative">
+                        {img.preview ? (
+                          <img src={img.preview} alt={img.fileName} className="h-24 w-24 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
+                        ) : (
+                          <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800"><ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" /></div>
+                        )}
+                        <button type="button" onClick={() => removeReferenceImage(idx)} className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-red-600"><X className="h-3 w-3" /></button>
+                        <select value={img.printPosition || ""} onChange={(e) => { setReferenceImages((prev) => prev.map((im, i) => i === idx ? { ...im, printPosition: e.target.value || undefined } : im)); }} className="mt-1 w-24 rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                          <option value="">ทั่วไป</option>
+                          {Object.entries(PRINT_POSITIONS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
+                        </select>
+                        {img.printPosition && (<Badge variant="secondary" className="mt-0.5 text-[9px]">{PRINT_POSITIONS[img.printPosition] || img.printPosition}</Badge>)}
+                        <p className="max-w-[6rem] truncate text-[10px] text-slate-400">{img.fileName}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+                {referenceImages.length < 5 && (
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600 dark:text-slate-400 dark:hover:border-blue-500 dark:hover:text-blue-400">
+                    <input type="file" accept="image/*,.pdf,.ai,.psd" multiple onChange={handleImageUpload} className="hidden" disabled={uploading} />
+                    {uploading ? (<><Loader2 className="h-5 w-5 animate-spin" />กำลังอัปโหลด...</>) : (<><Upload className="h-5 w-5" />อัปโหลดภาพอ้างอิง (สูงสุด 5 ภาพ, ไม่เกิน 10MB)</>)}
+                  </label>
+                )}
               </div>
             </CardContent>
           </Card>
-        )}
 
-        {/* ============================================================ */}
-        {/* STEP 4 — Price Summary                                       */}
-        {/* ============================================================ */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">สรุปราคา</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Sub-lines */}
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                <span>รวมสินค้า</span>
-                <span className="tabular-nums">
-                  {formatCurrency(pricingSummary.subtotalItems)}
-                </span>
-              </div>
-
-              {isCustom && (
-                <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                  <span>รวมค่าใช้จ่ายเพิ่มเติม</span>
-                  <span className="tabular-nums">
-                    {formatCurrency(pricingSummary.subtotalFees)}
-                  </span>
+          {/* Product Lines */}
+          {showItemsSection && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Package className="h-4 w-4" />
+                  รายการสินค้า
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+                    <Search className="mr-1 h-4 w-4" />
+                    เพิ่มจากสต็อก
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => { addItem(); setExpandedItemIdx(items.length); }}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    เพิ่มรายการเปล่า
+                  </Button>
                 </div>
-              )}
-
-              {isMarketplace && (
-                <div className="flex items-center justify-between">
-                  <label className="text-slate-600 dark:text-slate-400">
-                    ค่าธรรมเนียม {CHANNEL_LABELS[channel]}
-                  </label>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={platformFee || ""}
-                    onChange={(e) =>
-                      setPlatformFee(parseFloat(e.target.value) || 0)
-                    }
-                    placeholder="0.00"
-                    className="w-32 text-right"
-                  />
+              </CardHeader>
+              <CardContent className="space-y-0">
+                {items.length > 1 && (
+                  <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:text-slate-500">
+                    <span className="w-6" />
+                    <span className="w-16">แหล่ง</span>
+                    <span className="flex-1">สินค้า</span>
+                    <span className="hidden flex-shrink-0 sm:block">ไซส์/สี</span>
+                    <span className="w-12 text-center">จำนวน</span>
+                    <span className="hidden w-16 text-center md:block">สกรีน</span>
+                    <span className="w-20 text-right">ราคารวม</span>
+                    <span className="w-[4.5rem]" />
+                  </div>
+                )}
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {items.map((item, itemIdx) => (
+                    <OrderItemCard
+                      key={itemIdx}
+                      item={item}
+                      itemIdx={itemIdx}
+                      canRemove={items.length > 1}
+                      isExpanded={expandedItemIdx === itemIdx}
+                      onToggleExpand={() => setExpandedItemIdx(expandedItemIdx === itemIdx ? null : itemIdx)}
+                      allItems={items}
+                      printCatalog={printCatalog}
+                      addonCatalog={addonCatalog}
+                      onUpdateItem={updateItem}
+                      onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
+                      onAddPrint={addPrint}
+                      onRemovePrint={removePrint}
+                      onUpdatePrint={updatePrint}
+                      onAddAddon={addAddon}
+                      onRemoveAddon={removeAddon}
+                      onUpdateAddon={updateAddon}
+                      onOpenPicker={() => setPickerOpen(true)}
+                      onSetItems={(updater) => setItems(updater(items))}
+                    />
+                  ))}
                 </div>
-              )}
+              </CardContent>
+            </Card>
+          )}
 
-              <div className="flex items-center justify-between">
-                <label className="text-slate-600 dark:text-slate-400">
-                  ส่วนลด
-                </label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={discount || ""}
-                  onChange={(e) =>
-                    setDiscount(parseFloat(e.target.value) || 0)
-                  }
-                  placeholder="0.00"
-                  className="w-32 text-right"
-                />
-              </div>
-            </div>
-
-            {/* Grand total */}
-            <div className="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-700">
-              <span className="text-lg font-semibold text-slate-900 dark:text-white">
-                ยอดรวมทั้งหมด
-              </span>
-              <span className="text-2xl font-bold tabular-nums text-blue-600 dark:text-blue-400">
-                {formatCurrency(pricingSummary.grandTotal)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ============================================================ */}
-        {/* Actions                                                      */}
-        {/* ============================================================ */}
-        <div className="flex justify-end gap-3 pb-8">
-          <Link href="/orders">
-            <Button type="button" variant="outline">
-              ยกเลิก
-            </Button>
-          </Link>
-          <Button
-            type="submit"
-            disabled={createOrder.isPending}
-            className="bg-blue-600 text-white hover:bg-blue-700"
-          >
-            {createOrder.isPending ? "กำลังบันทึก..." : "สร้างออเดอร์"}
-          </Button>
+          {/* Order Fees */}
+          {showFeeSections && (
+            <OrderFeeSection
+              fees={fees}
+              onAddFee={addFee}
+              onRemoveFee={removeFee}
+              onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
+              feeCatalog={feeCatalog}
+            />
+          )}
         </div>
 
-        {/* Error display */}
-        {createOrder.isError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
-            {createOrder.error.message}
+        {/* ============================================================ */}
+        {/* RIGHT COLUMN — Info + Price + Shipping + Actions (sticky)    */}
+        {/* ============================================================ */}
+        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          {/* Channel */}
+          <Card>
+            <CardContent className="space-y-4 pt-5">
+              <div>
+                <label className={sectionLabelClass}>ช่องทาง *</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {CHANNELS.map((ch) => (
+                    <button key={ch} type="button" onClick={() => setChannel(ch)} className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${channel === ch ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950 dark:text-blue-300" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"}`}>
+                      {CHANNEL_LABELS[ch]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {isMarketplace && (
+                <div>
+                  <label className={sectionLabelClass}>เลขออเดอร์ {CHANNEL_LABELS[channel]}</label>
+                  <Input value={externalOrderId} onChange={(e) => setExternalOrderId(e.target.value)} placeholder="เช่น 2502120001234" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Basic Info */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">ข้อมูลทั่วไป</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <label className={sectionLabelClass}>ลูกค้า *</label>
+                <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} required className={selectClass}>
+                  <option value="">-- เลือกลูกค้า --</option>
+                  {customers?.customers.map((c) => (<option key={c.id} value={c.id}>{c.name} {c.company ? `(${c.company})` : ""}{c.customerType === "CORPORATE" ? " [นิติบุคคล]" : ""}</option>))}
+                </select>
+                {selectedCustomer && isCorporateCustomer && (
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <Badge variant="default" className="gap-1 text-[10px]">นิติบุคคล</Badge>
+                    {selectedCustomer.taxId && <span className="text-[10px] text-slate-400">Tax ID: {selectedCustomer.taxId}</span>}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className={sectionLabelClass}>ชื่องาน *</label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isQuickInquiry ? "เช่น เสื้อยืดทีมฟุตบอล..." : "เช่น เสื้อยืดทีม ABC..."} required />
+              </div>
+              <div>
+                <label className={sectionLabelClass}>กำหนดส่ง</label>
+                <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+              </div>
+              <div>
+                <label className={sectionLabelClass}>รายละเอียด {isQuickInquiry && <span className="text-purple-500">*</span>}</label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={isQuickInquiry ? "บันทึกสิ่งที่ลูกค้าต้องการ..." : "รายละเอียดเพิ่มเติม..."} rows={isQuickInquiry ? 3 : 2} required={isQuickInquiry} />
+              </div>
+
+              {isQuickInquiry && (
+                <div>
+                  <label className={sectionLabelClass}>จำนวนโดยประมาณ (ชิ้น)</label>
+                  <Input type="number" min={1} value={estimatedQuantity} onChange={(e) => setEstimatedQuantity(e.target.value ? parseInt(e.target.value) : "")} placeholder="เช่น 50, 100..." />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={sectionLabelClass}>ความเร่งด่วน</label>
+                  <select value={priority} onChange={(e) => setPriority(e.target.value as "LOW" | "NORMAL" | "HIGH" | "URGENT")} className={selectClass}>
+                    {Object.entries(PRIORITY_LABELS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
+                  </select>
+                </div>
+                {!isQuickInquiry && (
+                  <div>
+                    <label className={sectionLabelClass}>ภาษี (%)</label>
+                    <Input type="number" min={0} max={100} step={0.01} value={taxRate || ""} onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)} placeholder="0" />
+                  </div>
+                )}
+              </div>
+
+              {!isQuickInquiry && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={sectionLabelClass}>เงื่อนไขชำระ</label>
+                    <select value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} className={selectClass}>
+                      <option value="">-- ไม่ระบุ --</option>
+                      {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
+                    </select>
+                  </div>
+                  {isCorporateCustomer && (
+                    <div>
+                      <label className={sectionLabelClass}>เลขที่ PO</label>
+                      <Input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} placeholder="PO Number" />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <label className={sectionLabelClass}>หมายเหตุ</label>
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="หมายเหตุภายใน..." rows={2} />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Shipping Address */}
+          {!isQuickInquiry && (
+            <OrderShippingSection
+              showShipping={showShipping}
+              onToggleShipping={() => setShowShipping(!showShipping)}
+              shipping={{
+                recipientName: shippingRecipientName,
+                phone: shippingPhone,
+                address: shippingAddr,
+                subDistrict: shippingSubDistrict,
+                district: shippingDistrict,
+                province: shippingProvince,
+                postalCode: shippingPostalCode,
+              }}
+              onUpdate={(field, value) => {
+                const setters: Record<string, (v: string) => void> = {
+                  recipientName: setShippingRecipientName,
+                  phone: setShippingPhone,
+                  address: setShippingAddr,
+                  subDistrict: setShippingSubDistrict,
+                  district: setShippingDistrict,
+                  province: setShippingProvince,
+                  postalCode: setShippingPostalCode,
+                };
+                setters[field]?.(value);
+              }}
+            />
+          )}
+
+          {/* Price Summary */}
+          {!isQuickInquiry && (
+            <OrderPriceSummary
+              pricingSummary={pricingSummary}
+              showFeeSections={showFeeSections}
+              isMarketplace={isMarketplace}
+              channelLabel={CHANNEL_LABELS[channel]}
+              taxRate={taxRate}
+              platformFee={platformFee}
+              discount={discount}
+              onPlatformFeeChange={setPlatformFee}
+              onDiscountChange={setDiscount}
+            />
+          )}
+
+          {/* Validation Errors */}
+          {formErrors.length > 0 && (
+            <div className="rounded-lg border border-red-300 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950">
+              <p className="mb-1.5 text-xs font-semibold text-red-700 dark:text-red-300">กรุณาแก้ไข:</p>
+              <ul className="list-inside list-disc space-y-0.5 text-xs text-red-600 dark:text-red-400">
+                {formErrors.map((err, i) => (<li key={i}>{err}</li>))}
+              </ul>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2">
+            <Button
+              type="submit"
+              disabled={createOrder.isPending}
+              className={`w-full ${isQuickInquiry ? "gap-1 bg-purple-600 text-white hover:bg-purple-700" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+            >
+              {createOrder.isPending ? "กำลังบันทึก..." : isQuickInquiry ? "บันทึกการสอบถาม" : "สร้างออเดอร์"}
+            </Button>
+            <div className="flex gap-2">
+              {!isQuickInquiry && (
+                <Button type="button" variant="outline" disabled={createOrder.isPending} onClick={handleSaveDraft} className="flex-1 gap-1 text-xs">
+                  <Save className="h-3.5 w-3.5" />บันทึกร่าง
+                </Button>
+              )}
+              <Link href="/orders" className={isQuickInquiry ? "flex-1" : ""}>
+                <Button type="button" variant="outline" className={`text-xs ${isQuickInquiry ? "w-full" : ""}`}>ยกเลิก</Button>
+              </Link>
+            </div>
           </div>
-        )}
+
+          {createOrder.isError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+              {createOrder.error.message}
+            </div>
+          )}
+        </div>
       </form>
 
-      {/* Product Picker Dialog */}
       <ProductPickerDialog
         open={pickerOpen}
-        onClose={() => {
-          setPickerOpen(false);
-          setPickerItemIndex(null);
-        }}
-        onSelect={handleProductSelected}
+        onClose={() => setPickerOpen(false)}
+        onSelectVariants={handleVariantsSelected}
       />
     </div>
   );

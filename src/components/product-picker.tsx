@@ -4,12 +4,25 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { trpc } from "@/lib/trpc";
 import { cn, formatCurrency } from "@/lib/utils";
-import { Search, Package, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, Package, X, ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
 
-// ============================================================
-// TYPES
-// ============================================================
+export interface SelectedVariantItem {
+  productId: string;
+  productVariantId: string;
+  sku: string;
+  productSku: string;
+  name: string;
+  productType: string;
+  basePrice: number;
+  costPrice: number;
+  size: string;
+  color: string;
+  stock: number;
+  quantity: number;
+  imageUrl?: string;
+}
 
+/** @deprecated Use SelectedVariantItem[] via the new multi-select flow */
 export interface SelectedProduct {
   productId: string;
   sku: string;
@@ -33,13 +46,9 @@ export interface SelectedProduct {
 export interface ProductPickerProps {
   open: boolean;
   onClose: () => void;
-  onSelect: (product: SelectedProduct) => void;
-  itemType?: string; // "FINISHED_GOOD" | "RAW_MATERIAL" | "CONSUMABLE"
+  onSelectVariants: (items: SelectedVariantItem[]) => void;
+  itemType?: string;
 }
-
-// ============================================================
-// CONSTANTS
-// ============================================================
 
 const ITEM_TYPE_FILTERS = [
   { key: undefined as string | undefined, label: "ทั้งหมด" },
@@ -62,85 +71,98 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
   OTHER: "อื่นๆ",
 };
 
-// ============================================================
-// COMPONENT
-// ============================================================
+type VariantSelection = Record<string, number>;
 
 export function ProductPickerDialog({
   open,
   onClose,
-  onSelect,
+  onSelectVariants,
   itemType: initialGroup,
 }: ProductPickerProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
-    initialGroup,
-  );
+  const [selectedGroup, setSelectedGroup] = useState<string | undefined>(initialGroup);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selections, setSelections] = useState<VariantSelection>({});
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setSearch("");
       setDebouncedSearch("");
       setSelectedGroup(initialGroup);
       setExpandedId(null);
-      // Focus search input after animation
+      setSelections({});
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [open, initialGroup]);
 
-  // Query products
   const { data: products, isLoading } = trpc.product.searchForOrder.useQuery(
-    {
-      search: debouncedSearch || undefined,
-      itemType: selectedGroup,
-      limit: 20,
-    },
+    { search: debouncedSearch || undefined, itemType: selectedGroup, limit: 20 },
     { enabled: open },
   );
 
-  const handleSelect = useCallback(
-    (product: NonNullable<typeof products>[number]) => {
-      const selected: SelectedProduct = {
-        productId: product.id,
-        sku: product.sku,
-        name: product.name,
-        productType: product.productType,
-        basePrice: product.basePrice,
-        costPrice: product.costPrice ?? 0,
-        unit: product.unit ?? null,
-        source: product.source,
-        variants: product.variants.map((v) => ({
-          id: v.id,
-          size: v.size,
-          color: v.color,
-          sku: v.sku,
-          stock: v.totalStock ?? v.stock,
-          priceAdj: v.priceAdj,
-          sellingPrice: v.sellingPrice,
-        })),
-      };
-      onSelect(selected);
-      onClose();
-    },
-    [onSelect, onClose],
-  );
+  const totalSelected = Object.values(selections).filter((q) => q > 0).length;
 
-  const handleManualEntry = () => {
-    onClose();
+  const toggleVariant = (variantId: string) => {
+    setSelections((prev) => {
+      const current = prev[variantId] ?? 0;
+      if (current > 0) {
+        const next = { ...prev };
+        delete next[variantId];
+        return next;
+      }
+      return { ...prev, [variantId]: 1 };
+    });
   };
 
-  const toggleExpand = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const setVariantQty = (variantId: string, qty: number) => {
+    setSelections((prev) => ({
+      ...prev,
+      [variantId]: Math.max(0, qty),
+    }));
+  };
+
+  const handleConfirm = useCallback(() => {
+    if (!products) return;
+    const items: SelectedVariantItem[] = [];
+
+    for (const product of products) {
+      for (const v of product.variants) {
+        const qty = selections[v.id];
+        if (!qty || qty <= 0) continue;
+        items.push({
+          productId: product.id,
+          productVariantId: v.id,
+          sku: v.sku,
+          productSku: product.sku,
+          name: product.name,
+          productType: product.productType,
+          basePrice: v.sellingPrice > 0 ? v.sellingPrice : product.basePrice,
+          costPrice: product.costPrice ?? 0,
+          size: v.size,
+          color: v.color,
+          stock: v.totalStock ?? v.stock,
+          quantity: qty,
+          imageUrl: product.imageUrl ?? undefined,
+        });
+      }
+    }
+
+    if (items.length > 0) {
+      onSelectVariants(items);
+      onClose();
+    }
+  }, [products, selections, onSelectVariants, onClose]);
+
+  const handleManualEntry = () => onClose();
+
+  const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
@@ -167,7 +189,6 @@ export function ProductPickerDialog({
 
           {/* Search & Filters */}
           <div className="space-y-3 border-b border-slate-200 px-5 py-3 dark:border-slate-700">
-            {/* Search input */}
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -179,8 +200,6 @@ export function ProductPickerDialog({
                 className="flex h-10 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
             </div>
-
-            {/* Group filter pills */}
             <div className="flex flex-wrap gap-1.5">
               {ITEM_TYPE_FILTERS.map((g) => (
                 <button
@@ -212,75 +231,57 @@ export function ProductPickerDialog({
                 <Package className="h-10 w-10" />
                 <p className="mt-3 text-sm">ไม่พบสินค้า</p>
                 {search && (
-                  <p className="mt-1 text-xs">
-                    ลองค้นหาด้วยคำอื่น หรือเพิ่มรายการด้วยตนเอง
-                  </p>
+                  <p className="mt-1 text-xs">ลองค้นหาด้วยคำอื่น หรือเพิ่มรายการด้วยตนเอง</p>
                 )}
               </div>
             ) : (
               <div className="space-y-1">
                 {products.map((product) => {
                   const isExpanded = expandedId === product.id;
-                  const totalStock = product.totalStock ?? product.variants.reduce(
-                    (sum, v) => sum + (v.totalStock ?? v.stock),
-                    0,
-                  );
+                  const totalStock =
+                    product.totalStock ??
+                    product.variants.reduce((sum, v) => sum + (v.totalStock ?? v.stock), 0);
+                  const selectedFromProduct = product.variants.filter(
+                    (v) => (selections[v.id] ?? 0) > 0,
+                  ).length;
 
                   return (
                     <div key={product.id} className="rounded-lg">
-                      {/* Product row */}
+                      {/* Product row -- click to expand, not to select */}
                       <button
                         type="button"
-                        onClick={() => handleSelect(product)}
+                        onClick={() => toggleExpand(product.id)}
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/40"
                       >
-                        {/* Expand toggle */}
-                        <button
-                          type="button"
-                          onClick={(e) => toggleExpand(product.id, e)}
-                          className="flex-shrink-0 rounded p-0.5 text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
-                        >
-                          {isExpanded ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </button>
-
-                        {/* Product info */}
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-400" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-400" />
+                        )}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="truncate text-sm font-medium text-slate-900 dark:text-white">
                               {product.name}
                             </span>
                             <span className="inline-flex flex-shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                              {PRODUCT_TYPE_LABELS[product.productType] ??
-                                product.productType}
+                              {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
                             </span>
-                            {product.itemType && product.itemType !== "FINISHED_GOOD" && (
-                              <span className="inline-flex flex-shrink-0 items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                                {product.itemType === "RAW_MATERIAL"
-                                  ? "วัตถุดิบ"
-                                  : product.itemType === "CONSUMABLE"
-                                    ? "วัสดุสิ้นเปลือง"
-                                    : product.itemType}
+                            {selectedFromProduct > 0 && (
+                              <span className="inline-flex flex-shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                เลือก {selectedFromProduct}
                               </span>
                             )}
                           </div>
                           <div className="mt-0.5 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                             <span className="font-mono">{product.sku}</span>
-                            <span className="text-slate-300 dark:text-slate-600">
-                              |
-                            </span>
+                            <span className="text-slate-300 dark:text-slate-600">|</span>
                             <span>
                               ราคา{" "}
                               <span className="font-medium text-slate-700 dark:text-slate-300">
                                 {formatCurrency(product.basePrice)}
                               </span>
                             </span>
-                            <span className="text-slate-300 dark:text-slate-600">
-                              |
-                            </span>
+                            <span className="text-slate-300 dark:text-slate-600">|</span>
                             <span>
                               คงเหลือ{" "}
                               <span
@@ -300,45 +301,45 @@ export function ProductPickerDialog({
                         </div>
                       </button>
 
-                      {/* Expanded variant details */}
+                      {/* Expanded: variant selection with checkboxes + qty */}
                       {isExpanded && product.variants.length > 0 && (
                         <div className="mb-1 ml-10 mr-3 rounded-lg border border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50">
                           <table className="w-full text-xs">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                                <th className="px-3 py-1.5 text-left font-medium">
-                                  ไซส์
-                                </th>
-                                <th className="px-3 py-1.5 text-left font-medium">
-                                  สี
-                                </th>
-                                <th className="px-3 py-1.5 text-left font-medium">
-                                  SKU
-                                </th>
-                                <th className="px-3 py-1.5 text-right font-medium">
-                                  คงเหลือ
-                                </th>
-                                <th className="px-3 py-1.5 text-right font-medium">
-                                  ราคาขาย
-                                </th>
+                                <th className="w-8 px-2 py-1.5" />
+                                <th className="px-3 py-1.5 text-left font-medium">ไซส์</th>
+                                <th className="px-3 py-1.5 text-left font-medium">สี</th>
+                                <th className="px-3 py-1.5 text-right font-medium">คงเหลือ</th>
+                                <th className="px-3 py-1.5 text-right font-medium">ราคา</th>
+                                <th className="px-3 py-1.5 text-center font-medium">จำนวน</th>
                               </tr>
                             </thead>
                             <tbody>
                               {product.variants.map((v) => {
                                 const vStock = v.totalStock ?? v.stock;
+                                const qty = selections[v.id] ?? 0;
+                                const isChecked = qty > 0;
+                                const exceedsStock = isChecked && qty > vStock;
+
                                 return (
                                   <tr
                                     key={v.id}
                                     className="border-b border-slate-100 last:border-0 dark:border-slate-700/50"
                                   >
+                                    <td className="px-2 py-1.5 text-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => toggleVariant(v.id)}
+                                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                      />
+                                    </td>
                                     <td className="px-3 py-1.5 font-medium text-slate-700 dark:text-slate-300">
                                       {v.size}
                                     </td>
                                     <td className="px-3 py-1.5 text-slate-600 dark:text-slate-400">
                                       {v.color || "-"}
-                                    </td>
-                                    <td className="px-3 py-1.5 font-mono text-slate-500 dark:text-slate-400">
-                                      {v.sku}
                                     </td>
                                     <td className="px-3 py-1.5 text-right">
                                       <span
@@ -355,15 +356,61 @@ export function ProductPickerDialog({
                                       </span>
                                     </td>
                                     <td className="px-3 py-1.5 text-right font-medium text-slate-700 dark:text-slate-300">
-                                      {v.sellingPrice > 0
-                                        ? formatCurrency(v.sellingPrice)
-                                        : "-"}
+                                      {v.sellingPrice > 0 ? formatCurrency(v.sellingPrice) : formatCurrency(product.basePrice)}
+                                    </td>
+                                    <td className="px-3 py-1.5">
+                                      {isChecked && (
+                                        <div className="space-y-1">
+                                          <div className="flex items-center justify-center gap-1">
+                                            <button
+                                              type="button"
+                                              onClick={() => setVariantQty(v.id, qty - 1)}
+                                              className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700"
+                                            >
+                                              <Minus className="h-3 w-3" />
+                                            </button>
+                                            <input
+                                              type="number"
+                                              min={1}
+                                              value={qty}
+                                              onChange={(e) =>
+                                                setVariantQty(v.id, parseInt(e.target.value) || 0)
+                                              }
+                                              className={cn(
+                                                "h-6 w-12 rounded border bg-white px-1 text-center text-xs dark:bg-slate-900 dark:text-slate-100",
+                                                exceedsStock
+                                                  ? "border-amber-400 dark:border-amber-600"
+                                                  : "border-slate-200 dark:border-slate-700",
+                                              )}
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => setVariantQty(v.id, qty + 1)}
+                                              className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700"
+                                            >
+                                              <Plus className="h-3 w-3" />
+                                            </button>
+                                          </div>
+                                          {exceedsStock && (
+                                            <p className="text-center text-[10px] text-amber-600 dark:text-amber-400">
+                                              เกินสต็อก (ต้องสั่งเพิ่ม)
+                                            </p>
+                                          )}
+                                        </div>
+                                      )}
                                     </td>
                                   </tr>
                                 );
                               })}
                             </tbody>
                           </table>
+                        </div>
+                      )}
+
+                      {/* No variants -- allow direct manual add */}
+                      {isExpanded && product.variants.length === 0 && (
+                        <div className="mb-1 ml-10 mr-3 rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-center text-xs text-slate-400 dark:border-slate-800 dark:bg-slate-800/50">
+                          สินค้านี้ไม่มี variant -- ใช้ &quot;เพิ่มรายการด้วยตนเอง&quot; แทน
                         </div>
                       )}
                     </div>
@@ -382,13 +429,24 @@ export function ProductPickerDialog({
             >
               เพิ่มรายการด้วยตนเอง
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
-            >
-              ปิด
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+              >
+                ปิด
+              </button>
+              {totalSelected > 0 && (
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                >
+                  เพิ่ม {totalSelected} รายการ
+                </button>
+              )}
+            </div>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

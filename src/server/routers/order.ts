@@ -3,6 +3,9 @@ import { router, protectedProcedure } from "../trpc";
 import { generateOrderNumber } from "@/lib/utils";
 import { getCustomerStatus, getInitialStatus, isValidTransition } from "@/lib/order-status";
 import { calculateItemSubtotal, calculateTotalQuantity } from "@/lib/pricing";
+import { createAuditLog } from "@/server/helpers";
+import { byIdInput } from "@/server/schemas";
+import { getStartOfMonth } from "@/lib/date-utils";
 
 // ============================================================
 // SCHEMAS
@@ -18,9 +21,11 @@ const printSchema = z.object({
   position: z.string(),
   printType: z.string(),
   colorCount: z.number().optional(),
+  printSize: z.string().optional(),
   width: z.number().optional(),
   height: z.number().optional(),
   designNote: z.string().optional(),
+  designImageUrl: z.string().optional(),
   unitPrice: z.number().min(0),
 });
 
@@ -35,6 +40,7 @@ const addonSchema = z.object({
 });
 
 const orderItemSchema = z.object({
+  productId: z.string().optional(),
   productType: z.string(),
   description: z.string(),
   material: z.string().optional(),
@@ -43,6 +49,23 @@ const orderItemSchema = z.object({
   prints: z.array(printSchema).default([]),
   addons: z.array(addonSchema).default([]),
   notes: z.string().optional(),
+  // Item source & fabric details
+  itemSource: z.enum(["FROM_STOCK", "CUSTOM_MADE", "ORDER_FROM_SUPPLIER", "CUSTOMER_PROVIDED"]).optional(),
+  fabricType: z.string().optional(),
+  fabricWeight: z.string().optional(),
+  fabricColor: z.string().optional(),
+  processingType: z.enum(["PRINT_ONLY", "CUT_AND_SEW_PRINT", "CUT_AND_SEW_ONLY", "PACK_ONLY", "FULL_PRODUCTION"]).optional(),
+  // Garment spec (CUSTOM_MADE)
+  patternId: z.string().optional(),
+  collarType: z.string().optional(),
+  sleeveType: z.string().optional(),
+  bodyFit: z.string().optional(),
+  patternFileUrl: z.string().optional(),
+  patternNote: z.string().optional(),
+  // Receive tracking (CUSTOMER_PROVIDED)
+  garmentCondition: z.string().optional(),
+  receivedInspected: z.boolean().optional(),
+  receiveNote: z.string().optional(),
 });
 
 const orderFeeSchema = z.object({
@@ -67,6 +90,10 @@ export const orderRouter = router({
         customerStatus: z.string().optional(),
         internalStatus: z.string().optional(),
         customerId: z.string().optional(),
+        createdAfter: z.string().optional(),
+        createdBefore: z.string().optional(),
+        sortBy: z.enum(["createdAt", "totalAmount", "orderNumber"]).optional(),
+        sortOrder: z.enum(["asc", "desc"]).optional(),
         page: z.number().default(1),
         limit: z.number().default(20),
       })
@@ -89,25 +116,61 @@ export const orderRouter = router({
       if (input.internalStatus) where.internalStatus = input.internalStatus;
       if (input.customerId) where.customerId = input.customerId;
 
+      if (input.createdAfter || input.createdBefore) {
+        const createdAtFilter: Record<string, Date> = {};
+        if (input.createdAfter) createdAtFilter.gte = new Date(input.createdAfter);
+        if (input.createdBefore) {
+          const end = new Date(input.createdBefore);
+          end.setHours(23, 59, 59, 999);
+          createdAtFilter.lte = end;
+        }
+        where.createdAt = createdAtFilter;
+      }
+
+      const orderBy: Record<string, string> = {
+        [input.sortBy ?? "createdAt"]: input.sortOrder ?? "desc",
+      };
+
       const [orders, total] = await Promise.all([
         ctx.prisma.order.findMany({
           where,
           include: {
             customer: { select: { id: true, name: true, company: true } },
             _count: { select: { items: true, designs: true, deliveries: true } },
+            invoices: {
+              where: { isVoided: false },
+              select: { totalAmount: true, paymentStatus: true },
+            },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy,
           skip: (input.page - 1) * input.limit,
           take: input.limit,
         }),
         ctx.prisma.order.count({ where }),
       ]);
 
-      return { orders, total, pages: Math.ceil(total / input.limit) };
+      const ordersWithPayment = orders.map((order) => {
+        const invoices = order.invoices;
+        let paymentLabel: "paid" | "unpaid" | "partial" | "none" = "none";
+        if (invoices.length > 0) {
+          const allPaid = invoices.every((inv) => inv.paymentStatus === "PAID");
+          const anyPaid = invoices.some((inv) => inv.paymentStatus === "PAID" || inv.paymentStatus === "PARTIALLY_PAID");
+          if (allPaid) paymentLabel = "paid";
+          else if (anyPaid) paymentLabel = "partial";
+          else paymentLabel = "unpaid";
+        }
+        return {
+          ...order,
+          paymentLabel,
+          invoicedTotal: invoices.reduce((s, inv) => s + inv.totalAmount, 0),
+        };
+      });
+
+      return { orders: ordersWithPayment, total, pages: Math.ceil(total / input.limit) };
     }),
 
   getById: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .query(async ({ ctx, input }) => {
       return ctx.prisma.order.findUniqueOrThrow({
         where: { id: input.id },
@@ -121,6 +184,14 @@ export const orderRouter = router({
               variants: { orderBy: { size: "asc" } },
               prints: { orderBy: { position: "asc" } },
               addons: true,
+              product: {
+                include: {
+                  variants: {
+                    where: { isActive: true },
+                    select: { id: true, size: true, color: true, stock: true, totalStock: true },
+                  },
+                },
+              },
             },
           },
           fees: { orderBy: { createdAt: "asc" } },
@@ -162,14 +233,43 @@ export const orderRouter = router({
         platformFee: z.number().optional(),
         discount: z.number().default(0),
         discountReason: z.string().optional(),
-        items: z.array(orderItemSchema).min(1, "กรุณาเพิ่มรายการอย่างน้อย 1 รายการ"),
+        isDraft: z.boolean().default(false),
+        isQuickInquiry: z.boolean().default(false),
+        priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
+        paymentTerms: z.string().optional(),
+        poNumber: z.string().optional(),
+        taxRate: z.number().min(0).max(100).default(0),
+        estimatedQuantity: z.number().int().min(1).optional(),
+        shippingAddress: z.object({
+          recipientName: z.string(),
+          phone: z.string(),
+          address: z.string(),
+          subDistrict: z.string().optional(),
+          district: z.string().optional(),
+          province: z.string().optional(),
+          postalCode: z.string().optional(),
+        }).optional(),
+        // Items can be empty for INQUIRY/DRAFT (Quick Inquiry mode)
+        items: z.array(orderItemSchema).default([]),
         fees: z.array(orderFeeSchema).default([]),
+        // Reference images uploaded during creation
+        referenceImages: z.array(z.object({
+          fileUrl: z.string(),
+          fileName: z.string(),
+          fileSize: z.number().optional(),
+          printPosition: z.string().optional(), // FRONT, BACK, SLEEVE_L, etc.
+        })).default([]),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { items, fees, ...orderData } = input;
+      const { items, fees, shippingAddress, referenceImages, ...orderData } = input;
 
-      // Calculate pricing for each item
+      // For non-draft, non-inquiry orders: require at least 1 item
+      if (!input.isDraft && !input.isQuickInquiry && items.length === 0) {
+        throw new Error("กรุณาเพิ่มรายการอย่างน้อย 1 รายการ");
+      }
+
+      // Calculate pricing for each item (may be empty for inquiry)
       const itemsWithCalc = items.map((item, index) => {
         const totalQuantity = calculateTotalQuantity(item.variants);
         const subtotal = calculateItemSubtotal({
@@ -183,119 +283,252 @@ export const orderRouter = router({
 
       const subtotalItems = itemsWithCalc.reduce((sum, i) => sum + i.subtotal, 0);
       const subtotalFees = fees.reduce((sum, f) => sum + f.amount, 0);
-      const totalAmount = subtotalItems + subtotalFees - (input.discount || 0);
+      const subtotalBeforeTax = subtotalItems + subtotalFees - (input.discount || 0);
+      const taxAmount = input.taxRate > 0 ? subtotalBeforeTax * (input.taxRate / 100) : 0;
+      const totalAmount = subtotalBeforeTax + taxAmount;
 
-      const initialStatus = getInitialStatus(input.orderType);
+      // Stock availability check for READY_MADE orders
+      if (input.orderType === "READY_MADE" && !input.isDraft) {
+        const itemsWithProducts = items.filter((item) => item.productId);
+        if (itemsWithProducts.length > 0) {
+          const productIds = itemsWithProducts
+            .map((item) => item.productId)
+            .filter((id): id is string => !!id);
+
+          const products = await ctx.prisma.product.findMany({
+            where: { id: { in: productIds } },
+            include: { variants: true },
+          });
+
+          const stockErrors: string[] = [];
+
+          for (const item of itemsWithProducts) {
+            const product = products.find((p) => p.id === item.productId);
+            if (!product) continue;
+
+            for (const variant of item.variants) {
+              // Find matching product variant by size+color
+              const productVariant = product.variants.find(
+                (pv) =>
+                  pv.size === variant.size &&
+                  (!variant.color || pv.color === variant.color)
+              );
+
+              if (productVariant) {
+                const availableStock = productVariant.totalStock || productVariant.stock;
+                if (variant.quantity > availableStock) {
+                  stockErrors.push(
+                    `${product.name} (${variant.size}${variant.color ? `/${variant.color}` : ""}): ` +
+                    `ต้องการ ${variant.quantity} ชิ้น แต่มีในสต็อก ${availableStock} ชิ้น`
+                  );
+                }
+              }
+            }
+          }
+
+          if (stockErrors.length > 0) {
+            throw new Error(
+              `สินค้าในสต็อกไม่เพียงพอ:\n${stockErrors.join("\n")}`
+            );
+          }
+        }
+      }
+
+      // Quick inquiry always starts at INQUIRY, draft at DRAFT, otherwise default
+      const initialStatus = input.isDraft
+        ? "DRAFT" as const
+        : input.isQuickInquiry
+          ? "INQUIRY" as const
+          : getInitialStatus(input.orderType);
       const customerStatus = getCustomerStatus(initialStatus);
 
-      const order = await ctx.prisma.order.create({
-        data: {
-          orderNumber: generateOrderNumber(),
-          orderType: orderData.orderType,
-          channel: orderData.channel,
-          customerId: orderData.customerId,
-          brandProfileId: orderData.brandProfileId,
-          createdById: ctx.userId,
-          customerStatus,
-          internalStatus: initialStatus,
-          title: orderData.title,
-          description: orderData.description,
-          deadline: orderData.deadline ? new Date(orderData.deadline) : null,
-          notes: orderData.notes,
-          externalOrderId: orderData.externalOrderId,
-          platformFee: orderData.platformFee,
-          discount: orderData.discount || 0,
-          discountReason: orderData.discountReason,
-          subtotalItems,
-          subtotalFees,
-          totalAmount: Math.max(0, totalAmount),
-          items: {
-            create: itemsWithCalc.map((item) => ({
-              sortOrder: item.sortOrder,
-              productType: item.productType,
-              description: item.description,
-              material: item.material,
-              baseUnitPrice: item.baseUnitPrice,
-              totalQuantity: item.totalQuantity,
-              subtotal: item.subtotal,
-              notes: item.notes,
-              variants: {
-                create: item.variants.map((v) => ({
-                  size: v.size,
-                  color: v.color,
-                  quantity: v.quantity,
-                })),
-              },
-              prints: {
-                create: item.prints.map((p) => ({
-                  position: p.position,
-                  printType: p.printType,
-                  colorCount: p.colorCount,
-                  width: p.width,
-                  height: p.height,
-                  designNote: p.designNote,
-                  unitPrice: p.unitPrice,
-                })),
-              },
-              addons: {
-                create: item.addons.map((a) => ({
-                  addonType: a.addonType,
-                  name: a.name,
-                  description: a.description,
-                  pricingType: a.pricingType,
-                  unitPrice: a.unitPrice,
-                  quantity: a.quantity,
-                  notes: a.notes,
-                })),
-              },
-            })),
-          },
-          fees: {
-            create: fees.map((f) => ({
-              feeType: f.feeType,
-              name: f.name,
-              description: f.description,
-              amount: f.amount,
-              notes: f.notes,
-            })),
-          },
-        },
-        include: {
-          customer: { select: { name: true } },
-          items: { include: { variants: true, prints: true, addons: true } },
-          fees: true,
-        },
-      });
+      // Use $transaction to ensure atomicity: order + customer stats + audit log
+      // Retry up to 3 times on unique constraint violation (order number collision)
+      const MAX_RETRIES = 3;
+      let lastError: unknown = null;
 
-      // Update customer stats
-      await ctx.prisma.customer.update({
-        where: { id: input.customerId },
-        data: {
-          totalOrders: { increment: 1 },
-          lastOrderAt: new Date(),
-        },
-      });
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          const result = await ctx.prisma.$transaction(async (tx) => {
+            // Generate order number inside transaction for consistency
+            const orderNumber = await generateOrderNumber(tx);
 
-      // Audit log
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "CREATE",
-          entityType: "ORDER",
-          entityId: order.id,
-          newValue: JSON.parse(
-            JSON.stringify({
-              orderNumber: order.orderNumber,
-              orderType: order.orderType,
-              channel: order.channel,
-              title: order.title,
-              totalAmount: order.totalAmount,
-            })
-          ),
-        },
-      });
+            const order = await tx.order.create({
+              data: {
+                orderNumber,
+                orderType: orderData.orderType,
+                channel: orderData.channel,
+                customerId: orderData.customerId,
+                brandProfileId: orderData.brandProfileId,
+                createdById: ctx.userId,
+                customerStatus,
+                internalStatus: initialStatus,
+                title: orderData.title,
+                description: orderData.description,
+                deadline: orderData.deadline ? new Date(orderData.deadline) : null,
+                notes: orderData.notes,
+                externalOrderId: orderData.externalOrderId,
+                platformFee: orderData.platformFee,
+                discount: orderData.discount || 0,
+                discountReason: orderData.discountReason,
+                priority: orderData.priority,
+                paymentTerms: orderData.paymentTerms,
+                poNumber: orderData.poNumber,
+                estimatedQuantity: orderData.estimatedQuantity,
+                taxRate: orderData.taxRate,
+                taxAmount,
+                subtotalItems,
+                subtotalFees,
+                totalAmount: Math.max(0, totalAmount),
+                ...(shippingAddress && {
+                  shippingRecipientName: shippingAddress.recipientName,
+                  shippingPhone: shippingAddress.phone,
+                  shippingAddress: shippingAddress.address,
+                  shippingSubDistrict: shippingAddress.subDistrict,
+                  shippingDistrict: shippingAddress.district,
+                  shippingProvince: shippingAddress.province,
+                  shippingPostalCode: shippingAddress.postalCode,
+                }),
+                items: {
+                  create: itemsWithCalc.map((item) => ({
+                    sortOrder: item.sortOrder,
+                    productId: item.productId || undefined,
+                    productType: item.productType,
+                    description: item.description,
+                    material: item.material,
+                    baseUnitPrice: item.baseUnitPrice,
+                    totalQuantity: item.totalQuantity,
+                    subtotal: item.subtotal,
+                    notes: item.notes,
+                    itemSource: item.itemSource,
+                    fabricType: item.fabricType,
+                    fabricWeight: item.fabricWeight,
+                    fabricColor: item.fabricColor,
+                    processingType: item.processingType,
+                    patternId: item.patternId,
+                    collarType: item.collarType,
+                    sleeveType: item.sleeveType,
+                    bodyFit: item.bodyFit,
+                    patternFileUrl: item.patternFileUrl,
+                    patternNote: item.patternNote,
+                    garmentCondition: item.garmentCondition,
+                    receivedInspected: item.receivedInspected ?? false,
+                    receiveNote: item.receiveNote,
+                    variants: {
+                      create: item.variants.map((v) => ({
+                        size: v.size,
+                        color: v.color,
+                        quantity: v.quantity,
+                      })),
+                    },
+                    prints: {
+                      create: item.prints.map((p) => ({
+                        position: p.position,
+                        printType: p.printType,
+                        colorCount: p.colorCount,
+                        printSize: p.printSize,
+                        width: p.width,
+                        height: p.height,
+                        designNote: p.designNote,
+                        designImageUrl: p.designImageUrl,
+                        unitPrice: p.unitPrice,
+                      })),
+                    },
+                    addons: {
+                      create: item.addons.map((a) => ({
+                        addonType: a.addonType,
+                        name: a.name,
+                        description: a.description,
+                        pricingType: a.pricingType,
+                        unitPrice: a.unitPrice,
+                        quantity: a.quantity,
+                        notes: a.notes,
+                      })),
+                    },
+                  })),
+                },
+                fees: {
+                  create: fees.map((f) => ({
+                    feeType: f.feeType,
+                    name: f.name,
+                    description: f.description,
+                    amount: f.amount,
+                    notes: f.notes,
+                  })),
+                },
+              },
+              include: {
+                customer: { select: { name: true } },
+                items: { include: { variants: true, prints: true, addons: true } },
+                fees: true,
+              },
+            });
 
-      return order;
+            // Create reference image attachments (inside same transaction)
+            if (referenceImages.length > 0) {
+              for (const img of referenceImages) {
+                await tx.attachment.create({
+                  data: {
+                    entityType: "ORDER",
+                    entityId: order.id,
+                    fileName: img.fileName,
+                    fileUrl: img.fileUrl,
+                    fileType: img.fileName.split(".").pop()?.toLowerCase() ?? "unknown",
+                    fileSize: img.fileSize ?? 0,
+                    category: "REFERENCE_IMAGE",
+                    printPosition: img.printPosition,
+                    uploadedById: ctx.userId,
+                  },
+                });
+              }
+            }
+
+            // Update customer stats (inside same transaction)
+            await tx.customer.update({
+              where: { id: input.customerId },
+              data: {
+                totalOrders: { increment: 1 },
+                lastOrderAt: new Date(),
+              },
+            });
+
+            // Audit log (inside same transaction)
+            await createAuditLog(tx, {
+              userId: ctx.userId,
+              action: "CREATE",
+              entityType: "ORDER",
+              entityId: order.id,
+              newValue: JSON.parse(
+                JSON.stringify({
+                  orderNumber: order.orderNumber,
+                  orderType: order.orderType,
+                  channel: order.channel,
+                  title: order.title,
+                  totalAmount: order.totalAmount,
+                  isDraft: input.isDraft,
+                })
+              ),
+            });
+
+            return order;
+          });
+
+          return result;
+        } catch (error: unknown) {
+          lastError = error;
+          // Retry on unique constraint violation (P2002 = Prisma unique constraint error)
+          const isPrismaUniqueError =
+            error instanceof Error &&
+            "code" in error &&
+            (error as { code: string }).code === "P2002";
+          if (!isPrismaUniqueError) {
+            throw error; // Not a unique constraint error, rethrow
+          }
+          // Otherwise retry with next attempt
+        }
+      }
+
+      throw lastError || new Error("ไม่สามารถสร้างเลขออเดอร์ได้ กรุณาลองอีกครั้ง");
     }),
 
   updateStatus: protectedProcedure
@@ -303,7 +536,7 @@ export const orderRouter = router({
       z.object({
         id: z.string(),
         internalStatus: z.enum([
-          "INQUIRY", "QUOTATION", "CONFIRMED", "DESIGN_PENDING", "DESIGNING",
+          "DRAFT", "INQUIRY", "QUOTATION", "CONFIRMED", "DESIGN_PENDING", "DESIGNING",
           "AWAITING_APPROVAL", "DESIGN_APPROVED", "PRODUCTION_QUEUE", "PRODUCING",
           "QUALITY_CHECK", "PACKING", "READY_TO_SHIP", "SHIPPED", "COMPLETED", "CANCELLED",
         ]),
@@ -357,16 +590,14 @@ export const orderRouter = router({
       });
 
       // Audit log
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "UPDATE",
-          entityType: "ORDER",
-          entityId: input.id,
-          oldValue: { internalStatus: old.internalStatus, customerStatus: old.customerStatus },
-          newValue: { internalStatus: input.internalStatus, customerStatus: newCustomerStatus },
-          reason: input.reason,
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "ORDER",
+        entityId: input.id,
+        oldValue: { internalStatus: old.internalStatus, customerStatus: old.customerStatus },
+        newValue: { internalStatus: input.internalStatus, customerStatus: newCustomerStatus },
+        reason: input.reason,
       });
 
       return order;
@@ -385,27 +616,48 @@ export const orderRouter = router({
         externalOrderId: z.string().optional(),
         trackingNumber: z.string().optional(),
         platformFee: z.number().optional(),
+        priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional(),
+        paymentTerms: z.string().optional(),
+        poNumber: z.string().nullable().optional(),
+        estimatedQuantity: z.number().int().min(1).nullable().optional(),
+        taxRate: z.number().min(0).max(100).optional(),
+        shippingRecipientName: z.string().optional(),
+        shippingPhone: z.string().optional(),
+        shippingAddress: z.string().optional(),
+        shippingSubDistrict: z.string().optional(),
+        shippingDistrict: z.string().optional(),
+        shippingProvince: z.string().optional(),
+        shippingPostalCode: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
 
+      // If taxRate changed, recalculate tax
+      let taxUpdateData: Record<string, unknown> = {};
+      if (data.taxRate !== undefined) {
+        const currentOrder = await ctx.prisma.order.findUniqueOrThrow({ where: { id } });
+        const subtotalBeforeTax = currentOrder.subtotalItems + currentOrder.subtotalFees - currentOrder.discount;
+        const taxAmount = data.taxRate > 0 ? subtotalBeforeTax * (data.taxRate / 100) : 0;
+        const totalAmount = subtotalBeforeTax + taxAmount;
+        taxUpdateData = { taxAmount, totalAmount: Math.max(0, totalAmount) };
+      }
+
       const order = await ctx.prisma.order.update({
         where: { id },
         data: {
           ...data,
+          ...taxUpdateData,
           deadline: data.deadline ? new Date(data.deadline) : undefined,
         },
       });
 
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "UPDATE",
-          entityType: "ORDER",
-          entityId: id,
-          newValue: JSON.parse(JSON.stringify(data)),
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "ORDER",
+        entityId: id,
+        newValue: JSON.parse(JSON.stringify(data)),
       });
 
       return order;
@@ -448,7 +700,9 @@ export const orderRouter = router({
 
       const subtotalItems = itemsWithCalc.reduce((sum, i) => sum + i.subtotal, 0);
       const subtotalFees = order.fees.reduce((sum, f) => sum + f.amount, 0);
-      const totalAmount = subtotalItems + subtotalFees - (input.discount || 0);
+      const subtotalBeforeTax = subtotalItems + subtotalFees + (order.platformFee || 0) - (input.discount || 0);
+      const taxAmount = order.taxRate > 0 ? subtotalBeforeTax * (order.taxRate / 100) : 0;
+      const totalAmount = subtotalBeforeTax + taxAmount;
 
       // Use transaction: delete old items → create new → update pricing
       const updatedOrder = await ctx.prisma.$transaction(async (tx) => {
@@ -468,6 +722,20 @@ export const orderRouter = router({
               totalQuantity: item.totalQuantity,
               subtotal: item.subtotal,
               notes: item.notes,
+              itemSource: item.itemSource,
+              fabricType: item.fabricType,
+              fabricWeight: item.fabricWeight,
+              fabricColor: item.fabricColor,
+              processingType: item.processingType,
+              patternId: item.patternId,
+              collarType: item.collarType,
+              sleeveType: item.sleeveType,
+              bodyFit: item.bodyFit,
+              patternFileUrl: item.patternFileUrl,
+              patternNote: item.patternNote,
+              garmentCondition: item.garmentCondition,
+              receivedInspected: item.receivedInspected ?? false,
+              receiveNote: item.receiveNote,
               variants: {
                 create: item.variants.map((v) => ({
                   size: v.size,
@@ -480,9 +748,11 @@ export const orderRouter = router({
                   position: p.position,
                   printType: p.printType,
                   colorCount: p.colorCount,
+                  printSize: p.printSize,
                   width: p.width,
                   height: p.height,
                   designNote: p.designNote,
+                  designImageUrl: p.designImageUrl,
                   unitPrice: p.unitPrice,
                 })),
               },
@@ -501,13 +771,13 @@ export const orderRouter = router({
           });
         }
 
-        // Update order pricing
         return tx.order.update({
           where: { id: input.id },
           data: {
             subtotalItems,
             subtotalFees,
             discount: input.discount || 0,
+            taxAmount,
             totalAmount: Math.max(0, totalAmount),
           },
         });
@@ -527,14 +797,12 @@ export const orderRouter = router({
         },
       });
 
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "UPDATE",
-          entityType: "ORDER",
-          entityId: input.id,
-          newValue: { action: "updateItems", itemCount: input.items.length, totalAmount: Math.max(0, totalAmount) },
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "ORDER",
+        entityId: input.id,
+        newValue: { action: "updateItems", itemCount: input.items.length, totalAmount: Math.max(0, totalAmount) },
       });
 
       return updatedOrder;
@@ -553,7 +821,9 @@ export const orderRouter = router({
       });
 
       const subtotalFees = input.fees.reduce((sum, f) => sum + f.amount, 0);
-      const totalAmount = order.subtotalItems + subtotalFees - order.discount;
+      const subtotalBeforeTax = order.subtotalItems + subtotalFees + (order.platformFee || 0) - order.discount;
+      const taxAmount = order.taxRate > 0 ? subtotalBeforeTax * (order.taxRate / 100) : 0;
+      const totalAmount = subtotalBeforeTax + taxAmount;
 
       const updatedOrder = await ctx.prisma.$transaction(async (tx) => {
         await tx.orderFee.deleteMany({ where: { orderId: input.id } });
@@ -575,6 +845,7 @@ export const orderRouter = router({
           where: { id: input.id },
           data: {
             subtotalFees,
+            taxAmount,
             totalAmount: Math.max(0, totalAmount),
           },
         });
@@ -593,22 +864,202 @@ export const orderRouter = router({
         },
       });
 
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "UPDATE",
-          entityType: "ORDER",
-          entityId: input.id,
-          newValue: { action: "updateFees", feeCount: input.fees.length, subtotalFees },
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "ORDER",
+        entityId: input.id,
+        newValue: { action: "updateFees", feeCount: input.fees.length, subtotalFees },
       });
 
       return updatedOrder;
     }),
 
+  updateReceiveTracking: protectedProcedure
+    .input(
+      z.object({
+        orderItemId: z.string(),
+        garmentCondition: z.string().optional(),
+        receivedInspected: z.boolean(),
+        receiveNote: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const item = await ctx.prisma.orderItem.findUniqueOrThrow({
+        where: { id: input.orderItemId },
+        select: { orderId: true },
+      });
+
+      const updated = await ctx.prisma.orderItem.update({
+        where: { id: input.orderItemId },
+        data: {
+          garmentCondition: input.garmentCondition || null,
+          receivedInspected: input.receivedInspected,
+          receiveNote: input.receiveNote || null,
+        },
+      });
+
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "ORDER",
+        entityId: item.orderId,
+        newValue: { action: "updateReceiveTracking", orderItemId: input.orderItemId, receivedInspected: input.receivedInspected },
+      });
+
+      return updated;
+    }),
+
+  duplicate: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const original = await ctx.prisma.order.findUniqueOrThrow({
+        where: { id: input.id },
+        include: {
+          items: {
+            include: { variants: true, prints: true, addons: true },
+          },
+          fees: true,
+        },
+      });
+
+      const MAX_RETRIES = 3;
+      let lastError: unknown = null;
+
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          const result = await ctx.prisma.$transaction(async (tx) => {
+            const orderNumber = await generateOrderNumber(tx);
+
+            const newOrder = await tx.order.create({
+              data: {
+                orderNumber,
+                orderType: original.orderType,
+                channel: original.channel,
+                customerId: original.customerId,
+                brandProfileId: original.brandProfileId,
+                createdById: ctx.userId,
+                customerStatus: "ORDER_RECEIVED",
+                internalStatus: "DRAFT",
+                title: `[สำเนา] ${original.title}`,
+                description: original.description,
+                priority: original.priority,
+                paymentTerms: original.paymentTerms,
+                taxRate: original.taxRate,
+                discount: original.discount,
+                discountReason: original.discountReason,
+                subtotalItems: original.subtotalItems,
+                subtotalFees: original.subtotalFees,
+                taxAmount: original.taxAmount,
+                totalAmount: original.totalAmount,
+                items: {
+                  create: original.items.map((item, index) => ({
+                    sortOrder: index,
+                    productId: item.productId ?? undefined,
+                    productType: item.productType,
+                    description: item.description,
+                    material: item.material,
+                    baseUnitPrice: item.baseUnitPrice,
+                    totalQuantity: item.totalQuantity,
+                    subtotal: item.subtotal,
+                    notes: item.notes,
+                    itemSource: item.itemSource,
+                    fabricType: item.fabricType,
+                    fabricWeight: item.fabricWeight,
+                    fabricColor: item.fabricColor,
+                    processingType: item.processingType,
+                    patternId: item.patternId ?? undefined,
+                    collarType: item.collarType,
+                    sleeveType: item.sleeveType,
+                    bodyFit: item.bodyFit,
+                    patternFileUrl: item.patternFileUrl,
+                    patternNote: item.patternNote,
+                    garmentCondition: item.garmentCondition,
+                    receivedInspected: false,
+                    receiveNote: null,
+                    variants: {
+                      create: item.variants.map((v) => ({
+                        size: v.size,
+                        color: v.color,
+                        quantity: v.quantity,
+                      })),
+                    },
+                    prints: {
+                      create: item.prints.map((p) => ({
+                        position: p.position,
+                        printType: p.printType,
+                        colorCount: p.colorCount,
+                        printSize: p.printSize,
+                        width: p.width,
+                        height: p.height,
+                        designNote: p.designNote,
+                        designImageUrl: p.designImageUrl,
+                        unitPrice: p.unitPrice,
+                      })),
+                    },
+                    addons: {
+                      create: item.addons.map((a) => ({
+                        addonType: a.addonType,
+                        name: a.name,
+                        description: a.description,
+                        pricingType: a.pricingType,
+                        unitPrice: a.unitPrice,
+                        quantity: a.quantity,
+                        notes: a.notes,
+                      })),
+                    },
+                  })),
+                },
+                fees: {
+                  create: original.fees.map((f) => ({
+                    feeType: f.feeType,
+                    name: f.name,
+                    description: f.description,
+                    amount: f.amount,
+                    notes: f.notes,
+                  })),
+                },
+              },
+              include: {
+                customer: { select: { name: true } },
+                items: { include: { variants: true, prints: true, addons: true } },
+                fees: true,
+              },
+            });
+
+            await createAuditLog(tx, {
+              userId: ctx.userId,
+              action: "CREATE",
+              entityType: "ORDER",
+              entityId: newOrder.id,
+              newValue: {
+                orderNumber: newOrder.orderNumber,
+                duplicatedFrom: original.orderNumber,
+                title: newOrder.title,
+              },
+            });
+
+            return newOrder;
+          });
+
+          return result;
+        } catch (error: unknown) {
+          lastError = error;
+          const isPrismaUniqueError =
+            error instanceof Error &&
+            "code" in error &&
+            (error as { code: string }).code === "P2002";
+          if (!isPrismaUniqueError) {
+            throw error;
+          }
+        }
+      }
+
+      throw lastError || new Error("ไม่สามารถสร้างเลขออเดอร์ได้ กรุณาลองอีกครั้ง");
+    }),
+
   stats: protectedProcedure.query(async ({ ctx }) => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfMonth = getStartOfMonth();
 
     const [total, active, completedThisMonth, totalRevenue] = await Promise.all([
       ctx.prisma.order.count(),

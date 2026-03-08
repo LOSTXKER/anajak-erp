@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { createAuditLog } from "@/server/helpers";
+import { byIdInput } from "@/server/schemas";
+import { getStartOfMonth } from "@/lib/date-utils";
 
 export const customerRouter = router({
   list: protectedProcedure
@@ -42,7 +45,7 @@ export const customerRouter = router({
     }),
 
   getById: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .query(async ({ ctx, input }) => {
       return ctx.prisma.customer.findUniqueOrThrow({
         where: { id: input.id },
@@ -69,9 +72,20 @@ export const customerRouter = router({
         lineId: z.string().optional(),
         address: z.string().optional(),
         taxId: z.string().optional(),
+        customerType: z.enum(["INDIVIDUAL", "CORPORATE"]).default("INDIVIDUAL"),
+        branchNumber: z.string().optional(),
         segment: z.enum(["VIP", "REGULAR", "NEW", "INACTIVE", "WHOLESALE", "RETAIL"]).default("NEW"),
         notes: z.string().optional(),
         tags: z.array(z.string()).default([]),
+        // Billing address
+        billingAddress: z.string().optional(),
+        billingSubDistrict: z.string().optional(),
+        billingDistrict: z.string().optional(),
+        billingProvince: z.string().optional(),
+        billingPostalCode: z.string().optional(),
+        // Credit management
+        creditLimit: z.number().optional(),
+        defaultPaymentTerms: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -82,15 +96,12 @@ export const customerRouter = router({
         },
       });
 
-      // Audit log
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "CREATE",
-          entityType: "CUSTOMER",
-          entityId: customer.id,
-          newValue: JSON.parse(JSON.stringify(input)),
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "CREATE",
+        entityType: "CUSTOMER",
+        entityId: customer.id,
+        newValue: JSON.parse(JSON.stringify(input)),
       });
 
       return customer;
@@ -107,9 +118,20 @@ export const customerRouter = router({
         lineId: z.string().optional(),
         address: z.string().optional(),
         taxId: z.string().optional(),
+        customerType: z.enum(["INDIVIDUAL", "CORPORATE"]).optional(),
+        branchNumber: z.string().nullable().optional(),
         segment: z.enum(["VIP", "REGULAR", "NEW", "INACTIVE", "WHOLESALE", "RETAIL"]).optional(),
         notes: z.string().optional(),
         tags: z.array(z.string()).optional(),
+        // Billing address
+        billingAddress: z.string().nullable().optional(),
+        billingSubDistrict: z.string().nullable().optional(),
+        billingDistrict: z.string().nullable().optional(),
+        billingProvince: z.string().nullable().optional(),
+        billingPostalCode: z.string().nullable().optional(),
+        // Credit management
+        creditLimit: z.number().nullable().optional(),
+        defaultPaymentTerms: z.string().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -124,15 +146,13 @@ export const customerRouter = router({
         },
       });
 
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "UPDATE",
-          entityType: "CUSTOMER",
-          entityId: id,
-          oldValue: JSON.parse(JSON.stringify(old)),
-          newValue: JSON.parse(JSON.stringify(data)),
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "CUSTOMER",
+        entityId: id,
+        oldValue: JSON.parse(JSON.stringify(old)),
+        newValue: JSON.parse(JSON.stringify(data)),
       });
 
       return customer;
@@ -162,7 +182,7 @@ export const customerRouter = router({
       ctx.prisma.customer.count({
         where: {
           createdAt: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            gte: getStartOfMonth(),
           },
         },
       }),

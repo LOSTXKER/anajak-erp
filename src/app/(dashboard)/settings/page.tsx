@@ -3,7 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Settings, Building, Palette, Shield, Link2 } from "lucide-react";
+import { Settings, Building, Palette, Shield, Link2, Scissors, ChevronRight, Wrench } from "lucide-react";
+import Link from "next/link";
 
 export default function SettingsPage() {
   return (
@@ -11,6 +12,36 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">ตั้งค่า</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">ตั้งค่าระบบ Anajak Print</p>
+      </div>
+
+      {/* Quick links to sub-pages */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Link
+          href="/settings/services"
+          className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-blue-300 hover:bg-blue-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-800 dark:hover:bg-blue-950/30"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400">
+            <Wrench className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">จัดการบริการ</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Add-ons, สกรีน, ค่าบริการ</p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-slate-400" />
+        </Link>
+        <Link
+          href="/settings/patterns"
+          className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-amber-300 hover:bg-amber-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-amber-800 dark:hover:bg-amber-950/30"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900 dark:text-amber-400">
+            <Scissors className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">จัดการแพทเทิร์น</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ</p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-slate-400" />
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

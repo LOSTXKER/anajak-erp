@@ -20,7 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS, PAYMENT_METHOD_LABELS } from "@/lib/status-config";
 import {
   Receipt,
   Plus,
@@ -47,28 +50,6 @@ const INVOICE_TYPE_LABELS: Record<string, string> = {
   DEBIT_NOTE: "ใบเพิ่มหนี้",
 };
 
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  UNPAID: "ยังไม่ชำระ",
-  PARTIALLY_PAID: "ชำระบางส่วน",
-  PAID: "ชำระแล้ว",
-  OVERDUE: "เกินกำหนด",
-  VOIDED: "ยกเลิก",
-};
-
-const PAYMENT_STATUS_VARIANTS: Record<string, "default" | "success" | "warning" | "destructive" | "secondary"> = {
-  UNPAID: "default",
-  PARTIALLY_PAID: "warning",
-  PAID: "success",
-  OVERDUE: "destructive",
-  VOIDED: "secondary",
-};
-
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  CASH: "เงินสด",
-  TRANSFER: "โอนเงิน",
-  CREDIT_CARD: "บัตรเครดิต",
-  PROMPTPAY: "พร้อมเพย์",
-};
 
 export function OrderBillingSection({
   orderId,
@@ -274,10 +255,10 @@ export function OrderBillingSection({
                           </Badge>
                           <Badge
                             variant={
-                              PAYMENT_STATUS_VARIANTS[inv.paymentStatus] || "default"
+                              PAYMENT_STATUS_VARIANTS[inv.paymentStatus as keyof typeof PAYMENT_STATUS_VARIANTS] || "default"
                             }
                           >
-                            {PAYMENT_STATUS_LABELS[inv.paymentStatus] || inv.paymentStatus}
+                            {PAYMENT_STATUS_LABELS[inv.paymentStatus as keyof typeof PAYMENT_STATUS_LABELS] || inv.paymentStatus}
                           </Badge>
                         </div>
                         <p className="text-xs text-slate-500">
@@ -431,11 +412,10 @@ export function OrderBillingSection({
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   จำนวนเงิน (บาท)
                 </label>
-                <input
+                <Input
                   type="number"
                   value={invoiceAmount}
                   onChange={(e) => setInvoiceAmount(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   min="0"
                   step="0.01"
                 />
@@ -444,11 +424,10 @@ export function OrderBillingSection({
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   ส่วนลด
                 </label>
-                <input
+                <Input
                   type="number"
                   value={invoiceDiscount}
                   onChange={(e) => setInvoiceDiscount(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   min="0"
                   step="0.01"
                 />
@@ -459,11 +438,10 @@ export function OrderBillingSection({
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   ภาษี
                 </label>
-                <input
+                <Input
                   type="number"
                   value={invoiceTax}
                   onChange={(e) => setInvoiceTax(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   min="0"
                   step="0.01"
                 />
@@ -472,11 +450,10 @@ export function OrderBillingSection({
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   ครบกำหนด
                 </label>
-                <input
+                <Input
                   type="date"
                   value={invoiceDueDate}
                   onChange={(e) => setInvoiceDueDate(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 />
               </div>
             </div>
@@ -484,11 +461,10 @@ export function OrderBillingSection({
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 หมายเหตุ
               </label>
-              <textarea
+              <Textarea
                 value={invoiceNotes}
                 onChange={(e) => setInvoiceNotes(e.target.value)}
                 rows={2}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 placeholder="หมายเหตุเพิ่มเติม..."
               />
             </div>
@@ -538,11 +514,10 @@ export function OrderBillingSection({
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 จำนวนเงิน (บาท)
               </label>
-              <input
+              <Input
                 type="number"
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 min="0"
                 step="0.01"
               />
@@ -567,11 +542,10 @@ export function OrderBillingSection({
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 เลขอ้างอิง
               </label>
-              <input
+              <Input
                 type="text"
                 value={paymentReference}
                 onChange={(e) => setPaymentReference(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 placeholder="เลขอ้างอิงหรือเลขที่ทำรายการ"
               />
             </div>
@@ -579,11 +553,10 @@ export function OrderBillingSection({
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 หมายเหตุ
               </label>
-              <textarea
+              <Textarea
                 value={paymentNotes}
                 onChange={(e) => setPaymentNotes(e.target.value)}
                 rows={2}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 placeholder="หมายเหตุ..."
               />
             </div>
@@ -627,11 +600,10 @@ export function OrderBillingSection({
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
               เหตุผลที่ยกเลิก
             </label>
-            <textarea
+            <Textarea
               value={voidReason}
               onChange={(e) => setVoidReason(e.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               placeholder="ระบุเหตุผล..."
             />
           </div>

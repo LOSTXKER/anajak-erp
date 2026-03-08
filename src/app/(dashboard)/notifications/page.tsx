@@ -166,12 +166,12 @@ export default function NotificationsPage() {
             <button
               key={notif.id}
               onClick={() => {
-                if (!notif.readAt) {
+                if (!notif.isRead) {
                   markRead.mutate({ id: notif.id });
                 }
               }}
               className={`flex w-full gap-4 px-5 py-4 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                !notif.readAt ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
+                !notif.isRead ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
               }`}
             >
               {/* Icon */}
@@ -186,7 +186,7 @@ export default function NotificationsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <p
                     className={`text-sm ${
-                      !notif.readAt
+                      !notif.isRead
                         ? "font-semibold text-slate-900 dark:text-white"
                         : "font-medium text-slate-700 dark:text-slate-300"
                     }`}
@@ -194,13 +194,13 @@ export default function NotificationsPage() {
                     {notif.title}
                   </p>
                   {/* Unread indicator */}
-                  {!notif.readAt && (
+                  {!notif.isRead && (
                     <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
                   )}
                 </div>
-                {notif.body && (
+                {notif.message && (
                   <p className="mt-0.5 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
-                    {notif.body}
+                    {notif.message}
                   </p>
                 )}
                 <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">

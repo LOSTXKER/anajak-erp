@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import {
   ArrowLeft,
   Send,
@@ -20,31 +21,6 @@ import {
   Calendar,
   ExternalLink,
 } from "lucide-react";
-
-// ============================================================
-// STATUS CONFIG
-// ============================================================
-
-const STATUS_BADGE_VARIANT: Record<
-  string,
-  "secondary" | "default" | "success" | "destructive" | "warning" | "purple"
-> = {
-  DRAFT: "secondary",
-  SENT: "default",
-  ACCEPTED: "success",
-  REJECTED: "destructive",
-  EXPIRED: "warning",
-  CONVERTED: "purple",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "ฉบับร่าง",
-  SENT: "ส่งแล้ว",
-  ACCEPTED: "อนุมัติ",
-  REJECTED: "ปฏิเสธ",
-  EXPIRED: "หมดอายุ",
-  CONVERTED: "แปลงเป็นออเดอร์",
-};
 
 // ============================================================
 // Loading skeleton
@@ -168,9 +144,9 @@ export default function QuotationDetailPage({
                 {quotation.quotationNumber}
               </h1>
               <Badge
-                variant={STATUS_BADGE_VARIANT[quotation.status] ?? "secondary"}
+                variant={QUOTATION_STATUS_VARIANTS[quotation.status as keyof typeof QUOTATION_STATUS_VARIANTS] ?? "secondary"}
               >
-                {STATUS_LABELS[quotation.status] ?? quotation.status}
+                {QUOTATION_STATUS_LABELS[quotation.status as keyof typeof QUOTATION_STATUS_LABELS] ?? quotation.status}
               </Badge>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -491,9 +467,9 @@ export default function QuotationDetailPage({
               <div className="flex justify-between">
                 <span className="text-slate-500">สถานะ</span>
                 <Badge
-                  variant={STATUS_BADGE_VARIANT[quotation.status] ?? "secondary"}
+                  variant={QUOTATION_STATUS_VARIANTS[quotation.status as keyof typeof QUOTATION_STATUS_VARIANTS] ?? "secondary"}
                 >
-                  {STATUS_LABELS[quotation.status] ?? quotation.status}
+                  {QUOTATION_STATUS_LABELS[quotation.status as keyof typeof QUOTATION_STATUS_LABELS] ?? quotation.status}
                 </Badge>
               </div>
               <div className="flex justify-between">

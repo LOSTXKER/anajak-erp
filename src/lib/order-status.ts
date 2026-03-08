@@ -15,6 +15,7 @@ export const CUSTOMER_STATUS_LABELS: Record<CustomerStatus, string> = {
 };
 
 export const INTERNAL_STATUS_LABELS: Record<InternalStatus, string> = {
+  DRAFT: "ร่าง",
   INQUIRY: "สอบถาม",
   QUOTATION: "ใบเสนอราคา",
   CONFIRMED: "ยืนยันออเดอร์",
@@ -30,6 +31,7 @@ export const INTERNAL_STATUS_LABELS: Record<InternalStatus, string> = {
   SHIPPED: "จัดส่งแล้ว",
   COMPLETED: "เสร็จสิ้น",
   CANCELLED: "ยกเลิก",
+  ON_HOLD: "พักงาน",
 };
 
 // ============================================================
@@ -81,6 +83,7 @@ export const INTERNAL_STATUS_COLORS: Record<
   InternalStatus,
   { bg: string; text: string }
 > = {
+  DRAFT: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-500 dark:text-slate-400" },
   INQUIRY: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-700 dark:text-slate-300" },
   QUOTATION: { bg: "bg-blue-100 dark:bg-blue-900", text: "text-blue-700 dark:text-blue-300" },
   CONFIRMED: { bg: "bg-blue-100 dark:bg-blue-900", text: "text-blue-700 dark:text-blue-300" },
@@ -96,6 +99,7 @@ export const INTERNAL_STATUS_COLORS: Record<
   SHIPPED: { bg: "bg-indigo-100 dark:bg-indigo-900", text: "text-indigo-700 dark:text-indigo-300" },
   COMPLETED: { bg: "bg-green-100 dark:bg-green-900", text: "text-green-700 dark:text-green-300" },
   CANCELLED: { bg: "bg-red-100 dark:bg-red-900", text: "text-red-700 dark:text-red-300" },
+  ON_HOLD: { bg: "bg-yellow-100 dark:bg-yellow-900", text: "text-yellow-700 dark:text-yellow-300" },
 };
 
 // ============================================================
@@ -103,6 +107,7 @@ export const INTERNAL_STATUS_COLORS: Record<
 // ============================================================
 
 const STATUS_MAP: Record<InternalStatus, CustomerStatus> = {
+  DRAFT: "ORDER_RECEIVED",
   INQUIRY: "ORDER_RECEIVED",
   QUOTATION: "ORDER_RECEIVED",
   CONFIRMED: "ORDER_RECEIVED",
@@ -118,6 +123,7 @@ const STATUS_MAP: Record<InternalStatus, CustomerStatus> = {
   SHIPPED: "SHIPPED",
   COMPLETED: "COMPLETED",
   CANCELLED: "CANCELLED",
+  ON_HOLD: "PREPARING",
 };
 
 export function getCustomerStatus(internalStatus: InternalStatus): CustomerStatus {
@@ -185,6 +191,17 @@ export function getNextStatuses(
     return [];
   }
 
+  // ON_HOLD can return to any status it was held from (stored separately);
+  // for simplicity, allow returning to key statuses
+  if (currentStatus === "ON_HOLD") {
+    return ["CONFIRMED", "DESIGN_PENDING", "PRODUCTION_QUEUE", "CANCELLED"];
+  }
+
+  // DRAFT can transition to the first real status for its type
+  if (currentStatus === "DRAFT") {
+    return [FLOW_BY_TYPE[orderType][0], "CANCELLED"];
+  }
+
   const flow = FLOW_BY_TYPE[orderType];
   const currentIndex = flow.indexOf(currentStatus);
 
@@ -197,13 +214,32 @@ export function getNextStatuses(
 
   // Special backward transitions
   if (currentStatus === "AWAITING_APPROVAL") {
-    next.push("DESIGNING"); // revision requested
+    next.push("DESIGNING");
   }
   if (currentStatus === "QUALITY_CHECK") {
-    next.push("PRODUCING"); // QC fail
+    next.push("PRODUCING");
+  }
+  if (currentStatus === "PACKING") {
+    next.push("QUALITY_CHECK");
+  }
+  if (currentStatus === "PRODUCING") {
+    next.push("PRODUCTION_QUEUE");
   }
 
-  // Can always cancel (except from COMPLETED/CANCELLED which is handled above)
+  // Allow INQUIRY -> CONFIRMED directly (skip QUOTATION)
+  if (currentStatus === "INQUIRY" && orderType === "CUSTOM") {
+    next.push("CONFIRMED");
+  }
+
+  // ON_HOLD available from most active statuses
+  const holdableStatuses: InternalStatus[] = [
+    "CONFIRMED", "DESIGN_PENDING", "DESIGNING", "AWAITING_APPROVAL",
+    "DESIGN_APPROVED", "PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING",
+  ];
+  if (holdableStatuses.includes(currentStatus)) {
+    next.push("ON_HOLD");
+  }
+
   next.push("CANCELLED");
 
   return next;
@@ -217,9 +253,39 @@ export function isValidTransition(
   fromStatus: InternalStatus,
   toStatus: InternalStatus
 ): boolean {
+  // DRAFT transitions are handled by getNextStatuses
   const validNext = getNextStatuses(orderType, fromStatus);
   return validNext.includes(toStatus);
 }
+
+// ============================================================
+// PRIORITY LABELS & COLORS
+// ============================================================
+
+export const PRIORITY_LABELS: Record<string, string> = {
+  LOW: "ต่ำ",
+  NORMAL: "ปกติ",
+  HIGH: "สูง",
+  URGENT: "เร่งด่วน",
+};
+
+export const PRIORITY_COLORS: Record<string, { bg: string; text: string }> = {
+  LOW: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-600 dark:text-slate-400" },
+  NORMAL: { bg: "bg-blue-100 dark:bg-blue-900", text: "text-blue-700 dark:text-blue-300" },
+  HIGH: { bg: "bg-orange-100 dark:bg-orange-900", text: "text-orange-700 dark:text-orange-300" },
+  URGENT: { bg: "bg-red-100 dark:bg-red-900", text: "text-red-700 dark:text-red-300" },
+};
+
+export const PAYMENT_TERMS_LABELS: Record<string, string> = {
+  COD: "เก็บเงินปลายทาง",
+  FULL_PREPAY: "ชำระเต็มจำนวนล่วงหน้า",
+  DEPOSIT_30: "มัดจำ 30%",
+  DEPOSIT_50: "มัดจำ 50%",
+  NET_7: "ชำระภายใน 7 วัน",
+  NET_15: "ชำระภายใน 15 วัน",
+  NET_30: "ชำระภายใน 30 วัน",
+  NET_60: "ชำระภายใน 60 วัน",
+};
 
 // ============================================================
 // CHANNEL LABELS & HELPERS

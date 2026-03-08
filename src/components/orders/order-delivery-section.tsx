@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS, SHIPPING_METHOD_LABELS } from "@/lib/status-config";
 import {
   Truck,
   Plus,
@@ -39,34 +43,6 @@ interface OrderDeliverySectionProps {
   customerPhone?: string;
 }
 
-const DELIVERY_STATUS_LABELS: Record<string, string> = {
-  PENDING: "รอดำเนินการ",
-  PREPARING: "กำลังเตรียม",
-  SHIPPED: "จัดส่งแล้ว",
-  DELIVERED: "ส่งถึงแล้ว",
-  RETURNED: "ตีกลับ",
-};
-
-const DELIVERY_STATUS_VARIANTS: Record<string, "default" | "success" | "warning" | "destructive" | "secondary" | "purple"> = {
-  PENDING: "secondary",
-  PREPARING: "default",
-  SHIPPED: "purple",
-  DELIVERED: "success",
-  RETURNED: "destructive",
-};
-
-const SHIPPING_METHOD_LABELS: Record<string, string> = {
-  KERRY: "Kerry Express",
-  FLASH: "Flash Express",
-  THAILAND_POST: "ไปรษณีย์ไทย",
-  J_AND_T: "J&T Express",
-  GRAB: "Grab Express",
-  LALAMOVE: "Lalamove",
-  SHOPEE_SHIP: "Shopee Logistics",
-  LAZADA_SHIP: "Lazada Logistics",
-  PICKUP: "รับเอง",
-  OTHER: "อื่นๆ",
-};
 
 export function OrderDeliverySection({
   orderId,
@@ -124,11 +100,8 @@ export function OrderDeliverySection({
     },
   });
 
-  const deleteDelivery = trpc.delivery.delete.useMutation({
-    onSuccess: () => {
-      utils.delivery.getByOrderId.invalidate({ orderId });
-      utils.order.getById.invalidate({ id: orderId });
-    },
+  const deleteDelivery = useMutationWithInvalidation(trpc.delivery.delete, {
+    invalidate: [utils.delivery.getByOrderId, utils.order.getById],
   });
 
   function resetCreateForm() {
@@ -231,10 +204,10 @@ export function OrderDeliverySection({
                       <div className="flex items-center gap-2">
                         <Badge
                           variant={
-                            DELIVERY_STATUS_VARIANTS[delivery.status] || "default"
+                            DELIVERY_STATUS_VARIANTS[delivery.status as keyof typeof DELIVERY_STATUS_VARIANTS] || "default"
                           }
                         >
-                          {DELIVERY_STATUS_LABELS[delivery.status] || delivery.status}
+                          {DELIVERY_STATUS_LABELS[delivery.status as keyof typeof DELIVERY_STATUS_LABELS] || delivery.status}
                         </Badge>
                         <span className="text-sm font-medium text-slate-900 dark:text-white">
                           {SHIPPING_METHOD_LABELS[delivery.shippingMethod] ||
@@ -245,12 +218,12 @@ export function OrderDeliverySection({
                       {/* Tracking number */}
                       {editTrackingId === delivery.id ? (
                         <div className="flex items-center gap-2">
-                          <input
+                          <Input
                             type="text"
                             value={editTrackingValue}
                             onChange={(e) => setEditTrackingValue(e.target.value)}
                             placeholder="เลขพัสดุ..."
-                            className="w-48 rounded border border-slate-200 bg-white px-2 py-1 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                            className="h-8 w-48 font-mono"
                             autoFocus
                           />
                           <Button
@@ -352,22 +325,20 @@ export function OrderDeliverySection({
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   ชื่อผู้รับ *
                 </label>
-                <input
+                <Input
                   type="text"
                   value={recipientName}
                   onChange={(e) => setRecipientName(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   เบอร์โทร *
                 </label>
-                <input
+                <Input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 />
               </div>
             </div>
@@ -375,11 +346,10 @@ export function OrderDeliverySection({
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 ที่อยู่ *
               </label>
-              <textarea
+              <Textarea
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 rows={2}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -387,22 +357,20 @@ export function OrderDeliverySection({
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   ตำบล/แขวง
                 </label>
-                <input
+                <Input
                   type="text"
                   value={subDistrict}
                   onChange={(e) => setSubDistrict(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   อำเภอ/เขต
                 </label>
-                <input
+                <Input
                   type="text"
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 />
               </div>
             </div>
@@ -411,22 +379,20 @@ export function OrderDeliverySection({
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   จังหวัด
                 </label>
-                <input
+                <Input
                   type="text"
                   value={province}
                   onChange={(e) => setProvince(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   รหัสไปรษณีย์
                 </label>
-                <input
+                <Input
                   type="text"
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 />
               </div>
             </div>
@@ -455,11 +421,10 @@ export function OrderDeliverySection({
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   ค่าจัดส่ง (บาท)
                 </label>
-                <input
+                <Input
                   type="number"
                   value={shippingCost}
                   onChange={(e) => setShippingCost(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   min="0"
                 />
               </div>
@@ -468,11 +433,10 @@ export function OrderDeliverySection({
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 หมายเหตุ
               </label>
-              <textarea
+              <Textarea
                 value={deliveryNotes}
                 onChange={(e) => setDeliveryNotes(e.target.value)}
                 rows={2}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 placeholder="หมายเหตุ..."
               />
             </div>
@@ -531,11 +495,11 @@ export function OrderDeliverySection({
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   เลขพัสดุ
                 </label>
-                <input
+                <Input
                   type="text"
                   value={statusTrackingNumber}
                   onChange={(e) => setStatusTrackingNumber(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  className="font-mono"
                   placeholder="เลขพัสดุ..."
                 />
               </div>

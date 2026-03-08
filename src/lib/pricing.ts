@@ -140,22 +140,6 @@ export function calculateProfitMargin(
   return ((totalAmount - totalCost) / totalAmount) * 100;
 }
 
-// ============================================================
-// FORMATTING HELPERS
-// ============================================================
-
-/**
- * Format a number as Thai Baht currency string
- */
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("th-TH", {
-    style: "currency",
-    currency: "THB",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
 /**
  * Calculate total quantity from variants
  */
@@ -163,4 +147,76 @@ export function calculateTotalQuantity(
   variants: { quantity: number }[]
 ): number {
   return variants.reduce((sum, v) => sum + v.quantity, 0);
+}
+
+// ============================================================
+// PRICE BREAKDOWN (for display)
+// ============================================================
+
+export interface PriceBreakdownLine {
+  label: string;
+  unitPrice: number;
+  total: number;
+  type: "base" | "print" | "addon_piece" | "addon_order";
+}
+
+export interface PriceBreakdownResult {
+  lines: PriceBreakdownLine[];
+  unitPriceTotal: number;
+  grandTotal: number;
+  totalQuantity: number;
+}
+
+export function calculateItemPriceBreakdown(
+  item: PricingItem & { prints: (PricingPrint & { position?: string })[]; },
+  positionLabels?: Record<string, string>,
+): PriceBreakdownResult {
+  const qty = item.totalQuantity;
+  const lines: PriceBreakdownLine[] = [];
+
+  lines.push({
+    label: "ตัวเปล่า",
+    unitPrice: item.baseUnitPrice,
+    total: qty * item.baseUnitPrice,
+    type: "base",
+  });
+
+  for (const p of item.prints) {
+    const posLabel = p.position && positionLabels?.[p.position]
+      ? positionLabels[p.position]
+      : p.position || "สกรีน";
+    lines.push({
+      label: `สกรีน${posLabel}`,
+      unitPrice: p.unitPrice,
+      total: qty * p.unitPrice,
+      type: "print",
+    });
+  }
+
+  for (const a of item.addons) {
+    if (a.pricingType === "PER_PIECE") {
+      const addonQty = a.quantity ?? qty;
+      lines.push({
+        label: (a as PricingAddon & { name?: string }).name || "Add-on",
+        unitPrice: a.unitPrice,
+        total: addonQty * a.unitPrice,
+        type: "addon_piece",
+      });
+    } else {
+      lines.push({
+        label: (a as PricingAddon & { name?: string }).name || "Add-on",
+        unitPrice: a.unitPrice,
+        total: a.unitPrice,
+        type: "addon_order",
+      });
+    }
+  }
+
+  const unitPriceTotal = item.baseUnitPrice
+    + item.prints.reduce((s, p) => s + p.unitPrice, 0)
+    + item.addons.filter(a => a.pricingType === "PER_PIECE").reduce((s, a) => s + a.unitPrice, 0);
+
+  const grandTotal = lines.reduce((s, l) => s + l.total, 0);
+
+  return { lines, unitPriceTotal, grandTotal, totalQuantity: qty };
 }

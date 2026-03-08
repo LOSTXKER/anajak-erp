@@ -4,7 +4,7 @@ import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { trpc } from "@/lib/trpc";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider, useTheme } from "next-themes";
 import { Toaster } from "sonner";
 import superjson from "superjson";
 
@@ -12,6 +12,17 @@ function getBaseUrl() {
   if (typeof window !== "undefined") return "";
   if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
   return "http://localhost:3000";
+}
+
+function ThemedToaster() {
+  const { resolvedTheme } = useTheme();
+  return (
+    <Toaster
+      richColors
+      position="top-right"
+      theme={(resolvedTheme as "light" | "dark") ?? "system"}
+    />
+  );
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -45,7 +56,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           disableTransitionOnChange
         >
           {children}
-          <Toaster richColors position="top-right" />
+          <ThemedToaster />
         </ThemeProvider>
       </QueryClientProvider>
     </trpc.Provider>

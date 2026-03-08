@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../trpc";
 import { randomBytes } from "crypto";
+import { createAuditLog, processDesignApproval } from "@/server/helpers";
 
 export const designRouter = router({
   listByOrder: protectedProcedure
@@ -44,14 +45,12 @@ export const designRouter = router({
         data: { internalStatus: "DESIGNING", customerStatus: "PREPARING" },
       });
 
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "CREATE",
-          entityType: "DESIGN_VERSION",
-          entityId: design.id,
-          newValue: { orderId: input.orderId, version: design.versionNumber },
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "CREATE",
+        entityType: "DESIGN_VERSION",
+        entityId: design.id,
+        newValue: { orderId: input.orderId, version: design.versionNumber },
       });
 
       return design;
@@ -94,30 +93,12 @@ export const designRouter = router({
         include: { order: true },
       });
 
-      if (input.approved) {
-        await ctx.prisma.order.update({
-          where: { id: design.orderId },
-          data: { internalStatus: "DESIGN_APPROVED", customerStatus: "PREPARING" },
-        });
-      } else {
-        // Revision requested – move back to DESIGNING
-        await ctx.prisma.order.update({
-          where: { id: design.orderId },
-          data: { internalStatus: "DESIGNING", customerStatus: "PREPARING" },
-        });
-      }
-
-      // Record revision
-      await ctx.prisma.orderRevision.create({
-        data: {
-          orderId: design.orderId,
-          version: (await ctx.prisma.orderRevision.count({ where: { orderId: design.orderId } })) + 1,
-          changedBy: ctx.userId,
-          changeType: "DESIGN",
-          description: input.approved
-            ? `อนุมัติแบบ v${design.versionNumber}`
-            : `ขอแก้ไขแบบ v${design.versionNumber}: ${input.comment ?? ""}`,
-        },
+      await processDesignApproval(ctx.prisma, {
+        design: { orderId: design.orderId, versionNumber: design.versionNumber },
+        approved: input.approved,
+        comment: input.comment,
+        changedBy: ctx.userId,
+        descriptionPrefix: "",
       });
 
       return design;
@@ -143,28 +124,12 @@ export const designRouter = router({
         include: { order: { include: { customer: { select: { name: true } } } } },
       });
 
-      if (input.approved) {
-        await ctx.prisma.order.update({
-          where: { id: design.orderId },
-          data: { internalStatus: "DESIGN_APPROVED", customerStatus: "PREPARING" },
-        });
-      } else {
-        await ctx.prisma.order.update({
-          where: { id: design.orderId },
-          data: { internalStatus: "DESIGNING", customerStatus: "PREPARING" },
-        });
-      }
-
-      await ctx.prisma.orderRevision.create({
-        data: {
-          orderId: design.orderId,
-          version: (await ctx.prisma.orderRevision.count({ where: { orderId: design.orderId } })) + 1,
-          changedBy: "ลูกค้า",
-          changeType: "DESIGN",
-          description: input.approved
-            ? `ลูกค้าอนุมัติแบบ v${design.versionNumber}`
-            : `ลูกค้าขอแก้ไขแบบ v${design.versionNumber}: ${input.comment ?? ""}`,
-        },
+      await processDesignApproval(ctx.prisma, {
+        design: { orderId: design.orderId, versionNumber: design.versionNumber },
+        approved: input.approved,
+        comment: input.comment,
+        changedBy: "ลูกค้า",
+        descriptionPrefix: "ลูกค้า",
       });
 
       return design;

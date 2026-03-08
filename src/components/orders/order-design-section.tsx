@@ -14,7 +14,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { FileUpload } from "@/components/ui/file-upload";
+import { Textarea } from "@/components/ui/textarea";
 import { formatDateTime } from "@/lib/utils";
+import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_VARIANTS } from "@/lib/status-config";
 import {
   Palette,
   Upload,
@@ -33,19 +35,6 @@ interface OrderDesignSectionProps {
   internalStatus: string;
 }
 
-const APPROVAL_STATUS_LABELS: Record<string, string> = {
-  PENDING: "รอตรวจสอบ",
-  APPROVED: "อนุมัติแล้ว",
-  REVISION_REQUESTED: "ขอแก้ไข",
-  REJECTED: "ปฏิเสธ",
-};
-
-const APPROVAL_STATUS_VARIANTS: Record<string, "default" | "success" | "warning" | "destructive"> = {
-  PENDING: "default",
-  APPROVED: "success",
-  REVISION_REQUESTED: "warning",
-  REJECTED: "destructive",
-};
 
 export function OrderDesignSection({
   orderId,
@@ -185,10 +174,10 @@ export function OrderDesignSection({
                           </span>
                           <Badge
                             variant={
-                              APPROVAL_STATUS_VARIANTS[design.approvalStatus] || "default"
+                              APPROVAL_STATUS_VARIANTS[design.approvalStatus as keyof typeof APPROVAL_STATUS_VARIANTS] || "default"
                             }
                           >
-                            {APPROVAL_STATUS_LABELS[design.approvalStatus] || design.approvalStatus}
+                            {APPROVAL_STATUS_LABELS[design.approvalStatus as keyof typeof APPROVAL_STATUS_LABELS] || design.approvalStatus}
                           </Badge>
                         </div>
                         {design.designerNotes && (
@@ -287,12 +276,11 @@ export function OrderDesignSection({
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 โน้ตจากดีไซเนอร์
               </label>
-              <textarea
+              <Textarea
                 value={designerNotes}
                 onChange={(e) => setDesignerNotes(e.target.value)}
                 placeholder="รายละเอียดการออกแบบ..."
                 rows={3}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -335,12 +323,11 @@ export function OrderDesignSection({
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
               ความเห็น
             </label>
-            <textarea
+            <Textarea
               value={approveComment}
               onChange={(e) => setApproveComment(e.target.value)}
               placeholder="ความเห็นเพิ่มเติม (ถ้ามี)..."
               rows={3}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
           <DialogFooter>

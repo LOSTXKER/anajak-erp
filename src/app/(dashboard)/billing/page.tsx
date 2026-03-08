@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
 import { Search, DollarSign, AlertCircle, TrendingUp, CreditCard } from "lucide-react";
 
 const paymentStatusConfig: Record<string, { label: string; variant: "secondary" | "default" | "success" | "warning" | "destructive" }> = {
@@ -43,10 +44,10 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">บิล/การเงิน</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">จัดการใบเสนอราคา, ใบแจ้งหนี้, ใบเสร็จ</p>
-      </div>
+      <PageHeader
+        title="บิล/การเงิน"
+        description="จัดการใบเสนอราคา, ใบแจ้งหนี้, ใบเสร็จ"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

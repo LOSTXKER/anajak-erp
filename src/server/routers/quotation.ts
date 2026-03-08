@@ -2,6 +2,8 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { generateQuotationNumber, generateOrderNumber } from "@/lib/utils";
 import { getInitialStatus, getCustomerStatus } from "@/lib/order-status";
+import { createAuditLog } from "@/server/helpers";
+import { byIdInput } from "@/server/schemas";
 
 const quotationItemSchema = z.object({
   name: z.string(),
@@ -55,7 +57,7 @@ export const quotationRouter = router({
     }),
 
   getById: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .query(async ({ ctx, input }) => {
       return ctx.prisma.quotation.findUniqueOrThrow({
         where: { id: input.id },
@@ -118,14 +120,12 @@ export const quotationRouter = router({
         include: { items: true, customer: { select: { name: true } } },
       });
 
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "CREATE",
-          entityType: "QUOTATION",
-          entityId: quotation.id,
-          newValue: JSON.parse(JSON.stringify({ quotationNumber: quotation.quotationNumber, title: quotation.title, totalAmount: quotation.totalAmount })),
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "CREATE",
+        entityType: "QUOTATION",
+        entityId: quotation.id,
+        newValue: JSON.parse(JSON.stringify({ quotationNumber: quotation.quotationNumber, title: quotation.title, totalAmount: quotation.totalAmount })),
       });
 
       return quotation;
@@ -180,7 +180,7 @@ export const quotationRouter = router({
     }),
 
   convertToOrder: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       const quotation = await ctx.prisma.quotation.findUniqueOrThrow({
         where: { id: input.id },
@@ -195,9 +195,10 @@ export const quotationRouter = router({
       const customerStatus = getCustomerStatus(initialStatus);
 
       // Create order from quotation
+      const orderNumber = await generateOrderNumber(ctx.prisma);
       const order = await ctx.prisma.order.create({
         data: {
-          orderNumber: generateOrderNumber(),
+          orderNumber,
           orderType: "CUSTOM",
           channel: "LINE",
           customerId: quotation.customerId,

@@ -1,11 +1,13 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, requireRole } from "../trpc";
+import { getStartOfMonth, getStartOfLastMonth, getMonthRange } from "@/lib/date-utils";
+
+const adminOnly = requireRole("OWNER", "MANAGER");
 
 export const analyticsRouter = router({
   dashboard: protectedProcedure.query(async ({ ctx }) => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const startOfMonth = getStartOfMonth();
+    const startOfLastMonth = getStartOfLastMonth();
 
     const [
       totalCustomers,
@@ -77,11 +79,9 @@ export const analyticsRouter = router({
     .input(z.object({ months: z.number().default(6) }))
     .query(async ({ ctx, input }) => {
       const results = [];
-      const now = new Date();
 
       for (let i = input.months - 1; i >= 0; i--) {
-        const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+        const { start, end } = getMonthRange(i);
 
         const revenue = await ctx.prisma.order.aggregate({
           _sum: { totalAmount: true },
@@ -109,6 +109,7 @@ export const analyticsRouter = router({
     }),
 
   auditLog: protectedProcedure
+    .use(adminOnly)
     .input(
       z.object({
         entityType: z.string().optional(),

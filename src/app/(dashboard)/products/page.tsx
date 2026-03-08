@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
 import { Package, RefreshCw, Search, Cloud, Settings } from "lucide-react";
 
 import { SyncDialog } from "@/components/sync-dialog";
@@ -89,32 +90,23 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      {/* ─── Header ──────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            สินค้า
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            จัดการแคตตาล็อกสินค้าและตัวเลือก
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Stock settings */}
-          <Link href="/settings/stock">
-            <Button variant="ghost" size="icon" title="ตั้งค่าการเชื่อมต่อ Stock">
-              <Settings className="h-4 w-4" />
+      <PageHeader
+        title="สินค้า"
+        description="จัดการแคตตาล็อกสินค้าและตัวเลือก"
+        action={
+          <>
+            <Link href="/settings/stock">
+              <Button variant="ghost" size="icon" title="ตั้งค่าการเชื่อมต่อ Stock">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Button onClick={() => setSyncDialogOpen(true)}>
+              <RefreshCw className="h-4 w-4" />
+              Sync จาก Anajak Stock
             </Button>
-          </Link>
-
-          {/* Sync button */}
-          <Button onClick={() => setSyncDialogOpen(true)}>
-            <RefreshCw className="h-4 w-4" />
-            Sync จาก Anajak Stock
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* ─── Sync Status ─────────────────────────────────────── */}
       {syncStatus?.lastSyncAt && (

@@ -1,14 +1,14 @@
 "use client";
 
 import { use, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/lib/pricing";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import {
   CUSTOMER_STATUS_LABELS,
   INTERNAL_STATUS_LABELS,
@@ -17,6 +17,9 @@ import {
   CHANNEL_LABELS,
   CHANNEL_COLORS,
   ORDER_TYPE_LABELS,
+  PRIORITY_LABELS,
+  PRIORITY_COLORS,
+  PAYMENT_TERMS_LABELS,
   getFlowSteps,
   getNextStatuses,
 } from "@/lib/order-status";
@@ -40,7 +43,13 @@ import {
   Store,
   Hash,
   Edit3,
+  ImageIcon,
+  AlertTriangle,
+  Copy,
 } from "lucide-react";
+
+import { Input } from "@/components/ui/input";
+import { COLLAR_TYPES, SLEEVE_TYPES, BODY_FITS, GARMENT_CONDITIONS } from "@/types/order-form";
 
 // Section components
 import { OrderDesignSection } from "@/components/orders/order-design-section";
@@ -48,6 +57,85 @@ import { OrderBillingSection } from "@/components/orders/order-billing-section";
 import { OrderProductionSection } from "@/components/orders/order-production-section";
 import { OrderDeliverySection } from "@/components/orders/order-delivery-section";
 import { OrderEditDialog } from "@/components/orders/order-edit-dialog";
+import { OrderInfoEditDialog } from "@/components/orders/order-info-edit-dialog";
+
+// ============================================================
+// Receive Tracking Inline Form (for CUSTOMER_PROVIDED items)
+// ============================================================
+
+function ReceiveTrackingInline({ item, onSuccess }: {
+  item: { id: string; garmentCondition?: string | null; receivedInspected: boolean; receiveNote?: string | null };
+  onSuccess: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [condition, setCondition] = useState(item.garmentCondition ?? "");
+  const [inspected, setInspected] = useState(item.receivedInspected);
+  const [note, setNote] = useState(item.receiveNote ?? "");
+
+  const mutation = trpc.order.updateReceiveTracking.useMutation({
+    onSuccess: () => { setEditing(false); onSuccess(); },
+  });
+
+  if (!editing) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-yellow-200 bg-yellow-50/50 px-3 py-2 text-xs dark:border-yellow-900 dark:bg-yellow-950/20">
+        <Package className="h-3.5 w-3.5 text-yellow-600" />
+        <span className="font-medium text-yellow-700 dark:text-yellow-300">ตรวจรับของ:</span>
+        {item.receivedInspected ? (
+          <>
+            <Badge variant="default" className="text-[10px]">ตรวจรับแล้ว</Badge>
+            {item.garmentCondition && <span className="text-slate-500">สภาพ: {GARMENT_CONDITIONS[item.garmentCondition] ?? item.garmentCondition}</span>}
+            {item.receiveNote && <span className="text-slate-500">({item.receiveNote})</span>}
+          </>
+        ) : (
+          <span className="text-slate-400">ยังไม่ได้ตรวจรับ</span>
+        )}
+        <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1 px-2 text-[10px] text-yellow-600 hover:text-yellow-800 dark:text-yellow-400">
+          <Edit3 className="h-3 w-3" />{item.receivedInspected ? "แก้ไข" : "ตรวจรับ"}
+        </Button>
+      </div>
+    );
+  }
+
+  const selectClass = "flex h-8 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
+
+  return (
+    <div className="rounded-md border border-yellow-300 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-950/30">
+      <div className="mb-2 flex items-center gap-2">
+        <Package className="h-3.5 w-3.5 text-yellow-600" />
+        <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">ตรวจรับของจากลูกค้า</span>
+      </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <label className="mb-0.5 block text-[10px] font-medium text-slate-500">สภาพเสื้อ</label>
+          <select value={condition} onChange={(e) => setCondition(e.target.value)} className={selectClass}>
+            <option value="">-- เลือก --</option>
+            {Object.entries(GARMENT_CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={inspected} onChange={(e) => setInspected(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-yellow-600 focus:ring-yellow-500" />
+            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">ตรวจรับแล้ว</span>
+          </label>
+        </div>
+        <div className="min-w-[160px] flex-1">
+          <label className="mb-0.5 block text-[10px] font-medium text-slate-500">หมายเหตุ</label>
+          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" className="h-8 text-xs" />
+        </div>
+        <div className="flex gap-1">
+          <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemId: item.id, garmentCondition: condition || undefined, receivedInspected: inspected, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1 bg-yellow-600 text-xs text-white hover:bg-yellow-700">
+            <Check className="h-3 w-3" />{mutation.isPending ? "กำลังบันทึก..." : "บันทึก"}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setCondition(item.garmentCondition ?? ""); setInspected(item.receivedInspected); setNote(item.receiveNote ?? ""); }} className="h-8 text-xs">
+            ยกเลิก
+          </Button>
+        </div>
+      </div>
+      {mutation.isError && <p className="mt-1 text-xs text-red-500">{mutation.error.message}</p>}
+    </div>
+  );
+}
 
 // ============================================================
 // Loading skeleton
@@ -89,15 +177,25 @@ export default function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showInfoEditDialog, setShowInfoEditDialog] = useState(false);
 
   const { data: order, isLoading } = trpc.order.getById.useQuery({ id });
+  const { data: attachments } = trpc.attachment.listByEntity.useQuery({ entityType: "ORDER", entityId: id });
   const utils = trpc.useUtils();
 
   const updateStatus = trpc.order.updateStatus.useMutation({
     onSuccess: () => {
       utils.order.getById.invalidate({ id });
       utils.order.list.invalidate();
+    },
+  });
+
+  const duplicateOrder = trpc.order.duplicate.useMutation({
+    onSuccess: (data) => {
+      utils.order.list.invalidate();
+      router.push(`/orders/${data.id}`);
     },
   });
 
@@ -244,6 +342,15 @@ export default function OrderDetailPage({
         {/* Action buttons */}
         {!isTerminal && (
           <div className="flex shrink-0 flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowInfoEditDialog(true)}
+              className="gap-1.5"
+            >
+              <FileText className="h-4 w-4" />
+              แก้ไขข้อมูลออเดอร์
+            </Button>
+
             {canEditItems && (
               <Button
                 variant="outline"
@@ -254,6 +361,16 @@ export default function OrderDetailPage({
                 แก้ไข
               </Button>
             )}
+
+            <Button
+              variant="outline"
+              onClick={() => duplicateOrder.mutate({ id })}
+              disabled={duplicateOrder.isPending}
+              className="gap-1.5"
+            >
+              <Copy className="h-4 w-4" />
+              {duplicateOrder.isPending ? "กำลังสำเนา..." : "สำเนาออเดอร์"}
+            </Button>
 
             {forwardStatuses.map((status) => (
               <Button
@@ -367,7 +484,22 @@ export default function OrderDetailPage({
             <CardContent>
               <div className="space-y-6">
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {order.items?.map((item: any, itemIndex: number) => (
+                {order.items?.map((item: any, itemIndex: number) => {
+                  const stockShortages: { size: string; color: string; needed: number; available: number; short: number }[] = [];
+                  if (item.product && item.variants) {
+                    for (const v of item.variants) {
+                      const pv = item.product.variants?.find(
+                        (pv: any) => pv.size === v.size && (!v.color || pv.color === v.color),
+                      );
+                      const available = pv ? (pv.totalStock ?? pv.stock ?? 0) : 0;
+                      if (v.quantity > available) {
+                        stockShortages.push({ size: v.size, color: v.color || "", needed: v.quantity, available, short: v.quantity - available });
+                      }
+                    }
+                  }
+                  const hasShortage = stockShortages.length > 0;
+
+                  return (
                     <div
                       key={item.id}
                       className="rounded-lg border border-slate-200 dark:border-slate-800"
@@ -375,23 +507,75 @@ export default function OrderDetailPage({
                       {/* Item header */}
                       <div className="flex items-start justify-between border-b border-slate-100 p-4 dark:border-slate-800">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                               {itemIndex + 1}
                             </span>
+                            {item.itemSource && (
+                              <Badge variant={
+                                item.itemSource === "FROM_STOCK" || item.itemSource === "ORDER_FROM_SUPPLIER" ? "default" :
+                                item.itemSource === "CUSTOMER_PROVIDED" ? "warning" :
+                                item.itemSource === "CUSTOM_MADE" ? "purple" : "default"
+                              }>
+                                {item.itemSource === "FROM_STOCK" || item.itemSource === "ORDER_FROM_SUPPLIER" ? "จากสต็อก" :
+                                 item.itemSource === "CUSTOM_MADE" ? "ตัดเย็บใหม่" :
+                                 item.itemSource === "CUSTOMER_PROVIDED" ? "ลูกค้าส่งมา" :
+                                 item.itemSource}
+                              </Badge>
+                            )}
                             {item.productType && (
                               <Badge variant="secondary">
                                 {item.productType}
                               </Badge>
                             )}
+                            {item.processingType && (
+                              <Badge variant="outline">
+                                {item.processingType === "PRINT_ONLY" ? "สกรีนอย่างเดียว" :
+                                 item.processingType === "CUT_AND_SEW_PRINT" ? "ตัดเย็บ+สกรีน" :
+                                 item.processingType === "CUT_AND_SEW_ONLY" ? "ตัดเย็บอย่างเดียว" :
+                                 item.processingType === "PACK_ONLY" ? "แพ็คส่ง" :
+                                 item.processingType === "FULL_PRODUCTION" ? "ผลิตครบวงจร" :
+                                 item.processingType}
+                              </Badge>
+                            )}
                             {item.material && (
                               <Badge variant="outline">{item.material}</Badge>
+                            )}
+                            {hasShortage && (
+                              <Badge variant="destructive" className="gap-1 text-[10px]">
+                                <AlertTriangle className="h-3 w-3" />
+                                ขาดสต็อก {stockShortages.reduce((s, x) => s + x.short, 0)} ชิ้น
+                              </Badge>
                             )}
                           </div>
                           {item.description && (
                             <p className="text-sm text-slate-700 dark:text-slate-300">
                               {item.description}
                             </p>
+                          )}
+                          {/* Fabric details */}
+                          {(item.fabricType || item.fabricWeight || item.fabricColor) && (
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                              {item.fabricType && <span>ผ้า: {item.fabricType}</span>}
+                              {item.fabricWeight && <span>น้ำหนัก: {item.fabricWeight}</span>}
+                              {item.fabricColor && <span>สีผ้า: {item.fabricColor}</span>}
+                            </div>
+                          )}
+                          {/* Garment spec */}
+                          {(item.collarType || item.sleeveType || item.bodyFit) && (
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                              {item.collarType && <span>ทรงคอ: {COLLAR_TYPES[item.collarType] ?? item.collarType}</span>}
+                              {item.sleeveType && <span>แขน: {SLEEVE_TYPES[item.sleeveType] ?? item.sleeveType}</span>}
+                              {item.bodyFit && <span>ฟิต: {BODY_FITS[item.bodyFit] ?? item.bodyFit}</span>}
+                              {item.patternNote && <span>หมายเหตุ: {item.patternNote}</span>}
+                            </div>
+                          )}
+                          {/* Receive tracking (editable for CUSTOMER_PROVIDED) */}
+                          {item.itemSource === "CUSTOMER_PROVIDED" && (
+                            <ReceiveTrackingInline
+                              item={{ id: item.id, garmentCondition: item.garmentCondition, receivedInspected: item.receivedInspected, receiveNote: item.receiveNote }}
+                              onSuccess={() => utils.order.getById.invalidate({ id })}
+                            />
                           )}
                         </div>
                         <div className="text-right">
@@ -417,24 +601,48 @@ export default function OrderDetailPage({
                                   <tr className="border-b border-slate-100 dark:border-slate-800">
                                     <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ไซส์</th>
                                     <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">สี</th>
-                                    <th className="pb-2 text-right text-xs font-medium text-slate-500">จำนวน</th>
+                                    <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">จำนวน</th>
+                                    {item.product && <th className="pb-2 text-right text-xs font-medium text-slate-500">สต็อก</th>}
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                  {item.variants.map((v: any) => (
-                                    <tr key={v.id}>
-                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.size || "-"}</td>
-                                      <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.color || "-"}</td>
-                                      <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{v.quantity}</td>
-                                    </tr>
-                                  ))}
+                                  {item.variants.map((v: any) => {
+                                    const pv = item.product?.variants?.find(
+                                      (pv: any) => pv.size === v.size && (!v.color || pv.color === v.color),
+                                    );
+                                    const available = pv ? (pv.totalStock ?? pv.stock ?? 0) : null;
+                                    const isShort = available != null && v.quantity > available;
+
+                                    return (
+                                      <tr key={v.id}>
+                                        <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.size || "-"}</td>
+                                        <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.color || "-"}</td>
+                                        <td className="py-1.5 pr-4 text-right tabular-nums font-medium text-slate-900 dark:text-white">{v.quantity}</td>
+                                        {item.product && (
+                                          <td className="py-1.5 text-right">
+                                            {available != null ? (
+                                              <span className={isShort ? "font-medium text-red-600 dark:text-red-400" : "text-slate-500"}>
+                                                {available}
+                                                {isShort && (
+                                                  <span className="ml-1 text-[10px] text-red-500">(-{v.quantity - available})</span>
+                                                )}
+                                              </span>
+                                            ) : (
+                                              <span className="text-slate-400">-</span>
+                                            )}
+                                          </td>
+                                        )}
+                                      </tr>
+                                    );
+                                  })}
                                 </tbody>
                                 <tfoot>
                                   <tr className="border-t border-slate-100 dark:border-slate-800">
                                     <td colSpan={2} className="pt-1.5 text-xs font-medium text-slate-500">รวม</td>
-                                    <td className="pt-1.5 text-right tabular-nums text-sm font-bold text-slate-900 dark:text-white">
+                                    <td className="pt-1.5 pr-4 text-right tabular-nums text-sm font-bold text-slate-900 dark:text-white">
                                       {item.variants.reduce((s: number, v: any) => s + v.quantity, 0)}
                                     </td>
+                                    {item.product && <td />}
                                   </tr>
                                 </tfoot>
                               </table>
@@ -456,6 +664,7 @@ export default function OrderDetailPage({
                                     <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ตำแหน่ง</th>
                                     <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
                                     <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">สี</th>
+                                    <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">ขนาด (ซม.)</th>
                                     <th className="pb-2 text-right text-xs font-medium text-slate-500">ราคา/ชิ้น</th>
                                   </tr>
                                 </thead>
@@ -465,11 +674,24 @@ export default function OrderDetailPage({
                                       <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{p.position || "-"}</td>
                                       <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{p.printType || "-"}</td>
                                       <td className="py-1.5 pr-4 text-right tabular-nums text-slate-700 dark:text-slate-300">{p.colorCount ?? "-"}</td>
+                                      <td className="py-1.5 pr-4 text-right tabular-nums text-slate-700 dark:text-slate-300">
+                                        {(p.width || p.height) ? `${p.width || 0} x ${p.height || 0}` : "-"}
+                                      </td>
                                       <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{formatCurrency(p.unitPrice)}</td>
                                     </tr>
                                   ))}
                                 </tbody>
                               </table>
+                              {/* Print design notes */}
+                              {item.prints.some((p: any) => p.designNote) && (
+                                <div className="mt-2 space-y-1">
+                                  {item.prints.filter((p: any) => p.designNote).map((p: any) => (
+                                    <p key={p.id} className="text-xs text-slate-500">
+                                      <span className="font-medium">{p.position}:</span> {p.designNote}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -519,8 +741,8 @@ export default function OrderDetailPage({
                         )}
                       </div>
                     </div>
-                  ),
-                )}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -561,6 +783,89 @@ export default function OrderDetailPage({
               </CardContent>
             </Card>
           )}
+
+          {/* ------------------------------------------
+              REFERENCE IMAGES (from attachments)
+          ------------------------------------------ */}
+          {(() => {
+            const refImages = attachments?.filter(a => a.category === "REFERENCE_IMAGE") ?? [];
+            if (refImages.length === 0) return null;
+
+            const POSITION_LABELS: Record<string, string> = {
+              FRONT: "หน้า", BACK: "หลัง", SLEEVE_L: "แขนซ้าย", SLEEVE_R: "แขนขวา",
+              COLLAR: "ปก", POCKET: "กระเป๋า", OTHER: "อื่นๆ",
+            };
+
+            // Group by position
+            const generalImages = refImages.filter(a => !a.printPosition);
+            const positionGroups = refImages.reduce<Record<string, typeof refImages>>((acc, a) => {
+              if (a.printPosition) {
+                if (!acc[a.printPosition]) acc[a.printPosition] = [];
+                acc[a.printPosition].push(a);
+              }
+              return acc;
+            }, {});
+
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <ImageIcon className="h-4 w-4" />
+                    ภาพอ้างอิง ({refImages.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* General images (no position) */}
+                  {generalImages.length > 0 && (
+                    <div>
+                      {Object.keys(positionGroups).length > 0 && (
+                        <p className="mb-2 text-xs font-medium text-slate-500">ทั่วไป</p>
+                      )}
+                      <div className="flex flex-wrap gap-3">
+                        {generalImages.map((att) => (
+                          <a key={att.id} href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="group relative">
+                            {att.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                              <img src={att.fileUrl} alt={att.fileName} className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700" />
+                            ) : (
+                              <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+                                <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
+                                <span className="mt-1 text-[10px] text-slate-400">{att.fileName.split(".").pop()?.toUpperCase()}</span>
+                              </div>
+                            )}
+                            <p className="mt-1 max-w-[7rem] truncate text-[10px] text-slate-400">{att.fileName}</p>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Grouped by position */}
+                  {Object.entries(positionGroups).map(([pos, imgs]) => (
+                    <div key={pos}>
+                      <p className="mb-2 text-xs font-medium text-slate-500">
+                        <Badge variant="secondary" className="text-[10px]">{POSITION_LABELS[pos] || pos}</Badge>
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        {imgs.map((att) => (
+                          <a key={att.id} href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="group relative">
+                            {att.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                              <img src={att.fileUrl} alt={att.fileName} className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700" />
+                            ) : (
+                              <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+                                <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
+                                <span className="mt-1 text-[10px] text-slate-400">{att.fileName.split(".").pop()?.toUpperCase()}</span>
+                              </div>
+                            )}
+                            <p className="mt-1 max-w-[7rem] truncate text-[10px] text-slate-400">{att.fileName}</p>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* ------------------------------------------
               DESIGN SECTION (new)
@@ -711,6 +1016,36 @@ export default function OrderDetailPage({
                   <span className="font-medium text-slate-900 dark:text-white">{formatDate(order.deadline)}</span>
                 </div>
               )}
+              {order.estimatedQuantity && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">จำนวนโดยประมาณ</span>
+                  <span className="font-medium text-slate-900 dark:text-white">
+                    ~{order.estimatedQuantity.toLocaleString()} ชิ้น
+                  </span>
+                </div>
+              )}
+              {order.priority && order.priority !== "NORMAL" && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">ความเร่งด่วน</span>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${PRIORITY_COLORS[order.priority]?.bg ?? ""} ${PRIORITY_COLORS[order.priority]?.text ?? ""}`}>
+                    {PRIORITY_LABELS[order.priority] ?? order.priority}
+                  </span>
+                </div>
+              )}
+              {order.paymentTerms && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">เงื่อนไขชำระ</span>
+                  <span className="text-slate-900 dark:text-white">
+                    {PAYMENT_TERMS_LABELS[order.paymentTerms] ?? order.paymentTerms}
+                  </span>
+                </div>
+              )}
+              {order.poNumber && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">เลขที่ PO</span>
+                  <span className="font-mono text-slate-900 dark:text-white">{order.poNumber}</span>
+                </div>
+              )}
               {order.description && (
                 <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
                   <p className="text-slate-500">{order.description}</p>
@@ -724,6 +1059,30 @@ export default function OrderDetailPage({
               )}
             </CardContent>
           </Card>
+
+          {/* ------------------------------------------
+              SHIPPING ADDRESS (if set)
+          ------------------------------------------ */}
+          {order.shippingRecipientName && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Truck className="h-4 w-4" />
+                  ที่อยู่จัดส่ง
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p className="font-medium text-slate-900 dark:text-white">{order.shippingRecipientName}</p>
+                {order.shippingPhone && <p className="text-slate-500">{order.shippingPhone}</p>}
+                {order.shippingAddress && <p className="text-slate-500">{order.shippingAddress}</p>}
+                <p className="text-slate-500">
+                  {[order.shippingSubDistrict, order.shippingDistrict, order.shippingProvince, order.shippingPostalCode]
+                    .filter(Boolean)
+                    .join(" ")}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* ------------------------------------------
               MARKETPLACE INFO (if applicable)
@@ -797,8 +1156,16 @@ export default function OrderDetailPage({
                   <span className="tabular-nums text-red-600 dark:text-red-400">-{formatCurrency(discount)}</span>
                 </div>
               )}
+              {order.taxRate > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">VAT ({order.taxRate}%)</span>
+                  <span className="tabular-nums text-slate-900 dark:text-white">{formatCurrency(order.taxAmount ?? 0)}</span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-slate-200 pt-3 dark:border-slate-700">
-                <span className="text-base font-semibold text-slate-900 dark:text-white">ยอดรวมทั้งหมด</span>
+                <span className="text-base font-semibold text-slate-900 dark:text-white">
+                  ยอดรวมทั้งหมด {order.taxRate > 0 ? "(รวม VAT)" : ""}
+                </span>
                 <span className="tabular-nums text-lg font-bold text-blue-600 dark:text-blue-400">{formatCurrency(totalAmount)}</span>
               </div>
 
@@ -860,6 +1227,12 @@ export default function OrderDetailPage({
         onOpenChange={setShowEditDialog}
         orderId={id}
         orderType={order.orderType}
+        order={order}
+      />
+
+      <OrderInfoEditDialog
+        open={showInfoEditDialog}
+        onOpenChange={setShowInfoEditDialog}
         order={order}
       />
     </div>

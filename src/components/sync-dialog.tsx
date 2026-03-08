@@ -18,16 +18,9 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatDateTime } from "@/lib/utils";
+import type { SyncProductEntry, SyncMode } from "@/lib/stock-sync";
 
 // ─── Types ─────────────────────────────────────────────────
-
-interface SyncProductEntry {
-  sku: string;
-  name: string;
-  status: "created" | "updated" | "error";
-  variantCount: number;
-  error?: string;
-}
 
 interface SyncTotals {
   productsCreated: number;
@@ -44,7 +37,6 @@ interface LogEntry {
 }
 
 type SyncPhase = "idle" | "syncing" | "done" | "error";
-type SyncMode = "full" | "incremental";
 
 interface SyncDialogProps {
   open: boolean;

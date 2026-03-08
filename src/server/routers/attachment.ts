@@ -30,6 +30,7 @@ export const attachmentRouter = router({
         fileType: z.string(),
         fileSize: z.number(),
         category: z.string().optional(),
+        printPosition: z.string().optional(),
         notes: z.string().optional(),
       })
     )

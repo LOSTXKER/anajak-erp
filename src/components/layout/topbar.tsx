@@ -122,7 +122,7 @@ export function Topbar() {
                     <div
                       key={notif.id}
                       className={`flex gap-3 border-b border-slate-50 px-4 py-3 transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800/50 dark:hover:bg-slate-800/50 ${
-                        !notif.readAt
+                        !notif.isRead
                           ? "bg-blue-50/50 dark:bg-blue-950/20"
                           : ""
                       }`}
@@ -131,7 +131,7 @@ export function Topbar() {
                       <div className="flex shrink-0 pt-1.5">
                         <span
                           className={`h-2 w-2 rounded-full ${
-                            !notif.readAt
+                            !notif.isRead
                               ? "bg-blue-500"
                               : "bg-transparent"
                           }`}
@@ -141,9 +141,9 @@ export function Topbar() {
                         <p className="text-sm font-medium text-slate-900 dark:text-white">
                           {notif.title}
                         </p>
-                        {notif.body && (
+                        {notif.message && (
                           <p className="mt-0.5 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
-                            {notif.body}
+                            {notif.message}
                           </p>
                         )}
                         <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">

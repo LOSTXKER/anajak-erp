@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, requireRole } from "../trpc";
+
+const adminOnly = requireRole("OWNER", "MANAGER");
 
 export const settingsRouter = router({
   get: protectedProcedure
@@ -25,6 +27,7 @@ export const settingsRouter = router({
     }),
 
   set: protectedProcedure
+    .use(adminOnly)
     .input(z.object({ key: z.string(), value: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await ctx.prisma.setting.upsert({
@@ -36,6 +39,7 @@ export const settingsRouter = router({
     }),
 
   setMany: protectedProcedure
+    .use(adminOnly)
     .input(z.object({ settings: z.array(z.object({ key: z.string(), value: z.string() })) }))
     .mutation(async ({ ctx, input }) => {
       for (const s of input.settings) {
@@ -49,6 +53,7 @@ export const settingsRouter = router({
     }),
 
   delete: protectedProcedure
+    .use(adminOnly)
     .input(z.object({ key: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await ctx.prisma.setting.deleteMany({

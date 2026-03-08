@@ -1,6 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "@/lib/supabase-server";
 import type { Role } from "@prisma/client";
 
 export type Context = {
@@ -9,7 +10,6 @@ export type Context = {
   userRole: Role | null;
 };
 
-// Cache the dev user ID so we only query once
 let cachedDevUserId: string | null = null;
 
 async function getDevUserId(): Promise<string> {
@@ -20,14 +20,23 @@ async function getDevUserId(): Promise<string> {
 }
 
 export async function createContext(): Promise<Context> {
-  // In a real app, extract user from Supabase auth session
-  // For now, use the first OWNER user from the database for development
+  try {
+    const sessionUser = await getServerSession();
+    if (sessionUser?.id) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: sessionUser.id },
+        select: { id: true, role: true },
+      });
+      if (dbUser) {
+        return { prisma, userId: dbUser.id, userRole: dbUser.role };
+      }
+    }
+  } catch {
+    // Supabase auth not available (e.g., dev mode) -- fall through to dev user
+  }
+
   const devUserId = await getDevUserId();
-  return {
-    prisma,
-    userId: devUserId,
-    userRole: "OWNER" as Role,
-  };
+  return { prisma, userId: devUserId, userRole: "OWNER" as Role };
 }
 
 const t = initTRPC.context<Context>().create({

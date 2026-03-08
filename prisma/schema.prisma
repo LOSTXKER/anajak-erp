@@ -47,6 +47,7 @@ enum CustomerStatus {
 }
 
 enum InternalStatus {
+  DRAFT
   INQUIRY
   QUOTATION
   CONFIRMED
@@ -62,6 +63,7 @@ enum InternalStatus {
   SHIPPED
   COMPLETED
   CANCELLED
+  ON_HOLD
 }
 
 enum ProductionStepType {
@@ -132,6 +134,11 @@ enum CustomerSegment {
   RETAIL
 }
 
+enum CustomerType {
+  INDIVIDUAL  // บุคคลธรรมดา
+  CORPORATE   // นิติบุคคล
+}
+
 // ============================================================
 // AUTH & USERS
 // ============================================================
@@ -175,6 +182,8 @@ model Customer {
   lineId          String?         @map("line_id")
   address         String?
   taxId           String?         @map("tax_id")
+  customerType    CustomerType    @default(INDIVIDUAL) @map("customer_type")
+  branchNumber    String?         @map("branch_number") // "00000" = สำนักงานใหญ่
   segment         CustomerSegment @default(NEW)
   rfmScore        Float?          @map("rfm_score")
   notes           String?
@@ -182,6 +191,18 @@ model Customer {
   totalOrders     Int             @default(0) @map("total_orders")
   totalSpent      Float           @default(0) @map("total_spent")
   lastOrderAt     DateTime?       @map("last_order_at")
+
+  // Billing address (separate from general address)
+  billingAddress      String?     @map("billing_address")
+  billingSubDistrict  String?     @map("billing_sub_district")
+  billingDistrict     String?     @map("billing_district")
+  billingProvince     String?     @map("billing_province")
+  billingPostalCode   String?     @map("billing_postal_code")
+
+  // Credit management
+  creditLimit         Float?      @map("credit_limit")
+  defaultPaymentTerms String?     @map("default_payment_terms") // NET_30, COD, DEPOSIT_50, FULL_PREPAY
+
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
 
@@ -191,7 +212,6 @@ model Customer {
   communicationLogs CommunicationLog[]
   invoices          Invoice[]
   quotations        Quotation[]
-  notifications     Notification[]
 
   @@map("customers")
 }
@@ -253,11 +273,28 @@ model Order {
   subtotalFees     Float          @default(0) @map("subtotal_fees")
   discount         Float          @default(0)
   discountReason   String?        @map("discount_reason")
+  taxRate          Float          @default(0) @map("tax_rate")
+  taxAmount        Float          @default(0) @map("tax_amount")
   totalAmount      Float          @default(0) @map("total_amount")
 
   // Cost tracking
   totalCost        Float          @default(0) @map("total_cost")
   profitMargin     Float?         @map("profit_margin")
+
+  // Business rules
+  priority         String         @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  paymentTerms     String?        @map("payment_terms") // NET_30, COD, DEPOSIT_50, FULL_PREPAY
+  poNumber         String?        @map("po_number") // Customer's purchase order number
+  estimatedQuantity Int?          @map("estimated_quantity") // For INQUIRY stage when exact breakdown is unknown
+
+  // Shipping address (optional, can be set at order creation)
+  shippingRecipientName String?   @map("shipping_recipient_name")
+  shippingPhone    String?        @map("shipping_phone")
+  shippingAddress  String?        @map("shipping_address")
+  shippingSubDistrict String?     @map("shipping_sub_district")
+  shippingDistrict String?        @map("shipping_district")
+  shippingProvince String?        @map("shipping_province")
+  shippingPostalCode String?      @map("shipping_postal_code")
 
   // Marketplace fields (Shopee, Lazada, TikTok)
   externalOrderId  String?        @map("external_order_id")
@@ -301,6 +338,30 @@ model OrderItem {
   subtotal         Float    @default(0)
   notes            String?
 
+  // Item source: where does the garment come from?
+  itemSource       String?  @map("item_source") // FROM_STOCK, CUSTOM_MADE, ORDER_FROM_SUPPLIER, CUSTOMER_PROVIDED
+
+  // Fabric/material details (for CUSTOM_MADE / ORDER_FROM_SUPPLIER)
+  fabricType       String?  @map("fabric_type")   // COTTON, POLYESTER, TC, CVC, MESH, etc.
+  fabricWeight     String?  @map("fabric_weight")  // "160gsm", "200gsm"
+  fabricColor      String?  @map("fabric_color")
+
+  // What processing is needed?
+  processingType   String?  @map("processing_type") // PRINT_ONLY, CUT_AND_SEW_PRINT, CUT_AND_SEW_ONLY, PACK_ONLY, FULL_PRODUCTION
+
+  // Garment spec (for CUSTOM_MADE)
+  patternId        String?  @map("pattern_id")
+  collarType       String?  @map("collar_type")
+  sleeveType       String?  @map("sleeve_type")
+  bodyFit          String?  @map("body_fit")
+  patternFileUrl   String?  @map("pattern_file_url")
+  patternNote      String?  @map("pattern_note")
+
+  // Receive tracking (for CUSTOMER_PROVIDED)
+  garmentCondition    String?  @map("garment_condition") // GOOD, FAIR, DAMAGED
+  receivedInspected   Boolean  @default(false) @map("received_inspected")
+  receiveNote         String?  @map("receive_note")
+
   // Product catalog link (optional -- null for manual/custom items)
   productId        String?  @map("product_id")
   productVariantId String?  @map("product_variant_id")
@@ -310,6 +371,7 @@ model OrderItem {
 
   // Relations
   order          Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  pattern        Pattern?           @relation(fields: [patternId], references: [id])
   product        Product?           @relation(fields: [productId], references: [id])
   productVariant ProductVariant?    @relation(fields: [productVariantId], references: [id])
   variants       OrderItemVariant[]
@@ -334,16 +396,18 @@ model OrderItemVariant {
 }
 
 model OrderItemPrint {
-  id          String   @id @default(cuid())
-  orderItemId String   @map("order_item_id")
-  position    String   // FRONT, BACK, SLEEVE_L, SLEEVE_R, COLLAR, POCKET, OTHER
-  printType   String   @map("print_type") // SILK_SCREEN, DTG, SUBLIMATION, HEAT_TRANSFER, EMBROIDERY
-  colorCount  Int?     @map("color_count")
-  width       Float?
-  height      Float?
-  designNote  String?  @map("design_note")
-  unitPrice   Float    @map("unit_price") // price per piece
-  createdAt   DateTime @default(now()) @map("created_at")
+  id             String   @id @default(cuid())
+  orderItemId    String   @map("order_item_id")
+  position       String   // FRONT, BACK, SLEEVE_L, SLEEVE_R, COLLAR, POCKET, OTHER
+  printType      String   @map("print_type") // SILK_SCREEN, DTG, SUBLIMATION, HEAT_TRANSFER, EMBROIDERY
+  colorCount     Int?     @map("color_count")
+  printSize      String?  @map("print_size") // A5, A4, A3, A2, CUSTOM
+  width          Float?
+  height         Float?
+  designNote     String?  @map("design_note")
+  designImageUrl String?  @map("design_image_url")
+  unitPrice      Float    @map("unit_price") // price per piece
+  createdAt      DateTime @default(now()) @map("created_at")
 
   // Relations
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
@@ -420,6 +484,30 @@ model ServiceCatalog {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("service_catalog")
+}
+
+// ============================================================
+// PATTERN CATALOG
+// ============================================================
+
+model Pattern {
+  id           String   @id @default(cuid())
+  name         String
+  productType  String?  @map("product_type")
+  collarType   String?  @map("collar_type")
+  sleeveType   String?  @map("sleeve_type")
+  bodyFit      String?  @map("body_fit")
+  fileUrl      String?  @map("file_url")
+  thumbnailUrl String?  @map("thumbnail_url")
+  description  String?
+  isActive     Boolean  @default(true) @map("is_active")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  orderItems OrderItem[]
+
+  @@map("patterns")
 }
 
 // ============================================================
@@ -577,27 +665,21 @@ model Delivery {
 // ============================================================
 
 model Notification {
-  id          String    @id @default(cuid())
-  userId      String?   @map("user_id")
-  customerId  String?   @map("customer_id")
-  type        String    // ORDER_STATUS, DESIGN_READY, PAYMENT_DUE, PAYMENT_RECEIVED, PRODUCTION_DONE, SHIPPED, REMINDER, SYSTEM
-  channel     String    // IN_APP, LINE, EMAIL
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  type        String   // ORDER_STATUS, DESIGN_APPROVAL, PAYMENT, DEADLINE, SYSTEM
   title       String
-  body        String
-  data        Json?
-  isRead      Boolean   @default(false) @map("is_read")
-  readAt      DateTime? @map("read_at")
-  sentAt      DateTime? @map("sent_at")
-  failedAt    DateTime? @map("failed_at")
-  failReason  String?   @map("fail_reason")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  message     String   @default("")
+  link        String?
+  isRead      Boolean  @default(false) @map("is_read")
+  entityType  String?  @map("entity_type") // ORDER, INVOICE, etc.
+  entityId    String?  @map("entity_id")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   // Relations
-  user     User?     @relation(fields: [userId], references: [id])
-  customer Customer? @relation(fields: [customerId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId, isRead])
-  @@index([customerId])
   @@map("notifications")
 }
 
@@ -637,6 +719,7 @@ model Attachment {
   fileType     String   @map("file_type") // image/png, application/pdf, etc.
   fileSize     Int      @map("file_size")
   category     String?  // REFERENCE_IMAGE, PO_DOCUMENT, PAYMENT_SLIP, PHOTO, OTHER
+  printPosition String? @map("print_position") // FRONT, BACK, SLEEVE_L, SLEEVE_R, COLLAR, POCKET, OTHER (for REFERENCE_IMAGE)
   uploadedById String   @map("uploaded_by_id")
   notes        String?
   createdAt    DateTime @default(now()) @map("created_at")

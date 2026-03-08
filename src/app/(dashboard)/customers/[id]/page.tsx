@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
-import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText } from "lucide-react";
 
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -34,7 +34,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       <div className="flex items-center gap-3">
         <Link href="/customers"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{customer.name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{customer.name}</h1>
+            {customer.customerType === "CORPORATE" ? (
+              <Badge variant="default" className="gap-1"><Building2 className="h-3 w-3" /> นิติบุคคล</Badge>
+            ) : (
+              <Badge variant="secondary" className="gap-1"><User className="h-3 w-3" /> บุคคลธรรมดา</Badge>
+            )}
+          </div>
           {customer.company && <p className="text-sm text-slate-500">{customer.company}</p>}
         </div>
       </div>
@@ -94,6 +101,43 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               )}
             </CardContent>
           </Card>
+
+          {/* Corporate/Billing Info */}
+          {customer.customerType === "CORPORATE" && (
+            <Card>
+              <CardHeader><CardTitle className="text-base">ข้อมูลนิติบุคคล</CardTitle></CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {customer.taxId && (
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <FileText className="h-4 w-4" /> เลขผู้เสียภาษี: {customer.taxId}
+                    {customer.branchNumber && <span className="text-slate-400">(สาขา {customer.branchNumber === "00000" ? "สำนักงานใหญ่" : customer.branchNumber})</span>}
+                  </div>
+                )}
+                {customer.creditLimit != null && (
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <CreditCard className="h-4 w-4" /> วงเงินเครดิต: {formatCurrency(customer.creditLimit)}
+                  </div>
+                )}
+                {customer.defaultPaymentTerms && (
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <DollarSign className="h-4 w-4" /> เงื่อนไขชำระ: {customer.defaultPaymentTerms}
+                  </div>
+                )}
+                {customer.billingAddress && (
+                  <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                    <p className="mb-1 text-xs font-semibold text-slate-500">ที่อยู่ออกใบกำกับภาษี</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      {customer.billingAddress}
+                      {customer.billingSubDistrict && ` ${customer.billingSubDistrict}`}
+                      {customer.billingDistrict && ` ${customer.billingDistrict}`}
+                      {customer.billingProvince && ` ${customer.billingProvince}`}
+                      {customer.billingPostalCode && ` ${customer.billingPostalCode}`}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Orders & Communication */}

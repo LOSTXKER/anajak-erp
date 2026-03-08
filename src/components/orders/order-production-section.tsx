@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { STEP_STATUS_LABELS, STEP_STATUS_VARIANTS } from "@/lib/status-config";
 import {
   Factory,
   Plus,
@@ -51,21 +55,6 @@ const STEP_TYPE_LABELS: Record<string, string> = {
   CUSTOM: "อื่นๆ",
 };
 
-const STEP_STATUS_LABELS: Record<string, string> = {
-  PENDING: "รอดำเนินการ",
-  IN_PROGRESS: "กำลังทำ",
-  COMPLETED: "เสร็จแล้ว",
-  ON_HOLD: "พักไว้",
-  FAILED: "มีปัญหา",
-};
-
-const STEP_STATUS_VARIANTS: Record<string, "default" | "success" | "warning" | "destructive" | "secondary" | "purple"> = {
-  PENDING: "secondary",
-  IN_PROGRESS: "default",
-  COMPLETED: "success",
-  ON_HOLD: "warning",
-  FAILED: "destructive",
-};
 
 const DEFAULT_STEPS = [
   { stepType: "PATTERN_MAKING" as const, sortOrder: 1 },
@@ -102,20 +91,14 @@ export function OrderProductionSection({
   const utils = trpc.useUtils();
   const productions = trpc.production.getByOrderId.useQuery({ orderId });
 
-  const createProduction = trpc.production.create.useMutation({
-    onSuccess: () => {
-      utils.production.getByOrderId.invalidate({ orderId });
-      utils.order.getById.invalidate({ id: orderId });
-      setShowCreateDialog(false);
-    },
+  const createProduction = useMutationWithInvalidation(trpc.production.create, {
+    invalidate: [utils.production.getByOrderId, utils.order.getById],
+    onSuccess: () => setShowCreateDialog(false),
   });
 
-  const updateStep = trpc.production.updateStep.useMutation({
-    onSuccess: () => {
-      utils.production.getByOrderId.invalidate({ orderId });
-      utils.order.getById.invalidate({ id: orderId });
-      setShowUpdateDialog(null);
-    },
+  const updateStep = useMutationWithInvalidation(trpc.production.updateStep, {
+    invalidate: [utils.production.getByOrderId, utils.order.getById],
+    onSuccess: () => setShowUpdateDialog(null),
   });
 
   const canCreate =
@@ -301,10 +284,10 @@ export function OrderProductionSection({
                         <div className="flex items-center gap-2">
                           <Badge
                             variant={
-                              STEP_STATUS_VARIANTS[step.status] || "default"
+                              STEP_STATUS_VARIANTS[step.status as keyof typeof STEP_STATUS_VARIANTS] || "default"
                             }
                           >
-                            {STEP_STATUS_LABELS[step.status] || step.status}
+                            {STEP_STATUS_LABELS[step.status as keyof typeof STEP_STATUS_LABELS] || step.status}
                           </Badge>
                           {step.qcPassed !== null && (
                             <Badge
@@ -389,7 +372,7 @@ export function OrderProductionSection({
                   )}
                 </div>
                 {step.stepType === "CUSTOM" && (
-                  <input
+                  <Input
                     type="text"
                     placeholder="ชื่อขั้นตอน..."
                     value={step.customStepName || ""}
@@ -401,11 +384,11 @@ export function OrderProductionSection({
                       };
                       setSteps(updated);
                     }}
-                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    className="mt-2"
                   />
                 )}
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <input
+                  <Input
                     type="number"
                     placeholder="ต้นทุนประมาณ (บาท)"
                     value={step.estimatedCost || ""}
@@ -417,10 +400,9 @@ export function OrderProductionSection({
                       };
                       setSteps(updated);
                     }}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                     min="0"
                   />
-                  <input
+                  <Input
                     type="text"
                     placeholder="หมายเหตุ"
                     value={step.notes || ""}
@@ -432,7 +414,6 @@ export function OrderProductionSection({
                       };
                       setSteps(updated);
                     }}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -499,11 +480,10 @@ export function OrderProductionSection({
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 ต้นทุนจริง (บาท)
               </label>
-              <input
+              <Input
                 type="number"
                 value={updateCost}
                 onChange={(e) => setUpdateCost(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 min="0"
                 step="0.01"
                 placeholder="0"
@@ -528,11 +508,10 @@ export function OrderProductionSection({
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   หมายเหตุ QC
                 </label>
-                <textarea
+                <Textarea
                   value={updateQcNotes}
                   onChange={(e) => setUpdateQcNotes(e.target.value)}
                   rows={2}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   placeholder="ระบุปัญหาที่พบ..."
                 />
               </div>
@@ -541,11 +520,10 @@ export function OrderProductionSection({
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 หมายเหตุ
               </label>
-              <textarea
+              <Textarea
                 value={updateNotes}
                 onChange={(e) => setUpdateNotes(e.target.value)}
                 rows={2}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 placeholder="หมายเหตุ..."
               />
             </div>
