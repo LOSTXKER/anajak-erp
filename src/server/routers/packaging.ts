@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { byIdInput } from "@/server/schemas";
 
 export const packagingRouter = router({
   list: protectedProcedure
@@ -22,8 +23,7 @@ export const packagingRouter = router({
     }),
 
   update: protectedProcedure
-    .input(z.object({
-      id: z.string(),
+    .input(byIdInput.extend({
       name: z.string().min(1).optional(),
       isActive: z.boolean().optional(),
       sortOrder: z.number().optional(),
@@ -34,7 +34,7 @@ export const packagingRouter = router({
     }),
 
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.packagingOption.update({
         where: { id: input.id },

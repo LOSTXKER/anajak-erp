@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { getStockClientFromSettings } from "@/lib/stock-api";
+import { byIdInput } from "@/server/schemas";
 
 export const productRouter = router({
   list: protectedProcedure
@@ -101,7 +102,7 @@ export const productRouter = router({
     }),
 
   getById: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .query(async ({ ctx, input }) => {
       return ctx.prisma.product.findUniqueOrThrow({
         where: { id: input.id },
@@ -142,7 +143,7 @@ export const productRouter = router({
 
   // Delete product from ERP + soft-delete from Stock
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       const product = await ctx.prisma.product.findUniqueOrThrow({
         where: { id: input.id },

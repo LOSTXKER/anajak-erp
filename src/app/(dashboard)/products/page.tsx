@@ -4,13 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { SearchInput } from "@/components/ui/search-input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
-import { Package, RefreshCw, Search, Cloud, Settings } from "lucide-react";
+import { Package, RefreshCw, Cloud, Settings } from "lucide-react";
 
 import { SyncDialog } from "@/components/sync-dialog";
 
@@ -56,9 +58,6 @@ const typeConfig: Record<
   OTHER: { label: "อื่นๆ", variant: "secondary" },
 };
 
-const selectClass =
-  "flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
-
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [productType, setProductType] = useState("");
@@ -67,7 +66,7 @@ export default function ProductsPage() {
   const limit = 24;
 
   // ─── Queries ──────────────────────────────────────────────
-  const { data, isLoading } = trpc.product.list.useQuery({
+  const { data, isLoading, isError, refetch } = trpc.product.list.useQuery({
     search: search || undefined,
     productType: productType || undefined,
     itemType: itemType || undefined,
@@ -137,36 +136,35 @@ export default function ProductsPage() {
 
       {/* ─── Search & Filter ─────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            placeholder="ค้นหาชื่อสินค้า, SKU..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="pl-9"
-          />
-        </div>
-        <select
+        <SearchInput
+          containerClassName="flex-1"
+          placeholder="ค้นหาชื่อสินค้า, SKU..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+        />
+        <NativeSelect
           value={productType}
           onChange={(e) => {
             setProductType(e.target.value);
             setPage(1);
           }}
-          className={`${selectClass} sm:w-44`}
+          className="sm:w-44"
         >
           {productTypes.map((t) => (
             <option key={t.value} value={t.value}>
               {t.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
 
       {/* ─── Product Grid ────────────────────────────────────── */}
-      {isLoading ? (
+      {isError ? (
+        <QueryError onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
             <Card key={i}>

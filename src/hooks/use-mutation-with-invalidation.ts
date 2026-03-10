@@ -1,14 +1,18 @@
 type InvalidateTarget = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   invalidate: (...args: any[]) => Promise<void>;
 };
 
 type AnyMutationProcedure = {
-  useMutation: (opts?: any) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  useMutation: (opts?: Record<string, unknown>) => any;
 };
 
 interface MutationWithInvalidationOptions {
   invalidate: InvalidateTarget[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSuccess?: (...args: any[]) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onError?: (...args: any[]) => void;
 }
 
@@ -37,7 +41,8 @@ export function useMutationWithInvalidation<
 
   return procedure.useMutation({
     ...rest,
-    onSuccess: (...args: unknown[]) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onSuccess: (...args: any[]) => {
       for (const target of invalidate) {
         target.invalidate();
       }

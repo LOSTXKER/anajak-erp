@@ -164,6 +164,65 @@ export function calculateTotalQuantity(
 }
 
 // ============================================================
+// FORM-TO-PRICING ADAPTER
+// ============================================================
+
+interface OrderItemFormLike {
+  products: Array<{
+    baseUnitPrice: number;
+    discount?: number;
+    variants: Array<{ quantity: number }>;
+  }>;
+  prints: Array<{ unitPrice: number; position?: string }>;
+  addons: Array<{ pricingType: string; unitPrice: number; name?: string }>;
+}
+
+/**
+ * Convert an OrderItemForm (or compatible shape) into a PricingItem
+ * for use with calculateItemSubtotal and related functions.
+ */
+export function orderItemFormToPricingItem(item: OrderItemFormLike): PricingItem {
+  const totalQuantity = item.products.reduce(
+    (sum, p) => sum + calculateTotalQuantity(p.variants),
+    0,
+  );
+  const products: PricingProduct[] = item.products.map((p) => ({
+    baseUnitPrice: p.baseUnitPrice,
+    discount: p.discount,
+    totalQuantity: calculateTotalQuantity(p.variants),
+  }));
+
+  return {
+    baseUnitPrice: products[0]?.baseUnitPrice ?? 0,
+    totalQuantity,
+    products,
+    prints: item.prints.map((p) => ({ unitPrice: p.unitPrice })),
+    addons: item.addons.map((a) => ({
+      pricingType: a.pricingType,
+      unitPrice: a.unitPrice,
+    })),
+  };
+}
+
+/**
+ * Calculate the subtotal for an OrderItemForm directly.
+ * Convenience wrapper: converts form → pricing item → calls calculateItemSubtotal.
+ */
+export function calculateFormItemSubtotal(item: OrderItemFormLike): number {
+  return calculateItemSubtotal(orderItemFormToPricingItem(item));
+}
+
+/**
+ * Get total quantity across all products in an OrderItemForm.
+ */
+export function getFormItemTotalQty(item: OrderItemFormLike): number {
+  return item.products.reduce(
+    (sum, p) => sum + calculateTotalQuantity(p.variants),
+    0,
+  );
+}
+
+// ============================================================
 // PRICE BREAKDOWN (for display)
 // ============================================================
 

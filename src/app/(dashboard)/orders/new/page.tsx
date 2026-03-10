@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,7 +18,7 @@ import {
   isMarketplaceChannel,
 } from "@/lib/order-status";
 import {
-  calculateTotalQuantity,
+  calculateFormItemSubtotal,
 } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -45,15 +46,16 @@ import {
   useOrderFeesForm,
   clearDraft,
 } from "@/hooks/use-order-items-form";
+import { useOrderShippingState } from "@/hooks/use-order-shipping";
 import type { OrderItemForm, ReferenceImage } from "@/types/order-form";
 import {
   EMPTY_ITEM,
   EMPTY_PRODUCT,
   PRINT_POSITIONS,
-  deriveProcessingType,
   validateOrderItem,
   validateOrderItemProduct,
 } from "@/types/order-form";
+import { mapItemsToMutationInput, mapFeesToMutationInput } from "@/lib/order-mapping";
 import { toast } from "sonner";
 import {
   OrderTypeSelector,
@@ -64,9 +66,6 @@ import {
 } from "@/components/orders/new";
 
 const CHANNELS = Object.keys(CHANNEL_LABELS) as string[];
-
-const selectClass =
-  "flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
 const sectionLabelClass =
   "mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300";
@@ -109,14 +108,11 @@ export default function NewOrderPage() {
   const [paymentTerms, setPaymentTerms] = useState("");
   const [poNumber, setPoNumber] = useState("");
 
-  const [showShipping, setShowShipping] = useState(false);
-  const [shippingRecipientName, setShippingRecipientName] = useState("");
-  const [shippingPhone, setShippingPhone] = useState("");
-  const [shippingAddr, setShippingAddr] = useState("");
-  const [shippingSubDistrict, setShippingSubDistrict] = useState("");
-  const [shippingDistrict, setShippingDistrict] = useState("");
-  const [shippingProvince, setShippingProvince] = useState("");
-  const [shippingPostalCode, setShippingPostalCode] = useState("");
+  const {
+    showShipping, setShowShipping,
+    shipping, updateShipping,
+    validateShipping, shippingMutationInput,
+  } = useOrderShippingState();
 
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -171,10 +167,10 @@ export default function NewOrderPage() {
 
   const selectedCustomer = customers?.customers.find(c => c.id === customerId);
   useEffect(() => {
-    if (selectedCustomer?.address && !shippingAddr && !shippingRecipientName) {
-      setShippingRecipientName(selectedCustomer.name);
-      setShippingPhone(selectedCustomer.phone ?? "");
-      setShippingAddr(selectedCustomer.address);
+    if (selectedCustomer?.address && !shipping.address && !shipping.recipientName) {
+      updateShipping("recipientName", selectedCustomer.name);
+      updateShipping("phone", selectedCustomer.phone ?? "");
+      updateShipping("address", selectedCustomer.address);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId]);
@@ -197,20 +193,7 @@ export default function NewOrderPage() {
     if (isQuickInquiry) {
       return { subtotalItems: 0, subtotalFees: 0, platformFee: 0, discount: 0, taxAmount: 0, grandTotal: 0 };
     }
-    const subtotalItems = items.reduce((sum, item) => {
-      const productsCost = item.products.reduce((pSum, p) => {
-        const pQty = calculateTotalQuantity(p.variants);
-        const netPrice = Math.max(0, p.baseUnitPrice - (p.discount || 0));
-        return pSum + pQty * netPrice;
-      }, 0);
-      const itemTotalQty = item.products.reduce((s, p) => s + calculateTotalQuantity(p.variants), 0);
-      const printsCost = itemTotalQty * item.prints.reduce((s, p) => s + p.unitPrice, 0);
-      const addonsCost = item.addons.reduce((s, a) => {
-        if (a.pricingType === "PER_PIECE") return s + itemTotalQty * a.unitPrice;
-        return s + a.unitPrice;
-      }, 0);
-      return sum + productsCost + printsCost + addonsCost;
-    }, 0);
+    const subtotalItems = items.reduce((sum, item) => sum + calculateFormItemSubtotal(item), 0);
     const subtotalFees = fees.reduce((sum, f) => sum + f.amount, 0);
     const pf = isMarketplace ? platformFee : 0;
     const subtotalBeforeTax = subtotalItems + subtotalFees + pf - discount;
@@ -350,16 +333,7 @@ export default function NewOrderPage() {
       }
     }
 
-    if (showShipping) {
-      if (!shippingRecipientName.trim()) errors.push("กรุณาระบุชื่อผู้รับ (ที่อยู่จัดส่ง)");
-      if (!shippingAddr.trim()) errors.push("กรุณาระบุที่อยู่จัดส่ง");
-      if (shippingPhone && !/^0\d{8,9}$/.test(shippingPhone)) {
-        errors.push("เบอร์โทรต้องขึ้นต้นด้วย 0 และมี 9-10 หลัก");
-      }
-      if (shippingPostalCode && !/^\d{5}$/.test(shippingPostalCode)) {
-        errors.push("รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก");
-      }
-    }
+    errors.push(...validateShipping());
 
     return errors;
   };
@@ -382,75 +356,9 @@ export default function NewOrderPage() {
     poNumber: poNumber || undefined,
     taxRate,
     estimatedQuantity: estimatedQuantity ? Number(estimatedQuantity) : undefined,
-    ...(showShipping && shippingRecipientName && {
-      shippingAddress: {
-        recipientName: shippingRecipientName,
-        phone: shippingPhone,
-        address: shippingAddr,
-        subDistrict: shippingSubDistrict || undefined,
-        district: shippingDistrict || undefined,
-        province: shippingProvince || undefined,
-        postalCode: shippingPostalCode || undefined,
-      },
-    }),
-    items: isQuickInquiry
-      ? []
-      : items.map((item) => ({
-          description: item.description || undefined,
-          notes: item.notes || undefined,
-          products: item.products.map((p) => ({
-            productId: p.productId,
-            productType: p.productType,
-            description: p.description,
-            material: p.material || undefined,
-            baseUnitPrice: p.baseUnitPrice,
-            discount: p.discount || 0,
-            packagingOptionId: p.packagingOptionId || undefined,
-            itemSource: (p.itemSource || undefined) as "FROM_STOCK" | "CUSTOM_MADE" | "CUSTOMER_PROVIDED" | undefined,
-            fabricType: p.fabricType || undefined,
-            fabricWeight: p.fabricWeight || undefined,
-            fabricColor: p.fabricColor || undefined,
-            processingType: deriveProcessingType(p.itemSource, item.prints.length > 0) as "PRINT_ONLY" | "CUT_AND_SEW_PRINT" | "CUT_AND_SEW_ONLY" | "PACK_ONLY" | "FULL_PRODUCTION",
-            variants: p.variants.map((v) => ({
-              size: v.size,
-              color: v.color || undefined,
-              quantity: v.quantity,
-            })),
-            patternId: p.patternId || undefined,
-            collarType: p.collarType || undefined,
-            sleeveType: p.sleeveType || undefined,
-            bodyFit: p.bodyFit || undefined,
-            patternFileUrl: p.patternFileUrl || undefined,
-            patternNote: p.patternNote || undefined,
-            garmentCondition: p.garmentCondition || undefined,
-            receivedInspected: p.receivedInspected,
-            receiveNote: p.receiveNote || undefined,
-          })),
-          prints: item.prints.map((pr) => ({
-            position: pr.position,
-            printType: pr.printType,
-            colorCount: pr.colorCount || undefined,
-            printSize: pr.printSize || undefined,
-            width: pr.width || undefined,
-            height: pr.height || undefined,
-            designNote: pr.designNote || undefined,
-            designImageUrl: pr.designImageUrl || undefined,
-            unitPrice: pr.unitPrice,
-          })),
-          addons: item.addons.map((a) => ({
-            addonType: a.addonType,
-            name: a.name,
-            pricingType: a.pricingType as "PER_PIECE" | "PER_ORDER",
-            unitPrice: a.unitPrice,
-          })),
-        })),
-    fees: showFeeSections
-      ? fees.map((f) => ({
-          feeType: f.feeType,
-          name: f.name,
-          amount: f.amount,
-        }))
-      : [],
+    ...(shippingMutationInput() && { shippingAddress: shippingMutationInput() }),
+    items: isQuickInquiry ? [] : mapItemsToMutationInput(items),
+    fees: showFeeSections ? mapFeesToMutationInput(fees) : [],
     referenceImages: referenceImages.map((img) => ({
       fileUrl: img.fileUrl,
       fileName: img.fileName,
@@ -668,10 +576,10 @@ export default function NewOrderPage() {
                           <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800"><ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" /></div>
                         )}
                         <button type="button" onClick={() => removeReferenceImage(idx)} className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-red-600"><X className="h-3 w-3" /></button>
-                        <select value={img.printPosition || ""} onChange={(e) => { setReferenceImages((prev) => prev.map((im, i) => i === idx ? { ...im, printPosition: e.target.value || undefined } : im)); }} className="mt-1 w-24 rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                        <NativeSelect value={img.printPosition || ""} onChange={(e) => { setReferenceImages((prev) => prev.map((im, i) => i === idx ? { ...im, printPosition: e.target.value || undefined } : im)); }} className="mt-1 h-auto w-24 px-1 py-0.5 text-[10px]">
                           <option value="">ทั่วไป</option>
                           {Object.entries(PRINT_POSITIONS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
-                        </select>
+                        </NativeSelect>
                         {img.printPosition && (<Badge variant="secondary" className="mt-0.5 text-[9px]">{PRINT_POSITIONS[img.printPosition] || img.printPosition}</Badge>)}
                         <p className="max-w-[6rem] truncate text-[10px] text-slate-400">{img.fileName}</p>
                       </div>
@@ -734,10 +642,10 @@ export default function NewOrderPage() {
             <CardContent className="space-y-3">
               <div>
                 <label className={sectionLabelClass}>ลูกค้า *</label>
-                <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} required className={selectClass}>
+                <NativeSelect value={customerId} onChange={(e) => setCustomerId(e.target.value)} required>
                   <option value="">-- เลือกลูกค้า --</option>
                   {customers?.customers.map((c) => (<option key={c.id} value={c.id}>{c.name} {c.company ? `(${c.company})` : ""}{c.customerType === "CORPORATE" ? " [นิติบุคคล]" : ""}</option>))}
-                </select>
+                </NativeSelect>
                 {selectedCustomer && isCorporateCustomer && (
                   <div className="mt-1 flex items-center gap-1.5">
                     <Badge variant="default" className="gap-1 text-[10px]">นิติบุคคล</Badge>
@@ -768,9 +676,9 @@ export default function NewOrderPage() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className={sectionLabelClass}>ความเร่งด่วน</label>
-                  <select value={priority} onChange={(e) => setPriority(e.target.value as "LOW" | "NORMAL" | "HIGH" | "URGENT")} className={selectClass}>
+                  <NativeSelect value={priority} onChange={(e) => setPriority(e.target.value as "LOW" | "NORMAL" | "HIGH" | "URGENT")}>
                     {Object.entries(PRIORITY_LABELS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
-                  </select>
+                  </NativeSelect>
                 </div>
                 {!isQuickInquiry && (
                   <div>
@@ -784,10 +692,10 @@ export default function NewOrderPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className={sectionLabelClass}>เงื่อนไขชำระ</label>
-                    <select value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} className={selectClass}>
+                    <NativeSelect value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)}>
                       <option value="">-- ไม่ระบุ --</option>
                       {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
-                    </select>
+                    </NativeSelect>
                   </div>
                   {isCorporateCustomer && (
                     <div>
@@ -810,27 +718,8 @@ export default function NewOrderPage() {
             <OrderShippingSection
               showShipping={showShipping}
               onToggleShipping={() => setShowShipping(!showShipping)}
-              shipping={{
-                recipientName: shippingRecipientName,
-                phone: shippingPhone,
-                address: shippingAddr,
-                subDistrict: shippingSubDistrict,
-                district: shippingDistrict,
-                province: shippingProvince,
-                postalCode: shippingPostalCode,
-              }}
-              onUpdate={(field, value) => {
-                const setters: Record<string, (v: string) => void> = {
-                  recipientName: setShippingRecipientName,
-                  phone: setShippingPhone,
-                  address: setShippingAddr,
-                  subDistrict: setShippingSubDistrict,
-                  district: setShippingDistrict,
-                  province: setShippingProvince,
-                  postalCode: setShippingPostalCode,
-                };
-                setters[field]?.(value);
-              }}
+              shipping={shipping}
+              onUpdate={updateShipping}
             />
           )}
 

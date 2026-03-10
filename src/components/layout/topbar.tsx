@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 
 function timeAgo(date: Date | string): string {
   const now = new Date();
@@ -52,19 +53,14 @@ export function Topbar() {
     undefined,
     { refetchInterval: 30_000 }
   );
-  const { data: notifData, refetch: refetchNotifs } =
-    trpc.notification.list.useQuery(
-      { limit: 5 },
-      { enabled: notifOpen }
-    );
+  const { data: notifData } = trpc.notification.list.useQuery(
+    { limit: 5 },
+    { enabled: notifOpen },
+  );
 
   const utils = trpc.useUtils();
-  const markAllRead = trpc.notification.markAllRead.useMutation({
-    onSuccess: () => {
-      utils.notification.unreadCount.invalidate();
-      utils.notification.list.invalidate();
-      refetchNotifs();
-    },
+  const markAllRead = useMutationWithInvalidation(trpc.notification.markAllRead, {
+    invalidate: [utils.notification.unreadCount, utils.notification.list],
   });
 
   const count = unreadCount ?? 0;

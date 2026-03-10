@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { createAuditLog } from "@/server/helpers";
 
 export const productionRouter = router({
   getByOrderId: protectedProcedure
@@ -52,14 +53,12 @@ export const productionRouter = router({
         data: { internalStatus: "PRODUCING", customerStatus: "IN_PRODUCTION" },
       });
 
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "CREATE",
-          entityType: "PRODUCTION",
-          entityId: production.id,
-          newValue: { orderId: input.orderId, stepsCount: input.steps.length },
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "CREATE",
+        entityType: "PRODUCTION",
+        entityId: production.id,
+        newValue: { orderId: input.orderId, stepsCount: input.steps.length },
       });
 
       return production;
@@ -107,14 +106,12 @@ export const productionRouter = router({
         });
       }
 
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "UPDATE",
-          entityType: "PRODUCTION_STEP",
-          entityId: stepId,
-          newValue: JSON.parse(JSON.stringify(data)),
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "PRODUCTION_STEP",
+        entityId: stepId,
+        newValue: data,
       });
 
       return step;

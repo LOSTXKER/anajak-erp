@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { createAuditLog } from "@/server/helpers";
 
 export const outsourceRouter = router({
   // Vendors
@@ -45,14 +46,12 @@ export const outsourceRouter = router({
     .mutation(async ({ ctx, input }) => {
       const vendor = await ctx.prisma.vendor.create({ data: input });
 
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "CREATE",
-          entityType: "VENDOR",
-          entityId: vendor.id,
-          newValue: { name: vendor.name },
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "CREATE",
+        entityType: "VENDOR",
+        entityId: vendor.id,
+        newValue: { name: vendor.name },
       });
 
       return vendor;
@@ -118,14 +117,12 @@ export const outsourceRouter = router({
         data: { status: "IN_PROGRESS" },
       });
 
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "CREATE",
-          entityType: "OUTSOURCE_ORDER",
-          entityId: order.id,
-          newValue: { vendorId: input.vendorId, totalCost: order.totalCost },
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "CREATE",
+        entityType: "OUTSOURCE_ORDER",
+        entityId: order.id,
+        newValue: { vendorId: input.vendorId, totalCost: order.totalCost },
       });
 
       return order;

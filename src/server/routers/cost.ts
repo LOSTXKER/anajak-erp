@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { calculateProfitMargin } from "@/lib/pricing";
+import { byIdInput } from "@/server/schemas";
 
 export const costRouter = router({
   listByOrder: protectedProcedure
@@ -118,7 +119,7 @@ export const costRouter = router({
     }),
 
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       const entry = await ctx.prisma.costEntry.delete({ where: { id: input.id } });
 

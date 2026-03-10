@@ -83,7 +83,5 @@ export function generateInvoiceNumber(type: string): string {
 }
 
 export function generateQuotationNumber(): string {
-  const full = getYearMonthPrefix("QT");
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
-  return `${full}${random}`;
+  return generateInvoiceNumber("QUOTATION");
 }

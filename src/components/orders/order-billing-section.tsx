@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,11 @@ import {
   Ban,
   DollarSign,
 } from "lucide-react";
+import type { InvoiceType } from "@prisma/client";
+import type { RouterOutput } from "@/lib/trpc";
+
+type Invoice = RouterOutput["billing"]["listByOrder"][number];
+type Payment = Invoice["payments"][number];
 
 interface OrderBillingSectionProps {
   orderId: string;
@@ -82,28 +88,25 @@ export function OrderBillingSection({
   const utils = trpc.useUtils();
   const invoices = trpc.billing.listByOrder.useQuery({ orderId });
 
-  const createInvoice = trpc.billing.create.useMutation({
+  const createInvoice = useMutationWithInvalidation(trpc.billing.create, {
+    invalidate: [utils.billing.listByOrder, utils.order.getById],
     onSuccess: () => {
-      utils.billing.listByOrder.invalidate({ orderId });
-      utils.order.getById.invalidate({ id: orderId });
       setShowCreateDialog(false);
       resetCreateForm();
     },
   });
 
-  const recordPayment = trpc.billing.recordPayment.useMutation({
+  const recordPayment = useMutationWithInvalidation(trpc.billing.recordPayment, {
+    invalidate: [utils.billing.listByOrder, utils.order.getById],
     onSuccess: () => {
-      utils.billing.listByOrder.invalidate({ orderId });
-      utils.order.getById.invalidate({ id: orderId });
       setShowPaymentDialog(null);
       resetPaymentForm();
     },
   });
 
-  const voidInvoice = trpc.billing.voidInvoice.useMutation({
+  const voidInvoice = useMutationWithInvalidation(trpc.billing.voidInvoice, {
+    invalidate: [utils.billing.listByOrder, utils.order.getById],
     onSuccess: () => {
-      utils.billing.listByOrder.invalidate({ orderId });
-      utils.order.getById.invalidate({ id: orderId });
       setShowVoidDialog(null);
       setVoidReason("");
     },
@@ -129,7 +132,7 @@ export function OrderBillingSection({
     createInvoice.mutate({
       orderId,
       customerId,
-      type: invoiceType as any,
+      type: invoiceType as InvoiceType,
       amount: parseFloat(invoiceAmount) || 0,
       discount: parseFloat(invoiceDiscount) || 0,
       tax: parseFloat(invoiceTax) || 0,
@@ -152,8 +155,8 @@ export function OrderBillingSection({
   function openCreateDialog() {
     // Pre-fill amount suggestion
     const existingTotal = (invoices.data || [])
-      .filter((inv: any) => !inv.isVoided)
-      .reduce((sum: number, inv: any) => sum + inv.totalAmount, 0);
+      .filter((inv) => !inv.isVoided)
+      .reduce((sum, inv) => sum + inv.totalAmount, 0);
     const remaining = Math.max(0, totalAmount - existingTotal);
 
     if (invoiceType === "DEPOSIT_INVOICE") {
@@ -166,12 +169,12 @@ export function OrderBillingSection({
 
   // Calculate how much is still outstanding
   const totalInvoiced = (invoices.data || [])
-    .filter((inv: any) => !inv.isVoided)
-    .reduce((sum: number, inv: any) => sum + inv.totalAmount, 0);
+    .filter((inv) => !inv.isVoided)
+    .reduce((sum, inv) => sum + inv.totalAmount, 0);
   const totalPaid = (invoices.data || [])
-    .filter((inv: any) => !inv.isVoided)
-    .flatMap((inv: any) => inv.payments || [])
-    .reduce((sum: number, p: any) => sum + p.amount, 0);
+    .filter((inv) => !inv.isVoided)
+    .flatMap((inv) => inv.payments || [])
+    .reduce((sum, p) => sum + p.amount, 0);
 
   const canCreateInvoice = !["INQUIRY", "CANCELLED", "COMPLETED"].includes(internalStatus);
 
@@ -226,10 +229,10 @@ export function OrderBillingSection({
             </p>
           ) : (
             <div className="space-y-2">
-              {invoices.data.map((inv: any) => {
+              {invoices.data.map((inv) => {
                 const isExpanded = expandedInvoice === inv.id;
                 const invPaid = (inv.payments || []).reduce(
-                  (sum: number, p: any) => sum + p.amount,
+                  (sum: number, p: Payment) => sum + p.amount,
                   0
                 );
                 const invRemaining = Math.max(0, inv.totalAmount - invPaid);
@@ -312,7 +315,7 @@ export function OrderBillingSection({
                             <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
                               การชำระเงิน
                             </p>
-                            {inv.payments.map((p: any) => (
+                            {inv.payments.map((p) => (
                               <div
                                 key={p.id}
                                 className="flex items-center justify-between rounded-md bg-green-50 px-2 py-1.5 text-xs dark:bg-green-950/30"

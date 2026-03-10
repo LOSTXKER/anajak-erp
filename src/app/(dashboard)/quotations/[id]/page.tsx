@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import {
@@ -61,7 +62,7 @@ export default function QuotationDetailPage({
 }) {
   const { id } = use(params);
 
-  const { data: quotation, isLoading } = trpc.quotation.getById.useQuery({ id });
+  const { data: quotation, isLoading, isError, refetch } = trpc.quotation.getById.useQuery({ id });
   const utils = trpc.useUtils();
 
   const updateStatus = trpc.quotation.updateStatus.useMutation({
@@ -84,6 +85,7 @@ export default function QuotationDetailPage({
   // Loading state
   // ----------------------------------------------------------
   if (isLoading) return <QuotationDetailSkeleton />;
+  if (isError) return <QueryError onRetry={() => refetch()} />;
   if (!quotation) return null;
 
   // ----------------------------------------------------------

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { byIdInput } from "@/server/schemas";
 
 export const patternRouter = router({
   list: protectedProcedure
@@ -22,14 +23,19 @@ export const patternRouter = router({
         ];
       }
 
-      return ctx.prisma.pattern.findMany({
-        where,
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      });
+      const [patterns, total] = await Promise.all([
+        ctx.prisma.pattern.findMany({
+          where,
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        }),
+        ctx.prisma.pattern.count({ where }),
+      ]);
+
+      return { patterns, total };
     }),
 
   getById: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .query(async ({ ctx, input }) => {
       return ctx.prisma.pattern.findUniqueOrThrow({
         where: { id: input.id },
@@ -56,8 +62,7 @@ export const patternRouter = router({
 
   update: protectedProcedure
     .input(
-      z.object({
-        id: z.string(),
+      byIdInput.extend({
         name: z.string().optional(),
         productType: z.string().optional(),
         collarType: z.string().optional(),
@@ -76,7 +81,7 @@ export const patternRouter = router({
     }),
 
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.pattern.delete({ where: { id: input.id } });
     }),

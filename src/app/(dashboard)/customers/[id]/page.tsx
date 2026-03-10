@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText } from "lucide-react";
 
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: customer, isLoading } = trpc.customer.getById.useQuery({ id });
+  const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });
 
   if (isLoading) {
     return (
@@ -27,6 +28,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     );
   }
 
+  if (isError) return <QueryError onRetry={() => refetch()} />;
   if (!customer) return null;
 
   return (

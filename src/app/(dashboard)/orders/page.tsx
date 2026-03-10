@@ -6,7 +6,12 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { SearchInput } from "@/components/ui/search-input";
+import { FilterChip } from "@/components/ui/filter-chip";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
@@ -19,9 +24,6 @@ import {
 import { PageHeader } from "@/components/page-header";
 import {
   Plus,
-  Search,
-  ChevronLeft,
-  ChevronRight,
   Filter,
   ArrowUpDown,
   Download,
@@ -238,7 +240,7 @@ export default function OrdersPage() {
     "asc" | "desc",
   ];
 
-  const { data, isLoading } = trpc.order.list.useQuery({
+  const { data, isLoading, isError, refetch } = trpc.order.list.useQuery({
     search: search || undefined,
     channel: channel || undefined,
     orderType: (orderType as OrderType) || undefined,
@@ -260,6 +262,8 @@ export default function OrdersPage() {
     createdAfter,
     createdBefore,
   ].filter(Boolean).length;
+
+  if (isError) return <QueryError onRetry={() => refetch()} />;
 
   return (
     <div className="space-y-6">
@@ -290,36 +294,33 @@ export default function OrdersPage() {
 
       {/* Search + filter toggle + sort */}
       <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            placeholder="ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า, เลขออเดอร์ภายนอก..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="pl-9"
-          />
-        </div>
+        <SearchInput
+          containerClassName="flex-1"
+          placeholder="ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า, เลขออเดอร์ภายนอก..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+        />
 
         <div className="flex gap-2">
           <div className="flex items-center gap-1.5">
             <ArrowUpDown className="h-4 w-4 text-slate-400" />
-            <select
+            <NativeSelect
               value={sort}
               onChange={(e) => {
                 setSort(e.target.value);
                 setPage(1);
               }}
-              className="h-9 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+              className="h-9 px-2 text-xs"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
 
           <Button
@@ -352,20 +353,9 @@ export default function OrdersPage() {
               ช่องทาง:
             </span>
             {CHANNEL_FILTERS.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => {
-                  setChannel(f.value);
-                  setPage(1);
-                }}
-                className={`whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
-                  channel === f.value
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
-                }`}
-              >
+              <FilterChip key={f.value} selected={channel === f.value} onClick={() => { setChannel(f.value); setPage(1); }}>
                 {f.label}
-              </button>
+              </FilterChip>
             ))}
           </div>
 
@@ -375,20 +365,9 @@ export default function OrdersPage() {
               ประเภท:
             </span>
             {TYPE_FILTERS.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => {
-                  setOrderType(f.value);
-                  setPage(1);
-                }}
-                className={`whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
-                  orderType === f.value
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
-                }`}
-              >
+              <FilterChip key={f.value} selected={orderType === f.value} onClick={() => { setOrderType(f.value); setPage(1); }}>
                 {f.label}
-              </button>
+              </FilterChip>
             ))}
           </div>
 
@@ -398,20 +377,9 @@ export default function OrdersPage() {
               สถานะลูกค้า:
             </span>
             {CUSTOMER_STATUS_FILTERS.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => {
-                  setCustomerStatus(f.value);
-                  setPage(1);
-                }}
-                className={`whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
-                  customerStatus === f.value
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
-                }`}
-              >
+              <FilterChip key={f.value} selected={customerStatus === f.value} onClick={() => { setCustomerStatus(f.value); setPage(1); }}>
                 {f.label}
-              </button>
+              </FilterChip>
             ))}
           </div>
 
@@ -421,20 +389,9 @@ export default function OrdersPage() {
               สถานะภายใน:
             </span>
             {INTERNAL_STATUS_FILTERS.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => {
-                  setInternalStatus(f.value);
-                  setPage(1);
-                }}
-                className={`whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
-                  internalStatus === f.value
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
-                }`}
-              >
+              <FilterChip key={f.value} selected={internalStatus === f.value} onClick={() => { setInternalStatus(f.value); setPage(1); }}>
                 {f.label}
-              </button>
+              </FilterChip>
             ))}
           </div>
 
@@ -611,33 +568,8 @@ export default function OrdersPage() {
         </div>
 
         {/* Pagination */}
-        {data && data.pages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 dark:border-slate-800">
-            <p className="text-xs text-slate-500">
-              ทั้งหมด {data.total} รายการ
-            </p>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="flex items-center px-2 text-xs text-slate-500">
-                {page} / {data.pages}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={page >= data.pages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+        {data && (
+          <TablePagination page={page} totalPages={data.pages} total={data.total} onPageChange={setPage} />
         )}
       </Card>
     </div>

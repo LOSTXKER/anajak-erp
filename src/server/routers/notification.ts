@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { byIdInput } from "@/server/schemas";
 
 export const notificationRouter = router({
   list: protectedProcedure
@@ -34,7 +35,7 @@ export const notificationRouter = router({
   }),
 
   markRead: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.notification.update({
         where: { id: input.id },

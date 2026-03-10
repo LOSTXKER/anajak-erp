@@ -38,6 +38,11 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import type { ProductionStepType, StepStatus } from "@prisma/client";
+import type { RouterOutput } from "@/lib/trpc";
+
+type Production = RouterOutput["production"]["getByOrderId"][number];
+type ProductionStep = Production["steps"][number];
 
 interface OrderProductionSectionProps {
   orderId: string;
@@ -146,7 +151,7 @@ export function OrderProductionSection({
     createProduction.mutate({
       orderId,
       steps: steps.map((s) => ({
-        stepType: s.stepType as any,
+        stepType: s.stepType as ProductionStepType,
         customStepName: s.customStepName,
         sortOrder: s.sortOrder,
         estimatedCost: s.estimatedCost ? parseFloat(s.estimatedCost) : undefined,
@@ -155,7 +160,7 @@ export function OrderProductionSection({
     });
   }
 
-  function openUpdateDialog(step: any) {
+  function openUpdateDialog(step: ProductionStep) {
     setShowUpdateDialog(step.id);
     setUpdateStatus(step.status);
     setUpdateNotes(step.notes || "");
@@ -168,7 +173,7 @@ export function OrderProductionSection({
     if (!showUpdateDialog) return;
     updateStep.mutate({
       stepId: showUpdateDialog,
-      status: updateStatus as any || undefined,
+      status: (updateStatus as StepStatus) || undefined,
       actualCost: updateCost ? parseFloat(updateCost) : undefined,
       notes: updateNotes || undefined,
       qcPassed: updateQcPassed === "" ? undefined : updateQcPassed === "true",
@@ -203,9 +208,9 @@ export function OrderProductionSection({
               ยังไม่มีใบผลิต
             </p>
           ) : (
-            productions.data!.map((prod: any) => {
+            productions.data!.map((prod) => {
               const completedSteps = prod.steps.filter(
-                (s: any) => s.status === "COMPLETED"
+                (s) => s.status === "COMPLETED"
               ).length;
               const totalSteps = prod.steps.length;
               const progressPct =
@@ -233,7 +238,7 @@ export function OrderProductionSection({
 
                   {/* Steps */}
                   <div className="space-y-2">
-                    {prod.steps.map((step: any) => (
+                    {prod.steps.map((step) => (
                       <div
                         key={step.id}
                         className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 p-3 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50"

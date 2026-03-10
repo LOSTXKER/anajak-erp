@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { byIdInput } from "@/server/schemas";
+import { createAuditLog } from "@/server/helpers";
 
 export const deliveryRouter = router({
   getByOrderId: protectedProcedure
@@ -31,14 +33,12 @@ export const deliveryRouter = router({
     .mutation(async ({ ctx, input }) => {
       const delivery = await ctx.prisma.delivery.create({ data: input });
 
-      await ctx.prisma.auditLog.create({
-        data: {
-          userId: ctx.userId,
-          action: "CREATE",
-          entityType: "DELIVERY",
-          entityId: delivery.id,
-          newValue: JSON.parse(JSON.stringify({ orderId: input.orderId, shippingMethod: input.shippingMethod })),
-        },
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "CREATE",
+        entityType: "DELIVERY",
+        entityId: delivery.id,
+        newValue: { orderId: input.orderId, shippingMethod: input.shippingMethod },
       });
 
       return delivery;
@@ -46,8 +46,7 @@ export const deliveryRouter = router({
 
   update: protectedProcedure
     .input(
-      z.object({
-        id: z.string(),
+      byIdInput.extend({
         recipientName: z.string().optional(),
         phone: z.string().optional(),
         address: z.string().optional(),
@@ -69,8 +68,7 @@ export const deliveryRouter = router({
 
   updateStatus: protectedProcedure
     .input(
-      z.object({
-        id: z.string(),
+      byIdInput.extend({
         status: z.enum(["PENDING", "PREPARING", "SHIPPED", "DELIVERED", "RETURNED"]),
         trackingNumber: z.string().optional(),
       })
@@ -103,7 +101,7 @@ export const deliveryRouter = router({
     }),
 
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.delivery.delete({ where: { id: input.id } });
     }),

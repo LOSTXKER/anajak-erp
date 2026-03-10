@@ -4,6 +4,7 @@ import { generateQuotationNumber, generateOrderNumber } from "@/lib/utils";
 import { getInitialStatus, getCustomerStatus } from "@/lib/order-status";
 import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
+import { badRequest } from "@/server/errors";
 
 const quotationItemSchema = z.object({
   name: z.string(),
@@ -188,64 +189,62 @@ export const quotationRouter = router({
       });
 
       if (quotation.status !== "ACCEPTED") {
-        throw new Error("ใบเสนอราคาต้องได้รับการอนุมัติก่อนแปลงเป็นออเดอร์");
+        badRequest("ใบเสนอราคาต้องได้รับการอนุมัติก่อนแปลงเป็นออเดอร์");
       }
 
-      const initialStatus = getInitialStatus("CUSTOM");
-      const customerStatus = getCustomerStatus(initialStatus);
+      const customerStatus = getCustomerStatus("CONFIRMED");
 
-      // Create order from quotation
-      const orderNumber = await generateOrderNumber(ctx.prisma);
-      const order = await ctx.prisma.order.create({
-        data: {
-          orderNumber,
-          orderType: "CUSTOM",
-          channel: "LINE",
-          customerId: quotation.customerId,
-          createdById: ctx.userId,
-          customerStatus,
-          internalStatus: "CONFIRMED", // skip INQUIRY/QUOTATION since we already have the quotation
-          title: quotation.title,
-          description: quotation.description,
-          discount: quotation.discount,
-          subtotalItems: quotation.subtotal,
-          totalAmount: quotation.totalAmount,
-          items: {
-            create: quotation.items.map((item, index) => ({
-              sortOrder: index,
-              description: item.name,
-              totalQuantity: item.quantity,
-              subtotal: item.totalPrice,
-              products: {
-                create: [{
-                  sortOrder: 0,
-                  productType: "OTHER",
-                  description: item.name + (item.description ? ` - ${item.description}` : ""),
-                  baseUnitPrice: item.unitPrice,
-                  totalQuantity: item.quantity,
-                  subtotal: item.totalPrice,
-                  variants: {
-                    create: [{ size: "FREE", quantity: item.quantity }],
-                  },
-                }],
-              },
-            })),
+      return ctx.prisma.$transaction(async (tx) => {
+        const orderNumber = await generateOrderNumber(tx);
+        const order = await tx.order.create({
+          data: {
+            orderNumber,
+            orderType: "CUSTOM",
+            channel: "LINE",
+            customerId: quotation.customerId,
+            createdById: ctx.userId,
+            customerStatus,
+            internalStatus: "CONFIRMED",
+            title: quotation.title,
+            description: quotation.description,
+            discount: quotation.discount,
+            subtotalItems: quotation.subtotal,
+            totalAmount: quotation.totalAmount,
+            items: {
+              create: quotation.items.map((item, index) => ({
+                sortOrder: index,
+                description: item.name,
+                totalQuantity: item.quantity,
+                subtotal: item.totalPrice,
+                products: {
+                  create: [{
+                    sortOrder: 0,
+                    productType: "OTHER",
+                    description: item.name + (item.description ? ` - ${item.description}` : ""),
+                    baseUnitPrice: item.unitPrice,
+                    totalQuantity: item.quantity,
+                    subtotal: item.totalPrice,
+                    variants: {
+                      create: [{ size: "FREE", quantity: item.quantity }],
+                    },
+                  }],
+                },
+              })),
+            },
           },
-        },
-      });
+        });
 
-      // Link quotation to order
-      await ctx.prisma.quotation.update({
-        where: { id: input.id },
-        data: { orderId: order.id, status: "CONVERTED" },
-      });
+        await tx.quotation.update({
+          where: { id: input.id },
+          data: { orderId: order.id, status: "CONVERTED" },
+        });
 
-      // Update customer stats
-      await ctx.prisma.customer.update({
-        where: { id: quotation.customerId },
-        data: { totalOrders: { increment: 1 }, lastOrderAt: new Date() },
-      });
+        await tx.customer.update({
+          where: { id: quotation.customerId },
+          data: { totalOrders: { increment: 1 }, lastOrderAt: new Date() },
+        });
 
-      return order;
+        return order;
+      });
     }),
 });

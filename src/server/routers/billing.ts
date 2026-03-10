@@ -3,6 +3,7 @@ import { router, protectedProcedure, requireRole } from "../trpc";
 import { generateInvoiceNumber } from "@/lib/utils";
 import { createAuditLog } from "@/server/helpers";
 import { getStartOfMonth } from "@/lib/date-utils";
+import { notFound, badRequest } from "@/server/errors";
 
 const ownerOrAccountant = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
 
@@ -80,10 +81,10 @@ export const billingRouter = router({
         select: { id: true, customerId: true, totalAmount: true },
       });
       if (!order) {
-        throw new Error("ไม่พบออเดอร์ที่ระบุ");
+        notFound("ออเดอร์", input.orderId);
       }
       if (order.customerId !== input.customerId) {
-        throw new Error("ลูกค้าไม่ตรงกับออเดอร์");
+        badRequest("ลูกค้าไม่ตรงกับออเดอร์");
       }
 
       const totalAmount = input.amount - input.discount + input.tax;
@@ -133,14 +134,14 @@ export const billingRouter = router({
       });
 
       if (invoice.isVoided) {
-        throw new Error("ไม่สามารถบันทึกการชำระเงินสำหรับใบแจ้งหนี้ที่ถูกยกเลิกแล้ว");
+        badRequest("ไม่สามารถบันทึกการชำระเงินสำหรับใบแจ้งหนี้ที่ถูกยกเลิกแล้ว");
       }
 
       const previouslyPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
       const remaining = invoice.totalAmount - previouslyPaid;
 
       if (input.amount > remaining + 0.01) {
-        throw new Error(`จำนวนเงินเกินยอดคงเหลือ (เหลือ ${remaining.toFixed(2)} บาท)`);
+        badRequest(`จำนวนเงินเกินยอดคงเหลือ (เหลือ ${remaining.toFixed(2)} บาท)`);
       }
 
       const payment = await ctx.prisma.payment.create({
@@ -247,7 +248,7 @@ export const billingRouter = router({
       const refundable = totalPaid - totalRefunded;
 
       if (input.amount > refundable + 0.01) {
-        throw new Error(`จำนวนเงินคืนเกินยอดที่สามารถคืนได้ (คืนได้สูงสุด ${refundable.toFixed(2)} บาท)`);
+        badRequest(`จำนวนเงินคืนเกินยอดที่สามารถคืนได้ (คืนได้สูงสุด ${refundable.toFixed(2)} บาท)`);
       }
 
       const payment = await ctx.prisma.payment.create({

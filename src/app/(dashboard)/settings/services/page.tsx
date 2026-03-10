@@ -9,8 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
-import { Plus, Trash2, Pencil, X, Check, Settings, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Plus, Trash2, Pencil, X, Check, Settings } from "lucide-react";
+import { SettingsPageHeader } from "@/components/settings-page-header";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Switch } from "@/components/ui/switch";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PRICING_TYPE_LABELS } from "@/types/order-form";
 
 // ============================================================
 // TYPES & CONSTANTS
@@ -25,12 +29,9 @@ const tabs: { key: TabKey; label: string }[] = [
 ];
 
 const pricingTypeConfig: Record<string, { label: string; variant: "default" | "secondary" }> = {
-  PER_PIECE: { label: "ต่อชิ้น", variant: "default" },
-  PER_ORDER: { label: "ต่อออเดอร์", variant: "secondary" },
+  PER_PIECE: { label: PRICING_TYPE_LABELS.PER_PIECE, variant: "default" },
+  PER_ORDER: { label: PRICING_TYPE_LABELS.PER_ORDER, variant: "secondary" },
 };
-
-const selectClass =
-  "flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
 type NewItemForm = {
   type: string;
@@ -143,21 +144,7 @@ export default function ServicesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/settings">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            จัดการบริการ
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            ตั้งค่ารายการบริการเสริม, การสกรีน, และค่าบริการ
-          </p>
-        </div>
-      </div>
+      <SettingsPageHeader title="จัดการบริการ" description="ตั้งค่ารายการบริการเสริม, การสกรีน, และค่าบริการ" />
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
@@ -259,7 +246,7 @@ export default function ServicesPage() {
                   <label className="mb-1 block text-xs font-medium text-slate-500">
                     คิดราคา
                   </label>
-                  <select
+                  <NativeSelect
                     value={formData.pricingType}
                     onChange={(e) =>
                       setFormData({
@@ -267,11 +254,10 @@ export default function ServicesPage() {
                         pricingType: e.target.value as "PER_PIECE" | "PER_ORDER",
                       })
                     }
-                    className={selectClass}
                   >
-                    <option value="PER_PIECE">ต่อชิ้น</option>
-                    <option value="PER_ORDER">ต่อออเดอร์</option>
-                  </select>
+                    <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
+                    <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
+                  </NativeSelect>
                 </div>
                 <div className="flex items-end gap-2">
                   <Button
@@ -303,10 +289,7 @@ export default function ServicesPage() {
               ))}
             </div>
           ) : !items || items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Settings className="h-10 w-10 text-slate-300 dark:text-slate-600" />
-              <p className="mt-3 text-sm text-slate-400">ยังไม่มีรายการ</p>
-            </div>
+            <EmptyState icon={Settings} title="ยังไม่มีรายการ" />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -392,7 +375,8 @@ export default function ServicesPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <select
+                            <NativeSelect
+                              className="h-7 text-xs"
                               value={editingItem.pricingType}
                               onChange={(e) =>
                                 setEditingItem({
@@ -402,11 +386,10 @@ export default function ServicesPage() {
                                     | "PER_ORDER",
                                 })
                               }
-                              className={`${selectClass} h-7 text-xs`}
                             >
-                              <option value="PER_PIECE">ต่อชิ้น</option>
-                              <option value="PER_ORDER">ต่อออเดอร์</option>
-                            </select>
+                              <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
+                              <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
+                            </NativeSelect>
                           ) : (
                             <Badge variant={ptConfig.variant}>
                               {ptConfig.label}
@@ -414,25 +397,10 @@ export default function ServicesPage() {
                           )}
                         </td>
                         <td className="px-3 py-2.5 text-center">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleToggleActive(item.id, item.isActive)
-                            }
-                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors ${
-                              item.isActive
-                                ? "bg-blue-600"
-                                : "bg-slate-300 dark:bg-slate-600"
-                            }`}
-                          >
-                            <span
-                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                                item.isActive
-                                  ? "translate-x-4"
-                                  : "translate-x-0.5"
-                              } mt-0.5`}
-                            />
-                          </button>
+                          <Switch
+                            checked={item.isActive}
+                            onCheckedChange={() => handleToggleActive(item.id, item.isActive)}
+                          />
                         </td>
                         <td className="px-3 py-2.5 text-right">
                           {isEditing ? (

@@ -2,15 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 import type { OrderFeeForm } from "@/types/order-form";
 
 const labelClass =
   "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
-
-const selectClass =
-  "flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
 interface FeeCatalogItem {
   id: string;
@@ -65,8 +63,7 @@ export function OrderFeeSection({
               {feeCatalog && feeCatalog.length > 0 && (
                 <div>
                   {fIdx === 0 && <label className={labelClass}>เลือกจากแค็ตตาล็อก</label>}
-                  <select
-                    className={selectClass}
+                  <NativeSelect
                     value=""
                     onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
                   >
@@ -76,7 +73,7 @@ export function OrderFeeSection({
                         {c.name} — ฿{c.defaultPrice.toLocaleString()}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               )}
               <div className="grid grid-cols-[1fr_1fr_120px_32px] items-end gap-2">

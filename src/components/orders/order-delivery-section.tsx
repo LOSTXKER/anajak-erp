@@ -35,6 +35,9 @@ import {
   Hash,
   Trash2,
 } from "lucide-react";
+import type { RouterOutput } from "@/lib/trpc";
+
+type Delivery = RouterOutput["delivery"]["getByOrderId"][number];
 
 interface OrderDeliverySectionProps {
   orderId: string;
@@ -137,12 +140,12 @@ export function OrderDeliverySection({
     if (!showStatusDialog || !newStatus) return;
     updateDeliveryStatus.mutate({
       id: showStatusDialog,
-      status: newStatus as any,
+      status: newStatus as "PENDING" | "PREPARING" | "SHIPPED" | "DELIVERED" | "RETURNED",
       trackingNumber: statusTrackingNumber || undefined,
     });
   }
 
-  function openStatusDialog(delivery: any) {
+  function openStatusDialog(delivery: Delivery) {
     setShowStatusDialog(delivery.id);
     setNewStatus(delivery.status);
     setStatusTrackingNumber(delivery.trackingNumber || "");
@@ -194,7 +197,7 @@ export function OrderDeliverySection({
             </p>
           ) : (
             <div className="space-y-3">
-              {deliveries.data!.map((delivery: any) => (
+              {deliveries.data!.map((delivery) => (
                 <div
                   key={delivery.id}
                   className="rounded-lg border border-slate-200 p-4 dark:border-slate-700"

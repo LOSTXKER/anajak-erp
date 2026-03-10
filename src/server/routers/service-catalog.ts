@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { byIdInput } from "@/server/schemas";
 
 export const serviceCatalogRouter = router({
   list: protectedProcedure
@@ -29,7 +30,7 @@ export const serviceCatalogRouter = router({
     }),
 
   getById: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .query(async ({ ctx, input }) => {
       return ctx.prisma.serviceCatalog.findUniqueOrThrow({
         where: { id: input.id },
@@ -70,7 +71,7 @@ export const serviceCatalogRouter = router({
     }),
 
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.serviceCatalog.delete({ where: { id: input.id } });
     }),

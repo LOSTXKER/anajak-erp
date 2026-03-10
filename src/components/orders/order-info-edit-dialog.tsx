@@ -27,10 +27,33 @@ import {
   PAYMENT_TERMS_LABELS,
 } from "@/lib/order-status";
 
+interface OrderInfoEditOrder {
+  id: string;
+  title: string;
+  description: string | null;
+  deadline: string | Date | null;
+  priority: string;
+  notes: string | null;
+  taxRate: number;
+  discount: number;
+  platformFee: number | null;
+  paymentTerms: string | null;
+  poNumber: string | null;
+  channel: string;
+  shippingRecipientName: string | null;
+  shippingPhone: string | null;
+  shippingAddress: string | null;
+  shippingSubDistrict: string | null;
+  shippingDistrict: string | null;
+  shippingProvince: string | null;
+  shippingPostalCode: string | null;
+  externalOrderId: string | null;
+}
+
 interface OrderInfoEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  order: any;
+  order: OrderInfoEditOrder;
 }
 
 interface FormData {

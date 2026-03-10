@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
+import { StatCard } from "@/components/ui/stat-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
-import { Search, DollarSign, AlertCircle, TrendingUp, CreditCard } from "lucide-react";
+import { DollarSign, AlertCircle, TrendingUp, CreditCard } from "lucide-react";
 
 const paymentStatusConfig: Record<string, { label: string; variant: "secondary" | "default" | "success" | "warning" | "destructive" }> = {
   UNPAID: { label: "ยังไม่จ่าย", variant: "warning" },
@@ -30,7 +32,7 @@ const invoiceTypeLabels: Record<string, string> = {
 export default function BillingPage() {
   const [search, setSearch] = useState("");
   const { data: stats } = trpc.billing.stats.useQuery();
-  const { data, isLoading } = trpc.billing.list.useQuery({
+  const { data, isLoading, isError, refetch } = trpc.billing.list.useQuery({
     search: search || undefined,
     limit: 50,
   });
@@ -42,6 +44,8 @@ export default function BillingPage() {
     { title: "รับชำระเดือนนี้", value: formatCurrency(stats?.paidThisMonth ?? 0), icon: CreditCard, color: "text-blue-600 bg-blue-50 dark:bg-blue-950" },
   ];
 
+  if (isError) return <QueryError onRetry={() => refetch()} />;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -52,25 +56,12 @@ export default function BillingPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {statCards.map((stat) => (
-          <Card key={stat.title}>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className={`rounded-lg p-2 ${stat.color}`}>
-                <stat.icon className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">{stat.title}</p>
-                <p className="text-lg font-bold text-slate-900 dark:text-white tabular-nums">{stat.value}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} color={stat.color} />
         ))}
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <Input placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-      </div>
+      <SearchInput placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..." value={search} onChange={(e) => setSearch(e.target.value)} />
 
       {/* Invoice List */}
       <Card>

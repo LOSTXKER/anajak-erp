@@ -6,6 +6,7 @@ import { calculateTotalQuantity } from "@/lib/pricing";
 import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
+import { badRequest } from "@/server/errors";
 
 // ============================================================
 // SCHEMAS
@@ -79,6 +80,112 @@ const orderFeeSchema = z.object({
   amount: z.number().min(0),
   notes: z.string().optional(),
 });
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+type ProductWithCalc = z.infer<typeof orderItemProductSchema> & {
+  sortOrder: number;
+  totalQuantity: number;
+  subtotal: number;
+};
+
+type ItemWithCalc = Omit<z.infer<typeof orderItemSchema>, "products"> & {
+  sortOrder: number;
+  totalQuantity: number;
+  subtotal: number;
+  products: ProductWithCalc[];
+};
+
+function calculateItemsWithPricing(items: z.infer<typeof orderItemSchema>[]) {
+  return items.map((item, index) => {
+    const productsCalc = item.products.map((p, pIdx) => {
+      const totalQuantity = calculateTotalQuantity(p.variants);
+      const netPrice = p.baseUnitPrice - (p.discount || 0);
+      const subtotal = totalQuantity * Math.max(0, netPrice);
+      return { ...p, totalQuantity, subtotal, sortOrder: pIdx };
+    });
+    const itemTotalQty = productsCalc.reduce((s, p) => s + p.totalQuantity, 0);
+    const productsCost = productsCalc.reduce((s, p) => s + p.subtotal, 0);
+    const printsCost = itemTotalQty * item.prints.reduce((s, p) => s + p.unitPrice, 0);
+    const addonsCost = item.addons.reduce((s, a) => {
+      if (a.pricingType === "PER_PIECE") return s + (a.quantity ?? itemTotalQty) * a.unitPrice;
+      return s + a.unitPrice;
+    }, 0);
+    const subtotal = productsCost + printsCost + addonsCost;
+    return { ...item, products: productsCalc, totalQuantity: itemTotalQty, subtotal, sortOrder: index };
+  });
+}
+
+function buildItemCreateData(item: ItemWithCalc) {
+  return {
+    sortOrder: item.sortOrder,
+    description: item.description || "",
+    totalQuantity: item.totalQuantity,
+    subtotal: item.subtotal,
+    notes: item.notes,
+    products: {
+      create: item.products.map((p) => ({
+        sortOrder: p.sortOrder,
+        productId: p.productId || undefined,
+        productType: p.productType,
+        description: p.description,
+        material: p.material,
+        baseUnitPrice: p.baseUnitPrice,
+        discount: p.discount || 0,
+        totalQuantity: p.totalQuantity,
+        subtotal: p.subtotal,
+        itemSource: p.itemSource,
+        packagingOptionId: p.packagingOptionId || undefined,
+        fabricType: p.fabricType,
+        fabricWeight: p.fabricWeight,
+        fabricColor: p.fabricColor,
+        processingType: p.processingType,
+        patternId: p.patternId,
+        collarType: p.collarType,
+        sleeveType: p.sleeveType,
+        bodyFit: p.bodyFit,
+        patternFileUrl: p.patternFileUrl,
+        patternNote: p.patternNote,
+        garmentCondition: p.garmentCondition,
+        receivedInspected: p.receivedInspected ?? false,
+        receiveNote: p.receiveNote,
+        variants: {
+          create: p.variants.map((v) => ({
+            size: v.size,
+            color: v.color,
+            quantity: v.quantity,
+          })),
+        },
+      })),
+    },
+    prints: {
+      create: item.prints.map((pr) => ({
+        position: pr.position,
+        printType: pr.printType,
+        colorCount: pr.colorCount,
+        printSize: pr.printSize,
+        width: pr.width,
+        height: pr.height,
+        designNote: pr.designNote,
+        designImageUrl: pr.designImageUrl,
+        unitPrice: pr.unitPrice,
+      })),
+    },
+    addons: {
+      create: item.addons.map((a) => ({
+        addonType: a.addonType,
+        name: a.name,
+        description: a.description,
+        pricingType: a.pricingType,
+        unitPrice: a.unitPrice,
+        quantity: a.quantity,
+        notes: a.notes,
+      })),
+    },
+  };
+}
 
 // ============================================================
 // ROUTER
@@ -277,27 +384,10 @@ export const orderRouter = router({
 
       // For non-draft, non-inquiry orders: require at least 1 item
       if (!input.isDraft && !input.isQuickInquiry && items.length === 0) {
-        throw new Error("กรุณาเพิ่มรายการอย่างน้อย 1 รายการ");
+        badRequest("กรุณาเพิ่มรายการอย่างน้อย 1 รายการ");
       }
 
-      // Calculate pricing for each item (may be empty for inquiry)
-      const itemsWithCalc = items.map((item, index) => {
-        const productsCalc = item.products.map((p, pIdx) => {
-          const totalQuantity = calculateTotalQuantity(p.variants);
-          const netPrice = p.baseUnitPrice - (p.discount || 0);
-          const subtotal = totalQuantity * Math.max(0, netPrice);
-          return { ...p, totalQuantity, subtotal, sortOrder: pIdx };
-        });
-        const itemTotalQty = productsCalc.reduce((s, p) => s + p.totalQuantity, 0);
-        const productsCost = productsCalc.reduce((s, p) => s + p.subtotal, 0);
-        const printsCost = itemTotalQty * item.prints.reduce((s, p) => s + p.unitPrice, 0);
-        const addonsCost = item.addons.reduce((s, a) => {
-          if (a.pricingType === "PER_PIECE") return s + (a.quantity ?? itemTotalQty) * a.unitPrice;
-          return s + a.unitPrice;
-        }, 0);
-        const subtotal = productsCost + printsCost + addonsCost;
-        return { ...item, products: productsCalc, totalQuantity: itemTotalQty, subtotal, sortOrder: index };
-      });
+      const itemsWithCalc = calculateItemsWithPricing(items);
 
       const subtotalItems = itemsWithCalc.reduce((sum, i) => sum + i.subtotal, 0);
       const subtotalFees = fees.reduce((sum, f) => sum + f.amount, 0);
@@ -329,7 +419,7 @@ export const orderRouter = router({
             }
           }
           if (stockErrors.length > 0) {
-            throw new Error(`สินค้าในสต็อกไม่เพียงพอ:\n${stockErrors.join("\n")}`);
+            badRequest(`สินค้าในสต็อกไม่เพียงพอ:\n${stockErrors.join("\n")}`);
           }
         }
       }
@@ -390,72 +480,7 @@ export const orderRouter = router({
                   shippingPostalCode: shippingAddress.postalCode,
                 }),
                 items: {
-                  create: itemsWithCalc.map((item) => ({
-                    sortOrder: item.sortOrder,
-                    description: item.description || "",
-                    totalQuantity: item.totalQuantity,
-                    subtotal: item.subtotal,
-                    notes: item.notes,
-                    products: {
-                      create: item.products.map((p) => ({
-                        sortOrder: p.sortOrder,
-                        productId: p.productId || undefined,
-                        productType: p.productType,
-                        description: p.description,
-                        material: p.material,
-                        baseUnitPrice: p.baseUnitPrice,
-                        discount: p.discount || 0,
-                        totalQuantity: p.totalQuantity,
-                        subtotal: p.subtotal,
-                        itemSource: p.itemSource,
-                        packagingOptionId: p.packagingOptionId || undefined,
-                        fabricType: p.fabricType,
-                        fabricWeight: p.fabricWeight,
-                        fabricColor: p.fabricColor,
-                        processingType: p.processingType,
-                        patternId: p.patternId,
-                        collarType: p.collarType,
-                        sleeveType: p.sleeveType,
-                        bodyFit: p.bodyFit,
-                        patternFileUrl: p.patternFileUrl,
-                        patternNote: p.patternNote,
-                        garmentCondition: p.garmentCondition,
-                        receivedInspected: p.receivedInspected ?? false,
-                        receiveNote: p.receiveNote,
-                        variants: {
-                          create: p.variants.map((v) => ({
-                            size: v.size,
-                            color: v.color,
-                            quantity: v.quantity,
-                          })),
-                        },
-                      })),
-                    },
-                    prints: {
-                      create: item.prints.map((pr) => ({
-                        position: pr.position,
-                        printType: pr.printType,
-                        colorCount: pr.colorCount,
-                        printSize: pr.printSize,
-                        width: pr.width,
-                        height: pr.height,
-                        designNote: pr.designNote,
-                        designImageUrl: pr.designImageUrl,
-                        unitPrice: pr.unitPrice,
-                      })),
-                    },
-                    addons: {
-                      create: item.addons.map((a) => ({
-                        addonType: a.addonType,
-                        name: a.name,
-                        description: a.description,
-                        pricingType: a.pricingType,
-                        unitPrice: a.unitPrice,
-                        quantity: a.quantity,
-                        notes: a.notes,
-                      })),
-                    },
-                  })),
+                  create: itemsWithCalc.map(buildItemCreateData),
                 },
                 fees: {
                   create: fees.map((f) => ({
@@ -548,7 +573,7 @@ export const orderRouter = router({
         internalStatus: z.enum([
           "DRAFT", "INQUIRY", "QUOTATION", "CONFIRMED", "DESIGN_PENDING", "DESIGNING",
           "AWAITING_APPROVAL", "DESIGN_APPROVED", "PRODUCTION_QUEUE", "PRODUCING",
-          "QUALITY_CHECK", "PACKING", "READY_TO_SHIP", "SHIPPED", "COMPLETED", "CANCELLED",
+          "QUALITY_CHECK", "PACKING", "READY_TO_SHIP", "SHIPPED", "COMPLETED", "CANCELLED", "ON_HOLD",
         ]),
         reason: z.string().optional(),
       })
@@ -560,7 +585,7 @@ export const orderRouter = router({
 
       // Validate transition
       if (!isValidTransition(old.orderType, old.internalStatus, input.internalStatus)) {
-        throw new Error(
+        badRequest(
           `ไม่สามารถเปลี่ยนสถานะจาก ${old.internalStatus} เป็น ${input.internalStatus} ได้`
         );
       }
@@ -693,27 +718,10 @@ export const orderRouter = router({
         "SHIPPED", "COMPLETED", "CANCELLED",
       ];
       if (blockedStatuses.includes(order.internalStatus)) {
-        throw new Error("ไม่สามารถแก้ไขรายการได้เมื่อเริ่มผลิตแล้ว");
+        badRequest("ไม่สามารถแก้ไขรายการได้เมื่อเริ่มผลิตแล้ว");
       }
 
-      // Calculate pricing
-      const itemsWithCalc = input.items.map((item, index) => {
-        const productsCalc = item.products.map((p, pIdx) => {
-          const totalQuantity = calculateTotalQuantity(p.variants);
-          const netPrice = p.baseUnitPrice - (p.discount || 0);
-          const subtotal = totalQuantity * Math.max(0, netPrice);
-          return { ...p, totalQuantity, subtotal, sortOrder: pIdx };
-        });
-        const itemTotalQty = productsCalc.reduce((s, p) => s + p.totalQuantity, 0);
-        const productsCost = productsCalc.reduce((s, p) => s + p.subtotal, 0);
-        const printsCost = itemTotalQty * item.prints.reduce((s, p) => s + p.unitPrice, 0);
-        const addonsCost = item.addons.reduce((s, a) => {
-          if (a.pricingType === "PER_PIECE") return s + (a.quantity ?? itemTotalQty) * a.unitPrice;
-          return s + a.unitPrice;
-        }, 0);
-        const subtotal = productsCost + printsCost + addonsCost;
-        return { ...item, products: productsCalc, totalQuantity: itemTotalQty, subtotal, sortOrder: index };
-      });
+      const itemsWithCalc = calculateItemsWithPricing(input.items);
 
       const subtotalItems = itemsWithCalc.reduce((sum, i) => sum + i.subtotal, 0);
       const subtotalFees = order.fees.reduce((sum, f) => sum + f.amount, 0);
@@ -726,76 +734,9 @@ export const orderRouter = router({
         // Delete old items (cascades to variants, prints, addons)
         await tx.orderItem.deleteMany({ where: { orderId: input.id } });
 
-        // Create new items
         for (const item of itemsWithCalc) {
           await tx.orderItem.create({
-            data: {
-              orderId: input.id,
-              sortOrder: item.sortOrder,
-              description: item.description || "",
-              totalQuantity: item.totalQuantity,
-              subtotal: item.subtotal,
-              notes: item.notes,
-              products: {
-                create: item.products.map((p) => ({
-                  sortOrder: p.sortOrder,
-                  productId: p.productId || undefined,
-                  productType: p.productType,
-                  description: p.description,
-                  material: p.material,
-                  baseUnitPrice: p.baseUnitPrice,
-                  discount: p.discount || 0,
-                  totalQuantity: p.totalQuantity,
-                  subtotal: p.subtotal,
-                  itemSource: p.itemSource,
-                  packagingOptionId: p.packagingOptionId || undefined,
-                  fabricType: p.fabricType,
-                  fabricWeight: p.fabricWeight,
-                  fabricColor: p.fabricColor,
-                  processingType: p.processingType,
-                  patternId: p.patternId,
-                  collarType: p.collarType,
-                  sleeveType: p.sleeveType,
-                  bodyFit: p.bodyFit,
-                  patternFileUrl: p.patternFileUrl,
-                  patternNote: p.patternNote,
-                  garmentCondition: p.garmentCondition,
-                  receivedInspected: p.receivedInspected ?? false,
-                  receiveNote: p.receiveNote,
-                  variants: {
-                    create: p.variants.map((v) => ({
-                      size: v.size,
-                      color: v.color,
-                      quantity: v.quantity,
-                    })),
-                  },
-                })),
-              },
-              prints: {
-                create: item.prints.map((pr) => ({
-                  position: pr.position,
-                  printType: pr.printType,
-                  colorCount: pr.colorCount,
-                  printSize: pr.printSize,
-                  width: pr.width,
-                  height: pr.height,
-                  designNote: pr.designNote,
-                  designImageUrl: pr.designImageUrl,
-                  unitPrice: pr.unitPrice,
-                })),
-              },
-              addons: {
-                create: item.addons.map((a) => ({
-                  addonType: a.addonType,
-                  name: a.name,
-                  description: a.description,
-                  pricingType: a.pricingType,
-                  unitPrice: a.unitPrice,
-                  quantity: a.quantity,
-                  notes: a.notes,
-                })),
-              },
-            },
+            data: { orderId: input.id, ...buildItemCreateData(item) },
           });
         }
 
@@ -939,7 +880,7 @@ export const orderRouter = router({
     }),
 
   duplicate: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       const original = await ctx.prisma.order.findUniqueOrThrow({
         where: { id: input.id },
@@ -981,72 +922,31 @@ export const orderRouter = router({
                 taxAmount: original.taxAmount,
                 totalAmount: original.totalAmount,
                 items: {
-                  create: original.items.map((item, index) => ({
-                    sortOrder: index,
-                    description: item.description,
-                    totalQuantity: item.totalQuantity,
-                    subtotal: item.subtotal,
-                    notes: item.notes,
-                    products: {
-                      create: item.products.map((p, pIdx) => ({
+                  create: original.items.map((item, index) => {
+                    const data = buildItemCreateData({
+                      ...item,
+                      sortOrder: index,
+                      description: item.description ?? undefined,
+                      notes: item.notes ?? undefined,
+                      products: item.products.map((p, pIdx) => ({
+                        ...p,
                         sortOrder: pIdx,
                         productId: p.productId ?? undefined,
-                        productType: p.productType,
-                        description: p.description,
-                        material: p.material,
-                        baseUnitPrice: p.baseUnitPrice,
-                        discount: p.discount,
-                        totalQuantity: p.totalQuantity,
-                        subtotal: p.subtotal,
-                        itemSource: p.itemSource,
                         packagingOptionId: p.packagingOptionId ?? undefined,
-                        fabricType: p.fabricType,
-                        fabricWeight: p.fabricWeight,
-                        fabricColor: p.fabricColor,
-                        processingType: p.processingType,
                         patternId: p.patternId ?? undefined,
-                        collarType: p.collarType,
-                        sleeveType: p.sleeveType,
-                        bodyFit: p.bodyFit,
-                        patternFileUrl: p.patternFileUrl,
-                        patternNote: p.patternNote,
-                        garmentCondition: p.garmentCondition,
-                        receivedInspected: false,
-                        receiveNote: null,
-                        variants: {
-                          create: p.variants.map((v) => ({
-                            size: v.size,
-                            color: v.color,
-                            quantity: v.quantity,
-                          })),
-                        },
+                        discount: p.discount || 0,
                       })),
-                    },
-                    prints: {
-                      create: item.prints.map((pr) => ({
-                        position: pr.position,
-                        printType: pr.printType,
-                        colorCount: pr.colorCount,
-                        printSize: pr.printSize,
-                        width: pr.width,
-                        height: pr.height,
-                        designNote: pr.designNote,
-                        designImageUrl: pr.designImageUrl,
-                        unitPrice: pr.unitPrice,
-                      })),
-                    },
-                    addons: {
-                      create: item.addons.map((a) => ({
-                        addonType: a.addonType,
-                        name: a.name,
-                        description: a.description,
-                        pricingType: a.pricingType,
-                        unitPrice: a.unitPrice,
-                        quantity: a.quantity,
-                        notes: a.notes,
-                      })),
-                    },
-                  })),
+                      prints: item.prints,
+                      addons: item.addons,
+                    } as ItemWithCalc);
+                    // Reset receive tracking for duplicated orders
+                    data.products.create = data.products.create.map((p) => ({
+                      ...p,
+                      receivedInspected: false,
+                      receiveNote: undefined,
+                    }));
+                    return data;
+                  }),
                 },
                 fees: {
                   create: original.fees.map((f) => ({

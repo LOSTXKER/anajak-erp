@@ -15,44 +15,14 @@ import {
   X,
   Check,
   Scissors,
-  ArrowLeft,
   Upload,
 } from "lucide-react";
-import Link from "next/link";
-import { PRODUCT_TYPES } from "@/types/order-form";
+import { PRODUCT_TYPES, COLLAR_TYPES, SLEEVE_TYPES, BODY_FITS } from "@/types/order-form";
+import { SettingsPageHeader } from "@/components/settings-page-header";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Switch } from "@/components/ui/switch";
+import { EmptyState } from "@/components/ui/empty-state";
 import { uploadFile } from "@/lib/supabase";
-
-const COLLAR_TYPES: Record<string, string> = {
-  CREW_NECK: "คอกลม",
-  V_NECK: "คอวี",
-  POLO: "คอโปโล",
-  MANDARIN: "คอจีน",
-  DRESS_SHIRT: "คอเชิ้ต",
-  CREW_SPLICED: "คอกลมตัดต่อ",
-  HENLEY: "คอเฮนลี่",
-  HOOD: "ฮู้ด",
-  OTHER: "อื่นๆ",
-};
-
-const SLEEVE_TYPES: Record<string, string> = {
-  SHORT: "แขนสั้น",
-  LONG: "แขนยาว",
-  SLEEVELESS: "แขนกุด",
-  THREE_QUARTER: "แขน 3/4",
-  CUFF: "แขนจั๊ม",
-  RAGLAN: "แขนราคลัน",
-  OTHER: "อื่นๆ",
-};
-
-const BODY_FITS: Record<string, string> = {
-  SLIM: "Slim Fit",
-  REGULAR: "Regular",
-  RELAXED: "Relaxed",
-  OVERSIZE: "Oversize",
-};
-
-const selectClass =
-  "flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
 const labelClass = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
 
@@ -85,7 +55,8 @@ export default function PatternsPage() {
 
   const utils = trpc.useUtils();
 
-  const { data: patterns, isLoading } = trpc.pattern.list.useQuery({ isActive: true });
+  const { data, isLoading } = trpc.pattern.list.useQuery({ isActive: true });
+  const patterns = data?.patterns;
 
   const createPattern = trpc.pattern.create.useMutation({
     onSuccess: () => {
@@ -166,21 +137,7 @@ export default function PatternsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/settings">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            จัดการแพทเทิร์น
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ
-          </p>
-        </div>
-      </div>
+      <SettingsPageHeader title="จัดการแพทเทิร์น" description="แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ" />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -221,57 +178,53 @@ export default function PatternsPage() {
                 </div>
                 <div>
                   <label className={labelClass}>ประเภทสินค้า</label>
-                  <select
+                  <NativeSelect
                     value={formData.productType}
                     onChange={(e) => setFormData({ ...formData, productType: e.target.value })}
-                    className={selectClass}
                   >
                     <option value="">-- ทุกประเภท --</option>
                     {Object.entries(PRODUCT_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className={labelClass}>ทรงคอ</label>
-                  <select
+                  <NativeSelect
                     value={formData.collarType}
                     onChange={(e) => setFormData({ ...formData, collarType: e.target.value })}
-                    className={selectClass}
                   >
                     <option value="">-- เลือก --</option>
                     {Object.entries(COLLAR_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className={labelClass}>แขน</label>
-                  <select
+                  <NativeSelect
                     value={formData.sleeveType}
                     onChange={(e) => setFormData({ ...formData, sleeveType: e.target.value })}
-                    className={selectClass}
                   >
                     <option value="">-- เลือก --</option>
                     {Object.entries(SLEEVE_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
                   <label className={labelClass}>ฟิต</label>
-                  <select
+                  <NativeSelect
                     value={formData.bodyFit}
                     onChange={(e) => setFormData({ ...formData, bodyFit: e.target.value })}
-                    className={selectClass}
                   >
                     <option value="">-- เลือก --</option>
                     {Object.entries(BODY_FITS).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className={labelClass}>ไฟล์แพทเทิร์น</label>
@@ -316,13 +269,7 @@ export default function PatternsPage() {
               ))}
             </div>
           ) : !patterns || patterns.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Scissors className="h-10 w-10 text-slate-300 dark:text-slate-600" />
-              <p className="mt-3 text-sm text-slate-400">ยังไม่มีแพทเทิร์น</p>
-              <p className="mt-1 text-xs text-slate-400">
-                เพิ่มแพทเทิร์นสำเร็จรูปเพื่อใช้ซ้ำในออเดอร์ตัดเย็บ
-              </p>
-            </div>
+            <EmptyState icon={Scissors} title="ยังไม่มีแพทเทิร์น" description="เพิ่มแพทเทิร์นสำเร็จรูปเพื่อใช้ซ้ำในออเดอร์ตัดเย็บ" />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -375,16 +322,16 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <select
+                            <NativeSelect
+                              className="h-7 text-xs"
                               value={editData.collarType ?? p.collarType ?? ""}
                               onChange={(e) => setEditData({ ...editData, collarType: e.target.value })}
-                              className={`${selectClass} h-7 text-xs`}
                             >
                               <option value="">-</option>
                               {Object.entries(COLLAR_TYPES).map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
                               ))}
-                            </select>
+                            </NativeSelect>
                           ) : (
                             <span className="text-xs">
                               {p.collarType ? (COLLAR_TYPES[p.collarType] ?? p.collarType) : "-"}
@@ -393,16 +340,16 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <select
+                            <NativeSelect
+                              className="h-7 text-xs"
                               value={editData.sleeveType ?? p.sleeveType ?? ""}
                               onChange={(e) => setEditData({ ...editData, sleeveType: e.target.value })}
-                              className={`${selectClass} h-7 text-xs`}
                             >
                               <option value="">-</option>
                               {Object.entries(SLEEVE_TYPES).map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
                               ))}
-                            </select>
+                            </NativeSelect>
                           ) : (
                             <span className="text-xs">
                               {p.sleeveType ? (SLEEVE_TYPES[p.sleeveType] ?? p.sleeveType) : "-"}
@@ -411,16 +358,16 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <select
+                            <NativeSelect
+                              className="h-7 text-xs"
                               value={editData.bodyFit ?? p.bodyFit ?? ""}
                               onChange={(e) => setEditData({ ...editData, bodyFit: e.target.value })}
-                              className={`${selectClass} h-7 text-xs`}
                             >
                               <option value="">-</option>
                               {Object.entries(BODY_FITS).map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
                               ))}
-                            </select>
+                            </NativeSelect>
                           ) : (
                             <span className="text-xs">
                               {p.bodyFit ? (BODY_FITS[p.bodyFit] ?? p.bodyFit) : "-"}
@@ -428,19 +375,10 @@ export default function PatternsPage() {
                           )}
                         </td>
                         <td className="px-3 py-2.5 text-center">
-                          <button
-                            type="button"
-                            onClick={() => toggleActive.mutate({ id: p.id, isActive: !p.isActive })}
-                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors ${
-                              p.isActive ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-600"
-                            }`}
-                          >
-                            <span
-                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                                p.isActive ? "translate-x-4" : "translate-x-0.5"
-                              } mt-0.5`}
-                            />
-                          </button>
+                          <Switch
+                            checked={p.isActive}
+                            onCheckedChange={() => toggleActive.mutate({ id: p.id, isActive: !p.isActive })}
+                          />
                         </td>
                         <td className="px-3 py-2.5 text-right">
                           {isEditing ? (

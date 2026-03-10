@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import { byIdInput } from "@/server/schemas";
 
 export const attachmentRouter = router({
   listByEntity: protectedProcedure
@@ -44,7 +45,7 @@ export const attachmentRouter = router({
     }),
 
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.attachment.delete({ where: { id: input.id } });
     }),

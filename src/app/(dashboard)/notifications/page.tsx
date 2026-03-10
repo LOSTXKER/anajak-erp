@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,7 +56,7 @@ export default function NotificationsPage() {
   const [page, setPage] = useState(1);
   const limit = 20;
 
-  const { data, isLoading, refetch } = trpc.notification.list.useQuery({
+  const { data, isLoading } = trpc.notification.list.useQuery({
     limit,
     page,
     unreadOnly: filter === "unread" ? true : undefined,
@@ -63,20 +64,12 @@ export default function NotificationsPage() {
 
   const utils = trpc.useUtils();
 
-  const markRead = trpc.notification.markRead.useMutation({
-    onSuccess: () => {
-      utils.notification.unreadCount.invalidate();
-      utils.notification.list.invalidate();
-      refetch();
-    },
+  const markRead = useMutationWithInvalidation(trpc.notification.markRead, {
+    invalidate: [utils.notification.unreadCount, utils.notification.list],
   });
 
-  const markAllRead = trpc.notification.markAllRead.useMutation({
-    onSuccess: () => {
-      utils.notification.unreadCount.invalidate();
-      utils.notification.list.invalidate();
-      refetch();
-    },
+  const markAllRead = useMutationWithInvalidation(trpc.notification.markAllRead, {
+    invalidate: [utils.notification.unreadCount, utils.notification.list],
   });
 
   const { data: unreadCount } = trpc.notification.unreadCount.useQuery();

@@ -235,6 +235,13 @@ export const BODY_FITS: Record<string, string> = {
   OVERSIZE: "Oversize",
 };
 
+export type PricingType = "PER_PIECE" | "PER_ORDER";
+
+export const PRICING_TYPE_LABELS: Record<PricingType, string> = {
+  PER_PIECE: "ต่อชิ้น",
+  PER_ORDER: "ต่อออเดอร์",
+};
+
 export const GARMENT_CONDITIONS: Record<string, string> = {
   GOOD: "ดี",
   FAIR: "พอใช้",

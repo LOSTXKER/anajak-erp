@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowLeft, Plus, Trash2, FileText } from "lucide-react";
@@ -38,9 +39,6 @@ const emptyItem: LineItem = {
 // ============================================================
 // STYLES
 // ============================================================
-
-const selectClass =
-  "flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
 const labelClass =
   "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
@@ -165,11 +163,10 @@ export default function NewQuotationPage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className={sectionLabelClass}>ลูกค้า *</label>
-                <select
+                <NativeSelect
                   value={customerId}
                   onChange={(e) => setCustomerId(e.target.value)}
                   required
-                  className={selectClass}
                 >
                   <option value="">-- เลือกลูกค้า --</option>
                   {customers?.customers.map((c) => (
@@ -177,7 +174,7 @@ export default function NewQuotationPage() {
                       {c.name} {c.company ? `(${c.company})` : ""}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               <div>
                 <label className={sectionLabelClass}>ใช้ได้ถึงวันที่ *</label>

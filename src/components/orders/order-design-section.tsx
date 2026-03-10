@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,20 +52,18 @@ export function OrderDesignSection({
 
   const utils = trpc.useUtils();
   const designs = trpc.design.listByOrder.useQuery({ orderId });
-  const uploadDesign = trpc.design.upload.useMutation({
+  const uploadDesign = useMutationWithInvalidation(trpc.design.upload, {
+    invalidate: [utils.design.listByOrder, utils.order.getById],
     onSuccess: () => {
-      utils.design.listByOrder.invalidate({ orderId });
-      utils.order.getById.invalidate({ id: orderId });
       setShowUploadDialog(false);
       setUploadedUrl(null);
       setDesignerNotes("");
       setUploadError(null);
     },
   });
-  const approveDesign = trpc.design.approve.useMutation({
+  const approveDesign = useMutationWithInvalidation(trpc.design.approve, {
+    invalidate: [utils.design.listByOrder, utils.order.getById],
     onSuccess: () => {
-      utils.design.listByOrder.invalidate({ orderId });
-      utils.order.getById.invalidate({ id: orderId });
       setShowApproveDialog(null);
       setApproveComment("");
     },
@@ -142,7 +141,7 @@ export function OrderDesignSection({
             </p>
           ) : (
             <div className="space-y-3">
-              {designs.data!.map((design: any) => (
+              {designs.data!.map((design) => (
                 <div
                   key={design.id}
                   className="rounded-lg border border-slate-200 p-4 dark:border-slate-700"
@@ -220,7 +219,7 @@ export function OrderDesignSection({
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => copyApprovalLink(design.approvalToken)}
+                          onClick={() => copyApprovalLink(design.approvalToken!)}
                         >
                           {copiedToken === design.approvalToken ? (
                             <Check className="h-3.5 w-3.5 text-green-500" />

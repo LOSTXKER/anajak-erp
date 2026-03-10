@@ -6,11 +6,14 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SearchInput } from "@/components/ui/search-input";
+import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Search, Users, UserPlus, Crown, UserX, Building2, User } from "lucide-react";
+import { Plus, Users, UserPlus, Crown, UserX, Building2, User } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -39,7 +42,7 @@ export default function CustomersPage() {
 
   const utils = trpc.useUtils();
   const { data: statsData } = trpc.customer.stats.useQuery();
-  const { data, isLoading } = trpc.customer.list.useQuery({
+  const { data, isLoading, isError, refetch } = trpc.customer.list.useQuery({
     search: search || undefined,
     limit: 50,
   });
@@ -91,6 +94,8 @@ export default function CustomersPage() {
     { title: "ไม่เคลื่อนไหว", value: statsData?.inactive ?? 0, icon: UserX, color: "text-amber-600 bg-amber-50 dark:bg-amber-950" },
   ];
 
+  if (isError) return <QueryError onRetry={() => refetch()} />;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -107,17 +112,7 @@ export default function CustomersPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className={`rounded-lg p-2 ${stat.color}`}>
-                <stat.icon className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">{stat.title}</p>
-                <p className="text-lg font-bold text-slate-900 dark:text-white tabular-nums">{stat.value}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} color={stat.color} />
         ))}
       </div>
 
@@ -335,15 +330,7 @@ export default function CustomersPage() {
       )}
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <Input
-          placeholder="ค้นหาชื่อ, บริษัท, โทร, อีเมล..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      <SearchInput placeholder="ค้นหาชื่อ, บริษัท, โทร, อีเมล..." value={search} onChange={(e) => setSearch(e.target.value)} />
 
       {/* Customer List */}
       <Card>

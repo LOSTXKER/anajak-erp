@@ -4,18 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { SearchInput } from "@/components/ui/search-input";
+import { FilterChip } from "@/components/ui/filter-chip";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import { PageHeader } from "@/components/page-header";
 import {
   Plus,
-  Search,
-  ChevronLeft,
-  ChevronRight,
   FileText,
 } from "lucide-react";
 
@@ -34,12 +34,14 @@ export default function QuotationsPage() {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = trpc.quotation.list.useQuery({
+  const { data, isLoading, isError, refetch } = trpc.quotation.list.useQuery({
     search: search || undefined,
     status: status || undefined,
     page,
     limit: 20,
   });
+
+  if (isError) return <QueryError onRetry={() => refetch()} />;
 
   return (
     <div className="space-y-6">
@@ -58,34 +60,20 @@ export default function QuotationsPage() {
 
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="pl-9"
-          />
-        </div>
+        <SearchInput
+          containerClassName="flex-1"
+          placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+        />
         <div className="flex gap-1 overflow-x-auto">
           {QUOTATION_STATUSES.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => {
-                setStatus(f.value);
-                setPage(1);
-              }}
-              className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                status === f.value
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
-              }`}
-            >
+            <FilterChip key={f.value} selected={status === f.value} onClick={() => { setStatus(f.value); setPage(1); }}>
               {f.label}
-            </button>
+            </FilterChip>
           ))}
         </div>
       </div>
@@ -194,33 +182,8 @@ export default function QuotationsPage() {
         </div>
 
         {/* Pagination */}
-        {data && data.pages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 dark:border-slate-800">
-            <p className="text-xs text-slate-500">
-              ทั้งหมด {data.total} รายการ
-            </p>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="flex items-center px-2 text-xs text-slate-500">
-                {page} / {data.pages}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={page >= data.pages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+        {data && (
+          <TablePagination page={page} totalPages={data.pages} total={data.total} onPageChange={setPage} />
         )}
       </Card>
     </div>

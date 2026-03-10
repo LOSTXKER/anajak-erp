@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils";
-import { calculateTotalQuantity } from "@/lib/pricing";
+import { calculateFormItemSubtotal } from "@/lib/pricing";
 import {
   Loader2,
   Plus,
@@ -31,15 +31,67 @@ import {
   Package,
 } from "lucide-react";
 import type { OrderItemForm, OrderFeeForm, OrderItemProductForm } from "@/types/order-form";
-import { PRINT_POSITIONS, PRINT_TYPES, EMPTY_PRODUCT, deriveProcessingType } from "@/types/order-form";
+import { PRINT_POSITIONS, PRINT_TYPES, EMPTY_PRODUCT, PRICING_TYPE_LABELS } from "@/types/order-form";
+import { mapItemsToMutationInput, mapFeesToMutationInput, mapApiItemsToForm, mapApiFeesToForm } from "@/lib/order-mapping";
 import { useOrderItemsForm, useOrderFeesForm } from "@/hooks/use-order-items-form";
+
+interface OrderEditDialogOrder {
+  items: Array<{
+    description: string | null;
+    notes: string | null;
+    products: Array<Record<string, unknown> & {
+      productId: string | null;
+      productType: string;
+      description: string;
+      material: string | null;
+      baseUnitPrice: number;
+      discount: number;
+      packagingOptionId: string | null;
+      itemSource: string | null;
+      fabricType: string | null;
+      fabricWeight: string | null;
+      fabricColor: string | null;
+      processingType: string | null;
+      patternId: string | null;
+      collarType: string | null;
+      sleeveType: string | null;
+      bodyFit: string | null;
+      patternFileUrl: string | null;
+      patternNote: string | null;
+      garmentCondition: string | null;
+      receivedInspected: boolean;
+      receiveNote: string | null;
+      product?: { name?: string; sku?: string; imageUrl?: string | null } | null;
+      variants: Array<{ size: string; color: string | null; quantity: number }>;
+    }>;
+    prints: Array<{
+      position: string;
+      printType: string;
+      colorCount: number | null;
+      unitPrice: number;
+      printSize: string | null;
+      width: number | null;
+      height: number | null;
+      designNote: string | null;
+      designImageUrl: string | null;
+    }>;
+    addons: Array<{
+      addonType: string;
+      name: string;
+      pricingType: string;
+      unitPrice: number;
+    }>;
+  }>;
+  fees: Array<{ feeType: string; name: string; amount: number }>;
+  discount: number;
+}
 
 interface OrderEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orderId: string;
   orderType: string;
-  order: any;
+  order: OrderEditDialogOrder;
 }
 
 export function OrderEditDialog({
@@ -88,92 +140,13 @@ export function OrderEditDialog({
 
   useEffect(() => {
     if (open && order) {
-      resetItems(
-        order.items.map((item: any) => ({
-          description: item.description || "",
-          products: (item.products || []).flatMap((p: any) => {
-            const base = {
-              ...structuredClone(EMPTY_PRODUCT),
-              productId: p.productId || undefined,
-              productType: p.productType || "OTHER",
-              description: p.description || "",
-              material: p.material || "",
-              baseUnitPrice: p.baseUnitPrice || 0,
-              discount: p.discount || 0,
-              packagingOptionId: p.packagingOptionId || "",
-              itemSource: p.itemSource || "",
-              fabricType: p.fabricType || "",
-              fabricWeight: p.fabricWeight || "",
-              fabricColor: p.fabricColor || "",
-              processingType: p.processingType || "",
-              patternId: p.patternId || undefined,
-              patternMode: p.patternId ? "catalog" as const : "custom" as const,
-              collarType: p.collarType || "",
-              sleeveType: p.sleeveType || "",
-              bodyFit: p.bodyFit || "",
-              patternFileUrl: p.patternFileUrl || "",
-              patternNote: p.patternNote || "",
-              garmentCondition: p.garmentCondition || "",
-              receivedInspected: p.receivedInspected ?? false,
-              receiveNote: p.receiveNote || "",
-              productName: p.product?.name,
-              productSku: p.product?.sku,
-              productImageUrl: p.product?.imageUrl,
-            } as OrderItemProductForm;
-            const variants = (p.variants || []) as any[];
-            if (variants.length <= 1) {
-              return [{ ...base, variants: variants.map((v: any) => ({ size: v.size, color: v.color || "", quantity: v.quantity })) }];
-            }
-            return variants.map((v: any) => ({
-              ...structuredClone(base),
-              variants: [{ size: v.size, color: v.color || "", quantity: v.quantity }],
-            }));
-          }),
-          prints: (item.prints || []).map((pr: any) => ({
-            position: pr.position,
-            printType: pr.printType,
-            colorCount: pr.colorCount || 0,
-            unitPrice: pr.unitPrice,
-            printSize: pr.printSize || "",
-            width: pr.width || 0,
-            height: pr.height || 0,
-            designNote: pr.designNote || "",
-            designImageUrl: pr.designImageUrl || undefined,
-          })),
-          addons: (item.addons || []).map((a: any) => ({
-            addonType: a.addonType,
-            name: a.name,
-            pricingType: a.pricingType,
-            unitPrice: a.unitPrice,
-          })),
-          notes: item.notes || "",
-        } as OrderItemForm))
-      );
-      resetFees(
-        order.fees.map((f: any) => ({
-          feeType: f.feeType,
-          name: f.name,
-          amount: f.amount,
-        }))
-      );
+      resetItems(mapApiItemsToForm(order.items));
+      resetFees(mapApiFeesToForm(order.fees));
       setDiscount(order.discount || 0);
     }
   }, [open, order]);
 
-  const subtotalItems = items.reduce((sum, item) => {
-    const productsCost = item.products.reduce((pSum, p) => {
-      const pQty = calculateTotalQuantity(p.variants);
-      const net = Math.max(0, p.baseUnitPrice - (p.discount || 0));
-      return pSum + pQty * net;
-    }, 0);
-    const itemTotalQty = item.products.reduce((s, p) => s + calculateTotalQuantity(p.variants), 0);
-    const printsCost = itemTotalQty * item.prints.reduce((s, p) => s + p.unitPrice, 0);
-    const addonsCost = item.addons.reduce((s, a) => {
-      if (a.pricingType === "PER_PIECE") return s + itemTotalQty * a.unitPrice;
-      return s + a.unitPrice;
-    }, 0);
-    return sum + productsCost + printsCost + addonsCost;
-  }, 0);
+  const subtotalItems = items.reduce((sum, item) => sum + calculateFormItemSubtotal(item), 0);
 
   const subtotalFees = fees.reduce((sum, f) => sum + f.amount, 0);
   const totalAmount = Math.max(0, subtotalItems + subtotalFees - discount);
@@ -181,51 +154,7 @@ export function OrderEditDialog({
   function handleSaveItems() {
     updateItemsMutation.mutate({
       id: orderId,
-      items: items.map((item) => ({
-        description: item.description || undefined,
-        notes: item.notes || undefined,
-        products: item.products.map((p) => ({
-          productId: p.productId,
-          productType: p.productType,
-          description: p.description,
-          material: p.material || undefined,
-          baseUnitPrice: p.baseUnitPrice,
-          discount: p.discount || 0,
-          packagingOptionId: p.packagingOptionId || undefined,
-          itemSource: (p.itemSource || undefined) as "FROM_STOCK" | "CUSTOM_MADE" | "CUSTOMER_PROVIDED" | undefined,
-          fabricType: p.fabricType || undefined,
-          fabricWeight: p.fabricWeight || undefined,
-          fabricColor: p.fabricColor || undefined,
-          processingType: deriveProcessingType(p.itemSource, item.prints.length > 0) as "PRINT_ONLY" | "CUT_AND_SEW_PRINT" | "CUT_AND_SEW_ONLY" | "PACK_ONLY" | "FULL_PRODUCTION",
-          variants: p.variants,
-          patternId: p.patternId || undefined,
-          collarType: p.collarType || undefined,
-          sleeveType: p.sleeveType || undefined,
-          bodyFit: p.bodyFit || undefined,
-          patternFileUrl: p.patternFileUrl || undefined,
-          patternNote: p.patternNote || undefined,
-          garmentCondition: p.garmentCondition || undefined,
-          receivedInspected: p.receivedInspected,
-          receiveNote: p.receiveNote || undefined,
-        })),
-        prints: item.prints.map((pr) => ({
-          position: pr.position,
-          printType: pr.printType,
-          colorCount: pr.colorCount || undefined,
-          printSize: pr.printSize || undefined,
-          width: pr.width || undefined,
-          height: pr.height || undefined,
-          designNote: pr.designNote || undefined,
-          designImageUrl: pr.designImageUrl || undefined,
-          unitPrice: pr.unitPrice,
-        })),
-        addons: item.addons.map((a) => ({
-          addonType: a.addonType,
-          name: a.name,
-          pricingType: a.pricingType as "PER_PIECE" | "PER_ORDER",
-          unitPrice: a.unitPrice,
-        })),
-      })),
+      items: mapItemsToMutationInput(items),
       discount,
     });
   }
@@ -233,11 +162,7 @@ export function OrderEditDialog({
   function handleSaveFees() {
     updateFeesMutation.mutate({
       id: orderId,
-      fees: fees.map((f) => ({
-        feeType: f.feeType,
-        name: f.name,
-        amount: f.amount,
-      })),
+      fees: mapFeesToMutationInput(fees),
     });
   }
 
@@ -418,7 +343,7 @@ export function OrderEditDialog({
                             <Input type="text" value={a.name} onChange={(e) => updateAddon(itemIdx, ai, "name", e.target.value)} placeholder="ชื่อ" className="h-7 w-28 px-2 text-xs" />
                             <Select value={a.pricingType} onValueChange={(v) => updateAddon(itemIdx, ai, "pricingType", v)}>
                               <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent><SelectItem value="PER_PIECE">ต่อตัว</SelectItem><SelectItem value="PER_ORDER">ต่อออเดอร์</SelectItem></SelectContent>
+                              <SelectContent><SelectItem value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</SelectItem><SelectItem value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</SelectItem></SelectContent>
                             </Select>
                             <Input type="number" value={a.unitPrice || ""} onChange={(e) => updateAddon(itemIdx, ai, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="ราคา" className="h-7 w-24 px-2 text-xs" min="0" />
                             <button className="text-red-400 hover:text-red-500" onClick={() => removeAddon(itemIdx, ai)}><Trash2 className="h-3 w-3" /></button>
