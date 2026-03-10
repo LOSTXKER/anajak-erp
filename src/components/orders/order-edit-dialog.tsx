@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils";
-import { calculateItemSubtotal, calculateTotalQuantity } from "@/lib/pricing";
+import { calculateTotalQuantity } from "@/lib/pricing";
 import {
   Loader2,
   Plus,
@@ -30,8 +30,8 @@ import {
   Save,
   Package,
 } from "lucide-react";
-import type { OrderItemForm, OrderFeeForm } from "@/types/order-form";
-import { PRINT_POSITIONS, PRINT_TYPES, deriveProcessingType } from "@/types/order-form";
+import type { OrderItemForm, OrderFeeForm, OrderItemProductForm } from "@/types/order-form";
+import { PRINT_POSITIONS, PRINT_TYPES, EMPTY_PRODUCT, deriveProcessingType } from "@/types/order-form";
 import { useOrderItemsForm, useOrderFeesForm } from "@/hooks/use-order-items-form";
 
 interface OrderEditDialogProps {
@@ -54,9 +54,6 @@ export function OrderEditDialog({
     addItem,
     removeItem,
     updateItem,
-    addVariant,
-    removeVariant,
-    updateVariant,
     addPrint,
     removePrint,
     updatePrint,
@@ -93,50 +90,64 @@ export function OrderEditDialog({
     if (open && order) {
       resetItems(
         order.items.map((item: any) => ({
-          productType: item.productType,
-          description: item.description,
-          material: item.material || "",
-          baseUnitPrice: item.baseUnitPrice,
-          variants: item.variants.map((v: any) => ({
-            size: v.size,
-            color: v.color || "",
-            quantity: v.quantity,
+          description: item.description || "",
+          products: (item.products || []).flatMap((p: any) => {
+            const base = {
+              ...structuredClone(EMPTY_PRODUCT),
+              productId: p.productId || undefined,
+              productType: p.productType || "OTHER",
+              description: p.description || "",
+              material: p.material || "",
+              baseUnitPrice: p.baseUnitPrice || 0,
+              discount: p.discount || 0,
+              packagingOptionId: p.packagingOptionId || "",
+              itemSource: p.itemSource || "",
+              fabricType: p.fabricType || "",
+              fabricWeight: p.fabricWeight || "",
+              fabricColor: p.fabricColor || "",
+              processingType: p.processingType || "",
+              patternId: p.patternId || undefined,
+              patternMode: p.patternId ? "catalog" as const : "custom" as const,
+              collarType: p.collarType || "",
+              sleeveType: p.sleeveType || "",
+              bodyFit: p.bodyFit || "",
+              patternFileUrl: p.patternFileUrl || "",
+              patternNote: p.patternNote || "",
+              garmentCondition: p.garmentCondition || "",
+              receivedInspected: p.receivedInspected ?? false,
+              receiveNote: p.receiveNote || "",
+              productName: p.product?.name,
+              productSku: p.product?.sku,
+              productImageUrl: p.product?.imageUrl,
+            } as OrderItemProductForm;
+            const variants = (p.variants || []) as any[];
+            if (variants.length <= 1) {
+              return [{ ...base, variants: variants.map((v: any) => ({ size: v.size, color: v.color || "", quantity: v.quantity })) }];
+            }
+            return variants.map((v: any) => ({
+              ...structuredClone(base),
+              variants: [{ size: v.size, color: v.color || "", quantity: v.quantity }],
+            }));
+          }),
+          prints: (item.prints || []).map((pr: any) => ({
+            position: pr.position,
+            printType: pr.printType,
+            colorCount: pr.colorCount || 0,
+            unitPrice: pr.unitPrice,
+            printSize: pr.printSize || "",
+            width: pr.width || 0,
+            height: pr.height || 0,
+            designNote: pr.designNote || "",
+            designImageUrl: pr.designImageUrl || undefined,
           })),
-          prints: item.prints.map((p: any) => ({
-            position: p.position,
-            printType: p.printType,
-            colorCount: p.colorCount || 0,
-            unitPrice: p.unitPrice,
-            printSize: p.printSize || "",
-            width: p.width || 0,
-            height: p.height || 0,
-            designNote: p.designNote || "",
-            designImageUrl: p.designImageUrl || undefined,
-          })),
-          addons: item.addons.map((a: any) => ({
+          addons: (item.addons || []).map((a: any) => ({
             addonType: a.addonType,
             name: a.name,
             pricingType: a.pricingType,
             unitPrice: a.unitPrice,
           })),
           notes: item.notes || "",
-          itemSource: item.itemSource === "ORDER_FROM_SUPPLIER" ? "FROM_STOCK" : (item.itemSource || ""),
-          needsPrinting: (item.prints?.length ?? 0) > 0,
-          fabricType: item.fabricType || "",
-          fabricWeight: item.fabricWeight || "",
-          fabricColor: item.fabricColor || "",
-          processingType: item.processingType || "",
-          patternId: item.patternId || undefined,
-          patternMode: item.patternId ? "catalog" as const : "custom" as const,
-          collarType: item.collarType || "",
-          sleeveType: item.sleeveType || "",
-          bodyFit: item.bodyFit || "",
-          patternFileUrl: item.patternFileUrl || "",
-          patternNote: item.patternNote || "",
-          garmentCondition: item.garmentCondition || "",
-          receivedInspected: item.receivedInspected ?? false,
-          receiveNote: item.receiveNote || "",
-        }))
+        } as OrderItemForm))
       );
       resetFees(
         order.fees.map((f: any) => ({
@@ -150,13 +161,18 @@ export function OrderEditDialog({
   }, [open, order]);
 
   const subtotalItems = items.reduce((sum, item) => {
-    const totalQty = item.variants.reduce((s, v) => s + v.quantity, 0);
-    return sum + calculateItemSubtotal({
-      baseUnitPrice: item.baseUnitPrice,
-      totalQuantity: totalQty,
-      prints: item.prints,
-      addons: item.addons.map((a) => ({ ...a, quantity: undefined })),
-    });
+    const productsCost = item.products.reduce((pSum, p) => {
+      const pQty = calculateTotalQuantity(p.variants);
+      const net = Math.max(0, p.baseUnitPrice - (p.discount || 0));
+      return pSum + pQty * net;
+    }, 0);
+    const itemTotalQty = item.products.reduce((s, p) => s + calculateTotalQuantity(p.variants), 0);
+    const printsCost = itemTotalQty * item.prints.reduce((s, p) => s + p.unitPrice, 0);
+    const addonsCost = item.addons.reduce((s, a) => {
+      if (a.pricingType === "PER_PIECE") return s + itemTotalQty * a.unitPrice;
+      return s + a.unitPrice;
+    }, 0);
+    return sum + productsCost + printsCost + addonsCost;
   }, 0);
 
   const subtotalFees = fees.reduce((sum, f) => sum + f.amount, 0);
@@ -166,26 +182,42 @@ export function OrderEditDialog({
     updateItemsMutation.mutate({
       id: orderId,
       items: items.map((item) => ({
-        productType: item.productType,
-        description: item.description,
-        material: item.material || undefined,
-        baseUnitPrice: item.baseUnitPrice,
-        itemSource: (item.itemSource || undefined) as "FROM_STOCK" | "CUSTOM_MADE" | "CUSTOMER_PROVIDED" | undefined,
-        fabricType: item.fabricType || undefined,
-        fabricWeight: item.fabricWeight || undefined,
-        fabricColor: item.fabricColor || undefined,
-        processingType: deriveProcessingType(item.itemSource, item.needsPrinting) as "PRINT_ONLY" | "CUT_AND_SEW_PRINT" | "CUT_AND_SEW_ONLY" | "PACK_ONLY" | "FULL_PRODUCTION",
-        variants: item.variants,
-        prints: item.prints.map((p) => ({
-          position: p.position,
-          printType: p.printType,
-          colorCount: p.colorCount || undefined,
-          printSize: p.printSize || undefined,
-          width: p.width || undefined,
-          height: p.height || undefined,
-          designNote: p.designNote || undefined,
-          designImageUrl: p.designImageUrl || undefined,
-          unitPrice: p.unitPrice,
+        description: item.description || undefined,
+        notes: item.notes || undefined,
+        products: item.products.map((p) => ({
+          productId: p.productId,
+          productType: p.productType,
+          description: p.description,
+          material: p.material || undefined,
+          baseUnitPrice: p.baseUnitPrice,
+          discount: p.discount || 0,
+          packagingOptionId: p.packagingOptionId || undefined,
+          itemSource: (p.itemSource || undefined) as "FROM_STOCK" | "CUSTOM_MADE" | "CUSTOMER_PROVIDED" | undefined,
+          fabricType: p.fabricType || undefined,
+          fabricWeight: p.fabricWeight || undefined,
+          fabricColor: p.fabricColor || undefined,
+          processingType: deriveProcessingType(p.itemSource, item.prints.length > 0) as "PRINT_ONLY" | "CUT_AND_SEW_PRINT" | "CUT_AND_SEW_ONLY" | "PACK_ONLY" | "FULL_PRODUCTION",
+          variants: p.variants,
+          patternId: p.patternId || undefined,
+          collarType: p.collarType || undefined,
+          sleeveType: p.sleeveType || undefined,
+          bodyFit: p.bodyFit || undefined,
+          patternFileUrl: p.patternFileUrl || undefined,
+          patternNote: p.patternNote || undefined,
+          garmentCondition: p.garmentCondition || undefined,
+          receivedInspected: p.receivedInspected,
+          receiveNote: p.receiveNote || undefined,
+        })),
+        prints: item.prints.map((pr) => ({
+          position: pr.position,
+          printType: pr.printType,
+          colorCount: pr.colorCount || undefined,
+          printSize: pr.printSize || undefined,
+          width: pr.width || undefined,
+          height: pr.height || undefined,
+          designNote: pr.designNote || undefined,
+          designImageUrl: pr.designImageUrl || undefined,
+          unitPrice: pr.unitPrice,
         })),
         addons: item.addons.map((a) => ({
           addonType: a.addonType,
@@ -193,16 +225,6 @@ export function OrderEditDialog({
           pricingType: a.pricingType as "PER_PIECE" | "PER_ORDER",
           unitPrice: a.unitPrice,
         })),
-        notes: item.notes || undefined,
-        patternId: item.patternId || undefined,
-        collarType: item.collarType || undefined,
-        sleeveType: item.sleeveType || undefined,
-        bodyFit: item.bodyFit || undefined,
-        patternFileUrl: item.patternFileUrl || undefined,
-        patternNote: item.patternNote || undefined,
-        garmentCondition: item.garmentCondition || undefined,
-        receivedInspected: item.receivedInspected,
-        receiveNote: item.receiveNote || undefined,
       })),
       discount,
     });
@@ -259,223 +281,147 @@ export function OrderEditDialog({
           {activeTab === "items" ? (
             <div className="space-y-4">
               {items.map((item, itemIdx) => {
-                const itemQty = item.variants.reduce((s, v) => s + v.quantity, 0);
-                const itemSubtotal = calculateItemSubtotal({
-                  baseUnitPrice: item.baseUnitPrice,
-                  totalQuantity: itemQty,
-                  prints: item.prints,
-                  addons: item.addons.map((a) => ({ ...a, quantity: undefined })),
-                });
+                const itemTotalQty = item.products.reduce((s, p) => s + p.variants.reduce((vs, v) => vs + v.quantity, 0), 0);
 
                 return (
-                  <div
-                    key={itemIdx}
-                    className="rounded-lg border border-slate-200 p-4 dark:border-slate-700"
-                  >
+                  <div key={itemIdx} className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
                     <div className="mb-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Package className="h-4 w-4 text-slate-400" />
                         <span className="text-sm font-medium text-slate-900 dark:text-white">
                           รายการ {itemIdx + 1}
                         </span>
-                        <Badge variant="secondary">
-                          {formatCurrency(itemSubtotal)}
-                        </Badge>
+                        <Badge variant="secondary">{item.products.length} สินค้า · {itemTotalQty} ชิ้น</Badge>
                       </div>
                       {items.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-red-500"
-                          onClick={() => removeItem(itemIdx)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => removeItem(itemIdx)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>
 
-                    {/* Item basics */}
-                    <div className="mb-3 grid grid-cols-3 gap-2">
-                      <Input
-                        type="text"
-                        value={item.description}
-                        onChange={(e) => updateItem(itemIdx, "description", e.target.value)}
-                        placeholder="รายละเอียด *"
-                        className="col-span-2 h-8"
-                      />
-                      <Input
-                        type="number"
-                        value={item.baseUnitPrice || ""}
-                        onChange={(e) =>
-                          updateItem(itemIdx, "baseUnitPrice", parseFloat(e.target.value) || 0)
-                        }
-                        placeholder="ราคา/ตัว"
-                        className="h-8"
-                        min="0"
-                      />
+                    {/* Description */}
+                    <div className="mb-3">
+                      <Input type="text" value={item.description} onChange={(e) => updateItem(itemIdx, "description", e.target.value)} placeholder="คำอธิบายงาน..." className="h-8" />
                     </div>
 
-                    {/* Variants */}
-                    <div className="mb-2">
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs font-medium text-slate-500">ไซส์/สี/จำนวน ({itemQty} ตัว)</span>
-                        <button
-                          className="text-xs text-blue-500 hover:underline"
-                          onClick={() => addVariant(itemIdx)}
-                        >
-                          + เพิ่ม
-                        </button>
-                      </div>
-                      <div className="space-y-1">
-                        {item.variants.map((v, vi) => (
-                          <div key={vi} className="flex items-center gap-2">
-                            <Input
-                              type="text"
-                              value={v.size}
-                              onChange={(e) => updateVariant(itemIdx, vi, "size", e.target.value)}
-                              placeholder="ไซส์"
-                              className="h-7 w-20 px-2 text-xs"
-                            />
-                            <Input
-                              type="text"
-                              value={v.color}
-                              onChange={(e) => updateVariant(itemIdx, vi, "color", e.target.value)}
-                              placeholder="สี"
-                              className="h-7 w-24 px-2 text-xs"
-                            />
-                            <Input
-                              type="number"
-                              value={v.quantity || ""}
-                              onChange={(e) =>
-                                updateVariant(itemIdx, vi, "quantity", parseInt(e.target.value) || 0)
-                              }
-                              placeholder="จำนวน"
-                              className="h-7 w-20 px-2 text-xs"
-                              min="1"
-                            />
-                            {item.variants.length > 1 && (
-                              <button
-                                className="text-red-400 hover:text-red-500"
-                                onClick={() => removeVariant(itemIdx, vi)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                    {/* Products (flat per-SKU rows) */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-[11px] text-slate-400">
+                            <th className="w-7 pb-1" />
+                            <th className="pb-1 pr-1">สินค้า</th>
+                            <th className="w-16 pb-1 px-1">สี</th>
+                            <th className="w-14 pb-1 px-1">ไซส์</th>
+                            <th className="w-20 pb-1 px-1">ราคา</th>
+                            <th className="w-16 pb-1 px-1">จำนวน</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {item.products.map((prod, prodIdx) => {
+                            const v = prod.variants[0] || { size: "", color: "", quantity: 0 };
+                            const updateProd = (field: string, value: unknown) => {
+                              const newItems = [...items];
+                              const prods = [...newItems[itemIdx].products];
+                              prods[prodIdx] = { ...prods[prodIdx], [field]: value };
+                              newItems[itemIdx] = { ...newItems[itemIdx], products: prods };
+                              resetItems(newItems);
+                            };
+                            const updateVariant = (field: string, val: string | number) => {
+                              const newItems = [...items];
+                              const prods = [...newItems[itemIdx].products];
+                              const vs = [...prods[prodIdx].variants];
+                              vs[0] = { ...vs[0], [field]: val };
+                              prods[prodIdx] = { ...prods[prodIdx], variants: vs };
+                              newItems[itemIdx] = { ...newItems[itemIdx], products: prods };
+                              resetItems(newItems);
+                            };
+                            return (
+                              <tr key={prodIdx} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
+                                <td className="py-1 align-middle">
+                                  {item.products.length > 1 && (
+                                    <button className="text-red-400 hover:text-red-500" onClick={() => {
+                                      const newItems = [...items];
+                                      newItems[itemIdx] = { ...newItems[itemIdx], products: newItems[itemIdx].products.filter((_, i) => i !== prodIdx) };
+                                      resetItems(newItems);
+                                    }}>
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </td>
+                                <td className="py-1 pr-1 align-middle">
+                                  {prod.productName ? (
+                                    <span className="text-xs font-medium text-slate-700 dark:text-slate-200">{prod.productName}</span>
+                                  ) : (
+                                    <Input value={prod.description} onChange={(e) => updateProd("description", e.target.value)} placeholder="คำอธิบาย" className="h-7 text-xs" />
+                                  )}
+                                </td>
+                                <td className="px-1 py-1 align-middle">
+                                  <Input value={v.color} onChange={(e) => updateVariant("color", e.target.value)} placeholder="สี" className="h-7 text-xs" />
+                                </td>
+                                <td className="px-1 py-1 align-middle">
+                                  <Input value={v.size} onChange={(e) => updateVariant("size", e.target.value)} placeholder="ไซส์" className="h-7 text-xs" />
+                                </td>
+                                <td className="px-1 py-1 align-middle">
+                                  <Input type="number" value={prod.baseUnitPrice || ""} onChange={(e) => updateProd("baseUnitPrice", parseFloat(e.target.value) || 0)} placeholder="0" className="h-7 text-xs" min="0" />
+                                </td>
+                                <td className="px-1 py-1 align-middle">
+                                  <Input type="number" value={v.quantity || ""} onChange={(e) => updateVariant("quantity", parseInt(e.target.value) || 0)} placeholder="0" className="h-7 text-xs" min="0" />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
 
-                    {/* Prints (CUSTOM orders) */}
+                    <button className="mb-2 mt-1 text-xs text-blue-500 hover:underline" onClick={() => {
+                      const newItems = [...items];
+                      newItems[itemIdx] = { ...newItems[itemIdx], products: [...newItems[itemIdx].products, structuredClone(EMPTY_PRODUCT)] };
+                      resetItems(newItems);
+                    }}>+ เพิ่มสินค้า</button>
+
+                    {/* Prints */}
                     {orderType === "CUSTOM" && (
                       <div className="mb-2">
                         <div className="mb-1 flex items-center justify-between">
                           <span className="text-xs font-medium text-slate-500">สกรีน</span>
-                          <button
-                            className="text-xs text-blue-500 hover:underline"
-                            onClick={() => addPrint(itemIdx)}
-                          >
-                            + เพิ่ม
-                          </button>
+                          <button className="text-xs text-blue-500 hover:underline" onClick={() => addPrint(itemIdx)}>+ เพิ่ม</button>
                         </div>
                         {item.prints.map((p, pi) => (
-                          <div key={pi} className="flex items-center gap-2 mb-1">
-                            <Select
-                              value={p.position}
-                              onValueChange={(v) => updatePrint(itemIdx, pi, "position", v)}
-                            >
-                              <SelectTrigger className="h-7 w-24 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(PRINT_POSITIONS).map(([key, label]) => (
-                                  <SelectItem key={key} value={key}>{label}</SelectItem>
-                                ))}
-                              </SelectContent>
+                          <div key={pi} className="mb-1 flex items-center gap-2">
+                            <Select value={p.position} onValueChange={(v) => updatePrint(itemIdx, pi, "position", v)}>
+                              <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>{Object.entries(PRINT_POSITIONS).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}</SelectContent>
                             </Select>
-                            <Select
-                              value={p.printType}
-                              onValueChange={(v) => updatePrint(itemIdx, pi, "printType", v)}
-                            >
-                              <SelectTrigger className="h-7 w-24 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(PRINT_TYPES).map(([key, label]) => (
-                                  <SelectItem key={key} value={key}>{label}</SelectItem>
-                                ))}
-                              </SelectContent>
+                            <Select value={p.printType} onValueChange={(v) => updatePrint(itemIdx, pi, "printType", v)}>
+                              <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>{Object.entries(PRINT_TYPES).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}</SelectContent>
                             </Select>
-                            <Input
-                              type="number"
-                              value={p.unitPrice || ""}
-                              onChange={(e) =>
-                                updatePrint(itemIdx, pi, "unitPrice", parseFloat(e.target.value) || 0)
-                              }
-                              placeholder="ราคา/ตัว"
-                              className="h-7 w-24 px-2 text-xs"
-                              min="0"
-                            />
-                            <button
-                              className="text-red-400 hover:text-red-500"
-                              onClick={() => removePrint(itemIdx, pi)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            <Input type="number" value={p.unitPrice || ""} onChange={(e) => updatePrint(itemIdx, pi, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="ราคา/ตัว" className="h-7 w-24 px-2 text-xs" min="0" />
+                            <button className="text-red-400 hover:text-red-500" onClick={() => removePrint(itemIdx, pi)}><Trash2 className="h-3 w-3" /></button>
                           </div>
                         ))}
                       </div>
                     )}
 
-                    {/* Addons (CUSTOM orders) */}
+                    {/* Addons */}
                     {orderType === "CUSTOM" && (
                       <div>
                         <div className="mb-1 flex items-center justify-between">
                           <span className="text-xs font-medium text-slate-500">ส่วนเสริม</span>
-                          <button
-                            className="text-xs text-blue-500 hover:underline"
-                            onClick={() => addAddon(itemIdx)}
-                          >
-                            + เพิ่ม
-                          </button>
+                          <button className="text-xs text-blue-500 hover:underline" onClick={() => addAddon(itemIdx)}>+ เพิ่ม</button>
                         </div>
                         {item.addons.map((a, ai) => (
-                          <div key={ai} className="flex items-center gap-2 mb-1">
-                            <Input
-                              type="text"
-                              value={a.name}
-                              onChange={(e) => updateAddon(itemIdx, ai, "name", e.target.value)}
-                              placeholder="ชื่อ"
-                              className="h-7 w-28 px-2 text-xs"
-                            />
-                            <Select
-                              value={a.pricingType}
-                              onValueChange={(v) => updateAddon(itemIdx, ai, "pricingType", v)}
-                            >
-                              <SelectTrigger className="h-7 w-24 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="PER_PIECE">ต่อตัว</SelectItem>
-                                <SelectItem value="PER_ORDER">ต่อออเดอร์</SelectItem>
-                              </SelectContent>
+                          <div key={ai} className="mb-1 flex items-center gap-2">
+                            <Input type="text" value={a.name} onChange={(e) => updateAddon(itemIdx, ai, "name", e.target.value)} placeholder="ชื่อ" className="h-7 w-28 px-2 text-xs" />
+                            <Select value={a.pricingType} onValueChange={(v) => updateAddon(itemIdx, ai, "pricingType", v)}>
+                              <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent><SelectItem value="PER_PIECE">ต่อตัว</SelectItem><SelectItem value="PER_ORDER">ต่อออเดอร์</SelectItem></SelectContent>
                             </Select>
-                            <Input
-                              type="number"
-                              value={a.unitPrice || ""}
-                              onChange={(e) =>
-                                updateAddon(itemIdx, ai, "unitPrice", parseFloat(e.target.value) || 0)
-                              }
-                              placeholder="ราคา"
-                              className="h-7 w-24 px-2 text-xs"
-                              min="0"
-                            />
-                            <button
-                              className="text-red-400 hover:text-red-500"
-                              onClick={() => removeAddon(itemIdx, ai)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            <Input type="number" value={a.unitPrice || ""} onChange={(e) => updateAddon(itemIdx, ai, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="ราคา" className="h-7 w-24 px-2 text-xs" min="0" />
+                            <button className="text-red-400 hover:text-red-500" onClick={() => removeAddon(itemIdx, ai)}><Trash2 className="h-3 w-3" /></button>
                           </div>
                         ))}
                       </div>

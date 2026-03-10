@@ -213,13 +213,21 @@ export const quotationRouter = router({
           items: {
             create: quotation.items.map((item, index) => ({
               sortOrder: index,
-              productType: "OTHER",
-              description: item.name + (item.description ? ` - ${item.description}` : ""),
-              baseUnitPrice: item.unitPrice,
+              description: item.name,
               totalQuantity: item.quantity,
               subtotal: item.totalPrice,
-              variants: {
-                create: [{ size: "FREE", quantity: item.quantity }],
+              products: {
+                create: [{
+                  sortOrder: 0,
+                  productType: "OTHER",
+                  description: item.name + (item.description ? ` - ${item.description}` : ""),
+                  baseUnitPrice: item.unitPrice,
+                  totalQuantity: item.quantity,
+                  subtotal: item.totalPrice,
+                  variants: {
+                    create: [{ size: "FREE", quantity: item.quantity }],
+                  },
+                }],
               },
             })),
           },

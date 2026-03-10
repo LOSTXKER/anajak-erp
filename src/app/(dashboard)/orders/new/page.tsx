@@ -17,14 +17,12 @@ import {
   isMarketplaceChannel,
 } from "@/lib/order-status";
 import {
-  calculateItemSubtotal,
   calculateTotalQuantity,
 } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
 import {
   ArrowLeft,
   Plus,
-  Search,
   Package,
   Palette,
   ShoppingBag,
@@ -50,9 +48,11 @@ import {
 import type { OrderItemForm, ReferenceImage } from "@/types/order-form";
 import {
   EMPTY_ITEM,
+  EMPTY_PRODUCT,
   PRINT_POSITIONS,
   deriveProcessingType,
   validateOrderItem,
+  validateOrderItemProduct,
 } from "@/types/order-form";
 import { toast } from "sonner";
 import {
@@ -198,16 +198,18 @@ export default function NewOrderPage() {
       return { subtotalItems: 0, subtotalFees: 0, platformFee: 0, discount: 0, taxAmount: 0, grandTotal: 0 };
     }
     const subtotalItems = items.reduce((sum, item) => {
-      const totalQuantity = calculateTotalQuantity(item.variants);
-      return (
-        sum +
-        calculateItemSubtotal({
-          baseUnitPrice: item.baseUnitPrice,
-          totalQuantity,
-          prints: item.prints,
-          addons: item.addons,
-        })
-      );
+      const productsCost = item.products.reduce((pSum, p) => {
+        const pQty = calculateTotalQuantity(p.variants);
+        const netPrice = Math.max(0, p.baseUnitPrice - (p.discount || 0));
+        return pSum + pQty * netPrice;
+      }, 0);
+      const itemTotalQty = item.products.reduce((s, p) => s + calculateTotalQuantity(p.variants), 0);
+      const printsCost = itemTotalQty * item.prints.reduce((s, p) => s + p.unitPrice, 0);
+      const addonsCost = item.addons.reduce((s, a) => {
+        if (a.pricingType === "PER_PIECE") return s + itemTotalQty * a.unitPrice;
+        return s + a.unitPrice;
+      }, 0);
+      return sum + productsCost + printsCost + addonsCost;
     }, 0);
     const subtotalFees = fees.reduce((sum, f) => sum + f.amount, 0);
     const pf = isMarketplace ? platformFee : 0;
@@ -218,41 +220,54 @@ export default function NewOrderPage() {
   }, [items, fees, platformFee, discount, isMarketplace, taxRate, isQuickInquiry]);
 
   const handleVariantsSelected = (selected: SelectedVariantItem[]) => {
-    const grouped = new Map<string, { product: SelectedVariantItem; variants: { size: string; color: string; quantity: number }[]; totalStock: number }>();
-    for (const v of selected) {
-      const existing = grouped.get(v.productId);
-      if (existing) {
-        existing.variants.push({ size: v.size, color: v.color, quantity: v.quantity });
-        existing.totalStock += v.stock;
-      } else {
-        grouped.set(v.productId, {
-          product: v,
-          variants: [{ size: v.size, color: v.color, quantity: v.quantity }],
-          totalStock: v.stock,
-        });
-      }
-    }
-
-    const newItems: OrderItemForm[] = Array.from(grouped.values()).map(({ product, variants, totalStock }) => ({
-      ...structuredClone(EMPTY_ITEM),
-      productId: product.productId,
-      itemSource: "FROM_STOCK",
-      productType: product.productType,
-      description: product.name,
-      baseUnitPrice: product.basePrice,
-      variants,
-      productImageUrl: product.imageUrl,
-      productSku: product.productSku,
-      productName: product.name,
-      stockAvailable: totalStock,
-    }));
-
     setItems((prev) => {
       const filtered = prev.filter(
-        (it) => it.description || it.productId || it.variants.some((vr) => vr.size),
+        (it) => it.description || it.notes || it.prints.length > 0 || it.addons.length > 0
+          || it.products.some((p) => p.description || p.productId || p.itemSource || p.variants.some((v) => v.size || v.color)),
       );
-      const result = filtered.length > 0 ? [...filtered, ...newItems] : newItems;
-      setExpandedItemIdx(result.length - newItems.length);
+      let result = filtered.length > 0 ? [...filtered] : [structuredClone(EMPTY_ITEM)];
+      const targetIdx = expandedItemIdx !== null && expandedItemIdx < result.length ? expandedItemIdx : 0;
+
+      const targetItem = result[targetIdx];
+      const updatedProducts = [...targetItem.products];
+
+      for (const v of selected) {
+        const dupIdx = updatedProducts.findIndex(
+          (p) => p.productId === v.productId && p.itemSource === "FROM_STOCK"
+            && p.variants[0]?.size === v.size && p.variants[0]?.color === v.color,
+        );
+
+        if (dupIdx >= 0) {
+          const ep = updatedProducts[dupIdx];
+          const newVariants = [...ep.variants];
+          newVariants[0] = { ...newVariants[0], quantity: newVariants[0].quantity + v.quantity };
+          updatedProducts[dupIdx] = { ...ep, variants: newVariants };
+        } else {
+          const isEmptyFirst = updatedProducts.length === 1
+            && !updatedProducts[0].productId && !updatedProducts[0].description && !updatedProducts[0].itemSource;
+          const newProd: typeof EMPTY_PRODUCT = {
+            ...structuredClone(EMPTY_PRODUCT),
+            productId: v.productId,
+            itemSource: "FROM_STOCK",
+            productType: v.productType,
+            description: v.name,
+            baseUnitPrice: v.basePrice,
+            variants: [{ size: v.size, color: v.color, quantity: v.quantity }],
+            productImageUrl: v.imageUrl,
+            productSku: v.sku,
+            productName: v.name,
+            stockAvailable: v.stock,
+          };
+          if (isEmptyFirst) {
+            updatedProducts[0] = newProd;
+          } else {
+            updatedProducts.push(newProd);
+          }
+        }
+      }
+
+      result[targetIdx] = { ...targetItem, products: updatedProducts };
+      setExpandedItemIdx(targetIdx);
       return result;
     });
   };
@@ -320,6 +335,13 @@ export default function NewOrderPage() {
         if (errMsgs.length > 0) {
           errors.push(`รายการ #${idx + 1}: ${errMsgs.join(", ")}`);
         }
+        item.products.forEach((prod, pIdx) => {
+          const prodErrors = validateOrderItemProduct(prod);
+          const prodErrMsgs = Object.values(prodErrors).filter(Boolean);
+          if (prodErrMsgs.length > 0) {
+            errors.push(`รายการ #${idx + 1} สินค้า #${pIdx + 1}: ${prodErrMsgs.join(", ")}`);
+          }
+        });
       });
 
       const subtotal = pricingSummary.subtotalItems + pricingSummary.subtotalFees;
@@ -374,52 +396,53 @@ export default function NewOrderPage() {
     items: isQuickInquiry
       ? []
       : items.map((item) => ({
-          productId: item.productId,
-          productType: item.productType,
-          description: item.description,
-          material: item.material || undefined,
-          baseUnitPrice: item.baseUnitPrice,
-          itemSource: (item.itemSource || undefined) as "FROM_STOCK" | "CUSTOM_MADE" | "CUSTOMER_PROVIDED" | undefined,
-          fabricType: item.fabricType || undefined,
-          fabricWeight: item.fabricWeight || undefined,
-          fabricColor: item.fabricColor || undefined,
-          processingType: deriveProcessingType(item.itemSource, item.needsPrinting) as "PRINT_ONLY" | "CUT_AND_SEW_PRINT" | "CUT_AND_SEW_ONLY" | "PACK_ONLY" | "FULL_PRODUCTION",
-          variants: item.variants.map((v) => ({
-            size: v.size,
-            color: v.color || undefined,
-            quantity: v.quantity,
+          description: item.description || undefined,
+          notes: item.notes || undefined,
+          products: item.products.map((p) => ({
+            productId: p.productId,
+            productType: p.productType,
+            description: p.description,
+            material: p.material || undefined,
+            baseUnitPrice: p.baseUnitPrice,
+            discount: p.discount || 0,
+            packagingOptionId: p.packagingOptionId || undefined,
+            itemSource: (p.itemSource || undefined) as "FROM_STOCK" | "CUSTOM_MADE" | "CUSTOMER_PROVIDED" | undefined,
+            fabricType: p.fabricType || undefined,
+            fabricWeight: p.fabricWeight || undefined,
+            fabricColor: p.fabricColor || undefined,
+            processingType: deriveProcessingType(p.itemSource, item.prints.length > 0) as "PRINT_ONLY" | "CUT_AND_SEW_PRINT" | "CUT_AND_SEW_ONLY" | "PACK_ONLY" | "FULL_PRODUCTION",
+            variants: p.variants.map((v) => ({
+              size: v.size,
+              color: v.color || undefined,
+              quantity: v.quantity,
+            })),
+            patternId: p.patternId || undefined,
+            collarType: p.collarType || undefined,
+            sleeveType: p.sleeveType || undefined,
+            bodyFit: p.bodyFit || undefined,
+            patternFileUrl: p.patternFileUrl || undefined,
+            patternNote: p.patternNote || undefined,
+            garmentCondition: p.garmentCondition || undefined,
+            receivedInspected: p.receivedInspected,
+            receiveNote: p.receiveNote || undefined,
           })),
-          prints: item.needsPrinting
-            ? item.prints.map((p) => ({
-                position: p.position,
-                printType: p.printType,
-                colorCount: p.colorCount || undefined,
-                printSize: p.printSize || undefined,
-                width: p.width || undefined,
-                height: p.height || undefined,
-                designNote: p.designNote || undefined,
-                designImageUrl: p.designImageUrl || undefined,
-                unitPrice: p.unitPrice,
-              }))
-            : [],
+          prints: item.prints.map((pr) => ({
+            position: pr.position,
+            printType: pr.printType,
+            colorCount: pr.colorCount || undefined,
+            printSize: pr.printSize || undefined,
+            width: pr.width || undefined,
+            height: pr.height || undefined,
+            designNote: pr.designNote || undefined,
+            designImageUrl: pr.designImageUrl || undefined,
+            unitPrice: pr.unitPrice,
+          })),
           addons: item.addons.map((a) => ({
             addonType: a.addonType,
             name: a.name,
             pricingType: a.pricingType as "PER_PIECE" | "PER_ORDER",
             unitPrice: a.unitPrice,
           })),
-          notes: item.notes || undefined,
-          // Garment spec (CUSTOM_MADE)
-          patternId: item.patternId || undefined,
-          collarType: item.collarType || undefined,
-          sleeveType: item.sleeveType || undefined,
-          bodyFit: item.bodyFit || undefined,
-          patternFileUrl: item.patternFileUrl || undefined,
-          patternNote: item.patternNote || undefined,
-          // Receive tracking (CUSTOMER_PROVIDED)
-          garmentCondition: item.garmentCondition || undefined,
-          receivedInspected: item.receivedInspected,
-          receiveNote: item.receiveNote || undefined,
         })),
     fees: showFeeSections
       ? fees.map((f) => ({
@@ -442,9 +465,10 @@ export default function NewOrderPage() {
     setFormErrors(errors);
     if (errors.length > 0) return;
 
+    const totalProducts = items.reduce((s, it) => s + it.products.length, 0);
     const summary = isQuickInquiry
       ? `สร้างการสอบถาม "${title}"?`
-      : `สร้างออเดอร์ ${title} - ${items.length} รายการ - ยอดรวม ${formatCurrency(pricingSummary.grandTotal)} บาท?`;
+      : `สร้างออเดอร์ ${title} - ${items.length} รายการ (${totalProducts} สินค้า) - ยอดรวม ${formatCurrency(pricingSummary.grandTotal)} บาท?`;
     if (!window.confirm(summary)) return;
 
     createOrder.mutate(buildMutationInput(false));
@@ -578,6 +602,49 @@ export default function NewOrderPage() {
         {/* LEFT COLUMN — Items + Images + Fees                          */}
         {/* ============================================================ */}
         <div className="space-y-6">
+          {/* Product Lines */}
+          {showItemsSection && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Package className="h-4 w-4" />
+                  รายการสินค้า
+                </CardTitle>
+                <Button type="button" variant="outline" size="sm" onClick={() => { addItem(); setExpandedItemIdx(items.length); }}>
+                  <Plus className="mr-1 h-4 w-4" />
+                  รายการงานพิมพ์ใหม่
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-0">
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {items.map((item, itemIdx) => (
+                    <OrderItemCard
+                      key={itemIdx}
+                      item={item}
+                      itemIdx={itemIdx}
+                      canRemove={items.length > 1}
+                      isExpanded={expandedItemIdx === itemIdx}
+                      onToggleExpand={() => setExpandedItemIdx(expandedItemIdx === itemIdx ? null : itemIdx)}
+                      allItems={items}
+                      printCatalog={printCatalog}
+                      addonCatalog={addonCatalog}
+                      onUpdateItem={updateItem}
+                      onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
+                      onAddPrint={addPrint}
+                      onRemovePrint={removePrint}
+                      onUpdatePrint={updatePrint}
+                      onAddAddon={addAddon}
+                      onRemoveAddon={removeAddon}
+                      onUpdateAddon={updateAddon}
+                      onOpenPicker={() => setPickerOpen(true)}
+                      onSetItems={(updater) => setItems(updater(items))}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Reference Images */}
           <Card>
             <CardHeader>
@@ -620,67 +687,6 @@ export default function NewOrderPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Product Lines */}
-          {showItemsSection && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Package className="h-4 w-4" />
-                  รายการสินค้า
-                </CardTitle>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
-                    <Search className="mr-1 h-4 w-4" />
-                    เพิ่มจากสต็อก
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => { addItem(); setExpandedItemIdx(items.length); }}>
-                    <Plus className="mr-1 h-4 w-4" />
-                    เพิ่มรายการเปล่า
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-0">
-                {items.length > 1 && (
-                  <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:text-slate-500">
-                    <span className="w-6" />
-                    <span className="w-16">แหล่ง</span>
-                    <span className="flex-1">สินค้า</span>
-                    <span className="hidden flex-shrink-0 sm:block">ไซส์/สี</span>
-                    <span className="w-12 text-center">จำนวน</span>
-                    <span className="hidden w-16 text-center md:block">สกรีน</span>
-                    <span className="w-20 text-right">ราคารวม</span>
-                    <span className="w-[4.5rem]" />
-                  </div>
-                )}
-                <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {items.map((item, itemIdx) => (
-                    <OrderItemCard
-                      key={itemIdx}
-                      item={item}
-                      itemIdx={itemIdx}
-                      canRemove={items.length > 1}
-                      isExpanded={expandedItemIdx === itemIdx}
-                      onToggleExpand={() => setExpandedItemIdx(expandedItemIdx === itemIdx ? null : itemIdx)}
-                      allItems={items}
-                      printCatalog={printCatalog}
-                      addonCatalog={addonCatalog}
-                      onUpdateItem={updateItem}
-                      onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
-                      onAddPrint={addPrint}
-                      onRemovePrint={removePrint}
-                      onUpdatePrint={updatePrint}
-                      onAddAddon={addAddon}
-                      onRemoveAddon={removeAddon}
-                      onUpdateAddon={updateAddon}
-                      onOpenPicker={() => setPickerOpen(true)}
-                      onSetItems={(updater) => setItems(updater(items))}
-                    />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Order Fees */}
           {showFeeSections && (

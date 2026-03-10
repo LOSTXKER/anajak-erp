@@ -304,15 +304,16 @@ export function ProductPickerDialog({
                       {/* Expanded: variant selection with checkboxes + qty */}
                       {isExpanded && product.variants.length > 0 && (
                         <div className="mb-1 ml-10 mr-3 rounded-lg border border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50">
-                          <table className="w-full text-xs">
+                          <table className="w-full table-fixed text-xs">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                                <th className="w-8 px-2 py-1.5" />
-                                <th className="px-3 py-1.5 text-left font-medium">ไซส์</th>
-                                <th className="px-3 py-1.5 text-left font-medium">สี</th>
-                                <th className="px-3 py-1.5 text-right font-medium">คงเหลือ</th>
-                                <th className="px-3 py-1.5 text-right font-medium">ราคา</th>
-                                <th className="px-3 py-1.5 text-center font-medium">จำนวน</th>
+                                <th className="w-9 px-2 py-1.5" />
+                                <th className="px-3 py-1.5 text-left font-medium">SKU</th>
+                                <th className="w-[14%] px-3 py-1.5 text-left font-medium">สี</th>
+                                <th className="w-[12%] px-3 py-1.5 text-left font-medium">ไซส์</th>
+                                <th className="w-[14%] px-3 py-1.5 text-right font-medium">คงเหลือ</th>
+                                <th className="w-[14%] px-3 py-1.5 text-right font-medium">ราคา</th>
+                                <th className="w-28 px-3 py-1.5 text-center font-medium">จำนวน</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -335,11 +336,14 @@ export function ProductPickerDialog({
                                         className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                       />
                                     </td>
-                                    <td className="px-3 py-1.5 font-medium text-slate-700 dark:text-slate-300">
-                                      {v.size}
+                                    <td className="truncate px-3 py-1.5 font-mono text-slate-500 dark:text-slate-400">
+                                      {v.sku}
                                     </td>
                                     <td className="px-3 py-1.5 text-slate-600 dark:text-slate-400">
                                       {v.color || "-"}
+                                    </td>
+                                    <td className="px-3 py-1.5 font-medium text-slate-700 dark:text-slate-300">
+                                      {v.size}
                                     </td>
                                     <td className="px-3 py-1.5 text-right">
                                       <span
@@ -358,45 +362,44 @@ export function ProductPickerDialog({
                                     <td className="px-3 py-1.5 text-right font-medium text-slate-700 dark:text-slate-300">
                                       {v.sellingPrice > 0 ? formatCurrency(v.sellingPrice) : formatCurrency(product.basePrice)}
                                     </td>
-                                    <td className="px-3 py-1.5">
-                                      {isChecked && (
-                                        <div className="space-y-1">
-                                          <div className="flex items-center justify-center gap-1">
-                                            <button
-                                              type="button"
-                                              onClick={() => setVariantQty(v.id, qty - 1)}
-                                              className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700"
-                                            >
-                                              <Minus className="h-3 w-3" />
-                                            </button>
-                                            <input
-                                              type="number"
-                                              min={1}
-                                              value={qty}
-                                              onChange={(e) =>
-                                                setVariantQty(v.id, parseInt(e.target.value) || 0)
-                                              }
-                                              className={cn(
-                                                "h-6 w-12 rounded border bg-white px-1 text-center text-xs dark:bg-slate-900 dark:text-slate-100",
-                                                exceedsStock
-                                                  ? "border-amber-400 dark:border-amber-600"
-                                                  : "border-slate-200 dark:border-slate-700",
-                                              )}
-                                            />
-                                            <button
-                                              type="button"
-                                              onClick={() => setVariantQty(v.id, qty + 1)}
-                                              className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700"
-                                            >
-                                              <Plus className="h-3 w-3" />
-                                            </button>
-                                          </div>
-                                          {exceedsStock && (
-                                            <p className="text-center text-[10px] text-amber-600 dark:text-amber-400">
-                                              เกินสต็อก (ต้องสั่งเพิ่ม)
-                                            </p>
+                                    <td className="w-28 px-3 py-1.5">
+                                      <div className={cn("flex items-center justify-center gap-1", !isChecked && "invisible")}>
+                                        <button
+                                          type="button"
+                                          tabIndex={isChecked ? 0 : -1}
+                                          onClick={() => setVariantQty(v.id, qty - 1)}
+                                          className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700"
+                                        >
+                                          <Minus className="h-3 w-3" />
+                                        </button>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          tabIndex={isChecked ? 0 : -1}
+                                          value={isChecked ? qty : ""}
+                                          onChange={(e) =>
+                                            setVariantQty(v.id, parseInt(e.target.value) || 0)
+                                          }
+                                          className={cn(
+                                            "h-6 w-12 rounded border bg-white px-1 text-center text-xs dark:bg-slate-900 dark:text-slate-100",
+                                            exceedsStock
+                                              ? "border-amber-400 dark:border-amber-600"
+                                              : "border-slate-200 dark:border-slate-700",
                                           )}
-                                        </div>
+                                        />
+                                        <button
+                                          type="button"
+                                          tabIndex={isChecked ? 0 : -1}
+                                          onClick={() => setVariantQty(v.id, qty + 1)}
+                                          className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700"
+                                        >
+                                          <Plus className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                      {exceedsStock && (
+                                        <p className="text-center text-[10px] text-amber-600 dark:text-amber-400">
+                                          เกินสต็อก (ต้องสั่งเพิ่ม)
+                                        </p>
                                       )}
                                     </td>
                                   </tr>

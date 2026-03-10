@@ -18,6 +18,7 @@ import {
   ClipboardList,
   Package,
   Cloud,
+  Scissors,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -26,6 +27,7 @@ const navigation = [
   { name: "ออเดอร์", href: "/orders", icon: ShoppingCart },
   { name: "ใบเสนอราคา", href: "/quotations", icon: ClipboardList },
   { name: "สินค้า", href: "/products", icon: Package },
+  { name: "แพทเทิร์น", href: "/settings/patterns", icon: Scissors },
   { name: "ลูกค้า", href: "/customers", icon: Users },
   { name: "การผลิต", href: "/production", icon: Factory },
   { name: "งานออกแบบ", href: "/designs", icon: Palette },

@@ -19,11 +19,18 @@ export interface PricingAddon {
   quantity?: number | null;
 }
 
+export interface PricingProduct {
+  baseUnitPrice: number;
+  discount?: number;
+  totalQuantity: number;
+}
+
 export interface PricingItem {
   baseUnitPrice: number;
   totalQuantity: number;
   prints: PricingPrint[];
   addons: PricingAddon[];
+  products?: PricingProduct[];
 }
 
 export interface PricingFee {
@@ -56,10 +63,18 @@ export interface PricingOrder {
 export function calculateItemSubtotal(item: PricingItem): number {
   const qty = item.totalQuantity;
 
-  // Base garment cost
-  const baseCost = qty * item.baseUnitPrice;
+  // Base garment cost (supports multi-product)
+  let baseCost: number;
+  if (item.products && item.products.length > 0) {
+    baseCost = item.products.reduce((sum, p) => {
+      const net = Math.max(0, p.baseUnitPrice - (p.discount || 0));
+      return sum + p.totalQuantity * net;
+    }, 0);
+  } else {
+    baseCost = qty * item.baseUnitPrice;
+  }
 
-  // All print positions cost (per piece)
+  // All print positions cost (per piece, applied to total qty)
   const printCost =
     qty * item.prints.reduce((sum, p) => sum + p.unitPrice, 0);
 
@@ -68,7 +83,6 @@ export function calculateItemSubtotal(item: PricingItem): number {
     if (a.pricingType === "PER_PIECE") {
       return sum + (a.quantity ?? qty) * a.unitPrice;
     }
-    // PER_ORDER: flat fee
     return sum + a.unitPrice;
   }, 0);
 

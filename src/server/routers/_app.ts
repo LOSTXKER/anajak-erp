@@ -15,6 +15,7 @@ import { attachmentRouter } from "./attachment";
 import { serviceCatalogRouter } from "./service-catalog";
 import { stockSyncRouter } from "./stock-sync";
 import { patternRouter } from "./pattern";
+import { packagingRouter } from "./packaging";
 import { settingsRouter } from "./settings";
 
 export const appRouter = router({
@@ -33,6 +34,7 @@ export const appRouter = router({
   attachment: attachmentRouter,
   serviceCatalog: serviceCatalogRouter,
   pattern: patternRouter,
+  packaging: packagingRouter,
   stockSync: stockSyncRouter,
   settings: settingsRouter,
 });

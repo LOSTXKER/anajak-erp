@@ -349,10 +349,10 @@ export default function ProductDetailPage({
                     <thead>
                       <tr className="border-b border-slate-100 dark:border-slate-800">
                         <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                          ไซส์
+                          สี
                         </th>
                         <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                          สี
+                          ไซส์
                         </th>
                         <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
                           SKU
@@ -379,11 +379,11 @@ export default function ProductDetailPage({
                             !variant.isActive ? "opacity-50" : ""
                           }`}
                         >
-                          <td className="px-3 py-2.5 text-sm font-medium text-slate-900 dark:text-white">
-                            {variant.size}
-                          </td>
                           <td className="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">
                             {variant.color}
+                          </td>
+                          <td className="px-3 py-2.5 text-sm font-medium text-slate-900 dark:text-white">
+                            {variant.size}
                           </td>
                           <td className="px-3 py-2.5 font-mono text-xs text-slate-500">
                             {variant.sku}

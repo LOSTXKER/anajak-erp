@@ -63,14 +63,14 @@ import { OrderInfoEditDialog } from "@/components/orders/order-info-edit-dialog"
 // Receive Tracking Inline Form (for CUSTOMER_PROVIDED items)
 // ============================================================
 
-function ReceiveTrackingInline({ item, onSuccess }: {
-  item: { id: string; garmentCondition?: string | null; receivedInspected: boolean; receiveNote?: string | null };
+function ReceiveTrackingInline({ product, onSuccess }: {
+  product: { id: string; garmentCondition?: string | null; receivedInspected: boolean; receiveNote?: string | null };
   onSuccess: () => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [condition, setCondition] = useState(item.garmentCondition ?? "");
-  const [inspected, setInspected] = useState(item.receivedInspected);
-  const [note, setNote] = useState(item.receiveNote ?? "");
+  const [condition, setCondition] = useState(product.garmentCondition ?? "");
+  const [inspected, setInspected] = useState(product.receivedInspected);
+  const [note, setNote] = useState(product.receiveNote ?? "");
 
   const mutation = trpc.order.updateReceiveTracking.useMutation({
     onSuccess: () => { setEditing(false); onSuccess(); },
@@ -81,17 +81,17 @@ function ReceiveTrackingInline({ item, onSuccess }: {
       <div className="flex flex-wrap items-center gap-2 rounded-md border border-yellow-200 bg-yellow-50/50 px-3 py-2 text-xs dark:border-yellow-900 dark:bg-yellow-950/20">
         <Package className="h-3.5 w-3.5 text-yellow-600" />
         <span className="font-medium text-yellow-700 dark:text-yellow-300">ตรวจรับของ:</span>
-        {item.receivedInspected ? (
+        {product.receivedInspected ? (
           <>
             <Badge variant="default" className="text-[10px]">ตรวจรับแล้ว</Badge>
-            {item.garmentCondition && <span className="text-slate-500">สภาพ: {GARMENT_CONDITIONS[item.garmentCondition] ?? item.garmentCondition}</span>}
-            {item.receiveNote && <span className="text-slate-500">({item.receiveNote})</span>}
+            {product.garmentCondition && <span className="text-slate-500">สภาพ: {GARMENT_CONDITIONS[product.garmentCondition] ?? product.garmentCondition}</span>}
+            {product.receiveNote && <span className="text-slate-500">({product.receiveNote})</span>}
           </>
         ) : (
           <span className="text-slate-400">ยังไม่ได้ตรวจรับ</span>
         )}
         <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1 px-2 text-[10px] text-yellow-600 hover:text-yellow-800 dark:text-yellow-400">
-          <Edit3 className="h-3 w-3" />{item.receivedInspected ? "แก้ไข" : "ตรวจรับ"}
+          <Edit3 className="h-3 w-3" />{product.receivedInspected ? "แก้ไข" : "ตรวจรับ"}
         </Button>
       </div>
     );
@@ -124,10 +124,10 @@ function ReceiveTrackingInline({ item, onSuccess }: {
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" className="h-8 text-xs" />
         </div>
         <div className="flex gap-1">
-          <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemId: item.id, garmentCondition: condition || undefined, receivedInspected: inspected, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1 bg-yellow-600 text-xs text-white hover:bg-yellow-700">
+          <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receivedInspected: inspected, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1 bg-yellow-600 text-xs text-white hover:bg-yellow-700">
             <Check className="h-3 w-3" />{mutation.isPending ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setCondition(item.garmentCondition ?? ""); setInspected(item.receivedInspected); setNote(item.receiveNote ?? ""); }} className="h-8 text-xs">
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setCondition(product.garmentCondition ?? ""); setInspected(product.receivedInspected); setNote(product.receiveNote ?? ""); }} className="h-8 text-xs">
             ยกเลิก
           </Button>
         </div>
@@ -485,25 +485,10 @@ export default function OrderDetailPage({
               <div className="space-y-6">
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {order.items?.map((item: any, itemIndex: number) => {
-                  const stockShortages: { size: string; color: string; needed: number; available: number; short: number }[] = [];
-                  if (item.product && item.variants) {
-                    for (const v of item.variants) {
-                      const pv = item.product.variants?.find(
-                        (pv: any) => pv.size === v.size && (!v.color || pv.color === v.color),
-                      );
-                      const available = pv ? (pv.totalStock ?? pv.stock ?? 0) : 0;
-                      if (v.quantity > available) {
-                        stockShortages.push({ size: v.size, color: v.color || "", needed: v.quantity, available, short: v.quantity - available });
-                      }
-                    }
-                  }
-                  const hasShortage = stockShortages.length > 0;
+                  const itemTotalQty = item.products?.reduce((s: number, p: any) => s + (p.variants?.reduce((vs: number, v: any) => vs + v.quantity, 0) ?? 0), 0) ?? 0;
 
                   return (
-                    <div
-                      key={item.id}
-                      className="rounded-lg border border-slate-200 dark:border-slate-800"
-                    >
+                    <div key={item.id} className="rounded-lg border border-slate-200 dark:border-slate-800">
                       {/* Item header */}
                       <div className="flex items-start justify-between border-b border-slate-100 p-4 dark:border-slate-800">
                         <div className="space-y-1">
@@ -511,146 +496,29 @@ export default function OrderDetailPage({
                             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                               {itemIndex + 1}
                             </span>
-                            {item.itemSource && (
-                              <Badge variant={
-                                item.itemSource === "FROM_STOCK" || item.itemSource === "ORDER_FROM_SUPPLIER" ? "default" :
-                                item.itemSource === "CUSTOMER_PROVIDED" ? "warning" :
-                                item.itemSource === "CUSTOM_MADE" ? "purple" : "default"
-                              }>
-                                {item.itemSource === "FROM_STOCK" || item.itemSource === "ORDER_FROM_SUPPLIER" ? "จากสต็อก" :
-                                 item.itemSource === "CUSTOM_MADE" ? "ตัดเย็บใหม่" :
-                                 item.itemSource === "CUSTOMER_PROVIDED" ? "ลูกค้าส่งมา" :
-                                 item.itemSource}
-                              </Badge>
-                            )}
-                            {item.productType && (
-                              <Badge variant="secondary">
-                                {item.productType}
-                              </Badge>
-                            )}
-                            {item.processingType && (
-                              <Badge variant="outline">
-                                {item.processingType === "PRINT_ONLY" ? "สกรีนอย่างเดียว" :
-                                 item.processingType === "CUT_AND_SEW_PRINT" ? "ตัดเย็บ+สกรีน" :
-                                 item.processingType === "CUT_AND_SEW_ONLY" ? "ตัดเย็บอย่างเดียว" :
-                                 item.processingType === "PACK_ONLY" ? "แพ็คส่ง" :
-                                 item.processingType === "FULL_PRODUCTION" ? "ผลิตครบวงจร" :
-                                 item.processingType}
-                              </Badge>
-                            )}
-                            {item.material && (
-                              <Badge variant="outline">{item.material}</Badge>
-                            )}
-                            {hasShortage && (
-                              <Badge variant="destructive" className="gap-1 text-[10px]">
-                                <AlertTriangle className="h-3 w-3" />
-                                ขาดสต็อก {stockShortages.reduce((s, x) => s + x.short, 0)} ชิ้น
-                              </Badge>
-                            )}
+                            <Badge variant="secondary">{item.products?.length ?? 0} สินค้า</Badge>
+                            <Badge variant="outline">{itemTotalQty} ชิ้น</Badge>
                           </div>
                           {item.description && (
-                            <p className="text-sm text-slate-700 dark:text-slate-300">
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
                               {item.description}
                             </p>
                           )}
-                          {/* Fabric details */}
-                          {(item.fabricType || item.fabricWeight || item.fabricColor) && (
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                              {item.fabricType && <span>ผ้า: {item.fabricType}</span>}
-                              {item.fabricWeight && <span>น้ำหนัก: {item.fabricWeight}</span>}
-                              {item.fabricColor && <span>สีผ้า: {item.fabricColor}</span>}
-                            </div>
-                          )}
-                          {/* Garment spec */}
-                          {(item.collarType || item.sleeveType || item.bodyFit) && (
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                              {item.collarType && <span>ทรงคอ: {COLLAR_TYPES[item.collarType] ?? item.collarType}</span>}
-                              {item.sleeveType && <span>แขน: {SLEEVE_TYPES[item.sleeveType] ?? item.sleeveType}</span>}
-                              {item.bodyFit && <span>ฟิต: {BODY_FITS[item.bodyFit] ?? item.bodyFit}</span>}
-                              {item.patternNote && <span>หมายเหตุ: {item.patternNote}</span>}
-                            </div>
-                          )}
-                          {/* Receive tracking (editable for CUSTOMER_PROVIDED) */}
-                          {item.itemSource === "CUSTOMER_PROVIDED" && (
-                            <ReceiveTrackingInline
-                              item={{ id: item.id, garmentCondition: item.garmentCondition, receivedInspected: item.receivedInspected, receiveNote: item.receiveNote }}
-                              onSuccess={() => utils.order.getById.invalidate({ id })}
-                            />
+                          {item.notes && (
+                            <p className="text-xs text-slate-500">{item.notes}</p>
                           )}
                         </div>
                         <div className="text-right">
-                          {item.baseUnitPrice != null && (
-                            <p className="text-xs text-slate-500">
-                              ราคาฐาน {formatCurrency(item.baseUnitPrice)}/ชิ้น
+                          {item.subtotal != null && (
+                            <p className="tabular-nums text-sm font-bold text-slate-900 dark:text-white">
+                              {formatCurrency(item.subtotal)}
                             </p>
                           )}
                         </div>
                       </div>
 
                       <div className="space-y-4 p-4">
-                        {/* Variants table */}
-                        {item.variants && item.variants.length > 0 && (
-                          <div>
-                            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                              <ShoppingBag className="h-3.5 w-3.5" />
-                              รายละเอียดสินค้า
-                            </div>
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="border-b border-slate-100 dark:border-slate-800">
-                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ไซส์</th>
-                                    <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">สี</th>
-                                    <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">จำนวน</th>
-                                    {item.product && <th className="pb-2 text-right text-xs font-medium text-slate-500">สต็อก</th>}
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                  {item.variants.map((v: any) => {
-                                    const pv = item.product?.variants?.find(
-                                      (pv: any) => pv.size === v.size && (!v.color || pv.color === v.color),
-                                    );
-                                    const available = pv ? (pv.totalStock ?? pv.stock ?? 0) : null;
-                                    const isShort = available != null && v.quantity > available;
-
-                                    return (
-                                      <tr key={v.id}>
-                                        <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.size || "-"}</td>
-                                        <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.color || "-"}</td>
-                                        <td className="py-1.5 pr-4 text-right tabular-nums font-medium text-slate-900 dark:text-white">{v.quantity}</td>
-                                        {item.product && (
-                                          <td className="py-1.5 text-right">
-                                            {available != null ? (
-                                              <span className={isShort ? "font-medium text-red-600 dark:text-red-400" : "text-slate-500"}>
-                                                {available}
-                                                {isShort && (
-                                                  <span className="ml-1 text-[10px] text-red-500">(-{v.quantity - available})</span>
-                                                )}
-                                              </span>
-                                            ) : (
-                                              <span className="text-slate-400">-</span>
-                                            )}
-                                          </td>
-                                        )}
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                                <tfoot>
-                                  <tr className="border-t border-slate-100 dark:border-slate-800">
-                                    <td colSpan={2} className="pt-1.5 text-xs font-medium text-slate-500">รวม</td>
-                                    <td className="pt-1.5 pr-4 text-right tabular-nums text-sm font-bold text-slate-900 dark:text-white">
-                                      {item.variants.reduce((s: number, v: any) => s + v.quantity, 0)}
-                                    </td>
-                                    {item.product && <td />}
-                                  </tr>
-                                </tfoot>
-                              </table>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Prints list */}
+                        {/* Prints (shown first - this is a screen printing factory) */}
                         {item.prints && item.prints.length > 0 && (
                           <div>
                             <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -682,7 +550,6 @@ export default function OrderDetailPage({
                                   ))}
                                 </tbody>
                               </table>
-                              {/* Print design notes */}
                               {item.prints.some((p: any) => p.designNote) && (
                                 <div className="mt-2 space-y-1">
                                   {item.prints.filter((p: any) => p.designNote).map((p: any) => (
@@ -692,6 +559,125 @@ export default function OrderDetailPage({
                                   ))}
                                 </div>
                               )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Products */}
+                        {item.products && item.products.length > 0 && (
+                          <div>
+                            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                              <ShoppingBag className="h-3.5 w-3.5" />
+                              สินค้า ({item.products.length})
+                            </div>
+                            <div className="space-y-3">
+                              {item.products.map((prod: any, prodIdx: number) => {
+                                const prodQty = prod.variants?.reduce((s: number, v: any) => s + v.quantity, 0) ?? 0;
+                                const netPrice = Math.max(0, (prod.baseUnitPrice ?? 0) - (prod.discount ?? 0));
+
+                                return (
+                                  <div key={prod.id} className="rounded-md border border-slate-100 p-3 dark:border-slate-800">
+                                    {/* Product header */}
+                                    <div className="mb-2 flex items-start justify-between">
+                                      <div className="space-y-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className="text-xs font-medium text-slate-400">{prodIdx + 1}.</span>
+                                          {prod.product?.imageUrl && (
+                                            <img src={prod.product.imageUrl} alt="" className="h-8 w-8 rounded border object-cover" />
+                                          )}
+                                          <span className="text-sm font-medium text-slate-900 dark:text-white">
+                                            {prod.product?.name || prod.description || "สินค้า"}
+                                          </span>
+                                          {prod.product?.sku && (
+                                            <span className="font-mono text-xs text-slate-400">{prod.product.sku}</span>
+                                          )}
+                                          {prod.itemSource && (
+                                            <Badge variant={
+                                              prod.itemSource === "FROM_STOCK" ? "default" :
+                                              prod.itemSource === "CUSTOMER_PROVIDED" ? "warning" :
+                                              prod.itemSource === "CUSTOM_MADE" ? "purple" : "default"
+                                            }>
+                                              {prod.itemSource === "FROM_STOCK" ? "จากสต็อก" :
+                                               prod.itemSource === "CUSTOM_MADE" ? "ตัดเย็บใหม่" :
+                                               prod.itemSource === "CUSTOMER_PROVIDED" ? "ลูกค้าส่งมา" :
+                                               prod.itemSource}
+                                            </Badge>
+                                          )}
+                                          {prod.productType && <Badge variant="secondary">{prod.productType}</Badge>}
+                                          {prod.material && <Badge variant="outline">{prod.material}</Badge>}
+                                        </div>
+                                        {(prod.fabricType || prod.fabricWeight || prod.fabricColor) && (
+                                          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                            {prod.fabricType && <span>ผ้า: {prod.fabricType}</span>}
+                                            {prod.fabricWeight && <span>น้ำหนัก: {prod.fabricWeight}</span>}
+                                            {prod.fabricColor && <span>สีผ้า: {prod.fabricColor}</span>}
+                                          </div>
+                                        )}
+                                        {(prod.collarType || prod.sleeveType || prod.bodyFit) && (
+                                          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                            {prod.collarType && <span>ทรงคอ: {COLLAR_TYPES[prod.collarType] ?? prod.collarType}</span>}
+                                            {prod.sleeveType && <span>แขน: {SLEEVE_TYPES[prod.sleeveType] ?? prod.sleeveType}</span>}
+                                            {prod.bodyFit && <span>ฟิต: {BODY_FITS[prod.bodyFit] ?? prod.bodyFit}</span>}
+                                            {prod.patternNote && <span>หมายเหตุ: {prod.patternNote}</span>}
+                                          </div>
+                                        )}
+                                        {prod.packagingOption && (
+                                          <div className="text-xs text-slate-500">แพ็คเกจ: {prod.packagingOption.name}</div>
+                                        )}
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-xs text-slate-500">
+                                          {formatCurrency(prod.baseUnitPrice)}/ชิ้น
+                                          {prod.discount > 0 && <span className="ml-1 text-red-500">(-{formatCurrency(prod.discount)})</span>}
+                                        </p>
+                                        <p className="tabular-nums text-sm font-semibold text-slate-900 dark:text-white">
+                                          {formatCurrency(prodQty * netPrice)}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Receive tracking for CUSTOMER_PROVIDED */}
+                                    {prod.itemSource === "CUSTOMER_PROVIDED" && (
+                                      <div className="mb-2">
+                                        <ReceiveTrackingInline
+                                          product={{ id: prod.id, garmentCondition: prod.garmentCondition, receivedInspected: prod.receivedInspected, receiveNote: prod.receiveNote }}
+                                          onSuccess={() => utils.order.getById.invalidate({ id })}
+                                        />
+                                      </div>
+                                    )}
+
+                                    {/* Variants table */}
+                                    {prod.variants && prod.variants.length > 0 && (
+                                      <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                          <thead>
+                                            <tr className="border-b border-slate-100 dark:border-slate-800">
+                                              <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">สี</th>
+                                              <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ไซส์</th>
+                                              <th className="pb-2 text-right text-xs font-medium text-slate-500">จำนวน</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                            {prod.variants.map((v: any) => (
+                                              <tr key={v.id}>
+                                                <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.color || "-"}</td>
+                                                <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.size || "-"}</td>
+                                                <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{v.quantity}</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                          <tfoot>
+                                            <tr className="border-t border-slate-100 dark:border-slate-800">
+                                              <td colSpan={2} className="pt-1.5 text-xs font-medium text-slate-500">รวม</td>
+                                              <td className="pt-1.5 text-right tabular-nums text-sm font-bold text-slate-900 dark:text-white">{prodQty}</td>
+                                            </tr>
+                                          </tfoot>
+                                        </table>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         )}

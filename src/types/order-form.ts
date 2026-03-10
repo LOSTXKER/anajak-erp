@@ -24,18 +24,16 @@ export type AddonForm = {
   unitPrice: number;
 };
 
-export type OrderItemForm = {
+export type OrderItemProductForm = {
   productId?: string;
   productType: string;
   description: string;
   material: string;
   baseUnitPrice: number;
+  discount: number;
+  packagingOptionId: string;
   variants: VariantForm[];
-  prints: PrintForm[];
-  addons: AddonForm[];
-  notes: string;
   itemSource: string;
-  needsPrinting: boolean;
   fabricType: string;
   fabricWeight: string;
   fabricColor: string;
@@ -57,6 +55,14 @@ export type OrderItemForm = {
   garmentCondition: string;
   receivedInspected: boolean;
   receiveNote: string;
+};
+
+export type OrderItemForm = {
+  description: string;
+  products: OrderItemProductForm[];
+  prints: PrintForm[];
+  addons: AddonForm[];
+  notes: string;
 };
 
 export type OrderFeeForm = {
@@ -93,17 +99,15 @@ export const EMPTY_ADDON: AddonForm = {
   unitPrice: 0,
 };
 
-export const EMPTY_ITEM: OrderItemForm = {
+export const EMPTY_PRODUCT: OrderItemProductForm = {
   productType: "T_SHIRT",
   description: "",
   material: "",
   baseUnitPrice: 0,
+  discount: 0,
+  packagingOptionId: "",
   variants: [{ ...EMPTY_VARIANT }],
-  prints: [],
-  addons: [],
-  notes: "",
   itemSource: "",
-  needsPrinting: true,
   fabricType: "",
   fabricWeight: "",
   fabricColor: "",
@@ -117,6 +121,14 @@ export const EMPTY_ITEM: OrderItemForm = {
   garmentCondition: "",
   receivedInspected: false,
   receiveNote: "",
+};
+
+export const EMPTY_ITEM: OrderItemForm = {
+  description: "",
+  products: [],
+  prints: [],
+  addons: [],
+  notes: "",
 };
 
 export const EMPTY_FEE: OrderFeeForm = { feeType: "", name: "", amount: 0 };
@@ -143,7 +155,6 @@ export const PRODUCT_TYPES: Record<string, string> = {
 export const ITEM_SOURCES: Record<string, string> = {
   FROM_STOCK: "จากสต็อก",
   CUSTOM_MADE: "ตัดเย็บใหม่",
-  ORDER_FROM_SUPPLIER: "สั่งจากซัพพลายเออร์",
   CUSTOMER_PROVIDED: "ลูกค้าส่งมา",
 };
 
@@ -240,22 +251,32 @@ export function deriveProcessingType(itemSource: string, needsPrinting: boolean)
   return "PACK_ONLY";
 }
 
-export type ItemValidationErrors = {
+export type ProductValidationErrors = {
   description?: string;
   baseUnitPrice?: string;
   variants?: string;
   itemSource?: string;
 };
 
-export function validateOrderItem(item: OrderItemForm): ItemValidationErrors {
-  const errors: ItemValidationErrors = {};
-  if (!item.description.trim()) errors.description = "กรุณาระบุคำอธิบาย";
-  if (item.itemSource !== "CUSTOMER_PROVIDED" && item.baseUnitPrice <= 0) {
+export type ItemValidationErrors = {
+  products?: string;
+};
+
+export function validateOrderItemProduct(product: OrderItemProductForm): ProductValidationErrors {
+  const errors: ProductValidationErrors = {};
+  if (!product.description.trim()) errors.description = "กรุณาระบุคำอธิบาย";
+  if (product.itemSource !== "CUSTOMER_PROVIDED" && product.baseUnitPrice <= 0) {
     errors.baseUnitPrice = "กรุณาระบุราคา";
   }
-  if (item.variants.length === 0 || item.variants.every((v) => !v.size.trim())) {
+  if (product.variants.length === 0 || product.variants.every((v) => !v.size.trim())) {
     errors.variants = "กรุณาระบุไซส์อย่างน้อย 1 รายการ";
   }
-  if (!item.itemSource) errors.itemSource = "กรุณาเลือกแหล่งที่มาของสินค้า";
+  if (!product.itemSource) errors.itemSource = "กรุณาเลือกแหล่งที่มาของสินค้า";
+  return errors;
+}
+
+export function validateOrderItem(item: OrderItemForm): ItemValidationErrors {
+  const errors: ItemValidationErrors = {};
+  if (item.products.length === 0) errors.products = "กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ";
   return errors;
 }

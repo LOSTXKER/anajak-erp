@@ -4,42 +4,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatCurrency } from "@/lib/utils";
-import {
-  calculateItemSubtotal,
-  calculateTotalQuantity,
-  calculateItemPriceBreakdown,
-} from "@/lib/pricing";
+import { calculateTotalQuantity } from "@/lib/pricing";
 import {
   Plus,
   Trash2,
   Package,
   Palette,
-  Printer,
   Copy,
   AlertCircle,
-  Search,
   ImageIcon,
   Pencil,
   Check,
+  ChevronUp,
+  ChevronDown,
+  PackagePlus,
+  Scissors,
+  Shirt,
 } from "lucide-react";
-import type { OrderItemForm, ItemValidationErrors } from "@/types/order-form";
+import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 import {
   PRODUCT_TYPES,
-  ITEM_SOURCES,
-  FABRIC_TYPES,
   PRINT_POSITIONS,
   PRINT_TYPES,
   PRINT_SIZES,
+  ITEM_SOURCES,
+  FABRIC_TYPES,
   COLLAR_TYPES,
   SLEEVE_TYPES,
   BODY_FITS,
-  validateOrderItem,
+  EMPTY_PRODUCT,
 } from "@/types/order-form";
-import { SizeMatrix } from "./size-matrix";
-import { useState, useMemo, useRef, type ReactNode } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import { trpc } from "@/lib/trpc";
 import { uploadFile } from "@/lib/supabase";
-import { Scissors, Upload, Loader2, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 const selectClass =
   "flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
@@ -68,39 +66,39 @@ interface OrderItemCardProps {
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void;
 }
 
-// ============================================================
-// HELPER: build summary text
-// ============================================================
-
-function buildVariantsSummary(item: OrderItemForm): string {
-  const sizes = [...new Set(item.variants.map((v) => v.size).filter(Boolean))];
-  const colors = [...new Set(item.variants.map((v) => v.color).filter(Boolean))];
-  const parts: string[] = [];
-  if (sizes.length > 0) parts.push(sizes.length <= 4 ? sizes.join(",") : `${sizes[0]}-${sizes[sizes.length - 1]}`);
-  if (colors.length > 0) parts.push(`(${colors.length <= 3 ? colors.join(",") : `${colors.length} สี`})`);
-  return parts.join(" ") || "—";
-}
-
 function getItemLabel(item: OrderItemForm): string {
-  if (item.productName) return item.productName;
   if (item.description) return item.description;
+  const first = item.products[0];
+  if (first?.productName) return first.productName;
+  if (first?.description) return first.description;
   return "รายการใหม่";
 }
 
+function getItemTotalQty(item: OrderItemForm): number {
+  return item.products.reduce((s, p) => s + calculateTotalQuantity(p.variants), 0);
+}
+
+function getItemSubtotal(item: OrderItemForm): number {
+  const totalQty = getItemTotalQty(item);
+  const productsCost = item.products.reduce((s, p) => {
+    const pQty = calculateTotalQuantity(p.variants);
+    const net = Math.max(0, p.baseUnitPrice - (p.discount || 0));
+    return s + pQty * net;
+  }, 0);
+  const printsCost = totalQty * item.prints.reduce((s, p) => s + p.unitPrice, 0);
+  const addonsCost = item.addons.reduce((s, a) => {
+    if (a.pricingType === "PER_PIECE") return s + totalQty * a.unitPrice;
+    return s + a.unitPrice;
+  }, 0);
+  return productsCost + printsCost + addonsCost;
+}
+
 // ============================================================
-// COMPACT ROW (collapsed state)
+// COLLAPSED ROW
 // ============================================================
 
 function OrderItemRow({
-  item,
-  itemIdx,
-  canRemove,
-  isExpanded,
-  onToggleExpand,
-  onRemoveItem,
-  totalQty,
-  itemSubtotal,
-  errorCount,
+  item, itemIdx, canRemove, isExpanded, onToggleExpand, onRemoveItem,
 }: {
   item: OrderItemForm;
   itemIdx: number;
@@ -108,10 +106,11 @@ function OrderItemRow({
   isExpanded: boolean;
   onToggleExpand: () => void;
   onRemoveItem: (idx: number) => void;
-  totalQty: number;
-  itemSubtotal: number;
-  errorCount: number;
 }) {
+  const totalQty = getItemTotalQty(item);
+  const subtotal = getItemSubtotal(item);
+  const productCount = item.products.length;
+
   return (
     <div
       className={cn(
@@ -121,78 +120,41 @@ function OrderItemRow({
           : "hover:bg-slate-50 dark:hover:bg-slate-800/40",
       )}
     >
-      {/* # */}
       <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
         {itemIdx + 1}
       </span>
 
-      {/* Source badge */}
-      {item.itemSource ? (
-        <Badge
-          variant={item.itemSource === "FROM_STOCK" ? "default" : item.itemSource === "CUSTOMER_PROVIDED" ? "warning" : item.itemSource === "CUSTOM_MADE" ? "purple" : "default"}
-          className="flex-shrink-0 text-[10px]"
-        >
-          {ITEM_SOURCES[item.itemSource] || item.itemSource}
-        </Badge>
-      ) : (
-        <Badge variant="secondary" className="flex-shrink-0 text-[10px]">ยังไม่ระบุ</Badge>
-      )}
-
-      {/* Product name */}
       <button
         type="button"
         onClick={onToggleExpand}
         className="min-w-0 flex-1 truncate text-left text-sm font-medium text-slate-700 hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-400"
       >
         {getItemLabel(item)}
+        {productCount > 0 && (
+          <span className="ml-1.5 text-xs font-normal text-slate-400">
+            · {productCount} สินค้า
+          </span>
+        )}
       </button>
 
-      {/* Variants summary */}
-      <span className="hidden flex-shrink-0 text-xs text-slate-500 dark:text-slate-400 sm:block">
-        {buildVariantsSummary(item)}
-      </span>
-
-      {/* Qty */}
       <span className="w-12 flex-shrink-0 text-center text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-200">
         {totalQty > 0 ? totalQty : "—"}
       </span>
 
-      {/* Print count */}
       <span className="hidden w-16 flex-shrink-0 text-center text-xs text-slate-500 dark:text-slate-400 md:block">
-        {item.needsPrinting && item.prints.length > 0 ? `${item.prints.length} ลาย` : "—"}
+        {item.prints.length > 0 ? `${item.prints.length} ลาย` : "—"}
       </span>
 
-      {/* Subtotal */}
       <span className="w-20 flex-shrink-0 text-right text-sm font-bold tabular-nums text-blue-600 dark:text-blue-400">
-        {itemSubtotal > 0 ? formatCurrency(itemSubtotal) : "—"}
+        {subtotal > 0 ? formatCurrency(subtotal) : "—"}
       </span>
 
-      {/* Error indicator */}
-      {errorCount > 0 && !isExpanded && (
-        <span className="flex-shrink-0">
-          <AlertCircle className="h-4 w-4 text-red-500" />
-        </span>
-      )}
-
-      {/* Actions */}
       <div className="flex flex-shrink-0 items-center gap-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onToggleExpand}
-          className={cn("h-7 w-7 p-0", isExpanded ? "text-blue-600" : "text-slate-400 hover:text-blue-600")}
-        >
+        <Button type="button" variant="ghost" size="sm" onClick={onToggleExpand} className={cn("h-7 w-7 p-0", isExpanded ? "text-blue-600" : "text-slate-400 hover:text-blue-600")}>
           {isExpanded ? <Check className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
         </Button>
         {canRemove && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={(e) => { e.stopPropagation(); onRemoveItem(itemIdx); }}
-            className="h-7 w-7 p-0 text-slate-400 hover:text-red-600"
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onRemoveItem(itemIdx); }} className="h-7 w-7 p-0 text-slate-400 hover:text-red-600">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         )}
@@ -202,7 +164,7 @@ function OrderItemRow({
 }
 
 // ============================================================
-// VALIDATED FIELD WRAPPER
+// FIELD WRAPPER
 // ============================================================
 
 function Field({ label, error, required, children }: { label: string; error?: string; required?: boolean; children: ReactNode }) {
@@ -216,13 +178,11 @@ function Field({ label, error, required, children }: { label: string; error?: st
 }
 
 // ============================================================
-// PRINT TABLE ROW (inline table row for each print)
+// PRINT TABLE ROW (compacted: 4 columns)
 // ============================================================
 
 function PrintTableRow({
-  print, printIdx,
-  onUpdate, onRemove,
-  printCatalog, onApplyCatalog,
+  print, printIdx, onUpdate, onRemove, printCatalog, onApplyCatalog,
 }: {
   print: import("@/types/order-form").PrintForm;
   printIdx: number;
@@ -267,295 +227,605 @@ function PrintTableRow({
   };
 
   return (
-    <tr className="group border-b border-slate-100 last:border-0 dark:border-slate-800">
-      {/* Remove + Image */}
-      <td className="py-2 pr-2 align-top">
-        <div className="flex items-start gap-1">
-          <Button type="button" variant="ghost" size="icon" onClick={onRemove} className="h-7 w-7 flex-shrink-0 text-red-400 hover:text-red-600">
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+    <>
+      <tr className="group border-b border-slate-100 last:border-0 dark:border-slate-800">
+        {/* Image */}
+        <td className="py-2 pr-1 align-middle">
           <input ref={inputRef} type="file" accept="image/*,.pdf,.ai,.psd" onChange={handleImageUpload} className="hidden" />
           {imageUrl ? (
-            <div className="group/img relative flex-shrink-0">
-              <img src={imageUrl} alt={`ลาย ${printIdx + 1}`} className="h-10 w-10 cursor-pointer rounded border border-slate-200 object-cover dark:border-slate-700" onClick={() => inputRef.current?.click()} />
+            <div className="group/img relative inline-block">
+              <img src={imageUrl} alt={`ลาย ${printIdx + 1}`} className="h-8 w-8 cursor-pointer rounded border border-slate-200 object-cover dark:border-slate-700" onClick={() => inputRef.current?.click()} />
               <button type="button" onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); }} className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover/img:opacity-100"><X className="h-2.5 w-2.5" /></button>
             </div>
           ) : (
-            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-purple-400 hover:text-purple-500 dark:border-slate-600">
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-purple-400 hover:text-purple-500 dark:border-slate-600">
+              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+            </button>
+          )}
+        </td>
+        {/* Print type (+ catalog) */}
+        <td className="px-1 py-2 align-middle">
+          {printCatalog && printCatalog.length > 0 ? (
+            <select value="" onChange={(e) => { if (e.target.value) onApplyCatalog(e.target.value); }} className={`${selectClass} h-8 text-xs`}>
+              <option value="">{print.printType ? PRINT_TYPES[print.printType] || print.printType : "วิธีพิมพ์..."}</option>
+              {printCatalog.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          ) : (
+            <select value={print.printType} onChange={(e) => onUpdate("printType", e.target.value)} className={`${selectClass} h-8 text-xs`}>
+              {Object.entries(PRINT_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          )}
+        </td>
+        {/* Size */}
+        <td className="px-1 py-2 align-middle">
+          <select value={print.printSize || ""} onChange={(e) => handleSizePreset(e.target.value)} className={`${selectClass} h-8 text-xs`}>
+            <option value="">ขนาด...</option>
+            {Object.entries(PRINT_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+        </td>
+        {/* Position */}
+        <td className="px-1 py-2 align-middle">
+          <select value={print.position} onChange={(e) => onUpdate("position", e.target.value)} className={`${selectClass} h-8 text-xs`}>
+            {Object.entries(PRINT_POSITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </td>
+        {/* Color count */}
+        <td className="px-1 py-2 align-middle">
+          {showColorCount ? (
+            <Input type="number" min={1} value={print.colorCount} onChange={(e) => onUpdate("colorCount", parseInt(e.target.value) || 1)} className="h-8 w-14 px-1.5 text-center text-xs" />
+          ) : (
+            <span className="text-xs text-slate-300">—</span>
+          )}
+        </td>
+        {/* Price */}
+        <td className="px-1 py-2 align-middle">
+          <Input type="number" min={0} step={0.01} value={print.unitPrice || ""} onChange={(e) => onUpdate("unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="h-8 w-full text-xs" />
+        </td>
+        {/* Delete */}
+        <td className="py-2 pl-1 align-middle">
+          <Button type="button" variant="ghost" size="icon" onClick={onRemove} className="h-7 w-7 text-red-400 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></Button>
+        </td>
+      </tr>
+      {isCustomSize && (
+        <tr className="border-b border-slate-100 last:border-0 dark:border-slate-800">
+          <td />
+          <td />
+          <td colSpan={5} className="px-1 pb-2 pt-0">
+            <div className="flex items-center gap-1">
+              <Input type="number" min={0} step={0.1} value={print.width || ""} onChange={(e) => onUpdate("width", parseFloat(e.target.value) || 0)} placeholder="กว้าง" className="h-6 w-16 px-1 text-center text-[11px]" />
+              <span className="text-[10px] text-slate-400">x</span>
+              <Input type="number" min={0} step={0.1} value={print.height || ""} onChange={(e) => onUpdate("height", parseFloat(e.target.value) || 0)} placeholder="สูง" className="h-6 w-16 px-1 text-center text-[11px]" />
+              <span className="text-[10px] text-slate-400">ซม.</span>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+// ============================================================
+// ADD PRODUCT POPOVER
+// ============================================================
+
+function AddProductPopover({
+  onAddFromStock,
+  onAddCustomMade,
+  onAddCustomerProvided,
+}: {
+  onAddFromStock: () => void;
+  onAddCustomMade: () => void;
+  onAddCustomerProvided: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(!open)}
+        className="h-7 gap-1 border-blue-300 px-2.5 text-xs text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
+      >
+        <Plus className="h-3.5 w-3.5" />เพิ่มสินค้า
+      </Button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+            <button
+              type="button"
+              onClick={() => { onAddFromStock(); setOpen(false); }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <Package className="h-4 w-4 text-blue-500" />
+              เลือกจากสต็อก
+            </button>
+            <button
+              type="button"
+              onClick={() => { onAddCustomMade(); setOpen(false); }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <Scissors className="h-4 w-4 text-amber-500" />
+              สั่งตัดเย็บใหม่
+            </button>
+            <button
+              type="button"
+              onClick={() => { onAddCustomerProvided(); setOpen(false); }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <Shirt className="h-4 w-4 text-orange-500" />
+              ลูกค้าส่งของมา
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// CUSTOM_MADE DETAIL (pattern + fabric + garment spec)
+// ============================================================
+
+function QuickAddPattern({
+  onCreated,
+  onCancel,
+}: {
+  onCreated: (patternId: string) => void;
+  onCancel: () => void;
+}) {
+  const utils = trpc.useUtils();
+  const createMutation = trpc.pattern.create.useMutation({
+    onSuccess: (created) => {
+      utils.pattern.list.invalidate();
+      onCreated(created.id);
+    },
+  });
+  const [name, setName] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    setUploading(true);
+    try {
+      let thumbnailUrl: string | undefined;
+      if (file) {
+        const ext = file.name.split(".").pop() || "file";
+        const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        thumbnailUrl = await uploadFile("designs", `patterns/${uniqueName}`, file);
+      }
+      await createMutation.mutateAsync({ name: name.trim(), thumbnailUrl });
+    } catch { /* ignore */ }
+    setUploading(false);
+  };
+
+  return (
+    <div className="mt-2 rounded border border-amber-300 bg-white p-2.5 dark:border-amber-700 dark:bg-amber-950/30">
+      <span className="mb-2 block text-[11px] font-medium text-amber-700 dark:text-amber-300">สร้างแพทเทิร์นใหม่</span>
+      <div className="flex items-end gap-2">
+        <div className="flex-1 space-y-1.5">
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="ชื่อแพทเทิร์น เช่น คอกลมแขนสั้น"
+            className="h-8 text-xs"
+          />
+          <label className="flex w-fit cursor-pointer items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-[11px] text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600">
+            <Plus className="h-3 w-3" />
+            {file ? file.name : "แนบรูป/ไฟล์ (ไม่บังคับ)"}
+            <input type="file" accept="image/*,.pdf,.ai,.psd" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
+          </label>
+        </div>
+        <div className="flex gap-1.5">
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} className="h-7 px-2 text-xs" disabled={uploading}>ยกเลิก</Button>
+          <Button type="button" size="sm" onClick={handleSave} className="h-7 px-3 text-xs" disabled={!name.trim() || uploading}>
+            {uploading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+            บันทึก
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CustomMadeDetail({
+  product, updateProduct,
+}: {
+  product: OrderItemProductForm;
+  updateProduct: (field: string, value: unknown) => void;
+}) {
+  const { data: patterns, isLoading: patternsLoading } = trpc.pattern.list.useQuery({ isActive: true });
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const selectedPattern = product.patternId
+    ? patterns?.find((p) => p.id === product.patternId)
+    : null;
+
+  const handlePatternSelect = (patternId: string) => {
+    if (!patternId) {
+      updateProduct("patternId", undefined);
+      return;
+    }
+    const pat = patterns?.find((p) => p.id === patternId);
+    if (!pat) return;
+    updateProduct("patternId", patternId);
+    if (pat.collarType) updateProduct("collarType", pat.collarType);
+    if (pat.sleeveType) updateProduct("sleeveType", pat.sleeveType);
+    if (pat.bodyFit) updateProduct("bodyFit", pat.bodyFit);
+  };
+
+  const handleQuickAddCreated = (patternId: string) => {
+    setShowQuickAdd(false);
+    handlePatternSelect(patternId);
+  };
+
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-800/50 dark:bg-amber-950/20">
+      {/* Pattern section */}
+      <div className="mb-3">
+        <div className="mb-2 flex items-center gap-2">
+          <Scissors className="h-3.5 w-3.5 text-amber-600" />
+          <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">แพทเทิร์น</span>
+          {!showQuickAdd && (
+            <button
+              type="button"
+              onClick={() => setShowQuickAdd(true)}
+              className="ml-auto flex items-center gap-1 text-[11px] text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
+            >
+              <Plus className="h-3 w-3" />สร้างใหม่
             </button>
           )}
         </div>
-      </td>
 
-      {/* Print type */}
-      <td className="px-1.5 py-2 align-top">
-        {printCatalog && printCatalog.length > 0 && (
-          <select value="" onChange={(e) => { if (e.target.value) onApplyCatalog(e.target.value); }} className="mb-1 block w-full rounded border-0 bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-600 dark:bg-purple-950/30 dark:text-purple-400">
-            <option value="">แค็ตตาล็อก...</option>
-            {printCatalog.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        {showQuickAdd ? (
+          <QuickAddPattern
+            onCreated={handleQuickAddCreated}
+            onCancel={() => setShowQuickAdd(false)}
+          />
+        ) : (
+          <div>
+            <select
+              value={product.patternId || ""}
+              onChange={(e) => handlePatternSelect(e.target.value)}
+              className={`${selectClass} h-8 text-xs`}
+              disabled={patternsLoading}
+            >
+              <option value="">{patternsLoading ? "กำลังโหลด..." : "-- เลือกแพทเทิร์น --"}</option>
+              {patterns?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}{p.description ? ` — ${p.description}` : ""}
+                </option>
+              ))}
+            </select>
+            {selectedPattern && (
+              <div className="mt-2 flex items-start gap-3 rounded border border-amber-200 bg-white p-2 dark:border-amber-800 dark:bg-amber-950/30">
+                {selectedPattern.thumbnailUrl && (
+                  <img
+                    src={selectedPattern.thumbnailUrl}
+                    alt={selectedPattern.name}
+                    className="h-16 w-16 flex-shrink-0 rounded border border-slate-200 object-cover dark:border-slate-700"
+                  />
+                )}
+                <div className="min-w-0 text-xs">
+                  <span className="block font-medium text-slate-700 dark:text-slate-200">{selectedPattern.name}</span>
+                  {selectedPattern.description && (
+                    <span className="block text-slate-500">{selectedPattern.description}</span>
+                  )}
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
+                    {selectedPattern.collarType && <span>คอ: <span className="text-slate-600 dark:text-slate-300">{COLLAR_TYPES[selectedPattern.collarType] || selectedPattern.collarType}</span></span>}
+                    {selectedPattern.sleeveType && <span>แขน: <span className="text-slate-600 dark:text-slate-300">{SLEEVE_TYPES[selectedPattern.sleeveType] || selectedPattern.sleeveType}</span></span>}
+                    {selectedPattern.bodyFit && <span>ทรง: <span className="text-slate-600 dark:text-slate-300">{BODY_FITS[selectedPattern.bodyFit] || selectedPattern.bodyFit}</span></span>}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Fabric + Garment spec */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
+        <Field label="ประเภทสินค้า">
+          <select value={product.productType} onChange={(e) => updateProduct("productType", e.target.value)} className={`${selectClass} h-8 text-xs`}>
+            {Object.entries(PRODUCT_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-        )}
-        <select value={print.printType} onChange={(e) => onUpdate("printType", e.target.value)} className={`${selectClass} h-8 text-xs`}>
-          {Object.entries(PRINT_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        {showColorCount && (
-          <div className="mt-1 flex items-center gap-1">
-            <span className="text-[10px] text-slate-400">สี:</span>
-            <Input type="number" min={1} value={print.colorCount} onChange={(e) => onUpdate("colorCount", parseInt(e.target.value) || 1)} className="h-6 w-12 px-1.5 text-center text-xs" />
-          </div>
-        )}
-      </td>
-
-      {/* Print size */}
-      <td className="px-1.5 py-2 align-top">
-        <select value={print.printSize || ""} onChange={(e) => handleSizePreset(e.target.value)} className={`${selectClass} h-8 text-xs`}>
-          <option value="">-- ขนาด --</option>
-          {Object.entries(PRINT_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
-        {isCustomSize && (
-          <div className="mt-1 flex items-center gap-1">
-            <Input type="number" min={0} step={0.1} value={print.width || ""} onChange={(e) => onUpdate("width", parseFloat(e.target.value) || 0)} placeholder="กว้าง" className="h-6 w-14 px-1 text-center text-[11px]" />
-            <span className="text-[10px] text-slate-400">×</span>
-            <Input type="number" min={0} step={0.1} value={print.height || ""} onChange={(e) => onUpdate("height", parseFloat(e.target.value) || 0)} placeholder="สูง" className="h-6 w-14 px-1 text-center text-[11px]" />
-            <span className="text-[10px] text-slate-400">ซม.</span>
-          </div>
-        )}
-      </td>
-
-      {/* Position */}
-      <td className="px-1.5 py-2 align-top">
-        <select value={print.position} onChange={(e) => onUpdate("position", e.target.value)} className={`${selectClass} h-8 text-xs`}>
-          {Object.entries(PRINT_POSITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-      </td>
-
-      {/* Unit price */}
-      <td className="pl-1.5 py-2 align-top">
-        <Input type="number" min={0} step={0.01} value={print.unitPrice || ""} onChange={(e) => onUpdate("unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="h-8 w-full text-xs" />
-      </td>
-    </tr>
+        </Field>
+        <Field label="ชนิดผ้า">
+          <select value={product.fabricType} onChange={(e) => updateProduct("fabricType", e.target.value)} className={`${selectClass} h-8 text-xs`}>
+            <option value="">-- เลือก --</option>
+            {Object.entries(FABRIC_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </Field>
+        <Field label="ส่วนผสมผ้า">
+          <Input value={product.material} onChange={(e) => updateProduct("material", e.target.value)} placeholder="เช่น Cotton 60% Poly 40%" className="h-8 text-xs" />
+        </Field>
+        <Field label="น้ำหนักผ้า">
+          <Input value={product.fabricWeight} onChange={(e) => updateProduct("fabricWeight", e.target.value)} placeholder="160gsm" className="h-8 text-xs" />
+        </Field>
+        <Field label="สีผ้า">
+          <Input value={product.fabricColor} onChange={(e) => updateProduct("fabricColor", e.target.value)} placeholder="ขาว, ดำ" className="h-8 text-xs" />
+        </Field>
+        <Field label="ทรงคอ">
+          <select value={product.collarType} onChange={(e) => updateProduct("collarType", e.target.value)} className={`${selectClass} h-8 text-xs`}>
+            <option value="">-- เลือก --</option>
+            {Object.entries(COLLAR_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </Field>
+        <Field label="แขน">
+          <select value={product.sleeveType} onChange={(e) => updateProduct("sleeveType", e.target.value)} className={`${selectClass} h-8 text-xs`}>
+            <option value="">-- เลือก --</option>
+            {Object.entries(SLEEVE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </Field>
+        <Field label="ทรงตัว">
+          <select value={product.bodyFit} onChange={(e) => updateProduct("bodyFit", e.target.value)} className={`${selectClass} h-8 text-xs`}>
+            <option value="">-- เลือก --</option>
+            {Object.entries(BODY_FITS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </Field>
+        <Field label="หมายเหตุแพทเทิร์น">
+          <Input value={product.patternNote} onChange={(e) => updateProduct("patternNote", e.target.value)} placeholder="หมายเหตุ..." className="h-8 text-xs" />
+        </Field>
+      </div>
+    </div>
   );
 }
 
 // ============================================================
-// STOCK ITEM VIEW (FROM_STOCK)
+// PRODUCT TABLE ROW (flat: 1 row = 1 SKU)
 // ============================================================
 
-function StockItemView({ item, itemIdx, onOpenPicker, onSetItems }: { item: OrderItemForm; itemIdx: number; onOpenPicker: () => void; onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void }) {
-  const handleVariantsChange = (newVariants: typeof item.variants) => {
-    onSetItems((prev) => { const copy = [...prev]; copy[itemIdx] = { ...copy[itemIdx], variants: newVariants }; return copy; });
-  };
-  const totalQty = calculateTotalQuantity(item.variants);
+function ProductTableRow({
+  product, prodIdx, itemIdx, totalProducts, onSetItems,
+}: {
+  product: OrderItemProductForm;
+  prodIdx: number;
+  itemIdx: number;
+  totalProducts: number;
+  onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void;
+}) {
+  const [showDetail, setShowDetail] = useState(false);
+  const { data: packagingOptions } = trpc.packaging.list.useQuery();
 
-  if (!item.productId) {
-    return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/30 px-6 py-8 dark:border-blue-800 dark:bg-blue-950/20">
-        <Package className="h-8 w-8 text-blue-300 dark:text-blue-700" />
-        <p className="text-sm text-slate-500 dark:text-slate-400">เลือกสินค้าจากสต็อก</p>
-        <Button type="button" variant="outline" size="sm" onClick={onOpenPicker} className="gap-1 border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400">
-          <Search className="h-3.5 w-3.5" />เลือกสินค้า
-        </Button>
-      </div>
-    );
-  }
+  const updateProduct = (field: string, value: unknown) => {
+    onSetItems((prev) => {
+      const copy = [...prev];
+      const products = [...copy[itemIdx].products];
+      products[prodIdx] = { ...products[prodIdx], [field]: value };
+      copy[itemIdx] = { ...copy[itemIdx], products };
+      return copy;
+    });
+  };
+
+  const updateVariantField = (field: "quantity" | "size" | "color", value: string | number) => {
+    onSetItems((prev) => {
+      const copy = [...prev];
+      const products = [...copy[itemIdx].products];
+      const variants = [...products[prodIdx].variants];
+      variants[0] = { ...variants[0], [field]: value };
+      products[prodIdx] = { ...products[prodIdx], variants };
+      copy[itemIdx] = { ...copy[itemIdx], products };
+      return copy;
+    });
+  };
+
+  const removeProduct = () => {
+    onSetItems((prev) => {
+      const copy = [...prev];
+      copy[itemIdx] = { ...copy[itemIdx], products: copy[itemIdx].products.filter((_, i) => i !== prodIdx) };
+      return copy;
+    });
+  };
+
+  const moveProduct = (direction: -1 | 1) => {
+    const newIdx = prodIdx + direction;
+    if (newIdx < 0 || newIdx >= totalProducts) return;
+    onSetItems((prev) => {
+      const copy = [...prev];
+      const products = [...copy[itemIdx].products];
+      [products[prodIdx], products[newIdx]] = [products[newIdx], products[prodIdx]];
+      copy[itemIdx] = { ...copy[itemIdx], products };
+      return copy;
+    });
+  };
+
+  const variant = product.variants[0] || { size: "", color: "", quantity: 0 };
+  const qty = variant.quantity;
+  const netPrice = Math.max(0, product.baseUnitPrice - (product.discount || 0));
+  const isFromStock = product.itemSource === "FROM_STOCK";
+  const isCustomMade = product.itemSource === "CUSTOM_MADE";
+  const isCustomerProvided = product.itemSource === "CUSTOMER_PROVIDED";
+
+  const sourceBadge = product.itemSource ? (
+    <Badge
+      variant={isFromStock ? "default" : isCustomMade ? "purple" : "warning"}
+      className="text-[9px]"
+    >
+      {ITEM_SOURCES[product.itemSource] || product.itemSource}
+    </Badge>
+  ) : null;
+
+  const productLabel = product.productName || product.description || "สินค้าใหม่";
+  const variantLabel = [variant.color, variant.size].filter(Boolean).join(" ");
 
   return (
-    <div className="rounded-lg border border-blue-200 bg-blue-50/30 dark:border-blue-900 dark:bg-blue-950/20">
-      <div className="flex items-center justify-between border-b border-blue-100 px-4 py-2.5 dark:border-blue-900/50">
-        <div className="flex items-center gap-2">
-          <Package className="h-4 w-4 text-blue-500" />
-          <span className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">สินค้าที่ต้องสั่งผลิต</span>
-          {totalQty > 0 && <Badge variant="default" className="text-[10px]">{totalQty} ชิ้น</Badge>}
-        </div>
-        <Button type="button" variant="ghost" size="sm" onClick={onOpenPicker} className="h-7 text-xs text-blue-600 dark:text-blue-400">เปลี่ยนสินค้า</Button>
-      </div>
-      <div className="overflow-x-auto p-3">
-        <table className="w-full">
-          <thead>
-            <tr className="text-left text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              <th className="w-8 pb-2" />
-              <th className="pb-2 pr-2">สินค้า</th>
-              <th className="min-w-[100px] pb-2 px-1.5">ราคา (ต่อหน่วย)</th>
-              <th className="min-w-[100px] pb-2 px-1.5">จำนวนที่สั่งผลิต (ตัว)</th>
-              <th className="min-w-[80px] pb-2 pl-1.5">สต็อก</th>
-            </tr>
-          </thead>
-          <tbody>
-            {item.variants.map((v, idx) => (
-              <tr key={idx} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
-                <td className="py-2 align-middle">
-                  {item.variants.length > 1 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={() => handleVariantsChange(item.variants.filter((_, i) => i !== idx))} className="h-7 w-7 text-red-400 hover:text-red-600">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </td>
-                <td className="py-2 pr-2">
-                  <div className="flex items-center gap-2">
-                    {item.productImageUrl ? (
-                      <img src={item.productImageUrl} alt={item.productName || ""} className="h-10 w-10 rounded border border-slate-200 object-cover dark:border-slate-700" />
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"><ImageIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" /></div>
-                    )}
-                    <div className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-slate-700 dark:text-slate-200">{item.productName || item.description}</span>
-                      <span className="block text-xs text-slate-500 dark:text-slate-400">{[v.color, v.size].filter(Boolean).join(" · ")}{item.productSku ? ` · ${item.productSku}` : ""}</span>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-1.5 py-2 align-middle">
-                  <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{formatCurrency(item.baseUnitPrice)}</span>
-                </td>
-                <td className="px-1.5 py-2 align-middle">
-                  <Input type="number" min={1} value={v.quantity} onChange={(e) => { const copy = [...item.variants]; copy[idx] = { ...copy[idx], quantity: parseInt(e.target.value) || 1 }; handleVariantsChange(copy); }} className="h-8 w-20 text-center text-sm" />
-                </td>
-                <td className="pl-1.5 py-2 align-middle">
-                  {item.stockAvailable != null && (
-                    <span className={cn("text-xs font-medium", item.stockAvailable > 10 ? "text-green-600" : item.stockAvailable > 0 ? "text-amber-600" : "text-red-500")}>
-                      จำนวนคงคลัง: {item.stockAvailable}
+    <>
+      {/* Main row */}
+      <tr className="border-b border-slate-100 dark:border-slate-800">
+        {/* Source badge */}
+        <td className="py-2 pl-1 align-middle">
+          {sourceBadge}
+        </td>
+
+        {/* Product info */}
+        <td className="py-2 pr-2 align-middle">
+          {isFromStock ? (
+            <div className="flex items-center gap-2">
+              {product.productImageUrl ? (
+                <img src={product.productImageUrl} alt="" className="h-10 w-10 flex-shrink-0 rounded border border-slate-200 object-cover dark:border-slate-700" />
+              ) : (
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+                  <ImageIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">{productLabel}</span>
+                {variantLabel && <span className="block text-xs text-slate-500">{variantLabel}</span>}
+                <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400">
+                  {product.productSku && <span>{product.productSku}</span>}
+                  {product.stockAvailable != null && (
+                    <span className={product.stockAvailable > 0 ? "text-green-600" : "text-red-500"}>
+                      คลัง {product.stockAvailable}
                     </span>
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <Input
+                value={product.description}
+                onChange={(e) => updateProduct("description", e.target.value)}
+                placeholder={isCustomerProvided ? "ชื่อสินค้า เช่น เสื้อยืดลูกค้า" : "ชื่อสินค้า เช่น เสื้อคอกลม Cotton"}
+                className="h-8 text-xs"
+              />
+              <div className="flex items-center gap-1.5">
+                <Input
+                  value={variant.color}
+                  onChange={(e) => updateVariantField("color", e.target.value)}
+                  placeholder="สี"
+                  className="h-7 w-20 px-2 text-[11px]"
+                />
+                <Input
+                  value={variant.size}
+                  onChange={(e) => updateVariantField("size", e.target.value)}
+                  placeholder="ไซส์"
+                  className="h-7 w-16 px-2 text-[11px]"
+                />
+                {isCustomMade && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDetail(!showDetail)}
+                    className={cn(
+                      "h-7 gap-1 px-2 text-[11px]",
+                      showDetail
+                        ? "border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                        : "border-amber-300 text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/30",
+                    )}
+                  >
+                    <Scissors className="h-3 w-3" />
+                    {showDetail ? "ซ่อนสเปค" : "สเปคตัดเย็บ"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </td>
+
+        {/* Price */}
+        <td className="px-1.5 py-2 align-middle">
+          {isCustomerProvided ? (
+            <div className="text-center text-xs text-slate-400">—</div>
+          ) : (
+            <div>
+              <Input
+                type="number"
+                min={0}
+                step={0.01}
+                value={product.baseUnitPrice || ""}
+                onChange={(e) => updateProduct("baseUnitPrice", parseFloat(e.target.value) || 0)}
+                placeholder="0"
+                className="h-8 w-full text-xs"
+              />
+              {netPrice !== product.baseUnitPrice && (
+                <span className="block text-[10px] text-slate-400 mt-0.5">สุทธิ {formatCurrency(netPrice)}</span>
+              )}
+            </div>
+          )}
+        </td>
+
+        {/* Quantity */}
+        <td className="px-1.5 py-2 align-middle">
+          <Input
+            type="number"
+            min={0}
+            value={qty || ""}
+            onChange={(e) => updateVariantField("quantity", parseInt(e.target.value) || 0)}
+            placeholder="0"
+            className="h-8 w-full text-xs"
+          />
+        </td>
+
+        {/* Discount */}
+        <td className="px-1.5 py-2 align-middle">
+          {isCustomerProvided ? (
+            <div className="text-center text-xs text-slate-400">—</div>
+          ) : (
+            <Input
+              type="number"
+              min={0}
+              step={0.01}
+              value={product.discount || ""}
+              onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)}
+              placeholder="0"
+              className="h-8 w-full text-xs"
+            />
+          )}
+        </td>
+
+        {/* Packaging */}
+        <td className="px-1.5 py-2 align-middle">
+          {packagingOptions && packagingOptions.length > 0 ? (
+            <select
+              value={product.packagingOptionId}
+              onChange={(e) => updateProduct("packagingOptionId", e.target.value)}
+              className={`${selectClass} h-8 text-xs`}
+            >
+              <option value="">—</option>
+              {packagingOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
+            </select>
+          ) : (
+            <span className="text-xs text-slate-300">—</span>
+          )}
+        </td>
+
+        {/* Actions: delete + reorder */}
+        <td className="py-2 pr-1 align-middle">
+          <div className="flex items-center gap-0.5">
+            <div className="flex flex-col">
+              <button type="button" onClick={() => moveProduct(-1)} disabled={prodIdx === 0} className="text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
+                <ChevronUp className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} className="text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <Button type="button" variant="ghost" size="icon" onClick={removeProduct} className="h-7 w-7 text-red-400 hover:text-red-600">
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </td>
+      </tr>
+
+      {/* CUSTOM_MADE detail section */}
+      {isCustomMade && showDetail && (
+        <tr className="border-b border-amber-100 dark:border-amber-900/30">
+          <td />
+          <td colSpan={6} className="pb-3 pt-1 pr-1">
+            <CustomMadeDetail product={product} updateProduct={updateProduct} />
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
 // ============================================================
-// CUSTOM MADE VIEW (CUSTOM_MADE)
-// ============================================================
-
-function CustomMadeView({ item, itemIdx, touched, markTouched, errors, onUpdateItem, onSetItems }: { item: OrderItemForm; itemIdx: number; touched: Set<string>; markTouched: (f: string) => void; errors: ItemValidationErrors; onUpdateItem: (idx: number, field: string, value: unknown) => void; onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void }) {
-  const handleVariantsChange = (newVariants: typeof item.variants) => {
-    markTouched("variants");
-    onSetItems((prev) => { const copy = [...prev]; copy[itemIdx] = { ...copy[itemIdx], variants: newVariants }; return copy; });
-  };
-  const totalQty = calculateTotalQuantity(item.variants);
-
-  return (
-    <div className="space-y-3">
-      {/* PRODUCT INFO — table row */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50/30 dark:border-blue-900 dark:bg-blue-950/20">
-        <div className="flex items-center gap-2 border-b border-blue-100 px-4 py-2.5 dark:border-blue-900/50">
-          <Package className="h-4 w-4 text-blue-500" />
-          <span className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">ข้อมูลสินค้า</span>
-          {touched.has("description") && errors.description && <span className="ml-auto flex items-center gap-1 text-xs text-red-500"><AlertCircle className="h-3 w-3" />{errors.description}</span>}
-        </div>
-        <div className="overflow-x-auto p-3">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                <th className="min-w-[110px] pb-2 pr-1.5">ประเภท</th>
-                <th className="min-w-[160px] pb-2 px-1.5">คำอธิบาย *</th>
-                <th className="min-w-[120px] pb-2 px-1.5">วัสดุ</th>
-                <th className="min-w-[100px] pb-2 pl-1.5">ราคาเสื้อเปล่า/ชิ้น *</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="py-1 pr-1.5 align-top"><select value={item.productType} onChange={(e) => onUpdateItem(itemIdx, "productType", e.target.value)} className={`${selectClass} h-8 text-xs`}>{Object.entries(PRODUCT_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></td>
-                <td className="px-1.5 py-1 align-top"><Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} onBlur={() => markTouched("description")} placeholder="รายละเอียดงาน..." className={cn("h-8 text-xs", touched.has("description") && errors.description && "border-red-300 focus:ring-red-500")} required /></td>
-                <td className="px-1.5 py-1 align-top"><Input value={item.material} onChange={(e) => onUpdateItem(itemIdx, "material", e.target.value)} placeholder="เช่น Cotton 100%" className="h-8 text-xs" /></td>
-                <td className="pl-1.5 py-1 align-top"><Input type="number" min={0} step={0.01} value={item.baseUnitPrice || ""} onChange={(e) => onUpdateItem(itemIdx, "baseUnitPrice", parseFloat(e.target.value) || 0)} onBlur={() => markTouched("baseUnitPrice")} placeholder="0.00" className={cn("h-8 text-xs", touched.has("baseUnitPrice") && errors.baseUnitPrice && "border-red-300 focus:ring-red-500")} required /></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* FABRIC & GARMENT SPEC — table rows */}
-      <div className="rounded-lg border border-amber-200 bg-amber-50/30 dark:border-amber-900 dark:bg-amber-950/20">
-        <div className="flex items-center gap-2 border-b border-amber-100 px-4 py-2.5 dark:border-amber-900/50">
-          <Scissors className="h-4 w-4 text-amber-500" />
-          <span className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">ผ้า / สเปคตัดเย็บ</span>
-        </div>
-        <div className="overflow-x-auto p-3">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                <th className="min-w-[110px] pb-2 pr-1.5">ชนิดผ้า</th>
-                <th className="min-w-[100px] pb-2 px-1.5">น้ำหนักผ้า</th>
-                <th className="min-w-[100px] pb-2 px-1.5">สีผ้า</th>
-                <th className="min-w-[100px] pb-2 px-1.5">ทรงคอ</th>
-                <th className="min-w-[100px] pb-2 px-1.5">แขน</th>
-                <th className="min-w-[100px] pb-2 pl-1.5">ทรงตัว (Fit)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="py-1 pr-1.5 align-top"><select value={item.fabricType} onChange={(e) => onUpdateItem(itemIdx, "fabricType", e.target.value)} className={`${selectClass} h-8 text-xs`}><option value="">-- เลือก --</option>{Object.entries(FABRIC_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></td>
-                <td className="px-1.5 py-1 align-top"><Input value={item.fabricWeight} onChange={(e) => onUpdateItem(itemIdx, "fabricWeight", e.target.value)} placeholder="160gsm" className="h-8 text-xs" /></td>
-                <td className="px-1.5 py-1 align-top"><Input value={item.fabricColor} onChange={(e) => onUpdateItem(itemIdx, "fabricColor", e.target.value)} placeholder="ขาว, ดำ" className="h-8 text-xs" /></td>
-                <td className="px-1.5 py-1 align-top"><select value={item.collarType} onChange={(e) => onUpdateItem(itemIdx, "collarType", e.target.value)} className={`${selectClass} h-8 text-xs`}><option value="">-- เลือก --</option>{Object.entries(COLLAR_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></td>
-                <td className="px-1.5 py-1 align-top"><select value={item.sleeveType} onChange={(e) => onUpdateItem(itemIdx, "sleeveType", e.target.value)} className={`${selectClass} h-8 text-xs`}><option value="">-- เลือก --</option>{Object.entries(SLEEVE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></td>
-                <td className="pl-1.5 py-1 align-top"><select value={item.bodyFit} onChange={(e) => onUpdateItem(itemIdx, "bodyFit", e.target.value)} className={`${selectClass} h-8 text-xs`}><option value="">-- เลือก --</option>{Object.entries(BODY_FITS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        {/* Pattern section (compact) */}
-        <GarmentSpecSection item={item} itemIdx={itemIdx} onUpdateItem={onUpdateItem} onSetItems={onSetItems} />
-      </div>
-
-      {/* VARIANTS — flat section */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50/30 dark:border-slate-700 dark:bg-slate-800/20">
-        <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-700/50">
-          <Package className="h-4 w-4 text-slate-500" />
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">ไซส์ / สี / จำนวน</span>
-          {totalQty > 0 && <Badge variant="secondary" className="text-[10px]">{totalQty} ชิ้น</Badge>}
-          {touched.has("variants") && errors.variants && <span className="ml-auto flex items-center gap-1 text-xs text-red-500"><AlertCircle className="h-3 w-3" />{errors.variants}</span>}
-        </div>
-        <div className="p-3">
-          <SizeMatrix variants={item.variants} onChange={handleVariantsChange} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// CUSTOMER PROVIDED VIEW (CUSTOMER_PROVIDED)
-// ============================================================
-
-function CustomerProvidedView({ item, itemIdx, touched, markTouched, errors, onUpdateItem, onSetItems }: { item: OrderItemForm; itemIdx: number; touched: Set<string>; markTouched: (f: string) => void; errors: ItemValidationErrors; onUpdateItem: (idx: number, field: string, value: unknown) => void; onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void }) {
-  const handleVariantsChange = (newVariants: typeof item.variants) => {
-    markTouched("variants");
-    onSetItems((prev) => { const copy = [...prev]; copy[itemIdx] = { ...copy[itemIdx], variants: newVariants }; return copy; });
-  };
-  const totalQty = calculateTotalQuantity(item.variants);
-
-  return (
-    <div className="space-y-3">
-      {/* Description */}
-      <Field label="คำอธิบาย (สินค้าที่ลูกค้าส่งมา)" required error={touched.has("description") ? errors.description : undefined}>
-        <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} onBlur={() => markTouched("description")} placeholder="เช่น เสื้อยืดคอกลมสีขาว ลูกค้าส่งมาเอง..." className={cn("text-base", touched.has("description") && errors.description && "border-red-300 focus:ring-red-500")} required />
-      </Field>
-
-      {/* VARIANTS — flat section */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50/30 dark:border-slate-700 dark:bg-slate-800/20">
-        <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-700/50">
-          <Package className="h-4 w-4 text-slate-500" />
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">ไซส์ / จำนวน (กรอกเอง)</span>
-          {totalQty > 0 && <Badge variant="secondary" className="text-[10px]">{totalQty} ชิ้น</Badge>}
-          {touched.has("variants") && errors.variants && <span className="ml-auto flex items-center gap-1 text-xs text-red-500"><AlertCircle className="h-3 w-3" />{errors.variants}</span>}
-        </div>
-        <div className="p-3">
-          <SizeMatrix variants={item.variants} onChange={handleVariantsChange} listOnly />
-        </div>
-      </div>
-
-      {/* Receive tracking removed — handled in order detail page after creation */}
-    </div>
-  );
-}
-
-// ============================================================
-// MAIN COMPONENT
+// MAIN ORDER ITEM CARD
 // ============================================================
 
 export function OrderItemCard({
@@ -566,278 +836,345 @@ export function OrderItemCard({
   onAddAddon, onRemoveAddon, onUpdateAddon,
   onOpenPicker, onSetItems,
 }: OrderItemCardProps) {
-  const [touched, setTouched] = useState<Set<string>>(new Set());
-  const markTouched = (field: string) => { setTouched((prev) => { if (prev.has(field)) return prev; const next = new Set(prev); next.add(field); return next; }); };
-
-  const errors: ItemValidationErrors = useMemo(() => validateOrderItem(item), [item]);
-  const errorCount = Object.keys(errors).length;
-  const totalQty = calculateTotalQuantity(item.variants);
-  const itemSubtotal = calculateItemSubtotal({ baseUnitPrice: item.baseUnitPrice, totalQuantity: totalQty, prints: item.prints, addons: item.addons });
-  const breakdown = calculateItemPriceBreakdown({ baseUnitPrice: item.baseUnitPrice, totalQuantity: totalQty, prints: item.prints.map((p) => ({ ...p, position: p.position })), addons: item.addons.map((a) => ({ ...a, name: a.name })) }, PRINT_POSITIONS);
-
   const otherItemsWithPrints = (allItems ?? []).map((it, idx) => ({ it, idx })).filter(({ idx }) => idx !== itemIdx).filter(({ it }) => it.prints.length > 0);
-  const copyPrintsFrom = (sourceIdx: number) => { const source = allItems?.[sourceIdx]; if (!source) return; onSetItems((prev) => { const copy = [...prev]; copy[itemIdx] = { ...copy[itemIdx], prints: source.prints.map((p) => ({ ...p })), needsPrinting: true }; return copy; }); };
-  const applyPrintFromCatalog = (pIdx: number, catalogId: string) => { const catalogItem = printCatalog?.find((c) => c.id === catalogId); if (!catalogItem) return; onSetItems((prev) => { const copy = [...prev]; const prints = [...copy[itemIdx].prints]; prints[pIdx] = { ...prints[pIdx], printType: catalogItem.type, unitPrice: catalogItem.defaultPrice }; copy[itemIdx] = { ...copy[itemIdx], prints }; return copy; }); };
-  const applyAddonFromCatalog = (aIdx: number, catalogId: string) => { const catalogItem = addonCatalog?.find((c) => c.id === catalogId); if (!catalogItem) return; onSetItems((prev) => { const copy = [...prev]; const addons = [...copy[itemIdx].addons]; addons[aIdx] = { ...addons[aIdx], addonType: catalogItem.type, name: catalogItem.name, pricingType: catalogItem.pricingType as "PER_PIECE" | "PER_ORDER", unitPrice: catalogItem.defaultPrice }; copy[itemIdx] = { ...copy[itemIdx], addons }; return copy; }); };
 
-  const handleItemSourceChange = (source: string) => {
-    markTouched("itemSource");
+  const copyPrintsFrom = (sourceIdx: number) => {
+    const source = allItems?.[sourceIdx];
+    if (!source) return;
     onSetItems((prev) => {
       const copy = [...prev];
-      const updates: Partial<OrderItemForm> = { itemSource: source };
-      if (source === "CUSTOMER_PROVIDED" && copy[itemIdx].itemSource !== "CUSTOMER_PROVIDED") {
-        updates.baseUnitPrice = 0;
-      }
-      copy[itemIdx] = { ...copy[itemIdx], ...updates };
+      copy[itemIdx] = { ...copy[itemIdx], prints: source.prints.map((p) => ({ ...p })) };
       return copy;
     });
   };
 
+  const applyPrintFromCatalog = (pIdx: number, catalogId: string) => {
+    const catalogItem = printCatalog?.find((c) => c.id === catalogId);
+    if (!catalogItem) return;
+    onSetItems((prev) => {
+      const copy = [...prev];
+      const prints = [...copy[itemIdx].prints];
+      prints[pIdx] = { ...prints[pIdx], printType: catalogItem.type, unitPrice: catalogItem.defaultPrice };
+      copy[itemIdx] = { ...copy[itemIdx], prints };
+      return copy;
+    });
+  };
+
+  const applyAddonFromCatalog = (aIdx: number, catalogId: string) => {
+    const catalogItem = addonCatalog?.find((c) => c.id === catalogId);
+    if (!catalogItem) return;
+    onSetItems((prev) => {
+      const copy = [...prev];
+      const addons = [...copy[itemIdx].addons];
+      addons[aIdx] = { ...addons[aIdx], addonType: catalogItem.type, name: catalogItem.name, pricingType: catalogItem.pricingType as "PER_PIECE" | "PER_ORDER", unitPrice: catalogItem.defaultPrice };
+      copy[itemIdx] = { ...copy[itemIdx], addons };
+      return copy;
+    });
+  };
+
+  const addProductWithSource = (source: string) => {
+    onSetItems((prev) => {
+      const copy = [...prev];
+      const newProd = structuredClone(EMPTY_PRODUCT);
+      newProd.itemSource = source;
+      if (source === "CUSTOMER_PROVIDED") newProd.baseUnitPrice = 0;
+      copy[itemIdx] = { ...copy[itemIdx], products: [...copy[itemIdx].products, newProd] };
+      return copy;
+    });
+  };
+
+  const totalQty = getItemTotalQty(item);
+  const subtotal = getItemSubtotal(item);
+
   return (
     <div className={cn("rounded-xl border bg-white shadow-sm dark:bg-slate-900", isExpanded ? "border-blue-300 dark:border-blue-800" : "border-slate-200 dark:border-slate-700")}>
-      {/* COMPACT ROW (always visible) */}
       <OrderItemRow
         item={item} itemIdx={itemIdx} canRemove={canRemove}
         isExpanded={isExpanded} onToggleExpand={onToggleExpand}
-        onRemoveItem={onRemoveItem} totalQty={totalQty}
-        itemSubtotal={itemSubtotal} errorCount={errorCount}
+        onRemoveItem={onRemoveItem}
       />
 
-      {/* EXPANDED FORM */}
       {isExpanded && (
-        <div className="space-y-3 border-t border-slate-100 p-4 dark:border-slate-800">
-          {/* SOURCE SELECTOR */}
+        <div className="space-y-4 p-4">
+          {/* Job description */}
+          <Field label="คำอธิบายงาน">
+            <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder="เช่น งานสกรีนทีม ABC, งานพิมพ์เสื้อกิจกรรม..." />
+          </Field>
+
+          {/* ── PRINTS ── */}
           <div>
-            <label className={labelClass}>สินค้ามาจากไหน? {touched.has("itemSource") && errors.itemSource && <span className="text-red-500">— {errors.itemSource}</span>}</label>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(ITEM_SOURCES).map(([k, v]) => (
-                <button key={k} type="button" onClick={() => handleItemSourceChange(k)} className={cn("rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors", item.itemSource === k ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800")}>{v}</button>
-              ))}
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Palette className="h-4 w-4 text-purple-500" />
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">ลายที่ต้องการสั่งผลิต</span>
+                {item.prints.length > 0 && <Badge variant="purple" className="text-[10px]">{item.prints.length} ลาย</Badge>}
+              </div>
+              <div className="flex items-center gap-1">
+                {otherItemsWithPrints.length > 0 && (
+                  <div className="relative">
+                    <select value="" onChange={(e) => { if (e.target.value) copyPrintsFrom(parseInt(e.target.value)); }} className="h-7 appearance-none rounded-md border-0 bg-transparent pl-6 pr-2 text-xs text-purple-600 hover:bg-purple-100 dark:text-purple-400 dark:hover:bg-purple-900/50">
+                      <option value="">คัดลอกลาย...</option>
+                      {otherItemsWithPrints.map(({ it, idx }) => <option key={idx} value={idx}>#{idx + 1} {it.description.slice(0, 20)} ({it.prints.length} ลาย)</option>)}
+                    </select>
+                    <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-purple-500" />
+                  </div>
+                )}
+                <Button type="button" variant="outline" size="sm" onClick={() => onAddPrint(itemIdx)} className="h-7 gap-1 border-purple-300 px-2.5 text-xs text-purple-600 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950">
+                  <Plus className="h-3.5 w-3.5" />เพิ่มลาย
+                </Button>
+              </div>
             </div>
+            {item.prints.length === 0 ? (
+              <p className="py-3 text-center text-xs italic text-slate-400 dark:text-slate-500">ยังไม่มีลายสกรีน — กด &quot;เพิ่มลาย&quot; เพื่อเริ่ม</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                      <th className="pb-2 pr-1">รูปแบบ</th>
+                      <th className="pb-2 px-1">วิธีพิมพ์</th>
+                      <th className="pb-2 px-1">ขนาด</th>
+                      <th className="pb-2 px-1">ตำแหน่ง</th>
+                      <th className="w-14 pb-2 px-1">สี</th>
+                      <th className="min-w-[80px] pb-2 px-1">ค่าสกรีน</th>
+                      <th className="w-14 pb-2" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {item.prints.map((p, pIdx) => (
+                      <PrintTableRow
+                        key={pIdx}
+                        print={p}
+                        printIdx={pIdx}
+                        onUpdate={(field, value) => onUpdatePrint(itemIdx, pIdx, field, value)}
+                        onRemove={() => onRemovePrint(itemIdx, pIdx)}
+                        printCatalog={printCatalog}
+                        onApplyCatalog={(catalogId) => applyPrintFromCatalog(pIdx, catalogId)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
-          {/* SOURCE-SPECIFIC VIEW */}
-          {item.itemSource === "FROM_STOCK" && <StockItemView item={item} itemIdx={itemIdx} onOpenPicker={onOpenPicker} onSetItems={onSetItems} />}
-          {item.itemSource === "CUSTOM_MADE" && <CustomMadeView item={item} itemIdx={itemIdx} touched={touched} markTouched={markTouched} errors={errors} onUpdateItem={onUpdateItem} onSetItems={onSetItems} />}
-          {item.itemSource === "CUSTOMER_PROVIDED" && <CustomerProvidedView item={item} itemIdx={itemIdx} touched={touched} markTouched={markTouched} errors={errors} onUpdateItem={onUpdateItem} onSetItems={onSetItems} />}
-          {!item.itemSource && (
-            <div className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-slate-200 py-8 text-slate-400 dark:border-slate-700 dark:text-slate-500">
-              <Package className="h-8 w-8" /><p className="text-sm">เลือกแหล่งที่มาด้านบนเพื่อเริ่มกรอกข้อมูล</p>
+          {/* ── PRODUCTS (flat table) ── */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <PackagePlus className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">สินค้าที่ต้องการสั่งผลิต</span>
+              </div>
+              <AddProductPopover
+                onAddFromStock={onOpenPicker}
+                onAddCustomMade={() => addProductWithSource("CUSTOM_MADE")}
+                onAddCustomerProvided={() => addProductWithSource("CUSTOMER_PROVIDED")}
+              />
             </div>
-          )}
+            {item.products.length === 0 ? (
+              <p className="py-3 text-center text-xs italic text-slate-400 dark:text-slate-500">ยังไม่มีสินค้า — กด &quot;เพิ่มสินค้า&quot; เพื่อเริ่ม</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full" style={{ tableLayout: "fixed" }}>
+                  <colgroup>
+                    <col style={{ width: 80 }} />
+                    <col />
+                    <col style={{ width: 100 }} />
+                    <col style={{ width: 80 }} />
+                    <col style={{ width: 80 }} />
+                    <col style={{ width: 130 }} />
+                    <col style={{ width: 56 }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="text-left text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                      <th className="pb-2 pl-1">แหล่ง</th>
+                      <th className="pb-2 pr-2">สินค้า</th>
+                      <th className="pb-2 px-1.5">ราคา (ต่อหน่วย)</th>
+                      <th className="pb-2 px-1.5">จำนวน</th>
+                      <th className="pb-2 px-1.5">ส่วนลด</th>
+                      <th className="pb-2 px-1.5">แพ็คเกจ</th>
+                      <th className="pb-2" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {item.products.map((prod, pIdx) => (
+                      <ProductTableRow
+                        key={pIdx}
+                        product={prod}
+                        prodIdx={pIdx}
+                        itemIdx={itemIdx}
+                        totalProducts={item.products.length}
+                        onSetItems={onSetItems}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
-          {/* SHARED: PRINTING + ADDONS + NOTES */}
-          {item.itemSource && (
-            <>
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/30 dark:hover:bg-slate-800/50">
-                <input type="checkbox" checked={item.needsPrinting} onChange={(e) => onUpdateItem(itemIdx, "needsPrinting", e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500" />
-                <Printer className="h-4 w-4 text-purple-500" />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">ต้องสกรีน/พิมพ์</span>
-                {item.needsPrinting && item.prints.length > 0 && <Badge variant="purple" className="text-[10px]">{item.prints.length} ตำแหน่ง</Badge>}
-              </label>
+          {/* ── ADD-ONS ── */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Plus className="h-4 w-4 text-slate-500" />
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">ส่วนเสริม (Add-ons)</span>
+                {item.addons.length > 0 && <Badge variant="secondary" className="text-[10px]">{item.addons.length}</Badge>}
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => onAddAddon(itemIdx)} className="h-7 gap-1 border-slate-300 px-2.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-800"><Plus className="h-3.5 w-3.5" />เพิ่มส่วนเสริม</Button>
+            </div>
+            {item.addons.length === 0 ? (
+              <p className="py-2 text-center text-xs italic text-slate-400 dark:text-slate-500">ไม่มีส่วนเสริม — กด &quot;Add-on&quot; เพื่อเพิ่ม</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                      <th className="w-8 pb-2" />
+                      <th className="min-w-[100px] pb-2 px-1">ประเภท</th>
+                      <th className="min-w-[120px] pb-2 px-1">ชื่อ</th>
+                      <th className="min-w-[90px] pb-2 px-1">คิดราคา</th>
+                      <th className="min-w-[80px] pb-2 pl-1">ราคา</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {item.addons.map((a, aIdx) => (
+                      <tr key={aIdx} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
+                        <td className="py-1.5 align-middle"><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 className="h-3.5 w-3.5" /></Button></td>
+                        <td className="px-1 py-1.5 align-middle">
+                          {addonCatalog && addonCatalog.length > 0 ? (
+                            <select value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); e.target.value = ""; }} className={`${selectClass} h-8 text-xs`}>
+                              <option value="">{a.addonType || "แค็ตตาล็อก..."}</option>
+                              {addonCatalog.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                          ) : (
+                            <Input value={a.addonType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." className="h-8 text-xs" />
+                          )}
+                        </td>
+                        <td className="px-1 py-1.5 align-middle"><Input value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" className="h-8 text-xs" /></td>
+                        <td className="px-1 py-1.5 align-middle"><select value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} className={`${selectClass} h-8 text-xs`}><option value="PER_PIECE">ต่อชิ้น</option><option value="PER_ORDER">ต่อออเดอร์</option></select></td>
+                        <td className="pl-1 py-1.5 align-middle"><Input type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="h-8 text-xs" /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
-              {item.needsPrinting && (
-                <div className="rounded-lg border border-purple-200 bg-purple-50/30 dark:border-purple-900 dark:bg-purple-950/20">
-                  <div className="flex items-center justify-between border-b border-purple-100 px-4 py-2.5 dark:border-purple-900/50">
-                    <div className="flex items-center gap-2">
-                      <Palette className="h-4 w-4 text-purple-500" />
-                      <span className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">ลายที่ต้องการสั่งผลิต</span>
-                      {item.prints.length > 0 && <Badge variant="purple" className="text-[10px]">{item.prints.length} ลาย</Badge>}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {otherItemsWithPrints.length > 0 && (
-                        <div className="relative">
-                          <select value="" onChange={(e) => { if (e.target.value) copyPrintsFrom(parseInt(e.target.value)); }} className="h-7 appearance-none rounded-md border-0 bg-transparent pl-6 pr-2 text-xs text-purple-600 hover:bg-purple-100 dark:text-purple-400 dark:hover:bg-purple-900/50">
-                            <option value="">คัดลอกลาย...</option>
-                            {otherItemsWithPrints.map(({ it, idx }) => <option key={idx} value={idx}>#{idx + 1} {it.description.slice(0, 20)} ({it.prints.length} ลาย)</option>)}
-                          </select>
-                          <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-purple-500" />
-                        </div>
-                      )}
-                      <Button type="button" variant="ghost" size="sm" onClick={() => onAddPrint(itemIdx)} className="h-7 gap-1 px-2 text-xs text-purple-600 hover:text-purple-800 dark:text-purple-400"><Plus className="h-3 w-3" />เพิ่มลาย</Button>
-                    </div>
-                  </div>
-                  <div className="overflow-x-auto p-3">
-                    {item.prints.length === 0 ? (
-                      <p className="py-4 text-center text-xs italic text-slate-400 dark:text-slate-500">ยังไม่มีลายสกรีน — กด &quot;เพิ่มลาย&quot; เพื่อเริ่ม</p>
-                    ) : (
-                      <table className="w-full">
-                        <thead>
-                          <tr className="text-left text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                            <th className="w-24 pb-2 pr-2">ลาย</th>
-                            <th className="min-w-[120px] pb-2 px-1.5">วิธีพิมพ์</th>
-                            <th className="min-w-[140px] pb-2 px-1.5">ขนาดพิมพ์</th>
-                            <th className="min-w-[110px] pb-2 px-1.5">ตำแหน่ง</th>
-                            <th className="min-w-[90px] pb-2 pl-1.5">ค่าสกรีน (ต่อหน่วย)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {item.prints.map((p, pIdx) => (
-                            <PrintTableRow
-                              key={pIdx}
-                              print={p}
-                              printIdx={pIdx}
-                              onUpdate={(field, value) => onUpdatePrint(itemIdx, pIdx, field, value)}
-                              onRemove={() => onRemovePrint(itemIdx, pIdx)}
-                              printCatalog={printCatalog}
-                              onApplyCatalog={(catalogId) => applyPrintFromCatalog(pIdx, catalogId)}
-                            />
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                </div>
-              )}
+          {/* Notes */}
+          <div>
+            <label className={labelClass}>หมายเหตุรายการ</label>
+            <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder="หมายเหตุเพิ่มเติมสำหรับรายการนี้..." />
+          </div>
 
-              <div className="rounded-lg border border-slate-200 bg-slate-50/30 dark:border-slate-700 dark:bg-slate-800/20">
-                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5 dark:border-slate-700/50">
-                  <div className="flex items-center gap-2">
-                    <Plus className="h-4 w-4 text-slate-500" />
-                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">ส่วนเสริม (Add-ons)</span>
-                    {item.addons.length > 0 && <Badge variant="secondary" className="text-[10px]">{item.addons.length}</Badge>}
-                  </div>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => onAddAddon(itemIdx)} className="h-7 px-2 text-xs"><Plus className="mr-1 h-3 w-3" />Add-on</Button>
-                </div>
-                <div className="overflow-x-auto p-3">
-                  {item.addons.length === 0 ? (
-                    <p className="py-2 text-center text-xs italic text-slate-400 dark:text-slate-500">ไม่มีส่วนเสริม — กด &quot;Add-on&quot; เพื่อเพิ่ม</p>
-                  ) : (
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                          <th className="w-8 pb-2" />
-                          <th className="min-w-[100px] pb-2 px-1">ประเภท</th>
-                          <th className="min-w-[120px] pb-2 px-1">ชื่อ</th>
-                          <th className="min-w-[90px] pb-2 px-1">คิดราคา</th>
-                          <th className="min-w-[80px] pb-2 pl-1">ราคา *</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {item.addons.map((a, aIdx) => (
-                          <tr key={aIdx} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
-                            <td className="py-1.5 align-middle"><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 className="h-3.5 w-3.5" /></Button></td>
-                            <td className="px-1 py-1.5 align-middle">
-                              {addonCatalog && addonCatalog.length > 0 ? (
-                                <select value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); e.target.value = ""; }} className={`${selectClass} h-8 text-xs`}>
-                                  <option value="">{a.addonType || "แค็ตตาล็อก..."}</option>
-                                  {addonCatalog.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                              ) : (
-                                <Input value={a.addonType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." className="h-8 text-xs" />
-                              )}
-                            </td>
-                            <td className="px-1 py-1.5 align-middle"><Input value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" className="h-8 text-xs" /></td>
-                            <td className="px-1 py-1.5 align-middle"><select value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} className={`${selectClass} h-8 text-xs`}><option value="PER_PIECE">ต่อชิ้น</option><option value="PER_ORDER">ต่อออเดอร์</option></select></td>
-                            <td className="pl-1 py-1.5 align-middle"><Input type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="h-8 text-xs" /></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+          {/* Price summary — detailed breakdown */}
+          {totalQty > 0 && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-800/40">
+              <div className="px-4 py-2.5">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">สรุปราคารายการ</span>
+              </div>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-t border-slate-200 text-[11px] text-slate-400 dark:border-slate-700">
+                    <th className="px-4 py-1.5 text-left font-medium">รายการ</th>
+                    <th className="px-2 py-1.5 text-right font-medium">ราคา/ตัว</th>
+                    <th className="px-2 py-1.5 text-right font-medium">จำนวน</th>
+                    <th className="px-4 py-1.5 text-right font-medium">รวม</th>
+                  </tr>
+                </thead>
+                <tbody className="text-slate-600 dark:text-slate-300">
+                  {/* Per-product cost */}
+                  {item.products.map((p, i) => {
+                    const pQty = calculateTotalQuantity(p.variants);
+                    const net = Math.max(0, p.baseUnitPrice - (p.discount || 0));
+                    const pTotal = pQty * net;
+                    if (pQty === 0) return null;
+                    const label = p.productName || p.description || `สินค้า ${i + 1}`;
+                    const variant = [p.variants[0]?.color, p.variants[0]?.size].filter(Boolean).join(" ");
+                    return (
+                      <tr key={`p-${i}`} className="border-t border-slate-100 dark:border-slate-700/50">
+                        <td className="px-4 py-1.5">
+                          <span className="text-slate-700 dark:text-slate-200">{label}</span>
+                          {variant && <span className="ml-1 text-slate-400">({variant})</span>}
+                          {(p.discount || 0) > 0 && <span className="ml-1 text-red-500">-{formatCurrency(p.discount || 0)}</span>}
+                        </td>
+                        <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(net)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums">{pQty}</td>
+                        <td className="px-4 py-1.5 text-right tabular-nums font-medium">{formatCurrency(pTotal)}</td>
+                      </tr>
+                    );
+                  })}
+                  {/* Per-print cost */}
+                  {item.prints.map((pr, i) => {
+                    const prTotal = totalQty * pr.unitPrice;
+                    if (pr.unitPrice === 0) return null;
+                    const prLabel = PRINT_TYPES[pr.printType] || pr.printType;
+                    const prPos = PRINT_POSITIONS[pr.position] || pr.position;
+                    return (
+                      <tr key={`pr-${i}`} className="border-t border-slate-100 dark:border-slate-700/50">
+                        <td className="px-4 py-1.5">
+                          <span className="text-purple-600 dark:text-purple-400">🎨 {prLabel}</span>
+                          <span className="ml-1 text-slate-400">({prPos})</span>
+                        </td>
+                        <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(pr.unitPrice)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums">{totalQty}</td>
+                        <td className="px-4 py-1.5 text-right tabular-nums font-medium">{formatCurrency(prTotal)}</td>
+                      </tr>
+                    );
+                  })}
+                  {/* Per-addon cost */}
+                  {item.addons.map((a, i) => {
+                    const aTotal = a.pricingType === "PER_PIECE" ? totalQty * a.unitPrice : a.unitPrice;
+                    if (a.unitPrice === 0) return null;
+                    return (
+                      <tr key={`a-${i}`} className="border-t border-slate-100 dark:border-slate-700/50">
+                        <td className="px-4 py-1.5">
+                          <span className="text-slate-500">{a.name || `ส่วนเสริม ${i + 1}`}</span>
+                          <span className="ml-1 text-[10px] text-slate-400">({a.pricingType === "PER_PIECE" ? "ต่อตัว" : "เหมา"})</span>
+                        </td>
+                        <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(a.unitPrice)}</td>
+                        <td className="px-2 py-1.5 text-right tabular-nums">{a.pricingType === "PER_PIECE" ? totalQty : "1"}</td>
+                        <td className="px-4 py-1.5 text-right tabular-nums font-medium">{formatCurrency(aTotal)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                {/* Grand total */}
+                <tfoot>
+                  <tr className="border-t-2 border-slate-300 dark:border-slate-600">
+                    <td colSpan={2} className="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      รวมทั้งหมด
+                    </td>
+                    <td className="px-2 py-2 text-right text-sm font-semibold tabular-nums text-slate-600 dark:text-slate-300">
+                      {totalQty} ตัว
+                    </td>
+                    <td className="px-4 py-2 text-right text-sm font-bold tabular-nums text-blue-700 dark:text-blue-300">
+                      {formatCurrency(subtotal)}
+                    </td>
+                  </tr>
+                  {totalQty > 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-4 pb-2.5 text-[11px] text-slate-400">
+                        เฉลี่ยต่อตัว
+                      </td>
+                      <td className="px-4 pb-2.5 text-right text-xs font-medium tabular-nums text-slate-500 dark:text-slate-400">
+                        {formatCurrency(Math.round((subtotal / totalQty) * 100) / 100)}/ตัว
+                      </td>
+                    </tr>
                   )}
-                </div>
-              </div>
-
-              <div><label className={labelClass}>หมายเหตุรายการ</label><Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder="หมายเหตุเพิ่มเติมสำหรับรายการนี้..." /></div>
-            </>
-          )}
-
-          {/* PRICE BREAKDOWN */}
-          {totalQty > 0 && itemSubtotal > 0 && (
-            <div className="rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-3 dark:border-blue-900 dark:bg-blue-950/20">
-              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs text-slate-600 dark:text-slate-400">
-                {breakdown.lines.map((line, i) => (<span key={i} className="inline-flex items-baseline gap-0.5">{i > 0 && <span className="text-slate-400">+</span>}<span>{line.label}</span><span className="font-medium text-slate-700 dark:text-slate-300">{formatCurrency(line.unitPrice)}</span>{line.type === "addon_order" && <span className="text-[10px] text-slate-400">(ต่อออเดอร์)</span>}</span>))}
-              </div>
-              <div className="mt-1.5 flex items-baseline gap-1 text-sm">
-                <span className="text-slate-500 dark:text-slate-400">=</span>
-                <span className="font-semibold text-blue-700 dark:text-blue-300">{formatCurrency(breakdown.unitPriceTotal)}/ชิ้น</span>
-                <span className="text-slate-400">x</span>
-                <span className="text-slate-600 dark:text-slate-300">{totalQty} ชิ้น</span>
-                <span className="text-slate-400">=</span>
-                <span className="font-bold text-blue-700 dark:text-blue-300">{formatCurrency(breakdown.grandTotal)}</span>
-              </div>
+                </tfoot>
+              </table>
             </div>
           )}
 
-          {/* Collapse button */}
           <div className="flex justify-end">
             <Button type="button" variant="outline" size="sm" onClick={onToggleExpand} className="gap-1 text-xs">
-              <Check className="h-3.5 w-3.5" />
-              เสร็จสิ้น
+              <Check className="h-3.5 w-3.5" />เสร็จสิ้น
             </Button>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// ============================================================
-// GARMENT SPEC SECTION (for CUSTOM_MADE)
-// ============================================================
-
-function GarmentSpecSection({ item, itemIdx, onUpdateItem, onSetItems }: { item: OrderItemForm; itemIdx: number; onUpdateItem: (idx: number, field: string, value: unknown) => void; onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void }) {
-  const [patternSearch, setPatternSearch] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const { data: patterns } = trpc.pattern.list.useQuery({ isActive: true, search: patternSearch || undefined }, { enabled: item.patternMode === "catalog" });
-  const allPatterns = trpc.pattern.list.useQuery({ isActive: true }, { enabled: item.patternMode === "catalog" });
-
-  const handleSelectPattern = (p: NonNullable<typeof patterns>[number]) => {
-    onSetItems((prev) => { const copy = [...prev]; copy[itemIdx] = { ...copy[itemIdx], patternId: p.id, collarType: p.collarType ?? "", sleeveType: p.sleeveType ?? "", bodyFit: p.bodyFit ?? "", patternFileUrl: p.fileUrl ?? "", patternNote: copy[itemIdx].patternNote }; return copy; });
-    setPatternSearch("");
-  };
-
-  const handlePatternFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    setUploading(true);
-    try { const ext = file.name.split(".").pop() || "file"; const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`; const path = `patterns/${uniqueName}`; const url = await uploadFile("designs", path, file); onUpdateItem(itemIdx, "patternFileUrl", url); } catch { /* silently fail */ } finally { setUploading(false); e.target.value = ""; }
-  };
-
-  const selectedPattern = (patterns ?? allPatterns.data)?.find((p) => p.id === item.patternId);
-
-  return (
-    <div className="border-t border-amber-100 px-4 pb-3 pt-2 dark:border-amber-900/50">
-      <div className="mb-2 flex items-center gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">แพทเทิร์น</span>
-        <div className="flex rounded border border-amber-200 dark:border-amber-800">
-          <button type="button" onClick={() => onUpdateItem(itemIdx, "patternMode", "catalog")} className={cn("px-2 py-1 text-[10px] font-medium transition-colors", item.patternMode === "catalog" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200" : "text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-950/30")}>สำเร็จรูป</button>
-          <button type="button" onClick={() => { onUpdateItem(itemIdx, "patternMode", "custom"); onUpdateItem(itemIdx, "patternId", undefined); }} className={cn("px-2 py-1 text-[10px] font-medium transition-colors", item.patternMode === "custom" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200" : "text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-950/30")}>ระบุเอง</button>
-        </div>
-        {item.patternMode === "custom" && (
-          <label className="ml-auto flex cursor-pointer items-center gap-1 text-[10px] text-amber-600 hover:text-amber-700 dark:text-amber-400">
-            <input type="file" accept=".pdf,.ai,.svg,image/*" onChange={handlePatternFileUpload} className="hidden" disabled={uploading} />
-            {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-            {uploading ? "อัพโหลด..." : item.patternFileUrl ? "เปลี่ยนไฟล์" : "อัพโหลดไฟล์"}
-          </label>
-        )}
-        {item.patternFileUrl && <a href={item.patternFileUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline">ดูไฟล์</a>}
-      </div>
-
-      {item.patternMode === "catalog" && (
-        <div className="mb-2">
-          <div className="relative mb-1.5"><Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" /><input type="text" value={patternSearch} onChange={(e) => setPatternSearch(e.target.value)} placeholder="ค้นหาแพทเทิร์น..." className="h-7 w-full rounded border border-slate-200 bg-white pl-7 pr-2 text-xs placeholder:text-slate-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" /></div>
-          {selectedPattern && (
-            <div className="flex items-center gap-2 rounded border border-amber-300 bg-amber-50 px-2 py-1.5 dark:border-amber-800 dark:bg-amber-950/30">
-              {selectedPattern.thumbnailUrl ? <img src={selectedPattern.thumbnailUrl} alt={selectedPattern.name} className="h-8 w-8 rounded object-cover" /> : <div className="flex h-8 w-8 items-center justify-center rounded bg-amber-100 dark:bg-amber-900/50"><Scissors className="h-3.5 w-3.5 text-amber-500" /></div>}
-              <div className="flex-1 min-w-0"><span className="block truncate text-xs font-semibold text-amber-800 dark:text-amber-200">{selectedPattern.name}</span><span className="block truncate text-[10px] text-amber-600 dark:text-amber-400">{[selectedPattern.collarType && COLLAR_TYPES[selectedPattern.collarType], selectedPattern.sleeveType && SLEEVE_TYPES[selectedPattern.sleeveType], selectedPattern.bodyFit && BODY_FITS[selectedPattern.bodyFit]].filter(Boolean).join(" · ")}</span></div>
-              <button type="button" onClick={() => onUpdateItem(itemIdx, "patternId", undefined)} className="text-amber-400 hover:text-amber-600">&times;</button>
-            </div>
-          )}
-          {!selectedPattern && (
-            <div className="grid max-h-36 grid-cols-3 gap-1 overflow-y-auto sm:grid-cols-4">
-              {(patternSearch ? patterns : allPatterns.data)?.map((p) => (
-                <button key={p.id} type="button" onClick={() => handleSelectPattern(p)} className="flex items-center gap-1.5 rounded border border-slate-200 bg-white p-1.5 text-left text-[10px] transition-colors hover:border-amber-400 hover:bg-amber-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-amber-600 dark:hover:bg-amber-950/30">
-                  {p.thumbnailUrl ? <img src={p.thumbnailUrl} alt={p.name} className="h-7 w-7 rounded object-cover" /> : <div className="flex h-7 w-7 items-center justify-center rounded bg-slate-100 dark:bg-slate-700"><Scissors className="h-3 w-3 text-slate-400" /></div>}
-                  <span className="min-w-0 truncate font-medium text-slate-700 dark:text-slate-200">{p.name}</span>
-                </button>
-              ))}
-              {(patternSearch ? patterns : allPatterns.data)?.length === 0 && <p className="col-span-full py-3 text-center text-[10px] italic text-slate-400">ไม่พบแพทเทิร์น</p>}
-            </div>
-          )}
-        </div>
-      )}
-
-      <Input value={item.patternNote} onChange={(e) => onUpdateItem(itemIdx, "patternNote", e.target.value)} placeholder="หมายเหตุแพทเทิร์น เช่น ตะเข็บคู่, ตีนผ้า RIB..." className="h-7 text-xs" />
     </div>
   );
 }

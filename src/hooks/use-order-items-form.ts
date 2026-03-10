@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { OrderItemForm, OrderFeeForm } from "@/types/order-form";
 import {
-  EMPTY_VARIANT,
   EMPTY_PRINT,
   EMPTY_ADDON,
   EMPTY_ITEM,
@@ -34,7 +33,11 @@ function saveDraft(items: OrderItemForm[]) {
   if (typeof window === "undefined") return;
   try {
     const hasContent = items.some(
-      (it) => it.description || it.productId || it.variants.some((v) => v.size),
+      (it) =>
+        it.description ||
+        it.products.some(
+          (p) => p.description || p.productId || p.variants.some((v) => v.size),
+        ),
     );
     if (hasContent) {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(items));
@@ -97,41 +100,6 @@ export function useOrderItemsForm(
       setItems((prev) => {
         const copy = [...prev];
         copy[idx] = { ...copy[idx], [field]: value };
-        return copy;
-      });
-    },
-    [],
-  );
-
-  const addVariant = useCallback((itemIdx: number) => {
-    setItems((prev) => {
-      const copy = [...prev];
-      copy[itemIdx] = {
-        ...copy[itemIdx],
-        variants: [...copy[itemIdx].variants, { ...EMPTY_VARIANT }],
-      };
-      return copy;
-    });
-  }, []);
-
-  const removeVariant = useCallback((itemIdx: number, vIdx: number) => {
-    setItems((prev) => {
-      const copy = [...prev];
-      copy[itemIdx] = {
-        ...copy[itemIdx],
-        variants: copy[itemIdx].variants.filter((_, i) => i !== vIdx),
-      };
-      return copy;
-    });
-  }, []);
-
-  const updateVariant = useCallback(
-    (itemIdx: number, vIdx: number, field: string, value: unknown) => {
-      setItems((prev) => {
-        const copy = [...prev];
-        const variants = [...copy[itemIdx].variants];
-        variants[vIdx] = { ...variants[vIdx], [field]: value };
-        copy[itemIdx] = { ...copy[itemIdx], variants };
         return copy;
       });
     },
@@ -222,9 +190,6 @@ export function useOrderItemsForm(
     addItem,
     removeItem,
     updateItem,
-    addVariant,
-    removeVariant,
-    updateVariant,
     addPrint,
     removePrint,
     updatePrint,

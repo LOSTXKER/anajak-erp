@@ -327,70 +327,81 @@ model Order {
 }
 
 model OrderItem {
-  id               String   @id @default(cuid())
-  orderId          String   @map("order_id")
-  sortOrder        Int      @default(0) @map("sort_order")
-  productType      String   @map("product_type") // T_SHIRT, POLO, HOODIE, JACKET, TOTE_BAG, OTHER
-  description      String
-  material         String?
-  baseUnitPrice    Float    @map("base_unit_price")
-  totalQuantity    Int      @map("total_quantity")
-  subtotal         Float    @default(0)
-  notes            String?
-
-  // Item source: where does the garment come from?
-  itemSource       String?  @map("item_source") // FROM_STOCK, CUSTOM_MADE, ORDER_FROM_SUPPLIER, CUSTOMER_PROVIDED
-
-  // Fabric/material details (for CUSTOM_MADE / ORDER_FROM_SUPPLIER)
-  fabricType       String?  @map("fabric_type")   // COTTON, POLYESTER, TC, CVC, MESH, etc.
-  fabricWeight     String?  @map("fabric_weight")  // "160gsm", "200gsm"
-  fabricColor      String?  @map("fabric_color")
-
-  // What processing is needed?
-  processingType   String?  @map("processing_type") // PRINT_ONLY, CUT_AND_SEW_PRINT, CUT_AND_SEW_ONLY, PACK_ONLY, FULL_PRODUCTION
-
-  // Garment spec (for CUSTOM_MADE)
-  patternId        String?  @map("pattern_id")
-  collarType       String?  @map("collar_type")
-  sleeveType       String?  @map("sleeve_type")
-  bodyFit          String?  @map("body_fit")
-  patternFileUrl   String?  @map("pattern_file_url")
-  patternNote      String?  @map("pattern_note")
-
-  // Receive tracking (for CUSTOMER_PROVIDED)
-  garmentCondition    String?  @map("garment_condition") // GOOD, FAIR, DAMAGED
-  receivedInspected   Boolean  @default(false) @map("received_inspected")
-  receiveNote         String?  @map("receive_note")
-
-  // Product catalog link (optional -- null for manual/custom items)
-  productId        String?  @map("product_id")
-  productVariantId String?  @map("product_variant_id")
-
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(cuid())
+  orderId       String   @map("order_id")
+  sortOrder     Int      @default(0) @map("sort_order")
+  description   String   @default("")
+  totalQuantity Int      @default(0) @map("total_quantity")
+  subtotal      Float    @default(0)
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  order          Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  pattern        Pattern?           @relation(fields: [patternId], references: [id])
-  product        Product?           @relation(fields: [productId], references: [id])
-  productVariant ProductVariant?    @relation(fields: [productVariantId], references: [id])
-  variants       OrderItemVariant[]
-  prints         OrderItemPrint[]
-  addons         OrderItemAddon[]
+  order    Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  products OrderItemProduct[]
+  prints   OrderItemPrint[]
+  addons   OrderItemAddon[]
 
   @@map("order_items")
 }
 
+model OrderItemProduct {
+  id                String   @id @default(cuid())
+  orderItemId       String   @map("order_item_id")
+  sortOrder         Int      @default(0) @map("sort_order")
+
+  productId         String?  @map("product_id")
+  productType       String   @map("product_type")
+  description       String
+  material          String?
+
+  baseUnitPrice     Float    @map("base_unit_price")
+  discount          Float    @default(0)
+  totalQuantity     Int      @default(0) @map("total_quantity")
+  subtotal          Float    @default(0)
+
+  itemSource        String?  @map("item_source")
+  packagingOptionId String?  @map("packaging_option_id")
+
+  fabricType        String?  @map("fabric_type")
+  fabricWeight      String?  @map("fabric_weight")
+  fabricColor       String?  @map("fabric_color")
+  processingType    String?  @map("processing_type")
+
+  patternId         String?  @map("pattern_id")
+  collarType        String?  @map("collar_type")
+  sleeveType        String?  @map("sleeve_type")
+  bodyFit           String?  @map("body_fit")
+  patternFileUrl    String?  @map("pattern_file_url")
+  patternNote       String?  @map("pattern_note")
+
+  garmentCondition  String?  @map("garment_condition")
+  receivedInspected Boolean  @default(false) @map("received_inspected")
+  receiveNote       String?  @map("receive_note")
+
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  orderItem       OrderItem        @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  product         Product?         @relation(fields: [productId], references: [id])
+  pattern         Pattern?         @relation(fields: [patternId], references: [id])
+  packagingOption PackagingOption? @relation(fields: [packagingOptionId], references: [id])
+  variants        OrderItemVariant[]
+
+  @@map("order_item_products")
+}
+
 model OrderItemVariant {
-  id          String   @id @default(cuid())
-  orderItemId String   @map("order_item_id")
-  size        String
-  color       String?
-  quantity    Int
-  createdAt   DateTime @default(now()) @map("created_at")
+  id                  String   @id @default(cuid())
+  orderItemProductId  String   @map("order_item_product_id")
+  size                String
+  color               String?
+  quantity            Int
+  createdAt           DateTime @default(now()) @map("created_at")
 
   // Relations
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  orderItemProduct OrderItemProduct @relation(fields: [orderItemProductId], references: [id], onDelete: Cascade)
 
   @@map("order_item_variants")
 }
@@ -505,7 +516,7 @@ model Pattern {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  orderItems OrderItem[]
+  orderItemProducts OrderItemProduct[]
 
   @@map("patterns")
 }
@@ -597,9 +608,9 @@ model Product {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  variants        ProductVariant[]
-  orderItems      OrderItem[]
-  materialUsages  MaterialUsage[]
+  variants          ProductVariant[]
+  orderItemProducts OrderItemProduct[]
+  materialUsages    MaterialUsage[]
 
   @@map("products")
 }
@@ -622,8 +633,7 @@ model ProductVariant {
   totalStock      Int     @default(0) @map("total_stock")
 
   // Relations
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems OrderItem[]
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, size, color])
   @@map("product_variants")
@@ -946,6 +956,23 @@ model ApprovalRequest {
   approver  User? @relation("Approver", fields: [approverId], references: [id])
 
   @@map("approval_requests")
+}
+
+// ============================================================
+// PACKAGING OPTIONS
+// ============================================================
+
+model PackagingOption {
+  id        String   @id @default(cuid())
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  orderItemProducts OrderItemProduct[]
+
+  @@map("packaging_options")
 }
 
 // ============================================================

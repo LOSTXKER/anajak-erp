@@ -151,16 +151,15 @@ export const productRouter = router({
           sku: true,
           name: true,
           stockProductId: true,
-          _count: { select: { orderItems: true } },
+          _count: { select: { orderItemProducts: true } },
         },
       });
 
       // Atomically clean up relations and delete product
       await ctx.prisma.$transaction([
-        // Nullify product link on order items (orders themselves are kept)
-        ctx.prisma.orderItem.updateMany({
+        ctx.prisma.orderItemProduct.updateMany({
           where: { productId: input.id },
-          data: { productId: null, productVariantId: null },
+          data: { productId: null },
         }),
         // Remove material usage records for this product
         ctx.prisma.materialUsage.deleteMany({

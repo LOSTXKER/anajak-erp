@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Settings, Building, Palette, Shield, Link2, Scissors, ChevronRight, Wrench } from "lucide-react";
+import { Settings, Building, Palette, Shield, Link2, Scissors, ChevronRight, Wrench, Package } from "lucide-react";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -39,6 +39,19 @@ export default function SettingsPage() {
           <div className="flex-1">
             <p className="text-sm font-semibold text-slate-900 dark:text-white">จัดการแพทเทิร์น</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ</p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-slate-400" />
+        </Link>
+        <Link
+          href="/settings/packaging"
+          className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-green-300 hover:bg-green-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-green-800 dark:hover:bg-green-950/30"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400">
+            <Package className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">จัดการแพ็คเกจ</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">ตัวเลือกแพ็คเกจสำหรับจัดส่งสินค้า</p>
           </div>
           <ChevronRight className="h-4 w-4 text-slate-400" />
         </Link>

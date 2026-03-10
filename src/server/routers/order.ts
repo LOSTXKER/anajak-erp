@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { generateOrderNumber } from "@/lib/utils";
 import { getCustomerStatus, getInitialStatus, isValidTransition } from "@/lib/order-status";
-import { calculateItemSubtotal, calculateTotalQuantity } from "@/lib/pricing";
+import { calculateTotalQuantity } from "@/lib/pricing";
 import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
@@ -39,33 +39,37 @@ const addonSchema = z.object({
   notes: z.string().optional(),
 });
 
-const orderItemSchema = z.object({
+const orderItemProductSchema = z.object({
   productId: z.string().optional(),
   productType: z.string(),
   description: z.string(),
   material: z.string().optional(),
   baseUnitPrice: z.number().min(0),
+  discount: z.number().min(0).default(0),
+  packagingOptionId: z.string().optional(),
   variants: z.array(variantSchema).min(1),
-  prints: z.array(printSchema).default([]),
-  addons: z.array(addonSchema).default([]),
-  notes: z.string().optional(),
-  // Item source & fabric details
-  itemSource: z.enum(["FROM_STOCK", "CUSTOM_MADE", "ORDER_FROM_SUPPLIER", "CUSTOMER_PROVIDED"]).optional(),
+  itemSource: z.enum(["FROM_STOCK", "CUSTOM_MADE", "CUSTOMER_PROVIDED"]).optional(),
   fabricType: z.string().optional(),
   fabricWeight: z.string().optional(),
   fabricColor: z.string().optional(),
   processingType: z.enum(["PRINT_ONLY", "CUT_AND_SEW_PRINT", "CUT_AND_SEW_ONLY", "PACK_ONLY", "FULL_PRODUCTION"]).optional(),
-  // Garment spec (CUSTOM_MADE)
   patternId: z.string().optional(),
   collarType: z.string().optional(),
   sleeveType: z.string().optional(),
   bodyFit: z.string().optional(),
   patternFileUrl: z.string().optional(),
   patternNote: z.string().optional(),
-  // Receive tracking (CUSTOMER_PROVIDED)
   garmentCondition: z.string().optional(),
   receivedInspected: z.boolean().optional(),
   receiveNote: z.string().optional(),
+});
+
+const orderItemSchema = z.object({
+  description: z.string().optional(),
+  notes: z.string().optional(),
+  products: z.array(orderItemProductSchema).min(1),
+  prints: z.array(printSchema).default([]),
+  addons: z.array(addonSchema).default([]),
 });
 
 const orderFeeSchema = z.object({
@@ -181,17 +185,24 @@ export const orderRouter = router({
           items: {
             orderBy: { sortOrder: "asc" },
             include: {
-              variants: { orderBy: { size: "asc" } },
-              prints: { orderBy: { position: "asc" } },
-              addons: true,
-              product: {
+              products: {
+                orderBy: { sortOrder: "asc" },
                 include: {
-                  variants: {
-                    where: { isActive: true },
-                    select: { id: true, size: true, color: true, stock: true, totalStock: true },
+                  variants: { orderBy: { size: "asc" } },
+                  product: {
+                    include: {
+                      variants: {
+                        where: { isActive: true },
+                        select: { id: true, size: true, color: true, stock: true, totalStock: true },
+                      },
+                    },
                   },
+                  packagingOption: true,
+                  pattern: true,
                 },
               },
+              prints: { orderBy: { position: "asc" } },
+              addons: true,
             },
           },
           fees: { orderBy: { createdAt: "asc" } },
@@ -271,14 +282,21 @@ export const orderRouter = router({
 
       // Calculate pricing for each item (may be empty for inquiry)
       const itemsWithCalc = items.map((item, index) => {
-        const totalQuantity = calculateTotalQuantity(item.variants);
-        const subtotal = calculateItemSubtotal({
-          baseUnitPrice: item.baseUnitPrice,
-          totalQuantity,
-          prints: item.prints,
-          addons: item.addons,
+        const productsCalc = item.products.map((p, pIdx) => {
+          const totalQuantity = calculateTotalQuantity(p.variants);
+          const netPrice = p.baseUnitPrice - (p.discount || 0);
+          const subtotal = totalQuantity * Math.max(0, netPrice);
+          return { ...p, totalQuantity, subtotal, sortOrder: pIdx };
         });
-        return { ...item, totalQuantity, subtotal, sortOrder: index };
+        const itemTotalQty = productsCalc.reduce((s, p) => s + p.totalQuantity, 0);
+        const productsCost = productsCalc.reduce((s, p) => s + p.subtotal, 0);
+        const printsCost = itemTotalQty * item.prints.reduce((s, p) => s + p.unitPrice, 0);
+        const addonsCost = item.addons.reduce((s, a) => {
+          if (a.pricingType === "PER_PIECE") return s + (a.quantity ?? itemTotalQty) * a.unitPrice;
+          return s + a.unitPrice;
+        }, 0);
+        const subtotal = productsCost + printsCost + addonsCost;
+        return { ...item, products: productsCalc, totalQuantity: itemTotalQty, subtotal, sortOrder: index };
       });
 
       const subtotalItems = itemsWithCalc.reduce((sum, i) => sum + i.subtotal, 0);
@@ -289,47 +307,29 @@ export const orderRouter = router({
 
       // Stock availability check for READY_MADE orders
       if (input.orderType === "READY_MADE" && !input.isDraft) {
-        const itemsWithProducts = items.filter((item) => item.productId);
-        if (itemsWithProducts.length > 0) {
-          const productIds = itemsWithProducts
-            .map((item) => item.productId)
-            .filter((id): id is string => !!id);
-
-          const products = await ctx.prisma.product.findMany({
+        const allProducts = items.flatMap((item) => item.products).filter((p) => p.productId);
+        if (allProducts.length > 0) {
+          const productIds = [...new Set(allProducts.map((p) => p.productId).filter((id): id is string => !!id))];
+          const dbProducts = await ctx.prisma.product.findMany({
             where: { id: { in: productIds } },
             include: { variants: true },
           });
-
           const stockErrors: string[] = [];
-
-          for (const item of itemsWithProducts) {
-            const product = products.find((p) => p.id === item.productId);
-            if (!product) continue;
-
-            for (const variant of item.variants) {
-              // Find matching product variant by size+color
-              const productVariant = product.variants.find(
-                (pv) =>
-                  pv.size === variant.size &&
-                  (!variant.color || pv.color === variant.color)
-              );
-
-              if (productVariant) {
-                const availableStock = productVariant.totalStock || productVariant.stock;
-                if (variant.quantity > availableStock) {
-                  stockErrors.push(
-                    `${product.name} (${variant.size}${variant.color ? `/${variant.color}` : ""}): ` +
-                    `ต้องการ ${variant.quantity} ชิ้น แต่มีในสต็อก ${availableStock} ชิ้น`
-                  );
+          for (const prod of allProducts) {
+            const dbProd = dbProducts.find((p) => p.id === prod.productId);
+            if (!dbProd) continue;
+            for (const variant of prod.variants) {
+              const pv = dbProd.variants.find((v) => v.size === variant.size && (!variant.color || v.color === variant.color));
+              if (pv) {
+                const available = pv.totalStock || pv.stock;
+                if (variant.quantity > available) {
+                  stockErrors.push(`${dbProd.name} (${variant.size}${variant.color ? `/${variant.color}` : ""}): ต้องการ ${variant.quantity} แต่มี ${available}`);
                 }
               }
             }
           }
-
           if (stockErrors.length > 0) {
-            throw new Error(
-              `สินค้าในสต็อกไม่เพียงพอ:\n${stockErrors.join("\n")}`
-            );
+            throw new Error(`สินค้าในสต็อกไม่เพียงพอ:\n${stockErrors.join("\n")}`);
           }
         }
       }
@@ -392,46 +392,56 @@ export const orderRouter = router({
                 items: {
                   create: itemsWithCalc.map((item) => ({
                     sortOrder: item.sortOrder,
-                    productId: item.productId || undefined,
-                    productType: item.productType,
-                    description: item.description,
-                    material: item.material,
-                    baseUnitPrice: item.baseUnitPrice,
+                    description: item.description || "",
                     totalQuantity: item.totalQuantity,
                     subtotal: item.subtotal,
                     notes: item.notes,
-                    itemSource: item.itemSource,
-                    fabricType: item.fabricType,
-                    fabricWeight: item.fabricWeight,
-                    fabricColor: item.fabricColor,
-                    processingType: item.processingType,
-                    patternId: item.patternId,
-                    collarType: item.collarType,
-                    sleeveType: item.sleeveType,
-                    bodyFit: item.bodyFit,
-                    patternFileUrl: item.patternFileUrl,
-                    patternNote: item.patternNote,
-                    garmentCondition: item.garmentCondition,
-                    receivedInspected: item.receivedInspected ?? false,
-                    receiveNote: item.receiveNote,
-                    variants: {
-                      create: item.variants.map((v) => ({
-                        size: v.size,
-                        color: v.color,
-                        quantity: v.quantity,
+                    products: {
+                      create: item.products.map((p) => ({
+                        sortOrder: p.sortOrder,
+                        productId: p.productId || undefined,
+                        productType: p.productType,
+                        description: p.description,
+                        material: p.material,
+                        baseUnitPrice: p.baseUnitPrice,
+                        discount: p.discount || 0,
+                        totalQuantity: p.totalQuantity,
+                        subtotal: p.subtotal,
+                        itemSource: p.itemSource,
+                        packagingOptionId: p.packagingOptionId || undefined,
+                        fabricType: p.fabricType,
+                        fabricWeight: p.fabricWeight,
+                        fabricColor: p.fabricColor,
+                        processingType: p.processingType,
+                        patternId: p.patternId,
+                        collarType: p.collarType,
+                        sleeveType: p.sleeveType,
+                        bodyFit: p.bodyFit,
+                        patternFileUrl: p.patternFileUrl,
+                        patternNote: p.patternNote,
+                        garmentCondition: p.garmentCondition,
+                        receivedInspected: p.receivedInspected ?? false,
+                        receiveNote: p.receiveNote,
+                        variants: {
+                          create: p.variants.map((v) => ({
+                            size: v.size,
+                            color: v.color,
+                            quantity: v.quantity,
+                          })),
+                        },
                       })),
                     },
                     prints: {
-                      create: item.prints.map((p) => ({
-                        position: p.position,
-                        printType: p.printType,
-                        colorCount: p.colorCount,
-                        printSize: p.printSize,
-                        width: p.width,
-                        height: p.height,
-                        designNote: p.designNote,
-                        designImageUrl: p.designImageUrl,
-                        unitPrice: p.unitPrice,
+                      create: item.prints.map((pr) => ({
+                        position: pr.position,
+                        printType: pr.printType,
+                        colorCount: pr.colorCount,
+                        printSize: pr.printSize,
+                        width: pr.width,
+                        height: pr.height,
+                        designNote: pr.designNote,
+                        designImageUrl: pr.designImageUrl,
+                        unitPrice: pr.unitPrice,
                       })),
                     },
                     addons: {
@@ -459,7 +469,7 @@ export const orderRouter = router({
               },
               include: {
                 customer: { select: { name: true } },
-                items: { include: { variants: true, prints: true, addons: true } },
+                items: { include: { products: { include: { variants: true } }, prints: true, addons: true } },
                 fees: true,
               },
             });
@@ -688,14 +698,21 @@ export const orderRouter = router({
 
       // Calculate pricing
       const itemsWithCalc = input.items.map((item, index) => {
-        const totalQuantity = calculateTotalQuantity(item.variants);
-        const subtotal = calculateItemSubtotal({
-          baseUnitPrice: item.baseUnitPrice,
-          totalQuantity,
-          prints: item.prints,
-          addons: item.addons,
+        const productsCalc = item.products.map((p, pIdx) => {
+          const totalQuantity = calculateTotalQuantity(p.variants);
+          const netPrice = p.baseUnitPrice - (p.discount || 0);
+          const subtotal = totalQuantity * Math.max(0, netPrice);
+          return { ...p, totalQuantity, subtotal, sortOrder: pIdx };
         });
-        return { ...item, totalQuantity, subtotal, sortOrder: index };
+        const itemTotalQty = productsCalc.reduce((s, p) => s + p.totalQuantity, 0);
+        const productsCost = productsCalc.reduce((s, p) => s + p.subtotal, 0);
+        const printsCost = itemTotalQty * item.prints.reduce((s, p) => s + p.unitPrice, 0);
+        const addonsCost = item.addons.reduce((s, a) => {
+          if (a.pricingType === "PER_PIECE") return s + (a.quantity ?? itemTotalQty) * a.unitPrice;
+          return s + a.unitPrice;
+        }, 0);
+        const subtotal = productsCost + printsCost + addonsCost;
+        return { ...item, products: productsCalc, totalQuantity: itemTotalQty, subtotal, sortOrder: index };
       });
 
       const subtotalItems = itemsWithCalc.reduce((sum, i) => sum + i.subtotal, 0);
@@ -715,45 +732,56 @@ export const orderRouter = router({
             data: {
               orderId: input.id,
               sortOrder: item.sortOrder,
-              productType: item.productType,
-              description: item.description,
-              material: item.material,
-              baseUnitPrice: item.baseUnitPrice,
+              description: item.description || "",
               totalQuantity: item.totalQuantity,
               subtotal: item.subtotal,
               notes: item.notes,
-              itemSource: item.itemSource,
-              fabricType: item.fabricType,
-              fabricWeight: item.fabricWeight,
-              fabricColor: item.fabricColor,
-              processingType: item.processingType,
-              patternId: item.patternId,
-              collarType: item.collarType,
-              sleeveType: item.sleeveType,
-              bodyFit: item.bodyFit,
-              patternFileUrl: item.patternFileUrl,
-              patternNote: item.patternNote,
-              garmentCondition: item.garmentCondition,
-              receivedInspected: item.receivedInspected ?? false,
-              receiveNote: item.receiveNote,
-              variants: {
-                create: item.variants.map((v) => ({
-                  size: v.size,
-                  color: v.color,
-                  quantity: v.quantity,
+              products: {
+                create: item.products.map((p) => ({
+                  sortOrder: p.sortOrder,
+                  productId: p.productId || undefined,
+                  productType: p.productType,
+                  description: p.description,
+                  material: p.material,
+                  baseUnitPrice: p.baseUnitPrice,
+                  discount: p.discount || 0,
+                  totalQuantity: p.totalQuantity,
+                  subtotal: p.subtotal,
+                  itemSource: p.itemSource,
+                  packagingOptionId: p.packagingOptionId || undefined,
+                  fabricType: p.fabricType,
+                  fabricWeight: p.fabricWeight,
+                  fabricColor: p.fabricColor,
+                  processingType: p.processingType,
+                  patternId: p.patternId,
+                  collarType: p.collarType,
+                  sleeveType: p.sleeveType,
+                  bodyFit: p.bodyFit,
+                  patternFileUrl: p.patternFileUrl,
+                  patternNote: p.patternNote,
+                  garmentCondition: p.garmentCondition,
+                  receivedInspected: p.receivedInspected ?? false,
+                  receiveNote: p.receiveNote,
+                  variants: {
+                    create: p.variants.map((v) => ({
+                      size: v.size,
+                      color: v.color,
+                      quantity: v.quantity,
+                    })),
+                  },
                 })),
               },
               prints: {
-                create: item.prints.map((p) => ({
-                  position: p.position,
-                  printType: p.printType,
-                  colorCount: p.colorCount,
-                  printSize: p.printSize,
-                  width: p.width,
-                  height: p.height,
-                  designNote: p.designNote,
-                  designImageUrl: p.designImageUrl,
-                  unitPrice: p.unitPrice,
+                create: item.prints.map((pr) => ({
+                  position: pr.position,
+                  printType: pr.printType,
+                  colorCount: pr.colorCount,
+                  printSize: pr.printSize,
+                  width: pr.width,
+                  height: pr.height,
+                  designNote: pr.designNote,
+                  designImageUrl: pr.designImageUrl,
+                  unitPrice: pr.unitPrice,
                 })),
               },
               addons: {
@@ -878,20 +906,20 @@ export const orderRouter = router({
   updateReceiveTracking: protectedProcedure
     .input(
       z.object({
-        orderItemId: z.string(),
+        orderItemProductId: z.string(),
         garmentCondition: z.string().optional(),
         receivedInspected: z.boolean(),
         receiveNote: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const item = await ctx.prisma.orderItem.findUniqueOrThrow({
-        where: { id: input.orderItemId },
-        select: { orderId: true },
+      const product = await ctx.prisma.orderItemProduct.findUniqueOrThrow({
+        where: { id: input.orderItemProductId },
+        select: { orderItem: { select: { orderId: true } } },
       });
 
-      const updated = await ctx.prisma.orderItem.update({
-        where: { id: input.orderItemId },
+      const updated = await ctx.prisma.orderItemProduct.update({
+        where: { id: input.orderItemProductId },
         data: {
           garmentCondition: input.garmentCondition || null,
           receivedInspected: input.receivedInspected,
@@ -903,8 +931,8 @@ export const orderRouter = router({
         userId: ctx.userId,
         action: "UPDATE",
         entityType: "ORDER",
-        entityId: item.orderId,
-        newValue: { action: "updateReceiveTracking", orderItemId: input.orderItemId, receivedInspected: input.receivedInspected },
+        entityId: product.orderItem.orderId,
+        newValue: { action: "updateReceiveTracking", orderItemProductId: input.orderItemProductId, receivedInspected: input.receivedInspected },
       });
 
       return updated;
@@ -917,7 +945,7 @@ export const orderRouter = router({
         where: { id: input.id },
         include: {
           items: {
-            include: { variants: true, prints: true, addons: true },
+            include: { products: { include: { variants: true } }, prints: true, addons: true },
           },
           fees: true,
         },
@@ -955,46 +983,56 @@ export const orderRouter = router({
                 items: {
                   create: original.items.map((item, index) => ({
                     sortOrder: index,
-                    productId: item.productId ?? undefined,
-                    productType: item.productType,
                     description: item.description,
-                    material: item.material,
-                    baseUnitPrice: item.baseUnitPrice,
                     totalQuantity: item.totalQuantity,
                     subtotal: item.subtotal,
                     notes: item.notes,
-                    itemSource: item.itemSource,
-                    fabricType: item.fabricType,
-                    fabricWeight: item.fabricWeight,
-                    fabricColor: item.fabricColor,
-                    processingType: item.processingType,
-                    patternId: item.patternId ?? undefined,
-                    collarType: item.collarType,
-                    sleeveType: item.sleeveType,
-                    bodyFit: item.bodyFit,
-                    patternFileUrl: item.patternFileUrl,
-                    patternNote: item.patternNote,
-                    garmentCondition: item.garmentCondition,
-                    receivedInspected: false,
-                    receiveNote: null,
-                    variants: {
-                      create: item.variants.map((v) => ({
-                        size: v.size,
-                        color: v.color,
-                        quantity: v.quantity,
+                    products: {
+                      create: item.products.map((p, pIdx) => ({
+                        sortOrder: pIdx,
+                        productId: p.productId ?? undefined,
+                        productType: p.productType,
+                        description: p.description,
+                        material: p.material,
+                        baseUnitPrice: p.baseUnitPrice,
+                        discount: p.discount,
+                        totalQuantity: p.totalQuantity,
+                        subtotal: p.subtotal,
+                        itemSource: p.itemSource,
+                        packagingOptionId: p.packagingOptionId ?? undefined,
+                        fabricType: p.fabricType,
+                        fabricWeight: p.fabricWeight,
+                        fabricColor: p.fabricColor,
+                        processingType: p.processingType,
+                        patternId: p.patternId ?? undefined,
+                        collarType: p.collarType,
+                        sleeveType: p.sleeveType,
+                        bodyFit: p.bodyFit,
+                        patternFileUrl: p.patternFileUrl,
+                        patternNote: p.patternNote,
+                        garmentCondition: p.garmentCondition,
+                        receivedInspected: false,
+                        receiveNote: null,
+                        variants: {
+                          create: p.variants.map((v) => ({
+                            size: v.size,
+                            color: v.color,
+                            quantity: v.quantity,
+                          })),
+                        },
                       })),
                     },
                     prints: {
-                      create: item.prints.map((p) => ({
-                        position: p.position,
-                        printType: p.printType,
-                        colorCount: p.colorCount,
-                        printSize: p.printSize,
-                        width: p.width,
-                        height: p.height,
-                        designNote: p.designNote,
-                        designImageUrl: p.designImageUrl,
-                        unitPrice: p.unitPrice,
+                      create: item.prints.map((pr) => ({
+                        position: pr.position,
+                        printType: pr.printType,
+                        colorCount: pr.colorCount,
+                        printSize: pr.printSize,
+                        width: pr.width,
+                        height: pr.height,
+                        designNote: pr.designNote,
+                        designImageUrl: pr.designImageUrl,
+                        unitPrice: pr.unitPrice,
                       })),
                     },
                     addons: {
@@ -1022,7 +1060,7 @@ export const orderRouter = router({
               },
               include: {
                 customer: { select: { name: true } },
-                items: { include: { variants: true, prints: true, addons: true } },
+                items: { include: { products: { include: { variants: true } }, prints: true, addons: true } },
                 fees: true,
               },
             });

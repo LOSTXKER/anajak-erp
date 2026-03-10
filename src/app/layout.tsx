@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Prompt, JetBrains_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
+const prompt = Prompt({
+  subsets: ["latin", "thai"],
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-sans",
 });
 
@@ -26,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="th" suppressHydrationWarning>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+      <body className={`${prompt.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
         <Toaster richColors position="top-right" />
       </body>
