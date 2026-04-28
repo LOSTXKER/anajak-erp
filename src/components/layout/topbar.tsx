@@ -2,12 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Moon, Sun, Bell, Search, CheckCheck } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Bell, Search, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { CommandPalette } from "./command-palette";
+import { UserMenu } from "./user-menu";
 
 function timeAgo(date: Date | string): string {
   const now = new Date();
@@ -28,11 +28,10 @@ function timeAgo(date: Date | string): string {
 }
 
 export function Topbar() {
-  const { theme, setTheme } = useTheme();
   const [notifOpen, setNotifOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -48,7 +47,18 @@ export function Topbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [notifOpen]);
 
-  // tRPC queries
+  // Cmd/Ctrl + K → open palette
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((p) => !p);
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
   const { data: unreadCount } = trpc.notification.unreadCount.useQuery(
     undefined,
     { refetchInterval: 30_000 }
@@ -66,73 +76,76 @@ export function Topbar() {
   const count = unreadCount ?? 0;
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-6 dark:border-slate-800 dark:bg-slate-950">
-      {/* Search */}
-      <div className="relative w-full max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <Input placeholder="ค้นหาออเดอร์, ลูกค้า..." className="pl-9" />
-      </div>
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 bg-[#f5f5f7]/72 px-5 backdrop-blur-xl sm:px-8 lg:px-10 dark:bg-black/60">
+      {/* Search trigger (opens command palette) */}
+      <button
+        type="button"
+        onClick={() => setPaletteOpen(true)}
+        className="group flex h-9 w-full max-w-md items-center gap-2.5 rounded-full bg-white/70 px-4 text-sm text-slate-400 shadow-[0_0_0_0.5px_rgba(0,0,0,0.06)] transition-colors hover:bg-white hover:text-slate-600 dark:bg-white/[0.06] dark:shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)] dark:hover:bg-white/10"
+      >
+        <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+        <span className="flex-1 text-left">ค้นหาเมนู หรือคำสั่ง</span>
+        <kbd className="hidden items-center gap-0.5 rounded-md bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-medium text-slate-500 sm:inline-flex dark:bg-white/10 dark:text-slate-400">
+          <span className="text-[11px]">⌘</span>K
+        </kbd>
+      </button>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
           <Button
             variant="ghost"
-            size="icon"
+            size="icon-sm"
             className="relative"
             onClick={() => setNotifOpen((prev) => !prev)}
+            aria-label="การแจ้งเตือน"
           >
             <Bell className="h-4 w-4" />
             {count > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
-                {count > 99 ? "99+" : count}
-              </span>
+              <span className="absolute right-0.5 top-0.5 flex h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-950" />
             )}
           </Button>
 
-          {/* Dropdown */}
           {notifOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-96 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+            <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.08)] sm:w-96 dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5 dark:border-slate-800">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                   การแจ้งเตือน
+                  {count > 0 && (
+                    <span className="ml-2 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10.5px] font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                      {count > 99 ? "99+" : count}
+                    </span>
+                  )}
                 </h3>
                 {count > 0 && (
                   <button
                     onClick={() => markAllRead.mutate()}
                     disabled={markAllRead.isPending}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50 dark:text-blue-400 dark:hover:text-blue-300"
+                    className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 disabled:opacity-50 dark:text-slate-400 dark:hover:text-blue-400"
                   >
                     <CheckCheck className="h-3.5 w-3.5" />
-                    ทำเครื่องหมายอ่านทั้งหมด
+                    อ่านทั้งหมด
                   </button>
                 )}
               </div>
 
-              {/* Notification list */}
               <div className="max-h-80 overflow-y-auto">
                 {notifData?.notifications && notifData.notifications.length > 0 ? (
                   notifData.notifications.map((notif) => (
                     <div
                       key={notif.id}
-                      className={`flex gap-3 border-b border-slate-50 px-4 py-3 transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800/50 dark:hover:bg-slate-800/50 ${
+                      className={`flex gap-2.5 border-b border-slate-50 px-3.5 py-2.5 transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800/50 dark:hover:bg-slate-800/50 ${
                         !notif.isRead
-                          ? "bg-blue-50/50 dark:bg-blue-950/20"
+                          ? "bg-blue-50/40 dark:bg-blue-950/20"
                           : ""
                       }`}
                     >
-                      {/* Unread dot */}
-                      <div className="flex shrink-0 pt-1.5">
-                        <span
-                          className={`h-2 w-2 rounded-full ${
-                            !notif.isRead
-                              ? "bg-blue-500"
-                              : "bg-transparent"
-                          }`}
-                        />
-                      </div>
+                      <span
+                        className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                          !notif.isRead ? "bg-blue-500" : "bg-transparent"
+                        }`}
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-slate-900 dark:text-white">
                           {notif.title}
@@ -142,7 +155,7 @@ export function Topbar() {
                             {notif.message}
                           </p>
                         )}
-                        <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+                        <p className="mt-1 text-[10.5px] text-slate-400 dark:text-slate-500">
                           {timeAgo(notif.createdAt)}
                         </p>
                       </div>
@@ -150,17 +163,16 @@ export function Topbar() {
                   ))
                 ) : (
                   <div className="px-4 py-8 text-center text-sm text-slate-400">
-                    ไม่มีการแจ้งเตือน
+                    ยังไม่มีการแจ้งเตือน
                   </div>
                 )}
               </div>
 
-              {/* Footer */}
-              <div className="border-t border-slate-100 px-4 py-2.5 dark:border-slate-800">
+              <div className="border-t border-slate-100 dark:border-slate-800">
                 <Link
                   href="/notifications"
                   onClick={() => setNotifOpen(false)}
-                  className="block text-center text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="block px-3.5 py-2 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-blue-400"
                 >
                   ดูทั้งหมด
                 </Link>
@@ -169,21 +181,10 @@ export function Topbar() {
           )}
         </div>
 
-        {/* Theme toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        >
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-        </Button>
-
-        {/* User avatar */}
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white">
-          A
-        </div>
+        <UserMenu />
       </div>
+
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </header>
   );
 }

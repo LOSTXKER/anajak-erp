@@ -5,25 +5,27 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/ui/section";
 import { SearchInput } from "@/components/ui/search-input";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
+import { DataTable } from "@/components/ui/data-table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatCurrency } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { Plus, Users, UserPlus, Crown, UserX, Building2, User } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const segmentConfig: Record<string, { label: string; variant: "default" | "success" | "warning" | "destructive" | "secondary" | "purple" }> = {
+const segmentConfig: Record<string, { label: string; variant: "default" | "accent" | "success" | "warning" | "destructive" }> = {
   VIP: { label: "VIP", variant: "success" },
-  REGULAR: { label: "ขาประจำ", variant: "default" },
-  NEW: { label: "ใหม่", variant: "purple" },
+  REGULAR: { label: "ขาประจำ", variant: "accent" },
+  NEW: { label: "ใหม่", variant: "accent" },
   INACTIVE: { label: "ไม่เคลื่อนไหว", variant: "warning" },
-  WHOLESALE: { label: "ค้าส่ง", variant: "secondary" },
-  RETAIL: { label: "ค้าปลีก", variant: "secondary" },
+  WHOLESALE: { label: "ค้าส่ง", variant: "default" },
+  RETAIL: { label: "ค้าปลีก", variant: "default" },
 };
 
 export default function CustomersPage() {
@@ -87,43 +89,31 @@ export default function CustomersPage() {
     });
   };
 
-  const stats = [
-    { title: "ลูกค้าทั้งหมด", value: statsData?.total ?? 0, icon: Users, color: "text-blue-600 bg-blue-50 dark:bg-blue-950" },
-    { title: "ใหม่เดือนนี้", value: statsData?.newThisMonth ?? 0, icon: UserPlus, color: "text-green-600 bg-green-50 dark:bg-green-950" },
-    { title: "VIP", value: statsData?.vip ?? 0, icon: Crown, color: "text-purple-600 bg-purple-50 dark:bg-purple-950" },
-    { title: "ไม่เคลื่อนไหว", value: statsData?.inactive ?? 0, icon: UserX, color: "text-amber-600 bg-amber-50 dark:bg-amber-950" },
-  ];
-
   if (isError) return <QueryError onRetry={() => refetch()} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="ลูกค้า"
         description="จัดการข้อมูลลูกค้าและ CRM"
         action={
-          <Button onClick={() => setShowForm(!showForm)}>
+          <Button size="sm" onClick={() => setShowForm(!showForm)}>
             <Plus className="h-4 w-4" />
             เพิ่มลูกค้า
           </Button>
         }
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} color={stat.color} />
-        ))}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard title="ลูกค้าทั้งหมด" value={statsData?.total ?? 0} icon={Users} />
+        <StatCard title="ใหม่เดือนนี้" value={statsData?.newThisMonth ?? 0} icon={UserPlus} />
+        <StatCard title="VIP" value={statsData?.vip ?? 0} icon={Crown} />
+        <StatCard title="ไม่เคลื่อนไหว" value={statsData?.inactive ?? 0} icon={UserX} />
       </div>
 
-      {/* Create Form */}
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">เพิ่มลูกค้าใหม่</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <Section title="เพิ่มลูกค้าใหม่">
+          <form onSubmit={handleSubmit} className="space-y-4">
               {/* Customer Type Toggle */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium">ประเภทลูกค้า</label>
@@ -324,75 +314,106 @@ export default function CustomersPage() {
                   {createCustomer.isPending ? "กำลังบันทึก..." : "บันทึก"}
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+          </form>
+        </Section>
       )}
 
-      {/* Search */}
-      <SearchInput placeholder="ค้นหาชื่อ, บริษัท, โทร, อีเมล..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      <SearchInput
+        placeholder="ค้นหาชื่อ, บริษัท, โทร, อีเมล..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
-      {/* Customer List */}
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">ลูกค้า</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">ประเภท</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">ติดต่อ</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">กลุ่ม</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">ออเดอร์</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">ยอดรวม</th>
+      <DataTable.Root>
+        <DataTable.Head>
+          <tr>
+            <DataTable.Th>ลูกค้า</DataTable.Th>
+            <DataTable.Th>ประเภท</DataTable.Th>
+            <DataTable.Th>ติดต่อ</DataTable.Th>
+            <DataTable.Th>กลุ่ม</DataTable.Th>
+            <DataTable.Th align="right">ออเดอร์</DataTable.Th>
+            <DataTable.Th align="right">ยอดรวม</DataTable.Th>
+          </tr>
+        </DataTable.Head>
+        <DataTable.Body>
+          {isLoading &&
+            [...Array(5)].map((_, i) => (
+              <tr key={i}>
+                {[...Array(6)].map((_, j) => (
+                  <DataTable.Td key={j}>
+                    <Skeleton className="h-4 w-20" />
+                  </DataTable.Td>
+                ))}
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {isLoading && [...Array(5)].map((_, i) => (
-                <tr key={i}>{[...Array(6)].map((_, j) => (
-                  <td key={j} className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
-                ))}</tr>
-              ))}
-              {data?.customers?.map((customer) => {
-                const seg = segmentConfig[customer.segment] ?? { label: customer.segment, variant: "secondary" as const };
-                return (
-                  <tr key={customer.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <td className="px-4 py-3">
-                      <Link href={`/customers/${customer.id}`} className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
-                        {customer.name}
-                      </Link>
-                      {customer.company && <p className="text-xs text-slate-400">{customer.company}</p>}
-                    </td>
-                    <td className="px-4 py-3">
-                      {customer.customerType === "CORPORATE" ? (
-                        <Badge variant="default" className="gap-1 text-xs">
-                          <Building2 className="h-3 w-3" /> นิติบุคคล
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-slate-400">บุคคล</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">
-                      {customer.phone || customer.email || "-"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={seg.variant}>{seg.label}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm tabular-nums text-slate-900 dark:text-white">
-                      {customer._count.orders}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm tabular-nums font-medium text-slate-900 dark:text-white">
-                      {formatCurrency(customer.totalSpent)}
-                    </td>
-                  </tr>
-                );
-              })}
-              {data?.customers?.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-400">ไม่พบลูกค้า</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+            ))}
+          {data?.customers?.map((customer) => {
+            const seg =
+              segmentConfig[customer.segment] ??
+              ({ label: customer.segment, variant: "default" } as const);
+            return (
+              <DataTable.Row key={customer.id}>
+                <DataTable.Td>
+                  <Link
+                    href={`/customers/${customer.id}`}
+                    className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    {customer.name}
+                  </Link>
+                  {customer.company && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {customer.company}
+                    </p>
+                  )}
+                </DataTable.Td>
+                <DataTable.Td>
+                  {customer.customerType === "CORPORATE" ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
+                      <Building2 className="h-3 w-3" /> นิติบุคคล
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400">บุคคล</span>
+                  )}
+                </DataTable.Td>
+                <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
+                  {customer.phone || customer.email || "—"}
+                </DataTable.Td>
+                <DataTable.Td>
+                  <Badge variant={seg.variant}>{seg.label}</Badge>
+                </DataTable.Td>
+                <DataTable.Td
+                  align="right"
+                  className="tabular-nums text-slate-900 dark:text-white"
+                >
+                  {customer._count.orders}
+                </DataTable.Td>
+                <DataTable.Td
+                  align="right"
+                  className="font-medium tabular-nums text-slate-900 dark:text-white"
+                >
+                  {formatCurrency(customer.totalSpent)}
+                </DataTable.Td>
+              </DataTable.Row>
+            );
+          })}
+          {!isLoading && data?.customers?.length === 0 && (
+            <tr>
+              <td colSpan={6}>
+                <EmptyState
+                  icon={Users}
+                  title="ไม่พบลูกค้า"
+                  description="เพิ่มลูกค้าใหม่เพื่อเริ่มต้นการจัดการ CRM"
+                  action={
+                    <Button size="sm" onClick={() => setShowForm(true)}>
+                      <Plus className="h-4 w-4" />
+                      เพิ่มลูกค้า
+                    </Button>
+                  }
+                />
+              </td>
+            </tr>
+          )}
+        </DataTable.Body>
+      </DataTable.Root>
     </div>
   );
 }

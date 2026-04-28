@@ -14,10 +14,10 @@ export function FilterChip({ selected, onClick, children, className }: FilterChi
       aria-pressed={selected}
       onClick={onClick}
       className={cn(
-        "whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors",
+        "whitespace-nowrap rounded-full px-3 py-1 text-[12px] font-medium transition-colors",
         selected
-          ? "bg-blue-600 text-white"
-          : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800",
+          ? "bg-blue-600 text-white dark:bg-blue-500"
+          : "bg-white text-slate-600 shadow-[0_0_0_0.5px_rgba(0,0,0,0.08)] hover:bg-slate-50 hover:text-slate-900 dark:bg-white/[0.06] dark:text-slate-300 dark:shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)] dark:hover:bg-white/10 dark:hover:text-white",
         className,
       )}
     >

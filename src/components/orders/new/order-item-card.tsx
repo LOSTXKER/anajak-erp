@@ -2,18 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { NativeSelect } from "@/components/ui/native-select";
 import { cn, formatCurrency } from "@/lib/utils";
 import { calculateFormItemSubtotal, getFormItemTotalQty, calculateTotalQuantity } from "@/lib/pricing";
 import {
   Plus,
   Trash2,
-  Palette,
   Copy,
   Pencil,
   Check,
-  PackagePlus,
 } from "lucide-react";
 import type { OrderItemForm } from "@/types/order-form";
 import {
@@ -27,7 +24,10 @@ import { ProductTableRow } from "./product-table-row";
 import { AddProductPopover } from "./add-product-popover";
 
 export const labelClass =
-  "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
+  "mb-1 block text-[12px] text-slate-500 dark:text-slate-400";
+
+const groupLabelClass =
+  "text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500";
 
 interface OrderItemCardProps {
   item: OrderItemForm;
@@ -75,18 +75,15 @@ function OrderItemRow({
 }) {
   const totalQty = getFormItemTotalQty(item);
   const subtotal = calculateFormItemSubtotal(item);
-  const productCount = item.products.length;
 
   return (
     <div
       className={cn(
-        "flex items-center gap-2 px-4 py-2.5 transition-colors",
-        isExpanded
-          ? "border-b border-blue-200 bg-blue-50/60 dark:border-blue-900 dark:bg-blue-950/30"
-          : "hover:bg-slate-50 dark:hover:bg-slate-800/40",
+        "flex items-center gap-2 py-2.5 transition-colors",
+        isExpanded && "border-b border-slate-100 dark:border-slate-800",
       )}
     >
-      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
         {itemIdx + 1}
       </span>
 
@@ -96,22 +93,13 @@ function OrderItemRow({
         className="min-w-0 flex-1 truncate text-left text-sm font-medium text-slate-700 hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-400"
       >
         {getItemLabel(item)}
-        {productCount > 0 && (
-          <span className="ml-1.5 text-xs font-normal text-slate-400">
-            · {productCount} สินค้า
-          </span>
-        )}
       </button>
 
-      <span className="w-12 flex-shrink-0 text-center text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-200">
-        {totalQty > 0 ? totalQty : "—"}
+      <span className="w-12 flex-shrink-0 text-right text-xs tabular-nums text-slate-500 dark:text-slate-400">
+        {totalQty > 0 ? `${totalQty} ตัว` : "—"}
       </span>
 
-      <span className="hidden w-16 flex-shrink-0 text-center text-xs text-slate-500 dark:text-slate-400 md:block">
-        {item.prints.length > 0 ? `${item.prints.length} ลาย` : "—"}
-      </span>
-
-      <span className="w-20 flex-shrink-0 text-right text-sm font-bold tabular-nums text-blue-600 dark:text-blue-400">
+      <span className="w-20 flex-shrink-0 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
         {subtotal > 0 ? formatCurrency(subtotal) : "—"}
       </span>
 
@@ -192,7 +180,7 @@ export function OrderItemCard({
   const subtotal = calculateFormItemSubtotal(item);
 
   return (
-    <div className={cn("rounded-xl border bg-white shadow-sm dark:bg-slate-900", isExpanded ? "border-blue-300 dark:border-blue-800" : "border-slate-200 dark:border-slate-700")}>
+    <div className={cn(isExpanded && "bg-slate-50/50 dark:bg-slate-800/30")}>
       <OrderItemRow
         item={item} itemIdx={itemIdx} canRemove={canRemove}
         isExpanded={isExpanded} onToggleExpand={onToggleExpand}
@@ -200,7 +188,7 @@ export function OrderItemCard({
       />
 
       {isExpanded && (
-        <div className="space-y-4 p-4">
+        <div className="space-y-4 py-4">
           {/* Job description */}
           <Field label="คำอธิบายงาน">
             <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder="เช่น งานสกรีนทีม ABC, งานพิมพ์เสื้อกิจกรรม..." />
@@ -209,22 +197,34 @@ export function OrderItemCard({
           {/* ── PRINTS ── */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Palette className="h-4 w-4 text-purple-500" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">ลายที่ต้องการสั่งผลิต</span>
-                {item.prints.length > 0 && <Badge variant="purple" className="text-[10px]">{item.prints.length} ลาย</Badge>}
-              </div>
+              <span className={groupLabelClass}>ลายที่ต้องการสั่งผลิต</span>
               <div className="flex items-center gap-1">
                 {otherItemsWithPrints.length > 0 && (
                   <div className="relative">
-                    <select value="" onChange={(e) => { if (e.target.value) copyPrintsFrom(parseInt(e.target.value)); }} className="h-7 appearance-none rounded-md border-0 bg-transparent pl-6 pr-2 text-xs text-purple-600 hover:bg-purple-100 dark:text-purple-400 dark:hover:bg-purple-900/50">
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value)
+                          copyPrintsFrom(parseInt(e.target.value));
+                      }}
+                      className="h-7 appearance-none rounded-md border-0 bg-transparent pl-6 pr-2 text-xs text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                    >
                       <option value="">คัดลอกลาย...</option>
-                      {otherItemsWithPrints.map(({ it, idx }) => <option key={idx} value={idx}>#{idx + 1} {it.description.slice(0, 20)} ({it.prints.length} ลาย)</option>)}
+                      {otherItemsWithPrints.map(({ it, idx }) => (
+                        <option key={idx} value={idx}>
+                          #{idx + 1} {it.description.slice(0, 20)} ({it.prints.length} ลาย)
+                        </option>
+                      ))}
                     </select>
-                    <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-purple-500" />
+                    <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
                   </div>
                 )}
-                <Button type="button" variant="outline" size="sm" onClick={() => onAddPrint(itemIdx)} className="h-7 gap-1 border-purple-300 px-2.5 text-xs text-purple-600 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onAddPrint(itemIdx)}
+                >
                   <Plus className="h-3.5 w-3.5" />เพิ่มลาย
                 </Button>
               </div>
@@ -235,14 +235,14 @@ export function OrderItemCard({
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="text-left text-[11px] font-medium text-slate-400 dark:text-slate-500">
-                      <th className="pb-2 pr-1">รูปแบบ</th>
-                      <th className="pb-2 px-1">วิธีพิมพ์</th>
-                      <th className="pb-2 px-1">ขนาด</th>
-                      <th className="pb-2 px-1">ตำแหน่ง</th>
-                      <th className="w-14 pb-2 px-1">สี</th>
-                      <th className="min-w-[80px] pb-2 px-1">ค่าสกรีน</th>
-                      <th className="w-14 pb-2" />
+                    <tr className="text-left text-[10.5px] font-normal text-slate-400 dark:text-slate-500">
+                      <th className="pb-1.5 pr-1">รูปแบบ</th>
+                      <th className="pb-1.5 px-1">วิธีพิมพ์</th>
+                      <th className="pb-1.5 px-1">ขนาด</th>
+                      <th className="pb-1.5 px-1">ตำแหน่ง</th>
+                      <th className="w-14 pb-1.5 px-1">สี</th>
+                      <th className="min-w-[80px] pb-1.5 px-1">ค่าสกรีน</th>
+                      <th className="w-14 pb-1.5" />
                     </tr>
                   </thead>
                   <tbody>
@@ -266,10 +266,7 @@ export function OrderItemCard({
           {/* ── PRODUCTS (flat table) ── */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <PackagePlus className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">สินค้าที่ต้องการสั่งผลิต</span>
-              </div>
+              <span className={groupLabelClass}>สินค้าที่ต้องการสั่งผลิต</span>
               <AddProductPopover
                 onAddFromStock={onOpenPicker}
                 onAddCustomMade={() => addProductWithSource("CUSTOM_MADE")}
@@ -291,14 +288,14 @@ export function OrderItemCard({
                     <col style={{ width: 56 }} />
                   </colgroup>
                   <thead>
-                    <tr className="text-left text-[11px] font-medium text-slate-400 dark:text-slate-500">
-                      <th className="pb-2 pl-1">แหล่ง</th>
-                      <th className="pb-2 pr-2">สินค้า</th>
-                      <th className="pb-2 px-1.5">ราคา (ต่อหน่วย)</th>
-                      <th className="pb-2 px-1.5">จำนวน</th>
-                      <th className="pb-2 px-1.5">ส่วนลด</th>
-                      <th className="pb-2 px-1.5">แพ็คเกจ</th>
-                      <th className="pb-2" />
+                    <tr className="text-left text-[10.5px] font-normal text-slate-400 dark:text-slate-500">
+                      <th className="pb-1.5 pl-1">แหล่ง</th>
+                      <th className="pb-1.5 pr-2">สินค้า</th>
+                      <th className="pb-1.5 px-1.5">ราคา (ต่อหน่วย)</th>
+                      <th className="pb-1.5 px-1.5">จำนวน</th>
+                      <th className="pb-1.5 px-1.5">ส่วนลด</th>
+                      <th className="pb-1.5 px-1.5">แพ็คเกจ</th>
+                      <th className="pb-1.5" />
                     </tr>
                   </thead>
                   <tbody>
@@ -321,12 +318,15 @@ export function OrderItemCard({
           {/* ── ADD-ONS ── */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Plus className="h-4 w-4 text-slate-500" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">ส่วนเสริม (Add-ons)</span>
-                {item.addons.length > 0 && <Badge variant="secondary" className="text-[10px]">{item.addons.length}</Badge>}
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => onAddAddon(itemIdx)} className="h-7 gap-1 border-slate-300 px-2.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-800"><Plus className="h-3.5 w-3.5" />เพิ่มส่วนเสริม</Button>
+              <span className={groupLabelClass}>ส่วนเสริม (Add-ons)</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onAddAddon(itemIdx)}
+              >
+                <Plus className="h-3.5 w-3.5" />เพิ่มส่วนเสริม
+              </Button>
             </div>
             {item.addons.length === 0 ? (
               <p className="py-2 text-center text-xs italic text-slate-400 dark:text-slate-500">ไม่มีส่วนเสริม — กด &quot;Add-on&quot; เพื่อเพิ่ม</p>
@@ -334,12 +334,12 @@ export function OrderItemCard({
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="text-left text-[11px] font-medium text-slate-400 dark:text-slate-500">
-                      <th className="w-8 pb-2" />
-                      <th className="min-w-[100px] pb-2 px-1">ประเภท</th>
-                      <th className="min-w-[120px] pb-2 px-1">ชื่อ</th>
-                      <th className="min-w-[90px] pb-2 px-1">คิดราคา</th>
-                      <th className="min-w-[80px] pb-2 pl-1">ราคา</th>
+                    <tr className="text-left text-[10.5px] font-normal text-slate-400 dark:text-slate-500">
+                      <th className="w-8 pb-1.5" />
+                      <th className="min-w-[100px] pb-1.5 px-1">ประเภท</th>
+                      <th className="min-w-[120px] pb-1.5 px-1">ชื่อ</th>
+                      <th className="min-w-[90px] pb-1.5 px-1">คิดราคา</th>
+                      <th className="min-w-[80px] pb-1.5 pl-1">ราคา</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -375,19 +375,9 @@ export function OrderItemCard({
 
           {/* Price summary — detailed breakdown */}
           {totalQty > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-800/40">
-              <div className="px-4 py-2.5">
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">สรุปราคารายการ</span>
-              </div>
+            <div className="border-t border-slate-200/70 pt-3 dark:border-slate-700/60">
+              <p className={cn(groupLabelClass, "mb-2")}>สรุปราคารายการ</p>
               <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-t border-slate-200 text-[11px] text-slate-400 dark:border-slate-700">
-                    <th className="px-4 py-1.5 text-left font-medium">รายการ</th>
-                    <th className="px-2 py-1.5 text-right font-medium">ราคา/ตัว</th>
-                    <th className="px-2 py-1.5 text-right font-medium">จำนวน</th>
-                    <th className="px-4 py-1.5 text-right font-medium">รวม</th>
-                  </tr>
-                </thead>
                 <tbody className="text-slate-600 dark:text-slate-300">
                   {/* Per-product cost */}
                   {item.products.map((p, i) => {
@@ -398,15 +388,15 @@ export function OrderItemCard({
                     const label = p.productName || p.description || `สินค้า ${i + 1}`;
                     const variant = [p.variants[0]?.color, p.variants[0]?.size].filter(Boolean).join(" ");
                     return (
-                      <tr key={`p-${i}`} className="border-t border-slate-100 dark:border-slate-700/50">
-                        <td className="px-4 py-1.5">
+                      <tr key={`p-${i}`}>
+                        <td className="py-1">
                           <span className="text-slate-700 dark:text-slate-200">{label}</span>
                           {variant && <span className="ml-1 text-slate-400">({variant})</span>}
                           {(p.discount || 0) > 0 && <span className="ml-1 text-red-500">-{formatCurrency(p.discount || 0)}</span>}
                         </td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(net)}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{pQty}</td>
-                        <td className="px-4 py-1.5 text-right tabular-nums font-medium">{formatCurrency(pTotal)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums text-slate-400">{formatCurrency(net)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums text-slate-400">×{pQty}</td>
+                        <td className="py-1 text-right tabular-nums">{formatCurrency(pTotal)}</td>
                       </tr>
                     );
                   })}
@@ -417,14 +407,14 @@ export function OrderItemCard({
                     const prLabel = PRINT_TYPES[pr.printType] || pr.printType;
                     const prPos = PRINT_POSITIONS[pr.position] || pr.position;
                     return (
-                      <tr key={`pr-${i}`} className="border-t border-slate-100 dark:border-slate-700/50">
-                        <td className="px-4 py-1.5">
-                          <span className="text-purple-600 dark:text-purple-400">🎨 {prLabel}</span>
+                      <tr key={`pr-${i}`}>
+                        <td className="py-1">
+                          <span className="text-slate-700 dark:text-slate-200">{prLabel}</span>
                           <span className="ml-1 text-slate-400">({prPos})</span>
                         </td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(pr.unitPrice)}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{totalQty}</td>
-                        <td className="px-4 py-1.5 text-right tabular-nums font-medium">{formatCurrency(prTotal)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums text-slate-400">{formatCurrency(pr.unitPrice)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums text-slate-400">×{totalQty}</td>
+                        <td className="py-1 text-right tabular-nums">{formatCurrency(prTotal)}</td>
                       </tr>
                     );
                   })}
@@ -433,51 +423,42 @@ export function OrderItemCard({
                     const aTotal = a.pricingType === "PER_PIECE" ? totalQty * a.unitPrice : a.unitPrice;
                     if (a.unitPrice === 0) return null;
                     return (
-                      <tr key={`a-${i}`} className="border-t border-slate-100 dark:border-slate-700/50">
-                        <td className="px-4 py-1.5">
-                          <span className="text-slate-500">{a.name || `ส่วนเสริม ${i + 1}`}</span>
+                      <tr key={`a-${i}`}>
+                        <td className="py-1">
+                          <span className="text-slate-700 dark:text-slate-200">{a.name || `ส่วนเสริม ${i + 1}`}</span>
                           <span className="ml-1 text-[10px] text-slate-400">({PRICING_TYPE_LABELS[a.pricingType as "PER_PIECE" | "PER_ORDER"] ?? a.pricingType})</span>
                         </td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(a.unitPrice)}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{a.pricingType === "PER_PIECE" ? totalQty : "1"}</td>
-                        <td className="px-4 py-1.5 text-right tabular-nums font-medium">{formatCurrency(aTotal)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums text-slate-400">{formatCurrency(a.unitPrice)}</td>
+                        <td className="px-2 py-1 text-right tabular-nums text-slate-400">×{a.pricingType === "PER_PIECE" ? totalQty : "1"}</td>
+                        <td className="py-1 text-right tabular-nums">{formatCurrency(aTotal)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
-                {/* Grand total */}
                 <tfoot>
-                  <tr className="border-t-2 border-slate-300 dark:border-slate-600">
-                    <td colSpan={2} className="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  <tr className="border-t border-slate-200/70 dark:border-slate-700/60">
+                    <td colSpan={2} className="pt-2 text-sm font-semibold text-slate-900 dark:text-white">
                       รวมทั้งหมด
                     </td>
-                    <td className="px-2 py-2 text-right text-sm font-semibold tabular-nums text-slate-600 dark:text-slate-300">
+                    <td className="px-2 pt-2 text-right text-xs tabular-nums text-slate-400">
                       {totalQty} ตัว
                     </td>
-                    <td className="px-4 py-2 text-right text-sm font-bold tabular-nums text-blue-700 dark:text-blue-300">
+                    <td className="pt-2 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
                       {formatCurrency(subtotal)}
                     </td>
                   </tr>
                   {totalQty > 0 && (
                     <tr>
-                      <td colSpan={3} className="px-4 pb-2.5 text-[11px] text-slate-400">
-                        เฉลี่ยต่อตัว
+                      <td colSpan={3} className="text-[11px] text-slate-400">
+                        เฉลี่ย {formatCurrency(Math.round((subtotal / totalQty) * 100) / 100)} / ตัว
                       </td>
-                      <td className="px-4 pb-2.5 text-right text-xs font-medium tabular-nums text-slate-500 dark:text-slate-400">
-                        {formatCurrency(Math.round((subtotal / totalQty) * 100) / 100)}/ตัว
-                      </td>
+                      <td />
                     </tr>
                   )}
                 </tfoot>
               </table>
             </div>
           )}
-
-          <div className="flex justify-end">
-            <Button type="button" variant="outline" size="sm" onClick={onToggleExpand} className="gap-1 text-xs">
-              <Check className="h-3.5 w-3.5" />เสร็จสิ้น
-            </Button>
-          </div>
         </div>
       )}
     </div>

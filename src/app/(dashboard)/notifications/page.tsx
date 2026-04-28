@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/page-header";
+import { FilterChip } from "@/components/ui/filter-chip";
+import { EmptyState } from "@/components/ui/empty-state";
+import { cn } from "@/lib/utils";
 import {
   Bell,
   CheckCheck,
@@ -37,11 +40,11 @@ function timeAgo(date: Date | string): string {
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
-  ORDER: <Package className="h-5 w-5 text-blue-500" />,
-  PAYMENT: <CreditCard className="h-5 w-5 text-green-500" />,
-  ALERT: <AlertTriangle className="h-5 w-5 text-amber-500" />,
-  INFO: <Info className="h-5 w-5 text-cyan-500" />,
-  MESSAGE: <MessageSquare className="h-5 w-5 text-purple-500" />,
+  ORDER: <Package className="h-4 w-4" strokeWidth={1.75} />,
+  PAYMENT: <CreditCard className="h-4 w-4" strokeWidth={1.75} />,
+  ALERT: <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />,
+  INFO: <Info className="h-4 w-4" strokeWidth={1.75} />,
+  MESSAGE: <MessageSquare className="h-4 w-4" strokeWidth={1.75} />,
 };
 
 const FILTER_TABS = [
@@ -50,6 +53,36 @@ const FILTER_TABS = [
 ] as const;
 
 type FilterValue = (typeof FILTER_TABS)[number]["value"];
+
+type NotifItem = {
+  id: string;
+  type: string;
+  title: string;
+  message: string | null;
+  isRead: boolean;
+  createdAt: Date | string;
+};
+
+function dayBucket(date: Date | string): "today" | "week" | "earlier" {
+  const d = new Date(date);
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+  if (d >= startOfToday) return "today";
+  const week = new Date(startOfToday);
+  week.setDate(week.getDate() - 7);
+  if (d >= week) return "week";
+  return "earlier";
+}
+
+const BUCKET_LABELS: Record<"today" | "week" | "earlier", string> = {
+  today: "วันนี้",
+  week: "สัปดาห์นี้",
+  earlier: "ก่อนหน้านี้",
+};
 
 export default function NotificationsPage() {
   const [filter, setFilter] = useState<FilterValue>("all");
@@ -68,147 +101,169 @@ export default function NotificationsPage() {
     invalidate: [utils.notification.unreadCount, utils.notification.list],
   });
 
-  const markAllRead = useMutationWithInvalidation(trpc.notification.markAllRead, {
-    invalidate: [utils.notification.unreadCount, utils.notification.list],
-  });
+  const markAllRead = useMutationWithInvalidation(
+    trpc.notification.markAllRead,
+    {
+      invalidate: [utils.notification.unreadCount, utils.notification.list],
+    }
+  );
 
   const { data: unreadCount } = trpc.notification.unreadCount.useQuery();
 
-  const notifications = data?.notifications ?? [];
+  const notifications = (data?.notifications ?? []) as NotifItem[];
   const totalPages = data?.pages ?? 1;
   const total = data?.total ?? 0;
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            การแจ้งเตือน
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            ติดตามการแจ้งเตือนทั้งหมดของคุณ
-          </p>
-        </div>
-        {(unreadCount ?? 0) > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => markAllRead.mutate()}
-            disabled={markAllRead.isPending}
-            className="gap-1.5 text-blue-600 hover:text-blue-700 dark:text-blue-400"
-          >
-            <CheckCheck className="h-4 w-4" />
-            ทำเครื่องหมายอ่านทั้งหมด
-          </Button>
-        )}
-      </div>
+  const grouped = useMemo(() => {
+    const result: Record<"today" | "week" | "earlier", NotifItem[]> = {
+      today: [],
+      week: [],
+      earlier: [],
+    };
+    notifications.forEach((n) => {
+      result[dayBucket(n.createdAt)].push(n);
+    });
+    return result;
+  }, [notifications]);
 
-      {/* Filter tabs */}
-      <div className="flex gap-1">
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="การแจ้งเตือน"
+        description="ติดตามการแจ้งเตือนทั้งหมดของคุณ"
+        action={
+          (unreadCount ?? 0) > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => markAllRead.mutate()}
+              disabled={markAllRead.isPending}
+            >
+              <CheckCheck className="h-4 w-4" />
+              อ่านทั้งหมด
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {/* Filter chips */}
+      <div className="flex flex-wrap items-center gap-1.5">
         {FILTER_TABS.map((tab) => (
-          <button
+          <FilterChip
             key={tab.value}
+            selected={filter === tab.value}
             onClick={() => {
               setFilter(tab.value);
               setPage(1);
             }}
-            className={`whitespace-nowrap rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
-              filter === tab.value
-                ? "bg-blue-600 text-white"
-                : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
-            }`}
           >
             {tab.label}
             {tab.value === "unread" && (unreadCount ?? 0) > 0 && (
-              <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1 text-xs">
+              <span className="ml-1.5 rounded-full bg-blue-100 px-1.5 text-[10px] text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                 {unreadCount}
               </span>
             )}
-          </button>
+          </FilterChip>
         ))}
       </div>
 
-      {/* Notification list */}
-      <Card>
-        <div className="divide-y divide-slate-100 dark:divide-slate-800">
-          {isLoading &&
-            [...Array(5)].map((_, i) => (
-              <div key={i} className="flex gap-4 px-5 py-4">
-                <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+      {/* List */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white dark:border-slate-800/60 dark:bg-slate-900/80">
+        {isLoading && (
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex gap-3 px-5 py-3.5">
+                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
                 <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-3.5 w-48" />
                   <Skeleton className="h-3 w-72" />
                   <Skeleton className="h-3 w-20" />
                 </div>
               </div>
             ))}
+          </div>
+        )}
 
-          {!isLoading && notifications.length === 0 && (
-            <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-              <Bell className="mb-3 h-10 w-10 text-slate-300 dark:text-slate-600" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {filter === "unread"
-                  ? "ไม่มีการแจ้งเตือนที่ยังไม่อ่าน"
-                  : "ไม่มีการแจ้งเตือน"}
-              </p>
-            </div>
-          )}
+        {!isLoading && notifications.length === 0 && (
+          <EmptyState
+            icon={Bell}
+            title={
+              filter === "unread"
+                ? "ไม่มีการแจ้งเตือนที่ยังไม่อ่าน"
+                : "ไม่มีการแจ้งเตือน"
+            }
+          />
+        )}
 
-          {notifications.map((notif) => (
-            <button
-              key={notif.id}
-              onClick={() => {
-                if (!notif.isRead) {
-                  markRead.mutate({ id: notif.id });
-                }
-              }}
-              className={`flex w-full gap-4 px-5 py-4 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                !notif.isRead ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
-              }`}
-            >
-              {/* Icon */}
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
-                {TYPE_ICONS[notif.type] ?? (
-                  <Bell className="h-5 w-5 text-slate-400" />
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <p
-                    className={`text-sm ${
-                      !notif.isRead
-                        ? "font-semibold text-slate-900 dark:text-white"
-                        : "font-medium text-slate-700 dark:text-slate-300"
-                    }`}
-                  >
-                    {notif.title}
-                  </p>
-                  {/* Unread indicator */}
-                  {!notif.isRead && (
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
-                  )}
+        {!isLoading && notifications.length > 0 && (
+          <div>
+            {(["today", "week", "earlier"] as const).map((bucket) => {
+              const items = grouped[bucket];
+              if (items.length === 0) return null;
+              return (
+                <div key={bucket}>
+                  <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
+                    {BUCKET_LABELS[bucket]}
+                  </div>
+                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {items.map((notif) => (
+                      <li key={notif.id}>
+                        <button
+                          onClick={() => {
+                            if (!notif.isRead) {
+                              markRead.mutate({ id: notif.id });
+                            }
+                          }}
+                          className={cn(
+                            "flex w-full gap-3 px-5 py-3.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50",
+                            !notif.isRead && "bg-blue-50/40 dark:bg-blue-950/20"
+                          )}
+                        >
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                            {TYPE_ICONS[notif.type] ?? (
+                              <Bell className="h-4 w-4" strokeWidth={1.75} />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <p
+                                className={cn(
+                                  "text-sm",
+                                  !notif.isRead
+                                    ? "font-semibold text-slate-900 dark:text-white"
+                                    : "font-medium text-slate-700 dark:text-slate-300"
+                                )}
+                              >
+                                {notif.title}
+                              </p>
+                              {!notif.isRead && (
+                                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
+                              )}
+                            </div>
+                            {notif.message && (
+                              <p className="mt-0.5 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+                                {notif.message}
+                              </p>
+                            )}
+                            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                              {timeAgo(notif.createdAt)}
+                            </p>
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                {notif.message && (
-                  <p className="mt-0.5 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
-                    {notif.message}
-                  </p>
-                )}
-                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                  {timeAgo(notif.createdAt)}
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 dark:border-slate-800">
+          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-2.5 dark:border-slate-800">
             <p className="text-xs text-slate-500">ทั้งหมด {total} รายการ</p>
-            <div className="flex gap-1">
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
@@ -217,7 +272,7 @@ export default function NotificationsPage() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="flex items-center px-2 text-xs text-slate-500">
+              <span className="px-1 text-xs text-slate-500">
                 {page} / {totalPages}
               </span>
               <Button
@@ -231,7 +286,7 @@ export default function NotificationsPage() {
             </div>
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
+import { FilterChip } from "@/components/ui/filter-chip";
+import { PageHeader } from "@/components/page-header";
 import {
   CHANNEL_LABELS,
-  ORDER_TYPE_LABELS,
   PRIORITY_LABELS,
   PAYMENT_TERMS_LABELS,
   isMarketplaceChannel,
@@ -22,11 +23,7 @@ import {
 } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
 import {
-  ArrowLeft,
   Plus,
-  Package,
-  Palette,
-  ShoppingBag,
   RefreshCw,
   Save,
   Zap,
@@ -68,7 +65,7 @@ import {
 const CHANNELS = Object.keys(CHANNEL_LABELS) as string[];
 
 const sectionLabelClass =
-  "mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300";
+  "mb-1.5 block text-[12px] text-slate-500 dark:text-slate-400";
 
 export default function NewOrderPage() {
   const router = useRouter();
@@ -407,124 +404,104 @@ export default function NewOrderPage() {
   // ============================================================
 
   return (
-    <div className="space-y-6">
-      {/* Header with type badge */}
-      <div className="flex items-center gap-3">
-        <Link href="/orders">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              สร้างออเดอร์ใหม่
-            </h1>
-            <Badge
-              variant="outline"
-              className={
-                isCustom
-                  ? "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-400"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
-              }
-            >
-              {isCustom ? (
-                <Palette className="mr-1 h-3 w-3" />
-              ) : (
-                <ShoppingBag className="mr-1 h-3 w-3" />
-              )}
-              {ORDER_TYPE_LABELS[orderType]}
-            </Badge>
-            <button
+    <div className="space-y-5">
+      <PageHeader
+        breadcrumb={[
+          { label: "ออเดอร์", href: "/orders" },
+          { label: "สร้างใหม่" },
+        ]}
+        title="สร้างออเดอร์ใหม่"
+        description={
+          isQuickInquiry
+            ? "บันทึกข้อมูลเบื้องต้น — รายละเอียดเพิ่มเติมภายหลัง"
+            : "กรอกรายละเอียดออเดอร์"
+        }
+        action={
+          <>
+            {isCustom && (
+              <div className="inline-flex gap-0.5 rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800/60">
+                <button
+                  type="button"
+                  onClick={() => setCustomMode("quick")}
+                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
+                    customMode === "quick"
+                      ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:bg-slate-700 dark:text-white"
+                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  }`}
+                >
+                  <Zap className="h-3.5 w-3.5" />
+                  สอบถาม
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCustomMode("full")}
+                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
+                    customMode === "full"
+                      ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:bg-slate-700 dark:text-white"
+                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  }`}
+                >
+                  <ListChecks className="h-3.5 w-3.5" />
+                  ระบุครบ
+                </button>
+              </div>
+            )}
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setTypeSelected(false)}
-              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             >
-              <RefreshCw className="h-3 w-3" />
+              <RefreshCw className="h-3.5 w-3.5" />
               เปลี่ยนประเภท
-            </button>
-          </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {isQuickInquiry
-              ? "บันทึกข้อมูลเบื้องต้น — รายละเอียดเพิ่มเติมภายหลัง"
-              : "กรอกรายละเอียดออเดอร์"}
-          </p>
-        </div>
-      </div>
-
-      {/* MODE TOGGLE (CUSTOM only) */}
-      {isCustom && (
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
-          <button
-            type="button"
-            onClick={() => setCustomMode("quick")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-              customMode === "quick"
-                ? "bg-purple-100 text-purple-800 shadow-sm dark:bg-purple-900 dark:text-purple-200"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <Zap className="h-4 w-4" />
-            สอบถามเบื้องต้น
-            <span className="hidden text-xs opacity-70 sm:inline">
-              (ข้อมูลน้อย ใส่รายละเอียดภายหลัง)
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setCustomMode("full")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-              customMode === "full"
-                ? "bg-purple-100 text-purple-800 shadow-sm dark:bg-purple-900 dark:text-purple-200"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            <ListChecks className="h-4 w-4" />
-            ระบุรายละเอียดครบ
-            <span className="hidden text-xs opacity-70 sm:inline">
-              (รู้ราคา จำนวน ตำแหน่งพิมพ์)
-            </span>
-          </button>
-        </div>
-      )}
+            </Button>
+          </>
+        }
+      />
 
       {hasDraft && (
-        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950">
-          <span className="text-sm text-amber-800 dark:text-amber-200">
+        <div className="flex items-center gap-3 rounded-lg bg-amber-50/60 px-3 py-1.5 text-[12px] dark:bg-amber-950/20">
+          <span className="text-amber-800 dark:text-amber-200">
             พบข้อมูลร่างที่ยังไม่ได้บันทึก — กรอกต่อจากเดิมหรือเริ่มใหม่?
           </span>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={dismissDraft}
-            className="ml-auto border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300"
+            className="ml-auto"
           >
             เริ่มใหม่
           </Button>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_340px]">
         {/* ============================================================ */}
         {/* LEFT COLUMN — Items + Images + Fees                          */}
         {/* ============================================================ */}
         <div className="space-y-6">
           {/* Product Lines */}
           {showItemsSection && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Package className="h-4 w-4" />
-                  รายการสินค้า
-                </CardTitle>
-                <Button type="button" variant="outline" size="sm" onClick={() => { addItem(); setExpandedItemIdx(items.length); }}>
-                  <Plus className="mr-1 h-4 w-4" />
+            <Section
+              title="รายการสินค้า"
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    addItem();
+                    setExpandedItemIdx(items.length);
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
                   รายการงานพิมพ์ใหม่
                 </Button>
-              </CardHeader>
-              <CardContent className="space-y-0">
-                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              }
+              flush
+            >
+              <div className="divide-y divide-slate-100 px-5 dark:divide-slate-800">
                   {items.map((item, itemIdx) => (
                     <OrderItemCard
                       key={itemIdx}
@@ -548,53 +525,50 @@ export default function NewOrderPage() {
                       onSetItems={(updater) => setItems(updater(items))}
                     />
                   ))}
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </Section>
           )}
 
           {/* Reference Images */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ImageIcon className="h-4 w-4" />
+          <Section
+            title={
+              <span className="flex items-center gap-2">
                 ภาพอ้างอิง / ไฟล์แบบ
                 {isQuickInquiry && (
-                  <span className="text-xs font-normal text-purple-500">(แนะนำ)</span>
+                  <span className="text-xs font-normal text-blue-600 dark:text-blue-400">
+                    (แนะนำ)
+                  </span>
                 )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+              </span>
+            }
+          >
+            <div className="space-y-3">
                 {referenceImages.length > 0 && (
                   <div className="flex flex-wrap gap-3">
                     {referenceImages.map((img, idx) => (
                       <div key={idx} className="group relative">
                         {img.preview ? (
-                          <img src={img.preview} alt={img.fileName} className="h-24 w-24 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
+                          <img src={img.preview} alt={img.fileName} className="h-24 w-24 rounded-xl border border-slate-200/60 object-cover dark:border-slate-700/60" />
                         ) : (
-                          <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800"><ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" /></div>
+                          <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-slate-200/60 bg-slate-50 dark:border-slate-700/60 dark:bg-slate-800"><ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" /></div>
                         )}
                         <button type="button" onClick={() => removeReferenceImage(idx)} className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-red-600"><X className="h-3 w-3" /></button>
-                        <NativeSelect value={img.printPosition || ""} onChange={(e) => { setReferenceImages((prev) => prev.map((im, i) => i === idx ? { ...im, printPosition: e.target.value || undefined } : im)); }} className="mt-1 h-auto w-24 px-1 py-0.5 text-[10px]">
+                        <NativeSelect value={img.printPosition || ""} onChange={(e) => { setReferenceImages((prev) => prev.map((im, i) => i === idx ? { ...im, printPosition: e.target.value || undefined } : im)); }} className="mt-1.5 h-7 w-24 px-1.5 py-0 text-[11px]">
                           <option value="">ทั่วไป</option>
                           {Object.entries(PRINT_POSITIONS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
                         </NativeSelect>
-                        {img.printPosition && (<Badge variant="secondary" className="mt-0.5 text-[9px]">{PRINT_POSITIONS[img.printPosition] || img.printPosition}</Badge>)}
-                        <p className="max-w-[6rem] truncate text-[10px] text-slate-400">{img.fileName}</p>
                       </div>
                     ))}
                   </div>
                 )}
                 {referenceImages.length < 5 && (
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600 dark:text-slate-400 dark:hover:border-blue-500 dark:hover:text-blue-400">
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/40 px-4 py-6 text-[13px] text-slate-500 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400 dark:hover:border-blue-500">
                     <input type="file" accept="image/*,.pdf,.ai,.psd" multiple onChange={handleImageUpload} className="hidden" disabled={uploading} />
-                    {uploading ? (<><Loader2 className="h-5 w-5 animate-spin" />กำลังอัปโหลด...</>) : (<><Upload className="h-5 w-5" />อัปโหลดภาพอ้างอิง (สูงสุด 5 ภาพ, ไม่เกิน 10MB)</>)}
+                    {uploading ? (<><Loader2 className="h-4 w-4 animate-spin" />กำลังอัปโหลด...</>) : (<><Upload className="h-4 w-4" />อัปโหลดภาพอ้างอิง (สูงสุด 5 ภาพ)</>)}
                   </label>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
 
           {/* Order Fees */}
           {showFeeSections && (
@@ -611,79 +585,161 @@ export default function NewOrderPage() {
         {/* ============================================================ */}
         {/* RIGHT COLUMN — Info + Price + Shipping + Actions (sticky)    */}
         {/* ============================================================ */}
-        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+        <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           {/* Channel */}
-          <Card>
-            <CardContent className="space-y-4 pt-5">
-              <div>
-                <label className={sectionLabelClass}>ช่องทาง *</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {CHANNELS.map((ch) => (
-                    <button key={ch} type="button" onClick={() => setChannel(ch)} className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${channel === ch ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950 dark:text-blue-300" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"}`}>
-                      {CHANNEL_LABELS[ch]}
-                    </button>
-                  ))}
-                </div>
+          <Section title="ช่องทาง" compact>
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-1.5">
+                {CHANNELS.map((ch) => (
+                  <FilterChip
+                    key={ch}
+                    selected={channel === ch}
+                    onClick={() => setChannel(ch)}
+                  >
+                    {CHANNEL_LABELS[ch]}
+                  </FilterChip>
+                ))}
               </div>
               {isMarketplace && (
                 <div>
-                  <label className={sectionLabelClass}>เลขออเดอร์ {CHANNEL_LABELS[channel]}</label>
-                  <Input value={externalOrderId} onChange={(e) => setExternalOrderId(e.target.value)} placeholder="เช่น 2502120001234" />
+                  <label className={sectionLabelClass}>
+                    เลขออเดอร์ {CHANNEL_LABELS[channel]}
+                  </label>
+                  <Input
+                    value={externalOrderId}
+                    onChange={(e) => setExternalOrderId(e.target.value)}
+                    placeholder="เช่น 2502120001234"
+                  />
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
 
           {/* Basic Info */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">ข้อมูลทั่วไป</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <Section title="ข้อมูลทั่วไป" compact>
+            <div className="space-y-3">
               <div>
                 <label className={sectionLabelClass}>ลูกค้า *</label>
-                <NativeSelect value={customerId} onChange={(e) => setCustomerId(e.target.value)} required>
+                <NativeSelect
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                  required
+                >
                   <option value="">-- เลือกลูกค้า --</option>
-                  {customers?.customers.map((c) => (<option key={c.id} value={c.id}>{c.name} {c.company ? `(${c.company})` : ""}{c.customerType === "CORPORATE" ? " [นิติบุคคล]" : ""}</option>))}
+                  {customers?.customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.company ? `(${c.company})` : ""}
+                      {c.customerType === "CORPORATE" ? " [นิติบุคคล]" : ""}
+                    </option>
+                  ))}
                 </NativeSelect>
                 {selectedCustomer && isCorporateCustomer && (
-                  <div className="mt-1 flex items-center gap-1.5">
-                    <Badge variant="default" className="gap-1 text-[10px]">นิติบุคคล</Badge>
-                    {selectedCustomer.taxId && <span className="text-[10px] text-slate-400">Tax ID: {selectedCustomer.taxId}</span>}
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <Badge variant="accent" size="sm">
+                      นิติบุคคล
+                    </Badge>
+                    {selectedCustomer.taxId && (
+                      <span className="text-[11px] text-slate-500">
+                        Tax ID: {selectedCustomer.taxId}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
               <div>
                 <label className={sectionLabelClass}>ชื่องาน *</label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isQuickInquiry ? "เช่น เสื้อยืดทีมฟุตบอล..." : "เช่น เสื้อยืดทีม ABC..."} required />
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={
+                    isQuickInquiry
+                      ? "เช่น เสื้อยืดทีมฟุตบอล..."
+                      : "เช่น เสื้อยืดทีม ABC..."
+                  }
+                  required
+                />
               </div>
               <div>
                 <label className={sectionLabelClass}>กำหนดส่ง</label>
-                <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+                <Input
+                  type="date"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                />
               </div>
               <div>
-                <label className={sectionLabelClass}>รายละเอียด {isQuickInquiry && <span className="text-purple-500">*</span>}</label>
-                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={isQuickInquiry ? "บันทึกสิ่งที่ลูกค้าต้องการ..." : "รายละเอียดเพิ่มเติม..."} rows={isQuickInquiry ? 3 : 2} required={isQuickInquiry} />
+                <label className={sectionLabelClass}>
+                  รายละเอียด
+                  {isQuickInquiry && (
+                    <span className="ml-0.5 text-blue-600 dark:text-blue-400">
+                      *
+                    </span>
+                  )}
+                </label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={
+                    isQuickInquiry
+                      ? "บันทึกสิ่งที่ลูกค้าต้องการ..."
+                      : "รายละเอียดเพิ่มเติม..."
+                  }
+                  rows={isQuickInquiry ? 3 : 2}
+                  required={isQuickInquiry}
+                />
               </div>
 
               {isQuickInquiry && (
                 <div>
-                  <label className={sectionLabelClass}>จำนวนโดยประมาณ (ชิ้น)</label>
-                  <Input type="number" min={1} value={estimatedQuantity} onChange={(e) => setEstimatedQuantity(e.target.value ? parseInt(e.target.value) : "")} placeholder="เช่น 50, 100..." />
+                  <label className={sectionLabelClass}>
+                    จำนวนโดยประมาณ (ชิ้น)
+                  </label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={estimatedQuantity}
+                    onChange={(e) =>
+                      setEstimatedQuantity(
+                        e.target.value ? parseInt(e.target.value) : ""
+                      )
+                    }
+                    placeholder="เช่น 50, 100..."
+                  />
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className={sectionLabelClass}>ความเร่งด่วน</label>
-                  <NativeSelect value={priority} onChange={(e) => setPriority(e.target.value as "LOW" | "NORMAL" | "HIGH" | "URGENT")}>
-                    {Object.entries(PRIORITY_LABELS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
+                  <NativeSelect
+                    value={priority}
+                    onChange={(e) =>
+                      setPriority(
+                        e.target.value as "LOW" | "NORMAL" | "HIGH" | "URGENT"
+                      )
+                    }
+                  >
+                    {Object.entries(PRIORITY_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
                   </NativeSelect>
                 </div>
                 {!isQuickInquiry && (
                   <div>
                     <label className={sectionLabelClass}>ภาษี (%)</label>
-                    <Input type="number" min={0} max={100} step={0.01} value={taxRate || ""} onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)} placeholder="0" />
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.01}
+                      value={taxRate || ""}
+                      onChange={(e) =>
+                        setTaxRate(parseFloat(e.target.value) || 0)
+                      }
+                      placeholder="0"
+                    />
                   </div>
                 )}
               </div>
@@ -692,15 +748,26 @@ export default function NewOrderPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className={sectionLabelClass}>เงื่อนไขชำระ</label>
-                    <NativeSelect value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)}>
+                    <NativeSelect
+                      value={paymentTerms}
+                      onChange={(e) => setPaymentTerms(e.target.value)}
+                    >
                       <option value="">-- ไม่ระบุ --</option>
-                      {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
+                      {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
+                        <option key={k} value={k}>
+                          {v}
+                        </option>
+                      ))}
                     </NativeSelect>
                   </div>
                   {isCorporateCustomer && (
                     <div>
                       <label className={sectionLabelClass}>เลขที่ PO</label>
-                      <Input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} placeholder="PO Number" />
+                      <Input
+                        value={poNumber}
+                        onChange={(e) => setPoNumber(e.target.value)}
+                        placeholder="PO Number"
+                      />
                     </div>
                   )}
                 </div>
@@ -708,10 +775,15 @@ export default function NewOrderPage() {
 
               <div>
                 <label className={sectionLabelClass}>หมายเหตุ</label>
-                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="หมายเหตุภายใน..." rows={2} />
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="หมายเหตุภายใน..."
+                  rows={2}
+                />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
 
           {/* Shipping Address */}
           {!isQuickInquiry && (
@@ -740,37 +812,53 @@ export default function NewOrderPage() {
 
           {/* Validation Errors */}
           {formErrors.length > 0 && (
-            <div className="rounded-lg border border-red-300 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950">
-              <p className="mb-1.5 text-xs font-semibold text-red-700 dark:text-red-300">กรุณาแก้ไข:</p>
-              <ul className="list-inside list-disc space-y-0.5 text-xs text-red-600 dark:text-red-400">
-                {formErrors.map((err, i) => (<li key={i}>{err}</li>))}
+            <div className="rounded-xl bg-red-50/70 p-3 dark:bg-red-950/20">
+              <p className="mb-1 text-[12px] font-medium text-red-700 dark:text-red-300">
+                กรุณาแก้ไข
+              </p>
+              <ul className="list-inside list-disc space-y-0.5 text-[12px] text-red-600 dark:text-red-400">
+                {formErrors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
               </ul>
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5 pt-2">
             <Button
               type="submit"
               disabled={createOrder.isPending}
-              className={`w-full ${isQuickInquiry ? "gap-1 bg-purple-600 text-white hover:bg-purple-700" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+              className="w-full"
             >
               {createOrder.isPending ? "กำลังบันทึก..." : isQuickInquiry ? "บันทึกการสอบถาม" : "สร้างออเดอร์"}
             </Button>
-            <div className="flex gap-2">
+            <div className="flex items-center justify-center gap-1 text-[12px]">
               {!isQuickInquiry && (
-                <Button type="button" variant="outline" disabled={createOrder.isPending} onClick={handleSaveDraft} className="flex-1 gap-1 text-xs">
-                  <Save className="h-3.5 w-3.5" />บันทึกร่าง
-                </Button>
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={createOrder.isPending}
+                    onClick={handleSaveDraft}
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    บันทึกร่าง
+                  </Button>
+                  <span className="text-slate-300 dark:text-slate-700">·</span>
+                </>
               )}
-              <Link href="/orders" className={isQuickInquiry ? "flex-1" : ""}>
-                <Button type="button" variant="outline" className={`text-xs ${isQuickInquiry ? "w-full" : ""}`}>ยกเลิก</Button>
+              <Link href="/orders">
+                <Button type="button" variant="ghost" size="sm">
+                  ยกเลิก
+                </Button>
               </Link>
             </div>
           </div>
 
           {createOrder.isError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <div className="rounded-xl bg-red-50/70 p-3 text-[12px] text-red-700 dark:bg-red-950/20 dark:text-red-300">
               {createOrder.error.message}
             </div>
           )}

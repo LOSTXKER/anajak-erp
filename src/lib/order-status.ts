@@ -38,68 +38,67 @@ export const INTERNAL_STATUS_LABELS: Record<InternalStatus, string> = {
 // CUSTOMER STATUS COLORS (for badges)
 // ============================================================
 
+// Simplified palette: neutral / accent / semantic only.
+const NEUTRAL = {
+  bg: "bg-slate-100 dark:bg-slate-800",
+  text: "text-slate-700 dark:text-slate-300",
+  dot: "bg-slate-400",
+};
+const ACCENT = {
+  bg: "bg-blue-50 dark:bg-blue-950/40",
+  text: "text-blue-700 dark:text-blue-300",
+  dot: "bg-blue-500",
+};
+const WARNING = {
+  bg: "bg-amber-50 dark:bg-amber-950/40",
+  text: "text-amber-700 dark:text-amber-300",
+  dot: "bg-amber-500",
+};
+const SUCCESS = {
+  bg: "bg-green-50 dark:bg-green-950/40",
+  text: "text-green-700 dark:text-green-300",
+  dot: "bg-green-500",
+};
+const DANGER = {
+  bg: "bg-red-50 dark:bg-red-950/40",
+  text: "text-red-700 dark:text-red-300",
+  dot: "bg-red-500",
+};
+
 export const CUSTOMER_STATUS_COLORS: Record<
   CustomerStatus,
   { bg: string; text: string; dot: string }
 > = {
-  ORDER_RECEIVED: {
-    bg: "bg-blue-50 dark:bg-blue-950",
-    text: "text-blue-700 dark:text-blue-300",
-    dot: "bg-blue-500",
-  },
-  PREPARING: {
-    bg: "bg-purple-50 dark:bg-purple-950",
-    text: "text-purple-700 dark:text-purple-300",
-    dot: "bg-purple-500",
-  },
-  IN_PRODUCTION: {
-    bg: "bg-amber-50 dark:bg-amber-950",
-    text: "text-amber-700 dark:text-amber-300",
-    dot: "bg-amber-500",
-  },
-  READY_TO_SHIP: {
-    bg: "bg-cyan-50 dark:bg-cyan-950",
-    text: "text-cyan-700 dark:text-cyan-300",
-    dot: "bg-cyan-500",
-  },
-  SHIPPED: {
-    bg: "bg-indigo-50 dark:bg-indigo-950",
-    text: "text-indigo-700 dark:text-indigo-300",
-    dot: "bg-indigo-500",
-  },
-  COMPLETED: {
-    bg: "bg-green-50 dark:bg-green-950",
-    text: "text-green-700 dark:text-green-300",
-    dot: "bg-green-500",
-  },
-  CANCELLED: {
-    bg: "bg-red-50 dark:bg-red-950",
-    text: "text-red-700 dark:text-red-300",
-    dot: "bg-red-500",
-  },
+  ORDER_RECEIVED: ACCENT,
+  PREPARING: ACCENT,
+  IN_PRODUCTION: WARNING,
+  READY_TO_SHIP: WARNING,
+  SHIPPED: ACCENT,
+  COMPLETED: SUCCESS,
+  CANCELLED: DANGER,
 };
 
 export const INTERNAL_STATUS_COLORS: Record<
   InternalStatus,
   { bg: string; text: string }
 > = {
-  DRAFT: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-500 dark:text-slate-400" },
-  INQUIRY: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-700 dark:text-slate-300" },
-  QUOTATION: { bg: "bg-blue-100 dark:bg-blue-900", text: "text-blue-700 dark:text-blue-300" },
-  CONFIRMED: { bg: "bg-blue-100 dark:bg-blue-900", text: "text-blue-700 dark:text-blue-300" },
-  DESIGN_PENDING: { bg: "bg-purple-100 dark:bg-purple-900", text: "text-purple-700 dark:text-purple-300" },
-  DESIGNING: { bg: "bg-purple-100 dark:bg-purple-900", text: "text-purple-700 dark:text-purple-300" },
-  AWAITING_APPROVAL: { bg: "bg-purple-100 dark:bg-purple-900", text: "text-purple-700 dark:text-purple-300" },
-  DESIGN_APPROVED: { bg: "bg-purple-100 dark:bg-purple-900", text: "text-purple-700 dark:text-purple-300" },
-  PRODUCTION_QUEUE: { bg: "bg-amber-100 dark:bg-amber-900", text: "text-amber-700 dark:text-amber-300" },
-  PRODUCING: { bg: "bg-amber-100 dark:bg-amber-900", text: "text-amber-700 dark:text-amber-300" },
-  QUALITY_CHECK: { bg: "bg-amber-100 dark:bg-amber-900", text: "text-amber-700 dark:text-amber-300" },
-  PACKING: { bg: "bg-amber-100 dark:bg-amber-900", text: "text-amber-700 dark:text-amber-300" },
-  READY_TO_SHIP: { bg: "bg-cyan-100 dark:bg-cyan-900", text: "text-cyan-700 dark:text-cyan-300" },
-  SHIPPED: { bg: "bg-indigo-100 dark:bg-indigo-900", text: "text-indigo-700 dark:text-indigo-300" },
-  COMPLETED: { bg: "bg-green-100 dark:bg-green-900", text: "text-green-700 dark:text-green-300" },
-  CANCELLED: { bg: "bg-red-100 dark:bg-red-900", text: "text-red-700 dark:text-red-300" },
-  ON_HOLD: { bg: "bg-yellow-100 dark:bg-yellow-900", text: "text-yellow-700 dark:text-yellow-300" },
+  DRAFT: NEUTRAL,
+  INQUIRY: NEUTRAL,
+  QUOTATION: ACCENT,
+  CONFIRMED: ACCENT,
+  DESIGN_PENDING: ACCENT,
+  DESIGNING: ACCENT,
+  AWAITING_APPROVAL: ACCENT,
+  DESIGN_APPROVED: ACCENT,
+  PRODUCTION_QUEUE: WARNING,
+  PRODUCING: WARNING,
+  QUALITY_CHECK: WARNING,
+  PACKING: WARNING,
+  READY_TO_SHIP: WARNING,
+  SHIPPED: ACCENT,
+  COMPLETED: SUCCESS,
+  CANCELLED: DANGER,
+  ON_HOLD: WARNING,
 };
 
 // ============================================================
@@ -270,10 +269,10 @@ export const PRIORITY_LABELS: Record<string, string> = {
 };
 
 export const PRIORITY_COLORS: Record<string, { bg: string; text: string }> = {
-  LOW: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-600 dark:text-slate-400" },
-  NORMAL: { bg: "bg-blue-100 dark:bg-blue-900", text: "text-blue-700 dark:text-blue-300" },
-  HIGH: { bg: "bg-orange-100 dark:bg-orange-900", text: "text-orange-700 dark:text-orange-300" },
-  URGENT: { bg: "bg-red-100 dark:bg-red-900", text: "text-red-700 dark:text-red-300" },
+  LOW: NEUTRAL,
+  NORMAL: ACCENT,
+  HIGH: WARNING,
+  URGENT: DANGER,
 };
 
 export const PAYMENT_TERMS_LABELS: Record<string, string> = {
@@ -301,14 +300,15 @@ export const CHANNEL_LABELS: Record<string, string> = {
   WEBSITE: "เว็บไซต์",
 };
 
+// All channels share the same neutral chip — channel is just metadata.
 export const CHANNEL_COLORS: Record<string, { bg: string; text: string }> = {
-  SHOPEE: { bg: "bg-orange-100 dark:bg-orange-900", text: "text-orange-700 dark:text-orange-300" },
-  LAZADA: { bg: "bg-blue-100 dark:bg-blue-900", text: "text-blue-700 dark:text-blue-300" },
-  TIKTOK: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-700 dark:text-slate-300" },
-  LINE: { bg: "bg-green-100 dark:bg-green-900", text: "text-green-700 dark:text-green-300" },
-  WALK_IN: { bg: "bg-amber-100 dark:bg-amber-900", text: "text-amber-700 dark:text-amber-300" },
-  PHONE: { bg: "bg-cyan-100 dark:bg-cyan-900", text: "text-cyan-700 dark:text-cyan-300" },
-  WEBSITE: { bg: "bg-indigo-100 dark:bg-indigo-900", text: "text-indigo-700 dark:text-indigo-300" },
+  SHOPEE: NEUTRAL,
+  LAZADA: NEUTRAL,
+  TIKTOK: NEUTRAL,
+  LINE: NEUTRAL,
+  WALK_IN: NEUTRAL,
+  PHONE: NEUTRAL,
+  WEBSITE: NEUTRAL,
 };
 
 export const ORDER_TYPE_LABELS: Record<OrderType, string> = {

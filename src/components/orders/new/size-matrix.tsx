@@ -346,7 +346,7 @@ function MatrixView({
 
       <div className="flex items-center justify-end gap-2 text-xs">
         <span className="text-slate-500 dark:text-slate-400">รวม:</span>
-        <span className="font-bold text-blue-700 dark:text-blue-300">{totalQty} ชิ้น</span>
+        <span className="font-semibold tabular-nums text-slate-900 dark:text-white">{totalQty} ชิ้น</span>
       </div>
     </div>
   );

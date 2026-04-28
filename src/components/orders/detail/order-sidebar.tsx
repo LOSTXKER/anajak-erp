@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import type { OrderType } from "@prisma/client";
@@ -7,19 +7,8 @@ import {
   CHANNEL_LABELS,
   ORDER_TYPE_LABELS,
   PRIORITY_LABELS,
-  PRIORITY_COLORS,
   PAYMENT_TERMS_LABELS,
 } from "@/lib/order-status";
-import {
-  User,
-  FileText,
-  Truck,
-  Tag,
-  DollarSign,
-  BarChart3,
-  Store,
-  Hash,
-} from "lucide-react";
 import { OrderBillingSection } from "@/components/orders/order-billing-section";
 
 interface OrderSidebarOrder {
@@ -72,6 +61,23 @@ interface OrderSidebarProps {
   isMarketplace: boolean;
 }
 
+function Row({
+  label,
+  children,
+}: {
+  label: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 text-sm">
+      <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
+      <div className="text-right text-sm font-medium text-slate-900 dark:text-white">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function OrderSidebar({
   order,
   subtotalItems,
@@ -81,273 +87,238 @@ export function OrderSidebar({
   totalCost,
   hasCostEntries,
   profitMargin,
-  channelColor,
   isMarketplace,
 }: OrderSidebarProps) {
   return (
-    <div className="space-y-6">
-      {/* CUSTOMER INFO */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <User className="h-4 w-4" />
-            ลูกค้า
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {order.customer && (
-            <>
-              <Link
-                href={`/customers/${order.customer.id}`}
-                className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-              >
-                {order.customer.name}
-              </Link>
-              {order.customer.company && (
-                <p className="text-sm text-slate-500">{order.customer.company}</p>
-              )}
-              {order.customer.phone && (
-                <p className="text-sm text-slate-500">{order.customer.phone}</p>
-              )}
-              {order.customer.email && (
-                <p className="text-sm text-slate-500">{order.customer.email}</p>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      {/* Customer */}
+      <Section title="ลูกค้า">
+        {order.customer && (
+          <div className="space-y-1.5">
+            <Link
+              href={`/customers/${order.customer.id}`}
+              className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+            >
+              {order.customer.name}
+            </Link>
+            {order.customer.company && (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {order.customer.company}
+              </p>
+            )}
+            {order.customer.phone && (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {order.customer.phone}
+              </p>
+            )}
+            {order.customer.email && (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {order.customer.email}
+              </p>
+            )}
+          </div>
+        )}
+      </Section>
 
-      {/* ORDER INFO */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FileText className="h-4 w-4" />
-            ข้อมูลออเดอร์
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-slate-500">ประเภท</span>
-            <Badge variant={order.orderType === "CUSTOM" ? "purple" : "default"}>
+      {/* Order info */}
+      <Section title="ข้อมูลออเดอร์">
+        <div className="space-y-2.5">
+          <Row label="ประเภท">
+            <Badge variant={order.orderType === "CUSTOM" ? "accent" : "default"} size="sm">
               {ORDER_TYPE_LABELS[order.orderType]}
             </Badge>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">ช่องทาง</span>
-            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${channelColor.bg} ${channelColor.text}`}>
+          </Row>
+          <Row label="ช่องทาง">
+            <span className="text-sm text-slate-900 dark:text-white">
               {CHANNEL_LABELS[order.channel] ?? order.channel}
             </span>
-          </div>
+          </Row>
           {order.createdBy && (
-            <div className="flex justify-between">
-              <span className="text-slate-500">สร้างโดย</span>
-              <span className="text-slate-900 dark:text-white">
-                {typeof order.createdBy === "string" ? order.createdBy : order.createdBy.name}
-              </span>
-            </div>
+            <Row label="สร้างโดย">
+              {typeof order.createdBy === "string"
+                ? order.createdBy
+                : order.createdBy.name}
+            </Row>
           )}
-          <div className="flex justify-between">
-            <span className="text-slate-500">วันที่สร้าง</span>
-            <span className="text-slate-900 dark:text-white">{formatDate(order.createdAt)}</span>
-          </div>
+          <Row label="วันที่สร้าง">{formatDate(order.createdAt)}</Row>
           {order.updatedAt && (
-            <div className="flex justify-between">
-              <span className="text-slate-500">แก้ไขล่าสุด</span>
-              <span className="text-slate-900 dark:text-white">{formatDateTime(order.updatedAt)}</span>
-            </div>
+            <Row label="แก้ไขล่าสุด">{formatDateTime(order.updatedAt)}</Row>
           )}
           {order.deadline && (
-            <div className="flex justify-between">
-              <span className="text-slate-500">กำหนดส่ง</span>
-              <span className="font-medium text-slate-900 dark:text-white">{formatDate(order.deadline)}</span>
-            </div>
+            <Row label="กำหนดส่ง">{formatDate(order.deadline)}</Row>
           )}
           {order.estimatedQuantity && (
-            <div className="flex justify-between">
-              <span className="text-slate-500">จำนวนโดยประมาณ</span>
-              <span className="font-medium text-slate-900 dark:text-white">
-                ~{order.estimatedQuantity.toLocaleString()} ชิ้น
-              </span>
-            </div>
+            <Row label="จำนวนโดยประมาณ">
+              ~{order.estimatedQuantity.toLocaleString()} ชิ้น
+            </Row>
           )}
           {order.priority && order.priority !== "NORMAL" && (
-            <div className="flex justify-between">
-              <span className="text-slate-500">ความเร่งด่วน</span>
-              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${PRIORITY_COLORS[order.priority]?.bg ?? ""} ${PRIORITY_COLORS[order.priority]?.text ?? ""}`}>
+            <Row label="ความเร่งด่วน">
+              <Badge
+                variant={
+                  order.priority === "URGENT"
+                    ? "destructive"
+                    : order.priority === "HIGH"
+                      ? "warning"
+                      : "default"
+                }
+                size="sm"
+              >
                 {PRIORITY_LABELS[order.priority] ?? order.priority}
-              </span>
-            </div>
+              </Badge>
+            </Row>
           )}
           {order.paymentTerms && (
-            <div className="flex justify-between">
-              <span className="text-slate-500">เงื่อนไขชำระ</span>
-              <span className="text-slate-900 dark:text-white">
-                {PAYMENT_TERMS_LABELS[order.paymentTerms] ?? order.paymentTerms}
-              </span>
-            </div>
+            <Row label="เงื่อนไขชำระ">
+              {PAYMENT_TERMS_LABELS[order.paymentTerms] ?? order.paymentTerms}
+            </Row>
           )}
           {order.poNumber && (
-            <div className="flex justify-between">
-              <span className="text-slate-500">เลขที่ PO</span>
-              <span className="font-mono text-slate-900 dark:text-white">{order.poNumber}</span>
-            </div>
+            <Row label="เลขที่ PO">
+              <span className="font-mono">{order.poNumber}</span>
+            </Row>
           )}
           {order.description && (
-            <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
-              <p className="text-slate-500">{order.description}</p>
-            </div>
+            <p className="border-t border-slate-100 pt-2.5 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+              {order.description}
+            </p>
           )}
           {order.notes && (
-            <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
-              <p className="mb-1 text-xs text-slate-400">หมายเหตุ</p>
-              <p className="text-slate-500">{order.notes}</p>
+            <div className="border-t border-slate-100 pt-2.5 dark:border-slate-800">
+              <p className="mb-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                หมายเหตุ
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {order.notes}
+              </p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
 
-      {/* SHIPPING ADDRESS */}
+      {/* Shipping */}
       {order.shippingRecipientName && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Truck className="h-4 w-4" />
-              ที่อยู่จัดส่ง
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p className="font-medium text-slate-900 dark:text-white">{order.shippingRecipientName}</p>
-            {order.shippingPhone && <p className="text-slate-500">{order.shippingPhone}</p>}
-            {order.shippingAddress && <p className="text-slate-500">{order.shippingAddress}</p>}
-            <p className="text-slate-500">
-              {[order.shippingSubDistrict, order.shippingDistrict, order.shippingProvince, order.shippingPostalCode]
+        <Section title="ที่อยู่จัดส่ง">
+          <div className="space-y-1 text-sm">
+            <p className="font-medium text-slate-900 dark:text-white">
+              {order.shippingRecipientName}
+            </p>
+            {order.shippingPhone && (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {order.shippingPhone}
+              </p>
+            )}
+            {order.shippingAddress && (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {order.shippingAddress}
+              </p>
+            )}
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {[
+                order.shippingSubDistrict,
+                order.shippingDistrict,
+                order.shippingProvince,
+                order.shippingPostalCode,
+              ]
                 .filter(Boolean)
                 .join(" ")}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </Section>
       )}
 
-      {/* MARKETPLACE INFO */}
+      {/* Marketplace */}
       {isMarketplace && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Store className="h-4 w-4" />
-              ข้อมูล Marketplace
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
+        <Section title="ข้อมูล Marketplace">
+          <div className="space-y-2.5">
             {order.externalOrderId && (
-              <div className="flex justify-between">
-                <span className="flex items-center gap-1 text-slate-500">
-                  <Hash className="h-3.5 w-3.5" />
-                  หมายเลขภายนอก
-                </span>
-                <span className="font-mono text-xs text-slate-900 dark:text-white">{order.externalOrderId}</span>
-              </div>
+              <Row label="หมายเลขภายนอก">
+                <span className="font-mono text-xs">{order.externalOrderId}</span>
+              </Row>
             )}
             {order.platformFee != null && (
-              <div className="flex justify-between">
-                <span className="flex items-center gap-1 text-slate-500">
-                  <Tag className="h-3.5 w-3.5" />
-                  ค่าธรรมเนียมแพลตฟอร์ม
-                </span>
-                <span className="tabular-nums font-medium text-red-600 dark:text-red-400">
+              <Row label="ค่าธรรมเนียม">
+                <span className="tabular-nums text-red-600 dark:text-red-400">
                   -{formatCurrency(order.platformFee)}
                 </span>
-              </div>
+              </Row>
             )}
             {order.trackingNumber && (
-              <div className="flex justify-between">
-                <span className="flex items-center gap-1 text-slate-500">
-                  <Truck className="h-3.5 w-3.5" />
-                  เลขพัสดุ
-                </span>
-                <span className="font-mono text-xs text-slate-900 dark:text-white">{order.trackingNumber}</span>
-              </div>
+              <Row label="เลขพัสดุ">
+                <span className="font-mono text-xs">{order.trackingNumber}</span>
+              </Row>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </Section>
       )}
 
-      {/* PRICE BREAKDOWN */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <DollarSign className="h-4 w-4" />
-            สรุปราคา
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-slate-500">ยอดรวมสินค้า</span>
-            <span className="tabular-nums text-slate-900 dark:text-white">{formatCurrency(subtotalItems)}</span>
-          </div>
+      {/* Price breakdown */}
+      <Section title="สรุปราคา">
+        <div className="space-y-2.5">
+          <Row label="ยอดรวมสินค้า">
+            <span className="tabular-nums">{formatCurrency(subtotalItems)}</span>
+          </Row>
           {subtotalFees > 0 && (
-            <div className="flex justify-between">
-              <span className="text-slate-500">ค่าธรรมเนียม</span>
-              <span className="tabular-nums text-slate-900 dark:text-white">{formatCurrency(subtotalFees)}</span>
-            </div>
+            <Row label="ค่าธรรมเนียม">
+              <span className="tabular-nums">{formatCurrency(subtotalFees)}</span>
+            </Row>
           )}
           {discount > 0 && (
-            <div className="flex justify-between">
-              <span className="text-slate-500">ส่วนลด</span>
-              <span className="tabular-nums text-red-600 dark:text-red-400">-{formatCurrency(discount)}</span>
-            </div>
+            <Row label="ส่วนลด">
+              <span className="tabular-nums text-red-600 dark:text-red-400">
+                -{formatCurrency(discount)}
+              </span>
+            </Row>
           )}
           {order.taxRate > 0 && (
-            <div className="flex justify-between">
-              <span className="text-slate-500">VAT ({order.taxRate}%)</span>
-              <span className="tabular-nums text-slate-900 dark:text-white">{formatCurrency(order.taxAmount ?? 0)}</span>
-            </div>
+            <Row label={`VAT (${order.taxRate}%)`}>
+              <span className="tabular-nums">
+                {formatCurrency(order.taxAmount ?? 0)}
+              </span>
+            </Row>
           )}
-          <div className="flex justify-between border-t border-slate-200 pt-3 dark:border-slate-700">
-            <span className="text-base font-semibold text-slate-900 dark:text-white">
-              ยอดรวมทั้งหมด {order.taxRate > 0 ? "(รวม VAT)" : ""}
+          <div className="flex items-baseline justify-between border-t border-slate-100 pt-2.5 dark:border-slate-800">
+            <span className="text-sm font-medium text-slate-900 dark:text-white">
+              ยอดรวมทั้งหมด
             </span>
-            <span className="tabular-nums text-lg font-bold text-blue-600 dark:text-blue-400">{formatCurrency(totalAmount)}</span>
+            <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-white">
+              {formatCurrency(totalAmount)}
+            </span>
           </div>
 
-          {/* Cost tracking */}
           {hasCostEntries && (
-            <div className="border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
-              <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                <BarChart3 className="h-3.5 w-3.5" />
+            <div className="space-y-2.5 border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
+              <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">
                 ต้นทุน
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">ต้นทุนรวม</span>
-                  <span className="tabular-nums text-slate-900 dark:text-white">{formatCurrency(totalCost)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">กำไร</span>
-                  <span className="tabular-nums font-medium text-slate-900 dark:text-white">{formatCurrency(totalAmount - totalCost)}</span>
-                </div>
-                {profitMargin != null && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">อัตรากำไร</span>
-                    <span
-                      className={`tabular-nums font-bold ${
-                        profitMargin >= 30
-                          ? "text-green-600 dark:text-green-400"
-                          : profitMargin >= 15
-                            ? "text-amber-600 dark:text-amber-400"
-                            : "text-red-600 dark:text-red-400"
-                      }`}
-                    >
-                      {profitMargin.toFixed(1)}%
-                    </span>
-                  </div>
-                )}
-              </div>
+              </p>
+              <Row label="ต้นทุนรวม">
+                <span className="tabular-nums">{formatCurrency(totalCost)}</span>
+              </Row>
+              <Row label="กำไร">
+                <span className="tabular-nums">
+                  {formatCurrency(totalAmount - totalCost)}
+                </span>
+              </Row>
+              {profitMargin != null && (
+                <Row label="อัตรากำไร">
+                  <span
+                    className={`tabular-nums font-semibold ${
+                      profitMargin >= 30
+                        ? "text-green-600 dark:text-green-400"
+                        : profitMargin >= 15
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {profitMargin.toFixed(1)}%
+                  </span>
+                </Row>
+              )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
 
-      {/* BILLING SECTION */}
       <OrderBillingSection
         orderId={order.id}
         customerId={order.customerId}

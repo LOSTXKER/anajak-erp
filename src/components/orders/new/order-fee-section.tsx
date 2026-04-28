@@ -3,12 +3,12 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/ui/section";
 import { Plus, Trash2 } from "lucide-react";
 import type { OrderFeeForm } from "@/types/order-form";
 
 const labelClass =
-  "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
+  "mb-1 block text-[12px] text-slate-500 dark:text-slate-400";
 
 interface FeeCatalogItem {
   id: string;
@@ -43,45 +43,44 @@ export function OrderFeeSection({
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">ค่าใช้จ่ายเพิ่มเติม</CardTitle>
+    <Section
+      title="ค่าใช้จ่ายเพิ่มเติม"
+      action={
         <Button type="button" variant="outline" size="sm" onClick={onAddFee}>
-          <Plus className="mr-1 h-4 w-4" />
-          เพิ่มค่าใช้จ่าย
+          <Plus className="h-4 w-4" />
+          เพิ่ม
         </Button>
-      </CardHeader>
-      <CardContent>
-        {fees.length === 0 && (
-          <p className="text-sm text-slate-400 dark:text-slate-500">
-            ไม่มีค่าใช้จ่ายเพิ่มเติม
-          </p>
-        )}
-        <div className="space-y-2">
+      }
+    >
+      {fees.length === 0 ? (
+        <p className="text-xs text-slate-400 dark:text-slate-500">
+          ยังไม่มีค่าใช้จ่ายเพิ่มเติม
+        </p>
+      ) : (
+        <div className="space-y-3">
           {fees.map((f, fIdx) => (
             <div key={fIdx} className="space-y-1.5">
               {feeCatalog && feeCatalog.length > 0 && (
-                <div>
-                  {fIdx === 0 && <label className={labelClass}>เลือกจากแค็ตตาล็อก</label>}
-                  <NativeSelect
-                    value=""
-                    onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
-                  >
-                    <option value="">-- เลือกจากแค็ตตาล็อก --</option>
-                    {feeCatalog.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} — ฿{c.defaultPrice.toLocaleString()}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </div>
+                <NativeSelect
+                  value=""
+                  onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
+                >
+                  <option value="">-- เลือกจากแค็ตตาล็อก --</option>
+                  {feeCatalog.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — ฿{c.defaultPrice.toLocaleString()}
+                    </option>
+                  ))}
+                </NativeSelect>
               )}
               <div className="grid grid-cols-[1fr_1fr_120px_32px] items-end gap-2">
                 <div>
                   {fIdx === 0 && <label className={labelClass}>ประเภท</label>}
                   <Input
                     value={f.feeType}
-                    onChange={(e) => onUpdateFee(fIdx, "feeType", e.target.value)}
+                    onChange={(e) =>
+                      onUpdateFee(fIdx, "feeType", e.target.value)
+                    }
                     placeholder="SHIPPING, SETUP..."
                   />
                 </div>
@@ -94,23 +93,29 @@ export function OrderFeeSection({
                   />
                 </div>
                 <div>
-                  {fIdx === 0 && <label className={labelClass}>จำนวนเงิน *</label>}
+                  {fIdx === 0 && (
+                    <label className={labelClass}>จำนวนเงิน *</label>
+                  )}
                   <Input
                     type="number"
                     min={0}
                     step={0.01}
                     value={f.amount || ""}
-                    onChange={(e) => onUpdateFee(fIdx, "amount", parseFloat(e.target.value) || 0)}
+                    onChange={(e) =>
+                      onUpdateFee(fIdx, "amount", parseFloat(e.target.value) || 0)
+                    }
                     placeholder="0.00"
                   />
                 </div>
                 <div>
-                  {fIdx === 0 && <span className="mb-1 block text-xs">&nbsp;</span>}
+                  {fIdx === 0 && (
+                    <span className="mb-1 block text-xs">&nbsp;</span>
+                  )}
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-red-400 hover:text-red-600"
+                    className="h-9 w-9 text-slate-400 hover:text-red-600"
                     onClick={() => onRemoveFee(fIdx)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -120,7 +125,7 @@ export function OrderFeeSection({
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </Section>
   );
 }

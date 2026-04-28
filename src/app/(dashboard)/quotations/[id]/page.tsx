@@ -142,7 +142,7 @@ export default function QuotationDetailPage({
           </Link>
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
                 {quotation.quotationNumber}
               </h1>
               <Badge
@@ -207,7 +207,7 @@ export default function QuotationDetailPage({
             <Button
               onClick={handleConvertToOrder}
               disabled={isPending}
-              className="gap-1.5 bg-purple-600 text-white hover:bg-purple-700"
+              className="gap-1.5"
             >
               <RefreshCw className="h-4 w-4" />
               แปลงเป็นออเดอร์
@@ -225,15 +225,15 @@ export default function QuotationDetailPage({
 
       {/* Converted order link */}
       {quotation.status === "CONVERTED" && quotation.order && (
-        <div className="flex items-center gap-3 rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-950">
-          <RefreshCw className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+        <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/40">
+          <RefreshCw className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           <div>
-            <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
               ใบเสนอราคานี้ถูกแปลงเป็นออเดอร์แล้ว
             </p>
             <Link
               href={`/orders/${quotation.order.id}`}
-              className="inline-flex items-center gap-1 text-sm text-purple-600 hover:underline dark:text-purple-400"
+              className="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline dark:text-blue-300"
             >
               <ExternalLink className="h-3.5 w-3.5" />
               ดูออเดอร์ {quotation.order.orderNumber}

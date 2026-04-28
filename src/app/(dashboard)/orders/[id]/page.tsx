@@ -2,32 +2,30 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
+import { PageHeader } from "@/components/page-header";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   CUSTOMER_STATUS_LABELS,
   INTERNAL_STATUS_LABELS,
   CUSTOMER_STATUS_COLORS,
-  INTERNAL_STATUS_COLORS,
-  CHANNEL_LABELS,
   CHANNEL_COLORS,
-  ORDER_TYPE_LABELS,
   getFlowSteps,
   getNextStatuses,
 } from "@/lib/order-status";
 import {
-  ArrowLeft,
   FileText,
   ChevronRight,
   XCircle,
   Edit3,
   Copy,
+  MoreHorizontal,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
 import { OrderProductionSection } from "@/components/orders/order-production-section";
@@ -170,133 +168,132 @@ export default function OrderDetailPage({
     }
   }
 
-  // ----------------------------------------------------------
-  // Render helpers
-  // ----------------------------------------------------------
   const customerColor = CUSTOMER_STATUS_COLORS[order.customerStatus];
-  const internalColor = INTERNAL_STATUS_COLORS[order.internalStatus];
   const channelColor = CHANNEL_COLORS[order.channel] ?? {
     bg: "bg-slate-100 dark:bg-slate-800",
     text: "text-slate-700 dark:text-slate-300",
   };
 
-  return (
-    <div className="space-y-6">
-      {/* ====================================================
-          HEADER
-      ==================================================== */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <Link href="/orders">
-            <Button variant="ghost" size="icon" className="mt-0.5 shrink-0">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                {order.orderNumber}
-              </h1>
+  const primaryNext = forwardStatuses[0];
+  const otherNext = forwardStatuses.slice(1);
+  const dropdownItemClass =
+    "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 outline-none data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white";
 
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold ${customerColor.bg} ${customerColor.text}`}
-              >
-                <span
-                  className={`h-2 w-2 rounded-full ${customerColor.dot}`}
-                />
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        breadcrumb={[
+          { label: "ออเดอร์", href: "/orders" },
+          { label: order.orderNumber },
+        ]}
+        title={order.orderNumber}
+        description={order.title || undefined}
+        action={
+          <>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium",
+                "border-slate-200 bg-white dark:border-slate-800/60 dark:bg-slate-900/80"
+              )}
+            >
+              <span className={cn("h-1.5 w-1.5 rounded-full", customerColor.dot)} />
+              <span className="text-slate-900 dark:text-white">
                 {CUSTOMER_STATUS_LABELS[order.customerStatus]}
               </span>
-
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${internalColor.bg} ${internalColor.text}`}
-              >
+              <span className="text-slate-400">·</span>
+              <span className="text-slate-500 dark:text-slate-400">
                 {INTERNAL_STATUS_LABELS[order.internalStatus]}
               </span>
-            </div>
+            </span>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={order.orderType === "CUSTOM" ? "purple" : "default"}>
-                {ORDER_TYPE_LABELS[order.orderType]}
-              </Badge>
-
-              <span
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${channelColor.bg} ${channelColor.text}`}
-              >
-                {CHANNEL_LABELS[order.channel] ?? order.channel}
-              </span>
-
-              {order.title && (
-                <span className="text-sm text-slate-500 dark:text-slate-400">
-                  {order.title}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        {!isTerminal && (
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowInfoEditDialog(true)}
-              className="gap-1.5"
-            >
-              <FileText className="h-4 w-4" />
-              แก้ไขข้อมูลออเดอร์
-            </Button>
-
-            {canEditItems && (
+            {!isTerminal && primaryNext && (
               <Button
-                variant="outline"
-                onClick={() => setShowEditDialog(true)}
-                className="gap-1.5"
-              >
-                <Edit3 className="h-4 w-4" />
-                แก้ไข
-              </Button>
-            )}
-
-            <Button
-              variant="outline"
-              onClick={() => duplicateOrder.mutate({ id })}
-              disabled={duplicateOrder.isPending}
-              className="gap-1.5"
-            >
-              <Copy className="h-4 w-4" />
-              {duplicateOrder.isPending ? "กำลังสำเนา..." : "สำเนาออเดอร์"}
-            </Button>
-
-            {forwardStatuses.map((status) => (
-              <Button
-                key={status}
-                onClick={() => handleStatusChange(status)}
+                size="sm"
+                onClick={() => handleStatusChange(primaryNext)}
                 disabled={updateStatus.isPending}
-                className="gap-1.5"
               >
                 <ChevronRight className="h-4 w-4" />
-                {INTERNAL_STATUS_LABELS[status]}
-              </Button>
-            ))}
-
-            {canCancel && (
-              <Button
-                variant="destructive"
-                onClick={() => handleStatusChange("CANCELLED")}
-                disabled={updateStatus.isPending}
-                className="gap-1.5"
-              >
-                <XCircle className="h-4 w-4" />
-                ยกเลิก
+                {INTERNAL_STATUS_LABELS[primaryNext]}
               </Button>
             )}
-          </div>
-        )}
-      </div>
 
-      {/* ====================================================
-          STATUS PROGRESS BAR
-      ==================================================== */}
+            {!isTerminal && (
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    align="end"
+                    sideOffset={6}
+                    className="z-50 min-w-[200px] rounded-2xl border border-slate-200/70 bg-white p-1 shadow-lg dark:border-slate-800/60 dark:bg-slate-900/80"
+                  >
+                    <DropdownMenu.Item
+                      className={dropdownItemClass}
+                      onSelect={() => setShowInfoEditDialog(true)}
+                    >
+                      <FileText className="h-4 w-4" />
+                      แก้ไขข้อมูลออเดอร์
+                    </DropdownMenu.Item>
+                    {canEditItems && (
+                      <DropdownMenu.Item
+                        className={dropdownItemClass}
+                        onSelect={() => setShowEditDialog(true)}
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        แก้ไขรายการ
+                      </DropdownMenu.Item>
+                    )}
+                    <DropdownMenu.Item
+                      className={dropdownItemClass}
+                      onSelect={() => duplicateOrder.mutate({ id })}
+                      disabled={duplicateOrder.isPending}
+                    >
+                      <Copy className="h-4 w-4" />
+                      สำเนาออเดอร์
+                    </DropdownMenu.Item>
+                    {otherNext.length > 0 && (
+                      <>
+                        <DropdownMenu.Separator className="my-1 h-px bg-slate-100 dark:bg-slate-800" />
+                        {otherNext.map((status) => (
+                          <DropdownMenu.Item
+                            key={status}
+                            className={dropdownItemClass}
+                            onSelect={() => handleStatusChange(status)}
+                            disabled={updateStatus.isPending}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                            {INTERNAL_STATUS_LABELS[status]}
+                          </DropdownMenu.Item>
+                        ))}
+                      </>
+                    )}
+                    {canCancel && (
+                      <>
+                        <DropdownMenu.Separator className="my-1 h-px bg-slate-100 dark:bg-slate-800" />
+                        <DropdownMenu.Item
+                          className={cn(
+                            dropdownItemClass,
+                            "text-red-600 data-[highlighted]:bg-red-50 data-[highlighted]:text-red-700 dark:text-red-400 dark:data-[highlighted]:bg-red-950/40"
+                          )}
+                          onSelect={() => handleStatusChange("CANCELLED")}
+                          disabled={updateStatus.isPending}
+                        >
+                          <XCircle className="h-4 w-4" />
+                          ยกเลิกออเดอร์
+                        </DropdownMenu.Item>
+                      </>
+                    )}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
+            )}
+          </>
+        }
+      />
+
       <OrderStatusBar
         flowSteps={flowSteps}
         currentStepIndex={currentStepIndex}

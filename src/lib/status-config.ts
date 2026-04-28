@@ -1,4 +1,11 @@
-type BadgeVariant = "default" | "success" | "warning" | "destructive" | "secondary" | "purple";
+type BadgeVariant =
+  | "default"
+  | "accent"
+  | "success"
+  | "warning"
+  | "destructive"
+  | "secondary"
+  | "purple";
 
 interface StatusConfig {
   label: string;

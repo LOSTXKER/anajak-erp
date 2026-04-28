@@ -81,8 +81,8 @@ export function ProductTableRow({
 
   const sourceBadge = product.itemSource ? (
     <Badge
-      variant={isFromStock ? "default" : isCustomMade ? "purple" : "warning"}
-      className="text-[9px]"
+      variant={isFromStock ? "default" : isCustomMade ? "accent" : "warning"}
+      size="sm"
     >
       {ITEM_SOURCES[product.itemSource] || product.itemSource}
     </Badge>

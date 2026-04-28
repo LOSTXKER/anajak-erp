@@ -37,7 +37,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         <Link href="/customers"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{customer.name}</h1>
+            <h1 className="text-xl font-semibold text-slate-900 dark:text-white">{customer.name}</h1>
             {customer.customerType === "CORPORATE" ? (
               <Badge variant="default" className="gap-1"><Building2 className="h-3 w-3" /> นิติบุคคล</Badge>
             ) : (

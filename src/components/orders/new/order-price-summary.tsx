@@ -1,7 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/ui/section";
 import { formatCurrency } from "@/lib/utils";
 
 interface PricingSummary {
@@ -25,6 +25,31 @@ interface OrderPriceSummaryProps {
   onDiscountChange: (value: number) => void;
 }
 
+function Row({
+  label,
+  value,
+  muted = true,
+}: {
+  label: React.ReactNode;
+  value: React.ReactNode;
+  muted?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span
+        className={
+          muted
+            ? "text-slate-500 dark:text-slate-400"
+            : "text-slate-700 dark:text-slate-200"
+        }
+      >
+        {label}
+      </span>
+      <span className="tabular-nums">{value}</span>
+    </div>
+  );
+}
+
 export function OrderPriceSummary({
   pricingSummary,
   showFeeSections,
@@ -37,79 +62,77 @@ export function OrderPriceSummary({
   onDiscountChange,
 }: OrderPriceSummaryProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">สรุปราคา</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between text-slate-600 dark:text-slate-400">
-            <span>รวมสินค้า</span>
-            <span className="tabular-nums">
-              {formatCurrency(pricingSummary.subtotalItems)}
-            </span>
-          </div>
+    <Section title="สรุปราคา" compact>
+      <div className="space-y-2">
+        <Row
+          label="รวมสินค้า"
+          value={formatCurrency(pricingSummary.subtotalItems)}
+        />
 
-          {showFeeSections && (
-            <div className="flex justify-between text-slate-600 dark:text-slate-400">
-              <span>รวมค่าใช้จ่ายเพิ่มเติม</span>
-              <span className="tabular-nums">
-                {formatCurrency(pricingSummary.subtotalFees)}
-              </span>
-            </div>
-          )}
+        {showFeeSections && (
+          <Row
+            label="รวมค่าใช้จ่ายเพิ่มเติม"
+            value={formatCurrency(pricingSummary.subtotalFees)}
+          />
+        )}
 
-          {isMarketplace && (
-            <div className="flex items-center justify-between">
-              <label className="text-slate-600 dark:text-slate-400">
-                ค่าธรรมเนียม {channelLabel}
-              </label>
-              <Input
-                type="number"
-                min={0}
-                step={0.01}
-                value={platformFee || ""}
-                onChange={(e) => onPlatformFeeChange(parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-                className="w-32 text-right"
-              />
-            </div>
-          )}
-
-          <div className="flex items-center justify-between">
-            <label className="text-slate-600 dark:text-slate-400">
-              ส่วนลด
+        {isMarketplace && (
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-sm text-slate-500 dark:text-slate-400">
+              ค่าธรรมเนียม {channelLabel}
             </label>
             <Input
               type="number"
               min={0}
               step={0.01}
-              value={discount || ""}
-              onChange={(e) => onDiscountChange(parseFloat(e.target.value) || 0)}
+              value={platformFee || ""}
+              onChange={(e) =>
+                onPlatformFeeChange(parseFloat(e.target.value) || 0)
+              }
               placeholder="0.00"
-              className="w-32 text-right"
+              className="h-8 w-28 text-right"
             />
           </div>
+        )}
 
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-sm text-slate-500 dark:text-slate-400">
+            ส่วนลด
+          </label>
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            value={discount || ""}
+            onChange={(e) =>
+              onDiscountChange(parseFloat(e.target.value) || 0)
+            }
+            placeholder="0.00"
+            className="h-8 w-28 text-right"
+          />
+        </div>
+
+        {taxRate > 0 && (
+          <Row
+            label={`VAT (${taxRate}%)`}
+            value={formatCurrency(pricingSummary.taxAmount)}
+          />
+        )}
+      </div>
+
+      <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+        <span className="text-sm font-medium text-slate-900 dark:text-white">
+          ยอดรวมทั้งหมด
           {taxRate > 0 && (
-            <div className="flex justify-between text-slate-600 dark:text-slate-400">
-              <span>VAT ({taxRate}%)</span>
-              <span className="tabular-nums">
-                {formatCurrency(pricingSummary.taxAmount)}
-              </span>
-            </div>
+            <span className="ml-1 text-xs font-normal text-slate-400">
+              (รวม VAT)
+            </span>
           )}
-        </div>
-
-        <div className="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-700">
-          <span className="text-lg font-semibold text-slate-900 dark:text-white">
-            ยอดรวมทั้งหมด {taxRate > 0 ? "(รวม VAT)" : ""}
-          </span>
-          <span className="text-2xl font-bold tabular-nums text-blue-600 dark:text-blue-400">
-            {formatCurrency(pricingSummary.grandTotal)}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+        </span>
+        <span className="text-xl font-semibold tabular-nums text-slate-900 dark:text-white">
+          {formatCurrency(pricingSummary.grandTotal)}
+        </span>
+      </div>
+    </Section>
   );
 }

@@ -5,20 +5,19 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
+import { DataTable } from "@/components/ui/data-table";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   CUSTOMER_STATUS_LABELS,
   INTERNAL_STATUS_LABELS,
   CHANNEL_LABELS,
-  CHANNEL_COLORS,
   ORDER_TYPE_LABELS,
 } from "@/lib/order-status";
 import { PageHeader } from "@/components/page-header";
@@ -27,8 +26,10 @@ import {
   Filter,
   ArrowUpDown,
   Download,
+  ShoppingCart,
 } from "lucide-react";
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // ────────────────────────────────────────────────────────────
 // Filter options
@@ -73,76 +74,22 @@ const SORT_OPTIONS = [
 ];
 
 // ────────────────────────────────────────────────────────────
-// Payment status badge
+// Payment status: dot + text (no pill)
 // ────────────────────────────────────────────────────────────
 
-const PAYMENT_BADGE: Record<string, { label: string; className: string }> = {
-  paid: {
-    label: "ชำระแล้ว",
-    className:
-      "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  },
-  unpaid: {
-    label: "ค้างชำระ",
-    className: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-  },
-  partial: {
-    label: "บางส่วน",
-    className:
-      "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  },
+const PAYMENT_DOT: Record<string, { label: string; dot: string; text: string }> = {
+  paid: { label: "ชำระแล้ว", dot: "bg-green-500", text: "text-green-700 dark:text-green-300" },
+  unpaid: { label: "ค้างชำระ", dot: "bg-red-500", text: "text-red-700 dark:text-red-300" },
+  partial: { label: "บางส่วน", dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
 };
 
-function PaymentBadge({ status }: { status: string }) {
-  const badge = PAYMENT_BADGE[status];
-  if (!badge)
-    return (
-      <span className="text-xs text-slate-400">—</span>
-    );
+function PaymentIndicator({ status }: { status: string }) {
+  const v = PAYMENT_DOT[status];
+  if (!v) return <span className="text-xs text-slate-400">—</span>;
   return (
-    <span
-      className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium ${badge.className}`}
-    >
-      {badge.label}
-    </span>
-  );
-}
-
-// ────────────────────────────────────────────────────────────
-// Channel badge component
-// ────────────────────────────────────────────────────────────
-
-function ChannelBadge({ channel }: { channel: string }) {
-  const label = CHANNEL_LABELS[channel] ?? channel;
-  const colors = CHANNEL_COLORS[channel] ?? {
-    bg: "bg-slate-100 dark:bg-slate-800",
-    text: "text-slate-700 dark:text-slate-300",
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium ${colors.bg} ${colors.text}`}
-    >
-      {label}
-    </span>
-  );
-}
-
-// ────────────────────────────────────────────────────────────
-// Type badge component
-// ────────────────────────────────────────────────────────────
-
-function TypeBadge({ type }: { type: string }) {
-  const label = ORDER_TYPE_LABELS[type as OrderType] ?? type;
-  const isCustom = type === "CUSTOM";
-  return (
-    <span
-      className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium ${
-        isCustom
-          ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
-          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-      }`}
-    >
-      {label}
+    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${v.text}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${v.dot}`} />
+      {v.label}
     </span>
   );
 }
@@ -263,15 +210,25 @@ export default function OrdersPage() {
     createdBefore,
   ].filter(Boolean).length;
 
+  const clearFilters = () => {
+    setChannel("");
+    setOrderType("");
+    setCustomerStatus("");
+    setInternalStatus("");
+    setCreatedAfter("");
+    setCreatedBefore("");
+    setPage(1);
+  };
+
   if (isError) return <QueryError onRetry={() => refetch()} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <PageHeader
         title="ออเดอร์"
         description="จัดการออเดอร์ทั้งหมด"
         action={
-          <div className="flex gap-2">
+          <>
             {data && data.orders.length > 0 && (
               <Button
                 variant="outline"
@@ -279,24 +236,24 @@ export default function OrdersPage() {
                 onClick={() => exportOrdersCsv(data.orders)}
               >
                 <Download className="h-4 w-4" />
-                Export CSV
+                Export
               </Button>
             )}
             <Link href="/orders/new">
-              <Button>
+              <Button size="sm">
                 <Plus className="h-4 w-4" />
                 สร้างออเดอร์
               </Button>
             </Link>
-          </div>
+          </>
         }
       />
 
-      {/* Search + filter toggle + sort */}
-      <div className="flex flex-col gap-3 sm:flex-row">
+      {/* Toolbar */}
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
         <SearchInput
           containerClassName="flex-1"
-          placeholder="ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า, เลขออเดอร์ภายนอก..."
+          placeholder="ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -304,9 +261,9 @@ export default function OrdersPage() {
           }}
         />
 
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <ArrowUpDown className="h-4 w-4 text-slate-400" />
+            <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
             <NativeSelect
               value={sort}
               onChange={(e) => {
@@ -324,19 +281,14 @@ export default function OrdersPage() {
           </div>
 
           <Button
-            variant="ghost"
+            variant={showFilters || activeFilterCount > 0 ? "subtle" : "outline"}
             size="sm"
             onClick={() => setShowFilters((v) => !v)}
-            className={`gap-1.5 ${
-              activeFilterCount > 0
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-slate-600 dark:text-slate-400"
-            }`}
           >
             <Filter className="h-4 w-4" />
             ตัวกรอง
             {activeFilterCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-xs text-white">
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-medium text-white">
                 {activeFilterCount}
               </span>
             )}
@@ -344,234 +296,232 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* Filter rows */}
       {showFilters && (
-        <div className="space-y-2">
-          {/* Channel filter */}
-          <div className="flex flex-wrap gap-1">
-            <span className="mr-1 flex items-center text-xs font-medium text-slate-500 dark:text-slate-400">
-              ช่องทาง:
-            </span>
-            {CHANNEL_FILTERS.map((f) => (
-              <FilterChip key={f.value} selected={channel === f.value} onClick={() => { setChannel(f.value); setPage(1); }}>
-                {f.label}
-              </FilterChip>
-            ))}
-          </div>
-
-          {/* Type filter */}
-          <div className="flex flex-wrap gap-1">
-            <span className="mr-1 flex items-center text-xs font-medium text-slate-500 dark:text-slate-400">
-              ประเภท:
-            </span>
-            {TYPE_FILTERS.map((f) => (
-              <FilterChip key={f.value} selected={orderType === f.value} onClick={() => { setOrderType(f.value); setPage(1); }}>
-                {f.label}
-              </FilterChip>
-            ))}
-          </div>
-
-          {/* Customer status filter */}
-          <div className="flex flex-wrap gap-1">
-            <span className="mr-1 flex items-center text-xs font-medium text-slate-500 dark:text-slate-400">
-              สถานะลูกค้า:
-            </span>
-            {CUSTOMER_STATUS_FILTERS.map((f) => (
-              <FilterChip key={f.value} selected={customerStatus === f.value} onClick={() => { setCustomerStatus(f.value); setPage(1); }}>
-                {f.label}
-              </FilterChip>
-            ))}
-          </div>
-
-          {/* Internal status filter */}
-          <div className="flex flex-wrap gap-1">
-            <span className="mr-1 flex items-center text-xs font-medium text-slate-500 dark:text-slate-400">
-              สถานะภายใน:
-            </span>
-            {INTERNAL_STATUS_FILTERS.map((f) => (
-              <FilterChip key={f.value} selected={internalStatus === f.value} onClick={() => { setInternalStatus(f.value); setPage(1); }}>
-                {f.label}
-              </FilterChip>
-            ))}
-          </div>
-
-          {/* Date range filter */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="mr-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-              วันที่สร้าง:
-            </span>
-            <Input
-              type="date"
-              value={createdAfter}
-              onChange={(e) => {
-                setCreatedAfter(e.target.value);
-                setPage(1);
-              }}
-              className="h-8 w-36 text-xs"
-              placeholder="จาก"
-            />
-            <span className="text-xs text-slate-400">ถึง</span>
-            <Input
-              type="date"
-              value={createdBefore}
-              onChange={(e) => {
-                setCreatedBefore(e.target.value);
-                setPage(1);
-              }}
-              className="h-8 w-36 text-xs"
-              placeholder="ถึง"
-            />
-            {(createdAfter || createdBefore) && (
-              <button
-                onClick={() => {
-                  setCreatedAfter("");
-                  setCreatedBefore("");
+        <div className="rounded-2xl border border-slate-200/70 bg-white p-3.5 dark:border-slate-800/60 dark:bg-slate-900/80">
+          <div className="space-y-3">
+            <FilterRow label="ช่องทาง">
+              {CHANNEL_FILTERS.map((f) => (
+                <FilterChip
+                  key={f.value}
+                  selected={channel === f.value}
+                  onClick={() => {
+                    setChannel(f.value);
+                    setPage(1);
+                  }}
+                >
+                  {f.label}
+                </FilterChip>
+              ))}
+            </FilterRow>
+            <FilterRow label="ประเภท">
+              {TYPE_FILTERS.map((f) => (
+                <FilterChip
+                  key={f.value}
+                  selected={orderType === f.value}
+                  onClick={() => {
+                    setOrderType(f.value);
+                    setPage(1);
+                  }}
+                >
+                  {f.label}
+                </FilterChip>
+              ))}
+            </FilterRow>
+            <FilterRow label="สถานะลูกค้า">
+              {CUSTOMER_STATUS_FILTERS.map((f) => (
+                <FilterChip
+                  key={f.value}
+                  selected={customerStatus === f.value}
+                  onClick={() => {
+                    setCustomerStatus(f.value);
+                    setPage(1);
+                  }}
+                >
+                  {f.label}
+                </FilterChip>
+              ))}
+            </FilterRow>
+            <FilterRow label="สถานะภายใน">
+              {INTERNAL_STATUS_FILTERS.map((f) => (
+                <FilterChip
+                  key={f.value}
+                  selected={internalStatus === f.value}
+                  onClick={() => {
+                    setInternalStatus(f.value);
+                    setPage(1);
+                  }}
+                >
+                  {f.label}
+                </FilterChip>
+              ))}
+            </FilterRow>
+            <FilterRow label="วันที่สร้าง">
+              <Input
+                type="date"
+                value={createdAfter}
+                onChange={(e) => {
+                  setCreatedAfter(e.target.value);
                   setPage(1);
                 }}
-                className="text-xs text-red-500 hover:underline"
-              >
-                ล้าง
-              </button>
+                className="h-8 w-36 text-xs"
+              />
+              <span className="text-xs text-slate-400">ถึง</span>
+              <Input
+                type="date"
+                value={createdBefore}
+                onChange={(e) => {
+                  setCreatedBefore(e.target.value);
+                  setPage(1);
+                }}
+                className="h-8 w-36 text-xs"
+              />
+            </FilterRow>
+
+            {activeFilterCount > 0 && (
+              <div className="flex justify-end">
+                <button
+                  onClick={clearFilters}
+                  className="text-xs font-medium text-slate-500 hover:text-red-600 dark:text-slate-400"
+                >
+                  ล้างตัวกรองทั้งหมด
+                </button>
+              </div>
             )}
           </div>
         </div>
       )}
 
       {/* Table */}
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                  เลขออเดอร์
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                  ชื่องาน
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                  ลูกค้า
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                  ช่องทาง
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                  ประเภท
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                  สถานะ
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">
-                  ยอดรวม
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                  การชำระเงิน
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">
-                  วันที่
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {isLoading &&
-                [...Array(5)].map((_, i) => (
-                  <tr key={i}>
-                    {[...Array(9)].map((_, j) => (
-                      <td key={j} className="px-4 py-3">
-                        <Skeleton className="h-4 w-20" />
-                      </td>
-                    ))}
-                  </tr>
+      <DataTable.Root>
+        <DataTable.Head>
+          <tr>
+            <DataTable.Th>เลขออเดอร์</DataTable.Th>
+            <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
+            <DataTable.Th>ช่องทาง</DataTable.Th>
+            <DataTable.Th>สถานะ</DataTable.Th>
+            <DataTable.Th align="right">ยอดรวม</DataTable.Th>
+            <DataTable.Th>การชำระ</DataTable.Th>
+            <DataTable.Th>วันที่</DataTable.Th>
+          </tr>
+        </DataTable.Head>
+        <DataTable.Body>
+          {isLoading &&
+            [...Array(5)].map((_, i) => (
+              <tr key={i}>
+                {[...Array(7)].map((_, j) => (
+                  <DataTable.Td key={j}>
+                    <Skeleton className="h-4 w-20" />
+                  </DataTable.Td>
                 ))}
+              </tr>
+            ))}
 
-              {data?.orders?.map((order) => (
-                <tr
-                  key={order.id}
-                  className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+          {data?.orders?.map((order) => (
+            <DataTable.Row key={order.id}>
+              <DataTable.Td>
+                <Link
+                  href={`/orders/${order.id}`}
+                  className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
                 >
-                  {/* Order number */}
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/orders/${order.id}`}
-                      className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      {order.orderNumber}
-                    </Link>
-                  </td>
+                  {order.orderNumber}
+                </Link>
+              </DataTable.Td>
 
-                  {/* Title */}
-                  <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">
+              <DataTable.Td>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                    {order.customer?.name ?? "—"}
+                  </p>
+                  <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                     {order.title}
-                  </td>
+                    {order.orderType === "CUSTOM" && (
+                      <span className="ml-1.5 rounded bg-blue-50 px-1 text-[10px] font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                        Custom
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </DataTable.Td>
 
-                  {/* Customer */}
-                  <td className="px-4 py-3">
-                    <div>
-                      <p className="text-sm text-slate-900 dark:text-white">
-                        {order.customer?.name}
-                      </p>
-                      {order.customer?.company && (
-                        <p className="text-xs text-slate-400">
-                          {order.customer.company}
-                        </p>
-                      )}
-                    </div>
-                  </td>
+              <DataTable.Td>
+                <span className="text-xs text-slate-600 dark:text-slate-400">
+                  {CHANNEL_LABELS[order.channel] ?? order.channel}
+                </span>
+              </DataTable.Td>
 
-                  {/* Channel */}
-                  <td className="px-4 py-3">
-                    <ChannelBadge channel={order.channel} />
-                  </td>
+              <DataTable.Td>
+                <OrderStatusBadge
+                  customerStatus={order.customerStatus}
+                  internalStatus={order.internalStatus}
+                  compact
+                />
+              </DataTable.Td>
 
-                  {/* Type */}
-                  <td className="px-4 py-3">
-                    <TypeBadge type={order.orderType} />
-                  </td>
+              <DataTable.Td align="right" className="font-medium tabular-nums text-slate-900 dark:text-white">
+                {formatCurrency(order.totalAmount)}
+              </DataTable.Td>
 
-                  {/* Status (dual) */}
-                  <td className="px-4 py-3">
-                    <OrderStatusBadge
-                      customerStatus={order.customerStatus}
-                      internalStatus={order.internalStatus}
-                    />
-                  </td>
+              <DataTable.Td>
+                <PaymentIndicator status={order.paymentLabel} />
+              </DataTable.Td>
 
-                  {/* Total */}
-                  <td className="px-4 py-3 text-right text-sm font-medium tabular-nums text-slate-900 dark:text-white">
-                    {formatCurrency(order.totalAmount)}
-                  </td>
+              <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
+                {order.createdAt ? formatDate(order.createdAt) : "—"}
+              </DataTable.Td>
+            </DataTable.Row>
+          ))}
 
-                  {/* Payment */}
-                  <td className="px-4 py-3">
-                    <PaymentBadge status={order.paymentLabel} />
-                  </td>
+          {!isLoading && data?.orders?.length === 0 && (
+            <tr>
+              <td colSpan={7}>
+                <EmptyState
+                  icon={ShoppingCart}
+                  title="ไม่พบออเดอร์"
+                  description={
+                    activeFilterCount > 0
+                      ? "ลองล้างตัวกรองหรือปรับคำค้นหา"
+                      : "เริ่มสร้างออเดอร์แรกของคุณได้เลย"
+                  }
+                  action={
+                    <Link href="/orders/new">
+                      <Button size="sm">
+                        <Plus className="h-4 w-4" />
+                        สร้างออเดอร์
+                      </Button>
+                    </Link>
+                  }
+                />
+              </td>
+            </tr>
+          )}
+        </DataTable.Body>
+      </DataTable.Root>
 
-                  {/* Date */}
-                  <td className="px-4 py-3 text-sm text-slate-500">
-                    {order.createdAt ? formatDate(order.createdAt) : "-"}
-                  </td>
-                </tr>
-              ))}
+      {data && data.orders.length > 0 && (
+        <TablePagination
+          page={page}
+          totalPages={data.pages}
+          total={data.total}
+          onPageChange={setPage}
+        />
+      )}
+    </div>
+  );
+}
 
-              {data?.orders?.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={9}
-                    className="px-4 py-12 text-center text-sm text-slate-400"
-                  >
-                    ไม่พบออเดอร์
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {data && (
-          <TablePagination page={page} totalPages={data.pages} total={data.total} onPageChange={setPage} />
-        )}
-      </Card>
+function FilterRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 w-20 shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
+        {label}
+      </span>
+      {children}
     </div>
   );
 }

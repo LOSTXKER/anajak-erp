@@ -19,8 +19,13 @@ function ThemedToaster() {
   return (
     <Toaster
       richColors
-      position="top-right"
+      position="bottom-right"
       theme={(resolvedTheme as "light" | "dark") ?? "system"}
+      toastOptions={{
+        classNames: {
+          toast: "rounded-lg border border-slate-200 dark:border-slate-800",
+        },
+      }}
     />
   );
 }
