@@ -756,6 +756,7 @@ model DesignVersion {
   designerNotes   String?              @map("designer_notes")
   approvedAt      DateTime?            @map("approved_at")
   approvalToken   String?              @unique @map("approval_token")
+  tokenExpiresAt  DateTime?            @map("token_expires_at")
   createdAt       DateTime             @default(now()) @map("created_at")
 
   // Relations
