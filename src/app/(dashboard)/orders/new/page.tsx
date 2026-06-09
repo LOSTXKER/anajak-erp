@@ -20,6 +20,7 @@ import {
 } from "@/lib/order-status";
 import {
   calculateFormItemSubtotal,
+  calculateOrderSummary,
 } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -190,13 +191,15 @@ export default function NewOrderPage() {
     if (isQuickInquiry) {
       return { subtotalItems: 0, subtotalFees: 0, platformFee: 0, discount: 0, taxAmount: 0, grandTotal: 0 };
     }
-    const subtotalItems = items.reduce((sum, item) => sum + calculateFormItemSubtotal(item), 0);
-    const subtotalFees = fees.reduce((sum, f) => sum + f.amount, 0);
-    const pf = isMarketplace ? platformFee : 0;
-    const subtotalBeforeTax = subtotalItems + subtotalFees + pf - discount;
-    const taxAmount = taxRate > 0 ? subtotalBeforeTax * (taxRate / 100) : 0;
-    const grandTotal = Math.max(0, subtotalBeforeTax + taxAmount);
-    return { subtotalItems, subtotalFees, platformFee: pf, discount, taxAmount, grandTotal };
+    // สูตร A เดียวกับ server — platformFee ไม่บวกเข้ายอดบิล/ฐาน VAT
+    // (เป็นเงินที่ marketplace หักจากยอดโอน — เก็บไว้เป็นข้อมูลอ้างอิงเท่านั้น)
+    const summary = calculateOrderSummary({
+      itemSubtotals: items.map((item) => calculateFormItemSubtotal(item)),
+      feeAmounts: fees.map((f) => f.amount),
+      discount,
+      taxRate,
+    });
+    return { ...summary, platformFee: isMarketplace ? platformFee : 0 };
   }, [items, fees, platformFee, discount, isMarketplace, taxRate, isQuickInquiry]);
 
   const handleVariantsSelected = (selected: SelectedVariantItem[]) => {

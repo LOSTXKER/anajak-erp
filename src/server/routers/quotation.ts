@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
-import { generateQuotationNumber, generateOrderNumber } from "@/lib/utils";
-import { getInitialStatus, getCustomerStatus } from "@/lib/order-status";
+import { getCustomerStatus } from "@/lib/order-status";
 import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { badRequest } from "@/server/errors";
+import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/document-number";
+import { computeQuotationTotals } from "@/server/services/pricing";
+import { D, round2, moneyInput } from "@/server/services/money";
 
 const salesUp = requireRole("OWNER", "MANAGER", "SALES");
 
@@ -82,8 +84,8 @@ export const quotationRouter = router({
         description: z.string().optional(),
         validUntil: z.string(),
         terms: z.string().optional(),
-        discount: z.number().default(0),
-        tax: z.number().default(0),
+        discount: z.number().min(0).default(0),
+        tax: z.number().min(0).default(0),
         notes: z.string().optional(),
         items: z.array(quotationItemSchema).min(1),
       })
@@ -91,46 +93,60 @@ export const quotationRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { items, ...data } = input;
 
-      const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-      const totalAmount = subtotal - data.discount + data.tax;
-
-      const quotation = await ctx.prisma.quotation.create({
-        data: {
-          quotationNumber: generateQuotationNumber(),
-          customerId: data.customerId,
-          createdById: ctx.userId,
-          title: data.title,
-          description: data.description,
-          validUntil: new Date(data.validUntil),
-          terms: data.terms,
-          subtotal,
-          discount: data.discount,
-          tax: data.tax,
-          totalAmount: Math.max(0, totalAmount),
-          notes: data.notes,
-          items: {
-            create: items.map((item, index) => ({
-              sortOrder: index,
-              name: item.name,
-              description: item.description,
-              quantity: item.quantity,
-              unit: item.unit,
-              unitPrice: item.unitPrice,
-              totalPrice: item.quantity * item.unitPrice,
-              notes: item.notes,
-            })),
-          },
-        },
-        include: { items: true, customer: { select: { name: true } } },
+      const totals = computeQuotationTotals({
+        items,
+        discount: data.discount,
+        tax: data.tax,
       });
 
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "CREATE",
-        entityType: "QUOTATION",
-        entityId: quotation.id,
-        newValue: JSON.parse(JSON.stringify({ quotationNumber: quotation.quotationNumber, title: quotation.title, totalAmount: quotation.totalAmount })),
-      });
+      // เลขใบเสนอราคารันต่อเนื่อง — สร้างใน transaction เดียวกับเอกสารเสมอ
+      const quotation = await withDocNumberRetry(() =>
+        ctx.prisma.$transaction(async (tx) => {
+          const created = await tx.quotation.create({
+            data: {
+              quotationNumber: await nextDocumentNumber(tx, "QUOTATION"),
+              customerId: data.customerId,
+              createdById: ctx.userId,
+              title: data.title,
+              description: data.description,
+              validUntil: new Date(data.validUntil),
+              terms: data.terms,
+              subtotal: totals.subtotal,
+              discount: moneyInput(data.discount).toNumber(),
+              tax: moneyInput(data.tax).toNumber(),
+              totalAmount: totals.totalAmount,
+              notes: data.notes,
+              items: {
+                create: items.map((item, index) => ({
+                  sortOrder: index,
+                  name: item.name,
+                  description: item.description,
+                  quantity: item.quantity,
+                  unit: item.unit,
+                  unitPrice: item.unitPrice,
+                  totalPrice: totals.lineTotals[index],
+                  notes: item.notes,
+                })),
+              },
+            },
+            include: { items: true, customer: { select: { name: true } } },
+          });
+
+          await createAuditLog(tx, {
+            userId: ctx.userId,
+            action: "CREATE",
+            entityType: "QUOTATION",
+            entityId: created.id,
+            newValue: {
+              quotationNumber: created.quotationNumber,
+              title: created.title,
+              totalAmount: created.totalAmount,
+            },
+          });
+
+          return created;
+        })
+      );
 
       return quotation;
     }),
@@ -144,17 +160,34 @@ export const quotationRouter = router({
         description: z.string().optional(),
         validUntil: z.string().optional(),
         terms: z.string().optional(),
-        discount: z.number().optional(),
-        tax: z.number().optional(),
+        discount: z.number().min(0).optional(),
+        tax: z.number().min(0).optional(),
         notes: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
+
+      // discount/tax เปลี่ยน → ยอดรวมต้องคำนวณใหม่ผ่านสูตรกลางเสมอ (เดิมเขียนตรง ยอดค้าง)
+      let totalsData: Record<string, number> = {};
+      if (data.discount !== undefined || data.tax !== undefined) {
+        const existing = await ctx.prisma.quotation.findUniqueOrThrow({
+          where: { id },
+          include: { items: true },
+        });
+        const totals = computeQuotationTotals({
+          items: existing.items.map((i) => ({ quantity: i.quantity, unitPrice: i.unitPrice })),
+          discount: data.discount ?? existing.discount,
+          tax: data.tax ?? existing.tax,
+        });
+        totalsData = { subtotal: totals.subtotal, totalAmount: totals.totalAmount };
+      }
+
       return ctx.prisma.quotation.update({
         where: { id },
         data: {
           ...data,
+          ...totalsData,
           validUntil: data.validUntil ? new Date(data.validUntil) : undefined,
         },
       });
@@ -200,9 +233,19 @@ export const quotationRouter = router({
 
       const customerStatus = getCustomerStatus("CONFIRMED");
 
-      return ctx.prisma.$transaction(async (tx) => {
-        const orderNumber = await generateOrderNumber(tx);
-        const order = await tx.order.create({
+      // ใบเสนอราคาเก็บภาษีเป็น "บาท" แต่ order ใช้อัตรา % — แปลงอัตรากลับจากยอดจริง
+      // ไม่งั้น order เกิดมาขัดสูตร A (totalAmount รวมภาษีแต่ taxRate=0) แล้วพอแก้รายการ
+      // ครั้งแรก ระบบ recompute ด้วย taxRate=0 → เงินภาษีหายเงียบ
+      const taxBase = D(quotation.subtotal).minus(quotation.discount);
+      const derivedTaxRate =
+        quotation.tax > 0 && taxBase.gt(0)
+          ? round2(D(quotation.tax).div(taxBase).times(100))
+          : D(0);
+
+      return withDocNumberRetry(() =>
+        ctx.prisma.$transaction(async (tx) => {
+          const orderNumber = await nextDocumentNumber(tx, "ORDER");
+          const order = await tx.order.create({
           data: {
             orderNumber,
             orderType: "CUSTOM",
@@ -215,6 +258,8 @@ export const quotationRouter = router({
             description: quotation.description,
             discount: quotation.discount,
             subtotalItems: quotation.subtotal,
+            taxRate: derivedTaxRate.toNumber(),
+            taxAmount: quotation.tax,
             totalAmount: quotation.totalAmount,
             items: {
               create: quotation.items.map((item, index) => ({
@@ -251,6 +296,7 @@ export const quotationRouter = router({
         });
 
         return order;
-      });
+        })
+      );
     }),
 });

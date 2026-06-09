@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import type { PrismaTx } from "@/lib/prisma";
 
 type AuditLogAction = "CREATE" | "UPDATE" | "DELETE" | "VOID";
 
@@ -12,7 +13,8 @@ interface AuditLogParams {
   reason?: string;
 }
 
-type PrismaLike = Pick<PrismaClient, "auditLog"> | { auditLog: PrismaClient["auditLog"] };
+// PrismaTx ครอบทั้ง extended client เต็มตัวและ tx ภายใน $transaction (client เต็มมี member ครบกว่า)
+type PrismaLike = PrismaTx;
 
 export async function createAuditLog(
   prismaOrTx: PrismaLike,
@@ -34,51 +36,8 @@ export async function createAuditLog(
   });
 }
 
-interface DesignApprovalParams {
-  design: {
-    orderId: string;
-    versionNumber: number;
-  };
-  approved: boolean;
-  comment?: string | null;
-  changedBy: string;
-  descriptionPrefix: string;
-}
-
-export async function processDesignApproval(
-  prisma: PrismaClient,
-  params: DesignApprovalParams
-) {
-  const { design, approved, comment, changedBy, descriptionPrefix } = params;
-
-  if (approved) {
-    await prisma.order.update({
-      where: { id: design.orderId },
-      data: { internalStatus: "DESIGN_APPROVED", customerStatus: "PREPARING" },
-    });
-  } else {
-    await prisma.order.update({
-      where: { id: design.orderId },
-      data: { internalStatus: "DESIGNING", customerStatus: "PREPARING" },
-    });
-  }
-
-  const revisionCount = await prisma.orderRevision.count({
-    where: { orderId: design.orderId },
-  });
-
-  await prisma.orderRevision.create({
-    data: {
-      orderId: design.orderId,
-      version: revisionCount + 1,
-      changedBy,
-      changeType: "DESIGN",
-      description: approved
-        ? `${descriptionPrefix}อนุมัติแบบ v${design.versionNumber}`
-        : `${descriptionPrefix}ขอแก้ไขแบบ v${design.versionNumber}: ${comment ?? ""}`,
-    },
-  });
-}
+// processDesignApproval ย้ายไป src/server/services/order-status.ts —
+// ผลตัดสินแบบต้องเปลี่ยนสถานะผ่าน transitionOrder (validate + revision) ใน transaction เสมอ
 
 export async function createNotification(
   prisma: Pick<PrismaClient, "notification">,

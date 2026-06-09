@@ -211,6 +211,12 @@ export function getNextStatuses(
     next.push(flow[currentIndex + 1]);
   }
 
+  // ลูกค้าอนุมัติแบบผ่าน token ได้ตั้งแต่ตอน DESIGNING (อัปโหลดแบบ = มีลิงก์อนุมัติทันที
+  // โดยไม่ต้องกดส่งเข้า AWAITING_APPROVAL ก่อน) — เส้นทางจริงของ design.approveByToken
+  if (currentStatus === "DESIGNING") {
+    next.push("DESIGN_APPROVED");
+  }
+
   // Special backward transitions
   if (currentStatus === "AWAITING_APPROVAL") {
     next.push("DESIGNING");
@@ -228,6 +234,11 @@ export function getNextStatuses(
   // Allow INQUIRY -> CONFIRMED directly (skip QUOTATION)
   if (currentStatus === "INQUIRY" && orderType === "CUSTOM") {
     next.push("CONFIRMED");
+  }
+
+  // งาน CUSTOM ที่ลูกค้ามีไฟล์พร้อมพิมพ์มาเอง — ข้ามขั้นออกแบบเข้าคิวผลิตได้เลย
+  if (currentStatus === "CONFIRMED" && orderType === "CUSTOM") {
+    next.push("PRODUCTION_QUEUE");
   }
 
   // ON_HOLD available from most active statuses

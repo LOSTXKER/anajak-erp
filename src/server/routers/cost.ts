@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { calculateProfitMargin } from "@/lib/pricing";
+import { aggToNumber } from "@/server/services/money";
 import { byIdInput } from "@/server/schemas";
 
 const accountantUp = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
@@ -68,7 +69,7 @@ export const costRouter = router({
         where: { orderId: input.orderId },
       });
 
-      const totalCost = totalCostAgg._sum.amount ?? 0;
+      const totalCost = aggToNumber(totalCostAgg._sum.amount);
       const order = await ctx.prisma.order.findUniqueOrThrow({
         where: { id: input.orderId },
         select: { totalAmount: true },
@@ -107,7 +108,7 @@ export const costRouter = router({
         _sum: { amount: true },
         where: { orderId: entry.orderId },
       });
-      const totalCost = totalCostAgg._sum.amount ?? 0;
+      const totalCost = aggToNumber(totalCostAgg._sum.amount);
       const order = await ctx.prisma.order.findUniqueOrThrow({
         where: { id: entry.orderId },
         select: { totalAmount: true },
@@ -135,7 +136,7 @@ export const costRouter = router({
         _sum: { amount: true },
         where: { orderId: entry.orderId },
       });
-      const totalCost = totalCostAgg._sum.amount ?? 0;
+      const totalCost = aggToNumber(totalCostAgg._sum.amount);
       const order = await ctx.prisma.order.findUniqueOrThrow({
         where: { id: entry.orderId },
         select: { totalAmount: true },

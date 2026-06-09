@@ -1,14 +1,22 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
-import { generateInvoiceNumber } from "@/lib/utils";
 import { createAuditLog } from "@/server/helpers";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { notFound, badRequest } from "@/server/errors";
+import { D, aggToNumber, moneyInput } from "@/server/services/money";
+import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/document-number";
+import type { PrismaTx } from "@/lib/prisma";
 
 // เปิดบิล/จัดการสถานะบิล — บัญชี + ระดับบริหาร
 const billingStaff = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
 // บันทึกเงินเข้า-ออกจริง (รับชำระ/ยกเลิกบิล/คืนเงิน) — แคบสุดตามตาราง RBAC §7
 const moneyRecorder = requireRole("OWNER", "ACCOUNTANT");
+
+// ล็อกแถวบิลก่อนอ่าน/คำนวณยอด — กันสอง request บันทึกเงินบนบิลเดียวกันพร้อมกัน
+// (อ่าน payments → เช็คยอดคงเหลือ → เขียน ไม่ atomic ถ้าไม่ล็อก) · เรียกใน transaction เท่านั้น
+async function lockInvoiceRow(tx: PrismaTx, invoiceId: string) {
+  await tx.$queryRaw`SELECT id FROM invoices WHERE id = ${invoiceId} FOR UPDATE`;
+}
 
 export const billingRouter = router({
   listByOrder: protectedProcedure
@@ -73,8 +81,8 @@ export const billingRouter = router({
           "RECEIPT", "CREDIT_NOTE", "DEBIT_NOTE",
         ]),
         amount: z.number().min(0),
-        discount: z.number().default(0),
-        tax: z.number().default(0),
+        discount: z.number().min(0).default(0),
+        tax: z.number().min(0).default(0),
         dueDate: z.string().optional(),
         notes: z.string().optional(),
       })
@@ -91,30 +99,47 @@ export const billingRouter = router({
         badRequest("ลูกค้าไม่ตรงกับออเดอร์");
       }
 
-      const totalAmount = input.amount - input.discount + input.tax;
+      const amount = moneyInput(input.amount);
+      const discount = moneyInput(input.discount);
+      const tax = moneyInput(input.tax);
+      const totalAmount = amount.minus(discount).plus(tax);
+      if (totalAmount.lt(0)) {
+        badRequest("ส่วนลดเกินยอดบิล — ยอดรวมติดลบไม่ได้");
+      }
 
-      const invoice = await ctx.prisma.invoice.create({
-        data: {
-          invoiceNumber: generateInvoiceNumber(input.type),
-          orderId: input.orderId,
-          customerId: input.customerId,
-          type: input.type,
-          amount: input.amount,
-          discount: input.discount,
-          tax: input.tax,
-          totalAmount,
-          dueDate: input.dueDate ? new Date(input.dueDate) : null,
-          notes: input.notes,
-        },
-      });
+      // เลขบิลรันต่อเนื่อง — สร้างใน transaction เดียวกับบิลเสมอ
+      const invoice = await withDocNumberRetry(() =>
+        ctx.prisma.$transaction(async (tx) => {
+          const created = await tx.invoice.create({
+            data: {
+              invoiceNumber: await nextDocumentNumber(tx, input.type),
+              orderId: input.orderId,
+              customerId: input.customerId,
+              type: input.type,
+              amount: amount.toNumber(),
+              discount: discount.toNumber(),
+              tax: tax.toNumber(),
+              totalAmount: totalAmount.toNumber(),
+              dueDate: input.dueDate ? new Date(input.dueDate) : null,
+              notes: input.notes,
+            },
+          });
 
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "CREATE",
-        entityType: "INVOICE",
-        entityId: invoice.id,
-        newValue: { invoiceNumber: invoice.invoiceNumber, type: input.type, totalAmount },
-      });
+          await createAuditLog(tx, {
+            userId: ctx.userId,
+            action: "CREATE",
+            entityType: "INVOICE",
+            entityId: created.id,
+            newValue: {
+              invoiceNumber: created.invoiceNumber,
+              type: input.type,
+              totalAmount: created.totalAmount,
+            },
+          });
+
+          return created;
+        })
+      );
 
       return invoice;
     }),
@@ -124,7 +149,7 @@ export const billingRouter = router({
     .input(
       z.object({
         invoiceId: z.string(),
-        amount: z.number().min(0),
+        amount: z.number().min(0.01, "จำนวนเงินต้องมากกว่า 0"),
         method: z.string(),
         reference: z.string().optional(),
         evidenceUrl: z.string().optional(),
@@ -132,54 +157,58 @@ export const billingRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const invoice = await ctx.prisma.invoice.findUniqueOrThrow({
-        where: { id: input.invoiceId },
-        include: { payments: true },
+      const amount = moneyInput(input.amount);
+
+      return ctx.prisma.$transaction(async (tx) => {
+        await lockInvoiceRow(tx, input.invoiceId);
+
+        const invoice = await tx.invoice.findUniqueOrThrow({
+          where: { id: input.invoiceId },
+          include: { payments: true },
+        });
+
+        if (invoice.isVoided) {
+          badRequest("ไม่สามารถบันทึกการชำระเงินสำหรับใบแจ้งหนี้ที่ถูกยกเลิกแล้ว");
+        }
+
+        const previouslyPaid = invoice.payments.reduce((sum, p) => sum.plus(p.amount), D(0));
+        const total = D(invoice.totalAmount);
+        const remaining = total.minus(previouslyPaid);
+
+        if (amount.gt(remaining)) {
+          badRequest(`จำนวนเงินเกินยอดคงเหลือ (เหลือ ${remaining.toFixed(2)} บาท)`);
+        }
+
+        const payment = await tx.payment.create({
+          data: { ...input, amount: amount.toNumber() },
+        });
+
+        const totalPaid = previouslyPaid.plus(amount);
+        const paymentStatus = totalPaid.gte(total) ? ("PAID" as const) : ("PARTIALLY_PAID" as const);
+
+        await tx.invoice.update({
+          where: { id: input.invoiceId },
+          data: {
+            paymentStatus,
+            paidAt: paymentStatus === "PAID" ? new Date() : null,
+          },
+        });
+
+        await tx.customer.update({
+          where: { id: invoice.customerId },
+          data: { totalSpent: { increment: amount.toNumber() } },
+        });
+
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "CREATE",
+          entityType: "PAYMENT",
+          entityId: payment.id,
+          newValue: { invoiceId: input.invoiceId, amount: amount.toNumber(), method: input.method },
+        });
+
+        return payment;
       });
-
-      if (invoice.isVoided) {
-        badRequest("ไม่สามารถบันทึกการชำระเงินสำหรับใบแจ้งหนี้ที่ถูกยกเลิกแล้ว");
-      }
-
-      const previouslyPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
-      const remaining = invoice.totalAmount - previouslyPaid;
-
-      if (input.amount > remaining + 0.01) {
-        badRequest(`จำนวนเงินเกินยอดคงเหลือ (เหลือ ${remaining.toFixed(2)} บาท)`);
-      }
-
-      const payment = await ctx.prisma.payment.create({
-        data: input,
-      });
-
-      const totalPaid = previouslyPaid + input.amount;
-      let paymentStatus: "PARTIALLY_PAID" | "PAID" = "PARTIALLY_PAID";
-      if (totalPaid >= invoice.totalAmount - 0.01) {
-        paymentStatus = "PAID";
-      }
-
-      await ctx.prisma.invoice.update({
-        where: { id: input.invoiceId },
-        data: {
-          paymentStatus,
-          paidAt: paymentStatus === "PAID" ? new Date() : null,
-        },
-      });
-
-      await ctx.prisma.customer.update({
-        where: { id: invoice.customerId },
-        data: { totalSpent: { increment: input.amount } },
-      });
-
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "CREATE",
-        entityType: "PAYMENT",
-        entityId: payment.id,
-        newValue: { invoiceId: input.invoiceId, amount: input.amount, method: input.method },
-      });
-
-      return payment;
     }),
 
   voidInvoice: protectedProcedure
@@ -191,39 +220,49 @@ export const billingRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const invoice = await ctx.prisma.invoice.findUniqueOrThrow({
-        where: { id: input.invoiceId },
-        include: { payments: true },
-      });
+      return ctx.prisma.$transaction(async (tx) => {
+        await lockInvoiceRow(tx, input.invoiceId);
 
-      const totalPaidOnInvoice = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
-
-      const updatedInvoice = await ctx.prisma.invoice.update({
-        where: { id: input.invoiceId },
-        data: {
-          isVoided: true,
-          voidedReason: input.reason,
-          paymentStatus: "VOIDED",
-        },
-      });
-
-      if (totalPaidOnInvoice > 0) {
-        await ctx.prisma.customer.update({
-          where: { id: invoice.customerId },
-          data: { totalSpent: { decrement: totalPaidOnInvoice } },
+        const invoice = await tx.invoice.findUniqueOrThrow({
+          where: { id: input.invoiceId },
+          include: { payments: true },
         });
-      }
 
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "VOID",
-        entityType: "INVOICE",
-        entityId: input.invoiceId,
-        reason: input.reason,
-        newValue: { voided: true, refundedAmount: totalPaidOnInvoice },
+        // กัน void ซ้ำ — เดิมกดซ้ำได้ ทำให้ totalSpent ของลูกค้าโดนหักสองรอบ
+        if (invoice.isVoided) {
+          badRequest("ใบแจ้งหนี้นี้ถูกยกเลิกไปแล้ว");
+        }
+
+        // ยอดสุทธิที่รับมาแล้วบนบิลนี้ (รวมรายการคืนเงินที่ติดลบ)
+        const netPaid = invoice.payments.reduce((sum, p) => sum.plus(p.amount), D(0));
+
+        const updatedInvoice = await tx.invoice.update({
+          where: { id: input.invoiceId },
+          data: {
+            isVoided: true,
+            voidedReason: input.reason,
+            paymentStatus: "VOIDED",
+          },
+        });
+
+        if (netPaid.gt(0)) {
+          await tx.customer.update({
+            where: { id: invoice.customerId },
+            data: { totalSpent: { decrement: netPaid.toNumber() } },
+          });
+        }
+
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "VOID",
+          entityType: "INVOICE",
+          entityId: input.invoiceId,
+          reason: input.reason,
+          newValue: { voided: true, refundedAmount: netPaid.toNumber() },
+        });
+
+        return updatedInvoice;
       });
-
-      return updatedInvoice;
     }),
 
   recordRefund: protectedProcedure
@@ -238,63 +277,76 @@ export const billingRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const invoice = await ctx.prisma.invoice.findUniqueOrThrow({
-        where: { id: input.invoiceId },
-        include: { payments: true },
+      const amount = moneyInput(input.amount);
+
+      return ctx.prisma.$transaction(async (tx) => {
+        await lockInvoiceRow(tx, input.invoiceId);
+
+        const invoice = await tx.invoice.findUniqueOrThrow({
+          where: { id: input.invoiceId },
+          include: { payments: true },
+        });
+
+        const totalPaid = invoice.payments
+          .filter((p) => p.amount > 0)
+          .reduce((sum, p) => sum.plus(p.amount), D(0));
+        const totalRefunded = invoice.payments
+          .filter((p) => p.amount < 0)
+          .reduce((sum, p) => sum.plus(D(p.amount).abs()), D(0));
+        const refundable = totalPaid.minus(totalRefunded);
+
+        if (amount.gt(refundable)) {
+          badRequest(`จำนวนเงินคืนเกินยอดที่สามารถคืนได้ (คืนได้สูงสุด ${refundable.toFixed(2)} บาท)`);
+        }
+
+        const payment = await tx.payment.create({
+          data: {
+            invoiceId: input.invoiceId,
+            amount: amount.negated().toNumber(),
+            method: input.method,
+            reference: input.reference,
+            notes: input.notes ? `[คืนเงิน] ${input.notes}` : "[คืนเงิน]",
+          },
+        });
+
+        // บิลที่ถูก void แล้ว ต้องคงสถานะ VOIDED — เดิม refund แล้วสถานะเด้งกลับเป็น UNPAID/PAID
+        if (!invoice.isVoided) {
+          const netPaid = refundable.minus(amount);
+          const total = D(invoice.totalAmount);
+          const paymentStatus = netPaid.gte(total) && total.gt(0)
+            ? ("PAID" as const)
+            : netPaid.gt(0)
+              ? ("PARTIALLY_PAID" as const)
+              : ("UNPAID" as const);
+
+          await tx.invoice.update({
+            where: { id: input.invoiceId },
+            data: {
+              paymentStatus,
+              paidAt: paymentStatus === "PAID" ? invoice.paidAt : null,
+            },
+          });
+        }
+
+        // บิลที่ void แล้ว voidInvoice หัก totalSpent เท่ายอดรับสุทธิไปแล้วทั้งก้อน —
+        // refund หลัง void ห้ามหักซ้ำ (เดิมเส้นทาง จ่าย→void→refund ทำ totalSpent ติดลบเต็มยอดบิล)
+        if (!invoice.isVoided) {
+          await tx.customer.update({
+            where: { id: invoice.customerId },
+            data: { totalSpent: { decrement: amount.toNumber() } },
+          });
+        }
+
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "CREATE",
+          entityType: "PAYMENT",
+          entityId: payment.id,
+          newValue: { invoiceId: input.invoiceId, refundAmount: amount.toNumber(), method: input.method },
+        });
+
+        return payment;
       });
-
-      const totalPaid = invoice.payments
-        .filter((p) => p.amount > 0)
-        .reduce((sum, p) => sum + p.amount, 0);
-      const totalRefunded = invoice.payments
-        .filter((p) => p.amount < 0)
-        .reduce((sum, p) => sum + Math.abs(p.amount), 0);
-      const refundable = totalPaid - totalRefunded;
-
-      if (input.amount > refundable + 0.01) {
-        badRequest(`จำนวนเงินคืนเกินยอดที่สามารถคืนได้ (คืนได้สูงสุด ${refundable.toFixed(2)} บาท)`);
-      }
-
-      const payment = await ctx.prisma.payment.create({
-        data: {
-          invoiceId: input.invoiceId,
-          amount: -input.amount,
-          method: input.method,
-          reference: input.reference,
-          notes: input.notes ? `[คืนเงิน] ${input.notes}` : "[คืนเงิน]",
-        },
-      });
-
-      const netPaid = totalPaid - totalRefunded - input.amount;
-      let paymentStatus: "UNPAID" | "PARTIALLY_PAID" | "PAID" = "UNPAID";
-      if (netPaid >= invoice.totalAmount - 0.01) {
-        paymentStatus = "PAID";
-      } else if (netPaid > 0.01) {
-        paymentStatus = "PARTIALLY_PAID";
-      }
-
-      await ctx.prisma.invoice.update({
-        where: { id: input.invoiceId },
-        data: {
-          paymentStatus,
-          paidAt: paymentStatus === "PAID" ? invoice.paidAt : null,
-        },
-      });
-
-      await ctx.prisma.customer.update({
-        where: { id: invoice.customerId },
-        data: { totalSpent: { decrement: input.amount } },
-      });
-
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "CREATE",
-        entityType: "PAYMENT",
-        entityId: payment.id,
-        newValue: { invoiceId: input.invoiceId, refundAmount: input.amount, method: input.method },
-      });
-
-      return payment;
     }),
 
   markOverdue: protectedProcedure
@@ -332,11 +384,12 @@ export const billingRouter = router({
       }),
     ]);
 
+    // ผล aggregate ไม่ผ่าน result extension — ต้องแปลง Decimal → number ที่นี่
     return {
-      totalUnpaid: totalUnpaid._sum.totalAmount ?? 0,
+      totalUnpaid: aggToNumber(totalUnpaid._sum.totalAmount),
       overdueCount,
-      revenueThisMonth: revenueThisMonth._sum.totalAmount ?? 0,
-      paidThisMonth: paidThisMonth._sum.amount ?? 0,
+      revenueThisMonth: aggToNumber(revenueThisMonth._sum.totalAmount),
+      paidThisMonth: aggToNumber(paidThisMonth._sum.amount),
     };
   }),
 });

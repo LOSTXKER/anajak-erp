@@ -6,7 +6,7 @@ import { httpBatchLink } from "@trpc/client";
 import { trpc } from "@/lib/trpc";
 import { ThemeProvider, useTheme } from "next-themes";
 import { Toaster } from "sonner";
-import superjson from "superjson";
+import superjson from "@/lib/superjson";
 
 function getBaseUrl() {
   if (typeof window !== "undefined") return "";

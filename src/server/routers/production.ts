@@ -2,6 +2,8 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
+import { transitionOrder } from "@/server/services/order-status";
+import { isValidTransition } from "@/lib/order-status";
 
 // วางแผนการผลิต = งานระดับบริหารตามตาราง RBAC §7
 const managerUp = requireRole("OWNER", "MANAGER");
@@ -45,29 +47,50 @@ export const productionRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const production = await ctx.prisma.production.create({
-        data: {
+      // ใบผลิต + เปลี่ยนสถานะ = ก้อนเดียวกัน — สถานะต้องเดินตาม machine เท่านั้น
+      // (no-op ถ้าออเดอร์ PRODUCING อยู่แล้ว เช่นเปิดใบผลิตใบที่สอง)
+      return ctx.prisma.$transaction(async (tx) => {
+        const production = await tx.production.create({
+          data: {
+            orderId: input.orderId,
+            steps: { create: input.steps },
+          },
+          include: { steps: true },
+        });
+
+        // UI เปิดปุ่มสร้างใบผลิตตั้งแต่ CONFIRMED/DESIGN_APPROVED — ถ้ายังไป PRODUCING
+        // ตรงๆ ไม่ได้ ให้เดินผ่านคิวผลิตก่อน (ยังผ่าน validate ทุกก้าว ไม่ใช่ set ตรง)
+        const order = await tx.order.findUniqueOrThrow({
+          where: { id: input.orderId },
+          select: { orderType: true, internalStatus: true },
+        });
+        if (
+          order.internalStatus !== "PRODUCING" &&
+          !isValidTransition(order.orderType, order.internalStatus, "PRODUCING")
+        ) {
+          await transitionOrder(tx, {
+            orderId: input.orderId,
+            to: "PRODUCTION_QUEUE",
+            changedBy: ctx.userId,
+          });
+        }
+
+        await transitionOrder(tx, {
           orderId: input.orderId,
-          steps: { create: input.steps },
-        },
-        include: { steps: true },
-      });
+          to: "PRODUCING",
+          changedBy: ctx.userId,
+        });
 
-      // Update order status to PRODUCTION
-      await ctx.prisma.order.update({
-        where: { id: input.orderId },
-        data: { internalStatus: "PRODUCING", customerStatus: "IN_PRODUCTION" },
-      });
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "CREATE",
+          entityType: "PRODUCTION",
+          entityId: production.id,
+          newValue: { orderId: input.orderId, stepsCount: input.steps.length },
+        });
 
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "CREATE",
-        entityType: "PRODUCTION",
-        entityId: production.id,
-        newValue: { orderId: input.orderId, stepsCount: input.steps.length },
+        return production;
       });
-
-      return production;
     }),
 
   updateStep: protectedProcedure

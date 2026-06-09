@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { getStartOfMonth, getStartOfLastMonth, getMonthRange } from "@/lib/date-utils";
+import { aggToNumber } from "@/server/services/money";
 
 const adminOnly = requireRole("OWNER", "MANAGER");
 const ownerOrAccountant = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
@@ -75,8 +76,9 @@ export const analyticsRouter = router({
           }),
         ]);
 
-      const revThisMonth = revenueThisMonth._sum.totalAmount ?? 0;
-      const revLastMonth = revenueLastMonth._sum.totalAmount ?? 0;
+      // ผล aggregate ไม่ผ่าน result extension — ต้องแปลง Decimal → number ที่นี่
+      const revThisMonth = aggToNumber(revenueThisMonth._sum.totalAmount);
+      const revLastMonth = aggToNumber(revenueLastMonth._sum.totalAmount);
       finance = {
         revenueThisMonth: revThisMonth,
         revenueChange:
@@ -130,7 +132,7 @@ export const analyticsRouter = router({
 
         results.push({
           month: start.toLocaleDateString("th-TH", { month: "short", year: "2-digit" }),
-          revenue: revenue._sum.totalAmount ?? 0,
+          revenue: aggToNumber(revenue._sum.totalAmount),
           orders: orderCount,
         });
       }

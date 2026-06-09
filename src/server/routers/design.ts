@@ -2,7 +2,8 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, publicProcedure, requireRole } from "../trpc";
 import { randomBytes } from "crypto";
-import { createAuditLog, processDesignApproval } from "@/server/helpers";
+import { createAuditLog } from "@/server/helpers";
+import { transitionOrder, processDesignApproval } from "@/server/services/order-status";
 import type { InternalStatus } from "@prisma/client";
 
 const designerUp = requireRole("OWNER", "MANAGER", "DESIGNER");
@@ -101,13 +102,13 @@ export const designRouter = router({
           },
         });
 
-        // เปลี่ยนเฉพาะเมื่อยังอยู่เฟสออกแบบ (เงื่อนไขใน where กัน race)
-        await tx.order.updateMany({
-          where: {
-            id: input.orderId,
-            internalStatus: { in: UPLOADABLE_STATUSES },
-          },
-          data: { internalStatus: "DESIGNING", customerStatus: "PREPARING" },
+        // เปลี่ยนสถานะผ่าน service กลาง — DESIGN_PENDING/AWAITING_APPROVAL → DESIGNING
+        // (DESIGNING อยู่แล้ว = no-op · พ้นเฟสออกแบบไประหว่างทาง = โยน error
+        // ทั้ง transaction ถูก rollback รวมตัว version ที่เพิ่งสร้างด้วย)
+        await transitionOrder(tx, {
+          orderId: input.orderId,
+          to: "DESIGNING",
+          changedBy: ctx.userId,
         });
 
         return created;
@@ -171,35 +172,38 @@ export const designRouter = router({
       }
       assertOrderInDesignPhase(existing.order.internalStatus);
 
-      const updated = await ctx.prisma.designVersion.updateMany({
-        where: { id: input.designId, approvalStatus: "PENDING" },
-        data: {
-          approvalStatus: input.approved ? "APPROVED" : "REVISION_REQUESTED",
-          customerComment: input.comment,
-          approvedAt: input.approved ? new Date() : null,
-        },
-      });
-      if (updated.count === 0) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "แบบนี้ถูกตัดสินไปแล้ว — อัปโหลด version ใหม่หากต้องการแก้",
+      // ผลตัดสิน + สถานะออเดอร์ + revision = transaction เดียว (เดิมแยกก้อน — ค้างครึ่งทางได้)
+      return ctx.prisma.$transaction(async (tx) => {
+        const updated = await tx.designVersion.updateMany({
+          where: { id: input.designId, approvalStatus: "PENDING" },
+          data: {
+            approvalStatus: input.approved ? "APPROVED" : "REVISION_REQUESTED",
+            customerComment: input.comment,
+            approvedAt: input.approved ? new Date() : null,
+          },
         });
-      }
+        if (updated.count === 0) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "แบบนี้ถูกตัดสินไปแล้ว — อัปโหลด version ใหม่หากต้องการแก้",
+          });
+        }
 
-      const design = await ctx.prisma.designVersion.findUniqueOrThrow({
-        where: { id: input.designId },
-        include: { order: true },
+        const design = await tx.designVersion.findUniqueOrThrow({
+          where: { id: input.designId },
+          include: { order: true },
+        });
+
+        await processDesignApproval(tx, {
+          design: { orderId: design.orderId, versionNumber: design.versionNumber },
+          approved: input.approved,
+          comment: input.comment,
+          changedBy: ctx.userId,
+          descriptionPrefix: "",
+        });
+
+        return design;
       });
-
-      await processDesignApproval(ctx.prisma, {
-        design: { orderId: design.orderId, versionNumber: design.versionNumber },
-        approved: input.approved,
-        comment: input.comment,
-        changedBy: ctx.userId,
-        descriptionPrefix: "",
-      });
-
-      return design;
     }),
 
   // Public mutation for customer approval via token (no login required)
@@ -232,35 +236,38 @@ export const designRouter = router({
       // ออเดอร์ต้องยังอยู่เฟสออกแบบ — token เก่าดึงสถานะออเดอร์ที่ผลิตแล้วกลับไม่ได้
       assertOrderInDesignPhase(existing.order.internalStatus);
 
+      // ผลตัดสิน + สถานะออเดอร์ + revision = transaction เดียว
       // updateMany แบบมีเงื่อนไข status — กันยิงพร้อมกัน (race) สองคำขอผ่านพร้อมกัน
-      const updated = await ctx.prisma.designVersion.updateMany({
-        where: { approvalToken: input.token, approvalStatus: "PENDING" },
-        data: {
-          approvalStatus: input.approved ? "APPROVED" : "REVISION_REQUESTED",
-          customerComment: input.comment,
-          approvedAt: input.approved ? new Date() : null,
-        },
-      });
-      if (updated.count === 0) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "แบบนี้ถูกตัดสินไปแล้ว หากต้องการเปลี่ยนแปลงกรุณาติดต่อร้าน",
+      return ctx.prisma.$transaction(async (tx) => {
+        const updated = await tx.designVersion.updateMany({
+          where: { approvalToken: input.token, approvalStatus: "PENDING" },
+          data: {
+            approvalStatus: input.approved ? "APPROVED" : "REVISION_REQUESTED",
+            customerComment: input.comment,
+            approvedAt: input.approved ? new Date() : null,
+          },
         });
-      }
+        if (updated.count === 0) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "แบบนี้ถูกตัดสินไปแล้ว หากต้องการเปลี่ยนแปลงกรุณาติดต่อร้าน",
+          });
+        }
 
-      const design = await ctx.prisma.designVersion.findUniqueOrThrow({
-        where: { id: existing.id },
-        include: { order: { include: { customer: { select: { name: true } } } } },
+        const design = await tx.designVersion.findUniqueOrThrow({
+          where: { id: existing.id },
+          include: { order: { include: { customer: { select: { name: true } } } } },
+        });
+
+        await processDesignApproval(tx, {
+          design: { orderId: design.orderId, versionNumber: design.versionNumber },
+          approved: input.approved,
+          comment: input.comment,
+          changedBy: "ลูกค้า",
+          descriptionPrefix: "ลูกค้า",
+        });
+
+        return design;
       });
-
-      await processDesignApproval(ctx.prisma, {
-        design: { orderId: design.orderId, versionNumber: design.versionNumber },
-        approved: input.approved,
-        comment: input.comment,
-        changedBy: "ลูกค้า",
-        descriptionPrefix: "ลูกค้า",
-      });
-
-      return design;
     }),
 });

@@ -139,6 +139,12 @@ enum CustomerType {
   CORPORATE   // นิติบุคคล
 }
 
+// tax-point (เผื่อใบกำกับภาษี P1): ขายสินค้า = VAT เกิดตอนส่งมอบ · จ้างทำของ = VAT เกิดตอนรับเงินทุกงวดรวมมัดจำ
+enum TaxLineType {
+  GOODS        // ขายสินค้า (READY_MADE)
+  HIRE_OF_WORK // จ้างทำของ (งานสกรีน/ผลิตตามสั่ง)
+}
+
 // ============================================================
 // AUTH & USERS
 // ============================================================
@@ -189,7 +195,7 @@ model Customer {
   notes           String?
   tags            String[]        @default([])
   totalOrders     Int             @default(0) @map("total_orders")
-  totalSpent      Float           @default(0) @map("total_spent")
+  totalSpent      Decimal         @default(0) @map("total_spent") @db.Decimal(12, 2)
   lastOrderAt     DateTime?       @map("last_order_at")
 
   // Billing address (separate from general address)
@@ -200,7 +206,7 @@ model Customer {
   billingPostalCode   String?     @map("billing_postal_code")
 
   // Credit management
-  creditLimit         Float?      @map("credit_limit")
+  creditLimit         Decimal?    @map("credit_limit") @db.Decimal(12, 2)
   defaultPaymentTerms String?     @map("default_payment_terms") // NET_30, COD, DEPOSIT_50, FULL_PREPAY
 
   createdAt       DateTime        @default(now()) @map("created_at")
@@ -268,17 +274,17 @@ model Order {
   description      String?
   deadline         DateTime?
 
-  // Pricing
-  subtotalItems    Float          @default(0) @map("subtotal_items")
-  subtotalFees     Float          @default(0) @map("subtotal_fees")
-  discount         Float          @default(0)
+  // Pricing — เงิน = Decimal(12,2) เท่านั้น · taxRate เป็น % (5,2) · profitMargin เป็น % derived คง Float
+  subtotalItems    Decimal        @default(0) @map("subtotal_items") @db.Decimal(12, 2)
+  subtotalFees     Decimal        @default(0) @map("subtotal_fees") @db.Decimal(12, 2)
+  discount         Decimal        @default(0) @db.Decimal(12, 2)
   discountReason   String?        @map("discount_reason")
-  taxRate          Float          @default(0) @map("tax_rate")
-  taxAmount        Float          @default(0) @map("tax_amount")
-  totalAmount      Float          @default(0) @map("total_amount")
+  taxRate          Decimal        @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  taxAmount        Decimal        @default(0) @map("tax_amount") @db.Decimal(12, 2)
+  totalAmount      Decimal        @default(0) @map("total_amount") @db.Decimal(12, 2)
 
   // Cost tracking
-  totalCost        Float          @default(0) @map("total_cost")
+  totalCost        Decimal        @default(0) @map("total_cost") @db.Decimal(12, 2)
   profitMargin     Float?         @map("profit_margin")
 
   // Business rules
@@ -298,7 +304,7 @@ model Order {
 
   // Marketplace fields (Shopee, Lazada, TikTok)
   externalOrderId  String?        @map("external_order_id")
-  platformFee      Float?         @map("platform_fee")
+  platformFee      Decimal?       @map("platform_fee") @db.Decimal(12, 2)
   trackingNumber   String?        @map("tracking_number")
 
   // Meta
@@ -332,7 +338,9 @@ model OrderItem {
   sortOrder     Int      @default(0) @map("sort_order")
   description   String   @default("")
   totalQuantity Int      @default(0) @map("total_quantity")
-  subtotal      Float    @default(0)
+  subtotal      Decimal  @default(0) @db.Decimal(12, 2)
+  // tax-point เผื่อใบกำกับ P1: ขายสินค้า vs จ้างทำของ — จุดเกิด VAT ต่างกัน
+  taxLineType   TaxLineType @default(HIRE_OF_WORK) @map("tax_line_type")
   notes         String?
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -356,10 +364,10 @@ model OrderItemProduct {
   description       String
   material          String?
 
-  baseUnitPrice     Float    @map("base_unit_price")
-  discount          Float    @default(0)
+  baseUnitPrice     Decimal  @map("base_unit_price") @db.Decimal(12, 2)
+  discount          Decimal  @default(0) @db.Decimal(12, 2)
   totalQuantity     Int      @default(0) @map("total_quantity")
-  subtotal          Float    @default(0)
+  subtotal          Decimal  @default(0) @db.Decimal(12, 2)
 
   itemSource        String?  @map("item_source")
   packagingOptionId String?  @map("packaging_option_id")
@@ -417,7 +425,7 @@ model OrderItemPrint {
   height         Float?
   designNote     String?  @map("design_note")
   designImageUrl String?  @map("design_image_url")
-  unitPrice      Float    @map("unit_price") // price per piece
+  unitPrice      Decimal  @map("unit_price") @db.Decimal(12, 2) // price per piece
   createdAt      DateTime @default(now()) @map("created_at")
 
   // Relations
@@ -433,7 +441,7 @@ model OrderItemAddon {
   name        String
   description String?
   pricingType String   @map("pricing_type") // PER_PIECE or PER_ORDER
-  unitPrice   Float    @map("unit_price")
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(12, 2)
   quantity    Int?     // override qty; null = use item totalQuantity
   notes       String?
   createdAt   DateTime @default(now()) @map("created_at")
@@ -450,7 +458,7 @@ model OrderFee {
   feeType     String   @map("fee_type") // DESIGN_FEE, SCREEN_SETUP, DELIVERY, RUSH_FEE, SAMPLE_FEE, CUSTOM
   name        String
   description String?
-  amount      Float
+  amount      Decimal  @db.Decimal(12, 2)
   notes       String?
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -487,7 +495,7 @@ model ServiceCatalog {
   type         String   // NECK_LABEL, SILK_SCREEN, DESIGN_FEE, etc.
   name         String
   description  String?
-  defaultPrice Float    @map("default_price")
+  defaultPrice Decimal  @map("default_price") @db.Decimal(12, 2)
   pricingType  String   @map("pricing_type") // PER_PIECE or PER_ORDER
   isActive     Boolean  @default(true) @map("is_active")
   sortOrder    Int      @default(0) @map("sort_order")
@@ -536,10 +544,10 @@ model Quotation {
   description     String?
   validUntil      DateTime  @map("valid_until")
   terms           String?
-  subtotal        Float     @default(0)
-  discount        Float     @default(0)
-  tax             Float     @default(0)
-  totalAmount     Float     @default(0) @map("total_amount")
+  subtotal        Decimal   @default(0) @db.Decimal(12, 2)
+  discount        Decimal   @default(0) @db.Decimal(12, 2)
+  tax             Decimal   @default(0) @db.Decimal(12, 2)
+  totalAmount     Decimal   @default(0) @map("total_amount") @db.Decimal(12, 2)
   sentAt          DateTime? @map("sent_at")
   acceptedAt      DateTime? @map("accepted_at")
   rejectedAt      DateTime? @map("rejected_at")
@@ -566,8 +574,8 @@ model QuotationItem {
   description String?
   quantity    Int
   unit        String  @default("ชิ้น")
-  unitPrice   Float   @map("unit_price")
-  totalPrice  Float   @map("total_price")
+  unitPrice   Decimal @map("unit_price") @db.Decimal(12, 2)
+  totalPrice  Decimal @map("total_price") @db.Decimal(12, 2)
   notes       String?
 
   // Relations
@@ -587,8 +595,8 @@ model Product {
   description     String?
   productType     String    @map("product_type") // T_SHIRT, POLO, HOODIE, TOTE_BAG
   category        String?
-  basePrice       Float     @map("base_price")
-  costPrice       Float?    @map("cost_price")
+  basePrice       Decimal   @map("base_price") @db.Decimal(12, 2)
+  costPrice       Decimal?  @map("cost_price") @db.Decimal(12, 2)
   imageUrl        String?   @map("image_url")
   images          String[]  @default([])
   isActive        Boolean   @default(true) @map("is_active")
@@ -621,15 +629,15 @@ model ProductVariant {
   size            String
   color           String
   sku             String  @unique
-  priceAdj        Float   @default(0) @map("price_adj")
+  priceAdj        Decimal @default(0) @map("price_adj") @db.Decimal(12, 2)
   stock           Int     @default(0)
   isActive        Boolean @default(true) @map("is_active")
 
   // Stock sync fields
   stockVariantId  String? @unique @map("stock_variant_id")
   barcode         String?
-  sellingPrice    Float   @default(0) @map("selling_price")
-  costPrice       Float   @default(0) @map("cost_price")
+  sellingPrice    Decimal @default(0) @map("selling_price") @db.Decimal(12, 2)
+  costPrice       Decimal @default(0) @map("cost_price") @db.Decimal(12, 2)
   totalStock      Int     @default(0) @map("total_stock")
 
   // Relations
@@ -655,7 +663,7 @@ model Delivery {
   postalCode      String?   @map("postal_code")
   shippingMethod  String    @map("shipping_method") // PICKUP, KERRY, FLASH, THAILAND_POST, J_AND_T, GRAB, LALAMOVE, SHOPEE_SHIP, LAZADA_SHIP, OTHER
   trackingNumber  String?   @map("tracking_number")
-  shippingCost    Float     @default(0) @map("shipping_cost")
+  shippingCost    Decimal   @default(0) @map("shipping_cost") @db.Decimal(12, 2)
   isPaid          Boolean   @default(false) @map("is_paid")
   status          String    @default("PENDING") // PENDING, PREPARING, SHIPPED, DELIVERED, RETURNED
   shippedAt       DateTime? @map("shipped_at")
@@ -703,9 +711,9 @@ model CostEntry {
   category    String   // MATERIAL, LABOR, OUTSOURCE, OVERHEAD, PLATFORM_FEE, SHIPPING, OTHER
   name        String
   description String?
-  amount      Float
-  quantity    Float?
-  unitCost    Float?   @map("unit_cost")
+  amount      Decimal  @db.Decimal(12, 2)
+  quantity    Float?   // จำนวนหน่วยวัสดุ (เมตร/กก.) — ไม่ใช่เงิน คง Float
+  unitCost    Decimal? @map("unit_cost") @db.Decimal(12, 2)
   createdById String   @map("created_by_id")
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -776,7 +784,7 @@ model Production {
   status      StepStatus @default(PENDING)
   startDate   DateTime?  @map("start_date")
   endDate     DateTime?  @map("end_date")
-  totalCost   Float      @default(0) @map("total_cost")
+  totalCost   Decimal    @default(0) @map("total_cost") @db.Decimal(12, 2)
   notes       String?
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
@@ -796,8 +804,8 @@ model MaterialUsage {
   productVariantId String?   @map("product_variant_id")
   quantity         Float
   unit             String
-  unitCost         Float     @default(0) @map("unit_cost")
-  totalCost        Float     @default(0) @map("total_cost")
+  unitCost         Decimal   @default(0) @map("unit_cost") @db.Decimal(12, 2)
+  totalCost        Decimal   @default(0) @map("total_cost") @db.Decimal(12, 2)
   stockMovementRef String?   @map("stock_movement_ref")
   deductedAt       DateTime? @map("deducted_at")
   createdAt        DateTime  @default(now()) @map("created_at")
@@ -819,8 +827,8 @@ model ProductionStep {
   assignedToId   String?            @map("assigned_to_id")
   startedAt      DateTime?          @map("started_at")
   completedAt    DateTime?          @map("completed_at")
-  estimatedCost  Float?             @map("estimated_cost")
-  actualCost     Float?             @map("actual_cost")
+  estimatedCost  Decimal?           @map("estimated_cost") @db.Decimal(12, 2)
+  actualCost     Decimal?           @map("actual_cost") @db.Decimal(12, 2)
   qcPassed       Boolean?           @map("qc_passed")
   qcNotes        String?            @map("qc_notes")
   notes          String?
@@ -869,8 +877,8 @@ model OutsourceOrder {
   status           OutsourceStatus @default(DRAFT)
   description      String
   quantity         Int
-  unitCost         Float           @map("unit_cost")
-  totalCost        Float           @map("total_cost")
+  unitCost         Decimal         @map("unit_cost") @db.Decimal(12, 2)
+  totalCost        Decimal         @map("total_cost") @db.Decimal(12, 2)
   sentAt           DateTime?       @map("sent_at")
   expectedBackAt   DateTime?       @map("expected_back_at")
   receivedAt       DateTime?       @map("received_at")
@@ -897,10 +905,10 @@ model Invoice {
   orderId       String        @map("order_id")
   customerId    String        @map("customer_id")
   type          InvoiceType
-  amount        Float
-  discount      Float         @default(0)
-  tax           Float         @default(0)
-  totalAmount   Float         @map("total_amount")
+  amount        Decimal       @db.Decimal(12, 2)
+  discount      Decimal       @default(0) @db.Decimal(12, 2)
+  tax           Decimal       @default(0) @db.Decimal(12, 2)
+  totalAmount   Decimal       @map("total_amount") @db.Decimal(12, 2)
   paymentStatus PaymentStatus @default(UNPAID) @map("payment_status")
   dueDate       DateTime?     @map("due_date")
   paidAt        DateTime?     @map("paid_at")
@@ -921,7 +929,7 @@ model Invoice {
 model Payment {
   id            String   @id @default(cuid())
   invoiceId     String   @map("invoice_id")
-  amount        Float
+  amount        Decimal  @db.Decimal(12, 2)
   method        String   // CASH, TRANSFER, CARD, QR
   reference     String?
   evidenceUrl   String?  @map("evidence_url")
@@ -988,6 +996,21 @@ model Setting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("settings")
+}
+
+// ============================================================
+// DOCUMENT NUMBERING — เลขเอกสารรันต่อเนื่องต่อชนิด/เดือน (ห้ามสุ่ม — กฎหมายใบกำกับภาษี)
+// ============================================================
+
+model DocumentSequence {
+  id         String   @id @default(cuid())
+  docType    String   @map("doc_type") // ORDER, QUOTATION, DEPOSIT_INVOICE, FINAL_INVOICE, RECEIPT, CREDIT_NOTE, DEBIT_NOTE
+  period     String   // YYMM เช่น "2606" — เลขรีเซ็ตต่อเดือนตาม format เลขเอกสารเดิม
+  lastNumber Int      @default(0) @map("last_number")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([docType, period])
+  @@map("document_sequences")
 }
 
 // ============================================================

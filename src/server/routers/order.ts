@@ -1,14 +1,16 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, requireRole } from "../trpc";
-import { generateOrderNumber } from "@/lib/utils";
-import { getCustomerStatus, getInitialStatus, isValidTransition } from "@/lib/order-status";
-import { calculateTotalQuantity } from "@/lib/pricing";
+import { getCustomerStatus, getInitialStatus } from "@/lib/order-status";
 import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { badRequest } from "@/server/errors";
-import type { InternalStatus } from "@prisma/client";
+import { nextDocumentNumber } from "@/server/services/document-number";
+import { priceOrderItems, computeOrderTotals, type PricedItem } from "@/server/services/pricing";
+import { transitionOrder } from "@/server/services/order-status";
+import { aggToNumber } from "@/server/services/money";
+import type { InternalStatus, OrderType, TaxLineType } from "@prisma/client";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ = งานขายขึ้นไปตามตาราง RBAC §7
 const salesUp = requireRole("OWNER", "MANAGER", "SALES");
@@ -100,45 +102,20 @@ const orderFeeSchema = z.object({
 // HELPERS
 // ============================================================
 
-type ProductWithCalc = z.infer<typeof orderItemProductSchema> & {
-  sortOrder: number;
-  totalQuantity: number;
-  subtotal: number;
-};
+// shape ของ item ที่ผ่าน priceOrderItems แล้ว (มี totalQuantity/subtotal/sortOrder ครบ)
+type ItemWithCalc = PricedItem<z.infer<typeof orderItemSchema>>;
 
-type ItemWithCalc = Omit<z.infer<typeof orderItemSchema>, "products"> & {
-  sortOrder: number;
-  totalQuantity: number;
-  subtotal: number;
-  products: ProductWithCalc[];
-};
+// tax-point ต่อ order line (เผื่อใบกำกับ P1): สำเร็จรูป = ขายสินค้า · งานสั่งทำ = จ้างทำของ
+const taxLineTypeFor = (orderType: OrderType): TaxLineType =>
+  orderType === "READY_MADE" ? "GOODS" : "HIRE_OF_WORK";
 
-function calculateItemsWithPricing(items: z.infer<typeof orderItemSchema>[]) {
-  return items.map((item, index) => {
-    const productsCalc = item.products.map((p, pIdx) => {
-      const totalQuantity = calculateTotalQuantity(p.variants);
-      const netPrice = p.baseUnitPrice - (p.discount || 0);
-      const subtotal = totalQuantity * Math.max(0, netPrice);
-      return { ...p, totalQuantity, subtotal, sortOrder: pIdx };
-    });
-    const itemTotalQty = productsCalc.reduce((s, p) => s + p.totalQuantity, 0);
-    const productsCost = productsCalc.reduce((s, p) => s + p.subtotal, 0);
-    const printsCost = itemTotalQty * item.prints.reduce((s, p) => s + p.unitPrice, 0);
-    const addonsCost = item.addons.reduce((s, a) => {
-      if (a.pricingType === "PER_PIECE") return s + (a.quantity ?? itemTotalQty) * a.unitPrice;
-      return s + a.unitPrice;
-    }, 0);
-    const subtotal = productsCost + printsCost + addonsCost;
-    return { ...item, products: productsCalc, totalQuantity: itemTotalQty, subtotal, sortOrder: index };
-  });
-}
-
-function buildItemCreateData(item: ItemWithCalc) {
+function buildItemCreateData(item: ItemWithCalc, taxLineType: TaxLineType) {
   return {
     sortOrder: item.sortOrder,
     description: item.description || "",
     totalQuantity: item.totalQuantity,
     subtotal: item.subtotal,
+    taxLineType,
     notes: item.notes,
     products: {
       create: item.products.map((p) => ({
@@ -364,8 +341,8 @@ export const orderRouter = router({
         deadline: z.string().optional(),
         notes: z.string().optional(),
         externalOrderId: z.string().optional(),
-        platformFee: z.number().optional(),
-        discount: z.number().default(0),
+        platformFee: z.number().min(0).optional(),
+        discount: z.number().min(0).default(0),
         discountReason: z.string().optional(),
         isDraft: z.boolean().default(false),
         isQuickInquiry: z.boolean().default(false),
@@ -403,13 +380,14 @@ export const orderRouter = router({
         badRequest("กรุณาเพิ่มรายการอย่างน้อย 1 รายการ");
       }
 
-      const itemsWithCalc = calculateItemsWithPricing(items);
-
-      const subtotalItems = itemsWithCalc.reduce((sum, i) => sum + i.subtotal, 0);
-      const subtotalFees = fees.reduce((sum, f) => sum + f.amount, 0);
-      const subtotalBeforeTax = subtotalItems + subtotalFees - (input.discount || 0);
-      const taxAmount = input.taxRate > 0 ? subtotalBeforeTax * (input.taxRate / 100) : 0;
-      const totalAmount = subtotalBeforeTax + taxAmount;
+      const itemsWithCalc = priceOrderItems(items);
+      // สูตร A (services/pricing — สูตรเดียวทุก mutation): platformFee ไม่เข้ายอด/ฐาน VAT
+      const totals = computeOrderTotals({
+        itemSubtotals: itemsWithCalc.map((i) => i.subtotal),
+        feeAmounts: fees.map((f) => f.amount),
+        discount: input.discount || 0,
+        taxRate: input.taxRate,
+      });
 
       // Stock availability check for READY_MADE orders
       if (input.orderType === "READY_MADE" && !input.isDraft) {
@@ -456,8 +434,8 @@ export const orderRouter = router({
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
           const result = await ctx.prisma.$transaction(async (tx) => {
-            // Generate order number inside transaction for consistency
-            const orderNumber = await generateOrderNumber(tx);
+            // เลขออเดอร์รันต่อเนื่องจาก DocumentSequence — ต้องอยู่ใน transaction เดียวกับ create
+            const orderNumber = await nextDocumentNumber(tx, "ORDER");
 
             const order = await tx.order.create({
               data: {
@@ -475,17 +453,17 @@ export const orderRouter = router({
                 notes: orderData.notes,
                 externalOrderId: orderData.externalOrderId,
                 platformFee: orderData.platformFee,
-                discount: orderData.discount || 0,
+                discount: totals.discount,
                 discountReason: orderData.discountReason,
                 priority: orderData.priority,
                 paymentTerms: orderData.paymentTerms,
                 poNumber: orderData.poNumber,
                 estimatedQuantity: orderData.estimatedQuantity,
                 taxRate: orderData.taxRate,
-                taxAmount,
-                subtotalItems,
-                subtotalFees,
-                totalAmount: Math.max(0, totalAmount),
+                taxAmount: totals.taxAmount,
+                subtotalItems: totals.subtotalItems,
+                subtotalFees: totals.subtotalFees,
+                totalAmount: totals.totalAmount,
                 ...(shippingAddress && {
                   shippingRecipientName: shippingAddress.recipientName,
                   shippingPhone: shippingAddress.phone,
@@ -496,7 +474,9 @@ export const orderRouter = router({
                   shippingPostalCode: shippingAddress.postalCode,
                 }),
                 items: {
-                  create: itemsWithCalc.map(buildItemCreateData),
+                  create: itemsWithCalc.map((item) =>
+                    buildItemCreateData(item, taxLineTypeFor(input.orderType))
+                  ),
                 },
                 fees: {
                   create: fees.map((f) => ({
@@ -515,23 +495,22 @@ export const orderRouter = router({
               },
             });
 
-            // Create reference image attachments (inside same transaction)
+            // แนบรูปอ้างอิงในก้อนเดียว — transaction นี้ถือ lock แถว sequence อยู่
+            // ยิงทีละรูปจะลาก lock ยาวตามจำนวนรูป
             if (referenceImages.length > 0) {
-              for (const img of referenceImages) {
-                await tx.attachment.create({
-                  data: {
-                    entityType: "ORDER",
-                    entityId: order.id,
-                    fileName: img.fileName,
-                    fileUrl: img.fileUrl,
-                    fileType: img.fileName.split(".").pop()?.toLowerCase() ?? "unknown",
-                    fileSize: img.fileSize ?? 0,
-                    category: "REFERENCE_IMAGE",
-                    printPosition: img.printPosition,
-                    uploadedById: ctx.userId,
-                  },
-                });
-              }
+              await tx.attachment.createMany({
+                data: referenceImages.map((img) => ({
+                  entityType: "ORDER",
+                  entityId: order.id,
+                  fileName: img.fileName,
+                  fileUrl: img.fileUrl,
+                  fileType: img.fileName.split(".").pop()?.toLowerCase() ?? "unknown",
+                  fileSize: img.fileSize ?? 0,
+                  category: "REFERENCE_IMAGE",
+                  printPosition: img.printPosition,
+                  uploadedById: ctx.userId,
+                })),
+              });
             }
 
             // Update customer stats (inside same transaction)
@@ -616,55 +595,24 @@ export const orderRouter = router({
         }
       }
 
-      // Validate transition
-      if (!isValidTransition(old.orderType, old.internalStatus, input.internalStatus)) {
-        badRequest(
-          `ไม่สามารถเปลี่ยนสถานะจาก ${old.internalStatus} เป็น ${input.internalStatus} ได้`
-        );
-      }
-
-      const newCustomerStatus = getCustomerStatus(input.internalStatus);
-
-      const updateData: Record<string, unknown> = {
-        internalStatus: input.internalStatus,
-        customerStatus: newCustomerStatus,
-      };
-
-      if (input.internalStatus === "COMPLETED") {
-        updateData.completedAt = new Date();
-      }
-      if (input.internalStatus === "CANCELLED") {
-        updateData.cancelledAt = new Date();
-        updateData.cancelledReason = input.reason;
-      }
-
-      const order = await ctx.prisma.order.update({
-        where: { id: input.id },
-        data: updateData,
-      });
-
-      // Record revision
-      const revisionCount = await ctx.prisma.orderRevision.count({ where: { orderId: input.id } });
-      await ctx.prisma.orderRevision.create({
-        data: {
+      // เปลี่ยนสถานะผ่าน service กลางเท่านั้น (validate + กัน race + revision ในตัว)
+      const order = await ctx.prisma.$transaction(async (tx) => {
+        await transitionOrder(tx, {
           orderId: input.id,
-          version: revisionCount + 1,
+          to: input.internalStatus,
           changedBy: ctx.userId,
-          changeType: "STATUS",
-          description: `เปลี่ยนสถานะจาก ${old.internalStatus} เป็น ${input.internalStatus}`,
-          oldValue: old.internalStatus,
-          newValue: input.internalStatus,
-        },
+          reason: input.reason,
+        });
+        return tx.order.findUniqueOrThrow({ where: { id: input.id } });
       });
 
-      // Audit log
       await createAuditLog(ctx.prisma, {
         userId: ctx.userId,
         action: "UPDATE",
         entityType: "ORDER",
         entityId: input.id,
         oldValue: { internalStatus: old.internalStatus, customerStatus: old.customerStatus },
-        newValue: { internalStatus: input.internalStatus, customerStatus: newCustomerStatus },
+        newValue: { internalStatus: order.internalStatus, customerStatus: order.customerStatus },
         reason: input.reason,
       });
 
@@ -679,12 +627,12 @@ export const orderRouter = router({
         title: z.string().optional(),
         description: z.string().optional(),
         deadline: z.string().optional(),
-        discount: z.number().optional(),
+        discount: z.number().min(0).optional(),
         discountReason: z.string().optional(),
         notes: z.string().optional(),
         externalOrderId: z.string().optional(),
         trackingNumber: z.string().optional(),
-        platformFee: z.number().optional(),
+        platformFee: z.number().min(0).optional(),
         priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional(),
         paymentTerms: z.string().optional(),
         poNumber: z.string().nullable().optional(),
@@ -702,14 +650,36 @@ export const orderRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
 
-      // If taxRate changed, recalculate tax
+      const currentOrder = await ctx.prisma.order.findUniqueOrThrow({ where: { id } });
+
+      // ออเดอร์เสร็จสิ้น/ยกเลิกแล้ว — field เงินแตะไม่ได้อีก (ข้อมูลที่เหลือ เช่น notes/tracking ยังแก้ได้)
+      const touchesMoney =
+        data.discount !== undefined ||
+        data.discountReason !== undefined ||
+        data.platformFee !== undefined ||
+        data.taxRate !== undefined;
+      if (
+        touchesMoney &&
+        (currentOrder.internalStatus === "COMPLETED" || currentOrder.internalStatus === "CANCELLED")
+      ) {
+        badRequest("ออเดอร์ที่เสร็จสิ้นหรือยกเลิกแล้ว แก้ไขข้อมูลการเงินไม่ได้");
+      }
+
+      // discount/taxRate เปลี่ยน → คำนวณยอดใหม่ด้วยสูตรกลาง
+      // (เดิม recalc ด้วย discount เก่าแม้ request ส่ง discount ใหม่มา — ยอดเพี้ยน)
       let taxUpdateData: Record<string, unknown> = {};
-      if (data.taxRate !== undefined) {
-        const currentOrder = await ctx.prisma.order.findUniqueOrThrow({ where: { id } });
-        const subtotalBeforeTax = currentOrder.subtotalItems + currentOrder.subtotalFees - currentOrder.discount;
-        const taxAmount = data.taxRate > 0 ? subtotalBeforeTax * (data.taxRate / 100) : 0;
-        const totalAmount = subtotalBeforeTax + taxAmount;
-        taxUpdateData = { taxAmount, totalAmount: Math.max(0, totalAmount) };
+      if (data.taxRate !== undefined || data.discount !== undefined) {
+        const totals = computeOrderTotals({
+          itemSubtotals: [currentOrder.subtotalItems],
+          feeAmounts: [currentOrder.subtotalFees],
+          discount: data.discount ?? currentOrder.discount,
+          taxRate: data.taxRate ?? currentOrder.taxRate,
+        });
+        taxUpdateData = {
+          discount: totals.discount,
+          taxAmount: totals.taxAmount,
+          totalAmount: totals.totalAmount,
+        };
       }
 
       const order = await ctx.prisma.order.update({
@@ -738,7 +708,7 @@ export const orderRouter = router({
       z.object({
         id: z.string(),
         items: z.array(orderItemSchema).min(1, "กรุณาเพิ่มรายการอย่างน้อย 1 รายการ"),
-        discount: z.number().default(0),
+        discount: z.number().min(0).default(0),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -756,13 +726,14 @@ export const orderRouter = router({
         badRequest("ไม่สามารถแก้ไขรายการได้เมื่อเริ่มผลิตแล้ว");
       }
 
-      const itemsWithCalc = calculateItemsWithPricing(input.items);
-
-      const subtotalItems = itemsWithCalc.reduce((sum, i) => sum + i.subtotal, 0);
-      const subtotalFees = order.fees.reduce((sum, f) => sum + f.amount, 0);
-      const subtotalBeforeTax = subtotalItems + subtotalFees + (order.platformFee || 0) - (input.discount || 0);
-      const taxAmount = order.taxRate > 0 ? subtotalBeforeTax * (order.taxRate / 100) : 0;
-      const totalAmount = subtotalBeforeTax + taxAmount;
+      const itemsWithCalc = priceOrderItems(input.items);
+      // สูตร A — platformFee ไม่เข้ายอด/ฐาน VAT (สูตรเดิมของ mutation นี้เคยบวก = บั๊กยอดแกว่ง)
+      const totals = computeOrderTotals({
+        itemSubtotals: itemsWithCalc.map((i) => i.subtotal),
+        feeAmounts: order.fees.map((f) => f.amount),
+        discount: input.discount || 0,
+        taxRate: order.taxRate,
+      });
 
       // Use transaction: delete old items → create new → update pricing
       const updatedOrder = await ctx.prisma.$transaction(async (tx) => {
@@ -771,18 +742,21 @@ export const orderRouter = router({
 
         for (const item of itemsWithCalc) {
           await tx.orderItem.create({
-            data: { orderId: input.id, ...buildItemCreateData(item) },
+            data: {
+              orderId: input.id,
+              ...buildItemCreateData(item, taxLineTypeFor(order.orderType)),
+            },
           });
         }
 
         return tx.order.update({
           where: { id: input.id },
           data: {
-            subtotalItems,
-            subtotalFees,
-            discount: input.discount || 0,
-            taxAmount,
-            totalAmount: Math.max(0, totalAmount),
+            subtotalItems: totals.subtotalItems,
+            subtotalFees: totals.subtotalFees,
+            discount: totals.discount,
+            taxAmount: totals.taxAmount,
+            totalAmount: totals.totalAmount,
           },
         });
       });
@@ -797,7 +771,7 @@ export const orderRouter = router({
           changeType: "ITEMS",
           description: `แก้ไขรายการสินค้า (${input.items.length} รายการ)`,
           oldValue: JSON.stringify({ subtotalItems: order.subtotalItems, totalAmount: order.totalAmount }),
-          newValue: JSON.stringify({ subtotalItems, totalAmount: Math.max(0, totalAmount) }),
+          newValue: JSON.stringify({ subtotalItems: totals.subtotalItems, totalAmount: totals.totalAmount }),
         },
       });
 
@@ -806,7 +780,7 @@ export const orderRouter = router({
         action: "UPDATE",
         entityType: "ORDER",
         entityId: input.id,
-        newValue: { action: "updateItems", itemCount: input.items.length, totalAmount: Math.max(0, totalAmount) },
+        newValue: { action: "updateItems", itemCount: input.items.length, totalAmount: totals.totalAmount },
       });
 
       return updatedOrder;
@@ -825,10 +799,18 @@ export const orderRouter = router({
         where: { id: input.id },
       });
 
-      const subtotalFees = input.fees.reduce((sum, f) => sum + f.amount, 0);
-      const subtotalBeforeTax = order.subtotalItems + subtotalFees + (order.platformFee || 0) - order.discount;
-      const taxAmount = order.taxRate > 0 ? subtotalBeforeTax * (order.taxRate / 100) : 0;
-      const totalAmount = subtotalBeforeTax + taxAmount;
+      // ออเดอร์เสร็จสิ้น/ยกเลิกแล้ว — แก้ค่าธรรมเนียม (= แก้ยอดเงิน) ไม่ได้
+      if (order.internalStatus === "COMPLETED" || order.internalStatus === "CANCELLED") {
+        badRequest("ออเดอร์ที่เสร็จสิ้นหรือยกเลิกแล้ว แก้ไขค่าธรรมเนียมไม่ได้");
+      }
+
+      // สูตร A — platformFee ไม่เข้ายอด/ฐาน VAT (สูตรเดิมของ mutation นี้เคยบวก = บั๊กยอดแกว่ง)
+      const totals = computeOrderTotals({
+        itemSubtotals: [order.subtotalItems],
+        feeAmounts: input.fees.map((f) => f.amount),
+        discount: order.discount,
+        taxRate: order.taxRate,
+      });
 
       const updatedOrder = await ctx.prisma.$transaction(async (tx) => {
         await tx.orderFee.deleteMany({ where: { orderId: input.id } });
@@ -849,9 +831,9 @@ export const orderRouter = router({
         return tx.order.update({
           where: { id: input.id },
           data: {
-            subtotalFees,
-            taxAmount,
-            totalAmount: Math.max(0, totalAmount),
+            subtotalFees: totals.subtotalFees,
+            taxAmount: totals.taxAmount,
+            totalAmount: totals.totalAmount,
           },
         });
       });
@@ -865,7 +847,7 @@ export const orderRouter = router({
           changeType: "FEES",
           description: `แก้ไขค่าธรรมเนียม (${input.fees.length} รายการ)`,
           oldValue: JSON.stringify({ subtotalFees: order.subtotalFees }),
-          newValue: JSON.stringify({ subtotalFees }),
+          newValue: JSON.stringify({ subtotalFees: totals.subtotalFees }),
         },
       });
 
@@ -874,7 +856,7 @@ export const orderRouter = router({
         action: "UPDATE",
         entityType: "ORDER",
         entityId: input.id,
-        newValue: { action: "updateFees", feeCount: input.fees.length, subtotalFees },
+        newValue: { action: "updateFees", feeCount: input.fees.length, subtotalFees: totals.subtotalFees },
       });
 
       return updatedOrder;
@@ -936,7 +918,7 @@ export const orderRouter = router({
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
           const result = await ctx.prisma.$transaction(async (tx) => {
-            const orderNumber = await generateOrderNumber(tx);
+            const orderNumber = await nextDocumentNumber(tx, "ORDER");
 
             const newOrder = await tx.order.create({
               data: {
@@ -976,7 +958,7 @@ export const orderRouter = router({
                       })),
                       prints: item.prints,
                       addons: item.addons,
-                    } as ItemWithCalc);
+                    } as ItemWithCalc, taxLineTypeFor(original.orderType));
                     // Reset receive tracking for duplicated orders
                     data.products.create = data.products.create.map((p) => ({
                       ...p,
@@ -1065,7 +1047,7 @@ export const orderRouter = router({
       total,
       active,
       completedThisMonth,
-      revenueThisMonth: totalRevenue._sum.totalAmount ?? 0,
+      revenueThisMonth: aggToNumber(totalRevenue._sum.totalAmount),
     };
   }),
 });

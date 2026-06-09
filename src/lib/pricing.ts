@@ -41,7 +41,6 @@ export interface PricingOrder {
   items: PricingItem[];
   fees: PricingFee[];
   discount: number;
-  platformFee?: number | null;
 }
 
 // ============================================================
@@ -139,6 +138,40 @@ export function calculateOrderTotal(order: PricingOrder): {
     subtotalFees,
     discount,
     totalAmount: Math.max(0, totalAmount),
+  };
+}
+
+/**
+ * สรุปยอดออเดอร์สำหรับ preview ฝั่ง client — สูตร A เดียวกับ server
+ * (ตัวจริงอยู่ src/server/services/pricing.ts computeOrderTotals — แก้สูตรต้องแก้คู่กันเสมอ)
+ *
+ * platformFee ไม่บวกเข้ายอดและไม่เข้าฐาน VAT — เป็นเงินที่ marketplace หักจากยอดโอน (ฝั่งต้นทุน)
+ */
+export interface OrderSummaryInput {
+  itemSubtotals: number[];
+  feeAmounts: number[];
+  discount: number;
+  taxRate: number; // เปอร์เซ็นต์ 0-100
+}
+
+export function calculateOrderSummary(input: OrderSummaryInput): {
+  subtotalItems: number;
+  subtotalFees: number;
+  discount: number;
+  taxAmount: number;
+  grandTotal: number;
+} {
+  const subtotalItems = input.itemSubtotals.reduce((s, v) => s + v, 0);
+  const subtotalFees = input.feeAmounts.reduce((s, v) => s + v, 0);
+  const discount = input.discount || 0;
+  const subtotalBeforeTax = subtotalItems + subtotalFees - discount;
+  const taxAmount = input.taxRate > 0 ? subtotalBeforeTax * (input.taxRate / 100) : 0;
+  return {
+    subtotalItems,
+    subtotalFees,
+    discount,
+    taxAmount,
+    grandTotal: Math.max(0, subtotalBeforeTax + taxAmount),
   };
 }
 

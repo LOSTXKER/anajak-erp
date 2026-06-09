@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils";
-import { calculateFormItemSubtotal } from "@/lib/pricing";
+import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
 import {
   Loader2,
   Plus,
@@ -84,6 +84,7 @@ interface OrderEditDialogOrder {
   }>;
   fees: Array<{ feeType: string; name: string; amount: number }>;
   discount: number;
+  taxRate: number;
 }
 
 interface OrderEditDialogProps {
@@ -146,10 +147,13 @@ export function OrderEditDialog({
     }
   }, [open, order]);
 
-  const subtotalItems = items.reduce((sum, item) => sum + calculateFormItemSubtotal(item), 0);
-
-  const subtotalFees = fees.reduce((sum, f) => sum + f.amount, 0);
-  const totalAmount = Math.max(0, subtotalItems + subtotalFees - discount);
+  // preview ใช้สูตร A เดียวกับ server (order.updateItems คิด VAT จาก taxRate ของออเดอร์เสมอ)
+  const { subtotalItems, subtotalFees, taxAmount, grandTotal: totalAmount } = calculateOrderSummary({
+    itemSubtotals: items.map((item) => calculateFormItemSubtotal(item)),
+    feeAmounts: fees.map((f) => f.amount),
+    discount,
+    taxRate: order.taxRate,
+  });
 
   function handleSaveItems() {
     updateItemsMutation.mutate({
@@ -449,6 +453,12 @@ export function OrderEditDialog({
             <div className="flex justify-between text-sm">
               <span className="text-slate-600 dark:text-slate-400">ส่วนลด</span>
               <span className="font-medium text-red-500">-{formatCurrency(discount)}</span>
+            </div>
+          )}
+          {taxAmount > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600 dark:text-slate-400">VAT ({order.taxRate}%)</span>
+              <span className="font-medium">{formatCurrency(taxAmount)}</span>
             </div>
           )}
           <div className="mt-1 flex justify-between border-t border-blue-200 pt-1 dark:border-blue-800">
