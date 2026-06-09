@@ -1,7 +1,10 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { getStockClientFromSettings } from "@/lib/stock-api";
 import { byIdInput } from "@/server/schemas";
+
+const managerUp = requireRole("OWNER", "MANAGER");
+const ownerOnly = requireRole("OWNER");
 
 export const productRouter = router({
   list: protectedProcedure
@@ -114,6 +117,7 @@ export const productRouter = router({
 
   // Update limited to ERP-specific overrides only (synced fields come from Stock)
   update: protectedProcedure
+    .use(managerUp)
     .input(
       z.object({
         id: z.string(),
@@ -129,6 +133,7 @@ export const productRouter = router({
 
   // Variant update limited to ERP-level price adjustment and active status
   updateVariant: protectedProcedure
+    .use(managerUp)
     .input(
       z.object({
         id: z.string(),
@@ -143,6 +148,7 @@ export const productRouter = router({
 
   // Delete product from ERP + soft-delete from Stock
   delete: protectedProcedure
+    .use(ownerOnly)
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       const product = await ctx.prisma.product.findUniqueOrThrow({

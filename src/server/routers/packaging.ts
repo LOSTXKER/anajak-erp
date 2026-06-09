@@ -1,6 +1,8 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { byIdInput } from "@/server/schemas";
+
+const managerUp = requireRole("OWNER", "MANAGER");
 
 export const packagingRouter = router({
   list: protectedProcedure
@@ -14,6 +16,7 @@ export const packagingRouter = router({
     }),
 
   create: protectedProcedure
+    .use(managerUp)
     .input(z.object({ name: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const maxSort = await ctx.prisma.packagingOption.aggregate({ _max: { sortOrder: true } });
@@ -23,6 +26,7 @@ export const packagingRouter = router({
     }),
 
   update: protectedProcedure
+    .use(managerUp)
     .input(byIdInput.extend({
       name: z.string().min(1).optional(),
       isActive: z.boolean().optional(),
@@ -34,6 +38,7 @@ export const packagingRouter = router({
     }),
 
   delete: protectedProcedure
+    .use(managerUp)
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.packagingOption.update({

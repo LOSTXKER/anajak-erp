@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { generateQuotationNumber, generateOrderNumber } from "@/lib/utils";
 import { getInitialStatus, getCustomerStatus } from "@/lib/order-status";
 import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { badRequest } from "@/server/errors";
+
+const salesUp = requireRole("OWNER", "MANAGER", "SALES");
 
 const quotationItemSchema = z.object({
   name: z.string(),
@@ -72,6 +74,7 @@ export const quotationRouter = router({
     }),
 
   create: protectedProcedure
+    .use(salesUp)
     .input(
       z.object({
         customerId: z.string(),
@@ -133,6 +136,7 @@ export const quotationRouter = router({
     }),
 
   update: protectedProcedure
+    .use(salesUp)
     .input(
       z.object({
         id: z.string(),
@@ -157,6 +161,7 @@ export const quotationRouter = router({
     }),
 
   updateStatus: protectedProcedure
+    .use(salesUp)
     .input(
       z.object({
         id: z.string(),
@@ -181,6 +186,7 @@ export const quotationRouter = router({
     }),
 
   convertToOrder: protectedProcedure
+    .use(salesUp)
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       const quotation = await ctx.prisma.quotation.findUniqueOrThrow({

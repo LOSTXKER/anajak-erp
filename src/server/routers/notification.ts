@@ -37,8 +37,9 @@ export const notificationRouter = router({
   markRead: protectedProcedure
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.notification.update({
-        where: { id: input.id },
+      // scope ด้วย userId — กันติ๊กอ่าน notification ของคนอื่น
+      return ctx.prisma.notification.updateMany({
+        where: { id: input.id, userId: ctx.userId },
         data: { isRead: true },
       });
     }),

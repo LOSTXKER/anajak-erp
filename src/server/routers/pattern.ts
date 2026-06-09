@@ -1,6 +1,11 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { byIdInput } from "@/server/schemas";
+
+const designerUp = requireRole("OWNER", "MANAGER", "DESIGNER");
+const managerUp = requireRole("OWNER", "MANAGER");
+// SALES สร้างได้ด้วย — quick-add แพทเทิร์นระหว่างคีย์ออเดอร์หน้า /orders/new
+const patternCreate = requireRole("OWNER", "MANAGER", "DESIGNER", "SALES");
 
 export const patternRouter = router({
   list: protectedProcedure
@@ -43,6 +48,7 @@ export const patternRouter = router({
     }),
 
   create: protectedProcedure
+    .use(patternCreate)
     .input(
       z.object({
         name: z.string().min(1),
@@ -61,6 +67,7 @@ export const patternRouter = router({
     }),
 
   update: protectedProcedure
+    .use(designerUp)
     .input(
       byIdInput.extend({
         name: z.string().optional(),
@@ -81,6 +88,7 @@ export const patternRouter = router({
     }),
 
   delete: protectedProcedure
+    .use(managerUp)
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.pattern.delete({ where: { id: input.id } });

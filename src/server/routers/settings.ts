@@ -5,6 +5,7 @@ const adminOnly = requireRole("OWNER", "MANAGER");
 
 export const settingsRouter = router({
   get: protectedProcedure
+    .use(adminOnly)
     .input(z.object({ key: z.string() }))
     .query(async ({ ctx, input }) => {
       const setting = await ctx.prisma.setting.findUnique({
@@ -14,6 +15,7 @@ export const settingsRouter = router({
     }),
 
   getMany: protectedProcedure
+    .use(adminOnly)
     .input(z.object({ keys: z.array(z.string()) }))
     .query(async ({ ctx, input }) => {
       const settings = await ctx.prisma.setting.findMany({

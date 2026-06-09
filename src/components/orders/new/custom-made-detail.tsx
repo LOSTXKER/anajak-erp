@@ -34,10 +34,12 @@ function QuickAddPattern({
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!name.trim()) return;
     setUploading(true);
+    setError(null);
     try {
       let thumbnailUrl: string | undefined;
       if (file) {
@@ -46,7 +48,9 @@ function QuickAddPattern({
         thumbnailUrl = await uploadFile("designs", `patterns/${uniqueName}`, file);
       }
       await createMutation.mutateAsync({ name: name.trim(), thumbnailUrl });
-    } catch { /* ignore */ }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "บันทึกแพทเทิร์นไม่สำเร็จ");
+    }
     setUploading(false);
   };
 
@@ -75,6 +79,9 @@ function QuickAddPattern({
           </Button>
         </div>
       </div>
+      {error && (
+        <p className="mt-1.5 text-[11px] text-red-600 dark:text-red-400">{error}</p>
+      )}
     </div>
   );
 }

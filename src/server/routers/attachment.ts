@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc";
 import { byIdInput } from "@/server/schemas";
 
@@ -47,6 +48,18 @@ export const attachmentRouter = router({
   delete: protectedProcedure
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
+      // ลบได้เฉพาะไฟล์ที่ตัวเองอัปโหลด — ยกเว้น OWNER/MANAGER ลบได้ทุกไฟล์
+      const attachment = await ctx.prisma.attachment.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { uploadedById: true },
+      });
+      const isManagerUp = ctx.userRole === "OWNER" || ctx.userRole === "MANAGER";
+      if (!isManagerUp && attachment.uploadedById !== ctx.userId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ลบได้เฉพาะไฟล์ที่คุณอัปโหลดเอง",
+        });
+      }
       return ctx.prisma.attachment.delete({ where: { id: input.id } });
     }),
 });

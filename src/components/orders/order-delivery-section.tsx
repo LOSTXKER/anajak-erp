@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +79,7 @@ export function OrderDeliverySection({
   const deliveries = trpc.delivery.getByOrderId.useQuery({ orderId });
 
   const createDelivery = trpc.delivery.create.useMutation({
+    onError: (e) => toast.error(e.message),
     onSuccess: () => {
       utils.delivery.getByOrderId.invalidate({ orderId });
       utils.order.getById.invalidate({ id: orderId });
@@ -87,6 +89,7 @@ export function OrderDeliverySection({
   });
 
   const updateDelivery = trpc.delivery.update.useMutation({
+    onError: (e) => toast.error(e.message),
     onSuccess: () => {
       utils.delivery.getByOrderId.invalidate({ orderId });
       utils.order.getById.invalidate({ id: orderId });
@@ -96,6 +99,7 @@ export function OrderDeliverySection({
   });
 
   const updateDeliveryStatus = trpc.delivery.updateStatus.useMutation({
+    onError: (e) => toast.error(e.message),
     onSuccess: () => {
       utils.delivery.getByOrderId.invalidate({ orderId });
       utils.order.getById.invalidate({ id: orderId });

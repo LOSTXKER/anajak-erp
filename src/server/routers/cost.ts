@@ -1,10 +1,14 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { calculateProfitMargin } from "@/lib/pricing";
 import { byIdInput } from "@/server/schemas";
 
+const accountantUp = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
+const ownerOrAccountant = requireRole("OWNER", "ACCOUNTANT");
+
 export const costRouter = router({
   listByOrder: protectedProcedure
+    .use(accountantUp)
     .input(z.object({ orderId: z.string() }))
     .query(async ({ ctx, input }) => {
       const [entries, order] = await Promise.all([
@@ -38,6 +42,7 @@ export const costRouter = router({
     }),
 
   create: protectedProcedure
+    .use(accountantUp)
     .input(
       z.object({
         orderId: z.string(),
@@ -81,6 +86,7 @@ export const costRouter = router({
     }),
 
   update: protectedProcedure
+    .use(accountantUp)
     .input(
       z.object({
         id: z.string(),
@@ -119,6 +125,7 @@ export const costRouter = router({
     }),
 
   delete: protectedProcedure
+    .use(ownerOrAccountant)
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       const entry = await ctx.prisma.costEntry.delete({ where: { id: input.id } });

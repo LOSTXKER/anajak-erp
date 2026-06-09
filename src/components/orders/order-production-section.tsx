@@ -90,11 +90,15 @@ export function OrderProductionSection({
   const [updateStatus, setUpdateStatus] = useState("");
   const [updateNotes, setUpdateNotes] = useState("");
   const [updateCost, setUpdateCost] = useState("");
+  const [originalCost, setOriginalCost] = useState("");
   const [updateQcPassed, setUpdateQcPassed] = useState<string>("");
   const [updateQcNotes, setUpdateQcNotes] = useState("");
 
   const utils = trpc.useUtils();
   const productions = trpc.production.getByOrderId.useQuery({ orderId });
+  const { data: me } = trpc.user.me.useQuery();
+  // ฝ่ายผลิตห้ามแตะต้นทุนจริง (server บังคับ) — ซ่อน field ฝั่ง UI ให้สอดคล้อง
+  const isProductionStaff = me?.role === "PRODUCTION_STAFF";
 
   const createProduction = useMutationWithInvalidation(trpc.production.create, {
     invalidate: [utils.production.getByOrderId, utils.order.getById],
@@ -165,16 +169,21 @@ export function OrderProductionSection({
     setUpdateStatus(step.status);
     setUpdateNotes(step.notes || "");
     setUpdateCost(step.actualCost?.toString() || "");
+    setOriginalCost(step.actualCost?.toString() || "");
     setUpdateQcPassed(step.qcPassed === null ? "" : step.qcPassed ? "true" : "false");
     setUpdateQcNotes(step.qcNotes || "");
   }
 
   function handleUpdate() {
     if (!showUpdateDialog) return;
+    // ส่ง actualCost เฉพาะเมื่อค่าเปลี่ยนจริง — ค่า pre-fill เดิมที่ติดไปกับ
+    // request จะทำให้ฝ่ายผลิตโดน FORBIDDEN ทั้งที่แค่จะอัปเดตสถานะ
+    const costChanged = updateCost !== originalCost;
     updateStep.mutate({
       stepId: showUpdateDialog,
       status: (updateStatus as StepStatus) || undefined,
-      actualCost: updateCost ? parseFloat(updateCost) : undefined,
+      actualCost:
+        costChanged && updateCost ? parseFloat(updateCost) : undefined,
       notes: updateNotes || undefined,
       qcPassed: updateQcPassed === "" ? undefined : updateQcPassed === "true",
       qcNotes: updateQcNotes || undefined,
@@ -433,6 +442,11 @@ export function OrderProductionSection({
               เพิ่มขั้นตอน
             </Button>
           </div>
+          {createProduction.error && (
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {createProduction.error.message}
+            </p>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
               ยกเลิก
@@ -481,19 +495,21 @@ export function OrderProductionSection({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                ต้นทุนจริง (บาท)
-              </label>
-              <Input
-                type="number"
-                value={updateCost}
-                onChange={(e) => setUpdateCost(e.target.value)}
-                min="0"
-                step="0.01"
-                placeholder="0"
-              />
-            </div>
+            {!isProductionStaff && (
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  ต้นทุนจริง (บาท)
+                </label>
+                <Input
+                  type="number"
+                  value={updateCost}
+                  onChange={(e) => setUpdateCost(e.target.value)}
+                  min="0"
+                  step="0.01"
+                  placeholder="0"
+                />
+              </div>
+            )}
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 QC
@@ -532,6 +548,11 @@ export function OrderProductionSection({
                 placeholder="หมายเหตุ..."
               />
             </div>
+            {updateStep.error && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {updateStep.error.message}
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button

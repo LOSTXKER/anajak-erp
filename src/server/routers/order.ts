@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { generateOrderNumber } from "@/lib/utils";
 import { getCustomerStatus, getInitialStatus, isValidTransition } from "@/lib/order-status";
 import { calculateTotalQuantity } from "@/lib/pricing";
@@ -7,6 +8,20 @@ import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { badRequest } from "@/server/errors";
+import type { InternalStatus } from "@prisma/client";
+
+// สร้าง/แก้ออเดอร์+เงินในใบ = งานขายขึ้นไปตามตาราง RBAC §7
+const salesUp = requireRole("OWNER", "MANAGER", "SALES");
+const orderOps = requireRole("OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF");
+
+// PRODUCTION_STAFF เปลี่ยนได้เฉพาะสถานะฝั่งผลิต-จัดส่ง — ปิดงาน/ยกเลิก/ฝั่งขาย-ออกแบบไม่ได้
+const PRODUCTION_STAFF_STATUSES: InternalStatus[] = [
+  "PRODUCING",
+  "QUALITY_CHECK",
+  "PACKING",
+  "READY_TO_SHIP",
+  "SHIPPED",
+];
 
 // ============================================================
 // SCHEMAS
@@ -337,6 +352,7 @@ export const orderRouter = router({
     }),
 
   create: protectedProcedure
+    .use(salesUp)
     .input(
       z.object({
         orderType: z.enum(["READY_MADE", "CUSTOM"]).default("CUSTOM"),
@@ -567,6 +583,7 @@ export const orderRouter = router({
     }),
 
   updateStatus: protectedProcedure
+    .use(orderOps)
     .input(
       z.object({
         id: z.string(),
@@ -582,6 +599,22 @@ export const orderRouter = router({
       const old = await ctx.prisma.order.findUniqueOrThrow({
         where: { id: input.id },
       });
+
+      if (ctx.userRole === "PRODUCTION_STAFF") {
+        // อนุญาตถอยงานกลับคิวผลิตด้วย (PRODUCING → PRODUCTION_QUEUE)
+        // แต่ไม่ใส่ PRODUCTION_QUEUE ในลิสต์หลัก — กันสิทธิ์เกินไปถึง
+        // handoff ฝั่งขาย/ออกแบบ (CONFIRMED/DESIGN_APPROVED → PRODUCTION_QUEUE)
+        const allowed =
+          PRODUCTION_STAFF_STATUSES.includes(input.internalStatus) ||
+          (input.internalStatus === "PRODUCTION_QUEUE" &&
+            old.internalStatus === "PRODUCING");
+        if (!allowed) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "ฝ่ายผลิตเปลี่ยนได้เฉพาะสถานะฝั่งผลิต-จัดส่งเท่านั้น",
+          });
+        }
+      }
 
       // Validate transition
       if (!isValidTransition(old.orderType, old.internalStatus, input.internalStatus)) {
@@ -639,6 +672,7 @@ export const orderRouter = router({
     }),
 
   update: protectedProcedure
+    .use(salesUp)
     .input(
       z.object({
         id: z.string(),
@@ -699,6 +733,7 @@ export const orderRouter = router({
     }),
 
   updateItems: protectedProcedure
+    .use(salesUp)
     .input(
       z.object({
         id: z.string(),
@@ -778,6 +813,7 @@ export const orderRouter = router({
     }),
 
   updateFees: protectedProcedure
+    .use(salesUp)
     .input(
       z.object({
         id: z.string(),
@@ -845,6 +881,7 @@ export const orderRouter = router({
     }),
 
   updateReceiveTracking: protectedProcedure
+    .use(orderOps)
     .input(
       z.object({
         orderItemProductId: z.string(),
@@ -880,6 +917,7 @@ export const orderRouter = router({
     }),
 
   duplicate: protectedProcedure
+    .use(salesUp)
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       const original = await ctx.prisma.order.findUniqueOrThrow({

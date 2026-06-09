@@ -1,6 +1,9 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { byIdInput } from "@/server/schemas";
+
+const managerUp = requireRole("OWNER", "MANAGER");
+const ownerOnly = requireRole("OWNER");
 
 export const serviceCatalogRouter = router({
   list: protectedProcedure
@@ -38,6 +41,7 @@ export const serviceCatalogRouter = router({
     }),
 
   create: protectedProcedure
+    .use(managerUp)
     .input(
       z.object({
         category: z.string(),
@@ -54,6 +58,7 @@ export const serviceCatalogRouter = router({
     }),
 
   update: protectedProcedure
+    .use(managerUp)
     .input(
       z.object({
         id: z.string(),
@@ -71,6 +76,7 @@ export const serviceCatalogRouter = router({
     }),
 
   delete: protectedProcedure
+    .use(ownerOnly)
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.serviceCatalog.delete({ where: { id: input.id } });

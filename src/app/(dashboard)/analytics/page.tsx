@@ -14,12 +14,24 @@ import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
 
+const REVENUE_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
+const AUDIT_ROLES = ["OWNER", "MANAGER"];
+
 export default function AnalyticsPage() {
+  const { data: me } = trpc.user.me.useQuery();
+  // ปิด query ที่ role ไม่มีสิทธิ์ — กันยิงไปโดน FORBIDDEN + retry ฟรี 3 รอบ
+  const canViewRevenue = me ? REVENUE_ROLES.includes(me.role) : false;
+  const canViewAudit = me ? AUDIT_ROLES.includes(me.role) : false;
+
   const { data: dashboard, isLoading } = trpc.analytics.dashboard.useQuery();
-  const { data: revenueData } = trpc.analytics.revenueByMonth.useQuery({
-    months: 6,
-  });
-  const { data: auditData } = trpc.analytics.auditLog.useQuery({ limit: 20 });
+  const { data: revenueData } = trpc.analytics.revenueByMonth.useQuery(
+    { months: 6 },
+    { enabled: canViewRevenue }
+  );
+  const { data: auditData } = trpc.analytics.auditLog.useQuery(
+    { limit: 20 },
+    { enabled: canViewAudit }
+  );
 
   if (isLoading) {
     return (
@@ -49,27 +61,35 @@ export default function AnalyticsPage() {
           value={dashboard?.activeOrders ?? 0}
           icon={ShoppingCart}
         />
-        <StatCard
-          title="รายได้เดือนนี้"
-          value={formatCurrency(dashboard?.revenueThisMonth ?? 0)}
-          icon={TrendingUp}
-          change={dashboard?.revenueChange}
-        />
+        {canViewRevenue && (
+          <StatCard
+            title="รายได้เดือนนี้"
+            value={formatCurrency(dashboard?.revenueThisMonth ?? 0)}
+            icon={TrendingUp}
+            change={dashboard?.revenueChange ?? undefined}
+          />
+        )}
         <StatCard
           title="ลูกค้าทั้งหมด"
           value={dashboard?.totalCustomers ?? 0}
           icon={Users}
         />
-        <StatCard
-          title="บิลเกินกำหนด"
-          value={dashboard?.overdueInvoices ?? 0}
-          icon={AlertCircle}
-        />
+        {canViewRevenue && (
+          <StatCard
+            title="บิลเกินกำหนด"
+            value={dashboard?.overdueInvoices ?? 0}
+            icon={AlertCircle}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Section title="รายได้ 6 เดือนย้อนหลัง" bordered>
-          {!revenueData || revenueData.length === 0 ? (
+          {!canViewRevenue ? (
+            <p className="text-sm text-slate-400">
+              เปิดดูได้เฉพาะเจ้าของ ผู้จัดการ และบัญชี
+            </p>
+          ) : !revenueData || revenueData.length === 0 ? (
             <p className="text-sm text-slate-400">ยังไม่มีข้อมูล</p>
           ) : (
             <div className="space-y-3">
@@ -126,14 +146,22 @@ export default function AnalyticsPage() {
             ))}
             {(!dashboard?.topCustomers ||
               dashboard.topCustomers.length === 0) && (
-              <p className="text-sm text-slate-400">ยังไม่มีข้อมูล</p>
+              <p className="text-sm text-slate-400">
+                {canViewRevenue
+                  ? "ยังไม่มีข้อมูล"
+                  : "เปิดดูได้เฉพาะเจ้าของ ผู้จัดการ และบัญชี"}
+              </p>
             )}
           </div>
         </Section>
       </div>
 
       <Section title="Audit Log" description="กิจกรรมล่าสุดในระบบ" bordered>
-        {!auditData?.logs || auditData.logs.length === 0 ? (
+        {!canViewAudit ? (
+          <p className="text-sm text-slate-400">
+            เปิดดูได้เฉพาะเจ้าของและผู้จัดการ
+          </p>
+        ) : !auditData?.logs || auditData.logs.length === 0 ? (
           <p className="text-sm text-slate-400">ยังไม่มี log</p>
         ) : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">

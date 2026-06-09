@@ -16,6 +16,8 @@ import { StatCard } from "@/components/ui/stat-card";
 
 export default function DashboardPage() {
   const { data, isLoading } = trpc.analytics.dashboard.useQuery();
+  // server ส่ง field การเงินเป็น null สำหรับ role ที่ไม่ใช่ฝั่งบริหาร-บัญชี
+  const canSeeFinance = data ? data.revenueThisMonth !== null : true;
 
   if (isLoading) {
     return (
@@ -46,12 +48,14 @@ export default function DashboardPage() {
           value={data?.activeOrders ?? 0}
           icon={ShoppingCart}
         />
-        <StatCard
-          title="รายได้เดือนนี้"
-          value={formatCurrency(data?.revenueThisMonth ?? 0)}
-          icon={TrendingUp}
-          change={data?.revenueChange}
-        />
+        {canSeeFinance && (
+          <StatCard
+            title="รายได้เดือนนี้"
+            value={formatCurrency(data?.revenueThisMonth ?? 0)}
+            icon={TrendingUp}
+            change={data?.revenueChange ?? undefined}
+          />
+        )}
         <StatCard
           title="ลูกค้าทั้งหมด"
           value={data?.totalCustomers ?? 0}
@@ -62,11 +66,13 @@ export default function DashboardPage() {
               : undefined
           }
         />
-        <StatCard
-          title="บิลค้างชำระ"
-          value={data?.overdueInvoices ?? 0}
-          icon={AlertCircle}
-        />
+        {canSeeFinance && (
+          <StatCard
+            title="บิลค้างชำระ"
+            value={data?.overdueInvoices ?? 0}
+            icon={AlertCircle}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -89,6 +95,7 @@ export default function DashboardPage() {
           </div>
         </Section>
 
+        {canSeeFinance && (
         <Section title="ลูกค้ายอดสั่งสูงสุด" bordered>
           <div className="space-y-3">
             {data?.topCustomers?.map((customer, index) => (
@@ -126,6 +133,7 @@ export default function DashboardPage() {
             )}
           </div>
         </Section>
+        )}
       </div>
     </div>
   );

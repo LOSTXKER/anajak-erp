@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { StockApiClient, getStockClientFromSettings } from "@/lib/stock-api";
 import { badRequest } from "@/server/errors";
 import {
@@ -8,9 +8,13 @@ import {
   getSyncStatus,
 } from "@/lib/stock-sync";
 
+const managerUp = requireRole("OWNER", "MANAGER");
+const productionUp = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
+
 export const stockSyncRouter = router({
   // ── Test connection ───────────────────────────────────────
   testConnection: protectedProcedure
+    .use(managerUp)
     .input(
       z
         .object({
@@ -37,6 +41,7 @@ export const stockSyncRouter = router({
 
   // ── Sync one page (client drives pagination) ──────────────
   syncPage: protectedProcedure
+    .use(managerUp)
     .input(
       z.object({
         page: z.number().min(1).default(1),
@@ -58,7 +63,9 @@ export const stockSyncRouter = router({
     }),
 
   // ── Sync stock levels only ────────────────────────────────
-  syncStock: protectedProcedure.mutation(async () => {
+  syncStock: protectedProcedure
+    .use(managerUp)
+    .mutation(async () => {
     const client = await getStockClientFromSettings();
     if (!client) {
       badRequest("Stock API ยังไม่ได้ตั้งค่า — ไปที่ ตั้งค่า > เชื่อมต่อ Stock");
@@ -73,6 +80,7 @@ export const stockSyncRouter = router({
 
   // ── Issue materials to Stock ──────────────────────────────
   issueMaterials: protectedProcedure
+    .use(productionUp)
     .input(
       z.object({
         productionId: z.string(),
@@ -149,6 +157,7 @@ export const stockSyncRouter = router({
 
   // ── Receive finished goods ────────────────────────────────
   receiveFinished: protectedProcedure
+    .use(productionUp)
     .input(
       z.object({
         orderNumber: z.string(),

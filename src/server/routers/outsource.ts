@@ -1,6 +1,10 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
+
+const managerUp = requireRole("OWNER", "MANAGER");
+const productionUp = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
 
 export const outsourceRouter = router({
   // Vendors
@@ -31,6 +35,7 @@ export const outsourceRouter = router({
     }),
 
   createVendor: protectedProcedure
+    .use(managerUp)
     .input(
       z.object({
         name: z.string().min(1),
@@ -91,6 +96,7 @@ export const outsourceRouter = router({
     }),
 
   createOrder: protectedProcedure
+    .use(managerUp)
     .input(
       z.object({
         productionStepId: z.string(),
@@ -129,6 +135,7 @@ export const outsourceRouter = router({
     }),
 
   updateOrderStatus: protectedProcedure
+    .use(productionUp)
     .input(
       z.object({
         id: z.string(),
@@ -139,6 +146,19 @@ export const outsourceRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
+
+      // ตัดสิน QC (ซึ่งปิด production step อัตโนมัติ) = อำนาจหัวหน้า
+      // staff อัปเดตได้แค่สถานะรับ-ส่งของ (SENT/RECEIVED_BACK ฯลฯ)
+      if (
+        ctx.userRole === "PRODUCTION_STAFF" &&
+        (data.status === "QC_PASSED" || data.status === "QC_FAILED")
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "การตัดสิน QC งานนอกต้องเป็นผู้จัดการขึ้นไป",
+        });
+      }
+
       const updateData: Record<string, unknown> = { status: data.status };
 
       if (data.status === "SENT") updateData.sentAt = new Date();

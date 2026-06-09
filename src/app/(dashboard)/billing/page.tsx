@@ -39,13 +39,37 @@ const invoiceTypeLabels: Record<string, string> = {
   DEBIT_NOTE: "ใบเพิ่มหนี้",
 };
 
+const FINANCE_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
+
 export default function BillingPage() {
   const [search, setSearch] = useState("");
-  const { data: stats } = trpc.billing.stats.useQuery();
-  const { data, isLoading, isError, refetch } = trpc.billing.list.useQuery({
-    search: search || undefined,
-    limit: 50,
+  const { data: me } = trpc.user.me.useQuery();
+  // หน้าการเงินทั้งหน้าเป็นของฝั่งบริหาร-บัญชี (ตรงกับ requireRole ฝั่ง server)
+  const canView = me ? FINANCE_ROLES.includes(me.role) : true;
+  const { data: stats } = trpc.billing.stats.useQuery(undefined, {
+    enabled: canView,
   });
+  const { data, isLoading, isError, refetch } = trpc.billing.list.useQuery(
+    {
+      search: search || undefined,
+      limit: 50,
+    },
+    { enabled: canView }
+  );
+
+  if (me && !canView) {
+    return (
+      <div className="space-y-5">
+        <PageHeader
+          title="บิล/การเงิน"
+          description="ใบเสนอราคา, ใบแจ้งหนี้, ใบเสร็จ"
+        />
+        <p className="text-sm text-slate-400">
+          หน้านี้เปิดเฉพาะเจ้าของ ผู้จัดการ และบัญชี
+        </p>
+      </div>
+    );
+  }
 
   if (isError) return <QueryError onRetry={() => refetch()} />;
 

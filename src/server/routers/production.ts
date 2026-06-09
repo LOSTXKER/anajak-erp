@@ -1,6 +1,11 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
+
+// วางแผนการผลิต = งานระดับบริหารตามตาราง RBAC §7
+const managerUp = requireRole("OWNER", "MANAGER");
+const productionTeam = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
 
 export const productionRouter = router({
   getByOrderId: protectedProcedure
@@ -21,6 +26,7 @@ export const productionRouter = router({
     }),
 
   create: protectedProcedure
+    .use(managerUp)
     .input(
       z.object({
         orderId: z.string(),
@@ -65,6 +71,7 @@ export const productionRouter = router({
     }),
 
   updateStep: protectedProcedure
+    .use(productionTeam)
     .input(
       z.object({
         stepId: z.string(),
@@ -79,7 +86,35 @@ export const productionRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { stepId, ...data } = input;
 
+      // PRODUCTION_STAFF: ห้ามแตะ assignedToId/actualCost (มอบงาน + ต้นทุน = อำนาจหัวหน้า)
+      // step ที่ยังไม่มีเจ้าของ → claim อัตโนมัติ (ระบบยังไม่มี UI มอบหมายงาน
+      // ถ้าบังคับ assign ก่อน staff จะอัปเดตอะไรไม่ได้เลย) · step ของคนอื่น → ห้าม
+      let autoClaim = false;
+      if (ctx.userRole === "PRODUCTION_STAFF") {
+        if (data.assignedToId !== undefined || data.actualCost !== undefined) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "ฝ่ายผลิตแก้ผู้รับผิดชอบ/ต้นทุนจริงไม่ได้",
+          });
+        }
+        const existing = await ctx.prisma.productionStep.findUniqueOrThrow({
+          where: { id: stepId },
+          select: { assignedToId: true },
+        });
+        if (existing.assignedToId === null) {
+          autoClaim = true;
+        } else if (existing.assignedToId !== ctx.userId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "งานนี้ถูกมอบหมายให้คนอื่นแล้ว",
+          });
+        }
+      }
+
       const updateData: Record<string, unknown> = { ...data };
+      if (autoClaim) {
+        updateData.assignedToId = ctx.userId;
+      }
       if (data.status === "IN_PROGRESS" && !data.assignedToId) {
         updateData.startedAt = new Date();
       }

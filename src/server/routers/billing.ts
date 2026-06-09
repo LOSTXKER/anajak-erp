@@ -5,7 +5,10 @@ import { createAuditLog } from "@/server/helpers";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { notFound, badRequest } from "@/server/errors";
 
-const ownerOrAccountant = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
+// เปิดบิล/จัดการสถานะบิล — บัญชี + ระดับบริหาร
+const billingStaff = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
+// บันทึกเงินเข้า-ออกจริง (รับชำระ/ยกเลิกบิล/คืนเงิน) — แคบสุดตามตาราง RBAC §7
+const moneyRecorder = requireRole("OWNER", "ACCOUNTANT");
 
 export const billingRouter = router({
   listByOrder: protectedProcedure
@@ -19,6 +22,7 @@ export const billingRouter = router({
     }),
 
   list: protectedProcedure
+    .use(billingStaff)
     .input(
       z.object({
         search: z.string().optional(),
@@ -59,7 +63,7 @@ export const billingRouter = router({
     }),
 
   create: protectedProcedure
-    .use(ownerOrAccountant)
+    .use(billingStaff)
     .input(
       z.object({
         orderId: z.string(),
@@ -116,7 +120,7 @@ export const billingRouter = router({
     }),
 
   recordPayment: protectedProcedure
-    .use(ownerOrAccountant)
+    .use(moneyRecorder)
     .input(
       z.object({
         invoiceId: z.string(),
@@ -179,7 +183,7 @@ export const billingRouter = router({
     }),
 
   voidInvoice: protectedProcedure
-    .use(ownerOrAccountant)
+    .use(moneyRecorder)
     .input(
       z.object({
         invoiceId: z.string(),
@@ -223,7 +227,7 @@ export const billingRouter = router({
     }),
 
   recordRefund: protectedProcedure
-    .use(ownerOrAccountant)
+    .use(moneyRecorder)
     .input(
       z.object({
         invoiceId: z.string(),
@@ -294,6 +298,7 @@ export const billingRouter = router({
     }),
 
   markOverdue: protectedProcedure
+    .use(billingStaff)
     .mutation(async ({ ctx }) => {
       const result = await ctx.prisma.invoice.updateMany({
         where: {
@@ -306,7 +311,7 @@ export const billingRouter = router({
       return { updated: result.count };
     }),
 
-  stats: protectedProcedure.query(async ({ ctx }) => {
+  stats: protectedProcedure.use(billingStaff).query(async ({ ctx }) => {
     const startOfMonth = getStartOfMonth();
 
     const [totalUnpaid, overdueCount, revenueThisMonth, paidThisMonth] = await Promise.all([

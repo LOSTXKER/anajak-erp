@@ -1,8 +1,11 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
+
+const customerEditors = requireRole("OWNER", "MANAGER", "ACCOUNTANT", "SALES");
 
 export const customerRouter = router({
   list: protectedProcedure
@@ -63,6 +66,7 @@ export const customerRouter = router({
     }),
 
   create: protectedProcedure
+    .use(customerEditors)
     .input(
       z.object({
         name: z.string().min(1, "กรุณากรอกชื่อลูกค้า"),
@@ -89,6 +93,13 @@ export const customerRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      // วงเงินเครดิต = การตัดสินใจความเสี่ยง — SALES ตั้งเองไม่ได้
+      if (ctx.userRole === "SALES" && input.creditLimit !== undefined) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ฝ่ายขายตั้งวงเงินเครดิตเองไม่ได้ — ให้ผู้จัดการ/บัญชีกำหนด",
+        });
+      }
       const customer = await ctx.prisma.customer.create({
         data: {
           ...input,
@@ -108,6 +119,7 @@ export const customerRouter = router({
     }),
 
   update: protectedProcedure
+    .use(customerEditors)
     .input(
       z.object({
         id: z.string(),
@@ -138,6 +150,18 @@ export const customerRouter = router({
       const { id, ...data } = input;
       const old = await ctx.prisma.customer.findUniqueOrThrow({ where: { id } });
 
+      // วงเงินเครดิต = การตัดสินใจความเสี่ยง — SALES แก้เองไม่ได้
+      if (
+        ctx.userRole === "SALES" &&
+        data.creditLimit !== undefined &&
+        data.creditLimit !== old.creditLimit
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ฝ่ายขายแก้วงเงินเครดิตเองไม่ได้ — ให้ผู้จัดการ/บัญชีกำหนด",
+        });
+      }
+
       const customer = await ctx.prisma.customer.update({
         where: { id },
         data: {
@@ -159,6 +183,7 @@ export const customerRouter = router({
     }),
 
   addCommunicationLog: protectedProcedure
+    .use(customerEditors)
     .input(
       z.object({
         customerId: z.string(),

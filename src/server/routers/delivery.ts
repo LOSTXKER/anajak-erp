@@ -1,7 +1,10 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, requireRole } from "../trpc";
 import { byIdInput } from "@/server/schemas";
 import { createAuditLog } from "@/server/helpers";
+
+const salesOrProduction = requireRole("OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF");
+const managerUp = requireRole("OWNER", "MANAGER");
 
 export const deliveryRouter = router({
   getByOrderId: protectedProcedure
@@ -14,6 +17,7 @@ export const deliveryRouter = router({
     }),
 
   create: protectedProcedure
+    .use(salesOrProduction)
     .input(
       z.object({
         orderId: z.string(),
@@ -45,6 +49,7 @@ export const deliveryRouter = router({
     }),
 
   update: protectedProcedure
+    .use(salesOrProduction)
     .input(
       byIdInput.extend({
         recipientName: z.string().optional(),
@@ -67,6 +72,7 @@ export const deliveryRouter = router({
     }),
 
   updateStatus: protectedProcedure
+    .use(salesOrProduction)
     .input(
       byIdInput.extend({
         status: z.enum(["PENDING", "PREPARING", "SHIPPED", "DELIVERED", "RETURNED"]),
@@ -101,6 +107,7 @@ export const deliveryRouter = router({
     }),
 
   delete: protectedProcedure
+    .use(managerUp)
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.delivery.delete({ where: { id: input.id } });
