@@ -10,6 +10,8 @@
 4. โซ่ต้นทุนห้ามสลับ: film log + outsource AP → job costing → ค่อย margin guard
 5. **ไม่ build บัญชีแยกประเภท (GL)** — ERP ออกเอกสารขาย/ใบกำกับ/50ทวิ + export มาตรฐาน (CSV/Excel) ให้นักบัญชี · ยังไม่ผูก FlowAccount/PEAK (เบสเคาะ: ทำมาตรฐานก่อน)
 6. surgical: แตะเฉพาะที่ใบงานสั่ง · โครงเดิมดี (order module/status machine/token approval) — ต่อยอด อย่ารื้อ
+7. **refactor = targeted ไม่ big-bang** — ห้ามรื้อทั้ง codebase รอบเดียว (ไม่มี test คุ้มกัน) · ลำดับ: test แกนก่อน → refactor เฉพาะส่วนที่กำลังแตะ → boy-scout rule (แตะไฟล์ไหน เก็บกวาดไฟล์นั้น)
+8. **UI ใหม่ผ่าน design system ไม่ใช่ไล่ทาสีทีละหน้า** — วางมาตรฐานกลางครั้งเดียว (P1.0) ทุกหน้าที่แตะหลังจากนั้นขึ้นมาตรฐานใหม่ทันที · ห้าม redesign หน้าที่ยังไม่มีงาน functional ไปแตะ (จะได้ไม่ทำซ้ำตอน P2-P3 เปลี่ยนหน้านั้นอยู่ดี)
 
 ---
 
@@ -41,11 +43,20 @@
 - [ ] tax-point rule ลง design: order line จำแนก ขายสินค้า/จ้างทำของ + ใบกำกับออก**ทุกงวดรับเงินรวมมัดจำ** (โครงรอ P1 build แต่ schema ต้องเผื่อตั้งแต่ตอนแตะ Decimal)
 - [ ] แยก business logic แกน (pricing/status/เลขเอกสาร) เป็น function ใน `src/server/services/` ที่ tRPC เรียก — เผื่อ order-intake API + MCP (P4) เรียกซ้ำได้
 
+### P0.5 จัดระเบียบโค้ด (เบสสั่งเพิ่ม 2026-06-10 — targeted refactor)
+- [ ] **test แกนก่อน refactor** — vitest + test ครอบ: pricing ทุกเส้นทาง (รวม platformFee) · status transition · เลขเอกสาร · payment/void/refund (ตอนนี้ 0 tests — นี่คือเกราะของทุก refactor หลังจากนี้)
+- [ ] ลบ dead code ที่ survey ชี้: `size-matrix.tsx` (กลับมาใช้จริงใน P1.12 — ถ้า rewrite ง่ายกว่าก็ลบ), `useOrderDraft` (hooks ไม่ถูกใช้), BrandProfile/rfmScore (คง schema แต่ mark รอ P3), `/quotations/[id]/edit` dead link, empty dirs `api/sync/*` + `products/new`, `(portal)` ว่าง (จะถูกใช้จริง P3)
+- [ ] แก้ payment-method mismatch (`order-billing-section.tsx` ส่ง TRANSFER/PROMPTPAY แต่ labels ใช้ BANK_TRANSFER/QR_CODE) — รวม enum/labels ไว้ที่เดียว
+- [ ] แตกไฟล์ยักษ์ที่กำลังจะแตะอยู่แล้ว: `orders/new/page.tsx` (875 บรรทัด) แยกเป็น component/hook ตามหน้าที่ — ทำตอน P1.12 แตะ multi-size อยู่แล้ว ไม่แตกล่วงหน้า
+- [ ] ตั้ง lint/format ให้เข้ม + รันผ่านทั้ง repo (eslint config มีแล้ว — เพิ่ม rule กัน pattern ที่เจอ: silent catch, window.prompt/confirm)
+- [ ] เอกสาร `docs/ARCHITECTURE.md` สั้นๆ: โครง router/service/lib ใครทำอะไร — กัน AI session ใหม่วางของผิดที่
+
 **เกณฑ์จบ P0:** คนนอกเปิดเว็บแล้วเข้าไม่ได้ · ทีม 6 คน login จริงได้ตาม role · ยอดเงินทดสอบตรงทุกเส้นทาง (รวม platformFee) · มี migration history · seed รันผ่าน
 
 ---
 
 ## P1 — เอกสาร + การเงินไทย + งานรายวัน (สรุป — รายละเอียด: plan.md ใน bestos)
+**P1.0 Design System + UI มาตรฐานใหม่ (เบสสั่ง 2026-06-10 — ทำเป็นงานแรกของ P1):** design tokens (สี/ฟอนต์/spacing/radius — ฐาน Tailwind 4 + shadcn ที่มีอยู่) · component มาตรฐาน (table/form/dialog/status badge/empty state) · เลิก `window.prompt/confirm` ทั้งระบบ → dialog จริง · **mobile-first สำหรับหน้า ops** (task queue/production — พนักงานใช้มือถือหน้างาน) · หน้าใหม่+หน้าที่แตะใน P1-P3 ใช้มาตรฐานนี้ทันที · ปิดท้าย P1 มีรอบเก็บตกหน้าเก่าที่เหลือ — เกณฑ์: ดูเป็นระบบเดียวกันทุกหน้า ใช้บนมือถือได้จริง ·
 PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็จ+**ใบกำกับเต็มรูป ม.86/4** · ยกเลิก-ออกใหม่ห้ามลบ · ใบลดหนี้-เพิ่มหนี้) · **Job Ticket ใบสั่งงานหน้างาน+QR** · WHT ขารับ (ทะเบียน 50ทวิ + reconcile 97/3) · มัดจำตาม payment terms + overdue cron · **ใบวางบิล + ลูกหนี้ aging + เช็ค credit limit** · approval gate ส่วนลด/void · **ปฏิทินภาระงาน+เช็คทันไหม (เบา)** · **ราคาต่อลูกค้า + quote expiry + แก้ใบเสนอ** · **task queue "งานของฉันวันนี้"** · notification จริงจาก event · multi-size matrix · รายงานภาษีขาย export CSV/Excel
 
 ## P2 — ผลิต + สต๊อค + ต้นทุนจริง
