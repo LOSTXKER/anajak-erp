@@ -16,6 +16,7 @@ import {
   Wrench,
   Package,
   Settings,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -29,6 +30,12 @@ const NAV: { id: SectionId; label: string; icon: typeof Building }[] = [
 ];
 
 const QUICK_LINKS = [
+  {
+    href: "/settings/users",
+    icon: Users,
+    title: "จัดการผู้ใช้",
+    description: "บัญชีพนักงาน สิทธิ์ และรหัสผ่าน",
+  },
   {
     href: "/settings/services",
     icon: Wrench,

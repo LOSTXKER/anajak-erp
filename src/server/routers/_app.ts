@@ -17,8 +17,10 @@ import { stockSyncRouter } from "./stock-sync";
 import { patternRouter } from "./pattern";
 import { packagingRouter } from "./packaging";
 import { settingsRouter } from "./settings";
+import { userRouter } from "./user";
 
 export const appRouter = router({
+  user: userRouter,
   customer: customerRouter,
   order: orderRouter,
   production: productionRouter,

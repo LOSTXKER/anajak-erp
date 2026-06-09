@@ -1,11 +1,19 @@
+import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { getServerSession } from "@/lib/supabase-server";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // ชั้นที่สองถัดจาก middleware — กันหลุดกรณี matcher ไม่ครอบ
+  const user = await getServerSession();
+  if (!user) {
+    redirect("/login");
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f5f5f7] dark:bg-black">
       <Sidebar />

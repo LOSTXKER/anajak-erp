@@ -1,22 +1,43 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Printer } from "lucide-react";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: Supabase Auth login
-    // For development, redirect to dashboard
-    window.location.href = "/";
+    setErrorMessage(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setErrorMessage(
+        error.message === "Invalid login credentials"
+          ? "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
+          : `เข้าสู่ระบบไม่สำเร็จ: ${error.message}`
+      );
+      setLoading(false);
+      return;
+    }
+
+    router.push("/");
+    router.refresh();
   };
 
   return (
@@ -38,6 +59,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@example.com"
+                autoComplete="email"
                 required
               />
             </div>
@@ -48,9 +70,15 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="รหัสผ่าน"
+                autoComplete="current-password"
                 required
               />
             </div>
+            {errorMessage && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                {errorMessage}
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
             </Button>

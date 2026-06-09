@@ -41,3 +41,6 @@ next-env.d.ts
 
 # prisma
 prisma/migrations/**/migration_lock.toml
+
+# temp verification artifacts (เคยมี session cookie หลุด — ห้าม track)
+.tmp-test/
