@@ -2,6 +2,20 @@
 
 > ระบบ ERP สำหรับโรงงานสกรีนเสื้อ -- ทำลายข้อจำกัด Minimum Order ด้วยระบบจัดการที่ดีพอจะรับทุก Order ได้อย่างมีกำไร
 
+> ⚠️ **สถานะไฟล์ (อัปเดต 2026-06-10):** ไฟล์นี้คือ **vision spec ดั้งเดิม** (เขียนก่อนเริ่ม build พ.ค. 2026) — เก็บไว้เป็น **reference** เรื่อง flow/โครงสร้างข้อมูล/ตาราง role · **แผน build จริงที่ยึด = `ROADMAP.md`** (P0-P4 + เหตุผล/ที่มา: `D:/dev/ai-agent2/records/projects/anajak-erp/plan.md`)
+>
+> **ส่วนที่ยังยึดตามไฟล์นี้:** โครงออเดอร์ 3 ชั้น (§1) · status flow + ตารางผู้รับผิดชอบ (§1) · RBAC 6 บทบาท (§7) · approval flow (§3) · portal (§9) · ทิศทางเชื่อม Anajak Stock (§10)
+>
+> **ส่วนที่ถูกแผนใหม่ทับ (superseded — อย่ายึดตามนี้):**
+> - ~~Block reuse / BlockRef / block_fee (§1)~~ → โรงงานจริง DTF 70% + silkscreen outsource ทั้งหมด ไม่มีบล็อกในบ้าน — asset ที่ reuse คือ**ไฟล์พิมพ์** (คลังไฟล์+สั่งซ้ำ → P2/P3)
+> - ~~Pricing Rule Engine สูตรกลางเต็มรูป (§1)~~ → ลดเป็น **ราคาที่ตกลงต่อลูกค้า + tier จาก ServiceCatalog** (P1) — full engine ค่อยว่ากันเมื่อมี job costing
+> - ~~Capacity Planning + acceptance gate 3 มิติ (§1-2)~~ → ลดเป็น **ปฏิทินภาระงานเบา + เตือนเกินกำลังตอนรับงาน** (P1) ขนาดทีม 5 คน
+> - ~~BOM เต็มรูปต่อ ProductTemplate (§1)~~ → ใช้ **film usage log + outsource AP → job costing** (P2) แทน — ต้นทุนจริงจากจุดเกิด ไม่ใช่สูตรล่วงหน้า
+> - ~~Mockup Generator (§3)~~ → ตัด — ใช้รูปตัวจริง + ด่านตัวอย่างจริง (strike-off, P3) แก้ปัญหาเดียวกันถูกกว่า
+> - ~~QR worker scan เต็มรูป (§1)~~ → เริ่มจาก QR ลิงก์บนใบสั่งงาน (job ticket, P1) + task queue มือถือ — scan-to-update รอพิสูจน์ความจำเป็น
+> - ~~Anomaly detection (§7)~~ → เลื่อน later — P1 มีแค่ approval gate ส่วนลด/void + audit log
+> - **ไฟล์นี้ไม่มีเรื่องภาษีเลย** — แผนใหม่เพิ่ม: ใบกำกับภาษีเต็มรูป ม.86/4 (ERP ออกเอง · เลขรันต่อเนื่อง · tax point ทุกงวดรับเงินรวมมัดจำ) + หัก ณ ที่จ่าย 2 ขา + ใบลดหนี้/เพิ่มหนี้ + ใบวางบิล/aging (P1)
+
 ---
 
 ## สารบัญ
