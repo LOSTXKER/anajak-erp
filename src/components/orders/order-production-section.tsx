@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
@@ -23,8 +24,13 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { STEP_STATUS_LABELS, STEP_STATUS_VARIANTS } from "@/lib/status-config";
+import {
+  STEP_TYPE_LABELS,
+  STEP_TYPE_OPTIONS,
+  suggestStepsFromPrintTypes,
+} from "@/lib/production-steps";
 import {
   Factory,
   Plus,
@@ -37,6 +43,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  Truck,
 } from "lucide-react";
 import type { ProductionStepType, StepStatus } from "@prisma/client";
 import type { RouterOutput } from "@/lib/trpc";
@@ -47,26 +54,22 @@ type ProductionStep = Production["steps"][number];
 interface OrderProductionSectionProps {
   orderId: string;
   internalStatus: string;
+  // วิธีพิมพ์จริงในออเดอร์ (OrderItemPrint.printType) — ใช้แนะนำขั้นตอนผลิตให้ตรงงาน
+  printTypes: string[];
 }
 
-const STEP_TYPE_LABELS: Record<string, string> = {
-  PATTERN_MAKING: "ตัดแพทเทิร์น",
-  SCREEN_PRINTING: "สกรีน",
-  TAGGING: "เย็บป้าย",
-  PACKAGING: "แพ็ค",
-  EMBROIDERY: "ปักลาย",
-  SPECIAL_PRINT: "พิมพ์พิเศษ",
-  SEWING: "เย็บ",
-  CUSTOM: "อื่นๆ",
+const OUTSOURCE_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "ร่าง",
+  SENT: "ส่งร้านแล้ว",
+  IN_PROGRESS: "ร้านกำลังทำ",
+  COMPLETED: "ร้านทำเสร็จ",
+  RECEIVED_BACK: "รับกลับแล้ว รอ QC",
+  QC_PASSED: "QC ผ่าน",
+  QC_FAILED: "QC ไม่ผ่าน",
 };
 
-
-const DEFAULT_STEPS = [
-  { stepType: "PATTERN_MAKING" as const, sortOrder: 1 },
-  { stepType: "SCREEN_PRINTING" as const, sortOrder: 2 },
-  { stepType: "TAGGING" as const, sortOrder: 3 },
-  { stepType: "PACKAGING" as const, sortOrder: 4 },
-];
+// งานที่ยังค้างอยู่กับร้าน/รอตัดสิน — ห้ามเปิดรอบใหม่ซ้อน
+const OUTSOURCE_ACTIVE_STATUSES = ["DRAFT", "SENT", "IN_PROGRESS", "COMPLETED", "RECEIVED_BACK"];
 
 type StepFormItem = {
   stepType: string;
@@ -79,11 +82,17 @@ type StepFormItem = {
 export function OrderProductionSection({
   orderId,
   internalStatus,
+  printTypes,
 }: OrderProductionSectionProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showUpdateDialog, setShowUpdateDialog] = useState<string | null>(null);
-  const [steps, setSteps] = useState<StepFormItem[]>(
-    DEFAULT_STEPS.map((s) => ({ ...s, estimatedCost: "", notes: "" }))
+  const [steps, setSteps] = useState<StepFormItem[]>(() =>
+    suggestStepsFromPrintTypes(printTypes).map((stepType, i) => ({
+      stepType,
+      sortOrder: i + 1,
+      estimatedCost: "",
+      notes: "",
+    }))
   );
 
   // Step update form
@@ -94,11 +103,27 @@ export function OrderProductionSection({
   const [updateQcPassed, setUpdateQcPassed] = useState<string>("");
   const [updateQcNotes, setUpdateQcNotes] = useState("");
 
+  // Outsource form (ส่งขั้นตอนให้ร้านนอก เช่น silkscreen)
+  const [outsourceStepId, setOutsourceStepId] = useState<string | null>(null);
+  const [osVendorId, setOsVendorId] = useState("");
+  const [osDescription, setOsDescription] = useState("");
+  const [osQuantity, setOsQuantity] = useState("");
+  const [osUnitCost, setOsUnitCost] = useState("");
+  const [osExpectedBack, setOsExpectedBack] = useState("");
+  const [osNotes, setOsNotes] = useState("");
+
   const utils = trpc.useUtils();
   const productions = trpc.production.getByOrderId.useQuery({ orderId });
   const { data: me } = trpc.user.me.useQuery();
   // ฝ่ายผลิตห้ามแตะต้นทุนจริง (server บังคับ) — ซ่อน field ฝั่ง UI ให้สอดคล้อง
   const isProductionStaff = me?.role === "PRODUCTION_STAFF";
+  // ส่งงานร้านนอก = ผูกต้นทุน — ผู้จัดการขึ้นไป (ตรง managerUp ฝั่ง server)
+  const canOutsource = !!me && ["OWNER", "MANAGER"].includes(me.role);
+
+  const vendors = trpc.outsource.listVendors.useQuery(
+    {},
+    { enabled: outsourceStepId !== null }
+  );
 
   const createProduction = useMutationWithInvalidation(trpc.production.create, {
     invalidate: [utils.production.getByOrderId, utils.order.getById],
@@ -109,6 +134,42 @@ export function OrderProductionSection({
     invalidate: [utils.production.getByOrderId, utils.order.getById],
     onSuccess: () => setShowUpdateDialog(null),
   });
+
+  const createOutsource = useMutationWithInvalidation(trpc.outsource.createOrder, {
+    invalidate: [utils.production.getByOrderId, utils.outsource.listOrders],
+    onSuccess: () => {
+      setOutsourceStepId(null);
+      toast.success("สร้างงาน outsource แล้ว — ติดตามสถานะได้ที่หน้า Outsource");
+    },
+    onError: (err: { message?: string }) => {
+      toast.error(err.message ?? "สร้างงาน outsource ไม่สำเร็จ");
+    },
+  });
+
+  // คำนวณชุดแนะนำใหม่ทุกครั้งที่เปิด dialog — กันค้างชุดเก่าเมื่อมีคนแก้ลายพิมพ์หลัง mount
+  function openCreateDialog() {
+    setSteps(
+      suggestStepsFromPrintTypes(printTypes).map((stepType, i) => ({
+        stepType,
+        sortOrder: i + 1,
+        estimatedCost: "",
+        notes: "",
+      }))
+    );
+    setShowCreateDialog(true);
+  }
+
+  function openOutsourceDialog(step: ProductionStep) {
+    setOsVendorId("");
+    setOsDescription(
+      step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType
+    );
+    setOsQuantity("");
+    setOsUnitCost("");
+    setOsExpectedBack("");
+    setOsNotes("");
+    setOutsourceStepId(step.id);
+  }
 
   const canCreate =
     ["PRODUCTION_QUEUE", "DESIGN_APPROVED", "CONFIRMED"].includes(internalStatus) &&
@@ -202,7 +263,7 @@ export function OrderProductionSection({
             {canCreate && (
               <Button
                 size="sm"
-                onClick={() => setShowCreateDialog(true)}
+                onClick={openCreateDialog}
                 className="gap-1.5"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -293,9 +354,42 @@ export function OrderProductionSection({
                                 </span>
                               )}
                             </div>
+                            {step.outsourceOrders.length > 0 && (
+                              <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
+                                <Truck className="h-3 w-3" />
+                                {step.outsourceOrders[0].vendor.name} ·{" "}
+                                {OUTSOURCE_STATUS_LABELS[step.outsourceOrders[0].status] ??
+                                  step.outsourceOrders[0].status}
+                                {step.outsourceOrders[0].expectedBackAt &&
+                                  !["QC_PASSED", "QC_FAILED"].includes(
+                                    step.outsourceOrders[0].status
+                                  ) &&
+                                  ` · กำหนดรับ ${formatDate(step.outsourceOrders[0].expectedBackAt)}`}
+                                {step.outsourceOrders.length > 1 &&
+                                  ` (รอบที่ ${step.outsourceOrders.length})`}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          {canOutsource &&
+                            step.status !== "COMPLETED" &&
+                            !step.outsourceOrders.some((os) =>
+                              OUTSOURCE_ACTIVE_STATUSES.includes(os.status)
+                            ) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openOutsourceDialog(step);
+                                }}
+                              >
+                                <Truck className="h-3 w-3" />
+                                {step.outsourceOrders.length > 0 ? "ส่งแก้รอบใหม่" : "ส่งร้านนอก"}
+                              </Button>
+                            )}
                           <Badge
                             variant={
                               STEP_STATUS_VARIANTS[step.status as keyof typeof STEP_STATUS_VARIANTS] || "default"
@@ -363,14 +457,11 @@ export function OrderProductionSection({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="PATTERN_MAKING">ตัดแพทเทิร์น</SelectItem>
-                        <SelectItem value="SCREEN_PRINTING">สกรีน</SelectItem>
-                        <SelectItem value="TAGGING">เย็บป้าย</SelectItem>
-                        <SelectItem value="PACKAGING">แพ็ค</SelectItem>
-                        <SelectItem value="EMBROIDERY">ปักลาย</SelectItem>
-                        <SelectItem value="SPECIAL_PRINT">พิมพ์พิเศษ</SelectItem>
-                        <SelectItem value="SEWING">เย็บ</SelectItem>
-                        <SelectItem value="CUSTOM">อื่นๆ</SelectItem>
+                        {STEP_TYPE_OPTIONS.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {STEP_TYPE_LABELS[t]}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -572,6 +663,143 @@ export function OrderProductionSection({
                 <Check className="h-4 w-4" />
               )}
               บันทึก
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Outsource Dialog — ส่งขั้นตอนนี้ให้ร้านนอก */}
+      <Dialog
+        open={outsourceStepId !== null}
+        onOpenChange={(open) => !open && setOutsourceStepId(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>ส่งงานร้านนอก</DialogTitle>
+            <DialogDescription>
+              สร้างใบงาน outsource ผูกกับขั้นตอนนี้ — ติดตาม/รับกลับ/QC ที่หน้า Outsource
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                ร้าน (Vendor)
+              </label>
+              <Select value={osVendorId} onValueChange={setOsVendorId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกร้าน..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendors.data?.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {vendors.data?.length === 0 && (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                  ยังไม่มีร้านในระบบ — เพิ่มได้ที่หน้า Outsource
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                รายละเอียดงาน
+              </label>
+              <Input
+                value={osDescription}
+                onChange={(e) => setOsDescription(e.target.value)}
+                placeholder="เช่น สกรีนหน้าอก 2 สี"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  จำนวน (ชิ้น)
+                </label>
+                <Input
+                  type="number"
+                  value={osQuantity}
+                  onChange={(e) => setOsQuantity(e.target.value)}
+                  min="1"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  ค่าจ้าง/ชิ้น (บาท)
+                </label>
+                <Input
+                  type="number"
+                  value={osUnitCost}
+                  onChange={(e) => setOsUnitCost(e.target.value)}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  กำหนดรับกลับ
+                </label>
+                <Input
+                  type="date"
+                  value={osExpectedBack}
+                  onChange={(e) => setOsExpectedBack(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  หมายเหตุ
+                </label>
+                <Input
+                  value={osNotes}
+                  onChange={(e) => setOsNotes(e.target.value)}
+                  placeholder="เช่น ส่งพร้อมบล็อกเดิม"
+                />
+              </div>
+            </div>
+            {(parseFloat(osQuantity) || 0) > 0 && (parseFloat(osUnitCost) || 0) > 0 && (
+              <p className="rounded-lg bg-slate-50 p-2.5 text-right text-sm dark:bg-slate-800/50">
+                ค่าจ้างรวม:{" "}
+                <span className="font-semibold">
+                  {formatCurrency((parseFloat(osQuantity) || 0) * (parseFloat(osUnitCost) || 0))}
+                </span>
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOutsourceStepId(null)}>
+              ยกเลิก
+            </Button>
+            <Button
+              onClick={() =>
+                outsourceStepId &&
+                createOutsource.mutate({
+                  productionStepId: outsourceStepId,
+                  vendorId: osVendorId,
+                  description: osDescription,
+                  quantity: parseInt(osQuantity, 10) || 0,
+                  unitCost: parseFloat(osUnitCost) || 0,
+                  expectedBackAt: osExpectedBack || undefined,
+                  notes: osNotes || undefined,
+                })
+              }
+              disabled={
+                !osVendorId ||
+                !osDescription ||
+                !(parseInt(osQuantity, 10) > 0) ||
+                createOutsource.isPending
+              }
+              className="gap-1.5"
+            >
+              {createOutsource.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Truck className="h-4 w-4" />
+              )}
+              ส่งร้านนอก
             </Button>
           </DialogFooter>
         </DialogContent>

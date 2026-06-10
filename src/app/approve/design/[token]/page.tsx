@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { isImageUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -165,7 +166,8 @@ export default function DesignApprovalPage({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {d.fileUrl && (
+            {/* ไฟล์ .ai/.psd/.pdf แสดงเป็นรูปตรงๆ ไม่ได้ — โชว์กล่องดาวน์โหลดแทนรูปแตก */}
+            {d.fileUrl && isImageUrl(d.fileUrl) ? (
               <div className="overflow-hidden rounded-lg border border-slate-200">
                 <img
                   src={d.fileUrl}
@@ -173,7 +175,12 @@ export default function DesignApprovalPage({
                   className="w-full object-contain"
                 />
               </div>
-            )}
+            ) : d.fileUrl ? (
+              <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+                ไฟล์แบบเป็นไฟล์งาน (เปิดดูตัวอย่างในหน้านี้ไม่ได้) — กด &quot;เปิดไฟล์แบบ&quot;
+                ด้านล่างเพื่อดูก่อนตัดสินใจ
+              </div>
+            ) : null}
             {d.fileUrl && (
               <div className="text-center">
                 <a
@@ -183,7 +190,7 @@ export default function DesignApprovalPage({
                   className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
-                  เปิดภาพเต็ม
+                  {isImageUrl(d.fileUrl) ? "เปิดภาพเต็ม" : "เปิดไฟล์แบบ"}
                 </a>
               </div>
             )}

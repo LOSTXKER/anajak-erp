@@ -2,9 +2,10 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, publicProcedure, requireRole } from "../trpc";
 import { randomBytes } from "crypto";
-import { createAuditLog } from "@/server/helpers";
+import { createAuditLog, createNotification } from "@/server/helpers";
 import { transitionOrder, processDesignApproval } from "@/server/services/order-status";
 import type { InternalStatus } from "@prisma/client";
+import type { PrismaTx } from "@/lib/prisma";
 
 const designerUp = requireRole("OWNER", "MANAGER", "DESIGNER");
 // บันทึกผลอนุมัติแทนลูกค้า = คนถือความสัมพันธ์ลูกค้า — ไม่ให้ DESIGNER อนุมัติแบบตัวเอง
@@ -39,6 +40,44 @@ function assertOrderInDesignPhase(internalStatus: InternalStatus) {
     throw new TRPCError({
       code: "CONFLICT",
       message: "ออเดอร์นี้พ้นขั้นตอนออกแบบไปแล้ว ตัดสินแบบไม่ได้ กรุณาติดต่อร้าน",
+    });
+  }
+}
+
+// ผลตัดสินแบบ → กระดิ่งทีม (ทั้ง path ลูกค้ากดเองและขายบันทึกแทน — ห้าม drift กัน)
+// ขาย/แอดมินถือความสัมพันธ์ลูกค้า · กราฟิกรับงานแก้ · เจ้าของ/ผู้จัดการเห็นภาพรวม
+async function notifyDesignDecision(
+  tx: PrismaTx,
+  params: {
+    orderId: string;
+    orderNumber: string;
+    orderTitle: string;
+    versionNumber: number;
+    approved: boolean;
+    comment?: string | null;
+    titlePrefix: string; // "ลูกค้า" หรือ "ขายบันทึกผล: ลูกค้า"
+    excludeUserId?: string; // คนกดเองไม่ต้องได้กระดิ่งตัวเอง
+  }
+) {
+  const team = await tx.user.findMany({
+    where: {
+      role: { in: ["OWNER", "MANAGER", "SALES", "DESIGNER"] },
+      isActive: true,
+      ...(params.excludeUserId ? { id: { not: params.excludeUserId } } : {}),
+    },
+    select: { id: true },
+  });
+  for (const member of team) {
+    await createNotification(tx, {
+      userId: member.id,
+      type: "ORDER",
+      title: params.approved
+        ? `${params.titlePrefix}อนุมัติแบบ v${params.versionNumber} — ${params.orderNumber}`
+        : `${params.titlePrefix}ขอแก้แบบ v${params.versionNumber} — ${params.orderNumber}`,
+      message: params.comment || params.orderTitle,
+      link: `/orders/${params.orderId}`,
+      entityType: "ORDER",
+      entityId: params.orderId,
     });
   }
 }
@@ -202,6 +241,18 @@ export const designRouter = router({
           descriptionPrefix: "",
         });
 
+        // ขายบันทึกผลแทนลูกค้า — กราฟิก/คนอื่นในทีมยังต้องรู้ (เฉพาะคนกดที่รู้อยู่แล้ว ไม่ต้อง)
+        await notifyDesignDecision(tx, {
+          orderId: design.orderId,
+          orderNumber: design.order.orderNumber,
+          orderTitle: design.order.title,
+          versionNumber: design.versionNumber,
+          approved: input.approved,
+          comment: input.comment,
+          titlePrefix: "ลูกค้า",
+          excludeUserId: ctx.userId,
+        });
+
         return design;
       });
     }),
@@ -265,6 +316,17 @@ export const designRouter = router({
           comment: input.comment,
           changedBy: "ลูกค้า",
           descriptionPrefix: "ลูกค้า",
+        });
+
+        // ลูกค้าตัดสินแบบเองนอกเวลางานได้ — ทีมต้องรู้จากกระดิ่ง ไม่ใช่รอเปิดออเดอร์เจอเอง
+        await notifyDesignDecision(tx, {
+          orderId: design.orderId,
+          orderNumber: design.order.orderNumber,
+          orderTitle: design.order.title,
+          versionNumber: design.versionNumber,
+          approved: input.approved,
+          comment: input.comment,
+          titlePrefix: "ลูกค้า",
         });
 
         return design;

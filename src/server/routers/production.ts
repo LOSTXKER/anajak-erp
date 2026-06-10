@@ -20,7 +20,10 @@ export const productionRouter = router({
             orderBy: { sortOrder: "asc" },
             include: {
               assignedTo: { select: { id: true, name: true } },
-              outsourceOrder: { include: { vendor: true } },
+              outsourceOrders: {
+                orderBy: { createdAt: "desc" },
+                include: { vendor: { select: { id: true, name: true } } },
+              },
             },
           },
         },
@@ -35,6 +38,7 @@ export const productionRouter = router({
         steps: z.array(
           z.object({
             stepType: z.enum([
+              "DTF_PRINT", "HEAT_PRESS", "DTG_PRETREAT", "DTG_PRINT", "CURING",
               "PATTERN_MAKING", "SCREEN_PRINTING", "TAGGING",
               "PACKAGING", "EMBROIDERY", "SPECIAL_PRINT", "SEWING", "CUSTOM",
             ]),

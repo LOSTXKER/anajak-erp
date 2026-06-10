@@ -67,6 +67,13 @@ enum InternalStatus {
 }
 
 enum ProductionStepType {
+  // งานพิมพ์ in-house ของโรงงาน (DTF 70% / DTG 30%)
+  DTF_PRINT // พิมพ์ฟิล์ม DTF
+  HEAT_PRESS // รีดร้อนติดเสื้อ
+  DTG_PRETREAT // พรีทรีตเสื้อก่อนพิมพ์ DTG
+  DTG_PRINT // พิมพ์ DTG
+  CURING // อบสี/อบฟิล์ม
+  // งานตัดเย็บ/อื่นๆ
   PATTERN_MAKING
   SCREEN_PRINTING
   TAGGING
@@ -842,9 +849,9 @@ model ProductionStep {
   updatedAt      DateTime           @updatedAt @map("updated_at")
 
   // Relations
-  production     Production      @relation(fields: [productionId], references: [id], onDelete: Cascade)
-  assignedTo     User?           @relation("AssignedTo", fields: [assignedToId], references: [id])
-  outsourceOrder OutsourceOrder?
+  production      Production       @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  assignedTo      User?            @relation("AssignedTo", fields: [assignedToId], references: [id])
+  outsourceOrders OutsourceOrder[]
 
   // hot path: task queue "งานของฉัน" กรองตามคนรับผิดชอบ
   @@index([assignedToId])
@@ -878,9 +885,11 @@ model Vendor {
   @@map("vendors")
 }
 
+// หนึ่ง step ส่งร้านนอกได้หลายรอบ (งาน QC ไม่ผ่านส่งกลับแก้เป็นรอบใหม่) —
+// แต่มีงานค้างที่ร้าน (ยังไม่จบ QC) ได้ทีละใบ บังคับที่ outsource.createOrder
 model OutsourceOrder {
   id               String          @id @default(cuid())
-  productionStepId String          @unique @map("production_step_id")
+  productionStepId String          @map("production_step_id")
   vendorId         String          @map("vendor_id")
   status           OutsourceStatus @default(DRAFT)
   description      String
@@ -900,6 +909,8 @@ model OutsourceOrder {
   productionStep ProductionStep @relation(fields: [productionStepId], references: [id], onDelete: Cascade)
   vendor         Vendor         @relation(fields: [vendorId], references: [id])
 
+  @@index([productionStepId])
+  @@index([status])
   @@map("outsource_orders")
 }
 

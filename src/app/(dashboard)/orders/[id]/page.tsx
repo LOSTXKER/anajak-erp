@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,10 @@ export default function OrderDetailPage({
 
   const updateStatus = useMutationWithInvalidation(trpc.order.updateStatus, {
     invalidate: [utils.order.getById, utils.order.list],
+    // server มีด่านปฏิเสธ (วงเงินเครดิต/ปิดงานก่อนวางบิลครบ) — เงียบไม่ได้ ผู้ใช้ต้องเห็นเหตุผล
+    onError: (err: { message?: string }) => {
+      toast.error(err.message ?? "เปลี่ยนสถานะไม่สำเร็จ");
+    },
   });
 
   const duplicateOrder = useMutationWithInvalidation(trpc.order.duplicate, {
@@ -339,6 +344,13 @@ export default function OrderDetailPage({
           <OrderProductionSection
             orderId={id}
             internalStatus={order.internalStatus}
+            printTypes={[
+              ...new Set(
+                (order.items ?? []).flatMap((it) =>
+                  (it.prints ?? []).map((pr) => pr.printType)
+                )
+              ),
+            ]}
           />
 
           <OrderDeliverySection

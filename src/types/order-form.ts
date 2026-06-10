@@ -83,7 +83,7 @@ export const EMPTY_VARIANT: VariantForm = { size: "", color: "", quantity: 1 };
 
 export const EMPTY_PRINT: PrintForm = {
   position: "FRONT",
-  printType: "SILK_SCREEN",
+  printType: "DTF", // default = งานหลักของโรงงาน (เดิม SILK_SCREEN ทำให้แถวใหม่กลายเป็นงาน outsource เงียบๆ)
   colorCount: 1,
   unitPrice: 0,
   printSize: "",
@@ -191,8 +191,9 @@ export const PRINT_POSITIONS: Record<string, string> = {
 };
 
 export const PRINT_TYPES: Record<string, string> = {
-  SILK_SCREEN: "Silk Screen",
+  DTF: "DTF", // งานหลักของโรงงาน (70%)
   DTG: "DTG",
+  SILK_SCREEN: "Silk Screen (outsource)",
   SUBLIMATION: "Sublimation",
   HEAT_TRANSFER: "Heat Transfer",
   EMBROIDERY: "ปัก",

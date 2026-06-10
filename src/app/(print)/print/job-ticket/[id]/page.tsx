@@ -13,19 +13,10 @@ import {
   PRINT_TYPES,
 } from "@/types/order-form";
 import { PRIORITY_LABELS, CHANNEL_LABELS } from "@/lib/order-status";
+import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { isImageUrl } from "@/lib/utils";
 import { PrintPage, NotesBlock, formatDocDate } from "@/components/print/print-document";
 import { PrintActions } from "@/components/print/print-actions";
-
-const STEP_TYPE_LABELS: Record<string, string> = {
-  PATTERN_MAKING: "ตัดแพทเทิร์น",
-  SCREEN_PRINTING: "สกรีน/พิมพ์",
-  TAGGING: "ติดป้าย",
-  PACKAGING: "แพ็คกิ้ง",
-  EMBROIDERY: "ปัก",
-  SPECIAL_PRINT: "พิมพ์พิเศษ",
-  SEWING: "เย็บ",
-  CUSTOM: "ขั้นตอนพิเศษ",
-};
 
 function MetaCell({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
@@ -70,14 +61,30 @@ export default async function PrintJobTicketPage({
             orderBy: { sortOrder: "asc" },
             include: {
               assignedTo: { select: { name: true } },
-              outsourceOrder: { include: { vendor: { select: { name: true } } } },
+              outsourceOrders: {
+                orderBy: { createdAt: "desc" },
+                take: 1,
+                include: { vendor: { select: { name: true } } },
+              },
             },
           },
         },
       },
+      // แบบที่ลูกค้าอนุมัติล่าสุด — ช่างหน้าเครื่องต้องเห็นลายจริง ไม่ใช่แค่ชื่อไฟล์
+      designs: {
+        where: { approvalStatus: "APPROVED" },
+        orderBy: { versionNumber: "desc" },
+        take: 1,
+        select: { versionNumber: true, fileUrl: true, thumbnailUrl: true, approvedAt: true },
+      },
     },
   });
   if (!order) notFound();
+
+  const approvedDesign = order.designs[0] ?? null;
+  const approvedDesignImage = approvedDesign
+    ? [approvedDesign.thumbnailUrl, approvedDesign.fileUrl].find(isImageUrl) ?? null
+    : null;
 
   // QR ชี้หน้าออเดอร์ — ต้องเป็น URL เต็ม (ตั้ง NEXT_PUBLIC_APP_URL ตอน deploy จริง)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -140,6 +147,30 @@ export default async function PrintJobTicketPage({
           <MetaCell label="จำนวนรายการ" value={`${order.items.length} รายการ`} />
         </div>
 
+        {/* แบบที่ลูกค้าอนุมัติล่าสุด — อ้างอิงเวอร์ชันชัดเจน กันพิมพ์ผิดเวอร์ชัน */}
+        {approvedDesign && (
+          <div className="mt-3 rounded border border-slate-300 px-4 py-2.5">
+            <p className="text-[10.5px] uppercase tracking-wide text-slate-500">
+              แบบอนุมัติล่าสุด — เวอร์ชัน {approvedDesign.versionNumber}
+              {approvedDesign.approvedAt
+                ? ` (อนุมัติ ${formatDocDate(approvedDesign.approvedAt)})`
+                : ""}
+            </p>
+            {approvedDesignImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={approvedDesignImage}
+                alt={`แบบอนุมัติ v${approvedDesign.versionNumber}`}
+                className="mt-1.5 max-h-44 rounded border border-slate-200 object-contain"
+              />
+            ) : (
+              <p className="mt-1 text-[12px] text-slate-600">
+                ไฟล์แบบไม่ใช่รูปภาพ (เปิดดูในระบบ: สแกน QR → ส่วนงานออกแบบ)
+              </p>
+            )}
+          </div>
+        )}
+
         {/* รายการงาน */}
         {order.items.map((item, itemIdx) => (
           <div key={item.id} className="mt-4 rounded border border-slate-400">
@@ -199,11 +230,12 @@ export default async function PrintJobTicketPage({
                 </div>
               ))}
 
-              {/* ลายพิมพ์ */}
+              {/* ลายพิมพ์ — มีภาพแบบให้ดูตรงตำแหน่ง กันพิมพ์ผิดลาย/ผิดเวอร์ชัน */}
               {item.prints.length > 0 && (
                 <table className="w-full border-collapse text-[12px]">
                   <thead>
                     <tr className="border-y border-slate-400 text-left">
+                      <th className="w-16 py-1 pr-2 font-semibold">ภาพแบบ</th>
                       <th className="py-1 pr-2 font-semibold">ตำแหน่ง</th>
                       <th className="py-1 pr-2 font-semibold">วิธีพิมพ์</th>
                       <th className="py-1 pr-2 font-semibold">ขนาด</th>
@@ -214,6 +246,18 @@ export default async function PrintJobTicketPage({
                   <tbody>
                     {item.prints.map((pr) => (
                       <tr key={pr.id} className="border-b border-slate-200 align-top">
+                        <td className="py-1 pr-2">
+                          {isImageUrl(pr.designImageUrl) ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={pr.designImageUrl!}
+                              alt="ลายพิมพ์"
+                              className="h-14 w-14 rounded border border-slate-300 object-contain"
+                            />
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
                         <td className="py-1 pr-2 font-semibold">
                           {PRINT_POSITIONS[pr.position] ?? pr.position}
                         </td>
@@ -271,7 +315,7 @@ export default async function PrintJobTicketPage({
                     <td className="py-2 pr-2 text-center text-slate-500">{idx + 1}</td>
                     <td className="py-2 pr-2">
                       {step
-                        ? `${STEP_TYPE_LABELS[step.stepType] ?? step.stepType}${step.customStepName ? ` — ${step.customStepName}` : ""}${step.outsourceOrder ? ` (outsource: ${step.outsourceOrder.vendor.name})` : ""}`
+                        ? `${STEP_TYPE_LABELS[step.stepType] ?? step.stepType}${step.customStepName ? ` — ${step.customStepName}` : ""}${step.outsourceOrders[0] ? ` (outsource: ${step.outsourceOrders[0].vendor.name})` : ""}`
                         : " "}
                     </td>
                     <td className="py-2 pr-2">{step?.assignedTo?.name ?? ""}</td>

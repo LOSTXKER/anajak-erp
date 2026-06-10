@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, isImageUrl } from "@/lib/utils";
 import { COLLAR_TYPES, SLEEVE_TYPES, BODY_FITS, GARMENT_CONDITIONS, PRICING_TYPE_LABELS } from "@/types/order-form";
 import type { PricingType } from "@/types/order-form";
 import {
@@ -175,6 +175,7 @@ export function OrderItemsDisplay({ orderId, items, fees }: OrderItemsDisplayPro
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-slate-100 dark:border-slate-800">
+                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">แบบ</th>
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ตำแหน่ง</th>
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
                                 <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">สี</th>
@@ -185,6 +186,20 @@ export function OrderItemsDisplay({ orderId, items, fees }: OrderItemsDisplayPro
                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                               {item.prints.map((p) => (
                                 <tr key={p.id}>
+                                  <td className="py-1.5 pr-4">
+                                    {isImageUrl(p.designImageUrl) ? (
+                                      <a href={p.designImageUrl!} target="_blank" rel="noreferrer" title="เปิดภาพเต็ม">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                          src={p.designImageUrl!}
+                                          alt={`ลาย ${p.position}`}
+                                          className="h-10 w-10 rounded border border-slate-200 object-contain dark:border-slate-700"
+                                        />
+                                      </a>
+                                    ) : (
+                                      <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                                    )}
+                                  </td>
                                   <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{p.position || "-"}</td>
                                   <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{p.printType || "-"}</td>
                                   <td className="py-1.5 pr-4 text-right tabular-nums text-slate-700 dark:text-slate-300">{p.colorCount ?? "-"}</td>

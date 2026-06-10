@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ type NotifItem = {
   type: string;
   title: string;
   message: string | null;
+  link: string | null;
   isRead: boolean;
   createdAt: Date | string;
 };
@@ -85,6 +87,7 @@ const BUCKET_LABELS: Record<"today" | "week" | "earlier", string> = {
 };
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState<FilterValue>("all");
   const [page, setPage] = useState(1);
   const limit = 20;
@@ -213,6 +216,8 @@ export default function NotificationsPage() {
                             if (!notif.isRead) {
                               markRead.mutate({ id: notif.id });
                             }
+                            // มี link = พาไปหน้างานจริง (เช่น ออเดอร์/บิลที่เกี่ยว)
+                            if (notif.link) router.push(notif.link);
                           }}
                           className={cn(
                             "flex w-full gap-3 px-5 py-3.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50",

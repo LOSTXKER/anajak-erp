@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
+import { moneyInput, round2 } from "@/server/services/money";
 
 const managerUp = requireRole("OWNER", "MANAGER");
 const productionUp = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
@@ -62,6 +63,37 @@ export const outsourceRouter = router({
       return vendor;
     }),
 
+  updateVendor: protectedProcedure
+    .use(managerUp)
+    .input(
+      z.object({
+        id: z.string(),
+        name: z.string().min(1).optional(),
+        contactName: z.string().nullable().optional(),
+        phone: z.string().nullable().optional(),
+        email: z.string().nullable().optional(),
+        lineId: z.string().nullable().optional(),
+        address: z.string().nullable().optional(),
+        capabilities: z.array(z.string()).optional(),
+        notes: z.string().nullable().optional(),
+        isActive: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      const vendor = await ctx.prisma.vendor.update({ where: { id }, data });
+
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "VENDOR",
+        entityId: id,
+        newValue: JSON.parse(JSON.stringify(data)),
+      });
+
+      return vendor;
+    }),
+
   // Outsource Orders
   listOrders: protectedProcedure
     .input(
@@ -109,29 +141,110 @@ export const outsourceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const order = await ctx.prisma.outsourceOrder.create({
-        data: {
-          ...input,
-          totalCost: input.quantity * input.unitCost,
-          expectedBackAt: input.expectedBackAt ? new Date(input.expectedBackAt) : null,
-        },
-      });
+      // สร้างใบ + ดันสถานะ step + audit = ก้อนเดียวกัน · validate ใต้ transaction:
+      // step ต้องมีจริง ยังไม่ปิด และไม่มีงานค้างที่ร้าน (รอบใหม่เปิดได้หลัง QC ตัดสินแล้วเท่านั้น)
+      return ctx.prisma.$transaction(async (tx) => {
+        // ล็อกแถว step ก่อนเช็ค — สอง request เปิดงานบน step เดียวพร้อมกันต้องต่อคิว
+        // ไม่งั้นต่างคนต่างเช็คผ่านแล้วได้งานซ้อน 2 ใบ (ตั้งแต่ปลด unique เพื่อรองรับหลายรอบ)
+        await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${input.productionStepId} FOR UPDATE`;
+        const step = await tx.productionStep.findUnique({
+          where: { id: input.productionStepId },
+          include: {
+            outsourceOrders: {
+              where: { status: { notIn: ["QC_PASSED", "QC_FAILED"] } },
+              include: { vendor: { select: { name: true } } },
+            },
+          },
+        });
+        if (!step) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบขั้นตอนผลิตนี้" });
+        }
+        if (step.status === "COMPLETED") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นตอนนี้เสร็จแล้ว ส่งร้านนอกซ้ำไม่ได้",
+          });
+        }
+        if (step.outsourceOrders.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `ขั้นตอนนี้มีงานค้างอยู่กับร้าน ${step.outsourceOrders[0].vendor.name} — ตัดสิน QC งานเดิมก่อนเปิดรอบใหม่`,
+          });
+        }
 
-      // Update step status
-      await ctx.prisma.productionStep.update({
-        where: { id: input.productionStepId },
-        data: { status: "IN_PROGRESS" },
-      });
+        // เงินผ่าน Decimal — ปัด 2 ตำแหน่งก่อนเขียน DB
+        const unitCost = moneyInput(input.unitCost);
+        const order = await tx.outsourceOrder.create({
+          data: {
+            ...input,
+            unitCost: unitCost.toNumber(),
+            totalCost: round2(unitCost.times(input.quantity)).toNumber(),
+            expectedBackAt: input.expectedBackAt ? new Date(input.expectedBackAt) : null,
+          },
+        });
 
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "CREATE",
-        entityType: "OUTSOURCE_ORDER",
-        entityId: order.id,
-        newValue: { vendorId: input.vendorId, totalCost: order.totalCost },
-      });
+        await tx.productionStep.update({
+          where: { id: input.productionStepId },
+          data: { status: "IN_PROGRESS" },
+        });
 
-      return order;
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "CREATE",
+          entityType: "OUTSOURCE_ORDER",
+          entityId: order.id,
+          newValue: { vendorId: input.vendorId, totalCost: order.totalCost },
+        });
+
+        return order;
+      });
+    }),
+
+  // ยกเลิกได้เฉพาะใบร่างที่ยังไม่ส่งของจริง — ใบที่เปิดผิด/ร้านไม่รับงานก่อนส่ง
+  // (ส่งแล้วให้เดิน รับกลับ → QC ไม่ผ่าน ตามจริง — ประวัติงานร้านห้ามหาย)
+  cancelDraftOrder: protectedProcedure
+    .use(managerUp)
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        const order = await tx.outsourceOrder.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { id: true, status: true, productionStepId: true, vendorId: true },
+        });
+        if (order.status !== "DRAFT") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ยกเลิกได้เฉพาะใบร่าง — ใบที่ส่งร้านแล้วให้เดินสถานะรับกลับ/QC ตามจริง",
+          });
+        }
+
+        await tx.outsourceOrder.delete({ where: { id: input.id } });
+
+        // ไม่มีใบอื่นค้างบน step → คืนสถานะ step ให้รอทำต่อ
+        const remaining = await tx.outsourceOrder.count({
+          where: {
+            productionStepId: order.productionStepId,
+            status: { notIn: ["QC_PASSED", "QC_FAILED"] },
+          },
+        });
+        if (remaining === 0) {
+          await tx.productionStep.updateMany({
+            where: { id: order.productionStepId, status: "IN_PROGRESS" },
+            data: { status: "PENDING" },
+          });
+        }
+
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "DELETE",
+          entityType: "OUTSOURCE_ORDER",
+          entityId: input.id,
+          reason: "ยกเลิกใบร่าง (ยังไม่ส่งของ)",
+          oldValue: { vendorId: order.vendorId, productionStepId: order.productionStepId },
+        });
+
+        return { ok: true };
+      });
     }),
 
   updateOrderStatus: protectedProcedure
@@ -139,8 +252,7 @@ export const outsourceRouter = router({
     .input(
       z.object({
         id: z.string(),
-        status: z.enum(["DRAFT", "SENT", "IN_PROGRESS", "COMPLETED", "RECEIVED_BACK", "QC_PASSED", "QC_FAILED"]),
-        qcPassed: z.boolean().optional(),
+        status: z.enum(["SENT", "IN_PROGRESS", "COMPLETED", "RECEIVED_BACK", "QC_PASSED", "QC_FAILED"]),
         qcNotes: z.string().optional(),
       })
     )
@@ -163,22 +275,93 @@ export const outsourceRouter = router({
 
       if (data.status === "SENT") updateData.sentAt = new Date();
       if (data.status === "RECEIVED_BACK") updateData.receivedAt = new Date();
-      if (data.qcPassed !== undefined) updateData.qcPassed = data.qcPassed;
+      // QC derive จาก status เท่านั้น — ห้ามมี input แยกให้ขัดกันเอง
+      if (data.status === "QC_PASSED") updateData.qcPassed = true;
+      if (data.status === "QC_FAILED") updateData.qcPassed = false;
       if (data.qcNotes) updateData.qcNotes = data.qcNotes;
 
-      const order = await ctx.prisma.outsourceOrder.update({
-        where: { id },
-        data: updateData,
-      });
-
-      // If QC passed, complete the production step
-      if (data.status === "QC_PASSED") {
-        await ctx.prisma.productionStep.update({
-          where: { id: order.productionStepId },
-          data: { status: "COMPLETED", qcPassed: true, completedAt: new Date() },
+      // อ่าน → validate transition → เขียน = transaction เดียว (กันสองจอกด QC ชนกัน:
+      // คนช้าเจอ error บอกสถานะจริง ไม่ใช่เขียนทับใบที่ตัดสินแล้ว)
+      return ctx.prisma.$transaction(async (tx) => {
+        const current = await tx.outsourceOrder.findUniqueOrThrow({
+          where: { id },
+          select: { status: true, productionStepId: true },
         });
-      }
+        const allowed = OUTSOURCE_TRANSITIONS[current.status] ?? [];
+        if (!allowed.includes(data.status)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `ใบนี้สถานะ "${OUTSOURCE_STATUS_TH[current.status] ?? current.status}" แล้ว — เปลี่ยนเป็น "${OUTSOURCE_STATUS_TH[data.status] ?? data.status}" ไม่ได้ (อาจมีคนอัปเดตไปก่อน ลองรีเฟรช)`,
+          });
+        }
 
-      return order;
+        const order = await tx.outsourceOrder.update({
+          where: { id },
+          data: updateData,
+        });
+
+        // QC ผ่าน → ปิด step + ถ้าทุก step เสร็จ ปิดใบผลิตด้วย (rollup เดียวกับ production.updateStep)
+        if (data.status === "QC_PASSED") {
+          const step = await tx.productionStep.update({
+            where: { id: order.productionStepId },
+            data: { status: "COMPLETED", qcPassed: true, completedAt: new Date() },
+            select: { productionId: true },
+          });
+          const siblings = await tx.productionStep.findMany({
+            where: { productionId: step.productionId },
+            select: { status: true },
+          });
+          if (siblings.every((s) => s.status === "COMPLETED")) {
+            await tx.production.update({
+              where: { id: step.productionId },
+              data: { status: "COMPLETED", endDate: new Date() },
+            });
+          }
+        }
+        // QC ไม่ผ่าน → เปิด step กลับมารอส่งแก้รอบใหม่ (แม้เคยถูก mark เสร็จมือไปแล้ว)
+        if (data.status === "QC_FAILED") {
+          await tx.productionStep.update({
+            where: { id: order.productionStepId },
+            data: {
+              status: "IN_PROGRESS",
+              qcPassed: false,
+              qcNotes: data.qcNotes,
+              completedAt: null,
+            },
+          });
+        }
+
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "OUTSOURCE_ORDER",
+          entityId: id,
+          oldValue: { status: current.status },
+          newValue: { status: data.status, qcNotes: data.qcNotes },
+        });
+
+        return order;
+      });
     }),
 });
+
+// เส้นทางสถานะใบ outsource — ใบที่ตัดสิน QC แล้วจบถาวร (รอบใหม่ = เปิดใบใหม่)
+const OUTSOURCE_TRANSITIONS: Record<string, string[]> = {
+  DRAFT: ["SENT"],
+  SENT: ["IN_PROGRESS", "COMPLETED", "RECEIVED_BACK"],
+  IN_PROGRESS: ["COMPLETED", "RECEIVED_BACK"],
+  COMPLETED: ["RECEIVED_BACK"],
+  RECEIVED_BACK: ["QC_PASSED", "QC_FAILED"],
+  QC_PASSED: [],
+  QC_FAILED: [],
+};
+
+const OUTSOURCE_STATUS_TH: Record<string, string> = {
+  DRAFT: "ร่าง",
+  SENT: "ส่งร้านแล้ว",
+  IN_PROGRESS: "ร้านกำลังทำ",
+  COMPLETED: "ร้านทำเสร็จ",
+  RECEIVED_BACK: "รับกลับ รอ QC",
+  QC_PASSED: "QC ผ่าน",
+  QC_FAILED: "QC ไม่ผ่าน",
+};

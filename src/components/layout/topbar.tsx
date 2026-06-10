@@ -72,6 +72,9 @@ export function Topbar() {
   const markAllRead = useMutationWithInvalidation(trpc.notification.markAllRead, {
     invalidate: [utils.notification.unreadCount, utils.notification.list],
   });
+  const markRead = useMutationWithInvalidation(trpc.notification.markRead, {
+    invalidate: [utils.notification.unreadCount, utils.notification.list],
+  });
 
   const count = unreadCount ?? 0;
 
@@ -133,8 +136,14 @@ export function Topbar() {
               <div className="max-h-80 overflow-y-auto">
                 {notifData?.notifications && notifData.notifications.length > 0 ? (
                   notifData.notifications.map((notif) => (
-                    <div
+                    // กดแจ้งเตือน → ติ๊กอ่าน + เด้งไปหน้างานจริงตาม link (เช่น /orders/xxx)
+                    <Link
                       key={notif.id}
+                      href={notif.link ?? "/notifications"}
+                      onClick={() => {
+                        if (!notif.isRead) markRead.mutate({ id: notif.id });
+                        setNotifOpen(false);
+                      }}
                       className={`flex gap-2.5 border-b border-slate-50 px-3.5 py-2.5 transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800/50 dark:hover:bg-slate-800/50 ${
                         !notif.isRead
                           ? "bg-blue-50/40 dark:bg-blue-950/20"
@@ -159,7 +168,7 @@ export function Topbar() {
                           {timeAgo(notif.createdAt)}
                         </p>
                       </div>
-                    </div>
+                    </Link>
                   ))
                 ) : (
                   <div className="px-4 py-8 text-center text-sm text-slate-400">

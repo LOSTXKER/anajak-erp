@@ -32,5 +32,17 @@ export function formatDateTime(date: Date | string): string {
   }).format(new Date(date));
 }
 
+// ไฟล์แบบที่ browser แสดงเป็นรูปได้ — .ai/.psd/.pdf อัปโหลดได้แต่ render <img> ตรงๆ จะแตก
+// ใช้กันรูปแตกในหน้า approve ลูกค้า / Job Ticket / thumbnail ลายพิมพ์
+export function isImageUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const pathname = new URL(url, "http://x").pathname;
+    return /\.(png|jpe?g|webp|gif|svg|avif)$/i.test(pathname);
+  } catch {
+    return false;
+  }
+}
+
 // เลขเอกสารทั้งหมดย้ายไป src/server/services/document-number.ts (DocumentSequence —
 // รันต่อเนื่องใน transaction, ห้ามสุ่ม) — ไฟล์นี้เหลือเฉพาะ util ที่ client ใช้ร่วม

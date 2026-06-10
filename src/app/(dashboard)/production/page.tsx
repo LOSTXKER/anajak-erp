@@ -19,17 +19,7 @@ import { MaterialUsage } from "@/components/material-usage";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
-
-const stepTypeLabels: Record<string, string> = {
-  PATTERN_MAKING: "แพทเทิร์น",
-  SCREEN_PRINTING: "สกรีน",
-  TAGGING: "ป้ายแท็ก",
-  PACKAGING: "แพ็คสินค้า",
-  EMBROIDERY: "ปัก",
-  SPECIAL_PRINT: "พิมพ์พิเศษ",
-  SEWING: "เย็บ",
-  CUSTOM: "อื่นๆ",
-};
+import { STEP_TYPE_LABELS as stepTypeLabels } from "@/lib/production-steps";
 
 type StepVariant = "default" | "accent" | "success" | "warning" | "destructive";
 

@@ -9,7 +9,7 @@ import { badRequest } from "@/server/errors";
 import { nextDocumentNumber } from "@/server/services/document-number";
 import { priceOrderItems, computeOrderTotals, type PricedItem } from "@/server/services/pricing";
 import { transitionOrder } from "@/server/services/order-status";
-import { aggToNumber } from "@/server/services/money";
+import { aggToNumber, D } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 import {
   assertSalesWithinCreditLimit,
@@ -318,7 +318,10 @@ export const orderRouter = router({
                 orderBy: { sortOrder: "asc" },
                 include: {
                   assignedTo: { select: { id: true, name: true } },
-                  outsourceOrder: { include: { vendor: true } },
+                  outsourceOrders: {
+                    orderBy: { createdAt: "desc" },
+                    include: { vendor: true },
+                  },
                 },
               },
             },
@@ -622,6 +625,28 @@ export const orderRouter = router({
           additionalAmount: old.totalAmount,
           actionLabel: "ยืนยันออเดอร์",
         });
+      }
+
+      // ปิดงานต้องวางบิลครบก่อน — ธุรกิจเครดิตเทอม ปิดออเดอร์ที่ยังไม่วางบิล = หนี้หล่นเงียบ
+      // นับแบบเดียวกับ exposure: max(ใบแจ้งหนี้ D+F, ใบเสร็จ) — งานขายสดออกแต่ใบเสร็จก็ผ่าน
+      // (เก็บเงินจริงตามเทอมได้หลังปิดงาน — ลูกหนี้/aging ตามต่อให้)
+      if (input.internalStatus === "COMPLETED" && old.totalAmount > 0) {
+        const invoices = await ctx.prisma.invoice.findMany({
+          where: { orderId: input.id, isVoided: false },
+          select: { type: true, totalAmount: true },
+        });
+        const sumOf = (types: string[]) =>
+          invoices
+            .filter((inv) => types.includes(inv.type))
+            .reduce((s, inv) => s.plus(inv.totalAmount), D(0));
+        const billed = sumOf(["DEPOSIT_INVOICE", "FINAL_INVOICE"]);
+        const receipted = sumOf(["RECEIPT"]);
+        const handled = billed.gt(receipted) ? billed : receipted;
+        if (handled.lt(old.totalAmount)) {
+          badRequest(
+            `ปิดงานไม่ได้ — วางบิล/ออกใบเสร็จแล้ว ${handled.toFixed(2)} จากยอดออเดอร์ ${old.totalAmount.toFixed(2)} บาท · วางบิลส่วนที่เหลือก่อน (ถ้ายอดงานจริงเปลี่ยน ให้แก้ "ส่วนลด" ให้ยอดตรงก่อนปิด — รายการสินค้าแก้ไม่ได้แล้วหลังเริ่มผลิต)`
+          );
+        }
       }
 
       // เปลี่ยนสถานะผ่าน service กลางเท่านั้น (validate + กัน race + revision ในตัว)
