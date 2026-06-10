@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -70,6 +71,7 @@ const sectionLabelClass =
 
 export default function NewOrderPage() {
   const router = useRouter();
+  const confirmDialog = useConfirm();
   const utils = trpc.useUtils();
 
   const [typeSelected, setTypeSelected] = useState(false);
@@ -367,17 +369,23 @@ export default function NewOrderPage() {
     })),
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors = validateForm();
     setFormErrors(errors);
     if (errors.length > 0) return;
 
     const totalProducts = items.reduce((s, it) => s + it.products.length, 0);
-    const summary = isQuickInquiry
-      ? `สร้างการสอบถาม "${title}"?`
-      : `สร้างออเดอร์ ${title} - ${items.length} รายการ (${totalProducts} สินค้า) - ยอดรวม ${formatCurrency(pricingSummary.grandTotal)} บาท?`;
-    if (!window.confirm(summary)) return;
+    const ok = await confirmDialog(
+      isQuickInquiry
+        ? { title: `สร้างการสอบถาม "${title}"?`, confirmText: "สร้างการสอบถาม" }
+        : {
+            title: `สร้างออเดอร์ "${title}"?`,
+            description: `${items.length} รายการ (${totalProducts} สินค้า) · ยอดรวม ${formatCurrency(pricingSummary.grandTotal)}`,
+            confirmText: "สร้างออเดอร์",
+          }
+    );
+    if (!ok) return;
 
     createOrder.mutate(buildMutationInput(false));
   };

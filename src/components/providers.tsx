@@ -6,6 +6,7 @@ import { httpBatchLink } from "@trpc/client";
 import { trpc } from "@/lib/trpc";
 import { ThemeProvider, useTheme } from "next-themes";
 import { Toaster } from "sonner";
+import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import superjson from "@/lib/superjson";
 
 function getBaseUrl() {
@@ -60,7 +61,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
           <ThemedToaster />
         </ThemeProvider>
       </QueryClientProvider>

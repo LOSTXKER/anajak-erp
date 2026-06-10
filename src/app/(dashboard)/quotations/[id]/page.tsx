@@ -4,6 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,6 +64,8 @@ export default function QuotationDetailPage({
 
   const { data: quotation, isLoading, isError, refetch } = trpc.quotation.getById.useQuery({ id });
   const utils = trpc.useUtils();
+  const confirmDialog = useConfirm();
+  const promptText = usePromptText();
 
   const updateStatus = trpc.quotation.updateStatus.useMutation({
     onSuccess: () => {
@@ -110,14 +113,25 @@ export default function QuotationDetailPage({
     updateStatus.mutate({ id, status: "ACCEPTED" });
   }
 
-  function handleReject() {
-    const reason = prompt("เหตุผลที่ปฏิเสธ:");
+  async function handleReject() {
+    const reason = await promptText({
+      title: "ปฏิเสธใบเสนอราคา?",
+      placeholder: "เหตุผลที่ปฏิเสธ (ไม่บังคับ)",
+      confirmText: "ปฏิเสธ",
+      required: false,
+      destructive: true,
+    });
     if (reason === null) return;
     updateStatus.mutate({ id, status: "REJECTED", rejectedReason: reason || undefined });
   }
 
-  function handleConvertToOrder() {
-    if (!confirm("ยืนยันการแปลงใบเสนอราคานี้เป็นออเดอร์?")) return;
+  async function handleConvertToOrder() {
+    const ok = await confirmDialog({
+      title: "แปลงใบเสนอราคานี้เป็นออเดอร์?",
+      description: "ระบบจะสร้างออเดอร์ใหม่จากรายการในใบเสนอราคา และล็อกใบเสนอราคานี้เป็นสถานะแปลงแล้ว",
+      confirmText: "แปลงเป็นออเดอร์",
+    });
+    if (!ok) return;
     convertToOrder.mutate({ id });
   }
 

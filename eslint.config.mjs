@@ -11,9 +11,9 @@ const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
-      // กติกา repo: ห้าม window.prompt/confirm/alert ในหน้าใหม่ — P1.0 แทนของเก่าด้วย dialog
-      // จริงแล้วยกระดับเป็น "error" (ตอนนี้ warn เพราะหน้าเก่ายังมีและห้าม redesign ก่อน P1.0)
-      "no-alert": "warn",
+      // ห้าม window.prompt/confirm/alert — ใช้ useConfirm/usePromptText จาก
+      // @/components/ui/confirm-dialog (P1.0 กวาดของเก่าหมดแล้ว ยกเป็น error)
+      "no-alert": "error",
       // catch เงียบ = กลืน error — อย่างน้อยต้องมี comment อธิบายว่าทำไมกลืนได้
       "no-empty": "error",
       // rule ชุด React Compiler (react-hooks v7) เจอ pattern เก่าในหน้า UI ที่

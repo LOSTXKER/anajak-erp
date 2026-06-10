@@ -4,6 +4,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +68,7 @@ export default function ServicesPage() {
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
 
   const utils = trpc.useUtils();
+  const confirmDialog = useConfirm();
 
   const { data: items, isLoading } = trpc.serviceCatalog.list.useQuery({
     category: activeTab,
@@ -118,10 +120,13 @@ export default function ServicesPage() {
     });
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`ลบ "${name}" หรือไม่?`)) {
-      deleteItem.mutate({ id });
-    }
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirmDialog({
+      title: `ลบ "${name}"?`,
+      confirmText: "ลบรายการ",
+      destructive: true,
+    });
+    if (ok) deleteItem.mutate({ id });
   };
 
   const handleToggleActive = (id: string, isActive: boolean) => {

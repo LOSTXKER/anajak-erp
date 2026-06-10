@@ -7,6 +7,41 @@
     "Segoe UI", "Roboto", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, "Menlo", monospace;
 
+  /* ============================================================
+     ชั้น PRIMITIVE — สีแบรนด์ Anajak (P1.0)
+     ห้ามใช้ใน component ตรงๆ — ใช้ผ่าน utility (blue-x, red-x) หรือ semantic ข้างล่าง
+     ============================================================ */
+  --color-anajak-blue: #3973b2;
+  --color-anajak-yellow: #fec91b;
+  --color-anajak-red: #e72f27;
+
+  /* ramp blue/red สร้างจากสีแบรนด์ — override สเกลของ Tailwind ทั้งระบบ
+     ทุก utility เดิม (bg-blue-600, text-red-700 ฯลฯ) กลายเป็นโทนแบรนด์ทันที
+     โดยไม่ต้องแตะ markup · เลข 600 = สีแบรนด์เป๊ะ */
+  --color-blue-50: #f3f7fb;
+  --color-blue-100: #e4edf6;
+  --color-blue-200: #c6daed;
+  --color-blue-300: #9cbede;
+  --color-blue-400: #6b9cca;
+  --color-blue-500: #4a83bc;
+  --color-blue-600: #3973b2;
+  --color-blue-700: #305f93;
+  --color-blue-800: #2a5078;
+  --color-blue-900: #25425f;
+  --color-blue-950: #182c40;
+
+  --color-red-50: #fdf3f2;
+  --color-red-100: #fce5e3;
+  --color-red-200: #f9c9c6;
+  --color-red-300: #f4a09b;
+  --color-red-400: #ee6e66;
+  --color-red-500: #ea4a41;
+  --color-red-600: #e72f27;
+  --color-red-700: #c32219;
+  --color-red-800: #a12018;
+  --color-red-900: #85211b;
+  --color-red-950: #480e0a;
+
   /* Surface — Apple-style soft neutral page, pure white surface */
   --color-bg: #f5f5f7;
   --color-surface: #ffffff;
@@ -22,11 +57,11 @@
   --color-text-muted: #6e6e73;
   --color-text-subtle: #86868b;
 
-  /* Accent — Apple system blue */
-  --color-accent: #0071e3;
-  --color-accent-hover: #0077ed;
-  --color-accent-soft: #f0f7ff;
-  --color-accent-soft-text: #0071e3;
+  /* Accent — ชั้น SEMANTIC ชี้สีแบรนด์ (เดิม Apple blue → Anajak blue) */
+  --color-accent: var(--color-anajak-blue);
+  --color-accent-hover: var(--color-blue-700);
+  --color-accent-soft: var(--color-blue-50);
+  --color-accent-soft-text: var(--color-blue-700);
 
   /* Semantic */
   --color-success: #1a8754;
@@ -50,10 +85,10 @@
   --color-text-muted: #a1a1a6;
   --color-text-subtle: #6e6e73;
 
-  --color-accent: #0a84ff;
-  --color-accent-hover: #409cff;
-  --color-accent-soft: #0a84ff14;
-  --color-accent-soft-text: #64aaff;
+  --color-accent: var(--color-blue-400);
+  --color-accent-hover: var(--color-blue-300);
+  --color-accent-soft: color-mix(in srgb, var(--color-anajak-blue) 14%, transparent);
+  --color-accent-soft-text: var(--color-blue-300);
 
   --color-success: #30d158;
   --color-success-soft: #30d15814;

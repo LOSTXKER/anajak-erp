@@ -3,11 +3,17 @@
 > session ใหม่: อ่านไฟล์นี้ + `git log --oneline -10` ก่อนเริ่ม · จบ session: อัปเดตไฟล์นี้ก่อนปิด
 
 ## ตอนนี้
-- **🎉 P0 ฐานราก จบครบทั้ง 5 ด่าน** (2026-06-10) — เกณฑ์จบ P0 ผ่านหมด: คนนอกเข้าไม่ได้ ✓ · login ตาม role ✓ · ยอดเงินตรงทุกเส้นทาง (test 40 + integration 35) ✓ · มี migration history ✓ · seed รันผ่าน ✓
-- งานถัดไป: **P1.0 Design System + UI มาตรฐานใหม่** (งานแรกของ P1 ตาม ROADMAP — เบสสั่ง): design tokens (ฐาน Tailwind 4 + shadcn) · component มาตรฐาน (table/form/dialog/status badge/empty state) · เลิก window.prompt/confirm ทั้งระบบ (lint ติด warn รออยู่ 55 จุดรวม react-hooks) · mobile-first หน้า ops · แล้วต่อด้วยใบงาน P1 อื่น (PDF/ใบกำกับเต็มรูป/Job Ticket/WHT/มัดจำ ฯลฯ)
-- ก่อนเริ่ม P1 จริง: เบสควรเข้าไปกดเล่นระบบจริง (DB สะอาดพร้อมใช้) + ตั้งบัญชีพนักงานที่ Settings → Users
+- **Phase: P1 · P1.0 Design System วางมาตรฐานเสร็จแล้ว ✅** (2026-06-10) — รอบเก็บตกหน้าเก่าอยู่ปลาย P1 ตามใบงาน
+- งานถัดไป: **ใบงาน P1 ถัดไป — แนะนำ PDF ครบชุด + ใบกำกับภาษีเต็มรูป ม.86/4** (หัวใจ B2B เครดิตเทอม: ใบเสนอ/แจ้งหนี้/เสร็จ + ยกเลิก-ออกใหม่ห้ามลบ + ใบลดหนี้-เพิ่มหนี้) หรือเบสเลือกใบงานอื่นจากลิสต์ P1 ใน ROADMAP
+- **เบสควรเปิดดูระบบ 1 รอบ**: สีทั้งแอปเปลี่ยนจากน้ำเงิน Apple → น้ำเงินแบรนด์ Anajak (#3973b2) แล้ว — ถ้าโทนไหนดูแปลกบอกได้ ปรับที่ globals.css จุดเดียว
+- 🎉 P0 จบครบ 5 ด่าน (2026-06-10) — เกณฑ์ผ่านหมด: auth ✓ เงินตรง (test 40 + integration 35) ✓ migration ✓ seed ✓
 
 ## เสร็จแล้ว
+- 2026-06-10 — **P1.0 Design System + UI มาตรฐาน (วางมาตรฐานกลาง)**:
+  - **token 3 ชั้น** ใน `globals.css`: primitive สีแบรนด์ (anajak-blue/yellow/red) → **remap ramp `blue-50..950`/`red-50..950` ของ Tailwind จากสีแบรนด์** (เลข 600 = สีแบรนด์เป๊ะ) → ทั้งแอป 48 ไฟล์เปลี่ยนโทนแบรนด์ทันทีไม่แตะ markup → semantic accent ชี้แบรนด์ · ปุ่ม destructive ขยับ red-700 (contrast AA)
+  - **เลิก window.confirm/prompt ทั้งระบบ**: `ui/confirm-dialog.tsx` (`useConfirm`/`usePromptText` promise API + provider ใน providers.tsx · mobile-ready ปุ่มเต็มแถว) — กวาดครบ 7 จุด (orders/new, orders/[id] ยกเลิก+เหตุผล, quotations/[id] ปฏิเสธ+แปลง, settings ×3) · **lint `no-alert` = error แล้ว**
+  - component มาตรฐานครบ + ประกาศใน **`docs/DESIGN.md`**: DataTable/EmptyState/OrderStatusBadge/Badge/Dialog/ConfirmDialog/Skeleton/QueryError + กฎ mobile-first หน้า ops (เป้านิ้ว ≥44px · ตาราง→การ์ดจอเล็ก · sticky action) — หน้าใหม่/หน้าที่แตะใน P1-P3 ต้องตามนี้
+  - verify: tsc 0 · lint 0 errors (warnings 55→48) · test 40/40 · **production build ผ่านทุกหน้า** · login render จริง
 - 2026-06-10 — **P0.5 จัดระเบียบโค้ด**:
   - **vitest + test แกน 40 ตัว** (`npm test` — 0.5 วิ): สูตรราคา server (`pricing.test.ts` — สูตร A/ปัด half-up/กัน discount เกิน/เคส float คิดผิด 7.525→7.53) + mirror client/server + state machine (`order-status.test.ts` — รวม transitions ใหม่ของ P0.2) + เลขเอกสาร (`document-number.test.ts` — period เวลาไทย/format/retry semantics) + money helpers — **นี่คือเกราะ: แตะสูตรต้องผ่าน test ก่อน**
   - `npm run verify:p02` = integration จริงกับ DB 35 เคส (ย้ายจาก scripts ชั่วคราวเป็นของถาวร)

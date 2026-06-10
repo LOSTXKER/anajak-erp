@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
+import { usePromptText } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { PageHeader } from "@/components/page-header";
@@ -81,6 +82,7 @@ export default function OrderDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const promptText = usePromptText();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showInfoEditDialog, setShowInfoEditDialog] = useState(false);
 
@@ -154,10 +156,16 @@ export default function OrderDetailPage({
   // ----------------------------------------------------------
   // Handlers
   // ----------------------------------------------------------
-  function handleStatusChange(newStatus: string) {
+  async function handleStatusChange(newStatus: string) {
     if (newStatus === "CANCELLED") {
-      const reason = prompt("เหตุผลที่ยกเลิก:");
-      if (!reason) return;
+      const reason = await promptText({
+        title: "ยกเลิกออเดอร์นี้?",
+        description: "ระบุเหตุผลที่ยกเลิก — จะถูกบันทึกในประวัติออเดอร์",
+        placeholder: "เหตุผลที่ยกเลิก",
+        confirmText: "ยกเลิกออเดอร์",
+        destructive: true,
+      });
+      if (reason === null || reason === "") return;
       updateStatus.mutate({
         id,
         internalStatus: newStatus as never,

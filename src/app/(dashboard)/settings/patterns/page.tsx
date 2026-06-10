@@ -4,6 +4,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +55,7 @@ export default function PatternsPage() {
   const [uploading, setUploading] = useState(false);
 
   const utils = trpc.useUtils();
+  const confirmDialog = useConfirm();
 
   const { data, isLoading } = trpc.pattern.list.useQuery({ isActive: true });
   const patterns = data?.patterns;
@@ -106,10 +108,13 @@ export default function PatternsPage() {
     });
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`ลบแพทเทิร์น "${name}" หรือไม่?`)) {
-      deletePattern.mutate({ id });
-    }
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirmDialog({
+      title: `ลบแพทเทิร์น "${name}"?`,
+      confirmText: "ลบแพทเทิร์น",
+      destructive: true,
+    });
+    if (ok) deletePattern.mutate({ id });
   };
 
   const handleFileUpload = async (

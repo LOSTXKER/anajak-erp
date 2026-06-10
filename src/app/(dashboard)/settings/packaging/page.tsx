@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +26,7 @@ export default function PackagingSettingsPage() {
   const [editName, setEditName] = useState("");
 
   const utils = trpc.useUtils();
+  const confirmDialog = useConfirm();
 
   const { data: options, isLoading } = trpc.packaging.list.useQuery(
     { includeInactive: true },
@@ -67,10 +69,14 @@ export default function PackagingSettingsPage() {
     updateMutation.mutate({ id, isActive: !currentActive });
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`ปิดการใช้งาน "${name}" หรือไม่?`)) {
-      deleteMutation.mutate({ id });
-    }
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirmDialog({
+      title: `ปิดการใช้งาน "${name}"?`,
+      description: "รายการที่ปิดจะไม่ขึ้นให้เลือกตอนสร้างออเดอร์ — เปิดกลับได้ภายหลัง",
+      confirmText: "ปิดการใช้งาน",
+      destructive: true,
+    });
+    if (ok) deleteMutation.mutate({ id });
   };
 
   return (
