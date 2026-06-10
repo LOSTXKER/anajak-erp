@@ -1,5 +1,10 @@
 "use client";
 
+// หน้าเปิดงานใหม่ — โหมดเดียว ไม่ถามชนิดออเดอร์ (ระบบ derive จากเนื้อรายการเอง):
+// การ์ดบน = แกนบังคับ (ลูกค้า/ชื่องาน) เปิดงานได้ใน 15 วินาทีระหว่างถือแชท
+// ส่วนที่เหลือ = กล่องพับ ใส่ตอนนี้หรือไปเติมที่หน้าออเดอร์ทีหลังก็ได้
+// (ด่านฝั่ง server กันให้: ยืนยันออเดอร์ต้องมีรายการ · ปิดงานต้องวางบิลครบ)
+
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -10,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Section } from "@/components/ui/section";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Badge } from "@/components/ui/badge";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { PageHeader } from "@/components/page-header";
@@ -26,17 +32,7 @@ import {
   calculateOrderSummary,
 } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
-import {
-  Plus,
-  RefreshCw,
-  Save,
-  Zap,
-  ListChecks,
-  ImageIcon,
-  Upload,
-  X,
-  Loader2,
-} from "lucide-react";
+import { Plus, ImageIcon, Upload, X, Loader2, Save } from "lucide-react";
 import {
   ProductPickerDialog,
   type SelectedVariantItem,
@@ -48,18 +44,18 @@ import {
   clearDraft,
 } from "@/hooks/use-order-items-form";
 import { useOrderShippingState } from "@/hooks/use-order-shipping";
-import type { OrderItemForm, ReferenceImage } from "@/types/order-form";
+import type { ReferenceImage } from "@/types/order-form";
 import {
   EMPTY_ITEM,
   EMPTY_PRODUCT,
   PRINT_POSITIONS,
+  itemHasContent,
   validateOrderItem,
   validateOrderItemProduct,
 } from "@/types/order-form";
 import { mapItemsToMutationInput, mapFeesToMutationInput } from "@/lib/order-mapping";
 import { toast } from "sonner";
 import {
-  OrderTypeSelector,
   OrderItemCard,
   OrderFeeSection,
   OrderShippingSection,
@@ -76,11 +72,7 @@ export default function NewOrderPage() {
   const confirmDialog = useConfirm();
   const utils = trpc.useUtils();
 
-  const [typeSelected, setTypeSelected] = useState(false);
-  const [customMode, setCustomMode] = useState<"quick" | "full">("quick");
-
   const [channel, setChannel] = useState("LINE");
-  const [orderType, setOrderType] = useState<"READY_MADE" | "CUSTOM">("CUSTOM");
   const [externalOrderId, setExternalOrderId] = useState("");
 
   const [customerId, setCustomerId] = useState("");
@@ -143,12 +135,12 @@ export default function NewOrderPage() {
     },
   });
 
-  const isCustom = orderType === "CUSTOM";
   const isMarketplace = isMarketplaceChannel(channel);
-  const isQuickInquiry = isCustom && customMode === "quick";
 
-  const showFeeSections = isCustom && customMode === "full";
-  const showItemsSection = !isQuickInquiry;
+  // มีเนื้อรายการจริงไหม — ตัวตัดสินเดียวแทนสวิตช์โหมดเดิม (สอบถาม/ระบุครบ):
+  // ไม่มี = เปิดเป็นการสอบถาม (ตีราคาทีหลัง) · มี = validate + ส่งรายการไปคิดเงิน
+  // (เกณฑ์เดียวกับระบบ draft ใน useOrderItemsForm — แชร์ผ่าน itemHasContent)
+  const hasItemContent = items.some(itemHasContent);
 
   useEffect(() => {
     if (!deadline) return;
@@ -197,7 +189,7 @@ export default function NewOrderPage() {
   }, [customerId]);
 
   const pricingSummary = useMemo(() => {
-    if (isQuickInquiry) {
+    if (!hasItemContent) {
       return { subtotalItems: 0, subtotalFees: 0, platformFee: 0, discount: 0, taxAmount: 0, grandTotal: 0 };
     }
     // สูตร A เดียวกับ server — platformFee ไม่บวกเข้ายอดบิล/ฐาน VAT
@@ -209,7 +201,7 @@ export default function NewOrderPage() {
       taxRate,
     });
     return { ...summary, platformFee: isMarketplace ? platformFee : 0 };
-  }, [items, fees, platformFee, discount, isMarketplace, taxRate, isQuickInquiry]);
+  }, [items, fees, platformFee, discount, isMarketplace, taxRate, hasItemContent]);
 
   const handleVariantsSelected = (selected: SelectedVariantItem[]) => {
     setItems((prev) => {
@@ -320,7 +312,30 @@ export default function NewOrderPage() {
       }
     }
 
-    if (!isQuickInquiry) {
+    // เปิดงานเบา (ยังไม่มีรายการ) ต้องจดความต้องการไว้ — ไม่งั้นกลับมาดูแล้วไม่รู้ลูกค้าเอาอะไร
+    if (!hasItemContent && !description.trim()) {
+      errors.push("ยังไม่ใส่รายการสินค้า — กรุณาจดรายละเอียดที่ลูกค้าต้องการไว้ก่อน");
+    }
+
+    if (taxRate < 0 || taxRate > 100) {
+      errors.push("ภาษีต้องอยู่ระหว่าง 0–100%");
+    }
+
+    // ของที่พิมพ์ไว้ในกล่องรายการแต่ระบบจะไม่ส่ง (เพราะยังไม่มีตัวรายการจริง) — ห้ามทิ้งเงียบ
+    if (!hasItemContent) {
+      const hasFeeContent = fees.some((f) => f.name || f.feeType || f.amount > 0);
+      const hasItemNotes = items.some((it) => it.notes?.trim());
+      if (hasFeeContent || hasItemNotes) {
+        errors.push(
+          "มีค่าใช้จ่าย/หมายเหตุที่กรอกไว้ แต่ยังไม่มีรายการสินค้า — เพิ่มรายการสินค้า หรือลบข้อมูลนั้นออกก่อนเปิดงาน"
+        );
+      }
+      if (discount > 0) {
+        errors.push("ใส่ส่วนลดไว้แต่ยังไม่มีรายการสินค้า — ล้างส่วนลดหรือเพิ่มรายการก่อน");
+      }
+    }
+
+    if (hasItemContent) {
       items.forEach((item, idx) => {
         const itemErrors = validateOrderItem(item);
         const errMsgs = Object.values(itemErrors).filter(Boolean);
@@ -348,7 +363,6 @@ export default function NewOrderPage() {
   };
 
   const buildMutationInput = (isDraft: boolean) => ({
-    orderType,
     channel: channel as "SHOPEE" | "LAZADA" | "TIKTOK" | "LINE" | "WALK_IN" | "PHONE" | "WEBSITE",
     customerId,
     title,
@@ -359,15 +373,14 @@ export default function NewOrderPage() {
     platformFee: isMarketplace && platformFee ? platformFee : undefined,
     discount,
     isDraft,
-    isQuickInquiry,
     priority,
     paymentTerms: (paymentTerms || undefined) as PaymentTermsValue | undefined,
     poNumber: poNumber || undefined,
     taxRate,
     estimatedQuantity: estimatedQuantity ? Number(estimatedQuantity) : undefined,
     ...(shippingMutationInput() && { shippingAddress: shippingMutationInput() }),
-    items: isQuickInquiry ? [] : mapItemsToMutationInput(items),
-    fees: showFeeSections ? mapFeesToMutationInput(fees) : [],
+    items: hasItemContent ? mapItemsToMutationInput(items) : [],
+    fees: hasItemContent ? mapFeesToMutationInput(fees) : [],
     referenceImages: referenceImages.map((img) => ({
       fileUrl: img.fileUrl,
       fileName: img.fileName,
@@ -384,12 +397,16 @@ export default function NewOrderPage() {
 
     const totalProducts = items.reduce((s, it) => s + it.products.length, 0);
     const ok = await confirmDialog(
-      isQuickInquiry
-        ? { title: `สร้างการสอบถาม "${title}"?`, confirmText: "สร้างการสอบถาม" }
-        : {
-            title: `สร้างออเดอร์ "${title}"?`,
+      hasItemContent
+        ? {
+            title: `เปิดงาน "${title}"?`,
             description: `${items.length} รายการ (${totalProducts} สินค้า) · ยอดรวม ${formatCurrency(pricingSummary.grandTotal)}`,
-            confirmText: "สร้างออเดอร์",
+            confirmText: "เปิดงาน",
+          }
+        : {
+            title: `เปิดงาน "${title}"?`,
+            description: "ยังไม่ใส่รายการ/ราคา — งานจะเริ่มเป็นการสอบถาม เติมรายละเอียดที่หน้าออเดอร์ได้",
+            confirmText: "เปิดงาน",
           }
     );
     if (!ok) return;
@@ -404,77 +421,15 @@ export default function NewOrderPage() {
     createOrder.mutate(buildMutationInput(true));
   };
 
-  const handleSelectType = (type: "READY_MADE" | "CUSTOM") => {
-    setOrderType(type);
-    setTypeSelected(true);
-  };
-
-  // ============================================================
-  // TYPE SELECTION SCREEN
-  // ============================================================
-
-  if (!typeSelected) {
-    return <OrderTypeSelector onSelect={handleSelectType} />;
-  }
-
-  // ============================================================
-  // MAIN FORM
-  // ============================================================
-
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-3xl space-y-5">
       <PageHeader
         breadcrumb={[
           { label: "ออเดอร์", href: "/orders" },
-          { label: "สร้างใหม่" },
+          { label: "เปิดงานใหม่" },
         ]}
-        title="สร้างออเดอร์ใหม่"
-        description={
-          isQuickInquiry
-            ? "บันทึกข้อมูลเบื้องต้น — รายละเอียดเพิ่มเติมภายหลัง"
-            : "กรอกรายละเอียดออเดอร์"
-        }
-        action={
-          <>
-            {isCustom && (
-              <div className="inline-flex gap-0.5 rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800/60">
-                <button
-                  type="button"
-                  onClick={() => setCustomMode("quick")}
-                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
-                    customMode === "quick"
-                      ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:bg-slate-700 dark:text-white"
-                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                  }`}
-                >
-                  <Zap className="h-3.5 w-3.5" />
-                  สอบถาม
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCustomMode("full")}
-                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
-                    customMode === "full"
-                      ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:bg-slate-700 dark:text-white"
-                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                  }`}
-                >
-                  <ListChecks className="h-3.5 w-3.5" />
-                  ระบุครบ
-                </button>
-              </div>
-            )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setTypeSelected(false)}
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              เปลี่ยนประเภท
-            </Button>
-          </>
-        }
+        title="เปิดงานใหม่"
+        description="ใส่แค่ลูกค้ากับชื่องานก็เปิดได้ — รายการ/ราคา/ที่อยู่ เติมตอนนี้หรือไปเติมที่หน้าออเดอร์ทีหลัง"
       />
 
       {hasDraft && (
@@ -494,119 +449,131 @@ export default function NewOrderPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_340px]">
-        {/* ============================================================ */}
-        {/* LEFT COLUMN — Items + Images + Fees                          */}
-        {/* ============================================================ */}
-        <div className="space-y-6">
-          {/* Product Lines */}
-          {showItemsSection && (
-            <Section
-              title="รายการสินค้า"
-              action={
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    addItem();
-                    setExpandedItemIdx(items.length);
-                  }}
+      {/* noValidate: ใช้ validateForm (กล่อง error เดียว) แทน native validation —
+          กล่องพับซ่อนด้วย CSS ทำให้ browser validation บน input ที่มองไม่เห็นพัง submit เงียบ */}
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        {/* ============================================================
+            แกนบังคับ — เปิดงานได้จากการ์ดนี้การ์ดเดียว
+        ============================================================ */}
+        <Section title="เริ่มงาน">
+          <div className="space-y-3.5">
+            <div>
+              <label className={sectionLabelClass}>ลูกค้า *</label>
+              <CustomerPicker
+                value={customerId}
+                onChange={(id, customer) => {
+                  setCustomerId(id);
+                  setSelectedCustomer(customer);
+                }}
+                required
+              />
+              {selectedCustomer && isCorporateCustomer && (
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <Badge variant="accent" size="sm">
+                    นิติบุคคล
+                  </Badge>
+                  {selectedCustomer.taxId && (
+                    <span className="text-[11px] text-slate-500">
+                      Tax ID: {selectedCustomer.taxId}
+                    </span>
+                  )}
+                </div>
+              )}
+              {selectedCustomer && customerProfileGaps(selectedCustomer).length > 0 && (
+                <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                  โปรไฟล์ยังไม่ครบ:{" "}
+                  {customerProfileGaps(selectedCustomer)
+                    .map((g) => g.label)
+                    .join(" · ")}{" "}
+                  — ขอจากลูกค้าแล้วเติมได้ที่หน้าลูกค้า
+                </p>
+              )}
+              {creditStatus.data?.available != null && (
+                <p
+                  className={`mt-1.5 text-[11px] ${
+                    creditStatus.data.available < 0
+                      ? "font-medium text-red-600 dark:text-red-400"
+                      : "text-slate-500"
+                  }`}
                 >
-                  <Plus className="h-4 w-4" />
-                  รายการงานพิมพ์ใหม่
-                </Button>
-              }
-              flush
-            >
-              <div className="divide-y divide-slate-100 px-5 dark:divide-slate-800">
-                  {items.map((item, itemIdx) => (
-                    <OrderItemCard
-                      key={itemIdx}
-                      item={item}
-                      itemIdx={itemIdx}
-                      canRemove={items.length > 1}
-                      isExpanded={expandedItemIdx === itemIdx}
-                      onToggleExpand={() => setExpandedItemIdx(expandedItemIdx === itemIdx ? null : itemIdx)}
-                      allItems={items}
-                      printCatalog={printCatalog}
-                      addonCatalog={addonCatalog}
-                      onUpdateItem={updateItem}
-                      onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
-                      onAddPrint={addPrint}
-                      onRemovePrint={removePrint}
-                      onUpdatePrint={updatePrint}
-                      onAddAddon={addAddon}
-                      onRemoveAddon={removeAddon}
-                      onUpdateAddon={updateAddon}
-                      onOpenPicker={() => setPickerOpen(true)}
-                      onSetItems={(updater) => setItems(updater(items))}
-                    />
-                  ))}
-              </div>
-            </Section>
-          )}
-
-          {/* Reference Images */}
-          <Section
-            title={
-              <span className="flex items-center gap-2">
-                ภาพอ้างอิง / ไฟล์แบบ
-                {isQuickInquiry && (
-                  <span className="text-xs font-normal text-blue-600 dark:text-blue-400">
-                    (แนะนำ)
-                  </span>
-                )}
-              </span>
-            }
-          >
-            <div className="space-y-3">
-                {referenceImages.length > 0 && (
-                  <div className="flex flex-wrap gap-3">
-                    {referenceImages.map((img, idx) => (
-                      <div key={idx} className="group relative">
-                        {img.preview ? (
-                          <img src={img.preview} alt={img.fileName} className="h-24 w-24 rounded-xl border border-slate-200/60 object-cover dark:border-slate-700/60" />
-                        ) : (
-                          <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-slate-200/60 bg-slate-50 dark:border-slate-700/60 dark:bg-slate-800"><ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" /></div>
-                        )}
-                        <button type="button" onClick={() => removeReferenceImage(idx)} className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-red-600"><X className="h-3 w-3" /></button>
-                        <NativeSelect value={img.printPosition || ""} onChange={(e) => { setReferenceImages((prev) => prev.map((im, i) => i === idx ? { ...im, printPosition: e.target.value || undefined } : im)); }} className="mt-1.5 h-7 w-24 px-1.5 py-0 text-[11px]">
-                          <option value="">ทั่วไป</option>
-                          {Object.entries(PRINT_POSITIONS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
-                        </NativeSelect>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {referenceImages.length < 5 && (
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/40 px-4 py-6 text-[13px] text-slate-500 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400 dark:hover:border-blue-500">
-                    <input type="file" accept="image/*,.pdf,.ai,.psd" multiple onChange={handleImageUpload} className="hidden" disabled={uploading} />
-                    {uploading ? (<><Loader2 className="h-4 w-4 animate-spin" />กำลังอัปโหลด...</>) : (<><Upload className="h-4 w-4" />อัปโหลดภาพอ้างอิง (สูงสุด 5 ภาพ)</>)}
-                  </label>
-                )}
+                  วงเงินเครดิต: ใช้ไป {formatCurrency(creditStatus.data.exposure)} /{" "}
+                  {formatCurrency(creditStatus.data.creditLimit ?? 0)}
+                  {creditStatus.data.available < 0
+                    ? ` — เกินวงเงินแล้ว ${formatCurrency(Math.abs(creditStatus.data.available))}`
+                    : ` (ใช้ได้อีก ${formatCurrency(creditStatus.data.available)})`}
+                </p>
+              )}
             </div>
-          </Section>
 
-          {/* Order Fees */}
-          {showFeeSections && (
-            <OrderFeeSection
-              fees={fees}
-              onAddFee={addFee}
-              onRemoveFee={removeFee}
-              onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
-              feeCatalog={feeCatalog}
-            />
-          )}
-        </div>
+            <div>
+              <label className={sectionLabelClass}>ชื่องาน *</label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="เช่น เสื้อยืดทีม ABC 50 ตัว..."
+                required
+              />
+            </div>
 
-        {/* ============================================================ */}
-        {/* RIGHT COLUMN — Info + Price + Shipping + Actions (sticky)    */}
-        {/* ============================================================ */}
-        <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-          {/* Channel */}
-          <Section title="ช่องทาง" compact>
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className={sectionLabelClass}>กำหนดส่ง</label>
+                <Input
+                  type="date"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={sectionLabelClass}>ความเร่งด่วน</label>
+                <NativeSelect
+                  value={priority}
+                  onChange={(e) =>
+                    setPriority(e.target.value as "LOW" | "NORMAL" | "HIGH" | "URGENT")
+                  }
+                >
+                  {Object.entries(PRIORITY_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+            </div>
+
+            <div>
+              <label className={sectionLabelClass}>
+                รายละเอียดจากแชท
+                {!hasItemContent && (
+                  <span className="ml-0.5 text-blue-600 dark:text-blue-400">*</span>
+                )}
+              </label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="จดสิ่งที่ลูกค้าต้องการ — แบบ/สี/จำนวน/งบ..."
+                rows={3}
+                required={!hasItemContent}
+              />
+            </div>
+
+            {!hasItemContent && (
+              <div>
+                <label className={sectionLabelClass}>จำนวนโดยประมาณ (ชิ้น)</label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={estimatedQuantity}
+                  onChange={(e) =>
+                    setEstimatedQuantity(e.target.value ? parseInt(e.target.value) : "")
+                  }
+                  placeholder="เช่น 50, 100..."
+                />
+              </div>
+            )}
+
+            <div>
+              <label className={sectionLabelClass}>ช่องทาง</label>
               <div className="flex flex-wrap gap-1.5">
                 {CHANNELS.map((ch) => (
                   <FilterChip
@@ -619,7 +586,7 @@ export default function NewOrderPage() {
                 ))}
               </div>
               {isMarketplace && (
-                <div>
+                <div className="mt-2">
                   <label className={sectionLabelClass}>
                     เลขออเดอร์ {CHANNEL_LABELS[channel]}
                   </label>
@@ -631,212 +598,166 @@ export default function NewOrderPage() {
                 </div>
               )}
             </div>
-          </Section>
 
-          {/* Basic Info */}
-          <Section title="ข้อมูลทั่วไป" compact>
-            <div className="space-y-3">
-              <div>
-                <label className={sectionLabelClass}>ลูกค้า *</label>
-                <CustomerPicker
-                  value={customerId}
-                  onChange={(id, customer) => {
-                    setCustomerId(id);
-                    setSelectedCustomer(customer);
-                  }}
-                  required
-                />
-                {selectedCustomer && isCorporateCustomer && (
-                  <div className="mt-1.5 flex items-center gap-1.5">
-                    <Badge variant="accent" size="sm">
-                      นิติบุคคล
-                    </Badge>
-                    {selectedCustomer.taxId && (
-                      <span className="text-[11px] text-slate-500">
-                        Tax ID: {selectedCustomer.taxId}
-                      </span>
-                    )}
-                  </div>
-                )}
-                {selectedCustomer && customerProfileGaps(selectedCustomer).length > 0 && (
-                  <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
-                    โปรไฟล์ยังไม่ครบ:{" "}
-                    {customerProfileGaps(selectedCustomer)
-                      .map((g) => g.label)
-                      .join(" · ")}{" "}
-                    — ขอจากลูกค้าแล้วเติมได้ที่หน้าลูกค้า
-                  </p>
-                )}
-                {creditStatus.data?.available != null && (
-                  <p
-                    className={`mt-1.5 text-[11px] ${
-                      creditStatus.data.available < 0
-                        ? "font-medium text-red-600 dark:text-red-400"
-                        : "text-slate-500"
-                    }`}
-                  >
-                    วงเงินเครดิต: ใช้ไป {formatCurrency(creditStatus.data.exposure)} /{" "}
-                    {formatCurrency(creditStatus.data.creditLimit ?? 0)}
-                    {creditStatus.data.available < 0
-                      ? ` — เกินวงเงินแล้ว ${formatCurrency(Math.abs(creditStatus.data.available))}`
-                      : ` (ใช้ได้อีก ${formatCurrency(creditStatus.data.available)})`}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={sectionLabelClass}>ชื่องาน *</label>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={
-                    isQuickInquiry
-                      ? "เช่น เสื้อยืดทีมฟุตบอล..."
-                      : "เช่น เสื้อยืดทีม ABC..."
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <label className={sectionLabelClass}>กำหนดส่ง</label>
-                <Input
-                  type="date"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className={sectionLabelClass}>
-                  รายละเอียด
-                  {isQuickInquiry && (
-                    <span className="ml-0.5 text-blue-600 dark:text-blue-400">
-                      *
-                    </span>
-                  )}
-                </label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={
-                    isQuickInquiry
-                      ? "บันทึกสิ่งที่ลูกค้าต้องการ..."
-                      : "รายละเอียดเพิ่มเติม..."
-                  }
-                  rows={isQuickInquiry ? 3 : 2}
-                  required={isQuickInquiry}
-                />
-              </div>
+            <div>
+              <label className={sectionLabelClass}>หมายเหตุภายใน</label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="หมายเหตุภายใน..."
+                rows={2}
+              />
+            </div>
 
-              {isQuickInquiry && (
+            {formErrors.length > 0 && (
+              <div className="rounded-xl bg-red-50/70 p-3 dark:bg-red-950/20">
+                <p className="mb-1 text-[12px] font-medium text-red-700 dark:text-red-300">
+                  กรุณาแก้ไข
+                </p>
+                <ul className="list-inside list-disc space-y-0.5 text-[12px] text-red-600 dark:text-red-400">
+                  {formErrors.map((err, i) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {createOrder.isError && (
+              <div className="rounded-xl bg-red-50/70 p-3 text-[12px] text-red-700 dark:bg-red-950/20 dark:text-red-300">
+                {createOrder.error.message}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-1">
+              <Button type="submit" disabled={createOrder.isPending} className="flex-1">
+                {createOrder.isPending
+                  ? "กำลังบันทึก..."
+                  : hasItemContent
+                    ? `เปิดงาน · ${formatCurrency(pricingSummary.grandTotal)}`
+                    : "เปิดงาน (เติมรายละเอียดทีหลัง)"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={createOrder.isPending}
+                onClick={handleSaveDraft}
+                title="บันทึกร่าง"
+              >
+                <Save className="h-4 w-4" />
+              </Button>
+              <Link href="/orders">
+                <Button type="button" variant="ghost" size="sm">
+                  ยกเลิก
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </Section>
+
+        {/* ============================================================
+            ส่วนเสริม — ใส่ตอนนี้หรือไปเติมที่หน้าออเดอร์ทีหลังก็ได้
+        ============================================================ */}
+        <CollapsibleSection
+          title="รายการสินค้าและราคา"
+          defaultOpen={hasDraft}
+          summary={
+            hasItemContent
+              ? `${items.length} รายการ · ยอดรวม ${formatCurrency(pricingSummary.grandTotal)}`
+              : "ยังไม่ใส่ — เติมทีหลังที่หน้าออเดอร์ได้"
+          }
+        >
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  addItem();
+                  setExpandedItemIdx(items.length);
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                รายการงานพิมพ์ใหม่
+              </Button>
+            </div>
+            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/60 dark:divide-slate-800 dark:border-slate-800/60">
+              {items.map((item, itemIdx) => (
+                <OrderItemCard
+                  key={itemIdx}
+                  item={item}
+                  itemIdx={itemIdx}
+                  canRemove={items.length > 1}
+                  isExpanded={expandedItemIdx === itemIdx}
+                  onToggleExpand={() => setExpandedItemIdx(expandedItemIdx === itemIdx ? null : itemIdx)}
+                  allItems={items}
+                  printCatalog={printCatalog}
+                  addonCatalog={addonCatalog}
+                  onUpdateItem={updateItem}
+                  onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
+                  onAddPrint={addPrint}
+                  onRemovePrint={removePrint}
+                  onUpdatePrint={updatePrint}
+                  onAddAddon={addAddon}
+                  onRemoveAddon={removeAddon}
+                  onUpdateAddon={updateAddon}
+                  onOpenPicker={() => setPickerOpen(true)}
+                  onSetItems={(updater) => setItems(updater(items))}
+                />
+              ))}
+            </div>
+
+            <OrderFeeSection
+              fees={fees}
+              onAddFee={addFee}
+              onRemoveFee={removeFee}
+              onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
+              feeCatalog={feeCatalog}
+            />
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div>
+                <label className={sectionLabelClass}>ภาษี (%)</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.01}
+                  value={taxRate || ""}
+                  onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className={sectionLabelClass}>เงื่อนไขชำระ</label>
+                <NativeSelect
+                  value={paymentTerms}
+                  onChange={(e) => setPaymentTerms(e.target.value)}
+                >
+                  <option value="">-- ไม่ระบุ --</option>
+                  {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+              {isCorporateCustomer && (
                 <div>
-                  <label className={sectionLabelClass}>
-                    จำนวนโดยประมาณ (ชิ้น)
-                  </label>
+                  <label className={sectionLabelClass}>เลขที่ PO</label>
                   <Input
-                    type="number"
-                    min={1}
-                    value={estimatedQuantity}
-                    onChange={(e) =>
-                      setEstimatedQuantity(
-                        e.target.value ? parseInt(e.target.value) : ""
-                      )
-                    }
-                    placeholder="เช่น 50, 100..."
+                    value={poNumber}
+                    onChange={(e) => setPoNumber(e.target.value)}
+                    placeholder="PO Number"
                   />
                 </div>
               )}
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={sectionLabelClass}>ความเร่งด่วน</label>
-                  <NativeSelect
-                    value={priority}
-                    onChange={(e) =>
-                      setPriority(
-                        e.target.value as "LOW" | "NORMAL" | "HIGH" | "URGENT"
-                      )
-                    }
-                  >
-                    {Object.entries(PRIORITY_LABELS).map(([k, v]) => (
-                      <option key={k} value={k}>
-                        {v}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </div>
-                {!isQuickInquiry && (
-                  <div>
-                    <label className={sectionLabelClass}>ภาษี (%)</label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.01}
-                      value={taxRate || ""}
-                      onChange={(e) =>
-                        setTaxRate(parseFloat(e.target.value) || 0)
-                      }
-                      placeholder="0"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {!isQuickInquiry && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className={sectionLabelClass}>เงื่อนไขชำระ</label>
-                    <NativeSelect
-                      value={paymentTerms}
-                      onChange={(e) => setPaymentTerms(e.target.value)}
-                    >
-                      <option value="">-- ไม่ระบุ --</option>
-                      {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
-                        <option key={k} value={k}>
-                          {v}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                  </div>
-                  {isCorporateCustomer && (
-                    <div>
-                      <label className={sectionLabelClass}>เลขที่ PO</label>
-                      <Input
-                        value={poNumber}
-                        onChange={(e) => setPoNumber(e.target.value)}
-                        placeholder="PO Number"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <label className={sectionLabelClass}>หมายเหตุ</label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="หมายเหตุภายใน..."
-                  rows={2}
-                />
-              </div>
             </div>
-          </Section>
 
-          {/* Shipping Address */}
-          {!isQuickInquiry && (
-            <OrderShippingSection
-              showShipping={showShipping}
-              onToggleShipping={() => setShowShipping(!showShipping)}
-              shipping={shipping}
-              onUpdate={updateShipping}
-            />
-          )}
-
-          {/* Price Summary */}
-          {!isQuickInquiry && (
             <OrderPriceSummary
               pricingSummary={pricingSummary}
-              showFeeSections={showFeeSections}
+              showFeeSections={true}
               isMarketplace={isMarketplace}
               channelLabel={CHANNEL_LABELS[channel]}
               taxRate={taxRate}
@@ -845,61 +766,53 @@ export default function NewOrderPage() {
               onPlatformFeeChange={setPlatformFee}
               onDiscountChange={setDiscount}
             />
-          )}
-
-          {/* Validation Errors */}
-          {formErrors.length > 0 && (
-            <div className="rounded-xl bg-red-50/70 p-3 dark:bg-red-950/20">
-              <p className="mb-1 text-[12px] font-medium text-red-700 dark:text-red-300">
-                กรุณาแก้ไข
-              </p>
-              <ul className="list-inside list-disc space-y-0.5 text-[12px] text-red-600 dark:text-red-400">
-                {formErrors.map((err, i) => (
-                  <li key={i}>{err}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex flex-col gap-1.5 pt-2">
-            <Button
-              type="submit"
-              disabled={createOrder.isPending}
-              className="w-full"
-            >
-              {createOrder.isPending ? "กำลังบันทึก..." : isQuickInquiry ? "บันทึกการสอบถาม" : "สร้างออเดอร์"}
-            </Button>
-            <div className="flex items-center justify-center gap-1 text-[12px]">
-              {!isQuickInquiry && (
-                <>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={createOrder.isPending}
-                    onClick={handleSaveDraft}
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                    บันทึกร่าง
-                  </Button>
-                  <span className="text-slate-300 dark:text-slate-700">·</span>
-                </>
-              )}
-              <Link href="/orders">
-                <Button type="button" variant="ghost" size="sm">
-                  ยกเลิก
-                </Button>
-              </Link>
-            </div>
           </div>
+        </CollapsibleSection>
 
-          {createOrder.isError && (
-            <div className="rounded-xl bg-red-50/70 p-3 text-[12px] text-red-700 dark:bg-red-950/20 dark:text-red-300">
-              {createOrder.error.message}
-            </div>
-          )}
-        </div>
+        <CollapsibleSection
+          title="รูป / ไฟล์อ้างอิงจากแชท"
+          defaultOpen={referenceImages.length > 0}
+          summary={
+            referenceImages.length > 0
+              ? `${referenceImages.length} ไฟล์`
+              : "แนะนำแนบรูปที่ลูกค้าส่งมา"
+          }
+        >
+          <div className="space-y-3">
+            {referenceImages.length > 0 && (
+              <div className="flex flex-wrap gap-3">
+                {referenceImages.map((img, idx) => (
+                  <div key={idx} className="group relative">
+                    {img.preview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={img.preview} alt={img.fileName} className="h-24 w-24 rounded-xl border border-slate-200/60 object-cover dark:border-slate-700/60" />
+                    ) : (
+                      <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-slate-200/60 bg-slate-50 dark:border-slate-700/60 dark:bg-slate-800"><ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" /></div>
+                    )}
+                    <button type="button" onClick={() => removeReferenceImage(idx)} className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-red-600"><X className="h-3 w-3" /></button>
+                    <NativeSelect value={img.printPosition || ""} onChange={(e) => { setReferenceImages((prev) => prev.map((im, i) => i === idx ? { ...im, printPosition: e.target.value || undefined } : im)); }} className="mt-1.5 h-7 w-24 px-1.5 py-0 text-[11px]">
+                      <option value="">ทั่วไป</option>
+                      {Object.entries(PRINT_POSITIONS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
+                    </NativeSelect>
+                  </div>
+                ))}
+              </div>
+            )}
+            {referenceImages.length < 5 && (
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/40 px-4 py-6 text-[13px] text-slate-500 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400 dark:hover:border-blue-500">
+                <input type="file" accept="image/*,.pdf,.ai,.psd" multiple onChange={handleImageUpload} className="hidden" disabled={uploading} />
+                {uploading ? (<><Loader2 className="h-4 w-4 animate-spin" />กำลังอัปโหลด...</>) : (<><Upload className="h-4 w-4" />อัปโหลดภาพอ้างอิง (สูงสุด 5 ภาพ)</>)}
+              </label>
+            )}
+          </div>
+        </CollapsibleSection>
+
+        <OrderShippingSection
+          showShipping={showShipping}
+          onToggleShipping={() => setShowShipping(!showShipping)}
+          shipping={shipping}
+          onUpdate={updateShipping}
+        />
       </form>
 
       <ProductPickerDialog

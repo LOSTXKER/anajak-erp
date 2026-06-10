@@ -5,6 +5,7 @@ import {
   EMPTY_ADDON,
   EMPTY_ITEM,
   EMPTY_FEE,
+  itemHasContent,
 } from "@/types/order-form";
 
 const DRAFT_KEY = "order-draft-items";
@@ -31,15 +32,12 @@ function loadDraft(): OrderItemForm[] | null {
 function saveDraft(items: OrderItemForm[]) {
   if (typeof window === "undefined") return;
   try {
-    const hasContent = items.some(
-      (it) =>
-        it.description ||
-        it.products.some(
-          (p) => p.description || p.productId || p.variants.some((v) => v.size),
-        ),
-    );
-    if (hasContent) {
+    // เกณฑ์เดียวกับ hasItemContent ของหน้าเปิดงาน — เนื้อหายหมด = ลบ draft ทิ้งด้วย
+    // (เดิมเกณฑ์แคบกว่า + ไม่เคยลบ → ลบของในฟอร์มแล้ว draft เก่ายังเด้งกลับมา)
+    if (items.some(itemHasContent)) {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(items));
+    } else {
+      localStorage.removeItem(DRAFT_KEY);
     }
   } catch {
     // storage full or unavailable

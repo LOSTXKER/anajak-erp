@@ -231,8 +231,9 @@ export function getNextStatuses(
     next.push("PRODUCTION_QUEUE");
   }
 
-  // Allow INQUIRY -> CONFIRMED directly (skip QUOTATION)
-  if (currentStatus === "INQUIRY" && orderType === "CUSTOM") {
+  // INQUIRY -> CONFIRMED ได้ทุกชนิด (ข้ามใบเสนอ) — ออเดอร์ที่เปิดเบาเป็นสอบถาม
+  // แล้วเติมรายการจนกลายเป็นสำเร็จรูป (READY_MADE) ต้องยืนยันต่อได้ ไม่ใช่ติดตัน
+  if (currentStatus === "INQUIRY" && !next.includes("CONFIRMED")) {
     next.push("CONFIRMED");
   }
 

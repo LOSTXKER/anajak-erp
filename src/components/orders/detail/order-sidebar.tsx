@@ -319,12 +319,14 @@ export function OrderSidebar({
         </div>
       </Section>
 
-      <OrderBillingSection
-        orderId={order.id}
-        customerId={order.customerId}
-        totalAmount={totalAmount}
-        internalStatus={order.internalStatus}
-      />
+      <div id="order-section-billing" className="scroll-mt-20">
+        <OrderBillingSection
+          orderId={order.id}
+          customerId={order.customerId}
+          totalAmount={totalAmount}
+          internalStatus={order.internalStatus}
+        />
+      </div>
     </div>
   );
 }

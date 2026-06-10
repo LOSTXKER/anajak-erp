@@ -31,6 +31,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
+import { OrderNextStep } from "@/components/orders/detail/order-next-step";
 import { OrderProductionSection } from "@/components/orders/order-production-section";
 import { OrderDeliverySection } from "@/components/orders/order-delivery-section";
 import { OrderEditDialog } from "@/components/orders/order-edit-dialog";
@@ -321,6 +322,14 @@ export default function OrderDetailPage({
         internalStatus={order.internalStatus}
       />
 
+      {/* เข็มทิศ — ขั้นถัดไปที่แนะนำหนึ่งอย่าง พร้อมปุ่มทำได้เลย */}
+      <OrderNextStep
+        order={order}
+        onEditItems={() => setShowEditDialog(true)}
+        onStatusChange={(status) => handleStatusChange(status)}
+        statusPending={updateStatus.isPending}
+      />
+
       {/* ====================================================
           MAIN GRID: CONTENT + SIDEBAR
       ==================================================== */}
@@ -335,23 +344,27 @@ export default function OrderDetailPage({
 
           <OrderReferenceImages attachments={attachments} />
 
-          <OrderDesignSection
-            orderId={id}
-            orderNumber={order.orderNumber}
-            internalStatus={order.internalStatus}
-          />
+          <div id="order-section-design" className="scroll-mt-20">
+            <OrderDesignSection
+              orderId={id}
+              orderNumber={order.orderNumber}
+              internalStatus={order.internalStatus}
+            />
+          </div>
 
-          <OrderProductionSection
-            orderId={id}
-            internalStatus={order.internalStatus}
-            printTypes={[
-              ...new Set(
-                (order.items ?? []).flatMap((it) =>
-                  (it.prints ?? []).map((pr) => pr.printType)
-                )
-              ),
-            ]}
-          />
+          <div id="order-section-production" className="scroll-mt-20">
+            <OrderProductionSection
+              orderId={id}
+              internalStatus={order.internalStatus}
+              printTypes={[
+                ...new Set(
+                  (order.items ?? []).flatMap((it) =>
+                    (it.prints ?? []).map((pr) => pr.printType)
+                  )
+                ),
+              ]}
+            />
+          </div>
 
           <OrderDeliverySection
             orderId={id}

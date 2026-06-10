@@ -273,6 +273,9 @@ export const quotationRouter = router({
             items: {
               create: quotation.items.map((item, index) => ({
                 sortOrder: index,
+                // รายการจากใบเสนอถูกบีบจนไม่เหลือโครงลายพิมพ์ — ระบุภาษีชัดเป็นจ้างทำของ
+                // (งานใบเสนอเกือบทั้งหมดคืองานพิมพ์ · กัน updateItems derive เป็นขายสินค้าเงียบๆ)
+                taxLineType: "HIRE_OF_WORK" as const,
                 description: item.name,
                 totalQuantity: item.quantity,
                 subtotal: item.totalPrice,

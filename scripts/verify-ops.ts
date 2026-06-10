@@ -28,7 +28,7 @@ async function expectError(name: string, fn: () => Promise<unknown>, msgPart: st
   }
 }
 
-const SEQ_TYPES = ["FINAL_INVOICE"];
+const SEQ_TYPES = ["FINAL_INVOICE", "ORDER"];
 
 async function main() {
   const period = currentPeriod();
@@ -219,6 +219,88 @@ async function main() {
 
     const found = await caller.customer.list({ search: "0891234567", limit: 5 });
     ok("4.2 ค้นหาลูกค้าด้วยเบอร์เจอ", found.customers.some((c) => c.id === customer.id), found.total);
+
+    // ---------- 5) ฟอร์มเดียว: derive ชนิด/สถานะ/ภาษีต่อรายการ ----------
+    const light = await caller.order.create({
+      customerId: customer.id,
+      title: "[OPS-VERIFY] เปิดเบาจากแชท",
+      description: "ลูกค้าถามราคาเสื้อทีม 50 ตัว",
+      items: [],
+    });
+    ids.orders.push(light.id);
+    ok(
+      "5.1 เปิดงานไม่มีรายการ → เริ่มเป็นการสอบถาม (INQUIRY/CUSTOM)",
+      light.internalStatus === "INQUIRY" && light.orderType === "CUSTOM",
+      { s: light.internalStatus, t: light.orderType }
+    );
+
+    await expectError(
+      "5.2 ยืนยันออเดอร์ที่ยังไม่มีรายการ → ปฏิเสธ",
+      () => caller.order.updateStatus({ id: light.id, internalStatus: "CONFIRMED" }),
+      "ยังไม่มีรายการ"
+    );
+
+    const plainItem = {
+      products: [
+        {
+          productType: "T_SHIRT",
+          description: "เสื้อเปล่าจากสต๊อก",
+          baseUnitPrice: 120,
+          variants: [{ size: "L", quantity: 20 }],
+        },
+      ],
+      prints: [],
+      addons: [],
+    };
+    await caller.order.updateItems({ id: light.id, items: [plainItem], discount: 0 });
+    const lightDb = await prisma.order.findUniqueOrThrow({
+      where: { id: light.id },
+      include: { items: true },
+    });
+    ok(
+      "5.3 เติมรายการเสื้อเปล่าล้วน → re-derive เป็นสำเร็จรูป + ภาษีขายสินค้า",
+      lightDb.orderType === "READY_MADE" && lightDb.items[0].taxLineType === "GOODS",
+      { t: lightDb.orderType, tax: lightDb.items[0].taxLineType }
+    );
+
+    const lightConfirmed = await caller.order.updateStatus({
+      id: light.id,
+      internalStatus: "CONFIRMED",
+    });
+    ok(
+      "5.4 สอบถาม→ยืนยันได้แม้กลายเป็นสำเร็จรูป (ทางลัดใหม่)",
+      lightConfirmed.internalStatus === "CONFIRMED",
+      lightConfirmed.internalStatus
+    );
+
+    const mixed = await caller.order.create({
+      customerId: customer.id,
+      title: "[OPS-VERIFY] ออเดอร์ผสม",
+      items: [
+        {
+          products: [
+            {
+              productType: "T_SHIRT",
+              description: "เสื้อพิมพ์ลาย",
+              baseUnitPrice: 100,
+              variants: [{ size: "M", quantity: 10 }],
+            },
+          ],
+          prints: [{ position: "FRONT", printType: "DTF", unitPrice: 20 }],
+          addons: [],
+        },
+        plainItem,
+      ],
+    });
+    ids.orders.push(mixed.id);
+    const mixedTax = mixed.items.map((it: { taxLineType: string }) => it.taxLineType).sort();
+    ok(
+      "5.5 ออเดอร์ผสม → ภาษีต่อรายการ (จ้างทำของ+ขายสินค้า ในใบเดียว) + เริ่ม INQUIRY",
+      mixed.internalStatus === "INQUIRY" &&
+        mixed.orderType === "CUSTOM" &&
+        mixedTax.join(",") === "GOODS,HIRE_OF_WORK",
+      { s: mixed.internalStatus, tax: mixedTax }
+    );
   } finally {
     // ---------- ล้างเกลี้ยง + คืนเลขเอกสาร ----------
     await prisma.notification.deleteMany({ where: { entityId: { in: ids.orders } } });

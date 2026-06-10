@@ -110,9 +110,16 @@ const orderFeeSchema = z.object({
 // shape ของ item ที่ผ่าน priceOrderItems แล้ว (มี totalQuantity/subtotal/sortOrder ครบ)
 type ItemWithCalc = PricedItem<z.infer<typeof orderItemSchema>>;
 
-// tax-point ต่อ order line (เผื่อใบกำกับ P1): สำเร็จรูป = ขายสินค้า · งานสั่งทำ = จ้างทำของ
-const taxLineTypeFor = (orderType: OrderType): TaxLineType =>
-  orderType === "READY_MADE" ? "GOODS" : "HIRE_OF_WORK";
+// tax-point ต่อ "รายการ" ตามเนื้องานจริง (ไม่เหมารวมทั้งใบ — ออเดอร์ผสมเสื้อเปล่า+งานพิมพ์
+// มีสองชนิดภาษีในใบเดียวได้): มีลายพิมพ์ = จ้างทำของ · เสื้อเปล่า = ขายสินค้า
+const taxLineTypeForItem = (item: { prints: unknown[] }): TaxLineType =>
+  item.prints.length > 0 ? "HIRE_OF_WORK" : "GOODS";
+
+// ชนิดออเดอร์ derive จากเนื้อรายการ — ผู้ใช้ไม่ต้องเลือกเองอีกต่อไป:
+// มีรายการและไม่มีลายพิมพ์เลย = สำเร็จรูป (เกิดมา CONFIRMED ข้ามขั้นตีราคา/ออกแบบ)
+// นอกนั้น (มีพิมพ์ หรือยังไม่มีรายการ) = งานสั่งทำ (เริ่ม INQUIRY เดินตามจริง)
+const deriveOrderType = (items: { prints: unknown[] }[]): OrderType =>
+  items.length > 0 && items.every((it) => it.prints.length === 0) ? "READY_MADE" : "CUSTOM";
 
 function buildItemCreateData(item: ItemWithCalc, taxLineType: TaxLineType) {
   return {
@@ -383,10 +390,11 @@ export const orderRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { items, fees, shippingAddress, referenceImages, ...orderData } = input;
 
-      // For non-draft, non-inquiry orders: require at least 1 item
-      if (!input.isDraft && !input.isQuickInquiry && items.length === 0) {
-        badRequest("กรุณาเพิ่มรายการอย่างน้อย 1 รายการ");
-      }
+      // ชนิดออเดอร์ derive จากเนื้อรายการเสมอ — input.orderType/isQuickInquiry คงไว้
+      // เพื่อ backward compat แต่ไม่ใช้ตัดสินแล้ว (ฟอร์มใหม่เป็นโหมดเดียว เปิดเบาได้
+      // โดยไม่มีรายการ = เริ่มเป็นการสอบถาม แล้วเติมที่หน้าออเดอร์)
+      const derivedType = deriveOrderType(items);
+      orderData.orderType = derivedType;
 
       const itemsWithCalc = priceOrderItems(items);
       // สูตร A (services/pricing — สูตรเดียวทุก mutation): platformFee ไม่เข้ายอด/ฐาน VAT
@@ -397,8 +405,9 @@ export const orderRouter = router({
         taxRate: input.taxRate,
       });
 
-      // Stock availability check for READY_MADE orders
-      if (input.orderType === "READY_MADE" && !input.isDraft) {
+      // เช็คสต๊อกเฉพาะรายการที่หยิบจากสต๊อก (มี productId) — ไม่ผูกกับชนิดออเดอร์อีกต่อไป
+      // ออเดอร์งานพิมพ์ที่ใช้เสื้อจากสต๊อกก็ต้องเช็คเหมือนกัน
+      if (!input.isDraft) {
         const allProducts = items.flatMap((item) => item.products).filter((p) => p.productId);
         if (allProducts.length > 0) {
           const productIds = [...new Set(allProducts.map((p) => p.productId).filter((id): id is string => !!id))];
@@ -426,12 +435,13 @@ export const orderRouter = router({
         }
       }
 
-      // Quick inquiry always starts at INQUIRY, draft at DRAFT, otherwise default
+      // ร่าง → DRAFT · ไม่มีรายการ (เปิดเบา/สอบถาม) → INQUIRY · มีรายการ → ตามชนิดที่ derive
+      // (สำเร็จรูปล้วน = CONFIRMED ทันที · มีงานพิมพ์ = INQUIRY รอตีราคา/ยืนยัน)
       const initialStatus = input.isDraft
-        ? "DRAFT" as const
-        : input.isQuickInquiry
-          ? "INQUIRY" as const
-          : getInitialStatus(input.orderType);
+        ? ("DRAFT" as const)
+        : items.length === 0
+          ? ("INQUIRY" as const)
+          : getInitialStatus(derivedType);
       const customerStatus = getCustomerStatus(initialStatus);
 
       // READY_MADE เกิดมาเป็น CONFIRMED ทันที — ต้องผ่านด่านวงเงินเดียวกับตอนยืนยันออเดอร์
@@ -493,7 +503,7 @@ export const orderRouter = router({
                 }),
                 items: {
                   create: itemsWithCalc.map((item) =>
-                    buildItemCreateData(item, taxLineTypeFor(input.orderType))
+                    buildItemCreateData(item, taxLineTypeForItem(item))
                   ),
                 },
                 fees: {
@@ -619,6 +629,13 @@ export const orderRouter = router({
         input.internalStatus === "CONFIRMED" &&
         (UNCOMMITTED_STATUSES as readonly string[]).includes(old.internalStatus)
       ) {
+        // ฟอร์มใหม่เปิดงานเบาได้ (ไม่มีรายการ) — ด่านนี้กันออเดอร์เปล่า/ยอดเดาไหลเข้าโซ่บิล
+        const itemCount = await ctx.prisma.orderItem.count({ where: { orderId: input.id } });
+        if (itemCount === 0) {
+          badRequest(
+            'ยืนยันออเดอร์ไม่ได้ — ยังไม่มีรายการสินค้า/ราคา กด "แก้ไขรายการ" ใส่ของและตีราคาก่อน'
+          );
+        }
         await assertSalesWithinCreditLimit(ctx.prisma, {
           userRole: ctx.userRole,
           customerId: old.customerId,
@@ -800,10 +817,16 @@ export const orderRouter = router({
           await tx.orderItem.create({
             data: {
               orderId: input.id,
-              ...buildItemCreateData(item, taxLineTypeFor(order.orderType)),
+              ...buildItemCreateData(item, taxLineTypeForItem(item)),
             },
           });
         }
+
+        // ชนิดออเดอร์ตามเนื้อรายการล่าสุด — re-derive เฉพาะช่วงร่าง/สอบถาม
+        // (หลังจากนั้นออเดอร์เดินบนเส้นทางของชนิดเดิมแล้ว เปลี่ยนกลางทาง = transition พัง)
+        const rederiveType = ["DRAFT", "INQUIRY"].includes(order.internalStatus)
+          ? deriveOrderType(input.items)
+          : undefined;
 
         return tx.order.update({
           where: { id: input.id },
@@ -813,6 +836,9 @@ export const orderRouter = router({
             discount: totals.discount,
             taxAmount: totals.taxAmount,
             totalAmount: totals.totalAmount,
+            // มีรายการจริงแล้ว (mutation นี้บังคับ ≥1) — จำนวนคาดคะเนตอนเปิดเบาหมดหน้าที่
+            estimatedQuantity: null,
+            ...(rederiveType ? { orderType: rederiveType } : {}),
           },
         });
       });
@@ -1014,7 +1040,7 @@ export const orderRouter = router({
                       })),
                       prints: item.prints,
                       addons: item.addons,
-                    } as ItemWithCalc, taxLineTypeFor(original.orderType));
+                    } as ItemWithCalc, taxLineTypeForItem(item));
                     // Reset receive tracking for duplicated orders
                     data.products.create = data.products.create.map((p) => ({
                       ...p,

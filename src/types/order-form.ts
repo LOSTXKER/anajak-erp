@@ -259,6 +259,23 @@ export function deriveProcessingType(itemSource: string, needsPrinting: boolean)
   return "PACK_ONLY";
 }
 
+// "รายการนี้มีเนื้อจริงไหม" — ตัวตัดสินเดียว ใช้ทั้งหน้าเปิดงาน (เปิดแบบสอบถาม vs คิดเงิน)
+// และระบบ draft (เก็บ/ลบ localStorage) — สองที่นี้ต้องมองเหมือนกัน ไม่งั้น draft ค้าง/หาย
+export function itemHasContent(item: OrderItemForm): boolean {
+  return (
+    !!item.description ||
+    item.prints.length > 0 ||
+    item.addons.length > 0 ||
+    item.products.some(
+      (p) =>
+        p.description ||
+        p.productId ||
+        p.itemSource ||
+        p.variants.some((v) => v.size || v.color || v.quantity > 0)
+    )
+  );
+}
+
 export type ProductValidationErrors = {
   description?: string;
   baseUnitPrice?: string;
