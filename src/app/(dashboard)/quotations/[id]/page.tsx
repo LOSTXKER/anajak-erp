@@ -17,6 +17,7 @@ import {
   Check,
   X,
   RefreshCw,
+  Printer,
   User,
   FileText,
   Calendar,
@@ -221,6 +222,13 @@ export default function QuotationDetailPage({
               แปลงเป็นออเดอร์
             </Button>
           )}
+
+          <Button variant="outline" asChild className="gap-1.5">
+            <a href={`/print/quotation/${id}`} target="_blank" rel="noreferrer">
+              <Printer className="h-4 w-4" />
+              พิมพ์ / PDF
+            </a>
+          </Button>
         </div>
       </div>
 

@@ -1,9 +1,39 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
+import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
 
 const adminOnly = requireRole("OWNER", "MANAGER");
 
 export const settingsRouter = router({
+  // ข้อมูลกิจการ — ทุก role อ่านได้ (ใช้บนหัวเอกสารพิมพ์) · แก้ได้เฉพาะ OWNER/MANAGER
+  companyProfile: protectedProcedure.query(async ({ ctx }) => {
+    const setting = await ctx.prisma.setting.findUnique({
+      where: { key: COMPANY_PROFILE_KEY },
+    });
+    return parseCompanyProfile(setting?.value);
+  }),
+
+  setCompanyProfile: protectedProcedure
+    .use(adminOnly)
+    .input(
+      z.object({
+        name: z.string().min(1, "กรุณากรอกชื่อกิจการ"),
+        address: z.string().min(1, "กรุณากรอกที่อยู่"),
+        taxId: z.string().regex(/^\d{13}$/, "เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก"),
+        branch: z.string().min(1),
+        phone: z.string().default(""),
+        email: z.string().default(""),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.prisma.setting.upsert({
+        where: { key: COMPANY_PROFILE_KEY },
+        update: { value: JSON.stringify(input) },
+        create: { key: COMPANY_PROFILE_KEY, value: JSON.stringify(input) },
+      });
+      return { success: true };
+    }),
+
   get: protectedProcedure
     .use(adminOnly)
     .input(z.object({ key: z.string() }))

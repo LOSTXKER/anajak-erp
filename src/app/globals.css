@@ -176,3 +176,58 @@ body {
   transition: background-color 150ms ease, border-color 150ms ease,
     transform 150ms ease;
 }
+
+/* ============================================================
+   เอกสารพิมพ์ A4 (P1 — ใบเสนอราคา/แจ้งหนี้/เสร็จ/ใบกำกับภาษี)
+   ============================================================ */
+.print-page {
+  width: 210mm;
+  min-height: 296mm;
+  margin: 0 auto;
+  padding: 14mm 14mm 12mm;
+  background: #ffffff;
+  color: #111111;
+  font-size: 13px;
+  line-height: 1.55;
+  position: relative;
+}
+
+@media screen {
+  .print-viewport {
+    background: #e9e9ec;
+    min-height: 100vh;
+    padding: 24px 16px 64px;
+  }
+  .print-page {
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+    margin-bottom: 24px;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+  .print-viewport {
+    padding: 0;
+    background: #ffffff;
+  }
+  .print-hidden {
+    display: none !important;
+  }
+  .print-page {
+    margin: 0;
+    box-shadow: none;
+    border-radius: 0;
+    break-after: page;
+  }
+  .print-page:last-child {
+    break-after: auto;
+  }
+}

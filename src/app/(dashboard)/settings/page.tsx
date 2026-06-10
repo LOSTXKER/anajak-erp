@@ -31,6 +31,12 @@ const NAV: { id: SectionId; label: string; icon: typeof Building }[] = [
 
 const QUICK_LINKS = [
   {
+    href: "/settings/company",
+    icon: Building,
+    title: "ข้อมูลกิจการ",
+    description: "ชื่อ/ที่อยู่/เลขผู้เสียภาษี — ขึ้นหัวเอกสารและใบกำกับภาษี",
+  },
+  {
     href: "/settings/users",
     icon: Users,
     title: "จัดการผู้ใช้",

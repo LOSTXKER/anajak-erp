@@ -34,6 +34,7 @@ import {
   ChevronDown,
   ChevronUp,
   Ban,
+  Printer,
   DollarSign,
 } from "lucide-react";
 import type { InvoiceType } from "@prisma/client";
@@ -254,6 +255,16 @@ export function OrderBillingSection({
                           <span className="text-sm font-medium text-slate-900 dark:text-white">
                             {inv.invoiceNumber}
                           </span>
+                          <a
+                            href={`/print/invoice/${inv.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-slate-400 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                            title="พิมพ์ / PDF"
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                          </a>
                           <Badge variant="secondary">
                             {INVOICE_TYPE_LABELS[inv.type] || inv.type}
                           </Badge>
