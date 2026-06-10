@@ -20,6 +20,8 @@ import {
   Package,
   Cloud,
   Scissors,
+  FileStack,
+  Hourglass,
 } from "lucide-react";
 import { useState, type ComponentType } from "react";
 
@@ -66,6 +68,8 @@ const groups: NavGroup[] = [
     label: "การเงิน",
     items: [
       { name: "บิล/การเงิน", href: "/billing", icon: FileText },
+      { name: "ใบวางบิล", href: "/billing/notes", icon: FileStack },
+      { name: "ลูกหนี้", href: "/billing/aging", icon: Hourglass },
       { name: "สถิติ", href: "/analytics", icon: BarChart3 },
     ],
   },

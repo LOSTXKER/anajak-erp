@@ -98,6 +98,12 @@ const createPrismaClient = () =>
       payment: {
         amount: { needs: { amount: true }, compute: (p) => p.amount.toNumber() },
       },
+      billingNote: {
+        totalAmount: { needs: { totalAmount: true }, compute: (b) => b.totalAmount.toNumber() },
+      },
+      billingNoteItem: {
+        amount: { needs: { amount: true }, compute: (i) => i.amount.toNumber() },
+      },
     },
   });
 

@@ -11,6 +11,10 @@ import { priceOrderItems, computeOrderTotals, type PricedItem } from "@/server/s
 import { transitionOrder } from "@/server/services/order-status";
 import { aggToNumber } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
+import {
+  assertSalesWithinCreditLimit,
+  UNCOMMITTED_STATUSES,
+} from "@/server/services/receivables";
 import type { InternalStatus, OrderType, TaxLineType } from "@prisma/client";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ = งานขายขึ้นไปตามตาราง RBAC §7
@@ -427,6 +431,16 @@ export const orderRouter = router({
           : getInitialStatus(input.orderType);
       const customerStatus = getCustomerStatus(initialStatus);
 
+      // READY_MADE เกิดมาเป็น CONFIRMED ทันที — ต้องผ่านด่านวงเงินเดียวกับตอนยืนยันออเดอร์
+      if (initialStatus === "CONFIRMED") {
+        await assertSalesWithinCreditLimit(ctx.prisma, {
+          userRole: ctx.userRole,
+          customerId: orderData.customerId,
+          additionalAmount: totals.totalAmount,
+          actionLabel: "สร้างออเดอร์",
+        });
+      }
+
       // Use $transaction to ensure atomicity: order + customer stats + audit log
       // Retry up to 3 times on unique constraint violation (order number collision)
       const MAX_RETRIES = 3;
@@ -594,6 +608,20 @@ export const orderRouter = router({
             message: "ฝ่ายผลิตเปลี่ยนได้เฉพาะสถานะฝั่งผลิต-จัดส่งเท่านั้น",
           });
         }
+      }
+
+      // ยืนยันออเดอร์ = ผูกพันวงเงิน — เฉพาะข้ามจากสถานะยังไม่ผูกพันเท่านั้น
+      // (ปลดพัก ON_HOLD → CONFIRMED ยอดใบนี้ถูกนับใน exposure อยู่แล้ว เช็คอีกรอบ = นับซ้ำ)
+      if (
+        input.internalStatus === "CONFIRMED" &&
+        (UNCOMMITTED_STATUSES as readonly string[]).includes(old.internalStatus)
+      ) {
+        await assertSalesWithinCreditLimit(ctx.prisma, {
+          userRole: ctx.userRole,
+          customerId: old.customerId,
+          additionalAmount: old.totalAmount,
+          actionLabel: "ยืนยันออเดอร์",
+        });
       }
 
       // เปลี่ยนสถานะผ่าน service กลางเท่านั้น (validate + กัน race + revision ในตัว)

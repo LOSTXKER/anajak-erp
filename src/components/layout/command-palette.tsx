@@ -83,6 +83,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       { id: "nav-products", label: "สินค้า", group: "ไปที่", icon: Package, keywords: "product", action: () => navigate("/products") },
       { id: "nav-patterns", label: "แพทเทิร์น", group: "ไปที่", icon: Scissors, keywords: "pattern", action: () => navigate("/settings/patterns") },
       { id: "nav-billing", label: "บิล/การเงิน", group: "ไปที่", icon: FileText, keywords: "billing invoice", action: () => navigate("/billing") },
+      { id: "nav-billing-notes", label: "ใบวางบิล", group: "ไปที่", icon: FileText, keywords: "billing note", action: () => navigate("/billing/notes") },
+      { id: "nav-aging", label: "ลูกหนี้ค้างชำระ", group: "ไปที่", icon: FileText, keywords: "aging receivable", action: () => navigate("/billing/aging") },
       { id: "nav-analytics", label: "สถิติ", group: "ไปที่", icon: BarChart3, keywords: "analytics statistics", action: () => navigate("/analytics") },
       { id: "nav-notifications", label: "การแจ้งเตือน", group: "ไปที่", icon: Bell, keywords: "notification", action: () => navigate("/notifications") },
       { id: "nav-settings", label: "ตั้งค่า", group: "ไปที่", icon: Settings, keywords: "settings", action: () => navigate("/settings") },

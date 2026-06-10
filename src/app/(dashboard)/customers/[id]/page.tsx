@@ -16,6 +16,11 @@ import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });
+  // ภาระหนี้เทียบวงเงินเครดิต — ขอเฉพาะลูกค้าที่ตั้งวงเงินไว้
+  const { data: credit } = trpc.customer.creditStatus.useQuery(
+    { customerId: id },
+    { enabled: customer?.creditLimit != null }
+  );
 
   if (isLoading) {
     return (
@@ -117,8 +122,18 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   </div>
                 )}
                 {customer.creditLimit != null && (
-                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                    <CreditCard className="h-4 w-4" /> วงเงินเครดิต: {formatCurrency(customer.creditLimit)}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                      <CreditCard className="h-4 w-4" /> วงเงินเครดิต: {formatCurrency(customer.creditLimit)}
+                    </div>
+                    {credit && credit.available != null && (
+                      <p className={`pl-6 text-xs ${credit.available < 0 ? "font-medium text-red-600 dark:text-red-400" : "text-slate-500"}`}>
+                        ภาระหนี้ {formatCurrency(credit.exposure)} (ค้างชำระ {formatCurrency(credit.invoiceOutstanding)} + งานยังไม่วางบิล {formatCurrency(credit.unbilled)})
+                        {credit.available < 0
+                          ? ` — เกินวงเงิน ${formatCurrency(Math.abs(credit.available))}`
+                          : ` — ใช้ได้อีก ${formatCurrency(credit.available)}`}
+                      </p>
+                    )}
                   </div>
                 )}
                 {customer.defaultPaymentTerms && (

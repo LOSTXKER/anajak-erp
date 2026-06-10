@@ -5,10 +5,29 @@ import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
+import { creditExposureForCustomer } from "@/server/services/receivables";
 
 const customerEditors = requireRole("OWNER", "MANAGER", "ACCOUNTANT", "SALES");
 
 export const customerRouter = router({
+  // สถานะวงเงินเครดิต: ภาระหนี้รวม (ใบค้างชำระ + งานผูกพันยังไม่วางบิล) เทียบ creditLimit
+  // ใช้ตอนสร้าง/ยืนยันออเดอร์ + หน้า detail ลูกค้า — ทุก role ที่ login เห็นได้ (ขายต้องใช้ตัดสินใจ)
+  creditStatus: protectedProcedure
+    .input(z.object({ customerId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const customer = await ctx.prisma.customer.findUniqueOrThrow({
+        where: { id: input.customerId },
+        select: { creditLimit: true },
+      });
+      const exposure = await creditExposureForCustomer(ctx.prisma, input.customerId);
+      return {
+        creditLimit: customer.creditLimit,
+        ...exposure,
+        available:
+          customer.creditLimit != null ? customer.creditLimit - exposure.exposure : null,
+      };
+    }),
+
   list: protectedProcedure
     .input(
       z.object({

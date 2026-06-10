@@ -7,6 +7,7 @@ import { badRequest } from "@/server/errors";
 import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/document-number";
 import { computeQuotationTotals } from "@/server/services/pricing";
 import { D, round2, moneyInput } from "@/server/services/money";
+import { assertSalesWithinCreditLimit } from "@/server/services/receivables";
 
 const salesUp = requireRole("OWNER", "MANAGER", "SALES");
 
@@ -230,6 +231,14 @@ export const quotationRouter = router({
       if (quotation.status !== "ACCEPTED") {
         badRequest("ใบเสนอราคาต้องได้รับการอนุมัติก่อนแปลงเป็นออเดอร์");
       }
+
+      // แปลงเป็นออเดอร์ = เกิดออเดอร์ CONFIRMED ทันที — ด่านวงเงินเดียวกับการยืนยันออเดอร์
+      await assertSalesWithinCreditLimit(ctx.prisma, {
+        userRole: ctx.userRole,
+        customerId: quotation.customerId,
+        additionalAmount: quotation.totalAmount,
+        actionLabel: "แปลงเป็นออเดอร์",
+      });
 
       const customerStatus = getCustomerStatus("CONFIRMED");
 

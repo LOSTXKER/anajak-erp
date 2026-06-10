@@ -294,12 +294,24 @@ export const billingRouter = router({
 
         const invoice = await tx.invoice.findUniqueOrThrow({
           where: { id: input.invoiceId },
-          include: { payments: true },
+          include: {
+            payments: true,
+            billingNoteItems: {
+              where: { billingNote: { isVoided: false } },
+              select: { billingNote: { select: { billingNoteNumber: true } } },
+            },
+          },
         });
 
         // กัน void ซ้ำ — เดิมกดซ้ำได้ ทำให้ totalSpent ของลูกค้าโดนหักสองรอบ
         if (invoice.isVoided) {
           badRequest("ใบแจ้งหนี้นี้ถูกยกเลิกไปแล้ว");
+        }
+        // ใบที่อยู่บนใบวางบิลที่ใช้งานอยู่ — ยอดบนใบวางบิลจะค้างผี ต้องยกเลิกใบวางบิลก่อน
+        if (invoice.billingNoteItems.length > 0) {
+          badRequest(
+            `ใบนี้อยู่บนใบวางบิล ${invoice.billingNoteItems[0].billingNote.billingNoteNumber} — ยกเลิกใบวางบิลก่อน`
+          );
         }
 
         // ยอดสุทธิที่รับมาแล้วบนบิลนี้ (รวมรายการคืนเงินที่ติดลบ)

@@ -31,6 +31,7 @@ describe("nextDocumentNumber", () => {
     expect(await nextDocumentNumber(mockTx(1234), "ORDER")).toBe(`ORD-${period}-1234`);
     expect(await nextDocumentNumber(mockTx(1), "QUOTATION")).toBe(`QT-${period}-0001`);
     expect(await nextDocumentNumber(mockTx(2), "CREDIT_NOTE")).toBe(`CN-${period}-0002`);
+    expect(await nextDocumentNumber(mockTx(3), "BILLING_NOTE")).toBe(`BN-${period}-0003`);
   });
 
   it("upsert ด้วย key (docType, period) + increment — โครงห้ามเปลี่ยน (atomicity อยู่ที่ ON CONFLICT)", async () => {

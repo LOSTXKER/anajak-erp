@@ -10,7 +10,8 @@ export type DocType =
   | "FINAL_INVOICE"
   | "RECEIPT"
   | "CREDIT_NOTE"
-  | "DEBIT_NOTE";
+  | "DEBIT_NOTE"
+  | "BILLING_NOTE";
 
 const DOC_PREFIXES: Record<DocType, string> = {
   ORDER: "ORD",
@@ -20,6 +21,7 @@ const DOC_PREFIXES: Record<DocType, string> = {
   RECEIPT: "REC",
   CREDIT_NOTE: "CN",
   DEBIT_NOTE: "DN",
+  BILLING_NOTE: "BN",
 };
 
 export function currentPeriod(date = new Date()): string {

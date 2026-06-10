@@ -218,6 +218,7 @@ model Customer {
   communicationLogs CommunicationLog[]
   invoices          Invoice[]
   quotations        Quotation[]
+  billingNotes      BillingNote[]
 
   @@map("customers")
 }
@@ -926,9 +927,10 @@ model Invoice {
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
   // Relations
-  order    Order     @relation(fields: [orderId], references: [id])
-  customer Customer  @relation(fields: [customerId], references: [id])
-  payments Payment[]
+  order            Order             @relation(fields: [orderId], references: [id])
+  customer         Customer          @relation(fields: [customerId], references: [id])
+  payments         Payment[]
+  billingNoteItems BillingNoteItem[]
 
   // hot path: หน้า billing + stats กรองตามสถานะจ่ายตลอด
   @@index([paymentStatus])
@@ -949,6 +951,44 @@ model Payment {
   invoice Invoice @relation(fields: [invoiceId], references: [id])
 
   @@map("payments")
+}
+
+// ใบวางบิล — รวมใบแจ้งหนี้ค้างชำระของลูกค้ารายเดียวเพื่อเรียกเก็บตามรอบ (B2B เครดิตเทอม)
+// ยกเลิก-ออกใหม่เท่านั้น ห้ามลบ (convention เดียวกับ Invoice)
+model BillingNote {
+  id                String    @id @default(cuid())
+  billingNoteNumber String    @unique @map("billing_note_number")
+  customerId        String    @map("customer_id")
+  billingDate       DateTime  @default(now()) @map("billing_date")
+  dueDate           DateTime? @map("due_date") // วันนัดรับชำระ
+  totalAmount       Decimal   @map("total_amount") @db.Decimal(12, 2) // ยอดคงเหลือรวม ณ วันวางบิล
+  isVoided          Boolean   @default(false) @map("is_voided")
+  voidedReason      String?   @map("voided_reason")
+  notes             String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  customer Customer          @relation(fields: [customerId], references: [id])
+  items    BillingNoteItem[]
+
+  @@index([customerId])
+  @@map("billing_notes")
+}
+
+model BillingNoteItem {
+  id            String  @id @default(cuid())
+  billingNoteId String  @map("billing_note_id")
+  invoiceId     String  @map("invoice_id")
+  amount        Decimal @db.Decimal(12, 2) // ยอดคงเหลือของใบแจ้งหนี้ ณ วันวางบิล (snapshot)
+
+  // Relations
+  billingNote BillingNote @relation(fields: [billingNoteId], references: [id], onDelete: Cascade)
+  invoice     Invoice     @relation(fields: [invoiceId], references: [id])
+
+  @@unique([billingNoteId, invoiceId])
+  @@index([invoiceId])
+  @@map("billing_note_items")
 }
 
 // ============================================================

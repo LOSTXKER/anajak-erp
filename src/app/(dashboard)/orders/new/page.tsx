@@ -166,6 +166,11 @@ export default function NewOrderPage() {
   }, [isMarketplace, paymentTerms]);
 
   const selectedCustomer = customers?.customers.find(c => c.id === customerId);
+  // ภาระหนี้เทียบวงเงิน — เตือนตั้งแต่ตอนเลือกลูกค้า (ด่านจริงอยู่ฝั่ง server ตอนยืนยันออเดอร์)
+  const creditStatus = trpc.customer.creditStatus.useQuery(
+    { customerId },
+    { enabled: !!customerId && selectedCustomer?.creditLimit != null }
+  );
   useEffect(() => {
     if (selectedCustomer?.address && !shipping.address && !shipping.recipientName) {
       updateShipping("recipientName", selectedCustomer.name);
@@ -655,6 +660,21 @@ export default function NewOrderPage() {
                       </span>
                     )}
                   </div>
+                )}
+                {creditStatus.data?.available != null && (
+                  <p
+                    className={`mt-1.5 text-[11px] ${
+                      creditStatus.data.available < 0
+                        ? "font-medium text-red-600 dark:text-red-400"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    วงเงินเครดิต: ใช้ไป {formatCurrency(creditStatus.data.exposure)} /{" "}
+                    {formatCurrency(creditStatus.data.creditLimit ?? 0)}
+                    {creditStatus.data.available < 0
+                      ? ` — เกินวงเงินแล้ว ${formatCurrency(Math.abs(creditStatus.data.available))}`
+                      : ` (ใช้ได้อีก ${formatCurrency(creditStatus.data.available)})`}
+                  </p>
                 )}
               </div>
               <div>
