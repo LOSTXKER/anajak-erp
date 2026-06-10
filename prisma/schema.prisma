@@ -191,7 +191,7 @@ model Customer {
   customerType    CustomerType    @default(INDIVIDUAL) @map("customer_type")
   branchNumber    String?         @map("branch_number") // "00000" = สำนักงานใหญ่
   segment         CustomerSegment @default(NEW)
-  rfmScore        Float?          @map("rfm_score")
+  rfmScore        Float?          @map("rfm_score") // ยังไม่มีโค้ดใช้ — รอ CRM เต็ม P3
   notes           String?
   tags            String[]        @default([])
   totalOrders     Int             @default(0) @map("total_orders")
@@ -222,6 +222,7 @@ model Customer {
   @@map("customers")
 }
 
+// ยังไม่มี UI จัดการ — คง schema ไว้รอ CRM เต็ม P3
 model BrandProfile {
   id          String   @id @default(cuid())
   customerId  String   @map("customer_id")

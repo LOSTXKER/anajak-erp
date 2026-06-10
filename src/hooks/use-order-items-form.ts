@@ -8,7 +8,6 @@ import {
 } from "@/types/order-form";
 
 const DRAFT_KEY = "order-draft-items";
-const FULL_DRAFT_KEY = "order-full-draft";
 const DRAFT_DEBOUNCE_MS = 800;
 
 function loadDraft(): OrderItemForm[] | null {
@@ -202,101 +201,8 @@ export function useOrderItemsForm(
   };
 }
 
-export interface OrderDraftData {
-  channel?: string;
-  customerId?: string;
-  title?: string;
-  description?: string;
-  deadline?: string;
-  notes?: string;
-  orderType?: string;
-  customMode?: string;
-  priority?: string;
-  paymentTerms?: string;
-  poNumber?: string;
-  taxRate?: number;
-  discount?: number;
-  platformFee?: number;
-  externalOrderId?: string;
-  showShipping?: boolean;
-  shippingRecipientName?: string;
-  shippingPhone?: string;
-  shippingAddress?: string;
-  shippingSubDistrict?: string;
-  shippingDistrict?: string;
-  shippingProvince?: string;
-  shippingPostalCode?: string;
-}
-
-function loadFullDraft(): OrderDraftData | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(FULL_DRAFT_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as OrderDraftData;
-  } catch {
-    return null;
-  }
-}
-
-function saveFullDraft(data: OrderDraftData) {
-  if (typeof window === "undefined") return;
-  try {
-    const hasContent = Object.values(data).some(
-      (v) => v !== undefined && v !== null && v !== "",
-    );
-    if (hasContent) {
-      localStorage.setItem(FULL_DRAFT_KEY, JSON.stringify(data));
-    }
-  } catch {
-    // storage full or unavailable
-  }
-}
-
-export function clearFullDraft() {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(FULL_DRAFT_KEY);
-}
-
-export function useOrderDraft() {
-  const [draftData, setDraftData] = useState<OrderDraftData | null>(
-    () => loadFullDraft(),
-  );
-  const [hasFullDraft, setHasFullDraft] = useState(() => !!loadFullDraft());
-
-  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const saveFullDraftDebounced = useCallback((data: OrderDraftData) => {
-    setDraftData(data);
-  }, []);
-
-  useEffect(() => {
-    if (!draftData) return;
-    if (draftTimer.current) clearTimeout(draftTimer.current);
-    draftTimer.current = setTimeout(() => saveFullDraft(draftData), DRAFT_DEBOUNCE_MS);
-    return () => {
-      if (draftTimer.current) clearTimeout(draftTimer.current);
-    };
-  }, [draftData]);
-
-  const loadDraftData = useCallback((): OrderDraftData | null => {
-    return loadFullDraft();
-  }, []);
-
-  const clearDraftData = useCallback(() => {
-    clearFullDraft();
-    setDraftData(null);
-    setHasFullDraft(false);
-  }, []);
-
-  return {
-    draftData,
-    hasFullDraft,
-    saveFullDraft: saveFullDraftDebounced,
-    loadFullDraft: loadDraftData,
-    clearFullDraft: clearDraftData,
-  };
-}
+// useOrderDraft + OrderDraftData (full-form draft) ถูกลบตอน P0.5 — ไม่มีใครใช้
+// draft ที่ใช้จริงคือระบบ DRAFT_KEY (เฉพาะ items) ใน useOrderItemsForm ข้างบน
 
 export function useOrderFeesForm(initialFees?: OrderFeeForm[]) {
   const [fees, setFees] = useState<OrderFeeForm[]>(initialFees ?? []);

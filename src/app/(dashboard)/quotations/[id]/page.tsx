@@ -16,7 +16,6 @@ import {
   Check,
   X,
   RefreshCw,
-  Pencil,
   User,
   FileText,
   Calendar,
@@ -170,12 +169,7 @@ export default function QuotationDetailPage({
                 <Send className="h-4 w-4" />
                 ส่งให้ลูกค้า
               </Button>
-              <Link href={`/quotations/${id}/edit`}>
-                <Button variant="outline" className="gap-1.5">
-                  <Pencil className="h-4 w-4" />
-                  แก้ไข
-                </Button>
-              </Link>
+              {/* ปุ่มแก้ไขถูกถอด (P0.5): /quotations/[id]/edit ไม่มีหน้าจริง — งานแก้ใบเสนอราคาอยู่ใบงาน P1 */}
             </>
           )}
 

@@ -79,15 +79,7 @@ const _quotationStatus = buildConfig({
 export const QUOTATION_STATUS_LABELS = _quotationStatus.labels;
 export const QUOTATION_STATUS_VARIANTS = _quotationStatus.variants;
 
-// Payment method labels
-export const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  CASH: "เงินสด",
-  BANK_TRANSFER: "โอนเงิน",
-  CREDIT_CARD: "บัตรเครดิต",
-  QR_CODE: "QR Code / พร้อมเพย์",
-  CHECK: "เช็ค",
-  COD: "เก็บเงินปลายทาง",
-};
+// Payment method ย้ายไป src/lib/payment-methods.ts (ค่า+ป้ายต้องอยู่ที่เดียว)
 
 // Shipping method labels
 export const SHIPPING_METHOD_LABELS: Record<string, string> = {

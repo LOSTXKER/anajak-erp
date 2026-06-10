@@ -24,7 +24,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS, PAYMENT_METHOD_LABELS } from "@/lib/status-config";
+import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
 import {
   Receipt,
   Plus,
@@ -78,7 +79,7 @@ export function OrderBillingSection({
 
   // Payment form state
   const [paymentAmount, setPaymentAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("TRANSFER");
+  const [paymentMethod, setPaymentMethod] = useState<string>(DEFAULT_PAYMENT_METHOD);
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
 
@@ -123,7 +124,7 @@ export function OrderBillingSection({
 
   function resetPaymentForm() {
     setPaymentAmount("");
-    setPaymentMethod("TRANSFER");
+    setPaymentMethod(DEFAULT_PAYMENT_METHOD);
     setPaymentReference("");
     setPaymentNotes("");
   }
@@ -534,10 +535,11 @@ export function OrderBillingSection({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TRANSFER">โอนเงิน</SelectItem>
-                  <SelectItem value="CASH">เงินสด</SelectItem>
-                  <SelectItem value="PROMPTPAY">พร้อมเพย์</SelectItem>
-                  <SelectItem value="CREDIT_CARD">บัตรเครดิต</SelectItem>
+                  {PAYMENT_METHODS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -208,7 +208,7 @@ export default function NewOrderPage() {
         (it) => it.description || it.notes || it.prints.length > 0 || it.addons.length > 0
           || it.products.some((p) => p.description || p.productId || p.itemSource || p.variants.some((v) => v.size || v.color)),
       );
-      let result = filtered.length > 0 ? [...filtered] : [structuredClone(EMPTY_ITEM)];
+      const result = filtered.length > 0 ? [...filtered] : [structuredClone(EMPTY_ITEM)];
       const targetIdx = expandedItemIdx !== null && expandedItemIdx < result.length ? expandedItemIdx : 0;
 
       const targetItem = result[targetIdx];

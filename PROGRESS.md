@@ -3,35 +3,31 @@
 > session ใหม่: อ่านไฟล์นี้ + `git log --oneline -10` ก่อนเริ่ม · จบ session: อัปเดตไฟล์นี้ก่อนปิด
 
 ## ตอนนี้
-- **Phase: P0 — ฐานราก · P0.1–P0.4 เสร็จแล้ว ✅** (2026-06-10)
-- งานถัดไป: **P0.5 จัดระเบียบโค้ด** ตาม checklist ใน `ROADMAP.md` (vitest + test แกน pricing/status/เลขเอกสาร/payment → ลบ dead code ที่ survey ชี้ → payment-method enum mismatch → lint เข้ม → docs/ARCHITECTURE.md) — **test แกนก่อน เป็นเกราะของ refactor ทุกตัวหลังจากนี้**
-- ลำดับใน P0: ~~P0.1 Auth~~ → ~~P0.2 เงิน~~ → ~~P0.3 ฐานข้อมูล~~ → ~~P0.4 เผื่ออนาคต~~ → P0.5 จัดระเบียบโค้ด
+- **🎉 P0 ฐานราก จบครบทั้ง 5 ด่าน** (2026-06-10) — เกณฑ์จบ P0 ผ่านหมด: คนนอกเข้าไม่ได้ ✓ · login ตาม role ✓ · ยอดเงินตรงทุกเส้นทาง (test 40 + integration 35) ✓ · มี migration history ✓ · seed รันผ่าน ✓
+- งานถัดไป: **P1.0 Design System + UI มาตรฐานใหม่** (งานแรกของ P1 ตาม ROADMAP — เบสสั่ง): design tokens (ฐาน Tailwind 4 + shadcn) · component มาตรฐาน (table/form/dialog/status badge/empty state) · เลิก window.prompt/confirm ทั้งระบบ (lint ติด warn รออยู่ 55 จุดรวม react-hooks) · mobile-first หน้า ops · แล้วต่อด้วยใบงาน P1 อื่น (PDF/ใบกำกับเต็มรูป/Job Ticket/WHT/มัดจำ ฯลฯ)
+- ก่อนเริ่ม P1 จริง: เบสควรเข้าไปกดเล่นระบบจริง (DB สะอาดพร้อมใช้) + ตั้งบัญชีพนักงานที่ Settings → Users
 
 ## เสร็จแล้ว
-- 2026-06-10 — **P0.3 วินัยฐานข้อมูล**: เริ่ม `prisma migrate` แล้ว — baseline `0_init` จาก DB ปัจจุบัน (mark applied) + migration `add_hot_path_indexes` (Order.customerId/internalStatus/createdAt · Invoice.paymentStatus · ProductionStep.assignedToId) · **เลิก db push ตั้งแต่บัดนี้ — ใช้ `npx prisma migrate dev` เท่านั้น** · seed.ts เขียนใหม่ = master data เท่านั้น (ServiceCatalog 25 — idempotent ไม่ทับราคาที่ผู้ใช้แก้ ไม่แตะ PackagingOption/Pattern ที่ผู้ใช้จัดการเองใน UI) รันผ่านจริง · **ล้างข้อมูลทดสอบหมดแล้ว (เบสยืนยัน)**: orders 10/invoices 3/payments 7/quotations 2/customers 5/vendors demo 2/notifications/auditLogs/user ปลอม 5/DocumentSequence — เหลือของจริง: user เบส 1 · products 9 + variants 760 (Stock sync) · ServiceCatalog 25 · Pattern 1 · PackagingOption 5 · Settings 2
-- 2026-06-10 — **P0.4 เสร็จโดยงาน P0.2** (ไม่มีงานเพิ่ม): schema เผื่อ tax-point แล้ว (enum TaxLineType บน OrderItem — GOODS/HIRE_OF_WORK ตั้งอัตโนมัติตาม orderType) · business logic แกนแยกเป็น `src/server/services/` แล้ว (pricing/order-status/document-number/money) — tRPC router เป็นผิวตามกติกา
-- 2026-06-10 — **P0.2 เงินถูกต้อง ครบ 6 ใบงาน + แก้ findings จาก review** (รายละเอียดเต็มดู commit d55369c):
-  - Float→Decimal(12,2) 44 field + result extension แปลงเป็น number ตอนอ่าน (`src/lib/prisma.ts`) + ตาข่าย superjson + aggregate ใช้ `aggToNumber`
-  - platformFee สูตร A ทุกที่ (ไม่เข้ายอดบิล/ฐาน VAT — เงินที่ marketplace หักจากร้าน)
-  - billing $transaction + SELECT FOR UPDATE + Decimal เป๊ะ · อุดบั๊ก void ซ้ำ/refund หลัง void
-  - DocumentSequence เลขรันต่อเนื่องต่อชนิด/เดือน (เวลาไทย) ใน tx เดียวกับเอกสาร
-  - status ผ่าน `transitionOrder` จุดเดียว + machine เพิ่ม DESIGNING→DESIGN_APPROVED, CONFIRMED→PRODUCTION_QUEUE (CUSTOM)
-  - guard เงินหลัง COMPLETED/CANCELLED + discount เกินยอดโดนปฏิเสธชั้น service
-  - verify จริง `scripts/verify-p02.ts` 35/35 + adversarial review 5 มิติแก้ครบ
-- 2026-06-10 — **P0.1 Auth จริง + RBAC ทั้งระบบ** — verify จริงผ่าน HTTP ทุกเคส (ดู commit d39e451/871b4f1)
-- 2026-06-10 — แผน P0-P4 + ใบงาน (`ROADMAP.md`) · retrofit repo
+- 2026-06-10 — **P0.5 จัดระเบียบโค้ด**:
+  - **vitest + test แกน 40 ตัว** (`npm test` — 0.5 วิ): สูตรราคา server (`pricing.test.ts` — สูตร A/ปัด half-up/กัน discount เกิน/เคส float คิดผิด 7.525→7.53) + mirror client/server + state machine (`order-status.test.ts` — รวม transitions ใหม่ของ P0.2) + เลขเอกสาร (`document-number.test.ts` — period เวลาไทย/format/retry semantics) + money helpers — **นี่คือเกราะ: แตะสูตรต้องผ่าน test ก่อน**
+  - `npm run verify:p02` = integration จริงกับ DB 35 เคส (ย้ายจาก scripts ชั่วคราวเป็นของถาวร)
+  - **ลบ dead code**: size-matrix.tsx · useOrderDraft/OrderDraftData (full-draft system ไม่ถูกใช้) · ปุ่มแก้ไข dead link `/quotations/[id]/edit` · empty dirs (api/sync, products/new, (portal)) · scripts/migrate-order-items.ts · mark BrandProfile/rfmScore ใน schema "รอ P3"
+  - **payment-method ที่เดียว**: `src/lib/payment-methods.ts` (ค่า+ป้าย) — ปิด mismatch TRANSFER/PROMPTPAY vs BANK_TRANSFER/QR_CODE (DB ล้างแล้วจึงตั้งมาตรฐานได้เลย ค่า canonical: BANK_TRANSFER/CASH/QR_CODE/CREDIT_CARD/CHECK/COD)
+  - **ESLint flat config ใช้จริง** (`npm run lint` = `eslint .` — next lint ตาย): next/core-web-vitals + typescript + no-alert(warn)/no-empty(error) · **0 errors** · warning 55 = ลิสต์หนี้ UI เก่า (react-hooks compiler rules + no-img + unused vars) → ยกเป็น error ตอน P1.0
+  - **`docs/ARCHITECTURE.md`**: ชั้นของระบบ + กฎเหล็ก (เงิน/สถานะ/เลขเอกสาร/สิทธิ์) + ตาราง test — กัน session ใหม่วางของผิดที่
+  - **attachment.create validate ปลายทางจริง** (ค้างจาก review P0.1): entityType ต้องอยู่ใน 5 ชนิดที่รองรับ + entityId ต้องชี้ record ที่มีอยู่
+  - ไม่แตะ: orders/new/page.tsx แตกไฟล์ → ทำตอน P1.12 ตามใบงาน (จงใจ)
+- 2026-06-10 — **P0.3 วินัยฐานข้อมูล**: prisma migrate จริง (baseline `0_init` + `add_hot_path_indexes`) — **ห้าม db push อีก** · seed = master data (ServiceCatalog 25) idempotent · ล้างข้อมูลทดสอบหมด (เบสยืนยัน) เหลือ: user เบส 1 · products 9 + variants 760 (Stock sync) · catalog 25 · pattern 1 · packaging 5 · settings 2 · **P0.4 ปิดโดยงาน P0.2** (TaxLineType + services แยกแล้ว)
+- 2026-06-10 — **P0.2 เงินถูกต้อง** (commit d55369c): Decimal 44 จุด + boundary extension + สูตร A platformFee + billing $transaction/lock + DocumentSequence + transitionOrder กลาง + guards · adversarial review 5 มิติ + verify 35/35
+- 2026-06-10 — **P0.1 Auth จริง + RBAC** (commit d39e451/871b4f1) · แผน + retrofit repo
 
 ## ติดอยู่ / รอตัดสิน
 - (ว่าง)
 
 ## ข้อเท็จจริงที่ session ใหม่ต้องรู้
-- **บัญชี OWNER ของเบส**: hongtaeswatht@gmail.com (user เดียวในระบบตอนนี้) · สร้างพนักงานที่ Settings → Users · bootstrap เครื่องใหม่: `node --env-file=.env scripts/create-owner.ts <email> <password> [ชื่อ]`
-- **DB สะอาดแล้ว**: ไม่มีข้อมูลทดสอบ ไม่มี order/customer ใดๆ — เลขเอกสารจะเริ่ม 0001 เมื่อสร้างเอกสารแรกของเดือน · ปัญหา "เลขเก่าชน sequence" หมดไปแล้ว (ลบเอกสารเก่าหมด)
-- **migration ใช้จริงแล้ว**: `npx prisma migrate dev` เท่านั้น ห้าม db push · history: `0_init` (baseline) → `add_hot_path_indexes`
-- **กติกาเงิน/สถานะหลัง P0.2** (ผูกทุกงานต่อจากนี้): mutation แตะยอดเงิน → ผ่าน `src/server/services/pricing.ts` · สูตร preview client (`lib/pricing.ts calculateOrderSummary`) ต้อง mirror server · field เงินจาก Prisma เป็น number แล้ว **ยกเว้น aggregate ต้อง `aggToNumber`** · status → `transitionOrder` เท่านั้น · เลขเอกสาร → `nextDocumentNumber(tx, type)` ใน tx เดียวกับเอกสาร
-- **ของที่จงใจยังไม่ทำ + ใบงานรองรับ** (อย่าทำซ้ำ/อย่าแก้เงียบ):
-  - billing.create ยังไม่กันบิลรวมเกินยอดออเดอร์ → P1 (มัดจำ/ใบวางบิล)
-  - platformFee → CostEntry/margin อัตโนมัติ → P2 job costing (โซ่ต้นทุน กติกา 4)
-  - attachment.create ไม่ validate entityType/entityId → P0.5 · sidebar โชว์เมนูทุก role → P1.0 · outsource/stock-sync scope ราย assignment → P2 · convertToOrder TOCTOU แคบ → optional
-  - review เสริม 2 มิติ (pricing-formula/decimal-boundary ละเอียด) ยังไม่ได้รันซ้ำ (ติด session limit ตอนนั้น) — ครอบคลุมโดยมิติอื่น+empirical แล้วเป็นส่วนใหญ่
-- scripts ที่มี: `create-owner.ts` (bootstrap) · `verify-p02.ts` (ทดสอบเส้นทางเงิน 35 เคส — สร้างข้อมูล [P0.2-VERIFY] จริงใน DB ถ้ารัน อย่ารันบน DB ที่ใช้งานจริงแล้ว) · `migrate-order-items.ts` (เก่า — เก็บกวาดตอน P0.5)
+- **บัญชี OWNER ของเบส**: hongtaeswatht@gmail.com (user เดียว) · สร้างพนักงาน: Settings → Users · bootstrap: `node --env-file=.env scripts/create-owner.ts <email> <password> [ชื่อ]`
+- **คำสั่งหลัก**: `npm run dev` · `npm test` (unit — ต้องผ่านก่อน commit ที่แตะสูตร) · `npm run lint` (0 errors ห้ามถอย) · `npx prisma migrate dev` (ห้าม db push) · `npm run db:seed` (master data รันซ้ำได้) · `npm run verify:p02` (integration เงิน — สร้างข้อมูลจริง ห้ามรันบน DB ใช้งานจริง)
+- **อ่าน `docs/ARCHITECTURE.md` ก่อนวางโค้ดใหม่** — ชั้น router(ผิว)/services(แกน)/lib + กฎเหล็กเงิน/สถานะ/เลขเอกสารอยู่ที่นั่นครบ
+- **DB สะอาด ไม่มี order/customer** — เลขเอกสารเริ่ม 0001 เมื่อใช้จริง · ปัญหาเลขเก่าชน sequence หมดแล้ว
+- **หนี้ที่จงใจค้าง + ใบงานรองรับ** (อย่าแก้เงียบ): lint warnings 55 (react-hooks/no-alert/no-img/unused) → P1.0 ยกเป็น error · billing.create ไม่กันบิลรวมเกินยอดออเดอร์ → P1 · platformFee → CostEntry/margin → P2 job costing · sidebar เมนูตาม role → P1.0 · review เสริม 2 มิติ (pricing/decimal ละเอียด) ยังไม่ rerun (ติดโควต้าวันนั้น)
+- payment method ใช้ค่าจาก `src/lib/payment-methods.ts` เท่านั้น — DB ไม่มีค่าเก่า (TRANSFER/PROMPTPAY) แล้ว
