@@ -10,6 +10,7 @@ import { nextDocumentNumber } from "@/server/services/document-number";
 import { priceOrderItems, computeOrderTotals, type PricedItem } from "@/server/services/pricing";
 import { transitionOrder } from "@/server/services/order-status";
 import { aggToNumber } from "@/server/services/money";
+import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 import type { InternalStatus, OrderType, TaxLineType } from "@prisma/client";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ = งานขายขึ้นไปตามตาราง RBAC §7
@@ -347,7 +348,7 @@ export const orderRouter = router({
         isDraft: z.boolean().default(false),
         isQuickInquiry: z.boolean().default(false),
         priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
-        paymentTerms: z.string().optional(),
+        paymentTerms: z.enum(PAYMENT_TERMS_VALUES).optional(),
         poNumber: z.string().optional(),
         taxRate: z.number().min(0).max(100).default(0),
         estimatedQuantity: z.number().int().min(1).optional(),
@@ -634,7 +635,8 @@ export const orderRouter = router({
         trackingNumber: z.string().optional(),
         platformFee: z.number().min(0).optional(),
         priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional(),
-        paymentTerms: z.string().optional(),
+        // nullable = ล้างกลับเป็น "ไม่ระบุ" ได้ · เทอมขับยอดบิล/วันครบกำหนด จึงนับเป็น field เงิน
+        paymentTerms: z.enum(PAYMENT_TERMS_VALUES).nullable().optional(),
         poNumber: z.string().nullable().optional(),
         estimatedQuantity: z.number().int().min(1).nullable().optional(),
         taxRate: z.number().min(0).max(100).optional(),
@@ -657,7 +659,8 @@ export const orderRouter = router({
         data.discount !== undefined ||
         data.discountReason !== undefined ||
         data.platformFee !== undefined ||
-        data.taxRate !== undefined;
+        data.taxRate !== undefined ||
+        data.paymentTerms !== undefined;
       if (
         touchesMoney &&
         (currentOrder.internalStatus === "COMPLETED" || currentOrder.internalStatus === "CANCELLED")

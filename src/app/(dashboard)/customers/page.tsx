@@ -14,6 +14,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatCurrency } from "@/lib/utils";
+import { PAYMENT_TERMS, type PaymentTermsValue } from "@/lib/payment-terms";
 import { PageHeader } from "@/components/page-header";
 import { Plus, Users, UserPlus, Crown, UserX, Building2, User } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,7 +86,9 @@ export default function CustomersPage() {
       billingProvince: formData.billingProvince || undefined,
       billingPostalCode: formData.billingPostalCode || undefined,
       creditLimit: formData.creditLimit ? parseFloat(formData.creditLimit) : undefined,
-      defaultPaymentTerms: formData.defaultPaymentTerms || undefined,
+      defaultPaymentTerms: (formData.defaultPaymentTerms || undefined) as
+        | PaymentTermsValue
+        | undefined,
     });
   };
 
@@ -244,12 +247,11 @@ export default function CustomersPage() {
                           <SelectValue placeholder="เลือกเงื่อนไข" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="COD">เก็บเงินปลายทาง (COD)</SelectItem>
-                          <SelectItem value="FULL_PREPAY">ชำระเต็มล่วงหน้า</SelectItem>
-                          <SelectItem value="DEPOSIT_50">มัดจำ 50%</SelectItem>
-                          <SelectItem value="NET_15">เครดิต 15 วัน</SelectItem>
-                          <SelectItem value="NET_30">เครดิต 30 วัน</SelectItem>
-                          <SelectItem value="NET_60">เครดิต 60 วัน</SelectItem>
+                          {PAYMENT_TERMS.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>
+                              {t.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

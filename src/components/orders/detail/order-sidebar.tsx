@@ -7,8 +7,8 @@ import {
   CHANNEL_LABELS,
   ORDER_TYPE_LABELS,
   PRIORITY_LABELS,
-  PAYMENT_TERMS_LABELS,
 } from "@/lib/order-status";
+import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { OrderBillingSection } from "@/components/orders/order-billing-section";
 
 interface OrderSidebarOrder {

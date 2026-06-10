@@ -286,16 +286,7 @@ export const PRIORITY_COLORS: Record<string, { bg: string; text: string }> = {
   URGENT: DANGER,
 };
 
-export const PAYMENT_TERMS_LABELS: Record<string, string> = {
-  COD: "เก็บเงินปลายทาง",
-  FULL_PREPAY: "ชำระเต็มจำนวนล่วงหน้า",
-  DEPOSIT_30: "มัดจำ 30%",
-  DEPOSIT_50: "มัดจำ 50%",
-  NET_7: "ชำระภายใน 7 วัน",
-  NET_15: "ชำระภายใน 15 วัน",
-  NET_30: "ชำระภายใน 30 วัน",
-  NET_60: "ชำระภายใน 60 วัน",
-};
+// PAYMENT_TERMS_LABELS ย้ายไป src/lib/payment-terms.ts (รวมค่า+ป้าย+ความหมายที่เดียว)
 
 // ============================================================
 // CHANNEL LABELS & HELPERS

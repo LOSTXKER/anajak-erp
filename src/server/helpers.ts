@@ -1,4 +1,3 @@
-import type { PrismaClient } from "@prisma/client";
 import type { PrismaTx } from "@/lib/prisma";
 
 type AuditLogAction = "CREATE" | "UPDATE" | "DELETE" | "VOID";
@@ -40,7 +39,7 @@ export async function createAuditLog(
 // ผลตัดสินแบบต้องเปลี่ยนสถานะผ่าน transitionOrder (validate + revision) ใน transaction เสมอ
 
 export async function createNotification(
-  prisma: Pick<PrismaClient, "notification">,
+  prisma: Pick<PrismaTx, "notification">,
   data: {
     userId: string;
     type: string;

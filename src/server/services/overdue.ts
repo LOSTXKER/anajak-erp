@@ -1,0 +1,123 @@
+import type { ExtendedPrismaClient } from "@/lib/prisma";
+import { createNotification } from "@/server/helpers";
+import { thaiDateUtcMidnight } from "./payment-plan";
+
+// กวาดบิลเลยกำหนดชำระ → ตั้งสถานะ OVERDUE + แจ้งเตือนทีมการเงินในกระดิ่ง
+// ตัวเรียกมี 3 ทาง: cron route (/api/cron/overdue) · billing.markOverdue (ปุ่ม manual)
+// · maybeSweepOverdue ใน billing.stats (กวาดอัตโนมัติแบบ throttle ระหว่างยังไม่ deploy cron)
+
+// "เลยกำหนด" = พ้นสิ้นวันไทยของ dueDate แล้ว — dueDate เก็บเป็น UTC midnight ของวันตามปฏิทิน
+// (จาก <input type="date">) จึงเทียบกับ UTC midnight ของวันนี้(ไทย): ครบกำหนดวันนี้ยังไม่ถือว่าเลย
+export function overdueCutoffUtc(now = new Date()): Date {
+  return thaiDateUtcMidnight(now);
+}
+
+// กลุ่มที่ต้องรู้เรื่องเงินค้าง — ชุดเดียวกับ billingStaff ใน billing router
+const NOTIFY_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"] as const;
+
+export interface SweepResult {
+  marked: number; // จำนวนบิลที่เพิ่งถูกตั้ง OVERDUE รอบนี้
+  notified: number; // จำนวนผู้ใช้ที่ได้รับแจ้งเตือน
+}
+
+export async function sweepOverdueInvoices(
+  prisma: ExtendedPrismaClient,
+  now = new Date()
+): Promise<SweepResult> {
+  const cutoff = overdueCutoffUtc(now);
+
+  return prisma.$transaction(async (tx) => {
+    const due = await tx.invoice.findMany({
+      where: {
+        paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID"] },
+        isVoided: false,
+        dueDate: { lt: cutoff },
+      },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        totalAmount: true,
+        customer: { select: { name: true } },
+      },
+      orderBy: { dueDate: "asc" },
+    });
+    if (due.length === 0) return { marked: 0, notified: 0 };
+
+    // เช็คสถานะซ้ำใน where + คืนเฉพาะแถวที่ mark ได้จริงรอบนี้ — sweep ซ้อนกัน/จ่ายเงิน
+    // คั่นกลาง ตัวที่มาช้าได้ 0 แถวจะไม่แจ้งซ้ำ และข้อความต้องตรงกับใบที่ mark จริง
+    const marked = await tx.invoice.updateManyAndReturn({
+      where: {
+        id: { in: due.map((d) => d.id) },
+        paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID"] },
+      },
+      data: { paymentStatus: "OVERDUE" },
+      select: { id: true, invoiceNumber: true, totalAmount: true },
+    });
+    if (marked.length === 0) return { marked: 0, notified: 0 };
+
+    const staff = await tx.user.findMany({
+      where: { role: { in: [...NOTIFY_ROLES] }, isActive: true },
+      select: { id: true },
+    });
+
+    const customerById = new Map(due.map((d) => [d.id, d.customer.name]));
+    const lines = marked
+      .slice(0, 5)
+      .map(
+        (m) =>
+          `${m.invoiceNumber} — ${customerById.get(m.id) ?? ""} (${m.totalAmount.toFixed(2)} บาท)`
+      );
+    if (marked.length > 5) lines.push(`และอีก ${marked.length - 5} ใบ`);
+
+    // แจ้งสรุปรอบละ 1 รายการต่อคน (ไม่แจ้งรายใบ — กัน spam กระดิ่ง)
+    for (const user of staff) {
+      await createNotification(tx, {
+        userId: user.id,
+        type: "PAYMENT",
+        title: `บิลเลยกำหนดชำระ ${marked.length} ใบ`,
+        message: lines.join("\n"),
+        link: "/billing",
+        entityType: "INVOICE",
+      });
+    }
+
+    return { marked: marked.length, notified: staff.length };
+  });
+}
+
+const SWEEP_SETTING_KEY = "overdue_last_sweep_at";
+const SWEEP_MIN_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+// กวาดอัตโนมัติไม่เกินทุก 6 ชม. — สะพานให้ overdue ทำงานจริงบนเครื่องเบสที่ยังไม่มี cron
+// เรียกจาก billing.stats (ทีมการเงินเปิดหน้า /billing ทุกวันอยู่แล้ว)
+export async function maybeSweepOverdue(
+  prisma: ExtendedPrismaClient,
+  now = new Date()
+): Promise<SweepResult | null> {
+  const existing = await prisma.setting.findUnique({
+    where: { key: SWEEP_SETTING_KEY },
+  });
+  const last = existing ? Date.parse(existing.value) : NaN;
+  if (Number.isFinite(last) && now.getTime() - last < SWEEP_MIN_INTERVAL_MS) {
+    return null;
+  }
+
+  // ชิงสิทธิ์รอบนี้แบบ atomic (เทียบค่าเดิมก่อนเขียนทับ) — แพ้แปลว่ามีคนอื่นกำลังกวาด
+  if (existing) {
+    const claimed = await prisma.setting.updateMany({
+      where: { key: SWEEP_SETTING_KEY, value: existing.value },
+      data: { value: now.toISOString() },
+    });
+    if (claimed.count === 0) return null;
+  } else {
+    try {
+      await prisma.setting.create({
+        data: { key: SWEEP_SETTING_KEY, value: now.toISOString() },
+      });
+    } catch {
+      return null; // unique ชน — แพ้ race
+    }
+  }
+
+  return sweepOverdueInvoices(prisma, now);
+}

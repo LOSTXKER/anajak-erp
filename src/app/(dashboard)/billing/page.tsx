@@ -169,7 +169,7 @@ export default function BillingPage() {
                 <EmptyState
                   icon={FileText}
                   title="ยังไม่มีบิล"
-                  description="บิลจะถูกสร้างอัตโนมัติเมื่อมีออเดอร์ที่เปิดใบเสนอราคาหรือใบแจ้งหนี้"
+                  description="สร้างบิลได้จากหน้าออเดอร์ — การ์ด บิล/การชำระเงิน"
                 />
               </td>
             </tr>

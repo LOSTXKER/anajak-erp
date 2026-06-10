@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
@@ -23,9 +24,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
+import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import {
   Receipt,
   Plus,
@@ -42,6 +44,8 @@ import type { RouterOutput } from "@/lib/trpc";
 
 type Invoice = RouterOutput["billing"]["listByOrder"][number];
 type Payment = Invoice["payments"][number];
+// ชนิดบิลที่เปิดจากหน้านี้ได้ — QUOTATION มีระบบใบเสนอราคาแยก ไม่รับใน billing.create
+type BillableInvoiceType = Exclude<InvoiceType, "QUOTATION">;
 
 interface OrderBillingSectionProps {
   orderId: string;
@@ -72,6 +76,10 @@ export function OrderBillingSection({
 
   // Create invoice form state
   const [invoiceType, setInvoiceType] = useState("DEPOSIT_INVOICE");
+  // null = ยังไม่เลือกเอง — ให้ server แนะนำชนิดบิลตามเงื่อนไขชำระของออเดอร์
+  const [chosenType, setChosenType] = useState<string | null>(null);
+  // field ที่ผู้ใช้แตะแล้ว — prefill จาก suggest ห้ามทับ (response มาช้าทับของที่พิมพ์ไม่ได้)
+  const [userEdited, setUserEdited] = useState({ amount: false, tax: false, dueDate: false });
   const [invoiceAmount, setInvoiceAmount] = useState("");
   const [invoiceDiscount, setInvoiceDiscount] = useState("0");
   const [invoiceTax, setInvoiceTax] = useState("0");
@@ -90,11 +98,49 @@ export function OrderBillingSection({
   const utils = trpc.useUtils();
   const invoices = trpc.billing.listByOrder.useQuery({ orderId });
 
+  // สิทธิ์เปิดบิล — ตรงกับ billingStaff ฝั่ง server · ปิด query/ปุ่มสำหรับ role อื่น
+  // (กันยิงไปโดน FORBIDDEN + retry ฟรี — pattern เดียวกับหน้า analytics)
+  const me = trpc.user.me.useQuery();
+  const canBill = !!me.data && ["OWNER", "MANAGER", "ACCOUNTANT"].includes(me.data.role);
+
+  // ยอดแนะนำตามเงื่อนไขชำระของออเดอร์ — ไม่ส่ง type = ให้ server เลือกชนิดบิลให้ด้วย
+  const suggestion = trpc.billing.suggest.useQuery(
+    {
+      orderId,
+      type: (chosenType ?? undefined) as BillableInvoiceType | undefined,
+    },
+    { enabled: showCreateDialog && canBill }
+  );
+
+  // prefill เมื่อคำแนะนำสดมาถึง (เปิด dialog / เปลี่ยนชนิดบิล) — ข้ามระหว่าง refetch
+  // (กัน cache เก่า prefill ชั่วคราว) และไม่ทับ field ที่ผู้ใช้แตะแล้ว
+  useEffect(() => {
+    const s = suggestion.data;
+    if (!showCreateDialog || !s || suggestion.isFetching) return;
+    if (chosenType === null) setInvoiceType(s.type);
+    if (!userEdited.amount) setInvoiceAmount(s.amount > 0 ? String(s.amount) : "");
+    if (!userEdited.tax) setInvoiceTax(String(s.tax));
+    if (!userEdited.dueDate) setInvoiceDueDate(s.dueDate ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestion.data, suggestion.isFetching, showCreateDialog]);
+
+  // ภาษีตามฐานใหม่เมื่อผู้ใช้แก้ยอด/ส่วนลด — ใบกำกับใช้ amount-discount เป็นฐานและ tax เป็น
+  // VAT ตรงๆ ถ้าไม่คิดใหม่ VAT จะค้างของยอดเดิม · หยุดเมื่อผู้ใช้แก้ช่องภาษีเองแล้ว
+  function recomputeTax(amountStr: string, discountStr: string, taxEdited: boolean) {
+    if (taxEdited) return;
+    const rate = suggestion.data?.taxRate ?? 0;
+    const base = (parseFloat(amountStr) || 0) - (parseFloat(discountStr) || 0);
+    setInvoiceTax(rate > 0 && base > 0 ? (Math.round(base * rate) / 100).toFixed(2) : "0");
+  }
+
   const createInvoice = useMutationWithInvalidation(trpc.billing.create, {
-    invalidate: [utils.billing.listByOrder, utils.order.getById],
+    invalidate: [utils.billing.listByOrder, utils.order.getById, utils.billing.suggest],
     onSuccess: () => {
       setShowCreateDialog(false);
       resetCreateForm();
+    },
+    onError: (err: { message?: string }) => {
+      toast.error(err.message ?? "สร้างบิลไม่สำเร็จ");
     },
   });
 
@@ -104,18 +150,26 @@ export function OrderBillingSection({
       setShowPaymentDialog(null);
       resetPaymentForm();
     },
+    onError: (err: { message?: string }) => {
+      toast.error(err.message ?? "บันทึกการชำระเงินไม่สำเร็จ");
+    },
   });
 
   const voidInvoice = useMutationWithInvalidation(trpc.billing.voidInvoice, {
-    invalidate: [utils.billing.listByOrder, utils.order.getById],
+    invalidate: [utils.billing.listByOrder, utils.order.getById, utils.billing.suggest],
     onSuccess: () => {
       setShowVoidDialog(null);
       setVoidReason("");
+    },
+    onError: (err: { message?: string }) => {
+      toast.error(err.message ?? "ยกเลิกบิลไม่สำเร็จ");
     },
   });
 
   function resetCreateForm() {
     setInvoiceType("DEPOSIT_INVOICE");
+    setChosenType(null);
+    setUserEdited({ amount: false, tax: false, dueDate: false });
     setInvoiceAmount("");
     setInvoiceDiscount("0");
     setInvoiceTax("0");
@@ -134,7 +188,7 @@ export function OrderBillingSection({
     createInvoice.mutate({
       orderId,
       customerId,
-      type: invoiceType as InvoiceType,
+      type: invoiceType as BillableInvoiceType,
       amount: parseFloat(invoiceAmount) || 0,
       discount: parseFloat(invoiceDiscount) || 0,
       tax: parseFloat(invoiceTax) || 0,
@@ -155,17 +209,8 @@ export function OrderBillingSection({
   }
 
   function openCreateDialog() {
-    // Pre-fill amount suggestion
-    const existingTotal = (invoices.data || [])
-      .filter((inv) => !inv.isVoided)
-      .reduce((sum, inv) => sum + inv.totalAmount, 0);
-    const remaining = Math.max(0, totalAmount - existingTotal);
-
-    if (invoiceType === "DEPOSIT_INVOICE") {
-      setInvoiceAmount(Math.round(totalAmount * 0.5).toString());
-    } else {
-      setInvoiceAmount(remaining.toString());
-    }
+    // ยอด/ชนิดบิล/วันครบกำหนด prefill จาก billing.suggest ตามเงื่อนไขชำระของออเดอร์
+    resetCreateForm();
     setShowCreateDialog(true);
   }
 
@@ -189,7 +234,7 @@ export function OrderBillingSection({
               <Receipt className="h-4 w-4" />
               บิล/การชำระเงิน
             </CardTitle>
-            {canCreateInvoice && (
+            {canCreateInvoice && canBill && (
               <Button
                 size="sm"
                 onClick={openCreateDialog}
@@ -278,7 +323,8 @@ export function OrderBillingSection({
                         </div>
                         <p className="text-xs text-slate-500">
                           {formatDateTime(inv.createdAt)}
-                          {inv.dueDate && ` | ครบกำหนด: ${formatDateTime(inv.dueDate)}`}
+                          {/* dueDate เก็บเป็น UTC midnight ของวันปฏิทินไทย — โชว์เวลาด้วยจะได้ 07:00 ปลอม */}
+                          {inv.dueDate && ` | ครบกำหนด: ${formatDate(inv.dueDate)}`}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -409,7 +455,14 @@ export function OrderBillingSection({
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 ประเภทบิล
               </label>
-              <Select value={invoiceType} onValueChange={setInvoiceType}>
+              <Select
+                value={invoiceType}
+                onValueChange={(v) => {
+                  setInvoiceType(v);
+                  setChosenType(v); // เปลี่ยนชนิด → suggest คำนวณยอดใหม่ให้ตามชนิดนั้น
+                  setUserEdited({ amount: false, tax: false, dueDate: false });
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -421,6 +474,27 @@ export function OrderBillingSection({
                   <SelectItem value="DEBIT_NOTE">ใบเพิ่มหนี้</SelectItem>
                 </SelectContent>
               </Select>
+              {suggestion.data &&
+                (suggestion.data.paymentTerms || suggestion.data.remaining !== null) && (
+                <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  {suggestion.data.paymentTerms && (
+                    <>
+                      เงื่อนไขชำระ:{" "}
+                      {PAYMENT_TERMS_LABELS[suggestion.data.paymentTerms] ??
+                        suggestion.data.paymentTerms}
+                      {" · "}
+                    </>
+                  )}
+                  {suggestion.data.remaining !== null &&
+                    `คงเหลือวางบิลได้ ${formatCurrency(suggestion.data.remaining)}`}
+                </p>
+              )}
+              {suggestion.data && suggestion.data.creditNoteTotal > 0 && (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                  มีใบลดหนี้รวม {formatCurrency(suggestion.data.creditNoteTotal)} —
+                  ยอดค้างจริงของลูกค้าอาจต่ำกว่ายอดแนะนำ ตรวจก่อนสร้างบิล
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -430,7 +504,11 @@ export function OrderBillingSection({
                 <Input
                   type="number"
                   value={invoiceAmount}
-                  onChange={(e) => setInvoiceAmount(e.target.value)}
+                  onChange={(e) => {
+                    setUserEdited((prev) => ({ ...prev, amount: true }));
+                    setInvoiceAmount(e.target.value);
+                    recomputeTax(e.target.value, invoiceDiscount, userEdited.tax);
+                  }}
                   min="0"
                   step="0.01"
                 />
@@ -442,7 +520,10 @@ export function OrderBillingSection({
                 <Input
                   type="number"
                   value={invoiceDiscount}
-                  onChange={(e) => setInvoiceDiscount(e.target.value)}
+                  onChange={(e) => {
+                    setInvoiceDiscount(e.target.value);
+                    recomputeTax(invoiceAmount, e.target.value, userEdited.tax);
+                  }}
                   min="0"
                   step="0.01"
                 />
@@ -456,7 +537,10 @@ export function OrderBillingSection({
                 <Input
                   type="number"
                   value={invoiceTax}
-                  onChange={(e) => setInvoiceTax(e.target.value)}
+                  onChange={(e) => {
+                    setUserEdited((prev) => ({ ...prev, tax: true }));
+                    setInvoiceTax(e.target.value);
+                  }}
                   min="0"
                   step="0.01"
                 />
@@ -468,7 +552,10 @@ export function OrderBillingSection({
                 <Input
                   type="date"
                   value={invoiceDueDate}
-                  onChange={(e) => setInvoiceDueDate(e.target.value)}
+                  onChange={(e) => {
+                    setUserEdited((prev) => ({ ...prev, dueDate: true }));
+                    setInvoiceDueDate(e.target.value);
+                  }}
                 />
               </div>
             </div>

@@ -4,6 +4,7 @@ import { router, protectedProcedure, requireRole } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
+import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 
 const customerEditors = requireRole("OWNER", "MANAGER", "ACCOUNTANT", "SALES");
 
@@ -89,7 +90,7 @@ export const customerRouter = router({
         billingPostalCode: z.string().optional(),
         // Credit management
         creditLimit: z.number().optional(),
-        defaultPaymentTerms: z.string().optional(),
+        defaultPaymentTerms: z.enum(PAYMENT_TERMS_VALUES).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -143,7 +144,7 @@ export const customerRouter = router({
         billingPostalCode: z.string().nullable().optional(),
         // Credit management
         creditLimit: z.number().nullable().optional(),
-        defaultPaymentTerms: z.string().nullable().optional(),
+        defaultPaymentTerms: z.enum(PAYMENT_TERMS_VALUES).nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

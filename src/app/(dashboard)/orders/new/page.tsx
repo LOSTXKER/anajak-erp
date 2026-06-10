@@ -16,9 +16,9 @@ import { PageHeader } from "@/components/page-header";
 import {
   CHANNEL_LABELS,
   PRIORITY_LABELS,
-  PAYMENT_TERMS_LABELS,
   isMarketplaceChannel,
 } from "@/lib/order-status";
+import { PAYMENT_TERMS_LABELS, type PaymentTermsValue } from "@/lib/payment-terms";
 import {
   calculateFormItemSubtotal,
   calculateOrderSummary,
@@ -354,7 +354,7 @@ export default function NewOrderPage() {
     isDraft,
     isQuickInquiry,
     priority,
-    paymentTerms: paymentTerms || undefined,
+    paymentTerms: (paymentTerms || undefined) as PaymentTermsValue | undefined,
     poNumber: poNumber || undefined,
     taxRate,
     estimatedQuantity: estimatedQuantity ? Number(estimatedQuantity) : undefined,

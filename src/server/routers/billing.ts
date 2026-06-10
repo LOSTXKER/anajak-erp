@@ -5,6 +5,12 @@ import { getStartOfMonth } from "@/lib/date-utils";
 import { notFound, badRequest } from "@/server/errors";
 import { D, aggToNumber, moneyInput } from "@/server/services/money";
 import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/document-number";
+import {
+  remainingBillable,
+  dueDateFromTerms,
+  suggestInvoice,
+} from "@/server/services/payment-plan";
+import { sweepOverdueInvoices, maybeSweepOverdue } from "@/server/services/overdue";
 import type { PrismaTx } from "@/lib/prisma";
 
 // เปิดบิล/จัดการสถานะบิล — บัญชี + ระดับบริหาร
@@ -16,6 +22,12 @@ const moneyRecorder = requireRole("OWNER", "ACCOUNTANT");
 // (อ่าน payments → เช็คยอดคงเหลือ → เขียน ไม่ atomic ถ้าไม่ล็อก) · เรียกใน transaction เท่านั้น
 async function lockInvoiceRow(tx: PrismaTx, invoiceId: string) {
   await tx.$queryRaw`SELECT id FROM invoices WHERE id = ${invoiceId} FOR UPDATE`;
+}
+
+// ล็อกแถวออเดอร์ก่อนเช็คเพดานวางบิล — สอง request เปิดบิลออเดอร์เดียวกันพร้อมกัน
+// ต้องเห็นยอดบิลของกันและกัน ไม่งั้น sum แล้วเขียนทับทะลุเพดานได้
+async function lockOrderRow(tx: PrismaTx, orderId: string) {
+  await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId} FOR UPDATE`;
 }
 
 export const billingRouter = router({
@@ -76,8 +88,9 @@ export const billingRouter = router({
       z.object({
         orderId: z.string(),
         customerId: z.string(),
+        // QUOTATION ไม่รับ — ใบเสนอราคามีระบบ Quotation แยก ไม่ควรกินเลขบิล
         type: z.enum([
-          "QUOTATION", "DEPOSIT_INVOICE", "FINAL_INVOICE",
+          "DEPOSIT_INVOICE", "FINAL_INVOICE",
           "RECEIPT", "CREDIT_NOTE", "DEBIT_NOTE",
         ]),
         amount: z.number().min(0),
@@ -90,7 +103,7 @@ export const billingRouter = router({
     .mutation(async ({ ctx, input }) => {
       const order = await ctx.prisma.order.findUnique({
         where: { id: input.orderId },
-        select: { id: true, customerId: true, totalAmount: true },
+        select: { id: true, customerId: true, totalAmount: true, paymentTerms: true },
       });
       if (!order) {
         notFound("ออเดอร์", input.orderId);
@@ -107,9 +120,35 @@ export const billingRouter = router({
         badRequest("ส่วนลดเกินยอดบิล — ยอดรวมติดลบไม่ได้");
       }
 
+      // ไม่กรอกวันครบกำหนด → เครดิตเทอม (NET_X) ตั้งให้อัตโนมัติจากเทอมของออเดอร์
+      const dueDate = input.dueDate
+        ? new Date(input.dueDate)
+        : input.type === "DEPOSIT_INVOICE" || input.type === "FINAL_INVOICE"
+          ? dueDateFromTerms(order.paymentTerms)
+          : null;
+
       // เลขบิลรันต่อเนื่อง — สร้างใน transaction เดียวกับบิลเสมอ
       const invoice = await withDocNumberRetry(() =>
         ctx.prisma.$transaction(async (tx) => {
+          // เพดานวางบิล: ใบแจ้งหนี้ (มัดจำ+ส่วนที่เหลือ) รวมกันห้ามเกินยอดออเดอร์ ·
+          // ใบเสร็จนับแยกอีกกอง (+ใบเพิ่มหนี้ −ใบลดหนี้) · ลดหนี้/เพิ่มหนี้ไม่จำกัด
+          // ทั้งยอดออเดอร์และบิลเดิมต้องอ่านใต้ lock — snapshot นอก tx อาจ stale ถ้ามีคนแก้ยอดพร้อมกัน
+          await lockOrderRow(tx, order.id);
+          const lockedOrder = await tx.order.findUniqueOrThrow({
+            where: { id: order.id },
+            select: { totalAmount: true },
+          });
+          const existing = await tx.invoice.findMany({
+            where: { orderId: order.id },
+            select: { type: true, totalAmount: true, isVoided: true },
+          });
+          const remaining = remainingBillable(lockedOrder.totalAmount, existing, input.type);
+          if (remaining !== null && totalAmount.gt(remaining)) {
+            badRequest(
+              `ยอดบิลเกินยอดออเดอร์ — วางบิลได้อีกไม่เกิน ${remaining.toFixed(2)} บาท`
+            );
+          }
+
           const created = await tx.invoice.create({
             data: {
               invoiceNumber: await nextDocumentNumber(tx, input.type),
@@ -120,7 +159,7 @@ export const billingRouter = router({
               discount: discount.toNumber(),
               tax: tax.toNumber(),
               totalAmount: totalAmount.toNumber(),
-              dueDate: input.dueDate ? new Date(input.dueDate) : null,
+              dueDate,
               notes: input.notes,
             },
           });
@@ -142,6 +181,36 @@ export const billingRouter = router({
       );
 
       return invoice;
+    }),
+
+  // ยอดบิลแนะนำตามเงื่อนไขชำระของออเดอร์ — UI ใช้ prefill dialog สร้างบิล
+  // (ไม่ระบุ type = ให้เลือกชนิดให้ด้วย เช่น เทอมมัดจำที่ยังไม่มีใบมัดจำ → DEPOSIT_INVOICE)
+  suggest: protectedProcedure
+    .use(billingStaff)
+    .input(
+      z.object({
+        orderId: z.string(),
+        type: z
+          .enum(["DEPOSIT_INVOICE", "FINAL_INVOICE", "RECEIPT", "CREDIT_NOTE", "DEBIT_NOTE"])
+          .optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const order = await ctx.prisma.order.findUnique({
+        where: { id: input.orderId },
+        select: { paymentTerms: true, totalAmount: true, taxRate: true },
+      });
+      if (!order) {
+        notFound("ออเดอร์", input.orderId);
+      }
+      const invoices = await ctx.prisma.invoice.findMany({
+        where: { orderId: input.orderId },
+        select: { type: true, totalAmount: true, isVoided: true },
+      });
+      return {
+        ...suggestInvoice({ order, invoices, type: input.type }),
+        paymentTerms: order.paymentTerms,
+      };
     }),
 
   recordPayment: protectedProcedure
@@ -352,43 +421,61 @@ export const billingRouter = router({
   markOverdue: protectedProcedure
     .use(billingStaff)
     .mutation(async ({ ctx }) => {
-      const result = await ctx.prisma.invoice.updateMany({
-        where: {
-          paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID"] },
-          isVoided: false,
-          dueDate: { lt: new Date() },
-        },
-        data: { paymentStatus: "OVERDUE" },
-      });
-      return { updated: result.count };
+      const result = await sweepOverdueInvoices(ctx.prisma);
+      return { updated: result.marked };
     }),
 
   stats: protectedProcedure.use(billingStaff).query(async ({ ctx }) => {
+    // กวาดบิลเลยกำหนดแบบ throttle (≤ ทุก 6 ชม.) — หน้า /billing เปิดทุกวันโดยทีมการเงิน
+    // ทำให้ OVERDUE ทำงานจริงบนเครื่องที่ยังไม่ได้ตั้ง cron (deploy แล้วมี /api/cron/overdue เสริม)
+    await maybeSweepOverdue(ctx.prisma);
+
     const startOfMonth = getStartOfMonth();
 
-    const [totalUnpaid, overdueCount, revenueThisMonth, paidThisMonth] = await Promise.all([
-      ctx.prisma.invoice.aggregate({
-        _sum: { totalAmount: true },
-        where: { paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID"] }, isVoided: false },
-      }),
-      ctx.prisma.invoice.count({
-        where: { paymentStatus: "OVERDUE", isVoided: false },
-      }),
-      ctx.prisma.invoice.aggregate({
-        _sum: { totalAmount: true },
-        where: { createdAt: { gte: startOfMonth }, isVoided: false },
-      }),
-      ctx.prisma.payment.aggregate({
-        _sum: { amount: true },
-        where: { createdAt: { gte: startOfMonth } },
-      }),
-    ]);
+    // ยอดค้าง/รายได้นับเฉพาะใบแจ้งหนี้ (มัดจำ+ส่วนที่เหลือ) + ใบเพิ่มหนี้ −ใบลดหนี้ —
+    // ใบเสร็จคือเอกสารรับเงินของบิลเดียวกัน นับด้วยจะซ้ำสองเท่า · OVERDUE ยังเป็นยอดค้างอยู่
+    const [totalUnpaid, overdueCount, revenueThisMonth, creditThisMonth, paidThisMonth] =
+      await Promise.all([
+        ctx.prisma.invoice.aggregate({
+          _sum: { totalAmount: true },
+          where: {
+            type: { in: ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"] },
+            paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID", "OVERDUE"] },
+            isVoided: false,
+          },
+        }),
+        ctx.prisma.invoice.count({
+          where: { paymentStatus: "OVERDUE", isVoided: false },
+        }),
+        ctx.prisma.invoice.aggregate({
+          _sum: { totalAmount: true },
+          where: {
+            type: { in: ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"] },
+            createdAt: { gte: startOfMonth },
+            isVoided: false,
+          },
+        }),
+        ctx.prisma.invoice.aggregate({
+          _sum: { totalAmount: true },
+          where: {
+            type: "CREDIT_NOTE",
+            createdAt: { gte: startOfMonth },
+            isVoided: false,
+          },
+        }),
+        ctx.prisma.payment.aggregate({
+          _sum: { amount: true },
+          where: { createdAt: { gte: startOfMonth } },
+        }),
+      ]);
 
     // ผล aggregate ไม่ผ่าน result extension — ต้องแปลง Decimal → number ที่นี่
     return {
       totalUnpaid: aggToNumber(totalUnpaid._sum.totalAmount),
       overdueCount,
-      revenueThisMonth: aggToNumber(revenueThisMonth._sum.totalAmount),
+      revenueThisMonth:
+        aggToNumber(revenueThisMonth._sum.totalAmount) -
+        aggToNumber(creditThisMonth._sum.totalAmount),
       paidThisMonth: aggToNumber(paidThisMonth._sum.amount),
     };
   }),

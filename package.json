@@ -15,7 +15,8 @@
     "db:studio": "prisma studio",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify:p02": "tsx --env-file=.env scripts/verify-p02.ts"
+    "verify:p02": "tsx --env-file=.env scripts/verify-p02.ts",
+    "verify:terms": "tsx --env-file=.env scripts/verify-terms-overdue.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",

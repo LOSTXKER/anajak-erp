@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText } from "lucide-react";
 
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -122,7 +123,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 )}
                 {customer.defaultPaymentTerms && (
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                    <DollarSign className="h-4 w-4" /> เงื่อนไขชำระ: {customer.defaultPaymentTerms}
+                    <DollarSign className="h-4 w-4" /> เงื่อนไขชำระ: {PAYMENT_TERMS_LABELS[customer.defaultPaymentTerms] ?? customer.defaultPaymentTerms}
                   </div>
                 )}
                 {customer.billingAddress && (

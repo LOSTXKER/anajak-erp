@@ -22,10 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Save } from "lucide-react";
-import {
-  PRIORITY_LABELS,
-  PAYMENT_TERMS_LABELS,
-} from "@/lib/order-status";
+import { PRIORITY_LABELS } from "@/lib/order-status";
+import { PAYMENT_TERMS_LABELS, type PaymentTermsValue } from "@/lib/payment-terms";
 
 interface OrderInfoEditOrder {
   id: string;
@@ -159,7 +157,8 @@ export function OrderInfoEditDialog({
       taxRate: form.taxRate,
       discount: form.discount,
       platformFee: form.platformFee || undefined,
-      paymentTerms: form.paymentTerms || undefined,
+      // null = ล้างกลับเป็น "ไม่ระบุ" จริง (undefined = Prisma ข้าม field ล้างไม่ได้)
+      paymentTerms: (form.paymentTerms || null) as PaymentTermsValue | null,
       poNumber: form.poNumber || undefined,
       shippingRecipientName: form.shippingRecipientName || undefined,
       shippingPhone: form.shippingPhone || undefined,
