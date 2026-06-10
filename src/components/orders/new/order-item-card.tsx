@@ -80,7 +80,7 @@ function OrderItemRow({
     <div
       className={cn(
         "flex items-center gap-2 py-2.5 transition-colors",
-        isExpanded && "border-b border-slate-100 dark:border-slate-800",
+        isExpanded && "border-b border-slate-200/80 dark:border-slate-700/60",
       )}
     >
       <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
@@ -180,7 +180,13 @@ export function OrderItemCard({
   const subtotal = calculateFormItemSubtotal(item);
 
   return (
-    <div className={cn(isExpanded && "bg-slate-50/50 dark:bg-slate-800/30")}>
+    <div
+      className={cn(
+        // รายการที่กางอยู่ = แผงเทาอ่อนขอบชัด แยกชั้นจากการ์ดขาว (ช่องกรอกขาวเด้งขึ้นมา)
+        isExpanded &&
+          "my-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 dark:border-slate-700/60 dark:bg-slate-800/40"
+      )}
+    >
       <OrderItemRow
         item={item} itemIdx={itemIdx} canRemove={canRemove}
         isExpanded={isExpanded} onToggleExpand={onToggleExpand}
