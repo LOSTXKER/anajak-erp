@@ -1,7 +1,7 @@
 "use client";
 
 // หน้าเปิดงานใหม่ — โหมดเดียว ไม่ถามชนิดออเดอร์ (ระบบ derive จากเนื้อรายการเอง):
-// การ์ดบน = แกนบังคับ (ลูกค้า/ชื่องาน) เปิดงานได้ใน 15 วินาทีระหว่างถือแชท
+// บังคับแค่ลูกค้า — ชื่องานว่างได้ server ตั้งให้เอง · เปิดงานได้ในไม่กี่วินาทีระหว่างถือแชท
 // ส่วนที่เหลือ = กล่องพับ ใส่ตอนนี้หรือไปเติมที่หน้าออเดอร์ทีหลังก็ได้
 // (ด่านฝั่ง server กันให้: ยืนยันออเดอร์ต้องมีรายการ · ปิดงานต้องวางบิลครบ)
 
@@ -80,7 +80,6 @@ export default function NewOrderPage() {
   const [deadline, setDeadline] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
-  const [estimatedQuantity, setEstimatedQuantity] = useState<number | "">("");
 
   const {
     items, setItems,
@@ -303,18 +302,12 @@ export default function NewOrderPage() {
     const errors: string[] = [];
 
     if (!customerId) errors.push("กรุณาเลือกลูกค้า");
-    if (!title.trim()) errors.push("กรุณาระบุชื่องาน");
 
     if (deadline) {
       const deadlineDate = new Date(deadline + "T23:59:59");
       if (deadlineDate < new Date()) {
         errors.push("กำหนดส่งต้องไม่เป็นวันที่ผ่านมาแล้ว");
       }
-    }
-
-    // เปิดงานเบา (ยังไม่มีรายการ) ต้องจดความต้องการไว้ — ไม่งั้นกลับมาดูแล้วไม่รู้ลูกค้าเอาอะไร
-    if (!hasItemContent && !description.trim()) {
-      errors.push("ยังไม่ใส่รายการสินค้า — กรุณาจดรายละเอียดที่ลูกค้าต้องการไว้ก่อน");
     }
 
     if (taxRate < 0 || taxRate > 100) {
@@ -365,7 +358,7 @@ export default function NewOrderPage() {
   const buildMutationInput = (isDraft: boolean) => ({
     channel: channel as "SHOPEE" | "LAZADA" | "TIKTOK" | "LINE" | "WALK_IN" | "PHONE" | "WEBSITE",
     customerId,
-    title,
+    title: title.trim() || undefined,
     description: description || undefined,
     deadline: deadline || undefined,
     notes: notes || undefined,
@@ -377,7 +370,6 @@ export default function NewOrderPage() {
     paymentTerms: (paymentTerms || undefined) as PaymentTermsValue | undefined,
     poNumber: poNumber || undefined,
     taxRate,
-    estimatedQuantity: estimatedQuantity ? Number(estimatedQuantity) : undefined,
     ...(shippingMutationInput() && { shippingAddress: shippingMutationInput() }),
     items: hasItemContent ? mapItemsToMutationInput(items) : [],
     fees: hasItemContent ? mapFeesToMutationInput(fees) : [],
@@ -396,15 +388,18 @@ export default function NewOrderPage() {
     if (errors.length > 0) return;
 
     const totalProducts = items.reduce((s, it) => s + it.products.length, 0);
+    const dialogTitle = title.trim()
+      ? `เปิดงาน "${title.trim()}"?`
+      : `เปิดงานของ ${selectedCustomer?.name ?? "ลูกค้า"}?`;
     const ok = await confirmDialog(
       hasItemContent
         ? {
-            title: `เปิดงาน "${title}"?`,
+            title: dialogTitle,
             description: `${items.length} รายการ (${totalProducts} สินค้า) · ยอดรวม ${formatCurrency(pricingSummary.grandTotal)}`,
             confirmText: "เปิดงาน",
           }
         : {
-            title: `เปิดงาน "${title}"?`,
+            title: dialogTitle,
             description: "ยังไม่ใส่รายการ/ราคา — งานจะเริ่มเป็นการสอบถาม เติมรายละเอียดที่หน้าออเดอร์ได้",
             confirmText: "เปิดงาน",
           }
@@ -429,7 +424,7 @@ export default function NewOrderPage() {
           { label: "เปิดงานใหม่" },
         ]}
         title="เปิดงานใหม่"
-        description="ใส่แค่ลูกค้ากับชื่องานก็เปิดได้ — รายการ/ราคา/ที่อยู่ เติมตอนนี้หรือไปเติมที่หน้าออเดอร์ทีหลัง"
+        description="เลือกลูกค้าอย่างเดียวก็เปิดได้ — ชื่องาน/รายการ/ราคา/ที่อยู่ เติมตอนนี้หรือไปเติมที่หน้าออเดอร์ทีหลัง"
       />
 
       {hasDraft && (
@@ -506,12 +501,11 @@ export default function NewOrderPage() {
             </div>
 
             <div>
-              <label className={sectionLabelClass}>ชื่องาน *</label>
+              <label className={sectionLabelClass}>ชื่องาน</label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="เช่น เสื้อยืดทีม ABC 50 ตัว..."
-                required
+                placeholder="เว้นว่างได้ — ระบบตั้งให้จากรายการ/ชื่อลูกค้า"
               />
             </div>
 
@@ -542,35 +536,14 @@ export default function NewOrderPage() {
             </div>
 
             <div>
-              <label className={sectionLabelClass}>
-                รายละเอียดจากแชท
-                {!hasItemContent && (
-                  <span className="ml-0.5 text-blue-600 dark:text-blue-400">*</span>
-                )}
-              </label>
+              <label className={sectionLabelClass}>รายละเอียดจากแชท</label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="จดสิ่งที่ลูกค้าต้องการ — แบบ/สี/จำนวน/งบ..."
                 rows={3}
-                required={!hasItemContent}
               />
             </div>
-
-            {!hasItemContent && (
-              <div>
-                <label className={sectionLabelClass}>จำนวนโดยประมาณ (ชิ้น)</label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={estimatedQuantity}
-                  onChange={(e) =>
-                    setEstimatedQuantity(e.target.value ? parseInt(e.target.value) : "")
-                  }
-                  placeholder="เช่น 50, 100..."
-                />
-              </div>
-            )}
 
             <div>
               <label className={sectionLabelClass}>ช่องทาง</label>

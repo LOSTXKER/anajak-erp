@@ -351,7 +351,7 @@ export const orderRouter = router({
         channel: z.enum(["SHOPEE", "LAZADA", "TIKTOK", "LINE", "WALK_IN", "PHONE", "WEBSITE"]).default("LINE"),
         customerId: z.string(),
         brandProfileId: z.string().optional(),
-        title: z.string().min(1, "กรุณากรอกชื่อออเดอร์"),
+        title: z.string().optional(),
         description: z.string().optional(),
         deadline: z.string().optional(),
         notes: z.string().optional(),
@@ -435,6 +435,29 @@ export const orderRouter = router({
         }
       }
 
+      // ชื่องานไม่บังคับ (เบสเคาะ 2026-06-11 — เปิดงานเร็วสำคัญกว่าคิดชื่อ) — ว่าง = ตั้งให้เอง:
+      // มีรายการ → ใช้คำอธิบายรายการแรก (ป้ายที่มีความหมายจริง) · ไม่มี → ชื่อลูกค้า+วันที่ไทย
+      let title = orderData.title?.trim();
+      if (!title) {
+        title = items
+          .flatMap((it) => [it.description, ...it.products.map((p) => p.description)])
+          .map((d) => d?.trim())
+          .find(Boolean)
+          ?.slice(0, 80);
+      }
+      if (!title) {
+        const customer = await ctx.prisma.customer.findUniqueOrThrow({
+          where: { id: orderData.customerId },
+          select: { name: true },
+        });
+        const thaiDate = new Intl.DateTimeFormat("th-TH", {
+          day: "numeric",
+          month: "short",
+          timeZone: "Asia/Bangkok",
+        }).format(new Date());
+        title = `งาน ${customer.name} ${thaiDate}`;
+      }
+
       // ร่าง → DRAFT · ไม่มีรายการ (เปิดเบา/สอบถาม) → INQUIRY · มีรายการ → ตามชนิดที่ derive
       // (สำเร็จรูปล้วน = CONFIRMED ทันที · มีงานพิมพ์ = INQUIRY รอตีราคา/ยืนยัน)
       const initialStatus = input.isDraft
@@ -475,7 +498,7 @@ export const orderRouter = router({
                 createdById: ctx.userId,
                 customerStatus,
                 internalStatus: initialStatus,
-                title: orderData.title,
+                title,
                 description: orderData.description,
                 deadline: orderData.deadline ? new Date(orderData.deadline) : null,
                 notes: orderData.notes,

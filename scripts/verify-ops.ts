@@ -301,6 +301,26 @@ async function main() {
         mixedTax.join(",") === "GOODS,HIRE_OF_WORK",
       { s: mixed.internalStatus, tax: mixedTax }
     );
+
+    // ชื่องานไม่บังคับ — ระบบตั้งให้เอง
+    const noTitle = await caller.order.create({ customerId: customer.id, items: [] });
+    ids.orders.push(noTitle.id);
+    ok(
+      "5.6 เปิดงานไม่ใส่ชื่อ+ไม่มีรายการ → ตั้งชื่อจากลูกค้า+วันที่ให้เอง",
+      noTitle.title.startsWith("งาน ") && noTitle.title.includes(customer.name),
+      noTitle.title
+    );
+
+    const noTitleItems = await caller.order.create({
+      customerId: customer.id,
+      items: [plainItem],
+    });
+    ids.orders.push(noTitleItems.id);
+    ok(
+      "5.7 เปิดงานไม่ใส่ชื่อ+มีรายการ → ใช้คำอธิบายรายการแรกเป็นชื่องาน",
+      noTitleItems.title === "เสื้อเปล่าจากสต๊อก",
+      noTitleItems.title
+    );
   } finally {
     // ---------- ล้างเกลี้ยง + คืนเลขเอกสาร ----------
     await prisma.notification.deleteMany({ where: { entityId: { in: ids.orders } } });
