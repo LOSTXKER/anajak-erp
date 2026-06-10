@@ -8,6 +8,7 @@ import { prisma } from "../src/lib/prisma";
 import { COMPANY_PROFILE_KEY } from "../src/lib/company-profile";
 import PrintQuotationPage from "../src/app/(print)/print/quotation/[id]/page";
 import PrintInvoicePage from "../src/app/(print)/print/invoice/[id]/page";
+import PrintJobTicketPage from "../src/app/(print)/print/job-ticket/[id]/page";
 
 let pass = 0;
 const fails: string[] = [];
@@ -76,10 +77,74 @@ async function main() {
         internalStatus: "CONFIRMED",
         customerStatus: "ORDER_RECEIVED",
         title: "เสื้อทีมทดสอบการพิมพ์",
+        priority: "URGENT",
+        deadline: new Date("2026-06-25"),
+        notes: "งานรีบ ลูกค้าใช้ออกบูธ",
         subtotalItems: 1200,
         taxRate: 7,
         taxAmount: 84,
         totalAmount: 1284,
+        items: {
+          create: [
+            {
+              sortOrder: 0,
+              description: "เสื้อทีมงานบูธ",
+              totalQuantity: 12,
+              subtotal: 1200,
+              products: {
+                create: [
+                  {
+                    sortOrder: 0,
+                    productType: "T_SHIRT",
+                    description: "เสื้อยืดคอกลมสีดำ",
+                    baseUnitPrice: 80,
+                    totalQuantity: 12,
+                    subtotal: 960,
+                    itemSource: "CUSTOM_MADE",
+                    fabricType: "COTTON",
+                    fabricColor: "ดำ",
+                    variants: {
+                      create: [
+                        { size: "M", color: "ดำ", quantity: 5 },
+                        { size: "L", color: "ดำ", quantity: 7 },
+                      ],
+                    },
+                  },
+                ],
+              },
+              prints: {
+                create: [
+                  {
+                    position: "FRONT",
+                    printType: "SILK_SCREEN",
+                    colorCount: 2,
+                    width: 25,
+                    height: 30,
+                    designNote: "โลโก้กลางอก ห้ามเพี้ยนสี",
+                    unitPrice: 20,
+                  },
+                ],
+              },
+              addons: {
+                create: [
+                  { addonType: "POLY_BAG", name: "ถุงแพค OPP", pricingType: "PER_PIECE", unitPrice: 3 },
+                ],
+              },
+            },
+          ],
+        },
+        productions: {
+          create: [
+            {
+              steps: {
+                create: [
+                  { stepType: "SCREEN_PRINTING", sortOrder: 1 },
+                  { stepType: "PACKAGING", sortOrder: 2 },
+                ],
+              },
+            },
+          ],
+        },
       },
     });
     ids.order = order.id;
@@ -184,6 +249,16 @@ async function main() {
       await PrintInvoicePage({ params: Promise.resolve({ id: voidedCn.id }) })
     );
     ok("ใบลดหนี้ที่ถูก void: ลายน้ำยกเลิก + เหตุผล", cHtml.includes("ยกเลิก") && cHtml.includes("ออกผิดใบ") && cHtml.includes("ใบลดหนี้"));
+
+    const jHtml = renderToStaticMarkup(
+      await PrintJobTicketPage({ params: Promise.resolve({ id: order.id }) })
+    );
+    ok("Job Ticket: หัวใบงาน + QR", jHtml.includes("JOB TICKET") && jHtml.includes("TEST-ORD-PRINT") && jHtml.includes("<svg"));
+    ok("Job Ticket: กำหนดส่ง + ความเร่งด่วนเด่น", jHtml.includes("กำหนดส่ง") && jHtml.includes("เร่งด่วน"));
+    ok("Job Ticket: ตารางไซซ์", jHtml.includes("× 5") && jHtml.includes("× 7") && jHtml.includes("รวม 12"));
+    ok("Job Ticket: ลายพิมพ์ครบ", jHtml.includes("Silk Screen") && jHtml.includes("25 × 30 ซม.") && jHtml.includes("ห้ามเพี้ยนสี"));
+    ok("Job Ticket: ขั้นตอนผลิต + ส่วนเสริม", jHtml.includes("สกรีน/พิมพ์") && jHtml.includes("แพ็คกิ้ง") && jHtml.includes("ถุงแพค OPP"));
+    ok("Job Ticket: ไม่มีราคา/เงินบนใบ", !jHtml.includes("฿") && !jHtml.includes("ราคา") && !jHtml.includes("จำนวนเงิน") && !jHtml.includes("บาท"));
   } finally {
     // ลบข้อมูลทดสอบเกลี้ยง + คืนค่า company profile เดิม
     await prisma.payment.deleteMany({ where: { invoice: { invoiceNumber: { startsWith: "TEST-" } } } });

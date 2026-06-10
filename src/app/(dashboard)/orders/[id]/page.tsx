@@ -25,6 +25,7 @@ import {
   Edit3,
   Copy,
   MoreHorizontal,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -213,6 +214,13 @@ export default function OrderDetailPage({
                 {INTERNAL_STATUS_LABELS[order.internalStatus]}
               </span>
             </span>
+
+            <Button variant="outline" size="sm" asChild>
+              <a href={`/print/job-ticket/${id}`} target="_blank" rel="noreferrer">
+                <ClipboardList className="h-4 w-4" />
+                ใบสั่งงาน
+              </a>
+            </Button>
 
             {!isTerminal && primaryNext && (
               <Button
