@@ -197,6 +197,28 @@ async function main() {
     );
     const o2Db = await prisma.order.findUniqueOrThrow({ where: { id: o2.id } });
     ok("3.2 สถานะออเดอร์เดินเป็น DESIGN_APPROVED", o2Db.internalStatus === "DESIGN_APPROVED", o2Db.internalStatus);
+
+    // ---------- 4) ที่อยู่จัดส่งไหลกลับโปรไฟล์ลูกค้า ----------
+    await caller.delivery.create({
+      orderId: o2.id,
+      recipientName: "คุณส้ม",
+      phone: "0891234567",
+      address: "99/1 ถ.ทดสอบ",
+      district: "เมือง",
+      province: "เชียงใหม่",
+      postalCode: "50000",
+      shippingMethod: "KERRY",
+      saveAsCustomerAddress: true,
+    });
+    const custDb = await prisma.customer.findUniqueOrThrow({ where: { id: customer.id } });
+    ok(
+      "4.1 ลูกค้าแชท (ไม่มีที่อยู่/เบอร์) → ที่อยู่จัดส่ง+เบอร์ไหลกลับโปรไฟล์",
+      custDb.address === "99/1 ถ.ทดสอบ เมือง เชียงใหม่ 50000" && custDb.phone === "0891234567",
+      { address: custDb.address, phone: custDb.phone }
+    );
+
+    const found = await caller.customer.list({ search: "0891234567", limit: 5 });
+    ok("4.2 ค้นหาลูกค้าด้วยเบอร์เจอ", found.customers.some((c) => c.id === customer.id), found.total);
   } finally {
     // ---------- ล้างเกลี้ยง + คืนเลขเอกสาร ----------
     await prisma.notification.deleteMany({ where: { entityId: { in: ids.orders } } });
@@ -221,6 +243,12 @@ async function main() {
       where: { entityId: { in: [...osOrders.map((o) => o.id), ...prods.map((p) => p.id), ids.vendor] } },
     });
     await prisma.outsourceOrder.deleteMany({ where: { productionStepId: { in: stepIds } } });
+    const deliveries = await prisma.delivery.findMany({
+      where: { orderId: { in: ids.orders } },
+      select: { id: true },
+    });
+    await prisma.auditLog.deleteMany({ where: { entityId: { in: deliveries.map((d) => d.id) } } });
+    await prisma.delivery.deleteMany({ where: { orderId: { in: ids.orders } } });
     await prisma.production.deleteMany({ where: { orderId: { in: ids.orders } } });
     await prisma.designVersion.deleteMany({ where: { orderId: { in: ids.orders } } });
     await prisma.orderRevision.deleteMany({ where: { orderId: { in: ids.orders } } });

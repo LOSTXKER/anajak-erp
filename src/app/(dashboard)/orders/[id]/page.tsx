@@ -358,6 +358,7 @@ export default function OrderDetailPage({
             internalStatus={order.internalStatus}
             customerName={order.customer?.name}
             customerPhone={order.customer?.phone ?? undefined}
+            customerHasAddress={!!order.customer?.address}
           />
 
           <OrderRevisions revisions={order.revisions ?? []} />

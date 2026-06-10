@@ -11,6 +11,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
+import { customerProfileGaps } from "@/lib/customer-gaps";
 import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText } from "lucide-react";
 
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -51,6 +52,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             )}
           </div>
           {customer.company && <p className="text-sm text-slate-500">{customer.company}</p>}
+          {customerProfileGaps(customer).length > 0 && (
+            <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
+              โปรไฟล์ยังไม่ครบ: {customerProfileGaps(customer).map((g) => g.label).join(" · ")}
+            </p>
+          )}
         </div>
       </div>
 

@@ -46,6 +46,7 @@ export const customerRouter = router({
           { company: { contains: input.search, mode: "insensitive" } },
           { phone: { contains: input.search } },
           { email: { contains: input.search, mode: "insensitive" } },
+          { lineId: { contains: input.search, mode: "insensitive" } },
         ];
       }
 

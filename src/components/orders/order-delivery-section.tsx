@@ -45,6 +45,8 @@ interface OrderDeliverySectionProps {
   internalStatus: string;
   customerName?: string;
   customerPhone?: string;
+  // ลูกค้ามีที่อยู่ในโปรไฟล์แล้วหรือยัง — ถ้ายัง default ติ๊กบันทึกที่อยู่จัดส่งกลับโปรไฟล์
+  customerHasAddress?: boolean;
 }
 
 
@@ -53,6 +55,7 @@ export function OrderDeliverySection({
   internalStatus,
   customerName,
   customerPhone,
+  customerHasAddress,
 }: OrderDeliverySectionProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState<string | null>(null);
@@ -70,6 +73,8 @@ export function OrderDeliverySection({
   const [shippingMethod, setShippingMethod] = useState("KERRY");
   const [shippingCost, setShippingCost] = useState("0");
   const [deliveryNotes, setDeliveryNotes] = useState("");
+  // ลูกค้ายังไม่มีที่อยู่ในโปรไฟล์ → default บันทึกกลับให้เลย (ออเดอร์หน้า prefill อัตโนมัติ)
+  const [saveAsCustomerAddress, setSaveAsCustomerAddress] = useState(!customerHasAddress);
 
   // Status update form
   const [newStatus, setNewStatus] = useState("");
@@ -122,6 +127,9 @@ export function OrderDeliverySection({
     setShippingMethod("KERRY");
     setShippingCost("0");
     setDeliveryNotes("");
+    // derive ใหม่ทุกครั้งที่เปิด dialog — หลังบันทึกที่อยู่รอบแรก รอบถัดไปต้องไม่ติ๊กค้าง
+    // (ไม่งั้นส่งรอบสองไปที่อยู่อื่นจะทับที่อยู่หลักเงียบๆ)
+    setSaveAsCustomerAddress(!customerHasAddress);
   }
 
   function handleCreate() {
@@ -137,6 +145,7 @@ export function OrderDeliverySection({
       shippingMethod,
       shippingCost: parseFloat(shippingCost) || 0,
       notes: deliveryNotes || undefined,
+      saveAsCustomerAddress,
     });
   }
 
@@ -447,6 +456,26 @@ export function OrderDeliverySection({
                 placeholder="หมายเหตุ..."
               />
             </div>
+            <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+              <input
+                type="checkbox"
+                checked={saveAsCustomerAddress}
+                onChange={(e) => setSaveAsCustomerAddress(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-blue-600"
+              />
+              <span>
+                บันทึกเป็นที่อยู่หลักของลูกค้า (เติมเบอร์นี้ให้โปรไฟล์ด้วยถ้ายังว่าง)
+                {!customerHasAddress ? (
+                  <span className="block text-xs text-amber-600 dark:text-amber-400">
+                    ลูกค้ารายนี้ยังไม่มีที่อยู่ในระบบ — บันทึกไว้ ออเดอร์หน้าจะกรอกให้อัตโนมัติ
+                  </span>
+                ) : (
+                  <span className="block text-xs text-slate-400">
+                    ลูกค้ามีที่อยู่หลักอยู่แล้ว — ติ๊กเฉพาะถ้าต้องการแทนที่ด้วยที่อยู่นี้
+                  </span>
+                )}
+              </span>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>

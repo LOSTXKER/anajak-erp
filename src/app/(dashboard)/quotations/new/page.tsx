@@ -7,9 +7,9 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
+import { CustomerPicker } from "@/components/customers/customer-picker";
 import { ArrowLeft, Plus, Trash2, FileText } from "lucide-react";
 
 // ============================================================
@@ -68,9 +68,6 @@ export default function NewQuotationPage() {
   // -- Pricing --
   const [discount, setDiscount] = useState(0);
   const [tax, setTax] = useState(0);
-
-  // -- Data --
-  const { data: customers } = trpc.customer.list.useQuery({ limit: 100 });
 
   const createQuotation = trpc.quotation.create.useMutation({
     onSuccess: (data) => {
@@ -163,18 +160,11 @@ export default function NewQuotationPage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className={sectionLabelClass}>ลูกค้า *</label>
-                <NativeSelect
+                <CustomerPicker
                   value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
+                  onChange={(id) => setCustomerId(id)}
                   required
-                >
-                  <option value="">-- เลือกลูกค้า --</option>
-                  {customers?.customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} {c.company ? `(${c.company})` : ""}
-                    </option>
-                  ))}
-                </NativeSelect>
+                />
               </div>
               <div>
                 <label className={sectionLabelClass}>ใช้ได้ถึงวันที่ *</label>

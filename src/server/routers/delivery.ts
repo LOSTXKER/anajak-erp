@@ -32,20 +32,67 @@ export const deliveryRouter = router({
         shippingCost: z.number().default(0),
         isPaid: z.boolean().default(false),
         notes: z.string().optional(),
+        // ที่อยู่จัดส่งไหลกลับโปรไฟล์ลูกค้า — ข้อมูลลูกค้าแชทมาทีหลัง เก็บ ณ จุดที่ได้มา
+        saveAsCustomerAddress: z.boolean().default(false),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const delivery = await ctx.prisma.delivery.create({ data: input });
+      const { saveAsCustomerAddress, ...deliveryData } = input;
 
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "CREATE",
-        entityType: "DELIVERY",
-        entityId: delivery.id,
-        newValue: { orderId: input.orderId, shippingMethod: input.shippingMethod },
+      return ctx.prisma.$transaction(async (tx) => {
+        const delivery = await tx.delivery.create({ data: deliveryData });
+
+        // จงใจให้ทุก role ที่สร้างใบส่งได้ (รวมฝ่ายผลิตที่แพ็คของ) เขียนผ่านช่องนี้ —
+        // คนแพ็คคือคนที่ได้ที่อยู่มา · ขอบเขตแคบ: address + phone-เฉพาะตอนว่าง · มี audit เต็ม
+        if (saveAsCustomerAddress) {
+          const order = await tx.order.findUniqueOrThrow({
+            where: { id: input.orderId },
+            select: { customerId: true, customer: { select: { address: true, phone: true } } },
+          });
+          const fullAddress = [
+            input.address,
+            input.subDistrict,
+            input.district,
+            input.province,
+            input.postalCode,
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const fillPhone = !order.customer.phone;
+          await tx.customer.update({
+            where: { id: order.customerId },
+            data: {
+              address: fullAddress,
+              // เบอร์เติมเฉพาะตอนโปรไฟล์ยังว่าง — ไม่ทับเบอร์หลักด้วยเบอร์ผู้รับของ
+              ...(fillPhone ? { phone: input.phone } : {}),
+            },
+          });
+          // ทับข้อมูลหลักลูกค้า = ต้องมี oldValue ให้ตรวจย้อน/กู้ได้ (pattern เดียวกับ customer.update)
+          await createAuditLog(tx, {
+            userId: ctx.userId,
+            action: "UPDATE",
+            entityType: "CUSTOMER",
+            entityId: order.customerId,
+            oldValue: { address: order.customer.address, phone: order.customer.phone },
+            newValue: { address: fullAddress, ...(fillPhone ? { phone: input.phone } : {}) },
+            reason: `บันทึกจากใบจัดส่ง ${delivery.id}`,
+          });
+        }
+
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "CREATE",
+          entityType: "DELIVERY",
+          entityId: delivery.id,
+          newValue: {
+            orderId: input.orderId,
+            shippingMethod: input.shippingMethod,
+            savedAsCustomerAddress: saveAsCustomerAddress,
+          },
+        });
+
+        return delivery;
       });
-
-      return delivery;
     }),
 
   update: protectedProcedure

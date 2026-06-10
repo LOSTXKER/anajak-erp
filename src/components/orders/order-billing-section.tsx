@@ -28,6 +28,7 @@ import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
+import { customerProfileGaps } from "@/lib/customer-gaps";
 import {
   Receipt,
   Plus,
@@ -102,6 +103,13 @@ export function OrderBillingSection({
   // (กันยิงไปโดน FORBIDDEN + retry ฟรี — pattern เดียวกับหน้า analytics)
   const me = trpc.user.me.useQuery();
   const canBill = !!me.data && ["OWNER", "MANAGER", "ACCOUNTANT"].includes(me.data.role);
+
+  // ด่านนุ่มเอกสารภาษี: ใบเสร็จ/ใบกำกับต้องมีชื่อ-ที่อยู่ลูกค้าจริง (ม.86/4)
+  // — ลูกค้าแชทที่ยังไม่เติมโปรไฟล์จะได้เอกสารหัวโหว่ เตือนก่อนพิมพ์
+  const billCustomer = trpc.customer.getById.useQuery(
+    { id: customerId },
+    { enabled: showCreateDialog && canBill }
+  );
 
   // ยอดแนะนำตามเงื่อนไขชำระของออเดอร์ — ไม่ส่ง type = ให้ server เลือกชนิดบิลให้ด้วย
   const suggestion = trpc.billing.suggest.useQuery(
@@ -495,6 +503,27 @@ export function OrderBillingSection({
                   ยอดค้างจริงของลูกค้าอาจต่ำกว่ายอดแนะนำ ตรวจก่อนสร้างบิล
                 </p>
               )}
+              {["RECEIPT", "CREDIT_NOTE", "DEBIT_NOTE"].includes(invoiceType) &&
+                billCustomer.data &&
+                customerProfileGaps(billCustomer.data).some(
+                  (g) => g.key === "address" || g.key === "taxInfo"
+                ) && (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                    เอกสารภาษีต้องมีชื่อ-ที่อยู่ลูกค้า — รายนี้ยัง{" "}
+                    {customerProfileGaps(billCustomer.data)
+                      .filter((g) => g.key === "address" || g.key === "taxInfo")
+                      .map((g) => g.label)
+                      .join(" · ")}{" "}
+                    <a
+                      href={`/customers/${customerId}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium underline"
+                    >
+                      ไปเติมข้อมูล
+                    </a>
+                  </p>
+                )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

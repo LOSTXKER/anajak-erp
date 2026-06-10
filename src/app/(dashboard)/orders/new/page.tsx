@@ -19,6 +19,8 @@ import {
   isMarketplaceChannel,
 } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS, type PaymentTermsValue } from "@/lib/payment-terms";
+import { customerProfileGaps } from "@/lib/customer-gaps";
+import { CustomerPicker, type PickerCustomer } from "@/components/customers/customer-picker";
 import {
   calculateFormItemSubtotal,
   calculateOrderSummary,
@@ -120,7 +122,8 @@ export default function NewOrderPage() {
   const [uploading, setUploading] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
-  const { data: customers } = trpc.customer.list.useQuery({ limit: 100 });
+  // ลูกค้าเลือกผ่าน CustomerPicker (ค้นหา+เพิ่มด่วน) — เก็บ object ที่เลือกไว้ใช้ prefill
+  const [selectedCustomer, setSelectedCustomer] = useState<PickerCustomer | null>(null);
 
   const { data: printCatalog } = trpc.serviceCatalog.list.useQuery(
     { category: "PRINT", isActive: true },
@@ -165,7 +168,6 @@ export default function NewOrderPage() {
     }
   }, [isMarketplace, paymentTerms]);
 
-  const selectedCustomer = customers?.customers.find(c => c.id === customerId);
   // ภาระหนี้เทียบวงเงิน — เตือนตั้งแต่ตอนเลือกลูกค้า (ด่านจริงอยู่ฝั่ง server ตอนยืนยันออเดอร์)
   const creditStatus = trpc.customer.creditStatus.useQuery(
     { customerId },
@@ -636,19 +638,14 @@ export default function NewOrderPage() {
             <div className="space-y-3">
               <div>
                 <label className={sectionLabelClass}>ลูกค้า *</label>
-                <NativeSelect
+                <CustomerPicker
                   value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
+                  onChange={(id, customer) => {
+                    setCustomerId(id);
+                    setSelectedCustomer(customer);
+                  }}
                   required
-                >
-                  <option value="">-- เลือกลูกค้า --</option>
-                  {customers?.customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} {c.company ? `(${c.company})` : ""}
-                      {c.customerType === "CORPORATE" ? " [นิติบุคคล]" : ""}
-                    </option>
-                  ))}
-                </NativeSelect>
+                />
                 {selectedCustomer && isCorporateCustomer && (
                   <div className="mt-1.5 flex items-center gap-1.5">
                     <Badge variant="accent" size="sm">
@@ -660,6 +657,15 @@ export default function NewOrderPage() {
                       </span>
                     )}
                   </div>
+                )}
+                {selectedCustomer && customerProfileGaps(selectedCustomer).length > 0 && (
+                  <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                    โปรไฟล์ยังไม่ครบ:{" "}
+                    {customerProfileGaps(selectedCustomer)
+                      .map((g) => g.label)
+                      .join(" · ")}{" "}
+                    — ขอจากลูกค้าแล้วเติมได้ที่หน้าลูกค้า
+                  </p>
                 )}
                 {creditStatus.data?.available != null && (
                   <p
