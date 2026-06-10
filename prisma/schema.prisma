@@ -329,6 +329,10 @@ model Order {
   deliveries   Delivery[]
   costEntries  CostEntry[]
 
+  // hot paths: หน้า list กรองตามลูกค้า/สถานะ + เรียงตามวันที่สร้างแทบทุก query
+  @@index([customerId])
+  @@index([internalStatus])
+  @@index([createdAt])
   @@map("orders")
 }
 
@@ -840,6 +844,8 @@ model ProductionStep {
   assignedTo     User?           @relation("AssignedTo", fields: [assignedToId], references: [id])
   outsourceOrder OutsourceOrder?
 
+  // hot path: task queue "งานของฉัน" กรองตามคนรับผิดชอบ
+  @@index([assignedToId])
   @@map("production_steps")
 }
 
@@ -923,6 +929,8 @@ model Invoice {
   customer Customer  @relation(fields: [customerId], references: [id])
   payments Payment[]
 
+  // hot path: หน้า billing + stats กรองตามสถานะจ่ายตลอด
+  @@index([paymentStatus])
   @@map("invoices")
 }
 
