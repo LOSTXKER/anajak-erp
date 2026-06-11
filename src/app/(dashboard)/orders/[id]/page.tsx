@@ -31,11 +31,12 @@ import {
 import { cn } from "@/lib/utils";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
-import { OrderNextStep } from "@/components/orders/detail/order-next-step";
 import { OrderProductionSection } from "@/components/orders/order-production-section";
 import { OrderDeliverySection } from "@/components/orders/order-delivery-section";
 import { OrderItemsEditor } from "@/components/orders/order-items-editor";
 import { OrderInfoEditDialog } from "@/components/orders/order-info-edit-dialog";
+// หมายเหตุ: OrderNextStep ถูกถอดออก (เบสเคาะ 2026-06-12) — logic getOrderNextStep ยังอยู่
+// ที่ lib/order-next-step.ts เผื่อกลับมาใช้รูปแบบอื่น
 import {
   OrderItemsDisplay,
   OrderStatusBar,
@@ -375,18 +376,8 @@ export default function OrderDetailPage({
         customerStatus={order.customerStatus}
       />
 
-      {/* เข็มทิศ — ขั้นถัดไปที่แนะนำหนึ่งอย่าง · ซ่อนเฉพาะตอนฟอร์มแก้รายการ "แสดงจริง"
-          (ผูกกับเงื่อนไข render เดียวกัน — กัน editingItems ค้างแล้วการ์ดหายถาวร) */}
-      {!(editingItems && canEditItems) && (
-        <OrderNextStep
-          order={order}
-          onEditItems={openItemsEditor}
-          onStatusChange={(status) => handleStatusChange(status)}
-          statusPending={updateStatus.isPending}
-          statusAllowed={roleAllows}
-          editItemsAllowed={canEditItems && isSalesUp}
-        />
-      )}
+      {/* เลิกการ์ด "ขั้นถัดไป" (เบสเคาะ 2026-06-12) — ผู้ใช้ทำงานจากปุ่มในแต่ละการ์ดตรงๆ:
+          ยืนยันออเดอร์=ปุ่มมุมขวาบน · ใส่รายการ=ปุ่มในการ์ดรายการ (empty state) · มัดจำ=การ์ดบิล */}
 
       {/* ====================================================
           MAIN GRID: CONTENT + SIDEBAR
