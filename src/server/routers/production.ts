@@ -129,14 +129,26 @@ export const productionRouter = router({
     .mutation(async ({ ctx, input }) => {
       // รายการที่ยังเป็น "โครงจากใบเสนอ" ทั้งใบ (OTHER + ไซส์ FREE ล้วน) ห้ามเข้าผลิต —
       // ช่างไม่มีไซส์/สี/ลายให้ทำงาน ต้องแก้รายการเป็นของจริงก่อน (audit ข้อ 10)
+      // โครง = ไม่ผูกสินค้าจริง (productId null) และไม่มีแหล่งที่มา (itemSource null) เท่านั้น —
+      // สินค้าฟรีไซส์จากสต็อก/เสื้อลูกค้าส่งมา ก็เป็น OTHER+FREE ได้ ห้ามเหมาว่าโครง
+      // (เบสเจอจริง 2026-06-12: เสื้อ oversize ฟรีไซส์จากสต็อกโดนด่านนี้บล็อก)
       const orderProducts = await ctx.prisma.orderItemProduct.findMany({
         where: { orderItem: { orderId: input.orderId } },
-        select: { productType: true, variants: { select: { size: true } } },
+        select: {
+          productType: true,
+          productId: true,
+          itemSource: true,
+          variants: { select: { size: true } },
+        },
       });
       const allSkeleton =
         orderProducts.length > 0 &&
         orderProducts.every(
-          (p) => p.productType === "OTHER" && p.variants.every((v) => v.size === "FREE")
+          (p) =>
+            p.productType === "OTHER" &&
+            p.productId === null &&
+            p.itemSource === null &&
+            p.variants.every((v) => v.size === "FREE")
         );
       if (allSkeleton) {
         throw new TRPCError({
