@@ -168,7 +168,8 @@ export default function MyTasksPage() {
           {production.map((p) => (
             <TaskRow
               key={p.stepId}
-              href={`/orders/${p.order.id}`}
+              // ตรงเข้าหน้าใบผลิต — ตัวจัดการขั้นตอนอยู่ที่นั่นแล้ว (แยกโมดูลผลิต 2026-06-12)
+              href={`/production/${p.productionId}`}
               primary={p.customStepName || STEP_TYPE_LABELS[p.stepType] || p.stepType}
               secondary={`${p.order.orderNumber} · ${p.order.customer.name}`}
               meta={
@@ -196,7 +197,8 @@ export default function MyTasksPage() {
           {awaitingProduction.map((o) => (
             <TaskRow
               key={o.id}
-              href={`/orders/${o.id}`}
+              // deep-link เปิด dialog สร้างใบผลิตบนหน้าผลิตให้เลย
+              href={`/production?create=${o.id}`}
               primary={o.title}
               secondary={`${o.orderNumber} · ${o.customer.name}`}
               meta={<DeadlineChip deadline={o.deadline} />}

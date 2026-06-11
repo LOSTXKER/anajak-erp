@@ -31,7 +31,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
-import { OrderProductionSection } from "@/components/orders/order-production-section";
+import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
 import { OrderDeliverySection } from "@/components/orders/order-delivery-section";
 import { OrderItemsEditor } from "@/components/orders/order-items-editor";
 import { OrderInfoEditDialog } from "@/components/orders/order-info-edit-dialog";
@@ -415,17 +415,13 @@ export default function OrderDetailPage({
             />
           </div>
 
+          {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production/[id] (เบสเคาะแยกโมดูล) */}
           <div id="order-section-production" className="scroll-mt-20">
-            <OrderProductionSection
+            <ProductionSummaryCard
               orderId={id}
               internalStatus={order.internalStatus}
-              printTypes={[
-                ...new Set(
-                  (order.items ?? []).flatMap((it) =>
-                    (it.prints ?? []).map((pr) => pr.printType)
-                  )
-                ),
-              ]}
+              productions={order.productions ?? []}
+              isManagerUp={!!me && ["OWNER", "MANAGER"].includes(me.role)}
             />
           </div>
 

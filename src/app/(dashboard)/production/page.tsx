@@ -1,25 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDate } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { PageHeader } from "@/components/page-header";
+import { CreateProductionDialog } from "@/components/production/create-production-dialog";
+import { formatDate, cn } from "@/lib/utils";
+import { STEP_TYPE_LABELS as stepTypeLabels } from "@/lib/production-steps";
+import { PRINT_TYPES } from "@/types/order-form";
 import {
   Factory,
   Clock,
   User,
   AlertTriangle,
-  Package,
-  ChevronDown,
-  ChevronUp,
+  Plus,
+  ArrowRight,
 } from "lucide-react";
-import Link from "next/link";
-import { MaterialUsage } from "@/components/material-usage";
-import { PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/ui/empty-state";
-import { cn } from "@/lib/utils";
-import { STEP_TYPE_LABELS as stepTypeLabels } from "@/lib/production-steps";
 
 type StepVariant = "default" | "accent" | "success" | "warning" | "destructive";
 
@@ -31,42 +34,87 @@ const stepStatusConfig: Record<string, { label: string; variant: StepVariant }> 
   FAILED: { label: "ล้มเหลว", variant: "destructive" },
 };
 
-function MaterialToggle({
-  productionId,
-  orderNumber,
-}: {
-  productionId: string;
+type QueueOrder = {
+  id: string;
   orderNumber: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
+  title: string;
+  deadline: Date | string | null;
+  internalStatus: string;
+  customerName: string | null;
+  totalQuantity: number;
+  printTypes: string[];
+};
 
+// แถวออเดอร์ในคิวรอเปิดใบผลิต — ปุ่มเป้านิ้ว ≥44px
+function QueueRow({ order, onCreate }: { order: QueueOrder; onCreate: () => void }) {
+  const isOverdue = order.deadline && new Date(order.deadline) < new Date();
   return (
-    <div className="border-t border-slate-100 dark:border-slate-800">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between px-4 py-2 text-xs text-slate-500 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
-      >
-        <span className="flex items-center gap-1.5">
-          <Package className="h-3.5 w-3.5" />
-          วัตถุดิบ / Materials
-        </span>
-        {expanded ? (
-          <ChevronUp className="h-3.5 w-3.5" />
-        ) : (
-          <ChevronDown className="h-3.5 w-3.5" />
-        )}
-      </button>
-      {expanded && (
-        <div className="px-4 pb-3">
-          <MaterialUsage productionId={productionId} orderNumber={orderNumber} />
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2">
+          <span className="text-sm font-semibold text-slate-900 dark:text-white">
+            {order.orderNumber}
+          </span>
+          <span className="truncate text-sm text-slate-600 dark:text-slate-300">
+            {order.title}
+          </span>
         </div>
-      )}
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
+          {order.customerName && <span>{order.customerName}</span>}
+          {order.totalQuantity > 0 && <span>· {order.totalQuantity.toLocaleString()} ชิ้น</span>}
+          {order.deadline && (
+            <span className={cn("flex items-center gap-1", isOverdue && "text-red-600 dark:text-red-400")}>
+              <Clock className="h-3 w-3" />
+              {formatDate(order.deadline)}
+              {isOverdue && " (เลยกำหนด)"}
+            </span>
+          )}
+          {order.printTypes.map((pt) => (
+            <Badge key={pt} variant="secondary" size="sm">
+              {PRINT_TYPES[pt] ?? pt}
+            </Badge>
+          ))}
+        </div>
+      </div>
+      <Button size="sm" onClick={onCreate} className="h-10 gap-1.5">
+        <Plus className="h-4 w-4" />
+        เปิดใบผลิต
+      </Button>
     </div>
   );
 }
 
-export default function ProductionPage() {
+function ProductionWorkspace() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const createOrderId = searchParams.get("create");
+
+  const { data: me } = trpc.user.me.useQuery();
+  // เปิดใบผลิต = อำนาจหัวหน้า (server บังคับ managerUp) — queue โหลดเฉพาะหัวหน้า
+  const isManagerUp = !!me && ["OWNER", "MANAGER"].includes(me.role);
+
   const { data: productions, isLoading } = trpc.production.board.useQuery();
+  const queue = trpc.production.queue.useQuery(undefined, { enabled: isManagerUp });
+
+  // dialog สร้างใบผลิต — เก็บทั้งแถว (มี printTypes สำหรับแนะนำขั้นตอน)
+  const [createTarget, setCreateTarget] = useState<QueueOrder | null>(null);
+
+  // deep-link ?create=<orderId> จากหน้าออเดอร์/my-tasks — เปิด dialog ให้เอง
+  // ยิงครั้งเดียวต่อค่า param (ref กันซ้ำตอน query refetch)
+  const handledCreateParam = useRef<string | null>(null);
+  useEffect(() => {
+    if (!createOrderId || !queue.data) return;
+    if (handledCreateParam.current === createOrderId) return;
+    handledCreateParam.current = createOrderId;
+    const target = queue.data.find((o) => o.id === createOrderId);
+    if (target) {
+      setCreateTarget(target);
+    } else {
+      // มีใบผลิตแล้ว/สถานะไม่ถึงเกณฑ์ — บอกตรงๆ แล้วล้าง param
+      toast.info("ออเดอร์นี้มีใบผลิตแล้วหรือไม่อยู่ในคิวรอเปิดใบผลิต");
+    }
+    router.replace("/production", { scroll: false });
+  }, [createOrderId, queue.data, router]);
 
   if (isLoading) {
     return (
@@ -81,12 +129,53 @@ export default function ProductionPage() {
     );
   }
 
+  // คิวแยก 2 กลุ่ม: พร้อมผลิตจริง (คิวผลิต/แบบผ่านแล้ว) เด่น · CONFIRMED พับไว้
+  // (อาจยังรอออกแบบ — เจตนาเดียวกับ my-tasks ที่ไม่นับ CONFIRMED เป็น "รอเปิดใบผลิต")
+  const readyQueue = (queue.data ?? []).filter((o) =>
+    ["PRODUCTION_QUEUE", "DESIGN_APPROVED"].includes(o.internalStatus)
+  );
+  const confirmedQueue = (queue.data ?? []).filter(
+    (o) => o.internalStatus === "CONFIRMED"
+  );
+
   return (
     <div className="space-y-5">
       <PageHeader
         title="การผลิต"
-        description={`Production Board · งานที่กำลังดำเนินการ ${productions?.length ?? 0} รายการ`}
+        description={`งานที่กำลังดำเนินการ ${productions?.length ?? 0} รายการ${
+          isManagerUp && readyQueue.length > 0 ? ` · รอเปิดใบผลิต ${readyQueue.length}` : ""
+        }`}
       />
+
+      {/* คิวรอเปิดใบผลิต — เฉพาะหัวหน้า (จุดสร้างใบผลิตย้ายมาที่นี่จากหน้าออเดอร์) */}
+      {isManagerUp && readyQueue.length > 0 && (
+        <div className="overflow-hidden rounded-2xl border border-amber-200/70 bg-white dark:border-amber-900/40 dark:bg-slate-900/80">
+          <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50/60 px-4 py-2.5 dark:border-amber-900/30 dark:bg-amber-950/20">
+            <Factory className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+              รอเปิดใบผลิต ({readyQueue.length})
+            </span>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {readyQueue.map((o) => (
+              <QueueRow key={o.id} order={o} onCreate={() => setCreateTarget(o)} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isManagerUp && confirmedQueue.length > 0 && (
+        <CollapsibleSection
+          title={`ยืนยันแล้ว — อาจรอออกแบบ (${confirmedQueue.length})`}
+          summary="เปิดใบผลิตได้เลยถ้างานไม่ต้องออกแบบ"
+        >
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {confirmedQueue.map((o) => (
+              <QueueRow key={o.id} order={o} onCreate={() => setCreateTarget(o)} />
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
 
       {(!productions || productions.length === 0) && (
         <div className="rounded-2xl border border-slate-200/70 bg-white dark:border-slate-800/60 dark:bg-slate-900/80">
@@ -96,12 +185,9 @@ export default function ProductionPage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {productions?.map((prod) => {
-          const completedSteps = prod.steps.filter(
-            (s) => s.status === "COMPLETED"
-          ).length;
+          const completedSteps = prod.steps.filter((s) => s.status === "COMPLETED").length;
           const totalSteps = prod.steps.length;
-          const progress =
-            totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+          const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
           const isOverdue =
             prod.order.deadline && new Date(prod.order.deadline) < new Date();
 
@@ -114,7 +200,7 @@ export default function ProductionPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <Link
-                      href={`/orders/${prod.order.id}`}
+                      href={`/production/${prod.id}`}
                       className="text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400"
                     >
                       {prod.order.orderNumber}
@@ -141,7 +227,7 @@ export default function ProductionPage() {
                 )}
               </div>
 
-              <div className="space-y-3 px-4 pb-4">
+              <div className="space-y-3 px-4 pb-3">
                 <div>
                   <div className="mb-1 flex items-baseline justify-between text-xs">
                     <span className="text-slate-500">ความคืบหน้า</span>
@@ -159,8 +245,7 @@ export default function ProductionPage() {
 
                 <ul className="space-y-1.5">
                   {prod.steps.map((step) => {
-                    const cfg =
-                      stepStatusConfig[step.status] ?? stepStatusConfig.PENDING;
+                    const cfg = stepStatusConfig[step.status] ?? stepStatusConfig.PENDING;
                     return (
                       <li
                         key={step.id}
@@ -200,14 +285,37 @@ export default function ProductionPage() {
                 </ul>
               </div>
 
-              <MaterialToggle
-                productionId={prod.id}
-                orderNumber={prod.order.orderNumber}
-              />
+              {/* จัดการขั้นตอน/เบิกวัตถุดิบ → หน้าใบผลิต (MaterialToggle เดิมย้ายไปที่นั่น) */}
+              <Link
+                href={`/production/${prod.id}`}
+                className="flex items-center justify-between border-t border-slate-100 px-4 py-2.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50/50 dark:border-slate-800 dark:text-blue-400 dark:hover:bg-blue-950/20"
+              >
+                จัดการใบผลิต
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
           );
         })}
       </div>
+
+      {createTarget && (
+        <CreateProductionDialog
+          orderId={createTarget.id}
+          orderLabel={`${createTarget.orderNumber} · ${createTarget.title}`}
+          printTypes={createTarget.printTypes}
+          onClose={() => setCreateTarget(null)}
+          onCreated={(p) => router.push(`/production/${p.id}`)}
+        />
+      )}
     </div>
+  );
+}
+
+export default function ProductionPage() {
+  // useSearchParams ต้องอยู่ใต้ Suspense (ข้อบังคับ Next.js ตอน prerender)
+  return (
+    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+      <ProductionWorkspace />
+    </Suspense>
   );
 }

@@ -17,6 +17,9 @@ import { toast } from "sonner";
 interface MaterialUsageProps {
   productionId: string;
   orderNumber: string;
+  // เงิน (ต้นทุน/หน่วย+รวม) โชว์เฉพาะหัวหน้าขึ้นไป — ช่างเบิกของได้แต่ไม่เห็นเงิน
+  // (ต้นทุนยังไหลเข้า mutation จาก costPrice ของแค็ตตาล็อกตามเดิม)
+  showCosts?: boolean;
 }
 
 interface LocalMaterial {
@@ -48,7 +51,11 @@ interface DeductedMaterial {
 // Component
 // ---------------------------------------------------------------------------
 
-export function MaterialUsage({ productionId, orderNumber }: MaterialUsageProps) {
+export function MaterialUsage({
+  productionId,
+  orderNumber,
+  showCosts = true,
+}: MaterialUsageProps) {
   // ---- state for material picker ----
   const [showPicker, setShowPicker] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -278,9 +285,11 @@ export function MaterialUsage({ productionId, orderNumber }: MaterialUsageProps)
                   <span className="text-xs tabular-nums text-slate-600 dark:text-slate-300">
                     {m.quantity} {m.unit}
                   </span>
-                  <span className="text-xs tabular-nums text-slate-400">
-                    {formatCurrency(m.totalCost)}
-                  </span>
+                  {showCosts && (
+                    <span className="text-xs tabular-nums text-slate-400">
+                      {formatCurrency(m.totalCost)}
+                    </span>
+                  )}
                   <Badge variant="success" className="h-5 text-[10px]">
                     เบิกแล้ว
                   </Badge>
@@ -367,23 +376,25 @@ export function MaterialUsage({ productionId, orderNumber }: MaterialUsageProps)
                 {/* Unit */}
                 <span className="w-8 text-center text-[10px] text-slate-400">{m.unit}</span>
 
-                {/* Unit cost */}
-                <div className="w-20">
-                  <Input
-                    type="number"
-                    value={m.unitCost}
-                    onChange={(e) => updateUnitCost(m.id, parseFloat(e.target.value) || 0)}
-                    className="h-6 text-right text-xs tabular-nums"
-                    min={0}
-                    step={0.01}
-                    placeholder="ต้นทุน/หน่วย"
-                  />
-                </div>
-
-                {/* Row total */}
-                <span className="w-16 text-right text-xs tabular-nums text-slate-600 dark:text-slate-300">
-                  {formatCurrency(m.quantity * m.unitCost)}
-                </span>
+                {/* Unit cost + row total — เงินโชว์/แก้ได้เฉพาะหัวหน้า */}
+                {showCosts && (
+                  <>
+                    <div className="w-20">
+                      <Input
+                        type="number"
+                        value={m.unitCost}
+                        onChange={(e) => updateUnitCost(m.id, parseFloat(e.target.value) || 0)}
+                        className="h-6 text-right text-xs tabular-nums"
+                        min={0}
+                        step={0.01}
+                        placeholder="ต้นทุน/หน่วย"
+                      />
+                    </div>
+                    <span className="w-16 text-right text-xs tabular-nums text-slate-600 dark:text-slate-300">
+                      {formatCurrency(m.quantity * m.unitCost)}
+                    </span>
+                  </>
+                )}
 
                 {/* Remove button */}
                 <button
@@ -398,10 +409,15 @@ export function MaterialUsage({ productionId, orderNumber }: MaterialUsageProps)
             {/* Total + Issue button */}
             <div className="flex items-center justify-between border-t border-slate-100 pt-2 dark:border-slate-800">
               <div className="text-xs text-slate-500">
-                รวม {localMaterials.length} รายการ ·{" "}
-                <span className="font-medium text-slate-900 dark:text-white">
-                  {formatCurrency(totalCost)}
-                </span>
+                รวม {localMaterials.length} รายการ
+                {showCosts && (
+                  <>
+                    {" · "}
+                    <span className="font-medium text-slate-900 dark:text-white">
+                      {formatCurrency(totalCost)}
+                    </span>
+                  </>
+                )}
               </div>
               <Button
                 size="sm"
