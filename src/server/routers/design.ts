@@ -160,6 +160,40 @@ export const designRouter = router({
       return design;
     }),
 
+  // ลิงก์อนุมัติหมดอายุ (30 วัน) → สร้างใหม่ได้ เฉพาะแบบที่ยังรอลูกค้าตัดสิน
+  // (เดิม regenerate ไม่ได้เลย — ลูกค้าหายไปเดือนกว่ากลับมา ทีมต้องอัปแบบซ้ำทั้งที่ไฟล์เดิม
+  // audit ข้อ 17) · แบบที่ตัดสินแล้วไม่มีลิงก์ใหม่ — ผลตัดสินจบแล้ว
+  regenerateToken: protectedProcedure
+    .use(requireRole("OWNER", "MANAGER", "SALES", "DESIGNER"))
+    .input(z.object({ designId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.prisma.designVersion.findUniqueOrThrow({
+        where: { id: input.designId },
+        select: { approvalStatus: true, orderId: true, versionNumber: true },
+      });
+      if (existing.approvalStatus !== "PENDING") {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "แบบนี้ถูกตัดสินไปแล้ว — สร้างลิงก์ใหม่ได้เฉพาะแบบที่รอลูกค้าตัดสิน",
+        });
+      }
+      const design = await ctx.prisma.designVersion.update({
+        where: { id: input.designId },
+        data: {
+          approvalToken: randomBytes(32).toString("hex"),
+          tokenExpiresAt: approvalTokenExpiry(),
+        },
+      });
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "DESIGN_VERSION",
+        entityId: input.designId,
+        reason: `สร้างลิงก์อนุมัติใหม่ (v${existing.versionNumber})`,
+      });
+      return design;
+    }),
+
   // Public endpoint for customer approval via token
   getByToken: publicProcedure
     .input(z.object({ token: z.string() }))

@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatDate, isImageUrl } from "@/lib/utils";
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_VARIANTS } from "@/lib/status-config";
 import {
   Palette,
@@ -46,9 +46,14 @@ export function OrderDesignSection({
   const [showApproveDialog, setShowApproveDialog] = useState<string | null>(null);
   const [designerNotes, setDesignerNotes] = useState("");
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [uploadedThumbUrl, setUploadedThumbUrl] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [approveComment, setApproveComment] = useState("");
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
+  // ไฟล์งาน .ai/.psd ลูกค้าเปิดดูบนมือถือไม่ได้ — ต้องแนบรูปตัวอย่างให้ลิงก์อนุมัติมีภาพโชว์
+  // (audit ข้อ 15: เดิมส่งลิงก์ไปลูกค้าต้องตัดสินใจทั้งที่มองไม่เห็นแบบ)
+  const needsThumbnail = !!uploadedUrl && !isImageUrl(uploadedUrl);
 
   const utils = trpc.useUtils();
   const designs = trpc.design.listByOrder.useQuery({ orderId });
@@ -57,6 +62,7 @@ export function OrderDesignSection({
     onSuccess: () => {
       setShowUploadDialog(false);
       setUploadedUrl(null);
+      setUploadedThumbUrl(null);
       setDesignerNotes("");
       setUploadError(null);
     },
@@ -68,6 +74,9 @@ export function OrderDesignSection({
       setApproveComment("");
     },
   });
+  const regenerateToken = useMutationWithInvalidation(trpc.design.regenerateToken, {
+    invalidate: [utils.design.listByOrder],
+  });
 
   const canUpload = internalStatus === "DESIGNING";
 
@@ -75,9 +84,11 @@ export function OrderDesignSection({
 
   function handleUploadSubmit() {
     if (!uploadedUrl) return;
+    if (needsThumbnail && !uploadedThumbUrl) return; // ปุ่ม disabled อยู่แล้ว — กันยิงตรง
     uploadDesign.mutate({
       orderId,
       fileUrl: uploadedUrl,
+      thumbnailUrl: uploadedThumbUrl || undefined,
       designerNotes: designerNotes || undefined,
     });
   }
@@ -132,7 +143,12 @@ export function OrderDesignSection({
             </p>
           ) : (
             <div className="space-y-3">
-              {designs.data!.map((design) => (
+              {designs.data!.map((design) => {
+                // ลิงก์อนุมัติตายแล้วต้องมีตัวบอก + ทางสร้างใหม่ — เดิมปุ่ม copy ยังโชว์
+                // ทั้งที่ลูกค้ากดแล้วเจอ "หมดอายุ" (audit ข้อ 17)
+                const tokenExpired =
+                  !design.tokenExpiresAt || new Date(design.tokenExpiresAt) < new Date();
+                return (
                 <div
                   key={design.id}
                   className="rounded-lg border border-slate-200 p-4 dark:border-slate-700"
@@ -205,20 +221,37 @@ export function OrderDesignSection({
                           </a>
                         </Button>
                       )}
-                      {design.approvalToken && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => copyApprovalLink(design.approvalToken!)}
-                        >
-                          {copiedToken === design.approvalToken ? (
-                            <Check className="h-3.5 w-3.5 text-green-500" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
-                      )}
+                      {design.approvalToken &&
+                        design.approvalStatus === "PENDING" &&
+                        (tokenExpired ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1 text-xs text-amber-700 dark:text-amber-300"
+                            onClick={() => regenerateToken.mutate({ designId: design.id })}
+                            disabled={regenerateToken.isPending}
+                          >
+                            ลิงก์หมดอายุ — สร้างใหม่
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title={
+                              design.tokenExpiresAt
+                                ? `คัดลอกลิงก์อนุมัติ (หมดอายุ ${formatDate(design.tokenExpiresAt)})`
+                                : "คัดลอกลิงก์อนุมัติ"
+                            }
+                            onClick={() => copyApprovalLink(design.approvalToken!)}
+                          >
+                            {copiedToken === design.approvalToken ? (
+                              <Check className="h-3.5 w-3.5 text-green-500" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        ))}
                       {canApprove && design.approvalStatus === "PENDING" && (
                         <Button
                           variant="outline"
@@ -232,7 +265,8 @@ export function OrderDesignSection({
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -262,6 +296,26 @@ export function OrderDesignSection({
             {uploadError && (
               <p className="text-sm text-red-500">{uploadError}</p>
             )}
+            {needsThumbnail && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+                <p className="mb-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+                  ไฟล์นี้ลูกค้าเปิดดูบนมือถือไม่ได้ (.ai/.psd/.pdf) — แนบรูปตัวอย่างให้ลูกค้าดูก่อนตัดสินแบบ
+                </p>
+                <FileUpload
+                  bucket="designs"
+                  pathPrefix={`orders/${orderId}/previews`}
+                  accept="image/*"
+                  maxSizeMB={10}
+                  onUploaded={(url) => setUploadedThumbUrl(url)}
+                  onError={(err) => setUploadError(err)}
+                />
+                {uploadedThumbUrl && (
+                  <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">
+                    ✓ แนบรูปตัวอย่างแล้ว
+                  </p>
+                )}
+              </div>
+            )}
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 โน้ตจากดีไซเนอร์
@@ -283,7 +337,7 @@ export function OrderDesignSection({
             </Button>
             <Button
               onClick={handleUploadSubmit}
-              disabled={!uploadedUrl || uploadDesign.isPending}
+              disabled={!uploadedUrl || (needsThumbnail && !uploadedThumbUrl) || uploadDesign.isPending}
               className="gap-1.5"
             >
               {uploadDesign.isPending ? (

@@ -141,9 +141,27 @@ async function main() {
       () => sales.design.approveByToken({ token: d1.approvalToken!, approved: true }),
       "ตัดสินไปแล้ว"
     );
-    await sales.design.approveByToken({ token: d2.approvalToken!, approved: true, comment: "ผ่าน" });
+    // ลิงก์อนุมัติ regenerate ได้ (audit ข้อ 17) — เฉพาะแบบรอตัดสิน
+    const d2New = await sales.design.regenerateToken({ designId: d2.id });
+    ok(
+      "A5.1 สร้างลิงก์อนุมัติใหม่ได้ (token เปลี่ยน + อายุใหม่)",
+      d2New.approvalToken !== d2.approvalToken && d2New.tokenExpiresAt! > new Date(),
+      { changed: d2New.approvalToken !== d2.approvalToken }
+    );
+    await expectError(
+      "A5.2 ลิงก์เก่าตายทันทีหลังสร้างใหม่",
+      () => sales.design.getByToken({ token: d2.approvalToken! }),
+      ""
+    );
+    await expectError(
+      "A5.3 แบบที่ตัดสินแล้ว สร้างลิงก์ใหม่ไม่ได้",
+      () => sales.design.regenerateToken({ designId: d1.id }),
+      "ตัดสินไปแล้ว"
+    );
+
+    await sales.design.approveByToken({ token: d2New.approvalToken!, approved: true, comment: "ผ่าน" });
     oaDb = await prisma.order.findUniqueOrThrow({ where: { id: oa.id } });
-    ok("A6 ลูกค้าอนุมัติ v2 ผ่านลิงก์ → DESIGN_APPROVED", oaDb.internalStatus === "DESIGN_APPROVED", oaDb.internalStatus);
+    ok("A6 ลูกค้าอนุมัติ v2 ผ่านลิงก์ (token ใหม่) → DESIGN_APPROVED", oaDb.internalStatus === "DESIGN_APPROVED", oaDb.internalStatus);
 
     // 5) เปิดใบผลิต (DTF in-house + สกรีน outsource)
     const prod = await manager.production.create({
