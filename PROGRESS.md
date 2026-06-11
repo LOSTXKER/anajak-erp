@@ -15,6 +15,7 @@
 - 🎉 P0 จบครบ 5 ด่าน (2026-06-10) — auth ✓ เงินตรง ✓ migration ✓ seed ✓
 
 ## เสร็จแล้ว
+- 2026-06-11 — **dialog แก้รายการ = ฟอร์มชุดเดียวกับหน้าเปิดงาน (8064872 — เบสเคาะ)**: items tab ใช้ `OrderItemCard`+`ProductPickerDialog` ชุดเดียวกับ orders/new (หยิบสต๊อก/multi-size/ผ้า-แพทเทิร์น/ลายเต็ม) — ปิดบั๊กเดิมแก้ได้แค่ variants[0] · helper กลาง `lib/order-form-stock.ts` (+test 6) · adversarial review 9 agents จับก่อน commit 4 เรื่อง แก้ครบ: itemSource ว่างมี select แก้ในแถว · stale closure onSetItems (เลือกแพทเทิร์นแล้ว field หาย — แก้ทั้ง dialog+orders/new) · หยิบสต๊อกยึด item เป้าหมายด้วย identity + dialog ไม่ prune รายการ DB ที่ดูว่าง · เช็คส่วนลดในฟอร์ม — **หนี้จดไว้**: FROM_STOCK แก้ไซส์/สีในแถวไม่ได้ (ลบ+หยิบใหม่ — ตาม UX orders/new) · multi-variant flatten ตอน save (pre-existing ยอดถูก — รอ multi-size matrix P1.12)
 - 2026-06-11 — **แก้ audit ครบ 31/31 ข้อ (C1-C7 — เบสเคาะ "แก้เลยทั้งหมด")** สรุปต่อก้อน:
   - **C1 (4a5b9c3)**: SHIPPED ถอยได้ (กดพลาด→พร้อมส่ง · ตีกลับ/เคลม→QC) + COMPLETED เปิดกลับได้ (ผู้จัดการ+เหตุผล · ล้าง completedAt) + DESIGN_APPROVED→DESIGNING (ลูกค้าเปลี่ยนใจ) + ON_HOLD กรองตามชนิดงาน + กดส่งมือต้องมีใบส่ง + RETURNED→กระดิ่ง + DESIGNER/ACCOUNTANT เข้า orderOps แบบแคบ + confirm dialog ปิดงาน/ส่งมือ + การ์ดขั้นถัดไป READY_TO_SHIP ชี้ส่วนจัดส่ง (anchor delivery ใหม่)
   - **C2 (28fa450)**: step FAILED→กระดิ่ง+อยู่ในคิว my-tasks บนสุด · QC ไม่ผ่านถอยกลับ→reopen ใบผลิต+step "งานแก้" อัตโนมัติ (`reopenProductionsForRework`) · section "รอเปิดใบผลิต" ใน my-tasks · ซ่อนปุ่มสร้างใบผลิตตาม role
