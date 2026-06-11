@@ -1,5 +1,5 @@
 import type { InternalStatus } from "@prisma/client";
-import { getCustomerStatus, isValidTransition } from "@/lib/order-status";
+import { getCustomerStatus, isValidTransition, forwardPath } from "@/lib/order-status";
 import { badRequest, conflict } from "@/server/errors";
 import type { PrismaTx } from "@/lib/prisma";
 
@@ -85,6 +85,76 @@ export async function transitionOrder(tx: PrismaTx, params: TransitionParams) {
   });
 
   return { changed: true as const, from: order.internalStatus };
+}
+
+// เดินสถานะออเดอร์ "ไปข้างหน้า" ตามเส้นทางของชนิดงาน ทีละก้าวที่ valid จนถึงเป้าหมาย
+// ใช้เมื่อเหตุการณ์ในโมดูล (ผลิตครบ/ส่งของ) ควรดันสถานะออเดอร์เอง — ไปข้างหน้าเท่านั้น ไม่ดึงถอย
+// onlyFrom: ดันเฉพาะเมื่อสถานะปัจจุบันอยู่ในชุดนี้ (กันดันจากจุดที่ไม่ควร เช่น ออเดอร์ยังผลิตไม่เสร็จ)
+// idempotent: เลยเป้าหมาย/ไม่อยู่ในเส้นทาง = no-op · ทุกก้าวยังผ่าน isValidTransition เหมือนกดเอง
+export async function advanceOrderForward(
+  tx: PrismaTx,
+  params: {
+    orderId: string;
+    target: InternalStatus;
+    changedBy: string;
+    onlyFrom?: InternalStatus[];
+    reason?: string;
+  }
+) {
+  const order = await tx.order.findUniqueOrThrow({
+    where: { id: params.orderId },
+    select: { orderType: true, internalStatus: true },
+  });
+  const path = forwardPath(order.orderType, order.internalStatus, params.target, params.onlyFrom);
+  for (const next of path) {
+    const result = await transitionOrder(tx, {
+      orderId: params.orderId,
+      to: next,
+      changedBy: params.changedBy,
+      reason: params.reason,
+    });
+    // ถูกแย่งเปลี่ยนสถานะกลางทาง → หยุด ไม่ดันทับของคนอื่น
+    if (!result.changed) break;
+  }
+  return { advanced: path.length > 0 };
+}
+
+// ปิดใบผลิตเมื่อทุกขั้นเสร็จ + ดันออเดอร์ "กำลังผลิต" → "ตรวจคุณภาพ" อัตโนมัติ
+// rollup เดียวที่ใช้ร่วมกันทั้ง production.updateStep และ outsource QC ผ่าน (ไม่ซ้ำตรรกะ 2 ที่)
+// ดันออเดอร์เฉพาะตอนยัง PRODUCING — ไม่แตะออเดอร์ที่เลยขั้นไปแล้ว/ปิดงานแล้ว · คืน true ถ้าเพิ่งปิดรอบนี้
+export async function finalizeProductionIfComplete(
+  tx: PrismaTx,
+  params: { productionId: string; changedBy: string }
+) {
+  const steps = await tx.productionStep.findMany({
+    where: { productionId: params.productionId },
+    select: { status: true },
+  });
+  if (steps.length === 0 || !steps.every((s) => s.status === "COMPLETED")) {
+    return false;
+  }
+
+  const production = await tx.production.update({
+    where: { id: params.productionId },
+    data: { status: "COMPLETED", endDate: new Date() },
+    select: { orderId: true },
+  });
+
+  // ดันออเดอร์เฉพาะเมื่อ "ทุกใบผลิต" ของออเดอร์เสร็จ — ออเดอร์มีได้หลายใบผลิต
+  // (ใบหนึ่งเสร็จแต่ยังมีใบอื่นค้าง = ยังไม่ควรเด้งเข้า QC)
+  const openProductions = await tx.production.count({
+    where: { orderId: production.orderId, status: { not: "COMPLETED" } },
+  });
+  if (openProductions === 0) {
+    await advanceOrderForward(tx, {
+      orderId: production.orderId,
+      target: "QUALITY_CHECK",
+      changedBy: params.changedBy,
+      onlyFrom: ["PRODUCING"],
+    });
+  }
+
+  return true;
 }
 
 // ผลตัดสินแบบ (อนุมัติ/ขอแก้) → สถานะออเดอร์ + revision — ใช้ทั้งฝั่งพนักงานและลูกค้าผ่าน token

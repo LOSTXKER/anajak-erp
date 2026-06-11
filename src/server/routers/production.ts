@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
-import { transitionOrder } from "@/server/services/order-status";
+import { transitionOrder, finalizeProductionIfComplete } from "@/server/services/order-status";
 import { isValidTransition } from "@/lib/order-status";
 
 // วางแผนการผลิต = งานระดับบริหารตามตาราง RBAC §7
@@ -113,70 +113,66 @@ export const productionRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { stepId, ...data } = input;
 
-      // PRODUCTION_STAFF: ห้ามแตะ assignedToId/actualCost (มอบงาน + ต้นทุน = อำนาจหัวหน้า)
-      // step ที่ยังไม่มีเจ้าของ → claim อัตโนมัติ (ระบบยังไม่มี UI มอบหมายงาน
-      // ถ้าบังคับ assign ก่อน staff จะอัปเดตอะไรไม่ได้เลย) · step ของคนอื่น → ห้าม
-      let autoClaim = false;
-      if (ctx.userRole === "PRODUCTION_STAFF") {
-        if (data.assignedToId !== undefined || data.actualCost !== undefined) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "ฝ่ายผลิตแก้ผู้รับผิดชอบ/ต้นทุนจริงไม่ได้",
+      // อัปเดต step + ปิดใบผลิต + ดันสถานะออเดอร์ = ก้อนเดียวกัน (transitionOrder ต้องอยู่ใน tx)
+      return ctx.prisma.$transaction(async (tx) => {
+        // PRODUCTION_STAFF: ห้ามแตะ assignedToId/actualCost (มอบงาน + ต้นทุน = อำนาจหัวหน้า)
+        // step ที่ยังไม่มีเจ้าของ → claim อัตโนมัติ (ระบบยังไม่มี UI มอบหมายงาน
+        // ถ้าบังคับ assign ก่อน staff จะอัปเดตอะไรไม่ได้เลย) · step ของคนอื่น → ห้าม
+        let autoClaim = false;
+        if (ctx.userRole === "PRODUCTION_STAFF") {
+          if (data.assignedToId !== undefined || data.actualCost !== undefined) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "ฝ่ายผลิตแก้ผู้รับผิดชอบ/ต้นทุนจริงไม่ได้",
+            });
+          }
+          const existing = await tx.productionStep.findUniqueOrThrow({
+            where: { id: stepId },
+            select: { assignedToId: true },
           });
+          if (existing.assignedToId === null) {
+            autoClaim = true;
+          } else if (existing.assignedToId !== ctx.userId) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "งานนี้ถูกมอบหมายให้คนอื่นแล้ว",
+            });
+          }
         }
-        const existing = await ctx.prisma.productionStep.findUniqueOrThrow({
+
+        const updateData: Record<string, unknown> = { ...data };
+        if (autoClaim) {
+          updateData.assignedToId = ctx.userId;
+        }
+        if (data.status === "IN_PROGRESS" && !data.assignedToId) {
+          updateData.startedAt = new Date();
+        }
+        if (data.status === "COMPLETED") {
+          updateData.completedAt = new Date();
+        }
+
+        const step = await tx.productionStep.update({
           where: { id: stepId },
-          select: { assignedToId: true },
+          data: updateData,
+          include: { production: true },
         });
-        if (existing.assignedToId === null) {
-          autoClaim = true;
-        } else if (existing.assignedToId !== ctx.userId) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "งานนี้ถูกมอบหมายให้คนอื่นแล้ว",
-          });
-        }
-      }
 
-      const updateData: Record<string, unknown> = { ...data };
-      if (autoClaim) {
-        updateData.assignedToId = ctx.userId;
-      }
-      if (data.status === "IN_PROGRESS" && !data.assignedToId) {
-        updateData.startedAt = new Date();
-      }
-      if (data.status === "COMPLETED") {
-        updateData.completedAt = new Date();
-      }
-
-      const step = await ctx.prisma.productionStep.update({
-        where: { id: stepId },
-        data: updateData,
-        include: { production: true },
-      });
-
-      // Check if all steps are completed
-      const allSteps = await ctx.prisma.productionStep.findMany({
-        where: { productionId: step.productionId },
-      });
-
-      const allCompleted = allSteps.every((s) => s.status === "COMPLETED");
-      if (allCompleted) {
-        await ctx.prisma.production.update({
-          where: { id: step.productionId },
-          data: { status: "COMPLETED", endDate: new Date() },
+        // ทุกขั้นเสร็จ → ปิดใบผลิต + ดันออเดอร์ "กำลังผลิต" → "ตรวจคุณภาพ" (rollup กลาง)
+        await finalizeProductionIfComplete(tx, {
+          productionId: step.productionId,
+          changedBy: ctx.userId,
         });
-      }
 
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "UPDATE",
-        entityType: "PRODUCTION_STEP",
-        entityId: stepId,
-        newValue: data,
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "PRODUCTION_STEP",
+          entityId: stepId,
+          newValue: data,
+        });
+
+        return step;
       });
-
-      return step;
     }),
 
   board: protectedProcedure.query(async ({ ctx }) => {

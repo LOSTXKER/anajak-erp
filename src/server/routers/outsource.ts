@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import { moneyInput, round2 } from "@/server/services/money";
+import { finalizeProductionIfComplete } from "@/server/services/order-status";
 
 const managerUp = requireRole("OWNER", "MANAGER");
 const productionUp = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
@@ -300,23 +301,18 @@ export const outsourceRouter = router({
           data: updateData,
         });
 
-        // QC ผ่าน → ปิด step + ถ้าทุก step เสร็จ ปิดใบผลิตด้วย (rollup เดียวกับ production.updateStep)
+        // QC ผ่าน → ปิด step + ถ้าทุก step เสร็จ ปิดใบผลิต + ดันออเดอร์เข้า "ตรวจคุณภาพ"
+        // (rollup กลางตัวเดียวกับ production.updateStep — ตรรกะปิดงาน/ดันสถานะอยู่ที่เดียว)
         if (data.status === "QC_PASSED") {
           const step = await tx.productionStep.update({
             where: { id: order.productionStepId },
             data: { status: "COMPLETED", qcPassed: true, completedAt: new Date() },
             select: { productionId: true },
           });
-          const siblings = await tx.productionStep.findMany({
-            where: { productionId: step.productionId },
-            select: { status: true },
+          await finalizeProductionIfComplete(tx, {
+            productionId: step.productionId,
+            changedBy: ctx.userId,
           });
-          if (siblings.every((s) => s.status === "COMPLETED")) {
-            await tx.production.update({
-              where: { id: step.productionId },
-              data: { status: "COMPLETED", endDate: new Date() },
-            });
-          }
         }
         // QC ไม่ผ่าน → เปิด step กลับมารอส่งแก้รอบใหม่ (แม้เคยถูก mark เสร็จมือไปแล้ว)
         if (data.status === "QC_FAILED") {

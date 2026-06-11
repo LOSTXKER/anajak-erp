@@ -4,6 +4,7 @@ import {
   getNextStatuses,
   isValidTransition,
   getCustomerStatus,
+  forwardPath,
 } from "./order-status";
 
 // เกราะของ status machine — ทุก transition ใหม่/ที่แก้ ต้องบันทึกไว้ที่นี่
@@ -70,6 +71,43 @@ describe("transitions ที่เพิ่มตอน P0.2 (อย่าลบ
 
   it("INQUIRY → CONFIRMED (CUSTOM): ข้ามใบเสนอราคาได้", () => {
     expect(isValidTransition("CUSTOM", "INQUIRY", "CONFIRMED")).toBe(true);
+  });
+});
+
+describe("forwardPath — เดินสถานะไปข้างหน้าอัตโนมัติตามเหตุการณ์โมดูล", () => {
+  it("ผลิตครบ: PRODUCING → QUALITY_CHECK (ก้าวเดียว)", () => {
+    expect(forwardPath("CUSTOM", "PRODUCING", "QUALITY_CHECK", ["PRODUCING"])).toEqual([
+      "QUALITY_CHECK",
+    ]);
+  });
+
+  it("ส่งของ: เดินจากแพ็ค/พร้อมส่ง ไปถึง SHIPPED (ผ่านขั้นกลางครบ)", () => {
+    expect(forwardPath("CUSTOM", "PACKING", "SHIPPED", ["PACKING", "READY_TO_SHIP"])).toEqual([
+      "READY_TO_SHIP",
+      "SHIPPED",
+    ]);
+    expect(forwardPath("CUSTOM", "READY_TO_SHIP", "SHIPPED", ["PACKING", "READY_TO_SHIP"])).toEqual([
+      "SHIPPED",
+    ]);
+  });
+
+  it("กันข้ามขั้น: สถานะปัจจุบันไม่อยู่ใน onlyFrom = ไม่ดัน (เช่นยังตรวจ QC อยู่ ห้ามกระโดดส่ง)", () => {
+    expect(forwardPath("CUSTOM", "QUALITY_CHECK", "SHIPPED", ["PACKING", "READY_TO_SHIP"])).toEqual(
+      []
+    );
+  });
+
+  it("ไปข้างหน้าเท่านั้น: ถอยหลัง/เลยเป้าหมายแล้ว = ไม่ทำอะไร", () => {
+    expect(forwardPath("CUSTOM", "SHIPPED", "QUALITY_CHECK")).toEqual([]);
+    expect(forwardPath("CUSTOM", "SHIPPED", "SHIPPED")).toEqual([]);
+    expect(forwardPath("CUSTOM", "COMPLETED", "SHIPPED")).toEqual([]);
+  });
+
+  it("รองรับ READY_MADE (เส้นทางไม่มีขั้นออกแบบ)", () => {
+    expect(forwardPath("READY_MADE", "PRODUCING", "QUALITY_CHECK", ["PRODUCING"])).toEqual([
+      "QUALITY_CHECK",
+    ]);
+    expect(forwardPath("READY_MADE", "PACKING", "SHIPPED")).toEqual(["READY_TO_SHIP", "SHIPPED"]);
   });
 });
 

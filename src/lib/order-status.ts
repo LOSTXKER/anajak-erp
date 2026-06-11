@@ -269,6 +269,27 @@ export function isValidTransition(
   return validNext.includes(toStatus);
 }
 
+/**
+ * ลำดับสถานะที่ต้อง "เดินไปข้างหน้า" จาก current จนถึง target ตามเส้นทางของชนิดงาน
+ * (รวม target เป็นตัวสุดท้าย) — ใช้ให้เหตุการณ์ในโมดูล (ผลิตครบ/ส่งของ) ดันสถานะออเดอร์เอง
+ * คืน [] เมื่อ: current/target ไม่อยู่ในเส้นทาง · target ไม่ได้อยู่ข้างหน้า current ·
+ * หรือระบุ onlyFrom แล้ว current ไม่อยู่ในชุดนั้น (กันดันจากจุดที่ไม่ควร เช่น ยังผลิตไม่เสร็จ)
+ * ไปข้างหน้าเท่านั้น — ไม่ดึงถอยหลัง ไม่ข้ามเลยเป้าหมาย
+ */
+export function forwardPath(
+  orderType: OrderType,
+  current: InternalStatus,
+  target: InternalStatus,
+  onlyFrom?: InternalStatus[]
+): InternalStatus[] {
+  if (onlyFrom && !onlyFrom.includes(current)) return [];
+  const flow = FLOW_BY_TYPE[orderType];
+  const curIdx = flow.indexOf(current);
+  const tgtIdx = flow.indexOf(target);
+  if (curIdx < 0 || tgtIdx < 0 || tgtIdx <= curIdx) return [];
+  return flow.slice(curIdx + 1, tgtIdx + 1);
+}
+
 // ============================================================
 // PRIORITY LABELS & COLORS
 // ============================================================

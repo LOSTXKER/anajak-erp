@@ -321,6 +321,77 @@ async function main() {
       noTitleItems.title === "เสื้อเปล่าจากสต๊อก",
       noTitleItems.title
     );
+
+    // ---------- 6) สถานะเด้งเองตามเหตุการณ์ (auto-advance) ----------
+    const o6 = await prisma.order.create({
+      data: {
+        orderNumber: "TEST-OPS-6",
+        orderType: "CUSTOM",
+        channel: "LINE",
+        customerId: customer.id,
+        createdById: owner.id,
+        internalStatus: "CONFIRMED",
+        customerStatus: "ORDER_RECEIVED",
+        title: "[OPS-VERIFY] สถานะเด้งเอง",
+        totalAmount: 500,
+      },
+    });
+    ids.orders.push(o6.id);
+
+    const prod6 = await caller.production.create({
+      orderId: o6.id,
+      steps: [
+        { stepType: "DTF_PRINT", sortOrder: 1 },
+        { stepType: "HEAT_PRESS", sortOrder: 2 },
+      ],
+    });
+    let o6Db = await prisma.order.findUniqueOrThrow({ where: { id: o6.id } });
+    ok("6.0 เปิดใบผลิต → ออเดอร์เข้า PRODUCING", o6Db.internalStatus === "PRODUCING", o6Db.internalStatus);
+
+    await caller.production.updateStep({ stepId: prod6.steps[0].id, status: "COMPLETED" });
+    o6Db = await prisma.order.findUniqueOrThrow({ where: { id: o6.id } });
+    ok(
+      "6.1 ปิดบางขั้น (ยังไม่ครบ) → ออเดอร์ยังอยู่ PRODUCING",
+      o6Db.internalStatus === "PRODUCING",
+      o6Db.internalStatus
+    );
+
+    await caller.production.updateStep({ stepId: prod6.steps[1].id, status: "COMPLETED" });
+    o6Db = await prisma.order.findUniqueOrThrow({ where: { id: o6.id } });
+    const prod6Db = await prisma.production.findUniqueOrThrow({ where: { id: prod6.id } });
+    ok(
+      "6.2 ปิดครบทุกขั้น → ใบผลิตปิด + ออเดอร์เด้งเป็น QUALITY_CHECK เอง",
+      o6Db.internalStatus === "QUALITY_CHECK" && prod6Db.status === "COMPLETED",
+      { order: o6Db.internalStatus, prod: prod6Db.status }
+    );
+
+    await caller.delivery.create({
+      orderId: o6.id,
+      recipientName: "คุณเอ",
+      phone: "0810000000",
+      address: "1 ถ.ส่งของ",
+      shippingMethod: "FLASH",
+    });
+    const o6Del = (await prisma.delivery.findMany({ where: { orderId: o6.id } }))[0];
+
+    await caller.delivery.updateStatus({ id: o6Del.id, status: "SHIPPED", trackingNumber: "TRACK-6" });
+    o6Db = await prisma.order.findUniqueOrThrow({ where: { id: o6.id } });
+    ok(
+      "6.3 ส่งของขณะออเดอร์ยัง QUALITY_CHECK → ไม่กระโดดข้าม QC (ออเดอร์คง QUALITY_CHECK)",
+      o6Db.internalStatus === "QUALITY_CHECK",
+      o6Db.internalStatus
+    );
+
+    for (const status of ["PACKING", "READY_TO_SHIP"] as const) {
+      await caller.order.updateStatus({ id: o6.id, internalStatus: status });
+    }
+    await caller.delivery.updateStatus({ id: o6Del.id, status: "DELIVERED" });
+    o6Db = await prisma.order.findUniqueOrThrow({ where: { id: o6.id } });
+    ok(
+      "6.4 ส่งของขณะพร้อมส่ง → ออเดอร์เด้งเป็น SHIPPED เอง (ไม่ปิดงานเอง — รอวางบิล)",
+      o6Db.internalStatus === "SHIPPED",
+      o6Db.internalStatus
+    );
   } finally {
     // ---------- ล้างเกลี้ยง + คืนเลขเอกสาร ----------
     await prisma.notification.deleteMany({ where: { entityId: { in: ids.orders } } });
@@ -342,7 +413,9 @@ async function main() {
       select: { id: true },
     });
     await prisma.auditLog.deleteMany({
-      where: { entityId: { in: [...osOrders.map((o) => o.id), ...prods.map((p) => p.id), ids.vendor] } },
+      where: {
+        entityId: { in: [...osOrders.map((o) => o.id), ...prods.map((p) => p.id), ...stepIds, ids.vendor] },
+      },
     });
     await prisma.outsourceOrder.deleteMany({ where: { productionStepId: { in: stepIds } } });
     const deliveries = await prisma.delivery.findMany({

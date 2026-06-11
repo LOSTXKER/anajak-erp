@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { byIdInput } from "@/server/schemas";
 import { createAuditLog } from "@/server/helpers";
+import { advanceOrderForward } from "@/server/services/order-status";
 
 const salesOrProduction = requireRole("OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF");
 const managerUp = requireRole("OWNER", "MANAGER");
@@ -137,20 +138,34 @@ export const deliveryRouter = router({
         updateData.deliveredAt = new Date();
       }
 
-      const delivery = await ctx.prisma.delivery.update({
-        where: { id: input.id },
-        data: updateData,
-      });
-
-      // Also update order tracking number if provided
-      if (input.trackingNumber) {
-        await ctx.prisma.order.update({
-          where: { id: delivery.orderId },
-          data: { trackingNumber: input.trackingNumber },
+      // อัปเดตใบส่ง + เลขพัสดุ + ดันสถานะออเดอร์ = ก้อนเดียวกัน
+      return ctx.prisma.$transaction(async (tx) => {
+        const delivery = await tx.delivery.update({
+          where: { id: input.id },
+          data: updateData,
         });
-      }
 
-      return delivery;
+        // Also update order tracking number if provided
+        if (input.trackingNumber) {
+          await tx.order.update({
+            where: { id: delivery.orderId },
+            data: { trackingNumber: input.trackingNumber },
+          });
+        }
+
+        // ส่งของแล้ว → ดันออเดอร์เป็น "จัดส่งแล้ว" — เฉพาะตอนแพ็ค/พร้อมส่ง (ไม่กระโดดข้าม QC)
+        // จงใจไม่ปิดงานเอง: "เสร็จสิ้น" มีด่านบังคับวางบิลครบ ปล่อยให้คนกดปิดเอง
+        if (input.status === "SHIPPED" || input.status === "DELIVERED") {
+          await advanceOrderForward(tx, {
+            orderId: delivery.orderId,
+            target: "SHIPPED",
+            changedBy: ctx.userId,
+            onlyFrom: ["PACKING", "READY_TO_SHIP"],
+          });
+        }
+
+        return delivery;
+      });
     }),
 
   delete: protectedProcedure
