@@ -3,6 +3,7 @@ import { router, protectedProcedure, requireRole } from "../trpc";
 import { byIdInput } from "@/server/schemas";
 import { createAuditLog, createNotification } from "@/server/helpers";
 import { advanceOrderForward } from "@/server/services/order-status";
+import { normalizePhone } from "@/lib/phone";
 
 const salesOrProduction = requireRole("OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF");
 const managerUp = requireRole("OWNER", "MANAGER");
@@ -65,7 +66,7 @@ export const deliveryRouter = router({
             data: {
               address: fullAddress,
               // เบอร์เติมเฉพาะตอนโปรไฟล์ยังว่าง — ไม่ทับเบอร์หลักด้วยเบอร์ผู้รับของ
-              ...(fillPhone ? { phone: input.phone } : {}),
+              ...(fillPhone ? { phone: normalizePhone(input.phone) } : {}),
             },
           });
           // ทับข้อมูลหลักลูกค้า = ต้องมี oldValue ให้ตรวจย้อน/กู้ได้ (pattern เดียวกับ customer.update)

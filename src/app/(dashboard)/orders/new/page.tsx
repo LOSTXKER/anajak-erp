@@ -42,6 +42,8 @@ import {
   useOrderItemsForm,
   useOrderFeesForm,
   clearDraft,
+  loadHeaderDraft,
+  saveHeaderDraft,
 } from "@/hooks/use-order-items-form";
 import { useOrderShippingState } from "@/hooks/use-order-shipping";
 import type { ReferenceImage } from "@/types/order-form";
@@ -75,10 +77,12 @@ export default function NewOrderPage() {
   const [channel, setChannel] = useState("LINE");
   const [externalOrderId, setExternalOrderId] = useState("");
 
-  const [customerId, setCustomerId] = useState("");
-  const [title, setTitle] = useState("");
+  // หัวฟอร์มรอด refresh เหมือนรายการ — restore จาก header draft (audit ข้อ 6)
+  const headerDraft = useState(() => loadHeaderDraft())[0];
+  const [customerId, setCustomerId] = useState(headerDraft?.customerId ?? "");
+  const [title, setTitle] = useState(headerDraft?.title ?? "");
   const [deadline, setDeadline] = useState("");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(headerDraft?.description ?? "");
   const [notes, setNotes] = useState("");
 
   const {
@@ -114,7 +118,19 @@ export default function NewOrderPage() {
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
   // ลูกค้าเลือกผ่าน CustomerPicker (ค้นหา+เพิ่มด่วน) — เก็บ object ที่เลือกไว้ใช้ prefill
-  const [selectedCustomer, setSelectedCustomer] = useState<PickerCustomer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<PickerCustomer | null>(
+    (headerDraft?.selectedCustomer as PickerCustomer | undefined) ?? null
+  );
+
+  // เซฟหัวฟอร์มลง draft ทุกครั้งที่เปลี่ยน (debounce ไม่จำเป็น — ก้อนเล็ก)
+  useEffect(() => {
+    saveHeaderDraft({
+      customerId: customerId || undefined,
+      selectedCustomer: selectedCustomer ?? undefined,
+      title: title || undefined,
+      description: description || undefined,
+    });
+  }, [customerId, selectedCustomer, title, description]);
 
   const { data: printCatalog } = trpc.serviceCatalog.list.useQuery(
     { category: "PRINT", isActive: true },
@@ -261,6 +277,10 @@ export default function NewOrderPage() {
 
     const maxFiles = 5 - referenceImages.length;
     const filesToUpload = Array.from(files).slice(0, maxFiles);
+    // ตัดไฟล์ที่เกินโควตาต้องบอก — เดิมตัดเงียบ ผู้ใช้คิดว่าแนบครบแล้ว (audit ข้อ 4)
+    if (files.length > maxFiles) {
+      toast.warning(`แนบได้สูงสุด 5 ไฟล์ — ข้าม ${files.length - maxFiles} ไฟล์ที่เกินมา`);
+    }
 
     setUploading(true);
     try {
@@ -287,7 +307,8 @@ export default function NewOrderPage() {
         ]);
       }
     } catch {
-      // Upload error - silently continue with already uploaded images
+      // อัปโหลดล้มเหลวห้ามเงียบ — ไฟล์ที่ขึ้นแล้วยังอยู่ แต่ผู้ใช้ต้องรู้ว่าที่เหลือไม่ขึ้น
+      toast.error("อัปโหลดไฟล์ไม่สำเร็จ — ไฟล์ที่ขึ้นแล้วยังอยู่ ลองแนบไฟล์ที่เหลือใหม่อีกครั้ง");
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -436,7 +457,14 @@ export default function NewOrderPage() {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={dismissDraft}
+            onClick={() => {
+              dismissDraft();
+              clearDraft();
+              setCustomerId("");
+              setSelectedCustomer(null);
+              setTitle("");
+              setDescription("");
+            }}
             className="ml-auto"
           >
             เริ่มใหม่

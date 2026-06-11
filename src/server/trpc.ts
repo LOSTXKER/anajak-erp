@@ -1,4 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
+import { ZodError } from "zod";
 import superjson from "@/lib/superjson";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/supabase-server";
@@ -32,8 +33,59 @@ export async function createContext(): Promise<Context> {
   return { prisma, userId: null, userRole: null };
 }
 
+// zod ปฏิเสธ input → ข้อความไทยอ่านได้ ไม่ใช่ JSON ดิบภาษาอังกฤษ (audit ข้อ 2 —
+// ผู้ใช้คือแอดมินไทย เจอ "too_small ... variants.0.quantity" = ติดตัน)
+const ZOD_FIELD_LABELS: Record<string, string> = {
+  quantity: "จำนวน",
+  size: "ไซส์",
+  baseUnitPrice: "ราคาต่อหน่วย",
+  unitPrice: "ราคาต่อหน่วย",
+  description: "คำอธิบาย",
+  amount: "ยอดเงิน",
+  discount: "ส่วนลด",
+  taxRate: "อัตราภาษี",
+  customerId: "ลูกค้า",
+  title: "ชื่องาน",
+  name: "ชื่อ",
+  phone: "เบอร์โทร",
+  email: "อีเมล",
+  reason: "เหตุผล",
+  products: "สินค้าในรายการ",
+};
+
+function thaiZodMessage(error: ZodError): string {
+  return error.issues
+    .slice(0, 3)
+    .map((issue) => {
+      const field = [...issue.path].reverse().find((p) => typeof p === "string");
+      const label = (field && ZOD_FIELD_LABELS[field]) || field || "ข้อมูล";
+      switch (issue.code) {
+        case "too_small":
+          return `${label}: ต้องไม่น้อยกว่า ${"minimum" in issue ? issue.minimum : "ที่กำหนด"}`;
+        case "too_big":
+          return `${label}: ต้องไม่เกิน ${"maximum" in issue ? issue.maximum : "ที่กำหนด"}`;
+        case "invalid_type":
+          return `${label}: รูปแบบข้อมูลไม่ถูกต้อง`;
+        case "invalid_enum_value":
+          return `${label}: ค่าไม่อยู่ในตัวเลือกที่ระบบรองรับ`;
+        default:
+          return `${label}: ${issue.message}`;
+      }
+    })
+    .join(" · ");
+}
+
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
+  errorFormatter({ shape, error }) {
+    if (error.cause instanceof ZodError) {
+      return {
+        ...shape,
+        message: `ข้อมูลไม่ผ่านการตรวจสอบ — ${thaiZodMessage(error.cause)}`,
+      };
+    }
+    return shape;
+  },
 });
 
 export const router = t.router;

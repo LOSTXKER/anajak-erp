@@ -261,6 +261,8 @@ export function deriveProcessingType(itemSource: string, needsPrinting: boolean)
 
 // "รายการนี้มีเนื้อจริงไหม" — ตัวตัดสินเดียว ใช้ทั้งหน้าเปิดงาน (เปิดแบบสอบถาม vs คิดเงิน)
 // และระบบ draft (เก็บ/ลบ localStorage) — สองที่นี้ต้องมองเหมือนกัน ไม่งั้น draft ค้าง/หาย
+// จำนวนอย่างเดียวไม่นับเป็นเนื้อหา — แถวใหม่มี quantity default 1 ติดมา ถ้านับจะสลับ
+// ฟอร์มเข้าโหมดคิดเงินทันทีที่กด "เพิ่มสินค้า" ทั้งที่ยังไม่กรอกอะไร (audit ข้อ 7)
 export function itemHasContent(item: OrderItemForm): boolean {
   return (
     !!item.description ||
@@ -271,7 +273,7 @@ export function itemHasContent(item: OrderItemForm): boolean {
         p.description ||
         p.productId ||
         p.itemSource ||
-        p.variants.some((v) => v.size || v.color || v.quantity > 0)
+        p.variants.some((v) => v.size.trim() || v.color.trim())
     )
   );
 }
@@ -295,6 +297,10 @@ export function validateOrderItemProduct(product: OrderItemProductForm): Product
   }
   if (product.variants.length === 0 || product.variants.every((v) => !v.size.trim())) {
     errors.variants = "กรุณาระบุไซส์อย่างน้อย 1 รายการ";
+  } else if (product.variants.some((v) => v.size.trim() && v.quantity < 1)) {
+    // server บังคับ quantity ≥ 1 — เช็คที่ฟอร์มก่อน ไม่งั้นผู้ใช้เจอ zod error อ่านไม่ออก
+    // (เคสจริง: ลบเลขเพื่อพิมพ์ใหม่แล้วโดนแชทขัดจังหวะ — ค่าค้างเป็น 0 · audit ข้อ 2)
+    errors.variants = "จำนวนต่อไซส์ต้องอย่างน้อย 1 ชิ้น (มีไซส์ที่จำนวนเป็น 0 อยู่)";
   }
   if (!product.itemSource) errors.itemSource = "กรุณาเลือกแหล่งที่มาของสินค้า";
   return errors;

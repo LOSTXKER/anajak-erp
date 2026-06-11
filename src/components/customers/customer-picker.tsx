@@ -16,6 +16,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { UserPlus, Loader2, Search } from "lucide-react";
+import { normalizePhone } from "@/lib/phone";
 
 // ตัวเลือกลูกค้ามาตรฐาน: ค้นหาผ่าน server + เพิ่มลูกค้าด่วนจากชื่อแชท + กันสร้างซ้ำ
 // หลักคิด "โปรไฟล์โตตามงาน" — ลูกค้าแชทใหม่เริ่มได้ด้วยชื่ออย่างเดียว ข้อมูลอื่นเติมทีหลัง
@@ -81,8 +82,8 @@ export function CustomerPicker({ value, onChange, required }: CustomerPickerProp
 
   async function handleCreate() {
     if (isChecking) return;
-    // เบอร์เก็บเป็นตัวเลขล้วน — กันซ้ำพลาดเพราะคนพิมพ์มี/ไม่มีขีด
-    const cleanPhone = newPhone.replace(/[\s-]/g, "");
+    // เบอร์เก็บเป็นตัวเลขล้วน — กันซ้ำพลาดเพราะคนพิมพ์มี/ไม่มีขีด (helper เดียวกับ server)
+    const cleanPhone = normalizePhone(newPhone);
 
     // กันซ้ำก่อนสร้าง: เบอร์/LINE ตรง หรือชื่อใกล้เคียง → เสนอใช้รายเดิม
     if (similar === null) {

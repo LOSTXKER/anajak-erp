@@ -9,7 +9,43 @@ import {
 } from "@/types/order-form";
 
 const DRAFT_KEY = "order-draft-items";
+const HEADER_DRAFT_KEY = "order-draft-header";
 const DRAFT_DEBOUNCE_MS = 800;
+
+// หัวฟอร์มเปิดงาน (ลูกค้า/ชื่องาน/รายละเอียดจากแชท) ก็ต้องรอด refresh เหมือนรายการ —
+// เดิม draft เก็บแค่ items ลูกค้าที่เลือก+ข้อความจากแชทหายหมด (audit ข้อ 6)
+export type OrderHeaderDraft = {
+  customerId?: string;
+  // เก็บ object ลูกค้าที่เลือกทั้งก้อน (ข้อมูลจาก server) — restore picker ได้ทันที
+  selectedCustomer?: unknown;
+  title?: string;
+  description?: string;
+};
+
+export function loadHeaderDraft(): OrderHeaderDraft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(HEADER_DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as OrderHeaderDraft;
+  } catch {
+    return null;
+  }
+}
+
+export function saveHeaderDraft(draft: OrderHeaderDraft) {
+  if (typeof window === "undefined") return;
+  try {
+    const hasContent = !!(draft.customerId || draft.title?.trim() || draft.description?.trim());
+    if (hasContent) {
+      localStorage.setItem(HEADER_DRAFT_KEY, JSON.stringify(draft));
+    } else {
+      localStorage.removeItem(HEADER_DRAFT_KEY);
+    }
+  } catch {
+    // storage full or unavailable
+  }
+}
 
 function loadDraft(): OrderItemForm[] | null {
   if (typeof window === "undefined") return null;
@@ -47,6 +83,7 @@ function saveDraft(items: OrderItemForm[]) {
 export function clearDraft() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(DRAFT_KEY);
+  localStorage.removeItem(HEADER_DRAFT_KEY);
 }
 
 export function useOrderItemsForm(

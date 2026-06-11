@@ -5,6 +5,7 @@ import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
+import { normalizePhone } from "@/lib/phone";
 import { creditExposureForCustomer } from "@/server/services/receivables";
 
 const customerEditors = requireRole("OWNER", "MANAGER", "ACCOUNTANT", "SALES");
@@ -93,7 +94,11 @@ export const customerRouter = router({
         name: z.string().min(1, "กรุณากรอกชื่อลูกค้า"),
         company: z.string().optional(),
         email: z.string().email("อีเมลไม่ถูกต้อง").optional().or(z.literal("")),
-        phone: z.string().optional(),
+        // เบอร์ normalize ที่ทางเข้า server ทุกทาง — กันซ้ำ/ค้นไม่เจอเพราะ format ต่างกัน
+        phone: z
+          .string()
+          .optional()
+          .transform((v) => (v ? normalizePhone(v) : v)),
         lineId: z.string().optional(),
         address: z.string().optional(),
         taxId: z.string().optional(),
@@ -147,7 +152,10 @@ export const customerRouter = router({
         name: z.string().min(1).optional(),
         company: z.string().optional(),
         email: z.string().email().optional().or(z.literal("")),
-        phone: z.string().optional(),
+        phone: z
+          .string()
+          .optional()
+          .transform((v) => (v ? normalizePhone(v) : v)),
         lineId: z.string().optional(),
         address: z.string().optional(),
         taxId: z.string().optional(),

@@ -92,6 +92,7 @@ interface OrderEditDialogProps {
   onOpenChange: (open: boolean) => void;
   orderId: string;
   orderType: string;
+  internalStatus: string;
   order: OrderEditDialogOrder;
 }
 
@@ -100,8 +101,13 @@ export function OrderEditDialog({
   onOpenChange,
   orderId,
   orderType,
+  internalStatus,
   order,
 }: OrderEditDialogProps) {
+  // ช่วง DRAFT/INQUIRY server ยัง re-derive ชนิดออเดอร์จากเนื้อรายการ — ออเดอร์ที่กลายเป็น
+  // READY_MADE (เปิดเบา→เติมเสื้อเปล่า) ต้องเพิ่มลายได้ ไม่งั้นต้องยกเลิกเปิดใหม่ (audit ข้อ 3)
+  const canAddPrints =
+    orderType === "CUSTOM" || ["DRAFT", "INQUIRY"].includes(internalStatus);
   const {
     items,
     addItem,
@@ -312,7 +318,7 @@ export function OrderEditDialog({
                     }}>+ เพิ่มสินค้า</button>
 
                     {/* Prints */}
-                    {orderType === "CUSTOM" && (
+                    {canAddPrints && (
                       <div className="mb-2">
                         <div className="mb-1 flex items-center justify-between">
                           <span className="text-xs font-medium text-slate-500">สกรีน</span>
@@ -336,7 +342,7 @@ export function OrderEditDialog({
                     )}
 
                     {/* Addons */}
-                    {orderType === "CUSTOM" && (
+                    {canAddPrints && (
                       <div>
                         <div className="mb-1 flex items-center justify-between">
                           <span className="text-xs font-medium text-slate-500">ส่วนเสริม</span>

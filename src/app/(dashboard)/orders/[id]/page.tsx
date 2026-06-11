@@ -439,6 +439,7 @@ export default function OrderDetailPage({
         onOpenChange={setShowEditDialog}
         orderId={id}
         orderType={order.orderType}
+        internalStatus={order.internalStatus}
         order={order}
       />
 
