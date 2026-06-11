@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, requireRole } from "../trpc";
-import { createAuditLog } from "@/server/helpers";
+import { createAuditLog, createNotification } from "@/server/helpers";
 import { transitionOrder, finalizeProductionIfComplete } from "@/server/services/order-status";
 import { isValidTransition } from "@/lib/order-status";
+import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 
 // วางแผนการผลิต = งานระดับบริหารตามตาราง RBAC §7
 const managerUp = requireRole("OWNER", "MANAGER");
@@ -162,6 +163,35 @@ export const productionRouter = router({
           productionId: step.productionId,
           changedBy: ctx.userId,
         });
+
+        // step มีปัญหา = ต้องมีคนมาดูด่วน — กระดิ่งหาผู้จัดการทันที ห้ามจมเงียบ (audit ข้อ 20)
+        if (data.status === "FAILED") {
+          const order = await tx.order.findUniqueOrThrow({
+            where: { id: step.production.orderId },
+            select: { id: true, orderNumber: true, title: true },
+          });
+          const stepName =
+            step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
+          const managers = await tx.user.findMany({
+            where: {
+              role: { in: ["OWNER", "MANAGER"] },
+              isActive: true,
+              id: { not: ctx.userId },
+            },
+            select: { id: true },
+          });
+          for (const m of managers) {
+            await createNotification(tx, {
+              userId: m.id,
+              type: "ORDER",
+              title: `ขั้นตอนผลิตมีปัญหา — ${order.orderNumber}`,
+              message: `${stepName}${data.notes ? `: ${data.notes}` : ""} (${order.title})`,
+              link: `/orders/${order.id}`,
+              entityType: "ORDER",
+              entityId: order.id,
+            });
+          }
+        }
 
         await createAuditLog(tx, {
           userId: ctx.userId,

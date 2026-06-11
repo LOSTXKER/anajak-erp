@@ -121,6 +121,7 @@ export default function MyTasksPage() {
   }
 
   const production = data?.production ?? [];
+  const awaitingProduction = data?.awaitingProduction ?? [];
   const design = data?.design ?? [];
   const followUp = data?.followUp ?? [];
   const overdueInvoices = data?.billing.overdueInvoices ?? [];
@@ -128,10 +129,20 @@ export default function MyTasksPage() {
 
   const total =
     production.length +
+    awaitingProduction.length +
     design.length +
     followUp.length +
     overdueInvoices.length +
     shippedOrders.length;
+
+  const stepBadge = (status: string) =>
+    status === "FAILED"
+      ? { variant: "destructive" as const, label: "มีปัญหา" }
+      : status === "ON_HOLD"
+        ? { variant: "warning" as const, label: "พัก" }
+        : status === "IN_PROGRESS"
+          ? { variant: "accent" as const, label: "กำลังทำ" }
+          : { variant: "default" as const, label: "รอ" };
 
   return (
     <div className="space-y-5">
@@ -171,8 +182,27 @@ export default function MyTasksPage() {
                 </>
               }
               right={
-                <Badge variant={p.status === "IN_PROGRESS" ? "accent" : "default"} size="sm">
-                  {p.status === "IN_PROGRESS" ? "กำลังทำ" : "รอ"}
+                <Badge variant={stepBadge(p.status).variant} size="sm">
+                  {stepBadge(p.status).label}
+                </Badge>
+              }
+            />
+          ))}
+        </TaskSection>
+      )}
+
+      {awaitingProduction.length > 0 && (
+        <TaskSection icon={Factory} title="รอเปิดใบผลิต" count={awaitingProduction.length}>
+          {awaitingProduction.map((o) => (
+            <TaskRow
+              key={o.id}
+              href={`/orders/${o.id}`}
+              primary={o.title}
+              secondary={`${o.orderNumber} · ${o.customer.name}`}
+              meta={<DeadlineChip deadline={o.deadline} />}
+              right={
+                <Badge variant="warning" size="sm">
+                  ยังไม่มีใบผลิต
                 </Badge>
               }
             />

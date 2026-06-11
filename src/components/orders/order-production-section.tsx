@@ -171,7 +171,11 @@ export function OrderProductionSection({
     setOutsourceStepId(step.id);
   }
 
+  // เปิดใบผลิต = อำนาจหัวหน้า (server บังคับ managerUp) — ซ่อนปุ่มให้ตรง server
+  // role อื่นเคยเห็นปุ่ม กรอก dialog ครบแล้วโดน FORBIDDEN (audit ข้อ 28)
   const canCreate =
+    !!me &&
+    ["OWNER", "MANAGER"].includes(me.role) &&
     ["PRODUCTION_QUEUE", "DESIGN_APPROVED", "CONFIRMED"].includes(internalStatus) &&
     (!productions.data || productions.data.length === 0);
 

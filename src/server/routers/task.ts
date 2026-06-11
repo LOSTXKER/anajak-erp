@@ -20,12 +20,14 @@ export const taskRouter = router({
       customer: { select: { name: true } },
     } as const;
 
-    // ---- งานผลิตของฉัน: ขั้นตอนที่ยังไม่เสร็จ (staff = ของฉัน/ยังไม่มีเจ้าของ · หัวหน้า = ทั้งหมด) ----
+    // ---- งานผลิตของฉัน: ขั้นตอนที่ยังไม่เสร็จ (staff = ของฉัน/ยังไม่มีเจ้าของ · หัวหน้า = ทั้งหมด)
+    // รวม FAILED/ON_HOLD ด้วย — งานมีปัญหาคืองานด่วนสุด ต้องเด่นในคิว ไม่ใช่หาย (audit ข้อ 20) ----
+    const PROBLEM_FIRST: Record<string, number> = { FAILED: 0, ON_HOLD: 1, IN_PROGRESS: 2, PENDING: 3 };
     const production = PRODUCTION_ROLES.includes(role)
       ? await ctx.prisma.productionStep
           .findMany({
             where: {
-              status: { in: ["PENDING", "IN_PROGRESS"] },
+              status: { in: ["PENDING", "IN_PROGRESS", "FAILED", "ON_HOLD"] },
               production: {
                 order: { internalStatus: { in: ["PRODUCTION_QUEUE", "PRODUCING"] } },
               },
@@ -45,16 +47,34 @@ export const taskRouter = router({
             take: 100,
           })
           .then((steps) =>
-            steps.map((s) => ({
-              stepId: s.id,
-              stepType: s.stepType,
-              customStepName: s.customStepName,
-              status: s.status,
-              assignedToId: s.assignedTo?.id ?? null,
-              assignedToName: s.assignedTo?.name ?? null,
-              order: s.production.order,
-            }))
+            steps
+              .map((s) => ({
+                stepId: s.id,
+                stepType: s.stepType,
+                customStepName: s.customStepName,
+                status: s.status,
+                assignedToId: s.assignedTo?.id ?? null,
+                assignedToName: s.assignedTo?.name ?? null,
+                order: s.production.order,
+              }))
+              .sort(
+                (a, b) => (PROBLEM_FIRST[a.status] ?? 9) - (PROBLEM_FIRST[b.status] ?? 9)
+              )
           )
+      : [];
+
+    // ---- รอเปิดใบผลิต: ออเดอร์เข้าคิว/แบบผ่านแล้ว แต่ยังไม่มีใบผลิต — ก่อนหน้านี้หายจากทุกจอ
+    // จนกว่าหัวหน้าจะบังเอิญเปิดหน้าออเดอร์เอง (audit ข้อ 28 · เปิดใบผลิต = อำนาจ OWNER/MANAGER) ----
+    const awaitingProduction = ["OWNER", "MANAGER"].includes(role)
+      ? await ctx.prisma.order.findMany({
+          where: {
+            internalStatus: { in: ["PRODUCTION_QUEUE", "DESIGN_APPROVED"] },
+            productions: { none: {} },
+          },
+          select: orderSelect,
+          orderBy: { deadline: "asc" },
+          take: 100,
+        })
       : [];
 
     // ---- งานออกแบบ: ออเดอร์ที่กำลังออกแบบ + สถานะแบบล่าสุด ----
@@ -142,6 +162,6 @@ export const taskRouter = router({
         })()
       : { overdueInvoices: [], shippedOrders: [] };
 
-    return { role, production, design, followUp, billing };
+    return { role, production, awaitingProduction, design, followUp, billing };
   }),
 });

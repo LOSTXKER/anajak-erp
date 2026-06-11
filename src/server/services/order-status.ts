@@ -161,6 +161,37 @@ export async function finalizeProductionIfComplete(
   return true;
 }
 
+// QC ไม่ผ่าน → ถอยออเดอร์กลับ "กำลังผลิต": ใบผลิตที่ปิดไปแล้วต้องกลับเข้าคิวด้วย
+// (บอร์ดผลิต + my-tasks query จาก step ที่ยังไม่เสร็จ — ไม่ reopen งานแก้จะหายจากทุกจอ
+// ทั้งที่เป็นงานเร่งสุดในโรงงาน · audit ข้อ 19/26) — reopen + เปิด step "งานแก้" ให้มีที่ติ๊ก
+export async function reopenProductionsForRework(
+  tx: PrismaTx,
+  params: { orderId: string; reason?: string }
+) {
+  const closed = await tx.production.findMany({
+    where: { orderId: params.orderId, status: "COMPLETED" },
+    select: { id: true, steps: { select: { sortOrder: true } } },
+  });
+  for (const p of closed) {
+    const maxSort = Math.max(0, ...p.steps.map((s) => s.sortOrder));
+    await tx.production.update({
+      where: { id: p.id },
+      data: { status: "IN_PROGRESS", endDate: null },
+    });
+    await tx.productionStep.create({
+      data: {
+        productionId: p.id,
+        stepType: "CUSTOM",
+        customStepName: "งานแก้ (QC ไม่ผ่าน)",
+        sortOrder: maxSort + 1,
+        status: "PENDING",
+        notes: params.reason ?? null,
+      },
+    });
+  }
+  return closed.length;
+}
+
 // ผลตัดสินแบบ (อนุมัติ/ขอแก้) → สถานะออเดอร์ + revision — ใช้ทั้งฝั่งพนักงานและลูกค้าผ่าน token
 // ต้องเรียกใน transaction เดียวกับการเขียนผลตัดสินบน DesignVersion
 export async function processDesignApproval(

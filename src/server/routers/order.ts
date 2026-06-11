@@ -8,7 +8,7 @@ import { getStartOfMonth } from "@/lib/date-utils";
 import { badRequest } from "@/server/errors";
 import { nextDocumentNumber } from "@/server/services/document-number";
 import { priceOrderItems, computeOrderTotals, type PricedItem } from "@/server/services/pricing";
-import { transitionOrder } from "@/server/services/order-status";
+import { transitionOrder, reopenProductionsForRework } from "@/server/services/order-status";
 import { aggToNumber, D } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 import {
@@ -748,6 +748,11 @@ export const orderRouter = router({
           changedBy: ctx.userId,
           reason: input.reason,
         });
+        // QC ไม่ผ่าน ถอยกลับผลิต → reopen ใบผลิตที่ปิดแล้ว + เปิด step งานแก้
+        // (งานแก้ต้องโผล่ในบอร์ด/คิว ไม่ใช่หายเงียบ · audit ข้อ 19/26)
+        if (old.internalStatus === "QUALITY_CHECK" && input.internalStatus === "PRODUCING") {
+          await reopenProductionsForRework(tx, { orderId: input.id, reason: input.reason });
+        }
         return tx.order.findUniqueOrThrow({ where: { id: input.id } });
       });
 

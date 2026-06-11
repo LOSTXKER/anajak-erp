@@ -494,6 +494,89 @@ async function main() {
         myTasks.billing.shippedOrders.some((o) => o.id === o6.id),
       { fin: Object.keys(myTasks.billing), shipped: myTasks.billing.shippedOrders.length }
     );
+
+    // ---------- 8) งานมีปัญหาไม่หายจากคิว + กระดิ่ง + งานแก้หลัง QC (audit ข้อ 19/20/26/28) ----------
+    const tmpMgr = await prisma.user.upsert({
+      where: { email: "ops-verify-manager@example.com" },
+      create: {
+        supabaseId: "ops-verify-mgr",
+        email: "ops-verify-manager@example.com",
+        name: "[OPS-VERIFY] ผู้จัดการทดสอบ",
+        role: "MANAGER",
+      },
+      update: { isActive: true, role: "MANAGER" },
+    });
+
+    const o7aProd = await prisma.production.findFirstOrThrow({
+      where: { orderId: o7a.id },
+      include: { steps: true },
+    });
+    await caller.production.updateStep({
+      stepId: o7aProd.steps[0].id,
+      status: "FAILED",
+      notes: "หมึกหมดกลางงาน",
+    });
+    const failNotif = await prisma.notification.count({
+      where: { userId: tmpMgr.id, entityId: o7a.id, title: { contains: "มีปัญหา" } },
+    });
+    ok("8.1 step ถูกกด 'มีปัญหา' → กระดิ่งแจ้งผู้จัดการ", failNotif === 1, failNotif);
+
+    const tasksWithFail = await caller.task.myToday();
+    const failRow = tasksWithFail.production.find((p) => p.order.id === o7a.id);
+    ok(
+      "8.2 step FAILED ยังอยู่ในคิว 'งานของฉัน' + ถูกดันขึ้นบนสุด (ไม่หายเงียบ)",
+      failRow?.status === "FAILED" && tasksWithFail.production[0]?.status === "FAILED",
+      { found: failRow?.status, first: tasksWithFail.production[0]?.status }
+    );
+
+    // ผลิตครบ → QC → QC ไม่ผ่าน ถอยกลับ → ใบผลิต reopen + มี step งานแก้
+    await caller.production.updateStep({ stepId: o7aProd.steps[0].id, status: "COMPLETED" });
+    let o7aDb = await prisma.order.findUniqueOrThrow({ where: { id: o7a.id } });
+    ok("8.3 (precondition) ผลิตครบ → ออเดอร์เด้ง QUALITY_CHECK", o7aDb.internalStatus === "QUALITY_CHECK", o7aDb.internalStatus);
+
+    await caller.order.updateStatus({
+      id: o7a.id,
+      internalStatus: "PRODUCING",
+      reason: "สีเพี้ยนทั้งล็อต",
+    });
+    const reopened = await prisma.production.findUniqueOrThrow({
+      where: { id: o7aProd.id },
+      include: { steps: { orderBy: { sortOrder: "asc" } } },
+    });
+    const reworkStep = reopened.steps[reopened.steps.length - 1];
+    ok(
+      "8.4 QC ไม่ผ่านถอยกลับ → ใบผลิต reopen + เปิด step 'งานแก้' (กลับเข้าบอร์ด/คิว)",
+      reopened.status === "IN_PROGRESS" &&
+        reopened.endDate === null &&
+        reworkStep.customStepName === "งานแก้ (QC ไม่ผ่าน)" &&
+        reworkStep.status === "PENDING",
+      { s: reopened.status, step: reworkStep.customStepName }
+    );
+
+    const o7c = await prisma.order.create({
+      data: {
+        orderNumber: "TEST-OPS-7C",
+        orderType: "CUSTOM",
+        channel: "LINE",
+        customerId: customer.id,
+        createdById: owner.id,
+        internalStatus: "PRODUCTION_QUEUE",
+        customerStatus: "IN_PRODUCTION",
+        title: "[OPS-VERIFY] เข้าคิวแต่ยังไม่มีใบผลิต",
+        totalAmount: 300,
+      },
+    });
+    ids.orders.push(o7c.id);
+    const tasksAwait = await caller.task.myToday();
+    ok(
+      "8.5 ออเดอร์เข้าคิวผลิตแต่ยังไม่มีใบผลิต → โผล่ section 'รอเปิดใบผลิต' ของหัวหน้า",
+      tasksAwait.awaitingProduction.some((o) => o.id === o7c.id),
+      tasksAwait.awaitingProduction.length
+    );
+
+    // ล้าง user ทดสอบ (ลบกระดิ่งก่อน — FK)
+    await prisma.notification.deleteMany({ where: { userId: tmpMgr.id } });
+    await prisma.user.delete({ where: { id: tmpMgr.id } });
   } finally {
     // ---------- ล้างเกลี้ยง + คืนเลขเอกสาร ----------
     await prisma.notification.deleteMany({ where: { entityId: { in: ids.orders } } });
