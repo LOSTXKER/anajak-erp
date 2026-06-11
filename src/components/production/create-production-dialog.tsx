@@ -12,28 +12,24 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   STEP_TYPE_LABELS,
   STEP_TYPE_OPTIONS,
   suggestStepsFromPrintTypes,
 } from "@/lib/production-steps";
-import { Factory, Plus, Loader2, Trash2 } from "lucide-react";
+import { Factory, Loader2, X } from "lucide-react";
 import type { ProductionStepType } from "@prisma/client";
+
+// ใบผลิต = แค่ยืนยันขั้นตอน ไม่ใช่ฟอร์มกรอก (เบสชี้ 2026-06-12: "ต้องกรอกแบบนี้หรอ"):
+// ระบบเดาขั้นตอนจากวิธีพิมพ์ให้แล้ว — โชว์เป็นรายการ ลบ/เพิ่มได้ แล้วกดสร้าง จบ
+// ต้นทุนประมาณ/หมายเหตุต่อขั้นถอดออก — ต้นทุนประมาณไม่มีที่ใช้จริง (กำไรคิดจาก
+// ต้นทุนจริง+ค่าจ้างร้านนอกที่ไหลเข้า CostEntry เอง) · หมายเหตุเติมได้ตอนอัปเดตขั้นตอน
 
 type StepFormItem = {
   stepType: string;
   customStepName?: string;
-  sortOrder: number;
-  estimatedCost?: string;
-  notes?: string;
 };
 
 interface CreateProductionDialogProps {
@@ -45,8 +41,7 @@ interface CreateProductionDialogProps {
   onCreated?: (production: { id: string }) => void;
 }
 
-// dialog สร้างใบผลิต (step builder) — mount ใหม่ทุกครั้งที่เปิด
-// ชุดขั้นตอนแนะนำ seed จาก printTypes ตอน mount (ผู้เรียกส่งของสดมาเอง)
+// dialog สร้างใบผลิต — mount ใหม่ทุกครั้งที่เปิด ชุดขั้นตอนแนะนำ seed จาก printTypes ตอน mount
 export function CreateProductionDialog({
   orderId,
   orderLabel,
@@ -55,12 +50,7 @@ export function CreateProductionDialog({
   onCreated,
 }: CreateProductionDialogProps) {
   const [steps, setSteps] = useState<StepFormItem[]>(() =>
-    suggestStepsFromPrintTypes(printTypes).map((stepType, i) => ({
-      stepType,
-      sortOrder: i + 1,
-      estimatedCost: "",
-      notes: "",
-    }))
+    suggestStepsFromPrintTypes(printTypes).map((stepType) => ({ stepType }))
   );
 
   const utils = trpc.useUtils();
@@ -78,128 +68,97 @@ export function CreateProductionDialog({
     },
   });
 
-  function addStep() {
-    setSteps([
-      ...steps,
-      { stepType: "CUSTOM", sortOrder: steps.length + 1, estimatedCost: "", notes: "" },
-    ]);
+  function addStep(stepType: string) {
+    setSteps((prev) => [...prev, { stepType }]);
   }
 
   function removeStep(index: number) {
-    setSteps(
-      steps.filter((_, i) => i !== index).map((s, i) => ({ ...s, sortOrder: i + 1 }))
-    );
+    setSteps((prev) => prev.filter((_, i) => i !== index));
   }
 
   function handleCreate() {
     createProduction.mutate({
       orderId,
-      steps: steps.map((s) => ({
+      steps: steps.map((s, i) => ({
         stepType: s.stepType as ProductionStepType,
-        customStepName: s.customStepName,
-        sortOrder: s.sortOrder,
-        estimatedCost: s.estimatedCost ? parseFloat(s.estimatedCost) : undefined,
-        notes: s.notes || undefined,
+        customStepName: s.customStepName || undefined,
+        sortOrder: i + 1,
       })),
     });
   }
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>สร้างใบผลิต</DialogTitle>
+          <DialogTitle>เปิดใบผลิต</DialogTitle>
           <DialogDescription>
-            {orderLabel
-              ? `กำหนดขั้นตอนการผลิตสำหรับ ${orderLabel}`
-              : "กำหนดขั้นตอนการผลิตสำหรับออเดอร์นี้"}
+            {orderLabel ? `${orderLabel} — ` : ""}
+            ขั้นตอนตั้งให้ตามวิธีพิมพ์ของงานแล้ว ลบ/เพิ่มได้ถ้าไม่ตรง
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[60vh] space-y-3 overflow-y-auto">
-          {steps.map((step, index) => (
-            <div
-              key={index}
-              className="rounded-lg border border-slate-200 p-3 dark:border-slate-700"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                    {step.sortOrder}
-                  </span>
-                  <Select
-                    value={step.stepType}
-                    onValueChange={(v) => {
+
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            {steps.map((step, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700"
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                  {index + 1}
+                </span>
+                {step.stepType === "CUSTOM" ? (
+                  <Input
+                    type="text"
+                    placeholder="ชื่อขั้นตอน..."
+                    value={step.customStepName || ""}
+                    autoFocus
+                    onChange={(e) => {
                       const updated = [...steps];
-                      updated[index] = { ...updated[index], stepType: v };
+                      updated[index] = { ...updated[index], customStepName: e.target.value };
                       setSteps(updated);
                     }}
-                  >
-                    <SelectTrigger className="w-48">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STEP_TYPE_OPTIONS.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {STEP_TYPE_LABELS[t]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    className="h-8 flex-1"
+                  />
+                ) : (
+                  <span className="flex-1 text-sm font-medium text-slate-800 dark:text-slate-200">
+                    {STEP_TYPE_LABELS[step.stepType] ?? step.stepType}
+                  </span>
+                )}
                 {steps.length > 1 && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-red-500"
+                    aria-label="ลบขั้นตอน"
+                    className="h-7 w-7 text-slate-400 hover:text-red-600"
                     onClick={() => removeStep(index)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <X className="h-3.5 w-3.5" />
                   </Button>
                 )}
               </div>
-              {step.stepType === "CUSTOM" && (
-                <Input
-                  type="text"
-                  placeholder="ชื่อขั้นตอน..."
-                  value={step.customStepName || ""}
-                  onChange={(e) => {
-                    const updated = [...steps];
-                    updated[index] = { ...updated[index], customStepName: e.target.value };
-                    setSteps(updated);
-                  }}
-                  className="mt-2"
-                />
-              )}
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <Input
-                  type="number"
-                  placeholder="ต้นทุนประมาณ (บาท)"
-                  value={step.estimatedCost || ""}
-                  onChange={(e) => {
-                    const updated = [...steps];
-                    updated[index] = { ...updated[index], estimatedCost: e.target.value };
-                    setSteps(updated);
-                  }}
-                  min="0"
-                />
-                <Input
-                  type="text"
-                  placeholder="หมายเหตุ"
-                  value={step.notes || ""}
-                  onChange={(e) => {
-                    const updated = [...steps];
-                    updated[index] = { ...updated[index], notes: e.target.value };
-                    setSteps(updated);
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-          <Button variant="outline" size="sm" onClick={addStep} className="w-full gap-1">
-            <Plus className="h-3.5 w-3.5" />
-            เพิ่มขั้นตอน
-          </Button>
+            ))}
+          </div>
+
+          {/* เพิ่มขั้นตอน — เลือกแล้วต่อท้ายทันที (ค่า reset กลับ ไม่ต้องกดอะไรเพิ่ม) */}
+          <NativeSelect
+            value=""
+            onChange={(e) => {
+              if (e.target.value) addStep(e.target.value);
+              e.target.value = "";
+            }}
+            className="w-full text-slate-500"
+          >
+            <option value="">+ เพิ่มขั้นตอน...</option>
+            {STEP_TYPE_OPTIONS.map((t) => (
+              <option key={t} value={t}>
+                {STEP_TYPE_LABELS[t]}
+              </option>
+            ))}
+          </NativeSelect>
         </div>
+
         {createProduction.error && (
           <p className="text-sm text-red-600 dark:text-red-400">
             {createProduction.error.message}
@@ -211,7 +170,12 @@ export function CreateProductionDialog({
           </Button>
           <Button
             onClick={handleCreate}
-            disabled={steps.length === 0 || createProduction.isPending}
+            disabled={
+              steps.length === 0 ||
+              // ขั้น CUSTOM ต้องมีชื่อ — ไม่งั้นช่างเห็นขั้นตอนชื่อว่าง
+              steps.some((s) => s.stepType === "CUSTOM" && !s.customStepName?.trim()) ||
+              createProduction.isPending
+            }
             className="gap-1.5"
           >
             {createProduction.isPending ? (
@@ -219,7 +183,7 @@ export function CreateProductionDialog({
             ) : (
               <Factory className="h-4 w-4" />
             )}
-            สร้างใบผลิต
+            สร้างใบผลิต ({steps.length} ขั้นตอน)
           </Button>
         </DialogFooter>
       </DialogContent>
