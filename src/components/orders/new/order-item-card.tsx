@@ -48,6 +48,10 @@ interface OrderItemCardProps {
   onUpdateAddon: (itemIdx: number, aIdx: number, field: string, value: unknown) => void;
   onOpenPicker: () => void;
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void;
+  // dialog แก้รายการ: ออเดอร์ READY_MADE ที่เลยช่วง re-derive (พ้น DRAFT/INQUIRY)
+  // เพิ่มลาย/ส่วนเสริมไม่ได้แล้ว — ซ่อน section ให้ตรงกติกา server (default = โชว์)
+  showPrints?: boolean;
+  showAddons?: boolean;
 }
 
 function getItemLabel(item: OrderItemForm): string {
@@ -128,6 +132,7 @@ export function OrderItemCard({
   onAddPrint, onRemovePrint, onUpdatePrint,
   onAddAddon, onRemoveAddon, onUpdateAddon,
   onOpenPicker, onSetItems,
+  showPrints = true, showAddons = true,
 }: OrderItemCardProps) {
   const otherItemsWithPrints = (allItems ?? []).map((it, idx) => ({ it, idx })).filter(({ idx }) => idx !== itemIdx).filter(({ it }) => it.prints.length > 0);
 
@@ -201,6 +206,7 @@ export function OrderItemCard({
           </Field>
 
           {/* ── PRINTS ── */}
+          {showPrints && (
           <div>
             <div className="mb-2 flex items-center justify-between">
               <span className={groupLabelClass}>ลายที่ต้องการสั่งผลิต</span>
@@ -268,6 +274,7 @@ export function OrderItemCard({
               </div>
             )}
           </div>
+          )}
 
           {/* ── PRODUCTS (flat table) ── */}
           <div>
@@ -322,6 +329,7 @@ export function OrderItemCard({
           </div>
 
           {/* ── ADD-ONS ── */}
+          {showAddons && (
           <div>
             <div className="mb-2 flex items-center justify-between">
               <span className={groupLabelClass}>ส่วนเสริม (Add-ons)</span>
@@ -372,6 +380,7 @@ export function OrderItemCard({
               </div>
             )}
           </div>
+          )}
 
           {/* Notes */}
           <div>

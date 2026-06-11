@@ -79,6 +79,8 @@ export function ProductTableRow({
   const isCustomMade = product.itemSource === "CUSTOM_MADE";
   const isCustomerProvided = product.itemSource === "CUSTOMER_PROVIDED";
 
+  // แถวข้อมูลเก่า/จากใบเสนอ itemSource เป็น null — ต้องมีช่องให้เลือก ไม่งั้น validation
+  // บล็อกการเซฟทั้งใบโดยผู้ใช้แก้อะไรไม่ได้ (review 2026-06-11)
   const sourceBadge = product.itemSource ? (
     <Badge
       variant={isFromStock ? "default" : isCustomMade ? "accent" : "warning"}
@@ -86,7 +88,25 @@ export function ProductTableRow({
     >
       {ITEM_SOURCES[product.itemSource] || product.itemSource}
     </Badge>
-  ) : null;
+  ) : (
+    <NativeSelect
+      value=""
+      onChange={(e) => {
+        if (e.target.value) updateProduct("itemSource", e.target.value);
+      }}
+      className="h-7 w-[72px] text-[10.5px]"
+      aria-label="เลือกแหล่งที่มาของสินค้า"
+    >
+      <option value="">แหล่ง...</option>
+      {Object.entries(ITEM_SOURCES)
+        .filter(([key]) => key !== "FROM_STOCK") // จากสต๊อกต้องผ่าน picker (ผูก SKU จริง)
+        .map(([key, label]) => (
+          <option key={key} value={key}>
+            {label}
+          </option>
+        ))}
+    </NativeSelect>
+  );
 
   const productLabel = product.productName || product.description || "สินค้าใหม่";
   const variantLabel = [variant.color, variant.size].filter(Boolean).join(" ");

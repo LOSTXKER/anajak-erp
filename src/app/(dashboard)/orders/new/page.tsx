@@ -48,14 +48,13 @@ import {
 import { useOrderShippingState } from "@/hooks/use-order-shipping";
 import type { ReferenceImage } from "@/types/order-form";
 import {
-  EMPTY_ITEM,
-  EMPTY_PRODUCT,
   PRINT_POSITIONS,
   itemHasContent,
   validateOrderItem,
   validateOrderItemProduct,
 } from "@/types/order-form";
 import { mapItemsToMutationInput, mapFeesToMutationInput } from "@/lib/order-mapping";
+import { mergeStockVariantsIntoItems } from "@/lib/order-form-stock";
 import { toast } from "sonner";
 import {
   OrderItemCard,
@@ -220,54 +219,14 @@ export default function NewOrderPage() {
 
   const handleVariantsSelected = (selected: SelectedVariantItem[]) => {
     setItems((prev) => {
-      const filtered = prev.filter(
-        (it) => it.description || it.notes || it.prints.length > 0 || it.addons.length > 0
-          || it.products.some((p) => p.description || p.productId || p.itemSource || p.variants.some((v) => v.size || v.color)),
+      // logic รวมของจากสต๊อกอยู่ที่เดียว (lib/order-form-stock) — dialog แก้รายการใช้ตัวเดียวกัน
+      const { items: merged, targetIdx } = mergeStockVariantsIntoItems(
+        prev,
+        selected,
+        expandedItemIdx
       );
-      const result = filtered.length > 0 ? [...filtered] : [structuredClone(EMPTY_ITEM)];
-      const targetIdx = expandedItemIdx !== null && expandedItemIdx < result.length ? expandedItemIdx : 0;
-
-      const targetItem = result[targetIdx];
-      const updatedProducts = [...targetItem.products];
-
-      for (const v of selected) {
-        const dupIdx = updatedProducts.findIndex(
-          (p) => p.productId === v.productId && p.itemSource === "FROM_STOCK"
-            && p.variants[0]?.size === v.size && p.variants[0]?.color === v.color,
-        );
-
-        if (dupIdx >= 0) {
-          const ep = updatedProducts[dupIdx];
-          const newVariants = [...ep.variants];
-          newVariants[0] = { ...newVariants[0], quantity: newVariants[0].quantity + v.quantity };
-          updatedProducts[dupIdx] = { ...ep, variants: newVariants };
-        } else {
-          const isEmptyFirst = updatedProducts.length === 1
-            && !updatedProducts[0].productId && !updatedProducts[0].description && !updatedProducts[0].itemSource;
-          const newProd: typeof EMPTY_PRODUCT = {
-            ...structuredClone(EMPTY_PRODUCT),
-            productId: v.productId,
-            itemSource: "FROM_STOCK",
-            productType: v.productType,
-            description: v.name,
-            baseUnitPrice: v.basePrice,
-            variants: [{ size: v.size, color: v.color, quantity: v.quantity }],
-            productImageUrl: v.imageUrl,
-            productSku: v.sku,
-            productName: v.name,
-            stockAvailable: v.stock,
-          };
-          if (isEmptyFirst) {
-            updatedProducts[0] = newProd;
-          } else {
-            updatedProducts.push(newProd);
-          }
-        }
-      }
-
-      result[targetIdx] = { ...targetItem, products: updatedProducts };
       setExpandedItemIdx(targetIdx);
-      return result;
+      return merged;
     });
   };
 
@@ -704,7 +663,9 @@ export default function NewOrderPage() {
                   onRemoveAddon={removeAddon}
                   onUpdateAddon={updateAddon}
                   onOpenPicker={() => setPickerOpen(true)}
-                  onSetItems={(updater) => setItems(updater(items))}
+                  // setter ตรง — updater(items) แบบ eager ทำ multi-update ใน tick เดียวทับกันเอง
+                  // (เลือกแพทเทิร์นแล้ว patternId หาย — review 2026-06-11)
+                  onSetItems={setItems}
                 />
               ))}
             </div>

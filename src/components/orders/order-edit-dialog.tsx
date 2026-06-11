@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -14,26 +13,25 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
+import { Loader2, Plus, Trash2, Save } from "lucide-react";
+import { validateOrderItem, validateOrderItemProduct } from "@/types/order-form";
 import {
-  Loader2,
-  Plus,
-  Trash2,
-  Save,
-  Package,
-} from "lucide-react";
-import type { OrderItemForm, OrderFeeForm, OrderItemProductForm } from "@/types/order-form";
-import { PRINT_POSITIONS, PRINT_TYPES, EMPTY_PRODUCT, PRICING_TYPE_LABELS } from "@/types/order-form";
-import { mapItemsToMutationInput, mapFeesToMutationInput, mapApiItemsToForm, mapApiFeesToForm } from "@/lib/order-mapping";
+  mapItemsToMutationInput,
+  mapFeesToMutationInput,
+  mapApiItemsToForm,
+  mapApiFeesToForm,
+} from "@/lib/order-mapping";
+import { mergeStockVariantsIntoItems } from "@/lib/order-form-stock";
 import { useOrderItemsForm, useOrderFeesForm } from "@/hooks/use-order-items-form";
+// ฟอร์มรายการ "ชุดเดียวกับหน้าเปิดงาน" — เปิดงานเบาแล้วมาเติมทีหลังต้องได้ของเต็ม
+// (multi-size/หยิบจากสต๊อก/ผ้า-แพทเทิร์น/ลายเต็ม) ไม่ใช่ฟอร์มย่อที่ drift กันเอง
+import { OrderItemCard } from "@/components/orders/new";
+import {
+  ProductPickerDialog,
+  type SelectedVariantItem,
+} from "@/components/product-picker";
 
 interface OrderEditDialogOrder {
   items: Array<{
@@ -110,6 +108,7 @@ export function OrderEditDialog({
     orderType === "CUSTOM" || ["DRAFT", "INQUIRY"].includes(internalStatus);
   const {
     items,
+    setItems,
     addItem,
     removeItem,
     updateItem,
@@ -132,8 +131,21 @@ export function OrderEditDialog({
 
   const [discount, setDiscount] = useState(0);
   const [activeTab, setActiveTab] = useState<"items" | "fees">("items");
+  const [expandedItemIdx, setExpandedItemIdx] = useState<number | null>(0);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
 
   const utils = trpc.useUtils();
+
+  // แค็ตตาล็อกลาย/ส่วนเสริม — โหลดเมื่อเปิด dialog เท่านั้น
+  const { data: printCatalog } = trpc.serviceCatalog.list.useQuery(
+    { category: "PRINT", isActive: true },
+    { enabled: open }
+  );
+  const { data: addonCatalog } = trpc.serviceCatalog.list.useQuery(
+    { category: "ADDON", isActive: true },
+    { enabled: open }
+  );
 
   const updateItemsMutation = useMutationWithInvalidation(trpc.order.updateItems, {
     invalidate: [utils.order.getById],
@@ -150,7 +162,10 @@ export function OrderEditDialog({
       resetItems(mapApiItemsToForm(order.items));
       resetFees(mapApiFeesToForm(order.fees));
       setDiscount(order.discount || 0);
+      setExpandedItemIdx(0);
+      setFormErrors([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, order]);
 
   // preview ใช้สูตร A เดียวกับ server (order.updateItems คิด VAT จาก taxRate ของออเดอร์เสมอ)
@@ -161,7 +176,45 @@ export function OrderEditDialog({
     taxRate: order.taxRate,
   });
 
+  // หยิบจากสต๊อก — logic รวมเดียวกับหน้าเปิดงาน (lib/order-form-stock)
+  // pruneEmpty: false — รายการจาก DB ที่ "ดูว่าง" คือข้อมูลจริงที่บันทึกแล้ว ห้ามลบเงียบ
+  const handleVariantsSelected = (selected: SelectedVariantItem[]) => {
+    setItems((prev) => {
+      const { items: merged, targetIdx } = mergeStockVariantsIntoItems(
+        prev,
+        selected,
+        expandedItemIdx,
+        { pruneEmpty: false }
+      );
+      setExpandedItemIdx(targetIdx);
+      return merged;
+    });
+  };
+
+  // เกณฑ์เดียวกับฟอร์มเปิดงาน — จับให้ครบก่อนยิง server (จำนวน 0/ไม่มีไซส์/ไม่มีราคา ฯลฯ)
+  function validateItems(): string[] {
+    const errors: string[] = [];
+    items.forEach((item, idx) => {
+      const itemErrors = validateOrderItem(item);
+      if (itemErrors.products) errors.push(`รายการ ${idx + 1}: ${itemErrors.products}`);
+      item.products.forEach((product, pIdx) => {
+        const productErrors = validateOrderItemProduct(product);
+        for (const msg of Object.values(productErrors)) {
+          if (msg) errors.push(`รายการ ${idx + 1} สินค้า ${pIdx + 1}: ${msg}`);
+        }
+      });
+    });
+    if (discount < 0) errors.push("ส่วนลดติดลบไม่ได้");
+    if (discount > subtotalItems + subtotalFees) {
+      errors.push("ส่วนลดมากกว่ายอดรวม — ตรวจสอบยอดอีกครั้ง");
+    }
+    return errors;
+  }
+
   function handleSaveItems() {
+    const errors = validateItems();
+    setFormErrors(errors);
+    if (errors.length > 0) return;
     updateItemsMutation.mutate({
       id: orderId,
       items: mapItemsToMutationInput(items),
@@ -179,8 +232,9 @@ export function OrderEditDialog({
   const isPending = updateItemsMutation.isPending || updateFeesMutation.isPending;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] sm:max-w-3xl">
+      <DialogContent className="max-h-[92vh] sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>แก้ไขรายการออเดอร์</DialogTitle>
           <DialogDescription>
@@ -212,163 +266,53 @@ export function OrderEditDialog({
           </button>
         </div>
 
-        <div className="max-h-[50vh] overflow-y-auto">
+        <div className="max-h-[52vh] overflow-y-auto pr-1">
           {activeTab === "items" ? (
-            <div className="space-y-4">
-              {items.map((item, itemIdx) => {
-                const itemTotalQty = item.products.reduce((s, p) => s + p.variants.reduce((vs, v) => vs + v.quantity, 0), 0);
-
-                return (
-                  <div key={itemIdx} className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">
-                          รายการ {itemIdx + 1}
-                        </span>
-                        <Badge variant="secondary">{item.products.length} สินค้า · {itemTotalQty} ชิ้น</Badge>
-                      </div>
-                      {items.length > 1 && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => removeItem(itemIdx)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Description */}
-                    <div className="mb-3">
-                      <Input type="text" value={item.description} onChange={(e) => updateItem(itemIdx, "description", e.target.value)} placeholder="คำอธิบายงาน..." className="h-8" />
-                    </div>
-
-                    {/* Products (flat per-SKU rows) */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="text-left text-[11px] text-slate-400">
-                            <th className="w-7 pb-1" />
-                            <th className="pb-1 pr-1">สินค้า</th>
-                            <th className="w-16 pb-1 px-1">สี</th>
-                            <th className="w-14 pb-1 px-1">ไซส์</th>
-                            <th className="w-20 pb-1 px-1">ราคา</th>
-                            <th className="w-16 pb-1 px-1">จำนวน</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {item.products.map((prod, prodIdx) => {
-                            const v = prod.variants[0] || { size: "", color: "", quantity: 0 };
-                            const updateProd = (field: string, value: unknown) => {
-                              const newItems = [...items];
-                              const prods = [...newItems[itemIdx].products];
-                              prods[prodIdx] = { ...prods[prodIdx], [field]: value };
-                              newItems[itemIdx] = { ...newItems[itemIdx], products: prods };
-                              resetItems(newItems);
-                            };
-                            const updateVariant = (field: string, val: string | number) => {
-                              const newItems = [...items];
-                              const prods = [...newItems[itemIdx].products];
-                              const vs = [...prods[prodIdx].variants];
-                              vs[0] = { ...vs[0], [field]: val };
-                              prods[prodIdx] = { ...prods[prodIdx], variants: vs };
-                              newItems[itemIdx] = { ...newItems[itemIdx], products: prods };
-                              resetItems(newItems);
-                            };
-                            return (
-                              <tr key={prodIdx} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
-                                <td className="py-1 align-middle">
-                                  {item.products.length > 1 && (
-                                    <button className="text-red-400 hover:text-red-500" onClick={() => {
-                                      const newItems = [...items];
-                                      newItems[itemIdx] = { ...newItems[itemIdx], products: newItems[itemIdx].products.filter((_, i) => i !== prodIdx) };
-                                      resetItems(newItems);
-                                    }}>
-                                      <Trash2 className="h-3 w-3" />
-                                    </button>
-                                  )}
-                                </td>
-                                <td className="py-1 pr-1 align-middle">
-                                  {prod.productName ? (
-                                    <span className="text-xs font-medium text-slate-700 dark:text-slate-200">{prod.productName}</span>
-                                  ) : (
-                                    <Input value={prod.description} onChange={(e) => updateProd("description", e.target.value)} placeholder="คำอธิบาย" className="h-7 text-xs" />
-                                  )}
-                                </td>
-                                <td className="px-1 py-1 align-middle">
-                                  <Input value={v.color} onChange={(e) => updateVariant("color", e.target.value)} placeholder="สี" className="h-7 text-xs" />
-                                </td>
-                                <td className="px-1 py-1 align-middle">
-                                  <Input value={v.size} onChange={(e) => updateVariant("size", e.target.value)} placeholder="ไซส์" className="h-7 text-xs" />
-                                </td>
-                                <td className="px-1 py-1 align-middle">
-                                  <Input type="number" value={prod.baseUnitPrice || ""} onChange={(e) => updateProd("baseUnitPrice", parseFloat(e.target.value) || 0)} placeholder="0" className="h-7 text-xs" min="0" />
-                                </td>
-                                <td className="px-1 py-1 align-middle">
-                                  <Input type="number" value={v.quantity || ""} onChange={(e) => updateVariant("quantity", parseInt(e.target.value) || 0)} placeholder="0" className="h-7 text-xs" min="0" />
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <button className="mb-2 mt-1 text-xs text-blue-500 hover:underline" onClick={() => {
-                      const newItems = [...items];
-                      newItems[itemIdx] = { ...newItems[itemIdx], products: [...newItems[itemIdx].products, structuredClone(EMPTY_PRODUCT)] };
-                      resetItems(newItems);
-                    }}>+ เพิ่มสินค้า</button>
-
-                    {/* Prints */}
-                    {canAddPrints && (
-                      <div className="mb-2">
-                        <div className="mb-1 flex items-center justify-between">
-                          <span className="text-xs font-medium text-slate-500">สกรีน</span>
-                          <button className="text-xs text-blue-500 hover:underline" onClick={() => addPrint(itemIdx)}>+ เพิ่ม</button>
-                        </div>
-                        {item.prints.map((p, pi) => (
-                          <div key={pi} className="mb-1 flex items-center gap-2">
-                            <Select value={p.position} onValueChange={(v) => updatePrint(itemIdx, pi, "position", v)}>
-                              <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>{Object.entries(PRINT_POSITIONS).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}</SelectContent>
-                            </Select>
-                            <Select value={p.printType} onValueChange={(v) => updatePrint(itemIdx, pi, "printType", v)}>
-                              <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>{Object.entries(PRINT_TYPES).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}</SelectContent>
-                            </Select>
-                            <Input type="number" value={p.unitPrice || ""} onChange={(e) => updatePrint(itemIdx, pi, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="ราคา/ตัว" className="h-7 w-24 px-2 text-xs" min="0" />
-                            <button className="text-red-400 hover:text-red-500" onClick={() => removePrint(itemIdx, pi)}><Trash2 className="h-3 w-3" /></button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Addons */}
-                    {canAddPrints && (
-                      <div>
-                        <div className="mb-1 flex items-center justify-between">
-                          <span className="text-xs font-medium text-slate-500">ส่วนเสริม</span>
-                          <button className="text-xs text-blue-500 hover:underline" onClick={() => addAddon(itemIdx)}>+ เพิ่ม</button>
-                        </div>
-                        {item.addons.map((a, ai) => (
-                          <div key={ai} className="mb-1 flex items-center gap-2">
-                            <Input type="text" value={a.name} onChange={(e) => updateAddon(itemIdx, ai, "name", e.target.value)} placeholder="ชื่อ" className="h-7 w-28 px-2 text-xs" />
-                            <Select value={a.pricingType} onValueChange={(v) => updateAddon(itemIdx, ai, "pricingType", v)}>
-                              <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent><SelectItem value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</SelectItem><SelectItem value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</SelectItem></SelectContent>
-                            </Select>
-                            <Input type="number" value={a.unitPrice || ""} onChange={(e) => updateAddon(itemIdx, ai, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="ราคา" className="h-7 w-24 px-2 text-xs" min="0" />
-                            <button className="text-red-400 hover:text-red-500" onClick={() => removeAddon(itemIdx, ai)}><Trash2 className="h-3 w-3" /></button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+            <div className="space-y-3">
+              <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/60 px-3 dark:divide-slate-800 dark:border-slate-800/60">
+                {items.map((item, itemIdx) => (
+                  <OrderItemCard
+                    key={itemIdx}
+                    item={item}
+                    itemIdx={itemIdx}
+                    canRemove={items.length > 1}
+                    isExpanded={expandedItemIdx === itemIdx}
+                    onToggleExpand={() =>
+                      setExpandedItemIdx(expandedItemIdx === itemIdx ? null : itemIdx)
+                    }
+                    allItems={items}
+                    printCatalog={printCatalog}
+                    addonCatalog={addonCatalog}
+                    onUpdateItem={updateItem}
+                    onRemoveItem={(idx) => {
+                      removeItem(idx);
+                      if (expandedItemIdx === idx) setExpandedItemIdx(null);
+                      else if (expandedItemIdx != null && expandedItemIdx > idx)
+                        setExpandedItemIdx(expandedItemIdx - 1);
+                    }}
+                    onAddPrint={addPrint}
+                    onRemovePrint={removePrint}
+                    onUpdatePrint={updatePrint}
+                    onAddAddon={addAddon}
+                    onRemoveAddon={removeAddon}
+                    onUpdateAddon={updateAddon}
+                    onOpenPicker={() => setPickerOpen(true)}
+                    // ส่ง setter ตรง — ห้าม updater(items) แบบ eager: หลาย update ใน tick เดียว
+                    // (เช่นเลือกแพทเทิร์น set 4 field) จะอ่าน snapshot เก่าแล้วทับกันเหลือ field สุดท้าย
+                    onSetItems={setItems}
+                    showPrints={canAddPrints}
+                    showAddons={canAddPrints}
+                  />
+                ))}
+              </div>
 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={addItem}
+                onClick={() => {
+                  addItem();
+                  setExpandedItemIdx(items.length);
+                }}
                 className="w-full gap-1"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -443,6 +387,17 @@ export function OrderEditDialog({
           )}
         </div>
 
+        {/* Validation errors — เกณฑ์เดียวกับหน้าเปิดงาน จับก่อนถึง server */}
+        {formErrors.length > 0 && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+            <ul className="list-inside list-disc space-y-0.5">
+              {formErrors.map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Price summary */}
         <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-950/30">
           <div className="flex justify-between text-sm">
@@ -509,5 +464,13 @@ export function OrderEditDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* picker สต๊อก — dialog ซ้อน (Radix portal แยกชั้นให้เอง) */}
+    <ProductPickerDialog
+      open={pickerOpen}
+      onClose={() => setPickerOpen(false)}
+      onSelectVariants={handleVariantsSelected}
+    />
+    </>
   );
 }
