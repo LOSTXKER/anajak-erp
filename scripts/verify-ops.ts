@@ -595,6 +595,14 @@ async function main() {
       { rows: stepCosts.length, amount: stepCosts[0]?.amount }
     );
 
+    // หัวหน้ามอบหมาย/ย้ายเจ้าของงานได้ (audit ข้อ 18 — UI ใหม่ยิง endpoint เดิม)
+    await caller.production.updateStep({ stepId: reworkStep.id, assignedToId: tmpMgr.id });
+    const assigned = await prisma.productionStep.findUniqueOrThrow({
+      where: { id: reworkStep.id },
+      select: { assignedToId: true },
+    });
+    ok("8.8 หัวหน้ามอบหมายงานให้คนอื่นได้ (ย้ายเจ้าของ step)", assigned.assignedToId === tmpMgr.id, assigned.assignedToId);
+
     // ล้าง user ทดสอบ (ลบกระดิ่งก่อน — FK)
     await prisma.notification.deleteMany({ where: { userId: tmpMgr.id } });
     await prisma.user.delete({ where: { id: tmpMgr.id } });

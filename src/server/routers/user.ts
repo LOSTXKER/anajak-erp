@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase-admin";
 import { createAuditLog } from "@/server/helpers";
 
 const ownerOnly = requireRole("OWNER");
+const managerUp = requireRole("OWNER", "MANAGER");
 
 const roleSchema = z.enum([
   "OWNER",
@@ -21,6 +22,16 @@ export const userRouter = router({
     return ctx.prisma.user.findUniqueOrThrow({
       where: { id: ctx.userId },
       select: { id: true, email: true, name: true, role: true, avatarUrl: true },
+    });
+  }),
+
+  // รายชื่อสำหรับมอบหมายงาน (id+ชื่อ+role) — หัวหน้าใช้เลือกคนรับผิดชอบ step ผลิต
+  // (user.list เต็มเป็น ownerOnly — อันนี้ข้อมูลแคบพอให้ MANAGER ใช้ได้ · audit ข้อ 18)
+  assignables: protectedProcedure.use(managerUp).query(async ({ ctx }) => {
+    return ctx.prisma.user.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, role: true },
     });
   }),
 

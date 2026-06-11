@@ -102,6 +102,9 @@ export function OrderProductionSection({
   const [originalCost, setOriginalCost] = useState("");
   const [updateQcPassed, setUpdateQcPassed] = useState<string>("");
   const [updateQcNotes, setUpdateQcNotes] = useState("");
+  // มอบหมายงาน (หัวหน้าเท่านั้น — server กัน assignedToId จาก staff อยู่แล้ว · audit ข้อ 18)
+  const [updateAssignee, setUpdateAssignee] = useState("");
+  const [originalAssignee, setOriginalAssignee] = useState("");
 
   // Outsource form (ส่งขั้นตอนให้ร้านนอก เช่น silkscreen)
   const [outsourceStepId, setOutsourceStepId] = useState<string | null>(null);
@@ -124,6 +127,10 @@ export function OrderProductionSection({
     {},
     { enabled: outsourceStepId !== null }
   );
+  // รายชื่อมอบหมายงาน — โหลดเฉพาะหัวหน้า+ตอนเปิด dialog (endpoint เป็น managerUp)
+  const assignables = trpc.user.assignables.useQuery(undefined, {
+    enabled: canOutsource && showUpdateDialog !== null,
+  });
 
   const createProduction = useMutationWithInvalidation(trpc.production.create, {
     invalidate: [utils.production.getByOrderId, utils.order.getById],
@@ -233,6 +240,8 @@ export function OrderProductionSection({
     setShowUpdateDialog(step.id);
     setUpdateStatus(step.status);
     setUpdateNotes(step.notes || "");
+    setUpdateAssignee(step.assignedTo?.id || "");
+    setOriginalAssignee(step.assignedTo?.id || "");
     setUpdateCost(step.actualCost?.toString() || "");
     setOriginalCost(step.actualCost?.toString() || "");
     setUpdateQcPassed(step.qcPassed === null ? "" : step.qcPassed ? "true" : "false");
@@ -244,9 +253,12 @@ export function OrderProductionSection({
     // ส่ง actualCost เฉพาะเมื่อค่าเปลี่ยนจริง — ค่า pre-fill เดิมที่ติดไปกับ
     // request จะทำให้ฝ่ายผลิตโดน FORBIDDEN ทั้งที่แค่จะอัปเดตสถานะ
     const costChanged = updateCost !== originalCost;
+    // assignedToId ส่งเฉพาะเมื่อเปลี่ยนจริง — staff ไม่เห็นช่องนี้และห้ามติดไปกับ request
+    const assigneeChanged = updateAssignee !== originalAssignee;
     updateStep.mutate({
       stepId: showUpdateDialog,
       status: (updateStatus as StepStatus) || undefined,
+      assignedToId: assigneeChanged && updateAssignee ? updateAssignee : undefined,
       actualCost:
         costChanged && updateCost ? parseFloat(updateCost) : undefined,
       notes: updateNotes || undefined,
@@ -583,6 +595,26 @@ export function OrderProductionSection({
                 </SelectContent>
               </Select>
             </div>
+            {canOutsource && (
+              // มอบหมาย/ย้ายเจ้าของงาน — เดิม staff claim เองอย่างเดียวแล้วล็อกถาวร (audit ข้อ 18)
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  ผู้รับผิดชอบ
+                </label>
+                <Select value={updateAssignee} onValueChange={setUpdateAssignee}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="ยังไม่มอบหมาย" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(assignables.data ?? []).map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {!isProductionStaff && (
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
