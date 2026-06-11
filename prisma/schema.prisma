@@ -64,21 +64,26 @@ enum InternalStatus {
 }
 
 enum ProductionStepType {
-  // งานพิมพ์ in-house ของโรงงาน (DTF 70% / DTG 30%)
-  DTF_PRINT // พิมพ์ฟิล์ม DTF
-  HEAT_PRESS // รีดร้อนติดเสื้อ
-  DTG_PRETREAT // พรีทรีตเสื้อก่อนพิมพ์ DTG
-  DTG_PRINT // พิมพ์ DTG
-  CURING // อบสี/อบฟิล์ม
+  // ทำเองในโรงงาน = DTF เท่านั้น (เบสเคาะ 2026-06-12) — เทคนิคอื่น/ตัดเย็บ/ป้ายคอ = outsource
+  // เลนต่อเทคนิค + ขั้นไหนเป็น outsource นิยามที่ src/lib/production-steps.ts (STEP_LANE/OUTSOURCE_STEP_TYPES)
+  DTF_PRINT // พิมพ์ฟิล์ม DTF (ทำเอง)
+  HEAT_PRESS // รีดร้อนติดเสื้อ (ทำเอง)
+  DTG_PRETREAT // legacy — สมัยที่เข้าใจว่า DTG ทำเอง (จริง outsource เป็นขั้นเดียว)
+  DTG_PRINT // พิมพ์ DTG (outsource)
+  CURING // อบสี/อบฟิล์ม (legacy ชุด DTG ทำเอง)
   // งานตัดเย็บ/อื่นๆ
   PATTERN_MAKING
-  SCREEN_PRINTING
-  TAGGING
+  SCREEN_PRINTING // สกรีน (outsource)
+  TAGGING // เย็บป้ายคอ (outsource)
   PACKAGING
-  EMBROIDERY
+  EMBROIDERY // ปัก (outsource)
   SPECIAL_PRINT
-  SEWING
+  SEWING // ตัดเย็บใหม่ (outsource)
   CUSTOM
+  // เพิ่ม 2026-06-12 — สายเตรียมเสื้อ + sublimation แยกจากพิมพ์พิเศษ
+  GARMENT_PICK // เบิกเสื้อจากสต๊อค
+  GARMENT_RECEIVE // ตรวจรับเสื้อลูกค้าส่งมา (นับ/เช็คสภาพ)
+  SUBLIMATION // Sublimation (outsource)
 }
 
 enum StepStatus {

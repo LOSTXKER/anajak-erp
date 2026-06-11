@@ -136,7 +136,9 @@ export const outsourceRouter = router({
         vendorId: z.string(),
         description: z.string(),
         quantity: z.number().min(1),
-        unitCost: z.number().min(0),
+        // ค่าจ้างไม่บังคับ (เบสเคาะ 2026-06-12: ไม่คิดต้นทุนต่องานในระบบนี้ —
+        // กำไรขาดทุนคิดรายเดือนในระบบบัญชี) — กรอกได้ถ้าอยากจดไว้ดูเอง
+        unitCost: z.number().min(0).default(0),
         expectedBackAt: z.string().optional(),
         notes: z.string().optional(),
       })
@@ -281,8 +283,10 @@ export const outsourceRouter = router({
       if (data.status === "QC_FAILED") updateData.qcPassed = false;
       if (data.qcNotes) updateData.qcNotes = data.qcNotes;
 
-      // อ่าน → validate transition → เขียน = transaction เดียว (กันสองจอกด QC ชนกัน:
-      // คนช้าเจอ error บอกสถานะจริง ไม่ใช่เขียนทับใบที่ตัดสินแล้ว)
+      // อ่าน → validate transition → เขียนแบบมีเงื่อนไขสถานะเดิม = transaction เดียว
+      // (กันสองจอกด QC ชนกัน: เขียนผ่าน updateMany where {id, status เดิม} — ถ้าใบถูก
+      // คนอื่นตัดสินไประหว่างทาง count เป็น 0 คนช้าเจอ error ไม่ใช่เขียนทับ
+      // — validate เฉยๆ ไม่พอ เพราะคนช้าอ่านสถานะก่อนคนเร็ว commit แล้วผ่าน validate ได้)
       return ctx.prisma.$transaction(async (tx) => {
         const current = await tx.outsourceOrder.findUniqueOrThrow({
           where: { id },
@@ -296,10 +300,17 @@ export const outsourceRouter = router({
           });
         }
 
-        const order = await tx.outsourceOrder.update({
-          where: { id },
+        const written = await tx.outsourceOrder.updateMany({
+          where: { id, status: current.status },
           data: updateData,
         });
+        if (written.count === 0) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "มีคนอัปเดตใบนี้ไปก่อนหน้านี้พอดี — รีเฟรชแล้วดูสถานะล่าสุดก่อน",
+          });
+        }
+        const order = await tx.outsourceOrder.findUniqueOrThrow({ where: { id } });
 
         // QC ผ่าน → ปิด step + ถ้าทุก step เสร็จ ปิดใบผลิต + ดันออเดอร์เข้า "ตรวจคุณภาพ"
         // (rollup กลางตัวเดียวกับ production.updateStep — ตรรกะปิดงาน/ดันสถานะอยู่ที่เดียว)
@@ -314,25 +325,27 @@ export const outsourceRouter = router({
             changedBy: ctx.userId,
           });
 
-          // ค่าจ้างร้านนอก → ต้นทุนออเดอร์อัตโนมัติ — เดิมเก็บลง DB แล้วจบ ไม่เคยไหลเข้า
-          // กำไรหน้าออเดอร์ (audit ข้อ 21 · silkscreen ทั้งสายคือ outsource)
-          const vendor = await tx.vendor.findUniqueOrThrow({
-            where: { id: order.vendorId },
-            select: { name: true },
-          });
-          await tx.costEntry.upsert({
-            where: { sourceRef: `outsource:${order.id}` },
-            create: {
-              orderId: step.production.orderId,
-              category: "OUTSOURCE",
-              name: `ค่าจ้างร้านนอก: ${vendor.name}`,
-              description: order.description,
-              amount: order.totalCost,
-              sourceRef: `outsource:${order.id}`,
-              createdById: ctx.userId,
-            },
-            update: { amount: order.totalCost },
-          });
+          // ค่าจ้างร้านนอก → ต้นทุนออเดอร์ เฉพาะเมื่อมีตัวเลขจริง — ใบที่ไม่กรอกค่าจ้าง
+          // (ทางปกติ หลังเบสเคาะเลิกคิดต้นทุนต่องาน 2026-06-12) ไม่สร้างแถว 0 บาททิ้งไว้
+          if (Number(order.totalCost) > 0) {
+            const vendor = await tx.vendor.findUniqueOrThrow({
+              where: { id: order.vendorId },
+              select: { name: true },
+            });
+            await tx.costEntry.upsert({
+              where: { sourceRef: `outsource:${order.id}` },
+              create: {
+                orderId: step.production.orderId,
+                category: "OUTSOURCE",
+                name: `ค่าจ้างร้านนอก: ${vendor.name}`,
+                description: order.description,
+                amount: order.totalCost,
+                sourceRef: `outsource:${order.id}`,
+                createdById: ctx.userId,
+              },
+              update: { amount: order.totalCost },
+            });
+          }
         }
         // QC ไม่ผ่าน → เปิด step กลับมารอส่งแก้รอบใหม่ (แม้เคยถูก mark เสร็จมือไปแล้ว)
         if (data.status === "QC_FAILED") {

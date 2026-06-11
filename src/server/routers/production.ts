@@ -10,35 +10,69 @@ import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 const managerUp = requireRole("OWNER", "MANAGER");
 const productionTeam = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
 
+// select กลางของขั้นตอนผลิต — จงใจไม่มี field เงิน (estimatedCost/actualCost/unitCost/totalCost):
+// endpoint พวกนี้เปิดทุก role — เงินต้องไม่ไหลถึง browser แม้ UI ไม่ render
+// (เบสเคาะ 2026-06-12: ไม่คิดต้นทุนต่องานในระบบนี้)
+const stepSelect = {
+  id: true,
+  productionId: true,
+  stepType: true,
+  customStepName: true,
+  status: true,
+  sortOrder: true,
+  startedAt: true,
+  completedAt: true,
+  qcPassed: true,
+  qcNotes: true,
+  notes: true,
+  assignedTo: { select: { id: true, name: true } },
+  outsourceOrders: {
+    orderBy: { createdAt: "desc" as const },
+    select: {
+      id: true,
+      status: true,
+      description: true,
+      quantity: true,
+      sentAt: true,
+      expectedBackAt: true,
+      receivedAt: true,
+      qcPassed: true,
+      qcNotes: true,
+      notes: true,
+      createdAt: true,
+      vendor: { select: { id: true, name: true } },
+    },
+  },
+} as const;
+
 export const productionRouter = router({
   getByOrderId: protectedProcedure
     .input(z.object({ orderId: z.string() }))
     .query(async ({ ctx, input }) => {
       return ctx.prisma.production.findMany({
         where: { orderId: input.orderId },
-        include: {
-          steps: {
-            orderBy: { sortOrder: "asc" },
-            include: {
-              assignedTo: { select: { id: true, name: true } },
-              outsourceOrders: {
-                orderBy: { createdAt: "desc" },
-                include: { vendor: { select: { id: true, name: true } } },
-              },
-            },
-          },
+        select: {
+          id: true,
+          orderId: true,
+          status: true,
+          notes: true,
+          steps: { orderBy: { sortOrder: "asc" }, select: stepSelect },
         },
       });
     }),
 
-  // หน้าใบผลิต /production/[id] — ใบผลิต + บริบทออเดอร์ที่ช่างต้องเห็น (ไม่มี field เงินของออเดอร์)
-  // steps ใช้ include shape เดียวกับ getByOrderId — dialog ฝั่ง UI ใช้ type ร่วมกันได้ตรงๆ
+  // หน้าใบผลิต /production/[id] — ใบผลิต + บริบทออเดอร์ที่ช่างต้องเห็น (ไม่มี field เงินใดๆ)
+  // steps ใช้ select shape เดียวกับ getByOrderId — dialog ฝั่ง UI ใช้ type ร่วมกันได้ตรงๆ
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       return ctx.prisma.production.findUniqueOrThrow({
         where: { id: input.id },
-        include: {
+        select: {
+          id: true,
+          orderId: true,
+          status: true,
+          notes: true,
           order: {
             select: {
               id: true,
@@ -51,23 +85,15 @@ export const productionRouter = router({
               items: { select: { totalQuantity: true } },
             },
           },
-          steps: {
-            orderBy: { sortOrder: "asc" },
-            include: {
-              assignedTo: { select: { id: true, name: true } },
-              outsourceOrders: {
-                orderBy: { createdAt: "desc" },
-                include: { vendor: { select: { id: true, name: true } } },
-              },
-            },
-          },
+          steps: { orderBy: { sortOrder: "asc" }, select: stepSelect },
         },
       });
     }),
 
   // บริบทออเดอร์สำหรับเปิดใบผลิต — dialog ดึงเอง (รับแค่ orderId)
   // รองรับทุกทางเข้า: kanban · การ์ดสรุปหน้าออเดอร์ · deep-link ?create=
-  // printTypes derive ฝั่ง server → เดาขั้นตอนผลิตให้ตรงวิธีพิมพ์จริง
+  // derive ฝั่ง server ครบ 3 อย่างที่ตัวแนะนำสายงานใช้: วิธีพิมพ์ + แหล่งเสื้อ + add-on
+  // (เดิมส่งแค่ printTypes — ใบผลิตเลยไม่เคยมีขั้นเตรียมเสื้อ/เย็บป้ายคอ)
   orderContext: protectedProcedure
     .input(z.object({ orderId: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -76,7 +102,13 @@ export const productionRouter = router({
         select: {
           orderNumber: true,
           title: true,
-          items: { select: { prints: { select: { printType: true } } } },
+          items: {
+            select: {
+              prints: { select: { printType: true } },
+              products: { select: { itemSource: true } },
+              addons: { select: { addonType: true } },
+            },
+          },
         },
       });
       return {
@@ -85,25 +117,44 @@ export const productionRouter = router({
         printTypes: [
           ...new Set(order.items.flatMap((it) => it.prints.map((p) => p.printType))),
         ],
+        itemSources: [
+          ...new Set(
+            order.items.flatMap((it) =>
+              it.products.map((p) => p.itemSource).filter((s): s is string => s !== null)
+            )
+          ),
+        ],
+        addonTypes: [
+          ...new Set(order.items.flatMap((it) => it.addons.map((a) => a.addonType))),
+        ],
       };
     }),
 
-  // Kanban สายการผลิต — ออเดอร์ทุกใบที่อยู่ในเฟสผลิต-จัดส่ง จัดกลุ่มตามสถานะ
-  // (รอเปิดใบ → กำลังผลิต → ตรวจคุณภาพ → แพ็ค → พร้อมส่ง) · ทุก role ดูได้
+  // กระดานการผลิต — ออเดอร์ทุกใบที่อยู่ในเฟสผลิต-จัดส่ง · ทุก role ดูได้
+  // ส่งขั้นตอนแบบละเอียด (ชนิด/สถานะ/outsource ล่าสุด) — UI จัดเลนต่อเทคนิคเอง
+  // จากเนื้อขั้นตอนจริง (เบสเคาะ 2026-06-12: มุมมองแยกเทคนิค ไม่ใช่กองเดียวตามสถานะ)
   // ปุ่มเลื่อนสถานะฝั่ง UI gate ด้วย canRoleSetStatus — server ยัง validate ซ้ำเสมอ
   kanban: protectedProcedure.query(async ({ ctx }) => {
     const orders = await ctx.prisma.order.findMany({
       where: {
-        internalStatus: {
-          in: [
-            "DESIGN_APPROVED",
-            "PRODUCTION_QUEUE",
-            "PRODUCING",
-            "QUALITY_CHECK",
-            "PACKING",
-            "READY_TO_SHIP",
-          ],
-        },
+        OR: [
+          {
+            internalStatus: {
+              in: [
+                "DESIGN_APPROVED",
+                "PRODUCTION_QUEUE",
+                "PRODUCING",
+                "QUALITY_CHECK",
+                "PACKING",
+                "READY_TO_SHIP",
+              ],
+            },
+          },
+          // เสื้อเปล่าจากสต๊อค (READY_MADE) ไม่มีขั้นออกแบบ — จุดพร้อมผลิตคือ CONFIRMED
+          // ถ้าไม่รวม คิว "รอเปิดใบผลิต" จะมองไม่เห็นงานสต๊อคเลย (CUSTOM ที่ CONFIRMED
+          // ยังต้องผ่านออกแบบก่อน จึงห้ามลากเข้ามาทั้งหมด)
+          { internalStatus: "CONFIRMED", orderType: "READY_MADE" },
+        ],
       },
       select: {
         id: true,
@@ -114,7 +165,34 @@ export const productionRouter = router({
         internalStatus: true,
         orderType: true,
         customer: { select: { name: true } },
-        productions: { select: { id: true, steps: { select: { status: true } } } },
+        productions: {
+          select: {
+            id: true,
+            status: true,
+            steps: {
+              orderBy: { sortOrder: "asc" },
+              select: {
+                id: true,
+                stepType: true,
+                customStepName: true,
+                status: true,
+                sortOrder: true,
+                // id ด้วย — UI ต้องเทียบกับ me.id กันโชว์ปุ่มบนงานที่เป็นของคนอื่น
+                assignedTo: { select: { id: true, name: true } },
+                outsourceOrders: {
+                  orderBy: { createdAt: "desc" },
+                  take: 1,
+                  select: {
+                    id: true,
+                    status: true,
+                    expectedBackAt: true,
+                    vendor: { select: { name: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
         items: { select: { totalQuantity: true } },
       },
       orderBy: { deadline: "asc" },
@@ -133,6 +211,7 @@ export const productionRouter = router({
         orderType: o.orderType,
         customerName: o.customer?.name ?? null,
         productionId: o.productions[0]?.id ?? null,
+        productions: o.productions,
         stepsDone,
         stepsTotal: steps.length,
         totalQuantity: o.items.reduce((s, it) => s + it.totalQuantity, 0),
@@ -151,13 +230,16 @@ export const productionRouter = router({
               "DTF_PRINT", "HEAT_PRESS", "DTG_PRETREAT", "DTG_PRINT", "CURING",
               "PATTERN_MAKING", "SCREEN_PRINTING", "TAGGING",
               "PACKAGING", "EMBROIDERY", "SPECIAL_PRINT", "SEWING", "CUSTOM",
+              "GARMENT_PICK", "GARMENT_RECEIVE", "SUBLIMATION",
             ]),
             customStepName: z.string().optional(),
             sortOrder: z.number(),
             estimatedCost: z.number().optional(),
             notes: z.string().optional(),
           })
-        ),
+        ).min(1, "ใบผลิตต้องมีอย่างน้อย 1 ขั้นตอน"),
+        // ใบผลิตศูนย์ขั้นทำให้ออเดอร์ PRODUCING หายจากทุก section ของหน้าการผลิต
+        // (ไม่มีขั้นค้าง = ไม่มีการ์ดสักเลน) และ finalize ไม่มีวันปิดให้
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -245,7 +327,7 @@ export const productionRouter = router({
         stepId: z.string(),
         status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "ON_HOLD", "FAILED"]).optional(),
         assignedToId: z.string().optional(),
-        actualCost: z.number().optional(),
+        actualCost: z.number().min(0).optional(),
         qcPassed: z.boolean().optional(),
         qcNotes: z.string().optional(),
         notes: z.string().optional(),
@@ -281,6 +363,42 @@ export const productionRouter = router({
           }
         }
 
+        // ปิดขั้น (รวมปุ่ม "ผ่านรวด" งานร้านนอก) ห้ามทับงานที่ยังค้างอยู่กับร้าน —
+        // ใบ outsource ที่ยังไม่ตัดสิน QC ต้องเดินจบทางใบ outsource เท่านั้น
+        if (data.status === "COMPLETED") {
+          // ล็อกแถว step ก่อนเช็ค (lock เดียวกับ outsource.createOrder) — ไม่งั้น
+          // "ผ่านรวด" กับ "เปิดใบส่งร้าน" ที่ยิงพร้อมกันต่างคนต่างเช็คผ่าน:
+          // step ปิดทั้งที่ใบส่งร้านเพิ่งเกิด แล้วใบนั้นเดินต่อบน step ที่ตายแล้ว
+          await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${stepId} FOR UPDATE`;
+          const latestOutsource = await tx.outsourceOrder.findFirst({
+            where: { productionStepId: stepId },
+            orderBy: { createdAt: "desc" },
+            select: { status: true },
+          });
+          if (
+            latestOutsource &&
+            !["QC_PASSED", "QC_FAILED"].includes(latestOutsource.status)
+          ) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message:
+                "ขั้นนี้มีงานค้างอยู่กับร้านนอก — กดรับกลับ/ตัดสิน QC ที่ใบ outsource ก่อน",
+            });
+          }
+          // งานที่หัวหน้าตัดสิน QC ไม่ผ่านไปแล้ว ช่างห้ามกดผ่านรวดทับ — ต้องส่งแก้
+          // รอบใหม่หรือให้หัวหน้าเป็นคนปิด
+          if (
+            latestOutsource?.status === "QC_FAILED" &&
+            ctx.userRole === "PRODUCTION_STAFF"
+          ) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message:
+                "งานนี้ QC ไม่ผ่านจากร้าน — ส่งแก้รอบใหม่ หรือให้หัวหน้าเป็นคนปิดขั้น",
+            });
+          }
+        }
+
         const updateData: Record<string, unknown> = { ...data };
         if (autoClaim) {
           updateData.assignedToId = ctx.userId;
@@ -305,8 +423,9 @@ export const productionRouter = router({
         });
 
         // ต้นทุนจริงต่อขั้นตอน → ต้นทุนออเดอร์อัตโนมัติ (upsert ด้วย sourceRef — แก้เลขซ้ำ
-        // ได้ไม่เบิ้ลแถว) — เดิมกรอกแล้วเก็บเฉยๆ ไม่เข้ากำไรหน้าออเดอร์ (audit ข้อ 21)
-        if (data.actualCost !== undefined) {
+        // ได้ไม่เบิ้ลแถว) — เฉพาะตัวเลขจริง ไม่สร้างแถว 0 บาท (UI ถอดช่องนี้แล้ว
+        // ตามมติเลิกคิดต้นทุนต่องาน 2026-06-12 — เก็บ path ไว้รับ caller ตรงเท่านั้น)
+        if (data.actualCost !== undefined && data.actualCost > 0) {
           const stepName =
             step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
           await tx.costEntry.upsert({

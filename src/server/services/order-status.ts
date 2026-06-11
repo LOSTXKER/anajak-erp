@@ -130,6 +130,10 @@ export async function finalizeProductionIfComplete(
   tx: PrismaTx,
   params: { productionId: string; changedBy: string }
 ) {
+  // ล็อกแถวใบผลิตก่อนอ่าน steps — สอง step สุดท้ายถูกกดเสร็จพร้อมกัน (ปุ่มเร็วบน
+  // บอร์ดเลนทำให้เกิดง่ายขึ้น) ต่างคนต่างเห็นอีกขั้นยังไม่เสร็จ → ไม่มีใครปิดใบ
+  // ออเดอร์ค้าง PRODUCING ถาวร · lock แล้ว tx ที่มาทีหลังจะอ่านเห็นครบ
+  await tx.$queryRaw`SELECT id FROM productions WHERE id = ${params.productionId} FOR UPDATE`;
   const steps = await tx.productionStep.findMany({
     where: { productionId: params.productionId },
     select: { status: true },

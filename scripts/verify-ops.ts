@@ -99,6 +99,13 @@ async function main() {
       "งานค้างอยู่กับร้าน"
     );
 
+    // ปุ่ม "ผ่านรวด" (ปิดขั้นมือ) ห้ามทับงานที่ยังค้างอยู่กับร้าน — ต้องจบทางใบ outsource
+    await expectError(
+      "1.3b ปิดขั้นมือ/ผ่านรวด ขณะงานค้างอยู่ที่ร้าน → ปฏิเสธ",
+      () => caller.production.updateStep({ stepId: screenStep.id, status: "COMPLETED" }),
+      "ค้างอยู่กับร้านนอก"
+    );
+
     await caller.outsource.updateOrderStatus({ id: os1.id, status: "SENT" });
     await caller.outsource.updateOrderStatus({ id: os1.id, status: "RECEIVED_BACK" });
     await caller.outsource.updateOrderStatus({
