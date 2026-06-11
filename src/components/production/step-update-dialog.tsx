@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Check } from "lucide-react";
 import type { StepStatus } from "@prisma/client";
@@ -31,11 +30,10 @@ interface StepUpdateDialogProps {
 }
 
 // dialog อัปเดตขั้นตอนผลิต — mount ใหม่ทุกครั้งที่เปิด (state seed จาก props ตรงๆ)
+// ช่อง "ต้นทุนจริง" ถอดออก (เบสเคาะ 2026-06-12: ไม่คิดต้นทุนต่องานในระบบนี้)
 export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
   const [status, setStatus] = useState<string>(step.status);
   const [notes, setNotes] = useState(step.notes || "");
-  const [cost, setCost] = useState(step.actualCost?.toString() || "");
-  const [originalCost] = useState(step.actualCost?.toString() || "");
   const [qcPassed, setQcPassed] = useState<string>(
     step.qcPassed === null ? "" : step.qcPassed ? "true" : "false"
   );
@@ -46,8 +44,6 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
 
   const utils = trpc.useUtils();
   const { data: me } = trpc.user.me.useQuery();
-  // ฝ่ายผลิตห้ามแตะต้นทุนจริง (server บังคับ) — ซ่อน field ฝั่ง UI ให้สอดคล้อง
-  const isProductionStaff = me?.role === "PRODUCTION_STAFF";
   const canAssign = !!me && ["OWNER", "MANAGER"].includes(me.role);
 
   // รายชื่อมอบหมายงาน — โหลดเฉพาะหัวหน้า (endpoint เป็น managerUp)
@@ -68,16 +64,12 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
   });
 
   function handleSave() {
-    // ส่ง actualCost เฉพาะเมื่อค่าเปลี่ยนจริง — ค่า pre-fill เดิมที่ติดไปกับ
-    // request จะทำให้ฝ่ายผลิตโดน FORBIDDEN ทั้งที่แค่จะอัปเดตสถานะ
-    const costChanged = cost !== originalCost;
     // assignedToId ส่งเฉพาะเมื่อเปลี่ยนจริง — staff ไม่เห็นช่องนี้และห้ามติดไปกับ request
     const assigneeChanged = assignee !== originalAssignee;
     updateStep.mutate({
       stepId: step.id,
       status: (status as StepStatus) || undefined,
       assignedToId: assigneeChanged && assignee ? assignee : undefined,
-      actualCost: costChanged && cost ? parseFloat(cost) : undefined,
       notes: notes || undefined,
       qcPassed: qcPassed === "" ? undefined : qcPassed === "true",
       qcNotes: qcNotes || undefined,
@@ -127,21 +119,6 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          )}
-          {!isProductionStaff && (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                ต้นทุนจริง (บาท)
-              </label>
-              <Input
-                type="number"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                min="0"
-                step="0.01"
-                placeholder="0"
-              />
             </div>
           )}
           <div>

@@ -156,7 +156,7 @@ export default function OutsourcePage() {
     <div className="space-y-5">
       <PageHeader
         title="Outsource"
-        description="งานส่งร้านนอก (silkscreen/ปัก) — สร้างใบงานจากขั้นตอนผลิตในหน้าออเดอร์"
+        description="งานส่งร้านนอก (DTG/สกรีน/ปัก/ตัดเย็บ/ป้ายคอ) — สร้างใบงานจากขั้นตอนในหน้าใบผลิต (เมนูการผลิต)"
         action={
           <Button
             size="sm"
@@ -168,15 +168,12 @@ export default function OutsourcePage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* ไม่มี stat เงิน — เลิกคิดต้นทุนต่องานในระบบ (เบสเคาะ 2026-06-12) ช่องค่าจ้างถูกถอดแล้ว
+          ใบใหม่ทุกใบ totalCost = 0 ถ้าโชว์มูลค่าจะกลายเป็นตัวเลขหลอก */}
+      <div className="grid grid-cols-3 gap-3">
         <StatCard title="ค้างที่ร้าน" value={activeOrders.length} icon={Truck} caption="งาน" />
         <StatCard title="เลยกำหนดรับ" value={overdueCount} icon={AlertCircle} caption="งาน" />
         <StatCard title="รอ QC" value={qcOrders.length} icon={PackageCheck} caption="งาน" />
-        <StatCard
-          title="มูลค่าค้างที่ร้าน"
-          value={formatCurrency(activeOrders.reduce((s, o) => s + o.totalCost, 0))}
-          icon={Star}
-        />
       </div>
 
       {showVendorForm && (
@@ -272,7 +269,7 @@ export default function OutsourcePage() {
               <EmptyState
                 icon={Truck}
                 title="ไม่มีงานในกลุ่มนี้"
-                description='ส่งงานให้ร้านนอกได้จากหน้าออเดอร์ — ส่วน "การผลิต" → ปุ่ม "ส่งร้านนอก" ที่ขั้นตอน'
+                description='ส่งงานให้ร้านนอกได้จากหน้าใบผลิต (เมนูการผลิต → เปิดงาน) — ปุ่ม "ส่งร้านนอก" ที่ขั้นตอน'
               />
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -298,9 +295,12 @@ export default function OutsourcePage() {
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
-                          <span className="text-sm font-medium tabular-nums">
-                            {formatCurrency(o.totalCost)}
-                          </span>
+                          {/* ค่าจ้างโชว์เฉพาะใบเก่าที่เคยกรอกไว้ — ใบใหม่ไม่เก็บเงินแล้ว */}
+                          {o.totalCost > 0 && (
+                            <span className="text-sm font-medium tabular-nums">
+                              {formatCurrency(o.totalCost)}
+                            </span>
+                          )}
                           <Badge variant={cfg.variant} size="sm">
                             {cfg.label}
                           </Badge>
@@ -463,7 +463,7 @@ export default function OutsourcePage() {
           <DialogHeader>
             <DialogTitle>QC ไม่ผ่าน</DialogTitle>
             <DialogDescription>
-              ระบุปัญหาที่พบ — ขั้นตอนผลิตจะยังเปิดอยู่ ส่งแก้รอบใหม่ได้จากหน้าออเดอร์
+              ระบุปัญหาที่พบ — ขั้นตอนผลิตจะยังเปิดอยู่ ส่งแก้รอบใหม่ได้จากหน้าใบผลิต
             </DialogDescription>
           </DialogHeader>
           <Textarea

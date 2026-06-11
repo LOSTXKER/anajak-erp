@@ -19,6 +19,10 @@ import {
 } from "@/lib/order-status";
 import { formatDate } from "@/lib/utils";
 import { ClipboardList, ExternalLink, Clock, AlertTriangle, Shirt } from "lucide-react";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { toast } from "sonner";
 
 function ProductionDetailSkeleton() {
   return (
@@ -44,10 +48,39 @@ export default function ProductionDetailPage({
   const { data: production, isLoading, isError, refetch } =
     trpc.production.getById.useQuery({ id });
   const { data: me } = trpc.user.me.useQuery();
+  const confirm = useConfirm();
+  const utils = trpc.useUtils();
 
   const isProductionStaff = me?.role === "PRODUCTION_STAFF";
-  // ส่งงานร้านนอก = ผูกต้นทุน — ผู้จัดการขึ้นไป (ตรง managerUp ฝั่ง server)
+  // เปิดใบส่งร้านนอก = ผู้จัดการขึ้นไป (ตรง managerUp ฝั่ง server)
   const canOutsource = !!me && ["OWNER", "MANAGER"].includes(me.role);
+  // อัปเดต/ผ่านรวดขั้นตอน = ทีมผลิตขึ้นไป (ตรง productionTeam ฝั่ง server — กันปุ่มที่กดแล้ว FORBIDDEN)
+  const canUpdateStep = !!me && ["OWNER", "MANAGER", "PRODUCTION_STAFF"].includes(me.role);
+
+  // ผ่านรวด — ปิดขั้นร้านนอกคลิกเดียว (เบสเคาะ 2026-06-12: outsource ไม่ต้องกรอกอะไร)
+  const quickPass = useMutationWithInvalidation(trpc.production.updateStep, {
+    invalidate: [
+      utils.production.getById,
+      utils.production.getByOrderId,
+      utils.production.kanban,
+      utils.order.getById,
+      utils.task.myToday,
+    ],
+    onError: (err: { message?: string }) => {
+      toast.error(err.message ?? "ผ่านรวดไม่สำเร็จ");
+    },
+  });
+
+  async function handleQuickPass(step: ProductionStep) {
+    const stepName = step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
+    const ok = await confirm({
+      title: "ผ่านรวดขั้นตอนนี้?",
+      description: `"${stepName}" จะถูกบันทึกว่าเสร็จแล้ว — ใช้เมื่องานร้านนอกเสร็จเรียบร้อยโดยไม่ได้เปิดใบส่งร้านในระบบ`,
+      confirmText: "ผ่านรวด",
+    });
+    if (!ok) return;
+    quickPass.mutate({ stepId: step.id, status: "COMPLETED" });
+  }
 
   if (isLoading) return <ProductionDetailSkeleton />;
   if (isError) return <QueryError onRetry={() => refetch()} />;
@@ -138,10 +171,11 @@ export default function ProductionDetailPage({
 
         <ProductionStepsList
           steps={production.steps}
-          isProductionStaff={isProductionStaff}
           canOutsource={canOutsource}
+          canUpdateStep={canUpdateStep}
           onSelectStep={setSelectedStep}
           onOutsourceStep={setOutsourceStep}
+          onQuickPass={handleQuickPass}
         />
       </div>
 

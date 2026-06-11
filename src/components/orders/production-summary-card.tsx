@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { STEP_TYPE_LABELS, OUTSOURCE_ACTIVE_STATUSES } from "@/lib/production-steps";
 import { Factory, Plus, ArrowRight, Truck, User } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 
@@ -12,9 +12,6 @@ import type { RouterOutput } from "@/lib/trpc";
 // (แยกโมดูลผลิตออกจากหน้าออเดอร์ — เบสเคาะ 2026-06-12)
 
 type OrderProductions = RouterOutput["order"]["getById"]["productions"];
-
-// งานที่ยังค้างอยู่กับร้านนอก — โชว์ธงบนการ์ดสรุป
-const OUTSOURCE_ACTIVE = ["DRAFT", "SENT", "IN_PROGRESS", "COMPLETED", "RECEIVED_BACK"];
 
 interface ProductionSummaryCardProps {
   orderId: string;
@@ -85,7 +82,7 @@ export function ProductionSummaryCard({
               // ขั้นที่กำลังทำอยู่ = ขั้นแรกที่ยังไม่เสร็จ
               const currentStep = prod.steps.find((s) => s.status !== "COMPLETED");
               const hasActiveOutsource = prod.steps.some((s) =>
-                s.outsourceOrders.some((os) => OUTSOURCE_ACTIVE.includes(os.status))
+                s.outsourceOrders.some((os) => OUTSOURCE_ACTIVE_STATUSES.includes(os.status))
               );
 
               return (
