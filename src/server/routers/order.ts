@@ -290,7 +290,7 @@ export const orderRouter = router({
   getById: protectedProcedure
     .input(byIdInput)
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.order.findUniqueOrThrow({
+      const order = await ctx.prisma.order.findUniqueOrThrow({
         where: { id: input.id },
         include: {
           customer: true,
@@ -344,6 +344,23 @@ export const orderRouter = router({
           costEntries: { orderBy: { createdAt: "desc" } },
         },
       });
+
+      // changedBy ในประวัติเก็บเป็น user id (หรือ literal เช่น "ลูกค้า") — แปลงเป็นชื่อคน
+      // ฝั่ง server ที่เดียว หน้าไหนก็โชว์ชื่อได้เลย (เบสชี้: ประวัติโชว์รหัสดิบอ่านไม่รู้เรื่อง)
+      const changerIds = [...new Set(order.revisions.map((r) => r.changedBy))];
+      const changers = await ctx.prisma.user.findMany({
+        where: { id: { in: changerIds } },
+        select: { id: true, name: true },
+      });
+      const nameById = new Map(changers.map((u) => [u.id, u.name]));
+      return {
+        ...order,
+        revisions: order.revisions.map((r) => ({
+          ...r,
+          // หาไม่เจอ = ค่า literal เดิม (เช่น "ลูกค้า") — โชว์ตามนั้น
+          changedByName: nameById.get(r.changedBy) ?? r.changedBy,
+        })),
+      };
     }),
 
   create: protectedProcedure
