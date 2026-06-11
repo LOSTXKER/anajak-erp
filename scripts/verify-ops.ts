@@ -531,7 +531,7 @@ async function main() {
 
     // ผลิตครบ → QC → QC ไม่ผ่าน ถอยกลับ → ใบผลิต reopen + มี step งานแก้
     await caller.production.updateStep({ stepId: o7aProd.steps[0].id, status: "COMPLETED" });
-    let o7aDb = await prisma.order.findUniqueOrThrow({ where: { id: o7a.id } });
+    const o7aDb = await prisma.order.findUniqueOrThrow({ where: { id: o7a.id } });
     ok("8.3 (precondition) ผลิตครบ → ออเดอร์เด้ง QUALITY_CHECK", o7aDb.internalStatus === "QUALITY_CHECK", o7aDb.internalStatus);
 
     await caller.order.updateStatus({
