@@ -19,6 +19,7 @@ import { patternRouter } from "./pattern";
 import { packagingRouter } from "./packaging";
 import { settingsRouter } from "./settings";
 import { userRouter } from "./user";
+import { taskRouter } from "./task";
 
 export const appRouter = router({
   user: userRouter,
@@ -41,6 +42,7 @@ export const appRouter = router({
   packaging: packagingRouter,
   stockSync: stockSyncRouter,
   settings: settingsRouter,
+  task: taskRouter,
 });
 
 export type AppRouter = typeof appRouter;

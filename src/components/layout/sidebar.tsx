@@ -22,6 +22,7 @@ import {
   Scissors,
   FileStack,
   Hourglass,
+  ListTodo,
 } from "lucide-react";
 import { useState, type ComponentType } from "react";
 
@@ -39,7 +40,10 @@ type NavGroup = {
 const groups: NavGroup[] = [
   {
     label: null,
-    items: [{ name: "Dashboard", href: "/", icon: LayoutDashboard }],
+    items: [
+      { name: "Dashboard", href: "/", icon: LayoutDashboard },
+      { name: "งานของฉัน", href: "/my-tasks", icon: ListTodo },
+    ],
   },
   {
     label: "ขาย",

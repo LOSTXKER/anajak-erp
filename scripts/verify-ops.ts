@@ -392,6 +392,59 @@ async function main() {
       o6Db.internalStatus === "SHIPPED",
       o6Db.internalStatus
     );
+
+    // ---------- 7) งานของฉันวันนี้ (task.myToday รวมงานตามบทบาท) ----------
+    const o7a = await prisma.order.create({
+      data: {
+        orderNumber: "TEST-OPS-7A",
+        orderType: "CUSTOM",
+        channel: "LINE",
+        customerId: customer.id,
+        createdById: owner.id,
+        internalStatus: "CONFIRMED",
+        customerStatus: "ORDER_RECEIVED",
+        title: "[OPS-VERIFY] งานผลิตของฉัน",
+        totalAmount: 500,
+      },
+    });
+    ids.orders.push(o7a.id);
+    await caller.production.create({
+      orderId: o7a.id,
+      steps: [{ stepType: "DTF_PRINT", sortOrder: 1 }],
+    });
+
+    const o7b = await prisma.order.create({
+      data: {
+        orderNumber: "TEST-OPS-7B",
+        orderType: "CUSTOM",
+        channel: "LINE",
+        customerId: customer.id,
+        createdById: owner.id,
+        internalStatus: "DESIGNING",
+        customerStatus: "PREPARING",
+        title: "[OPS-VERIFY] งานออกแบบของฉัน",
+        totalAmount: 500,
+      },
+    });
+    ids.orders.push(o7b.id);
+
+    const myTasks = await caller.task.myToday();
+    ok(
+      "7.1 myToday: งานผลิต (PRODUCING) โผล่ในคิวของฉัน",
+      myTasks.production.some((p) => p.order.id === o7a.id),
+      myTasks.production.length
+    );
+    ok(
+      "7.2 myToday: งานออกแบบ (DESIGNING) โผล่ในคิว",
+      myTasks.design.some((d) => d.order.id === o7b.id),
+      myTasks.design.length
+    );
+    ok(
+      "7.3 myToday: OWNER เห็น section การเงิน (โครงครบ + SHIPPED รอวางบิลโผล่)",
+      Array.isArray(myTasks.billing.overdueInvoices) &&
+        myTasks.billing.shippedOrders.some((o) => o.id === o6.id),
+      { fin: Object.keys(myTasks.billing), shipped: myTasks.billing.shippedOrders.length }
+    );
   } finally {
     // ---------- ล้างเกลี้ยง + คืนเลขเอกสาร ----------
     await prisma.notification.deleteMany({ where: { entityId: { in: ids.orders } } });
