@@ -574,6 +574,27 @@ async function main() {
       tasksAwait.awaitingProduction.length
     );
 
+    // ---------- ต้นทุนไหลเข้าออเดอร์อัตโนมัติ (audit ข้อ 21) ----------
+    const osCost = await prisma.costEntry.findUnique({
+      where: { sourceRef: `outsource:${os2.id}` },
+    });
+    ok(
+      "8.6 outsource QC ผ่าน → ค่าจ้างร้านนอกเข้าเป็นต้นทุนออเดอร์เอง (62.50)",
+      osCost !== null && Number(osCost.amount) === 62.5 && osCost.category === "OUTSOURCE",
+      osCost?.amount
+    );
+
+    await caller.production.updateStep({ stepId: o7aProd.steps[0].id, actualCost: 150 });
+    await caller.production.updateStep({ stepId: o7aProd.steps[0].id, actualCost: 200 });
+    const stepCosts = await prisma.costEntry.findMany({
+      where: { sourceRef: `step:${o7aProd.steps[0].id}` },
+    });
+    ok(
+      "8.7 ต้นทุนจริงต่อขั้นตอน → CostEntry เดียว (แก้เลขแล้ว update ไม่เบิ้ลแถว)",
+      stepCosts.length === 1 && Number(stepCosts[0].amount) === 200,
+      { rows: stepCosts.length, amount: stepCosts[0]?.amount }
+    );
+
     // ล้าง user ทดสอบ (ลบกระดิ่งก่อน — FK)
     await prisma.notification.deleteMany({ where: { userId: tmpMgr.id } });
     await prisma.user.delete({ where: { id: tmpMgr.id } });

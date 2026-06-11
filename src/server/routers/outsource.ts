@@ -307,11 +307,31 @@ export const outsourceRouter = router({
           const step = await tx.productionStep.update({
             where: { id: order.productionStepId },
             data: { status: "COMPLETED", qcPassed: true, completedAt: new Date() },
-            select: { productionId: true },
+            select: { productionId: true, production: { select: { orderId: true } } },
           });
           await finalizeProductionIfComplete(tx, {
             productionId: step.productionId,
             changedBy: ctx.userId,
+          });
+
+          // ค่าจ้างร้านนอก → ต้นทุนออเดอร์อัตโนมัติ — เดิมเก็บลง DB แล้วจบ ไม่เคยไหลเข้า
+          // กำไรหน้าออเดอร์ (audit ข้อ 21 · silkscreen ทั้งสายคือ outsource)
+          const vendor = await tx.vendor.findUniqueOrThrow({
+            where: { id: order.vendorId },
+            select: { name: true },
+          });
+          await tx.costEntry.upsert({
+            where: { sourceRef: `outsource:${order.id}` },
+            create: {
+              orderId: step.production.orderId,
+              category: "OUTSOURCE",
+              name: `ค่าจ้างร้านนอก: ${vendor.name}`,
+              description: order.description,
+              amount: order.totalCost,
+              sourceRef: `outsource:${order.id}`,
+              createdById: ctx.userId,
+            },
+            update: { amount: order.totalCost },
           });
         }
         // QC ไม่ผ่าน → เปิด step กลับมารอส่งแก้รอบใหม่ (แม้เคยถูก mark เสร็จมือไปแล้ว)

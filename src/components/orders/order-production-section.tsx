@@ -413,15 +413,8 @@ export function OrderProductionSection({
                     ))}
                   </div>
 
-                  {/* Cost summary */}
-                  {prod.totalCost > 0 && (
-                    <div className="flex justify-between rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-800/50">
-                      <span className="text-slate-500">ต้นทุนรวม</span>
-                      <span className="font-medium text-slate-900 dark:text-white">
-                        {formatCurrency(prod.totalCost)}
-                      </span>
-                    </div>
-                  )}
+                  {/* ต้นทุนจริงไหลเข้า "ต้นทุน & กำไร" ของออเดอร์อัตโนมัติแล้ว
+                      (CostEntry ผ่าน sourceRef) — กล่องสรุปต่อใบผลิตเดิมเป็น field ตาย ถอดทิ้ง */}
                 </div>
               );
             })

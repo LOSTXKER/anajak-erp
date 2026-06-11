@@ -721,6 +721,8 @@ model CostEntry {
   category    String   // MATERIAL, LABOR, OUTSOURCE, OVERHEAD, PLATFORM_FEE, SHIPPING, OTHER
   name        String
   description String?
+  // ที่มาอัตโนมัติ (step:<id> / outsource:<id>) — upsert ด้วย key นี้ กันต้นทุนซ้ำตอนแก้ค่า
+  sourceRef   String?  @unique @map("source_ref")
   amount      Decimal  @db.Decimal(12, 2)
   quantity    Float?   // จำนวนหน่วยวัสดุ (เมตร/กก.) — ไม่ใช่เงิน คง Float
   unitCost    Decimal? @map("unit_cost") @db.Decimal(12, 2)

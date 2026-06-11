@@ -164,6 +164,25 @@ export const productionRouter = router({
           changedBy: ctx.userId,
         });
 
+        // ต้นทุนจริงต่อขั้นตอน → ต้นทุนออเดอร์อัตโนมัติ (upsert ด้วย sourceRef — แก้เลขซ้ำ
+        // ได้ไม่เบิ้ลแถว) — เดิมกรอกแล้วเก็บเฉยๆ ไม่เข้ากำไรหน้าออเดอร์ (audit ข้อ 21)
+        if (data.actualCost !== undefined) {
+          const stepName =
+            step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
+          await tx.costEntry.upsert({
+            where: { sourceRef: `step:${stepId}` },
+            create: {
+              orderId: step.production.orderId,
+              category: "LABOR",
+              name: `ต้นทุนขั้นตอน: ${stepName}`,
+              amount: data.actualCost,
+              sourceRef: `step:${stepId}`,
+              createdById: ctx.userId,
+            },
+            update: { amount: data.actualCost },
+          });
+        }
+
         // step มีปัญหา = ต้องมีคนมาดูด่วน — กระดิ่งหาผู้จัดการทันที ห้ามจมเงียบ (audit ข้อ 20)
         if (data.status === "FAILED") {
           const order = await tx.order.findUniqueOrThrow({
