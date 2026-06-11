@@ -22,6 +22,7 @@ import {
   FileText,
   Calendar,
   ExternalLink,
+  Pencil,
 } from "lucide-react";
 
 // ============================================================
@@ -184,7 +185,12 @@ export default function QuotationDetailPage({
                 <Send className="h-4 w-4" />
                 ส่งให้ลูกค้า
               </Button>
-              {/* ปุ่มแก้ไขถูกถอด (P0.5): /quotations/[id]/edit ไม่มีหน้าจริง — งานแก้ใบเสนอราคาอยู่ใบงาน P1 */}
+              <Button variant="outline" asChild className="gap-1.5">
+                <Link href={`/quotations/new?edit=${id}`}>
+                  <Pencil className="h-4 w-4" />
+                  แก้ไข
+                </Link>
+              </Button>
             </>
           )}
 

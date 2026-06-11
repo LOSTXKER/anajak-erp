@@ -29,7 +29,7 @@ async function expectError(name: string, fn: () => Promise<unknown>, msgPart: st
   }
 }
 
-const SEQ_TYPES = ["ORDER", "DEPOSIT_INVOICE", "FINAL_INVOICE", "RECEIPT"];
+const SEQ_TYPES = ["ORDER", "DEPOSIT_INVOICE", "FINAL_INVOICE", "RECEIPT", "QUOTATION"];
 
 async function main() {
   const period = currentPeriod();
@@ -405,6 +405,126 @@ async function main() {
       ocQueued.internalStatus
     );
 
+    // ============ FLOW F: สะพานใบเสนอ (audit ข้อ 8 BLOCKER + 9,10,11,12,13) ============
+    console.log("\n--- FLOW F: สะพาน สอบถาม↔ใบเสนอ↔ออเดอร์ ---");
+    const totalOrdersBefore = (
+      await prisma.customer.findUniqueOrThrow({ where: { id: customer.id } })
+    ).totalOrders;
+
+    // เปิดงานเบาจากแชท (มีรายการจริง) → ออกใบเสนอผูกออเดอร์
+    const of1 = await sales.order.create({
+      customerId: customer.id,
+      title: "[E2E-VERIFY] งานรอใบเสนอ",
+      items: [
+        {
+          products: [
+            {
+              productType: "T_SHIRT",
+              description: "เสื้อพิมพ์ลายทีม",
+              baseUnitPrice: 150,
+              variants: [{ size: "L", quantity: 10 }],
+            },
+          ],
+          prints: [{ position: "FRONT", printType: "DTF", unitPrice: 30 }],
+          addons: [],
+        },
+      ],
+    });
+    ids.orders.push(of1.id);
+
+    const validTomorrow = new Date(Date.now() + 7 * 86400_000).toISOString();
+    const q1 = await sales.quotation.create({
+      customerId: customer.id,
+      orderId: of1.id,
+      title: "[E2E-VERIFY] ใบเสนอผูกออเดอร์",
+      validUntil: validTomorrow,
+      items: [{ name: "เสื้อทีมพิมพ์ DTF", quantity: 10, unit: "ตัว", unitPrice: 180 }],
+    });
+    ok("F1 ออกใบเสนอผูกออเดอร์ได้ (orderId ติดที่ใบเสนอ)", q1.id !== undefined, q1.id);
+
+    // แก้รายการฉบับร่างได้ + totals คิดใหม่
+    const q1Edited = await sales.quotation.updateItems({
+      id: q1.id,
+      items: [{ name: "เสื้อทีมพิมพ์ DTF", quantity: 10, unit: "ตัว", unitPrice: 200 }],
+    });
+    ok("F2 แก้รายการใบเสนอฉบับร่าง → ยอดคิดใหม่ (2000)", q1Edited.totalAmount === 2000, q1Edited.totalAmount);
+
+    await sales.quotation.updateStatus({ id: q1.id, status: "SENT" });
+    await expectError(
+      "F3 ส่งแล้วแก้รายการไม่ได้ (ต้องดึงกลับร่างก่อน)",
+      () =>
+        sales.quotation.updateItems({
+          id: q1.id,
+          items: [{ name: "x", quantity: 1, unit: "ชิ้น", unitPrice: 1 }],
+        }),
+      "ฉบับร่าง"
+    );
+
+    await sales.quotation.updateStatus({ id: q1.id, status: "ACCEPTED" });
+    const converted = await sales.quotation.convertToOrder({ id: q1.id });
+    const totalOrdersAfter = (
+      await prisma.customer.findUniqueOrThrow({ where: { id: customer.id } })
+    ).totalOrders;
+    ok(
+      "F4 ลูกค้าตกลง → ยืนยัน 'ออเดอร์ใบเดิม' (id เดียวกัน ไม่สร้างซ้ำ + สถิติลูกค้าไม่นับเบิ้ล)",
+      converted.id === of1.id &&
+        converted.internalStatus === "CONFIRMED" &&
+        totalOrdersAfter === totalOrdersBefore + 1, // +1 จากตอนเปิด of1 เท่านั้น
+      { same: converted.id === of1.id, s: converted.internalStatus, n: totalOrdersAfter - totalOrdersBefore }
+    );
+    const of1Items = await prisma.orderItem.count({ where: { orderId: of1.id } });
+    ok("F5 ออเดอร์ผูกที่มีรายการจริง → รายการเดิมไม่ถูกทับด้วยโครงใบเสนอ", of1Items === 1, of1Items);
+
+    await expectError(
+      "F6 กดแปลงซ้ำ → โดนกัน (ไม่เกิดออเดอร์คู่)",
+      () => sales.quotation.convertToOrder({ id: q1.id }),
+      ""
+    );
+
+    // ใบเสนอลอย (ไม่ผูกออเดอร์) → สร้างออเดอร์ใหม่ + เทอมไหลจากโปรไฟล์ลูกค้า + กันโครงเปล่าเข้าผลิต
+    await prisma.customer.update({
+      where: { id: customer.id },
+      data: { defaultPaymentTerms: "DEPOSIT_50" },
+    });
+    const q2 = await sales.quotation.create({
+      customerId: customer.id,
+      title: "[E2E-VERIFY] ใบเสนอลอย",
+      validUntil: validTomorrow,
+      items: [{ name: "งานสกรีนหมวก", quantity: 20, unit: "ใบ", unitPrice: 50 }],
+    });
+    await sales.quotation.updateStatus({ id: q2.id, status: "SENT" });
+    await sales.quotation.updateStatus({ id: q2.id, status: "ACCEPTED" });
+    const newOrder = await sales.quotation.convertToOrder({ id: q2.id });
+    ids.orders.push(newOrder.id);
+    ok(
+      "F7 ใบเสนอลอย → ออเดอร์ใหม่ CONFIRMED + เทอมชำระไหลจากโปรไฟล์ (มัดจำ 50%)",
+      newOrder.internalStatus === "CONFIRMED" && newOrder.paymentTerms === "DEPOSIT_50",
+      { s: newOrder.internalStatus, terms: newOrder.paymentTerms }
+    );
+    await expectError(
+      "F8 รายการโครงใบเสนอ (OTHER/FREE ล้วน) → เปิดใบผลิตไม่ได้ ต้องใส่ของจริงก่อน",
+      () =>
+        manager.production.create({
+          orderId: newOrder.id,
+          steps: [{ stepType: "SCREEN_PRINTING", sortOrder: 1 }],
+        }),
+      "โครงจากใบเสนอ"
+    );
+
+    // ใบเสนอหมดอายุ → ตกลง/แปลงไม่ได้
+    const q3 = await sales.quotation.create({
+      customerId: customer.id,
+      title: "[E2E-VERIFY] ใบเสนอหมดอายุ",
+      validUntil: new Date(Date.now() - 3 * 86400_000).toISOString(),
+      items: [{ name: "งานเก่า", quantity: 1, unit: "ชิ้น", unitPrice: 100 }],
+    });
+    await sales.quotation.updateStatus({ id: q3.id, status: "SENT" });
+    await expectError(
+      "F9 ใบเสนอหมดอายุ → บันทึกว่าลูกค้าตกลงไม่ได้ (ต้องยืนราคาใหม่)",
+      () => sales.quotation.updateStatus({ id: q3.id, status: "ACCEPTED" }),
+      "หมดอายุ"
+    );
+
     // ============ ด่านสิทธิ์คร่อมเส้น (กันคนผิด role ทำขั้นที่ไม่ใช่ของตัว) ============
     await expectError(
       "D1 ช่างผลิตยืนยันออเดอร์ไม่ได้ (ฝั่งขายเท่านั้น)",
@@ -455,6 +575,14 @@ async function main() {
       },
     });
     await prisma.invoice.deleteMany({ where: { id: { in: invoiceIds } } });
+    const quotations = await prisma.quotation.findMany({
+      where: { customerId: ids.customer },
+      select: { id: true },
+    });
+    await prisma.auditLog.deleteMany({
+      where: { entityId: { in: quotations.map((q) => q.id) } },
+    });
+    await prisma.quotation.deleteMany({ where: { customerId: ids.customer } });
     await prisma.outsourceOrder.deleteMany({ where: { productionStepId: { in: stepIds } } });
     await prisma.delivery.deleteMany({ where: { orderId: { in: ids.orders } } });
     await prisma.production.deleteMany({ where: { orderId: { in: ids.orders } } });

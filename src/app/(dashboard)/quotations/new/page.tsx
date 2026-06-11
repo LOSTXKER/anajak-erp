@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customers/customer-picker";
-import { ArrowLeft, Plus, Trash2, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, FileText, User } from "lucide-react";
 
 // ============================================================
 // TYPES
@@ -51,11 +52,35 @@ const sectionLabelClass =
 // ============================================================
 
 export default function NewQuotationPage() {
+  // useSearchParams ต้องอยู่ใต้ Suspense (ข้อบังคับ Next.js ตอน prerender)
+  return (
+    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+      <QuotationFormPage />
+    </Suspense>
+  );
+}
+
+function QuotationFormPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
+  const searchParams = useSearchParams();
+  // สะพานใบเสนอ (audit ข้อ 8): ?orderId= ออกใบเสนอผูกออเดอร์ (ตกลงแล้วยืนยันใบเดิม)
+  // · ?edit= แก้ใบเสนอฉบับร่าง (audit ข้อ 11) — ฟอร์มเดียวใช้ทั้งสามโหมด
+  const fromOrderId = searchParams.get("orderId") ?? undefined;
+  const editId = searchParams.get("edit") ?? undefined;
+
+  const { data: linkedOrder } = trpc.order.getById.useQuery(
+    { id: fromOrderId! },
+    { enabled: !!fromOrderId }
+  );
+  const { data: editing } = trpc.quotation.getById.useQuery(
+    { id: editId! },
+    { enabled: !!editId }
+  );
 
   // -- Form state --
   const [customerId, setCustomerId] = useState("");
+  const [customerLabel, setCustomerLabel] = useState(""); // โหมดผูกออเดอร์/แก้ไข — ลูกค้าล็อก
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [validUntil, setValidUntil] = useState("");
@@ -69,12 +94,77 @@ export default function NewQuotationPage() {
   const [discount, setDiscount] = useState(0);
   const [tax, setTax] = useState(0);
 
+  // prefill ครั้งเดียวเมื่อข้อมูลมาถึง — ไม่ทับของที่ผู้ใช้แก้ต่อ
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current) return;
+    if (fromOrderId && linkedOrder) {
+      prefilled.current = true;
+      setCustomerId(linkedOrder.customerId);
+      setCustomerLabel(linkedOrder.customer?.name ?? "");
+      setTitle(linkedOrder.title ?? "");
+      const orderItems = (linkedOrder.items ?? []) as Array<{
+        description: string | null;
+        totalQuantity: number;
+        subtotal: number;
+        products: Array<{ description: string }>;
+      }>;
+      if (orderItems.length > 0) {
+        setItems(
+          orderItems.map((it) => ({
+            name: it.description || it.products[0]?.description || "รายการ",
+            description: it.products.map((p) => p.description).join(", "),
+            quantity: it.totalQuantity || 1,
+            unit: "ชิ้น",
+            unitPrice:
+              it.totalQuantity > 0
+                ? Math.round((it.subtotal / it.totalQuantity) * 100) / 100
+                : 0,
+          }))
+        );
+      }
+    } else if (editId && editing) {
+      prefilled.current = true;
+      setCustomerId(editing.customerId);
+      setCustomerLabel(editing.customer?.name ?? "");
+      setTitle(editing.title);
+      setDescription(editing.description ?? "");
+      setValidUntil(new Date(editing.validUntil).toISOString().slice(0, 10));
+      setTerms(editing.terms ?? "");
+      setNotes(editing.notes ?? "");
+      setDiscount(editing.discount);
+      setTax(editing.tax);
+      setItems(
+        editing.items.map((it) => ({
+          name: it.name,
+          description: it.description ?? "",
+          quantity: it.quantity,
+          unit: it.unit,
+          unitPrice: it.unitPrice,
+        }))
+      );
+    }
+  }, [fromOrderId, linkedOrder, editId, editing]);
+
+  // ค่าเริ่มอายุใบเสนอ +7 วัน — กรอกเร็วจากแชทไม่ต้องคิดวัน
+  useEffect(() => {
+    if (!validUntil && !editId) {
+      const d = new Date(Date.now() + 7 * 86400_000);
+      setValidUntil(d.toISOString().slice(0, 10));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const createQuotation = trpc.quotation.create.useMutation({
     onSuccess: (data) => {
       utils.quotation.list.invalidate();
       router.push(`/quotations/${data.id}`);
     },
   });
+  const updateQuotation = trpc.quotation.update.useMutation();
+  const updateQuotationItems = trpc.quotation.updateItems.useMutation();
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   // ---- pricing calculations ----
   const pricingSummary = useMemo(() => {
@@ -103,11 +193,46 @@ export default function NewQuotationPage() {
   };
 
   // ---- submit ----
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const mappedItems = items.map((item) => ({
+      name: item.name,
+      description: item.description || undefined,
+      quantity: item.quantity,
+      unit: item.unit,
+      unitPrice: item.unitPrice,
+    }));
+
+    if (editId) {
+      // โหมดแก้ไขฉบับร่าง — หัวใบ + รายการ (สองก้อน เพราะ totals คิดใหม่ฝั่ง server)
+      setEditError(null);
+      setEditSaving(true);
+      try {
+        await updateQuotation.mutateAsync({
+          id: editId,
+          title,
+          description: description || undefined,
+          validUntil,
+          terms: terms || undefined,
+          notes: notes || undefined,
+          discount,
+          tax,
+        });
+        await updateQuotationItems.mutateAsync({ id: editId, items: mappedItems });
+        utils.quotation.list.invalidate();
+        utils.quotation.getById.invalidate({ id: editId });
+        router.push(`/quotations/${editId}`);
+      } catch (err) {
+        setEditError(err instanceof Error ? err.message : "บันทึกไม่สำเร็จ");
+      } finally {
+        setEditSaving(false);
+      }
+      return;
+    }
 
     createQuotation.mutate({
       customerId,
+      orderId: fromOrderId,
       title,
       description: description || undefined,
       validUntil,
@@ -115,13 +240,7 @@ export default function NewQuotationPage() {
       notes: notes || undefined,
       discount,
       tax,
-      items: items.map((item) => ({
-        name: item.name,
-        description: item.description || undefined,
-        quantity: item.quantity,
-        unit: item.unit,
-        unitPrice: item.unitPrice,
-      })),
+      items: mappedItems,
     });
   };
 
@@ -140,10 +259,14 @@ export default function NewQuotationPage() {
         </Link>
         <div>
           <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
-            สร้างใบเสนอราคาใหม่
+            {editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคาใหม่"}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            กรอกรายละเอียดใบเสนอราคา
+            {fromOrderId
+              ? `ผูกกับออเดอร์ ${linkedOrder?.orderNumber ?? "..."} — ลูกค้าตกลงแล้วระบบจะยืนยันออเดอร์ใบเดิม ไม่สร้างซ้ำ`
+              : editId
+                ? editing?.quotationNumber ?? ""
+                : "กรอกรายละเอียดใบเสนอราคา"}
           </p>
         </div>
       </div>
@@ -160,11 +283,19 @@ export default function NewQuotationPage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className={sectionLabelClass}>ลูกค้า *</label>
-                <CustomerPicker
-                  value={customerId}
-                  onChange={(id) => setCustomerId(id)}
-                  required
-                />
+                {fromOrderId || editId ? (
+                  // ลูกค้าล็อกตามออเดอร์/ใบเดิม — เปลี่ยนลูกค้า = เปิดใบใหม่
+                  <div className="flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
+                    <User className="h-4 w-4 text-slate-400" />
+                    {customerLabel || "..."}
+                  </div>
+                ) : (
+                  <CustomerPicker
+                    value={customerId}
+                    onChange={(id) => setCustomerId(id)}
+                    required
+                  />
+                )}
               </div>
               <div>
                 <label className={sectionLabelClass}>ใช้ได้ถึงวันที่ *</label>
@@ -436,19 +567,21 @@ export default function NewQuotationPage() {
           </Link>
           <Button
             type="submit"
-            disabled={createQuotation.isPending}
+            disabled={createQuotation.isPending || editSaving}
             className="bg-blue-600 text-white hover:bg-blue-700"
           >
-            {createQuotation.isPending
+            {createQuotation.isPending || editSaving
               ? "กำลังบันทึก..."
-              : "สร้างใบเสนอราคา"}
+              : editId
+                ? "บันทึกการแก้ไข"
+                : "สร้างใบเสนอราคา"}
           </Button>
         </div>
 
         {/* Error display */}
-        {createQuotation.isError && (
+        {(createQuotation.isError || editError) && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
-            {createQuotation.error.message}
+            {editError ?? createQuotation.error?.message}
           </div>
         )}
       </form>

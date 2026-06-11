@@ -52,6 +52,25 @@ export const productionRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      // รายการที่ยังเป็น "โครงจากใบเสนอ" ทั้งใบ (OTHER + ไซส์ FREE ล้วน) ห้ามเข้าผลิต —
+      // ช่างไม่มีไซส์/สี/ลายให้ทำงาน ต้องแก้รายการเป็นของจริงก่อน (audit ข้อ 10)
+      const orderProducts = await ctx.prisma.orderItemProduct.findMany({
+        where: { orderItem: { orderId: input.orderId } },
+        select: { productType: true, variants: { select: { size: true } } },
+      });
+      const allSkeleton =
+        orderProducts.length > 0 &&
+        orderProducts.every(
+          (p) => p.productType === "OTHER" && p.variants.every((v) => v.size === "FREE")
+        );
+      if (allSkeleton) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            'รายการออเดอร์ยังเป็นโครงจากใบเสนอ (ไม่มีสินค้า/ไซส์จริง) — กด "แก้ไขรายการ" ใส่ของจริงก่อนเปิดใบผลิต',
+        });
+      }
+
       // ใบผลิต + เปลี่ยนสถานะ = ก้อนเดียวกัน — สถานะต้องเดินตาม machine เท่านั้น
       // (no-op ถ้าออเดอร์ PRODUCING อยู่แล้ว เช่นเปิดใบผลิตใบที่สอง)
       return ctx.prisma.$transaction(async (tx) => {

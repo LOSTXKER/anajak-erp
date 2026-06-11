@@ -315,6 +315,16 @@ export default function OrderDetailPage({
                       <Copy className="h-4 w-4" />
                       สำเนาออเดอร์
                     </DropdownMenu.Item>
+                    {["DRAFT", "INQUIRY"].includes(order.internalStatus) && (
+                      // สะพานใบเสนอ: ออกใบเสนอผูกใบนี้ — ลูกค้าตกลงแล้วยืนยันออเดอร์เดิม ไม่สร้างซ้ำ
+                      <DropdownMenu.Item
+                        className={dropdownItemClass}
+                        onSelect={() => router.push(`/quotations/new?orderId=${id}`)}
+                      >
+                        <FileText className="h-4 w-4" />
+                        ออกใบเสนอราคา
+                      </DropdownMenu.Item>
+                    )}
                     {otherNext.length > 0 && (
                       <>
                         <DropdownMenu.Separator className="my-1 h-px bg-slate-100 dark:bg-slate-800" />
