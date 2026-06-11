@@ -1,6 +1,6 @@
 # Anajak ERP — คำสั่งประจำ repo
 
-ERP หลังบ้านโรงงานสกรีนเสื้อ Anajak (DTF 70% / DTG 30% / silkscreen outsource · ทีม 5 คน + เจ้าของ · ลูกค้า B2B เครดิตเทอมคือฐานรายได้) — Next.js 15 + React 19 + tRPC 11 + Prisma 6 + Supabase + Tailwind 4 + shadcn
+ERP หลังบ้านโรงงานสกรีนเสื้อ Anajak (**ทำเองมีแค่ DTF** — DTG/silkscreen/ปัก/sublimation/ตัดเย็บ/ป้ายคอ = outsource ทั้งหมด (เบสเคาะ 2026-06-12) · ทีม 5 คน + เจ้าของ · ลูกค้า B2B เครดิตเทอมคือฐานรายได้) — Next.js 15 + React 19 + tRPC 11 + Prisma 6 + Supabase + Tailwind 4 + shadcn
 
 ## เอกสารนำทาง (อ่านตามลำดับนี้)
 1. **`PROGRESS.md`** — สถานะสด: ทำถึงไหน ทำอะไรต่อ · **อ่านก่อนเริ่มทุก session + อัปเดตก่อนจบทุก session** (พร้อม `git log --oneline -10`)
@@ -15,7 +15,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - status เปลี่ยนผ่าน `isValidTransition` ที่ server เท่านั้น — ห้าม set ตรง
 - business logic แกน (pricing/status/เลขเอกสาร) อยู่ `src/server/services/` — tRPC router เป็นแค่ผิว
 - UI ใหม่/หน้าที่แตะ = ใช้ design system (P1.0) · mobile-first สำหรับหน้า ops · ห้าม `window.prompt/confirm`
-- **ไม่ build**: GL/บัญชีแยกประเภท · DTF auto-nesting · in-app chat · online designer · time-clock (hr-platform-v2 มี) · WMS (Anajak Stock มี) — รายการเต็ม+เหตุผลท้าย ROADMAP.md
+- **ไม่ build**: GL/บัญชีแยกประเภท · **job costing/ต้นทุนต่อออเดอร์ (เบสเคาะ 2026-06-12 — บัญชีคิดรายเดือน ห้ามเพิ่มช่องเงินใน flow ผลิต/outsource)** · DTF auto-nesting · in-app chat · online designer · time-clock (hr-platform-v2 มี) · WMS (Anajak Stock มี) — รายการเต็ม+เหตุผลท้าย ROADMAP.md
 - เคลม "เสร็จ" ต้องรัน/เปิดดูจริงก่อน · type check ผ่าน ≠ ใช้งานได้
 
 ## รัน
