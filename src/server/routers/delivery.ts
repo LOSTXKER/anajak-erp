@@ -154,14 +154,24 @@ export const deliveryRouter = router({
         }
 
         // ส่งของแล้ว → ดันออเดอร์เป็น "จัดส่งแล้ว" — เฉพาะตอนแพ็ค/พร้อมส่ง (ไม่กระโดดข้าม QC)
+        // และเฉพาะเมื่อ "ทุกใบส่ง" ออกแล้ว — แบ่งส่งหลายกล่อง กล่องแรกออกห้ามเด้งทั้งใบ
+        // (pattern เดียวกับ openProductions ใน finalizeProductionIfComplete · RETURNED ไม่นับค้าง)
         // จงใจไม่ปิดงานเอง: "เสร็จสิ้น" มีด่านบังคับวางบิลครบ ปล่อยให้คนกดปิดเอง
         if (input.status === "SHIPPED" || input.status === "DELIVERED") {
-          await advanceOrderForward(tx, {
-            orderId: delivery.orderId,
-            target: "SHIPPED",
-            changedBy: ctx.userId,
-            onlyFrom: ["PACKING", "READY_TO_SHIP"],
+          const pendingSiblings = await tx.delivery.count({
+            where: {
+              orderId: delivery.orderId,
+              status: { in: ["PENDING", "PREPARING"] },
+            },
           });
+          if (pendingSiblings === 0) {
+            await advanceOrderForward(tx, {
+              orderId: delivery.orderId,
+              target: "SHIPPED",
+              changedBy: ctx.userId,
+              onlyFrom: ["PACKING", "READY_TO_SHIP"],
+            });
+          }
         }
 
         return delivery;

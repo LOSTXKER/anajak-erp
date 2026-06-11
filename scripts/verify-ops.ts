@@ -393,6 +393,46 @@ async function main() {
       o6Db.internalStatus
     );
 
+    // แบ่งส่งหลายกล่อง: กล่องแรกออก ห้ามเด้งทั้งใบ — เด้งเมื่อกล่องสุดท้ายออก
+    const o6s = await prisma.order.create({
+      data: {
+        orderNumber: "TEST-OPS-6S",
+        orderType: "READY_MADE",
+        channel: "LINE",
+        customerId: customer.id,
+        createdById: owner.id,
+        internalStatus: "READY_TO_SHIP",
+        customerStatus: "READY_TO_SHIP",
+        title: "[OPS-VERIFY] แบ่งส่งสองกล่อง",
+        totalAmount: 500,
+      },
+    });
+    ids.orders.push(o6s.id);
+    const mkDelivery = (n: number) =>
+      caller.delivery.create({
+        orderId: o6s.id,
+        recipientName: `กล่อง ${n}`,
+        phone: "0810000000",
+        address: "1 ถ.แบ่งส่ง",
+        shippingMethod: "FLASH",
+      });
+    const box1 = await mkDelivery(1);
+    const box2 = await mkDelivery(2);
+    await caller.delivery.updateStatus({ id: box1.id, status: "SHIPPED", trackingNumber: "BOX-1" });
+    let o6sDb = await prisma.order.findUniqueOrThrow({ where: { id: o6s.id } });
+    ok(
+      "6.5 ส่งกล่องแรก (อีกกล่องยังไม่ออก) → ออเดอร์ยังไม่เด้ง SHIPPED",
+      o6sDb.internalStatus === "READY_TO_SHIP",
+      o6sDb.internalStatus
+    );
+    await caller.delivery.updateStatus({ id: box2.id, status: "SHIPPED", trackingNumber: "BOX-2" });
+    o6sDb = await prisma.order.findUniqueOrThrow({ where: { id: o6s.id } });
+    ok(
+      "6.6 กล่องสุดท้ายออก → ออเดอร์เด้ง SHIPPED",
+      o6sDb.internalStatus === "SHIPPED",
+      o6sDb.internalStatus
+    );
+
     // ---------- 7) งานของฉันวันนี้ (task.myToday รวมงานตามบทบาท) ----------
     const o7a = await prisma.order.create({
       data: {

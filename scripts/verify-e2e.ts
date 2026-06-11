@@ -6,6 +6,7 @@
 import { appRouter } from "@/server/routers/_app";
 import { prisma } from "@/lib/prisma";
 import { currentPeriod } from "@/server/services/document-number";
+import type { Role } from "@prisma/client";
 
 let passCount = 0;
 const fails: string[] = [];
@@ -37,7 +38,7 @@ async function main() {
   });
 
   const owner = await prisma.user.findFirstOrThrow({ where: { role: "OWNER", isActive: true } });
-  const asRole = (role: string) =>
+  const asRole = (role: Role) =>
     appRouter.createCaller({ prisma, userId: owner.id, userRole: role });
   const sales = asRole("SALES");
   const accountant = asRole("ACCOUNTANT");

@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+
 type InvalidateTarget = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   invalidate: (...args: any[]) => Promise<void>;
@@ -37,7 +39,7 @@ export function useMutationWithInvalidation<
   procedure: TProcedure,
   options: MutationWithInvalidationOptions,
 ): ReturnType<TProcedure["useMutation"]> {
-  const { invalidate, onSuccess, ...rest } = options;
+  const { invalidate, onSuccess, onError, ...rest } = options;
 
   return procedure.useMutation({
     ...rest,
@@ -47,6 +49,17 @@ export function useMutationWithInvalidation<
         target.invalidate();
       }
       onSuccess?.(...args);
+    },
+    // server ปฏิเสธต้องไม่เงียบ (audit 2026-06-11: dialog ครึ่งหน้าออเดอร์กลืน error เงียบ
+    // ผู้ใช้คิดว่าระบบแฮงก์/บันทึกแล้ว) — caller ส่ง onError เองได้ ไม่ส่ง = toast ให้
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onError: (...args: any[]) => {
+      if (onError) {
+        onError(...args);
+        return;
+      }
+      const message = args[0] instanceof Error ? args[0].message : "เกิดข้อผิดพลาด กรุณาลองใหม่";
+      toast.error(message);
     },
   });
 }
