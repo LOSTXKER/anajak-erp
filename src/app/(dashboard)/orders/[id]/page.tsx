@@ -18,7 +18,9 @@ import {
   CHANNEL_COLORS,
   getFlowSteps,
   getNextStatuses,
+  canRoleSetStatus,
 } from "@/lib/order-status";
+import type { InternalStatus } from "@prisma/client";
 import {
   FileText,
   ChevronRight,
@@ -92,6 +94,7 @@ export default function OrderDetailPage({
 
   const { data: order, isLoading, isError, refetch } = trpc.order.getById.useQuery({ id });
   const { data: attachments } = trpc.attachment.listByEntity.useQuery({ entityType: "ORDER", entityId: id });
+  const { data: me } = trpc.user.me.useQuery();
   const utils = trpc.useUtils();
 
   const updateStatus = useMutationWithInvalidation(trpc.order.updateStatus, {
@@ -121,8 +124,13 @@ export default function OrderDetailPage({
   // ----------------------------------------------------------
   const flowSteps = getFlowSteps(order.orderType);
   const nextStatuses = getNextStatuses(order.orderType, order.internalStatus);
-  const forwardStatuses = nextStatuses.filter((s) => s !== "CANCELLED");
-  const canCancel = nextStatuses.includes("CANCELLED");
+  // ซ่อนปุ่มที่ role นี้กดแล้ว server ปฏิเสธ (ชุดกติกาเดียวกับ server — audit ข้อ 29)
+  const roleAllows = (to: string) =>
+    canRoleSetStatus(me?.role, order.internalStatus, to as InternalStatus);
+  const forwardStatuses = nextStatuses.filter((s) => s !== "CANCELLED" && roleAllows(s));
+  const canCancel = nextStatuses.includes("CANCELLED") && roleAllows("CANCELLED");
+  // เมนูฝั่งขาย (แก้ข้อมูล/รายการ/สำเนา/ออกใบเสนอ) — server เป็น salesUp
+  const isSalesUp = !me || ["OWNER", "MANAGER", "SALES"].includes(me.role);
 
   const currentStepIndex = flowSteps.indexOf(order.internalStatus);
 
@@ -278,7 +286,7 @@ export default function OrderDetailPage({
               </Button>
             )}
 
-            {!isCancelled && (
+            {!isCancelled && (isSalesUp || otherNext.length > 0 || canCancel) && (
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
@@ -291,39 +299,43 @@ export default function OrderDetailPage({
                     sideOffset={6}
                     className="z-50 min-w-[200px] rounded-2xl border border-slate-200/70 bg-white p-1 shadow-lg dark:border-slate-800/60 dark:bg-slate-900/80"
                   >
-                    <DropdownMenu.Item
-                      className={dropdownItemClass}
-                      onSelect={() => setShowInfoEditDialog(true)}
-                    >
-                      <FileText className="h-4 w-4" />
-                      แก้ไขข้อมูลออเดอร์
-                    </DropdownMenu.Item>
-                    {canEditItems && (
-                      <DropdownMenu.Item
-                        className={dropdownItemClass}
-                        onSelect={() => setShowEditDialog(true)}
-                      >
-                        <Edit3 className="h-4 w-4" />
-                        แก้ไขรายการ
-                      </DropdownMenu.Item>
-                    )}
-                    <DropdownMenu.Item
-                      className={dropdownItemClass}
-                      onSelect={() => duplicateOrder.mutate({ id })}
-                      disabled={duplicateOrder.isPending}
-                    >
-                      <Copy className="h-4 w-4" />
-                      สำเนาออเดอร์
-                    </DropdownMenu.Item>
-                    {["DRAFT", "INQUIRY"].includes(order.internalStatus) && (
-                      // สะพานใบเสนอ: ออกใบเสนอผูกใบนี้ — ลูกค้าตกลงแล้วยืนยันออเดอร์เดิม ไม่สร้างซ้ำ
-                      <DropdownMenu.Item
-                        className={dropdownItemClass}
-                        onSelect={() => router.push(`/quotations/new?orderId=${id}`)}
-                      >
-                        <FileText className="h-4 w-4" />
-                        ออกใบเสนอราคา
-                      </DropdownMenu.Item>
+                    {isSalesUp && (
+                      <>
+                        <DropdownMenu.Item
+                          className={dropdownItemClass}
+                          onSelect={() => setShowInfoEditDialog(true)}
+                        >
+                          <FileText className="h-4 w-4" />
+                          แก้ไขข้อมูลออเดอร์
+                        </DropdownMenu.Item>
+                        {canEditItems && (
+                          <DropdownMenu.Item
+                            className={dropdownItemClass}
+                            onSelect={() => setShowEditDialog(true)}
+                          >
+                            <Edit3 className="h-4 w-4" />
+                            แก้ไขรายการ
+                          </DropdownMenu.Item>
+                        )}
+                        <DropdownMenu.Item
+                          className={dropdownItemClass}
+                          onSelect={() => duplicateOrder.mutate({ id })}
+                          disabled={duplicateOrder.isPending}
+                        >
+                          <Copy className="h-4 w-4" />
+                          สำเนาออเดอร์
+                        </DropdownMenu.Item>
+                        {["DRAFT", "INQUIRY"].includes(order.internalStatus) && (
+                          // สะพานใบเสนอ: ออกใบเสนอผูกใบนี้ — ลูกค้าตกลงแล้วยืนยันออเดอร์เดิม ไม่สร้างซ้ำ
+                          <DropdownMenu.Item
+                            className={dropdownItemClass}
+                            onSelect={() => router.push(`/quotations/new?orderId=${id}`)}
+                          >
+                            <FileText className="h-4 w-4" />
+                            ออกใบเสนอราคา
+                          </DropdownMenu.Item>
+                        )}
+                      </>
                     )}
                     {otherNext.length > 0 && (
                       <>
@@ -377,6 +389,7 @@ export default function OrderDetailPage({
         onEditItems={() => setShowEditDialog(true)}
         onStatusChange={(status) => handleStatusChange(status)}
         statusPending={updateStatus.isPending}
+        statusAllowed={roleAllows}
       />
 
       {/* ====================================================

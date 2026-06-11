@@ -71,7 +71,8 @@ export function PageHeader({
           )}
         </div>
         {action && (
-          <div className="flex shrink-0 items-center gap-2">{action}</div>
+          // flex-wrap: หน้าออเดอร์ยัดป้ายสถานะ+ปุ่มหลายชิ้นในแถวนี้ — จอเล็กต้องห่อ ไม่ล้น
+          <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div>
         )}
       </div>
       {children}

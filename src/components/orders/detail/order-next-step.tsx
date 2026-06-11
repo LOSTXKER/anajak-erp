@@ -24,6 +24,8 @@ interface OrderNextStepProps {
   onEditItems: () => void;
   onStatusChange: (status: string) => void;
   statusPending?: boolean;
+  // ซ่อนปุ่ม STATUS ที่ role นี้กดแล้ว server ปฏิเสธ (default = อนุญาต)
+  statusAllowed?: (to: string) => boolean;
 }
 
 function scrollToSection(target: "billing" | "design" | "production" | "delivery") {
@@ -37,6 +39,7 @@ export function OrderNextStep({
   onEditItems,
   onStatusChange,
   statusPending,
+  statusAllowed,
 }: OrderNextStepProps) {
   const invoices = order.invoices ?? [];
   const sumOf = (types: string[]) =>
@@ -70,10 +73,11 @@ export function OrderNextStep({
   // (ดีกว่าปล่อยให้กดแล้วเจอ error จาก server)
   const statusActionValid =
     step.action.type !== "STATUS" ||
-    getNextStatuses(
+    (getNextStatuses(
       order.orderType as OrderType,
       order.internalStatus as InternalStatus
-    ).includes(step.action.to as InternalStatus);
+    ).includes(step.action.to as InternalStatus) &&
+      (statusAllowed?.(step.action.to) ?? true));
 
   function handleAction() {
     if (!step) return;

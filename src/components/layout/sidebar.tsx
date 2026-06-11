@@ -86,7 +86,14 @@ const groups: NavGroup[] = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({
+  mobile = false,
+  onNavigate,
+}: {
+  // โหมด drawer บนมือถือ — พื้นทึบ เต็มสูง ไม่ย่อ (audit ข้อ 30: เดิม sidebar กิน 2/3 จอมือถือ)
+  mobile?: boolean;
+  onNavigate?: () => void;
+} = {}) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -96,8 +103,13 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex h-screen flex-col bg-[#f5f5f7]/80 backdrop-blur-xl transition-[width] duration-200 dark:bg-black/60",
-        collapsed ? "w-[68px]" : "w-64"
+        "flex-col transition-[width] duration-200",
+        mobile
+          ? "flex h-full w-64 bg-[#f5f5f7] dark:bg-slate-950"
+          : cn(
+              "hidden h-screen bg-[#f5f5f7]/80 backdrop-blur-xl md:flex dark:bg-black/60",
+              collapsed ? "w-[68px]" : "w-64"
+            )
       )}
     >
       {/* Brand row */}
@@ -115,18 +127,20 @@ export function Sidebar() {
             </span>
           )}
         </Link>
-        <button
-          type="button"
-          onClick={() => setCollapsed((v) => !v)}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
-          aria-label={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"}
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="h-4 w-4" />
-          ) : (
-            <PanelLeftClose className="h-4 w-4" />
-          )}
-        </button>
+        {!mobile && (
+          <button
+            type="button"
+            onClick={() => setCollapsed((v) => !v)}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
+            aria-label={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -145,6 +159,7 @@ export function Sidebar() {
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      onClick={onNavigate}
                       title={collapsed ? item.name : undefined}
                       className={cn(
                         "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",

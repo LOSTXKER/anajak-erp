@@ -78,9 +78,14 @@ export function OrderDesignSection({
     invalidate: [utils.design.listByOrder],
   });
 
-  const canUpload = internalStatus === "DESIGNING";
+  // ปุ่มต้องตรงสิทธิ์ server (audit ข้อ 29): อัปแบบ = กราฟิกขึ้นไป (designerUp) ·
+  // บันทึกผลแทนลูกค้า = ฝั่งขาย (salesUp — คนถือความสัมพันธ์ลูกค้า ไม่ใช่คนวาดเอง)
+  const { data: me } = trpc.user.me.useQuery();
+  const roleCanUpload = !me || ["OWNER", "MANAGER", "DESIGNER"].includes(me.role);
+  const roleCanApprove = !me || ["OWNER", "MANAGER", "SALES"].includes(me.role);
+  const canUpload = internalStatus === "DESIGNING" && roleCanUpload;
 
-  const canApprove = internalStatus === "DESIGNING";
+  const canApprove = internalStatus === "DESIGNING" && roleCanApprove;
 
   function handleUploadSubmit() {
     if (!uploadedUrl) return;

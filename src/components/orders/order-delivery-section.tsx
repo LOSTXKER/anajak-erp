@@ -4,6 +4,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,6 +116,20 @@ export function OrderDeliverySection({
   const deleteDelivery = useMutationWithInvalidation(trpc.delivery.delete, {
     invalidate: [utils.delivery.getByOrderId, utils.order.getById],
   });
+  // ลบใบส่ง = ผู้จัดการขึ้นไป (server: managerUp) — ซ่อนปุ่มให้ตรง + ถามก่อนลบ
+  const confirm = useConfirm();
+  const { data: me } = trpc.user.me.useQuery();
+  const canDelete = !me || ["OWNER", "MANAGER"].includes(me.role);
+
+  async function handleDelete(deliveryId: string) {
+    const ok = await confirm({
+      title: "ลบใบส่งนี้?",
+      description: "ลบแล้วกู้คืนไม่ได้ — ใช้กับใบที่สร้างผิดเท่านั้น",
+      confirmText: "ลบใบส่ง",
+      destructive: true,
+    });
+    if (ok) deleteDelivery.mutate({ id: deliveryId });
+  }
 
   function resetCreateForm() {
     setRecipientName(customerName || "");
@@ -309,12 +324,12 @@ export function OrderDeliverySection({
                           อัปเดต
                         </Button>
                       )}
-                      {delivery.status === "PENDING" && (
+                      {delivery.status === "PENDING" && canDelete && (
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-red-500"
-                          onClick={() => deleteDelivery.mutate({ id: delivery.id })}
+                          onClick={() => handleDelete(delivery.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

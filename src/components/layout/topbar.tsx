@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { CommandPalette } from "./command-palette";
 import { UserMenu } from "./user-menu";
+import { MobileSidebar } from "./mobile-sidebar";
 
 function timeAgo(date: Date | string): string {
   const now = new Date();
@@ -80,6 +81,8 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 bg-[#f5f5f7]/72 px-5 backdrop-blur-xl sm:px-8 lg:px-10 dark:bg-black/60">
+      {/* เมนูมือถือ — จอเล็ก sidebar ซ่อน เปิดผ่าน hamburger */}
+      <MobileSidebar />
       {/* Search trigger (opens command palette) */}
       <button
         type="button"

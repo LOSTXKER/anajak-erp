@@ -290,6 +290,54 @@ export function forwardPath(
 }
 
 // ============================================================
+// ROLE → STATUS TARGETS (single source — server validate + UI ซ่อนปุ่ม ใช้ชุดเดียวกัน
+// กัน UX โกหก: ปุ่มโชว์แต่กดแล้วโดน FORBIDDEN · audit ข้อ 29)
+// ============================================================
+
+// PRODUCTION_STAFF เปลี่ยนได้เฉพาะสถานะฝั่งผลิต-จัดส่ง — ปิดงาน/ยกเลิก/ฝั่งขาย-ออกแบบไม่ได้
+export const PRODUCTION_STAFF_STATUSES: InternalStatus[] = [
+  "PRODUCING",
+  "QUALITY_CHECK",
+  "PACKING",
+  "READY_TO_SHIP",
+  "SHIPPED",
+];
+// DESIGNER: รับงานเข้าออกแบบเองเท่านั้น · ACCOUNTANT: ปิดงานหลังวางบิลครบเท่านั้น
+export const DESIGNER_STATUSES: InternalStatus[] = ["DESIGNING"];
+export const ACCOUNTANT_STATUSES: InternalStatus[] = ["COMPLETED"];
+
+// ถอยจากจุดที่ประกาศกับลูกค้าแล้ว (ส่งแล้ว/ปิดแล้ว) = ผู้จัดการขึ้นไป + ต้องมีเหตุผล
+export function isRollbackTransition(from: InternalStatus, to: InternalStatus): boolean {
+  return (
+    from === "COMPLETED" ||
+    (from === "SHIPPED" && (["READY_TO_SHIP", "QUALITY_CHECK"] as InternalStatus[]).includes(to))
+  );
+}
+
+// UI ใช้ซ่อนปุ่มให้ตรงกับ server — server ยังเป็นด่านจริงเสมอ
+export function canRoleSetStatus(
+  role: string | null | undefined,
+  from: InternalStatus,
+  to: InternalStatus
+): boolean {
+  if (!role) return true; // role ยังโหลดไม่เสร็จ — ไม่ flash ซ่อนปุ่ม
+  if (isRollbackTransition(from, to)) return ["OWNER", "MANAGER"].includes(role);
+  switch (role) {
+    case "PRODUCTION_STAFF":
+      return (
+        PRODUCTION_STAFF_STATUSES.includes(to) ||
+        (to === "PRODUCTION_QUEUE" && from === "PRODUCING")
+      );
+    case "DESIGNER":
+      return DESIGNER_STATUSES.includes(to);
+    case "ACCOUNTANT":
+      return ACCOUNTANT_STATUSES.includes(to);
+    default:
+      return true; // OWNER / MANAGER / SALES
+  }
+}
+
+// ============================================================
 // PRIORITY LABELS & COLORS
 // ============================================================
 

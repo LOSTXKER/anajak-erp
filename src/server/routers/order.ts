@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, requireRole } from "../trpc";
-import { getCustomerStatus, getInitialStatus } from "@/lib/order-status";
+import {
+  getCustomerStatus,
+  getInitialStatus,
+  isRollbackTransition,
+  PRODUCTION_STAFF_STATUSES,
+  DESIGNER_STATUSES,
+  ACCOUNTANT_STATUSES,
+} from "@/lib/order-status";
 import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
@@ -24,19 +31,7 @@ const orderOps = requireRole(
   "OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF", "DESIGNER", "ACCOUNTANT"
 );
 
-// PRODUCTION_STAFF เปลี่ยนได้เฉพาะสถานะฝั่งผลิต-จัดส่ง — ปิดงาน/ยกเลิก/ฝั่งขาย-ออกแบบไม่ได้
-const PRODUCTION_STAFF_STATUSES: InternalStatus[] = [
-  "PRODUCING",
-  "QUALITY_CHECK",
-  "PACKING",
-  "READY_TO_SHIP",
-  "SHIPPED",
-];
-// DESIGNER: รับงานเข้าออกแบบเอง (CONFIRMED→DESIGNING) เท่านั้น — ตัดสินแบบมีเส้นทาง
-// อนุมัติแยกอยู่แล้ว (design.approve = ฝั่งขาย) · ACCOUNTANT: ปิดงานหลังวางบิลครบเท่านั้น
-// (my-tasks มอบขั้น "ปิดงาน" ให้บัญชี — คนเดียวที่รู้ว่าบิลครบจริง · audit ข้อ 16/27)
-const DESIGNER_STATUSES: InternalStatus[] = ["DESIGNING"];
-const ACCOUNTANT_STATUSES: InternalStatus[] = ["COMPLETED"];
+// whitelist สถานะต่อ role ย้ายไป lib/order-status.ts — UI ซ่อนปุ่มด้วยชุดเดียวกัน (กัน drift)
 
 // ============================================================
 // SCHEMAS
@@ -668,11 +663,7 @@ export const orderRouter = router({
 
       // ถอยกลับจากจุดที่ประกาศกับลูกค้าแล้ว (ส่งแล้ว/ปิดงานแล้ว) = เรื่องใหญ่ —
       // ผู้จัดการขึ้นไป + ต้องมีเหตุผลบันทึกเสมอ (audit ข้อ 22/24/25)
-      const isRollback =
-        old.internalStatus === "COMPLETED" ||
-        (old.internalStatus === "SHIPPED" &&
-          ["READY_TO_SHIP", "QUALITY_CHECK"].includes(input.internalStatus));
-      if (isRollback) {
+      if (isRollbackTransition(old.internalStatus, input.internalStatus)) {
         if (!["OWNER", "MANAGER"].includes(ctx.userRole ?? "")) {
           throw new TRPCError({
             code: "FORBIDDEN",
