@@ -252,7 +252,9 @@ export function OrderSidebar({
         </Section>
       )}
 
-      {/* Price breakdown */}
+      {/* Price breakdown — ยังไม่ตีราคา = ไม่โชว์การ์ด ฿0 ซ้ำซ้อน (redesign 2026-06-11)
+          แต่ถ้ามีต้นทุนบันทึกแล้ว (เช่นส่ง outsource ก่อนตีราคา) ต้องเห็น — เงินจริงห้ามหายจากตา */}
+      {(totalAmount > 0 || subtotalItems > 0 || subtotalFees > 0 || hasCostEntries) && (
       <Section title="สรุปราคา">
         <div className="space-y-2.5">
           <Row label="ยอดรวมสินค้า">
@@ -318,6 +320,7 @@ export function OrderSidebar({
           )}
         </div>
       </Section>
+      )}
 
       <div id="order-section-billing" className="scroll-mt-20">
         <OrderBillingSection

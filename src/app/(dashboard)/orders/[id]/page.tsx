@@ -12,9 +12,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { PageHeader } from "@/components/page-header";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  CUSTOMER_STATUS_LABELS,
   INTERNAL_STATUS_LABELS,
-  CUSTOMER_STATUS_COLORS,
   CHANNEL_COLORS,
   getFlowSteps,
   getNextStatuses,
@@ -236,7 +234,6 @@ export default function OrderDetailPage({
     }
   }
 
-  const customerColor = CUSTOMER_STATUS_COLORS[order.customerStatus];
   const channelColor = CHANNEL_COLORS[order.channel] ?? {
     bg: "bg-slate-100 dark:bg-slate-800",
     text: "text-slate-700 dark:text-slate-300",
@@ -263,29 +260,6 @@ export default function OrderDetailPage({
         description={order.title || undefined}
         action={
           <>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium",
-                "border-slate-200 bg-white dark:border-slate-800/60 dark:bg-slate-900/80"
-              )}
-            >
-              <span className={cn("h-1.5 w-1.5 rounded-full", customerColor.dot)} />
-              <span className="text-slate-900 dark:text-white">
-                {CUSTOMER_STATUS_LABELS[order.customerStatus]}
-              </span>
-              <span className="text-slate-400">·</span>
-              <span className="text-slate-500 dark:text-slate-400">
-                {INTERNAL_STATUS_LABELS[order.internalStatus]}
-              </span>
-            </span>
-
-            <Button variant="outline" size="sm" asChild>
-              <a href={`/print/job-ticket/${id}`} target="_blank" rel="noreferrer">
-                <ClipboardList className="h-4 w-4" />
-                ใบสั่งงาน
-              </a>
-            </Button>
-
             {!isTerminal && primaryNext && (
               <Button
                 size="sm"
@@ -297,8 +271,9 @@ export default function OrderDetailPage({
               </Button>
             )}
 
-            {!isCancelled && (isSalesUp || otherNext.length > 0 || canCancel) && (
-              <DropdownMenu.Root>
+            {/* dropdown ต้องมีเสมอ — "ใบสั่งงาน" อยู่ในนี้ ทุก role/ทุกสถานะต้องพิมพ์ได้
+                (review จับ: เดิม gate ตาม role ทำช่าง/กราฟิกพิมพ์ใบสั่งงานไม่ได้) */}
+            <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
                     <MoreHorizontal className="h-4 w-4" />
@@ -310,6 +285,12 @@ export default function OrderDetailPage({
                     sideOffset={6}
                     className="z-50 min-w-[200px] rounded-2xl border border-slate-200/70 bg-white p-1 shadow-lg dark:border-slate-800/60 dark:bg-slate-900/80"
                   >
+                    <DropdownMenu.Item className={dropdownItemClass} asChild>
+                      <a href={`/print/job-ticket/${id}`} target="_blank" rel="noreferrer">
+                        <ClipboardList className="h-4 w-4" />
+                        ใบสั่งงาน (พิมพ์)
+                      </a>
+                    </DropdownMenu.Item>
                     {isSalesUp && (
                       <>
                         <DropdownMenu.Item
@@ -383,7 +364,6 @@ export default function OrderDetailPage({
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
-            )}
           </>
         }
       />
@@ -392,16 +372,21 @@ export default function OrderDetailPage({
         flowSteps={flowSteps}
         currentStepIndex={currentStepIndex}
         internalStatus={order.internalStatus}
+        customerStatus={order.customerStatus}
       />
 
-      {/* เข็มทิศ — ขั้นถัดไปที่แนะนำหนึ่งอย่าง พร้อมปุ่มทำได้เลย */}
-      <OrderNextStep
-        order={order}
-        onEditItems={openItemsEditor}
-        onStatusChange={(status) => handleStatusChange(status)}
-        statusPending={updateStatus.isPending}
-        statusAllowed={roleAllows}
-      />
+      {/* เข็มทิศ — ขั้นถัดไปที่แนะนำหนึ่งอย่าง · ซ่อนเฉพาะตอนฟอร์มแก้รายการ "แสดงจริง"
+          (ผูกกับเงื่อนไข render เดียวกัน — กัน editingItems ค้างแล้วการ์ดหายถาวร) */}
+      {!(editingItems && canEditItems) && (
+        <OrderNextStep
+          order={order}
+          onEditItems={openItemsEditor}
+          onStatusChange={(status) => handleStatusChange(status)}
+          statusPending={updateStatus.isPending}
+          statusAllowed={roleAllows}
+          editItemsAllowed={canEditItems && isSalesUp}
+        />
+      )}
 
       {/* ====================================================
           MAIN GRID: CONTENT + SIDEBAR
@@ -424,6 +409,7 @@ export default function OrderDetailPage({
                 orderId={id}
                 items={order.items ?? []}
                 fees={order.fees ?? []}
+                onEditItems={canEditItems && isSalesUp ? openItemsEditor : undefined}
               />
             )}
           </div>

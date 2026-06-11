@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { formatCurrency } from "@/lib/utils";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
 import { Loader2, Plus, Trash2, Save, Pencil, X } from "lucide-react";
@@ -99,6 +100,16 @@ export function OrderItemsEditor({
   // READY_MADE (เปิดเบา→เติมเสื้อเปล่า) ต้องเพิ่มลายได้ ไม่งั้นต้องยกเลิกเปิดใหม่ (audit ข้อ 3)
   const canAddPrints =
     orderType === "CUSTOM" || ["DRAFT", "INQUIRY"].includes(internalStatus);
+
+  // ตั้งค่าเริ่มจาก props ตรงๆ — editor ถูก mount ใหม่ทุกครั้งที่กดแก้ไข ไม่ต้องใช้ effect-reset
+  // (effect-reset เดิมทำฟอร์มวูบหายตอนออเดอร์ 0 รายการ + defaultOpen ของกล่องพับตายด้าน —
+  // review 2026-06-11) · ออเดอร์ยังไม่มีรายการ → เริ่มด้วยรายการเปล่า 1 ชุด พร้อมกรอกทันที
+  const [initialItems] = useState(() => {
+    const mapped = mapApiItemsToForm(order.items);
+    return mapped.length > 0 ? mapped : undefined; // undefined = hook seed รายการเปล่าให้
+  });
+  const [initialFees] = useState(() => mapApiFeesToForm(order.fees));
+
   const {
     items,
     setItems,
@@ -111,16 +122,15 @@ export function OrderItemsEditor({
     addAddon,
     removeAddon,
     updateAddon,
-    resetItems,
-  } = useOrderItemsForm([]);
+  } = useOrderItemsForm(initialItems);
 
-  const { fees, addFee, removeFee, updateFee, resetFees } = useOrderFeesForm([]);
+  const { fees, addFee, removeFee, updateFee } = useOrderFeesForm(initialFees);
 
-  const [discount, setDiscount] = useState(0);
+  const [discount, setDiscount] = useState(order.discount || 0);
   const [expandedItemIdx, setExpandedItemIdx] = useState<number | null>(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
-  const [initialFeesJson, setInitialFeesJson] = useState("[]");
+  const [initialFeesJson] = useState(() => JSON.stringify(initialFees));
   const [saving, setSaving] = useState(false);
 
   const utils = trpc.useUtils();
@@ -140,16 +150,6 @@ export function OrderItemsEditor({
   const updateFeesMutation = useMutationWithInvalidation(trpc.order.updateFees, {
     invalidate: [utils.order.getById],
   });
-
-  // โหลดข้อมูลออเดอร์เข้าฟอร์มครั้งเดียวตอน mount — editor ถูก mount ใหม่ทุกครั้งที่กดแก้ไข
-  useEffect(() => {
-    const mappedFees = mapApiFeesToForm(order.fees);
-    resetItems(mapApiItemsToForm(order.items));
-    resetFees(mappedFees);
-    setDiscount(order.discount || 0);
-    setInitialFeesJson(JSON.stringify(mappedFees));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // preview ใช้สูตร A เดียวกับ server (order.updateItems คิด VAT จาก taxRate ของออเดอร์เสมอ)
   const { subtotalItems, subtotalFees, taxAmount, grandTotal: totalAmount } =
@@ -238,42 +238,69 @@ export function OrderItemsEditor({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* รายการสินค้า — ฟอร์มชุดเดียวกับหน้าเปิดงาน */}
-          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/60 px-3 dark:divide-slate-800 dark:border-slate-800/60">
-            {items.map((item, itemIdx) => (
-              <OrderItemCard
-                key={itemIdx}
-                item={item}
-                itemIdx={itemIdx}
-                canRemove={items.length > 1}
-                isExpanded={expandedItemIdx === itemIdx}
-                onToggleExpand={() =>
-                  setExpandedItemIdx(expandedItemIdx === itemIdx ? null : itemIdx)
-                }
-                allItems={items}
-                printCatalog={printCatalog}
-                addonCatalog={addonCatalog}
-                onUpdateItem={updateItem}
-                onRemoveItem={(idx) => {
-                  removeItem(idx);
-                  if (expandedItemIdx === idx) setExpandedItemIdx(null);
-                  else if (expandedItemIdx != null && expandedItemIdx > idx)
-                    setExpandedItemIdx(expandedItemIdx - 1);
-                }}
-                onAddPrint={addPrint}
-                onRemovePrint={removePrint}
-                onUpdatePrint={updatePrint}
-                onAddAddon={addAddon}
-                onRemoveAddon={removeAddon}
-                onUpdateAddon={updateAddon}
-                onOpenPicker={() => setPickerOpen(true)}
-                // setter ตรง — eager updater ทำ multi-update ใน tick เดียวทับกันเอง
-                onSetItems={setItems}
-                showPrints={canAddPrints}
-                showAddons={canAddPrints}
-              />
-            ))}
-          </div>
+          {/* รายการสินค้า — ฟอร์มชุดเดียวกับหน้าเปิดงาน
+              รายการเดียว = โหมด solo: ไม่มีชั้น "รายการ #1" ให้แบก โชว์ ลาย/สินค้า ตรงๆ */}
+          {items.length === 1 ? (
+            <OrderItemCard
+              item={items[0]}
+              itemIdx={0}
+              canRemove={false}
+              isExpanded
+              solo
+              onToggleExpand={() => {}}
+              allItems={items}
+              printCatalog={printCatalog}
+              addonCatalog={addonCatalog}
+              onUpdateItem={updateItem}
+              onRemoveItem={() => {}}
+              onAddPrint={addPrint}
+              onRemovePrint={removePrint}
+              onUpdatePrint={updatePrint}
+              onAddAddon={addAddon}
+              onRemoveAddon={removeAddon}
+              onUpdateAddon={updateAddon}
+              onOpenPicker={() => setPickerOpen(true)}
+              // setter ตรง — eager updater ทำ multi-update ใน tick เดียวทับกันเอง
+              onSetItems={setItems}
+              showPrints={canAddPrints}
+              showAddons={canAddPrints}
+            />
+          ) : (
+            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/60 px-3 dark:divide-slate-800 dark:border-slate-800/60">
+              {items.map((item, itemIdx) => (
+                <OrderItemCard
+                  key={itemIdx}
+                  item={item}
+                  itemIdx={itemIdx}
+                  canRemove={items.length > 1}
+                  isExpanded={expandedItemIdx === itemIdx}
+                  onToggleExpand={() =>
+                    setExpandedItemIdx(expandedItemIdx === itemIdx ? null : itemIdx)
+                  }
+                  allItems={items}
+                  printCatalog={printCatalog}
+                  addonCatalog={addonCatalog}
+                  onUpdateItem={updateItem}
+                  onRemoveItem={(idx) => {
+                    removeItem(idx);
+                    if (expandedItemIdx === idx) setExpandedItemIdx(null);
+                    else if (expandedItemIdx != null && expandedItemIdx > idx)
+                      setExpandedItemIdx(expandedItemIdx - 1);
+                  }}
+                  onAddPrint={addPrint}
+                  onRemovePrint={removePrint}
+                  onUpdatePrint={updatePrint}
+                  onAddAddon={addAddon}
+                  onRemoveAddon={removeAddon}
+                  onUpdateAddon={updateAddon}
+                  onOpenPicker={() => setPickerOpen(true)}
+                  onSetItems={setItems}
+                  showPrints={canAddPrints}
+                  showAddons={canAddPrints}
+                />
+              ))}
+            </div>
+          )}
 
           <Button
             variant="outline"
@@ -282,74 +309,83 @@ export function OrderItemsEditor({
               addItem();
               setExpandedItemIdx(items.length);
             }}
-            className="w-full gap-1"
+            className="w-full gap-1 text-slate-500"
           >
             <Plus className="h-3.5 w-3.5" />
-            เพิ่มรายการ
+            เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)
           </Button>
 
-          {/* ค่าธรรมเนียม */}
-          <div>
-            <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              ค่าธรรมเนียม
-            </p>
-            <div className="space-y-2">
-              {fees.map((fee, fi) => (
-                <div
-                  key={fi}
-                  className="flex items-center gap-2 rounded-lg border border-slate-200 p-2.5 dark:border-slate-700"
-                >
-                  <Input
-                    type="text"
-                    value={fee.feeType}
-                    onChange={(e) => updateFee(fi, "feeType", e.target.value)}
-                    placeholder="ประเภท"
-                    className="h-8 w-28"
-                  />
-                  <Input
-                    type="text"
-                    value={fee.name}
-                    onChange={(e) => updateFee(fi, "name", e.target.value)}
-                    placeholder="ชื่อ"
-                    className="h-8 flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={fee.amount || ""}
-                    onChange={(e) => updateFee(fi, "amount", parseFloat(e.target.value) || 0)}
-                    placeholder="จำนวน"
-                    className="h-8 w-28"
-                    min="0"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-red-500"
-                    onClick={() => removeFee(fi)}
+          {/* ค่าธรรมเนียม + ส่วนลด — พับไว้ ไม่รบกวนจนกว่าจะมีของ (redesign 2026-06-11)
+              defaultOpen คิดจากข้อมูลตอน mount (initial state) — กางเองเมื่อออเดอร์มีของเดิม */}
+          <CollapsibleSection
+            title="ค่าธรรมเนียม & ส่วนลด"
+            defaultOpen={initialFees.length > 0 || (order.discount || 0) > 0}
+            summary={
+              fees.length > 0 || discount > 0
+                ? `${fees.length > 0 ? `${fees.length} รายการ` : ""}${
+                    fees.length > 0 && discount > 0 ? " · " : ""
+                  }${discount > 0 ? `ลด ${formatCurrency(discount)}` : ""}`
+                : "ไม่มี — เติมได้ถ้าต้องการ"
+            }
+          >
+            <div className="space-y-3">
+              <div className="space-y-2">
+                {fees.map((fee, fi) => (
+                  <div
+                    key={fi}
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 p-2.5 dark:border-slate-700"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={addFee} className="w-full gap-1">
-                <Plus className="h-3.5 w-3.5" />
-                เพิ่มค่าธรรมเนียม
-              </Button>
-            </div>
-          </div>
+                    <Input
+                      type="text"
+                      value={fee.feeType}
+                      onChange={(e) => updateFee(fi, "feeType", e.target.value)}
+                      placeholder="ประเภท"
+                      className="h-8 w-28"
+                    />
+                    <Input
+                      type="text"
+                      value={fee.name}
+                      onChange={(e) => updateFee(fi, "name", e.target.value)}
+                      placeholder="ชื่อ"
+                      className="h-8 flex-1"
+                    />
+                    <Input
+                      type="number"
+                      value={fee.amount || ""}
+                      onChange={(e) => updateFee(fi, "amount", parseFloat(e.target.value) || 0)}
+                      placeholder="จำนวน"
+                      className="h-8 w-28"
+                      min="0"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-red-500"
+                      onClick={() => removeFee(fi)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={addFee} className="w-full gap-1">
+                  <Plus className="h-3.5 w-3.5" />
+                  เพิ่มค่าธรรมเนียม
+                </Button>
+              </div>
 
-          {/* ส่วนลด */}
-          <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-            <label className="text-sm text-slate-500">ส่วนลด</label>
-            <Input
-              type="number"
-              value={discount || ""}
-              onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-              className="h-8 w-32"
-              min="0"
-            />
-            <span className="text-sm text-slate-400">บาท</span>
-          </div>
+              <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+                <label className="text-sm text-slate-500">ส่วนลด</label>
+                <Input
+                  type="number"
+                  value={discount || ""}
+                  onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                  className="h-8 w-32"
+                  min="0"
+                />
+                <span className="text-sm text-slate-400">บาท</span>
+              </div>
+            </div>
+          </CollapsibleSection>
 
           {/* Validation errors — เกณฑ์เดียวกับหน้าเปิดงาน จับก่อนถึง server */}
           {formErrors.length > 0 && (
@@ -362,7 +398,8 @@ export function OrderItemsEditor({
             </div>
           )}
 
-          {/* สรุปราคา (สูตร A เดียวกับ server) */}
+          {/* สรุปราคา (สูตร A เดียวกับ server) — โชว์เมื่อเริ่มมีตัวเลขจริง ไม่โชว์ ฿0 เปล่าๆ */}
+          {(subtotalItems > 0 || subtotalFees > 0 || discount > 0) && (
           <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-950/30">
             <div className="flex justify-between text-sm">
               <span className="text-slate-600 dark:text-slate-400">รวมสินค้า</span>
@@ -395,6 +432,7 @@ export function OrderItemsEditor({
               </span>
             </div>
           </div>
+          )}
 
           {/* ปุ่มบันทึก — sticky ล่างจอ มือถือกดถึงเสมอ */}
           <div className="sticky bottom-3 flex justify-end gap-2 rounded-xl border border-slate-200/70 bg-white/95 p-2.5 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">

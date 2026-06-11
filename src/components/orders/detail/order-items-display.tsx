@@ -113,22 +113,46 @@ interface OrderItemsDisplayProps {
   orderId: string;
   items: OrderItem[];
   fees: OrderFee[];
+  // ปุ่มแก้ไขบนหัวการ์ด — จุดแก้รายการต้องอยู่ที่รายการ ไม่ใช่ซ่อนในเมนู ⋯ อย่างเดียว
+  onEditItems?: () => void;
 }
 
-export function OrderItemsDisplay({ orderId, items, fees }: OrderItemsDisplayProps) {
+export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderItemsDisplayProps) {
   const utils = trpc.useUtils();
+  const isEmpty = !items || items.length === 0;
 
   return (
     <>
       {/* ITEMS SECTION */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Package className="h-4 w-4" />
-            รายการสินค้า ({items?.length ?? 0})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Package className="h-4 w-4" />
+              รายการสินค้า ({items?.length ?? 0})
+            </CardTitle>
+            {onEditItems && !isEmpty && (
+              <Button variant="outline" size="sm" onClick={onEditItems} className="gap-1.5">
+                <Edit3 className="h-3.5 w-3.5" />
+                แก้ไข
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
+          {isEmpty && (
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                ยังไม่มีรายการสินค้า/ราคา — ใส่ก่อนถึงจะยืนยันออเดอร์ได้
+              </p>
+              {onEditItems && (
+                <Button onClick={onEditItems} className="gap-1.5">
+                  <PlusCircle className="h-4 w-4" />
+                  ใส่รายการสินค้า
+                </Button>
+              )}
+            </div>
+          )}
           <div className="space-y-6">
             {items?.map((item, itemIndex) => {
               const itemTotalQty = item.products?.reduce((s: number, p: OrderItemProduct) => s + (p.variants?.reduce((vs: number, v: OrderItemVariant) => vs + v.quantity, 0) ?? 0), 0) ?? 0;

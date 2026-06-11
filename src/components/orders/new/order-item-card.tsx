@@ -52,6 +52,9 @@ interface OrderItemCardProps {
   // เพิ่มลาย/ส่วนเสริมไม่ได้แล้ว — ซ่อน section ให้ตรงกติกา server (default = โชว์)
   showPrints?: boolean;
   showAddons?: boolean;
+  // โหมดรายการเดียว: ไม่โชว์หัวแถว "รายการ #1" (ชั้นข้อมูลที่ผู้ใช้ไม่ต้องแบก) —
+  // เนื้อฟอร์มกางตลอด (redesign 2026-06-11)
+  solo?: boolean;
 }
 
 function getItemLabel(item: OrderItemForm): string {
@@ -133,7 +136,9 @@ export function OrderItemCard({
   onAddAddon, onRemoveAddon, onUpdateAddon,
   onOpenPicker, onSetItems,
   showPrints = true, showAddons = true,
+  solo = false,
 }: OrderItemCardProps) {
+  const expanded = solo || isExpanded;
   const otherItemsWithPrints = (allItems ?? []).map((it, idx) => ({ it, idx })).filter(({ idx }) => idx !== itemIdx).filter(({ it }) => it.prints.length > 0);
 
   const copyPrintsFrom = (sourceIdx: number) => {
@@ -188,17 +193,21 @@ export function OrderItemCard({
     <div
       className={cn(
         // รายการที่กางอยู่ = แผงเทาอ่อนขอบชัด แยกชั้นจากการ์ดขาว (ช่องกรอกขาวเด้งขึ้นมา)
-        isExpanded &&
+        // โหมด solo ไม่ต้องมีแผง — อยู่ในการ์ดของ section อยู่แล้ว
+        !solo &&
+          isExpanded &&
           "my-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 dark:border-slate-700/60 dark:bg-slate-800/40"
       )}
     >
-      <OrderItemRow
-        item={item} itemIdx={itemIdx} canRemove={canRemove}
-        isExpanded={isExpanded} onToggleExpand={onToggleExpand}
-        onRemoveItem={onRemoveItem}
-      />
+      {!solo && (
+        <OrderItemRow
+          item={item} itemIdx={itemIdx} canRemove={canRemove}
+          isExpanded={isExpanded} onToggleExpand={onToggleExpand}
+          onRemoveItem={onRemoveItem}
+        />
+      )}
 
-      {isExpanded && (
+      {expanded && (
         <div className="space-y-4 py-4">
           {/* Job description */}
           <Field label="คำอธิบายงาน">
