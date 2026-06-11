@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { formatCurrency } from "@/lib/utils";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
-import { Loader2, Plus, Trash2, Save, Pencil, X } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, Pencil } from "lucide-react";
 import { validateOrderItem, validateOrderItemProduct, itemHasContent } from "@/types/order-form";
 import {
   mapItemsToMutationInput,
@@ -233,16 +233,11 @@ export function OrderItemsEditor({
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Pencil className="h-4 w-4" />
-              แก้ไขรายการสินค้า
-            </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onCancel} className="gap-1 text-slate-500">
-              <X className="h-4 w-4" />
-              ยกเลิก
-            </Button>
-          </div>
+          {/* หัวการ์ด = ชื่อล้วน · ปุ่มยกเลิกอยู่แถบล่าง sticky (เลี่ยงปุ่มยกเลิกซ้ำ 2 จุด) */}
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Pencil className="h-4 w-4" />
+            แก้ไขรายการสินค้า
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* รายการสินค้า — ฟอร์มชุดเดียวกับหน้าเปิดงาน
@@ -274,7 +269,7 @@ export function OrderItemsEditor({
               compact
             />
           ) : (
-            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/60 px-3 dark:divide-slate-800 dark:border-slate-800/60">
+            <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/70 dark:divide-slate-800 dark:border-slate-800/60">
               {items.map((item, itemIdx) => (
                 <OrderItemCard
                   key={itemIdx}

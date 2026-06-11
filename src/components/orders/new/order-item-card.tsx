@@ -481,8 +481,13 @@ export function OrderItemCard({
   return (
     <div
       className={cn(
-        // รายการที่กางอยู่ = แผงเทาอ่อนขอบชัด (โหมด solo ไม่ต้องมีแผง — อยู่ในการ์ด section แล้ว)
+        // compact (หน้าแก้รายการ): ทุกรายการอยู่ในเฟรมเดียว — ไม่ทำกล่องซ้อนกล่อง
+        // รายการที่กำลังแก้ = พื้นจางบอกเฉยๆ (ไม่มีขอบ/เงา/margin) ลดชั้นภาพจาก 4 เหลือ 2
+        !solo && compact && "px-4",
+        !solo && compact && isExpanded && "bg-slate-50/60 dark:bg-slate-800/30",
+        // full (หน้าเปิดงานใหม่): คงแผงเทาขอบชัดเดิม
         !solo &&
+          !compact &&
           isExpanded &&
           "my-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 dark:border-slate-700/60 dark:bg-slate-800/40"
       )}

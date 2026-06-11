@@ -158,33 +158,30 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderIt
               const itemTotalQty = item.products?.reduce((s: number, p: OrderItemProduct) => s + (p.variants?.reduce((vs: number, v: OrderItemVariant) => vs + v.quantity, 0) ?? 0), 0) ?? 0;
 
               return (
-                <div key={item.id} className="rounded-lg border border-slate-200 dark:border-slate-800">
-                  {/* Item header */}
-                  <div className="flex items-start justify-between border-b border-slate-100 p-4 dark:border-slate-800">
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                          {itemIndex + 1}
-                        </span>
-                        <Badge variant="secondary">{item.products?.length ?? 0} สินค้า</Badge>
-                        <Badge variant="outline">{itemTotalQty} ชิ้น</Badge>
+                <div key={item.id} className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+                  {/* Item header — ชื่อนำ · จำนวนเป็นบรรทัดจาง (เลิก badge ซ้อน ลดความรก) */}
+                  <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/20">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                        {itemIndex + 1}
+                      </span>
+                      <div className="min-w-0 space-y-0.5">
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                          {item.description || `รายการที่ ${itemIndex + 1}`}
+                        </p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                          {item.products?.length ?? 0} สินค้า · {itemTotalQty} ชิ้น
+                        </p>
+                        {item.notes && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{item.notes}</p>
+                        )}
                       </div>
-                      {item.description && (
-                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          {item.description}
-                        </p>
-                      )}
-                      {item.notes && (
-                        <p className="text-xs text-slate-500">{item.notes}</p>
-                      )}
                     </div>
-                    <div className="text-right">
-                      {item.subtotal != null && (
-                        <p className="tabular-nums text-sm font-bold text-slate-900 dark:text-white">
-                          {formatCurrency(item.subtotal)}
-                        </p>
-                      )}
-                    </div>
+                    {item.subtotal != null && (
+                      <p className="flex-shrink-0 tabular-nums text-sm font-bold text-slate-900 dark:text-white">
+                        {formatCurrency(item.subtotal)}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-4 p-4">
@@ -255,13 +252,13 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderIt
                           <ShoppingBag className="h-3.5 w-3.5" />
                           สินค้า ({item.products.length})
                         </div>
-                        <div className="space-y-3">
+                        <div className="divide-y divide-slate-100 dark:divide-slate-800">
                           {item.products.map((prod, prodIdx) => {
                             const prodQty = prod.variants?.reduce((s: number, v: OrderItemVariant) => s + v.quantity, 0) ?? 0;
                             const netPrice = Math.max(0, (prod.baseUnitPrice ?? 0) - (prod.discount ?? 0));
 
                             return (
-                              <div key={prod.id} className="rounded-md border border-slate-100 p-3 dark:border-slate-800">
+                              <div key={prod.id} className="py-3 first:pt-0 last:pb-0">
                                 {/* Product header */}
                                 <div className="mb-2 flex items-start justify-between">
                                   <div className="space-y-1">
@@ -403,13 +400,6 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderIt
                       </div>
                     )}
 
-                    {/* Item subtotal */}
-                    {item.subtotal != null && (
-                      <div className="flex justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-                        <span className="text-sm font-medium text-slate-500">ยอดรวมรายการ</span>
-                        <span className="tabular-nums text-sm font-bold text-slate-900 dark:text-white">{formatCurrency(item.subtotal)}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               );

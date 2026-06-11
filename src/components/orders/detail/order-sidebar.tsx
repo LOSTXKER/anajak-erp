@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { User, Info, MapPin, Store, Calculator } from "lucide-react";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
@@ -61,6 +62,22 @@ interface OrderSidebarProps {
   isMarketplace: boolean;
 }
 
+// หัวข้อ sidebar = ไอคอน + ชื่อ เข้าชุดกับการ์ดฝั่งซ้าย/การ์ดบิล (กลมกลืนทั้งหน้า)
+function SectionTitle({
+  icon: Icon,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="flex items-center gap-2">
+      <Icon className="h-4 w-4" />
+      {children}
+    </span>
+  );
+}
+
 function Row({
   label,
   children,
@@ -92,7 +109,7 @@ export function OrderSidebar({
   return (
     <div className="space-y-4">
       {/* Customer */}
-      <Section title="ลูกค้า">
+      <Section title={<SectionTitle icon={User}>ลูกค้า</SectionTitle>}>
         {order.customer && (
           <div className="space-y-1.5">
             <Link
@@ -121,7 +138,7 @@ export function OrderSidebar({
       </Section>
 
       {/* Order info */}
-      <Section title="ข้อมูลออเดอร์">
+      <Section title={<SectionTitle icon={Info}>ข้อมูลออเดอร์</SectionTitle>}>
         <div className="space-y-2.5">
           <Row label="ประเภท">
             <Badge variant={order.orderType === "CUSTOM" ? "accent" : "default"} size="sm">
@@ -198,7 +215,7 @@ export function OrderSidebar({
 
       {/* Shipping */}
       {order.shippingRecipientName && (
-        <Section title="ที่อยู่จัดส่ง">
+        <Section title={<SectionTitle icon={MapPin}>ที่อยู่จัดส่ง</SectionTitle>}>
           <div className="space-y-1 text-sm">
             <p className="font-medium text-slate-900 dark:text-white">
               {order.shippingRecipientName}
@@ -229,7 +246,7 @@ export function OrderSidebar({
 
       {/* Marketplace */}
       {isMarketplace && (
-        <Section title="ข้อมูล Marketplace">
+        <Section title={<SectionTitle icon={Store}>ข้อมูล Marketplace</SectionTitle>}>
           <div className="space-y-2.5">
             {order.externalOrderId && (
               <Row label="หมายเลขภายนอก">
@@ -255,7 +272,7 @@ export function OrderSidebar({
       {/* Price breakdown — ยังไม่ตีราคา = ไม่โชว์การ์ด ฿0 ซ้ำซ้อน (redesign 2026-06-11)
           แต่ถ้ามีต้นทุนบันทึกแล้ว (เช่นส่ง outsource ก่อนตีราคา) ต้องเห็น — เงินจริงห้ามหายจากตา */}
       {(totalAmount > 0 || subtotalItems > 0 || subtotalFees > 0 || hasCostEntries) && (
-      <Section title="สรุปราคา">
+      <Section title={<SectionTitle icon={Calculator}>สรุปราคา</SectionTitle>}>
         <div className="space-y-2.5">
           <Row label="ยอดรวมสินค้า">
             <span className="tabular-nums">{formatCurrency(subtotalItems)}</span>
