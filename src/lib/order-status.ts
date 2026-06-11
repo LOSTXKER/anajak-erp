@@ -17,11 +17,8 @@ export const CUSTOMER_STATUS_LABELS: Record<CustomerStatus, string> = {
 export const INTERNAL_STATUS_LABELS: Record<InternalStatus, string> = {
   DRAFT: "ร่าง",
   INQUIRY: "สอบถาม",
-  QUOTATION: "ใบเสนอราคา",
   CONFIRMED: "ยืนยันออเดอร์",
-  DESIGN_PENDING: "รอออกแบบ",
   DESIGNING: "กำลังออกแบบ",
-  AWAITING_APPROVAL: "รอลูกค้าอนุมัติแบบ",
   DESIGN_APPROVED: "อนุมัติแบบแล้ว",
   PRODUCTION_QUEUE: "รอคิวผลิต",
   PRODUCING: "กำลังผลิต",
@@ -84,11 +81,8 @@ export const INTERNAL_STATUS_COLORS: Record<
 > = {
   DRAFT: NEUTRAL,
   INQUIRY: NEUTRAL,
-  QUOTATION: ACCENT,
   CONFIRMED: ACCENT,
-  DESIGN_PENDING: ACCENT,
   DESIGNING: ACCENT,
-  AWAITING_APPROVAL: ACCENT,
   DESIGN_APPROVED: ACCENT,
   PRODUCTION_QUEUE: WARNING,
   PRODUCING: WARNING,
@@ -108,11 +102,8 @@ export const INTERNAL_STATUS_COLORS: Record<
 const STATUS_MAP: Record<InternalStatus, CustomerStatus> = {
   DRAFT: "ORDER_RECEIVED",
   INQUIRY: "ORDER_RECEIVED",
-  QUOTATION: "ORDER_RECEIVED",
   CONFIRMED: "ORDER_RECEIVED",
-  DESIGN_PENDING: "PREPARING",
   DESIGNING: "PREPARING",
-  AWAITING_APPROVAL: "PREPARING",
   DESIGN_APPROVED: "PREPARING",
   PRODUCTION_QUEUE: "IN_PRODUCTION",
   PRODUCING: "IN_PRODUCTION",
@@ -146,11 +137,8 @@ const FLOW_BY_TYPE: Record<OrderType, InternalStatus[]> = {
   ],
   CUSTOM: [
     "INQUIRY",
-    "QUOTATION",
     "CONFIRMED",
-    "DESIGN_PENDING",
     "DESIGNING",
-    "AWAITING_APPROVAL",
     "DESIGN_APPROVED",
     "PRODUCTION_QUEUE",
     "PRODUCING",
@@ -179,7 +167,7 @@ export function getFlowSteps(orderType: OrderType): InternalStatus[] {
 /**
  * Get the next valid internal statuses from the current status.
  * Returns an array because some statuses allow multiple transitions
- * (e.g., AWAITING_APPROVAL can go to DESIGN_APPROVED or back to DESIGNING).
+ * (e.g., QUALITY_CHECK can go forward to PACKING or back to PRODUCING).
  * Also always includes CANCELLED as a valid transition (except from COMPLETED/CANCELLED).
  */
 export function getNextStatuses(
@@ -193,7 +181,7 @@ export function getNextStatuses(
   // ON_HOLD can return to any status it was held from (stored separately);
   // for simplicity, allow returning to key statuses
   if (currentStatus === "ON_HOLD") {
-    return ["CONFIRMED", "DESIGN_PENDING", "PRODUCTION_QUEUE", "CANCELLED"];
+    return ["CONFIRMED", "DESIGNING", "PRODUCTION_QUEUE", "CANCELLED"];
   }
 
   // DRAFT can transition to the first real status for its type
@@ -211,16 +199,7 @@ export function getNextStatuses(
     next.push(flow[currentIndex + 1]);
   }
 
-  // ลูกค้าอนุมัติแบบผ่าน token ได้ตั้งแต่ตอน DESIGNING (อัปโหลดแบบ = มีลิงก์อนุมัติทันที
-  // โดยไม่ต้องกดส่งเข้า AWAITING_APPROVAL ก่อน) — เส้นทางจริงของ design.approveByToken
-  if (currentStatus === "DESIGNING") {
-    next.push("DESIGN_APPROVED");
-  }
-
   // Special backward transitions
-  if (currentStatus === "AWAITING_APPROVAL") {
-    next.push("DESIGNING");
-  }
   if (currentStatus === "QUALITY_CHECK") {
     next.push("PRODUCING");
   }
@@ -231,8 +210,9 @@ export function getNextStatuses(
     next.push("PRODUCTION_QUEUE");
   }
 
-  // INQUIRY -> CONFIRMED ได้ทุกชนิด (ข้ามใบเสนอ) — ออเดอร์ที่เปิดเบาเป็นสอบถาม
-  // แล้วเติมรายการจนกลายเป็นสำเร็จรูป (READY_MADE) ต้องยืนยันต่อได้ ไม่ใช่ติดตัน
+  // INQUIRY -> CONFIRMED ได้ทุกชนิด — จำเป็นกับเคส READY_MADE ที่ค้าง INQUIRY
+  // (เปิดเบาเป็นสอบถาม แล้วเติมเสื้อเปล่าจน re-derive เป็นสำเร็จรูป — INQUIRY ไม่อยู่ในเส้นทาง
+  // READY_MADE จึงไม่มี forward ให้ ต้องเปิดทางยืนยันเองไม่งั้นติดตัน)
   if (currentStatus === "INQUIRY" && !next.includes("CONFIRMED")) {
     next.push("CONFIRMED");
   }
@@ -244,8 +224,8 @@ export function getNextStatuses(
 
   // ON_HOLD available from most active statuses
   const holdableStatuses: InternalStatus[] = [
-    "CONFIRMED", "DESIGN_PENDING", "DESIGNING", "AWAITING_APPROVAL",
-    "DESIGN_APPROVED", "PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING",
+    "CONFIRMED", "DESIGNING", "DESIGN_APPROVED",
+    "PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING",
   ];
   if (holdableStatuses.includes(currentStatus)) {
     next.push("ON_HOLD");

@@ -14,12 +14,9 @@ const salesUp = requireRole("OWNER", "MANAGER", "SALES");
 const APPROVAL_TOKEN_TTL_DAYS = 30;
 
 // เฟสที่ออเดอร์ยังอยู่ในงานออกแบบ — mirror เงื่อนไข canUpload/canApprove ฝั่ง UI
-const UPLOADABLE_STATUSES: InternalStatus[] = [
-  "DESIGN_PENDING",
-  "DESIGNING",
-  "AWAITING_APPROVAL",
-];
-const APPROVABLE_STATUSES: InternalStatus[] = ["DESIGNING", "AWAITING_APPROVAL"];
+// (ยุบเหลือ DESIGNING สถานะเดียว — "ส่งเข้าออกแบบ" จาก CONFIRMED มาที่นี่ตรง)
+const UPLOADABLE_STATUSES: InternalStatus[] = ["DESIGNING"];
+const APPROVABLE_STATUSES: InternalStatus[] = ["DESIGNING"];
 
 function approvalTokenExpiry(): Date {
   return new Date(Date.now() + APPROVAL_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
@@ -141,9 +138,8 @@ export const designRouter = router({
           },
         });
 
-        // เปลี่ยนสถานะผ่าน service กลาง — DESIGN_PENDING/AWAITING_APPROVAL → DESIGNING
-        // (DESIGNING อยู่แล้ว = no-op · พ้นเฟสออกแบบไประหว่างทาง = โยน error
-        // ทั้ง transaction ถูก rollback รวมตัว version ที่เพิ่งสร้างด้วย)
+        // เปลี่ยนสถานะผ่าน service กลาง — ตอกย้ำสถานะ DESIGNING (อยู่แล้ว = no-op
+        // · พ้นเฟสออกแบบไประหว่างทาง = โยน error ทั้ง transaction ถูก rollback รวม version ที่เพิ่งสร้าง)
         await transitionOrder(tx, {
           orderId: input.orderId,
           to: "DESIGNING",

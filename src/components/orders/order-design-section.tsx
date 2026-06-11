@@ -69,13 +69,9 @@ export function OrderDesignSection({
     },
   });
 
-  const canUpload = [
-    "DESIGN_PENDING",
-    "DESIGNING",
-    "AWAITING_APPROVAL",
-  ].includes(internalStatus);
+  const canUpload = internalStatus === "DESIGNING";
 
-  const canApprove = ["DESIGNING", "AWAITING_APPROVAL"].includes(internalStatus);
+  const canApprove = internalStatus === "DESIGNING";
 
   function handleUploadSubmit() {
     if (!uploadedUrl) return;
@@ -104,12 +100,7 @@ export function OrderDesignSection({
   const hasDesigns = designs.data && designs.data.length > 0;
 
   // Show section if designs exist or status indicates design phase
-  if (
-    !hasDesigns &&
-    !["DESIGN_PENDING", "DESIGNING", "AWAITING_APPROVAL", "DESIGN_APPROVED"].includes(
-      internalStatus
-    )
-  ) {
+  if (!hasDesigns && !["DESIGNING", "DESIGN_APPROVED"].includes(internalStatus)) {
     return null;
   }
 

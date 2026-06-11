@@ -59,7 +59,7 @@ export function getOrderNextStep(o: NextStepInput): NextStep | null {
     };
   }
 
-  if (o.internalStatus === "INQUIRY" || o.internalStatus === "QUOTATION") {
+  if (o.internalStatus === "INQUIRY") {
     return {
       title: "รอลูกค้าตกลง → ยืนยันออเดอร์",
       description: `ยอดรวม ${o.totalAmount.toLocaleString("th-TH")} บาท — ลูกค้าตกลงแล้วกดยืนยันเพื่อเริ่มงาน`,
@@ -91,11 +91,11 @@ export function getOrderNextStep(o: NextStepInput): NextStep | null {
       title: "ส่งงานเข้าขั้นถัดไป",
       description: "งานพิมพ์ → ส่งเข้าออกแบบ · มีไฟล์พร้อมแล้ว → เข้าคิวผลิตได้เลย",
       buttonLabel: "ส่งเข้าออกแบบ",
-      action: { type: "STATUS", to: "DESIGN_PENDING" },
+      action: { type: "STATUS", to: "DESIGNING" },
     };
   }
 
-  if (["DESIGN_PENDING", "DESIGNING"].includes(o.internalStatus)) {
+  if (o.internalStatus === "DESIGNING") {
     if (!o.hasPendingDesign && !o.hasApprovedDesign) {
       return {
         title: "อัปโหลดแบบให้ลูกค้าดู",
@@ -107,15 +107,6 @@ export function getOrderNextStep(o: NextStepInput): NextStep | null {
     return {
       title: "รอลูกค้าตัดสินแบบ",
       description: "ส่งลิงก์อนุมัติให้ลูกค้าทาง LINE ได้จากส่วนงานออกแบบ — ลูกค้ากดแล้วทีมได้กระดิ่ง",
-      buttonLabel: "ไปส่วนงานออกแบบ",
-      action: { type: "ANCHOR", target: "design" },
-    };
-  }
-
-  if (o.internalStatus === "AWAITING_APPROVAL") {
-    return {
-      title: "รอลูกค้าตัดสินแบบ",
-      description: "ลูกค้ายังไม่กดอนุมัติ — เงียบนานลองทวงทาง LINE",
       buttonLabel: "ไปส่วนงานออกแบบ",
       action: { type: "ANCHOR", target: "design" },
     };

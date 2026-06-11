@@ -123,7 +123,7 @@ export function buildAgingReport(
 // ภาระหนี้รวมของลูกค้า = ใบแจ้งหนี้ค้างชำระ + มูลค่างานผูกพันที่ยังไม่ได้วางบิล
 // (ออเดอร์ CONFIRMED ขึ้นไปคือคำมั่นแล้ว — รอวางบิลตอนส่งมอบ ไม่นับ = วงเงินรั่ว)
 export function computeCreditExposure(params: {
-  orders: { id: string; totalAmount: number }[]; // ออเดอร์ผูกพัน (ไม่รวม DRAFT/INQUIRY/QUOTATION/CANCELLED)
+  orders: { id: string; totalAmount: number }[]; // ออเดอร์ผูกพัน (ไม่รวม DRAFT/INQUIRY/CANCELLED)
   invoices: (ReceivableInvoice & { orderId: string })[]; // ใบแจ้งหนี้ไม่ void ทั้งหมดของลูกค้า
 }): { invoiceOutstanding: number; unbilled: number; exposure: number } {
   const receivables = params.invoices.filter(isReceivable);
@@ -169,7 +169,7 @@ export function computeCreditExposure(params: {
 
 // สถานะออเดอร์ที่ยังไม่ผูกพัน — ไม่นับเข้า exposure · ด่านวงเงินยิงเฉพาะตอนข้ามจาก
 // สถานะกลุ่มนี้ไป CONFIRMED (ปลดพัก ON_HOLD ไม่ใช่ภาระหนี้ใหม่ — ยอดถูกนับใน exposure อยู่แล้ว)
-export const UNCOMMITTED_STATUSES = ["DRAFT", "INQUIRY", "QUOTATION", "CANCELLED"] as const;
+export const UNCOMMITTED_STATUSES = ["DRAFT", "INQUIRY", "CANCELLED"] as const;
 
 // ด่านวงเงินตอนผูกพันออเดอร์ — เฉพาะ SALES: เกินวงเงินต้องส่งให้ผู้จัดการ/บัญชีทำแทน
 // (role อื่นเห็นคำเตือนใน UI แล้วตัดสินใจเองได้ · ลูกค้าไม่ตั้งวงเงิน = ไม่จำกัด)

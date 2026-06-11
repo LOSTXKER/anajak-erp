@@ -618,9 +618,9 @@ export const orderRouter = router({
       z.object({
         id: z.string(),
         internalStatus: z.enum([
-          "DRAFT", "INQUIRY", "QUOTATION", "CONFIRMED", "DESIGN_PENDING", "DESIGNING",
-          "AWAITING_APPROVAL", "DESIGN_APPROVED", "PRODUCTION_QUEUE", "PRODUCING",
-          "QUALITY_CHECK", "PACKING", "READY_TO_SHIP", "SHIPPED", "COMPLETED", "CANCELLED", "ON_HOLD",
+          "DRAFT", "INQUIRY", "CONFIRMED", "DESIGNING", "DESIGN_APPROVED",
+          "PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING",
+          "READY_TO_SHIP", "SHIPPED", "COMPLETED", "CANCELLED", "ON_HOLD",
         ]),
         reason: z.string().optional(),
       })

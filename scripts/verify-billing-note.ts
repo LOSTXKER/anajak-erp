@@ -64,17 +64,21 @@ async function main() {
         totalAmount: 3000,
       },
     });
-    // o2: ยังไม่ผูกพัน (QUOTATION) 4000 — ใช้ทดสอบด่านวงเงินตอนยืนยัน
+    // o2: ยังไม่ผูกพัน (INQUIRY) 4000 — ใช้ทดสอบด่านวงเงินตอนยืนยัน
     const o2 = await prisma.order.create({
       data: {
         ...baseOrder,
         orderNumber: "TEST-BN-2",
-        internalStatus: "QUOTATION",
+        internalStatus: "INQUIRY",
         title: "[BN-VERIFY] งานที่สอง",
         totalAmount: 4000,
       },
     });
     ids.orders.push(o1.id, o2.id);
+    // o2 ต้องมีรายการ ≥1 เพื่อให้ยืนยันออเดอร์ได้ (ด่านกันออเดอร์เปล่าตอน confirm)
+    await prisma.orderItem.create({
+      data: { orderId: o2.id, description: "[BN-VERIFY] รายการงานที่สอง", totalQuantity: 1, subtotal: 4000 },
+    });
 
     const inv = await ownerCaller.billing.create({
       orderId: o1.id,

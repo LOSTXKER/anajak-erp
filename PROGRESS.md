@@ -5,15 +5,20 @@
 ## ตอนนี้
 - **Phase: P1 · เสร็จแล้ว: P1.0 Design System ✅ · PDF/ใบกำกับภาษี ✅ · Job Ticket+QR ✅ · มัดจำตามเทอม+overdue ✅ · ใบวางบิล+aging+วงเงินเครดิต ✅ · แพ็คเก็บตกหน้างาน+Outsource UI ✅ · โปรไฟล์ลูกค้าโตตามงาน ✅ · ฟอร์มเปิดงานโหมดเดียว+derive ชนิดออเดอร์+การ์ดขั้นถัดไป ✅** (2026-06-11)
 - **กำลังทำ: ชุด "สถานะเด้งเอง + ลดความซับซ้อนสถานะ" (เบสเคาะ "1 2 3 ทำเลย" 2026-06-11)** — 4 เฟส commit ทีละก้อน:
-  - **เฟส 1 ✅ สถานะเด้งเองตามเหตุการณ์** (commit นี้) — ผลิตครบทุกขั้น→ออเดอร์เด้ง QUALITY_CHECK · ส่งของ→เด้ง SHIPPED (ไม่ปิดงานเอง — "เสร็จสิ้น" มีด่านวางบิลครบ)
-  - เฟส 2 ⬜ หน้า **"งานของฉันวันนี้"** (ops mobile-first)
-  - เฟส 3 ⬜ **ยุบสถานะออกแบบ 4→2** (ลบ DESIGN_PENDING/AWAITING_APPROVAL · migration)
-  - เฟส 4 ⬜ **เอา QUOTATION ออกจาก internalStatus** (ใช้โมดูลใบเสนอแทน · เก็บ DRAFT ไว้ · migration)
+  - **เฟส 1 ✅ สถานะเด้งเองตามเหตุการณ์** — ผลิตครบทุกขั้น→ออเดอร์เด้ง QUALITY_CHECK · ส่งของ→เด้ง SHIPPED (ไม่ปิดงานเอง — "เสร็จสิ้น" มีด่านวางบิลครบ)
+  - **เฟส 3+4 ✅ ยุบ internalStatus 17→14** (รวม commit เดียว — เป็น state-machine refactor ก้อนเดียว + migration เดียว) — ลบ QUOTATION (ใช้โมดูลใบเสนอ) + DESIGN_PENDING/AWAITING_APPROVAL (เฟสออกแบบเหลือ DESIGNING/DESIGN_APPROVED) · เก็บ DRAFT ไว้
+  - เฟส 2 ⬜ หน้า **"งานของฉันวันนี้"** (ops mobile-first) — เหลือแค่นี้
 - **ผล audit flow ทั้งระบบ (2026-06-11)** เก็บที่: บทวิเคราะห์ในแชท + หนี้ข้อ (8)-(13) ด้านล่าง — ช่องว่างที่เหลือส่วนใหญ่อยู่ในแผน P1/P2/P3 แล้ว
 - **เบสต้องทำก่อนใช้เอกสารจริง**: ไปกรอก **Settings → ข้อมูลกิจการ** (ชื่อ/ที่อยู่/เลขผู้เสียภาษี 13 หลัก) — ไม่งั้นหัวเอกสารขึ้น "(ยังไม่ตั้งค่าข้อมูลกิจการ)" · deploy จริงต้องตั้ง `NEXT_PUBLIC_APP_URL` (QR บน Job Ticket) + `CRON_SECRET` (cron กวาดบิลเลยกำหนด — ระหว่างยังไม่ deploy ระบบกวาดเองตอนเปิดหน้า /billing ไม่เกินทุก 6 ชม.)
 - 🎉 P0 จบครบ 5 ด่าน (2026-06-10) — auth ✓ เงินตรง ✓ migration ✓ seed ✓
 
 ## เสร็จแล้ว
+- 2026-06-11 — **เฟส 3+4: ยุบสถานะออเดอร์ให้เรียบ (internalStatus 17→14 ค่า)** (เบสเคาะ "ทำหมดเลย"):
+  - **ลบ 3 ค่า**: `QUOTATION` (ซ้ำกับโมดูลใบเสนอที่มีตารางแยก — INQUIRY→CONFIRMED ตรง) · `DESIGN_PENDING`+`AWAITING_APPROVAL` (ยุบเฟสออกแบบ 4→2 เหลือ "กำลังออกแบบ" DESIGNING + "อนุมัติแล้ว" DESIGN_APPROVED) · **เก็บ DRAFT ไว้** (ปุ่มบันทึกร่างใช้จริง)
+  - **เส้นทาง CUSTOM ใหม่**: INQUIRY→CONFIRMED→DESIGNING→DESIGN_APPROVED→PRODUCTION_QUEUE→... · "ส่งเข้าออกแบบ" จาก CONFIRMED มา DESIGNING ตรง · upload/approve ทำตอน DESIGNING (UPLOADABLE/APPROVABLE เหลือสถานะเดียว)
+  - **migration** `20260611160000_simplify_internal_status` (hand-author ผ่าน `migrate diff` เพราะ migrate dev interactive ใน env นี้ — DB ว่างจึง apply ผ่าน `migrate deploy` ปลอดภัย) · แตะ: schema/order-status(lib+service)/order-next-step/design router/order router/receivables/order-design-section
+  - **เจอหนี้ verify เก่าตกค้าง (ไม่ใช่จาก enum) ซ่อมให้ด้วย**: verify-p02 3.2 (COMPLETED โดนด่านวางบิล commit 7848064 บัง → เปลี่ยนเป็น READY_TO_SHIP ทดสอบข้ามขั้น) · verify-bn o2 (ด่านกันออเดอร์เปล่าตอน confirm commit acbaec9 บล็อก → เพิ่มรายการให้ o2)
+  - **verify**: unit 120 · tsc 0 · lint 0 errors · verify:ops 25/25 · verify:p02 35/35 · verify:bn 12/12 (รันจริงกับ DB ทั้งหมด)
 - 2026-06-11 — **เฟส 1/4: สถานะออเดอร์เด้งเองตามเหตุการณ์** (แก้หนี้ข้อ 9 — สถานะไม่ sync เหตุการณ์จริง):
   - **helper กลาง `forwardPath` (pure, lib/order-status.ts)** — คำนวณลำดับสถานะที่ต้องเดินไปข้างหน้าตามเส้นทางชนิดงาน · ไปหน้าเท่านั้น + `onlyFrom` กันดันจากจุดที่ไม่ควร (กันกระโดดข้าม QC) · unit test 5 เคส
   - **service `advanceOrderForward` + `finalizeProductionIfComplete` (services/order-status.ts)** — เดินสถานะทีละก้าวผ่าน `transitionOrder` (validate ทุกก้าวเหมือนกดเอง) · rollup ปิดใบผลิตตัวเดียวใช้ร่วมทั้ง production + outsource (เลิกซ้ำตรรกะ 2 ที่)

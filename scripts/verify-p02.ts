@@ -147,9 +147,10 @@ async function main() {
   let o2Db = await prisma.order.findUniqueOrThrow({ where: { id: o2.id } });
   ok("3.1 production.create จาก CONFIRMED (CUSTOM) → auto-hop เป็น PRODUCING", o2Db.internalStatus === "PRODUCING" && prod.id !== undefined, o2Db.internalStatus);
 
+  // PRODUCING → READY_TO_SHIP ข้าม QC/แพ็ค (เลี่ยง COMPLETED ที่ติดด่านวางบิลก่อน — คนละด่าน)
   await expectError(
-    "3.2 PRODUCING → COMPLETED (ข้ามขั้น) → ปฏิเสธ",
-    () => caller.order.updateStatus({ id: o2.id, internalStatus: "COMPLETED" }),
+    "3.2 PRODUCING → READY_TO_SHIP (ข้ามขั้น) → ปฏิเสธ",
+    () => caller.order.updateStatus({ id: o2.id, internalStatus: "READY_TO_SHIP" }),
     "ไม่สามารถเปลี่ยนสถานะ"
   );
 
@@ -205,7 +206,7 @@ async function main() {
   // ---------- 5) design flow ผ่าน transition กลาง ----------
   const o3 = await caller.order.create({ ...orderInput, channel: "LINE" as const, title: "[P0.2-VERIFY] design flow", externalOrderId: undefined, platformFee: undefined });
   await caller.order.updateStatus({ id: o3.id, internalStatus: "CONFIRMED" });
-  await caller.order.updateStatus({ id: o3.id, internalStatus: "DESIGN_PENDING" });
+  await caller.order.updateStatus({ id: o3.id, internalStatus: "DESIGNING" });
   const design = await caller.design.upload({ orderId: o3.id, fileUrl: "https://example.com/design-v1.png" });
   let o3Db = await prisma.order.findUniqueOrThrow({ where: { id: o3.id } });
   ok("5.1 upload แบบ → DESIGNING", o3Db.internalStatus === "DESIGNING", o3Db.internalStatus);

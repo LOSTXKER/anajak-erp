@@ -18,8 +18,8 @@ describe("getInitialStatus", () => {
 
 describe("isValidTransition — เส้นทางหลัก", () => {
   it("เดินหน้าตาม flow ปกติ", () => {
-    expect(isValidTransition("CUSTOM", "INQUIRY", "QUOTATION")).toBe(true);
-    expect(isValidTransition("CUSTOM", "CONFIRMED", "DESIGN_PENDING")).toBe(true);
+    expect(isValidTransition("CUSTOM", "INQUIRY", "CONFIRMED")).toBe(true);
+    expect(isValidTransition("CUSTOM", "CONFIRMED", "DESIGNING")).toBe(true);
     expect(isValidTransition("CUSTOM", "PRODUCTION_QUEUE", "PRODUCING")).toBe(true);
     expect(isValidTransition("READY_MADE", "CONFIRMED", "PRODUCTION_QUEUE")).toBe(true);
     expect(isValidTransition("CUSTOM", "SHIPPED", "COMPLETED")).toBe(true);
@@ -37,7 +37,6 @@ describe("isValidTransition — เส้นทางหลัก", () => {
   });
 
   it("ถอยหลังเฉพาะคู่ที่อนุญาต", () => {
-    expect(isValidTransition("CUSTOM", "AWAITING_APPROVAL", "DESIGNING")).toBe(true);
     expect(isValidTransition("CUSTOM", "QUALITY_CHECK", "PRODUCING")).toBe(true);
     expect(isValidTransition("CUSTOM", "PACKING", "QUALITY_CHECK")).toBe(true);
     expect(isValidTransition("CUSTOM", "PRODUCING", "PRODUCTION_QUEUE")).toBe(true);
@@ -53,15 +52,15 @@ describe("isValidTransition — เส้นทางหลัก", () => {
   it("ON_HOLD กลับเข้างานได้เฉพาะจุดที่กำหนด", () => {
     expect(getNextStatuses("CUSTOM", "ON_HOLD")).toEqual([
       "CONFIRMED",
-      "DESIGN_PENDING",
+      "DESIGNING",
       "PRODUCTION_QUEUE",
       "CANCELLED",
     ]);
   });
 });
 
-describe("transitions ที่เพิ่มตอน P0.2 (อย่าลบโดยไม่รู้ที่มา)", () => {
-  it("DESIGNING → DESIGN_APPROVED: ลูกค้าอนุมัติผ่าน token ได้โดยไม่ผ่าน AWAITING_APPROVAL", () => {
+describe("transitions พิเศษ (อย่าลบโดยไม่รู้ที่มา)", () => {
+  it("DESIGNING → DESIGN_APPROVED: ลูกค้าอนุมัติแบบแล้วเดินต่อได้", () => {
     expect(isValidTransition("CUSTOM", "DESIGNING", "DESIGN_APPROVED")).toBe(true);
   });
 
@@ -69,8 +68,9 @@ describe("transitions ที่เพิ่มตอน P0.2 (อย่าลบ
     expect(isValidTransition("CUSTOM", "CONFIRMED", "PRODUCTION_QUEUE")).toBe(true);
   });
 
-  it("INQUIRY → CONFIRMED (CUSTOM): ข้ามใบเสนอราคาได้", () => {
+  it("INQUIRY → CONFIRMED: ยืนยันได้ทุกชนิด (จำเป็นกับ READY_MADE ที่ค้าง INQUIRY)", () => {
     expect(isValidTransition("CUSTOM", "INQUIRY", "CONFIRMED")).toBe(true);
+    expect(isValidTransition("READY_MADE", "INQUIRY", "CONFIRMED")).toBe(true);
   });
 });
 
