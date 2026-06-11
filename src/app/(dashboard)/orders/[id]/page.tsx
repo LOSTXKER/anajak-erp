@@ -36,7 +36,7 @@ import { OrderDesignSection } from "@/components/orders/order-design-section";
 import { OrderNextStep } from "@/components/orders/detail/order-next-step";
 import { OrderProductionSection } from "@/components/orders/order-production-section";
 import { OrderDeliverySection } from "@/components/orders/order-delivery-section";
-import { OrderEditDialog } from "@/components/orders/order-edit-dialog";
+import { OrderItemsEditor } from "@/components/orders/order-items-editor";
 import { OrderInfoEditDialog } from "@/components/orders/order-info-edit-dialog";
 import {
   OrderItemsDisplay,
@@ -89,8 +89,19 @@ export default function OrderDetailPage({
   const router = useRouter();
   const promptText = usePromptText();
   const confirm = useConfirm();
-  const [showEditDialog, setShowEditDialog] = useState(false);
+  // แก้รายการ = ฟอร์มเต็มแสดง inline ตรงส่วนรายการสินค้า (เบสเคาะ: ไม่เอา popup)
+  const [editingItems, setEditingItems] = useState(false);
   const [showInfoEditDialog, setShowInfoEditDialog] = useState(false);
+
+  function openItemsEditor() {
+    setEditingItems(true);
+    // เลื่อนไปที่ฟอร์มหลัง render — กดจากการ์ดขั้นถัดไป/เมนูแล้วต้องเห็นฟอร์มทันที
+    requestAnimationFrame(() => {
+      document
+        .getElementById("order-section-items")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   const { data: order, isLoading, isError, refetch } = trpc.order.getById.useQuery({ id });
   const { data: attachments } = trpc.attachment.listByEntity.useQuery({ entityType: "ORDER", entityId: id });
@@ -311,7 +322,7 @@ export default function OrderDetailPage({
                         {canEditItems && (
                           <DropdownMenu.Item
                             className={dropdownItemClass}
-                            onSelect={() => setShowEditDialog(true)}
+                            onSelect={openItemsEditor}
                           >
                             <Edit3 className="h-4 w-4" />
                             แก้ไขรายการ
@@ -386,7 +397,7 @@ export default function OrderDetailPage({
       {/* เข็มทิศ — ขั้นถัดไปที่แนะนำหนึ่งอย่าง พร้อมปุ่มทำได้เลย */}
       <OrderNextStep
         order={order}
-        onEditItems={() => setShowEditDialog(true)}
+        onEditItems={openItemsEditor}
         onStatusChange={(status) => handleStatusChange(status)}
         statusPending={updateStatus.isPending}
         statusAllowed={roleAllows}
@@ -398,11 +409,24 @@ export default function OrderDetailPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* LEFT: MAIN CONTENT (2/3) */}
         <div className="space-y-6 lg:col-span-2">
-          <OrderItemsDisplay
-            orderId={id}
-            items={order.items ?? []}
-            fees={order.fees ?? []}
-          />
+          <div id="order-section-items" className="scroll-mt-20">
+            {editingItems && canEditItems ? (
+              <OrderItemsEditor
+                orderId={id}
+                orderType={order.orderType}
+                internalStatus={order.internalStatus}
+                order={order}
+                onDone={() => setEditingItems(false)}
+                onCancel={() => setEditingItems(false)}
+              />
+            ) : (
+              <OrderItemsDisplay
+                orderId={id}
+                items={order.items ?? []}
+                fees={order.fees ?? []}
+              />
+            )}
+          </div>
 
           <OrderReferenceImages attachments={attachments} />
 
@@ -457,15 +481,6 @@ export default function OrderDetailPage({
       {/* ====================================================
           EDIT DIALOGS
       ==================================================== */}
-      <OrderEditDialog
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        orderId={id}
-        orderType={order.orderType}
-        internalStatus={order.internalStatus}
-        order={order}
-      />
-
       <OrderInfoEditDialog
         open={showInfoEditDialog}
         onOpenChange={setShowInfoEditDialog}
