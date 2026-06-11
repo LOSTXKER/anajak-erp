@@ -70,7 +70,7 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
     invalidate: [
       utils.production.getById,
       utils.production.getByOrderId,
-      utils.production.board,
+      utils.production.kanban,
       utils.outsource.listOrders,
       utils.order.getById,
     ],

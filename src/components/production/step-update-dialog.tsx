@@ -60,7 +60,7 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
     invalidate: [
       utils.production.getById,
       utils.production.getByOrderId,
-      utils.production.board,
+      utils.production.kanban,
       utils.order.getById,
       utils.task.myToday,
     ],

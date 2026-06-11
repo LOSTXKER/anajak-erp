@@ -65,15 +65,45 @@ export const productionRouter = router({
       });
     }),
 
-  // คิว "รอเปิดใบผลิต" บนหน้า /production — ออเดอร์ถึงเกณฑ์แต่ยังไม่มีใบผลิต
-  // (ชุดสถานะเดียวกับปุ่มสร้างใบผลิตเดิมบนหน้าออเดอร์ — CONFIRMED รวมด้วยเพื่อรองรับ
-  // งานซ้ำที่ไม่ต้องออกแบบ · UI แยกกลุ่ม CONFIRMED พับไว้ คงเจตนา audit ข้อ 28)
-  // printTypes derive ฝั่ง server — ผู้สร้างใบผลิตไม่ได้เปิดหน้าออเดอร์อีกแล้ว
-  queue: protectedProcedure.use(managerUp).query(async ({ ctx }) => {
+  // บริบทออเดอร์สำหรับเปิดใบผลิต — dialog ดึงเอง (รับแค่ orderId)
+  // รองรับทุกทางเข้า: kanban · การ์ดสรุปหน้าออเดอร์ · deep-link ?create=
+  // printTypes derive ฝั่ง server → เดาขั้นตอนผลิตให้ตรงวิธีพิมพ์จริง
+  orderContext: protectedProcedure
+    .input(z.object({ orderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const order = await ctx.prisma.order.findUniqueOrThrow({
+        where: { id: input.orderId },
+        select: {
+          orderNumber: true,
+          title: true,
+          items: { select: { prints: { select: { printType: true } } } },
+        },
+      });
+      return {
+        orderNumber: order.orderNumber,
+        title: order.title,
+        printTypes: [
+          ...new Set(order.items.flatMap((it) => it.prints.map((p) => p.printType))),
+        ],
+      };
+    }),
+
+  // Kanban สายการผลิต — ออเดอร์ทุกใบที่อยู่ในเฟสผลิต-จัดส่ง จัดกลุ่มตามสถานะ
+  // (รอเปิดใบ → กำลังผลิต → ตรวจคุณภาพ → แพ็ค → พร้อมส่ง) · ทุก role ดูได้
+  // ปุ่มเลื่อนสถานะฝั่ง UI gate ด้วย canRoleSetStatus — server ยัง validate ซ้ำเสมอ
+  kanban: protectedProcedure.query(async ({ ctx }) => {
     const orders = await ctx.prisma.order.findMany({
       where: {
-        internalStatus: { in: ["PRODUCTION_QUEUE", "DESIGN_APPROVED", "CONFIRMED"] },
-        productions: { none: {} },
+        internalStatus: {
+          in: [
+            "DESIGN_APPROVED",
+            "PRODUCTION_QUEUE",
+            "PRODUCING",
+            "QUALITY_CHECK",
+            "PACKING",
+            "READY_TO_SHIP",
+          ],
+        },
       },
       select: {
         id: true,
@@ -82,28 +112,32 @@ export const productionRouter = router({
         deadline: true,
         priority: true,
         internalStatus: true,
+        orderType: true,
         customer: { select: { name: true } },
-        items: {
-          select: {
-            totalQuantity: true,
-            prints: { select: { printType: true } },
-          },
-        },
+        productions: { select: { id: true, steps: { select: { status: true } } } },
+        items: { select: { totalQuantity: true } },
       },
       orderBy: { deadline: "asc" },
-      take: 100,
+      take: 200,
     });
-    return orders.map((o) => ({
-      id: o.id,
-      orderNumber: o.orderNumber,
-      title: o.title,
-      deadline: o.deadline,
-      priority: o.priority,
-      internalStatus: o.internalStatus,
-      customerName: o.customer?.name ?? null,
-      totalQuantity: o.items.reduce((s, it) => s + it.totalQuantity, 0),
-      printTypes: [...new Set(o.items.flatMap((it) => it.prints.map((p) => p.printType)))],
-    }));
+    return orders.map((o) => {
+      const steps = o.productions.flatMap((p) => p.steps);
+      const stepsDone = steps.filter((s) => s.status === "COMPLETED").length;
+      return {
+        id: o.id,
+        orderNumber: o.orderNumber,
+        title: o.title,
+        deadline: o.deadline,
+        priority: o.priority,
+        internalStatus: o.internalStatus,
+        orderType: o.orderType,
+        customerName: o.customer?.name ?? null,
+        productionId: o.productions[0]?.id ?? null,
+        stepsDone,
+        stepsTotal: steps.length,
+        totalQuantity: o.items.reduce((s, it) => s + it.totalQuantity, 0),
+      };
+    });
   }),
 
   create: protectedProcedure
@@ -331,29 +365,4 @@ export const productionRouter = router({
       });
     }),
 
-  board: protectedProcedure.query(async ({ ctx }) => {
-    const productions = await ctx.prisma.production.findMany({
-      where: { status: { not: "COMPLETED" } },
-      include: {
-        order: {
-          select: {
-            id: true,
-            orderNumber: true,
-            title: true,
-            deadline: true,
-            customer: { select: { name: true } },
-          },
-        },
-        steps: {
-          orderBy: { sortOrder: "asc" },
-          include: {
-            assignedTo: { select: { id: true, name: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return productions;
-  }),
 });

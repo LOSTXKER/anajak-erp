@@ -5,308 +5,310 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { PageHeader } from "@/components/page-header";
 import { CreateProductionDialog } from "@/components/production/create-production-dialog";
+import { canRoleSetStatus, PRIORITY_LABELS } from "@/lib/order-status";
+import type { InternalStatus } from "@prisma/client";
 import { formatDate, cn } from "@/lib/utils";
-import { STEP_TYPE_LABELS as stepTypeLabels } from "@/lib/production-steps";
-import { PRINT_TYPES } from "@/types/order-form";
 import {
-  Factory,
-  Clock,
-  User,
-  AlertTriangle,
   Plus,
+  Clock,
+  AlertTriangle,
   ArrowRight,
+  Truck,
+  Factory,
+  CheckCircle2,
 } from "lucide-react";
+import type { RouterOutput } from "@/lib/trpc";
 
-type StepVariant = "default" | "accent" | "success" | "warning" | "destructive";
+type KanbanOrder = RouterOutput["production"]["kanban"][number];
 
-const stepStatusConfig: Record<string, { label: string; variant: StepVariant }> = {
-  PENDING: { label: "รอ", variant: "default" },
-  IN_PROGRESS: { label: "กำลังทำ", variant: "accent" },
-  COMPLETED: { label: "เสร็จ", variant: "success" },
-  ON_HOLD: { label: "พัก", variant: "warning" },
-  FAILED: { label: "ล้มเหลว", variant: "destructive" },
-};
-
-type QueueOrder = {
-  id: string;
-  orderNumber: string;
+// คอลัมน์ = สายการผลิตจริง (DTF/สกรีน): งานไหลซ้าย→ขวา
+const COLUMNS: {
+  key: string;
   title: string;
-  deadline: Date | string | null;
-  internalStatus: string;
-  customerName: string | null;
-  totalQuantity: number;
-  printTypes: string[];
+  statuses: string[];
+  head: string; // สีหัวคอลัมน์
+  dot: string;
+}[] = [
+  {
+    key: "queue",
+    title: "รอเปิดใบผลิต",
+    statuses: ["DESIGN_APPROVED", "PRODUCTION_QUEUE"],
+    head: "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300",
+    dot: "bg-amber-400",
+  },
+  {
+    key: "producing",
+    title: "กำลังผลิต",
+    statuses: ["PRODUCING"],
+    head: "bg-blue-50 text-blue-800 dark:bg-blue-950/30 dark:text-blue-300",
+    dot: "bg-blue-500",
+  },
+  {
+    key: "qc",
+    title: "ตรวจคุณภาพ",
+    statuses: ["QUALITY_CHECK"],
+    head: "bg-violet-50 text-violet-800 dark:bg-violet-950/30 dark:text-violet-300",
+    dot: "bg-violet-500",
+  },
+  {
+    key: "packing",
+    title: "กำลังแพ็ค",
+    statuses: ["PACKING"],
+    head: "bg-cyan-50 text-cyan-800 dark:bg-cyan-950/30 dark:text-cyan-300",
+    dot: "bg-cyan-500",
+  },
+  {
+    key: "ready",
+    title: "พร้อมจัดส่ง",
+    statuses: ["READY_TO_SHIP"],
+    head: "bg-green-50 text-green-800 dark:bg-green-950/30 dark:text-green-300",
+    dot: "bg-green-500",
+  },
+];
+
+// ปุ่มเลื่อนคอลัมน์ถัดไป (forward in-phase ไม่ต้อง confirm/เหตุผล — server validate ซ้ำ)
+const ADVANCE: Record<string, { to: InternalStatus; label: string }> = {
+  QUALITY_CHECK: { to: "PACKING", label: "ผ่าน → แพ็ค" },
+  PACKING: { to: "READY_TO_SHIP", label: "แพ็คเสร็จ →" },
 };
 
-// แถวออเดอร์ในคิวรอเปิดใบผลิต — ปุ่มเป้านิ้ว ≥44px
-function QueueRow({ order, onCreate }: { order: QueueOrder; onCreate: () => void }) {
-  const isOverdue = order.deadline && new Date(order.deadline) < new Date();
-  return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2">
-          <span className="text-sm font-semibold text-slate-900 dark:text-white">
-            {order.orderNumber}
-          </span>
-          <span className="truncate text-sm text-slate-600 dark:text-slate-300">
-            {order.title}
-          </span>
-        </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
-          {order.customerName && <span>{order.customerName}</span>}
-          {order.totalQuantity > 0 && <span>· {order.totalQuantity.toLocaleString()} ชิ้น</span>}
-          {order.deadline && (
-            <span className={cn("flex items-center gap-1", isOverdue && "text-red-600 dark:text-red-400")}>
-              <Clock className="h-3 w-3" />
-              {formatDate(order.deadline)}
-              {isOverdue && " (เลยกำหนด)"}
-            </span>
-          )}
-          {order.printTypes.map((pt) => (
-            <Badge key={pt} variant="secondary" size="sm">
-              {PRINT_TYPES[pt] ?? pt}
-            </Badge>
-          ))}
-        </div>
-      </div>
-      <Button size="sm" onClick={onCreate} className="h-10 gap-1.5">
-        <Plus className="h-4 w-4" />
-        เปิดใบผลิต
-      </Button>
-    </div>
-  );
-}
-
-function ProductionWorkspace() {
+function ProductionKanban() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const createOrderId = searchParams.get("create");
+  const createParam = searchParams.get("create");
 
   const { data: me } = trpc.user.me.useQuery();
-  // เปิดใบผลิต = อำนาจหัวหน้า (server บังคับ managerUp) — queue โหลดเฉพาะหัวหน้า
-  const isManagerUp = !!me && ["OWNER", "MANAGER"].includes(me.role);
+  const { data: orders, isLoading } = trpc.production.kanban.useQuery();
+  const utils = trpc.useUtils();
 
-  const { data: productions, isLoading } = trpc.production.board.useQuery();
-  const queue = trpc.production.queue.useQuery(undefined, { enabled: isManagerUp });
+  const [createOrderId, setCreateOrderId] = useState<string | null>(null);
 
-  // dialog สร้างใบผลิต — เก็บทั้งแถว (มี printTypes สำหรับแนะนำขั้นตอน)
-  const [createTarget, setCreateTarget] = useState<QueueOrder | null>(null);
+  const advance = useMutationWithInvalidation(trpc.order.updateStatus, {
+    invalidate: [
+      utils.production.kanban,
+      utils.order.getById,
+      utils.order.list,
+      utils.task.myToday,
+    ],
+    onError: (err: { message?: string }) => {
+      toast.error(err.message ?? "เลื่อนสถานะไม่สำเร็จ");
+    },
+  });
 
-  // deep-link ?create=<orderId> จากหน้าออเดอร์/my-tasks — เปิด dialog ให้เอง
-  // ยิงครั้งเดียวต่อค่า param (ref กันซ้ำตอน query refetch)
-  const handledCreateParam = useRef<string | null>(null);
+  // deep-link ?create=<orderId> — เปิด dialog ได้เลย (dialog ดึง context เอง ไม่พึ่ง list)
+  const handledCreate = useRef<string | null>(null);
   useEffect(() => {
-    if (!createOrderId || !queue.data) return;
-    if (handledCreateParam.current === createOrderId) return;
-    handledCreateParam.current = createOrderId;
-    const target = queue.data.find((o) => o.id === createOrderId);
-    if (target) {
-      setCreateTarget(target);
-    } else {
-      // มีใบผลิตแล้ว/สถานะไม่ถึงเกณฑ์ — บอกตรงๆ แล้วล้าง param
-      toast.info("ออเดอร์นี้มีใบผลิตแล้วหรือไม่อยู่ในคิวรอเปิดใบผลิต");
-    }
+    if (!createParam || handledCreate.current === createParam) return;
+    handledCreate.current = createParam;
+    setCreateOrderId(createParam);
     router.replace("/production", { scroll: false });
-  }, [createOrderId, queue.data, router]);
+  }, [createParam, router]);
 
   if (isLoading) {
     return (
       <div className="space-y-5">
-        <PageHeader title="การผลิต" description="Production Board" />
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-64 rounded-lg" />
+        <PageHeader title="การผลิต" description="สายการผลิต" />
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {COLUMNS.map((c) => (
+            <Skeleton key={c.key} className="h-80 w-[280px] shrink-0 rounded-2xl" />
           ))}
         </div>
       </div>
     );
   }
 
-  // คิวแยก 2 กลุ่ม: พร้อมผลิตจริง (คิวผลิต/แบบผ่านแล้ว) เด่น · CONFIRMED พับไว้
-  // (อาจยังรอออกแบบ — เจตนาเดียวกับ my-tasks ที่ไม่นับ CONFIRMED เป็น "รอเปิดใบผลิต")
-  const readyQueue = (queue.data ?? []).filter((o) =>
-    ["PRODUCTION_QUEUE", "DESIGN_APPROVED"].includes(o.internalStatus)
-  );
-  const confirmedQueue = (queue.data ?? []).filter(
-    (o) => o.internalStatus === "CONFIRMED"
-  );
+  const all = orders ?? [];
+  const activeCount = all.length;
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="การผลิต"
-        description={`งานที่กำลังดำเนินการ ${productions?.length ?? 0} รายการ${
-          isManagerUp && readyQueue.length > 0 ? ` · รอเปิดใบผลิต ${readyQueue.length}` : ""
-        }`}
+        description={`สายการผลิต · ${activeCount} งานในระบบ`}
       />
 
-      {/* คิวรอเปิดใบผลิต — เฉพาะหัวหน้า (จุดสร้างใบผลิตย้ายมาที่นี่จากหน้าออเดอร์) */}
-      {isManagerUp && readyQueue.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-amber-200/70 bg-white dark:border-amber-900/40 dark:bg-slate-900/80">
-          <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50/60 px-4 py-2.5 dark:border-amber-900/30 dark:bg-amber-950/20">
-            <Factory className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-              รอเปิดใบผลิต ({readyQueue.length})
-            </span>
-          </div>
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {readyQueue.map((o) => (
-              <QueueRow key={o.id} order={o} onCreate={() => setCreateTarget(o)} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {isManagerUp && confirmedQueue.length > 0 && (
-        <CollapsibleSection
-          title={`ยืนยันแล้ว — อาจรอออกแบบ (${confirmedQueue.length})`}
-          summary="เปิดใบผลิตได้เลยถ้างานไม่ต้องออกแบบ"
-        >
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {confirmedQueue.map((o) => (
-              <QueueRow key={o.id} order={o} onCreate={() => setCreateTarget(o)} />
-            ))}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {(!productions || productions.length === 0) && (
-        <div className="rounded-2xl border border-slate-200/70 bg-white dark:border-slate-800/60 dark:bg-slate-900/80">
-          <EmptyState icon={Factory} title="ไม่มีงานผลิตกำลังดำเนินการ" />
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {productions?.map((prod) => {
-          const completedSteps = prod.steps.filter((s) => s.status === "COMPLETED").length;
-          const totalSteps = prod.steps.length;
-          const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
-          const isOverdue =
-            prod.order.deadline && new Date(prod.order.deadline) < new Date();
-
+      {/* board เลื่อนแนวนอน — มือถือปัดดูทีละคอลัมน์ (snap) · desktop เห็นทั้งสาย */}
+      <div className="flex snap-x gap-4 overflow-x-auto pb-3">
+        {COLUMNS.map((col) => {
+          const cards = all.filter((o) => col.statuses.includes(o.internalStatus));
           return (
             <div
-              key={prod.id}
-              className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white dark:border-slate-800/60 dark:bg-slate-900/80"
+              key={col.key}
+              className="flex w-[284px] shrink-0 snap-start flex-col rounded-2xl border border-slate-200/70 bg-slate-50/40 dark:border-slate-800/60 dark:bg-slate-900/40"
             >
-              <div className="space-y-2 px-4 pt-4 pb-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link
-                      href={`/production/${prod.id}`}
-                      className="text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      {prod.order.orderNumber}
-                    </Link>
-                    <p className="truncate text-sm text-slate-900 dark:text-white">
-                      {prod.order.title}
-                    </p>
-                    <p className="truncate text-xs text-slate-500">
-                      {prod.order.customer.name}
-                    </p>
-                  </div>
-                  {isOverdue && (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-red-50 px-1.5 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300">
-                      <AlertTriangle className="h-3 w-3" />
-                      เลยกำหนด
-                    </span>
-                  )}
-                </div>
-                {prod.order.deadline && (
-                  <div className="flex items-center gap-1 text-xs text-slate-500">
-                    <Clock className="h-3 w-3" />
-                    กำหนด: {formatDate(prod.order.deadline)}
-                  </div>
+              <div
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-t-2xl px-3.5 py-2.5 text-sm font-semibold",
+                  col.head
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <span className={cn("h-2 w-2 rounded-full", col.dot)} />
+                  {col.title}
+                </span>
+                <span className="rounded-full bg-white/70 px-1.5 text-xs tabular-nums dark:bg-black/20">
+                  {cards.length}
+                </span>
+              </div>
+
+              <div className="flex-1 space-y-2.5 p-2.5">
+                {cards.length === 0 ? (
+                  <p className="py-8 text-center text-xs text-slate-300 dark:text-slate-600">
+                    — ว่าง —
+                  </p>
+                ) : (
+                  cards.map((o) => (
+                    <KanbanCard
+                      key={o.id}
+                      order={o}
+                      columnKey={col.key}
+                      meRole={me?.role}
+                      advancing={advance.isPending}
+                      onCreate={() => setCreateOrderId(o.id)}
+                      onAdvance={(to) =>
+                        advance.mutate({ id: o.id, internalStatus: to as never })
+                      }
+                    />
+                  ))
                 )}
               </div>
-
-              <div className="space-y-3 px-4 pb-3">
-                <div>
-                  <div className="mb-1 flex items-baseline justify-between text-xs">
-                    <span className="text-slate-500">ความคืบหน้า</span>
-                    <span className="font-medium tabular-nums">
-                      {completedSteps}/{totalSteps}
-                    </span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                    <div
-                      className="h-full rounded-full bg-blue-600 transition-all"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-
-                <ul className="space-y-1.5">
-                  {prod.steps.map((step) => {
-                    const cfg = stepStatusConfig[step.status] ?? stepStatusConfig.PENDING;
-                    return (
-                      <li
-                        key={step.id}
-                        className="flex items-center justify-between gap-2 rounded-md bg-slate-50 px-2.5 py-1.5 dark:bg-slate-800/50"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span
-                            className={cn(
-                              "h-1.5 w-1.5 shrink-0 rounded-full",
-                              step.status === "COMPLETED"
-                                ? "bg-green-500"
-                                : step.status === "IN_PROGRESS"
-                                  ? "bg-blue-500"
-                                  : "bg-slate-300"
-                            )}
-                          />
-                          <span className="truncate text-xs font-medium text-slate-700 dark:text-slate-200">
-                            {step.customStepName ||
-                              stepTypeLabels[step.stepType] ||
-                              step.stepType}
-                          </span>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          {step.assignedTo && (
-                            <span className="flex items-center gap-1 text-xs text-slate-500">
-                              <User className="h-3 w-3" />
-                              {step.assignedTo.name}
-                            </span>
-                          )}
-                          <Badge variant={cfg.variant} size="sm">
-                            {cfg.label}
-                          </Badge>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-
-              {/* จัดการขั้นตอน/เบิกวัตถุดิบ → หน้าใบผลิต (MaterialToggle เดิมย้ายไปที่นั่น) */}
-              <Link
-                href={`/production/${prod.id}`}
-                className="flex items-center justify-between border-t border-slate-100 px-4 py-2.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50/50 dark:border-slate-800 dark:text-blue-400 dark:hover:bg-blue-950/20"
-              >
-                จัดการใบผลิต
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
             </div>
           );
         })}
       </div>
 
-      {createTarget && (
+      {createOrderId && (
         <CreateProductionDialog
-          orderId={createTarget.id}
-          orderLabel={`${createTarget.orderNumber} · ${createTarget.title}`}
-          printTypes={createTarget.printTypes}
-          onClose={() => setCreateTarget(null)}
+          orderId={createOrderId}
+          onClose={() => setCreateOrderId(null)}
           onCreated={(p) => router.push(`/production/${p.id}`)}
         />
       )}
+    </div>
+  );
+}
+
+function KanbanCard({
+  order,
+  columnKey,
+  meRole,
+  advancing,
+  onCreate,
+  onAdvance,
+}: {
+  order: KanbanOrder;
+  columnKey: string;
+  meRole: string | null | undefined;
+  advancing: boolean;
+  onCreate: () => void;
+  onAdvance: (to: InternalStatus) => void;
+}) {
+  const isOverdue =
+    order.deadline && new Date(order.deadline) < new Date();
+  const next = ADVANCE[order.internalStatus];
+  const canAdvance = next && canRoleSetStatus(meRole, order.internalStatus as InternalStatus, next.to);
+  const pct =
+    order.stepsTotal > 0 ? Math.round((order.stepsDone / order.stepsTotal) * 100) : 0;
+
+  // การ์ดทั้งใบลิงก์เข้าหน้าใบผลิต (ถ้ามีใบ) — ยกเว้นคอลัมน์รอเปิด (ยังไม่มีใบ)
+  const href = order.productionId ? `/production/${order.productionId}` : `/orders/${order.id}`;
+
+  return (
+    <div className="rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-700/60 dark:bg-slate-900">
+      <Link href={href} className="block space-y-1.5">
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-sm font-semibold text-slate-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
+            {order.orderNumber}
+          </span>
+          {order.priority && order.priority !== "NORMAL" && (
+            <Badge
+              variant={order.priority === "URGENT" ? "destructive" : "warning"}
+              size="sm"
+            >
+              {PRIORITY_LABELS[order.priority] ?? order.priority}
+            </Badge>
+          )}
+        </div>
+        <p className="truncate text-xs text-slate-600 dark:text-slate-300">{order.title}</p>
+        {order.customerName && (
+          <p className="truncate text-xs text-slate-400">{order.customerName}</p>
+        )}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-400">
+          {order.deadline && (
+            <span
+              className={cn(
+                "flex items-center gap-1",
+                isOverdue && "font-medium text-red-600 dark:text-red-400"
+              )}
+            >
+              {isOverdue ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+              {formatDate(order.deadline)}
+            </span>
+          )}
+          {order.totalQuantity > 0 && <span>· {order.totalQuantity.toLocaleString()} ชิ้น</span>}
+        </div>
+        {order.stepsTotal > 0 && (
+          <div className="flex items-center gap-2 pt-0.5">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+              <div
+                className="h-full rounded-full bg-blue-500 transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="text-[10px] tabular-nums text-slate-400">
+              {order.stepsDone}/{order.stepsTotal}
+            </span>
+          </div>
+        )}
+      </Link>
+
+      {/* ปุ่ม action ตามคอลัมน์ — กดถึงบนมือถือ (h-9) */}
+      <div className="mt-2.5">
+        {columnKey === "queue" && (
+          <Button size="sm" onClick={onCreate} className="h-9 w-full gap-1.5">
+            <Plus className="h-4 w-4" />
+            เปิดใบผลิต
+          </Button>
+        )}
+        {columnKey === "producing" && (
+          <Button variant="outline" size="sm" asChild className="h-9 w-full gap-1.5">
+            <Link href={href}>
+              <Factory className="h-3.5 w-3.5" />
+              จัดการผลิต
+            </Link>
+          </Button>
+        )}
+        {(columnKey === "qc" || columnKey === "packing") &&
+          (canAdvance ? (
+            <Button
+              size="sm"
+              disabled={advancing}
+              onClick={() => onAdvance(next!.to)}
+              className="h-9 w-full gap-1.5"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              {next!.label}
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" asChild className="h-9 w-full">
+              <Link href={href}>เปิดดู</Link>
+            </Button>
+          ))}
+        {columnKey === "ready" && (
+          <Button variant="outline" size="sm" asChild className="h-9 w-full gap-1.5">
+            <Link href={`/orders/${order.id}`}>
+              <Truck className="h-3.5 w-3.5" />
+              ไปจัดส่ง
+            </Link>
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -315,7 +317,7 @@ export default function ProductionPage() {
   // useSearchParams ต้องอยู่ใต้ Suspense (ข้อบังคับ Next.js ตอน prerender)
   return (
     <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
-      <ProductionWorkspace />
+      <ProductionKanban />
     </Suspense>
   );
 }
