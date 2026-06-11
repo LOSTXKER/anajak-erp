@@ -31,6 +31,81 @@ export const productionRouter = router({
       });
     }),
 
+  // หน้าใบผลิต /production/[id] — ใบผลิต + บริบทออเดอร์ที่ช่างต้องเห็น (ไม่มี field เงินของออเดอร์)
+  // steps ใช้ include shape เดียวกับ getByOrderId — dialog ฝั่ง UI ใช้ type ร่วมกันได้ตรงๆ
+  getById: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.prisma.production.findUniqueOrThrow({
+        where: { id: input.id },
+        include: {
+          order: {
+            select: {
+              id: true,
+              orderNumber: true,
+              title: true,
+              deadline: true,
+              priority: true,
+              internalStatus: true,
+              customer: { select: { id: true, name: true } },
+              items: { select: { totalQuantity: true } },
+            },
+          },
+          steps: {
+            orderBy: { sortOrder: "asc" },
+            include: {
+              assignedTo: { select: { id: true, name: true } },
+              outsourceOrders: {
+                orderBy: { createdAt: "desc" },
+                include: { vendor: { select: { id: true, name: true } } },
+              },
+            },
+          },
+        },
+      });
+    }),
+
+  // คิว "รอเปิดใบผลิต" บนหน้า /production — ออเดอร์ถึงเกณฑ์แต่ยังไม่มีใบผลิต
+  // (ชุดสถานะเดียวกับปุ่มสร้างใบผลิตเดิมบนหน้าออเดอร์ — CONFIRMED รวมด้วยเพื่อรองรับ
+  // งานซ้ำที่ไม่ต้องออกแบบ · UI แยกกลุ่ม CONFIRMED พับไว้ คงเจตนา audit ข้อ 28)
+  // printTypes derive ฝั่ง server — ผู้สร้างใบผลิตไม่ได้เปิดหน้าออเดอร์อีกแล้ว
+  queue: protectedProcedure.use(managerUp).query(async ({ ctx }) => {
+    const orders = await ctx.prisma.order.findMany({
+      where: {
+        internalStatus: { in: ["PRODUCTION_QUEUE", "DESIGN_APPROVED", "CONFIRMED"] },
+        productions: { none: {} },
+      },
+      select: {
+        id: true,
+        orderNumber: true,
+        title: true,
+        deadline: true,
+        priority: true,
+        internalStatus: true,
+        customer: { select: { name: true } },
+        items: {
+          select: {
+            totalQuantity: true,
+            prints: { select: { printType: true } },
+          },
+        },
+      },
+      orderBy: { deadline: "asc" },
+      take: 100,
+    });
+    return orders.map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      title: o.title,
+      deadline: o.deadline,
+      priority: o.priority,
+      internalStatus: o.internalStatus,
+      customerName: o.customer?.name ?? null,
+      totalQuantity: o.items.reduce((s, it) => s + it.totalQuantity, 0),
+      printTypes: [...new Set(o.items.flatMap((it) => it.prints.map((p) => p.printType)))],
+    }));
+  }),
+
   create: protectedProcedure
     .use(managerUp)
     .input(
@@ -224,7 +299,8 @@ export const productionRouter = router({
               type: "ORDER",
               title: `ขั้นตอนผลิตมีปัญหา — ${order.orderNumber}`,
               message: `${stepName}${data.notes ? `: ${data.notes}` : ""} (${order.title})`,
-              link: `/orders/${order.id}`,
+              // ชี้หน้าใบผลิตตรงๆ — ตัวจัดการขั้นตอนอยู่ที่นั่นแล้ว (แยกโมดูลผลิต 2026-06-12)
+              link: `/production/${step.productionId}`,
               entityType: "ORDER",
               entityId: order.id,
             });

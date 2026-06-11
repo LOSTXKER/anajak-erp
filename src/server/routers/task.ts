@@ -41,7 +41,7 @@ export const taskRouter = router({
               customStepName: true,
               status: true,
               assignedTo: { select: { id: true, name: true } },
-              production: { select: { order: { select: orderSelect } } },
+              production: { select: { id: true, order: { select: orderSelect } } },
             },
             orderBy: [{ production: { order: { deadline: "asc" } } }, { sortOrder: "asc" }],
             take: 100,
@@ -55,6 +55,7 @@ export const taskRouter = router({
                 status: s.status,
                 assignedToId: s.assignedTo?.id ?? null,
                 assignedToName: s.assignedTo?.name ?? null,
+                productionId: s.production.id,
                 order: s.production.order,
               }))
               .sort(
