@@ -10,7 +10,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { formatCurrency } from "@/lib/utils";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
 import { Loader2, Plus, Trash2, Save, Pencil, X } from "lucide-react";
-import { validateOrderItem, validateOrderItemProduct } from "@/types/order-form";
+import { validateOrderItem, validateOrderItemProduct, itemHasContent } from "@/types/order-form";
 import {
   mapItemsToMutationInput,
   mapFeesToMutationInput,
@@ -178,7 +178,14 @@ export function OrderItemsEditor({
   // เกณฑ์เดียวกับฟอร์มเปิดงาน — จับให้ครบก่อนยิง server
   function validateItems(): string[] {
     const errors: string[] = [];
+    // รายการเปล่า (กดเพิ่มแล้วยังไม่กรอก) ไม่นับ/ไม่บันทึก — กันค้างรก + ไม่ต้องให้ผู้ใช้ลบเอง
+    if (!items.some(itemHasContent)) {
+      errors.push("ต้องมีรายการสินค้าอย่างน้อย 1 รายการ");
+      return errors;
+    }
+    // ใช้ index จริงของ items (ไม่ใช่ index หลังกรอง) — เลขในข้อความตรงกับเลขการ์ดที่ผู้ใช้เห็น
     items.forEach((item, idx) => {
+      if (!itemHasContent(item)) return; // ข้ามรายการเปล่า (ไม่ถูกบันทึกอยู่แล้ว)
       const itemErrors = validateOrderItem(item);
       if (itemErrors.products) errors.push(`รายการ ${idx + 1}: ${itemErrors.products}`);
       item.products.forEach((product, pIdx) => {
@@ -204,7 +211,7 @@ export function OrderItemsEditor({
     try {
       await updateItemsMutation.mutateAsync({
         id: orderId,
-        items: mapItemsToMutationInput(items),
+        items: mapItemsToMutationInput(items.filter(itemHasContent)),
         discount,
       });
       // ค่าธรรมเนียมยิงเฉพาะเมื่อแก้จริง — ไม่ยิงเปล่าให้ audit log รก
@@ -264,6 +271,7 @@ export function OrderItemsEditor({
               onSetItems={setItems}
               showPrints={canAddPrints}
               showAddons={canAddPrints}
+              compact
             />
           ) : (
             <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/60 px-3 dark:divide-slate-800 dark:border-slate-800/60">
@@ -297,6 +305,7 @@ export function OrderItemsEditor({
                   onSetItems={setItems}
                   showPrints={canAddPrints}
                   showAddons={canAddPrints}
+                  compact
                 />
               ))}
             </div>
