@@ -274,10 +274,24 @@ async function main() {
       ob.orderType === "READY_MADE" && ob.internalStatus === "CONFIRMED",
       { t: ob.orderType, s: ob.internalStatus }
     );
-    // เดินมือทั้งเส้น (ไม่มีใบผลิตก็เดินได้ — งานหยิบ-แพ็ค)
-    for (const s of ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING", "READY_TO_SHIP", "SHIPPED"] as const) {
+    // เดินมือถึงพร้อมส่ง (ไม่มีใบผลิตก็เดินได้ — งานหยิบ-แพ็ค)
+    for (const s of ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING", "READY_TO_SHIP"] as const) {
       await manager.order.updateStatus({ id: ob.id, internalStatus: s });
     }
+    // ด่านใหม่ (audit ข้อ 22): กดส่งแล้วด้วยมือโดยไม่มีใบส่งในระบบ → โดนกัน
+    await expectError(
+      "B2 กด 'ส่งแล้ว' มือโดยไม่มีใบส่ง → ระบบกัน (เลขพัสดุ/ที่อยู่ต้องอยู่ในระบบ)",
+      () => manager.order.updateStatus({ id: ob.id, internalStatus: "SHIPPED" }),
+      "ยังไม่มีใบส่ง"
+    );
+    const obDel = await staff.delivery.create({
+      orderId: ob.id,
+      recipientName: "ลูกค้าขายสด",
+      phone: "0820000000",
+      address: "2 ถ.ขายสด",
+      shippingMethod: "PICKUP",
+    });
+    await staff.delivery.updateStatus({ id: obDel.id, status: "SHIPPED" });
     const rcp = await accountant.billing.create({
       orderId: ob.id,
       customerId: customer.id,
@@ -285,11 +299,63 @@ async function main() {
       amount: ob.totalAmount,
     });
     await accountant.billing.recordPayment({ invoiceId: rcp.id, amount: rcp.totalAmount, method: "CASH" });
-    const obClosed = await manager.order.updateStatus({ id: ob.id, internalStatus: "COMPLETED" });
+    // ปิดงานโดย "บัญชี" — role ที่รู้ว่าบิลครบจริง (audit ข้อ 27: my-tasks มอบขั้นนี้ให้บัญชี)
+    const obClosed = await accountant.order.updateStatus({ id: ob.id, internalStatus: "COMPLETED" });
     ok(
-      "B2 ขายสดออกแต่ใบเสร็จ (ไม่มีใบแจ้งหนี้) → ปิดงานผ่านด่าน max(วางบิล, ใบเสร็จ)",
+      "B3 ขายสดออกแต่ใบเสร็จ → 'บัญชี' ปิดงานเองได้ (ผ่านด่าน max(วางบิล, ใบเสร็จ))",
       obClosed.internalStatus === "COMPLETED",
       obClosed.internalStatus
+    );
+    await expectError(
+      "B4 บัญชีเปลี่ยนสถานะอื่นนอกจากปิดงาน → ปฏิเสธ",
+      () => accountant.order.updateStatus({ id: ob.id, internalStatus: "SHIPPED", reason: "ทดสอบ" }),
+      "บัญชี"
+    );
+
+    // ---------- E: ถอยกลับ/เคลม (audit ข้อ 22/24/25) ----------
+    console.log("\n--- FLOW E: เปิดงานกลับ + ของตีกลับ ---");
+    await expectError(
+      "E1 เปิดงานกลับโดยไม่ใส่เหตุผล → ปฏิเสธ",
+      () => manager.order.updateStatus({ id: ob.id, internalStatus: "SHIPPED" }),
+      "เหตุผล"
+    );
+    await expectError(
+      "E2 ขายเปิดงานกลับเองไม่ได้ (ผู้จัดการขึ้นไป)",
+      () => sales.order.updateStatus({ id: ob.id, internalStatus: "SHIPPED", reason: "ลองถอย" }),
+      "ผู้จัดการ"
+    );
+    const reopened = await manager.order.updateStatus({
+      id: ob.id,
+      internalStatus: "SHIPPED",
+      reason: "ลูกค้าเคลมหลังปิดงาน",
+    });
+    const obAfterReopen = await prisma.order.findUniqueOrThrow({ where: { id: ob.id } });
+    ok(
+      "E3 ผู้จัดการเปิดงานกลับ (COMPLETED→SHIPPED + เหตุผล) → completedAt ถูกล้าง",
+      reopened.internalStatus === "SHIPPED" && obAfterReopen.completedAt === null,
+      { s: reopened.internalStatus, c: obAfterReopen.completedAt }
+    );
+
+    const notifBefore = await prisma.notification.count({
+      where: { entityId: ob.id, title: { contains: "ตีกลับ" } },
+    });
+    await staff.delivery.updateStatus({ id: obDel.id, status: "RETURNED" });
+    const notifAfter = await prisma.notification.count({
+      where: { entityId: ob.id, title: { contains: "ตีกลับ" } },
+    });
+    ok("E4 ของตีกลับ → กระดิ่งแจ้งผู้จัดการ (ห้ามจบเงียบ)", notifAfter > notifBefore, {
+      before: notifBefore,
+      after: notifAfter,
+    });
+    const backToQc = await manager.order.updateStatus({
+      id: ob.id,
+      internalStatus: "QUALITY_CHECK",
+      reason: "ของตีกลับ — ตรวจสภาพก่อนตัดสิน",
+    });
+    ok(
+      "E5 ของตีกลับ → ผู้จัดการดึงงานกลับเข้าวงจรตรวจ-ซ่อมได้ (SHIPPED→QUALITY_CHECK)",
+      backToQc.internalStatus === "QUALITY_CHECK",
+      backToQc.internalStatus
     );
 
     // ============ FLOW C: CUSTOM ลูกค้ามีไฟล์พร้อมพิมพ์ → ข้ามออกแบบ ============

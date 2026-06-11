@@ -52,7 +52,7 @@ export async function transitionOrder(tx: PrismaTx, params: TransitionParams) {
   const data: {
     internalStatus: InternalStatus;
     customerStatus: ReturnType<typeof getCustomerStatus>;
-    completedAt?: Date;
+    completedAt?: Date | null;
     cancelledAt?: Date;
     cancelledReason?: string | null;
   } = {
@@ -60,6 +60,10 @@ export async function transitionOrder(tx: PrismaTx, params: TransitionParams) {
     customerStatus: getCustomerStatus(params.to),
   };
   if (params.to === "COMPLETED") data.completedAt = new Date();
+  // เปิดงานกลับจากปิดแล้ว — ล้างเวลาปิด ไม่งั้นสถิติ "เสร็จเดือนนี้" นับใบที่ยังไม่จบจริง
+  if (order.internalStatus === "COMPLETED" && params.to !== "COMPLETED") {
+    data.completedAt = null;
+  }
   if (params.to === "CANCELLED") {
     data.cancelledAt = new Date();
     data.cancelledReason = params.reason ?? null;

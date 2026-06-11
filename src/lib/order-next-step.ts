@@ -13,6 +13,8 @@ export interface NextStepInput {
   hasPendingDesign: boolean;
   hasApprovedDesign: boolean;
   hasProduction: boolean;
+  // มีใบส่งในระบบแล้วหรือยัง — ตัวตัดสินทางตอนพร้อมส่ง (สร้างใบส่ง vs กดส่งแล้ว)
+  hasDelivery: boolean;
   // วางบิล/ออกใบเสร็จครบยอดหรือยัง (นิยามเดียวกับด่านปิดงาน)
   billingHandled: boolean;
 }
@@ -20,7 +22,7 @@ export interface NextStepInput {
 export type NextStepAction =
   | { type: "EDIT_ITEMS" }
   | { type: "STATUS"; to: string }
-  | { type: "ANCHOR"; target: "billing" | "design" | "production" }
+  | { type: "ANCHOR"; target: "billing" | "design" | "production" | "delivery" }
   | { type: "NONE" };
 
 export interface NextStep {
@@ -138,21 +140,36 @@ export function getOrderNextStep(o: NextStepInput): NextStep | null {
     };
   }
 
-  if (["QUALITY_CHECK", "PACKING", "READY_TO_SHIP"].includes(o.internalStatus)) {
+  if (["QUALITY_CHECK", "PACKING"].includes(o.internalStatus)) {
     const nextMap: Record<string, { to: string; label: string }> = {
       QUALITY_CHECK: { to: "PACKING", label: "ผ่าน QC → แพ็ค" },
       PACKING: { to: "READY_TO_SHIP", label: "แพ็คเสร็จ → พร้อมส่ง" },
-      READY_TO_SHIP: { to: "SHIPPED", label: "ส่งแล้ว" },
     };
     const next = nextMap[o.internalStatus];
     return {
       title: "งานอยู่ช่วงท้าย — เดินสถานะตามจริง",
-      description:
-        o.internalStatus === "READY_TO_SHIP"
-          ? "สร้างรายการจัดส่ง+เลขพัสดุในส่วนจัดส่ง แล้วกดส่งแล้ว"
-          : "เสร็จขั้นนี้แล้วกดไปขั้นถัดไป",
+      description: "เสร็จขั้นนี้แล้วกดไปขั้นถัดไป",
       buttonLabel: next.label,
       action: { type: "STATUS", to: next.to },
+    };
+  }
+
+  if (o.internalStatus === "READY_TO_SHIP") {
+    // ยังไม่มีใบส่ง → พาไปสร้างก่อน (server กันกด "ส่งแล้ว" โดยไม่มีใบส่งอยู่แล้ว) —
+    // เลขพัสดุ/ที่อยู่ต้องอยู่ในระบบ ไม่ใช่ใน LINE
+    if (!o.hasDelivery) {
+      return {
+        title: "สร้างใบส่งของก่อนกดส่ง",
+        description: "บันทึกผู้รับ/ที่อยู่/ขนส่ง — กดส่งของที่ใบส่งแล้วสถานะจะเดินให้เอง",
+        buttonLabel: "ไปส่วนจัดส่ง",
+        action: { type: "ANCHOR", target: "delivery" },
+      };
+    }
+    return {
+      title: "ของพร้อมส่ง — กดส่งที่ใบส่ง",
+      description: "กด \"ส่งของ\" บนใบส่งในส่วนจัดส่ง (ใส่เลขพัสดุ) แล้วออเดอร์เดินเป็นจัดส่งแล้วเอง",
+      buttonLabel: "ไปส่วนจัดส่ง",
+      action: { type: "ANCHOR", target: "delivery" },
     };
   }
 

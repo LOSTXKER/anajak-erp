@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
-import { usePromptText } from "@/components/ui/confirm-dialog";
+import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { PageHeader } from "@/components/page-header";
@@ -86,6 +86,7 @@ export default function OrderDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const promptText = usePromptText();
+  const confirm = useConfirm();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showInfoEditDialog, setShowInfoEditDialog] = useState(false);
 
@@ -125,8 +126,10 @@ export default function OrderDetailPage({
 
   const currentStepIndex = flowSteps.indexOf(order.internalStatus);
 
-  const isTerminal =
-    order.internalStatus === "COMPLETED" || order.internalStatus === "CANCELLED";
+  const isCancelled = order.internalStatus === "CANCELLED";
+  const isCompleted = order.internalStatus === "COMPLETED";
+  // terminal สำหรับปุ่มหลัก — COMPLETED เปิดกลับได้แต่ซ่อนไว้ใน dropdown (ไม่เชียร์ให้กด)
+  const isTerminal = isCancelled || isCompleted;
 
   const isMarketplace = ["SHOPEE", "LAZADA", "TIKTOK"].includes(order.channel);
 
@@ -164,6 +167,12 @@ export default function OrderDetailPage({
   // Handlers
   // ----------------------------------------------------------
   async function handleStatusChange(newStatus: string) {
+    const current = order?.internalStatus ?? "";
+    // ถอยจากจุดที่ประกาศกับลูกค้าแล้ว (ส่งแล้ว/ปิดแล้ว) — server บังคับเหตุผล+ผู้จัดการ
+    const isRollback =
+      current === "COMPLETED" ||
+      (current === "SHIPPED" && ["READY_TO_SHIP", "QUALITY_CHECK"].includes(newStatus));
+
     if (newStatus === "CANCELLED") {
       const reason = await promptText({
         title: "ยกเลิกออเดอร์นี้?",
@@ -173,11 +182,36 @@ export default function OrderDetailPage({
         destructive: true,
       });
       if (reason === null || reason === "") return;
-      updateStatus.mutate({
-        id,
-        internalStatus: newStatus as never,
-        reason,
+      updateStatus.mutate({ id, internalStatus: newStatus as never, reason });
+    } else if (isRollback) {
+      const reason = await promptText({
+        title: current === "COMPLETED" ? "เปิดงานกลับ?" : "ถอยสถานะกลับ?",
+        description:
+          "งานนี้ประกาศส่งแล้ว/ปิดแล้ว — ระบุเหตุผล (เช่น ของตีกลับ/กดพลาด) จะถูกบันทึกในประวัติ",
+        placeholder: "เหตุผล",
+        confirmText: "ยืนยันถอยสถานะ",
+        destructive: true,
       });
+      if (reason === null || reason === "") return;
+      updateStatus.mutate({ id, internalStatus: newStatus as never, reason });
+    } else if (newStatus === "COMPLETED") {
+      const ok = await confirm({
+        title: "ปิดงานออเดอร์นี้?",
+        description:
+          "ปิดแล้วแก้รายการ/ตัวเงินไม่ได้อีก — เปิดกลับได้เฉพาะผู้จัดการพร้อมเหตุผล",
+        confirmText: "ปิดงาน",
+      });
+      if (!ok) return;
+      updateStatus.mutate({ id, internalStatus: newStatus as never });
+    } else if (newStatus === "SHIPPED") {
+      const ok = await confirm({
+        title: "ยืนยันว่าส่งของแล้ว?",
+        description:
+          "แนะนำให้กด \"ส่งของ\" ที่ใบส่งในส่วนจัดส่งแทน — เลขพัสดุจะติดออเดอร์และสถานะเดินให้เอง",
+        confirmText: "ส่งแล้ว",
+      });
+      if (!ok) return;
+      updateStatus.mutate({ id, internalStatus: newStatus as never });
     } else {
       updateStatus.mutate({ id, internalStatus: newStatus as never });
     }
@@ -189,8 +223,13 @@ export default function OrderDetailPage({
     text: "text-slate-700 dark:text-slate-300",
   };
 
-  const primaryNext = forwardStatuses[0];
-  const otherNext = forwardStatuses.slice(1);
+  // COMPLETED: ไม่มีปุ่มหลัก — ทางถอย (เปิดงานกลับ) ทั้งหมดอยู่ใน dropdown
+  const primaryNext = isTerminal ? undefined : forwardStatuses[0];
+  const otherNext = isTerminal ? forwardStatuses : forwardStatuses.slice(1);
+  const statusItemLabel = (status: string) =>
+    isCompleted && status === "SHIPPED"
+      ? "เปิดงานกลับ (→ จัดส่งแล้ว)"
+      : INTERNAL_STATUS_LABELS[status as keyof typeof INTERNAL_STATUS_LABELS];
   const dropdownItemClass =
     "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 outline-none data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white";
 
@@ -239,7 +278,7 @@ export default function OrderDetailPage({
               </Button>
             )}
 
-            {!isTerminal && (
+            {!isCancelled && (
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
@@ -287,7 +326,7 @@ export default function OrderDetailPage({
                             disabled={updateStatus.isPending}
                           >
                             <ChevronRight className="h-4 w-4" />
-                            {INTERNAL_STATUS_LABELS[status]}
+                            {statusItemLabel(status)}
                           </DropdownMenu.Item>
                         ))}
                       </>

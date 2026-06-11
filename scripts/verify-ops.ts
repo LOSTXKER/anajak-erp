@@ -139,9 +139,18 @@ async function main() {
     );
 
     // ---------- 2) ปิดงานต้องวางบิลครบ ----------
-    for (const status of ["QUALITY_CHECK", "PACKING", "READY_TO_SHIP", "SHIPPED"] as const) {
+    for (const status of ["QUALITY_CHECK", "PACKING", "READY_TO_SHIP"] as const) {
       await caller.order.updateStatus({ id: o1.id, internalStatus: status });
     }
+    // กดส่งมือต้องมีใบส่งแล้ว (audit ข้อ 22) — ส่งผ่านใบส่งตามทางจริง
+    const o1Del = await caller.delivery.create({
+      orderId: o1.id,
+      recipientName: "ผู้รับทดสอบ",
+      phone: "0800000000",
+      address: "1 ถ.ทดสอบ",
+      shippingMethod: "KERRY",
+    });
+    await caller.delivery.updateStatus({ id: o1Del.id, status: "SHIPPED" });
     await expectError(
       "2.1 ปิดงานทั้งที่ยังไม่วางบิล → ปฏิเสธ",
       () => caller.order.updateStatus({ id: o1.id, internalStatus: "COMPLETED" }),

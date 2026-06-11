@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { byIdInput } from "@/server/schemas";
-import { createAuditLog } from "@/server/helpers";
+import { createAuditLog, createNotification } from "@/server/helpers";
 import { advanceOrderForward } from "@/server/services/order-status";
 
 const salesOrProduction = requireRole("OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF");
@@ -170,6 +170,30 @@ export const deliveryRouter = router({
               target: "SHIPPED",
               changedBy: ctx.userId,
               onlyFrom: ["PACKING", "READY_TO_SHIP"],
+            });
+          }
+        }
+
+        // ของตีกลับ = งานด่วนที่ต้องมีคนตัดสิน (ซ่อม/ส่งใหม่/ลดหนี้) — กระดิ่งหาผู้จัดการทันที
+        // ห้ามจบเงียบ (audit ข้อ 24 · ถอยออเดอร์กลับ QC ทำผ่านปุ่มสถานะ โดยผู้จัดการ+เหตุผล)
+        if (input.status === "RETURNED") {
+          const order = await tx.order.findUniqueOrThrow({
+            where: { id: delivery.orderId },
+            select: { id: true, orderNumber: true, title: true },
+          });
+          const managers = await tx.user.findMany({
+            where: { role: { in: ["OWNER", "MANAGER"] }, isActive: true },
+            select: { id: true },
+          });
+          for (const m of managers) {
+            await createNotification(tx, {
+              userId: m.id,
+              type: "ORDER",
+              title: `ของถูกตีกลับ — ${order.orderNumber}`,
+              message: `${order.title} · ตัดสินใจ: ซ่อม/ส่งใหม่/ลดหนี้ (ถอยสถานะกลับตรวจ QC ได้จากหน้าออเดอร์)`,
+              link: `/orders/${order.id}`,
+              entityType: "ORDER",
+              entityId: order.id,
             });
           }
         }

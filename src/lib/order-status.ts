@@ -174,14 +174,24 @@ export function getNextStatuses(
   orderType: OrderType,
   currentStatus: InternalStatus
 ): InternalStatus[] {
-  if (currentStatus === "COMPLETED" || currentStatus === "CANCELLED") {
+  if (currentStatus === "CANCELLED") {
     return [];
   }
 
-  // ON_HOLD can return to any status it was held from (stored separately);
-  // for simplicity, allow returning to key statuses
+  // ปิดงานแล้วเปิดกลับได้ทางเดียว (→ SHIPPED) — สำหรับเคสปิดพลาด/ลูกค้าเคลมหลังปิด
+  // server จำกัด OWNER/MANAGER + ต้องมีเหตุผล (audit 2026-06-11 ข้อ 25)
+  if (currentStatus === "COMPLETED") {
+    return ["SHIPPED"];
+  }
+
+  // ON_HOLD กลับเข้างานเฉพาะจุดที่อยู่ในเส้นทางของชนิดงานจริง — READY_MADE ไม่มีขั้นออกแบบ
+  // เสนอ DESIGNING ให้ = พาเข้าซอยตัน (audit ข้อ 31)
   if (currentStatus === "ON_HOLD") {
-    return ["CONFIRMED", "DESIGNING", "PRODUCTION_QUEUE", "CANCELLED"];
+    const resumable: InternalStatus[] = ["CONFIRMED", "DESIGNING", "PRODUCTION_QUEUE"];
+    return [
+      ...resumable.filter((s) => FLOW_BY_TYPE[orderType].includes(s)),
+      "CANCELLED",
+    ];
   }
 
   // DRAFT can transition to the first real status for its type
@@ -208,6 +218,15 @@ export function getNextStatuses(
   }
   if (currentStatus === "PRODUCING") {
     next.push("PRODUCTION_QUEUE");
+  }
+  // SHIPPED ถอยได้ 2 ทาง (server จำกัด OWNER/MANAGER + เหตุผล — audit ข้อ 22/24):
+  // กดส่งพลาด → READY_TO_SHIP · ของตีกลับ/เคลม → QUALITY_CHECK กลับเข้าวงจรตรวจ-ซ่อม
+  if (currentStatus === "SHIPPED") {
+    next.push("READY_TO_SHIP", "QUALITY_CHECK");
+  }
+  // ลูกค้าเปลี่ยนใจหลังอนุมัติแบบ — กลับเข้าวงจรออกแบบได้ตรงๆ ไม่ต้องอ้อม ON_HOLD (audit ข้อ 14)
+  if (currentStatus === "DESIGN_APPROVED") {
+    next.push("DESIGNING");
   }
 
   // INQUIRY -> CONFIRMED ได้ทุกชนิด — จำเป็นกับเคส READY_MADE ที่ค้าง INQUIRY

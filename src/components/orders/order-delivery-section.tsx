@@ -181,7 +181,7 @@ export function OrderDeliverySection({
 
   return (
     <>
-      <Card>
+      <Card id="order-section-delivery" className="scroll-mt-20">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">

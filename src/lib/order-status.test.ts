@@ -31,16 +31,22 @@ describe("isValidTransition — เส้นทางหลัก", () => {
     expect(isValidTransition("CUSTOM", "INQUIRY", "SHIPPED")).toBe(false);
   });
 
-  it("สถานะจบงาน (COMPLETED/CANCELLED) ออกไปไหนไม่ได้อีก", () => {
-    expect(getNextStatuses("CUSTOM", "COMPLETED")).toEqual([]);
+  it("CANCELLED = ตันถาวร · COMPLETED เปิดกลับได้ทางเดียว (→ SHIPPED — ผู้จัดการ+เหตุผล ฝั่ง server)", () => {
     expect(getNextStatuses("CUSTOM", "CANCELLED")).toEqual([]);
+    expect(getNextStatuses("CUSTOM", "COMPLETED")).toEqual(["SHIPPED"]);
   });
 
   it("ถอยหลังเฉพาะคู่ที่อนุญาต", () => {
     expect(isValidTransition("CUSTOM", "QUALITY_CHECK", "PRODUCING")).toBe(true);
     expect(isValidTransition("CUSTOM", "PACKING", "QUALITY_CHECK")).toBe(true);
     expect(isValidTransition("CUSTOM", "PRODUCING", "PRODUCTION_QUEUE")).toBe(true);
-    expect(isValidTransition("CUSTOM", "DESIGN_APPROVED", "DESIGNING")).toBe(false);
+    // audit 2026-06-11: ลูกค้าเปลี่ยนใจหลังอนุมัติแบบ → กลับเข้าวงจรออกแบบตรงได้
+    expect(isValidTransition("CUSTOM", "DESIGN_APPROVED", "DESIGNING")).toBe(true);
+    // audit: กดส่งพลาด → ถอยพร้อมส่ง · ของตีกลับ/เคลม → กลับเข้าตรวจ QC
+    expect(isValidTransition("CUSTOM", "SHIPPED", "READY_TO_SHIP")).toBe(true);
+    expect(isValidTransition("CUSTOM", "SHIPPED", "QUALITY_CHECK")).toBe(true);
+    // ถอยข้ามขั้นอื่นยังห้ามเหมือนเดิม
+    expect(isValidTransition("CUSTOM", "SHIPPED", "PRODUCING")).toBe(false);
   });
 
   it("ยกเลิกได้จากสถานะทำงานทุกตัว", () => {
@@ -49,10 +55,16 @@ describe("isValidTransition — เส้นทางหลัก", () => {
     }
   });
 
-  it("ON_HOLD กลับเข้างานได้เฉพาะจุดที่กำหนด", () => {
+  it("ON_HOLD กลับเข้างานเฉพาะจุดที่อยู่ในเส้นทางของชนิดงานจริง", () => {
     expect(getNextStatuses("CUSTOM", "ON_HOLD")).toEqual([
       "CONFIRMED",
       "DESIGNING",
+      "PRODUCTION_QUEUE",
+      "CANCELLED",
+    ]);
+    // READY_MADE ไม่มีขั้นออกแบบ — ห้ามเสนอ DESIGNING (ซอยตัน)
+    expect(getNextStatuses("READY_MADE", "ON_HOLD")).toEqual([
+      "CONFIRMED",
       "PRODUCTION_QUEUE",
       "CANCELLED",
     ]);

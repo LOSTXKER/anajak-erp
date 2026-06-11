@@ -19,7 +19,10 @@ import type { InternalStatus, OrderType, TaxLineType } from "@prisma/client";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ = งานขายขึ้นไปตามตาราง RBAC §7
 const salesUp = requireRole("OWNER", "MANAGER", "SALES");
-const orderOps = requireRole("OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF");
+// ทุก role มีขั้นของตัวเองบนเส้นออเดอร์ — แต่ละ role ถูกจำกัดสถานะเป้าหมายด้านล่าง
+const orderOps = requireRole(
+  "OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF", "DESIGNER", "ACCOUNTANT"
+);
 
 // PRODUCTION_STAFF เปลี่ยนได้เฉพาะสถานะฝั่งผลิต-จัดส่ง — ปิดงาน/ยกเลิก/ฝั่งขาย-ออกแบบไม่ได้
 const PRODUCTION_STAFF_STATUSES: InternalStatus[] = [
@@ -29,6 +32,11 @@ const PRODUCTION_STAFF_STATUSES: InternalStatus[] = [
   "READY_TO_SHIP",
   "SHIPPED",
 ];
+// DESIGNER: รับงานเข้าออกแบบเอง (CONFIRMED→DESIGNING) เท่านั้น — ตัดสินแบบมีเส้นทาง
+// อนุมัติแยกอยู่แล้ว (design.approve = ฝั่งขาย) · ACCOUNTANT: ปิดงานหลังวางบิลครบเท่านั้น
+// (my-tasks มอบขั้น "ปิดงาน" ให้บัญชี — คนเดียวที่รู้ว่าบิลครบจริง · audit ข้อ 16/27)
+const DESIGNER_STATUSES: InternalStatus[] = ["DESIGNING"];
+const ACCOUNTANT_STATUSES: InternalStatus[] = ["COMPLETED"];
 
 // ============================================================
 // SCHEMAS
@@ -643,6 +651,49 @@ export const orderRouter = router({
             code: "FORBIDDEN",
             message: "ฝ่ายผลิตเปลี่ยนได้เฉพาะสถานะฝั่งผลิต-จัดส่งเท่านั้น",
           });
+        }
+      }
+      if (ctx.userRole === "DESIGNER" && !DESIGNER_STATUSES.includes(input.internalStatus)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "กราฟิกเปลี่ยนสถานะได้เฉพาะรับงานเข้าออกแบบเท่านั้น",
+        });
+      }
+      if (ctx.userRole === "ACCOUNTANT" && !ACCOUNTANT_STATUSES.includes(input.internalStatus)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "บัญชีเปลี่ยนสถานะได้เฉพาะปิดงานหลังวางบิลครบเท่านั้น",
+        });
+      }
+
+      // ถอยกลับจากจุดที่ประกาศกับลูกค้าแล้ว (ส่งแล้ว/ปิดงานแล้ว) = เรื่องใหญ่ —
+      // ผู้จัดการขึ้นไป + ต้องมีเหตุผลบันทึกเสมอ (audit ข้อ 22/24/25)
+      const isRollback =
+        old.internalStatus === "COMPLETED" ||
+        (old.internalStatus === "SHIPPED" &&
+          ["READY_TO_SHIP", "QUALITY_CHECK"].includes(input.internalStatus));
+      if (isRollback) {
+        if (!["OWNER", "MANAGER"].includes(ctx.userRole ?? "")) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "ถอยสถานะจากส่งแล้ว/ปิดงานแล้ว ต้องเป็นผู้จัดการขึ้นไป",
+          });
+        }
+        if (!input.reason?.trim()) {
+          badRequest("ถอยสถานะจากส่งแล้ว/ปิดงานแล้ว ต้องระบุเหตุผล (จะถูกบันทึกในประวัติ)");
+        }
+      }
+
+      // กดส่งแล้วด้วยมือ ต้องมีใบส่งในระบบก่อน — กันข้อมูลส่ง (เลขพัสดุ/ที่อยู่) หายนอกระบบ
+      // (เส้นทางหลักคือกดส่งที่ใบส่ง แล้วออเดอร์เด้งเอง · audit ข้อ 22)
+      if (input.internalStatus === "SHIPPED" && old.internalStatus !== "SHIPPED") {
+        const deliveryCount = await ctx.prisma.delivery.count({
+          where: { orderId: input.id },
+        });
+        if (deliveryCount === 0) {
+          badRequest(
+            'ยังไม่มีใบส่งของ — สร้างใบส่งในส่วน "จัดส่ง" ก่อน (กดส่งของที่ใบส่งแล้วสถานะออเดอร์จะเดินให้เอง)'
+          );
         }
       }
 

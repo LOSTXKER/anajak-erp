@@ -19,13 +19,14 @@ interface OrderNextStepProps {
     invoices?: { type: string; totalAmount: number; isVoided: boolean }[];
     designs?: { approvalStatus: string }[];
     productions?: unknown[];
+    deliveries?: unknown[];
   };
   onEditItems: () => void;
   onStatusChange: (status: string) => void;
   statusPending?: boolean;
 }
 
-function scrollToSection(target: "billing" | "design" | "production") {
+function scrollToSection(target: "billing" | "design" | "production" | "delivery") {
   document
     .getElementById(`order-section-${target}`)
     ?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -57,6 +58,7 @@ export function OrderNextStep({
     hasPendingDesign: (order.designs ?? []).some((d) => d.approvalStatus === "PENDING"),
     hasApprovedDesign: (order.designs ?? []).some((d) => d.approvalStatus === "APPROVED"),
     hasProduction: (order.productions ?? []).length > 0,
+    hasDelivery: (order.deliveries ?? []).length > 0,
     billingHandled:
       order.totalAmount <= 0 || Math.max(billed, receipted) >= order.totalAmount,
   };
