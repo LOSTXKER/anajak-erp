@@ -29,15 +29,9 @@ export function OrderStatusBar({
 
   return (
     <div className="rounded-2xl border border-slate-200/70 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
-      {/* on-path = แค่ chip "ขั้น x/y" มุมขวา (ชื่อสถานะอยู่ในแถบแล้ว ไม่ซ้ำ — เบสชี้ 2026-06-12)
-          นอกเส้นทาง/ยกเลิก = โชว์ชื่อสถานะ เพราะแถบด้านล่างไม่ไฮไลต์ขั้นปัจจุบัน */}
-      {onPath ? (
-        <div className="mb-3 flex items-center justify-end">
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            ขั้น {currentStepIndex + 1}/{flowSteps.length}
-          </span>
-        </div>
-      ) : (
+      {/* on-path: ไม่มีหัว — progressbar ล้วน (ขั้นปัจจุบันเด่นในแถบบอกสถานะแล้ว เบสชี้ 2026-06-12)
+          นอกเส้นทาง/ยกเลิก: โชว์ชื่อสถานะ เพราะแถบด้านล่างไม่ไฮไลต์ขั้นปัจจุบัน */}
+      {!onPath && (
         <div className="mb-3 flex items-center gap-2">
           <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", dotColor)} />
           <span className="text-sm font-semibold text-slate-900 dark:text-white">
