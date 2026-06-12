@@ -15,6 +15,7 @@ import {
   Factory,
   Printer,
   Flame,
+  Package,
   Truck,
   Palette,
   ShoppingCart,
@@ -136,6 +137,7 @@ export default function MyTasksPage() {
   const production = data?.production ?? [];
   const printQueue = data?.printQueue ?? [];
   const pressQueue = data?.pressQueue ?? [];
+  const packQueue = data?.packQueue ?? [];
   const awaitingProduction = data?.awaitingProduction ?? [];
   const design = data?.design ?? [];
   const followUp = data?.followUp ?? [];
@@ -153,6 +155,7 @@ export default function MyTasksPage() {
     production.length +
     printQueue.length +
     pressQueue.length +
+    packQueue.length +
     awaitingProduction.length +
     design.length +
     followUp.length +
@@ -255,6 +258,20 @@ export default function MyTasksPage() {
                   </span>
                 ) : undefined
               }
+            />
+          ))}
+        </TaskSection>
+      )}
+
+      {packQueue.length > 0 && (
+        <TaskSection icon={Package} title="คิวแพ็ค" count={packQueue.length}>
+          {packQueue.map((q) => (
+            <TaskRow
+              key={q.stepId}
+              href={`/production/${q.productionId}`}
+              primary={q.title}
+              secondary={`${q.orderNumber} · ${q.customerName}`}
+              meta={<DeadlineChip deadline={q.deadline} />}
             />
           ))}
         </TaskSection>

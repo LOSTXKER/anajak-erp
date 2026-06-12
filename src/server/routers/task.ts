@@ -1,6 +1,6 @@
 import { router, protectedProcedure } from "../trpc";
 import { getPrintQueue } from "@/server/services/print-run";
-import { evaluateHeatPressGate } from "@/lib/production-steps";
+import { evaluateHeatPressGate, laneOf } from "@/lib/production-steps";
 
 // "งานของฉันวันนี้" — รวมสิ่งที่ค้างอยู่บนโต๊ะของผู้ใช้ตามบทบาท จุดเดียว
 // ทุก role เรียกได้ แต่ section จะมีข้อมูลเฉพาะที่เกี่ยวกับบทบาทตัวเอง
@@ -13,6 +13,12 @@ const FINANCE_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
 // กองย่อยจอเช้าแอดมิน — นับทั้งกอง (เท่าที่ดึง) + โชว์รายการย่อ 5 แถวแรกพอให้กดต่อ
 function pile<T>(items: T[]) {
   return { count: items.length, items: items.slice(0, 5) };
+}
+
+// ด่านแพ็ค: แพ็คได้จริงต่อเมื่อทุกขั้นนอกเลน PACK ของใบผลิตจบครบ —
+// มติเดียวกับคิวรีด: งานติดเงื่อนไขห้ามโผล่ในคิวช่าง (คนแพ็คไม่ต้องไล่ถามว่าสายไหนยังค้าง)
+function packGateReady(steps: { stepType: string; status: string }[]) {
+  return steps.every((s) => laneOf(s.stepType) === "PACK" || s.status === "COMPLETED");
 }
 
 export const taskRouter = router({
@@ -28,13 +34,16 @@ export const taskRouter = router({
     } as const;
 
     // ---- งานผลิตของฉัน: ขั้นตอนที่ยังไม่เสร็จ (staff = ของฉัน/ยังไม่มีเจ้าของ · หัวหน้า = ทั้งหมด)
-    // รวม FAILED/ON_HOLD ด้วย — งานมีปัญหาคืองานด่วนสุด ต้องเด่นในคิว ไม่ใช่หาย (audit ข้อ 20) ----
+    // รวม FAILED/ON_HOLD ด้วย — งานมีปัญหาคืองานด่วนสุด ต้องเด่นในคิว ไม่ใช่หาย (audit ข้อ 20)
+    // ไม่รวม DTF_PRINT/HEAT_PRESS — สองขั้นนี้มีคิวเฉพาะที่กรองเงื่อนไขแล้ว (printQueue/pressQueue)
+    // โผล่ที่นี่ซ้ำ = รั่วงานติดเงื่อนไขเข้าคิวช่าง · ขั้นแพ็คก็กรองด้วยด่านแพ็คด้านล่าง ----
     const PROBLEM_FIRST: Record<string, number> = { FAILED: 0, ON_HOLD: 1, IN_PROGRESS: 2, PENDING: 3 };
     const production = PRODUCTION_ROLES.includes(role)
       ? await ctx.prisma.productionStep
           .findMany({
             where: {
               status: { in: ["PENDING", "IN_PROGRESS", "FAILED", "ON_HOLD"] },
+              stepType: { notIn: ["DTF_PRINT", "HEAT_PRESS"] },
               production: {
                 order: { internalStatus: { in: ["PRODUCTION_QUEUE", "PRODUCING"] } },
               },
@@ -48,13 +57,22 @@ export const taskRouter = router({
               customStepName: true,
               status: true,
               assignedTo: { select: { id: true, name: true } },
-              production: { select: { id: true, order: { select: orderSelect } } },
+              production: {
+                select: {
+                  id: true,
+                  // ขั้นทั้งใบผลิต — ด่านแพ็คต้องเห็นว่าสายอื่นจบครบหรือยัง
+                  steps: { select: { stepType: true, status: true } },
+                  order: { select: orderSelect },
+                },
+              },
             },
             orderBy: [{ production: { order: { deadline: "asc" } } }, { sortOrder: "asc" }],
             take: 100,
           })
           .then((steps) =>
             steps
+              // ขั้นแพ็คที่ของยังไม่พร้อม (สายอื่นยังไม่จบครบ) ห้ามโผล่ — ยังแพ็คไม่ได้จริง
+              .filter((s) => laneOf(s.stepType) !== "PACK" || packGateReady(s.production.steps))
               .map((s) => ({
                 stepId: s.id,
                 stepType: s.stepType,
@@ -128,6 +146,63 @@ export const taskRouter = router({
                 qtyTotal: s.qtyTotal,
               }))
           )
+      : [];
+
+    // ---- คิวแพ็ค: ขั้นแพ็คที่ของพร้อมแพ็คจริงเท่านั้น (ทุกขั้นนอกเลน PACK จบครบ) —
+    // งานติดเงื่อนไขห้ามโผล่ในคิวช่าง (คนแพ็คไม่ต้องเดินไปไล่เช็คว่าสายไหนยังค้าง) ----
+    const packQueue = PRODUCTION_ROLES.includes(role)
+      ? await ctx.prisma.productionStep
+          .findMany({
+            where: {
+              // เลน PACK ปัจจุบันมีขั้นเดียวคือ PACKAGING (ดู STEP_LANE)
+              stepType: "PACKAGING",
+              status: { in: ["PENDING", "IN_PROGRESS"] },
+              production: { order: { internalStatus: { notIn: ["CANCELLED", "ON_HOLD"] } } },
+              ...(role === "PRODUCTION_STAFF"
+                ? { OR: [{ assignedToId: ctx.userId }, { assignedToId: null }] }
+                : {}),
+            },
+            select: {
+              id: true,
+              production: {
+                select: {
+                  id: true,
+                  // ขั้นทั้งใบผลิต — ด่านแพ็คต้องเห็นว่าสายอื่นจบครบหรือยัง
+                  steps: { select: { stepType: true, status: true } },
+                  order: {
+                    select: {
+                      orderNumber: true,
+                      title: true,
+                      deadline: true,
+                      customer: { select: { name: true } },
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: [{ production: { order: { deadline: "asc" } } }, { sortOrder: "asc" }],
+            take: 100,
+          })
+          .then((steps) => {
+            // ใบผลิตเดียวอาจมีขั้นแพ็คค้างหลายขั้น — เอาเฉพาะขั้นแรกที่ค้าง (เรียง sortOrder มาแล้ว)
+            const seen = new Set<string>();
+            return steps
+              .filter((s) => packGateReady(s.production.steps))
+              .filter((s) => {
+                if (seen.has(s.production.id)) return false;
+                seen.add(s.production.id);
+                return true;
+              })
+              .slice(0, 8)
+              .map((s) => ({
+                stepId: s.id,
+                productionId: s.production.id,
+                orderNumber: s.production.order.orderNumber,
+                title: s.production.order.title,
+                customerName: s.production.order.customer.name,
+                deadline: s.production.order.deadline,
+              }));
+          })
       : [];
 
     // ---- รอเปิดใบผลิต: ออเดอร์เข้าคิว/แบบผ่านแล้ว แต่ยังไม่มีใบผลิต — ก่อนหน้านี้หายจากทุกจอ
@@ -351,6 +426,7 @@ export const taskRouter = router({
       production,
       printQueue,
       pressQueue,
+      packQueue,
       awaitingProduction,
       design,
       followUp,

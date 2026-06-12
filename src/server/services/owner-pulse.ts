@@ -83,6 +83,9 @@ export async function getOwnerPulse(prisma: ExtendedPrismaClient): Promise<Owner
       where: {
         internalStatus: { notIn: [...ACTIVE_ORDER_STATUSES_EXCLUDED, "DRAFT"] },
         updatedAt: { lt: stuckBefore },
+        // อัปเดตขั้นผลิตไม่แตะ order.updatedAt — เช็คประวัติ (revision) ประกอบ
+        // กันงานที่กำลังเดินจริงถูกนับเป็นติดหล่ม
+        revisions: { none: { createdAt: { gte: stuckBefore } } },
       },
     }),
   ]);

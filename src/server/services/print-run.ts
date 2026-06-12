@@ -99,8 +99,9 @@ export async function getPrintQueue(prisma: ExtendedPrismaClient): Promise<Print
     if (!fileReady) continue; // งานไฟล์ไม่พร้อมไม่โผล่ในคิวนี้เลย (มติ flow-redesign)
     const orderQty = order.items.reduce((sum, it) => sum + it.totalQuantity, 0);
     const qtyTotal = s.qtyTotal ?? orderQty;
+    if (qtyTotal <= 0) continue; // ไม่รู้จำนวน (ออเดอร์ไม่มีรายการ) — กัน entry ผีที่เข้ารอบไม่ได้
     const remaining = Math.max(0, qtyTotal - s.qtyDone);
-    if (qtyTotal > 0 && remaining === 0) continue; // พิมพ์ครบแล้ว (รอรอบเก่าปิดขั้น)
+    if (remaining === 0) continue; // พิมพ์ครบแล้ว (รอรอบเก่าปิดขั้น)
     entries.push({
       stepId: s.id,
       productionId: s.productionId,
@@ -142,7 +143,8 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
 
   return prisma.$transaction(async (tx) => {
     // lock ทุกขั้นก่อนตรวจ — กันสองรอบเปิดทับงานเดียวกันพร้อมกัน
-    for (const stepId of stepIds) {
+    // เรียง id เสมอ: ทุก path (เปิด/ปิด/ยกเลิกรอบ) ขอ lock ลำดับ global เดียวกัน กัน deadlock
+    for (const stepId of [...stepIds].sort()) {
       await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${stepId} FOR UPDATE`;
     }
 
@@ -183,8 +185,14 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
       if (step.stepType !== "DTF_PRINT") {
         badRequest(`งาน ${order.orderNumber}: รอบพิมพ์รับเฉพาะขั้นพิมพ์ฟิล์ม DTF`);
       }
-      if (step.status === "COMPLETED") {
-        badRequest(`งาน ${order.orderNumber}: ขั้นพิมพ์ฟิล์มปิดไปแล้ว`);
+      // จอค้างเก่าพางานที่ถูกยกเลิก/พักเข้ารอบได้ — เช็คซ้ำฝั่ง server เสมอ (เปลืองม้วนจริง)
+      if (order.internalStatus === "CANCELLED" || order.internalStatus === "ON_HOLD") {
+        badRequest(`งาน ${order.orderNumber}: ออเดอร์ถูกยกเลิก/พักแล้ว — รีเฟรชคิวก่อน`);
+      }
+      if (step.status !== "PENDING" && step.status !== "IN_PROGRESS") {
+        badRequest(
+          `งาน ${order.orderNumber}: ขั้นพิมพ์ฟิล์มไม่อยู่สถานะที่เข้ารอบได้ (${step.status}) — งานมีปัญหา/ถูกพักให้แก้ที่หน้าใบผลิตก่อน`
+        );
       }
       if (step.printRunItems.length > 0) {
         badRequest(`งาน ${order.orderNumber}: อยู่ในรอบพิมพ์อื่นที่ยังไม่จบ`);
@@ -297,7 +305,11 @@ export async function completePrintRun(
     );
 
     const touchedProductions = new Set<string>();
-    for (const item of run.items) {
+    // เรียงตาม stepId — ลำดับ lock global เดียวกับเปิด/ยกเลิกรอบ (กัน deadlock)
+    const sortedItems = [...run.items].sort((a, b) =>
+      a.productionStepId.localeCompare(b.productionStepId)
+    );
+    for (const item of sortedItems) {
       // pattern เดียวกับ outsource QC_PASSED — lock แถวขั้นก่อนอ่าน-เขียน qty
       await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${item.productionStepId} FOR UPDATE`;
       const bumped = await tx.productionStep.update({
@@ -375,6 +387,7 @@ export async function cancelPrintRun(prisma: ExtendedPrismaClient, runId: string
     const items = await tx.printRunItem.findMany({
       where: { printRunId: runId },
       select: { productionStepId: true },
+      orderBy: { productionStepId: "asc" }, // ลำดับ lock global เดียวกันทุก path
     });
     for (const item of items) {
       await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${item.productionStepId} FOR UPDATE`;

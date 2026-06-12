@@ -128,16 +128,14 @@ export default function DashboardPage() {
               sub={`เลยกำหนดรับ ${pulse.outsource.overduePickup}`}
               subTone={pulse.outsource.overduePickup > 0 ? "danger" : undefined}
             />
+            {/* open = ขั้นค้างทั้งระบบ ไม่ใช่ของวันนี้ — ห้ามเอามารวมเป็นตัวส่วน
+                ของ done (สื่อผิดว่า "วันนี้ต้องทำอีกเท่านี้") · แยกเป็นบรรทัดรองแทน */}
             <PulseCard
               href="/production"
-              title="คิววันนี้"
-              value={`${pulse.todayQueue.done}/${pulse.todayQueue.done + pulse.todayQueue.open}`}
-              tone={
-                pulse.todayQueue.done + pulse.todayQueue.open === 0
-                  ? "muted"
-                  : undefined
-              }
-              sub="เสร็จแล้ว/ทั้งหมด"
+              title="เสร็จวันนี้"
+              value={pulse.todayQueue.done}
+              tone={pulse.todayQueue.done === 0 ? "muted" : undefined}
+              sub={`ค้างทั้งหมด ${pulse.todayQueue.open} ขั้น`}
             />
             <PulseCard
               href="/billing"

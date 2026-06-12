@@ -650,6 +650,9 @@ function LaneCardView({
     latestOutsource && OUTSOURCE_ACTIVE_STATUSES.includes(latestOutsource.status)
       ? latestOutsource
       : null;
+  // ขั้นอยู่ในรอบพิมพ์ค้าง (server กรองมาเฉพาะ PRINTING/PRINTED แล้ว) — updateStep ถูก
+  // บล็อกฝั่ง server ปุ่มเริ่ม/เสร็จกดได้แต่ error → สลับเป็นลิงก์ไปหน้ารอบพิมพ์แทน
+  const activePrintRun = step.printRunItems[0]?.printRun ?? null;
   // ช่างแตะได้เฉพาะงานของตัวเอง/งานที่ยังไม่มีเจ้าของ (ตรง server) — ปุ่มบนงานของ
   // คนอื่นกดแล้ว FORBIDDEN แน่นอน จึงไม่โชว์ แสดงชื่อเจ้าของแทน
   const ownedByOther =
@@ -730,6 +733,13 @@ function LaneCardView({
           {step.status === "FAILED" ? (
             <Button variant="outline" size="sm" asChild className="h-9 w-full">
               <Link href={href}>มีปัญหา — เปิดดู</Link>
+            </Button>
+          ) : activePrintRun ? (
+            <Button variant="outline" size="sm" asChild className="h-9 w-full gap-1.5">
+              <Link href="/production/print-runs">
+                <Printer className="h-3.5 w-3.5" />
+                อยู่ในรอบพิมพ์ {activePrintRun.runNumber} — เปิดดู
+              </Link>
             </Button>
           ) : latestOutsource?.status === "QC_FAILED" && step.status !== "COMPLETED" ? (
             <Button variant="outline" size="sm" asChild className="h-9 w-full">

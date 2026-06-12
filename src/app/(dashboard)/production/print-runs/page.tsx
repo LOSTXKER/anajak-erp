@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryError } from "@/components/ui/query-error";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   Dialog,
@@ -211,7 +212,10 @@ export default function PrintRunsPage() {
 
       {/* ── รอบค้าง — กำลังพิมพ์ / รอตัดแยก+ติดป้าย ── */}
       <BlockSection icon={Printer} title="รอบค้าง" count={activeRuns.length}>
-        {activeRuns.length === 0 ? (
+        {/* query พัง (เน็ต/สิทธิ์) ต้องบอกตรงๆ + ปุ่มลองใหม่ — ห้ามโชว์ "ว่าง" หลอก */}
+        {listQuery.isError ? (
+          <QueryError onRetry={() => listQuery.refetch()} />
+        ) : activeRuns.length === 0 ? (
           <EmptyState
             icon={Printer}
             title="ยังไม่มีรอบค้าง"
@@ -240,7 +244,9 @@ export default function PrintRunsPage() {
         count={queue.length}
         hint="เฉพาะงานไฟล์พร้อม · เรียงตามกำหนดส่ง"
       >
-        {queue.length === 0 ? (
+        {queueQuery.isError ? (
+          <QueryError onRetry={() => queueQuery.refetch()} />
+        ) : queue.length === 0 ? (
           <EmptyState
             icon={Film}
             title="คิวพิมพ์ว่าง"
@@ -265,7 +271,9 @@ export default function PrintRunsPage() {
 
       {/* ── ประวัติรอบ 7 วันล่าสุด ── */}
       <BlockSection icon={History} title="ประวัติรอบ (7 วันล่าสุด)" count={historyRuns.length}>
-        {historyRuns.length === 0 ? (
+        {listQuery.isError ? (
+          <QueryError onRetry={() => listQuery.refetch()} />
+        ) : historyRuns.length === 0 ? (
           <EmptyState
             icon={History}
             title="ยังไม่มีประวัติรอบใน 7 วันล่าสุด"

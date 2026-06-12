@@ -398,6 +398,16 @@ export async function syncProductPage(
         where: { role: { in: ["OWNER", "MANAGER"] }, isActive: true },
         select: { id: true },
       });
+      // sync เต็มรอบวิ่งทีละหน้า (และ sync รอบแรกหลังเปลี่ยนฐานเป็น lastCost จะเบี่ยงเยอะ)
+      // — กันกระดิ่งรัว: เตือนซ้ำชนิดเดียวกันไม่ถี่กว่า 1 ชม./คน
+      const recentAlert = await prisma.notification.findFirst({
+        where: {
+          type: "COST_DEVIATION",
+          createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) },
+        },
+        select: { id: true },
+      });
+      if (recentAlert) return result;
       const top = result.costDeviations
         .slice(0, 5)
         .map((d) => `${d.sku}: ${d.oldCost.toLocaleString()}→${d.newCost.toLocaleString()} บ.`)

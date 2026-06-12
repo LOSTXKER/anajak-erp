@@ -52,6 +52,15 @@ const stepSelect = {
       vendor: { select: { id: true, name: true } },
     },
   },
+  // ขั้นที่อยู่ในรอบพิมพ์ค้าง (PRINTING/PRINTED) — UI สลับปุ่ม เริ่ม/เสร็จ เป็นลิงก์ไปหน้า
+  // รอบพิมพ์ (updateStep ของขั้นพวกนี้ถูก server บล็อกแล้ว) · ไม่มี field เงิน — ปลอดภัยทุก role
+  // (assert ชนิด array กัน as const ทำให้กลาย readonly ซึ่ง Prisma ไม่รับ)
+  printRunItems: {
+    where: {
+      printRun: { status: { in: ["PRINTING", "PRINTED"] as ("PRINTING" | "PRINTED")[] } },
+    },
+    select: { printRun: { select: { runNumber: true, status: true } } },
+  },
 } as const;
 
 export const productionRouter = router({
@@ -203,6 +212,12 @@ export const productionRouter = router({
                     expectedBackAt: true,
                     vendor: { select: { name: true } },
                   },
+                },
+                // ขั้นที่อยู่ในรอบพิมพ์ค้าง — การ์ดเลนสลับปุ่ม เริ่ม/เสร็จ เป็นลิงก์ไป
+                // หน้ารอบพิมพ์ (updateStep ถูก server บล็อกแล้ว ปุ่มเดิมกดได้แต่ error)
+                printRunItems: {
+                  where: { printRun: { status: { in: ["PRINTING", "PRINTED"] } } },
+                  select: { printRun: { select: { runNumber: true, status: true } } },
                 },
               },
             },
@@ -401,6 +416,30 @@ export const productionRouter = router({
             throw new TRPCError({
               code: "FORBIDDEN",
               message: "งานนี้ถูกมอบหมายให้คนอื่นแล้ว",
+            });
+          }
+        }
+
+        // ขั้นที่อยู่ในรอบพิมพ์ค้าง (PRINTING/PRINTED): สถานะ/จำนวนเดินผ่านรอบเท่านั้น —
+        // จุดตัดแยกฟิล์มเป็นด่านบังคับ ปิดมือ = ข้ามด่าน + จำนวนถูกนับซ้อนตอนรอบปิด
+        // (guard pattern เดียวกับใบ outsource ค้างด้านล่าง — lock แถวก่อนเช็คกัน race กับเปิดรอบ)
+        if (
+          data.status !== undefined ||
+          data.qtyDone !== undefined ||
+          data.qtyTotal !== undefined
+        ) {
+          await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${stepId} FOR UPDATE`;
+          const activeRun = await tx.printRunItem.findFirst({
+            where: {
+              productionStepId: stepId,
+              printRun: { status: { in: ["PRINTING", "PRINTED"] } },
+            },
+            select: { printRun: { select: { runNumber: true } } },
+          });
+          if (activeRun) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `งานอยู่ในรอบพิมพ์ ${activeRun.printRun.runNumber} — จัดการที่หน้ารอบพิมพ์ฟิล์ม (พิมพ์จบ/ตัดแยกเสร็จ หรือยกเลิกรอบ)`,
             });
           }
         }

@@ -141,15 +141,17 @@ export function evaluateHeatPressGate(steps: GateStepLite[]): HeatPressGate {
   const filmReady = steps
     .filter((s) => s.stepType === "DTF_PRINT")
     .every((s) => s.status === "COMPLETED");
+  // "เสื้อพร้อม" = เตรียมเสื้อจบ + งานร้านนอกทุกสายจบ — มติ "งานร้านนอกไปก่อนเสมอ"
+  // (เสื้อที่ต้องไปร้านปัก/สกรีน/DTG ก่อน ช่างต้องไม่เริ่มรีดทั้งที่ของยังไม่กลับ)
   const garmentReady = steps
     .filter((s) => {
       const lane = laneOf(s.stepType);
-      return lane === "PREP" || lane === "CUTSEW";
+      return lane === "PREP" || OUTSOURCE_LANES.has(lane);
     })
     .every((s) => s.status === "COMPLETED");
   const waitingOn: string[] = [];
   if (!filmReady) waitingOn.push("รอฟิล์ม — พิมพ์/ตัดแยกยังไม่จบ");
-  if (!garmentReady) waitingOn.push("รอเสื้อ — เตรียมเสื้อ/ตัดเย็บยังไม่จบ");
+  if (!garmentReady) waitingOn.push("รอเสื้อ — เตรียมเสื้อ/งานร้านนอกยังไม่จบ");
   return { filmReady, garmentReady, ready: waitingOn.length === 0, waitingOn };
 }
 

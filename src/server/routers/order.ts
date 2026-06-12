@@ -15,7 +15,11 @@ import { getStartOfMonth } from "@/lib/date-utils";
 import { badRequest } from "@/server/errors";
 import { nextDocumentNumber } from "@/server/services/document-number";
 import { priceOrderItems, computeOrderTotals, type PricedItem } from "@/server/services/pricing";
-import { transitionOrder, reopenProductionsForRework } from "@/server/services/order-status";
+import {
+  transitionOrder,
+  reopenProductionsForRework,
+  advanceOrderForward,
+} from "@/server/services/order-status";
 import {
   syncOrderStockReservation,
   releaseOrderStockReservation,
@@ -772,6 +776,24 @@ export const orderRouter = router({
         // (งานแก้ต้องโผล่ในบอร์ด/คิว ไม่ใช่หายเงียบ · audit ข้อ 19/26)
         if (old.internalStatus === "QUALITY_CHECK" && input.internalStatus === "PRODUCING") {
           await reopenProductionsForRework(tx, { orderId: input.id, reason: input.reason });
+        }
+        // ปลดพักกลับเข้าผลิต: ถ้าใบผลิตปิดครบไประหว่างพัก (เช่น รอบพิมพ์ปิดขั้นสุดท้าย
+        // ตอนออเดอร์ ON_HOLD — rollup ตอนนั้นดันสถานะไม่ได้) ดันต่อเลย ไม่งั้นออเดอร์
+        // ค้าง PRODUCING ถาวรโดยไม่มีขั้นเหลือให้กดปิด
+        if (old.internalStatus === "ON_HOLD" && input.internalStatus === "PRODUCING") {
+          const openProductions = await tx.production.count({
+            where: { orderId: input.id, status: { not: "COMPLETED" } },
+          });
+          const totalProductions = await tx.production.count({ where: { orderId: input.id } });
+          if (totalProductions > 0 && openProductions === 0) {
+            await advanceOrderForward(tx, {
+              orderId: input.id,
+              target: "QUALITY_CHECK",
+              changedBy: ctx.userId,
+              onlyFrom: ["PRODUCING"],
+              reason: "ผลิตครบระหว่างพักงาน — ดันต่ออัตโนมัติตอนปลดพัก",
+            });
+          }
         }
         return tx.order.findUniqueOrThrow({ where: { id: input.id } });
       });

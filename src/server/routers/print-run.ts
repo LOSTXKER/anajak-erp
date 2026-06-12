@@ -14,11 +14,14 @@ import {
 const productionTeam = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
 
 export const printRunRouter = router({
+  // อ่านเปิดทุก role (ไม่มีข้อมูลเงิน — sidebar ไม่ gate ตาม role: แอดมิน/ขายดูคิวได้
+  // ตอบลูกค้าว่างานถึงไหน) · mutation = ทีมผลิตเท่านั้น
+
   /** คิวพิมพ์ฟิล์ม — งานไฟล์พร้อม เรียงตามกำหนดส่ง */
-  queue: protectedProcedure.use(productionTeam).query(({ ctx }) => getPrintQueue(ctx.prisma)),
+  queue: protectedProcedure.query(({ ctx }) => getPrintQueue(ctx.prisma)),
 
   /** รอบค้าง + ประวัติ 7 วัน */
-  list: protectedProcedure.use(productionTeam).query(({ ctx }) => listPrintRuns(ctx.prisma)),
+  list: protectedProcedure.query(({ ctx }) => listPrintRuns(ctx.prisma)),
 
   /** เปิดรอบพิมพ์จากหลายงานในคิว */
   create: protectedProcedure
