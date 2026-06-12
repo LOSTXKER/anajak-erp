@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Printer,
+  Film,
   ClipboardList,
   Package,
   Cloud,
@@ -58,6 +59,7 @@ const groups: NavGroup[] = [
     items: [
       { name: "การผลิต", href: "/production", icon: Factory },
       { name: "รอบพิมพ์ฟิล์ม", href: "/production/print-runs", icon: Printer },
+      { name: "คลังฟิล์ม", href: "/production/films", icon: Film },
       { name: "งานออกแบบ", href: "/designs", icon: Palette },
       { name: "Outsource", href: "/outsource", icon: Truck },
     ],

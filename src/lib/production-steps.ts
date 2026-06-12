@@ -119,6 +119,40 @@ export function laneOf(stepType: string): ProductionLane {
   return STEP_LANE[stepType] ?? "OTHER";
 }
 
+// ───────────── คิวรีด DTF: gate ฟิล์ม∧เสื้อ (FLOW-REDESIGN ก้อน 2) ─────────────
+// ช่างรีดลงมือได้เมื่อสองเงื่อนไขบรรจบ: ฟิล์มเสร็จ (ขั้นพิมพ์ DTF_PRINT ปิด —
+// ผ่านจุดตัดแยก+ติดป้ายแล้ว) ∧ เสื้อพร้อม (สายเตรียมเสื้อ/ตัดเย็บของใบผลิตนั้นจบ)
+// — เจตนา: ช่างรีดไม่ต้องเดินไปนับเสื้อเอง · ใช้ร่วมบอร์ดเลน (UI) + จอเช้าช่างรีด (server)
+
+export interface GateStepLite {
+  stepType: string;
+  status: string;
+}
+
+export interface HeatPressGate {
+  filmReady: boolean;
+  garmentReady: boolean;
+  ready: boolean;
+  waitingOn: string[];
+}
+
+export function evaluateHeatPressGate(steps: GateStepLite[]): HeatPressGate {
+  // ไม่มีขั้นพิมพ์ในใบ = ฟิล์มมาจากทางอื่น (เช่น คลังฟิล์มพร้อมรีด) — ไม่กั้น
+  const filmReady = steps
+    .filter((s) => s.stepType === "DTF_PRINT")
+    .every((s) => s.status === "COMPLETED");
+  const garmentReady = steps
+    .filter((s) => {
+      const lane = laneOf(s.stepType);
+      return lane === "PREP" || lane === "CUTSEW";
+    })
+    .every((s) => s.status === "COMPLETED");
+  const waitingOn: string[] = [];
+  if (!filmReady) waitingOn.push("รอฟิล์ม — พิมพ์/ตัดแยกยังไม่จบ");
+  if (!garmentReady) waitingOn.push("รอเสื้อ — เตรียมเสื้อ/ตัดเย็บยังไม่จบ");
+  return { filmReady, garmentReady, ready: waitingOn.length === 0, waitingOn };
+}
+
 // ขั้นที่เป็นงานร้านนอก — มีปุ่ม "ส่งร้าน" (เปิดใบ outsource) และ "ผ่านรวด" (ปิดขั้นไม่ต้องกรอก)
 export const OUTSOURCE_STEP_TYPES: ReadonlySet<string> = new Set([
   "DTG_PRINT",

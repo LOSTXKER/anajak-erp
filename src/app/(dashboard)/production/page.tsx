@@ -22,6 +22,8 @@ import {
   OUTSOURCE_LANES,
   OUTSOURCE_STATUS_LABELS,
   OUTSOURCE_ACTIVE_STATUSES,
+  evaluateHeatPressGate,
+  type HeatPressGate,
   type ProductionLane,
 } from "@/lib/production-steps";
 import type { InternalStatus } from "@prisma/client";
@@ -58,6 +60,8 @@ type LaneCard = {
   currentStep: KanbanStep | null; // ขั้นแรกที่ยังไม่เสร็จในเลนนี้
   done: number;
   total: number;
+  // คิวรีด DTF: gate ฟิล์ม∧เสื้อ — มีค่าเฉพาะการ์ดที่ขั้นปัจจุบันคือรีดร้อน
+  pressGate?: HeatPressGate;
 };
 
 const POST_COLUMNS: {
@@ -98,6 +102,10 @@ function buildLaneCards(orders: KanbanOrder[]): Map<ProductionLane, LaneCard[]> 
           currentStep: pending[0],
           done: steps.length - pending.length,
           total: steps.length,
+          // ช่างรีดลงมือได้เมื่อ ฟิล์มเสร็จ∧เสื้อพร้อม — การ์ดติด gate โชว์ "รออะไร" แทนปุ่ม
+          ...(pending[0].stepType === "HEAT_PRESS"
+            ? { pressGate: evaluateHeatPressGate(production.steps) }
+            : {}),
         };
         const list = byLane.get(lane) ?? [];
         list.push(card);
@@ -702,7 +710,22 @@ function LaneCardView({
           </Button>
         </div>
       )}
-      {canTouchStep && (
+      {/* คิวรีดติด gate — บอกตรงๆ ว่ารออะไร ไม่โชว์ปุ่มเริ่ม (เสื้อ/ฟิล์มยังไม่บรรจบ
+          ช่างเริ่มรีดไม่ได้จริง เช่น เสื้อยังอยู่ร้านปัก) · แก้ที่ต้นเหตุผ่านหน้าใบผลิต */}
+      {card.pressGate && !card.pressGate.ready && step.status !== "FAILED" && (
+        <div className="mt-2.5 space-y-1.5">
+          {card.pressGate.waitingOn.map((w) => (
+            <p
+              key={w}
+              className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+            >
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              {w}
+            </p>
+          ))}
+        </div>
+      )}
+      {canTouchStep && !(card.pressGate && !card.pressGate.ready && step.status !== "FAILED") && (
         <div className="mt-2.5 flex gap-2">
           {step.status === "FAILED" ? (
             <Button variant="outline" size="sm" asChild className="h-9 w-full">

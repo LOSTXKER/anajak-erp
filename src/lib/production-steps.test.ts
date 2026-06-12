@@ -8,6 +8,7 @@ import {
   STEP_LANE,
   LANE_LABELS,
   LANE_ORDER,
+  evaluateHeatPressGate,
 } from "./production-steps";
 
 describe("suggestProductionPlan", () => {
@@ -117,5 +118,57 @@ describe("เลนต่อเทคนิค", () => {
     for (const lane of Object.values(STEP_LANE)) {
       expect(LANE_ORDER).toContain(lane);
     }
+  });
+});
+
+describe("evaluateHeatPressGate — คิวรีด gate ฟิล์ม∧เสื้อ", () => {
+  const S = (stepType: string, status: string) => ({ stepType, status });
+
+  it("ฟิล์มเสร็จ + เสื้อพร้อม → ลงมือได้", () => {
+    const gate = evaluateHeatPressGate([
+      S("GARMENT_PICK", "COMPLETED"),
+      S("DTF_PRINT", "COMPLETED"),
+      S("HEAT_PRESS", "PENDING"),
+      S("PACKAGING", "PENDING"),
+    ]);
+    expect(gate.ready).toBe(true);
+    expect(gate.waitingOn).toEqual([]);
+  });
+
+  it("ฟิล์มยังไม่จบ → รอฟิล์ม", () => {
+    const gate = evaluateHeatPressGate([
+      S("GARMENT_PICK", "COMPLETED"),
+      S("DTF_PRINT", "IN_PROGRESS"),
+      S("HEAT_PRESS", "PENDING"),
+    ]);
+    expect(gate.ready).toBe(false);
+    expect(gate.filmReady).toBe(false);
+    expect(gate.garmentReady).toBe(true);
+  });
+
+  it("เสื้อยังไม่พร้อม (เบิกสต๊อคค้าง + ตัดเย็บค้าง) → รอเสื้อ", () => {
+    const gate = evaluateHeatPressGate([
+      S("GARMENT_PICK", "IN_PROGRESS"),
+      S("SEWING", "PENDING"),
+      S("DTF_PRINT", "COMPLETED"),
+      S("HEAT_PRESS", "PENDING"),
+    ]);
+    expect(gate.ready).toBe(false);
+    expect(gate.garmentReady).toBe(false);
+    expect(gate.filmReady).toBe(true);
+  });
+
+  it("ไม่มีขั้นพิมพ์/ขั้นเตรียมเสื้อในใบ → ไม่กั้น (ฟิล์มจากคลัง/เสื้อไม่ต้องเตรียม)", () => {
+    const gate = evaluateHeatPressGate([S("HEAT_PRESS", "PENDING"), S("PACKAGING", "PENDING")]);
+    expect(gate.ready).toBe(true);
+  });
+
+  it("ติดทั้งสองอย่าง → waitingOn ครบ 2 ข้อ", () => {
+    const gate = evaluateHeatPressGate([
+      S("GARMENT_RECEIVE", "PENDING"),
+      S("DTF_PRINT", "PENDING"),
+      S("HEAT_PRESS", "PENDING"),
+    ]);
+    expect(gate.waitingOn).toHaveLength(2);
   });
 });
