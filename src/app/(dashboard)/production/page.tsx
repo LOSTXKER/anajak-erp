@@ -183,11 +183,16 @@ function ProductionWorkspace() {
 
   // คิวรอเปิดใบผลิต — CONFIRMED มาเฉพาะ READY_MADE (server กรองแล้ว: เสื้อเปล่าจาก
   // สต๊อคไม่มีขั้นออกแบบ จุดพร้อมผลิตคือ CONFIRMED) + เคสหลุด: PRODUCING ไร้ใบผลิต
-  const queue = all.filter(
+  const queueAll = all.filter(
     (o) =>
       ["CONFIRMED", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(o.internalStatus) ||
       (o.internalStatus === "PRODUCING" && o.productions.length === 0)
   );
+  // ด่านพร้อมผลิต (เงิน/แบบ/ของครบ): งานติดด่านแยกกอง "ติดอะไร รอใคร" — ช่างไม่เห็นเลย
+  // (ช่างเห็นเฉพาะงานที่ลงมือได้จริง) · หัวหน้า/ขาย/การเงินเห็นเพื่อตามแก้ต้นเหตุ
+  const queue = queueAll.filter((o) => o.readiness?.ready !== false);
+  const blockedQueue = queueAll.filter((o) => o.readiness?.ready === false);
+  const showBlocked = role !== "PRODUCTION_STAFF" && blockedQueue.length > 0;
   const producing = all.filter(
     (o) => o.internalStatus === "PRODUCING" && o.productions.length > 0
   );
@@ -260,6 +265,67 @@ function ProductionWorkspace() {
                   ) : (
                     <Button variant="outline" size="sm" asChild className="h-9 w-full">
                       <Link href={`/orders/${o.id}`}>เปิดดูออเดอร์</Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── 1b) ติดด่านพร้อมผลิต — "ติดอะไร รอใคร" (ช่างไม่เห็นกองนี้) ── */}
+      {showBlocked && (
+        <section className="space-y-2.5">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <span className="h-2 w-2 rounded-full bg-red-400" />
+            ติดด่านพร้อมผลิต
+            <span className="rounded-full bg-red-50 px-1.5 text-xs tabular-nums text-red-700 dark:bg-red-950/40 dark:text-red-300">
+              {blockedQueue.length}
+            </span>
+            <span className="hidden text-xs font-normal text-slate-400 sm:inline">
+              เงินตามเทอม · แบบอนุมัติ · ของครบ — แก้ต้นเหตุก่อน งานถึงเข้าคิวช่าง
+            </span>
+          </h2>
+          <div className="flex snap-x gap-3 overflow-x-auto pb-1.5">
+            {blockedQueue.map((o) => (
+              <div
+                key={o.id}
+                className="w-[280px] shrink-0 snap-start rounded-xl border border-red-200/80 bg-red-50/40 p-3 shadow-sm dark:border-red-900/50 dark:bg-red-950/20"
+              >
+                <OrderCardHeader order={o} href={`/orders/${o.id}`} />
+                <ul className="mt-2 space-y-1.5">
+                  {(o.readiness?.checks ?? [])
+                    .filter((c) => !c.ok)
+                    .map((c) => (
+                      <li key={c.key} className="text-xs">
+                        <p className="flex items-start gap-1.5 font-medium text-red-700 dark:text-red-300">
+                          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                          <span>
+                            {c.label}: {c.detail}
+                          </span>
+                        </p>
+                        {c.waitingOn && (
+                          <p className="pl-[18px] text-slate-500 dark:text-slate-400">
+                            {c.waitingOn}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                </ul>
+                <div className="mt-2.5 flex gap-2">
+                  <Button variant="outline" size="sm" asChild className="h-9 flex-1">
+                    <Link href={`/orders/${o.id}`}>ไปแก้ที่ออเดอร์</Link>
+                  </Button>
+                  {canCreate && (
+                    // soft-gate: หัวหน้าข้ามด่านได้ (งานด่วน/เคสยกเว้น) — dialog โชว์คำเตือนซ้ำ
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCreateOrderId(o.id)}
+                      className="h-9 text-xs text-slate-500"
+                    >
+                      ข้ามด่าน
                     </Button>
                   )}
                 </div>

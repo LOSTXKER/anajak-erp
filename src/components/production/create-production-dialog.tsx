@@ -24,7 +24,7 @@ import {
   isOutsourceStep,
   LANE_LABELS,
 } from "@/lib/production-steps";
-import { Factory, Loader2, X } from "lucide-react";
+import { AlertTriangle, Factory, Loader2, X } from "lucide-react";
 import type { ProductionStepType } from "@prisma/client";
 
 // ใบผลิต = แค่ยืนยันสายงาน ไม่ใช่ฟอร์มกรอก (เบสชี้ 2026-06-12: "ต้องกรอกแบบนี้หรอ"):
@@ -66,6 +66,25 @@ export function CreateProductionDialog({
             สายงานตั้งให้ตามเนื้องานแล้ว (เสื้อ/เทคนิค/ป้าย) ลบ/เพิ่มได้ถ้าไม่ตรง
           </DialogDescription>
         </DialogHeader>
+
+        {/* ด่านพร้อมผลิตยังไม่ผ่าน — soft-gate: เปิดได้ (งานด่วน/เคสยกเว้น) แต่ต้องเห็นว่าติดอะไร */}
+        {context?.readiness && !context.readiness.ready && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs dark:border-amber-800 dark:bg-amber-950/40">
+            <p className="mb-1 flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              งานนี้ยังติดด่านพร้อมผลิต
+            </p>
+            <ul className="space-y-0.5 pl-5 text-amber-700 dark:text-amber-300/90">
+              {context.readiness.checks
+                .filter((c) => !c.ok)
+                .map((c) => (
+                  <li key={c.key} className="list-disc">
+                    {c.label}: {c.detail}
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
 
         {/* รอ context ก่อน seed ขั้นตอน — StepBuilder mount หลังได้ค่า จึง seed ตอน mount
             (ไม่ใช้ effect-setState — react-compiler clean) */}

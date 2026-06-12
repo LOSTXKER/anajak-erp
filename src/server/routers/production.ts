@@ -10,6 +10,7 @@ import {
   issueGarments,
   returnGarments,
 } from "@/server/services/garment-pick";
+import { getOrdersReadiness } from "@/server/services/production-readiness";
 import { getStockClientFromSettings } from "@/lib/stock-api";
 
 // วางแผนการผลิต = งานระดับบริหารตามตาราง RBAC §7
@@ -117,6 +118,9 @@ export const productionRouter = router({
           },
         },
       });
+      // ด่านพร้อมผลิตในจุดเปิดใบผลิต = soft-gate: หัวหน้าเปิดได้แต่ต้องเห็นว่าติดอะไร
+      const readiness =
+        (await getOrdersReadiness(ctx.prisma, [input.orderId])).get(input.orderId) ?? null;
       return {
         orderNumber: order.orderNumber,
         title: order.title,
@@ -133,6 +137,7 @@ export const productionRouter = router({
         addonTypes: [
           ...new Set(order.items.flatMap((it) => it.addons.map((a) => a.addonType))),
         ],
+        readiness,
       };
     }),
 
@@ -204,6 +209,17 @@ export const productionRouter = router({
       orderBy: { deadline: "asc" },
       take: 200,
     });
+    // ด่านพร้อมผลิต — คิดเฉพาะออเดอร์ที่อยู่ในคิว "รอเปิดใบผลิต" (เกณฑ์เดียวกับหน้า
+    // /production): เงินตามเทอม + แบบอนุมัติ + ของครบ · งานติดด่านแยกกองไม่ปนคิวช่าง
+    const queueIds = orders
+      .filter(
+        (o) =>
+          ["CONFIRMED", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(o.internalStatus) ||
+          (o.internalStatus === "PRODUCING" && o.productions.length === 0)
+      )
+      .map((o) => o.id);
+    const readinessById = await getOrdersReadiness(ctx.prisma, queueIds);
+
     return orders.map((o) => {
       const steps = o.productions.flatMap((p) => p.steps);
       const stepsDone = steps.filter((s) => s.status === "COMPLETED").length;
@@ -221,6 +237,7 @@ export const productionRouter = router({
         stepsDone,
         stepsTotal: steps.length,
         totalQuantity: o.items.reduce((s, it) => s + it.totalQuantity, 0),
+        readiness: readinessById.get(o.id) ?? null,
       };
     });
   }),
