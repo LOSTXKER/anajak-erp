@@ -895,6 +895,9 @@ model ProductionStep {
   customStepName String?            @map("custom_step_name")
   status         StepStatus         @default(PENDING)
   sortOrder      Int                @map("sort_order")
+  // หน่วยงานจริงคือ "กองเสื้อ" — บอกบางส่วนได้ (ทำแล้ว 120/300) · qtyTotal null = ขั้นแบบติ๊กเฉยๆ
+  qtyDone        Int                @default(0) @map("qty_done")
+  qtyTotal       Int?               @map("qty_total")
   assignedToId   String?            @map("assigned_to_id")
   startedAt      DateTime?          @map("started_at")
   completedAt    DateTime?          @map("completed_at")

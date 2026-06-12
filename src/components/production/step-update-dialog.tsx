@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Loader2, Check } from "lucide-react";
 import type { StepStatus } from "@prisma/client";
 import type { ProductionStep } from "./types";
@@ -33,6 +34,11 @@ interface StepUpdateDialogProps {
 // ช่อง "ต้นทุนจริง" ถอดออก (เบสเคาะ 2026-06-12: ไม่คิดต้นทุนต่องานในระบบนี้)
 export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
   const [status, setStatus] = useState<string>(step.status);
+  // จำนวนทำแล้ว/ทั้งหมด — บอก "บางส่วน" ได้ (ว่าง = ขั้นแบบติ๊กเฉยๆ ไม่นับจำนวน)
+  const [qtyDone, setQtyDone] = useState<string>(String(step.qtyDone ?? 0));
+  const [qtyTotal, setQtyTotal] = useState<string>(
+    step.qtyTotal === null ? "" : String(step.qtyTotal)
+  );
   const [notes, setNotes] = useState(step.notes || "");
   const [qcPassed, setQcPassed] = useState<string>(
     step.qcPassed === null ? "" : step.qcPassed ? "true" : "false"
@@ -66,10 +72,14 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
   function handleSave() {
     // assignedToId ส่งเฉพาะเมื่อเปลี่ยนจริง — staff ไม่เห็นช่องนี้และห้ามติดไปกับ request
     const assigneeChanged = assignee !== originalAssignee;
+    const parsedDone = Math.max(0, Math.floor(Number(qtyDone) || 0));
+    const parsedTotal = qtyTotal === "" ? null : Math.max(0, Math.floor(Number(qtyTotal) || 0));
     updateStep.mutate({
       stepId: step.id,
       status: (status as StepStatus) || undefined,
       assignedToId: assigneeChanged && assignee ? assignee : undefined,
+      qtyDone: parsedDone !== (step.qtyDone ?? 0) ? parsedDone : undefined,
+      qtyTotal: parsedTotal !== (step.qtyTotal ?? null) ? parsedTotal : undefined,
       notes: notes || undefined,
       qcPassed: qcPassed === "" ? undefined : qcPassed === "true",
       qcNotes: qcNotes || undefined,
@@ -100,6 +110,36 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
                 <SelectItem value="FAILED">มีปัญหา</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          {/* บอกบางส่วนได้: พิมพ์ไปแล้ว 120 จาก 300 — ไม่บังคับกรอก (ติ๊กเสร็จ = ครบเอง) */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                ทำแล้ว (ตัว)
+              </label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={qtyDone}
+                onChange={(e) => setQtyDone(e.target.value)}
+                className="h-10 tabular-nums"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                ทั้งหมด (ตัว)
+              </label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={qtyTotal}
+                onChange={(e) => setQtyTotal(e.target.value)}
+                placeholder="ไม่นับจำนวน"
+                className="h-10 tabular-nums"
+              />
+            </div>
           </div>
           {canAssign && (
             // มอบหมาย/ย้ายเจ้าของงาน — เดิม staff claim เองอย่างเดียวแล้วล็อกถาวร (audit ข้อ 18)

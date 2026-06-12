@@ -27,6 +27,8 @@ const stepSelect = {
   customStepName: true,
   status: true,
   sortOrder: true,
+  qtyDone: true,
+  qtyTotal: true,
   startedAt: true,
   completedAt: true,
   qcPassed: true,
@@ -188,6 +190,8 @@ export const productionRouter = router({
                 customStepName: true,
                 status: true,
                 sortOrder: true,
+                qtyDone: true,
+                qtyTotal: true,
                 // id ด้วย — UI ต้องเทียบกับ me.id กันโชว์ปุ่มบนงานที่เป็นของคนอื่น
                 assignedTo: { select: { id: true, name: true } },
                 outsourceOrders: {
@@ -277,7 +281,7 @@ export const productionRouter = router({
           productType: true,
           productId: true,
           itemSource: true,
-          variants: { select: { size: true } },
+          variants: { select: { size: true, quantity: true } },
         },
       });
       const allSkeleton =
@@ -297,13 +301,25 @@ export const productionRouter = router({
         });
       }
 
+      // จำนวนทั้งหมดต่อขั้นตั้งต้น = จำนวนเสื้อทั้งออเดอร์ (บอก "บางส่วน" ได้ — แก้ราย
+      // ขั้นทีหลังได้ใน dialog อัปเดต) · ออเดอร์ไม่มีจำนวน = ขั้นแบบติ๊กเฉยๆ (qtyTotal null)
+      const orderTotalQty = orderProducts.reduce(
+        (s, p) => s + p.variants.reduce((vs, v) => vs + v.quantity, 0),
+        0
+      );
+
       // ใบผลิต + เปลี่ยนสถานะ = ก้อนเดียวกัน — สถานะต้องเดินตาม machine เท่านั้น
       // (no-op ถ้าออเดอร์ PRODUCING อยู่แล้ว เช่นเปิดใบผลิตใบที่สอง)
       return ctx.prisma.$transaction(async (tx) => {
         const production = await tx.production.create({
           data: {
             orderId: input.orderId,
-            steps: { create: input.steps },
+            steps: {
+              create: input.steps.map((s) => ({
+                ...s,
+                qtyTotal: orderTotalQty > 0 ? orderTotalQty : null,
+              })),
+            },
           },
           include: { steps: true },
         });
@@ -351,6 +367,9 @@ export const productionRouter = router({
         status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "ON_HOLD", "FAILED"]).optional(),
         assignedToId: z.string().optional(),
         actualCost: z.number().min(0).optional(),
+        // บอก "บางส่วน" ได้ — ทำแล้ว/ทั้งหมด (qtyTotal null = ขั้นแบบติ๊กเฉยๆ)
+        qtyDone: z.number().int().min(0).optional(),
+        qtyTotal: z.number().int().min(0).nullable().optional(),
         qcPassed: z.boolean().optional(),
         qcNotes: z.string().optional(),
         notes: z.string().optional(),
@@ -398,14 +417,17 @@ export const productionRouter = router({
             orderBy: { createdAt: "desc" },
             select: { status: true },
           });
-          if (
-            latestOutsource &&
-            !["QC_PASSED", "QC_FAILED"].includes(latestOutsource.status)
-          ) {
+          // แบ่งส่งหลายรอบ = ขั้นเดียวมีหลายใบค้างพร้อมกันได้ — เช็ค "ทุกใบ" ไม่ใช่แค่ใบล่าสุด
+          const openOutsource = await tx.outsourceOrder.count({
+            where: {
+              productionStepId: stepId,
+              status: { notIn: ["QC_PASSED", "QC_FAILED"] },
+            },
+          });
+          if (openOutsource > 0) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message:
-                "ขั้นนี้มีงานค้างอยู่กับร้านนอก — กดรับกลับ/ตัดสิน QC ที่ใบ outsource ก่อน",
+              message: `ขั้นนี้มีงานค้างอยู่กับร้านนอก ${openOutsource} ใบ — กดรับกลับ/ตัดสิน QC ที่ใบ outsource ก่อน`,
             });
           }
           // งานที่หัวหน้าตัดสิน QC ไม่ผ่านไปแล้ว ช่างห้ามกดผ่านรวดทับ — ต้องส่งแก้
@@ -433,11 +455,27 @@ export const productionRouter = router({
           updateData.completedAt = new Date();
         }
 
-        const step = await tx.productionStep.update({
+        let step = await tx.productionStep.update({
           where: { id: stepId },
           data: updateData,
           include: { production: true },
         });
+
+        // กติกา qty: ปิดขั้น → จำนวนทำแล้ว snap เท่าทั้งหมด (ติ๊กเสร็จ = ครบ ไม่ต้องกรอกเลขซ้ำ)
+        // · กรอกจำนวนบนขั้นที่ยังรอ → ขั้นเริ่มเอง (กันสถานะค้าง PENDING ทั้งที่ทำไปแล้วครึ่งกอง)
+        if (step.status === "COMPLETED" && step.qtyTotal && step.qtyDone < step.qtyTotal) {
+          step = await tx.productionStep.update({
+            where: { id: stepId },
+            data: { qtyDone: step.qtyTotal },
+            include: { production: true },
+          });
+        } else if (step.status === "PENDING" && step.qtyDone > 0) {
+          step = await tx.productionStep.update({
+            where: { id: stepId },
+            data: { status: "IN_PROGRESS", startedAt: step.startedAt ?? new Date() },
+            include: { production: true },
+          });
+        }
 
         // ทุกขั้นเสร็จ → ปิดใบผลิต + ดันออเดอร์ "กำลังผลิต" → "ตรวจคุณภาพ" (rollup กลาง)
         await finalizeProductionIfComplete(tx, {

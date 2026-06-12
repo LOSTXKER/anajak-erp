@@ -233,10 +233,13 @@ export async function issueGarments(
     }
 
     // เดินสถานะขั้น: เบิกครบ = เสร็จ · เบิกบางส่วน = กำลังทำ (ขั้นที่ปิดไปแล้วไม่ถอย)
+    // qty บนขั้นวิ่งตามยอดเบิกจริง — บอกบนบอร์ดได้ว่าเบิกถึงไหน
     if (step.status !== "COMPLETED") {
       await tx.productionStep.update({
         where: { id: step.id },
         data: {
+          qtyDone: { increment: issuedThisRound },
+          qtyTotal: neededTotal > 0 ? neededTotal : null,
           ...(autoClaim ? { assignedToId: params.userId } : {}),
           ...(stepDone
             ? { status: "COMPLETED", completedAt: new Date() }

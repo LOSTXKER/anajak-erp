@@ -152,12 +152,6 @@ export const outsourceRouter = router({
         await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${input.productionStepId} FOR UPDATE`;
         const step = await tx.productionStep.findUnique({
           where: { id: input.productionStepId },
-          include: {
-            outsourceOrders: {
-              where: { status: { notIn: ["QC_PASSED", "QC_FAILED"] } },
-              include: { vendor: { select: { name: true } } },
-            },
-          },
         });
         if (!step) {
           throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบขั้นตอนผลิตนี้" });
@@ -168,12 +162,9 @@ export const outsourceRouter = router({
             message: "ขั้นตอนนี้เสร็จแล้ว ส่งร้านนอกซ้ำไม่ได้",
           });
         }
-        if (step.outsourceOrders.length > 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `ขั้นตอนนี้มีงานค้างอยู่กับร้าน ${step.outsourceOrders[0].vendor.name} — ตัดสิน QC งานเดิมก่อนเปิดรอบใหม่`,
-          });
-        }
+        // แบ่งส่งหลายรอบ (FLOW-REDESIGN ก้อน 1): ขั้นเดียวเปิดหลายใบพร้อมกันได้ —
+        // ส่งของบางส่วนไปก่อนปลดล็อกงานค้าง (เดิมบังคับทีละใบ รอ QC จบถึงเปิดใหม่)
+        // ขั้นจะปิดเองเมื่อทุกใบตัดสินแล้ว + จำนวนผ่าน QC ครบ (ดู updateOrderStatus)
 
         // เงินผ่าน Decimal — ปัด 2 ตำแหน่งก่อนเขียน DB
         const unitCost = moneyInput(input.unitCost);
@@ -312,14 +303,35 @@ export const outsourceRouter = router({
         }
         const order = await tx.outsourceOrder.findUniqueOrThrow({ where: { id } });
 
-        // QC ผ่าน → ปิด step + ถ้าทุก step เสร็จ ปิดใบผลิต + ดันออเดอร์เข้า "ตรวจคุณภาพ"
-        // (rollup กลางตัวเดียวกับ production.updateStep — ตรรกะปิดงาน/ดันสถานะอยู่ที่เดียว)
+        // QC ผ่าน → นับยอดเข้า qtyDone ของขั้น · ปิดขั้นเมื่อ "ทุกใบตัดสินแล้ว + จำนวนครบ"
+        // (แบ่งส่งหลายรอบ: ผ่านบางใบขั้นยังเปิด รอใบที่เหลือ/ส่วนที่ยังไม่ส่ง)
+        // ใบผลิต/ออเดอร์ดันผ่าน rollup กลางตัวเดียวกับ production.updateStep
         if (data.status === "QC_PASSED") {
-          const step = await tx.productionStep.update({
+          // ล็อกแถวขั้นก่อนอ่าน-เขียน qty — สองใบ QC ผ่านพร้อมกันต้องต่อคิว ไม่งั้นยอดหาย
+          await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${order.productionStepId} FOR UPDATE`;
+          const bumped = await tx.productionStep.update({
             where: { id: order.productionStepId },
-            data: { status: "COMPLETED", qcPassed: true, completedAt: new Date() },
-            select: { productionId: true, production: { select: { orderId: true } } },
+            data: { qtyDone: { increment: order.quantity } },
+            select: { qtyDone: true, qtyTotal: true },
           });
+          const openOrders = await tx.outsourceOrder.count({
+            where: {
+              productionStepId: order.productionStepId,
+              status: { notIn: ["QC_PASSED", "QC_FAILED"] },
+            },
+          });
+          const qtyComplete = bumped.qtyTotal === null || bumped.qtyDone >= bumped.qtyTotal;
+          const step = await (openOrders === 0 && qtyComplete
+            ? tx.productionStep.update({
+                where: { id: order.productionStepId },
+                data: { status: "COMPLETED", qcPassed: true, completedAt: new Date() },
+                select: { productionId: true, production: { select: { orderId: true } } },
+              })
+            : tx.productionStep.update({
+                where: { id: order.productionStepId },
+                data: { status: "IN_PROGRESS", qcPassed: true },
+                select: { productionId: true, production: { select: { orderId: true } } },
+              }));
           await finalizeProductionIfComplete(tx, {
             productionId: step.productionId,
             changedBy: ctx.userId,

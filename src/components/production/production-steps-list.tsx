@@ -153,6 +153,18 @@ function StepRow({
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-slate-900 dark:text-white">
           {step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType}
+          {/* บอก "บางส่วน" ได้ — ทำแล้ว/ทั้งหมด (โชว์เมื่อขั้นนับจำนวน) */}
+          {step.qtyTotal !== null && step.qtyTotal > 0 && (
+            <span
+              className={`ml-2 text-xs font-normal tabular-nums ${
+                step.qtyDone >= step.qtyTotal
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-slate-500 dark:text-slate-400"
+              }`}
+            >
+              {step.qtyDone}/{step.qtyTotal}
+            </span>
+          )}
         </p>
         {step.assignedTo && (
           <span className="text-xs text-slate-500">{step.assignedTo.name}</span>

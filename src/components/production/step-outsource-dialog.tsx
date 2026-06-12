@@ -39,7 +39,12 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
   const [description, setDescription] = useState(
     () => step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType
   );
-  const [quantity, setQuantity] = useState("");
+  // default = ส่วนที่ยังไม่ผ่าน (แบ่งส่งหลายรอบได้ — ส่งบางส่วนแก้เลขเอา)
+  const [quantity, setQuantity] = useState(() =>
+    step.qtyTotal !== null && step.qtyTotal > 0
+      ? String(Math.max(0, step.qtyTotal - step.qtyDone) || step.qtyTotal)
+      : ""
+  );
   const [expectedBack, setExpectedBack] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -117,6 +122,11 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
                 onChange={(e) => setQuantity(e.target.value)}
                 min="1"
               />
+              {step.qtyTotal !== null && step.qtyTotal > 0 && (
+                <p className="mt-1 text-xs tabular-nums text-slate-400">
+                  ทั้งขั้น {step.qtyTotal} · ผ่านแล้ว {step.qtyDone} — แบ่งส่งหลายรอบได้
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">

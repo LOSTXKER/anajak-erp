@@ -658,6 +658,12 @@ function LaneCardView({
         <span className="min-w-0 flex-1 truncate font-medium text-slate-700 dark:text-slate-200">
           {stepName}
         </span>
+        {/* บอกบางส่วนได้: ทำแล้วกี่ตัวจากทั้งกอง (โชว์เมื่อขั้นนับจำนวน) */}
+        {step.qtyTotal !== null && step.qtyTotal > 0 && (
+          <span className="shrink-0 tabular-nums text-slate-400">
+            {step.qtyDone}/{step.qtyTotal} ตัว
+          </span>
+        )}
         {step.assignedTo && (
           <span className="max-w-[90px] shrink-0 truncate text-slate-400">
             {step.assignedTo.name}
