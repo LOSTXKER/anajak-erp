@@ -37,6 +37,7 @@ import { OrderDeliverySection } from "@/components/orders/order-delivery-section
 import { OrderItemsEditor } from "@/components/orders/order-items-editor";
 import { OrderInfoEditDialog } from "@/components/orders/order-info-edit-dialog";
 import { OrderGoodsReceiptSection } from "@/components/goods-receipt/order-goods-receipt-section";
+import { OrderQcSection } from "@/components/qc/order-qc-section";
 // หมายเหตุ: OrderNextStep ถูกถอดออก (เบสเคาะ 2026-06-12) — logic getOrderNextStep ยังอยู่
 // ที่ lib/order-next-step.ts เผื่อกลับมาใช้รูปแบบอื่น
 import {
@@ -462,6 +463,9 @@ export default function OrderDetailPage({
               !!me && ["OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF"].includes(me.role)
             }
           />
+
+          {/* ตรวจนับ QC — นับของจุดที่ 2 ก่อนแพ็ค (ก้อน 3): ดีล้วนเด้งแพ็ค · มีเสียถอยกลับผลิต */}
+          <OrderQcSection orderId={id} internalStatus={order.internalStatus} />
 
           {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production/[id] (เบสเคาะแยกโมดูล) */}
           <div id="order-section-production" className="scroll-mt-20">

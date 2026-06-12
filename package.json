@@ -21,7 +21,8 @@
     "verify:ops": "tsx --env-file=.env scripts/verify-ops.ts",
     "verify:e2e": "tsx --env-file=.env scripts/verify-e2e.ts",
     "verify:printrun": "tsx --env-file=.env scripts/verify-print-run.ts",
-    "verify:wht": "tsx --env-file=.env scripts/verify-wht.ts"
+    "verify:wht": "tsx --env-file=.env scripts/verify-wht.ts",
+    "verify:qc": "tsx --env-file=.env scripts/verify-qc.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",

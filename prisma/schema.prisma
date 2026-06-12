@@ -181,6 +181,7 @@ model User {
   uploadedAttachments Attachment[]     @relation("UploadedBy")
   notifications      Notification[]
   goodsReceipts      GoodsReceipt[]    @relation("GoodsReceivedBy")
+  qcRecords          QcRecord[]        @relation("QcCheckedBy")
   printRuns          PrintRun[]        @relation("PrintRunCreatedBy")
 
   @@map("users")
@@ -349,6 +350,7 @@ model Order {
   deliveries   Delivery[]
   costEntries  CostEntry[]
   goodsReceipts GoodsReceipt[]
+  qcRecords    QcRecord[]
   printRunItems PrintRunItem[]
   filmStocks   FilmStock[]
 
@@ -844,6 +846,49 @@ model GoodsReceiptLine {
   receipt GoodsReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
 
   @@map("goods_receipt_lines")
+}
+
+// ============================================================
+// QC เชิงนับ (FLOW-REDESIGN ก้อน 3) — นับของจุดที่ 2: ตรวจก่อนแพ็ค
+// "ดีกี่ตัว เสียกี่ตัว" · ของเสียบันทึกเป็นตัวเลข ไซส์×ลาย×สาเหตุ×รูป
+// (เดิมเป็นช่องข้อความ รวมยอด/หาสาเหตุบ่อยไม่ได้) — รายงานของเสียรายเดือนได้ฟรี
+// กรอกเฉพาะตอนมีของเสีย — ของดีล้วนกดบันทึกเดียวจบ (ห้ามเพิ่มงานกรอกหน้างาน)
+// ============================================================
+
+model QcRecord {
+  id          String   @id @default(cuid())
+  orderId     String   @map("order_id")
+  qtyGood     Int      @map("qty_good")
+  qtyDefect   Int      @default(0) @map("qty_defect") // denorm = sum(defects.qty)
+  notes       String?
+  checkedById String   @map("checked_by_id")
+  checkedAt   DateTime @default(now()) @map("checked_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  order     Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  checkedBy User       @relation("QcCheckedBy", fields: [checkedById], references: [id])
+  defects   QcDefect[]
+
+  @@index([orderId])
+  @@index([checkedAt])
+  @@map("qc_records")
+}
+
+model QcDefect {
+  id         String   @id @default(cuid())
+  qcRecordId String   @map("qc_record_id")
+  qty        Int
+  size       String?
+  color      String?
+  printLabel String?  @map("print_label") // ลายไหน (ตำแหน่ง/ชื่อลาย — งานหลายลายชี้ตัวปัญหาได้)
+  reason     String // รหัสสาเหตุ — ค่า/ป้ายไทยใน src/lib/qc.ts (รวมยอดต่อสาเหตุได้)
+  photoUrls  String[] @default([]) @map("photo_urls")
+  note       String?
+
+  qcRecord QcRecord @relation(fields: [qcRecordId], references: [id], onDelete: Cascade)
+
+  @@index([reason])
+  @@map("qc_defects")
 }
 
 // ============================================================
