@@ -180,6 +180,7 @@ model User {
   costEntries        CostEntry[]       @relation("CostCreatedBy")
   uploadedAttachments Attachment[]     @relation("UploadedBy")
   notifications      Notification[]
+  goodsReceipts      GoodsReceipt[]    @relation("GoodsReceivedBy")
 
   @@map("users")
 }
@@ -344,6 +345,7 @@ model Order {
   quotations   Quotation[]
   deliveries   Delivery[]
   costEntries  CostEntry[]
+  goodsReceipts GoodsReceipt[]
 
   // hot paths: หน้า list กรองตามลูกค้า/สถานะ + เรียงตามวันที่สร้างแทบทุก query
   @@index([customerId])
@@ -794,6 +796,49 @@ model DesignVersion {
 
   @@unique([orderId, versionNumber])
   @@map("design_versions")
+}
+
+// ============================================================
+// GOODS RECEIPT — ใบตรวจรับของเข้า + ใบคืนของลูกค้า (FLOW-REDESIGN ก้อน 1)
+// มตินับของ 2 จุด: ของเข้าโรงงาน (ใบนี้) + QC ก่อนแพ็ค (ก้อน 3) — ระหว่างทางไม่บังคับนับ
+// ============================================================
+
+model GoodsReceipt {
+  id               String   @id @default(cuid())
+  orderId          String   @map("order_id")
+  // CUSTOMER_GARMENT รับเสื้อลูกค้า · SEWING_GARMENT รับเสื้อโรงเย็บ ·
+  // OUTSOURCE_RETURN รับกลับร้านนอก · CUSTOMER_RETURN คืนของลูกค้า (ยอดคืนหักจากยอดรับ)
+  receiptType      String   @map("receipt_type")
+  outsourceOrderId String?  @map("outsource_order_id")
+  notes            String?
+  photoUrls        String[] @default([]) @map("photo_urls")
+  receivedById     String   @map("received_by_id")
+  receivedAt       DateTime @default(now()) @map("received_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  order      Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  receivedBy User               @relation("GoodsReceivedBy", fields: [receivedById], references: [id])
+  lines      GoodsReceiptLine[]
+
+  @@index([orderId])
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptLine {
+  id                 String  @id @default(cuid())
+  receiptId          String  @map("receipt_id")
+  orderItemProductId String? @map("order_item_product_id")
+  description        String
+  size               String?
+  color              String?
+  qtyExpected        Int     @default(0) @map("qty_expected")
+  qtyCounted         Int     @map("qty_counted")
+  defectQty          Int     @default(0) @map("defect_qty")
+  defectNote         String? @map("defect_note")
+
+  receipt GoodsReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@map("goods_receipt_lines")
 }
 
 // ============================================================

@@ -36,6 +36,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
+import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
 
 type StatusVariant = "default" | "accent" | "success" | "warning" | "destructive";
 
@@ -79,6 +80,15 @@ export default function OutsourcePage() {
   // QC fail dialog
   const [qcFailTarget, setQcFailTarget] = useState<string | null>(null);
   const [qcFailNotes, setQcFailNotes] = useState("");
+
+  // รับกลับร้านนอก = นับของก่อน (ใบตรวจรับ OUTSOURCE_RETURN — มตินับของ 2 จุด)
+  // บันทึกใบเสร็จแล้วค่อย flip สถานะเป็น RECEIVED_BACK
+  const [receiveTarget, setReceiveTarget] = useState<{
+    id: string;
+    orderId: string;
+    description: string;
+    quantity: number;
+  } | null>(null);
 
   const utils = trpc.useUtils();
   const { data: me } = trpc.user.me.useQuery();
@@ -351,7 +361,12 @@ export default function OutsourcePage() {
                               className="gap-1 text-xs"
                               disabled={updateStatus.isPending}
                               onClick={() =>
-                                updateStatus.mutate({ id: o.id, status: "RECEIVED_BACK" })
+                                setReceiveTarget({
+                                  id: o.id,
+                                  orderId: o.productionStep.production.orderId,
+                                  description: o.description,
+                                  quantity: o.quantity,
+                                })
                               }
                             >
                               <PackageCheck className="h-3 w-3" />
@@ -499,6 +514,26 @@ export default function OutsourcePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* รับกลับร้านนอก: นับของก่อน (ใบตรวจรับ) → บันทึกแล้วค่อย flip สถานะรับกลับ
+          ถ้า flip พลาด (ใบถูกคนอื่นขยับ) ใบตรวจรับยังอยู่ — กด "รับของกลับแล้ว" ซ้ำได้ */}
+      {receiveTarget && (
+        <GoodsReceiptDialog
+          orderId={receiveTarget.orderId}
+          receiptType="OUTSOURCE_RETURN"
+          outsourceOrderId={receiveTarget.id}
+          presetLines={[
+            {
+              description: receiveTarget.description,
+              qtyExpected: receiveTarget.quantity,
+            },
+          ]}
+          onCreated={() =>
+            updateStatus.mutate({ id: receiveTarget.id, status: "RECEIVED_BACK" })
+          }
+          onClose={() => setReceiveTarget(null)}
+        />
+      )}
     </div>
   );
 }

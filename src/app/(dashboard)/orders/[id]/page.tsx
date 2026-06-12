@@ -36,6 +36,7 @@ import { ProductionSummaryCard } from "@/components/orders/production-summary-ca
 import { OrderDeliverySection } from "@/components/orders/order-delivery-section";
 import { OrderItemsEditor } from "@/components/orders/order-items-editor";
 import { OrderInfoEditDialog } from "@/components/orders/order-info-edit-dialog";
+import { OrderGoodsReceiptSection } from "@/components/goods-receipt/order-goods-receipt-section";
 // หมายเหตุ: OrderNextStep ถูกถอดออก (เบสเคาะ 2026-06-12) — logic getOrderNextStep ยังอยู่
 // ที่ lib/order-next-step.ts เผื่อกลับมาใช้รูปแบบอื่น
 import {
@@ -448,6 +449,19 @@ export default function OrderDetailPage({
               internalStatus={order.internalStatus}
             />
           </div>
+
+          {/* ของเข้า/ตรวจรับ — เสื้อลูกค้า/เสื้อโรงเย็บ นับจริงต่อไซส์ (ก้อน 1) */}
+          <OrderGoodsReceiptSection
+            orderId={id}
+            itemSources={(order.items ?? []).flatMap((it) =>
+              (it.products ?? [])
+                .map((p) => p.itemSource)
+                .filter((s): s is string => s !== null)
+            )}
+            canReceive={
+              !!me && ["OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF"].includes(me.role)
+            }
+          />
 
           {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production/[id] (เบสเคาะแยกโมดูล) */}
           <div id="order-section-production" className="scroll-mt-20">
