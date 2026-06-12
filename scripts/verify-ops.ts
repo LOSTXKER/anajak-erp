@@ -86,18 +86,18 @@ async function main() {
     });
     ok("1.2 สร้างงาน outsource ผูก step ได้ + ต้นทุนรวมถูก", os1.totalCost === 625, os1.totalCost);
 
-    await expectError(
-      "1.3 เปิดงานซ้อนบน step เดิม → ปฏิเสธ",
-      () =>
-        caller.outsource.createOrder({
-          productionStepId: screenStep.id,
-          vendorId: vendor.id,
-          description: "ซ้อน",
-          quantity: 1,
-          unitCost: 1,
-        }),
-      "งานค้างอยู่กับร้าน"
-    );
+    // แบ่งส่งหลายรอบ (ก้อน 1 2026-06-12): ขั้นเดียวเปิดหลายใบพร้อมกันได้ —
+    // เดิมบังคับทีละใบ (test นี้เคย expectError) · ขั้นปิดเมื่อทุกใบตัดสิน+จำนวนครบ
+    const osSplit = await caller.outsource.createOrder({
+      productionStepId: screenStep.id,
+      vendorId: vendor.id,
+      description: "[OPS-VERIFY] แบ่งส่งรอบสอง",
+      quantity: 1,
+      unitCost: 1,
+    });
+    ok("1.3 เปิดใบที่สองบน step เดิมได้ (แบ่งส่งหลายรอบ)", !!osSplit.id, osSplit.id);
+    // เก็บใบแบ่งส่งทิ้ง (ยัง DRAFT) — ฉากต่อไปทดสอบวงจรใบเดียวให้ผลคาดเดาได้
+    await caller.outsource.cancelDraftOrder({ id: osSplit.id });
 
     // ปุ่ม "ผ่านรวด" (ปิดขั้นมือ) ห้ามทับงานที่ยังค้างอยู่กับร้าน — ต้องจบทางใบ outsource
     await expectError(
@@ -134,9 +134,9 @@ async function main() {
     await caller.outsource.updateOrderStatus({ id: os2.id, status: "QC_PASSED" });
     stepDb = await prisma.productionStep.findUniqueOrThrow({ where: { id: screenStep.id } });
     ok(
-      "1.6 QC ผ่าน → step ปิด COMPLETED + qcPassed=true",
-      stepDb.status === "COMPLETED" && stepDb.qcPassed === true,
-      { status: stepDb.status, qc: stepDb.qcPassed }
+      "1.6 QC ผ่าน (ไม่มีใบค้าง+จำนวนครบ) → step ปิด COMPLETED + qcPassed=true + qtyDone นับยอดผ่าน",
+      stepDb.status === "COMPLETED" && stepDb.qcPassed === true && stepDb.qtyDone === 5,
+      { status: stepDb.status, qc: stepDb.qcPassed, qtyDone: stepDb.qtyDone }
     );
 
     await expectError(
