@@ -26,6 +26,7 @@ export interface StockVariant {
   barcode: string | null;
   name: string | null;
   costPrice: number;
+  lastCost: number; // ทุนซื้อจริงล่าสุด (Stock ส่งมาตั้งแต่ 2026-06-12)
   sellingPrice: number;
   totalStock: number;
   stockByLocation: StockLocation[];
@@ -78,6 +79,9 @@ export interface StockBalanceItem {
   warehouseCode: string;
   warehouseName: string;
   qty: number;
+  // ยอดระดับสินค้า (รวมทุก location): จองค้างจาก ERP + หยิบได้จริง (qty รวม − จอง)
+  reservedQty: number;
+  availableQty: number;
   reorderPoint: number;
   minQty: number;
   maxQty: number;
@@ -103,17 +107,22 @@ export interface StockBalancesResponse {
 }
 
 export interface StockMovementLine {
+  // รับทั้ง variant SKU และ product SKU — ฝั่ง Stock resolve variant ก่อนเสมอ
   sku: string;
   fromLocation?: string;
   toLocation?: string;
   qty: number;
   unitCost?: number;
   note?: string;
+  // เลขออเดอร์ ERP — ISSUE ที่มี orderRef จะตัดยอดจองของออเดอร์นั้นอัตโนมัติฝั่ง Stock
+  orderRef?: string;
 }
 
 export interface CreateMovementInput {
-  type: "RECEIVE" | "ISSUE" | "TRANSFER" | "ADJUST";
+  type: "RECEIVE" | "ISSUE" | "TRANSFER" | "ADJUST" | "RETURN";
   refNo?: string;
+  // กันยิงซ้ำ (retry/กดเบิ้ล) — key เดิมได้ใบเดิมกลับมา ไม่ตัดสต๊อคซ้ำ
+  idempotencyKey?: string;
   note?: string;
   reason?: string;
   lines: StockMovementLine[];
@@ -127,13 +136,58 @@ export interface CreateMovementResponse {
     type: string;
     status: string;
     linesCount: number;
+    duplicated?: boolean; // true = idempotencyKey ซ้ำ คืนใบเดิม ไม่ได้ตัดสต๊อคใหม่
     createdAt: string;
   };
 }
 
 // ============================================================
+// RESERVATIONS — จองสต๊อคตามออเดอร์ (ยืนยันออเดอร์แล้วกันของ)
+// ============================================================
+
+export interface ReserveLine {
+  sku: string; // variant SKU (รายไซส์-สี) หรือ product SKU
+  qty: number;
+  locationCode?: string;
+  note?: string;
+}
+
+export interface ReserveResponse {
+  success: boolean;
+  data: {
+    orderRef: string;
+    reservations: Array<{ id: string; qty: number; status: string }>;
+  };
+}
+
+export interface StockReservationItem {
+  id: string;
+  productSku: string;
+  productName: string;
+  variantSku: string | null;
+  variantName: string | null;
+  locationCode: string | null;
+  qty: number;
+  qtyConsumed: number;
+  status: string; // ACTIVE | CONSUMED | RELEASED
+  createdAt: string;
+}
+
+// ============================================================
 // CLIENT
 // ============================================================
+
+// error จาก Stock API — เก็บ status + ข้อความจริงจาก server (เช่น "สต๊อคไม่พอจอง — ...")
+// caller ใช้แยกเคสธุรกิจ (409 ของไม่พอ) ออกจากเคสระบบ (เน็ตล่ม/key ผิด)
+export class StockApiError extends Error {
+  constructor(
+    message: string,
+    public status: number
+  ) {
+    super(message);
+    this.name = "StockApiError";
+  }
+}
 
 export class StockApiClient {
   private baseUrl: string;
@@ -160,8 +214,15 @@ export class StockApiClient {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(
-        `Stock API error ${res.status}: ${res.statusText}. ${text}`
+      let message = "";
+      try {
+        message = (JSON.parse(text) as { error?: string }).error ?? "";
+      } catch {
+        // body ไม่ใช่ JSON — ใช้ text ดิบ
+      }
+      throw new StockApiError(
+        message || `Stock API error ${res.status}: ${res.statusText}. ${text}`,
+        res.status
       );
     }
 
@@ -241,6 +302,44 @@ export class StockApiClient {
       method: "POST",
       body: JSON.stringify(data),
     });
+  }
+
+  // ============================================================
+  // RESERVATIONS
+  // ============================================================
+
+  /**
+   * จองสต๊อคตามออเดอร์ — default แทนที่ยอดจองเดิมของออเดอร์ทั้งก้อน (idempotent
+   * ยิงซ้ำ/แก้รายการแล้วจองใหม่ได้เลย) · สต๊อคไม่พอ = StockApiError status 409
+   */
+  async reserveForOrder(input: {
+    orderRef: string;
+    lines: ReserveLine[];
+    replace?: boolean;
+  }): Promise<ReserveResponse> {
+    return this.request<ReserveResponse>("/erp/reservations", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async getReservations(orderRef: string): Promise<StockReservationItem[]> {
+    const res = await this.request<{
+      success: boolean;
+      data: StockReservationItem[];
+    }>(`/erp/reservations?orderRef=${encodeURIComponent(orderRef)}`);
+    return res.data;
+  }
+
+  /** ปลดจองทั้งออเดอร์ (ยกเลิกออเดอร์/เบิกครบแล้ว) — คืนจำนวนรายการที่ปลด */
+  async releaseReservations(orderRef: string): Promise<number> {
+    const res = await this.request<{
+      success: boolean;
+      data: { orderRef: string; released: number };
+    }>(`/erp/reservations?orderRef=${encodeURIComponent(orderRef)}`, {
+      method: "DELETE",
+    });
+    return res.data.released;
   }
 
   // ============================================================

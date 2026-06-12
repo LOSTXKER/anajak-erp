@@ -16,6 +16,10 @@ import { badRequest } from "@/server/errors";
 import { nextDocumentNumber } from "@/server/services/document-number";
 import { priceOrderItems, computeOrderTotals, type PricedItem } from "@/server/services/pricing";
 import { transitionOrder, reopenProductionsForRework } from "@/server/services/order-status";
+import {
+  syncOrderStockReservation,
+  releaseOrderStockReservation,
+} from "@/server/services/stock-reservation";
 import { aggToNumber, D } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 import {
@@ -614,6 +618,14 @@ export const orderRouter = router({
             return order;
           });
 
+          // เกิดมาเป็น CONFIRMED (สำเร็จรูปล้วน) → จองของจากสต๊อคทันที (นอก tx · ไม่ block)
+          if (result.internalStatus === "CONFIRMED") {
+            await syncOrderStockReservation(ctx.prisma, {
+              orderId: result.id,
+              changedBy: ctx.userId,
+            });
+          }
+
           return result;
         } catch (error: unknown) {
           lastError = error;
@@ -773,6 +785,18 @@ export const orderRouter = router({
         newValue: { internalStatus: order.internalStatus, customerStatus: order.customerStatus },
         reason: input.reason,
       });
+
+      // จอง/ปลดจองสต๊อคตามเหตุการณ์ — นอก $transaction (HTTP ภายนอก) และไม่ block ผลลัพธ์:
+      // จองไม่สำเร็จ = บันทึก error บนออเดอร์ + กระดิ่ง (ด่านพร้อมผลิตเป็นคนกั้นไม่ให้เข้าคิวช่าง)
+      if (order.internalStatus === "CONFIRMED" && old.internalStatus !== "CONFIRMED") {
+        await syncOrderStockReservation(ctx.prisma, { orderId: input.id, changedBy: ctx.userId });
+      } else if (order.internalStatus === "CANCELLED" || order.internalStatus === "COMPLETED") {
+        await releaseOrderStockReservation(ctx.prisma, {
+          orderId: input.id,
+          changedBy: ctx.userId,
+          reason: order.internalStatus === "CANCELLED" ? "ยกเลิกออเดอร์" : "ปิดงาน",
+        });
+      }
 
       return order;
     }),
@@ -952,7 +976,36 @@ export const orderRouter = router({
         newValue: { action: "updateItems", itemCount: input.items.length, totalAmount: totals.totalAmount },
       });
 
+      // ออเดอร์ที่ยืนยันแล้ว (หรือเคยจองไว้) แก้รายการ → จองใหม่ตามเนื้อล่าสุด (replace ฝั่ง Stock)
+      // ช่วง DRAFT/INQUIRY ยังไม่ผูกพัน — ไม่จอง (จองตอนยืนยัน)
+      const committedStatuses = ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"];
+      if (committedStatuses.includes(order.internalStatus) || order.stockReservedAt) {
+        await syncOrderStockReservation(ctx.prisma, { orderId: input.id, changedBy: ctx.userId });
+      }
+
       return updatedOrder;
+    }),
+
+  // จองสต๊อคใหม่ด้วยมือ — ใช้ตอนจองไม่สำเร็จ (ของไม่พอ/ท่อล่ม/ยังไม่ได้ตั้งค่า) แล้วแก้ต้นเหตุแล้ว
+  // จำกัดก่อนเริ่มผลิต: หลังเริ่มผลิตมีการเบิกตัดยอดจองไปแล้ว จองทับ (replace) = ยอดจองเกินจริง
+  retryStockReservation: protectedProcedure
+    .use(salesUp)
+    .input(byIdInput)
+    .mutation(async ({ ctx, input }) => {
+      const order = await ctx.prisma.order.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { internalStatus: true },
+      });
+      const allowed = ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"];
+      if (!allowed.includes(order.internalStatus)) {
+        badRequest("จองสต๊อคใหม่ได้เฉพาะออเดอร์ที่ยืนยันแล้วและยังไม่เริ่มผลิต");
+      }
+      const outcome = await syncOrderStockReservation(ctx.prisma, {
+        orderId: input.id,
+        changedBy: ctx.userId,
+      });
+      if (outcome.status === "error") badRequest(outcome.message);
+      return outcome;
     }),
 
   updateFees: protectedProcedure

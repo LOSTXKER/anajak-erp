@@ -27,6 +27,7 @@ import {
   Copy,
   MoreHorizontal,
   ClipboardList,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -119,6 +120,15 @@ export default function OrderDetailPage({
     invalidate: [utils.order.list],
     onSuccess: (data: { id: string }) => {
       router.push(`/orders/${data.id}`);
+    },
+  });
+
+  // จองสต๊อคใหม่หลังแก้ต้นเหตุ (ของไม่พอ/ท่อล่ม) — server จำกัดช่วงสถานะก่อนเริ่มผลิต
+  const retryReserve = useMutationWithInvalidation(trpc.order.retryStockReservation, {
+    invalidate: [utils.order.getById],
+    onSuccess: () => toast.success("จองสต๊อคสำเร็จ"),
+    onError: (err: { message?: string }) => {
+      toast.error(err.message ?? "จองสต๊อคไม่สำเร็จ");
     },
   });
 
@@ -375,6 +385,30 @@ export default function OrderDetailPage({
         internalStatus={order.internalStatus}
         customerStatus={order.customerStatus}
       />
+
+      {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
+          แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้) · จองสำเร็จดูได้จากประวัติออเดอร์ */}
+      {order.stockReservationError && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="font-medium">จองสต๊อคไม่สำเร็จ:</span> {order.stockReservationError}
+          </span>
+          {isSalesUp &&
+            ["CONFIRMED", "DESIGNING", "DESIGN_APPROVED", "PRODUCTION_QUEUE"].includes(
+              order.internalStatus
+            ) && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => retryReserve.mutate({ id })}
+                disabled={retryReserve.isPending}
+              >
+                {retryReserve.isPending ? "กำลังจอง..." : "จองใหม่"}
+              </Button>
+            )}
+        </div>
+      )}
 
       {/* เลิกการ์ด "ขั้นถัดไป" (เบสเคาะ 2026-06-12) — ผู้ใช้ทำงานจากปุ่มในแต่ละการ์ดตรงๆ:
           ยืนยันออเดอร์=ปุ่มมุมขวาบน · ใส่รายการ=ปุ่มในการ์ดรายการ (empty state) · มัดจำ=การ์ดบิล */}

@@ -10,6 +10,7 @@ import { computeQuotationTotals } from "@/server/services/pricing";
 import { D, round2, moneyInput } from "@/server/services/money";
 import { assertSalesWithinCreditLimit } from "@/server/services/receivables";
 import { transitionOrder, addOrderRevision } from "@/server/services/order-status";
+import { syncOrderStockReservation } from "@/server/services/stock-reservation";
 
 // ใบเสนอหมดอายุ = พ้นสิ้นวันไทยของ validUntil (นิยามเดียวกับ overdue ของบิล)
 function isQuotationExpired(validUntil: Date): boolean {
@@ -422,7 +423,7 @@ export const quotationRouter = router({
         },
       }));
 
-      return withDocNumberRetry(() =>
+      const convertedOrder = await withDocNumberRetry(() =>
         ctx.prisma.$transaction(async (tx) => {
           // กันกดแปลงซ้ำ/สองจอพร้อมกัน — flip สถานะแบบมีเงื่อนไขใน tx คนช้าเจอ error
           // ไม่ใช่ได้ออเดอร์คู่ (audit ข้อ 13)
@@ -526,5 +527,14 @@ export const quotationRouter = router({
           return order;
         })
       );
+
+      // ออเดอร์ยืนยันแล้ว → จองของจากสต๊อค (นอก tx · ไม่ block — ใบเสนอที่ผูกออเดอร์ซึ่งมี
+      // รายการหยิบสต๊อคจริงต้องถูกจอง · ออเดอร์โครงจากใบเสนอลอยไม่มีของสต๊อค = no-op)
+      await syncOrderStockReservation(ctx.prisma, {
+        orderId: convertedOrder.id,
+        changedBy: ctx.userId,
+      });
+
+      return convertedOrder;
     }),
 });

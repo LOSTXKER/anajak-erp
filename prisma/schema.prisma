@@ -318,6 +318,11 @@ model Order {
   platformFee      Decimal?       @map("platform_fee") @db.Decimal(12, 2)
   trackingNumber   String?        @map("tracking_number")
 
+  // เชื่อมจองสต๊อค Anajak Stock (FLOW-REDESIGN ก้อน 1 2026-06-12) — ยืนยันออเดอร์แล้ว
+  // จองเสื้อรายไซส์-สีฝั่ง Stock (orderRef = orderNumber) · error เก็บข้อความล่าสุดไว้โชว์/ตามแก้
+  stockReservedAt       DateTime? @map("stock_reserved_at")
+  stockReservationError String?   @map("stock_reservation_error")
+
   // Meta
   notes            String?
   cancelledAt      DateTime?      @map("cancelled_at")
