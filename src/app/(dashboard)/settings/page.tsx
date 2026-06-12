@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { cn } from "@/lib/utils";
 import {
   Building,
+  Calculator,
   Palette as PaletteIcon,
   Shield,
   Link2,
@@ -35,6 +36,12 @@ const QUICK_LINKS = [
     icon: Building,
     title: "ข้อมูลกิจการ",
     description: "ชื่อ/ที่อยู่/เลขผู้เสียภาษี — ขึ้นหัวเอกสารและใบกำกับภาษี",
+  },
+  {
+    href: "/settings/cost-rates",
+    icon: Calculator,
+    title: "เรตต้นทุนกลาง",
+    description: "เรตฟิล์ม/ค่าแรงเหมา — กำไรขั้นต้นโดยประมาณตอนตีราคา",
   },
   {
     href: "/settings/users",

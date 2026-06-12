@@ -1,8 +1,11 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
+import { COST_RATES_KEY, parseCostRates } from "@/lib/cost-rates";
 
 const adminOnly = requireRole("OWNER", "MANAGER");
+// เรตต้นทุน/กำไรขั้นต้น = ข้อมูลเงิน — จำกัดฝั่งบริหาร-บัญชี (RBAC §7 ห้ามรั่วถึงขาย/ช่าง)
+const financeRoles = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
 
 export const settingsRouter = router({
   // ข้อมูลกิจการ — ทุก role อ่านได้ (ใช้บนหัวเอกสารพิมพ์) · แก้ได้เฉพาะ OWNER/MANAGER
@@ -30,6 +33,32 @@ export const settingsRouter = router({
         where: { key: COMPANY_PROFILE_KEY },
         update: { value: JSON.stringify(input) },
         create: { key: COMPANY_PROFILE_KEY, value: JSON.stringify(input) },
+      });
+      return { success: true };
+    }),
+
+  // เรตต้นทุนกลาง (FLOW-REDESIGN ก้อน 2) — เข็มทิศกำไรขั้นต้นตอนตีราคา
+  costRates: protectedProcedure.use(financeRoles).query(async ({ ctx }) => {
+    const setting = await ctx.prisma.setting.findUnique({ where: { key: COST_RATES_KEY } });
+    return parseCostRates(setting?.value);
+  }),
+
+  setCostRates: protectedProcedure
+    .use(adminOnly)
+    .input(
+      z.object({
+        filmRatePerMeter: z.number().min(0),
+        filmRollWidthCm: z.number().positive(),
+        laborPerPiece: z.number().min(0),
+        overheadPerPiece: z.number().min(0),
+        costDeviationAlertPct: z.number().min(1).max(100),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.prisma.setting.upsert({
+        where: { key: COST_RATES_KEY },
+        update: { value: JSON.stringify(input) },
+        create: { key: COST_RATES_KEY, value: JSON.stringify(input) },
       });
       return { success: true };
     }),

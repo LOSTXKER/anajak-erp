@@ -13,6 +13,9 @@ import { APPROVAL_STATUS_LABELS } from "@/lib/status-config";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import {
   Factory,
+  Printer,
+  Flame,
+  Truck,
   Palette,
   ShoppingCart,
   FileText,
@@ -70,6 +73,16 @@ function TaskSection({
   );
 }
 
+// หัวกลุ่มย่อยในการ์ดเดียว (ของเข้า-ออกวันนี้ 4 กอง) — แถวบางๆ คั่นกลุ่ม ไม่ใช่เป้ากด
+function SubGroupHeading({ label, count }: { label: string; count: number }) {
+  return (
+    <li className="flex items-center gap-2 bg-slate-50/80 px-4 py-1.5 text-xs font-medium text-slate-500 dark:bg-slate-800/40 dark:text-slate-400">
+      {label}
+      <span className="tabular-nums">{count}</span>
+    </li>
+  );
+}
+
 // แถวงานแบบกดได้ทั้งแถว (เป้านิ้ว ≥44px — mobile-first ตาม DESIGN.md)
 function TaskRow({
   href,
@@ -121,17 +134,29 @@ export default function MyTasksPage() {
   }
 
   const production = data?.production ?? [];
+  const printQueue = data?.printQueue ?? [];
+  const pressQueue = data?.pressQueue ?? [];
   const awaitingProduction = data?.awaitingProduction ?? [];
   const design = data?.design ?? [];
   const followUp = data?.followUp ?? [];
+  const adminToday = data?.adminToday;
   const overdueInvoices = data?.billing.overdueInvoices ?? [];
   const shippedOrders = data?.billing.shippedOrders ?? [];
 
+  const adminTotal =
+    (adminToday?.outsourceDue.count ?? 0) +
+    (adminToday?.awaitingInspection.count ?? 0) +
+    (adminToday?.designsAwaiting.count ?? 0) +
+    (adminToday?.dueSoon.count ?? 0);
+
   const total =
     production.length +
+    printQueue.length +
+    pressQueue.length +
     awaitingProduction.length +
     design.length +
     followUp.length +
+    adminTotal +
     overdueInvoices.length +
     shippedOrders.length;
 
@@ -192,6 +217,49 @@ export default function MyTasksPage() {
         </TaskSection>
       )}
 
+      {printQueue.length > 0 && (
+        <TaskSection icon={Printer} title="คิวพิมพ์ฟิล์ม" count={printQueue.length}>
+          {printQueue.map((q) => (
+            <TaskRow
+              key={q.stepId}
+              // ทั้ง section พาไปจอรอบพิมพ์ — เลือกงานรวมเข้ารอบ/จัดการรอบทำที่นั่น
+              href="/production/print-runs"
+              primary={q.orderName || q.orderNumber}
+              secondary={`${q.orderNumber} · ${q.customerName}`}
+              meta={<DeadlineChip deadline={q.dueDate} />}
+              right={
+                q.qtyTotal > 0 ? (
+                  <span className="text-sm font-medium tabular-nums text-slate-900 dark:text-white">
+                    เหลือ {q.remaining} ชิ้น
+                  </span>
+                ) : undefined
+              }
+            />
+          ))}
+        </TaskSection>
+      )}
+
+      {pressQueue.length > 0 && (
+        <TaskSection icon={Flame} title="คิวรีด" count={pressQueue.length}>
+          {pressQueue.map((q) => (
+            <TaskRow
+              key={q.stepId}
+              href={`/production/${q.productionId}`}
+              primary={q.title}
+              secondary={q.orderNumber}
+              meta={<DeadlineChip deadline={q.deadline} />}
+              right={
+                q.qtyTotal != null ? (
+                  <span className="text-sm font-medium tabular-nums text-slate-900 dark:text-white">
+                    รีดแล้ว {q.qtyDone}/{q.qtyTotal}
+                  </span>
+                ) : undefined
+              }
+            />
+          ))}
+        </TaskSection>
+      )}
+
       {awaitingProduction.length > 0 && (
         <TaskSection icon={Factory} title="รอเปิดใบผลิต" count={awaitingProduction.length}>
           {awaitingProduction.map((o) => (
@@ -240,6 +308,74 @@ export default function MyTasksPage() {
               }
             />
           ))}
+        </TaskSection>
+      )}
+
+      {adminToday && adminTotal > 0 && (
+        <TaskSection icon={Truck} title="ของเข้า-ออกวันนี้" count={adminTotal}>
+          {adminToday.outsourceDue.count > 0 && (
+            <>
+              <SubGroupHeading label="ร้านนอกครบกำหนดรับ" count={adminToday.outsourceDue.count} />
+              {adminToday.outsourceDue.items.map((o) => (
+                <TaskRow
+                  key={o.id}
+                  href="/outsource"
+                  primary={o.vendorName}
+                  secondary={o.orderNumber}
+                  meta={<DeadlineChip deadline={o.expectedBackAt} />}
+                />
+              ))}
+            </>
+          )}
+          {adminToday.awaitingInspection.count > 0 && (
+            <>
+              <SubGroupHeading
+                label="รอตรวจรับเสื้อลูกค้า"
+                count={adminToday.awaitingInspection.count}
+              />
+              {adminToday.awaitingInspection.items.map((o) => (
+                <TaskRow
+                  key={o.orderId}
+                  href={`/orders/${o.orderId}`}
+                  primary={o.title}
+                  secondary={o.orderNumber}
+                />
+              ))}
+            </>
+          )}
+          {adminToday.designsAwaiting.count > 0 && (
+            <>
+              <SubGroupHeading
+                label="ลูกค้าค้างอนุมัติแบบ"
+                count={adminToday.designsAwaiting.count}
+              />
+              {adminToday.designsAwaiting.items.map((o) => (
+                <TaskRow
+                  key={o.orderId}
+                  href={`/orders/${o.orderId}`}
+                  primary={o.title}
+                  secondary={o.orderNumber}
+                />
+              ))}
+            </>
+          )}
+          {adminToday.dueSoon.count > 0 && (
+            <>
+              <SubGroupHeading
+                label="ครบกำหนดส่งวันนี้-พรุ่งนี้"
+                count={adminToday.dueSoon.count}
+              />
+              {adminToday.dueSoon.items.map((o) => (
+                <TaskRow
+                  key={o.orderId}
+                  href={`/orders/${o.orderId}`}
+                  primary={o.title}
+                  secondary={o.orderNumber}
+                  meta={<DeadlineChip deadline={o.deadline} />}
+                />
+              ))}
+            </>
+          )}
         </TaskSection>
       )}
 

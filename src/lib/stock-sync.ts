@@ -16,6 +16,8 @@ import {
   type StockProduct,
   type StockVariant,
 } from "@/lib/stock-api";
+import { COST_RATES_KEY, parseCostRates } from "@/lib/cost-rates";
+import { createNotification } from "@/server/helpers";
 
 // ============================================================
 // MAPPING HELPERS
@@ -111,6 +113,8 @@ export interface SyncPageResult {
   variantsCreated: number;
   variantsUpdated: number;
   errors: string[];
+  // ทุนซื้อล็อตใหม่เบี่ยงจากที่เก็บไว้เกินเกณฑ์ (เรตต้นทุนกลาง ก้อน 2) — แจ้งกระดิ่งแล้ว
+  costDeviations: Array<{ sku: string; name: string; oldCost: number; newCost: number }>;
   // Pagination
   page: number;
   totalPages: number;
@@ -141,7 +145,12 @@ export async function syncProductPage(
     totalProducts: 0,
     hasMore: false,
     syncedProducts: [],
+    costDeviations: [],
   };
+
+  // เกณฑ์เตือนทุนซื้อเบี่ยง (เรตต้นทุนกลาง — default 10%) อ่านครั้งเดียวต่อหน้า
+  const ratesSetting = await prisma.setting.findUnique({ where: { key: COST_RATES_KEY } });
+  const deviationPct = parseCostRates(ratesSetting?.value).costDeviationAlertPct;
 
   // ── 1. Fetch one page from Stock API ────────────────────────
   // Keep page size small to fit within Vercel serverless timeout
@@ -179,7 +188,7 @@ export async function syncProductPage(
           { stockProductId: { in: productStockIds } },
         ],
       },
-      select: { id: true, sku: true, stockProductId: true },
+      select: { id: true, sku: true, stockProductId: true, costPrice: true },
     }),
     variantSkus.length > 0
       ? prisma.productVariant.findMany({
@@ -189,7 +198,7 @@ export async function syncProductPage(
               { stockVariantId: { in: variantStockIds } },
             ],
           },
-          select: { id: true, sku: true, stockVariantId: true },
+          select: { id: true, sku: true, stockVariantId: true, costPrice: true },
         })
       : Promise.resolve([]),
   ]);
@@ -244,6 +253,16 @@ export async function syncProductPage(
       let productId: string;
 
       if (existing) {
+        // ทุนซื้อเบี่ยงเกินเกณฑ์ → เก็บไว้แจ้งกระดิ่งท้ายหน้า (เทียบเฉพาะสินค้าไม่มี
+        // variant — ตัวมี variant เทียบรายไซส์/สีข้างล่างแทน กันแจ้งซ้ำสองชั้น)
+        // หลังอัปเดตค่าใหม่ทับแล้ว รอบ sync ถัดไปจะไม่เตือนซ้ำเอง
+        if (!sp.hasVariants) {
+          const oldCost = Number(existing.costPrice ?? 0);
+          const newCost = productData.costPrice;
+          if (oldCost > 0 && newCost > 0 && (Math.abs(newCost - oldCost) / oldCost) * 100 > deviationPct) {
+            result.costDeviations.push({ sku: sp.sku, name: sp.name, oldCost, newCost });
+          }
+        }
         const updated = await prisma.product.update({
           where: { id: existing.id },
           data: productData,
@@ -289,12 +308,21 @@ export async function syncProductPage(
               sku: sv.sku,
               stockVariantId: sv.id,
               barcode: sv.barcode,
-              costPrice: sv.costPrice || 0,
+              // ทุนซื้อจริงล่าสุด (lastCost) มาก่อนราคาทุนที่ตั้งมือ — ฐานเดียวกับระดับ product
+              costPrice: sv.lastCost || sv.costPrice || 0,
               sellingPrice: sv.sellingPrice || 0,
               stock: sv.totalStock || 0,
               totalStock: sv.totalStock || 0,
               isActive: true,
             };
+
+            if (existingVar) {
+              const oldCost = Number(existingVar.costPrice ?? 0);
+              const newCost = variantData.costPrice;
+              if (oldCost > 0 && newCost > 0 && (Math.abs(newCost - oldCost) / oldCost) * 100 > deviationPct) {
+                result.costDeviations.push({ sku: sv.sku, name: `${sp.name} (${sv.sku})`, oldCost, newCost });
+              }
+            }
 
             if (existingVar) {
               // Queue update for parallel execution
@@ -360,6 +388,35 @@ export async function syncProductPage(
     }
 
     result.syncedProducts.push(entry);
+  }
+
+  // ทุนซื้อเบี่ยงเกินเกณฑ์ → กระดิ่ง OWNER/MANAGER "อยากปรับเรต/ราคาขายไหม"
+  // แจ้งครั้งเดียวต่อการเปลี่ยน: หลัง sync ทับค่าใหม่แล้ว รอบถัดไปไม่เข้าเงื่อนไขซ้ำ
+  if (result.costDeviations.length > 0) {
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ["OWNER", "MANAGER"] }, isActive: true },
+        select: { id: true },
+      });
+      const top = result.costDeviations
+        .slice(0, 5)
+        .map((d) => `${d.sku}: ${d.oldCost.toLocaleString()}→${d.newCost.toLocaleString()} บ.`)
+        .join(" · ");
+      const more =
+        result.costDeviations.length > 5 ? ` และอีก ${result.costDeviations.length - 5} รายการ` : "";
+      for (const admin of admins) {
+        await createNotification(prisma, {
+          userId: admin.id,
+          type: "COST_DEVIATION",
+          title: `ทุนซื้อจาก Stock เปลี่ยนเกิน ${deviationPct}%`,
+          message: `${top}${more} — ทบทวนเรตต้นทุน/ราคาขายของงานที่ใช้ตัวนี้`,
+          link: "/settings/cost-rates",
+        });
+      }
+    } catch (nErr) {
+      // กระดิ่งพังต้องไม่ล้ม sync ที่สำเร็จแล้ว
+      console.error("cost deviation notification error:", nErr);
+    }
   }
 
   return result;

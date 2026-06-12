@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { getStartOfMonth, getStartOfLastMonth, getMonthRange } from "@/lib/date-utils";
 import { aggToNumber } from "@/server/services/money";
+import { getOwnerPulse } from "@/server/services/owner-pulse";
 
 const adminOnly = requireRole("OWNER", "MANAGER");
 const ownerOrAccountant = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
@@ -168,4 +169,8 @@ export const analyticsRouter = router({
 
       return { logs, total, pages: Math.ceil(total / input.limit) };
     }),
+
+  // 5 ตัวเลขเจ้าของ — "จอเช้า 10 วินาที" (FLOW-REDESIGN ก้อน 2)
+  // service กลางจงใจ: MCP เฟสแรก (ก้อน 5) ใช้ตัวเลขชุดเดียวกันนี้
+  ownerPulse: protectedProcedure.use(adminOnly).query(({ ctx }) => getOwnerPulse(ctx.prisma)),
 });
