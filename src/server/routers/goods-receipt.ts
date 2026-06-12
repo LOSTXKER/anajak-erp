@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
+import { fileUrlArraySchema } from "@/server/schemas";
 import { createAuditLog } from "@/server/helpers";
 import {
   RECEIPT_TYPES,
@@ -43,7 +44,7 @@ export const goodsReceiptRouter = router({
         receiptType: z.enum(RECEIPT_TYPES),
         outsourceOrderId: z.string().optional(),
         notes: z.string().optional(),
-        photoUrls: z.array(z.string()).default([]),
+        photoUrls: fileUrlArraySchema.default([]),
         lines: z.array(receiptLineSchema).min(1),
       })
     )

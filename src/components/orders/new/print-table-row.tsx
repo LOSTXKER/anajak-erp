@@ -11,6 +11,7 @@ import {
 } from "@/types/order-form";
 import { useState, useRef, type ReactNode } from "react";
 import { uploadFile } from "@/lib/supabase";
+import { safeFileExt } from "@/lib/file-urls";
 import { labelClass } from "./order-item-card";
 
 export function Field({ label, error, required, children }: { label: string; error?: string; required?: boolean; children: ReactNode }) {
@@ -56,8 +57,7 @@ export function PrintTableRow({
     reader.onload = (ev) => onUpdate("designImagePreview", ev.target?.result as string);
     reader.readAsDataURL(file);
     try {
-      const ext = file.name.split(".").pop() || "file";
-      const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeFileExt(file.name)}`;
       const url = await uploadFile("designs", `orders/prints/${uniqueName}`, file);
       onUpdate("designImageUrl", url);
     } catch {

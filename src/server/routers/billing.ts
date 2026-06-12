@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
+import { fileUrlSchema } from "@/server/schemas";
 import { createAuditLog } from "@/server/helpers";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { notFound, badRequest } from "@/server/errors";
@@ -224,7 +225,7 @@ export const billingRouter = router({
           amount: z.number().min(0),
           method: z.string(),
           reference: z.string().optional(),
-          evidenceUrl: z.string().optional(),
+          evidenceUrl: fileUrlSchema.optional(),
           notes: z.string().optional(),
           // ลูกค้านิติบุคคลหัก ณ ที่จ่าย 3% ค่าจ้างทำของ — รับเงินสด 97% + เครดิตภาษี 3%
           // ยอดเคลียร์บิล = amount + whtAmount · เกิดแถวทะเบียน 50ทวิ อัตโนมัติ

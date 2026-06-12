@@ -2,6 +2,8 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, publicProcedure, requireRole } from "../trpc";
 import { randomBytes } from "crypto";
+import { fileUrlSchema } from "@/server/schemas";
+import { withFileToken } from "@/lib/file-urls";
 import { createAuditLog, createNotification } from "@/server/helpers";
 import { transitionOrder, processDesignApproval } from "@/server/services/order-status";
 import type { InternalStatus } from "@prisma/client";
@@ -94,8 +96,8 @@ export const designRouter = router({
     .input(
       z.object({
         orderId: z.string(),
-        fileUrl: z.string(),
-        thumbnailUrl: z.string().optional(),
+        fileUrl: fileUrlSchema,
+        thumbnailUrl: fileUrlSchema.optional(),
         designerNotes: z.string().optional(),
       })
     )
@@ -198,9 +200,16 @@ export const designRouter = router({
   getByToken: publicProcedure
     .input(z.object({ token: z.string() }))
     .query(async ({ ctx, input }) => {
+      // select แคบ — payload นี้ถึงมือลูกค้านอกระบบ ห้ามคืนทั้ง row
       const design = await ctx.prisma.designVersion.findUniqueOrThrow({
         where: { approvalToken: input.token },
-        include: {
+        select: {
+          versionNumber: true,
+          fileUrl: true,
+          approvalStatus: true,
+          customerComment: true,
+          designerNotes: true,
+          tokenExpiresAt: true,
           order: {
             select: {
               orderNumber: true,
@@ -211,7 +220,12 @@ export const designRouter = router({
         },
       });
       assertTokenNotExpired(design);
-      return design;
+      // ไฟล์เป็น proxy URL (bucket private) — ลูกค้าไม่มี session ต้องพก token
+      // ไปกับ URL ให้ /api/files เช็คว่าเป็นไฟล์ของแบบใบนี้จริง
+      return {
+        ...design,
+        fileUrl: withFileToken(design.fileUrl, input.token),
+      };
     }),
 
   approve: protectedProcedure
@@ -335,9 +349,16 @@ export const designRouter = router({
           });
         }
 
+        // select แคบ — payload นี้ถึงมือคนถือ token นอกระบบ ห้ามคืน Order ทั้ง row
+        // (ต้นทุน/กำไร/โน้ตภายในอยู่บน Order — หลักเดียวกับ getByToken)
         const design = await tx.designVersion.findUniqueOrThrow({
           where: { id: existing.id },
-          include: { order: { include: { customer: { select: { name: true } } } } },
+          select: {
+            orderId: true,
+            versionNumber: true,
+            approvalStatus: true,
+            order: { select: { orderNumber: true, title: true } },
+          },
         });
 
         await processDesignApproval(tx, {
@@ -359,7 +380,10 @@ export const designRouter = router({
           titlePrefix: "ลูกค้า",
         });
 
-        return design;
+        return {
+          approvalStatus: design.approvalStatus,
+          versionNumber: design.versionNumber,
+        };
       });
     }),
 });

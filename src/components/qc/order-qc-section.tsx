@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -184,12 +183,12 @@ export function OrderQcSection({ orderId, internalStatus }: OrderQcSectionProps)
                                   rel="noreferrer"
                                   className="relative block h-14 w-14"
                                 >
-                                  <Image
+                                  {/* <img> ธรรมดา — รูปเสิร์ฟผ่าน /api/files (เช็ค session)
+                                      next/image optimizer fetch ฝั่ง server ไม่มี cookie จะ 401 */}
+                                  <img
                                     src={url}
                                     alt="รูปของเสีย"
-                                    fill
-                                    sizes="56px"
-                                    className="rounded-md object-cover"
+                                    className="h-full w-full rounded-md object-cover"
                                   />
                                 </a>
                               ))}
@@ -480,12 +479,10 @@ function QcCountForm({
                   <div className="flex flex-wrap gap-2">
                     {d.photoUrls.map((url) => (
                       <div key={url} className="group relative h-16 w-16">
-                        <Image
+                        <img
                           src={url}
                           alt="รูปของเสีย"
-                          fill
-                          sizes="64px"
-                          className="rounded-md object-cover"
+                          className="h-full w-full rounded-md object-cover"
                         />
                         <button
                           type="button"

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
@@ -256,12 +255,12 @@ function ReceiptForm({
               <div className="flex flex-wrap gap-2">
                 {photoUrls.map((url) => (
                   <div key={url} className="group relative h-16 w-16">
-                    <Image
+                    {/* <img> ธรรมดา — รูปเสิร์ฟผ่าน /api/files (เช็ค session)
+                        next/image optimizer fetch ฝั่ง server ไม่มี cookie จะ 401 */}
+                    <img
                       src={url}
                       alt="รูปตรวจรับ"
-                      fill
-                      sizes="64px"
-                      className="rounded-md object-cover"
+                      className="h-full w-full rounded-md object-cover"
                     />
                     <button
                       type="button"

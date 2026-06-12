@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
+import { fileUrlSchema } from "@/server/schemas";
 import { createAuditLog } from "@/server/helpers";
 import { notFound } from "@/server/errors";
 
@@ -57,7 +58,7 @@ export const whtRouter = router({
         id: z.string(),
         certNumber: z.string().max(100).optional(),
         certDate: z.date().optional(),
-        fileUrl: z.string().optional(),
+        fileUrl: fileUrlSchema.optional(),
         notes: z.string().max(300).optional(),
       })
     )

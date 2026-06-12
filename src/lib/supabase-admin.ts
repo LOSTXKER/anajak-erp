@@ -2,7 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 
 /**
  * Supabase admin client (service role) — server-only.
- * ใช้สำหรับจัดการ auth users (สร้าง/รีเซ็ตรหัสผ่าน/ปิดบัญชี) เท่านั้น
+ * ใช้สำหรับ (1) จัดการ auth users (สร้าง/รีเซ็ตรหัสผ่าน/ปิดบัญชี)
+ * (2) ออก signed URL ให้ไฟล์ใน storage (proxy /api/files — bucket เป็น private)
  * ห้าม import ไฟล์นี้จาก client component เด็ดขาด
  */
 export function createAdminClient() {

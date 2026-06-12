@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc";
-import { byIdInput } from "@/server/schemas";
+import { byIdInput, fileUrlSchema } from "@/server/schemas";
 import { notFound, badRequest } from "@/server/errors";
+import { ATTACHMENT_CATEGORIES } from "@/lib/file-layers";
 import type { PrismaTx } from "@/lib/prisma";
 
 // entityType ที่แนบไฟล์ได้ + วิธีเช็คว่าปลายทางมีจริง — กันไฟล์ลอย/ยัด entityId มั่ว
@@ -39,10 +40,10 @@ export const attachmentRouter = router({
         entityType: z.string(),
         entityId: z.string(),
         fileName: z.string(),
-        fileUrl: z.string(),
+        fileUrl: fileUrlSchema,
         fileType: z.string(),
         fileSize: z.number(),
-        category: z.string().optional(),
+        category: z.enum(ATTACHMENT_CATEGORIES).optional(),
         printPosition: z.string().optional(),
         notes: z.string().optional(),
       })
@@ -56,6 +57,17 @@ export const attachmentRouter = router({
       const entity = await lookup(ctx.prisma, input.entityId);
       if (!entity) {
         notFound("ปลายทางที่แนบไฟล์", input.entityId);
+      }
+
+      // ไฟล์พิมพ์จริง (ชั้น 3) = ของฝ่ายผลิต/กราฟิก — ขาย/บัญชีไม่มีเหตุต้องแนบ
+      if (
+        input.category === "PRINT_FILE" &&
+        !["OWNER", "MANAGER", "DESIGNER", "PRODUCTION_STAFF"].includes(ctx.userRole)
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ไฟล์พิมพ์จริงแนบได้เฉพาะทีมผลิต/กราฟิก/ผู้จัดการ",
+        });
       }
 
       return ctx.prisma.attachment.create({

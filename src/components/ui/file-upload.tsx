@@ -4,13 +4,14 @@ import * as React from "react";
 import { Upload, X, FileImage, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uploadFile } from "@/lib/supabase";
+import { safeFileExt } from "@/lib/file-urls";
 
 interface FileUploadProps {
   bucket: string;
   pathPrefix: string;
   accept?: string;
   maxSizeMB?: number;
-  onUploaded: (url: string, fileName: string) => void;
+  onUploaded: (url: string, fileName: string, file: File) => void;
   onError?: (error: string) => void;
   className?: string;
   disabled?: boolean;
@@ -52,18 +53,21 @@ export function FileUpload({
     }
 
     try {
-      const ext = file.name.split(".").pop() || "file";
-      const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      // safeFileExt — นามสกุล ASCII ล้วน กัน path มีช่องว่าง/อักขระพิเศษ
+      // (พังการเทียบสิทธิ์ฝั่ง /api/files และ Supabase ปฏิเสธ key non-ASCII)
+      const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeFileExt(file.name)}`;
       const path = `${pathPrefix}/${uniqueName}`;
 
       const url = await uploadFile(bucket, path, file);
-      onUploaded(url, file.name);
+      onUploaded(url, file.name, file);
     } catch (err) {
       onError?.(err instanceof Error ? err.message : "อัปโหลดไม่สำเร็จ");
       setPreview(null);
       setFileName(null);
     } finally {
       setUploading(false);
+      // reset เสมอ — ไม่งั้นเลือกไฟล์เดิมซ้ำ (retry หลัง error) onChange ไม่ยิง = กดแล้วเงียบ
+      if (inputRef.current) inputRef.current.value = "";
     }
   }
 

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
-import { byIdInput } from "@/server/schemas";
+import { byIdInput, fileUrlSchema } from "@/server/schemas";
 
 const designerUp = requireRole("OWNER", "MANAGER", "DESIGNER");
 const managerUp = requireRole("OWNER", "MANAGER");
@@ -56,8 +56,8 @@ export const patternRouter = router({
         collarType: z.string().optional(),
         sleeveType: z.string().optional(),
         bodyFit: z.string().optional(),
-        fileUrl: z.string().optional(),
-        thumbnailUrl: z.string().optional(),
+        fileUrl: fileUrlSchema.optional(),
+        thumbnailUrl: fileUrlSchema.optional(),
         description: z.string().optional(),
         sortOrder: z.number().default(0),
       })
@@ -75,8 +75,8 @@ export const patternRouter = router({
         collarType: z.string().optional(),
         sleeveType: z.string().optional(),
         bodyFit: z.string().optional(),
-        fileUrl: z.string().optional(),
-        thumbnailUrl: z.string().optional(),
+        fileUrl: fileUrlSchema.optional(),
+        thumbnailUrl: fileUrlSchema.optional(),
         description: z.string().optional(),
         isActive: z.boolean().optional(),
         sortOrder: z.number().optional(),

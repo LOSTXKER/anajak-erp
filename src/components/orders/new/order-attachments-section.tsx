@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { NativeSelect } from "@/components/ui/native-select";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { uploadFile } from "@/lib/supabase";
+import { safeFileExt } from "@/lib/file-urls";
 import { PRINT_POSITIONS } from "@/types/order-form";
 import type { ReferenceImage } from "@/types/order-form";
 import { ImageIcon, Upload, X, Loader2 } from "lucide-react";
@@ -50,8 +51,7 @@ export function OrderAttachmentsSection({
           reader.readAsDataURL(file);
         });
 
-        const ext = file.name.split(".").pop() || "file";
-        const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeFileExt(file.name)}`;
         const path = `orders/references/${uniqueName}`;
         const url = await uploadFile("designs", path, file);
 

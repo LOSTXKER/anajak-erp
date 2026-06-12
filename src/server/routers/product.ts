@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { getStockClientFromSettings } from "@/lib/stock-api";
-import { byIdInput } from "@/server/schemas";
+import { byIdInput, fileUrlSchema, fileUrlArraySchema } from "@/server/schemas";
 
 const managerUp = requireRole("OWNER", "MANAGER");
 const ownerOnly = requireRole("OWNER");
@@ -121,8 +121,8 @@ export const productRouter = router({
     .input(
       z.object({
         id: z.string(),
-        imageUrl: z.string().optional(),
-        images: z.array(z.string()).optional(),
+        imageUrl: fileUrlSchema.optional(),
+        images: fileUrlArraySchema.optional(),
         isActive: z.boolean().optional(),
       })
     )

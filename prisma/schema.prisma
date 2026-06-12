@@ -789,7 +789,7 @@ model Attachment {
   fileUrl      String   @map("file_url")
   fileType     String   @map("file_type") // image/png, application/pdf, etc.
   fileSize     Int      @map("file_size")
-  category     String?  // REFERENCE_IMAGE, PO_DOCUMENT, PAYMENT_SLIP, PHOTO, OTHER
+  category     String?  // ค่าที่รู้จัก + ชั้นไฟล์ (3 ชั้น) ดู src/lib/file-layers.ts — REFERENCE_IMAGE, PRINT_FILE (ชั้น 3 ภายในเท่านั้น), PO_DOCUMENT, PAYMENT_SLIP, PHOTO, OTHER
   printPosition String? @map("print_position") // FRONT, BACK, SLEEVE_L, SLEEVE_R, COLLAR, POCKET, OTHER (for REFERENCE_IMAGE)
   uploadedById String   @map("uploaded_by_id")
   notes        String?

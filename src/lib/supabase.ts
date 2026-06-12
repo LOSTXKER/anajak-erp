@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { proxyFileUrl } from "@/lib/file-urls";
 
 export function createClient() {
   return createBrowserClient(
@@ -8,12 +9,15 @@ export function createClient() {
 }
 
 /**
- * Upload a file to Supabase Storage and return the public URL.
+ * Upload a file to Supabase Storage and return the proxy URL.
  *
- * @param bucket  - Storage bucket name (e.g. "designs", "payments")
+ * คืน `/api/files/<bucket>/<path>` (ไม่ใช่ public URL) — ค่านี้คือรูปแบบเดียว
+ * ที่เก็บลง DB ได้ (ดู src/lib/file-urls.ts) เปิดไฟล์ผ่าน /api/files ซึ่งเช็คสิทธิ์
+ * แล้ว redirect ไป signed URL — bucket จะถูกปิดเป็น private
+ *
+ * @param bucket  - Storage bucket name (e.g. "designs")
  * @param path    - Path within the bucket (e.g. "orders/abc123/v1.png")
  * @param file    - The File object to upload
- * @returns       - The public URL of the uploaded file
  */
 export async function uploadFile(
   bucket: string,
@@ -33,9 +37,5 @@ export async function uploadFile(
     throw new Error(`Upload failed: ${error.message}`);
   }
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(bucket).getPublicUrl(path);
-
-  return publicUrl;
+  return proxyFileUrl(bucket, path);
 }

@@ -15,6 +15,7 @@ import {
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { uploadFile } from "@/lib/supabase";
+import { safeFileExt } from "@/lib/file-urls";
 import { Field } from "./print-table-row";
 
 function QuickAddPattern({
@@ -43,8 +44,7 @@ function QuickAddPattern({
     try {
       let thumbnailUrl: string | undefined;
       if (file) {
-        const ext = file.name.split(".").pop() || "file";
-        const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeFileExt(file.name)}`;
         thumbnailUrl = await uploadFile("designs", `patterns/${uniqueName}`, file);
       }
       await createMutation.mutateAsync({ name: name.trim(), thumbnailUrl });

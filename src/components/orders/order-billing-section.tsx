@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -842,12 +841,12 @@ export function OrderBillingSection({
               </label>
               {evidenceUrl ? (
                 <div className="relative inline-block h-20 w-20">
-                  <Image
+                  {/* <img> ธรรมดา — รูปเสิร์ฟผ่าน /api/files (เช็ค session)
+                      next/image optimizer fetch ฝั่ง server ไม่มี cookie จะ 401 */}
+                  <img
                     src={evidenceUrl}
                     alt="สลิปโอน"
-                    fill
-                    sizes="80px"
-                    className="rounded-md border border-slate-200 object-cover dark:border-slate-700"
+                    className="h-full w-full rounded-md border border-slate-200 object-cover dark:border-slate-700"
                   />
                   <button
                     type="button"

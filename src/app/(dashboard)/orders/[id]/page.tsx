@@ -44,7 +44,7 @@ import {
   OrderItemsDisplay,
   OrderStatusBar,
   OrderSidebar,
-  OrderReferenceImages,
+  OrderFilesCard,
   OrderRevisions,
 } from "@/components/orders/detail";
 
@@ -441,7 +441,13 @@ export default function OrderDetailPage({
             )}
           </div>
 
-          <OrderReferenceImages attachments={attachments} />
+          {/* ไฟล์ 3 ชั้น (ก้อน 4) — ดิบ/แบบอนุมัติ/ไฟล์พิมพ์ + ปุ่มแอดมินแนบแทนลูกค้า */}
+          <OrderFilesCard
+            orderId={id}
+            attachments={attachments}
+            userId={me?.id}
+            userRole={me?.role}
+          />
 
           <div id="order-section-design" className="scroll-mt-20">
             <OrderDesignSection

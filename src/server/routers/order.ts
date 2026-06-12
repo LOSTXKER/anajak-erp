@@ -10,7 +10,7 @@ import {
   ACCOUNTANT_STATUSES,
 } from "@/lib/order-status";
 import { createAuditLog } from "@/server/helpers";
-import { byIdInput } from "@/server/schemas";
+import { byIdInput, fileUrlSchema } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { badRequest } from "@/server/errors";
 import { nextDocumentNumber } from "@/server/services/document-number";
@@ -59,7 +59,7 @@ const printSchema = z.object({
   width: z.number().optional(),
   height: z.number().optional(),
   designNote: z.string().optional(),
-  designImageUrl: z.string().optional(),
+  designImageUrl: fileUrlSchema.optional(),
   unitPrice: z.number().min(0),
 });
 
@@ -91,7 +91,7 @@ const orderItemProductSchema = z.object({
   collarType: z.string().optional(),
   sleeveType: z.string().optional(),
   bodyFit: z.string().optional(),
-  patternFileUrl: z.string().optional(),
+  patternFileUrl: fileUrlSchema.optional(),
   patternNote: z.string().optional(),
   garmentCondition: z.string().optional(),
   receivedInspected: z.boolean().optional(),
@@ -408,7 +408,7 @@ export const orderRouter = router({
         fees: z.array(orderFeeSchema).default([]),
         // Reference images uploaded during creation
         referenceImages: z.array(z.object({
-          fileUrl: z.string(),
+          fileUrl: fileUrlSchema,
           fileName: z.string(),
           fileSize: z.number().optional(),
           printPosition: z.string().optional(), // FRONT, BACK, SLEEVE_L, etc.

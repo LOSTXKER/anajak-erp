@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
+import { fileUrlArraySchema } from "@/server/schemas";
 import { createAuditLog } from "@/server/helpers";
 import { getQcContext, createQcRecord } from "@/server/services/qc";
 import { QC_DEFECT_REASONS } from "@/lib/qc";
@@ -40,7 +41,7 @@ export const qcRouter = router({
               color: z.string().max(50).optional(),
               printLabel: z.string().max(200).optional(),
               reason: z.enum(QC_DEFECT_REASONS),
-              photoUrls: z.array(z.string()).max(10).default([]),
+              photoUrls: fileUrlArraySchema.max(10).default([]),
               note: z.string().max(300).optional(),
             })
           )

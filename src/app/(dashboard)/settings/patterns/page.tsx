@@ -24,6 +24,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/empty-state";
 import { uploadFile } from "@/lib/supabase";
+import { safeFileExt } from "@/lib/file-urls";
 
 const labelClass = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
 
@@ -125,8 +126,7 @@ export default function PatternsPage() {
     if (!file) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "file";
-      const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeFileExt(file.name)}`;
       const path = `patterns/${uniqueName}`;
       const url = await uploadFile("designs", path, file);
       if (target === "form") {
