@@ -52,6 +52,7 @@ import {
   OrderDetailFields,
   OrderAttachmentsSection,
 } from "@/components/orders/new";
+import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
 
 const labelClass = "mb-1.5 block text-[12px] text-slate-500 dark:text-slate-400";
 
@@ -203,6 +204,14 @@ export default function NewOrderPage() {
     });
     return { ...summary, platformFee: isMarketplace ? platformFee : 0 };
   }, [items, fees, platformFee, discount, isMarketplace, taxRate, hasItemContent]);
+
+  // กำไรขั้นต้นโดยประมาณ (ก้อน 2 ชิ้น 5b) — เข็มทิศตอนตีราคา เฉพาะ role การเงิน
+  // revenue = ฐานก่อน VAT ที่ฟอร์มคำนวณแล้ว (รายการ+ค่าธรรมเนียม−ส่วนลด) — ไม่คิดสูตรใหม่
+  // role อื่นโดน FORBIDDEN → ได้ null → ไม่โชว์บล็อกเลย (ไม่มี error UI)
+  const marginEstimate = useMarginEstimate(
+    items,
+    pricingSummary.subtotalItems + pricingSummary.subtotalFees - pricingSummary.discount
+  );
 
   const handleVariantsSelected = (selected: SelectedVariantItem[]) => {
     setItems((prev) => {
@@ -548,6 +557,7 @@ export default function NewOrderPage() {
               discount={discount}
               onPlatformFeeChange={setPlatformFee}
               onDiscountChange={setDiscount}
+              marginEstimate={marginEstimate}
             />
           </div>
         </Section>

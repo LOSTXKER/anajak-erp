@@ -23,6 +23,10 @@ import { useOrderItemsForm, useOrderFeesForm } from "@/hooks/use-order-items-for
 // (เบสเคาะ 2026-06-11: เปิดงานเบาแล้วมาเติมทีหลัง ต้องเห็นฟอร์มเต็มกว้างตรงที่รายการอยู่)
 import { OrderItemCard } from "@/components/orders/new";
 import {
+  MarginEstimateBlock,
+  useMarginEstimate,
+} from "@/components/orders/new/order-price-summary";
+import {
   ProductPickerDialog,
   type SelectedVariantItem,
 } from "@/components/product-picker";
@@ -159,6 +163,13 @@ export function OrderItemsEditor({
       discount,
       taxRate: order.taxRate,
     });
+
+  // กำไรขั้นต้นโดยประมาณ (ก้อน 2 ชิ้น 5b) — hook+บล็อกชุดเดียวกับหน้าเปิดงาน
+  // revenue = ฐานก่อน VAT ที่ฟอร์มคำนวณแล้ว · role นอกการเงินโดน FORBIDDEN → null → ไม่ render
+  const marginEstimate = useMarginEstimate(
+    items,
+    subtotalItems + subtotalFees - discount
+  );
 
   // หยิบจากสต๊อก — logic รวมเดียวกับหน้าเปิดงาน (lib/order-form-stock)
   // pruneEmpty: false — รายการจาก DB ที่ "ดูว่าง" คือข้อมูลจริงที่บันทึกแล้ว ห้ามลบเงียบ
@@ -436,6 +447,13 @@ export function OrderItemsEditor({
               </span>
             </div>
           </div>
+          )}
+
+          {/* กำไรขั้นต้นโดยประมาณ — เฉพาะ role การเงิน (null = ไม่ render เลย) */}
+          {marginEstimate && (
+            <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+              <MarginEstimateBlock estimate={marginEstimate} />
+            </div>
           )}
 
           {/* ปุ่มบันทึก — sticky ล่างจอ มือถือกดถึงเสมอ */}

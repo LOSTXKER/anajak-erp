@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
 import { COST_RATES_KEY, parseCostRates } from "@/lib/cost-rates";
+import { estimateOrderMargin } from "@/server/services/margin-estimate";
 
 const adminOnly = requireRole("OWNER", "MANAGER");
 // เรตต้นทุน/กำไรขั้นต้น = ข้อมูลเงิน — จำกัดฝั่งบริหาร-บัญชี (RBAC §7 ห้ามรั่วถึงขาย/ช่าง)
@@ -42,6 +43,42 @@ export const settingsRouter = router({
     const setting = await ctx.prisma.setting.findUnique({ where: { key: COST_RATES_KEY } });
     return parseCostRates(setting?.value);
   }),
+
+  // กำไรขั้นต้นโดยประมาณตอนตีราคา — เข็มทิศ ไม่บันทึกลงออเดอร์ (ก้อน 2 ชิ้น 5b)
+  // gate การเงิน: ตัวเลขทุน/กำไรห้ามรั่วถึงขาย/ช่าง (UI เรียกแบบ retry:false ซ่อนเมื่อ FORBIDDEN)
+  estimateMargin: protectedProcedure
+    .use(financeRoles)
+    .input(
+      z.object({
+        revenue: z.number().min(0),
+        items: z
+          .array(
+            z.object({
+              products: z.array(
+                z.object({
+                  productId: z.string().nullish(),
+                  itemSource: z.string().nullish(),
+                  variants: z.array(
+                    z.object({
+                      size: z.string().default(""),
+                      color: z.string().default(""),
+                      quantity: z.number().default(0),
+                    })
+                  ),
+                })
+              ),
+              prints: z.array(
+                z.object({
+                  widthCm: z.number().nullish(),
+                  heightCm: z.number().nullish(),
+                })
+              ),
+            })
+          )
+          .max(100),
+      })
+    )
+    .query(({ ctx, input }) => estimateOrderMargin(ctx.prisma, input)),
 
   setCostRates: protectedProcedure
     .use(adminOnly)
