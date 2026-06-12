@@ -174,6 +174,7 @@ export const taskRouter = router({
                       orderNumber: true,
                       title: true,
                       deadline: true,
+                      blindShip: true, // ธงแดงบนคิวแพ็ค — พลาดใส่เอกสาร Anajak ครั้งเดียวเสียลูกค้า reseller
                       customer: { select: { name: true } },
                     },
                   },
@@ -201,6 +202,7 @@ export const taskRouter = router({
                 title: s.production.order.title,
                 customerName: s.production.order.customer.name,
                 deadline: s.production.order.deadline,
+                blindShip: s.production.order.blindShip,
               }));
           })
       : [];

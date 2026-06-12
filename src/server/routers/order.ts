@@ -648,6 +648,36 @@ export const orderRouter = router({
       throw lastError || new Error("ไม่สามารถสร้างเลขออเดอร์ได้ กรุณาลองอีกครั้ง");
     }),
 
+  // Blind ship (ก้อน 3) — ติ๊กเดียวต่อออเดอร์: เอกสารในกล่องใช้ชื่อแบรนด์ลูกค้าเป็นผู้ส่ง
+  // ห้ามมีเอกสาร/ชื่อ Anajak · จอแพ็คขึ้นธงแดงเตือน — แก้ได้จนกว่าจะส่งของ
+  setBlindShip: protectedProcedure
+    .use(requireRole("OWNER", "MANAGER", "SALES"))
+    .input(
+      z.object({
+        orderId: z.string(),
+        blindShip: z.boolean(),
+        blindShipSenderName: z.string().max(200).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const order = await ctx.prisma.order.update({
+        where: { id: input.orderId },
+        data: {
+          blindShip: input.blindShip,
+          blindShipSenderName: input.blindShip ? (input.blindShipSenderName ?? null) : null,
+        },
+        select: { id: true, blindShip: true, blindShipSenderName: true },
+      });
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "ORDER",
+        entityId: input.orderId,
+        newValue: { blindShip: order.blindShip, blindShipSenderName: order.blindShipSenderName },
+      });
+      return order;
+    }),
+
   updateStatus: protectedProcedure
     .use(orderOps)
     .input(

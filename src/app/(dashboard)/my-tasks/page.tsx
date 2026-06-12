@@ -270,7 +270,7 @@ export default function MyTasksPage() {
               key={q.stepId}
               href={`/production/${q.productionId}`}
               primary={q.title}
-              secondary={`${q.orderNumber} · ${q.customerName}`}
+              secondary={`${q.orderNumber} · ${q.customerName}${q.blindShip ? " · 🚫 BLIND SHIP ห้ามใส่เอกสาร Anajak" : ""}`}
               meta={<DeadlineChip deadline={q.deadline} />}
             />
           ))}

@@ -328,6 +328,11 @@ model Order {
   stockReservedAt       DateTime? @map("stock_reserved_at")
   stockReservationError String?   @map("stock_reservation_error")
 
+  // Blind ship (FLOW-REDESIGN ก้อน 3) — ลูกค้า reseller/แบรนด์: เอกสารในกล่องใช้ชื่อ
+  // แบรนด์ลูกค้าเป็นผู้ส่ง ห้ามมีเอกสาร/ชื่อ Anajak (พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย)
+  blindShip           Boolean @default(false) @map("blind_ship")
+  blindShipSenderName String? @map("blind_ship_sender_name") // ชื่อผู้ส่งบนใบ (แบรนด์ลูกค้า)
+
   // Meta
   notes            String?
   cancelledAt      DateTime?      @map("cancelled_at")
@@ -702,9 +707,26 @@ model Delivery {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  lines DeliveryLine[]
 
   @@map("deliveries")
+}
+
+// รายการต่อกล่อง (FLOW-REDESIGN ก้อน 3) — แพ็คนับยืนยันต่อไซส์ + แบ่งส่งหลายรอบ
+// "บอกได้ว่ากล่องไหนมีอะไร" · ใบส่ง 1 ใบ = 1 รอบส่ง · พิมพ์เป็นใบรายการแนบกล่องได้
+model DeliveryLine {
+  id          String  @id @default(cuid())
+  deliveryId  String  @map("delivery_id")
+  description String
+  size        String?
+  color       String?
+  qty         Int
+
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryId])
+  @@map("delivery_lines")
 }
 
 // ============================================================

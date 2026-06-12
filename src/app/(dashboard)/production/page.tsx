@@ -664,6 +664,13 @@ function LaneCardView({
     <div className="rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-700/60 dark:bg-slate-900">
       <OrderCardHeader order={card.order} href={href} />
 
+      {/* ธง blind ship บนเลนแพ็ค — พลาดใส่เอกสาร Anajak ครั้งเดียวเสียลูกค้า reseller ทั้งราย */}
+      {card.lane === "PACK" && card.order.blindShip && (
+        <p className="mt-2 rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white">
+          🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
+        </p>
+      )}
+
       {/* ขั้นปัจจุบันของสายนี้ */}
       <div className="mt-2 flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs dark:bg-slate-800/60">
         <span

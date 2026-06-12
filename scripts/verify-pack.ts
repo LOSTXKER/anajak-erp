@@ -1,0 +1,128 @@
+/**
+ * verify แพ็คนับยืนยัน + รายการต่อกล่อง + แบ่งส่ง + blind ship (ก้อน 3)
+ * รัน: npm run verify:pack · marker [PACK-VERIFY] ลบเกลี้ยงท้ายสคริปต์
+ */
+import { appRouter } from "@/server/routers/_app";
+import { prisma } from "@/lib/prisma";
+
+const MARK = "[PACK-VERIFY]";
+let pass = 0;
+const fails: string[] = [];
+function check(name: string, ok: boolean, detail?: string) {
+  if (ok) {
+    pass++;
+    console.log(`PASS: ${name}`);
+  } else {
+    fails.push(name);
+    console.log(`FAIL: ${name}${detail ? ` — ${detail}` : ""}`);
+  }
+}
+
+async function main() {
+  const owner = await prisma.user.findFirstOrThrow({ where: { role: "OWNER", isActive: true } });
+  const caller = appRouter.createCaller({ prisma, userId: owner.id, userRole: owner.role });
+  const customer = await prisma.customer.create({
+    data: { name: `${MARK} แบรนด์ทดสอบ`, customerType: "CORPORATE", company: "แบรนด์ใจดี" },
+  });
+  const order = await prisma.order.create({
+    data: {
+      orderNumber: `TEST-PACK-${Date.now()}`,
+      title: `${MARK} งานทดสอบแพ็ค`,
+      customerId: customer.id,
+      createdById: owner.id,
+      internalStatus: "PACKING",
+      items: {
+        create: [
+          {
+            description: `${MARK} เสื้อ`,
+            totalQuantity: 10,
+            products: {
+              create: [
+                {
+                  productType: "TSHIRT",
+                  description: `${MARK} เสื้อยืด`,
+                  baseUnitPrice: 0,
+                  variants: {
+                    create: [
+                      { size: "M", color: "ดำ", quantity: 6 },
+                      { size: "L", color: "ดำ", quantity: 4 },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  try {
+    // ── 1. blind ship ──
+    await caller.order.setBlindShip({ orderId: order.id, blindShip: true, blindShipSenderName: "แบรนด์ใจดี" });
+    let ctx = await caller.delivery.packContext({ orderId: order.id });
+    check("1.1 ธง blind ship + ชื่อผู้ส่ง", ctx.blindShip && ctx.blindShipSenderName === "แบรนด์ใจดี");
+    check("1.2 ยอดเหลือแพ็คเริ่มต้น 10", ctx.totalRemaining === 10 && ctx.lines.length === 2);
+
+    // ── 2. แพ็ครอบแรก M×4 ──
+    const base = {
+      orderId: order.id,
+      recipientName: "คุณรับของ",
+      phone: "0812345678",
+      address: "99 ถ.ทดสอบ",
+      shippingMethod: "KERRY",
+    };
+    const d1 = await caller.delivery.create({
+      ...base,
+      lines: [{ description: "เสื้อยืด", size: "M", color: "ดำ", qty: 4 }],
+    });
+    ctx = await caller.delivery.packContext({ orderId: order.id });
+    check("2.1 รอบแรก M×4 → เหลือ M2/L4", ctx.totalRemaining === 6);
+
+    // ── 3. กันแพ็คเกินต่อไซส์ ──
+    await caller.delivery
+      .create({ ...base, lines: [{ description: "เสื้อยืด", size: "M", color: "ดำ", qty: 3 }] })
+      .then(
+        () => check("3.1 แพ็คเกิน (M เหลือ 2 ใส่ 3) → โดนกัน", false),
+        (e) => check("3.1 แพ็คเกิน (M เหลือ 2 ใส่ 3) → โดนกัน", String(e.message).includes("แพ็คเกินยอดงาน"))
+      );
+
+    // ── 4. แบ่งส่ง: รอบสองส่วนที่เหลือ → ส่งครบทุกใบค่อยเด้ง SHIPPED ──
+    const d2 = await caller.delivery.create({
+      ...base,
+      lines: [
+        { description: "เสื้อยืด", size: "M", color: "ดำ", qty: 2 },
+        { description: "เสื้อยืด", size: "L", color: "ดำ", qty: 4 },
+      ],
+    });
+    await caller.delivery.updateStatus({ id: d1.id, status: "SHIPPED", trackingNumber: "TRK-001" });
+    let o = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+    check("4.1 กล่องแรกออก → ออเดอร์ยังไม่เด้ง (อีกใบค้าง)", o.internalStatus === "PACKING");
+    await caller.delivery.updateStatus({ id: d2.id, status: "SHIPPED", trackingNumber: "TRK-002" });
+    o = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+    check("4.2 ครบทุกใบ → ออเดอร์เด้ง SHIPPED", o.internalStatus === "SHIPPED");
+
+    // ── 5. รายการต่อกล่องอ่านกลับได้ ──
+    const dl = await caller.delivery.getByOrderId({ orderId: order.id });
+    check(
+      "5.1 บอกได้ว่ากล่องไหนมีอะไร",
+      dl.find((d) => d.id === d1.id)?.lines.length === 1 &&
+        dl.find((d) => d.id === d2.id)?.lines.length === 2
+    );
+  } finally {
+    const dels = await prisma.delivery.findMany({ where: { orderId: order.id }, select: { id: true } });
+    await prisma.deliveryLine.deleteMany({ where: { deliveryId: { in: dels.map((d) => d.id) } } });
+    await prisma.delivery.deleteMany({ where: { orderId: order.id } });
+    await prisma.order.delete({ where: { id: order.id } });
+    await prisma.customer.delete({ where: { id: customer.id } });
+  }
+
+  console.log(`\n=== ผล: ผ่าน ${pass} · ตก ${fails.length} ===`);
+  if (fails.length > 0) {
+    console.log("ตก:", fails.join(" / "));
+    process.exit(1);
+  }
+  await prisma.$disconnect();
+}
+
+main();

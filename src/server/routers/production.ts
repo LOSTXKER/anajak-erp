@@ -186,6 +186,7 @@ export const productionRouter = router({
         priority: true,
         internalStatus: true,
         orderType: true,
+        blindShip: true, // ธงแดงบนการ์ดเลนแพ็ค (ก้อน 3)
         customer: { select: { name: true } },
         productions: {
           select: {
@@ -250,6 +251,7 @@ export const productionRouter = router({
         priority: o.priority,
         internalStatus: o.internalStatus,
         orderType: o.orderType,
+        blindShip: o.blindShip,
         customerName: o.customer?.name ?? null,
         productionId: o.productions[0]?.id ?? null,
         productions: o.productions,
