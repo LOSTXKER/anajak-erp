@@ -181,6 +181,7 @@ model User {
   uploadedAttachments Attachment[]     @relation("UploadedBy")
   notifications      Notification[]
   goodsReceipts      GoodsReceipt[]    @relation("GoodsReceivedBy")
+  printRuns          PrintRun[]        @relation("PrintRunCreatedBy")
 
   @@map("users")
 }
@@ -229,6 +230,7 @@ model Customer {
   invoices          Invoice[]
   quotations        Quotation[]
   billingNotes      BillingNote[]
+  filmStocks        FilmStock[]
 
   @@map("customers")
 }
@@ -346,6 +348,8 @@ model Order {
   deliveries   Delivery[]
   costEntries  CostEntry[]
   goodsReceipts GoodsReceipt[]
+  printRunItems PrintRunItem[]
+  filmStocks   FilmStock[]
 
   // hot paths: หน้า list กรองตามลูกค้า/สถานะ + เรียงตามวันที่สร้างแทบทุก query
   @@index([customerId])
@@ -913,10 +917,84 @@ model ProductionStep {
   production      Production       @relation(fields: [productionId], references: [id], onDelete: Cascade)
   assignedTo      User?            @relation("AssignedTo", fields: [assignedToId], references: [id])
   outsourceOrders OutsourceOrder[]
+  printRunItems   PrintRunItem[]
 
   // hot path: task queue "งานของฉัน" กรองตามคนรับผิดชอบ
   @@index([assignedToId])
   @@map("production_steps")
+}
+
+// ============================================================
+// PRINT RUN — รอบพิมพ์ฟิล์ม DTF (FLOW-REDESIGN ก้อน 2)
+// ความจริงหน้าเครื่อง: ช่างพิมพ์รวมหลายงานลงม้วนเดียว กดเสร็จเป็นชุด
+// จากนั้นต้องผ่านจุด "ตัดแยก+ติดป้าย" (กันฟิล์มสลับออเดอร์) ก่อนขั้น
+// DTF_PRINT ของงานสมาชิกจะถูกนับ/ปิด — ฟิล์มพิมพ์เผื่อเข้าคลัง FilmStock
+// ============================================================
+
+enum PrintRunStatus {
+  PRINTING // เปิดรอบแล้ว — กำลังจัดวาง/พิมพ์/โรยผง/อบ
+  PRINTED // พิมพ์จบทั้งม้วน — รอตัดแยกฟิล์ม + ติดป้าย
+  COMPLETED // ตัดแยก+ติดป้ายเสร็จ — ขั้น DTF_PRINT ของสมาชิกถูกนับแล้ว
+  CANCELLED // ยกเลิกก่อนพิมพ์ — งานคืนกลับคิว
+}
+
+model PrintRun {
+  id          String         @id @default(cuid())
+  runNumber   String         @unique @map("run_number") // FR-YYMM-NNNN ผ่าน DocumentSequence
+  status      PrintRunStatus @default(PRINTING)
+  note        String?
+  createdById String         @map("created_by_id")
+  printedAt   DateTime?      @map("printed_at")
+  completedAt DateTime?      @map("completed_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  createdBy  User           @relation("PrintRunCreatedBy", fields: [createdById], references: [id])
+  items      PrintRunItem[]
+  filmStocks FilmStock[]
+
+  @@index([status])
+  @@map("print_runs")
+}
+
+model PrintRunItem {
+  id               String   @id @default(cuid())
+  printRunId       String   @map("print_run_id")
+  productionStepId String   @map("production_step_id")
+  orderId          String   @map("order_id") // denorm — โชว์คิว/ป้ายไม่ต้อง join ลึก
+  qty              Int // จำนวนชิ้นของงานนี้ที่พิมพ์ในรอบนี้ (แบ่งพิมพ์หลายรอบได้)
+  extraQty         Int      @default(0) @map("extra_qty") // พิมพ์เผื่อ — กรอกตอนปิดรอบ → เข้าคลังฟิล์ม
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  printRun       PrintRun       @relation(fields: [printRunId], references: [id], onDelete: Cascade)
+  productionStep ProductionStep @relation(fields: [productionStepId], references: [id])
+  order          Order          @relation(fields: [orderId], references: [id])
+
+  @@index([productionStepId])
+  @@index([printRunId])
+  @@map("print_run_items")
+}
+
+// คลังฟิล์มพร้อมรีด — ฟิล์มพิมพ์เผื่อ "ลายไหน ของลูกค้าไหน เหลือกี่ชิ้น"
+// ลูกค้าสั่งซ้ำ → เช็คก่อนว่ามีฟิล์มค้าง รีดได้เลยไม่ต้องพิมพ์ใหม่
+model FilmStock {
+  id         String   @id @default(cuid())
+  customerId String   @map("customer_id")
+  orderId    String?  @map("order_id") // ออเดอร์ต้นทางของลาย
+  printRunId String?  @map("print_run_id") // รอบพิมพ์ที่ผลิตฟิล์มก้อนนี้
+  label      String // ป้ายลาย เช่น "โลโก้อกซ้าย 8cm ดำ"
+  qty        Int // คงเหลือ (ชิ้น) — หยิบใช้แล้วลด ห้ามติดลบ
+  initialQty Int      @map("initial_qty") // จำนวนตอนเข้าคลัง (ไว้ตรวจย้อน)
+  note       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  customer Customer  @relation(fields: [customerId], references: [id])
+  order    Order?    @relation(fields: [orderId], references: [id])
+  printRun PrintRun? @relation(fields: [printRunId], references: [id])
+
+  @@index([customerId])
+  @@map("film_stocks")
 }
 
 // ============================================================

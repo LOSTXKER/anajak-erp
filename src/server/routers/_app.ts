@@ -21,6 +21,7 @@ import { settingsRouter } from "./settings";
 import { userRouter } from "./user";
 import { taskRouter } from "./task";
 import { goodsReceiptRouter } from "./goods-receipt";
+import { printRunRouter } from "./print-run";
 
 export const appRouter = router({
   user: userRouter,
@@ -45,6 +46,7 @@ export const appRouter = router({
   settings: settingsRouter,
   task: taskRouter,
   goodsReceipt: goodsReceiptRouter,
+  printRun: printRunRouter,
 });
 
 export type AppRouter = typeof appRouter;
