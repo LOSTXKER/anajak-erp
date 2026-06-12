@@ -3,7 +3,7 @@ import { router, protectedProcedure, requireRole } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { notFound, badRequest } from "@/server/errors";
-import { D, aggToNumber, moneyInput } from "@/server/services/money";
+import { D, aggToNumber, moneyInput, round2 } from "@/server/services/money";
 import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/document-number";
 import {
   remainingBillable,
@@ -223,10 +223,16 @@ export const billingRouter = router({
         reference: z.string().optional(),
         evidenceUrl: z.string().optional(),
         notes: z.string().optional(),
+        // ลูกค้านิติบุคคลหัก ณ ที่จ่าย 3% ค่าจ้างทำของ — รับเงินสด 97% + เครดิตภาษี 3%
+        // ยอดเคลียร์บิล = amount + whtAmount · เกิดแถวทะเบียน 50ทวิ อัตโนมัติ
+        whtAmount: z.number().min(0).default(0),
+        whtCertNumber: z.string().max(100).optional(),
+        whtCertDate: z.date().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const amount = moneyInput(input.amount);
+      const wht = moneyInput(input.whtAmount ?? 0);
 
       return ctx.prisma.$transaction(async (tx) => {
         await lockInvoiceRow(tx, input.invoiceId);
@@ -240,19 +246,52 @@ export const billingRouter = router({
           badRequest("ไม่สามารถบันทึกการชำระเงินสำหรับใบแจ้งหนี้ที่ถูกยกเลิกแล้ว");
         }
 
-        const previouslyPaid = invoice.payments.reduce((sum, p) => sum.plus(p.amount), D(0));
+        // ยอดที่เคลียร์บิลแล้ว = เงินสด + ภาษีที่ถูกหัก (กันบิลค้างผี 3% โดน sweep ปลอม)
+        const previouslyPaid = invoice.payments.reduce(
+          (sum, p) => sum.plus(p.amount).plus(p.whtAmount),
+          D(0)
+        );
         const total = D(invoice.totalAmount);
         const remaining = total.minus(previouslyPaid);
+        const settled = amount.plus(wht);
 
-        if (amount.gt(remaining)) {
-          badRequest(`จำนวนเงินเกินยอดคงเหลือ (เหลือ ${remaining.toFixed(2)} บาท)`);
+        if (settled.gt(remaining)) {
+          badRequest(`จำนวนเงิน+ภาษีหัก ณ ที่จ่ายเกินยอดคงเหลือ (เหลือ ${remaining.toFixed(2)} บาท)`);
         }
 
         const payment = await tx.payment.create({
-          data: { ...input, amount: amount.toNumber() },
+          data: {
+            invoiceId: input.invoiceId,
+            amount: amount.toNumber(),
+            whtAmount: wht.toNumber(),
+            method: input.method,
+            reference: input.reference,
+            evidenceUrl: input.evidenceUrl,
+            notes: input.notes,
+          },
         });
 
-        const totalPaid = previouslyPaid.plus(amount);
+        // ทะเบียน 50ทวิ — ฐานมาตรฐานคือยอดก่อน VAT ของใบ (ลูกค้าหักจากค่าจ้างทำของ)
+        if (wht.gt(0)) {
+          const base = total.minus(invoice.tax);
+          await tx.whtCertificate.create({
+            data: {
+              paymentId: payment.id,
+              invoiceId: invoice.id,
+              customerId: invoice.customerId,
+              baseAmount: base.toNumber(),
+              ratePct: base.gt(0) ? round2(wht.div(base).times(100)).toNumber() : 3,
+              amount: wht.toNumber(),
+              certNumber: input.whtCertNumber,
+              certDate: input.whtCertDate,
+              // กรอกเลขที่ใบมาด้วย = ได้หนังสือรับรองตัวจริงแล้ว
+              received: !!input.whtCertNumber,
+              receivedAt: input.whtCertNumber ? new Date() : null,
+            },
+          });
+        }
+
+        const totalPaid = previouslyPaid.plus(settled);
         const paymentStatus = totalPaid.gte(total) ? ("PAID" as const) : ("PARTIALLY_PAID" as const);
 
         await tx.invoice.update({
@@ -263,9 +302,10 @@ export const billingRouter = router({
           },
         });
 
+        // ยอดซื้อสะสมลูกค้า = มูลค่าที่ชำระบิล (รวมส่วนภาษีที่หักแทนเรา)
         await tx.customer.update({
           where: { id: invoice.customerId },
-          data: { totalSpent: { increment: amount.toNumber() } },
+          data: { totalSpent: { increment: settled.toNumber() } },
         });
 
         await createAuditLog(tx, {
@@ -273,7 +313,12 @@ export const billingRouter = router({
           action: "CREATE",
           entityType: "PAYMENT",
           entityId: payment.id,
-          newValue: { invoiceId: input.invoiceId, amount: amount.toNumber(), method: input.method },
+          newValue: {
+            invoiceId: input.invoiceId,
+            amount: amount.toNumber(),
+            whtAmount: wht.toNumber(),
+            method: input.method,
+          },
         });
 
         return payment;
@@ -392,7 +437,9 @@ export const billingRouter = router({
 
         // บิลที่ถูก void แล้ว ต้องคงสถานะ VOIDED — เดิม refund แล้วสถานะเด้งกลับเป็น UNPAID/PAID
         if (!invoice.isVoided) {
-          const netPaid = refundable.minus(amount);
+          // ยอดเคลียร์บิลรวมภาษีหัก ณ ที่จ่าย (WHT คืนเป็นเงินสดไม่ได้ แต่ยังเคลียร์บิลอยู่)
+          const totalWht = invoice.payments.reduce((sum, p) => sum.plus(p.whtAmount), D(0));
+          const netPaid = refundable.minus(amount).plus(totalWht);
           const total = D(invoice.totalAmount);
           const paymentStatus = netPaid.gte(total) && total.gt(0)
             ? ("PAID" as const)

@@ -159,7 +159,7 @@ export async function getOrdersReadiness(
       designs: { where: { approvalStatus: "APPROVED" }, select: { id: true }, take: 1 },
       invoices: {
         where: { isVoided: false },
-        select: { payments: { select: { amount: true } } },
+        select: { payments: { select: { amount: true, whtAmount: true } } },
       },
       items: {
         select: {
@@ -173,9 +173,10 @@ export async function getOrdersReadiness(
   });
 
   for (const o of orders) {
+    // ภาษีหัก ณ ที่จ่ายนับเป็นชำระแล้ว — ลูกค้าหัก 3% ต้องไม่ติดด่าน "เงินตามเทอม" ปลอม
     const paidAmount = o.invoices
       .flatMap((inv) => inv.payments)
-      .reduce((s, p) => s + p.amount, 0);
+      .reduce((s, p) => s + p.amount + p.whtAmount, 0);
     result.set(
       o.id,
       evaluateReadiness({

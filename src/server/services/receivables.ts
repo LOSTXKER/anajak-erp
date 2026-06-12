@@ -15,16 +15,18 @@ export interface ReceivableInvoice {
   type: string;
   totalAmount: number;
   isVoided: boolean;
-  payments: { amount: number }[];
+  // whtAmount = ภาษีที่ลูกค้าหัก ณ ที่จ่าย — เคลียร์บิลเหมือนเงินสด (เครดิตภาษีของเรา)
+  payments: { amount: number; whtAmount: number }[];
 }
 
 export function isReceivable(inv: Pick<ReceivableInvoice, "type" | "isVoided">): boolean {
   return !inv.isVoided && (RECEIVABLE_TYPES as readonly string[]).includes(inv.type);
 }
 
-// ยอดคงเหลือของใบ = ยอดบิล − เงินรับสุทธิ (รายการคืนเงินเป็นลบ หักกลับให้เอง) ไม่ติดลบ
+// ยอดคงเหลือของใบ = ยอดบิล − เงินรับสุทธิ − ภาษีหัก ณ ที่จ่าย (รายการคืนเงินเป็นลบ
+// หักกลับให้เอง) ไม่ติดลบ — ลูกค้าหัก 3% แล้วบิลต้องไม่ค้างผีใน aging/วงเงิน
 export function outstandingOf(inv: ReceivableInvoice): Prisma.Decimal {
-  const paid = inv.payments.reduce((sum, p) => sum.plus(p.amount), D(0));
+  const paid = inv.payments.reduce((sum, p) => sum.plus(p.amount).plus(p.whtAmount), D(0));
   const remaining = D(inv.totalAmount).minus(paid);
   return remaining.gt(0) ? remaining : D(0);
 }
@@ -209,7 +211,7 @@ export async function creditExposureForCustomer(db: PrismaTx, customerId: string
         type: true,
         totalAmount: true,
         isVoided: true,
-        payments: { select: { amount: true } },
+        payments: { select: { amount: true, whtAmount: true } },
       },
     }),
   ]);

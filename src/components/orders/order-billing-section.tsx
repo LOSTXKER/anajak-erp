@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -24,6 +25,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { FileUpload } from "@/components/ui/file-upload";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
@@ -39,6 +42,8 @@ import {
   Ban,
   Printer,
   DollarSign,
+  Paperclip,
+  X,
 } from "lucide-react";
 import type { InvoiceType } from "@prisma/client";
 import type { RouterOutput } from "@/lib/trpc";
@@ -92,6 +97,15 @@ export function OrderBillingSection({
   const [paymentMethod, setPaymentMethod] = useState<string>(DEFAULT_PAYMENT_METHOD);
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
+  // ผู้ใช้แตะช่องเงินสดเองแล้ว — prefill จากติ๊ก/แก้ยอดหักห้ามทับ (pattern userEdited ของ dialog สร้างบิล)
+  const [paymentAmountEdited, setPaymentAmountEdited] = useState(false);
+  // ลูกค้านิติบุคคลหัก ณ ที่จ่าย 3% ค่าจ้างทำของ — เงินสด 97% + เครดิตภาษี 3% เคลียร์บิลเต็ม
+  const [whtEnabled, setWhtEnabled] = useState(false);
+  const [whtAmount, setWhtAmount] = useState("");
+  const [whtCertNumber, setWhtCertNumber] = useState("");
+  const [whtCertDate, setWhtCertDate] = useState("");
+  // สลิปโอนจากลูกค้า — อัปโหลดแล้วส่งเป็น evidenceUrl
+  const [evidenceUrl, setEvidenceUrl] = useState("");
 
   // Void form state
   const [voidReason, setVoidReason] = useState("");
@@ -190,6 +204,12 @@ export function OrderBillingSection({
     setPaymentMethod(DEFAULT_PAYMENT_METHOD);
     setPaymentReference("");
     setPaymentNotes("");
+    setPaymentAmountEdited(false);
+    setWhtEnabled(false);
+    setWhtAmount("");
+    setWhtCertNumber("");
+    setWhtCertDate("");
+    setEvidenceUrl("");
   }
 
   function handleCreateInvoice() {
@@ -213,6 +233,11 @@ export function OrderBillingSection({
       method: paymentMethod,
       reference: paymentReference || undefined,
       notes: paymentNotes || undefined,
+      evidenceUrl: evidenceUrl || undefined,
+      // ติ๊กหักเท่านั้นถึงส่ง — ปิด toggle แล้วค่าค้างในช่องต้องไม่หลุดไป server
+      whtAmount: whtEnabled ? parseFloat(whtAmount) || 0 : 0,
+      whtCertNumber: whtEnabled && whtCertNumber ? whtCertNumber : undefined,
+      whtCertDate: whtEnabled && whtCertDate ? new Date(whtCertDate) : undefined,
     });
   }
 
@@ -226,12 +251,54 @@ export function OrderBillingSection({
   const totalInvoiced = (invoices.data || [])
     .filter((inv) => !inv.isVoided)
     .reduce((sum, inv) => sum + inv.totalAmount, 0);
+  // ยอดเคลียร์บิล = เงินสด + ภาษีที่ลูกค้าหัก ณ ที่จ่าย (ตรงตรรกะ server — กันบิลค้างผี 3%)
   const totalPaid = (invoices.data || [])
     .filter((inv) => !inv.isVoided)
     .flatMap((inv) => inv.payments || [])
-    .reduce((sum, p) => sum + p.amount, 0);
+    .reduce((sum, p) => sum + p.amount + p.whtAmount, 0);
 
   const canCreateInvoice = !["INQUIRY", "CANCELLED", "COMPLETED"].includes(internalStatus);
+
+  // บิลที่ dialog บันทึกชำระเปิดอยู่ — ใช้คิด prefill หัก ณ ที่จ่าย + ยอดคงเหลือ
+  const payingInvoice = (invoices.data || []).find((inv) => inv.id === showPaymentDialog);
+  const payingPaid = (payingInvoice?.payments || []).reduce(
+    (sum: number, p: Payment) => sum + p.amount + p.whtAmount,
+    0
+  );
+  const payingRemaining = payingInvoice
+    ? Math.max(0, payingInvoice.totalAmount - payingPaid)
+    : 0;
+  // มาตรฐานหัก 3% ของฐานก่อน VAT ของใบ (ค่าจ้างทำของ) — ปัด 2 ตำแหน่ง
+  const whtSuggested = payingInvoice
+    ? Math.max(0, Math.round((payingInvoice.totalAmount - payingInvoice.tax) * 3) / 100)
+    : 0;
+  const settleAmount =
+    (parseFloat(paymentAmount) || 0) + (whtEnabled ? parseFloat(whtAmount) || 0 : 0);
+  // epsilon กัน floating point ฝั่ง client เตือนปลอม (server เทียบด้วย Decimal อยู่แล้ว)
+  const settleExceeds = !!payingInvoice && settleAmount > payingRemaining + 0.005;
+
+  // เงินสดที่ลูกค้าโอน = คงเหลือ − ยอดหัก (ปัด 2 ตำแหน่ง กันเศษ float)
+  const cashPrefill = (wht: number) =>
+    Math.max(0, Math.round((payingRemaining - wht) * 100) / 100).toString();
+
+  // ติ๊กหัก ณ ที่จ่าย — prefill ยอดหัก 3% + ปรับช่องเงินสด = คงเหลือ−ยอดหัก (ถ้าผู้ใช้ยังไม่แก้เอง)
+  function handleWhtToggle(checked: boolean) {
+    setWhtEnabled(checked);
+    if (checked) {
+      setWhtAmount(whtSuggested > 0 ? whtSuggested.toFixed(2) : "");
+      if (!paymentAmountEdited) setPaymentAmount(cashPrefill(whtSuggested));
+    } else {
+      setWhtAmount("");
+      setWhtCertNumber("");
+      setWhtCertDate("");
+      if (!paymentAmountEdited) setPaymentAmount(cashPrefill(0));
+    }
+  }
+
+  function handleWhtAmountChange(value: string) {
+    setWhtAmount(value);
+    if (!paymentAmountEdited) setPaymentAmount(cashPrefill(parseFloat(value) || 0));
+  }
 
   return (
     <>
@@ -286,8 +353,9 @@ export function OrderBillingSection({
             <div className="space-y-2">
               {invoices.data.map((inv) => {
                 const isExpanded = expandedInvoice === inv.id;
+                // นับ whtAmount เป็นยอดเคลียร์ด้วย — ให้ตรง server (เงินสด 97% + เครดิตภาษี 3%)
                 const invPaid = (inv.payments || []).reduce(
-                  (sum: number, p: Payment) => sum + p.amount,
+                  (sum: number, p: Payment) => sum + p.amount + p.whtAmount,
                   0
                 );
                 const invRemaining = Math.max(0, inv.totalAmount - invPaid);
@@ -386,7 +454,7 @@ export function OrderBillingSection({
                                 key={p.id}
                                 className="flex items-center justify-between rounded-md bg-green-50 px-2 py-1.5 text-xs dark:bg-green-950/30"
                               >
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                                   <DollarSign className="h-3 w-3 text-green-600" />
                                   <span className="text-slate-700 dark:text-slate-300">
                                     {PAYMENT_METHOD_LABELS[p.method] || p.method}
@@ -395,6 +463,22 @@ export function OrderBillingSection({
                                     <span className="text-slate-400">
                                       #{p.reference}
                                     </span>
+                                  )}
+                                  {p.whtAmount > 0 && (
+                                    <Badge variant="outline" size="sm">
+                                      หัก ณ ที่จ่าย {formatCurrency(p.whtAmount)}
+                                    </Badge>
+                                  )}
+                                  {p.evidenceUrl && (
+                                    <a
+                                      href={p.evidenceUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-slate-400 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                                      title="ดูสลิปโอน"
+                                    >
+                                      <Paperclip className="h-3 w-3" />
+                                    </a>
                                   )}
                                 </div>
                                 <span className="font-medium text-green-700 dark:text-green-400">
@@ -416,6 +500,8 @@ export function OrderBillingSection({
                                 className="gap-1 text-xs"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  // ล้างฟอร์มก่อน — กันค่าหัก/สลิปค้างจากบิลก่อนหน้า แล้ว prefill = คงเหลือ
+                                  resetPaymentForm();
                                   setPaymentAmount(invRemaining.toString());
                                   setShowPaymentDialog(inv.id);
                                 }}
@@ -635,7 +721,7 @@ export function OrderBillingSection({
         open={showPaymentDialog !== null}
         onOpenChange={(open) => !open && setShowPaymentDialog(null)}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>บันทึกการชำระเงิน</DialogTitle>
             <DialogDescription>บันทึกยอดชำระเงินจากลูกค้า</DialogDescription>
@@ -648,10 +734,79 @@ export function OrderBillingSection({
               <Input
                 type="number"
                 value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
+                onChange={(e) => {
+                  setPaymentAmountEdited(true);
+                  setPaymentAmount(e.target.value);
+                }}
                 min="0"
                 step="0.01"
               />
+            </div>
+            {/* ลูกค้านิติบุคคลหักภาษี ณ ที่จ่าย 3% ค่าจ้างทำของ — โอนมา 97% + หนังสือรับรอง 3% */}
+            <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  ลูกค้าหักภาษี ณ ที่จ่าย (นิติบุคคล)
+                </label>
+                <Switch checked={whtEnabled} onCheckedChange={handleWhtToggle} />
+              </div>
+              {whtEnabled && (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      ยอดที่หัก (บาท)
+                    </label>
+                    <Input
+                      type="number"
+                      value={whtAmount}
+                      onChange={(e) => handleWhtAmountChange(e.target.value)}
+                      min="0"
+                      step="0.01"
+                    />
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      มาตรฐาน 3% ของฐานก่อน VAT = {formatCurrency(whtSuggested)}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        เลขที่หนังสือรับรอง
+                      </label>
+                      <Input
+                        type="text"
+                        value={whtCertNumber}
+                        onChange={(e) => setWhtCertNumber(e.target.value)}
+                        placeholder="ถ้ามี"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        วันที่ในใบ
+                      </label>
+                      <Input
+                        type="date"
+                        value={whtCertDate}
+                        onChange={(e) => setWhtCertDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    ยังไม่ได้หนังสือรับรองก็เว้นว่างได้ — กรอกทีหลังได้ที่ทะเบียน 50ทวิ
+                  </p>
+                  <p
+                    className={
+                      settleExceeds
+                        ? "text-xs font-medium text-red-600 dark:text-red-400"
+                        : "text-xs text-slate-500 dark:text-slate-400"
+                    }
+                  >
+                    เงินสด {formatCurrency(parseFloat(paymentAmount) || 0)} + หัก ณ ที่จ่าย{" "}
+                    {formatCurrency(parseFloat(whtAmount) || 0)} = เคลียร์บิล{" "}
+                    {formatCurrency(settleAmount)} จากคงเหลือ {formatCurrency(payingRemaining)}
+                    {settleExceeds && " — เกินยอดคงเหลือ บันทึกไม่ผ่าน"}
+                  </p>
+                </div>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -680,6 +835,37 @@ export function OrderBillingSection({
                 onChange={(e) => setPaymentReference(e.target.value)}
                 placeholder="เลขอ้างอิงหรือเลขที่ทำรายการ"
               />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                สลิปโอน (ถ้ามี)
+              </label>
+              {evidenceUrl ? (
+                <div className="relative inline-block h-20 w-20">
+                  <Image
+                    src={evidenceUrl}
+                    alt="สลิปโอน"
+                    fill
+                    sizes="80px"
+                    className="rounded-md border border-slate-200 object-cover dark:border-slate-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEvidenceUrl("")}
+                    className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 text-white shadow-sm hover:bg-red-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <FileUpload
+                  bucket="designs"
+                  pathPrefix={`payments/${orderId}`}
+                  accept="image/*"
+                  onUploaded={(url) => setEvidenceUrl(url)}
+                  onError={(msg) => toast.error(msg)}
+                />
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">

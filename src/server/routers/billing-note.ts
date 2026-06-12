@@ -37,7 +37,7 @@ export const billingNoteRouter = router({
             paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID", "OVERDUE"] },
           },
           include: {
-            payments: { select: { amount: true } },
+            payments: { select: { amount: true, whtAmount: true } },
             order: { select: { orderNumber: true, title: true } },
             billingNoteItems: {
               where: { billingNote: { isVoided: false } },
@@ -95,7 +95,7 @@ export const billingNoteRouter = router({
           const invoices = await tx.invoice.findMany({
             where: { id: { in: input.invoiceIds } },
             include: {
-              payments: { select: { amount: true } },
+              payments: { select: { amount: true, whtAmount: true } },
               billingNoteItems: {
                 where: { billingNote: { isVoided: false } },
                 select: { id: true },
@@ -196,7 +196,7 @@ export const billingNoteRouter = router({
                     type: true,
                     totalAmount: true,
                     isVoided: true,
-                    payments: { select: { amount: true } },
+                    payments: { select: { amount: true, whtAmount: true } },
                   },
                 },
               },
@@ -272,7 +272,7 @@ export const billingNoteRouter = router({
         totalAmount: true,
         isVoided: true,
         dueDate: true,
-        payments: { select: { amount: true } },
+        payments: { select: { amount: true, whtAmount: true } },
         customer: { select: { id: true, name: true, company: true } },
       },
     });

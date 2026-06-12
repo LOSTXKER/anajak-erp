@@ -25,13 +25,13 @@ const inv = (over: Partial<AgingInvoiceInput>): AgingInvoiceInput => ({
 describe("outstandingOf", () => {
   it("ยอดบิล − เงินรับสุทธิ (refund ติดลบหักกลับ)", () => {
     expect(
-      outstandingOf(inv({ payments: [{ amount: 300 }, { amount: -100 }] })).toNumber()
+      outstandingOf(inv({ payments: [{ amount: 300, whtAmount: 0 }, { amount: -100, whtAmount: 0 }] })).toNumber()
     ).toBe(800);
   });
 
   it("จ่ายครบ/จ่ายเกิน → 0 ไม่ติดลบ", () => {
-    expect(outstandingOf(inv({ payments: [{ amount: 1000 }] })).toNumber()).toBe(0);
-    expect(outstandingOf(inv({ payments: [{ amount: 1200 }] })).toNumber()).toBe(0);
+    expect(outstandingOf(inv({ payments: [{ amount: 1000, whtAmount: 0 }] })).toNumber()).toBe(0);
+    expect(outstandingOf(inv({ payments: [{ amount: 1200, whtAmount: 0 }] })).toNumber()).toBe(0);
   });
 });
 
@@ -64,12 +64,12 @@ describe("buildAgingReport", () => {
     const report = buildAgingReport(
       [
         inv({ totalAmount: 500, dueDate: day("2026-06-09") }), // A: เลย 1 วัน
-        inv({ totalAmount: 300, payments: [{ amount: 100 }] }), // A: current 200
+        inv({ totalAmount: 300, payments: [{ amount: 100, whtAmount: 0 }] }), // A: current 200
         inv({ totalAmount: 9999, isVoided: true }), // voided ไม่นับ
         inv({ type: "RECEIPT", totalAmount: 800 }), // ใบเสร็จไม่ใช่ลูกหนี้
         inv({ type: "CREDIT_NOTE", totalAmount: 400 }), // ลดหนี้ไม่ใช่ลูกหนี้
         inv({ type: "DEBIT_NOTE", totalAmount: 250, customer: custB, dueDate: day("2026-04-01") }), // B: เลย 70 วัน
-        inv({ totalAmount: 100, payments: [{ amount: 100 }] }), // จ่ายครบ ไม่นับ
+        inv({ totalAmount: 100, payments: [{ amount: 100, whtAmount: 0 }] }), // จ่ายครบ ไม่นับ
       ],
       NOW
     );
@@ -98,7 +98,7 @@ describe("computeCreditExposure", () => {
           type: "DEPOSIT_INVOICE",
           totalAmount: 6000,
           isVoided: false,
-          payments: [{ amount: 2000 }], // ค้าง 4000
+          payments: [{ amount: 2000, whtAmount: 0 }], // ค้าง 4000
         },
         {
           orderId: "o1",
@@ -145,7 +145,7 @@ describe("computeCreditExposure", () => {
           type: "DEPOSIT_INVOICE",
           totalAmount: 500,
           isVoided: false,
-          payments: [{ amount: 500 }],
+          payments: [{ amount: 500, whtAmount: 0 }],
         },
         { orderId: "o1", type: "RECEIPT", totalAmount: 500, isVoided: false, payments: [] },
       ],
@@ -165,10 +165,32 @@ describe("computeCreditExposure", () => {
           type: "FINAL_INVOICE",
           totalAmount: 1000,
           isVoided: false,
-          payments: [{ amount: 1000 }],
+          payments: [{ amount: 1000, whtAmount: 0 }],
         },
       ],
     });
     expect(result.exposure).toBe(0);
+  });
+});
+
+describe("WHT หัก ณ ที่จ่ายขารับ — เคลียร์บิลเหมือนเงินสด", () => {
+  it("บิล 107 รับเงินสด 103.79 + WHT 3.21 → ค้าง 0 (ไม่เกิดบิลค้างผี)", () => {
+    const inv = {
+      type: "FINAL_INVOICE",
+      totalAmount: 107,
+      isVoided: false,
+      payments: [{ amount: 103.79, whtAmount: 3.21 }],
+    };
+    expect(outstandingOf(inv).toNumber()).toBe(0);
+  });
+
+  it("รับ 97% เงินสดอย่างเดียว (ยังไม่บันทึก WHT) → ค้าง 3%", () => {
+    const inv = {
+      type: "FINAL_INVOICE",
+      totalAmount: 100,
+      isVoided: false,
+      payments: [{ amount: 97, whtAmount: 0 }],
+    };
+    expect(outstandingOf(inv).toNumber()).toBe(3);
   });
 });

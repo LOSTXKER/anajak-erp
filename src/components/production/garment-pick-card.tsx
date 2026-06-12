@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { SPOILAGE_RATE_PCT } from "@/lib/production-steps";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -176,9 +177,14 @@ function IssueGarmentsDialog({
 }) {
   // key เดียวต่อการเปิด dialog — กดซ้ำ/เน็ตสะดุดแล้วลองใหม่ ไม่ตัดสต๊อคซ้ำ
   const [idempotencyKey] = useState(() => crypto.randomUUID());
+  // default = ที่ยังขาด + เผื่อเสีย 3% ของทั้งงาน (มติเบส: ค่าเริ่ม 3% แก้ได้ต่องาน
+  // เศษเหลือคืนผ่านใบคืนเศษ) — เบิกรอบแรกได้เผื่อเลย ไม่ต้องคิดเลขเอง
   const [qty, setQty] = useState<Record<string, number>>(() =>
     Object.fromEntries(
-      lines.map((l) => [l.sku, Math.max(0, l.needed - (l.issued - l.returned))])
+      lines.map((l) => {
+        const target = Math.ceil(l.needed * (1 + SPOILAGE_RATE_PCT / 100));
+        return [l.sku, Math.max(0, target - (l.issued - l.returned))];
+      })
     )
   );
   const invalidate = useGarmentInvalidate();
@@ -203,7 +209,8 @@ function IssueGarmentsDialog({
         <DialogHeader>
           <DialogTitle>เบิกเสื้อจากสต๊อค</DialogTitle>
           <DialogDescription>
-            ระบบตัดยอดจองของออเดอร์นี้ให้อัตโนมัติ — เบิกเผื่อเสียเกินจำนวนได้
+            ระบบตัดยอดจองของออเดอร์นี้ให้อัตโนมัติ — ตัวเลขตั้งต้นรวมเผื่อเสีย{" "}
+            {SPOILAGE_RATE_PCT}% แล้ว (แก้ได้ · เศษเหลือคืนผ่านปุ่มคืนเศษ)
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">

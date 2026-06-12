@@ -119,6 +119,11 @@ export function laneOf(stepType: string): ProductionLane {
   return STEP_LANE[stepType] ?? "OTHER";
 }
 
+// เผื่อเสีย default ตอนเบิกเสื้อ (FLOW-REDESIGN ก้อน 3 — มติเบส: ค่าเริ่ม 3%
+// แก้ได้ต่องาน · เหลือคืนเก็บเข้าสต๊อคผ่านใบคืนเศษ) — ใช้แค่ default ในฟอร์ม
+// server ไม่ cap เบิกเกินอยู่แล้ว (Stock เป็นคนกันของไม่พอ)
+export const SPOILAGE_RATE_PCT = 3;
+
 // ───────────── คิวรีด DTF: gate ฟิล์ม∧เสื้อ (FLOW-REDESIGN ก้อน 2) ─────────────
 // ช่างรีดลงมือได้เมื่อสองเงื่อนไขบรรจบ: ฟิล์มเสร็จ (ขั้นพิมพ์ DTF_PRINT ปิด —
 // ผ่านจุดตัดแยก+ติดป้ายแล้ว) ∧ เสื้อพร้อม (สายเตรียมเสื้อ/ตัดเย็บของใบผลิตนั้นจบ)

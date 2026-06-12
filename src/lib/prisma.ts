@@ -97,6 +97,12 @@ const createPrismaClient = () =>
       },
       payment: {
         amount: { needs: { amount: true }, compute: (p) => p.amount.toNumber() },
+        whtAmount: { needs: { whtAmount: true }, compute: (p) => p.whtAmount.toNumber() },
+      },
+      whtCertificate: {
+        baseAmount: { needs: { baseAmount: true }, compute: (w) => w.baseAmount.toNumber() },
+        ratePct: { needs: { ratePct: true }, compute: (w) => w.ratePct.toNumber() },
+        amount: { needs: { amount: true }, compute: (w) => w.amount.toNumber() },
       },
       billingNote: {
         totalAmount: { needs: { totalAmount: true }, compute: (b) => b.totalAmount.toNumber() },
