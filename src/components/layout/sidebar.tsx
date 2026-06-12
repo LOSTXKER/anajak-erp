@@ -57,6 +57,7 @@ const groups: NavGroup[] = [
     label: "ผลิต",
     items: [
       { name: "การผลิต", href: "/production", icon: Factory },
+      { name: "รอบพิมพ์ฟิล์ม", href: "/production/print-runs", icon: Printer },
       { name: "งานออกแบบ", href: "/designs", icon: Palette },
       { name: "Outsource", href: "/outsource", icon: Truck },
     ],

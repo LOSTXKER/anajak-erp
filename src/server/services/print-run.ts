@@ -365,7 +365,8 @@ export async function cancelPrintRun(prisma: ExtendedPrismaClient, runId: string
     // ยกเลิกได้เฉพาะก่อนพิมพ์จบ — พิมพ์ไปแล้วฟิล์มเกิดขึ้นจริง ต้องเดินต่อให้จบรอบ
     const res = await tx.printRun.updateMany({
       where: { id: runId, status: "PRINTING" },
-      data: { status: "CANCELLED" },
+      // completedAt = เวลาจบรอบ (รวมยกเลิก) — list ประวัติ 7 วันกรองจาก field นี้
+      data: { status: "CANCELLED", completedAt: new Date() },
     });
     if (res.count === 0) {
       badRequest("ยกเลิกได้เฉพาะรอบที่ยังไม่กดพิมพ์จบ");

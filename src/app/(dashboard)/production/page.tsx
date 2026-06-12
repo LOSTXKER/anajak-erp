@@ -37,6 +37,7 @@ import {
   LayoutGrid,
   Rows3,
   PackageCheck,
+  Printer,
 } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 
@@ -233,6 +234,15 @@ function ProductionWorkspace() {
       <PageHeader
         title="การผลิต"
         description={`สายการผลิตแยกตามเทคนิค · ${all.length} งานในระบบ`}
+        action={
+          // จอช่างพิมพ์ DTF — รวมหลายงานลงม้วนเดียว (FLOW-REDESIGN ก้อน 2)
+          <Button variant="outline" size="sm" asChild className="gap-1.5">
+            <Link href="/production/print-runs">
+              <Printer className="h-4 w-4" />
+              รอบพิมพ์ฟิล์ม
+            </Link>
+          </Button>
+        }
       />
 
       {/* ── 1) รอเปิดใบผลิต ── */}
