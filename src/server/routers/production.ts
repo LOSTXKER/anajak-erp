@@ -5,6 +5,12 @@ import { createAuditLog, createNotification } from "@/server/helpers";
 import { transitionOrder, finalizeProductionIfComplete } from "@/server/services/order-status";
 import { isValidTransition } from "@/lib/order-status";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import {
+  getGarmentPickState,
+  issueGarments,
+  returnGarments,
+} from "@/server/services/garment-pick";
+import { getStockClientFromSettings } from "@/lib/stock-api";
 
 // วางแผนการผลิต = งานระดับบริหารตามตาราง RBAC §7
 const managerUp = requireRole("OWNER", "MANAGER");
@@ -482,6 +488,74 @@ export const productionRouter = router({
 
         return step;
       });
+    }),
+
+  // ============================================================
+  // ใบเบิกเสื้อ + ใบคืนเศษ (FLOW-REDESIGN ก้อน 1 — logic ใน services/garment-pick)
+  // ============================================================
+
+  // สถานะเบิก/คืนของออเดอร์นี้ — ใช้ทั้งการ์ดบนหน้าใบผลิตและ dialog เบิก/คืน
+  garmentPick: protectedProcedure
+    .input(z.object({ productionId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const production = await ctx.prisma.production.findUniqueOrThrow({
+        where: { id: input.productionId },
+        select: { orderId: true },
+      });
+      const state = await getGarmentPickState(ctx.prisma, production.orderId);
+      const configured = (await getStockClientFromSettings()) !== null;
+      return { ...state, configured };
+    }),
+
+  // เบิกเสื้อ: ISSUE + orderRef → Stock ตัดยอดจองออเดอร์นี้อัตโนมัติ + กันเบิกทับจองงานอื่น
+  issueGarments: protectedProcedure
+    .use(productionTeam)
+    .input(
+      z.object({
+        productionId: z.string(),
+        stepId: z.string(),
+        // กันยิงซ้ำ (กดเบิ้ล/เน็ตสะดุดแล้วลองใหม่) — UI สร้างครั้งเดียวต่อการเปิด dialog
+        idempotencyKey: z.string().min(8),
+        lines: z.array(z.object({ sku: z.string(), qty: z.number().int().min(0) })).min(1),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const result = await issueGarments(ctx.prisma, {
+        ...input,
+        userId: ctx.userId,
+        userRole: ctx.userRole,
+      });
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "CREATE",
+        entityType: "STOCK_ISSUE",
+        entityId: result.docNumber,
+        newValue: { productionId: input.productionId, lines: input.lines },
+      });
+      return result;
+    }),
+
+  // คืนเศษเข้าสต๊อค (เผื่อเสีย 3% ที่เหลือ) — คืนได้ไม่เกินยอดเบิกค้าง
+  returnGarments: protectedProcedure
+    .use(productionTeam)
+    .input(
+      z.object({
+        productionId: z.string(),
+        idempotencyKey: z.string().min(8),
+        note: z.string().optional(),
+        lines: z.array(z.object({ sku: z.string(), qty: z.number().int().min(0) })).min(1),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const result = await returnGarments(ctx.prisma, { ...input, userId: ctx.userId });
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "CREATE",
+        entityType: "STOCK_RETURN",
+        entityId: result.docNumber,
+        newValue: { productionId: input.productionId, lines: input.lines, note: input.note },
+      });
+      return result;
     }),
 
 });

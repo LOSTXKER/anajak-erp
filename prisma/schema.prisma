@@ -828,6 +828,10 @@ model MaterialUsage {
   unit             String
   unitCost         Decimal   @default(0) @map("unit_cost") @db.Decimal(12, 2)
   totalCost        Decimal   @default(0) @map("total_cost") @db.Decimal(12, 2)
+  // ทิศทาง: ISSUE = เบิกออกจากสต๊อค · RETURN = คืนเศษกลับสต๊อค (qty เป็นบวกเสมอ
+  // ยอดสุทธิ = sum(ISSUE) − sum(RETURN)) — ใบเบิกเสื้อ FLOW-REDESIGN ก้อน 1
+  movementType     String    @default("ISSUE") @map("movement_type")
+  note             String?
   stockMovementRef String?   @map("stock_movement_ref")
   deductedAt       DateTime? @map("deducted_at")
   createdAt        DateTime  @default(now()) @map("created_at")

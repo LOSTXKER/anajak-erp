@@ -174,6 +174,8 @@ export function MaterialUsage({
         unitCost: m.unitCost,
       })),
       fromLocation: "WH-MAIN",
+      // key ต่อหนึ่งการกด — เน็ตสะดุดแล้วระบบ retry ไม่ตัดสต๊อคซ้ำ
+      idempotencyKey: crypto.randomUUID(),
     });
   };
 

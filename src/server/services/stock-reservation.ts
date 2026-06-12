@@ -42,6 +42,7 @@ export interface ReservableProduct {
 }
 
 export interface MirrorVariant {
+  id: string;
   sku: string;
   size: string;
   color: string;
@@ -54,11 +55,28 @@ export interface MirrorProduct {
   variants: MirrorVariant[];
 }
 
+// บรรทัดจอง/เบิก พร้อมข้อมูล variant ครบ — ตัวจอง map เหลือ {sku,qty,note} ตอนยิง API
+// ส่วนใบเบิก (garment-pick) ใช้ field เต็มทำรายการเตรียมของ/เบิกรายไซส์-สี
+export interface RichReserveLine {
+  sku: string;
+  qty: number;
+  note?: string;
+  productId: string;
+  variantId: string | null; // null = จองระดับสินค้า (variant ไม่ตรง/สินค้าไม่มี variant)
+  productName: string;
+  size: string;
+  color: string | null;
+}
+
 export interface BuildReserveLinesResult {
-  lines: ReserveLine[];
+  lines: RichReserveLine[];
   totalQty: number;
   // ปัญหาคุณภาพข้อมูล (เช่น หา variant ไม่เจอ) — จองต่อได้แต่ต้องโชว์ให้คนเห็น
   problems: string[];
+}
+
+export function toReserveLines(lines: RichReserveLine[]): ReserveLine[] {
+  return lines.map((l) => ({ sku: l.sku, qty: l.qty, ...(l.note ? { note: l.note } : {}) }));
 }
 
 // จับคู่ variant แบบเดียวกับด่านเช็คสต๊อคตอนเปิดงาน (order.create):
@@ -68,7 +86,7 @@ export function buildReserveLines(
   mirror: MirrorProduct[]
 ): BuildReserveLinesResult {
   const mirrorById = new Map(mirror.map((p) => [p.id, p]));
-  const qtyBySku = new Map<string, { qty: number; note?: string }>();
+  const bySku = new Map<string, RichReserveLine>();
   const problems: string[] = [];
 
   for (const prod of products) {
@@ -91,18 +109,22 @@ export function buildReserveLines(
         note = `ไม่พบ variant ${v.size}${v.color ? `/${v.color}` : ""} — จองระดับสินค้า`;
         problems.push(`${db.name}: ไม่พบ variant ไซส์ ${v.size}${v.color ? ` สี ${v.color}` : ""}`);
       }
-      const entry = qtyBySku.get(sku) ?? { qty: 0 };
+      const entry = bySku.get(sku) ?? {
+        sku,
+        qty: 0,
+        productId: db.id,
+        variantId: pv?.id ?? null,
+        productName: db.name,
+        size: v.size,
+        color: v.color,
+      };
       entry.qty += v.quantity;
       if (note) entry.note = note;
-      qtyBySku.set(sku, entry);
+      bySku.set(sku, entry);
     }
   }
 
-  const lines: ReserveLine[] = [...qtyBySku.entries()].map(([sku, e]) => ({
-    sku,
-    qty: e.qty,
-    ...(e.note ? { note: e.note } : {}),
-  }));
+  const lines = [...bySku.values()];
   return {
     lines,
     totalQty: lines.reduce((s, l) => s + l.qty, 0),
@@ -212,7 +234,7 @@ export async function syncOrderStockReservation(
         id: true,
         sku: true,
         name: true,
-        variants: { select: { sku: true, size: true, color: true } },
+        variants: { select: { id: true, sku: true, size: true, color: true } },
       },
     });
 
@@ -227,7 +249,10 @@ export async function syncOrderStockReservation(
     }
 
     try {
-      await client.reserveForOrder({ orderRef: order.orderNumber, lines: built.lines });
+      await client.reserveForOrder({
+        orderRef: order.orderNumber,
+        lines: toReserveLines(built.lines),
+      });
     } catch (err) {
       const message =
         err instanceof StockApiError

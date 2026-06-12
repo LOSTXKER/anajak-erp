@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildReserveLines, type MirrorProduct } from "./stock-reservation";
+import { buildReserveLines, toReserveLines, type MirrorProduct } from "./stock-reservation";
 
 // สร้างบรรทัดจองจากเนื้อออเดอร์ — หัวใจคือ: เลือกเฉพาะ FROM_STOCK · จับคู่ variant
 // แบบเดียวกับด่านเช็คสต๊อคตอนเปิดงาน · รวมยอดต่อ SKU · variant ไม่เจอ = จองระดับสินค้า+จดปัญหา
@@ -10,9 +10,9 @@ const mirror: MirrorProduct[] = [
     sku: "TS-001",
     name: "เสื้อยืดคอกลม",
     variants: [
-      { sku: "TS-001-S-BLACK", size: "S", color: "ดำ" },
-      { sku: "TS-001-M-BLACK", size: "M", color: "ดำ" },
-      { sku: "TS-001-M-WHITE", size: "M", color: "ขาว" },
+      { id: "v1", sku: "TS-001-S-BLACK", size: "S", color: "ดำ" },
+      { id: "v2", sku: "TS-001-M-BLACK", size: "M", color: "ดำ" },
+      { id: "v3", sku: "TS-001-M-WHITE", size: "M", color: "ขาว" },
     ],
   },
   {
@@ -22,6 +22,9 @@ const mirror: MirrorProduct[] = [
     variants: [],
   },
 ];
+
+// เทียบเฉพาะส่วนที่ยิงไป Stock API (sku/qty/note) — metadata เต็มทดสอบแยก
+const apiLines = (r: ReturnType<typeof buildReserveLines>) => toReserveLines(r.lines);
 
 describe("buildReserveLines", () => {
   it("จองรายไซส์-สีด้วย variant SKU และรวมยอดบรรทัดซ้ำ", () => {
@@ -45,10 +48,18 @@ describe("buildReserveLines", () => {
       ],
       mirror
     );
-    expect(r.lines).toEqual([
+    expect(apiLines(r)).toEqual([
       { sku: "TS-001-S-BLACK", qty: 10 },
       { sku: "TS-001-M-BLACK", qty: 8 },
     ]);
+    // metadata ครบสำหรับใบเบิก (garment-pick ใช้ตัวเดียวกัน)
+    expect(r.lines[0]).toMatchObject({
+      productId: "p1",
+      variantId: "v1",
+      productName: "เสื้อยืดคอกลม",
+      size: "S",
+      color: "ดำ",
+    });
     expect(r.totalQty).toBe(18);
     expect(r.problems).toEqual([]);
   });
@@ -93,7 +104,7 @@ describe("buildReserveLines", () => {
       ],
       mirror
     );
-    expect(r.lines).toEqual([{ sku: "TS-001-M-BLACK", qty: 4 }]);
+    expect(apiLines(r)).toEqual([{ sku: "TS-001-M-BLACK", qty: 4 }]);
   });
 
   it("variant ไม่เจอ → จองระดับสินค้า (product SKU) + จดปัญหา", () => {
@@ -114,10 +125,12 @@ describe("buildReserveLines", () => {
       ],
       mirror
     );
-    expect(r.lines).toEqual([
+    expect(apiLines(r)).toEqual([
       { sku: "TS-001", qty: 2, note: "ไม่พบ variant 3XL/เขียว — จองระดับสินค้า" },
       { sku: "CAP-01", qty: 6, note: "ไม่พบ variant FREE — จองระดับสินค้า" },
     ]);
+    // จองระดับสินค้า = variantId null (ใบเบิกใช้แยกบรรทัด product-level)
+    expect(r.lines.map((l) => l.variantId)).toEqual([null, null]);
     expect(r.problems).toHaveLength(2);
   });
 

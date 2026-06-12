@@ -96,6 +96,8 @@ export const stockSyncRouter = router({
           })
         ),
         fromLocation: z.string().default("WH-MAIN"),
+        // กันยิงซ้ำ (กดเบิ้ล/เน็ตสะดุด) — Stock คืนใบเดิมเมื่อ key ซ้ำ ไม่ตัดสต๊อคซ้ำ
+        idempotencyKey: z.string().min(8).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -107,6 +109,7 @@ export const stockSyncRouter = router({
       const movement = await client.createMovement({
         type: "ISSUE",
         refNo: input.orderNumber,
+        idempotencyKey: input.idempotencyKey,
         note: `เบิกวัตถุดิบสำหรับออเดอร์ ${input.orderNumber}`,
         lines: input.materials.map((m) => ({
           sku: m.sku,

@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { PageHeader } from "@/components/page-header";
 import { MaterialUsage } from "@/components/material-usage";
+import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { ProductionStepsList } from "@/components/production/production-steps-list";
 import { StepUpdateDialog } from "@/components/production/step-update-dialog";
 import { StepOutsourceDialog } from "@/components/production/step-outsource-dialog";
@@ -178,6 +179,13 @@ export default function ProductionDetailPage({
           onQuickPass={handleQuickPass}
         />
       </div>
+
+      {/* เสื้อจากสต๊อค: เบิก (ตัดยอดจอง) + คืนเศษ — ผูกขั้น GARMENT_PICK (ก้อน 1) */}
+      <GarmentPickCard
+        productionId={production.id}
+        steps={production.steps}
+        canUpdateStep={canUpdateStep}
+      />
 
       {/* เบิกวัตถุดิบ — ช่างเบิกได้ แต่เงิน (ต้นทุน/หน่วย) โชว์เฉพาะหัวหน้า */}
       <MaterialUsage
