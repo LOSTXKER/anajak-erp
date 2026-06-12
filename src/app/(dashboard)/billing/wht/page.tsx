@@ -64,6 +64,7 @@ function exportWhtCsv(rows: WhtRow[]) {
     "ลูกค้า",
     "เลขผู้เสียภาษี",
     "เลขที่บิล",
+    "สถานะบิล",
     "ฐานก่อน VAT",
     "อัตรา%",
     "ยอดหัก",
@@ -77,6 +78,8 @@ function exportWhtCsv(rows: WhtRow[]) {
     r.customer.name,
     r.customer.taxId ?? "",
     r.invoice.invoiceNumber,
+    // บิลยกเลิกแถวยังอยู่ (ใบ 50ทวิ ที่รับแล้วคงเป็นหลักฐาน) — นักบัญชีต้องดูออกใน CSV
+    r.invoice.isVoided ? "ยกเลิกแล้ว" : "ปกติ",
     r.baseAmount.toFixed(2),
     String(r.ratePct),
     r.amount.toFixed(2),
@@ -344,12 +347,20 @@ export default function WhtRegisterPage() {
                     )}
                   </DataTable.Td>
                   <DataTable.Td>
-                    <Link
-                      href={`/orders/${row.invoice.orderId}`}
-                      className="text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      {row.invoice.invoiceNumber}
-                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      <Link
+                        href={`/orders/${row.invoice.orderId}`}
+                        className="text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        {row.invoice.invoiceNumber}
+                      </Link>
+                      {/* บิลถูกยกเลิกหลังหักแล้ว — แถวคงไว้เป็นหลักฐาน แต่ต้องดูออก */}
+                      {row.invoice.isVoided && (
+                        <Badge variant="destructive" size="sm">
+                          บิลยกเลิก
+                        </Badge>
+                      )}
+                    </div>
                   </DataTable.Td>
                   <DataTable.Td align="right" className="tabular-nums">
                     {formatCurrency(row.baseAmount)}
@@ -438,13 +449,20 @@ export default function WhtRegisterPage() {
                 </div>
 
                 <div className="mt-2 flex items-center justify-between gap-2 text-sm">
-                  <Link
-                    href={`/orders/${row.invoice.orderId}`}
-                    className="text-blue-600 hover:underline dark:text-blue-400"
-                  >
-                    {row.invoice.invoiceNumber}
-                  </Link>
-                  <span className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <Link
+                      href={`/orders/${row.invoice.orderId}`}
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      {row.invoice.invoiceNumber}
+                    </Link>
+                    {row.invoice.isVoided && (
+                      <Badge variant="destructive" size="sm">
+                        บิลยกเลิก
+                      </Badge>
+                    )}
+                  </span>
+                  <span className="shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400">
                     รับเงิน {formatDate(row.payment.createdAt)}
                   </span>
                 </div>

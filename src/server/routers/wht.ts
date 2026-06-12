@@ -39,10 +39,11 @@ export const whtRouter = router({
             : {}),
         },
         orderBy: { createdAt: "desc" },
-        take: 200,
+        take: 500, // export CSV ใช้แถวที่โหลด — เพดานสูงพอสำหรับทะเบียนทั้งปีของโรงงานนี้
         include: {
           customer: { select: { id: true, name: true, taxId: true } },
-          invoice: { select: { id: true, invoiceNumber: true, orderId: true } },
+          // isVoided — แถวของบิลที่ถูกยกเลิก (ใบ 50ทวิ ที่รับแล้วคงไว้เป็นหลักฐาน) ต้องดูออก
+          invoice: { select: { id: true, invoiceNumber: true, orderId: true, isVoided: true } },
           payment: { select: { createdAt: true, amount: true } },
         },
       });

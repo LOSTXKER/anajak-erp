@@ -39,7 +39,7 @@ async function main() {
       customerId: customer.id,
       createdById: owner.id,
       internalStatus: "SHIPPED",
-      totalAmount: 321,
+      totalAmount: 535, // เพดานวางบิล D+F ≤ ยอดออเดอร์ — สคริปต์เปิด 5 ใบ ใบละ 107
     },
   });
 
@@ -112,6 +112,25 @@ async function main() {
     await caller.billing.recordRefund({ invoiceId: inv3.id, amount: 10, method: "BANK_TRANSFER" });
     const inv3Now = await prisma.invoice.findUniqueOrThrow({ where: { id: inv3.id } });
     check("5.1 คืนเงิน 10 → เคลียร์เหลือ 97/107 = PARTIALLY_PAID", inv3Now.paymentStatus === "PARTIALLY_PAID");
+
+    // ── 6. WHT ล้วน (บันทึก 97% ก่อน ใบ 50ทวิ ตามทีหลัง) ──
+    const inv4 = await mkInvoice();
+    await caller.billing.recordPayment({ invoiceId: inv4.id, amount: 104, method: "BANK_TRANSFER" });
+    await caller.billing.recordPayment({ invoiceId: inv4.id, amount: 0, whtAmount: 3, method: "BANK_TRANSFER" });
+    const inv4Now = await prisma.invoice.findUniqueOrThrow({ where: { id: inv4.id } });
+    check("6.1 เคลียร์ 3% ด้วย WHT ล้วน → PAID", inv4Now.paymentStatus === "PAID");
+    const cert4 = await prisma.whtCertificate.findFirst({ where: { invoiceId: inv4.id } });
+    check("6.2 ฐานโดยนัย 3% = 100 (ตรงใบจริง ไม่ใช่สัดส่วนงวด)", Number(cert4?.baseAmount) === 100 && Number(cert4?.ratePct) === 3);
+
+    // ── 7. void บิลที่มี WHT — totalSpent สมมาตร + ใบรอถูกลบ ──
+    const custBefore = Number((await prisma.customer.findUniqueOrThrow({ where: { id: customer.id }, select: { totalSpent: true } })).totalSpent);
+    const inv5 = await mkInvoice();
+    await caller.billing.recordPayment({ invoiceId: inv5.id, amount: 104, whtAmount: 3, method: "BANK_TRANSFER" });
+    await caller.billing.voidInvoice({ invoiceId: inv5.id, reason: "ทดสอบ void" });
+    const custAfter = Number((await prisma.customer.findUniqueOrThrow({ where: { id: customer.id }, select: { totalSpent: true } })).totalSpent);
+    check("7.1 void แล้ว totalSpent กลับเท่าเดิม (รวม WHT)", Math.abs(custAfter - custBefore) < 0.005);
+    const cert5 = await prisma.whtCertificate.findFirst({ where: { invoiceId: inv5.id } });
+    check("7.2 ใบ 50ทวิ ที่ยังรอ ถูกลบตอน void (ไม่ค้างทะเบียนผี)", cert5 === null);
   } finally {
     const invoices = await prisma.invoice.findMany({ where: { orderId: order.id }, select: { id: true } });
     const invIds = invoices.map((i) => i.id);

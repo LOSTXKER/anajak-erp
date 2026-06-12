@@ -122,6 +122,9 @@ export function OrderDeliverySection({
       toast.success(res.blindShip ? "เปิด blind ship แล้ว" : "ปิด blind ship แล้ว");
       utils.delivery.packContext.invalidate({ orderId });
       utils.order.getById.invalidate({ id: orderId });
+      // ธงบนบอร์ดผลิต/คิวงานวันนี้ต้อง refresh ด้วย — การ์ดแพ็คโชว์ธงจาก cache เก่าไม่ได้
+      utils.production.kanban.invalidate();
+      utils.task.myToday.invalidate();
       setShowBlindShipDialog(false);
     },
   });

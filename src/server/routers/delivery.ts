@@ -302,7 +302,24 @@ export const deliveryRouter = router({
               status: { in: ["PENDING", "PREPARING"] },
             },
           });
-          if (pendingSiblings === 0) {
+          // แบ่งส่งแบบนับยืนยัน (ก้อน 3): เมื่อใบส่งของออเดอร์นี้มีรายการต่อกล่อง
+          // ต้องส่งครบ "จำนวนตัว" ด้วย — กล่องแรกออกก่อนสร้างใบที่เหลือ ห้ามประกาศ
+          // ทั้งออเดอร์ว่าส่งแล้ว (ใบส่งแบบเก่าไม่มีรายการ = นับจากจำนวนใบเหมือนเดิม)
+          let qtyComplete = true;
+          const shippedLines = await tx.deliveryLine.aggregate({
+            where: { delivery: { orderId: delivery.orderId, status: { not: "RETURNED" } } },
+            _sum: { qty: true },
+          });
+          const shippedQty = shippedLines._sum.qty ?? 0;
+          if (shippedQty > 0) {
+            const orderItems = await tx.orderItem.aggregate({
+              where: { orderId: delivery.orderId },
+              _sum: { totalQuantity: true },
+            });
+            const orderedQty = orderItems._sum.totalQuantity ?? 0;
+            qtyComplete = orderedQty === 0 || shippedQty >= orderedQty;
+          }
+          if (pendingSiblings === 0 && qtyComplete) {
             await advanceOrderForward(tx, {
               orderId: delivery.orderId,
               target: "SHIPPED",

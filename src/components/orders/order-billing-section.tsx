@@ -888,7 +888,9 @@ export function OrderBillingSection({
             </Button>
             <Button
               onClick={handleRecordPayment}
-              disabled={!paymentAmount || recordPayment.isPending}
+              // หักล้วนเงินสด 0 ก็บันทึกได้ (server รับแล้ว — เคสโอน 97% ไปก่อน ใบ 50ทวิ
+              // ตามมาทีหลัง เคลียร์ 3% ด้วยหักล้วน) · ห้ามเฉพาะรวมแล้วไม่มียอดเคลียร์เลย
+              disabled={settleAmount <= 0 || recordPayment.isPending}
               className="gap-1.5"
             >
               {recordPayment.isPending ? (

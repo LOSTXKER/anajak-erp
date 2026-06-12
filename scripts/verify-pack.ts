@@ -109,11 +109,39 @@ async function main() {
       dl.find((d) => d.id === d1.id)?.lines.length === 1 &&
         dl.find((d) => d.id === d2.id)?.lines.length === 2
     );
+
+    // ── 6. เด้งตามจำนวนตัว ไม่ใช่จำนวนใบ — กล่องแรกออกก่อนสร้างใบที่เหลือ ──
+    const order2 = await prisma.order.create({
+      data: {
+        orderNumber: `TEST-PACK2-${Date.now()}`,
+        title: `${MARK} งานทดสอบเด้งตามจำนวน`,
+        customerId: customer.id,
+        createdById: owner.id,
+        internalStatus: "PACKING",
+        items: {
+          create: [{
+            description: `${MARK} เสื้อ`, totalQuantity: 10, sortOrder: 0,
+            products: { create: [{ productType: "TSHIRT", description: `${MARK} เสื้อยืด`, baseUnitPrice: 0,
+              variants: { create: [{ size: "M", color: "ดำ", quantity: 10 }] } }] },
+          }],
+        },
+      },
+    });
+    const e1 = await caller.delivery.create({ ...base, orderId: order2.id, lines: [{ description: "เสื้อยืด", size: "M", color: "ดำ", qty: 4 }] });
+    await caller.delivery.updateStatus({ id: e1.id, status: "SHIPPED", trackingNumber: "TRK-E1" });
+    let o2 = await prisma.order.findUniqueOrThrow({ where: { id: order2.id } });
+    check("6.1 กล่องเดียวออก 4/10 ตัว (ไม่มีใบอื่นค้าง) → ไม่เด้ง SHIPPED", o2.internalStatus === "PACKING");
+    const e2 = await caller.delivery.create({ ...base, orderId: order2.id, lines: [{ description: "เสื้อยืด", size: "M", color: "ดำ", qty: 6 }] });
+    await caller.delivery.updateStatus({ id: e2.id, status: "SHIPPED", trackingNumber: "TRK-E2" });
+    o2 = await prisma.order.findUniqueOrThrow({ where: { id: order2.id } });
+    check("6.2 ครบ 10/10 ตัว → เด้ง SHIPPED", o2.internalStatus === "SHIPPED");
   } finally {
-    const dels = await prisma.delivery.findMany({ where: { orderId: order.id }, select: { id: true } });
+    const allOrders = await prisma.order.findMany({ where: { title: { contains: MARK } }, select: { id: true } });
+    const orderIds = allOrders.map((o) => o.id);
+    const dels = await prisma.delivery.findMany({ where: { orderId: { in: orderIds } }, select: { id: true } });
     await prisma.deliveryLine.deleteMany({ where: { deliveryId: { in: dels.map((d) => d.id) } } });
-    await prisma.delivery.deleteMany({ where: { orderId: order.id } });
-    await prisma.order.delete({ where: { id: order.id } });
+    await prisma.delivery.deleteMany({ where: { orderId: { in: orderIds } } });
+    await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
     await prisma.customer.delete({ where: { id: customer.id } });
   }
 

@@ -134,14 +134,37 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
     0
   );
 
-  const record = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
+    // lock แถวออเดอร์ — สองคนตรวจพร้อมกันต้องต่อคิว (ไม่งั้นผลฝั่งช้าทับ/สถานะแข่งกัน)
+    await tx.$queryRaw`SELECT id FROM orders WHERE id = ${params.orderId} FOR UPDATE`;
     const order = await tx.order.findUniqueOrThrow({
       where: { id: params.orderId },
-      select: { id: true, orderNumber: true, internalStatus: true },
+      select: {
+        id: true,
+        orderNumber: true,
+        internalStatus: true,
+        items: {
+          select: { products: { select: { variants: { select: { quantity: true } } } } },
+        },
+        qcRecords: { select: { qtyGood: true } },
+        productions: { select: { id: true } },
+      },
     });
     // ตรวจนับเกิดที่ด่านตรวจเท่านั้น — ที่อื่นคือกดผิดจังหวะ (เช่น ยังผลิตไม่จบ)
     if (order.internalStatus !== "QUALITY_CHECK") {
       badRequest("บันทึกผลตรวจได้เฉพาะงานที่อยู่ขั้นตรวจคุณภาพ");
+    }
+
+    // นับครบหรือยัง — ตรวจได้หลายรอบ (รอบแรกดีบางส่วน → ตรวจต่อ · เสียกลับมาแก้แล้วตรวจซ้ำ)
+    const totalExpected = order.items.reduce(
+      (s, it) => s + it.products.reduce((ps, p) => ps + p.variants.reduce((vs, v) => vs + v.quantity, 0), 0),
+      0
+    );
+    const checkedGood = order.qcRecords.reduce((s, r) => s + r.qtyGood, 0);
+    if (totalExpected > 0 && checkedGood + params.qtyGood > totalExpected) {
+      badRequest(
+        `นับเกินยอดงาน: ผ่านแล้ว ${checkedGood} จาก ${totalExpected} ตัว — รอบนี้ใส่ของดีได้อีกไม่เกิน ${totalExpected - checkedGood}`
+      );
     }
 
     const created = await tx.qcRecord.create({
@@ -166,31 +189,50 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
       include: { defects: true },
     });
 
+    let reworkOpened = false;
+    let heldForStock = false;
+    let movedToPacking = false;
+
     if (qtyDefect > 0) {
-      // มีของเสีย → ถอยกลับผลิต + เปิดงานแก้อัตโนมัติ (วนกลับมาตรวจรอบใหม่เมื่อแก้จบ)
+      // มีของเสีย → เปิดงานแก้ + ตัดสินสถานะ: เสื้อสำรอง (เบิกเผื่อ) พอ = กลับผลิตแก้เลย ·
+      // ไม่พอ (เฉพาะงานเสื้อจากสต๊อคที่ระบบรู้ยอดจริง) = "รอของ" (ON_HOLD) ตาม flow doc
+      // — งานแก้ต้องไม่เข้าคิวช่างทั้งที่ไม่มีเสื้อให้ทำ · แอดมินคุยลูกค้า/สั่งเพิ่มแล้วค่อยปลดพัก
+      const hasFromStock = pick.lines.length > 0;
+      heldForStock = hasFromStock && spareAvailable < qtyDefect;
       const reason = `QC พบของเสีย ${qtyDefect} ตัว (${[
         ...new Set(created.defects.map((d) => qcReasonLabel(d.reason))),
-      ].join("/")})`;
+      ].join("/")})${heldForStock ? " — เสื้อสำรองไม่พอ รอของ" : ""}`;
       await transitionOrder(tx, {
         orderId: params.orderId,
-        to: "PRODUCING",
+        to: heldForStock ? "ON_HOLD" : "PRODUCING",
         changedBy: params.userId,
         reason,
       });
-      await reopenProductionsForRework(tx, { orderId: params.orderId, reason });
+      // เปิดงานแก้เฉพาะออเดอร์ที่มีใบผลิตจริง — ไม่มีใบ (เช่น งานสต๊อคล้วน) reopen เป็น
+      // no-op เงียบ ห้ามไปบอกผู้ใช้ว่า "เปิดขั้นงานแก้แล้ว" ทั้งที่ไม่มีอะไรเกิด
+      if (order.productions.length > 0) {
+        await reopenProductionsForRework(tx, { orderId: params.orderId, reason });
+        reworkOpened = true;
+      }
     } else if (params.qtyGood > 0) {
-      // ดีล้วนครบ → เด้งเข้าแพ็คเอง (ครบ → แพ็ค ตาม flow doc)
-      await advanceOrderForward(tx, {
-        orderId: params.orderId,
-        target: "PACKING",
-        changedBy: params.userId,
-        onlyFrom: ["QUALITY_CHECK"],
-        reason: `QC ผ่าน ${params.qtyGood} ตัว — เข้าคิวแพ็ค`,
-      });
+      // เด้งเข้าแพ็คเมื่อ "นับดีครบยอดงาน" เท่านั้น — ดีบางส่วน (เช่น 100/300) ค้างที่
+      // ด่านตรวจให้ตรวจต่อ ไม่ใช่ประกาศพร้อมแพ็คทั้งที่อีก 200 ตัวยังไม่ผ่านตรวจ
+      const doneAll = totalExpected === 0 || checkedGood + params.qtyGood >= totalExpected;
+      if (doneAll) {
+        await advanceOrderForward(tx, {
+          orderId: params.orderId,
+          target: "PACKING",
+          changedBy: params.userId,
+          onlyFrom: ["QUALITY_CHECK"],
+          reason: `QC ผ่านครบ ${checkedGood + params.qtyGood} ตัว — เข้าคิวแพ็ค`,
+        });
+        movedToPacking = true;
+      }
     }
 
-    return created;
+    return { created, reworkOpened, heldForStock, movedToPacking };
   });
+  const { created: record, reworkOpened, heldForStock, movedToPacking } = result;
 
   // กระดิ่งนอก tx — แจ้งพังต้องไม่ล้มผลตรวจที่บันทึกแล้ว
   if (qtyDefect > 0) {
@@ -200,10 +242,11 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
         select: { orderNumber: true },
       });
       const reasons = [...new Set(record.defects.map((d) => qcReasonLabel(d.reason)))].join("/");
-      const spareNote =
-        spareAvailable >= qtyDefect
-          ? `เสื้อสำรองพอ (เหลือ ${spareAvailable} ตัว) — แก้ได้เลย`
-          : `เสื้อสำรองไม่พอ (เหลือ ${spareAvailable}/${qtyDefect} ตัว) — เช็คของ/คุยลูกค้า`;
+      const statusNote = heldForStock
+        ? `เสื้อสำรองไม่พอ (เหลือ ${spareAvailable}/${qtyDefect} ตัว) — งานพักรอของ คุยลูกค้า/สั่งเพิ่มแล้วปลดพัก`
+        : reworkOpened
+          ? `งานถอยกลับผลิตพร้อมขั้นงานแก้แล้ว · เสื้อสำรองเหลือ ${spareAvailable} ตัว`
+          : `งานถอยกลับผลิตแล้ว แต่ยังไม่มีใบผลิต — เปิดใบผลิตสำหรับงานแก้ที่หน้า /production`;
       const admins = await prisma.user.findMany({
         where: { role: { in: ["OWNER", "MANAGER"] }, isActive: true },
         select: { id: true },
@@ -213,7 +256,7 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
           userId: admin.id,
           type: "QC_DEFECT",
           title: `QC ${order.orderNumber}: ของเสีย ${qtyDefect} ตัว (${reasons})`,
-          message: `งานถอยกลับผลิตพร้อมขั้นงานแก้แล้ว · ${spareNote}`,
+          message: statusNote,
           link: `/orders/${params.orderId}`,
         });
       }
@@ -222,5 +265,5 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
     }
   }
 
-  return { record, qtyDefect, spareAvailable };
+  return { record, qtyDefect, spareAvailable, reworkOpened, heldForStock, movedToPacking };
 }

@@ -533,6 +533,13 @@ function ProductionWorkspace() {
                           className="rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-700/60 dark:bg-slate-900"
                         >
                           <OrderCardHeader order={o} href={href} />
+                          {/* ธง blind ship บนคอลัมน์แพ็ค/พร้อมส่ง — pattern เดียวกับเลน PACK
+                              (คอลัมน์ตรวจคุณภาพไม่ใส่ ของยังไม่ถึงมือคนแพ็ค) */}
+                          {(col.key === "packing" || col.key === "ready") && o.blindShip && (
+                            <p className="mt-2 rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white">
+                              🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
+                            </p>
+                          )}
                           <div className="mt-2.5">
                             {col.next && canAdvance ? (
                               <Button

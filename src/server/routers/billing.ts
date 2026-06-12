@@ -216,19 +216,26 @@ export const billingRouter = router({
   recordPayment: protectedProcedure
     .use(moneyRecorder)
     .input(
-      z.object({
-        invoiceId: z.string(),
-        amount: z.number().min(0.01, "จำนวนเงินต้องมากกว่า 0"),
-        method: z.string(),
-        reference: z.string().optional(),
-        evidenceUrl: z.string().optional(),
-        notes: z.string().optional(),
-        // ลูกค้านิติบุคคลหัก ณ ที่จ่าย 3% ค่าจ้างทำของ — รับเงินสด 97% + เครดิตภาษี 3%
-        // ยอดเคลียร์บิล = amount + whtAmount · เกิดแถวทะเบียน 50ทวิ อัตโนมัติ
-        whtAmount: z.number().min(0).default(0),
-        whtCertNumber: z.string().max(100).optional(),
-        whtCertDate: z.date().optional(),
-      })
+      z
+        .object({
+          invoiceId: z.string(),
+          // เงินสด 0 ได้เมื่อมี WHT — เคสจริง: บันทึกเงินโอน 97% ไปก่อน ใบ 50ทวิ
+          // ตามมาทีหลัง ต้องเคลียร์ 3% ที่เหลือด้วย WHT ล้วนได้ (ไม่งั้นค้างผีถาวร)
+          amount: z.number().min(0),
+          method: z.string(),
+          reference: z.string().optional(),
+          evidenceUrl: z.string().optional(),
+          notes: z.string().optional(),
+          // ลูกค้านิติบุคคลหัก ณ ที่จ่าย 3% ค่าจ้างทำของ — รับเงินสด 97% + เครดิตภาษี 3%
+          // ยอดเคลียร์บิล = amount + whtAmount · เกิดแถวทะเบียน 50ทวิ อัตโนมัติ
+          whtAmount: z.number().min(0).default(0),
+          whtCertNumber: z.string().max(100).optional(),
+          whtCertDate: z.date().optional(),
+        })
+        .refine((v) => v.amount + (v.whtAmount ?? 0) >= 0.01, {
+          message: "ยอดเงิน+ภาษีหัก ณ ที่จ่ายต้องมากกว่า 0",
+          path: ["amount"],
+        })
     )
     .mutation(async ({ ctx, input }) => {
       const amount = moneyInput(input.amount);
@@ -271,9 +278,14 @@ export const billingRouter = router({
           },
         });
 
-        // ทะเบียน 50ทวิ — ฐานมาตรฐานคือยอดก่อน VAT ของใบ (ลูกค้าหักจากค่าจ้างทำของ)
+        // ทะเบียน 50ทวิ — ฐานโดยนัยจากอัตรามาตรฐาน 3% (จ้างทำของ): base = ยอดหัก ÷ 3%
+        // ตรงหนังสือรับรองจริงทั้งเคสจ่ายครั้งเดียว/หลายงวด/บันทึก WHT ตามหลัง (97 ก่อน 3 ทีหลัง)
+        // — ใบฐาน 100 หัก 3: ได้ฐาน 100 เสมอ ไม่ขึ้นกับว่าบันทึกกี่ครั้ง · cap ที่ฐานใบ
+        // (ลูกค้าหักอัตราอื่น ฐานจะถูก cap แล้ว ratePct สะท้อนอัตราจริง)
         if (wht.gt(0)) {
-          const base = total.minus(invoice.tax);
+          const fullBase = total.minus(invoice.tax);
+          const impliedBase = round2(wht.times(100).div(3));
+          const base = impliedBase.gt(fullBase) && fullBase.gt(0) ? fullBase : impliedBase;
           await tx.whtCertificate.create({
             data: {
               paymentId: payment.id,
@@ -359,8 +371,13 @@ export const billingRouter = router({
           );
         }
 
-        // ยอดสุทธิที่รับมาแล้วบนบิลนี้ (รวมรายการคืนเงินที่ติดลบ)
-        const netPaid = invoice.payments.reduce((sum, p) => sum.plus(p.amount), D(0));
+        // ยอดสุทธิที่เคลียร์บิลแล้ว (รวมรายการคืนเงินติดลบ + ภาษีหัก ณ ที่จ่าย) —
+        // ต้องสมมาตรกับ recordPayment ที่ increment ด้วย amount+whtAmount
+        // ไม่งั้น void บิลที่มี WHT แล้ว totalSpent ค้างเกินจริงส่วน 3% ถาวร
+        const netPaid = invoice.payments.reduce(
+          (sum, p) => sum.plus(p.amount).plus(p.whtAmount),
+          D(0)
+        );
 
         const updatedInvoice = await tx.invoice.update({
           where: { id: input.invoiceId },
@@ -370,6 +387,28 @@ export const billingRouter = router({
             paymentStatus: "VOIDED",
           },
         });
+
+        // ทะเบียน 50ทวิ ของบิลที่ยกเลิก: ใบที่ยังไม่ได้รับ = ธุรกรรมล้มแล้ว ไม่ต้องตามทวง
+        // ลบทิ้งกันทะเบียน/ยอดรอใบบวมผี · ใบที่รับแล้ว = ลูกค้านำส่งสรรพากรไปแล้วจริง
+        // คงไว้เป็นหลักฐาน + ประทับเหตุไว้ในหมายเหตุ
+        const paymentIds = invoice.payments.map((p) => p.id);
+        if (paymentIds.length > 0) {
+          await tx.whtCertificate.deleteMany({
+            where: { paymentId: { in: paymentIds }, received: false },
+          });
+          const keptCerts = await tx.whtCertificate.findMany({
+            where: { paymentId: { in: paymentIds } },
+            select: { id: true, notes: true },
+          });
+          for (const cert of keptCerts) {
+            await tx.whtCertificate.update({
+              where: { id: cert.id },
+              data: {
+                notes: `${cert.notes ? `${cert.notes} · ` : ""}[บิลถูกยกเลิก: ${input.reason}]`,
+              },
+            });
+          }
+        }
 
         if (netPaid.gt(0)) {
           await tx.customer.update({

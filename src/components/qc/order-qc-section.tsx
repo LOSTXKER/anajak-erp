@@ -277,17 +277,33 @@ function QcCountForm({
       utils.production.kanban,
       utils.task.myToday,
     ],
-    // toast ต้องบอกผลจริง — ดีล้วนเด้งแพ็คเอง · มีเสียถอยกลับผลิต+งานแก้อัตโนมัติ
-    onSuccess: (data: { qtyDefect: number; spareAvailable: number }) => {
-      if (data.qtyDefect > 0) {
-        toast.warning(`QC พบของเสีย ${data.qtyDefect} ตัว — งานถอยกลับผลิต + เปิดขั้นงานแก้ให้แล้ว`, {
-          description:
-            data.spareAvailable >= data.qtyDefect
-              ? `เสื้อสำรองพอ (เหลือ ${data.spareAvailable} ตัว) — แก้ได้เลย`
-              : `เสื้อสำรองไม่พอ (เหลือ ${data.spareAvailable}/${data.qtyDefect} ตัว) — แจ้งแอดมินแล้ว`,
+    // toast ต้องบอกผลจริงตาม flags จาก server (qc.ts) — พักรอของ/งานแก้เปิดหรือไม่/
+    // เข้าแพ็คหรือยังเหลือตรวจ ห้ามเดาเองจากแค่จำนวนเสีย
+    onSuccess: (data: {
+      qtyDefect: number;
+      spareAvailable: number;
+      movedToPacking: boolean;
+      heldForStock: boolean;
+      reworkOpened: boolean;
+    }) => {
+      if (data.heldForStock) {
+        toast.warning("เสื้อสำรองไม่พอ — งานพักรอของ คุยลูกค้าก่อน", {
+          description: `ของเสีย ${data.qtyDefect} ตัว · เสื้อสำรองเหลือ ${data.spareAvailable} ตัว — แจ้งแอดมินแล้ว`,
         });
+      } else if (data.qtyDefect > 0 && data.reworkOpened) {
+        toast.warning(`QC พบของเสีย ${data.qtyDefect} ตัว — ถอยกลับผลิต เปิดขั้นงานแก้แล้ว`, {
+          description: `เสื้อสำรองเหลือ ${data.spareAvailable} ตัว`,
+        });
+      } else if (data.qtyDefect > 0) {
+        toast.warning(
+          `QC พบของเสีย ${data.qtyDefect} ตัว — ถอยกลับผลิตแล้ว แต่ยังไม่มีใบผลิต`,
+          { description: "ไปเปิดใบผลิตงานแก้ที่หน้าการผลิต" }
+        );
+      } else if (data.movedToPacking) {
+        toast.success("QC ผ่านครบ — งานเข้าคิวแพ็คแล้ว");
       } else {
-        toast.success(`QC ผ่าน ${qtyGood} ตัว — งานเข้าคิวแพ็คแล้ว`);
+        // ดีบางส่วน — งานค้างที่ด่านตรวจ รอตรวจส่วนที่เหลือ
+        toast.success(`บันทึกแล้ว — ยังเหลือตรวจอีก ${Math.max(0, remaining - qtyGood)} ตัว`);
       }
       onClose();
     },
@@ -512,17 +528,32 @@ function QcCountForm({
             เพิ่มของเสีย
           </Button>
 
-          {/* แถบเตือนผลที่จะเกิดก่อนกด — คนกดต้องรู้ว่างานจะไปทางไหน */}
+          {/* แถบเตือนผลที่จะเกิดก่อนกด — คนกดต้องรู้ว่างานจะไปทางไหน (ตรรกะเดียวกับ server) */}
           {qtyDefectTotal > 0 ? (
-            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              บันทึกแล้วงานจะถอยกลับผลิต + เปิดขั้นงานแก้อัตโนมัติ
-            </div>
+            context.spareAvailable < qtyDefectTotal ? (
+              <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                เสื้อสำรองไม่พอ (เหลือ {context.spareAvailable}/{qtyDefectTotal} ตัว) —
+                บันทึกแล้วงานจะพักรอของ คุยลูกค้า/สั่งเสื้อเพิ่มก่อน
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                บันทึกแล้วงานจะถอยกลับผลิต + เปิดขั้นงานแก้อัตโนมัติ
+              </div>
+            )
           ) : qtyGood > 0 ? (
-            <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
-              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              ครบแล้วงานจะเข้าคิวแพ็คเอง
-            </div>
+            qtyGood >= remaining ? (
+              <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                ครบแล้วงานจะเข้าคิวแพ็คเอง
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                ดีบางส่วน — บันทึกแล้วงานยังอยู่ด่านตรวจ เหลือตรวจอีก {remaining - qtyGood} ตัว
+              </div>
+            )
           ) : null}
 
           <Textarea

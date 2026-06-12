@@ -128,6 +128,19 @@ export default async function PrintJobTicketPage({
           </div>
         </div>
 
+        {/* blind ship — ใบนี้เดินทางกับกองเสื้อถึงโต๊ะแพ็คแต่ไม่เข้ากล่อง จึงใส่คำเตือนได้
+            (query ใช้ include → blindShip/blindShipSenderName เป็น scalar มาครบอยู่แล้ว) */}
+        {order.blindShip && (
+          <div className="mt-3 rounded border-4 border-red-600 bg-red-50 px-4 py-2.5">
+            <p className="text-[16px] font-bold leading-snug text-red-700">
+              🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
+            </p>
+            <p className="mt-0.5 text-[13px] font-semibold text-red-700">
+              ผู้ส่งบนใบ: {order.blindShipSenderName || order.customer.name}
+            </p>
+          </div>
+        )}
+
         {/* ข้อมูลงาน — ไม่มีราคา */}
         <div className="mt-3 grid grid-cols-4 gap-x-4 gap-y-2 rounded border border-slate-300 px-4 py-2.5">
           <MetaCell

@@ -125,6 +125,21 @@ async function main() {
     // ── 4. ประวัติตรวจ ──
     const list = await caller.qc.listByOrder({ orderId: B.order.id });
     check("4.1 ประวัติตรวจอ่านได้พร้อมคนตรวจ", list.length === 1 && !!list[0].checkedBy.name);
+
+    // ── 5. ดีบางส่วน — ค้างที่ด่านตรวจ + กันนับเกิน ──
+    const D2 = await makeOrder(customer.id, owner.id, "D");
+    await caller.qc.create({ orderId: D2.order.id, qtyGood: 4, defects: [] });
+    let dNow = await prisma.order.findUniqueOrThrow({ where: { id: D2.order.id } });
+    check("5.1 ดีบางส่วน 4/10 → ยังอยู่ด่านตรวจ", dNow.internalStatus === "QUALITY_CHECK");
+    await caller.qc
+      .create({ orderId: D2.order.id, qtyGood: 7, defects: [] })
+      .then(
+        () => check("5.2 นับเกินยอดงาน (4+7>10) → โดนกัน", false),
+        (e) => check("5.2 นับเกินยอดงาน (4+7>10) → โดนกัน", String(e.message).includes("นับเกินยอดงาน"))
+      );
+    await caller.qc.create({ orderId: D2.order.id, qtyGood: 6, defects: [] });
+    dNow = await prisma.order.findUniqueOrThrow({ where: { id: D2.order.id } });
+    check("5.3 นับครบสะสม 10/10 → เด้ง PACKING", dNow.internalStatus === "PACKING");
   } finally {
     const orders = await prisma.order.findMany({
       where: { title: { contains: MARK } },
