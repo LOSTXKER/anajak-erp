@@ -15,6 +15,7 @@
  */
 
 import { badRequest, forbidden } from "@/server/errors";
+import { DEFAULT_STOCK_LOCATION } from "@/lib/stock-constants";
 import {
   getStockClientFromSettings,
   StockApiError,
@@ -196,7 +197,7 @@ export async function issueGarments(
       lines: requested.map((l) => ({
         sku: l.sku,
         qty: l.qty,
-        fromLocation: params.fromLocation ?? "WH-MAIN",
+        fromLocation: params.fromLocation ?? DEFAULT_STOCK_LOCATION,
         orderRef: state.orderNumber,
       })),
     });
@@ -320,7 +321,7 @@ export async function returnGarments(
       lines: requested.map((l) => ({
         sku: l.sku,
         qty: l.qty,
-        toLocation: params.toLocation ?? "WH-MAIN",
+        toLocation: params.toLocation ?? DEFAULT_STOCK_LOCATION,
         orderRef: state.orderNumber,
       })),
     });

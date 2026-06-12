@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Package, Plus, Minus, Check, AlertCircle, Search, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
+import { DEFAULT_STOCK_LOCATION } from "@/lib/stock-constants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -173,7 +174,7 @@ export function MaterialUsage({
         unit: m.unit,
         unitCost: m.unitCost,
       })),
-      fromLocation: "WH-MAIN",
+      fromLocation: DEFAULT_STOCK_LOCATION,
       // key ต่อหนึ่งการกด — เน็ตสะดุดแล้วระบบ retry ไม่ตัดสต๊อคซ้ำ
       idempotencyKey: crypto.randomUUID(),
     });

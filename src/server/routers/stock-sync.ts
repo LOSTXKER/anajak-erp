@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { StockApiClient, getStockClientFromSettings } from "@/lib/stock-api";
+import { DEFAULT_STOCK_LOCATION } from "@/lib/stock-constants";
 import { badRequest } from "@/server/errors";
 import {
   syncProductPage,
@@ -95,7 +96,7 @@ export const stockSyncRouter = router({
             unitCost: z.number().default(0),
           })
         ),
-        fromLocation: z.string().default("WH-MAIN"),
+        fromLocation: z.string().default(DEFAULT_STOCK_LOCATION),
         // กันยิงซ้ำ (กดเบิ้ล/เน็ตสะดุด) — Stock คืนใบเดิมเมื่อ key ซ้ำ ไม่ตัดสต๊อคซ้ำ
         idempotencyKey: z.string().min(8).optional(),
       })
