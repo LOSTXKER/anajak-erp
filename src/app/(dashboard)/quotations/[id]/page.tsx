@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
@@ -23,6 +24,7 @@ import {
   Calendar,
   ExternalLink,
   Pencil,
+  Link2,
 } from "lucide-react";
 
 // ============================================================
@@ -84,6 +86,52 @@ export default function QuotationDetailPage({
       window.location.href = `/orders/${data.id}`;
     },
   });
+
+  // ลิงก์ยืนยันใบเสนอให้ลูกค้า (ก้อน 4) — ใช้ token เดิมถ้ามี ไม่งั้นสร้างใหม่ (gate salesUp + SENT
+  // ที่ server) · token ไม่มีหมดอายุแยก — gate ด้วย validUntil ของใบเสนอ
+  // ยิงเฉพาะตอน SENT (ปุ่มลิงก์โผล่เฉพาะ SENT) — getLink gate salesUp ไม่ต้อง 403 ใส่ role อื่น/สถานะอื่น
+  const confirmLink = trpc.quotationConfirm.getLink.useQuery(
+    { quotationId: id },
+    { enabled: quotation?.status === "SENT", retry: false }
+  );
+  const generateConfirmLink = trpc.quotationConfirm.generateLink.useMutation();
+  async function copyConfirmLink() {
+    try {
+      let tok = confirmLink.data?.token ?? null;
+      if (!tok) {
+        tok = (await generateConfirmLink.mutateAsync({ quotationId: id })).token;
+        confirmLink.refetch();
+      }
+      const url = `${window.location.origin}/quote/${tok}`;
+      // วิธีสำรอง (textarea + execCommand) — กัน "Document is not focused" ตอน await สร้าง token
+      const fallbackCopy = () => {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = url;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          const ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          return ok;
+        } catch {
+          return false;
+        }
+      };
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      } catch {
+        copied = fallbackCopy();
+      }
+      toast.success(copied ? "คัดลอกลิงก์ยืนยันใบเสนอแล้ว" : `ลิงก์ยืนยัน: ${url}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "สร้างลิงก์ไม่สำเร็จ");
+    }
+  }
 
   // ----------------------------------------------------------
   // Loading state
@@ -197,6 +245,16 @@ export default function QuotationDetailPage({
           {/* SENT actions */}
           {quotation.status === "SENT" && (
             <>
+              <Button
+                variant="outline"
+                onClick={copyConfirmLink}
+                disabled={isPending || generateConfirmLink.isPending}
+                className="gap-1.5"
+                title="คัดลอกลิงก์ให้ลูกค้ายืนยันเอง (ไม่ต้อง login)"
+              >
+                <Link2 className="h-4 w-4" />
+                ลิงก์ยืนยันลูกค้า
+              </Button>
               <Button
                 onClick={handleAccept}
                 disabled={isPending}

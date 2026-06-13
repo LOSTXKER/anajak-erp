@@ -28,6 +28,7 @@ import { qcRouter } from "./qc";
 import { artworkRouter } from "./artwork";
 import { customerUploadRouter } from "./customer-upload";
 import { customerStatusRouter } from "./customer-status";
+import { quotationConfirmRouter } from "./quotation-confirm";
 
 export const appRouter = router({
   user: userRouter,
@@ -59,6 +60,7 @@ export const appRouter = router({
   artwork: artworkRouter,
   customerUpload: customerUploadRouter,
   customerStatus: customerStatusRouter,
+  quotationConfirm: quotationConfirmRouter,
 });
 
 export type AppRouter = typeof appRouter;

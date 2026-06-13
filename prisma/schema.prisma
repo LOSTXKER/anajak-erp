@@ -645,6 +645,8 @@ model Quotation {
   rejectedReason  String?   @map("rejected_reason")
   pdfUrl          String?   @map("pdf_url")
   notes           String?
+  // ลิงก์ยืนยันใบเสนอให้ลูกค้า (ก้อน 4) — gate หมดอายุใช้ validUntil (ไม่มี expiry แยก)
+  confirmToken    String?   @unique @map("confirm_token")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 

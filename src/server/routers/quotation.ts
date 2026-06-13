@@ -11,13 +11,8 @@ import { D, round2, moneyInput } from "@/server/services/money";
 import { assertSalesWithinCreditLimit } from "@/server/services/receivables";
 import { transitionOrder, addOrderRevision } from "@/server/services/order-status";
 import { syncOrderStockReservation } from "@/server/services/stock-reservation";
-
-// ใบเสนอหมดอายุ = พ้นสิ้นวันไทยของ validUntil (นิยามเดียวกับ overdue ของบิล)
-function isQuotationExpired(validUntil: Date): boolean {
-  const endOfDay = new Date(validUntil);
-  endOfDay.setHours(23, 59, 59, 999);
-  return endOfDay < new Date();
-}
+// นิยาม "หมดอายุ" อยู่ที่ service เดียว (กัน drift กับลิงก์ยืนยันใบเสนอ ก้อน 4)
+import { isQuotationExpired } from "@/server/services/quotation-confirm";
 
 const salesUp = requireRole("OWNER", "MANAGER", "SALES");
 
