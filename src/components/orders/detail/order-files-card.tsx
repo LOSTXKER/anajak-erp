@@ -17,6 +17,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import {
+  AlertTriangle,
   Check,
   Copy,
   FolderOpen,
@@ -25,6 +26,7 @@ import {
   Lock,
   Palette,
   Printer,
+  Sparkles,
   Trash2,
   Upload,
   User,
@@ -57,13 +59,27 @@ const DESIGN_STATUS_LABELS: Record<string, string> = {
 
 function FileThumb({
   att,
+  verdict,
 }: {
   att: { fileUrl: string; fileName: string; uploadedById?: string | null };
+  verdict?: string;
 }) {
   // uploadedById = null → ลูกค้าอัปเองผ่านลิงก์ (ก้อน 4 ชิ้น 3)
   const byCustomer = att.uploadedById === null;
+  // ป้ายเตือน preflight (ก้อน 4) — เฉพาะไฟล์ลูกค้าที่ระบบตรวจพบข้อควรระวัง/ไม่ควรใช้
+  const flagged = byCustomer && (verdict === "YELLOW" || verdict === "RED");
   return (
     <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="group relative">
+      {flagged && (
+        <span
+          className={`absolute left-1 top-1 z-10 flex items-center rounded-full p-0.5 ${
+            verdict === "RED" ? "bg-red-500/90" : "bg-amber-500/90"
+          }`}
+          title="ระบบตรวจไฟล์พบข้อควรระวัง — ดูรายละเอียดด้านบน"
+        >
+          <AlertTriangle className="h-2.5 w-2.5 text-white" />
+        </span>
+      )}
       {isImageUrl(att.fileUrl) ? (
         <img
           src={att.fileUrl}
@@ -128,6 +144,38 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
   const all = attachments ?? [];
   const rawFiles = all.filter((a) => layerForCategory(a.category) === "RAW");
   const printFiles = all.filter((a) => layerForCategory(a.category) === "PRINT");
+
+  // preflight ไฟล์ลูกค้า (ก้อน 4) — ตรวจเฉพาะไฟล์ที่ "ลูกค้า" อัป (uploadedById null · non-expert)
+  // ไม่ตรวจไฟล์ที่ทีมแนบเอง (ทีมกราฟิกรู้อยู่แล้ว — เบสเคาะ 2026-06-14 ย้ายจากการ์ดงานออกแบบมาที่นี่)
+  const customerFiles = rawFiles.filter((a) => a.uploadedById === null && a.fileUrl);
+  const customerFileUrls: string[] = customerFiles.map((a) => a.fileUrl).slice(0, 50); // กัน input เกิน limit router
+  const preflight = trpc.preflight.getByUrls.useQuery(
+    { fileUrls: customerFileUrls },
+    { enabled: customerFileUrls.length > 0 }
+  );
+  const preflightRun = useMutationWithInvalidation(trpc.preflight.run, {
+    invalidate: [utils.preflight.getByUrls],
+    onError: () => {}, // ตรวจไฟล์ล้มไม่ต้องเด้ง toast — แค่ไม่มีป้าย
+  });
+  const preflightByUrl = new Map(
+    (preflight.data ?? []).map((p) => [p.fileUrl, p])
+  );
+  // ยิงตรวจครั้งเดียวต่อไฟล์ลูกค้าที่ยังไม่มีผล (ไฟล์ใหม่ + ไฟล์เก่าที่ยังไม่เคยตรวจ)
+  const firedRef = React.useRef<Set<string>>(new Set());
+  React.useEffect(() => {
+    if (!preflight.data) return;
+    const have = new Set(preflight.data.map((p) => p.fileUrl));
+    for (const url of customerFileUrls) {
+      if (have.has(url) || firedRef.current.has(url)) continue;
+      firedRef.current.add(url);
+      preflightRun.mutate({ fileUrl: url });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preflight.data, attachments]);
+  // ไฟล์ลูกค้าที่ระบบเตือน (เหลือง/แดง) — รวมเป็นรายการให้ทีมเช็กก่อนเริ่มงาน
+  const flaggedFiles = customerFiles
+    .map((a) => ({ att: a, pf: preflightByUrl.get(a.fileUrl) }))
+    .filter((x) => x.pf && (x.pf.verdict === "YELLOW" || x.pf.verdict === "RED"));
 
   // ชั้น 1: รูปอ้างอิงจัดกลุ่มตามตำแหน่งลายเหมือนเดิม · ไฟล์ category อื่นรวมไว้ "ทั่วไป"
   const generalRaw = rawFiles.filter((a) => !a.printPosition);
@@ -321,6 +369,31 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
             </div>
           )}
 
+          {/* ผลตรวจไฟล์ลูกค้า (ก้อน 4) — เตือนเฉพาะที่ควรเช็ก ก่อนทีมเสียเวลาเปิดทีละไฟล์ */}
+          {flaggedFiles.length > 0 && (
+            <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-200">
+                <Sparkles className="h-3.5 w-3.5" />
+                ตรวจไฟล์ลูกค้า (AI) — {flaggedFiles.length} ไฟล์ควรเช็กก่อนใช้
+              </p>
+              <ul className="mt-1.5 space-y-1.5">
+                {flaggedFiles.map(({ att, pf }) => (
+                  <li key={att.id} className="text-xs text-slate-600 dark:text-slate-300">
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{att.fileName}</span>
+                    {pf!.summary ? ` — ${pf!.summary}` : ""}
+                    {pf!.warnings.length > 0 && (
+                      <ul className="mt-0.5 list-disc pl-4 text-amber-700 dark:text-amber-400">
+                        {pf!.warnings.map((w, i) => (
+                          <li key={i}>{w}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {rawFiles.length === 0 && uploadingLayer !== "RAW" && (
             <p className="text-xs text-slate-400">
               ยังไม่มีไฟล์จากลูกค้า — กด &quot;แนบไฟล์&quot; เพื่อแนบของจากแชทแทนลูกค้า
@@ -336,7 +409,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                 {generalRaw.map((att) => (
                   <div key={att.id} className="relative">
                     {renderDeleteButton(att)}
-                    <FileThumb att={att} />
+                    <FileThumb att={att} verdict={preflightByUrl.get(att.fileUrl)?.verdict} />
                   </div>
                 ))}
               </div>
@@ -354,7 +427,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                 {imgs.map((att) => (
                   <div key={att.id} className="relative">
                     {renderDeleteButton(att)}
-                    <FileThumb att={att} />
+                    <FileThumb att={att} verdict={preflightByUrl.get(att.fileUrl)?.verdict} />
                   </div>
                 ))}
               </div>

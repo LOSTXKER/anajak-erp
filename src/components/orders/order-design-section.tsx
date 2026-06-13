@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -35,22 +35,7 @@ import {
   Image,
   Loader2,
   Receipt,
-  AlertTriangle,
-  Sparkles,
-  ShieldCheck,
 } from "lucide-react";
-
-// ป้ายผล preflight ไฟล์ (ก้อน 4) ตาม verdict
-const PREFLIGHT_UI: Record<
-  string,
-  { label: string; cls: string; Icon: typeof Check }
-> = {
-  GREEN: { label: "ตรวจไฟล์ผ่าน", cls: "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300", Icon: ShieldCheck },
-  YELLOW: { label: "มีข้อควรระวัง", cls: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300", Icon: AlertTriangle },
-  RED: { label: "ไม่ควรพิมพ์ตามนี้", cls: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300", Icon: AlertTriangle },
-  SKIPPED: { label: "ตรวจอัตโนมัติไม่ได้", cls: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400", Icon: AlertTriangle },
-  ERROR: { label: "ตรวจไม่สำเร็จ", cls: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400", Icon: AlertTriangle },
-};
 
 interface OrderDesignSectionProps {
   orderId: string;
@@ -105,30 +90,6 @@ export function OrderDesignSection({
     invalidate: [utils.order.getById],
     onSuccess: () => toast.success("คิดค่าแก้แบบเกินโควตาแล้ว — ดูที่ค่าธรรมเนียมออเดอร์"),
   });
-
-  // preflight ไฟล์งานพิมพ์ (ก้อน 4) — ตรวจอัตโนมัติทุกไฟล์ "ครั้งเดียว" (ผลถูก cache ลง DB)
-  const fileUrls = (designs.data ?? []).map((d) => d.fileUrl).filter(Boolean) as string[];
-  const preflight = trpc.preflight.getByUrls.useQuery(
-    { fileUrls },
-    { enabled: fileUrls.length > 0 }
-  );
-  const preflightRun = useMutationWithInvalidation(trpc.preflight.run, {
-    invalidate: [utils.preflight.getByUrls],
-    onError: () => {}, // ตรวจไฟล์ล้มไม่ต้องเด้ง toast — verdict ERROR โชว์บนการ์ดเอง
-  });
-  const preflightByUrl = new Map((preflight.data ?? []).map((p) => [p.fileUrl, p]));
-  // ยิงตรวจครั้งเดียวต่อไฟล์ที่ยังไม่มีผล (ไฟล์ใหม่อัป + ไฟล์เก่าที่ยังไม่เคยตรวจ)
-  const firedRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!preflight.data) return;
-    const have = new Set(preflight.data.map((p) => p.fileUrl));
-    for (const url of fileUrls) {
-      if (have.has(url) || firedRef.current.has(url)) continue;
-      firedRef.current.add(url);
-      preflightRun.mutate({ fileUrl: url });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preflight.data, designs.data]);
 
   // ปุ่มต้องตรงสิทธิ์ server (audit ข้อ 29): อัปแบบ = กราฟิกขึ้นไป (designerUp) ·
   // บันทึกผลแทนลูกค้า = ฝั่งขาย (salesUp — คนถือความสัมพันธ์ลูกค้า ไม่ใช่คนวาดเอง)
@@ -263,40 +224,6 @@ export function OrderDesignSection({
                         <p className="text-xs text-slate-400 dark:text-slate-500">
                           {formatDateTime(design.createdAt)}
                         </p>
-
-                        {/* ผล preflight ไฟล์ (ก้อน 4) — ตรวจอัตโนมัติ โชว์เขียว/เหลือง/แดง */}
-                        {(() => {
-                          const pf = preflightByUrl.get(design.fileUrl);
-                          if (!pf) {
-                            return (
-                              <p className="flex items-center gap-1 text-xs text-slate-400">
-                                <Loader2 className="h-3 w-3 animate-spin" /> กำลังตรวจไฟล์...
-                              </p>
-                            );
-                          }
-                          const ui = PREFLIGHT_UI[pf.verdict] ?? PREFLIGHT_UI.ERROR;
-                          return (
-                            <div className="space-y-0.5">
-                              <span
-                                className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium ${ui.cls}`}
-                              >
-                                <ui.Icon className="h-3 w-3" />
-                                ตรวจไฟล์: {ui.label}
-                                {pf.model && <Sparkles className="ml-0.5 h-2.5 w-2.5 opacity-70" />}
-                              </span>
-                              {pf.summary && pf.verdict !== "GREEN" && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400">{pf.summary}</p>
-                              )}
-                              {pf.warnings.length > 0 && (
-                                <ul className="list-disc pl-4 text-xs text-amber-700 dark:text-amber-400">
-                                  {pf.warnings.map((w, i) => (
-                                    <li key={i}>{w}</li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          );
-                        })()}
                       </div>
                     </div>
 
