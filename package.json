@@ -30,7 +30,8 @@
     "verify:upload": "tsx --env-file=.env scripts/verify-customer-upload.ts",
     "verify:status": "tsx --env-file=.env scripts/verify-customer-status.ts",
     "verify:confirm": "tsx --env-file=.env scripts/verify-quotation-confirm.ts",
-    "verify:revision": "tsx --env-file=.env scripts/verify-revision-fee.ts"
+    "verify:revision": "tsx --env-file=.env scripts/verify-revision-fee.ts",
+    "verify:preflight": "tsx --env-file=.env scripts/verify-preflight.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",

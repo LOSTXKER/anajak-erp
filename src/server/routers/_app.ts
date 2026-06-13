@@ -29,6 +29,7 @@ import { artworkRouter } from "./artwork";
 import { customerUploadRouter } from "./customer-upload";
 import { customerStatusRouter } from "./customer-status";
 import { quotationConfirmRouter } from "./quotation-confirm";
+import { preflightRouter } from "./preflight";
 
 export const appRouter = router({
   user: userRouter,
@@ -61,6 +62,7 @@ export const appRouter = router({
   customerUpload: customerUploadRouter,
   customerStatus: customerStatusRouter,
   quotationConfirm: quotationConfirmRouter,
+  preflight: preflightRouter,
 });
 
 export type AppRouter = typeof appRouter;
