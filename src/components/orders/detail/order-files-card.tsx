@@ -23,6 +23,7 @@ import {
   FolderOpen,
   ImageIcon,
   Link2,
+  Loader2,
   Lock,
   Palette,
   Printer,
@@ -32,6 +33,15 @@ import {
   User,
   X,
 } from "lucide-react";
+
+// ป้ายสถานะ preflight ใต้รูปไฟล์ลูกค้า (ก้อน 4) — โชว์ทุกไฟล์ (รวมที่ผ่าน) ให้รู้ทันทีว่าอันไหนโอเค
+const PREFLIGHT_PILL: Record<string, { label: string; cls: string }> = {
+  GREEN: { label: "ผ่าน", cls: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
+  YELLOW: { label: "ควรเช็ก", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
+  RED: { label: "ไม่ควรใช้", cls: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
+  SKIPPED: { label: "ตรวจไม่ได้", cls: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" },
+  ERROR: { label: "ตรวจไม่สำเร็จ", cls: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" },
+};
 
 // ไฟล์ 3 ชั้นบนหน้าออเดอร์ (FLOW-REDESIGN ก้อน 4 — ดู src/lib/file-layers.ts)
 // ชั้น 1 = Attachment ทั่วไป (รวม REFERENCE_IMAGE เดิม) + ปุ่มแอดมินแนบแทนลูกค้า
@@ -66,41 +76,53 @@ function FileThumb({
 }) {
   // uploadedById = null → ลูกค้าอัปเองผ่านลิงก์ (ก้อน 4 ชิ้น 3)
   const byCustomer = att.uploadedById === null;
-  // ป้ายเตือน preflight (ก้อน 4) — เฉพาะไฟล์ลูกค้าที่ระบบตรวจพบข้อควรระวัง/ไม่ควรใช้
-  const flagged = byCustomer && (verdict === "YELLOW" || verdict === "RED");
   return (
-    <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="group relative">
-      {flagged && (
-        <span
-          className={`absolute left-1 top-1 z-10 flex items-center rounded-full p-0.5 ${
-            verdict === "RED" ? "bg-red-500/90" : "bg-amber-500/90"
-          }`}
-          title="ระบบตรวจไฟล์พบข้อควรระวัง — ดูรายละเอียดด้านบน"
-        >
-          <AlertTriangle className="h-2.5 w-2.5 text-white" />
-        </span>
-      )}
-      {isImageUrl(att.fileUrl) ? (
-        <img
-          src={att.fileUrl}
-          alt={att.fileName}
-          className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700"
-        />
-      ) : (
-        <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
-          <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
-          <span className="mt-1 text-[10px] text-slate-400">
-            {att.fileName.split(".").pop()?.toUpperCase()}
+    <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="group block w-28">
+      <div className="relative">
+        {isImageUrl(att.fileUrl) ? (
+          <img
+            src={att.fileUrl}
+            alt={att.fileName}
+            className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700"
+          />
+        ) : (
+          <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+            <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
+            <span className="mt-1 text-[10px] text-slate-400">
+              {att.fileName.split(".").pop()?.toUpperCase()}
+            </span>
+          </div>
+        )}
+        {byCustomer && (
+          <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded bg-blue-600/90 px-1 py-0.5 text-[9px] font-medium text-white">
+            <User className="h-2.5 w-2.5" />
+            ลูกค้า
           </span>
-        </div>
-      )}
-      {byCustomer && (
-        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded bg-blue-600/90 px-1 py-0.5 text-[9px] font-medium text-white">
-          <User className="h-2.5 w-2.5" />
-          ลูกค้า
-        </span>
-      )}
-      <p className="mt-1 max-w-[7rem] truncate text-[10px] text-slate-400">{att.fileName}</p>
+        )}
+      </div>
+
+      {/* ป้ายสถานะตรวจไฟล์ (ก้อน 4) — โชว์ทุกไฟล์ลูกค้า รวมที่ผ่าน */}
+      {byCustomer &&
+        (() => {
+          if (!verdict) {
+            return (
+              <span className="mt-1 flex items-center justify-center gap-1 rounded bg-slate-100 px-1 py-0.5 text-[10px] text-slate-400 dark:bg-slate-800">
+                <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                กำลังตรวจ
+              </span>
+            );
+          }
+          const p = PREFLIGHT_PILL[verdict] ?? PREFLIGHT_PILL.ERROR;
+          const Icon = verdict === "GREEN" ? Check : verdict === "YELLOW" || verdict === "RED" ? AlertTriangle : null;
+          return (
+            <span className={`mt-1 flex items-center justify-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium ${p.cls}`}>
+              {Icon && <Icon className="h-2.5 w-2.5" />}
+              {p.label}
+            </span>
+          );
+        })()}
+
+      <p className="mt-0.5 max-w-[7rem] truncate text-[10px] text-slate-400">{att.fileName}</p>
     </a>
   );
 }
@@ -369,28 +391,23 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
             </div>
           )}
 
-          {/* ผลตรวจไฟล์ลูกค้า (ก้อน 4) — เตือนเฉพาะที่ควรเช็ก ก่อนทีมเสียเวลาเปิดทีละไฟล์ */}
+          {/* ผลตรวจไฟล์ลูกค้า (ก้อน 4) — เหตุผลของไฟล์ที่ควรเช็ก บรรทัดเดียวต่อไฟล์ (กระชับ) */}
           {flaggedFiles.length > 0 && (
-            <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-200">
-                <Sparkles className="h-3.5 w-3.5" />
-                ตรวจไฟล์ลูกค้า (AI) — {flaggedFiles.length} ไฟล์ควรเช็กก่อนใช้
+            <div className="mb-3 space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+                AI ตรวจไฟล์ลูกค้า — {flaggedFiles.length} ไฟล์ควรเช็ก
               </p>
-              <ul className="mt-1.5 space-y-1.5">
-                {flaggedFiles.map(({ att, pf }) => (
-                  <li key={att.id} className="text-xs text-slate-600 dark:text-slate-300">
+              {flaggedFiles.map(({ att, pf }) => (
+                <div key={att.id} className="flex items-start gap-1.5 text-xs">
+                  <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${pf!.verdict === "RED" ? "bg-red-500" : "bg-amber-500"}`} />
+                  <p className="text-slate-600 dark:text-slate-300">
                     <span className="font-medium text-slate-800 dark:text-slate-200">{att.fileName}</span>
-                    {pf!.summary ? ` — ${pf!.summary}` : ""}
-                    {pf!.warnings.length > 0 && (
-                      <ul className="mt-0.5 list-disc pl-4 text-amber-700 dark:text-amber-400">
-                        {pf!.warnings.map((w, i) => (
-                          <li key={i}>{w}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                    {" — "}
+                    {pf!.warnings.length > 0 ? pf!.warnings.join(" · ") : pf!.summary}
+                  </p>
+                </div>
+              ))}
             </div>
           )}
 
