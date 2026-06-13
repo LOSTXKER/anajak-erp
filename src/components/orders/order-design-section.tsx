@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import {
+  computeRevisionOverage,
+  REVISION_FEE_TYPE,
+  REVISION_FEE_PER_ROUND,
+} from "@/lib/revision-policy";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +34,7 @@ import {
   MessageSquare,
   Image,
   Loader2,
+  Receipt,
 } from "lucide-react";
 
 interface OrderDesignSectionProps {
@@ -77,6 +84,12 @@ export function OrderDesignSection({
   const regenerateToken = useMutationWithInvalidation(trpc.design.regenerateToken, {
     invalidate: [utils.design.listByOrder],
   });
+  // ค่าแก้แบบเกินโควตา (ก้อน 4) — อ่าน fees จาก order (cache hit · มาจากหน้าออเดอร์อยู่แล้ว)
+  const order = trpc.order.getById.useQuery({ id: orderId });
+  const addRevisionFee = useMutationWithInvalidation(trpc.order.addRevisionFee, {
+    invalidate: [utils.order.getById],
+    onSuccess: () => toast.success("คิดค่าแก้แบบเกินโควตาแล้ว — ดูที่ค่าธรรมเนียมออเดอร์"),
+  });
 
   // ปุ่มต้องตรงสิทธิ์ server (audit ข้อ 29): อัปแบบ = กราฟิกขึ้นไป (designerUp) ·
   // บันทึกผลแทนลูกค้า = ฝั่งขาย (salesUp — คนถือความสัมพันธ์ลูกค้า ไม่ใช่คนวาดเอง)
@@ -114,6 +127,12 @@ export function OrderDesignSection({
   }
 
   const hasDesigns = designs.data && designs.data.length > 0;
+
+  // ค่าแก้แบบเกินโควตา — นับรอบจากจำนวนเวอร์ชัน · เช็คว่าคิดค่าแก้ไปแล้วเท่าไร (แถว DESIGN_REVISION)
+  const overage = computeRevisionOverage(designs.data?.length ?? 0);
+  const existingRevisionFee = order.data?.fees?.find((f) => f.feeType === REVISION_FEE_TYPE);
+  const chargedAmount = existingRevisionFee?.amount ?? 0;
+  const baht = (n: number) => n.toLocaleString("th-TH");
 
   // Show section if designs exist or status indicates design phase
   if (!hasDesigns && !["DESIGNING", "DESIGN_APPROVED"].includes(internalStatus)) {
@@ -272,6 +291,60 @@ export function OrderDesignSection({
                 </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* นับรอบแก้แบบ + ค่าแก้เกินโควตา (ก้อน 4) — โชว์ให้เห็น พนักงานกดคิดเองถ้าจะคิด */}
+          {hasDesigns && overage.revisionRounds > 0 && (
+            <div className="mt-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-700">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  <span className="font-medium text-slate-700 dark:text-slate-200">
+                    แก้แบบมาแล้ว {overage.revisionRounds} รอบ
+                  </span>
+                  <span className="text-slate-400"> · ฟรี {overage.freeRounds} รอบ</span>
+                </span>
+                {overage.chargeableRounds > 0 && (
+                  <Badge variant="warning">เกินโควตา {overage.chargeableRounds} รอบ</Badge>
+                )}
+              </div>
+
+              {overage.chargeableRounds > 0 && (
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  {chargedAmount > 0 ? (
+                    // คิดไปแล้ว — โชว์ยอดที่คิดจริง (พนักงานอาจตั้งใจปรับ/ยกเว้น) ไม่ดันให้แก้กลับ
+                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                      <Check className="h-3.5 w-3.5" />
+                      คิดค่าแก้แล้ว ฿{baht(chargedAmount)}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-slate-500 dark:text-slate-400">
+                        ค่าแก้แบบเกินโควตา ฿{baht(overage.fee)} (฿{REVISION_FEE_PER_ROUND}/รอบ)
+                      </span>
+                      {roleCanApprove && (
+                        <Button
+                          size="sm"
+                          className="h-8 gap-1.5"
+                          onClick={() => addRevisionFee.mutate({ id: orderId })}
+                          disabled={addRevisionFee.isPending}
+                        >
+                          {addRevisionFee.isPending ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Receipt className="h-3.5 w-3.5" />
+                          )}
+                          คิดค่าแก้แบบ ฿{baht(overage.fee)}
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              <p className="mt-1.5 text-xs text-slate-400">
+                นับจากเวอร์ชันแบบ · คิดเมื่อจะคิด (กดเอง) — ลบ/แก้ยอดได้ที่ค่าธรรมเนียมออเดอร์
+              </p>
             </div>
           )}
         </CardContent>

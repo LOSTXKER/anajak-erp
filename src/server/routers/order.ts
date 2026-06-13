@@ -28,6 +28,11 @@ import { promoteOrderArtworks, sanitizeArtworkLinks } from "@/server/services/ar
 import { aggToNumber, D } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 import {
+  computeRevisionOverage,
+  REVISION_FEE_TYPE,
+  REVISION_FEE_PER_ROUND,
+} from "@/lib/revision-policy";
+import {
   assertSalesWithinCreditLimit,
   UNCOMMITTED_STATUSES,
 } from "@/server/services/receivables";
@@ -1147,6 +1152,91 @@ export const orderRouter = router({
         entityType: "ORDER",
         entityId: input.id,
         newValue: { action: "updateFees", feeCount: input.fees.length, subtotalFees: totals.subtotalFees },
+      });
+
+      return updatedOrder;
+    }),
+
+  // ค่าแก้แบบเกินโควตา (ก้อน 4 — เบสเคาะ 2026-06-14) — พนักงานกดเองเมื่อจะคิด ("มันแล้วแต่"
+  // ไม่คิดอัตโนมัติ) · นับรอบจากจำนวนเวอร์ชันแบบ (v1 ต้นฉบับ · v2+ = รอบแก้ ฟรี 2 รอบ)
+  // ค่าแก้แบบเป็น OrderFee แถวเดียว (DESIGN_REVISION) — กดซ้ำ = sync ยอดตามรอบล่าสุด ไม่เพิ่มซ้ำ
+  // · พนักงานลบ/แก้ยอดทีหลังได้ผ่าน updateFees (เผื่อยกเว้น/ช่างแก้เพราะตัวเองพลาด)
+  addRevisionFee: protectedProcedure
+    .use(salesUp)
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const order = await ctx.prisma.order.findUniqueOrThrow({
+        where: { id: input.id },
+        include: { fees: true, _count: { select: { designs: true } } },
+      });
+
+      if (order.internalStatus === "COMPLETED" || order.internalStatus === "CANCELLED") {
+        badRequest("ออเดอร์ที่เสร็จสิ้นหรือยกเลิกแล้ว เพิ่มค่าแก้แบบไม่ได้");
+      }
+
+      const overage = computeRevisionOverage(order._count.designs);
+      if (overage.chargeableRounds <= 0) {
+        badRequest("ยังไม่เกินโควตาแก้ฟรี — ไม่มีค่าแก้แบบให้คิด");
+      }
+
+      const feeName = `ค่าแก้แบบเกินโควตา (${overage.chargeableRounds} รอบ)`;
+      const feeDesc = `แก้แบบ ${overage.revisionRounds} รอบ (ฟรี ${overage.freeRounds}) — คิดเกิน ${overage.chargeableRounds} รอบ × ${REVISION_FEE_PER_ROUND}฿`;
+      // สูตร A — ค่าแก้แบบ "แทน" แถว DESIGN_REVISION เดิม (ไม่ทับค่าธรรมเนียมอื่น)
+      const otherFeeAmounts = order.fees
+        .filter((f) => f.feeType !== REVISION_FEE_TYPE)
+        .map((f) => f.amount);
+      const totals = computeOrderTotals({
+        itemSubtotals: [order.subtotalItems],
+        feeAmounts: [...otherFeeAmounts, overage.fee],
+        discount: order.discount,
+        taxRate: order.taxRate,
+      });
+
+      const updatedOrder = await ctx.prisma.$transaction(async (tx) => {
+        // self-healing แบบ updateFees — ลบแถว DESIGN_REVISION เดิม (ถ้ามี) แล้วสร้างใหม่ใบเดียว
+        // กัน race สองคลิก/สองแท็บสร้างสองแถว (ไม่มี unique constraint บน orderId+feeType)
+        await tx.orderFee.deleteMany({ where: { orderId: input.id, feeType: REVISION_FEE_TYPE } });
+        await tx.orderFee.create({
+          data: {
+            orderId: input.id,
+            feeType: REVISION_FEE_TYPE,
+            name: feeName,
+            description: feeDesc,
+            amount: overage.fee,
+          },
+        });
+
+        const updated = await tx.order.update({
+          where: { id: input.id },
+          data: {
+            subtotalFees: totals.subtotalFees,
+            taxAmount: totals.taxAmount,
+            totalAmount: totals.totalAmount,
+          },
+        });
+
+        const revisionCount = await tx.orderRevision.count({ where: { orderId: input.id } });
+        await tx.orderRevision.create({
+          data: {
+            orderId: input.id,
+            version: revisionCount + 1,
+            changedBy: ctx.userId,
+            changeType: "FEES",
+            description: `คิดค่าแก้แบบเกินโควตา ${overage.chargeableRounds} รอบ (฿${overage.fee})`,
+            oldValue: JSON.stringify({ subtotalFees: order.subtotalFees }),
+            newValue: JSON.stringify({ subtotalFees: totals.subtotalFees }),
+          },
+        });
+
+        return updated;
+      });
+
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "ORDER",
+        entityId: input.id,
+        newValue: { action: "addRevisionFee", chargeableRounds: overage.chargeableRounds, fee: overage.fee },
       });
 
       return updatedOrder;

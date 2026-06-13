@@ -3,6 +3,15 @@
 > session ใหม่: อ่านไฟล์นี้ + `git log --oneline -10` ก่อนเริ่ม · จบ session: อัปเดตไฟล์นี้ก่อนปิด
 
 ## ตอนนี้
+- **🎉 ก้อน 4: นับรอบแก้แบบ + ค่าแก้เกินโควตา — จบทั้งชิ้น (2026-06-14) · verify:revision 13/13 + adversarial review · ⏳ เหลือเบส retest UI (ไม่ต้อง restart — ไม่มี schema change):**
+  - **เลือกทำ (เบสบอก "เอาชิ้นต่อไป")** · นโยบายเบสล็อกไว้: ฟรี 2 รอบ เกิน 100฿/รอบ
+  - **มติเบสเคาะตอนเริ่ม (สำคัญ — ปรับทิศจาก ROADMAP)**: "**ไม่ควรเป็นระบบเกินไป เพราะมันแล้วแต่**" → **ไม่คิดเงินอัตโนมัติ · ไม่เตือนลูกค้าบนลิงก์ (คุยไลน์เอง)** → ทำเป็น "**นับให้เห็น + ปุ่มลัดให้พนักงานกดเองถ้าจะคิด**" (หลักเดียวกับ "เช็คฟิล์ม เตือน ไม่ตัดอัตโนมัติ" ก้อน 2 · บันทึก memory `bes-prefers-surface-over-autoenforce`)
+  - **ของที่ลง**: ① lib `revision-policy.ts` (pure — `computeRevisionOverage`: นับรอบจากเวอร์ชัน v1 ต้นฉบับ · v2+ = รอบแก้ · ฟรี 2 · 100฿/รอบ · FREE_REVISION_ROUNDS/REVISION_FEE_PER_ROUND/REVISION_FEE_TYPE) + unit test 4 เคส ② `order.addRevisionFee` (salesUp · กดเอง · OrderFee แถวเดียว DESIGN_REVISION · recompute total ผ่าน computeOrderTotals · ไม่ทับ fee อื่น · guard COMPLETED/CANCELLED · orderRevision FEES + audit) ③ หน้างานออกแบบ: โชว์ "แก้มาแล้ว N รอบ · ฟรี 2" + ถ้าเกิน → badge + ปุ่ม "คิดค่าแก้แบบ ฿X" (gate roleCanApprove) ④ verify `verify:revision` (13 เคส) — **ไม่มี schema change (reuse OrderFee)**
+  - **verify**: tsc 0 · lint 0 · unit 192 (+4) · **`verify:revision` 13/13 กับ DB จริง** (gate/ในโควตากดไม่ได้/เกินโควตา+recompute/idempotent/อัปเวอร์ชัน sync ยอด/ไม่ทับ fee อื่น/status guard)
+  - **adversarial review 3 lens (correctness เงิน/authz-guard/ux-edge) → confirmed 2 (MINOR) แก้ครบ**: **MINOR** race find→create นอก tx อาจสร้าง 2 แถว (ไม่มี unique constraint) → เปลี่ยนเป็น `deleteMany+create` ใน tx (self-healing เลียน updateFees) · **MINOR** ปุ่ม "อัปเดตเป็น ฿X" ย้อน waiver ที่พนักงานตั้งใจลด → ตัดปุ่มออก (คิดไปแล้ว=โชว์ยอดเฉยๆ · ปุ่มคิดเฉพาะตอนยังไม่คิด · ปรับยอดผ่านค่าธรรมเนียม)
+  - **decision เคาะเอง (อย่าแก้กลับเงียบ)**: นับรอบ = จำนวนเวอร์ชัน (ครอบทั้งลูกค้ากดลิงก์/ทักไลน์แล้วช่างอัปใหม่) ไม่ใช่นับเฉพาะ REVISION_REQUESTED (จะ undercount เคสไลน์) · ค่าแก้ = OrderFee แถวเดียว sync ยอดตามรอบล่าสุด · พนักงานลบ/แก้ยอดได้ผ่าน updateFees (ยกเว้น/ช่างพลาดเอง)
+  - **หนี้/เหลือเบส**: ⏳ retest UI (ไม่ต้อง restart — ไม่แตะ schema/prisma client · HMR รับโค้ดใหม่เอง): เปิดออเดอร์ที่มีแบบ 4 เวอร์ชันขึ้นไป → เห็น "แก้มาแล้ว N รอบ" + ปุ่มคิดค่าแก้ → กด → เช็คค่าธรรมเนียม+ยอดรวมเพิ่ม
+  - **งานถัดไป**: ก้อน 4 เหลือ 2 ชิ้น — preflight DTF 3 เช็ค / size matrix (P1.12)
 - **🎉 ก้อน 4: ลิงก์ยืนยันใบเสนอราคาให้ลูกค้า — จบทั้งชิ้น (2026-06-14) · migrate applied + verify:confirm 24/24 + adversarial review + เบส retest UI ผ่าน:**
   - **เลือกทำ (เบสเลือกจาก 4 ชิ้นที่เหลือในก้อน 4)** · ก๊อป token pattern จาก design/status (3 ตัวที่มี) ปิดลูป "ส่งใบเสนอ→ลูกค้าตอบรับ" (จุดเข้าของ customer journey)
   - **มติเบสเคาะ 2 ข้อก่อนสร้าง**: ① ลูกค้ากด "ยืนยัน" = **แค่ปั๊ม ACCEPTED + เด้งกระดิ่งทีม** → พนักงานกด "แปลงเป็นออเดอร์" เองในระบบ (convertToOrder มีเช็คเครดิต+วิจารณญาณ · กันลูกค้าเจอ error เครดิตบนหน้า public) ② **มีปุ่ม "ขอแก้ไข/ปฏิเสธ" + ใส่เหตุผล** → REJECTED + เก็บ reason + กระดิ่ง (รู้ว่าทำไมดีลหลุด)
