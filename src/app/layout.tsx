@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Prompt, JetBrains_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
-import { Toaster } from "sonner";
 import "./globals.css";
 
 const prompt = Prompt({
@@ -28,8 +27,8 @@ export default function RootLayout({
   return (
     <html lang="th" suppressHydrationWarning>
       <body className={`${prompt.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+        {/* Toaster มีตัวเดียวที่ Providers (ThemedToaster) — สองตัวทำป้ายเด้งซ้ำบน-ล่าง */}
         <Providers>{children}</Providers>
-        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

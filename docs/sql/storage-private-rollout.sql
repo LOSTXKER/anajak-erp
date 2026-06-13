@@ -19,6 +19,9 @@ ON CONFLICT (id) DO UPDATE SET public = false;
 --   - อัปโหลดเป็น client-direct จาก browser (anon key + session JWT = role authenticated)
 --   - ไม่ให้ SELECT — การอ่านทุกทางวิ่งผ่าน /api/files (service role ออก signed URL)
 --   - ไม่ให้ UPDATE/DELETE — ระบบตั้งชื่อไฟล์สุ่มไม่ซ้ำ ไม่มีเหตุต้องเขียนทับ
+--   ⚠️ ผลพวง: โค้ดอัปโหลดห้ามใช้ upsert:true (x-upsert เดินเส้นทางต้องมีสิทธิ์ UPDATE
+--   → โดนปัดทั้งก้อนแม้ login ถูกต้อง — เจอจริง 2026-06-13) · uploadFile ตั้ง false แล้ว
+--   · ทดสอบซ้ำได้ด้วย `npm run verify:storage`
 CREATE POLICY "erp_staff_upload_designs"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'designs');

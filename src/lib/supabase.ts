@@ -26,11 +26,14 @@ export async function uploadFile(
 ): Promise<string> {
   const supabase = createClient();
 
+  // upsert ต้องเป็น false — x-upsert ทำให้ storage-api เดินเส้นทางที่ต้องมีสิทธิ์
+  // UPDATE ซึ่ง RLS จงใจไม่ให้ (เขียนทับ=0 เพื่อหลักฐานแบบที่อนุมัติ) จะโดนปัดทั้งก้อน
+  // ชื่อไฟล์สุ่มไม่ซ้ำอยู่แล้ว (ทุก callsite ใช้ timestamp+random) ไม่มีเหตุต้อง upsert
   const { error } = await supabase.storage
     .from(bucket)
     .upload(path, file, {
       cacheControl: "3600",
-      upsert: true,
+      upsert: false,
     });
 
   if (error) {
