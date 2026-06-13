@@ -72,7 +72,8 @@ export const config = {
   // รันเกือบทุก route เพื่อรีเฟรช session — รวม /api/* (จำเป็น! tRPC ต้องได้ cookie สดทุกคำขอ
   // ไม่งั้น token หมดอายุแล้ว 401 ค้าง) · ยกเว้นเฉพาะ static assets + หน้า public token
   // (/approve, /upload, /status, /quote — ลูกค้าไม่มี session ไม่ต้องรีเฟรช) · body guard ไม่ redirect /api/*
+  // ยกเว้น /api/mcp ด้วย — auth ด้วย API key (ไม่มี cookie) ไม่ต้องรีเฟรช session (ลด getUser เปล่า)
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|approve/|upload/|status/|quote/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|approve/|upload/|status/|quote/|api/mcp/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

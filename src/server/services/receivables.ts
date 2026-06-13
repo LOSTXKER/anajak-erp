@@ -46,13 +46,20 @@ export const AGING_BUCKET_LABELS: Record<AgingBucket, string> = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// จำนวนวันที่เลยกำหนด — นิยามเดียวกับ overdue sweep (พ้นสิ้นวันไทยของ dueDate)
+// คืน 0 เมื่อ: ไม่มี dueDate · ครบกำหนดวันนี้/ยังไม่ครบ (ไม่คืนค่าลบ)
+export function daysOverdue(dueDate: Date | null, now = new Date()): number {
+  if (!dueDate) return 0;
+  const past = Math.floor(
+    (thaiDateUtcMidnight(now).getTime() - dueDate.getTime()) / DAY_MS
+  );
+  return past > 0 ? past : 0;
+}
+
 // นิยามเดียวกับ overdue sweep: เลยกำหนดเมื่อพ้นสิ้นวันไทยของ dueDate
 // ครบกำหนดวันนี้/ไม่มี dueDate = ยังไม่ครบกำหนด
 export function agingBucketOf(dueDate: Date | null, now = new Date()): AgingBucket {
-  if (!dueDate) return "current";
-  const daysPast = Math.floor(
-    (thaiDateUtcMidnight(now).getTime() - dueDate.getTime()) / DAY_MS
-  );
+  const daysPast = daysOverdue(dueDate, now);
   if (daysPast <= 0) return "current";
   if (daysPast <= 30) return "d1_30";
   if (daysPast <= 60) return "d31_60";
@@ -216,4 +223,72 @@ export async function creditExposureForCustomer(db: PrismaTx, customerId: string
     }),
   ]);
   return computeCreditExposure({ orders, invoices });
+}
+
+// ---------- loaders (query แหล่งเดียว — ใช้ร่วมระหว่าง router และ MCP กันนิยาม where drift) ----------
+
+// ใบลูกหนี้ค้างทั้งระบบ (UNPAID/PARTIALLY_PAID/OVERDUE) พร้อมข้อมูลพอทำ aging
+// ทั้ง billing-note.aging และ MCP tool ลูกหนี้เรียกตัวนี้ — where เดียวกันเสมอ
+export async function loadAgingInvoices(
+  db: Pick<PrismaTx, "invoice">
+): Promise<AgingInvoiceInput[]> {
+  return db.invoice.findMany({
+    where: {
+      isVoided: false,
+      type: { in: [...RECEIVABLE_TYPES] },
+      paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID", "OVERDUE"] },
+    },
+    select: {
+      type: true,
+      totalAmount: true,
+      isVoided: true,
+      dueDate: true,
+      payments: { select: { amount: true, whtAmount: true } },
+      customer: { select: { id: true, name: true, company: true } },
+    },
+  });
+}
+
+export interface ReceivableInvoiceRow {
+  invoiceNumber: string;
+  orderNumber: string | null;
+  type: string;
+  dueDate: Date | null;
+  outstanding: number; // หัก WHT แล้ว · > 0 เท่านั้น
+}
+
+// รายใบลูกหนี้ค้างของลูกค้ารายเดียว (เก่า→ใหม่) — สำหรับร่างทวง/แสดงรายใบ · คืนเฉพาะ outstanding > 0
+// ใช้ฐาน where เดียวกับ billing-note.eligibleInvoices (isVoided/type/paymentStatus) แต่ "จงใจไม่กรอง"
+// ใบที่อยู่บนใบวางบิลแล้ว — ทวงจากยอดค้างจริงทุกใบ (วางบิลแล้วแต่ยังไม่จ่าย = ยังเป็นหนี้)
+export async function loadReceivablesByCustomer(
+  db: Pick<PrismaTx, "invoice">,
+  customerId: string
+): Promise<ReceivableInvoiceRow[]> {
+  const invoices = await db.invoice.findMany({
+    where: {
+      customerId,
+      isVoided: false,
+      type: { in: [...RECEIVABLE_TYPES] },
+      paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID", "OVERDUE"] },
+    },
+    select: {
+      invoiceNumber: true,
+      type: true,
+      dueDate: true,
+      totalAmount: true,
+      isVoided: true,
+      payments: { select: { amount: true, whtAmount: true } },
+      order: { select: { orderNumber: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  return invoices
+    .map((inv) => ({
+      invoiceNumber: inv.invoiceNumber,
+      orderNumber: inv.order?.orderNumber ?? null,
+      type: inv.type,
+      dueDate: inv.dueDate,
+      outstanding: outstandingOf(inv).toNumber(),
+    }))
+    .filter((r) => r.outstanding > 0);
 }

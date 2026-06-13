@@ -8,6 +8,7 @@ import {
   RECEIVABLE_TYPES,
   outstandingOf,
   buildAgingReport,
+  loadAgingInvoices,
 } from "@/server/services/receivables";
 import { aggToNumber } from "@/server/services/money";
 import type { PrismaTx } from "@/lib/prisma";
@@ -261,21 +262,7 @@ export const billingNoteRouter = router({
 
   // รายงานลูกหนี้แยกถังอายุหนี้ — นิยามยอดค้าง/เลยกำหนดชุดเดียวกับ overdue sweep
   aging: protectedProcedure.use(billingStaff).query(async ({ ctx }) => {
-    const invoices = await ctx.prisma.invoice.findMany({
-      where: {
-        isVoided: false,
-        type: { in: [...RECEIVABLE_TYPES] },
-        paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID", "OVERDUE"] },
-      },
-      select: {
-        type: true,
-        totalAmount: true,
-        isVoided: true,
-        dueDate: true,
-        payments: { select: { amount: true, whtAmount: true } },
-        customer: { select: { id: true, name: true, company: true } },
-      },
-    });
+    const invoices = await loadAgingInvoices(ctx.prisma);
     return buildAgingReport(invoices);
   }),
 });
