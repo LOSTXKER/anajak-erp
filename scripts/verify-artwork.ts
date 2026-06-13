@@ -91,9 +91,19 @@ async function main() {
   const orderIds: string[] = [];
 
   try {
-    // ── 1. promote ตอน QC ผ่านครบ ──
+    // ── 1. promote ตอน QC ผ่านครบ + ย้อนผูกฟิล์มที่เกิดก่อน QC ──
     const A = await makeOrder(customer.id, owner.id, "A");
     orderIds.push(A.id);
+    // ฟิล์มเผื่อเกิดตอนปิดรอบพิมพ์ (ก่อน QC) — ตอนนั้นลายยังไม่เข้าคลัง artworkId=null
+    const film = await prisma.filmStock.create({
+      data: {
+        customerId: customer.id,
+        orderId: A.id,
+        label: `${MARK} ฟิล์มลาย A`,
+        qty: 12,
+        initialQty: 12,
+      },
+    });
     const qcA = await qcPassAll(caller, A.id);
     check("1.1 QC ผ่านครบ → เด้งแพ็ค", qcA.movedToPacking === true);
 
@@ -117,19 +127,13 @@ async function main() {
       where: { orderItem: { orderId: A.id } },
     });
     check("1.4 print ถูกผูก artworkId", printsA[0]?.artworkId === art?.id);
+    const filmAfter = await prisma.filmStock.findUniqueOrThrow({ where: { id: film.id } });
+    check(
+      "1.5 ฟิล์มที่เกิดก่อน QC ถูกย้อนผูกลาย (ไม่กำกวม — ลายเดียว)",
+      filmAfter.artworkId === art?.id
+    );
 
     // ── 2. duplicate พา artworkId + เช็คฟิล์มตอนสั่งซ้ำ ──
-    // ฟิล์มค้างของลูกค้า (จำลองฟิล์มเผื่อจากรอบพิมพ์เก่า — ยังไม่ผูกลาย)
-    const film = await prisma.filmStock.create({
-      data: {
-        customerId: customer.id,
-        orderId: A.id,
-        label: `${MARK} ฟิล์มลาย A`,
-        qty: 12,
-        initialQty: 12,
-      },
-    });
-
     const dup = await caller.order.duplicate({ id: A.id });
     orderIds.push(dup.id);
     check("2.1 duplicate ตอบ filmStockCount", dup.filmStockCount === 1, `${dup.filmStockCount}`);
@@ -153,8 +157,6 @@ async function main() {
       artworksAfterDup.length === 1,
       `ได้ ${artworksAfterDup.length}`
     );
-    const filmAfter = await prisma.filmStock.findUniqueOrThrow({ where: { id: film.id } });
-    check("3.3 ฟิล์มของออเดอร์ A ถูกย้อนผูกลาย (ไม่กำกวม — ลายเดียว)", filmAfter.artworkId === art?.id);
 
     // ── 4. listByCustomer — นับใช้/ฟิล์ม/ออเดอร์ล่าสุด ──
     const list = await caller.artwork.listByCustomer({ customerId: customer.id });
