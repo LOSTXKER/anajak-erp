@@ -18,8 +18,9 @@ export function SizeMatrix({
 }) {
   const [extraSizes, setExtraSizes] = useState<string[]>([]);
   const [newSize, setNewSize] = useState("");
+  // สีเป็น state ของตัวเอง — ไม่ดึงจาก variants[0] (ถ้าผูก: พิมพ์สีก่อนกรอกจำนวน → variants ว่าง → สีหาย)
+  const [color, setColor] = useState(variants[0]?.color ?? "");
 
-  const color = variants[0]?.color ?? "";
   const columns = matrixColumns(variants, extraSizes);
   const qtyOf = (size: string) =>
     variants.find((v) => v.size.trim().toUpperCase() === size.trim().toUpperCase())?.quantity ?? 0;
@@ -50,7 +51,10 @@ export function SizeMatrix({
         <span className="text-xs font-medium text-slate-600 dark:text-slate-300">สี (ใช้ทุกไซส์)</span>
         <Input
           value={color}
-          onChange={(e) => rebuild(null, 0, e.target.value)}
+          onChange={(e) => {
+            setColor(e.target.value);
+            rebuild(null, 0, e.target.value);
+          }}
           placeholder="เช่น ดำ"
           className="h-7 w-28 text-xs"
         />
