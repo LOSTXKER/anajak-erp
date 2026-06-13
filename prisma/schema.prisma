@@ -886,25 +886,6 @@ model DesignVersion {
   @@map("design_versions")
 }
 
-// ผล preflight ไฟล์งานพิมพ์ DTF (FLOW-REDESIGN ก้อน 4) — 1 แถวต่อไฟล์ (key = proxy URL)
-// โค้ดเช็ค (ขนาด/พื้นโปร่ง/พิกเซล) + AI (Gemini) ดูเชิงสายตา → verdict เขียว/เหลือง/แดง
-model FilePreflight {
-  id        String   @id @default(cuid())
-  fileUrl   String   @unique @map("file_url")
-  verdict   String // GREEN, YELLOW, RED, SKIPPED, ERROR
-  format    String?
-  width     Int?
-  height    Int?
-  hasAlpha  Boolean? @map("has_alpha")
-  summary   String   @default("")
-  warnings  Json?
-  model     String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("file_preflights")
-}
-
 // ============================================================
 // GOODS RECEIPT — ใบตรวจรับของเข้า + ใบคืนของลูกค้า (FLOW-REDESIGN ก้อน 1)
 // มตินับของ 2 จุด: ของเข้าโรงงาน (ใบนี้) + QC ก่อนแพ็ค (ก้อน 3) — ระหว่างทางไม่บังคับนับ

@@ -18,14 +18,11 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  AlertTriangle,
   Check,
-  ChevronDown,
   Copy,
   FolderOpen,
   ImageIcon,
   Link2,
-  Loader2,
   Lock,
   Palette,
   Printer,
@@ -34,15 +31,6 @@ import {
   User,
   X,
 } from "lucide-react";
-
-// ป้ายสถานะ preflight ใต้รูปไฟล์ลูกค้า (ก้อน 4) — โชว์ทุกไฟล์ (รวมที่ผ่าน) ให้รู้ทันทีว่าอันไหนโอเค
-const PREFLIGHT_PILL: Record<string, { label: string; cls: string }> = {
-  GREEN: { label: "ผ่าน", cls: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
-  YELLOW: { label: "ควรเช็ก", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
-  RED: { label: "ไม่ควรใช้", cls: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
-  SKIPPED: { label: "ตรวจไม่ได้", cls: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" },
-  ERROR: { label: "ตรวจไม่สำเร็จ", cls: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" },
-};
 
 // ไฟล์ 3 ชั้นบนหน้าออเดอร์ (FLOW-REDESIGN ก้อน 4 — ดู src/lib/file-layers.ts)
 // ชั้น 1 = Attachment ทั่วไป (รวม REFERENCE_IMAGE เดิม) + ปุ่มแอดมินแนบแทนลูกค้า
@@ -70,26 +58,14 @@ const DESIGN_STATUS_LABELS: Record<string, string> = {
 
 function FileThumb({
   att,
-  preflight,
   onPreview,
 }: {
   att: { fileUrl: string; fileName: string; uploadedById?: string | null };
-  preflight?: { verdict: string; summary: string; warnings: string[] };
   onPreview?: (att: { fileUrl: string; fileName: string; uploadedById?: string | null }) => void;
 }) {
   // uploadedById = null → ลูกค้าอัปเองผ่านลิงก์ (ก้อน 4 ชิ้น 3)
   const byCustomer = att.uploadedById === null;
   const isImg = isImageUrl(att.fileUrl);
-  const [showReason, setShowReason] = React.useState(false);
-  const verdict = preflight?.verdict;
-  const flagged = verdict === "YELLOW" || verdict === "RED";
-  const reasons = preflight
-    ? preflight.warnings.length > 0
-      ? preflight.warnings
-      : preflight.summary
-        ? [preflight.summary]
-        : []
-    : [];
 
   const thumbInner = (
     <div className="relative">
@@ -117,7 +93,7 @@ function FileThumb({
   );
 
   return (
-    <div className="relative w-28">
+    <div className="w-28">
       {/* รูป = เปิด popup ในหน้า (ไม่ไปหน้าใหม่) · ไฟล์อื่น (.ai/.psd/.pdf) = เปิดแท็บใหม่ */}
       {isImg ? (
         <button
@@ -133,49 +109,6 @@ function FileThumb({
         </a>
       )}
       <p className="mt-0.5 max-w-[7rem] truncate text-[10px] text-slate-400">{att.fileName}</p>
-
-      {/* ป้ายสถานะตรวจไฟล์ (ก้อน 4) — โชว์ทุกไฟล์ลูกค้า · เหลือง/แดงกดดูเหตุผลได้ */}
-      {byCustomer &&
-        (() => {
-          if (!verdict) {
-            return (
-              <span className="mt-1 flex items-center justify-center gap-1 rounded bg-slate-100 px-1 py-0.5 text-[10px] text-slate-400 dark:bg-slate-800">
-                <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                กำลังตรวจ
-              </span>
-            );
-          }
-          const p = PREFLIGHT_PILL[verdict] ?? PREFLIGHT_PILL.ERROR;
-          const Icon = verdict === "GREEN" ? Check : flagged ? AlertTriangle : null;
-          const cls = `mt-1 flex w-full items-center justify-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium ${p.cls}`;
-          const inner = (
-            <>
-              {Icon && <Icon className="h-2.5 w-2.5" />}
-              {p.label}
-              {flagged && (
-                <ChevronDown className={`h-2.5 w-2.5 transition-transform ${showReason ? "rotate-180" : ""}`} />
-              )}
-            </>
-          );
-          return flagged ? (
-            <button type="button" onClick={() => setShowReason((v) => !v)} className={`${cls} hover:brightness-95`}>
-              {inner}
-            </button>
-          ) : (
-            <span className={cls}>{inner}</span>
-          );
-        })()}
-
-      {/* เหตุผล — เด้งเมื่อกดป้าย (ไม่โชว์พรืดในลิสต์) */}
-      {byCustomer && flagged && showReason && reasons.length > 0 && (
-        <div className="absolute left-0 top-full z-20 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-          <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-slate-600 dark:text-slate-300">
-            {reasons.map((r, i) => (
-              <li key={i}>{r}</li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }
@@ -221,34 +154,6 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
   const all = attachments ?? [];
   const rawFiles = all.filter((a) => layerForCategory(a.category) === "RAW");
   const printFiles = all.filter((a) => layerForCategory(a.category) === "PRINT");
-
-  // preflight ไฟล์ลูกค้า (ก้อน 4) — ตรวจเฉพาะไฟล์ที่ "ลูกค้า" อัป (uploadedById null · non-expert)
-  // ไม่ตรวจไฟล์ที่ทีมแนบเอง (ทีมกราฟิกรู้อยู่แล้ว — เบสเคาะ 2026-06-14 ย้ายจากการ์ดงานออกแบบมาที่นี่)
-  const customerFiles = rawFiles.filter((a) => a.uploadedById === null && a.fileUrl);
-  const customerFileUrls: string[] = customerFiles.map((a) => a.fileUrl).slice(0, 50); // กัน input เกิน limit router
-  const preflight = trpc.preflight.getByUrls.useQuery(
-    { fileUrls: customerFileUrls },
-    { enabled: customerFileUrls.length > 0 }
-  );
-  const preflightRun = useMutationWithInvalidation(trpc.preflight.run, {
-    invalidate: [utils.preflight.getByUrls],
-    onError: () => {}, // ตรวจไฟล์ล้มไม่ต้องเด้ง toast — แค่ไม่มีป้าย
-  });
-  const preflightByUrl = new Map(
-    (preflight.data ?? []).map((p) => [p.fileUrl, p])
-  );
-  // ยิงตรวจครั้งเดียวต่อไฟล์ลูกค้าที่ยังไม่มีผล (ไฟล์ใหม่ + ไฟล์เก่าที่ยังไม่เคยตรวจ)
-  const firedRef = React.useRef<Set<string>>(new Set());
-  React.useEffect(() => {
-    if (!preflight.data) return;
-    const have = new Set(preflight.data.map((p) => p.fileUrl));
-    for (const url of customerFileUrls) {
-      if (have.has(url) || firedRef.current.has(url)) continue;
-      firedRef.current.add(url);
-      preflightRun.mutate({ fileUrl: url });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preflight.data, attachments]);
 
   // ชั้น 1: รูปอ้างอิงจัดกลุ่มตามตำแหน่งลายเหมือนเดิม · ไฟล์ category อื่นรวมไว้ "ทั่วไป"
   const generalRaw = rawFiles.filter((a) => !a.printPosition);
@@ -458,7 +363,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                 {generalRaw.map((att) => (
                   <div key={att.id} className="relative">
                     {renderDeleteButton(att)}
-                    <FileThumb att={att} preflight={preflightByUrl.get(att.fileUrl)} onPreview={setPreview} />
+                    <FileThumb att={att} onPreview={setPreview} />
                   </div>
                 ))}
               </div>
@@ -476,7 +381,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                 {imgs.map((att) => (
                   <div key={att.id} className="relative">
                     {renderDeleteButton(att)}
-                    <FileThumb att={att} preflight={preflightByUrl.get(att.fileUrl)} onPreview={setPreview} />
+                    <FileThumb att={att} onPreview={setPreview} />
                   </div>
                 ))}
               </div>
@@ -565,41 +470,19 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
       </CardContent>
     </Card>
 
-    {/* Lightbox — คลิกรูปดูในหน้า (ก้อน 4) + โชว์ผลตรวจถ้าเป็นไฟล์ลูกค้า */}
+    {/* Lightbox — คลิกรูปดูในหน้า ไม่เด้งหน้าใหม่ (ก้อน 4) */}
     <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="truncate pr-6 text-sm font-medium">{preview?.fileName}</DialogTitle>
         </DialogHeader>
         {preview && (
-          <div className="space-y-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={preview.fileUrl}
-              alt={preview.fileName}
-              className="mx-auto max-h-[70vh] w-full rounded-lg bg-[repeating-conic-gradient(#f1f5f9_0_25%,#fff_0_50%)] bg-[length:16px_16px] object-contain dark:bg-[repeating-conic-gradient(#1e293b_0_25%,#0f172a_0_50%)]"
-            />
-            {(() => {
-              const pf = preview.uploadedById === null ? preflightByUrl.get(preview.fileUrl) : undefined;
-              if (!pf) return null;
-              const p = PREFLIGHT_PILL[pf.verdict] ?? PREFLIGHT_PILL.ERROR;
-              const reasons = pf.warnings.length > 0 ? pf.warnings : pf.summary ? [pf.summary] : [];
-              return (
-                <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
-                  <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium ${p.cls}`}>
-                    ตรวจไฟล์: {p.label}
-                  </span>
-                  {reasons.length > 0 && pf.verdict !== "GREEN" && (
-                    <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-slate-600 dark:text-slate-300">
-                      {reasons.map((r, i) => (
-                        <li key={i}>{r}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={preview.fileUrl}
+            alt={preview.fileName}
+            className="mx-auto max-h-[70vh] w-full rounded-lg bg-[repeating-conic-gradient(#f1f5f9_0_25%,#fff_0_50%)] bg-[length:16px_16px] object-contain dark:bg-[repeating-conic-gradient(#1e293b_0_25%,#0f172a_0_50%)]"
+          />
         )}
       </DialogContent>
     </Dialog>
