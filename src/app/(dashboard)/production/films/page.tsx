@@ -38,6 +38,13 @@ export default function FilmStockPage() {
   const [includeEmpty, setIncludeEmpty] = useState(false);
   const [consuming, setConsuming] = useState<FilmStockItem | null>(null);
 
+  // รับ ?search= จากลิงก์เตือนฟิล์มค้าง (ฟอร์มเปิดงาน) — อ่านครั้งเดียวตอน mount
+  // (อ่านจาก window แทน useSearchParams — ไม่ต้องห่อ Suspense)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("search");
+    if (q) setSearch(q);
+  }, []);
+
   // debounce 300ms — pattern เดียวกับ ProductPicker
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);

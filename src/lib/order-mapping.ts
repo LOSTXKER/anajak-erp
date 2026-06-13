@@ -58,6 +58,8 @@ function mapPrintToMutationInput(pr: PrintForm) {
     height: pr.height || undefined,
     designNote: pr.designNote || undefined,
     designImageUrl: pr.designImageUrl || undefined,
+    // ลิงก์คลังลาย — updateItems ลบ-สร้างแถวใหม่ทุกครั้ง ถ้าไม่ส่งกลับการผูกหายเงียบ
+    artworkId: pr.artworkId || undefined,
     unitPrice: pr.unitPrice,
   };
 }
@@ -136,6 +138,7 @@ export function mapApiItemsToForm(apiItems: ApiItem[]): OrderItemForm[] {
       height: pr.height || 0,
       designNote: pr.designNote || "",
       designImageUrl: pr.designImageUrl || undefined,
+      artworkId: pr.artworkId || undefined,
     })),
     addons: (item.addons || []).map((a: ApiItem) => ({
       addonType: a.addonType,

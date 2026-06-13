@@ -30,6 +30,15 @@ export function OrderCustomerSection({
     { enabled: !!customerId && selectedCustomer?.creditLimit != null }
   );
 
+  // เช็คฟิล์มค้าง+คลังลายตอนรับงานซ้ำ (หนี้ก้อน 2 — ลูกค้าทักมาสั่งซ้ำ แอดมินคีย์ใบใหม่
+  // คือเคสที่พบบ่อยกว่าปุ่มสำเนา) — query count เบาๆ ตัวเดียว ไม่ลากแถวมานับเอง
+  const summary = trpc.artwork.customerSummary.useQuery(
+    { customerId },
+    { enabled: !!customerId }
+  );
+  const filmCount = summary.data?.filmCount ?? 0;
+  const artworkCount = summary.data?.artworkCount ?? 0;
+
   return (
     <div>
       <label className={labelClass}>ลูกค้า *</label>
@@ -68,6 +77,33 @@ export function OrderCustomerSection({
           {creditStatus.data.available < 0
             ? ` — เกินวงเงินแล้ว ${formatCurrency(Math.abs(creditStatus.data.available))}`
             : ` (ใช้ได้อีก ${formatCurrency(creditStatus.data.available)})`}
+        </p>
+      )}
+      {selectedCustomer && filmCount > 0 && (
+        <p className="mt-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+          🎞️ ลูกค้ามีฟิล์มพร้อมรีดค้าง {filmCount} รายการ — เช็คที่{" "}
+          <a
+            href={`/production/films?search=${encodeURIComponent(selectedCustomer.name)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
+            คลังฟิล์ม
+          </a>{" "}
+          ก่อนเปิดรอบพิมพ์ใหม่
+        </p>
+      )}
+      {selectedCustomer && artworkCount > 0 && (
+        <p className="mt-1.5 text-[11px] text-slate-500">
+          ลูกค้ามีลายในคลัง {artworkCount} ลาย —{" "}
+          <a
+            href={`/customers/${customerId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
+            ดูคลังลาย/สั่งซ้ำ 1 คลิก
+          </a>
         </p>
       )}
     </div>

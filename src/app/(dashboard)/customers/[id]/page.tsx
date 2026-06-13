@@ -12,6 +12,7 @@ import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { customerProfileGaps } from "@/lib/customer-gaps";
+import { CustomerArtworksCard } from "@/components/customers/customer-artworks-card";
 import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText } from "lucide-react";
 
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -166,6 +167,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
         {/* Orders & Communication */}
         <div className="space-y-6 lg:col-span-2">
+          {/* คลังลายต่อลูกค้า (ก้อน 4 ชิ้น 2) — ลาย+สเปกรีด+สั่งซ้ำ 1 คลิก+ฟิล์มค้าง */}
+          <CustomerArtworksCard customerId={id} />
+
           <Card>
             <CardHeader><CardTitle className="text-base">ออเดอร์ล่าสุด</CardTitle></CardHeader>
             <CardContent>

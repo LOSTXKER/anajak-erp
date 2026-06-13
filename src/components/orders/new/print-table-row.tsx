@@ -60,6 +60,9 @@ export function PrintTableRow({
       const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeFileExt(file.name)}`;
       const url = await uploadFile("designs", `orders/prints/${uniqueName}`, file);
       onUpdate("designImageUrl", url);
+      // identity ของลายในคลัง = รูป — เปลี่ยนรูปแล้วลิงก์คลังเดิมต้องหลุด
+      // (server กรองซ้ำอีกชั้น แต่ล้างที่ต้นทางให้ state ตรงความจริง)
+      onUpdate("artworkId", undefined);
     } catch {
       onUpdate("designImagePreview", undefined);
     } finally {
@@ -77,7 +80,7 @@ export function PrintTableRow({
           {imageUrl ? (
             <div className="group/img relative inline-block">
               <img src={imageUrl} alt={`ลาย ${printIdx + 1}`} className="h-8 w-8 cursor-pointer rounded border border-slate-200 object-cover dark:border-slate-700" onClick={() => inputRef.current?.click()} />
-              <button type="button" onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); }} className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover/img:opacity-100"><X className="h-2.5 w-2.5" /></button>
+              <button type="button" onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); onUpdate("artworkId", undefined); }} className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover/img:opacity-100"><X className="h-2.5 w-2.5" /></button>
             </div>
           ) : (
             <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600">

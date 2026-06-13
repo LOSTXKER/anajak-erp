@@ -120,7 +120,13 @@ export default function OrderDetailPage({
 
   const duplicateOrder = useMutationWithInvalidation(trpc.order.duplicate, {
     invalidate: [utils.order.list],
-    onSuccess: (data: { id: string }) => {
+    onSuccess: (data: { id: string; filmStockCount?: number }) => {
+      // เช็คฟิล์มค้างตอนสั่งซ้ำ (ก้อน 4 ชิ้น 2) — เตือนให้เห็น การหยิบใช้ยัง manual
+      if (data.filmStockCount && data.filmStockCount > 0) {
+        toast.info(
+          `ลูกค้ามีฟิล์มพร้อมรีดค้าง ${data.filmStockCount} รายการ — เช็คที่คลังฟิล์มก่อนเปิดรอบพิมพ์ใหม่`
+        );
+      }
       router.push(`/orders/${data.id}`);
     },
   });

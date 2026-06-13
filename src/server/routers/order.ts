@@ -24,6 +24,7 @@ import {
   syncOrderStockReservation,
   releaseOrderStockReservation,
 } from "@/server/services/stock-reservation";
+import { promoteOrderArtworks, sanitizeArtworkLinks } from "@/server/services/artwork";
 import { aggToNumber, D } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 import {
@@ -60,6 +61,8 @@ const printSchema = z.object({
   height: z.number().optional(),
   designNote: z.string().optional(),
   designImageUrl: fileUrlSchema.optional(),
+  // ลิงก์คลังลายลูกค้า — ฟอร์มแก้รายการ echo กลับมา ต้องรับไว้ไม่งั้นการผูกหายเงียบ
+  artworkId: z.string().optional(),
   unitPrice: z.number().min(0),
 });
 
@@ -185,6 +188,7 @@ function buildItemCreateData(item: ItemWithCalc, taxLineType: TaxLineType) {
         height: pr.height,
         designNote: pr.designNote,
         designImageUrl: pr.designImageUrl,
+        artworkId: pr.artworkId,
         unitPrice: pr.unitPrice,
       })),
     },
@@ -417,6 +421,10 @@ export const orderRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { items, fees, shippingAddress, referenceImages, ...orderData } = input;
+
+      // artworkId เป็น hint จาก echo — เก็บเฉพาะลายจริงของลูกค้านี้ที่รูปยังตรง
+      // (กันผูกข้ามลูกค้า/รูปเปลี่ยนแล้วลิงก์เก่าค้าง/ id มั่วเด้ง P2003 เป็น 500)
+      await sanitizeArtworkLinks(ctx.prisma, input.customerId, items);
 
       // ชนิดออเดอร์ derive จากเนื้อรายการเสมอ — input.orderType/isQuickInquiry คงไว้
       // เพื่อ backward compat แต่ไม่ใช้ตัดสินแล้ว (ฟอร์มใหม่เป็นโหมดเดียว เปิดเบาได้
@@ -807,6 +815,11 @@ export const orderRouter = router({
         if (old.internalStatus === "QUALITY_CHECK" && input.internalStatus === "PRODUCING") {
           await reopenProductionsForRework(tx, { orderId: input.id, reason: input.reason });
         }
+        // เข้าแพ็คด้วยมือ (เคสจริง: รอบแก้ตัวเผื่อเสียทำให้นับต่อใน QC ไม่ได้ ต้องกด
+        // ข้าม dropdown) — ลายต้องเข้าคลังเหมือนเส้น QC ปกติ ไม่งั้นหายเงียบ (idempotent)
+        if (old.internalStatus === "QUALITY_CHECK" && input.internalStatus === "PACKING") {
+          await promoteOrderArtworks(tx, { orderId: input.id });
+        }
         // ปลดพักกลับเข้าผลิต: ถ้าใบผลิตปิดครบไประหว่างพัก (เช่น รอบพิมพ์ปิดขั้นสุดท้าย
         // ตอนออเดอร์ ON_HOLD — rollup ตอนนั้นดันสถานะไม่ได้) ดันต่อเลย ไม่งั้นออเดอร์
         // ค้าง PRODUCING ถาวรโดยไม่มีขั้นเหลือให้กดปิด
@@ -961,6 +974,9 @@ export const orderRouter = router({
       if (blockedStatuses.includes(order.internalStatus)) {
         badRequest("ไม่สามารถแก้ไขรายการได้เมื่อเริ่มผลิตแล้ว");
       }
+
+      // artworkId เป็น hint จาก echo — เก็บเฉพาะลายจริงของลูกค้านี้ที่รูปยังตรง
+      await sanitizeArtworkLinks(ctx.prisma, order.customerId, input.items);
 
       const itemsWithCalc = priceOrderItems(input.items);
       // สูตร A — platformFee ไม่เข้ายอด/ฐาน VAT (สูตรเดิมของ mutation นี้เคยบวก = บั๊กยอดแกว่ง)
@@ -1274,7 +1290,13 @@ export const orderRouter = router({
             return newOrder;
           });
 
-          return result;
+          // เช็คฟิล์มค้างตอนสั่งซ้ำ (หนี้ก้อน 2) — แจ้งให้เห็น ไม่ตัดอัตโนมัติ
+          // (การหยิบใช้ฟิล์มยัง manual ที่ /production/films ตามมติก้อน 2)
+          const filmStockCount = await ctx.prisma.filmStock.count({
+            where: { customerId: result.customerId, qty: { gt: 0 } },
+          });
+
+          return { ...result, filmStockCount };
         } catch (error: unknown) {
           lastError = error;
           const isPrismaUniqueError =

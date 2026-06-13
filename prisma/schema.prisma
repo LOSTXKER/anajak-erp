@@ -233,8 +233,48 @@ model Customer {
   billingNotes      BillingNote[]
   filmStocks        FilmStock[]
   whtCertificates   WhtCertificate[]
+  artworks          CustomerArtwork[]
 
   @@map("customers")
+}
+
+// ============================================================
+// คลังลายต่อลูกค้า (FLOW-REDESIGN ก้อน 4 ชิ้น 2) — "ลาย" เป็นสมบัติของลูกค้า
+// เกิดอัตโนมัติเมื่องาน QC ผ่านครบ (ครอบทุก printType รวม outsource — dedupe ด้วย imageUrl
+// ซึ่งเป็น proxy URL เสถียร · duplicate ออเดอร์แชร์ URL เดิมจึงชนลายเดิมพอดี) + เพิ่ม/แก้มือได้
+// ห้ามมีช่องเงิน (มติ 2026-06-12 เลิก job costing) — ราคาท่าพิมพ์อยู่ ServiceCatalog ที่เดียว
+// ============================================================
+model CustomerArtwork {
+  id            String  @id @default(cuid())
+  customerId    String  @map("customer_id")
+  name          String // ชื่อลาย เช่น "โลโก้อกซ้าย ดำ" (auto ตอน promote · แก้ทีหลังได้)
+  imageUrl      String? @map("image_url") // รูปลาย (ชั้น mockup — โชว์ลูกค้า/portal ได้)
+  printFileUrl  String? @map("print_file_url") // ไฟล์พิมพ์จริง (ชั้น 3 — ภายในเท่านั้น ห้ามหลุด portal)
+  position      String?
+  printType     String? @map("print_type")
+  printSize     String? @map("print_size")
+  widthCm       Float?  @map("width_cm")
+  heightCm      Float?  @map("height_cm")
+  colorCount    Int?    @map("color_count")
+  // สเปกรีด — กรอกครั้งเดียวที่ลาย (ไม่บังคับ — gap badge ใน UI · ห้ามเป็นช่องบังคับหน้างาน)
+  heatTempC     Int?    @map("heat_temp_c")
+  heatPressSec  Int?    @map("heat_press_sec")
+  heatPressure  String? @map("heat_pressure") // เบา/กลาง/หนัก — free text ตามภาษาช่าง
+  specNotes     String? @map("spec_notes")
+  sourceOrderId String? @map("source_order_id") // ออเดอร์แรกที่ลายนี้พิมพ์ผ่าน
+  isActive      Boolean @default(true) @map("is_active") // เลิกใช้ = ปิด ไม่ลบ (มีออเดอร์เก่าอ้างอยู่)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  customer    Customer @relation(fields: [customerId], references: [id])
+  sourceOrder Order?   @relation("ArtworkSourceOrder", fields: [sourceOrderId], references: [id])
+  prints      OrderItemPrint[]
+  filmStocks  FilmStock[]
+
+  // กันลายซ้ำตอน promote พร้อมกันสองออเดอร์ (imageUrl null ได้หลายแถว — ลายเพิ่มมือไม่มีรูป)
+  @@unique([customerId, imageUrl])
+  @@index([customerId])
+  @@map("customer_artworks")
 }
 
 // ยังไม่มี UI จัดการ — คง schema ไว้รอ CRM เต็ม P3
@@ -358,6 +398,7 @@ model Order {
   qcRecords    QcRecord[]
   printRunItems PrintRunItem[]
   filmStocks   FilmStock[]
+  artworksSourced CustomerArtwork[] @relation("ArtworkSourceOrder")
 
   // hot paths: หน้า list กรองตามลูกค้า/สถานะ + เรียงตามวันที่สร้างแทบทุก query
   @@index([customerId])
@@ -459,12 +500,18 @@ model OrderItemPrint {
   height         Float?
   designNote     String?  @map("design_note")
   designImageUrl String?  @map("design_image_url")
+  // ลิงก์เข้าคลังลายลูกค้า — FK ชี้ทางนี้เพราะ updateItems ลบ-สร้างแถวลายใหม่ทุกครั้ง (id ไม่เสถียร)
+  // set ตอน QC ผ่าน (promote) หรือ duplicate พามา · ต้องร้อยครบ 4 จุด: printSchema/
+  // mapPrintToMutationInput/mapApiItemsToForm/buildItemCreateData ไม่งั้นหายเงียบตอนแก้รายการ
+  artworkId      String?  @map("artwork_id")
   unitPrice      Decimal  @map("unit_price") @db.Decimal(12, 2) // price per piece
   createdAt      DateTime @default(now()) @map("created_at")
 
   // Relations
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  orderItem OrderItem        @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  artwork   CustomerArtwork? @relation(fields: [artworkId], references: [id])
 
+  @@index([artworkId])
   @@map("order_item_prints")
 }
 
@@ -1050,6 +1097,9 @@ model FilmStock {
   customerId String   @map("customer_id")
   orderId    String?  @map("order_id") // ออเดอร์ต้นทางของลาย
   printRunId String?  @map("print_run_id") // รอบพิมพ์ที่ผลิตฟิล์มก้อนนี้
+  // ลิงก์เข้าคลังลาย (ก้อน 4 ชิ้น 2) — set เมื่อระบุได้ไม่กำกวม (ออเดอร์มีลายเดียว/ลายผูกคลังแล้ว)
+  // ฟิล์มเก่า/กำกวมเป็น null — เช็คฟิล์มค้างถอยไปจับระดับลูกค้าแทน
+  artworkId  String?  @map("artwork_id")
   label      String // ป้ายลาย เช่น "โลโก้อกซ้าย 8cm ดำ"
   qty        Int // คงเหลือ (ชิ้น) — หยิบใช้แล้วลด ห้ามติดลบ
   initialQty Int      @map("initial_qty") // จำนวนตอนเข้าคลัง (ไว้ตรวจย้อน)
@@ -1057,11 +1107,13 @@ model FilmStock {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  customer Customer  @relation(fields: [customerId], references: [id])
-  order    Order?    @relation(fields: [orderId], references: [id])
-  printRun PrintRun? @relation(fields: [printRunId], references: [id])
+  customer Customer         @relation(fields: [customerId], references: [id])
+  order    Order?           @relation(fields: [orderId], references: [id])
+  printRun PrintRun?        @relation(fields: [printRunId], references: [id])
+  artwork  CustomerArtwork? @relation(fields: [artworkId], references: [id])
 
   @@index([customerId])
+  @@index([artworkId])
   @@map("film_stocks")
 }
 

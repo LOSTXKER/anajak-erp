@@ -15,6 +15,8 @@ export type PrintForm = {
   designNote: string;
   designImageUrl?: string;
   designImagePreview?: string;
+  // ลิงก์คลังลายลูกค้า (ก้อน 4 ชิ้น 2) — ตามรอยครบ: order-mapping ทั้งสองขา + printSchema
+  artworkId?: string;
 };
 
 export type AddonForm = {

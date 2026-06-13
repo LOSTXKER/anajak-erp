@@ -25,7 +25,8 @@
     "verify:qc": "tsx --env-file=.env scripts/verify-qc.ts",
     "verify:pack": "tsx --env-file=.env scripts/verify-pack.ts",
     "verify:files": "tsx --env-file=.env scripts/verify-files.ts",
-    "verify:storage": "tsx --env-file=.env scripts/verify-storage-upload.ts"
+    "verify:storage": "tsx --env-file=.env scripts/verify-storage-upload.ts",
+    "verify:artwork": "tsx --env-file=.env scripts/verify-artwork.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",

@@ -19,6 +19,7 @@ import {
   reopenProductionsForRework,
 } from "@/server/services/order-status";
 import { getGarmentPickState } from "@/server/services/garment-pick";
+import { promoteOrderArtworks } from "@/server/services/artwork";
 import type { ExtendedPrismaClient } from "@/lib/prisma";
 
 // ============================================================
@@ -227,6 +228,9 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
           reason: `QC ผ่านครบ ${checkedGood + params.qtyGood} ตัว — เข้าคิวแพ็ค`,
         });
         movedToPacking = true;
+        // QC ผ่านครบ = "ลายพิมพ์ผ่านจริง" → เข้าคลังลายลูกค้า (ก้อน 4 ชิ้น 2)
+        // อยู่ใน tx เดียวกัน — แถวออเดอร์ lock อยู่แล้ว กัน promote ชนกัน
+        await promoteOrderArtworks(tx, { orderId: params.orderId });
       }
     }
 

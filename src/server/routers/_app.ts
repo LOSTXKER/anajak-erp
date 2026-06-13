@@ -25,6 +25,7 @@ import { printRunRouter } from "./print-run";
 import { filmStockRouter } from "./film-stock";
 import { whtRouter } from "./wht";
 import { qcRouter } from "./qc";
+import { artworkRouter } from "./artwork";
 
 export const appRouter = router({
   user: userRouter,
@@ -53,6 +54,7 @@ export const appRouter = router({
   filmStock: filmStockRouter,
   wht: whtRouter,
   qc: qcRouter,
+  artwork: artworkRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -21,6 +21,7 @@
 import { badRequest, notFound } from "@/server/errors";
 import { nextDocumentNumber } from "@/server/services/document-number";
 import { finalizeProductionIfComplete } from "@/server/services/order-status";
+import { resolveSoleOrderArtworkId } from "@/server/services/artwork";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
 
 // สถานะรอบที่ยังกินงานอยู่ — งานในรอบเหล่านี้ห้ามโผล่ในคิว/ห้ามเข้ารอบใหม่
@@ -345,11 +346,16 @@ export async function completePrintRun(
           where: { id: item.id },
           data: { extraQty: extra.extraQty },
         });
+        // ผูกฟิล์มกับคลังลายเมื่อระบุได้ไม่กำกวม (งานสั่งซ้ำลายผูกคลังมาแล้ว) —
+        // ออเดอร์หลายลาย/ลายยังไม่เข้าคลัง = null (QC ผ่านจะย้อนผูกให้ถ้าไม่กำกวม)
+        // ไม่เพิ่มช่องกรอกหน้างาน (มติ batch เดียว)
+        const artworkId = await resolveSoleOrderArtworkId(tx as PrismaTx, item.order.id);
         await tx.filmStock.create({
           data: {
             customerId: item.order.customerId,
             orderId: item.order.id,
             printRunId: run.id,
+            artworkId,
             label:
               extra.label?.trim() ||
               `ลายงาน ${item.order.orderNumber}${item.order.title ? ` — ${item.order.title}` : ""}`,

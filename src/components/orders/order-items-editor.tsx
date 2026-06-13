@@ -70,6 +70,9 @@ interface OrderItemsEditorOrder {
       height: number | null;
       designNote: string | null;
       designImageUrl: string | null;
+      // ลิงก์คลังลาย — ห้ามหายจาก contract นี้ ไม่งั้น excess property check ตัดทิ้ง
+      // ตอน refactor แล้วการผูกหลุดเงียบตอนบันทึกแก้รายการ
+      artworkId?: string | null;
     }>;
     addons: Array<{
       addonType: string;
