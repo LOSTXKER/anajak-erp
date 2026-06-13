@@ -3,6 +3,11 @@
 > session ใหม่: อ่านไฟล์นี้ + `git log --oneline -10` ก่อนเริ่ม · จบ session: อัปเดตไฟล์นี้ก่อนปิด
 
 ## ตอนนี้
+- **✅ แก้บั๊ก auth จบ — เบส login+ใช้งานได้แล้ว (2026-06-13) · 401 มาจาก 2 เรื่องซ้อนกัน:**
+  - **อาการ**: หน้าเพจโหลด 200 แต่ทุก tRPC call 401 รัว · restart/login/เคลียร์ cookie ไม่หาย
+  - **เหตุที่ 1 (ตัวหลักตอนนั้น)**: เบสสร้างบัญชี Supabase ใหม่ (`saruth05@hotmail.com`) แต่ **ไม่มีแถว User ใน ERP ผูก supabaseId** → `createContext` หา User ไม่เจอ → userId null → API 401 (แต่ layout เช็คแค่ session ระดับ Supabase เลย render ได้) → **ผูกแถว User ให้แล้ว role OWNER + ยืนยันอีเมล** (ผ่าน admin client · เบสเคาะ OWNER) · **บทเรียน: บัญชีที่ signup เองไม่มีแถว User — ต้องสร้างผ่าน /settings/users โดย OWNER หรือผูกมือ**
+  - **เหตุที่ 2 (บั๊กโครงสร้าง — แก้กันกลับมา)**: `middleware.ts` เดิม matcher ยกเว้น `api/` ทั้งก้อน → `/api/trpc` ไม่เคยถูกรีเฟรช session · พอ access token หมดอายุ (1 ชม.) layout ยัง render ได้ แต่ route handler เขียน cookie ใหม่กลับไม่ได้ → 401 ค้างจนกว่า hard reload → **แก้: middleware รัน `/api/*` ด้วย + guard `isApi` ไม่ redirect API ไป /login** (มาตรฐาน Supabase+Next15) · tsc 0 · build ผ่าน · **ไม่ใช่จากงานก้อน 4**
+  - **หนี้**: middleware เรียก `getUser()` ทุกคำขอ API (auth roundtrip overhead · ตาม pattern ทางการ · optimize ทีหลังถ้าช้า) · ตอน build เจอ EPERM ล็อก DLL prisma จาก dev server ที่รันค้าง (PROGRESS ข้อ 40 — restart แก้ได้)
 - **🎉 ก้อน 4 "ขอบลูกค้า" ชิ้น 3: ลิงก์อัปโหลดไฟล์ลูกค้า (signed upload URL) — จบทั้งชิ้น (2026-06-13) · migrate applied + `verify:upload` 17/17 กับ DB+storage จริง:**
   - **ลงจริงแล้ว (เบสสั่ง "apply เลย" 2026-06-13):** migration `20260613170000_add_order_upload_token` applied (additive — คอลัมน์ใหม่ nullable + ปลด NOT NULL uploaded_by_id ไม่แตะข้อมูลเดิม) ✅ · `npm run verify:upload` **17/17** (อัปจริงผ่าน anon signed URL ไม่ต้อง login + ด่าน gate role/ext/ขนาด/path ข้ามออเดอร์/phantom/หมดอายุ/token มั่ว) ✅ · unit 188 · tsc 0 · lint 0 errors · build ผ่าน
   - **เลือกทำชิ้นนี้ (เบสเลือกจาก 4 ตัวเลือก 2026-06-13)** — เพราะชิ้น 1 จงใจเลื่อน server upload route + signed upload URL มาไว้ชิ้นนี้พอดี
