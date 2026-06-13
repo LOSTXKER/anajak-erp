@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import { trpc } from "@/lib/trpc";
-import { formatDate } from "@/lib/utils";
+import { formatDate, isImageUrl } from "@/lib/utils";
 import {
   CUSTOMER_STATUS_LABELS,
   CUSTOMER_STATUS_COLORS,
@@ -222,21 +222,33 @@ export default function OrderStatusPage({
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 pt-0">
-              {d.approvedDesign.imageUrl && (
-                <a
-                  href={d.approvedDesign.imageUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block overflow-hidden rounded-lg border border-slate-200"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={d.approvedDesign.imageUrl}
-                    alt="แบบที่อนุมัติ"
-                    className="max-h-80 w-full object-contain"
-                  />
-                </a>
-              )}
+              {d.approvedDesign.imageUrl &&
+                (isImageUrl(d.approvedDesign.imageUrl) ? (
+                  <a
+                    href={d.approvedDesign.imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block overflow-hidden rounded-lg border border-slate-200"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={d.approvedDesign.imageUrl}
+                      alt="แบบที่อนุมัติ"
+                      className="max-h-80 w-full object-contain"
+                    />
+                  </a>
+                ) : (
+                  // ไฟล์แบบเป็นไฟล์งาน (.ai/.psd/.pdf) เปิดเป็นรูปไม่ได้ — โชว์ปุ่มเปิดไฟล์
+                  <a
+                    href={d.approvedDesign.imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-blue-600 hover:underline"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    เปิดไฟล์แบบที่อนุมัติ
+                  </a>
+                ))}
               <p className="mt-2 flex items-center gap-1.5 text-xs text-green-600">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 เวอร์ชัน {d.approvedDesign.versionNumber} · อนุมัติแล้ว

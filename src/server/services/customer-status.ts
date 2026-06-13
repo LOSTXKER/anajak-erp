@@ -61,8 +61,11 @@ export async function getOrderStatusByToken(
         take: 1,
         select: { versionNumber: true, fileUrl: true, thumbnailUrl: true, createdAt: true },
       },
-      // ใบเสนอราคา (ไม่คืน subtotal/discount/tax — เฉพาะยอดรวม)
+      // ใบเสนอราคา — เฉพาะใบที่ "ส่งให้ลูกค้าแล้ว" (sentAt != null) เท่านั้น
+      // กัน DRAFT (ราคาที่ทีมยังร่าง ยังไม่ส่ง) รั่ว — เลียน gate APPROVED ของ designs
+      // คืนยอดรวม + line total ต่อรายการ · ไม่คืน subtotal/discount/tax/ราคาต่อหน่วย
       quotations: {
+        where: { sentAt: { not: null } },
         orderBy: { createdAt: "desc" },
         select: {
           quotationNumber: true,
@@ -92,7 +95,9 @@ export async function getOrderStatusByToken(
           createdAt: true,
         },
       },
-      // พัสดุ (ไม่คืน shippingCost/isPaid/notes ภายใน)
+      // พัสดุ — โชว์วิธีส่ง/เลขพัสดุ/สถานะ/รายการ พอให้ลูกค้าติดตามได้
+      // ไม่คืน ชื่อผู้รับ/ที่อยู่ (เผื่อ blindShip drop-ship หลายปลายทาง ลิงก์ถูกส่งต่อ
+      // จะเห็นที่อยู่ปลายทางข้ามราย) · ไม่คืน shippingCost/isPaid/notes ภายใน
       deliveries: {
         orderBy: { createdAt: "desc" },
         select: {
@@ -101,12 +106,6 @@ export async function getOrderStatusByToken(
           status: true,
           shippedAt: true,
           deliveredAt: true,
-          recipientName: true,
-          address: true,
-          subDistrict: true,
-          district: true,
-          province: true,
-          postalCode: true,
           createdAt: true,
           lines: {
             select: { description: true, size: true, color: true, qty: true },
@@ -128,10 +127,6 @@ export async function getOrderStatusByToken(
   }
 
   const design = order.designs[0] ?? null;
-  const addr = (d: (typeof order.deliveries)[number]) =>
-    [d.address, d.subDistrict, d.district, d.province, d.postalCode]
-      .filter(Boolean)
-      .join(" ");
 
   return {
     orderNumber: order.orderNumber,
@@ -187,8 +182,6 @@ export async function getOrderStatusByToken(
       status: d.status,
       shippedAt: d.shippedAt,
       deliveredAt: d.deliveredAt,
-      recipientName: d.recipientName,
-      address: addr(d),
       lines: d.lines.map((l) => ({
         description: l.description,
         size: l.size,

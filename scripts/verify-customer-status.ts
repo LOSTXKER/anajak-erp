@@ -61,13 +61,14 @@ async function main() {
         approvalStatus: "APPROVED",
       },
     });
-    const quotation = await prisma.quotation.create({
+    await prisma.quotation.create({
       data: {
         quotationNumber: `QT-STATUS-${Date.now()}`,
         orderId: order.id,
         customerId: customer.id,
         createdById: owner.id,
         status: "ACCEPTED",
+        sentAt: new Date(), // ส่งลูกค้าแล้ว → ต้องโผล่
         title: `${MARK} ใบเสนอ`,
         validUntil: new Date(Date.now() + 14 * 86400000),
         subtotal: 4673,
@@ -75,6 +76,20 @@ async function main() {
         tax: 327,
         totalAmount: 5000,
         items: { create: [{ name: "เสื้อสกรีน", quantity: 100, unit: "ตัว", unitPrice: 50, totalPrice: 5000 }] },
+      },
+    });
+    // ใบร่าง DRAFT (sentAt = null) — ราคาภายในที่ยังไม่ส่ง → ต้อง "ไม่โผล่" บนหน้า public
+    await prisma.quotation.create({
+      data: {
+        quotationNumber: `QT-DRAFT-${Date.now()}`,
+        orderId: order.id,
+        customerId: customer.id,
+        createdById: owner.id,
+        status: "DRAFT",
+        title: `${MARK} ร่างห้ามรั่ว`,
+        validUntil: new Date(Date.now() + 14 * 86400000),
+        subtotal: 9999,
+        totalAmount: 9999,
       },
     });
     await prisma.invoice.create({
@@ -134,7 +149,8 @@ async function main() {
 
     // ── 3. เนื้อหา ──
     check("3.1 แบบที่อนุมัติโผล่ + imageUrl พก ?s=token", !!d.approvedDesign && (d.approvedDesign.imageUrl ?? "").includes(`?s=${token}`));
-    check("3.2 ใบเสนอ 1 ใบ + ยอด 5000 + items", d.quotations.length === 1 && d.quotations[0].totalAmount === 5000 && d.quotations[0].items.length === 1);
+    check("3.2 ใบเสนอที่ส่งแล้วโผล่ 1 ใบ + ยอด 5000 + items", d.quotations.length === 1 && d.quotations[0].totalAmount === 5000 && d.quotations[0].items.length === 1);
+    check("3.2b ใบเสนอ DRAFT (ยังไม่ส่ง) ไม่โผล่ — กันราคาภายในรั่ว", d.quotations.every((q) => q.totalAmount !== 9999));
     check("3.3 ใบแจ้งหนี้ 1 ใบ + จ่ายแล้ว", d.invoices.length === 1 && d.invoices[0].paymentStatus === "PAID");
     check("3.4 พัสดุ 1 รายการ + tracking + lines", d.deliveries.length === 1 && d.deliveries[0].trackingNumber === "JT123456789" && d.deliveries[0].lines.length === 1);
     check("3.5 ไม่ blindShip → brandName = Anajak Print", d.isBlindShip === false && d.brandName === "Anajak Print");

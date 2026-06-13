@@ -93,7 +93,8 @@ export async function GET(
             where: { approvalStatus: "APPROVED" },
             select: { fileUrl: true, thumbnailUrl: true },
           },
-          quotations: { select: { pdfUrl: true } },
+          // เฉพาะใบที่ส่งลูกค้าแล้ว (ตรงกับ getOrderStatusByToken) — กันเปิด PDF ใบร่าง DRAFT
+          quotations: { where: { sentAt: { not: null } }, select: { pdfUrl: true } },
         },
       });
       if (!order || !order.statusTokenExpiresAt || order.statusTokenExpiresAt < new Date()) {
