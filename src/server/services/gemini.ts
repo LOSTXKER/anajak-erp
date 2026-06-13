@@ -5,7 +5,7 @@
 // key อยู่ฝั่ง server เท่านั้น (GEMINI_API_KEY) — ห้าม import จาก client
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 
 export interface GeminiPreflightResult {
   verdict: "GREEN" | "YELLOW" | "RED";
