@@ -11,12 +11,15 @@ import {
   Scissors,
   ChevronUp,
   ChevronDown,
+  LayoutGrid,
 } from "lucide-react";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 import { ITEM_SOURCES } from "@/types/order-form";
+import { sumVariantQty } from "@/lib/size-matrix";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { CustomMadeDetail } from "./custom-made-detail";
+import { SizeMatrix } from "./size-matrix";
 
 export function ProductTableRow({
   product, prodIdx, itemIdx, totalProducts, onSetItems,
@@ -28,6 +31,7 @@ export function ProductTableRow({
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void;
 }) {
   const [showDetail, setShowDetail] = useState(false);
+  const [showMatrix, setShowMatrix] = useState(false);
   const { data: packagingOptions } = trpc.packaging.list.useQuery();
 
   const updateProduct = (field: string, value: unknown) => {
@@ -78,6 +82,12 @@ export function ProductTableRow({
   const isFromStock = product.itemSource === "FROM_STOCK";
   const isCustomMade = product.itemSource === "CUSTOM_MADE";
   const isCustomerProvided = product.itemSource === "CUSTOMER_PROVIDED";
+
+  // โหมดหลายไซส์ (matrix) — เฉพาะสินค้าที่กรอกเอง (ไม่ใช่จากสต๊อค) · มี >1 variant = บังคับเปิด
+  const canMatrix = !isFromStock;
+  const multi = canMatrix && (showMatrix || product.variants.length > 1);
+  // นับเฉพาะไซส์ที่กรอกแล้ว (variant ว่างจากสินค้าใหม่ size="" ไม่นับ)
+  const totalQty = sumVariantQty(product.variants.filter((v) => v.size.trim()));
 
   // แถวข้อมูลเก่า/จากใบเสนอ itemSource เป็น null — ต้องมีช่องให้เลือก ไม่งั้น validation
   // บล็อกการเซฟทั้งใบโดยผู้ใช้แก้อะไรไม่ได้ (review 2026-06-11)
@@ -153,18 +163,44 @@ export function ProductTableRow({
                 className="h-8 text-xs"
               />
               <div className="flex items-center gap-1.5">
-                <Input
-                  value={variant.color}
-                  onChange={(e) => updateVariantField("color", e.target.value)}
-                  placeholder="สี"
-                  className="h-7 w-20 px-2 text-[11px]"
-                />
-                <Input
-                  value={variant.size}
-                  onChange={(e) => updateVariantField("size", e.target.value)}
-                  placeholder="ไซส์"
-                  className="h-7 w-16 px-2 text-[11px]"
-                />
+                {multi ? (
+                  <span className="text-[11px] text-slate-500">
+                    หลายไซส์ · รวม {totalQty} ตัว{variant.color ? ` · ${variant.color}` : ""}
+                  </span>
+                ) : (
+                  <>
+                    <Input
+                      value={variant.color}
+                      onChange={(e) => updateVariantField("color", e.target.value)}
+                      placeholder="สี"
+                      className="h-7 w-20 px-2 text-[11px]"
+                    />
+                    <Input
+                      value={variant.size}
+                      onChange={(e) => updateVariantField("size", e.target.value)}
+                      placeholder="ไซส์"
+                      className="h-7 w-16 px-2 text-[11px]"
+                    />
+                  </>
+                )}
+                {canMatrix && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMatrix((v) => !v)}
+                    className={cn(
+                      "h-7 gap-1 px-2 text-[11px]",
+                      multi
+                        ? "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                        : "border-slate-300 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400",
+                    )}
+                    title="กรอกหลายไซส์ในแถวเดียว"
+                  >
+                    <LayoutGrid className="h-3 w-3" />
+                    หลายไซส์
+                  </Button>
+                )}
                 {isCustomMade && (
                   <Button
                     type="button"
@@ -211,14 +247,18 @@ export function ProductTableRow({
 
         {/* Quantity */}
         <td className="px-1.5 py-2 align-middle">
-          <Input
-            type="number"
-            min={0}
-            value={qty || ""}
-            onChange={(e) => updateVariantField("quantity", parseInt(e.target.value) || 0)}
-            placeholder="0"
-            className="h-8 w-full text-xs"
-          />
+          {multi ? (
+            <div className="text-center text-sm font-medium text-slate-700 dark:text-slate-200">{totalQty}</div>
+          ) : (
+            <Input
+              type="number"
+              min={0}
+              value={qty || ""}
+              onChange={(e) => updateVariantField("quantity", parseInt(e.target.value) || 0)}
+              placeholder="0"
+              className="h-8 w-full text-xs"
+            />
+          )}
         </td>
 
         {/* Discount */}
@@ -278,6 +318,19 @@ export function ProductTableRow({
           <td />
           <td colSpan={6} className="pb-3 pt-1 pr-1">
             <CustomMadeDetail product={product} updateProduct={updateProduct} />
+          </td>
+        </tr>
+      )}
+
+      {/* หลายไซส์ — ตารางกรอกไซส์×จำนวน (ก้อน 4 / P1.12) */}
+      {multi && (
+        <tr className="border-b border-slate-100 dark:border-slate-800">
+          <td />
+          <td colSpan={6} className="pb-3 pt-1 pr-1">
+            <SizeMatrix
+              variants={product.variants}
+              onChange={(v) => updateProduct("variants", v)}
+            />
           </td>
         </tr>
       )}

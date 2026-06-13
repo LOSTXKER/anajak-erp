@@ -119,14 +119,15 @@ export function mapApiItemsToForm(apiItems: ApiItem[]): OrderItemForm[] {
         productSku: p.product?.sku,
         productImageUrl: p.product?.imageUrl,
       };
+      // เก็บ variants ทุกไซส์ไว้ใน product เดียว (ก้อน 4 / P1.12 — โชว์เป็น size matrix)
+      // เดิม flatten >1 variant เป็นหลายแถวสินค้า · ตอนนี้ matrix รับหลายไซส์ในแถวเดียวได้แล้ว
       const variants = (p.variants || []) as ApiItem[];
-      if (variants.length <= 1) {
-        return [{ ...base, variants: variants.map((v: ApiItem) => ({ size: v.size, color: v.color || "", quantity: v.quantity })) }];
-      }
-      return variants.map((v: ApiItem) => ({
-        ...structuredClone(base),
-        variants: [{ size: v.size, color: v.color || "", quantity: v.quantity }],
+      const mapped = variants.map((v: ApiItem) => ({
+        size: v.size,
+        color: v.color || "",
+        quantity: v.quantity,
       }));
+      return [{ ...base, ...(mapped.length > 0 ? { variants: mapped } : {}) }];
     }),
     prints: (item.prints || []).map((pr: ApiItem) => ({
       position: pr.position,

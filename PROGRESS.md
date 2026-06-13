@@ -3,6 +3,14 @@
 > session ใหม่: อ่านไฟล์นี้ + `git log --oneline -10` ก่อนเริ่ม · จบ session: อัปเดตไฟล์นี้ก่อนปิด
 
 ## ตอนนี้
+- **🎉 ก้อน 4: multi-size matrix (P1.12) — จบทั้งชิ้น (2026-06-14) · frontend ล้วน (backend รองรับอยู่แล้ว) · ⏳ เหลือเบส retest UI:**
+  - **ปัญหาเดิม**: ฟอร์มเปิดงาน 1 แถวสินค้า = 1 ไซส์ → กรอก S/M/L/XL ต้องเพิ่ม 4 แถวซ้ำชื่อ/ราคา (จุดเจ็บ)
+  - **ของที่ลง**: ① lib/size-matrix.ts (pure: STANDARD_SIZES S/M/L/XL/2XL/3XL · buildSizeVariants/sumVariantQty/matrixColumns) + unit test 5 เคส ② component SizeMatrix (สีร่วม + ช่องจำนวนต่อไซส์ + เพิ่มไซส์อื่น XS/4XL/เลข + รวมอัตโนมัติ) ③ ProductTableRow: ปุ่ม "หลายไซส์" (เฉพาะสินค้ากรอกเอง ไม่ใช่จากสต๊อค) → sub-row matrix (เลียน pattern CUSTOM_MADE detail) · main row โชว์สรุป "หลายไซส์ · รวม N" + qty = total ④ order-mapping เลิก flatten multi-variant (เก็บทุกไซส์ใน product เดียว → round-trip โชว์ matrix กลับ)
+  - **backend ไม่แตะ (รองรับอยู่แล้ว)**: pricing.ts `totalQuantity = variants.reduce(sum)` × ราคา · order create สร้าง OrderItemVariant ครบทุกไซส์ · `variants.min(1)` กันว่าง · stock reservation จับราย size+color — แค่ UI เดิมไม่เคยส่ง multi-variant
+  - **decision เคาะเอง**: matrix เฉพาะ non-stock (สต๊อค = 1 SKU/variant ต่อแถว ไม่เข้า matrix) · สีเดียวต่อ product (หลายสี = เพิ่มแถวสินค้าตาม pattern เดิม · matrix จัดการ size×qty) · ไซส์ free-text (รับ XS/S-5XL/FREE/เลข) · นับ total ตัดไซส์ว่าง (สินค้าใหม่ default qty 1 size "")
+  - **verify**: tsc 0 · lint 0 · unit 197 (+5 size-matrix)
+  - **⏳ เหลือเบส retest UI** (ไม่ต้อง restart — frontend HMR): ฟอร์มเปิดงาน → เพิ่มสินค้ากรอกเอง → กดปุ่ม "หลายไซส์" → กรอก S/M/L/XL → เช็คยอดรวม+ราคา · บันทึก+เปิดแก้ → ต้องโชว์ matrix กลับครบทุกไซส์
+  - **🎉 ปิดก้อน 4 ครบทุกชิ้น** (ไฟล์ 3 ชั้น/คลังลาย/ลิงก์อัปโหลด/ลิงก์สถานะ/ลิงก์ยืนยันใบเสนอ/นับรอบแก้/preflight—ลองแล้วเอาออก/size matrix) → ถัดไป ก้อน 5 (MCP) หรือก้อน 6 (UI ใหม่) ตามเบสเลือก
 - **⚪ ก้อน 4: preflight ไฟล์ลูกค้า — ลองแล้ว "เอาออกทั้งหมด" (เบสเคาะ 2026-06-14) · เก็บแค่ "คลิกรูป→popup":**
   - **บทเรียน (จดไว้ชัด)**: ลอง preflight ตรวจไฟล์ลูกค้า (โค้ดอ่าน header + AI Gemini) แต่ **AI เช็คผิด/ตัดสินดีไซน์ซ้ำๆ** (บอกพื้นขาวทั้งที่โปร่งจริง · เตือนตัดพื้นการ์ดที่ลูกค้าอยากได้ทั้งใบ · วิจารณ์ลายน้ำ/ตัวหนังสือ) → ตัด AI เหลือโค้ดเช็คความละเอียด → **สุดท้ายเบสเคาะ "เอาระบบตรวจออกหมด"** (ทีมเปิดดูไฟล์เองอยู่แล้ว · เพิ่มความรกมากกว่าช่วย)
   - **เอาออก**: ลบ services/preflight.ts + gemini.ts + routers/preflight + lib/image-meta + lib/preflight-rules (+tests) + verify-preflight + model FilePreflight (migration drop_file_preflight — drop ตารางว่าง) + GEMINI ใน .env.example · GEMINI_API_KEY ใน .env ไม่ใช้แล้ว (ลบได้) · unit กลับ 192
