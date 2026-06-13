@@ -27,7 +27,8 @@
     "verify:files": "tsx --env-file=.env scripts/verify-files.ts",
     "verify:storage": "tsx --env-file=.env scripts/verify-storage-upload.ts",
     "verify:artwork": "tsx --env-file=.env scripts/verify-artwork.ts",
-    "verify:upload": "tsx --env-file=.env scripts/verify-customer-upload.ts"
+    "verify:upload": "tsx --env-file=.env scripts/verify-customer-upload.ts",
+    "verify:status": "tsx --env-file=.env scripts/verify-customer-status.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",

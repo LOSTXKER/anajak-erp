@@ -65,17 +65,19 @@ export function normalizeFileUrl(url: string): string {
 }
 
 /**
- * แปะ approval token ให้ proxy URL สำหรับหน้า public (ลูกค้าไม่มี session —
- * proxy ใช้ token นี้เช็คว่าไฟล์เป็นของแบบใบนั้นจริง) · URL นอกระบบคืนค่าเดิม
+ * แปะ token ให้ proxy URL สำหรับหน้า public (ลูกค้าไม่มี session —
+ * proxy ใช้ token นี้เช็คว่าไฟล์เป็นของลูกค้ารายนี้จริง) · URL นอกระบบคืนค่าเดิม
+ * paramName: "t" = approval token (design), "s" = status token (ลิงก์สถานะ ก้อน 4)
  */
 export function withFileToken(
   url: string | null | undefined,
-  token: string
+  token: string,
+  paramName: "t" | "s" = "t"
 ): string | null {
   if (!url) return null;
   const normalized = normalizeFileUrl(url);
   if (!normalized.startsWith(FILE_PROXY_PREFIX)) return url;
-  return `${normalized}?t=${encodeURIComponent(token)}`;
+  return `${normalized}?${paramName}=${encodeURIComponent(token)}`;
 }
 
 /**

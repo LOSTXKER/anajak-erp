@@ -56,28 +56,58 @@ export async function GET(
       return deny(403, "บัญชีนี้เข้าถึงไฟล์ไม่ได้");
     }
   } else {
-    const token = req.nextUrl.searchParams.get("t");
-    if (!token) {
-      return deny(401, "ต้องเข้าสู่ระบบ หรือเปิดผ่านลิงก์ที่ได้รับ");
-    }
-    // ลูกค้าถือ token — เปิดได้เฉพาะไฟล์/รูปตัวอย่างของแบบใบนั้น (fail-closed เหมือน design router)
-    const design = await prisma.designVersion.findUnique({
-      where: { approvalToken: token },
-      select: { fileUrl: true, thumbnailUrl: true, tokenExpiresAt: true },
-    });
-    if (!design || !design.tokenExpiresAt || design.tokenExpiresAt < new Date()) {
-      return deny(403, "ลิงก์หมดอายุหรือไม่ถูกต้อง");
-    }
+    // ลูกค้าไม่มี session — เปิดได้เฉพาะไฟล์ที่ลิงก์ token อนุญาต (fail-closed)
     // เทียบแบบ parse+decode ทั้งสองฝั่ง — ค่าใน DB อาจ percent-encoded (ผ่าน
     // normalizeFileUrl ที่คืน URL.pathname) แต่ Next decode path param ให้แล้ว
-    const allowed = [design.fileUrl, design.thumbnailUrl]
-      .map((u) => parseProxyFileUrl(u))
-      .filter((p): p is { bucket: string; path: string } => p !== null);
-    const isAllowed = allowed.some(
-      (p) => p.bucket === bucket && safeDecode(p.path) === objectPath
-    );
-    if (!isAllowed) {
-      return deny(403, "ลิงก์นี้เปิดไฟล์นี้ไม่ได้");
+    const matches = (urls: (string | null)[]) => {
+      const allowed = urls
+        .map((u) => parseProxyFileUrl(u))
+        .filter((p): p is { bucket: string; path: string } => p !== null);
+      return allowed.some(
+        (p) => p.bucket === bucket && safeDecode(p.path) === objectPath
+      );
+    };
+
+    const t = req.nextUrl.searchParams.get("t"); // approval token (design)
+    const s = req.nextUrl.searchParams.get("s"); // status token (ลิงก์สถานะ ก้อน 4)
+
+    if (t) {
+      // เปิดได้เฉพาะไฟล์/รูปตัวอย่างของแบบใบนั้น
+      const design = await prisma.designVersion.findUnique({
+        where: { approvalToken: t },
+        select: { fileUrl: true, thumbnailUrl: true, tokenExpiresAt: true },
+      });
+      if (!design || !design.tokenExpiresAt || design.tokenExpiresAt < new Date()) {
+        return deny(403, "ลิงก์หมดอายุหรือไม่ถูกต้อง");
+      }
+      if (!matches([design.fileUrl, design.thumbnailUrl])) {
+        return deny(403, "ลิงก์นี้เปิดไฟล์นี้ไม่ได้");
+      }
+    } else if (s) {
+      // ลิงก์สถานะ — เปิดได้เฉพาะ "แบบที่อนุมัติแล้ว" + PDF ใบเสนอ ของออเดอร์นั้น
+      const order = await prisma.order.findUnique({
+        where: { statusToken: s },
+        select: {
+          statusTokenExpiresAt: true,
+          designs: {
+            where: { approvalStatus: "APPROVED" },
+            select: { fileUrl: true, thumbnailUrl: true },
+          },
+          quotations: { select: { pdfUrl: true } },
+        },
+      });
+      if (!order || !order.statusTokenExpiresAt || order.statusTokenExpiresAt < new Date()) {
+        return deny(403, "ลิงก์หมดอายุหรือไม่ถูกต้อง");
+      }
+      const urls = [
+        ...order.designs.flatMap((d) => [d.fileUrl, d.thumbnailUrl]),
+        ...order.quotations.map((q) => q.pdfUrl),
+      ];
+      if (!matches(urls)) {
+        return deny(403, "ลิงก์นี้เปิดไฟล์นี้ไม่ได้");
+      }
+    } else {
+      return deny(401, "ต้องเข้าสู่ระบบ หรือเปิดผ่านลิงก์ที่ได้รับ");
     }
   }
 

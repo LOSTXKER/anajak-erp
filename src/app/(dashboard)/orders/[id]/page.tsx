@@ -28,6 +28,7 @@ import {
   MoreHorizontal,
   ClipboardList,
   AlertTriangle,
+  Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -139,6 +140,27 @@ export default function OrderDetailPage({
       toast.error(err.message ?? "จองสต๊อคไม่สำเร็จ");
     },
   });
+
+  // ลิงก์สถานะลูกค้า (ก้อน 4 — portal) — คัดลอกลิงก์: ใช้ token เดิมถ้ายังไม่หมดอายุ
+  // ไม่งั้นสร้างใหม่ (getLink protected · generate gate salesUp ฝั่ง server)
+  const statusLink = trpc.customerStatus.getLink.useQuery({ orderId: id });
+  const generateStatusLink = trpc.customerStatus.generateLink.useMutation();
+  async function copyStatusLink() {
+    try {
+      let tok = statusLink.data?.token ?? null;
+      const expired =
+        !statusLink.data?.expiresAt ||
+        new Date(statusLink.data.expiresAt) < new Date();
+      if (!tok || expired) {
+        tok = (await generateStatusLink.mutateAsync({ orderId: id })).token;
+        statusLink.refetch();
+      }
+      await navigator.clipboard.writeText(`${window.location.origin}/status/${tok}`);
+      toast.success("คัดลอกลิงก์สถานะลูกค้าแล้ว");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "สร้างลิงก์ไม่สำเร็จ");
+    }
+  }
 
   // ----------------------------------------------------------
   // Loading state
@@ -335,6 +357,14 @@ export default function OrderDetailPage({
                         >
                           <Copy className="h-4 w-4" />
                           สำเนาออเดอร์
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          className={dropdownItemClass}
+                          onSelect={() => copyStatusLink()}
+                          disabled={generateStatusLink.isPending}
+                        >
+                          <Share2 className="h-4 w-4" />
+                          คัดลอกลิงก์สถานะลูกค้า
                         </DropdownMenu.Item>
                         {["DRAFT", "INQUIRY"].includes(order.internalStatus) && (
                           // สะพานใบเสนอ: ออกใบเสนอผูกใบนี้ — ลูกค้าตกลงแล้วยืนยันออเดอร์เดิม ไม่สร้างซ้ำ

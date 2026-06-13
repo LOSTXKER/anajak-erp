@@ -378,6 +378,11 @@ model Order {
   uploadToken          String?   @unique @map("upload_token")
   uploadTokenExpiresAt DateTime? @map("upload_token_expires_at")
 
+  // ลิงก์สถานะออเดอร์ (FLOW-REDESIGN ก้อน 4 — portal ขั้น 1) — ลูกค้าเปิดดูสถานะ/แบบ/เอกสาร/พัสดุ
+  // ผ่าน token ไม่ต้อง login (read-only · โชว์เฉพาะข้อมูลของลูกค้า ห้ามรั่วข้อมูลภายใน)
+  statusToken          String?   @unique @map("status_token")
+  statusTokenExpiresAt DateTime? @map("status_token_expires_at")
+
   // Meta
   notes            String?
   cancelledAt      DateTime?      @map("cancelled_at")
