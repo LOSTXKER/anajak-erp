@@ -11,9 +11,8 @@ export interface GeminiPreflightResult {
   verdict: "GREEN" | "YELLOW" | "RED";
   hasVisibleBackground: boolean; // เห็นพื้นหลังทึบที่ควรเป็นพื้นโปร่งไหม
   lowQuality: boolean; // เบลอ/แตก/ความละเอียดต่ำ
-  textTooSmall: boolean; // ตัวอักษรเล็กเสี่ยงหายตอนพิมพ์
   summary: string; // สรุปสั้นภาษาไทย
-  warnings: string[]; // คำเตือนภาษาไทย
+  warnings: string[]; // คำเตือนภาษาไทย (เทคนิคล้วน)
 }
 
 const RESPONSE_SCHEMA = {
@@ -22,22 +21,28 @@ const RESPONSE_SCHEMA = {
     verdict: { type: "string", enum: ["GREEN", "YELLOW", "RED"] },
     hasVisibleBackground: { type: "boolean" },
     lowQuality: { type: "boolean" },
-    textTooSmall: { type: "boolean" },
     summary: { type: "string" },
     warnings: { type: "array", items: { type: "string" } },
   },
-  required: ["verdict", "hasVisibleBackground", "lowQuality", "textTooSmall", "summary", "warnings"],
+  required: ["verdict", "hasVisibleBackground", "lowQuality", "summary", "warnings"],
 };
 
-const PROMPT = `คุณคือผู้ตรวจไฟล์งานพิมพ์ DTF/DTG ของโรงงานสกรีนเสื้อ Anajak
-ดูรูป/ไฟล์นี้แล้วประเมินความพร้อมสำหรับนำไปพิมพ์ลงเสื้อ ตอบเป็น JSON ภาษาไทยตาม schema:
-- verdict: GREEN = พร้อมพิมพ์, YELLOW = พิมพ์ได้แต่มีข้อควรระวัง, RED = ไม่ควรพิมพ์ตามนี้
-- hasVisibleBackground: true ถ้าเห็นพื้นหลังเป็นสีทึบ (ขาว/ดำ/สี) ที่งาน DTF/DTG ควรเป็นพื้นโปร่ง
-- lowQuality: true ถ้าภาพเบลอ แตก เป็นเหลี่ยมพิกเซล หรือความละเอียดดูต่ำ
-- textTooSmall: true ถ้ามีตัวอักษร/เส้นเล็กมากที่เสี่ยงหาย/เลอะตอนพิมพ์
-- summary: สรุปสั้น 1 ประโยคภาษาไทย
-- warnings: รายการคำเตือนภาษาไทยสั้นๆ (ไม่มีให้เป็น [])
-ประเมินตามสิ่งที่เห็นจริง อย่าเดาเกินภาพ`;
+// เบสเคาะ 2026-06-14: ตรวจ "เทคนิคพื้นฐาน" เท่านั้น — ห้ามวิจารณ์เนื้อหา/ลวดลาย/สไตล์/
+// ตัวหนังสือ/ลายน้ำ/ความเหมาะสม (ลูกค้าอาจตั้งใจออกแบบแบบนั้น) · ดูแค่ความคม + พื้นโปร่ง
+const PROMPT = `คุณคือตัวช่วยตรวจ "คุณภาพทางเทคนิค" ของไฟล์ภาพสำหรับพิมพ์ DTF/DTG เท่านั้น
+
+**ห้ามเด็ดขาด: ห้ามวิจารณ์เนื้อหา/ลวดลาย/สไตล์/ตัวหนังสือ/ลายน้ำ/ตัวการ์ตูน/ความสวยงาม/
+ความเหมาะสมของภาพ** — ลูกค้าอาจตั้งใจออกแบบแบบนั้นอยู่แล้ว ไม่ใช่หน้าที่เราไปตัดสิน
+
+ดูแค่ 2 เรื่องพื้นฐานทางเทคนิค:
+1. lowQuality: true ถ้าภาพเบลอ/แตก/เป็นเหลี่ยมพิกเซล/ความละเอียดต่ำเกินไปสำหรับพิมพ์
+2. hasVisibleBackground: true ถ้ามีพื้นหลังเป็นสีทึบ (ขาว/ดำ/สี) เต็มกรอบภาพ ที่งาน DTF/DTG ควรเป็นพื้นโปร่ง
+
+ตอบ JSON:
+- verdict: GREEN = คมชัดและพื้นโอเค, YELLOW = มีจุดเทคนิคควรระวัง, RED = เทคนิคไม่พร้อมพิมพ์ชัดเจน
+- summary: สรุปสั้น 1 ประโยคภาษาไทย (เรื่องเทคนิคเท่านั้น)
+- warnings: คำเตือน "ทางเทคนิค" สั้นๆ ภาษาไทย เฉพาะ 2 เรื่องข้างบน (ไม่มี = [] · ห้ามพูดถึงเนื้อหาภาพ)
+ถ้าภาพคมชัดและพื้นไม่มีปัญหา = GREEN warnings ว่าง · อย่าเดาเกินภาพ`;
 
 /** ส่งรูป (base64) ให้ Gemini ประเมินความพร้อมพิมพ์ — throw ถ้าเรียกไม่สำเร็จ (caller จัดการ) */
 export async function geminiPreflightImage(
@@ -88,7 +93,6 @@ export async function geminiPreflightImage(
     verdict: parsed.verdict === "RED" || parsed.verdict === "YELLOW" ? parsed.verdict : "GREEN",
     hasVisibleBackground: !!parsed.hasVisibleBackground,
     lowQuality: !!parsed.lowQuality,
-    textTooSmall: !!parsed.textTooSmall,
     summary: String(parsed.summary ?? ""),
     warnings: Array.isArray(parsed.warnings) ? parsed.warnings.map(String) : [],
   };

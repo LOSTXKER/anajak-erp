@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -70,12 +71,15 @@ const DESIGN_STATUS_LABELS: Record<string, string> = {
 function FileThumb({
   att,
   preflight,
+  onPreview,
 }: {
   att: { fileUrl: string; fileName: string; uploadedById?: string | null };
   preflight?: { verdict: string; summary: string; warnings: string[] };
+  onPreview?: (att: { fileUrl: string; fileName: string; uploadedById?: string | null }) => void;
 }) {
   // uploadedById = null → ลูกค้าอัปเองผ่านลิงก์ (ก้อน 4 ชิ้น 3)
   const byCustomer = att.uploadedById === null;
+  const isImg = isImageUrl(att.fileUrl);
   const [showReason, setShowReason] = React.useState(false);
   const verdict = preflight?.verdict;
   const flagged = verdict === "YELLOW" || verdict === "RED";
@@ -87,33 +91,48 @@ function FileThumb({
         : []
     : [];
 
+  const thumbInner = (
+    <div className="relative">
+      {isImg ? (
+        <img
+          src={att.fileUrl}
+          alt={att.fileName}
+          className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700"
+        />
+      ) : (
+        <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+          <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
+          <span className="mt-1 text-[10px] text-slate-400">
+            {att.fileName.split(".").pop()?.toUpperCase()}
+          </span>
+        </div>
+      )}
+      {byCustomer && (
+        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded bg-blue-600/90 px-1 py-0.5 text-[9px] font-medium text-white">
+          <User className="h-2.5 w-2.5" />
+          ลูกค้า
+        </span>
+      )}
+    </div>
+  );
+
   return (
     <div className="relative w-28">
-      <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="group block">
-        <div className="relative">
-          {isImageUrl(att.fileUrl) ? (
-            <img
-              src={att.fileUrl}
-              alt={att.fileName}
-              className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700"
-            />
-          ) : (
-            <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
-              <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
-              <span className="mt-1 text-[10px] text-slate-400">
-                {att.fileName.split(".").pop()?.toUpperCase()}
-              </span>
-            </div>
-          )}
-          {byCustomer && (
-            <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded bg-blue-600/90 px-1 py-0.5 text-[9px] font-medium text-white">
-              <User className="h-2.5 w-2.5" />
-              ลูกค้า
-            </span>
-          )}
-        </div>
-        <p className="mt-0.5 max-w-[7rem] truncate text-[10px] text-slate-400">{att.fileName}</p>
-      </a>
+      {/* รูป = เปิด popup ในหน้า (ไม่ไปหน้าใหม่) · ไฟล์อื่น (.ai/.psd/.pdf) = เปิดแท็บใหม่ */}
+      {isImg ? (
+        <button
+          type="button"
+          onClick={() => onPreview?.(att)}
+          className="group block w-full cursor-zoom-in text-left"
+        >
+          {thumbInner}
+        </button>
+      ) : (
+        <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="group block">
+          {thumbInner}
+        </a>
+      )}
+      <p className="mt-0.5 max-w-[7rem] truncate text-[10px] text-slate-400">{att.fileName}</p>
 
       {/* ป้ายสถานะตรวจไฟล์ (ก้อน 4) — โชว์ทุกไฟล์ลูกค้า · เหลือง/แดงกดดูเหตุผลได้ */}
       {byCustomer &&
@@ -167,6 +186,8 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
   const [uploadingLayer, setUploadingLayer] = React.useState<"RAW" | "PRINT" | null>(null);
   const [showLink, setShowLink] = React.useState(false);
   const [linkCopied, setLinkCopied] = React.useState(false);
+  // รูปที่เปิด popup (lightbox) — คลิกรูปดูในหน้า ไม่เด้งหน้าใหม่
+  const [preview, setPreview] = React.useState<{ fileUrl: string; fileName: string; uploadedById?: string | null } | null>(null);
 
   // cache ร่วมกับ OrderDesignSection (query key เดียวกัน) — ไม่ยิงซ้ำ
   const designs = trpc.design.listByOrder.useQuery({ orderId });
@@ -307,6 +328,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
@@ -436,7 +458,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                 {generalRaw.map((att) => (
                   <div key={att.id} className="relative">
                     {renderDeleteButton(att)}
-                    <FileThumb att={att} preflight={preflightByUrl.get(att.fileUrl)} />
+                    <FileThumb att={att} preflight={preflightByUrl.get(att.fileUrl)} onPreview={setPreview} />
                   </div>
                 ))}
               </div>
@@ -454,7 +476,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                 {imgs.map((att) => (
                   <div key={att.id} className="relative">
                     {renderDeleteButton(att)}
-                    <FileThumb att={att} preflight={preflightByUrl.get(att.fileUrl)} />
+                    <FileThumb att={att} preflight={preflightByUrl.get(att.fileUrl)} onPreview={setPreview} />
                   </div>
                 ))}
               </div>
@@ -534,7 +556,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
               {printFiles.map((att) => (
                 <div key={att.id} className="relative">
                   {renderDeleteButton(att)}
-                  <FileThumb att={att} />
+                  <FileThumb att={att} onPreview={setPreview} />
                 </div>
               ))}
             </div>
@@ -542,5 +564,45 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
         </section>
       </CardContent>
     </Card>
+
+    {/* Lightbox — คลิกรูปดูในหน้า (ก้อน 4) + โชว์ผลตรวจถ้าเป็นไฟล์ลูกค้า */}
+    <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="truncate pr-6 text-sm font-medium">{preview?.fileName}</DialogTitle>
+        </DialogHeader>
+        {preview && (
+          <div className="space-y-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={preview.fileUrl}
+              alt={preview.fileName}
+              className="mx-auto max-h-[70vh] w-full rounded-lg bg-[repeating-conic-gradient(#f1f5f9_0_25%,#fff_0_50%)] bg-[length:16px_16px] object-contain dark:bg-[repeating-conic-gradient(#1e293b_0_25%,#0f172a_0_50%)]"
+            />
+            {(() => {
+              const pf = preview.uploadedById === null ? preflightByUrl.get(preview.fileUrl) : undefined;
+              if (!pf) return null;
+              const p = PREFLIGHT_PILL[pf.verdict] ?? PREFLIGHT_PILL.ERROR;
+              const reasons = pf.warnings.length > 0 ? pf.warnings : pf.summary ? [pf.summary] : [];
+              return (
+                <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+                  <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium ${p.cls}`}>
+                    ตรวจไฟล์: {p.label}
+                  </span>
+                  {reasons.length > 0 && pf.verdict !== "GREEN" && (
+                    <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-slate-600 dark:text-slate-300">
+                      {reasons.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
