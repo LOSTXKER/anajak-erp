@@ -6,13 +6,7 @@ import { runFilePreflight } from "@/server/services/preflight";
 // run = ตรวจไฟล์ (เรียกอัตโนมัติตอนอัป) · getByUrls = อ่านผลมาโชว์บนการ์ดไฟล์
 export const preflightRouter = router({
   run: protectedProcedure
-    .input(
-      z.object({
-        fileUrl: z.string(),
-        printWidthCm: z.number().positive().optional(),
-        printHeightCm: z.number().positive().optional(),
-      })
-    )
+    .input(z.object({ fileUrl: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return runFilePreflight(ctx.prisma, input);
     }),

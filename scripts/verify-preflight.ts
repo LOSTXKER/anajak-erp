@@ -40,7 +40,7 @@ async function main() {
     const err = await runFilePreflight(prisma, { fileUrl: missingUrl });
     check("2.1 raster ไฟล์หาย → verdict ERROR", err.verdict === "ERROR");
 
-    // ── 3. pipeline เต็ม (อัป PNG จริง → โหลด → แกะ header → Gemini → เก็บผล) ──
+    // ── 3. pipeline เต็ม (อัป PNG จริง → โหลด → แกะ header → เช็คความละเอียด → เก็บผล) ──
     const buf = Buffer.from(PNG_1x1, "base64");
     const up = await admin.storage.from("designs").upload(objectPath, buf, {
       contentType: "image/png", upsert: false,
@@ -48,10 +48,10 @@ async function main() {
     if (up.error) throw new Error(`อัปไฟล์ทดสอบไม่สำเร็จ: ${up.error.message}`);
 
     const res = await runFilePreflight(prisma, { fileUrl: realUrl });
-    check("3.1 verdict เป็นค่าที่ถูกต้อง (GREEN/YELLOW/RED)", ["GREEN", "YELLOW", "RED"].includes(res.verdict), res.verdict);
+    check("3.1 1x1 เล็กกว่าเกณฑ์ → YELLOW (ความละเอียดต่ำ)", res.verdict === "YELLOW");
     check("3.2 แกะ header ได้ (format PNG · width 1 · hasAlpha true)", res.format === "PNG" && res.width === 1 && res.hasAlpha === true);
-    check("3.3 AI รันจริง (model = gemini)", !!res.model && res.model.includes("gemini"), res.model ?? "null");
-    check("3.4 มี summary จาก AI", typeof res.summary === "string" && res.summary.length > 0);
+    check("3.3 โค้ดล้วน ไม่เรียก AI (model = null)", res.model === null);
+    check("3.4 มีคำเตือนความละเอียด + summary", Array.isArray(res.warnings) && res.warnings.length > 0 && typeof res.summary === "string" && res.summary.length > 0);
 
     // เก็บลง DB จริง
     const row = await prisma.filePreflight.findUnique({ where: { fileUrl: realUrl } });

@@ -80,16 +80,41 @@ function parseJpeg(b: Uint8Array): ImageMeta {
   return { format: "JPEG", width: null, height: null, hasAlpha: false };
 }
 
+function parseWebp(b: Uint8Array): ImageMeta {
+  // b[12..15] = fourcc ของ chunk แรก: "VP8 " (lossy) / "VP8L" (lossless) / "VP8X" (extended)
+  const fourcc = String.fromCharCode(b[12], b[13], b[14], b[15]);
+  if (fourcc === "VP8 " && b.length >= 30) {
+    // lossy: frame tag(3)@20 + start code(3)@23 → width@26 height@28 (14-bit LE)
+    const w = (b[26] | (b[27] << 8)) & 0x3fff;
+    const h = (b[28] | (b[29] << 8)) & 0x3fff;
+    return { format: "WEBP", width: safeDim(w), height: safeDim(h), hasAlpha: null };
+  }
+  if (fourcc === "VP8L" && b.length >= 25) {
+    // lossless: signature 0x2f@20 → 4 ไบต์ bits @21 (14-bit width-1, 14-bit height-1)
+    const b0 = b[21], b1 = b[22], b2 = b[23], b3 = b[24];
+    const w = 1 + (((b1 & 0x3f) << 8) | b0);
+    const h = 1 + (((b3 & 0x0f) << 10) | (b2 << 2) | (b1 >> 6));
+    return { format: "WEBP", width: safeDim(w), height: safeDim(h), hasAlpha: null };
+  }
+  if (fourcc === "VP8X" && b.length >= 30) {
+    // extended: canvas width-1 (3 ไบต์ LE)@24, height-1@27
+    const w = 1 + (b[24] | (b[25] << 8) | (b[26] << 16));
+    const h = 1 + (b[27] | (b[28] << 8) | (b[29] << 16));
+    return { format: "WEBP", width: safeDim(w), height: safeDim(h), hasAlpha: null };
+  }
+  return { format: "WEBP", width: null, height: null, hasAlpha: null };
+}
+
 export function parseImageMeta(buf: ArrayBuffer | Uint8Array): ImageMeta {
   const b = asBytes(buf);
   if (b.length >= 26 && isPng(b)) return parsePng(b);
   if (b.length >= 4 && b[0] === 0xff && b[1] === 0xd8) return parseJpeg(b);
   if (
-    b.length >= 12 &&
+    b.length >= 16 &&
     b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && // RIFF
     b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50 // WEBP
   ) {
-    return { format: "WEBP", width: null, height: null, hasAlpha: null };
+    return parseWebp(b);
   }
   return { format: "UNKNOWN", width: null, height: null, hasAlpha: null };
 }

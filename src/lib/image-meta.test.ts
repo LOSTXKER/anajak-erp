@@ -57,6 +57,18 @@ describe("parseImageMeta", () => {
     expect(m.hasAlpha).toBe(true); // ยังอ่าน colorType ได้
   });
 
+  it("WebP (VP8X) → อ่านขนาด canvas ได้", () => {
+    // RIFF....WEBP VP8X ... canvas width-1@24, height-1@27 (24-bit LE)
+    const b = new Uint8Array(30);
+    b.set([0x52, 0x49, 0x46, 0x46], 0); // RIFF
+    b.set([0x57, 0x45, 0x42, 0x50], 8); // WEBP
+    b.set([0x56, 0x50, 0x38, 0x58], 12); // VP8X
+    const w = 1500 - 1, h = 1000 - 1;
+    b[24] = w & 0xff; b[25] = (w >> 8) & 0xff; b[26] = (w >> 16) & 0xff;
+    b[27] = h & 0xff; b[28] = (h >> 8) & 0xff; b[29] = (h >> 16) & 0xff;
+    expect(parseImageMeta(b)).toMatchObject({ format: "WEBP", width: 1500, height: 1000 });
+  });
+
   it("bytes มั่ว → UNKNOWN", () => {
     expect(parseImageMeta(new Uint8Array([1, 2, 3, 4, 5]))).toMatchObject({ format: "UNKNOWN" });
   });

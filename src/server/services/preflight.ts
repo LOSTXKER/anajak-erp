@@ -1,33 +1,16 @@
-// Preflight orchestrator (FLOW-REDESIGN ก้อน 4 — preflight DTF) — server only
+// Preflight orchestrator (FLOW-REDESIGN ก้อน 4) — server only · **โค้ดล้วน ไม่มี AI**
 //
-// รับ fileUrl (proxy) → โหลดไฟล์ (service role) → เช็ค 2 ชั้น → เก็บผลลง FilePreflight (1 แถว/ไฟล์)
-// - ชั้นโค้ด: ขนาด/พื้นโปร่ง (PNG/JPEG) + พิกเซลเทียบขนาดลาย (ถ้ารู้ขนาด)
-// - ชั้น AI: Gemini ดูเชิงสายตา (เบลอ/พื้นทึบ/ตัวอักษรเล็ก)
-// - .ai/.psd → SKIPPED (อ่านอัตโนมัติไม่ได้) · ทุก error ไม่ throw — เก็บ verdict ERROR แทน
+// รับ fileUrl (proxy) → โหลดไฟล์ (service role) → แกะ header อ่านขนาด → เช็ค "ความละเอียดเล็กไป"
+// → เก็บผลลง FilePreflight (1 แถว/ไฟล์) · เบสเคาะ 2026-06-14: ตัด AI ออก (เช็คผิดบ่อย/ตัดสินดีไซน์)
+// PDF/.ai/.psd → SKIPPED (อ่านขนาดไม่ได้) · ทุก error ไม่ throw — เก็บ verdict ERROR แทน
 
 import { createAdminClient } from "@/lib/supabase-admin";
 import { ALLOWED_FILE_BUCKETS, parseProxyFileUrl, safeDecode } from "@/lib/file-urls";
-import { parseImageMeta, type ImageMeta } from "@/lib/image-meta";
-import {
-  classifyFile,
-  evaluateCodeChecks,
-  codeOnlyVerdict,
-  worstVerdict,
-  type Verdict,
-} from "@/lib/preflight-rules";
-import { geminiPreflightImage, GEMINI_MODEL, type GeminiPreflightResult } from "./gemini";
+import { parseImageMeta } from "@/lib/image-meta";
+import { classifyFile, evaluateCodeChecks, codeOnlyVerdict, type Verdict } from "@/lib/preflight-rules";
 import type { ExtendedPrismaClient } from "@/lib/prisma";
 
-const MAX_AI_BYTES = 7 * 1024 * 1024; // ใหญ่กว่านี้ base64 เกิน request limit — ข้าม AI
 const MAX_FILE_BYTES = 30 * 1024 * 1024; // เพดานอัปจริง 25MB — เกินนี้ผิดปกติ ข้ามการตรวจ
-
-const UNKNOWN_META: ImageMeta = { format: "UNKNOWN", width: null, height: null, hasAlpha: null };
-
-interface PreflightInput {
-  fileUrl: string;
-  printWidthCm?: number | null;
-  printHeightCm?: number | null;
-}
 
 interface SaveData {
   verdict: Verdict;
@@ -40,9 +23,9 @@ interface SaveData {
   model: string | null;
 }
 
-export async function runFilePreflight(prisma: ExtendedPrismaClient, input: PreflightInput) {
+export async function runFilePreflight(prisma: ExtendedPrismaClient, input: { fileUrl: string }) {
   const { fileUrl } = input;
-  const { kind, mimeType, ext } = classifyFile(fileUrl);
+  const { kind, ext } = classifyFile(fileUrl);
 
   const save = async (data: SaveData) => {
     try {
@@ -58,13 +41,13 @@ export async function runFilePreflight(prisma: ExtendedPrismaClient, input: Pref
     }
   };
 
-  // .ai/.psd/ฯลฯ — ตรวจอัตโนมัติไม่ได้
+  // PDF/.ai/.psd/ฯลฯ — อ่านขนาดอัตโนมัติไม่ได้
   if (kind === "SKIP") {
     return save({
       verdict: "SKIPPED",
       format: ext ? ext.toUpperCase() : null,
       width: null, height: null, hasAlpha: null,
-      summary: `ไฟล์ .${ext || "?"} ตรวจอัตโนมัติไม่ได้ — ช่างตรวจเอง`,
+      summary: `ไฟล์ .${ext || "?"} ตรวจขนาดอัตโนมัติไม่ได้`,
       warnings: [], model: null,
     });
   }
@@ -110,44 +93,18 @@ export async function runFilePreflight(prisma: ExtendedPrismaClient, input: Pref
     });
   }
 
-  // ชั้นโค้ด (raster เท่านั้นที่แกะ header ได้)
-  const meta = kind === "RASTER" ? parseImageMeta(bytes) : UNKNOWN_META;
-  const code = evaluateCodeChecks({
-    meta,
-    printWidthCm: input.printWidthCm,
-    printHeightCm: input.printHeightCm,
-  });
-
-  // ชั้น AI (Gemini)
-  let ai: GeminiPreflightResult | null = null;
-  let aiNote: string | null = null;
-  if (mimeType && bytes.length <= MAX_AI_BYTES) {
-    try {
-      const base64 = Buffer.from(bytes).toString("base64");
-      ai = await geminiPreflightImage(base64, mimeType);
-    } catch {
-      aiNote = "AI ตรวจไม่สำเร็จรอบนี้";
-    }
-  } else if (mimeType) {
-    aiNote = "ไฟล์ใหญ่เกินส่งให้ AI — ตรวจด้วยระบบพื้นฐานเท่านั้น";
-  }
-
-  // รวมผล
-  const warnings = Array.from(new Set([...code.warnings, ...(ai?.warnings ?? [])]));
-  if (aiNote) warnings.push(aiNote);
-
-  let verdict: Verdict;
-  if (ai) verdict = worstVerdict(codeOnlyVerdict(code.warnings), ai.verdict);
-  else if (kind === "RASTER") verdict = codeOnlyVerdict(code.warnings); // ยังมีเช็คโค้ด
-  else verdict = "ERROR"; // PDF + AI ล่ม = ไม่มีอะไรตรวจได้
+  // แกะ header อ่านขนาด → เช็คความละเอียด
+  const meta = parseImageMeta(bytes);
+  const { warnings } = evaluateCodeChecks(meta);
+  // อ่านขนาดไม่ได้ (รูปเพี้ยน/format ที่ไม่รองรับ) = ตรวจไม่ได้
+  const verdict: Verdict = meta.width && meta.height ? codeOnlyVerdict(warnings) : "SKIPPED";
 
   const summary =
-    ai?.summary ||
-    (verdict === "GREEN"
-      ? "ผ่านการตรวจเบื้องต้น"
-      : verdict === "ERROR"
-        ? "ตรวจอัตโนมัติไม่สำเร็จ"
-        : "มีข้อควรระวัง — ดูคำเตือน");
+    verdict === "SKIPPED"
+      ? "อ่านขนาดภาพไม่ได้ — ช่างตรวจเอง"
+      : warnings.length > 0
+        ? "ความละเอียดค่อนข้างต่ำ — ดูคำเตือน"
+        : `ความละเอียดผ่าน (${meta.width}×${meta.height}px)`;
 
   return save({
     verdict,
@@ -157,6 +114,6 @@ export async function runFilePreflight(prisma: ExtendedPrismaClient, input: Pref
     hasAlpha: meta.hasAlpha,
     summary,
     warnings,
-    model: ai ? GEMINI_MODEL : null,
+    model: null,
   });
 }
