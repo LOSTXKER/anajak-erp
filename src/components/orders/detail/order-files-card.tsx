@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   Check,
+  ChevronDown,
   Copy,
   FolderOpen,
   ImageIcon,
@@ -27,7 +28,6 @@ import {
   Lock,
   Palette,
   Printer,
-  Sparkles,
   Trash2,
   Upload,
   User,
@@ -69,39 +69,53 @@ const DESIGN_STATUS_LABELS: Record<string, string> = {
 
 function FileThumb({
   att,
-  verdict,
+  preflight,
 }: {
   att: { fileUrl: string; fileName: string; uploadedById?: string | null };
-  verdict?: string;
+  preflight?: { verdict: string; summary: string; warnings: string[] };
 }) {
   // uploadedById = null → ลูกค้าอัปเองผ่านลิงก์ (ก้อน 4 ชิ้น 3)
   const byCustomer = att.uploadedById === null;
-  return (
-    <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="group block w-28">
-      <div className="relative">
-        {isImageUrl(att.fileUrl) ? (
-          <img
-            src={att.fileUrl}
-            alt={att.fileName}
-            className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700"
-          />
-        ) : (
-          <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
-            <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
-            <span className="mt-1 text-[10px] text-slate-400">
-              {att.fileName.split(".").pop()?.toUpperCase()}
-            </span>
-          </div>
-        )}
-        {byCustomer && (
-          <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded bg-blue-600/90 px-1 py-0.5 text-[9px] font-medium text-white">
-            <User className="h-2.5 w-2.5" />
-            ลูกค้า
-          </span>
-        )}
-      </div>
+  const [showReason, setShowReason] = React.useState(false);
+  const verdict = preflight?.verdict;
+  const flagged = verdict === "YELLOW" || verdict === "RED";
+  const reasons = preflight
+    ? preflight.warnings.length > 0
+      ? preflight.warnings
+      : preflight.summary
+        ? [preflight.summary]
+        : []
+    : [];
 
-      {/* ป้ายสถานะตรวจไฟล์ (ก้อน 4) — โชว์ทุกไฟล์ลูกค้า รวมที่ผ่าน */}
+  return (
+    <div className="relative w-28">
+      <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" className="group block">
+        <div className="relative">
+          {isImageUrl(att.fileUrl) ? (
+            <img
+              src={att.fileUrl}
+              alt={att.fileName}
+              className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700"
+            />
+          ) : (
+            <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+              <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
+              <span className="mt-1 text-[10px] text-slate-400">
+                {att.fileName.split(".").pop()?.toUpperCase()}
+              </span>
+            </div>
+          )}
+          {byCustomer && (
+            <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded bg-blue-600/90 px-1 py-0.5 text-[9px] font-medium text-white">
+              <User className="h-2.5 w-2.5" />
+              ลูกค้า
+            </span>
+          )}
+        </div>
+        <p className="mt-0.5 max-w-[7rem] truncate text-[10px] text-slate-400">{att.fileName}</p>
+      </a>
+
+      {/* ป้ายสถานะตรวจไฟล์ (ก้อน 4) — โชว์ทุกไฟล์ลูกค้า · เหลือง/แดงกดดูเหตุผลได้ */}
       {byCustomer &&
         (() => {
           if (!verdict) {
@@ -113,17 +127,37 @@ function FileThumb({
             );
           }
           const p = PREFLIGHT_PILL[verdict] ?? PREFLIGHT_PILL.ERROR;
-          const Icon = verdict === "GREEN" ? Check : verdict === "YELLOW" || verdict === "RED" ? AlertTriangle : null;
-          return (
-            <span className={`mt-1 flex items-center justify-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium ${p.cls}`}>
+          const Icon = verdict === "GREEN" ? Check : flagged ? AlertTriangle : null;
+          const cls = `mt-1 flex w-full items-center justify-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium ${p.cls}`;
+          const inner = (
+            <>
               {Icon && <Icon className="h-2.5 w-2.5" />}
               {p.label}
-            </span>
+              {flagged && (
+                <ChevronDown className={`h-2.5 w-2.5 transition-transform ${showReason ? "rotate-180" : ""}`} />
+              )}
+            </>
+          );
+          return flagged ? (
+            <button type="button" onClick={() => setShowReason((v) => !v)} className={`${cls} hover:brightness-95`}>
+              {inner}
+            </button>
+          ) : (
+            <span className={cls}>{inner}</span>
           );
         })()}
 
-      <p className="mt-0.5 max-w-[7rem] truncate text-[10px] text-slate-400">{att.fileName}</p>
-    </a>
+      {/* เหตุผล — เด้งเมื่อกดป้าย (ไม่โชว์พรืดในลิสต์) */}
+      {byCustomer && flagged && showReason && reasons.length > 0 && (
+        <div className="absolute left-0 top-full z-20 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+          <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-slate-600 dark:text-slate-300">
+            {reasons.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -194,10 +228,6 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preflight.data, attachments]);
-  // ไฟล์ลูกค้าที่ระบบเตือน (เหลือง/แดง) — รวมเป็นรายการให้ทีมเช็กก่อนเริ่มงาน
-  const flaggedFiles = customerFiles
-    .map((a) => ({ att: a, pf: preflightByUrl.get(a.fileUrl) }))
-    .filter((x) => x.pf && (x.pf.verdict === "YELLOW" || x.pf.verdict === "RED"));
 
   // ชั้น 1: รูปอ้างอิงจัดกลุ่มตามตำแหน่งลายเหมือนเดิม · ไฟล์ category อื่นรวมไว้ "ทั่วไป"
   const generalRaw = rawFiles.filter((a) => !a.printPosition);
@@ -391,26 +421,6 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
             </div>
           )}
 
-          {/* ผลตรวจไฟล์ลูกค้า (ก้อน 4) — เหตุผลของไฟล์ที่ควรเช็ก บรรทัดเดียวต่อไฟล์ (กระชับ) */}
-          {flaggedFiles.length > 0 && (
-            <div className="mb-3 space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
-                <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-                AI ตรวจไฟล์ลูกค้า — {flaggedFiles.length} ไฟล์ควรเช็ก
-              </p>
-              {flaggedFiles.map(({ att, pf }) => (
-                <div key={att.id} className="flex items-start gap-1.5 text-xs">
-                  <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${pf!.verdict === "RED" ? "bg-red-500" : "bg-amber-500"}`} />
-                  <p className="text-slate-600 dark:text-slate-300">
-                    <span className="font-medium text-slate-800 dark:text-slate-200">{att.fileName}</span>
-                    {" — "}
-                    {pf!.warnings.length > 0 ? pf!.warnings.join(" · ") : pf!.summary}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-
           {rawFiles.length === 0 && uploadingLayer !== "RAW" && (
             <p className="text-xs text-slate-400">
               ยังไม่มีไฟล์จากลูกค้า — กด &quot;แนบไฟล์&quot; เพื่อแนบของจากแชทแทนลูกค้า
@@ -426,7 +436,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                 {generalRaw.map((att) => (
                   <div key={att.id} className="relative">
                     {renderDeleteButton(att)}
-                    <FileThumb att={att} verdict={preflightByUrl.get(att.fileUrl)?.verdict} />
+                    <FileThumb att={att} preflight={preflightByUrl.get(att.fileUrl)} />
                   </div>
                 ))}
               </div>
@@ -444,7 +454,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                 {imgs.map((att) => (
                   <div key={att.id} className="relative">
                     {renderDeleteButton(att)}
-                    <FileThumb att={att} verdict={preflightByUrl.get(att.fileUrl)?.verdict} />
+                    <FileThumb att={att} preflight={preflightByUrl.get(att.fileUrl)} />
                   </div>
                 ))}
               </div>
