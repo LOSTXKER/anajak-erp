@@ -9,40 +9,40 @@ export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 
 export interface GeminiPreflightResult {
   verdict: "GREEN" | "YELLOW" | "RED";
-  hasVisibleBackground: boolean; // เห็นพื้นหลังทึบที่ควรเป็นพื้นโปร่งไหม
   lowQuality: boolean; // เบลอ/แตก/ความละเอียดต่ำ
   summary: string; // สรุปสั้นภาษาไทย
-  warnings: string[]; // คำเตือนภาษาไทย (เทคนิคล้วน)
+  warnings: string[]; // คำเตือนภาษาไทย (ความคม/ความละเอียดเท่านั้น)
 }
 
 const RESPONSE_SCHEMA = {
   type: "object",
   properties: {
     verdict: { type: "string", enum: ["GREEN", "YELLOW", "RED"] },
-    hasVisibleBackground: { type: "boolean" },
     lowQuality: { type: "boolean" },
     summary: { type: "string" },
     warnings: { type: "array", items: { type: "string" } },
   },
-  required: ["verdict", "hasVisibleBackground", "lowQuality", "summary", "warnings"],
+  required: ["verdict", "lowQuality", "summary", "warnings"],
 };
 
-// เบสเคาะ 2026-06-14: ตรวจ "เทคนิคพื้นฐาน" เท่านั้น — ห้ามวิจารณ์เนื้อหา/ลวดลาย/สไตล์/
-// ตัวหนังสือ/ลายน้ำ/ความเหมาะสม (ลูกค้าอาจตั้งใจออกแบบแบบนั้น) · ดูแค่ความคม + พื้นโปร่ง
-const PROMPT = `คุณคือตัวช่วยตรวจ "คุณภาพทางเทคนิค" ของไฟล์ภาพสำหรับพิมพ์ DTF/DTG เท่านั้น
+// เบสเคาะ 2026-06-14: AI ดูแค่ "ความคม/ความละเอียด" เรื่องเดียว
+// - ห้ามวิจารณ์เนื้อหา/ลวดลาย/ลายน้ำ/ตัวหนังสือ/สี (ลูกค้าอาจตั้งใจ)
+// - **ห้ามตัดสินพื้นโปร่ง/พื้นหลัง** — AI แยกพื้นโปร่งกับสีขาวไม่ออก (เห็นแค่พิกเซล render เดาผิด
+//   เช่น รูปโปร่งจริงแต่ AI บอกพื้นขาว) → เรื่องพื้นโปร่งให้โค้ดอ่าน alpha จัดการใน preflight-rules.ts
+const PROMPT = `คุณคือตัวช่วยตรวจ "ความคมชัด/ความละเอียด" ของไฟล์ภาพสำหรับพิมพ์ลงเสื้อ DTF/DTG เท่านั้น
 
-**ห้ามเด็ดขาด: ห้ามวิจารณ์เนื้อหา/ลวดลาย/สไตล์/ตัวหนังสือ/ลายน้ำ/ตัวการ์ตูน/ความสวยงาม/
-ความเหมาะสมของภาพ** — ลูกค้าอาจตั้งใจออกแบบแบบนั้นอยู่แล้ว ไม่ใช่หน้าที่เราไปตัดสิน
+ดูแค่เรื่องเดียว: ภาพ "เบลอ / แตก / เป็นเหลี่ยมพิกเซล / ความละเอียดต่ำเกินไป" สำหรับนำไปพิมพ์ไหม
 
-ดูแค่ 2 เรื่องพื้นฐานทางเทคนิค:
-1. lowQuality: true ถ้าภาพเบลอ/แตก/เป็นเหลี่ยมพิกเซล/ความละเอียดต่ำเกินไปสำหรับพิมพ์
-2. hasVisibleBackground: true ถ้ามีพื้นหลังเป็นสีทึบ (ขาว/ดำ/สี) เต็มกรอบภาพ ที่งาน DTF/DTG ควรเป็นพื้นโปร่ง
+**ห้ามเด็ดขาด — ห้ามพูดถึง/ตัดสินเรื่องเหล่านี้:**
+- พื้นหลัง / พื้นโปร่ง / ต้องตัดพื้นออก (ระบบอื่นเช็คให้แล้ว · ลูกค้าอาจตั้งใจมีพื้น)
+- เนื้อหา / ลวดลาย / สไตล์ / สี / ตัวการ์ตูน / ตัวหนังสือ / ลายน้ำ / ความสวยงาม / ความเหมาะสม
 
 ตอบ JSON:
-- verdict: GREEN = คมชัดและพื้นโอเค, YELLOW = มีจุดเทคนิคควรระวัง, RED = เทคนิคไม่พร้อมพิมพ์ชัดเจน
-- summary: สรุปสั้น 1 ประโยคภาษาไทย (เรื่องเทคนิคเท่านั้น)
-- warnings: คำเตือน "ทางเทคนิค" สั้นๆ ภาษาไทย เฉพาะ 2 เรื่องข้างบน (ไม่มี = [] · ห้ามพูดถึงเนื้อหาภาพ)
-ถ้าภาพคมชัดและพื้นไม่มีปัญหา = GREEN warnings ว่าง · อย่าเดาเกินภาพ`;
+- lowQuality: true ถ้าภาพเบลอ/แตก/ความละเอียดต่ำเท่านั้น
+- verdict: GREEN = คมชัดพอพิมพ์ได้, YELLOW = ความคมพอใช้แต่ควรระวัง, RED = เบลอ/ละเอียดต่ำชัดเจนไม่ควรพิมพ์
+- summary: สรุปสั้น 1 ประโยคภาษาไทย (เรื่องความคมชัดเท่านั้น)
+- warnings: คำเตือนสั้นๆ ภาษาไทย "เฉพาะเรื่องความคม/ความละเอียด" (ไม่มี = [])
+ถ้าภาพคมชัดพอ = GREEN warnings ว่าง · อย่าเดาเกินภาพ`;
 
 /** ส่งรูป (base64) ให้ Gemini ประเมินความพร้อมพิมพ์ — throw ถ้าเรียกไม่สำเร็จ (caller จัดการ) */
 export async function geminiPreflightImage(
@@ -91,7 +91,6 @@ export async function geminiPreflightImage(
   // กันค่าเพี้ยน — บังคับ shape ขั้นต่ำ
   return {
     verdict: parsed.verdict === "RED" || parsed.verdict === "YELLOW" ? parsed.verdict : "GREEN",
-    hasVisibleBackground: !!parsed.hasVisibleBackground,
     lowQuality: !!parsed.lowQuality,
     summary: String(parsed.summary ?? ""),
     warnings: Array.isArray(parsed.warnings) ? parsed.warnings.map(String) : [],
