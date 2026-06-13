@@ -152,11 +152,36 @@ export default function OrderDetailPage({
         !statusLink.data?.expiresAt ||
         new Date(statusLink.data.expiresAt) < new Date();
       if (!tok || expired) {
+        // สร้าง token (await network) — เมนู ⋯ ปิด + โฟกัสหลุด → clipboard API อาจโดนบล็อก
         tok = (await generateStatusLink.mutateAsync({ orderId: id })).token;
         statusLink.refetch();
       }
-      await navigator.clipboard.writeText(`${window.location.origin}/status/${tok}`);
-      toast.success("คัดลอกลิงก์สถานะลูกค้าแล้ว");
+      const url = `${window.location.origin}/status/${tok}`;
+      // วิธีสำรอง (textarea + execCommand) — โฟกัส element เอง เลยไม่ติด "Document is not focused"
+      const fallbackCopy = () => {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = url;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          const ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          return ok;
+        } catch {
+          return false;
+        }
+      };
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      } catch {
+        copied = fallbackCopy();
+      }
+      toast.success(copied ? "คัดลอกลิงก์สถานะลูกค้าแล้ว" : `ลิงก์สถานะ: ${url}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "สร้างลิงก์ไม่สำเร็จ");
     }
