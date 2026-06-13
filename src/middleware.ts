@@ -60,8 +60,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   // กันทุก route ยกเว้น: static assets · /api/* (tRPC เช็ค auth ต่อ procedure เอง —
-  // มี public token procedures) · /approve/* (ลูกค้าเปิดผ่านลิงก์ token ไม่มี account)
+  // มี public token procedures) · /approve/* + /upload/* (ลูกค้าเปิดผ่านลิงก์ token ไม่มี account)
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/|approve/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/|approve/|upload/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

@@ -373,6 +373,11 @@ model Order {
   blindShip           Boolean @default(false) @map("blind_ship")
   blindShipSenderName String? @map("blind_ship_sender_name") // ชื่อผู้ส่งบนใบ (แบรนด์ลูกค้า)
 
+  // ลิงก์อัปโหลดไฟล์ลูกค้า (FLOW-REDESIGN ก้อน 4 ชิ้น 3) — ลูกค้าเปิดผ่าน token ไม่ต้อง login
+  // ส่งใน LINE → อัปไฟล์ดิบเข้าออเดอร์ตรง (signed upload URL · เลียน pattern ลิงก์อนุมัติแบบ)
+  uploadToken          String?   @unique @map("upload_token")
+  uploadTokenExpiresAt DateTime? @map("upload_token_expires_at")
+
   // Meta
   notes            String?
   cancelledAt      DateTime?      @map("cancelled_at")
@@ -838,12 +843,12 @@ model Attachment {
   fileSize     Int      @map("file_size")
   category     String?  // ค่าที่รู้จัก + ชั้นไฟล์ (3 ชั้น) ดู src/lib/file-layers.ts — REFERENCE_IMAGE, PRINT_FILE (ชั้น 3 ภายในเท่านั้น), PO_DOCUMENT, PAYMENT_SLIP, PHOTO, OTHER
   printPosition String? @map("print_position") // FRONT, BACK, SLEEVE_L, SLEEVE_R, COLLAR, POCKET, OTHER (for REFERENCE_IMAGE)
-  uploadedById String   @map("uploaded_by_id")
+  uploadedById String?  @map("uploaded_by_id") // null = ลูกค้าอัปผ่านลิงก์ token (ไม่มี user — ก้อน 4 ชิ้น 3)
   notes        String?
   createdAt    DateTime @default(now()) @map("created_at")
 
   // Relations
-  uploadedBy User @relation("UploadedBy", fields: [uploadedById], references: [id])
+  uploadedBy User? @relation("UploadedBy", fields: [uploadedById], references: [id])
 
   @@index([entityType, entityId])
   @@map("attachments")

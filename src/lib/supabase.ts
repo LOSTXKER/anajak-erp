@@ -42,3 +42,29 @@ export async function uploadFile(
 
   return proxyFileUrl(bucket, path);
 }
+
+/**
+ * อัปไฟล์ผ่าน "signed upload URL" — สำหรับลูกค้าที่ไม่มี account/session
+ * (ก้อน 4 ชิ้น 3 — ลิงก์อัปโหลดลูกค้า). server ออก token + path มาให้ (service role)
+ * → ใช้ anon client อัปได้โดยไม่ต้อง login (token เป็นใบเบิกทางต่อไฟล์เดียว)
+ * คืน proxy URL เหมือน uploadFile — แต่ฝั่งลูกค้าไม่ได้เอาไปเก็บ DB เอง (server ทำใน confirm)
+ */
+export async function uploadToCustomerSignedUrl(
+  bucket: string,
+  path: string,
+  token: string,
+  file: File
+): Promise<string> {
+  const supabase = createClient();
+  const { error } = await supabase.storage
+    .from(bucket)
+    .uploadToSignedUrl(path, token, file, {
+      contentType: file.type || undefined,
+    });
+
+  if (error) {
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+
+  return proxyFileUrl(bucket, path);
+}

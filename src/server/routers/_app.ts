@@ -26,6 +26,7 @@ import { filmStockRouter } from "./film-stock";
 import { whtRouter } from "./wht";
 import { qcRouter } from "./qc";
 import { artworkRouter } from "./artwork";
+import { customerUploadRouter } from "./customer-upload";
 
 export const appRouter = router({
   user: userRouter,
@@ -55,6 +56,7 @@ export const appRouter = router({
   wht: whtRouter,
   qc: qcRouter,
   artwork: artworkRouter,
+  customerUpload: customerUploadRouter,
 });
 
 export type AppRouter = typeof appRouter;
