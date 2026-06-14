@@ -3,6 +3,23 @@
 > session ใหม่: อ่านไฟล์นี้ + `git log --oneline -10` ก่อนเริ่ม · จบ session: อัปเดตไฟล์นี้ก่อนปิด
 
 ## ตอนนี้
+- **🎨 UI unify ทั้งระบบ — "ใช้ของกลางชุดเดียวทุกหน้า" (เบสสั่ง · เคาะขอบเขตลึกสุด 2026-06-14) · จบ 2 ก้อน + verify เขียว · ⏳ เหลือเบส retest UI:**
+  - **ที่มา**: เบสสั่ง "Refactor UXUI ให้ใช้อันเดียวกันทุกหน้าทุกส่วน" → trace กลับ P1.0 + ก้อน 6 · ใช้ workflow audit ทั้งระบบก่อน (12 auditor + synthesis · 98 findings · overall 74/100 — แกน design system แข็งอยู่แล้ว ปัญหาคือ "เก็บกวาดไม่ทั่ว")
+  - **เบสเคาะ 2 ข้อ (AskUserQuestion 2026-06-14)**: ① ขอบเขต = **ลึกสุด — สร้าง primitive ที่ขาดด้วย** ② ปุ่มอนุมัติ/ยืนยัน เขียว → **น้ำเงิน default ทั้งหมด** (ทิ้งเขียว · ไม่เพิ่ม success variant)
+  - **ก้อน 1 (commit `fc0cbdc`)**: primitive กลางใหม่ — `ui/segmented.tsx` (**SegmentedControl** รวม pattern tab/type-toggle/filter-pill ที่เขียน active-state มือกระจาย) + `ui/alert.tsx` (**Alert** info/success/warning/error แทนกล่อง border+bg-50 เขียนมือ) · additive ล้วน
+  - **ก้อน 2 (commit `a227c07` · 36 ไฟล์)**: กวาดด้วย workflow 13 editor ขนาน (แบ่งโมดูล ไฟล์ไม่ทับ · กฎเหล็ก surgical):
+    - การ์ดขอบแข็ง border+bg → `.card-surface rounded-2xl` (production films/print-runs · billing wht · settings forms · ฯลฯ)
+    - tab/type-toggle/filter → `<SegmentedControl>` (products itemType · customers ประเภทลูกค้า · settings.services · billing.wht · production tabs)
+    - toggle เขียนมือ → `<Switch>` (settings.packaging · products[id] variant) · textarea → `<Textarea>` (quote/approve portal)
+    - กล่อง error/status → `<Alert>` (quotations [id]+new) · header settings เขียนมือ → `<SettingsPageHeader>` (company/cost-rates/stock — ได้ปุ่ม back มาด้วย ตรงหน้า settings อื่น)
+    - chip/badge เขียนมือ → `<Badge>` (topbar/sidebar/dashboard/orders/my-tasks/notifications/product-picker) · ปุ่ม/icon เขียนมือ → `<Button>` (collapse/mark-read/ลบไฟล์/ลบรูป/ลูกศรเลื่อน/qty)
+    - **ปุ่มอนุมัติ เขียว → น้ำเงิน default** (quotations [id] "ลูกค้าอนุมัติ" · quote portal ปุ่มยืนยัน) · ลบ `bg-blue-600` ที่ override ซ้ำ default
+    - **สีหลุดพาเลต emerald/indigo/violet/purple → brand → เหลือ 0 ทั้งระบบ** (sync-dialog colorMap รุ้ง → น้ำเงิน/เทา · order-delivery/order-price-summary emerald → green)
+    - `Badge` base `<div>` → `<span>` (inline-flex อยู่แล้ว · กัน nesting ผิดใน `<p>`/`<button>` ที่ chip ไปอยู่ — agent จับ buildRisk ได้ · หน้าตาเท่าเดิม)
+  - **decision เคาะเอง (อย่าแก้กลับเงียบ)**: ① **คง semantic green/red/amber ไว้** (success/danger/warning) — ไม่เปลี่ยนเป็น CSS var token (auditor แนะ แต่ token ไม่ resolve ใน build จริง · ของจริงทั้งระบบใช้ Tailwind class) ② **ไม่แตะ interactive จงใจ**: notification row/command-palette item/production step row(role=button)/order-files preview/similar-customer row (พื้นที่กดใหญ่ แปลงเป็น Button พังlayout) ③ **กล่องตรวจรับของสีเหลือง + กล่อง blocked แดง = warning จงใจ คงไว้** ④ popover/dropdown ลอย (notification panel/add-product menu) คง elevation ไม่ทำให้แบน ⑤ settings sidebar nav vertical = ใช้ที่เดียว ไม่สร้าง primitive (กัน over-engineer)
+  - **verify**: tsc **0** · lint **0 error** (warning ที่เหลือ=setState-in-effect/deps ของเดิม ไม่ใช่จาก sweep) · off-palette = **0** ทั้ง repo · spot-check wiring (customers segmented/products switch/quotations approve+Alert) ผ่าน · **next build ยังไม่รัน** (เลี่ยงชน `.next`/EPERM ตอน dev เบสเปิด — pattern เดิม)
+  - **⏳ เหลือเบส**: ① **retest UI หน้าที่เปลี่ยนเด่น** (checklist ด้านล่าง) ② **รัน `npm run build` ตอนปิด dev** ยืนยันอีกชั้น
+  - **retest checklist (หน้าตาเปลี่ยนเด่น)**: /customers (toggle ประเภท→segmented ขาว), /products (แท็บ itemType + /[id] toggle variant→Switch), /settings/services (แท็บ), /settings/{company,cost-rates,stock} (back+header), /settings/{packaging,patterns,services,users} (กล่องฟอร์มขาว ไม่ฟ้า/เหลือง), /settings/packaging (Switch), /billing/wht (filter), /production (แท็บ tabs/board), /quotations/[id] (ปุ่มอนุมัติน้ำเงิน+Alert), /quote/&lt;token&gt; (ปุ่มยืนยันน้ำเงิน), sidebar (ปุ่มย่อ+ป้ายนับเมนู)
 - **🎨 ก้อน 6: รื้อ UI โฉมใหม่ (ทิศ A "หน้างานสะอาด") — เริ่มแล้ว · เบส approve เปลือก+แดชบอร์ด (2026-06-14):**
   - **เลือกทิศ (เบสเคาะ 2026-06-14)**: ทำ mockup 3 ทิศ (A สะอาด / B ห้องคุมโรงงาน / C การ์ดสีสถานะ) ให้เบสเลือก → **เบสเลือก A + รื้อ UI ก่อน** (ไม่ใช่ change order ก่อน) · ไฟล์ภาพ `docs/mockups/kon6/dashboard-{A,B,C}.html`
   - **6.0 ฐาน design**: ① ramp เหลืองแบรนด์ #fec91b + **mirror amber** (globals.css) → ทั้งระบบ 81 จุด/34 ไฟล์ เป็นเหลืองแบรนด์ทันทีไม่แตะ markup (เลียน blue/red) ② util **`.card-surface`** (พื้นขาว+เงานุ่ม+ring 1px แทน border แข็ง) ใช้ใน Section/StatCard/PulseCard → การ์ดทั้งระบบลุค A
