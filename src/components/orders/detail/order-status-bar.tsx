@@ -28,7 +28,7 @@ export function OrderStatusBar({
       "bg-blue-500";
 
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="card-surface rounded-2xl px-5 py-4">
       {/* on-path: ไม่มีหัว — progressbar ล้วน (ขั้นปัจจุบันเด่นในแถบบอกสถานะแล้ว เบสชี้ 2026-06-12)
           นอกเส้นทาง/ยกเลิก: โชว์ชื่อสถานะ เพราะแถบด้านล่างไม่ไฮไลต์ขั้นปัจจุบัน */}
       {!onPath && (
