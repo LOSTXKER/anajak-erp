@@ -32,6 +32,7 @@
     "verify:confirm": "tsx --env-file=.env scripts/verify-quotation-confirm.ts",
     "verify:revision": "tsx --env-file=.env scripts/verify-revision-fee.ts",
     "verify:mcp": "tsx --env-file=.env scripts/verify-mcp.ts",
+    "verify:co": "tsx --env-file=.env scripts/verify-change-order.ts",
     "key:agent": "tsx --env-file=.env scripts/create-agent-key.ts"
   },
   "dependencies": {

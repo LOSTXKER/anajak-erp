@@ -1,0 +1,135 @@
+/**
+ * verify ใบแก้ไขออเดอร์ (ก้อน 6 ชิ้น 3) — integration จริงกับ DB
+ * รัน: npm run verify:co   (ต้อง migrate ตาราง change_orders ก่อน)
+ * เน้น: ล็อกที่ DESIGN_APPROVED (updateItems/updateFees ตรงไม่ได้) · gate salesUp ·
+ *   reason บังคับ · applyChangeOrder recompute ยอด + ออกเลข CO + บันทึก ChangeOrder/Revision ·
+ *   PRODUCING ออกใบแก้ไขไม่ได้ · สถานะแก้ได้ (DESIGNING) updateItems ยังทำงาน
+ * ข้อมูลใช้ marker [CO-VERIFY] ลบเกลี้ยงท้ายสคริปต์
+ */
+import { appRouter } from "@/server/routers/_app";
+import { prisma } from "@/lib/prisma";
+
+const MARK = "[CO-VERIFY]";
+let pass = 0;
+const fails: string[] = [];
+function check(name: string, ok: boolean, detail?: string) {
+  if (ok) { pass++; console.log(`PASS: ${name}`); }
+  else { fails.push(name); console.log(`FAIL: ${name}${detail ? ` — ${detail}` : ""}`); }
+}
+async function expectThrow(fn: () => Promise<unknown>): Promise<boolean> {
+  try { await fn(); return false; } catch { return true; }
+}
+
+// item ขั้นต่ำที่ผ่าน schema: เสื้อ 20 ตัว × 100 = 2000
+const ITEM = {
+  products: [
+    { productType: "TSHIRT", description: `${MARK} เสื้อ`, baseUnitPrice: 100, variants: [{ size: "M", quantity: 20 }] },
+  ],
+  prints: [],
+  addons: [],
+};
+const FEE = { feeType: "OTHER", name: `${MARK} ค่าจัดส่ง`, amount: 50 };
+
+async function main() {
+  const owner = await prisma.user.findFirstOrThrow({ where: { role: "OWNER", isActive: true } });
+  const ownerCaller = appRouter.createCaller({ prisma, userId: owner.id, userRole: owner.role });
+  const staffCaller = appRouter.createCaller({ prisma, userId: owner.id, userRole: "PRODUCTION_STAFF" });
+
+  let customer: { id: string } | null = null;
+  let order: { id: string } | null = null;
+  let order2: { id: string } | null = null;
+
+  const getOrder = (id: string) =>
+    prisma.order.findUniqueOrThrow({ where: { id }, include: { fees: true } });
+
+  try {
+    customer = await prisma.customer.create({ data: { name: `${MARK} ลูกค้า`, customerType: "INDIVIDUAL" } });
+    // ออเดอร์อนุมัติแบบแล้ว: subtotal 1000 + 7% = 1070
+    order = await prisma.order.create({
+      data: {
+        orderNumber: `TEST-CO-${Date.now()}`,
+        title: `${MARK} งาน`,
+        customerId: customer.id,
+        createdById: owner.id,
+        orderType: "CUSTOM",
+        internalStatus: "DESIGN_APPROVED",
+        customerStatus: "PREPARING",
+        subtotalItems: 1000,
+        taxRate: 7,
+        discount: 0,
+        totalAmount: 1070,
+      },
+    });
+
+    // ── 1. ล็อกที่อนุมัติแบบ — แก้ตรงไม่ได้ ──
+    check("1.1 updateItems ตรงโดน block (อนุมัติแล้ว)",
+      await expectThrow(() => ownerCaller.order.updateItems({ id: order!.id, items: [ITEM], discount: 0 })));
+    check("1.2 updateFees ตรงโดน block (อนุมัติแล้ว)",
+      await expectThrow(() => ownerCaller.order.updateFees({ id: order!.id, fees: [FEE] })));
+
+    // ── 2. gate + reason ──
+    check("2.1 PRODUCTION_STAFF ออกใบแก้ไขไม่ได้ (salesUp)",
+      await expectThrow(() => staffCaller.order.applyChangeOrder({ id: order!.id, items: [ITEM], fees: [], discount: 0, reason: "x" })));
+    check("2.2 reason ว่าง → ถูกปฏิเสธ (บังคับกรอก)",
+      await expectThrow(() => ownerCaller.order.applyChangeOrder({ id: order!.id, items: [ITEM], fees: [], discount: 0, reason: "   " })));
+
+    // ── 3. applyChangeOrder สำเร็จ — recompute + เลข CO ──
+    const res = await ownerCaller.order.applyChangeOrder({
+      id: order.id, items: [ITEM], fees: [FEE], discount: 0, reason: "ลูกค้าเพิ่มจำนวน",
+    });
+    check("3.1 ได้เลขใบแก้ไข CO-*", typeof res.changeNumber === "string" && res.changeNumber.startsWith("CO-"), res.changeNumber);
+    check("3.2 oldTotal = 1070", Number(res.oldTotal) === 1070, String(res.oldTotal));
+    // (2000 + 50) * 1.07 = 2193.5
+    check("3.3 newTotal = 2193.5", Number(res.newTotal) === 2193.5, String(res.newTotal));
+    const o3 = await getOrder(order.id);
+    check("3.4 order.totalAmount อัปเป็น 2193.5", Number(o3.totalAmount) === 2193.5, String(o3.totalAmount));
+    check("3.5 subtotalItems = 2000", Number(o3.subtotalItems) === 2000, String(o3.subtotalItems));
+    check("3.6 subtotalFees = 50", Number(o3.subtotalFees) === 50, String(o3.subtotalFees));
+
+    // ── 4. บันทึก ChangeOrder + OrderRevision ──
+    const co = await prisma.changeOrder.findFirst({ where: { orderId: order.id } });
+    check("4.1 มีแถว ChangeOrder", !!co && co.changeNumber === res.changeNumber);
+    check("4.2 ChangeOrder เก็บ old→new ถูก", !!co && Number(co.oldTotal) === 1070 && Number(co.newTotal) === 2193.5);
+    const rev = await prisma.orderRevision.findFirst({ where: { orderId: order.id, changeType: "CHANGE_ORDER" } });
+    check("4.3 OrderRevision changeType CHANGE_ORDER", !!rev);
+
+    // ── 5. PRODUCING — เลยขั้น ออกใบแก้ไขไม่ได้ ──
+    await prisma.order.update({ where: { id: order.id }, data: { internalStatus: "PRODUCING" } });
+    check("5.1 PRODUCING applyChangeOrder ถูก block",
+      await expectThrow(() => ownerCaller.order.applyChangeOrder({ id: order!.id, items: [ITEM], fees: [], discount: 0, reason: "y" })));
+    check("5.2 PRODUCING updateItems ก็ยัง block",
+      await expectThrow(() => ownerCaller.order.updateItems({ id: order!.id, items: [ITEM], discount: 0 })));
+
+    // ── 6. สถานะแก้ได้ (DESIGNING) — updateItems ตรงยังทำงาน (ล็อกไม่ over-block) ──
+    order2 = await prisma.order.create({
+      data: {
+        orderNumber: `TEST-CO2-${Date.now()}`,
+        title: `${MARK} งาน2`,
+        customerId: customer.id,
+        createdById: owner.id,
+        orderType: "CUSTOM",
+        internalStatus: "DESIGNING",
+        customerStatus: "PREPARING",
+        subtotalItems: 0,
+        taxRate: 7,
+        discount: 0,
+        totalAmount: 0,
+      },
+    });
+    await ownerCaller.order.updateItems({ id: order2.id, items: [ITEM], discount: 0 });
+    const o6 = await getOrder(order2.id);
+    check("6.1 DESIGNING updateItems ตรงสำเร็จ (2000*1.07=2140)", Number(o6.totalAmount) === 2140, String(o6.totalAmount));
+    const co6 = await prisma.changeOrder.count({ where: { orderId: order2.id } });
+    check("6.2 แก้ตรง (ไม่ล็อก) ไม่ออกใบแก้ไข", co6 === 0);
+  } finally {
+    // cleanup — order delete cascade ลบ items/fees/revisions/changeOrders
+    if (order) await prisma.order.delete({ where: { id: order.id } }).catch(() => {});
+    if (order2) await prisma.order.delete({ where: { id: order2.id } }).catch(() => {});
+    if (customer) await prisma.customer.delete({ where: { id: customer.id } }).catch(() => {});
+  }
+
+  console.log(`\n${pass} passed, ${fails.length} failed`);
+  if (fails.length) { console.log("FAILED:", fails.join(" · ")); process.exit(1); }
+}
+
+main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
