@@ -28,8 +28,7 @@ const Root = React.forwardRef<HTMLDivElement, RootProps>(
     <div
       ref={ref}
       className={cn(
-        bordered &&
-          "overflow-hidden rounded-2xl border border-slate-200/70 bg-white dark:border-slate-800/60 dark:bg-slate-900/80",
+        bordered && "card-surface overflow-hidden rounded-2xl",
         className
       )}
       {...props}

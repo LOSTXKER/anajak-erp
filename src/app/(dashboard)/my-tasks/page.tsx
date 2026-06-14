@@ -61,7 +61,7 @@ function TaskSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white dark:border-slate-800/60 dark:bg-slate-900/80">
+    <section className="card-surface overflow-hidden rounded-2xl">
       <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
         <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" strokeWidth={1.75} />
         <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h2>
@@ -182,7 +182,7 @@ export default function MyTasksPage() {
       />
 
       {total === 0 && (
-        <div className="rounded-2xl border border-slate-200/70 bg-white dark:border-slate-800/60 dark:bg-slate-900/80">
+        <div className="card-surface rounded-2xl">
           <EmptyState
             icon={CheckCircle2}
             title="ไม่มีงานค้างบนโต๊ะคุณ"

@@ -91,7 +91,7 @@ export default function SettingsPage() {
           <Link
             key={link.href}
             href={link.href}
-            className="group flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white p-3.5 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800/60 dark:bg-slate-900/80 dark:hover:border-slate-700 dark:hover:bg-slate-800/40"
+            className="group card-surface card-surface-hover flex items-center gap-3 rounded-2xl p-3.5 transition-colors"
           >
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-slate-100 text-slate-500 transition-colors group-hover:bg-blue-50 group-hover:text-blue-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-blue-950/40 dark:group-hover:text-blue-300">
               <link.icon className="h-4 w-4" strokeWidth={1.75} />

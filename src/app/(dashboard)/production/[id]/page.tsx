@@ -122,7 +122,7 @@ export default function ProductionDetailPage({
       />
 
       {/* บริบทงานที่ช่างต้องเห็นก่อนจับงาน — กำหนดส่ง/ด่วน/จำนวน/สถานะออเดอร์ */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-slate-200/70 bg-white px-4 py-3 text-sm dark:border-slate-800/60 dark:bg-slate-900/80">
+      <div className="card-surface flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl px-4 py-3 text-sm">
         {order.deadline && (
           <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
             <Clock className="h-4 w-4 text-slate-400" />
@@ -154,7 +154,7 @@ export default function ProductionDetailPage({
       </div>
 
       {/* ความคืบหน้า + ขั้นตอน */}
-      <div className="space-y-4 rounded-2xl border border-slate-200/70 bg-white p-4 sm:p-5 dark:border-slate-800/60 dark:bg-slate-900/80">
+      <div className="card-surface space-y-4 rounded-2xl p-4 sm:p-5">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-slate-500 dark:text-slate-400">ความคืบหน้า</span>

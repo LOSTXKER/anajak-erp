@@ -297,7 +297,7 @@ export default function OrdersPage() {
       </div>
 
       {showFilters && (
-        <div className="rounded-2xl border border-slate-200/70 bg-white p-3.5 dark:border-slate-800/60 dark:bg-slate-900/80">
+        <div className="card-surface rounded-2xl p-3.5">
           <div className="space-y-3">
             <FilterRow label="ช่องทาง">
               {CHANNEL_FILTERS.map((f) => (

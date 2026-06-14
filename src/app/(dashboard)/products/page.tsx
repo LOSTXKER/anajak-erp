@@ -151,7 +151,7 @@ export default function ProductsPage() {
           {[...Array(8)].map((_, i) => (
             <div
               key={i}
-              className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white dark:border-slate-800/60 dark:bg-slate-900/80"
+              className="card-surface overflow-hidden rounded-2xl"
             >
               <Skeleton className="h-44 w-full rounded-none" />
               <div className="space-y-2 p-3">
@@ -163,7 +163,7 @@ export default function ProductsPage() {
           ))}
         </div>
       ) : data?.products?.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200/70 bg-white dark:border-slate-800/60 dark:bg-slate-900/80">
+        <div className="card-surface rounded-2xl">
           <EmptyState
             icon={Package}
             title="ไม่พบสินค้า"
@@ -193,7 +193,7 @@ export default function ProductsPage() {
 
             return (
               <Link key={product.id} href={`/products/${product.id}`}>
-                <div className="group h-full overflow-hidden rounded-2xl border border-slate-200/70 bg-white transition-all hover:border-slate-300 hover:shadow-sm dark:border-slate-800/60 dark:bg-slate-900/80 dark:hover:border-slate-700">
+                <div className="card-surface card-surface-hover group h-full overflow-hidden rounded-2xl transition-all">
                   <div className="relative flex h-44 items-center justify-center bg-slate-100 dark:bg-slate-800">
                     {product.imageUrl ? (
                       <img

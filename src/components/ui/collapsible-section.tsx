@@ -28,7 +28,7 @@ export function CollapsibleSection({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/60 dark:bg-slate-900/80",
+        "card-surface rounded-2xl",
         className
       )}
     >

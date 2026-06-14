@@ -104,7 +104,7 @@ export default function FilmStockPage() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200/70 bg-white dark:border-slate-800/60 dark:bg-slate-900/80">
+        <div className="card-surface rounded-2xl">
           {hasSearch ? (
             <EmptyState
               icon={Film}

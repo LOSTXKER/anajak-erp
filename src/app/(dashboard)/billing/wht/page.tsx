@@ -219,7 +219,7 @@ export default function WhtRegisterPage() {
           caption="รายการ"
         />
         {/* ยอดรอใบ — เด่น amber เมื่อ >0 (StatCard ไม่รับสี value เลยทำการ์ดเอง โครงเดียวกัน) */}
-        <div className="rounded-2xl border border-slate-200/70 bg-white p-5 dark:border-slate-800/60 dark:bg-slate-900/80">
+        <div className="card-surface rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-[12.5px] font-medium text-slate-500 dark:text-slate-400">
               ยอดหักที่ยังไม่มีใบ
@@ -291,7 +291,7 @@ export default function WhtRegisterPage() {
           ))}
         </div>
       ) : list.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200/70 bg-white dark:border-slate-800/60 dark:bg-slate-900/80">
+        <div className="card-surface rounded-2xl">
           {hasSearch ? (
             <EmptyState
               icon={ReceiptText}
