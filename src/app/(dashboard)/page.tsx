@@ -41,7 +41,7 @@ function PulseCard({
     <Link
       href={href}
       className={cn(
-        "block rounded-2xl border border-slate-200/70 bg-white p-4 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800/60 dark:bg-slate-900/80 dark:hover:border-slate-700 dark:hover:bg-slate-900",
+        "group block rounded-2xl card-surface card-surface-hover p-4",
         className
       )}
     >
@@ -50,7 +50,7 @@ function PulseCard({
       </p>
       <p
         className={cn(
-          "mt-2 text-2xl font-semibold leading-none tracking-tight tabular-nums",
+          "mt-2 text-[28px] font-semibold leading-none tracking-tight tabular-nums",
           tone === "danger"
             ? "text-red-600 dark:text-red-400"
             : tone === "warning"
@@ -90,12 +90,12 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="space-y-8">
-        <PageHeader title="Dashboard" description="ภาพรวมระบบ Anajak Print" />
+        <PageHeader title="แดชบอร์ด" description="ภาพรวมระบบ Anajak Print" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="rounded-2xl border border-slate-200/70 bg-white p-5 dark:border-slate-800/60 dark:bg-slate-900/80"
+              className="card-surface rounded-2xl p-5"
             >
               <Skeleton className="mb-3 h-3 w-24" />
               <Skeleton className="h-8 w-20" />
@@ -106,12 +106,31 @@ export default function DashboardPage() {
     );
   }
 
+  const today = new Date();
+
   return (
     <div className="space-y-8">
-      <PageHeader title="Dashboard" description="ภาพรวมระบบ Anajak Print" />
+      <PageHeader
+        title="แดชบอร์ด"
+        description={`ภาพรวมระบบ Anajak Print · ${today.toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`}
+      />
 
       {pulse && (
-        <Section title="เช้านี้ใน 10 วินาที" bordered={false} compact>
+        <Section
+          title="เช้านี้ใน 10 วินาที"
+          bordered={false}
+          compact
+          action={
+            <span className="rounded-full bg-black/[0.05] px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-white/10 dark:text-slate-400">
+              อัปเดต{" "}
+              {today.toLocaleTimeString("th-TH", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}{" "}
+              น.
+            </span>
+          }
+        >
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
             <PulseCard
               href="/orders"
@@ -188,6 +207,71 @@ export default function DashboardPage() {
           />
         )}
       </div>
+
+      {data?.recentOrders && data.recentOrders.length > 0 && (
+        <Section
+          title="ออเดอร์ล่าสุด"
+          bordered
+          flush
+          action={
+            <Link
+              href="/orders"
+              className="text-[13px] font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400"
+            >
+              ดูทั้งหมด
+            </Link>
+          }
+        >
+          <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            {data.recentOrders.map((o) => (
+              <Link
+                key={o.id}
+                href={`/orders/${o.id}`}
+                className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/30"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[13.5px] font-semibold tabular-nums text-slate-900 dark:text-white">
+                      {o.orderNumber}
+                    </p>
+                    {o.printLabel && (
+                      <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                        {o.printLabel}
+                      </span>
+                    )}
+                  </div>
+                  <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
+                    {o.customerName} · {o.title}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  {o.totalAmount != null && (
+                    <p className="text-[13.5px] font-semibold tabular-nums text-slate-900 dark:text-white">
+                      {formatCurrency(o.totalAmount)}
+                    </p>
+                  )}
+                  {o.deadline && (
+                    <p className="text-[11.5px] text-slate-400 dark:text-slate-500">
+                      กำหนด{" "}
+                      {new Date(o.deadline).toLocaleDateString("th-TH", {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </p>
+                  )}
+                </div>
+                <div className="hidden w-28 shrink-0 sm:block">
+                  <OrderStatusBadge
+                    customerStatus={o.customerStatus}
+                    internalStatus={o.internalStatus}
+                    compact
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Section>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Section title="สถานะออเดอร์" bordered>

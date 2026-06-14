@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Bell, Search, CheckCheck } from "lucide-react";
+import { Bell, Search, CheckCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -80,7 +80,7 @@ export function Topbar() {
   const count = unreadCount ?? 0;
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 bg-[#f5f5f7]/72 px-5 backdrop-blur-xl sm:px-8 lg:px-10 dark:bg-black/60">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-black/[0.07] bg-[#f5f5f7]/72 px-5 backdrop-blur-xl sm:px-8 lg:px-10 dark:border-white/[0.06] dark:bg-black/60">
       {/* เมนูมือถือ — จอเล็ก sidebar ซ่อน เปิดผ่าน hamburger */}
       <MobileSidebar />
       {/* Search trigger (opens command palette) */}
@@ -98,6 +98,22 @@ export function Topbar() {
 
       {/* Actions */}
       <div className="flex items-center gap-1.5">
+        {/* เปิดงานใหม่ — ทางลัดเปิดออเดอร์จากทุกหน้า (แนวภาพ A) */}
+        <Link
+          href="/orders/new"
+          className="hidden items-center gap-1.5 rounded-full bg-blue-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.97] sm:inline-flex"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.1} />
+          เปิดงานใหม่
+        </Link>
+        <Link
+          href="/orders/new"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white transition-transform hover:bg-blue-700 active:scale-95 sm:hidden"
+          aria-label="เปิดงานใหม่"
+        >
+          <Plus className="h-5 w-5" strokeWidth={2.1} />
+        </Link>
+
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
           <Button

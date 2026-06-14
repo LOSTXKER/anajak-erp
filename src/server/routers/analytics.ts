@@ -7,6 +7,16 @@ import { getOwnerPulse } from "@/server/services/owner-pulse";
 const adminOnly = requireRole("OWNER", "MANAGER");
 const ownerOrAccountant = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
 
+// ป้ายชนิดงานพิมพ์ (ไทย) — printType เป็น String อิสระ ไม่ใช่ enum
+const PRINT_LABELS: Record<string, string> = {
+  DTF: "DTF",
+  DTG: "DTG",
+  SILK_SCREEN: "สกรีน",
+  SUBLIMATION: "ซับ",
+  HEAT_TRANSFER: "รีดร้อน",
+  EMBROIDERY: "ปัก",
+};
+
 export const analyticsRouter = router({
   dashboard: protectedProcedure.query(async ({ ctx }) => {
     const startOfMonth = getStartOfMonth();
@@ -25,6 +35,7 @@ export const analyticsRouter = router({
       activeOrders,
       completedThisMonth,
       ordersByStatus,
+      recentOrders,
     ] = await Promise.all([
       ctx.prisma.customer.count(),
       ctx.prisma.customer.count({ where: { createdAt: { gte: startOfMonth } } }),
@@ -37,6 +48,23 @@ export const analyticsRouter = router({
       ctx.prisma.order.groupBy({
         by: ["internalStatus"],
         _count: { id: true },
+      }),
+      // ออเดอร์ล่าสุด (เปิดทุก role — ยอดเงิน gate ตอน return) · ตัด DRAFT/CANCELLED
+      ctx.prisma.order.findMany({
+        where: { internalStatus: { notIn: ["DRAFT", "CANCELLED"] } },
+        orderBy: { createdAt: "desc" },
+        take: 6,
+        select: {
+          id: true,
+          orderNumber: true,
+          title: true,
+          deadline: true,
+          totalAmount: true,
+          customerStatus: true,
+          internalStatus: true,
+          customer: { select: { name: true, company: true } },
+          items: { select: { prints: { select: { printType: true } } } },
+        },
       }),
     ]);
 
@@ -104,6 +132,29 @@ export const analyticsRouter = router({
         status: item.internalStatus,
         count: item._count.id,
       })),
+      recentOrders: recentOrders.map((o) => {
+        // ชนิดงานพิมพ์ของออเดอร์ — มีหลายชนิด = "ผสม" · ไม่มีลาย = ไม่โชว์ป้าย
+        const types = new Set<string>();
+        for (const it of o.items) for (const p of it.prints) types.add(p.printType);
+        const printLabel =
+          types.size === 0
+            ? null
+            : types.size === 1
+              ? PRINT_LABELS[[...types][0]] ?? [...types][0]
+              : "ผสม";
+        return {
+          id: o.id,
+          orderNumber: o.orderNumber,
+          title: o.title,
+          deadline: o.deadline,
+          customerName: o.customer.company || o.customer.name,
+          customerStatus: o.customerStatus,
+          internalStatus: o.internalStatus,
+          printLabel,
+          // ยอดเงินเห็นเฉพาะฝั่งบริหาร-บัญชี (เหมือน revenue/topCustomers)
+          totalAmount: canSeeFinance ? o.totalAmount : null,
+        };
+      }),
     };
   }),
 

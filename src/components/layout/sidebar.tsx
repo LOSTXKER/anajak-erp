@@ -27,6 +27,8 @@ import {
   ReceiptText,
 } from "lucide-react";
 import { useState, type ComponentType } from "react";
+import { trpc } from "@/lib/trpc";
+import { ROLE_LABELS } from "@/lib/roles";
 
 type NavItem = {
   name: string;
@@ -101,6 +103,7 @@ export function Sidebar({
 } = {}) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { data: me } = trpc.user.me.useQuery();
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -112,7 +115,7 @@ export function Sidebar({
         mobile
           ? "flex h-full w-64 bg-[#f5f5f7] dark:bg-slate-950"
           : cn(
-              "hidden h-screen bg-[#f5f5f7]/80 backdrop-blur-xl md:flex dark:bg-black/60",
+              "hidden h-screen border-r border-black/[0.07] bg-[#f5f5f7]/80 backdrop-blur-xl md:flex dark:border-white/[0.06] dark:bg-black/60",
               collapsed ? "w-[68px]" : "w-64"
             )
       )}
@@ -123,8 +126,8 @@ export function Sidebar({
           href="/"
           className="flex min-w-0 items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
         >
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
-            <Printer className="h-3.5 w-3.5" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
+            <Printer className="h-4 w-4" />
           </div>
           {!collapsed && (
             <span className="truncate text-[15px] font-semibold tracking-tight text-slate-900 dark:text-white">
@@ -167,7 +170,7 @@ export function Sidebar({
                       onClick={onNavigate}
                       title={collapsed ? item.name : undefined}
                       className={cn(
-                        "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
+                        "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors",
                         active
                           ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_0_0_0.5px_rgba(0,0,0,0.04)] dark:bg-white/10 dark:text-white"
                           : "text-slate-600 hover:bg-black/[0.04] hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
@@ -193,6 +196,34 @@ export function Sidebar({
           </div>
         ))}
       </nav>
+
+      {/* การ์ดผู้ใช้ท้ายแถบเมนู (แนวภาพ A) — ย่อเหลือ avatar ตอน collapse */}
+      {me && (
+        <div className={cn("pb-3", collapsed ? "px-2" : "px-3")}>
+          {collapsed ? (
+            <div
+              title={me.name ?? undefined}
+              className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-[12px] font-semibold text-white"
+            >
+              {me.name?.charAt(0).toUpperCase() ?? "?"}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5 rounded-xl bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_0_0_0.5px_rgba(0,0,0,0.04)] dark:bg-white/5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[12px] font-semibold text-white">
+                {me.name?.charAt(0).toUpperCase() ?? "?"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[12.5px] font-medium text-slate-900 dark:text-white">
+                  {me.name ?? "..."}
+                </p>
+                <p className="truncate text-[11px] text-slate-400 dark:text-slate-500">
+                  {me.role ? ROLE_LABELS[me.role] ?? me.role : ""}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </aside>
   );
 }

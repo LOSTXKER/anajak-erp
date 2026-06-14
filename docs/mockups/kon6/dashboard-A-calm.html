@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Anajak ERP — Dashboard (ทิศ A: หน้างานสะอาด)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Prompt', 'system-ui', 'sans-serif'] },
+        colors: {
+          anajak: { blue: '#3973b2', yellow: '#fec91b', red: '#e72f27' },
+        },
+        borderRadius: { '2xl': '1.125rem' },
+      },
+    },
+  };
+</script>
+<style>
+  :root {
+    --anajak-blue: #3973b2;
+    --anajak-blue-deep: #2c5b8e;
+    --anajak-yellow: #fec91b;
+    --anajak-red: #e72f27;
+    --bg: #f5f5f7;
+    --hairline: rgba(0, 0, 0, 0.07);
+  }
+  html { font-family: 'Prompt', system-ui, sans-serif; }
+  body { background: var(--bg); -webkit-font-smoothing: antialiased; }
+  .hairline { border: 1px solid var(--hairline); }
+  .card-shadow { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 0 0 0.5px rgba(0, 0, 0, 0.035); }
+  .card-shadow-lift { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05), 0 0 0 0.5px rgba(0, 0, 0, 0.04); }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .scrollarea::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollarea::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 8px; }
+  .scrollarea::-webkit-scrollbar-track { background: transparent; }
+  /* sidebar slide on mobile */
+  .sidebar { transition: transform .25s ease; }
+  @media (max-width: 1023px) {
+    .sidebar { position: fixed; inset: 0 auto 0 0; transform: translateX(-100%); z-index: 50; }
+    .sidebar.open { transform: translateX(0); }
+    .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.28); backdrop-filter: blur(2px); z-index: 40; display: none; }
+    .scrim.open { display: block; }
+  }
+  .nav-link { transition: background-color .14s ease, color .14s ease; }
+</style>
+</head>
+<body class="text-slate-800">
+
+<div class="flex min-h-screen">
+
+  <!-- ============ SIDEBAR ============ -->
+  <div class="scrim" id="scrim" onclick="toggleNav()"></div>
+  <aside class="sidebar lg:sticky lg:top-0 flex h-screen w-64 shrink-0 flex-col bg-[#f5f5f7]/85 backdrop-blur-xl" id="sidebar" style="border-right:1px solid var(--hairline)">
+    <!-- Brand -->
+    <div class="flex h-14 items-center gap-2.5 px-4">
+      <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white" style="background:var(--anajak-blue)">
+        <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+      </div>
+      <span class="text-[15.5px] font-semibold tracking-tight text-slate-900">Anajak Print</span>
+    </div>
+
+    <!-- Nav -->
+    <nav class="scrollarea flex-1 overflow-y-auto px-2.5 pb-6 pt-1.5 text-[13px]">
+      <!-- group 1 -->
+      <ul class="space-y-0.5">
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 font-medium text-slate-900 card-shadow">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px]" stroke="var(--anajak-blue)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          แดชบอร์ด
+        </a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-slate-600 hover:bg-black/[0.04] hover:text-slate-900">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px] text-slate-500" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h2l2 12h11l2-9H6.5"/><line x1="9" y1="9" x2="9" y2="13"/><line x1="13" y1="9" x2="13" y2="13"/></svg>
+          งานของฉัน
+          <span class="ml-auto rounded-full bg-anajak-blue/10 px-2 py-0.5 text-[11px] font-semibold tnum" style="color:var(--anajak-blue)">4</span>
+        </a></li>
+      </ul>
+
+      <!-- ขาย -->
+      <p class="px-3 pb-1.5 pt-5 text-[11px] font-medium text-slate-400">ขาย</p>
+      <ul class="space-y-0.5">
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-slate-600 hover:bg-black/[0.04] hover:text-slate-900">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px] text-slate-500" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+          ออเดอร์
+        </a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-slate-600 hover:bg-black/[0.04] hover:text-slate-900">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px] text-slate-500" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></svg>
+          ใบเสนอราคา
+        </a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-slate-600 hover:bg-black/[0.04] hover:text-slate-900">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px] text-slate-500" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          ลูกค้า
+        </a></li>
+      </ul>
+
+      <!-- ผลิต -->
+      <p class="px-3 pb-1.5 pt-5 text-[11px] font-medium text-slate-400">ผลิต</p>
+      <ul class="space-y-0.5">
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-slate-600 hover:bg-black/[0.04] hover:text-slate-900">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px] text-slate-500" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M2 20V8l6 4V8l6 4V8l6 4v8"/></svg>
+          ผลิต
+        </a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-slate-600 hover:bg-black/[0.04] hover:text-slate-900">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px] text-slate-500" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><rect x="6" y="14" width="12" height="8" rx="1"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/></svg>
+          งานออกแบบ
+        </a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-slate-600 hover:bg-black/[0.04] hover:text-slate-900">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px] text-slate-500" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+          Outsource
+          <span class="ml-auto rounded-full bg-anajak-yellow/25 px-2 py-0.5 text-[11px] font-semibold tnum text-amber-700">5</span>
+        </a></li>
+      </ul>
+
+      <!-- การเงิน -->
+      <p class="px-3 pb-1.5 pt-5 text-[11px] font-medium text-slate-400">การเงิน</p>
+      <ul class="space-y-0.5">
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-slate-600 hover:bg-black/[0.04] hover:text-slate-900">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px] text-slate-500" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+          วางบิล / การเงิน
+        </a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-slate-600 hover:bg-black/[0.04] hover:text-slate-900">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px] text-slate-500" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+          สถิติ
+        </a></li>
+      </ul>
+
+      <!-- สินค้า / ระบบ -->
+      <p class="px-3 pb-1.5 pt-5 text-[11px] font-medium text-slate-400">สินค้า · ระบบ</p>
+      <ul class="space-y-0.5">
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-slate-600 hover:bg-black/[0.04] hover:text-slate-900">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px] text-slate-500" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.5 4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          สต๊อก
+        </a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-slate-600 hover:bg-black/[0.04] hover:text-slate-900">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px] text-slate-500" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          ตั้งค่า
+        </a></li>
+      </ul>
+    </nav>
+
+    <!-- footer user mini -->
+    <div class="px-3 pb-3">
+      <div class="flex items-center gap-2.5 rounded-xl bg-white p-2.5 card-shadow">
+        <div class="flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold text-white" style="background:var(--anajak-blue)">ศจ</div>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-[12.5px] font-medium text-slate-900">ศรุจ (เบส)</p>
+          <p class="truncate text-[11px] text-slate-400">เจ้าของ</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="flex min-w-0 flex-1 flex-col">
+
+    <!-- TOPBAR -->
+    <header class="sticky top-0 z-30 flex h-14 items-center gap-3 bg-[#f5f5f7]/72 px-4 backdrop-blur-xl sm:px-6 lg:px-9" style="border-bottom:1px solid var(--hairline)">
+      <button class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-black/[0.05] lg:hidden" onclick="toggleNav()" aria-label="เมนู">
+        <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+
+      <!-- search -->
+      <button class="group flex h-9 w-full max-w-md items-center gap-2.5 rounded-full bg-white/70 px-4 text-sm text-slate-400 card-shadow transition-colors hover:bg-white hover:text-slate-600">
+        <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4 shrink-0" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span class="flex-1 text-left">ค้นหาเมนู หรือคำสั่ง</span>
+        <kbd class="hidden items-center gap-0.5 rounded-md bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-medium text-slate-500 sm:inline-flex">⌘K</kbd>
+      </button>
+
+      <div class="ml-auto flex items-center gap-2">
+        <!-- เปิดงานใหม่ -->
+        <button class="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-transform active:scale-[0.97] sm:inline-flex" style="background:var(--anajak-blue)">
+          <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          เปิดงานใหม่
+        </button>
+        <button class="inline-flex h-9 w-9 items-center justify-center rounded-full text-white sm:hidden" style="background:var(--anajak-blue)" aria-label="เปิดงานใหม่">
+          <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <!-- bell -->
+        <button class="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-black/[0.05]" aria-label="แจ้งเตือน">
+          <svg viewBox="0 0 24 24" fill="none" class="h-[18px] w-[18px]" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="absolute right-2 top-2 h-2 w-2 rounded-full ring-2 ring-[#f5f5f7]" style="background:var(--anajak-red)"></span>
+        </button>
+        <!-- user -->
+        <button class="flex h-9 w-9 items-center justify-center rounded-full text-[12px] font-semibold text-white" style="background:var(--anajak-blue)" aria-label="บัญชีผู้ใช้">ศจ</button>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="scrollarea flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-9 lg:py-8">
+      <div class="mx-auto max-w-6xl space-y-9">
+
+        <!-- Page header -->
+        <div>
+          <h1 class="text-[26px] font-semibold tracking-tight text-slate-900">แดชบอร์ด</h1>
+          <p class="mt-1 text-[14px] text-slate-500">ภาพรวมระบบ Anajak Print · วันเสาร์ที่ 14 มิ.ย. 2568</p>
+        </div>
+
+        <!-- ===== เช้านี้ใน 10 วินาที (5 ตัวเลขเจ้าของ) ===== -->
+        <section class="space-y-3.5">
+          <div class="flex items-center gap-2.5">
+            <h2 class="text-[15px] font-semibold text-slate-900">เช้านี้ใน 10 วินาที</h2>
+            <span class="rounded-full bg-black/[0.05] px-2 py-0.5 text-[11px] font-medium text-slate-500">อัปเดต 08:42 น.</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3.5 lg:grid-cols-5">
+            <!-- 1 งานเสี่ยงเลยกำหนด (danger) -->
+            <a href="#" class="group block rounded-2xl bg-white p-4 card-shadow transition-shadow hover:card-shadow-lift">
+              <p class="text-[12.5px] font-medium text-slate-500">งานเสี่ยงเลยกำหนด</p>
+              <p class="mt-2 text-[28px] font-semibold leading-none tracking-tight tnum" style="color:var(--anajak-red)">3</p>
+              <p class="mt-1.5 text-[11.5px] text-slate-400">ใกล้ถึงใน 48 ชม. <span class="font-medium text-slate-500">4</span></p>
+            </a>
+            <!-- 2 ค้างร้านนอก -->
+            <a href="#" class="group block rounded-2xl bg-white p-4 card-shadow transition-shadow hover:card-shadow-lift">
+              <p class="text-[12.5px] font-medium text-slate-500">ค้างร้านนอก</p>
+              <p class="mt-2 text-[28px] font-semibold leading-none tracking-tight tnum text-slate-900">5</p>
+              <p class="mt-1.5 text-[11.5px] text-slate-400">เลยกำหนดรับ <span class="font-semibold" style="color:var(--anajak-red)">2</span></p>
+            </a>
+            <!-- 3 เสร็จวันนี้ -->
+            <a href="#" class="group block rounded-2xl bg-white p-4 card-shadow transition-shadow hover:card-shadow-lift">
+              <p class="text-[12.5px] font-medium text-slate-500">เสร็จวันนี้</p>
+              <p class="mt-2 text-[28px] font-semibold leading-none tracking-tight tnum" style="color:var(--anajak-blue)">8</p>
+              <p class="mt-1.5 text-[11.5px] text-slate-400">ค้างทั้งหมด <span class="font-medium text-slate-500">19</span> ขั้น</p>
+            </a>
+            <!-- 4 เงินรอเก็บ -->
+            <a href="#" class="group block rounded-2xl bg-white p-4 card-shadow transition-shadow hover:card-shadow-lift">
+              <p class="text-[12.5px] font-medium text-slate-500">เงินรอเก็บ</p>
+              <p class="mt-2 text-[28px] font-semibold leading-none tracking-tight tnum text-slate-900">6</p>
+              <p class="mt-1.5 text-[11.5px] text-slate-400">บิลเลยกำหนด · ใบเสนอค้างตอบ <span class="font-medium text-slate-500">3</span></p>
+            </a>
+            <!-- 5 งานติดหล่ม (warning) -->
+            <a href="#" class="group col-span-2 block rounded-2xl bg-white p-4 card-shadow transition-shadow hover:card-shadow-lift lg:col-span-1">
+              <p class="text-[12.5px] font-medium text-slate-500">งานติดหล่ม</p>
+              <p class="mt-2 text-[28px] font-semibold leading-none tracking-tight tnum text-amber-500">2</p>
+              <p class="mt-1.5 text-[11.5px] text-slate-400">เงียบเกิน 3 วัน</p>
+            </a>
+          </div>
+        </section>
+
+        <!-- ===== 4 stat cards ===== -->
+        <section class="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+          <!-- ออเดอร์กำลังดำเนินการ -->
+          <div class="rounded-2xl bg-white p-5 card-shadow">
+            <div class="flex items-start justify-between">
+              <p class="text-[12.5px] font-medium text-slate-500">ออเดอร์กำลังดำเนินการ</p>
+              <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-anajak-blue/10">
+                <svg viewBox="0 0 24 24" fill="none" class="h-[17px] w-[17px]" stroke="var(--anajak-blue)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+              </span>
+            </div>
+            <p class="mt-3 text-[30px] font-semibold leading-none tracking-tight tnum text-slate-900">27</p>
+          </div>
+          <!-- รายได้เดือนนี้ -->
+          <div class="rounded-2xl bg-white p-5 card-shadow">
+            <div class="flex items-start justify-between">
+              <p class="text-[12.5px] font-medium text-slate-500">รายได้เดือนนี้</p>
+              <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-anajak-blue/10">
+                <svg viewBox="0 0 24 24" fill="none" class="h-[17px] w-[17px]" stroke="var(--anajak-blue)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </span>
+            </div>
+            <p class="mt-3 text-[30px] font-semibold leading-none tracking-tight tnum text-slate-900">฿486,200</p>
+            <p class="mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-emerald-600">
+              <svg viewBox="0 0 24 24" fill="none" class="h-3.5 w-3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+              +12.4% จากเดือนก่อน
+            </p>
+          </div>
+          <!-- ลูกค้าทั้งหมด -->
+          <div class="rounded-2xl bg-white p-5 card-shadow">
+            <div class="flex items-start justify-between">
+              <p class="text-[12.5px] font-medium text-slate-500">ลูกค้าทั้งหมด</p>
+              <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-anajak-blue/10">
+                <svg viewBox="0 0 24 24" fill="none" class="h-[17px] w-[17px]" stroke="var(--anajak-blue)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </span>
+            </div>
+            <p class="mt-3 text-[30px] font-semibold leading-none tracking-tight tnum text-slate-900">142</p>
+            <p class="mt-2 text-[12px] text-slate-400">+6 เดือนนี้</p>
+          </div>
+          <!-- บิลค้างชำระ -->
+          <div class="rounded-2xl bg-white p-5 card-shadow">
+            <div class="flex items-start justify-between">
+              <p class="text-[12.5px] font-medium text-slate-500">บิลค้างชำระ</p>
+              <span class="flex h-8 w-8 items-center justify-center rounded-xl" style="background:rgba(231,47,39,.10)">
+                <svg viewBox="0 0 24 24" fill="none" class="h-[17px] w-[17px]" stroke="var(--anajak-red)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </span>
+            </div>
+            <p class="mt-3 text-[30px] font-semibold leading-none tracking-tight tnum text-slate-900">6</p>
+            <p class="mt-2 text-[12px] text-slate-400">รวม ฿173,500</p>
+          </div>
+        </section>
+
+        <!-- ===== Recent orders (full width list) ===== -->
+        <section class="rounded-2xl bg-white card-shadow">
+          <div class="flex items-center justify-between px-5 py-4" style="border-bottom:1px solid var(--hairline)">
+            <h2 class="text-[15px] font-semibold text-slate-900">ออเดอร์ล่าสุด</h2>
+            <a href="#" class="text-[13px] font-medium hover:underline" style="color:var(--anajak-blue)">ดูทั้งหมด</a>
+          </div>
+          <ul>
+            <!-- row -->
+            <li><a href="#" class="nav-link flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50" style="border-bottom:1px solid var(--hairline)">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-[13px] font-semibold tnum text-slate-900">ORD-2606-0042</span>
+                  <span class="rounded-md bg-anajak-blue/10 px-1.5 py-0.5 text-[10.5px] font-medium" style="color:var(--anajak-blue)">DTF</span>
+                </div>
+                <p class="mt-0.5 truncate text-[12.5px] text-slate-500">บริษัท ทีมเวียร์ จำกัด · เสื้อทีม 120 ตัว</p>
+              </div>
+              <div class="hidden text-right sm:block">
+                <p class="text-[13px] font-semibold tnum text-slate-900">฿38,400</p>
+                <p class="text-[11.5px] text-slate-400">กำหนด 16 มิ.ย.</p>
+              </div>
+              <div class="flex w-[108px] shrink-0 flex-col leading-tight">
+                <span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-800"><span class="h-1.5 w-1.5 shrink-0 rounded-full" style="background:var(--anajak-blue)"></span>กำลังผลิต</span>
+                <span class="pl-3 text-[11px] text-slate-400">กำลังพิมพ์ฟิล์ม</span>
+              </div>
+            </a></li>
+
+            <li><a href="#" class="nav-link flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50" style="border-bottom:1px solid var(--hairline)">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-[13px] font-semibold tnum text-slate-900">ORD-2606-0041</span>
+                  <span class="rounded-md bg-anajak-blue/10 px-1.5 py-0.5 text-[10.5px] font-medium" style="color:var(--anajak-blue)">สกรีน</span>
+                </div>
+                <p class="mt-0.5 truncate text-[12.5px] text-slate-500">โรงเรียนอนุบาลดาวรุ่ง · เสื้อกีฬาสี 240 ตัว</p>
+              </div>
+              <div class="hidden text-right sm:block">
+                <p class="text-[13px] font-semibold tnum text-slate-900">฿62,000</p>
+                <p class="text-[11.5px] font-medium" style="color:var(--anajak-red)">เลยกำหนด 1 วัน</p>
+              </div>
+              <div class="flex w-[108px] shrink-0 flex-col leading-tight">
+                <span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-800"><span class="h-1.5 w-1.5 shrink-0 rounded-full" style="background:var(--anajak-red)"></span>กำลังผลิต</span>
+                <span class="pl-3 text-[11px]" style="color:var(--anajak-red)">เกินกำหนด · ร้านนอก</span>
+              </div>
+            </a></li>
+
+            <li><a href="#" class="nav-link flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50" style="border-bottom:1px solid var(--hairline)">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-[13px] font-semibold tnum text-slate-900">ORD-2606-0040</span>
+                  <span class="rounded-md bg-anajak-blue/10 px-1.5 py-0.5 text-[10.5px] font-medium" style="color:var(--anajak-blue)">DTF</span>
+                </div>
+                <p class="mt-0.5 truncate text-[12.5px] text-slate-500">ร้านกีฬา สมศักดิ์ · เสื้อโปโล 60 ตัว</p>
+              </div>
+              <div class="hidden text-right sm:block">
+                <p class="text-[13px] font-semibold tnum text-slate-900">฿21,600</p>
+                <p class="text-[11.5px] text-slate-400">กำหนด 18 มิ.ย.</p>
+              </div>
+              <div class="flex w-[108px] shrink-0 flex-col leading-tight">
+                <span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-800"><span class="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>กำลังเตรียม</span>
+                <span class="pl-3 text-[11px] text-amber-600">รออนุมัติแบบ</span>
+              </div>
+            </a></li>
+
+            <li><a href="#" class="nav-link flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50" style="border-bottom:1px solid var(--hairline)">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-[13px] font-semibold tnum text-slate-900">ORD-2606-0039</span>
+                  <span class="rounded-md bg-anajak-blue/10 px-1.5 py-0.5 text-[10.5px] font-medium" style="color:var(--anajak-blue)">DTF</span>
+                </div>
+                <p class="mt-0.5 truncate text-[12.5px] text-slate-500">บริษัท สยามสปอร์ต มาร์เก็ตติ้ง จำกัด · เสื้ออีเวนต์ 350 ตัว</p>
+              </div>
+              <div class="hidden text-right sm:block">
+                <p class="text-[13px] font-semibold tnum text-slate-900">฿94,500</p>
+                <p class="text-[11.5px] text-slate-400">กำหนด 20 มิ.ย.</p>
+              </div>
+              <div class="flex w-[108px] shrink-0 flex-col leading-tight">
+                <span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-800"><span class="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>กำลังเตรียม</span>
+                <span class="pl-3 text-[11px] text-amber-600">รอฟิล์ม</span>
+              </div>
+            </a></li>
+
+            <li><a href="#" class="nav-link flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-[13px] font-semibold tnum text-slate-900">ORD-2606-0038</span>
+                  <span class="rounded-md bg-anajak-blue/10 px-1.5 py-0.5 text-[10.5px] font-medium" style="color:var(--anajak-blue)">DTF</span>
+                </div>
+                <p class="mt-0.5 truncate text-[12.5px] text-slate-500">หจก. ภูเก็ตทัวร์ ยูนิฟอร์ม · เสื้อพนักงาน 80 ตัว</p>
+              </div>
+              <div class="hidden text-right sm:block">
+                <p class="text-[13px] font-semibold tnum text-slate-900">฿28,800</p>
+                <p class="text-[11.5px] text-slate-400">กำหนด 15 มิ.ย.</p>
+              </div>
+              <div class="flex w-[108px] shrink-0 flex-col leading-tight">
+                <span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-800"><span class="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"></span>พร้อมส่ง</span>
+                <span class="pl-3 text-[11px] text-slate-400">กำลังแพ็ค</span>
+              </div>
+            </a></li>
+          </ul>
+        </section>
+
+        <!-- ===== สถานะออเดอร์ + ลูกค้ายอดสั่งสูงสุด ===== -->
+        <section class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <!-- สถานะออเดอร์ -->
+          <div class="rounded-2xl bg-white card-shadow">
+            <div class="px-5 py-4" style="border-bottom:1px solid var(--hairline)">
+              <h2 class="text-[15px] font-semibold text-slate-900">สถานะออเดอร์</h2>
+            </div>
+            <div class="space-y-3 px-5 py-4">
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700"><span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>ยืนยันออเดอร์</span>
+                <span class="text-[13px] font-semibold tnum text-slate-900">7</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700"><span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>กำลังออกแบบ</span>
+                <span class="text-[13px] font-semibold tnum text-slate-900">5</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700"><span class="h-1.5 w-1.5 rounded-full" style="background:var(--anajak-blue)"></span>กำลังผลิต</span>
+                <span class="text-[13px] font-semibold tnum text-slate-900">11</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700"><span class="h-1.5 w-1.5 rounded-full bg-violet-400"></span>ตรวจสอบคุณภาพ</span>
+                <span class="text-[13px] font-semibold tnum text-slate-900">2</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>พร้อมจัดส่ง</span>
+                <span class="text-[13px] font-semibold tnum text-slate-900">4</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700"><span class="h-1.5 w-1.5 rounded-full bg-slate-300"></span>พักงาน</span>
+                <span class="text-[13px] font-semibold tnum text-slate-900">1</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ลูกค้ายอดสั่งสูงสุด -->
+          <div class="rounded-2xl bg-white card-shadow">
+            <div class="px-5 py-4" style="border-bottom:1px solid var(--hairline)">
+              <h2 class="text-[15px] font-semibold text-slate-900">ลูกค้ายอดสั่งสูงสุด</h2>
+            </div>
+            <div class="space-y-3.5 px-5 py-4">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">1</span>
+                  <div class="min-w-0">
+                    <p class="truncate text-[13px] font-medium text-slate-900">บริษัท ทีมเวียร์ จำกัด</p>
+                    <p class="truncate text-[11.5px] text-slate-400">Teamwear Co., Ltd.</p>
+                  </div>
+                </div>
+                <div class="shrink-0 text-right">
+                  <p class="text-[13px] font-semibold tnum text-slate-900">฿412,000</p>
+                  <p class="text-[11.5px] text-slate-400">18 ออเดอร์</p>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">2</span>
+                  <div class="min-w-0">
+                    <p class="truncate text-[13px] font-medium text-slate-900">บริษัท สยามสปอร์ต มาร์เก็ตติ้ง จำกัด</p>
+                    <p class="truncate text-[11.5px] text-slate-400">Siam Sport Marketing</p>
+                  </div>
+                </div>
+                <div class="shrink-0 text-right">
+                  <p class="text-[13px] font-semibold tnum text-slate-900">฿356,500</p>
+                  <p class="text-[11.5px] text-slate-400">12 ออเดอร์</p>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">3</span>
+                  <div class="min-w-0">
+                    <p class="truncate text-[13px] font-medium text-slate-900">โรงเรียนอนุบาลดาวรุ่ง</p>
+                    <p class="truncate text-[11.5px] text-slate-400">โรงเรียน</p>
+                  </div>
+                </div>
+                <div class="shrink-0 text-right">
+                  <p class="text-[13px] font-semibold tnum text-slate-900">฿248,000</p>
+                  <p class="text-[11.5px] text-slate-400">9 ออเดอร์</p>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">4</span>
+                  <div class="min-w-0">
+                    <p class="truncate text-[13px] font-medium text-slate-900">ร้านกีฬา สมศักดิ์</p>
+                    <p class="truncate text-[11.5px] text-slate-400">ร้านค้าปลีก</p>
+                  </div>
+                </div>
+                <div class="shrink-0 text-right">
+                  <p class="text-[13px] font-semibold tnum text-slate-900">฿187,200</p>
+                  <p class="text-[11.5px] text-slate-400">15 ออเดอร์</p>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">5</span>
+                  <div class="min-w-0">
+                    <p class="truncate text-[13px] font-medium text-slate-900">หจก. ภูเก็ตทัวร์ ยูนิฟอร์ม</p>
+                    <p class="truncate text-[11.5px] text-slate-400">Phuket Tour Uniform</p>
+                  </div>
+                </div>
+                <div class="shrink-0 text-right">
+                  <p class="text-[13px] font-semibold tnum text-slate-900">฿142,800</p>
+                  <p class="text-[11.5px] text-slate-400">7 ออเดอร์</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <p class="pb-2 pt-1 text-center text-[11.5px] text-slate-400">ทิศ A · หน้างานสะอาด (Calm Ops) — mockup ก้อน 6</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  function toggleNav() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('scrim').classList.toggle('open');
+  }
+</script>
+</body>
+</html>

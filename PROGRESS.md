@@ -3,6 +3,14 @@
 > session ใหม่: อ่านไฟล์นี้ + `git log --oneline -10` ก่อนเริ่ม · จบ session: อัปเดตไฟล์นี้ก่อนปิด
 
 ## ตอนนี้
+- **🎨 ก้อน 6: รื้อ UI โฉมใหม่ (ทิศ A "หน้างานสะอาด") — เริ่มแล้ว · เบส approve เปลือก+แดชบอร์ด (2026-06-14):**
+  - **เลือกทิศ (เบสเคาะ 2026-06-14)**: ทำ mockup 3 ทิศ (A สะอาด / B ห้องคุมโรงงาน / C การ์ดสีสถานะ) ให้เบสเลือก → **เบสเลือก A + รื้อ UI ก่อน** (ไม่ใช่ change order ก่อน) · ไฟล์ภาพ `docs/mockups/kon6/dashboard-{A,B,C}.html`
+  - **6.0 ฐาน design**: ① ramp เหลืองแบรนด์ #fec91b + **mirror amber** (globals.css) → ทั้งระบบ 81 จุด/34 ไฟล์ เป็นเหลืองแบรนด์ทันทีไม่แตะ markup (เลียน blue/red) ② util **`.card-surface`** (พื้นขาว+เงานุ่ม+ring 1px แทน border แข็ง) ใช้ใน Section/StatCard/PulseCard → การ์ดทั้งระบบลุค A
+  - **เปลือก (กรอบทุกหน้า)**: topbar +ปุ่ม **"+ เปิดงานใหม่"** (ทางลัด ชิ้น 2) +เส้นแบ่ง border-b · sidebar ไอคอนแบรนด์กล่อง+เมนู rounded+**การ์ดผู้ใช้ท้ายแถบ**+เส้นแบ่ง border-r
+  - **แดชบอร์ด**: หัวข้อไทย+วันที่+badge อัปเดต · การ์ด "เช้านี้" เงานุ่ม ตัวเลข 28px · **เพิ่มตาราง "ออเดอร์ล่าสุด"** (analytics.dashboard +recentOrders +printLabel DTF/สกรีน · **ยอดเงิน gate ตาม role**)
+  - **decision/บทเรียน (อย่าแก้กลับเงียบ)**: ① mockup A **ไม่มีแถบสีซ้ายการ์ด** — ฉันใส่เกิน เบสจับได้ → ถอดออก (สีสถานะ C ไปลงหน้า production ทีหลัง) ② **`var(--color-surface)` ไม่ resolve ใน build จริง → การ์ดพื้นโปร่งหาย** → ใช้ hex ตรงๆ (`#ffffff`/`#1c1c1e`) ③ navbar/sidebar กลืนพื้นเทาเดียวกัน → เติมเส้นแบ่ง · บันทึก memory `bes-ui-match-mockup-precisely`
+  - **verify**: tsc 0 · lint 0 ทุกรอบ · **เบส retest UI ผ่าน** (เปลือก+แดชบอร์ดตรงภาพ A) · หมายเหตุ: ข้อมูลจริงเป็น test data (`[P0.2-VERIFY]`) ดูโล่งกว่า mockup — ไม่ใช่เรื่องดีไซน์
+  - **งานถัดไป (boy-scout ทีละหน้า ไม่ big-bang)**: orders list → order detail (หนาแน่นสุด + ที่ลง change order) → production (การ์ดสีสถานะ C) → my-tasks · **ชิ้น 3 change order** ทำหลัง order detail · ป้ายตัวเลขงานบน sidebar nav (ต้องต่อข้อมูล+gate role) · `next build` รันตอนปิด dev
 - **🎉 ก้อน 5: MCP read-only เฟสแรก (4 tools) — จบ + migrate + verify 48/48 (2026-06-14) · ⏳ เหลือเบส สร้าง key + restart dev เชื่อม client:**
   - **เลือกทำ (เบสเลือก "ก้อน 5 — MCP read-only" 2026-06-14)** · ผู้ช่วย AI ถามระบบผ่านแชทได้ (read-only) — ปูทางจาก P0.4 (services รับ prisma ตรง ไม่ผูก tRPC)
   - **มติเบสเคาะตอนเริ่ม**: ① รันที่ไหน = "เดี๋ยวค่อยทำ deploy" → ออกแบบ **deploy-agnostic** (stateless Streamable HTTP รันบนเครื่อง localhost ก่อน ยกขึ้น Vercel ทีหลังได้ไม่ต้องรื้อ) ② key เฟสแรก = **OWNER เห็นครบ** (รวมลูกหนี้/เงิน) · model รองรับเพิ่มหลาย key/role

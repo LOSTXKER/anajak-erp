@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Anajak ERP — Dashboard (ทิศ B · ห้องคุมโรงงาน)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Prompt', 'sans-serif'] },
+        colors: {
+          brand: { blue: '#3973b2', yellow: '#fec91b', red: '#e72f27' },
+        },
+      },
+    },
+  };
+</script>
+<style>
+  :root {
+    --brand-blue: #3973b2;
+    --brand-yellow: #fec91b;
+    --brand-red: #e72f27;
+    /* command-center neutrals — น้ำเงิน-เทาเข้ม */
+    --bg-0: #0b1220;   /* พื้นลึกสุด */
+    --bg-1: #0f1827;   /* sidebar / canvas */
+    --bg-2: #141f30;   /* การ์ด */
+    --bg-3: #1b2940;   /* การ์ดยก / hover */
+    --line: #243349;
+    --line-soft: #1c2940;
+    --txt-hi: #f1f5f9;
+    --txt-mid: #94a3b8;
+    --txt-lo: #5b6b82;
+  }
+  * { font-family: 'Prompt', sans-serif; }
+  body { background: var(--bg-0); color: var(--txt-hi); }
+  .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+  /* scrollbar เข้าธีมเข้ม */
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #283b56; border-radius: 6px; }
+  ::-webkit-scrollbar-thumb:hover { background: #34507a; }
+
+  .card { background: var(--bg-2); border: 1px solid var(--line); }
+  .card-raised { background: var(--bg-3); }
+  .hairline { border-color: var(--line); }
+  .hairline-soft { border-color: var(--line-soft); }
+
+  /* แถบสีสถานะแนวตั้งซ้ายการ์ด */
+  .lbar { position: relative; overflow: hidden; }
+  .lbar::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+  .lbar-red::before    { background: var(--brand-red); box-shadow: 0 0 14px rgba(231,47,39,.5); }
+  .lbar-yellow::before { background: var(--brand-yellow); box-shadow: 0 0 14px rgba(254,201,27,.45); }
+  .lbar-blue::before   { background: var(--brand-blue); box-shadow: 0 0 14px rgba(57,115,178,.45); }
+  .lbar-mute::before   { background: #34465f; }
+
+  /* dot กระพริบสำหรับ "ด่วน" */
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  .live { animation: pulseDot 1.6s ease-in-out infinite; }
+
+  /* progress bar */
+  .pbar { background: #1f2d44; border-radius: 999px; overflow: hidden; }
+  .pbar > span { display: block; height: 100%; border-radius: 999px; }
+
+  /* sparkline mini bars */
+  .spark { display: flex; align-items: flex-end; gap: 2px; height: 26px; }
+  .spark > i { width: 4px; border-radius: 2px; background: #2c3e5a; }
+
+  .nav-link { transition: background .15s, color .15s; }
+  .nav-link:hover { background: rgba(255,255,255,.05); color: var(--txt-hi); }
+  .nav-active { background: linear-gradient(90deg, rgba(57,115,178,.22), rgba(57,115,178,.04)); color: #fff; box-shadow: inset 2px 0 0 var(--brand-blue); }
+  .nav-active svg { color: #6ea6e6 !important; }
+
+  .tag { font-size: 10.5px; padding: 1px 7px; border-radius: 999px; font-weight: 500; line-height: 1.5; }
+  .tag-red    { background: rgba(231,47,39,.14);  color: #ff8a82; border: 1px solid rgba(231,47,39,.3); }
+  .tag-yellow { background: rgba(254,201,27,.14); color: #fdd45a; border: 1px solid rgba(254,201,27,.3); }
+  .tag-blue   { background: rgba(57,115,178,.18); color: #8bb6e6; border: 1px solid rgba(57,115,178,.35); }
+  .tag-green  { background: rgba(34,197,94,.14);  color: #6ee7a8; border: 1px solid rgba(34,197,94,.3); }
+  .tag-mute   { background: rgba(148,163,184,.1); color: #9fb0c6; border: 1px solid rgba(148,163,184,.2); }
+
+  .row-hover:hover { background: var(--bg-3); }
+
+  /* mobile drawer */
+  #drawer { transition: transform .25s ease; }
+  .drawer-closed { transform: translateX(-100%); }
+  @media (min-width: 1024px) { #drawer { transform: none !important; } #scrim { display: none !important; } }
+</style>
+</head>
+<body class="font-sans antialiased">
+
+<div class="flex min-h-screen">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <div id="scrim" onclick="toggleDrawer()" class="fixed inset-0 z-30 hidden bg-black/60 backdrop-blur-sm lg:hidden"></div>
+  <aside id="drawer" class="drawer-closed fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r hairline lg:static lg:z-auto lg:translate-x-0" style="background: var(--bg-1);">
+    <!-- Brand -->
+    <div class="flex h-14 items-center gap-2.5 px-4 border-b hairline-soft">
+      <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white shadow-lg" style="background: var(--brand-blue); box-shadow: 0 4px 14px rgba(57,115,178,.4);">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/></svg>
+      </div>
+      <div class="min-w-0">
+        <p class="truncate text-[15px] font-semibold tracking-tight text-white leading-none">Anajak Print</p>
+        <p class="mt-1 text-[10px] font-medium tracking-wide" style="color: var(--txt-lo);">CONTROL ROOM</p>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 overflow-y-auto px-2.5 py-3 text-[13px]">
+      <ul class="space-y-0.5">
+        <li><a href="#" class="nav-link nav-active flex items-center gap-3 rounded-lg px-3 py-2 font-medium">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:#6ea6e6" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          <span>แดชบอร์ด</span></a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          <span>งานของฉัน</span>
+          <span class="ml-auto tag tag-blue tnum">4</span></a></li>
+      </ul>
+
+      <p class="px-3 pb-1.5 pt-4 text-[10.5px] font-semibold uppercase tracking-wider" style="color:var(--txt-lo)">ขาย</p>
+      <ul class="space-y-0.5">
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3M17 13l1.3 2.3M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z"/></svg>
+          <span>ออเดอร์</span>
+          <span class="ml-auto tag tag-red tnum">3</span></a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.6L19 9.4V19a2 2 0 01-2 2z"/></svg>
+          <span>ใบเสนอราคา</span></a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 00-3-3.87"/></svg>
+          <span>ลูกค้า</span></a></li>
+      </ul>
+
+      <p class="px-3 pb-1.5 pt-4 text-[10.5px] font-semibold uppercase tracking-wider" style="color:var(--txt-lo)">ผลิต</p>
+      <ul class="space-y-0.5">
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2 20h20M4 20V9l5 3V9l5 3V9l5 3v8"/></svg>
+          <span>การผลิต</span>
+          <span class="ml-auto tag tag-yellow tnum">11</span></a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/></svg>
+          <span>รอบพิมพ์ฟิล์ม</span></a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>
+          <span>คลังฟิล์ม</span></a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l7.586 7.586M11 11a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          <span>งานออกแบบ</span>
+          <span class="ml-auto tag tag-yellow tnum">2</span></a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8zM5.5 19a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm12 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/></svg>
+          <span>Outsource</span>
+          <span class="ml-auto tag tag-red tnum">5</span></a></li>
+      </ul>
+
+      <p class="px-3 pb-1.5 pt-4 text-[10.5px] font-semibold uppercase tracking-wider" style="color:var(--txt-lo)">การเงิน</p>
+      <ul class="space-y-0.5">
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.6L19 9.4V19a2 2 0 01-2 2z"/></svg>
+          <span>วางบิล / การเงิน</span>
+          <span class="ml-auto tag tag-red tnum">7</span></a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v8m4-12H8a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2zM9 12h6"/></svg>
+          <span>ลูกหนี้</span></a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 5-6"/></svg>
+          <span>สถิติ</span></a></li>
+      </ul>
+
+      <p class="px-3 pb-1.5 pt-4 text-[10.5px] font-semibold uppercase tracking-wider" style="color:var(--txt-lo)">ระบบ</p>
+      <ul class="space-y-0.5">
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.3 3.3a1 1 0 011.4 0l.8.8a1 1 0 00.9.3l1.1-.2a1 1 0 011.1.7l.4 1a1 1 0 00.7.7l1 .4a1 1 0 01.7 1.1l-.2 1.1a1 1 0 00.3.9l.8.8a1 1 0 010 1.4l-.8.8a1 1 0 00-.3.9l.2 1.1a1 1 0 01-.7 1.1l-1 .4a1 1 0 00-.7.7l-.4 1a1 1 0 01-1.1.7l-1.1-.2a1 1 0 00-.9.3l-.8.8a1 1 0 01-1.4 0l-.8-.8a1 1 0 00-.9-.3l-1.1.2a1 1 0 01-1.1-.7l-.4-1a1 1 0 00-.7-.7l-1-.4a1 1 0 01-.7-1.1l.2-1.1a1 1 0 00-.3-.9l-.8-.8a1 1 0 010-1.4l.8-.8a1 1 0 00.3-.9l-.2-1.1a1 1 0 01.7-1.1l1-.4a1 1 0 00.7-.7l.4-1a1 1 0 011.1-.7l1.1.2a1 1 0 00.9-.3z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>ตั้งค่า</span></a></li>
+        <li><a href="#" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2 font-medium" style="color:var(--txt-mid)">
+          <svg class="h-[17px] w-[17px] shrink-0" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>
+          <span>สต๊อก (Anajak Stock)</span>
+          <span class="ml-auto h-1.5 w-1.5 rounded-full" style="background:#22c55e"></span></a></li>
+      </ul>
+    </nav>
+
+    <!-- factory live status footer -->
+    <div class="border-t hairline-soft px-3.5 py-2.5">
+      <div class="flex items-center gap-2 text-[11px]" style="color:var(--txt-mid)">
+        <span class="live h-2 w-2 rounded-full" style="background:#22c55e"></span>
+        <span>โรงงานออนไลน์ · DTF เครื่อง 1–2 ทำงาน</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="flex min-w-0 flex-1 flex-col">
+
+    <!-- TOPBAR -->
+    <header class="sticky top-0 z-20 flex h-14 items-center gap-3 border-b hairline px-4 sm:px-6" style="background: rgba(15,24,39,.85); backdrop-filter: blur(14px);">
+      <button onclick="toggleDrawer()" class="grid h-9 w-9 place-items-center rounded-lg lg:hidden" style="color:var(--txt-mid); background:var(--bg-2)">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+
+      <!-- search -->
+      <button class="group flex h-9 w-full max-w-sm items-center gap-2.5 rounded-lg px-3.5 text-sm" style="background:var(--bg-2); color:var(--txt-lo); border:1px solid var(--line)">
+        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4-4"/></svg>
+        <span class="flex-1 text-left">ค้นหาออเดอร์ ลูกค้า เมนู…</span>
+        <kbd class="hidden rounded border px-1.5 py-0.5 text-[10px] sm:inline" style="border-color:var(--line); color:var(--txt-mid)">⌘K</kbd>
+      </button>
+
+      <div class="ml-auto flex items-center gap-2">
+        <!-- เปิดงานใหม่ -->
+        <button class="flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-[13px] font-semibold text-white shadow-lg" style="background:var(--brand-blue); box-shadow:0 4px 14px rgba(57,115,178,.45)">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+          <span class="hidden sm:inline">เปิดงานใหม่</span>
+        </button>
+        <!-- bell -->
+        <button class="relative grid h-9 w-9 place-items-center rounded-lg" style="background:var(--bg-2); color:var(--txt-mid)">
+          <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg>
+          <span class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2" style="background:var(--brand-red); --tw-ring-color:var(--bg-1)"></span>
+        </button>
+        <!-- user -->
+        <button class="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2" style="background:var(--bg-2)">
+          <span class="grid h-7 w-7 place-items-center rounded-full text-[12px] font-semibold text-white" style="background:linear-gradient(135deg,var(--brand-blue),#2a5688)">บ</span>
+          <span class="hidden text-[13px] font-medium sm:block" style="color:var(--txt-hi)">เบส</span>
+          <svg class="hidden h-4 w-4 sm:block" style="color:var(--txt-lo)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- CANVAS -->
+    <main class="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5" style="background: radial-gradient(1200px 500px at 80% -10%, rgba(57,115,178,.08), transparent), var(--bg-0);">
+
+      <!-- title row -->
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <h1 class="text-xl font-semibold tracking-tight text-white">ห้องคุมโรงงาน</h1>
+            <span class="tag tag-blue">LIVE</span>
+          </div>
+          <p class="mt-0.5 text-[12.5px]" style="color:var(--txt-mid)">เช้านี้ใน 10 วินาที · ปรับล่าสุด 08:42 น. · เสาร์ 14 มิ.ย. 2569</p>
+        </div>
+        <div class="flex items-center gap-2 text-[12px]" style="color:var(--txt-mid)">
+          <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:var(--brand-red)"></span>ด่วน/เกินกำหนด</span>
+          <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:var(--brand-yellow)"></span>รอ/คิว</span>
+          <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:var(--brand-blue)"></span>กำลังทำ</span>
+        </div>
+      </div>
+
+      <!-- ============ 5 ตัวเลขเจ้าของ (owner pulse) ============ -->
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+
+        <!-- ① งานเสี่ยงเลยกำหนด -->
+        <div class="card lbar lbar-red rounded-xl p-3.5">
+          <div class="flex items-start justify-between">
+            <p class="text-[12px] font-medium" style="color:var(--txt-mid)">งานเสี่ยงเลยกำหนด</p>
+            <span class="live h-2 w-2 rounded-full" style="background:var(--brand-red)"></span>
+          </div>
+          <p class="mt-2 text-4xl font-bold leading-none tnum" style="color:#ff6b62">3</p>
+          <div class="mt-2.5 flex items-center justify-between text-[11.5px]">
+            <span style="color:var(--txt-mid)">ใกล้ถึงใน 48 ชม.</span>
+            <span class="tag tag-yellow tnum">2</span>
+          </div>
+        </div>
+
+        <!-- ② ค้างร้านนอก -->
+        <div class="card lbar lbar-red rounded-xl p-3.5">
+          <p class="text-[12px] font-medium" style="color:var(--txt-mid)">ค้างร้านนอก</p>
+          <p class="mt-2 text-4xl font-bold leading-none tnum text-white">5</p>
+          <div class="mt-2.5 flex items-center justify-between text-[11.5px]">
+            <span style="color:var(--txt-mid)">เลยกำหนดรับ</span>
+            <span class="tag tag-red tnum">2</span>
+          </div>
+        </div>
+
+        <!-- ③ เสร็จวันนี้ -->
+        <div class="card lbar lbar-blue rounded-xl p-3.5">
+          <p class="text-[12px] font-medium" style="color:var(--txt-mid)">เสร็จวันนี้</p>
+          <p class="mt-2 text-4xl font-bold leading-none tnum text-white">8</p>
+          <div class="mt-2.5 flex items-center justify-between text-[11.5px]">
+            <span style="color:var(--txt-mid)">ค้างทั้งหมด</span>
+            <span class="tag tag-mute tnum">11 ขั้น</span>
+          </div>
+        </div>
+
+        <!-- ④ เงินรอเก็บ -->
+        <div class="card lbar lbar-yellow rounded-xl p-3.5">
+          <p class="text-[12px] font-medium" style="color:var(--txt-mid)">เงินรอเก็บ</p>
+          <p class="mt-2 text-4xl font-bold leading-none tnum" style="color:var(--brand-yellow)">7</p>
+          <div class="mt-2.5 flex items-center justify-between text-[11.5px]">
+            <span style="color:var(--txt-mid)">บิลเลยกำหนด · ใบเสนอค้าง</span>
+            <span class="tag tag-yellow tnum">6</span>
+          </div>
+        </div>
+
+        <!-- ⑤ งานติดหล่ม -->
+        <div class="card lbar lbar-yellow rounded-xl p-3.5">
+          <p class="text-[12px] font-medium" style="color:var(--txt-mid)">งานติดหล่ม</p>
+          <p class="mt-2 text-4xl font-bold leading-none tnum" style="color:var(--brand-yellow)">4</p>
+          <div class="mt-2.5 flex items-center justify-between text-[11.5px]">
+            <span style="color:var(--txt-mid)">เงียบเกิน 3 วัน</span>
+            <span class="tag tag-mute">ดูทั้งหมด ›</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ KPI strip (4 ตัวใหญ่ + spark) ============ -->
+      <div class="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <!-- ออเดอร์กำลังดำเนินการ -->
+        <div class="card rounded-xl p-3.5">
+          <div class="flex items-center justify-between">
+            <p class="text-[12px] font-medium" style="color:var(--txt-mid)">ออเดอร์กำลังดำเนินการ</p>
+            <svg class="h-4 w-4" style="color:#6ea6e6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 13h10l4-8H5.4M7 13L5.4 5M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z"/></svg>
+          </div>
+          <div class="mt-1.5 flex items-end justify-between">
+            <p class="text-3xl font-bold leading-none tnum text-white">24</p>
+            <div class="spark">
+              <i style="height:40%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:70%"></i><i style="height:62%"></i><i style="height:85%;background:var(--brand-blue)"></i><i style="height:100%;background:var(--brand-blue)"></i>
+            </div>
+          </div>
+        </div>
+        <!-- รายได้เดือนนี้ -->
+        <div class="card rounded-xl p-3.5">
+          <div class="flex items-center justify-between">
+            <p class="text-[12px] font-medium" style="color:var(--txt-mid)">รายได้เดือนนี้</p>
+            <svg class="h-4 w-4" style="color:#6ee7a8" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8M21 7v6h-6"/></svg>
+          </div>
+          <div class="mt-1.5 flex items-end justify-between">
+            <p class="text-3xl font-bold leading-none tnum text-white">฿487,200</p>
+            <span class="tag tag-green tnum">+12%</span>
+          </div>
+        </div>
+        <!-- ลูกค้าทั้งหมด -->
+        <div class="card rounded-xl p-3.5">
+          <div class="flex items-center justify-between">
+            <p class="text-[12px] font-medium" style="color:var(--txt-mid)">ลูกค้าทั้งหมด</p>
+            <svg class="h-4 w-4" style="color:#8bb6e6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z"/></svg>
+          </div>
+          <div class="mt-1.5 flex items-end justify-between">
+            <p class="text-3xl font-bold leading-none tnum text-white">142</p>
+            <span class="tag tag-blue tnum">+6 เดือนนี้</span>
+          </div>
+        </div>
+        <!-- บิลค้างชำระ -->
+        <div class="card lbar lbar-red rounded-xl p-3.5">
+          <div class="flex items-center justify-between">
+            <p class="text-[12px] font-medium" style="color:var(--txt-mid)">บิลค้างชำระ</p>
+            <svg class="h-4 w-4" style="color:#ff8a82" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 8v4m0 4h.01"/></svg>
+          </div>
+          <div class="mt-1.5 flex items-end justify-between">
+            <p class="text-3xl font-bold leading-none tnum" style="color:#ff6b62">7</p>
+            <span class="text-[11.5px] tnum" style="color:var(--txt-mid)">฿213,500</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ คิวพิมพ์ / คิวรีด / เสี่ยงสาย (3 คอลัมน์แน่น) ============ -->
+      <div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-3">
+
+        <!-- คิวพิมพ์ฟิล์ม DTF -->
+        <div class="card rounded-xl">
+          <div class="flex items-center justify-between border-b hairline-soft px-3.5 py-2.5">
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4" style="color:#6ea6e6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/></svg>
+              <h3 class="text-[13.5px] font-semibold text-white">คิวพิมพ์ฟิล์ม DTF</h3>
+            </div>
+            <span class="tag tag-yellow tnum">6 ใบรอ</span>
+          </div>
+          <div class="divide-y" style="--tw-divide-opacity:1; ">
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-blue">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0042 · ทีมเวียร์</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">DTF เต็มหลัง · 120 ตัว</p>
+              </div>
+              <div class="w-16 shrink-0">
+                <div class="pbar h-1.5"><span style="width:65%;background:var(--brand-blue)"></span></div>
+                <p class="mt-1 text-right text-[10px] tnum" style="color:var(--txt-lo)">รีด 78/120</p>
+              </div>
+            </div>
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-yellow">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0045 · สมศักดิ์สปอร์ต</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">DTF โลโก้อก · 60 ตัว</p>
+              </div>
+              <span class="tag tag-yellow shrink-0">รอฟิล์ม</span>
+            </div>
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-yellow">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0048 · ดาวรุ่ง</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">DTF 2 จุด · 200 ตัว</p>
+              </div>
+              <span class="tag tag-yellow shrink-0">เข้าคิว</span>
+            </div>
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-blue">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0050 · เดอะ ทีเชิ้ต</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">DTF เต็มหน้า · 48 ตัว</p>
+              </div>
+              <div class="w-16 shrink-0">
+                <div class="pbar h-1.5"><span style="width:30%;background:var(--brand-blue)"></span></div>
+                <p class="mt-1 text-right text-[10px] tnum" style="color:var(--txt-lo)">พิมพ์ 14/48</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- คิวรีด/แพ็ค -->
+        <div class="card rounded-xl">
+          <div class="flex items-center justify-between border-b hairline-soft px-3.5 py-2.5">
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4" style="color:#fdd45a" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+              <h3 class="text-[13.5px] font-semibold text-white">คิวรีด & แพ็ค</h3>
+            </div>
+            <span class="tag tag-blue tnum">5 งาน</span>
+          </div>
+          <div class="divide-y">
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-blue">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0039 · บ.อุ่นใจ การ์เมนท์</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">กำลังรีด · 150 ตัว</p>
+              </div>
+              <div class="w-16 shrink-0">
+                <div class="pbar h-1.5"><span style="width:88%;background:var(--brand-blue)"></span></div>
+                <p class="mt-1 text-right text-[10px] tnum" style="color:var(--txt-lo)">132/150</p>
+              </div>
+            </div>
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-blue">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0041 · ร้านลุงหนวด</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">กำลังแพ็ค · 80 ตัว</p>
+              </div>
+              <span class="tag tag-green shrink-0">ใกล้พร้อมส่ง</span>
+            </div>
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-mute">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0036 · รพ.สต. บ้านใหม่</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">ตรวจคุณภาพ · 300 ตัว</p>
+              </div>
+              <span class="tag tag-mute shrink-0">QC</span>
+            </div>
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-green" style="--x:0">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0033 · บ.โปรเกียร์</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">แพ็คเสร็จ · 95 ตัว</p>
+              </div>
+              <span class="tag tag-green shrink-0">พร้อมส่ง</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ออเดอร์เสี่ยงสาย -->
+        <div class="card rounded-xl" style="box-shadow: inset 0 0 0 1px rgba(231,47,39,.18);">
+          <div class="flex items-center justify-between border-b hairline-soft px-3.5 py-2.5">
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4" style="color:#ff8a82" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9l-8 14A2 2 0 004 21h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/></svg>
+              <h3 class="text-[13.5px] font-semibold text-white">ออเดอร์เสี่ยงสาย</h3>
+            </div>
+            <span class="live tag tag-red tnum">3 ด่วน</span>
+          </div>
+          <div class="divide-y">
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-red">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0028 · บ.ทีมเวียร์</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">กำหนดส่งเมื่อวาน · รอฟิล์ม</p>
+              </div>
+              <span class="tag tag-red shrink-0 tnum">เกิน 1 วัน</span>
+            </div>
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-red">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0031 · โรงเรียนดาวรุ่ง</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">สกรีน outsource ยังไม่กลับ</p>
+              </div>
+              <span class="tag tag-red shrink-0 tnum">เกิน 2 วัน</span>
+            </div>
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-red">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0035 · ร้านกีฬาสมศักดิ์</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">ครบกำหนดวันนี้ · ยังกำลังผลิต</p>
+              </div>
+              <span class="tag tag-yellow shrink-0">วันนี้</span>
+            </div>
+            <div class="row-hover flex items-center gap-3 px-3.5 py-2 lbar lbar-yellow">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-white">ORD-2606-0037 · บ.อุ่นใจ การ์เมนท์</p>
+                <p class="text-[11px]" style="color:var(--txt-lo)">ถึงใน 1 วัน · รออนุมัติแบบ</p>
+              </div>
+              <span class="tag tag-yellow shrink-0">พรุ่งนี้</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ตารางออเดอร์ล่าสุด + แผงข้าง (สถานะ + top ลูกค้า) ============ -->
+      <div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-3">
+
+        <!-- ตารางออเดอร์ล่าสุด (กว้าง 2 คอลัมน์) -->
+        <div class="card rounded-xl xl:col-span-2">
+          <div class="flex items-center justify-between border-b hairline-soft px-3.5 py-2.5">
+            <h3 class="text-[13.5px] font-semibold text-white">ออเดอร์ล่าสุด</h3>
+            <a href="#" class="text-[12px] font-medium" style="color:#6ea6e6">ดูทั้งหมด ›</a>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[640px] text-left text-[12.5px]">
+              <thead>
+                <tr class="text-[11px] uppercase tracking-wide" style="color:var(--txt-lo)">
+                  <th class="px-3.5 py-2 font-medium">เลขที่</th>
+                  <th class="px-3.5 py-2 font-medium">ลูกค้า / งาน</th>
+                  <th class="px-3.5 py-2 text-right font-medium">จำนวน</th>
+                  <th class="px-3.5 py-2 text-right font-medium">ยอด</th>
+                  <th class="px-3.5 py-2 font-medium">สถานะ</th>
+                  <th class="px-3.5 py-2 font-medium">กำหนดส่ง</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <tr class="row-hover lbar lbar-red">
+                  <td class="px-3.5 py-2.5 font-medium tnum text-white">ORD-2606-0028</td>
+                  <td class="px-3.5 py-2.5"><p class="font-medium text-white">บริษัท ทีมเวียร์ จำกัด</p><p class="text-[11px]" style="color:var(--txt-lo)">DTF เต็มหลัง</p></td>
+                  <td class="px-3.5 py-2.5 text-right tnum" style="color:var(--txt-mid)">120</td>
+                  <td class="px-3.5 py-2.5 text-right tnum font-medium text-white">฿42,000</td>
+                  <td class="px-3.5 py-2.5"><span class="tag tag-red">เกินกำหนด</span></td>
+                  <td class="px-3.5 py-2.5 tnum" style="color:#ff8a82">13 มิ.ย.</td>
+                </tr>
+                <tr class="row-hover lbar lbar-yellow">
+                  <td class="px-3.5 py-2.5 font-medium tnum text-white">ORD-2606-0045</td>
+                  <td class="px-3.5 py-2.5"><p class="font-medium text-white">ร้านกีฬา สมศักดิ์</p><p class="text-[11px]" style="color:var(--txt-lo)">DTF โลโก้อก</p></td>
+                  <td class="px-3.5 py-2.5 text-right tnum" style="color:var(--txt-mid)">60</td>
+                  <td class="px-3.5 py-2.5 text-right tnum font-medium text-white">฿15,600</td>
+                  <td class="px-3.5 py-2.5"><span class="tag tag-yellow">รอฟิล์ม</span></td>
+                  <td class="px-3.5 py-2.5 tnum" style="color:var(--txt-mid)">16 มิ.ย.</td>
+                </tr>
+                <tr class="row-hover lbar lbar-yellow">
+                  <td class="px-3.5 py-2.5 font-medium tnum text-white">ORD-2606-0046</td>
+                  <td class="px-3.5 py-2.5"><p class="font-medium text-white">โรงเรียนอนุบาลดาวรุ่ง</p><p class="text-[11px]" style="color:var(--txt-lo)">สกรีน (outsource)</p></td>
+                  <td class="px-3.5 py-2.5 text-right tnum" style="color:var(--txt-mid)">200</td>
+                  <td class="px-3.5 py-2.5 text-right tnum font-medium text-white">฿38,000</td>
+                  <td class="px-3.5 py-2.5"><span class="tag tag-yellow">รออนุมัติแบบ</span></td>
+                  <td class="px-3.5 py-2.5 tnum" style="color:var(--txt-mid)">18 มิ.ย.</td>
+                </tr>
+                <tr class="row-hover lbar lbar-blue">
+                  <td class="px-3.5 py-2.5 font-medium tnum text-white">ORD-2606-0039</td>
+                  <td class="px-3.5 py-2.5"><p class="font-medium text-white">บ.อุ่นใจ การ์เมนท์</p><p class="text-[11px]" style="color:var(--txt-lo)">DTF 2 จุด</p></td>
+                  <td class="px-3.5 py-2.5 text-right tnum" style="color:var(--txt-mid)">150</td>
+                  <td class="px-3.5 py-2.5 text-right tnum font-medium text-white">฿31,500</td>
+                  <td class="px-3.5 py-2.5"><span class="tag tag-blue">กำลังผลิต</span></td>
+                  <td class="px-3.5 py-2.5 tnum" style="color:var(--txt-mid)">19 มิ.ย.</td>
+                </tr>
+                <tr class="row-hover lbar lbar-blue">
+                  <td class="px-3.5 py-2.5 font-medium tnum text-white">ORD-2606-0050</td>
+                  <td class="px-3.5 py-2.5"><p class="font-medium text-white">บ.เดอะ ทีเชิ้ต</p><p class="text-[11px]" style="color:var(--txt-lo)">DTF เต็มหน้า</p></td>
+                  <td class="px-3.5 py-2.5 text-right tnum" style="color:var(--txt-mid)">48</td>
+                  <td class="px-3.5 py-2.5 text-right tnum font-medium text-white">฿12,480</td>
+                  <td class="px-3.5 py-2.5"><span class="tag tag-blue">กำลังผลิต</span></td>
+                  <td class="px-3.5 py-2.5 tnum" style="color:var(--txt-mid)">20 มิ.ย.</td>
+                </tr>
+                <tr class="row-hover lbar lbar-green">
+                  <td class="px-3.5 py-2.5 font-medium tnum text-white">ORD-2606-0033</td>
+                  <td class="px-3.5 py-2.5"><p class="font-medium text-white">บ.โปรเกียร์ สปอร์ต</p><p class="text-[11px]" style="color:var(--txt-lo)">DTF โลโก้</p></td>
+                  <td class="px-3.5 py-2.5 text-right tnum" style="color:var(--txt-mid)">95</td>
+                  <td class="px-3.5 py-2.5 text-right tnum font-medium text-white">฿22,800</td>
+                  <td class="px-3.5 py-2.5"><span class="tag tag-green">พร้อมส่ง</span></td>
+                  <td class="px-3.5 py-2.5 tnum" style="color:var(--txt-mid)">21 มิ.ย.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- แผงข้าง: สถานะออเดอร์ + ลูกค้ายอดสูง -->
+        <div class="flex flex-col gap-3">
+          <!-- สถานะออเดอร์ -->
+          <div class="card rounded-xl">
+            <div class="border-b hairline-soft px-3.5 py-2.5">
+              <h3 class="text-[13.5px] font-semibold text-white">สถานะออเดอร์</h3>
+            </div>
+            <div class="space-y-2.5 px-3.5 py-3">
+              <div>
+                <div class="mb-1 flex items-center justify-between text-[12px]">
+                  <span style="color:var(--txt-mid)">กำลังผลิต</span><span class="tnum font-medium text-white">9</span>
+                </div>
+                <div class="pbar h-1.5"><span style="width:75%;background:var(--brand-blue)"></span></div>
+              </div>
+              <div>
+                <div class="mb-1 flex items-center justify-between text-[12px]">
+                  <span style="color:var(--txt-mid)">รอคิวผลิต</span><span class="tnum font-medium text-white">6</span>
+                </div>
+                <div class="pbar h-1.5"><span style="width:50%;background:var(--brand-yellow)"></span></div>
+              </div>
+              <div>
+                <div class="mb-1 flex items-center justify-between text-[12px]">
+                  <span style="color:var(--txt-mid)">กำลังออกแบบ</span><span class="tnum font-medium text-white">4</span>
+                </div>
+                <div class="pbar h-1.5"><span style="width:33%;background:var(--brand-yellow)"></span></div>
+              </div>
+              <div>
+                <div class="mb-1 flex items-center justify-between text-[12px]">
+                  <span style="color:var(--txt-mid)">พร้อมจัดส่ง</span><span class="tnum font-medium text-white">3</span>
+                </div>
+                <div class="pbar h-1.5"><span style="width:25%;background:#22c55e"></span></div>
+              </div>
+              <div>
+                <div class="mb-1 flex items-center justify-between text-[12px]">
+                  <span style="color:var(--txt-mid)">พักงาน / เกินกำหนด</span><span class="tnum font-medium" style="color:#ff8a82">2</span>
+                </div>
+                <div class="pbar h-1.5"><span style="width:17%;background:var(--brand-red)"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ลูกค้ายอดสั่งสูงสุด -->
+          <div class="card rounded-xl">
+            <div class="border-b hairline-soft px-3.5 py-2.5">
+              <h3 class="text-[13.5px] font-semibold text-white">ลูกค้ายอดสั่งสูงสุด</h3>
+            </div>
+            <div class="divide-y">
+              <div class="row-hover flex items-center gap-3 px-3.5 py-2">
+                <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white" style="background:var(--brand-blue)">1</span>
+                <div class="min-w-0 flex-1"><p class="truncate text-[12.5px] font-medium text-white">บริษัท ทีมเวียร์ จำกัด</p><p class="text-[11px]" style="color:var(--txt-lo)">18 ออเดอร์</p></div>
+                <span class="tnum text-[12.5px] font-semibold text-white">฿312,000</span>
+              </div>
+              <div class="row-hover flex items-center gap-3 px-3.5 py-2">
+                <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white" style="background:#2a5688">2</span>
+                <div class="min-w-0 flex-1"><p class="truncate text-[12.5px] font-medium text-white">บ.อุ่นใจ การ์เมนท์</p><p class="text-[11px]" style="color:var(--txt-lo)">12 ออเดอร์</p></div>
+                <span class="tnum text-[12.5px] font-semibold text-white">฿204,500</span>
+              </div>
+              <div class="row-hover flex items-center gap-3 px-3.5 py-2">
+                <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold" style="background:var(--bg-3); color:var(--txt-mid)">3</span>
+                <div class="min-w-0 flex-1"><p class="truncate text-[12.5px] font-medium text-white">ร้านกีฬา สมศักดิ์</p><p class="text-[11px]" style="color:var(--txt-lo)">9 ออเดอร์</p></div>
+                <span class="tnum text-[12.5px] font-semibold text-white">฿156,800</span>
+              </div>
+              <div class="row-hover flex items-center gap-3 px-3.5 py-2">
+                <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold" style="background:var(--bg-3); color:var(--txt-mid)">4</span>
+                <div class="min-w-0 flex-1"><p class="truncate text-[12.5px] font-medium text-white">โรงเรียนอนุบาลดาวรุ่ง</p><p class="text-[11px]" style="color:var(--txt-lo)">7 ออเดอร์</p></div>
+                <span class="tnum text-[12.5px] font-semibold text-white">฿98,400</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="mt-4 text-center text-[11px]" style="color:var(--txt-lo)">Anajak Print ERP · ทิศ B ห้องคุมโรงงาน (mockup ก้อน 6) · ข้อมูลตัวอย่างสำหรับเทียบทิศ UI</p>
+    </main>
+  </div>
+</div>
+
+<script>
+  function toggleDrawer() {
+    var d = document.getElementById('drawer');
+    var s = document.getElementById('scrim');
+    var closed = d.classList.contains('drawer-closed');
+    if (closed) { d.classList.remove('drawer-closed'); s.classList.remove('hidden'); }
+    else { d.classList.add('drawer-closed'); s.classList.add('hidden'); }
+  }
+</script>
+</body>
+</html>

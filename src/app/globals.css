@@ -42,6 +42,35 @@
   --color-red-900: #85211b;
   --color-red-950: #480e0a;
 
+  /* ramp yellow สร้างจากสีแบรนด์เหลือง #fec91b — anchor ที่ 500
+     ปลายสว่าง (50-500) = เหลืองแบรนด์ · ปลายเข้ม (600-950) = ทองเข้มอ่านออกบนพื้นขาว
+     (เข้มพอๆ Tailwind yellow เดิม — ไฟล์ที่ใช้ text-yellow-700/bg-yellow-600 ไม่ regress)
+     + mirror ลง amber-* ด้วย: ทั่วระบบใช้ amber เป็นสี "รอ/เตือน" 81 จุด/34 ไฟล์ —
+     ชี้สเกลเดียวกันให้ "เหลืองแบรนด์ถูกใช้จริงทั้งระบบ" โดยไม่ต้องแตะ markup (เลียน blue/red) */
+  --color-yellow-50: #fffaeb;
+  --color-yellow-100: #fef2c8;
+  --color-yellow-200: #fde291;
+  --color-yellow-300: #fdd451;
+  --color-yellow-400: #fece2e;
+  --color-yellow-500: #fec91b;
+  --color-yellow-600: #cf9209;
+  --color-yellow-700: #a3720a;
+  --color-yellow-800: #855b0e;
+  --color-yellow-900: #6f4b11;
+  --color-yellow-950: #412a07;
+
+  --color-amber-50: #fffaeb;
+  --color-amber-100: #fef2c8;
+  --color-amber-200: #fde291;
+  --color-amber-300: #fdd451;
+  --color-amber-400: #fece2e;
+  --color-amber-500: #fec91b;
+  --color-amber-600: #cf9209;
+  --color-amber-700: #a3720a;
+  --color-amber-800: #855b0e;
+  --color-amber-900: #6f4b11;
+  --color-amber-950: #412a07;
+
   /* Surface — Apple-style soft neutral page, pure white surface */
   --color-bg: #f5f5f7;
   --color-surface: #ffffff;
@@ -175,6 +204,29 @@ body {
 .surface-hover {
   transition: background-color 150ms ease, border-color 150ms ease,
     transform 150ms ease;
+}
+
+/* ============================================================
+   การ์ดมาตรฐาน (ก้อน 6 / ทิศ A) — เงานุ่มลอย + ring 0.5px แทนเส้นขอบแข็ง
+   ใช้แทน `border border-slate-200 bg-white` ทั่วระบบ ให้ทุกการ์ดลุคเดียวกัน
+   ============================================================ */
+.card-surface {
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+.dark .card-surface {
+  background-color: #1c1c1e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+/* ยกเงาเมื่อ hover — สำหรับการ์ดที่กดได้ */
+.card-surface-hover {
+  transition: box-shadow 150ms ease;
+}
+.card-surface-hover:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06), 0 0 0 0.5px rgba(0, 0, 0, 0.055);
+}
+.dark .card-surface-hover:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
 }
 
 /* ============================================================

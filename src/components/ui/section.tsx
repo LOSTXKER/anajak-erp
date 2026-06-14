@@ -40,8 +40,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
       <section
         ref={ref}
         className={cn(
-          bordered &&
-            "rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/60 dark:bg-slate-900/80",
+          bordered && "card-surface rounded-2xl",
           className
         )}
         {...props}

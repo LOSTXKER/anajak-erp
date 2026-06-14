@@ -27,7 +27,7 @@ export function StatCard({
   change,
 }: StatCardProps) {
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white p-5 dark:border-slate-800/60 dark:bg-slate-900/80">
+    <div className="card-surface rounded-2xl p-5">
       <div className="flex items-center justify-between">
         <p className="text-[12.5px] font-medium text-slate-500 dark:text-slate-400">
           {title}
