@@ -442,6 +442,7 @@ model Order {
   items        OrderItem[]
   fees         OrderFee[]
   revisions    OrderRevision[]
+  changeOrders ChangeOrder[]
   designs      DesignVersion[]
   productions  Production[]
   invoices     Invoice[]
@@ -618,6 +619,27 @@ model OrderRevision {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_revisions")
+}
+
+// ใบแก้ไขออเดอร์ (Change Order) — ออเดอร์อนุมัติแล้ว (DESIGN_APPROVED/PRODUCTION_QUEUE)
+// แก้รายการ/ราคาผ่านใบนี้เท่านั้น · มีเลขเอกสาร CO + บันทึกยอดเก่า→ใหม่ + เหตุผล
+// createdById เก็บ id เฉยๆ (ไม่ผูก relation User — เลียน OrderRevision.changedBy)
+model ChangeOrder {
+  id              String   @id @default(cuid())
+  changeNumber    String   @unique @map("change_number") // CO-YYMM-NNNN
+  orderId         String   @map("order_id")
+  reason          String // เหตุผลการแก้ไข (บังคับกรอก)
+  summary         String? // อะไรเปลี่ยน เช่น "แก้ไขรายการ + ค่าธรรมเนียม"
+  oldTotal        Decimal  @map("old_total") @db.Decimal(12, 2)
+  newTotal        Decimal  @map("new_total") @db.Decimal(12, 2)
+  invoicedWarning Boolean  @default(false) @map("invoiced_warning") // ออกใบกำกับ/มัดจำไปแล้วตอนแก้ → ต้องออกใบลดหนี้/เพิ่มหนี้แยก
+  createdById     String   @map("created_by_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("change_orders")
 }
 
 // ============================================================

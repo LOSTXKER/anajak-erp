@@ -12,7 +12,8 @@ export type DocType =
   | "CREDIT_NOTE"
   | "DEBIT_NOTE"
   | "BILLING_NOTE"
-  | "PRINT_RUN";
+  | "PRINT_RUN"
+  | "CHANGE_ORDER";
 
 const DOC_PREFIXES: Record<DocType, string> = {
   ORDER: "ORD",
@@ -24,6 +25,7 @@ const DOC_PREFIXES: Record<DocType, string> = {
   DEBIT_NOTE: "DN",
   BILLING_NOTE: "BN",
   PRINT_RUN: "FR", // รอบพิมพ์ฟิล์ม (Film Run) — เลขอ้างบนป้ายฟิล์ม/หน้าจอช่างพิมพ์
+  CHANGE_ORDER: "CO", // ใบแก้ไขออเดอร์ (Change Order) — ออเดอร์อนุมัติแล้วแก้ผ่านใบนี้
 };
 
 export function currentPeriod(date = new Date()): string {
