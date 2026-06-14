@@ -45,6 +45,10 @@ const createPrismaClient = () =>
       orderFee: {
         amount: { needs: { amount: true }, compute: (f) => f.amount.toNumber() },
       },
+      changeOrder: {
+        oldTotal: { needs: { oldTotal: true }, compute: (c) => c.oldTotal.toNumber() },
+        newTotal: { needs: { newTotal: true }, compute: (c) => c.newTotal.toNumber() },
+      },
       serviceCatalog: {
         defaultPrice: { needs: { defaultPrice: true }, compute: (s) => s.defaultPrice.toNumber() },
       },

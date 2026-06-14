@@ -3,3 +3,4 @@ export { OrderStatusBar } from "./order-status-bar";
 export { OrderSidebar } from "./order-sidebar";
 export { OrderFilesCard } from "./order-files-card";
 export { OrderRevisions } from "./order-revisions";
+export { OrderChangeOrders } from "./order-change-orders";

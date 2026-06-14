@@ -47,6 +47,7 @@ import {
   OrderSidebar,
   OrderFilesCard,
   OrderRevisions,
+  OrderChangeOrders,
 } from "@/components/orders/detail";
 
 // ============================================================
@@ -551,6 +552,8 @@ export default function OrderDetailPage({
             customerPhone={order.customer?.phone ?? undefined}
             customerHasAddress={!!order.customer?.address}
           />
+
+          <OrderChangeOrders orderId={id} />
 
           <OrderRevisions revisions={order.revisions ?? []} />
         </div>

@@ -1292,15 +1292,26 @@ export const orderRouter = router({
       return { ...result.changeOrder, invoicedWarning };
     }),
 
-  // ประวัติใบแก้ไขออเดอร์ของออเดอร์
+  // ประวัติใบแก้ไขออเดอร์ของออเดอร์ — resolve ชื่อคนออกใบ (createdById เก็บ id ดิบ
+  // แบบ OrderRevision.changedBy ไม่ผูก relation) → ชื่อไทยฝั่ง server เหมือนประวัติการเปลี่ยนแปลง
   changeOrders: protectedProcedure
     .use(orderOps)
     .input(byIdInput)
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.changeOrder.findMany({
+      const changeOrders = await ctx.prisma.changeOrder.findMany({
         where: { orderId: input.id },
         orderBy: { createdAt: "desc" },
       });
+      const creatorIds = [...new Set(changeOrders.map((c) => c.createdById))];
+      const creators = await ctx.prisma.user.findMany({
+        where: { id: { in: creatorIds } },
+        select: { id: true, name: true },
+      });
+      const nameById = new Map(creators.map((u) => [u.id, u.name]));
+      return changeOrders.map((c) => ({
+        ...c,
+        createdByName: nameById.get(c.createdById) ?? c.createdById,
+      }));
     }),
 
   // ค่าแก้แบบเกินโควตา (ก้อน 4 — เบสเคาะ 2026-06-14) — พนักงานกดเองเมื่อจะคิด ("มันแล้วแต่"

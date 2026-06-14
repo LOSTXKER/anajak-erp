@@ -19,6 +19,7 @@ const CHANGE_TYPE_LABELS: Record<string, string> = {
   DESIGN: "งานออกแบบ",
   QUOTATION: "ใบเสนอราคา",
   INFO: "ข้อมูลออเดอร์",
+  CHANGE_ORDER: "ใบแก้ไข",
 };
 
 const SHOW_COUNT = 5;
