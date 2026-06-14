@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Loader2,
@@ -212,9 +213,9 @@ export default function QuoteConfirmPage({
         <Card>
           <CardContent className="space-y-3 p-5">
             {(accept.error || reject.error) && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <Alert variant="error">
                 {accept.error?.message || reject.error?.message}
-              </div>
+              </Alert>
             )}
             {!showReject ? (
               <>
@@ -222,9 +223,10 @@ export default function QuoteConfirmPage({
                   กรุณาตรวจสอบรายการและราคา หากถูกต้องกด “ยืนยันใบเสนอ” เพื่อให้เราเริ่มงานได้เลยค่ะ
                 </p>
                 <Button
+                  size="lg"
                   onClick={() => accept.mutate({ token })}
                   disabled={isPending}
-                  className="w-full gap-1.5 py-6 text-base"
+                  className="w-full gap-1.5"
                 >
                   {accept.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
                   ยืนยันใบเสนอ

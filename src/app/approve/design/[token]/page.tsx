@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { isImageUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -196,9 +197,9 @@ export default function DesignApprovalPage({
               </div>
             )}
             {d.designerNotes && (
-              <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">
+              <Alert variant="info">
                 <strong>โน้ตจากดีไซเนอร์:</strong> {d.designerNotes}
-              </div>
+              </Alert>
             )}
           </CardContent>
         </Card>

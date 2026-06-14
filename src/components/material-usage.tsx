@@ -187,7 +187,7 @@ export function MaterialUsage({
   // ---------------------------------------------------------------------------
 
   return (
-    <Card className="border-blue-200 dark:border-blue-900">
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">

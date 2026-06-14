@@ -548,14 +548,16 @@ export default function WhtRegisterPage() {
                     <Paperclip className="h-4 w-4 shrink-0" />
                     <span className="truncate">เปิดไฟล์ที่แนบ</span>
                   </a>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => setFileUrl("")}
-                    className="rounded p-1 text-slate-400 transition-colors hover:text-red-600"
+                    className="shrink-0 text-slate-400 hover:text-red-600"
                     title="เอาไฟล์ออก"
                   >
                     <X className="h-3.5 w-3.5" />
-                  </button>
+                  </Button>
                 </div>
               )}
               {markTarget && (

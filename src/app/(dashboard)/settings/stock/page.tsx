@@ -219,8 +219,10 @@ export default function StockSettingsPage() {
                         placeholder="sk_xxxxxxxxxxxxxxxx"
                         className="pr-10 font-mono text-sm"
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => setShowApiKey(!showApiKey)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                       >
@@ -229,7 +231,7 @@ export default function StockSettingsPage() {
                         ) : (
                           <Eye className="h-4 w-4" />
                         )}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">

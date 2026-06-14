@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -188,16 +189,17 @@ export default function ProductDetailPage({
               </p>
 
               {deleteProduct.isError && (
-                <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                <Alert variant="error" className="mt-3 text-xs">
                   {deleteProduct.error?.message}
-                </div>
+                </Alert>
               )}
 
               <div className="mt-5 flex flex-col gap-2">
                 <Button
+                  variant="destructive"
                   onClick={handleDelete}
                   disabled={deleteProduct.isPending}
-                  className="w-full bg-red-600 text-white hover:bg-red-700"
+                  className="w-full"
                 >
                   {deleteProduct.isPending ? "กำลังลบ..." : "ยืนยันลบ"}
                 </Button>

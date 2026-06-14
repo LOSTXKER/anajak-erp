@@ -4,6 +4,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -403,18 +404,17 @@ export default function ServicesPage() {
                             <div className="flex justify-end gap-1">
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon-sm"
                                 onClick={handleSaveEdit}
                                 disabled={updateItem.isPending}
-                                className="h-7 w-7 p-0 text-green-600 hover:text-green-700"
+                                className="text-green-600 hover:text-green-700"
                               >
                                 <Check className="h-3.5 w-3.5" />
                               </Button>
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon-sm"
                                 onClick={() => setEditingItem(null)}
-                                className="h-7 w-7 p-0"
                               >
                                 <X className="h-3.5 w-3.5" />
                               </Button>
@@ -423,18 +423,18 @@ export default function ServicesPage() {
                             <div className="flex justify-end gap-1">
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon-sm"
                                 onClick={() => startEdit(item)}
-                                className="h-7 w-7 p-0 text-slate-500 hover:text-blue-600"
+                                className="text-slate-500 hover:text-blue-600"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon-sm"
                                 onClick={() => handleDelete(item.id, item.name)}
                                 disabled={deleteItem.isPending}
-                                className="h-7 w-7 p-0 text-slate-500 hover:text-red-600"
+                                className="text-slate-500 hover:text-red-600"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -451,11 +451,11 @@ export default function ServicesPage() {
 
           {/* Error display */}
           {(createItem.isError || updateItem.isError || deleteItem.isError) && (
-            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <Alert variant="error" className="mt-3">
               {createItem.error?.message ||
                 updateItem.error?.message ||
                 deleteItem.error?.message}
-            </div>
+            </Alert>
           )}
         </CardContent>
       </Card>
