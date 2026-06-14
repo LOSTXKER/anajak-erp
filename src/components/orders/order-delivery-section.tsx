@@ -595,7 +595,7 @@ export function OrderDeliverySection({
                   รายการรอบนี้ (นับยืนยัน)
                 </label>
                 {totalRemaining === 0 ? (
-                  <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                  <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950/40 dark:text-green-400">
                     ของครบทุกใบส่งแล้ว
                   </p>
                 ) : (

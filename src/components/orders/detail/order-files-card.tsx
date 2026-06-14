@@ -210,8 +210,10 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
     // ปุ่มโชว์ตลอด (ห้าม opacity-0 — บนจอสัมผัสมองไม่เห็นแต่กดโดน) + confirm
     // ก่อนลบจริงตามมาตรฐาน repo — ลบ Attachment row คือลบถาวร
     return (
-      <button
+      <Button
         type="button"
+        variant="destructive"
+        size="icon-sm"
         onClick={async () => {
           if (
             !(await confirm({
@@ -224,11 +226,11 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
           deleteAttachment.mutate({ id: att.id });
         }}
         disabled={deleteAttachment.isPending}
-        className="absolute -right-1.5 -top-1.5 z-10 rounded-full bg-red-500 p-1 text-white shadow-sm hover:bg-red-600"
+        className="absolute -right-1.5 -top-1.5 z-10 h-6 w-6 rounded-full shadow-sm"
         title="ลบไฟล์"
       >
         <Trash2 className="h-3 w-3" />
-      </button>
+      </Button>
     );
   }
 
@@ -302,14 +304,16 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
                         ? `หมดอายุ ${formatDate(linkData.expiresAt)}`
                         : ""}
                     </span>
-                    <button
+                    <Button
                       type="button"
-                      className="text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-[11px]"
                       onClick={() => generateLink.mutate({ orderId })}
                       disabled={generateLink.isPending}
                     >
                       สร้างลิงก์ใหม่ (ลิงก์เดิมจะใช้ไม่ได้)
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (

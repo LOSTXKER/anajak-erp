@@ -277,7 +277,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderIt
                                         <Badge variant={
                                           prod.itemSource === "FROM_STOCK" ? "default" :
                                           prod.itemSource === "CUSTOMER_PROVIDED" ? "warning" :
-                                          prod.itemSource === "CUSTOM_MADE" ? "purple" : "default"
+                                          prod.itemSource === "CUSTOM_MADE" ? "accent" : "default"
                                         }>
                                           {prod.itemSource === "FROM_STOCK" ? "จากสต็อก" :
                                            prod.itemSource === "CUSTOM_MADE" ? "ตัดเย็บใหม่" :

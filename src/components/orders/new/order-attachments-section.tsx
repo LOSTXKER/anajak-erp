@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { uploadFile } from "@/lib/supabase";
@@ -92,13 +93,15 @@ export function OrderAttachmentsSection({
                     <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
                   </div>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="destructive"
+                  size="icon"
                   onClick={() => onImagesChange((prev) => prev.filter((_, i) => i !== idx))}
-                  className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-red-600"
+                  className="absolute -right-1.5 -top-1.5 h-5 w-5 rounded-full p-0.5 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
                 >
                   <X className="h-3 w-3" />
-                </button>
+                </Button>
                 <NativeSelect
                   value={img.printPosition || ""}
                   onChange={(e) => {

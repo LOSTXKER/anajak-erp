@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { SyncDialog } from "@/components/sync-dialog";
+import { SettingsPageHeader } from "@/components/settings-page-header";
 
 // ─── Setting Keys ──────────────────────────────────────────
 const STOCK_API_URL_KEY = "stock_api_url";
@@ -163,14 +164,10 @@ export default function StockSettingsPage() {
   return (
     <div className="space-y-6">
       {/* ─── Header ──────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
-          เชื่อมต่อ Anajak Stock
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          ตั้งค่าการเชื่อมต่อและ Sync สินค้าจากระบบ Stock
-        </p>
-      </div>
+      <SettingsPageHeader
+        title="เชื่อมต่อ Anajak Stock"
+        description="ตั้งค่าการเชื่อมต่อและ Sync สินค้าจากระบบ Stock"
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* ─── Connection Section ─────────────────────────────── */}

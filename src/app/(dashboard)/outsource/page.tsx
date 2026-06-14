@@ -457,13 +457,15 @@ export default function OutsourcePage() {
                     <span className="text-xs text-slate-500">
                       {v._count.outsourceOrders} งาน
                     </span>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={() => openEditVendor(v)}
-                      className="rounded p-1 text-slate-400 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                      className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
                       title="แก้ไขร้าน"
                     >
                       <Pencil className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   </div>
                 </li>
               ))}

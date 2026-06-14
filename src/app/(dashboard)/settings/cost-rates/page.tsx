@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
-import { Calculator, Save, Loader2 } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { SettingsPageHeader } from "@/components/settings-page-header";
 import type { CostRates } from "@/lib/cost-rates";
 import {
   EMPTY_COST_RATES,
@@ -86,17 +87,10 @@ export default function CostRatesSettingsPage() {
   const sampleLaborOverhead = estimateLaborOverhead(SAMPLE_QTY, draft);
 
   const header = (
-    <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-        <Calculator className="h-5 w-5" />
-      </div>
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900 dark:text-white">เรตต้นทุนกลาง</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          ตั้งครั้งเดียว ระบบคูณเองทุกออเดอร์ — ใช้ดูกำไรขั้นต้นโดยประมาณตอนตีราคา ไม่ใช่บัญชีจริง
-        </p>
-      </div>
-    </div>
+    <SettingsPageHeader
+      title="เรตต้นทุนกลาง"
+      description="ตั้งครั้งเดียว ระบบคูณเองทุกออเดอร์ — ใช้ดูกำไรขั้นต้นโดยประมาณตอนตีราคา ไม่ใช่บัญชีจริง"
+    />
   );
 
   if (me && !canView) {

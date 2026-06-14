@@ -210,7 +210,7 @@ export default function FilmStockPage() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-sm dark:border-slate-700/60 dark:bg-slate-900"
+                className="card-surface rounded-2xl p-3.5"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-base font-semibold text-slate-900 dark:text-white">

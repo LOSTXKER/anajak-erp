@@ -298,12 +298,12 @@ export function ProductTableRow({
         <td className="py-2 pr-1 align-middle">
           <div className="flex items-center gap-0.5">
             <div className="flex flex-col">
-              <button type="button" onClick={() => moveProduct(-1)} disabled={prodIdx === 0} className="text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
+              <Button type="button" variant="ghost" size="icon" onClick={() => moveProduct(-1)} disabled={prodIdx === 0} className="h-6 w-6 text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
                 <ChevronUp className="h-3.5 w-3.5" />
-              </button>
-              <button type="button" onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} className="text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
+              </Button>
+              <Button type="button" variant="ghost" size="icon" onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} className="h-6 w-6 text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
                 <ChevronDown className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </div>
             <Button type="button" variant="ghost" size="icon" onClick={removeProduct} className="h-7 w-7 text-red-400 hover:text-red-600">
               <Trash2 className="h-3.5 w-3.5" />

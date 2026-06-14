@@ -14,6 +14,7 @@ import { Plus, Trash2, Pencil, X, Check, Settings } from "lucide-react";
 import { SettingsPageHeader } from "@/components/settings-page-header";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PRICING_TYPE_LABELS } from "@/types/order-form";
 
@@ -152,25 +153,15 @@ export default function ServicesPage() {
       <SettingsPageHeader title="จัดการบริการ" description="ตั้งค่ารายการบริการเสริม, การสกรีน, และค่าบริการ" />
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => {
-              setActiveTab(tab.key);
-              setShowAddForm(false);
-              setEditingItem(null);
-            }}
-            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === tab.key
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        value={activeTab}
+        onChange={(value) => {
+          setActiveTab(value);
+          setShowAddForm(false);
+          setEditingItem(null);
+        }}
+        options={tabs.map((tab) => ({ value: tab.key, label: tab.label }))}
+      />
 
       {/* Content */}
       <Card>
@@ -196,7 +187,7 @@ export default function ServicesPage() {
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="mb-4 space-y-3 rounded-xl border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-900 dark:bg-blue-950/30"
+              className="card-surface mb-4 space-y-3 rounded-2xl p-4"
             >
               <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
                 เพิ่มรายการใหม่

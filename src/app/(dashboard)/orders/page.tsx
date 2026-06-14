@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -379,12 +380,9 @@ export default function OrdersPage() {
 
             {activeFilterCount > 0 && (
               <div className="flex justify-end">
-                <button
-                  onClick={clearFilters}
-                  className="text-xs font-medium text-slate-500 hover:text-red-600 dark:text-slate-400"
-                >
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
                   ล้างตัวกรองทั้งหมด
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -435,9 +433,9 @@ export default function OrdersPage() {
                   <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                     {order.title}
                     {order.orderType === "CUSTOM" && (
-                      <span className="ml-1.5 rounded bg-blue-50 px-1 text-[10px] font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                      <Badge variant="accent" size="sm" className="ml-1.5">
                         Custom
-                      </span>
+                      </Badge>
                     )}
                   </p>
                 </div>

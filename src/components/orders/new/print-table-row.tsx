@@ -80,7 +80,7 @@ export function PrintTableRow({
           {imageUrl ? (
             <div className="group/img relative inline-block">
               <img src={imageUrl} alt={`ลาย ${printIdx + 1}`} className="h-8 w-8 cursor-pointer rounded border border-slate-200 object-cover dark:border-slate-700" onClick={() => inputRef.current?.click()} />
-              <button type="button" onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); onUpdate("artworkId", undefined); }} className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover/img:opacity-100"><X className="h-2.5 w-2.5" /></button>
+              <Button type="button" variant="destructive" size="icon" onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); onUpdate("artworkId", undefined); }} className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0.5 opacity-0 shadow-sm transition-opacity group-hover/img:opacity-100"><X className="h-2.5 w-2.5" /></Button>
             </div>
           ) : (
             <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600">

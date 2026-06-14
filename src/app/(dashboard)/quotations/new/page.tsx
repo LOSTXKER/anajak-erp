@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
@@ -568,7 +569,6 @@ function QuotationFormPage() {
           <Button
             type="submit"
             disabled={createQuotation.isPending || editSaving}
-            className="bg-blue-600 text-white hover:bg-blue-700"
           >
             {createQuotation.isPending || editSaving
               ? "กำลังบันทึก..."
@@ -580,9 +580,9 @@ function QuotationFormPage() {
 
         {/* Error display */}
         {(createQuotation.isError || editError) && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+          <Alert variant="error">
             {editError ?? createQuotation.error?.message}
-          </div>
+          </Alert>
         )}
       </form>
     </div>

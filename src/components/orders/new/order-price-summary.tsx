@@ -125,7 +125,7 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
         className={`text-lg font-semibold tabular-nums ${
           negative
             ? "text-red-600 dark:text-red-400"
-            : "text-emerald-600 dark:text-emerald-400"
+            : "text-green-600 dark:text-green-400"
         }`}
       >
         ~{formatCurrency(estimate.marginAmount)}

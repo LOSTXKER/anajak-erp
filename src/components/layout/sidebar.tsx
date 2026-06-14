@@ -27,6 +27,8 @@ import {
   ReceiptText,
 } from "lucide-react";
 import { useState, type ComponentType } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { ROLE_LABELS } from "@/lib/roles";
 
@@ -150,10 +152,12 @@ export function Sidebar({
           )}
         </Link>
         {!mobile && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => setCollapsed((v) => !v)}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
+            className="h-7 w-7 shrink-0 rounded-md text-slate-400 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
             aria-label={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"}
           >
             {collapsed ? (
@@ -161,7 +165,7 @@ export function Sidebar({
             ) : (
               <PanelLeftClose className="h-4 w-4" />
             )}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -203,16 +207,13 @@ export function Sidebar({
                         <>
                           <span className="truncate">{item.name}</span>
                           {badgeFor(item.href) !== undefined && (
-                            <span
-                              className={cn(
-                                "ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums",
-                                active
-                                  ? "bg-blue-600/10 text-blue-700 dark:bg-white/15 dark:text-white"
-                                  : "bg-slate-200/70 text-slate-500 dark:bg-slate-700 dark:text-slate-300"
-                              )}
+                            <Badge
+                              variant={active ? "accent" : "default"}
+                              size="sm"
+                              className="ml-auto shrink-0 font-semibold tabular-nums"
                             >
                               {badgeFor(item.href)}
-                            </span>
+                            </Badge>
                           )}
                         </>
                       )}

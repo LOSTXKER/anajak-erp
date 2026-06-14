@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { isImageUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -234,12 +235,11 @@ export default function DesignApprovalPage({
               <CardTitle className="text-base">ความคิดเห็นของคุณ</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <textarea
+              <Textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="พิมพ์ความเห็นหรือสิ่งที่ต้องการแก้ไข (ถ้ามี)..."
                 rows={4}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <div className="flex gap-3">
                 <Button

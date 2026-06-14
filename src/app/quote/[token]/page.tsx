@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Loader2,
   AlertCircle,
@@ -223,7 +224,7 @@ export default function QuoteConfirmPage({
                 <Button
                   onClick={() => accept.mutate({ token })}
                   disabled={isPending}
-                  className="w-full gap-1.5 bg-green-600 py-6 text-base text-white hover:bg-green-700"
+                  className="w-full gap-1.5 py-6 text-base"
                 >
                   {accept.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
                   ยืนยันใบเสนอ
@@ -240,13 +241,12 @@ export default function QuoteConfirmPage({
             ) : (
               <>
                 <p className="text-sm font-medium text-slate-700">อยากให้แก้ไขส่วนไหน? (ไม่บังคับ)</p>
-                <textarea
+                <Textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   rows={3}
                   maxLength={1000}
                   placeholder="เช่น ขอลดจำนวน / ปรับราคา / เปลี่ยนแบบ ..."
-                  className="w-full rounded-lg border border-slate-300 p-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <div className="flex gap-2">
                   <Button

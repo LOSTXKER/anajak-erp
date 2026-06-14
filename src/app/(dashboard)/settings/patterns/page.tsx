@@ -166,7 +166,7 @@ export default function PatternsPage() {
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="mb-4 space-y-3 rounded-xl border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900 dark:bg-amber-950/30"
+              className="card-surface mb-4 space-y-3 rounded-2xl p-4"
             >
               <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
                 เพิ่มแพทเทิร์นใหม่

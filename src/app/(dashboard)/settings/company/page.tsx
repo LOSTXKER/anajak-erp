@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Save, Loader2 } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { SettingsPageHeader } from "@/components/settings-page-header";
 import type { CompanyProfile } from "@/lib/company-profile";
 import { EMPTY_COMPANY_PROFILE } from "@/lib/company-profile";
 
@@ -36,17 +37,10 @@ export default function CompanySettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-          <Building2 className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">ข้อมูลกิจการ</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            ขึ้นหัวเอกสารทุกใบ — ใบเสนอราคา/แจ้งหนี้/ใบเสร็จ/ใบกำกับภาษี
-          </p>
-        </div>
-      </div>
+      <SettingsPageHeader
+        title="ข้อมูลกิจการ"
+        description="ขึ้นหัวเอกสารทุกใบ — ใบเสนอราคา/แจ้งหนี้/ใบเสร็จ/ใบกำกับภาษี"
+      />
 
       <Card>
         <CardHeader>

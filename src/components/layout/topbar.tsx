@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Bell, Search, CheckCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { CommandPalette } from "./command-palette";
@@ -135,20 +136,22 @@ export function Topbar() {
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                   การแจ้งเตือน
                   {count > 0 && (
-                    <span className="ml-2 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10.5px] font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                    <Badge variant="accent" size="sm" className="ml-2">
                       {count > 99 ? "99+" : count}
-                    </span>
+                    </Badge>
                   )}
                 </h3>
                 {count > 0 && (
-                  <button
+                  <Button
+                    variant="link"
+                    size="sm"
                     onClick={() => markAllRead.mutate()}
                     disabled={markAllRead.isPending}
                     className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 disabled:opacity-50 dark:text-slate-400 dark:hover:text-blue-400"
                   >
                     <CheckCheck className="h-3.5 w-3.5" />
                     อ่านทั้งหมด
-                  </button>
+                  </Button>
                 )}
               </div>
 

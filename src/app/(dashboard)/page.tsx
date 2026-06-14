@@ -14,6 +14,7 @@ import { OrderStatusBadge } from "@/components/order-status-badge";
 import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
+import { Badge } from "@/components/ui/badge";
 
 /**
  * การ์ดเล็กของแถบ "5 ตัวเลขเจ้าของ" — หน้าตาเดียวกับ StatCard แต่ย่อส่วน
@@ -121,14 +122,14 @@ export default function DashboardPage() {
           bordered={false}
           compact
           action={
-            <span className="rounded-full bg-black/[0.05] px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-white/10 dark:text-slate-400">
+            <Badge variant="default" size="sm">
               อัปเดต{" "}
               {today.toLocaleTimeString("th-TH", {
                 hour: "2-digit",
                 minute: "2-digit",
               })}{" "}
               น.
-            </span>
+            </Badge>
           }
         >
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
@@ -235,9 +236,9 @@ export default function DashboardPage() {
                       {o.orderNumber}
                     </p>
                     {o.printLabel && (
-                      <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                      <Badge variant="accent" size="sm">
                         {o.printLabel}
-                      </span>
+                      </Badge>
                     )}
                   </div>
                   <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">

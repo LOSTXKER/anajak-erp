@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -162,9 +163,9 @@ export default function NotificationsPage() {
           >
             {tab.label}
             {tab.value === "unread" && (unreadCount ?? 0) > 0 && (
-              <span className="ml-1.5 rounded-full bg-blue-100 px-1.5 text-[10px] text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+              <Badge variant="accent" size="sm" className="ml-1.5">
                 {unreadCount}
-              </span>
+              </Badge>
             )}
           </FilterChip>
         ))}

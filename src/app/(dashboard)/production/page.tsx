@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { CreateProductionDialog } from "@/components/production/create-production-dialog";
@@ -363,34 +364,15 @@ function ProductionWorkspace() {
               {producing.length}
             </span>
           </h2>
-          <div className="ml-auto flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={() => changeView("tabs")}
-              className={cn(
-                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                view === "tabs"
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-              )}
-            >
-              <Rows3 className="h-3.5 w-3.5" />
-              แท็บเทคนิค
-            </button>
-            <button
-              type="button"
-              onClick={() => changeView("board")}
-              className={cn(
-                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                view === "board"
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-              )}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              บอร์ดเลน
-            </button>
-          </div>
+          <SegmentedControl
+            value={view}
+            onChange={changeView}
+            options={[
+              { value: "tabs", label: "แท็บเทคนิค", icon: Rows3 },
+              { value: "board", label: "บอร์ดเลน", icon: LayoutGrid },
+            ]}
+            className="ml-auto"
+          />
         </div>
 
         {lanesWithWork.length === 0 ? (

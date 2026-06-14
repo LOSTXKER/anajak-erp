@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { trpc } from "@/lib/trpc";
 import { cn, formatCurrency } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { Search, Package, X, ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
 
 export interface SelectedVariantItem {
@@ -346,18 +347,19 @@ export function ProductPickerDialog({
                                       {v.size}
                                     </td>
                                     <td className="px-3 py-1.5 text-right">
-                                      <span
-                                        className={cn(
-                                          "inline-flex min-w-[2rem] justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                                      <Badge
+                                        variant={
                                           vStock > 10
-                                            ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                                            ? "success"
                                             : vStock > 0
-                                              ? "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                                              : "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
-                                        )}
+                                              ? "warning"
+                                              : "destructive"
+                                        }
+                                        size="sm"
+                                        className="min-w-[2rem] justify-center"
                                       >
                                         {vStock}
-                                      </span>
+                                      </Badge>
                                     </td>
                                     <td className="px-3 py-1.5 text-right font-medium text-slate-700 dark:text-slate-300">
                                       {v.sellingPrice > 0 ? formatCurrency(v.sellingPrice) : formatCurrency(product.basePrice)}

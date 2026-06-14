@@ -13,6 +13,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
@@ -258,23 +259,12 @@ export default function WhtRegisterPage() {
 
       {/* ── filter แท็บ + ค้นหา ── */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="flex w-fit shrink-0 rounded-lg border border-slate-200 bg-slate-50/60 p-0.5 dark:border-slate-700 dark:bg-slate-900/40">
-          {FILTER_TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              className={cn(
-                "min-h-[40px] rounded-md px-3.5 text-[13px] font-medium transition-colors",
-                tab === t.key
-                  ? "bg-white text-slate-900 shadow-sm dark:bg-white/10 dark:text-white"
-                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          value={tab}
+          onChange={setTab}
+          options={FILTER_TABS.map((t) => ({ value: t.key, label: t.label }))}
+          className="w-fit shrink-0"
+        />
         <SearchInput
           placeholder="ค้นหาลูกค้า / เลขบิล / เลขใบรับรอง..."
           value={search}
@@ -424,7 +414,7 @@ export default function WhtRegisterPage() {
             {list.map((row) => (
               <div
                 key={row.id}
-                className="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-sm dark:border-slate-700/60 dark:bg-slate-900"
+                className="card-surface rounded-2xl p-3.5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">

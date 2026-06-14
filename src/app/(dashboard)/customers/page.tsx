@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Section } from "@/components/ui/section";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { SearchInput } from "@/components/ui/search-input";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
@@ -120,30 +121,14 @@ export default function CustomersPage() {
               {/* Customer Type Toggle */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium">ประเภทลูกค้า</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, customerType: "INDIVIDUAL" })}
-                    className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                      !isCorporate
-                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                        : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <User className="h-4 w-4" /> บุคคลธรรมดา
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, customerType: "CORPORATE" })}
-                    className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                      isCorporate
-                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                        : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <Building2 className="h-4 w-4" /> นิติบุคคล
-                  </button>
-                </div>
+                <SegmentedControl
+                  value={formData.customerType}
+                  onChange={(v) => setFormData({ ...formData, customerType: v })}
+                  options={[
+                    { value: "INDIVIDUAL", label: "บุคคลธรรมดา", icon: User },
+                    { value: "CORPORATE", label: "นิติบุคคล", icon: Building2 },
+                  ]}
+                />
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

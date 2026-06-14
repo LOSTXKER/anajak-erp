@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { SearchInput } from "@/components/ui/search-input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -101,21 +102,11 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <div className="inline-flex gap-0.5 rounded-md border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800/60 dark:bg-slate-900/80">
-        {itemTypes.map((g) => (
-          <button
-            key={g.value}
-            onClick={() => handleItemTypeChange(g.value)}
-            className={`whitespace-nowrap rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-              itemType === g.value
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white"
-                : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-            }`}
-          >
-            {g.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        value={itemType}
+        onChange={handleItemTypeChange}
+        options={itemTypes.map((g) => ({ value: g.value, label: g.label }))}
+      />
 
       <div className="flex flex-col gap-2.5 sm:flex-row">
         <SearchInput

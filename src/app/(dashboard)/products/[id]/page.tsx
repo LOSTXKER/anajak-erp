@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { ArrowLeft, Package, Cloud, Trash2, AlertTriangle } from "lucide-react";
@@ -16,12 +17,12 @@ import { ArrowLeft, Package, Cloud, Trash2, AlertTriangle } from "lucide-react";
 // CONSTANTS
 // ============================================================
 
-const typeConfig: Record<string, { label: string; variant: "default" | "secondary" | "indigo" | "purple" | "teal" | "orange" }> = {
+const typeConfig: Record<string, { label: string; variant: "default" | "secondary" | "accent" | "warning" }> = {
   T_SHIRT: { label: "เสื้อยืด", variant: "default" },
-  POLO: { label: "โปโล", variant: "indigo" },
-  HOODIE: { label: "ฮู้ดดี้", variant: "purple" },
-  JACKET: { label: "แจ็คเก็ต", variant: "teal" },
-  TOTE_BAG: { label: "ถุงผ้า", variant: "orange" },
+  POLO: { label: "โปโล", variant: "accent" },
+  HOODIE: { label: "ฮู้ดดี้", variant: "accent" },
+  JACKET: { label: "แจ็คเก็ต", variant: "default" },
+  TOTE_BAG: { label: "ถุงผ้า", variant: "warning" },
   OTHER: { label: "อื่นๆ", variant: "secondary" },
 };
 
@@ -413,28 +414,15 @@ export default function ProductDetailPage({
                             {variant.totalStock || variant.stock}
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <button
-                              type="button"
-                              onClick={() =>
+                            <Switch
+                              checked={variant.isActive}
+                              onCheckedChange={() =>
                                 handleToggleVariantActive(
                                   variant.id,
                                   variant.isActive
                                 )
                               }
-                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors ${
-                                variant.isActive
-                                  ? "bg-blue-600"
-                                  : "bg-slate-300 dark:bg-slate-600"
-                              }`}
-                            >
-                              <span
-                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                                  variant.isActive
-                                    ? "translate-x-4"
-                                    : "translate-x-0.5"
-                                } mt-0.5`}
-                              />
-                            </button>
+                            />
                           </td>
                         </tr>
                       ))}

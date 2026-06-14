@@ -711,18 +711,18 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
 const colorMap: Record<string, string> = {
   blue: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
   indigo:
-    "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300",
+    "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
   purple:
-    "bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300",
+    "bg-slate-50 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300",
   violet:
-    "bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300",
+    "bg-slate-50 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300",
 };
 
 const iconColorMap: Record<string, string> = {
   blue: "text-blue-500",
-  indigo: "text-indigo-500",
-  purple: "text-purple-500",
-  violet: "text-violet-500",
+  indigo: "text-blue-500",
+  purple: "text-slate-500",
+  violet: "text-slate-500",
 };
 
 function StatCard({

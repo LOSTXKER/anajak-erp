@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
@@ -256,9 +257,10 @@ export default function QuotationDetailPage({
                 ลิงก์ยืนยันลูกค้า
               </Button>
               <Button
+                variant="default"
                 onClick={handleAccept}
                 disabled={isPending}
-                className="gap-1.5 bg-green-600 text-white hover:bg-green-700"
+                className="gap-1.5"
               >
                 <Check className="h-4 w-4" />
                 ลูกค้าอนุมัติ
@@ -298,28 +300,25 @@ export default function QuotationDetailPage({
 
       {/* Error display */}
       {(updateStatus.isError || convertToOrder.isError) && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+        <Alert variant="error">
           {updateStatus.error?.message || convertToOrder.error?.message}
-        </div>
+        </Alert>
       )}
 
       {/* Converted order link */}
       {quotation.status === "CONVERTED" && quotation.order && (
-        <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/40">
-          <RefreshCw className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          <div>
-            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-              ใบเสนอราคานี้ถูกแปลงเป็นออเดอร์แล้ว
-            </p>
-            <Link
-              href={`/orders/${quotation.order.id}`}
-              className="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline dark:text-blue-300"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              ดูออเดอร์ {quotation.order.orderNumber}
-            </Link>
-          </div>
-        </div>
+        <Alert variant="info" icon={RefreshCw}>
+          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+            ใบเสนอราคานี้ถูกแปลงเป็นออเดอร์แล้ว
+          </p>
+          <Link
+            href={`/orders/${quotation.order.id}`}
+            className="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline dark:text-blue-300"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            ดูออเดอร์ {quotation.order.orderNumber}
+          </Link>
+        </Alert>
       )}
 
       {/* ====================================================

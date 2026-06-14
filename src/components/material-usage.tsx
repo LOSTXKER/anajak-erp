@@ -354,12 +354,14 @@ export function MaterialUsage({
 
                 {/* Quantity */}
                 <div className="flex items-center gap-1">
-                  <button
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
                     onClick={() => updateQuantity(m.id, m.quantity - 1)}
-                    className="flex h-6 w-6 items-center justify-center rounded border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                    className="h-6 w-6"
                   >
                     <Minus className="h-3 w-3" />
-                  </button>
+                  </Button>
                   <Input
                     type="number"
                     value={m.quantity}
@@ -368,12 +370,14 @@ export function MaterialUsage({
                     min={0.01}
                     step={0.01}
                   />
-                  <button
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
                     onClick={() => updateQuantity(m.id, m.quantity + 1)}
-                    className="flex h-6 w-6 items-center justify-center rounded border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                    className="h-6 w-6"
                   >
                     <Plus className="h-3 w-3" />
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Unit */}
@@ -400,12 +404,14 @@ export function MaterialUsage({
                 )}
 
                 {/* Remove button */}
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={() => removeMaterial(m.id)}
-                  className="ml-1 flex h-5 w-5 items-center justify-center rounded text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+                  className="ml-1 h-5 w-5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
                 >
                   <X className="h-3 w-3" />
-                </button>
+                </Button>
               </div>
             ))}
 
