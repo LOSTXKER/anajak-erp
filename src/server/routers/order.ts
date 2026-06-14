@@ -5,6 +5,8 @@ import {
   getCustomerStatus,
   getInitialStatus,
   isRollbackTransition,
+  isOrderLocked,
+  canIssueChangeOrder,
   PRODUCTION_STAFF_STATUSES,
   DESIGNER_STATUSES,
   ACCOUNTANT_STATUSES,
@@ -36,7 +38,7 @@ import {
   assertSalesWithinCreditLimit,
   UNCOMMITTED_STATUSES,
 } from "@/server/services/receivables";
-import type { InternalStatus, OrderType, TaxLineType } from "@prisma/client";
+import type { OrderType, TaxLineType } from "@prisma/client";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ = งานขายขึ้นไปตามตาราง RBAC §7
 const salesUp = requireRole("OWNER", "MANAGER", "SALES");
@@ -912,11 +914,12 @@ export const orderRouter = router({
         data.platformFee !== undefined ||
         data.taxRate !== undefined ||
         data.paymentTerms !== undefined;
-      if (
-        touchesMoney &&
-        (currentOrder.internalStatus === "COMPLETED" || currentOrder.internalStatus === "CANCELLED")
-      ) {
-        badRequest("ออเดอร์ที่เสร็จสิ้นหรือยกเลิกแล้ว แก้ไขข้อมูลการเงินไม่ได้");
+      if (touchesMoney && isOrderLocked(currentOrder.internalStatus)) {
+        badRequest(
+          canIssueChangeOrder(currentOrder.internalStatus)
+            ? "ออเดอร์อนุมัติแล้ว — แก้ส่วนลด/ภาษีผ่านใบแก้ไขออเดอร์"
+            : "ออเดอร์ที่เริ่มผลิต/เสร็จ/ยกเลิกแล้ว แก้ไขข้อมูลการเงินไม่ได้"
+        );
       }
 
       // discount/taxRate เปลี่ยน → คำนวณยอดใหม่ด้วยสูตรกลาง
@@ -971,13 +974,13 @@ export const orderRouter = router({
         include: { fees: true },
       });
 
-      // Block editing once production has started
-      const blockedStatuses = [
-        "PRODUCING", "QUALITY_CHECK", "PACKING", "READY_TO_SHIP",
-        "SHIPPED", "COMPLETED", "CANCELLED",
-      ];
-      if (blockedStatuses.includes(order.internalStatus)) {
-        badRequest("ไม่สามารถแก้ไขรายการได้เมื่อเริ่มผลิตแล้ว");
+      // อนุมัติแบบแล้ว (DESIGN_APPROVED ขึ้นไป) — แก้รายการตรงไม่ได้ ต้องผ่านใบแก้ไขออเดอร์
+      if (isOrderLocked(order.internalStatus)) {
+        badRequest(
+          canIssueChangeOrder(order.internalStatus)
+            ? "ออเดอร์อนุมัติแล้ว — แก้รายการผ่านใบแก้ไขออเดอร์"
+            : "ออเดอร์นี้เลยขั้นแก้ไขแล้ว (เริ่มผลิต/ส่ง/ปิด)"
+        );
       }
 
       // artworkId เป็น hint จาก echo — เก็บเฉพาะลายจริงของลูกค้านี้ที่รูปยังตรง
@@ -1094,9 +1097,13 @@ export const orderRouter = router({
         where: { id: input.id },
       });
 
-      // ออเดอร์เสร็จสิ้น/ยกเลิกแล้ว — แก้ค่าธรรมเนียม (= แก้ยอดเงิน) ไม่ได้
-      if (order.internalStatus === "COMPLETED" || order.internalStatus === "CANCELLED") {
-        badRequest("ออเดอร์ที่เสร็จสิ้นหรือยกเลิกแล้ว แก้ไขค่าธรรมเนียมไม่ได้");
+      // อนุมัติแบบแล้ว — แก้ค่าธรรมเนียม (= แก้ยอด) ผ่านใบแก้ไขออเดอร์เท่านั้น
+      if (isOrderLocked(order.internalStatus)) {
+        badRequest(
+          canIssueChangeOrder(order.internalStatus)
+            ? "ออเดอร์อนุมัติแล้ว — แก้ค่าธรรมเนียมผ่านใบแก้ไขออเดอร์"
+            : "ออเดอร์ที่เริ่มผลิต/เสร็จ/ยกเลิกแล้ว แก้ไขค่าธรรมเนียมไม่ได้"
+        );
       }
 
       // สูตร A — platformFee ไม่เข้ายอด/ฐาน VAT (สูตรเดิมของ mutation นี้เคยบวก = บั๊กยอดแกว่ง)
@@ -1155,6 +1162,145 @@ export const orderRouter = router({
       });
 
       return updatedOrder;
+    }),
+
+  // ============================================================
+  // ใบแก้ไขออเดอร์ (ก้อน 6 ชิ้น 3) — ออเดอร์อนุมัติแล้ว (DESIGN_APPROVED/PRODUCTION_QUEUE)
+  // แก้ items+fees+discount ผ่านใบนี้ใบเดียว · เลข CO + ยอดเก่า→ใหม่ + เหตุผล (บังคับ)
+  // reuse helper เดียวกับ updateItems/updateFees (สูตรเงินไม่ duplicate)
+  // ============================================================
+  applyChangeOrder: protectedProcedure
+    .use(salesUp)
+    .input(
+      z.object({
+        id: z.string(),
+        items: z.array(orderItemSchema).min(1, "กรุณาเพิ่มรายการอย่างน้อย 1 รายการ"),
+        fees: z.array(orderFeeSchema).default([]),
+        discount: z.number().min(0).default(0),
+        reason: z.string().trim().min(1, "กรุณาระบุเหตุผลการแก้ไข"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const order = await ctx.prisma.order.findUniqueOrThrow({ where: { id: input.id } });
+
+      if (!canIssueChangeOrder(order.internalStatus)) {
+        badRequest(
+          isOrderLocked(order.internalStatus)
+            ? "ออเดอร์นี้เลยขั้นที่ออกใบแก้ไขได้แล้ว (เริ่มผลิต/ส่ง/ปิด) — ติดต่อหัวหน้า"
+            : "ออเดอร์ยังไม่อนุมัติ — แก้รายการได้ตรงๆ ไม่ต้องออกใบแก้ไข"
+        );
+      }
+
+      // ออกใบกำกับ/มัดจำไปแล้ว → ยอดเปลี่ยนต้องออกใบลดหนี้/เพิ่มหนี้แยก (ห้ามแก้ใบเดิม) — เตือน
+      const invoiceCount = await ctx.prisma.invoice.count({
+        where: { orderId: input.id, isVoided: false },
+      });
+      const invoicedWarning = invoiceCount > 0;
+
+      // artworkId เป็น hint จาก echo — เก็บเฉพาะลายจริงของลูกค้านี้ที่รูปยังตรง
+      await sanitizeArtworkLinks(ctx.prisma, order.customerId, input.items);
+
+      const itemsWithCalc = priceOrderItems(input.items);
+      // สูตร A — platformFee ไม่เข้ายอด/ฐาน VAT (เหมือน updateItems/updateFees)
+      const totals = computeOrderTotals({
+        itemSubtotals: itemsWithCalc.map((i) => i.subtotal),
+        feeAmounts: input.fees.map((f) => f.amount),
+        discount: input.discount || 0,
+        taxRate: order.taxRate,
+      });
+      const oldTotal = order.totalAmount;
+
+      const result = await ctx.prisma.$transaction(async (tx) => {
+        // แทนรายการ+ค่าธรรมเนียมทั้งชุดใน tx เดียว (เหมือน updateItems+updateFees รวมกัน)
+        await tx.orderItem.deleteMany({ where: { orderId: input.id } });
+        for (const item of itemsWithCalc) {
+          await tx.orderItem.create({
+            data: { orderId: input.id, ...buildItemCreateData(item, taxLineTypeForItem(item)) },
+          });
+        }
+        await tx.orderFee.deleteMany({ where: { orderId: input.id } });
+        for (const fee of input.fees) {
+          await tx.orderFee.create({
+            data: {
+              orderId: input.id,
+              feeType: fee.feeType,
+              name: fee.name,
+              description: fee.description,
+              amount: fee.amount,
+              notes: fee.notes,
+            },
+          });
+        }
+        const updatedOrder = await tx.order.update({
+          where: { id: input.id },
+          data: {
+            subtotalItems: totals.subtotalItems,
+            subtotalFees: totals.subtotalFees,
+            discount: totals.discount,
+            taxAmount: totals.taxAmount,
+            totalAmount: totals.totalAmount,
+            estimatedQuantity: null,
+          },
+        });
+
+        // เลข CO ในธุรกรรมเดียวกับการสร้างใบ — เลขไม่ชน/ไม่เกิดรู (ตาม document-number)
+        const changeNumber = await nextDocumentNumber(tx, "CHANGE_ORDER");
+        const changeOrder = await tx.changeOrder.create({
+          data: {
+            changeNumber,
+            orderId: input.id,
+            reason: input.reason,
+            summary: `รายการ ${input.items.length} · ค่าธรรมเนียม ${input.fees.length}`,
+            oldTotal,
+            newTotal: totals.totalAmount,
+            invoicedWarning,
+            createdById: ctx.userId,
+          },
+        });
+
+        const revisionCount = await tx.orderRevision.count({ where: { orderId: input.id } });
+        await tx.orderRevision.create({
+          data: {
+            orderId: input.id,
+            version: revisionCount + 1,
+            changedBy: ctx.userId,
+            changeType: "CHANGE_ORDER",
+            description: `ใบแก้ไขออเดอร์ ${changeNumber}: ${input.reason}`,
+            oldValue: JSON.stringify({ totalAmount: oldTotal }),
+            newValue: JSON.stringify({ totalAmount: totals.totalAmount }),
+          },
+        });
+
+        return { updatedOrder, changeOrder };
+      });
+
+      await createAuditLog(ctx.prisma, {
+        userId: ctx.userId,
+        action: "UPDATE",
+        entityType: "ORDER",
+        entityId: input.id,
+        newValue: {
+          action: "applyChangeOrder",
+          changeNumber: result.changeOrder.changeNumber,
+          totalAmount: totals.totalAmount,
+        },
+      });
+
+      // จองสต๊อกใหม่ตามเนื้อล่าสุด (DESIGN_APPROVED/PRODUCTION_QUEUE = ยังแค่จอง ยังไม่เบิก)
+      await syncOrderStockReservation(ctx.prisma, { orderId: input.id, changedBy: ctx.userId });
+
+      return { ...result.changeOrder, invoicedWarning };
+    }),
+
+  // ประวัติใบแก้ไขออเดอร์ของออเดอร์
+  changeOrders: protectedProcedure
+    .use(orderOps)
+    .input(byIdInput)
+    .query(async ({ ctx, input }) => {
+      return ctx.prisma.changeOrder.findMany({
+        where: { orderId: input.id },
+        orderBy: { createdAt: "desc" },
+      });
     }),
 
   // ค่าแก้แบบเกินโควตา (ก้อน 4 — เบสเคาะ 2026-06-14) — พนักงานกดเองเมื่อจะคิด ("มันแล้วแต่"

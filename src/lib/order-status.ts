@@ -288,12 +288,12 @@ export function isOrderLocked(status: InternalStatus): boolean {
   return !ORDER_EDITABLE_STATUSES.includes(status);
 }
 
-/** สถานะที่ "ออกใบแก้ไขได้" — ล็อกแล้วแต่ยังเดินงานอยู่ (ไม่รวม ส่งแล้ว/ปิด/ยกเลิก) */
+/**
+ * สถานะที่ "ออกใบแก้ไขได้" — อนุมัติแล้วแต่ยังไม่เริ่มผลิต (สต๊อกยังแค่จอง ยังไม่เบิก)
+ * เริ่มผลิต/ส่ง/ปิด/ยกเลิก = แก้ไม่ได้ (ของลงมือไปแล้ว) ติดต่อหัวหน้า
+ */
 export function canIssueChangeOrder(status: InternalStatus): boolean {
-  return (
-    isOrderLocked(status) &&
-    !(["SHIPPED", "COMPLETED", "CANCELLED"] as InternalStatus[]).includes(status)
-  );
+  return status === "DESIGN_APPROVED" || status === "PRODUCTION_QUEUE";
 }
 
 /**
