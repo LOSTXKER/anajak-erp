@@ -24,6 +24,10 @@
     - **แก้ที่ Button primitive ตัวเดียว** (`ui/button.tsx`): base `rounded-lg`→**`rounded-full`** (พิลล์) + `font-medium`→**`font-semibold`** · variant default/destructive เพิ่ม **`shadow-sm`** → **ทุกปุ่มทั้งระบบเป็นลุค navbar พร้อมกันทีเดียว**
     - แปลงปุ่มแต่งมือที่หลุด `<Button>` → ใช้ Button: topbar "เปิดงานใหม่" (desktop+mobile · `<Button asChild>`+Link) · product-picker ปุ่ม dialog "ปิด"/"เพิ่ม N รายการ" · ถอด `rounded-md` override ที่ sidebar collapse → วงกลม
     - verify: ไม่เหลือ `<Button>` override รัศมีทั้ง repo (grep) · tsc 0 · lint 0 error · HMR รับได้ (เบส refresh เห็นเลย ไม่ต้อง restart)
+  - **ก้อน 4 (เบสสั่ง "ไปเช็คอีก" → adversarial verification workflow 7 reviewer · commit `e40b8e0`)**: รีวิวของจริงทุกไฟล์ที่ sweep แก้ → เจอ 22 จุด · กรองเอง เก็บที่จริง:
+    - error/notes box เขียนมือ → `<Alert>` (settings.services/products[id]/quote/approve.design) · ปุ่มดิบที่เหลือ → `<Button>` (billing.wht เอาไฟล์ออก X · stock โชว์ API key eye) · products[id] "ยืนยันลบ" ทาแดงมือ → `variant=destructive` · settings.services ปุ่ม icon `h-7 override` → `size=icon-sm` · quote ปุ่มยืนยัน `py-6/text-base` → `size=lg` · material-usage ลบ `border-blue` dead class
+    - **จงใจปล่อย (reviewer เคร่งเกิน)**: search bar (ช่องค้นหา ไม่ใช่ปุ่ม) · แถวกดได้ใหญ่ notifications/product-picker (จงใจ) · ปุ่ม dashed อัปรูป (affordance) · ปุ่ม production `size=sm+h-9` (เรนเดอร์พิลล์ปกติ เปลี่ยนเสี่ยง text ล้นการ์ดแคบ) · order-files link-panel (มีฟอร์มข้างใน แปลง Alert เสี่ยง)
+    - verify: tsc 0 · lint 0 error
 - **🎨 ก้อน 6: รื้อ UI โฉมใหม่ (ทิศ A "หน้างานสะอาด") — เริ่มแล้ว · เบส approve เปลือก+แดชบอร์ด (2026-06-14):**
   - **เลือกทิศ (เบสเคาะ 2026-06-14)**: ทำ mockup 3 ทิศ (A สะอาด / B ห้องคุมโรงงาน / C การ์ดสีสถานะ) ให้เบสเลือก → **เบสเลือก A + รื้อ UI ก่อน** (ไม่ใช่ change order ก่อน) · ไฟล์ภาพ `docs/mockups/kon6/dashboard-{A,B,C}.html`
   - **6.0 ฐาน design**: ① ramp เหลืองแบรนด์ #fec91b + **mirror amber** (globals.css) → ทั้งระบบ 81 จุด/34 ไฟล์ เป็นเหลืองแบรนด์ทันทีไม่แตะ markup (เลียน blue/red) ② util **`.card-surface`** (พื้นขาว+เงานุ่ม+ring 1px แทน border แข็ง) ใช้ใน Section/StatCard/PulseCard → การ์ดทั้งระบบลุค A
