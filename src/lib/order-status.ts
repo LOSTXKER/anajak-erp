@@ -268,6 +268,34 @@ export function isValidTransition(
   return validNext.includes(toStatus);
 }
 
+// ============================================================
+// ล็อกแก้ออเดอร์หลังอนุมัติ (ก้อน 6 ชิ้น 3 — ใบแก้ไขออเดอร์)
+// เบสเคาะ 2026-06-14: เริ่มล็อกที่ DESIGN_APPROVED → แก้รายการ/ราคา/ค่าธรรมเนียมตรง
+// ไม่ได้ ต้องออก "ใบแก้ไขออเดอร์" · แหล่งเดียว server (4 จุด guard) + UI ใช้ร่วม กัน drift
+// ============================================================
+
+// แก้ตรงได้เฉพาะก่อนอนุมัติแบบ + งานพัก · นอกนั้นล็อก (อนุมัติ/ผลิต/ส่ง/ปิด/ยกเลิก)
+const ORDER_EDITABLE_STATUSES: InternalStatus[] = [
+  "DRAFT",
+  "INQUIRY",
+  "CONFIRMED",
+  "DESIGNING",
+  "ON_HOLD",
+];
+
+/** ออเดอร์ "อนุมัติแล้ว" — แก้รายการ/ราคาตรงไม่ได้ ต้องผ่านใบแก้ไขออเดอร์ */
+export function isOrderLocked(status: InternalStatus): boolean {
+  return !ORDER_EDITABLE_STATUSES.includes(status);
+}
+
+/** สถานะที่ "ออกใบแก้ไขได้" — ล็อกแล้วแต่ยังเดินงานอยู่ (ไม่รวม ส่งแล้ว/ปิด/ยกเลิก) */
+export function canIssueChangeOrder(status: InternalStatus): boolean {
+  return (
+    isOrderLocked(status) &&
+    !(["SHIPPED", "COMPLETED", "CANCELLED"] as InternalStatus[]).includes(status)
+  );
+}
+
 /**
  * ลำดับสถานะที่ต้อง "เดินไปข้างหน้า" จาก current จนถึง target ตามเส้นทางของชนิดงาน
  * (รวม target เป็นตัวสุดท้าย) — ใช้ให้เหตุการณ์ในโมดูล (ผลิตครบ/ส่งของ) ดันสถานะออเดอร์เอง
