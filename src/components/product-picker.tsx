@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { trpc } from "@/lib/trpc";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Search, Package, X, ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
 
 export interface SelectedVariantItem {
@@ -435,21 +436,17 @@ export function ProductPickerDialog({
               เพิ่มรายการด้วยตนเอง
             </button>
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                variant="outline"
               >
                 ปิด
-              </button>
+              </Button>
               {totalSelected > 0 && (
-                <button
-                  type="button"
-                  onClick={handleConfirm}
-                  className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-                >
+                <Button type="button" onClick={handleConfirm}>
                   เพิ่ม {totalSelected} รายการ
-                </button>
+                </Button>
               )}
             </div>
           </div>

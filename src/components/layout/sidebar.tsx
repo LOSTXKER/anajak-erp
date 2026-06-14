@@ -157,7 +157,7 @@ export function Sidebar({
             variant="ghost"
             size="icon-sm"
             onClick={() => setCollapsed((v) => !v)}
-            className="h-7 w-7 shrink-0 rounded-md text-slate-400 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
+            className="h-7 w-7 shrink-0 text-slate-400 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
             aria-label={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"}
           >
             {collapsed ? (
