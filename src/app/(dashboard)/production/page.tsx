@@ -267,7 +267,7 @@ function ProductionWorkspace() {
             {queue.map((o) => (
               <div
                 key={o.id}
-                className="w-[260px] shrink-0 snap-start rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-700/60 dark:bg-slate-900"
+                className="w-[260px] shrink-0 snap-start card-surface rounded-xl p-3"
               >
                 <OrderCardHeader order={o} href={`/orders/${o.id}`} />
                 <div className="mt-2.5">
@@ -530,7 +530,7 @@ function ProductionWorkspace() {
                       return (
                         <div
                           key={o.id}
-                          className="rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-700/60 dark:bg-slate-900"
+                          className="card-surface rounded-xl p-3"
                         >
                           <OrderCardHeader order={o} href={href} />
                           {/* ธง blind ship บนคอลัมน์แพ็ค/พร้อมส่ง — pattern เดียวกับเลน PACK
@@ -667,8 +667,24 @@ function LaneCardView({
   const canTouchStep =
     !!role && ["OWNER", "MANAGER", "PRODUCTION_STAFF"].includes(role) && !ownedByOther;
 
+  const isOverdue =
+    !!card.order.deadline && new Date(card.order.deadline) < new Date();
+  // แถบสีสถานะ (ทิศ C) — ช่างกวาดตาเห็น: แดง=ปัญหา/สาย · เหลือง=รอของ · น้ำเงิน=ทำอยู่ · เทา=รอเริ่ม
+  const railTone =
+    step.status === "FAILED" || isOverdue
+      ? "bg-red-500"
+      : card.pressGate && !card.pressGate.ready
+        ? "bg-amber-500"
+        : step.status === "IN_PROGRESS"
+          ? "bg-blue-500"
+          : "bg-slate-300 dark:bg-slate-600";
+
   return (
-    <div className="rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-700/60 dark:bg-slate-900">
+    <div className="card-surface relative overflow-hidden rounded-xl p-3 pl-4">
+      <span
+        aria-hidden
+        className={cn("absolute inset-y-0 left-0 w-1", railTone)}
+      />
       <OrderCardHeader order={card.order} href={href} />
 
       {/* ธง blind ship บนเลนแพ็ค — พลาดใส่เอกสาร Anajak ครั้งเดียวเสียลูกค้า reseller ทั้งราย */}
