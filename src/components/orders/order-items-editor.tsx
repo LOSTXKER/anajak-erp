@@ -30,6 +30,10 @@ import {
   ProductPickerDialog,
   type SelectedVariantItem,
 } from "@/components/product-picker";
+import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { canIssueChangeOrder } from "@/lib/order-status";
+import type { InternalStatus } from "@prisma/client";
 
 interface OrderItemsEditorOrder {
   items: Array<{
@@ -139,6 +143,9 @@ export function OrderItemsEditor({
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [initialFeesJson] = useState(() => JSON.stringify(initialFees));
   const [saving, setSaving] = useState(false);
+  const [reason, setReason] = useState("");
+  // ออเดอร์อนุมัติแล้ว (DESIGN_APPROVED/PRODUCTION_QUEUE) → แก้ผ่าน "ใบแก้ไขออเดอร์"
+  const changeOrderMode = canIssueChangeOrder(internalStatus as InternalStatus);
 
   const utils = trpc.useUtils();
 
@@ -157,6 +164,10 @@ export function OrderItemsEditor({
   const updateFeesMutation = useMutationWithInvalidation(trpc.order.updateFees, {
     invalidate: [utils.order.getById],
   });
+  const applyChangeOrderMutation = useMutationWithInvalidation(
+    trpc.order.applyChangeOrder,
+    { invalidate: [utils.order.getById, utils.order.changeOrders] }
+  );
 
   // preview ใช้สูตร A เดียวกับ server (order.updateItems คิด VAT จาก taxRate ของออเดอร์เสมอ)
   const { subtotalItems, subtotalFees, taxAmount, grandTotal: totalAmount } =
@@ -218,22 +229,41 @@ export function OrderItemsEditor({
 
   async function handleSave() {
     const errors = validateItems();
+    if (changeOrderMode && !reason.trim()) {
+      errors.push("กรุณาระบุเหตุผลการแก้ไข (ใบแก้ไขออเดอร์)");
+    }
     setFormErrors(errors);
     if (errors.length > 0) return;
 
     setSaving(true);
     try {
-      await updateItemsMutation.mutateAsync({
-        id: orderId,
-        items: mapItemsToMutationInput(items.filter(itemHasContent)),
-        discount,
-      });
-      // ค่าธรรมเนียมยิงเฉพาะเมื่อแก้จริง — ไม่ยิงเปล่าให้ audit log รก
-      if (JSON.stringify(fees) !== initialFeesJson) {
-        await updateFeesMutation.mutateAsync({
+      if (changeOrderMode) {
+        // อนุมัติแล้ว — แก้ items+fees+discount ผ่านใบแก้ไขออเดอร์ใบเดียว (server ออกเลข CO)
+        const result = await applyChangeOrderMutation.mutateAsync({
           id: orderId,
+          items: mapItemsToMutationInput(items.filter(itemHasContent)),
           fees: mapFeesToMutationInput(fees),
+          discount,
+          reason: reason.trim(),
         });
+        if (result.invoicedWarning) {
+          toast.warning(
+            "ออเดอร์นี้ออกใบกำกับ/มัดจำไปแล้ว — ยอดเปลี่ยน ต้องออกใบลดหนี้/เพิ่มหนี้แยก"
+          );
+        }
+      } else {
+        await updateItemsMutation.mutateAsync({
+          id: orderId,
+          items: mapItemsToMutationInput(items.filter(itemHasContent)),
+          discount,
+        });
+        // ค่าธรรมเนียมยิงเฉพาะเมื่อแก้จริง — ไม่ยิงเปล่าให้ audit log รก
+        if (JSON.stringify(fees) !== initialFeesJson) {
+          await updateFeesMutation.mutateAsync({
+            id: orderId,
+            fees: mapFeesToMutationInput(fees),
+          });
+        }
       }
       onDone();
     } catch {
@@ -250,7 +280,7 @@ export function OrderItemsEditor({
           {/* หัวการ์ด = ชื่อล้วน · ปุ่มยกเลิกอยู่แถบล่าง sticky (เลี่ยงปุ่มยกเลิกซ้ำ 2 จุด) */}
           <CardTitle className="flex items-center gap-2 text-base">
             <Pencil className="h-4 w-4" />
-            แก้ไขรายการสินค้า
+            {changeOrderMode ? "ออกใบแก้ไขออเดอร์" : "แก้ไขรายการสินค้า"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -459,6 +489,22 @@ export function OrderItemsEditor({
             </div>
           )}
 
+          {/* โหมดใบแก้ไข — เหตุผลบังคับ (server ออกเลข CO + บันทึกยอดเก่า→ใหม่) */}
+          {changeOrderMode && (
+            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+              <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
+                ออเดอร์อนุมัติแล้ว — การแก้ไขจะออกเป็น “ใบแก้ไขออเดอร์” (บันทึกยอดเก่า → ใหม่)
+              </p>
+              <Textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="เหตุผลการแก้ไข (บังคับ) — เช่น ลูกค้าเพิ่มจำนวน 20 ตัว"
+                rows={2}
+                className="text-sm"
+              />
+            </div>
+          )}
+
           {/* ปุ่มบันทึก — sticky ล่างจอ มือถือกดถึงเสมอ */}
           <div className="sticky bottom-3 flex justify-end gap-2 rounded-xl border border-slate-200/70 bg-white/95 p-2.5 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
             <Button variant="outline" onClick={onCancel} disabled={saving}>
@@ -474,7 +520,7 @@ export function OrderItemsEditor({
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              บันทึกรายการ
+              {changeOrderMode ? "ออกใบแก้ไข" : "บันทึกรายการ"}
             </Button>
           </div>
         </CardContent>
