@@ -436,4 +436,15 @@ export const taskRouter = router({
       billing,
     };
   }),
+
+  // ตัวเลขงานค้างบนเมนู sidebar — นับเบาๆ (count ล้วน ไม่ดึงแถว) · ไม่มีข้อมูลเงิน เปิดทุก role
+  navBadges: protectedProcedure.query(async ({ ctx }) => {
+    const [production, outsource] = await Promise.all([
+      ctx.prisma.order.count({ where: { internalStatus: "PRODUCING" } }),
+      ctx.prisma.outsourceOrder.count({
+        where: { status: { in: ["SENT", "IN_PROGRESS", "RECEIVED_BACK"] } },
+      }),
+    ]);
+    return { production, outsource };
+  }),
 });

@@ -104,9 +104,23 @@ export function Sidebar({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const { data: me } = trpc.user.me.useQuery();
+  const { data: navBadges } = trpc.task.navBadges.useQuery(undefined, {
+    refetchInterval: 60_000,
+  });
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  // ตัวเลขงานค้างบนเมนู — โชว์เฉพาะที่มีค่า > 0
+  const badgeFor = (href: string): number | undefined => {
+    const n =
+      href === "/production"
+        ? navBadges?.production
+        : href === "/outsource"
+          ? navBadges?.outsource
+          : undefined;
+    return n && n > 0 ? n : undefined;
+  };
 
   return (
     <aside
@@ -186,7 +200,21 @@ export function Sidebar({
                         strokeWidth={1.75}
                       />
                       {!collapsed && (
-                        <span className="truncate">{item.name}</span>
+                        <>
+                          <span className="truncate">{item.name}</span>
+                          {badgeFor(item.href) !== undefined && (
+                            <span
+                              className={cn(
+                                "ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums",
+                                active
+                                  ? "bg-blue-600/10 text-blue-700 dark:bg-white/15 dark:text-white"
+                                  : "bg-slate-200/70 text-slate-500 dark:bg-slate-700 dark:text-slate-300"
+                              )}
+                            >
+                              {badgeFor(item.href)}
+                            </span>
+                          )}
+                        </>
                       )}
                     </Link>
                   </li>
