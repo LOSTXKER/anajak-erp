@@ -92,16 +92,27 @@ export function useOrderItemsForm(
 ) {
   const enableDraft = options?.enableDraft ?? false;
 
+  // เริ่มด้วยค่า SSR-safe (ไม่อ่าน localStorage ตอน init) — กัน hydration mismatch
+  // (server ไม่มี localStorage = ได้ค่าว่าง · ถ้า init จาก draft ฝั่ง client จะไม่ตรง server)
   const [items, setItems] = useState<OrderItemForm[]>(() => {
     if (initialItems && initialItems.length > 0) return initialItems;
-    if (enableDraft) {
-      const draft = loadDraft();
-      if (draft) return draft;
-    }
     return [structuredClone(EMPTY_ITEM)];
   });
 
-  const [hasDraft, setHasDraft] = useState(() => enableDraft && !!loadDraft());
+  const [hasDraft, setHasDraft] = useState(false);
+
+  // โหลด draft หลัง mount เท่านั้น (client) — เรนเดอร์แรกตรงกับ server แล้วค่อยเติม draft
+  const draftLoaded = useRef(false);
+  useEffect(() => {
+    if (draftLoaded.current) return;
+    draftLoaded.current = true;
+    if (!enableDraft || (initialItems && initialItems.length > 0)) return;
+    const draft = loadDraft();
+    if (draft) {
+      setItems(draft);
+      setHasDraft(true);
+    }
+  }, [enableDraft, initialItems]);
 
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {

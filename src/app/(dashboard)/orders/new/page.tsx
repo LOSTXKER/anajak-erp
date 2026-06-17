@@ -7,7 +7,7 @@
 // รื้อโครง 2026-06-12 (เบสเคาะ): แตก section เป็น component + ลำดับสายตา 1-2-3
 // (ลูกค้า&งาน → รายการ&ราคา กางตลอด → ไฟล์&จัดส่ง พับ) + แถบสรุป/ปุ่ม sticky ล่างจอ
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
@@ -74,11 +74,11 @@ export default function NewOrderPage() {
   const [externalOrderId, setExternalOrderId] = useState("");
 
   // หัวฟอร์มรอด refresh เหมือนรายการ — restore จาก header draft (audit ข้อ 6)
-  const headerDraft = useState(() => loadHeaderDraft())[0];
-  const [customerId, setCustomerId] = useState(headerDraft?.customerId ?? "");
-  const [title, setTitle] = useState(headerDraft?.title ?? "");
+  // SSR-safe: init ว่าง (ไม่อ่าน localStorage ตอน render) — โหลด header draft หลัง mount ใน effect ด้านล่าง
+  const [customerId, setCustomerId] = useState("");
+  const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [description, setDescription] = useState(headerDraft?.description ?? "");
+  const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
 
   const {
@@ -112,12 +112,26 @@ export default function NewOrderPage() {
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
   // ลูกค้าเลือกผ่าน CustomerPicker (ค้นหา+เพิ่มด่วน) — เก็บ object ที่เลือกไว้ใช้ prefill
-  const [selectedCustomer, setSelectedCustomer] = useState<PickerCustomer | null>(
-    (headerDraft?.selectedCustomer as PickerCustomer | undefined) ?? null
-  );
+  const [selectedCustomer, setSelectedCustomer] = useState<PickerCustomer | null>(null);
 
-  // เซฟหัวฟอร์มลง draft ทุกครั้งที่เปลี่ยน (debounce ไม่จำเป็น — ก้อนเล็ก)
+  // โหลด header draft หลัง mount เท่านั้น (client) — เรนเดอร์แรกตรงกับ server กัน hydration mismatch
   useEffect(() => {
+    const d = loadHeaderDraft();
+    if (!d) return;
+    if (d.customerId) setCustomerId(d.customerId);
+    if (d.title) setTitle(d.title);
+    if (d.description) setDescription(d.description);
+    if (d.selectedCustomer) setSelectedCustomer(d.selectedCustomer as PickerCustomer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- โหลดครั้งเดียวตอน mount
+  }, []);
+
+  // เซฟหัวฟอร์มลง draft ทุกครั้งที่เปลี่ยน — ข้ามรอบแรก (mount) กัน save ค่าว่างทับ draft ก่อนโหลด
+  const headerSaveSkip = useRef(true);
+  useEffect(() => {
+    if (headerSaveSkip.current) {
+      headerSaveSkip.current = false;
+      return;
+    }
     saveHeaderDraft({
       customerId: customerId || undefined,
       selectedCustomer: selectedCustomer ?? undefined,
