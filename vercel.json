@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/overdue",
       "schedule": "5 17 * * *"
+    },
+    {
+      "path": "/api/cron/stock-reservations",
+      "schedule": "10 17 * * *"
     }
   ]
 }

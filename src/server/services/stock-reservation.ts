@@ -279,7 +279,8 @@ export async function syncOrderStockReservation(
 
     await prisma.order.update({
       where: { id: order.id },
-      data: { stockReservedAt: new Date(), stockReservationError: null },
+      // จองใหม่ = เริ่มนับอายุการจองใหม่ → ล้างธงเตือนใกล้ปลดด้วย (auto-release)
+      data: { stockReservedAt: new Date(), stockReservationError: null, reservationExpiryWarnedAt: null },
     });
     const problemSuffix = built.problems.length > 0 ? ` · หมายเหตุ: ${built.problems.join(" · ")}` : "";
     await addOrderRevision(prisma, {
@@ -357,18 +358,30 @@ export async function releaseOrderStockReservation(
       return { status: "error", message };
     }
 
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { stockReservedAt: null, stockReservationError: null },
+    // ปลดแบบ atomic — ชิงสิทธิ์ด้วย stockReservedAt!=null กัน sweep ซ้อน (cron+list) ปลด/แจ้ง/จดประวัติซ้ำ
+    // (HTTP release ด้านบน idempotent: ปลด orderRef เดิมซ้ำไม่ลดของเกิน — แต่ฝั่ง DB ต้องนับ/จดครั้งเดียว)
+    const cleared = await prisma.order.updateMany({
+      where: { id: order.id, stockReservedAt: { not: null } },
+      data: { stockReservedAt: null, stockReservationError: null, reservationExpiryWarnedAt: null },
     });
-    if (order.stockReservedAt) {
-      await addOrderRevision(prisma, {
-        orderId: order.id,
-        changedBy: params.changedBy,
-        changeType: "STOCK",
-        description: `ปลดจองสต๊อค — ${params.reason}`,
+    if (cleared.count === 0) {
+      if (order.stockReservedAt) {
+        // ตอนอ่านยังจองอยู่ แต่หายไประหว่างนั้น = มีรอบอื่นปลดไปก่อน — ไม่ใช่เราปลด ไม่จดประวัติ/ไม่นับ
+        return { status: "skipped", reason: "ปลดไปแล้วระหว่างนั้น" };
+      }
+      // เคส error-only (ไม่เคยจองสำเร็จ แค่มี error ค้าง) — เคลียร์ error ทิ้งได้เลย
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { stockReservationError: null },
       });
+      return { status: "released" };
     }
+    await addOrderRevision(prisma, {
+      orderId: order.id,
+      changedBy: params.changedBy,
+      changeType: "STOCK",
+      description: `ปลดจองสต๊อค — ${params.reason}`,
+    });
     return { status: "released" };
   } catch (err) {
     console.error("releaseOrderStockReservation error:", err);

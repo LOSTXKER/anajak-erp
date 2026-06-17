@@ -411,6 +411,8 @@ model Order {
   // จองเสื้อรายไซส์-สีฝั่ง Stock (orderRef = orderNumber) · error เก็บข้อความล่าสุดไว้โชว์/ตามแก้
   stockReservedAt       DateTime? @map("stock_reserved_at")
   stockReservationError String?   @map("stock_reservation_error")
+  // เตือนล่วงหน้าก่อนปลดจองค้าง (auto-release) ไปแล้วเมื่อไหร่ — กันเตือนซ้ำทุกวัน · ปลด/จองใหม่ = ล้างกลับ null
+  reservationExpiryWarnedAt DateTime? @map("reservation_expiry_warned_at")
 
   // Blind ship (FLOW-REDESIGN ก้อน 3) — ลูกค้า reseller/แบรนด์: เอกสารในกล่องใช้ชื่อ
   // แบรนด์ลูกค้าเป็นผู้ส่ง ห้ามมีเอกสาร/ชื่อ Anajak (พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย)

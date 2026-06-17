@@ -34,3 +34,15 @@ export function getPaymentTerms(value: string | null | undefined): PaymentTermsD
   if (!value) return null;
   return PAYMENT_TERMS.find((t) => t.value === value) ?? null;
 }
+
+// ยอดที่ต้องชำระ "ก่อนเริ่มงาน" ตามเทอม — แหล่งเดียวทั้งระบบ (production-readiness + sweep จองค้างใช้ร่วม)
+// จ่ายเต็มล่วงหน้า = เต็มจำนวน · มัดจำ = % ของยอด · เครดิต/COD/ไม่ระบุ = 0 (ไม่ต้องรับเงินก่อน)
+export function requiredUpfrontAmount(
+  termsValue: string | null | undefined,
+  total: number
+): number {
+  const terms = getPaymentTerms(termsValue);
+  if (terms?.kind === "prepay") return total;
+  if (terms?.kind === "deposit") return (total * (terms.depositPercent ?? 0)) / 100;
+  return 0;
+}

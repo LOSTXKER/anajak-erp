@@ -26,6 +26,7 @@ import {
   syncOrderStockReservation,
   releaseOrderStockReservation,
 } from "@/server/services/stock-reservation";
+import { maybeSweepStaleReservations } from "@/server/services/stock-reservation-sweep";
 import { promoteOrderArtworks, sanitizeArtworkLinks } from "@/server/services/artwork";
 import { aggToNumber, D } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
@@ -236,6 +237,13 @@ export const orderRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
+      // กวาดปลดจองสต๊อกค้างแบบ throttle (≤ ทุก 6 ชม.) — ทีมขายเปิดหน้านี้ทุกวัน ทำให้ auto-release
+      // ทำงานจริงบนเครื่องที่ยังไม่ได้ตั้ง cron (deploy แล้วมี /api/cron/stock-reservations เสริม) ·
+      // กัน sweep ล้มไปทำหน้า list พัง (release ภายในไม่ throw อยู่แล้ว แต่ findMany/claim อาจล้ม)
+      await maybeSweepStaleReservations(ctx.prisma).catch((e) =>
+        console.error("maybeSweepStaleReservations error:", e)
+      );
+
       const where: Record<string, unknown> = {};
 
       if (input.search) {

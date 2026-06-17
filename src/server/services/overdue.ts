@@ -1,6 +1,7 @@
 import type { ExtendedPrismaClient } from "@/lib/prisma";
 import { createNotification } from "@/server/helpers";
 import { thaiDateUtcMidnight } from "./payment-plan";
+import { claimThrottleSlot } from "./sweep-throttle";
 
 // กวาดบิลเลยกำหนดชำระ → ตั้งสถานะ OVERDUE + แจ้งเตือนทีมการเงินในกระดิ่ง
 // ตัวเรียกมี 3 ทาง: cron route (/api/cron/overdue) · billing.markOverdue (ปุ่ม manual)
@@ -94,30 +95,8 @@ export async function maybeSweepOverdue(
   prisma: ExtendedPrismaClient,
   now = new Date()
 ): Promise<SweepResult | null> {
-  const existing = await prisma.setting.findUnique({
-    where: { key: SWEEP_SETTING_KEY },
-  });
-  const last = existing ? Date.parse(existing.value) : NaN;
-  if (Number.isFinite(last) && now.getTime() - last < SWEEP_MIN_INTERVAL_MS) {
+  if (!(await claimThrottleSlot(prisma, SWEEP_SETTING_KEY, SWEEP_MIN_INTERVAL_MS, now))) {
     return null;
   }
-
-  // ชิงสิทธิ์รอบนี้แบบ atomic (เทียบค่าเดิมก่อนเขียนทับ) — แพ้แปลว่ามีคนอื่นกำลังกวาด
-  if (existing) {
-    const claimed = await prisma.setting.updateMany({
-      where: { key: SWEEP_SETTING_KEY, value: existing.value },
-      data: { value: now.toISOString() },
-    });
-    if (claimed.count === 0) return null;
-  } else {
-    try {
-      await prisma.setting.create({
-        data: { key: SWEEP_SETTING_KEY, value: now.toISOString() },
-      });
-    } catch {
-      return null; // unique ชน — แพ้ race
-    }
-  }
-
   return sweepOverdueInvoices(prisma, now);
 }

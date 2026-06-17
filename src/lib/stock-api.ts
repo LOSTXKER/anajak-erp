@@ -203,8 +203,11 @@ export class StockApiClient {
     options?: RequestInit
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
+    // กัน fetch ค้างไม่จำกัด (เช่น Stock TCP-hang) — สำคัญเมื่อถูกเรียกจาก read path เช่น sweep ใน orders.list
+    // caller ส่ง signal เองได้ (override) · 15 วิ พอเหลือเฟือสำหรับ API ปกติ และต่ำกว่า maxDuration 60 วิ
     const res = await fetch(url, {
       ...options,
+      signal: options?.signal ?? AbortSignal.timeout(15_000),
       headers: {
         "Content-Type": "application/json",
         "X-API-Key": this.apiKey,

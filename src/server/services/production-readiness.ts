@@ -17,7 +17,7 @@
  * ส่วนช่าง (PRODUCTION_STAFF) ไม่เห็นงานติดด่านเลย
  */
 
-import { getPaymentTerms } from "@/lib/payment-terms";
+import { getPaymentTerms, requiredUpfrontAmount } from "@/lib/payment-terms";
 import type { ExtendedPrismaClient } from "@/lib/prisma";
 
 export interface ReadinessCheck {
@@ -70,10 +70,7 @@ export function evaluateReadiness(o: ReadinessOrderData): OrderReadiness {
 
   // ── 1) เงินตามเทอม ──
   const terms = getPaymentTerms(o.paymentTerms);
-  let requiredAmount = 0;
-  if (terms?.kind === "prepay") requiredAmount = o.totalAmount;
-  else if (terms?.kind === "deposit")
-    requiredAmount = (o.totalAmount * (terms.depositPercent ?? 0)) / 100;
+  const requiredAmount = requiredUpfrontAmount(o.paymentTerms, o.totalAmount);
   // เทียบเงินแบบเผื่อเศษสตางค์จากการแปลง Decimal→number
   const paymentOk = o.totalAmount <= 0 || o.paidAmount >= requiredAmount - 0.005;
   checks.push({
