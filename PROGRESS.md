@@ -16,7 +16,9 @@
     - **ปุ่มลบฝั่งเดียวกันหมด (ขวา)** + สไตล์เดียวกัน (ย้าย add-on จากซ้าย)
     - **ทุกส่วนที่เพิ่มได้ = "กล่องเพิ่มมีไอคอน" แบบเดียวกัน** (เส้นประ+ไอคอน+ข้อความ+hover ฟ้า): ลาย/สินค้า(3 การ์ดเลือกชนิด)/ส่วนเสริม/ค่าธรรมเนียม/ค่าใช้จ่ายเพิ่มเติม/เพิ่มรายการอีกชุด
     - **multi-item เลิก accordion** → ทุกรายการกางเห็นหมด หัว "① รายการที่ N" + จำนวน/ยอด/ลบ · **คำอธิบายงานขึ้นบนสุด ใต้เลข**
+  - **🐛 fix hydration mismatch** (เบสเจอ error หลัง push · บั๊กเดิมระบบ draft โผล่เพราะมี draft ค้าง localStorage): items/hasDraft/header draft อ่าน localStorage ตอน render → SSR ไม่ตรง client · แก้: เลื่อนโหลด draft ไป `useEffect` หลัง mount (SSR-safe) + ข้าม save รอบแรกกัน save ค่าว่างทับ draft
   - **verify**: tsc **0** · lint **0 error** · test **236/236** · ทั้ง 2 หน้า compile ผ่าน
+  - **commit + push main แล้ว** (4 commit: auto-release `3f4d2de` / order-detail `142f7d2` / form `f671a17` / hydration fix `2738f4f`) · sync origin
   - **⏳ เหลือเบส retest UI** (HMR): 2 หน้า × 3 ชนิด × หลายรายการ · `npm run build` ตอนปิด dev
 - **🎨 Redesign ฟอร์มรายการสินค้า รอบ 1 — "ตารางเดิมแต่เบาลง" (2026-06-17 · ⚠️ products ส่วนถูกแทนด้วย guided card รอบ 2 ข้างบน · prints/empty/popover ยังใช้ต่อ):**
   - **ที่มา**: เบสส่งภาพฟอร์มแก้รายการ บอกใช้ยาก → plan mode + Explore 2 + Plan agent · เคาะจุดยาก 4 ข้อ (ช่องอัดแถวเดียว/ช่องปุ่มเล็ก/ไม่รู้เริ่มตรงไหน/เพิ่ม-ลบงง)
