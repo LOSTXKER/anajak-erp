@@ -281,17 +281,43 @@ export function OrderItemCard({
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          {item.products.map((prod, pIdx) => (
-            <ProductTableRow
-              key={pIdx}
-              product={prod}
-              prodIdx={pIdx}
-              itemIdx={itemIdx}
-              totalProducts={item.products.length}
-              onSetItems={onSetItems}
-            />
-          ))}
+        <div className="overflow-x-auto">
+          <table className="w-full" style={{ tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: 76 }} />
+              <col />
+              <col style={{ width: 82 }} />
+              <col style={{ width: 64 }} />
+              <col style={{ width: 72 }} />
+              <col style={{ width: 110 }} />
+              <col style={{ width: 88 }} />
+              <col style={{ width: 56 }} />
+            </colgroup>
+            <thead>
+              <tr className="text-[10.5px] font-normal text-slate-400 dark:text-slate-500">
+                <th className="pb-1.5 pl-1 text-left">แหล่ง</th>
+                <th className="pb-1.5 pr-2 text-left">สินค้า</th>
+                <th className="pb-1.5 px-1.5 text-right">ราคา</th>
+                <th className="pb-1.5 px-1.5 text-center">จำนวน</th>
+                <th className="pb-1.5 px-1.5 text-right">ส่วนลด</th>
+                <th className="pb-1.5 px-1.5 text-left">แพค</th>
+                <th className="pb-1.5 px-1.5 text-right">รวม</th>
+                <th className="pb-1.5" />
+              </tr>
+            </thead>
+            <tbody>
+              {item.products.map((prod, pIdx) => (
+                <ProductTableRow
+                  key={pIdx}
+                  product={prod}
+                  prodIdx={pIdx}
+                  itemIdx={itemIdx}
+                  totalProducts={item.products.length}
+                  onSetItems={onSetItems}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
