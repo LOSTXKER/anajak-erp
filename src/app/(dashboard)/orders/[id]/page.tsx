@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -39,8 +39,15 @@ import { OrderItemsEditor } from "@/components/orders/order-items-editor";
 import { OrderInfoEditDialog } from "@/components/orders/order-info-edit-dialog";
 import { OrderGoodsReceiptSection } from "@/components/goods-receipt/order-goods-receipt-section";
 import { OrderQcSection } from "@/components/qc/order-qc-section";
-// หมายเหตุ: OrderNextStep ถูกถอดออก (เบสเคาะ 2026-06-12) — logic getOrderNextStep ยังอยู่
-// ที่ lib/order-next-step.ts เผื่อกลับมาใช้รูปแบบอื่น
+import { SegmentedControl } from "@/components/ui/segmented";
+import { getOrderNextStep } from "@/lib/order-next-step";
+import {
+  ORDER_TAB_DEFS,
+  defaultTabForStatus,
+  tabForAnchor,
+  buildNextStepInput,
+  type TabKey,
+} from "@/lib/order-tabs";
 import {
   OrderItemsDisplay,
   OrderStatusBar,
@@ -48,6 +55,7 @@ import {
   OrderFilesCard,
   OrderRevisions,
   OrderChangeOrders,
+  OrderNextStepBanner,
 } from "@/components/orders/detail";
 
 // ============================================================
@@ -96,20 +104,55 @@ export default function OrderDetailPage({
   // แก้รายการ = ฟอร์มเต็มแสดง inline ตรงส่วนรายการสินค้า (เบสเคาะ: ไม่เอา popup)
   const [editingItems, setEditingItems] = useState(false);
   const [showInfoEditDialog, setShowInfoEditDialog] = useState(false);
+  // แท็บเนื้อหา (เริ่ม overview · ตั้ง default ตามสถานะตอนโหลดออเดอร์ — ดูบล็อกใต้ query)
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [tabOrderId, setTabOrderId] = useState<string | null>(null);
+  // section id ที่จะ scroll หลังสลับแท็บเสร็จ (element โผล่หลังแท็บ render — กัน scroll พลาดเพราะยังไม่ mount)
+  const pendingScrollRef = useRef<string | null>(null);
 
+  // ไปยัง section — สลับแท็บก่อนถ้าจำเป็น (scroll จริงรอ effect หลังแท็บ render) · อยู่แท็บนั้นแล้ว scroll เลย
+  function goToSection(elId: string, tab: TabKey | null) {
+    if (tab && tab !== activeTab) {
+      pendingScrollRef.current = elId;
+      setActiveTab(tab);
+    } else {
+      requestAnimationFrame(() => {
+        document.getElementById(elId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }
   function openItemsEditor() {
     setEditingItems(true);
-    // เลื่อนไปที่ฟอร์มหลัง render — กดจากการ์ดขั้นถัดไป/เมนูแล้วต้องเห็นฟอร์มทันที
-    requestAnimationFrame(() => {
-      document
-        .getElementById("order-section-items")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    goToSection("order-section-items", "overview"); // ฟอร์มแก้รายการอยู่แท็บภาพรวม
+  }
+  // ANCHOR action ของแถบขั้นต่อไป → สลับแท็บ+scroll (billing คงอยู่ sidebar = ไม่สลับแท็บ scroll ตรง)
+  function handleAnchor(target: "billing" | "design" | "production" | "delivery") {
+    goToSection(`order-section-${target}`, tabForAnchor(target));
+  }
+  // สลับแท็บ — กำลังแก้รายการ (ฟอร์มอยู่แท็บภาพรวม) ต้องเตือนก่อนทิ้ง (ฟอร์มไม่บันทึกลง localStorage)
+  async function handleTabChange(tab: TabKey) {
+    if (editingItems && tab !== "overview") {
+      const ok = await confirm({
+        title: "ทิ้งการแก้รายการที่ยังไม่บันทึก?",
+        description: "การแก้รายการ/ราคาที่ยังไม่กดบันทึกจะหายไป",
+        confirmText: "ทิ้งแล้วสลับแท็บ",
+        destructive: true,
+      });
+      if (!ok) return;
+      setEditingItems(false);
+    }
+    setActiveTab(tab);
   }
 
   const { data: order, isLoading, isError, refetch } = trpc.order.getById.useQuery({ id });
   const { data: attachments } = trpc.attachment.listByEntity.useQuery({ entityType: "ORDER", entityId: id });
   const { data: me } = trpc.user.me.useQuery();
+  // ด่านพร้อมผลิต (เงิน/แบบ/ของ) — ใช้บอก "ติดอะไร" บนแถบขั้นต่อไป (query ที่มีอยู่ ไม่เพิ่ม endpoint)
+  // ยิงเฉพาะสถานะที่แถบอาจบล็อก STATUS→PRODUCTION_QUEUE (CONFIRMED/ON_HOLD) — สถานะอื่น/terminal ไม่ใช้ readiness
+  const orderContext = trpc.production.orderContext.useQuery(
+    { orderId: id },
+    { enabled: !!order && ["CONFIRMED", "ON_HOLD"].includes(order.internalStatus) }
+  );
   const utils = trpc.useUtils();
 
   const updateStatus = useMutationWithInvalidation(trpc.order.updateStatus, {
@@ -188,6 +231,22 @@ export default function OrderDetailPage({
     }
   }
 
+  // ตั้งแท็บ default ตามสถานะ "ครั้งเดียวต่อออเดอร์" — React idiom: ปรับ state ตอน id เปลี่ยน ระหว่าง render
+  // (ไม่ใช้ effect) · refetch/เปลี่ยนสถานะ (id เดิม) ไม่ reset แท็บที่ user เลือกเอง
+  if (order && order.id !== tabOrderId) {
+    setTabOrderId(order.id);
+    setActiveTab(defaultTabForStatus(order.internalStatus));
+  }
+  // scroll ไป section ที่ค้างไว้ หลังแท็บสลับ + render เสร็จ
+  useEffect(() => {
+    const elId = pendingScrollRef.current;
+    if (!elId) return;
+    pendingScrollRef.current = null;
+    requestAnimationFrame(() => {
+      document.getElementById(elId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [activeTab]);
+
   // ----------------------------------------------------------
   // Loading state
   // ----------------------------------------------------------
@@ -246,6 +305,37 @@ export default function OrderDetailPage({
     "PRODUCING", "QUALITY_CHECK", "PACKING", "READY_TO_SHIP",
     "SHIPPED", "COMPLETED", "CANCELLED",
   ].includes(order.internalStatus);
+
+  // แถบ "ขั้นต่อไป" — ระบบจำว่างานนี้ต้องทำอะไรต่อ (logic lib/order-next-step.ts) แทนให้ผู้ใช้ไล่เดาจากการ์ด
+  const nextStepInput = buildNextStepInput(order);
+  const nextStep = getOrderNextStep(nextStepInput);
+  // เสื้อที่ต้องตรวจรับ (ลูกค้าส่ง/โรงเย็บ) — โผล่ในการ์ดตรวจรับใต้แท็บงานผลิต ตั้งแต่ช่วงต้น
+  const hasReceivableGarments = (order.items ?? []).some((it) =>
+    (it.products ?? []).some(
+      (p) => p.itemSource === "CUSTOMER_PROVIDED" || p.itemSource === "CUSTOM_MADE"
+    )
+  );
+  // จุดบนแท็บ = แท็บนั้นมีของให้ดู (ช่วยรู้ว่าควรเข้าไปแม้ไม่ใช่แท็บ default)
+  const tabHasContent: Record<TabKey, boolean> = {
+    overview: false,
+    production:
+      nextStepInput.hasApprovedDesign ||
+      nextStepInput.hasPendingDesign ||
+      nextStepInput.hasProduction ||
+      hasReceivableGarments,
+    delivery: nextStepInput.hasDelivery,
+    docs: (attachments?.length ?? 0) > 0,
+    history: (order.revisions?.length ?? 0) > 0,
+  };
+  const tabOptions = ORDER_TAB_DEFS.map((t) => ({
+    value: t.key,
+    label: (
+      <span className="inline-flex items-center gap-1.5">
+        {t.label}
+        {tabHasContent[t.key] && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
+      </span>
+    ),
+  }));
 
   // ----------------------------------------------------------
   // Handlers
@@ -474,88 +564,121 @@ export default function OrderDetailPage({
         </div>
       )}
 
-      {/* เลิกการ์ด "ขั้นถัดไป" (เบสเคาะ 2026-06-12) — ผู้ใช้ทำงานจากปุ่มในแต่ละการ์ดตรงๆ:
-          ยืนยันออเดอร์=ปุ่มมุมขวาบน · ใส่รายการ=ปุ่มในการ์ดรายการ (empty state) · มัดจำ=การ์ดบิล */}
+      {/* แถบ "ขั้นต่อไป" — จุดโฟกัสเดียว: ระบบบอกว่าตอนนี้ต้องทำอะไร + กดทำเลย (getOrderNextStep กลับมาเป็นแถบ)
+          ถ้าขั้นต่อไป=เดินสถานะแต่ด่านพร้อมผลิตไม่ผ่าน → โชว์ "ติดอะไร" แทนปุ่ม (กันกดแล้ว server ปฏิเสธเงียบ) */}
+      <OrderNextStepBanner
+        nextStep={nextStep}
+        readiness={orderContext.data?.readiness ?? null}
+        isPending={updateStatus.isPending}
+        onStatus={handleStatusChange}
+        onEditItems={openItemsEditor}
+        onAnchor={handleAnchor}
+      />
+
+      {/* แท็บลดความหนาแน่น — การ์ด 9 ใบแยกเป็น 5 แท็บ (default ตามสถานะ · จุด = แท็บมีของ) */}
+      <div className="-mx-1 overflow-x-auto px-1">
+        <SegmentedControl value={activeTab} onChange={handleTabChange} options={tabOptions} />
+      </div>
 
       {/* ====================================================
           MAIN GRID: CONTENT + SIDEBAR
       ==================================================== */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* LEFT: MAIN CONTENT (2/3) */}
+        {/* LEFT: MAIN CONTENT (2/3) — เนื้อหาตามแท็บที่เลือก */}
         <div className="space-y-6 lg:col-span-2">
-          <div id="order-section-items" className="scroll-mt-20">
-            {editingItems && canEditItems ? (
-              <OrderItemsEditor
+          {/* ── แท็บ ภาพรวม: รายการสินค้า/ตีราคา ── */}
+          {activeTab === "overview" && (
+            <div id="order-section-items" className="scroll-mt-20">
+              {editingItems && canEditItems ? (
+                <OrderItemsEditor
+                  orderId={id}
+                  orderType={order.orderType}
+                  internalStatus={order.internalStatus}
+                  order={order}
+                  onDone={() => setEditingItems(false)}
+                  onCancel={() => setEditingItems(false)}
+                />
+              ) : (
+                <OrderItemsDisplay
+                  orderId={id}
+                  items={order.items ?? []}
+                  fees={order.fees ?? []}
+                  onEditItems={canEditItems && isSalesUp ? openItemsEditor : undefined}
+                />
+              )}
+            </div>
+          )}
+
+          {/* ── แท็บ งานผลิต: แบบ → ตรวจรับของ → QC → สรุปผลิต ── */}
+          {activeTab === "production" && (
+            <>
+              <div id="order-section-design" className="scroll-mt-20">
+                <OrderDesignSection
+                  orderId={id}
+                  orderNumber={order.orderNumber}
+                  internalStatus={order.internalStatus}
+                />
+              </div>
+
+              {/* ของเข้า/ตรวจรับ — เสื้อลูกค้า/เสื้อโรงเย็บ นับจริงต่อไซส์ (ก้อน 1) */}
+              <OrderGoodsReceiptSection
                 orderId={id}
-                orderType={order.orderType}
+                itemSources={(order.items ?? []).flatMap((it) =>
+                  (it.products ?? [])
+                    .map((p) => p.itemSource)
+                    .filter((s): s is string => s !== null)
+                )}
+                canReceive={
+                  !!me && ["OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF"].includes(me.role)
+                }
+              />
+
+              {/* ตรวจนับ QC — นับของจุดที่ 2 ก่อนแพ็ค (ก้อน 3): ดีล้วนเด้งแพ็ค · มีเสียถอยกลับผลิต */}
+              <OrderQcSection orderId={id} internalStatus={order.internalStatus} />
+
+              {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production/[id] (เบสเคาะแยกโมดูล) */}
+              <div id="order-section-production" className="scroll-mt-20">
+                <ProductionSummaryCard
+                  orderId={id}
+                  internalStatus={order.internalStatus}
+                  productions={order.productions ?? []}
+                  isManagerUp={!!me && ["OWNER", "MANAGER"].includes(me.role)}
+                />
+              </div>
+            </>
+          )}
+
+          {/* ── แท็บ จัดส่ง ── */}
+          {activeTab === "delivery" && (
+            <div id="order-section-delivery" className="scroll-mt-20">
+              <OrderDeliverySection
+                orderId={id}
                 internalStatus={order.internalStatus}
-                order={order}
-                onDone={() => setEditingItems(false)}
-                onCancel={() => setEditingItems(false)}
+                customerName={order.customer?.name}
+                customerPhone={order.customer?.phone ?? undefined}
+                customerHasAddress={!!order.customer?.address}
               />
-            ) : (
-              <OrderItemsDisplay
-                orderId={id}
-                items={order.items ?? []}
-                fees={order.fees ?? []}
-                onEditItems={canEditItems && isSalesUp ? openItemsEditor : undefined}
-              />
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* ไฟล์ 3 ชั้น (ก้อน 4) — ดิบ/แบบอนุมัติ/ไฟล์พิมพ์ + ปุ่มแอดมินแนบแทนลูกค้า */}
-          <OrderFilesCard
-            orderId={id}
-            attachments={attachments}
-            userId={me?.id}
-            userRole={me?.role}
-          />
-
-          <div id="order-section-design" className="scroll-mt-20">
-            <OrderDesignSection
+          {/* ── แท็บ บิล/ไฟล์: ไฟล์ 3 ชั้น (บิลอยู่ sidebar) ── */}
+          {activeTab === "docs" && (
+            <OrderFilesCard
               orderId={id}
-              orderNumber={order.orderNumber}
-              internalStatus={order.internalStatus}
+              attachments={attachments}
+              userId={me?.id}
+              userRole={me?.role}
+              onGoToDesign={() => goToSection("order-section-design", "production")}
             />
-          </div>
+          )}
 
-          {/* ของเข้า/ตรวจรับ — เสื้อลูกค้า/เสื้อโรงเย็บ นับจริงต่อไซส์ (ก้อน 1) */}
-          <OrderGoodsReceiptSection
-            orderId={id}
-            itemSources={(order.items ?? []).flatMap((it) =>
-              (it.products ?? [])
-                .map((p) => p.itemSource)
-                .filter((s): s is string => s !== null)
-            )}
-            canReceive={
-              !!me && ["OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF"].includes(me.role)
-            }
-          />
-
-          {/* ตรวจนับ QC — นับของจุดที่ 2 ก่อนแพ็ค (ก้อน 3): ดีล้วนเด้งแพ็ค · มีเสียถอยกลับผลิต */}
-          <OrderQcSection orderId={id} internalStatus={order.internalStatus} />
-
-          {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production/[id] (เบสเคาะแยกโมดูล) */}
-          <div id="order-section-production" className="scroll-mt-20">
-            <ProductionSummaryCard
-              orderId={id}
-              internalStatus={order.internalStatus}
-              productions={order.productions ?? []}
-              isManagerUp={!!me && ["OWNER", "MANAGER"].includes(me.role)}
-            />
-          </div>
-
-          <OrderDeliverySection
-            orderId={id}
-            internalStatus={order.internalStatus}
-            customerName={order.customer?.name}
-            customerPhone={order.customer?.phone ?? undefined}
-            customerHasAddress={!!order.customer?.address}
-          />
-
-          <OrderChangeOrders orderId={id} />
-
-          <OrderRevisions revisions={order.revisions ?? []} />
+          {/* ── แท็บ ประวัติ: ใบแก้ไข + ประวัติการเปลี่ยนแปลง ── */}
+          {activeTab === "history" && (
+            <>
+              <OrderChangeOrders orderId={id} />
+              <OrderRevisions revisions={order.revisions ?? []} />
+            </>
+          )}
         </div>
 
         {/* RIGHT: SIDEBAR (1/3) */}

@@ -42,6 +42,8 @@ interface OrderFilesCardProps {
   attachments: any[] | undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
   userId?: string;
   userRole?: string;
+  // ปุ่ม "ไปที่งานออกแบบ" — การ์ดงานออกแบบอยู่คนละแท็บ (production) ต้องให้ page สลับแท็บ+scroll ให้
+  onGoToDesign?: () => void;
 }
 
 const POSITION_LABELS: Record<string, string> = {
@@ -113,7 +115,7 @@ function FileThumb({
   );
 }
 
-export function OrderFilesCard({ orderId, attachments, userId, userRole }: OrderFilesCardProps) {
+export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToDesign }: OrderFilesCardProps) {
   const utils = trpc.useUtils();
   const confirm = useConfirm();
   const [uploadingLayer, setUploadingLayer] = React.useState<"RAW" | "PRINT" | null>(null);
@@ -185,6 +187,9 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
   }
 
   function scrollToDesign() {
+    // การ์ดงานออกแบบอยู่แท็บ production (คนละแท็บกับไฟล์) — ให้ page สลับแท็บก่อน scroll
+    // fallback getElementById เผื่อใช้นอกบริบทแท็บ (element อยู่หน้าเดียวกัน)
+    if (onGoToDesign) return onGoToDesign();
     document
       .getElementById("order-section-design")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });

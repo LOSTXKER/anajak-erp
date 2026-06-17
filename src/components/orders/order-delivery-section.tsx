@@ -277,7 +277,8 @@ export function OrderDeliverySection({
 
   return (
     <>
-      <Card id="order-section-delivery" className="scroll-mt-20">
+      {/* anchor id "order-section-delivery" อยู่ที่ wrapper ใน orders/[id]/page.tsx (กัน id ซ้ำ) */}
+      <Card className="scroll-mt-20">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
