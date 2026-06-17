@@ -6,7 +6,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 1. **`PROGRESS.md`** — สถานะสด: ทำถึงไหน ทำอะไรต่อ · **อ่านก่อนเริ่มทุก session + อัปเดตก่อนจบทุก session** (พร้อม `git log --oneline -10`)
 2. **`ROADMAP.md`** — แผน P0-P4 + ใบงาน checklist + กติกา build 8 ข้อ · งานทุกชิ้นต้อง trace กลับ ROADMAP ได้ — ไม่อยู่ใน ROADMAP = ถามเบสก่อน ห้ามทำเงียบ
 3. `Anajak-Print-Features.md` — vision/flow reference เท่านั้น · บางส่วนถูกทับแล้ว ดู banner หัวไฟล์ก่อนใช้
-4. แผนฉบับเหตุผลเต็ม + survey: `D:/dev/ai-agent2/records/projects/anajak-erp/` (ถ้าเข้าถึงได้)
+4. แผนฉบับเหตุผลเต็ม + survey: ใน repo **bestos** (sibling ของ repo นี้) → `records/projects/anajak-erp/` (plan.md + _survey) · path เต็มต่างตามเครื่อง (Win `D:/dev/ai-agent2` · Mac `~/dev/Git/bestos`) — อย่า hardcode (ถ้าเข้าถึงได้)
 
 ## กติกา build (ย่อ — เต็มใน ROADMAP.md)
 - **surgical**: แตะเฉพาะที่ใบงานสั่ง · เลียน pattern เดิม (grep หาก่อนสร้างใหม่) · refactor = targeted + test ก่อน ห้าม big-bang

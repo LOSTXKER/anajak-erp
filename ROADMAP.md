@@ -1,6 +1,6 @@
 # Anajak ERP — Roadmap & ใบงาน build
 
-> สร้าง 2026-06-10 โดย Nami (bestos) · แผนเต็ม+ที่มา: `D:/dev/ai-agent2/records/projects/anajak-erp/` (plan.md + _survey-2026-06-10.md)
+> สร้าง 2026-06-10 โดย Nami (bestos) · แผนเต็ม+ที่มา: ใน repo bestos (sibling) → `records/projects/anajak-erp/` (plan.md + _survey-2026-06-10.md) · path เต็มต่างตามเครื่อง (Win `D:/dev/ai-agent2` · Mac `~/dev/Git/bestos`) — อย่า hardcode
 > เบสเคาะแล้ว: ซ่อมต่อบนโครงเดิม · DB ว่างรื้อ schema ได้อิสระ · ผู้ใช้ = พนักงาน 5 คน + เบส + ลูกค้า · ภาษีเต็มรูป (ERP ออกใบกำกับเอง) + หัก ณ ที่จ่าย 2 ขา · เว็บ 5 นาที = ทีหลัง
 
 ## กติกา build (ผูกทุก phase — ห้ามข้าม)
