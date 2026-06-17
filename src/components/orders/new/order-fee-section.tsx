@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Section } from "@/components/ui/section";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Receipt } from "lucide-react";
 import type { OrderFeeForm } from "@/types/order-form";
 
 const labelClass =
@@ -53,9 +53,14 @@ export function OrderFeeSection({
       }
     >
       {fees.length === 0 ? (
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          ยังไม่มีค่าใช้จ่ายเพิ่มเติม
-        </p>
+        <button
+          type="button"
+          onClick={onAddFee}
+          className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+        >
+          <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
+          <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าใช้จ่ายเพิ่มเติม — กดเพื่อเพิ่ม</span>
+        </button>
       ) : (
         <div className="space-y-3">
           {fees.map((f, fIdx) => (

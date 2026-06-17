@@ -3,6 +3,56 @@
 > session ใหม่: อ่านไฟล์นี้ + `git log --oneline -10` ก่อนเริ่ม · จบ session: อัปเดตไฟล์นี้ก่อนปิด
 
 ## ตอนนี้
+- **🎨 Redesign ฟอร์มรายการสินค้า รอบ 2 — "guided by type" การ์ดต่อชนิดงาน (เบสบอก "ตารางเบาลงก็ยังดูยาก" 2026-06-17) · จบ + verify เขียว · ⏳ เหลือเบส retest UI:**
+  - **ที่มา**: รอบแรก (ตารางเบาลง) เบสยังว่ายาก → เคาะ pain ชัด **"เปิดมาเห็นของเยอะล้นตา"** → plan mode + Explore + Plan agent · เบสเลือก (AskUserQuestion+preview) **"ถามชนิดงานก่อน → โชว์เฉพาะที่เกี่ยว"**
+  - **ราก**: ตารางคอลัมน์เดียวใส่ทุกชนิดงาน → งานสต๊อก(70%) ก็เห็น field ตัดเย็บ/สเปคล้นตา · 3 ชนิด (FROM_STOCK/CUSTOM_MADE/CUSTOMER_PROVIDED) ใช้ field ต่างกันจริง
+  - **ของที่ลง (แทนตารางรอบแรก)**: ① **productsSection: ตาราง → list การ์ดต่อสินค้า** (`ProductTableRow` เดิม <tr> → ProductCard <div> · คงชื่อ export ลด churn) ② **การ์ดโชว์เฉพาะ field ที่ชนิดใช้**: สต๊อก=รูป/ชื่อ(อ่าน)/ราคา/จำนวน/รวม · ตัดเย็บ=+สเปคตัดเย็บ · ลูกค้าส่ง=ไม่มีราคา/รวม ③ ทุกช่องมี **Field label** ชัด · required อยู่ใน body ④ **empty state = 3 การ์ดเลือกชนิดงานใหญ่** ("งานนี้ใช้เสื้อแบบไหน?") ⑤ SizeMatrix/CustomMadeDetail render เป็น <div> (เดิม <td colSpan>) ⑥ export `PRODUCT_TYPE_OPTIONS`
+  - **มือถือ**: เลิกตาราง → **ไม่ต้อง scroll แนวนอน** (ข้อดีใหญ่)
+  - **adversarial review (workflow 4 มิติ/8 agents → confirmed 3 ทั้งหมด MINOR · 0 BLOCKER/MAJOR)** — ยืนยัน field ถูกชนิด/pricing/โครงสร้าง(ไม่มี tr/td ตกค้าง)/behavior ถูกหมด · แก้ 2: เติม `required` Field ไซส์+จำนวน (ให้ตรง validate) · ข้อ 3 (toggle state bleed เพราะ index key) = หนี้เดิม pre-existing แก้ต้องเพิ่ม uid ใน form model (logic) → จดไว้ ไม่แตะรอบนี้
+  - **decision เคาะเอง**: prints ("ลาย") คงเป็น table 4 คอลัมน์ (section เล็ก homogeneous ไม่ใช่ต้นเหตุล้นตา) · แปลงเป็น PrintCard = follow-up ถ้าเบสอยากได้ · logic (pricing/validate/SizeMatrix/สเปค/mapping) ไม่แตะ
+  - **ปรับเพิ่มจาก feedback เบส (iterate หลายรอบจากภาพจริง — หลัก "ไม่ต้องซ่อน แต่ดูง่าย")**:
+    - **ถอด collapse/ซ่อน 4 จุด** → โชว์ตรงๆ: ปุ่ม "▾ เพิ่มเติม" ในการ์ดสินค้า (ส่วนลด/แพค/หลายไซส์/สเปค กางหมด) · "รายละเอียดเพิ่มเติม" · "ค่าธรรมเนียม & ส่วนลด" (เลิก CollapsibleSection)
+    - **highlight หัวข้อกลุ่ม** (groupLabelClass) → แถบน้ำเงินซ้าย + ตัวหนาเข้ม (แยกกลุ่มชัด)
+    - **ปุ่มลบฝั่งเดียวกันหมด (ขวา)** + สไตล์เดียวกัน (ย้าย add-on จากซ้าย)
+    - **ทุกส่วนที่เพิ่มได้ = "กล่องเพิ่มมีไอคอน" แบบเดียวกัน** (เส้นประ+ไอคอน+ข้อความ+hover ฟ้า): ลาย/สินค้า(3 การ์ดเลือกชนิด)/ส่วนเสริม/ค่าธรรมเนียม/ค่าใช้จ่ายเพิ่มเติม/เพิ่มรายการอีกชุด
+    - **multi-item เลิก accordion** → ทุกรายการกางเห็นหมด หัว "① รายการที่ N" + จำนวน/ยอด/ลบ · **คำอธิบายงานขึ้นบนสุด ใต้เลข**
+  - **verify**: tsc **0** · lint **0 error** · test **236/236** · ทั้ง 2 หน้า compile ผ่าน
+  - **⏳ เหลือเบส retest UI** (HMR): 2 หน้า × 3 ชนิด × หลายรายการ · `npm run build` ตอนปิด dev
+- **🎨 Redesign ฟอร์มรายการสินค้า รอบ 1 — "ตารางเดิมแต่เบาลง" (2026-06-17 · ⚠️ products ส่วนถูกแทนด้วย guided card รอบ 2 ข้างบน · prints/empty/popover ยังใช้ต่อ):**
+  - **ที่มา**: เบสส่งภาพฟอร์มแก้รายการ บอกใช้ยาก → plan mode + Explore 2 + Plan agent · เคาะจุดยาก 4 ข้อ (ช่องอัดแถวเดียว/ช่องปุ่มเล็ก/ไม่รู้เริ่มตรงไหน/เพิ่ม-ลบงง)
+  - **เบสเคาะ (AskUserQuestion+preview)**: "ตารางเดิมแต่เบาลง" (progressive disclosure) · **ปรับทั้งหน้าเปิดงาน + แก้รายการ** (component ร่วม)
+  - **insight**: 2 หน้าใช้ component ร่วม (OrderItemCard→ProductTableRow/PrintTableRow) → แตะ row ที่เดียวกระทบทั้งคู่ · presentation ล้วน ไม่แตะ logic
+  - **ของที่ลง**: ① **ProductTableRow** 7→6 คอลัมน์ (แหล่ง/สินค้า/ราคา/จำนวน/**รวม(ใหม่)**/ลบ) ② **PrintTableRow** 7→4 (รูป/วิธีพิมพ์/ค่าสกรีน/ลบ) ③ **ของรองซ่อนใต้ toggle "▾ เพิ่มเติม" ต่อแถว** (สินค้า=ส่วนลด/แพค/หลายไซส์/สเปค · ลาย=ขนาด/ตำแหน่ง/สี/custom) + **badge สรุปค่าที่ตั้งไว้แม้ยุบ** (กันลืม) ④ ลบ override ขนาดเล็ก → primitive default (h-9 · รูป 40px · ปุ่มลบเด่น) ⑤ empty state เด่น (กล่อง dashed กดเพิ่มในกล่อง) ⑥ AddProductPopover คำอธิบายตัวเลือก ⑦ แก้ colgroup/thead ให้ตรงคอลัมน์
+  - **adversarial review (workflow 4 มิติ/9 agents → confirmed 2 ทั้งหมด MINOR · 0 BLOCKER/MAJOR)** — ยืนยันโครงตาราง(colgroup/colSpan)/pricing(รวม=netPrice×effectiveQty ตรง summary)/validation/artworkId ถูกหมด · แก้ครบ:
+    - ปุ่ม "ปิดหลายไซส์" กดแล้วไม่ปิดเมื่อ variants>1 (multi ตรึงจากข้อมูล) → **disable + title อธิบาย** (pre-existing surfaced)
+    - badge "0 ตัว·0 ไซส์" ตอน multi ยังไม่กรอก → **gate totalQty>0** (ให้ตรง badge พี่น้อง)
+  - **decision เคาะเอง (อย่าแก้กลับเงียบ)**: required field (description/ราคา/แหล่ง/ไซส์-จำนวน) คงอยู่แถวหลัก ไม่ซ่อน · ส่วนลด/แพคเกจ ไป disclosure (ไม่มี validation) · disclosure state = local row ไม่เข้า draft · SizeMatrix/CustomMadeDetail/pricing/mapping/types ไม่แตะ
+  - **verify**: tsc **0** · lint **0 error** · test **236/236** (logic ไม่แตะ ผ่านครบ) · ทั้ง 2 หน้า compile ผ่าน
+  - **⏳ เหลือเบส retest UI** (frontend HMR ไม่ต้อง restart): **2 หน้า** (`/orders/new` + แก้รายการ) × เคส 1รายการ/หลายรายการ/FROM_STOCK/CUSTOM_MADE → เช็คแถวเบา/ช่องใหญ่/disclosure+badge/ราคา-รวม/เพิ่ม-ลบ · `npm run build` ตอนปิด dev
+- **🎨 Redesign หน้ารายละเอียดออเดอร์ — แถบ "ขั้นต่อไป" + จัดเป็นแท็บ (เบสบอก "ใช้งานยาก ดูยาก ไม่รู้จะทำอะไร" 2026-06-17) · จบ + verify เขียว · ⏳ เหลือเบส restart dev + retest UI:**
+  - **ที่มา**: เบสบอกหน้า `/orders/[id]` ใช้งานยาก 2 เรื่องพอกัน (ไม่รู้จะทำอะไรต่อ + การ์ด 9 ใบเรียงยาวเลื่อนหา) → plan mode + Explore 3 + Plan agent · **เบสเคาะ Concept B (AskUserQuestion + preview)**: แถบขั้นต่อไป + จัดแท็บ
+  - **insight**: `getOrderNextStep` (lib/order-next-step.ts) สร้างครบ+มี test แล้ว แต่ถูกถอดจากหน้าเมื่อ 2026-06-12 ("เผื่อกลับมาใช้รูปแบบอื่น") — แค่เอากลับมาเป็น "แถบ"
+  - **ของที่ลง**: ① `lib/order-tabs.ts` (pure: `defaultTabForStatus`/`tabForAnchor`/`buildNextStepInput`+สูตร billingHandled เป๊ะตาม server/`shouldGateOnReadiness`) + test ② `OrderNextStepBanner` (แถบน้ำเงิน + readiness gating "ติดอะไรรอใคร") ③ page.tsx: แถบ + **5 แท็บ** (ภาพรวม/งานผลิต/จัดส่ง/บิล-ไฟล์/ประวัติ · default ตามสถานะ · จุดบอกแท็บมีของ) + scroll ข้ามแท็บ (pendingScrollRef+effect) + mobile scroll · **reuse component เดิมหมด ไม่แตะ tRPC** (getById ดึงครบ · readiness ใช้ production.orderContext)
+  - **adversarial review (workflow 4 มิติ/16 agents → 11 findings → verify → confirmed 10 = จริง 5 ปัญหา ซ้ำ 2 คู่)** — แก้ครบ:
+    - **MAJOR readiness gate บล็อกทุก STATUS ผิด** (CONFIRMED→DESIGNING วงกลม/SHIPPED→COMPLETED ขัด server) → `shouldGateOnReadiness` จำกัดเฉพาะ STATUS→PRODUCTION_QUEUE (จุดเดียว server ใช้ readiness) + test
+    - **MAJOR ปุ่ม "ไปที่งานออกแบบ" ในแท็บ docs ตายสนิท** (element อยู่คนละแท็บ) → ส่ง `onGoToDesign` callback ใช้ goToSection สลับแท็บก่อน scroll
+    - **MAJOR สลับแท็บตอนแก้รายการ = ฟอร์มหาย** → `handleTabChange` confirm ก่อนทิ้ง
+    - MINOR: ลบ id `order-section-delivery` ซ้ำ (เก็บที่ wrapper) · query orderContext ใส่ enabled (เฉพาะ CONFIRMED/ON_HOLD ไม่ยิงเปล่า) · production dot รวมสัญญาณตรวจรับของ
+  - **verify**: tsc **0** · lint **0 error** · unit **236/236** (+12: order-tabs/gate/billingHandled) · dev compile หน้าผ่าน
+  - **⏳ เหลือเบส**: restart dev (HMR รับ frontend ได้เลย แต่ restart ชัวร์) · **retest UI**: เปิดออเดอร์แต่ละสถานะ → แถบขั้นต่อไปถูก/ปุ่มทำงาน · สลับแท็บ · กดปุ่มในแถบ (ANCHOR สลับแท็บ+scroll) · `npm run build` ตอนปิด dev
+- **📦 Auto-release จองสต๊อกค้าง — แก้ปัญหา "ออเดอร์ผี" จองเสื้อแล้วลูกค้าหาย/ไม่จ่าย (เบสเจอจริง · เคาะ 2026-06-17) · จบ + verify เขียว · ⏳ เหลือเบส apply migration + restart dev:**
+  - **ที่มา**: เบสถามหลักการตัดสต๊อก ERP → ยืนยันระบบทำถูกแล้ว (จองตอน CONFIRMED · ตัดจริงตอนเบิกผลิต) → เบสเจอปัญหาจริง "ออเดอร์มากองจองเสื้อ ลูกค้าหาย เสื้อล็อกขายคนอื่นไม่ได้"
+  - **เบสเคาะ (AskUserQuestion)**: ① ปลดจอง**อัตโนมัติ** ② สัญญาณ = **ยังไม่จ่ายมัดจำ** ③ จองค้าง **3 วัน** + (ฉันแนะนำ เบสรับ) **เตือนล่วงหน้า 1 วัน** ก่อนปลด
+  - **กติกา**: ออเดอร์ที่จองสต๊อก (stockReservedAt) + ยังไม่เริ่มผลิต (CONFIRMED→PRODUCTION_QUEUE) + เทอม*ต้อง*มัดจำแต่จ่ายไม่ถึง + ค้าง ≥3 วัน → ปลดคืน · ≥2 วัน → เตือน · **เครดิตเทอม/COD ไม่โดน** (requiredUpfront=0 อัตโนมัติ) · WHT นับเป็นจ่ายแล้ว
+  - **ของที่ลง**: ① `lib/payment-terms.ts` **`requiredUpfrontAmount`** (ยอดต้องจ่ายก่อนตามเทอม — DRY กับ production-readiness ที่ refactor มาใช้ร่วม) ② field `reservationExpiryWarnedAt` + migration `20260617120000_add_reservation_expiry_warned` (additive nullable) — **เบสยังไม่ apply** ③ `services/stock-reservation-sweep.ts`: pure `classifyReservation` (release/warn/skip) + `sweepStaleReservations` + `maybeSweepStaleReservations` (throttle) ④ `services/sweep-throttle.ts` **`claimThrottleSlot`** (helper กลาง — refactor `overdue.ts` มาใช้ร่วม ลบ throttle ซ้ำ) ⑤ cron `/api/cron/stock-reservations` (fail-closed) + vercel.json 00:10 ไทย ⑥ hook `maybeSweepStaleReservations` ใน `order.list` (สะพานให้ทำงานบน dev ที่ไม่มี cron · `.catch` กัน list พัง) ⑦ ผูก reset `reservationExpiryWarnedAt` เข้าวงจร sync/release (จองใหม่/ปลด=ล้าง)
+  - **adversarial review (workflow 5 มิติ/17 agents → 11 findings → verify → confirmed 5 ทั้งหมด MINOR · ไม่มี BLOCKER/MAJOR · ไม่มี data/money corruption)** — เก็บครบทุกข้อ:
+    - **#1+#2 race ปลดซ้อน (cron bypass throttle + release ไม่มี atomic claim เหมือน warn)** → `releaseOrderStockReservation` ปลดแบบ **conditional update** (`updateMany where stockReservedAt!=null`) ชิงสิทธิ์ → แพ้ race คืน `skipped` · sweep นับ/แจ้งเฉพาะ `released` (root fix ช่วยทุก caller: cancel/edit ด้วย)
+    - **#3 fetch Stock ไม่มี timeout บน read-path** → `stock-api.ts` ใส่ `AbortSignal.timeout(15s)` (override ได้)
+    - **#4 TOCTOU เงิน (ลูกค้าจ่ายระหว่าง sweep รัน)** → re-read สด + `classifyReservation` ซ้ำก่อนปลดจริง
+    - **#5 createNotification throw ลาก loop ร่วง / warn-lost** → ห่อ try/catch ทั้ง release+warn notify loop
+    - หักล้างทิ้ง 6 (2 page-hook ชนเอง = throttle CAS กันถูกแล้ว · "list ไม่มี maxDuration" = จริงๆ 60s · refactor overdue/production-readiness ไม่เปลี่ยนพฤติกรรม)
+  - **verify**: tsc **0** · lint **0** · unit **224/224** (+21: classify ทุกเคส/requiredUpfront/sweep orchestration/race-skipped/TOCTOU · overdue refactor ยังผ่าน=ไม่พังของเดิม)
+  - **⏳ เหลือเบส (activation)**: ① **`npx prisma migrate deploy`** (เพิ่ม column `reservation_expiry_warned_at` บน Supabase — additive ปลอดภัย) ② **restart dev** (server โหลด prisma client เก่า ก่อนมี field ใหม่ — ไม่ restart hook จะ throw แต่ `.catch` กันหน้า list พังไว้แล้ว ฟีเจอร์แค่ยังไม่ทำงานจนกว่าจะ restart) ③ `next build` ตอนปิด dev
 - **🎨 UI unify ทั้งระบบ — "ใช้ของกลางชุดเดียวทุกหน้า" (เบสสั่ง · เคาะขอบเขตลึกสุด 2026-06-14) · จบ 2 ก้อน + verify เขียว · ⏳ เหลือเบส retest UI:**
   - **ที่มา**: เบสสั่ง "Refactor UXUI ให้ใช้อันเดียวกันทุกหน้าทุกส่วน" → trace กลับ P1.0 + ก้อน 6 · ใช้ workflow audit ทั้งระบบก่อน (12 auditor + synthesis · 98 findings · overall 74/100 — แกน design system แข็งอยู่แล้ว ปัญหาคือ "เก็บกวาดไม่ทั่ว")
   - **เบสเคาะ 2 ข้อ (AskUserQuestion 2026-06-14)**: ① ขอบเขต = **ลึกสุด — สร้าง primitive ที่ขาดด้วย** ② ปุ่มอนุมัติ/ยืนยัน เขียว → **น้ำเงิน default ทั้งหมด** (ทิ้งเขียว · ไม่เพิ่ม success variant)

@@ -465,9 +465,8 @@ export default function NewOrderPage() {
                     item={item}
                     itemIdx={itemIdx}
                     canRemove={items.length > 1}
-                    isExpanded={expandedItemIdx === itemIdx}
+                    isExpanded
                     compact
-                    onToggleExpand={() => setExpandedItemIdx(expandedItemIdx === itemIdx ? null : itemIdx)}
                     allItems={items}
                     printCatalog={printCatalog}
                     addonCatalog={addonCatalog}

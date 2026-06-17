@@ -6,10 +6,9 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { formatCurrency } from "@/lib/utils";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
-import { Loader2, Plus, Trash2, Save, Pencil } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, Pencil, Receipt } from "lucide-react";
 import { validateOrderItem, validateOrderItemProduct, itemHasContent } from "@/types/order-form";
 import {
   mapItemsToMutationInput,
@@ -320,10 +319,7 @@ export function OrderItemsEditor({
                   item={item}
                   itemIdx={itemIdx}
                   canRemove={items.length > 1}
-                  isExpanded={expandedItemIdx === itemIdx}
-                  onToggleExpand={() =>
-                    setExpandedItemIdx(expandedItemIdx === itemIdx ? null : itemIdx)
-                  }
+                  isExpanded
                   allItems={items}
                   printCatalog={printCatalog}
                   addonCatalog={addonCatalog}
@@ -350,76 +346,78 @@ export function OrderItemsEditor({
             </div>
           )}
 
-          <Button
-            variant="outline"
-            size="sm"
+          <button
+            type="button"
             onClick={() => {
               addItem();
               setExpandedItemIdx(items.length);
             }}
-            className="w-full gap-1 text-slate-500"
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-200 py-3 text-sm text-slate-500 transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-4 w-4" />
             เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)
-          </Button>
+          </button>
 
-          {/* ค่าธรรมเนียม + ส่วนลด — พับไว้ ไม่รบกวนจนกว่าจะมีของ (redesign 2026-06-11)
-              defaultOpen คิดจากข้อมูลตอน mount (initial state) — กางเองเมื่อออเดอร์มีของเดิม */}
-          <CollapsibleSection
-            title="ค่าธรรมเนียม & ส่วนลด"
-            defaultOpen={initialFees.length > 0 || (order.discount || 0) > 0}
-            summary={
-              fees.length > 0 || discount > 0
-                ? `${fees.length > 0 ? `${fees.length} รายการ` : ""}${
-                    fees.length > 0 && discount > 0 ? " · " : ""
-                  }${discount > 0 ? `ลด ${formatCurrency(discount)}` : ""}`
-                : "ไม่มี — เติมได้ถ้าต้องการ"
-            }
-          >
+          {/* ค่าธรรมเนียม + ส่วนลด — โชว์ตรงๆ ไม่พับซ่อน (เบส: ไม่ต้องซ่อน แต่ดูง่าย) */}
+          <div className="space-y-3">
+            <p className="border-l-[3px] border-blue-500 pl-2 text-sm font-semibold text-slate-800 dark:border-blue-400 dark:text-slate-100">
+              ค่าธรรมเนียม &amp; ส่วนลด
+            </p>
             <div className="space-y-3">
-              <div className="space-y-2">
-                {fees.map((fee, fi) => (
-                  <div
-                    key={fi}
-                    className="flex items-center gap-2 rounded-lg border border-slate-200 p-2.5 dark:border-slate-700"
-                  >
-                    <Input
-                      type="text"
-                      value={fee.feeType}
-                      onChange={(e) => updateFee(fi, "feeType", e.target.value)}
-                      placeholder="ประเภท"
-                      className="h-8 w-28"
-                    />
-                    <Input
-                      type="text"
-                      value={fee.name}
-                      onChange={(e) => updateFee(fi, "name", e.target.value)}
-                      placeholder="ชื่อ"
-                      className="h-8 flex-1"
-                    />
-                    <Input
-                      type="number"
-                      value={fee.amount || ""}
-                      onChange={(e) => updateFee(fi, "amount", parseFloat(e.target.value) || 0)}
-                      placeholder="จำนวน"
-                      className="h-8 w-28"
-                      min="0"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-red-500"
-                      onClick={() => removeFee(fi)}
+              {fees.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={addFee}
+                  className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+                >
+                  <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าธรรมเนียม — กดเพื่อเพิ่ม</span>
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  {fees.map((fee, fi) => (
+                    <div
+                      key={fi}
+                      className="flex items-center gap-2 rounded-lg border border-slate-200 p-2.5 dark:border-slate-700"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={addFee} className="w-full gap-1">
-                  <Plus className="h-3.5 w-3.5" />
-                  เพิ่มค่าธรรมเนียม
-                </Button>
-              </div>
+                      <Input
+                        type="text"
+                        value={fee.feeType}
+                        onChange={(e) => updateFee(fi, "feeType", e.target.value)}
+                        placeholder="ประเภท"
+                        className="h-8 w-28"
+                      />
+                      <Input
+                        type="text"
+                        value={fee.name}
+                        onChange={(e) => updateFee(fi, "name", e.target.value)}
+                        placeholder="ชื่อ"
+                        className="h-8 flex-1"
+                      />
+                      <Input
+                        type="number"
+                        value={fee.amount || ""}
+                        onChange={(e) => updateFee(fi, "amount", parseFloat(e.target.value) || 0)}
+                        placeholder="จำนวน"
+                        className="h-8 w-28"
+                        min="0"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+                        onClick={() => removeFee(fi)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={addFee} className="w-full gap-1">
+                    <Plus className="h-3.5 w-3.5" />
+                    เพิ่มค่าธรรมเนียม
+                  </Button>
+                </div>
+              )}
 
               <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
                 <label className="text-sm text-slate-500">ส่วนลด</label>
@@ -433,7 +431,7 @@ export function OrderItemsEditor({
                 <span className="text-sm text-slate-400">บาท</span>
               </div>
             </div>
-          </CollapsibleSection>
+          </div>
 
           {/* Validation errors — เกณฑ์เดียวกับหน้าเปิดงาน จับก่อนถึง server */}
           {formErrors.length > 0 && (

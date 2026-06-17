@@ -9,8 +9,8 @@ import {
   Plus,
   Trash2,
   Copy,
-  Pencil,
-  Check,
+  ImageIcon,
+  Sparkles,
 } from "lucide-react";
 import type { OrderItemForm } from "@/types/order-form";
 import {
@@ -20,23 +20,23 @@ import {
   EMPTY_PRODUCT,
   itemHasContent,
 } from "@/types/order-form";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { PrintTableRow, Field } from "./print-table-row";
 import { ProductTableRow } from "./product-table-row";
-import { AddProductPopover } from "./add-product-popover";
+import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
 
 export const labelClass =
   "mb-1 block text-[12px] text-slate-500 dark:text-slate-400";
 
+// หัวข้อกลุ่ม — เด่นชัด (แถบน้ำเงิน + ตัวหนาเข้ม) แยกกลุ่มให้สายตาจับได้ทันที (เบส: highlight หัวข้อ)
 const groupLabelClass =
-  "text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500";
+  "border-l-[3px] border-blue-500 pl-2 text-sm font-semibold text-slate-800 dark:border-blue-400 dark:text-slate-100";
 
 interface OrderItemCardProps {
   item: OrderItemForm;
   itemIdx: number;
   canRemove: boolean;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
   allItems?: OrderItemForm[];
   printCatalog?: Array<{ id: string; name: string; type: string; defaultPrice: number; pricingType: string }>;
   addonCatalog?: Array<{ id: string; name: string; type: string; defaultPrice: number; pricingType: string }>;
@@ -59,57 +59,31 @@ interface OrderItemCardProps {
   compact?: boolean;
 }
 
-function getItemLabel(item: OrderItemForm): string {
-  if (item.description) return item.description;
-  const first = item.products[0];
-  if (first?.productName) return first.productName;
-  if (first?.description) return first.description;
-  return "รายการใหม่";
-}
-
 // ============================================================
 // COLLAPSED ROW
 // ============================================================
 
+// หัวการ์ดของแต่ละรายการ (ทุกรายการกางเห็นหมด ไม่ accordion — เบส: ไม่ต้องซ่อน)
 function OrderItemRow({
-  item, itemIdx, canRemove, isExpanded, onToggleExpand, onRemoveItem,
+  item, itemIdx, canRemove, onRemoveItem,
 }: {
   item: OrderItemForm;
   itemIdx: number;
   canRemove: boolean;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
   onRemoveItem: (idx: number) => void;
 }) {
   const totalQty = getFormItemTotalQty(item);
   const subtotal = calculateFormItemSubtotal(item);
-  // รายการยังไม่กรอกอะไร — แสดงเรียบๆ (ไม่โชว์ "—" จำนวน/ราคา ไม่มีปุ่มแก้ซ้ำ) ลดความรก
   const empty = !itemHasContent(item);
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-2 py-2.5 transition-colors",
-        isExpanded && "border-b border-slate-200/80 dark:border-slate-700/60",
-      )}
-    >
-      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+    <div className="flex items-center gap-2 border-b border-slate-200/60 py-2.5 dark:border-slate-700/50">
+      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
         {itemIdx + 1}
       </span>
-
-      <button
-        type="button"
-        onClick={onToggleExpand}
-        className={cn(
-          "min-w-0 flex-1 truncate text-left text-sm",
-          empty
-            ? "italic text-slate-400 dark:text-slate-500"
-            : "font-medium text-slate-700 hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-400"
-        )}
-      >
-        {empty ? "รายการใหม่ — ยังไม่ได้กรอก" : getItemLabel(item)}
-      </button>
-
+      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+        รายการที่ {itemIdx + 1}
+      </span>
       {!empty && (
         <>
           <span className="w-12 flex-shrink-0 text-right text-xs tabular-nums text-slate-500 dark:text-slate-400">
@@ -120,19 +94,11 @@ function OrderItemRow({
           </span>
         </>
       )}
-
-      <div className="flex flex-shrink-0 items-center gap-1">
-        {!empty && (
-          <Button type="button" variant="ghost" size="sm" onClick={onToggleExpand} aria-label={isExpanded ? "เสร็จสิ้นแก้ไข" : "แก้ไขรายการ"} className={cn("h-7 w-7 p-0", isExpanded ? "text-blue-600" : "text-slate-400 hover:text-blue-600")}>
-            {isExpanded ? <Check className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
-          </Button>
-        )}
-        {canRemove && (
-          <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onRemoveItem(itemIdx); }} aria-label="ลบรายการ" className="h-7 w-7 p-0 text-slate-400 hover:text-red-600">
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        )}
-      </div>
+      {canRemove && (
+        <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveItem(itemIdx)} aria-label="ลบรายการ" className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }
@@ -142,7 +108,7 @@ function OrderItemRow({
 // ============================================================
 
 export function OrderItemCard({
-  item, itemIdx, canRemove, isExpanded, onToggleExpand,
+  item, itemIdx, canRemove, isExpanded,
   allItems, printCatalog, addonCatalog,
   onUpdateItem, onRemoveItem,
   onAddPrint, onRemovePrint, onUpdatePrint,
@@ -240,19 +206,23 @@ export function OrderItemCard({
         </div>
       </div>
       {item.prints.length === 0 ? (
-        <p className="py-3 text-center text-xs italic text-slate-400 dark:text-slate-500">ยังไม่มีลายสกรีน — กด &quot;เพิ่มลาย&quot; เพื่อเริ่ม</p>
+        <button
+          type="button"
+          onClick={() => onAddPrint(itemIdx)}
+          className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+        >
+          <ImageIcon className="h-6 w-6 text-slate-300 dark:text-slate-600" />
+          <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีลาย — กดเพื่อเพิ่มลายแรก</span>
+        </button>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="text-left text-[10.5px] font-normal text-slate-400 dark:text-slate-500">
-                <th className="pb-1.5 pr-1">รูปแบบ</th>
+                <th className="w-12 pb-1.5 pr-1">รูปแบบ</th>
                 <th className="pb-1.5 px-1">วิธีพิมพ์</th>
-                <th className="pb-1.5 px-1">ขนาด</th>
-                <th className="pb-1.5 px-1">ตำแหน่ง</th>
-                <th className="w-14 pb-1.5 px-1">สี</th>
-                <th className="min-w-[80px] pb-1.5 px-1">ค่าสกรีน</th>
-                <th className="w-14 pb-1.5" />
+                <th className="w-28 pb-1.5 px-1 text-right">ค่าสกรีน</th>
+                <th className="w-10 pb-1.5" />
               </tr>
             </thead>
             <tbody>
@@ -279,50 +249,49 @@ export function OrderItemCard({
     <div>
       <div className="mb-2 flex items-center justify-between">
         <span className={groupLabelClass}>{compact ? "สินค้า" : "สินค้าที่ต้องการสั่งผลิต"}</span>
-        <AddProductPopover
-          onAddFromStock={onOpenPicker}
-          onAddCustomMade={() => addProductWithSource("CUSTOM_MADE")}
-          onAddCustomerProvided={() => addProductWithSource("CUSTOMER_PROVIDED")}
-        />
+        {item.products.length > 0 && (
+          <AddProductPopover
+            onAddFromStock={onOpenPicker}
+            onAddCustomMade={() => addProductWithSource("CUSTOM_MADE")}
+            onAddCustomerProvided={() => addProductWithSource("CUSTOMER_PROVIDED")}
+          />
+        )}
       </div>
       {item.products.length === 0 ? (
-        <p className="py-3 text-center text-xs italic text-slate-400 dark:text-slate-500">ยังไม่มีสินค้า — กด &quot;เพิ่มสินค้า&quot; เพื่อเริ่ม</p>
+        // เลือกชนิดงานก่อน → ระบบโชว์เฉพาะ field ที่ชนิดนั้นใช้ (guided by type)
+        <div>
+          <p className="mb-2 text-center text-xs text-slate-500 dark:text-slate-400">งานนี้ใช้เสื้อแบบไหน? เลือกเพื่อเริ่ม</p>
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  if (key === "stock") onOpenPicker();
+                  else if (key === "custom") addProductWithSource("CUSTOM_MADE");
+                  else addProductWithSource("CUSTOMER_PROVIDED");
+                }}
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-slate-200 p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+              >
+                <Icon className="h-6 w-6 text-slate-400" strokeWidth={1.75} />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">{desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full" style={{ tableLayout: "fixed" }}>
-            <colgroup>
-              <col style={{ width: 80 }} />
-              <col />
-              <col style={{ width: 100 }} />
-              <col style={{ width: 80 }} />
-              <col style={{ width: 80 }} />
-              <col style={{ width: 130 }} />
-              <col style={{ width: 56 }} />
-            </colgroup>
-            <thead>
-              <tr className="text-left text-[10.5px] font-normal text-slate-400 dark:text-slate-500">
-                <th className="pb-1.5 pl-1">แหล่ง</th>
-                <th className="pb-1.5 pr-2">สินค้า</th>
-                <th className="pb-1.5 px-1.5">ราคา (ต่อหน่วย)</th>
-                <th className="pb-1.5 px-1.5">จำนวน</th>
-                <th className="pb-1.5 px-1.5">ส่วนลด</th>
-                <th className="pb-1.5 px-1.5">แพ็คเกจ</th>
-                <th className="pb-1.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {item.products.map((prod, pIdx) => (
-                <ProductTableRow
-                  key={pIdx}
-                  product={prod}
-                  prodIdx={pIdx}
-                  itemIdx={itemIdx}
-                  totalProducts={item.products.length}
-                  onSetItems={onSetItems}
-                />
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {item.products.map((prod, pIdx) => (
+            <ProductTableRow
+              key={pIdx}
+              product={prod}
+              prodIdx={pIdx}
+              itemIdx={itemIdx}
+              totalProducts={item.products.length}
+              onSetItems={onSetItems}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -338,23 +307,29 @@ export function OrderItemCard({
         </Button>
       </div>
       {item.addons.length === 0 ? (
-        <p className="py-2 text-center text-xs italic text-slate-400 dark:text-slate-500">ไม่มีส่วนเสริม — กด &quot;Add-on&quot; เพื่อเพิ่ม</p>
+        <button
+          type="button"
+          onClick={() => onAddAddon(itemIdx)}
+          className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+        >
+          <Sparkles className="h-6 w-6 text-slate-300 dark:text-slate-600" />
+          <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีส่วนเสริม — กดเพื่อเพิ่ม</span>
+        </button>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="text-left text-[10.5px] font-normal text-slate-400 dark:text-slate-500">
-                <th className="w-8 pb-1.5" />
                 <th className="min-w-[100px] pb-1.5 px-1">ประเภท</th>
                 <th className="min-w-[120px] pb-1.5 px-1">ชื่อ</th>
                 <th className="min-w-[90px] pb-1.5 px-1">คิดราคา</th>
-                <th className="min-w-[80px] pb-1.5 pl-1">ราคา</th>
+                <th className="min-w-[80px] pb-1.5 px-1">ราคา</th>
+                <th className="w-10 pb-1.5" />
               </tr>
             </thead>
             <tbody>
               {item.addons.map((a, aIdx) => (
                 <tr key={aIdx} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
-                  <td className="py-1.5 align-middle"><Button type="button" variant="ghost" size="icon" aria-label="ลบส่วนเสริม" className="h-7 w-7 text-red-400 hover:text-red-600" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 className="h-3.5 w-3.5" /></Button></td>
                   <td className="px-1 py-1.5 align-middle">
                     {addonCatalog && addonCatalog.length > 0 ? (
                       <NativeSelect value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); e.target.value = ""; }} className="h-8 text-xs">
@@ -367,7 +342,8 @@ export function OrderItemCard({
                   </td>
                   <td className="px-1 py-1.5 align-middle"><Input value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" className="h-8 text-xs" /></td>
                   <td className="px-1 py-1.5 align-middle"><NativeSelect value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} className="h-8 text-xs"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></NativeSelect></td>
-                  <td className="pl-1 py-1.5 align-middle"><Input type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="h-8 text-xs" /></td>
+                  <td className="px-1 py-1.5 align-middle"><Input type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="h-8 text-xs" /></td>
+                  <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label="ลบส่วนเสริม" className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 className="h-4 w-4" /></Button></td>
                 </tr>
               ))}
             </tbody>
@@ -467,35 +443,12 @@ export function OrderItemCard({
     </div>
   ) : null;
 
-  // compact: ย่อ คำอธิบาย/ส่วนเสริม/หมายเหตุ ไว้ใน "รายละเอียดเพิ่มเติม" — กางเองถ้ามีของอยู่แล้ว
-  const hasSecondary = !!item.description || item.addons.length > 0 || !!item.notes;
-  const secondarySummary =
-    [
-      item.description ? "มีคำอธิบาย" : "",
-      item.addons.length > 0 ? `${item.addons.length} ส่วนเสริม` : "",
-      item.notes ? "มีหมายเหตุ" : "",
-    ]
-      .filter(Boolean)
-      .join(" · ") || "คำอธิบาย · ส่วนเสริม · หมายเหตุ";
-
   return (
-    <div
-      className={cn(
-        // compact (หน้าแก้รายการ): ทุกรายการอยู่ในเฟรมเดียว — ไม่ทำกล่องซ้อนกล่อง
-        // รายการที่กำลังแก้ = พื้นจางบอกเฉยๆ (ไม่มีขอบ/เงา/margin) ลดชั้นภาพจาก 4 เหลือ 2
-        !solo && compact && "px-4",
-        !solo && compact && isExpanded && "bg-slate-50/60 dark:bg-slate-800/30",
-        // full (หน้าเปิดงานใหม่): คงแผงเทาขอบชัดเดิม
-        !solo &&
-          !compact &&
-          isExpanded &&
-          "my-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 dark:border-slate-700/60 dark:bg-slate-800/40"
-      )}
-    >
+    // ทุกรายการกางเห็นหมด (ไม่ accordion) — หัว "รายการที่ N" + เนื้อหา · คั่นด้วย divide-y ของ parent
+    <div className={cn(!solo && "px-4")}>
       {!solo && (
         <OrderItemRow
           item={item} itemIdx={itemIdx} canRemove={canRemove}
-          isExpanded={isExpanded} onToggleExpand={onToggleExpand}
           onRemoveItem={onRemoveItem}
         />
       )}
@@ -504,19 +457,12 @@ export function OrderItemCard({
         <div className="space-y-4 py-4">
           {compact ? (
             <>
+              {/* คำอธิบายงานอยู่บนสุด ใต้เลขรายการ (เบส: คำอธิบายไปอยู่ข้างบนกับเลข) */}
+              {descField}
               {showPrints && printsSection}
               {productsSection}
-              <CollapsibleSection
-                title="รายละเอียดเพิ่มเติม"
-                summary={secondarySummary}
-                defaultOpen={hasSecondary}
-              >
-                <div className="space-y-4 pt-1">
-                  {descField}
-                  {showAddons && addonsSection}
-                  {notesField}
-                </div>
-              </CollapsibleSection>
+              {showAddons && addonsSection}
+              {notesField}
             </>
           ) : (
             <>
