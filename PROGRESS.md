@@ -4,7 +4,7 @@
 
 ## ตอนนี้
 
-> **NEXT (session ถัดไป): B9 เพดานสองขา** (update/updateItems/updateFees เตือน/กันลดยอดออเดอร์ต่ำกว่าบิลที่ออกแล้ว — หนี้เก่าข้อ 2) → ไล่ B10-B16 ตาม ROADMAP · **B6 (นักบัญชีรีวิว template ใบกำกับ/CN/DN + เลขรัน + เทียบไฟล์ PEAK จาก B5) = รอเบสนัดนักบัญชี** · ⚠️ เตือนเบส: **/settings/company ยังว่าง** — กรอกชื่อ/ที่อยู่/เลขภาษีกิจการก่อนออกใบกำกับจริง (หัวเอกสารบังคับ ม.86/4) · pattern ทุกก้อน: โค้ด → test → adversarial review workflow → แก้ → verify DB จริง → docs+commit
+> **NEXT (session ถัดไป): B9 เพดานสองขา** (update/updateItems/updateFees เตือน/กันลดยอดออเดอร์ต่ำกว่าบิลที่ออกแล้ว — หนี้เก่าข้อ 2) → ไล่ B10-B16 ตาม ROADMAP · **B6 (นักบัญชีรีวิว template ใบกำกับ/CN/DN + เลขรัน + เทียบไฟล์ PEAK จาก B5) = รอเบสนัดนักบัญชี** · ✅ /settings/company เบสกรอกแล้ว (2026-07-03 — verify ใน DB: หจก. อาณาจักร์ เอ็นเตอร์ไพรส์) · pattern ทุกก้อน: โค้ด → test → adversarial review workflow → แก้ → verify DB จริง → docs+commit
 > คำถามค้างเบส: ①ใครถือ role ACCOUNTANT ②จาก B4: ปิดทาง ship ผ่าน API ตอนยังไม่ผ่าน QC? + ลบ audit กำพร้า 44 แถว? ③จาก B5: เพิ่ม index invoices ([type,issueDate]+[type,createdAt]) + snapshot ชื่อ/เลขภาษีลูกค้าลงใบ (schema ทั้งคู่ — แก้ปัญหา re-export ย้อนหลังเปลี่ยนตามข้อมูลลูกค้าใหม่)? · dev server port 3001 (3000 = Meecard)
 
 - **⚙️ Gate B8 ถอดฟอร์มปลอม /settings — จบ + UI test ผ่าน browser จริง (2026-07-03 เช้า):**
