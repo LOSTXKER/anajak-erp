@@ -12,6 +12,7 @@ import {
   suggestInvoice,
 } from "@/server/services/payment-plan";
 import { sweepOverdueInvoices, maybeSweepOverdue } from "@/server/services/overdue";
+import { RECEIVABLE_TYPES } from "@/server/services/receivables";
 import type { PrismaTx } from "@/lib/prisma";
 
 // เปิดบิล/จัดการสถานะบิล — บัญชี + ระดับบริหาร
@@ -32,7 +33,10 @@ async function lockOrderRow(tx: PrismaTx, orderId: string) {
 }
 
 export const billingRouter = router({
+  // บิล+ยอดรับชำระของออเดอร์ — จำกัดกลุ่มที่เห็นเงินฝั่งขาย (Gate A2: เดิมเปิดทุก role
+  // ทำให้การซ่อน payments ใน order.getById ไร้ผล เพราะการ์ดบิลดึงทางนี้ได้เต็ม)
   listByOrder: protectedProcedure
+    .use(requireRole("OWNER", "MANAGER", "ACCOUNTANT", "SALES"))
     .input(z.object({ orderId: z.string() }))
     .query(async ({ ctx, input }) => {
       return ctx.prisma.invoice.findMany({
@@ -121,12 +125,16 @@ export const billingRouter = router({
         badRequest("ส่วนลดเกินยอดบิล — ยอดรวมติดลบไม่ได้");
       }
 
-      // ไม่กรอกวันครบกำหนด → เครดิตเทอม (NET_X) ตั้งให้อัตโนมัติจากเทอมของออเดอร์
-      const dueDate = input.dueDate
-        ? new Date(input.dueDate)
-        : input.type === "DEPOSIT_INVOICE" || input.type === "FINAL_INVOICE"
-          ? dueDateFromTerms(order.paymentTerms)
-          : null;
+      // วันครบกำหนดมีความหมายเฉพาะใบเรียกเก็บ — ใบเสร็จ/ใบลดหนี้ไม่มีสถานะ "ค้างชำระ"
+      // (เก็บ dueDate ไว้ = โดน sweep OVERDUE ปลอมถาวร) · ไม่กรอก → เครดิตเทอมตั้งให้เอง
+      const dueDate =
+        input.type === "RECEIPT" || input.type === "CREDIT_NOTE"
+          ? null
+          : input.dueDate
+            ? new Date(input.dueDate)
+            : input.type === "DEPOSIT_INVOICE" || input.type === "FINAL_INVOICE"
+              ? dueDateFromTerms(order.paymentTerms)
+              : null;
 
       // เลขบิลรันต่อเนื่อง — สร้างใน transaction เดียวกับบิลเสมอ
       const invoice = await withDocNumberRetry(() =>
@@ -252,6 +260,27 @@ export const billingRouter = router({
 
         if (invoice.isVoided) {
           badRequest("ไม่สามารถบันทึกการชำระเงินสำหรับใบแจ้งหนี้ที่ถูกยกเลิกแล้ว");
+        }
+
+        // Gate A1 (audit 2026-07-02): เงินก้อนเดียวห้ามลงซ้ำสองใบ (เดิมลงได้ทั้ง INV+REC
+        // → totalSpent/รับชำระเดือนนับ ×2) — แต่ "ขายสดออกใบเสร็จตรง" (ไม่มีใบเรียกเก็บ)
+        // เป็น flow ที่ระบบรองรับ ต้องบันทึกเงินบนใบเสร็จได้ ไม่งั้นเงินสดหายจากระบบ
+        if (invoice.type === "CREDIT_NOTE") {
+          badRequest("ใบลดหนี้เป็นเงินฝั่งคืนลูกค้า — บันทึกรับเงินบนใบลดหนี้ไม่ได้");
+        }
+        if (invoice.type === "RECEIPT") {
+          const receivableCount = await tx.invoice.count({
+            where: {
+              orderId: invoice.orderId,
+              isVoided: false,
+              type: { in: [...RECEIVABLE_TYPES] },
+            },
+          });
+          if (receivableCount > 0) {
+            badRequest(
+              "ออเดอร์นี้มีใบแจ้งหนี้/ใบเพิ่มหนี้อยู่ — บันทึกรับเงินที่ใบนั้นแทน (ใบเสร็จเป็นเอกสารปลายทาง กันยอดนับซ้ำ)"
+            );
+          }
         }
 
         // ยอดที่เคลียร์บิลแล้ว = เงินสด + ภาษีที่ถูกหัก (กันบิลค้างผี 3% โดน sweep ปลอม)

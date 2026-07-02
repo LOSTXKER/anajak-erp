@@ -11,6 +11,7 @@ import {
   returnGarments,
 } from "@/server/services/garment-pick";
 import { getOrdersReadiness } from "@/server/services/production-readiness";
+import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
 import { getStockClientFromSettings } from "@/lib/stock-api";
 
 // วางแผนการผลิต = งานระดับบริหารตามตาราง RBAC §7
@@ -530,6 +531,9 @@ export const productionRouter = router({
         if (data.actualCost !== undefined && data.actualCost > 0) {
           const stepName =
             step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
+          // เขียน costEntry ต้อง lock+recalc ชุดเดียวกัน — ไม่งั้น order.totalCost drift
+          // (invariant: services/order-cost.ts · Gate A4 audit 2026-07-02)
+          await lockOrderRow(tx, step.production.orderId);
           await tx.costEntry.upsert({
             where: { sourceRef: `step:${stepId}` },
             create: {
@@ -542,6 +546,7 @@ export const productionRouter = router({
             },
             update: { amount: data.actualCost },
           });
+          await recalcOrderCost(tx, step.production.orderId);
         }
 
         // step มีปัญหา = ต้องมีคนมาดูด่วน — กระดิ่งหาผู้จัดการทันที ห้ามจมเงียบ (audit ข้อ 20)

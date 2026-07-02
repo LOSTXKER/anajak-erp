@@ -16,8 +16,8 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **test แกน** — vitest 236 เคส ครอบ pricing/status/เลขเอกสาร/payment-plan/receivables ฯลฯ ⚠️ ช่องว่าง: billing.recordPayment/void ยังอยู่ใน router ไม่มี unit test + กลุ่ม stock/ผลิต (garment-pick/goods-receipt/qc/print-run) = 0 test
 
 ## 🚦 Go-live gate v2 — ต้องผ่านก่อนใช้จริง (audit 2026-07-02 · ใบงาน = ROADMAP.md Gate A+B · รายงานเต็ม: bestos `records/projects/anajak-erp/audit-2026-07-02.md`)
-- [ ] **เงินก้อนเดียวบันทึกซ้ำไม่ได้** — recordPayment จำกัดชนิดใบ (ตอนนี้ลงได้ทั้ง INV+REC ของเงินเดียวกัน → totalSpent ×2 · billing.ts:217-241)
-- [ ] **ต้นทุน/กำไรไม่รั่วถึง role หน้างาน** — order.getById + order-sidebar gate ตาม role (ตอนนี้ช่างเห็นกำไร)
+- [x] **เงินก้อนเดียวบันทึกซ้ำไม่ได้** — recordPayment: CN ห้ามรับเงิน · REC รับได้เฉพาะขายสดตรงไม่มีใบเรียกเก็บ (Gate A1 2026-07-02 · billing.ts recordPayment guard + UI ปุ่มตรงเงื่อนไข + sweep OVERDUE กรองเฉพาะใบเรียกเก็บ)
+- [x] **ต้นทุน/กำไรไม่รั่วถึง role หน้างาน** — order.getById ตัด cost/payments/ทุน outsource ตาม role + billing.listByOrder gate + การ์ดบิลซ่อนจากช่าง (Gate A2 2026-07-02 · lib/roles.ts)
 - [ ] **ใบลดหนี้/เพิ่มหนี้ครบองค์กฎหมาย ม.86/10 + CN หักยอดค้างจริง** (ตอนนี้ไม่ผูกใบเดิม ไม่ลดยอดค้าง → OVERDUE ปลอม/ทวงเกิน)
 - [ ] **VAT default 7%** (ตอนนี้ default 0 — ภาษีขายขาด = ประเมินย้อนหลัง) ⚠️ confirm เบสว่าจด VAT แล้ว
 - [ ] **tax point จ้างทำของบังคับได้จริง** — ใบกำกับออกทุกงวดรับเงิน: nudge/auto-draft REC หลัง recordPayment + field issueDate

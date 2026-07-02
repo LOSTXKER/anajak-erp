@@ -2,6 +2,7 @@ import type { ExtendedPrismaClient } from "@/lib/prisma";
 import { createNotification } from "@/server/helpers";
 import { thaiDateUtcMidnight } from "./payment-plan";
 import { claimThrottleSlot } from "./sweep-throttle";
+import { RECEIVABLE_TYPES } from "./receivables";
 
 // กวาดบิลเลยกำหนดชำระ → ตั้งสถานะ OVERDUE + แจ้งเตือนทีมการเงินในกระดิ่ง
 // ตัวเรียกมี 3 ทาง: cron route (/api/cron/overdue) · billing.markOverdue (ปุ่ม manual)
@@ -33,6 +34,9 @@ export async function sweepOverdueInvoices(
         paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID"] },
         isVoided: false,
         dueDate: { lt: cutoff },
+        // "ค้างชำระ" มีความหมายเฉพาะใบเรียกเก็บ — ใบเสร็จ/ใบลดหนี้ห้ามโดน OVERDUE ปลอม
+        // (ใบเสร็จ flow ปกติค้าง UNPAID โดย design — เงินบันทึกที่ใบแจ้งหนี้ต้นทาง)
+        type: { in: [...RECEIVABLE_TYPES] },
       },
       select: {
         id: true,

@@ -3,7 +3,15 @@
 > session ใหม่: อ่านไฟล์นี้ + `git log --oneline -10` ก่อนเริ่ม · จบ session: อัปเดตไฟล์นี้ก่อนปิด
 
 ## ตอนนี้
-- **🔍 Audit ใหญ่ทั้งระบบ + แผนแนวทางใหม่สู่ go-live (เบสสั่ง "ตรวจว่าดีพอตามมาตรฐาน ERP โรงงานสกรีนหรือยัง + refactor + UXUI + อัปเดต .md" 2026-07-02) · จบ · ⏳ รอเบสเคาะ 5 คำถาม + เคาะเริ่ม Gate A:**
+- **💰 Gate A "เงินห้ามผิด" 4 guard — จบ + adversarial review 16 findings แก้ครบ + verify เขียว (2026-07-02) · ⏳ เหลือเบส retest UI:**
+  - **A1 กันเงินนับซ้ำ**: recordPayment — ใบลดหนี้ห้ามรับเงิน · **ใบเสร็จรับได้เฉพาะขายสดตรง** (ออเดอร์ไม่มีใบเรียกเก็บ active — review จับ BLOCKER ว่า block ทื่อๆ จะทำเงินสดหายจากระบบ เพราะ recordPayment เป็น path เดียวที่เพิ่ม totalSpent/paidThisMonth) + ปุ่ม "บันทึกชำระ" UI ตรงเงื่อนไข server เป๊ะ + REC/CN ไม่เก็บ dueDate (create ทิ้ง + ซ่อนช่องใน dialog) + **overdue sweep กรอง type ใบเรียกเก็บ** (กันใบเสร็จโดน OVERDUE ปลอมถาวร)
+  - **A2 ทุน/กำไรไม่รั่วถึงหน้างาน**: order.getById ตัด costEntries/totalCost/profitMargin (FINANCE เท่านั้น) + invoices[].payments (FINANCE+SALES — SALES ต้องตามมัดจำ · แท็บ/แถบขั้นต่อไปใช้แค่หัวใบ ไม่พัง) + **ทุน outsource (unitCost/totalCost) + step (estimated/actualCost) ในใบผลิต** (review จับ: ต้นทุนก้อนใหญ่สุดของโรงงาน outsource-หนักยังรั่ว) · `billing.listByOrder` gate role (เดิมเปิดทุก role ทำ A2 เป็นหมัน) + การ์ดบิลทั้งใบซ่อนจากช่าง/กราฟิก + ปุ่มรับเงิน/ยกเลิกบิลตรง moneyRecorder (OWNER/ACCOUNTANT) · **นิยาม role การเงินย้ายเข้า `lib/roles.ts` ที่เดียว** (mcp/tool.ts re-export — เริ่มเก็บหนี้ hardcode ~20 จุด)
+  - **A3 state machine ใบเสนอ**: `lib/quotation-status.ts` ใหม่ (+7 test) — CONVERTED ปลายทางตายตัว (ปิด convert ซ้ำ=ออเดอร์ซ้อน) · update/updateItems แก้ได้เฉพาะร่าง (conditional write + `FOR UPDATE` ปิด race) · updateStatus validate ทุก transition + **expectedStatus** (จอค้างกดทับการยืนยันลูกค้า → server บอกให้รีเฟรช) · ดึงกลับร่างล้าง **sentAt**+acceptedAt+rejectedAt (sentAt เป็นด่าน file route/สถานะลูกค้า — ใบร่างที่กำลังแก้ห้ามหลุด) · REJECTED ล้าง acceptedAt · กันส่ง/ตกลงใบหมดอายุ · **ปุ่ม "ดึงกลับเป็นร่าง"** SENT/ACCEPTED(มี confirm ล้างการยืนยัน)/REJECTED/EXPIRED — ปิด quick win #1 + ทางตันใบเสนอ
+  - **A4 ต้นทุนเข้า tx**: service กลาง `services/order-cost.ts` (lockOrderRow+recalcOrderCost) — cost router 3 mutations + **production.updateStep (actualCost) + outsource QC ผ่าน (ค่าจ้างร้าน)** (review จับ: 2 จุดนี้เขียน costEntry แต่ไม่เคย recalc → order.totalCost drift มานาน)
+  - **verify**: unit **243/243** (+7 quotation-status) · tsc **0** · lint **0 error** · adversarial review workflow 20 agents (4 reviewer + 16 skeptic) → **16 findings CONFIRMED ทั้งหมด → แก้ครบ 16**
+  - **decision เคาะเอง (อย่าแก้กลับเงียบ)**: ① ขายสด REC ตรง = รับเงินบน REC ได้ (จนกว่า Gate B3 จะผูก Payment↔REC ถาวร) ② REC ปกติ (คู่ใบแจ้งหนี้) ค้าง UNPAID โดย design — เงินบันทึกที่ใบแจ้งหนี้ · sweep ไม่แตะแล้ว ③ ช่างเห็น "฿0" ในช่องค่าจ้าง outsource บนหน้าออเดอร์ (ค่า zero แทน null กัน type พัง) — ซ่อนช่องจริงเป็นงาน B12 ④ expectedStatus เป็น optional field — caller เก่า (ไม่มี UI อื่น) ไม่พัง
+  - **⏳ เหลือเบส retest UI**: ① เปิดออเดอร์ด้วย user ช่าง/กราฟิก → ไม่เห็นการ์ดบิล/ทุน/กำไร ② ใบเสนอ SENT → ปุ่ม "ดึงกลับเป็นร่าง" → แก้ → ส่งใหม่ ③ สร้างบิลชนิดใบเสร็จ → ไม่มีช่องครบกำหนด ④ `npm run build` ตอนปิด dev
+- **🔍 Audit ใหญ่ทั้งระบบ + แผนแนวทางใหม่สู่ go-live (เบสสั่ง "ตรวจว่าดีพอตามมาตรฐาน ERP โรงงานสกรีนหรือยัง + refactor + UXUI + อัปเดต .md" 2026-07-02) · จบ · ✅ เบสเคาะแล้ว 4/5 คำถาม (ดู "ติดอยู่/รอตัดสิน") · Gate A เริ่มแล้ว (ดูข้างบน):**
   - **วิธี**: workflow 47 agents (~4.4M tok): auditor อ่านโค้ดจริง 6 subsystem + refactor 4 มิติ + UX 4 มิติ + benchmark 3 มุม (print-shop SaaS/MTO-ERP/ภาษีไทย) → gap matrix 15 โมดูล → **adversarial verify 28 claims: CONFIRMED 26 · PARTIAL 2 · REFUTED 0** → completeness critic
   - **คำตอบ**: ครึ่ง ops ดีพอ-เกินมาตรฐาน SaaS (portal 85 · order 84 · production 80 · outsource 78) · **ครึ่งเงิน+ภาษียังไม่พร้อมใช้จริง** (tax compliance 55 · quoting 62 · CRM 64) · โครงพื้นฐาน production (CI/backup/monitoring/rate-limit) = 0
   - **รูใหญ่ verify แล้ว (ตัวอย่าง)**: recordPayment บันทึกเงินซ้ำได้ 2 ใบ (totalSpent ×2) · ต้นทุน/กำไรรั่วถึงช่างผ่าน order.getById · CN ไม่ครบองค์กฎหมาย+ไม่ลดยอดค้าง · VAT default 0 · ไม่มี trigger tax point ต่องวด · ปุ่ม "ผ่าน→แพ็ค" bypass QC ทุก role · หน้า /settings หลัก = ฟอร์มปลอม 4 section · แก้ข้อมูลลูกค้าจาก UI ไม่ได้ (dead mutations) + ลูกค้าเกิน 50 มองไม่เห็น · quotation.update ไม่ guard สถานะ · tracking กรอกตอน PREPARING หายเงียบ
@@ -334,12 +342,8 @@
 - 2026-06-10 — **P0.1 Auth จริง + RBAC** (commit d39e451/871b4f1) · แผน + retrofit repo
 
 ## ติดอยู่ / รอตัดสิน
-- **5 คำถามจาก audit 2026-07-02 — เบสต้องเคาะก่อนแตะข้อที่เกี่ยว** (โค้ดตอบไม่ได้):
-  1. Anajak **จดทะเบียน VAT แล้วใช่ไหม** — ถ้าใช่ default 7% ถูก (Gate B2) · ถ้ายังไม่จด default 7%+ออกใบกำกับ = ผิดกลับด้าน
-  2. ทีม 5 คน **ใครถือ role ACCOUNTANT** — ถ้าไม่มีใครถือ gate การเงินแน่นขึ้นจะทำงานเดินไม่ได้
-  3. ร้าน outsource **รับเอกสารใบส่งของกระดาษจริงไหม** หรือคุยผ่านรูป LINE — ก่อน build Gate B14
-  4. นักบัญชีภายนอก**ใช้โปรแกรมอะไร ต้องการไฟล์ format ไหน** — ก่อน build export ภาษีขาย (Gate B5)
-  5. **ปริมาณออเดอร์/เดือนที่คาดจริง** — ตัวกำหนดความเร่งด่วน pagination/performance
+- **คำถามค้างจาก audit (เหลือ 1/5)**: ทีม 5 คน **ใครถือ role ACCOUNTANT ในระบบ** — ถ้าไม่มีใครถือ gate การเงินที่แน่นขึ้น (Gate A2 ใช้ FINANCE_ROLES) อาจทำงานเดินไม่ได้ → ตอนนี้ gate แบบ OWNER/MANAGER/ACCOUNTANT เห็นเงิน (SALES เห็นราคาขายไม่เห็นทุน/กำไร) ถ้าติดจริงค่อยปรับ
+- **เบสเคาะแล้ว 2026-07-02 (4 ข้อ — อย่าถามซ้ำ)**: ① **จด VAT แล้ว** → Gate B2 default 7% เดินได้ ② **outsource คุยผ่าน LINE** → Gate B14 เปลี่ยนจากเอกสารกระดาษเป็น "ใบส่งของแบบรูปภาพ/ลิงก์ แชร์เข้า LINE ได้" (ไม่ต้อง build ใบพิมพ์เต็มรูป) ③ **นักบัญชีใช้ PEAK + ระบบบัญชีเขียนเอง** → Gate B5 export = CSV ตรง template import ของ PEAK + CSV มาตรฐาน (generic) ④ **ปริมาณออเดอร์ไม่รู้ แต่ต้องรองรับอนาคตเยอะๆ** → pagination/index เป็นมาตรฐานทุก list ใหม่ · ห้ามมี hard cap แบบ limit 50 แล้วมองไม่เห็น (แต่ไม่ over-engineer เช่น ยังไม่ต้อง cache layer)
 
 ## ข้อเท็จจริงที่ session ใหม่ต้องรู้
 - **บัญชี OWNER ของเบส**: hongtaeswatht@gmail.com (user เดียว) · สร้างพนักงาน: Settings → Users · bootstrap: `node --env-file=.env scripts/create-owner.ts <email> <password> [ชื่อ]`

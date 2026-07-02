@@ -4,6 +4,7 @@ import { router, protectedProcedure, requireRole } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import { moneyInput, round2 } from "@/server/services/money";
 import { finalizeProductionIfComplete } from "@/server/services/order-status";
+import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
 
 const managerUp = requireRole("OWNER", "MANAGER");
 const productionUp = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
@@ -344,6 +345,9 @@ export const outsourceRouter = router({
               where: { id: order.vendorId },
               select: { name: true },
             });
+            // เขียน costEntry ต้อง lock+recalc ชุดเดียวกัน — ไม่งั้น order.totalCost drift
+            // (invariant: services/order-cost.ts · Gate A4 audit 2026-07-02)
+            await lockOrderRow(tx, step.production.orderId);
             await tx.costEntry.upsert({
               where: { sourceRef: `outsource:${order.id}` },
               create: {
@@ -357,6 +361,7 @@ export const outsourceRouter = router({
               },
               update: { amount: order.totalCost },
             });
+            await recalcOrderCost(tx, step.production.orderId);
           }
         }
         // QC ไม่ผ่าน → เปิด step กลับมารอส่งแก้รอบใหม่ (แม้เคยถูก mark เสร็จมือไปแล้ว)

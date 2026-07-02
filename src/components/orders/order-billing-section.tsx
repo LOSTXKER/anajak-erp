@@ -110,12 +110,21 @@ export function OrderBillingSection({
   const [voidReason, setVoidReason] = useState("");
 
   const utils = trpc.useUtils();
-  const invoices = trpc.billing.listByOrder.useQuery({ orderId });
-
   // สิทธิ์เปิดบิล — ตรงกับ billingStaff ฝั่ง server · ปิด query/ปุ่มสำหรับ role อื่น
   // (กันยิงไปโดน FORBIDDEN + retry ฟรี — pattern เดียวกับหน้า analytics)
   const me = trpc.user.me.useQuery();
   const canBill = !!me.data && ["OWNER", "MANAGER", "ACCOUNTANT"].includes(me.data.role);
+  // เห็นการ์ดบิล/ยอดรับชำระ — ตรงกับ gate ของ billing.listByOrder (Gate A2:
+  // ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย ทั้งการ์ดนี้และ order.getById)
+  const canViewBilling =
+    !!me.data && ["OWNER", "MANAGER", "ACCOUNTANT", "SALES"].includes(me.data.role);
+  // บันทึกรับเงิน/ยกเลิกบิล — ตรงกับ moneyRecorder ฝั่ง server (แคบกว่า canBill)
+  const canRecordMoney = !!me.data && ["OWNER", "ACCOUNTANT"].includes(me.data.role);
+
+  const invoices = trpc.billing.listByOrder.useQuery(
+    { orderId },
+    { enabled: canViewBilling }
+  );
 
   // ด่านนุ่มเอกสารภาษี: ใบเสร็จ/ใบกำกับต้องมีชื่อ-ที่อยู่ลูกค้าจริง (ม.86/4)
   // — ลูกค้าแชทที่ยังไม่เติมโปรไฟล์จะได้เอกสารหัวโหว่ เตือนก่อนพิมพ์
@@ -260,6 +269,14 @@ export function OrderBillingSection({
 
   // บิลที่ dialog บันทึกชำระเปิดอยู่ — ใช้คิด prefill หัก ณ ที่จ่าย + ยอดคงเหลือ
   const payingInvoice = (invoices.data || []).find((inv) => inv.id === showPaymentDialog);
+
+  // มีใบเรียกเก็บ active ไหม — ใบเสร็จบันทึกเงินได้เฉพาะ "ขายสดออกใบเสร็จตรง" (ไม่มีใบ
+  // แจ้งหนี้/เพิ่มหนี้) ตรงกับ guard ฝั่ง server (Gate A1) — มีใบเรียกเก็บ = เงินลงที่ใบนั้น
+  const hasLiveReceivable = (invoices.data || []).some(
+    (inv) =>
+      !inv.isVoided &&
+      ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"].includes(inv.type)
+  );
   const payingPaid = (payingInvoice?.payments || []).reduce(
     (sum: number, p: Payment) => sum + p.amount + p.whtAmount,
     0
@@ -298,6 +315,10 @@ export function OrderBillingSection({
     setWhtAmount(value);
     if (!paymentAmountEdited) setPaymentAmount(cashPrefill(parseFloat(value) || 0));
   }
+
+  // ช่าง/กราฟิกไม่เห็นการ์ดบิลทั้งใบ (Gate A2 — server ก็ gate listByOrder ไว้แล้ว
+  // การ์ดเปล่าๆ ที่ query โดน FORBIDDEN มีแต่สร้างความงง) · me ยังไม่มา = ยังไม่ render
+  if (!canViewBilling) return null;
 
   return (
     <>
@@ -492,7 +513,12 @@ export function OrderBillingSection({
                         <div className="flex gap-2">
                           {!inv.isVoided &&
                             inv.paymentStatus !== "PAID" &&
-                            inv.paymentStatus !== "VOIDED" && (
+                            inv.paymentStatus !== "VOIDED" &&
+                            // ตรงกับ guard server (Gate A1): ใบลดหนี้ห้ามรับเงิน · ใบเสร็จรับได้
+                            // เฉพาะขายสดตรง (ไม่มีใบเรียกเก็บ) · role ตรง moneyRecorder
+                            canRecordMoney &&
+                            inv.type !== "CREDIT_NOTE" &&
+                            (inv.type !== "RECEIPT" || !hasLiveReceivable) && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -509,7 +535,10 @@ export function OrderBillingSection({
                                 บันทึกชำระ
                               </Button>
                             )}
-                          {!inv.isVoided && inv.paymentStatus !== "VOIDED" && (
+                          {!inv.isVoided &&
+                            inv.paymentStatus !== "VOIDED" &&
+                            // void = moneyRecorder ฝั่ง server — ซ่อนปุ่มจาก role ที่กดแล้วโดนปฏิเสธ
+                            canRecordMoney && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -659,19 +688,23 @@ export function OrderBillingSection({
                   step="0.01"
                 />
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  ครบกำหนด
-                </label>
-                <Input
-                  type="date"
-                  value={invoiceDueDate}
-                  onChange={(e) => {
-                    setUserEdited((prev) => ({ ...prev, dueDate: true }));
-                    setInvoiceDueDate(e.target.value);
-                  }}
-                />
-              </div>
+              {/* ครบกำหนดมีเฉพาะใบเรียกเก็บ — ใบเสร็จ/ใบลดหนี้ไม่มีสถานะค้างชำระ
+                  (server ทิ้งค่านี้อยู่แล้ว — ซ่อนช่องกันเข้าใจผิด) */}
+              {!["RECEIPT", "CREDIT_NOTE"].includes(invoiceType) && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    ครบกำหนด
+                  </label>
+                  <Input
+                    type="date"
+                    value={invoiceDueDate}
+                    onChange={(e) => {
+                      setUserEdited((prev) => ({ ...prev, dueDate: true }));
+                      setInvoiceDueDate(e.target.value);
+                    }}
+                  />
+                </div>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">

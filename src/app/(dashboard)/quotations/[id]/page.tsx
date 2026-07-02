@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
+import type { QuotationStatus } from "@/lib/quotation-status";
 import {
   ArrowLeft,
   Send,
@@ -26,6 +27,7 @@ import {
   ExternalLink,
   Pencil,
   Link2,
+  Undo2,
 } from "lucide-react";
 
 // ============================================================
@@ -156,12 +158,16 @@ export default function QuotationDetailPage({
   // ----------------------------------------------------------
   // Handlers
   // ----------------------------------------------------------
+  // ทุกปุ่มส่ง expectedStatus = สถานะที่จอเห็นตอนกด — จอค้าง (เช่น ลูกค้าเพิ่งกดยืนยัน
+  // ผ่านลิงก์) server จะปฏิเสธพร้อมบอกให้รีเฟรช แทนที่จะทับการตัดสินล่าสุดเงียบๆ
   function handleSendToCustomer() {
-    updateStatus.mutate({ id, status: "SENT" });
+    if (!quotation) return;
+    updateStatus.mutate({ id, status: "SENT", expectedStatus: quotation.status as QuotationStatus });
   }
 
   function handleAccept() {
-    updateStatus.mutate({ id, status: "ACCEPTED" });
+    if (!quotation) return;
+    updateStatus.mutate({ id, status: "ACCEPTED", expectedStatus: quotation.status as QuotationStatus });
   }
 
   async function handleReject() {
@@ -172,8 +178,29 @@ export default function QuotationDetailPage({
       required: false,
       destructive: true,
     });
-    if (reason === null) return;
-    updateStatus.mutate({ id, status: "REJECTED", rejectedReason: reason || undefined });
+    if (reason === null || !quotation) return;
+    updateStatus.mutate({
+      id,
+      status: "REJECTED",
+      rejectedReason: reason || undefined,
+      expectedStatus: quotation.status as QuotationStatus,
+    });
+  }
+
+  async function handlePullBackToDraft() {
+    if (!quotation) return;
+    // ใบที่ลูกค้าตกลงแล้ว — ดึงกลับ = ล้างการยืนยันเดิม ต้องตั้งใจจริง
+    if (quotation.status === "ACCEPTED") {
+      const ok = await confirmDialog({
+        title: "ดึงใบที่ลูกค้าตกลงแล้วกลับเป็นร่าง?",
+        description:
+          "การยืนยันของลูกค้าจะถูกล้าง — หลังแก้เสร็จต้องส่งให้ลูกค้ายืนยันใหม่อีกรอบ",
+        confirmText: "ดึงกลับเป็นร่าง",
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    updateStatus.mutate({ id, status: "DRAFT", expectedStatus: quotation.status as QuotationStatus });
   }
 
   async function handleConvertToOrder() {
@@ -286,6 +313,22 @@ export default function QuotationDetailPage({
             >
               <RefreshCw className="h-4 w-4" />
               แปลงเป็นออเดอร์
+            </Button>
+          )}
+
+          {/* ดึงกลับร่างเพื่อแก้ — คู่กับ server ที่ล็อกแก้เฉพาะร่าง (Gate A3) ·
+              REJECTED/EXPIRED = เปิดแก้รอบใหม่ (เดิมเป็นทางตัน เหลือแค่ปุ่มพิมพ์) ·
+              ACCEPTED = ได้แต่มี confirm (ล้างการยืนยันลูกค้า) */}
+          {["SENT", "ACCEPTED", "REJECTED", "EXPIRED"].includes(quotation.status) && (
+            <Button
+              variant="outline"
+              onClick={handlePullBackToDraft}
+              disabled={isPending}
+              className="gap-1.5"
+              title="กลับเป็นฉบับร่างเพื่อแก้รายการ/ราคา/วันหมดอายุ แล้วส่งใหม่"
+            >
+              <Undo2 className="h-4 w-4" />
+              ดึงกลับเป็นร่าง
             </Button>
           )}
 

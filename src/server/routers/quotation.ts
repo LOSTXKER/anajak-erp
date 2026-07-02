@@ -13,6 +13,8 @@ import { transitionOrder, addOrderRevision } from "@/server/services/order-statu
 import { syncOrderStockReservation } from "@/server/services/stock-reservation";
 // นิยาม "หมดอายุ" อยู่ที่ service เดียว (กัน drift กับลิงก์ยืนยันใบเสนอ ก้อน 4)
 import { isQuotationExpired } from "@/server/services/quotation-confirm";
+// เส้นทางสถานะใบเสนอ — validate ทุกการเปลี่ยน (Gate A3 · audit 2026-07-02)
+import { canQuotationTransition, quotationStatusLabel } from "@/lib/quotation-status";
 
 const salesUp = requireRole("OWNER", "MANAGER", "SALES");
 
@@ -207,6 +209,9 @@ export const quotationRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.$transaction(async (tx) => {
+        // ล็อกแถวก่อนเช็คสถานะ — check-then-act ใน tx ยังหลุดได้ถ้าสถานะขยับระหว่างทาง
+        // (เช่น อีกจอกด "ส่งให้ลูกค้า" พร้อมกัน) — pattern เดียวกับ lockInvoiceRow ฝั่ง billing
+        await tx.$queryRaw`SELECT id FROM quotations WHERE id = ${input.id} FOR UPDATE`;
         const existing = await tx.quotation.findUniqueOrThrow({
           where: { id: input.id },
           select: { status: true, discount: true, tax: true },
@@ -275,13 +280,21 @@ export const quotationRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
 
+      const existing = await ctx.prisma.quotation.findUniqueOrThrow({
+        where: { id },
+        include: { items: true },
+      });
+      // ราคา/เงื่อนไขที่ลูกค้าถือลิงก์ยืนยันอยู่ต้องนิ่ง — แก้ได้เฉพาะร่าง (Gate A3:
+      // เดิมแก้ discount/tax ได้ทุกสถานะรวม SENT/CONVERTED = แก้ราคาใต้มือลูกค้าเงียบๆ)
+      if (existing.status !== "DRAFT") {
+        badRequest(
+          'แก้ใบเสนอได้เฉพาะฉบับร่าง — ใบที่ส่งแล้วให้กด "ดึงกลับเป็นร่าง" ก่อน'
+        );
+      }
+
       // discount/tax เปลี่ยน → ยอดรวมต้องคำนวณใหม่ผ่านสูตรกลางเสมอ (เดิมเขียนตรง ยอดค้าง)
       let totalsData: Record<string, number> = {};
       if (data.discount !== undefined || data.tax !== undefined) {
-        const existing = await ctx.prisma.quotation.findUniqueOrThrow({
-          where: { id },
-          include: { items: true },
-        });
         const totals = computeQuotationTotals({
           items: existing.items.map((i) => ({ quantity: i.quantity, unitPrice: i.unitPrice })),
           discount: data.discount ?? existing.discount,
@@ -290,14 +303,20 @@ export const quotationRouter = router({
         totalsData = { subtotal: totals.subtotal, totalAmount: totals.totalAmount };
       }
 
-      return ctx.prisma.quotation.update({
-        where: { id },
+      // ผูกเงื่อนไข DRAFT ตอนเขียน — ปิด race ที่เช็คผ่านแล้วสถานะเพิ่งขยับ (เขียนแบบ
+      // conditional เหมือน updateStatus ด้านล่าง — check-then-act เฉยๆ ยังมีช่อง)
+      const res = await ctx.prisma.quotation.updateMany({
+        where: { id, status: "DRAFT" },
         data: {
           ...data,
           ...totalsData,
           validUntil: data.validUntil ? new Date(data.validUntil) : undefined,
         },
       });
+      if (res.count === 0) {
+        badRequest("ใบเสนอเพิ่งถูกเปลี่ยนสถานะ — รีเฟรชหน้าแล้วลองใหม่");
+      }
+      return ctx.prisma.quotation.findUniqueOrThrow({ where: { id } });
     }),
 
   updateStatus: protectedProcedure
@@ -307,35 +326,80 @@ export const quotationRouter = router({
         id: z.string(),
         status: z.enum(["DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED"]),
         rejectedReason: z.string().optional(),
+        // สถานะที่จอผู้กดเห็นตอนกดปุ่ม — ถ้าของจริงขยับไปแล้ว (เช่น ลูกค้าเพิ่งกดยืนยัน
+        // ผ่านลิงก์) ห้ามทำต่อเงียบ ให้คนตัดสินใหม่จากข้อมูลสด
+        expectedStatus: z
+          .enum(["DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED", "CONVERTED"])
+          .optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const updateData: Record<string, unknown> = { status: input.status };
+      const existing = await ctx.prisma.quotation.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { status: true, validUntil: true },
+      });
 
-      // ใบหมดอายุรับเป็น "ตกลง" ไม่ได้ — ราคายืนถึงแค่ validUntil ต้องออกใหม่/ขยายอายุก่อน
-      if (input.status === "ACCEPTED") {
-        const existing = await ctx.prisma.quotation.findUniqueOrThrow({
-          where: { id: input.id },
-          select: { validUntil: true },
-        });
-        if (isQuotationExpired(existing.validUntil)) {
-          badRequest(
-            "ใบเสนอนี้หมดอายุแล้ว — แก้วันที่ \"ใช้ได้ถึง\" (ยืนราคาใหม่) ก่อนบันทึกว่าลูกค้าตกลง"
-          );
-        }
+      if (input.expectedStatus && existing.status !== input.expectedStatus) {
+        badRequest(
+          `สถานะใบเสนอเปลี่ยนเป็น "${quotationStatusLabel(existing.status)}" แล้ว — รีเฟรชหน้าเพื่อดูข้อมูลล่าสุดก่อนทำรายการ`
+        );
       }
 
+      // กดซ้ำ/สองแท็บยิงสถานะเดิม = no-op (ไม่ error ให้งง)
+      if (existing.status === input.status) {
+        return ctx.prisma.quotation.findUniqueOrThrow({ where: { id: input.id } });
+      }
+
+      // เส้นทางสถานะบังคับที่ server (Gate A3) — เดิมเขียนตรง: CONVERTED ถูกดึงกลับ
+      // ACCEPTED แล้วกด convert ซ้ำ = ออเดอร์ซ้อนได้
+      if (!canQuotationTransition(existing.status, input.status)) {
+        badRequest(
+          `เปลี่ยนสถานะใบเสนอจาก "${quotationStatusLabel(existing.status)}" เป็น "${quotationStatusLabel(input.status)}" ไม่ได้` +
+            (existing.status === "CONVERTED"
+              ? " — ใบนี้แปลงเป็นออเดอร์แล้ว แก้ไขที่ออเดอร์แทน"
+              : "")
+        );
+      }
+
+      // ใบหมดอายุ: รับเป็น "ตกลง" หรือส่งซ้ำไม่ได้ — ราคายืนถึงแค่ validUntil
+      // ต้องแก้วันที่ (ยืนราคาใหม่) ก่อน ไม่งั้นส่งปุ๊บโดน sweep ดีดกลับ EXPIRED ทันที
+      if (
+        (input.status === "ACCEPTED" || input.status === "SENT") &&
+        isQuotationExpired(existing.validUntil)
+      ) {
+        badRequest(
+          "ใบเสนอนี้หมดอายุแล้ว — แก้วันที่ \"ใช้ได้ถึง\" (ยืนราคาใหม่) ก่อนส่ง/บันทึกว่าลูกค้าตกลง"
+        );
+      }
+
+      const updateData: Record<string, unknown> = { status: input.status };
       if (input.status === "SENT") updateData.sentAt = new Date();
       if (input.status === "ACCEPTED") updateData.acceptedAt = new Date();
       if (input.status === "REJECTED") {
         updateData.rejectedAt = new Date();
         updateData.rejectedReason = input.rejectedReason;
+        // ใบที่เคยตกลงแล้วถูกปฏิเสธ — ล้างรอย "ตกลงเมื่อ" ไม่ให้ค้างคู่กัน
+        updateData.acceptedAt = null;
+      }
+      // ดึงกลับร่าง = ล้างรอยตัดสิน+รอยส่งเดิมทั้งหมด — sentAt เป็นด่านของ file route
+      // (เปิด PDF) และการนับ "ส่งแล้ว" บนลิงก์สถานะลูกค้า ใบร่างที่กำลังแก้ราคาห้ามหลุด
+      if (input.status === "DRAFT") {
+        updateData.sentAt = null;
+        updateData.acceptedAt = null;
+        updateData.rejectedAt = null;
+        updateData.rejectedReason = null;
       }
 
-      return ctx.prisma.quotation.update({
-        where: { id: input.id },
+      // เขียนแบบมีเงื่อนไขสถานะเดิม — สองจอกดพร้อมกัน คนแพ้ race ได้ error ชัด ไม่เขียนทับ
+      const res = await ctx.prisma.quotation.updateMany({
+        where: { id: input.id, status: existing.status },
         data: updateData,
       });
+      if (res.count === 0) {
+        badRequest("สถานะใบเสนอเพิ่งถูกเปลี่ยนโดยคนอื่น — รีเฟรชหน้าแล้วลองใหม่");
+      }
+
+      return ctx.prisma.quotation.findUniqueOrThrow({ where: { id: input.id } });
     }),
 
   convertToOrder: protectedProcedure

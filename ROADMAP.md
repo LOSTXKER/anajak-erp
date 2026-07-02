@@ -20,18 +20,18 @@
 > **คำตอบ**: ครึ่ง ops ดีพอ-เกินมาตรฐาน SaaS (74-85/100) · ครึ่งเงิน+ภาษียังไม่พร้อมใช้จริง (55-70) · โครงพื้นฐาน production (CI/backup/monitoring/rate-limit) = 0
 > **ลำดับนี้ทับลำดับ P1-P4 เดิมชั่วคราวจนถึง go-live** · ทุกข้อ verify แล้วมี file:line ในรายงาน · ⚠️ 5 คำถามท้ายรายงานต้องให้เบสเคาะก่อนแตะข้อที่เกี่ยว
 
-### Gate A — เงินห้ามผิด (ทำทันที · guard สั้นๆ ทั้งหมด)
-- [ ] A1 `billing.recordPayment` จำกัดชนิดใบ (รับเงินเฉพาะใบเรียกเก็บ INV-D/INV-F — กันบันทึกซ้ำ INV+REC และกัน CN ทิศกลับด้าน · billing.ts:217-241)
-- [ ] A2 gate ต้นทุน/กำไรตาม role: ตัด costEntries+payments จาก `order.getById` สำหรับ role หน้างาน + ซ่อน section กำไรใน order-sidebar (pattern มีแล้วใน analytics · order.ts:317-380)
-- [ ] A3 `quotation.update` guard เฉพาะ DRAFT + `quotation.updateStatus` validate transition (กันแก้ราคาใต้ลิงก์ลูกค้า/convert ซ้ำ · quotation.ts:261-339)
-- [ ] A4 `cost.ts` mutations ห่อ `$transaction` (create/update/delete เขียน 3 ขั้นแยก · cost.ts:62-155)
+### Gate A — เงินห้ามผิด ✅ จบทั้งก้อน 2026-07-02 (+ adversarial review 16 findings แก้ครบ)
+- [x] A1 `billing.recordPayment` จำกัดชนิดใบ — CN ห้ามรับเงิน · **REC รับได้เฉพาะขายสดตรง** (ออเดอร์ไม่มีใบเรียกเก็บ — review จับว่า block ทื่อๆ จะฆ่า flow ขายสด) + ซ่อนปุ่ม UI ตรงเงื่อนไข + REC/CN ไม่เก็บ dueDate + overdue sweep กรองเฉพาะใบเรียกเก็บ (กัน OVERDUE ปลอม)
+- [x] A2 gate ต้นทุน/กำไรตาม role — `order.getById` ตัด costEntries/totalCost/profitMargin (FINANCE เท่านั้น) + payments (FINANCE+SALES) + **ทุน outsource/step ในใบผลิต** (review จับรั่วเพิ่ม) · `billing.listByOrder` gate role + การ์ดบิลซ่อนจากช่าง/กราฟิก · ปุ่มรับเงิน/void ตรง moneyRecorder · นิยาม role กลาง `lib/roles.ts`
+- [x] A3 state machine ใบเสนอ — `lib/quotation-status.ts` (+test) · update/updateItems ล็อกแก้เฉพาะร่าง (conditional write + FOR UPDATE กัน race) · updateStatus validate transition + expectedStatus (กันจอค้างทับการยืนยันลูกค้า) + ดึงกลับร่างล้าง sentAt/acceptedAt + กันส่งใบหมดอายุ · ปุ่ม "ดึงกลับเป็นร่าง" (SENT/ACCEPTED มี confirm/REJECTED/EXPIRED — ปิด quick win #1 + ทางตัน ACCEPTED)
+- [x] A4 ต้นทุนเข้า `$transaction` — service กลาง `services/order-cost.ts` (lock+recalc) ใช้ทั้ง cost router + **production step + outsource QC** (review จับ: 2 จุดหลังเขียน costEntry แต่ไม่เคย recalc → totalCost drift)
 
 ### Gate B — ก่อนใช้จริง (go-live gate · เรียงตามเจ็บ)
 - [ ] B1 **ใบลดหนี้/เพิ่มหนี้ครบองค์กฎหมาย** (ม.86/10): ผูก originalInvoiceId + มูลค่าเดิม/ใหม่/ผลต่าง + เหตุผล บน schema+ใบพิมพ์ และ **CN หักยอดค้างจริงใน receivables** (ปิดหนี้เก่าข้อ 1: OVERDUE ปลอม/aging บวม — test ก่อนตามกติกา 7)
-- [ ] B2 **VAT default 7%** ทุกออเดอร์/ใบเสนอ (ยกเว้น = เลือกเอง · order.ts:414 + ฟอร์ม) ⚠️ confirm กับเบสว่าจด VAT แล้ว
+- [ ] B2 **VAT default 7%** ทุกออเดอร์/ใบเสนอ (ยกเว้น = เลือกเอง · order.ts:414 + ฟอร์ม) ✅ เบส confirm จด VAT แล้ว (2026-07-02)
 - [ ] B3 **tax point จ้างทำของ**: nudge/auto-draft ใบเสร็จ+ใบกำกับหลัง recordPayment ทุกงวด + field `issueDate` (ม.78/1(1) — ผูก Payment↔REC ปิดเรื่องบันทึกซ้ำถาวร)
 - [ ] B4 ปิดทาง bypass QC: ปุ่ม "ผ่าน→แพ็ค" ต้องมี QcRecord ก่อน (server guard ที่ order.updateStatus QUALITY_CHECK→PACKING · production/page.tsx:74,526-537) + ปุ่ม "รับของกลับ" บอร์ดเลนบังคับใบตรวจนับแบบเดียวกับหน้า /outsource
-- [ ] B5 **รายงานภาษีขายรายเดือน export CSV** (เลขที่/วันที่/ผู้ซื้อ+เลขภาษี+สาขา/ฐาน/VAT รวม CN-DN + ธง void) ⚠️ ถามเบส: นักบัญชีใช้โปรแกรม/format ไหน
+- [ ] B5 **รายงานภาษีขายรายเดือน export CSV** (เลขที่/วันที่/ผู้ซื้อ+เลขภาษี+สาขา/ฐาน/VAT รวม CN-DN + ธง void) ✅ เบสเคาะ: นักบัญชีใช้ **PEAK + ระบบเขียนเอง** → ทำ 2 format: CSV ตรง template import PEAK + CSV มาตรฐาน
 - [ ] B6 **นักบัญชีรีวิว template ใบกำกับ/CN/DN + เลขรัน** ก่อนออกใบจริง (open decision ค้าง — พิมพ์ตัวอย่างจริงให้ดู)
 - [ ] B7 CRM ใช้ได้จริง: ฟอร์มแก้ลูกค้า (ต่อ `customer.update` ที่มีแล้ว) + ปุ่มบันทึกการคุย (`addCommunicationLog`) + pagination /customers (เกิน 50 รายมองไม่เห็น)
 - [ ] B8 หน้า /settings หลัก: ถอดฟอร์มปลอม 4 section ทิ้ง (ปุ่มบันทึกโกหก — BLOCKER ความเชื่อใจ) · ตั้งค่าที่จำเป็นจริงค่อยทำเป็นชิ้นๆ (% มัดจำ/เพดานส่วนลด/ฟรีแก้แบบ)
@@ -40,7 +40,7 @@
 - [ ] B11 `issueMaterials` ห่อ atomic + endpoint list MaterialUsage + `product.delete` → soft-delete (ประวัติเบิกหายถาวร · stock-sync.ts:104-160, product.ts:166-177)
 - [ ] B12 sidebar/ปุ่มกรอง role ทั้งระบบ (เมนูเงินไม่โชว์ช่าง — server ปลอดภัยแล้ว เหลือ UI) + หน้า print เอกสารเงิน gate role
 - [ ] B13 delivery: เขียน trackingNumber ทุกสถานะ (ตอนนี้หายเงียบถ้ากรอกตอน PREPARING · delivery.ts:271-273) + state machine ใบส่ง (เลียน outsource)
-- [ ] B14 เอกสารใบส่งของร้านนอก + แนบไฟล์ลายบนใบ outsource ⚠️ ถามเบสก่อน: หน้างานใช้อะไรอยู่ (กระดาษ? รูป LINE?)
+- [ ] B14 ใบส่งของร้านนอกแบบ **LINE-friendly** (✅ เบสเคาะ: คุยกับร้านผ่าน LINE) — หน้าสรุปใบ outsource แชร์เป็นรูป/ลิงก์เข้า LINE ได้ (จำนวน×ไซซ์/ลาย/กำหนดรับ) + ช่องแนบไฟล์ลายบนใบ outsource · ไม่ต้อง build ใบพิมพ์กระดาษเต็มรูป
 - [ ] B15 **โครงพื้นฐาน production**: CI ขั้นต่ำ (lint+tsc+vitest) · ลบ lockfile ซ้ำ (pnpm-lock vs package-lock) · rate-limit public token endpoints 9 ตัว + security headers (next.config ว่าง) · Supabase audit จริง (bucket private/RLS/PITR+backup — เอกสารภาษีต้องอยู่ครบ 5 ปี) · env validate ตอน boot
 - [ ] B16 **walkthrough ของจริงกับทีม + พิมพ์เอกสารเงินให้นักบัญชีดู** (audit รอบนี้รีวิวจากโค้ด ไม่ได้เปิดจอจริง — UX คะแนนถือเป็นสมมติฐานจนกว่าจะลองจริง)
 

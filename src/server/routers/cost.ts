@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole } from "../trpc";
 import { calculateProfitMargin } from "@/lib/pricing";
-import { aggToNumber } from "@/server/services/money";
 import { byIdInput } from "@/server/schemas";
+// lock+recalc อยู่ที่ service กลาง — production/outsource ที่เขียน costEntry ใช้ชุดเดียวกัน
+import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
 
 const accountantUp = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
 const ownerOrAccountant = requireRole("OWNER", "ACCOUNTANT");
@@ -56,34 +57,19 @@ export const costRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const entry = await ctx.prisma.costEntry.create({
-        data: {
-          ...input,
-          createdById: ctx.userId,
-        },
+      // การเงินหลายขั้น = $transaction เสมอ (Gate A4 — เดิมเขียน 3 ขั้นแยก พังกลางทาง
+      // หรือชนกัน = totalCost บนออเดอร์เพี้ยน)
+      return ctx.prisma.$transaction(async (tx) => {
+        await lockOrderRow(tx, input.orderId);
+        const entry = await tx.costEntry.create({
+          data: {
+            ...input,
+            createdById: ctx.userId,
+          },
+        });
+        await recalcOrderCost(tx, input.orderId);
+        return entry;
       });
-
-      // Recalculate order total cost
-      const totalCostAgg = await ctx.prisma.costEntry.aggregate({
-        _sum: { amount: true },
-        where: { orderId: input.orderId },
-      });
-
-      const totalCost = aggToNumber(totalCostAgg._sum.amount);
-      const order = await ctx.prisma.order.findUniqueOrThrow({
-        where: { id: input.orderId },
-        select: { totalAmount: true },
-      });
-
-      await ctx.prisma.order.update({
-        where: { id: input.orderId },
-        data: {
-          totalCost,
-          profitMargin: calculateProfitMargin(order.totalAmount, totalCost),
-        },
-      });
-
-      return entry;
     }),
 
   update: protectedProcedure
@@ -101,55 +87,31 @@ export const costRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const entry = await ctx.prisma.costEntry.update({ where: { id }, data });
-
-      // Recalculate
-      const totalCostAgg = await ctx.prisma.costEntry.aggregate({
-        _sum: { amount: true },
-        where: { orderId: entry.orderId },
+      return ctx.prisma.$transaction(async (tx) => {
+        const existing = await tx.costEntry.findUniqueOrThrow({
+          where: { id },
+          select: { orderId: true },
+        });
+        await lockOrderRow(tx, existing.orderId);
+        const entry = await tx.costEntry.update({ where: { id }, data });
+        await recalcOrderCost(tx, existing.orderId);
+        return entry;
       });
-      const totalCost = aggToNumber(totalCostAgg._sum.amount);
-      const order = await ctx.prisma.order.findUniqueOrThrow({
-        where: { id: entry.orderId },
-        select: { totalAmount: true },
-      });
-
-      await ctx.prisma.order.update({
-        where: { id: entry.orderId },
-        data: {
-          totalCost,
-          profitMargin: calculateProfitMargin(order.totalAmount, totalCost),
-        },
-      });
-
-      return entry;
     }),
 
   delete: protectedProcedure
     .use(ownerOrAccountant)
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
-      const entry = await ctx.prisma.costEntry.delete({ where: { id: input.id } });
-
-      // Recalculate
-      const totalCostAgg = await ctx.prisma.costEntry.aggregate({
-        _sum: { amount: true },
-        where: { orderId: entry.orderId },
+      return ctx.prisma.$transaction(async (tx) => {
+        const existing = await tx.costEntry.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { orderId: true },
+        });
+        await lockOrderRow(tx, existing.orderId);
+        const entry = await tx.costEntry.delete({ where: { id: input.id } });
+        await recalcOrderCost(tx, existing.orderId);
+        return entry;
       });
-      const totalCost = aggToNumber(totalCostAgg._sum.amount);
-      const order = await ctx.prisma.order.findUniqueOrThrow({
-        where: { id: entry.orderId },
-        select: { totalAmount: true },
-      });
-
-      await ctx.prisma.order.update({
-        where: { id: entry.orderId },
-        data: {
-          totalCost,
-          profitMargin: calculateProfitMargin(order.totalAmount, totalCost),
-        },
-      });
-
-      return entry;
     }),
 });

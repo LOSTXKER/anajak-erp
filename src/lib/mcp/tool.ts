@@ -45,13 +45,14 @@ export const ALL_ROLES: Role[] = [
   "DESIGNER",
   "SALES",
 ];
-// เห็นตัวเลขการเงินรวม (ลูกหนี้/ยอดรอเก็บ) — เลียน analytics.dashboard canSeeFinance
-export const FINANCE_ROLES: Role[] = ["OWNER", "MANAGER", "ACCOUNTANT"];
-// เห็นราคาขายต่อออเดอร์ — รวม SALES (ขายเอง เห็นราคาปกติ) แต่ไม่รวมช่าง/กราฟิก
-export const ORDER_MONEY_ROLES: Role[] = ["OWNER", "MANAGER", "ACCOUNTANT", "SALES"];
-
-export const canSeeFinance = (role: Role): boolean => FINANCE_ROLES.includes(role);
-export const canSeeOrderMoney = (role: Role): boolean => ORDER_MONEY_ROLES.includes(role);
+// นิยามกลุ่ม role การเงินย้ายไปที่กลาง src/lib/roles.ts (Gate A2 ใช้ร่วมกับ router หลัก)
+// re-export คงชื่อเดิม — MCP tools ที่ import จากไฟล์นี้ไม่ต้องแก้
+export {
+  FINANCE_ROLES,
+  ORDER_MONEY_ROLES,
+  canSeeFinance,
+  canSeeOrderMoney,
+} from "@/lib/roles";
 
 export function assertAgentRole(ctx: AgentContext, allowed: Role[]): void {
   if (!allowed.includes(ctx.userRole)) {

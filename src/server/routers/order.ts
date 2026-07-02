@@ -30,6 +30,7 @@ import { maybeSweepStaleReservations } from "@/server/services/stock-reservation
 import { promoteOrderArtworks, sanitizeArtworkLinks } from "@/server/services/artwork";
 import { aggToNumber, D } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
+import { canSeeFinance, canSeeOrderMoney } from "@/lib/roles";
 import {
   computeRevisionOverage,
   REVISION_FEE_TYPE,
@@ -380,8 +381,37 @@ export const orderRouter = router({
         select: { id: true, name: true },
       });
       const nameById = new Map(changers.map((u) => [u.id, u.name]));
+
+      // Gate A2 (audit 2026-07-02): ตัวเลขทุน/กำไรห้ามรั่วถึงขาย/ช่าง (margin-estimate.ts
+      // เตือนไว้เอง) — เดิมส่ง costEntries+payments ให้ทุก role · แท็บ/แถบขั้นต่อไปใช้แค่
+      // หัวใบ (type/totalAmount/isVoided — order-tabs.ts) จึงตัด payments ได้โดยหน้าไม่พัง
+      const seesCost = canSeeFinance(ctx.userRole);
+      const seesPayments = canSeeOrderMoney(ctx.userRole);
       return {
         ...order,
+        costEntries: seesCost ? order.costEntries : [],
+        totalCost: seesCost ? order.totalCost : 0,
+        profitMargin: seesCost ? order.profitMargin : null,
+        // ทุน outsource/ต่อขั้นตอน = ต้นทุนก้อนใหญ่สุดของโรงงานนี้ (นอกจาก DTF ทำเอง
+        // outsource หมด) — ปิดให้ครบชุดเดียวกับ costEntries ไม่งั้นซ่อนหน้าบ้านรั่วหลังบ้าน
+        productions: seesCost
+          ? order.productions
+          : order.productions.map((p) => ({
+              ...p,
+              steps: p.steps.map((s) => ({
+                ...s,
+                estimatedCost: null,
+                actualCost: null,
+                outsourceOrders: s.outsourceOrders.map((o) => ({
+                  ...o,
+                  unitCost: 0,
+                  totalCost: 0,
+                })),
+              })),
+            })),
+        invoices: seesPayments
+          ? order.invoices
+          : order.invoices.map((inv) => ({ ...inv, payments: [] })),
         revisions: order.revisions.map((r) => ({
           ...r,
           // หาไม่เจอ = ค่า literal เดิม (เช่น "ลูกค้า") — โชว์ตามนั้น
