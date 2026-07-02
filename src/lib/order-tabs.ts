@@ -38,11 +38,12 @@ export function defaultTabForStatus(status: string): TabKey {
 // ANCHOR action ของ next-step → แท็บที่ต้องสลับไป
 // billing คืน null โดยตั้งใจ — บิลอยู่ sidebar (ไม่ใช่แท็บ) ให้ scroll ไป order-section-billing แทน
 export function tabForAnchor(
-  target: "billing" | "design" | "production" | "delivery"
+  target: "billing" | "design" | "production" | "delivery" | "qc"
 ): TabKey | null {
   switch (target) {
     case "design":
     case "production":
+    case "qc": // การ์ดตรวจนับ QC อยู่แท็บงานผลิต (Gate B4: แถบขั้นต่อไปพาไปนับ ไม่พาข้ามด่าน)
       return "production";
     case "delivery":
       return "delivery";

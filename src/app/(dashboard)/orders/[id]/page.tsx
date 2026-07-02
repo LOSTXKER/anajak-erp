@@ -126,7 +126,7 @@ export default function OrderDetailPage({
     goToSection("order-section-items", "overview"); // ฟอร์มแก้รายการอยู่แท็บภาพรวม
   }
   // ANCHOR action ของแถบขั้นต่อไป → สลับแท็บ+scroll (billing คงอยู่ sidebar = ไม่สลับแท็บ scroll ตรง)
-  function handleAnchor(target: "billing" | "design" | "production" | "delivery") {
+  function handleAnchor(target: "billing" | "design" | "production" | "delivery" | "qc") {
     goToSection(`order-section-${target}`, tabForAnchor(target));
   }
   // สลับแท็บ — กำลังแก้รายการ (ฟอร์มอยู่แท็บภาพรวม) ต้องเตือนก่อนทิ้ง (ฟอร์มไม่บันทึกลง localStorage)
@@ -634,7 +634,13 @@ export default function OrderDetailPage({
               />
 
               {/* ตรวจนับ QC — นับของจุดที่ 2 ก่อนแพ็ค (ก้อน 3): ดีล้วนเด้งแพ็ค · มีเสียถอยกลับผลิต */}
-              <OrderQcSection orderId={id} internalStatus={order.internalStatus} />
+              <div id="order-section-qc" className="scroll-mt-20">
+                <OrderQcSection
+                  orderId={id}
+                  internalStatus={order.internalStatus}
+                  canCount={!!me && ["OWNER", "MANAGER", "PRODUCTION_STAFF"].includes(me.role)}
+                />
+              </div>
 
               {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production/[id] (เบสเคาะแยกโมดูล) */}
               <div id="order-section-production" className="scroll-mt-20">

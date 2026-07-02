@@ -140,6 +140,24 @@ async function main() {
     await caller.qc.create({ orderId: D2.order.id, qtyGood: 6, defects: [] });
     dNow = await prisma.order.findUniqueOrThrow({ where: { id: D2.order.id } });
     check("5.3 นับครบสะสม 10/10 → เด้ง PACKING", dNow.internalStatus === "PACKING");
+
+    // ── 6. Gate B4: ปิดทาง bypass ด่านตรวจ — เข้าแพ็คมือต้องมีผลตรวจนับก่อน ──
+    const E = await makeOrder(customer.id, owner.id, "E");
+    await caller.order
+      .updateStatus({ id: E.order.id, internalStatus: "PACKING" })
+      .then(
+        () => check("6.1 เข้าแพ็คมือโดยไม่เคยตรวจนับ → โดนกัน", false),
+        (e) => check("6.1 เข้าแพ็คมือโดยไม่เคยตรวจนับ → โดนกัน", String(e.message).includes("ตรวจนับ"))
+      );
+    // เคสจริงที่ต้องกดมือ: นับแล้วบางส่วน (ลูกค้ารับของไม่ครบ/รอบแก้) → มีใบตรวจ = ผ่านได้
+    await caller.qc.create({ orderId: E.order.id, qtyGood: 7, defects: [] });
+    await caller.order.updateStatus({
+      id: E.order.id,
+      internalStatus: "PACKING",
+      reason: "ลูกค้ารับของ 7/10 — ตกลงกันแล้ว",
+    });
+    const eAfter = await prisma.order.findUniqueOrThrow({ where: { id: E.order.id } });
+    check("6.2 มีผลตรวจแล้ว (นับบางส่วน) → เข้าแพ็คมือได้ (เคสลูกค้ารับของไม่ครบ)", eAfter.internalStatus === "PACKING");
   } finally {
     const orders = await prisma.order.findMany({
       where: { title: { contains: MARK } },
@@ -148,6 +166,14 @@ async function main() {
     const ids = orders.map((o) => o.id);
     await prisma.notification.deleteMany({
       where: { type: "QC_DEFECT", OR: orders.map((o) => ({ title: { contains: o.orderNumber } })) },
+    });
+    // audit ของผลนับ + ออเดอร์ (updateStatus เคส 6) ไม่หายกับ cascade — ลบเองให้เกลี้ยง
+    const qcRecords = await prisma.qcRecord.findMany({
+      where: { orderId: { in: ids } },
+      select: { id: true },
+    });
+    await prisma.auditLog.deleteMany({
+      where: { entityId: { in: [...ids, ...qcRecords.map((q) => q.id)] } },
     });
     await prisma.qcRecord.deleteMany({ where: { orderId: { in: ids } } });
     await prisma.production.deleteMany({ where: { orderId: { in: ids } } });

@@ -12,6 +12,8 @@ import { SegmentedControl } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { CreateProductionDialog } from "@/components/production/create-production-dialog";
+import { QcCountDialog } from "@/components/qc/order-qc-section";
+import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { canRoleSetStatus, PRIORITY_LABELS } from "@/lib/order-status";
 import {
@@ -35,6 +37,7 @@ import {
   AlertTriangle,
   Truck,
   CheckCircle2,
+  ClipboardCheck,
   Play,
   FastForward,
   LayoutGrid,
@@ -71,7 +74,9 @@ const POST_COLUMNS: {
   status: InternalStatus;
   next?: { to: InternalStatus; label: string };
 }[] = [
-  { key: "qc", title: "ตรวจคุณภาพ", status: "QUALITY_CHECK", next: { to: "PACKING", label: "ผ่าน → แพ็ค" } },
+  // คอลัมน์ตรวจไม่มีปุ่มเลื่อนสถานะ — ผ่านด่านได้ทางเดียวคือนับจริง (ดีครบเด้งแพ็คเอง ·
+  // Gate B4: เดิม "ผ่าน → แพ็ค" ข้ามด่านนับของได้ทุก role · server ก็กันแล้วชั้นหนึ่ง)
+  { key: "qc", title: "ตรวจคุณภาพ", status: "QUALITY_CHECK" },
   { key: "packing", title: "กำลังแพ็ค", status: "PACKING", next: { to: "READY_TO_SHIP", label: "แพ็คเสร็จ →" } },
   { key: "ready", title: "พร้อมจัดส่ง", status: "READY_TO_SHIP" },
 ];
@@ -129,6 +134,15 @@ function ProductionWorkspace() {
   const utils = trpc.useUtils();
 
   const [createOrderId, setCreateOrderId] = useState<string | null>(null);
+  // ใบนับ QC จากคอลัมน์ตรวจ (Gate B4) — ผ่านด่านตรวจ = นับจริงเท่านั้น ไม่มีปุ่มข้าม
+  const [qcOrderId, setQcOrderId] = useState<string | null>(null);
+  // รับของกลับจากบอร์ดเลน — บังคับใบตรวจนับก่อน flip สถานะ (แบบเดียวกับหน้า /outsource)
+  const [receiveTarget, setReceiveTarget] = useState<{
+    id: string;
+    orderId: string;
+    description: string;
+    quantity: number;
+  } | null>(null);
   // มุมมองงานในไลน์: แท็บต่อเทคนิค (ค่าเริ่ม — มือถือ) / บอร์ดเลนรวม (จอใหญ่)
   const [view, setView] = useState<"tabs" | "board">("tabs");
   const [activeLane, setActiveLane] = useState<ProductionLane | null>(null);
@@ -190,6 +204,8 @@ function ProductionWorkspace() {
   const role = me?.role;
   const canCreate = !!role && ["OWNER", "MANAGER"].includes(role);
   const canQc = canCreate;
+  // ตรวจนับ QC + รับของกลับ = งานหน้างานทีมผลิต (ตรง server: qc.create / goodsReceipt.create)
+  const canCountQc = !!role && ["OWNER", "MANAGER", "PRODUCTION_STAFF"].includes(role);
 
   // คิวรอเปิดใบผลิต — CONFIRMED มาเฉพาะ READY_MADE (server กรองแล้ว: เสื้อเปล่าจาก
   // สต๊อคไม่มีขั้นออกแบบ จุดพร้อมผลิตคือ CONFIRMED) + เคสหลุด: PRODUCING ไร้ใบผลิต
@@ -222,6 +238,34 @@ function ProductionWorkspace() {
     });
     if (!ok) return;
     updateStep.mutate({ stepId: step.id, status: "COMPLETED" });
+  }
+
+  // รับของกลับจากบอร์ดเลน — เปิดใบตรวจนับ (แบบเดียวกับ /outsource) · บันทึกใบเสร็จแล้ว
+  // ค่อย flip สถานะเป็น RECEIVED_BACK — server ก็บังคับใบตรวจนับอีกชั้น (Gate B4)
+  // เคยนับแล้ว (flip รอบก่อนพลาด เช่น เน็ตหลุด) → flip ตรงเลย ไม่บังคับนับซ้ำเป็นใบเบิ้ล
+  async function handleReceiveBack(
+    card: LaneCard,
+    outsource: KanbanStep["outsourceOrders"][number]
+  ) {
+    try {
+      const receipts = await utils.goodsReceipt.listByOrder.fetch({ orderId: card.order.id });
+      if (
+        receipts.some(
+          (r) => r.outsourceOrderId === outsource.id && r.receiptType === "OUTSOURCE_RETURN"
+        )
+      ) {
+        updateOutsource.mutate({ id: outsource.id, status: "RECEIVED_BACK" });
+        return;
+      }
+    } catch {
+      // อ่านประวัติใบตรวจไม่ได้ — ตกไปทางเปิดฟอร์มนับตามปกติ (ปลอดภัยกว่าข้าม)
+    }
+    setReceiveTarget({
+      id: outsource.id,
+      orderId: card.order.id,
+      description: outsource.description,
+      quantity: outsource.quantity,
+    });
   }
 
   async function handleOutsourceQcFail(outsourceId: string) {
@@ -428,6 +472,7 @@ function ProductionWorkspace() {
                   onQuickPass={() => handleQuickPass(card)}
                   onOutsourceStatus={(id, status) => updateOutsource.mutate({ id, status })}
                   onOutsourceQcFail={handleOutsourceQcFail}
+                  onReceiveBack={(os) => handleReceiveBack(card, os)}
                 />
               ))}
             </div>
@@ -469,6 +514,7 @@ function ProductionWorkspace() {
                         onQuickPass={() => handleQuickPass(card)}
                         onOutsourceStatus={(id, status) => updateOutsource.mutate({ id, status })}
                         onOutsourceQcFail={handleOutsourceQcFail}
+                        onReceiveBack={(os) => handleReceiveBack(card, os)}
                       />
                     ))}
                   </div>
@@ -523,7 +569,19 @@ function ProductionWorkspace() {
                             </p>
                           )}
                           <div className="mt-2.5">
-                            {col.next && canAdvance ? (
+                            {col.key === "qc" && canCountQc ? (
+                              // ผ่านด่านตรวจทางเดียว: เปิดใบนับจริง (ดีครบยอด → เด้งแพ็คเอง
+                              // มีของเสีย → ถอยกลับผลิต+งานแก้) — ไม่มีปุ่มข้ามด่านอีกแล้ว (B4)
+                              <Button
+                                size="sm"
+                                disabled={busy}
+                                onClick={() => setQcOrderId(o.id)}
+                                className="h-9 w-full gap-1.5"
+                              >
+                                <ClipboardCheck className="h-3.5 w-3.5" />
+                                ตรวจนับ QC
+                              </Button>
+                            ) : col.next && canAdvance ? (
                               <Button
                                 size="sm"
                                 disabled={advance.isPending}
@@ -564,6 +622,29 @@ function ProductionWorkspace() {
           orderId={createOrderId}
           onClose={() => setCreateOrderId(null)}
           onCreated={(p) => router.push(`/production/${p.id}`)}
+        />
+      )}
+
+      {/* ใบนับ QC จากคอลัมน์ตรวจ — dialog เดียวกับหน้าออเดอร์ (นับดีครบ→เด้งแพ็คเอง) */}
+      {qcOrderId && <QcCountDialog orderId={qcOrderId} onClose={() => setQcOrderId(null)} />}
+
+      {/* รับกลับร้านนอกจากบอร์ดเลน: นับของก่อน (ใบตรวจรับ) → บันทึกแล้วค่อย flip สถานะรับกลับ
+          — pattern เดียวกับหน้า /outsource · ถ้า flip พลาด ใบตรวจรับยังอยู่ กดซ้ำได้ */}
+      {receiveTarget && (
+        <GoodsReceiptDialog
+          orderId={receiveTarget.orderId}
+          receiptType="OUTSOURCE_RETURN"
+          outsourceOrderId={receiveTarget.id}
+          presetLines={[
+            {
+              description: receiveTarget.description,
+              qtyExpected: receiveTarget.quantity,
+            },
+          ]}
+          onCreated={() =>
+            updateOutsource.mutate({ id: receiveTarget.id, status: "RECEIVED_BACK" })
+          }
+          onClose={() => setReceiveTarget(null)}
         />
       )}
     </div>
@@ -619,6 +700,7 @@ function LaneCardView({
   onQuickPass,
   onOutsourceStatus,
   onOutsourceQcFail,
+  onReceiveBack,
 }: {
   card: LaneCard;
   role: string | null | undefined;
@@ -628,8 +710,10 @@ function LaneCardView({
   onStart: (stepId: string) => void;
   onComplete: (stepId: string) => void;
   onQuickPass: () => void;
-  onOutsourceStatus: (outsourceId: string, status: "SENT" | "RECEIVED_BACK" | "QC_PASSED") => void;
+  onOutsourceStatus: (outsourceId: string, status: "SENT" | "QC_PASSED") => void;
   onOutsourceQcFail: (outsourceId: string) => void;
+  // รับของกลับ = เปิดใบตรวจนับก่อน (Gate B4) — ไม่ flip สถานะตรงจากการ์ดอีกแล้ว
+  onReceiveBack: (outsource: KanbanStep["outsourceOrders"][number]) => void;
 }) {
   const step = card.currentStep!;
   const stepName = step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
@@ -799,7 +883,7 @@ function LaneCardView({
               <Button
                 size="sm"
                 disabled={busy}
-                onClick={() => onOutsourceStatus(activeOutsource.id, "RECEIVED_BACK")}
+                onClick={() => onReceiveBack(activeOutsource)}
                 className="h-9 flex-1 gap-1.5"
               >
                 <PackageCheck className="h-3.5 w-3.5" />

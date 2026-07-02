@@ -212,6 +212,9 @@ export const productionRouter = router({
                     id: true,
                     status: true,
                     expectedBackAt: true,
+                    // ใบตรวจนับรับของกลับบนบอร์ดเลนต้องรู้ของ/จำนวนที่คาด (Gate B4)
+                    description: true,
+                    quantity: true,
                     vendor: { select: { name: true } },
                   },
                 },

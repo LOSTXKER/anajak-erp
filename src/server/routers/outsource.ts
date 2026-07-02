@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, requireRole } from "../trpc";
+import { badRequest } from "@/server/errors";
 import { createAuditLog } from "@/server/helpers";
 import { moneyInput, round2 } from "@/server/services/money";
 import { finalizeProductionIfComplete } from "@/server/services/order-status";
@@ -290,6 +291,20 @@ export const outsourceRouter = router({
             code: "BAD_REQUEST",
             message: `ใบนี้สถานะ "${OUTSOURCE_STATUS_TH[current.status] ?? current.status}" แล้ว — เปลี่ยนเป็น "${OUTSOURCE_STATUS_TH[data.status] ?? data.status}" ไม่ได้ (อาจมีคนอัปเดตไปก่อน ลองรีเฟรช)`,
           });
+        }
+
+        // รับของกลับต้องผ่านใบตรวจนับก่อน (Gate B4) — UI ทั้งสองหน้า (/outsource + บอร์ดเลน)
+        // เปิดใบตรวจรับให้นับแล้วค่อย flip สถานะ · ด่านนี้กันเส้น API ตรงที่ข้ามการนับ
+        // (วางหลัง validate transition — ใบที่ตัดสินแล้ว/สถานะผิดยังได้ error เดิมก่อน)
+        if (data.status === "RECEIVED_BACK") {
+          const receiptCount = await tx.goodsReceipt.count({
+            where: { outsourceOrderId: id, receiptType: "OUTSOURCE_RETURN" },
+          });
+          if (receiptCount === 0) {
+            badRequest(
+              "ยังไม่มีใบตรวจนับรับของกลับ — นับของจริงผ่านใบตรวจรับก่อน แล้วสถานะจะขยับให้เอง"
+            );
+          }
         }
 
         const written = await tx.outsourceOrder.updateMany({

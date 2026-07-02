@@ -348,7 +348,9 @@ async function main() {
       { position: "FRONT", designImageUrl: "/api/files/designs/orders/art-verify/c.png" },
     ]);
     orderIds.push(C.id);
-    // ดันเข้า PACKING ด้วยมือผ่าน updateStatus (ไม่ผ่าน qc.create)
+    // Gate B4: เข้าแพ็คมือต้องมีผลตรวจนับก่อน — นับบางส่วน (3/5 ไม่ครบ ไม่เด้งเอง
+    // = เคสจริงลูกค้ารับของไม่ครบ) แล้วดัน PACKING ด้วยมือผ่าน updateStatus
+    await caller.qc.create({ orderId: C.id, qtyGood: 3, defects: [], notes: `${MARK}` });
     await caller.order.updateStatus({ id: C.id, internalStatus: "PACKING" });
     const printsC = await prisma.orderItemPrint.findMany({
       where: { orderItem: { orderId: C.id } },
@@ -362,11 +364,19 @@ async function main() {
         select: { id: true },
       })
     ).map((a) => a.id);
+    // audit ผลนับ QC (qcPassAll/นับบางส่วนเคส 8) ไม่หายกับ cascade — ลบเองให้เกลี้ยง
+    const qcIds = (
+      await prisma.qcRecord.findMany({
+        where: { orderId: { in: orderIds } },
+        select: { id: true },
+      })
+    ).map((q) => q.id);
     await prisma.auditLog.deleteMany({
       where: {
         OR: [
           { entityType: "CUSTOMER_ARTWORK", entityId: { in: artIds } },
           { entityType: "ORDER", entityId: { in: orderIds } },
+          { entityType: "QC_RECORD", entityId: { in: qcIds } },
         ],
       },
     });

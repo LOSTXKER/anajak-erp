@@ -192,6 +192,18 @@ async function main() {
       unitCost: 15,
     });
     await staff.outsource.updateOrderStatus({ id: os.id, status: "SENT" });
+    // Gate B4: รับของกลับต้องมีใบตรวจนับก่อน — flip ตรงโดนกัน แล้วต้องผ่านใบตรวจรับ
+    await expectError(
+      "A8b รับของกลับโดยไม่มีใบตรวจนับ → โดนกัน (Gate B4)",
+      () => staff.outsource.updateOrderStatus({ id: os.id, status: "RECEIVED_BACK" }),
+      "ใบตรวจนับ"
+    );
+    await staff.goodsReceipt.create({
+      orderId: oa.id,
+      receiptType: "OUTSOURCE_RETURN",
+      outsourceOrderId: os.id,
+      lines: [{ description: "[E2E-VERIFY] สกรีนแขน", qtyExpected: 20, qtyCounted: 20 }],
+    });
     await staff.outsource.updateOrderStatus({ id: os.id, status: "RECEIVED_BACK" });
     await manager.outsource.updateOrderStatus({ id: os.id, status: "QC_PASSED" });
 
@@ -205,7 +217,15 @@ async function main() {
     );
 
     // 7) QC ผ่าน → แพ็ค → ส่งของ (ที่อยู่จากแชทไหลกลับโปรไฟล์) → ออเดอร์เด้ง SHIPPED
-    await staff.order.updateStatus({ id: oa.id, internalStatus: "PACKING" });
+    // Gate B4: ข้ามด่านตรวจโดยไม่เคยนับ → โดนกัน · นับจริงดีครบยอด → เด้งแพ็คเอง
+    await expectError(
+      "A9b เข้าแพ็คด้วยมือโดยไม่เคยตรวจนับ QC → โดนกัน (Gate B4)",
+      () => staff.order.updateStatus({ id: oa.id, internalStatus: "PACKING" }),
+      "ตรวจนับ"
+    );
+    await staff.qc.create({ orderId: oa.id, qtyGood: 20, defects: [] });
+    oaDb = await prisma.order.findUniqueOrThrow({ where: { id: oa.id } });
+    ok("A9c นับดีครบยอด → ออเดอร์เด้ง PACKING เอง", oaDb.internalStatus === "PACKING", oaDb.internalStatus);
     const del = await staff.delivery.create({
       orderId: oa.id,
       recipientName: "คุณลูกค้าแชท",
@@ -292,10 +312,13 @@ async function main() {
       ob.orderType === "READY_MADE" && ob.internalStatus === "CONFIRMED",
       { t: ob.orderType, s: ob.internalStatus }
     );
-    // เดินมือถึงพร้อมส่ง (ไม่มีใบผลิตก็เดินได้ — งานหยิบ-แพ็ค)
-    for (const s of ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING", "READY_TO_SHIP"] as const) {
+    // เดินมือถึงพร้อมส่ง (ไม่มีใบผลิตก็เดินได้ — งานหยิบ-แพ็ค) · ด่านตรวจต้องนับจริง
+    // เหมือนงานพิมพ์ (Gate B4: งานสต๊อกก็นับก่อนแพ็ค — นับครบระบบเด้งแพ็คให้เอง)
+    for (const s of ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK"] as const) {
       await manager.order.updateStatus({ id: ob.id, internalStatus: s });
     }
+    await staff.qc.create({ orderId: ob.id, qtyGood: 5, defects: [] });
+    await manager.order.updateStatus({ id: ob.id, internalStatus: "READY_TO_SHIP" });
     // ด่านใหม่ (audit ข้อ 22): กดส่งแล้วด้วยมือโดยไม่มีใบส่งในระบบ → โดนกัน
     await expectError(
       "B2 กด 'ส่งแล้ว' มือโดยไม่มีใบส่ง → ระบบกัน (เลขพัสดุ/ที่อยู่ต้องอยู่ในระบบ)",
@@ -563,6 +586,15 @@ async function main() {
       where: { orderId: { in: ids.orders } },
       select: { id: true },
     });
+    // ใบตรวจรับ/ผลนับ QC หายกับ order cascade แต่ audit ของมันไม่หาย — เก็บ id ก่อนลบ
+    const receipts = await prisma.goodsReceipt.findMany({
+      where: { orderId: { in: ids.orders } },
+      select: { id: true },
+    });
+    const qcRecords = await prisma.qcRecord.findMany({
+      where: { orderId: { in: ids.orders } },
+      select: { id: true },
+    });
     await prisma.auditLog.deleteMany({
       where: {
         entityId: {
@@ -573,6 +605,8 @@ async function main() {
             ...osOrders.map((o) => o.id),
             ...prods.map((p) => p.id),
             ...deliveries.map((d) => d.id),
+            ...receipts.map((r) => r.id),
+            ...qcRecords.map((q) => q.id),
             ids.vendor,
             ids.customer,
           ],

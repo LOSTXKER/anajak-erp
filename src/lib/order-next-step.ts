@@ -22,7 +22,7 @@ export interface NextStepInput {
 export type NextStepAction =
   | { type: "EDIT_ITEMS" }
   | { type: "STATUS"; to: string }
-  | { type: "ANCHOR"; target: "billing" | "design" | "production" | "delivery" }
+  | { type: "ANCHOR"; target: "billing" | "design" | "production" | "delivery" | "qc" }
   | { type: "NONE" };
 
 export interface NextStep {
@@ -140,17 +140,23 @@ export function getOrderNextStep(o: NextStepInput): NextStep | null {
     };
   }
 
-  if (["QUALITY_CHECK", "PACKING"].includes(o.internalStatus)) {
-    const nextMap: Record<string, { to: string; label: string }> = {
-      QUALITY_CHECK: { to: "PACKING", label: "ผ่าน QC → แพ็ค" },
-      PACKING: { to: "READY_TO_SHIP", label: "แพ็คเสร็จ → พร้อมส่ง" },
+  // ผ่านด่านตรวจทางเดียวคือนับจริง (Gate B4) — ห้ามพากดเดินสถานะตรง (server ก็กันแล้ว):
+  // นับดีครบยอด→เด้งแพ็คเอง · มีของเสีย→ถอยกลับผลิต+เปิดงานแก้ให้เอง
+  if (o.internalStatus === "QUALITY_CHECK") {
+    return {
+      title: "นับของจริงก่อนแพ็ค",
+      description: "กดตรวจนับในการ์ด \"ตรวจนับ QC\" — ดีครบยอดงานเข้าคิวแพ็คเอง มีของเสียระบบถอยกลับผลิตให้",
+      buttonLabel: "ไปตรวจนับ QC",
+      action: { type: "ANCHOR", target: "qc" },
     };
-    const next = nextMap[o.internalStatus];
+  }
+
+  if (o.internalStatus === "PACKING") {
     return {
       title: "งานอยู่ช่วงท้าย — เดินสถานะตามจริง",
       description: "เสร็จขั้นนี้แล้วกดไปขั้นถัดไป",
-      buttonLabel: next.label,
-      action: { type: "STATUS", to: next.to },
+      buttonLabel: "แพ็คเสร็จ → พร้อมส่ง",
+      action: { type: "STATUS", to: "READY_TO_SHIP" },
     };
   }
 

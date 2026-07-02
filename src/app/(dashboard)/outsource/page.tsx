@@ -135,6 +135,30 @@ export default function OutsourcePage() {
     setVendorCapabilities("");
   }
 
+  // รับของกลับ: เคยนับผ่านใบตรวจรับแล้ว (flip รอบก่อนพลาด เช่น เน็ตหลุด/ใบถูกคนอื่นขยับ)
+  // → flip ตรงเลย ไม่เปิดฟอร์มบังคับนับซ้ำเป็นใบเบิ้ล · ยังไม่เคยนับ → เปิดใบตรวจรับตามปกติ
+  async function handleReceiveBack(target: {
+    id: string;
+    orderId: string;
+    description: string;
+    quantity: number;
+  }) {
+    try {
+      const receipts = await utils.goodsReceipt.listByOrder.fetch({ orderId: target.orderId });
+      if (
+        receipts.some(
+          (r) => r.outsourceOrderId === target.id && r.receiptType === "OUTSOURCE_RETURN"
+        )
+      ) {
+        updateStatus.mutate({ id: target.id, status: "RECEIVED_BACK" });
+        return;
+      }
+    } catch {
+      // อ่านประวัติใบตรวจไม่ได้ — ตกไปทางเปิดฟอร์มนับตามปกติ (ปลอดภัยกว่าข้าม)
+    }
+    setReceiveTarget(target);
+  }
+
   function openEditVendor(v: {
     id: string;
     name: string;
@@ -361,7 +385,7 @@ export default function OutsourcePage() {
                               className="gap-1 text-xs"
                               disabled={updateStatus.isPending}
                               onClick={() =>
-                                setReceiveTarget({
+                                handleReceiveBack({
                                   id: o.id,
                                   orderId: o.productionStep.production.orderId,
                                   description: o.description,

@@ -194,6 +194,24 @@ export async function createGoodsReceipt(
     select: { id: true, orderNumber: true, title: true },
   });
 
+  // ใบผูก outsource ต้องเป็นของจริงและอยู่ใต้ออเดอร์เดียวกัน — ค่านี้เป็นด่านปล่อยสถานะ
+  // "รับของกลับ" (Gate B4) ปล่อยผ่านค่ามั่ว/ข้ามออเดอร์ไม่ได้ (หลักฐานการนับจะไปโผล่ผิดใบ
+  // แล้วด่านฝั่ง outsource เปิดให้ใบที่ไม่เคยนับ · review 2026-07-02) + ผูกได้เฉพาะใบชนิด
+  // รับกลับร้านนอกเท่านั้น — schema ไม่มี FK (String? เปล่า) ด่านนี้จึงเป็นด่านเดียว
+  if (params.outsourceOrderId) {
+    if (params.receiptType !== "OUTSOURCE_RETURN") {
+      badRequest("ผูกใบ outsource ได้เฉพาะใบตรวจนับชนิดรับกลับร้านนอก");
+    }
+    const outsource = await prisma.outsourceOrder.findUnique({
+      where: { id: params.outsourceOrderId },
+      select: { productionStep: { select: { production: { select: { orderId: true } } } } },
+    });
+    if (!outsource) badRequest("ไม่พบใบ outsource ที่อ้างถึง");
+    if (outsource.productionStep.production.orderId !== params.orderId) {
+      badRequest("ใบ outsource ที่อ้างถึงไม่ใช่ของออเดอร์นี้");
+    }
+  }
+
   const typeLabel = RECEIPT_TYPE_LABELS[params.receiptType];
   const totalCounted = lines.reduce((s, l) => s + l.qtyCounted, 0);
   const totalDefect = lines.reduce((s, l) => s + l.defectQty, 0);

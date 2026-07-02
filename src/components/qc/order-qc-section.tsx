@@ -54,9 +54,12 @@ type QcContext = RouterOutput["qc"]["context"];
 interface OrderQcSectionProps {
   orderId: string;
   internalStatus: string;
+  // ตรง server qc.create (OWNER/MANAGER/PRODUCTION_STAFF) — role อื่นเห็นประวัติแต่ไม่มีปุ่ม
+  // ไม่งั้น UX โกหก: แถบขั้นต่อไปพา SALES มากรอกฟอร์มที่บันทึกแล้ว FORBIDDEN แน่นอน
+  canCount: boolean;
 }
 
-export function OrderQcSection({ orderId, internalStatus }: OrderQcSectionProps) {
+export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSectionProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -83,12 +86,15 @@ export function OrderQcSection({ orderId, internalStatus }: OrderQcSectionProps)
             <ShieldCheck className="h-4 w-4 text-slate-400" />
             ตรวจนับ QC
           </CardTitle>
-          {isQualityCheck && (
-            <Button size="sm" className="h-9 gap-1 text-xs" onClick={() => setDialogOpen(true)}>
-              <ClipboardCheck className="h-3.5 w-3.5" />
-              ตรวจนับ
-            </Button>
-          )}
+          {isQualityCheck &&
+            (canCount ? (
+              <Button size="sm" className="h-9 gap-1 text-xs" onClick={() => setDialogOpen(true)}>
+                <ClipboardCheck className="h-3.5 w-3.5" />
+                ตรวจนับ
+              </Button>
+            ) : (
+              <span className="text-xs text-slate-400">รอทีมผลิตนับของ</span>
+            ))}
         </div>
         {rounds.length > 0 && (
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -212,9 +218,10 @@ export function OrderQcSection({ orderId, internalStatus }: OrderQcSectionProps)
 
 // ============================================================
 // Dialog นับจริง — โหลดบริบท (ยอดคาด/ลาย/เสื้อสำรอง) ก่อนเปิดฟอร์ม
+// export ให้หน้า /production ใช้ตัวเดียวกัน (Gate B4: ปุ่มผ่านด่านตรวจ = เปิดใบนับ ไม่ใช่ข้ามด่าน)
 // ============================================================
 
-function QcCountDialog({ orderId, onClose }: { orderId: string; onClose: () => void }) {
+export function QcCountDialog({ orderId, onClose }: { orderId: string; onClose: () => void }) {
   const { data: context, isLoading } = trpc.qc.context.useQuery(
     { orderId },
     { gcTime: 0, staleTime: 0 }
@@ -351,6 +358,15 @@ function QcCountForm({
         </DialogHeader>
 
         <div className="space-y-3">
+          {/* นับดีครบยอดไปแล้ว (เช่น ของตีกลับหลังส่ง) — บอกทางเดินจริง ไม่ปล่อยเจอฟอร์มตัน:
+              นับดีเพิ่มโดนกันนับเกิน · เดินหน้าใช้ปุ่มเปลี่ยนสถานะ (มีผลตรวจแล้วระบบให้ผ่าน) */}
+          {context.totalExpected > 0 && remaining === 0 && (
+            <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              นับดีครบยอดงานไปแล้ว — จะเดินหน้าเข้าแพ็ค กดเปลี่ยนสถานะที่หัวออเดอร์ได้เลย ·
+              ฟอร์มนี้ใช้บันทึก &quot;ของเสียที่เจอเพิ่ม&quot; (เช่น ของตีกลับ) ซึ่งจะถอยงานกลับผลิต
+            </div>
+          )}
           {/* ของดี — default เหลือที่ยังไม่ผ่านตรวจ นับตรงกดบันทึกได้เลย */}
           <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
             <div className="min-w-0">

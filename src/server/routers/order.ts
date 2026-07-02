@@ -849,27 +849,41 @@ export const orderRouter = router({
       }
 
       // เปลี่ยนสถานะผ่าน service กลางเท่านั้น (validate + กัน race + revision ในตัว)
+      // เงื่อนไขที่ key กับ "สถานะก่อนหน้า" ทุกตัวข้างล่างใช้ result.from (สถานะจริงใน tx)
+      // ไม่ใช่ old ที่อ่านนอก tx — old stale ได้เมื่อ auto-advance (ผลิตครบ/ปลดพัก) แทรก
+      // ระหว่างทาง (review 2026-07-02: ยิง PACKING ตอน PRODUCING แล้ว finalize แทรก →
+      // guard QC กับ promote ลายโดนข้ามทั้งคู่)
       const order = await ctx.prisma.$transaction(async (tx) => {
-        await transitionOrder(tx, {
+        const result = await transitionOrder(tx, {
           orderId: input.id,
           to: input.internalStatus,
           changedBy: ctx.userId,
           reason: input.reason,
         });
+        const from = result.from;
         // QC ไม่ผ่าน ถอยกลับผลิต → reopen ใบผลิตที่ปิดแล้ว + เปิด step งานแก้
         // (งานแก้ต้องโผล่ในบอร์ด/คิว ไม่ใช่หายเงียบ · audit ข้อ 19/26)
-        if (old.internalStatus === "QUALITY_CHECK" && input.internalStatus === "PRODUCING") {
+        if (result.changed && from === "QUALITY_CHECK" && input.internalStatus === "PRODUCING") {
           await reopenProductionsForRework(tx, { orderId: input.id, reason: input.reason });
         }
-        // เข้าแพ็คด้วยมือ (เคสจริง: รอบแก้ตัวเผื่อเสียทำให้นับต่อใน QC ไม่ได้ ต้องกด
-        // ข้าม dropdown) — ลายต้องเข้าคลังเหมือนเส้น QC ปกติ ไม่งั้นหายเงียบ (idempotent)
-        if (old.internalStatus === "QUALITY_CHECK" && input.internalStatus === "PACKING") {
+        if (result.changed && from === "QUALITY_CHECK" && input.internalStatus === "PACKING") {
+          // ผ่านด่านตรวจเข้าแพ็คด้วยมือ ต้องมีผลตรวจนับ QC อย่างน้อย 1 รอบ — ปิดทาง
+          // bypass ด่านนับของ (Gate B4: เดิมกดข้ามได้ทุก role โดยไม่เคยนับเลย) · เคสจริง
+          // ที่ต้องกดมือ (ลูกค้ารับของไม่ครบ/ของตีกลับ) มีใบตรวจรอบก่อนเสมอ · เช็คใน tx
+          // แล้ว throw = rollback transition ทั้งก้อน
+          const qcCount = await tx.qcRecord.count({ where: { orderId: input.id } });
+          if (qcCount === 0) {
+            badRequest(
+              'ยังไม่เคยตรวจนับ QC เลย — กด "ตรวจนับ" บันทึกดีกี่ตัวเสียกี่ตัวก่อน (นับดีครบยอดแล้วงานเข้าคิวแพ็คเอง)'
+            );
+          }
+          // ลายต้องเข้าคลังเหมือนเส้น QC ปกติ ไม่งั้นหายเงียบ (idempotent)
           await promoteOrderArtworks(tx, { orderId: input.id });
         }
         // ปลดพักกลับเข้าผลิต: ถ้าใบผลิตปิดครบไประหว่างพัก (เช่น รอบพิมพ์ปิดขั้นสุดท้าย
         // ตอนออเดอร์ ON_HOLD — rollup ตอนนั้นดันสถานะไม่ได้) ดันต่อเลย ไม่งั้นออเดอร์
         // ค้าง PRODUCING ถาวรโดยไม่มีขั้นเหลือให้กดปิด
-        if (old.internalStatus === "ON_HOLD" && input.internalStatus === "PRODUCING") {
+        if (result.changed && from === "ON_HOLD" && input.internalStatus === "PRODUCING") {
           const openProductions = await tx.production.count({
             where: { orderId: input.id, status: { not: "COMPLETED" } },
           });

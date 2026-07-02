@@ -107,6 +107,18 @@ async function main() {
     );
 
     await caller.outsource.updateOrderStatus({ id: os1.id, status: "SENT" });
+    // Gate B4: รับของกลับต้องมีใบตรวจนับก่อน — flip ตรงโดนกัน
+    await expectError(
+      "1.3c รับของกลับโดยไม่มีใบตรวจนับ → โดนกัน (Gate B4)",
+      () => caller.outsource.updateOrderStatus({ id: os1.id, status: "RECEIVED_BACK" }),
+      "ใบตรวจนับ"
+    );
+    await caller.goodsReceipt.create({
+      orderId: o1.id,
+      receiptType: "OUTSOURCE_RETURN",
+      outsourceOrderId: os1.id,
+      lines: [{ description: "[OPS-VERIFY] สกรีนหน้าอก", qtyExpected: 50, qtyCounted: 50 }],
+    });
     await caller.outsource.updateOrderStatus({ id: os1.id, status: "RECEIVED_BACK" });
     await caller.outsource.updateOrderStatus({
       id: os1.id,
@@ -130,6 +142,12 @@ async function main() {
     ok("1.5 หลัง QC ไม่ผ่าน เปิดรอบส่งแก้ใหม่ได้", !!os2.id, os2.id);
 
     await caller.outsource.updateOrderStatus({ id: os2.id, status: "SENT" });
+    await caller.goodsReceipt.create({
+      orderId: o1.id,
+      receiptType: "OUTSOURCE_RETURN",
+      outsourceOrderId: os2.id,
+      lines: [{ description: "[OPS-VERIFY] ส่งแก้รอบ 2", qtyExpected: 5, qtyCounted: 5 }],
+    });
     await caller.outsource.updateOrderStatus({ id: os2.id, status: "RECEIVED_BACK" });
     await caller.outsource.updateOrderStatus({ id: os2.id, status: "QC_PASSED" });
     stepDb = await prisma.productionStep.findUniqueOrThrow({ where: { id: screenStep.id } });
@@ -146,9 +164,21 @@ async function main() {
     );
 
     // ---------- 2) ปิดงานต้องวางบิลครบ ----------
-    for (const status of ["QUALITY_CHECK", "PACKING", "READY_TO_SHIP"] as const) {
-      await caller.order.updateStatus({ id: o1.id, internalStatus: status });
-    }
+    // Gate B4: ด่านตรวจผ่านได้ทางเดียวคือนับจริง — เข้าแพ็คมือโดยไม่มีผลตรวจโดนกัน
+    await caller.order.updateStatus({ id: o1.id, internalStatus: "QUALITY_CHECK" });
+    await expectError(
+      "2.0 เข้าแพ็คมือโดยไม่เคยตรวจนับ QC → โดนกัน (Gate B4)",
+      () => caller.order.updateStatus({ id: o1.id, internalStatus: "PACKING" }),
+      "ตรวจนับ"
+    );
+    await caller.qc.create({ orderId: o1.id, qtyGood: 50, defects: [] });
+    const o1AfterQc = await prisma.order.findUniqueOrThrow({ where: { id: o1.id } });
+    ok(
+      "2.0b นับของจริงแล้ว → งานเด้งเข้าแพ็คเอง (ออเดอร์ไม่มี variant ยอดคาด=0 นับแล้วถือว่าครบ)",
+      o1AfterQc.internalStatus === "PACKING",
+      o1AfterQc.internalStatus
+    );
+    await caller.order.updateStatus({ id: o1.id, internalStatus: "READY_TO_SHIP" });
     // กดส่งมือต้องมีใบส่งแล้ว (audit ข้อ 22) — ส่งผ่านใบส่งตามทางจริง
     const o1Del = await caller.delivery.create({
       orderId: o1.id,
@@ -398,9 +428,9 @@ async function main() {
       o6Db.internalStatus
     );
 
-    for (const status of ["PACKING", "READY_TO_SHIP"] as const) {
-      await caller.order.updateStatus({ id: o6.id, internalStatus: status });
-    }
+    // ผ่านด่านตรวจด้วยการนับจริง (Gate B4 — เข้าแพ็คมือโดยไม่มีผลตรวจโดนกันแล้ว)
+    await caller.qc.create({ orderId: o6.id, qtyGood: 10, defects: [] });
+    await caller.order.updateStatus({ id: o6.id, internalStatus: "READY_TO_SHIP" });
     await caller.delivery.updateStatus({ id: o6Del.id, status: "DELIVERED" });
     o6Db = await prisma.order.findUniqueOrThrow({ where: { id: o6.id } });
     ok(
@@ -635,9 +665,27 @@ async function main() {
       where: { productionStepId: { in: stepIds } },
       select: { id: true },
     });
+    // ใบตรวจรับ/ผลนับ QC หายกับ order cascade แต่ audit ของมันไม่หาย — เก็บ id ก่อนลบ
+    const receipts = await prisma.goodsReceipt.findMany({
+      where: { orderId: { in: ids.orders } },
+      select: { id: true },
+    });
+    const qcRecords = await prisma.qcRecord.findMany({
+      where: { orderId: { in: ids.orders } },
+      select: { id: true },
+    });
     await prisma.auditLog.deleteMany({
       where: {
-        entityId: { in: [...osOrders.map((o) => o.id), ...prods.map((p) => p.id), ...stepIds, ids.vendor] },
+        entityId: {
+          in: [
+            ...osOrders.map((o) => o.id),
+            ...prods.map((p) => p.id),
+            ...stepIds,
+            ...receipts.map((r) => r.id),
+            ...qcRecords.map((q) => q.id),
+            ids.vendor,
+          ],
+        },
       },
     });
     await prisma.outsourceOrder.deleteMany({ where: { productionStepId: { in: stepIds } } });

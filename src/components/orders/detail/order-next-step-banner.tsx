@@ -15,7 +15,7 @@ interface NextStepBannerProps {
   isPending: boolean;
   onStatus: (to: string) => void;
   onEditItems: () => void;
-  onAnchor: (target: "billing" | "design" | "production" | "delivery") => void;
+  onAnchor: (target: "billing" | "design" | "production" | "delivery" | "qc") => void;
 }
 
 /**
