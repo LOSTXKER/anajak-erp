@@ -466,7 +466,9 @@ async function main() {
     ids.orders.push(o7a.id);
     await caller.production.create({
       orderId: o7a.id,
-      steps: [{ stepType: "DTF_PRINT", sortOrder: 1 }],
+      // CURING (ขั้นทำเองทั่วไป) — DTF_PRINT/HEAT_PRESS ถูกย้ายไปคิวพิมพ์/รีดเฉพาะ (ก้อน 2)
+      // ไม่โผล่ใน myToday โดยเจตนา — test 7.1/8.2 เคยใช้ DTF_PRINT เลย stale ตั้งแต่ 06-12
+      steps: [{ stepType: "CURING", sortOrder: 1 }],
     });
 
     const o7b = await prisma.order.create({

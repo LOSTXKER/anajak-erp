@@ -142,11 +142,14 @@ async function main() {
     );
 
     // ใบเพิ่มหนี้ขยายเพดานใบเสร็จ — เงินงานเพิ่มต้องออกใบเสร็จได้
+    // (Gate B1: DN ต้องอ้างใบเดิม + เหตุผล ตาม ม.86/10)
     const dn = await caller.billing.create({
       orderId: order1.id,
       customerId: customer.id,
       type: "DEBIT_NOTE",
       amount: 500,
+      originalInvoiceId: fin.id,
+      adjustmentReason: "ค่างานเพิ่มหลังยืนยันแบบ (verify)",
     });
     ids.invoices.push(dn.id);
     const rec = await caller.billing.create({

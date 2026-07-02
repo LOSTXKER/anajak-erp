@@ -512,13 +512,18 @@ async function main() {
     );
 
     // ใบเสนอหมดอายุ → ตกลง/แปลงไม่ได้
+    // (Gate A3: ส่งใบที่หมดอายุแล้วไม่ได้ — ต้องส่งตอนยังไม่หมด แล้วจำลองเวลาผ่านด้วยเขียนตรง)
     const q3 = await sales.quotation.create({
       customerId: customer.id,
       title: "[E2E-VERIFY] ใบเสนอหมดอายุ",
-      validUntil: new Date(Date.now() - 3 * 86400_000).toISOString(),
+      validUntil: validTomorrow,
       items: [{ name: "งานเก่า", quantity: 1, unit: "ชิ้น", unitPrice: 100 }],
     });
     await sales.quotation.updateStatus({ id: q3.id, status: "SENT" });
+    await prisma.quotation.update({
+      where: { id: q3.id },
+      data: { validUntil: new Date(Date.now() - 3 * 86400_000) },
+    });
     await expectError(
       "F9 ใบเสนอหมดอายุ → บันทึกว่าลูกค้าตกลงไม่ได้ (ต้องยืนราคาใหม่)",
       () => sales.quotation.updateStatus({ id: q3.id, status: "ACCEPTED" }),
