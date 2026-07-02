@@ -25,6 +25,7 @@ import {
   Hourglass,
   ListTodo,
   ReceiptText,
+  Landmark,
 } from "lucide-react";
 import { useState, type ComponentType } from "react";
 import { Button } from "@/components/ui/button";
@@ -83,6 +84,7 @@ const groups: NavGroup[] = [
       { name: "ใบวางบิล", href: "/billing/notes", icon: FileStack },
       { name: "ลูกหนี้", href: "/billing/aging", icon: Hourglass },
       { name: "หัก ณ ที่จ่าย", href: "/billing/wht", icon: ReceiptText },
+      { name: "ภาษีขาย", href: "/billing/tax", icon: Landmark },
       { name: "สถิติ", href: "/analytics", icon: BarChart3 },
     ],
   },

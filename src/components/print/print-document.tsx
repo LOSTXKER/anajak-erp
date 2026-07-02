@@ -4,8 +4,13 @@ import type { CompanyProfile } from "@/lib/company-profile";
 import { bahtText } from "@/lib/baht-text";
 
 export function formatDocDate(date: Date | string): string {
-  // เอกสารทางการใช้ พ.ศ. เต็ม เช่น "10 มิถุนายน 2569"
-  return new Intl.DateTimeFormat("th-TH", { dateStyle: "long" }).format(new Date(date));
+  // เอกสารทางการใช้ พ.ศ. เต็ม เช่น "10 มิถุนายน 2569" · pin เขตเวลาไทย — server
+  // component รันบนเครื่อง UTC (Vercel) issueDate ช่วงเที่ยงคืน–7 โมงจะเหลื่อมวัน
+  // แล้วกระดาษไม่ตรงรายงานภาษี (formatThaiDate ฝั่งรายงาน pin ไว้แล้ว)
+  return new Intl.DateTimeFormat("th-TH", {
+    dateStyle: "long",
+    timeZone: "Asia/Bangkok",
+  }).format(new Date(date));
 }
 
 export function formatMoney(amount: number): string {

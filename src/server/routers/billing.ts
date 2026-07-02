@@ -12,6 +12,7 @@ import {
   suggestInvoice,
 } from "@/server/services/payment-plan";
 import { sweepOverdueInvoices, maybeSweepOverdue } from "@/server/services/overdue";
+import { getSalesTaxReport } from "@/server/services/tax-report";
 import {
   RECEIVABLE_TYPES,
   creditedOf,
@@ -59,6 +60,13 @@ export const billingRouter = router({
         orderBy: { createdAt: "desc" },
       });
     }),
+
+  // รายงานภาษีขายรายเดือน (Gate B5) — ใบกำกับภาษีของงวด (REC/CN/DN · งวด = issueDate)
+  // สำหรับยื่น ภ.พ.30 + export ให้นักบัญชี (PEAK/CSV) · logic อยู่ services/tax-report
+  salesTaxReport: protectedProcedure
+    .use(billingStaff)
+    .input(z.object({ year: z.number().int(), month: z.number().int().min(1).max(12) }))
+    .query(({ ctx, input }) => getSalesTaxReport(ctx.prisma, input)),
 
   list: protectedProcedure
     .use(billingStaff)
