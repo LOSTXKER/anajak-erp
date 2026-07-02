@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
+import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Section } from "@/components/ui/section";
@@ -13,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatCurrency } from "@/lib/utils";
 import { PAYMENT_TERMS, type PaymentTermsValue } from "@/lib/payment-terms";
@@ -32,7 +34,19 @@ const segmentConfig: Record<string, { label: string; variant: "default" | "accen
 
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
+
+  // debounce 300ms — pattern เดียวกับหน้า WHT/คลังฟิล์ม (เดิมยิง query ทุกตัวอักษร)
+  // เปลี่ยนคำค้นแล้วกลับหน้า 1 เสมอ — ค้างหน้าลึกจะเจอหน้าว่างทั้งที่มีผลลัพธ์
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
   const [formData, setFormData] = useState({
     name: "", company: "", email: "", phone: "",
     lineId: "", address: "", notes: "",
@@ -45,16 +59,26 @@ export default function CustomersPage() {
   });
 
   const utils = trpc.useUtils();
+  const { data: me } = trpc.user.me.useQuery();
+  // วงเงินเครดิต = การตัดสินใจความเสี่ยง — SALES ตั้งเองไม่ได้ (ตรง server guard ฝั่ง create)
+  const canSetCredit = !me || me.role !== "SALES";
   const { data: statsData } = trpc.customer.stats.useQuery();
-  const { data, isLoading, isError, refetch } = trpc.customer.list.useQuery({
-    search: search || undefined,
-    limit: 50,
-  });
+  const { data, isLoading, isError, refetch } = trpc.customer.list.useQuery(
+    {
+      search: debouncedSearch.trim() || undefined,
+      page,
+      limit: 50,
+    },
+    // เปลี่ยนหน้าแล้วค้างข้อมูลหน้าเดิมไว้ระหว่างโหลด — ไม่งั้นตาราง 50 แถวยุบเหลือ
+    // skeleton + แถบ pagination หายใต้เคอร์เซอร์ (review B7 จับ)
+    { placeholderData: (prev) => prev }
+  );
 
-  const createCustomer = trpc.customer.create.useMutation({
+  // useMutationWithInvalidation = ได้ toast error ฟรี (เดิม fail เงียบ — SALES กรอกวงเงิน
+  // โดน FORBIDDEN แล้วฟอร์มค้างเฉยๆ ไม่มีอะไรบอก · review B7 จับ)
+  const createCustomer = useMutationWithInvalidation(trpc.customer.create, {
+    invalidate: [utils.customer.list, utils.customer.stats],
     onSuccess: () => {
-      utils.customer.list.invalidate();
-      utils.customer.stats.invalidate();
       setShowForm(false);
       setFormData({
         name: "", company: "", email: "", phone: "", lineId: "", address: "", notes: "",
@@ -86,7 +110,9 @@ export default function CustomersPage() {
       billingDistrict: formData.billingDistrict || undefined,
       billingProvince: formData.billingProvince || undefined,
       billingPostalCode: formData.billingPostalCode || undefined,
-      creditLimit: formData.creditLimit ? parseFloat(formData.creditLimit) : undefined,
+      // SALES ไม่ส่ง creditLimit เลย — ส่งไปโดน FORBIDDEN (ช่องก็ disabled แล้ว)
+      creditLimit:
+        canSetCredit && formData.creditLimit ? parseFloat(formData.creditLimit) : undefined,
       defaultPaymentTerms: (formData.defaultPaymentTerms || undefined) as
         | PaymentTermsValue
         | undefined,
@@ -219,7 +245,11 @@ export default function CustomersPage() {
                           value={formData.creditLimit}
                           onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
                           placeholder="เช่น 50000"
+                          disabled={!canSetCredit}
                         />
+                        {!canSetCredit && (
+                          <p className="mt-1 text-xs text-slate-400">ผู้จัดการ/บัญชีเป็นคนกำหนด</p>
+                        )}
                       </div>
                     </div>
                     <div className="mt-4">
@@ -401,6 +431,14 @@ export default function CustomersPage() {
           )}
         </DataTable.Body>
       </DataTable.Root>
+      {/* เกิน 50 รายต้องเปิดหน้าถัดไปได้ (Gate B7 — เดิมตรึง 50 มองไม่เห็นที่เหลือ) */}
+      <TablePagination
+        page={page}
+        totalPages={data?.pages ?? 1}
+        total={data?.total ?? 0}
+        onPageChange={setPage}
+        label="ราย"
+      />
     </div>
   );
 }

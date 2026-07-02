@@ -24,6 +24,7 @@
     "verify:wht": "tsx --env-file=.env scripts/verify-wht.ts",
     "verify:qc": "tsx --env-file=.env scripts/verify-qc.ts",
     "verify:tax": "tsx --env-file=.env scripts/verify-tax-report.ts",
+    "verify:crm": "tsx --env-file=.env scripts/verify-crm.ts",
     "verify:pack": "tsx --env-file=.env scripts/verify-pack.ts",
     "verify:files": "tsx --env-file=.env scripts/verify-files.ts",
     "verify:storage": "tsx --env-file=.env scripts/verify-storage-upload.ts",

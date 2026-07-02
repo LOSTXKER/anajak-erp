@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,22 @@ import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { CustomerArtworksCard } from "@/components/customers/customer-artworks-card";
-import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText } from "lucide-react";
+import { CustomerEditDialog } from "@/components/customers/customer-edit-dialog";
+import { CustomerCommLogDialog } from "@/components/customers/customer-comm-log-dialog";
+import { commChannelLabel } from "@/lib/comm-channels";
+import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText, Pencil, MessageSquarePlus } from "lucide-react";
+
+// แก้ข้อมูล/จดบันทึกการคุย = ทีมขาย-บัญชี-บริหาร (ตรง customerEditors ฝั่ง server)
+const EDITOR_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT", "SALES"];
+// วงเงินเครดิต = การตัดสินใจความเสี่ยง — SALES แก้ไม่ได้ (ตรง server guard)
+const CREDIT_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
 
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const [editing, setEditing] = useState(false);
+  const [loggingComm, setLoggingComm] = useState(false);
+  const { data: me } = trpc.user.me.useQuery();
+  const canEdit = !!me && EDITOR_ROLES.includes(me.role);
   const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });
   // ภาระหนี้เทียบวงเงินเครดิต — ขอเฉพาะลูกค้าที่ตั้งวงเงินไว้
   const { data: credit } = trpc.customer.creditStatus.useQuery(
@@ -41,9 +53,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Link href="/customers"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold text-slate-900 dark:text-white">{customer.name}</h1>
             {customer.customerType === "CORPORATE" ? (
@@ -59,6 +71,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             </p>
           )}
         </div>
+        {canEdit && (
+          <Button variant="outline" size="sm" onClick={() => setEditing(true)} className="gap-1.5">
+            <Pencil className="h-3.5 w-3.5" />
+            แก้ไขข้อมูล
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -117,11 +135,22 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             </CardContent>
           </Card>
 
-          {/* Corporate/Billing Info */}
-          {customer.customerType === "CORPORATE" && (
+          {/* Corporate/Billing Info — โชว์เมื่อมีข้อมูลจริงด้วย แม้ type เป็นบุคคล
+              (review B7: วงเงิน/เลขภาษีค้างหลังสลับประเภทยังบังคับใช้จริง — ห้ามหายจากจอ) */}
+          {(customer.customerType === "CORPORATE" ||
+            customer.taxId ||
+            customer.creditLimit != null ||
+            customer.defaultPaymentTerms ||
+            customer.billingAddress) && (
             <Card>
               <CardHeader><CardTitle className="text-base">ข้อมูลนิติบุคคล</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
+                {customer.customerType !== "CORPORATE" && (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                    ลูกค้าเป็นบุคคลธรรมดาแต่มีข้อมูลภาษี/วงเงินค้าง — ยังถูกใช้จริง ถ้าไม่ใช้แล้วกด
+                    &quot;แก้ไขข้อมูล&quot; แล้วลบออก
+                  </p>
+                )}
                 {customer.taxId && (
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                     <FileText className="h-4 w-4" /> เลขผู้เสียภาษี: {customer.taxId}
@@ -199,16 +228,31 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">บันทึกการสื่อสาร</CardTitle></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-base">บันทึกการสื่อสาร</CardTitle>
+                {canEdit && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setLoggingComm(true)}
+                    className="h-9 gap-1 text-xs"
+                  >
+                    <MessageSquarePlus className="h-3.5 w-3.5" />
+                    บันทึกการคุย
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
             <CardContent>
               {customer.communicationLogs.length === 0 ? (
-                <p className="text-sm text-slate-400">ยังไม่มีบันทึก</p>
+                <p className="text-sm text-slate-400">ยังไม่มีบันทึก — คุยอะไรกับลูกค้าจดไว้ ทีมอื่นเห็นด้วย</p>
               ) : (
                 <div className="space-y-3">
                   {customer.communicationLogs.map((log) => (
                     <div key={log.id} className="border-l-2 border-slate-200 pl-4 dark:border-slate-700">
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{log.channel}</Badge>
+                        <Badge variant="secondary">{commChannelLabel(log.channel)}</Badge>
                         <span className="text-xs text-slate-400">{formatDateTime(log.createdAt)}</span>
                         <span className="text-xs text-slate-400">- {log.user.name}</span>
                       </div>
@@ -222,6 +266,21 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           </Card>
         </div>
       </div>
+
+      {editing && (
+        <CustomerEditDialog
+          customer={customer}
+          canEditCredit={!!me && CREDIT_ROLES.includes(me.role)}
+          onClose={() => setEditing(false)}
+        />
+      )}
+      {loggingComm && (
+        <CustomerCommLogDialog
+          customerId={id}
+          customerName={customer.name}
+          onClose={() => setLoggingComm(false)}
+        />
+      )}
     </div>
   );
 }
