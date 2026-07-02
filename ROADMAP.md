@@ -15,6 +15,51 @@
 
 ---
 
+## 🚦 แผนแนวทางใหม่ 2026-07-02 — เส้นทางสู่ go-live (จาก audit ใหญ่ 47 agents · adversarial verify 26/28 CONFIRMED)
+> **ที่มา**: เบสสั่ง audit ว่า "ดีพอตามมาตรฐาน ERP โรงงานสกรีนหรือยัง" → รายงานเต็ม: bestos `records/projects/anajak-erp/audit-2026-07-02.md` (+ detail 10 ไฟล์ใน `_audit-2026-07-02/`)
+> **คำตอบ**: ครึ่ง ops ดีพอ-เกินมาตรฐาน SaaS (74-85/100) · ครึ่งเงิน+ภาษียังไม่พร้อมใช้จริง (55-70) · โครงพื้นฐาน production (CI/backup/monitoring/rate-limit) = 0
+> **ลำดับนี้ทับลำดับ P1-P4 เดิมชั่วคราวจนถึง go-live** · ทุกข้อ verify แล้วมี file:line ในรายงาน · ⚠️ 5 คำถามท้ายรายงานต้องให้เบสเคาะก่อนแตะข้อที่เกี่ยว
+
+### Gate A — เงินห้ามผิด (ทำทันที · guard สั้นๆ ทั้งหมด)
+- [ ] A1 `billing.recordPayment` จำกัดชนิดใบ (รับเงินเฉพาะใบเรียกเก็บ INV-D/INV-F — กันบันทึกซ้ำ INV+REC และกัน CN ทิศกลับด้าน · billing.ts:217-241)
+- [ ] A2 gate ต้นทุน/กำไรตาม role: ตัด costEntries+payments จาก `order.getById` สำหรับ role หน้างาน + ซ่อน section กำไรใน order-sidebar (pattern มีแล้วใน analytics · order.ts:317-380)
+- [ ] A3 `quotation.update` guard เฉพาะ DRAFT + `quotation.updateStatus` validate transition (กันแก้ราคาใต้ลิงก์ลูกค้า/convert ซ้ำ · quotation.ts:261-339)
+- [ ] A4 `cost.ts` mutations ห่อ `$transaction` (create/update/delete เขียน 3 ขั้นแยก · cost.ts:62-155)
+
+### Gate B — ก่อนใช้จริง (go-live gate · เรียงตามเจ็บ)
+- [ ] B1 **ใบลดหนี้/เพิ่มหนี้ครบองค์กฎหมาย** (ม.86/10): ผูก originalInvoiceId + มูลค่าเดิม/ใหม่/ผลต่าง + เหตุผล บน schema+ใบพิมพ์ และ **CN หักยอดค้างจริงใน receivables** (ปิดหนี้เก่าข้อ 1: OVERDUE ปลอม/aging บวม — test ก่อนตามกติกา 7)
+- [ ] B2 **VAT default 7%** ทุกออเดอร์/ใบเสนอ (ยกเว้น = เลือกเอง · order.ts:414 + ฟอร์ม) ⚠️ confirm กับเบสว่าจด VAT แล้ว
+- [ ] B3 **tax point จ้างทำของ**: nudge/auto-draft ใบเสร็จ+ใบกำกับหลัง recordPayment ทุกงวด + field `issueDate` (ม.78/1(1) — ผูก Payment↔REC ปิดเรื่องบันทึกซ้ำถาวร)
+- [ ] B4 ปิดทาง bypass QC: ปุ่ม "ผ่าน→แพ็ค" ต้องมี QcRecord ก่อน (server guard ที่ order.updateStatus QUALITY_CHECK→PACKING · production/page.tsx:74,526-537) + ปุ่ม "รับของกลับ" บอร์ดเลนบังคับใบตรวจนับแบบเดียวกับหน้า /outsource
+- [ ] B5 **รายงานภาษีขายรายเดือน export CSV** (เลขที่/วันที่/ผู้ซื้อ+เลขภาษี+สาขา/ฐาน/VAT รวม CN-DN + ธง void) ⚠️ ถามเบส: นักบัญชีใช้โปรแกรม/format ไหน
+- [ ] B6 **นักบัญชีรีวิว template ใบกำกับ/CN/DN + เลขรัน** ก่อนออกใบจริง (open decision ค้าง — พิมพ์ตัวอย่างจริงให้ดู)
+- [ ] B7 CRM ใช้ได้จริง: ฟอร์มแก้ลูกค้า (ต่อ `customer.update` ที่มีแล้ว) + ปุ่มบันทึกการคุย (`addCommunicationLog`) + pagination /customers (เกิน 50 รายมองไม่เห็น)
+- [ ] B8 หน้า /settings หลัก: ถอดฟอร์มปลอม 4 section ทิ้ง (ปุ่มบันทึกโกหก — BLOCKER ความเชื่อใจ) · ตั้งค่าที่จำเป็นจริงค่อยทำเป็นชิ้นๆ (% มัดจำ/เพดานส่วนลด/ฟรีแก้แบบ)
+- [ ] B9 เพดานสองขา: update/updateItems/updateFees เตือน/กันลดยอดต่ำกว่าบิลที่ออกแล้ว (หนี้เก่าข้อ 2)
+- [ ] B10 ถอด ON_HOLD จาก EDITABLE_STATUSES (แก้ผ่านใบแก้ไข/CO ตามกติกาเดิม · order-status.ts:278-284)
+- [ ] B11 `issueMaterials` ห่อ atomic + endpoint list MaterialUsage + `product.delete` → soft-delete (ประวัติเบิกหายถาวร · stock-sync.ts:104-160, product.ts:166-177)
+- [ ] B12 sidebar/ปุ่มกรอง role ทั้งระบบ (เมนูเงินไม่โชว์ช่าง — server ปลอดภัยแล้ว เหลือ UI) + หน้า print เอกสารเงิน gate role
+- [ ] B13 delivery: เขียน trackingNumber ทุกสถานะ (ตอนนี้หายเงียบถ้ากรอกตอน PREPARING · delivery.ts:271-273) + state machine ใบส่ง (เลียน outsource)
+- [ ] B14 เอกสารใบส่งของร้านนอก + แนบไฟล์ลายบนใบ outsource ⚠️ ถามเบสก่อน: หน้างานใช้อะไรอยู่ (กระดาษ? รูป LINE?)
+- [ ] B15 **โครงพื้นฐาน production**: CI ขั้นต่ำ (lint+tsc+vitest) · ลบ lockfile ซ้ำ (pnpm-lock vs package-lock) · rate-limit public token endpoints 9 ตัว + security headers (next.config ว่าง) · Supabase audit จริง (bucket private/RLS/PITR+backup — เอกสารภาษีต้องอยู่ครบ 5 ปี) · env validate ตอน boot
+- [ ] B16 **walkthrough ของจริงกับทีม + พิมพ์เอกสารเงินให้นักบัญชีดู** (audit รอบนี้รีวิวจากโค้ด ไม่ได้เปิดจอจริง — UX คะแนนถือเป็นสมมติฐานจนกว่าจะลองจริง)
+
+### Gate C — หลังใช้จริง ~1 เดือน (calibrate จากข้อมูลจริงก่อน build)
+- [ ] C1 pricing engine ใบเสนอ (qty break × เทคนิค × ตำแหน่ง + ราคาต่อลูกค้า — ระหว่างรอ: mount useMarginEstimate ในฟอร์มใบเสนอ = quick win)
+- [ ] C2 stale sweep (ใบเสนอ SENT/แบบรอลูกค้า/INQUIRY/outsource เลยกำหนด ค้างเกิน N วัน → กระดิ่ง — โครง cron+notification พร้อมแล้ว)
+- [ ] C3 global search ⌘K ค้นข้อมูลจริง (order.list มี search ฝั่ง server แล้ว เหลือต่อท่อ palette)
+- [ ] C4 Owner Pulse drill-down (/orders รับ URL param filter) + คอลัมน์กำหนดส่ง/sort deadline ใน orders list + mobile card
+- [ ] C5 UX ops: หน้าใบผลิตโชว์ภาพลาย+ตารางไซซ์ (ช่างไม่ต้องเปิด order detail) · ปิดขั้นตอน 1-2 แตะ (เลิก dialog 5 แตะ) · จอ print-runs ลิงก์ไฟล์ลาย
+- [ ] C6 LINE OA notify (P3 เดิม — ระหว่างนี้ template ก๊อปส่ง + ถอดช่อง LINE token ปลอมออกจาก settings)
+
+### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
+ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT · ปุ่มร่างทวงหนี้บนหน้า aging (dunning มีแล้วแต่เรียกได้ทาง MCP เท่านั้น) · ปุ่ม UI recordRefund · ตารางบิลกดได้+filter+pagination (router รองรับหมดแล้ว) · แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
+
+### Refactor targeted (ทำตอนแตะไฟล์นั้นตามกติกา 7 — ห้าม big-bang)
+ย้าย logic เงินจาก router ลง services + test: recordPayment/void (เงินก้อนใหญ่สุดไม่มี unit test) · ด่านปิดงานวางบิลครบ (order.ts:801-818) · convertToOrder (193 บรรทัด) · production.updateStep (208 บรรทัด) — รวมของซ้ำ: INVOICE_TYPE_LABELS (6 ไฟล์ป้ายไม่ตรง) · FINANCE_ROLES (~20 จุด/5 ไฟล์) · ลบ dead export สูตรเงินเก่าไม่มี VAT (lib/pricing.ts:119-141) — schema: index FK ~20 ตัว (ทำพร้อม migration ถัดไป) · test กลุ่ม stock/ผลิต (garment-pick/goods-receipt/qc/print-run = 0 test ทั้งกลุ่ม)
+
+---
+
 ## 🔴 P0 — ฐานราก (ทำก่อนทุกอย่าง · ห้าม deploy/ใช้จริงจนจบ P0)
 
 ### P0.1 Auth จริง + RBAC

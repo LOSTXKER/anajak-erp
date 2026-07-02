@@ -1,19 +1,32 @@
 # Anajak ERP — SPEC (อะไรคือ "เสร็จ")
 > เกณฑ์ที่ต้องเป็นจริงถึงเรียกว่าเสร็จ · AI verify ทุกข้อก่อนเคลม done ด้วยรัน/เปิดดูจริง (type check ผ่าน ≠ ใช้งานได้) · เปลี่ยน spec = แก้ที่นี่ก่อนเขียนโค้ด
-> สถานะ `[x]` = audit โค้ดจริง 2026-06-19 ยืนยันผ่าน (มี file:line อ้างอิง) · `[ ]` = ยังไม่ verify / gate ที่ต้องปิดก่อน deploy · งานต่อ trace กลับ `ROADMAP.md`
+> สถานะ `[x]` = audit โค้ดจริงยืนยันผ่าน (2026-06-19 + audit ใหญ่ 2026-07-02 adversarial verify — มี file:line อ้างอิง) · `[ ]` = ยังไม่ verify / gate ที่ต้องปิดก่อน deploy · งานต่อ trace กลับ `ROADMAP.md`
 
 ## เป้าหมาย
 ERP หลังบ้านโรงงานสกรีนเสื้อ Anajak — ให้ทีม 5 คน+เจ้าของ จัดการ ขาย→ผลิต→outsource→ส่ง→ออกบิล/ภาษี ของลูกค้า B2B (เครดิตเทอม) ครบวงจร ออกเอกสารภาษีเต็มรูปเอง + เชื่อม Anajak Stock · **ห้าม deploy/ใช้จริงจนจบ P0** (ROADMAP.md:18)
 
-## 🔐 P0 deploy-gate — ต้องผ่าน 5 ข้อก่อนใช้จริง (ROADMAP.md:54 · plan.md:116)
-- [ ] **คนนอกเปิดเว็บแล้วเข้าไม่ได้** — มี `src/middleware.ts` กั้น route + layout เช็ค session ⚠️ _survey 06-10 ว่ายังไม่มี middleware → ตรวจปัจจุบัน_
-- [ ] **ทีม 6 คน login จริงได้ตาม role** — Supabase `signInWithPassword`/`signOut` จริง (login page เคยเป็น TODO redirect · logout เคยเป็นปุ่มหลอก · survey 06-10) ⚠️ ตรวจปัจจุบัน
-- [ ] **auth context ถูก** — `src/server/trpc.ts` lookup user ด้วย `supabaseId` (ไม่ใช่ `id`) + **ตัด dev-OWNER fallback ทิ้ง** (ไม่มี session = UNAUTHORIZED) ⚠️ survey 06-10 ว่า fallback ทำให้ทุก request เป็น OWNER → ตรวจ `trpc.ts` ปัจจุบัน **(gate อันตรายสุด)**
-- [ ] **`requireRole` ครบทุก mutation ที่ควรจำกัด** (survey 06-10 ว่ามีแค่ ~6/90) ตามตาราง role `Anajak-Print-Features.md §7`
-- [x] **ยอดเงินทดสอบตรงทุกเส้นทาง** — invariant การเงินผ่าน (ดู §💰) · ⚠️ เหลือ verify บั๊ก `platformFee` create(order.ts:394)↔update(:728,:793)↔UI ใช้สูตรเดียวกันไหม
-- [ ] **มี migration history** — เริ่ม `prisma migrate` + baseline (เลิก `db push` · survey 06-10 ว่า migrations ว่าง) · index hot paths (Order.customerId/internalStatus/createdAt · Invoice.paymentStatus)
-- [ ] **`prisma/seed.ts` รันผ่าน** — แก้ให้ตรง schema ปัจจุบัน (survey 06-10 ว่าพัง: Notification.channel/body/sentAt, OrderItem fields ย้าย) + แยก master data (ServiceCatalog 26) ออกจาก demo
-- [ ] **test แกนก่อน refactor** — vitest ครอบ pricing(+platformFee)/status transition/เลขเอกสาร/payment-void-refund (เกราะของทุก refactor)
+## 🔐 P0 deploy-gate — verified ครบแล้ว (audit 2026-07-02 อ่านโค้ดจริง + adversarial verify)
+- [x] **คนนอกเปิดเว็บแล้วเข้าไม่ได้** — `src/middleware.ts:31-78` refresh session ทุก request รวม /api · ยกเว้นเฉพาะหน้า public token (approve/upload/status/quote) + /api/mcp (auth ด้วย key เอง)
+- [x] **ทีม login จริงได้ตาม role** — login `signInWithPassword` + error ไทย (`(auth)/login/page.tsx:24-37`) · logout จริง (`user-menu.tsx:22`) · จัดการ user ครบวงจรถึง Supabase ban (`user.ts:87-226`)
+- [x] **auth context ถูก + fail-closed** — `trpc.ts:14-33` lookup ด้วย `supabaseId` + เช็ค `isActive` · dev-OWNER fallback ตัดทิ้งแล้ว (Supabase ล่ม = ไม่มี session ไม่หลุดเป็น OWNER)
+- [x] **`requireRole` ครอบ 27/31 routers** — 4 ที่เหลือ = public token routers โดยเจตนา (customer-status/customer-upload/design.getByToken/quotation-confirm) ⚠️ หนี้ตาม: rate-limit endpoints เหล่านี้ (go-live gate v2 ข้อ 7)
+- [x] **ยอดเงินทดสอบตรงทุกเส้นทาง** — invariant การเงินผ่าน (ดู §💰)
+- [x] **มี migration history** — `prisma/migrations` 25 ก้อน (baseline `0_init` + ใช้ `migrate dev` จริง · เลิก db push แล้ว)
+- [x] **`prisma/seed.ts` รันผ่าน** — master data idempotent (ServiceCatalog 25) แยกจาก demo แล้ว (P0.3 2026-06-10) ⚠️ MINOR: เทียบด้วย findFirst ไม่มี unique constraint — รันแข่งกันได้แถวเบิ้ล
+- [x] **test แกน** — vitest 236 เคส ครอบ pricing/status/เลขเอกสาร/payment-plan/receivables ฯลฯ ⚠️ ช่องว่าง: billing.recordPayment/void ยังอยู่ใน router ไม่มี unit test + กลุ่ม stock/ผลิต (garment-pick/goods-receipt/qc/print-run) = 0 test
+
+## 🚦 Go-live gate v2 — ต้องผ่านก่อนใช้จริง (audit 2026-07-02 · ใบงาน = ROADMAP.md Gate A+B · รายงานเต็ม: bestos `records/projects/anajak-erp/audit-2026-07-02.md`)
+- [ ] **เงินก้อนเดียวบันทึกซ้ำไม่ได้** — recordPayment จำกัดชนิดใบ (ตอนนี้ลงได้ทั้ง INV+REC ของเงินเดียวกัน → totalSpent ×2 · billing.ts:217-241)
+- [ ] **ต้นทุน/กำไรไม่รั่วถึง role หน้างาน** — order.getById + order-sidebar gate ตาม role (ตอนนี้ช่างเห็นกำไร)
+- [ ] **ใบลดหนี้/เพิ่มหนี้ครบองค์กฎหมาย ม.86/10 + CN หักยอดค้างจริง** (ตอนนี้ไม่ผูกใบเดิม ไม่ลดยอดค้าง → OVERDUE ปลอม/ทวงเกิน)
+- [ ] **VAT default 7%** (ตอนนี้ default 0 — ภาษีขายขาด = ประเมินย้อนหลัง) ⚠️ confirm เบสว่าจด VAT แล้ว
+- [ ] **tax point จ้างทำของบังคับได้จริง** — ใบกำกับออกทุกงวดรับเงิน: nudge/auto-draft REC หลัง recordPayment + field issueDate
+- [ ] **QC เชิงนับ bypass ไม่ได้** — QUALITY_CHECK→PACKING ต้องมี QcRecord (ตอนนี้ปุ่ม "ผ่าน→แพ็ค" ข้ามได้ทุก role)
+- [ ] **โครงพื้นฐาน production** — CI (lint+tsc+vitest) · backup/PITR + retention 5 ปี (Supabase audit จริง: bucket private/RLS) · rate-limit public token endpoints + security headers · env validate ตอน boot · ลบ lockfile ซ้ำ
+- [ ] **รายงานภาษีขายรายเดือน export ได้** (มติตัด GL ยืนบนข้อนี้) + **นักบัญชีรีวิว template ใบกำกับ/CN/DN + เลขรันจากเอกสารพิมพ์จริง**
+- [ ] **แก้ข้อมูลลูกค้าจาก UI ได้ + ลูกค้าเกิน 50 รายมองเห็น** (B2B เครดิตเทอมแก้ taxId/วงเงินไม่ได้ = สร้างซ้ำแน่)
+- [ ] **หน้า /settings ไม่มีฟอร์มปลอม** (ตอนนี้ 4 section ปุ่มบันทึกไม่ทำอะไร — ทำลายความเชื่อใจระบบ)
+- [ ] **walkthrough ของจริงกับทีม + นักบัญชีเห็นเอกสารเงินพิมพ์จริง 1 รอบ** (audit UX ทำจากโค้ด ยังไม่เคยเปิดจอจริง)
 
 ## 💰 ความถูกต้องข้อมูล (invariant — verified audit 2026-06-19 ผ่านทั้ง 5)
 - [x] **เงิน = Decimal(12,2) ทุก field เงิน ไม่มี Float** — Order/Invoice/Payment/WhtCertificate/OrderItem* ประกาศ `@db.Decimal(12,2)` · คำนวณผ่าน `Prisma.Decimal` (`money.ts` round2 half-up) · Decimal→number ที่ขอบเดียว (`lib/prisma.ts:16-82`) · Float ที่เหลือเป็น non-money มี comment กำกับ (profitMargin %, quantity, width/height) · ⚠️ sharp-edge: aggregate `_sum` ต้องเรียก `aggToNumber` เอง (money.ts:23)

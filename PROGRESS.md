@@ -3,6 +3,12 @@
 > session ใหม่: อ่านไฟล์นี้ + `git log --oneline -10` ก่อนเริ่ม · จบ session: อัปเดตไฟล์นี้ก่อนปิด
 
 ## ตอนนี้
+- **🔍 Audit ใหญ่ทั้งระบบ + แผนแนวทางใหม่สู่ go-live (เบสสั่ง "ตรวจว่าดีพอตามมาตรฐาน ERP โรงงานสกรีนหรือยัง + refactor + UXUI + อัปเดต .md" 2026-07-02) · จบ · ⏳ รอเบสเคาะ 5 คำถาม + เคาะเริ่ม Gate A:**
+  - **วิธี**: workflow 47 agents (~4.4M tok): auditor อ่านโค้ดจริง 6 subsystem + refactor 4 มิติ + UX 4 มิติ + benchmark 3 มุม (print-shop SaaS/MTO-ERP/ภาษีไทย) → gap matrix 15 โมดูล → **adversarial verify 28 claims: CONFIRMED 26 · PARTIAL 2 · REFUTED 0** → completeness critic
+  - **คำตอบ**: ครึ่ง ops ดีพอ-เกินมาตรฐาน SaaS (portal 85 · order 84 · production 80 · outsource 78) · **ครึ่งเงิน+ภาษียังไม่พร้อมใช้จริง** (tax compliance 55 · quoting 62 · CRM 64) · โครงพื้นฐาน production (CI/backup/monitoring/rate-limit) = 0
+  - **รูใหญ่ verify แล้ว (ตัวอย่าง)**: recordPayment บันทึกเงินซ้ำได้ 2 ใบ (totalSpent ×2) · ต้นทุน/กำไรรั่วถึงช่างผ่าน order.getById · CN ไม่ครบองค์กฎหมาย+ไม่ลดยอดค้าง · VAT default 0 · ไม่มี trigger tax point ต่องวด · ปุ่ม "ผ่าน→แพ็ค" bypass QC ทุก role · หน้า /settings หลัก = ฟอร์มปลอม 4 section · แก้ข้อมูลลูกค้าจาก UI ไม่ได้ (dead mutations) + ลูกค้าเกิน 50 มองไม่เห็น · quotation.update ไม่ guard สถานะ · tracking กรอกตอน PREPARING หายเงียบ
+  - **ของที่ลง (เอกสารล้วน ไม่แตะโค้ด)**: ① รายงานเต็ม → bestos `records/projects/anajak-erp/audit-2026-07-02.md` + detail 10 ไฟล์ `_audit-2026-07-02/` ② `ROADMAP.md` เพิ่ม **"แผนแนวทางใหม่ 2026-07-02: Gate A (เงินห้ามผิด 4 ข้อ ทำทันที) / Gate B (ก่อนใช้จริง 16 ข้อ) / Gate C (หลังใช้จริง 1 เดือน)"** + quick wins + refactor targeted — ทับลำดับ P1-P4 เดิมจนถึง go-live ③ `SPEC.md`: P0 deploy-gate **ปลดครบทุกข้อแล้ว** (auth fail-closed verify แล้ว trpc.ts:14-33 · middleware:31-78 · requireRole 27/31) + เพิ่ม **Go-live gate v2** 11 ข้อ
+  - **⏳ รอเบส**: ① ตอบ 5 คำถาม (ดู "ติดอยู่/รอตัดสิน") ② เคาะให้เริ่ม Gate A (guard เงิน 4 ข้อ — โค้ดสั้น เริ่มได้ทันที)
 - **🎨 Redesign ฟอร์มรายการสินค้า รอบ 2 — "guided by type" การ์ดต่อชนิดงาน (เบสบอก "ตารางเบาลงก็ยังดูยาก" 2026-06-17) · จบ + verify เขียว · ⏳ เหลือเบส retest UI:**
   - **ที่มา**: รอบแรก (ตารางเบาลง) เบสยังว่ายาก → เคาะ pain ชัด **"เปิดมาเห็นของเยอะล้นตา"** → plan mode + Explore + Plan agent · เบสเลือก (AskUserQuestion+preview) **"ถามชนิดงานก่อน → โชว์เฉพาะที่เกี่ยว"**
   - **ราก**: ตารางคอลัมน์เดียวใส่ทุกชนิดงาน → งานสต๊อก(70%) ก็เห็น field ตัดเย็บ/สเปคล้นตา · 3 ชนิด (FROM_STOCK/CUSTOM_MADE/CUSTOMER_PROVIDED) ใช้ field ต่างกันจริง
@@ -328,7 +334,12 @@
 - 2026-06-10 — **P0.1 Auth จริง + RBAC** (commit d39e451/871b4f1) · แผน + retrofit repo
 
 ## ติดอยู่ / รอตัดสิน
-- (ว่าง)
+- **5 คำถามจาก audit 2026-07-02 — เบสต้องเคาะก่อนแตะข้อที่เกี่ยว** (โค้ดตอบไม่ได้):
+  1. Anajak **จดทะเบียน VAT แล้วใช่ไหม** — ถ้าใช่ default 7% ถูก (Gate B2) · ถ้ายังไม่จด default 7%+ออกใบกำกับ = ผิดกลับด้าน
+  2. ทีม 5 คน **ใครถือ role ACCOUNTANT** — ถ้าไม่มีใครถือ gate การเงินแน่นขึ้นจะทำงานเดินไม่ได้
+  3. ร้าน outsource **รับเอกสารใบส่งของกระดาษจริงไหม** หรือคุยผ่านรูป LINE — ก่อน build Gate B14
+  4. นักบัญชีภายนอก**ใช้โปรแกรมอะไร ต้องการไฟล์ format ไหน** — ก่อน build export ภาษีขาย (Gate B5)
+  5. **ปริมาณออเดอร์/เดือนที่คาดจริง** — ตัวกำหนดความเร่งด่วน pagination/performance
 
 ## ข้อเท็จจริงที่ session ใหม่ต้องรู้
 - **บัญชี OWNER ของเบส**: hongtaeswatht@gmail.com (user เดียว) · สร้างพนักงาน: Settings → Users · bootstrap: `node --env-file=.env scripts/create-owner.ts <email> <password> [ชื่อ]`
