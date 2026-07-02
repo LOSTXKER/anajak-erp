@@ -3,6 +3,10 @@
 > session ใหม่: อ่านไฟล์นี้ + `git log --oneline -10` ก่อนเริ่ม · จบ session: อัปเดตไฟล์นี้ก่อนปิด
 
 ## ตอนนี้
+
+> **NEXT (session ถัดไป): Gate B4 — ปิดทาง bypass QC** (ปุ่ม "ผ่าน→แพ็ค" หน้า /production ข้ามด่านนับของได้ทุก role · production/page.tsx:74,526-537 + server guard ที่ order.updateStatus QUALITY_CHECK→PACKING ต้องมี QcRecord + ปุ่ม "รับของกลับ" บอร์ดเลนบังคับใบตรวจนับ) → แล้วไล่ B5 export ภาษีขาย (PEAK+CSV · ใช้ issueDate จาก B3 เป็นงวด) ตาม ROADMAP Gate B · pattern ที่ใช้ทุกก้อน: โค้ด → test → adversarial review workflow → แก้ → verify DB จริง → docs+commit
+> คำถามค้างเบส 1 ข้อ: ใครถือ role ACCOUNTANT (ดู "ติดอยู่/รอตัดสิน") · dev server อยู่ port 3001 (3000 = Meecard)
+
 - **🧾 Gate B3 tax point จ้างทำของ — จบ + review 18 findings แก้ 15 + verify เขียว + migration applied (2026-07-02 ค่ำ) · ⏳ เหลือเบส retest UI สั้นๆ:**
   - **schema**: `Invoice.issueDate` (วันที่เอกสารตามกฎหมาย — ใบผูกงวด = วันรับเงินจริง ไม่ใช่วันกดสร้าง) + `forPaymentId @unique` (ใบเสร็จผูกงวดรับเงิน 1:1 · FK Restrict) + `Payment.receiptInvoice` · migration `20260702170000` **applied บน Supabase แล้ว**
   - **server (billing.create)**: forPaymentId เฉพาะ RECEIPT · validate ใต้ lock แถวงวด: ออเดอร์เดียวกัน/ไม่ใช่คืนเงิน/**ไม่ใช่งวดขายสดบน REC** (ใบนั้นคือใบกำกับแล้ว)/ยังไม่มีใบ active/**ยอดใบต้องเท่าเงินรับ (amount+WHT) เป๊ะ** (BLOCKER จาก review — prefill แก้มือได้ ด่านจริงอยู่ server) · void ใบเดิม → ออกใหม่ผูกงวดเดิมได้ (ปลดผูก+audit log) · **ใบผูกงวดข้ามเพดานกองใบเสร็จ** (ยอดถูกบังคับ=เงินรับแล้ว — ไม่งั้น CN หลังรับเงิน block ใบกำกับที่กฎหมายบังคับออก) · issueDate: ระบุเองได้ (YYYY-MM-DD zod regex — เคสบันทึกย้อน) ไม่ระบุ = วันบันทึกรับเงิน
