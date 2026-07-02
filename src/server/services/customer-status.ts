@@ -93,6 +93,7 @@ export async function getOrderStatusByToken(
           paidAt: true,
           isVoided: true,
           createdAt: true,
+          issueDate: true,
         },
       },
       // พัสดุ — โชว์วิธีส่ง/เลขพัสดุ/สถานะ/รายการ พอให้ลูกค้าติดตามได้
@@ -174,7 +175,8 @@ export async function getOrderStatusByToken(
       dueDate: inv.dueDate,
       paidAt: inv.paidAt,
       isVoided: inv.isVoided,
-      createdAt: inv.createdAt,
+      // วันที่เอกสารตามกฎหมาย (ใบผูกงวดรับเงิน = วันรับเงินจริง) — ตรงกับใบพิมพ์ที่ลูกค้าได้
+      createdAt: inv.issueDate ?? inv.createdAt,
     })),
     deliveries: order.deliveries.map((d) => ({
       shippingMethod: d.shippingMethod,

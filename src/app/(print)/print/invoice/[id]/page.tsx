@@ -63,6 +63,7 @@ export default async function PrintInvoicePage({
           select: {
             invoiceNumber: true,
             createdAt: true,
+            issueDate: true,
             amount: true,
             discount: true,
             adjustments: {
@@ -126,14 +127,15 @@ export default async function PrintInvoicePage({
             subtitle={doc.subtitle}
             copyLabel={copyLabel}
             docNumber={invoice.invoiceNumber}
-            docDate={invoice.createdAt}
+            // วันที่เอกสารตามกฎหมาย = tax point (ใบเสร็จของงวดรับเงิน = วันรับเงินจริง)
+            docDate={invoice.issueDate ?? invoice.createdAt}
             refLines={[
               { label: "อ้างอิงออเดอร์", value: invoice.order.orderNumber },
               ...(isAdjustment && invoice.originalInvoice
                 ? [
                     {
                       label: "อ้างอิงใบกำกับ/ใบแจ้งหนี้เดิม",
-                      value: `${invoice.originalInvoice.invoiceNumber} (${formatDocDate(invoice.originalInvoice.createdAt)})`,
+                      value: `${invoice.originalInvoice.invoiceNumber} (${formatDocDate(invoice.originalInvoice.issueDate ?? invoice.originalInvoice.createdAt)})`,
                     },
                   ]
                 : []),

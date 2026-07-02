@@ -1277,6 +1277,11 @@ model Invoice {
   // billing.create เมื่อ type CN/DN · ใบลดหนี้ที่ผูกใบเรียกเก็บ = หักยอดค้างของใบนั้นจริง
   originalInvoiceId String? @map("original_invoice_id")
   adjustmentReason  String? @map("adjustment_reason")
+  // tax point (Gate B3 · ม.78/1(1) จ้างทำของ = ทุกงวดรับเงิน): วันที่เอกสารตามกฎหมาย
+  // (ใบเสร็จของงวดรับเงิน = วันรับเงินจริง ไม่ใช่วันกดสร้าง) · null = ใช้ createdAt
+  issueDate    DateTime? @map("issue_date")
+  // ใบเสร็จ/ใบกำกับที่ออกให้งวดรับเงินไหน — unique: 1 งวด 1 ใบ (กันออกซ้ำ/นับซ้ำถาวร)
+  forPaymentId String?   @unique @map("for_payment_id")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -1289,6 +1294,7 @@ model Invoice {
   // Restrict — กติกา "ห้ามลบใบ": ใบเดิมที่มี CN/DN อ้างอยู่ห้ามหายแม้ทาง SQL/admin
   originalInvoice  Invoice?          @relation("InvoiceAdjustments", fields: [originalInvoiceId], references: [id], onDelete: Restrict)
   adjustments      Invoice[]         @relation("InvoiceAdjustments")
+  forPayment       Payment?          @relation("PaymentReceipt", fields: [forPaymentId], references: [id], onDelete: Restrict)
 
   // hot path: หน้า billing + stats กรองตามสถานะจ่ายตลอด
   @@index([paymentStatus])
@@ -1314,6 +1320,8 @@ model Payment {
   // Relations
   invoice        Invoice         @relation(fields: [invoiceId], references: [id])
   whtCertificate WhtCertificate?
+  // ใบเสร็จ/ใบกำกับภาษีของงวดรับเงินนี้ (Gate B3) — ว่าง = งวดยังไม่ออกใบ (UI ต้องเตือน)
+  receiptInvoice Invoice?        @relation("PaymentReceipt")
 
   @@map("payments")
 }

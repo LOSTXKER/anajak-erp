@@ -20,7 +20,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **ต้นทุน/กำไรไม่รั่วถึง role หน้างาน** — order.getById ตัด cost/payments/ทุน outsource ตาม role + billing.listByOrder gate + การ์ดบิลซ่อนจากช่าง (Gate A2 2026-07-02 · lib/roles.ts)
 - [x] **ใบลดหนี้/เพิ่มหนี้ครบองค์กฎหมาย ม.86/10 + CN หักยอดค้างจริง** — ผูกใบเดิม+เหตุผลบังคับ · หักยอดค้างทุกเส้นทาง · ใบพิมพ์ครบองค์ (Gate B1 2026-07-02) ⚠️ activation: เบสรัน `npx prisma migrate deploy` (additive) + restart dev
 - [x] **VAT default 7%** — ออเดอร์ default 7 · marketplace (ราคารวม VAT) default 0 · ใบเสนอมีปุ่มลัด (Gate B2 2026-07-02 · เบส confirm จด VAT)
-- [ ] **tax point จ้างทำของบังคับได้จริง** — ใบกำกับออกทุกงวดรับเงิน: nudge/auto-draft REC หลัง recordPayment + field issueDate
+- [x] **tax point จ้างทำของบังคับได้จริง** — ใบเสร็จ/ใบกำกับผูกงวดรับเงิน (1 งวด 1 ใบ · ยอดเท่าเงินรับ · issueDate = วันรับเงินจริง) + UI เตือนงวดค้างออกใบ (Gate B3 2026-07-02 · verify:terms 21/21)
 - [ ] **QC เชิงนับ bypass ไม่ได้** — QUALITY_CHECK→PACKING ต้องมี QcRecord (ตอนนี้ปุ่ม "ผ่าน→แพ็ค" ข้ามได้ทุก role)
 - [ ] **โครงพื้นฐาน production** — CI (lint+tsc+vitest) · backup/PITR + retention 5 ปี (Supabase audit จริง: bucket private/RLS) · rate-limit public token endpoints + security headers · env validate ตอน boot · ลบ lockfile ซ้ำ
 - [ ] **รายงานภาษีขายรายเดือน export ได้** (มติตัด GL ยืนบนข้อนี้) + **นักบัญชีรีวิว template ใบกำกับ/CN/DN + เลขรันจากเอกสารพิมพ์จริง**

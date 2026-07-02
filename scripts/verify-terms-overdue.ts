@@ -28,7 +28,7 @@ async function expectError(name: string, fn: () => Promise<unknown>, msgPart: st
   }
 }
 
-const SEQ_TYPES = ["DEPOSIT_INVOICE", "FINAL_INVOICE", "RECEIPT"];
+const SEQ_TYPES = ["DEPOSIT_INVOICE", "FINAL_INVOICE", "RECEIPT", "DEBIT_NOTE"];
 
 async function main() {
   const period = currentPeriod();
@@ -219,6 +219,110 @@ async function main() {
 
     const sweep2 = await sweepOverdueInvoices(prisma);
     ok("4.4 sweep ซ้ำ → ไม่ mark/แจ้งซ้ำ", sweep2.marked === 0 && sweep2.notified === 0, sweep2);
+
+    // ---------- 5) tax point: ใบเสร็จ/ใบกำกับผูกงวดรับเงิน (Gate B3 · ม.78/1(1)) ----------
+    const pay1 = await caller.billing.recordPayment({
+      invoiceId: credit.id,
+      amount: 300,
+      method: "CASH",
+    });
+    const rec1 = await caller.billing.create({
+      orderId: order2.id,
+      customerId: customer.id,
+      type: "RECEIPT",
+      amount: 300,
+      forPaymentId: pay1.id,
+    });
+    ids.invoices.push(rec1.id);
+    ok(
+      "5.1 ใบเสร็จผูกงวดรับเงิน → issueDate = วันรับเงินจริง (tax point)",
+      rec1.forPaymentId === pay1.id &&
+        rec1.issueDate !== null &&
+        new Date(rec1.issueDate!).getTime() === new Date(pay1.createdAt).getTime(),
+      { issueDate: rec1.issueDate, paidAt: pay1.createdAt }
+    );
+
+    await expectError(
+      "5.2 ออกใบเสร็จซ้ำงวดเดิม → ปฏิเสธ (1 งวด 1 ใบ)",
+      () =>
+        caller.billing.create({
+          orderId: order2.id,
+          customerId: customer.id,
+          type: "RECEIPT",
+          amount: 300,
+          forPaymentId: pay1.id,
+        }),
+      "ออกใบเสร็จ/ใบกำกับแล้ว"
+    );
+
+    await caller.billing.voidInvoice({ invoiceId: rec1.id, reason: "ทดสอบยกเลิก-ออกใหม่" });
+    const rec2 = await caller.billing.create({
+      orderId: order2.id,
+      customerId: customer.id,
+      type: "RECEIPT",
+      amount: 300,
+      forPaymentId: pay1.id,
+    });
+    ids.invoices.push(rec2.id);
+    const rec1After = await prisma.invoice.findUniqueOrThrow({
+      where: { id: rec1.id },
+      select: { forPaymentId: true },
+    });
+    ok(
+      "5.3 void ใบเดิมแล้วออกใหม่ผูกงวดเดิมได้ (ใบเก่าถูกปลดผูก)",
+      rec2.forPaymentId === pay1.id && rec1After.forPaymentId === null,
+      { rec2: rec2.forPaymentId, old: rec1After.forPaymentId }
+    );
+
+    await expectError(
+      "5.4 ผูกงวดกับใบชนิดอื่น (ไม่ใช่ใบเสร็จ) → ปฏิเสธ",
+      () =>
+        caller.billing.create({
+          orderId: order2.id,
+          customerId: customer.id,
+          type: "DEBIT_NOTE",
+          amount: 100,
+          originalInvoiceId: credit.id,
+          adjustmentReason: "ทดสอบ",
+          forPaymentId: pay1.id,
+        }),
+      "เฉพาะใบเสร็จ"
+    );
+
+    // ใบกำกับของงวดต้องเท่าเงินรับเป๊ะ — แก้ยอดใน dialog แล้วกดสร้าง server ต้องปัด
+    const pay2 = await caller.billing.recordPayment({
+      invoiceId: credit.id,
+      amount: 200,
+      method: "CASH",
+    });
+    await expectError(
+      "5.5 ยอดใบเสร็จไม่เท่ายอดงวด → ปฏิเสธ",
+      () =>
+        caller.billing.create({
+          orderId: order2.id,
+          customerId: customer.id,
+          type: "RECEIPT",
+          amount: 150,
+          forPaymentId: pay2.id,
+        }),
+      "ต้องเท่ายอดที่รับ"
+    );
+    // issueDate ที่ระบุเอง (บันทึกย้อน — วันเงินเข้าจริง) ถูกใช้แทนวันบันทึก
+    const rec3 = await caller.billing.create({
+      orderId: order2.id,
+      customerId: customer.id,
+      type: "RECEIPT",
+      amount: 200,
+      forPaymentId: pay2.id,
+      issueDate: "2026-06-30",
+    });
+    ids.invoices.push(rec3.id);
+    ok(
+      "5.6 ระบุวันที่เอกสารเอง (บันทึกย้อน) → issueDate ตามที่ระบุ",
+      rec3.issueDate !== null &&
+        new Date(rec3.issueDate!).toISOString().slice(0, 10) === "2026-06-30",
+      rec3.issueDate
+    );
   } finally {
     // ---------- ล้างข้อมูลทดสอบเกลี้ยง + คืนเลขเอกสาร ----------
     const testInvoices = await prisma.invoice.findMany({
@@ -230,6 +334,11 @@ async function main() {
     }
     await prisma.auditLog.deleteMany({
       where: { entityId: { in: [...testInvoices.map((i) => i.id), ...ids.orders] } },
+    });
+    // ปลดผูก FK Restrict ก่อนลบ (forPaymentId → payments · originalInvoiceId → invoices)
+    await prisma.invoice.updateMany({
+      where: { orderId: { in: ids.orders } },
+      data: { forPaymentId: null, originalInvoiceId: null },
     });
     await prisma.payment.deleteMany({ where: { invoiceId: { in: testInvoices.map((i) => i.id) } } });
     await prisma.invoice.deleteMany({ where: { orderId: { in: ids.orders } } });

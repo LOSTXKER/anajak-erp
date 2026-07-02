@@ -46,7 +46,12 @@ export const billingRouter = router({
       return ctx.prisma.invoice.findMany({
         where: { orderId: input.orderId },
         include: {
-          payments: true,
+          // receiptInvoice ต่องวด — UI เตือนงวดรับเงินที่ยังไม่ออกใบเสร็จ/ใบกำกับ (Gate B3)
+          payments: {
+            include: {
+              receiptInvoice: { select: { id: true, invoiceNumber: true, isVoided: true } },
+            },
+          },
           // ใบลดหนี้ที่อ้างใบนี้ — client ต้องหักตอนโชว์ "ค้าง"/prefill บันทึกรับเงิน
           // (ไม่งั้น prefill เกินยอดจริง กดแล้วโดน server ปฏิเสธ)
           adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
@@ -115,6 +120,13 @@ export const billingRouter = router({
         // ใบลดหนี้/เพิ่มหนี้ต้องอ้างใบเดิม + เหตุผล (ม.86/10 + ป.80/2542 — Gate B1)
         originalInvoiceId: z.string().optional(),
         adjustmentReason: z.string().max(500).optional(),
+        // tax point (Gate B3): ออกใบเสร็จ/ใบกำกับให้งวดรับเงินไหน — issueDate default =
+        // วันบันทึกรับเงิน แก้เป็นวันเงินเข้าจริงได้ (บันทึกข้ามวัน — ม.78/1(1))
+        forPaymentId: z.string().optional(),
+        issueDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/, "รูปแบบวันที่เอกสารต้องเป็น YYYY-MM-DD")
+          .optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -134,6 +146,9 @@ export const billingRouter = router({
         badRequest(
           "ใบลดหนี้/ใบเพิ่มหนี้ต้องอ้างอิงใบกำกับ/ใบแจ้งหนี้เดิมพร้อมเหตุผล (ม.86/10)"
         );
+      }
+      if (input.forPaymentId && input.type !== "RECEIPT") {
+        badRequest("ผูกงวดรับเงินได้เฉพาะใบเสร็จรับเงิน/ใบกำกับภาษี");
       }
 
       const amount = moneyInput(input.amount);
@@ -180,7 +195,12 @@ export const billingRouter = router({
             ...inv,
             originalInvoiceType: inv.originalInvoice?.type ?? null,
           }));
-          const remaining = remainingBillable(lockedOrder.totalAmount, existing, input.type);
+          // ใบเสร็จผูกงวด: ยอดถูกบังคับ = เงินรับจริง (ตรวจใน block ล่าง) และเงินรับมี
+          // เพดานของใบเรียกเก็บคุมแล้ว — ข้ามเพดานกอง (ไม่งั้นเคส CN หลังรับเงิน
+          // block ใบกำกับของเงินที่รับไปแล้ว ทั้งที่กฎหมายบังคับออก)
+          const remaining = input.forPaymentId
+            ? null
+            : remainingBillable(lockedOrder.totalAmount, existing, input.type);
           if (remaining !== null && totalAmount.gt(remaining)) {
             badRequest(
               `ยอดบิลเกินยอดออเดอร์ — วางบิลได้อีกไม่เกิน ${remaining.toFixed(2)} บาท`
@@ -230,6 +250,65 @@ export const billingRouter = router({
             }
           }
 
+          // ใบเสร็จของงวดรับเงิน (Gate B3): งวดต้องมีจริง อยู่ออเดอร์นี้ เป็นเงินเข้า
+          // และยังไม่เคยออกใบ — issueDate = วันรับเงินจริง (tax point ม.78/1(1))
+          let issueDate: Date | null = input.issueDate ? new Date(input.issueDate) : null;
+          if (input.forPaymentId) {
+            // ล็อกแถวงวด — สองจอออกใบให้งวดเดียวกันพร้อมกัน คนหลังต้องเห็นใบของคนแรก
+            // (ไม่งั้นหลุดไปชน unique forPaymentId เป็น error ดิบ)
+            await tx.$queryRaw`SELECT id FROM payments WHERE id = ${input.forPaymentId} FOR UPDATE`;
+            const payment = await tx.payment.findUnique({
+              where: { id: input.forPaymentId },
+              include: {
+                invoice: { select: { orderId: true, type: true } },
+                receiptInvoice: { select: { id: true, invoiceNumber: true, isVoided: true } },
+              },
+            });
+            if (!payment) notFound("งวดรับเงิน", input.forPaymentId);
+            if (payment.invoice.orderId !== order.id) {
+              badRequest("งวดรับเงินไม่ได้อยู่ในออเดอร์นี้");
+            }
+            if (payment.amount < 0) {
+              badRequest("รายการคืนเงินออกใบเสร็จไม่ได้ — ใช้ใบลดหนี้");
+            }
+            // งวดขายสดที่บันทึกบนใบเสร็จตรง — ใบนั้นคือใบกำกับของเงินก้อนนี้อยู่แล้ว
+            if (payment.invoice.type === "RECEIPT") {
+              badRequest(
+                "งวดนี้บันทึกบนใบเสร็จขายสดแล้ว — ใบนั้นคือใบกำกับของเงินก้อนนี้ ไม่ต้องออกซ้ำ"
+              );
+            }
+            if (payment.receiptInvoice && !payment.receiptInvoice.isVoided) {
+              badRequest(
+                `งวดนี้ออกใบเสร็จ/ใบกำกับแล้ว (${payment.receiptInvoice.invoiceNumber}) — ยกเลิกใบเดิมก่อนถ้าต้องออกใหม่`
+              );
+            }
+            // ใบกำกับของงวดต้องเท่าเงินที่รับจริง (เงินสด + WHT ที่ลูกค้าหักแทน) —
+            // prefill ฝั่ง UI แก้ได้ ด่านจริงต้องอยู่ที่นี่ (ใบกำกับยอดผิด = เอกสารภาษีผิด)
+            const grossReceived = D(payment.amount).plus(payment.whtAmount);
+            if (!totalAmount.eq(grossReceived)) {
+              badRequest(
+                `ยอดใบเสร็จของงวดต้องเท่ายอดที่รับ ${grossReceived.toFixed(2)} บาท (ตอนนี้ ${totalAmount.toFixed(2)}) — แก้ยอด หรือเลิกผูกงวดถ้าตั้งใจออกยอดอื่น`
+              );
+            }
+            // ใบเดิมถูก void → ออกใหม่ได้ แต่ต้องปลดผูกใบเก่าก่อน (forPaymentId unique)
+            if (payment.receiptInvoice?.isVoided) {
+              await tx.invoice.updateMany({
+                where: { forPaymentId: payment.id },
+                data: { forPaymentId: null },
+              });
+              // ทิ้งรอยตรวจย้อนคู่ยกเลิก-ออกใหม่ (ใบ voided ไม่ชี้งวดแล้ว)
+              await createAuditLog(tx, {
+                userId: ctx.userId,
+                action: "UPDATE",
+                entityType: "INVOICE",
+                entityId: payment.receiptInvoice.id,
+                newValue: { unlinkedFromPaymentId: payment.id, reason: "ออกใบใหม่แทนใบที่ยกเลิก" },
+              });
+            }
+            // วันที่เอกสาร = วันเงินเข้าจริง (แก้ได้เคสบันทึกย้อน) · ไม่ระบุ = วันบันทึกรับเงิน
+            issueDate = input.issueDate ? new Date(input.issueDate) : payment.createdAt;
+          }
+
           const created = await tx.invoice.create({
             data: {
               invoiceNumber: await nextDocumentNumber(tx, input.type),
@@ -244,6 +323,8 @@ export const billingRouter = router({
               notes: input.notes,
               originalInvoiceId: isAdjustment ? input.originalInvoiceId : null,
               adjustmentReason: isAdjustment ? input.adjustmentReason?.trim() : null,
+              forPaymentId: input.forPaymentId ?? null,
+              issueDate,
             },
           });
 

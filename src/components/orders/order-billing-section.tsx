@@ -93,6 +93,13 @@ export function OrderBillingSection({
   // ใบลดหนี้/เพิ่มหนี้ต้องอ้างใบเดิม + เหตุผล (ม.86/10 — server บังคับ · Gate B1)
   const [originalInvoiceId, setOriginalInvoiceId] = useState("");
   const [adjustmentReason, setAdjustmentReason] = useState("");
+  // ใบเสร็จของงวดรับเงิน (Gate B3) — วันที่เอกสารจะเป็นวันรับเงินจริง (server ตั้งให้)
+  const [receiptForPayment, setReceiptForPayment] = useState<{
+    id: string;
+    gross: number;
+    date: string | Date;
+  } | null>(null);
+  const [receiptIssueDate, setReceiptIssueDate] = useState("");
 
   // Payment form state
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -210,6 +217,30 @@ export function OrderBillingSection({
     setInvoiceNotes("");
     setOriginalInvoiceId("");
     setAdjustmentReason("");
+    setReceiptForPayment(null);
+    setReceiptIssueDate("");
+  }
+
+  // เปิด dialog ออกใบเสร็จ/ใบกำกับให้งวดรับเงิน — prefill ฐาน+VAT ด้วย "สัดส่วนภาษีของ
+  // ใบที่ถูกชำระ" (ไม่ใช่ taxRate ปัจจุบันของออเดอร์ — ใบเก่า/ใบแก้ tax มืออาจไม่ตรงกัน)
+  // server บังคับยอดรวมต้องเท่างวดเป๊ะอีกชั้น
+  function openReceiptForPayment(p: Payment, inv: Invoice) {
+    resetCreateForm();
+    const gross = p.amount + p.whtAmount;
+    const invBase = inv.amount - inv.discount;
+    const ratio = inv.tax > 0 && invBase > 0 ? invBase / (invBase + inv.tax) : 1;
+    const base = Math.round(gross * ratio * 100) / 100;
+    const vat = Math.round((gross - base) * 100) / 100;
+    setInvoiceType("RECEIPT");
+    setChosenType("RECEIPT");
+    // กัน suggest ที่มาช้าทับค่างวด — ค่านี้มาจากเงินรับจริง ห้ามขยับ
+    setUserEdited({ amount: true, tax: true, dueDate: true });
+    setInvoiceAmount(base.toFixed(2));
+    setInvoiceTax(vat.toFixed(2));
+    setReceiptForPayment({ id: p.id, gross, date: p.createdAt });
+    // วันที่เอกสาร default = วันบันทึกรับเงิน — แก้เป็นวันเงินเข้าจริงได้ (บันทึกข้ามวัน)
+    setReceiptIssueDate(new Date(p.createdAt).toISOString().slice(0, 10));
+    setShowCreateDialog(true);
   }
 
   function resetPaymentForm() {
@@ -234,6 +265,25 @@ export function OrderBillingSection({
   const adjustmentIncomplete =
     isAdjustmentType && (!originalInvoiceId || !adjustmentReason.trim());
 
+  // งวดรับเงินบนใบเรียกเก็บที่ยังไม่ออกใบเสร็จ/ใบกำกับ — จ้างทำของต้องออกทุกงวด
+  // (tax point ม.78/1(1) · Gate B3) — ใบที่ถูก void แล้วนับเป็นยังไม่ออก
+  // นับรวมงวด WHT ล้วน (amount 0 + whtAmount — เคสโอน 97% ก่อน ใบ 50ทวิตามหลัง)
+  const pendingReceiptCount = (invoices.data || [])
+    .filter(
+      (inv) =>
+        !inv.isVoided &&
+        ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"].includes(inv.type)
+    )
+    .flatMap((inv) => inv.payments || [])
+    .filter(
+      (p) => p.amount + p.whtAmount > 0 && (!p.receiptInvoice || p.receiptInvoice.isVoided)
+    ).length;
+  // ใบเสร็จที่ไม่ผูกงวด (ออกจาก dialog ปกติ/ข้อมูลก่อน Gate B3) — ระบบแยกไม่ได้ว่าเป็น
+  // ใบของงวดไหน ต้องเตือนคนตรวจก่อนออกเพิ่ม กันใบกำกับซ้ำต่อเงินก้อนเดียว
+  const unlinkedReceiptCount = (invoices.data || []).filter(
+    (inv) => !inv.isVoided && inv.type === "RECEIPT" && !inv.forPaymentId
+  ).length;
+
   function handleCreateInvoice() {
     createInvoice.mutate({
       orderId,
@@ -246,6 +296,12 @@ export function OrderBillingSection({
       notes: invoiceNotes || undefined,
       originalInvoiceId: isAdjustmentType ? originalInvoiceId : undefined,
       adjustmentReason: isAdjustmentType ? adjustmentReason.trim() : undefined,
+      forPaymentId:
+        invoiceType === "RECEIPT" && receiptForPayment ? receiptForPayment.id : undefined,
+      issueDate:
+        invoiceType === "RECEIPT" && receiptForPayment && receiptIssueDate
+          ? receiptIssueDate
+          : undefined,
     });
   }
 
@@ -385,6 +441,16 @@ export function OrderBillingSection({
             </div>
           </div>
 
+          {/* เตือนเฉพาะคนที่ออกใบได้ (canBill) — role อื่นเห็นแต่ทำอะไรไม่ได้ ชวนงง */}
+          {canBill && pendingReceiptCount > 0 && (
+            <p className="mb-3 rounded-md bg-amber-50 px-2.5 py-2 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+              มี {pendingReceiptCount} งวดรับเงินที่ยังไม่ออกใบเสร็จ/ใบกำกับภาษี —
+              งานจ้างทำของต้องออกทุกงวดรับเงิน (กดปุ่มที่งวดนั้นเพื่อออกได้เลย)
+              {unlinkedReceiptCount > 0 &&
+                ` · ⚠ มีใบเสร็จที่ไม่ได้ผูกงวด ${unlinkedReceiptCount} ใบ — ตรวจก่อนว่าใบนั้นคือใบของงวดไหน กันออกซ้ำ`}
+            </p>
+          )}
+
           {/* Invoice list */}
           {!invoices.data || invoices.data.length === 0 ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -443,7 +509,10 @@ export function OrderBillingSection({
                           </Badge>
                         </div>
                         <p className="text-xs text-slate-500">
-                          {formatDateTime(inv.createdAt)}
+                          {/* วันที่เอกสารตามกฎหมาย (ใบผูกงวด = วันรับเงิน) — ตรงกับใบพิมพ์ */}
+                          {inv.issueDate
+                            ? formatDate(inv.issueDate)
+                            : formatDateTime(inv.createdAt)}
                           {/* dueDate เก็บเป็น UTC midnight ของวันปฏิทินไทย — โชว์เวลาด้วยจะได้ 07:00 ปลอม */}
                           {inv.dueDate && ` | ครบกำหนด: ${formatDate(inv.dueDate)}`}
                         </p>
@@ -525,6 +594,31 @@ export function OrderBillingSection({
                                       <Paperclip className="h-3 w-3" />
                                     </a>
                                   )}
+                                  {/* tax point (Gate B3): งวดออกใบกำกับแล้ว = badge ·
+                                      ยังไม่ออก (เฉพาะใบเรียกเก็บ) = ปุ่มออกทันที prefill ครบ */}
+                                  {p.receiptInvoice && !p.receiptInvoice.isVoided ? (
+                                    <Badge variant="outline" size="sm">
+                                      ใบกำกับ {p.receiptInvoice.invoiceNumber}
+                                    </Badge>
+                                  ) : p.amount + p.whtAmount > 0 &&
+                                    canBill &&
+                                    !inv.isVoided &&
+                                    ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"].includes(
+                                      inv.type
+                                    ) ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-6 gap-1 px-2 text-[11px]"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openReceiptForPayment(p, inv);
+                                      }}
+                                    >
+                                      <Receipt className="h-3 w-3" />
+                                      ออกใบเสร็จ/ใบกำกับ
+                                    </Button>
+                                  ) : null}
                                 </div>
                                 <span className="font-medium text-green-700 dark:text-green-400">
                                   +{formatCurrency(p.amount)}
@@ -608,6 +702,7 @@ export function OrderBillingSection({
                   setInvoiceType(v);
                   setChosenType(v); // เปลี่ยนชนิด → suggest คำนวณยอดใหม่ให้ตามชนิดนั้น
                   setUserEdited({ amount: false, tax: false, dueDate: false });
+                  setReceiptForPayment(null); // เปลี่ยนชนิดเอง = เลิกผูกงวดรับเงิน
                 }}
               >
                 <SelectTrigger>
@@ -621,6 +716,28 @@ export function OrderBillingSection({
                   <SelectItem value="DEBIT_NOTE">ใบเพิ่มหนี้</SelectItem>
                 </SelectContent>
               </Select>
+              {invoiceType === "RECEIPT" && receiptForPayment && (
+                <div className="mt-1.5 space-y-2">
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    ออกเป็นใบกำกับของงวดรับเงินวันที่ {formatDate(receiptForPayment.date)} ยอด{" "}
+                    {formatCurrency(receiptForPayment.gross)} — ยอดใบต้องเท่างวดเป๊ะ
+                    (server ตรวจอีกชั้น)
+                  </p>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      วันที่เอกสาร (tax point)
+                    </label>
+                    <Input
+                      type="date"
+                      value={receiptIssueDate}
+                      onChange={(e) => setReceiptIssueDate(e.target.value)}
+                    />
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      ตามกฎหมาย = วันรับเงินจริง — แก้ได้เคสบันทึกย้อนหลัง (เงินเข้าแบงก์คนละวันกับวันบันทึก)
+                    </p>
+                  </div>
+                </div>
+              )}
               {suggestion.data &&
                 (suggestion.data.paymentTerms || suggestion.data.remaining !== null) && (
                 <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
