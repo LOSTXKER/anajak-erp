@@ -371,8 +371,8 @@ export default function BillingNotesPage() {
                 )}
                 {creditNoteTotal > 0 && (
                   <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
-                    ลูกค้ารายนี้มีใบลดหนี้รวม {formatCurrency(creditNoteTotal)} —
-                    ระบบยังไม่หักให้อัตโนมัติ ตรวจยอดเรียกเก็บก่อนส่งลูกค้า
+                    ลูกค้ารายนี้มีใบลดหนี้ที่ยังไม่ผูกใบเดิมรวม {formatCurrency(creditNoteTotal)} —
+                    ระบบหักให้อัตโนมัติไม่ได้ ตรวจยอดเรียกเก็บก่อนส่งลูกค้า (ใบที่ผูกใบเดิมถูกหักจากยอดค้างแล้ว)
                   </p>
                 )}
               </div>

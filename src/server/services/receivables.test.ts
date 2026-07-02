@@ -1,11 +1,15 @@
 import { describe, it, expect } from "vitest";
 import {
   outstandingOf,
+  creditedOf,
+  settledOf,
+  paymentStatusForSettled,
   agingBucketOf,
   buildAgingReport,
   computeCreditExposure,
   type AgingInvoiceInput,
 } from "./receivables";
+import { D } from "./money";
 
 // now ตรึงไว้: 2026-06-10 ตอน 10 โมงเช้าไทย (03:00Z)
 const NOW = new Date("2026-06-10T03:00:00Z");
@@ -32,6 +36,67 @@ describe("outstandingOf", () => {
   it("จ่ายครบ/จ่ายเกิน → 0 ไม่ติดลบ", () => {
     expect(outstandingOf(inv({ payments: [{ amount: 1000, whtAmount: 0 }] })).toNumber()).toBe(0);
     expect(outstandingOf(inv({ payments: [{ amount: 1200, whtAmount: 0 }] })).toNumber()).toBe(0);
+  });
+});
+
+describe("ใบลดหนี้หักยอดค้าง (Gate B1 — ปิดหนี้เดิมข้อ 1: CN ไม่มีความหมายเชิงเงิน)", () => {
+  const cn = (totalAmount: number, isVoided = false) => ({
+    type: "CREDIT_NOTE",
+    totalAmount,
+    isVoided,
+  });
+
+  it("CN ที่อ้างใบนี้หักยอดค้างเหมือนเงินรับ", () => {
+    expect(outstandingOf(inv({ adjustments: [cn(300)] })).toNumber()).toBe(700);
+    expect(
+      outstandingOf(
+        inv({ payments: [{ amount: 500, whtAmount: 0 }], adjustments: [cn(300)] })
+      ).toNumber()
+    ).toBe(200);
+  });
+
+  it("จ่าย 97%+WHT 3% ของส่วนที่เหลือหลัง CN — เคลียร์ครบ = 0", () => {
+    expect(
+      outstandingOf(
+        inv({
+          totalAmount: 1000,
+          payments: [{ amount: 679, whtAmount: 21 }], // 700 หลังหัก 3%
+          adjustments: [cn(300)],
+        })
+      ).toNumber()
+    ).toBe(0);
+  });
+
+  it("CN ที่ถูก void / ใบเพิ่มหนี้ในลิสต์ — ไม่หัก", () => {
+    expect(outstandingOf(inv({ adjustments: [cn(300, true)] })).toNumber()).toBe(1000);
+    expect(
+      outstandingOf(
+        inv({ adjustments: [{ type: "DEBIT_NOTE", totalAmount: 300, isVoided: false }] })
+      ).toNumber()
+    ).toBe(1000);
+  });
+
+  it("ไม่โหลด adjustments (caller เก่า) — พฤติกรรมเดิมไม่พัง", () => {
+    expect(outstandingOf(inv({})).toNumber()).toBe(1000);
+  });
+
+  it("creditedOf/settledOf นับเฉพาะ CN ไม่ void", () => {
+    const i = inv({
+      payments: [{ amount: 100, whtAmount: 0 }],
+      adjustments: [cn(200), cn(50, true)],
+    });
+    expect(creditedOf(i).toNumber()).toBe(200);
+    expect(settledOf(i).toNumber()).toBe(300);
+  });
+});
+
+describe("paymentStatusForSettled — ชุดเดียวทั้ง recordPayment/ออก-void CN", () => {
+  it("ครบ → PAID · บางส่วน → PARTIALLY_PAID · ศูนย์ → UNPAID", () => {
+    expect(paymentStatusForSettled(D(1000), D(1000))).toBe("PAID");
+    expect(paymentStatusForSettled(D(1500), D(1000))).toBe("PAID");
+    expect(paymentStatusForSettled(D(999.99), D(1000))).toBe("PARTIALLY_PAID");
+    expect(paymentStatusForSettled(D(0.01), D(1000))).toBe("PARTIALLY_PAID");
+    expect(paymentStatusForSettled(D(0), D(1000))).toBe("UNPAID");
   });
 });
 

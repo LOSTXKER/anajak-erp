@@ -90,6 +90,9 @@ export function OrderBillingSection({
   const [invoiceTax, setInvoiceTax] = useState("0");
   const [invoiceDueDate, setInvoiceDueDate] = useState("");
   const [invoiceNotes, setInvoiceNotes] = useState("");
+  // ใบลดหนี้/เพิ่มหนี้ต้องอ้างใบเดิม + เหตุผล (ม.86/10 — server บังคับ · Gate B1)
+  const [originalInvoiceId, setOriginalInvoiceId] = useState("");
+  const [adjustmentReason, setAdjustmentReason] = useState("");
 
   // Payment form state
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -205,6 +208,8 @@ export function OrderBillingSection({
     setInvoiceTax("0");
     setInvoiceDueDate("");
     setInvoiceNotes("");
+    setOriginalInvoiceId("");
+    setAdjustmentReason("");
   }
 
   function resetPaymentForm() {
@@ -220,6 +225,15 @@ export function OrderBillingSection({
     setEvidenceUrl("");
   }
 
+  const isAdjustmentType = invoiceType === "CREDIT_NOTE" || invoiceType === "DEBIT_NOTE";
+  // ใบต้นทางที่ CN/DN อ้างได้ — ใบกำกับ/ใบแจ้งหนี้ที่ยังใช้งานอยู่ (ห้ามอ้าง CN/DN ต่อกัน)
+  const adjustableOriginals = (invoices.data || []).filter(
+    (inv) =>
+      !inv.isVoided && ["DEPOSIT_INVOICE", "FINAL_INVOICE", "RECEIPT"].includes(inv.type)
+  );
+  const adjustmentIncomplete =
+    isAdjustmentType && (!originalInvoiceId || !adjustmentReason.trim());
+
   function handleCreateInvoice() {
     createInvoice.mutate({
       orderId,
@@ -230,6 +244,8 @@ export function OrderBillingSection({
       tax: parseFloat(invoiceTax) || 0,
       dueDate: invoiceDueDate || undefined,
       notes: invoiceNotes || undefined,
+      originalInvoiceId: isAdjustmentType ? originalInvoiceId : undefined,
+      adjustmentReason: isAdjustmentType ? adjustmentReason.trim() : undefined,
     });
   }
 
@@ -277,12 +293,17 @@ export function OrderBillingSection({
       !inv.isVoided &&
       ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"].includes(inv.type)
   );
+  // ยอดที่เคลียร์แล้วของใบ = เงินรับ + WHT + ใบลดหนี้ที่อ้างใบนี้ (นิยามเดียวกับ server)
+  const creditedAmount = (inv: { adjustments?: { type: string; totalAmount: number; isVoided: boolean }[] }) =>
+    (inv.adjustments || [])
+      .filter((a) => !a.isVoided && a.type === "CREDIT_NOTE")
+      .reduce((sum, a) => sum + a.totalAmount, 0);
   const payingPaid = (payingInvoice?.payments || []).reduce(
     (sum: number, p: Payment) => sum + p.amount + p.whtAmount,
     0
   );
   const payingRemaining = payingInvoice
-    ? Math.max(0, payingInvoice.totalAmount - payingPaid)
+    ? Math.max(0, payingInvoice.totalAmount - payingPaid - creditedAmount(payingInvoice))
     : 0;
   // มาตรฐานหัก 3% ของฐานก่อน VAT ของใบ (ค่าจ้างทำของ) — ปัด 2 ตำแหน่ง
   const whtSuggested = payingInvoice
@@ -378,7 +399,11 @@ export function OrderBillingSection({
                   (sum: number, p: Payment) => sum + p.amount + p.whtAmount,
                   0
                 );
-                const invRemaining = Math.max(0, inv.totalAmount - invPaid);
+                // หักใบลดหนี้ที่อ้างใบนี้ด้วย — "ค้าง" ที่โชว์/prefill ต้องตรง server
+                const invRemaining = Math.max(
+                  0,
+                  inv.totalAmount - invPaid - creditedAmount(inv)
+                );
 
                 return (
                   <div
@@ -613,9 +638,62 @@ export function OrderBillingSection({
               )}
               {suggestion.data && suggestion.data.creditNoteTotal > 0 && (
                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                  มีใบลดหนี้รวม {formatCurrency(suggestion.data.creditNoteTotal)} —
-                  ยอดค้างจริงของลูกค้าอาจต่ำกว่ายอดแนะนำ ตรวจก่อนสร้างบิล
+                  มีใบลดหนี้ที่ยังไม่ผูกใบเดิมรวม{" "}
+                  {formatCurrency(suggestion.data.creditNoteTotal)} — ระบบหักให้อัตโนมัติไม่ได้
+                  ตรวจยอดก่อนสร้างบิล (ใบลดหนี้ที่ผูกใบเดิมถูกหักจากยอดค้างแล้ว)
                 </p>
+              )}
+              {isAdjustmentType && (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      อ้างอิงใบกำกับ/ใบแจ้งหนี้เดิม <span className="text-red-500">*</span>
+                    </label>
+                    <Select value={originalInvoiceId} onValueChange={setOriginalInvoiceId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกใบที่ต้องการลด/เพิ่มหนี้" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {adjustableOriginals.map((inv) => (
+                          <SelectItem key={inv.id} value={inv.id}>
+                            {inv.invoiceNumber} · {INVOICE_TYPE_LABELS[inv.type] ?? inv.type} ·{" "}
+                            {formatCurrency(inv.totalAmount)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {adjustableOriginals.length === 0 ? (
+                      <p className="mt-1 text-xs text-red-500">
+                        ออเดอร์นี้ยังไม่มีใบกำกับ/ใบแจ้งหนี้ให้อ้างอิง — ออกใบลดหนี้/เพิ่มหนี้ไม่ได้
+                      </p>
+                    ) : (
+                      invoiceType === "CREDIT_NOTE" && (
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          อ้างใบแจ้งหนี้ = หักยอดค้างของใบนั้นให้อัตโนมัติ · อ้างใบเสร็จ
+                          (ลดหนี้หลังรับเงินแล้ว) = ใช้คู่กับ &quot;บันทึกคืนเงิน&quot;
+                        </p>
+                      )
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      เหตุผลการ{invoiceType === "CREDIT_NOTE" ? "ลดหนี้" : "เพิ่มหนี้"}{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={adjustmentReason}
+                      onChange={(e) => setAdjustmentReason(e.target.value)}
+                      placeholder={
+                        invoiceType === "CREDIT_NOTE"
+                          ? "เช่น คืนสินค้าชำรุด 10 ตัว / ลดราคาตามตกลง"
+                          : "เช่น ค่างานเพิ่มหลังยืนยันแบบ"
+                      }
+                    />
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      จะพิมพ์บนเอกสารตามข้อกำหนดใบลดหนี้/เพิ่มหนี้ (ม.86/10)
+                    </p>
+                  </div>
+                </div>
               )}
               {["RECEIPT", "CREDIT_NOTE", "DEBIT_NOTE"].includes(invoiceType) &&
                 billCustomer.data &&
@@ -734,7 +812,7 @@ export function OrderBillingSection({
             </Button>
             <Button
               onClick={handleCreateInvoice}
-              disabled={!invoiceAmount || createInvoice.isPending}
+              disabled={!invoiceAmount || adjustmentIncomplete || createInvoice.isPending}
               className="gap-1.5"
             >
               {createInvoice.isPending ? (

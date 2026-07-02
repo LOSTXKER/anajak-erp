@@ -502,20 +502,36 @@ function QuotationFormPage() {
                 />
               </div>
 
-              {/* Tax */}
+              {/* Tax — จำนวนเงินบาท (ต่างจากฟอร์มออเดอร์ที่เป็น %) · ปุ่มลัดคิด 7%
+                  จากฐานหลังหักส่วนลด — บริษัทจด VAT ใบเสนอควรมีภาษีเสมอ (Gate B2) */}
               <div className="flex items-center justify-between">
                 <label className="text-slate-600 dark:text-slate-400">
-                  ภาษี
+                  ภาษี (บาท)
                 </label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={tax || ""}
-                  onChange={(e) => setTax(parseFloat(e.target.value) || 0)}
-                  placeholder="0.00"
-                  className="w-32 text-right"
-                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    title="คำนวณ VAT 7% จากยอดหลังหักส่วนลด"
+                    onClick={() => {
+                      const base = Math.max(0, pricingSummary.subtotal - discount);
+                      setTax(Math.round(base * 7) / 100);
+                    }}
+                  >
+                    VAT 7%
+                  </Button>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={tax || ""}
+                    onChange={(e) => setTax(parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
+                    className="w-32 text-right"
+                  />
+                </div>
               </div>
             </div>
 

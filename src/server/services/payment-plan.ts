@@ -12,6 +12,10 @@ export interface InvoiceForPlan {
   type: string;
   totalAmount: number;
   isVoided: boolean;
+  // ชนิดของใบเดิมที่ CN/DN อ้าง (Gate B1) — ใช้แยก CN สองความหมาย:
+  // อ้างใบเรียกเก็บ/ไม่ผูกใบ = ลดมูลค่างานก่อนเก็บเงิน (หักเพดานใบเสร็จ) ·
+  // อ้างใบเสร็จ = คืนเงินหลังรับ (มีเอกสารฝั่งลบแล้ว ไม่หักเพดานงวดถัดไป)
+  originalInvoiceType?: string | null;
 }
 
 // กฎเพดาน: ใบแจ้งหนี้ (มัดจำ+ส่วนที่เหลือ) คือ "ยอดที่ขอเก็บ" — รวมกันห้ามเกินยอดออเดอร์
@@ -44,11 +48,22 @@ export function remainingBillable(
 ): Prisma.Decimal | null {
   const pool = INVOICE_POOL[type];
   if (!pool) return null;
+  // CN ที่หักเพดานใบเสร็จ = เฉพาะที่ลดมูลค่างานก่อนเก็บเงิน (อ้างใบเรียกเก็บ/ไม่ผูกใบ)
+  // — CN อ้างใบเสร็จคือคืนเงินหลังรับ ถ้าหักด้วยจะ block ใบกำกับของงวดรับเงินถัดไป
+  // ที่กฎหมายบังคับให้ออก (เคสมัดจำ+คืนเงินบางส่วนกลางทาง)
+  const capReducingCredits = invoices
+    .filter(
+      (inv) =>
+        !inv.isVoided &&
+        inv.type === "CREDIT_NOTE" &&
+        inv.originalInvoiceType !== "RECEIPT"
+    )
+    .reduce((sum, inv) => sum.plus(inv.totalAmount), D(0));
   const cap =
     type === "RECEIPT"
       ? D(orderTotal)
           .plus(billedTotal(invoices, ["DEBIT_NOTE"]))
-          .minus(billedTotal(invoices, ["CREDIT_NOTE"]))
+          .minus(capReducingCredits)
       : D(orderTotal);
   const remaining = cap.minus(billedTotal(invoices, pool));
   return remaining.gt(0) ? remaining : D(0);
@@ -100,7 +115,9 @@ export interface InvoiceSuggestion {
   dueDate: string | null; // "YYYY-MM-DD" สำหรับ <input type="date">
   remaining: number | null; // คงเหลือวางบิลได้ของกองนั้น (รวม VAT) · null = ไม่มีเพดาน
   taxRate: number; // อัตรา VAT ของออเดอร์ — UI ใช้คำนวณภาษีใหม่เมื่อผู้ใช้แก้ยอด
-  creditNoteTotal: number; // ใบลดหนี้สุทธิที่ออกแล้ว — UI เตือนว่ายอดค้างจริงอาจต่ำกว่ายอดแนะนำ
+  // ใบลดหนี้ที่ "ยังไม่ผูกใบเดิม" (legacy/ผ่าน API เก่า) — ระบบหักให้ไม่ได้ UI ต้องเตือน
+  // (CN ที่ผูกใบเดิมถูกหักจากยอดค้างอัตโนมัติแล้ว ไม่ต้องเตือน — Gate B1)
+  creditNoteTotal: number;
 }
 
 // ยอดบิลแนะนำตามเทอมของออเดอร์ + บิลที่มีอยู่ — pure function (now ฉีดได้เพื่อ test)
@@ -149,6 +166,14 @@ export function suggestInvoice(params: {
     dueDate: dueDate ? dueDate.toISOString().slice(0, 10) : null,
     remaining: remaining ? remaining.toNumber() : null,
     taxRate: order.taxRate,
-    creditNoteTotal: billedTotal(invoices, ["CREDIT_NOTE"]).toNumber(),
+    creditNoteTotal: invoices
+      // == null ครอบทั้ง null (DB ไม่ผูกใบ) และ undefined (caller ไม่ได้โหลด field —
+      // fallback อนุรักษ์นิยม: เตือนไว้ก่อน เหมือนพฤติกรรมเดิม)
+      .filter(
+        (inv) =>
+          !inv.isVoided && inv.type === "CREDIT_NOTE" && inv.originalInvoiceType == null
+      )
+      .reduce((sum, inv) => sum.plus(inv.totalAmount), D(0))
+      .toNumber(),
   };
 }

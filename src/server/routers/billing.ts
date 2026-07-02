@@ -12,7 +12,11 @@ import {
   suggestInvoice,
 } from "@/server/services/payment-plan";
 import { sweepOverdueInvoices, maybeSweepOverdue } from "@/server/services/overdue";
-import { RECEIVABLE_TYPES } from "@/server/services/receivables";
+import {
+  RECEIVABLE_TYPES,
+  creditedOf,
+  paymentStatusForSettled,
+} from "@/server/services/receivables";
 import type { PrismaTx } from "@/lib/prisma";
 
 // เปิดบิล/จัดการสถานะบิล — บัญชี + ระดับบริหาร
@@ -41,7 +45,12 @@ export const billingRouter = router({
     .query(async ({ ctx, input }) => {
       return ctx.prisma.invoice.findMany({
         where: { orderId: input.orderId },
-        include: { payments: true },
+        include: {
+          payments: true,
+          // ใบลดหนี้ที่อ้างใบนี้ — client ต้องหักตอนโชว์ "ค้าง"/prefill บันทึกรับเงิน
+          // (ไม่งั้น prefill เกินยอดจริง กดแล้วโดน server ปฏิเสธ)
+          adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
+        },
         orderBy: { createdAt: "desc" },
       });
     }),
@@ -103,6 +112,9 @@ export const billingRouter = router({
         tax: z.number().min(0).default(0),
         dueDate: z.string().optional(),
         notes: z.string().optional(),
+        // ใบลดหนี้/เพิ่มหนี้ต้องอ้างใบเดิม + เหตุผล (ม.86/10 + ป.80/2542 — Gate B1)
+        originalInvoiceId: z.string().optional(),
+        adjustmentReason: z.string().max(500).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -115,6 +127,13 @@ export const billingRouter = router({
       }
       if (order.customerId !== input.customerId) {
         badRequest("ลูกค้าไม่ตรงกับออเดอร์");
+      }
+
+      const isAdjustment = input.type === "CREDIT_NOTE" || input.type === "DEBIT_NOTE";
+      if (isAdjustment && (!input.originalInvoiceId || !input.adjustmentReason?.trim())) {
+        badRequest(
+          "ใบลดหนี้/ใบเพิ่มหนี้ต้องอ้างอิงใบกำกับ/ใบแจ้งหนี้เดิมพร้อมเหตุผล (ม.86/10)"
+        );
       }
 
       const amount = moneyInput(input.amount);
@@ -147,15 +166,68 @@ export const billingRouter = router({
             where: { id: order.id },
             select: { totalAmount: true },
           });
-          const existing = await tx.invoice.findMany({
+          const existingRaw = await tx.invoice.findMany({
             where: { orderId: order.id },
-            select: { type: true, totalAmount: true, isVoided: true },
+            select: {
+              type: true,
+              totalAmount: true,
+              isVoided: true,
+              originalInvoice: { select: { type: true } },
+            },
           });
+          // เพดานใบเสร็จต้องรู้ว่า CN แต่ละใบอ้างใบชนิดไหน (ดู comment ใน remainingBillable)
+          const existing = existingRaw.map((inv) => ({
+            ...inv,
+            originalInvoiceType: inv.originalInvoice?.type ?? null,
+          }));
           const remaining = remainingBillable(lockedOrder.totalAmount, existing, input.type);
           if (remaining !== null && totalAmount.gt(remaining)) {
             badRequest(
               `ยอดบิลเกินยอดออเดอร์ — วางบิลได้อีกไม่เกิน ${remaining.toFixed(2)} บาท`
             );
+          }
+
+          // ใบลดหนี้/เพิ่มหนี้: validate ใบเดิมใต้ lock — ออเดอร์เดียวกัน · ยังไม่ void ·
+          // เป็นใบต้นทาง (ไม่อ้าง CN/DN ต่อกัน) · ยอดลดรวมห้ามเกินมูลค่าใบเดิม (ม.86/10)
+          let original: {
+            id: string;
+            invoiceNumber: string;
+            orderId: string;
+            type: string;
+            isVoided: boolean;
+            totalAmount: number;
+            paymentStatus: string;
+            payments: { amount: number; whtAmount: number }[];
+            adjustments: { type: string; totalAmount: number; isVoided: boolean }[];
+          } | null = null;
+          if (isAdjustment && input.originalInvoiceId) {
+            await lockInvoiceRow(tx, input.originalInvoiceId);
+            original = await tx.invoice.findUnique({
+              where: { id: input.originalInvoiceId },
+              include: {
+                payments: { select: { amount: true, whtAmount: true } },
+                adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
+              },
+            });
+            if (!original) notFound("ใบที่อ้างอิง", input.originalInvoiceId);
+            if (original.orderId !== order.id) {
+              badRequest("ใบที่อ้างอิงต้องอยู่ในออเดอร์เดียวกัน");
+            }
+            if (original.isVoided) {
+              badRequest(`${original.invoiceNumber} ถูกยกเลิกแล้ว — อ้างอิงใบที่ใช้งานอยู่เท่านั้น`);
+            }
+            // whitelist ใบต้นทาง — ห้ามอ้าง CN/DN ต่อกัน + ห้าม type อื่น (เช่น QUOTATION legacy)
+            if (!["DEPOSIT_INVOICE", "FINAL_INVOICE", "RECEIPT"].includes(original.type)) {
+              badRequest("ใบที่อ้างอิงต้องเป็นใบกำกับ/ใบแจ้งหนี้ต้นทาง (มัดจำ/เก็บเงิน/ใบเสร็จ)");
+            }
+            if (input.type === "CREDIT_NOTE") {
+              const creditable = D(original.totalAmount).minus(creditedOf(original));
+              if (totalAmount.gt(creditable)) {
+                badRequest(
+                  `ยอดลดหนี้เกินมูลค่าคงเหลือของ ${original.invoiceNumber} (ลดได้อีกไม่เกิน ${creditable.toFixed(2)} บาท)`
+                );
+              }
+            }
           }
 
           const created = await tx.invoice.create({
@@ -170,8 +242,42 @@ export const billingRouter = router({
               totalAmount: totalAmount.toNumber(),
               dueDate,
               notes: input.notes,
+              originalInvoiceId: isAdjustment ? input.originalInvoiceId : null,
+              adjustmentReason: isAdjustment ? input.adjustmentReason?.trim() : null,
             },
           });
+
+          // ใบลดหนี้เคลียร์ยอดใบเดิมเหมือนเงินรับ — สถานะใบเดิมต้องขยับตามยอดคงเหลือจริง
+          // (ไม่งั้นใบที่ลดจนหมดยังโดนทวง/OVERDUE ปลอม — หนี้ PROGRESS ข้อ 1)
+          // เฉพาะใบเรียกเก็บ: CN อ้างใบเสร็จ = ลดหนี้หลังรับเงิน (คู่กับบันทึกคืนเงิน) —
+          // ใบเสร็จค้าง UNPAID โดย design ห้าม flip สถานะ
+          if (
+            input.type === "CREDIT_NOTE" &&
+            original &&
+            original.type !== "RECEIPT" &&
+            totalAmount.gt(0)
+          ) {
+            const paid = original.payments.reduce(
+              (sum, p) => sum.plus(p.amount).plus(p.whtAmount),
+              D(0)
+            );
+            const settled = paid.plus(creditedOf(original)).plus(totalAmount);
+            let newStatus: string = paymentStatusForSettled(settled, D(original.totalAmount));
+            // ยังค้างและเลยกำหนดอยู่ → คง OVERDUE (ไม่หลุดจากคิวตามหนี้แล้วโดนกระดิ่งซ้ำ)
+            if (newStatus !== "PAID" && original.paymentStatus === "OVERDUE") {
+              newStatus = "OVERDUE";
+            }
+            if (newStatus !== original.paymentStatus) {
+              await tx.invoice.update({
+                where: { id: original.id },
+                data: {
+                  paymentStatus: newStatus as "PAID" | "PARTIALLY_PAID" | "UNPAID" | "OVERDUE",
+                  // สมมาตร recordPayment: PAID = ประทับเวลา · ยังค้าง = ล้าง
+                  paidAt: newStatus === "PAID" ? new Date() : null,
+                },
+              });
+            }
+          }
 
           await createAuditLog(tx, {
             userId: ctx.userId,
@@ -212,10 +318,19 @@ export const billingRouter = router({
       if (!order) {
         notFound("ออเดอร์", input.orderId);
       }
-      const invoices = await ctx.prisma.invoice.findMany({
+      const invoicesRaw = await ctx.prisma.invoice.findMany({
         where: { orderId: input.orderId },
-        select: { type: true, totalAmount: true, isVoided: true },
+        select: {
+          type: true,
+          totalAmount: true,
+          isVoided: true,
+          originalInvoice: { select: { type: true } },
+        },
       });
+      const invoices = invoicesRaw.map((inv) => ({
+        ...inv,
+        originalInvoiceType: inv.originalInvoice?.type ?? null,
+      }));
       return {
         ...suggestInvoice({ order, invoices, type: input.type }),
         paymentTerms: order.paymentTerms,
@@ -255,7 +370,10 @@ export const billingRouter = router({
 
         const invoice = await tx.invoice.findUniqueOrThrow({
           where: { id: input.invoiceId },
-          include: { payments: true },
+          include: {
+            payments: true,
+            adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
+          },
         });
 
         if (invoice.isVoided) {
@@ -283,13 +401,15 @@ export const billingRouter = router({
           }
         }
 
-        // ยอดที่เคลียร์บิลแล้ว = เงินสด + ภาษีที่ถูกหัก (กันบิลค้างผี 3% โดน sweep ปลอม)
+        // ยอดที่เคลียร์บิลแล้ว = เงินสด + ภาษีที่ถูกหัก + ใบลดหนี้ที่อ้างใบนี้
+        // (กันบิลค้างผี 3% โดน sweep ปลอม + กันรับเงินเกินส่วนที่ลดหนี้ไปแล้ว — Gate B1)
         const previouslyPaid = invoice.payments.reduce(
           (sum, p) => sum.plus(p.amount).plus(p.whtAmount),
           D(0)
         );
+        const previouslySettled = previouslyPaid.plus(creditedOf(invoice));
         const total = D(invoice.totalAmount);
-        const remaining = total.minus(previouslyPaid);
+        const remaining = total.minus(previouslySettled);
         const settled = amount.plus(wht);
 
         if (settled.gt(remaining)) {
@@ -333,8 +453,10 @@ export const billingRouter = router({
           });
         }
 
-        const totalPaid = previouslyPaid.plus(settled);
-        const paymentStatus = totalPaid.gte(total) ? ("PAID" as const) : ("PARTIALLY_PAID" as const);
+        const totalSettled = previouslySettled.plus(settled);
+        const paymentStatus = totalSettled.gte(total)
+          ? ("PAID" as const)
+          : ("PARTIALLY_PAID" as const);
 
         await tx.invoice.update({
           where: { id: input.invoiceId },
@@ -387,6 +509,10 @@ export const billingRouter = router({
               where: { billingNote: { isVoided: false } },
               select: { billingNote: { select: { billingNoteNumber: true } } },
             },
+            adjustments: {
+              where: { isVoided: false },
+              select: { invoiceNumber: true },
+            },
           },
         });
 
@@ -398,6 +524,13 @@ export const billingRouter = router({
         if (invoice.billingNoteItems.length > 0) {
           badRequest(
             `ใบนี้อยู่บนใบวางบิล ${invoice.billingNoteItems[0].billingNote.billingNoteNumber} — ยกเลิกใบวางบิลก่อน`
+          );
+        }
+        // ใบที่มีใบลดหนี้/เพิ่มหนี้อ้างอยู่ — void แล้วใบอ้างอิงจะชี้เอกสารตาย (ม.86/10
+        // ใบลดหนี้ต้องอ้างใบกำกับที่ใช้งานจริง) ต้องยกเลิกใบลูกก่อนตามลำดับ
+        if (invoice.adjustments.length > 0) {
+          badRequest(
+            `มีใบลดหนี้/เพิ่มหนี้อ้างอิงใบนี้อยู่ (${invoice.adjustments.map((a) => a.invoiceNumber).join(", ")}) — ยกเลิกใบเหล่านั้นก่อน`
           );
         }
 
@@ -447,6 +580,42 @@ export const billingRouter = router({
           });
         }
 
+        // void ใบลดหนี้ = ยอดที่เคยหักให้ใบเดิมหายไป — คำนวณสถานะใบเดิมใหม่จากของจริง
+        // (PAID ที่เคลียร์ด้วย CN อาจถอยกลับ PARTIALLY_PAID/UNPAID · sweep รอบถัดไป
+        // mark OVERDUE เองถ้าเลยกำหนด)
+        if (invoice.type === "CREDIT_NOTE" && invoice.originalInvoiceId) {
+          await lockInvoiceRow(tx, invoice.originalInvoiceId);
+          const original = await tx.invoice.findUnique({
+            where: { id: invoice.originalInvoiceId },
+            include: {
+              payments: { select: { amount: true, whtAmount: true } },
+              // ใบที่เพิ่ง void ด้านบนจะถูกกรองออกเอง (isVoided = true แล้ว)
+              adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
+            },
+          });
+          if (original && !original.isVoided && original.type !== "RECEIPT") {
+            const paid = original.payments.reduce(
+              (sum, p) => sum.plus(p.amount).plus(p.whtAmount),
+              D(0)
+            );
+            const settled = paid.plus(creditedOf(original));
+            let newStatus: string = paymentStatusForSettled(settled, D(original.totalAmount));
+            // ใบเดิมค้าง OVERDUE อยู่ก่อนแล้ว → คงไว้ (sweep ไม่ต้อง re-mark/แจ้งซ้ำ)
+            if (newStatus !== "PAID" && original.paymentStatus === "OVERDUE") {
+              newStatus = "OVERDUE";
+            }
+            if (newStatus !== original.paymentStatus) {
+              await tx.invoice.update({
+                where: { id: original.id },
+                data: {
+                  paymentStatus: newStatus as "PAID" | "PARTIALLY_PAID" | "UNPAID" | "OVERDUE",
+                  paidAt: newStatus === "PAID" ? original.paidAt : null,
+                },
+              });
+            }
+          }
+        }
+
         await createAuditLog(tx, {
           userId: ctx.userId,
           action: "VOID",
@@ -479,7 +648,10 @@ export const billingRouter = router({
 
         const invoice = await tx.invoice.findUniqueOrThrow({
           where: { id: input.invoiceId },
-          include: { payments: true },
+          include: {
+            payments: true,
+            adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
+          },
         });
 
         const totalPaid = invoice.payments
@@ -506,13 +678,15 @@ export const billingRouter = router({
 
         // บิลที่ถูก void แล้ว ต้องคงสถานะ VOIDED — เดิม refund แล้วสถานะเด้งกลับเป็น UNPAID/PAID
         if (!invoice.isVoided) {
-          // ยอดเคลียร์บิลรวมภาษีหัก ณ ที่จ่าย (WHT คืนเป็นเงินสดไม่ได้ แต่ยังเคลียร์บิลอยู่)
+          // ยอดเคลียร์บิล = เงินสดสุทธิ + WHT + ใบลดหนี้ที่อ้างใบนี้ (นิยามเดียวกับ
+          // recordPayment/ออก CN — ไม่งั้นใบที่เคลียร์ด้วยเงิน+CN ถอยเป็นค้างผีหลังคืนเงิน)
           const totalWht = invoice.payments.reduce((sum, p) => sum.plus(p.whtAmount), D(0));
           const netPaid = refundable.minus(amount).plus(totalWht);
+          const settled = netPaid.plus(creditedOf(invoice));
           const total = D(invoice.totalAmount);
-          const paymentStatus = netPaid.gte(total) && total.gt(0)
-            ? ("PAID" as const)
-            : netPaid.gt(0)
+          const paymentStatus = total.gt(0)
+            ? paymentStatusForSettled(settled, total)
+            : settled.gt(0)
               ? ("PARTIALLY_PAID" as const)
               : ("UNPAID" as const);
 

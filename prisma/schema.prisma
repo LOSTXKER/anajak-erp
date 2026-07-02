@@ -1273,6 +1273,10 @@ model Invoice {
   isVoided      Boolean       @default(false) @map("is_voided")
   voidedReason  String?       @map("voided_reason")
   notes         String?
+  // ใบลดหนี้/เพิ่มหนี้ต้องอ้างใบกำกับเดิม + เหตุผล (ม.86/10 + ป.80/2542) — บังคับที่
+  // billing.create เมื่อ type CN/DN · ใบลดหนี้ที่ผูกใบเรียกเก็บ = หักยอดค้างของใบนั้นจริง
+  originalInvoiceId String? @map("original_invoice_id")
+  adjustmentReason  String? @map("adjustment_reason")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -1282,9 +1286,14 @@ model Invoice {
   payments         Payment[]
   billingNoteItems BillingNoteItem[]
   whtCertificates  WhtCertificate[]
+  // Restrict — กติกา "ห้ามลบใบ": ใบเดิมที่มี CN/DN อ้างอยู่ห้ามหายแม้ทาง SQL/admin
+  originalInvoice  Invoice?          @relation("InvoiceAdjustments", fields: [originalInvoiceId], references: [id], onDelete: Restrict)
+  adjustments      Invoice[]         @relation("InvoiceAdjustments")
 
   // hot path: หน้า billing + stats กรองตามสถานะจ่ายตลอด
   @@index([paymentStatus])
+  // ตามหาใบลดหนี้/เพิ่มหนี้ของใบเดิม (outstanding ต้องหักทุกครั้งที่อ่านลูกหนี้)
+  @@index([originalInvoiceId])
   @@map("invoices")
 }
 

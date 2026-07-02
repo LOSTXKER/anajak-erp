@@ -39,6 +39,7 @@ export const billingNoteRouter = router({
           },
           include: {
             payments: { select: { amount: true, whtAmount: true } },
+            adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
             order: { select: { orderNumber: true, title: true } },
             billingNoteItems: {
               where: { billingNote: { isVoided: false } },
@@ -49,7 +50,13 @@ export const billingNoteRouter = router({
         }),
         ctx.prisma.invoice.aggregate({
           _sum: { totalAmount: true },
-          where: { customerId: input.customerId, type: "CREDIT_NOTE", isVoided: false },
+          // เตือนเฉพาะ CN ที่ยังไม่ผูกใบเดิม — ใบที่ผูกแล้วถูกหักจากยอดค้างอัตโนมัติ (Gate B1)
+          where: {
+            customerId: input.customerId,
+            type: "CREDIT_NOTE",
+            isVoided: false,
+            originalInvoiceId: null,
+          },
         }),
       ]);
 
@@ -97,6 +104,7 @@ export const billingNoteRouter = router({
             where: { id: { in: input.invoiceIds } },
             include: {
               payments: { select: { amount: true, whtAmount: true } },
+              adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
               billingNoteItems: {
                 where: { billingNote: { isVoided: false } },
                 select: { id: true },
@@ -198,6 +206,7 @@ export const billingNoteRouter = router({
                     totalAmount: true,
                     isVoided: true,
                     payments: { select: { amount: true, whtAmount: true } },
+                    adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
                   },
                 },
               },

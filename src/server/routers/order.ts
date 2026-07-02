@@ -441,7 +441,8 @@ export const orderRouter = router({
         priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
         paymentTerms: z.enum(PAYMENT_TERMS_VALUES).optional(),
         poNumber: z.string().optional(),
-        taxRate: z.number().min(0).max(100).default(0),
+        // default 7% — บริษัทจด VAT (Gate B2) · ยกเว้นภาษี = ระบุ 0 มาชัดๆ
+        taxRate: z.number().min(0).max(100).default(7),
         estimatedQuantity: z.number().int().min(1).optional(),
         shippingAddress: z.object({
           recipientName: z.string(),

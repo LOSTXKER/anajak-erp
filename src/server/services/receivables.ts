@@ -17,17 +17,42 @@ export interface ReceivableInvoice {
   isVoided: boolean;
   // whtAmount = ภาษีที่ลูกค้าหัก ณ ที่จ่าย — เคลียร์บิลเหมือนเงินสด (เครดิตภาษีของเรา)
   payments: { amount: number; whtAmount: number }[];
+  // ใบลดหนี้ที่อ้างใบนี้ (relation `adjustments`) — เคลียร์ยอดค้างเหมือนเงินรับ (Gate B1:
+  // เดิม CN ไม่ลดยอดค้าง → OVERDUE ปลอม/ทวงเกิน) · optional รับ caller เก่า แต่ loader
+  // ทุกตัวในไฟล์นี้โหลดครบแล้ว — query ใหม่ที่จะใช้ outstandingOf ต้อง include ด้วยเสมอ
+  adjustments?: { type: string; totalAmount: number; isVoided: boolean }[];
 }
 
 export function isReceivable(inv: Pick<ReceivableInvoice, "type" | "isVoided">): boolean {
   return !inv.isVoided && (RECEIVABLE_TYPES as readonly string[]).includes(inv.type);
 }
 
-// ยอดคงเหลือของใบ = ยอดบิล − เงินรับสุทธิ − ภาษีหัก ณ ที่จ่าย (รายการคืนเงินเป็นลบ
-// หักกลับให้เอง) ไม่ติดลบ — ลูกค้าหัก 3% แล้วบิลต้องไม่ค้างผีใน aging/วงเงิน
-export function outstandingOf(inv: ReceivableInvoice): Prisma.Decimal {
+// ยอดใบลดหนี้ (ไม่ void) ที่อ้างใบนี้ — ส่วนของหนี้ที่ "ยกให้" ไปแล้วตามกฎหมาย
+export function creditedOf(inv: Pick<ReceivableInvoice, "adjustments">): Prisma.Decimal {
+  return (inv.adjustments ?? [])
+    .filter((a) => !a.isVoided && a.type === "CREDIT_NOTE")
+    .reduce((sum, a) => sum.plus(a.totalAmount), D(0));
+}
+
+// ยอดที่เคลียร์บิลแล้ว = เงินรับ + ภาษีหัก ณ ที่จ่าย + ใบลดหนี้ที่อ้างใบนี้
+export function settledOf(inv: ReceivableInvoice): Prisma.Decimal {
   const paid = inv.payments.reduce((sum, p) => sum.plus(p.amount).plus(p.whtAmount), D(0));
-  const remaining = D(inv.totalAmount).minus(paid);
+  return paid.plus(creditedOf(inv));
+}
+
+// สถานะจ่ายจากยอดที่เคลียร์แล้ว — ใช้ชุดเดียวทั้ง recordPayment / ออก-void ใบลดหนี้
+export function paymentStatusForSettled(
+  settled: Prisma.Decimal,
+  total: Prisma.Decimal
+): "PAID" | "PARTIALLY_PAID" | "UNPAID" {
+  if (settled.gte(total)) return "PAID";
+  return settled.gt(0) ? "PARTIALLY_PAID" : "UNPAID";
+}
+
+// ยอดคงเหลือของใบ = ยอดบิล − (เงินรับสุทธิ + WHT + ใบลดหนี้) ไม่ติดลบ —
+// ลูกค้าหัก 3%/ได้ใบลดหนี้แล้ว บิลต้องไม่ค้างผีใน aging/วงเงิน/ใบวางบิล
+export function outstandingOf(inv: ReceivableInvoice): Prisma.Decimal {
+  const remaining = D(inv.totalAmount).minus(settledOf(inv));
   return remaining.gt(0) ? remaining : D(0);
 }
 
@@ -219,6 +244,7 @@ export async function creditExposureForCustomer(db: PrismaTx, customerId: string
         totalAmount: true,
         isVoided: true,
         payments: { select: { amount: true, whtAmount: true } },
+        adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
       },
     }),
   ]);
@@ -244,6 +270,7 @@ export async function loadAgingInvoices(
       isVoided: true,
       dueDate: true,
       payments: { select: { amount: true, whtAmount: true } },
+      adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
       customer: { select: { id: true, name: true, company: true } },
     },
   });
@@ -278,6 +305,7 @@ export async function loadReceivablesByCustomer(
       totalAmount: true,
       isVoided: true,
       payments: { select: { amount: true, whtAmount: true } },
+      adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
       order: { select: { orderNumber: true } },
     },
     orderBy: { createdAt: "asc" },

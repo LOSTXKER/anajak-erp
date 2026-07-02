@@ -18,8 +18,8 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 ## 🚦 Go-live gate v2 — ต้องผ่านก่อนใช้จริง (audit 2026-07-02 · ใบงาน = ROADMAP.md Gate A+B · รายงานเต็ม: bestos `records/projects/anajak-erp/audit-2026-07-02.md`)
 - [x] **เงินก้อนเดียวบันทึกซ้ำไม่ได้** — recordPayment: CN ห้ามรับเงิน · REC รับได้เฉพาะขายสดตรงไม่มีใบเรียกเก็บ (Gate A1 2026-07-02 · billing.ts recordPayment guard + UI ปุ่มตรงเงื่อนไข + sweep OVERDUE กรองเฉพาะใบเรียกเก็บ)
 - [x] **ต้นทุน/กำไรไม่รั่วถึง role หน้างาน** — order.getById ตัด cost/payments/ทุน outsource ตาม role + billing.listByOrder gate + การ์ดบิลซ่อนจากช่าง (Gate A2 2026-07-02 · lib/roles.ts)
-- [ ] **ใบลดหนี้/เพิ่มหนี้ครบองค์กฎหมาย ม.86/10 + CN หักยอดค้างจริง** (ตอนนี้ไม่ผูกใบเดิม ไม่ลดยอดค้าง → OVERDUE ปลอม/ทวงเกิน)
-- [ ] **VAT default 7%** (ตอนนี้ default 0 — ภาษีขายขาด = ประเมินย้อนหลัง) ⚠️ confirm เบสว่าจด VAT แล้ว
+- [x] **ใบลดหนี้/เพิ่มหนี้ครบองค์กฎหมาย ม.86/10 + CN หักยอดค้างจริง** — ผูกใบเดิม+เหตุผลบังคับ · หักยอดค้างทุกเส้นทาง · ใบพิมพ์ครบองค์ (Gate B1 2026-07-02) ⚠️ activation: เบสรัน `npx prisma migrate deploy` (additive) + restart dev
+- [x] **VAT default 7%** — ออเดอร์ default 7 · marketplace (ราคารวม VAT) default 0 · ใบเสนอมีปุ่มลัด (Gate B2 2026-07-02 · เบส confirm จด VAT)
 - [ ] **tax point จ้างทำของบังคับได้จริง** — ใบกำกับออกทุกงวดรับเงิน: nudge/auto-draft REC หลัง recordPayment + field issueDate
 - [ ] **QC เชิงนับ bypass ไม่ได้** — QUALITY_CHECK→PACKING ต้องมี QcRecord (ตอนนี้ปุ่ม "ผ่าน→แพ็ค" ข้ามได้ทุก role)
 - [ ] **โครงพื้นฐาน production** — CI (lint+tsc+vitest) · backup/PITR + retention 5 ปี (Supabase audit จริง: bucket private/RLS) · rate-limit public token endpoints + security headers · env validate ตอน boot · ลบ lockfile ซ้ำ

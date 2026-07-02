@@ -56,12 +56,39 @@ describe("billedTotal / remainingBillable", () => {
   });
 
   it("กองใบเสร็จนับแยกจากใบแจ้งหนี้ + ขยายตามใบเพิ่มหนี้ หดตามใบลดหนี้", () => {
-    // เพดานใบเสร็จ = 1000 + 0(DN) - 100(CN) = 900 · ออกแล้ว 500 → เหลือ 400
+    // เพดานใบเสร็จ = 1000 + 0(DN) - 100(CN ไม่ผูกใบ = หักแบบอนุรักษ์นิยม) = 900 · ออกแล้ว 500 → เหลือ 400
     expect(remainingBillable(1000, invoices, "RECEIPT")!.toNumber()).toBe(400);
     // มี DN 200 → เพดาน = 1000 + 200 - 100 = 1100 → เหลือ 600
     expect(
       remainingBillable(1000, [...invoices, inv("DEBIT_NOTE", 200)], "RECEIPT")!.toNumber()
     ).toBe(600);
+  });
+
+  it("CN แยกตาม linkage (Gate B1): อ้างใบเสร็จ = คืนเงินหลังรับ ไม่หักเพดานใบเสร็จงวดถัดไป", () => {
+    const cnLinked = (origType: string, amt: number): InvoiceForPlan => ({
+      type: "CREDIT_NOTE",
+      totalAmount: amt,
+      isVoided: false,
+      originalInvoiceType: origType,
+    });
+    // เคสจริง: ออเดอร์ 1000 · REC งวดแรก 500 · CN 300 อ้าง INV-D (ลดมูลค่างานก่อนเก็บ)
+    // → เพดาน REC = 700 · ออกแล้ว 500 → งวดถัดไปออกได้ 200
+    expect(
+      remainingBillable(
+        1000,
+        [inv("RECEIPT", 500), cnLinked("DEPOSIT_INVOICE", 300)],
+        "RECEIPT"
+      )!.toNumber()
+    ).toBe(200);
+    // CN 300 อ้าง REC (คืนเงินหลังรับ — มีเอกสารฝั่งลบแล้ว) → เพดานคง 1000 · เหลือ 500
+    // (ไม่งั้นใบกำกับของงวดรับเงินถัดไปที่กฎหมายบังคับออก จะโดน block)
+    expect(
+      remainingBillable(
+        1000,
+        [inv("RECEIPT", 500), cnLinked("RECEIPT", 300)],
+        "RECEIPT"
+      )!.toNumber()
+    ).toBe(500);
   });
 
   it("ใบเพิ่มหนี้ไม่ขยายเพดานกองใบแจ้งหนี้ (ส่วนเพิ่มเรียกเก็บผ่าน DEBIT_NOTE เอง)", () => {

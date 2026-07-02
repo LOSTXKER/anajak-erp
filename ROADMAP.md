@@ -27,8 +27,8 @@
 - [x] A4 ต้นทุนเข้า `$transaction` — service กลาง `services/order-cost.ts` (lock+recalc) ใช้ทั้ง cost router + **production step + outsource QC** (review จับ: 2 จุดหลังเขียน costEntry แต่ไม่เคย recalc → totalCost drift)
 
 ### Gate B — ก่อนใช้จริง (go-live gate · เรียงตามเจ็บ)
-- [ ] B1 **ใบลดหนี้/เพิ่มหนี้ครบองค์กฎหมาย** (ม.86/10): ผูก originalInvoiceId + มูลค่าเดิม/ใหม่/ผลต่าง + เหตุผล บน schema+ใบพิมพ์ และ **CN หักยอดค้างจริงใน receivables** (ปิดหนี้เก่าข้อ 1: OVERDUE ปลอม/aging บวม — test ก่อนตามกติกา 7)
-- [ ] B2 **VAT default 7%** ทุกออเดอร์/ใบเสนอ (ยกเว้น = เลือกเอง · order.ts:414 + ฟอร์ม) ✅ เบส confirm จด VAT แล้ว (2026-07-02)
+- [x] B1 **ใบลดหนี้/เพิ่มหนี้ครบองค์กฎหมาย** ✅ 2026-07-02 (+review 21 findings แก้ครบ): schema originalInvoiceId+adjustmentReason (migration `20260702150000` **⏳ เบสยัง apply ไม่ได้ — DB ต่อไม่ถึงจากเครื่อง**) · CN หักยอดค้างจริงทุกจุด (aging/ใบวางบิล/ทวง/MCP/เพดานรับเงิน/refund) · สถานะใบเดิมขยับเอง (ออก/void CN · คง OVERDUE · paidAt สมมาตร) · ใบพิมพ์ครบ ม.86/10 เป็น "มูลค่า" ฐานภาษี + หัก CN/DN ก่อนหน้า · CN สองความหมาย: อ้างใบเรียกเก็บ=ลดยอดค้าง · อ้างใบเสร็จ=คู่คืนเงิน (เพดานใบเสร็จรู้ linkage — ไม่ block ใบกำกับงวดถัดไป)
+- [x] B2 **VAT default 7%** ✅ 2026-07-02 — ออเดอร์ default 7 (ฟอร์ม+server) · ช่องทาง marketplace ราคารวม VAT สลับ default เป็น 0 อัตโนมัติ (ไม่ทับค่าที่พิมพ์เอง) · ฟอร์มใบเสนอมีปุ่มลัด "VAT 7%"
 - [ ] B3 **tax point จ้างทำของ**: nudge/auto-draft ใบเสร็จ+ใบกำกับหลัง recordPayment ทุกงวด + field `issueDate` (ม.78/1(1) — ผูก Payment↔REC ปิดเรื่องบันทึกซ้ำถาวร)
 - [ ] B4 ปิดทาง bypass QC: ปุ่ม "ผ่าน→แพ็ค" ต้องมี QcRecord ก่อน (server guard ที่ order.updateStatus QUALITY_CHECK→PACKING · production/page.tsx:74,526-537) + ปุ่ม "รับของกลับ" บอร์ดเลนบังคับใบตรวจนับแบบเดียวกับหน้า /outsource
 - [ ] B5 **รายงานภาษีขายรายเดือน export CSV** (เลขที่/วันที่/ผู้ซื้อ+เลขภาษี+สาขา/ฐาน/VAT รวม CN-DN + ธง void) ✅ เบสเคาะ: นักบัญชีใช้ **PEAK + ระบบเขียนเอง** → ทำ 2 format: CSV ตรง template import PEAK + CSV มาตรฐาน

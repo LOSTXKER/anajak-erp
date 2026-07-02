@@ -56,6 +56,27 @@ export default async function PrintInvoicePage({
         customer: true,
         order: { select: { id: true, orderNumber: true, title: true } },
         payments: { orderBy: { createdAt: "asc" } },
+        // ใบลดหนี้/เพิ่มหนี้ต้องพิมพ์อ้างอิงใบเดิม + มูลค่าเดิม/ใหม่/ผลต่าง (ม.86/10)
+        // — "มูลค่า" ตามกฎหมาย = ฐานภาษี (amount−discount) ไม่ใช่ยอดรวม VAT
+        // และต้องหัก CN/รวม DN ใบก่อนหน้าของใบเดิม (adjustments) ไม่งั้นใบที่ 2 ขึ้นไปผิด
+        originalInvoice: {
+          select: {
+            invoiceNumber: true,
+            createdAt: true,
+            amount: true,
+            discount: true,
+            adjustments: {
+              select: {
+                id: true,
+                type: true,
+                amount: true,
+                discount: true,
+                isVoided: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
       },
     }),
     prisma.setting.findUnique({ where: { key: COMPANY_PROFILE_KEY } }),
@@ -71,6 +92,25 @@ export default async function PrintInvoicePage({
   // ฐานภาษี = amount - discount · VAT = tax (บันทึกแยกตอนเปิดบิล) · รวม = totalAmount
   const taxBase = invoice.amount - invoice.discount;
   const received = invoice.payments.filter((p) => p.amount > 0);
+
+  // องค์ประกอบบังคับของใบลดหนี้/เพิ่มหนี้ (ม.86/10): อ้างใบเดิม + มูลค่าเดิม/ที่ถูกต้อง/ผลต่าง
+  // — ทุกตัวเป็น "มูลค่า" (ฐานภาษี ก่อน VAT) · VAT ของผลต่างอยู่ในตารางยอดด้านบนแล้ว
+  const isAdjustmentDoc = invoice.type === "CREDIT_NOTE" || invoice.type === "DEBIT_NOTE";
+  const isAdjustment = isAdjustmentDoc && !!invoice.originalInvoice;
+  const baseOf = (x: { amount: number; discount: number }) => x.amount - x.discount;
+  // มูลค่าใบเดิม ณ ก่อนใบนี้ = ฐานใบเดิม − CN ก่อนหน้า + DN ก่อนหน้า (เฉพาะที่ไม่ถูกยกเลิก)
+  const priorAdjustments = (invoice.originalInvoice?.adjustments ?? []).filter(
+    (a) => !a.isVoided && a.id !== invoice.id && a.createdAt < invoice.createdAt
+  );
+  const priorNet = priorAdjustments.reduce(
+    (sum, a) => sum + (a.type === "CREDIT_NOTE" ? -baseOf(a) : baseOf(a)),
+    0
+  );
+  const originalBase = invoice.originalInvoice
+    ? baseOf(invoice.originalInvoice) + priorNet
+    : 0;
+  const correctedBase =
+    invoice.type === "CREDIT_NOTE" ? originalBase - taxBase : originalBase + taxBase;
 
   return (
     <div className="print-viewport">
@@ -89,6 +129,14 @@ export default async function PrintInvoicePage({
             docDate={invoice.createdAt}
             refLines={[
               { label: "อ้างอิงออเดอร์", value: invoice.order.orderNumber },
+              ...(isAdjustment && invoice.originalInvoice
+                ? [
+                    {
+                      label: "อ้างอิงใบกำกับ/ใบแจ้งหนี้เดิม",
+                      value: `${invoice.originalInvoice.invoiceNumber} (${formatDocDate(invoice.originalInvoice.createdAt)})`,
+                    },
+                  ]
+                : []),
               ...(invoice.dueDate
                 ? [{ label: "ครบกำหนดชำระ", value: formatDocDate(invoice.dueDate) }]
                 : []),
@@ -138,6 +186,29 @@ export default async function PrintInvoicePage({
             grandAmount={invoice.totalAmount}
           />
           <BahtTextBox amount={invoice.totalAmount} />
+
+          {isAdjustment && invoice.originalInvoice && (
+            <NotesBlock
+              title={`รายละเอียดการ${invoice.type === "CREDIT_NOTE" ? "ลดหนี้" : "เพิ่มหนี้"} (ม.86/10)`}
+            >
+              {[
+                `มูลค่าตามใบกำกับ/ใบแจ้งหนี้เดิม (${invoice.originalInvoice.invoiceNumber}): ${formatMoney(originalBase)} บาท (ไม่รวมภาษีมูลค่าเพิ่ม)${priorAdjustments.length > 0 ? ` — ปรับด้วยใบลดหนี้/เพิ่มหนี้ก่อนหน้า ${priorAdjustments.length} ฉบับแล้ว` : ""}`,
+                `มูลค่าที่ถูกต้อง: ${formatMoney(correctedBase)} บาท (ไม่รวมภาษีมูลค่าเพิ่ม)`,
+                `ผลต่าง: ${formatMoney(taxBase)} บาท (ภาษีมูลค่าเพิ่มของผลต่างแสดงในตารางยอดด้านบน)`,
+                ...(invoice.adjustmentReason ? [`เหตุผล: ${invoice.adjustmentReason}`] : []),
+              ].join("\n")}
+            </NotesBlock>
+          )}
+
+          {/* ใบเก่า/ผ่าน API เดิมที่ไม่ผูกใบเดิม — องค์ประกอบ ม.86/10 ไม่ครบ พิมพ์เตือนชัด
+              (กติกา: ยกเลิก-ออกใหม่ ห้ามลบ) */}
+          {isAdjustmentDoc && !invoice.originalInvoice && (
+            <NotesBlock title="⚠ เอกสารไม่สมบูรณ์">
+              {
+                "ใบนี้ไม่มีการอ้างอิงใบกำกับ/ใบแจ้งหนี้เดิม — องค์ประกอบตาม ม.86/10 ไม่ครบ ควรยกเลิกแล้วออกใหม่โดยระบุใบที่อ้างอิง"
+              }
+            </NotesBlock>
+          )}
 
           {invoice.type === "RECEIPT" && received.length > 0 && (
             <NotesBlock title="ชำระโดย">

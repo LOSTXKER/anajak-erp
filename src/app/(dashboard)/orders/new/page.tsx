@@ -95,7 +95,9 @@ export default function NewOrderPage() {
 
   const [platformFee, setPlatformFee] = useState(0);
   const [discount, setDiscount] = useState(0);
-  const [taxRate, setTaxRate] = useState(0);
+  // default 7% — บริษัทจด VAT ทุกการขายต้องมีภาษีขาย (Gate B2 · เบส confirm 2026-07-02)
+  // งานยกเว้นภาษี = ผู้ใช้ตั้ง 0 เอง (เดิม default 0 → ภาษีขายขาด เสี่ยงประเมินย้อนหลัง)
+  const [taxRate, setTaxRate] = useState(7);
 
   const [priority, setPriority] = useState<"LOW" | "NORMAL" | "HIGH" | "URGENT">("NORMAL");
   const [paymentTerms, setPaymentTerms] = useState("");
@@ -181,6 +183,16 @@ export default function NewOrderPage() {
       setPaymentTerms("COD");
     }
   }, [isMarketplace, paymentTerms]);
+
+  // ราคาช่องทาง marketplace (Shopee/Lazada/TikTok) รวม VAT ในตัวแล้ว — default 7%
+  // จะบวกภาษีทับซ้ำ · สลับเฉพาะค่า default (7↔0) ไม่ทับค่าที่ผู้ใช้พิมพ์เอง
+  const taxRateTouched = useRef(false);
+  useEffect(() => {
+    if (taxRateTouched.current) return;
+    if (isMarketplace && taxRate === 7) setTaxRate(0);
+    if (!isMarketplace && taxRate === 0) setTaxRate(7);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMarketplace]);
 
   useEffect(() => {
     if (selectedCustomer?.address && !shipping.address && !shipping.recipientName) {
@@ -530,7 +542,10 @@ export default function NewOrderPage() {
                   max={100}
                   step={0.01}
                   value={taxRate || ""}
-                  onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    taxRateTouched.current = true; // ผู้ใช้แตะเอง — เลิกสลับ default ตามช่องทาง
+                    setTaxRate(parseFloat(e.target.value) || 0);
+                  }}
                   placeholder="0"
                 />
               </div>
