@@ -5,6 +5,8 @@ import { badRequest } from "@/server/errors";
 import { createAuditLog, createNotification } from "@/server/helpers";
 import { advanceOrderForward } from "@/server/services/order-status";
 import { normalizePhone } from "@/lib/phone";
+import { isValidDeliveryTransition, type DeliveryStatus } from "@/lib/delivery-status";
+import { DELIVERY_STATUS_LABELS } from "@/lib/status-config";
 
 const salesOrProduction = requireRole("OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF");
 const managerUp = requireRole("OWNER", "MANAGER");
@@ -267,21 +269,38 @@ export const deliveryRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const updateData: Record<string, unknown> = { status: input.status };
-
-      if (input.status === "SHIPPED") {
-        updateData.shippedAt = new Date();
-        if (input.trackingNumber) updateData.trackingNumber = input.trackingNumber;
-      }
-      if (input.status === "DELIVERED") {
-        updateData.deliveredAt = new Date();
-      }
+      // B13: เขียนเลขพัสดุ "ทุกสถานะ" ที่ส่งมา — เดิมเขียนเฉพาะ block SHIPPED กรอกตอน
+      // PREPARING หายเงียบ (delivery record ไม่เก็บ ทั้งที่ order.trackingNumber เขียนอยู่แล้ว)
+      if (input.trackingNumber) updateData.trackingNumber = input.trackingNumber;
 
       // อัปเดตใบส่ง + เลขพัสดุ + ดันสถานะออเดอร์ = ก้อนเดียวกัน
       return ctx.prisma.$transaction(async (tx) => {
-        const delivery = await tx.delivery.update({
+        // B13 state machine (เลียน outsource): อ่านสถานะเดิม → validate transition →
+        // conditional write (updateMany where {id, status เดิม}) — สองจอเปลี่ยนสถานะใบเดียวกัน
+        // พร้อมกัน คนช้า count=0 เจอ error ไม่ใช่เขียนทับ (validate เฉยๆ ไม่พอ กัน race)
+        const current = await tx.delivery.findUniqueOrThrow({
           where: { id: input.id },
+          select: { status: true, orderId: true },
+        });
+        const fromStatus = current.status as DeliveryStatus;
+        const statusChanged = fromStatus !== input.status;
+        if (!isValidDeliveryTransition(fromStatus, input.status)) {
+          badRequest(
+            `ใบส่งสถานะ "${DELIVERY_STATUS_LABELS[fromStatus] ?? fromStatus}" เปลี่ยนเป็น "${DELIVERY_STATUS_LABELS[input.status] ?? input.status}" ไม่ได้ — เดินทีละขั้น`
+          );
+        }
+        // timestamp ตั้งเฉพาะตอน "เปลี่ยนสถานะจริง" มา SHIPPED/DELIVERED — self แก้เลขพัสดุ
+        // (SHIPPED→SHIPPED) ต้องไม่ทับวันส่งเดิมเป็นวันนี้ (review B13 จับ · gate เหมือน side effect)
+        if (statusChanged && input.status === "SHIPPED") updateData.shippedAt = new Date();
+        if (statusChanged && input.status === "DELIVERED") updateData.deliveredAt = new Date();
+        const written = await tx.delivery.updateMany({
+          where: { id: input.id, status: current.status },
           data: updateData,
         });
+        if (written.count === 0) {
+          badRequest("มีคนอัปเดตใบส่งนี้ไปก่อนหน้านี้พอดี — รีเฟรชแล้วดูสถานะล่าสุดก่อน");
+        }
+        const delivery = await tx.delivery.findUniqueOrThrow({ where: { id: input.id } });
 
         // Also update order tracking number if provided
         if (input.trackingNumber) {
@@ -291,11 +310,13 @@ export const deliveryRouter = router({
           });
         }
 
+        // ── side effect เฉพาะตอน "สถานะเปลี่ยนจริง" (กด self เพื่อแก้เลขพัสดุ ไม่ดันออเดอร์/
+        //    ไม่ยิงกระดิ่งซ้ำ — เดิมไม่มี guard นี้ RETURNED→RETURNED จะเตือนผู้จัดการซ้ำ) ──
         // ส่งของแล้ว → ดันออเดอร์เป็น "จัดส่งแล้ว" — เฉพาะตอนแพ็ค/พร้อมส่ง (ไม่กระโดดข้าม QC)
         // และเฉพาะเมื่อ "ทุกใบส่ง" ออกแล้ว — แบ่งส่งหลายกล่อง กล่องแรกออกห้ามเด้งทั้งใบ
         // (pattern เดียวกับ openProductions ใน finalizeProductionIfComplete · RETURNED ไม่นับค้าง)
         // จงใจไม่ปิดงานเอง: "เสร็จสิ้น" มีด่านบังคับวางบิลครบ ปล่อยให้คนกดปิดเอง
-        if (input.status === "SHIPPED" || input.status === "DELIVERED") {
+        if (statusChanged && (input.status === "SHIPPED" || input.status === "DELIVERED")) {
           const pendingSiblings = await tx.delivery.count({
             where: {
               orderId: delivery.orderId,
@@ -331,7 +352,7 @@ export const deliveryRouter = router({
 
         // ของตีกลับ = งานด่วนที่ต้องมีคนตัดสิน (ซ่อม/ส่งใหม่/ลดหนี้) — กระดิ่งหาผู้จัดการทันที
         // ห้ามจบเงียบ (audit ข้อ 24 · ถอยออเดอร์กลับ QC ทำผ่านปุ่มสถานะ โดยผู้จัดการ+เหตุผล)
-        if (input.status === "RETURNED") {
+        if (statusChanged && input.status === "RETURNED") {
           const order = await tx.order.findUniqueOrThrow({
             where: { id: delivery.orderId },
             select: { id: true, orderNumber: true, title: true },

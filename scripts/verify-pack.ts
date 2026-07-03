@@ -135,12 +135,68 @@ async function main() {
     await caller.delivery.updateStatus({ id: e2.id, status: "SHIPPED", trackingNumber: "TRK-E2" });
     o2 = await prisma.order.findUniqueOrThrow({ where: { id: order2.id } });
     check("6.2 ครบ 10/10 ตัว → เด้ง SHIPPED", o2.internalStatus === "SHIPPED");
+
+    // ── 7. B13: เลขพัสดุทุกสถานะ + state machine + self ไม่ re-notify ──
+    const expectThrow = async (fn: () => Promise<unknown>): Promise<boolean> => {
+      try { await fn(); return false; } catch { return true; }
+    };
+    const order3 = await prisma.order.create({
+      data: {
+        orderNumber: `TEST-PACK3-${Date.now()}`,
+        title: `${MARK} งานทดสอบ B13`,
+        customerId: customer.id, createdById: owner.id, internalStatus: "PACKING",
+      },
+    });
+    const d3 = await caller.delivery.create({ ...base, orderId: order3.id });
+
+    // 7.1 เลขพัสดุกรอกตอน PREPARING ต้องเก็บ (เดิมเขียนเฉพาะ SHIPPED — หายเงียบ)
+    await caller.delivery.updateStatus({ id: d3.id, status: "PREPARING", trackingNumber: "TRK-PREP-1" });
+    let d3db = await prisma.delivery.findUniqueOrThrow({ where: { id: d3.id } });
+    check("7.1 เลขพัสดุกรอกตอน PREPARING → เก็บบนใบส่ง (เดิมหายเงียบ)",
+      d3db.trackingNumber === "TRK-PREP-1" && d3db.status === "PREPARING", d3db.trackingNumber ?? "null");
+    const o3after = await prisma.order.findUniqueOrThrow({ where: { id: order3.id } });
+    check("7.2 PREPARING ไม่ดันออเดอร์เป็น SHIPPED (ยัง PACKING)", o3after.internalStatus === "PACKING");
+
+    // 7.3 เดินหน้า PREPARING→SHIPPED ได้ + self SHIPPED→SHIPPED แก้เลขพัสดุได้ + ไม่ทับวันส่ง
+    await caller.delivery.updateStatus({ id: d3.id, status: "SHIPPED", trackingNumber: "TRK-SHIP-1" });
+    const shippedAt1 = (await prisma.delivery.findUniqueOrThrow({ where: { id: d3.id } })).shippedAt;
+    await new Promise((r) => setTimeout(r, 10));
+    await caller.delivery.updateStatus({ id: d3.id, status: "SHIPPED", trackingNumber: "TRK-SHIP-2" });
+    d3db = await prisma.delivery.findUniqueOrThrow({ where: { id: d3.id } });
+    check("7.3 self SHIPPED→SHIPPED แก้เลขพัสดุได้ (ไม่บล็อก)", d3db.trackingNumber === "TRK-SHIP-2");
+    check("7.3b self SHIPPED→SHIPPED ไม่ทับ shippedAt เป็นวันนี้ (เก็บวันส่งจริง · review B13)",
+      d3db.shippedAt?.getTime() === shippedAt1?.getTime(), `${shippedAt1?.toISOString()} vs ${d3db.shippedAt?.toISOString()}`);
+
+    // 7.4 ถอยหนึ่งก้าว SHIPPED→PREPARING ได้ · แต่ SHIPPED→PENDING (ถอยไกล) โดนบล็อก
+    await caller.delivery.updateStatus({ id: d3.id, status: "SHIPPED" }); // กลับไป SHIPPED ก่อน
+    check("7.4 ถอยไกล SHIPPED→PENDING → บล็อก (เดินทีละขั้น)",
+      await expectThrow(() => caller.delivery.updateStatus({ id: d3.id, status: "PENDING" })));
+    await caller.delivery.updateStatus({ id: d3.id, status: "PREPARING" });
+    d3db = await prisma.delivery.findUniqueOrThrow({ where: { id: d3.id } });
+    check("7.5 ถอยหนึ่งก้าว SHIPPED→PREPARING → ได้", d3db.status === "PREPARING");
+
+    // 7.6 RETURNED เตือนผู้จัดการ · self RETURNED→RETURNED ไม่เตือนซ้ำ
+    await caller.delivery.updateStatus({ id: d3.id, status: "RETURNED" });
+    const notif1 = await prisma.notification.count({ where: { entityId: order3.id, title: { contains: "ตีกลับ" } } });
+    await caller.delivery.updateStatus({ id: d3.id, status: "RETURNED", trackingNumber: "TRK-RET" });
+    const notif2 = await prisma.notification.count({ where: { entityId: order3.id, title: { contains: "ตีกลับ" } } });
+    check("7.6 RETURNED เตือนผู้จัดการ (>0)", notif1 > 0, String(notif1));
+    check("7.7 self RETURNED→RETURNED ไม่เตือนซ้ำ (guard statusChanged)", notif2 === notif1, `${notif1}→${notif2}`);
+
+    // 7.8 ของส่งถึงแล้วลูกค้าตีกลับ: DELIVERED→RETURNED ต้องทำได้ (state machine + UI ปุ่มโชว์)
+    const d4 = await caller.delivery.create({ ...base, orderId: order3.id });
+    await caller.delivery.updateStatus({ id: d4.id, status: "DELIVERED" });
+    await caller.delivery.updateStatus({ id: d4.id, status: "RETURNED" });
+    const d4db = await prisma.delivery.findUniqueOrThrow({ where: { id: d4.id } });
+    check("7.8 DELIVERED→RETURNED ได้ (ของส่งถึงแล้วตีกลับ · เดิม UI ปุ่มซ่อนกดไม่ได้)", d4db.status === "RETURNED");
   } finally {
     const allOrders = await prisma.order.findMany({ where: { title: { contains: MARK } }, select: { id: true } });
     const orderIds = allOrders.map((o) => o.id);
     const dels = await prisma.delivery.findMany({ where: { orderId: { in: orderIds } }, select: { id: true } });
     await prisma.deliveryLine.deleteMany({ where: { deliveryId: { in: dels.map((d) => d.id) } } });
     await prisma.delivery.deleteMany({ where: { orderId: { in: orderIds } } });
+    // แจ้งเตือนของตีกลับ (B13 test) ผูก entityId = orderId — ลบก่อน order
+    await prisma.notification.deleteMany({ where: { entityId: { in: orderIds } } });
     await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
     await prisma.customer.delete({ where: { id: customer.id } });
   }

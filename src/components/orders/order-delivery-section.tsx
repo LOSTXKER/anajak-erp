@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { nextDeliveryStatuses, type DeliveryStatus } from "@/lib/delivery-status";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,8 @@ export function OrderDeliverySection({
 
   // Status update form
   const [newStatus, setNewStatus] = useState("");
+  // สถานะปัจจุบันของใบที่กำลังแก้ — ใช้กรอง dropdown ให้โชว์เฉพาะที่เดินไปได้ (B13 state machine)
+  const [statusFrom, setStatusFrom] = useState<DeliveryStatus>("PENDING");
   const [statusTrackingNumber, setStatusTrackingNumber] = useState("");
 
   const utils = trpc.useUtils();
@@ -257,6 +260,7 @@ export function OrderDeliverySection({
   function openStatusDialog(delivery: Delivery) {
     setShowStatusDialog(delivery.id);
     setNewStatus(delivery.status);
+    setStatusFrom(delivery.status as DeliveryStatus);
     setStatusTrackingNumber(delivery.trackingNumber || "");
   }
 
@@ -443,7 +447,9 @@ export function OrderDeliverySection({
                           <Printer className="h-3.5 w-3.5" />
                         </a>
                       )}
-                      {delivery.status !== "DELIVERED" && (
+                      {/* โชว์ปุ่มเมื่อยังเดินสถานะต่อได้ (B13) — DELIVERED เดินต่อ RETURNED/SHIPPED
+                          ได้ (ของส่งถึงแล้วลูกค้าตีกลับ) · เดิมซ่อนบน DELIVERED = transition ตาย */}
+                      {nextDeliveryStatuses(delivery.status as DeliveryStatus).length > 1 && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -732,11 +738,12 @@ export function OrderDeliverySection({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PENDING">รอดำเนินการ</SelectItem>
-                  <SelectItem value="PREPARING">กำลังเตรียม</SelectItem>
-                  <SelectItem value="SHIPPED">จัดส่งแล้ว</SelectItem>
-                  <SelectItem value="DELIVERED">ส่งถึงแล้ว</SelectItem>
-                  <SelectItem value="RETURNED">ตีกลับ</SelectItem>
+                  {/* เฉพาะสถานะปัจจุบัน + ที่เดินไปได้ (B13) — เลือกสถานะที่ server จะปฏิเสธไม่ได้ */}
+                  {nextDeliveryStatuses(statusFrom).map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {DELIVERY_STATUS_LABELS[s]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
