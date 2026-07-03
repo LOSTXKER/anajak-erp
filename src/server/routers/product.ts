@@ -21,7 +21,8 @@ export const productRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const where: Record<string, unknown> = {};
+      // B11: ซ่อนสินค้าที่ soft-delete แล้วจากทุกหน้า
+      const where: Record<string, unknown> = { deletedAt: null };
 
       if (input.search) {
         where.OR = [
@@ -69,7 +70,7 @@ export const productRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const where: Record<string, unknown> = { isActive: true };
+      const where: Record<string, unknown> = { isActive: true, deletedAt: null };
 
       if (input.search) {
         where.OR = [
@@ -107,8 +108,9 @@ export const productRouter = router({
   getById: protectedProcedure
     .input(byIdInput)
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.product.findUniqueOrThrow({
-        where: { id: input.id },
+      // findFirst + deletedAt: null — สินค้าที่ลบแล้วเปิดหน้ารายละเอียดไม่ได้ (404)
+      return ctx.prisma.product.findFirstOrThrow({
+        where: { id: input.id, deletedAt: null },
         include: {
           variants: { orderBy: { sku: "asc" } },
         },
@@ -153,28 +155,19 @@ export const productRouter = router({
     .mutation(async ({ ctx, input }) => {
       const product = await ctx.prisma.product.findUniqueOrThrow({
         where: { id: input.id },
-        select: {
-          id: true,
-          sku: true,
-          name: true,
-          stockProductId: true,
-          _count: { select: { orderItemProducts: true } },
-        },
+        select: { id: true, sku: true, name: true, stockProductId: true, deletedAt: true },
       });
+      if (product.deletedAt) {
+        return { deleted: true, sku: product.sku, name: product.name };
+      }
 
-      // Atomically clean up relations and delete product
-      await ctx.prisma.$transaction([
-        ctx.prisma.orderItemProduct.updateMany({
-          where: { productId: input.id },
-          data: { productId: null },
-        }),
-        // Remove material usage records for this product
-        ctx.prisma.materialUsage.deleteMany({
-          where: { productId: input.id },
-        }),
-        // Delete the product (variants cascade automatically)
-        ctx.prisma.product.delete({ where: { id: input.id } }),
-      ]);
+      // B11: soft-delete — ตั้ง deletedAt แทนลบแถวจริง เก็บประวัติเบิกวัสดุ (MaterialUsage
+      // FK Restrict — เดิม deleteMany ทิ้งประวัติถาวร) + order items เดิมที่อ้างถึง ·
+      // สินค้าซ่อนจากทุก query ฝั่ง UI (กรอง deletedAt: null) — ไม่ต้องล้าง FK ใดๆ
+      await ctx.prisma.product.update({
+        where: { id: input.id },
+        data: { deletedAt: new Date(), isActive: false },
+      });
 
       // Soft-delete from Stock (non-blocking — don't fail if Stock API errors)
       if (product.stockProductId) {

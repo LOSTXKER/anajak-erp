@@ -773,6 +773,11 @@ model Product {
   totalStock      Int       @default(0) @map("total_stock")
   lastSyncAt      DateTime? @map("last_sync_at")
 
+  // Soft-delete (B11): ลบสินค้าไม่ลบแถวจริง — เก็บประวัติเบิกวัสดุ (MaterialUsage FK Restrict)
+  // + order items เดิมที่อ้างถึง · null = ใช้งานอยู่ · query ฝั่ง UI กรอง deletedAt: null
+  // (sync ไม่กรอง — สินค้ากลับมาใน Stock = resurrect ล้าง deletedAt)
+  deletedAt       DateTime? @map("deleted_at")
+
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
@@ -781,6 +786,7 @@ model Product {
   orderItemProducts OrderItemProduct[]
   materialUsages    MaterialUsage[]
 
+  @@index([deletedAt])
   @@map("products")
 }
 

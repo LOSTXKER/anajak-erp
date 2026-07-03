@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,18 +35,7 @@ interface LocalMaterial {
   currentStock: number;
 }
 
-interface DeductedMaterial {
-  id: string;
-  productId: string;
-  name: string;
-  sku: string;
-  quantity: number;
-  unit: string;
-  unitCost: number;
-  totalCost: number;
-  stockMovementRef: string | null;
-  deductedAt: string | null;
-}
+// รายการเบิกแล้ว = ผลจาก trpc.stockSync.listMaterials (infer type ตรงจาก endpoint)
 
 // ---------------------------------------------------------------------------
 // Component
@@ -71,9 +60,17 @@ export function MaterialUsage({
       { enabled: showPicker && searchTerm.length >= 1 }
     );
 
-  // Since there is no dedicated endpoint for listing MaterialUsage records,
-  // we track deducted materials in local state after a successful issue call.
-  const [deductedMaterials, setDeductedMaterials] = useState<DeductedMaterial[]>([]);
+  // B11: โหลดประวัติเบิกจริงจาก DB (เดิมจำเฉพาะ local state — reload แล้วหาย)
+  const utils = trpc.useUtils();
+  const { data: deductedMaterials = [] } = trpc.stockSync.listMaterials.useQuery(
+    { productionId },
+    { enabled: !!productionId }
+  );
+
+  // idempotencyKey "คงที่ต่อ batch" — retry หลัง error ต้องส่ง key เดิม เพื่อให้ Stock คืน
+  // เอกสารเดิม (ไม่ตัดสต๊อคจริงซ้ำ) แล้ว server เขียนฝั่ง ERP ให้ครบ · เกิด key ใหม่เฉพาะ
+  // batch ถัดไป (หลังสำเร็จ) — ใช้ UUID ใหม่ทุกคลิกคือตัดสต๊อคจริงซ้ำตอน retry (review B11 จับ)
+  const pendingKeyRef = useRef<string | null>(null);
 
   // ---- issue materials mutation ----
   const issueMutation = trpc.stockSync.issueMaterials.useMutation({
@@ -81,25 +78,13 @@ export function MaterialUsage({
       toast.success("เบิกวัตถุดิบสำเร็จ", {
         description: `เอกสาร: ${data.movementDocNumber} (${data.materialsIssued} รายการ)`,
       });
-
-      // Move local materials to deducted list
-      const now = new Date().toISOString();
-      const newDeducted: DeductedMaterial[] = localMaterials.map((m) => ({
-        id: m.id,
-        productId: m.productId,
-        name: m.name,
-        sku: m.sku,
-        quantity: m.quantity,
-        unit: m.unit,
-        unitCost: m.unitCost,
-        totalCost: m.quantity * m.unitCost,
-        stockMovementRef: data.movementDocNumber,
-        deductedAt: now,
-      }));
-      setDeductedMaterials((prev) => [...prev, ...newDeducted]);
+      pendingKeyRef.current = null; // batch นี้จบ — คลิกครั้งหน้าเป็น batch ใหม่ key ใหม่
       setLocalMaterials([]);
+      // โหลดประวัติใหม่จาก server (แหล่งเดียว — ไม่ปั้น optimistic ให้ drift กับ DB)
+      utils.stockSync.listMaterials.invalidate({ productionId });
     },
     onError: (err) => {
+      // ไม่ล้าง pendingKeyRef — คลิก "เบิก" ซ้ำ = retry batch เดิมด้วย key เดิม
       toast.error("เกิดข้อผิดพลาด", { description: err.message });
     },
   });
@@ -162,6 +147,8 @@ export function MaterialUsage({
 
   const handleIssueMaterials = () => {
     if (localMaterials.length === 0) return;
+    // key คงที่ต่อ batch — ตั้งครั้งแรกที่กด reuse ตอน retry จนกว่าจะสำเร็จ (เคลียร์ใน onSuccess)
+    if (!pendingKeyRef.current) pendingKeyRef.current = crypto.randomUUID();
 
     issueMutation.mutate({
       productionId,
@@ -175,8 +162,7 @@ export function MaterialUsage({
         unitCost: m.unitCost,
       })),
       fromLocation: DEFAULT_STOCK_LOCATION,
-      // key ต่อหนึ่งการกด — เน็ตสะดุดแล้วระบบ retry ไม่ตัดสต๊อคซ้ำ
-      idempotencyKey: crypto.randomUUID(),
+      idempotencyKey: pendingKeyRef.current,
     });
   };
 

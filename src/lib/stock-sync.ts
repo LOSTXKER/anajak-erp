@@ -248,6 +248,9 @@ export async function syncProductPage(
         totalStock: sp.totalStock || 0,
         lastSyncAt: new Date(),
         isActive: true,
+        // B11: สินค้ากลับมาใน Stock = resurrect (ล้าง soft-delete) — sync match ไม่กรอง
+        // deletedAt จึงเจอแถวที่ลบแล้ว แล้วอัปเดตทับให้ใช้งานได้อีก
+        deletedAt: null,
       };
 
       let productId: string;
@@ -498,9 +501,10 @@ export async function getSyncStatus(): Promise<{
   totalProducts: number;
 }> {
   const [stockCount, localCount, totalCount, lastSync] = await Promise.all([
-    prisma.product.count({ where: { source: "STOCK" } }),
-    prisma.product.count({ where: { source: "LOCAL" } }),
-    prisma.product.count(),
+    // B11: สถิติไม่นับสินค้าที่ลบแล้ว (soft-delete)
+    prisma.product.count({ where: { source: "STOCK", deletedAt: null } }),
+    prisma.product.count({ where: { source: "LOCAL", deletedAt: null } }),
+    prisma.product.count({ where: { deletedAt: null } }),
     prisma.product.findFirst({
       where: { source: "STOCK", lastSyncAt: { not: null } },
       orderBy: { lastSyncAt: "desc" },

@@ -508,9 +508,18 @@ export const orderRouter = router({
         if (allProducts.length > 0) {
           const productIds = [...new Set(allProducts.map((p) => p.productId).filter((id): id is string => !!id))];
           const dbProducts = await ctx.prisma.product.findMany({
-            where: { id: { in: productIds } },
+            // B11: สินค้าที่ลบแล้วไม่ให้ใช้เปิดออเดอร์ใหม่ (soft-delete)
+            where: { id: { in: productIds }, deletedAt: null },
             include: { variants: true },
           });
+          // สินค้าที่ client อ้าง แต่หา (ไม่ลบ) ไม่เจอ = ถูก soft-delete ระหว่างกรอกฟอร์ม
+          // (หรือ id มั่ว) — ปฏิเสธชัดๆ · เดิม hard-delete เคสนี้ล้มดังตอน insert FK
+          // (P2003) B11 soft-delete แถวยังอยู่ FK ผ่าน จะรับเงียบถ้าไม่กัน (review B11 จับ)
+          const foundIds = new Set(dbProducts.map((p) => p.id));
+          const missing = productIds.filter((id) => !foundIds.has(id));
+          if (missing.length > 0) {
+            badRequest("มีสินค้าในรายการที่ถูกลบไปแล้ว — เอาออกหรือเลือกใหม่ก่อนเปิดออเดอร์");
+          }
           const stockErrors: string[] = [];
           for (const prod of allProducts) {
             const dbProd = dbProducts.find((p) => p.id === prod.productId);
