@@ -36,6 +36,7 @@
     "verify:mcp": "tsx --env-file=.env scripts/verify-mcp.ts",
     "verify:co": "tsx --env-file=.env scripts/verify-change-order.ts",
     "verify:softdel": "tsx --env-file=.env scripts/verify-product-softdelete.ts",
+    "verify:oshare": "tsx --env-file=.env scripts/verify-outsource-share.ts",
     "key:agent": "tsx --env-file=.env scripts/create-agent-key.ts"
   },
   "dependencies": {

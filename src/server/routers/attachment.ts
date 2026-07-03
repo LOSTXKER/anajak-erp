@@ -4,6 +4,7 @@ import { router, protectedProcedure } from "../trpc";
 import { byIdInput, fileUrlSchema } from "@/server/schemas";
 import { notFound, badRequest } from "@/server/errors";
 import { ATTACHMENT_CATEGORIES } from "@/lib/file-layers";
+import { isOwnOutsourceFile } from "@/server/services/outsource-share";
 import type { PrismaTx } from "@/lib/prisma";
 
 // entityType ที่แนบไฟล์ได้ + วิธีเช็คว่าปลายทางมีจริง — กันไฟล์ลอย/ยัด entityId มั่ว
@@ -13,6 +14,9 @@ const ENTITY_LOOKUPS: Record<string, (prisma: PrismaTx, id: string) => Promise<u
   QUOTATION: (p, id) => p.quotation.findUnique({ where: { id }, select: { id: true } }),
   PRODUCTION: (p, id) => p.production.findUnique({ where: { id }, select: { id: true } }),
   INVOICE: (p, id) => p.invoice.findUnique({ where: { id }, select: { id: true } }),
+  // ไฟล์ลายบนใบงานร้านนอก (B14) — โผล่บนหน้าแชร์ให้ร้านผ่าน shareToken
+  OUTSOURCE_ORDER: (p, id) =>
+    p.outsourceOrder.findUnique({ where: { id }, select: { id: true } }),
 };
 
 export const attachmentRouter = router({
@@ -57,6 +61,23 @@ export const attachmentRouter = router({
       const entity = await lookup(ctx.prisma, input.entityId);
       if (!entity) {
         notFound("ปลายทางที่แนบไฟล์", input.entityId);
+      }
+
+      // ไฟล์บนใบงานร้านนอก (B14) โผล่บนลิงก์ public /job/<token> — แนบได้เฉพาะทีมผลิต
+      // (ตรง dialog ที่โชว์เฉพาะ canHandleGoods + generateLink=productionUp) · กัน role อื่น
+      // ยัดไฟล์เข้าใบ outsource ทาง API · read side ก็กรอง path+category ซ้ำอีกชั้น
+      if (input.entityType === "OUTSOURCE_ORDER") {
+        if (!["OWNER", "MANAGER", "PRODUCTION_STAFF"].includes(ctx.userRole)) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "แนบไฟล์บนใบงานร้านนอกได้เฉพาะทีมผลิต/ผู้จัดการ",
+          });
+        }
+        // ไฟล์ต้องอยู่ในโฟลเดอร์ของใบนี้เอง (ที่ dialog อัปจริง) — กันยัด proxy URL ของ
+        // ไฟล์เงิน/เอกสารอื่นในบัคเก็ต (แม้ encoded-traversal) แล้วรั่วสู่ลิงก์ public
+        if (!isOwnOutsourceFile(input.entityId, input.fileUrl)) {
+          badRequest("ไฟล์แนบใบงานร้านนอกต้องอัปโหลดผ่านช่องแนบไฟล์ของใบนั้น");
+        }
       }
 
       // ไฟล์พิมพ์จริง (ชั้น 3) = ของฝ่ายผลิต/กราฟิก — ขาย/บัญชีไม่มีเหตุต้องแนบ

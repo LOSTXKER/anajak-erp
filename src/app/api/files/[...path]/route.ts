@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/supabase-server";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { prisma } from "@/lib/prisma";
+import { allowedShareFileUrls } from "@/server/services/outsource-share";
 import {
   ALLOWED_FILE_BUCKETS,
   parseProxyFileUrl,
@@ -38,8 +39,17 @@ export async function GET(
   if (!(ALLOWED_FILE_BUCKETS as readonly string[]).includes(bucket)) {
     return deny(400, "bucket ไม่ถูกต้อง");
   }
-  // กัน path traversal — segment ว่าง/จุดล้วนต้องไม่หลุดไปถึง storage API
-  if (rest.some((s) => !s || s === "." || s === "..")) {
+  // กัน path traversal — segment ว่าง/จุดล้วน + encoded separator/dot (`..%2f`, `%2e%2e`)
+  // ที่ decode แล้วกลายเป็น separator/`..` ต้องไม่หลุดไปถึง storage API (skeptic B14: encoded
+  // traversal เลี่ยงการเช็ค `s===".."` ตรงๆ ได้ — เช็คทั้งรูปดิบและรูป decode)
+  if (
+    rest.some((s) => {
+      if (!s) return true;
+      if (/%2e|%2f|%5c/i.test(s)) return true;
+      const d = safeDecode(s);
+      return d === "." || d === ".." || d.includes("/") || d.includes("\\") || d.includes("..");
+    })
+  ) {
     return deny(400, "path ไม่ถูกต้อง");
   }
   const objectPath = rest.join("/");
@@ -70,6 +80,7 @@ export async function GET(
 
     const t = req.nextUrl.searchParams.get("t"); // approval token (design)
     const s = req.nextUrl.searchParams.get("s"); // status token (ลิงก์สถานะ ก้อน 4)
+    const os = req.nextUrl.searchParams.get("os"); // share token ใบงานร้านนอก (B14)
 
     if (t) {
       // เปิดได้เฉพาะไฟล์/รูปตัวอย่างของแบบใบนั้น
@@ -104,6 +115,16 @@ export async function GET(
         ...order.designs.flatMap((d) => [d.fileUrl, d.thumbnailUrl]),
         ...order.quotations.map((q) => q.pdfUrl),
       ];
+      if (!matches(urls)) {
+        return deny(403, "ลิงก์นี้เปิดไฟล์นี้ไม่ได้");
+      }
+    } else if (os) {
+      // ลิงก์ใบงานร้านนอก — เปิดได้เฉพาะ ไฟล์แนบบนใบ + แบบอนุมัติ + รูปลายสเปคพิมพ์
+      // ของออเดอร์นั้น (allowlist คิดที่ service เดียวกับหน้าแชร์ — กัน drift)
+      const urls = await allowedShareFileUrls(prisma, os);
+      if (urls === null) {
+        return deny(403, "ลิงก์หมดอายุหรือไม่ถูกต้อง");
+      }
       if (!matches(urls)) {
         return deny(403, "ลิงก์นี้เปิดไฟล์นี้ไม่ได้");
       }

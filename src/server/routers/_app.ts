@@ -6,6 +6,7 @@ import { designRouter } from "./design";
 import { billingRouter } from "./billing";
 import { billingNoteRouter } from "./billing-note";
 import { outsourceRouter } from "./outsource";
+import { outsourceShareRouter } from "./outsource-share";
 import { analyticsRouter } from "./analytics";
 import { quotationRouter } from "./quotation";
 import { productRouter } from "./product";
@@ -39,6 +40,7 @@ export const appRouter = router({
   billing: billingRouter,
   billingNote: billingNoteRouter,
   outsource: outsourceRouter,
+  outsourceShare: outsourceShareRouter,
   analytics: analyticsRouter,
   quotation: quotationRouter,
   product: productRouter,

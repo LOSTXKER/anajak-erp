@@ -32,11 +32,13 @@ import {
   X,
   AlertCircle,
   Loader2,
+  Share2,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
+import { OutsourceShareDialog } from "@/components/outsource/outsource-share-dialog";
 
 type StatusVariant = "default" | "accent" | "success" | "warning" | "destructive";
 
@@ -88,6 +90,14 @@ export default function OutsourcePage() {
     orderId: string;
     description: string;
     quantity: number;
+  } | null>(null);
+
+  // แชร์ใบงานให้ร้านผ่าน LINE + แนบไฟล์ลาย (B14)
+  const [shareTarget, setShareTarget] = useState<{
+    id: string;
+    description: string;
+    quantity: number;
+    expectedBackAt: Date | string | null;
   } | null>(null);
 
   const utils = trpc.useUtils();
@@ -349,6 +359,26 @@ export default function OutsourcePage() {
                           {o.qcNotes && ` · QC: ${o.qcNotes}`}
                         </p>
                         <div className="flex gap-1.5">
+                          {/* แชร์ให้ร้าน + แนบไฟล์ลาย — จบ QC แล้วไม่ต้องแชร์ต่อ (B14) */}
+                          {canHandleGoods &&
+                            !["QC_PASSED", "QC_FAILED"].includes(o.status) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                              onClick={() =>
+                                setShareTarget({
+                                  id: o.id,
+                                  description: o.description,
+                                  quantity: o.quantity,
+                                  expectedBackAt: o.expectedBackAt,
+                                })
+                              }
+                            >
+                              <Share2 className="h-3 w-3" />
+                              แชร์ให้ร้าน
+                            </Button>
+                          )}
                           {o.status === "DRAFT" && (
                             <>
                               {canHandleGoods && (
@@ -543,6 +573,11 @@ export default function OutsourcePage() {
 
       {/* รับกลับร้านนอก: นับของก่อน (ใบตรวจรับ) → บันทึกแล้วค่อย flip สถานะรับกลับ
           ถ้า flip พลาด (ใบถูกคนอื่นขยับ) ใบตรวจรับยังอยู่ — กด "รับของกลับแล้ว" ซ้ำได้ */}
+      {/* แชร์ใบงานให้ร้าน (B14) — ลิงก์ public + ไฟล์ลาย */}
+      {shareTarget && (
+        <OutsourceShareDialog job={shareTarget} onClose={() => setShareTarget(null)} />
+      )}
+
       {receiveTarget && (
         <GoodsReceiptDialog
           orderId={receiveTarget.orderId}

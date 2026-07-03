@@ -1247,6 +1247,9 @@ model OutsourceOrder {
   qcPassed         Boolean?        @map("qc_passed")
   qcNotes          String?         @map("qc_notes")
   notes            String?
+  // ลิงก์ใบงานให้ร้านนอกเปิดผ่าน LINE ไม่ต้อง login (B14 — เลียน statusToken ของ Order)
+  shareToken          String?   @unique @map("share_token")
+  shareTokenExpiresAt DateTime? @map("share_token_expires_at")
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
 
