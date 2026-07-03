@@ -1,17 +1,37 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { StatCard } from "@/components/ui/stat-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
-import { Users, DollarSign, AlertCircle, Hourglass } from "lucide-react";
+import {
+  Users,
+  DollarSign,
+  AlertCircle,
+  Hourglass,
+  MessageSquare,
+  Copy,
+  Loader2,
+} from "lucide-react";
 
 const FINANCE_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
+type DunningTone = "gentle" | "firm";
 
 // ลำดับ + ป้ายถังอายุหนี้ — ตรงกับ AGING_BUCKETS ใน services/receivables.ts
 const BUCKETS = [
@@ -28,6 +48,42 @@ export default function AgingPage() {
   const { data, isLoading, isError, refetch } = trpc.billingNote.aging.useQuery(undefined, {
     enabled: canView,
   });
+
+  // ร่างข้อความทวงต่อลูกค้า — ก๊อปส่งเอง (ไม่ยิงอัตโนมัติ) · โหลด draft เมื่อเลือกลูกค้า
+  const [draftFor, setDraftFor] = useState<{ id: string; label: string } | null>(null);
+  const [tone, setTone] = useState<DunningTone>("gentle");
+  const draft = trpc.billingNote.dunningDraft.useQuery(
+    { customerId: draftFor?.id ?? "", tone },
+    { enabled: !!draftFor }
+  );
+
+  async function copyDraft(text: string) {
+    // clipboard undefined บน insecure context (http LAN) — fallback textarea+execCommand
+    const fallback = () => {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        return ok;
+      } catch {
+        return false;
+      }
+    };
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    } catch {
+      copied = fallback();
+    }
+    toast.success(copied ? "คัดลอกข้อความแล้ว — วางส่งลูกค้าได้เลย" : "คัดลอกไม่สำเร็จ");
+  }
 
   if (me && !canView) {
     return (
@@ -97,12 +153,29 @@ export default function AgingPage() {
           {data?.rows.map((row) => (
             <DataTable.Row key={row.customerId}>
               <DataTable.Td>
-                <Link
-                  href={`/customers/${row.customerId}`}
-                  className="font-medium text-blue-600 hover:underline dark:text-blue-400"
-                >
-                  {row.company ? `${row.company} (${row.name})` : row.name}
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/customers/${row.customerId}`}
+                    className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    {row.company ? `${row.company} (${row.name})` : row.name}
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+                    title="ร่างข้อความทวง"
+                    onClick={() => {
+                      setTone("gentle");
+                      setDraftFor({
+                        id: row.customerId,
+                        label: row.company ? `${row.company} (${row.name})` : row.name,
+                      });
+                    }}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </DataTable.Td>
               {BUCKETS.map((b) => (
                 <DataTable.Td
@@ -153,6 +226,62 @@ export default function AgingPage() {
           )}
         </DataTable.Body>
       </DataTable.Root>
+
+      {/* ร่างข้อความทวงหนี้ — ก๊อปส่งเอง (ไม่ยิงอัตโนมัติ · เบสเลือก surface ให้คนตัดสิน) */}
+      <Dialog open={draftFor !== null} onOpenChange={(open) => !open && setDraftFor(null)}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>ร่างข้อความทวง</DialogTitle>
+            <DialogDescription>
+              {draftFor?.label} — ตรวจข้อความก่อน คัดลอกไปส่งลูกค้าเอง (ระบบไม่ส่งอัตโนมัติ)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex gap-1.5">
+              {(["gentle", "firm"] as const).map((t) => (
+                <Button
+                  key={t}
+                  variant={tone === t ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTone(t)}
+                >
+                  {t === "gentle" ? "สุภาพ" : "หนักแน่น"}
+                </Button>
+              ))}
+            </div>
+            {draft.isLoading ? (
+              <div className="flex items-center gap-2 py-8 text-sm text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                กำลังร่าง...
+              </div>
+            ) : draft.isError ? (
+              <p className="py-8 text-center text-sm text-red-500">ร่างข้อความไม่สำเร็จ</p>
+            ) : draft.data?.text ? (
+              <>
+                <Textarea
+                  value={draft.data.text}
+                  readOnly
+                  rows={12}
+                  className="font-mono text-xs"
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-slate-500">
+                    {draft.data.invoiceCount} ใบ · ค้างรวม {formatCurrency(draft.data.totalOutstanding)}
+                  </p>
+                  <Button size="sm" className="gap-1.5" onClick={() => copyDraft(draft.data!.text!)}>
+                    <Copy className="h-3.5 w-3.5" />
+                    คัดลอกข้อความ
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="py-8 text-center text-sm text-slate-400">
+                ลูกค้ารายนี้ไม่มียอดค้าง — ไม่มีอะไรต้องทวง
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

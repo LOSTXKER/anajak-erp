@@ -9,7 +9,11 @@ import {
   outstandingOf,
   buildAgingReport,
   loadAgingInvoices,
+  loadReceivablesByCustomer,
+  daysOverdue,
 } from "@/server/services/receivables";
+import { buildDunningDraft } from "@/server/services/dunning";
+import { parseCompanyProfile, COMPANY_PROFILE_KEY } from "@/lib/company-profile";
 import { aggToNumber } from "@/server/services/money";
 import type { PrismaTx } from "@/lib/prisma";
 
@@ -274,4 +278,52 @@ export const billingNoteRouter = router({
     const invoices = await loadAgingInvoices(ctx.prisma);
     return buildAgingReport(invoices);
   }),
+
+  // ร่างข้อความทวงหนี้ต่อลูกค้า (ก๊อปส่งเอง ไม่ยิงอัตโนมัติ) — เดิมเรียกได้แค่ทาง MCP
+  // ประกอบชุดเดียวกับ MCP tool receivables (loadReceivablesByCustomer + buildDunningDraft)
+  dunningDraft: protectedProcedure
+    .use(billingStaff)
+    .input(
+      z.object({
+        customerId: z.string(),
+        tone: z.enum(["gentle", "firm"]).optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const customer = await ctx.prisma.customer.findUnique({
+        where: { id: input.customerId },
+        select: { id: true, name: true, company: true },
+      });
+      if (!customer) notFound("ลูกค้า", input.customerId);
+
+      const rows = await loadReceivablesByCustomer(ctx.prisma, customer.id);
+      if (rows.length === 0) {
+        return { text: null, invoiceCount: 0, totalOutstanding: 0 };
+      }
+      const invoices = rows.map((r) => ({
+        invoiceNumber: r.invoiceNumber,
+        orderNumber: r.orderNumber,
+        type: r.type,
+        dueDate: r.dueDate,
+        daysOverdue: daysOverdue(r.dueDate),
+        outstanding: r.outstanding,
+      }));
+      const setting = await ctx.prisma.setting.findFirst({
+        where: { key: COMPANY_PROFILE_KEY },
+        select: { value: true },
+      });
+      const ourCompany = parseCompanyProfile(setting?.value);
+      const draft = buildDunningDraft({
+        customerName: customer.name,
+        company: customer.company,
+        invoices,
+        ourCompany: { name: ourCompany.name, phone: ourCompany.phone },
+        tone: input.tone,
+      });
+      return {
+        text: draft.text,
+        invoiceCount: draft.invoiceCount,
+        totalOutstanding: draft.totalOutstanding,
+      };
+    }),
 });
