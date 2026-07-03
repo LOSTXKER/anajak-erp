@@ -18,6 +18,8 @@ import {
   RECEIVABLE_TYPES,
   creditedOf,
   paymentStatusForSettled,
+  loadAgingInvoices,
+  outstandingOf,
 } from "@/server/services/receivables";
 import type { PrismaTx } from "@/lib/prisma";
 
@@ -866,16 +868,11 @@ export const billingRouter = router({
 
     // ยอดค้าง/รายได้นับเฉพาะใบแจ้งหนี้ (มัดจำ+ส่วนที่เหลือ) + ใบเพิ่มหนี้ −ใบลดหนี้ —
     // ใบเสร็จคือเอกสารรับเงินของบิลเดียวกัน นับด้วยจะซ้ำสองเท่า · OVERDUE ยังเป็นยอดค้างอยู่
-    const [totalUnpaid, overdueCount, revenueThisMonth, creditThisMonth, paidThisMonth] =
+    // ยอดค้าง = Σ outstandingOf (หัก payments+WHT+CN) แหล่งเดียวกับ /billing/aging —
+    // เดิม Σ totalAmount เต็มใบ (PARTIALLY_PAID นับเต็ม + ไม่หัก CN = ยอดค้างปลอมสูง)
+    const [unpaidInvoices, overdueCount, revenueThisMonth, creditThisMonth, paidThisMonth] =
       await Promise.all([
-        ctx.prisma.invoice.aggregate({
-          _sum: { totalAmount: true },
-          where: {
-            type: { in: ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"] },
-            paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID", "OVERDUE"] },
-            isVoided: false,
-          },
-        }),
+        loadAgingInvoices(ctx.prisma),
         ctx.prisma.invoice.count({
           where: { paymentStatus: "OVERDUE", isVoided: false },
         }),
@@ -901,9 +898,12 @@ export const billingRouter = router({
         }),
       ]);
 
+    // ยอดค้างรวม = Σ ยอดคงเหลือต่อใบ (Decimal exact แล้วปัด 2 ตำแหน่ง)
+    const totalUnpaid = unpaidInvoices.reduce((sum, inv) => sum.plus(outstandingOf(inv)), D(0));
+
     // ผล aggregate ไม่ผ่าน result extension — ต้องแปลง Decimal → number ที่นี่
     return {
-      totalUnpaid: aggToNumber(totalUnpaid._sum.totalAmount),
+      totalUnpaid: round2(totalUnpaid).toNumber(),
       overdueCount,
       revenueThisMonth:
         aggToNumber(revenueThisMonth._sum.totalAmount) -
