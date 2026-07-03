@@ -5,6 +5,9 @@ import {
   isValidTransition,
   getCustomerStatus,
   forwardPath,
+  isOrderLocked,
+  canIssueChangeOrder,
+  orderEditLockedReason,
 } from "./order-status";
 
 // เกราะของ status machine — ทุก transition ใหม่/ที่แก้ ต้องบันทึกไว้ที่นี่
@@ -130,5 +133,36 @@ describe("getCustomerStatus — แปลงสถานะภายในเป
     expect(getCustomerStatus("READY_TO_SHIP")).toBe("READY_TO_SHIP");
     expect(getCustomerStatus("COMPLETED")).toBe("COMPLETED");
     expect(getCustomerStatus("ON_HOLD")).toBe("PREPARING");
+  });
+});
+
+describe("isOrderLocked / orderEditLockedReason (B10)", () => {
+  it("แก้ตรงได้เฉพาะก่อนอนุมัติแบบ — DRAFT/INQUIRY/CONFIRMED/DESIGNING", () => {
+    for (const s of ["DRAFT", "INQUIRY", "CONFIRMED", "DESIGNING"] as const) {
+      expect(isOrderLocked(s)).toBe(false);
+    }
+  });
+
+  it("ON_HOLD ถูกล็อก (B10 ถอดจาก editable) — พักงานเข้าจากสถานะที่ล็อกแล้วได้ กันช่องเลี่ยงใบแก้ไข", () => {
+    expect(isOrderLocked("ON_HOLD")).toBe(true);
+    expect(canIssueChangeOrder("ON_HOLD")).toBe(false); // ต้องปลดพักก่อน ออก CO ตรงจาก ON_HOLD ไม่ได้
+  });
+
+  it("สถานะล็อกอื่นครบ", () => {
+    for (const s of [
+      "DESIGN_APPROVED", "PRODUCTION_QUEUE", "PRODUCING",
+      "QUALITY_CHECK", "PACKING", "READY_TO_SHIP", "SHIPPED", "COMPLETED", "CANCELLED",
+    ] as const) {
+      expect(isOrderLocked(s)).toBe(true);
+    }
+  });
+
+  it("ข้อความ lock: ON_HOLD บอกให้ปลดพัก · CO status บอกให้ออกใบแก้ไข · ที่เหลือบอกแก้ไม่ได้", () => {
+    expect(orderEditLockedReason("ON_HOLD", "รายการ")).toContain("ปลดพัก");
+    expect(orderEditLockedReason("DESIGN_APPROVED", "ค่าธรรมเนียม")).toContain("ใบแก้ไขออเดอร์");
+    expect(orderEditLockedReason("PRODUCTION_QUEUE", "ข้อมูลการเงิน")).toContain("ใบแก้ไขออเดอร์");
+    expect(orderEditLockedReason("PRODUCING", "รายการ")).toContain("เริ่มผลิต");
+    // subject แทรกในข้อความถูกช่อง
+    expect(orderEditLockedReason("ON_HOLD", "ค่าธรรมเนียม")).toContain("แก้ค่าธรรมเนียมได้");
   });
 });

@@ -22,7 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Save } from "lucide-react";
-import { PRIORITY_LABELS } from "@/lib/order-status";
+import { PRIORITY_LABELS, isOrderLocked, orderEditLockedReason } from "@/lib/order-status";
+import type { InternalStatus } from "@prisma/client";
 import { PAYMENT_TERMS_LABELS, type PaymentTermsValue } from "@/lib/payment-terms";
 import { calculateOrderSummary } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
@@ -34,6 +35,7 @@ interface OrderInfoEditOrder {
   deadline: string | Date | null;
   priority: string;
   notes: string | null;
+  internalStatus: string;
   taxRate: number;
   discount: number;
   platformFee: number | null;
@@ -150,6 +152,15 @@ export function OrderInfoEditDialog({
 
   const isMarketplace = ["SHOPEE", "LAZADA", "TIKTOK"].includes(order?.channel);
 
+  // ยอด/ส่วนลด/ภาษี/เทอม แก้ตรงไม่ได้เมื่อออเดอร์ล็อก (อนุมัติ→ใบแก้ไข · พักงาน→ปลดพัก)
+  // — server order.update block เฉพาะ field เงิน (touchesMoney) แต่ dialog เดิมแนบ
+  // discount+taxRate เสมอ → กด Save แก้ที่อยู่ก็โดนเด้งทั้งใบ · ปิดช่องเงิน + ไม่แนบตอนล็อก
+  // ให้ field ที่ไม่ใช่เงิน (ที่อยู่/หมายเหตุ/กำหนดส่ง) ยังบันทึกได้ (B10 + บั๊กเดิมสถานะล็อกอื่น)
+  const moneyLocked = order ? isOrderLocked(order.internalStatus as InternalStatus) : false;
+  const moneyLockHint = order
+    ? orderEditLockedReason(order.internalStatus as InternalStatus, "ข้อมูลการเงิน")
+    : "";
+
   // เพดานขาที่สอง (B9): preview ยอดรวมด้วยสูตรเดียวกับ server (order.update recalc
   // จาก subtotal เดิม + ส่วนลด/ภาษีใหม่) — ต่ำกว่าบิลที่ออกแล้ว server จะปฏิเสธ
   const previewTotal = calculateOrderSummary({
@@ -178,11 +189,17 @@ export function OrderInfoEditDialog({
       deadline: form.deadline || undefined,
       priority: form.priority as "LOW" | "NORMAL" | "HIGH" | "URGENT",
       notes: form.notes || undefined,
-      taxRate: form.taxRate,
-      discount: form.discount,
-      platformFee: form.platformFee || undefined,
-      // null = ล้างกลับเป็น "ไม่ระบุ" จริง (undefined = Prisma ข้าม field ล้างไม่ได้)
-      paymentTerms: (form.paymentTerms || null) as PaymentTermsValue | null,
+      // field เงิน: แนบเฉพาะตอนแก้ได้ — ล็อกอยู่ = ไม่ส่ง (undefined) ให้ touchesMoney
+      // เป็น false ที่ server → บันทึก field ที่ไม่ใช่เงินผ่าน ไม่โดน lock guard เด้งทั้งใบ
+      ...(moneyLocked
+        ? {}
+        : {
+            taxRate: form.taxRate,
+            discount: form.discount,
+            platformFee: form.platformFee || undefined,
+            // null = ล้างกลับเป็น "ไม่ระบุ" จริง (undefined = Prisma ข้าม field ล้างไม่ได้)
+            paymentTerms: (form.paymentTerms || null) as PaymentTermsValue | null,
+          }),
       poNumber: form.poNumber || undefined,
       shippingRecipientName: form.shippingRecipientName || undefined,
       shippingPhone: form.shippingPhone || undefined,
@@ -278,6 +295,12 @@ export function OrderInfoEditDialog({
           {/* ---- Financial ---- */}
           <div className={sectionClass}>
             <p className={sectionTitleClass}>การเงิน</p>
+            {/* ล็อกอยู่ → ปิดช่องเงิน + บอกเหตุ (ที่อยู่/หมายเหตุ/PO ยังแก้ได้) */}
+            {moneyLocked && (
+              <p className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
+                {moneyLockHint}
+              </p>
+            )}
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className={labelClass}>ภาษี (%)</label>
@@ -291,6 +314,7 @@ export function OrderInfoEditDialog({
                   className="h-9"
                   min="0"
                   max="100"
+                  disabled={moneyLocked}
                 />
               </div>
               <div>
@@ -304,6 +328,7 @@ export function OrderInfoEditDialog({
                   placeholder="0"
                   className="h-9"
                   min="0"
+                  disabled={moneyLocked}
                 />
               </div>
               <div>
@@ -317,6 +342,7 @@ export function OrderInfoEditDialog({
                   placeholder="0"
                   className="h-9"
                   min="0"
+                  disabled={moneyLocked}
                 />
               </div>
             </div>
@@ -336,6 +362,7 @@ export function OrderInfoEditDialog({
                   onValueChange={(v) =>
                     update("paymentTerms", v === "_none" ? "" : v)
                   }
+                  disabled={moneyLocked}
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="เลือก..." />

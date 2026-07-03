@@ -274,16 +274,18 @@ export function isValidTransition(
 // ไม่ได้ ต้องออก "ใบแก้ไขออเดอร์" · แหล่งเดียว server (4 จุด guard) + UI ใช้ร่วม กัน drift
 // ============================================================
 
-// แก้ตรงได้เฉพาะก่อนอนุมัติแบบ + งานพัก · นอกนั้นล็อก (อนุมัติ/ผลิต/ส่ง/ปิด/ยกเลิก)
+// แก้ตรงได้เฉพาะก่อนอนุมัติแบบ · นอกนั้นล็อก (อนุมัติ/ผลิต/ส่ง/ปิด/ยกเลิก/พักงาน)
+// ON_HOLD ถอดออก (B10): พักงานเข้าได้จากสถานะที่ล็อกแล้ว (DESIGN_APPROVED/PRODUCING/QC/
+// PACKING) — ถ้าแก้ตรงได้ = ช่องเลี่ยงใบแก้ไข (พัก→แก้ยอด→ปลดพัก ไม่มี CO/เหตุผล/ประวัติ)
+// · แก้งานพักต้อง "ปลดพักก่อน" แล้วเข้ากติกาตามสถานะที่กลับไป (next-step card ชี้ทางนี้อยู่)
 const ORDER_EDITABLE_STATUSES: InternalStatus[] = [
   "DRAFT",
   "INQUIRY",
   "CONFIRMED",
   "DESIGNING",
-  "ON_HOLD",
 ];
 
-/** ออเดอร์ "อนุมัติแล้ว" — แก้รายการ/ราคาตรงไม่ได้ ต้องผ่านใบแก้ไขออเดอร์ */
+/** ออเดอร์ "อนุมัติแล้ว/พักงาน" — แก้รายการ/ราคาตรงไม่ได้ ต้องผ่านใบแก้ไขออเดอร์ (หรือปลดพักก่อน) */
 export function isOrderLocked(status: InternalStatus): boolean {
   return !ORDER_EDITABLE_STATUSES.includes(status);
 }
@@ -294,6 +296,22 @@ export function isOrderLocked(status: InternalStatus): boolean {
  */
 export function canIssueChangeOrder(status: InternalStatus): boolean {
   return status === "DESIGN_APPROVED" || status === "PRODUCTION_QUEUE";
+}
+
+// เหตุผลที่แก้ยอด/รายการ/ค่าธรรมเนียมตรงไม่ได้ — แหล่งเดียว 3 mutation (update/updateItems/
+// updateFees) ใช้ร่วม กันข้อความ drift · ครอบ ON_HOLD ที่ B10 เพิ่งถอดจาก editable
+// (เรียกเฉพาะเมื่อ isOrderLocked แล้ว — สถานะ editable ไม่ถึงตรงนี้)
+export function orderEditLockedReason(
+  status: InternalStatus,
+  subject: "ข้อมูลการเงิน" | "รายการ" | "ค่าธรรมเนียม"
+): string {
+  if (status === "ON_HOLD") {
+    return `ออเดอร์พักงานอยู่ — ปลดพัก (กลับเข้างาน) ก่อนจึงจะแก้${subject}ได้`;
+  }
+  if (canIssueChangeOrder(status)) {
+    return `ออเดอร์อนุมัติแล้ว — แก้${subject}ผ่านใบแก้ไขออเดอร์`;
+  }
+  return `ออเดอร์ที่เริ่มผลิต/เสร็จ/ยกเลิกแล้ว แก้${subject}ไม่ได้`;
 }
 
 /**

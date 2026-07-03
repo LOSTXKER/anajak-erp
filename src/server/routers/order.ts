@@ -7,6 +7,7 @@ import {
   isRollbackTransition,
   isOrderLocked,
   canIssueChangeOrder,
+  orderEditLockedReason,
   PRODUCTION_STAFF_STATUSES,
   DESIGNER_STATUSES,
   ACCOUNTANT_STATUSES,
@@ -981,11 +982,7 @@ export const orderRouter = router({
         data.taxRate !== undefined ||
         data.paymentTerms !== undefined;
       if (touchesMoney && isOrderLocked(currentOrder.internalStatus)) {
-        badRequest(
-          canIssueChangeOrder(currentOrder.internalStatus)
-            ? "ออเดอร์อนุมัติแล้ว — แก้ส่วนลด/ภาษีผ่านใบแก้ไขออเดอร์"
-            : "ออเดอร์ที่เริ่มผลิต/เสร็จ/ยกเลิกแล้ว แก้ไขข้อมูลการเงินไม่ได้"
-        );
+        badRequest(orderEditLockedReason(currentOrder.internalStatus, "ข้อมูลการเงิน"));
       }
 
       const baseData = {
@@ -1057,13 +1054,9 @@ export const orderRouter = router({
         where: { id: input.id },
       });
 
-      // อนุมัติแบบแล้ว (DESIGN_APPROVED ขึ้นไป) — แก้รายการตรงไม่ได้ ต้องผ่านใบแก้ไขออเดอร์
+      // อนุมัติแบบแล้ว (DESIGN_APPROVED ขึ้นไป)/พักงาน — แก้รายการตรงไม่ได้ ต้องผ่านใบแก้ไข/ปลดพัก
       if (isOrderLocked(order.internalStatus)) {
-        badRequest(
-          canIssueChangeOrder(order.internalStatus)
-            ? "ออเดอร์อนุมัติแล้ว — แก้รายการผ่านใบแก้ไขออเดอร์"
-            : "ออเดอร์นี้เลยขั้นแก้ไขแล้ว (เริ่มผลิต/ส่ง/ปิด)"
-        );
+        badRequest(orderEditLockedReason(order.internalStatus, "รายการ"));
       }
 
       // artworkId เป็น hint จาก echo — เก็บเฉพาะลายจริงของลูกค้านี้ที่รูปยังตรง
@@ -1229,13 +1222,9 @@ export const orderRouter = router({
         where: { id: input.id },
       });
 
-      // อนุมัติแบบแล้ว — แก้ค่าธรรมเนียม (= แก้ยอด) ผ่านใบแก้ไขออเดอร์เท่านั้น
+      // อนุมัติแบบแล้ว/พักงาน — แก้ค่าธรรมเนียม (= แก้ยอด) ผ่านใบแก้ไข/ปลดพักก่อนเท่านั้น
       if (isOrderLocked(order.internalStatus)) {
-        badRequest(
-          canIssueChangeOrder(order.internalStatus)
-            ? "ออเดอร์อนุมัติแล้ว — แก้ค่าธรรมเนียมผ่านใบแก้ไขออเดอร์"
-            : "ออเดอร์ที่เริ่มผลิต/เสร็จ/ยกเลิกแล้ว แก้ไขค่าธรรมเนียมไม่ได้"
-        );
+        badRequest(orderEditLockedReason(order.internalStatus, "ค่าธรรมเนียม"));
       }
 
       // ยอด+ด่านเพดานขาที่สอง (B9) คิด "ใต้ lock" — เหตุผลเดียวกับ updateItems (กัน TOCTOU)
@@ -1331,9 +1320,11 @@ export const orderRouter = router({
 
       if (!canIssueChangeOrder(order.internalStatus)) {
         badRequest(
-          isOrderLocked(order.internalStatus)
-            ? "ออเดอร์นี้เลยขั้นที่ออกใบแก้ไขได้แล้ว (เริ่มผลิต/ส่ง/ปิด) — ติดต่อหัวหน้า"
-            : "ออเดอร์ยังไม่อนุมัติ — แก้รายการได้ตรงๆ ไม่ต้องออกใบแก้ไข"
+          order.internalStatus === "ON_HOLD"
+            ? "ออเดอร์พักงานอยู่ — ปลดพัก (กลับเข้างาน) ก่อนจึงจะออกใบแก้ไขได้"
+            : isOrderLocked(order.internalStatus)
+              ? "ออเดอร์นี้เลยขั้นที่ออกใบแก้ไขได้แล้ว (เริ่มผลิต/ส่ง/ปิด) — ติดต่อหัวหน้า"
+              : "ออเดอร์ยังไม่อนุมัติ — แก้รายการได้ตรงๆ ไม่ต้องออกใบแก้ไข"
         );
       }
 
@@ -1485,6 +1476,11 @@ export const orderRouter = router({
 
       if (order.internalStatus === "COMPLETED" || order.internalStatus === "CANCELLED") {
         badRequest("ออเดอร์ที่เสร็จสิ้นหรือยกเลิกแล้ว เพิ่มค่าแก้แบบไม่ได้");
+      }
+      // งานพัก — คิดค่าแก้แบบ (แก้ยอด) ต้องปลดพักก่อน เหมือน mutation แก้ยอดอื่น (B10 · review จับ:
+      // เดิม gate แค่ COMPLETED/CANCELLED → ON_HOLD คิดค่าแก้ดันยอดได้ทั้งที่ปิดช่องแก้ยอดอื่นแล้ว)
+      if (order.internalStatus === "ON_HOLD") {
+        badRequest("ออเดอร์พักงานอยู่ — ปลดพัก (กลับเข้างาน) ก่อนจึงจะคิดค่าแก้แบบได้");
       }
 
       const overage = computeRevisionOverage(order._count.designs);

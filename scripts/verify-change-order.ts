@@ -38,6 +38,7 @@ async function main() {
   let customer: { id: string } | null = null;
   let order: { id: string } | null = null;
   let order2: { id: string } | null = null;
+  let order3: { id: string } | null = null;
 
   const getOrder = (id: string) =>
     prisma.order.findUniqueOrThrow({ where: { id }, include: { fees: true } });
@@ -153,15 +154,61 @@ async function main() {
     check("7.1 CO ลดยอดต่ำกว่าบิล (535 < มัดจำ 1000) → ผ่าน ไม่ block (โดยเจตนา)",
       Number(resB9.newTotal) === 535, String(resB9.newTotal));
     check("7.2 invoicedWarning ติดธง — UI เตือนให้ออกใบลดหนี้ตาม", resB9.invoicedWarning === true);
+
+    // ── 8. B10: ON_HOLD ถอดจาก editable — แก้ตรงไม่ได้ ต้องปลดพักก่อน ──
+    order3 = await prisma.order.create({
+      data: {
+        orderNumber: `TEST-CO3-${Date.now()}`,
+        title: `${MARK} งานพัก`,
+        customerId: customer.id,
+        createdById: owner.id,
+        orderType: "CUSTOM",
+        internalStatus: "CONFIRMED",
+        customerStatus: "ORDER_RECEIVED",
+        subtotalItems: 1000,
+        taxRate: 0,
+        discount: 0,
+        totalAmount: 1000,
+      },
+    });
+    await ownerCaller.order.updateStatus({ id: order3.id, internalStatus: "ON_HOLD" });
+    check("8.1 ON_HOLD updateItems ตรงโดน block (ต้องปลดพัก)",
+      await expectThrow(() => ownerCaller.order.updateItems({ id: order3!.id, items: [ITEM], discount: 0 })));
+    check("8.2 ON_HOLD updateFees ตรงโดน block",
+      await expectThrow(() => ownerCaller.order.updateFees({ id: order3!.id, fees: [FEE] })));
+    check("8.3 ON_HOLD แก้เงิน (discount) ผ่าน order.update โดน block",
+      await expectThrow(() => ownerCaller.order.update({ id: order3!.id, discount: 100 })));
+    check("8.4 ON_HOLD ออกใบแก้ไข (CO) ไม่ได้ (canIssueChangeOrder=false — ต้องปลดพัก)",
+      await expectThrow(() => ownerCaller.order.applyChangeOrder({ id: order3!.id, items: [ITEM], fees: [], discount: 0, reason: "z" })));
+    check("8.4b ON_HOLD คิดค่าแก้แบบ (addRevisionFee ดันยอด) โดน block — ต้องปลดพัก",
+      await expectThrow(() => ownerCaller.order.addRevisionFee({ id: order3!.id })));
+    // แก้เงินพร้อม field อื่น (dialog เดิมแนบ discount+taxRate เสมอ) → touchesMoney โดน block
+    check("8.5a ON_HOLD update ที่แตะเงิน (discount+notes) โดน block ทั้งใบ",
+      await expectThrow(() => ownerCaller.order.update({ id: order3!.id, discount: 0, notes: `${MARK} x` })));
+    // field ที่ไม่ใช่เงินล้วน (dialog ตัด money fields ตอนล็อก) — บันทึกผ่าน ไม่โดน lock guard
+    await ownerCaller.order.update({
+      id: order3.id,
+      notes: `${MARK} หมายเหตุตอนพัก`,
+      shippingAddress: `${MARK} ที่อยู่ใหม่`,
+    });
+    const o8n = await getOrder(order3.id);
+    check("8.5b ON_HOLD แก้ field ที่ไม่ใช่เงินล้วน (notes/ที่อยู่) ยังได้",
+      o8n.notes === `${MARK} หมายเหตุตอนพัก` && o8n.shippingAddress === `${MARK} ที่อยู่ใหม่`);
+    // ปลดพัก → CONFIRMED → แก้รายการได้ตามปกติ (กติกากลับมาตามสถานะที่กลับไป)
+    await ownerCaller.order.updateStatus({ id: order3.id, internalStatus: "CONFIRMED" });
+    await ownerCaller.order.updateItems({ id: order3.id, items: [ITEM], discount: 0 });
+    const o8 = await getOrder(order3.id);
+    check("8.6 ปลดพักแล้ว updateItems ตรงได้ (subtotalItems 2000)", Number(o8.subtotalItems) === 2000, String(o8.subtotalItems));
   } finally {
     // cleanup — order delete cascade ลบ items/fees/revisions/changeOrders
     // (invoice/audit/notification ไม่ cascade — ลบเองก่อน กันตกค้างแบบหนี้ B4)
-    const coOrderIds = [order?.id, order2?.id].filter((x): x is string => !!x);
+    const coOrderIds = [order?.id, order2?.id, order3?.id].filter((x): x is string => !!x);
     await prisma.invoice.deleteMany({ where: { orderId: { in: coOrderIds } } }).catch(() => {});
     await prisma.auditLog.deleteMany({ where: { entityId: { in: coOrderIds } } }).catch(() => {});
     await prisma.notification.deleteMany({ where: { entityId: { in: coOrderIds } } }).catch(() => {});
     if (order) await prisma.order.delete({ where: { id: order.id } }).catch(() => {});
     if (order2) await prisma.order.delete({ where: { id: order2.id } }).catch(() => {});
+    if (order3) await prisma.order.delete({ where: { id: order3.id } }).catch(() => {});
     if (customer) await prisma.customer.delete({ where: { id: customer.id } }).catch(() => {});
   }
 

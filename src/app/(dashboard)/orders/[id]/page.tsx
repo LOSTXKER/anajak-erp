@@ -301,9 +301,10 @@ export default function OrderDetailPage({
       ? ((totalAmount - totalCost) / totalAmount) * 100
       : null;
 
+  // ON_HOLD ปิดปุ่มแก้ให้ตรง server (B10 — แก้งานพักต้องปลดพักก่อน · next-step card ชี้ทางปลดพัก)
   const canEditItems = ![
     "PRODUCING", "QUALITY_CHECK", "PACKING", "READY_TO_SHIP",
-    "SHIPPED", "COMPLETED", "CANCELLED",
+    "SHIPPED", "COMPLETED", "CANCELLED", "ON_HOLD",
   ].includes(order.internalStatus);
 
   // แถบ "ขั้นต่อไป" — ระบบจำว่างานนี้ต้องทำอะไรต่อ (logic lib/order-next-step.ts) แทนให้ผู้ใช้ไล่เดาจากการ์ด
