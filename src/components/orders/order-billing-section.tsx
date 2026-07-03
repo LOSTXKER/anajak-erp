@@ -42,6 +42,7 @@ import {
   Printer,
   DollarSign,
   Paperclip,
+  Undo2,
   X,
 } from "lucide-react";
 import type { InvoiceType } from "@prisma/client";
@@ -115,6 +116,13 @@ export function OrderBillingSection({
   const [whtCertDate, setWhtCertDate] = useState("");
   // สลิปโอนจากลูกค้า — อัปโหลดแล้วส่งเป็น evidenceUrl
   const [evidenceUrl, setEvidenceUrl] = useState("");
+
+  // Refund form state (คืนเงิน — server เก็บเป็น payment ยอดติดลบ · คู่กับใบลดหนี้)
+  const [showRefundDialog, setShowRefundDialog] = useState<string | null>(null);
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundMethod, setRefundMethod] = useState<string>(DEFAULT_PAYMENT_METHOD);
+  const [refundReference, setRefundReference] = useState("");
+  const [refundNotes, setRefundNotes] = useState("");
 
   // Void form state
   const [voidReason, setVoidReason] = useState("");
@@ -206,6 +214,17 @@ export function OrderBillingSection({
     },
   });
 
+  const recordRefund = useMutationWithInvalidation(trpc.billing.recordRefund, {
+    invalidate: [utils.billing.listByOrder, utils.order.getById],
+    onSuccess: () => {
+      setShowRefundDialog(null);
+      resetRefundForm();
+    },
+    onError: (err: { message?: string }) => {
+      toast.error(err.message ?? "บันทึกคืนเงินไม่สำเร็จ");
+    },
+  });
+
   function resetCreateForm() {
     setInvoiceType("DEPOSIT_INVOICE");
     setChosenType(null);
@@ -254,6 +273,24 @@ export function OrderBillingSection({
     setWhtCertNumber("");
     setWhtCertDate("");
     setEvidenceUrl("");
+  }
+
+  function resetRefundForm() {
+    setRefundAmount("");
+    setRefundMethod(DEFAULT_PAYMENT_METHOD);
+    setRefundReference("");
+    setRefundNotes("");
+  }
+
+  function handleRecordRefund() {
+    if (!showRefundDialog) return;
+    recordRefund.mutate({
+      invoiceId: showRefundDialog,
+      amount: parseFloat(refundAmount) || 0,
+      method: refundMethod,
+      reference: refundReference || undefined,
+      notes: refundNotes || undefined,
+    });
   }
 
   const isAdjustmentType = invoiceType === "CREDIT_NOTE" || invoiceType === "DEBIT_NOTE";
@@ -470,6 +507,12 @@ export function OrderBillingSection({
                   0,
                   inv.totalAmount - invPaid - creditedAmount(inv)
                 );
+                // เงินสดสุทธิที่รับไว้ (คืนเงินก่อนหน้า = payment ติดลบ หักออกแล้ว · ไม่นับ WHT
+                // ที่เป็นเครดิตภาษี) — คืนเงินได้ไม่เกินนี้ ตรงเพดาน server recordRefund
+                const invNetCash = (inv.payments || []).reduce(
+                  (sum: number, p: Payment) => sum + p.amount,
+                  0
+                );
 
                 return (
                   <div
@@ -652,6 +695,28 @@ export function OrderBillingSection({
                               >
                                 <CreditCard className="h-3 w-3" />
                                 บันทึกชำระ
+                              </Button>
+                            )}
+                          {!inv.isVoided &&
+                            inv.paymentStatus !== "VOIDED" &&
+                            canRecordMoney &&
+                            // คืนเงินได้เมื่อมีเงินสดรับสุทธิ > 0 (ตรงเพดาน server) · ใบลดหนี้เอง
+                            // คือการคืน ไม่ต้องคืนซ้ำ
+                            inv.type !== "CREDIT_NOTE" &&
+                            invNetCash > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-500"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  resetRefundForm();
+                                  setRefundAmount(invNetCash.toString());
+                                  setShowRefundDialog(inv.id);
+                                }}
+                              >
+                                <Undo2 className="h-3 w-3" />
+                                คืนเงิน
                               </Button>
                             )}
                           {!inv.isVoided &&
@@ -1126,6 +1191,91 @@ export function OrderBillingSection({
                 <CreditCard className="h-4 w-4" />
               )}
               บันทึก
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Refund Dialog — คืนเงินให้ลูกค้า (server เก็บเป็น payment ยอดติดลบ · ลด totalSpent) */}
+      <Dialog
+        open={showRefundDialog !== null}
+        onOpenChange={(open) => !open && setShowRefundDialog(null)}
+      >
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>คืนเงินให้ลูกค้า</DialogTitle>
+            <DialogDescription>
+              บันทึกการคืนเงิน — คู่กับใบลดหนี้ที่ออกให้ลูกค้า (คืนได้ไม่เกินเงินที่รับไว้)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                จำนวนเงินคืน (บาท)
+              </label>
+              <Input
+                type="number"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                วิธีคืนเงิน
+              </label>
+              <Select value={refundMethod} onValueChange={setRefundMethod}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHODS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                เลขอ้างอิง
+              </label>
+              <Input
+                type="text"
+                value={refundReference}
+                onChange={(e) => setRefundReference(e.target.value)}
+                placeholder="เลขอ้างอิงการโอนคืน (ถ้ามี)"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                หมายเหตุ
+              </label>
+              <Textarea
+                value={refundNotes}
+                onChange={(e) => setRefundNotes(e.target.value)}
+                rows={2}
+                placeholder="เหตุผลการคืนเงิน..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRefundDialog(null)}>
+              ยกเลิก
+            </Button>
+            <Button
+              onClick={handleRecordRefund}
+              disabled={(parseFloat(refundAmount) || 0) <= 0 || recordRefund.isPending}
+              className="gap-1.5"
+            >
+              {recordRefund.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Undo2 className="h-4 w-4" />
+              )}
+              ยืนยันคืนเงิน
             </Button>
           </DialogFooter>
         </DialogContent>
