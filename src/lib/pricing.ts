@@ -33,16 +33,6 @@ export interface PricingItem {
   products?: PricingProduct[];
 }
 
-export interface PricingFee {
-  amount: number;
-}
-
-export interface PricingOrder {
-  items: PricingItem[];
-  fees: PricingFee[];
-  discount: number;
-}
-
 // ============================================================
 // ITEM-LEVEL CALCULATION
 // ============================================================
@@ -88,58 +78,9 @@ export function calculateItemSubtotal(item: PricingItem): number {
   return baseCost + printCost + addonCost;
 }
 
-/**
- * Calculate the per-piece price (unit price including prints & per-piece addons)
- */
-export function calculateItemUnitPrice(item: PricingItem): number {
-  const printPerPiece = item.prints.reduce((sum, p) => sum + p.unitPrice, 0);
-
-  const addonPerPiece = item.addons.reduce((sum, a) => {
-    if (a.pricingType === "PER_PIECE") {
-      return sum + a.unitPrice;
-    }
-    return sum;
-  }, 0);
-
-  return item.baseUnitPrice + printPerPiece + addonPerPiece;
-}
-
 // ============================================================
 // ORDER-LEVEL CALCULATION
 // ============================================================
-
-/**
- * Calculate the full order total.
- *
- * Formula:
- *   subtotalItems = SUM(items.subtotal)
- *   subtotalFees  = SUM(fees.amount)
- *   totalAmount   = subtotalItems + subtotalFees - discount
- */
-export function calculateOrderTotal(order: PricingOrder): {
-  subtotalItems: number;
-  subtotalFees: number;
-  discount: number;
-  totalAmount: number;
-} {
-  const subtotalItems = order.items.reduce(
-    (sum, item) => sum + calculateItemSubtotal(item),
-    0
-  );
-
-  const subtotalFees = order.fees.reduce((sum, f) => sum + f.amount, 0);
-
-  const discount = order.discount || 0;
-
-  const totalAmount = subtotalItems + subtotalFees - discount;
-
-  return {
-    subtotalItems,
-    subtotalFees,
-    discount,
-    totalAmount: Math.max(0, totalAmount),
-  };
-}
 
 /**
  * สรุปยอดออเดอร์สำหรับ preview ฝั่ง client — สูตร A เดียวกับ server
