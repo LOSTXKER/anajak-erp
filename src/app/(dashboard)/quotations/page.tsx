@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
+import { roleAllows, SALES_DOC_ROLES } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -32,6 +33,10 @@ export default function QuotationsPage() {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
 
+  const { data: me } = trpc.user.me.useQuery();
+  // สร้างใบเสนอ = สิทธิ์ขาย (quotation.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12)
+  const canCreateQuotation = roleAllows(me?.role, SALES_DOC_ROLES);
+
   const { data, isLoading, isError, refetch } = trpc.quotation.list.useQuery({
     search: search || undefined,
     status: status || undefined,
@@ -47,12 +52,14 @@ export default function QuotationsPage() {
         title="ใบเสนอราคา"
         description="จัดการใบเสนอราคาทั้งหมด"
         action={
-          <Link href="/quotations/new">
-            <Button size="sm">
-              <Plus className="h-4 w-4" />
-              สร้างใบเสนอราคา
-            </Button>
-          </Link>
+          canCreateQuotation ? (
+            <Link href="/quotations/new">
+              <Button size="sm">
+                <Plus className="h-4 w-4" />
+                สร้างใบเสนอราคา
+              </Button>
+            </Link>
+          ) : undefined
         }
       />
 
@@ -159,12 +166,14 @@ export default function QuotationsPage() {
                   title="ไม่พบใบเสนอราคา"
                   description="สร้างใบเสนอราคาแรกของคุณได้เลย"
                   action={
-                    <Link href="/quotations/new">
-                      <Button size="sm">
-                        <Plus className="h-4 w-4" />
-                        สร้างใบเสนอราคา
-                      </Button>
-                    </Link>
+                    canCreateQuotation ? (
+                      <Link href="/quotations/new">
+                        <Button size="sm">
+                          <Plus className="h-4 w-4" />
+                          สร้างใบเสนอราคา
+                        </Button>
+                      </Link>
+                    ) : undefined
                   }
                 />
               </td>

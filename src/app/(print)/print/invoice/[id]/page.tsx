@@ -3,6 +3,8 @@
 // ใบที่ถูก void พิมพ์ได้แต่มีลายน้ำ "ยกเลิก" (กติกา: ยกเลิก-ออกใหม่เท่านั้น ห้ามลบ)
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requirePrintRole } from "@/lib/supabase-server";
+import { ORDER_MONEY_ROLES } from "@/lib/roles";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payment-methods";
 import type { InvoiceType } from "@prisma/client";
@@ -48,6 +50,9 @@ export default async function PrintInvoicePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  // B12: ใบเงิน (แจ้งหนี้/เสร็จ/ลดหนี้/เพิ่มหนี้) — เฉพาะทีมการเงิน+ขาย · ช่าง/กราฟิกเปิดไม่ได้
+  await requirePrintRole(ORDER_MONEY_ROLES);
 
   const [invoice, companySetting] = await Promise.all([
     prisma.invoice.findUnique({

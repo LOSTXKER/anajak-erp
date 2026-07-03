@@ -31,12 +31,15 @@ import { useState, type ComponentType } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { ROLE_LABELS } from "@/lib/roles";
+import { ROLE_LABELS, FINANCE_ROLES, roleAllows } from "@/lib/roles";
+import type { Role } from "@prisma/client";
 
 type NavItem = {
   name: string;
   href: string;
   icon: ComponentType<{ className?: string; strokeWidth?: number | string }>;
+  // จำกัดบทบาทที่เห็นเมนูนี้ — ไม่ระบุ = ทุกคน (B12: กันช่าง/กราฟิกเห็นเมนูเงินที่ server FORBIDDEN)
+  roles?: Role[];
 };
 
 type NavGroup = {
@@ -78,14 +81,16 @@ const groups: NavGroup[] = [
     ],
   },
   {
+    // ทั้งกลุ่มจำกัดทีมการเงิน — server ทุกหน้าใช้ billingStaff (OWNER/MANAGER/ACCOUNTANT)
+    // ช่าง/กราฟิก/ขาย ไม่เห็น (เดิมโชว์ทุก role กดแล้วโดน FORBIDDEN)
     label: "การเงิน",
     items: [
-      { name: "บิล/การเงิน", href: "/billing", icon: FileText },
-      { name: "ใบวางบิล", href: "/billing/notes", icon: FileStack },
-      { name: "ลูกหนี้", href: "/billing/aging", icon: Hourglass },
-      { name: "หัก ณ ที่จ่าย", href: "/billing/wht", icon: ReceiptText },
-      { name: "ภาษีขาย", href: "/billing/tax", icon: Landmark },
-      { name: "สถิติ", href: "/analytics", icon: BarChart3 },
+      { name: "บิล/การเงิน", href: "/billing", icon: FileText, roles: FINANCE_ROLES },
+      { name: "ใบวางบิล", href: "/billing/notes", icon: FileStack, roles: FINANCE_ROLES },
+      { name: "ลูกหนี้", href: "/billing/aging", icon: Hourglass, roles: FINANCE_ROLES },
+      { name: "หัก ณ ที่จ่าย", href: "/billing/wht", icon: ReceiptText, roles: FINANCE_ROLES },
+      { name: "ภาษีขาย", href: "/billing/tax", icon: Landmark, roles: FINANCE_ROLES },
+      { name: "สถิติ", href: "/analytics", icon: BarChart3, roles: FINANCE_ROLES },
     ],
   },
   {
@@ -125,6 +130,11 @@ export function Sidebar({
           : undefined;
     return n && n > 0 ? n : undefined;
   };
+
+  // กรองเมนูตาม role — ซ่อนทั้งกลุ่มที่ไม่เหลือรายการ (กลุ่มการเงินหายทั้งก้อนสำหรับช่าง)
+  const visibleGroups = groups
+    .map((g) => ({ ...g, items: g.items.filter((it) => roleAllows(me?.role, it.roles)) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <aside
@@ -173,7 +183,7 @@ export function Sidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2.5 pb-6 pt-2">
-        {groups.map((group, idx) => (
+        {visibleGroups.map((group, idx) => (
           <div key={idx} className={idx === 0 ? "" : "mt-5"}>
             {group.label && !collapsed && (
               <p className="px-3 pb-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500">

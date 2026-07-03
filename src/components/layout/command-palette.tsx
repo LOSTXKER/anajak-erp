@@ -23,6 +23,9 @@ import {
   Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc";
+import { FINANCE_ROLES, SALES_DOC_ROLES, roleAllows } from "@/lib/roles";
+import type { Role } from "@prisma/client";
 
 type CommandItem = {
   id: string;
@@ -32,6 +35,8 @@ type CommandItem = {
   icon: React.ComponentType<{ className?: string; strokeWidth?: number | string }>;
   keywords?: string;
   action: () => void;
+  // จำกัดบทบาท — ไม่ระบุ = ทุกคน (B12: กันช่างพิมพ์ "บิล" ใน ⌘K แล้วกดเข้า /billing โดน FORBIDDEN)
+  roles?: Role[];
 };
 
 interface CommandPaletteProps {
@@ -44,6 +49,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const [query, setQuery] = React.useState("");
   const [activeIdx, setActiveIdx] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const { data: me } = trpc.user.me.useQuery();
 
   const navigate = React.useCallback(
     (path: string) => {
@@ -53,7 +59,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     [router, onOpenChange]
   );
 
-  const items: CommandItem[] = React.useMemo(
+  const allItems: CommandItem[] = React.useMemo(
     () => [
       {
         id: "new-order",
@@ -63,6 +69,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         icon: Plus,
         keywords: "create order new add",
         action: () => navigate("/orders/new"),
+        roles: SALES_DOC_ROLES,
       },
       {
         id: "new-quotation",
@@ -72,6 +79,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         icon: Plus,
         keywords: "create quotation",
         action: () => navigate("/quotations/new"),
+        roles: SALES_DOC_ROLES,
       },
       { id: "nav-dashboard", label: "Dashboard", group: "ไปที่", icon: LayoutDashboard, action: () => navigate("/") },
       { id: "nav-orders", label: "ออเดอร์", group: "ไปที่", icon: ShoppingCart, keywords: "order", action: () => navigate("/orders") },
@@ -82,16 +90,22 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       { id: "nav-outsource", label: "Outsource", group: "ไปที่", icon: Truck, action: () => navigate("/outsource") },
       { id: "nav-products", label: "สินค้า", group: "ไปที่", icon: Package, keywords: "product", action: () => navigate("/products") },
       { id: "nav-patterns", label: "แพทเทิร์น", group: "ไปที่", icon: Scissors, keywords: "pattern", action: () => navigate("/settings/patterns") },
-      { id: "nav-billing", label: "บิล/การเงิน", group: "ไปที่", icon: FileText, keywords: "billing invoice", action: () => navigate("/billing") },
-      { id: "nav-billing-notes", label: "ใบวางบิล", group: "ไปที่", icon: FileText, keywords: "billing note", action: () => navigate("/billing/notes") },
-      { id: "nav-aging", label: "ลูกหนี้ค้างชำระ", group: "ไปที่", icon: FileText, keywords: "aging receivable", action: () => navigate("/billing/aging") },
-      { id: "nav-sales-tax", label: "ภาษีขาย", group: "ไปที่", icon: FileText, keywords: "sales tax vat peak ภาษี", action: () => navigate("/billing/tax") },
-      { id: "nav-analytics", label: "สถิติ", group: "ไปที่", icon: BarChart3, keywords: "analytics statistics", action: () => navigate("/analytics") },
+      { id: "nav-billing", label: "บิล/การเงิน", group: "ไปที่", icon: FileText, keywords: "billing invoice", action: () => navigate("/billing"), roles: FINANCE_ROLES },
+      { id: "nav-billing-notes", label: "ใบวางบิล", group: "ไปที่", icon: FileText, keywords: "billing note", action: () => navigate("/billing/notes"), roles: FINANCE_ROLES },
+      { id: "nav-aging", label: "ลูกหนี้ค้างชำระ", group: "ไปที่", icon: FileText, keywords: "aging receivable", action: () => navigate("/billing/aging"), roles: FINANCE_ROLES },
+      { id: "nav-sales-tax", label: "ภาษีขาย", group: "ไปที่", icon: FileText, keywords: "sales tax vat peak ภาษี", action: () => navigate("/billing/tax"), roles: FINANCE_ROLES },
+      { id: "nav-analytics", label: "สถิติ", group: "ไปที่", icon: BarChart3, keywords: "analytics statistics", action: () => navigate("/analytics"), roles: FINANCE_ROLES },
       { id: "nav-notifications", label: "การแจ้งเตือน", group: "ไปที่", icon: Bell, keywords: "notification", action: () => navigate("/notifications") },
       { id: "nav-settings", label: "ตั้งค่า", group: "ไปที่", icon: Settings, keywords: "settings", action: () => navigate("/settings") },
       { id: "nav-stock", label: "เชื่อมต่อ Stock", group: "ไปที่", icon: Cloud, keywords: "stock", action: () => navigate("/settings/stock") },
     ],
     [navigate]
+  );
+
+  // กรองตาม role ก่อน (B12) — ช่าง/กราฟิกไม่เห็นเมนูเงิน/สร้างเอกสารขายใน ⌘K
+  const items = React.useMemo(
+    () => allItems.filter((it) => roleAllows(me?.role, it.roles)),
+    [allItems, me?.role]
   );
 
   const filtered = React.useMemo(() => {

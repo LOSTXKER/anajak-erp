@@ -2,6 +2,8 @@
 // ไม่ใช่เอกสารภาษี (ใบเดียวพอ ไม่ต้องต้นฉบับ+สำเนา) · ใบ voided พิมพ์ได้พร้อมลายน้ำ "ยกเลิก"
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requirePrintRole } from "@/lib/supabase-server";
+import { FINANCE_ROLES } from "@/lib/roles";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
 import {
   PrintPage,
@@ -29,6 +31,9 @@ export default async function PrintBillingNotePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  // B12: ใบวางบิล = เอกสารเรียกเก็บเงิน — เฉพาะทีมการเงิน (server billingStaff เดียวกัน)
+  await requirePrintRole(FINANCE_ROLES);
 
   const [note, companySetting] = await Promise.all([
     prisma.billingNote.findUnique({

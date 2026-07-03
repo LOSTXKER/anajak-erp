@@ -4,6 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { roleAllows, SALES_DOC_ROLES, ORDER_MONEY_ROLES } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,6 +71,11 @@ export default function QuotationDetailPage({
   const { id } = use(params);
 
   const { data: quotation, isLoading, isError, refetch } = trpc.quotation.getById.useQuery({ id });
+  const { data: me } = trpc.user.me.useQuery();
+  // จัดการใบเสนอ (ส่ง/อนุมัติ/แก้ไข/แปลง) = สิทธิ์ขาย (server salesUp) · พิมพ์ = สิทธิ์เห็นเงินออเดอร์
+  // (B12: ช่าง/กราฟิกเปิดหน้าใบเสนอได้แต่ไม่โชว์ปุ่มที่ server จะ FORBIDDEN)
+  const canManageQuotation = roleAllows(me?.role, SALES_DOC_ROLES);
+  const canPrintQuotation = roleAllows(me?.role, ORDER_MONEY_ROLES);
   const utils = trpc.useUtils();
   const confirmDialog = useConfirm();
   const promptText = usePromptText();
@@ -251,7 +257,7 @@ export default function QuotationDetailPage({
         {/* Action buttons based on status */}
         <div className="flex shrink-0 flex-wrap gap-2">
           {/* DRAFT actions */}
-          {quotation.status === "DRAFT" && (
+          {canManageQuotation && quotation.status === "DRAFT" && (
             <>
               <Button
                 onClick={handleSendToCustomer}
@@ -271,7 +277,7 @@ export default function QuotationDetailPage({
           )}
 
           {/* SENT actions */}
-          {quotation.status === "SENT" && (
+          {canManageQuotation && quotation.status === "SENT" && (
             <>
               <Button
                 variant="outline"
@@ -305,7 +311,7 @@ export default function QuotationDetailPage({
           )}
 
           {/* ACCEPTED actions */}
-          {quotation.status === "ACCEPTED" && (
+          {canManageQuotation && quotation.status === "ACCEPTED" && (
             <Button
               onClick={handleConvertToOrder}
               disabled={isPending}
@@ -319,7 +325,7 @@ export default function QuotationDetailPage({
           {/* ดึงกลับร่างเพื่อแก้ — คู่กับ server ที่ล็อกแก้เฉพาะร่าง (Gate A3) ·
               REJECTED/EXPIRED = เปิดแก้รอบใหม่ (เดิมเป็นทางตัน เหลือแค่ปุ่มพิมพ์) ·
               ACCEPTED = ได้แต่มี confirm (ล้างการยืนยันลูกค้า) */}
-          {["SENT", "ACCEPTED", "REJECTED", "EXPIRED"].includes(quotation.status) && (
+          {canManageQuotation && ["SENT", "ACCEPTED", "REJECTED", "EXPIRED"].includes(quotation.status) && (
             <Button
               variant="outline"
               onClick={handlePullBackToDraft}
@@ -332,12 +338,14 @@ export default function QuotationDetailPage({
             </Button>
           )}
 
-          <Button variant="outline" asChild className="gap-1.5">
-            <a href={`/print/quotation/${id}`} target="_blank" rel="noreferrer">
-              <Printer className="h-4 w-4" />
-              พิมพ์ / PDF
-            </a>
-          </Button>
+          {canPrintQuotation && (
+            <Button variant="outline" asChild className="gap-1.5">
+              <a href={`/print/quotation/${id}`} target="_blank" rel="noreferrer">
+                <Printer className="h-4 w-4" />
+                พิมพ์ / PDF
+              </a>
+            </Button>
+          )}
         </div>
       </div>
 

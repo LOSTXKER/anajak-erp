@@ -23,5 +23,17 @@ export const FINANCE_ROLES: Role[] = ["OWNER", "MANAGER", "ACCOUNTANT"];
 // แต่ไม่รวมช่าง/กราฟิก (job ticket ก็ตัดเงินออกด้วยเหตุเดียวกัน)
 export const ORDER_MONEY_ROLES: Role[] = [...FINANCE_ROLES, "SALES"];
 
+// สร้าง/แก้เอกสารขาย (ออเดอร์/ใบเสนอ) — ตรง middleware salesUp ที่ server (order/quotation.create)
+// ไม่รวม ACCOUNTANT (ทำบัญชี ไม่เปิดงานขาย)
+export const SALES_DOC_ROLES: Role[] = ["OWNER", "MANAGER", "SALES"];
+
 export const canSeeFinance = (role: Role): boolean => FINANCE_ROLES.includes(role);
 export const canSeeOrderMoney = (role: Role): boolean => ORDER_MONEY_ROLES.includes(role);
+export const canCreateSalesDocs = (role: Role): boolean => SALES_DOC_ROLES.includes(role);
+
+// ตัวช่วยกรองเมนู/รายการ UI ตาม role — undefined roles = ทุกคนเห็น · มี role ต้องอยู่ในลิสต์
+// (role ยังไม่โหลด = ซ่อนรายการที่จำกัด กัน flash เมนูเงินให้ช่างชั่ววินาที)
+export function roleAllows(userRole: Role | null | undefined, allowed?: Role[]): boolean {
+  if (!allowed) return true;
+  return userRole != null && allowed.includes(userRole);
+}

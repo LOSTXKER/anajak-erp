@@ -6,6 +6,7 @@ import { Bell, Search, CheckCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
+import { roleAllows, SALES_DOC_ROLES } from "@/lib/roles";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { CommandPalette } from "./command-palette";
 import { UserMenu } from "./user-menu";
@@ -33,6 +34,10 @@ export function Topbar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { data: me } = trpc.user.me.useQuery();
+  // เปิดงานใหม่ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12:
+  // กดแล้วกรอกทั้งฟอร์มค่อยโดน FORBIDDEN · ตรงกับ ⌘K ที่ gate create actions แล้ว)
+  const canCreateOrder = roleAllows(me?.role, SALES_DOC_ROLES);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -99,18 +104,22 @@ export function Topbar() {
 
       {/* Actions */}
       <div className="flex items-center gap-1.5">
-        {/* เปิดงานใหม่ — ทางลัดเปิดออเดอร์จากทุกหน้า (ใช้ <Button> มาตรฐาน = เหมือนทุกปุ่มในระบบ) */}
-        <Button asChild className="hidden sm:inline-flex">
-          <Link href="/orders/new">
-            <Plus strokeWidth={2.1} />
-            เปิดงานใหม่
-          </Link>
-        </Button>
-        <Button asChild size="icon" className="sm:hidden">
-          <Link href="/orders/new" aria-label="เปิดงานใหม่">
-            <Plus strokeWidth={2.1} />
-          </Link>
-        </Button>
+        {/* เปิดงานใหม่ — ทางลัดเปิดออเดอร์จากทุกหน้า (เฉพาะสิทธิ์ขาย · ใช้ <Button> มาตรฐาน) */}
+        {canCreateOrder && (
+          <>
+            <Button asChild className="hidden sm:inline-flex">
+              <Link href="/orders/new">
+                <Plus strokeWidth={2.1} />
+                เปิดงานใหม่
+              </Link>
+            </Button>
+            <Button asChild size="icon" className="sm:hidden">
+              <Link href="/orders/new" aria-label="เปิดงานใหม่">
+                <Plus strokeWidth={2.1} />
+              </Link>
+            </Button>
+          </>
+        )}
 
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>

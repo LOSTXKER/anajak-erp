@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
+import { roleAllows, SALES_DOC_ROLES } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -188,6 +189,10 @@ export default function OrdersPage() {
     "asc" | "desc",
   ];
 
+  const { data: me } = trpc.user.me.useQuery();
+  // เปิดออเดอร์ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ปุ่มสร้าง (B12)
+  const canCreateOrder = roleAllows(me?.role, SALES_DOC_ROLES);
+
   const { data, isLoading, isError, refetch } = trpc.order.list.useQuery({
     search: search || undefined,
     channel: channel || undefined,
@@ -240,12 +245,14 @@ export default function OrdersPage() {
                 Export
               </Button>
             )}
-            <Link href="/orders/new">
-              <Button size="sm">
-                <Plus className="h-4 w-4" />
-                สร้างออเดอร์
-              </Button>
-            </Link>
+            {canCreateOrder && (
+              <Link href="/orders/new">
+                <Button size="sm">
+                  <Plus className="h-4 w-4" />
+                  สร้างออเดอร์
+                </Button>
+              </Link>
+            )}
           </>
         }
       />
@@ -481,12 +488,14 @@ export default function OrdersPage() {
                       : "เริ่มสร้างออเดอร์แรกของคุณได้เลย"
                   }
                   action={
-                    <Link href="/orders/new">
-                      <Button size="sm">
-                        <Plus className="h-4 w-4" />
-                        สร้างออเดอร์
-                      </Button>
-                    </Link>
+                    canCreateOrder ? (
+                      <Link href="/orders/new">
+                        <Button size="sm">
+                          <Plus className="h-4 w-4" />
+                          สร้างออเดอร์
+                        </Button>
+                      </Link>
+                    ) : undefined
                   }
                 />
               </td>
