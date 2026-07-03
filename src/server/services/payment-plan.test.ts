@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   billedTotal,
   remainingBillable,
+  billedFloor,
   splitVatFromGross,
   thaiDateUtcMidnight,
   dueDateFromTerms,
@@ -104,6 +105,86 @@ describe("billedTotal / remainingBillable", () => {
   it("ใบลดหนี้/เพิ่มหนี้ไม่มีเพดาน", () => {
     expect(remainingBillable(1000, invoices, "CREDIT_NOTE")).toBeNull();
     expect(remainingBillable(1000, invoices, "DEBIT_NOTE")).toBeNull();
+  });
+});
+
+// เพดานขาที่สอง (Gate B9) — ยอดออเดอร์ต่ำสุดที่ยังคุ้มบิลที่ออกแล้ว
+// invariant คู่ remainingBillable: ยอดออเดอร์ = billedFloor พอดี → ทุกกองต้องวางเพิ่มได้ ≥ 0
+describe("billedFloor", () => {
+  const cnLinked = (origType: string | null, amt: number): InvoiceForPlan => ({
+    type: "CREDIT_NOTE",
+    totalAmount: amt,
+    isVoided: false,
+    originalInvoiceType: origType,
+  });
+
+  it("ไม่มีบิล → 0 (ลดยอดได้อิสระ)", () => {
+    expect(billedFloor([]).toNumber()).toBe(0);
+  });
+
+  it("กองใบแจ้งหนี้: floor = Σ(มัดจำ+ส่วนที่เหลือ) ข้ามใบ voided", () => {
+    expect(
+      billedFloor([
+        inv("DEPOSIT_INVOICE", 500),
+        inv("FINAL_INVOICE", 300),
+        inv("FINAL_INVOICE", 1000, true), // voided — ไม่นับ
+      ]).toNumber()
+    ).toBe(800);
+  });
+
+  it("กองใบเสร็จ: floor = Σ(REC) − Σ(DN) + CN ที่ไม่อ้างใบเสร็จ", () => {
+    // REC 500 · DN 200 (งานเพิ่มที่เรียกเก็บแยก ไม่ต้องพึ่งยอดออเดอร์) → floor 300
+    expect(
+      billedFloor([inv("RECEIPT", 500), inv("DEBIT_NOTE", 200)]).toNumber()
+    ).toBe(300);
+    // CN 100 อ้างใบเรียกเก็บ (ลดมูลค่างานก่อนเก็บ — เพดาน REC หด) → floor ดันกลับขึ้น 400
+    expect(
+      billedFloor([
+        inv("RECEIPT", 500),
+        inv("DEBIT_NOTE", 200),
+        cnLinked("DEPOSIT_INVOICE", 100),
+      ]).toNumber()
+    ).toBe(400);
+  });
+
+  it("CN อ้างใบเสร็จ (คืนเงินหลังรับ) ไม่ดัน floor — คู่ขนานกับที่ไม่หักเพดานใน remainingBillable", () => {
+    expect(
+      billedFloor([inv("RECEIPT", 500), cnLinked("RECEIPT", 300)]).toNumber()
+    ).toBe(500);
+  });
+
+  it("CN legacy ไม่ผูกใบเดิม (originalInvoiceType null — ข้อมูลก่อน B1) → ดัน floor แบบอนุรักษ์นิยม", () => {
+    expect(
+      billedFloor([inv("RECEIPT", 500), cnLinked(null, 200)]).toNumber()
+    ).toBe(700);
+  });
+
+  it("สองกองเอาค่าสูงสุด — flow มัดจำจริงมีทั้ง INV และ REC คู่กัน", () => {
+    // INV-D 500 + INV-F 500 = 1000 · REC 500 (จ่ายมัดจำแล้ว) → floor = 1000 (กอง INV ชนะ)
+    expect(
+      billedFloor([
+        inv("DEPOSIT_INVOICE", 500),
+        inv("FINAL_INVOICE", 500),
+        inv("RECEIPT", 500),
+      ]).toNumber()
+    ).toBe(1000);
+  });
+
+  it("DN เกินยอดใบเสร็จ → floor 0 ไม่ติดลบ", () => {
+    expect(
+      billedFloor([inv("RECEIPT", 100), inv("DEBIT_NOTE", 500)]).toNumber()
+    ).toBe(0);
+  });
+
+  it("invariant คู่ขาแรก: ยอดออเดอร์ = floor พอดี → remainingBillable ทุกกองไม่ติดลบ", () => {
+    const invoices = [
+      inv("DEPOSIT_INVOICE", 500),
+      inv("RECEIPT", 500),
+      cnLinked("DEPOSIT_INVOICE", 100),
+    ];
+    const floor = billedFloor(invoices).toNumber();
+    expect(remainingBillable(floor, invoices, "FINAL_INVOICE")!.gte(0)).toBe(true);
+    expect(remainingBillable(floor, invoices, "RECEIPT")!.gte(0)).toBe(true);
   });
 });
 

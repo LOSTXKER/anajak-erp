@@ -87,6 +87,9 @@ interface OrderItemsEditorOrder {
   fees: Array<{ feeType: string; name: string; amount: number }>;
   discount: number;
   taxRate: number;
+  totalAmount: number;
+  // เพดานขาที่สอง (B9) จาก order.getById — ยอดออเดอร์ต่ำสุดที่ยังคุ้มบิลที่ออกแล้ว
+  billedFloor?: number;
 }
 
 interface OrderItemsEditorProps {
@@ -160,9 +163,6 @@ export function OrderItemsEditor({
   const updateItemsMutation = useMutationWithInvalidation(trpc.order.updateItems, {
     invalidate: [utils.order.getById],
   });
-  const updateFeesMutation = useMutationWithInvalidation(trpc.order.updateFees, {
-    invalidate: [utils.order.getById],
-  });
   const applyChangeOrderMutation = useMutationWithInvalidation(
     trpc.order.applyChangeOrder,
     { invalidate: [utils.order.getById, utils.order.changeOrders] }
@@ -183,6 +183,16 @@ export function OrderItemsEditor({
     items,
     subtotalItems + subtotalFees - discount
   );
+
+  // เพดานขาที่สอง (B9): ยอดใหม่ต่ำกว่าบิลที่ออกแล้ว — โหมดแก้ตรง server จะปฏิเสธ
+  // เฉพาะเมื่อ "ลดจากยอดเดิม" ด้วย (ออเดอร์เก่าที่บิลเกินยอดอยู่แล้ว ขยับเข้าหา floor ได้)
+  // — เงื่อนไขเตือนต้อง mirror server ทั้งสองขา ไม่งั้นป้ายบอกผลตรงข้ามกับที่เกิดจริง ·
+  // โหมดใบแก้ไข (CO) server ไม่ block แต่บิลจะเกินยอดใหม่ → ต้องออกใบลดหนี้ตาม
+  const orderBilledFloor = order.billedFloor ?? 0;
+  const belowFloor = orderBilledFloor > 0 && totalAmount < orderBilledFloor - 0.005;
+  const belowBilledFloor = changeOrderMode
+    ? belowFloor
+    : belowFloor && totalAmount < order.totalAmount - 0.005;
 
   // หยิบจากสต๊อก — logic รวมเดียวกับหน้าเปิดงาน (lib/order-form-stock)
   // pruneEmpty: false — รายการจาก DB ที่ "ดูว่าง" คือข้อมูลจริงที่บันทึกแล้ว ห้ามลบเงียบ
@@ -251,18 +261,16 @@ export function OrderItemsEditor({
           );
         }
       } else {
+        // fees เปลี่ยน → แนบไปกับ updateItems ให้แทนทั้งชุดใน tx เดียว (atomic) —
+        // ยิงแยกสอง mutation เคยทำด่านเพดาน B9 ตัดสินจากยอดกลางทาง (items ใหม่+fees เก่า)
+        // แล้วบันทึกค้างครึ่งเดียวเมื่อใบหลังโดน block · ไม่เปลี่ยน = ไม่แนบ (audit ไม่รก)
+        const feesChanged = JSON.stringify(fees) !== initialFeesJson;
         await updateItemsMutation.mutateAsync({
           id: orderId,
           items: mapItemsToMutationInput(items.filter(itemHasContent)),
           discount,
+          ...(feesChanged ? { fees: mapFeesToMutationInput(fees) } : {}),
         });
-        // ค่าธรรมเนียมยิงเฉพาะเมื่อแก้จริง — ไม่ยิงเปล่าให้ audit log รก
-        if (JSON.stringify(fees) !== initialFeesJson) {
-          await updateFeesMutation.mutateAsync({
-            id: orderId,
-            fees: mapFeesToMutationInput(fees),
-          });
-        }
       }
       onDone();
     } catch {
@@ -478,6 +486,15 @@ export function OrderItemsEditor({
               </span>
             </div>
           </div>
+          )}
+
+          {/* เพดานขาที่สอง (B9) — ยอดใหม่ต่ำกว่าบิลที่ออกแล้ว */}
+          {belowBilledFloor && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-xs font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+              {changeOrderMode
+                ? `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — ออกใบแก้ไขได้ แต่ต้องออกใบลดหนี้ตามให้ยอดบิลตรงยอดจริง`
+                : `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — บันทึกไม่ผ่าน ต้องยกเลิกบิลเดิม (แล้วออกใหม่ตามยอดที่ถูก) ก่อนลดยอด`}
+            </div>
           )}
 
           {/* กำไรขั้นต้นโดยประมาณ — เฉพาะ role การเงิน (null = ไม่ render เลย) */}

@@ -8,6 +8,7 @@ import { D, aggToNumber, moneyInput, round2 } from "@/server/services/money";
 import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/document-number";
 import {
   remainingBillable,
+  billedFloor,
   dueDateFromTerms,
   suggestInvoice,
 } from "@/server/services/payment-plan";
@@ -229,6 +230,19 @@ export const billingRouter = router({
             adjustments: { type: string; totalAmount: number; isVoided: boolean }[];
           } | null = null;
           if (isAdjustment && input.originalInvoiceId) {
+            // whitelist ชนิดใบ "ก่อน" lock — type ไม่มีวันเปลี่ยน validate ก่อนได้เสมอ ·
+            // เดิม lock ก่อน validate: ยิง originalInvoiceId ชี้ DEBIT_NOTE จะยึด lock ใบ DN
+            // (ลำดับ order→invoice) สวนกับ voidInvoice ขา DN (invoice→order) = deadlock ได้
+            const originalType = await tx.invoice.findUnique({
+              where: { id: input.originalInvoiceId },
+              select: { type: true },
+            });
+            if (!originalType) notFound("ใบที่อ้างอิง", input.originalInvoiceId);
+            // ห้ามอ้าง CN/DN ต่อกัน + ห้าม type อื่น (เช่น QUOTATION legacy)
+            if (!["DEPOSIT_INVOICE", "FINAL_INVOICE", "RECEIPT"].includes(originalType.type)) {
+              badRequest("ใบที่อ้างอิงต้องเป็นใบกำกับ/ใบแจ้งหนี้ต้นทาง (มัดจำ/เก็บเงิน/ใบเสร็จ)");
+            }
+
             await lockInvoiceRow(tx, input.originalInvoiceId);
             original = await tx.invoice.findUnique({
               where: { id: input.originalInvoiceId },
@@ -243,10 +257,6 @@ export const billingRouter = router({
             }
             if (original.isVoided) {
               badRequest(`${original.invoiceNumber} ถูกยกเลิกแล้ว — อ้างอิงใบที่ใช้งานอยู่เท่านั้น`);
-            }
-            // whitelist ใบต้นทาง — ห้ามอ้าง CN/DN ต่อกัน + ห้าม type อื่น (เช่น QUOTATION legacy)
-            if (!["DEPOSIT_INVOICE", "FINAL_INVOICE", "RECEIPT"].includes(original.type)) {
-              badRequest("ใบที่อ้างอิงต้องเป็นใบกำกับ/ใบแจ้งหนี้ต้นทาง (มัดจำ/เก็บเงิน/ใบเสร็จ)");
             }
             if (input.type === "CREDIT_NOTE") {
               const creditable = D(original.totalAmount).minus(creditedOf(original));
@@ -621,6 +631,37 @@ export const billingRouter = router({
           badRequest(
             `มีใบลดหนี้/เพิ่มหนี้อ้างอิงใบนี้อยู่ (${invoice.adjustments.map((a) => a.invoiceNumber).join(", ")}) — ยกเลิกใบเหล่านั้นก่อน`
           );
+        }
+
+        // เพดานขาที่สอง (B9): ใบเพิ่มหนี้ขยายเพดานกองใบเสร็จอยู่ (floor = REC − DN + CN)
+        // — void แล้วใบเสร็จที่ออกไปแล้วอาจเกินยอดออเดอร์ ต้องยกเลิกใบเสร็จก่อนตามลำดับ
+        // (void ใบชนิดอื่นมีแต่ทำ floor ลด — ไม่ต้องเช็ค)
+        if (invoice.type === "DEBIT_NOTE") {
+          await lockOrderRow(tx, invoice.orderId);
+          const order = await tx.order.findUniqueOrThrow({
+            where: { id: invoice.orderId },
+            select: { totalAmount: true },
+          });
+          const remainingRaw = await tx.invoice.findMany({
+            where: { orderId: invoice.orderId, isVoided: false, id: { not: invoice.id } },
+            select: {
+              type: true,
+              totalAmount: true,
+              isVoided: true,
+              originalInvoice: { select: { type: true } },
+            },
+          });
+          const floorAfterVoid = billedFloor(
+            remainingRaw.map((inv) => ({
+              ...inv,
+              originalInvoiceType: inv.originalInvoice?.type ?? null,
+            }))
+          );
+          if (floorAfterVoid.gt(order.totalAmount)) {
+            badRequest(
+              `ยกเลิกใบเพิ่มหนี้นี้แล้ว ยอดบิลที่เหลือ (${floorAfterVoid.toFixed(2)} บาท) จะเกินยอดออเดอร์ (${D(order.totalAmount).toFixed(2)} บาท) — ยกเลิกใบเสร็จที่พึ่งใบเพิ่มหนี้นี้ก่อน`
+            );
+          }
         }
 
         // ยอดสุทธิที่เคลียร์บิลแล้ว (รวมรายการคืนเงินติดลบ + ภาษีหัก ณ ที่จ่าย) —

@@ -24,6 +24,8 @@ import {
 import { Loader2, Save } from "lucide-react";
 import { PRIORITY_LABELS } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS, type PaymentTermsValue } from "@/lib/payment-terms";
+import { calculateOrderSummary } from "@/lib/pricing";
+import { formatCurrency } from "@/lib/utils";
 
 interface OrderInfoEditOrder {
   id: string;
@@ -36,6 +38,12 @@ interface OrderInfoEditOrder {
   discount: number;
   platformFee: number | null;
   paymentTerms: string | null;
+  // ฐานคิดยอด + เพดานขาที่สอง (B9) จาก order.getById — เตือนก่อนบันทึกเมื่อ
+  // ส่วนลด/ภาษีใหม่ทำยอดรวมต่ำกว่าบิลที่ออกแล้ว (server ปฏิเสธอยู่แล้ว)
+  subtotalItems: number;
+  subtotalFees: number;
+  totalAmount: number;
+  billedFloor?: number;
   poNumber: string | null;
   channel: string;
   shippingRecipientName: string | null;
@@ -141,6 +149,22 @@ export function OrderInfoEditDialog({
   }, [open, order]);
 
   const isMarketplace = ["SHOPEE", "LAZADA", "TIKTOK"].includes(order?.channel);
+
+  // เพดานขาที่สอง (B9): preview ยอดรวมด้วยสูตรเดียวกับ server (order.update recalc
+  // จาก subtotal เดิม + ส่วนลด/ภาษีใหม่) — ต่ำกว่าบิลที่ออกแล้ว server จะปฏิเสธ
+  const previewTotal = calculateOrderSummary({
+    itemSubtotals: [order?.subtotalItems ?? 0],
+    feeAmounts: [order?.subtotalFees ?? 0],
+    discount: form.discount,
+    taxRate: form.taxRate,
+  }).grandTotal;
+  // เงื่อนไข mirror server ทั้งสองขา: ต่ำกว่า floor "และ" ลดจากยอดเดิม — ออเดอร์เก่า
+  // ที่บิลเกินยอดอยู่แล้ว ขยับเข้าหา floor ได้ (ห้ามเตือน "บันทึกไม่ผ่าน" สวนผลจริง)
+  const orderBilledFloor = order?.billedFloor ?? 0;
+  const belowBilledFloor =
+    orderBilledFloor > 0 &&
+    previewTotal < orderBilledFloor - 0.005 &&
+    previewTotal < (order?.totalAmount ?? 0) - 0.005;
 
   function update<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -296,6 +320,14 @@ export function OrderInfoEditDialog({
                 />
               </div>
             </div>
+            {/* เพดานขาที่สอง (B9) — ส่วนลด/ภาษีใหม่ทำยอดรวมต่ำกว่าบิลที่ออกแล้ว */}
+            {belowBilledFloor && (
+              <p className="rounded-md border border-amber-200 bg-amber-50/60 px-2.5 py-2 text-xs font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+                ยอดรวมใหม่ {formatCurrency(previewTotal)} ต่ำกว่ายอดบิลที่ออกแล้ว{" "}
+                {formatCurrency(orderBilledFloor)} — บันทึกไม่ผ่าน
+                ต้องยกเลิกบิลเดิม (แล้วออกใหม่ตามยอดที่ถูก) ก่อนลดยอด
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>เงื่อนไขชำระเงิน</label>

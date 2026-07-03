@@ -323,6 +323,298 @@ async function main() {
         new Date(rec3.issueDate!).toISOString().slice(0, 10) === "2026-06-30",
       rec3.issueDate
     );
+
+    // ---------- 6) เพดานขาที่สอง (Gate B9): แก้ออเดอร์ห้ามลดยอดต่ำกว่าบิลที่ออกแล้ว ----------
+    const b9Item = (qty: number, price = 100) => ({
+      products: [
+        {
+          productType: "TSHIRT",
+          description: "[TERMS-VERIFY] เสื้อ B9",
+          baseUnitPrice: price,
+          variants: [{ size: "M", quantity: qty }],
+        },
+      ],
+      prints: [],
+      addons: [],
+    });
+    const order3 = await prisma.order.create({
+      data: {
+        orderNumber: "TEST-ORD-TERMS-3",
+        orderType: "CUSTOM",
+        channel: "LINE",
+        customerId: customer.id,
+        createdById: owner.id,
+        internalStatus: "CONFIRMED",
+        customerStatus: "ORDER_RECEIVED",
+        title: "[TERMS-VERIFY] เพดานขาที่สอง",
+        taxRate: 0,
+        subtotalItems: 2000,
+        totalAmount: 2000,
+      },
+    });
+    ids.orders.push(order3.id);
+    await caller.billing.create({
+      orderId: order3.id,
+      customerId: customer.id,
+      type: "DEPOSIT_INVOICE",
+      amount: 1000,
+    });
+
+    // ตั้งรายการจริงก่อน (2000→1500 ยังคุ้มมัดจำ 1000) — ให้เคส rollback ข้างล่างมีของให้เช็ค
+    await caller.order.updateItems({ id: order3.id, items: [b9Item(15)], discount: 0 });
+    const o3Reduced = await prisma.order.findUniqueOrThrow({ where: { id: order3.id } });
+    ok("6.1 ลดยอดแต่ยังคุ้มบิล (1500 ≥ 1000) → ผ่าน", o3Reduced.totalAmount === 1500, o3Reduced.totalAmount);
+
+    await expectError(
+      "6.2 updateItems ลดยอดต่ำกว่าบิลที่ออกแล้ว (800 < มัดจำ 1000) → ปฏิเสธ",
+      () => caller.order.updateItems({ id: order3.id, items: [b9Item(8)], discount: 0 }),
+      "ต่ำกว่ายอดบิลที่ออกแล้ว"
+    );
+    const o3AfterBlock = await prisma.order.findUniqueOrThrow({
+      where: { id: order3.id },
+      include: { items: { include: { products: { include: { variants: true } } } } },
+    });
+    ok(
+      "6.3 โดน block แล้ว tx rollback ทั้งก้อน — ยอด/รายการ 15 ตัวเดิมไม่ถูกแตะ",
+      o3AfterBlock.totalAmount === 1500 &&
+        o3AfterBlock.items.length === 1 &&
+        o3AfterBlock.items[0].products[0]?.variants[0]?.quantity === 15,
+      { total: o3AfterBlock.totalAmount, items: o3AfterBlock.items.length }
+    );
+
+    // เพิ่มค่าธรรมเนียม 500 (ยอด 2000) แล้ววางบิลเพิ่มจนบิลรวม 1900 — ถอดค่าธรรมเนียมต้องโดน block
+    await caller.order.updateFees({
+      id: order3.id,
+      fees: [{ feeType: "OTHER", name: "[TERMS-VERIFY] ค่าจัดส่ง B9", amount: 500 }],
+    });
+    const fin3 = await caller.billing.create({
+      orderId: order3.id,
+      customerId: customer.id,
+      type: "FINAL_INVOICE",
+      amount: 900,
+    });
+    await expectError(
+      "6.4 updateFees ถอดค่าธรรมเนียม (เหลือ 1500 < บิล 1900) → ปฏิเสธ",
+      () => caller.order.updateFees({ id: order3.id, fees: [] }),
+      "ต่ำกว่ายอดบิลที่ออกแล้ว"
+    );
+    await expectError(
+      "6.5 order.update ส่วนลด 200 (เหลือ 1800 < บิล 1900) → ปฏิเสธ",
+      () => caller.order.update({ id: order3.id, discount: 200 }),
+      "ต่ำกว่ายอดบิลที่ออกแล้ว"
+    );
+    await caller.order.update({ id: order3.id, discount: 100 });
+    const o3Boundary = await prisma.order.findUniqueOrThrow({ where: { id: order3.id } });
+    ok(
+      "6.6 ลดยอดลงมาเท่าบิลพอดี (1900 = 1900) → ผ่าน (ขอบเพดาน)",
+      o3Boundary.totalAmount === 1900,
+      o3Boundary.totalAmount
+    );
+
+    await caller.billing.voidInvoice({ invoiceId: fin3.id, reason: "ทดสอบเพดานขาที่สอง" });
+    await caller.order.update({ id: order3.id, discount: 600 });
+    const o3AfterVoid = await prisma.order.findUniqueOrThrow({ where: { id: order3.id } });
+    ok(
+      "6.7 void บิลแล้วเพดานคลาย (เหลือมัดจำ 1000) → ลดยอดเหลือ 1400 ได้",
+      o3AfterVoid.totalAmount === 1400,
+      o3AfterVoid.totalAmount
+    );
+
+    // atomic items+fees: ย้ายมูลค่าจากรายการไปค่าธรรมเนียม ยอดรวมคงเดิม 1400 ≥ floor 1000 —
+    // เดิมยิงแยกสอง mutation ขา updateItems จะเห็นยอดกลางทาง (items ใหม่ 200 + fee เก่า 500
+    // = 700 < floor 1000) แล้ว block ทั้งที่ยอดสุดท้ายถูกกติกา (review B9 จับ)
+    await caller.order.updateItems({
+      id: order3.id,
+      items: [b9Item(2)],
+      discount: 0,
+      fees: [{ feeType: "OTHER", name: "[TERMS-VERIFY] ค่าบริการรวม B9", amount: 1200 }],
+    });
+    const o3Atomic = await prisma.order.findUniqueOrThrow({
+      where: { id: order3.id },
+      include: { fees: true },
+    });
+    ok(
+      "6.8 updateItems แนบ fees ใน tx เดียว — ย้ายมูลค่า items↔fees ยอดสุดท้ายถูกกติกา ผ่านรวดเดียว",
+      o3Atomic.totalAmount === 1400 &&
+        o3Atomic.subtotalFees === 1200 &&
+        o3Atomic.fees.length === 1 &&
+        o3Atomic.discount === 0,
+      { total: o3Atomic.totalAmount, fees: o3Atomic.subtotalFees }
+    );
+
+    // กองใบเสร็จก็เป็นเพดาน — งานขายสดออกใบเสร็จ/ใบกำกับแล้ว ห้ามลดยอดต่ำกว่าเงินที่รับ
+    const order4 = await prisma.order.create({
+      data: {
+        orderNumber: "TEST-ORD-TERMS-4",
+        orderType: "CUSTOM",
+        channel: "LINE",
+        customerId: customer.id,
+        createdById: owner.id,
+        internalStatus: "CONFIRMED",
+        customerStatus: "ORDER_RECEIVED",
+        title: "[TERMS-VERIFY] เพดานกองใบเสร็จ",
+        taxRate: 0,
+        subtotalItems: 1000,
+        totalAmount: 1000,
+      },
+    });
+    ids.orders.push(order4.id);
+    const rec4 = await caller.billing.create({
+      orderId: order4.id,
+      customerId: customer.id,
+      type: "RECEIPT",
+      amount: 1000,
+    });
+    await expectError(
+      "6.9 กองใบเสร็จ: ลดยอดต่ำกว่าใบเสร็จที่ออกแล้ว (400 < 1000) → ปฏิเสธ",
+      () => caller.order.updateItems({ id: order4.id, items: [b9Item(4)], discount: 0 }),
+      "ต่ำกว่ายอดบิลที่ออกแล้ว"
+    );
+
+    // CN/DN ผ่าน API จริง — พิสูจน์ mapping originalInvoice.type จาก DB (assert + getById)
+    await caller.billing.create({
+      orderId: order4.id,
+      customerId: customer.id,
+      type: "CREDIT_NOTE",
+      amount: 200,
+      originalInvoiceId: rec4.id,
+      adjustmentReason: "คืนเงินบางส่วนหลังรับ (verify B9)",
+    });
+    const o4WithCn = await caller.order.getById({ id: order4.id });
+    ok(
+      "6.10 CN อ้างใบเสร็จ (คืนเงิน) ไม่ดัน floor — getById.billedFloor คง 1000 (mapping พังจะเป็น 1200)",
+      o4WithCn.billedFloor === 1000,
+      o4WithCn.billedFloor
+    );
+
+    const dn4 = await caller.billing.create({
+      orderId: order4.id,
+      customerId: customer.id,
+      type: "DEBIT_NOTE",
+      amount: 300,
+      originalInvoiceId: rec4.id,
+      adjustmentReason: "งานเพิ่มหลังออกใบเสร็จ (verify B9)",
+    });
+    const o4WithDn = await caller.order.getById({ id: order4.id });
+    ok(
+      "6.11 DN ลดเพดานกองใบเสร็จ — getById.billedFloor = 1000−300 = 700",
+      o4WithDn.billedFloor === 700,
+      o4WithDn.billedFloor
+    );
+    await caller.order.updateItems({ id: order4.id, items: [b9Item(8)], discount: 0 });
+    const o4Reduced = await prisma.order.findUniqueOrThrow({ where: { id: order4.id } });
+    ok(
+      "6.12 ลดยอดลง 800 (≥ floor 700 หลัง DN) → ผ่าน — เคสอนุญาตของกอง REC−DN",
+      o4Reduced.totalAmount === 800,
+      o4Reduced.totalAmount
+    );
+    await expectError(
+      "6.13 ลดต่อเหลือ 600 (< floor 700) → ปฏิเสธ",
+      () => caller.order.updateItems({ id: order4.id, items: [b9Item(6)], discount: 0 }),
+      "ต่ำกว่ายอดบิลที่ออกแล้ว"
+    );
+
+    // void DN = เพดานกองใบเสร็จหด (floor เด้งกลับ 1000 > ยอดออเดอร์ 800) — ต้องโดนด่าน
+    // ทางออกจริง: ดันยอดออเดอร์กลับขึ้นก่อน (หรือยกเลิกใบเสร็จ) แล้วค่อย void
+    await expectError(
+      "6.14 void ใบเพิ่มหนี้ที่ใบเสร็จพึ่งอยู่ (floor เด้ง 1000 > ยอด 800) → ปฏิเสธ",
+      () => caller.billing.voidInvoice({ invoiceId: dn4.id, reason: "ทดสอบ void DN" }),
+      "เกินยอดออเดอร์"
+    );
+    await caller.order.updateItems({ id: order4.id, items: [b9Item(10)], discount: 0 });
+    await caller.billing.voidInvoice({ invoiceId: dn4.id, reason: "ทดสอบ void DN หลังดันยอดกลับ" });
+    ok("6.15 ดันยอดกลับ 1000 แล้ว void DN ผ่าน (ทางออกไม่ติดตาย)", true);
+
+    // ออเดอร์ legacy ก่อน B9: บิลเกินยอดออเดอร์อยู่แล้ว (floor 1000 > total 800) —
+    // escape hatch ต้องเปิด: ขยับเข้าหา floor/ยอดเท่าเดิมผ่าน · ลดลงอีกโดน block
+    const order5 = await prisma.order.create({
+      data: {
+        orderNumber: "TEST-ORD-TERMS-5",
+        orderType: "CUSTOM",
+        channel: "LINE",
+        customerId: customer.id,
+        createdById: owner.id,
+        internalStatus: "CONFIRMED",
+        customerStatus: "ORDER_RECEIVED",
+        title: "[TERMS-VERIFY] legacy บิลเกินยอด",
+        taxRate: 0,
+        subtotalItems: 800,
+        totalAmount: 800,
+      },
+    });
+    ids.orders.push(order5.id);
+    await prisma.invoice.create({
+      data: {
+        invoiceNumber: `TEST-INV-B9LEGACY-${Date.now()}`,
+        orderId: order5.id,
+        customerId: customer.id,
+        type: "DEPOSIT_INVOICE",
+        amount: 1000,
+        totalAmount: 1000,
+      },
+    });
+    await caller.order.updateItems({ id: order5.id, items: [b9Item(9)], discount: 0 });
+    const o5Climb = await prisma.order.findUniqueOrThrow({ where: { id: order5.id } });
+    ok(
+      "6.16 legacy: ขยับยอดขึ้นเข้าหา floor (800→900 ยังต่ำกว่าบิล 1000) → ผ่าน ไม่ติดตาย",
+      o5Climb.totalAmount === 900,
+      o5Climb.totalAmount
+    );
+    await caller.order.updateItems({ id: order5.id, items: [b9Item(9)], discount: 0 });
+    ok("6.17 legacy: บันทึกยอดเท่าเดิมเป๊ะ (900 = 900) → ผ่าน (ไม่ block ยอดไม่ลด)", true);
+    await expectError(
+      "6.18 legacy: ลดยอดลงอีก (900→700) → ปฏิเสธ",
+      () => caller.order.updateItems({ id: order5.id, items: [b9Item(7)], discount: 0 }),
+      "ต่ำกว่ายอดบิลที่ออกแล้ว"
+    );
+
+    // VAT 7% + ขอบเพดานระดับสตางค์ + branch เปลี่ยน taxRate ของ order.update
+    const order6 = await prisma.order.create({
+      data: {
+        orderNumber: "TEST-ORD-TERMS-6",
+        orderType: "CUSTOM",
+        channel: "LINE",
+        customerId: customer.id,
+        createdById: owner.id,
+        internalStatus: "CONFIRMED",
+        customerStatus: "ORDER_RECEIVED",
+        title: "[TERMS-VERIFY] เพดานขอบสตางค์ VAT 7%",
+        taxRate: 7,
+        subtotalItems: 2000,
+        taxAmount: 140,
+        totalAmount: 2140,
+      },
+    });
+    ids.orders.push(order6.id);
+    // ใบมัดจำยอดมีสตางค์: 1000.87 + VAT 70.06 = 1070.93 → floor 1070.93
+    await caller.billing.create({
+      orderId: order6.id,
+      customerId: customer.id,
+      type: "DEPOSIT_INVOICE",
+      amount: 1000.87,
+      tax: 70.06,
+    });
+    await caller.order.updateItems({
+      id: order6.id,
+      items: [b9Item(1, 1000.87)],
+      discount: 0,
+    });
+    const o6Boundary = await prisma.order.findUniqueOrThrow({ where: { id: order6.id } });
+    ok(
+      "6.19 VAT 7%: ลดยอดลงมาเท่า floor เป๊ะระดับสตางค์ (1070.93) → ผ่าน",
+      o6Boundary.totalAmount === 1070.93,
+      o6Boundary.totalAmount
+    );
+    await expectError(
+      "6.20 VAT 7%: ต่ำกว่า floor 1 สตางค์ (1070.92) → ปฏิเสธ",
+      () => caller.order.updateItems({ id: order6.id, items: [b9Item(1, 1000.86)], discount: 0 }),
+      "ต่ำกว่ายอดบิลที่ออกแล้ว"
+    );
+    await expectError(
+      "6.21 order.update ถอด VAT (taxRate 7→0 ยอดเหลือ 1000.87 < floor) → ปฏิเสธ",
+      () => caller.order.update({ id: order6.id, taxRate: 0 }),
+      "ต่ำกว่ายอดบิลที่ออกแล้ว"
+    );
   } finally {
     // ---------- ล้างข้อมูลทดสอบเกลี้ยง + คืนเลขเอกสาร ----------
     const testInvoices = await prisma.invoice.findMany({
@@ -332,6 +624,8 @@ async function main() {
     for (const inv of testInvoices) {
       await prisma.notification.deleteMany({ where: { message: { contains: inv.invoiceNumber } } });
     }
+    // แจ้งเตือนจองสต๊อค/อื่นๆ ที่ผูกออเดอร์ทดสอบ (updateItems ตอน CONFIRMED ยิง sync)
+    await prisma.notification.deleteMany({ where: { entityId: { in: ids.orders } } });
     await prisma.auditLog.deleteMany({
       where: { entityId: { in: [...testInvoices.map((i) => i.id), ...ids.orders] } },
     });

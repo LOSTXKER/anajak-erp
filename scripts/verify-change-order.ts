@@ -121,8 +121,45 @@ async function main() {
     check("6.1 DESIGNING updateItems ตรงสำเร็จ (2000*1.07=2140)", Number(o6.totalAmount) === 2140, String(o6.totalAmount));
     const co6 = await prisma.changeOrder.count({ where: { orderId: order2.id } });
     check("6.2 แก้ตรง (ไม่ล็อก) ไม่ออกใบแก้ไข", co6 === 0);
+
+    // ── 7. เพดานขาที่สอง (B9): CO ลดยอดต่ำกว่าบิลที่ออกแล้ว = "เตือน ไม่ block" โดยเจตนา ──
+    // อย่าเปลี่ยนเป็น block: เคสจริง "ลดงานหลังรับมัดจำ+ออกใบกำกับ" เงินรับถูกกฎหมาย
+    // void ใบไม่ได้ · CN อ้างใบเสร็จไม่ลด floor → block = ทางตันถาวร
+    // ทางที่ถูก: CO แล้วออกใบลดหนี้/คืนเงินตาม (ธง invoicedWarning + UI เตือน)
+    await prisma.order.update({
+      where: { id: order2.id },
+      data: { internalStatus: "DESIGN_APPROVED" },
+    });
+    await prisma.invoice.create({
+      data: {
+        invoiceNumber: `TEST-INV-CO-B9-${Date.now()}`,
+        orderId: order2.id,
+        customerId: customer.id,
+        type: "DEPOSIT_INVOICE",
+        amount: 1000,
+        totalAmount: 1000,
+      },
+    });
+    const SMALL_ITEM = {
+      products: [
+        { productType: "TSHIRT", description: `${MARK} เสื้อเล็ก`, baseUnitPrice: 100, variants: [{ size: "M", quantity: 5 }] },
+      ],
+      prints: [],
+      addons: [],
+    };
+    const resB9 = await ownerCaller.order.applyChangeOrder({
+      id: order2.id, items: [SMALL_ITEM], fees: [], discount: 0, reason: "ลูกค้าลดจำนวนหลังวางมัดจำ",
+    });
+    check("7.1 CO ลดยอดต่ำกว่าบิล (535 < มัดจำ 1000) → ผ่าน ไม่ block (โดยเจตนา)",
+      Number(resB9.newTotal) === 535, String(resB9.newTotal));
+    check("7.2 invoicedWarning ติดธง — UI เตือนให้ออกใบลดหนี้ตาม", resB9.invoicedWarning === true);
   } finally {
     // cleanup — order delete cascade ลบ items/fees/revisions/changeOrders
+    // (invoice/audit/notification ไม่ cascade — ลบเองก่อน กันตกค้างแบบหนี้ B4)
+    const coOrderIds = [order?.id, order2?.id].filter((x): x is string => !!x);
+    await prisma.invoice.deleteMany({ where: { orderId: { in: coOrderIds } } }).catch(() => {});
+    await prisma.auditLog.deleteMany({ where: { entityId: { in: coOrderIds } } }).catch(() => {});
+    await prisma.notification.deleteMany({ where: { entityId: { in: coOrderIds } } }).catch(() => {});
     if (order) await prisma.order.delete({ where: { id: order.id } }).catch(() => {});
     if (order2) await prisma.order.delete({ where: { id: order2.id } }).catch(() => {});
     if (customer) await prisma.customer.delete({ where: { id: customer.id } }).catch(() => {});

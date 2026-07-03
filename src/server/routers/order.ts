@@ -40,6 +40,8 @@ import {
   assertSalesWithinCreditLimit,
   UNCOMMITTED_STATUSES,
 } from "@/server/services/receivables";
+import { assertOrderTotalCoversBilled, billedFloor } from "@/server/services/payment-plan";
+import { lockOrderRow } from "@/server/services/order-cost";
 import type { OrderType, TaxLineType } from "@prisma/client";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ = งานขายขึ้นไปตามตาราง RBAC §7
@@ -366,7 +368,8 @@ export const orderRouter = router({
           },
           invoices: {
             orderBy: { createdAt: "desc" },
-            include: { payments: true },
+            // originalInvoice.type — billedFloor ต้องแยก CN อ้างใบเสร็จ (คืนเงิน ไม่ดันเพดาน)
+            include: { payments: true, originalInvoice: { select: { type: true } } },
           },
           deliveries: { orderBy: { createdAt: "desc" } },
           costEntries: { orderBy: { createdAt: "desc" } },
@@ -412,6 +415,16 @@ export const orderRouter = router({
         invoices: seesPayments
           ? order.invoices
           : order.invoices.map((inv) => ({ ...inv, payments: [] })),
+        // เพดานขาที่สอง (B9) — ยอดออเดอร์ต่ำสุดที่ยังคุ้มบิลที่ออกแล้ว · UI ใช้เตือน
+        // ก่อนบันทึกแก้รายการ/ส่วนลด (ด่านจริงอยู่ที่ mutation ฝั่ง server)
+        billedFloor: billedFloor(
+          order.invoices.map((inv) => ({
+            type: inv.type,
+            totalAmount: inv.totalAmount,
+            isVoided: inv.isVoided,
+            originalInvoiceType: inv.originalInvoice?.type ?? null,
+          }))
+        ).toNumber(),
         revisions: order.revisions.map((r) => ({
           ...r,
           // หาไม่เจอ = ค่า literal เดิม (เช่น "ลูกค้า") — โชว์ตามนั้น
@@ -975,31 +988,44 @@ export const orderRouter = router({
         );
       }
 
-      // discount/taxRate เปลี่ยน → คำนวณยอดใหม่ด้วยสูตรกลาง
-      // (เดิม recalc ด้วย discount เก่าแม้ request ส่ง discount ใหม่มา — ยอดเพี้ยน)
-      let taxUpdateData: Record<string, unknown> = {};
-      if (data.taxRate !== undefined || data.discount !== undefined) {
-        const totals = computeOrderTotals({
-          itemSubtotals: [currentOrder.subtotalItems],
-          feeAmounts: [currentOrder.subtotalFees],
-          discount: data.discount ?? currentOrder.discount,
-          taxRate: data.taxRate ?? currentOrder.taxRate,
-        });
-        taxUpdateData = {
-          discount: totals.discount,
-          taxAmount: totals.taxAmount,
-          totalAmount: totals.totalAmount,
-        };
-      }
-
-      const order = await ctx.prisma.order.update({
-        where: { id },
-        data: {
-          ...data,
-          ...taxUpdateData,
-          deadline: data.deadline ? new Date(data.deadline) : undefined,
-        },
-      });
+      const baseData = {
+        ...data,
+        deadline: data.deadline ? new Date(data.deadline) : undefined,
+      };
+      // discount/taxRate เปลี่ยน → recalc ยอดด้วยสูตรกลาง "ใต้ lock" ใน tx เดียวกับที่เขียน
+      // (เดิม recalc ด้วย discount เก่าแม้ request ส่ง discount ใหม่มา — ยอดเพี้ยน ·
+      // และ snapshot นอก lock เปิดช่อง TOCTOU: mutation เงินสองตัวชนกัน ตัวหลังเขียนยอด
+      // จากสภาพเก่า → totalAmount สูงเกินจริง → เพดานวางบิลขาแรกพองตาม)
+      // + เพดานขาที่สอง (B9): ห้ามลดยอดต่ำกว่าบิลที่ออกแล้ว
+      const order =
+        data.taxRate !== undefined || data.discount !== undefined
+          ? await ctx.prisma.$transaction(async (tx) => {
+              await lockOrderRow(tx, id);
+              const locked = await tx.order.findUniqueOrThrow({
+                where: { id },
+                select: { subtotalItems: true, subtotalFees: true, discount: true, taxRate: true },
+              });
+              const totals = computeOrderTotals({
+                itemSubtotals: [locked.subtotalItems],
+                feeAmounts: [locked.subtotalFees],
+                discount: data.discount ?? locked.discount,
+                taxRate: data.taxRate ?? locked.taxRate,
+              });
+              await assertOrderTotalCoversBilled(tx, {
+                orderId: id,
+                newTotal: totals.totalAmount,
+              });
+              return tx.order.update({
+                where: { id },
+                data: {
+                  ...baseData,
+                  discount: totals.discount,
+                  taxAmount: totals.taxAmount,
+                  totalAmount: totals.totalAmount,
+                },
+              });
+            })
+          : await ctx.prisma.order.update({ where: { id }, data: baseData });
 
       await createAuditLog(ctx.prisma, {
         userId: ctx.userId,
@@ -1019,12 +1045,16 @@ export const orderRouter = router({
         id: z.string(),
         items: z.array(orderItemSchema).min(1, "กรุณาเพิ่มรายการอย่างน้อย 1 รายการ"),
         discount: z.number().min(0).default(0),
+        // ส่งมาด้วย = แทนค่าธรรมเนียมทั้งชุดใน tx เดียวกับรายการ — ฟอร์มแก้รายการส่ง
+        // items+fees คู่กันเสมอเมื่อ fees เปลี่ยน ถ้ายิงแยกสอง mutation ด่านเพดานขาที่สอง
+        // (B9) จะตัดสินจากยอดกลางทาง (items ใหม่+fees เก่า) → block/ผ่านไม่ตรงจอ +
+        // โดน block กลางคันแล้วบันทึกค้างครึ่งเดียว
+        fees: z.array(orderFeeSchema).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const order = await ctx.prisma.order.findUniqueOrThrow({
         where: { id: input.id },
-        include: { fees: true },
       });
 
       // อนุมัติแบบแล้ว (DESIGN_APPROVED ขึ้นไป) — แก้รายการตรงไม่ได้ ต้องผ่านใบแก้ไขออเดอร์
@@ -1040,16 +1070,37 @@ export const orderRouter = router({
       await sanitizeArtworkLinks(ctx.prisma, order.customerId, input.items);
 
       const itemsWithCalc = priceOrderItems(input.items);
-      // สูตร A — platformFee ไม่เข้ายอด/ฐาน VAT (สูตรเดิมของ mutation นี้เคยบวก = บั๊กยอดแกว่ง)
-      const totals = computeOrderTotals({
-        itemSubtotals: itemsWithCalc.map((i) => i.subtotal),
-        feeAmounts: order.fees.map((f) => f.amount),
-        discount: input.discount || 0,
-        taxRate: order.taxRate,
-      });
 
-      // Use transaction: delete old items → create new → update pricing
-      const updatedOrder = await ctx.prisma.$transaction(async (tx) => {
+      // ยอด+ด่านเพดานขาที่สอง (B9) คิด "ใต้ lock" ทั้งก้อน — fees/taxRate อ่านนอก lock
+      // เปิดช่อง TOCTOU: mutation เงินสองตัวชนกัน ตัวหลังเขียนยอดจากสภาพเก่า →
+      // totalAmount ไม่ตรงแถวจริง → เพดานวางบิลขาแรกพองเกินมูลค่างาน
+      const { updatedOrder, totals, oldTotals } = await ctx.prisma.$transaction(async (tx) => {
+        await lockOrderRow(tx, input.id);
+        const locked = await tx.order.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { taxRate: true, subtotalItems: true, totalAmount: true },
+        });
+        const feeAmounts = input.fees
+          ? input.fees.map((f) => f.amount)
+          : (
+              await tx.orderFee.findMany({
+                where: { orderId: input.id },
+                select: { amount: true },
+              })
+            ).map((f) => f.amount);
+        // สูตร A — platformFee ไม่เข้ายอด/ฐาน VAT (สูตรเดิมของ mutation นี้เคยบวก = บั๊กยอดแกว่ง)
+        const totals = computeOrderTotals({
+          itemSubtotals: itemsWithCalc.map((i) => i.subtotal),
+          feeAmounts,
+          discount: input.discount || 0,
+          taxRate: locked.taxRate,
+        });
+        // เพดานขาที่สอง (B9): ยอดใหม่ห้ามลดต่ำกว่าบิลที่ออกแล้ว
+        await assertOrderTotalCoversBilled(tx, {
+          orderId: input.id,
+          newTotal: totals.totalAmount,
+        });
+
         // Delete old items (cascades to variants, prints, addons)
         await tx.orderItem.deleteMany({ where: { orderId: input.id } });
 
@@ -1062,13 +1113,29 @@ export const orderRouter = router({
           });
         }
 
+        if (input.fees) {
+          await tx.orderFee.deleteMany({ where: { orderId: input.id } });
+          for (const fee of input.fees) {
+            await tx.orderFee.create({
+              data: {
+                orderId: input.id,
+                feeType: fee.feeType,
+                name: fee.name,
+                description: fee.description,
+                amount: fee.amount,
+                notes: fee.notes,
+              },
+            });
+          }
+        }
+
         // ชนิดออเดอร์ตามเนื้อรายการล่าสุด — re-derive เฉพาะช่วงร่าง/สอบถาม
         // (หลังจากนั้นออเดอร์เดินบนเส้นทางของชนิดเดิมแล้ว เปลี่ยนกลางทาง = transition พัง)
         const rederiveType = ["DRAFT", "INQUIRY"].includes(order.internalStatus)
           ? deriveOrderType(input.items)
           : undefined;
 
-        return tx.order.update({
+        const updatedOrder = await tx.order.update({
           where: { id: input.id },
           data: {
             subtotalItems: totals.subtotalItems,
@@ -1081,6 +1148,11 @@ export const orderRouter = router({
             ...(rederiveType ? { orderType: rederiveType } : {}),
           },
         });
+        return {
+          updatedOrder,
+          totals,
+          oldTotals: { subtotalItems: locked.subtotalItems, totalAmount: locked.totalAmount },
+        };
       });
 
       // Record revision
@@ -1091,8 +1163,10 @@ export const orderRouter = router({
           version: revisionCount + 1,
           changedBy: ctx.userId,
           changeType: "ITEMS",
-          description: `แก้ไขรายการสินค้า (${input.items.length} รายการ)`,
-          oldValue: JSON.stringify({ subtotalItems: order.subtotalItems, totalAmount: order.totalAmount }),
+          description: `แก้ไขรายการสินค้า (${input.items.length} รายการ)${
+            input.fees ? ` + ค่าธรรมเนียม (${input.fees.length} รายการ)` : ""
+          }`,
+          oldValue: JSON.stringify(oldTotals),
           newValue: JSON.stringify({ subtotalItems: totals.subtotalItems, totalAmount: totals.totalAmount }),
         },
       });
@@ -1102,7 +1176,12 @@ export const orderRouter = router({
         action: "UPDATE",
         entityType: "ORDER",
         entityId: input.id,
-        newValue: { action: "updateItems", itemCount: input.items.length, totalAmount: totals.totalAmount },
+        newValue: {
+          action: "updateItems",
+          itemCount: input.items.length,
+          ...(input.fees ? { feeCount: input.fees.length } : {}),
+          totalAmount: totals.totalAmount,
+        },
       });
 
       // ออเดอร์ที่ยืนยันแล้ว (หรือเคยจองไว้) แก้รายการ → จองใหม่ตามเนื้อล่าสุด (replace ฝั่ง Stock)
@@ -1159,39 +1238,53 @@ export const orderRouter = router({
         );
       }
 
-      // สูตร A — platformFee ไม่เข้ายอด/ฐาน VAT (สูตรเดิมของ mutation นี้เคยบวก = บั๊กยอดแกว่ง)
-      const totals = computeOrderTotals({
-        itemSubtotals: [order.subtotalItems],
-        feeAmounts: input.fees.map((f) => f.amount),
-        discount: order.discount,
-        taxRate: order.taxRate,
-      });
+      // ยอด+ด่านเพดานขาที่สอง (B9) คิด "ใต้ lock" — เหตุผลเดียวกับ updateItems (กัน TOCTOU)
+      const { updatedOrder, totals, oldSubtotalFees } = await ctx.prisma.$transaction(
+        async (tx) => {
+          await lockOrderRow(tx, input.id);
+          const locked = await tx.order.findUniqueOrThrow({
+            where: { id: input.id },
+            select: { subtotalItems: true, subtotalFees: true, discount: true, taxRate: true },
+          });
+          // สูตร A — platformFee ไม่เข้ายอด/ฐาน VAT (สูตรเดิมของ mutation นี้เคยบวก = บั๊กยอดแกว่ง)
+          const totals = computeOrderTotals({
+            itemSubtotals: [locked.subtotalItems],
+            feeAmounts: input.fees.map((f) => f.amount),
+            discount: locked.discount,
+            taxRate: locked.taxRate,
+          });
+          // เพดานขาที่สอง (B9): ยอดใหม่ห้ามลดต่ำกว่าบิลที่ออกแล้ว
+          await assertOrderTotalCoversBilled(tx, {
+            orderId: input.id,
+            newTotal: totals.totalAmount,
+          });
 
-      const updatedOrder = await ctx.prisma.$transaction(async (tx) => {
-        await tx.orderFee.deleteMany({ where: { orderId: input.id } });
+          await tx.orderFee.deleteMany({ where: { orderId: input.id } });
 
-        for (const fee of input.fees) {
-          await tx.orderFee.create({
+          for (const fee of input.fees) {
+            await tx.orderFee.create({
+              data: {
+                orderId: input.id,
+                feeType: fee.feeType,
+                name: fee.name,
+                description: fee.description,
+                amount: fee.amount,
+                notes: fee.notes,
+              },
+            });
+          }
+
+          const updatedOrder = await tx.order.update({
+            where: { id: input.id },
             data: {
-              orderId: input.id,
-              feeType: fee.feeType,
-              name: fee.name,
-              description: fee.description,
-              amount: fee.amount,
-              notes: fee.notes,
+              subtotalFees: totals.subtotalFees,
+              taxAmount: totals.taxAmount,
+              totalAmount: totals.totalAmount,
             },
           });
+          return { updatedOrder, totals, oldSubtotalFees: locked.subtotalFees };
         }
-
-        return tx.order.update({
-          where: { id: input.id },
-          data: {
-            subtotalFees: totals.subtotalFees,
-            taxAmount: totals.taxAmount,
-            totalAmount: totals.totalAmount,
-          },
-        });
-      });
+      );
 
       const revisionCount = await ctx.prisma.orderRevision.count({ where: { orderId: input.id } });
       await ctx.prisma.orderRevision.create({
@@ -1201,7 +1294,7 @@ export const orderRouter = router({
           changedBy: ctx.userId,
           changeType: "FEES",
           description: `แก้ไขค่าธรรมเนียม (${input.fees.length} รายการ)`,
-          oldValue: JSON.stringify({ subtotalFees: order.subtotalFees }),
+          oldValue: JSON.stringify({ subtotalFees: oldSubtotalFees }),
           newValue: JSON.stringify({ subtotalFees: totals.subtotalFees }),
         },
       });
@@ -1244,26 +1337,36 @@ export const orderRouter = router({
         );
       }
 
-      // ออกใบกำกับ/มัดจำไปแล้ว → ยอดเปลี่ยนต้องออกใบลดหนี้/เพิ่มหนี้แยก (ห้ามแก้ใบเดิม) — เตือน
-      const invoiceCount = await ctx.prisma.invoice.count({
-        where: { orderId: input.id, isVoided: false },
-      });
-      const invoicedWarning = invoiceCount > 0;
-
       // artworkId เป็น hint จาก echo — เก็บเฉพาะลายจริงของลูกค้านี้ที่รูปยังตรง
       await sanitizeArtworkLinks(ctx.prisma, order.customerId, input.items);
 
       const itemsWithCalc = priceOrderItems(input.items);
-      // สูตร A — platformFee ไม่เข้ายอด/ฐาน VAT (เหมือน updateItems/updateFees)
-      const totals = computeOrderTotals({
-        itemSubtotals: itemsWithCalc.map((i) => i.subtotal),
-        feeAmounts: input.fees.map((f) => f.amount),
-        discount: input.discount || 0,
-        taxRate: order.taxRate,
-      });
-      const oldTotal = order.totalAmount;
 
       const result = await ctx.prisma.$transaction(async (tx) => {
+        // ยอด+ธงเตือนคิดใต้ lock (กัน TOCTOU — เหตุผลเดียวกับ updateItems · review B9 จับ)
+        // CO "ไม่ block" เพดานขาที่สอง (B9) โดยเจตนา — อย่าเสียบ assert ที่นี่: เคสจริง
+        // "ลูกค้าลดงานหลังจ่ายมัดจำ+ออกใบกำกับแล้ว" เงินรับถูกกฎหมาย void ใบไม่ได้ และ
+        // CN อ้างใบเสร็จก็ไม่ลด floor → block = ทางตันถาวร · ทางที่ถูกคือ CO แล้วออก
+        // ใบลดหนี้/คืนเงินตาม (invoicedWarning + UI พายอด billedFloor เตือนอยู่แล้ว)
+        await lockOrderRow(tx, input.id);
+        const locked = await tx.order.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { taxRate: true, totalAmount: true },
+        });
+        // ออกใบกำกับ/มัดจำไปแล้ว → ยอดเปลี่ยนต้องออกใบลดหนี้/เพิ่มหนี้แยก (ห้ามแก้ใบเดิม)
+        const invoiceCount = await tx.invoice.count({
+          where: { orderId: input.id, isVoided: false },
+        });
+        const invoicedWarning = invoiceCount > 0;
+        // สูตร A — platformFee ไม่เข้ายอด/ฐาน VAT (เหมือน updateItems/updateFees)
+        const totals = computeOrderTotals({
+          itemSubtotals: itemsWithCalc.map((i) => i.subtotal),
+          feeAmounts: input.fees.map((f) => f.amount),
+          discount: input.discount || 0,
+          taxRate: locked.taxRate,
+        });
+        const oldTotal = locked.totalAmount;
+
         // แทนรายการ+ค่าธรรมเนียมทั้งชุดใน tx เดียว (เหมือน updateItems+updateFees รวมกัน)
         await tx.orderItem.deleteMany({ where: { orderId: input.id } });
         for (const item of itemsWithCalc) {
@@ -1324,7 +1427,7 @@ export const orderRouter = router({
           },
         });
 
-        return { updatedOrder, changeOrder };
+        return { updatedOrder, changeOrder, newTotal: totals.totalAmount, invoicedWarning };
       });
 
       await createAuditLog(ctx.prisma, {
@@ -1335,14 +1438,14 @@ export const orderRouter = router({
         newValue: {
           action: "applyChangeOrder",
           changeNumber: result.changeOrder.changeNumber,
-          totalAmount: totals.totalAmount,
+          totalAmount: result.newTotal,
         },
       });
 
       // จองสต๊อกใหม่ตามเนื้อล่าสุด (DESIGN_APPROVED/PRODUCTION_QUEUE = ยังแค่จอง ยังไม่เบิก)
       await syncOrderStockReservation(ctx.prisma, { orderId: input.id, changedBy: ctx.userId });
 
-      return { ...result.changeOrder, invoicedWarning };
+      return { ...result.changeOrder, invoicedWarning: result.invoicedWarning };
     }),
 
   // ประวัติใบแก้ไขออเดอร์ของออเดอร์ — resolve ชื่อคนออกใบ (createdById เก็บ id ดิบ
@@ -1391,18 +1494,35 @@ export const orderRouter = router({
 
       const feeName = `ค่าแก้แบบเกินโควตา (${overage.chargeableRounds} รอบ)`;
       const feeDesc = `แก้แบบ ${overage.revisionRounds} รอบ (ฟรี ${overage.freeRounds}) — คิดเกิน ${overage.chargeableRounds} รอบ × ${REVISION_FEE_PER_ROUND}฿`;
-      // สูตร A — ค่าแก้แบบ "แทน" แถว DESIGN_REVISION เดิม (ไม่ทับค่าธรรมเนียมอื่น)
-      const otherFeeAmounts = order.fees
-        .filter((f) => f.feeType !== REVISION_FEE_TYPE)
-        .map((f) => f.amount);
-      const totals = computeOrderTotals({
-        itemSubtotals: [order.subtotalItems],
-        feeAmounts: [...otherFeeAmounts, overage.fee],
-        discount: order.discount,
-        taxRate: order.taxRate,
-      });
 
       const updatedOrder = await ctx.prisma.$transaction(async (tx) => {
+        // ยอดคิดใต้ lock (กัน TOCTOU — เหตุผลเดียวกับ updateItems/updateFees)
+        await lockOrderRow(tx, input.id);
+        const locked = await tx.order.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { subtotalItems: true, subtotalFees: true, discount: true, taxRate: true },
+        });
+        // สูตร A — ค่าแก้แบบ "แทน" แถว DESIGN_REVISION เดิม (ไม่ทับค่าธรรมเนียมอื่น)
+        const otherFeeAmounts = (
+          await tx.orderFee.findMany({
+            where: { orderId: input.id, feeType: { not: REVISION_FEE_TYPE } },
+            select: { amount: true },
+          })
+        ).map((f) => f.amount);
+        const totals = computeOrderTotals({
+          itemSubtotals: [locked.subtotalItems],
+          feeAmounts: [...otherFeeAmounts, overage.fee],
+          discount: locked.discount,
+          taxRate: locked.taxRate,
+        });
+        // เพดานขาที่สอง (B9): แถว DESIGN_REVISION แก้มือให้สูงได้ผ่าน updateFees — sync
+        // กลับตามรอบจริงอาจ "ลด" ยอด · mutation นี้เปิดถึงหลังเริ่มผลิต (ช่องแก้ยอดช่องเดียว
+        // ที่เหลือ) จึงต้องมีด่านเดียวกัน
+        await assertOrderTotalCoversBilled(tx, {
+          orderId: input.id,
+          newTotal: totals.totalAmount,
+        });
+
         // self-healing แบบ updateFees — ลบแถว DESIGN_REVISION เดิม (ถ้ามี) แล้วสร้างใหม่ใบเดียว
         // กัน race สองคลิก/สองแท็บสร้างสองแถว (ไม่มี unique constraint บน orderId+feeType)
         await tx.orderFee.deleteMany({ where: { orderId: input.id, feeType: REVISION_FEE_TYPE } });
@@ -1433,7 +1553,7 @@ export const orderRouter = router({
             changedBy: ctx.userId,
             changeType: "FEES",
             description: `คิดค่าแก้แบบเกินโควตา ${overage.chargeableRounds} รอบ (฿${overage.fee})`,
-            oldValue: JSON.stringify({ subtotalFees: order.subtotalFees }),
+            oldValue: JSON.stringify({ subtotalFees: locked.subtotalFees }),
             newValue: JSON.stringify({ subtotalFees: totals.subtotalFees }),
           },
         });

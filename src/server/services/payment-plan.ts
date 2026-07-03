@@ -1,7 +1,10 @@
 import { Prisma } from "@prisma/client";
 import type { InvoiceType } from "@prisma/client";
 import { D, round2 } from "./money";
+import { lockOrderRow } from "./order-cost";
 import { getPaymentTerms } from "@/lib/payment-terms";
+import { badRequest } from "@/server/errors";
+import type { PrismaTx } from "@/lib/prisma";
 
 // แผนการวางบิลจากเงื่อนไขชำระ (payment terms) ของออเดอร์ — แหล่งเดียวที่แปลง
 // "เทอม" → ยอดบิลแนะนำ / ฐานภาษี+VAT / วันครบกำหนด / เพดานวางบิล
@@ -37,6 +40,20 @@ export function billedTotal(
     .reduce((sum, inv) => sum.plus(inv.totalAmount), D(0));
 }
 
+// CN ที่หักเพดานใบเสร็จ = เฉพาะที่ลดมูลค่างานก่อนเก็บเงิน (อ้างใบเรียกเก็บ/ไม่ผูกใบ)
+// — CN อ้างใบเสร็จคือคืนเงินหลังรับ ถ้าหักด้วยจะ block ใบกำกับของงวดรับเงินถัดไป
+// ที่กฎหมายบังคับให้ออก (เคสมัดจำ+คืนเงินบางส่วนกลางทาง)
+function capReducingCreditTotal(invoices: InvoiceForPlan[]): Prisma.Decimal {
+  return invoices
+    .filter(
+      (inv) =>
+        !inv.isVoided &&
+        inv.type === "CREDIT_NOTE" &&
+        inv.originalInvoiceType !== "RECEIPT"
+    )
+    .reduce((sum, inv) => sum.plus(inv.totalAmount), D(0));
+}
+
 // คงเหลือวางบิลได้ของชนิดนั้น (รวม VAT) — null = ชนิดที่ไม่มีเพดาน (ลดหนี้/เพิ่มหนี้)
 // เพดานกองใบเสร็จ = ยอดออเดอร์ + ใบเพิ่มหนี้ − ใบลดหนี้ (เงินที่รับได้จริงทั้งหมด —
 // ไม่งั้นเงินจากงานเพิ่มที่เรียกเก็บผ่าน DEBIT_NOTE จะออกใบเสร็จไม่ได้)
@@ -48,25 +65,70 @@ export function remainingBillable(
 ): Prisma.Decimal | null {
   const pool = INVOICE_POOL[type];
   if (!pool) return null;
-  // CN ที่หักเพดานใบเสร็จ = เฉพาะที่ลดมูลค่างานก่อนเก็บเงิน (อ้างใบเรียกเก็บ/ไม่ผูกใบ)
-  // — CN อ้างใบเสร็จคือคืนเงินหลังรับ ถ้าหักด้วยจะ block ใบกำกับของงวดรับเงินถัดไป
-  // ที่กฎหมายบังคับให้ออก (เคสมัดจำ+คืนเงินบางส่วนกลางทาง)
-  const capReducingCredits = invoices
-    .filter(
-      (inv) =>
-        !inv.isVoided &&
-        inv.type === "CREDIT_NOTE" &&
-        inv.originalInvoiceType !== "RECEIPT"
-    )
-    .reduce((sum, inv) => sum.plus(inv.totalAmount), D(0));
   const cap =
     type === "RECEIPT"
       ? D(orderTotal)
           .plus(billedTotal(invoices, ["DEBIT_NOTE"]))
-          .minus(capReducingCredits)
+          .minus(capReducingCreditTotal(invoices))
       : D(orderTotal);
   const remaining = cap.minus(billedTotal(invoices, pool));
   return remaining.gt(0) ? remaining : D(0);
+}
+
+// เพดานขาที่สอง (Gate B9): ยอดออเดอร์ต่ำสุดที่ยังคุ้มบิลที่ออกไปแล้ว — กลับด้านของ
+// remainingBillable กองต่อกอง (ขาแรกกันบิลเกินออเดอร์ · ขานี้กันแก้ออเดอร์จนต่ำกว่าบิล)
+//   กองใบแจ้งหนี้: ยอดออเดอร์ ≥ Σ(D+F)
+//   กองใบเสร็จ:   ยอดออเดอร์ ≥ Σ(REC) − Σ(DN) + Σ(CN ที่ไม่อ้างใบเสร็จ)
+export function billedFloor(invoices: InvoiceForPlan[]): Prisma.Decimal {
+  const invoicePoolFloor = billedTotal(invoices, ["DEPOSIT_INVOICE", "FINAL_INVOICE"]);
+  const receiptPoolFloor = billedTotal(invoices, ["RECEIPT"])
+    .minus(billedTotal(invoices, ["DEBIT_NOTE"]))
+    .plus(capReducingCreditTotal(invoices));
+  const floor = invoicePoolFloor.gte(receiptPoolFloor) ? invoicePoolFloor : receiptPoolFloor;
+  return floor.gt(0) ? floor : D(0);
+}
+
+// ด่านขาที่สอง — เรียกใน $transaction ของ mutation ที่แก้ยอดออเดอร์ได้
+// (order.update/updateItems/updateFees/addRevisionFee/quotation.convertToOrder)
+// ล็อกแถวออเดอร์เองก่อนอ่านบิล — คู่กับ billing.create ที่ล็อกแถวเดียวกันก่อนเช็ค
+// เพดานขาแรก · **สัญญากับ caller**: newTotal ต้องคำนวณจากข้อมูล (fees/taxRate/
+// subtotal) ที่อ่าน "หลัง" lock ใน tx เดียวกันเท่านั้น — ตัวเลขจาก snapshot นอก lock
+// เปิดช่อง TOCTOU ให้ยอดที่เขียนไม่ตรงแถวจริง (review B9 จับ)
+// กันเฉพาะ "ลดแล้วต่ำกว่าบิล" (ยอดใหม่ < floor และ < ยอดเดิม) — ออเดอร์เก่าที่
+// เพี้ยนอยู่แล้ว (บิลเกินยอดจากข้อมูลก่อน B9) ยังขยับยอดเข้าหา floor ได้ ไม่ติดตาย
+export async function assertOrderTotalCoversBilled(
+  tx: PrismaTx,
+  params: { orderId: string; newTotal: number }
+): Promise<void> {
+  await lockOrderRow(tx, params.orderId);
+  const current = await tx.order.findUniqueOrThrow({
+    where: { id: params.orderId },
+    select: { totalAmount: true },
+  });
+  const invoices = await tx.invoice.findMany({
+    where: { orderId: params.orderId, isVoided: false },
+    select: {
+      type: true,
+      totalAmount: true,
+      isVoided: true,
+      originalInvoice: { select: { type: true } },
+    },
+  });
+  if (invoices.length === 0) return;
+  const floor = billedFloor(
+    invoices.map((inv) => ({
+      ...inv,
+      originalInvoiceType: inv.originalInvoice?.type ?? null,
+    }))
+  );
+  const newTotal = D(params.newTotal);
+  if (newTotal.lt(floor) && newTotal.lt(current.totalAmount)) {
+    // ทางออกที่ผ่านจริงมีทางเดียวคือยกเลิกบิลเดิม — ใบลดหนี้ไม่ลด floor (กอง D+F ไม่นับ
+    // CN · กอง REC ยิ่งบวก CN เข้า floor) อย่าแนะนำให้ผู้ใช้วนทางตัน (review B9 จับ)
+    badRequest(
+      `ยอดออเดอร์ใหม่ (${newTotal.toFixed(2)} บาท) ต่ำกว่ายอดบิลที่ออกแล้ว (${floor.toFixed(2)} บาท) — ยกเลิกบิลเดิม (แล้วออกใหม่ตามยอดที่ถูก) ก่อนลดยอด`
+    );
+  }
 }
 
 // แตกยอดรวม (รวม VAT แล้ว) เป็นฐานภาษี + VAT ตาม taxRate ของออเดอร์

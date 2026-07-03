@@ -9,6 +9,7 @@ import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/docume
 import { computeQuotationTotals } from "@/server/services/pricing";
 import { D, round2, moneyInput } from "@/server/services/money";
 import { assertSalesWithinCreditLimit } from "@/server/services/receivables";
+import { assertOrderTotalCoversBilled } from "@/server/services/payment-plan";
 import { transitionOrder, addOrderRevision } from "@/server/services/order-status";
 import { syncOrderStockReservation } from "@/server/services/stock-reservation";
 // นิยาม "หมดอายุ" อยู่ที่ service เดียว (กัน drift กับลิงก์ยืนยันใบเสนอ ก้อน 4)
@@ -501,6 +502,12 @@ export const quotationRouter = router({
           if (linkedOrder) {
             // ออเดอร์ยังไม่มีรายการ → เติมโครงจากใบเสนอ + ยอด/ภาษีตามใบเสนอ
             if (linkedOrder.items.length === 0) {
+              // เพดานขาที่สอง (B9): ออเดอร์เปิดเบา (fees ล้วน) ออกบิลได้ก่อนแปลง —
+              // ยอดใบเสนอที่ต่อรองลงต้องไม่ต่ำกว่าบิลที่ออกแล้ว (review B9 จับช่องนี้)
+              await assertOrderTotalCoversBilled(tx, {
+                orderId: linkedOrder.id,
+                newTotal: quotation.totalAmount,
+              });
               await tx.order.update({
                 where: { id: linkedOrder.id },
                 data: {
