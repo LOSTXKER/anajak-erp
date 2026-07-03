@@ -1,0 +1,31 @@
+name: CI
+
+# ตรวจขั้นต่ำทุก push/PR (Gate B15) — lint + typecheck + unit test
+# ไม่รวม next build (ต้องมี env จริง + ช้า) และ verify:* (ต้องต่อ DB จริง) — รันแยก/ภายหลัง
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# ยกเลิก run เก่าเมื่อ push ทับ branch เดิม
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # prisma generate อ่าน schema ไม่ต่อ DB — ใส่ค่า dummy กัน env warning ระหว่าง generate
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # postinstall รัน prisma generate ให้เอง (tsc ต้องใช้ type ของ Prisma client)
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
