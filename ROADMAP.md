@@ -53,10 +53,10 @@
 - [ ] C6 LINE OA notify (P3 เดิม — ระหว่างนี้ template ก๊อปส่ง + ถอดช่อง LINE token ปลอมออกจาก settings)
 
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
-ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT · ปุ่มร่างทวงหนี้บนหน้า aging (dunning มีแล้วแต่เรียกได้ทาง MCP เท่านั้น) · ปุ่ม UI recordRefund · ตารางบิลกดได้+filter+pagination (router รองรับหมดแล้ว) · แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
+~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
 
 ### Refactor targeted (ทำตอนแตะไฟล์นั้นตามกติกา 7 — ห้าม big-bang)
-ย้าย logic เงินจาก router ลง services + test: recordPayment/void (เงินก้อนใหญ่สุดไม่มี unit test) · ด่านปิดงานวางบิลครบ (order.ts:801-818) · convertToOrder (193 บรรทัด) · production.updateStep (208 บรรทัด) — รวมของซ้ำ: INVOICE_TYPE_LABELS (6 ไฟล์ป้ายไม่ตรง) · FINANCE_ROLES (~20 จุด/5 ไฟล์) · ลบ dead export สูตรเงินเก่าไม่มี VAT (lib/pricing.ts:119-141) — schema: index FK ~20 ตัว (ทำพร้อม migration ถัดไป) · test กลุ่ม stock/ผลิต (garment-pick/goods-receipt/qc/print-run = 0 test ทั้งกลุ่ม)
+~~ลบ dead export สูตรเงินเก่าไม่มี VAT (lib/pricing.ts)~~ ✅ 2026-07-03 · ~~FINANCE_ROLES ฝั่ง client (6 หน้า) → import lib/roles.ts~~ ✅ 2026-07-03 (+MONEY_RECORDER_ROLES) · **เหลือ**: ย้าย logic เงินจาก router ลง services + test: recordPayment/void (เงินก้อนใหญ่สุดไม่มี unit test) · ด่านปิดงานวางบิลครบ (order.ts:801-818) · convertToOrder (193 บรรทัด) · production.updateStep (208 บรรทัด) · INVOICE_TYPE_LABELS (6 ไฟล์ป้ายไม่ตรง) · FINANCE_ROLES ฝั่ง server (requireRole ~8 จุด — inline ยังโอเค) · schema: index FK ~20 ตัว (ทำพร้อม migration ถัดไป) · test กลุ่ม stock/ผลิต (garment-pick/goods-receipt/qc/print-run = 0 test ทั้งกลุ่ม)
 
 ---
 
