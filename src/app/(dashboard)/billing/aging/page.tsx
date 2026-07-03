@@ -19,6 +19,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/utils";
+import { FINANCE_ROLES } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import {
   Users,
@@ -30,7 +31,6 @@ import {
   Loader2,
 } from "lucide-react";
 
-const FINANCE_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
 type DunningTone = "gentle" | "firm";
 
 // ลำดับ + ป้ายถังอายุหนี้ — ตรงกับ AGING_BUCKETS ใน services/receivables.ts

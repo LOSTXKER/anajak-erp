@@ -32,8 +32,8 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { FileStack, Plus, Printer, Ban, Loader2 } from "lucide-react";
+import { FINANCE_ROLES } from "@/lib/roles";
 
-const FINANCE_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
 
 const INVOICE_TYPE_SHORT: Record<string, string> = {
   DEPOSIT_INVOICE: "มัดจำ",

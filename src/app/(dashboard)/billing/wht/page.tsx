@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
+import { FINANCE_ROLES } from "@/lib/roles";
 import {
   ReceiptText,
   Download,
@@ -42,7 +43,6 @@ import {
 // ทะเบียนหัก ณ ที่จ่ายขารับ (50ทวิ) — แถวเกิดอัตโนมัติตอนบัญชีบันทึกรับเงินที่มี WHT
 // งานหน้านี้: ตามหนังสือรับรองจากลูกค้า (ไม่มีใบ = เครดิตภาษี 3% หายฟรี) + export CSV ให้นักบัญชี
 
-const FINANCE_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
 
 type WhtRow = RouterOutput["wht"]["list"][number];
 

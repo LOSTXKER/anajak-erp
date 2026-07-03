@@ -11,6 +11,7 @@ import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SettingsPageHeader } from "@/components/settings-page-header";
 import type { CostRates } from "@/lib/cost-rates";
+import { FINANCE_ROLES } from "@/lib/roles";
 import {
   EMPTY_COST_RATES,
   costRatesConfigured,
@@ -20,7 +21,6 @@ import {
 
 // เรตต้นทุนกลาง (FLOW-REDESIGN ก้อน 2) — เข็มทิศกำไรขั้นต้นตอนตีราคา ไม่ใช่บัญชีจริง
 // อ่านได้: OWNER/MANAGER/ACCOUNTANT · แก้ได้: OWNER/MANAGER (ตรง RBAC ใน settings router)
-const FINANCE_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
 const EDIT_ROLES = ["OWNER", "MANAGER"];
 
 // ตัวอย่างคำนวณสด — ลายมาตรฐาน 30×20 ซม. × 100 ตัว

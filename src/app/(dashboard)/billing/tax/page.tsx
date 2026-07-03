@@ -26,12 +26,12 @@ import {
   type SalesTaxRow,
 } from "@/lib/sales-tax-report";
 import { Download, FileSpreadsheet, ReceiptText, Ban, Coins } from "lucide-react";
+import { FINANCE_ROLES } from "@/lib/roles";
 
 // รายงานภาษีขายรายเดือน (Gate B5) — ใบกำกับภาษีของงวด (ใบเสร็จ/ใบกำกับ + ใบลดหนี้/เพิ่มหนี้)
 // งวดตาม issueDate (tax point B3) · export 2 แบบ: CSV รายงานภาษีขาย (ยื่น ภ.พ.30) + CSV
 // คอลัมน์ตาม field PEAK (นักบัญชีวางลง template จริง — ล็อกคอลัมน์เป๊ะตอนรีวิว B6)
 
-const FINANCE_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
 
 const THAI_MONTHS = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",

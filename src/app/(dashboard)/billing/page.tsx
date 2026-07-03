@@ -11,6 +11,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
+import { FINANCE_ROLES } from "@/lib/roles";
 import {
   DollarSign,
   AlertCircle,
@@ -39,7 +40,6 @@ const invoiceTypeLabels: Record<string, string> = {
   DEBIT_NOTE: "ใบเพิ่มหนี้",
 };
 
-const FINANCE_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
 
 export default function BillingPage() {
   const [search, setSearch] = useState("");

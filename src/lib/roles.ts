@@ -27,6 +27,10 @@ export const ORDER_MONEY_ROLES: Role[] = [...FINANCE_ROLES, "SALES"];
 // ไม่รวม ACCOUNTANT (ทำบัญชี ไม่เปิดงานขาย)
 export const SALES_DOC_ROLES: Role[] = ["OWNER", "MANAGER", "SALES"];
 
+// บันทึกรับเงิน/คืนเงิน/ยกเลิกบิล — ตรง moneyRecorder ที่ server (แคบกว่า finance:
+// ไม่รวม MANAGER · เจ้าของ+บัญชีเท่านั้นแตะเงินเข้า-ออกจริง)
+export const MONEY_RECORDER_ROLES: Role[] = ["OWNER", "ACCOUNTANT"];
+
 export const canSeeFinance = (role: Role): boolean => FINANCE_ROLES.includes(role);
 export const canSeeOrderMoney = (role: Role): boolean => ORDER_MONEY_ROLES.includes(role);
 export const canCreateSalesDocs = (role: Role): boolean => SALES_DOC_ROLES.includes(role);
