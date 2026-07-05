@@ -3,6 +3,7 @@
 import { use } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatDate, isImageUrl } from "@/lib/utils";
+import { INVOICE_TYPE_LABELS_CUSTOMER } from "@/lib/invoice-labels";
 import {
   CUSTOMER_STATUS_LABELS,
   CUSTOMER_STATUS_COLORS,
@@ -31,14 +32,6 @@ const PAYMENT_STATUS: Record<string, { label: string; variant: "success" | "warn
   PAID: { label: "ชำระแล้ว", variant: "success" },
   OVERDUE: { label: "เลยกำหนด", variant: "destructive" },
   VOIDED: { label: "ยกเลิก", variant: "default" },
-};
-
-const INVOICE_TYPE: Record<string, string> = {
-  DEPOSIT_INVOICE: "ใบแจ้งหนี้ (มัดจำ)",
-  FINAL_INVOICE: "ใบแจ้งหนี้",
-  RECEIPT: "ใบเสร็จรับเงิน",
-  CREDIT_NOTE: "ใบลดหนี้",
-  DEBIT_NOTE: "ใบเพิ่มหนี้",
 };
 
 const QUOTATION_STATUS: Record<string, string> = {
@@ -350,7 +343,7 @@ export default function OrderStatusPage({
                   <div key={`i${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 p-3 text-sm">
                     <div className="min-w-0">
                       <p className="font-medium text-slate-800">
-                        {INVOICE_TYPE[inv.type] ?? "ใบแจ้งหนี้"} {inv.invoiceNumber}
+                        {INVOICE_TYPE_LABELS_CUSTOMER[inv.type] ?? "ใบแจ้งหนี้"} {inv.invoiceNumber}
                         {inv.isVoided && <span className="ml-1 text-xs text-red-500">(ยกเลิก)</span>}
                       </p>
                       {inv.dueDate && !inv.isVoided && (

@@ -33,13 +33,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { FileStack, Plus, Printer, Ban, Loader2 } from "lucide-react";
 import { FINANCE_ROLES } from "@/lib/roles";
-
-
-const INVOICE_TYPE_SHORT: Record<string, string> = {
-  DEPOSIT_INVOICE: "มัดจำ",
-  FINAL_INVOICE: "ส่วนที่เหลือ",
-  DEBIT_NOTE: "เพิ่มหนี้",
-};
+import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 
 export default function BillingNotesPage() {
   const [search, setSearch] = useState("");
@@ -351,7 +345,7 @@ export default function BillingNotesPage() {
                               {inv.invoiceNumber}
                             </span>
                             <span className="ml-1.5 text-xs text-slate-500">
-                              {INVOICE_TYPE_SHORT[inv.type] ?? inv.type} · {inv.orderNumber}
+                              {INVOICE_TYPE_LABELS[inv.type] ?? inv.type} · {inv.orderNumber}
                               {inv.dueDate && ` · ครบกำหนด ${formatDate(inv.dueDate)}`}
                             </span>
                           </span>

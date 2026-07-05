@@ -37,6 +37,7 @@ import {
   roleAllows,
 } from "@/lib/roles";
 import { customerProfileGaps } from "@/lib/customer-gaps";
+import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 import {
   Receipt,
   Plus,
@@ -65,15 +66,6 @@ interface OrderBillingSectionProps {
   totalAmount: number;
   internalStatus: string;
 }
-
-const INVOICE_TYPE_LABELS: Record<string, string> = {
-  DEPOSIT_INVOICE: "ใบแจ้งหนี้มัดจำ",
-  FINAL_INVOICE: "ใบแจ้งหนี้ส่วนที่เหลือ",
-  RECEIPT: "ใบเสร็จรับเงิน",
-  CREDIT_NOTE: "ใบลดหนี้",
-  DEBIT_NOTE: "ใบเพิ่มหนี้",
-};
-
 
 export function OrderBillingSection({
   orderId,
@@ -779,11 +771,19 @@ export function OrderBillingSection({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DEPOSIT_INVOICE">ใบแจ้งหนี้มัดจำ</SelectItem>
-                  <SelectItem value="FINAL_INVOICE">ใบแจ้งหนี้ส่วนที่เหลือ</SelectItem>
-                  <SelectItem value="RECEIPT">ใบเสร็จรับเงิน</SelectItem>
-                  <SelectItem value="CREDIT_NOTE">ใบลดหนี้</SelectItem>
-                  <SelectItem value="DEBIT_NOTE">ใบเพิ่มหนี้</SelectItem>
+                  {(
+                    [
+                      "DEPOSIT_INVOICE",
+                      "FINAL_INVOICE",
+                      "RECEIPT",
+                      "CREDIT_NOTE",
+                      "DEBIT_NOTE",
+                    ] as const
+                  ).map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {INVOICE_TYPE_LABELS[t]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {invoiceType === "RECEIPT" && receiptForPayment && (

@@ -18,12 +18,7 @@ import {
   formatDocDate,
 } from "@/components/print/print-document";
 import { PrintActions } from "@/components/print/print-actions";
-
-const INVOICE_TYPE_SHORT: Record<string, string> = {
-  DEPOSIT_INVOICE: "ใบแจ้งหนี้ (มัดจำ)",
-  FINAL_INVOICE: "ใบแจ้งหนี้",
-  DEBIT_NOTE: "ใบเพิ่มหนี้",
-};
+import { INVOICE_TYPE_LABELS_CUSTOMER } from "@/lib/invoice-labels";
 
 export default async function PrintBillingNotePage({
   params,
@@ -100,7 +95,7 @@ export default async function PrintBillingNotePage({
 
         <ItemsTable
           rows={note.items.map((item) => ({
-            description: `${INVOICE_TYPE_SHORT[item.invoice.type] ?? item.invoice.type} ${item.invoice.invoiceNumber} — อ้างอิงออเดอร์ ${item.invoice.order.orderNumber}\nลงวันที่ ${formatDocDate(item.invoice.createdAt)}${item.invoice.dueDate ? ` · ครบกำหนด ${formatDocDate(item.invoice.dueDate)}` : ""}`,
+            description: `${INVOICE_TYPE_LABELS_CUSTOMER[item.invoice.type] ?? item.invoice.type} ${item.invoice.invoiceNumber} — อ้างอิงออเดอร์ ${item.invoice.order.orderNumber}\nลงวันที่ ${formatDocDate(item.invoice.createdAt)}${item.invoice.dueDate ? ` · ครบกำหนด ${formatDocDate(item.invoice.dueDate)}` : ""}`,
             amount: item.amount,
           }))}
         />
