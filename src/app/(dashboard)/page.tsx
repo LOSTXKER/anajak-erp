@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { cn, formatCurrency } from "@/lib/utils";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { PageHeader } from "@/components/page-header";
@@ -80,7 +81,7 @@ function PulseCard({
 }
 
 export default function DashboardPage() {
-  const { data, isLoading } = trpc.analytics.dashboard.useQuery();
+  const { data, isLoading, isError, refetch } = trpc.analytics.dashboard.useQuery();
   // 5 ตัวเลขเจ้าของ — gate ฝั่ง server (OWNER/MANAGER) · role อื่นโดน FORBIDDEN → ไม่โชว์ section นี้เลย
   const { data: pulse } = trpc.analytics.ownerPulse.useQuery(undefined, {
     retry: false,
@@ -106,6 +107,9 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  // query หลักพัง — ตัดจบทั้งหน้า กัน StatCard โชว์เลขศูนย์หลอกๆ
+  if (isError) return <QueryError onRetry={() => refetch()} />;
 
   const today = new Date();
 

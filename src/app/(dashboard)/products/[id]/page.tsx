@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { ArrowLeft, Package, Cloud, Trash2, AlertTriangle } from "lucide-react";
 
@@ -47,7 +48,7 @@ export default function ProductDetailPage({
   const utils = trpc.useUtils();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const { data: product, isLoading } = trpc.product.getById.useQuery({ id });
+  const { data: product, isLoading, isError, refetch } = trpc.product.getById.useQuery({ id });
 
   // -- Mutations (ERP-specific overrides only) --
   const updateProduct = trpc.product.update.useMutation({
@@ -105,6 +106,10 @@ export default function ProductDetailPage({
       </div>
     );
   }
+
+  // query พัง ≠ ไม่พบสินค้า — ต้องเช็คก่อน branch not found
+  // && !product: refetch เบื้องหลังล้มทั้งที่มี cache ห้ามถอนหน้า (modal ลบเปิดค้างได้)
+  if (isError && !product) return <QueryError onRetry={() => refetch()} />;
 
   if (!product) return null;
 

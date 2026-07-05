@@ -62,7 +62,7 @@ export default function CustomersPage() {
   const { data: me } = trpc.user.me.useQuery();
   // วงเงินเครดิต = การตัดสินใจความเสี่ยง — SALES ตั้งเองไม่ได้ (ตรง server guard ฝั่ง create)
   const canSetCredit = !me || me.role !== "SALES";
-  const { data: statsData } = trpc.customer.stats.useQuery();
+  const statsQuery = trpc.customer.stats.useQuery();
   const { data, isLoading, isError, refetch } = trpc.customer.list.useQuery(
     {
       search: debouncedSearch.trim() || undefined,
@@ -134,12 +134,17 @@ export default function CustomersPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard title="ลูกค้าทั้งหมด" value={statsData?.total ?? 0} icon={Users} />
-        <StatCard title="ใหม่เดือนนี้" value={statsData?.newThisMonth ?? 0} icon={UserPlus} />
-        <StatCard title="VIP" value={statsData?.vip ?? 0} icon={Crown} />
-        <StatCard title="ไม่เคลื่อนไหว" value={statsData?.inactive ?? 0} icon={UserX} />
-      </div>
+      {/* stats พังต้องบอก — เลขโชว์ 0 เงียบๆ อ่านเป็น "ไม่มีลูกค้า" ได้ (ขัด DESIGN.md) */}
+      {statsQuery.isError ? (
+        <QueryError message="โหลดสถิติไม่สำเร็จ" onRetry={() => statsQuery.refetch()} />
+      ) : (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard title="ลูกค้าทั้งหมด" value={statsQuery.data?.total ?? 0} icon={Users} />
+          <StatCard title="ใหม่เดือนนี้" value={statsQuery.data?.newThisMonth ?? 0} icon={UserPlus} />
+          <StatCard title="VIP" value={statsQuery.data?.vip ?? 0} icon={Crown} />
+          <StatCard title="ไม่เคลื่อนไหว" value={statsQuery.data?.inactive ?? 0} icon={UserX} />
+        </div>
+      )}
 
       {showForm && (
         <Section title="เพิ่มลูกค้าใหม่">

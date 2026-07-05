@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { QueryError } from "@/components/ui/query-error";
 import { formatDateTime } from "@/lib/utils";
 import {
   Cloud,
@@ -69,10 +70,14 @@ export default function StockSettingsPage() {
   } | null>(null);
 
   // ─── Load saved settings from DB ─────────────────────────
-  const { data: savedSettings, isLoading: settingsLoading } =
-    trpc.settings.getMany.useQuery({
-      keys: [STOCK_API_URL_KEY, STOCK_API_KEY_KEY],
-    });
+  const {
+    data: savedSettings,
+    isLoading: settingsLoading,
+    isError: settingsError,
+    refetch: refetchSettings,
+  } = trpc.settings.getMany.useQuery({
+    keys: [STOCK_API_URL_KEY, STOCK_API_KEY_KEY],
+  });
 
   useEffect(() => {
     if (savedSettings) {
@@ -160,6 +165,11 @@ export default function StockSettingsPage() {
 
   const isConnected = connectionResult?.connected === true;
   const hasCredentials = apiUrl.trim() && apiKey.trim();
+
+  // โหลด settings ไม่สำเร็จ → ไม่ render ฟอร์มค่าว่าง กันบันทึกทับค่าเชื่อมต่อจริง
+  // && !data: refetch เบื้องหลังล้มระหว่างแก้ฟอร์มอยู่ ห้ามถอนฟอร์ม (ของที่พิมพ์หาย)
+  if (settingsError && !savedSettings)
+    return <QueryError onRetry={() => refetchSettings()} />;
 
   return (
     <div className="space-y-6">

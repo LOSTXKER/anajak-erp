@@ -23,6 +23,7 @@ import { SettingsPageHeader } from "@/components/settings-page-header";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryError } from "@/components/ui/query-error";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 
@@ -58,7 +59,7 @@ export default function PatternsPage() {
   const utils = trpc.useUtils();
   const confirmDialog = useConfirm();
 
-  const { data, isLoading } = trpc.pattern.list.useQuery({ isActive: true });
+  const { data, isLoading, isError, refetch } = trpc.pattern.list.useQuery({ isActive: true });
   const patterns = data?.patterns;
 
   const createPattern = trpc.pattern.create.useMutation({
@@ -139,6 +140,9 @@ export default function PatternsPage() {
       e.target.value = "";
     }
   };
+
+  // && !data: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
+  if (isError && !data) return <QueryError onRetry={() => refetch()} />;
 
   return (
     <div className="space-y-6">

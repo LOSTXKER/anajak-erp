@@ -17,6 +17,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryError } from "@/components/ui/query-error";
 import { PRICING_TYPE_LABELS } from "@/types/order-form";
 
 // ============================================================
@@ -72,7 +73,7 @@ export default function ServicesPage() {
   const utils = trpc.useUtils();
   const confirmDialog = useConfirm();
 
-  const { data: items, isLoading } = trpc.serviceCatalog.list.useQuery({
+  const { data: items, isLoading, isError, refetch } = trpc.serviceCatalog.list.useQuery({
     category: activeTab,
   });
 
@@ -147,6 +148,9 @@ export default function ServicesPage() {
   // ============================================================
   // RENDER
   // ============================================================
+
+  // && !items: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
+  if (isError && !items) return <QueryError onRetry={() => refetch()} />;
 
   return (
     <div className="space-y-6">

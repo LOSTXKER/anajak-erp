@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { StatCard } from "@/components/ui/stat-card";
 import { FilterChip } from "@/components/ui/filter-chip";
 import {
@@ -107,10 +108,18 @@ export default function OutsourcePage() {
   // รับส่งของ = ทีมผลิตขึ้นไป (ตรง productionUp ฝั่ง server) — role อื่นดูได้อย่างเดียว
   const canHandleGoods = !!me && ["OWNER", "MANAGER", "PRODUCTION_STAFF"].includes(me.role);
 
-  const { data: vendors, isLoading: loadingVendors } =
-    trpc.outsource.listVendors.useQuery({});
-  const { data: orders, isLoading: loadingOrders } =
-    trpc.outsource.listOrders.useQuery({});
+  const {
+    data: vendors,
+    isLoading: loadingVendors,
+    isError: vendorsError,
+    refetch: refetchVendors,
+  } = trpc.outsource.listVendors.useQuery({});
+  const {
+    data: orders,
+    isLoading: loadingOrders,
+    isError: ordersError,
+    refetch: refetchOrders,
+  } = trpc.outsource.listOrders.useQuery({});
 
   const invalidateAll = [utils.outsource.listOrders, utils.outsource.listVendors];
 
@@ -181,6 +190,18 @@ export default function OutsourcePage() {
     setVendorCapabilities(v.capabilities.join(", "));
     setShowVendorForm(true);
   }
+
+  // query หลักตัวใดตัวหนึ่งพังตอนโหลดแรก → error ทั้งหน้า · retry เฉพาะตัวที่พัง
+  // && !data: refetch เบื้องหลังล้มทั้งที่มี cache ห้ามถอนหน้า (dialog รับของ/แชร์ค้างอยู่)
+  if ((vendorsError && !vendors) || (ordersError && !orders))
+    return (
+      <QueryError
+        onRetry={() => {
+          if (vendorsError) refetchVendors();
+          if (ordersError) refetchOrders();
+        }}
+      />
+    );
 
   const allOrders = orders ?? [];
   const activeOrders = allOrders.filter((o) => ACTIVE_STATUSES.includes(o.status));

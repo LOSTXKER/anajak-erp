@@ -7,6 +7,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { Switch } from "@/components/ui/switch";
 import {
   Plus,
@@ -29,7 +30,7 @@ export default function PackagingSettingsPage() {
   const utils = trpc.useUtils();
   const confirmDialog = useConfirm();
 
-  const { data: options, isLoading } = trpc.packaging.list.useQuery(
+  const { data: options, isLoading, isError, refetch } = trpc.packaging.list.useQuery(
     { includeInactive: true },
   );
 
@@ -79,6 +80,9 @@ export default function PackagingSettingsPage() {
     });
     if (ok) deleteMutation.mutate({ id });
   };
+
+  // && !options: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
+  if (isError && !options) return <QueryError onRetry={() => refetch()} />;
 
   return (
     <div className="space-y-6">

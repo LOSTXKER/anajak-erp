@@ -7,6 +7,7 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { PageHeader } from "@/components/page-header";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -93,7 +94,7 @@ export default function NotificationsPage() {
   const [page, setPage] = useState(1);
   const limit = 20;
 
-  const { data, isLoading } = trpc.notification.list.useQuery({
+  const { data, isLoading, isError, refetch } = trpc.notification.list.useQuery({
     limit,
     page,
     unreadOnly: filter === "unread" ? true : undefined,
@@ -129,6 +130,9 @@ export default function NotificationsPage() {
     });
     return result;
   }, [notifications]);
+
+  // ต้องอยู่หลัง hooks ทั้งหมด (มี useMemo ด้านบน) — กันผิดกฎ rules of hooks
+  if (isError) return <QueryError onRetry={() => refetch()} />;
 
   return (
     <div className="space-y-5">

@@ -2,6 +2,7 @@
 
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import {
@@ -23,12 +24,25 @@ export default function AnalyticsPage() {
   const canViewRevenue = me ? REVENUE_ROLES.includes(me.role) : false;
   const canViewAudit = me ? AUDIT_ROLES.includes(me.role) : false;
 
-  const { data: dashboard, isLoading } = trpc.analytics.dashboard.useQuery();
-  const { data: revenueData } = trpc.analytics.revenueByMonth.useQuery(
+  const {
+    data: dashboard,
+    isLoading,
+    isError: dashboardError,
+    refetch: refetchDashboard,
+  } = trpc.analytics.dashboard.useQuery();
+  const {
+    data: revenueData,
+    isError: revenueError,
+    refetch: refetchRevenue,
+  } = trpc.analytics.revenueByMonth.useQuery(
     { months: 6 },
     { enabled: canViewRevenue }
   );
-  const { data: auditData } = trpc.analytics.auditLog.useQuery(
+  const {
+    data: auditData,
+    isError: auditError,
+    refetch: refetchAudit,
+  } = trpc.analytics.auditLog.useQuery(
     { limit: 20 },
     { enabled: canViewAudit }
   );
@@ -44,6 +58,12 @@ export default function AnalyticsPage() {
         </div>
       </div>
     );
+  }
+
+  // เฉพาะ query แกนหน้าพัง → error ทั้งหน้า · กราฟรายได้พังแยกเป็นราย section
+  // ด้านล่าง (เหมือน audit log) — ไม่ดับสถิติส่วนที่ยังโหลดได้ (review จับ)
+  if (dashboardError) {
+    return <QueryError onRetry={() => refetchDashboard()} />;
   }
 
   const maxRevenue = Math.max(
@@ -89,6 +109,11 @@ export default function AnalyticsPage() {
             <p className="text-sm text-slate-400">
               เปิดดูได้เฉพาะเจ้าของ ผู้จัดการ และบัญชี
             </p>
+          ) : revenueError ? (
+            <QueryError
+              message="โหลดข้อมูลรายได้ไม่สำเร็จ"
+              onRetry={() => refetchRevenue()}
+            />
           ) : !revenueData || revenueData.length === 0 ? (
             <p className="text-sm text-slate-400">ยังไม่มีข้อมูล</p>
           ) : (
@@ -161,6 +186,11 @@ export default function AnalyticsPage() {
           <p className="text-sm text-slate-400">
             เปิดดูได้เฉพาะเจ้าของและผู้จัดการ
           </p>
+        ) : auditError ? (
+          <QueryError
+            message="โหลด audit log ไม่สำเร็จ"
+            onRetry={() => refetchAudit()}
+          />
         ) : !auditData?.logs || auditData.logs.length === 0 ? (
           <p className="text-sm text-slate-400">ยังไม่มี log</p>
         ) : (

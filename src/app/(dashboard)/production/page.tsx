@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { PageHeader } from "@/components/page-header";
 import { CreateProductionDialog } from "@/components/production/create-production-dialog";
 import { QcCountDialog } from "@/components/qc/order-qc-section";
@@ -130,7 +131,7 @@ function ProductionWorkspace() {
   const promptText = usePromptText();
 
   const { data: me } = trpc.user.me.useQuery();
-  const { data: orders, isLoading } = trpc.production.kanban.useQuery();
+  const { data: orders, isLoading, isError, refetch } = trpc.production.kanban.useQuery();
   const utils = trpc.useUtils();
 
   const [createOrderId, setCreateOrderId] = useState<string | null>(null);
@@ -199,6 +200,11 @@ function ProductionWorkspace() {
       </div>
     );
   }
+
+  // บอร์ดโหลดไม่สำเร็จต้องบอกตรงๆ — ไม่งั้น orders ?? [] โชว์บอร์ดว่างเหมือน "ไม่มีงาน"
+  // && !orders: พังเฉพาะโหลดแรก — refetch เบื้องหลังล้มทั้งที่มี cache ห้ามถอนบอร์ด
+  // (dialog นับ QC/รับของที่เปิดค้างจะโดน unmount ตัวเลขที่พิมพ์หาย — review จับ)
+  if (isError && !orders) return <QueryError onRetry={() => refetch()} />;
 
   const all = orders ?? [];
   const role = me?.role;

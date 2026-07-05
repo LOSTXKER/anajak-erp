@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ComponentType } from "react";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/page-header";
@@ -119,7 +120,7 @@ function TaskRow({
 }
 
 export default function MyTasksPage() {
-  const { data, isLoading } = trpc.task.myToday.useQuery();
+  const { data, isLoading, isError, refetch } = trpc.task.myToday.useQuery();
 
   if (isLoading) {
     return (
@@ -133,6 +134,9 @@ export default function MyTasksPage() {
       </div>
     );
   }
+
+  // query พังต้องบอกตรงๆ — ไม่งั้นจะโชว์ "ไม่มีงานค้าง" ทั้งที่โหลดไม่สำเร็จ
+  if (isError) return <QueryError onRetry={() => refetch()} />;
 
   const production = data?.production ?? [];
   const printQueue = data?.printQueue ?? [];

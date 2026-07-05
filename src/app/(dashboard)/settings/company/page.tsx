@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SettingsPageHeader } from "@/components/settings-page-header";
@@ -34,6 +35,11 @@ export default function CompanySettingsPage() {
 
   const set = (key: keyof CompanyProfile) => (value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // โหลดไม่สำเร็จห้ามแสดงฟอร์มค่าว่าง — เซฟทับจะลบข้อมูลกิจการจริง (หัวใบกำกับภาษี)
+  // && !data: refetch เบื้องหลังล้มระหว่างแก้ฟอร์มอยู่ ห้ามถอนฟอร์ม (ของที่พิมพ์หาย)
+  if (profileQuery.isError && !profileQuery.data)
+    return <QueryError onRetry={() => profileQuery.refetch()} />;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

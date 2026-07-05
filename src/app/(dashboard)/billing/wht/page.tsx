@@ -212,50 +212,58 @@ export default function WhtRegisterPage() {
       />
 
       {/* ── สถิติ 3 ใบ ── */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatCard
-          title="รอใบจากลูกค้า"
-          value={stats.data?.pendingCount ?? 0}
-          icon={Hourglass}
-          caption="รายการ"
+      {/* stats พังต้องบอก — เลขภาษีโชว์ 0/฿0 เงียบๆ อ่านเป็น "ไม่มียอดรอใบ" ได้ (ขัด DESIGN.md) */}
+      {stats.isError ? (
+        <QueryError
+          message="โหลดสถิติไม่สำเร็จ"
+          onRetry={() => stats.refetch()}
         />
-        {/* ยอดรอใบ — เด่น amber เมื่อ >0 (StatCard ไม่รับสี value เลยทำการ์ดเอง โครงเดียวกัน) */}
-        <div className="card-surface rounded-2xl p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[12.5px] font-medium text-slate-500 dark:text-slate-400">
-              ยอดหักที่ยังไม่มีใบ
-            </p>
-            <AlertTriangle
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <StatCard
+            title="รอใบจากลูกค้า"
+            value={stats.data?.pendingCount ?? 0}
+            icon={Hourglass}
+            caption="รายการ"
+          />
+          {/* ยอดรอใบ — เด่น amber เมื่อ >0 (StatCard ไม่รับสี value เลยทำการ์ดเอง โครงเดียวกัน) */}
+          <div className="card-surface rounded-2xl p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-[12.5px] font-medium text-slate-500 dark:text-slate-400">
+                ยอดหักที่ยังไม่มีใบ
+              </p>
+              <AlertTriangle
+                className={cn(
+                  "h-4 w-4",
+                  pendingAmount > 0
+                    ? "text-amber-500"
+                    : "text-slate-400 dark:text-slate-500"
+                )}
+                strokeWidth={1.75}
+              />
+            </div>
+            <p
               className={cn(
-                "h-4 w-4",
+                "mt-2.5 text-[28px] font-semibold leading-none tracking-tight tabular-nums",
                 pendingAmount > 0
-                  ? "text-amber-500"
-                  : "text-slate-400 dark:text-slate-500"
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-slate-900 dark:text-white"
               )}
-              strokeWidth={1.75}
-            />
+            >
+              {formatCurrency(pendingAmount)}
+            </p>
+            <p className="mt-2 text-[12px] text-slate-400 dark:text-slate-500">
+              ไม่ได้ใบ = เครดิตภาษีส่วนนี้หายฟรี
+            </p>
           </div>
-          <p
-            className={cn(
-              "mt-2.5 text-[28px] font-semibold leading-none tracking-tight tabular-nums",
-              pendingAmount > 0
-                ? "text-amber-600 dark:text-amber-400"
-                : "text-slate-900 dark:text-white"
-            )}
-          >
-            {formatCurrency(pendingAmount)}
-          </p>
-          <p className="mt-2 text-[12px] text-slate-400 dark:text-slate-500">
-            ไม่ได้ใบ = เครดิตภาษีส่วนนี้หายฟรี
-          </p>
+          <StatCard
+            title="ได้ใบแล้วรวม"
+            value={formatCurrency(stats.data?.receivedAmount ?? 0)}
+            icon={CheckCircle2}
+            caption="บาท"
+          />
         </div>
-        <StatCard
-          title="ได้ใบแล้วรวม"
-          value={formatCurrency(stats.data?.receivedAmount ?? 0)}
-          icon={CheckCircle2}
-          caption="บาท"
-        />
-      </div>
+      )}
 
       {/* ── filter แท็บ + ค้นหา ── */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
