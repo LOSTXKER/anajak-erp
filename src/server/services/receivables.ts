@@ -34,10 +34,14 @@ export function creditedOf(inv: Pick<ReceivableInvoice, "adjustments">): Prisma.
     .reduce((sum, a) => sum.plus(a.totalAmount), D(0));
 }
 
+// เงินรับสุทธิบนใบ = Σ(เงินสด + ภาษีหัก ณ ที่จ่าย) — รายการคืนเงิน (payment ติดลบ) หักในตัว
+export function paidOf(payments: { amount: number; whtAmount: number }[]): Prisma.Decimal {
+  return payments.reduce((sum, p) => sum.plus(p.amount).plus(p.whtAmount), D(0));
+}
+
 // ยอดที่เคลียร์บิลแล้ว = เงินรับ + ภาษีหัก ณ ที่จ่าย + ใบลดหนี้ที่อ้างใบนี้
 export function settledOf(inv: ReceivableInvoice): Prisma.Decimal {
-  const paid = inv.payments.reduce((sum, p) => sum.plus(p.amount).plus(p.whtAmount), D(0));
-  return paid.plus(creditedOf(inv));
+  return paidOf(inv.payments).plus(creditedOf(inv));
 }
 
 // สถานะจ่ายจากยอดที่เคลียร์แล้ว — ใช้ชุดเดียวทั้ง recordPayment / ออก-void ใบลดหนี้

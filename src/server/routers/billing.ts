@@ -8,15 +8,21 @@ import { D, aggToNumber, moneyInput, round2 } from "@/server/services/money";
 import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/document-number";
 import {
   remainingBillable,
-  billedFloor,
   dueDateFromTerms,
   suggestInvoice,
 } from "@/server/services/payment-plan";
+import {
+  planPaymentSettlement,
+  assertVoidableInvoice,
+  assertDebitNoteVoidKeepsFloor,
+  statusAfterCreditNoteVoid,
+} from "@/server/services/billing-payment";
 import { sweepOverdueInvoices, maybeSweepOverdue } from "@/server/services/overdue";
 import { getSalesTaxReport } from "@/server/services/tax-report";
 import {
   RECEIVABLE_TYPES,
   creditedOf,
+  paidOf,
   paymentStatusForSettled,
   loadAgingInvoices,
   outstandingOf,
@@ -477,45 +483,25 @@ export const billingRouter = router({
           },
         });
 
-        if (invoice.isVoided) {
-          badRequest("ไม่สามารถบันทึกการชำระเงินสำหรับใบแจ้งหนี้ที่ถูกยกเลิกแล้ว");
-        }
+        // นับเฉพาะกติกาใบเสร็จปลายทาง (Gate A1) — ชนิดอื่นไม่ใช้ค่านี้
+        const openReceivableCount =
+          invoice.type === "RECEIPT"
+            ? await tx.invoice.count({
+                where: {
+                  orderId: invoice.orderId,
+                  isVoided: false,
+                  type: { in: [...RECEIVABLE_TYPES] },
+                },
+              })
+            : 0;
 
-        // Gate A1 (audit 2026-07-02): เงินก้อนเดียวห้ามลงซ้ำสองใบ (เดิมลงได้ทั้ง INV+REC
-        // → totalSpent/รับชำระเดือนนับ ×2) — แต่ "ขายสดออกใบเสร็จตรง" (ไม่มีใบเรียกเก็บ)
-        // เป็น flow ที่ระบบรองรับ ต้องบันทึกเงินบนใบเสร็จได้ ไม่งั้นเงินสดหายจากระบบ
-        if (invoice.type === "CREDIT_NOTE") {
-          badRequest("ใบลดหนี้เป็นเงินฝั่งคืนลูกค้า — บันทึกรับเงินบนใบลดหนี้ไม่ได้");
-        }
-        if (invoice.type === "RECEIPT") {
-          const receivableCount = await tx.invoice.count({
-            where: {
-              orderId: invoice.orderId,
-              isVoided: false,
-              type: { in: [...RECEIVABLE_TYPES] },
-            },
-          });
-          if (receivableCount > 0) {
-            badRequest(
-              "ออเดอร์นี้มีใบแจ้งหนี้/ใบเพิ่มหนี้อยู่ — บันทึกรับเงินที่ใบนั้นแทน (ใบเสร็จเป็นเอกสารปลายทาง กันยอดนับซ้ำ)"
-            );
-          }
-        }
-
-        // ยอดที่เคลียร์บิลแล้ว = เงินสด + ภาษีที่ถูกหัก + ใบลดหนี้ที่อ้างใบนี้
-        // (กันบิลค้างผี 3% โดน sweep ปลอม + กันรับเงินเกินส่วนที่ลดหนี้ไปแล้ว — Gate B1)
-        const previouslyPaid = invoice.payments.reduce(
-          (sum, p) => sum.plus(p.amount).plus(p.whtAmount),
-          D(0)
-        );
-        const previouslySettled = previouslyPaid.plus(creditedOf(invoice));
-        const total = D(invoice.totalAmount);
-        const remaining = total.minus(previouslySettled);
-        const settled = amount.plus(wht);
-
-        if (settled.gt(remaining)) {
-          badRequest(`จำนวนเงิน+ภาษีหัก ณ ที่จ่ายเกินยอดคงเหลือ (เหลือ ${remaining.toFixed(2)} บาท)`);
-        }
+        // ด่าน + คำนวณทั้งหมดอยู่ services/billing-payment (pure — มี unit test)
+        const plan = planPaymentSettlement({
+          invoice,
+          amount,
+          whtAmount: wht,
+          openReceivableCount,
+        });
 
         const payment = await tx.payment.create({
           data: {
@@ -529,22 +515,13 @@ export const billingRouter = router({
           },
         });
 
-        // ทะเบียน 50ทวิ — ฐานโดยนัยจากอัตรามาตรฐาน 3% (จ้างทำของ): base = ยอดหัก ÷ 3%
-        // ตรงหนังสือรับรองจริงทั้งเคสจ่ายครั้งเดียว/หลายงวด/บันทึก WHT ตามหลัง (97 ก่อน 3 ทีหลัง)
-        // — ใบฐาน 100 หัก 3: ได้ฐาน 100 เสมอ ไม่ขึ้นกับว่าบันทึกกี่ครั้ง · cap ที่ฐานใบ
-        // (ลูกค้าหักอัตราอื่น ฐานจะถูก cap แล้ว ratePct สะท้อนอัตราจริง)
-        if (wht.gt(0)) {
-          const fullBase = total.minus(invoice.tax);
-          const impliedBase = round2(wht.times(100).div(3));
-          const base = impliedBase.gt(fullBase) && fullBase.gt(0) ? fullBase : impliedBase;
+        if (plan.whtCert) {
           await tx.whtCertificate.create({
             data: {
               paymentId: payment.id,
               invoiceId: invoice.id,
               customerId: invoice.customerId,
-              baseAmount: base.toNumber(),
-              ratePct: base.gt(0) ? round2(wht.div(base).times(100)).toNumber() : 3,
-              amount: wht.toNumber(),
+              ...plan.whtCert,
               certNumber: input.whtCertNumber,
               certDate: input.whtCertDate,
               // กรอกเลขที่ใบมาด้วย = ได้หนังสือรับรองตัวจริงแล้ว
@@ -554,23 +531,18 @@ export const billingRouter = router({
           });
         }
 
-        const totalSettled = previouslySettled.plus(settled);
-        const paymentStatus = totalSettled.gte(total)
-          ? ("PAID" as const)
-          : ("PARTIALLY_PAID" as const);
-
         await tx.invoice.update({
           where: { id: input.invoiceId },
           data: {
-            paymentStatus,
-            paidAt: paymentStatus === "PAID" ? new Date() : null,
+            paymentStatus: plan.paymentStatus,
+            paidAt: plan.paymentStatus === "PAID" ? new Date() : null,
           },
         });
 
         // ยอดซื้อสะสมลูกค้า = มูลค่าที่ชำระบิล (รวมส่วนภาษีที่หักแทนเรา)
         await tx.customer.update({
           where: { id: invoice.customerId },
-          data: { totalSpent: { increment: settled.toNumber() } },
+          data: { totalSpent: { increment: plan.settled.toNumber() } },
         });
 
         await createAuditLog(tx, {
@@ -617,27 +589,10 @@ export const billingRouter = router({
           },
         });
 
-        // กัน void ซ้ำ — เดิมกดซ้ำได้ ทำให้ totalSpent ของลูกค้าโดนหักสองรอบ
-        if (invoice.isVoided) {
-          badRequest("ใบแจ้งหนี้นี้ถูกยกเลิกไปแล้ว");
-        }
-        // ใบที่อยู่บนใบวางบิลที่ใช้งานอยู่ — ยอดบนใบวางบิลจะค้างผี ต้องยกเลิกใบวางบิลก่อน
-        if (invoice.billingNoteItems.length > 0) {
-          badRequest(
-            `ใบนี้อยู่บนใบวางบิล ${invoice.billingNoteItems[0].billingNote.billingNoteNumber} — ยกเลิกใบวางบิลก่อน`
-          );
-        }
-        // ใบที่มีใบลดหนี้/เพิ่มหนี้อ้างอยู่ — void แล้วใบอ้างอิงจะชี้เอกสารตาย (ม.86/10
-        // ใบลดหนี้ต้องอ้างใบกำกับที่ใช้งานจริง) ต้องยกเลิกใบลูกก่อนตามลำดับ
-        if (invoice.adjustments.length > 0) {
-          badRequest(
-            `มีใบลดหนี้/เพิ่มหนี้อ้างอิงใบนี้อยู่ (${invoice.adjustments.map((a) => a.invoiceNumber).join(", ")}) — ยกเลิกใบเหล่านั้นก่อน`
-          );
-        }
+        // ด่านลำดับใบ (void ซ้ำ/บนใบวางบิล/มีใบลูกอ้าง) — services/billing-payment
+        assertVoidableInvoice(invoice);
 
-        // เพดานขาที่สอง (B9): ใบเพิ่มหนี้ขยายเพดานกองใบเสร็จอยู่ (floor = REC − DN + CN)
-        // — void แล้วใบเสร็จที่ออกไปแล้วอาจเกินยอดออเดอร์ ต้องยกเลิกใบเสร็จก่อนตามลำดับ
-        // (void ใบชนิดอื่นมีแต่ทำ floor ลด — ไม่ต้องเช็ค)
+        // เพดานขาที่สอง (B9): void DN แล้วใบเสร็จที่ออกแล้วต้องไม่เกินยอดออเดอร์
         if (invoice.type === "DEBIT_NOTE") {
           await lockOrderRow(tx, invoice.orderId);
           const order = await tx.order.findUniqueOrThrow({
@@ -653,26 +608,19 @@ export const billingRouter = router({
               originalInvoice: { select: { type: true } },
             },
           });
-          const floorAfterVoid = billedFloor(
-            remainingRaw.map((inv) => ({
+          assertDebitNoteVoidKeepsFloor({
+            orderTotal: order.totalAmount,
+            remainingInvoices: remainingRaw.map((inv) => ({
               ...inv,
               originalInvoiceType: inv.originalInvoice?.type ?? null,
-            }))
-          );
-          if (floorAfterVoid.gt(order.totalAmount)) {
-            badRequest(
-              `ยกเลิกใบเพิ่มหนี้นี้แล้ว ยอดบิลที่เหลือ (${floorAfterVoid.toFixed(2)} บาท) จะเกินยอดออเดอร์ (${D(order.totalAmount).toFixed(2)} บาท) — ยกเลิกใบเสร็จที่พึ่งใบเพิ่มหนี้นี้ก่อน`
-            );
-          }
+            })),
+          });
         }
 
         // ยอดสุทธิที่เคลียร์บิลแล้ว (รวมรายการคืนเงินติดลบ + ภาษีหัก ณ ที่จ่าย) —
         // ต้องสมมาตรกับ recordPayment ที่ increment ด้วย amount+whtAmount
         // ไม่งั้น void บิลที่มี WHT แล้ว totalSpent ค้างเกินจริงส่วน 3% ถาวร
-        const netPaid = invoice.payments.reduce(
-          (sum, p) => sum.plus(p.amount).plus(p.whtAmount),
-          D(0)
-        );
+        const netPaid = paidOf(invoice.payments);
 
         const updatedInvoice = await tx.invoice.update({
           where: { id: input.invoiceId },
@@ -713,8 +661,7 @@ export const billingRouter = router({
         }
 
         // void ใบลดหนี้ = ยอดที่เคยหักให้ใบเดิมหายไป — คำนวณสถานะใบเดิมใหม่จากของจริง
-        // (PAID ที่เคลียร์ด้วย CN อาจถอยกลับ PARTIALLY_PAID/UNPAID · sweep รอบถัดไป
-        // mark OVERDUE เองถ้าเลยกำหนด)
+        // (logic อยู่ services/billing-payment · โหลด "หลัง" CN ถูก mark void แล้ว)
         if (invoice.type === "CREDIT_NOTE" && invoice.originalInvoiceId) {
           await lockInvoiceRow(tx, invoice.originalInvoiceId);
           const original = await tx.invoice.findUnique({
@@ -725,26 +672,15 @@ export const billingRouter = router({
               adjustments: { select: { type: true, totalAmount: true, isVoided: true } },
             },
           });
-          if (original && !original.isVoided && original.type !== "RECEIPT") {
-            const paid = original.payments.reduce(
-              (sum, p) => sum.plus(p.amount).plus(p.whtAmount),
-              D(0)
-            );
-            const settled = paid.plus(creditedOf(original));
-            let newStatus: string = paymentStatusForSettled(settled, D(original.totalAmount));
-            // ใบเดิมค้าง OVERDUE อยู่ก่อนแล้ว → คงไว้ (sweep ไม่ต้อง re-mark/แจ้งซ้ำ)
-            if (newStatus !== "PAID" && original.paymentStatus === "OVERDUE") {
-              newStatus = "OVERDUE";
-            }
-            if (newStatus !== original.paymentStatus) {
-              await tx.invoice.update({
-                where: { id: original.id },
-                data: {
-                  paymentStatus: newStatus as "PAID" | "PARTIALLY_PAID" | "UNPAID" | "OVERDUE",
-                  paidAt: newStatus === "PAID" ? original.paidAt : null,
-                },
-              });
-            }
+          const newStatus = original ? statusAfterCreditNoteVoid(original) : null;
+          if (original && newStatus) {
+            await tx.invoice.update({
+              where: { id: original.id },
+              data: {
+                paymentStatus: newStatus,
+                paidAt: newStatus === "PAID" ? original.paidAt : null,
+              },
+            });
           }
         }
 
