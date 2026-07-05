@@ -161,12 +161,13 @@ async function main() {
   await expectError(
     "3.4 แก้ค่าธรรมเนียมหลังยกเลิก → ปฏิเสธ",
     () => caller.order.updateFees({ id: o2.id, fees: [{ feeType: "RUSH_FEE", name: "ด่วน", amount: 100 }] }),
-    "แก้ไขค่าธรรมเนียมไม่ได้"
+    // ข้อความจาก orderEditLockedReason (B10 รวมข้อความ lock — "แก้ค่าธรรมเนียมไม่ได้")
+    "ค่าธรรมเนียมไม่ได้"
   );
   await expectError(
     "3.5 แก้ส่วนลดหลังยกเลิก → ปฏิเสธ",
     () => caller.order.update({ id: o2.id, discount: 5 }),
-    "แก้ไขข้อมูลการเงินไม่ได้"
+    "ข้อมูลการเงินไม่ได้"
   );
   const noteUpd = await caller.order.update({ id: o2.id, notes: "แก้โน้ตได้" });
   ok("3.6 แก้ field ไม่ใช่เงินหลังยกเลิกยังได้", noteUpd.notes === "แก้โน้ตได้", noteUpd.notes);
