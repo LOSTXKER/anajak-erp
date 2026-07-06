@@ -221,10 +221,9 @@ async function main() {
   ok("5.3 สร้างใบผลิตจาก DESIGN_APPROVED → auto-hop เป็น PRODUCING", o3Db.internalStatus === "PRODUCING", o3Db.internalStatus);
 
   // ---------- 6) aggregates ส่งเป็น number ----------
+  // (6.2 order.stats ถูกถอด — endpoint ลบแล้ว 2026-07-06: ไม่มีจอใช้ + เคยรั่วยอดขายรายเดือน)
   const bstats = await caller.billing.stats();
-  const ostats = await caller.order.stats();
   ok("6.1 billing.stats เป็น number ทุกตัว", typeof bstats.totalUnpaid === "number" && typeof bstats.paidThisMonth === "number", bstats);
-  ok("6.2 order.stats.revenueThisMonth เป็น number", typeof ostats.revenueThisMonth === "number", ostats.revenueThisMonth);
 
   console.log(`\n=== ผล: ผ่าน ${passCount} · ตก ${fails.length} ===`);
   if (fails.length > 0) {

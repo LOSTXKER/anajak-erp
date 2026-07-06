@@ -334,15 +334,7 @@ async function main() {
         recv.subtotal === undefined,
       Object.keys(recv)
     );
-    const staffStats = await asStaff.order.stats();
-    const ownerStats = await asOwner.order.stats();
-    check(
-      "7.21 order.stats (ช่าง): revenueThisMonth = null · ตัวนับงานยังเห็น (เจ้าของเห็นเลขจริง)",
-      staffStats.revenueThisMonth === null &&
-        typeof staffStats.total === "number" &&
-        typeof ownerStats.revenueThisMonth === "number",
-      { staff: staffStats.revenueThisMonth }
-    );
+    // (7.21 order.stats ถูกถอด — เบสเคาะลบ endpoint ทิ้ง 2026-07-06: ตายไม่มีจอใช้)
     // ทุน/กำไรห้ามถึง SALES แม้ใน payload mutation (RBAC §7 — ฝั่ง read ปิดแล้วใน b18290f)
     await prisma.order.update({
       where: { id: cheapNew.id },

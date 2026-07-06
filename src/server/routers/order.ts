@@ -15,7 +15,6 @@ import {
 import { createAuditLog } from "@/server/helpers";
 import type { PrismaTx } from "@/lib/prisma";
 import { byIdInput, fileUrlSchema } from "@/server/schemas";
-import { getStartOfMonth } from "@/lib/date-utils";
 import { badRequest } from "@/server/errors";
 import { nextDocumentNumber } from "@/server/services/document-number";
 import { priceOrderItems, computeOrderTotals, type PricedItem } from "@/server/services/pricing";
@@ -30,7 +29,7 @@ import {
 } from "@/server/services/stock-reservation";
 import { maybeSweepStaleReservations } from "@/server/services/stock-reservation-sweep";
 import { promoteOrderArtworks, sanitizeArtworkLinks } from "@/server/services/artwork";
-import { aggToNumber, D } from "@/server/services/money";
+import { D } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 import { canSeeFinance, canSeeOrderMoney, stripOrderMoneyForRole } from "@/lib/roles";
 import {
@@ -1909,42 +1908,6 @@ export const orderRouter = router({
       throw lastError || new Error("ไม่สามารถสร้างเลขออเดอร์ได้ กรุณาลองอีกครั้ง");
     }),
 
-  stats: protectedProcedure.query(async ({ ctx }) => {
-    const startOfMonth = getStartOfMonth();
-
-    const [total, active, completedThisMonth, totalRevenue] = await Promise.all([
-      ctx.prisma.order.count(),
-      ctx.prisma.order.count({
-        where: {
-          internalStatus: {
-            notIn: ["COMPLETED", "CANCELLED"],
-          },
-        },
-      }),
-      ctx.prisma.order.count({
-        where: {
-          internalStatus: "COMPLETED",
-          completedAt: { gte: startOfMonth },
-        },
-      }),
-      ctx.prisma.order.aggregate({
-        _sum: { totalAmount: true },
-        where: {
-          internalStatus: { not: "CANCELLED" },
-          createdAt: { gte: startOfMonth },
-        },
-      }),
-    ]);
-
-    return {
-      total,
-      active,
-      completedThisMonth,
-      // ⑦: ยอดขายรวมทั้งเดือน = เงินฝั่งขาย — ช่าง/กราฟิกไม่เห็น (endpoint นี้ไม่มีจอเรียกใช้
-      // แต่ยิง API ตรงได้ · pattern เดียวกับ analytics.dashboard)
-      revenueThisMonth: canSeeOrderMoney(ctx.userRole)
-        ? aggToNumber(totalRevenue._sum.totalAmount)
-        : null,
-    };
-  }),
+  // stats ถูกลบ (เบสเคาะ 2026-07-06): ไม่มีจอไหนเรียกใช้ + เคยเปิดยอดขายทั้งเดือนให้ทุก role
+  // (review ⑦ follow-up จับ) — อยากได้ dashboard ค่อยเขียนใหม่ตามสเปคจริง
 });
