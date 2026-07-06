@@ -39,6 +39,7 @@
     "verify:softdel": "tsx --env-file=.env scripts/verify-product-softdelete.ts",
     "verify:oshare": "tsx --env-file=.env scripts/verify-outsource-share.ts",
     "verify:supabase": "tsx --env-file=.env scripts/verify-supabase-audit.ts",
+    "verify:moneygate": "tsx --env-file=.env scripts/verify-money-gate.ts",
     "key:agent": "tsx --env-file=.env scripts/create-agent-key.ts"
   },
   "dependencies": {

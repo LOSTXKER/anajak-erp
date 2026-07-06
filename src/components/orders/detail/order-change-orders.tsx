@@ -41,7 +41,9 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
       <CardContent>
         <div className="space-y-3">
           {visible.map((co) => {
-            const diff = co.newTotal - co.oldTotal;
+            // ⑦: server ส่งยอดเป็น null ให้ role ที่ไม่เห็นเงิน — ซ่อนแถวยอดทั้งบรรทัด
+            const showMoney = co.oldTotal != null && co.newTotal != null;
+            const diff = showMoney ? (co.newTotal ?? 0) - (co.oldTotal ?? 0) : 0;
             return (
               <div
                 key={co.id}
@@ -62,21 +64,23 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
                 <p className="mt-1 text-sm text-slate-900 dark:text-white">{co.reason}</p>
                 {co.summary && <p className="text-xs text-slate-400">{co.summary}</p>}
 
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
-                  <span className="text-slate-400 line-through">
-                    {formatCurrency(co.oldTotal)}
-                  </span>
-                  <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                  <span className="font-medium text-slate-900 dark:text-white">
-                    {formatCurrency(co.newTotal)}
-                  </span>
-                  {diff !== 0 && (
-                    <span className="text-slate-500 dark:text-slate-400">
-                      ({diff > 0 ? "+" : "−"}
-                      {formatCurrency(Math.abs(diff))})
+                {showMoney && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
+                    <span className="text-slate-400 line-through">
+                      {formatCurrency(co.oldTotal ?? 0)}
                     </span>
-                  )}
-                </div>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <span className="font-medium text-slate-900 dark:text-white">
+                      {formatCurrency(co.newTotal ?? 0)}
+                    </span>
+                    {diff !== 0 && (
+                      <span className="text-slate-500 dark:text-slate-400">
+                        ({diff > 0 ? "+" : "−"}
+                        {formatCurrency(Math.abs(diff))})
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 <p className="mt-1 text-xs text-slate-400">
                   {co.createdByName} &mdash; {formatDateTime(co.createdAt)}

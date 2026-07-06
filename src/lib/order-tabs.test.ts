@@ -139,4 +139,18 @@ describe("buildNextStepInput — map + สูตร billingHandled (เป๊ะ
   it("ยอด ≤ 0 → ไม่กั้น (billingHandled true)", () => {
     expect(buildNextStepInput({ ...base, totalAmount: 0, invoices: [] }).billingHandled).toBe(true);
   });
+
+  // ⑦ (เบสเคาะ 2026-07-06): viewer ที่ไม่เห็นเงิน ได้ totalAmount = null จาก server —
+  // billingHandled จะเป็น true (แถบไม่บ่นเรื่องวางบิล ซึ่งไม่ใช่งานของช่างอยู่แล้ว)
+  // แต่ hasInvoice ต้องยังจริง (หัวใบยังส่งมา) — pin ไว้กันคนหลังแก้ ?? 0 แล้วพัง
+  it("ช่าง (เงินโดน strip เป็น null) → billingHandled=true + hasInvoice ยังถูก", () => {
+    const input = buildNextStepInput({
+      ...base,
+      totalAmount: null,
+      invoices: [{ isVoided: false, type: "DEPOSIT_INVOICE", totalAmount: null }],
+    });
+    expect(input.billingHandled).toBe(true);
+    expect(input.hasInvoice).toBe(true);
+    expect(input.totalAmount).toBe(0);
+  });
 });

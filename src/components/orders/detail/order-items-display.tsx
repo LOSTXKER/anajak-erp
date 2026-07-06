@@ -115,9 +115,12 @@ interface OrderItemsDisplayProps {
   fees: OrderFee[];
   // ปุ่มแก้ไขบนหัวการ์ด — จุดแก้รายการต้องอยู่ที่รายการ ไม่ใช่ซ่อนในเมนู ⋯ อย่างเดียว
   onEditItems?: () => void;
+  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นราคา — false = ตัดคอลัมน์/ช่องเงินออก (ห้ามโชว์ ฿0)
+  // จำนวน/ไซส์/รายละเอียดงานยังเห็นครบ (ต้องใช้ทำงาน)
+  showMoney?: boolean;
 }
 
-export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderItemsDisplayProps) {
+export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney = true }: OrderItemsDisplayProps) {
   const utils = trpc.useUtils();
   const isEmpty = !items || items.length === 0;
 
@@ -177,7 +180,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderIt
                         )}
                       </div>
                     </div>
-                    {item.subtotal != null && (
+                    {showMoney && item.subtotal != null && (
                       <p className="flex-shrink-0 tabular-nums text-sm font-bold text-slate-900 dark:text-white">
                         {formatCurrency(item.subtotal)}
                       </p>
@@ -201,7 +204,9 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderIt
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
                                 <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">สี</th>
                                 <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">ขนาด (ซม.)</th>
-                                <th className="pb-2 text-right text-xs font-medium text-slate-500">ราคา/ชิ้น</th>
+                                {showMoney && (
+                                  <th className="pb-2 text-right text-xs font-medium text-slate-500">ราคา/ชิ้น</th>
+                                )}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -227,7 +232,9 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderIt
                                   <td className="py-1.5 pr-4 text-right tabular-nums text-slate-700 dark:text-slate-300">
                                     {(p.width || p.height) ? `${p.width || 0} x ${p.height || 0}` : "-"}
                                   </td>
-                                  <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{formatCurrency(p.unitPrice)}</td>
+                                  {showMoney && (
+                                    <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{formatCurrency(p.unitPrice ?? 0)}</td>
+                                  )}
                                 </tr>
                               ))}
                             </tbody>
@@ -307,15 +314,17 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderIt
                                       <div className="text-xs text-slate-500">แพ็คเกจ: {prod.packagingOption.name}</div>
                                     )}
                                   </div>
-                                  <div className="text-right">
-                                    <p className="text-xs text-slate-500">
-                                      {formatCurrency(prod.baseUnitPrice)}/ชิ้น
-                                      {prod.discount > 0 && <span className="ml-1 text-red-500">(-{formatCurrency(prod.discount)})</span>}
-                                    </p>
-                                    <p className="tabular-nums text-sm font-semibold text-slate-900 dark:text-white">
-                                      {formatCurrency(prodQty * netPrice)}
-                                    </p>
-                                  </div>
+                                  {showMoney && (
+                                    <div className="text-right">
+                                      <p className="text-xs text-slate-500">
+                                        {formatCurrency(prod.baseUnitPrice ?? 0)}/ชิ้น
+                                        {(prod.discount ?? 0) > 0 && <span className="ml-1 text-red-500">(-{formatCurrency(prod.discount ?? 0)})</span>}
+                                      </p>
+                                      <p className="tabular-nums text-sm font-semibold text-slate-900 dark:text-white">
+                                        {formatCurrency(prodQty * netPrice)}
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Receive tracking for CUSTOMER_PROVIDED */}
@@ -378,7 +387,9 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderIt
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ชื่อ</th>
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">คิดราคา</th>
-                                <th className="pb-2 text-right text-xs font-medium text-slate-500">ราคา</th>
+                                {showMoney && (
+                                  <th className="pb-2 text-right text-xs font-medium text-slate-500">ราคา</th>
+                                )}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -391,7 +402,9 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderIt
                                       {PRICING_TYPE_LABELS[a.pricingType as PricingType] ?? a.pricingType}
                                     </Badge>
                                   </td>
-                                  <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{formatCurrency(a.unitPrice)}</td>
+                                  {showMoney && (
+                                    <td className="py-1.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">{formatCurrency(a.unitPrice ?? 0)}</td>
+                                  )}
                                 </tr>
                               ))}
                             </tbody>
@@ -432,9 +445,11 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems }: OrderIt
                         {fee.name || fee.feeType || "ค่าธรรมเนียม"}
                       </span>
                     </div>
-                    <span className="tabular-nums text-sm font-medium text-slate-900 dark:text-white">
-                      {formatCurrency(fee.amount)}
-                    </span>
+                    {showMoney && (
+                      <span className="tabular-nums text-sm font-medium text-slate-900 dark:text-white">
+                        {formatCurrency(fee.amount ?? 0)}
+                      </span>
+                    )}
                   </div>
                 ),
               )}

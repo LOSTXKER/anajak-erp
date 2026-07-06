@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
-import { roleAllows, SALES_DOC_ROLES } from "@/lib/roles";
+import { roleAllows, SALES_DOC_ROLES, ORDER_MONEY_ROLES } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -109,11 +109,13 @@ function exportOrdersCsv(
     orderType: string;
     customerStatus: string;
     internalStatus: string;
-    totalAmount: number;
+    totalAmount: number | null;
     paymentLabel: string;
     createdAt: string | Date;
-  }>
+  }>,
+  canSeeMoney: boolean
 ) {
+  // ⑦ ช่าง/กราฟิกไม่เห็นเงิน — ตัดคอลัมน์ยอดรวมออกทั้ง header + row
   const header = [
     "เลขออเดอร์",
     "ชื่องาน",
@@ -123,7 +125,7 @@ function exportOrdersCsv(
     "ประเภท",
     "สถานะลูกค้า",
     "สถานะภายใน",
-    "ยอดรวม",
+    ...(canSeeMoney ? ["ยอดรวม"] : []),
     "สถานะชำระเงิน",
     "วันที่สร้าง",
   ];
@@ -144,7 +146,7 @@ function exportOrdersCsv(
     ORDER_TYPE_LABELS[o.orderType as OrderType] ?? o.orderType,
     CUSTOMER_STATUS_LABELS[o.customerStatus as CustomerStatus] ?? o.customerStatus,
     INTERNAL_STATUS_LABELS[o.internalStatus as InternalStatus] ?? o.internalStatus,
-    String(o.totalAmount),
+    ...(canSeeMoney ? [String(o.totalAmount ?? 0)] : []),
     paymentLabelMap[o.paymentLabel] ?? "—",
     new Date(o.createdAt).toLocaleDateString("th-TH"),
   ]);
@@ -192,6 +194,11 @@ export default function OrdersPage() {
   const { data: me } = trpc.user.me.useQuery();
   // เปิดออเดอร์ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ปุ่มสร้าง (B12)
   const canCreateOrder = roleAllows(me?.role, SALES_DOC_ROLES);
+  // ⑦ ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนคอลัมน์ยอดรวม + sort ยอดรวม (ระหว่างโหลด me = ซ่อนไว้ก่อน ปลอดภัยกว่า)
+  const canSeeMoney = roleAllows(me?.role, ORDER_MONEY_ROLES);
+  const sortOptions = canSeeMoney
+    ? SORT_OPTIONS
+    : SORT_OPTIONS.filter((o) => !o.value.startsWith("totalAmount"));
 
   const { data, isLoading, isError, refetch } = trpc.order.list.useQuery({
     search: search || undefined,
@@ -239,7 +246,7 @@ export default function OrdersPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => exportOrdersCsv(data.orders)}
+                onClick={() => exportOrdersCsv(data.orders, canSeeMoney)}
               >
                 <Download className="h-4 w-4" />
                 Export
@@ -280,7 +287,7 @@ export default function OrdersPage() {
               }}
               className="h-9 px-2 text-xs"
             >
-              {SORT_OPTIONS.map((o) => (
+              {sortOptions.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
@@ -404,7 +411,7 @@ export default function OrdersPage() {
             <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
             <DataTable.Th>ช่องทาง</DataTable.Th>
             <DataTable.Th>สถานะ</DataTable.Th>
-            <DataTable.Th align="right">ยอดรวม</DataTable.Th>
+            {canSeeMoney && <DataTable.Th align="right">ยอดรวม</DataTable.Th>}
             <DataTable.Th>การชำระ</DataTable.Th>
             <DataTable.Th>วันที่</DataTable.Th>
           </tr>
@@ -413,7 +420,7 @@ export default function OrdersPage() {
           {isLoading &&
             [...Array(5)].map((_, i) => (
               <tr key={i}>
-                {[...Array(7)].map((_, j) => (
+                {[...Array(canSeeMoney ? 7 : 6)].map((_, j) => (
                   <DataTable.Td key={j}>
                     <Skeleton className="h-4 w-20" />
                   </DataTable.Td>
@@ -462,9 +469,11 @@ export default function OrdersPage() {
                 />
               </DataTable.Td>
 
-              <DataTable.Td align="right" className="font-medium tabular-nums text-slate-900 dark:text-white">
-                {formatCurrency(order.totalAmount)}
-              </DataTable.Td>
+              {canSeeMoney && (
+                <DataTable.Td align="right" className="font-medium tabular-nums text-slate-900 dark:text-white">
+                  {formatCurrency(order.totalAmount ?? 0)}
+                </DataTable.Td>
+              )}
 
               <DataTable.Td>
                 <PaymentIndicator status={order.paymentLabel} />
@@ -478,7 +487,7 @@ export default function OrdersPage() {
 
           {!isLoading && data?.orders?.length === 0 && (
             <tr>
-              <td colSpan={7}>
+              <td colSpan={canSeeMoney ? 7 : 6}>
                 <EmptyState
                   icon={ShoppingCart}
                   title="ไม่พบออเดอร์"

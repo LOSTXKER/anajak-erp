@@ -28,7 +28,8 @@ interface OrderSidebarOrder {
   notes: string | null;
   estimatedQuantity: number | null;
   taxRate: number;
-  taxAmount: number;
+  // null เมื่อ viewer ไม่เห็นเงินฝั่งขาย (นโยบาย ⑦ — server ปิดมาแล้ว)
+  taxAmount: number | null;
   shippingRecipientName: string | null;
   shippingPhone: string | null;
   shippingAddress: string | null;
@@ -51,6 +52,8 @@ interface OrderSidebarOrder {
 
 interface OrderSidebarProps {
   order: OrderSidebarOrder;
+  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — false = ไม่ render การ์ดสรุปราคาเลย (ห้ามโชว์ ฿0)
+  showMoney: boolean;
   subtotalItems: number;
   subtotalFees: number;
   discount: number;
@@ -97,6 +100,7 @@ function Row({
 
 export function OrderSidebar({
   order,
+  showMoney,
   subtotalItems,
   subtotalFees,
   discount,
@@ -270,8 +274,10 @@ export function OrderSidebar({
       )}
 
       {/* Price breakdown — ยังไม่ตีราคา = ไม่โชว์การ์ด ฿0 ซ้ำซ้อน (redesign 2026-06-11)
-          แต่ถ้ามีต้นทุนบันทึกแล้ว (เช่นส่ง outsource ก่อนตีราคา) ต้องเห็น — เงินจริงห้ามหายจากตา */}
-      {(totalAmount > 0 || subtotalItems > 0 || subtotalFees > 0 || hasCostEntries) && (
+          แต่ถ้ามีต้นทุนบันทึกแล้ว (เช่นส่ง outsource ก่อนตีราคา) ต้องเห็น — เงินจริงห้ามหายจากตา
+          · viewer ที่ไม่เห็นเงิน (นโยบาย ⑦) ตัดการ์ดทิ้งทั้งใบ ไม่ใช่โชว์ ฿0 */}
+      {showMoney &&
+        (totalAmount > 0 || subtotalItems > 0 || subtotalFees > 0 || hasCostEntries) && (
       <Section title={<SectionTitle icon={Calculator}>สรุปราคา</SectionTitle>}>
         <div className="space-y-2.5">
           <Row label="ยอดรวมสินค้า">

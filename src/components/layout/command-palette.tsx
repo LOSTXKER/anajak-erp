@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
-import { FINANCE_ROLES, SALES_DOC_ROLES, roleAllows } from "@/lib/roles";
+import { FINANCE_ROLES, SALES_DOC_ROLES, ORDER_MONEY_ROLES, roleAllows } from "@/lib/roles";
 import type { Role } from "@prisma/client";
 
 type CommandItem = {
@@ -82,7 +82,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       },
       { id: "nav-dashboard", label: "Dashboard", group: "ไปที่", icon: LayoutDashboard, action: () => navigate("/") },
       { id: "nav-orders", label: "ออเดอร์", group: "ไปที่", icon: ShoppingCart, keywords: "order", action: () => navigate("/orders") },
-      { id: "nav-quotations", label: "ใบเสนอราคา", group: "ไปที่", icon: ClipboardList, keywords: "quotation quote", action: () => navigate("/quotations") },
+      { id: "nav-quotations", label: "ใบเสนอราคา", group: "ไปที่", icon: ClipboardList, keywords: "quotation quote", action: () => navigate("/quotations"), roles: ORDER_MONEY_ROLES },
       { id: "nav-customers", label: "ลูกค้า", group: "ไปที่", icon: Users, keywords: "customer", action: () => navigate("/customers") },
       { id: "nav-production", label: "การผลิต", group: "ไปที่", icon: Factory, keywords: "production", action: () => navigate("/production") },
       { id: "nav-outsource", label: "Outsource", group: "ไปที่", icon: Truck, action: () => navigate("/outsource") },

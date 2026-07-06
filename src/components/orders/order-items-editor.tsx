@@ -34,6 +34,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { canIssueChangeOrder } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
 
+// ฟิลด์เงินเป็น number | null ตามชนิดจาก order.getById (นโยบาย ⑦ ปิดเงินให้ viewer นอกการเงิน)
+// — editor เปิดได้เฉพาะ flow ฝั่งขาย (role เห็นเงิน) ค่าจริงเลยเป็นตัวเลขเสมอ · ?? 0 แค่ให้ TS ผ่าน
 interface OrderItemsEditorOrder {
   items: Array<{
     description: string | null;
@@ -43,8 +45,8 @@ interface OrderItemsEditorOrder {
       productType: string;
       description: string;
       material: string | null;
-      baseUnitPrice: number;
-      discount: number;
+      baseUnitPrice: number | null;
+      discount: number | null;
       packagingOptionId: string | null;
       itemSource: string | null;
       fabricType: string | null;
@@ -67,7 +69,7 @@ interface OrderItemsEditorOrder {
       position: string;
       printType: string;
       colorCount: number | null;
-      unitPrice: number;
+      unitPrice: number | null;
       printSize: string | null;
       width: number | null;
       height: number | null;
@@ -81,15 +83,15 @@ interface OrderItemsEditorOrder {
       addonType: string;
       name: string;
       pricingType: string;
-      unitPrice: number;
+      unitPrice: number | null;
     }>;
   }>;
-  fees: Array<{ feeType: string; name: string; amount: number }>;
-  discount: number;
+  fees: Array<{ feeType: string; name: string; amount: number | null }>;
+  discount: number | null;
   taxRate: number;
-  totalAmount: number;
+  totalAmount: number | null;
   // เพดานขาที่สอง (B9) จาก order.getById — ยอดออเดอร์ต่ำสุดที่ยังคุ้มบิลที่ออกแล้ว
-  billedFloor?: number;
+  billedFloor?: number | null;
 }
 
 interface OrderItemsEditorProps {
@@ -192,7 +194,7 @@ export function OrderItemsEditor({
   const belowFloor = orderBilledFloor > 0 && totalAmount < orderBilledFloor - 0.005;
   const belowBilledFloor = changeOrderMode
     ? belowFloor
-    : belowFloor && totalAmount < order.totalAmount - 0.005;
+    : belowFloor && totalAmount < (order.totalAmount ?? 0) - 0.005;
 
   // หยิบจากสต๊อก — logic รวมเดียวกับหน้าเปิดงาน (lib/order-form-stock)
   // pruneEmpty: false — รายการจาก DB ที่ "ดูว่าง" คือข้อมูลจริงที่บันทึกแล้ว ห้ามลบเงียบ

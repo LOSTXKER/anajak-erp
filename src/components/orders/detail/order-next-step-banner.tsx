@@ -14,7 +14,8 @@ interface NextStepBannerProps {
   readiness: ReadinessLike | null;
   isPending: boolean;
   onStatus: (to: string) => void;
-  onEditItems: () => void;
+  // undefined = role นี้แก้รายการไม่ได้ (ช่าง/กราฟิก) — ซ่อนปุ่ม EDIT_ITEMS ไปเลย
+  onEditItems?: () => void;
   onAnchor: (target: "billing" | "design" | "production" | "delivery" | "qc") => void;
 }
 
@@ -40,7 +41,7 @@ export function OrderNextStepBanner({
   function dispatch(a: NextStepAction) {
     switch (a.type) {
       case "EDIT_ITEMS":
-        return onEditItems();
+        return onEditItems?.();
       case "STATUS":
         return onStatus(a.to);
       case "ANCHOR":
@@ -82,7 +83,8 @@ export function OrderNextStepBanner({
               ))}
           </ul>
         </div>
-      ) : action.type !== "NONE" && nextStep.buttonLabel ? (
+      ) : action.type === "EDIT_ITEMS" && !onEditItems ? null : action.type !== "NONE" &&
+        nextStep.buttonLabel ? (
         <Button onClick={() => dispatch(action)} disabled={isPending} className="shrink-0 self-start sm:self-auto">
           {nextStep.buttonLabel}
           <ChevronRight className="h-4 w-4" />

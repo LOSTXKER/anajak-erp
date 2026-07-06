@@ -17,6 +17,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatCurrency } from "@/lib/utils";
+import { ORDER_MONEY_ROLES, roleAllows } from "@/lib/roles";
 import { PAYMENT_TERMS, type PaymentTermsValue } from "@/lib/payment-terms";
 import { PageHeader } from "@/components/page-header";
 import { Plus, Users, UserPlus, Crown, UserX, Building2, User } from "lucide-react";
@@ -62,6 +63,8 @@ export default function CustomersPage() {
   const { data: me } = trpc.user.me.useQuery();
   // วงเงินเครดิต = การตัดสินใจความเสี่ยง — SALES ตั้งเองไม่ได้ (ตรง server guard ฝั่ง create)
   const canSetCredit = !me || me.role !== "SALES";
+  // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนคอลัมน์ยอดรวมทั้งแถบ (server ส่ง null มาอยู่แล้ว)
+  const canSeeMoney = roleAllows(me?.role, ORDER_MONEY_ROLES);
   const statsQuery = trpc.customer.stats.useQuery();
   const { data, isLoading, isError, refetch } = trpc.customer.list.useQuery(
     {
@@ -354,14 +357,14 @@ export default function CustomersPage() {
             <DataTable.Th>ติดต่อ</DataTable.Th>
             <DataTable.Th>กลุ่ม</DataTable.Th>
             <DataTable.Th align="right">ออเดอร์</DataTable.Th>
-            <DataTable.Th align="right">ยอดรวม</DataTable.Th>
+            {canSeeMoney && <DataTable.Th align="right">ยอดรวม</DataTable.Th>}
           </tr>
         </DataTable.Head>
         <DataTable.Body>
           {isLoading &&
             [...Array(5)].map((_, i) => (
               <tr key={i}>
-                {[...Array(6)].map((_, j) => (
+                {[...Array(canSeeMoney ? 6 : 5)].map((_, j) => (
                   <DataTable.Td key={j}>
                     <Skeleton className="h-4 w-20" />
                   </DataTable.Td>
@@ -408,18 +411,20 @@ export default function CustomersPage() {
                 >
                   {customer._count.orders}
                 </DataTable.Td>
-                <DataTable.Td
-                  align="right"
-                  className="font-medium tabular-nums text-slate-900 dark:text-white"
-                >
-                  {formatCurrency(customer.totalSpent)}
-                </DataTable.Td>
+                {canSeeMoney && (
+                  <DataTable.Td
+                    align="right"
+                    className="font-medium tabular-nums text-slate-900 dark:text-white"
+                  >
+                    {formatCurrency(customer.totalSpent ?? 0)}
+                  </DataTable.Td>
+                )}
               </DataTable.Row>
             );
           })}
           {!isLoading && data?.customers?.length === 0 && (
             <tr>
-              <td colSpan={6}>
+              <td colSpan={canSeeMoney ? 6 : 5}>
                 <EmptyState
                   icon={Users}
                   title="ไม่พบลูกค้า"

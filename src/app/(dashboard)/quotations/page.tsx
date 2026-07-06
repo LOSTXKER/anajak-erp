@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
-import { roleAllows, SALES_DOC_ROLES } from "@/lib/roles";
+import { roleAllows, SALES_DOC_ROLES, ORDER_MONEY_ROLES } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -36,13 +36,32 @@ export default function QuotationsPage() {
   const { data: me } = trpc.user.me.useQuery();
   // สร้างใบเสนอ = สิทธิ์ขาย (quotation.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12)
   const canCreateQuotation = roleAllows(me?.role, SALES_DOC_ROLES);
+  // ใบเสนอทั้งหน้าเป็นเรื่องราคาขาย — ช่าง/กราฟิกห้ามเห็น (Policy ⑦ · ตรงกับ requireRole ฝั่ง server)
+  const canView = me ? ORDER_MONEY_ROLES.includes(me.role) : true;
 
-  const { data, isLoading, isError, refetch } = trpc.quotation.list.useQuery({
-    search: search || undefined,
-    status: status || undefined,
-    page,
-    limit: 20,
-  });
+  const { data, isLoading, isError, refetch } = trpc.quotation.list.useQuery(
+    {
+      search: search || undefined,
+      status: status || undefined,
+      page,
+      limit: 20,
+    },
+    { enabled: canView }
+  );
+
+  if (me && !canView) {
+    return (
+      <div className="space-y-5">
+        <PageHeader
+          title="ใบเสนอราคา"
+          description="จัดการใบเสนอราคาทั้งหมด"
+        />
+        <p className="text-sm text-slate-400">
+          หน้านี้เปิดเฉพาะทีมขาย ผู้จัดการ และบัญชี
+        </p>
+      </div>
+    );
+  }
 
   if (isError) return <QueryError onRetry={() => refetch()} />;
 

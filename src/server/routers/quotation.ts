@@ -18,6 +18,9 @@ import { isQuotationExpired } from "@/server/services/quotation-confirm";
 import { canQuotationTransition, quotationStatusLabel } from "@/lib/quotation-status";
 
 const salesUp = requireRole("OWNER", "MANAGER", "SALES");
+// ใบเสนอราคา = เอกสารราคาขายล้วน — อ่านได้เฉพาะกลุ่มเห็นเงินฝั่งขาย (⑦ เบสเคาะ 2026-07-06:
+// ช่าง/กราฟิกไม่เห็นมูลค่างาน · flow ผลิต/ออกแบบไม่มีจุดใช้ใบเสนอ — ตรง ORDER_MONEY_ROLES ฝั่ง UI)
+const orderMoney = requireRole("OWNER", "MANAGER", "ACCOUNTANT", "SALES");
 
 const quotationItemSchema = z.object({
   name: z.string(),
@@ -30,6 +33,7 @@ const quotationItemSchema = z.object({
 
 export const quotationRouter = router({
   list: protectedProcedure
+    .use(orderMoney)
     .input(
       z.object({
         search: z.string().optional(),
@@ -80,6 +84,7 @@ export const quotationRouter = router({
     }),
 
   getById: protectedProcedure
+    .use(orderMoney)
     .input(byIdInput)
     .query(async ({ ctx, input }) => {
       return ctx.prisma.quotation.findUniqueOrThrow({
@@ -500,20 +505,30 @@ export const quotationRouter = router({
 
           // ----- เส้นทางออเดอร์ผูก: ยืนยันใบเดิม -----
           if (linkedOrder) {
+            // นับรายการ "ใน tx" — snapshot นอก tx อาจเก่า (updateItems แทรกระหว่างกดแปลง
+            // จะโดนล้าง fee/ทับยอดผิดเส้น · review จับ TOCTOU)
+            const liveItemCount = await tx.orderItem.count({
+              where: { orderId: linkedOrder.id },
+            });
             // ออเดอร์ยังไม่มีรายการ → เติมโครงจากใบเสนอ + ยอด/ภาษีตามใบเสนอ
-            if (linkedOrder.items.length === 0) {
+            if (liveItemCount === 0) {
               // เพดานขาที่สอง (B9): ออเดอร์เปิดเบา (fees ล้วน) ออกบิลได้ก่อนแปลง —
               // ยอดใบเสนอที่ต่อรองลงต้องไม่ต่ำกว่าบิลที่ออกแล้ว (review B9 จับช่องนี้)
               await assertOrderTotalCoversBilled(tx, {
                 orderId: linkedOrder.id,
                 newTotal: quotation.totalAmount,
               });
+              // ราคาใบเสนอ = ราคาเหมาทั้งงาน — ล้าง fee ตั้งต้นของออเดอร์เปิดเบาทิ้ง
+              // ไม่งั้น recompute ครั้งแรก (แก้รายการ/ค่าธรรมเนียม) บวก fee เก่ากลับ
+              // เข้ายอดเงียบๆ (คำถามค้าง B9 · เบสเคาะ 2026-07-06)
+              await tx.orderFee.deleteMany({ where: { orderId: linkedOrder.id } });
               await tx.order.update({
                 where: { id: linkedOrder.id },
                 data: {
                   title: linkedOrder.title || quotation.title,
                   discount: quotation.discount,
                   subtotalItems: quotation.subtotal,
+                  subtotalFees: 0,
                   taxRate: derivedTaxRate.toNumber(),
                   taxAmount: quotation.tax,
                   totalAmount: quotation.totalAmount,

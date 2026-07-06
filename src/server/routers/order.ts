@@ -13,6 +13,7 @@ import {
   ACCOUNTANT_STATUSES,
 } from "@/lib/order-status";
 import { createAuditLog } from "@/server/helpers";
+import type { PrismaTx } from "@/lib/prisma";
 import { byIdInput, fileUrlSchema } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { badRequest } from "@/server/errors";
@@ -40,6 +41,7 @@ import {
 import {
   assertSalesWithinCreditLimit,
   UNCOMMITTED_STATUSES,
+  RECEIVABLE_TYPES,
 } from "@/server/services/receivables";
 import { assertOrderTotalCoversBilled, billedFloor } from "@/server/services/payment-plan";
 import { lockOrderRow } from "@/server/services/order-cost";
@@ -146,6 +148,37 @@ const taxLineTypeForItem = (item: { prints: unknown[] }): TaxLineType =>
 // นอกนั้น (มีพิมพ์ หรือยังไม่มีรายการ) = งานสั่งทำ (เริ่ม INQUIRY เดินตามจริง)
 const deriveOrderType = (items: { prints: unknown[] }[]): OrderType =>
   items.length > 0 && items.every((it) => it.prints.length === 0) ? "READY_MADE" : "CUSTOM";
+
+// B11 (เบสเคาะ 2026-07-06): สินค้าที่ลบแล้ว (soft-delete — แถวยังอยู่ FK ผ่าน) ห้ามหลุด
+// เข้ารายการผ่านประตูแก้ไขทุกบาน (updateItems/ใบแก้ไข/ทำซ้ำ) — เดิมกันแค่ตอนเปิดออเดอร์
+// กันเฉพาะ "ตัวใหม่ที่เพิ่งใส่": ออเดอร์ที่อ้างสินค้านั้นอยู่แล้ว (สั่งตอนยังไม่ลบ) ต้องแก้
+// อย่างอื่นต่อได้ ไม่ติดตาย (review จับ) — ส่ง allowedIds = ที่อยู่บนออเดอร์เดิม
+async function assertNoDeletedProducts(
+  prisma: PrismaTx,
+  items: { products: { productId?: string | null }[] }[],
+  actionLabel: string,
+  allowedIds?: Set<string>
+) {
+  const ids = [
+    ...new Set(
+      items
+        .flatMap((item) => item.products)
+        .map((p) => p.productId)
+        .filter((id): id is string => !!id)
+        .filter((id) => !allowedIds?.has(id))
+    ),
+  ];
+  if (ids.length === 0) return;
+  const deleted = await prisma.product.findMany({
+    where: { id: { in: ids }, NOT: { deletedAt: null } },
+    select: { name: true },
+  });
+  if (deleted.length > 0) {
+    badRequest(
+      `มีสินค้าที่ถูกลบไปแล้วในรายการ (${deleted.map((p) => p.name).join(", ")}) — เอาออกหรือเลือกสินค้าปัจจุบันก่อน${actionLabel}`
+    );
+  }
+}
 
 function buildItemCreateData(item: ItemWithCalc, taxLineType: TaxLineType) {
   return {
@@ -276,8 +309,13 @@ export const orderRouter = router({
         where.createdAt = createdAtFilter;
       }
 
+      // ⑦ (เบสเคาะ 2026-07-06): ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — เรียงตามยอดที่มองไม่เห็น
+      // = ลำดับมูลค่ารั่วทางอ้อม (ใครแพงสุดโผล่บนสุด) จึงบังคับกลับ createdAt
+      const seesMoney = canSeeOrderMoney(ctx.userRole);
+      const sortBy =
+        !seesMoney && input.sortBy === "totalAmount" ? "createdAt" : (input.sortBy ?? "createdAt");
       const orderBy: Record<string, string> = {
-        [input.sortBy ?? "createdAt"]: input.sortOrder ?? "desc",
+        [sortBy]: input.sortOrder ?? "desc",
       };
 
       const [orders, total] = await Promise.all([
@@ -315,7 +353,29 @@ export const orderRouter = router({
         };
       });
 
-      return { orders: ordersWithPayment, total, pages: Math.ceil(total / input.limit) };
+      // ⑦: ตัวเลขเงินเป็น null ไม่ใช่ 0 (0 อ่านเป็น "งานฟรี" ได้) · paymentLabel คงไว้ —
+      // สถานะจ่าย (ไม่มีตัวเลข) ช่างใช้ดูงานติดอะไร · ทุน/กำไรปิดตาม finance เหมือน getById
+      // (เดิม list ส่ง totalCost/profitMargin ดิบถึง SALES ด้วย — ปิดพร้อมกันรอบนี้)
+      const seesCost = canSeeFinance(ctx.userRole);
+      const sanitizedOrders = ordersWithPayment.map((o) => ({
+        ...o,
+        totalCost: seesCost ? o.totalCost : 0,
+        profitMargin: seesCost ? o.profitMargin : null,
+        ...(seesMoney
+          ? {}
+          : {
+              subtotalItems: null,
+              subtotalFees: null,
+              discount: null,
+              taxAmount: null,
+              totalAmount: null,
+              platformFee: null,
+              invoices: [],
+              invoicedTotal: null,
+            }),
+      }));
+
+      return { orders: sanitizedOrders, total, pages: Math.ceil(total / input.limit) };
     }),
 
   getById: protectedProcedure
@@ -391,8 +451,38 @@ export const orderRouter = router({
       // หัวใบ (type/totalAmount/isVoided — order-tabs.ts) จึงตัด payments ได้โดยหน้าไม่พัง
       const seesCost = canSeeFinance(ctx.userRole);
       const seesPayments = canSeeOrderMoney(ctx.userRole);
+      // ⑦ (เบสเคาะ 2026-07-06): ราคาขายทั้งใบ = เงินฝั่งขาย — ช่าง/กราฟิกเห็นโครงงาน
+      // (รายการ/จำนวน/ไซซ์/จุดพิมพ์) ครบ แต่ตัวเลขเงินเป็น null ทั้งหัวใบ+รายชิ้น+ค่าธรรมเนียม
+      // (null ไม่ใช่ 0 — 0 อ่านเป็น "งานฟรี" ได้ · pattern เดียวกับ analytics)
+      const moneyBase = seesPayments
+        ? order
+        : {
+            ...order,
+            // เงินลูกค้าที่ฝังมากับใบ (ยอดสะสม/วงเงิน) — ช่องอ้อมของ customer.getById
+            // ที่ปิดไปแล้ว (review จับ) · ข้อมูลติดต่อ/ที่อยู่คงอยู่ ช่างใช้แพ็ค/ส่งได้
+            customer: { ...order.customer, totalSpent: null, creditLimit: null },
+            subtotalItems: null,
+            subtotalFees: null,
+            discount: null,
+            taxAmount: null,
+            totalAmount: null,
+            platformFee: null,
+            items: order.items.map((item) => ({
+              ...item,
+              subtotal: null,
+              products: item.products.map((prod) => ({
+                ...prod,
+                baseUnitPrice: null,
+                discount: null,
+                subtotal: null,
+              })),
+              prints: item.prints.map((pr) => ({ ...pr, unitPrice: null })),
+              addons: item.addons.map((a) => ({ ...a, unitPrice: null })),
+            })),
+            fees: order.fees.map((f) => ({ ...f, amount: null })),
+          };
       return {
-        ...order,
+        ...moneyBase,
         costEntries: seesCost ? order.costEntries : [],
         totalCost: seesCost ? order.totalCost : 0,
         profitMargin: seesCost ? order.profitMargin : null,
@@ -413,23 +503,39 @@ export const orderRouter = router({
                 })),
               })),
             })),
+        // หัวใบคงไว้ (type/isVoided/paymentStatus — แท็บ/เตือนยกเลิกใช้) · ตัวเลขเงิน null
         invoices: seesPayments
           ? order.invoices
-          : order.invoices.map((inv) => ({ ...inv, payments: [] })),
+          : order.invoices.map((inv) => ({
+              ...inv,
+              payments: [],
+              amount: null,
+              discount: null,
+              tax: null,
+              totalAmount: null,
+            })),
         // เพดานขาที่สอง (B9) — ยอดออเดอร์ต่ำสุดที่ยังคุ้มบิลที่ออกแล้ว · UI ใช้เตือน
-        // ก่อนบันทึกแก้รายการ/ส่วนลด (ด่านจริงอยู่ที่ mutation ฝั่ง server)
-        billedFloor: billedFloor(
-          order.invoices.map((inv) => ({
-            type: inv.type,
-            totalAmount: inv.totalAmount,
-            isVoided: inv.isVoided,
-            originalInvoiceType: inv.originalInvoice?.type ?? null,
-          }))
-        ).toNumber(),
+        // ก่อนบันทึกแก้รายการ/ส่วนลด (ด่านจริงอยู่ที่ mutation ฝั่ง server) · เงินฝั่งขาย = gate ⑦
+        billedFloor: seesPayments
+          ? billedFloor(
+              order.invoices.map((inv) => ({
+                type: inv.type,
+                totalAmount: inv.totalAmount,
+                isVoided: inv.isVoided,
+                originalInvoiceType: inv.originalInvoice?.type ?? null,
+              }))
+            ).toNumber()
+          : null,
         revisions: order.revisions.map((r) => ({
           ...r,
           // หาไม่เจอ = ค่า literal เดิม (เช่น "ลูกค้า") — โชว์ตามนั้น
           changedByName: nameById.get(r.changedBy) ?? r.changedBy,
+          // ⑦: revision ของ updateItems/updateFees/CO เก็บ JSON ยอดเงินไว้ใน old/newValue —
+          // เงินต้องไม่ไหลถึง browser แม้ UI ไม่ render (มาตรฐานเดียวกับ production.ts) ·
+          // แถว STATUS เก็บแค่ชื่อสถานะ — คงไว้ให้ timeline โชว์ได้
+          ...(seesPayments || r.changeType === "STATUS"
+            ? {}
+            : { oldValue: null, newValue: null }),
         })),
       };
     }),
@@ -766,6 +872,8 @@ export const orderRouter = router({
           "READY_TO_SHIP", "SHIPPED", "COMPLETED", "CANCELLED", "ON_HOLD",
         ]),
         reason: z.string().optional(),
+        // ยืนยันยกเลิกทั้งที่บิลยังค้าง (ผ่าน dialog เตือนแล้ว) — ใช้กับ CANCELLED เท่านั้น
+        confirmOutstandingBilling: z.boolean().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -812,6 +920,30 @@ export const orderRouter = router({
         }
         if (!input.reason?.trim()) {
           badRequest("ถอยสถานะจากส่งแล้ว/ปิดงานแล้ว ต้องระบุเหตุผล (จะถูกบันทึกในประวัติ)");
+        }
+      }
+
+      // ยกเลิกออเดอร์ที่มีบิลค้าง (เบสเคาะ 2026-07-06): เตือนให้จัดการบิลก่อน แต่ไม่บังคับแข็ง
+      // — เคสรับเงินจริงแล้ว void ใบไม่ได้ (ต้องออกใบลดหนี้/คืนเงินตาม) จึงยืนยันข้ามได้
+      // UI เช็คเองก่อนแล้วส่ง flag มา · ยิง API ตรงไม่มี flag = โดนข้อความนี้ (ด่านเดียวกัน)
+      if (
+        input.internalStatus === "CANCELLED" &&
+        old.internalStatus !== "CANCELLED" &&
+        !input.confirmOutstandingBilling
+      ) {
+        const openInvoices = await ctx.prisma.invoice.findMany({
+          where: {
+            orderId: input.id,
+            isVoided: false,
+            type: { in: [...RECEIVABLE_TYPES] },
+            paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID", "OVERDUE"] },
+          },
+          select: { invoiceNumber: true },
+        });
+        if (openInvoices.length > 0) {
+          badRequest(
+            `ออเดอร์นี้มีบิลค้างชำระ ${openInvoices.length} ใบ (${openInvoices.map((i) => i.invoiceNumber).join(", ")}) — ยกเลิกบิล/ออกใบลดหนี้ก่อน ไม่งั้นยอดค้างจะโผล่ในรายงานลูกหนี้ทั้งที่งานถูกยกเลิก · ถ้าจำเป็นต้องยกเลิกทั้งที่บิลค้าง ยืนยันผ่านหน้าจอออเดอร์`
+          );
         }
       }
 
@@ -1070,6 +1202,17 @@ export const orderRouter = router({
 
       // artworkId เป็น hint จาก echo — เก็บเฉพาะลายจริงของลูกค้านี้ที่รูปยังตรง
       await sanitizeArtworkLinks(ctx.prisma, order.customerId, input.items);
+
+      const existingIds = await ctx.prisma.orderItemProduct.findMany({
+        where: { orderItem: { orderId: input.id }, productId: { not: null } },
+        select: { productId: true },
+      });
+      await assertNoDeletedProducts(
+        ctx.prisma,
+        input.items,
+        "บันทึก",
+        new Set(existingIds.map((e) => e.productId as string))
+      );
 
       const itemsWithCalc = priceOrderItems(input.items);
 
@@ -1340,6 +1483,17 @@ export const orderRouter = router({
       // artworkId เป็น hint จาก echo — เก็บเฉพาะลายจริงของลูกค้านี้ที่รูปยังตรง
       await sanitizeArtworkLinks(ctx.prisma, order.customerId, input.items);
 
+      const existingCoIds = await ctx.prisma.orderItemProduct.findMany({
+        where: { orderItem: { orderId: input.id }, productId: { not: null } },
+        select: { productId: true },
+      });
+      await assertNoDeletedProducts(
+        ctx.prisma,
+        input.items,
+        "ออกใบแก้ไข",
+        new Set(existingCoIds.map((e) => e.productId as string))
+      );
+
       const itemsWithCalc = priceOrderItems(input.items);
 
       const result = await ctx.prisma.$transaction(async (tx) => {
@@ -1464,8 +1618,13 @@ export const orderRouter = router({
         select: { id: true, name: true },
       });
       const nameById = new Map(creators.map((u) => [u.id, u.name]));
+      // ⑦: ยอดเก่า/ใหม่ในใบแก้ไข = ราคาขายตรงๆ — ช่าง/กราฟิกเห็นแค่เลขใบ/เหตุผล/รายการ
+      // (review จับ BLOCKER: เดิมโชว์ "฿เก่า → ฿ใหม่" บนแท็บประวัติให้ทุก role)
+      const seesMoney = canSeeOrderMoney(ctx.userRole);
       return changeOrders.map((c) => ({
         ...c,
+        oldTotal: seesMoney ? c.oldTotal : null,
+        newTotal: seesMoney ? c.newTotal : null,
         createdByName: nameById.get(c.createdById) ?? c.createdById,
       }));
     }),
@@ -1626,6 +1785,9 @@ export const orderRouter = router({
           fees: true,
         },
       });
+
+      // ออเดอร์เดิมอ้างสินค้าที่ถูกลบแล้ว — สำเนาจะพาสินค้าเลิกใช้กลับเข้าระบบเงียบๆ
+      await assertNoDeletedProducts(ctx.prisma, original.items, "ทำซ้ำ");
 
       const MAX_RETRIES = 3;
       let lastError: unknown = null;

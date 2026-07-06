@@ -37,15 +37,17 @@ interface OrderInfoEditOrder {
   notes: string | null;
   internalStatus: string;
   taxRate: number;
-  discount: number;
+  // ฟิลด์เงินเป็น number | null ตาม order.getById (นโยบาย ⑦) — dialog เปิดได้เฉพาะ
+  // เมนูฝั่งขาย (role เห็นเงิน) ค่าจริงเลยเป็นตัวเลขเสมอ · ?? 0 แค่ให้ TS ผ่าน
+  discount: number | null;
   platformFee: number | null;
   paymentTerms: string | null;
   // ฐานคิดยอด + เพดานขาที่สอง (B9) จาก order.getById — เตือนก่อนบันทึกเมื่อ
   // ส่วนลด/ภาษีใหม่ทำยอดรวมต่ำกว่าบิลที่ออกแล้ว (server ปฏิเสธอยู่แล้ว)
-  subtotalItems: number;
-  subtotalFees: number;
-  totalAmount: number;
-  billedFloor?: number;
+  subtotalItems: number | null;
+  subtotalFees: number | null;
+  totalAmount: number | null;
+  billedFloor?: number | null;
   poNumber: string | null;
   channel: string;
   shippingRecipientName: string | null;

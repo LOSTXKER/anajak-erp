@@ -30,7 +30,7 @@ import { useState, type ComponentType } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { ROLE_LABELS, FINANCE_ROLES, roleAllows } from "@/lib/roles";
+import { ROLE_LABELS, FINANCE_ROLES, ORDER_MONEY_ROLES, roleAllows } from "@/lib/roles";
 import type { Role } from "@prisma/client";
 
 type NavItem = {
@@ -58,7 +58,8 @@ const groups: NavGroup[] = [
     label: "ขาย",
     items: [
       { name: "ออเดอร์", href: "/orders", icon: ShoppingCart },
-      { name: "ใบเสนอราคา", href: "/quotations", icon: ClipboardList },
+      // ใบเสนอ = ราคาขายล้วน — ช่าง/กราฟิกไม่เห็น (Policy ⑦ · server requireRole แล้ว กดเข้าก็ FORBIDDEN)
+      { name: "ใบเสนอราคา", href: "/quotations", icon: ClipboardList, roles: ORDER_MONEY_ROLES },
       { name: "ลูกค้า", href: "/customers", icon: Users },
     ],
   },

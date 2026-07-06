@@ -15,6 +15,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import type { QuotationStatus } from "@/lib/quotation-status";
+import { PageHeader } from "@/components/page-header";
 import {
   ArrowLeft,
   Send,
@@ -70,10 +71,14 @@ export default function QuotationDetailPage({
 }) {
   const { id } = use(params);
 
-  const { data: quotation, isLoading, isError, refetch } = trpc.quotation.getById.useQuery({ id });
   const { data: me } = trpc.user.me.useQuery();
+  // ใบเสนอทั้งหน้าเป็นเรื่องราคาขาย — ช่าง/กราฟิกห้ามเห็น (Policy ⑦ · ตรงกับ requireRole ฝั่ง server)
+  const canView = me ? ORDER_MONEY_ROLES.includes(me.role) : true;
+  const { data: quotation, isLoading, isError, refetch } = trpc.quotation.getById.useQuery(
+    { id },
+    { enabled: canView }
+  );
   // จัดการใบเสนอ (ส่ง/อนุมัติ/แก้ไข/แปลง) = สิทธิ์ขาย (server salesUp) · พิมพ์ = สิทธิ์เห็นเงินออเดอร์
-  // (B12: ช่าง/กราฟิกเปิดหน้าใบเสนอได้แต่ไม่โชว์ปุ่มที่ server จะ FORBIDDEN)
   const canManageQuotation = roleAllows(me?.role, SALES_DOC_ROLES);
   const canPrintQuotation = roleAllows(me?.role, ORDER_MONEY_ROLES);
   const utils = trpc.useUtils();
@@ -145,6 +150,19 @@ export default function QuotationDetailPage({
   // ----------------------------------------------------------
   // Loading state
   // ----------------------------------------------------------
+  if (me && !canView) {
+    return (
+      <div className="space-y-5">
+        <PageHeader
+          title="ใบเสนอราคา"
+          description="จัดการใบเสนอราคาทั้งหมด"
+        />
+        <p className="text-sm text-slate-400">
+          หน้านี้เปิดเฉพาะทีมขาย ผู้จัดการ และบัญชี
+        </p>
+      </div>
+    );
+  }
   if (isLoading) return <QuotationDetailSkeleton />;
   if (isError) return <QueryError onRetry={() => refetch()} />;
   if (!quotation) return null;

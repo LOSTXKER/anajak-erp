@@ -1,6 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
+import { ORDER_MONEY_ROLES, roleAllows } from "@/lib/roles";
 import { Badge } from "@/components/ui/badge";
 import { CustomerPicker, type PickerCustomer } from "@/components/customers/customer-picker";
 import { customerProfileGaps } from "@/lib/customer-gaps";
@@ -24,10 +25,15 @@ export function OrderCustomerSection({
 }: OrderCustomerSectionProps) {
   const isCorporate = selectedCustomer?.customerType === "CORPORATE";
 
+  // วงเงินเครดิต = เงินฝั่งขาย — ช่าง/กราฟิกห้ามเห็น (Policy ⑦ · server requireRole แล้ว
+  // หน้านี้เป็นของทีมขายอยู่แล้ว แต่กันไว้อีกชั้น) · me ยังไม่โหลด = ซ่อนก่อน (B12)
+  const { data: me } = trpc.user.me.useQuery();
+  const canSeeCredit = roleAllows(me?.role, ORDER_MONEY_ROLES);
+
   // ภาระหนี้เทียบวงเงิน — เตือนตั้งแต่ตอนเลือกลูกค้า (ด่านจริงอยู่ฝั่ง server ตอนยืนยันออเดอร์)
   const creditStatus = trpc.customer.creditStatus.useQuery(
     { customerId },
-    { enabled: !!customerId && selectedCustomer?.creditLimit != null }
+    { enabled: canSeeCredit && !!customerId && selectedCustomer?.creditLimit != null }
   );
 
   // เช็คฟิล์มค้าง+คลังลายตอนรับงานซ้ำ (หนี้ก้อน 2 — ลูกค้าทักมาสั่งซ้ำ แอดมินคีย์ใบใหม่
@@ -64,7 +70,7 @@ export function OrderCustomerSection({
           — ขอจากลูกค้าแล้วเติมได้ที่หน้าลูกค้า
         </p>
       )}
-      {creditStatus.data?.available != null && (
+      {canSeeCredit && creditStatus.data?.available != null && (
         <p
           className={`mt-1.5 text-[11px] ${
             creditStatus.data.available < 0

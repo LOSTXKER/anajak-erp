@@ -74,7 +74,7 @@ interface OrderLikeForNextStep {
   totalAmount: number | null;
   paymentTerms: string | null;
   items?: unknown[] | null;
-  invoices?: { isVoided: boolean; type: string; totalAmount: number }[] | null;
+  invoices?: { isVoided: boolean; type: string; totalAmount: number | null }[] | null;
   designs?: { approvalStatus: string }[] | null;
   productions?: unknown[] | null;
   deliveries?: unknown[] | null;
@@ -85,10 +85,13 @@ export function buildNextStepInput(order: OrderLikeForNextStep): NextStepInput {
   // สูตร billingHandled เป๊ะตาม server (src/server/routers/order.ts ~801-817):
   // handled = max(ผลรวมใบแจ้งหนี้ DEPOSIT+FINAL, ผลรวมใบเสร็จ) · ปิดงานได้เมื่อ handled ≥ ยอดออเดอร์
   // ห้าม drift จาก server ไม่งั้นแถบบอก "ปิดงานได้" แต่ server ปฏิเสธ
+  // นโยบาย ⑦: viewer ที่ไม่เห็นเงิน (ช่าง/กราฟิก) ได้ totalAmount=null → นับเป็น 0 ทั้งยอดบิล
+  // และยอดออเดอร์ → billingHandled อาจเป็น true ทั้งที่บิลยังไม่ครบ — ยอมรับได้ (เบสเคาะ:
+  // ขั้นวางบิล/ปิดงานไม่ใช่งานของ role นั้น · server มีด่านจริงกันปิดงานก่อนบิลครบอยู่แล้ว)
   const sumOf = (types: string[]) =>
     liveInvoices
       .filter((inv) => types.includes(inv.type))
-      .reduce((s, inv) => s + inv.totalAmount, 0);
+      .reduce((s, inv) => s + (inv.totalAmount ?? 0), 0);
   const handled = Math.max(sumOf(["DEPOSIT_INVOICE", "FINAL_INVOICE"]), sumOf(["RECEIPT"]));
   const totalAmount = order.totalAmount ?? 0;
 

@@ -7,13 +7,16 @@ import { getStartOfMonth } from "@/lib/date-utils";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 import { normalizePhone } from "@/lib/phone";
 import { creditExposureForCustomer } from "@/server/services/receivables";
+import { canSeeOrderMoney, canSeeFinance } from "@/lib/roles";
 
 const customerEditors = requireRole("OWNER", "MANAGER", "ACCOUNTANT", "SALES");
 
 export const customerRouter = router({
   // สถานะวงเงินเครดิต: ภาระหนี้รวม (ใบค้างชำระ + งานผูกพันยังไม่วางบิล) เทียบ creditLimit
-  // ใช้ตอนสร้าง/ยืนยันออเดอร์ + หน้า detail ลูกค้า — ทุก role ที่ login เห็นได้ (ขายต้องใช้ตัดสินใจ)
+  // ใช้ตอนสร้าง/ยืนยันออเดอร์ + หน้า detail ลูกค้า — เฉพาะกลุ่มเห็นเงินฝั่งขาย
+  // (⑦ เบสเคาะ 2026-07-06: เดิมเปิดทุก role — ช่างเห็นวงเงิน/ภาระหนี้ลูกค้าได้)
   creditStatus: protectedProcedure
+    .use(customerEditors)
     .input(z.object({ customerId: z.string() }))
     .query(async ({ ctx, input }) => {
       const customer = await ctx.prisma.customer.findUniqueOrThrow({
@@ -66,13 +69,20 @@ export const customerRouter = router({
         ctx.prisma.customer.count({ where }),
       ]);
 
-      return { customers, total, pages: Math.ceil(total / input.limit) };
+      // ⑦ (เบสเคาะ 2026-07-06): ยอดซื้อสะสม/วงเงิน = เงินฝั่งขาย — ช่าง/กราฟิกไม่เห็น
+      // (null ไม่ใช่ 0 — 0 อ่านเป็น "ไม่เคยซื้อ" ได้ · pattern เดียวกับ analytics.dashboard)
+      const seesMoney = canSeeOrderMoney(ctx.userRole);
+      const sanitized = seesMoney
+        ? customers
+        : customers.map((c) => ({ ...c, totalSpent: null, creditLimit: null }));
+
+      return { customers: sanitized, total, pages: Math.ceil(total / input.limit) };
     }),
 
   getById: protectedProcedure
     .input(byIdInput)
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.customer.findUniqueOrThrow({
+      const customer = await ctx.prisma.customer.findUniqueOrThrow({
         where: { id: input.id },
         include: {
           orders: { orderBy: { createdAt: "desc" }, take: 10 },
@@ -85,6 +95,35 @@ export const customerRouter = router({
           _count: { select: { orders: true, invoices: true } },
         },
       });
+      // ⑦ (เบสเคาะ 2026-07-06): ช่าง/กราฟิกใช้หน้า detail ได้ (ที่อยู่/แบรนด์/ประวัติคุย)
+      // แต่เงินฝั่งขายต้องไม่เห็น — ยอดสะสม/วงเงิน/มูลค่าออเดอร์ย้อนหลัง
+      // ทุน/กำไรบนออเดอร์ย้อนหลัง = finance เท่านั้น (RBAC §7 — SALES ก็ห้าม · review จับ)
+      const seesCost = canSeeFinance(ctx.userRole);
+      const costGated = {
+        ...customer,
+        orders: customer.orders.map((o) => ({
+          ...o,
+          totalCost: seesCost ? o.totalCost : 0,
+          profitMargin: seesCost ? o.profitMargin : null,
+        })),
+      };
+      if (canSeeOrderMoney(ctx.userRole)) return costGated;
+      return {
+        ...costGated,
+        totalSpent: null,
+        creditLimit: null,
+        orders: costGated.orders.map((o) => ({
+          ...o,
+          subtotalItems: null,
+          subtotalFees: null,
+          discount: null,
+          taxAmount: null,
+          totalAmount: null,
+          totalCost: null,
+          profitMargin: null,
+          platformFee: null,
+        })),
+      };
     }),
 
   create: protectedProcedure

@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import { ORDER_MONEY_ROLES, roleAllows } from "@/lib/roles";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { CustomerArtworksCard } from "@/components/customers/customer-artworks-card";
@@ -29,11 +30,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const [loggingComm, setLoggingComm] = useState(false);
   const { data: me } = trpc.user.me.useQuery();
   const canEdit = !!me && EDITOR_ROLES.includes(me.role);
+  // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนยอดสั่งรวม/ยอดออเดอร์ (server ส่ง null มาอยู่แล้ว)
+  const canSeeMoney = roleAllows(me?.role, ORDER_MONEY_ROLES);
   const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });
-  // ภาระหนี้เทียบวงเงินเครดิต — ขอเฉพาะลูกค้าที่ตั้งวงเงินไว้
+  // ภาระหนี้เทียบวงเงินเครดิต — ขอเฉพาะลูกค้าที่ตั้งวงเงินไว้ · non-money role ยิงไปก็โดน FORBIDDEN
   const { data: credit } = trpc.customer.creditStatus.useQuery(
     { customerId: id },
-    { enabled: customer?.creditLimit != null }
+    { enabled: canSeeMoney && customer?.creditLimit != null }
   );
 
   if (isLoading) {
@@ -115,10 +118,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 <span className="flex items-center gap-2 text-sm text-slate-500"><ShoppingCart className="h-4 w-4" /> ออเดอร์ทั้งหมด</span>
                 <span className="font-bold tabular-nums">{customer._count.orders}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm text-slate-500"><DollarSign className="h-4 w-4" /> ยอดสั่งรวม</span>
-                <span className="font-bold tabular-nums">{formatCurrency(customer.totalSpent)}</span>
-              </div>
+              {canSeeMoney && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm text-slate-500"><DollarSign className="h-4 w-4" /> ยอดสั่งรวม</span>
+                  <span className="font-bold tabular-nums">{formatCurrency(customer.totalSpent ?? 0)}</span>
+                </div>
+              )}
               {customer.lastOrderAt && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-500">สั่งล่าสุด</span>
@@ -218,7 +223,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                       </div>
                       <div className="flex items-center gap-3">
                         <OrderStatusBadge customerStatus={order.customerStatus} internalStatus={order.internalStatus} />
-                        <span className="text-sm tabular-nums font-medium">{formatCurrency(order.totalAmount)}</span>
+                        {canSeeMoney && (
+                          <span className="text-sm tabular-nums font-medium">{formatCurrency(order.totalAmount ?? 0)}</span>
+                        )}
                       </div>
                     </Link>
                   ))}

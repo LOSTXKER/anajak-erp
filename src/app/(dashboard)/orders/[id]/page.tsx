@@ -19,6 +19,7 @@ import {
   canRoleSetStatus,
 } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
+import { ORDER_MONEY_ROLES, roleAllows } from "@/lib/roles";
 import {
   FileText,
   ChevronRight,
@@ -260,12 +261,15 @@ export default function OrderDetailPage({
   const flowSteps = getFlowSteps(order.orderType);
   const nextStatuses = getNextStatuses(order.orderType, order.internalStatus);
   // ซ่อนปุ่มที่ role นี้กดแล้ว server ปฏิเสธ (ชุดกติกาเดียวกับ server — audit ข้อ 29)
-  const roleAllows = (to: string) =>
+  const roleCanSetStatus = (to: string) =>
     canRoleSetStatus(me?.role, order.internalStatus, to as InternalStatus);
-  const forwardStatuses = nextStatuses.filter((s) => s !== "CANCELLED" && roleAllows(s));
-  const canCancel = nextStatuses.includes("CANCELLED") && roleAllows("CANCELLED");
+  const forwardStatuses = nextStatuses.filter((s) => s !== "CANCELLED" && roleCanSetStatus(s));
+  const canCancel = nextStatuses.includes("CANCELLED") && roleCanSetStatus("CANCELLED");
   // เมนูฝั่งขาย (แก้ข้อมูล/รายการ/สำเนา/ออกใบเสนอ) — server เป็น salesUp
   const isSalesUp = !me || ["OWNER", "MANAGER", "SALES"].includes(me.role);
+  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ระหว่าง me โหลด roleAllows คืน false = ซ่อนไว้ก่อน
+  // (safe default ตาม B12) · ห้ามใช้ isSalesUp แทน — ชุดนั้นไม่มี ACCOUNTANT
+  const canSeeMoney = roleAllows(me?.role, ORDER_MONEY_ROLES);
 
   const currentStepIndex = flowSteps.indexOf(order.internalStatus);
 
@@ -283,14 +287,16 @@ export default function OrderDetailPage({
     ) ?? 0;
   const hasCostEntries = order.costEntries && order.costEntries.length > 0;
 
+  // ยอดฝั่งขาย — viewer ที่ไม่เห็นเงิน (นโยบาย ⑦) server ส่ง null มา → คิดเป็น 0
+  // ได้เพราะผลลัพธ์ถูก render เฉพาะใน section ที่ gate ด้วย canSeeMoney แล้วเท่านั้น
   const subtotalItems =
     order.items?.reduce(
-      (sum: number, item: { subtotal: number }) => sum + (item.subtotal ?? 0),
+      (sum: number, item: { subtotal: number | null }) => sum + (item.subtotal ?? 0),
       0,
     ) ?? 0;
   const subtotalFees =
     order.fees?.reduce(
-      (sum: number, fee: { amount: number }) => sum + fee.amount,
+      (sum: number, fee: { amount: number | null }) => sum + (fee.amount ?? 0),
       0,
     ) ?? 0;
   const discount = order.discount ?? 0;
@@ -349,6 +355,27 @@ export default function OrderDetailPage({
       (current === "SHIPPED" && ["READY_TO_SHIP", "QUALITY_CHECK"].includes(newStatus));
 
     if (newStatus === "CANCELLED") {
+      // บิลค้างต้องเห็นก่อนตัดสินใจ (เบสเคาะ 2026-07-06) — เตือน+ชี้ทาง ไม่บังคับแข็ง
+      // (เคสรับเงินแล้ว void ใบไม่ได้ ต้องใช้ใบลดหนี้/คืนเงินตาม) · server มีด่านเดียวกัน
+      // เช็คจากข้อมูลสด — cache ค้างจะทำ dialog ไม่โผล่ทั้งที่ server จะปฏิเสธ (review จับ)
+      const fresh = await utils.order.getById.fetch({ id }).catch(() => null);
+      const openBills = ((fresh ?? order)?.invoices ?? []).filter(
+        (inv) =>
+          !inv.isVoided &&
+          ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"].includes(inv.type) &&
+          ["UNPAID", "PARTIALLY_PAID", "OVERDUE"].includes(inv.paymentStatus)
+      );
+      if (openBills.length > 0) {
+        const proceed = await confirm({
+          title: `มีบิลค้างชำระ ${openBills.length} ใบ (${openBills
+            .map((inv) => inv.invoiceNumber)
+            .join(", ")})`,
+          description:
+            "แนะนำยกเลิกบิล/ออกใบลดหนี้ที่การ์ด บิล/การชำระเงิน ก่อน — ไม่งั้นยอดค้างจะโผล่ในรายงานลูกหนี้ทั้งที่งานถูกยกเลิก และอาจทวงลูกค้าผิด",
+          confirmText: "ยกเลิกทั้งที่บิลค้าง",
+        });
+        if (!proceed) return;
+      }
       const reason = await promptText({
         title: "ยกเลิกออเดอร์นี้?",
         description: "ระบุเหตุผลที่ยกเลิก — จะถูกบันทึกในประวัติออเดอร์",
@@ -357,7 +384,12 @@ export default function OrderDetailPage({
         destructive: true,
       });
       if (reason === null || reason === "") return;
-      updateStatus.mutate({ id, internalStatus: newStatus as never, reason });
+      updateStatus.mutate({
+        id,
+        internalStatus: newStatus as never,
+        reason,
+        confirmOutstandingBilling: openBills.length > 0 ? true : undefined,
+      });
     } else if (isRollback) {
       const reason = await promptText({
         title: current === "COMPLETED" ? "เปิดงานกลับ?" : "ถอยสถานะกลับ?",
@@ -572,7 +604,9 @@ export default function OrderDetailPage({
         readiness={orderContext.data?.readiness ?? null}
         isPending={updateStatus.isPending}
         onStatus={handleStatusChange}
-        onEditItems={openItemsEditor}
+        // gate เดียวกับปุ่มแก้รายการจุดอื่น — ช่างกดจากแถบแล้วเจอฟอร์มราคา (0 จาก null)
+        // ก่อนไปตาย FORBIDDEN ตอนบันทึก (review ⑦ จับ)
+        onEditItems={isSalesUp ? openItemsEditor : undefined}
         onAnchor={handleAnchor}
       />
 
@@ -605,6 +639,7 @@ export default function OrderDetailPage({
                   items={order.items ?? []}
                   fees={order.fees ?? []}
                   onEditItems={canEditItems && isSalesUp ? openItemsEditor : undefined}
+                  showMoney={canSeeMoney}
                 />
               )}
             </div>
@@ -691,6 +726,7 @@ export default function OrderDetailPage({
         {/* RIGHT: SIDEBAR (1/3) */}
         <OrderSidebar
           order={order}
+          showMoney={canSeeMoney}
           subtotalItems={subtotalItems}
           subtotalFees={subtotalFees}
           discount={discount}
