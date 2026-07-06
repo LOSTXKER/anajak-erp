@@ -245,6 +245,9 @@ async function main() {
     ok("3.2 สถานะออเดอร์เดินเป็น DESIGN_APPROVED", o2Db.internalStatus === "DESIGN_APPROVED", o2Db.internalStatus);
 
     // ---------- 4) ที่อยู่จัดส่งไหลกลับโปรไฟล์ลูกค้า ----------
+    // เทสนี้เรื่องที่อยู่ ไม่ใช่ flow ส่งของ — ดันสถานะเข้าแพ็คตรงๆ (setup ทางลัด)
+    // ให้ผ่านด่าน B4 ใหม่ (ใบส่งออกได้เฉพาะงานเลย QC · เบสเคาะ 2026-07-06)
+    await prisma.order.update({ where: { id: o2.id }, data: { internalStatus: "PACKING" } });
     await caller.delivery.create({
       orderId: o2.id,
       recipientName: "คุณส้ม",
@@ -411,6 +414,24 @@ async function main() {
       { order: o6Db.internalStatus, prod: prod6Db.status }
     );
 
+    // ด่าน B4 ปิดครบ (เบสเคาะ 2026-07-06): เดิมยิง API ตรงสร้างใบส่งตอน QUALITY_CHECK ได้
+    // (6.3 เก่า codify ว่าสร้างได้แค่ไม่ดันออเดอร์) — ตอนนี้ create โดนกันตั้งแต่ต้นทาง
+    await expectError(
+      "6.3 สร้างใบส่งขณะออเดอร์ยัง QUALITY_CHECK → ปฏิเสธ (ด่าน B4 ต้องผ่าน QC ก่อน)",
+      () =>
+        caller.delivery.create({
+          orderId: o6.id,
+          recipientName: "คุณเอ",
+          phone: "0810000000",
+          address: "1 ถ.ส่งของ",
+          shippingMethod: "FLASH",
+        }),
+      "ยังไม่ผ่านตรวจ QC"
+    );
+
+    // ผ่านด่านตรวจด้วยการนับจริง (Gate B4 — เข้าแพ็คมือโดยไม่มีผลตรวจโดนกันแล้ว)
+    await caller.qc.create({ orderId: o6.id, qtyGood: 10, defects: [] });
+    await caller.order.updateStatus({ id: o6.id, internalStatus: "READY_TO_SHIP" });
     await caller.delivery.create({
       orderId: o6.id,
       recipientName: "คุณเอ",
@@ -419,25 +440,27 @@ async function main() {
       shippingMethod: "FLASH",
     });
     const o6Del = (await prisma.delivery.findMany({ where: { orderId: o6.id } }))[0];
-
-    await caller.delivery.updateStatus({ id: o6Del.id, status: "SHIPPED", trackingNumber: "TRACK-6" });
-    o6Db = await prisma.order.findUniqueOrThrow({ where: { id: o6.id } });
-    ok(
-      "6.3 ส่งของขณะออเดอร์ยัง QUALITY_CHECK → ไม่กระโดดข้าม QC (ออเดอร์คง QUALITY_CHECK)",
-      o6Db.internalStatus === "QUALITY_CHECK",
-      o6Db.internalStatus
-    );
-
-    // ผ่านด่านตรวจด้วยการนับจริง (Gate B4 — เข้าแพ็คมือโดยไม่มีผลตรวจโดนกันแล้ว)
-    await caller.qc.create({ orderId: o6.id, qtyGood: 10, defects: [] });
-    await caller.order.updateStatus({ id: o6.id, internalStatus: "READY_TO_SHIP" });
-    await caller.delivery.updateStatus({ id: o6Del.id, status: "DELIVERED" });
+    await caller.delivery.updateStatus({ id: o6Del.id, status: "DELIVERED", trackingNumber: "TRACK-6" });
     o6Db = await prisma.order.findUniqueOrThrow({ where: { id: o6.id } });
     ok(
       "6.4 ส่งของขณะพร้อมส่ง → ออเดอร์เด้งเป็น SHIPPED เอง (ไม่ปิดงานเอง — รอวางบิล)",
       o6Db.internalStatus === "SHIPPED",
       o6Db.internalStatus
     );
+
+    // ด่าน B4 ขาส่ง: ออเดอร์ถูกถอยกลับไปแก้งาน — ใบส่งใบเดิมห้ามกดออก (SHIPPED) ซ้ำ
+    await caller.order.updateStatus({
+      id: o6.id,
+      internalStatus: "QUALITY_CHECK",
+      reason: "ของตีกลับ ทดสอบด่าน B4 ขาส่ง",
+    });
+    await expectError(
+      "6.4b ออเดอร์ถอยกลับ QC แล้วกดส่งใบเดิมออกอีก → ปฏิเสธ (ด่าน B4 ขาส่ง)",
+      () => caller.delivery.updateStatus({ id: o6Del.id, status: "SHIPPED" }),
+      "ถูกถอยกลับไปแก้งาน"
+    );
+    // คืน o6 กลับ SHIPPED — การถอยเป็นแค่ฉากทดสอบด่าน (เทส 7.3 ใช้ o6 ในคิววางบิลต่อ)
+    await prisma.order.update({ where: { id: o6.id }, data: { internalStatus: "SHIPPED" } });
 
     // แบ่งส่งหลายกล่อง: กล่องแรกออก ห้ามเด้งทั้งใบ — เด้งเมื่อกล่องสุดท้ายออก
     const o6s = await prisma.order.create({

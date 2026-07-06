@@ -15,6 +15,16 @@ const managerUp = requireRole("OWNER", "MANAGER");
 const packKey = (size?: string | null, color?: string | null) =>
   `${(size ?? "").trim().toLowerCase()}|${(color ?? "").trim().toLowerCase()}`;
 
+// B4 (เบสเคาะ 2026-07-06): ของออกจากโรงงานได้เฉพาะงานที่เลย QC มาแล้ว — เดิม UI ซ่อน
+// ปุ่มไว้แต่ยิง API ตรงสร้าง/ส่งใบส่งได้ตั้งแต่ยังไม่นับของ (review B4 จับเป็นหนี้ PARTIAL)
+// COMPLETED อยู่ในลิสต์: เคสของตีกลับหลังปิดงาน ต้องเปิดใบส่งรอบใหม่ได้
+const POST_QC_ORDER_STATUSES: readonly string[] = [
+  "PACKING",
+  "READY_TO_SHIP",
+  "SHIPPED",
+  "COMPLETED",
+];
+
 export const deliveryRouter = router({
   getByOrderId: protectedProcedure
     .input(z.object({ orderId: z.string() }))
@@ -133,6 +143,17 @@ export const deliveryRouter = router({
       const { saveAsCustomerAddress, lines, ...deliveryData } = input;
 
       return ctx.prisma.$transaction(async (tx) => {
+        // ด่าน B4: ใบส่งออกได้เฉพาะออเดอร์ที่เลย QC (PACKING ขึ้นไป)
+        const orderStatusRow = await tx.order.findUniqueOrThrow({
+          where: { id: input.orderId },
+          select: { internalStatus: true },
+        });
+        if (!POST_QC_ORDER_STATUSES.includes(orderStatusRow.internalStatus)) {
+          badRequest(
+            "ออเดอร์ยังไม่ผ่านตรวจ QC/ยังไม่ถึงขั้นแพ็ค — สร้างใบส่งไม่ได้ (นับ QC แล้วเดินสถานะเข้าแพ็คก่อน)"
+          );
+        }
+
         // กันแพ็คเกินยอดงานต่อไซส์ — lock แถวออเดอร์กันสองใบส่งนับพร้อมกัน
         if (lines.length > 0) {
           await tx.$queryRaw`SELECT id FROM orders WHERE id = ${input.orderId} FOR UPDATE`;
@@ -288,6 +309,25 @@ export const deliveryRouter = router({
           badRequest(
             `ใบส่งสถานะ "${DELIVERY_STATUS_LABELS[fromStatus] ?? fromStatus}" เปลี่ยนเป็น "${DELIVERY_STATUS_LABELS[input.status] ?? input.status}" ไม่ได้ — เดินทีละขั้น`
           );
+        }
+        // ด่าน B4 ขาส่ง: ของออกจริง (SHIPPED/DELIVERED) ได้เฉพาะออเดอร์ที่เลย QC —
+        // กันเคสออเดอร์ถูกถอยกลับไปแก้งานแล้วยังกดส่งใบเดิมออก
+        // ยกเว้น SHIPPED→DELIVERED: ของออกไปแล้วจริง การบันทึก "ถึงแล้ว" เป็นการจดตาม
+        // ความจริง — ห้าม block แม้ออเดอร์ถูกถอยกลับไปแก้งานระหว่างทาง (review จับ)
+        if (
+          statusChanged &&
+          (input.status === "SHIPPED" ||
+            (input.status === "DELIVERED" && fromStatus !== "SHIPPED"))
+        ) {
+          const orderStatusRow = await tx.order.findUniqueOrThrow({
+            where: { id: current.orderId },
+            select: { internalStatus: true },
+          });
+          if (!POST_QC_ORDER_STATUSES.includes(orderStatusRow.internalStatus)) {
+            badRequest(
+              "ออเดอร์ยังไม่ผ่านตรวจ QC/ถูกถอยกลับไปแก้งาน — ส่งของได้เมื่อออเดอร์กลับถึงขั้นแพ็ค/พร้อมส่ง"
+            );
+          }
         }
         // timestamp ตั้งเฉพาะตอน "เปลี่ยนสถานะจริง" มา SHIPPED/DELIVERED — self แก้เลขพัสดุ
         // (SHIPPED→SHIPPED) ต้องไม่ทับวันส่งเดิมเป็นวันนี้ (review B13 จับ · gate เหมือน side effect)
