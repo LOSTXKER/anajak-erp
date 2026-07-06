@@ -1,7 +1,8 @@
 /**
  * verify คำถามค้างที่เบสเคาะ 2026-07-06 — integration จริงกับ DB
  * รัน: npm run verify:moneygate · ข้อมูลใช้ marker [MGATE] ลบเกลี้ยงท้ายสคริปต์
- * ครอบ: ⑦ ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย (strip order/customer + gate quotation/creditStatus)
+ * ครอบ: ⑦ ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย (strip order/customer + gate quotation/creditStatus
+ *          + payload ขา mutation: order.updateStatus ไม่คืนเงินดิบ)
  *       ④ ยกเลิกออเดอร์ที่มีบิลค้าง → เตือน/ต้องยืนยัน · ⑤ convertToOrder ล้าง fee เดิม
  *       ⑥ updateItems/duplicate กันสินค้าที่ลบ
  */
@@ -262,6 +263,115 @@ async function main() {
       staffCos.every((c) => c.oldTotal === null && c.newTotal === null) &&
         ownerCos.every((c) => c.oldTotal !== null || staffCos.length === 0),
       { staff: staffCos.length, owner: ownerCos.length }
+    );
+
+    // ⑦ follow-up (NEXT ①): ขา mutation — ช่างกดเปลี่ยนสถานะได้ แต่คำตอบดิบต้องไม่มีเงินติดมา
+    // (payload-only leak: จอไม่โชว์ แต่ยิง API ตรงอ่านได้ · จอใช้แค่สถานะจากคำตอบนี้)
+    const mut = await prisma.order.create({
+      data: {
+        orderNumber: `MGATE-UPD-${Date.now()}`,
+        customerId: customer.id,
+        createdById: owner.id,
+        title: `${MARK} เทส payload เปลี่ยนสถานะ`,
+        internalStatus: "PRODUCING",
+        customerStatus: "IN_PRODUCTION",
+        subtotalItems: 1000,
+        subtotalFees: 150,
+        taxAmount: 80.5,
+        totalAmount: 1230.5,
+        totalCost: 700,
+        profitMargin: 43.1,
+        platformFee: 12.5,
+      },
+    });
+    ids.orders.push(mut.id);
+    const staffMut = await asStaff.order.updateStatus({
+      id: mut.id,
+      internalStatus: "QUALITY_CHECK",
+    });
+    check(
+      "7.18 order.updateStatus (ช่าง): เปลี่ยนสถานะได้จริง แต่เงินในคำตอบ = null · totalCost 0",
+      staffMut.internalStatus === "QUALITY_CHECK" &&
+        staffMut.totalAmount === null &&
+        staffMut.subtotalItems === null &&
+        staffMut.subtotalFees === null &&
+        staffMut.discount === null &&
+        staffMut.taxAmount === null &&
+        staffMut.platformFee === null &&
+        Number(staffMut.totalCost) === 0 &&
+        staffMut.profitMargin === null,
+      { s: staffMut.internalStatus, t: staffMut.totalAmount, c: staffMut.totalCost }
+    );
+    const ownerMut = await asOwner.order.updateStatus({
+      id: mut.id,
+      internalStatus: "ON_HOLD",
+      reason: "ทดสอบ payload",
+    });
+    check(
+      "7.19 order.updateStatus (เจ้าของ): ตัวเลขครบเหมือนเดิม",
+      ownerMut.internalStatus === "ON_HOLD" &&
+        Number(ownerMut.totalAmount) === 1230.5 &&
+        Number(ownerMut.totalCost) === 700 &&
+        ownerMut.subtotalItems !== null &&
+        ownerMut.profitMargin !== null,
+      { t: ownerMut.totalAmount, c: ownerMut.totalCost }
+    );
+
+    // ⑦ follow-up: ช่องคลาสเดียวกันที่ review 2026-07-06 จับเพิ่ม — ตรวจรับผ้า/สถิติ/ทุนถึงขาย
+    const oip = await prisma.orderItemProduct.findFirstOrThrow({
+      where: { orderItem: { orderId: order.id } },
+      select: { id: true },
+    });
+    const recv = (await asStaff.order.updateReceiveTracking({
+      orderItemProductId: oip.id,
+      receivedInspected: true,
+    })) as Record<string, unknown>;
+    check(
+      "7.20 order.updateReceiveTracking (ช่าง): คำตอบมีเฉพาะ field ตรวจรับ — ไม่มีเงินรายชิ้น",
+      recv.receivedInspected === true &&
+        recv.baseUnitPrice === undefined &&
+        recv.discount === undefined &&
+        recv.subtotal === undefined,
+      Object.keys(recv)
+    );
+    const staffStats = await asStaff.order.stats();
+    const ownerStats = await asOwner.order.stats();
+    check(
+      "7.21 order.stats (ช่าง): revenueThisMonth = null · ตัวนับงานยังเห็น (เจ้าของเห็นเลขจริง)",
+      staffStats.revenueThisMonth === null &&
+        typeof staffStats.total === "number" &&
+        typeof ownerStats.revenueThisMonth === "number",
+      { staff: staffStats.revenueThisMonth }
+    );
+    // ทุน/กำไรห้ามถึง SALES แม้ใน payload mutation (RBAC §7 — ฝั่ง read ปิดแล้วใน b18290f)
+    await prisma.order.update({
+      where: { id: cheapNew.id },
+      data: { totalCost: 777, profitMargin: 12.3 },
+    });
+    const salesEdit = await asSales.order.updateItems({
+      id: cheapNew.id,
+      discount: 0,
+      items: [
+        {
+          products: [
+            {
+              productType: "TSHIRT",
+              description: `${MARK} งานเล็กแก้โดยขาย`,
+              baseUnitPrice: 20,
+              variants: [{ size: "M", quantity: 1 }],
+            },
+          ],
+          prints: [],
+          addons: [],
+        },
+      ],
+    });
+    check(
+      "7.22 order.updateItems (ขาย): ทุน/กำไรไม่ติดไปกับคำตอบ (เงินขายยังเห็นปกติ)",
+      Number(salesEdit.totalCost) === 0 &&
+        salesEdit.profitMargin === null &&
+        salesEdit.totalAmount !== null,
+      { c: salesEdit.totalCost, m: salesEdit.profitMargin, t: salesEdit.totalAmount }
     );
 
     // ── ⑦ quotation gate ──

@@ -16,6 +16,7 @@ import { syncOrderStockReservation } from "@/server/services/stock-reservation";
 import { isQuotationExpired } from "@/server/services/quotation-confirm";
 // เส้นทางสถานะใบเสนอ — validate ทุกการเปลี่ยน (Gate A3 · audit 2026-07-02)
 import { canQuotationTransition, quotationStatusLabel } from "@/lib/quotation-status";
+import { stripOrderMoneyForRole } from "@/lib/roles";
 
 const salesUp = requireRole("OWNER", "MANAGER", "SALES");
 // ใบเสนอราคา = เอกสารราคาขายล้วน — อ่านได้เฉพาะกลุ่มเห็นเงินฝั่งขาย (⑦ เบสเคาะ 2026-07-06:
@@ -616,6 +617,7 @@ export const quotationRouter = router({
         changedBy: ctx.userId,
       });
 
-      return convertedOrder;
+      // ⑦: เส้นออเดอร์ผูกคืนแถวเต็ม — ออเดอร์เปิดไว้ก่อนอาจมีต้นทุนบันทึกแล้ว ห้ามถึง SALES (RBAC §7)
+      return stripOrderMoneyForRole(convertedOrder, ctx.userRole);
     }),
 });

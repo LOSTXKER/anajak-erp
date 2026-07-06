@@ -32,7 +32,7 @@ import { maybeSweepStaleReservations } from "@/server/services/stock-reservation
 import { promoteOrderArtworks, sanitizeArtworkLinks } from "@/server/services/artwork";
 import { aggToNumber, D } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
-import { canSeeFinance, canSeeOrderMoney } from "@/lib/roles";
+import { canSeeFinance, canSeeOrderMoney, stripOrderMoneyForRole } from "@/lib/roles";
 import {
   computeRevisionOverage,
   REVISION_FEE_TYPE,
@@ -55,6 +55,7 @@ const orderOps = requireRole(
 );
 
 // whitelist สถานะต่อ role ย้ายไป lib/order-status.ts — UI ซ่อนปุ่มด้วยชุดเดียวกัน (กัน drift)
+// strip เงินจากคำตอบ mutation (⑦) — helper กลางอยู่ lib/roles.ts (quotation.convertToOrder ใช้ร่วม)
 
 // ============================================================
 // SCHEMAS
@@ -1078,7 +1079,8 @@ export const orderRouter = router({
         });
       }
 
-      return order;
+      // ⑦ follow-up: ช่าง/กราฟิกกดเปลี่ยนสถานะได้ แต่แถวเต็มมีเงิน — จอใช้แค่สถานะจากคำตอบนี้
+      return stripOrderMoneyForRole(order, ctx.userRole);
     }),
 
   update: protectedProcedure
@@ -1173,7 +1175,7 @@ export const orderRouter = router({
         newValue: JSON.parse(JSON.stringify(data)),
       });
 
-      return order;
+      return stripOrderMoneyForRole(order, ctx.userRole);
     }),
 
   updateItems: protectedProcedure
@@ -1336,7 +1338,7 @@ export const orderRouter = router({
         await syncOrderStockReservation(ctx.prisma, { orderId: input.id, changedBy: ctx.userId });
       }
 
-      return updatedOrder;
+      return stripOrderMoneyForRole(updatedOrder, ctx.userRole);
     }),
 
   // จองสต๊อคใหม่ด้วยมือ — ใช้ตอนจองไม่สำเร็จ (ของไม่พอ/ท่อล่ม/ยังไม่ได้ตั้งค่า) แล้วแก้ต้นเหตุแล้ว
@@ -1448,7 +1450,7 @@ export const orderRouter = router({
         newValue: { action: "updateFees", feeCount: input.fees.length, subtotalFees: totals.subtotalFees },
       });
 
-      return updatedOrder;
+      return stripOrderMoneyForRole(updatedOrder, ctx.userRole);
     }),
 
   // ============================================================
@@ -1733,7 +1735,7 @@ export const orderRouter = router({
         newValue: { action: "addRevisionFee", chargeableRounds: overage.chargeableRounds, fee: overage.fee },
       });
 
-      return updatedOrder;
+      return stripOrderMoneyForRole(updatedOrder, ctx.userRole);
     }),
 
   updateReceiveTracking: protectedProcedure
@@ -1758,6 +1760,14 @@ export const orderRouter = router({
           garmentCondition: input.garmentCondition || null,
           receivedInspected: input.receivedInspected,
           receiveNote: input.receiveNote || null,
+        },
+        // ⑦: แถวนี้มีเงินขายรายชิ้น (baseUnitPrice/discount/subtotal) ที่ getById ปิดจากช่าง —
+        // ช่างเป็นคนกดตรวจรับ (orderOps) เลยต้องคืนเฉพาะ field งานตรวจรับ · จอไม่ใช้คำตอบนี้
+        select: {
+          id: true,
+          garmentCondition: true,
+          receivedInspected: true,
+          receiveNote: true,
         },
       });
 
@@ -1930,7 +1940,11 @@ export const orderRouter = router({
       total,
       active,
       completedThisMonth,
-      revenueThisMonth: aggToNumber(totalRevenue._sum.totalAmount),
+      // ⑦: ยอดขายรวมทั้งเดือน = เงินฝั่งขาย — ช่าง/กราฟิกไม่เห็น (endpoint นี้ไม่มีจอเรียกใช้
+      // แต่ยิง API ตรงได้ · pattern เดียวกับ analytics.dashboard)
+      revenueThisMonth: canSeeOrderMoney(ctx.userRole)
+        ? aggToNumber(totalRevenue._sum.totalAmount)
+        : null,
     };
   }),
 });

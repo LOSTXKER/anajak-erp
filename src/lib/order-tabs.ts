@@ -93,13 +93,15 @@ export function buildNextStepInput(order: OrderLikeForNextStep): NextStepInput {
       .filter((inv) => types.includes(inv.type))
       .reduce((s, inv) => s + (inv.totalAmount ?? 0), 0);
   const handled = Math.max(sumOf(["DEPOSIT_INVOICE", "FINAL_INVOICE"]), sumOf(["RECEIPT"]));
-  const totalAmount = order.totalAmount ?? 0;
+  // ยอดสำหรับสูตร billingHandled เท่านั้น — null นับเป็น 0 ตามเคาะข้างบน · แต่ totalAmount
+  // ที่ส่งต่อคง null ไว้ ให้แถบขั้นต่อไปละส่วนยอดเงินเอง (ไม่โชว์ "ยอดรวม 0 บาท" เลขปลอม)
+  const totalForBilling = order.totalAmount ?? 0;
 
   return {
     internalStatus: order.internalStatus,
     orderType: order.orderType,
     itemCount: order.items?.length ?? 0,
-    totalAmount,
+    totalAmount: order.totalAmount,
     paymentTerms: order.paymentTerms,
     hasInvoice: liveInvoices.length > 0,
     hasPendingDesign: (order.designs ?? []).some((d) => d.approvalStatus === "PENDING"),
@@ -107,6 +109,6 @@ export function buildNextStepInput(order: OrderLikeForNextStep): NextStepInput {
     hasProduction: (order.productions ?? []).length > 0,
     hasDelivery: (order.deliveries ?? []).length > 0,
     // totalAmount ≤ 0 = ไม่กั้น (ตรงกับ server ที่เช็คเฉพาะ old.totalAmount > 0) · เผื่อเศษสตางค์
-    billingHandled: totalAmount <= 0 || handled >= totalAmount - 0.005,
+    billingHandled: totalForBilling <= 0 || handled >= totalForBilling - 0.005,
   };
 }

@@ -35,6 +35,40 @@ export const canSeeFinance = (role: Role): boolean => FINANCE_ROLES.includes(rol
 export const canSeeOrderMoney = (role: Role): boolean => ORDER_MONEY_ROLES.includes(role);
 export const canCreateSalesDocs = (role: Role): boolean => SALES_DOC_ROLES.includes(role);
 
+// ⑦: mutation ฝั่ง server ที่คืนแถวออเดอร์เต็ม — strip เงินตาม role ชุดเดียวกับ order.list
+// ก่อนส่งออก (รั่วระดับ payload: จอไม่ใช้เงินจากคำตอบ mutation — invalidate แล้ว refetch ผ่าน
+// getById ที่ strip แล้ว · ทุน/กำไรปิดถึง SALES ตาม RBAC §7) · ใช้ใน order.ts + quotation.ts
+type OrderMoneyKey =
+  | "subtotalItems"
+  | "subtotalFees"
+  | "discount"
+  | "taxAmount"
+  | "totalAmount"
+  | "platformFee"
+  | "totalCost"
+  | "profitMargin";
+
+export function stripOrderMoneyForRole<T extends Record<OrderMoneyKey, unknown>>(
+  order: T,
+  role: Role
+): Omit<T, OrderMoneyKey> & { [K in OrderMoneyKey]: T[K] | null } {
+  const seesCost = canSeeFinance(role);
+  const seesMoney = canSeeOrderMoney(role);
+  return {
+    ...order,
+    // totalCost คง 0 (ไม่ใช่ null) ตาม pattern order.list/getById เดิม — UI ฝั่ง cost อ่านเป็นเลขเสมอ
+    totalCost: seesCost ? order.totalCost : 0,
+    profitMargin: seesCost ? order.profitMargin : null,
+    subtotalItems: seesMoney ? order.subtotalItems : null,
+    subtotalFees: seesMoney ? order.subtotalFees : null,
+    discount: seesMoney ? order.discount : null,
+    taxAmount: seesMoney ? order.taxAmount : null,
+    totalAmount: seesMoney ? order.totalAmount : null,
+    platformFee: seesMoney ? order.platformFee : null,
+    // generic spread ทำให้ TS มองเป็น intersection (เลข & null = never) — ชนิดจริงคือ mapped ข้างบน
+  } as Omit<T, OrderMoneyKey> & { [K in OrderMoneyKey]: T[K] | null };
+}
+
 // ตัวช่วยกรองเมนู/รายการ UI ตาม role — undefined roles = ทุกคนเห็น · มี role ต้องอยู่ในลิสต์
 // (role ยังไม่โหลด = ซ่อนรายการที่จำกัด กัน flash เมนูเงินให้ช่างชั่ววินาที)
 export function roleAllows(userRole: Role | null | undefined, allowed?: Role[]): boolean {

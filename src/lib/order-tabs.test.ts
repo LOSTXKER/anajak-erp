@@ -142,8 +142,9 @@ describe("buildNextStepInput — map + สูตร billingHandled (เป๊ะ
 
   // ⑦ (เบสเคาะ 2026-07-06): viewer ที่ไม่เห็นเงิน ได้ totalAmount = null จาก server —
   // billingHandled จะเป็น true (แถบไม่บ่นเรื่องวางบิล ซึ่งไม่ใช่งานของช่างอยู่แล้ว)
-  // แต่ hasInvoice ต้องยังจริง (หัวใบยังส่งมา) — pin ไว้กันคนหลังแก้ ?? 0 แล้วพัง
-  it("ช่าง (เงินโดน strip เป็น null) → billingHandled=true + hasInvoice ยังถูก", () => {
+  // แต่ hasInvoice ต้องยังจริง (หัวใบยังส่งมา) · totalAmount ต้องส่ง null ต่อ ไม่แปลงเป็น 0 —
+  // แถบขั้นต่อไปใช้แยก "ไม่มีสิทธิ์เห็น" ออกจาก "ราคา 0 จริง" (กันโชว์ "ยอดรวม 0 บาท" เลขปลอม)
+  it("ช่าง (เงินโดน strip เป็น null) → billingHandled=true + hasInvoice ยังถูก + totalAmount คง null", () => {
     const input = buildNextStepInput({
       ...base,
       totalAmount: null,
@@ -151,6 +152,6 @@ describe("buildNextStepInput — map + สูตร billingHandled (เป๊ะ
     });
     expect(input.billingHandled).toBe(true);
     expect(input.hasInvoice).toBe(true);
-    expect(input.totalAmount).toBe(0);
+    expect(input.totalAmount).toBeNull();
   });
 });

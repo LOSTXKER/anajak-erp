@@ -5,7 +5,8 @@ export interface NextStepInput {
   internalStatus: string;
   orderType: string; // READY_MADE | CUSTOM — ใช้เลือกปลายทางตอนเปิดงานจากร่าง
   itemCount: number;
-  totalAmount: number;
+  // null = role ที่ server ปิดเงิน (⑦ ช่าง/กราฟิก) — ห้ามแปลงเป็น 0 ไม่งั้นแถบโชว์ "ยอดรวม 0 บาท" เลขปลอม
+  totalAmount: number | null;
   paymentTerms: string | null;
   // มีบิลมัดจำ/ใบแจ้งหนี้ (ไม่ void) แล้วหรือยัง
   hasInvoice: boolean;
@@ -62,9 +63,12 @@ export function getOrderNextStep(o: NextStepInput): NextStep | null {
   }
 
   if (o.internalStatus === "INQUIRY") {
+    // ช่าง/กราฟิกได้ totalAmount = null (⑦) → ละส่วนยอดเงินทิ้ง · 0 จริง (ตีราคา 0) ยังโชว์ตามจริง
+    const amountPart =
+      o.totalAmount != null ? `ยอดรวม ${o.totalAmount.toLocaleString("th-TH")} บาท — ` : "";
     return {
       title: "รอลูกค้าตกลง → ยืนยันออเดอร์",
-      description: `ยอดรวม ${o.totalAmount.toLocaleString("th-TH")} บาท — ลูกค้าตกลงแล้วกดยืนยันเพื่อเริ่มงาน`,
+      description: `${amountPart}ลูกค้าตกลงแล้วกดยืนยันเพื่อเริ่มงาน`,
       buttonLabel: "ยืนยันออเดอร์",
       action: { type: "STATUS", to: "CONFIRMED" },
     };
