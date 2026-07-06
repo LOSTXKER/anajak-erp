@@ -41,13 +41,16 @@ export default function CustomersPage() {
 
   // debounce 300ms — pattern เดียวกับหน้า WHT/คลังฟิล์ม (เดิมยิง query ทุกตัวอักษร)
   // เปลี่ยนคำค้นแล้วกลับหน้า 1 เสมอ — ค้างหน้าลึกจะเจอหน้าว่างทั้งที่มีผลลัพธ์
+  // guard ค่าตรงกัน: กัน timer ตอน mount ยิง setPage(1) ทับปุ่มหน้าถัดไปใน 300ms แรก
+  // (class เดียวกับที่แก้บน billing — review QW จับ)
   useEffect(() => {
+    if (search === debouncedSearch) return;
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
       setPage(1);
     }, 300);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, debouncedSearch]);
   const [formData, setFormData] = useState({
     name: "", company: "", email: "", phone: "",
     lineId: "", address: "", notes: "",
@@ -76,6 +79,12 @@ export default function CustomersPage() {
     // skeleton + แถบ pagination หายใต้เคอร์เซอร์ (review B7 จับ)
     { placeholderData: (prev) => prev }
   );
+
+  // กดหน้าถัดไปช่วง placeholder ค้าง → ผลใหม่มีหน้าน้อยกว่า — ดึงกลับหน้าสุดท้ายที่มีจริง
+  // ไม่งั้นติดหน้าว่างไร้แถบถอย (pattern เดียวกับ billing)
+  useEffect(() => {
+    if (data && page > data.pages && data.pages >= 1) setPage(data.pages);
+  }, [data, page]);
 
   // useMutationWithInvalidation = ได้ toast error ฟรี (เดิม fail เงียบ — SALES กรอกวงเงิน
   // โดน FORBIDDEN แล้วฟอร์มค้างเฉยๆ ไม่มีอะไรบอก · review B7 จับ)

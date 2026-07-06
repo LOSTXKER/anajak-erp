@@ -262,7 +262,8 @@ export default function BillingNotesPage() {
 
       {/* Create dialog */}
       <Dialog open={showCreate} onOpenChange={(open) => !open && setShowCreate(false)}>
-        <DialogContent className="sm:max-w-lg">
+        {/* max-h+scroll ตาม pattern dialog อื่น (aging/wht) — สอง QueryError ซ้อนกันสูงเกินจอมือถือได้ */}
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>สร้างใบวางบิล</DialogTitle>
             <DialogDescription>
@@ -280,24 +281,32 @@ export default function BillingNotesPage() {
                 placeholder="พิมพ์ค้นหาชื่อลูกค้า/บริษัท..."
                 className="mb-2"
               />
-              <Select
-                value={customerId}
-                onValueChange={(v) => {
-                  setCustomerId(v);
-                  setSelectedIds(new Set());
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกลูกค้า..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.data?.customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.company ? `${c.company} (${c.name})` : c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* query พังห้ามเงียบ — dropdown ว่างเปล่าอ่านเป็น "ไม่มีลูกค้า" ได้ (DESIGN.md) */}
+              {customers.isError && !customers.data ? (
+                <QueryError
+                  message="โหลดรายชื่อลูกค้าไม่สำเร็จ"
+                  onRetry={() => customers.refetch()}
+                />
+              ) : (
+                <Select
+                  value={customerId}
+                  onValueChange={(v) => {
+                    setCustomerId(v);
+                    setSelectedIds(new Set());
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือกลูกค้า..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.data?.customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.company ? `${c.company} (${c.name})` : c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {customerId && (
@@ -305,7 +314,13 @@ export default function BillingNotesPage() {
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   ใบแจ้งหนี้ค้างชำระ
                 </label>
-                {eligible.isLoading ? (
+                {/* isError มาก่อน — query พังแล้วโชว์ "ไม่มีใบค้าง" = เลขโกหก คนข้ามใบจริง */}
+                {eligible.isError && !eligible.data ? (
+                  <QueryError
+                    message="โหลดใบแจ้งหนี้ค้างชำระไม่สำเร็จ"
+                    onRetry={() => eligible.refetch()}
+                  />
+                ) : eligible.isLoading ? (
                   <Skeleton className="h-16 w-full" />
                 ) : eligibleList.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-slate-300 p-3 text-sm text-slate-500 dark:border-slate-700">

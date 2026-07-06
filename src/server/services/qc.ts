@@ -12,7 +12,14 @@
 
 import { badRequest } from "@/server/errors";
 import { createNotification } from "@/server/helpers";
-import { QC_DEFECT_REASONS, qcReasonLabel } from "@/lib/qc";
+import { qcReasonLabel } from "@/lib/qc";
+// สูตรตัดสินล้วน (validate/นับเกิน/สำรอง/ทางไปต่อ) แยกไป qc-count.ts — unit test ได้ไม่ต้องมี DB
+import {
+  spareAvailableOf,
+  assertValidQcCounts,
+  assertQcNotOverCount,
+  qcNextMove,
+} from "@/server/services/qc-count";
 import {
   transitionOrder,
   advanceOrderForward,
@@ -75,10 +82,7 @@ export async function getQcContext(prisma: ExtendedPrismaClient, orderId: string
 
   // เสื้อสำรอง = เบิกเผื่อเกินที่ต้องใช้ (FROM_STOCK — ก้อน 1/3: default เผื่อ 3%)
   const pick = await getGarmentPickState(prisma, orderId);
-  const spareAvailable = pick.lines.reduce(
-    (s, l) => s + Math.max(0, l.issued - l.returned - l.needed),
-    0
-  );
+  const spareAvailable = spareAvailableOf(pick.lines);
 
   const checkedGood = order.qcRecords.reduce((s, r) => s + r.qtyGood, 0);
   const checkedDefect = order.qcRecords.reduce((s, r) => s + r.qtyDefect, 0);
@@ -116,24 +120,11 @@ export interface CreateQcRecordParams {
 }
 
 export async function createQcRecord(prisma: ExtendedPrismaClient, params: CreateQcRecordParams) {
-  for (const d of params.defects) {
-    if (!Number.isInteger(d.qty) || d.qty <= 0) badRequest("จำนวนของเสียต้องเป็นจำนวนเต็มมากกว่า 0");
-    if (!(QC_DEFECT_REASONS as readonly string[]).includes(d.reason)) {
-      badRequest(`ไม่รู้จักสาเหตุของเสีย: ${d.reason}`);
-    }
-  }
-  if (!Number.isInteger(params.qtyGood) || params.qtyGood < 0) {
-    badRequest("จำนวนของดีต้องเป็นจำนวนเต็มตั้งแต่ 0");
-  }
-  const qtyDefect = params.defects.reduce((s, d) => s + d.qty, 0);
-  if (params.qtyGood === 0 && qtyDefect === 0) badRequest("ยังไม่ได้นับอะไรเลย");
+  const qtyDefect = assertValidQcCounts(params);
 
   // เสื้อสำรอง อ่านนอก tx (read-only — HTTP ไป Stock ไม่มีในเส้นนี้)
   const pick = await getGarmentPickState(prisma, params.orderId);
-  const spareAvailable = pick.lines.reduce(
-    (s, l) => s + Math.max(0, l.issued - l.returned - l.needed),
-    0
-  );
+  const spareAvailable = spareAvailableOf(pick.lines);
 
   const result = await prisma.$transaction(async (tx) => {
     // lock แถวออเดอร์ — สองคนตรวจพร้อมกันต้องต่อคิว (ไม่งั้นผลฝั่งช้าทับ/สถานะแข่งกัน)
@@ -169,11 +160,7 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
       0
     );
     const checkedGood = order.qcRecords.reduce((s, r) => s + r.qtyGood, 0);
-    if (totalExpected > 0 && checkedGood + params.qtyGood > totalExpected) {
-      badRequest(
-        `นับเกินยอดงาน: ผ่านแล้ว ${checkedGood} จาก ${totalExpected} ตัว — รอบนี้ใส่ของดีได้อีกไม่เกิน ${totalExpected - checkedGood}`
-      );
-    }
+    assertQcNotOverCount({ totalExpected, checkedGood, qtyGood: params.qtyGood });
 
     const created = await tx.qcRecord.create({
       data: {
@@ -201,12 +188,18 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
     let heldForStock = false;
     let movedToPacking = false;
 
-    if (qtyDefect > 0) {
-      // มีของเสีย → เปิดงานแก้ + ตัดสินสถานะ: เสื้อสำรอง (เบิกเผื่อ) พอ = กลับผลิตแก้เลย ·
-      // ไม่พอ (เฉพาะงานเสื้อจากสต๊อคที่ระบบรู้ยอดจริง) = "รอของ" (ON_HOLD) ตาม flow doc
-      // — งานแก้ต้องไม่เข้าคิวช่างทั้งที่ไม่มีเสื้อให้ทำ · แอดมินคุยลูกค้า/สั่งเพิ่มแล้วค่อยปลดพัก
-      const hasFromStock = pick.lines.length > 0;
-      heldForStock = hasFromStock && spareAvailable < qtyDefect;
+    // กติกาเลือกทาง (ของเสีย→REWORK/รอของ · ดีครบ→PACK · ดีบางส่วน→STAY) อยู่ qc-count.ts
+    const move = qcNextMove({
+      qtyGood: params.qtyGood,
+      qtyDefect,
+      totalExpected,
+      checkedGood,
+      hasFromStock: pick.lines.length > 0,
+      spareAvailable,
+    });
+
+    if (move === "HOLD_FOR_STOCK" || move === "REWORK") {
+      heldForStock = move === "HOLD_FOR_STOCK";
       const reason = `QC พบของเสีย ${qtyDefect} ตัว (${[
         ...new Set(created.defects.map((d) => qcReasonLabel(d.reason))),
       ].join("/")})${heldForStock ? " — เสื้อสำรองไม่พอ รอของ" : ""}`;
@@ -222,23 +215,18 @@ export async function createQcRecord(prisma: ExtendedPrismaClient, params: Creat
         await reopenProductionsForRework(tx, { orderId: params.orderId, reason });
         reworkOpened = true;
       }
-    } else if (params.qtyGood > 0) {
-      // เด้งเข้าแพ็คเมื่อ "นับดีครบยอดงาน" เท่านั้น — ดีบางส่วน (เช่น 100/300) ค้างที่
-      // ด่านตรวจให้ตรวจต่อ ไม่ใช่ประกาศพร้อมแพ็คทั้งที่อีก 200 ตัวยังไม่ผ่านตรวจ
-      const doneAll = totalExpected === 0 || checkedGood + params.qtyGood >= totalExpected;
-      if (doneAll) {
-        await advanceOrderForward(tx, {
-          orderId: params.orderId,
-          target: "PACKING",
-          changedBy: params.userId,
-          onlyFrom: ["QUALITY_CHECK"],
-          reason: `QC ผ่านครบ ${checkedGood + params.qtyGood} ตัว — เข้าคิวแพ็ค`,
-        });
-        movedToPacking = true;
-        // QC ผ่านครบ = "ลายพิมพ์ผ่านจริง" → เข้าคลังลายลูกค้า (ก้อน 4 ชิ้น 2)
-        // อยู่ใน tx เดียวกัน — แถวออเดอร์ lock อยู่แล้ว กัน promote ชนกัน
-        await promoteOrderArtworks(tx, { orderId: params.orderId });
-      }
+    } else if (move === "PACK") {
+      await advanceOrderForward(tx, {
+        orderId: params.orderId,
+        target: "PACKING",
+        changedBy: params.userId,
+        onlyFrom: ["QUALITY_CHECK"],
+        reason: `QC ผ่านครบ ${checkedGood + params.qtyGood} ตัว — เข้าคิวแพ็ค`,
+      });
+      movedToPacking = true;
+      // QC ผ่านครบ = "ลายพิมพ์ผ่านจริง" → เข้าคลังลายลูกค้า (ก้อน 4 ชิ้น 2)
+      // อยู่ใน tx เดียวกัน — แถวออเดอร์ lock อยู่แล้ว กัน promote ชนกัน
+      await promoteOrderArtworks(tx, { orderId: params.orderId });
     }
 
     return { created, reworkOpened, heldForStock, movedToPacking };
