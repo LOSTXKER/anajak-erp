@@ -22,22 +22,18 @@ import { badRequest, notFound } from "@/server/errors";
 import { nextDocumentNumber } from "@/server/services/document-number";
 import { finalizeProductionIfComplete } from "@/server/services/order-status";
 import { resolveSoleOrderArtworkId } from "@/server/services/artwork";
+// สูตรตัดสินล้วน (ช่องคิว/ไฟล์พร้อม/เพดานจำนวน/ปิดขั้น) — unit test ได้ไม่ต้องมี DB
+import {
+  isFileReadyForPrint,
+  printQueueSlotOf,
+  compareDueDate,
+  planRunItemQty,
+  shouldCloseStep,
+} from "@/server/services/print-run-plan";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
 
 // สถานะรอบที่ยังกินงานอยู่ — งานในรอบเหล่านี้ห้ามโผล่ในคิว/ห้ามเข้ารอบใหม่
 const ACTIVE_RUN_STATUSES = ["PRINTING", "PRINTED"] as const;
-
-// เฟสออกแบบจบแล้ว = ไฟล์ใช้พิมพ์ได้ (ชุดเดียวกับ production-readiness)
-const PAST_DESIGN_PHASE = [
-  "DESIGN_APPROVED",
-  "PRODUCTION_QUEUE",
-  "PRODUCING",
-  "QUALITY_CHECK",
-  "PACKING",
-  "READY_TO_SHIP",
-  "SHIPPED",
-  "COMPLETED",
-];
 
 // ============================================================
 // คิวพิมพ์ฟิล์ม — ขั้น DTF_PRINT ที่ "ไฟล์พร้อม + ยังพิมพ์ไม่ครบ + ไม่ติดรอบอื่น"
@@ -93,16 +89,16 @@ export async function getPrintQueue(prisma: ExtendedPrismaClient): Promise<Print
 
   const entries: PrintQueueEntry[] = [];
   for (const s of steps) {
-    if (s.printRunItems.length > 0) continue; // ติดรอบ active อยู่
     const order = s.production.order;
-    const fileReady =
-      order.designs.length > 0 || PAST_DESIGN_PHASE.includes(order.internalStatus);
-    if (!fileReady) continue; // งานไฟล์ไม่พร้อมไม่โผล่ในคิวนี้เลย (มติ flow-redesign)
-    const orderQty = order.items.reduce((sum, it) => sum + it.totalQuantity, 0);
-    const qtyTotal = s.qtyTotal ?? orderQty;
-    if (qtyTotal <= 0) continue; // ไม่รู้จำนวน (ออเดอร์ไม่มีรายการ) — กัน entry ผีที่เข้ารอบไม่ได้
-    const remaining = Math.max(0, qtyTotal - s.qtyDone);
-    if (remaining === 0) continue; // พิมพ์ครบแล้ว (รอรอบเก่าปิดขั้น)
+    const slot = printQueueSlotOf({
+      inActiveRun: s.printRunItems.length > 0,
+      hasApprovedDesign: order.designs.length > 0,
+      orderInternalStatus: order.internalStatus,
+      qtyDone: s.qtyDone,
+      qtyTotal: s.qtyTotal,
+      orderQty: order.items.reduce((sum, it) => sum + it.totalQuantity, 0),
+    });
+    if (!slot) continue; // ติดรอบ active / ไฟล์ไม่พร้อม / ไม่รู้จำนวน / พิมพ์ครบแล้ว
     entries.push({
       stepId: s.id,
       productionId: s.productionId,
@@ -112,18 +108,13 @@ export async function getPrintQueue(prisma: ExtendedPrismaClient): Promise<Print
       customerName: order.customer.name,
       dueDate: order.deadline,
       qtyDone: s.qtyDone,
-      qtyTotal,
-      remaining: qtyTotal > 0 ? remaining : 0,
+      qtyTotal: slot.qtyTotal,
+      remaining: slot.remaining,
     });
   }
 
   // เรียงตามกำหนดส่ง — งานไม่มีกำหนดไปท้ายคิว
-  entries.sort((a, b) => {
-    if (a.dueDate && b.dueDate) return a.dueDate.getTime() - b.dueDate.getTime();
-    if (a.dueDate) return -1;
-    if (b.dueDate) return 1;
-    return 0;
-  });
+  entries.sort((a, b) => compareDueDate(a.dueDate, b.dueDate));
   return entries;
 }
 
@@ -198,27 +189,18 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
       if (step.printRunItems.length > 0) {
         badRequest(`งาน ${order.orderNumber}: อยู่ในรอบพิมพ์อื่นที่ยังไม่จบ`);
       }
-      const fileReady =
-        order.designs.length > 0 || PAST_DESIGN_PHASE.includes(order.internalStatus);
-      if (!fileReady) badRequest(`งาน ${order.orderNumber}: แบบยังไม่อนุมัติ — ไฟล์ยังไม่พร้อมพิมพ์`);
+      if (!isFileReadyForPrint(order.designs.length > 0, order.internalStatus)) {
+        badRequest(`งาน ${order.orderNumber}: แบบยังไม่อนุมัติ — ไฟล์ยังไม่พร้อมพิมพ์`);
+      }
 
-      if (!Number.isInteger(item.qty) || item.qty <= 0) {
-        badRequest(`งาน ${order.orderNumber}: จำนวนพิมพ์ต้องเป็นจำนวนเต็มมากกว่า 0`);
-      }
-      const orderQty = order.items.reduce((sum, it) => sum + it.totalQuantity, 0);
-      const qtyTotal = step.qtyTotal ?? (orderQty > 0 ? orderQty : null);
-      if (qtyTotal !== null && step.qtyDone + item.qty > qtyTotal) {
-        badRequest(
-          `งาน ${order.orderNumber}: พิมพ์เกินจำนวนงาน (เหลือ ${qtyTotal - step.qtyDone} จาก ${qtyTotal} — ฟิล์มเผื่อกรอกตอนปิดรอบ)`
-        );
-      }
-      prepared.push({
-        stepId: step.id,
-        orderId: order.id,
+      const { seedQtyTotal } = planRunItemQty({
+        orderNumber: order.orderNumber,
+        stepQtyDone: step.qtyDone,
+        stepQtyTotal: step.qtyTotal,
+        orderQty: order.items.reduce((sum, it) => sum + it.totalQuantity, 0),
         qty: item.qty,
-        // seed qtyTotal ให้ขั้นที่ยังไม่เคยนับจำนวน — ตรรกะปิดเมื่อครบจะได้ทำงาน
-        seedQtyTotal: step.qtyTotal === null ? qtyTotal : null,
       });
+      prepared.push({ stepId: step.id, orderId: order.id, qty: item.qty, seedQtyTotal });
     }
 
     const runNumber = await nextDocumentNumber(tx, "PRINT_RUN");
@@ -326,13 +308,11 @@ export async function completePrintRun(
           printRun: { status: { in: [...ACTIVE_RUN_STATUSES] } },
         },
       });
-      const qtyComplete = bumped.qtyTotal === null || bumped.qtyDone >= bumped.qtyTotal;
       await tx.productionStep.update({
         where: { id: item.productionStepId },
-        data:
-          openRuns === 0 && qtyComplete
-            ? { status: "COMPLETED", completedAt: new Date() }
-            : { status: "IN_PROGRESS" },
+        data: shouldCloseStep({ qtyDone: bumped.qtyDone, qtyTotal: bumped.qtyTotal, openRuns })
+          ? { status: "COMPLETED", completedAt: new Date() }
+          : { status: "IN_PROGRESS" },
       });
       touchedProductions.add(bumped.productionId);
 

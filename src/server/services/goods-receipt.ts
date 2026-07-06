@@ -19,6 +19,15 @@ import { badRequest } from "@/server/errors";
 import { createNotification } from "@/server/helpers";
 import { addOrderRevision, finalizeProductionIfComplete } from "@/server/services/order-status";
 import { RECEIPT_TYPE_LABELS, type ReceiptType } from "@/lib/goods-receipt";
+// สูตรรับสุทธิ/ด่านกรอก/สรุปขาดเกิน แยกไป goods-receipt-plan.ts — unit test ได้ไม่ต้องมี DB
+import {
+  netReceivedByVariant,
+  netReceivedByProduct,
+  variantNetKey,
+  receiptInspectionOf,
+  assertValidReceiptLines,
+  summarizeReceiptLines,
+} from "@/server/services/goods-receipt-plan";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
 
 export { RECEIPT_TYPES, RECEIPT_TYPE_LABELS, type ReceiptType } from "@/lib/goods-receipt";
@@ -88,15 +97,15 @@ export async function getReceiptContext(
       receipt: { select: { receiptType: true } },
     },
   });
-  const netKey = (pid: string, size: string | null, color: string | null) =>
-    `${pid}:${size ?? ""}:${color ?? ""}`;
-  const netByKey = new Map<string, number>();
-  for (const l of prior) {
-    if (!l.orderItemProductId) continue;
-    const sign = l.receipt.receiptType === "CUSTOMER_RETURN" ? -1 : 1;
-    const key = netKey(l.orderItemProductId, l.size, l.color);
-    netByKey.set(key, (netByKey.get(key) ?? 0) + sign * l.qtyCounted);
-  }
+  const netByKey = netReceivedByVariant(
+    prior.map((l) => ({
+      orderItemProductId: l.orderItemProductId,
+      size: l.size,
+      color: l.color,
+      qtyCounted: l.qtyCounted,
+      receiptType: l.receipt.receiptType,
+    }))
+  );
 
   const lines: ReceiptContextLine[] = products.flatMap((p) =>
     p.variants.map((v) => ({
@@ -105,7 +114,7 @@ export async function getReceiptContext(
       size: v.size,
       color: v.color,
       qtyExpected: v.quantity,
-      qtyReceivedNet: netByKey.get(netKey(p.id, v.size, v.color)) ?? 0,
+      qtyReceivedNet: netByKey.get(variantNetKey(p.id, v.size, v.color)) ?? 0,
     }))
   );
 
@@ -155,23 +164,18 @@ async function refreshReceivedInspected(tx: PrismaTx, orderId: string, productId
       receipt: { select: { receiptType: true } },
     },
   });
-  const netByProduct = new Map<string, number>();
-  for (const l of lines) {
-    if (!l.orderItemProductId) continue;
-    const sign = l.receipt.receiptType === "CUSTOMER_RETURN" ? -1 : 1;
-    netByProduct.set(
-      l.orderItemProductId,
-      (netByProduct.get(l.orderItemProductId) ?? 0) + sign * l.qtyCounted
-    );
-  }
+  const netByProduct = netReceivedByProduct(
+    lines.map((l) => ({
+      orderItemProductId: l.orderItemProductId,
+      qtyCounted: l.qtyCounted,
+      receiptType: l.receipt.receiptType,
+    }))
+  );
   for (const p of products) {
     const net = netByProduct.get(p.id) ?? 0;
     await tx.orderItemProduct.update({
       where: { id: p.id },
-      data: {
-        receivedInspected: net >= p.totalQuantity && p.totalQuantity > 0,
-        receiveNote: `รับสุทธิ ${net}/${p.totalQuantity}`,
-      },
+      data: receiptInspectionOf(net, p.totalQuantity),
     });
   }
 }
@@ -180,14 +184,7 @@ export async function createGoodsReceipt(
   prisma: ExtendedPrismaClient,
   params: CreateReceiptParams
 ) {
-  const lines = params.lines.filter((l) => l.qtyCounted > 0 || l.defectQty > 0);
-  if (lines.length === 0) badRequest("ยังไม่ได้นับของ — ระบุจำนวนอย่างน้อย 1 บรรทัด");
-  for (const l of lines) {
-    if (!Number.isInteger(l.qtyCounted) || !Number.isInteger(l.defectQty)) {
-      badRequest("จำนวนต้องเป็นจำนวนเต็ม");
-    }
-    if (l.qtyCounted < 0 || l.defectQty < 0) badRequest("จำนวนติดลบไม่ได้");
-  }
+  const lines = assertValidReceiptLines(params.lines);
 
   const order = await prisma.order.findUniqueOrThrow({
     where: { id: params.orderId },
@@ -213,19 +210,10 @@ export async function createGoodsReceipt(
   }
 
   const typeLabel = RECEIPT_TYPE_LABELS[params.receiptType];
-  const totalCounted = lines.reduce((s, l) => s + l.qtyCounted, 0);
-  const totalDefect = lines.reduce((s, l) => s + l.defectQty, 0);
-  // ขาด/เกินเทียบกับ "ที่คาด" เฉพาะใบรับ (ใบคืนไม่มี concept ขาดเกิน)
-  const discrepancies =
-    params.receiptType === "CUSTOMER_RETURN"
-      ? []
-      : lines
-          .filter((l) => l.qtyCounted !== l.qtyExpected)
-          .map((l) => {
-            const diff = l.qtyCounted - l.qtyExpected;
-            const sizeLabel = l.size ? ` ${l.size}${l.color ? `/${l.color}` : ""}` : "";
-            return `${l.description}${sizeLabel}: ${diff > 0 ? `เกิน ${diff}` : `ขาด ${-diff}`}`;
-          });
+  const { totalCounted, totalDefect, discrepancies } = summarizeReceiptLines(
+    params.receiptType,
+    lines
+  );
 
   const receipt = await prisma.$transaction(async (tx) => {
     const created = await tx.goodsReceipt.create({

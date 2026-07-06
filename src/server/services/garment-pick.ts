@@ -25,6 +25,12 @@ import {
   buildReserveLines,
   type RichReserveLine,
 } from "@/server/services/stock-reservation";
+// สูตรตัดสินล้วน (รวมยอดเบิก/คืน · แผนเบิก+stepDone · ด่านคืนเกิน) — unit test ได้ไม่ต้องมี DB
+import {
+  mergePickUsage,
+  planGarmentIssue,
+  planGarmentReturn,
+} from "@/server/services/garment-pick-plan";
 import { addOrderRevision, finalizeProductionIfComplete } from "@/server/services/order-status";
 import type { ExtendedPrismaClient } from "@/lib/prisma";
 
@@ -103,25 +109,7 @@ export async function getGarmentPickState(
       movementType: true,
     },
   });
-  const usageKey = (productId: string, variantId: string | null) =>
-    `${productId}:${variantId ?? ""}`;
-  const issuedByKey = new Map<string, number>();
-  const returnedByKey = new Map<string, number>();
-  for (const u of usages) {
-    const key = usageKey(u.productId, u.productVariantId);
-    const map = u.movementType === "RETURN" ? returnedByKey : issuedByKey;
-    map.set(key, (map.get(key) ?? 0) + u.quantity);
-  }
-
-  const lines: GarmentPickLine[] = built.lines.map((l) => {
-    const key = usageKey(l.productId, l.variantId);
-    return {
-      ...l,
-      needed: l.qty,
-      issued: issuedByKey.get(key) ?? 0,
-      returned: returnedByKey.get(key) ?? 0,
-    };
-  });
+  const lines: GarmentPickLine[] = mergePickUsage(built.lines, usages);
 
   return { orderId, orderNumber: order.orderNumber, lines, problems: built.problems };
 }
@@ -170,14 +158,10 @@ export async function issueGarments(
 
   const state = await getGarmentPickState(prisma, production.orderId);
   const stateBySku = new Map(state.lines.map((l) => [l.sku, l]));
-  const requested = params.lines.filter((l) => l.qty > 0);
-  if (requested.length === 0) badRequest("ยังไม่ได้ระบุจำนวนที่เบิก");
-  for (const line of requested) {
-    if (!stateBySku.has(line.sku)) {
-      badRequest(`รายการ ${line.sku} ไม่อยู่ในรายการเสื้อจากสต๊อคของออเดอร์นี้`);
-    }
-    if (!Number.isInteger(line.qty)) badRequest(`จำนวนเบิกของ ${line.sku} ต้องเป็นจำนวนเต็ม`);
-  }
+  const { requested, issuedThisRound, neededTotal, stepDone } = planGarmentIssue(
+    state.lines,
+    params.lines
+  );
 
   const client =
     clientOverride !== undefined ? clientOverride : await getStockClientFromSettings();
@@ -208,11 +192,6 @@ export async function issueGarments(
       `เชื่อมต่อ Anajak Stock ไม่ได้ (${err instanceof Error ? err.message : "unknown"})`
     );
   }
-
-  const issuedTotalBefore = state.lines.reduce((s, l) => s + l.issued - l.returned, 0);
-  const neededTotal = state.lines.reduce((s, l) => s + l.needed, 0);
-  const issuedThisRound = requested.reduce((s, l) => s + l.qty, 0);
-  const stepDone = issuedTotalBefore + issuedThisRound >= neededTotal;
 
   await prisma.$transaction(async (tx) => {
     // re-record แบบ idempotent ตามเลขเอกสาร — เรียกซ้ำไม่เบิ้ลแถว
@@ -291,19 +270,7 @@ export async function returnGarments(
 
   const state = await getGarmentPickState(prisma, production.orderId);
   const stateBySku = new Map(state.lines.map((l) => [l.sku, l]));
-  const requested = params.lines.filter((l) => l.qty > 0);
-  if (requested.length === 0) badRequest("ยังไม่ได้ระบุจำนวนที่คืน");
-  for (const line of requested) {
-    const ref = stateBySku.get(line.sku);
-    if (!ref) badRequest(`รายการ ${line.sku} ไม่อยู่ในรายการเสื้อจากสต๊อคของออเดอร์นี้`);
-    if (!Number.isInteger(line.qty)) badRequest(`จำนวนคืนของ ${line.sku} ต้องเป็นจำนวนเต็ม`);
-    const outstanding = ref.issued - ref.returned;
-    if (line.qty > outstanding) {
-      badRequest(
-        `${ref.productName} ${ref.size}${ref.color ? `/${ref.color}` : ""}: คืนได้ไม่เกิน ${outstanding} ตัว (เบิกค้างอยู่)`
-      );
-    }
-  }
+  const { requested, returnedQty } = planGarmentReturn(state.lines, params.lines);
 
   const client =
     clientOverride !== undefined ? clientOverride : await getStockClientFromSettings();
@@ -333,7 +300,6 @@ export async function returnGarments(
     );
   }
 
-  const returnedQty = requested.reduce((s, l) => s + l.qty, 0);
   await prisma.$transaction(async (tx) => {
     await tx.materialUsage.deleteMany({ where: { stockMovementRef: docNumber } });
     for (const line of requested) {
