@@ -52,11 +52,18 @@
 - [ ] C5 UX ops: หน้าใบผลิตโชว์ภาพลาย+ตารางไซซ์ (ช่างไม่ต้องเปิด order detail) · ปิดขั้นตอน 1-2 แตะ (เลิก dialog 5 แตะ) · จอ print-runs ลิงก์ไฟล์ลาย
 - [ ] C6 LINE OA notify (P3 เดิม — ระหว่างนี้ template ก๊อปส่ง + ถอดช่อง LINE token ปลอมออกจาก settings)
 
+### 🔑 PERM — ระบบสิทธิ์รายคน (เบสเคาะ 2026-07-06: ทาง B · ทำทีเดียวทั้ง 20 สิทธิ์ · ใบงานเต็ม+เหตุผล: `docs/spec-user-permissions.md` · ~6-7 วันทำงาน)
+- [ ] PERM1 **โครง**: permission catalog 20 ตัว (constants ใน lib/roles.ts) + `permissionOverrides` JSON บนตาราง users (migration additive) + helper `hasPermission(role, overrides, perm)` — default ต่อ role ตรงพฤติกรรมปัจจุบันเป๊ะ + unit test matrix 6 role × 20 สิทธิ์
+- [ ] PERM2 **UI**: /settings/users ปุ่ม "สิทธิ์" ต่อคน → dialog checklist จัดกลุ่ม (โชว์ค่า default ของ role แยกจาก override) + `user.setPermissions` (ownerOnly · กันแก้ตัวเอง · audit log ทุกครั้ง)
+- [ ] PERM3 **migrate server**: requireRole 111 จุด + canSee*/strip 16 + เทียบ role ตรง 12 + ชุดสถานะต่อ role → วิ่งผ่าน hasPermission (ทีละ router · commit ก้อนเล็ก · ctx โหลด overrides มากับ user query เดิม) · MCP/agent key ผ่าน helper เดียวกัน
+- [ ] PERM4 **migrate client**: roleAllows/inline 60 จุด → effective permissions จาก user.me (sidebar/⌘K/ปุ่มสร้าง/คอลัมน์เงิน/showMoney)
+- [ ] PERM5 **verify**: moneygate เพิ่มเช็ค override กับ DB จริง (ช่างถูกติ๊ก see_order_money เห็นจริง · SALES ถูกตัด create_sales_docs โดน FORBIDDEN) + **ชุด verify เดิมทั้งหมดผ่านโดยไม่แก้ expectation** (พิสูจน์ default = พฤติกรรมเดิม 100%)
+
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
 ~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
 
 ### Refactor targeted (ทำตอนแตะไฟล์นั้นตามกติกา 7 — ห้าม big-bang)
-~~ลบ dead export สูตรเงินเก่าไม่มี VAT (lib/pricing.ts)~~ ✅ 2026-07-03 · ~~FINANCE_ROLES ฝั่ง client (6 หน้า) → import lib/roles.ts~~ ✅ 2026-07-03 (+MONEY_RECORDER_ROLES) · **เหลือ**: ย้าย logic เงินจาก router ลง services + test: recordPayment/void (เงินก้อนใหญ่สุดไม่มี unit test) · ด่านปิดงานวางบิลครบ (order.ts:801-818) · convertToOrder (193 บรรทัด) · production.updateStep (208 บรรทัด) · INVOICE_TYPE_LABELS (6 ไฟล์ป้ายไม่ตรง) · FINANCE_ROLES ฝั่ง server (requireRole ~8 จุด — inline ยังโอเค) · schema: index FK ~20 ตัว (ทำพร้อม migration ถัดไป) · test กลุ่ม stock/ผลิต (garment-pick/goods-receipt/qc/print-run = 0 test ทั้งกลุ่ม)
+~~ลบ dead export สูตรเงินเก่าไม่มี VAT (lib/pricing.ts)~~ ✅ 2026-07-03 · ~~FINANCE_ROLES ฝั่ง client (6 หน้า) → import lib/roles.ts~~ ✅ 2026-07-03 (+MONEY_RECORDER_ROLES) · **เหลือ**: ย้าย logic เงินจาก router ลง services + test: recordPayment/void (เงินก้อนใหญ่สุดไม่มี unit test) · ด่านปิดงานวางบิลครบ (order.ts:801-818) · convertToOrder (193 บรรทัด) · production.updateStep (208 บรรทัด) · INVOICE_TYPE_LABELS (6 ไฟล์ป้ายไม่ตรง) · FINANCE_ROLES ฝั่ง server (requireRole ~8 จุด — inline ยังโอเค · PERM3 จะกวาดอยู่แล้ว) · schema: index FK ~20 ตัว (ทำพร้อม migration ถัดไป) · ~~test กลุ่ม stock/ผลิต~~ ✅ 2026-07-06 (qc-count + garment-pick-plan + goods-receipt-plan + print-run-plan · เทส 64 เคส)
 
 ---
 
