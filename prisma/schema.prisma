@@ -1309,6 +1309,10 @@ model Invoice {
   @@index([paymentStatus])
   // ตามหาใบลดหนี้/เพิ่มหนี้ของใบเดิม (outstanding ต้องหักทุกครั้งที่อ่านลูกหนี้)
   @@index([originalInvoiceId])
+  // รายงานภาษีขายรายเดือน (B5): กรองชนิดใบ + งวด (issueDate ?? createdAt) —
+  // เดิม seq scan ทุกครั้งที่เปิดหน้า/export (จดจาก review B5 · เบสเคาะ 2026-07-06)
+  @@index([type, issueDate])
+  @@index([type, createdAt])
   @@map("invoices")
 }
 
