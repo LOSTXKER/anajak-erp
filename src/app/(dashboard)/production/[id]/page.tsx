@@ -11,9 +11,11 @@ import { QueryError } from "@/components/ui/query-error";
 import { PageHeader } from "@/components/page-header";
 import { MaterialUsage } from "@/components/material-usage";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
+import { ProductionDesignCard } from "@/components/production/production-design-card";
 import { ProductionStepsList } from "@/components/production/production-steps-list";
 import { StepUpdateDialog } from "@/components/production/step-update-dialog";
 import { StepOutsourceDialog } from "@/components/production/step-outsource-dialog";
+import { StepQtySheet } from "@/components/production/step-qty-sheet";
 import type { ProductionStep } from "@/components/production/types";
 import {
   INTERNAL_STATUS_LABELS,
@@ -46,6 +48,10 @@ export default function ProductionDetailPage({
   const { id } = use(params);
   const [selectedStep, setSelectedStep] = useState<ProductionStep | null>(null);
   const [outsourceStep, setOutsourceStep] = useState<ProductionStep | null>(null);
+  // ขั้นนับจำนวนที่กด "เสร็จขั้นนี้" — เปิด sheet ถามจำนวน (UX1: 2 แตะ)
+  // เก็บแค่ id แล้ว derive ตัว step สดจาก query ทุก render — snapshot เก่าทำยอดถอยหลังได้
+  // (sheet ส่ง qtyDone แบบ absolute ถ้าฐานเก่าจะทับของจริง)
+  const [qtyStepId, setQtyStepId] = useState<string | null>(null);
 
   const { data: production, isLoading, isError, refetch } =
     trpc.production.getById.useQuery({ id });
@@ -61,7 +67,8 @@ export default function ProductionDetailPage({
   // อัปเดต/ผ่านรวดขั้นตอน = ทีมผลิตขึ้นไป (ตรง productionTeam ฝั่ง server — กันปุ่มที่กดแล้ว FORBIDDEN)
   const canUpdateStep = !!me && permAllows(me.permissions, "manage_production");
 
-  // ผ่านรวด — ปิดขั้นร้านนอกคลิกเดียว (เบสเคาะ 2026-06-12: outsource ไม่ต้องกรอกอะไร)
+  // mutation ก้อนเดียวใช้ทุกปุ่มเร็ว (ผ่านรวด/รับงาน/เริ่ม/เสร็จ/sheet จำนวน) —
+  // ยิง updateStep เดิมเสมอ ไม่มีทางลัดสถานะใหม่ (การ์ดกัน regress ใบงาน UX)
   const quickPass = useMutationWithInvalidation(trpc.production.updateStep, {
     invalidate: [
       utils.production.getById,
@@ -70,8 +77,9 @@ export default function ProductionDetailPage({
       utils.order.getById,
       utils.task.myToday,
     ],
+    onSuccess: () => setQtyStepId(null),
     onError: (err: { message?: string }) => {
-      toast.error(err.message ?? "ผ่านรวดไม่สำเร็จ");
+      toast.error(err.message ?? "อัปเดตขั้นตอนไม่สำเร็จ");
     },
   });
 
@@ -86,11 +94,31 @@ export default function ProductionDetailPage({
     quickPass.mutate({ stepId: step.id, status: "COMPLETED" });
   }
 
+  // รับงาน/เริ่มทำ 1 แตะ — ช่างกดบนขั้นว่าง server auto-claim เป็นชื่อตัวเองเอง
+  function handleStartStep(step: ProductionStep) {
+    quickPass.mutate({ stepId: step.id, status: "IN_PROGRESS" });
+  }
+
+  // เสร็จขั้นนี้ — ขั้นนับจำนวนที่ยังไม่ครบ เปิด sheet ถามจำนวน (2 แตะ) ·
+  // ขั้นติ๊กเฉยๆ/นับครบแล้ว ปิดเลย 1 แตะ (server snap จำนวน + ตั้ง completedAt เอง)
+  function handleCompleteStep(step: ProductionStep) {
+    const counting = step.qtyTotal !== null && step.qtyTotal > 0;
+    if (counting && (step.qtyDone ?? 0) < (step.qtyTotal ?? 0)) {
+      setQtyStepId(step.id);
+      return;
+    }
+    quickPass.mutate({ stepId: step.id, status: "COMPLETED" });
+  }
+
   if (isLoading) return <ProductionDetailSkeleton />;
   if (isError) return <QueryError onRetry={() => refetch()} />;
   if (!production) return null;
 
   const order = production.order;
+  // step ของ sheet จำนวน — อ่านสดจาก query เสมอ (ดูคอมเมนต์ที่ qtyStepId)
+  const qtySheetStep = qtyStepId
+    ? (production.steps.find((s) => s.id === qtyStepId) ?? null)
+    : null;
   const totalQty = order.items.reduce((s, it) => s + it.totalQuantity, 0);
   const completedSteps = production.steps.filter((s) => s.status === "COMPLETED").length;
   const totalSteps = production.steps.length;
@@ -156,6 +184,9 @@ export default function ProductionDetailPage({
         </span>
       </div>
 
+      {/* แบบอนุมัติ + ลายพิมพ์ + ตารางไซส์ — ช่างเห็นครบโดยไม่ต้องพึ่งใบกระดาษ (UX1) */}
+      <ProductionDesignCard order={order} />
+
       {/* ความคืบหน้า + ขั้นตอน */}
       <div className="card-surface space-y-4 rounded-2xl p-4 sm:p-5">
         <div className="space-y-2">
@@ -177,9 +208,14 @@ export default function ProductionDetailPage({
           steps={production.steps}
           canOutsource={canOutsource}
           canUpdateStep={canUpdateStep}
+          canSupervise={canOutsource}
+          meId={me?.id ?? null}
+          busy={quickPass.isPending}
           onSelectStep={setSelectedStep}
           onOutsourceStep={setOutsourceStep}
           onQuickPass={handleQuickPass}
+          onStartStep={handleStartStep}
+          onCompleteStep={handleCompleteStep}
         />
       </div>
 
@@ -202,6 +238,16 @@ export default function ProductionDetailPage({
       )}
       {outsourceStep && (
         <StepOutsourceDialog step={outsourceStep} onClose={() => setOutsourceStep(null)} />
+      )}
+      {qtySheetStep && (
+        <StepQtySheet
+          // key ผูกยอดจริง — ยอดเปลี่ยน (refetch/คนอื่นบันทึกคั่น) input reset เป็นที่เหลือใหม่
+          key={`${qtySheetStep.id}:${qtySheetStep.qtyDone}`}
+          step={qtySheetStep}
+          busy={quickPass.isPending}
+          onSubmit={(payload) => quickPass.mutate({ stepId: qtySheetStep.id, ...payload })}
+          onClose={() => setQtyStepId(null)}
+        />
       )}
     </div>
   );

@@ -94,6 +94,8 @@ export const productionRouter = router({
 
   // หน้าใบผลิต /production/[id] — ใบผลิต + บริบทออเดอร์ที่ช่างต้องเห็น (ไม่มี field เงินใดๆ)
   // steps ใช้ select shape เดียวกับ getByOrderId — dialog ฝั่ง UI ใช้ type ร่วมกันได้ตรงๆ
+  // UX1: เพิ่มแบบอนุมัติ + ลายพิมพ์ + ตารางไซส์ ให้ช่างเห็นบนจอโดยไม่ต้องพึ่งใบกระดาษ —
+  // select ระบุ field รายตัวเสมอ (OrderItemPrint/OrderItemProduct มี unitPrice — ห้าม include ทั้งก้อน)
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -113,7 +115,56 @@ export const productionRouter = router({
               priority: true,
               internalStatus: true,
               customer: { select: { id: true, name: true } },
-              items: { select: { totalQuantity: true } },
+              // แบบที่ลูกค้าอนุมัติล่าสุด — อ้างเวอร์ชันชัด กันพิมพ์ผิดเวอร์ชัน (pattern job ticket)
+              designs: {
+                where: { approvalStatus: "APPROVED" as const },
+                orderBy: { versionNumber: "desc" as const },
+                take: 1,
+                select: {
+                  versionNumber: true,
+                  fileUrl: true,
+                  thumbnailUrl: true,
+                  approvedAt: true,
+                },
+              },
+              items: {
+                orderBy: { sortOrder: "asc" as const },
+                select: {
+                  id: true,
+                  // จงใจไม่ส่ง description/notes ของ item — ยังไม่มีจอไหน render
+                  // (notes เป็น free text ฝั่งแอดมิน เสี่ยงพ่วงเรื่องราคา/ดีลถึงจอช่าง)
+                  totalQuantity: true,
+                  products: {
+                    orderBy: { sortOrder: "asc" as const },
+                    select: {
+                      id: true,
+                      productType: true,
+                      description: true,
+                      itemSource: true,
+                      fabricColor: true,
+                      totalQuantity: true,
+                      variants: {
+                        orderBy: { size: "asc" as const },
+                        select: { id: true, size: true, color: true, quantity: true },
+                      },
+                    },
+                  },
+                  prints: {
+                    orderBy: { position: "asc" as const },
+                    select: {
+                      id: true,
+                      position: true,
+                      printType: true,
+                      printSize: true,
+                      width: true,
+                      height: true,
+                      colorCount: true,
+                      designNote: true,
+                      designImageUrl: true,
+                    },
+                  },
+                },
+              },
             },
           },
           steps: { orderBy: { sortOrder: "asc" }, select: stepSelect },
