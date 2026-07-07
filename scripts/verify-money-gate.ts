@@ -366,6 +366,51 @@ async function main() {
       { c: salesEdit.totalCost, m: salesEdit.profitMargin, t: salesEdit.totalAmount }
     );
 
+    // ── PERM (เบสเคาะ 2026-07-06): override รายคนต้องมีผลจริงทะลุทุกชั้น ──
+    // ติ๊กเพิ่ม: ช่างที่ถูกติ๊ก see_order_money เห็นเงินจริง (ทั้งชั้น strip + ชั้น gate)
+    const asStaffPlusMoney = appRouter.createCaller({
+      prisma,
+      userId: owner.id,
+      userRole: "PRODUCTION_STAFF",
+      permissionOverrides: { see_order_money: true },
+    });
+    const staffPlusOrder = await asStaffPlusMoney.order.getById({ id: order.id });
+    check(
+      "8.1 override ติ๊กเพิ่ม: ช่าง+see_order_money เห็นยอดออเดอร์จริง (ชั้น strip)",
+      typeof staffPlusOrder.totalAmount === "number" && staffPlusOrder.totalAmount > 0,
+      staffPlusOrder.totalAmount
+    );
+    const staffPlusQuotes = await asStaffPlusMoney.quotation.list({});
+    check(
+      "8.2 override ติ๊กเพิ่ม: ช่าง+see_order_money เปิดใบเสนอได้ (ชั้น requirePermission)",
+      Array.isArray(staffPlusQuotes.quotations)
+    );
+    // ติ๊กตัด: SALES ที่ถูกตัด create_sales_docs เปิด/แก้ออเดอร์ไม่ได้
+    const asSalesCut = appRouter.createCaller({
+      prisma,
+      userId: owner.id,
+      userRole: "SALES",
+      permissionOverrides: { create_sales_docs: false },
+    });
+    await expectError(
+      "8.3 override ติ๊กตัด: ขาย−create_sales_docs แก้ออเดอร์ → FORBIDDEN",
+      () => asSalesCut.order.update({ id: order.id, notes: "ต้องไม่ถึง" }),
+      "สิทธิ์"
+    );
+    // ค่าเสีย (ไม่ใช่ boolean) ต้องไม่เปิดสิทธิ์ — fail กลับ default
+    const asStaffBadOverride = appRouter.createCaller({
+      prisma,
+      userId: owner.id,
+      userRole: "PRODUCTION_STAFF",
+      permissionOverrides: { see_order_money: "true" },
+    });
+    const staffBadOrder = await asStaffBadOverride.order.getById({ id: order.id });
+    check(
+      "8.4 override ค่าเสีย (string): ช่างยังไม่เห็นเงิน (fail กลับ default)",
+      staffBadOrder.totalAmount === null,
+      staffBadOrder.totalAmount
+    );
+
     // ── ⑦ quotation gate ──
     await expectError("7.7 quotation.list (ช่าง) → FORBIDDEN", () => asStaff.quotation.list({}), "สิทธิ์");
     await expectError(

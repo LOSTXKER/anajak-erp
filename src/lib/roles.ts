@@ -1,4 +1,5 @@
 import type { Role } from "@prisma/client";
+import { hasPermission } from "@/lib/permissions";
 
 export const ROLE_LABELS: Record<Role, string> = {
   OWNER: "เจ้าของ",
@@ -35,9 +36,10 @@ export const canSeeFinance = (role: Role): boolean => FINANCE_ROLES.includes(rol
 export const canSeeOrderMoney = (role: Role): boolean => ORDER_MONEY_ROLES.includes(role);
 export const canCreateSalesDocs = (role: Role): boolean => SALES_DOC_ROLES.includes(role);
 
-// ⑦: mutation ฝั่ง server ที่คืนแถวออเดอร์เต็ม — strip เงินตาม role ชุดเดียวกับ order.list
-// ก่อนส่งออก (รั่วระดับ payload: จอไม่ใช้เงินจากคำตอบ mutation — invalidate แล้ว refetch ผ่าน
-// getById ที่ strip แล้ว · ทุน/กำไรปิดถึง SALES ตาม RBAC §7) · ใช้ใน order.ts + quotation.ts
+// ⑦: mutation ฝั่ง server ที่คืนแถวออเดอร์เต็ม — strip เงินก่อนส่งออก (รั่วระดับ payload:
+// จอไม่ใช้เงินจากคำตอบ mutation — invalidate แล้ว refetch ผ่าน getById ที่ strip แล้ว)
+// PERM3: ตัดสินด้วย hasPermission (default ตาม role เดิมเป๊ะ + override รายคน) · ใช้ใน
+// order.ts + quotation.ts
 type OrderMoneyKey =
   | "subtotalItems"
   | "subtotalFees"
@@ -50,10 +52,11 @@ type OrderMoneyKey =
 
 export function stripOrderMoneyForRole<T extends Record<OrderMoneyKey, unknown>>(
   order: T,
-  role: Role
+  role: Role,
+  permissionOverrides: unknown
 ): Omit<T, OrderMoneyKey> & { [K in OrderMoneyKey]: T[K] | null } {
-  const seesCost = canSeeFinance(role);
-  const seesMoney = canSeeOrderMoney(role);
+  const seesCost = hasPermission(role, permissionOverrides, "see_finance");
+  const seesMoney = hasPermission(role, permissionOverrides, "see_order_money");
   return {
     ...order,
     // totalCost คง 0 (ไม่ใช่ null) ตาม pattern order.list/getById เดิม — UI ฝั่ง cost อ่านเป็นเลขเสมอ

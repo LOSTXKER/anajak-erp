@@ -3,12 +3,17 @@ import { ZodError } from "zod";
 import superjson from "@/lib/superjson";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/supabase-server";
+import { hasPermission, type Permission } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 
 export type Context = {
   prisma: typeof prisma;
   userId: string | null;
   userRole: Role | null;
+  // PERM: override สิทธิ์รายคน (JSON ดิบจาก users.permission_overrides) — อ่านผ่าน
+  // hasPermission เท่านั้น (ข้อมูลเสีย fail กลับ default ตาม role) · optional: caller
+  // ฝั่ง script/MCP ที่ไม่ส่ง = ใช้ default ตาม role ล้วน (พฤติกรรมเดิมเป๊ะ)
+  permissionOverrides?: unknown;
 };
 
 export async function createContext(): Promise<Context> {
@@ -24,13 +29,18 @@ export async function createContext(): Promise<Context> {
   if (sessionUser?.id) {
     const dbUser = await prisma.user.findUnique({
       where: { supabaseId: sessionUser.id },
-      select: { id: true, role: true, isActive: true },
+      select: { id: true, role: true, isActive: true, permissionOverrides: true },
     });
     if (dbUser?.isActive) {
-      return { prisma, userId: dbUser.id, userRole: dbUser.role };
+      return {
+        prisma,
+        userId: dbUser.id,
+        userRole: dbUser.role,
+        permissionOverrides: dbUser.permissionOverrides,
+      };
     }
   }
-  return { prisma, userId: null, userRole: null };
+  return { prisma, userId: null, userRole: null, permissionOverrides: null };
 }
 
 // zod ปฏิเสธ input → ข้อความไทยอ่านได้ ไม่ใช่ JSON ดิบภาษาอังกฤษ (audit ข้อ 2 —
@@ -107,6 +117,8 @@ const isAuthed = t.middleware(({ ctx, next }) => {
 export const protectedProcedure = t.procedure.use(isAuthed);
 
 // Middleware: require specific role
+// ⚠️ PERM3 กำลังไล่แทนด้วย requirePermission ทีละ router — จุดที่ยังใช้ตัวนี้ = ยังไม่ migrate
+// (หรือชุด role ไม่ตรง catalog — จดใน ROADMAP §PERM) · ห้ามใช้กับ procedure ใหม่
 export function requireRole(...roles: Role[]) {
   return t.middleware(({ ctx, next }) => {
     if (!ctx.userId || !ctx.userRole) {
@@ -116,6 +128,29 @@ export function requireRole(...roles: Role[]) {
       });
     }
     if (!roles.includes(ctx.userRole)) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "คุณไม่มีสิทธิ์เข้าถึงฟีเจอร์นี้",
+      });
+    }
+    return next({
+      ctx: { ...ctx, userId: ctx.userId, userRole: ctx.userRole },
+    });
+  });
+}
+
+// Middleware: require permission (PERM — เบสเคาะ 2026-07-06)
+// default ต่อ role ตรงพฤติกรรม requireRole เดิมเป๊ะ + override รายคนจาก /settings/users
+// ข้อความ FORBIDDEN คงเดิมกับ requireRole (script/ผู้ใช้คุ้นคำว่า "สิทธิ์")
+export function requirePermission(permission: Permission) {
+  return t.middleware(({ ctx, next }) => {
+    if (!ctx.userId || !ctx.userRole) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "กรุณาเข้าสู่ระบบ",
+      });
+    }
+    if (!hasPermission(ctx.userRole, ctx.permissionOverrides, permission)) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "คุณไม่มีสิทธิ์เข้าถึงฟีเจอร์นี้",

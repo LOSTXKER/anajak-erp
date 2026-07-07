@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { fileUrlSchema } from "@/server/schemas";
 import { createAuditLog } from "@/server/helpers";
 import { getStartOfMonth } from "@/lib/date-utils";
@@ -29,10 +29,10 @@ import {
 } from "@/server/services/receivables";
 import type { PrismaTx } from "@/lib/prisma";
 
-// เปิดบิล/จัดการสถานะบิล — บัญชี + ระดับบริหาร
-const billingStaff = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
+// เปิดบิล/จัดการสถานะบิล — บัญชี + ระดับบริหาร (PERM3: default เดิมเป๊ะ + override รายคน)
+const billingStaff = requirePermission("manage_billing_docs");
 // บันทึกเงินเข้า-ออกจริง (รับชำระ/ยกเลิกบิล/คืนเงิน) — แคบสุดตามตาราง RBAC §7
-const moneyRecorder = requireRole("OWNER", "ACCOUNTANT");
+const moneyRecorder = requirePermission("record_payments");
 
 // ล็อกแถวบิลก่อนอ่าน/คำนวณยอด — กันสอง request บันทึกเงินบนบิลเดียวกันพร้อมกัน
 // (อ่าน payments → เช็คยอดคงเหลือ → เขียน ไม่ atomic ถ้าไม่ล็อก) · เรียกใน transaction เท่านั้น
@@ -50,7 +50,7 @@ export const billingRouter = router({
   // บิล+ยอดรับชำระของออเดอร์ — จำกัดกลุ่มที่เห็นเงินฝั่งขาย (Gate A2: เดิมเปิดทุก role
   // ทำให้การซ่อน payments ใน order.getById ไร้ผล เพราะการ์ดบิลดึงทางนี้ได้เต็ม)
   listByOrder: protectedProcedure
-    .use(requireRole("OWNER", "MANAGER", "ACCOUNTANT", "SALES"))
+    .use(requirePermission("see_order_money"))
     .input(z.object({ orderId: z.string() }))
     .query(async ({ ctx, input }) => {
       return ctx.prisma.invoice.findMany({

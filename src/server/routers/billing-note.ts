@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import { notFound, badRequest } from "@/server/errors";
 import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/document-number";
@@ -17,8 +17,9 @@ import { parseCompanyProfile, COMPANY_PROFILE_KEY } from "@/lib/company-profile"
 import { aggToNumber } from "@/server/services/money";
 import type { PrismaTx } from "@/lib/prisma";
 
-// ใบวางบิล + รายงานลูกหนี้ — เอกสาร/รายงานการเงิน = บัญชี + ระดับบริหาร (ชุดเดียวกับ billing)
-const billingStaff = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
+// ใบวางบิล + รายงานลูกหนี้ — เอกสาร/รายงานการเงิน = บัญชี + ระดับบริหาร (ชุดเดียวกับ billing
+// · PERM3: default เดิมเป๊ะ + override รายคน)
+const billingStaff = requirePermission("manage_billing_docs");
 
 // ล็อกแถวใบแจ้งหนี้ทุกใบที่จะขึ้นใบวางบิล — กันสองใบวางบิลแย่งใบเดียวกัน/เงินเข้าระหว่างสร้าง
 // ORDER BY id ให้ทุก request ไล่ lock ลำดับเดียวกัน — สอง request ใบซ้อนกันจะรอคิว ไม่ deadlock

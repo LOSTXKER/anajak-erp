@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { getCustomerStatus } from "@/lib/order-status";
 import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
@@ -18,10 +18,10 @@ import { isQuotationExpired } from "@/server/services/quotation-confirm";
 import { canQuotationTransition, quotationStatusLabel } from "@/lib/quotation-status";
 import { stripOrderMoneyForRole } from "@/lib/roles";
 
-const salesUp = requireRole("OWNER", "MANAGER", "SALES");
+const salesUp = requirePermission("create_sales_docs");
 // ใบเสนอราคา = เอกสารราคาขายล้วน — อ่านได้เฉพาะกลุ่มเห็นเงินฝั่งขาย (⑦ เบสเคาะ 2026-07-06:
-// ช่าง/กราฟิกไม่เห็นมูลค่างาน · flow ผลิต/ออกแบบไม่มีจุดใช้ใบเสนอ — ตรง ORDER_MONEY_ROLES ฝั่ง UI)
-const orderMoney = requireRole("OWNER", "MANAGER", "ACCOUNTANT", "SALES");
+// ช่าง/กราฟิกไม่เห็นมูลค่างาน · flow ผลิต/ออกแบบไม่มีจุดใช้ใบเสนอ · PERM3: default เดิมเป๊ะ)
+const orderMoney = requirePermission("see_order_money");
 
 const quotationItemSchema = z.object({
   name: z.string(),
@@ -618,6 +618,6 @@ export const quotationRouter = router({
       });
 
       // ⑦: เส้นออเดอร์ผูกคืนแถวเต็ม — ออเดอร์เปิดไว้ก่อนอาจมีต้นทุนบันทึกแล้ว ห้ามถึง SALES (RBAC §7)
-      return stripOrderMoneyForRole(convertedOrder, ctx.userRole);
+      return stripOrderMoneyForRole(convertedOrder, ctx.userRole, ctx.permissionOverrides);
     }),
 });

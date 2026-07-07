@@ -1,15 +1,16 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import { byIdInput } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 import { normalizePhone } from "@/lib/phone";
 import { creditExposureForCustomer } from "@/server/services/receivables";
-import { canSeeOrderMoney, canSeeFinance } from "@/lib/roles";
+import { hasPermission } from "@/lib/permissions";
 
-const customerEditors = requireRole("OWNER", "MANAGER", "ACCOUNTANT", "SALES");
+// PERM3: default = OWNER/MANAGER/ACCOUNTANT/SALES เดิมเป๊ะ + override รายคน
+const customerEditors = requirePermission("manage_customers");
 
 export const customerRouter = router({
   // สถานะวงเงินเครดิต: ภาระหนี้รวม (ใบค้างชำระ + งานผูกพันยังไม่วางบิล) เทียบ creditLimit
@@ -71,7 +72,7 @@ export const customerRouter = router({
 
       // ⑦ (เบสเคาะ 2026-07-06): ยอดซื้อสะสม/วงเงิน = เงินฝั่งขาย — ช่าง/กราฟิกไม่เห็น
       // (null ไม่ใช่ 0 — 0 อ่านเป็น "ไม่เคยซื้อ" ได้ · pattern เดียวกับ analytics.dashboard)
-      const seesMoney = canSeeOrderMoney(ctx.userRole);
+      const seesMoney = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money");
       const sanitized = seesMoney
         ? customers
         : customers.map((c) => ({ ...c, totalSpent: null, creditLimit: null }));
@@ -98,7 +99,7 @@ export const customerRouter = router({
       // ⑦ (เบสเคาะ 2026-07-06): ช่าง/กราฟิกใช้หน้า detail ได้ (ที่อยู่/แบรนด์/ประวัติคุย)
       // แต่เงินฝั่งขายต้องไม่เห็น — ยอดสะสม/วงเงิน/มูลค่าออเดอร์ย้อนหลัง
       // ทุน/กำไรบนออเดอร์ย้อนหลัง = finance เท่านั้น (RBAC §7 — SALES ก็ห้าม · review จับ)
-      const seesCost = canSeeFinance(ctx.userRole);
+      const seesCost = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance");
       const costGated = {
         ...customer,
         orders: customer.orders.map((o) => ({
@@ -107,7 +108,7 @@ export const customerRouter = router({
           profitMargin: seesCost ? o.profitMargin : null,
         })),
       };
-      if (canSeeOrderMoney(ctx.userRole)) return costGated;
+      if (hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money")) return costGated;
       return {
         ...costGated,
         totalSpent: null,

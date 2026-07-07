@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requireRole, requirePermission } from "../trpc";
+import { hasPermission, type Permission } from "@/lib/permissions";
 import {
   getCustomerStatus,
   getInitialStatus,
@@ -31,7 +32,7 @@ import { maybeSweepStaleReservations } from "@/server/services/stock-reservation
 import { promoteOrderArtworks, sanitizeArtworkLinks } from "@/server/services/artwork";
 import { D } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
-import { canSeeFinance, canSeeOrderMoney, stripOrderMoneyForRole } from "@/lib/roles";
+import { stripOrderMoneyForRole } from "@/lib/roles";
 import {
   computeRevisionOverage,
   REVISION_FEE_TYPE,
@@ -46,8 +47,8 @@ import { assertOrderTotalCoversBilled, billedFloor } from "@/server/services/pay
 import { lockOrderRow } from "@/server/services/order-cost";
 import type { OrderType, TaxLineType } from "@prisma/client";
 
-// สร้าง/แก้ออเดอร์+เงินในใบ = งานขายขึ้นไปตามตาราง RBAC §7
-const salesUp = requireRole("OWNER", "MANAGER", "SALES");
+// สร้าง/แก้ออเดอร์+เงินในใบ (PERM3: default = OWNER/MANAGER/SALES เดิมเป๊ะ + override รายคน)
+const salesUp = requirePermission("create_sales_docs");
 // ทุก role มีขั้นของตัวเองบนเส้นออเดอร์ — แต่ละ role ถูกจำกัดสถานะเป้าหมายด้านล่าง
 const orderOps = requireRole(
   "OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF", "DESIGNER", "ACCOUNTANT"
@@ -311,7 +312,7 @@ export const orderRouter = router({
 
       // ⑦ (เบสเคาะ 2026-07-06): ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — เรียงตามยอดที่มองไม่เห็น
       // = ลำดับมูลค่ารั่วทางอ้อม (ใครแพงสุดโผล่บนสุด) จึงบังคับกลับ createdAt
-      const seesMoney = canSeeOrderMoney(ctx.userRole);
+      const seesMoney = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money");
       const sortBy =
         !seesMoney && input.sortBy === "totalAmount" ? "createdAt" : (input.sortBy ?? "createdAt");
       const orderBy: Record<string, string> = {
@@ -356,7 +357,7 @@ export const orderRouter = router({
       // ⑦: ตัวเลขเงินเป็น null ไม่ใช่ 0 (0 อ่านเป็น "งานฟรี" ได้) · paymentLabel คงไว้ —
       // สถานะจ่าย (ไม่มีตัวเลข) ช่างใช้ดูงานติดอะไร · ทุน/กำไรปิดตาม finance เหมือน getById
       // (เดิม list ส่ง totalCost/profitMargin ดิบถึง SALES ด้วย — ปิดพร้อมกันรอบนี้)
-      const seesCost = canSeeFinance(ctx.userRole);
+      const seesCost = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance");
       const sanitizedOrders = ordersWithPayment.map((o) => ({
         ...o,
         totalCost: seesCost ? o.totalCost : 0,
@@ -449,8 +450,8 @@ export const orderRouter = router({
       // Gate A2 (audit 2026-07-02): ตัวเลขทุน/กำไรห้ามรั่วถึงขาย/ช่าง (margin-estimate.ts
       // เตือนไว้เอง) — เดิมส่ง costEntries+payments ให้ทุก role · แท็บ/แถบขั้นต่อไปใช้แค่
       // หัวใบ (type/totalAmount/isVoided — order-tabs.ts) จึงตัด payments ได้โดยหน้าไม่พัง
-      const seesCost = canSeeFinance(ctx.userRole);
-      const seesPayments = canSeeOrderMoney(ctx.userRole);
+      const seesCost = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance");
+      const seesPayments = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money");
       // ⑦ (เบสเคาะ 2026-07-06): ราคาขายทั้งใบ = เงินฝั่งขาย — ช่าง/กราฟิกเห็นโครงงาน
       // (รายการ/จำนวน/ไซซ์/จุดพิมพ์) ครบ แต่ตัวเลขเงินเป็น null ทั้งหัวใบ+รายชิ้น+ค่าธรรมเนียม
       // (null ไม่ใช่ 0 — 0 อ่านเป็น "งานฟรี" ได้ · pattern เดียวกับ analytics)
@@ -834,7 +835,7 @@ export const orderRouter = router({
   // Blind ship (ก้อน 3) — ติ๊กเดียวต่อออเดอร์: เอกสารในกล่องใช้ชื่อแบรนด์ลูกค้าเป็นผู้ส่ง
   // ห้ามมีเอกสาร/ชื่อ Anajak · จอแพ็คขึ้นธงแดงเตือน — แก้ได้จนกว่าจะส่งของ
   setBlindShip: protectedProcedure
-    .use(requireRole("OWNER", "MANAGER", "SALES"))
+    .use(salesUp)
     .input(
       z.object({
         orderId: z.string(),
@@ -881,38 +882,40 @@ export const orderRouter = router({
         where: { id: input.id },
       });
 
-      if (ctx.userRole === "PRODUCTION_STAFF") {
-        // อนุญาตถอยงานกลับคิวผลิตด้วย (PRODUCING → PRODUCTION_QUEUE)
-        // แต่ไม่ใส่ PRODUCTION_QUEUE ในลิสต์หลัก — กันสิทธิ์เกินไปถึง
-        // handoff ฝั่งขาย/ออกแบบ (CONFIRMED/DESIGN_APPROVED → PRODUCTION_QUEUE)
-        const allowed =
-          PRODUCTION_STAFF_STATUSES.includes(input.internalStatus) ||
-          (input.internalStatus === "PRODUCTION_QUEUE" &&
-            old.internalStatus === "PRODUCING");
-        if (!allowed) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "ฝ่ายผลิตเปลี่ยนได้เฉพาะสถานะฝั่งผลิต-จัดส่งเท่านั้น",
-          });
-        }
-      }
-      if (ctx.userRole === "DESIGNER" && !DESIGNER_STATUSES.includes(input.internalStatus)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "กราฟิกเปลี่ยนสถานะได้เฉพาะรับงานเข้าออกแบบเท่านั้น",
-        });
-      }
-      if (ctx.userRole === "ACCOUNTANT" && !ACCOUNTANT_STATUSES.includes(input.internalStatus)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "บัญชีเปลี่ยนสถานะได้เฉพาะปิดงานหลังวางบิลครบเท่านั้น",
-        });
+      // PERM3: สิทธิ์เดินสถานะแยกตามกลุ่มเป้าหมาย — default ตรง whitelist ต่อ role เดิมเป๊ะ
+      // (O/M/SALES ครบทุกกลุ่ม · ช่าง = ฝั่งผลิต + ถอยคิวเฉพาะจาก PRODUCING — ไม่เหมา
+      // PRODUCTION_QUEUE ทั้งก้อน กันสิทธิ์เกินไปถึง handoff ฝั่งขาย/ออกแบบ · กราฟิก =
+      // DESIGNING · บัญชี = COMPLETED) · override รายคนจาก /settings/users
+      const can = (p: Permission) => hasPermission(ctx.userRole, ctx.permissionOverrides, p);
+      const to = input.internalStatus;
+      const statusAllowed = (PRODUCTION_STAFF_STATUSES as readonly string[]).includes(to)
+        ? can("update_order_status_production")
+        : (DESIGNER_STATUSES as readonly string[]).includes(to)
+          ? can("update_order_status_design")
+          : (ACCOUNTANT_STATUSES as readonly string[]).includes(to)
+            ? can("close_orders")
+            : to === "PRODUCTION_QUEUE"
+              ? can("update_order_status_sales") ||
+                (can("update_order_status_production") && old.internalStatus === "PRODUCING")
+              : can("update_order_status_sales");
+      if (!statusAllowed) {
+        // คงข้อความเดิมของ 3 role คลาสสิก (script/ทีมยึดอยู่) — role อื่นที่โดนติ๊กตัด = ข้อความกลาง
+        const message =
+          ctx.userRole === "PRODUCTION_STAFF"
+            ? "ฝ่ายผลิตเปลี่ยนได้เฉพาะสถานะฝั่งผลิต-จัดส่งเท่านั้น"
+            : ctx.userRole === "DESIGNER"
+              ? "กราฟิกเปลี่ยนสถานะได้เฉพาะรับงานเข้าออกแบบเท่านั้น"
+              : ctx.userRole === "ACCOUNTANT"
+                ? "บัญชีเปลี่ยนสถานะได้เฉพาะปิดงานหลังวางบิลครบเท่านั้น"
+                : "คุณไม่มีสิทธิ์เปลี่ยนเป็นสถานะนี้ — เช็คสิทธิ์เดินสถานะที่ ตั้งค่า → ผู้ใช้";
+        throw new TRPCError({ code: "FORBIDDEN", message });
       }
 
       // ถอยกลับจากจุดที่ประกาศกับลูกค้าแล้ว (ส่งแล้ว/ปิดงานแล้ว) = เรื่องใหญ่ —
       // ผู้จัดการขึ้นไป + ต้องมีเหตุผลบันทึกเสมอ (audit ข้อ 22/24/25)
       if (isRollbackTransition(old.internalStatus, input.internalStatus)) {
-        if (!["OWNER", "MANAGER"].includes(ctx.userRole ?? "")) {
+        // PERM3: งานหัวหน้า (default OWNER/MANAGER เดิมเป๊ะ) — ข้อความคงเดิม
+        if (!can("supervise_operations")) {
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "ถอยสถานะจากส่งแล้ว/ปิดงานแล้ว ต้องเป็นผู้จัดการขึ้นไป",
@@ -1079,7 +1082,7 @@ export const orderRouter = router({
       }
 
       // ⑦ follow-up: ช่าง/กราฟิกกดเปลี่ยนสถานะได้ แต่แถวเต็มมีเงิน — จอใช้แค่สถานะจากคำตอบนี้
-      return stripOrderMoneyForRole(order, ctx.userRole);
+      return stripOrderMoneyForRole(order, ctx.userRole, ctx.permissionOverrides);
     }),
 
   update: protectedProcedure
@@ -1174,7 +1177,7 @@ export const orderRouter = router({
         newValue: JSON.parse(JSON.stringify(data)),
       });
 
-      return stripOrderMoneyForRole(order, ctx.userRole);
+      return stripOrderMoneyForRole(order, ctx.userRole, ctx.permissionOverrides);
     }),
 
   updateItems: protectedProcedure
@@ -1337,7 +1340,7 @@ export const orderRouter = router({
         await syncOrderStockReservation(ctx.prisma, { orderId: input.id, changedBy: ctx.userId });
       }
 
-      return stripOrderMoneyForRole(updatedOrder, ctx.userRole);
+      return stripOrderMoneyForRole(updatedOrder, ctx.userRole, ctx.permissionOverrides);
     }),
 
   // จองสต๊อคใหม่ด้วยมือ — ใช้ตอนจองไม่สำเร็จ (ของไม่พอ/ท่อล่ม/ยังไม่ได้ตั้งค่า) แล้วแก้ต้นเหตุแล้ว
@@ -1449,7 +1452,7 @@ export const orderRouter = router({
         newValue: { action: "updateFees", feeCount: input.fees.length, subtotalFees: totals.subtotalFees },
       });
 
-      return stripOrderMoneyForRole(updatedOrder, ctx.userRole);
+      return stripOrderMoneyForRole(updatedOrder, ctx.userRole, ctx.permissionOverrides);
     }),
 
   // ============================================================
@@ -1621,7 +1624,7 @@ export const orderRouter = router({
       const nameById = new Map(creators.map((u) => [u.id, u.name]));
       // ⑦: ยอดเก่า/ใหม่ในใบแก้ไข = ราคาขายตรงๆ — ช่าง/กราฟิกเห็นแค่เลขใบ/เหตุผล/รายการ
       // (review จับ BLOCKER: เดิมโชว์ "฿เก่า → ฿ใหม่" บนแท็บประวัติให้ทุก role)
-      const seesMoney = canSeeOrderMoney(ctx.userRole);
+      const seesMoney = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money");
       return changeOrders.map((c) => ({
         ...c,
         oldTotal: seesMoney ? c.oldTotal : null,
@@ -1734,7 +1737,7 @@ export const orderRouter = router({
         newValue: { action: "addRevisionFee", chargeableRounds: overage.chargeableRounds, fee: overage.fee },
       });
 
-      return stripOrderMoneyForRole(updatedOrder, ctx.userRole);
+      return stripOrderMoneyForRole(updatedOrder, ctx.userRole, ctx.permissionOverrides);
     }),
 
   updateReceiveTracking: protectedProcedure
