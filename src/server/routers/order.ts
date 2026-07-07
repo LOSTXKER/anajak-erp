@@ -30,7 +30,6 @@ import {
 } from "@/server/services/stock-reservation";
 import { maybeSweepStaleReservations } from "@/server/services/stock-reservation-sweep";
 import { promoteOrderArtworks, sanitizeArtworkLinks } from "@/server/services/artwork";
-import { D } from "@/server/services/money";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 import { stripOrderMoneyForRole } from "@/lib/roles";
 import {
@@ -43,7 +42,11 @@ import {
   UNCOMMITTED_STATUSES,
   RECEIVABLE_TYPES,
 } from "@/server/services/receivables";
-import { assertOrderTotalCoversBilled, billedFloor } from "@/server/services/payment-plan";
+import {
+  assertOrderTotalCoversBilled,
+  assertOrderFullyBilledForClose,
+  billedFloor,
+} from "@/server/services/payment-plan";
 import { lockOrderRow } from "@/server/services/order-cost";
 import type { OrderType, TaxLineType } from "@prisma/client";
 
@@ -275,10 +278,11 @@ export const orderRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      // กวาดปลดจองสต๊อกค้างแบบ throttle (≤ ทุก 6 ชม.) — ทีมขายเปิดหน้านี้ทุกวัน ทำให้ auto-release
-      // ทำงานจริงบนเครื่องที่ยังไม่ได้ตั้ง cron (deploy แล้วมี /api/cron/stock-reservations เสริม) ·
-      // กัน sweep ล้มไปทำหน้า list พัง (release ภายในไม่ throw อยู่แล้ว แต่ findMany/claim อาจล้ม)
-      await maybeSweepStaleReservations(ctx.prisma).catch((e) =>
+      // กวาดปลดจองสต๊อกค้างแบบ throttle (≤ ทุก 6 ชม.) — คงไว้เผื่อเครื่องไม่มี cron แต่ย้าย
+      // ไปวิ่งขนานกับ query หลัก ไม่ block หัวแถวของหน้า list (perf audit 2026-07-07) ·
+      // กัน sweep ล้มพาหน้า list พัง (.catch) · ไป await ก่อนตอบท้าย query — serverless
+      // freeze หลัง response ปล่อยลอยอาจโดนตัดกลางคัน
+      const sweepP = maybeSweepStaleReservations(ctx.prisma).catch((e) =>
         console.error("maybeSweepStaleReservations error:", e)
       );
 
@@ -335,7 +339,9 @@ export const orderRouter = router({
           take: input.limit,
         }),
         ctx.prisma.order.count({ where }),
-      ]);
+        // sweep วิ่งคู่ query — .finally ผูกให้จบก่อน settle ทั้งทาง success/error
+        // (review จับ: await แยกบรรทัดจะไปไม่ถึงเมื่อ query หลัก throw — sweep ลอยโดน freeze ตัด)
+      ]).finally(() => sweepP);
 
       const ordersWithPayment = orders.map((order) => {
         const invoices = order.invoices;
@@ -984,26 +990,15 @@ export const orderRouter = router({
         });
       }
 
-      // ปิดงานต้องวางบิลครบก่อน — ธุรกิจเครดิตเทอม ปิดออเดอร์ที่ยังไม่วางบิล = หนี้หล่นเงียบ
-      // นับแบบเดียวกับ exposure: max(ใบแจ้งหนี้ D+F, ใบเสร็จ) — งานขายสดออกแต่ใบเสร็จก็ผ่าน
-      // (เก็บเงินจริงตามเทอมได้หลังปิดงาน — ลูกหนี้/aging ตามต่อให้)
+      // ปิดงานต้องวางบิลครบก่อน — กติกาอยู่ที่ assertOrderFullyBilledForClose (payment-plan.ts)
+      // เงื่อนไข totalAmount > 0 คงที่ router — ออเดอร์ยอด 0 ข้ามด่านได้โดยไม่ต้อง query บิล
       if (input.internalStatus === "COMPLETED" && old.totalAmount > 0) {
         const invoices = await ctx.prisma.invoice.findMany({
           where: { orderId: input.id, isVoided: false },
-          select: { type: true, totalAmount: true },
+          // isVoided ให้ครบ InvoiceForPlan (ค่า false เสมอจาก where — billedTotal กรองซ้ำ ไม่เปลี่ยนผล)
+          select: { type: true, totalAmount: true, isVoided: true },
         });
-        const sumOf = (types: string[]) =>
-          invoices
-            .filter((inv) => types.includes(inv.type))
-            .reduce((s, inv) => s.plus(inv.totalAmount), D(0));
-        const billed = sumOf(["DEPOSIT_INVOICE", "FINAL_INVOICE"]);
-        const receipted = sumOf(["RECEIPT"]);
-        const handled = billed.gt(receipted) ? billed : receipted;
-        if (handled.lt(old.totalAmount)) {
-          badRequest(
-            `ปิดงานไม่ได้ — วางบิล/ออกใบเสร็จแล้ว ${handled.toFixed(2)} จากยอดออเดอร์ ${old.totalAmount.toFixed(2)} บาท · วางบิลส่วนที่เหลือก่อน (ถ้ายอดงานจริงเปลี่ยน ให้แก้ "ส่วนลด" ให้ยอดตรงก่อนปิด — รายการสินค้าแก้ไม่ได้แล้วหลังเริ่มผลิต)`
-          );
-        }
+        assertOrderFullyBilledForClose({ orderTotal: old.totalAmount, invoices });
       }
 
       // เปลี่ยนสถานะผ่าน service กลางเท่านั้น (validate + กัน race + revision ในตัว)

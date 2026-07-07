@@ -161,34 +161,28 @@ export const analyticsRouter = router({
     .use(ownerOrAccountant)
     .input(z.object({ months: z.number().default(6) }))
     .query(async ({ ctx, input }) => {
-      const results = [];
-
-      for (let i = input.months - 1; i >= 0; i--) {
-        const { start, end } = getMonthRange(i);
-
-        const revenue = await ctx.prisma.order.aggregate({
-          _sum: { totalAmount: true },
-          where: {
-            createdAt: { gte: start, lt: end },
-            internalStatus: { not: "CANCELLED" },
-          },
-        });
-
-        const orderCount = await ctx.prisma.order.count({
-          where: {
-            createdAt: { gte: start, lt: end },
-            internalStatus: { not: "CANCELLED" },
-          },
-        });
-
-        results.push({
-          month: start.toLocaleDateString("th-TH", { month: "short", year: "2-digit" }),
-          revenue: aggToNumber(revenue._sum.totalAmount),
-          orders: orderCount,
-        });
-      }
-
-      return results;
+      // เดิม: loop await aggregate+count ทีละเดือน = 12 query เรียงแถวต่อการเปิดหน้า
+      // → _count รวมใน aggregate เดียว (เงื่อนไข where เดิมเป๊ะ) + ยิงทุกเดือนพร้อมกัน
+      // ลำดับผลคงเดิม: เดือนเก่า → ใหม่ (perf audit 2026-07-07)
+      const monthOffsets = Array.from({ length: input.months }, (_, idx) => input.months - 1 - idx);
+      return Promise.all(
+        monthOffsets.map(async (i) => {
+          const { start, end } = getMonthRange(i);
+          const agg = await ctx.prisma.order.aggregate({
+            _sum: { totalAmount: true },
+            _count: true,
+            where: {
+              createdAt: { gte: start, lt: end },
+              internalStatus: { not: "CANCELLED" },
+            },
+          });
+          return {
+            month: start.toLocaleDateString("th-TH", { month: "short", year: "2-digit" }),
+            revenue: aggToNumber(agg._sum.totalAmount),
+            orders: agg._count,
+          };
+        })
+      );
     }),
 
   auditLog: protectedProcedure

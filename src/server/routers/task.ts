@@ -38,8 +38,10 @@ export const taskRouter = router({
     // ไม่รวม DTF_PRINT/HEAT_PRESS — สองขั้นนี้มีคิวเฉพาะที่กรองเงื่อนไขแล้ว (printQueue/pressQueue)
     // โผล่ที่นี่ซ้ำ = รั่วงานติดเงื่อนไขเข้าคิวช่าง · ขั้นแพ็คก็กรองด้วยด่านแพ็คด้านล่าง ----
     const PROBLEM_FIRST: Record<string, number> = { FAILED: 0, ON_HOLD: 1, IN_PROGRESS: 2, PENDING: 3 };
-    const production = can("manage_production")
-      ? await ctx.prisma.productionStep
+    // ทุกก้อนล่างนี้อิสระต่อกัน — ประกอบเป็น promise แล้วยิงพร้อมกันใน Promise.all ท้ายฟังก์ชัน
+    // (เดิม await เรียงคิว 9 คลื่น = จอเช้าช้าสะสมเท่าผลรวมทุกก้อน · perf audit 2026-07-07)
+    const productionP = can("manage_production")
+      ? ctx.prisma.productionStep
           .findMany({
             where: {
               status: { in: ["PENDING", "IN_PROGRESS", "FAILED", "ON_HOLD"] },
@@ -91,14 +93,14 @@ export const taskRouter = router({
 
     // ---- คิวพิมพ์ฟิล์ม: เฉพาะงานที่ลงมือพิมพ์ได้ตอนนี้จริง (FLOW-REDESIGN ข้อ 8 —
     // ไฟล์ไม่พร้อม/ติดรอบ active ถูกกรองใน service แล้ว · เรียงกำหนดส่งมาแล้ว) ----
-    const printQueue = can("manage_production")
-      ? (await getPrintQueue(ctx.prisma)).slice(0, 8)
+    const printQueueP = can("manage_production")
+      ? getPrintQueue(ctx.prisma).then((q) => q.slice(0, 8))
       : [];
 
     // ---- คิวรีด: ขั้นรีดร้อนที่ผ่าน gate ฟิล์มเสร็จ∧เสื้อพร้อมเท่านั้น —
     // งานติดเงื่อนไขห้ามโผล่ในคิวช่าง (ช่างรีดไม่ต้องเดินไปนับเสื้อเอง) ----
-    const pressQueue = can("manage_production")
-      ? await ctx.prisma.productionStep
+    const pressQueueP = can("manage_production")
+      ? ctx.prisma.productionStep
           .findMany({
             where: {
               stepType: "HEAT_PRESS",
@@ -150,8 +152,8 @@ export const taskRouter = router({
 
     // ---- คิวแพ็ค: ขั้นแพ็คที่ของพร้อมแพ็คจริงเท่านั้น (ทุกขั้นนอกเลน PACK จบครบ) —
     // งานติดเงื่อนไขห้ามโผล่ในคิวช่าง (คนแพ็คไม่ต้องเดินไปไล่เช็คว่าสายไหนยังค้าง) ----
-    const packQueue = can("manage_production")
-      ? await ctx.prisma.productionStep
+    const packQueueP = can("manage_production")
+      ? ctx.prisma.productionStep
           .findMany({
             where: {
               // เลน PACK ปัจจุบันมีขั้นเดียวคือ PACKAGING (ดู STEP_LANE)
@@ -209,8 +211,8 @@ export const taskRouter = router({
 
     // ---- รอเปิดใบผลิต: ออเดอร์เข้าคิว/แบบผ่านแล้ว แต่ยังไม่มีใบผลิต — ก่อนหน้านี้หายจากทุกจอ
     // จนกว่าหัวหน้าจะบังเอิญเปิดหน้าออเดอร์เอง (audit ข้อ 28 · เปิดใบผลิต = อำนาจ OWNER/MANAGER) ----
-    const awaitingProduction = can("supervise_operations")
-      ? await ctx.prisma.order.findMany({
+    const awaitingProductionP = can("supervise_operations")
+      ? ctx.prisma.order.findMany({
           where: {
             internalStatus: { in: ["PRODUCTION_QUEUE", "DESIGN_APPROVED"] },
             productions: { none: {} },
@@ -222,8 +224,8 @@ export const taskRouter = router({
       : [];
 
     // ---- งานออกแบบ: ออเดอร์ที่กำลังออกแบบ + สถานะแบบล่าสุด ----
-    const design = can("manage_design_files")
-      ? await ctx.prisma.order
+    const designP = can("manage_design_files")
+      ? ctx.prisma.order
           .findMany({
             where: { internalStatus: "DESIGNING" },
             select: {
@@ -250,8 +252,8 @@ export const taskRouter = router({
       : [];
 
     // ---- ติดตามลูกค้า: ออเดอร์ที่ยังเป็นการสอบถาม (รอตกลง → ยืนยัน) ----
-    const followUp = can("create_sales_docs")
-      ? await ctx.prisma.order
+    const followUpP = can("create_sales_docs")
+      ? ctx.prisma.order
           .findMany({
             where: { internalStatus: "INQUIRY" },
             select: { ...orderSelect, totalAmount: true, _count: { select: { items: true } } },
@@ -268,8 +270,8 @@ export const taskRouter = router({
       : [];
 
     // ---- ของเข้า-ออกวันนี้ (จอเช้าแอดมิน): 4 กองที่ต้องวิ่งตามวันนี้ — ops ล้วน ห้ามมีเงิน ----
-    const adminToday = can("create_sales_docs")
-      ? await (async () => {
+    const adminTodayP = can("create_sales_docs")
+      ? (async () => {
           const startOfToday = new Date();
           startOfToday.setHours(0, 0, 0, 0);
           const endOfToday = new Date();
@@ -385,8 +387,8 @@ export const taskRouter = router({
         };
 
     // ---- การเงิน: บิลเลยกำหนด + ออเดอร์ส่งแล้วรอวางบิล/ปิดงาน ----
-    const billing = can("see_finance")
-      ? await (async () => {
+    const billingP = can("see_finance")
+      ? (async () => {
           const [overdue, shipped] = await Promise.all([
             ctx.prisma.invoice.findMany({
               where: { paymentStatus: "OVERDUE", isVoided: false },
@@ -422,6 +424,28 @@ export const taskRouter = router({
           };
         })()
       : { overdueInvoices: [], shippedOrders: [] };
+
+    const [
+      production,
+      printQueue,
+      pressQueue,
+      packQueue,
+      awaitingProduction,
+      design,
+      followUp,
+      adminToday,
+      billing,
+    ] = await Promise.all([
+      productionP,
+      printQueueP,
+      pressQueueP,
+      packQueueP,
+      awaitingProductionP,
+      designP,
+      followUpP,
+      adminTodayP,
+      billingP,
+    ]);
 
     return {
       production,

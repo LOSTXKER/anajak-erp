@@ -356,6 +356,7 @@ model CommunicationLog {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id])
 
+  @@index([customerId])
   @@map("communication_logs")
 }
 
@@ -464,6 +465,7 @@ model Order {
   @@index([customerId])
   @@index([internalStatus])
   @@index([createdAt])
+  @@index([deadline])
   @@map("orders")
 }
 
@@ -486,6 +488,7 @@ model OrderItem {
   prints   OrderItemPrint[]
   addons   OrderItemAddon[]
 
+  @@index([orderId])
   @@map("order_items")
 }
 
@@ -532,6 +535,7 @@ model OrderItemProduct {
   packagingOption PackagingOption? @relation(fields: [packagingOptionId], references: [id])
   variants        OrderItemVariant[]
 
+  @@index([orderItemId])
   @@map("order_item_products")
 }
 
@@ -546,6 +550,7 @@ model OrderItemVariant {
   // Relations
   orderItemProduct OrderItemProduct @relation(fields: [orderItemProductId], references: [id], onDelete: Cascade)
 
+  @@index([orderItemProductId])
   @@map("order_item_variants")
 }
 
@@ -572,6 +577,7 @@ model OrderItemPrint {
   artwork   CustomerArtwork? @relation(fields: [artworkId], references: [id])
 
   @@index([artworkId])
+  @@index([orderItemId])
   @@map("order_item_prints")
 }
 
@@ -590,6 +596,7 @@ model OrderItemAddon {
   // Relations
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
+  @@index([orderItemId])
   @@map("order_item_addons")
 }
 
@@ -606,6 +613,7 @@ model OrderFee {
   // Relations
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@index([orderId])
   @@map("order_fees")
 }
 
@@ -623,6 +631,7 @@ model OrderRevision {
   // Relations
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@index([orderId])
   @@map("order_revisions")
 }
 
@@ -727,6 +736,7 @@ model Quotation {
   order     Order?          @relation(fields: [orderId], references: [id])
   items     QuotationItem[]
 
+  @@index([customerId])
   @@map("quotations")
 }
 
@@ -745,6 +755,7 @@ model QuotationItem {
   // Relations
   quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 
+  @@index([quotationId])
   @@map("quotation_items")
 }
 
@@ -846,6 +857,7 @@ model Delivery {
   order Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   lines DeliveryLine[]
 
+  @@index([orderId])
   @@map("deliveries")
 }
 
@@ -910,6 +922,7 @@ model CostEntry {
   order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   createdBy User  @relation("CostCreatedBy", fields: [createdById], references: [id])
 
+  @@index([orderId])
   @@map("cost_entries")
 }
 
@@ -986,6 +999,7 @@ model GoodsReceipt {
   lines      GoodsReceiptLine[]
 
   @@index([orderId])
+  @@index([outsourceOrderId])
   @@map("goods_receipts")
 }
 
@@ -1003,6 +1017,7 @@ model GoodsReceiptLine {
 
   receipt GoodsReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
 
+  @@index([receiptId])
   @@map("goods_receipt_lines")
 }
 
@@ -1046,6 +1061,7 @@ model QcDefect {
   qcRecord QcRecord @relation(fields: [qcRecordId], references: [id], onDelete: Cascade)
 
   @@index([reason])
+  @@index([qcRecordId])
   @@map("qc_defects")
 }
 
@@ -1069,6 +1085,7 @@ model Production {
   steps          ProductionStep[]
   materialUsages MaterialUsage[]
 
+  @@index([orderId])
   @@map("productions")
 }
 
@@ -1093,6 +1110,7 @@ model MaterialUsage {
   production Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
   product    Product    @relation(fields: [productId], references: [id])
 
+  @@index([productionId])
   @@map("material_usages")
 }
 
@@ -1125,6 +1143,8 @@ model ProductionStep {
 
   // hot path: task queue "งานของฉัน" กรองตามคนรับผิดชอบ
   @@index([assignedToId])
+  @@index([productionId])
+  @@index([stepType, status])
   @@map("production_steps")
 }
 
@@ -1176,6 +1196,7 @@ model PrintRunItem {
 
   @@index([productionStepId])
   @@index([printRunId])
+  @@index([orderId])
   @@map("print_run_items")
 }
 
@@ -1262,6 +1283,7 @@ model OutsourceOrder {
 
   @@index([productionStepId])
   @@index([status])
+  @@index([vendorId])
   @@map("outsource_orders")
 }
 
@@ -1316,6 +1338,8 @@ model Invoice {
   // เดิม seq scan ทุกครั้งที่เปิดหน้า/export (จดจาก review B5 · เบสเคาะ 2026-07-06)
   @@index([type, issueDate])
   @@index([type, createdAt])
+  @@index([orderId])
+  @@index([customerId])
   @@map("invoices")
 }
 
@@ -1339,6 +1363,7 @@ model Payment {
   // ใบเสร็จ/ใบกำกับภาษีของงวดรับเงินนี้ (Gate B3) — ว่าง = งวดยังไม่ออกใบ (UI ต้องเตือน)
   receiptInvoice Invoice?        @relation("PaymentReceipt")
 
+  @@index([invoiceId])
   @@map("payments")
 }
 

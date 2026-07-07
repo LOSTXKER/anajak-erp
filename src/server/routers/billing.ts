@@ -796,9 +796,10 @@ export const billingRouter = router({
     }),
 
   stats: protectedProcedure.use(billingStaff).query(async ({ ctx }) => {
-    // กวาดบิลเลยกำหนดแบบ throttle (≤ ทุก 6 ชม.) — หน้า /billing เปิดทุกวันโดยทีมการเงิน
-    // ทำให้ OVERDUE ทำงานจริงบนเครื่องที่ยังไม่ได้ตั้ง cron (deploy แล้วมี /api/cron/overdue เสริม)
-    await maybeSweepOverdue(ctx.prisma);
+    // กวาดบิลเลยกำหนดแบบ throttle (≤ ทุก 6 ชม.) — คงไว้เผื่อเครื่องไม่มี cron แต่ย้ายไป
+    // วิ่งขนานกับ query หลัก ไม่ block หัวแถว (perf audit 2026-07-07) · รอบที่ trigger
+    // กวาดพอดี ผลอาจเห็นตอน refresh ถัดไป — cron /api/cron/overdue กวาดทุกคืนอยู่แล้ว
+    const sweepP = maybeSweepOverdue(ctx.prisma).catch((e) => console.error("maybeSweepOverdue error:", e));
 
     const startOfMonth = getStartOfMonth();
 
@@ -832,7 +833,8 @@ export const billingRouter = router({
           _sum: { amount: true },
           where: { createdAt: { gte: startOfMonth } },
         }),
-      ]);
+        // sweep วิ่งคู่ query — .finally ผูกให้จบก่อน settle ทั้งทาง success/error (review จับ)
+      ]).finally(() => sweepP);
 
     // ยอดค้างรวม = Σ ยอดคงเหลือต่อใบ (Decimal exact แล้วปัด 2 ตำแหน่ง)
     const totalUnpaid = unpaidInvoices.reduce((sum, inv) => sum.plus(outstandingOf(inv)), D(0));

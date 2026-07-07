@@ -5,7 +5,18 @@ import { hasPermission } from "@/lib/permissions";
 import { createAuditLog, createNotification } from "@/server/helpers";
 import { transitionOrder, finalizeProductionIfComplete } from "@/server/services/order-status";
 import { isValidTransition } from "@/lib/order-status";
-import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import {
+  assertStaffFields,
+  planAutoClaim,
+  touchesRunGuardedFields,
+  assertNotInActiveRun,
+  assertStepClosable,
+  buildStepUpdateData,
+  qtyFollowUp,
+  stepDisplayName,
+  stepCostEntryPlan,
+  failedStepNotification,
+} from "@/server/services/production-step-plan";
 import {
   getGarmentPickState,
   issueGarments,
@@ -400,42 +411,37 @@ export const productionRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { stepId, ...data } = input;
 
+      // PERM3: เช็คสิทธิ์งานหัวหน้าครั้งเดียวบนหัว mutation — service pure รับ flag
+      // (ห้าม import hasPermission ใน service · pattern เดียวกับ issueGarments)
+      const canSupervise = hasPermission(
+        ctx.userRole,
+        ctx.permissionOverrides,
+        "supervise_operations"
+      );
+
       // อัปเดต step + ปิดใบผลิต + ดันสถานะออเดอร์ = ก้อนเดียวกัน (transitionOrder ต้องอยู่ใน tx)
       return ctx.prisma.$transaction(async (tx) => {
         // คนไม่มีสิทธิ์งานหัวหน้า (default = PRODUCTION_STAFF): ห้ามแตะ assignedToId/actualCost
         // (มอบงาน + ต้นทุน = อำนาจหัวหน้า) · step ที่ยังไม่มีเจ้าของ → claim อัตโนมัติ
         // (ระบบยังไม่มี UI มอบหมายงาน ถ้าบังคับ assign ก่อน staff จะอัปเดตอะไรไม่ได้เลย) ·
-        // step ของคนอื่น → ห้าม
+        // step ของคนอื่น → ห้าม (ด่าน field ต้องมาก่อนโหลด step — FORBIDDEN ก่อน NOT_FOUND)
+        assertStaffFields({ canSupervise, data });
         let autoClaim = false;
-        if (!hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations")) {
-          if (data.assignedToId !== undefined || data.actualCost !== undefined) {
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message: "ฝ่ายผลิตแก้ผู้รับผิดชอบ/ต้นทุนจริงไม่ได้",
-            });
-          }
+        if (!canSupervise) {
           const existing = await tx.productionStep.findUniqueOrThrow({
             where: { id: stepId },
             select: { assignedToId: true },
           });
-          if (existing.assignedToId === null) {
-            autoClaim = true;
-          } else if (existing.assignedToId !== ctx.userId) {
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message: "งานนี้ถูกมอบหมายให้คนอื่นแล้ว",
-            });
-          }
+          autoClaim = planAutoClaim({
+            existingAssignedToId: existing.assignedToId,
+            userId: ctx.userId,
+          }).autoClaim;
         }
 
         // ขั้นที่อยู่ในรอบพิมพ์ค้าง (PRINTING/PRINTED): สถานะ/จำนวนเดินผ่านรอบเท่านั้น —
         // จุดตัดแยกฟิล์มเป็นด่านบังคับ ปิดมือ = ข้ามด่าน + จำนวนถูกนับซ้อนตอนรอบปิด
         // (guard pattern เดียวกับใบ outsource ค้างด้านล่าง — lock แถวก่อนเช็คกัน race กับเปิดรอบ)
-        if (
-          data.status !== undefined ||
-          data.qtyDone !== undefined ||
-          data.qtyTotal !== undefined
-        ) {
+        if (touchesRunGuardedFields(data)) {
           await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${stepId} FOR UPDATE`;
           const activeRun = await tx.printRunItem.findFirst({
             where: {
@@ -444,12 +450,7 @@ export const productionRouter = router({
             },
             select: { printRun: { select: { runNumber: true } } },
           });
-          if (activeRun) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `งานอยู่ในรอบพิมพ์ ${activeRun.printRun.runNumber} — จัดการที่หน้ารอบพิมพ์ฟิล์ม (พิมพ์จบ/ตัดแยกเสร็จ หรือยกเลิกรอบ)`,
-            });
-          }
+          assertNotInActiveRun(activeRun?.printRun ?? null);
         }
 
         // ปิดขั้น (รวมปุ่ม "ผ่านรวด" งานร้านนอก) ห้ามทับงานที่ยังค้างอยู่กับร้าน —
@@ -471,36 +472,19 @@ export const productionRouter = router({
               status: { notIn: ["QC_PASSED", "QC_FAILED"] },
             },
           });
-          if (openOutsource > 0) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `ขั้นนี้มีงานค้างอยู่กับร้านนอก ${openOutsource} ใบ — กดรับกลับ/ตัดสิน QC ที่ใบ outsource ก่อน`,
-            });
-          }
-          // งานที่หัวหน้าตัดสิน QC ไม่ผ่านไปแล้ว ช่างห้ามกดผ่านรวดทับ — ต้องส่งแก้
-          // รอบใหม่หรือให้หัวหน้าเป็นคนปิด
-          if (
-            latestOutsource?.status === "QC_FAILED" &&
-            !hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations")
-          ) {
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message:
-                "งานนี้ QC ไม่ผ่านจากร้าน — ส่งแก้รอบใหม่ หรือให้หัวหน้าเป็นคนปิดขั้น",
-            });
-          }
+          assertStepClosable({
+            openOutsourceCount: openOutsource,
+            latestOutsourceStatus: latestOutsource?.status ?? null,
+            canSupervise,
+          });
         }
 
-        const updateData: Record<string, unknown> = { ...data };
-        if (autoClaim) {
-          updateData.assignedToId = ctx.userId;
-        }
-        if (data.status === "IN_PROGRESS" && !data.assignedToId) {
-          updateData.startedAt = new Date();
-        }
-        if (data.status === "COMPLETED") {
-          updateData.completedAt = new Date();
-        }
+        const updateData = buildStepUpdateData({
+          data,
+          autoClaim,
+          userId: ctx.userId,
+          now: new Date(),
+        });
 
         let step = await tx.productionStep.update({
           where: { id: stepId },
@@ -510,16 +494,11 @@ export const productionRouter = router({
 
         // กติกา qty: ปิดขั้น → จำนวนทำแล้ว snap เท่าทั้งหมด (ติ๊กเสร็จ = ครบ ไม่ต้องกรอกเลขซ้ำ)
         // · กรอกจำนวนบนขั้นที่ยังรอ → ขั้นเริ่มเอง (กันสถานะค้าง PENDING ทั้งที่ทำไปแล้วครึ่งกอง)
-        if (step.status === "COMPLETED" && step.qtyTotal && step.qtyDone < step.qtyTotal) {
+        const followUp = qtyFollowUp(step, new Date());
+        if (followUp) {
           step = await tx.productionStep.update({
             where: { id: stepId },
-            data: { qtyDone: step.qtyTotal },
-            include: { production: true },
-          });
-        } else if (step.status === "PENDING" && step.qtyDone > 0) {
-          step = await tx.productionStep.update({
-            where: { id: stepId },
-            data: { status: "IN_PROGRESS", startedAt: step.startedAt ?? new Date() },
+            data: followUp,
             include: { production: true },
           });
         }
@@ -533,23 +512,27 @@ export const productionRouter = router({
         // ต้นทุนจริงต่อขั้นตอน → ต้นทุนออเดอร์อัตโนมัติ (upsert ด้วย sourceRef — แก้เลขซ้ำ
         // ได้ไม่เบิ้ลแถว) — เฉพาะตัวเลขจริง ไม่สร้างแถว 0 บาท (UI ถอดช่องนี้แล้ว
         // ตามมติเลิกคิดต้นทุนต่องาน 2026-06-12 — เก็บ path ไว้รับ caller ตรงเท่านั้น)
-        if (data.actualCost !== undefined && data.actualCost > 0) {
-          const stepName =
-            step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
+        const cost = stepCostEntryPlan({
+          actualCost: data.actualCost,
+          stepId,
+          customStepName: step.customStepName,
+          stepType: step.stepType,
+        });
+        if (cost) {
           // เขียน costEntry ต้อง lock+recalc ชุดเดียวกัน — ไม่งั้น order.totalCost drift
           // (invariant: services/order-cost.ts · Gate A4 audit 2026-07-02)
           await lockOrderRow(tx, step.production.orderId);
           await tx.costEntry.upsert({
-            where: { sourceRef: `step:${stepId}` },
+            where: { sourceRef: cost.sourceRef },
             create: {
               orderId: step.production.orderId,
               category: "LABOR",
-              name: `ต้นทุนขั้นตอน: ${stepName}`,
-              amount: data.actualCost,
-              sourceRef: `step:${stepId}`,
+              name: cost.name,
+              amount: cost.amount,
+              sourceRef: cost.sourceRef,
               createdById: ctx.userId,
             },
-            update: { amount: data.actualCost },
+            update: { amount: cost.amount },
           });
           await recalcOrderCost(tx, step.production.orderId);
         }
@@ -560,8 +543,6 @@ export const productionRouter = router({
             where: { id: step.production.orderId },
             select: { id: true, orderNumber: true, title: true },
           });
-          const stepName =
-            step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
           const managers = await tx.user.findMany({
             where: {
               role: { in: ["OWNER", "MANAGER"] },
@@ -570,17 +551,16 @@ export const productionRouter = router({
             },
             select: { id: true },
           });
+          const notification = failedStepNotification({
+            orderNumber: order.orderNumber,
+            orderTitle: order.title,
+            stepName: stepDisplayName(step),
+            notes: data.notes,
+            productionId: step.productionId,
+            orderId: order.id,
+          });
           for (const m of managers) {
-            await createNotification(tx, {
-              userId: m.id,
-              type: "ORDER",
-              title: `ขั้นตอนผลิตมีปัญหา — ${order.orderNumber}`,
-              message: `${stepName}${data.notes ? `: ${data.notes}` : ""} (${order.title})`,
-              // ชี้หน้าใบผลิตตรงๆ — ตัวจัดการขั้นตอนอยู่ที่นั่นแล้ว (แยกโมดูลผลิต 2026-06-12)
-              link: `/production/${step.productionId}`,
-              entityType: "ORDER",
-              entityId: order.id,
-            });
+            await createNotification(tx, { userId: m.id, ...notification });
           }
         }
 

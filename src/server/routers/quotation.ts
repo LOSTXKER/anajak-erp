@@ -7,8 +7,15 @@ import { byIdInput } from "@/server/schemas";
 import { badRequest } from "@/server/errors";
 import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/document-number";
 import { computeQuotationTotals } from "@/server/services/pricing";
-import { D, round2, moneyInput } from "@/server/services/money";
+import { moneyInput } from "@/server/services/money";
 import { assertSalesWithinCreditLimit } from "@/server/services/receivables";
+// กติกาแปลงใบเสนอ → ออเดอร์ (pure gates/calc — unit test ได้ไม่ต้อง DB)
+import {
+  assertQuotationConvertible,
+  convertCommitAmount,
+  deriveOrderTaxRate,
+  quotationSkeletonItems,
+} from "@/server/services/quotation-convert";
 import { assertOrderTotalCoversBilled } from "@/server/services/payment-plan";
 import { transitionOrder, addOrderRevision } from "@/server/services/order-status";
 import { syncOrderStockReservation } from "@/server/services/stock-reservation";
@@ -418,15 +425,7 @@ export const quotationRouter = router({
         include: { items: true },
       });
 
-      if (quotation.status !== "ACCEPTED") {
-        badRequest("ใบเสนอราคาต้องได้รับการอนุมัติก่อนแปลงเป็นออเดอร์");
-      }
-      // ราคายืนถึงแค่ validUntil — แปลงหลังหมดอายุต้องยืนราคาใหม่ก่อน (audit ข้อ 12)
-      if (isQuotationExpired(quotation.validUntil)) {
-        badRequest(
-          "ใบเสนอนี้หมดอายุแล้ว — แก้วันที่ \"ใช้ได้ถึง\" (ยืนราคาใหม่) ก่อนแปลงเป็นออเดอร์"
-        );
-      }
+      assertQuotationConvertible(quotation);
 
       // ออเดอร์ที่ผูกไว้ (ถ้ามี) — ตกลงแล้วยืนยัน "ใบเดิม" ไม่สร้างซ้ำ (audit ข้อ 8 BLOCKER:
       // เดิมเส้นทาง เปิดงาน→ออกใบเสนอ→แปลง ได้ออเดอร์ 2 ใบ + สถิติลูกค้านับซ้ำ)
@@ -444,11 +443,12 @@ export const quotationRouter = router({
       });
 
       // ด่านวงเงินเดียวกับการยืนยันออเดอร์ — ใช้ยอดที่จะผูกพันจริง
-      // (ออเดอร์ผูกที่มีรายการแล้ว = ยอดออเดอร์ · นอกนั้น = ยอดใบเสนอ)
-      const commitAmount =
-        linkedOrder && linkedOrder.items.length > 0
-          ? linkedOrder.totalAmount
-          : quotation.totalAmount;
+      const commitAmount = convertCommitAmount({
+        linkedOrder: linkedOrder
+          ? { totalAmount: linkedOrder.totalAmount, itemCount: linkedOrder.items.length }
+          : null,
+        quotationTotal: quotation.totalAmount,
+      });
       await assertSalesWithinCreditLimit(ctx.prisma, {
         userRole: ctx.userRole,
         customerId: quotation.customerId,
@@ -456,38 +456,11 @@ export const quotationRouter = router({
         actionLabel: "แปลงเป็นออเดอร์",
       });
 
-      // ใบเสนอราคาเก็บภาษีเป็น "บาท" แต่ order ใช้อัตรา % — แปลงอัตรากลับจากยอดจริง
-      // ไม่งั้น order เกิดมาขัดสูตร A (totalAmount รวมภาษีแต่ taxRate=0) แล้วพอแก้รายการ
-      // ครั้งแรก ระบบ recompute ด้วย taxRate=0 → เงินภาษีหายเงียบ
-      const taxBase = D(quotation.subtotal).minus(quotation.discount);
-      const derivedTaxRate =
-        quotation.tax > 0 && taxBase.gt(0)
-          ? round2(D(quotation.tax).div(taxBase).times(100))
-          : D(0);
+      // แปลงภาษีบาทของใบเสนอ → อัตรา % ของ order (กันภาษีหายตอน recompute)
+      const derivedTaxRate = deriveOrderTaxRate(quotation);
 
       // โครงรายการจากใบเสนอ (ใช้ทั้งเส้นสร้างใหม่ และเส้นเติมออเดอร์ผูกที่ยังไม่มีรายการ)
-      const skeletonItems = quotation.items.map((item, index) => ({
-        sortOrder: index,
-        // รายการจากใบเสนอถูกบีบจนไม่เหลือโครงลายพิมพ์ — ระบุภาษีชัดเป็นจ้างทำของ
-        // (งานใบเสนอเกือบทั้งหมดคืองานพิมพ์ · กัน updateItems derive เป็นขายสินค้าเงียบๆ)
-        taxLineType: "HIRE_OF_WORK" as const,
-        description: item.name,
-        totalQuantity: item.quantity,
-        subtotal: item.totalPrice,
-        products: {
-          create: [{
-            sortOrder: 0,
-            productType: "OTHER",
-            description: item.name + (item.description ? ` - ${item.description}` : ""),
-            baseUnitPrice: item.unitPrice,
-            totalQuantity: item.quantity,
-            subtotal: item.totalPrice,
-            variants: {
-              create: [{ size: "FREE", quantity: item.quantity }],
-            },
-          }],
-        },
-      }));
+      const skeletonItems = quotationSkeletonItems(quotation.items);
 
       const convertedOrder = await withDocNumberRetry(() =>
         ctx.prisma.$transaction(async (tx) => {

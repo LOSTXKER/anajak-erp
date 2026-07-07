@@ -88,6 +88,24 @@ export function billedFloor(invoices: InvoiceForPlan[]): Prisma.Decimal {
   return floor.gt(0) ? floor : D(0);
 }
 
+// ด่านปิดงาน: ปิดงานต้องวางบิลครบก่อน — ธุรกิจเครดิตเทอม ปิดออเดอร์ที่ยังไม่วางบิล = หนี้หล่นเงียบ
+// นับแบบเดียวกับ exposure: max(ใบแจ้งหนี้ D+F, ใบเสร็จ) — งานขายสดออกแต่ใบเสร็จก็ผ่าน
+// (เก็บเงินจริงตามเทอมได้หลังปิดงาน — ลูกหนี้/aging ตามต่อให้)
+// caller (order.updateStatus) เช็ค COMPLETED && totalAmount > 0 ก่อนโหลดบิล/เรียก
+export function assertOrderFullyBilledForClose(params: {
+  orderTotal: number;
+  invoices: InvoiceForPlan[];
+}): void {
+  const billed = billedTotal(params.invoices, ["DEPOSIT_INVOICE", "FINAL_INVOICE"]);
+  const receipted = billedTotal(params.invoices, ["RECEIPT"]);
+  const handled = billed.gt(receipted) ? billed : receipted;
+  if (handled.lt(params.orderTotal)) {
+    badRequest(
+      `ปิดงานไม่ได้ — วางบิล/ออกใบเสร็จแล้ว ${handled.toFixed(2)} จากยอดออเดอร์ ${params.orderTotal.toFixed(2)} บาท · วางบิลส่วนที่เหลือก่อน (ถ้ายอดงานจริงเปลี่ยน ให้แก้ "ส่วนลด" ให้ยอดตรงก่อนปิด — รายการสินค้าแก้ไม่ได้แล้วหลังเริ่มผลิต)`
+    );
+  }
+}
+
 // ด่านขาที่สอง — เรียกใน $transaction ของ mutation ที่แก้ยอดออเดอร์ได้
 // (order.update/updateItems/updateFees/addRevisionFee/quotation.convertToOrder)
 // ล็อกแถวออเดอร์เองก่อนอ่านบิล — คู่กับ billing.create ที่ล็อกแถวเดียวกันก่อนเช็ค

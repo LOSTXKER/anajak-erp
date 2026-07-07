@@ -3,6 +3,7 @@ import {
   billedTotal,
   remainingBillable,
   billedFloor,
+  assertOrderFullyBilledForClose,
   splitVatFromGross,
   thaiDateUtcMidnight,
   dueDateFromTerms,
@@ -185,6 +186,47 @@ describe("billedFloor", () => {
     const floor = billedFloor(invoices).toNumber();
     expect(remainingBillable(floor, invoices, "FINAL_INVOICE")!.gte(0)).toBe(true);
     expect(remainingBillable(floor, invoices, "RECEIPT")!.gte(0)).toBe(true);
+  });
+});
+
+// ด่านปิดงาน: วางบิลครบก่อนปิด — handled = max(กองใบแจ้งหนี้ D+F, กองใบเสร็จ)
+describe("assertOrderFullyBilledForClose", () => {
+  const close = (orderTotal: number, invoices: InvoiceForPlan[]) => () =>
+    assertOrderFullyBilledForClose({ orderTotal, invoices });
+
+  it("ยังไม่วางบิลเลย → ปฏิเสธ พร้อมยอดในข้อความ", () => {
+    expect(close(5000, [])).toThrow(/ปิดงานไม่ได้/);
+    expect(close(5000, [])).toThrow(/0\.00 จากยอดออเดอร์ 5000\.00/);
+  });
+
+  it("มัดจำ+ส่วนที่เหลือรวมเท่ายอดพอดี → ผ่าน (boundary: เท่ากันไม่ติด)", () => {
+    expect(
+      close(5000, [inv("DEPOSIT_INVOICE", 2500), inv("FINAL_INVOICE", 2500)])
+    ).not.toThrow();
+  });
+
+  it("วางแค่มัดจำ → ปฏิเสธ", () => {
+    expect(close(5000, [inv("DEPOSIT_INVOICE", 2500)])).toThrow(/ปิดงานไม่ได้/);
+  });
+
+  it("ขายสดออกแต่ใบเสร็จเต็มยอด (ไม่มีใบแจ้งหนี้) → ผ่าน (นับกองใบเสร็จ)", () => {
+    expect(close(5000, [inv("RECEIPT", 5000)])).not.toThrow();
+  });
+
+  it("สองกองเอากองที่มากกว่า ไม่บวกข้ามกอง", () => {
+    expect(
+      close(5000, [inv("DEPOSIT_INVOICE", 2500), inv("RECEIPT", 5000)])
+    ).not.toThrow();
+  });
+
+  it("ใบ voided ไม่นับ", () => {
+    expect(close(5000, [inv("FINAL_INVOICE", 5000, true)])).toThrow(/ปิดงานไม่ได้/);
+  });
+
+  it("ใบเพิ่มหนี้/ลดหนี้ไม่เข้ากองไหน — REC 4000 + DN 1000 ยังไม่ครบ 5000", () => {
+    expect(
+      close(5000, [inv("RECEIPT", 4000), inv("DEBIT_NOTE", 1000)])
+    ).toThrow(/ปิดงานไม่ได้/);
   });
 });
 
