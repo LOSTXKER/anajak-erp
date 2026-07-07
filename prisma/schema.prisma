@@ -164,6 +164,9 @@ model User {
   email         String   @unique
   name          String
   role          Role     @default(SALES)
+  // PERM (เบสเคาะ 2026-07-06): สิทธิ์รายคนทับค่า default ของ role — JSON {"<permission>": true|false}
+  // null/ไม่มี key = ใช้ default ตาม role · นิยาม catalog + ตัวเช็คอยู่ src/lib/permissions.ts
+  permissionOverrides Json? @map("permission_overrides")
   avatarUrl     String?  @map("avatar_url")
   isActive      Boolean  @default(true) @map("is_active")
   createdAt     DateTime @default(now()) @map("created_at")

@@ -53,7 +53,7 @@
 - [ ] C6 LINE OA notify (P3 เดิม — ระหว่างนี้ template ก๊อปส่ง + ถอดช่อง LINE token ปลอมออกจาก settings)
 
 ### 🔑 PERM — ระบบสิทธิ์รายคน (เบสเคาะ 2026-07-06: ทาง B · ทำทีเดียวทั้ง 20 สิทธิ์ · ใบงานเต็ม+เหตุผล: `docs/spec-user-permissions.md` · ~6-7 วันทำงาน)
-- [ ] PERM1 **โครง**: permission catalog 20 ตัว (constants ใน lib/roles.ts) + `permissionOverrides` JSON บนตาราง users (migration additive) + helper `hasPermission(role, overrides, perm)` — default ต่อ role ตรงพฤติกรรมปัจจุบันเป๊ะ + unit test matrix 6 role × 20 สิทธิ์
+- [x] PERM1 **โครง** ✅ 2026-07-07: catalog **19 สิทธิ์** ใน `lib/permissions.ts` (ยุบจากชุด role จริง 24 แบบ · defaultRoles ถอดจาก requireRole ทุก router ณ วันนี้ · จุดชุดไม่ตรง catalog — product.delete/cost.delete/attachment inline/วงเงิน SALES — คงเช็คเดิม จดให้ PERM3) + `permissionOverrides` JSON บน users (migration `20260707053836` applied) + `hasPermission`/`effectivePermissions`/`parsePermissionOverrides` (ข้อมูลเสีย fail กลับ default · manage_users ไม่รับ override กันล็อคตัวเอง) + เทส matrix 6×19 pin ตารางแยกอิสระ (unit 416)
 - [ ] PERM2 **UI**: /settings/users ปุ่ม "สิทธิ์" ต่อคน → dialog checklist จัดกลุ่ม (โชว์ค่า default ของ role แยกจาก override) + `user.setPermissions` (ownerOnly · กันแก้ตัวเอง · audit log ทุกครั้ง)
 - [ ] PERM3 **migrate server**: requireRole 111 จุด + canSee*/strip 16 + เทียบ role ตรง 12 + ชุดสถานะต่อ role → วิ่งผ่าน hasPermission (ทีละ router · commit ก้อนเล็ก · ctx โหลด overrides มากับ user query เดิม) · MCP/agent key ผ่าน helper เดียวกัน
 - [ ] PERM4 **migrate client**: roleAllows/inline 60 จุด → effective permissions จาก user.me (sidebar/⌘K/ปุ่มสร้าง/คอลัมน์เงิน/showMoney)
