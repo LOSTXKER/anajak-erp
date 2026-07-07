@@ -4,6 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { ROLE_LABELS, ROLE_OPTIONS } from "@/lib/roles";
+import {
+  PERMISSIONS,
+  PERMISSION_DEFS,
+  NON_OVERRIDABLE_PERMISSIONS,
+  defaultPermissionsOf,
+  effectivePermissions,
+  parsePermissionOverrides,
+} from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +25,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ArrowLeft, KeyRound, Plus, Users } from "lucide-react";
+import { ArrowLeft, KeyRound, Plus, ShieldCheck, Users } from "lucide-react";
 import type { Role } from "@prisma/client";
 
 export default function UsersSettingsPage() {
@@ -35,6 +43,9 @@ export default function UsersSettingsPage() {
   });
   const [resetTarget, setResetTarget] = useState<{ id: string; name: string } | null>(null);
   const [resetPassword, setResetPassword] = useState("");
+  // PERM2: dialog ติ๊กสิทธิ์รายคน — draft เก็บ "สถานะติ๊กจริง" ทุกสิทธิ์ระหว่างแก้
+  const [permTarget, setPermTarget] = useState<{ id: string; name: string; role: Role } | null>(null);
+  const [permDraft, setPermDraft] = useState<Record<string, boolean>>({});
 
   const createMutation = trpc.user.create.useMutation({
     onSuccess: () => {
@@ -58,6 +69,32 @@ export default function UsersSettingsPage() {
       setResetPassword("");
     },
   });
+
+  const setPermissionsMutation = trpc.user.setPermissions.useMutation({
+    onSuccess: () => {
+      utils.user.list.invalidate();
+      setPermTarget(null);
+    },
+  });
+
+  const openPermissions = (user: { id: string; name: string; role: Role; permissionOverrides: unknown }) => {
+    const eff = effectivePermissions(user.role, parsePermissionOverrides(user.permissionOverrides));
+    setPermTarget({ id: user.id, name: user.name, role: user.role });
+    setPermDraft(Object.fromEntries(PERMISSIONS.map((p) => [p, eff.includes(p)])));
+    setPermissionsMutation.reset();
+  };
+
+  const handleSavePermissions = () => {
+    if (!permTarget) return;
+    // ส่งเฉพาะคู่ที่ต่างจาก default ของ role — server กรองซ้ำอีกชั้น
+    const defaults = defaultPermissionsOf(permTarget.role);
+    const overrides: Record<string, boolean> = {};
+    for (const p of PERMISSIONS) {
+      if (NON_OVERRIDABLE_PERMISSIONS.includes(p)) continue;
+      if (permDraft[p] !== defaults.includes(p)) overrides[p] = permDraft[p];
+    }
+    setPermissionsMutation.mutate({ id: permTarget.id, overrides });
+  };
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -282,6 +319,23 @@ export default function UsersSettingsPage() {
                           />
                         </td>
                         <td className="px-3 py-2.5 text-right">
+                          {!isSelf && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openPermissions(user)}
+                              className="h-7 px-2 text-slate-500 hover:text-blue-600"
+                            >
+                              <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                              สิทธิ์
+                              {(() => {
+                                const n = Object.keys(
+                                  parsePermissionOverrides(user.permissionOverrides)
+                                ).length;
+                                return n > 0 ? ` (${n})` : "";
+                              })()}
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -364,6 +418,121 @@ export default function UsersSettingsPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* PERM2: ติ๊กสิทธิ์รายคน — ค่าเริ่มต้นตาม role · ติ๊กต่าง = override เฉพาะคนนี้ */}
+      <Dialog
+        open={permTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPermTarget(null);
+            setPermissionsMutation.reset();
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>สิทธิ์ของ {permTarget?.name}</DialogTitle>
+            <DialogDescription>
+              ค่าเริ่มต้นตามตำแหน่ง {permTarget ? ROLE_LABELS[permTarget.role] : ""} — ติ๊กต่างจาก
+              ค่าเริ่มต้นได้เฉพาะคนนี้ (มีป้าย &quot;ปรับเอง&quot; กำกับ)
+            </DialogDescription>
+          </DialogHeader>
+          {permTarget && (
+            <div className="space-y-4">
+              {[...new Set(PERMISSION_DEFS.map((d) => d.group))].map((group) => (
+                <div key={group}>
+                  <p className="mb-1.5 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+                    {group}
+                  </p>
+                  <div className="space-y-1">
+                    {PERMISSION_DEFS.filter((d) => d.group === group).map((def) => {
+                      const locked = NON_OVERRIDABLE_PERMISSIONS.includes(def.key);
+                      const isDefault = def.defaultRoles.includes(permTarget.role);
+                      const checked = locked ? isDefault : (permDraft[def.key] ?? false);
+                      const overridden = !locked && checked !== isDefault;
+                      return (
+                        <label
+                          key={def.key}
+                          className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm ${
+                            locked
+                              ? "cursor-not-allowed opacity-50"
+                              : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={locked}
+                              onChange={() =>
+                                setPermDraft((d) => ({ ...d, [def.key]: !checked }))
+                              }
+                              className="h-4 w-4 accent-blue-600"
+                            />
+                            {def.label}
+                          </span>
+                          <span className="flex shrink-0 items-center gap-1.5">
+                            {overridden && (
+                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                                ปรับเอง
+                              </span>
+                            )}
+                            {locked && (
+                              <span className="text-[10px] text-slate-400">เจ้าของเท่านั้น</span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {setPermissionsMutation.error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                  {setPermissionsMutation.error.message}
+                </div>
+              )}
+              <div className="flex justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setPermDraft(
+                      Object.fromEntries(
+                        PERMISSIONS.map((p) => [
+                          p,
+                          defaultPermissionsOf(permTarget.role).includes(p),
+                        ])
+                      )
+                    )
+                  }
+                >
+                  รีเซ็ตเป็นค่าเริ่มต้น
+                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPermTarget(null)}
+                  >
+                    ยกเลิก
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSavePermissions}
+                    disabled={setPermissionsMutation.isPending}
+                  >
+                    {setPermissionsMutation.isPending ? "กำลังบันทึก..." : "บันทึกสิทธิ์"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
