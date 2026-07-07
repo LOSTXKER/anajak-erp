@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
-import { ORDER_MONEY_ROLES, roleAllows } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { CustomerPicker, type PickerCustomer } from "@/components/customers/customer-picker";
 import { customerProfileGaps } from "@/lib/customer-gaps";
@@ -28,7 +28,7 @@ export function OrderCustomerSection({
   // วงเงินเครดิต = เงินฝั่งขาย — ช่าง/กราฟิกห้ามเห็น (Policy ⑦ · server requireRole แล้ว
   // หน้านี้เป็นของทีมขายอยู่แล้ว แต่กันไว้อีกชั้น) · me ยังไม่โหลด = ซ่อนก่อน (B12)
   const { data: me } = trpc.user.me.useQuery();
-  const canSeeCredit = roleAllows(me?.role, ORDER_MONEY_ROLES);
+  const canSeeCredit = permAllows(me?.permissions, "see_order_money");
 
   // ภาระหนี้เทียบวงเงิน — เตือนตั้งแต่ตอนเลือกลูกค้า (ด่านจริงอยู่ฝั่ง server ตอนยืนยันออเดอร์)
   const creditStatus = trpc.customer.creditStatus.useQuery(

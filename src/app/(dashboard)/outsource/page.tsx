@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,9 +105,9 @@ export default function OutsourcePage() {
   const utils = trpc.useUtils();
   const { data: me } = trpc.user.me.useQuery();
   // ตัดสิน QC = อำนาจหัวหน้า (ตรง server) — staff เห็นปุ่มรับส่งของเท่านั้น
-  const canJudgeQc = !!me && ["OWNER", "MANAGER"].includes(me.role);
+  const canJudgeQc = !!me && permAllows(me.permissions, "supervise_operations");
   // รับส่งของ = ทีมผลิตขึ้นไป (ตรง productionUp ฝั่ง server) — role อื่นดูได้อย่างเดียว
-  const canHandleGoods = !!me && ["OWNER", "MANAGER", "PRODUCTION_STAFF"].includes(me.role);
+  const canHandleGoods = !!me && permAllows(me.permissions, "manage_production");
 
   const {
     data: vendors,

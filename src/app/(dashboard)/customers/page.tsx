@@ -17,7 +17,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatCurrency } from "@/lib/utils";
-import { ORDER_MONEY_ROLES, roleAllows } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import { PAYMENT_TERMS, type PaymentTermsValue } from "@/lib/payment-terms";
 import { PageHeader } from "@/components/page-header";
 import { Plus, Users, UserPlus, Crown, UserX, Building2, User } from "lucide-react";
@@ -67,7 +67,7 @@ export default function CustomersPage() {
   // วงเงินเครดิต = การตัดสินใจความเสี่ยง — SALES ตั้งเองไม่ได้ (ตรง server guard ฝั่ง create)
   const canSetCredit = !me || me.role !== "SALES";
   // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนคอลัมน์ยอดรวมทั้งแถบ (server ส่ง null มาอยู่แล้ว)
-  const canSeeMoney = roleAllows(me?.role, ORDER_MONEY_ROLES);
+  const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const statsQuery = trpc.customer.stats.useQuery();
   const { data, isLoading, isError, refetch } = trpc.customer.list.useQuery(
     {

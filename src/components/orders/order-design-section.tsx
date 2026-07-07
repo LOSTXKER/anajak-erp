@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import {
   computeRevisionOverage,
@@ -94,8 +95,8 @@ export function OrderDesignSection({
   // ปุ่มต้องตรงสิทธิ์ server (audit ข้อ 29): อัปแบบ = กราฟิกขึ้นไป (designerUp) ·
   // บันทึกผลแทนลูกค้า = ฝั่งขาย (salesUp — คนถือความสัมพันธ์ลูกค้า ไม่ใช่คนวาดเอง)
   const { data: me } = trpc.user.me.useQuery();
-  const roleCanUpload = !me || ["OWNER", "MANAGER", "DESIGNER"].includes(me.role);
-  const roleCanApprove = !me || ["OWNER", "MANAGER", "SALES"].includes(me.role);
+  const roleCanUpload = !me || permAllows(me.permissions, "manage_design_files");
+  const roleCanApprove = !me || permAllows(me.permissions, "create_sales_docs");
   const canUpload = internalStatus === "DESIGNING" && roleCanUpload;
 
   const canApprove = internalStatus === "DESIGNING" && roleCanApprove;

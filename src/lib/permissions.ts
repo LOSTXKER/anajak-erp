@@ -135,3 +135,16 @@ export function defaultPermissionsOf(role: Role): Permission[] {
 export function effectivePermissions(role: Role, overridesRaw: unknown): Permission[] {
   return PERMISSIONS.filter((p) => hasPermission(role, overridesRaw, p));
 }
+
+// ตัวกรองเมนู/ปุ่ม/คอลัมน์ฝั่งจอ — คู่ขนาน roleAllows เดิม (PERM4):
+// ไม่ระบุ required = ทุกคนเห็น · ชุดสิทธิ์ยังไม่โหลด (undefined) = ซ่อนของ gated
+// กัน flash เมนูเงินให้ช่างชั่ววินาที · ส่ง array = มีสิทธิ์ตัวใดตัวหนึ่งพอ
+export function permAllows(
+  perms: readonly string[] | null | undefined,
+  required?: Permission | Permission[]
+): boolean {
+  if (!required) return true;
+  if (!perms) return false;
+  const list = Array.isArray(required) ? required : [required];
+  return list.some((p) => perms.includes(p));
+}

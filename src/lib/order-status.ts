@@ -361,26 +361,26 @@ export function isRollbackTransition(from: InternalStatus, to: InternalStatus): 
 }
 
 // UI ใช้ซ่อนปุ่มให้ตรงกับ server — server ยังเป็นด่านจริงเสมอ
-export function canRoleSetStatus(
-  role: string | null | undefined,
+// PERM4: เช็คจากชุดสิทธิ์จริงของคน (user.me.permissions) — mirror ตรรกะ order.updateStatus
+// เป๊ะ: กลุ่มเป้าหมาย 4 กลุ่ม + ถอยคิวเฉพาะจาก PRODUCING + rollback ต้องมีสิทธิ์งานหัวหน้า
+export function canPermsSetStatus(
+  perms: readonly string[] | null | undefined,
   from: InternalStatus,
   to: InternalStatus
 ): boolean {
-  if (!role) return true; // role ยังโหลดไม่เสร็จ — ไม่ flash ซ่อนปุ่ม
-  if (isRollbackTransition(from, to)) return ["OWNER", "MANAGER"].includes(role);
-  switch (role) {
-    case "PRODUCTION_STAFF":
-      return (
-        PRODUCTION_STAFF_STATUSES.includes(to) ||
-        (to === "PRODUCTION_QUEUE" && from === "PRODUCING")
-      );
-    case "DESIGNER":
-      return DESIGNER_STATUSES.includes(to);
-    case "ACCOUNTANT":
-      return ACCOUNTANT_STATUSES.includes(to);
-    default:
-      return true; // OWNER / MANAGER / SALES
+  if (!perms) return true; // สิทธิ์ยังโหลดไม่เสร็จ — ไม่ flash ซ่อนปุ่ม
+  const has = (p: string) => perms.includes(p);
+  if (isRollbackTransition(from, to) && !has("supervise_operations")) return false;
+  if (PRODUCTION_STAFF_STATUSES.includes(to)) return has("update_order_status_production");
+  if (DESIGNER_STATUSES.includes(to)) return has("update_order_status_design");
+  if (ACCOUNTANT_STATUSES.includes(to)) return has("close_orders");
+  if (to === "PRODUCTION_QUEUE") {
+    return (
+      has("update_order_status_sales") ||
+      (has("update_order_status_production") && from === "PRODUCING")
+    );
   }
+  return has("update_order_status_sales");
 }
 
 // ============================================================

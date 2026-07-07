@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
+import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,9 +55,9 @@ export default function ProductionDetailPage({
 
   const isProductionStaff = me?.role === "PRODUCTION_STAFF";
   // เปิดใบส่งร้านนอก = ผู้จัดการขึ้นไป (ตรง managerUp ฝั่ง server)
-  const canOutsource = !!me && ["OWNER", "MANAGER"].includes(me.role);
+  const canOutsource = !!me && permAllows(me.permissions, "supervise_operations");
   // อัปเดต/ผ่านรวดขั้นตอน = ทีมผลิตขึ้นไป (ตรง productionTeam ฝั่ง server — กันปุ่มที่กดแล้ว FORBIDDEN)
-  const canUpdateStep = !!me && ["OWNER", "MANAGER", "PRODUCTION_STAFF"].includes(me.role);
+  const canUpdateStep = !!me && permAllows(me.permissions, "manage_production");
 
   // ผ่านรวด — ปิดขั้นร้านนอกคลิกเดียว (เบสเคาะ 2026-06-12: outsource ไม่ต้องกรอกอะไร)
   const quickPass = useMutationWithInvalidation(trpc.production.updateStep, {

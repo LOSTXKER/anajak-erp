@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
-import { roleAllows, SALES_DOC_ROLES, ORDER_MONEY_ROLES } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -193,9 +193,9 @@ export default function OrdersPage() {
 
   const { data: me } = trpc.user.me.useQuery();
   // เปิดออเดอร์ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ปุ่มสร้าง (B12)
-  const canCreateOrder = roleAllows(me?.role, SALES_DOC_ROLES);
+  const canCreateOrder = permAllows(me?.permissions, "create_sales_docs");
   // ⑦ ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนคอลัมน์ยอดรวม + sort ยอดรวม (ระหว่างโหลด me = ซ่อนไว้ก่อน ปลอดภัยกว่า)
-  const canSeeMoney = roleAllows(me?.role, ORDER_MONEY_ROLES);
+  const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const sortOptions = canSeeMoney
     ? SORT_OPTIONS
     : SORT_OPTIONS.filter((o) => !o.value.startsWith("totalAmount"));

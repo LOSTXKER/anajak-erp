@@ -6,7 +6,7 @@ import { Bell, Search, CheckCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { roleAllows, SALES_DOC_ROLES } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { CommandPalette } from "./command-palette";
 import { UserMenu } from "./user-menu";
@@ -37,7 +37,7 @@ export function Topbar() {
   const { data: me } = trpc.user.me.useQuery();
   // เปิดงานใหม่ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12:
   // กดแล้วกรอกทั้งฟอร์มค่อยโดน FORBIDDEN · ตรงกับ ⌘K ที่ gate create actions แล้ว)
-  const canCreateOrder = roleAllows(me?.role, SALES_DOC_ROLES);
+  const canCreateOrder = permAllows(me?.permissions, "create_sales_docs");
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

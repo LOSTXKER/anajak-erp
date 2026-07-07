@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
-import { roleAllows, SALES_DOC_ROLES, ORDER_MONEY_ROLES } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -35,9 +35,9 @@ export default function QuotationsPage() {
 
   const { data: me } = trpc.user.me.useQuery();
   // สร้างใบเสนอ = สิทธิ์ขาย (quotation.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12)
-  const canCreateQuotation = roleAllows(me?.role, SALES_DOC_ROLES);
+  const canCreateQuotation = permAllows(me?.permissions, "create_sales_docs");
   // ใบเสนอทั้งหน้าเป็นเรื่องราคาขาย — ช่าง/กราฟิกห้ามเห็น (Policy ⑦ · ตรงกับ requireRole ฝั่ง server)
-  const canView = me ? ORDER_MONEY_ROLES.includes(me.role) : true;
+  const canView = me ? permAllows(me.permissions, "see_order_money") : true;
 
   const { data, isLoading, isError, refetch } = trpc.quotation.list.useQuery(
     {

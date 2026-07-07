@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +51,7 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
 
   const utils = trpc.useUtils();
   const { data: me } = trpc.user.me.useQuery();
-  const canAssign = !!me && ["OWNER", "MANAGER"].includes(me.role);
+  const canAssign = !!me && permAllows(me.permissions, "supervise_operations");
 
   // รายชื่อมอบหมายงาน — โหลดเฉพาะหัวหน้า (endpoint เป็น managerUp)
   const assignables = trpc.user.assignables.useQuery(undefined, {

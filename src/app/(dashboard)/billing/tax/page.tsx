@@ -26,7 +26,7 @@ import {
   type SalesTaxRow,
 } from "@/lib/sales-tax-report";
 import { Download, FileSpreadsheet, ReceiptText, Ban, Coins } from "lucide-react";
-import { FINANCE_ROLES } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 
 // รายงานภาษีขายรายเดือน (Gate B5) — ใบกำกับภาษีของงวด (ใบเสร็จ/ใบกำกับ + ใบลดหนี้/เพิ่มหนี้)
 // งวดตาม issueDate (tax point B3) · export 2 แบบ: CSV รายงานภาษีขาย (ยื่น ภ.พ.30) + CSV
@@ -83,7 +83,7 @@ export default function SalesTaxReportPage() {
   const periodLabel = `${THAI_MONTHS[month - 1]} ${year + 543}`;
 
   const { data: me } = trpc.user.me.useQuery();
-  const canView = me ? FINANCE_ROLES.includes(me.role) : true;
+  const canView = me ? permAllows(me.permissions, "manage_billing_docs") : true;
 
   const { data, isLoading, isError, refetch } = trpc.billing.salesTaxReport.useQuery(
     { year, month },

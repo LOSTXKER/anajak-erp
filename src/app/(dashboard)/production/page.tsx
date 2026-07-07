@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import { CreateProductionDialog } from "@/components/production/create-productio
 import { QcCountDialog } from "@/components/qc/order-qc-section";
 import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
-import { canRoleSetStatus, PRIORITY_LABELS } from "@/lib/order-status";
+import { canPermsSetStatus, PRIORITY_LABELS } from "@/lib/order-status";
 import {
   STEP_TYPE_LABELS,
   laneOf,
@@ -208,10 +209,10 @@ function ProductionWorkspace() {
 
   const all = orders ?? [];
   const role = me?.role;
-  const canCreate = !!role && ["OWNER", "MANAGER"].includes(role);
+  const canCreate = permAllows(me?.permissions, "supervise_operations");
   const canQc = canCreate;
   // ตรวจนับ QC + รับของกลับ = งานหน้างานทีมผลิต (ตรง server: qc.create / goodsReceipt.create)
-  const canCountQc = !!role && ["OWNER", "MANAGER", "PRODUCTION_STAFF"].includes(role);
+  const canCountQc = permAllows(me?.permissions, "manage_production");
 
   // คิวรอเปิดใบผลิต — CONFIRMED มาเฉพาะ READY_MADE (server กรองแล้ว: เสื้อเปล่าจาก
   // สต๊อคไม่มีขั้นออกแบบ จุดพร้อมผลิตคือ CONFIRMED) + เคสหลุด: PRODUCING ไร้ใบผลิต
@@ -469,7 +470,7 @@ function ProductionWorkspace() {
                 <LaneCardView
                   key={`${card.productionId}:${card.lane}`}
                   card={card}
-                  role={role}
+                  perms={me?.permissions}
                   meId={me?.id}
                   canQc={canQc}
                   busy={busy}
@@ -511,7 +512,7 @@ function ProductionWorkspace() {
                       <LaneCardView
                         key={`${card.productionId}:${card.lane}`}
                         card={card}
-                        role={role}
+                        perms={me?.permissions}
                         meId={me?.id}
                         canQc={canQc}
                         busy={busy}
@@ -559,7 +560,7 @@ function ProductionWorkspace() {
                   ) : (
                     cards.map((o) => {
                       const canAdvance =
-                        col.next && canRoleSetStatus(role, o.internalStatus as InternalStatus, col.next.to);
+                        col.next && canPermsSetStatus(me?.permissions, o.internalStatus as InternalStatus, col.next.to);
                       const href = o.productionId ? `/production/${o.productionId}` : `/orders/${o.id}`;
                       return (
                         <div
@@ -697,7 +698,7 @@ function OrderCardHeader({ order, href }: { order: KanbanOrder; href: string }) 
 // การ์ดงานบนเลนเทคนิค — โชว์ขั้นปัจจุบันของสายนั้น + ปุ่มกดสั้นๆ ตามชนิดงาน
 function LaneCardView({
   card,
-  role,
+  perms,
   meId,
   canQc,
   busy,
@@ -709,7 +710,7 @@ function LaneCardView({
   onReceiveBack,
 }: {
   card: LaneCard;
-  role: string | null | undefined;
+  perms: readonly string[] | undefined;
   meId: string | undefined;
   canQc: boolean;
   busy: boolean;
@@ -734,10 +735,10 @@ function LaneCardView({
   const activePrintRun = step.printRunItems[0]?.printRun ?? null;
   // ช่างแตะได้เฉพาะงานของตัวเอง/งานที่ยังไม่มีเจ้าของ (ตรง server) — ปุ่มบนงานของ
   // คนอื่นกดแล้ว FORBIDDEN แน่นอน จึงไม่โชว์ แสดงชื่อเจ้าของแทน
+  // ไม่ใช่หัวหน้า = แตะได้เฉพาะงานตัวเอง/งานยังไม่มีเจ้าของ (ตรง server updateStep)
   const ownedByOther =
-    role === "PRODUCTION_STAFF" && !!step.assignedTo && step.assignedTo.id !== meId;
-  const canTouchStep =
-    !!role && ["OWNER", "MANAGER", "PRODUCTION_STAFF"].includes(role) && !ownedByOther;
+    !permAllows(perms, "supervise_operations") && !!step.assignedTo && step.assignedTo.id !== meId;
+  const canTouchStep = permAllows(perms, "manage_production") && !ownedByOther;
 
   const isOverdue =
     !!card.order.deadline && new Date(card.order.deadline) < new Date();

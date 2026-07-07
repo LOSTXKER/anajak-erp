@@ -19,7 +19,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/utils";
-import { FINANCE_ROLES } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import {
   Users,
@@ -44,7 +44,7 @@ const BUCKETS = [
 
 export default function AgingPage() {
   const { data: me } = trpc.user.me.useQuery();
-  const canView = me ? FINANCE_ROLES.includes(me.role) : true;
+  const canView = me ? permAllows(me.permissions, "manage_billing_docs") : true;
   const { data, isLoading, isError, refetch } = trpc.billingNote.aging.useQuery(undefined, {
     enabled: canView,
   });

@@ -32,7 +32,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { FileStack, Plus, Printer, Ban, Loader2 } from "lucide-react";
-import { FINANCE_ROLES } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 
 export default function BillingNotesPage() {
@@ -50,7 +50,7 @@ export default function BillingNotesPage() {
   const [notes, setNotes] = useState("");
 
   const { data: me } = trpc.user.me.useQuery();
-  const canView = me ? FINANCE_ROLES.includes(me.role) : true;
+  const canView = me ? permAllows(me.permissions, "manage_billing_docs") : true;
 
   const utils = trpc.useUtils();
   const { data, isLoading, isError, refetch } = trpc.billingNote.list.useQuery(

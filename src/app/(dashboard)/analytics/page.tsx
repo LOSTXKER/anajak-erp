@@ -1,6 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
+import { permAllows } from "@/lib/permissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { Badge } from "@/components/ui/badge";
@@ -15,14 +16,13 @@ import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
 
-const REVENUE_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
-const AUDIT_ROLES = ["OWNER", "MANAGER"];
+
 
 export default function AnalyticsPage() {
   const { data: me } = trpc.user.me.useQuery();
   // ปิด query ที่ role ไม่มีสิทธิ์ — กันยิงไปโดน FORBIDDEN + retry ฟรี 3 รอบ
-  const canViewRevenue = me ? REVENUE_ROLES.includes(me.role) : false;
-  const canViewAudit = me ? AUDIT_ROLES.includes(me.role) : false;
+  const canViewRevenue = me ? permAllows(me.permissions, "see_finance") : false;
+  const canViewAudit = me ? permAllows(me.permissions, "view_admin_reports") : false;
 
   const {
     data: dashboard,

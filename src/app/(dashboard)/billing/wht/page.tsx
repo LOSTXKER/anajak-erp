@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
-import { FINANCE_ROLES } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import {
   ReceiptText,
   Download,
@@ -131,7 +131,7 @@ export default function WhtRegisterPage() {
   }, [search]);
 
   const { data: me } = trpc.user.me.useQuery();
-  const canView = me ? FINANCE_ROLES.includes(me.role) : true;
+  const canView = me ? permAllows(me.permissions, "manage_billing_docs") : true;
 
   const utils = trpc.useUtils();
   const { data: rows, isLoading, isError, refetch } = trpc.wht.list.useQuery(

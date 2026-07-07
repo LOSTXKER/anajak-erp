@@ -30,12 +30,7 @@ import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
-import {
-  FINANCE_ROLES,
-  ORDER_MONEY_ROLES,
-  MONEY_RECORDER_ROLES,
-  roleAllows,
-} from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 import {
@@ -129,12 +124,12 @@ export function OrderBillingSection({
   // สิทธิ์เปิดบิล — ตรงกับ billingStaff ฝั่ง server · ปิด query/ปุ่มสำหรับ role อื่น
   // (กันยิงไปโดน FORBIDDEN + retry ฟรี — pattern เดียวกับหน้า analytics)
   const me = trpc.user.me.useQuery();
-  const canBill = roleAllows(me.data?.role, FINANCE_ROLES);
+  const canBill = permAllows(me.data?.permissions, "manage_billing_docs");
   // เห็นการ์ดบิล/ยอดรับชำระ — ตรงกับ gate ของ billing.listByOrder (Gate A2:
   // ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย ทั้งการ์ดนี้และ order.getById)
-  const canViewBilling = roleAllows(me.data?.role, ORDER_MONEY_ROLES);
+  const canViewBilling = permAllows(me.data?.permissions, "see_order_money");
   // บันทึกรับเงิน/คืนเงิน/ยกเลิกบิล — ตรงกับ moneyRecorder ฝั่ง server (แคบกว่า canBill)
-  const canRecordMoney = roleAllows(me.data?.role, MONEY_RECORDER_ROLES);
+  const canRecordMoney = permAllows(me.data?.permissions, "record_payments");
 
   const invoices = trpc.billing.listByOrder.useQuery(
     { orderId },

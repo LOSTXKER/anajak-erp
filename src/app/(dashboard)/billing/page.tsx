@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
-import { FINANCE_ROLES } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 import {
   DollarSign,
@@ -75,7 +75,7 @@ export default function BillingPage() {
 
   const { data: me } = trpc.user.me.useQuery();
   // หน้าการเงินทั้งหน้าเป็นของฝั่งบริหาร-บัญชี (ตรงกับ requireRole ฝั่ง server)
-  const canView = me ? FINANCE_ROLES.includes(me.role) : true;
+  const canView = me ? permAllows(me.permissions, "manage_billing_docs") : true;
   const stats = trpc.billing.stats.useQuery(undefined, {
     enabled: canView,
   });

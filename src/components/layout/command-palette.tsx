@@ -23,8 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
-import { FINANCE_ROLES, SALES_DOC_ROLES, ORDER_MONEY_ROLES, roleAllows } from "@/lib/roles";
-import type { Role } from "@prisma/client";
+import { permAllows, type Permission } from "@/lib/permissions";
 
 type CommandItem = {
   id: string;
@@ -34,8 +33,8 @@ type CommandItem = {
   icon: React.ComponentType<{ className?: string; strokeWidth?: number | string }>;
   keywords?: string;
   action: () => void;
-  // จำกัดบทบาท — ไม่ระบุ = ทุกคน (B12: กันช่างพิมพ์ "บิล" ใน ⌘K แล้วกดเข้า /billing โดน FORBIDDEN)
-  roles?: Role[];
+  // จำกัดสิทธิ์ — ไม่ระบุ = ทุกคน (B12+PERM4: รายการตามสิทธิ์จริงของคน ตรงด่าน server)
+  permission?: Permission;
 };
 
 interface CommandPaletteProps {
@@ -68,7 +67,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         icon: Plus,
         keywords: "create order new add",
         action: () => navigate("/orders/new"),
-        roles: SALES_DOC_ROLES,
+        permission: "create_sales_docs",
       },
       {
         id: "new-quotation",
@@ -78,21 +77,21 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         icon: Plus,
         keywords: "create quotation",
         action: () => navigate("/quotations/new"),
-        roles: SALES_DOC_ROLES,
+        permission: "create_sales_docs",
       },
       { id: "nav-dashboard", label: "Dashboard", group: "ไปที่", icon: LayoutDashboard, action: () => navigate("/") },
       { id: "nav-orders", label: "ออเดอร์", group: "ไปที่", icon: ShoppingCart, keywords: "order", action: () => navigate("/orders") },
-      { id: "nav-quotations", label: "ใบเสนอราคา", group: "ไปที่", icon: ClipboardList, keywords: "quotation quote", action: () => navigate("/quotations"), roles: ORDER_MONEY_ROLES },
+      { id: "nav-quotations", label: "ใบเสนอราคา", group: "ไปที่", icon: ClipboardList, keywords: "quotation quote", action: () => navigate("/quotations"), permission: "see_order_money" },
       { id: "nav-customers", label: "ลูกค้า", group: "ไปที่", icon: Users, keywords: "customer", action: () => navigate("/customers") },
       { id: "nav-production", label: "การผลิต", group: "ไปที่", icon: Factory, keywords: "production", action: () => navigate("/production") },
       { id: "nav-outsource", label: "Outsource", group: "ไปที่", icon: Truck, action: () => navigate("/outsource") },
       { id: "nav-products", label: "สินค้า", group: "ไปที่", icon: Package, keywords: "product", action: () => navigate("/products") },
       { id: "nav-patterns", label: "แพทเทิร์น", group: "ไปที่", icon: Scissors, keywords: "pattern", action: () => navigate("/settings/patterns") },
-      { id: "nav-billing", label: "บิล/การเงิน", group: "ไปที่", icon: FileText, keywords: "billing invoice", action: () => navigate("/billing"), roles: FINANCE_ROLES },
-      { id: "nav-billing-notes", label: "ใบวางบิล", group: "ไปที่", icon: FileText, keywords: "billing note", action: () => navigate("/billing/notes"), roles: FINANCE_ROLES },
-      { id: "nav-aging", label: "ลูกหนี้ค้างชำระ", group: "ไปที่", icon: FileText, keywords: "aging receivable", action: () => navigate("/billing/aging"), roles: FINANCE_ROLES },
-      { id: "nav-sales-tax", label: "ภาษีขาย", group: "ไปที่", icon: FileText, keywords: "sales tax vat peak ภาษี", action: () => navigate("/billing/tax"), roles: FINANCE_ROLES },
-      { id: "nav-analytics", label: "สถิติ", group: "ไปที่", icon: BarChart3, keywords: "analytics statistics", action: () => navigate("/analytics"), roles: FINANCE_ROLES },
+      { id: "nav-billing", label: "บิล/การเงิน", group: "ไปที่", icon: FileText, keywords: "billing invoice", action: () => navigate("/billing"), permission: "manage_billing_docs" },
+      { id: "nav-billing-notes", label: "ใบวางบิล", group: "ไปที่", icon: FileText, keywords: "billing note", action: () => navigate("/billing/notes"), permission: "manage_billing_docs" },
+      { id: "nav-aging", label: "ลูกหนี้ค้างชำระ", group: "ไปที่", icon: FileText, keywords: "aging receivable", action: () => navigate("/billing/aging"), permission: "manage_billing_docs" },
+      { id: "nav-sales-tax", label: "ภาษีขาย", group: "ไปที่", icon: FileText, keywords: "sales tax vat peak ภาษี", action: () => navigate("/billing/tax"), permission: "manage_billing_docs" },
+      { id: "nav-analytics", label: "สถิติ", group: "ไปที่", icon: BarChart3, keywords: "analytics statistics", action: () => navigate("/analytics"), permission: "see_finance" },
       { id: "nav-notifications", label: "การแจ้งเตือน", group: "ไปที่", icon: Bell, keywords: "notification", action: () => navigate("/notifications") },
       { id: "nav-settings", label: "ตั้งค่า", group: "ไปที่", icon: Settings, keywords: "settings", action: () => navigate("/settings") },
       { id: "nav-stock", label: "เชื่อมต่อ Stock", group: "ไปที่", icon: Cloud, keywords: "stock", action: () => navigate("/settings/stock") },
@@ -102,7 +101,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
   // กรองตาม role ก่อน (B12) — ช่าง/กราฟิกไม่เห็นเมนูเงิน/สร้างเอกสารขายใน ⌘K
   const items = React.useMemo(
-    () => allItems.filter((it) => roleAllows(me?.role, it.roles)),
+    () => allItems.filter((it) => permAllows(me?.permissions, it.permission)),
     [allItems, me?.role]
   );
 

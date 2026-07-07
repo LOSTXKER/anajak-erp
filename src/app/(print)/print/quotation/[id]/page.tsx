@@ -2,8 +2,7 @@
 // auth: middleware กัน session แล้ว (print อยู่นอก /api และ /approve)
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requirePrintRole } from "@/lib/supabase-server";
-import { ORDER_MONEY_ROLES } from "@/lib/roles";
+import { requirePrintPermission } from "@/lib/supabase-server";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
 import {
   PrintPage,
@@ -26,7 +25,7 @@ export default async function PrintQuotationPage({
   const { id } = await params;
 
   // B12: ใบเสนอราคา = เอกสารขาย (โชว์ราคา) — ทีมการเงิน+ขาย · ช่าง/กราฟิกไม่ต้องเปิด
-  await requirePrintRole(ORDER_MONEY_ROLES);
+  await requirePrintPermission("see_order_money");
 
   const [quotation, companySetting] = await Promise.all([
     prisma.quotation.findUnique({

@@ -4,7 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { roleAllows, SALES_DOC_ROLES, ORDER_MONEY_ROLES } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,14 +73,14 @@ export default function QuotationDetailPage({
 
   const { data: me } = trpc.user.me.useQuery();
   // ใบเสนอทั้งหน้าเป็นเรื่องราคาขาย — ช่าง/กราฟิกห้ามเห็น (Policy ⑦ · ตรงกับ requireRole ฝั่ง server)
-  const canView = me ? ORDER_MONEY_ROLES.includes(me.role) : true;
+  const canView = me ? permAllows(me.permissions, "see_order_money") : true;
   const { data: quotation, isLoading, isError, refetch } = trpc.quotation.getById.useQuery(
     { id },
     { enabled: canView }
   );
   // จัดการใบเสนอ (ส่ง/อนุมัติ/แก้ไข/แปลง) = สิทธิ์ขาย (server salesUp) · พิมพ์ = สิทธิ์เห็นเงินออเดอร์
-  const canManageQuotation = roleAllows(me?.role, SALES_DOC_ROLES);
-  const canPrintQuotation = roleAllows(me?.role, ORDER_MONEY_ROLES);
+  const canManageQuotation = permAllows(me?.permissions, "create_sales_docs");
+  const canPrintQuotation = permAllows(me?.permissions, "see_order_money");
   const utils = trpc.useUtils();
   const confirmDialog = useConfirm();
   const promptText = usePromptText();

@@ -6,6 +6,7 @@ import { createAuditLog } from "@/server/helpers";
 import {
   parsePermissionOverrides,
   defaultPermissionsOf,
+  effectivePermissions,
   NON_OVERRIDABLE_PERMISSIONS,
   type Permission,
   type PermissionOverrides,
@@ -26,11 +27,20 @@ const roleSchema = z.enum([
 
 export const userRouter = router({
   // ข้อมูลผู้ใช้ที่ login อยู่ — ใช้โดย user menu / layout
+  // PERM4: แนบชุดสิทธิ์จริง (default ± override) — จอโชว์เมนู/ปุ่มจากชุดนี้ แหล่งเดียวกับด่าน server
   me: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.prisma.user.findUniqueOrThrow({
+    const { permissionOverrides, ...user } = await ctx.prisma.user.findUniqueOrThrow({
       where: { id: ctx.userId },
-      select: { id: true, email: true, name: true, role: true, avatarUrl: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        avatarUrl: true,
+        permissionOverrides: true,
+      },
     });
+    return { ...user, permissions: effectivePermissions(user.role, permissionOverrides) };
   }),
 
   // รายชื่อสำหรับมอบหมายงาน (id+ชื่อ+role) — หัวหน้าใช้เลือกคนรับผิดชอบ step ผลิต

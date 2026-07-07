@@ -16,10 +16,10 @@ import {
   CHANNEL_COLORS,
   getFlowSteps,
   getNextStatuses,
-  canRoleSetStatus,
+  canPermsSetStatus,
 } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
-import { ORDER_MONEY_ROLES, roleAllows } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import {
   FileText,
   ChevronRight,
@@ -260,16 +260,16 @@ export default function OrderDetailPage({
   // ----------------------------------------------------------
   const flowSteps = getFlowSteps(order.orderType);
   const nextStatuses = getNextStatuses(order.orderType, order.internalStatus);
-  // ซ่อนปุ่มที่ role นี้กดแล้ว server ปฏิเสธ (ชุดกติกาเดียวกับ server — audit ข้อ 29)
+  // ซ่อนปุ่มที่คนนี้กดแล้ว server ปฏิเสธ (PERM4: ชุดสิทธิ์จริงเดียวกับด่าน server — audit ข้อ 29)
   const roleCanSetStatus = (to: string) =>
-    canRoleSetStatus(me?.role, order.internalStatus, to as InternalStatus);
+    canPermsSetStatus(me?.permissions, order.internalStatus, to as InternalStatus);
   const forwardStatuses = nextStatuses.filter((s) => s !== "CANCELLED" && roleCanSetStatus(s));
   const canCancel = nextStatuses.includes("CANCELLED") && roleCanSetStatus("CANCELLED");
-  // เมนูฝั่งขาย (แก้ข้อมูล/รายการ/สำเนา/ออกใบเสนอ) — server เป็น salesUp
-  const isSalesUp = !me || ["OWNER", "MANAGER", "SALES"].includes(me.role);
-  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ระหว่าง me โหลด roleAllows คืน false = ซ่อนไว้ก่อน
+  // เมนูฝั่งขาย (แก้ข้อมูล/รายการ/สำเนา/ออกใบเสนอ) — server เป็น create_sales_docs
+  const isSalesUp = !me || permAllows(me.permissions, "create_sales_docs");
+  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ระหว่าง me โหลด permAllows คืน false = ซ่อนไว้ก่อน
   // (safe default ตาม B12) · ห้ามใช้ isSalesUp แทน — ชุดนั้นไม่มี ACCOUNTANT
-  const canSeeMoney = roleAllows(me?.role, ORDER_MONEY_ROLES);
+  const canSeeMoney = permAllows(me?.permissions, "see_order_money");
 
   const currentStepIndex = flowSteps.indexOf(order.internalStatus);
 
@@ -664,9 +664,7 @@ export default function OrderDetailPage({
                     .map((p) => p.itemSource)
                     .filter((s): s is string => s !== null)
                 )}
-                canReceive={
-                  !!me && ["OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF"].includes(me.role)
-                }
+                canReceive={!!me && permAllows(me.permissions, "manage_delivery")}
               />
 
               {/* ตรวจนับ QC — นับของจุดที่ 2 ก่อนแพ็ค (ก้อน 3): ดีล้วนเด้งแพ็ค · มีเสียถอยกลับผลิต */}
@@ -674,7 +672,7 @@ export default function OrderDetailPage({
                 <OrderQcSection
                   orderId={id}
                   internalStatus={order.internalStatus}
-                  canCount={!!me && ["OWNER", "MANAGER", "PRODUCTION_STAFF"].includes(me.role)}
+                  canCount={!!me && permAllows(me.permissions, "manage_production")}
                 />
               </div>
 
@@ -684,7 +682,7 @@ export default function OrderDetailPage({
                   orderId={id}
                   internalStatus={order.internalStatus}
                   productions={order.productions ?? []}
-                  isManagerUp={!!me && ["OWNER", "MANAGER"].includes(me.role)}
+                  isManagerUp={!!me && permAllows(me.permissions, "supervise_operations")}
                 />
               </div>
             </>

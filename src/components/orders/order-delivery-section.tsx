@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { permAllows } from "@/lib/permissions";
 import { toast } from "sonner";
 import { nextDeliveryStatuses, type DeliveryStatus } from "@/lib/delivery-status";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -157,9 +158,9 @@ export function OrderDeliverySection({
   // ลบใบส่ง = ผู้จัดการขึ้นไป (server: managerUp) — ซ่อนปุ่มให้ตรง + ถามก่อนลบ
   const confirm = useConfirm();
   const { data: me } = trpc.user.me.useQuery();
-  const canDelete = !me || ["OWNER", "MANAGER"].includes(me.role);
+  const canDelete = !me || permAllows(me.permissions, "supervise_operations");
   // ตั้งค่า blind ship = ฝ่ายขายขึ้นไป (server: order.setBlindShip) — role อื่นเห็นธงอย่างเดียว
-  const canSetBlindShip = !me || ["OWNER", "MANAGER", "SALES"].includes(me.role);
+  const canSetBlindShip = !me || permAllows(me.permissions, "create_sales_docs");
 
   // แถวนับยืนยันใน dialog สร้างใบส่ง — ผูกค่าที่กรอกเข้ากับแถวจาก packContext
   const packLines = packContext.data?.lines ?? [];

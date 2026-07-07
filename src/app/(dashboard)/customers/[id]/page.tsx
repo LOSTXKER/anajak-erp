@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
-import { ORDER_MONEY_ROLES, roleAllows } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { CustomerArtworksCard } from "@/components/customers/customer-artworks-card";
@@ -20,18 +20,18 @@ import { commChannelLabel } from "@/lib/comm-channels";
 import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText, Pencil, MessageSquarePlus } from "lucide-react";
 
 // แก้ข้อมูล/จดบันทึกการคุย = ทีมขาย-บัญชี-บริหาร (ตรง customerEditors ฝั่ง server)
-const EDITOR_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT", "SALES"];
+
 // วงเงินเครดิต = การตัดสินใจความเสี่ยง — SALES แก้ไม่ได้ (ตรง server guard)
-const CREDIT_ROLES = ["OWNER", "MANAGER", "ACCOUNTANT"];
+
 
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [editing, setEditing] = useState(false);
   const [loggingComm, setLoggingComm] = useState(false);
   const { data: me } = trpc.user.me.useQuery();
-  const canEdit = !!me && EDITOR_ROLES.includes(me.role);
+  const canEdit = !!me && permAllows(me.permissions, "manage_customers");
   // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนยอดสั่งรวม/ยอดออเดอร์ (server ส่ง null มาอยู่แล้ว)
-  const canSeeMoney = roleAllows(me?.role, ORDER_MONEY_ROLES);
+  const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });
   // ภาระหนี้เทียบวงเงินเครดิต — ขอเฉพาะลูกค้าที่ตั้งวงเงินไว้ · non-money role ยิงไปก็โดน FORBIDDEN
   const { data: credit } = trpc.customer.creditStatus.useQuery(
@@ -277,7 +277,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       {editing && (
         <CustomerEditDialog
           customer={customer}
-          canEditCredit={!!me && CREDIT_ROLES.includes(me.role)}
+          canEditCredit={!!me && permAllows(me.permissions, "see_finance")}
           onClose={() => setEditing(false)}
         />
       )}
