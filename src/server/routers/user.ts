@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { createAuditLog } from "@/server/helpers";
 import {
@@ -11,8 +11,9 @@ import {
   type PermissionOverrides,
 } from "@/lib/permissions";
 
-const ownerOnly = requireRole("OWNER");
-const managerUp = requireRole("OWNER", "MANAGER");
+// manage_users ไม่รับ override (กันล็อคตัวเอง) = OWNER เท่านั้นเสมอ ตรงพฤติกรรมเดิม
+const ownerOnly = requirePermission("manage_users");
+const managerUp = requirePermission("supervise_operations");
 
 const roleSchema = z.enum([
   "OWNER",

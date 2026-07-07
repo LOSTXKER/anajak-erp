@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { badRequest } from "@/server/errors";
 import { createAuditLog } from "@/server/helpers";
 
 // คลังฟิล์มพร้อมรีด (FLOW-REDESIGN ก้อน 2) — ฟิล์มพิมพ์เผื่อจากรอบพิมพ์
 // "ลายไหน ของลูกค้าไหน เหลือกี่ชิ้น" · ลูกค้าสั่งซ้ำเช็คก่อน รีดได้เลยไม่ต้องพิมพ์ใหม่
 // อ่านได้ทุก role (ขายใช้เช็คตอนรับงานซ้ำ) · หยิบใช้ = ทีมผลิต
-const productionTeam = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
+const productionTeam = requirePermission("manage_production");
 
 export const filmStockRouter = router({
   list: protectedProcedure

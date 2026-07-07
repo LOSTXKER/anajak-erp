@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
+import { hasPermission } from "@/lib/permissions";
 import { createAuditLog, createNotification } from "@/server/helpers";
 import { transitionOrder, finalizeProductionIfComplete } from "@/server/services/order-status";
 import { isValidTransition } from "@/lib/order-status";
@@ -14,9 +15,9 @@ import { getOrdersReadiness } from "@/server/services/production-readiness";
 import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
 import { getStockClientFromSettings } from "@/lib/stock-api";
 
-// วางแผนการผลิต = งานระดับบริหารตามตาราง RBAC §7
-const managerUp = requireRole("OWNER", "MANAGER");
-const productionTeam = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
+// วางแผนการผลิต = งานหัวหน้า (PERM3: default OWNER/MANAGER เดิมเป๊ะ + override รายคน)
+const managerUp = requirePermission("supervise_operations");
+const productionTeam = requirePermission("manage_production");
 
 // select กลางของขั้นตอนผลิต — จงใจไม่มี field เงิน (estimatedCost/actualCost/unitCost/totalCost):
 // endpoint พวกนี้เปิดทุก role — เงินต้องไม่ไหลถึง browser แม้ UI ไม่ render
@@ -401,11 +402,12 @@ export const productionRouter = router({
 
       // อัปเดต step + ปิดใบผลิต + ดันสถานะออเดอร์ = ก้อนเดียวกัน (transitionOrder ต้องอยู่ใน tx)
       return ctx.prisma.$transaction(async (tx) => {
-        // PRODUCTION_STAFF: ห้ามแตะ assignedToId/actualCost (มอบงาน + ต้นทุน = อำนาจหัวหน้า)
-        // step ที่ยังไม่มีเจ้าของ → claim อัตโนมัติ (ระบบยังไม่มี UI มอบหมายงาน
-        // ถ้าบังคับ assign ก่อน staff จะอัปเดตอะไรไม่ได้เลย) · step ของคนอื่น → ห้าม
+        // คนไม่มีสิทธิ์งานหัวหน้า (default = PRODUCTION_STAFF): ห้ามแตะ assignedToId/actualCost
+        // (มอบงาน + ต้นทุน = อำนาจหัวหน้า) · step ที่ยังไม่มีเจ้าของ → claim อัตโนมัติ
+        // (ระบบยังไม่มี UI มอบหมายงาน ถ้าบังคับ assign ก่อน staff จะอัปเดตอะไรไม่ได้เลย) ·
+        // step ของคนอื่น → ห้าม
         let autoClaim = false;
-        if (ctx.userRole === "PRODUCTION_STAFF") {
+        if (!hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations")) {
           if (data.assignedToId !== undefined || data.actualCost !== undefined) {
             throw new TRPCError({
               code: "FORBIDDEN",
@@ -479,7 +481,7 @@ export const productionRouter = router({
           // รอบใหม่หรือให้หัวหน้าเป็นคนปิด
           if (
             latestOutsource?.status === "QC_FAILED" &&
-            ctx.userRole === "PRODUCTION_STAFF"
+            !hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations")
           ) {
             throw new TRPCError({
               code: "FORBIDDEN",

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { byIdInput } from "@/server/schemas";
 import { badRequest } from "@/server/errors";
 import { createAuditLog, createNotification } from "@/server/helpers";
@@ -8,8 +8,9 @@ import { normalizePhone } from "@/lib/phone";
 import { isValidDeliveryTransition, type DeliveryStatus } from "@/lib/delivery-status";
 import { DELIVERY_STATUS_LABELS } from "@/lib/status-config";
 
-const salesOrProduction = requireRole("OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF");
-const managerUp = requireRole("OWNER", "MANAGER");
+// PERM3: สร้าง/แก้/ยืนยันส่งใบส่ง = manage_delivery (default O/M/S/ช่าง เดิมเป๊ะ) · ลบใบส่ง = งานหัวหน้า
+const salesOrProduction = requirePermission("manage_delivery");
+const managerUp = requirePermission("supervise_operations");
 
 // คีย์รวมยอดต่อแถวนับ — แพ็ค/เหลือเทียบกันที่ ไซส์+สี (description ไว้โชว์)
 const packKey = (size?: string | null, color?: string | null) =>

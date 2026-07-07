@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure, publicProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, publicProcedure, requirePermission } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import { notFound, badRequest } from "@/server/errors";
 import {
@@ -11,7 +11,7 @@ import {
 
 // ลิงก์ยืนยันใบเสนอราคาให้ลูกค้า (FLOW-REDESIGN ก้อน 4 — ขอบลูกค้า)
 // staff สร้างลิงก์ (protected · เฉพาะใบที่ส่งแล้ว) · ลูกค้าเปิดดู/ยืนยัน/ขอแก้ (public ถือ token)
-const salesUp = requireRole("OWNER", "MANAGER", "SALES");
+const salesUp = requirePermission("create_sales_docs");
 
 export const quotationConfirmRouter = router({
   // staff สร้าง/รีเฟรช ลิงก์ยืนยัน — เฉพาะใบที่ "ส่งให้ลูกค้าแล้ว" (ราคายืนแล้ว) · ออก token ใหม่

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import {
   getPrintQueue,
@@ -11,7 +11,7 @@ import {
 } from "@/server/services/print-run";
 
 // จอช่างพิมพ์ DTF — staff กดเองได้ทั้ง flow (เร็วหน้างานสำคัญกว่า — มติเดียวกับผ่านรวด)
-const productionTeam = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
+const productionTeam = requirePermission("manage_production");
 
 export const printRunRouter = router({
   // อ่านเปิดทุก role (ไม่มีข้อมูลเงิน — sidebar ไม่ gate ตาม role: แอดมิน/ขายดูคิวได้

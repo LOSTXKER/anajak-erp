@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { byIdInput, fileUrlSchema } from "@/server/schemas";
 import { notFound } from "@/server/errors";
 import { createAuditLog } from "@/server/helpers";
@@ -8,8 +8,8 @@ import { createAuditLog } from "@/server/helpers";
 // คลังลายต่อลูกค้า (ก้อน 4 ชิ้น 2) — ลายเข้าคลังเองตอน QC ผ่าน (services/artwork.ts)
 // router นี้ = อ่าน + เพิ่มมือ (ลายเก่าก่อนมีระบบ) + แก้สเปก · ไม่มี delete — ปิด isActive แทน
 // (มีออเดอร์เก่า/ฟิล์มอ้างอยู่) · ไม่มีช่องเงิน (มติ 2026-06-12 — ราคาท่าพิมพ์อยู่ ServiceCatalog)
-const artworkCreate = requireRole("OWNER", "MANAGER", "DESIGNER", "SALES");
-const designerUp = requireRole("OWNER", "MANAGER", "DESIGNER");
+const artworkCreate = requirePermission("create_design_assets");
+const designerUp = requirePermission("manage_design_files");
 
 // .nullable() ทุกตัว — null = เคลียร์ค่ากลับเป็น "ยังไม่รู้" (ให้ gap badge เตือนได้)
 // undefined = ไม่แตะ (Prisma ข้าม field undefined)

@@ -1,11 +1,13 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
+import { hasPermission } from "@/lib/permissions";
 import { getStartOfMonth, getStartOfLastMonth, getMonthRange } from "@/lib/date-utils";
 import { aggToNumber } from "@/server/services/money";
 import { getOwnerPulse } from "@/server/services/owner-pulse";
 
-const adminOnly = requireRole("OWNER", "MANAGER");
-const ownerOrAccountant = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
+// PERM3: default ตรงชุดเดิมเป๊ะ + override รายคน
+const adminOnly = requirePermission("view_admin_reports");
+const ownerOrAccountant = requirePermission("see_finance");
 
 // ป้ายชนิดงานพิมพ์ (ไทย) — printType เป็น String อิสระ ไม่ใช่ enum
 const PRINT_LABELS: Record<string, string> = {
@@ -24,10 +26,7 @@ export const analyticsRouter = router({
 
     // ตัวเลขเงิน (รายได้/ลูกหนี้/top spender) เห็นเฉพาะฝั่งบริหาร-บัญชีตาราง RBAC §7
     // ส่วน ops counts เปิดทุก role — หน้า dashboard เป็นหน้าแรกของทุกคน
-    const canSeeFinance =
-      ctx.userRole === "OWNER" ||
-      ctx.userRole === "MANAGER" ||
-      ctx.userRole === "ACCOUNTANT";
+    const canSeeFinance = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance");
 
     const [
       totalCustomers,

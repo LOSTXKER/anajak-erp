@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure, publicProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, publicProcedure, requirePermission } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import { notFound } from "@/server/errors";
 import {
@@ -10,7 +10,7 @@ import {
 
 // ลิงก์สถานะออเดอร์ให้ลูกค้า (FLOW-REDESIGN ก้อน 4 — portal ขั้น 1)
 // staff สร้างลิงก์ (protected) · ลูกค้าเปิดดูสถานะ (public ถือ token)
-const salesUp = requireRole("OWNER", "MANAGER", "SALES");
+const salesUp = requirePermission("create_sales_docs");
 
 export const customerStatusRouter = router({
   // staff สร้าง/รีเฟรช ลิงก์สถานะ — ออก token ใหม่เสมอ (ลิงก์เก่าตายทันที)

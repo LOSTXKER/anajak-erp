@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure, publicProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, publicProcedure, requirePermission } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import { notFound } from "@/server/errors";
 import {
@@ -12,7 +12,7 @@ import {
 
 // ลิงก์อัปโหลดไฟล์ลูกค้า (FLOW-REDESIGN ก้อน 4 ชิ้น 3)
 // ฝั่งใน (staff) = protected · ฝั่งลูกค้าถือ token = public (เช็ค token ในแต่ละ procedure)
-const salesUp = requireRole("OWNER", "MANAGER", "SALES");
+const salesUp = requirePermission("create_sales_docs");
 
 export const customerUploadRouter = router({
   // staff สร้าง/รีเฟรช ลิงก์ — ออก token ใหม่เสมอ (ลิงก์เก่าตายทันที)

@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requireRole, requirePermission } from "../trpc";
 import { getStockClientFromSettings } from "@/lib/stock-api";
 import { byIdInput, fileUrlSchema, fileUrlArraySchema } from "@/server/schemas";
 
-const managerUp = requireRole("OWNER", "MANAGER");
+const managerUp = requirePermission("manage_settings");
+// ลบสินค้า = OWNER เท่านั้น — จงใจคง requireRole (จุด "คงเช็คเดิม" ตาม catalog PERM)
 const ownerOnly = requireRole("OWNER");
 
 export const productRouter = router({

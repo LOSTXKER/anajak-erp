@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, publicProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, publicProcedure, requirePermission } from "../trpc";
 import { randomBytes } from "crypto";
 import { fileUrlSchema } from "@/server/schemas";
 import { withFileToken } from "@/lib/file-urls";
@@ -9,9 +9,9 @@ import { transitionOrder, processDesignApproval } from "@/server/services/order-
 import type { InternalStatus } from "@prisma/client";
 import type { PrismaTx } from "@/lib/prisma";
 
-const designerUp = requireRole("OWNER", "MANAGER", "DESIGNER");
+const designerUp = requirePermission("manage_design_files");
 // บันทึกผลอนุมัติแทนลูกค้า = คนถือความสัมพันธ์ลูกค้า — ไม่ให้ DESIGNER อนุมัติแบบตัวเอง
-const salesUp = requireRole("OWNER", "MANAGER", "SALES");
+const salesUp = requirePermission("create_sales_docs");
 
 const APPROVAL_TOKEN_TTL_DAYS = 30;
 
@@ -166,7 +166,7 @@ export const designRouter = router({
   // (เดิม regenerate ไม่ได้เลย — ลูกค้าหายไปเดือนกว่ากลับมา ทีมต้องอัปแบบซ้ำทั้งที่ไฟล์เดิม
   // audit ข้อ 17) · แบบที่ตัดสินแล้วไม่มีลิงก์ใหม่ — ผลตัดสินจบแล้ว
   regenerateToken: protectedProcedure
-    .use(requireRole("OWNER", "MANAGER", "SALES", "DESIGNER"))
+    .use(requirePermission("create_design_assets"))
     .input(z.object({ designId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const existing = await ctx.prisma.designVersion.findUniqueOrThrow({

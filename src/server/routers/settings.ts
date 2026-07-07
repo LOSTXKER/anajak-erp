@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
 import { COST_RATES_KEY, parseCostRates } from "@/lib/cost-rates";
 import { estimateOrderMargin } from "@/server/services/margin-estimate";
 
-const adminOnly = requireRole("OWNER", "MANAGER");
+const adminOnly = requirePermission("manage_settings");
 // เรตต้นทุน/กำไรขั้นต้น = ข้อมูลเงิน — จำกัดฝั่งบริหาร-บัญชี (RBAC §7 ห้ามรั่วถึงขาย/ช่าง)
-const financeRoles = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
+const financeRoles = requirePermission("see_finance");
 
 export const settingsRouter = router({
   // ข้อมูลกิจการ — ทุก role อ่านได้ (ใช้บนหัวเอกสารพิมพ์) · แก้ได้เฉพาะ OWNER/MANAGER

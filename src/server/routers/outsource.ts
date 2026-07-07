@@ -1,14 +1,16 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
+import { hasPermission } from "@/lib/permissions";
 import { badRequest } from "@/server/errors";
 import { createAuditLog } from "@/server/helpers";
 import { moneyInput, round2 } from "@/server/services/money";
 import { finalizeProductionIfComplete } from "@/server/services/order-status";
 import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
 
-const managerUp = requireRole("OWNER", "MANAGER");
-const productionUp = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
+// PERM3: ทะเบียนร้านนอก = ข้อมูลหลัก (default OWNER/MANAGER) · ใบงานนอก = งานผลิต
+const managerUp = requirePermission("manage_settings");
+const productionUp = requirePermission("manage_production");
 
 export const outsourceRouter = router({
   // Vendors
@@ -258,7 +260,7 @@ export const outsourceRouter = router({
       // ตัดสิน QC (ซึ่งปิด production step อัตโนมัติ) = อำนาจหัวหน้า
       // staff อัปเดตได้แค่สถานะรับ-ส่งของ (SENT/RECEIVED_BACK ฯลฯ)
       if (
-        ctx.userRole === "PRODUCTION_STAFF" &&
+        !hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations") &&
         (data.status === "QC_PASSED" || data.status === "QC_FAILED")
       ) {
         throw new TRPCError({

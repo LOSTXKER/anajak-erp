@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure, publicProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, publicProcedure, requirePermission } from "../trpc";
 import { createAuditLog } from "@/server/helpers";
 import { notFound } from "@/server/errors";
 import {
@@ -10,7 +10,7 @@ import {
 
 // ลิงก์ใบงานให้ร้านนอก (Gate B14 — LINE-friendly)
 // staff สร้างลิงก์ (protected · ทีมผลิตขึ้นไป ตรง updateOrderStatus) · ร้านเปิดดู (public ถือ token)
-const productionUp = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
+const productionUp = requirePermission("manage_production");
 
 export const outsourceShareRouter = router({
   // staff สร้าง/รีเฟรช ลิงก์ใบงาน — ออก token ใหม่เสมอ (ลิงก์เก่าตายทันที)

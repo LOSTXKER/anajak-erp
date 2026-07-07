@@ -40,7 +40,7 @@ export type Permission =
   | "manage_delivery" // สร้าง/แก้ใบส่งของ + ใบตรวจรับของเข้า
   | "manage_design_files" // อัปโหลดแบบ/แก้แพทเทิร์น/แก้คลังลาย
   | "create_design_assets" // สร้างแพทเทิร์น/ลายใหม่ + ลิงก์อนุมัติแบบ
-  | "supervise_operations" // งานหัวหน้า: เปิดใบผลิต/สถานะใบส่ง/ถอยสถานะงานส่งแล้ว/QC ร้านนอก
+  | "supervise_operations" // งานหัวหน้า: เปิดใบผลิต/ลบใบส่ง/ถอยสถานะงานส่งแล้ว/QC ร้านนอก
   // ── กลุ่มระบบ ──
   | "manage_settings" // ตั้งค่ากิจการ/ราคากลาง/แพ็คเกจ/เชื่อม Stock/ข้อมูลหลักสินค้า
   | "view_admin_reports" // audit log + Owner Pulse
@@ -72,14 +72,16 @@ export const PERMISSION_DEFS: PermissionDef[] = [
   // ── ปฏิบัติการ ──
   // productionTeam/productionUp (updateStep/เบิก-คืน/qc.create/print-run/film-stock/stock ops/outsource orders)
   { key: "manage_production", label: "งานผลิต (ขั้นตอน/เบิกเสื้อ/QC/รอบพิมพ์/ร้านนอก)", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "PRODUCTION_STAFF"] },
-  // salesOrProduction/receiver (delivery.create/update + goods-receipt.create)
-  { key: "manage_delivery", label: "ใบส่งของ + ตรวจรับของเข้า", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF"] },
+  // salesOrProduction/receiver (delivery.create/update/updateStatus รวมยืนยันส่ง + goods-receipt.create)
+  // — "ยืนยันส่ง" อยู่สิทธิ์นี้ ไม่ใช่งานหัวหน้า (ช่าง/ขายกดส่งเองได้ตาม flow เดิม · review PERM3 จับ)
+  { key: "manage_delivery", label: "ใบส่งของ (รวมยืนยันส่ง) + ตรวจรับของเข้า", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF"] },
   // designerUp (design.upload + pattern.update + artwork.update)
   { key: "manage_design_files", label: "ไฟล์แบบ/แพทเทิร์น/คลังลาย", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "DESIGNER"] },
   // patternCreate/artworkCreate/design.regenerateToken
   { key: "create_design_assets", label: "สร้างแพทเทิร์น/ลาย + ลิงก์อนุมัติแบบ", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "DESIGNER", "SALES"] },
-  // managerUp ฝั่งคุมงาน (production.create + delivery.updateStatus/delete + rollback สถานะ + outsource QC_PASS)
-  { key: "supervise_operations", label: "งานหัวหน้า (เปิดใบผลิต/ยืนยันส่ง/ถอยสถานะ/QC ร้านนอก)", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER"] },
+  // managerUp ฝั่งคุมงาน (production.create + delivery.delete + rollback สถานะ + outsource QC ตัดสิน
+  // + มอบหมายงาน/แก้ต้นทุนจริงบนขั้นผลิต + user.assignables)
+  { key: "supervise_operations", label: "งานหัวหน้า (เปิดใบผลิต/ลบใบส่ง/ถอยสถานะ/QC ร้านนอก)", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER"] },
 
   // ── ระบบ ──
   // adminOnly/managerUp ฝั่งตั้งค่า (settings.set* + packaging/service-catalog + stock-sync admin + product.update + vendor)

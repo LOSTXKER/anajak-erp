@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { fileUrlArraySchema } from "@/server/schemas";
 import { createAuditLog } from "@/server/helpers";
 import { getQcContext, createQcRecord } from "@/server/services/qc";
 import { QC_DEFECT_REASONS } from "@/lib/qc";
 
 // ตรวจนับ QC = งานหน้างานทีมผลิต (staff นับเองได้ — เร็วหน้างานสำคัญกว่า มติเดียวกับผ่านรวด)
-const productionTeam = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
+const productionTeam = requirePermission("manage_production");
 
 export const qcRouter = router({
   /** บริบทก่อนตรวจ — ยอดคาดต่อไซส์ + ลาย + เสื้อสำรอง (ไม่มีเงิน เปิดทุก role) */

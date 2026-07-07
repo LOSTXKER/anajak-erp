@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requireRole, requirePermission } from "../trpc";
 import { calculateProfitMargin } from "@/lib/pricing";
 import { byIdInput } from "@/server/schemas";
 // lock+recalc อยู่ที่ service กลาง — production/outsource ที่เขียน costEntry ใช้ชุดเดียวกัน
 import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
 
-const accountantUp = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
+const accountantUp = requirePermission("manage_costs");
+// ลบต้นทุน [OWNER, ACCOUNTANT] — ชุดไม่ตรง catalog ไหนพอดี จงใจคง requireRole (จุด "คงเช็คเดิม")
 const ownerOrAccountant = requireRole("OWNER", "ACCOUNTANT");
 
 export const costRouter = router({

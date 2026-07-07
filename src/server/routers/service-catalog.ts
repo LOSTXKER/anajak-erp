@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requireRole, requirePermission } from "../trpc";
 import { byIdInput } from "@/server/schemas";
 
-const managerUp = requireRole("OWNER", "MANAGER");
+const managerUp = requirePermission("manage_settings");
 const ownerOnly = requireRole("OWNER");
 
 export const serviceCatalogRouter = router({

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { StockApiClient, getStockClientFromSettings } from "@/lib/stock-api";
 import { DEFAULT_STOCK_LOCATION } from "@/lib/stock-constants";
 import { badRequest } from "@/server/errors";
@@ -9,8 +9,9 @@ import {
   getSyncStatus,
 } from "@/lib/stock-sync";
 
-const managerUp = requireRole("OWNER", "MANAGER");
-const productionUp = requireRole("OWNER", "MANAGER", "PRODUCTION_STAFF");
+// PERM3: ฝั่ง admin เชื่อม Stock = ตั้งค่าระบบ · ฝั่งปฏิบัติการ (sync/เบิกวัสดุ/รับของ) = งานผลิต
+const managerUp = requirePermission("manage_settings");
+const productionUp = requirePermission("manage_production");
 
 export const stockSyncRouter = router({
   // ── Test connection ───────────────────────────────────────

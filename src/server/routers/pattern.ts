@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { byIdInput, fileUrlSchema } from "@/server/schemas";
 
-const designerUp = requireRole("OWNER", "MANAGER", "DESIGNER");
-const managerUp = requireRole("OWNER", "MANAGER");
+const designerUp = requirePermission("manage_design_files");
+const managerUp = requirePermission("manage_settings");
 // SALES สร้างได้ด้วย — quick-add แพทเทิร์นระหว่างคีย์ออเดอร์หน้า /orders/new
-const patternCreate = requireRole("OWNER", "MANAGER", "DESIGNER", "SALES");
+const patternCreate = requirePermission("create_design_assets");
 
 export const patternRouter = router({
   list: protectedProcedure

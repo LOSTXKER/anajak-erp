@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { fileUrlSchema } from "@/server/schemas";
 import { createAuditLog } from "@/server/helpers";
 import { notFound } from "@/server/errors";
 
 // ทะเบียนหัก ณ ที่จ่ายขารับ (50ทวิ) — แถวเกิดอัตโนมัติตอนบันทึกรับเงินที่มี whtAmount
 // งานของบัญชี: ตามหนังสือรับรองจากลูกค้า (ไม่มีใบ = เครดิตภาษี 3% หายฟรี) + export ให้นักบัญชี
-const billingStaff = requireRole("OWNER", "MANAGER", "ACCOUNTANT");
+const billingStaff = requirePermission("manage_billing_docs");
 
 export const whtRouter = router({
   list: protectedProcedure

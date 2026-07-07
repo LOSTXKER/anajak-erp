@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure, requireRole } from "../trpc";
+import { router, protectedProcedure, requirePermission } from "../trpc";
 import { fileUrlArraySchema } from "@/server/schemas";
 import { createAuditLog } from "@/server/helpers";
 import {
@@ -11,7 +11,7 @@ import {
 
 // ใบตรวจรับของเข้า/ใบคืนของลูกค้า — router เป็นแค่ผิว logic อยู่ services/goods-receipt
 // คนรับของหน้าโรงงาน = แอดมิน/ขาย/ทีมผลิต (DESIGNER/ACCOUNTANT ไม่เกี่ยวกับของเข้า)
-const receiver = requireRole("OWNER", "MANAGER", "SALES", "PRODUCTION_STAFF");
+const receiver = requirePermission("manage_delivery");
 
 const receiptLineSchema = z.object({
   orderItemProductId: z.string().optional(),
