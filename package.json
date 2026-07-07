@@ -35,6 +35,7 @@
     "verify:confirm": "tsx --env-file=.env scripts/verify-quotation-confirm.ts",
     "verify:revision": "tsx --env-file=.env scripts/verify-revision-fee.ts",
     "verify:mcp": "tsx --env-file=.env scripts/verify-mcp.ts",
+    "verify:backup": "tsx --env-file=.env scripts/verify-backup-export.ts",
     "verify:co": "tsx --env-file=.env scripts/verify-change-order.ts",
     "verify:softdel": "tsx --env-file=.env scripts/verify-product-softdelete.ts",
     "verify:oshare": "tsx --env-file=.env scripts/verify-outsource-share.ts",

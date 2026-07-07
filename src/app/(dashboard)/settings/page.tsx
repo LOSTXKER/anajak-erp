@@ -11,6 +11,7 @@ import {
   Wrench,
   Package,
   Users,
+  HardDriveDownload,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -62,6 +63,12 @@ const SETTING_LINKS = [
     icon: Package,
     title: "จัดการแพ็คเกจ",
     description: "ตัวเลือกแพ็คเกจสำหรับจัดส่ง",
+  },
+  {
+    href: "/settings/backup",
+    icon: HardDriveDownload,
+    title: "สำรองข้อมูล",
+    description: "ดาวน์โหลดข้อมูลทั้งระบบเก็บไว้เอง (เจ้าของเท่านั้น)",
   },
 ];
 

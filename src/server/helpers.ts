@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import type { PrismaTx } from "@/lib/prisma";
 
-type AuditLogAction = "CREATE" | "UPDATE" | "DELETE" | "VOID";
+type AuditLogAction = "CREATE" | "UPDATE" | "DELETE" | "VOID" | "EXPORT";
 
 interface AuditLogParams {
   userId: string | null;
