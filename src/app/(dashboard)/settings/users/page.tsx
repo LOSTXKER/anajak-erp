@@ -11,6 +11,7 @@ import {
   defaultPermissionsOf,
   effectivePermissions,
   parsePermissionOverrides,
+  countEffectiveOverrides,
 } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -329,9 +330,11 @@ export default function UsersSettingsPage() {
                               <ShieldCheck className="mr-1 h-3.5 w-3.5" />
                               สิทธิ์
                               {(() => {
-                                const n = Object.keys(
-                                  parsePermissionOverrides(user.permissionOverrides)
-                                ).length;
+                                // นับเฉพาะที่ต่างจาก default ของ role ปัจจุบันจริง — ตรงกับป้าย "ปรับเอง" ใน dialog
+                                const n = countEffectiveOverrides(
+                                  user.role,
+                                  user.permissionOverrides
+                                );
                                 return n > 0 ? ` (${n})` : "";
                               })()}
                             </Button>

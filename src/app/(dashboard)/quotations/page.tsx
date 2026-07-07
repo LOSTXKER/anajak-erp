@@ -57,7 +57,7 @@ export default function QuotationsPage() {
           description="จัดการใบเสนอราคาทั้งหมด"
         />
         <p className="text-sm text-slate-400">
-          หน้านี้เปิดเฉพาะทีมขาย ผู้จัดการ และบัญชี
+          ต้องมีสิทธิ์ &quot;เห็นเงินฝั่งขาย&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
         </p>
       </div>
     );

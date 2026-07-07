@@ -59,7 +59,7 @@ export const PERMISSION_DEFS: PermissionDef[] = [
   // accountantUp (cost.create/update)
   { key: "manage_costs", label: "บันทึกต้นทุนออเดอร์", group: "เงิน/เอกสาร", defaultRoles: ["OWNER", "MANAGER", "ACCOUNTANT"] },
   // salesUp (order/quotation CUD + setBlindShip + design.approve + generateLink ลูกค้า)
-  { key: "create_sales_docs", label: "เปิด/แก้ออเดอร์และใบเสนอ", group: "เงิน/เอกสาร", defaultRoles: ["OWNER", "MANAGER", "SALES"] },
+  { key: "create_sales_docs", label: "เปิด/แก้ออเดอร์+ใบเสนอ / อนุมัติแบบ / ลิงก์ลูกค้า / blind ship", group: "เงิน/เอกสาร", defaultRoles: ["OWNER", "MANAGER", "SALES"] },
   // customerEditors (customer.create/update/addCommunicationLog/creditStatus)
   { key: "manage_customers", label: "จัดการข้อมูลลูกค้า/CRM", group: "เงิน/เอกสาร", defaultRoles: ["OWNER", "MANAGER", "ACCOUNTANT", "SALES"] },
 
@@ -81,7 +81,7 @@ export const PERMISSION_DEFS: PermissionDef[] = [
   { key: "create_design_assets", label: "สร้างแพทเทิร์น/ลาย + ลิงก์อนุมัติแบบ", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER", "DESIGNER", "SALES"] },
   // managerUp ฝั่งคุมงาน (production.create + delivery.delete + rollback สถานะ + outsource QC ตัดสิน
   // + มอบหมายงาน/แก้ต้นทุนจริงบนขั้นผลิต + user.assignables)
-  { key: "supervise_operations", label: "งานหัวหน้า (เปิดใบผลิต/ลบใบส่ง/ถอยสถานะ/QC ร้านนอก)", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER"] },
+  { key: "supervise_operations", label: "งานหัวหน้า (เปิดใบผลิต/มอบหมายงาน+ต้นทุน/ลบใบส่ง/ถอยสถานะ*/QC ร้านนอก)", group: "ปฏิบัติการ", defaultRoles: ["OWNER", "MANAGER"] },
 
   // ── ระบบ ──
   // adminOnly/managerUp ฝั่งตั้งค่า (settings.set* + packaging/service-catalog + stock-sync admin + product.update + vendor)
@@ -129,6 +129,16 @@ export function hasPermission(role: Role, overridesRaw: unknown, perm: Permissio
 
 export function defaultPermissionsOf(role: Role): Permission[] {
   return PERMISSIONS.filter((p) => DEFAULT_ROLES_BY_PERMISSION[p].includes(role));
+}
+
+// จำนวน override ที่ "ต่างจาก default ของ role ปัจจุบันจริง" — badge (n) ใช้ร่วมกับ dialog
+// กัน drift (เปลี่ยน role แล้ว override ที่บังเอิญเท่ากับ default ใหม่ต้องไม่ถูกนับว่าปรับเอง)
+export function countEffectiveOverrides(role: Role, overridesRaw: unknown): number {
+  const parsed = parsePermissionOverrides(overridesRaw);
+  const defaults = defaultPermissionsOf(role);
+  return (Object.entries(parsed) as [Permission, boolean][]).filter(
+    ([k, v]) => !NON_OVERRIDABLE_PERMISSIONS.includes(k) && v !== defaults.includes(k)
+  ).length;
 }
 
 // ชุดสิทธิ์จริงของคน (default ± override) — ให้ user.me ส่งให้จอใช้ (PERM4)

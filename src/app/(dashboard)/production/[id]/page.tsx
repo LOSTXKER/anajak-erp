@@ -53,7 +53,9 @@ export default function ProductionDetailPage({
   const confirm = useConfirm();
   const utils = trpc.useUtils();
 
-  const isProductionStaff = me?.role === "PRODUCTION_STAFF";
+  // PERM: ต้นทุน/หน่วยเห็นเฉพาะสายการเงิน (server listMaterials คืน cost ให้ทุก role ที่ผ่าน
+  // gate ผลิต — ชั้นนี้เป็น cosmetic กันช่างเห็นตัวเลขต้นทุนบนจอ)
+  const canSeeCost = permAllows(me?.permissions, "see_finance");
   // เปิดใบส่งร้านนอก = ผู้จัดการขึ้นไป (ตรง managerUp ฝั่ง server)
   const canOutsource = !!me && permAllows(me.permissions, "supervise_operations");
   // อัปเดต/ผ่านรวดขั้นตอน = ทีมผลิตขึ้นไป (ตรง productionTeam ฝั่ง server — กันปุ่มที่กดแล้ว FORBIDDEN)
@@ -192,7 +194,7 @@ export default function ProductionDetailPage({
       <MaterialUsage
         productionId={production.id}
         orderNumber={order.orderNumber}
-        showCosts={!isProductionStaff}
+        showCosts={canSeeCost}
       />
 
       {selectedStep && (

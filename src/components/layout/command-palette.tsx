@@ -77,7 +77,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         icon: Plus,
         keywords: "create quotation",
         action: () => navigate("/quotations/new"),
-        permission: "create_sales_docs",
+        // ใบเสนอ = เอกสารราคา — ต้องเห็นเงินฝั่งขาย (ตรงหน้า /quotations + quotation.getById)
+        permission: "see_order_money",
       },
       { id: "nav-dashboard", label: "Dashboard", group: "ไปที่", icon: LayoutDashboard, action: () => navigate("/") },
       { id: "nav-orders", label: "ออเดอร์", group: "ไปที่", icon: ShoppingCart, keywords: "order", action: () => navigate("/orders") },
@@ -102,7 +103,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   // กรองตาม role ก่อน (B12) — ช่าง/กราฟิกไม่เห็นเมนูเงิน/สร้างเอกสารขายใน ⌘K
   const items = React.useMemo(
     () => allItems.filter((it) => permAllows(me?.permissions, it.permission)),
-    [allItems, me?.role]
+    [allItems, me?.permissions]
   );
 
   const filtered = React.useMemo(() => {

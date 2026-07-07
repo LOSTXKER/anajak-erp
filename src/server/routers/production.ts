@@ -629,7 +629,8 @@ export const productionRouter = router({
       const result = await issueGarments(ctx.prisma, {
         ...input,
         userId: ctx.userId,
-        userRole: ctx.userRole,
+        // PERM: กติกา own-work/auto-claim ตรง updateStep — ไม่ใช่หัวหน้า = แตะเฉพาะงานตัวเอง
+        canSupervise: hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations"),
       });
       await createAuditLog(ctx.prisma, {
         userId: ctx.userId,

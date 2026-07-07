@@ -277,7 +277,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       {editing && (
         <CustomerEditDialog
           customer={customer}
-          canEditCredit={!!me && permAllows(me.permissions, "see_finance")}
+          canEditCredit={!!me && me.role !== "SALES"}
           onClose={() => setEditing(false)}
         />
       )}

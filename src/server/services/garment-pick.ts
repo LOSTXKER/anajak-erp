@@ -125,7 +125,8 @@ interface IssueGarmentsParams {
   idempotencyKey: string;
   fromLocation?: string;
   userId: string;
-  userRole: string;
+  // PERM: true = มีสิทธิ์งานหัวหน้า (แตะงานคนอื่นได้) · false = แตะเฉพาะงานตัวเอง/ยังไม่มีเจ้าของ
+  canSupervise: boolean;
 }
 
 export async function issueGarments(
@@ -147,9 +148,10 @@ export async function issueGarments(
   if (step.stepType !== "GARMENT_PICK") {
     badRequest("เบิกเสื้อได้เฉพาะขั้น 'เบิกเสื้อจากสต๊อค'");
   }
-  // กติกาเดียวกับ updateStep: staff จับงานที่ยังไม่มีเจ้าของได้ (auto-claim) แต่ห้ามแตะงานคนอื่น
+  // กติกาเดียวกับ updateStep (PERM): ไม่ใช่หัวหน้า → จับงานที่ยังไม่มีเจ้าของได้ (auto-claim)
+  // แต่ห้ามแตะงานคนอื่น
   let autoClaim = false;
-  if (params.userRole === "PRODUCTION_STAFF") {
+  if (!params.canSupervise) {
     if (step.assignedToId === null) autoClaim = true;
     else if (step.assignedToId !== params.userId) {
       forbidden("งานนี้ถูกมอบหมายให้คนอื่นแล้ว");

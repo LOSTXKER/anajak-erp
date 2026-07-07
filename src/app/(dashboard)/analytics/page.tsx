@@ -107,7 +107,7 @@ export default function AnalyticsPage() {
         <Section title="รายได้ 6 เดือนย้อนหลัง" bordered>
           {!canViewRevenue ? (
             <p className="text-sm text-slate-400">
-              เปิดดูได้เฉพาะเจ้าของ ผู้จัดการ และบัญชี
+              ต้องมีสิทธิ์ &quot;เห็นทุน/กำไร/รายงานการเงิน&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
             </p>
           ) : revenueError ? (
             <QueryError
@@ -174,7 +174,7 @@ export default function AnalyticsPage() {
               <p className="text-sm text-slate-400">
                 {canViewRevenue
                   ? "ยังไม่มีข้อมูล"
-                  : "เปิดดูได้เฉพาะเจ้าของ ผู้จัดการ และบัญชี"}
+                  : "ต้องมีสิทธิ์ 'เห็นทุน/กำไร/รายงานการเงิน'"}
               </p>
             )}
           </div>
@@ -184,7 +184,7 @@ export default function AnalyticsPage() {
       <Section title="Audit Log" description="กิจกรรมล่าสุดในระบบ" bordered>
         {!canViewAudit ? (
           <p className="text-sm text-slate-400">
-            เปิดดูได้เฉพาะเจ้าของและผู้จัดการ
+            ต้องมีสิทธิ์ &quot;audit log + Owner Pulse&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
           </p>
         ) : auditError ? (
           <QueryError

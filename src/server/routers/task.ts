@@ -424,7 +424,6 @@ export const taskRouter = router({
       : { overdueInvoices: [], shippedOrders: [] };
 
     return {
-      role,
       production,
       printQueue,
       pressQueue,

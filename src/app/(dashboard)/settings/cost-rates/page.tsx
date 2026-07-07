@@ -11,7 +11,7 @@ import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SettingsPageHeader } from "@/components/settings-page-header";
 import type { CostRates } from "@/lib/cost-rates";
-import { FINANCE_ROLES } from "@/lib/roles";
+import { permAllows } from "@/lib/permissions";
 import {
   EMPTY_COST_RATES,
   costRatesConfigured,
@@ -20,8 +20,7 @@ import {
 } from "@/lib/cost-rates";
 
 // เรตต้นทุนกลาง (FLOW-REDESIGN ก้อน 2) — เข็มทิศกำไรขั้นต้นตอนตีราคา ไม่ใช่บัญชีจริง
-// อ่านได้: OWNER/MANAGER/ACCOUNTANT · แก้ได้: OWNER/MANAGER (ตรง RBAC ใน settings router)
-const EDIT_ROLES = ["OWNER", "MANAGER"];
+// PERM: อ่าน = see_finance · แก้ = manage_settings (ตรง settings.costRates/setCostRates)
 
 // ตัวอย่างคำนวณสด — ลายมาตรฐาน 30×20 ซม. × 100 ตัว
 const SAMPLE_PRINT = { widthCm: 30, heightCm: 20 };
@@ -59,8 +58,9 @@ const formatBaht = (n: number) =>
 
 export default function CostRatesSettingsPage() {
   const { data: me } = trpc.user.me.useQuery();
-  const canView = me ? FINANCE_ROLES.includes(me.role) : true;
-  const canEdit = me ? EDIT_ROLES.includes(me.role) : true;
+  // ยังไม่โหลด me = ให้ query รอ (enabled:false) แทนยิงไปโดน FORBIDDEN — permAllows คืน false ตอน undefined
+  const canView = !me || permAllows(me.permissions, "see_finance");
+  const canEdit = !me || permAllows(me.permissions, "manage_settings");
   const ratesQuery = trpc.settings.costRates.useQuery(undefined, { enabled: canView });
   const [form, setForm] = useState<FormState>(toForm(EMPTY_COST_RATES));
 

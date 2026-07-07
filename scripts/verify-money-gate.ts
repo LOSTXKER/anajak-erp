@@ -411,6 +411,55 @@ async function main() {
       staffBadOrder.totalAmount
     );
 
+    // ── PERM5: wiring ใหม่ของ PERM3 รอบสอง — กลุ่มสถานะ + งานหัวหน้า ──
+    // ติ๊กเพิ่มสิทธิ์เดินสถานะฝั่งขายให้ช่าง → พักงาน/ยกเลิกได้ (เดิม D1: ฝ่ายผลิตทำไม่ได้)
+    const asStaffPlusSales = appRouter.createCaller({
+      prisma,
+      userId: owner.id,
+      userRole: "PRODUCTION_STAFF",
+      permissionOverrides: { update_order_status_sales: true },
+    });
+    const staffCancelled = await asStaffPlusSales.order.updateStatus({
+      id: mut.id,
+      internalStatus: "CANCELLED",
+      reason: "ทดสอบสิทธิ์เดินสถานะฝั่งขายที่ติ๊กเพิ่ม",
+    });
+    check(
+      "8.5 override ติ๊กเพิ่ม: ช่าง+เดินสถานะฝั่งขาย ยกเลิกงานได้ (กลุ่มสถานะใน updateStatus)",
+      staffCancelled.internalStatus === "CANCELLED",
+      staffCancelled.internalStatus
+    );
+    // ติ๊กตัดสิทธิ์เดินสถานะฝั่งผลิตจาก SALES → ยิงเป้าฝั่งผลิตโดนข้อความกลาง (เช็คก่อน validate เส้นทาง)
+    const asSalesNoProd = appRouter.createCaller({
+      prisma,
+      userId: owner.id,
+      userRole: "SALES",
+      permissionOverrides: { update_order_status_production: false },
+    });
+    await expectError(
+      "8.6 override ติ๊กตัด: ขาย−เดินสถานะฝั่งผลิต ยิงเป้า QC → FORBIDDEN",
+      () => asSalesNoProd.order.updateStatus({ id: order.id, internalStatus: "QUALITY_CHECK" }),
+      "สิทธิ์"
+    );
+    // งานหัวหน้า (supervise_operations): default ช่างโดนกัน · ติ๊กเพิ่มแล้วเปิดได้ (read-only)
+    await expectError(
+      "8.7a user.assignables (ช่าง default) → FORBIDDEN",
+      () => asStaff.user.assignables(),
+      "สิทธิ์"
+    );
+    const asStaffSupervisor = appRouter.createCaller({
+      prisma,
+      userId: owner.id,
+      userRole: "PRODUCTION_STAFF",
+      permissionOverrides: { supervise_operations: true },
+    });
+    const assignables = await asStaffSupervisor.user.assignables();
+    check(
+      "8.7b override ติ๊กเพิ่ม: ช่าง+งานหัวหน้า เปิดรายชื่อมอบหมายงานได้",
+      Array.isArray(assignables) && assignables.length > 0,
+      assignables.length
+    );
+
     // ── ⑦ quotation gate ──
     await expectError("7.7 quotation.list (ช่าง) → FORBIDDEN", () => asStaff.quotation.list({}), "สิทธิ์");
     await expectError(

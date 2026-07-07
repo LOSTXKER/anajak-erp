@@ -157,19 +157,45 @@ export const userRouter = router({
       }
       const before = await ctx.prisma.user.findUniqueOrThrow({
         where: { id: input.id },
-        select: { name: true, role: true },
+        select: { name: true, role: true, permissionOverrides: true },
       });
+      // PERM5 (review จับ least-privilege): เปลี่ยน role → normalize override เทียบ default ใหม่
+      // (ตัด entry ที่บังเอิญเท่ากับ default ของ role ใหม่) — กัน demote แล้วสิทธิ์ที่เคยให้ค้าง
+      // เงียบๆ · override ที่ยังต่างจาก default ใหม่ยังอยู่ (เจตนา: สิทธิ์ติดตัวคน) แต่โผล่ใน audit
+      const roleChanged = input.role != null && input.role !== before.role;
+      let normalizedOverrides: PermissionOverrides | undefined;
+      if (roleChanged) {
+        const parsed = parsePermissionOverrides(before.permissionOverrides);
+        const newDefaults = defaultPermissionsOf(input.role!);
+        normalizedOverrides = {};
+        for (const [k, v] of Object.entries(parsed) as [Permission, boolean][]) {
+          if (NON_OVERRIDABLE_PERMISSIONS.includes(k)) continue;
+          if (v !== newDefaults.includes(k)) normalizedOverrides[k] = v;
+        }
+      }
       const user = await ctx.prisma.user.update({
         where: { id: input.id },
-        data: { name: input.name, role: input.role },
+        data: {
+          name: input.name,
+          role: input.role,
+          ...(roleChanged ? { permissionOverrides: normalizedOverrides } : {}),
+        },
       });
       await createAuditLog(ctx.prisma, {
         userId: ctx.userId,
         action: "UPDATE",
         entityType: "USER",
         entityId: user.id,
-        oldValue: before,
-        newValue: { name: user.name, role: user.role },
+        oldValue: {
+          name: before.name,
+          role: before.role,
+          ...(roleChanged ? { permissionOverrides: before.permissionOverrides } : {}),
+        },
+        newValue: {
+          name: user.name,
+          role: user.role,
+          ...(roleChanged ? { permissionOverrides: normalizedOverrides } : {}),
+        },
       });
       return user;
     }),

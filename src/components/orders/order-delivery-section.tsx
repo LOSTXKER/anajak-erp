@@ -159,6 +159,9 @@ export function OrderDeliverySection({
   const confirm = useConfirm();
   const { data: me } = trpc.user.me.useQuery();
   const canDelete = !me || permAllows(me.permissions, "supervise_operations");
+  // สร้าง/แก้/ยืนยันส่งใบส่ง = manage_delivery (server: delivery.create/update/updateStatus) —
+  // PERM5: เดิม canCreate เช็คแค่สถานะ + ปุ่มอัปเดตไม่เช็คสิทธิ์เลย (บั๊กคลาส "ยืนยันส่ง" เหลือจุดนี้)
+  const canManageDelivery = !me || permAllows(me.permissions, "manage_delivery");
   // ตั้งค่า blind ship = ฝ่ายขายขึ้นไป (server: order.setBlindShip) — role อื่นเห็นธงอย่างเดียว
   const canSetBlindShip = !me || permAllows(me.permissions, "create_sales_docs");
 
@@ -265,11 +268,9 @@ export function OrderDeliverySection({
     setStatusTrackingNumber(delivery.trackingNumber || "");
   }
 
-  const canCreate = [
-    "PACKING",
-    "READY_TO_SHIP",
-    "SHIPPED",
-  ].includes(internalStatus);
+  const canCreate =
+    canManageDelivery &&
+    ["PACKING", "READY_TO_SHIP", "SHIPPED"].includes(internalStatus);
 
   const hasDeliveries = deliveries.data && deliveries.data.length > 0;
 
@@ -388,7 +389,7 @@ export function OrderDeliverySection({
                               <Hash className="mr-0.5 inline h-3 w-3" />
                               {delivery.trackingNumber}
                             </span>
-                          ) : (
+                          ) : canManageDelivery ? (
                             <button
                               className="text-xs text-slate-400 hover:text-blue-500"
                               onClick={() => {
@@ -398,7 +399,7 @@ export function OrderDeliverySection({
                             >
                               + เพิ่มเลขพัสดุ
                             </button>
-                          )}
+                          ) : null}
                         </div>
                       )}
 
@@ -450,16 +451,17 @@ export function OrderDeliverySection({
                       )}
                       {/* โชว์ปุ่มเมื่อยังเดินสถานะต่อได้ (B13) — DELIVERED เดินต่อ RETURNED/SHIPPED
                           ได้ (ของส่งถึงแล้วลูกค้าตีกลับ) · เดิมซ่อนบน DELIVERED = transition ตาย */}
-                      {nextDeliveryStatuses(delivery.status as DeliveryStatus).length > 1 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => openStatusDialog(delivery)}
-                        >
-                          อัปเดต
-                        </Button>
-                      )}
+                      {canManageDelivery &&
+                        nextDeliveryStatuses(delivery.status as DeliveryStatus).length > 1 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => openStatusDialog(delivery)}
+                          >
+                            อัปเดต
+                          </Button>
+                        )}
                       {delivery.status === "PENDING" && canDelete && (
                         <Button
                           variant="ghost"

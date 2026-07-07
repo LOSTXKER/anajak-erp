@@ -225,7 +225,11 @@ function ProductionWorkspace() {
   // (ช่างเห็นเฉพาะงานที่ลงมือได้จริง) · หัวหน้า/ขาย/การเงินเห็นเพื่อตามแก้ต้นเหตุ
   const queue = queueAll.filter((o) => o.readiness?.ready !== false);
   const blockedQueue = queueAll.filter((o) => o.readiness?.ready === false);
-  const showBlocked = role !== "PRODUCTION_STAFF" && blockedQueue.length > 0;
+  // ช่างเห็นเฉพาะงานลงมือได้จริง · หัวหน้า/ขาย/การเงินเห็นกอง blocked เพื่อตามแก้ (PERM: คนถูก
+  // ติ๊กงานหัวหน้าเห็นด้วย — คงเดิม role อื่นเห็นตามเจตนา)
+  const showBlocked =
+    (role !== "PRODUCTION_STAFF" || permAllows(me?.permissions, "supervise_operations")) &&
+    blockedQueue.length > 0;
   const producing = all.filter(
     (o) => o.internalStatus === "PRODUCING" && o.productions.length > 0
   );

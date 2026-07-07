@@ -181,7 +181,7 @@ export default function WhtRegisterPage() {
           title="ทะเบียนหัก ณ ที่จ่าย (50ทวิ)"
           description="ตามหนังสือรับรองหัก ณ ที่จ่ายจากลูกค้า"
         />
-        <p className="text-sm text-slate-400">หน้านี้เปิดเฉพาะเจ้าของ ผู้จัดการ และบัญชี</p>
+        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
       </div>
     );
   }

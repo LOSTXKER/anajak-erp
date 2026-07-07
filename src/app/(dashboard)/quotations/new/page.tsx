@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customers/customer-picker";
+import { permAllows } from "@/lib/permissions";
 import { ArrowLeft, Plus, Trash2, FileText, User } from "lucide-react";
 
 // ============================================================
@@ -70,6 +71,12 @@ function QuotationFormPage() {
   // · ?edit= แก้ใบเสนอฉบับร่าง (audit ข้อ 11) — ฟอร์มเดียวใช้ทั้งสามโหมด
   const fromOrderId = searchParams.get("orderId") ?? undefined;
   const editId = searchParams.get("edit") ?? undefined;
+
+  // PERM5: ใบเสนอ = เอกสารราคาล้วน — ต้องเห็นเงินฝั่งขายถึงจะสร้าง/แก้ได้ (ตรง quotation.getById/list)
+  // กันเคส override (create_sales_docs=true แต่ see_order_money=false): เดิมสร้างได้แล้วเปิดดูไม่ได้
+  // → ใบถูกสร้างเงียบๆ เจอ error เสี่ยงกดซ้ำ · ยังไม่โหลด me = ให้ผ่านไว้ก่อน (กัน flash)
+  const { data: me } = trpc.user.me.useQuery();
+  const canAuthor = !me || permAllows(me.permissions, "see_order_money");
 
   const {
     data: linkedOrder,
@@ -264,6 +271,22 @@ function QuotationFormPage() {
     return <QueryError onRetry={() => refetchLinkedOrder()} />;
   if (editId && editingIsError && !editing)
     return <QueryError onRetry={() => refetchEditing()} />;
+
+  if (me && !canAuthor)
+    return (
+      <div className="space-y-6">
+        <Link href="/orders">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            กลับ
+          </Button>
+        </Link>
+        <p className="text-sm text-slate-400">
+          ใบเสนอราคาเป็นเอกสารราคา — ต้องมีสิทธิ์ &quot;เห็นเงินฝั่งขาย&quot; จึงจะสร้างได้
+          (เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้)
+        </p>
+      </div>
+    );
 
   return (
     <div className="space-y-6">
