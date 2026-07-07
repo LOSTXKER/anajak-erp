@@ -2,7 +2,9 @@
  * verify:mcp — ทดสอบ MCP read-only layer กับ DB จริง (ไม่ผ่าน HTTP — เลี่ยง dev server โหลด client เก่า)
  *
  * คลุม: auth (hash lookup/bearer/x-api-key/ผิด/inactive/หมดอายุ) · ลงทะเบียน 4 tools ·
- *        role gate ต่อ tool · ซ่อน field เงินตาม role · กันรั่ว cost/secret · audit ทุก call
+ *        permission gate ต่อ tool (default ตาม role ตรงชุดเดิม) · ซ่อน field เงินตามสิทธิ์ ·
+ *        override รายคนมีผลบน MCP key (ทั้งชั้น tool และ end-to-end ผ่าน verifyAgentToken) ·
+ *        กันรั่ว cost/secret · audit ทุก call
  *
  * วิธีรัน: npm run verify:mcp   (ต้องมี OWNER ที่ active + migration agent_api_keys ลงแล้ว)
  */
@@ -129,8 +131,19 @@ async function main() {
     check(tools.has(t), `มี tool: ${t}`);
   }
 
-  const ownerCtx: AgentContext = { userId: owner.id, userRole: "OWNER", keyId: key.id, keyName: TEST_KEY_NAME };
+  const ownerCtx: AgentContext = {
+    userId: owner.id,
+    userRole: "OWNER",
+    permissionOverrides: null,
+    keyId: key.id,
+    keyName: TEST_KEY_NAME,
+  };
   const ctxAs = (role: Role): AgentContext => ({ ...ownerCtx, userRole: role });
+  const ctxWith = (role: Role, overrides: unknown): AgentContext => ({
+    ...ownerCtx,
+    userRole: role,
+    permissionOverrides: overrides,
+  });
 
   const allOutputs: string[] = [];
 
@@ -172,6 +185,79 @@ async function main() {
   check(true, `เรียกได้ (${sc.isError ? "UNAVAILABLE/รอตั้งค่า" : "มีข้อมูล"})`);
   const scDesigner = await callTool("stock_check", {}, ctxAs("DESIGNER"));
   check(scDesigner.isError && scDesigner.text.includes("FORBIDDEN"), "DESIGNER โดน FORBIDDEN (stock = ops roles)");
+
+  // ── 6.5) override รายคนมีผลบน MCP (PERM follow-up) ──
+  console.log("\n[6.5] permission override บน MCP key");
+  // ชั้น tool: ติ๊กเพิ่ม
+  const rcDesignerPlus = await callTool("receivables", {}, ctxWith("DESIGNER", { see_finance: true }));
+  check(!rcDesignerPlus.isError, "override ติ๊กเพิ่ม: DESIGNER+see_finance เรียก receivables ได้");
+  // ชั้น tool: ติ๊กตัด
+  const rcAcctCut = await callTool("receivables", {}, ctxWith("ACCOUNTANT", { see_finance: false }));
+  check(rcAcctCut.isError && rcAcctCut.text.includes("FORBIDDEN"), "override ติ๊กตัด: ACCOUNTANT−see_finance → FORBIDDEN");
+  // ชั้น strip เงิน — เช็คกับใบจริง (review จับ: escape hatch "count 0" ผ่านหลอกๆ บน DB ว่าง)
+  const anyOrder = await prisma.order.findFirst({ select: { orderNumber: true } });
+  if (anyOrder) {
+    const osPlus = await callTool(
+      "order_status",
+      { orderNumber: anyOrder.orderNumber },
+      ctxWith("DESIGNER", { see_order_money: true })
+    );
+    check(!osPlus.isError && osPlus.text.includes("totalAmount"), "override ติ๊กเพิ่ม: DESIGNER+see_order_money เห็น totalAmount (ใบจริง)");
+    const osPlain = await callTool("order_status", { orderNumber: anyOrder.orderNumber }, ctxAs("DESIGNER"));
+    check(!osPlain.isError && !osPlain.text.includes("totalAmount"), "ใบเดียวกัน: DESIGNER default ยังไม่เห็น totalAmount (strip ทำงาน)");
+  } else {
+    console.log("  ⚠ ข้ามเช็ค strip override: DB ไม่มีออเดอร์ (ไม่นับผ่าน)");
+  }
+  const tqAcctCut = await callTool("today_queue", {}, ctxWith("ACCOUNTANT", { see_finance: false }));
+  check(!tqAcctCut.isError && !tqAcctCut.text.includes("money"), "override ติ๊กตัด: ACCOUNTANT−see_finance ไม่เห็น block money");
+  // override ค่าเสีย → fail กลับ default (fail-closed)
+  const rcBadOverride = await callTool("receivables", {}, ctxWith("DESIGNER", { see_finance: "true" }));
+  check(rcBadOverride.isError && rcBadOverride.text.includes("FORBIDDEN"), "override ค่าเสีย (string): DESIGNER ยัง FORBIDDEN");
+  // stock_check gate ใหม่ (any-of manage_production/create_sales_docs) — default = 4 role เดิมเป๊ะ
+  const scSales = await callTool("stock_check", { limit: 3 }, ctxAs("SALES"));
+  check(!scSales.text.includes("FORBIDDEN"), "stock_check: SALES default ยังผ่าน gate (union คง SALES)");
+  const scAcct = await callTool("stock_check", { limit: 3 }, ctxAs("ACCOUNTANT"));
+  check(scAcct.isError && scAcct.text.includes("FORBIDDEN"), "stock_check: ACCOUNTANT default โดน FORBIDDEN (เหมือนเดิม)");
+  const scAcctPlus = await callTool("stock_check", { limit: 3 }, ctxWith("ACCOUNTANT", { manage_production: true }));
+  check(!scAcctPlus.text.includes("FORBIDDEN"), "override ติ๊กเพิ่ม: ACCOUNTANT+manage_production ผ่าน gate stock_check");
+
+  // end-to-end: overrides จาก DB วิ่งผ่าน verifyAgentToken → tool จริง
+  console.log("\n[6.6] override end-to-end ผ่าน verifyAgentToken (DB จริง)");
+  const TEST_USER_EMAIL = "__verify_mcp__@test.local";
+  await prisma.agentApiKey.deleteMany({ where: { user: { email: TEST_USER_EMAIL } } });
+  await prisma.user.deleteMany({ where: { email: TEST_USER_EMAIL } });
+  const e2eUser = await prisma.user.create({
+    data: {
+      supabaseId: `__verify_mcp__${Date.now()}`,
+      email: TEST_USER_EMAIL,
+      name: "[TEST] verify-mcp override",
+      role: "DESIGNER",
+      permissionOverrides: { see_finance: true },
+    },
+    select: { id: true },
+  });
+  try {
+    const e2eKey = newAgentKey();
+    await prisma.agentApiKey.create({
+      data: { name: TEST_KEY_NAME, keyHash: e2eKey.keyHash, keyPrefix: e2eKey.keyPrefix, userId: e2eUser.id },
+    });
+    const e2eAuth = await verifyAgentToken(new Request("http://x"), e2eKey.raw);
+    const e2eExtra = e2eAuth?.extra as Partial<AgentContext> | undefined;
+    check(
+      JSON.stringify(e2eExtra?.permissionOverrides) === JSON.stringify({ see_finance: true }),
+      "verifyAgentToken แนบ permissionOverrides จาก DB มาใน extra"
+    );
+    const cb = tools.get("receivables")!;
+    const e2eRes = await cb({}, { authInfo: e2eAuth });
+    const e2eText = e2eRes.content.map((c) => c.text).join("\n");
+    check(
+      e2eRes.isError !== true && (e2eText.includes("agingByCustomer") || e2eText.includes("grandTotal")),
+      "DESIGNER (key จริง) + override ใน DB → เรียก receivables ผ่านทั้งเส้น"
+    );
+  } finally {
+    await prisma.agentApiKey.deleteMany({ where: { userId: e2eUser.id } });
+    await prisma.user.delete({ where: { id: e2eUser.id } });
+  }
 
   // ── 7) กันรั่ว (สแกนทุก output) ──
   console.log("\n[7] กันรั่วข้อมูลภายใน");

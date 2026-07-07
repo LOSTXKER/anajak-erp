@@ -5,7 +5,8 @@
  *  - ระบุลูกค้า → รายใบค้างของลูกค้า + (draft=true) ร่างข้อความทวงให้ "คนกดส่งเอง"
  *
  * ร่างทวง = surface ให้คนตัดสิน ไม่ยิงเอง (memory: bes-prefers-surface-over-autoenforce)
- * finance-only · กำกวมหลายราย = คืนรายชื่อให้เลือก (ไม่ทวงผิดคน)
+ * gate สิทธิ์ see_finance (default = FINANCE_ROLES เดิมเป๊ะ · override รายคนมีผล)
+ * กำกวมหลายราย = คืนรายชื่อให้เลือก (ไม่ทวงผิดคน)
  */
 
 import { z } from "zod";
@@ -19,7 +20,7 @@ import {
 } from "@/server/services/receivables";
 import { buildDunningDraft } from "@/server/services/dunning";
 import { parseCompanyProfile, COMPANY_PROFILE_KEY } from "@/lib/company-profile";
-import { registerReadTool, FINANCE_ROLES, McpToolError } from "../tool";
+import { registerReadTool, McpToolError } from "../tool";
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 
@@ -39,7 +40,7 @@ export function registerReceivablesTool(server: McpServer): void {
       "ดูยอดลูกหนี้ค้างชำระ — เว้นว่างเพื่อดูภาพรวม aging (ใครค้างเท่าไร), " +
       "ระบุ customerName/customerId เพื่อดูรายใบของลูกค้า, ตั้ง draft=true เพื่อขอ 'ร่างข้อความทวง' " +
       "(ร่างให้ก๊อปส่งเอง ไม่ส่งอัตโนมัติ)",
-    allowedRoles: FINANCE_ROLES,
+    requiredPermission: "see_finance",
     inputSchema: {
       customerId: z.string().trim().optional().describe("รหัสลูกค้า (ชัดเจนที่สุด)"),
       customerName: z.string().trim().optional().describe("ชื่อลูกค้า/บริษัท (ค้นหา)"),

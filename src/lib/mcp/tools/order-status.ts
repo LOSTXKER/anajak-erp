@@ -7,7 +7,7 @@
  *  - ไม่ระบุ → ออเดอร์ที่ยัง active ล่าสุด
  *
  * กันรั่ว: allow-list select เท่านั้น — ไม่มี totalCost/profitMargin/platformFee/notes/token
- * ราคาขาย (totalAmount) แสดงเฉพาะ role ที่เห็นเงินออเดอร์ (ช่าง/กราฟิกไม่เห็น)
+ * ราคาขาย (totalAmount) แสดงเฉพาะคนมีสิทธิ์ see_order_money (default ช่าง/กราฟิกไม่เห็น · override มีผล)
  */
 
 import { z } from "zod";
@@ -23,7 +23,7 @@ import {
   PRIORITY_LABELS,
 } from "@/lib/order-status";
 import { getOrdersReadiness } from "@/server/services/production-readiness";
-import { registerReadTool, ALL_ROLES, canSeeOrderMoney, McpToolError } from "../tool";
+import { registerReadTool, agentHasPermission, McpToolError } from "../tool";
 import type { AgentContext } from "../auth";
 
 // allow-list — ห้ามมี cost/profit/platformFee/notes/token (extended client แปลง cost เป็น number อัตโนมัติ
@@ -74,7 +74,7 @@ function formatOrder(o: OrderRow, ctx: AgentContext) {
     customerFacingStatus: CUSTOMER_STATUS_LABELS[getCustomerStatus(o.internalStatus)],
     deadline: o.deadline,
     paymentTerms: o.paymentTerms,
-    ...(canSeeOrderMoney(ctx.userRole) ? { totalAmount: o.totalAmount } : {}),
+    ...(agentHasPermission(ctx, "see_order_money") ? { totalAmount: o.totalAmount } : {}),
     createdAt: o.createdAt,
   };
 }
@@ -86,7 +86,7 @@ export function registerOrderStatusTool(server: McpServer): void {
     description:
       "ดูสถานะออเดอร์ของโรงงาน — ระบุ orderNumber เพื่อดูใบเดียวพร้อม 'ติดอะไร รอใคร', " +
       "ระบุ search (ชื่อลูกค้า/ชื่องาน) เพื่อค้นหา, หรือเว้นว่างเพื่อดูงานที่ยังทำอยู่ล่าสุด",
-    allowedRoles: ALL_ROLES,
+    // ไม่ gate — สถานะงานเปิดทุกคนเหมือนเดิม (เงินตัดตามสิทธิ์ตอน format)
     inputSchema: {
       orderNumber: z.string().trim().optional().describe("เลขออเดอร์ เช่น ORD-2606-0024"),
       search: z.string().trim().optional().describe("คำค้นชื่อลูกค้าหรือชื่องาน"),
@@ -118,7 +118,7 @@ export function registerOrderStatusTool(server: McpServer): void {
                     // ช่อง payment ฝัง "รับแล้ว X/Y บาท" (+ % มัดจำใน label) → ถอดยอดออเดอร์กลับได้
                     // role ที่ไม่เห็นเงินออเดอร์ให้เห็นแค่ "รอใคร" (waitingOn) ไม่เห็นตัวเลข
                     detail:
-                      c.key === "payment" && !canSeeOrderMoney(ctx.userRole)
+                      c.key === "payment" && !agentHasPermission(ctx, "see_order_money")
                         ? c.waitingOn ?? c.detail
                         : c.detail,
                     waitingOn: c.waitingOn,

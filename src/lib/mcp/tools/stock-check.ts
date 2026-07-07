@@ -13,10 +13,6 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getStockClientFromSettings, StockApiError } from "@/lib/stock-api";
 import { registerReadTool, McpToolError } from "../tool";
-import type { Role } from "@prisma/client";
-
-// เลียน gate stock-sync (OWNER/MANAGER + ช่างที่เบิกของ) + SALES (เช็คของก่อนรับงาน)
-const STOCK_ROLES: Role[] = ["OWNER", "MANAGER", "PRODUCTION_STAFF", "SALES"];
 
 export function registerStockCheckTool(server: McpServer): void {
   registerReadTool(server, {
@@ -25,7 +21,10 @@ export function registerStockCheckTool(server: McpServer): void {
     description:
       "เช็คยอดสต๊อคสดจากระบบคลัง (Anajak Stock) — ระบุ sku เพื่อดูรายตัว, " +
       "หรือเว้นว่าง/ตั้ง lowStockOnly เพื่อดูยอดคงเหลือ (คงเหลือ/จองค้าง/หยิบได้)",
-    allowedRoles: STOCK_ROLES,
+    // เดิม STOCK_ROLES = OWNER/MANAGER/PRODUCTION_STAFF/SALES — แตกเป็นสิทธิ์ตามเหตุผลเดิม:
+    // ช่างเบิกของ (manage_production) + ขายเช็คของก่อนรับงาน (create_sales_docs)
+    // union ของ default สองตัว = 4 role เดิมเป๊ะ · ตัวใดตัวหนึ่งพอ + override รายคนมีผล
+    requiredPermission: ["manage_production", "create_sales_docs"],
     inputSchema: {
       sku: z.string().trim().optional().describe("รหัส SKU ของสินค้าหรือ variant"),
       search: z.string().trim().optional().describe("(ไม่บังคับ) ใช้ร่วม sku ไม่ได้ — ปัจจุบันรองรับ sku ตรงตัว"),

@@ -460,6 +460,45 @@ async function main() {
       assignables.length
     );
 
+    // ── 8.8 invariant OWNER (PERM follow-up): ด่าน "ต้องเหลือเจ้าของ active ≥1" ต้องไม่บล็อก
+    // เคสปกติ (ยังมีเจ้าของจริง active อยู่) — ฝั่ง block ทดสอบที่ user.invariant.test.ts
+    // (จำลอง count=0 ไม่ได้กับ DB จริงโดยไม่แตะบัญชีเจ้าของ)
+    // email คงที่ + sweep ก่อนสร้าง (pattern verify-mcp) — script ตายกลางทางแล้วรันใหม่
+    // ต้องเก็บ "OWNER ผี" ของรอบก่อนเอง (ผี active นับใน assertAnotherActiveOwner = อันตราย)
+    const MGATE_OWNER_EMAIL = "mgate-owner@test.local";
+    const staleOwners = await prisma.user.findMany({
+      where: { email: MGATE_OWNER_EMAIL },
+      select: { id: true },
+    });
+    if (staleOwners.length > 0) {
+      await prisma.auditLog.deleteMany({
+        where: { entityType: "USER", entityId: { in: staleOwners.map((u) => u.id) } },
+      });
+      await prisma.user.deleteMany({ where: { email: MGATE_OWNER_EMAIL } });
+    }
+    const mgateOwner = await prisma.user.create({
+      data: {
+        // ต้องเป็น UUID จริง — auth-js validate รูปแบบก่อนยิง (ไม่ใช่ UUID = throw ทันที)
+        // UUID สุ่มที่ไม่มีใน Supabase → updateUserById คืน error object → setActive log แล้วไปต่อ
+        supabaseId: crypto.randomUUID(),
+        email: MGATE_OWNER_EMAIL,
+        name: `${MARK} เจ้าของทดสอบ invariant`,
+        role: "OWNER",
+      },
+      select: { id: true },
+    });
+    try {
+      // ปิดบัญชี OWNER ทดสอบ (guard วิ่ง: target เป็น OWNER active) → ผ่านเพราะเจ้าของจริงยังอยู่
+      const deactivated = await asOwner.user.setActive({ id: mgateOwner.id, isActive: false });
+      check("8.8a ปิดบัญชี OWNER ทดสอบ → ผ่าน (เจ้าของจริงยัง active)", deactivated.isActive === false);
+      await asOwner.user.setActive({ id: mgateOwner.id, isActive: true });
+      const demoted = await asOwner.user.update({ id: mgateOwner.id, role: "SALES" });
+      check("8.8b ลด role OWNER ทดสอบ → ผ่าน (เจ้าของจริงยัง active)", demoted.role === "SALES");
+    } finally {
+      await prisma.auditLog.deleteMany({ where: { entityType: "USER", entityId: mgateOwner.id } });
+      await prisma.user.delete({ where: { id: mgateOwner.id } });
+    }
+
     // ── ⑦ quotation gate ──
     await expectError("7.7 quotation.list (ช่าง) → FORBIDDEN", () => asStaff.quotation.list({}), "สิทธิ์");
     await expectError(
@@ -651,6 +690,18 @@ async function main() {
     await prisma.product.deleteMany({ where: { id: { in: ids.products } } });
     await prisma.communicationLog.deleteMany({ where: { customerId: { in: ids.customers } } });
     await prisma.customer.deleteMany({ where: { id: { in: ids.customers } } });
+    // กัน "OWNER ผี" จาก 8.8 ค้าง (inner finally ไปไม่ถึง เช่น auditLog.deleteMany throw) —
+    // ลบ user ทดสอบตาม MARK พร้อม audit ที่อ้าง (ผี active นับใน assertAnotherActiveOwner)
+    const testUsers = await prisma.user.findMany({
+      where: { name: { contains: MARK } },
+      select: { id: true },
+    });
+    if (testUsers.length > 0) {
+      await prisma.auditLog.deleteMany({
+        where: { entityType: "USER", entityId: { in: testUsers.map((u) => u.id) } },
+      });
+      await prisma.user.deleteMany({ where: { id: { in: testUsers.map((u) => u.id) } } });
+    }
     for (const docType of SEQ_TYPES) {
       const before = seqBefore.find((sq) => sq.docType === docType);
       if (before) {

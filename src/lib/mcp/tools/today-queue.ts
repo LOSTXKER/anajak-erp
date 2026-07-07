@@ -4,7 +4,8 @@
  * ใช้ getOwnerPulse (service กลางที่จงใจทำไว้ให้ MCP เฟสแรก) เป็นตัวเลขสรุป
  * + รายการงานเสี่ยงสาย (เลยกำหนด/ใน 48 ชม.) พร้อม "ติดอะไร รอใคร" จาก readiness
  *
- * กันรั่ว: ตัวเลข money (บิลเลยกำหนด/ใบเสนอค้าง) แสดงเฉพาะ role การเงิน (เลียน analytics.dashboard)
+ * กันรั่ว: ตัวเลข money (บิลเลยกำหนด/ใบเสนอค้าง) แสดงเฉพาะคนมีสิทธิ์ see_finance
+ * (default = role การเงิน เลียน analytics.dashboard · override รายคนมีผลด้วย)
  */
 
 import { z } from "zod";
@@ -14,7 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import { getOwnerPulse } from "@/server/services/owner-pulse";
 import { getOrdersReadiness } from "@/server/services/production-readiness";
-import { registerReadTool, ALL_ROLES, canSeeFinance } from "../tool";
+import { registerReadTool, agentHasPermission } from "../tool";
 
 export function registerTodayQueueTool(server: McpServer): void {
   registerReadTool(server, {
@@ -23,7 +24,7 @@ export function registerTodayQueueTool(server: McpServer): void {
     description:
       "สรุปงานของโรงงานวันนี้ — งานเสี่ยงเลยกำหนด, คิวผลิตวันนี้, ของค้างร้านนอก, งานติดหล่ม " +
       "และรายการงานเสี่ยงสายพร้อมเหตุที่ติด (รอเงิน/รอแบบ/รอของ)",
-    allowedRoles: ALL_ROLES,
+    // ไม่ gate — คิวงานเปิดทุกคนเหมือนเดิม (เงินตัดตามสิทธิ์ข้างล่าง)
     inputSchema: {
       riskLimit: z
         .number()
@@ -67,7 +68,7 @@ export function registerTodayQueueTool(server: McpServer): void {
           todayQueue: pulse.todayQueue, // { done, open }
           outsource: pulse.outsource, // { pending, overduePickup }
           stuckOrders: pulse.stuckOrders,
-          ...(canSeeFinance(ctx.userRole) ? { money: pulse.money } : {}),
+          ...(agentHasPermission(ctx, "see_finance") ? { money: pulse.money } : {}),
         },
         riskOrders: riskOrders.map((o) => {
           const r = readiness.get(o.id);

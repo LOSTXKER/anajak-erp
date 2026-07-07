@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import type { PrismaTx } from "@/lib/prisma";
 
 type AuditLogAction = "CREATE" | "UPDATE" | "DELETE" | "VOID";
@@ -33,6 +34,24 @@ export async function createAuditLog(
       reason: params.reason,
     },
   });
+}
+
+// PERM follow-up: invariant "ระบบต้องเหลือเจ้าของ (OWNER) ที่ใช้งานอยู่อย่างน้อย 1 คน" —
+// ด่านกันพลาดชั้นสุดท้ายก่อนลด role/ปิดบัญชี OWNER ที่ยัง active
+// (ปกติถึงจุดนี้ยาก: คนสั่งต้องเป็น OWNER ที่ active เอง + แก้ role/ปิดบัญชีตัวเองถูก block แล้ว
+//  เหลือช่องแคบอย่างสอง OWNER ลดสิทธิ์กันเองพร้อมกัน — เช็ค count ปิดเคสทั่วไปพอ
+//  race ระดับมิลลิวินาทีจริงยอมรับ ไม่ล็อกแถวให้ซับซ้อน · ทีม 5 คน แก้คืนได้ที่ DB)
+export async function assertAnotherActiveOwner(
+  prismaOrTx: PrismaLike,
+  excludeUserId: string,
+  message: string
+): Promise<void> {
+  const others = await prismaOrTx.user.count({
+    where: { role: "OWNER", isActive: true, id: { not: excludeUserId } },
+  });
+  if (others === 0) {
+    throw new TRPCError({ code: "BAD_REQUEST", message });
+  }
 }
 
 // processDesignApproval ย้ายไป src/server/services/order-status.ts —

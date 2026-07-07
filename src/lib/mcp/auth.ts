@@ -32,6 +32,9 @@ export function newAgentKey(): { raw: string; keyHash: string; keyPrefix: string
 export interface AgentContext {
   userId: string;
   userRole: Role;
+  // override สิทธิ์รายคนจาก users.permissionOverrides (JSON ดิบ — hasPermission parse เอง
+  // ข้อมูลเสีย fail กลับ default ตาม role) · null = ไม่มี override ใช้ default
+  permissionOverrides: unknown;
   keyId: string;
   keyName: string;
 }
@@ -53,7 +56,7 @@ export async function verifyAgentToken(
       name: true,
       isActive: true,
       expiresAt: true,
-      user: { select: { id: true, role: true, isActive: true } },
+      user: { select: { id: true, role: true, isActive: true, permissionOverrides: true } },
     },
   });
 
@@ -69,6 +72,7 @@ export async function verifyAgentToken(
   const extra: AgentContext = {
     userId: key.user.id,
     userRole: key.user.role,
+    permissionOverrides: key.user.permissionOverrides,
     keyId: key.id,
     keyName: key.name,
   };
@@ -96,6 +100,8 @@ export function getAgentContext(authInfo: AuthInfo | undefined): AgentContext {
   return {
     userId: extra.userId,
     userRole: extra.userRole,
+    // ไม่มี field (AuthInfo จากแหล่งเก่า) = null → hasPermission ใช้ default ตาม role
+    permissionOverrides: extra.permissionOverrides ?? null,
     keyId: extra.keyId,
     keyName: extra.keyName ?? "",
   };

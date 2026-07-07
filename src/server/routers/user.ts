@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { createAdminClient } from "@/lib/supabase-admin";
-import { createAuditLog } from "@/server/helpers";
+import { createAuditLog, assertAnotherActiveOwner } from "@/server/helpers";
 import {
   parsePermissionOverrides,
   defaultPermissionsOf,
@@ -157,8 +157,16 @@ export const userRouter = router({
       }
       const before = await ctx.prisma.user.findUniqueOrThrow({
         where: { id: input.id },
-        select: { name: true, role: true, permissionOverrides: true },
+        select: { name: true, role: true, isActive: true, permissionOverrides: true },
       });
+      // invariant: ลด role ของ OWNER ที่ยัง active → ต้องมี OWNER active คนอื่นเหลือ
+      if (input.role && input.role !== "OWNER" && before.role === "OWNER" && before.isActive) {
+        await assertAnotherActiveOwner(
+          ctx.prisma,
+          input.id,
+          "เปลี่ยนตำแหน่งไม่ได้ — ระบบต้องเหลือเจ้าของที่ใช้งานอยู่อย่างน้อย 1 คน"
+        );
+      }
       // PERM5 (review จับ least-privilege): เปลี่ยน role → normalize override เทียบ default ใหม่
       // (ตัด entry ที่บังเอิญเท่ากับ default ของ role ใหม่) — กัน demote แล้วสิทธิ์ที่เคยให้ค้าง
       // เงียบๆ · override ที่ยังต่างจาก default ใหม่ยังอยู่ (เจตนา: สิทธิ์ติดตัวคน) แต่โผล่ใน audit
@@ -209,6 +217,20 @@ export const userRouter = router({
           code: "BAD_REQUEST",
           message: "ปิดบัญชีตัวเองไม่ได้",
         });
+      }
+      // invariant: ปิดบัญชี OWNER ที่ยัง active → ต้องมี OWNER active คนอื่นเหลือ
+      if (!input.isActive) {
+        const target = await ctx.prisma.user.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { role: true, isActive: true },
+        });
+        if (target.role === "OWNER" && target.isActive) {
+          await assertAnotherActiveOwner(
+            ctx.prisma,
+            input.id,
+            "ปิดบัญชีไม่ได้ — ระบบต้องเหลือเจ้าของที่ใช้งานอยู่อย่างน้อย 1 คน"
+          );
+        }
       }
       const user = await ctx.prisma.user.update({
         where: { id: input.id },
