@@ -63,6 +63,17 @@
 - [x] PERM6 **follow-up จาก review PERM5** ✅ 2026-07-07: **MCP agent tools วิ่งผ่าน hasPermission** — verifyAgentToken แนบ permissionOverrides เข้า AgentContext · gate ต่อ tool เปลี่ยน allowedRoles → requiredPermission (receivables=see_finance · stock_check=any-of manage_production/create_sales_docs — union เท่า STOCK_ROLES เดิมเป๊ะ · order_status/today_queue ไม่ gate เหมือนเดิม) · strip เงิน → agentHasPermission — **override มีผลบน MCP key แล้ว** + **invariant "OWNER active ≥1"** (assertAnotherActiveOwner ใน user.update/setActive + เทส wiring ระดับ router `user.invariant.test.ts` — พิสูจน์ mutation จริง: ถอด guard เทสแดง) · review 4 มิติ+skeptic 10 agents: default-drift **0 findings** · CONFIRMED 2 (ฝั่งเทส) แก้ครบ · verify: unit 423 · **verify:mcp 59/59** (override ชั้น tool + e2e key จริง) · moneygate 39/39 · **จดค้าง**: gate aging MCP(see_finance) ↔ เว็บ billing-note(manage_billing_docs) ไม่ตรงข้าม surface — default เท่ากัน ต่างเฉพาะ override แยก · นโยบายรอเบสเคาะ
 - **PERM สรุป**: ระบบสิทธิ์รายคนครบวงจร server+client+print+MCP · default = พฤติกรรมเดิม 100% (พิสูจน์ verify เดิมไม่แก้ expectation) · override มีผลจริงทุกชั้นรวม MCP agent key · tsc 0 · lint 0 error · unit 423 · **เหลือ UI browser test ฝั่ง non-OWNER = ผูก B16** (ต้อง login บัญชีทดสอบ — เบสทำเอง · classifier กันฉัน flip บัญชี)
 
+### 🎨 UX — รื้อ UX/UI + จอโรงงาน (เบสสั่ง 2026-07-07: "UI รกใช้ยาก" + "โรงงานจะมีจอให้พนักงานตอนสกรีน" · ใบงานเต็ม: `docs/spec-ux-revamp.md` + audit 4 ฉบับใน `docs/_ux-audit-2026-07/` · เคาะแล้ว: ทีวี read-only + จอทัช/มือถือช่าง)
+- [ ] UX1 **จอช่าง ณ จุดงาน**: ใบผลิตเห็นลาย+ตารางไซส์ + ปิดขั้น 1-2 แตะ 【M】 (ส่วนซ่อน QC จากฟอร์มช่าง — รอเคาะ §4 ข้อ 4)
+- [ ] UX2 **จอพิมพ์เห็นลาย + ปิดปุ่มหลอก B8** บน print-runs/films 【S-M】
+- [ ] UX3 **หน้าสร้างออเดอร์เบาลง** (progressive disclosure — ราคาค่อยเปิดเมื่อมีรายการ · จอแรก ~18-20 control → ~8-9) 【M】
+- [ ] UX4 **ทีวีคิวรวม `/factory`** (endpoint factory.board ไม่มีเงินโดยโครงสร้าง + display token) 【L】 — **รอเบสเคาะ §4 ข้อ 1-3**
+- [ ] UX5 **detail ชิ้นเล็ก**: ตัด CTA ซ้ำ + แท็บลง URL 【S】
+- [ ] UX6 **detail แท็บ "เงิน/บิล"** + รีด sidebar (การ์ดบิล 1,336 บรรทัดย้ายบ้าน) 【L】
+- [ ] UX8 **เก็บฝั่งผลิต**: จุดรีด/แพ็ค + เศษเล็ก 【M】
+- [ ] UX7 **ตารางสินค้า→การ์ดมือถือ + matrix default** 【L】 — เสี่ยงสุด ไว้ท้าย
+- **ลำดับแนะนำ**: UX1→UX2→UX3→UX4→UX5→UX6→UX8→UX7 · คำถามเคาะเบส 5 ข้ออยู่ spec §4 (ข้อ 1-3 บล็อกแค่ UX4) · ทับ C5 เดิม (ขยายเป็น UX1/UX2/UX8)
+
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
 ~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
 
