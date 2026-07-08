@@ -9,11 +9,15 @@ import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SegmentedControl } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { PageHeader } from "@/components/page-header";
 import { CreateProductionDialog } from "@/components/production/create-production-dialog";
+import {
+  ProductionCommandCenter,
+  type FireItem,
+  type LaneTile,
+} from "@/components/production/production-command-center";
 import { QcCountDialog } from "@/components/qc/order-qc-section";
 import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
@@ -34,7 +38,6 @@ import {
 import type { InternalStatus } from "@prisma/client";
 import { formatDate, cn } from "@/lib/utils";
 import {
-  Plus,
   Clock,
   AlertTriangle,
   Truck,
@@ -42,8 +45,7 @@ import {
   ClipboardCheck,
   Play,
   FastForward,
-  LayoutGrid,
-  Rows3,
+  ChevronLeft,
   PackageCheck,
   Printer,
 } from "lucide-react";
@@ -145,20 +147,11 @@ function ProductionWorkspace() {
     description: string;
     quantity: number;
   } | null>(null);
-  // มุมมองงานในไลน์: แท็บต่อเทคนิค (ค่าเริ่ม — มือถือ) / บอร์ดเลนรวม (จอใหญ่)
-  const [view, setView] = useState<"tabs" | "board">("tabs");
-  const [activeLane, setActiveLane] = useState<ProductionLane | null>(null);
-
-  // โหลด preference หลัง mount — เลี่ยง hydration mismatch (localStorage ไม่มีตอน SSR)
-  useEffect(() => {
-    const saved = localStorage.getItem("production-view");
-    if (saved === "board" || saved === "tabs") setView(saved);
-  }, []);
-
-  function changeView(v: "tabs" | "board") {
-    setView(v);
-    localStorage.setItem("production-view", v);
-  }
+  // ศูนย์บัญชาการ (default) → แตะ tile ลงลึกดูรายการจริงของสายนั้น (เลนผลิต/หลังผลิต)
+  // ไม่มี toggle view ให้เลือกก่อนเห็นงานอีกแล้ว — เปิดมาเห็นภาพรวมทั้งโรงงานเลย
+  const [focus, setFocus] = useState<
+    { kind: "lane"; lane: ProductionLane } | { kind: "post"; key: string } | null
+  >(null);
 
   const invalidateAll = [
     utils.production.kanban,
@@ -235,8 +228,6 @@ function ProductionWorkspace() {
   );
   const laneCards = buildLaneCards(producing);
   const lanesWithWork = LANE_ORDER.filter((l) => (laneCards.get(l)?.length ?? 0) > 0);
-  const currentLane =
-    activeLane && lanesWithWork.includes(activeLane) ? activeLane : lanesWithWork[0] ?? null;
 
   // ── actions ต่อการ์ดเลน ──
   async function handleQuickPass(card: LaneCard) {
@@ -293,184 +284,166 @@ function ProductionWorkspace() {
 
   const busy = updateStep.isPending || updateOutsource.isPending || advance.isPending;
 
+  // ── ข้อมูลศูนย์บัญชาการ (คำนวณจาก kanban เดิม ไม่มี query ใหม่) ──
+  const now = new Date();
+  const isPast = (d: Date | string | null) => !!d && new Date(d) < now;
+
+  // ต้องรีบ: เลยกำหนด + มีปัญหา (step FAILED) + ติดด่านพร้อมผลิต — ยุบต่อออเดอร์
+  const fireMap = new Map<string, FireItem>();
+  const ensureFire = (o: KanbanOrder, href: string): FireItem => {
+    let f = fireMap.get(o.id);
+    if (!f) {
+      f = {
+        orderId: o.id,
+        orderNumber: o.orderNumber,
+        title: o.title,
+        customerName: o.customerName,
+        deadline: o.deadline,
+        priority: o.priority,
+        href,
+        reasons: [],
+      };
+      fireMap.set(o.id, f);
+    }
+    return f;
+  };
+  for (const o of producing) {
+    const href = o.productionId ? `/production/${o.productionId}` : `/orders/${o.id}`;
+    if (isPast(o.deadline)) ensureFire(o, href).reasons.push({ label: "เลยกำหนด", tone: "red" });
+    if (o.productions.some((p) => p.steps.some((s) => s.status === "FAILED")))
+      ensureFire(o, href).reasons.push({ label: "มีปัญหา", tone: "red" });
+  }
+  // ติดด่านพร้อมผลิต — เฉพาะคนที่เห็นกองนี้ (หัวหน้า/ขาย/การเงิน) · ช่างไม่เห็น
+  if (showBlocked) {
+    for (const o of blockedQueue) {
+      const f = ensureFire(o, `/orders/${o.id}`);
+      f.skippable = true;
+      if (isPast(o.deadline)) f.reasons.push({ label: "เลยกำหนด", tone: "red" });
+      const failing = (o.readiness?.checks ?? []).filter((c) => !c.ok);
+      for (const c of failing) f.reasons.push({ label: c.label, tone: "amber" });
+      // "รอใคร" จาก waitingOn เท่านั้น — ไม่หยิบ detail (มีตัวเลขเงินบาท ห้ามขึ้นภาพรวม)
+      const waiting = failing.map((c) => c.waitingOn).filter(Boolean);
+      if (waiting.length > 0) f.note = waiting.join(" · ");
+    }
+  }
+  // แดง (เลยกำหนด/ปัญหา) ขึ้นก่อนเหลือง (ติดด่าน)
+  const fires = [...fireMap.values()].sort(
+    (a, b) =>
+      (a.reasons.some((r) => r.tone === "red") ? 0 : 1) -
+      (b.reasons.some((r) => r.tone === "red") ? 0 : 1)
+  );
+
+  // สายการผลิต — เลนผลิต + หลังผลิต · tile กวาดตาเห็นจำนวน + จุดแดงถ้ามีงานเลยกำหนด
+  const laneTiles: LaneTile[] = lanesWithWork.map((lane) => {
+    const cards = laneCards.get(lane) ?? [];
+    return {
+      key: lane,
+      label: LANE_LABELS[lane],
+      count: cards.length,
+      overdue: cards.filter((c) => isPast(c.order.deadline)).length,
+      isOutsource: OUTSOURCE_LANES.has(lane),
+      tone: "line",
+    };
+  });
+  const postTiles: LaneTile[] = POST_COLUMNS.map((col) => {
+    const cards = all.filter((o) => o.internalStatus === col.status);
+    return {
+      key: col.key,
+      label: col.title,
+      count: cards.length,
+      overdue: cards.filter((o) => isPast(o.deadline)).length,
+      tone: "post",
+    };
+  });
+
+  const queueItems = queue.map((o) => ({
+    orderId: o.id,
+    orderNumber: o.orderNumber,
+    title: o.title,
+    customerName: o.customerName,
+    deadline: o.deadline,
+    priority: o.priority,
+    totalQuantity: o.totalQuantity,
+  }));
+
+  // งานของฉัน — ขั้นที่คน login ถืออยู่ + ยังไม่เสร็จ (strip รอง สำหรับช่าง)
+  const myWork = me?.id
+    ? producing.flatMap((o) =>
+        o.productions.flatMap((p) =>
+          p.steps
+            .filter((s) => s.assignedTo?.id === me.id && s.status !== "COMPLETED")
+            .map((s) => ({
+              stepId: s.id,
+              productionId: p.id,
+              orderNumber: o.orderNumber,
+              stepName: s.customStepName || STEP_TYPE_LABELS[s.stepType] || s.stepType,
+              status: s.status,
+            }))
+        )
+      )
+    : [];
+
+  const focusPostCol = focus?.kind === "post" ? POST_COLUMNS.find((c) => c.key === focus.key) : null;
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="การผลิต"
-        description={`สายการผลิตแยกตามเทคนิค · ${all.length} งานในระบบ`}
+        title="ศูนย์บัญชาการผลิต"
+        description={
+          focus ? "แตะ ← เพื่อกลับภาพรวม" : `ภาพรวมทั้งโรงงาน · ${all.length} งานในระบบ`
+        }
         action={
-          // จอช่างพิมพ์ DTF — รวมหลายงานลงม้วนเดียว (FLOW-REDESIGN ก้อน 2)
-          <Button variant="outline" size="sm" asChild className="gap-1.5">
-            <Link href="/production/print-runs">
-              <Printer className="h-4 w-4" />
-              รอบพิมพ์ฟิล์ม
-            </Link>
-          </Button>
+          focus ? (
+            <Button variant="ghost" size="sm" onClick={() => setFocus(null)} className="gap-1.5">
+              <ChevronLeft className="h-4 w-4" />
+              ภาพรวม
+            </Button>
+          ) : (
+            // จอช่างพิมพ์ DTF — รวมหลายงานลงม้วนเดียว (FLOW-REDESIGN ก้อน 2)
+            <Button variant="outline" size="sm" asChild className="gap-1.5">
+              <Link href="/production/print-runs">
+                <Printer className="h-4 w-4" />
+                รอบพิมพ์ฟิล์ม
+              </Link>
+            </Button>
+          )
         }
       />
 
-      {/* ── 1) รอเปิดใบผลิต ── */}
-      {queue.length > 0 && (
+      {focus === null ? (
+        // ── ภาพรวม (default) — ศูนย์บัญชาการ ──
+        <ProductionCommandCenter
+          fires={fires}
+          lanes={[...laneTiles, ...postTiles]}
+          queue={queueItems}
+          myWork={myWork}
+          canCreate={canCreate}
+          onPickLane={(tile) =>
+            setFocus(
+              tile.tone === "line"
+                ? { kind: "lane", lane: tile.key as ProductionLane }
+                : { kind: "post", key: tile.key }
+            )
+          }
+          onCreate={(orderId) => setCreateOrderId(orderId)}
+        />
+      ) : focus.kind === "lane" ? (
+        // ── ลงลึกสายผลิต — รายการการ์ดเลนเดิม (ปุ่มกด/ผ่านรวด/ร้านนอกครบ) ──
         <section className="space-y-2.5">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
-            รอเปิดใบผลิต
-            <span className="rounded-full bg-amber-50 px-1.5 text-xs tabular-nums text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-              {queue.length}
-            </span>
-          </h2>
-          <div className="flex snap-x gap-3 overflow-x-auto pb-1.5">
-            {queue.map((o) => (
-              <div
-                key={o.id}
-                className="w-[260px] shrink-0 snap-start card-surface rounded-xl p-3"
-              >
-                <OrderCardHeader order={o} href={`/orders/${o.id}`} />
-                <div className="mt-2.5">
-                  {canCreate ? (
-                    <Button
-                      size="sm"
-                      onClick={() => setCreateOrderId(o.id)}
-                      className="h-9 w-full gap-1.5"
-                    >
-                      <Plus className="h-4 w-4" />
-                      เปิดใบผลิต
-                    </Button>
-                  ) : (
-                    <Button variant="outline" size="sm" asChild className="h-9 w-full">
-                      <Link href={`/orders/${o.id}`}>เปิดดูออเดอร์</Link>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── 1b) ติดด่านพร้อมผลิต — "ติดอะไร รอใคร" (ช่างไม่เห็นกองนี้) ── */}
-      {showBlocked && (
-        <section className="space-y-2.5">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-            <span className="h-2 w-2 rounded-full bg-red-400" />
-            ติดด่านพร้อมผลิต
-            <span className="rounded-full bg-red-50 px-1.5 text-xs tabular-nums text-red-700 dark:bg-red-950/40 dark:text-red-300">
-              {blockedQueue.length}
-            </span>
-            <span className="hidden text-xs font-normal text-slate-400 sm:inline">
-              เงินตามเทอม · แบบอนุมัติ · ของครบ — แก้ต้นเหตุก่อน งานถึงเข้าคิวช่าง
-            </span>
-          </h2>
-          <div className="flex snap-x gap-3 overflow-x-auto pb-1.5">
-            {blockedQueue.map((o) => (
-              <div
-                key={o.id}
-                className="w-[280px] shrink-0 snap-start rounded-xl border border-red-200/80 bg-red-50/40 p-3 shadow-sm dark:border-red-900/50 dark:bg-red-950/20"
-              >
-                <OrderCardHeader order={o} href={`/orders/${o.id}`} />
-                <ul className="mt-2 space-y-1.5">
-                  {(o.readiness?.checks ?? [])
-                    .filter((c) => !c.ok)
-                    .map((c) => (
-                      <li key={c.key} className="text-xs">
-                        <p className="flex items-start gap-1.5 font-medium text-red-700 dark:text-red-300">
-                          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-                          <span>
-                            {c.label}: {c.detail}
-                          </span>
-                        </p>
-                        {c.waitingOn && (
-                          <p className="pl-[18px] text-slate-500 dark:text-slate-400">
-                            {c.waitingOn}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                </ul>
-                <div className="mt-2.5 flex gap-2">
-                  <Button variant="outline" size="sm" asChild className="h-9 flex-1">
-                    <Link href={`/orders/${o.id}`}>ไปแก้ที่ออเดอร์</Link>
-                  </Button>
-                  {canCreate && (
-                    // soft-gate: หัวหน้าข้ามด่านได้ (งานด่วน/เคสยกเว้น) — dialog โชว์คำเตือนซ้ำ
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setCreateOrderId(o.id)}
-                      className="h-9 text-xs text-slate-500"
-                    >
-                      ข้ามด่าน
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── 2) งานในไลน์ผลิต — แท็บต่อเทคนิค / บอร์ดเลนรวม ── */}
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
             <span className="h-2 w-2 rounded-full bg-blue-500" />
-            งานในไลน์ผลิต
+            {LANE_LABELS[focus.lane]}
             <span className="rounded-full bg-blue-50 px-1.5 text-xs tabular-nums text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-              {producing.length}
+              {(laneCards.get(focus.lane) ?? []).length}
             </span>
           </h2>
-          <SegmentedControl
-            value={view}
-            onChange={changeView}
-            options={[
-              { value: "tabs", label: "แท็บเทคนิค", icon: Rows3 },
-              { value: "board", label: "บอร์ดเลน", icon: LayoutGrid },
-            ]}
-            className="ml-auto"
-          />
-        </div>
-
-        {lanesWithWork.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-400 dark:border-slate-700">
-            ยังไม่มีงานในไลน์ผลิต
-          </p>
-        ) : view === "tabs" ? (
-          <>
-            {/* แถบแท็บเลน — เลื่อนแนวนอนบนมือถือ */}
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {lanesWithWork.map((lane) => {
-                const count = laneCards.get(lane)?.length ?? 0;
-                const active = lane === currentLane;
-                return (
-                  <button
-                    key={lane}
-                    type="button"
-                    onClick={() => setActiveLane(lane)}
-                    className={cn(
-                      "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                      active
-                        ? "border-blue-600 bg-blue-600 text-white"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-                    )}
-                  >
-                    {LANE_LABELS[lane]}
-                    {OUTSOURCE_LANES.has(lane) && (
-                      <Truck className={cn("h-3 w-3", active ? "text-white/80" : "text-slate-400")} />
-                    )}
-                    <span
-                      className={cn(
-                        "rounded-full px-1.5 text-xs tabular-nums",
-                        active ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800"
-                      )}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+          {(laneCards.get(focus.lane) ?? []).length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-400 dark:border-slate-700">
+              สายนี้เคลียร์แล้ว — กลับไปภาพรวม
+            </p>
+          ) : (
             <div className="space-y-2.5">
-              {(currentLane ? laneCards.get(currentLane) ?? [] : []).map((card) => (
+              {(laneCards.get(focus.lane) ?? []).map((card) => (
                 <LaneCardView
                   key={`${card.productionId}:${card.lane}`}
                   card={card}
@@ -487,146 +460,94 @@ function ProductionWorkspace() {
                 />
               ))}
             </div>
-          </>
-        ) : (
-          /* บอร์ดเลนรวม — คอลัมน์ต่อเทคนิค เลื่อนแนวนอน */
-          <div className="flex snap-x gap-4 overflow-x-auto pb-3">
-            {lanesWithWork.map((lane) => {
-              const cards = laneCards.get(lane) ?? [];
-              return (
-                <div
-                  key={lane}
-                  className="flex w-[284px] shrink-0 snap-start flex-col rounded-2xl border border-slate-200/70 bg-slate-50/40 dark:border-slate-800/60 dark:bg-slate-900/40"
-                >
-                  <div className="flex items-center justify-between gap-2 rounded-t-2xl bg-blue-50 px-3.5 py-2.5 text-sm font-semibold text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
-                    <span className="flex items-center gap-2">
-                      {LANE_LABELS[lane]}
-                      {OUTSOURCE_LANES.has(lane) && (
-                        <Badge variant="warning" size="sm">
-                          ร้านนอก
-                        </Badge>
-                      )}
-                    </span>
-                    <span className="rounded-full bg-white/70 px-1.5 text-xs tabular-nums dark:bg-black/20">
-                      {cards.length}
-                    </span>
-                  </div>
-                  <div className="flex-1 space-y-2.5 p-2.5">
-                    {cards.map((card) => (
-                      <LaneCardView
-                        key={`${card.productionId}:${card.lane}`}
-                        card={card}
-                        perms={me?.permissions}
-                        meId={me?.id}
-                        canQc={canQc}
-                        busy={busy}
-                        onStart={(stepId) => updateStep.mutate({ stepId, status: "IN_PROGRESS" })}
-                        onComplete={(stepId) => updateStep.mutate({ stepId, status: "COMPLETED" })}
-                        onQuickPass={() => handleQuickPass(card)}
-                        onOutsourceStatus={(id, status) => updateOutsource.mutate({ id, status })}
-                        onOutsourceQcFail={handleOutsourceQcFail}
-                        onReceiveBack={(os) => handleReceiveBack(card, os)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* ── 3) หลังผลิต: ตรวจคุณภาพ → แพ็ค → พร้อมส่ง ── */}
-      <section className="space-y-2.5">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-          <PackageCheck className="h-4 w-4 text-slate-400" />
-          หลังผลิต — ตรวจ / แพ็ค / ส่ง
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {POST_COLUMNS.map((col) => {
-            const cards = all.filter((o) => o.internalStatus === col.status);
-            return (
-              <div
-                key={col.key}
-                className="rounded-2xl border border-slate-200/70 bg-slate-50/40 dark:border-slate-800/60 dark:bg-slate-900/40"
-              >
-                <div className="flex items-center justify-between px-3.5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  {col.title}
-                  <span className="rounded-full bg-white px-1.5 text-xs tabular-nums text-slate-500 dark:bg-black/20">
-                    {cards.length}
-                  </span>
-                </div>
-                <div className="space-y-2.5 p-2.5 pt-0">
-                  {cards.length === 0 ? (
-                    <p className="py-5 text-center text-xs text-slate-300 dark:text-slate-600">
-                      — ว่าง —
-                    </p>
-                  ) : (
-                    cards.map((o) => {
-                      const canAdvance =
-                        col.next && canPermsSetStatus(me?.permissions, o.internalStatus as InternalStatus, col.next.to);
-                      const href = o.productionId ? `/production/${o.productionId}` : `/orders/${o.id}`;
-                      return (
-                        <div
-                          key={o.id}
-                          className="card-surface rounded-xl p-3"
-                        >
-                          <OrderCardHeader order={o} href={href} />
-                          {/* ธง blind ship บนคอลัมน์แพ็ค/พร้อมส่ง — pattern เดียวกับเลน PACK
-                              (คอลัมน์ตรวจคุณภาพไม่ใส่ ของยังไม่ถึงมือคนแพ็ค) */}
-                          {(col.key === "packing" || col.key === "ready") && o.blindShip && (
-                            <p className="mt-2 rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white">
-                              🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
-                            </p>
-                          )}
-                          <div className="mt-2.5">
-                            {col.key === "qc" && canCountQc ? (
-                              // ผ่านด่านตรวจทางเดียว: เปิดใบนับจริง (ดีครบยอด → เด้งแพ็คเอง
-                              // มีของเสีย → ถอยกลับผลิต+งานแก้) — ไม่มีปุ่มข้ามด่านอีกแล้ว (B4)
-                              <Button
-                                size="sm"
-                                disabled={busy}
-                                onClick={() => setQcOrderId(o.id)}
-                                className="h-9 w-full gap-1.5"
-                              >
-                                <ClipboardCheck className="h-3.5 w-3.5" />
-                                ตรวจนับ QC
-                              </Button>
-                            ) : col.next && canAdvance ? (
-                              <Button
-                                size="sm"
-                                disabled={advance.isPending}
-                                onClick={() =>
-                                  advance.mutate({ id: o.id, internalStatus: col.next!.to as never })
-                                }
-                                className="h-9 w-full gap-1.5"
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                {col.next.label}
-                              </Button>
-                            ) : col.key === "ready" ? (
-                              <Button variant="outline" size="sm" asChild className="h-9 w-full gap-1.5">
-                                <Link href={`/orders/${o.id}`}>
-                                  <Truck className="h-3.5 w-3.5" />
-                                  ไปจัดส่ง
-                                </Link>
-                              </Button>
-                            ) : (
-                              <Button variant="outline" size="sm" asChild className="h-9 w-full">
-                                <Link href={href}>เปิดดู</Link>
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+          )}
+        </section>
+      ) : focusPostCol ? (
+        // ── ลงลึกหลังผลิต — ตรวจนับ QC / เลื่อนสถานะ / ไปจัดส่ง (ของเดิม) ──
+        <section className="space-y-2.5">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <PackageCheck className="h-4 w-4 text-slate-400" />
+            {focusPostCol.title}
+            <span className="rounded-full bg-slate-100 px-1.5 text-xs tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              {all.filter((o) => o.internalStatus === focusPostCol.status).length}
+            </span>
+          </h2>
+          {all.filter((o) => o.internalStatus === focusPostCol.status).length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-400 dark:border-slate-700">
+              — ว่าง —
+            </p>
+          ) : (
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              {all
+                .filter((o) => o.internalStatus === focusPostCol.status)
+                .map((o) => {
+                  const canAdvance =
+                    focusPostCol.next &&
+                    canPermsSetStatus(
+                      me?.permissions,
+                      o.internalStatus as InternalStatus,
+                      focusPostCol.next.to
+                    );
+                  const href = o.productionId
+                    ? `/production/${o.productionId}`
+                    : `/orders/${o.id}`;
+                  return (
+                    <div key={o.id} className="card-surface rounded-xl p-3">
+                      <OrderCardHeader order={o} href={href} />
+                      {/* ธง blind ship บนคอลัมน์แพ็ค/พร้อมส่ง (ตรวจไม่ใส่ ของยังไม่ถึงคนแพ็ค) */}
+                      {(focusPostCol.key === "packing" || focusPostCol.key === "ready") &&
+                        o.blindShip && (
+                          <p className="mt-2 rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white">
+                            🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
+                          </p>
+                        )}
+                      <div className="mt-2.5">
+                        {focusPostCol.key === "qc" && canCountQc ? (
+                          // ผ่านด่านตรวจทางเดียว: เปิดใบนับจริง (ดีครบ→เด้งแพ็ค · เสีย→ถอยกลับ B4)
+                          <Button
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => setQcOrderId(o.id)}
+                            className="h-9 w-full gap-1.5"
+                          >
+                            <ClipboardCheck className="h-3.5 w-3.5" />
+                            ตรวจนับ QC
+                          </Button>
+                        ) : focusPostCol.next && canAdvance ? (
+                          <Button
+                            size="sm"
+                            disabled={advance.isPending}
+                            onClick={() =>
+                              advance.mutate({
+                                id: o.id,
+                                internalStatus: focusPostCol.next!.to as never,
+                              })
+                            }
+                            className="h-9 w-full gap-1.5"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            {focusPostCol.next.label}
+                          </Button>
+                        ) : focusPostCol.key === "ready" ? (
+                          <Button variant="outline" size="sm" asChild className="h-9 w-full gap-1.5">
+                            <Link href={`/orders/${o.id}`}>
+                              <Truck className="h-3.5 w-3.5" />
+                              ไปจัดส่ง
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" asChild className="h-9 w-full">
+                            <Link href={href}>เปิดดู</Link>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       {createOrderId && (
         <CreateProductionDialog
