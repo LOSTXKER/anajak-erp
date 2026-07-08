@@ -21,7 +21,8 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { formatDate, formatDateTime, cn } from "@/lib/utils";
+import { formatDate, formatDateTime, cn, isImageUrl } from "@/lib/utils";
+import { permAllows } from "@/lib/permissions";
 import {
   ArrowLeft,
   Printer,
@@ -32,6 +33,7 @@ import {
   Loader2,
   Clock,
   AlertTriangle,
+  ImageOff,
 } from "lucide-react";
 
 // จอช่างพิมพ์ DTF — รอบพิมพ์ฟิล์ม (FLOW-REDESIGN ก้อน 2)
@@ -71,6 +73,42 @@ function DeadlineChip({ deadline }: { deadline: Date | string | null }) {
       {overdue ? "เลยกำหนด " : "กำหนด "}
       {formatDate(deadline)}
     </span>
+  );
+}
+
+// รูปลายอนุมัติ + ป้ายเวอร์ชัน — ช่างเห็นลายบนคิว/รอบ แตะเปิดไฟล์เต็ม (UX2 · กันพิมพ์ผิดเวอร์ชัน)
+// ไฟล์ลายอยู่หลัง /api/files (auth) — เปิดแท็บใหม่ส่ง cookie เอง · ไม่มีเงินติดมากับ design
+function DesignThumb({
+  design,
+  size = "md",
+}: {
+  design: { versionNumber: number; fileUrl: string; thumbnailUrl: string | null } | null;
+  size?: "md" | "sm";
+}) {
+  if (!design) return null;
+  const img = [design.thumbnailUrl, design.fileUrl].find(isImageUrl) ?? null;
+  const box = size === "md" ? "h-14 w-14" : "h-10 w-10";
+  return (
+    <a
+      href={design.fileUrl}
+      target="_blank"
+      rel="noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      title={`เปิดไฟล์ลาย v${design.versionNumber}`}
+      className="relative shrink-0 overflow-hidden rounded-lg border border-slate-200 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:border-slate-700"
+    >
+      {img ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={img} alt={`ลาย v${design.versionNumber}`} className={cn(box, "bg-white object-contain")} />
+      ) : (
+        <div className={cn(box, "flex items-center justify-center bg-slate-50 text-slate-300 dark:bg-slate-800")}>
+          <ImageOff className="h-4 w-4" />
+        </div>
+      )}
+      <span className="absolute bottom-0 right-0 rounded-tl bg-black/70 px-1 text-[9px] font-bold tabular-nums text-white">
+        v{design.versionNumber}
+      </span>
+    </a>
   );
 }
 
@@ -114,6 +152,9 @@ export default function PrintRunsPage() {
   const queueQuery = trpc.printRun.queue.useQuery();
   const listQuery = trpc.printRun.list.useQuery();
   const invalidate = usePrintRunInvalidate();
+  // B8: ปุ่มสั่งงาน (เปิดรอบ/พิมพ์จบ/ยกเลิก/ตัดแยก) เฉพาะคนมีสิทธิ์ผลิต — role อื่นเห็นคิวอ่านอย่างเดียว
+  const { data: me } = trpc.user.me.useQuery();
+  const canManage = permAllows(me?.permissions, "manage_production");
 
   // งานที่เลือกเข้ารอบ: stepId → จำนวนที่จะพิมพ์รอบนี้
   const [picked, setPicked] = useState<Record<string, number>>({});
@@ -228,6 +269,7 @@ export default function PrintRunsPage() {
                 key={run.id}
                 run={run}
                 busy={busy}
+                canManage={canManage}
                 onMarkPrinted={() => markPrinted.mutate({ runId: run.id })}
                 onCancel={() => handleCancel(run)}
                 onComplete={() => setCompleting(run)}
@@ -258,6 +300,7 @@ export default function PrintRunsPage() {
               <QueueRow
                 key={entry.stepId}
                 entry={entry}
+                canManage={canManage}
                 qty={picked[entry.stepId]}
                 onToggle={() => togglePick(entry)}
                 onQtyChange={(qty) =>
@@ -306,8 +349,8 @@ export default function PrintRunsPage() {
         )}
       </BlockSection>
 
-      {/* ── แถบเปิดรอบ sticky ล่างจอ — โผล่เมื่อเลือกงานแล้ว (pattern เดียวกับ orders/new) ── */}
-      {pickedEntries.length > 0 && (
+      {/* ── แถบเปิดรอบ sticky ล่างจอ — โผล่เมื่อเลือกงานแล้ว (pattern เดียวกับ orders/new) · B8 เฉพาะคนมีสิทธิ์ผลิต ── */}
+      {canManage && pickedEntries.length > 0 && (
         <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-slate-400">เข้ารอบพิมพ์ม้วนนี้</p>
@@ -359,12 +402,14 @@ function ActiveRunCard({
   onMarkPrinted,
   onCancel,
   onComplete,
+  canManage,
 }: {
   run: PrintRun;
   busy: boolean;
   onMarkPrinted: () => void;
   onCancel: () => void;
   onComplete: () => void;
+  canManage: boolean;
 }) {
   const badge = RUN_STATUS_BADGE[run.status] ?? RUN_STATUS_BADGE.PRINTING;
   return (
@@ -385,6 +430,7 @@ function ActiveRunCard({
       <ul className="mt-2.5 divide-y divide-slate-100 rounded-lg border border-slate-100 dark:divide-slate-800 dark:border-slate-800">
         {run.items.map((item) => (
           <li key={item.id} className="flex min-h-[44px] items-center gap-3 px-3 py-2">
+            <DesignThumb design={item.order.designs[0] ?? null} size="sm" />
             <span className="shrink-0 text-sm font-medium text-slate-900 dark:text-white">
               {item.order.orderNumber}
             </span>
@@ -403,29 +449,32 @@ function ActiveRunCard({
         {run.printedAt && ` · พิมพ์จบ ${formatDateTime(run.printedAt)}`}
       </p>
 
-      <div className="mt-3 flex gap-2">
-        {run.status === "PRINTING" ? (
-          <>
-            <Button disabled={busy} onClick={onMarkPrinted} className="h-11 flex-1 gap-1.5">
-              <Printer className="h-4 w-4" />
-              พิมพ์จบทั้งม้วน
+      {/* B8: ปุ่มสั่งงานเฉพาะคนมีสิทธิ์ผลิต — role อื่นเห็นรอบเป็นอ่านอย่างเดียว */}
+      {canManage && (
+        <div className="mt-3 flex gap-2">
+          {run.status === "PRINTING" ? (
+            <>
+              <Button disabled={busy} onClick={onMarkPrinted} className="h-11 flex-1 gap-1.5">
+                <Printer className="h-4 w-4" />
+                พิมพ์จบทั้งม้วน
+              </Button>
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={onCancel}
+                className="h-11 text-red-600 hover:text-red-700"
+              >
+                ยกเลิกรอบ
+              </Button>
+            </>
+          ) : (
+            <Button disabled={busy} onClick={onComplete} className="h-11 w-full gap-1.5">
+              <Scissors className="h-4 w-4" />
+              ตัดแยก+ติดป้ายเสร็จ
             </Button>
-            <Button
-              variant="outline"
-              disabled={busy}
-              onClick={onCancel}
-              className="h-11 text-red-600 hover:text-red-700"
-            >
-              ยกเลิกรอบ
-            </Button>
-          </>
-        ) : (
-          <Button disabled={busy} onClick={onComplete} className="h-11 w-full gap-1.5">
-            <Scissors className="h-4 w-4" />
-            ตัดแยก+ติดป้ายเสร็จ
-          </Button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -439,11 +488,13 @@ function QueueRow({
   qty,
   onToggle,
   onQtyChange,
+  canManage,
 }: {
   entry: QueueEntry;
   qty: number | undefined;
   onToggle: () => void;
   onQtyChange: (qty: number) => void;
+  canManage: boolean;
 }) {
   const selected = qty !== undefined;
   const cap = entry.remaining > 0 ? entry.remaining : undefined;
@@ -451,24 +502,30 @@ function QueueRow({
     selected && (!Number.isInteger(qty) || qty < 1 || (cap !== undefined && qty > cap));
   return (
     <li
-      onClick={onToggle}
+      onClick={canManage ? onToggle : undefined}
       className={cn(
-        "flex min-h-[56px] cursor-pointer items-center gap-3 px-4 py-3 transition-colors",
+        "flex min-h-[56px] items-center gap-3 px-4 py-3 transition-colors",
+        canManage && "cursor-pointer",
         selected
           ? "bg-blue-50/60 dark:bg-blue-950/20"
-          : "hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800"
+          : canManage &&
+              "hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800"
       )}
     >
-      <span
-        className={cn(
-          "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
-          selected
-            ? "border-blue-600 bg-blue-600 text-white"
-            : "border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-900"
-        )}
-      >
-        {selected && <Check className="h-3.5 w-3.5" />}
-      </span>
+      {/* checkbox เลือกเข้ารอบ — เฉพาะคนมีสิทธิ์ผลิต (B8) */}
+      {canManage && (
+        <span
+          className={cn(
+            "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+            selected
+              ? "border-blue-600 bg-blue-600 text-white"
+              : "border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-900"
+          )}
+        >
+          {selected && <Check className="h-3.5 w-3.5" />}
+        </span>
+      )}
+      <DesignThumb design={entry.design} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
           {entry.orderNumber}

@@ -50,6 +50,8 @@ export interface PrintQueueEntry {
   qtyDone: number;
   qtyTotal: number; // จำนวนที่ต้องพิมพ์ (qtyTotal ของขั้น หรือยอดรวมออเดอร์)
   remaining: number;
+  // แบบอนุมัติล่าสุด — ให้ช่างเห็นลาย+เวอร์ชันบนคิว กันพิมพ์ผิดเวอร์ชัน (UX2 · ไม่มีเงิน)
+  design: { versionNumber: number; fileUrl: string; thumbnailUrl: string | null } | null;
 }
 
 export async function getPrintQueue(prisma: ExtendedPrismaClient): Promise<PrintQueueEntry[]> {
@@ -79,7 +81,12 @@ export async function getPrintQueue(prisma: ExtendedPrismaClient): Promise<Print
               deadline: true,
               customer: { select: { name: true } },
               items: { select: { totalQuantity: true } },
-              designs: { where: { approvalStatus: "APPROVED" }, take: 1, select: { id: true } },
+              designs: {
+                where: { approvalStatus: "APPROVED" },
+                orderBy: { versionNumber: "desc" },
+                take: 1,
+                select: { versionNumber: true, fileUrl: true, thumbnailUrl: true },
+              },
             },
           },
         },
@@ -110,6 +117,7 @@ export async function getPrintQueue(prisma: ExtendedPrismaClient): Promise<Print
       qtyDone: s.qtyDone,
       qtyTotal: slot.qtyTotal,
       remaining: slot.remaining,
+      design: order.designs[0] ?? null,
     });
   }
 
@@ -413,7 +421,19 @@ export async function listPrintRuns(prisma: ExtendedPrismaClient) {
       createdBy: { select: { name: true } },
       items: {
         include: {
-          order: { select: { orderNumber: true, title: true, deadline: true } },
+          order: {
+            select: {
+              orderNumber: true,
+              title: true,
+              deadline: true,
+              designs: {
+                where: { approvalStatus: "APPROVED" },
+                orderBy: { versionNumber: "desc" },
+                take: 1,
+                select: { versionNumber: true, fileUrl: true, thumbnailUrl: true },
+              },
+            },
+          },
           productionStep: { select: { status: true, qtyDone: true, qtyTotal: true } },
         },
       },
