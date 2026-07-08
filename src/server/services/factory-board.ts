@@ -268,6 +268,7 @@ export async function getFactoryBoard(prisma: ExtendedPrismaClient) {
       buildActiveRuns(prisma),
       getPrintQueue(prisma).then((q) =>
         q.slice(0, 8).map((e) => ({
+          stepId: e.stepId, // ใช้เป็น React key — orderNumber ซ้ำได้ (ออเดอร์เดียวมีหลายขั้น DTF_PRINT)
           orderNumber: e.orderNumber,
           customerName: e.customerName,
           title: e.orderName,

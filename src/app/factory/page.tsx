@@ -208,7 +208,7 @@ function DtfColumn({
             <p className="mt-1 text-xs uppercase tracking-wide text-neutral-500">คิวถัดไป</p>
           )}
           {printQueue.slice(0, 4).map((e) => (
-            <div key={e.orderNumber} className="flex items-baseline justify-between gap-2 px-1">
+            <div key={e.stepId} className="flex items-baseline justify-between gap-2 px-1">
               <span className="truncate text-xl font-semibold tabular-nums">
                 {e.orderNumber}
                 {isOverdue(e.deadline) && <span className="ml-1.5 text-red-400">●</span>}

@@ -626,6 +626,7 @@ export default function OrderDetailPage({
         // ก่อนไปตาย FORBIDDEN ตอนบันทึก (review ⑦ จับ)
         onEditItems={isSalesUp ? openItemsEditor : undefined}
         onAnchor={handleAnchor}
+        canSeeMoney={canSeeMoney}
       />
 
       {/* แท็บลดความหนาแน่น — การ์ด 9 ใบแยกเป็น 5 แท็บ (default ตามสถานะ · จุด = แท็บมีของ) */}

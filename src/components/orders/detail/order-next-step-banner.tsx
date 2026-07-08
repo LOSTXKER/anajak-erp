@@ -17,6 +17,8 @@ interface NextStepBannerProps {
   // undefined = role นี้แก้รายการไม่ได้ (ช่าง/กราฟิก) — ซ่อนปุ่ม EDIT_ITEMS ไปเลย
   onEditItems?: () => void;
   onAnchor: (target: "billing" | "design" | "production" | "delivery" | "qc") => void;
+  // role ไม่เห็นเงิน (ช่าง/กราฟิก) = ซ่อน "ปุ่ม" ไปการ์ดบิล แต่คงข้อความบอกสถานะไว้ (ปุ่มพาไปแท็บเงินที่เขาเข้าไม่ได้ = ปุ่มตาย ขัด B8)
+  canSeeMoney?: boolean;
 }
 
 /**
@@ -32,11 +34,16 @@ export function OrderNextStepBanner({
   onStatus,
   onEditItems,
   onAnchor,
+  canSeeMoney = true,
 }: NextStepBannerProps) {
   if (!nextStep) return null;
 
   const action = nextStep.action;
   const blockedByReadiness = shouldGateOnReadiness(action, readiness);
+  // ปุ่มที่พาไปที่ role นี้เข้าไม่ได้ = ซ่อนปุ่ม (คงข้อความบอกสถานะ) — เลียน pattern EDIT_ITEMS/onEditItems
+  const hideButton =
+    (action.type === "EDIT_ITEMS" && !onEditItems) ||
+    (action.type === "ANCHOR" && action.target === "billing" && !canSeeMoney);
 
   function dispatch(a: NextStepAction) {
     switch (a.type) {
@@ -83,8 +90,7 @@ export function OrderNextStepBanner({
               ))}
           </ul>
         </div>
-      ) : action.type === "EDIT_ITEMS" && !onEditItems ? null : action.type !== "NONE" &&
-        nextStep.buttonLabel ? (
+      ) : hideButton ? null : action.type !== "NONE" && nextStep.buttonLabel ? (
         <Button onClick={() => dispatch(action)} disabled={isPending} className="shrink-0 self-start sm:self-auto">
           {nextStep.buttonLabel}
           <ChevronRight className="h-4 w-4" />
