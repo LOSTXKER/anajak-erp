@@ -21,6 +21,7 @@ import { packagingRouter } from "./packaging";
 import { settingsRouter } from "./settings";
 import { userRouter } from "./user";
 import { taskRouter } from "./task";
+import { factoryRouter } from "./factory";
 import { goodsReceiptRouter } from "./goods-receipt";
 import { printRunRouter } from "./print-run";
 import { filmStockRouter } from "./film-stock";
@@ -54,6 +55,7 @@ export const appRouter = router({
   stockSync: stockSyncRouter,
   settings: settingsRouter,
   task: taskRouter,
+  factory: factoryRouter,
   goodsReceipt: goodsReceiptRouter,
   printRun: printRunRouter,
   filmStock: filmStockRouter,
