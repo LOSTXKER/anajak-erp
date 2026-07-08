@@ -165,6 +165,10 @@ export default function NewOrderPage() {
   // มีเนื้อรายการจริงไหม — ตัวตัดสินเดียวแทนสวิตช์โหมดเดิม (สอบถาม/ระบุครบ):
   // ไม่มี = เปิดเป็นการสอบถาม (ตีราคาทีหลัง) · มี = validate + ส่งรายการไปคิดเงิน
   const hasItemContent = items.some(itemHasContent);
+  // UX3: โซนราคา (ค่าบริการ/ภาษี/เงื่อนไขชำระ/สรุปราคา) โผล่เมื่อมีรายการ — ฟอร์มว่างไม่รก
+  // คงโซนไว้ถ้ามี fee/ส่วนลดค้าง (กรณีลบรายการทีหลัง) ให้ลบได้ ตรงกับกับดัก validateForm — กันค่ากำพร้าซ่อนจนแก้ไม่ได้
+  const showPriceZone =
+    hasItemContent || discount > 0 || fees.some((f) => f.name || f.feeType || f.amount > 0);
 
   useEffect(() => {
     if (!deadline) return;
@@ -446,6 +450,12 @@ export default function NewOrderPage() {
           </div>
         </Section>
 
+        {/* รูป/ไฟล์อ้างอิงจากแชท — ยกขึ้นใกล้จุด capture ตอนถือแชท (UX3) · พับเองถ้ายังไม่มีรูป */}
+        <OrderAttachmentsSection
+          images={referenceImages}
+          onImagesChange={setReferenceImages}
+        />
+
         {/* ============ 2 · รายการสินค้า & ราคา — กางตลอด (หัวใจของออเดอร์)
             ไม่กรอก = เปิดเป็นใบสอบถาม ตีราคาทีหลังได้ ============ */}
         <Section
@@ -525,6 +535,10 @@ export default function NewOrderPage() {
               เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)
             </Button>
 
+            {/* UX3: โซนราคาโผล่เมื่อมีรายการ (หรือมี fee/ส่วนลดค้าง) —
+                ฟอร์มว่างสั้นลงเกือบครึ่ง + กับดัก "กรอกราคาก่อนมีของ" หายไปเอง */}
+            {showPriceZone && (
+            <>
             <OrderFeeSection
               fees={fees}
               onAddFee={addFee}
@@ -587,21 +601,12 @@ export default function NewOrderPage() {
               onDiscountChange={setDiscount}
               marginEstimate={marginEstimate}
             />
+            </>
+            )}
           </div>
         </Section>
 
-        {/* ============ 3 · ไฟล์อ้างอิง & จัดส่ง — ของไม่บังคับ พับไว้ ============ */}
-        <OrderAttachmentsSection
-          title={
-            <>
-              <SectionNumber n={3} />
-              รูป / ไฟล์อ้างอิงจากแชท
-            </>
-          }
-          images={referenceImages}
-          onImagesChange={setReferenceImages}
-        />
-
+        {/* จัดส่ง — ของไม่บังคับ พับไว้ (รูปจากแชทย้ายขึ้นท้ายส่วนลูกค้าแล้ว UX3) */}
         <OrderShippingSection
           showShipping={showShipping}
           onToggleShipping={() => setShowShipping(!showShipping)}
