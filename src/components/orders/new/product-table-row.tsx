@@ -21,8 +21,8 @@ import { trpc } from "@/lib/trpc";
 import { CustomMadeDetail } from "./custom-made-detail";
 import { SizeMatrix } from "./size-matrix";
 
-// แถวสินค้า 1 ชิ้น — ตารางเต็มทุก field เรียงแนวนอน (เบสเคาะ: แถวเดียวจบ ไม่ซ่อน · มือถือเลื่อนขวา)
-// 8 คอลัมน์: แหล่ง · สินค้า · ราคา · จำนวน · ส่วนลด · แพค · รวม · ลบ
+// แถวสินค้า 1 ชิ้น — 5 คอลัมน์หลัก: แหล่ง · สินค้า · ราคา · จำนวน · รวม (+ ลบ)
+// ส่วนลด/แพค ย้ายไปใต้ "เพิ่มเติม" ต่อแถว (UX7 · ตารางแคบลง อ่านง่ายบนมือถือ)
 export function ProductTableRow({
   product, prodIdx, itemIdx, totalProducts, onSetItems,
 }: {
@@ -39,6 +39,8 @@ export function ProductTableRow({
     () =>
       product.itemSource === "CUSTOM_MADE" || product.itemSource === "CUSTOMER_PROVIDED"
   );
+  // UX7: ส่วนลด + แพค ย้ายมาอยู่ใต้ "เพิ่มเติม" (คนส่วนใหญ่ไม่ใช้) → ตารางเหลือ 5 คอลัมน์หลัก อ่านง่ายบนมือถือ
+  const [showMore, setShowMore] = useState(false);
   const { data: packagingOptions } = trpc.packaging.list.useQuery();
 
   const updateProduct = (field: string, value: unknown) => {
@@ -89,6 +91,7 @@ export function ProductTableRow({
   const isFromStock = product.itemSource === "FROM_STOCK";
   const isCustomMade = product.itemSource === "CUSTOM_MADE";
   const isCustomerProvided = product.itemSource === "CUSTOMER_PROVIDED";
+  const packName = packagingOptions?.find((o) => o.id === product.packagingOptionId)?.name;
 
   // โหมดหลายไซส์ (matrix) — เฉพาะสินค้าที่กรอกเอง (ไม่ใช่จากสต๊อค) · มี >1 variant = บังคับเปิด
   const canMatrix = !isFromStock;
@@ -206,23 +209,6 @@ export function ProductTableRow({
           )}
         </td>
 
-        {/* ส่วนลด */}
-        <td className="px-1.5 py-2 align-top">
-          {isCustomerProvided ? dash : (
-            <Input type="number" min={0} step={0.01} value={product.discount || ""} onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)} placeholder="0" className="w-full text-right" />
-          )}
-        </td>
-
-        {/* แพค */}
-        <td className="px-1.5 py-2 align-top">
-          {packagingOptions && packagingOptions.length > 0 ? (
-            <NativeSelect value={product.packagingOptionId} onChange={(e) => updateProduct("packagingOptionId", e.target.value)}>
-              <option value="">—</option>
-              {packagingOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
-            </NativeSelect>
-          ) : dash}
-        </td>
-
         {/* รวม */}
         <td className="px-1.5 py-2 text-right align-top">
           {isCustomerProvided ? dash : (
@@ -250,11 +236,57 @@ export function ProductTableRow({
         </td>
       </tr>
 
+      {/* UX7: แถว "เพิ่มเติม" — ส่วนลด + แพค ซ่อนไว้ (คนส่วนใหญ่ไม่ใช้) + badge สรุปค่าที่ตั้งแล้ว */}
+      <tr className="border-b border-slate-100 dark:border-slate-800">
+        <td />
+        <td colSpan={5} className="pb-2 pl-1">
+          <button
+            type="button"
+            onClick={() => setShowMore((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
+            {showMore ? (
+              "ซ่อนเพิ่มเติม"
+            ) : (
+              <span className="flex flex-wrap items-center gap-1">
+                <span>เพิ่มเติม</span>
+                {(product.discount || 0) > 0 && (
+                  <Badge variant="outline" size="sm">ส่วนลด {formatCurrency(product.discount || 0)}</Badge>
+                )}
+                {packName && <Badge variant="outline" size="sm">{packName}</Badge>}
+              </span>
+            )}
+          </button>
+          {showMore && (
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              {!isCustomerProvided && (
+                <label className="block">
+                  <span className="mb-1 block text-[11px] text-slate-500 dark:text-slate-400">ส่วนลดต่อชิ้น</span>
+                  <Input type="number" min={0} step={0.01} value={product.discount || ""} onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)} placeholder="0" className="w-full text-right" />
+                </label>
+              )}
+              <label className="block">
+                <span className="mb-1 block text-[11px] text-slate-500 dark:text-slate-400">แพค</span>
+                {packagingOptions && packagingOptions.length > 0 ? (
+                  <NativeSelect value={product.packagingOptionId} onChange={(e) => updateProduct("packagingOptionId", e.target.value)}>
+                    <option value="">—</option>
+                    {packagingOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
+                  </NativeSelect>
+                ) : (
+                  <span className="text-xs text-slate-400">ยังไม่มีตัวเลือกแพค</span>
+                )}
+              </label>
+            </div>
+          )}
+        </td>
+      </tr>
+
       {/* สเปคตัดเย็บ (CUSTOM_MADE) — แถวเสริมเต็มกว้าง */}
       {isCustomMade && showDetail && (
         <tr className="border-b border-amber-100 dark:border-amber-900/30">
           <td />
-          <td colSpan={7} className="pb-3 pt-1 pr-1">
+          <td colSpan={5} className="pb-3 pt-1 pr-1">
             <CustomMadeDetail product={product} updateProduct={updateProduct} />
           </td>
         </tr>
@@ -264,7 +296,7 @@ export function ProductTableRow({
       {multi && (
         <tr className="border-b border-slate-100 dark:border-slate-800">
           <td />
-          <td colSpan={7} className="pb-3 pt-1 pr-1">
+          <td colSpan={5} className="pb-3 pt-1 pr-1">
             <SizeMatrix variants={product.variants} onChange={(v) => updateProduct("variants", v)} />
           </td>
         </tr>
