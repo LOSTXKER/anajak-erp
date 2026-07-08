@@ -11,7 +11,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { Loader2, Check } from "lucide-react";
-import type { ProductionStep } from "./types";
 
 // bottom sheet ปิดขั้นแบบนับจำนวน (UX1) — ช่างบอก "ทำเพิ่มกี่ตัว" ใน 2 แตะ
 // default = ที่เหลือทั้งหมด (กดยืนยันเลย = ปิดขั้น) · กรอกน้อยกว่า = บันทึกบางส่วน
@@ -23,7 +22,13 @@ export function StepQtySheet({
   onSubmit,
   onClose,
 }: {
-  step: ProductionStep;
+  // ใช้แค่ 4 field นี้ — รับได้ทั้ง ProductionStep (หน้าใบผลิต UX1) และ KanbanStep (บอร์ด UX8)
+  step: {
+    qtyTotal: number | null;
+    qtyDone: number | null;
+    customStepName: string | null;
+    stepType: string;
+  };
   busy: boolean;
   onSubmit: (payload: { status: "COMPLETED" } | { qtyDone: number }) => void;
   onClose: () => void;
