@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { PageHeader } from "@/components/page-header";
 import { CreateProductionDialog } from "@/components/production/create-production-dialog";
+import { StepQtySheet } from "@/components/production/step-qty-sheet";
 import {
   ProductionCommandCenter,
   type FireItem,
@@ -48,6 +49,7 @@ import {
   ChevronLeft,
   PackageCheck,
   Printer,
+  Plus,
 } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 
@@ -138,6 +140,8 @@ function ProductionWorkspace() {
   const utils = trpc.useUtils();
 
   const [createOrderId, setCreateOrderId] = useState<string | null>(null);
+  // UX8: ขั้นนับจำนวนที่เปิด bottom sheet บันทึกจำนวนอยู่ (รีด/แพ็ค ฯลฯ) — ยิง updateStep เดิม
+  const [qtyStep, setQtyStep] = useState<KanbanStep | null>(null);
   // ใบนับ QC จากคอลัมน์ตรวจ (Gate B4) — ผ่านด่านตรวจ = นับจริงเท่านั้น ไม่มีปุ่มข้าม
   const [qcOrderId, setQcOrderId] = useState<string | null>(null);
   // รับของกลับจากบอร์ดเลน — บังคับใบตรวจนับก่อน flip สถานะ (แบบเดียวกับหน้า /outsource)
@@ -453,6 +457,7 @@ function ProductionWorkspace() {
                   busy={busy}
                   onStart={(stepId) => updateStep.mutate({ stepId, status: "IN_PROGRESS" })}
                   onComplete={(stepId) => updateStep.mutate({ stepId, status: "COMPLETED" })}
+                  onOpenQty={setQtyStep}
                   onQuickPass={() => handleQuickPass(card)}
                   onOutsourceStatus={(id, status) => updateOutsource.mutate({ id, status })}
                   onOutsourceQcFail={handleOutsourceQcFail}
@@ -579,6 +584,19 @@ function ProductionWorkspace() {
           onClose={() => setReceiveTarget(null)}
         />
       )}
+
+      {/* UX8: บันทึกจำนวนจากการ์ดเลน (รีด/แพ็ค ฯลฯ) — sheet ตัวเดียวกับหน้าใบผลิต ยิง updateStep เดิม */}
+      {qtyStep && (
+        <StepQtySheet
+          step={qtyStep}
+          busy={busy}
+          onSubmit={(payload) => {
+            updateStep.mutate({ stepId: qtyStep.id, ...payload });
+            setQtyStep(null);
+          }}
+          onClose={() => setQtyStep(null)}
+        />
+      )}
     </div>
   );
 }
@@ -629,6 +647,7 @@ function LaneCardView({
   busy,
   onStart,
   onComplete,
+  onOpenQty,
   onQuickPass,
   onOutsourceStatus,
   onOutsourceQcFail,
@@ -641,6 +660,7 @@ function LaneCardView({
   busy: boolean;
   onStart: (stepId: string) => void;
   onComplete: (stepId: string) => void;
+  onOpenQty: (step: KanbanStep) => void;
   onQuickPass: () => void;
   onOutsourceStatus: (outsourceId: string, status: "SENT" | "QC_PASSED") => void;
   onOutsourceQcFail: (outsourceId: string) => void;
@@ -831,15 +851,28 @@ function LaneCardView({
               ผ่านรวด
             </Button>
           ) : step.status === "IN_PROGRESS" ? (
-            <Button
-              size="sm"
-              disabled={busy}
-              onClick={() => onComplete(step.id)}
-              className="h-9 flex-1 gap-1.5"
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              เสร็จขั้นนี้
-            </Button>
+            step.qtyTotal != null && step.qtyTotal > 0 ? (
+              // UX8: ขั้นนับจำนวน กำลังทำ → เปิด bottom sheet บันทึกบางส่วน/ครบ (2 แตะ ไม่เปลี่ยนหน้า)
+              <Button
+                size="sm"
+                disabled={busy}
+                onClick={() => onOpenQty(step)}
+                className="h-9 flex-1 gap-1.5"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                บันทึกจำนวน ({step.qtyDone}/{step.qtyTotal})
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                disabled={busy}
+                onClick={() => onComplete(step.id)}
+                className="h-9 flex-1 gap-1.5"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                เสร็จขั้นนี้
+              </Button>
+            )
           ) : (
             <Button
               size="sm"
