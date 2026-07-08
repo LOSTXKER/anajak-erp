@@ -851,7 +851,8 @@ function LaneCardView({
               ผ่านรวด
             </Button>
           ) : step.status === "IN_PROGRESS" ? (
-            step.qtyTotal != null && step.qtyTotal > 0 ? (
+            // ยังเหลือให้ทำ → sheet บันทึกจำนวน · ครบแล้วแต่ค้าง IN_PROGRESS → ปิดตรง (กัน sheet ตัน remaining=0)
+            step.qtyTotal != null && step.qtyTotal > 0 && (step.qtyDone ?? 0) < step.qtyTotal ? (
               // UX8: ขั้นนับจำนวน กำลังทำ → เปิด bottom sheet บันทึกบางส่วน/ครบ (2 แตะ ไม่เปลี่ยนหน้า)
               <Button
                 size="sm"
