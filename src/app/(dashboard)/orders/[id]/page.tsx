@@ -57,6 +57,7 @@ import {
   OrderRevisions,
   OrderChangeOrders,
   OrderNextStepBanner,
+  OrderMoneyTab,
 } from "@/components/orders/detail";
 
 // ============================================================
@@ -113,6 +114,8 @@ export default function OrderDetailPage({
 
   // UX5: สลับแท็บ + จำใน URL (?tab=) — refresh/แชร์ลิงก์/back แล้วแท็บอยู่ · replace = ไม่เพิ่ม history, ไม่ scroll
   function applyTab(tab: TabKey) {
+    // UX6: กันสลับไปแท็บ "เงิน/บิล" สำหรับ role ที่ไม่เห็นเงิน (เช่น anchor billing จาก next-step ของช่าง)
+    if (tab === "money" && !canSeeMoney) return;
     setActiveTab(tab);
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -160,6 +163,9 @@ export default function OrderDetailPage({
   const { data: me } = trpc.user.me.useQuery();
   // นับใบแก้ไข (CO) ให้จุดน้ำเงินแท็บประวัติเชื่อถือได้ (UX5) — query เดียวกับ OrderChangeOrders (React Query dedupe ไม่ยิงซ้ำ)
   const { data: changeOrders } = trpc.order.changeOrders.useQuery({ id });
+  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ระหว่าง me โหลด permAllows คืน false = ซ่อนไว้ก่อน
+  // (safe default ตาม B12) · คุมทั้งแท็บ "เงิน/บิล" + ยอดใน sidebar (UX6) · ห้ามใช้ isSalesUp — ชุดนั้นไม่มี ACCOUNTANT
+  const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   // ด่านพร้อมผลิต (เงิน/แบบ/ของ) — ใช้บอก "ติดอะไร" บนแถบขั้นต่อไป (query ที่มีอยู่ ไม่เพิ่ม endpoint)
   // ยิงเฉพาะสถานะที่แถบอาจบล็อก STATUS→PRODUCTION_QUEUE (CONFIRMED/ON_HOLD) — สถานะอื่น/terminal ไม่ใช้ readiness
   const orderContext = trpc.production.orderContext.useQuery(
@@ -254,7 +260,11 @@ export default function OrderDetailPage({
       typeof window !== "undefined"
         ? new URLSearchParams(window.location.search).get("tab")
         : null;
-    const validUrlTab = ORDER_TAB_DEFS.some((t) => t.key === urlTab) ? (urlTab as TabKey) : null;
+    // แท็บ money เปิดตรงได้เฉพาะ role ที่เห็นเงิน (UX6) — role อื่นถือ ?tab=money ให้ตกไป default
+    const validUrlTab =
+      urlTab && ORDER_TAB_DEFS.some((t) => t.key === urlTab) && (urlTab !== "money" || canSeeMoney)
+        ? (urlTab as TabKey)
+        : null;
     setActiveTab(validUrlTab ?? defaultTabForStatus(order.internalStatus));
   }
   // scroll ไป section ที่ค้างไว้ หลังแท็บสลับ + render เสร็จ
@@ -286,9 +296,6 @@ export default function OrderDetailPage({
   const canCancel = nextStatuses.includes("CANCELLED") && roleCanSetStatus("CANCELLED");
   // เมนูฝั่งขาย (แก้ข้อมูล/รายการ/สำเนา/ออกใบเสนอ) — server เป็น create_sales_docs
   const isSalesUp = !me || permAllows(me.permissions, "create_sales_docs");
-  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ระหว่าง me โหลด permAllows คืน false = ซ่อนไว้ก่อน
-  // (safe default ตาม B12) · ห้ามใช้ isSalesUp แทน — ชุดนั้นไม่มี ACCOUNTANT
-  const canSeeMoney = permAllows(me?.permissions, "see_order_money");
 
   const currentStepIndex = flowSteps.indexOf(order.internalStatus);
 
@@ -347,11 +354,14 @@ export default function OrderDetailPage({
       nextStepInput.hasProduction ||
       hasReceivableGarments,
     delivery: nextStepInput.hasDelivery,
+    // เงิน/บิล — จุดเมื่อมียอด/มีบิลออกแล้ว (เฉพาะ role ที่เห็นเงิน)
+    money: canSeeMoney && (totalAmount > 0 || (order.invoices?.length ?? 0) > 0),
     docs: (attachments?.length ?? 0) > 0,
     // ประวัติมีทั้งใบแก้ไข (CO) และ revision — จุดต้องนับทั้งคู่ (เดิมนับแค่ revision = จุดหายทั้งที่มี CO)
     history: (order.revisions?.length ?? 0) > 0 || (changeOrders?.length ?? 0) > 0,
   };
-  const tabOptions = ORDER_TAB_DEFS.map((t) => ({
+  // UX6: กรองแท็บ "เงิน/บิล" ออกสำหรับ role ที่ไม่เห็นเงิน (ช่าง/กราฟิก) — ตาม pattern PERM
+  const tabOptions = ORDER_TAB_DEFS.filter((t) => t.key !== "money" || canSeeMoney).map((t) => ({
     value: t.key,
     label: (
       <span className="inline-flex items-center gap-1.5">
@@ -709,7 +719,23 @@ export default function OrderDetailPage({
             </div>
           )}
 
-          {/* ── แท็บ บิล/ไฟล์: ไฟล์ 3 ชั้น (บิลอยู่ sidebar) ── */}
+          {/* ── แท็บ เงิน/บิล: สรุปราคา+กำไร + การ์ดบิลเต็มคอลัมน์ (ย้ายจาก sidebar UX6 · gate canSeeMoney) ── */}
+          {activeTab === "money" && canSeeMoney && (
+            <div id="order-section-billing" className="scroll-mt-20">
+              <OrderMoneyTab
+                order={order}
+                subtotalItems={subtotalItems}
+                subtotalFees={subtotalFees}
+                discount={discount}
+                totalAmount={totalAmount}
+                totalCost={totalCost}
+                hasCostEntries={!!hasCostEntries}
+                profitMargin={profitMargin}
+              />
+            </div>
+          )}
+
+          {/* ── แท็บ ไฟล์: ไฟล์ 3 ชั้น (บิลย้ายไปแท็บ เงิน/บิล แล้ว UX6) ── */}
           {activeTab === "docs" && (
             <OrderFilesCard
               orderId={id}
@@ -733,13 +759,8 @@ export default function OrderDetailPage({
         <OrderSidebar
           order={order}
           showMoney={canSeeMoney}
-          subtotalItems={subtotalItems}
-          subtotalFees={subtotalFees}
-          discount={discount}
           totalAmount={totalAmount}
-          totalCost={totalCost}
-          hasCostEntries={!!hasCostEntries}
-          profitMargin={profitMargin}
+          onOpenMoney={() => applyTab("money")}
           channelColor={channelColor}
           isMarketplace={isMarketplace}
         />

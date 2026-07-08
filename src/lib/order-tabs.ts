@@ -1,18 +1,21 @@
 // แท็บของหน้ารายละเอียดออเดอร์ + ตัว map ข้อมูล → NextStepInput (แยกเป็น pure ให้ test ได้)
 import type { NextStepInput, NextStepAction } from "./order-next-step";
 
-export type TabKey = "overview" | "production" | "delivery" | "docs" | "history";
+export type TabKey = "overview" | "production" | "delivery" | "money" | "docs" | "history";
 
 export interface OrderTabDef {
   key: TabKey;
   label: string;
 }
 
+// UX6: แท็บ "เงิน/บิล" ใหม่ (gate canSeeMoney ที่หน้า — role ไม่เห็นเงินจะถูกกรองออก) ·
+// "บิล/ไฟล์" เดิมไม่มีบิลจริง → เปลี่ยนชื่อเป็น "ไฟล์" (ป้ายตรงของจริง)
 export const ORDER_TAB_DEFS: OrderTabDef[] = [
   { key: "overview", label: "ภาพรวม" },
   { key: "production", label: "งานผลิต" },
   { key: "delivery", label: "จัดส่ง" },
-  { key: "docs", label: "บิล/ไฟล์" },
+  { key: "money", label: "เงิน/บิล" },
+  { key: "docs", label: "ไฟล์" },
   { key: "history", label: "ประวัติ" },
 ];
 
@@ -36,7 +39,7 @@ export function defaultTabForStatus(status: string): TabKey {
 }
 
 // ANCHOR action ของ next-step → แท็บที่ต้องสลับไป
-// billing คืน null โดยตั้งใจ — บิลอยู่ sidebar (ไม่ใช่แท็บ) ให้ scroll ไป order-section-billing แทน
+// UX6: billing → แท็บ "เงิน/บิล" (เดิมคืน null ให้ scroll ใน sidebar · การ์ดบิลย้ายมาเป็นแท็บแล้ว)
 export function tabForAnchor(
   target: "billing" | "design" | "production" | "delivery" | "qc"
 ): TabKey | null {
@@ -48,7 +51,7 @@ export function tabForAnchor(
     case "delivery":
       return "delivery";
     case "billing":
-      return null;
+      return "money";
   }
 }
 
