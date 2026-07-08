@@ -288,8 +288,6 @@ export function OrderItemCard({
               <col />
               <col style={{ width: 82 }} />
               <col style={{ width: 64 }} />
-              <col style={{ width: 72 }} />
-              <col style={{ width: 110 }} />
               <col style={{ width: 88 }} />
               <col style={{ width: 56 }} />
             </colgroup>
@@ -299,8 +297,6 @@ export function OrderItemCard({
                 <th className="pb-1.5 pr-2 text-left">สินค้า</th>
                 <th className="pb-1.5 px-1.5 text-right">ราคา</th>
                 <th className="pb-1.5 px-1.5 text-center">จำนวน</th>
-                <th className="pb-1.5 px-1.5 text-right">ส่วนลด</th>
-                <th className="pb-1.5 px-1.5 text-left">แพค</th>
                 <th className="pb-1.5 px-1.5 text-right">รวม</th>
                 <th className="pb-1.5" />
               </tr>
