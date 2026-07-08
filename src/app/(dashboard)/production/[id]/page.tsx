@@ -129,7 +129,9 @@ export default function ProductionDetailPage({
     !["SHIPPED", "COMPLETED", "CANCELLED"].includes(order.internalStatus);
 
   return (
-    <div className="space-y-5">
+    // คุมความกว้างให้อ่านเป็นคอลัมน์เดียว — layout กลางเป็น max-w-screen-2xl (กว้างเกิน
+    // สำหรับหน้ารายละเอียด ทำให้การ์ดยืดโล่งบนจอคอม อ่านยาก)
+    <div className="mx-auto max-w-4xl space-y-5">
       <PageHeader
         breadcrumb={[{ label: "การผลิต", href: "/production" }, { label: order.orderNumber }]}
         title={order.orderNumber}

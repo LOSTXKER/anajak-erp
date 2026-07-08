@@ -442,7 +442,7 @@ function ProductionWorkspace() {
               สายนี้เคลียร์แล้ว — กลับไปภาพรวม
             </p>
           ) : (
-            <div className="space-y-2.5">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {(laneCards.get(focus.lane) ?? []).map((card) => (
                 <LaneCardView
                   key={`${card.productionId}:${card.lane}`}
@@ -718,9 +718,6 @@ function LaneCardView({
             {step.assignedTo.name}
           </span>
         )}
-        <span className="shrink-0 tabular-nums text-slate-400">
-          {card.done}/{card.total}
-        </span>
       </div>
       {activeOutsource && (
         <p className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-slate-500">
