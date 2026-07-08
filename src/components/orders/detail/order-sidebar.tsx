@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { User, Info, MapPin, Store, Calculator } from "lucide-react";
+import { User, Info, MapPin, Store, Calculator, ChevronRight } from "lucide-react";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
@@ -10,7 +10,6 @@ import {
   PRIORITY_LABELS,
 } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
-import { OrderBillingSection } from "@/components/orders/order-billing-section";
 
 interface OrderSidebarOrder {
   id: string;
@@ -52,15 +51,11 @@ interface OrderSidebarOrder {
 
 interface OrderSidebarProps {
   order: OrderSidebarOrder;
-  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — false = ไม่ render การ์ดสรุปราคาเลย (ห้ามโชว์ ฿0)
+  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — false = ไม่โชว์ยอด/ปุ่มเงินเลย (ห้ามโชว์ ฿0)
   showMoney: boolean;
-  subtotalItems: number;
-  subtotalFees: number;
-  discount: number;
   totalAmount: number;
-  totalCost: number;
-  hasCostEntries: boolean;
-  profitMargin: number | null;
+  // UX6: การ์ดบิล+สรุปราคาย้ายไปแท็บ "เงิน/บิล" — sidebar เหลือยอดรวมย่อ + ปุ่มลัดเข้าแท็บ
+  onOpenMoney?: () => void;
   channelColor: { bg: string; text: string };
   isMarketplace: boolean;
 }
@@ -101,13 +96,8 @@ function Row({
 export function OrderSidebar({
   order,
   showMoney,
-  subtotalItems,
-  subtotalFees,
-  discount,
   totalAmount,
-  totalCost,
-  hasCostEntries,
-  profitMargin,
+  onOpenMoney,
   isMarketplace,
 }: OrderSidebarProps) {
   return (
@@ -273,86 +263,24 @@ export function OrderSidebar({
         </Section>
       )}
 
-      {/* Price breakdown — ยังไม่ตีราคา = ไม่โชว์การ์ด ฿0 ซ้ำซ้อน (redesign 2026-06-11)
-          แต่ถ้ามีต้นทุนบันทึกแล้ว (เช่นส่ง outsource ก่อนตีราคา) ต้องเห็น — เงินจริงห้ามหายจากตา
-          · viewer ที่ไม่เห็นเงิน (นโยบาย ⑦) ตัดการ์ดทิ้งทั้งใบ ไม่ใช่โชว์ ฿0 */}
-      {showMoney &&
-        (totalAmount > 0 || subtotalItems > 0 || subtotalFees > 0 || hasCostEntries) && (
-      <Section title={<SectionTitle icon={Calculator}>สรุปราคา</SectionTitle>}>
-        <div className="space-y-2.5">
-          <Row label="ยอดรวมสินค้า">
-            <span className="tabular-nums">{formatCurrency(subtotalItems)}</span>
-          </Row>
-          {subtotalFees > 0 && (
-            <Row label="ค่าธรรมเนียม">
-              <span className="tabular-nums">{formatCurrency(subtotalFees)}</span>
-            </Row>
-          )}
-          {discount > 0 && (
-            <Row label="ส่วนลด">
-              <span className="tabular-nums text-red-600 dark:text-red-400">
-                -{formatCurrency(discount)}
-              </span>
-            </Row>
-          )}
-          {order.taxRate > 0 && (
-            <Row label={`VAT (${order.taxRate}%)`}>
-              <span className="tabular-nums">
-                {formatCurrency(order.taxAmount ?? 0)}
-              </span>
-            </Row>
-          )}
-          <div className="flex items-baseline justify-between border-t border-slate-100 pt-2.5 dark:border-slate-800">
-            <span className="text-sm font-medium text-slate-900 dark:text-white">
-              ยอดรวมทั้งหมด
-            </span>
-            <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-white">
-              {formatCurrency(totalAmount)}
-            </span>
-          </div>
-
-          {hasCostEntries && (
-            <div className="space-y-2.5 border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
-              <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">
-                ต้นทุน
-              </p>
-              <Row label="ต้นทุนรวม">
-                <span className="tabular-nums">{formatCurrency(totalCost)}</span>
-              </Row>
-              <Row label="กำไร">
-                <span className="tabular-nums">
-                  {formatCurrency(totalAmount - totalCost)}
-                </span>
-              </Row>
-              {profitMargin != null && (
-                <Row label="อัตรากำไร">
-                  <span
-                    className={`tabular-nums font-semibold ${
-                      profitMargin >= 30
-                        ? "text-green-600 dark:text-green-400"
-                        : profitMargin >= 15
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {profitMargin.toFixed(1)}%
-                  </span>
-                </Row>
-              )}
-            </div>
-          )}
-        </div>
-      </Section>
+      {/* UX6: สรุปราคา+การ์ดบิลย้ายไปแท็บ "เงิน/บิล" (เต็มคอลัมน์) — sidebar เหลือยอดรวมย่อ 1 บรรทัด
+          กดเด้งเข้าแท็บ · เจ้าของสแกนยอดได้ไม่เสียคลิก · viewer ไม่เห็นเงิน (นโยบาย ⑦) = ไม่โชว์เลย */}
+      {showMoney && totalAmount > 0 && onOpenMoney && (
+        <button
+          type="button"
+          onClick={onOpenMoney}
+          className="flex w-full items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-4 py-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-800/60 dark:bg-slate-900/40 dark:hover:bg-blue-950/20"
+        >
+          <span className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+            <Calculator className="h-4 w-4" />
+            ยอดรวม
+          </span>
+          <span className="flex items-center gap-1 text-base font-semibold tabular-nums text-slate-900 dark:text-white">
+            {formatCurrency(totalAmount)}
+            <ChevronRight className="h-4 w-4 text-slate-400" />
+          </span>
+        </button>
       )}
-
-      <div id="order-section-billing" className="scroll-mt-20">
-        <OrderBillingSection
-          orderId={order.id}
-          customerId={order.customerId}
-          totalAmount={totalAmount}
-          internalStatus={order.internalStatus}
-        />
-      </div>
     </div>
   );
 }

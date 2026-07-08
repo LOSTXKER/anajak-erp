@@ -31,8 +31,8 @@ describe("tabForAnchor — ANCHOR → แท็บ", () => {
     expect(tabForAnchor("qc")).toBe("production");
     expect(tabForAnchor("delivery")).toBe("delivery");
   });
-  it("billing → null (อยู่ sidebar ไม่สลับแท็บ)", () => {
-    expect(tabForAnchor("billing")).toBeNull();
+  it("billing → money (การ์ดบิลย้ายมาเป็นแท็บ เงิน/บิล แล้ว UX6)", () => {
+    expect(tabForAnchor("billing")).toBe("money");
   });
 });
 

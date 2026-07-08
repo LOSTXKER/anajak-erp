@@ -24,6 +24,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatDate, cn } from "@/lib/utils";
+import { permAllows } from "@/lib/permissions";
 import { Film, Printer, Loader2, Hand } from "lucide-react";
 
 // คลังฟิล์มพร้อมรีด (FLOW-REDESIGN ก้อน 2) — ฟิล์มพิมพ์เผื่อจากรอบพิมพ์
@@ -37,6 +38,9 @@ export default function FilmStockPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [includeEmpty, setIncludeEmpty] = useState(false);
   const [consuming, setConsuming] = useState<FilmStockItem | null>(null);
+  // B8: ปุ่ม "หยิบใช้" (ตัดคงเหลือฟิล์ม) เฉพาะคนมีสิทธิ์ผลิต — role อื่นเห็นคลังอ่านอย่างเดียว
+  const { data: me } = trpc.user.me.useQuery();
+  const canManage = permAllows(me?.permissions, "manage_production");
 
   // รับ ?search= จากลิงก์เตือนฟิล์มค้าง (ฟอร์มเปิดงาน) — อ่านครั้งเดียวตอน mount
   // (อ่านจาก window แทน useSearchParams — ไม่ต้องห่อ Suspense)
@@ -188,7 +192,7 @@ export default function FilmStockPage() {
                     {formatDate(item.createdAt)}
                   </DataTable.Td>
                   <DataTable.Td align="right">
-                    {item.qty > 0 && (
+                    {canManage && item.qty > 0 && (
                       <Button
                         size="sm"
                         variant="subtle"
@@ -251,7 +255,7 @@ export default function FilmStockPage() {
                   <span className="font-medium text-slate-900 dark:text-white">{item.qty}</span>/
                   {item.initialQty} ชิ้น · เข้าคลัง {formatDate(item.createdAt)}
                 </p>
-                {item.qty > 0 && (
+                {canManage && item.qty > 0 && (
                   <Button
                     onClick={() => setConsuming(item)}
                     className="mt-3 h-11 w-full gap-1.5"

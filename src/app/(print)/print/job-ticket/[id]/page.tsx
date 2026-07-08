@@ -86,9 +86,14 @@ export default async function PrintJobTicketPage({
     ? [approvedDesign.thumbnailUrl, approvedDesign.fileUrl].find(isImageUrl) ?? null
     : null;
 
-  // QR ชี้หน้าออเดอร์ — ต้องเป็น URL เต็ม (ตั้ง NEXT_PUBLIC_APP_URL ตอน deploy จริง)
+  // UX8: QR ชี้หน้าใบผลิต (จอช่าง /production/<id>) — สแกนจากแฟ้มหน้าเครื่องตกจอทำงานเลย ไม่ต้องผ่านหน้าออเดอร์
+  // ยังไม่มีใบผลิต (ยังไม่เข้าคิวผลิต) → fallback หน้าออเดอร์ · ต้องเป็น URL เต็ม (ตั้ง NEXT_PUBLIC_APP_URL ตอน deploy)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const qrSvg = await QRCode.toString(`${baseUrl}/orders/${order.id}`, {
+  const productionId = order.productions[0]?.id;
+  const qrTarget = productionId
+    ? `${baseUrl}/production/${productionId}`
+    : `${baseUrl}/orders/${order.id}`;
+  const qrSvg = await QRCode.toString(qrTarget, {
     type: "svg",
     margin: 0,
     width: 92,

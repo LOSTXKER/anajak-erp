@@ -33,7 +33,12 @@ export function ProductTableRow({
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void;
 }) {
   const [showDetail, setShowDetail] = useState(false);
-  const [showMatrix, setShowMatrix] = useState(false);
+  // UX7: งานตัดเย็บ/ลูกค้าส่งมา แทบไม่มีไซส์เดียว → เปิดตารางหลายไซส์ (SizeMatrix) เป็น default
+  // ช่องสี/ไซส์เดี่ยวคงไว้ให้ FROM_STOCK · toggle "หลายไซส์" ปิดกลับได้ถ้างานนั้นไซส์เดียวจริง
+  const [showMatrix, setShowMatrix] = useState(
+    () =>
+      product.itemSource === "CUSTOM_MADE" || product.itemSource === "CUSTOMER_PROVIDED"
+  );
   const { data: packagingOptions } = trpc.packaging.list.useQuery();
 
   const updateProduct = (field: string, value: unknown) => {
