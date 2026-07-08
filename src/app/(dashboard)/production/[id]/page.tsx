@@ -22,7 +22,7 @@ import {
   PRIORITY_LABELS,
 } from "@/lib/order-status";
 import { formatDate } from "@/lib/utils";
-import { ClipboardList, ExternalLink, Clock, AlertTriangle, Shirt } from "lucide-react";
+import { ClipboardList, ExternalLink, Clock, AlertTriangle, Shirt, CheckCircle2 } from "lucide-react";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
@@ -123,6 +123,16 @@ export default function ProductionDetailPage({
   const completedSteps = production.steps.filter((s) => s.status === "COMPLETED").length;
   const totalSteps = production.steps.length;
   const progressPct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+  // ขั้นที่กำลังทำ/ต้องทำต่อ — ตอบ "ตอนนี้ถึงไหน" ทันทีที่เปิดหน้า (เบสเคาะ 2026-07-08)
+  // กำลังทำก่อน · ไม่มีก็ขั้นแรกที่ยังไม่เสร็จ (มีปัญหา FAILED ก็ถือว่าต้องจัดการต่อ)
+  const currentStep =
+    production.steps.find((s) => s.status === "IN_PROGRESS") ??
+    production.steps.find((s) => s.status !== "COMPLETED") ??
+    null;
+  const currentStepName = currentStep
+    ? currentStep.customStepName || STEP_TYPE_LABELS[currentStep.stepType] || currentStep.stepType
+    : null;
+  const allStepsDone = totalSteps > 0 && completedSteps === totalSteps;
   const isOverdue =
     order.deadline &&
     new Date(order.deadline) < new Date() &&
@@ -186,16 +196,28 @@ export default function ProductionDetailPage({
         </span>
       </div>
 
-      {/* แบบอนุมัติ + ลายพิมพ์ + ตารางไซส์ — ช่างเห็นครบโดยไม่ต้องพึ่งใบกระดาษ (UX1) */}
-      <ProductionDesignCard order={order} />
-
-      {/* ความคืบหน้า + ขั้นตอน */}
+      {/* ① สถานะ + ขั้นตอน — "ตอนนี้ถึงไหน + ต้องทำอะไรต่อ" (เบสเคาะ 2026-07-08: เห็นอันนี้ก่อน)
+          ขั้นตอนขึ้นบน · แบบ+ไซส์ (อ้างอิงว่าจะทำอะไร) ย้ายลงล่าง */}
       <div className="card-surface space-y-4 rounded-2xl p-4 sm:p-5">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-500 dark:text-slate-400">ความคืบหน้า</span>
-            <span className="font-medium text-slate-900 dark:text-white">
-              {completedSteps}/{totalSteps} ขั้นตอน ({progressPct}%)
+        <div className="space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            {allStepsDone ? (
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-green-600 dark:text-green-400">
+                <CheckCircle2 className="h-4 w-4" />
+                ทุกขั้นเสร็จแล้ว
+              </span>
+            ) : currentStepName ? (
+              <span className="text-base">
+                <span className="text-slate-500 dark:text-slate-400">ตอนนี้: </span>
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {currentStepName}
+                </span>
+              </span>
+            ) : (
+              <span className="text-sm text-slate-500 dark:text-slate-400">ยังไม่มีขั้นตอนผลิต</span>
+            )}
+            <span className="text-sm font-medium tabular-nums text-slate-500 dark:text-slate-400">
+              {completedSteps}/{totalSteps} ขั้น ({progressPct}%)
             </span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
@@ -220,6 +242,9 @@ export default function ProductionDetailPage({
           onCompleteStep={handleCompleteStep}
         />
       </div>
+
+      {/* ② แบบ + ลายพิมพ์ + ไซส์ — อ้างอิง "จะทำอะไร" (ช่างดูตอนลงมือ · UX1 · ย้ายลงใต้ขั้นตอน) */}
+      <ProductionDesignCard order={order} />
 
       {/* เสื้อจากสต๊อค: เบิก (ตัดยอดจอง) + คืนเศษ — ผูกขั้น GARMENT_PICK (ก้อน 1) */}
       <GarmentPickCard
