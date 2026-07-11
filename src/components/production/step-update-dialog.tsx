@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/field";
+import { QueryError } from "@/components/ui/query-error";
 import { Loader2, Check } from "lucide-react";
 import type { StepStatus } from "@prisma/client";
 import type { ProductionStep } from "./types";
@@ -95,10 +97,7 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
           <DialogDescription>เปลี่ยนสถานะหรือบันทึกข้อมูลเพิ่มเติม</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              สถานะ
-            </label>
+          <Field label="สถานะ">
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger>
                 <SelectValue />
@@ -111,13 +110,10 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
                 <SelectItem value="FAILED">มีปัญหา</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </Field>
           {/* บอกบางส่วนได้: พิมพ์ไปแล้ว 120 จาก 300 — ไม่บังคับกรอก (ติ๊กเสร็จ = ครบเอง) */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                ทำแล้ว (ตัว)
-              </label>
+            <Field label="ทำแล้ว (ตัว)">
               <Input
                 type="number"
                 inputMode="numeric"
@@ -126,11 +122,8 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
                 onChange={(e) => setQtyDone(e.target.value)}
                 className="h-10 tabular-nums"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                ทั้งหมด (ตัว)
-              </label>
+            </Field>
+            <Field label="ทั้งหมด (ตัว)">
               <Input
                 type="number"
                 inputMode="numeric"
@@ -140,14 +133,16 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
                 placeholder="ไม่นับจำนวน"
                 className="h-10 tabular-nums"
               />
-            </div>
+            </Field>
           </div>
           {canAssign && (
             // มอบหมาย/ย้ายเจ้าของงาน — เดิม staff claim เองอย่างเดียวแล้วล็อกถาวร (audit ข้อ 18)
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                ผู้รับผิดชอบ
-              </label>
+            assignables.isError ? (
+              <QueryError
+                message="โหลดรายชื่อผู้รับผิดชอบไม่สำเร็จ"
+                onRetry={() => void assignables.refetch()}
+              />
+            ) : <Field label="ผู้รับผิดชอบ">
               <Select value={assignee} onValueChange={setAssignee}>
                 <SelectTrigger>
                   <SelectValue placeholder="ยังไม่มอบหมาย" />
@@ -160,12 +155,9 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </Field>
           )}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              QC
-            </label>
+          <Field label="QC">
             <Select value={qcPassed} onValueChange={setQcPassed}>
               <SelectTrigger>
                 <SelectValue placeholder="ยังไม่ได้ตรวจ" />
@@ -175,31 +167,25 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
                 <SelectItem value="false">ไม่ผ่าน</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </Field>
           {qcPassed === "false" && (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                หมายเหตุ QC
-              </label>
+            <Field label="หมายเหตุ QC">
               <Textarea
                 value={qcNotes}
                 onChange={(e) => setQcNotes(e.target.value)}
                 rows={2}
                 placeholder="ระบุปัญหาที่พบ..."
               />
-            </div>
+            </Field>
           )}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              หมายเหตุ
-            </label>
+          <Field label="หมายเหตุ">
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               placeholder="หมายเหตุ..."
             />
-          </div>
+          </Field>
           {updateStep.error && (
             <p className="text-sm text-red-600 dark:text-red-400">
               {updateStep.error.message}
