@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { Package, RefreshCw, Cloud, Settings } from "lucide-react";
+import { permAllows } from "@/lib/permissions";
 
 import { SyncDialog } from "@/components/sync-dialog";
 
@@ -50,6 +51,8 @@ export default function ProductsPage() {
   const [itemType, setItemType] = useState("");
   const [page, setPage] = useState(1);
   const limit = 24;
+  const { data: me } = trpc.user.me.useQuery();
+  const canManageStock = permAllows(me?.permissions, "manage_settings");
 
   // ─── Queries ──────────────────────────────────────────────
   const { data, isLoading, isError, refetch } = trpc.product.list.useQuery({
@@ -60,7 +63,9 @@ export default function ProductsPage() {
     limit,
   });
 
-  const { data: syncStatus } = trpc.stockSync.status.useQuery();
+  const { data: syncStatus } = trpc.stockSync.status.useQuery(undefined, {
+    enabled: canManageStock,
+  });
 
   // ─── Sync Dialog State ───────────────────────────────────
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
@@ -78,19 +83,19 @@ export default function ProductsPage() {
       <PageHeader
         title="สินค้า"
         description="แคตตาล็อกสินค้าและตัวเลือก"
-        action={
+        action={canManageStock ? (
           <>
-            <Link href="/settings/stock">
-              <Button variant="ghost" size="icon-sm" title="ตั้งค่าการเชื่อมต่อ Stock">
+            <Button asChild variant="ghost" size="icon-sm">
+              <Link href="/settings/stock" aria-label="ตั้งค่าการเชื่อมต่อ Stock">
                 <Settings className="h-4 w-4" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <Button size="sm" onClick={() => setSyncDialogOpen(true)}>
               <RefreshCw className="h-4 w-4" />
               Sync
             </Button>
           </>
-        }
+        ) : undefined}
       />
 
       {syncStatus?.lastSyncAt && (
@@ -119,6 +124,7 @@ export default function ProductsPage() {
           }}
         />
         <NativeSelect
+          aria-label="กรองประเภทสินค้า"
           value={productType}
           onChange={(e) => {
             setProductType(e.target.value);
@@ -159,20 +165,20 @@ export default function ProductsPage() {
             icon={Package}
             title="ไม่พบสินค้า"
             description="สินค้าจะถูกดึงมาจาก Anajak Stock อัตโนมัติ"
-            action={
+            action={canManageStock ? (
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setSyncDialogOpen(true)}>
                   <RefreshCw className="h-4 w-4" />
                   Sync ตอนนี้
                 </Button>
-                <Link href="/settings/stock">
-                  <Button variant="ghost" size="sm">
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/settings/stock">
                     <Settings className="h-4 w-4" />
                     ตั้งค่า
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
-            }
+            ) : undefined}
           />
         </div>
       ) : (
@@ -248,10 +254,12 @@ export default function ProductsPage() {
       )}
 
       {/* ─── Sync Dialog ─────────────────────────────────────── */}
-      <SyncDialog
-        open={syncDialogOpen}
-        onClose={() => setSyncDialogOpen(false)}
-      />
+      {canManageStock && (
+        <SyncDialog
+          open={syncDialogOpen}
+          onClose={() => setSyncDialogOpen(false)}
+        />
+      )}
 
       {/* ─── Pagination ──────────────────────────────────────── */}
       {data && data.total > 0 && (

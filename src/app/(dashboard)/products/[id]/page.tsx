@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +12,10 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { ArrowLeft, Package, Cloud, Trash2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Package, Cloud, Trash2 } from "lucide-react";
+import { permAllows } from "@/lib/permissions";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 // ============================================================
 // CONSTANTS
@@ -46,9 +48,16 @@ export default function ProductDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const utils = trpc.useUtils();
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const confirm = useConfirm();
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [priceError, setPriceError] = useState<string | null>(null);
 
   const { data: product, isLoading, isError, refetch } = trpc.product.getById.useQuery({ id });
+  const { data: me } = trpc.user.me.useQuery();
+  const canManage = permAllows(me?.permissions, "manage_settings");
+  const canSeeCost = permAllows(me?.permissions, "see_finance");
+  // server จงใจคง ownerOnly สำหรับลบสินค้า — override ไม่ขยายสิทธิ์นี้
+  const canDelete = me?.role === "OWNER";
 
   // -- Mutations (ERP-specific overrides only) --
   const updateProduct = trpc.product.update.useMutation({
@@ -58,8 +67,14 @@ export default function ProductDetailPage({
   });
 
   const updateVariant = trpc.product.updateVariant.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       utils.product.getById.invalidate({ id });
+      setPriceDrafts((current) => {
+        const next = { ...current };
+        delete next[variables.id];
+        return next;
+      });
+      setPriceError(null);
     },
   });
 
@@ -68,6 +83,7 @@ export default function ProductDetailPage({
       utils.product.list.invalidate();
       router.push("/products");
     },
+    onError: (error) => toast.error(error.message ?? "ลบสินค้าไม่สำเร็จ"),
   });
 
   // ---- handlers ----
@@ -76,16 +92,37 @@ export default function ProductDetailPage({
     updateProduct.mutate({ id, isActive: !product.isActive });
   };
 
-  const handleDelete = () => {
-    deleteProduct.mutate({ id });
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: "ลบสินค้า?",
+      description: `สินค้า “${product?.name ?? ""}” จะถูกปิดออกจาก ERP และ Anajak Stock การทำงานนี้ย้อนกลับไม่ได้`,
+      confirmText: "ยืนยันลบ",
+      destructive: true,
+    });
+    if (ok) deleteProduct.mutate({ id });
   };
 
   const handleToggleVariantActive = (variantId: string, isActive: boolean) => {
     updateVariant.mutate({ id: variantId, isActive: !isActive });
   };
 
-  const handleUpdateVariantPriceAdj = (variantId: string, priceAdj: number) => {
-    updateVariant.mutate({ id: variantId, priceAdj });
+  const commitVariantPriceAdj = (variantId: string, currentPriceAdj: number) => {
+    const draft = priceDrafts[variantId];
+    if (draft === undefined) return;
+    const parsed = Number(draft);
+    if (!Number.isFinite(parsed)) {
+      setPriceError("ราคาปรับต้องเป็นตัวเลข");
+      return;
+    }
+    if (parsed === currentPriceAdj) {
+      setPriceDrafts((current) => {
+        const next = { ...current };
+        delete next[variantId];
+        return next;
+      });
+      return;
+    }
+    updateVariant.mutate({ id: variantId, priceAdj: parsed });
   };
 
   // ============================================================
@@ -129,11 +166,11 @@ export default function ProductDetailPage({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/products">
-            <Button variant="ghost" size="icon">
+          <Button asChild variant="ghost" size="icon">
+            <Link href="/products" aria-label="กลับไปหน้าสินค้า">
               <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
@@ -151,76 +188,26 @@ export default function ProductDetailPage({
             <p className="text-sm text-slate-500">{product.sku}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
+        {(canManage || canDelete) && <div className="flex items-center gap-2">
+          {canManage && <Button
             variant="outline"
             size="sm"
             onClick={handleToggleProductActive}
             disabled={updateProduct.isPending}
           >
             {product.isActive ? "ปิดใช้งาน" : "เปิดใช้งาน"}
-          </Button>
-          <Button
+          </Button>}
+          {canDelete && <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowDeleteConfirm(true)}
+            onClick={() => void handleDelete()}
+            aria-label={`ลบสินค้า ${product.name}`}
             className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950"
           >
             <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+          </Button>}
+        </div>}
       </div>
-
-      {/* Delete confirmation dialog */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => !deleteProduct.isPending && setShowDeleteConfirm(false)}
-          />
-          <div className="relative mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 dark:bg-red-950">
-                <AlertTriangle className="h-7 w-7 text-red-500" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                ลบสินค้า
-              </h3>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                ต้องการลบ <strong>{product.name}</strong> ({product.sku})?
-              </p>
-              <p className="mt-1 text-xs text-slate-400">
-                สินค้านี้จะถูกลบออกจากระบบ ERP และ Anajak Stock ไม่สามารถกู้คืนได้
-              </p>
-
-              {deleteProduct.isError && (
-                <Alert variant="error" className="mt-3 text-xs">
-                  {deleteProduct.error?.message}
-                </Alert>
-              )}
-
-              <div className="mt-5 flex flex-col gap-2">
-                <Button
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={deleteProduct.isPending}
-                  className="w-full"
-                >
-                  {deleteProduct.isPending ? "กำลังลบ..." : "ยืนยันลบ"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={deleteProduct.isPending}
-                  className="w-full"
-                >
-                  ยกเลิก
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left: Product image + info */}
@@ -273,7 +260,7 @@ export default function ProductDetailPage({
                     </div>
                   );
                 })()}
-                {product.costPrice && product.costPrice > 0 && (
+                {canSeeCost && product.costPrice && product.costPrice > 0 && (
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">ราคาทุน</span>
                     <span className="tabular-nums">
@@ -404,24 +391,51 @@ export default function ProductDetailPage({
                             </span>
                           </td>
                           <td className="px-3 py-2.5 text-right">
-                            <Input
-                              type="number"
-                              step={0.01}
-                              value={variant.priceAdj || 0}
-                              onChange={(e) =>
-                                handleUpdateVariantPriceAdj(
-                                  variant.id,
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
-                              className="ml-auto h-7 w-24 text-right text-xs"
-                            />
+                            {canManage ? (
+                              <div className="ml-auto w-28">
+                                <Input
+                                  type="number"
+                                  step={0.01}
+                                  value={priceDrafts[variant.id] ?? String(variant.priceAdj || 0)}
+                                  onChange={(event) => {
+                                    setPriceError(null);
+                                    setPriceDrafts((current) => ({
+                                      ...current,
+                                      [variant.id]: event.target.value,
+                                    }));
+                                  }}
+                                  onBlur={() => commitVariantPriceAdj(variant.id, variant.priceAdj)}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") event.currentTarget.blur();
+                                    if (event.key === "Escape") {
+                                      setPriceDrafts((current) => {
+                                        const next = { ...current };
+                                        delete next[variant.id];
+                                        return next;
+                                      });
+                                      event.currentTarget.blur();
+                                    }
+                                  }}
+                                  aria-label={`ปรับราคาของ ${variant.color} ${variant.size}`}
+                                  className="text-right tabular-nums"
+                                />
+                                {priceDrafts[variant.id] !== undefined && (
+                                  <span className="mt-1 block text-xs text-amber-700 dark:text-amber-300">
+                                    ออกจากช่องเพื่อบันทึก
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm tabular-nums text-slate-600 dark:text-slate-300">
+                                {formatCurrency(variant.priceAdj)}
+                              </span>
+                            )}
                           </td>
                           <td className="px-3 py-2.5 text-right text-sm tabular-nums text-slate-600 dark:text-slate-400">
                             {variant.totalStock || variant.stock}
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <Switch
+                            {canManage ? <Switch
                               checked={variant.isActive}
                               onCheckedChange={() =>
                                 handleToggleVariantActive(
@@ -429,7 +443,12 @@ export default function ProductDetailPage({
                                   variant.isActive
                                 )
                               }
-                            />
+                              aria-label={`${variant.isActive ? "ปิด" : "เปิด"}ตัวเลือก ${variant.color} ${variant.size}`}
+                            /> : (
+                              <Badge variant={variant.isActive ? "success" : "secondary"} size="sm">
+                                {variant.isActive ? "ใช้งาน" : "ปิด"}
+                              </Badge>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -441,9 +460,9 @@ export default function ProductDetailPage({
           </Card>
 
           {/* Error display */}
-          {(updateProduct.isError || updateVariant.isError) && (
+          {(updateProduct.isError || updateVariant.isError || priceError) && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
-              {updateProduct.error?.message || updateVariant.error?.message}
+              {priceError || updateProduct.error?.message || updateVariant.error?.message}
             </div>
           )}
         </div>
