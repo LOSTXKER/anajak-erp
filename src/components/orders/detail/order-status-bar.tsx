@@ -1,5 +1,6 @@
 import { INTERNAL_STATUS_LABELS, CUSTOMER_STATUS_COLORS } from "@/lib/order-status";
 import { cn } from "@/lib/utils";
+import { ChevronDown } from "lucide-react";
 
 // แถบสถานะ (polish 2026-06-12 — เบสชี้ว่า 11 จุดป้ายเท่ากันหมดดูรก):
 // แสดงครบทุกขั้นตลอด แต่จัด hierarchy ให้เบาตา — หัวสั้นบอกสถานะปัจจุบัน+ขั้น x/y
@@ -22,32 +23,43 @@ export function OrderStatusBar({
   const onPath = currentStepIndex >= 0;
   const currentLabel =
     (INTERNAL_STATUS_LABELS as Record<string, string>)[internalStatus] ?? internalStatus;
+  const nextStep = onPath ? flowSteps[currentStepIndex + 1] : null;
+  const nextLabel = nextStep
+    ? (INTERNAL_STATUS_LABELS as Record<string, string>)[nextStep] ?? nextStep
+    : null;
   const dotColor = isCancelled
     ? "bg-red-500"
     : (CUSTOMER_STATUS_COLORS as Record<string, { dot: string }>)[customerStatus]?.dot ??
       "bg-blue-500";
 
   return (
-    <div className="card-surface rounded-2xl px-5 py-4">
-      {/* on-path: ไม่มีหัว — progressbar ล้วน (ขั้นปัจจุบันเด่นในแถบบอกสถานะแล้ว เบสชี้ 2026-06-12)
-          นอกเส้นทาง/ยกเลิก: โชว์ชื่อสถานะ เพราะแถบด้านล่างไม่ไฮไลต์ขั้นปัจจุบัน */}
-      {!onPath && (
-        <div className="mb-3 flex items-center gap-2">
-          <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", dotColor)} />
-          <span className="text-sm font-semibold text-slate-900 dark:text-white">
+    <details className="group card-surface rounded-2xl px-4 py-3">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 [&::-webkit-details-marker]:hidden">
+        <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", dotColor)} aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400">สถานะตอนนี้</p>
+          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
             {currentLabel}
-          </span>
+            {nextLabel && (
+              <span className="font-normal text-slate-500 dark:text-slate-400">
+                {" "}→ ถัดไป {nextLabel}
+              </span>
+            )}
+          </p>
         </div>
-      )}
+        <span className="hidden text-xs text-slate-500 sm:inline dark:text-slate-400">
+          ดูเส้นทางทั้งหมด
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-slate-500 transition-transform group-open:rotate-180" aria-hidden="true" />
+      </summary>
 
-      {/* เส้นทางเต็ม — ป้ายครบทุกขั้น polish เบาตา */}
       <div
         role="progressbar"
         aria-label="สถานะคำสั่งซื้อ"
         aria-valuenow={onPath ? currentStepIndex + 1 : undefined}
         aria-valuemin={1}
         aria-valuemax={flowSteps.length}
-        className="flex items-start gap-0 overflow-x-auto pb-0.5"
+        className="mt-3 flex items-start gap-0 overflow-x-auto border-t border-slate-100 pt-4 dark:border-slate-800"
       >
         {flowSteps.map((step, i) => {
           const isPast = onPath && i < currentStepIndex;
@@ -83,10 +95,10 @@ export function OrderStatusBar({
                   className={cn(
                     "max-w-[5rem] text-center leading-tight",
                     isCurrent
-                      ? "text-[11px] font-semibold text-blue-600 dark:text-blue-400"
+                      ? "text-xs font-semibold text-blue-700 dark:text-blue-300"
                       : isPast
-                        ? "text-[10px] text-slate-400 dark:text-slate-500"
-                        : "text-[10px] text-slate-300 dark:text-slate-600"
+                        ? "text-xs text-slate-600 dark:text-slate-400"
+                        : "text-xs text-slate-500 dark:text-slate-400"
                   )}
                 >
                   {stepLabel}
@@ -105,12 +117,11 @@ export function OrderStatusBar({
         })}
       </div>
 
-      {/* สถานะนอกเส้นทาง (พักงาน/สอบถามของงานสำเร็จรูป) — บอกตรงๆ แทนปล่อยให้แถบไม่ไฮไลต์ */}
       {!onPath && !isCancelled && (
-        <p className="mt-3 border-t border-slate-100 pt-2.5 text-[12px] text-slate-500 dark:border-slate-800 dark:text-slate-400">
+        <p className="mt-3 text-xs text-slate-600 dark:text-slate-300">
           สถานะ &quot;{currentLabel}&quot; อยู่นอกเส้นทางหลักของงานชนิดนี้
         </p>
       )}
-    </div>
+    </details>
   );
 }

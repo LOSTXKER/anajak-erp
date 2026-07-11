@@ -1,7 +1,7 @@
 "use client";
 
-import { use, useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, use, useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -14,6 +14,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   INTERNAL_STATUS_LABELS,
   CHANNEL_COLORS,
+  PRIORITY_LABELS,
   getFlowSteps,
   getNextStatuses,
   canPermsSetStatus,
@@ -30,8 +31,10 @@ import {
   ClipboardList,
   AlertTriangle,
   Share2,
+  FolderOpen,
+  History,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
 import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
@@ -45,6 +48,7 @@ import { getOrderNextStep } from "@/lib/order-next-step";
 import {
   ORDER_TAB_DEFS,
   defaultTabForStatus,
+  normalizeOrderTab,
   tabForAnchor,
   buildNextStepInput,
   type TabKey,
@@ -94,21 +98,27 @@ function OrderDetailSkeleton() {
 // Main page component
 // ============================================================
 
-export default function OrderDetailPage({
+export default function OrderDetailPage(props: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={<OrderDetailSkeleton />}>
+      <OrderDetailContent {...props} />
+    </Suspense>
+  );
+}
+
+function OrderDetailContent({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const promptText = usePromptText();
   const confirm = useConfirm();
   // แก้รายการ = ฟอร์มเต็มแสดง inline ตรงส่วนรายการสินค้า (เบสเคาะ: ไม่เอา popup)
   const [editingItems, setEditingItems] = useState(false);
   const [showInfoEditDialog, setShowInfoEditDialog] = useState(false);
-  // แท็บเนื้อหา (เริ่ม overview · ตั้ง default ตามสถานะตอนโหลดออเดอร์ — ดูบล็อกใต้ query)
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
-  const [tabOrderId, setTabOrderId] = useState<string | null>(null);
   // section id ที่จะ scroll หลังสลับแท็บเสร็จ (element โผล่หลังแท็บ render — กัน scroll พลาดเพราะยังไม่ mount)
   const pendingScrollRef = useRef<string | null>(null);
 
@@ -116,12 +126,9 @@ export default function OrderDetailPage({
   function applyTab(tab: TabKey) {
     // UX6: กันสลับไปแท็บ "เงิน/บิล" สำหรับ role ที่ไม่เห็นเงิน (เช่น anchor billing จาก next-step ของช่าง)
     if (tab === "money" && !canSeeMoney) return;
-    setActiveTab(tab);
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      params.set("tab", tab);
-      router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
-    }
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`?${params.toString()}`, { scroll: false });
   }
 
   // ไปยัง section — สลับแท็บก่อนถ้าจำเป็น (scroll จริงรอ effect หลังแท็บ render) · อยู่แท็บนั้นแล้ว scroll เลย
@@ -160,12 +167,12 @@ export default function OrderDetailPage({
 
   const { data: order, isLoading, isError, refetch } = trpc.order.getById.useQuery({ id });
   const { data: attachments } = trpc.attachment.listByEntity.useQuery({ entityType: "ORDER", entityId: id });
-  const { data: me } = trpc.user.me.useQuery();
-  // นับใบแก้ไข (CO) ให้จุดน้ำเงินแท็บประวัติเชื่อถือได้ (UX5) — query เดียวกับ OrderChangeOrders (React Query dedupe ไม่ยิงซ้ำ)
-  const { data: changeOrders } = trpc.order.changeOrders.useQuery({ id });
+  const meQuery = trpc.user.me.useQuery();
+  const me = meQuery.data;
   // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ระหว่าง me โหลด permAllows คืน false = ซ่อนไว้ก่อน
   // (safe default ตาม B12) · คุมทั้งแท็บ "เงิน/บิล" + ยอดใน sidebar (UX6) · ห้ามใช้ isSalesUp — ชุดนั้นไม่มี ACCOUNTANT
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
+  const permissionsReady = !meQuery.isLoading;
   // ด่านพร้อมผลิต (เงิน/แบบ/ของ) — ใช้บอก "ติดอะไร" บนแถบขั้นต่อไป (query ที่มีอยู่ ไม่เพิ่ม endpoint)
   // ยิงเฉพาะสถานะที่แถบอาจบล็อก STATUS→PRODUCTION_QUEUE (CONFIRMED/ON_HOLD) — สถานะอื่น/terminal ไม่ใช้ readiness
   const orderContext = trpc.production.orderContext.useQuery(
@@ -250,23 +257,23 @@ export default function OrderDetailPage({
     }
   }
 
-  // ตั้งแท็บ default ตามสถานะ "ครั้งเดียวต่อออเดอร์" — React idiom: ปรับ state ตอน id เปลี่ยน ระหว่าง render
-  // (ไม่ใช้ effect) · refetch/เปลี่ยนสถานะ (id เดิม) ไม่ reset แท็บที่ user เลือกเอง
-  if (order && order.id !== tabOrderId) {
-    setTabOrderId(order.id);
-    // UX5: แท็บอยู่ใน URL — เปิดลิงก์ ?tab=delivery ตรงแท็บ · ไม่มีใน URL ใช้ default ตามสถานะ
-    // (block นี้รันตอน order โหลดเสร็จฝั่ง client เท่านั้น — window ใช้ได้ ไม่ชน SSR)
-    const urlTab =
-      typeof window !== "undefined"
-        ? new URLSearchParams(window.location.search).get("tab")
-        : null;
-    // แท็บ money เปิดตรงได้เฉพาะ role ที่เห็นเงิน (UX6) — role อื่นถือ ?tab=money ให้ตกไป default
-    const validUrlTab =
-      urlTab && ORDER_TAB_DEFS.some((t) => t.key === urlTab) && (urlTab !== "money" || canSeeMoney)
-        ? (urlTab as TabKey)
-        : null;
-    setActiveTab(validUrlTab ?? defaultTabForStatus(order.internalStatus));
-  }
+  const rawTab = searchParams.get("tab");
+  const requestedTab = normalizeOrderTab(rawTab);
+  const allowedRequestedTab =
+    requestedTab && (requestedTab !== "money" || canSeeMoney) ? requestedTab : null;
+  const activeTab: TabKey =
+    order && permissionsReady
+      ? allowedRequestedTab ?? defaultTabForStatus(order.internalStatus)
+      : "overview";
+
+  // หลัง order+permission พร้อม URL คือ source เดียว: เติม default, แก้ alias docs→files และกัน money ที่ไม่มีสิทธิ์
+  useEffect(() => {
+    if (!order || !permissionsReady) return;
+    if (rawTab === activeTab) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", activeTab);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [activeTab, order, permissionsReady, rawTab, router, searchParams]);
   // scroll ไป section ที่ค้างไว้ หลังแท็บสลับ + render เสร็จ
   useEffect(() => {
     const elId = pendingScrollRef.current;
@@ -339,37 +346,11 @@ export default function OrderDetailPage({
   // แถบ "ขั้นต่อไป" — ระบบจำว่างานนี้ต้องทำอะไรต่อ (logic lib/order-next-step.ts) แทนให้ผู้ใช้ไล่เดาจากการ์ด
   const nextStepInput = buildNextStepInput(order);
   const nextStep = getOrderNextStep(nextStepInput);
-  // เสื้อที่ต้องตรวจรับ (ลูกค้าส่ง/โรงเย็บ) — โผล่ในการ์ดตรวจรับใต้แท็บงานผลิต ตั้งแต่ช่วงต้น
-  const hasReceivableGarments = (order.items ?? []).some((it) =>
-    (it.products ?? []).some(
-      (p) => p.itemSource === "CUSTOMER_PROVIDED" || p.itemSource === "CUSTOM_MADE"
-    )
-  );
-  // จุดบนแท็บ = แท็บนั้นมีของให้ดู (ช่วยรู้ว่าควรเข้าไปแม้ไม่ใช่แท็บ default)
-  const tabHasContent: Record<TabKey, boolean> = {
-    overview: false,
-    production:
-      nextStepInput.hasApprovedDesign ||
-      nextStepInput.hasPendingDesign ||
-      nextStepInput.hasProduction ||
-      hasReceivableGarments,
-    delivery: nextStepInput.hasDelivery,
-    // เงิน/บิล — จุดเมื่อมียอด/มีบิลออกแล้ว (เฉพาะ role ที่เห็นเงิน)
-    money: canSeeMoney && (totalAmount > 0 || (order.invoices?.length ?? 0) > 0),
-    docs: (attachments?.length ?? 0) > 0,
-    // ประวัติมีทั้งใบแก้ไข (CO) และ revision — จุดต้องนับทั้งคู่ (เดิมนับแค่ revision = จุดหายทั้งที่มี CO)
-    history: (order.revisions?.length ?? 0) > 0 || (changeOrders?.length ?? 0) > 0,
-  };
-  // UX6: กรองแท็บ "เงิน/บิล" ออกสำหรับ role ที่ไม่เห็นเงิน (ช่าง/กราฟิก) — ตาม pattern PERM
-  const tabOptions = ORDER_TAB_DEFS.filter((t) => t.key !== "money" || canSeeMoney).map((t) => ({
-    value: t.key,
-    label: (
-      <span className="inline-flex items-center gap-1.5">
-        {t.label}
-        {tabHasContent[t.key] && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
-      </span>
-    ),
-  }));
+  // 4 ทางหลักพอให้ตัดสินใจเร็ว; ไฟล์/ประวัติเป็นงานรองในเมนูเพิ่มเติม
+  const primaryTabOptions = ORDER_TAB_DEFS
+    .filter((tab) => !["files", "history"].includes(tab.key))
+    .filter((tab) => tab.key !== "money" || canSeeMoney)
+    .map((tab) => ({ value: tab.key, label: tab.label }));
 
   // ----------------------------------------------------------
   // Handlers
@@ -584,6 +565,28 @@ export default function OrderDetailPage({
         }
       />
 
+      {/* บริบทที่ต้องเห็นก่อนลงมือบนมือถือ — เดิมอยู่ sidebar ท้ายหน้าทั้งก้อน */}
+      <dl className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-200/70 bg-white p-3 text-xs dark:border-slate-800 dark:bg-slate-900 lg:hidden">
+        <div className="min-w-0">
+          <dt className="text-slate-500 dark:text-slate-400">ลูกค้า</dt>
+          <dd className="truncate font-medium text-slate-900 dark:text-white">
+            {order.customer?.name ?? "—"}
+          </dd>
+        </div>
+        <div className="min-w-0 border-x border-slate-100 px-2 dark:border-slate-800">
+          <dt className="text-slate-500 dark:text-slate-400">กำหนดส่ง</dt>
+          <dd className="truncate font-medium text-slate-900 dark:text-white">
+            {order.deadline ? formatDate(order.deadline) : "ยังไม่ระบุ"}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-slate-500 dark:text-slate-400">ความเร่งด่วน</dt>
+          <dd className="truncate font-medium text-slate-900 dark:text-white">
+            {PRIORITY_LABELS[order.priority] ?? order.priority}
+          </dd>
+        </div>
+      </dl>
+
       <OrderStatusBar
         flowSteps={flowSteps}
         currentStepIndex={currentStepIndex}
@@ -629,9 +632,48 @@ export default function OrderDetailPage({
         canSeeMoney={canSeeMoney}
       />
 
-      {/* แท็บลดความหนาแน่น — การ์ด 9 ใบแยกเป็น 5 แท็บ (default ตามสถานะ · จุด = แท็บมีของ) */}
-      <div className="-mx-1 overflow-x-auto px-1">
-        <SegmentedControl value={activeTab} onChange={handleTabChange} options={tabOptions} />
+      <div className="flex items-center gap-2">
+        <div className="-mx-1 min-w-0 flex-1 overflow-x-auto px-1">
+          <SegmentedControl
+            value={activeTab}
+            onChange={handleTabChange}
+            options={primaryTabOptions}
+          />
+        </div>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <Button
+              variant={activeTab === "files" || activeTab === "history" ? "secondary" : "outline"}
+              className="shrink-0"
+              aria-label="ไฟล์และประวัติ"
+            >
+              {activeTab === "files" ? "ไฟล์" : activeTab === "history" ? "ประวัติ" : "เพิ่มเติม"}
+              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              align="end"
+              sideOffset={6}
+              className="z-50 min-w-44 rounded-2xl border border-slate-200/70 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-slate-900"
+            >
+              <DropdownMenu.Item
+                className={dropdownItemClass}
+                onSelect={() => void handleTabChange("files")}
+              >
+                <FolderOpen className="h-4 w-4" aria-hidden="true" />
+                ไฟล์
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                className={dropdownItemClass}
+                onSelect={() => void handleTabChange("history")}
+              >
+                <History className="h-4 w-4" aria-hidden="true" />
+                ประวัติ
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
 
       {/* ====================================================
@@ -737,7 +779,7 @@ export default function OrderDetailPage({
           )}
 
           {/* ── แท็บ ไฟล์: ไฟล์ 3 ชั้น (บิลย้ายไปแท็บ เงิน/บิล แล้ว UX6) ── */}
-          {activeTab === "docs" && (
+          {activeTab === "files" && (
             <OrderFilesCard
               orderId={id}
               attachments={attachments}

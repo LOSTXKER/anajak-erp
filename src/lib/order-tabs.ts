@@ -1,7 +1,7 @@
 // แท็บของหน้ารายละเอียดออเดอร์ + ตัว map ข้อมูล → NextStepInput (แยกเป็น pure ให้ test ได้)
 import type { NextStepInput, NextStepAction } from "./order-next-step";
 
-export type TabKey = "overview" | "production" | "delivery" | "money" | "docs" | "history";
+export type TabKey = "overview" | "production" | "delivery" | "money" | "files" | "history";
 
 export interface OrderTabDef {
   key: TabKey;
@@ -15,9 +15,15 @@ export const ORDER_TAB_DEFS: OrderTabDef[] = [
   { key: "production", label: "งานผลิต" },
   { key: "delivery", label: "จัดส่ง" },
   { key: "money", label: "เงิน/บิล" },
-  { key: "docs", label: "ไฟล์" },
+  { key: "files", label: "ไฟล์" },
   { key: "history", label: "ประวัติ" },
 ];
+
+export function normalizeOrderTab(value: string | null): TabKey | null {
+  // deep link เก่าใช้ ?tab=docs — คงเข้าได้ แล้วหน้า canonicalize เป็น files
+  if (value === "docs") return "files";
+  return ORDER_TAB_DEFS.some((tab) => tab.key === value) ? value as TabKey : null;
+}
 
 // แท็บเริ่มต้นตามสถานะ — เปิดออเดอร์มาให้ตรงกับ "งานที่ต้องทำตอนนี้" (แก้ปัญหา "ไม่รู้จะทำอะไร")
 export function defaultTabForStatus(status: string): TabKey {

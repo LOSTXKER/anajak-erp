@@ -1,11 +1,22 @@
 import { describe, it, expect } from "vitest";
 import {
   defaultTabForStatus,
+  normalizeOrderTab,
   tabForAnchor,
   buildNextStepInput,
   shouldGateOnReadiness,
 } from "./order-tabs";
 import type { NextStepAction } from "./order-next-step";
+
+describe("normalizeOrderTab — URL contract", () => {
+  it("รองรับ deep link docs เดิมและ canonicalize เป็น files", () => {
+    expect(normalizeOrderTab("docs")).toBe("files");
+  });
+
+  it("ปฏิเสธค่า tab ที่ระบบไม่รู้จัก", () => {
+    expect(normalizeOrderTab("unknown")).toBeNull();
+  });
+});
 
 describe("defaultTabForStatus — แท็บเริ่มต้นตามสถานะ", () => {
   it("ช่วงผลิตเปิดแท็บงานผลิต", () => {
