@@ -20,7 +20,7 @@ import { type PaymentTermsValue, PAYMENT_TERMS_LABELS } from "@/lib/payment-term
 import { type PickerCustomer } from "@/components/customers/customer-picker";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
-import { Plus, Loader2, Save } from "lucide-react";
+import { Plus, Loader2, PackagePlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
@@ -112,6 +112,8 @@ export default function NewOrderPage() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [showItemComposer, setShowItemComposer] = useState(false);
+  const errorSummaryRef = useRef<HTMLDivElement>(null);
 
   // ลูกค้าเลือกผ่าน CustomerPicker (ค้นหา+เพิ่มด่วน) — เก็บ object ที่เลือกไว้ใช้ prefill
   const [selectedCustomer, setSelectedCustomer] = useState<PickerCustomer | null>(null);
@@ -156,7 +158,8 @@ export default function NewOrderPage() {
     onSuccess: (data) => {
       clearDraft();
       utils.order.list.invalidate();
-      router.push(`/orders/${data.id}`);
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.push(next === "quote" ? `/quotations/new?orderId=${data.id}` : `/orders/${data.id}`);
     },
   });
 
@@ -313,7 +316,7 @@ export default function NewOrderPage() {
     return errors;
   };
 
-  const buildMutationInput = (isDraft: boolean) => ({
+  const buildMutationInput = () => ({
     channel: channel as "SHOPEE" | "LAZADA" | "TIKTOK" | "LINE" | "WALK_IN" | "PHONE" | "WEBSITE",
     customerId,
     title: title.trim() || undefined,
@@ -323,7 +326,7 @@ export default function NewOrderPage() {
     externalOrderId: isMarketplace && externalOrderId ? externalOrderId : undefined,
     platformFee: isMarketplace && platformFee ? platformFee : undefined,
     discount,
-    isDraft,
+    isDraft: false,
     priority,
     paymentTerms: (paymentTerms || undefined) as PaymentTermsValue | undefined,
     poNumber: poNumber || undefined,
@@ -343,7 +346,10 @@ export default function NewOrderPage() {
     e.preventDefault();
     const errors = validateForm();
     setFormErrors(errors);
-    if (errors.length > 0) return;
+    if (errors.length > 0) {
+      requestAnimationFrame(() => errorSummaryRef.current?.focus());
+      return;
+    }
 
     const totalProducts = items.reduce((s, it) => s + it.products.length, 0);
     const dialogTitle = title.trim()
@@ -364,14 +370,7 @@ export default function NewOrderPage() {
     );
     if (!ok) return;
 
-    createOrder.mutate(buildMutationInput(false));
-  };
-
-  const handleSaveDraft = () => {
-    const errors = validateForm();
-    setFormErrors(errors);
-    if (errors.length > 0) return;
-    createOrder.mutate(buildMutationInput(true));
+    createOrder.mutate(buildMutationInput());
   };
 
   return (
@@ -382,7 +381,7 @@ export default function NewOrderPage() {
           { label: "เปิดงานใหม่" },
         ]}
         title="เปิดงานใหม่"
-        description="เลือกลูกค้าอย่างเดียวก็เปิดได้ — ที่เหลือเติมตอนนี้หรือไปเติมที่หน้าออเดอร์ทีหลัง"
+        description="จับข้อมูลจากแชทให้ทันก่อน — สินค้า ราคา และรายละเอียดอื่นเติมต่อได้"
       />
 
       {hasDraft && (
@@ -412,6 +411,27 @@ export default function NewOrderPage() {
       {/* noValidate: ใช้ validateForm (กล่อง error เดียว) แทน native validation —
           กล่องพับซ่อนด้วย CSS ทำให้ browser validation บน input ที่มองไม่เห็นพัง submit เงียบ */}
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        {formErrors.length > 0 && (
+          <div
+            ref={errorSummaryRef}
+            role="alert"
+            aria-live="assertive"
+            tabIndex={-1}
+            className="rounded-xl border border-red-200 bg-red-50/80 p-3 outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:border-red-900 dark:bg-red-950/30"
+          >
+            <p className="mb-1 text-sm font-medium text-red-800 dark:text-red-200">กรุณาแก้ไข</p>
+            <ul className="list-inside list-disc space-y-1 text-sm text-red-700 dark:text-red-300">
+              {formErrors.map((error) => <li key={error}>{error}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {createOrder.isError && (
+          <div role="alert" className="rounded-xl bg-red-50/80 p-3 text-sm text-red-800 dark:bg-red-950/30 dark:text-red-200">
+            {createOrder.error.message}
+          </div>
+        )}
+
         {/* ============ 1 · ลูกค้า & งาน — แกนบังคับ (ลูกค้าช่องเดียว) ============ */}
         <Section
           title={
@@ -456,13 +476,32 @@ export default function NewOrderPage() {
           onImagesChange={setReferenceImages}
         />
 
-        {/* ============ 2 · รายการสินค้า & ราคา — กางตลอด (หัวใจของออเดอร์)
-            ไม่กรอก = เปิดเป็นใบสอบถาม ตีราคาทีหลังได้ ============ */}
+        {/* รายการ/ราคาเป็นทางเลือกหลัง capture ข้อมูลหลัก — ไม่กาง control หลายสิบจุดตั้งแต่จอแรก */}
+        {!showItemComposer && !hasItemContent ? (
+          <button
+            type="button"
+            onClick={() => setShowItemComposer(true)}
+            className="card-surface flex min-h-20 w-full items-center gap-3 rounded-2xl border-dashed px-5 py-4 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
+          >
+            <span className="rounded-xl bg-blue-50 p-2.5 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+              <PackagePlus className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-slate-900 dark:text-white">
+                เพิ่มสินค้าและราคา (ถ้าพร้อม)
+              </span>
+              <span className="block text-xs text-slate-600 dark:text-slate-300">
+                ยังไม่ใส่ก็เปิดเป็นใบสอบถาม แล้วกลับมาเติมต่อได้
+              </span>
+            </span>
+            <Plus className="h-5 w-5 text-slate-400" aria-hidden="true" />
+          </button>
+        ) : (
         <Section
           title={
             <>
               <SectionNumber n={2} />
-              รายการสินค้า & ราคา
+              สินค้า & ราคา
             </>
           }
           description="ไม่ใส่ตอนนี้ = เปิดเป็นใบสอบถาม แล้วไปเติมที่หน้าออเดอร์ได้"
@@ -605,6 +644,7 @@ export default function NewOrderPage() {
             )}
           </div>
         </Section>
+        )}
 
         {/* จัดส่ง — ของไม่บังคับ พับไว้ (รูปจากแชทย้ายขึ้นท้ายส่วนลูกค้าแล้ว UX3) */}
         <OrderShippingSection
@@ -613,25 +653,6 @@ export default function NewOrderPage() {
           shipping={shipping}
           onUpdate={updateShipping}
         />
-
-        {formErrors.length > 0 && (
-          <div className="rounded-xl bg-red-50/70 p-3 dark:bg-red-950/20">
-            <p className="mb-1 text-[12px] font-medium text-red-700 dark:text-red-300">
-              กรุณาแก้ไข
-            </p>
-            <ul className="list-inside list-disc space-y-0.5 text-[12px] text-red-600 dark:text-red-400">
-              {formErrors.map((err, i) => (
-                <li key={i}>{err}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {createOrder.isError && (
-          <div className="rounded-xl bg-red-50/70 p-3 text-[12px] text-red-700 dark:bg-red-950/20 dark:text-red-300">
-            {createOrder.error.message}
-          </div>
-        )}
 
         {/* แถบสรุป+ปุ่ม sticky ล่างจอ — มือถือกดถึงเสมอ (pattern เดียวกับฟอร์มแก้รายการ) */}
         <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
@@ -652,21 +673,10 @@ export default function NewOrderPage() {
               </p>
             )}
           </div>
-          <Link href="/orders">
-            <Button type="button" variant="ghost" size="sm" disabled={createOrder.isPending}>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/orders" aria-disabled={createOrder.isPending}>
               ยกเลิก
-            </Button>
-          </Link>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={createOrder.isPending}
-            onClick={handleSaveDraft}
-            className="gap-1.5"
-          >
-            <Save className="h-4 w-4" />
-            ร่าง
+            </Link>
           </Button>
           <Button type="submit" disabled={createOrder.isPending} className="gap-1.5">
             {createOrder.isPending && <Loader2 className="h-4 w-4 animate-spin" />}

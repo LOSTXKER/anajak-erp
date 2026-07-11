@@ -47,7 +47,7 @@ export function OrderCustomerSection({
 
   return (
     <div>
-      <label className={labelClass}>ลูกค้า *</label>
+      <label className={labelClass} id="new-order-customer-label">ลูกค้า *</label>
       <CustomerPicker value={customerId} onChange={onSelect} required />
       {selectedCustomer && isCorporate && (
         <div className="mt-1.5 flex items-center gap-1.5">

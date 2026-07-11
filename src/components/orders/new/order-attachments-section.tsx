@@ -73,7 +73,7 @@ export function OrderAttachmentsSection({
   return (
     <CollapsibleSection
       title={title}
-      defaultOpen={images.length > 0}
+      defaultOpen
       summary={images.length > 0 ? `${images.length} ไฟล์` : "แนะนำแนบรูปที่ลูกค้าส่งมา"}
     >
       <div className="space-y-3">
@@ -98,7 +98,8 @@ export function OrderAttachmentsSection({
                   variant="destructive"
                   size="icon"
                   onClick={() => onImagesChange((prev) => prev.filter((_, i) => i !== idx))}
-                  className="absolute -right-1.5 -top-1.5 h-5 w-5 rounded-full p-0.5 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
+                  aria-label={`ลบไฟล์ ${img.fileName}`}
+                  className="absolute -right-2 -top-2 rounded-full opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -111,7 +112,8 @@ export function OrderAttachmentsSection({
                       )
                     );
                   }}
-                  className="mt-1.5 h-7 w-24 px-1.5 py-0 text-[11px]"
+                  aria-label={`ตำแหน่งพิมพ์ของ ${img.fileName}`}
+                  className="mt-1.5 h-11 w-24 px-1.5 py-0 text-sm sm:h-8 sm:text-xs"
                 >
                   <option value="">ทั่วไป</option>
                   {Object.entries(PRINT_POSITIONS).map(([k, v]) => (
@@ -125,7 +127,7 @@ export function OrderAttachmentsSection({
           </div>
         )}
         {images.length < 5 && (
-          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/40 px-4 py-6 text-[13px] text-slate-500 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400 dark:hover:border-blue-500">
+          <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/40 px-4 py-5 text-sm text-slate-600 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:border-blue-500">
             <input
               type="file"
               accept="image/*,.pdf,.ai,.psd"
