@@ -12,8 +12,12 @@ import {
   Package,
   Users,
   HardDriveDownload,
+  Store,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { trpc } from "@/lib/trpc";
+import { permAllows, type Permission } from "@/lib/permissions";
 
 // หน้าตั้งค่า = hub ลิงก์ไปหน้าตั้งค่าจริงเท่านั้น (Gate B8) — ฟอร์มปลอม 4 section เดิม
 // (ข้อมูลโรงงาน/การผลิต/ความปลอดภัย/เชื่อมต่อภายนอก) ถูกถอดทิ้ง: input ไม่ผูกอะไร
@@ -21,7 +25,15 @@ import Link from "next/link";
 // ตั้งค่าที่จำเป็นจริง (% มัดจำ/เพดานส่วนลด/ฟรีแก้แบบ) ค่อยทำเป็นชิ้นๆ เมื่อมี use case
 // พร้อมท่อจริงถึง logic — ห้ามขึ้นฟอร์มก่อนมีของ
 
-const SETTING_LINKS = [
+interface SettingLink {
+  href: string;
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  permission?: Permission;
+}
+
+const SETTING_LINKS: readonly SettingLink[] = [
   {
     href: "/settings/company",
     icon: Building,
@@ -39,6 +51,13 @@ const SETTING_LINKS = [
     icon: Cloud,
     title: "เชื่อมต่อ Anajak Stock",
     description: "API URL/Key ระบบสต๊อกเสื้อ — จอง/เบิก/คืนใช้ท่อนี้",
+  },
+  {
+    href: "/settings/vendors",
+    icon: Store,
+    title: "ร้านรับจ้างภายนอก",
+    description: "ทะเบียนร้านสำหรับงาน DTG, สกรีน, ปัก, ตัดเย็บ และป้ายคอ",
+    permission: "manage_settings",
   },
   {
     href: "/settings/cost-rates",
@@ -73,13 +92,18 @@ const SETTING_LINKS = [
 ];
 
 export default function SettingsPage() {
+  const { data: me } = trpc.user.me.useQuery();
+  const visibleLinks = SETTING_LINKS.filter((link) =>
+    permAllows(me?.permissions, link.permission)
+  );
+
   return (
     <div className="space-y-5">
       <PageHeader title="ตั้งค่า" description="ตั้งค่าระบบ Anajak Print" />
 
       <Section title="หมวดตั้งค่า" description="ทุกหน้าในนี้บันทึกจริง — แก้แล้วมีผลกับระบบทันที">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {SETTING_LINKS.map((link) => (
+          {visibleLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}

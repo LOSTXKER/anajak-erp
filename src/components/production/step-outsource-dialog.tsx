@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -35,6 +36,7 @@ interface StepOutsourceDialogProps {
 // dialog ส่งขั้นตอนให้ร้านนอก — mount ใหม่ทุกครั้งที่เปิด (state seed จาก props ตรงๆ ไม่ใช้ effect-reset)
 // ไม่มีช่องค่าจ้าง (เบสเคาะ 2026-06-12: ไม่คิดต้นทุนต่องานในระบบนี้ — บัญชีคิดรายเดือน)
 export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps) {
+  const formId = useId();
   const [vendorId, setVendorId] = useState("");
   const [description, setDescription] = useState(
     () => step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType
@@ -80,11 +82,14 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            <label
+              htmlFor={`${formId}-vendor`}
+              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
               ร้าน (Vendor)
             </label>
             <Select value={vendorId} onValueChange={setVendorId}>
-              <SelectTrigger>
+              <SelectTrigger id={`${formId}-vendor`}>
                 <SelectValue placeholder="เลือกร้าน..." />
               </SelectTrigger>
               <SelectContent>
@@ -96,16 +101,25 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
               </SelectContent>
             </Select>
             {vendors.data?.length === 0 && (
-              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                ยังไม่มีร้านในระบบ — เพิ่มได้ที่หน้า Outsource
-              </p>
+              <div className="mt-2 rounded-lg bg-amber-50 p-3 dark:bg-amber-950/30">
+                <p className="text-xs text-amber-800 dark:text-amber-300">
+                  ยังไม่มีร้านในระบบ
+                </p>
+                <Button asChild variant="outline" size="sm" className="mt-2">
+                  <Link href="/settings/vendors">ไปเพิ่มร้าน</Link>
+                </Button>
+              </div>
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            <label
+              htmlFor={`${formId}-description`}
+              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
               รายละเอียดงาน
             </label>
             <Input
+              id={`${formId}-description`}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="เช่น สกรีนหน้าอก 2 สี"
@@ -113,10 +127,14 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              <label
+                htmlFor={`${formId}-quantity`}
+                className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
+              >
                 จำนวน (ชิ้น)
               </label>
               <Input
+                id={`${formId}-quantity`}
                 type="number"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
@@ -129,10 +147,14 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
               )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              <label
+                htmlFor={`${formId}-expected-back`}
+                className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
+              >
                 กำหนดรับกลับ
               </label>
               <Input
+                id={`${formId}-expected-back`}
                 type="date"
                 value={expectedBack}
                 onChange={(e) => setExpectedBack(e.target.value)}
@@ -140,10 +162,14 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            <label
+              htmlFor={`${formId}-notes`}
+              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
               หมายเหตุ
             </label>
             <Input
+              id={`${formId}-notes`}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="เช่น ส่งพร้อมบล็อกเดิม"

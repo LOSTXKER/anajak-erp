@@ -174,27 +174,12 @@ export function isOutsourceStep(stepType: string): boolean {
   return OUTSOURCE_STEP_TYPES.has(stepType);
 }
 
-// ───────────────────── สถานะใบงานร้านนอก (ที่เดียวทั้งระบบ) ─────────────────────
-// เดิมประกาศซ้ำ 3 ที่ (dialog/บอร์ด/การ์ดสรุป) — เพิ่มสถานะใหม่แล้วลืมอัปเดตสำเนา = ปุ่มโชว์ผิด
-
-export const OUTSOURCE_STATUS_LABELS: Record<string, string> = {
-  DRAFT: "ร่าง",
-  SENT: "ส่งร้านแล้ว",
-  IN_PROGRESS: "ร้านกำลังทำ",
-  COMPLETED: "ร้านทำเสร็จ",
-  RECEIVED_BACK: "รับกลับแล้ว รอ QC",
-  QC_PASSED: "QC ผ่าน",
-  QC_FAILED: "QC ไม่ผ่าน",
-};
-
-// งานที่ยังค้างอยู่กับร้าน/รอตัดสิน — ห้ามเปิดรอบใหม่ซ้อน/ห้ามผ่านรวดทับ
-export const OUTSOURCE_ACTIVE_STATUSES = [
-  "DRAFT",
-  "SENT",
-  "IN_PROGRESS",
-  "COMPLETED",
-  "RECEIVED_BACK",
-];
+// คง re-export ไว้เพื่อไม่ให้หน้า production ที่ใช้อยู่ต้องเปลี่ยน import พร้อมกันทั้งระบบ
+// source of truth ย้ายไป outsource-ui ซึ่งรวมป้าย คิว และกติกาปุ่มไว้ชุดเดียว
+export {
+  OUTSOURCE_ACTIVE_STATUSES,
+  OUTSOURCE_STATUS_LABELS,
+} from "@/lib/outsource-ui";
 
 // ───────────────────── ตัวแนะนำสายงานตอนเปิดใบผลิต ─────────────────────
 // อ่านครบ 3 อย่างจากเนื้อออเดอร์ (เดิมดูแค่วิธีพิมพ์ — ใบผลิตเลยขาดงานเตรียมเสื้อ/ป้ายคอตลอด):
