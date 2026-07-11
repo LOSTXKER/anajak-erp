@@ -26,6 +26,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { FileUpload } from "@/components/ui/file-upload";
+import { Field } from "@/components/ui/field";
+import { Label } from "@/components/ui/label";
+import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, DEFAULT_PAYMENT_METHOD } from "@/lib/payment-methods";
@@ -393,6 +396,9 @@ export function OrderBillingSection({
 
   // ช่าง/กราฟิกไม่เห็นการ์ดบิลทั้งใบ (Gate A2 — server ก็ gate listByOrder ไว้แล้ว
   // การ์ดเปล่าๆ ที่ query โดน FORBIDDEN มีแต่สร้างความงง) · me ยังไม่มา = ยังไม่ render
+  if (me.isError) {
+    return <QueryError message="โหลดสิทธิ์ดูข้อมูลบิลไม่สำเร็จ" onRetry={() => void me.refetch()} />;
+  }
   if (!canViewBilling) return null;
 
   return (
@@ -450,7 +456,21 @@ export function OrderBillingSection({
           )}
 
           {/* Invoice list */}
-          {!invoices.data || invoices.data.length === 0 ? (
+          {invoices.isError && !invoices.data?.length ? (
+            <QueryError
+              message="โหลดข้อมูลบิลไม่สำเร็จ"
+              onRetry={() => void invoices.refetch()}
+            />
+          ) : invoices.isPending ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              กำลังโหลดข้อมูลบิล
+            </div>
+          ) : !invoices.data || invoices.data.length === 0 ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">
               ยังไม่มีบิล
             </p>
@@ -471,61 +491,71 @@ export function OrderBillingSection({
                     key={inv.id}
                     className="rounded-lg border border-slate-200 dark:border-slate-700"
                   >
-                    <div
-                      className="flex cursor-pointer items-center justify-between p-3"
-                      onClick={() =>
-                        setExpandedInvoice(isExpanded ? null : inv.id)
-                      }
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-slate-900 dark:text-white">
-                            {inv.invoiceNumber}
-                          </span>
-                          <a
-                            href={`/print/invoice/${inv.id}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-slate-400 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
-                            title="พิมพ์ / PDF"
-                          >
-                            <Printer className="h-3.5 w-3.5" />
-                          </a>
-                          <Badge variant="secondary">
-                            {INVOICE_TYPE_LABELS[inv.type] || inv.type}
-                          </Badge>
-                          <Badge
-                            variant={
-                              PAYMENT_STATUS_VARIANTS[inv.paymentStatus as keyof typeof PAYMENT_STATUS_VARIANTS] || "default"
-                            }
-                          >
-                            {PAYMENT_STATUS_LABELS[inv.paymentStatus as keyof typeof PAYMENT_STATUS_LABELS] || inv.paymentStatus}
-                          </Badge>
+                    <div className="flex items-stretch gap-1 p-1">
+                      <button
+                        type="button"
+                        aria-expanded={isExpanded}
+                        aria-controls={`invoice-details-${inv.id}`}
+                        className="flex min-h-11 min-w-0 flex-1 touch-manipulation flex-col items-stretch justify-between gap-2 rounded-md px-2 py-2 text-left hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:flex-row sm:items-center dark:hover:bg-slate-800/50"
+                        onClick={() => setExpandedInvoice(isExpanded ? null : inv.id)}
+                      >
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium text-slate-900 dark:text-white">
+                              {inv.invoiceNumber}
+                            </span>
+                            <Badge variant="secondary">
+                              {INVOICE_TYPE_LABELS[inv.type] || inv.type}
+                            </Badge>
+                            <Badge
+                              variant={
+                                PAYMENT_STATUS_VARIANTS[
+                                  inv.paymentStatus as keyof typeof PAYMENT_STATUS_VARIANTS
+                                ] || "default"
+                              }
+                            >
+                              {PAYMENT_STATUS_LABELS[
+                                inv.paymentStatus as keyof typeof PAYMENT_STATUS_LABELS
+                              ] || inv.paymentStatus}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            {/* วันที่เอกสารตามกฎหมาย (ใบผูกงวด = วันรับเงิน) — ตรงกับใบพิมพ์ */}
+                            {inv.issueDate
+                              ? formatDate(inv.issueDate)
+                              : formatDateTime(inv.createdAt)}
+                            {/* dueDate เก็บเป็น UTC midnight ของวันปฏิทินไทย — โชว์เวลาด้วยจะได้ 07:00 ปลอม */}
+                            {inv.dueDate && ` | ครบกำหนด: ${formatDate(inv.dueDate)}`}
+                          </p>
                         </div>
-                        <p className="text-xs text-slate-500">
-                          {/* วันที่เอกสารตามกฎหมาย (ใบผูกงวด = วันรับเงิน) — ตรงกับใบพิมพ์ */}
-                          {inv.issueDate
-                            ? formatDate(inv.issueDate)
-                            : formatDateTime(inv.createdAt)}
-                          {/* dueDate เก็บเป็น UTC midnight ของวันปฏิทินไทย — โชว์เวลาด้วยจะได้ 07:00 ปลอม */}
-                          {inv.dueDate && ` | ครบกำหนด: ${formatDate(inv.dueDate)}`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
-                          {formatCurrency(inv.totalAmount)}
-                        </span>
-                        {isExpanded ? (
-                          <ChevronUp className="h-4 w-4 text-slate-400" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-slate-400" />
-                        )}
-                      </div>
+                        <div className="flex items-center justify-between gap-2 sm:justify-end">
+                          <span className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                            {formatCurrency(inv.totalAmount)}
+                          </span>
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-slate-400" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-slate-400" />
+                          )}
+                        </div>
+                      </button>
+                      <a
+                        href={`/print/invoice/${inv.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`พิมพ์หรือเปิด PDF ${inv.invoiceNumber}`}
+                        title="พิมพ์ / PDF"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                      </a>
                     </div>
 
                     {isExpanded && (
-                      <div className="border-t border-slate-100 p-3 dark:border-slate-700">
+                      <div
+                        id={`invoice-details-${inv.id}`}
+                        className="border-t border-slate-100 p-3 dark:border-slate-700"
+                      >
                         {/* Invoice details */}
                         <div className="mb-3 grid grid-cols-3 gap-2 text-xs">
                           <div>
@@ -583,7 +613,8 @@ export function OrderBillingSection({
                                       href={p.evidenceUrl}
                                       target="_blank"
                                       rel="noreferrer"
-                                      className="text-slate-400 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                                      aria-label={`ดูสลิปของรายการชำระ ${formatCurrency(p.amount)}`}
+                                      className="flex h-11 w-11 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:h-9 sm:w-9 dark:hover:bg-slate-900 dark:hover:text-blue-400"
                                       title="ดูสลิปโอน"
                                     >
                                       <Paperclip className="h-3 w-3" />
@@ -603,7 +634,7 @@ export function OrderBillingSection({
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="h-6 gap-1 px-2 text-[11px]"
+                                      className="gap-1 px-2 text-[11px]"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openReceiptForPayment(p, inv);
@@ -623,7 +654,7 @@ export function OrderBillingSection({
                         )}
 
                         {/* Actions */}
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           {actions.canRecordPayment && (
                             <Button
                               variant="outline"
@@ -692,10 +723,8 @@ export function OrderBillingSection({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                ประเภทบิล
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="billing-invoice-type">ประเภทบิล</Label>
               <Select
                 value={invoiceType}
                 onValueChange={(v) => {
@@ -705,7 +734,7 @@ export function OrderBillingSection({
                   setReceiptForPayment(null); // เปลี่ยนชนิดเอง = เลิกผูกงวดรับเงิน
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger id="billing-invoice-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -731,19 +760,16 @@ export function OrderBillingSection({
                     {formatCurrency(receiptForPayment.gross)} — ยอดใบต้องเท่างวดเป๊ะ
                     (server ตรวจอีกชั้น)
                   </p>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                      วันที่เอกสาร (tax point)
-                    </label>
+                  <Field
+                    label="วันที่เอกสาร (tax point)"
+                    description="ตามกฎหมาย = วันรับเงินจริง — แก้ได้เคสบันทึกย้อนหลัง (เงินเข้าแบงก์คนละวันกับวันบันทึก)"
+                  >
                     <Input
                       type="date"
                       value={receiptIssueDate}
                       onChange={(e) => setReceiptIssueDate(e.target.value)}
                     />
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      ตามกฎหมาย = วันรับเงินจริง — แก้ได้เคสบันทึกย้อนหลัง (เงินเข้าแบงก์คนละวันกับวันบันทึก)
-                    </p>
-                  </div>
+                  </Field>
                 </div>
               )}
               {suggestion.data &&
@@ -770,12 +796,14 @@ export function OrderBillingSection({
               )}
               {isAdjustmentType && (
                 <div className="mt-3 space-y-3">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                      อ้างอิงใบกำกับ/ใบแจ้งหนี้เดิม <span className="text-red-500">*</span>
-                    </label>
+                  <div className="space-y-2">
+                    <Label htmlFor="billing-original-invoice">
+                      อ้างอิงใบกำกับ/ใบแจ้งหนี้เดิม
+                      <span aria-hidden="true" className="ml-1 text-red-700 dark:text-red-400">*</span>
+                      <span className="sr-only"> (จำเป็น)</span>
+                    </Label>
                     <Select value={originalInvoiceId} onValueChange={setOriginalInvoiceId}>
-                      <SelectTrigger>
+                      <SelectTrigger id="billing-original-invoice" aria-required="true">
                         <SelectValue placeholder="เลือกใบที่ต้องการลด/เพิ่มหนี้" />
                       </SelectTrigger>
                       <SelectContent>
@@ -800,11 +828,11 @@ export function OrderBillingSection({
                       )
                     )}
                   </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                      เหตุผลการ{invoiceType === "CREDIT_NOTE" ? "ลดหนี้" : "เพิ่มหนี้"}{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
+                  <Field
+                    label={`เหตุผลการ${invoiceType === "CREDIT_NOTE" ? "ลดหนี้" : "เพิ่มหนี้"}`}
+                    required
+                    description="จะพิมพ์บนเอกสารตามข้อกำหนดใบลดหนี้/เพิ่มหนี้ (ม.86/10)"
+                  >
                     <Input
                       value={adjustmentReason}
                       onChange={(e) => setAdjustmentReason(e.target.value)}
@@ -814,10 +842,7 @@ export function OrderBillingSection({
                           : "เช่น ค่างานเพิ่มหลังยืนยันแบบ"
                       }
                     />
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      จะพิมพ์บนเอกสารตามข้อกำหนดใบลดหนี้/เพิ่มหนี้ (ม.86/10)
-                    </p>
-                  </div>
+                  </Field>
                 </div>
               )}
               {["RECEIPT", "CREDIT_NOTE", "DEBIT_NOTE"].includes(invoiceType) &&
@@ -842,11 +867,8 @@ export function OrderBillingSection({
                   </p>
                 )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  จำนวนเงิน (บาท)
-                </label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="จำนวนเงิน (บาท)">
                 <Input
                   type="number"
                   value={invoiceAmount}
@@ -858,11 +880,8 @@ export function OrderBillingSection({
                   min="0"
                   step="0.01"
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  ส่วนลด
-                </label>
+              </Field>
+              <Field label="ส่วนลด">
                 <Input
                   type="number"
                   value={invoiceDiscount}
@@ -873,13 +892,10 @@ export function OrderBillingSection({
                   min="0"
                   step="0.01"
                 />
-              </div>
+              </Field>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  ภาษี
-                </label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="ภาษี">
                 <Input
                   type="number"
                   value={invoiceTax}
@@ -890,14 +906,11 @@ export function OrderBillingSection({
                   min="0"
                   step="0.01"
                 />
-              </div>
+              </Field>
               {/* ครบกำหนดมีเฉพาะใบเรียกเก็บ — ใบเสร็จ/ใบลดหนี้ไม่มีสถานะค้างชำระ
                   (server ทิ้งค่านี้อยู่แล้ว — ซ่อนช่องกันเข้าใจผิด) */}
               {!["RECEIPT", "CREDIT_NOTE"].includes(invoiceType) && (
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    ครบกำหนด
-                  </label>
+                <Field label="ครบกำหนด">
                   <Input
                     type="date"
                     value={invoiceDueDate}
@@ -906,20 +919,17 @@ export function OrderBillingSection({
                       setInvoiceDueDate(e.target.value);
                     }}
                   />
-                </div>
+                </Field>
               )}
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                หมายเหตุ
-              </label>
+            <Field label="หมายเหตุ">
               <Textarea
                 value={invoiceNotes}
                 onChange={(e) => setInvoiceNotes(e.target.value)}
                 rows={2}
                 placeholder="หมายเหตุเพิ่มเติม..."
               />
-            </div>
+            </Field>
             <div className="rounded-lg bg-blue-50 p-3 text-sm dark:bg-blue-950/30">
               <span className="text-slate-600 dark:text-slate-400">ยอดรวมบิล: </span>
               <span className="font-semibold text-slate-900 dark:text-white">
@@ -962,10 +972,7 @@ export function OrderBillingSection({
             <DialogDescription>บันทึกยอดชำระเงินจากลูกค้า</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                จำนวนเงิน (บาท)
-              </label>
+            <Field label="จำนวนเงิน (บาท)">
               <Input
                 type="number"
                 value={paymentAmount}
@@ -976,21 +983,25 @@ export function OrderBillingSection({
                 min="0"
                 step="0.01"
               />
-            </div>
+            </Field>
             {/* ลูกค้านิติบุคคลหักภาษี ณ ที่จ่าย 3% ค่าจ้างทำของ — โอนมา 97% + หนังสือรับรอง 3% */}
             <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
               <div className="flex items-center justify-between gap-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <Label htmlFor="billing-wht-enabled">
                   ลูกค้าหักภาษี ณ ที่จ่าย (นิติบุคคล)
-                </label>
-                <Switch checked={whtEnabled} onCheckedChange={handleWhtToggle} />
+                </Label>
+                <Switch
+                  id="billing-wht-enabled"
+                  checked={whtEnabled}
+                  onCheckedChange={handleWhtToggle}
+                />
               </div>
               {whtEnabled && (
                 <div className="mt-3 space-y-3">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                      ยอดที่หัก (บาท)
-                    </label>
+                  <Field
+                    label="ยอดที่หัก (บาท)"
+                    description={`มาตรฐาน 3% ของฐานก่อน VAT = ${formatCurrency(whtSuggested)}`}
+                  >
                     <Input
                       type="number"
                       value={whtAmount}
@@ -998,32 +1009,23 @@ export function OrderBillingSection({
                       min="0"
                       step="0.01"
                     />
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      มาตรฐาน 3% ของฐานก่อน VAT = {formatCurrency(whtSuggested)}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                        เลขที่หนังสือรับรอง
-                      </label>
+                  </Field>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Field label="เลขที่หนังสือรับรอง">
                       <Input
                         type="text"
                         value={whtCertNumber}
                         onChange={(e) => setWhtCertNumber(e.target.value)}
                         placeholder="ถ้ามี"
                       />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                        วันที่ในใบ
-                      </label>
+                    </Field>
+                    <Field label="วันที่ในใบ">
                       <Input
                         type="date"
                         value={whtCertDate}
                         onChange={(e) => setWhtCertDate(e.target.value)}
                       />
-                    </div>
+                    </Field>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     ยังไม่ได้หนังสือรับรองก็เว้นว่างได้ — กรอกทีหลังได้ที่ทะเบียน 50ทวิ
@@ -1043,12 +1045,10 @@ export function OrderBillingSection({
                 </div>
               )}
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                วิธีชำระ
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="billing-payment-method">วิธีชำระ</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger>
+                <SelectTrigger id="billing-payment-method">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1060,21 +1060,18 @@ export function OrderBillingSection({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                เลขอ้างอิง
-              </label>
+            <Field label="เลขอ้างอิง">
               <Input
                 type="text"
                 value={paymentReference}
                 onChange={(e) => setPaymentReference(e.target.value)}
                 placeholder="เลขอ้างอิงหรือเลขที่ทำรายการ"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            </Field>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 สลิปโอน (ถ้ามี)
-              </label>
+              </legend>
               {evidenceUrl ? (
                 <div className="relative inline-block h-20 w-20">
                   {/* <img> ธรรมดา — รูปเสิร์ฟผ่าน /api/files (เช็ค session)
@@ -1087,7 +1084,8 @@ export function OrderBillingSection({
                   <button
                     type="button"
                     onClick={() => setEvidenceUrl("")}
-                    className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 text-white shadow-sm hover:bg-red-600"
+                    aria-label="ลบรูปสลิปโอน"
+                    className="absolute -right-4 -top-4 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm hover:bg-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 sm:h-9 sm:w-9 dark:bg-red-600 dark:hover:bg-red-500"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -1101,18 +1099,15 @@ export function OrderBillingSection({
                   onError={(msg) => toast.error(msg)}
                 />
               )}
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                หมายเหตุ
-              </label>
+            </fieldset>
+            <Field label="หมายเหตุ">
               <Textarea
                 value={paymentNotes}
                 onChange={(e) => setPaymentNotes(e.target.value)}
                 rows={2}
                 placeholder="หมายเหตุ..."
               />
-            </div>
+            </Field>
           </div>
           <DialogFooter>
             <Button
@@ -1152,10 +1147,7 @@ export function OrderBillingSection({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                จำนวนเงินคืน (บาท)
-              </label>
+            <Field label="จำนวนเงินคืน (บาท)">
               <Input
                 type="number"
                 value={refundAmount}
@@ -1163,13 +1155,11 @@ export function OrderBillingSection({
                 min="0"
                 step="0.01"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                วิธีคืนเงิน
-              </label>
+            </Field>
+            <div className="space-y-2">
+              <Label htmlFor="billing-refund-method">วิธีคืนเงิน</Label>
               <Select value={refundMethod} onValueChange={setRefundMethod}>
-                <SelectTrigger>
+                <SelectTrigger id="billing-refund-method">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1181,28 +1171,22 @@ export function OrderBillingSection({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                เลขอ้างอิง
-              </label>
+            <Field label="เลขอ้างอิง">
               <Input
                 type="text"
                 value={refundReference}
                 onChange={(e) => setRefundReference(e.target.value)}
                 placeholder="เลขอ้างอิงการโอนคืน (ถ้ามี)"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                หมายเหตุ
-              </label>
+            </Field>
+            <Field label="หมายเหตุ">
               <Textarea
                 value={refundNotes}
                 onChange={(e) => setRefundNotes(e.target.value)}
                 rows={2}
                 placeholder="เหตุผลการคืนเงิน..."
               />
-            </div>
+            </Field>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRefundDialog(null)}>
@@ -1236,17 +1220,14 @@ export function OrderBillingSection({
               การยกเลิกบิลจะทำให้ไม่สามารถใช้งานบิลนี้ได้อีก
             </DialogDescription>
           </DialogHeader>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              เหตุผลที่ยกเลิก
-            </label>
+          <Field label="เหตุผลที่ยกเลิก">
             <Textarea
               value={voidReason}
               onChange={(e) => setVoidReason(e.target.value)}
               rows={3}
               placeholder="ระบุเหตุผล..."
             />
-          </div>
+          </Field>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowVoidDialog(null)}>
               ไม่ยกเลิก
