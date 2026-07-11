@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
@@ -11,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
-import { Plus, Trash2, Pencil, X, Check, Settings } from "lucide-react";
+import { Plus, Trash2, Pencil, X, Check, Settings, ShieldX } from "lucide-react";
 import { SettingsPageHeader } from "@/components/settings-page-header";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
@@ -65,6 +66,7 @@ const emptyForm: NewItemForm = {
 // ============================================================
 
 export default function ServicesPage() {
+  const formId = useId();
   const [activeTab, setActiveTab] = useState<TabKey>("ADDON");
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState<NewItemForm>({ ...emptyForm });
@@ -72,10 +74,14 @@ export default function ServicesPage() {
 
   const utils = trpc.useUtils();
   const confirmDialog = useConfirm();
+  const meQuery = trpc.user.me.useQuery();
+  const canManage = permAllows(meQuery.data?.permissions, "manage_settings");
+  // serviceCatalog.delete ยังเป็น OWNER-only ฝั่ง server; manage_users เป็นสิทธิ์ OWNER ที่ override ไม่ได้
+  const canDelete = permAllows(meQuery.data?.permissions, "manage_users");
 
   const { data: items, isLoading, isError, refetch } = trpc.serviceCatalog.list.useQuery({
     category: activeTab,
-  });
+  }, { enabled: canManage });
 
   const createItem = trpc.serviceCatalog.create.useMutation({
     onSuccess: () => {
@@ -149,13 +155,68 @@ export default function ServicesPage() {
   // RENDER
   // ============================================================
 
+  const header = (
+    <SettingsPageHeader
+      title="จัดการบริการ"
+      description="ตั้งค่ารายการบริการเสริม, การสกรีน, และค่าบริการ"
+    />
+  );
+
+  if (meQuery.isError) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <QueryError
+          message="ตรวจสอบสิทธิ์หน้าจัดการบริการไม่ได้"
+          onRetry={() => void meQuery.refetch()}
+        />
+      </div>
+    );
+  }
+
+  if (meQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <Skeleton className="h-72 rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (!canManage) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <Card>
+          <CardContent>
+            <EmptyState
+              icon={ShieldX}
+              title="ไม่มีสิทธิ์จัดการบริการ"
+              description="หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น"
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // && !items: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
-  if (isError && !items) return <QueryError onRetry={() => refetch()} />;
+  if (isError && !items) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <QueryError
+          message="โหลดรายการบริการไม่สำเร็จ"
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <SettingsPageHeader title="จัดการบริการ" description="ตั้งค่ารายการบริการเสริม, การสกรีน, และค่าบริการ" />
+      {header}
 
       {/* Tabs */}
       <SegmentedControl
@@ -199,10 +260,11 @@ export default function ServicesPage() {
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-type`} className="mb-1 block text-xs font-medium text-slate-500">
                     ประเภท *
                   </label>
                   <Input
+                    id={`${formId}-type`}
                     value={formData.type}
                     onChange={(e) =>
                       setFormData({ ...formData, type: e.target.value })
@@ -212,10 +274,11 @@ export default function ServicesPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-name`} className="mb-1 block text-xs font-medium text-slate-500">
                     ชื่อ *
                   </label>
                   <Input
+                    id={`${formId}-name`}
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
@@ -225,10 +288,11 @@ export default function ServicesPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-price`} className="mb-1 block text-xs font-medium text-slate-500">
                     ราคา (บาท) *
                   </label>
                   <Input
+                    id={`${formId}-price`}
                     type="number"
                     min={0}
                     step={0.01}
@@ -244,10 +308,11 @@ export default function ServicesPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-pricing-type`} className="mb-1 block text-xs font-medium text-slate-500">
                     คิดราคา
                   </label>
                   <NativeSelect
+                    id={`${formId}-pricing-type`}
                     value={formData.pricingType}
                     onChange={(e) =>
                       setFormData({
@@ -296,22 +361,22 @@ export default function ServicesPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-slate-800">
-                    <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
                       ชื่อ
                     </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
                       ประเภท
                     </th>
-                    <th className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
                       ราคา
                     </th>
-                    <th className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
                       คิดราคา
                     </th>
-                    <th className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
                       สถานะ
                     </th>
-                    <th className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
                       จัดการ
                     </th>
                   </tr>
@@ -334,6 +399,7 @@ export default function ServicesPage() {
                         <td className="px-3 py-2.5">
                           {isEditing ? (
                             <Input
+                              aria-label={`ชื่อบริการ ${item.name}`}
                               value={editingItem.name}
                               onChange={(e) =>
                                 setEditingItem({
@@ -355,6 +421,7 @@ export default function ServicesPage() {
                         <td className="px-3 py-2.5 text-right">
                           {isEditing ? (
                             <Input
+                              aria-label={`ราคาบริการ ${item.name}`}
                               type="number"
                               min={0}
                               step={0.01}
@@ -377,6 +444,7 @@ export default function ServicesPage() {
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
                             <NativeSelect
+                              aria-label={`วิธีคิดราคาของ ${item.name}`}
                               className="h-7 text-xs"
                               value={editingItem.pricingType}
                               onChange={(e) =>
@@ -399,6 +467,7 @@ export default function ServicesPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           <Switch
+                            aria-label={`${item.isActive ? "ปิด" : "เปิด"}การใช้งาน ${item.name}`}
                             checked={item.isActive}
                             onCheckedChange={() => handleToggleActive(item.id, item.isActive)}
                           />
@@ -409,6 +478,7 @@ export default function ServicesPage() {
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
+                                aria-label={`บันทึกการแก้ไข ${item.name}`}
                                 onClick={handleSaveEdit}
                                 disabled={updateItem.isPending}
                                 className="text-green-600 hover:text-green-700"
@@ -418,6 +488,7 @@ export default function ServicesPage() {
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
+                                aria-label={`ยกเลิกการแก้ไข ${item.name}`}
                                 onClick={() => setEditingItem(null)}
                               >
                                 <X className="h-3.5 w-3.5" />
@@ -428,20 +499,24 @@ export default function ServicesPage() {
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
+                                aria-label={`แก้ไข ${item.name}`}
                                 onClick={() => startEdit(item)}
                                 className="text-slate-500 hover:text-blue-600"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => handleDelete(item.id, item.name)}
-                                disabled={deleteItem.isPending}
-                                className="text-slate-500 hover:text-red-600"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              {canDelete && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label={`ลบ ${item.name}`}
+                                  onClick={() => handleDelete(item.id, item.name)}
+                                  disabled={deleteItem.isPending}
+                                  className="text-slate-500 hover:text-red-600"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                           )}
                         </td>
@@ -454,11 +529,12 @@ export default function ServicesPage() {
           )}
 
           {/* Error display */}
-          {(createItem.isError || updateItem.isError || deleteItem.isError) && (
+          {(createItem.isError || updateItem.isError || deleteItem.isError || toggleActive.isError) && (
             <Alert variant="error" className="mt-3">
               {createItem.error?.message ||
                 updateItem.error?.message ||
-                deleteItem.error?.message}
+                deleteItem.error?.message ||
+                toggleActive.error?.message}
             </Alert>
           )}
         </CardContent>

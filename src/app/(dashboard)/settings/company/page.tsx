@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +10,8 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
-import { Save, Loader2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Save, Loader2, ShieldX } from "lucide-react";
 import { toast } from "sonner";
 import { SettingsPageHeader } from "@/components/settings-page-header";
 import type { CompanyProfile } from "@/lib/company-profile";
@@ -17,16 +19,19 @@ import { EMPTY_COMPANY_PROFILE } from "@/lib/company-profile";
 
 // ข้อมูลกิจการ — ขึ้นหัวเอกสารพิมพ์ทุกใบ + เป็นข้อมูลบังคับของใบกำกับภาษีเต็มรูป
 export default function CompanySettingsPage() {
-  const profileQuery = trpc.settings.companyProfile.useQuery();
-  const [form, setForm] = useState<CompanyProfile>(EMPTY_COMPANY_PROFILE);
-
-  useEffect(() => {
-    if (profileQuery.data) setForm(profileQuery.data);
-  }, [profileQuery.data]);
+  const meQuery = trpc.user.me.useQuery();
+  const canManage = permAllows(meQuery.data?.permissions, "manage_settings");
+  const profileQuery = trpc.settings.companyProfile.useQuery(undefined, {
+    enabled: canManage,
+  });
+  const [draft, setDraft] = useState<CompanyProfile | null>(null);
+  const form = draft ?? profileQuery.data ?? EMPTY_COMPANY_PROFILE;
 
   const utils = trpc.useUtils();
   const save = trpc.settings.setCompanyProfile.useMutation({
     onSuccess: () => {
+      utils.settings.companyProfile.setData(undefined, form);
+      setDraft(null);
       utils.settings.companyProfile.invalidate();
       toast.success("บันทึกข้อมูลกิจการแล้ว");
     },
@@ -34,19 +39,64 @@ export default function CompanySettingsPage() {
   });
 
   const set = (key: keyof CompanyProfile) => (value: string) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setDraft((prev) => ({
+      ...(prev ?? profileQuery.data ?? EMPTY_COMPANY_PROFILE),
+      [key]: value,
+    }));
+
+  const header = (
+    <SettingsPageHeader
+      title="ข้อมูลกิจการ"
+      description="ขึ้นหัวเอกสารทุกใบ — ใบเสนอราคา/แจ้งหนี้/ใบเสร็จ/ใบกำกับภาษี"
+    />
+  );
+
+  if (meQuery.isError) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        {header}
+        <QueryError
+          message="ตรวจสอบสิทธิ์หน้าข้อมูลกิจการไม่ได้"
+          onRetry={() => void meQuery.refetch()}
+        />
+      </div>
+    );
+  }
+
+  if (!meQuery.isLoading && !canManage) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        {header}
+        <Card>
+          <CardContent>
+            <EmptyState
+              icon={ShieldX}
+              title="ไม่มีสิทธิ์แก้ข้อมูลกิจการ"
+              description="หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น"
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // โหลดไม่สำเร็จห้ามแสดงฟอร์มค่าว่าง — เซฟทับจะลบข้อมูลกิจการจริง (หัวใบกำกับภาษี)
   // && !data: refetch เบื้องหลังล้มระหว่างแก้ฟอร์มอยู่ ห้ามถอนฟอร์ม (ของที่พิมพ์หาย)
-  if (profileQuery.isError && !profileQuery.data)
-    return <QueryError onRetry={() => profileQuery.refetch()} />;
+  if (profileQuery.isError && !profileQuery.data) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        {header}
+        <QueryError
+          message="โหลดข้อมูลกิจการไม่สำเร็จ"
+          onRetry={() => void profileQuery.refetch()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <SettingsPageHeader
-        title="ข้อมูลกิจการ"
-        description="ขึ้นหัวเอกสารทุกใบ — ใบเสนอราคา/แจ้งหนี้/ใบเสร็จ/ใบกำกับภาษี"
-      />
+      {header}
 
       <Card>
         <CardHeader>
@@ -56,7 +106,7 @@ export default function CompanySettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {profileQuery.isLoading ? (
+          {meQuery.isLoading || profileQuery.isLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-9 w-full" />
               <Skeleton className="h-20 w-full" />
@@ -71,10 +121,11 @@ export default function CompanySettingsPage() {
               }}
             >
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                <label htmlFor="company-name" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   ชื่อกิจการ (ตามจดทะเบียน) *
                 </label>
                 <Input
+                  id="company-name"
                   value={form.name}
                   onChange={(e) => set("name")(e.target.value)}
                   placeholder="เช่น บริษัท อณาจักร จำกัด"
@@ -83,10 +134,11 @@ export default function CompanySettingsPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                <label htmlFor="company-address" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   ที่อยู่ *
                 </label>
                 <Textarea
+                  id="company-address"
                   value={form.address}
                   onChange={(e) => set("address")(e.target.value)}
                   rows={3}
@@ -97,10 +149,11 @@ export default function CompanySettingsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="company-tax-id" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     เลขประจำตัวผู้เสียภาษี (13 หลัก) *
                   </label>
                   <Input
+                    id="company-tax-id"
                     value={form.taxId}
                     onChange={(e) => set("taxId")(e.target.value.replace(/\D/g, "").slice(0, 13))}
                     placeholder="0000000000000"
@@ -109,10 +162,11 @@ export default function CompanySettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="company-branch-kind" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     สำนักงาน
                   </label>
                   <NativeSelect
+                    id="company-branch-kind"
                     value={form.branch === "สำนักงานใหญ่" ? "สำนักงานใหญ่" : "branch"}
                     onChange={(e) =>
                       set("branch")(e.target.value === "สำนักงานใหญ่" ? "สำนักงานใหญ่" : "สาขาที่ ")
@@ -122,32 +176,41 @@ export default function CompanySettingsPage() {
                     <option value="branch">สาขา (ระบุเอง)</option>
                   </NativeSelect>
                   {form.branch !== "สำนักงานใหญ่" && (
-                    <Input
-                      className="mt-2"
-                      value={form.branch}
-                      onChange={(e) => set("branch")(e.target.value)}
-                      placeholder="เช่น สาขาที่ 00001"
-                    />
+                    <>
+                      <label htmlFor="company-branch-name" className="sr-only">
+                        ชื่อหรือรหัสสาขา
+                      </label>
+                      <Input
+                        id="company-branch-name"
+                        className="mt-2"
+                        value={form.branch}
+                        onChange={(e) => set("branch")(e.target.value)}
+                        placeholder="เช่น สาขาที่ 00001"
+                      />
+                    </>
                   )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="company-phone" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     โทรศัพท์
                   </label>
                   <Input
+                    id="company-phone"
+                    type="tel"
                     value={form.phone}
                     onChange={(e) => set("phone")(e.target.value)}
                     placeholder="0x-xxx-xxxx"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="company-email" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     อีเมล
                   </label>
                   <Input
+                    id="company-email"
                     type="email"
                     value={form.email}
                     onChange={(e) => set("email")(e.target.value)}

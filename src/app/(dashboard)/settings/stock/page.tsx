@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +14,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { QueryError } from "@/components/ui/query-error";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/utils";
 import {
   Cloud,
@@ -27,6 +30,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  ShieldX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SyncDialog } from "@/components/sync-dialog";
@@ -66,15 +70,19 @@ export default function StockSettingsPage() {
     errors: string[];
   } | null>(null);
 
+  const meQuery = trpc.user.me.useQuery();
+  const canManage = permAllows(meQuery.data?.permissions, "manage_settings");
+
   // ─── Load saved settings from DB ─────────────────────────
   const {
     data: savedSettings,
     isLoading: settingsLoading,
     isError: settingsError,
     refetch: refetchSettings,
-  } = trpc.settings.getMany.useQuery({
-    keys: STOCK_SETTING_KEYS,
-  });
+  } = trpc.settings.getMany.useQuery(
+    { keys: STOCK_SETTING_KEYS },
+    { enabled: canManage }
+  );
 
   const savedApiUrl = savedSettings?.[STOCK_API_URL_KEY] ?? "";
   const savedApiKey = savedSettings?.[STOCK_API_KEY_KEY] ?? "";
@@ -84,7 +92,7 @@ export default function StockSettingsPage() {
 
   // ─── Queries ──────────────────────────────────────────────
   const { data: syncStatus, isLoading: statusLoading, isError: statusError, refetch: refetchStatus } =
-    trpc.stockSync.status.useQuery();
+    trpc.stockSync.status.useQuery(undefined, { enabled: canManage });
 
   // ─── Mutations ────────────────────────────────────────────
   const utils = trpc.useUtils();
@@ -155,20 +163,70 @@ export default function StockSettingsPage() {
     });
   }
 
-  const hasCredentials = apiUrl.trim() && apiKey.trim();
+  const hasCredentials = Boolean(apiUrl.trim() && apiKey.trim());
+  const header = (
+    <SettingsPageHeader
+      title="เชื่อมต่อ Anajak Stock"
+      description="ตั้งค่าการเชื่อมต่อและ Sync สินค้าจากระบบ Stock"
+    />
+  );
+
+  if (meQuery.isError) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <QueryError
+          message="ตรวจสอบสิทธิ์หน้าการเชื่อมต่อ Stock ไม่ได้"
+          onRetry={() => void meQuery.refetch()}
+        />
+      </div>
+    );
+  }
+
+  if (meQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <Skeleton className="h-80 rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (!canManage) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <Card>
+          <CardContent>
+            <EmptyState
+              icon={ShieldX}
+              title="ไม่มีสิทธิ์ตั้งค่าการเชื่อมต่อ Stock"
+              description="หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น"
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // โหลด settings ไม่สำเร็จ → ไม่ render ฟอร์มค่าว่าง กันบันทึกทับค่าเชื่อมต่อจริง
   // && !data: refetch เบื้องหลังล้มระหว่างแก้ฟอร์มอยู่ ห้ามถอนฟอร์ม (ของที่พิมพ์หาย)
-  if (settingsError && !savedSettings)
-    return <QueryError onRetry={() => refetchSettings()} />;
+  if (settingsError && !savedSettings) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <QueryError
+          message="โหลดค่าการเชื่อมต่อ Stock ไม่สำเร็จ"
+          onRetry={() => void refetchSettings()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* ─── Header ──────────────────────────────────────────── */}
-      <SettingsPageHeader
-        title="เชื่อมต่อ Anajak Stock"
-        description="ตั้งค่าการเชื่อมต่อและ Sync สินค้าจากระบบ Stock"
-      />
+      {header}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* ─── Connection Section ─────────────────────────────── */}
