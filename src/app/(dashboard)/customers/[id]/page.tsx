@@ -17,7 +17,7 @@ import { CustomerArtworksCard } from "@/components/customers/customer-artworks-c
 import { CustomerEditDialog } from "@/components/customers/customer-edit-dialog";
 import { CustomerCommLogDialog } from "@/components/customers/customer-comm-log-dialog";
 import { commChannelLabel } from "@/lib/comm-channels";
-import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText, Pencil, MessageSquarePlus } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText, Pencil, MessageSquarePlus, Plus } from "lucide-react";
 
 // แก้ข้อมูล/จดบันทึกการคุย = ทีมขาย-บัญชี-บริหาร (ตรง customerEditors ฝั่ง server)
 
@@ -30,6 +30,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const [loggingComm, setLoggingComm] = useState(false);
   const { data: me } = trpc.user.me.useQuery();
   const canEdit = !!me && permAllows(me.permissions, "manage_customers");
+  const canCreateOrder = !!me && permAllows(me.permissions, "create_sales_docs");
   // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนยอดสั่งรวม/ยอดออเดอร์ (server ส่ง null มาอยู่แล้ว)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });
@@ -57,7 +58,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/customers"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
+        <Button asChild variant="ghost" size="icon">
+          <Link href="/customers" aria-label="กลับไปหน้าลูกค้า">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold text-slate-900 dark:text-white">{customer.name}</h1>
@@ -74,12 +79,51 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             </p>
           )}
         </div>
-        {canEdit && (
-          <Button variant="outline" size="sm" onClick={() => setEditing(true)} className="gap-1.5">
-            <Pencil className="h-3.5 w-3.5" />
-            แก้ไขข้อมูล
-          </Button>
-        )}
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+          {customer.phone && (
+            <Button asChild variant="outline" size="sm">
+              <a href={`tel:${customer.phone}`} aria-label={`โทรหา ${customer.name}`}>
+                <Phone className="h-4 w-4" /> โทร
+              </a>
+            </Button>
+          )}
+          {customer.lineId && (
+            <Button asChild variant="outline" size="sm">
+              <a
+                href={`https://line.me/R/ti/p/~${encodeURIComponent(customer.lineId)}`}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`เปิด LINE ของ ${customer.name}`}
+              >
+                <MessageCircle className="h-4 w-4" /> LINE
+              </a>
+            </Button>
+          )}
+          {customer.email && (
+            <Button asChild variant="outline" size="sm">
+              <a href={`mailto:${customer.email}`} aria-label={`ส่งอีเมลหา ${customer.name}`}>
+                <Mail className="h-4 w-4" /> อีเมล
+              </a>
+            </Button>
+          )}
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={() => setLoggingComm(true)}>
+              <MessageSquarePlus className="h-4 w-4" /> บันทึกการคุย
+            </Button>
+          )}
+          {canEdit && (
+            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+              <Pencil className="h-4 w-4" /> แก้ข้อมูล
+            </Button>
+          )}
+          {canCreateOrder && (
+            <Button asChild size="sm">
+              <Link href={`/orders/new?customerId=${id}`}>
+                <Plus className="h-4 w-4" /> เปิดงาน
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -89,19 +133,24 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader><CardTitle className="text-base">ข้อมูลติดต่อ</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               {customer.phone && (
-                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                <a href={`tel:${customer.phone}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-blue-700 dark:text-slate-300 dark:hover:text-blue-300">
                   <Phone className="h-4 w-4" /> {customer.phone}
-                </div>
+                </a>
               )}
               {customer.email && (
-                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                <a href={`mailto:${customer.email}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-blue-700 dark:text-slate-300 dark:hover:text-blue-300">
                   <Mail className="h-4 w-4" /> {customer.email}
-                </div>
+                </a>
               )}
               {customer.lineId && (
-                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                <a
+                  href={`https://line.me/R/ti/p/~${encodeURIComponent(customer.lineId)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-blue-700 dark:text-slate-300 dark:hover:text-blue-300"
+                >
                   <MessageCircle className="h-4 w-4" /> {customer.lineId}
-                </div>
+                </a>
               )}
               {customer.address && (
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
@@ -243,7 +292,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     size="sm"
                     variant="outline"
                     onClick={() => setLoggingComm(true)}
-                    className="h-9 gap-1 text-xs"
+                    className="gap-1"
                   >
                     <MessageSquarePlus className="h-3.5 w-3.5" />
                     บันทึกการคุย

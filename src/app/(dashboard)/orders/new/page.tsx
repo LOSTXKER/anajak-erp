@@ -121,11 +121,28 @@ export default function NewOrderPage() {
   // โหลด header draft หลัง mount เท่านั้น (client) — เรนเดอร์แรกตรงกับ server กัน hydration mismatch
   useEffect(() => {
     const d = loadHeaderDraft();
-    if (!d) return;
-    if (d.customerId) setCustomerId(d.customerId);
-    if (d.title) setTitle(d.title);
-    if (d.description) setDescription(d.description);
-    if (d.selectedCustomer) setSelectedCustomer(d.selectedCustomer as PickerCustomer);
+    if (d?.customerId) setCustomerId(d.customerId);
+    if (d?.title) setTitle(d.title);
+    if (d?.description) setDescription(d.description);
+    if (d?.selectedCustomer) setSelectedCustomer(d.selectedCustomer as PickerCustomer);
+
+    const requestedCustomerId = new URLSearchParams(window.location.search).get("customerId");
+    if (!requestedCustomerId || d?.customerId) return;
+    let cancelled = false;
+    void utils.customer.getById.fetch({ id: requestedCustomerId })
+      .then((customer) => {
+        if (cancelled || !customer) return;
+        setCustomerId(customer.id);
+        setSelectedCustomer(customer as unknown as PickerCustomer);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFormErrors(["เปิดข้อมูลลูกค้าที่เลือกไว้ไม่สำเร็จ — ค้นหาลูกค้าอีกครั้ง"]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- โหลดครั้งเดียวตอน mount
   }, []);
 
@@ -588,8 +605,9 @@ export default function NewOrderPage() {
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               <div>
-                <label className={labelClass}>ภาษี (%)</label>
+                <label htmlFor="order-tax-rate" className={labelClass}>ภาษี (%)</label>
                 <Input
+                  id="order-tax-rate"
                   type="number"
                   min={0}
                   max={100}
@@ -603,8 +621,9 @@ export default function NewOrderPage() {
                 />
               </div>
               <div>
-                <label className={labelClass}>เงื่อนไขชำระ</label>
+                <label htmlFor="order-payment-terms" className={labelClass}>เงื่อนไขชำระ</label>
                 <NativeSelect
+                  id="order-payment-terms"
                   value={paymentTerms}
                   onChange={(e) => setPaymentTerms(e.target.value)}
                 >
@@ -618,8 +637,9 @@ export default function NewOrderPage() {
               </div>
               {isCorporateCustomer && (
                 <div>
-                  <label className={labelClass}>เลขที่ PO</label>
+                  <label htmlFor="order-po-number" className={labelClass}>เลขที่ PO</label>
                   <Input
+                    id="order-po-number"
                     value={poNumber}
                     onChange={(e) => setPoNumber(e.target.value)}
                     placeholder="PO Number"
