@@ -4,12 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Section } from "@/components/ui/section";
-
-const labelClass =
-  "mb-1 block text-[12px] text-slate-500 dark:text-slate-400";
-
-const sectionLabelClass =
-  "mb-1.5 block text-[12px] text-slate-500 dark:text-slate-400";
+import { Field } from "@/components/ui/field";
 
 interface ShippingData {
   recipientName: string;
@@ -44,6 +39,7 @@ export function OrderShippingSection({
           variant={showShipping ? "subtle" : "outline"}
           size="sm"
           onClick={onToggleShipping}
+          aria-expanded={showShipping}
         >
           {showShipping ? "ซ่อน" : "ระบุที่อยู่"}
         </Button>
@@ -52,61 +48,54 @@ export function OrderShippingSection({
       {showShipping ? (
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <label className={sectionLabelClass}>ชื่อผู้รับ *</label>
+            <Field label="ชื่อผู้รับ" required>
               <Input
                 value={shipping.recipientName}
                 onChange={(e) => onUpdate("recipientName", e.target.value)}
                 placeholder="ชื่อ-นามสกุล ผู้รับ"
               />
-            </div>
-            <div>
-              <label className={sectionLabelClass}>เบอร์โทร *</label>
+            </Field>
+            <Field label="เบอร์โทร" required>
               <Input
                 value={shipping.phone}
                 onChange={(e) => onUpdate("phone", e.target.value)}
                 placeholder="08X-XXX-XXXX"
               />
-            </div>
+            </Field>
           </div>
-          <div>
-            <label className={sectionLabelClass}>ที่อยู่ *</label>
+          <Field label="ที่อยู่" required>
             <Textarea
               value={shipping.address}
               onChange={(e) => onUpdate("address", e.target.value)}
               placeholder="บ้านเลขที่ ถนน ซอย..."
               rows={2}
             />
-          </div>
+          </Field>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <div>
-              <label className={labelClass}>ตำบล/แขวง</label>
+            <Field label="ตำบล/แขวง">
               <Input
                 value={shipping.subDistrict}
                 onChange={(e) => onUpdate("subDistrict", e.target.value)}
               />
-            </div>
-            <div>
-              <label className={labelClass}>อำเภอ/เขต</label>
+            </Field>
+            <Field label="อำเภอ/เขต">
               <Input
                 value={shipping.district}
                 onChange={(e) => onUpdate("district", e.target.value)}
               />
-            </div>
-            <div>
-              <label className={labelClass}>จังหวัด</label>
+            </Field>
+            <Field label="จังหวัด">
               <Input
                 value={shipping.province}
                 onChange={(e) => onUpdate("province", e.target.value)}
               />
-            </div>
-            <div>
-              <label className={labelClass}>รหัสไปรษณีย์</label>
+            </Field>
+            <Field label="รหัสไปรษณีย์">
               <Input
                 value={shipping.postalCode}
                 onChange={(e) => onUpdate("postalCode", e.target.value)}
               />
-            </div>
+            </Field>
           </div>
           <p className="text-xs text-slate-400 dark:text-slate-500">
             ที่อยู่จัดส่งสามารถแก้ไขได้ภายหลังในหน้ารายละเอียดออเดอร์
