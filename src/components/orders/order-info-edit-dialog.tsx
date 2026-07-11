@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -218,7 +219,6 @@ export function OrderInfoEditDialog({
     "space-y-3 rounded-lg border border-slate-200 p-4 dark:border-slate-700";
   const sectionTitleClass =
     "mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500";
-  const labelClass = "mb-1 block text-xs font-medium text-slate-500";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -234,17 +234,15 @@ export function OrderInfoEditDialog({
           {/* ---- Basic Info ---- */}
           <div className={sectionClass}>
             <p className={sectionTitleClass}>ข้อมูลทั่วไป</p>
-            <div>
-              <label className={labelClass}>ชื่อออเดอร์ *</label>
+            <Field label="ชื่อออเดอร์" required>
               <Input
                 value={form.title}
                 onChange={(e) => update("title", e.target.value)}
                 placeholder="ชื่อออเดอร์"
                 className="h-9"
               />
-            </div>
-            <div>
-              <label className={labelClass}>รายละเอียด</label>
+            </Field>
+            <Field label="รายละเอียด">
               <Textarea
                 value={form.description}
                 onChange={(e) => update("description", e.target.value)}
@@ -252,19 +250,17 @@ export function OrderInfoEditDialog({
                 rows={2}
                 className="resize-none"
               />
-            </div>
+            </Field>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>กำหนดส่ง</label>
+              <Field label="กำหนดส่ง">
                 <Input
                   type="date"
                   value={form.deadline}
                   onChange={(e) => update("deadline", e.target.value)}
                   className="h-9"
                 />
-              </div>
-              <div>
-                <label className={labelClass}>ความเร่งด่วน</label>
+              </Field>
+              <Field label="ความเร่งด่วน">
                 <Select
                   value={form.priority}
                   onValueChange={(v) => update("priority", v)}
@@ -280,10 +276,9 @@ export function OrderInfoEditDialog({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </Field>
             </div>
-            <div>
-              <label className={labelClass}>หมายเหตุ</label>
+            <Field label="หมายเหตุ">
               <Textarea
                 value={form.notes}
                 onChange={(e) => update("notes", e.target.value)}
@@ -291,7 +286,7 @@ export function OrderInfoEditDialog({
                 rows={2}
                 className="resize-none"
               />
-            </div>
+            </Field>
           </div>
 
           {/* ---- Financial ---- */}
@@ -304,8 +299,7 @@ export function OrderInfoEditDialog({
               </p>
             )}
             <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className={labelClass}>ภาษี (%)</label>
+              <Field label="ภาษี (%)">
                 <Input
                   type="number"
                   value={form.taxRate || ""}
@@ -318,9 +312,8 @@ export function OrderInfoEditDialog({
                   max="100"
                   disabled={moneyLocked}
                 />
-              </div>
-              <div>
-                <label className={labelClass}>ส่วนลด (บาท)</label>
+              </Field>
+              <Field label="ส่วนลด (บาท)">
                 <Input
                   type="number"
                   value={form.discount || ""}
@@ -332,9 +325,8 @@ export function OrderInfoEditDialog({
                   min="0"
                   disabled={moneyLocked}
                 />
-              </div>
-              <div>
-                <label className={labelClass}>ค่าแพลตฟอร์ม</label>
+              </Field>
+              <Field label="ค่าแพลตฟอร์ม">
                 <Input
                   type="number"
                   value={form.platformFee || ""}
@@ -346,7 +338,7 @@ export function OrderInfoEditDialog({
                   min="0"
                   disabled={moneyLocked}
                 />
-              </div>
+              </Field>
             </div>
             {/* เพดานขาที่สอง (B9) — ส่วนลด/ภาษีใหม่ทำยอดรวมต่ำกว่าบิลที่ออกแล้ว */}
             {belowBilledFloor && (
@@ -357,8 +349,7 @@ export function OrderInfoEditDialog({
               </p>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>เงื่อนไขชำระเงิน</label>
+              <Field label="เงื่อนไขชำระเงิน">
                 <Select
                   value={form.paymentTerms || "_none"}
                   onValueChange={(v) =>
@@ -380,16 +371,15 @@ export function OrderInfoEditDialog({
                     )}
                   </SelectContent>
                 </Select>
-              </div>
-              <div>
-                <label className={labelClass}>เลขที่ PO</label>
+              </Field>
+              <Field label="เลขที่ PO">
                 <Input
                   value={form.poNumber}
                   onChange={(e) => update("poNumber", e.target.value)}
                   placeholder="เลขที่ PO"
                   className="h-9"
                 />
-              </div>
+              </Field>
             </div>
           </div>
 
@@ -397,8 +387,7 @@ export function OrderInfoEditDialog({
           <div className={sectionClass}>
             <p className={sectionTitleClass}>ที่อยู่จัดส่ง</p>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>ชื่อผู้รับ</label>
+              <Field label="ชื่อผู้รับ">
                 <Input
                   value={form.shippingRecipientName}
                   onChange={(e) =>
@@ -407,29 +396,26 @@ export function OrderInfoEditDialog({
                   placeholder="ชื่อผู้รับ"
                   className="h-9"
                 />
-              </div>
-              <div>
-                <label className={labelClass}>เบอร์โทร</label>
+              </Field>
+              <Field label="เบอร์โทร">
                 <Input
                   value={form.shippingPhone}
                   onChange={(e) => update("shippingPhone", e.target.value)}
                   placeholder="เบอร์โทร"
                   className="h-9"
                 />
-              </div>
+              </Field>
             </div>
-            <div>
-              <label className={labelClass}>ที่อยู่</label>
+            <Field label="ที่อยู่">
               <Input
                 value={form.shippingAddress}
                 onChange={(e) => update("shippingAddress", e.target.value)}
                 placeholder="ที่อยู่"
                 className="h-9"
               />
-            </div>
+            </Field>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>ตำบล/แขวง</label>
+              <Field label="ตำบล/แขวง">
                 <Input
                   value={form.shippingSubDistrict}
                   onChange={(e) =>
@@ -438,29 +424,26 @@ export function OrderInfoEditDialog({
                   placeholder="ตำบล/แขวง"
                   className="h-9"
                 />
-              </div>
-              <div>
-                <label className={labelClass}>อำเภอ/เขต</label>
+              </Field>
+              <Field label="อำเภอ/เขต">
                 <Input
                   value={form.shippingDistrict}
                   onChange={(e) => update("shippingDistrict", e.target.value)}
                   placeholder="อำเภอ/เขต"
                   className="h-9"
                 />
-              </div>
+              </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>จังหวัด</label>
+              <Field label="จังหวัด">
                 <Input
                   value={form.shippingProvince}
                   onChange={(e) => update("shippingProvince", e.target.value)}
                   placeholder="จังหวัด"
                   className="h-9"
                 />
-              </div>
-              <div>
-                <label className={labelClass}>รหัสไปรษณีย์</label>
+              </Field>
+              <Field label="รหัสไปรษณีย์">
                 <Input
                   value={form.shippingPostalCode}
                   onChange={(e) =>
@@ -469,7 +452,7 @@ export function OrderInfoEditDialog({
                   placeholder="รหัสไปรษณีย์"
                   className="h-9"
                 />
-              </div>
+              </Field>
             </div>
           </div>
 
@@ -477,15 +460,14 @@ export function OrderInfoEditDialog({
           {isMarketplace && (
             <div className={sectionClass}>
               <p className={sectionTitleClass}>Marketplace</p>
-              <div>
-                <label className={labelClass}>หมายเลขออเดอร์ภายนอก</label>
+              <Field label="หมายเลขออเดอร์ภายนอก">
                 <Input
                   value={form.externalOrderId}
                   onChange={(e) => update("externalOrderId", e.target.value)}
                   placeholder="หมายเลขจาก Shopee / Lazada / TikTok"
                   className="h-9"
                 />
-              </div>
+              </Field>
             </div>
           )}
         </div>
