@@ -13,11 +13,13 @@ import {
   Users,
   HardDriveDownload,
   Store,
+  History,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { permAllows, type Permission } from "@/lib/permissions";
+import { QueryError } from "@/components/ui/query-error";
 
 // หน้าตั้งค่า = hub ลิงก์ไปหน้าตั้งค่าจริงเท่านั้น (Gate B8) — ฟอร์มปลอม 4 section เดิม
 // (ข้อมูลโรงงาน/การผลิต/ความปลอดภัย/เชื่อมต่อภายนอก) ถูกถอดทิ้ง: input ไม่ผูกอะไร
@@ -30,7 +32,7 @@ interface SettingLink {
   icon: LucideIcon;
   title: string;
   description: string;
-  permission?: Permission;
+  permissionsAny?: readonly Permission[];
 }
 
 const SETTING_LINKS: readonly SettingLink[] = [
@@ -39,63 +41,90 @@ const SETTING_LINKS: readonly SettingLink[] = [
     icon: Building,
     title: "ข้อมูลกิจการ",
     description: "ชื่อ/ที่อยู่/เลขผู้เสียภาษี — ขึ้นหัวเอกสารและใบกำกับภาษี",
+    permissionsAny: ["manage_settings"],
   },
   {
     href: "/settings/users",
     icon: Users,
     title: "จัดการผู้ใช้",
     description: "บัญชีพนักงาน สิทธิ์ และรหัสผ่าน",
+    permissionsAny: ["manage_users"],
   },
   {
     href: "/settings/stock",
     icon: Cloud,
     title: "เชื่อมต่อ Anajak Stock",
     description: "API URL/Key ระบบสต๊อกเสื้อ — จอง/เบิก/คืนใช้ท่อนี้",
+    permissionsAny: ["manage_settings"],
   },
   {
     href: "/settings/vendors",
     icon: Store,
     title: "ร้านรับจ้างภายนอก",
     description: "ทะเบียนร้านสำหรับงาน DTG, สกรีน, ปัก, ตัดเย็บ และป้ายคอ",
-    permission: "manage_settings",
+    permissionsAny: ["manage_settings"],
   },
   {
     href: "/settings/cost-rates",
     icon: Calculator,
     title: "เรตต้นทุนกลาง",
     description: "เรตฟิล์ม/ค่าแรงเหมา — กำไรขั้นต้นโดยประมาณตอนตีราคา",
+    permissionsAny: ["see_finance"],
   },
   {
     href: "/settings/services",
     icon: Wrench,
     title: "จัดการบริการ",
     description: "Add-ons, สกรีน, ค่าบริการ",
+    permissionsAny: ["manage_settings"],
   },
   {
     href: "/settings/patterns",
     icon: Scissors,
     title: "จัดการแพทเทิร์น",
     description: "แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ",
+    permissionsAny: ["create_design_assets", "manage_design_files", "manage_settings"],
   },
   {
     href: "/settings/packaging",
     icon: Package,
     title: "จัดการแพ็คเกจ",
     description: "ตัวเลือกแพ็คเกจสำหรับจัดส่ง",
+    permissionsAny: ["manage_settings"],
   },
   {
     href: "/settings/backup",
     icon: HardDriveDownload,
     title: "สำรองข้อมูล",
     description: "ดาวน์โหลดข้อมูลทั้งระบบเก็บไว้เอง (เจ้าของเท่านั้น)",
+    permissionsAny: ["manage_users"],
+  },
+  {
+    href: "/settings/audit",
+    icon: History,
+    title: "ประวัติระบบ",
+    description: "ตรวจว่าใครเปลี่ยนข้อมูลอะไร เมื่อไหร่",
+    permissionsAny: ["view_admin_reports"],
   },
 ];
 
 export default function SettingsPage() {
-  const { data: me } = trpc.user.me.useQuery();
+  const meQuery = trpc.user.me.useQuery();
+  const me = meQuery.data;
   const visibleLinks = SETTING_LINKS.filter((link) =>
-    permAllows(me?.permissions, link.permission)
+    !link.permissionsAny || link.permissionsAny.some((permission) =>
+      permAllows(me?.permissions, permission)
+    )
   );
+
+  if (meQuery.isError) {
+    return (
+      <QueryError
+        message="โหลดสิทธิ์สำหรับหน้าตั้งค่าไม่สำเร็จ"
+        onRetry={() => void meQuery.refetch()}
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">
