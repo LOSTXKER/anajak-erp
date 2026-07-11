@@ -4,17 +4,13 @@ import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import {
   TrendingUp,
   Users,
-  ShoppingCart,
-  AlertCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/ui/section";
-import { StatCard } from "@/components/ui/stat-card";
 
 
 
@@ -22,7 +18,6 @@ export default function AnalyticsPage() {
   const { data: me } = trpc.user.me.useQuery();
   // ปิด query ที่ role ไม่มีสิทธิ์ — กันยิงไปโดน FORBIDDEN + retry ฟรี 3 รอบ
   const canViewRevenue = me ? permAllows(me.permissions, "see_finance") : false;
-  const canViewAudit = me ? permAllows(me.permissions, "view_admin_reports") : false;
 
   const {
     data: dashboard,
@@ -38,19 +33,11 @@ export default function AnalyticsPage() {
     { months: 6 },
     { enabled: canViewRevenue }
   );
-  const {
-    data: auditData,
-    isError: auditError,
-    refetch: refetchAudit,
-  } = trpc.analytics.auditLog.useQuery(
-    { limit: 20 },
-    { enabled: canViewAudit }
-  );
 
   if (isLoading) {
     return (
       <div className="space-y-5">
-        <PageHeader title="สถิติและรายงาน" description="ภาพรวมธุรกิจและ audit log" />
+        <PageHeader title="รายงาน" description="แนวโน้มรายได้และลูกค้า" />
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {[...Array(3)].map((_, i) => (
             <Skeleton key={i} className="h-32 rounded-lg" />
@@ -73,38 +60,14 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="สถิติและรายงาน" description="ภาพรวมธุรกิจและ audit log" />
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
-          title="ออเดอร์กำลังทำ"
-          value={dashboard?.activeOrders ?? 0}
-          icon={ShoppingCart}
-        />
-        {canViewRevenue && (
-          <StatCard
-            title="รายได้เดือนนี้"
-            value={formatCurrency(dashboard?.revenueThisMonth ?? 0)}
-            icon={TrendingUp}
-            change={dashboard?.revenueChange ?? undefined}
-          />
-        )}
-        <StatCard
-          title="ลูกค้าทั้งหมด"
-          value={dashboard?.totalCustomers ?? 0}
-          icon={Users}
-        />
-        {canViewRevenue && (
-          <StatCard
-            title="บิลเกินกำหนด"
-            value={dashboard?.overdueInvoices ?? 0}
-            icon={AlertCircle}
-          />
-        )}
-      </div>
+      <PageHeader title="รายงาน" description="ดูแนวโน้มระยะยาว ส่วนงานเร่งด่วนอยู่ที่ Dashboard" />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Section title="รายได้ 6 เดือนย้อนหลัง" bordered>
+        <Section
+          title={<span className="inline-flex items-center gap-2"><TrendingUp className="h-4 w-4" aria-hidden="true" />รายได้ 6 เดือนย้อนหลัง</span>}
+          description="เปรียบเทียบแนวโน้ม ไม่ใช่คิวงานประจำวัน"
+          bordered
+        >
           {!canViewRevenue ? (
             <p className="text-sm text-slate-400">
               ต้องมีสิทธิ์ &quot;เห็นทุน/กำไร/รายงานการเงิน&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
@@ -147,7 +110,7 @@ export default function AnalyticsPage() {
           )}
         </Section>
 
-        <Section title="ลูกค้ายอดสูงสุด" bordered>
+        <Section title={<span className="inline-flex items-center gap-2"><Users className="h-4 w-4" aria-hidden="true" />ลูกค้ายอดสูงสุด</span>} bordered>
           <div className="space-y-3">
             {dashboard?.topCustomers?.map((c, i) => (
               <div key={c.id} className="flex items-center justify-between">
@@ -181,44 +144,6 @@ export default function AnalyticsPage() {
         </Section>
       </div>
 
-      <Section title="Audit Log" description="กิจกรรมล่าสุดในระบบ" bordered>
-        {!canViewAudit ? (
-          <p className="text-sm text-slate-400">
-            ต้องมีสิทธิ์ &quot;audit log + Owner Pulse&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
-          </p>
-        ) : auditError ? (
-          <QueryError
-            message="โหลด audit log ไม่สำเร็จ"
-            onRetry={() => refetchAudit()}
-          />
-        ) : !auditData?.logs || auditData.logs.length === 0 ? (
-          <p className="text-sm text-slate-400">ยังไม่มี log</p>
-        ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-            {auditData.logs.map((log) => (
-              <li
-                key={log.id}
-                className="flex items-center justify-between gap-3 py-2"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <Badge variant="default" size="sm">
-                    {log.action}
-                  </Badge>
-                  <span className="truncate text-sm text-slate-900 dark:text-white">
-                    {log.entityType}
-                  </span>
-                  <span className="truncate text-xs text-slate-500">
-                    โดย {log.user.name}
-                  </span>
-                </div>
-                <span className="shrink-0 text-xs text-slate-400">
-                  {formatDateTime(log.createdAt)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
     </div>
   );
 }
