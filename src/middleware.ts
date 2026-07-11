@@ -61,7 +61,7 @@ export async function middleware(request: NextRequest) {
       return redirectWithCookies("/login");
     }
     if (user && isLoginPage) {
-      return redirectWithCookies("/");
+      return redirectWithCookies("/home");
     }
   }
 

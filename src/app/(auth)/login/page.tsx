@@ -36,12 +36,12 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/");
+    router.replace("/home");
     router.refresh();
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+    <div className="flex min-h-dvh items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
@@ -52,9 +52,10 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">อีเมล</label>
+            <label htmlFor="login-email" className="block">
+              <span className="mb-1.5 block text-sm font-medium">อีเมล</span>
               <Input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -62,10 +63,11 @@ export default function LoginPage() {
                 autoComplete="email"
                 required
               />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">รหัสผ่าน</label>
+            </label>
+            <label htmlFor="login-password" className="block">
+              <span className="mb-1.5 block text-sm font-medium">รหัสผ่าน</span>
               <Input
+                id="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -73,9 +75,12 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 required
               />
-            </div>
+            </label>
             {errorMessage && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
+              >
                 {errorMessage}
               </div>
             )}

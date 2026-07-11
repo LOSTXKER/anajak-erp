@@ -5,25 +5,19 @@ import { useRouter } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   Search,
-  LayoutDashboard,
   ShoppingCart,
   ClipboardList,
   Users,
-  Factory,
-  Truck,
-  Package,
-  Scissors,
   FileText,
-  BarChart3,
-  Settings,
-  Cloud,
   Plus,
   CornerDownLeft,
-  Bell,
+  LoaderCircle,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
-import { permAllows, type Permission } from "@/lib/permissions";
+import { permAllows } from "@/lib/permissions";
+import { navigationItemsForSurface } from "@/lib/navigation";
 
 type CommandItem = {
   id: string;
@@ -33,18 +27,18 @@ type CommandItem = {
   icon: React.ComponentType<{ className?: string; strokeWidth?: number | string }>;
   keywords?: string;
   action: () => void;
-  // จำกัดสิทธิ์ — ไม่ระบุ = ทุกคน (B12+PERM4: รายการตามสิทธิ์จริงของคน ตรงด่าน server)
-  permission?: Permission;
 };
 
 interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  returnFocusRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
-export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPaletteProps) {
   const router = useRouter();
   const [query, setQuery] = React.useState("");
+  const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [activeIdx, setActiveIdx] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const { data: me } = trpc.user.me.useQuery();
@@ -57,64 +51,111 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     [router, onOpenChange]
   );
 
-  const allItems: CommandItem[] = React.useMemo(
-    () => [
-      {
+  const items = React.useMemo(() => {
+    const result: CommandItem[] = [];
+    const canCreateSalesDocs = permAllows(me?.permissions, "create_sales_docs");
+    const canSeeOrderMoney = permAllows(me?.permissions, "see_order_money");
+
+    if (canCreateSalesDocs) {
+      result.push({
         id: "new-order",
-        label: "สร้างออเดอร์ใหม่",
-        hint: "สร้าง",
+        label: "เปิดงานใหม่",
+        hint: "สร้างใบสอบถาม",
         group: "การกระทำ",
         icon: Plus,
-        keywords: "create order new add",
+        keywords: "create order new add เปิดงาน ใบสอบถาม",
         action: () => navigate("/orders/new"),
-        permission: "create_sales_docs",
-      },
-      {
+      });
+    }
+    if (canCreateSalesDocs && canSeeOrderMoney) {
+      result.push({
         id: "new-quotation",
-        label: "สร้างใบเสนอราคา",
-        hint: "สร้าง",
+        label: "เปิดงานเพื่อทำใบเสนอ",
+        hint: "เริ่มจากใบสอบถามเดียวกัน",
         group: "การกระทำ",
         icon: Plus,
-        keywords: "create quotation",
-        action: () => navigate("/quotations/new"),
-        // ใบเสนอ = เอกสารราคา — ต้องเห็นเงินฝั่งขาย (ตรงหน้า /quotations + quotation.getById)
-        permission: "see_order_money",
-      },
-      { id: "nav-dashboard", label: "Dashboard", group: "ไปที่", icon: LayoutDashboard, action: () => navigate("/") },
-      { id: "nav-orders", label: "ออเดอร์", group: "ไปที่", icon: ShoppingCart, keywords: "order", action: () => navigate("/orders") },
-      { id: "nav-quotations", label: "ใบเสนอราคา", group: "ไปที่", icon: ClipboardList, keywords: "quotation quote", action: () => navigate("/quotations"), permission: "see_order_money" },
-      { id: "nav-customers", label: "ลูกค้า", group: "ไปที่", icon: Users, keywords: "customer", action: () => navigate("/customers") },
-      { id: "nav-production", label: "การผลิต", group: "ไปที่", icon: Factory, keywords: "production", action: () => navigate("/production") },
-      { id: "nav-outsource", label: "Outsource", group: "ไปที่", icon: Truck, action: () => navigate("/outsource") },
-      { id: "nav-products", label: "สินค้า", group: "ไปที่", icon: Package, keywords: "product", action: () => navigate("/products") },
-      { id: "nav-patterns", label: "แพทเทิร์น", group: "ไปที่", icon: Scissors, keywords: "pattern", action: () => navigate("/settings/patterns") },
-      { id: "nav-billing", label: "บิล/การเงิน", group: "ไปที่", icon: FileText, keywords: "billing invoice", action: () => navigate("/billing"), permission: "manage_billing_docs" },
-      { id: "nav-billing-notes", label: "ใบวางบิล", group: "ไปที่", icon: FileText, keywords: "billing note", action: () => navigate("/billing/notes"), permission: "manage_billing_docs" },
-      { id: "nav-aging", label: "ลูกหนี้ค้างชำระ", group: "ไปที่", icon: FileText, keywords: "aging receivable", action: () => navigate("/billing/aging"), permission: "manage_billing_docs" },
-      { id: "nav-sales-tax", label: "ภาษีขาย", group: "ไปที่", icon: FileText, keywords: "sales tax vat peak ภาษี", action: () => navigate("/billing/tax"), permission: "manage_billing_docs" },
-      { id: "nav-analytics", label: "สถิติ", group: "ไปที่", icon: BarChart3, keywords: "analytics statistics", action: () => navigate("/analytics"), permission: "see_finance" },
-      { id: "nav-notifications", label: "การแจ้งเตือน", group: "ไปที่", icon: Bell, keywords: "notification", action: () => navigate("/notifications") },
-      { id: "nav-settings", label: "ตั้งค่า", group: "ไปที่", icon: Settings, keywords: "settings", action: () => navigate("/settings") },
-      { id: "nav-stock", label: "เชื่อมต่อ Stock", group: "ไปที่", icon: Cloud, keywords: "stock", action: () => navigate("/settings/stock") },
-    ],
-    [navigate]
+        keywords: "create quotation quote ใบเสนอราคา",
+        action: () => navigate("/orders/new?next=quote"),
+      });
+    }
+
+    result.push(
+      ...navigationItemsForSurface("palette", me?.permissions).map((item) => ({
+        id: `nav-${item.id}`,
+        label: item.label,
+        group: "ไปที่",
+        icon: item.icon,
+        keywords: item.aliases.join(" "),
+        action: () => navigate(item.href),
+      }))
+    );
+    return result;
+  }, [me?.permissions, navigate]);
+
+  React.useEffect(() => {
+    const trimmed = query.trim();
+    const timer = window.setTimeout(
+      () => setDebouncedQuery(open ? trimmed : ""),
+      open ? 250 : 0
+    );
+    return () => window.clearTimeout(timer);
+  }, [open, query]);
+
+  const entityQuery = trpc.search.global.useQuery(
+    { q: debouncedQuery, limit: 5 },
+    { enabled: open && debouncedQuery.length >= 2 }
   );
 
-  // กรองตาม role ก่อน (B12) — ช่าง/กราฟิกไม่เห็นเมนูเงิน/สร้างเอกสารขายใน ⌘K
-  const items = React.useMemo(
-    () => allItems.filter((it) => permAllows(me?.permissions, it.permission)),
-    [allItems, me?.permissions]
-  );
+  const entityItems = React.useMemo<CommandItem[]>(() => {
+    const data = entityQuery.data;
+    if (!data || debouncedQuery !== query.trim()) return [];
+
+    return [
+      ...data.orders.map((item) => ({
+        id: `entity-order-${item.id}`,
+        label: item.title,
+        hint: item.subtitle ?? undefined,
+        group: "ออเดอร์",
+        icon: ShoppingCart,
+        action: () => navigate(item.href),
+      })),
+      ...data.customers.map((item) => ({
+        id: `entity-customer-${item.id}`,
+        label: item.title,
+        hint: item.subtitle ?? undefined,
+        group: "ลูกค้า",
+        icon: Users,
+        action: () => navigate(item.href),
+      })),
+      ...data.quotations.map((item) => ({
+        id: `entity-quotation-${item.id}`,
+        label: item.title,
+        hint: item.subtitle ?? undefined,
+        group: "ใบเสนอราคา",
+        icon: ClipboardList,
+        action: () => navigate(item.href),
+      })),
+      ...data.invoices.map((item) => ({
+        id: `entity-invoice-${item.id}`,
+        label: item.title,
+        hint: item.subtitle ?? undefined,
+        group: "บิล",
+        icon: FileText,
+        action: () => navigate(item.href),
+      })),
+    ];
+  }, [debouncedQuery, entityQuery.data, navigate, query]);
 
   const filtered = React.useMemo(() => {
     if (!query.trim()) return items;
-    const q = query.toLowerCase();
-    return items.filter(
+    const q = query.trim().toLocaleLowerCase("th");
+    const matchingNavigation = items.filter(
       (it) =>
-        it.label.toLowerCase().includes(q) ||
-        (it.keywords ?? "").toLowerCase().includes(q)
+        it.label.toLocaleLowerCase("th").includes(q) ||
+        (it.keywords ?? "").toLocaleLowerCase("th").includes(q)
     );
-  }, [items, query]);
+    return [...matchingNavigation, ...entityItems];
+  }, [entityItems, items, query]);
 
   const grouped = React.useMemo(() => {
     const map = new Map<string, CommandItem[]>();
@@ -127,25 +168,34 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   }, [filtered]);
 
   React.useEffect(() => {
-    setActiveIdx(0);
-  }, [query, open]);
-
-  React.useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 30);
-    else setQuery("");
+    const timer = window.setTimeout(() => {
+      if (open) inputRef.current?.focus();
+      else {
+        setQuery("");
+        setActiveIdx(0);
+      }
+    }, open ? 30 : 0);
+    return () => window.clearTimeout(timer);
   }, [open]);
+
+  const safeActiveIdx = Math.min(activeIdx, Math.max(filtered.length - 1, 0));
+  const trimmedQuery = query.trim();
+  const entitySearchIsCurrent = debouncedQuery === trimmedQuery;
+  const entitySearchPending =
+    trimmedQuery.length >= 2 && (!entitySearchIsCurrent || entityQuery.isFetching);
+  const entitySearchFailed = entitySearchIsCurrent && entityQuery.isError;
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (filtered.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActiveIdx((i) => (i + 1) % filtered.length);
+      setActiveIdx((safeActiveIdx + 1) % filtered.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActiveIdx((i) => (i - 1 + filtered.length) % filtered.length);
+      setActiveIdx((safeActiveIdx - 1 + filtered.length) % filtered.length);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      filtered[activeIdx]?.action();
+      filtered[safeActiveIdx]?.action();
     }
   };
 
@@ -154,10 +204,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none" />
         <DialogPrimitive.Content
           onKeyDown={handleKey}
-          className="fixed left-1/2 top-[14%] z-50 w-[92vw] max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_24px_72px_rgba(0,0,0,0.18)] outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 dark:border-slate-800/60 dark:bg-slate-900"
+          onCloseAutoFocus={(event) => {
+            if (!returnFocusRef?.current) return;
+            event.preventDefault();
+            returnFocusRef.current.focus();
+          }}
+          className="fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_24px_72px_rgba(0,0,0,0.18)] outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none sm:top-[14%] dark:border-slate-800/60 dark:bg-slate-900"
         >
           <DialogPrimitive.Title className="sr-only">ค้นหา</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
@@ -169,29 +224,45 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             <input
               ref={inputRef}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="ค้นหาเมนู, สร้างออเดอร์, ดูบิล..."
-              className="flex-1 bg-transparent py-4 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setActiveIdx(0);
+              }}
+              placeholder="ค้นหาเมนู เลขออเดอร์ ลูกค้า ใบเสนอ หรือบิล..."
+              aria-label="ค้นหาในระบบ"
+              autoComplete="off"
+              className="min-w-0 flex-1 bg-transparent py-4 text-base text-slate-900 outline-none placeholder:text-slate-400 sm:text-sm dark:text-white"
             />
-            <kbd className="hidden rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 sm:inline-block dark:bg-slate-800 dark:text-slate-400">
+            <kbd className="hidden rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500 sm:inline-block dark:bg-slate-800 dark:text-slate-400">
               ESC
             </kbd>
+            <DialogPrimitive.Close asChild>
+              <button
+                type="button"
+                aria-label="ปิดหน้าค้นหา"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 sm:hidden dark:hover:bg-slate-800 dark:hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </DialogPrimitive.Close>
           </div>
 
-          <div className="max-h-[60vh] overflow-y-auto py-2.5">
-            {grouped.length === 0 && (
+          <div className="min-h-0 flex-1 overflow-y-auto py-2.5">
+            {grouped.length === 0 && !entitySearchPending && !entitySearchFailed && (
               <p className="px-4 py-10 text-center text-sm text-slate-400">
-                ไม่พบรายการที่ค้นหา
+                {query.trim().length === 1
+                  ? "พิมพ์อีก 1 ตัวอักษรเพื่อค้นหาออเดอร์ ลูกค้า และเอกสาร"
+                  : "ไม่พบรายการที่ค้นหา"}
               </p>
             )}
             {grouped.map(([group, list]) => (
               <div key={group} className="mb-1.5 px-2">
-                <p className="px-3 pb-1 pt-2 text-[11px] font-medium text-slate-400">
+                <p className="px-3 pb-1 pt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                   {group}
                 </p>
                 {list.map((item) => {
                   const idx = cursor++;
-                  const active = idx === activeIdx;
+                  const active = idx === safeActiveIdx;
                   return (
                     <button
                       key={item.id}
@@ -199,7 +270,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                       onMouseEnter={() => setActiveIdx(idx)}
                       onClick={() => item.action()}
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] transition-colors",
+                        "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors sm:min-h-9",
                         active
                           ? "bg-blue-600 text-white"
                           : "text-slate-700 dark:text-slate-300"
@@ -212,7 +283,19 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         )}
                         strokeWidth={1.75}
                       />
-                      <span className="flex-1 truncate">{item.label}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{item.label}</span>
+                        {item.hint && (
+                          <span
+                            className={cn(
+                              "block truncate text-xs",
+                              active ? "text-white/75" : "text-slate-400 dark:text-slate-500"
+                            )}
+                          >
+                            {item.hint}
+                          </span>
+                        )}
+                      </span>
                       {active && (
                         <CornerDownLeft className="h-3.5 w-3.5 text-white/80" />
                       )}
@@ -221,20 +304,41 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 })}
               </div>
             ))}
+
+            <div aria-live="polite" className="px-5 py-1 text-xs text-slate-400">
+              {entitySearchPending && (
+                <span className="flex items-center gap-2">
+                  <LoaderCircle className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
+                  กำลังค้นหาข้อมูลจริง...
+                </span>
+              )}
+              {entitySearchFailed && (
+                <span role="alert" className="flex items-center justify-between gap-3">
+                  <span>ค้นหาข้อมูลไม่สำเร็จ — ยังเลือกเมนูที่พบด้านบนได้</span>
+                  <button
+                    type="button"
+                    onClick={() => entityQuery.refetch()}
+                    className="min-h-11 shrink-0 rounded-lg px-3 font-medium text-blue-700 hover:bg-blue-50 sm:min-h-9 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                  >
+                    ลองใหม่
+                  </button>
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-5 py-2.5 text-[11px] text-slate-400 dark:border-slate-800">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-5 py-2.5 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
             <span className="flex items-center gap-1">
-              <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] dark:bg-slate-800">
+              <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
                 ↑
               </kbd>
-              <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] dark:bg-slate-800">
+              <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
                 ↓
               </kbd>
               เลื่อน
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] dark:bg-slate-800">
+              <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
                 ↵
               </kbd>
               เลือก

@@ -34,6 +34,7 @@ export function Topbar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const { data: me } = trpc.user.me.useQuery();
   // เปิดงานใหม่ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12:
   // กดแล้วกรอกทั้งฟอร์มค่อยโดน FORBIDDEN · ตรงกับ ⌘K ที่ gate create actions แล้ว)
@@ -48,10 +49,17 @@ export function Topbar() {
         setNotifOpen(false);
       }
     }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setNotifOpen(false);
+    }
     if (notifOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleEscape);
     }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [notifOpen]);
 
   // Cmd/Ctrl + K → open palette
@@ -86,19 +94,22 @@ export function Topbar() {
   const count = unreadCount ?? 0;
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-black/[0.07] bg-[#f5f5f7]/72 px-5 backdrop-blur-xl sm:px-8 lg:px-10 dark:border-white/[0.06] dark:bg-black/60">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-black/[0.07] bg-[#f5f5f7]/72 px-3 backdrop-blur-xl sm:gap-3 sm:px-8 lg:px-10 dark:border-white/[0.06] dark:bg-black/60">
       {/* เมนูมือถือ — จอเล็ก sidebar ซ่อน เปิดผ่าน hamburger */}
       <MobileSidebar />
       {/* Search trigger (opens command palette) */}
       <button
+        ref={searchTriggerRef}
         type="button"
         onClick={() => setPaletteOpen(true)}
-        className="group flex h-9 w-full max-w-md items-center gap-2.5 rounded-full bg-white/70 px-4 text-sm text-slate-400 shadow-[0_0_0_0.5px_rgba(0,0,0,0.06)] transition-colors hover:bg-white hover:text-slate-600 dark:bg-white/[0.06] dark:shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)] dark:hover:bg-white/10"
+        aria-label="ค้นหาเมนู ออเดอร์ ลูกค้า ใบเสนอราคา หรือบิล"
+        aria-haspopup="dialog"
+        className="group flex h-11 min-w-0 w-full max-w-md items-center gap-2.5 rounded-full bg-white/70 px-3 text-sm text-slate-400 shadow-[0_0_0_0.5px_rgba(0,0,0,0.06)] transition-colors hover:bg-white hover:text-slate-600 sm:h-9 sm:px-4 dark:bg-white/[0.06] dark:shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)] dark:hover:bg-white/10"
       >
         <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-        <span className="flex-1 text-left">ค้นหาเมนู หรือคำสั่ง</span>
-        <kbd className="hidden items-center gap-0.5 rounded-md bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-medium text-slate-500 sm:inline-flex dark:bg-white/10 dark:text-slate-400">
-          <span className="text-[11px]">⌘</span>K
+        <span className="flex-1 truncate text-left">ค้นหาเมนู เลขงาน ลูกค้า หรือบิล</span>
+        <kbd className="hidden items-center gap-0.5 rounded-md bg-black/[0.05] px-1.5 py-0.5 text-xs font-medium text-slate-500 sm:inline-flex dark:bg-white/10 dark:text-slate-400">
+          <span className="text-xs">⌘</span>K
         </kbd>
       </button>
 
@@ -128,7 +139,9 @@ export function Topbar() {
             size="icon-sm"
             className="relative"
             onClick={() => setNotifOpen((prev) => !prev)}
-            aria-label="การแจ้งเตือน"
+            aria-label={count > 0 ? `การแจ้งเตือน ยังไม่อ่าน ${count} รายการ` : "การแจ้งเตือน"}
+            aria-expanded={notifOpen}
+            aria-haspopup="true"
           >
             <Bell className="h-4 w-4" />
             {count > 0 && (
@@ -137,7 +150,7 @@ export function Topbar() {
           </Button>
 
           {notifOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.08)] sm:w-96 dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="fixed left-2 right-2 top-16 z-50 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.08)] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
               <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5 dark:border-slate-800">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                   การแจ้งเตือน
@@ -192,7 +205,7 @@ export function Topbar() {
                             {notif.message}
                           </p>
                         )}
-                        <p className="mt-1 text-[10.5px] text-slate-400 dark:text-slate-500">
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                           {timeAgo(notif.createdAt)}
                         </p>
                       </div>
@@ -221,7 +234,11 @@ export function Topbar() {
         <UserMenu />
       </div>
 
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        returnFocusRef={searchTriggerRef}
+      />
     </header>
   );
 }

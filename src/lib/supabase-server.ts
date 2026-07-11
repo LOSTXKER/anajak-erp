@@ -38,7 +38,7 @@ export async function getServerSession() {
 
 // role+สิทธิ์ของผู้ใช้ที่ล็อกอิน (ฝั่ง server component) — lookup ด้วย supabaseId เหมือน trpc context
 // fail-closed: getUser/DB error → null (ด่านเรียกใช้จะ redirect · ไม่ปล่อยใบเงินหลุดเพราะ error)
-async function getServerUserAccess(): Promise<{
+export async function getServerUserAccess(): Promise<{
   role: Role;
   permissionOverrides: unknown;
 } | null> {
