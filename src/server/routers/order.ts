@@ -49,6 +49,10 @@ import {
 } from "@/server/services/payment-plan";
 import { lockOrderRow } from "@/server/services/order-cost";
 import type { OrderType, TaxLineType } from "@prisma/client";
+import {
+  ORDER_ATTENTIONS,
+  orderAttentionWhere,
+} from "@/server/services/order-list-filter";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ (PERM3: default = OWNER/MANAGER/SALES เดิมเป๊ะ + override รายคน)
 const salesUp = requirePermission("create_sales_docs");
@@ -271,6 +275,7 @@ export const orderRouter = router({
         customerId: z.string().optional(),
         createdAfter: z.string().optional(),
         createdBefore: z.string().optional(),
+        attention: z.enum(ORDER_ATTENTIONS).optional(),
         sortBy: z.enum(["createdAt", "totalAmount", "orderNumber"]).optional(),
         sortOrder: z.enum(["asc", "desc"]).optional(),
         page: z.number().default(1),
@@ -302,6 +307,10 @@ export const orderRouter = router({
       if (input.customerStatus) where.customerStatus = input.customerStatus;
       if (input.internalStatus) where.internalStatus = input.internalStatus;
       if (input.customerId) where.customerId = input.customerId;
+
+      // Dashboard drill-down ต้องคืนรายการเดียวกับตัวเลขบนการ์ด และต้อง AND กับ
+      // status/filter อื่น (ไม่เขียนทับ internalStatus ที่ผู้ใช้เลือกเอง)
+      if (input.attention) where.AND = [orderAttentionWhere(input.attention)];
 
       if (input.createdAfter || input.createdBefore) {
         const createdAtFilter: Record<string, Date> = {};
