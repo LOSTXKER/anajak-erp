@@ -5,6 +5,11 @@ import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { toast } from "sonner";
 import { nextDeliveryStatuses, type DeliveryStatus } from "@/lib/delivery-status";
+import {
+  canCreateDelivery,
+  deliveryActionAvailability,
+  shouldShowDeliverySection,
+} from "@/lib/delivery-ui";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -28,6 +33,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Field } from "@/components/ui/field";
+import { Label } from "@/components/ui/label";
+import { QueryError } from "@/components/ui/query-error";
 import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
 import { DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS, SHIPPING_METHOD_LABELS } from "@/lib/status-config";
 import {
@@ -157,13 +165,13 @@ export function OrderDeliverySection({
   });
   // ลบใบส่ง = ผู้จัดการขึ้นไป (server: managerUp) — ซ่อนปุ่มให้ตรง + ถามก่อนลบ
   const confirm = useConfirm();
-  const { data: me } = trpc.user.me.useQuery();
-  const canDelete = !me || permAllows(me.permissions, "supervise_operations");
+  const me = trpc.user.me.useQuery();
+  const canDelete = permAllows(me.data?.permissions, "supervise_operations");
   // สร้าง/แก้/ยืนยันส่งใบส่ง = manage_delivery (server: delivery.create/update/updateStatus) —
   // PERM5: เดิม canCreate เช็คแค่สถานะ + ปุ่มอัปเดตไม่เช็คสิทธิ์เลย (บั๊กคลาส "ยืนยันส่ง" เหลือจุดนี้)
-  const canManageDelivery = !me || permAllows(me.permissions, "manage_delivery");
+  const canManageDelivery = permAllows(me.data?.permissions, "manage_delivery");
   // ตั้งค่า blind ship = ฝ่ายขายขึ้นไป (server: order.setBlindShip) — role อื่นเห็นธงอย่างเดียว
-  const canSetBlindShip = !me || permAllows(me.permissions, "create_sales_docs");
+  const canSetBlindShip = permAllows(me.data?.permissions, "create_sales_docs");
 
   // แถวนับยืนยันใน dialog สร้างใบส่ง — ผูกค่าที่กรอกเข้ากับแถวจาก packContext
   const packLines = packContext.data?.lines ?? [];
@@ -261,22 +269,24 @@ export function OrderDeliverySection({
     });
   }
 
-  function openStatusDialog(delivery: Delivery) {
+  function openStatusDialog(delivery: Delivery, suggestedStatus: DeliveryStatus) {
     setShowStatusDialog(delivery.id);
-    setNewStatus(delivery.status);
+    setNewStatus(suggestedStatus);
     setStatusFrom(delivery.status as DeliveryStatus);
     setStatusTrackingNumber(delivery.trackingNumber || "");
   }
 
+  // packContext ต้องพร้อมก่อนเปิดสร้าง ไม่เช่นนั้นผู้ใช้อาจยืนยันจำนวนโดยไม่มีข้อมูลที่เหลือ
   const canCreate =
-    canManageDelivery &&
-    ["PACKING", "READY_TO_SHIP", "SHIPPED"].includes(internalStatus);
-
-  const hasDeliveries = deliveries.data && deliveries.data.length > 0;
+    canCreateDelivery(internalStatus, canManageDelivery) &&
+    Boolean(packContext.data) &&
+    !packContext.isError;
+  const hasDeliveries = Boolean(deliveries.data?.length);
+  const packContextUnavailable = packContext.isError && !packContext.data;
 
   if (
-    !hasDeliveries &&
-    !["PACKING", "READY_TO_SHIP", "SHIPPED", "COMPLETED"].includes(internalStatus)
+    !deliveries.isError &&
+    !shouldShowDeliverySection(internalStatus, hasDeliveries)
   ) {
     return null;
   }
@@ -286,7 +296,7 @@ export function OrderDeliverySection({
       {/* anchor id "order-section-delivery" อยู่ที่ wrapper ใน orders/[id]/page.tsx (กัน id ซ้ำ) */}
       <Card className="scroll-mt-20">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
               <Truck className="h-4 w-4" />
               การจัดส่ง
@@ -298,7 +308,7 @@ export function OrderDeliverySection({
                   resetCreateForm();
                   setShowCreateDialog(true);
                 }}
-                className="gap-1.5"
+                className="w-full gap-1.5 sm:w-auto"
               >
                 <Plus className="h-3.5 w-3.5" />
                 สร้างรายการจัดส่ง
@@ -321,7 +331,7 @@ export function OrderDeliverySection({
             <button
               type="button"
               onClick={openBlindShipDialog}
-              className="mt-1 flex w-fit items-center gap-1 text-xs text-slate-400 transition-colors hover:text-blue-500"
+              className="mt-1 flex min-h-11 w-fit touch-manipulation items-center gap-1 text-xs text-slate-400 transition-colors hover:text-blue-500 sm:min-h-9"
             >
               <Settings2 className="h-3 w-3" />
               {packContext.data.blindShip ? "ตั้งค่า blind ship" : "ตั้งค่า blind ship (ปิดอยู่)"}
@@ -329,154 +339,196 @@ export function OrderDeliverySection({
           )}
         </CardHeader>
         <CardContent>
-          {!hasDeliveries ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              ยังไม่มีข้อมูลจัดส่ง
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {deliveries.data!.map((delivery) => (
-                <div
-                  key={delivery.id}
-                  className="rounded-lg border border-slate-200 p-4 dark:border-slate-700"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={
-                            DELIVERY_STATUS_VARIANTS[delivery.status as keyof typeof DELIVERY_STATUS_VARIANTS] || "default"
-                          }
-                        >
-                          {DELIVERY_STATUS_LABELS[delivery.status as keyof typeof DELIVERY_STATUS_LABELS] || delivery.status}
-                        </Badge>
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">
-                          {SHIPPING_METHOD_LABELS[delivery.shippingMethod] ||
-                            delivery.shippingMethod}
-                        </span>
-                      </div>
-
-                      {/* Tracking number */}
-                      {editTrackingId === delivery.id ? (
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="text"
-                            value={editTrackingValue}
-                            onChange={(e) => setEditTrackingValue(e.target.value)}
-                            placeholder="เลขพัสดุ..."
-                            className="h-8 w-48 font-mono"
-                            autoFocus
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => {
-                              updateDelivery.mutate({
-                                id: delivery.id,
-                                trackingNumber: editTrackingValue,
-                              });
-                            }}
-                            disabled={updateDelivery.isPending}
-                          >
-                            <Check className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          {delivery.trackingNumber ? (
-                            <span className="font-mono text-sm text-blue-600 dark:text-blue-400">
-                              <Hash className="mr-0.5 inline h-3 w-3" />
-                              {delivery.trackingNumber}
-                            </span>
-                          ) : canManageDelivery ? (
-                            <button
-                              className="text-xs text-slate-400 hover:text-blue-500"
-                              onClick={() => {
-                                setEditTrackingId(delivery.id);
-                                setEditTrackingValue(delivery.trackingNumber || "");
-                              }}
-                            >
-                              + เพิ่มเลขพัสดุ
-                            </button>
-                          ) : null}
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-1 text-xs text-slate-500">
-                        <MapPin className="h-3 w-3" />
-                        <span>{delivery.recipientName}</span>
-                        {delivery.phone && <span>| {delivery.phone}</span>}
-                      </div>
-
-                      {/* รายการต่อกล่อง (ก้อน 3) — กล่องนี้มีอะไรบ้าง เช่น "10 ตัว (M ดำ ×6 · L ดำ ×4)" */}
-                      {delivery.lines.length > 0 && (
-                        <div className="flex items-start gap-1 text-xs text-slate-500 dark:text-slate-400">
-                          <Package className="mt-0.5 h-3 w-3 shrink-0" />
-                          <span>
-                            {delivery.lines.reduce((s, l) => s + l.qty, 0)} ตัว (
-                            {delivery.lines
-                              .map((l) => `${sizeColorLabel(l)} ×${l.qty}`)
-                              .join(" · ")}
-                            )
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="flex gap-3 text-xs text-slate-400">
-                        {delivery.shippedAt && (
-                          <span>ส่ง: {formatDateTime(delivery.shippedAt)}</span>
-                        )}
-                        {delivery.deliveredAt && (
-                          <span>ถึง: {formatDateTime(delivery.deliveredAt)}</span>
-                        )}
-                        {delivery.shippingCost > 0 && (
-                          <span>ค่าส่ง: {formatCurrency(delivery.shippingCost)}</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex shrink-0 gap-1">
-                      {delivery.lines.length > 0 && (
-                        <a
-                          href={`/print/packing-list/${delivery.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          title="ใบรายการแนบกล่อง"
-                          className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                        </a>
-                      )}
-                      {/* โชว์ปุ่มเมื่อยังเดินสถานะต่อได้ (B13) — DELIVERED เดินต่อ RETURNED/SHIPPED
-                          ได้ (ของส่งถึงแล้วลูกค้าตีกลับ) · เดิมซ่อนบน DELIVERED = transition ตาย */}
-                      {canManageDelivery &&
-                        nextDeliveryStatuses(delivery.status as DeliveryStatus).length > 1 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={() => openStatusDialog(delivery)}
-                          >
-                            อัปเดต
-                          </Button>
-                        )}
-                      {delivery.status === "PENDING" && canDelete && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-red-500"
-                          onClick={() => handleDelete(delivery.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+          {deliveries.isError && !hasDeliveries ? (
+            <QueryError
+              message="โหลดข้อมูลจัดส่งไม่สำเร็จ"
+              onRetry={() => void deliveries.refetch()}
+            />
+          ) : deliveries.isPending ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              กำลังโหลดข้อมูลจัดส่ง
             </div>
+          ) : (
+            <>
+              {packContextUnavailable && (
+                <QueryError
+                  message="โหลดข้อมูลสำหรับแพ็คสินค้าไม่สำเร็จ จึงยังสร้างใบส่งไม่ได้"
+                  onRetry={() => void packContext.refetch()}
+                />
+              )}
+              {!hasDeliveries ? (
+                !packContextUnavailable && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    ยังไม่มีข้อมูลจัดส่ง
+                  </p>
+                )
+              ) : (
+                <div className="space-y-3">
+                  {deliveries.data!.map((delivery) => {
+                    const actions = deliveryActionAvailability({
+                      status: delivery.status as DeliveryStatus,
+                      canManageDelivery,
+                      canDeleteDelivery: canDelete,
+                    });
+
+                    return (
+                      <div
+                        key={delivery.id}
+                        className="rounded-lg border border-slate-200 p-4 dark:border-slate-700"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge
+                                variant={
+                                  DELIVERY_STATUS_VARIANTS[
+                                    delivery.status as keyof typeof DELIVERY_STATUS_VARIANTS
+                                  ] || "default"
+                                }
+                              >
+                                {DELIVERY_STATUS_LABELS[
+                                  delivery.status as keyof typeof DELIVERY_STATUS_LABELS
+                                ] || delivery.status}
+                              </Badge>
+                              <span className="text-sm font-medium text-slate-900 dark:text-white">
+                                {SHIPPING_METHOD_LABELS[delivery.shippingMethod] ||
+                                  delivery.shippingMethod}
+                              </span>
+                            </div>
+
+                            {/* Tracking number */}
+                            {editTrackingId === delivery.id && actions.canEditTracking ? (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="text"
+                                  aria-label={`เลขพัสดุ ${delivery.recipientName}`}
+                                  value={editTrackingValue}
+                                  onChange={(e) => setEditTrackingValue(e.target.value)}
+                                  placeholder="เลขพัสดุ..."
+                                  className="h-8 w-48 font-mono"
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label="บันทึกเลขพัสดุ"
+                                  onClick={() => {
+                                    updateDelivery.mutate({
+                                      id: delivery.id,
+                                      trackingNumber: editTrackingValue,
+                                    });
+                                  }}
+                                  disabled={updateDelivery.isPending}
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                {delivery.trackingNumber ? (
+                                  <span className="font-mono text-sm text-blue-600 dark:text-blue-400">
+                                    <Hash className="mr-0.5 inline h-3 w-3" />
+                                    {delivery.trackingNumber}
+                                  </span>
+                                ) : actions.canEditTracking ? (
+                                  <button
+                                    type="button"
+                                    className="min-h-11 touch-manipulation text-xs text-slate-400 hover:text-blue-500 sm:min-h-9"
+                                    onClick={() => {
+                                      setEditTrackingId(delivery.id);
+                                      setEditTrackingValue(delivery.trackingNumber || "");
+                                    }}
+                                  >
+                                    + เพิ่มเลขพัสดุ
+                                  </button>
+                                ) : null}
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-1 text-xs text-slate-500">
+                              <MapPin className="h-3 w-3" />
+                              <span>{delivery.recipientName}</span>
+                              {delivery.phone && <span>| {delivery.phone}</span>}
+                            </div>
+
+                            {/* รายการต่อกล่อง (ก้อน 3) — กล่องนี้มีอะไรบ้าง เช่น "10 ตัว (M ดำ ×6 · L ดำ ×4)" */}
+                            {delivery.lines.length > 0 && (
+                              <div className="flex items-start gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                <Package className="mt-0.5 h-3 w-3 shrink-0" />
+                                <span>
+                                  {delivery.lines.reduce((s, l) => s + l.qty, 0)} ตัว (
+                                  {delivery.lines
+                                    .map((l) => `${sizeColorLabel(l)} ×${l.qty}`)
+                                    .join(" · ")}
+                                  )
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="flex flex-wrap gap-3 text-xs text-slate-400">
+                              {delivery.shippedAt && (
+                                <span>ส่ง: {formatDateTime(delivery.shippedAt)}</span>
+                              )}
+                              {delivery.deliveredAt && (
+                                <span>ถึง: {formatDateTime(delivery.deliveredAt)}</span>
+                              )}
+                              {delivery.shippingCost > 0 && (
+                                <span>ค่าส่ง: {formatCurrency(delivery.shippingCost)}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex w-full shrink-0 flex-wrap justify-end gap-1 sm:w-auto">
+                            {delivery.lines.length > 0 && (
+                              <a
+                                href={`/print/packing-list/${delivery.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                title="ใบรายการแนบกล่อง"
+                                aria-label={`พิมพ์ใบรายการแนบกล่องสำหรับ ${delivery.recipientName}`}
+                                className="flex h-11 w-11 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                              >
+                                <Printer className="h-3.5 w-3.5" />
+                              </a>
+                            )}
+                            {/* โชว์ปุ่มเมื่อยังเดินสถานะต่อได้ (B13) — DELIVERED เดินต่อ RETURNED/SHIPPED
+                                ได้ (ของส่งถึงแล้วลูกค้าตีกลับ) · เดิมซ่อนบน DELIVERED = transition ตาย */}
+                            {actions.canUpdateStatus && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs"
+                                onClick={() =>
+                                  openStatusDialog(delivery, actions.nextAction.status)
+                                }
+                              >
+                                {actions.nextAction.label}
+                              </Button>
+                            )}
+                            {actions.canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-red-500"
+                                aria-label={`ลบใบส่งของ ${delivery.recipientName}`}
+                                onClick={() => handleDelete(delivery.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -489,89 +541,66 @@ export function OrderDeliverySection({
             <DialogDescription>กรอกข้อมูลผู้รับและวิธีจัดส่ง</DialogDescription>
           </DialogHeader>
           <div className="max-h-[60vh] space-y-4 overflow-y-auto">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  ชื่อผู้รับ *
-                </label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="ชื่อผู้รับ" required>
                 <Input
                   type="text"
                   value={recipientName}
                   onChange={(e) => setRecipientName(e.target.value)}
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  เบอร์โทร *
-                </label>
+              </Field>
+              <Field label="เบอร์โทร" required>
                 <Input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
-              </div>
+              </Field>
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                ที่อยู่ *
-              </label>
+            <Field label="ที่อยู่" required>
               <Textarea
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 rows={2}
               />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  ตำบล/แขวง
-                </label>
+            </Field>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="ตำบล/แขวง">
                 <Input
                   type="text"
                   value={subDistrict}
                   onChange={(e) => setSubDistrict(e.target.value)}
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  อำเภอ/เขต
-                </label>
+              </Field>
+              <Field label="อำเภอ/เขต">
                 <Input
                   type="text"
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
                 />
-              </div>
+              </Field>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  จังหวัด
-                </label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="จังหวัด">
                 <Input
                   type="text"
                   value={province}
                   onChange={(e) => setProvince(e.target.value)}
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  รหัสไปรษณีย์
-                </label>
+              </Field>
+              <Field label="รหัสไปรษณีย์">
                 <Input
                   type="text"
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
                 />
-              </div>
+              </Field>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  วิธีจัดส่ง
-                </label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="delivery-shipping-method">วิธีจัดส่ง</Label>
                 <Select value={shippingMethod} onValueChange={setShippingMethod}>
-                  <SelectTrigger>
+                  <SelectTrigger id="delivery-shipping-method">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -586,24 +615,21 @@ export function OrderDeliverySection({
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  ค่าจัดส่ง (บาท)
-                </label>
+              <Field label="ค่าจัดส่ง (บาท)">
                 <Input
                   type="number"
                   value={shippingCost}
                   onChange={(e) => setShippingCost(e.target.value)}
                   min="0"
                 />
-              </div>
+              </Field>
             </div>
             {/* รายการรอบนี้ (นับยืนยัน) — ออเดอร์ไม่มีรายการไซส์ → ซ่อน ทำงานแบบเดิม */}
             {packRows.length > 0 && (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              <fieldset>
+                <legend className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   รายการรอบนี้ (นับยืนยัน)
-                </label>
+                </legend>
                 {totalRemaining === 0 ? (
                   <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950/40 dark:text-green-400">
                     ของครบทุกใบส่งแล้ว
@@ -631,6 +657,9 @@ export function OrderDeliverySection({
                         </div>
                         <Input
                           type="number"
+                          aria-label={`จำนวน ${sizeColorLabel(r)} ในรอบนี้`}
+                          aria-invalid={r.invalid || undefined}
+                          aria-describedby={packInvalid ? "delivery-pack-error" : undefined}
                           inputMode="numeric"
                           min={0}
                           max={r.remaining}
@@ -658,23 +687,20 @@ export function OrderDeliverySection({
                   </div>
                 )}
                 {packInvalid && (
-                  <p className="mt-1 text-xs text-red-500">
+                  <p id="delivery-pack-error" role="alert" className="mt-1 text-xs text-red-500">
                     จำนวนเกินที่เหลือ — แก้ช่องขอบแดงก่อนสร้างใบส่ง
                   </p>
                 )}
-              </div>
+              </fieldset>
             )}
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                หมายเหตุ
-              </label>
+            <Field label="หมายเหตุ">
               <Textarea
                 value={deliveryNotes}
                 onChange={(e) => setDeliveryNotes(e.target.value)}
                 rows={2}
                 placeholder="หมายเหตุ..."
               />
-            </div>
+            </Field>
             <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
               <input
                 type="checkbox"
@@ -732,12 +758,10 @@ export function OrderDeliverySection({
             <DialogTitle>อัปเดตสถานะจัดส่ง</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                สถานะ
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="delivery-status">สถานะ</Label>
               <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger>
+                <SelectTrigger id="delivery-status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -751,10 +775,7 @@ export function OrderDeliverySection({
               </Select>
             </div>
             {(newStatus === "SHIPPED" || newStatus === "PREPARING") && (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  เลขพัสดุ
-                </label>
+              <Field label="เลขพัสดุ">
                 <Input
                   type="text"
                   value={statusTrackingNumber}
@@ -762,7 +783,7 @@ export function OrderDeliverySection({
                   className="font-mono"
                   placeholder="เลขพัสดุ..."
                 />
-              </div>
+              </Field>
             )}
           </div>
           <DialogFooter>
@@ -799,16 +820,20 @@ export function OrderDeliverySection({
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <Label htmlFor="delivery-blind-ship">
                 เปิด blind ship ออเดอร์นี้
-              </span>
-              <Switch checked={blindShipOn} onCheckedChange={setBlindShipOn} />
+              </Label>
+              <Switch
+                id="delivery-blind-ship"
+                checked={blindShipOn}
+                onCheckedChange={setBlindShipOn}
+              />
             </div>
             {blindShipOn && (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  ชื่อผู้ส่งบนใบจ่าหน้า
-                </label>
+              <Field
+                label="ชื่อผู้ส่งบนใบจ่าหน้า"
+                description={`เว้นว่าง = ใช้ชื่อลูกค้า (${packContext.data?.customerName || customerName || "-"})`}
+              >
                 <Input
                   type="text"
                   value={blindShipSender}
@@ -818,10 +843,7 @@ export function OrderDeliverySection({
                     packContext.data?.customerName || customerName || "ชื่อลูกค้า/แบรนด์"
                   }
                 />
-                <p className="mt-1 text-xs text-slate-400">
-                  เว้นว่าง = ใช้ชื่อลูกค้า ({packContext.data?.customerName || customerName || "-"})
-                </p>
-              </div>
+              </Field>
             )}
           </div>
           <DialogFooter>
