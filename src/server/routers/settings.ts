@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure, requirePermission } from "../trpc";
+import { router, protectedProcedure, publicProcedure, requirePermission } from "../trpc";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
 import { COST_RATES_KEY, parseCostRates } from "@/lib/cost-rates";
 import { estimateOrderMargin } from "@/server/services/margin-estimate";
@@ -9,6 +9,20 @@ const adminOnly = requirePermission("manage_settings");
 const financeRoles = requirePermission("see_finance");
 
 export const settingsRouter = router({
+  // ช่องทางกู้คืนของลิงก์ลูกค้าที่เสีย/หมดอายุ — เผยเฉพาะข้อมูลติดต่อที่ตั้งใจใช้สาธารณะ
+  // ห้ามคืน address/taxId/branch เพราะ endpoint นี้ไม่ต้อง login
+  publicContact: publicProcedure.query(async ({ ctx }) => {
+    const setting = await ctx.prisma.setting.findUnique({
+      where: { key: COMPANY_PROFILE_KEY },
+    });
+    const profile = parseCompanyProfile(setting?.value);
+    return {
+      name: profile.name || "Anajak Print",
+      phone: profile.phone || null,
+      email: profile.email || null,
+    };
+  }),
+
   // ข้อมูลกิจการ — ทุก role อ่านได้ (ใช้บนหัวเอกสารพิมพ์) · แก้ได้เฉพาะ OWNER/MANAGER
   companyProfile: protectedProcedure.query(async ({ ctx }) => {
     const setting = await ctx.prisma.setting.findUnique({

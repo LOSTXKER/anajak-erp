@@ -7,9 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
+import { PublicLinkError } from "@/components/public-link-error";
 import {
   Loader2,
-  AlertCircle,
   FileText,
   CheckCircle2,
   XCircle,
@@ -68,20 +68,7 @@ export default function QuoteConfirmPage({
   }
 
   if (quote.error || !quote.data) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-400" />
-            <h2 className="mb-2 text-lg font-semibold text-slate-900">เปิดลิงก์ไม่ได้</h2>
-            <p className="text-sm text-slate-500">
-              {quote.error?.message ??
-                "ลิงก์อาจไม่ถูกต้องหรือใบเสนอกำลังปรับปรุง กรุณาติดต่อทีมงาน"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <PublicLinkError message="ใบเสนออาจหมดอายุหรือกำลังปรับปรุง กรุณาขอลิงก์ฉบับใหม่" onRetry={() => void quote.refetch()} />;
   }
 
   const q = quote.data;

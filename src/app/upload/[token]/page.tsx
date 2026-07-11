@@ -5,10 +5,10 @@ import { trpc } from "@/lib/trpc";
 import { uploadToCustomerSignedUrl } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PublicLinkError } from "@/components/public-link-error";
 import {
   Upload,
   Loader2,
-  AlertCircle,
   CheckCircle,
   FileCheck,
   Paperclip,
@@ -112,22 +112,7 @@ export default function CustomerUploadPage({
   }
 
   if (info.error || !info.data) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-400" />
-            <h2 className="mb-2 text-lg font-semibold text-slate-900">
-              เปิดลิงก์ไม่ได้
-            </h2>
-            <p className="text-sm text-slate-500">
-              {info.error?.message ??
-                "ลิงก์อาจไม่ถูกต้องหรือหมดอายุแล้ว กรุณาติดต่อทีมงาน"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <PublicLinkError message="ลิงก์ส่งไฟล์อาจไม่ถูกต้องหรือหมดอายุแล้ว" onRetry={() => void info.refetch()} />;
   }
 
   const d = info.data;

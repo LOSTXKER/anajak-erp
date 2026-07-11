@@ -8,6 +8,7 @@ import { Alert } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PublicLinkError } from "@/components/public-link-error";
 import {
   Check,
   X,
@@ -46,21 +47,7 @@ export default function DesignApprovalPage({
   }
 
   if (design.error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-400" />
-            <h2 className="mb-2 text-lg font-semibold text-slate-900">
-              ไม่พบแบบที่ต้องการ
-            </h2>
-            <p className="text-sm text-slate-500">
-              ลิงก์อาจไม่ถูกต้องหรือหมดอายุแล้ว กรุณาติดต่อทีมงาน
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <PublicLinkError message="ไม่พบแบบที่ต้องการ ลิงก์อาจหมดอายุแล้ว" onRetry={() => void design.refetch()} />;
   }
 
   const d = design.data!;

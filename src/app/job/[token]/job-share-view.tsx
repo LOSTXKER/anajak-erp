@@ -5,9 +5,9 @@ import { formatDate, isImageUrl } from "@/lib/utils";
 import { ARTWORK_POSITION_LABELS } from "@/lib/artwork";
 import { PRINT_TYPES } from "@/types/order-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PublicLinkError } from "@/components/public-link-error";
 import {
   Loader2,
-  AlertCircle,
   Shirt,
   CalendarClock,
   Paperclip,
@@ -34,19 +34,7 @@ export function JobShareView({ token }: { token: string }) {
   }
 
   if (job.error || !job.data) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-400" />
-            <h2 className="mb-2 text-lg font-semibold text-slate-900">เปิดลิงก์ไม่ได้</h2>
-            <p className="text-sm text-slate-500">
-              {job.error?.message ?? "ลิงก์อาจไม่ถูกต้องหรือหมดอายุแล้ว กรุณาติดต่อผู้ส่งงาน"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <PublicLinkError message="ลิงก์ใบงานอาจไม่ถูกต้องหรือหมดอายุแล้ว" contactLabel="ติดต่อผู้ส่งงาน" onRetry={() => void job.refetch()} />;
   }
 
   const d = job.data;
