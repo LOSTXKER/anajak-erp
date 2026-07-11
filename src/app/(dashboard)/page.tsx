@@ -1,11 +1,13 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ShoppingCart,
   Users,
   TrendingUp,
   AlertCircle,
+  ChevronRight,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,13 +18,15 @@ import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
+import { permAllows } from "@/lib/permissions";
 
 /**
  * การ์ดเล็กของแถบ "5 ตัวเลขเจ้าของ" — หน้าตาเดียวกับ StatCard แต่ย่อส่วน
- * กดได้ทั้งใบ + เน้นสีตัวเลขได้ (StatCard เดิมไม่รองรับทั้งสองอย่าง)
+ * ตัวเลขหลัก/รองแยกปลายทางได้ และไม่สร้างลิงก์เมื่อยังไม่มี filter ที่ตรงกับตัวเลข
  */
 function PulseCard({
   href,
+  subHref,
   title,
   value,
   tone,
@@ -30,7 +34,8 @@ function PulseCard({
   subTone,
   className,
 }: {
-  href: string;
+  href?: string;
+  subHref?: string;
   title: string;
   value: string | number;
   /** สีเน้นตัวเลขหลัก — "muted" = ศูนย์จริง โชว์สีจาง (ไม่ซ่อน) */
@@ -39,14 +44,8 @@ function PulseCard({
   subTone?: "danger" | "warning";
   className?: string;
 }) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "group block rounded-2xl card-surface card-surface-hover p-4",
-        className
-      )}
-    >
+  const titleAndValue = (
+    <>
       <p className="text-[12.5px] font-medium text-slate-500 dark:text-slate-400">
         {title}
       </p>
@@ -64,30 +63,89 @@ function PulseCard({
       >
         {value}
       </p>
-      <p
-        className={cn(
-          "mt-1.5 text-[12px]",
-          subTone === "danger"
-            ? "text-red-600 dark:text-red-400"
-            : subTone === "warning"
-              ? "text-amber-600 dark:text-amber-400"
-              : "text-slate-400 dark:text-slate-500"
-        )}
-      >
-        {sub}
-      </p>
+    </>
+  );
+  const subClassName = cn(
+    "text-[12px]",
+    subTone === "danger"
+      ? "text-red-600 dark:text-red-400"
+      : subTone === "warning"
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-slate-500 dark:text-slate-400"
+  );
+
+  return (
+    <div
+      className={cn(
+        "rounded-2xl card-surface p-4",
+        (href || subHref) && "card-surface-hover",
+        className
+      )}
+    >
+      {href ? (
+        <Link
+          href={href}
+          className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+          aria-label={`ดูรายการ ${title}: ${value}`}
+        >
+          {titleAndValue}
+        </Link>
+      ) : (
+        <div>{titleAndValue}</div>
+      )}
+
+      {subHref ? (
+        <Link
+          href={subHref}
+          className={cn(
+            "mt-1 inline-flex min-h-11 items-center gap-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:min-h-8",
+            subClassName
+          )}
+        >
+          {sub}
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+        </Link>
+      ) : (
+        <p className={cn("mt-1.5", subClassName)}>{sub}</p>
+      )}
+    </div>
+  );
+}
+
+function KpiDrilldown({
+  href,
+  label,
+  children,
+}: {
+  href?: string;
+  label: string;
+  children: ReactNode;
+}) {
+  if (!href) return children;
+
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      className="block h-full rounded-2xl transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
+    >
+      {children}
     </Link>
   );
 }
 
 export default function DashboardPage() {
   const { data, isLoading, isError, refetch } = trpc.analytics.dashboard.useQuery();
+  const { data: me } = trpc.user.me.useQuery();
   // 5 ตัวเลขเจ้าของ — gate ฝั่ง server (OWNER/MANAGER) · role อื่นโดน FORBIDDEN → ไม่โชว์ section นี้เลย
   const { data: pulse } = trpc.analytics.ownerPulse.useQuery(undefined, {
     retry: false,
   });
   // server ส่ง field การเงินเป็น null สำหรับ role ที่ไม่ใช่ฝั่งบริหาร-บัญชี
   const canSeeFinance = data ? data.revenueThisMonth !== null : true;
+  // Owner Pulse เปิดแยกด้วย view_admin_reports ได้ จึงต้อง gate ปลายทางเงินตามสิทธิ์จริงอีกชั้น
+  const canViewBilling = permAllows(me?.permissions, "manage_billing_docs");
+  const canViewQuotations = permAllows(me?.permissions, "see_order_money");
 
   if (isLoading) {
     return (
@@ -138,14 +196,14 @@ export default function DashboardPage() {
         >
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
             <PulseCard
-              href="/orders"
+              href="/orders?attention=overdue"
+              subHref="/orders?attention=due-soon"
               title="งานเสี่ยงเลยกำหนด"
               value={pulse.atRiskOrders.overdue}
               tone={pulse.atRiskOrders.overdue > 0 ? "danger" : "muted"}
               sub={`ใกล้ถึงใน 48 ชม. ${pulse.atRiskOrders.dueSoon}`}
             />
             <PulseCard
-              href="/outsource"
               title="ค้างร้านนอก"
               value={pulse.outsource.pending}
               tone={pulse.outsource.pending === 0 ? "muted" : undefined}
@@ -155,21 +213,21 @@ export default function DashboardPage() {
             {/* open = ขั้นค้างทั้งระบบ ไม่ใช่ของวันนี้ — ห้ามเอามารวมเป็นตัวส่วน
                 ของ done (สื่อผิดว่า "วันนี้ต้องทำอีกเท่านี้") · แยกเป็นบรรทัดรองแทน */}
             <PulseCard
-              href="/production"
               title="เสร็จวันนี้"
               value={pulse.todayQueue.done}
               tone={pulse.todayQueue.done === 0 ? "muted" : undefined}
               sub={`ค้างทั้งหมด ${pulse.todayQueue.open} ขั้น`}
             />
             <PulseCard
-              href="/billing"
-              title="เงินรอเก็บ"
+              href={canViewBilling ? "/billing?status=OVERDUE" : undefined}
+              subHref={canViewQuotations ? "/quotations?status=SENT" : undefined}
+              title="บิลเลยกำหนด"
               value={pulse.money.overdueInvoices}
               tone={pulse.money.overdueInvoices === 0 ? "muted" : undefined}
-              sub={`บิลเลยกำหนด · ใบเสนอค้างตอบ ${pulse.money.quotationsAwaiting}`}
+              sub={`ใบเสนอค้างตอบ ${pulse.money.quotationsAwaiting}`}
             />
             <PulseCard
-              href="/orders"
+              href="/orders?attention=stuck"
               title="งานติดหล่ม"
               value={pulse.stuckOrders}
               tone={pulse.stuckOrders > 0 ? "warning" : "muted"}
@@ -194,22 +252,29 @@ export default function DashboardPage() {
             change={data?.revenueChange ?? undefined}
           />
         )}
-        <StatCard
-          title="ลูกค้าทั้งหมด"
-          value={data?.totalCustomers ?? 0}
-          icon={Users}
-          caption={
-            data?.newCustomersThisMonth
-              ? `+${data.newCustomersThisMonth} เดือนนี้`
-              : undefined
-          }
-        />
-        {canSeeFinance && (
+        <KpiDrilldown href="/customers" label="ดูรายชื่อลูกค้าทั้งหมด">
           <StatCard
-            title="บิลค้างชำระ"
-            value={data?.overdueInvoices ?? 0}
-            icon={AlertCircle}
+            title="ลูกค้าทั้งหมด"
+            value={data?.totalCustomers ?? 0}
+            icon={Users}
+            caption={
+              data?.newCustomersThisMonth
+                ? `+${data.newCustomersThisMonth} เดือนนี้`
+                : undefined
+            }
           />
+        </KpiDrilldown>
+        {canSeeFinance && (
+          <KpiDrilldown
+            href={canViewBilling ? "/billing?status=OVERDUE" : undefined}
+            label="ดูรายการบิลค้างชำระ"
+          >
+            <StatCard
+              title="บิลค้างชำระ"
+              value={data?.overdueInvoices ?? 0}
+              icon={AlertCircle}
+            />
+          </KpiDrilldown>
         )}
       </div>
 
@@ -282,15 +347,16 @@ export default function DashboardPage() {
         <Section title="สถานะออเดอร์" bordered>
           <div className="space-y-2.5">
             {data?.ordersByStatus?.map((item) => (
-              <div
+              <Link
                 key={item.status}
-                className="flex items-center justify-between"
+                href={`/orders?status=${item.status}`}
+                className="flex min-h-11 items-center justify-between rounded-lg px-2 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:bg-slate-800/40"
               >
                 <OrderStatusBadge internalStatus={item.status} compact />
                 <span className="text-sm font-medium tabular-nums text-slate-900 dark:text-white">
                   {item.count}
                 </span>
-              </div>
+              </Link>
             ))}
             {(!data?.ordersByStatus || data.ordersByStatus.length === 0) && (
               <p className="text-sm text-slate-400">ยังไม่มีออเดอร์</p>
@@ -302,9 +368,10 @@ export default function DashboardPage() {
         <Section title="ลูกค้ายอดสั่งสูงสุด" bordered>
           <div className="space-y-3">
             {data?.topCustomers?.map((customer, index) => (
-              <div
+              <Link
                 key={customer.id}
-                className="flex items-center justify-between"
+                href={`/customers/${customer.id}`}
+                className="flex min-h-11 items-center justify-between rounded-lg px-2 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:bg-slate-800/40"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
@@ -329,7 +396,7 @@ export default function DashboardPage() {
                     {customer.totalOrders} ออเดอร์
                   </p>
                 </div>
-              </div>
+              </Link>
             ))}
             {(!data?.topCustomers || data.topCustomers.length === 0) && (
               <p className="text-sm text-slate-400">ยังไม่มีข้อมูลลูกค้า</p>
