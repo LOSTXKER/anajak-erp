@@ -6,6 +6,7 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/ui/field";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { COMM_CHANNELS } from "@/lib/comm-channels";
+import {
+  buildCustomerCommunicationPayload,
+  validateCustomerCommunicationForm,
+  type CustomerCommunicationForm,
+} from "@/lib/customer-form";
 import { Loader2, MessageSquarePlus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,9 +43,11 @@ export function CustomerCommLogDialog({
   customerName: string;
   onClose: () => void;
 }) {
-  const [channel, setChannel] = useState("LINE");
-  const [subject, setSubject] = useState("");
-  const [content, setContent] = useState("");
+  const [form, setForm] = useState<CustomerCommunicationForm>({
+    channel: "LINE",
+    subject: "",
+    content: "",
+  });
 
   const utils = trpc.useUtils();
   const add = useMutationWithInvalidation(trpc.customer.addCommunicationLog, {
@@ -52,6 +60,18 @@ export function CustomerCommLogDialog({
       toast.error("บันทึกไม่สำเร็จ", { description: err.message });
     },
   });
+  const validationErrors = validateCustomerCommunicationForm(form);
+  const isFormValid = Object.keys(validationErrors).length === 0;
+
+  function set(patch: Partial<CustomerCommunicationForm>) {
+    setForm((current) => ({ ...current, ...patch }));
+  }
+
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!isFormValid) return;
+    add.mutate(buildCustomerCommunicationPayload(customerId, form));
+  }
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -63,14 +83,14 @@ export function CustomerCommLogDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">ช่องทาง</label>
-              <Select value={channel} onValueChange={setChannel}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Select value={form.channel} onValueChange={(channel) => set({ channel })}>
+              <Field label="ช่องทาง" id="communication-channel">
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
+              </Field>
                 <SelectContent>
                   {COMM_CHANNELS.map((c) => (
                     <SelectItem key={c.value} value={c.value}>
@@ -78,54 +98,56 @@ export function CustomerCommLogDialog({
                     </SelectItem>
                   ))}
                 </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">หัวข้อ (ถ้ามี)</label>
+            </Select>
+            <Field label="หัวข้อ (ถ้ามี)">
               <Input
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
+                value={form.subject}
+                onChange={(e) => set({ subject: e.target.value })}
                 placeholder="เช่น ตามงาน / ทวงมัดจำ"
               />
-            </div>
+            </Field>
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">
-              คุยอะไร <span className="text-red-500">*</span>
-            </label>
+          <Field
+            label="คุยอะไร"
+            required
+            error={form.content.length > 0 ? validationErrors.content : undefined}
+          >
             <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
+              value={form.content}
+              onChange={(e) => set({ content: e.target.value })}
               rows={4}
+              required
               placeholder="สรุปที่คุยกับลูกค้า เช่น ลูกค้าขอเลื่อนส่งเป็นศุกร์หน้า / ตกลงราคาแล้วรอโอนมัดจำ"
             />
-          </div>
-        </div>
+          </Field>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose}>
-            ยกเลิก
-          </Button>
-          <Button
-            onClick={() =>
-              add.mutate({
-                customerId,
-                channel,
-                subject: subject.trim() || undefined,
-                content: content.trim(),
-              })
-            }
-            disabled={add.isPending || !content.trim()}
-            className="gap-1.5"
-          >
-            {add.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <MessageSquarePlus className="h-4 w-4" />
-            )}
-            บันทึก
-          </Button>
-        </DialogFooter>
+          {add.error && (
+            <p
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+            >
+              บันทึกไม่สำเร็จ: {add.error.message}
+            </p>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              ยกเลิก
+            </Button>
+            <Button
+              type="submit"
+              disabled={add.isPending || !isFormValid}
+              className="gap-1.5"
+            >
+              {add.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MessageSquarePlus className="h-4 w-4" />
+              )}
+              บันทึก
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
