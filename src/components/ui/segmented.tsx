@@ -14,6 +14,8 @@ interface SegmentedControlProps<T extends string = string>
   onChange: (value: T) => void;
   options: SegmentedOption<T>[];
   size?: "sm" | "md";
+  semantics?: "choice" | "tabs";
+  idPrefix?: string;
 }
 
 /**
@@ -26,12 +28,14 @@ export function SegmentedControl<T extends string = string>({
   onChange,
   options,
   size = "md",
+  semantics = "choice",
+  idPrefix,
   className,
   ...props
 }: SegmentedControlProps<T>) {
   return (
     <div
-      role="group"
+      role={semantics === "tabs" ? "tablist" : "group"}
       className={cn(
         "inline-flex gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800/60 dark:bg-slate-900/80",
         className,
@@ -45,8 +49,30 @@ export function SegmentedControl<T extends string = string>({
           <button
             key={opt.value}
             type="button"
-            aria-pressed={active}
+            id={idPrefix ? `${idPrefix}-${opt.value}-tab` : undefined}
+            role={semantics === "tabs" ? "tab" : undefined}
+            aria-controls={semantics === "tabs" && idPrefix ? `${idPrefix}-${opt.value}-panel` : undefined}
+            aria-selected={semantics === "tabs" ? active : undefined}
+            aria-pressed={semantics === "choice" ? active : undefined}
+            tabIndex={semantics === "tabs" ? (active ? 0 : -1) : undefined}
             onClick={() => onChange(opt.value)}
+            onKeyDown={(event) => {
+              if (semantics !== "tabs") return;
+              const currentIndex = options.findIndex((item) => item.value === opt.value);
+              let nextIndex: number | null = null;
+              if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % options.length;
+              if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + options.length) % options.length;
+              if (event.key === "Home") nextIndex = 0;
+              if (event.key === "End") nextIndex = options.length - 1;
+              if (nextIndex === null) return;
+              event.preventDefault();
+              const next = options[nextIndex];
+              onChange(next.value);
+              const buttons = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                '[role="tab"]',
+              );
+              buttons?.[nextIndex]?.focus();
+            }}
             className={cn(
               "inline-flex min-h-11 touch-manipulation items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:min-h-9",
               size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-xs",

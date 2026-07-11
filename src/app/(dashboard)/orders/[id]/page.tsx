@@ -638,6 +638,9 @@ function OrderDetailContent({
             value={activeTab}
             onChange={handleTabChange}
             options={primaryTabOptions}
+            semantics="tabs"
+            idPrefix="order"
+            aria-label="ส่วนของออเดอร์"
           />
         </div>
         <DropdownMenu.Root>
@@ -681,7 +684,13 @@ function OrderDetailContent({
       ==================================================== */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* LEFT: MAIN CONTENT (2/3) — เนื้อหาตามแท็บที่เลือก */}
-        <div className="space-y-6 lg:col-span-2">
+        <div
+          id={`order-${activeTab}-panel`}
+          role="tabpanel"
+          aria-labelledby={activeTab === "files" || activeTab === "history" ? undefined : `order-${activeTab}-tab`}
+          aria-label={activeTab === "files" ? "ไฟล์" : activeTab === "history" ? "ประวัติ" : undefined}
+          className="space-y-6 lg:col-span-2"
+        >
           {/* ── แท็บ ภาพรวม: รายการสินค้า/ตีราคา ── */}
           {activeTab === "overview" && (
             <div id="order-section-items" className="scroll-mt-20">
