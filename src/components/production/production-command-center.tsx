@@ -99,6 +99,7 @@ export function ProductionCommandCenter({
   lanes,
   queue,
   myWork,
+  prioritizeMyWork,
   canCreate,
   onPickLane,
   onCreate,
@@ -107,6 +108,8 @@ export function ProductionCommandCenter({
   lanes: LaneTile[];
   queue: QueueItem[];
   myWork: MyWorkItem[];
+  // ช่างเปิดมาเห็นงานที่ตัวเองถือก่อน; หัวหน้ายังคงเห็นภาพรวมโรงงานก่อน
+  prioritizeMyWork: boolean;
   // เปิด/ข้ามด่านใบผลิตได้ (หัวหน้าขึ้นไป — ตรง supervise_operations ฝั่ง server)
   canCreate: boolean;
   onPickLane: (tile: LaneTile) => void;
@@ -117,6 +120,8 @@ export function ProductionCommandCenter({
 
   return (
     <div className="space-y-6">
+      {prioritizeMyWork && myWork.length > 0 && <MyWorkSection items={myWork} primary />}
+
       {/* ① ต้องรีบ — งานไฟไหม้ อยู่บนสุด สะดุดตาสุด (ว่าง = ไม่โชว์ ไม่รกจอ) */}
       {fires.length > 0 && (
         <section className="space-y-2.5">
@@ -284,45 +289,61 @@ export function ProductionCommandCenter({
         </section>
       )}
 
-      {/* ④ งานของฉัน — ขั้นที่คน login ถืออยู่ (รอง สำหรับช่าง ไม่ให้หลงในภาพรวม) */}
-      {myWork.length > 0 && (
-        <section className="space-y-2.5">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-            <User className="h-4 w-4 text-slate-400" />
-            งานของฉัน
-            <span className="rounded-full bg-slate-100 px-1.5 text-xs tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-              {myWork.length}
-            </span>
-          </h2>
-          <div className="card-surface overflow-hidden rounded-2xl">
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-              {myWork.map((w) => (
-                <li key={w.stepId}>
-                  <Link
-                    href={`/production/${w.productionId}`}
-                    className="flex min-h-[52px] items-center gap-3 px-4 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
-                        {w.stepName}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{w.orderNumber}</p>
-                    </div>
-                    <Badge
-                      variant={w.status === "IN_PROGRESS" ? "accent" : "default"}
-                      size="sm"
-                    >
-                      {w.status === "IN_PROGRESS" ? "กำลังทำ" : "รอ"}
-                    </Badge>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 dark:text-slate-600" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      )}
+      {!prioritizeMyWork && myWork.length > 0 && <MyWorkSection items={myWork} />}
     </div>
+  );
+}
+
+function MyWorkSection({ items, primary = false }: { items: MyWorkItem[]; primary?: boolean }) {
+  return (
+    <section
+      className={cn(
+        "space-y-2.5",
+        primary && "rounded-2xl border border-blue-200 bg-blue-50/40 p-3 dark:border-blue-900 dark:bg-blue-950/20"
+      )}
+      aria-labelledby="production-my-work"
+    >
+      <div>
+        <h2
+          id="production-my-work"
+          className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100"
+        >
+          <User className="h-4 w-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          งานของฉัน
+          <span className="rounded-full bg-blue-100 px-1.5 text-xs tabular-nums text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+            {items.length}
+          </span>
+        </h2>
+        {primary && (
+          <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
+            เลือกงานถัดไปแล้วบันทึกจำนวนหรือปิดขั้นได้จากหน้าใบผลิต
+          </p>
+        )}
+      </div>
+      <div className="card-surface overflow-hidden rounded-2xl">
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+          {items.map((work) => (
+            <li key={work.stepId}>
+              <Link
+                href={`/production/${work.productionId}`}
+                className="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/50"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                    {work.stepName}
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">{work.orderNumber}</p>
+                </div>
+                <Badge variant={work.status === "IN_PROGRESS" ? "accent" : "default"} size="sm">
+                  {work.status === "IN_PROGRESS" ? "ทำต่อ" : "เริ่มงาน"}
+                </Badge>
+                <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }
 
@@ -354,4 +375,3 @@ function LaneTileButton({ tile, onClick }: { tile: LaneTile; onClick: () => void
     </button>
   );
 }
-

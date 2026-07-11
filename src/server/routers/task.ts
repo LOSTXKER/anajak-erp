@@ -16,7 +16,6 @@ function pile<T>(items: T[]) {
 
 export const taskRouter = router({
   myToday: protectedProcedure.query(async ({ ctx }) => {
-    const role = ctx.userRole ?? "";
     const can = (p: Permission) => hasPermission(ctx.userRole, ctx.permissionOverrides, p);
     // ไม่ใช่หัวหน้า = เห็นเฉพาะงานที่มอบให้ตัวเอง (default = PRODUCTION_STAFF เดิมเป๊ะ)
     const ownWorkOnly = !can("supervise_operations");
@@ -344,6 +343,8 @@ export const taskRouter = router({
     ]);
 
     return {
+      viewerId: ctx.userId,
+      canSupervise: can("supervise_operations"),
       production,
       printQueue,
       pressQueue,

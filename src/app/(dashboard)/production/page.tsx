@@ -392,9 +392,15 @@ function ProductionWorkspace() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ศูนย์บัญชาการผลิต"
+        title={canCreate ? "ศูนย์บัญชาการผลิต" : "งานผลิตของฉัน"}
         description={
-          focus ? "แตะ ← เพื่อกลับภาพรวม" : `ภาพรวมทั้งโรงงาน · ${all.length} งานในระบบ`
+          focus
+            ? "แตะ ← เพื่อกลับภาพรวม"
+            : canCreate
+              ? `ภาพรวมทั้งโรงงาน · ${all.length} งานในระบบ`
+              : myWork.length > 0
+                ? `${myWork.length} ขั้นที่คุณรับผิดชอบ · งานของคุณอยู่บนสุด`
+                : "ยังไม่มีงานที่มอบให้คุณ · ดูคิวทีมด้านล่างได้"
         }
         action={
           focus ? (
@@ -421,6 +427,7 @@ function ProductionWorkspace() {
           lanes={[...laneTiles, ...postTiles]}
           queue={queueItems}
           myWork={myWork}
+          prioritizeMyWork={!canCreate}
           canCreate={canCreate}
           onPickLane={(tile) =>
             setFocus(
