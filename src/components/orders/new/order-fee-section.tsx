@@ -1,14 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Section } from "@/components/ui/section";
 import { Plus, Trash2, Receipt } from "lucide-react";
+import { resolveFeeCatalogSelection } from "@/lib/order-item-composer";
 import type { OrderFeeForm } from "@/types/order-form";
-
-const labelClass =
-  "mb-1 block text-[12px] text-slate-500 dark:text-slate-400";
 
 interface FeeCatalogItem {
   id: string;
@@ -34,12 +33,11 @@ export function OrderFeeSection({
   feeCatalog,
 }: OrderFeeSectionProps) {
   const handleCatalogSelect = (fIdx: number, catalogId: string) => {
-    if (!catalogId || !feeCatalog) return;
-    const item = feeCatalog.find((c) => c.id === catalogId);
-    if (!item) return;
-    onUpdateFee(fIdx, "feeType", item.type);
-    onUpdateFee(fIdx, "name", item.name);
-    onUpdateFee(fIdx, "amount", item.defaultPrice);
+    const selection = resolveFeeCatalogSelection(feeCatalog, catalogId);
+    if (!selection) return;
+    onUpdateFee(fIdx, "feeType", selection.feeType);
+    onUpdateFee(fIdx, "name", selection.name);
+    onUpdateFee(fIdx, "amount", selection.amount);
   };
 
   return (
@@ -56,7 +54,7 @@ export function OrderFeeSection({
         <button
           type="button"
           onClick={onAddFee}
-          className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+          className="flex min-h-11 w-full touch-manipulation flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
         >
           <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
           <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าใช้จ่ายเพิ่มเติม — กดเพื่อเพิ่ม</span>
@@ -66,21 +64,22 @@ export function OrderFeeSection({
           {fees.map((f, fIdx) => (
             <div key={fIdx} className="space-y-1.5">
               {feeCatalog && feeCatalog.length > 0 && (
-                <NativeSelect
-                  value=""
-                  onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
-                >
-                  <option value="">-- เลือกจากแค็ตตาล็อก --</option>
-                  {feeCatalog.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} — ฿{c.defaultPrice.toLocaleString()}
-                    </option>
-                  ))}
-                </NativeSelect>
+                <Field label={`เลือกค่าใช้จ่ายแถว ${fIdx + 1} จากแค็ตตาล็อก`} visuallyHiddenLabel>
+                  <NativeSelect
+                    value=""
+                    onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
+                  >
+                    <option value="">-- เลือกจากแค็ตตาล็อก --</option>
+                    {feeCatalog.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} — ฿{c.defaultPrice.toLocaleString()}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
               )}
-              <div className="grid grid-cols-[1fr_1fr_120px_32px] items-end gap-2">
-                <div>
-                  {fIdx === 0 && <label className={labelClass}>ประเภท</label>}
+              <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_44px]">
+                <Field label="ประเภท" visuallyHiddenLabel={fIdx > 0} className="space-y-1">
                   <Input
                     value={f.feeType}
                     onChange={(e) =>
@@ -88,19 +87,15 @@ export function OrderFeeSection({
                     }
                     placeholder="SHIPPING, SETUP..."
                   />
-                </div>
-                <div>
-                  {fIdx === 0 && <label className={labelClass}>ชื่อ</label>}
+                </Field>
+                <Field label="ชื่อ" visuallyHiddenLabel={fIdx > 0} className="space-y-1">
                   <Input
                     value={f.name}
                     onChange={(e) => onUpdateFee(fIdx, "name", e.target.value)}
                     placeholder="ค่าจัดส่ง, ค่าเซ็ตอัพ..."
                   />
-                </div>
-                <div>
-                  {fIdx === 0 && (
-                    <label className={labelClass}>จำนวนเงิน *</label>
-                  )}
+                </Field>
+                <Field label="จำนวนเงิน" required visuallyHiddenLabel={fIdx > 0} className="space-y-1">
                   <Input
                     type="number"
                     min={0}
@@ -111,16 +106,14 @@ export function OrderFeeSection({
                     }
                     placeholder="0.00"
                   />
-                </div>
-                <div>
-                  {fIdx === 0 && (
-                    <span className="mb-1 block text-xs">&nbsp;</span>
-                  )}
+                </Field>
+                <div className="flex justify-end">
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-slate-400 hover:text-red-600"
+                    aria-label={`ลบค่าใช้จ่าย ${fIdx + 1}`}
+                    className="text-slate-400 hover:text-red-600"
                     onClick={() => onRemoveFee(fIdx)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />

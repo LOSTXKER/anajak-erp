@@ -1,10 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { cn, formatCurrency } from "@/lib/utils";
-import { calculateFormItemSubtotal, getFormItemTotalQty, calculateTotalQuantity } from "@/lib/pricing";
+import { buildOrderItemPriceSummary } from "@/lib/order-item-composer";
 import {
   Plus,
   Trash2,
@@ -14,13 +15,11 @@ import {
 } from "lucide-react";
 import type { OrderItemForm } from "@/types/order-form";
 import {
-  PRINT_TYPES,
-  PRINT_POSITIONS,
   PRICING_TYPE_LABELS,
   EMPTY_PRODUCT,
   itemHasContent,
 } from "@/types/order-form";
-import { PrintTableRow, Field } from "./print-table-row";
+import { PrintTableRow } from "./print-table-row";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
@@ -73,8 +72,8 @@ function OrderItemRow({
   canRemove: boolean;
   onRemoveItem: (idx: number) => void;
 }) {
-  const totalQty = getFormItemTotalQty(item);
-  const subtotal = calculateFormItemSubtotal(item);
+  const itemPriceSummary = buildOrderItemPriceSummary(item);
+  const { totalQuantity: totalQty, subtotal } = itemPriceSummary;
   const empty = !itemHasContent(item);
 
   return (
@@ -166,8 +165,8 @@ export function OrderItemCard({
     });
   };
 
-  const totalQty = getFormItemTotalQty(item);
-  const subtotal = calculateFormItemSubtotal(item);
+  const itemPriceSummary = buildOrderItemPriceSummary(item);
+  const { totalQuantity: totalQty, subtotal } = itemPriceSummary;
 
   // ── section: คำอธิบายงาน ──
   const descField = (
@@ -184,12 +183,13 @@ export function OrderItemCard({
         <div className="flex items-center gap-1">
           {otherItemsWithPrints.length > 0 && (
             <div className="relative">
-              <select
+              <NativeSelect
+                aria-label="คัดลอกลายจากรายการอื่น"
                 value=""
                 onChange={(e) => {
                   if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
                 }}
-                className="h-7 appearance-none rounded-md border-0 bg-transparent pl-6 pr-2 text-xs text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                className="w-auto appearance-none rounded-md border-0 bg-transparent pl-7 pr-2 text-slate-600 hover:bg-slate-100 sm:text-xs dark:text-slate-400 dark:hover:bg-slate-800"
               >
                 <option value="">คัดลอกลาย...</option>
                 {otherItemsWithPrints.map(({ it, idx }) => (
@@ -197,7 +197,7 @@ export function OrderItemCard({
                     #{idx + 1} {it.description.slice(0, 20)} ({it.prints.length} ลาย)
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
               <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
             </div>
           )}
@@ -223,7 +223,9 @@ export function OrderItemCard({
                 <th className="w-12 pb-1.5 pr-1">รูปแบบ</th>
                 <th className="pb-1.5 px-1">วิธีพิมพ์</th>
                 <th className="w-28 pb-1.5 px-1 text-right">ค่าสกรีน</th>
-                <th className="w-10 pb-1.5" />
+                <th className="w-10 pb-1.5">
+                  <span className="sr-only">การทำงาน</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -301,7 +303,9 @@ export function OrderItemCard({
                   <th className="pb-1.5 px-1.5 text-right">ราคา</th>
                   <th className="pb-1.5 px-1.5 text-center">จำนวน</th>
                   <th className="pb-1.5 px-1.5 text-right">รวม</th>
-                  <th className="pb-1.5" />
+                  <th className="pb-1.5">
+                    <span className="sr-only">จัดลำดับและลบสินค้า</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -363,7 +367,9 @@ export function OrderItemCard({
                 <th className="min-w-[120px] pb-1.5 px-1">ชื่อ</th>
                 <th className="min-w-[90px] pb-1.5 px-1">คิดราคา</th>
                 <th className="min-w-[80px] pb-1.5 px-1">ราคา</th>
-                <th className="w-10 pb-1.5" />
+                <th className="w-10 pb-1.5">
+                  <span className="sr-only">ลบส่วนเสริม</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -371,18 +377,18 @@ export function OrderItemCard({
                 <tr key={aIdx} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
                   <td className="px-1 py-1.5 align-middle">
                     {addonCatalog && addonCatalog.length > 0 ? (
-                      <NativeSelect value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); e.target.value = ""; }} className="h-8 text-xs">
+                      <NativeSelect aria-label={`เลือกประเภทส่วนเสริม ${aIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); e.target.value = ""; }} className="sm:h-9 sm:text-xs">
                         <option value="">{a.addonType || "แค็ตตาล็อก..."}</option>
                         {addonCatalog.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </NativeSelect>
                     ) : (
-                      <Input value={a.addonType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." className="h-8 text-xs" />
+                      <Input aria-label={`ประเภทส่วนเสริม ${aIdx + 1}`} value={a.addonType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." className="sm:h-9 sm:text-xs" />
                     )}
                   </td>
-                  <td className="px-1 py-1.5 align-middle"><Input value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" className="h-8 text-xs" /></td>
-                  <td className="px-1 py-1.5 align-middle"><NativeSelect value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} className="h-8 text-xs"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></NativeSelect></td>
-                  <td className="px-1 py-1.5 align-middle"><Input type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="h-8 text-xs" /></td>
-                  <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label="ลบส่วนเสริม" className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 className="h-4 w-4" /></Button></td>
+                  <td className="px-1 py-1.5 align-middle"><Input aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`} value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" className="sm:h-9 sm:text-xs" /></td>
+                  <td className="px-1 py-1.5 align-middle"><NativeSelect aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} className="sm:h-9 sm:text-xs"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></NativeSelect></td>
+                  <td className="px-1 py-1.5 align-middle"><Input aria-label={`ราคาส่วนเสริม ${aIdx + 1}`} type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="sm:h-9 sm:text-xs" /></td>
+                  <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 className="h-4 w-4" /></Button></td>
                 </tr>
               ))}
             </tbody>
@@ -394,10 +400,9 @@ export function OrderItemCard({
 
   // ── section: หมายเหตุ ──
   const notesField = (
-    <div>
-      <label className={labelClass}>หมายเหตุรายการ</label>
+    <Field label="หมายเหตุรายการ">
       <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder="หมายเหตุเพิ่มเติมสำหรับรายการนี้..." />
-    </div>
+    </Field>
   );
 
   // ── section: สรุปราคาต่อรายการ (เฉพาะโหมดปกติ — compact ใช้สรุปรวมที่ sidebar) ──
@@ -406,55 +411,23 @@ export function OrderItemCard({
       <p className={cn(groupLabelClass, "mb-2")}>สรุปราคารายการ</p>
       <table className="w-full text-xs">
         <tbody className="text-slate-600 dark:text-slate-300">
-          {item.products.map((p, i) => {
-            const pQty = calculateTotalQuantity(p.variants);
-            const net = Math.max(0, p.baseUnitPrice - (p.discount || 0));
-            const pTotal = pQty * net;
-            if (pQty === 0) return null;
-            const label = p.productName || p.description || `สินค้า ${i + 1}`;
-            const variant = [p.variants[0]?.color, p.variants[0]?.size].filter(Boolean).join(" ");
+          {itemPriceSummary.lines.map((line) => {
             return (
-              <tr key={`p-${i}`}>
+              <tr key={line.key}>
                 <td className="py-1">
-                  <span className="text-slate-700 dark:text-slate-200">{label}</span>
-                  {variant && <span className="ml-1 text-slate-400">({variant})</span>}
-                  {(p.discount || 0) > 0 && <span className="ml-1 text-red-500">-{formatCurrency(p.discount || 0)}</span>}
+                  <span className="text-slate-700 dark:text-slate-200">{line.label}</span>
+                  {line.detail && (
+                    <span className={cn("ml-1 text-slate-400", line.kind === "addon" && "text-[10px]")}>
+                      ({line.detail})
+                    </span>
+                  )}
+                  {line.kind === "product" && (line.discount || 0) > 0 && (
+                    <span className="ml-1 text-red-500">-{formatCurrency(line.discount || 0)}</span>
+                  )}
                 </td>
-                <td className="px-2 py-1 text-right tabular-nums text-slate-400">{formatCurrency(net)}</td>
-                <td className="px-2 py-1 text-right tabular-nums text-slate-400">×{pQty}</td>
-                <td className="py-1 text-right tabular-nums">{formatCurrency(pTotal)}</td>
-              </tr>
-            );
-          })}
-          {item.prints.map((pr, i) => {
-            const prTotal = totalQty * pr.unitPrice;
-            if (pr.unitPrice === 0) return null;
-            const prLabel = PRINT_TYPES[pr.printType] || pr.printType;
-            const prPos = PRINT_POSITIONS[pr.position] || pr.position;
-            return (
-              <tr key={`pr-${i}`}>
-                <td className="py-1">
-                  <span className="text-slate-700 dark:text-slate-200">{prLabel}</span>
-                  <span className="ml-1 text-slate-400">({prPos})</span>
-                </td>
-                <td className="px-2 py-1 text-right tabular-nums text-slate-400">{formatCurrency(pr.unitPrice)}</td>
-                <td className="px-2 py-1 text-right tabular-nums text-slate-400">×{totalQty}</td>
-                <td className="py-1 text-right tabular-nums">{formatCurrency(prTotal)}</td>
-              </tr>
-            );
-          })}
-          {item.addons.map((a, i) => {
-            const aTotal = a.pricingType === "PER_PIECE" ? totalQty * a.unitPrice : a.unitPrice;
-            if (a.unitPrice === 0) return null;
-            return (
-              <tr key={`a-${i}`}>
-                <td className="py-1">
-                  <span className="text-slate-700 dark:text-slate-200">{a.name || `ส่วนเสริม ${i + 1}`}</span>
-                  <span className="ml-1 text-[10px] text-slate-400">({PRICING_TYPE_LABELS[a.pricingType as "PER_PIECE" | "PER_ORDER"] ?? a.pricingType})</span>
-                </td>
-                <td className="px-2 py-1 text-right tabular-nums text-slate-400">{formatCurrency(a.unitPrice)}</td>
-                <td className="px-2 py-1 text-right tabular-nums text-slate-400">×{a.pricingType === "PER_PIECE" ? totalQty : "1"}</td>
-                <td className="py-1 text-right tabular-nums">{formatCurrency(aTotal)}</td>
+                <td className="px-2 py-1 text-right tabular-nums text-slate-400">{formatCurrency(line.unitPrice)}</td>
+                <td className="px-2 py-1 text-right tabular-nums text-slate-400">×{line.quantity}</td>
+                <td className="py-1 text-right tabular-nums">{formatCurrency(line.total)}</td>
               </tr>
             );
           })}
@@ -473,9 +446,9 @@ export function OrderItemCard({
           </tr>
           <tr>
             <td colSpan={3} className="text-[11px] text-slate-400">
-              เฉลี่ย {formatCurrency(Math.round((subtotal / totalQty) * 100) / 100)} / ตัว
+              เฉลี่ย {formatCurrency(itemPriceSummary.averageUnitPrice ?? 0)} / ตัว
             </td>
-            <td />
+            <td aria-hidden="true" />
           </tr>
         </tfoot>
       </table>

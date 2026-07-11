@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 import { ITEM_SOURCES } from "@/types/order-form";
+import { getProductSourcePresentation } from "@/lib/order-item-composer";
 import { useProductRow } from "./use-product-row";
 import { CustomMadeDetail } from "./custom-made-detail";
 import { SizeMatrix } from "./size-matrix";
@@ -40,11 +42,14 @@ export function ProductTableRow({
     packName, canMatrix, multi, totalQty, lineTotal,
     productLabel, variantLabel,
   } = useProductRow(product, prodIdx, itemIdx, totalProducts, onSetItems);
+  const sourcePresentation = product.itemSource
+    ? getProductSourcePresentation(product.itemSource)
+    : null;
 
   // แถวข้อมูลเก่า/จากใบเสนอ itemSource เป็น null — ต้องมีช่องให้เลือก ไม่งั้น validation บล็อกการเซฟ
-  const sourceBadge = product.itemSource ? (
-    <Badge variant={isFromStock ? "default" : isCustomMade ? "accent" : "warning"} size="sm">
-      {ITEM_SOURCES[product.itemSource] || product.itemSource}
+  const sourceBadge = sourcePresentation ? (
+    <Badge variant={sourcePresentation.variant} size="sm">
+      {sourcePresentation.label}
     </Badge>
   ) : (
     <NativeSelect
@@ -73,7 +78,9 @@ export function ProductTableRow({
           {isFromStock ? (
             <div className="flex items-center gap-2">
               {product.productImageUrl ? (
-                <img src={product.productImageUrl} alt="" className="h-9 w-9 flex-shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
+                /* Signed URLs มาจาก Stock หลาย host จึงใช้รูปเดิมโดยไม่ผ่าน Next image optimizer */
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={product.productImageUrl} alt={productLabel} className="h-9 w-9 flex-shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
               ) : (
                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
                   <ImageIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" />
@@ -93,6 +100,7 @@ export function ProductTableRow({
           ) : (
             <div className="space-y-1.5">
               <Input
+                aria-label={`ชื่อสินค้า ${prodIdx + 1}`}
                 value={product.description}
                 onChange={(e) => updateProduct("description", e.target.value)}
                 placeholder={isCustomerProvided ? "ชื่อสินค้า เช่น เสื้อยืดลูกค้า" : "ชื่อสินค้า เช่น เสื้อคอกลม Cotton"}
@@ -102,14 +110,15 @@ export function ProductTableRow({
                   <span className="text-[11px] text-slate-500">หลายไซส์ · รวม {totalQty} ตัว{variant.color ? ` · ${variant.color}` : ""}</span>
                 ) : (
                   <>
-                    <Input value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" className="h-8 w-20 px-2 text-[11px]" />
-                    <Input value={variant.size} onChange={(e) => updateVariantField("size", e.target.value)} placeholder="ไซส์" className="h-8 w-16 px-2 text-[11px]" />
+                    <Input aria-label={`สีสินค้า ${prodIdx + 1}`} value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" className="w-20 px-2 sm:h-9 sm:text-xs" />
+                    <Input aria-label={`ไซส์สินค้า ${prodIdx + 1}`} value={variant.size} onChange={(e) => updateVariantField("size", e.target.value)} placeholder="ไซส์" className="w-16 px-2 sm:h-9 sm:text-xs" />
                   </>
                 )}
                 {canMatrix && (
                   <Button
                     type="button" variant="outline" size="sm"
                     onClick={() => setShowMatrix((v) => !v)}
+                    aria-expanded={multi}
                     disabled={product.variants.length > 1}
                     className={cn("h-8 gap-1 px-2 text-[11px]", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
                     title={product.variants.length > 1 ? "ล้างจำนวนไซส์ให้เหลือไซส์เดียวก่อนปิด" : "กรอกหลายไซส์ในแถวเดียว"}
@@ -121,6 +130,7 @@ export function ProductTableRow({
                   <Button
                     type="button" variant="outline" size="sm"
                     onClick={() => setShowDetail(!showDetail)}
+                    aria-expanded={showDetail}
                     className={cn("h-8 gap-1 px-2 text-[11px]", showDetail && "border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300")}
                   >
                     <Scissors className="h-3 w-3" />{showDetail ? "ซ่อนสเปค" : "สเปคตัดเย็บ"}
@@ -134,7 +144,7 @@ export function ProductTableRow({
         {/* ราคา */}
         <td className="px-1.5 py-2 align-top">
           {isCustomerProvided ? dash : (
-            <Input type="number" min={0} step={0.01} value={product.baseUnitPrice || ""} onChange={(e) => updateProduct("baseUnitPrice", parseFloat(e.target.value) || 0)} placeholder="0" className="w-full text-right" />
+            <Input aria-label={`ราคาสินค้า ${prodIdx + 1}`} type="number" min={0} step={0.01} value={product.baseUnitPrice || ""} onChange={(e) => updateProduct("baseUnitPrice", parseFloat(e.target.value) || 0)} placeholder="0" className="w-full text-right" />
           )}
         </td>
 
@@ -143,7 +153,7 @@ export function ProductTableRow({
           {multi ? (
             <div className="flex h-9 items-center justify-center text-sm font-medium text-slate-700 dark:text-slate-200">{totalQty}</div>
           ) : (
-            <Input type="number" min={0} value={qty || ""} onChange={(e) => updateVariantField("quantity", parseInt(e.target.value) || 0)} placeholder="0" className="w-full text-center" />
+            <Input aria-label={`จำนวนสินค้า ${prodIdx + 1}`} type="number" min={0} value={qty || ""} onChange={(e) => updateVariantField("quantity", parseInt(e.target.value) || 0)} placeholder="0" className="w-full text-center" />
           )}
         </td>
 
@@ -159,15 +169,15 @@ export function ProductTableRow({
           <div className="flex items-center justify-end gap-0.5">
             {totalProducts > 1 && (
               <div className="flex flex-col">
-                <Button type="button" variant="ghost" size="icon" onClick={() => moveProduct(-1)} disabled={prodIdx === 0} className="h-5 w-5 text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
+                <Button type="button" variant="ghost" size="icon" aria-label={`เลื่อนสินค้า ${prodIdx + 1} ขึ้น`} onClick={() => moveProduct(-1)} disabled={prodIdx === 0} className="text-slate-300 hover:text-slate-600 disabled:opacity-30 sm:min-w-9 dark:text-slate-600 dark:hover:text-slate-300">
                   <ChevronUp className="h-3.5 w-3.5" />
                 </Button>
-                <Button type="button" variant="ghost" size="icon" onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} className="h-5 w-5 text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
+                <Button type="button" variant="ghost" size="icon" aria-label={`เลื่อนสินค้า ${prodIdx + 1} ลง`} onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} className="text-slate-300 hover:text-slate-600 disabled:opacity-30 sm:min-w-9 dark:text-slate-600 dark:hover:text-slate-300">
                   <ChevronDown className="h-3.5 w-3.5" />
                 </Button>
               </div>
             )}
-            <Button type="button" variant="ghost" size="icon" onClick={removeProduct} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
+            <Button type="button" variant="ghost" size="icon" aria-label={`ลบสินค้า ${prodIdx + 1}`} onClick={removeProduct} className="text-red-500 hover:bg-red-50 hover:text-red-600 sm:min-w-9 dark:hover:bg-red-950/40">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -176,12 +186,13 @@ export function ProductTableRow({
 
       {/* UX7: แถว "เพิ่มเติม" — ส่วนลด + แพค ซ่อนไว้ (คนส่วนใหญ่ไม่ใช้) + badge สรุปค่าที่ตั้งแล้ว */}
       <tr className="border-b border-slate-100 dark:border-slate-800">
-        <td />
+        <td aria-hidden="true" />
         <td colSpan={5} className="pb-2 pl-1">
           <button
             type="button"
             onClick={() => setShowMore((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            aria-expanded={showMore}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 sm:min-h-9 sm:text-[11px] dark:text-slate-400 dark:hover:bg-slate-800"
           >
             <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
             {showMore ? (
@@ -199,22 +210,23 @@ export function ProductTableRow({
           {showMore && (
             <div className="mt-2 grid grid-cols-2 gap-3">
               {!isCustomerProvided && (
-                <label className="block">
-                  <span className="mb-1 block text-[11px] text-slate-500 dark:text-slate-400">ส่วนลดต่อชิ้น</span>
+                <Field label="ส่วนลดต่อชิ้น">
                   <Input type="number" min={0} step={0.01} value={product.discount || ""} onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)} placeholder="0" className="w-full text-right" />
-                </label>
+                </Field>
               )}
-              <label className="block">
-                <span className="mb-1 block text-[11px] text-slate-500 dark:text-slate-400">แพค</span>
-                {packagingOptions && packagingOptions.length > 0 ? (
+              {packagingOptions && packagingOptions.length > 0 ? (
+                <Field label="แพค">
                   <NativeSelect value={product.packagingOptionId} onChange={(e) => updateProduct("packagingOptionId", e.target.value)}>
                     <option value="">—</option>
                     {packagingOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
                   </NativeSelect>
-                ) : (
+                </Field>
+              ) : (
+                <div>
+                  <p className="mb-1 text-sm font-medium text-slate-700 dark:text-slate-300">แพค</p>
                   <span className="text-xs text-slate-400">ยังไม่มีตัวเลือกแพค</span>
-                )}
-              </label>
+                </div>
+              )}
             </div>
           )}
         </td>
@@ -223,7 +235,7 @@ export function ProductTableRow({
       {/* สเปคตัดเย็บ (CUSTOM_MADE) — แถวเสริมเต็มกว้าง */}
       {isCustomMade && showDetail && (
         <tr className="border-b border-amber-100 dark:border-amber-900/30">
-          <td />
+          <td aria-hidden="true" />
           <td colSpan={5} className="pb-3 pt-1 pr-1">
             <CustomMadeDetail product={product} updateProduct={updateProduct} />
           </td>
@@ -233,7 +245,7 @@ export function ProductTableRow({
       {/* หลายไซส์ — ตารางกรอกไซส์×จำนวน (ก้อน 4 / P1.12) */}
       {multi && (
         <tr className="border-b border-slate-100 dark:border-slate-800">
-          <td />
+          <td aria-hidden="true" />
           <td colSpan={5} className="pb-3 pt-1 pr-1">
             <SizeMatrix variants={product.variants} onChange={(v) => updateProduct("variants", v)} />
           </td>
