@@ -18,7 +18,7 @@ import type { QuotationStatus } from "@/lib/quotation-status";
 import { PageHeader } from "@/components/page-header";
 import {
   ArrowLeft,
-  Send,
+  Share2,
   Check,
   X,
   RefreshCw,
@@ -92,6 +92,13 @@ export default function QuotationDetailPage({
     },
   });
 
+  const prepareShare = trpc.quotation.prepareShare.useMutation({
+    onSuccess: () => {
+      utils.quotation.getById.invalidate({ id });
+      utils.quotation.list.invalidate();
+    },
+  });
+
   const convertToOrder = trpc.quotation.convertToOrder.useMutation({
     onSuccess: (data) => {
       utils.quotation.getById.invalidate({ id });
@@ -101,22 +108,15 @@ export default function QuotationDetailPage({
     },
   });
 
-  // ลิงก์ยืนยันใบเสนอให้ลูกค้า (ก้อน 4) — ใช้ token เดิมถ้ามี ไม่งั้นสร้างใหม่ (gate salesUp + SENT
-  // ที่ server) · token ไม่มีหมดอายุแยก — gate ด้วย validUntil ของใบเสนอ
-  // ยิงเฉพาะตอน SENT (ปุ่มลิงก์โผล่เฉพาะ SENT) — getLink gate salesUp ไม่ต้อง 403 ใส่ role อื่น/สถานะอื่น
-  const confirmLink = trpc.quotationConfirm.getLink.useQuery(
-    { quotationId: id },
-    { enabled: quotation?.status === "SENT", retry: false }
-  );
-  const generateConfirmLink = trpc.quotationConfirm.generateLink.useMutation();
-  async function copyConfirmLink() {
+  // action เดียวที่ server ทำ DRAFT → SENT + เตรียม token แล้วคืน public path
+  // จึงไม่มีช่วงกึ่งกลางที่สถานะขึ้น “ส่งแล้ว” แต่คัดลอกลิงก์ไม่ได้
+  async function prepareAndCopyShareLink() {
     try {
-      let tok = confirmLink.data?.token ?? null;
-      if (!tok) {
-        tok = (await generateConfirmLink.mutateAsync({ quotationId: id })).token;
-        confirmLink.refetch();
-      }
-      const url = `${window.location.origin}/quote/${tok}`;
+      const prepared = await prepareShare.mutateAsync({
+        id,
+        expectedStatus: quotation?.status as QuotationStatus | undefined,
+      });
+      const url = new URL(prepared.sharePath, window.location.origin).toString();
       // วิธีสำรอง (textarea + execCommand) — กัน "Document is not focused" ตอน await สร้าง token
       const fallbackCopy = () => {
         try {
@@ -141,9 +141,9 @@ export default function QuotationDetailPage({
       } catch {
         copied = fallbackCopy();
       }
-      toast.success(copied ? "คัดลอกลิงก์ยืนยันใบเสนอแล้ว" : `ลิงก์ยืนยัน: ${url}`);
+      toast.success(copied ? "คัดลอกลิงก์ใบเสนอแล้ว — พร้อมแชร์ให้ลูกค้า" : `ลิงก์ใบเสนอ: ${url}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "สร้างลิงก์ไม่สำเร็จ");
+      toast.error(e instanceof Error ? e.message : "เตรียมลิงก์แชร์ไม่สำเร็จ");
     }
   }
 
@@ -184,11 +184,6 @@ export default function QuotationDetailPage({
   // ----------------------------------------------------------
   // ทุกปุ่มส่ง expectedStatus = สถานะที่จอเห็นตอนกด — จอค้าง (เช่น ลูกค้าเพิ่งกดยืนยัน
   // ผ่านลิงก์) server จะปฏิเสธพร้อมบอกให้รีเฟรช แทนที่จะทับการตัดสินล่าสุดเงียบๆ
-  function handleSendToCustomer() {
-    if (!quotation) return;
-    updateStatus.mutate({ id, status: "SENT", expectedStatus: quotation.status as QuotationStatus });
-  }
-
   function handleAccept() {
     if (!quotation) return;
     updateStatus.mutate({ id, status: "ACCEPTED", expectedStatus: quotation.status as QuotationStatus });
@@ -237,7 +232,7 @@ export default function QuotationDetailPage({
     convertToOrder.mutate({ id });
   }
 
-  const isPending = updateStatus.isPending || convertToOrder.isPending;
+  const isPending = updateStatus.isPending || convertToOrder.isPending || prepareShare.isPending;
 
   // ----------------------------------------------------------
   // RENDER
@@ -250,11 +245,11 @@ export default function QuotationDetailPage({
       ==================================================== */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
-          <Link href="/quotations">
-            <Button variant="ghost" size="icon" className="mt-0.5 shrink-0">
+          <Button variant="ghost" size="icon" className="mt-0.5 shrink-0" asChild>
+            <Link href="/quotations" aria-label="กลับไปรายการใบเสนอราคา">
               <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
@@ -278,12 +273,12 @@ export default function QuotationDetailPage({
           {canManageQuotation && quotation.status === "DRAFT" && (
             <>
               <Button
-                onClick={handleSendToCustomer}
+                onClick={prepareAndCopyShareLink}
                 disabled={isPending}
                 className="gap-1.5"
               >
-                <Send className="h-4 w-4" />
-                ส่งให้ลูกค้า
+                <Share2 className="h-4 w-4" />
+                คัดลอก/แชร์ใบเสนอ
               </Button>
               <Button variant="outline" asChild className="gap-1.5">
                 <Link href={`/quotations/new?edit=${id}`}>
@@ -299,13 +294,13 @@ export default function QuotationDetailPage({
             <>
               <Button
                 variant="outline"
-                onClick={copyConfirmLink}
-                disabled={isPending || generateConfirmLink.isPending}
+                onClick={prepareAndCopyShareLink}
+                disabled={isPending}
                 className="gap-1.5"
                 title="คัดลอกลิงก์ให้ลูกค้ายืนยันเอง (ไม่ต้อง login)"
               >
                 <Link2 className="h-4 w-4" />
-                ลิงก์ยืนยันลูกค้า
+                คัดลอก/แชร์ใบเสนอ
               </Button>
               <Button
                 variant="default"
@@ -358,19 +353,19 @@ export default function QuotationDetailPage({
 
           {canPrintQuotation && (
             <Button variant="outline" asChild className="gap-1.5">
-              <a href={`/print/quotation/${id}`} target="_blank" rel="noreferrer">
+              <Link href={`/print/quotation/${id}`} target="_blank" rel="noreferrer">
                 <Printer className="h-4 w-4" />
                 พิมพ์ / PDF
-              </a>
+              </Link>
             </Button>
           )}
         </div>
       </div>
 
       {/* Error display */}
-      {(updateStatus.isError || convertToOrder.isError) && (
+      {(updateStatus.isError || convertToOrder.isError || prepareShare.isError) && (
         <Alert variant="error">
-          {updateStatus.error?.message || convertToOrder.error?.message}
+          {prepareShare.error?.message || updateStatus.error?.message || convertToOrder.error?.message}
         </Alert>
       )}
 

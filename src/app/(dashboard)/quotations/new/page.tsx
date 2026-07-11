@@ -71,6 +71,13 @@ function QuotationFormPage() {
   // · ?edit= แก้ใบเสนอฉบับร่าง (audit ข้อ 11) — ฟอร์มเดียวใช้ทั้งสามโหมด
   const fromOrderId = searchParams.get("orderId") ?? undefined;
   const editId = searchParams.get("edit") ?? undefined;
+  const redirectToCanonicalIntake = !fromOrderId && !editId;
+
+  // ใบเสนอใหม่ต้องเริ่มจาก “เปิดงาน” ทางเดียว เพื่อไม่ให้เกิดออเดอร์ลอยซ้ำกัน
+  // route เดิมยังคงใช้แก้ใบเสนอ (?edit=) และออกใบจากออเดอร์เดิม (?orderId=) ได้
+  useEffect(() => {
+    if (redirectToCanonicalIntake) router.replace("/orders/new?next=quote");
+  }, [redirectToCanonicalIntake, router]);
 
   // PERM5: ใบเสนอ = เอกสารราคาล้วน — ต้องเห็นเงินฝั่งขายถึงจะสร้าง/แก้ได้ (ตรง quotation.getById/list)
   // กันเคส override (create_sales_docs=true แต่ see_order_money=false): เดิมสร้างได้แล้วเปิดดูไม่ได้
@@ -178,8 +185,7 @@ function QuotationFormPage() {
       router.push(`/quotations/${data.id}`);
     },
   });
-  const updateQuotation = trpc.quotation.update.useMutation();
-  const updateQuotationItems = trpc.quotation.updateItems.useMutation();
+  const updateDraft = trpc.quotation.updateDraft.useMutation();
   const [editError, setEditError] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
 
@@ -221,11 +227,12 @@ function QuotationFormPage() {
     }));
 
     if (editId) {
-      // โหมดแก้ไขฉบับร่าง — หัวใบ + รายการ (สองก้อน เพราะ totals คิดใหม่ฝั่ง server)
+      // โหมดแก้ไขฉบับร่าง — หัวใบ + รายการบันทึกก้อนเดียวที่ server
+      // ถ้าส่วนใดพัง transaction จะ rollback ทั้งใบ จึงไม่มี partial save
       setEditError(null);
       setEditSaving(true);
       try {
-        await updateQuotation.mutateAsync({
+        await updateDraft.mutateAsync({
           id: editId,
           title,
           description: description || undefined,
@@ -234,8 +241,8 @@ function QuotationFormPage() {
           notes: notes || undefined,
           discount,
           tax,
+          items: mappedItems,
         });
-        await updateQuotationItems.mutateAsync({ id: editId, items: mappedItems });
         utils.quotation.list.invalidate();
         utils.quotation.getById.invalidate({ id: editId });
         router.push(`/quotations/${editId}`);
@@ -271,16 +278,17 @@ function QuotationFormPage() {
     return <QueryError onRetry={() => refetchLinkedOrder()} />;
   if (editId && editingIsError && !editing)
     return <QueryError onRetry={() => refetchEditing()} />;
+  if (redirectToCanonicalIntake) return <Skeleton className="h-96 rounded-2xl" />;
 
   if (me && !canAuthor)
     return (
       <div className="space-y-6">
-        <Link href="/orders">
-          <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/orders">
             <ArrowLeft className="mr-1 h-4 w-4" />
             กลับ
-          </Button>
-        </Link>
+          </Link>
+        </Button>
         <p className="text-sm text-slate-400">
           ใบเสนอราคาเป็นเอกสารราคา — ต้องมีสิทธิ์ &quot;เห็นเงินฝั่งขาย&quot; จึงจะสร้างได้
           (เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้)
@@ -292,11 +300,11 @@ function QuotationFormPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/quotations">
-          <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/quotations" aria-label="กลับไปรายการใบเสนอราคา">
             <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
         <div>
           <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
             {editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคาใหม่"}
@@ -321,8 +329,8 @@ function QuotationFormPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className={sectionLabelClass}>ลูกค้า *</label>
+              <fieldset>
+                <legend className={sectionLabelClass}>ลูกค้า *</legend>
                 {fromOrderId || editId ? (
                   // ลูกค้าล็อกตามออเดอร์/ใบเดิม — เปลี่ยนลูกค้า = เปิดใบใหม่
                   <div className="flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
@@ -336,10 +344,13 @@ function QuotationFormPage() {
                     required
                   />
                 )}
-              </div>
+              </fieldset>
               <div>
-                <label className={sectionLabelClass}>ใช้ได้ถึงวันที่ *</label>
+                <label htmlFor="quotation-valid-until" className={sectionLabelClass}>
+                  ใช้ได้ถึงวันที่ *
+                </label>
                 <Input
+                  id="quotation-valid-until"
                   type="date"
                   value={validUntil}
                   onChange={(e) => setValidUntil(e.target.value)}
@@ -348,8 +359,11 @@ function QuotationFormPage() {
               </div>
             </div>
             <div>
-              <label className={sectionLabelClass}>ชื่อใบเสนอราคา *</label>
+              <label htmlFor="quotation-title" className={sectionLabelClass}>
+                ชื่อใบเสนอราคา *
+              </label>
               <Input
+                id="quotation-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="เช่น ใบเสนอราคาเสื้อทีม ABC, ถุงผ้ารณรงค์..."
@@ -357,8 +371,11 @@ function QuotationFormPage() {
               />
             </div>
             <div>
-              <label className={sectionLabelClass}>รายละเอียด</label>
+              <label htmlFor="quotation-description" className={sectionLabelClass}>
+                รายละเอียด
+              </label>
               <Textarea
+                id="quotation-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="รายละเอียดเพิ่มเติม..."
@@ -366,8 +383,11 @@ function QuotationFormPage() {
               />
             </div>
             <div>
-              <label className={sectionLabelClass}>เงื่อนไข</label>
+              <label htmlFor="quotation-terms" className={sectionLabelClass}>
+                เงื่อนไข
+              </label>
               <Textarea
+                id="quotation-terms"
                 value={terms}
                 onChange={(e) => setTerms(e.target.value)}
                 placeholder="เงื่อนไขการชำระเงิน, การจัดส่ง..."
@@ -375,8 +395,11 @@ function QuotationFormPage() {
               />
             </div>
             <div>
-              <label className={sectionLabelClass}>หมายเหตุ</label>
+              <label htmlFor="quotation-notes" className={sectionLabelClass}>
+                หมายเหตุ
+              </label>
               <Textarea
+                id="quotation-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="หมายเหตุภายใน..."
@@ -425,6 +448,7 @@ function QuotationFormPage() {
                           size="sm"
                           onClick={() => removeItem(idx)}
                           className="text-red-500 hover:text-red-700"
+                          aria-label={`ลบรายการ ${idx + 1}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -435,8 +459,11 @@ function QuotationFormPage() {
                   {/* Name + Description */}
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
-                      <label className={labelClass}>ชื่อรายการ *</label>
+                      <label htmlFor={`quotation-item-${idx}-name`} className={labelClass}>
+                        ชื่อรายการ *
+                      </label>
                       <Input
+                        id={`quotation-item-${idx}-name`}
                         value={item.name}
                         onChange={(e) => updateItem(idx, "name", e.target.value)}
                         placeholder="เช่น เสื้อยืด Cotton 100%"
@@ -444,8 +471,11 @@ function QuotationFormPage() {
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>คำอธิบาย</label>
+                      <label htmlFor={`quotation-item-${idx}-description`} className={labelClass}>
+                        คำอธิบาย
+                      </label>
                       <Input
+                        id={`quotation-item-${idx}-description`}
                         value={item.description}
                         onChange={(e) =>
                           updateItem(idx, "description", e.target.value)
@@ -456,10 +486,13 @@ function QuotationFormPage() {
                   </div>
 
                   {/* Quantity, Unit, Unit Price */}
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
-                      <label className={labelClass}>จำนวน *</label>
+                      <label htmlFor={`quotation-item-${idx}-quantity`} className={labelClass}>
+                        จำนวน *
+                      </label>
                       <Input
+                        id={`quotation-item-${idx}-quantity`}
                         type="number"
                         min={1}
                         value={item.quantity}
@@ -474,16 +507,22 @@ function QuotationFormPage() {
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>หน่วย</label>
+                      <label htmlFor={`quotation-item-${idx}-unit`} className={labelClass}>
+                        หน่วย
+                      </label>
                       <Input
+                        id={`quotation-item-${idx}-unit`}
                         value={item.unit}
                         onChange={(e) => updateItem(idx, "unit", e.target.value)}
                         placeholder="ชิ้น"
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>ราคาต่อหน่วย *</label>
+                      <label htmlFor={`quotation-item-${idx}-price`} className={labelClass}>
+                        ราคาต่อหน่วย *
+                      </label>
                       <Input
+                        id={`quotation-item-${idx}-price`}
                         type="number"
                         min={0}
                         step={0.01}
@@ -525,10 +564,11 @@ function QuotationFormPage() {
 
               {/* Discount */}
               <div className="flex items-center justify-between">
-                <label className="text-slate-600 dark:text-slate-400">
+                <label htmlFor="quotation-discount" className="text-slate-600 dark:text-slate-400">
                   ส่วนลด
                 </label>
                 <Input
+                  id="quotation-discount"
                   type="number"
                   min={0}
                   step={0.01}
@@ -544,7 +584,7 @@ function QuotationFormPage() {
               {/* Tax — จำนวนเงินบาท (ต่างจากฟอร์มออเดอร์ที่เป็น %) · ปุ่มลัดคิด 7%
                   จากฐานหลังหักส่วนลด — บริษัทจด VAT ใบเสนอควรมีภาษีเสมอ (Gate B2) */}
               <div className="flex items-center justify-between">
-                <label className="text-slate-600 dark:text-slate-400">
+                <label htmlFor="quotation-tax" className="text-slate-600 dark:text-slate-400">
                   ภาษี (บาท)
                 </label>
                 <div className="flex items-center gap-2">
@@ -562,6 +602,7 @@ function QuotationFormPage() {
                     VAT 7%
                   </Button>
                   <Input
+                    id="quotation-tax"
                     type="number"
                     min={0}
                     step={0.01}
@@ -616,11 +657,11 @@ function QuotationFormPage() {
         {/* Actions                                                      */}
         {/* ============================================================ */}
         <div className="flex justify-end gap-3 pb-8">
-          <Link href="/quotations">
-            <Button type="button" variant="outline">
+          <Button type="button" variant="outline" asChild>
+            <Link href="/quotations">
               ยกเลิก
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <Button
             type="submit"
             disabled={createQuotation.isPending || editSaving}

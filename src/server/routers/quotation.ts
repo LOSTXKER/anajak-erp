@@ -24,6 +24,10 @@ import { isQuotationExpired } from "@/server/services/quotation-confirm";
 // เส้นทางสถานะใบเสนอ — validate ทุกการเปลี่ยน (Gate A3 · audit 2026-07-02)
 import { canQuotationTransition, quotationStatusLabel } from "@/lib/quotation-status";
 import { stripOrderMoneyForRole } from "@/lib/roles";
+import {
+  prepareQuotationShare,
+  updateQuotationDraft,
+} from "@/server/services/quotation-workflow";
 
 const salesUp = requirePermission("create_sales_docs");
 // ใบเสนอราคา = เอกสารราคาขายล้วน — อ่านได้เฉพาะกลุ่มเห็นเงินฝั่งขาย (⑦ เบสเคาะ 2026-07-06:
@@ -210,6 +214,51 @@ export const quotationRouter = router({
 
       return quotation;
     }),
+
+  // บันทึกหัวใบ+รายการใน transaction เดียว — หน้าแก้ไขใช้ endpoint นี้เพื่อไม่ให้เกิด
+  // partial save (หัวใบสำเร็จแต่รายการพัง หรือกลับกัน) · endpoint เก่าเก็บไว้ให้ route เดิมเข้ากันได้
+  updateDraft: protectedProcedure
+    .use(salesUp)
+    .input(
+      z.object({
+        id: z.string(),
+        title: z.string().trim().min(1, "กรุณากรอกชื่อใบเสนอราคา"),
+        description: z.string().optional(),
+        validUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "รูปแบบวันที่ไม่ถูกต้อง"),
+        terms: z.string().optional(),
+        discount: z.number().min(0),
+        tax: z.number().min(0),
+        notes: z.string().optional(),
+        items: z.array(quotationItemSchema).min(1),
+      })
+    )
+    .mutation(({ ctx, input }) =>
+      updateQuotationDraft(ctx.prisma, {
+        ...input,
+        validUntil: new Date(input.validUntil),
+        userId: ctx.userId,
+      })
+    ),
+
+  // DRAFT → SENT + เตรียม token + คืน public path ใน action เดียว
+  // หน้า UI จึงไม่มีสถานะกึ่งกลางว่า “ส่งแล้ว” แต่ยังคัดลอกลิงก์ไม่ได้
+  prepareShare: protectedProcedure
+    .use(salesUp)
+    .input(
+      z.object({
+        id: z.string(),
+        expectedStatus: z
+          .enum(["DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED", "CONVERTED"])
+          .optional(),
+      })
+    )
+    .mutation(({ ctx, input }) =>
+      prepareQuotationShare(ctx.prisma, {
+        id: input.id,
+        userId: ctx.userId,
+        expectedStatus: input.expectedStatus,
+      })
+    ),
 
   // แก้รายการใบเสนอ — เฉพาะฉบับร่าง (ส่งแล้วต้องดึงกลับเป็นร่างก่อน ราคาที่ลูกค้าเห็นห้ามขยับเงียบ)
   // เดิมไม่มี endpoint แก้ items เลย พิมพ์ผิดต้องทิ้งทั้งใบ (audit ข้อ 11)
