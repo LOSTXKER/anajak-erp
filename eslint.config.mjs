@@ -8,10 +8,10 @@ const __dirname = dirname(__filename);
 
 const compat = new FlatCompat({ baseDirectory: __dirname });
 
-const jsxA11yWarnings = Object.fromEntries(
+const jsxA11yErrors = Object.fromEntries(
   Object.entries(jsxA11y.configs.recommended.rules).map(([rule, setting]) => [
     rule,
-    Array.isArray(setting) ? ["warn", ...setting.slice(1)] : "warn",
+    Array.isArray(setting) ? ["error", ...setting.slice(1)] : "error",
   ]),
 );
 
@@ -19,9 +19,8 @@ const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
-      // UX0: เปิดกฎ a11y ชุดเต็มเป็น warning เพื่อเห็นหนี้ทั้งหมดระหว่าง migration
-      // เมื่อเคลียร์ violation ครบแล้วค่อยยกชุดนี้เป็น error ทั้งก้อน
-      ...jsxA11yWarnings,
+      // UX0: เคลียร์หนี้ a11y เดิมครบแล้ว — violation ใหม่ต้องหยุด CI ทันที
+      ...jsxA11yErrors,
       // Deprecated และรายงานซ้ำกับ label-has-associated-control ทุกจุด
       "jsx-a11y/label-has-for": "off",
       // ห้าม window.prompt/confirm/alert — ใช้ useConfirm/usePromptText จาก
