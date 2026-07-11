@@ -11,9 +11,14 @@ export function QueryError({
   onRetry,
 }: QueryErrorProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12">
-      <AlertTriangle className="h-10 w-10 text-red-300 dark:text-red-600" />
-      <p className="mt-3 text-sm text-red-500">{message}</p>
+    <div
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+      className="flex flex-col items-center justify-center px-4 py-12 text-center"
+    >
+      <AlertTriangle className="h-10 w-10 text-red-700 dark:text-red-400" />
+      <p className="mt-3 text-sm text-red-700 dark:text-red-300">{message}</p>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry} className="mt-4 gap-1.5">
           <RefreshCw className="h-3.5 w-3.5" />

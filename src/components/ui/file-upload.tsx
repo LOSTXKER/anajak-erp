@@ -98,9 +98,10 @@ export function FileUpload({
           <button
             type="button"
             onClick={clearFile}
-            className="absolute -right-2 -top-2 rounded-full bg-red-500 p-0.5 text-white shadow-sm hover:bg-red-600"
+            aria-label="ลบไฟล์ที่เลือก"
+            className="absolute -right-3 -top-3 inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm hover:bg-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 sm:h-9 sm:w-9"
           >
-            <X className="h-3 w-3" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       ) : (

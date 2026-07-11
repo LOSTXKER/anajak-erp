@@ -59,7 +59,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
             <div className="min-w-0 space-y-0.5">
               {title &&
                 (compact ? (
-                  <h2 className="text-[11.5px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  <h2 className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     {title}
                   </h2>
                 ) : (

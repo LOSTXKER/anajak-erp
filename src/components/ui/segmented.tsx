@@ -31,7 +31,7 @@ export function SegmentedControl<T extends string = string>({
 }: SegmentedControlProps<T>) {
   return (
     <div
-      role="tablist"
+      role="group"
       className={cn(
         "inline-flex gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800/60 dark:bg-slate-900/80",
         className,
@@ -45,12 +45,11 @@ export function SegmentedControl<T extends string = string>({
           <button
             key={opt.value}
             type="button"
-            role="tab"
-            aria-selected={active}
+            aria-pressed={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium transition-colors",
-              size === "sm" ? "px-2.5 py-1 text-[11.5px]" : "px-3 py-1.5 text-xs",
+              "inline-flex min-h-11 touch-manipulation items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:min-h-9",
+              size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-xs",
               active
                 ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white"
                 : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",

@@ -91,11 +91,12 @@ interface ThProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
 }
 
 const Th = React.forwardRef<HTMLTableCellElement, ThProps>(
-  ({ className, align = "left", ...props }, ref) => (
+  ({ className, align = "left", scope = "col", ...props }, ref) => (
     <th
       ref={ref}
+      scope={scope}
       className={cn(
-        "px-5 py-3 text-[11.5px] font-medium text-slate-500 dark:text-slate-400",
+        "px-5 py-3 text-xs font-medium text-slate-500 dark:text-slate-400",
         align === "right" && "text-right",
         align === "center" && "text-center",
         align === "left" && "text-left",
