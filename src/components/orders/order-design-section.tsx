@@ -396,10 +396,11 @@ export function OrderDesignSection({
               </div>
             )}
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              <label htmlFor="designer-notes" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 โน้ตจากดีไซเนอร์
               </label>
               <Textarea
+                id="designer-notes"
                 value={designerNotes}
                 onChange={(e) => setDesignerNotes(e.target.value)}
                 placeholder="รายละเอียดการออกแบบ..."
@@ -443,10 +444,11 @@ export function OrderDesignSection({
             </DialogDescription>
           </DialogHeader>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            <label htmlFor="design-approval-comment" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
               ความเห็น
             </label>
             <Textarea
+              id="design-approval-comment"
               value={approveComment}
               onChange={(e) => setApproveComment(e.target.value)}
               placeholder="ความเห็นเพิ่มเติม (ถ้ามี)..."

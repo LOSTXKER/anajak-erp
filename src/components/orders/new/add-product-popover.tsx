@@ -31,17 +31,18 @@ export function AddProductPopover({
 
   return (
     <div className="relative">
-      <Button type="button" variant="outline" size={triggerSize} onClick={() => setOpen(!open)}>
+      <Button type="button" variant="outline" size={triggerSize} onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu">
         <Plus className="h-4 w-4" />เพิ่มสินค้า
       </Button>
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-md dark:border-slate-800 dark:bg-slate-900">
+          <button type="button" tabIndex={-1} aria-label="ปิดเมนูเพิ่มสินค้า" className="fixed inset-0 z-40 cursor-default" onClick={() => setOpen(false)} />
+          <div role="menu" className="absolute right-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-md dark:border-slate-800 dark:bg-slate-900">
             {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
               <button
                 key={key}
                 type="button"
+                role="menuitem"
                 onClick={() => { handlers[key](); setOpen(false); }}
                 className="flex w-full items-start gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
               >

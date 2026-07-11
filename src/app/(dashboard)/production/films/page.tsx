@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/field";
 import { SearchInput } from "@/components/ui/search-input";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -313,8 +314,10 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
           </p>
         </div>
         <div className="space-y-3">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">จำนวนที่หยิบใช้ (ชิ้น)</label>
+          <Field
+            label="จำนวนที่หยิบใช้ (ชิ้น)"
+            error={qty > item.qty ? `เกินจำนวนคงเหลือ (${item.qty} ชิ้น)` : undefined}
+          >
             <Input
               type="number"
               inputMode="numeric"
@@ -327,12 +330,8 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
                 invalid && "border-red-300 focus-visible:ring-red-400"
               )}
             />
-            {qty > item.qty && (
-              <p className="mt-1 text-xs text-red-500">เกินจำนวนคงเหลือ ({item.qty} ชิ้น)</p>
-            )}
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">หมายเหตุ (ไม่บังคับ)</label>
+          </Field>
+          <Field label="หมายเหตุ (ไม่บังคับ)">
             <Input
               value={note}
               maxLength={300}
@@ -340,7 +339,7 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
               placeholder="เช่น ใช้กับออเดอร์ ORD-xxxx / ฟิล์มเสีย ตัดทิ้ง"
               className="h-11"
             />
-          </div>
+          </Field>
         </div>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose} className="h-11">

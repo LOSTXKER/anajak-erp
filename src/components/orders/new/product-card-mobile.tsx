@@ -189,22 +189,24 @@ export function ProductCardMobile({
         {showMore && (
           <div className="mt-2 grid grid-cols-2 gap-3">
             {!isCustomerProvided && (
-              <label className="block">
-                <span className={fieldLabel}>ส่วนลดต่อชิ้น</span>
-                <Input type="number" min={0} step={0.01} value={product.discount || ""} onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)} placeholder="0" className="w-full text-right" />
-              </label>
+              <div>
+                <label htmlFor={`mobile-product-discount-${itemIdx}-${prodIdx}`} className={fieldLabel}>ส่วนลดต่อชิ้น</label>
+                <Input id={`mobile-product-discount-${itemIdx}-${prodIdx}`} type="number" min={0} step={0.01} value={product.discount || ""} onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)} placeholder="0" className="w-full text-right" />
+              </div>
             )}
-            <label className="block">
-              <span className={fieldLabel}>แพค</span>
+            <div>
               {packagingOptions && packagingOptions.length > 0 ? (
-                <NativeSelect value={product.packagingOptionId} onChange={(e) => updateProduct("packagingOptionId", e.target.value)}>
+                <>
+                <label htmlFor={`mobile-product-packaging-${itemIdx}-${prodIdx}`} className={fieldLabel}>แพค</label>
+                <NativeSelect id={`mobile-product-packaging-${itemIdx}-${prodIdx}`} value={product.packagingOptionId} onChange={(e) => updateProduct("packagingOptionId", e.target.value)}>
                   <option value="">—</option>
                   {packagingOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
                 </NativeSelect>
+                </>
               ) : (
-                <span className="text-xs text-slate-400">ยังไม่มีตัวเลือกแพค</span>
+                <><p className={fieldLabel}>แพค</p><span className="text-xs text-slate-400">ยังไม่มีตัวเลือกแพค</span></>
               )}
-            </label>
+            </div>
           </div>
         )}
       </div>

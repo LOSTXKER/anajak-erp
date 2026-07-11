@@ -202,8 +202,8 @@ export function MaterialUsage({
                 placeholder="ค้นหาวัตถุดิบ (ชื่อ / SKU / บาร์โค้ด)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="ค้นหาวัตถุดิบ"
                 className="h-8 pl-8 text-xs"
-                autoFocus
               />
             </div>
 

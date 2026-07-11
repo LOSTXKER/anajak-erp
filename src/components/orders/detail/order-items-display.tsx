@@ -75,8 +75,8 @@ function ReceiveTrackingInline({ product, onSuccess }: {
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="mb-0.5 block text-[10px] font-medium text-slate-500">สภาพเสื้อ</label>
-          <NativeSelect value={condition} onChange={(e) => setCondition(e.target.value)} className="h-8 px-2 py-1 text-xs focus:ring-yellow-500">
+          <label htmlFor={`garment-condition-${product.id}`} className="mb-0.5 block text-[10px] font-medium text-slate-500">สภาพเสื้อ</label>
+          <NativeSelect id={`garment-condition-${product.id}`} value={condition} onChange={(e) => setCondition(e.target.value)} className="h-8 px-2 py-1 text-xs focus:ring-yellow-500">
             <option value="">-- เลือก --</option>
             {Object.entries(GARMENT_CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </NativeSelect>
@@ -88,8 +88,8 @@ function ReceiveTrackingInline({ product, onSuccess }: {
           </label>
         </div>
         <div className="min-w-[160px] flex-1">
-          <label className="mb-0.5 block text-[10px] font-medium text-slate-500">หมายเหตุ</label>
-          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" className="h-8 text-xs" />
+          <label htmlFor={`garment-note-${product.id}`} className="mb-0.5 block text-[10px] font-medium text-slate-500">หมายเหตุ</label>
+          <Input id={`garment-note-${product.id}`} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" className="h-8 text-xs" />
         </div>
         <div className="flex gap-1">
           <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receivedInspected: inspected, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1 bg-yellow-600 text-xs text-white hover:bg-yellow-700">

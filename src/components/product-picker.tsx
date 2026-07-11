@@ -309,7 +309,7 @@ export function ProductPickerDialog({
                           <table className="w-full table-fixed text-xs">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                                <th className="w-9 px-2 py-1.5" />
+                                <th scope="col" aria-label="เลือก" className="w-9 px-2 py-1.5" />
                                 <th className="px-3 py-1.5 text-left font-medium">SKU</th>
                                 <th className="w-[14%] px-3 py-1.5 text-left font-medium">สี</th>
                                 <th className="w-[12%] px-3 py-1.5 text-left font-medium">ไซส์</th>
@@ -333,6 +333,7 @@ export function ProductPickerDialog({
                                     <td className="px-2 py-1.5 text-center">
                                       <input
                                         type="checkbox"
+                                        aria-label={`เลือก ${v.sku} สี ${v.color || "ไม่ระบุ"} ไซส์ ${v.size}`}
                                         checked={isChecked}
                                         onChange={() => toggleVariant(v.id)}
                                         className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
@@ -369,14 +370,16 @@ export function ProductPickerDialog({
                                       <div className={cn("flex items-center justify-center gap-1", !isChecked && "invisible")}>
                                         <button
                                           type="button"
+                                          aria-label={`ลดจำนวน ${v.sku}`}
                                           tabIndex={isChecked ? 0 : -1}
                                           onClick={() => setVariantQty(v.id, qty - 1)}
-                                          className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700"
+                                          className="flex h-11 w-11 items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:h-8 sm:w-8 dark:hover:bg-slate-700"
                                         >
                                           <Minus className="h-3 w-3" />
                                         </button>
                                         <input
                                           type="number"
+                                          aria-label={`จำนวน ${v.sku}`}
                                           min={1}
                                           tabIndex={isChecked ? 0 : -1}
                                           value={isChecked ? qty : ""}
@@ -392,9 +395,10 @@ export function ProductPickerDialog({
                                         />
                                         <button
                                           type="button"
+                                          aria-label={`เพิ่มจำนวน ${v.sku}`}
                                           tabIndex={isChecked ? 0 : -1}
                                           onClick={() => setVariantQty(v.id, qty + 1)}
-                                          className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700"
+                                          className="flex h-11 w-11 items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:h-8 sm:w-8 dark:hover:bg-slate-700"
                                         >
                                           <Plus className="h-3 w-3" />
                                         </button>

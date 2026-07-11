@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { UserPlus, Loader2, Search } from "lucide-react";
 import { normalizePhone } from "@/lib/phone";
+import { QueryError } from "@/components/ui/query-error";
+import { Field } from "@/components/ui/field";
 
 // ตัวเลือกลูกค้ามาตรฐาน: ค้นหาผ่าน server + เพิ่มลูกค้าด่วนจากชื่อแชท + กันสร้างซ้ำ
 // หลักคิด "โปรไฟล์โตตามงาน" — ลูกค้าแชทใหม่เริ่มได้ด้วยชื่ออย่างเดียว ข้อมูลอื่นเติมทีหลัง
@@ -27,9 +29,10 @@ interface CustomerPickerProps {
   value: string;
   onChange: (customerId: string, customer: PickerCustomer | null) => void;
   required?: boolean;
+  labelledBy?: string;
 }
 
-export function CustomerPicker({ value, onChange, required }: CustomerPickerProps) {
+export function CustomerPicker({ value, onChange, required, labelledBy }: CustomerPickerProps) {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   // ลูกค้าที่เลือกอยู่ — ปักไว้ใน dropdown แม้ผลค้นหาปัจจุบันไม่มีรายนี้
@@ -46,7 +49,7 @@ export function CustomerPicker({ value, onChange, required }: CustomerPickerProp
   const [isChecking, setIsChecking] = useState(false);
 
   const utils = trpc.useUtils();
-  const { data, isLoading } = trpc.customer.list.useQuery({
+  const { data, isLoading, isError, refetch } = trpc.customer.list.useQuery({
     search: search || undefined,
     limit: 50,
   });
@@ -121,6 +124,7 @@ export function CustomerPicker({ value, onChange, required }: CustomerPickerProp
       <div className="relative">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
         <Input
+          aria-label="ค้นหาลูกค้า"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           // กัน Enter ไป submit ฟอร์มใหญ่ที่ครอบอยู่ (เช่นสร้างใบเสนอทั้งใบโดยไม่ตั้งใจ)
@@ -131,8 +135,15 @@ export function CustomerPicker({ value, onChange, required }: CustomerPickerProp
           className="pl-8"
         />
       </div>
-      <div className="flex gap-1.5">
+      {isError ? (
+        <QueryError
+          message="โหลดรายชื่อลูกค้าไม่สำเร็จ"
+          onRetry={() => void refetch()}
+        />
+      ) : <div className="flex gap-1.5">
         <NativeSelect
+          aria-labelledby={labelledBy}
+          aria-label={labelledBy ? undefined : "เลือกลูกค้า"}
           value={value}
           onChange={(e) => pick(options.find((c) => c.id === e.target.value) ?? null)}
           required={required}
@@ -158,7 +169,7 @@ export function CustomerPicker({ value, onChange, required }: CustomerPickerProp
           <UserPlus className="h-4 w-4" />
           ใหม่
         </Button>
-      </div>
+      </div>}
 
       <Dialog open={showCreate} onOpenChange={(open) => !open && closeCreate()}>
         <DialogContent className="sm:max-w-md">
@@ -169,10 +180,7 @@ export function CustomerPicker({ value, onChange, required }: CustomerPickerProp
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                ชื่อ (ชื่อแชทได้) *
-              </label>
+            <Field label="ชื่อ (ชื่อแชทได้)" required>
               <Input
                 value={newName}
                 onChange={(e) => {
@@ -180,14 +188,10 @@ export function CustomerPicker({ value, onChange, required }: CustomerPickerProp
                   setSimilar(null);
                 }}
                 placeholder="เช่น คุณส้ม LINE"
-                autoFocus
               />
-            </div>
+            </Field>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  LINE ID
-                </label>
+              <Field label="LINE ID">
                 <Input
                   value={newLineId}
                   onChange={(e) => {
@@ -196,11 +200,8 @@ export function CustomerPicker({ value, onChange, required }: CustomerPickerProp
                   }}
                   placeholder="@..."
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  เบอร์ (ถ้ามี)
-                </label>
+              </Field>
+              <Field label="เบอร์ (ถ้ามี)">
                 <Input
                   value={newPhone}
                   onChange={(e) => {
@@ -209,12 +210,9 @@ export function CustomerPicker({ value, onChange, required }: CustomerPickerProp
                   }}
                   placeholder="08xxxxxxxx"
                 />
-              </div>
+              </Field>
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                ประเภทลูกค้า
-              </label>
+            <Field label="ประเภทลูกค้า">
               <NativeSelect
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as "INDIVIDUAL" | "CORPORATE")}
@@ -222,7 +220,7 @@ export function CustomerPicker({ value, onChange, required }: CustomerPickerProp
                 <option value="INDIVIDUAL">บุคคลธรรมดา</option>
                 <option value="CORPORATE">นิติบุคคล (บริษัท/หจก. — เติมเลขภาษีทีหลังได้)</option>
               </NativeSelect>
-            </div>
+            </Field>
 
             {similar && similar.length > 0 && (
               <div className="space-y-1.5 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">

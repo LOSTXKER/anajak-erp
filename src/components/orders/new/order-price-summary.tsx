@@ -221,13 +221,14 @@ export function OrderPriceSummary({
 
         {isMarketplace && (
           <div className="flex items-center justify-between gap-2">
-            <label className="text-sm text-slate-500 dark:text-slate-400">
+            <label htmlFor="order-platform-fee" className="text-sm text-slate-500 dark:text-slate-400">
               ค่าธรรมเนียม {channelLabel}
               <span className="block text-xs text-slate-400 dark:text-slate-500">
                 หักจากยอดโอนเข้าร้าน — ไม่รวมในยอดบิล
               </span>
             </label>
             <Input
+              id="order-platform-fee"
               type="number"
               min={0}
               step={0.01}
@@ -242,10 +243,11 @@ export function OrderPriceSummary({
         )}
 
         <div className="flex items-center justify-between gap-2">
-          <label className="text-sm text-slate-500 dark:text-slate-400">
+          <label htmlFor="order-discount" className="text-sm text-slate-500 dark:text-slate-400">
             ส่วนลด
           </label>
           <Input
+            id="order-discount"
             type="number"
             min={0}
             step={0.01}

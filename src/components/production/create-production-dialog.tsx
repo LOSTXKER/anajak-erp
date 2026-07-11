@@ -192,8 +192,8 @@ function StepBuilder({
                     <Input
                       type="text"
                       placeholder="ชื่อขั้นตอน..."
+                      aria-label={`ชื่อขั้นตอนที่ ${index + 1}`}
                       value={step.customStepName || ""}
-                      autoFocus
                       onChange={(e) => {
                         const updated = [...steps];
                         updated[index] = { ...updated[index], customStepName: e.target.value };

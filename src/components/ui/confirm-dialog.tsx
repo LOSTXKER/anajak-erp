@@ -104,8 +104,8 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
 
               {pending?.kind === "prompt" && (
                 <Textarea
-                  autoFocus
                   rows={3}
+                  aria-label={pending.options.placeholder || "กรอกข้อมูล"}
                   value={inputValue}
                   placeholder={pending.options.placeholder}
                   onChange={(e) => setInputValue(e.target.value)}

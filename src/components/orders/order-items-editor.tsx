@@ -430,8 +430,9 @@ export function OrderItemsEditor({
               )}
 
               <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-                <label className="text-sm text-slate-500">ส่วนลด</label>
+                <label htmlFor="order-items-discount" className="text-sm text-slate-500">ส่วนลด</label>
                 <Input
+                  id="order-items-discount"
                   type="number"
                   value={discount || ""}
                   onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}

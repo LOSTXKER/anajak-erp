@@ -48,8 +48,9 @@ export function SizeMatrix({
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40">
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">สี (ใช้ทุกไซส์)</span>
+        <label htmlFor="size-matrix-color" className="text-xs font-medium text-slate-600 dark:text-slate-300">สี (ใช้ทุกไซส์)</label>
         <Input
+          id="size-matrix-color"
           value={color}
           onChange={(e) => {
             setColor(e.target.value);
@@ -63,8 +64,9 @@ export function SizeMatrix({
       <div className="flex flex-wrap items-end gap-2">
         {columns.map((size) => (
           <div key={size} className="w-14">
-            <label className="block text-center text-[11px] font-medium text-slate-500">{size}</label>
+            <label htmlFor={`size-matrix-${size}`} className="block text-center text-[11px] font-medium text-slate-500">{size}</label>
             <Input
+              id={`size-matrix-${size}`}
               type="number"
               min={0}
               value={qtyOf(size) || ""}
@@ -78,8 +80,9 @@ export function SizeMatrix({
         {/* เพิ่มไซส์อื่น (XS/4XL/เด็ก/ตัวเลข) */}
         <div className="flex items-end gap-1">
           <div className="w-16">
-            <label className="block text-center text-[11px] text-slate-400">เพิ่มไซส์</label>
+            <label htmlFor="size-matrix-new-size" className="block text-center text-[11px] text-slate-400">เพิ่มไซส์</label>
             <Input
+              id="size-matrix-new-size"
               value={newSize}
               onChange={(e) => setNewSize(e.target.value)}
               onKeyDown={(e) => {

@@ -10,8 +10,6 @@ import { formatCurrency } from "@/lib/utils";
 // ช่องเลือกลูกค้า + ป้ายบริบทครบ (นิติบุคคล/โปรไฟล์ขาด/วงเงินเครดิต)
 // แยกจาก orders/new/page.tsx ตอนรื้อฟอร์ม 2026-06-12 — พฤติกรรมเดิมทุกอย่าง
 
-const labelClass = "mb-1.5 block text-[12px] text-slate-500 dark:text-slate-400";
-
 interface OrderCustomerSectionProps {
   customerId: string;
   selectedCustomer: PickerCustomer | null;
@@ -47,8 +45,10 @@ export function OrderCustomerSection({
 
   return (
     <div>
-      <label className={labelClass} id="new-order-customer-label">ลูกค้า *</label>
-      <CustomerPicker value={customerId} onChange={onSelect} required />
+      <p className="mb-1.5 block text-xs text-slate-500 dark:text-slate-400" id="new-order-customer-label">
+        ลูกค้า <span aria-hidden="true" className="text-red-700">*</span><span className="sr-only"> (จำเป็น)</span>
+      </p>
+      <CustomerPicker value={customerId} onChange={onSelect} required labelledBy="new-order-customer-label" />
       {selectedCustomer && isCorporate && (
         <div className="mt-1.5 flex items-center gap-1.5">
           <Badge variant="accent" size="sm">
