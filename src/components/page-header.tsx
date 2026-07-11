@@ -36,7 +36,7 @@ export function PageHeader({
                 {item.href && !isLast ? (
                   <Link
                     href={item.href}
-                    className="transition-colors hover:text-slate-900 dark:hover:text-white"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-1 transition-colors hover:text-slate-900 sm:min-h-8 sm:min-w-0 sm:justify-start sm:px-0 dark:hover:text-white"
                   >
                     {item.label}
                   </Link>

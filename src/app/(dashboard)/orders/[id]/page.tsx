@@ -632,8 +632,8 @@ function OrderDetailContent({
         canSeeMoney={canSeeMoney}
       />
 
-      <div className="flex items-center gap-2">
-        <div className="-mx-1 min-w-0 flex-1 overflow-x-auto px-1">
+      <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
           <SegmentedControl
             value={activeTab}
             onChange={handleTabChange}
@@ -641,13 +641,14 @@ function OrderDetailContent({
             semantics="tabs"
             idPrefix="order"
             aria-label="ส่วนของออเดอร์"
+            className="grid w-full grid-cols-4 sm:inline-flex sm:w-auto"
           />
         </div>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <Button
               variant={activeTab === "files" || activeTab === "history" ? "secondary" : "outline"}
-              className="shrink-0"
+              className="shrink-0 self-end sm:self-auto"
               aria-label="ไฟล์และประวัติ"
             >
               {activeTab === "files" ? "ไฟล์" : activeTab === "history" ? "ประวัติ" : "เพิ่มเติม"}

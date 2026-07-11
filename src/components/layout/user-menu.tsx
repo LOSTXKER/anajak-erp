@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase";
 import { ROLE_LABELS } from "@/lib/roles";
 
 const menuItemClass =
-  "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white";
+  "flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 sm:min-h-8 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white";
 
 export function UserMenu() {
   const router = useRouter();
@@ -35,7 +35,7 @@ export function UserMenu() {
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 sm:h-9 sm:w-9 dark:focus-visible:ring-offset-slate-950"
           aria-label="เมนูผู้ใช้"
         >
           {me?.name?.charAt(0).toUpperCase() ?? "?"}
