@@ -8,7 +8,6 @@ import { STEP_STATUS_LABELS, STEP_STATUS_VARIANTS } from "@/lib/status-config";
 import {
   STEP_TYPE_LABELS,
   laneOf,
-  isOutsourceStep,
   evaluateHeatPressGate,
   type HeatPressGate,
   LANE_LABELS,
@@ -18,6 +17,7 @@ import {
   OUTSOURCE_ACTIVE_STATUSES,
   type ProductionLane,
 } from "@/lib/production-steps";
+import { getProductionStepActionPolicy } from "@/lib/production-step-actions";
 import {
   Check,
   Play,
@@ -95,7 +95,7 @@ export function ProductionStepsList({
                   ร้านนอก
                 </Badge>
               )}
-              <span className="ml-auto text-[11px] tabular-nums text-slate-400">
+              <span className="ml-auto text-xs tabular-nums text-slate-500 dark:text-slate-400">
                 {done}/{laneSteps.length}
               </span>
             </div>
@@ -160,51 +160,28 @@ function StepRow({
   // QC ร้านไม่ผ่านใบล่าสุด → ช่างห้ามปิดขั้นทับ (ตรง assertStepClosable ฝั่ง server)
   const qcFailedBlocked =
     latestOutsource?.status === "QC_FAILED" && !canSupervise;
-  const canSendOutsource =
-    canOutsource && step.status !== "COMPLETED" && !hasActiveOutsource;
-  // ผ่านรวด: ขั้นร้านนอกที่ยังไม่เสร็จ + ไม่ใช่งานคนอื่น + ไม่มีงานค้างที่ร้าน
-  // (ค้างอยู่ต้องจบทางใบ outsource) — เดิมปุ่มโชว์บนงานคนอื่น/QC_FAILED แล้วกดได้ FORBIDDEN ขัด B8
-  const canQuickPass =
-    canUpdateStep &&
-    !ownedByOther &&
-    isOutsourceStep(step.stepType) &&
-    step.status !== "COMPLETED" &&
-    !hasActiveOutsource &&
-    !qcFailedBlocked;
+  const actionPolicy = getProductionStepActionPolicy({
+    stepType: step.stepType,
+    status: step.status,
+    canOutsource,
+    canUpdateStep,
+    ownedByOther,
+    hasActiveOutsource,
+    qcFailedBlocked,
+  });
 
   // ปุ่มเร็ว UX1 (ทำเอง ไม่ใช่ร้านนอก) — ต้นไม้เงื่อนไขเดียวกับการ์ดบอร์ดเลนเป๊ะ:
   // งานคนอื่น (ช่าง) = ไม่โชว์ · อยู่ในรอบพิมพ์ = ลิงก์ไปหน้ารอบ · FAILED = เข้า dialog ·
   // มีใบ outsource ค้าง/QC ร้านไม่ผ่าน = server ปฏิเสธแน่ ห้ามโชว์ (B8) ·
   // GARMENT_PICK = ปิดผ่านการ์ดเบิกเสื้อเท่านั้น (ปิดมือ 1 แตะ = ข้ามการตัดยอดจอง Stock)
   const activePrintRun = step.printRunItems[0]?.printRun ?? null;
-  const showQuickAction =
-    canUpdateStep &&
-    !ownedByOther &&
-    !isOutsourceStep(step.stepType) &&
-    step.stepType !== "GARMENT_PICK" &&
-    !hasActiveOutsource &&
-    !qcFailedBlocked &&
-    step.status !== "COMPLETED" &&
-    step.status !== "FAILED";
+  const showQuickAction = actionPolicy.canRunInternal;
   // ขั้นรีดที่ฟิล์ม/เสื้อยังไม่บรรจบ — แทนปุ่มเริ่มด้วยแถบ "รออะไร" (mirror บอร์ดเลน)
   const heatPressWaiting =
     step.stepType === "HEAT_PRESS" && !pressGate.ready && step.status !== "FAILED";
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onSelectStep(step)}
-      onKeyDown={(e) => {
-        // Enter/Space บนปุ่มลูกต้องทำงานตามปุ่มนั้น ไม่ใช่เปิด dialog ของแถว
-        if (e.target !== e.currentTarget) return;
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelectStep(step);
-        }
-      }}
-      className="flex min-h-[56px] cursor-pointer flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-slate-200 p-3 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50"
-    >
+    <div className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
           step.status === "COMPLETED"
@@ -260,32 +237,25 @@ function StepRow({
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-        {canQuickPass && (
+        {actionPolicy.canSendOutsource && (
           <Button
-            variant="outline"
             size="sm"
-            className="h-9 gap-1 text-xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              onQuickPass(step);
-            }}
-          >
-            <FastForward className="h-3 w-3" />
-            ผ่านรวด
-          </Button>
-        )}
-        {canSendOutsource && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 gap-1 text-xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOutsourceStep(step);
-            }}
+            className="gap-1"
+            onClick={() => onOutsourceStep(step)}
           >
             <Truck className="h-3 w-3" />
             {step.outsourceOrders.length > 0 ? "ส่งแก้รอบใหม่" : "ส่งร้านนอก"}
+          </Button>
+        )}
+        {actionPolicy.canQuickPass && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1"
+            onClick={() => onQuickPass(step)}
+          >
+            <FastForward className="h-3 w-3" />
+            ผ่านรวด
           </Button>
         )}
         <Badge
@@ -309,11 +279,8 @@ function StepRow({
           <Button
             variant="ghost"
             size="sm"
-            className="h-9 gap-1 text-xs text-slate-500"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectStep(step);
-            }}
+            className="gap-1 text-slate-500"
+            onClick={() => onSelectStep(step)}
           >
             <MoreHorizontal className="h-3.5 w-3.5" />
             เพิ่มเติม
@@ -324,7 +291,7 @@ function StepRow({
       {/* ปุ่มเร็ว UX1 — มือถือเต็มแถวสูง 44px (เป้านิ้ว DESIGN.md) · จอใหญ่ปุ่มปกติ
           stopPropagation ที่กล่อง — กดปุ่มต้องไม่เผลอเปิด dialog เต็ม */}
       {showQuickAction && (
-        <div className="w-full sm:ml-auto sm:w-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="w-full sm:ml-auto sm:w-auto">
           {heatPressWaiting ? (
             // รีดยังเริ่มไม่ได้จริง (ฟิล์ม/เสื้อยังไม่บรรจบ) — บอกว่ารออะไรแทนปุ่ม
             // server ไม่มีด่านนี้ ปุ่ม 1 แตะจะพางานเข้า IN_PROGRESS ผี (mirror บอร์ดเลน)

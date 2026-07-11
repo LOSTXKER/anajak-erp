@@ -125,14 +125,18 @@ export default function ProductionDetailPage({
   const progressPct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
   // ขั้นที่กำลังทำ/ต้องทำต่อ — ตอบ "ตอนนี้ถึงไหน" ทันทีที่เปิดหน้า (เบสเคาะ 2026-07-08)
   // กำลังทำก่อน · ไม่มีก็ขั้นแรกที่ยังไม่เสร็จ (มีปัญหา FAILED ก็ถือว่าต้องจัดการต่อ)
+  const activeSteps = production.steps.filter((step) => step.status === "IN_PROGRESS");
   const currentStep =
-    production.steps.find((s) => s.status === "IN_PROGRESS") ??
+    activeSteps[0] ??
     production.steps.find((s) => s.status !== "COMPLETED") ??
     null;
   const currentStepName = currentStep
     ? currentStep.customStepName || STEP_TYPE_LABELS[currentStep.stepType] || currentStep.stepType
     : null;
   const allStepsDone = totalSteps > 0 && completedSteps === totalSteps;
+  const activeStepNames = activeSteps.map(
+    (step) => step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType
+  );
   const isOverdue =
     order.deadline &&
     new Date(order.deadline) < new Date() &&
@@ -196,8 +200,10 @@ export default function ProductionDetailPage({
         </span>
       </div>
 
-      {/* ① สถานะ + ขั้นตอน — "ตอนนี้ถึงไหน + ต้องทำอะไรต่อ" (เบสเคาะ 2026-07-08: เห็นอันนี้ก่อน)
-          ขั้นตอนขึ้นบน · แบบ+ไซส์ (อ้างอิงว่าจะทำอะไร) ย้ายลงล่าง */}
+      {/* แบบ+ไซส์อยู่ติดกับ action หน้างาน — ช่างไม่ต้องเริ่มก่อนแล้วค่อยเลื่อนลงหาแบบ */}
+      <ProductionDesignCard order={order} />
+
+      {/* สถานะ + ขั้นตอน — "ตอนนี้ถึงไหน + ต้องทำอะไรต่อ" */}
       <div className="card-surface space-y-4 rounded-2xl p-4 sm:p-5">
         <div className="space-y-2.5">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -206,6 +212,15 @@ export default function ProductionDetailPage({
                 <CheckCircle2 className="h-4 w-4" />
                 ทุกขั้นเสร็จแล้ว
               </span>
+            ) : activeSteps.length > 1 ? (
+              <div>
+                <span className="text-base font-semibold text-slate-900 dark:text-white">
+                  กำลังทำ {activeSteps.length} ขั้น
+                </span>
+                <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
+                  {activeStepNames.join(" · ")}
+                </p>
+              </div>
             ) : currentStepName ? (
               <span className="text-base">
                 <span className="text-slate-500 dark:text-slate-400">ตอนนี้: </span>
@@ -220,7 +235,14 @@ export default function ProductionDetailPage({
               {completedSteps}/{totalSteps} ขั้น ({progressPct}%)
             </span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+          <div
+            role="progressbar"
+            aria-label="ความคืบหน้าใบผลิต"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progressPct}
+            className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"
+          >
             <div
               className="h-full rounded-full bg-blue-500 transition-all"
               style={{ width: `${progressPct}%` }}
@@ -242,9 +264,6 @@ export default function ProductionDetailPage({
           onCompleteStep={handleCompleteStep}
         />
       </div>
-
-      {/* ② แบบ + ลายพิมพ์ + ไซส์ — อ้างอิง "จะทำอะไร" (ช่างดูตอนลงมือ · UX1 · ย้ายลงใต้ขั้นตอน) */}
-      <ProductionDesignCard order={order} />
 
       {/* เสื้อจากสต๊อค: เบิก (ตัดยอดจอง) + คืนเศษ — ผูกขั้น GARMENT_PICK (ก้อน 1) */}
       <GarmentPickCard
