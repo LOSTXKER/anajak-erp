@@ -16,6 +16,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/ui/field";
 import { FileUpload } from "@/components/ui/file-upload";
 import {
   Dialog,
@@ -519,26 +520,20 @@ export default function WhtRegisterPage() {
 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  เลขที่ใบ (ถ้ามี)
-                </label>
+              <Field label="เลขที่ใบ (ถ้ามี)">
                 <Input
                   value={certNumber}
                   onChange={(e) => setCertNumber(e.target.value)}
                   placeholder="เลขที่ในหนังสือรับรอง"
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  วันที่ในใบ
-                </label>
+              </Field>
+              <Field label="วันที่ในใบ">
                 <Input
                   type="date"
                   value={certDate}
                   onChange={(e) => setCertDate(e.target.value)}
                 />
-              </div>
+              </Field>
             </div>
 
             <div className="space-y-2">
@@ -551,7 +546,7 @@ export default function WhtRegisterPage() {
                     href={fileUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex min-w-0 items-center gap-1.5 text-blue-600 hover:underline dark:text-blue-400"
+                    className="flex min-h-11 min-w-0 items-center gap-1.5 text-blue-600 hover:underline dark:text-blue-400"
                   >
                     <Paperclip className="h-4 w-4 shrink-0" />
                     <span className="truncate">เปิดไฟล์ที่แนบ</span>
@@ -579,17 +574,14 @@ export default function WhtRegisterPage() {
               )}
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                หมายเหตุ
-              </label>
+            <Field label="หมายเหตุ">
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
                 placeholder="เช่น ลูกค้าส่งตัวจริงมาทางไปรษณีย์"
               />
-            </div>
+            </Field>
           </div>
 
           <DialogFooter className="gap-2">
