@@ -34,6 +34,17 @@ import { permAllows } from "@/lib/permissions";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 import {
+  billingActionAvailability,
+  billingOverview,
+  canCreateInvoiceForOrder,
+  canIssueReceiptForPayment,
+  cashAmountForRemaining,
+  invoiceBalance,
+  paymentSettlementPreview,
+  receiptAmounts,
+  suggestedWht,
+} from "@/lib/billing-ui";
+import {
   Receipt,
   Plus,
   CreditCard,
@@ -237,18 +248,14 @@ export function OrderBillingSection({
   // server บังคับยอดรวมต้องเท่างวดเป๊ะอีกชั้น
   function openReceiptForPayment(p: Payment, inv: Invoice) {
     resetCreateForm();
-    const gross = p.amount + p.whtAmount;
-    const invBase = inv.amount - inv.discount;
-    const ratio = inv.tax > 0 && invBase > 0 ? invBase / (invBase + inv.tax) : 1;
-    const base = Math.round(gross * ratio * 100) / 100;
-    const vat = Math.round((gross - base) * 100) / 100;
+    const amounts = receiptAmounts({ invoice: inv, payment: p });
     setInvoiceType("RECEIPT");
     setChosenType("RECEIPT");
     // กัน suggest ที่มาช้าทับค่างวด — ค่านี้มาจากเงินรับจริง ห้ามขยับ
     setUserEdited({ amount: true, tax: true, dueDate: true });
-    setInvoiceAmount(base.toFixed(2));
-    setInvoiceTax(vat.toFixed(2));
-    setReceiptForPayment({ id: p.id, gross, date: p.createdAt });
+    setInvoiceAmount(amounts.amount.toFixed(2));
+    setInvoiceTax(amounts.tax.toFixed(2));
+    setReceiptForPayment({ id: p.id, gross: amounts.gross, date: p.createdAt });
     // วันที่เอกสาร default = วันบันทึกรับเงิน — แก้เป็นวันเงินเข้าจริงได้ (บันทึกข้ามวัน)
     setReceiptIssueDate(new Date(p.createdAt).toISOString().slice(0, 10));
     setShowCreateDialog(true);
@@ -294,25 +301,6 @@ export function OrderBillingSection({
   const adjustmentIncomplete =
     isAdjustmentType && (!originalInvoiceId || !adjustmentReason.trim());
 
-  // งวดรับเงินบนใบเรียกเก็บที่ยังไม่ออกใบเสร็จ/ใบกำกับ — จ้างทำของต้องออกทุกงวด
-  // (tax point ม.78/1(1) · Gate B3) — ใบที่ถูก void แล้วนับเป็นยังไม่ออก
-  // นับรวมงวด WHT ล้วน (amount 0 + whtAmount — เคสโอน 97% ก่อน ใบ 50ทวิตามหลัง)
-  const pendingReceiptCount = (invoices.data || [])
-    .filter(
-      (inv) =>
-        !inv.isVoided &&
-        ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"].includes(inv.type)
-    )
-    .flatMap((inv) => inv.payments || [])
-    .filter(
-      (p) => p.amount + p.whtAmount > 0 && (!p.receiptInvoice || p.receiptInvoice.isVoided)
-    ).length;
-  // ใบเสร็จที่ไม่ผูกงวด (ออกจาก dialog ปกติ/ข้อมูลก่อน Gate B3) — ระบบแยกไม่ได้ว่าเป็น
-  // ใบของงวดไหน ต้องเตือนคนตรวจก่อนออกเพิ่ม กันใบกำกับซ้ำต่อเงินก้อนเดียว
-  const unlinkedReceiptCount = (invoices.data || []).filter(
-    (inv) => !inv.isVoided && inv.type === "RECEIPT" && !inv.forPaymentId
-  ).length;
-
   function handleCreateInvoice() {
     createInvoice.mutate({
       orderId,
@@ -356,52 +344,33 @@ export function OrderBillingSection({
     setShowCreateDialog(true);
   }
 
-  // Calculate how much is still outstanding
-  const totalInvoiced = (invoices.data || [])
-    .filter((inv) => !inv.isVoided)
-    .reduce((sum, inv) => sum + inv.totalAmount, 0);
-  // ยอดเคลียร์บิล = เงินสด + ภาษีที่ลูกค้าหัก ณ ที่จ่าย (ตรงตรรกะ server — กันบิลค้างผี 3%)
-  const totalPaid = (invoices.data || [])
-    .filter((inv) => !inv.isVoided)
-    .flatMap((inv) => inv.payments || [])
-    .reduce((sum, p) => sum + p.amount + p.whtAmount, 0);
-
-  const canCreateInvoice = !["INQUIRY", "CANCELLED", "COMPLETED"].includes(internalStatus);
+  const {
+    totalInvoiced,
+    totalPaid,
+    pendingReceiptCount,
+    unlinkedReceiptCount,
+    hasLiveReceivable,
+  } = billingOverview(invoices.data || []);
+  const canCreateInvoice = canCreateInvoiceForOrder(internalStatus);
 
   // บิลที่ dialog บันทึกชำระเปิดอยู่ — ใช้คิด prefill หัก ณ ที่จ่าย + ยอดคงเหลือ
   const payingInvoice = (invoices.data || []).find((inv) => inv.id === showPaymentDialog);
 
-  // มีใบเรียกเก็บ active ไหม — ใบเสร็จบันทึกเงินได้เฉพาะ "ขายสดออกใบเสร็จตรง" (ไม่มีใบ
-  // แจ้งหนี้/เพิ่มหนี้) ตรงกับ guard ฝั่ง server (Gate A1) — มีใบเรียกเก็บ = เงินลงที่ใบนั้น
-  const hasLiveReceivable = (invoices.data || []).some(
-    (inv) =>
-      !inv.isVoided &&
-      ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"].includes(inv.type)
-  );
-  // ยอดที่เคลียร์แล้วของใบ = เงินรับ + WHT + ใบลดหนี้ที่อ้างใบนี้ (นิยามเดียวกับ server)
-  const creditedAmount = (inv: { adjustments?: { type: string; totalAmount: number; isVoided: boolean }[] }) =>
-    (inv.adjustments || [])
-      .filter((a) => !a.isVoided && a.type === "CREDIT_NOTE")
-      .reduce((sum, a) => sum + a.totalAmount, 0);
-  const payingPaid = (payingInvoice?.payments || []).reduce(
-    (sum: number, p: Payment) => sum + p.amount + p.whtAmount,
-    0
-  );
-  const payingRemaining = payingInvoice
-    ? Math.max(0, payingInvoice.totalAmount - payingPaid - creditedAmount(payingInvoice))
-    : 0;
+  const payingRemaining = payingInvoice ? invoiceBalance(payingInvoice).remaining : 0;
   // มาตรฐานหัก 3% ของฐานก่อน VAT ของใบ (ค่าจ้างทำของ) — ปัด 2 ตำแหน่ง
-  const whtSuggested = payingInvoice
-    ? Math.max(0, Math.round((payingInvoice.totalAmount - payingInvoice.tax) * 3) / 100)
-    : 0;
-  const settleAmount =
-    (parseFloat(paymentAmount) || 0) + (whtEnabled ? parseFloat(whtAmount) || 0 : 0);
-  // epsilon กัน floating point ฝั่ง client เตือนปลอม (server เทียบด้วย Decimal อยู่แล้ว)
-  const settleExceeds = !!payingInvoice && settleAmount > payingRemaining + 0.005;
+  const whtSuggested = suggestedWht(payingInvoice ?? null);
+  const settlement = paymentSettlementPreview({
+    cash: parseFloat(paymentAmount) || 0,
+    wht: parseFloat(whtAmount) || 0,
+    whtEnabled,
+    remaining: payingRemaining,
+  });
+  const settleAmount = settlement.settled;
+  const settleExceeds = !!payingInvoice && settlement.exceedsRemaining;
 
   // เงินสดที่ลูกค้าโอน = คงเหลือ − ยอดหัก (ปัด 2 ตำแหน่ง กันเศษ float)
   const cashPrefill = (wht: number) =>
-    Math.max(0, Math.round((payingRemaining - wht) * 100) / 100).toString();
+    cashAmountForRemaining(payingRemaining, wht).toString();
 
   // ติ๊กหัก ณ ที่จ่าย — prefill ยอดหัก 3% + ปรับช่องเงินสด = คงเหลือ−ยอดหัก (ถ้าผู้ใช้ยังไม่แก้เอง)
   function handleWhtToggle(checked: boolean) {
@@ -489,22 +458,13 @@ export function OrderBillingSection({
             <div className="space-y-2">
               {invoices.data.map((inv) => {
                 const isExpanded = expandedInvoice === inv.id;
-                // นับ whtAmount เป็นยอดเคลียร์ด้วย — ให้ตรง server (เงินสด 97% + เครดิตภาษี 3%)
-                const invPaid = (inv.payments || []).reduce(
-                  (sum: number, p: Payment) => sum + p.amount + p.whtAmount,
-                  0
-                );
-                // หักใบลดหนี้ที่อ้างใบนี้ด้วย — "ค้าง" ที่โชว์/prefill ต้องตรง server
-                const invRemaining = Math.max(
-                  0,
-                  inv.totalAmount - invPaid - creditedAmount(inv)
-                );
-                // เงินสดสุทธิที่รับไว้ (คืนเงินก่อนหน้า = payment ติดลบ หักออกแล้ว · ไม่นับ WHT
-                // ที่เป็นเครดิตภาษี) — คืนเงินได้ไม่เกินนี้ ตรงเพดาน server recordRefund
-                const invNetCash = (inv.payments || []).reduce(
-                  (sum: number, p: Payment) => sum + p.amount,
-                  0
-                );
+                const balance = invoiceBalance(inv);
+                const actions = billingActionAvailability({
+                  invoice: inv,
+                  netCash: balance.netCash,
+                  canRecordMoney,
+                  hasLiveReceivable,
+                });
 
                 return (
                   <div
@@ -635,12 +595,11 @@ export function OrderBillingSection({
                                     <Badge variant="outline" size="sm">
                                       ใบกำกับ {p.receiptInvoice.invoiceNumber}
                                     </Badge>
-                                  ) : p.amount + p.whtAmount > 0 &&
-                                    canBill &&
-                                    !inv.isVoided &&
-                                    ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"].includes(
-                                      inv.type
-                                    ) ? (
+                                  ) : canIssueReceiptForPayment({
+                                      invoice: inv,
+                                      payment: p,
+                                      canBill,
+                                    }) ? (
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -665,56 +624,40 @@ export function OrderBillingSection({
 
                         {/* Actions */}
                         <div className="flex gap-2">
-                          {!inv.isVoided &&
-                            inv.paymentStatus !== "PAID" &&
-                            inv.paymentStatus !== "VOIDED" &&
-                            // ตรงกับ guard server (Gate A1): ใบลดหนี้ห้ามรับเงิน · ใบเสร็จรับได้
-                            // เฉพาะขายสดตรง (ไม่มีใบเรียกเก็บ) · role ตรง moneyRecorder
-                            canRecordMoney &&
-                            inv.type !== "CREDIT_NOTE" &&
-                            (inv.type !== "RECEIPT" || !hasLiveReceivable) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1 text-xs"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // ล้างฟอร์มก่อน — กันค่าหัก/สลิปค้างจากบิลก่อนหน้า แล้ว prefill = คงเหลือ
-                                  resetPaymentForm();
-                                  setPaymentAmount(invRemaining.toString());
-                                  setShowPaymentDialog(inv.id);
-                                }}
-                              >
-                                <CreditCard className="h-3 w-3" />
-                                บันทึกชำระ
-                              </Button>
-                            )}
-                          {!inv.isVoided &&
-                            inv.paymentStatus !== "VOIDED" &&
-                            canRecordMoney &&
-                            // คืนเงินได้เมื่อมีเงินสดรับสุทธิ > 0 (ตรงเพดาน server) · ใบลดหนี้เอง
-                            // คือการคืน ไม่ต้องคืนซ้ำ
-                            inv.type !== "CREDIT_NOTE" &&
-                            invNetCash > 0 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-500"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  resetRefundForm();
-                                  setRefundAmount(invNetCash.toString());
-                                  setShowRefundDialog(inv.id);
-                                }}
-                              >
-                                <Undo2 className="h-3 w-3" />
-                                คืนเงิน
-                              </Button>
-                            )}
-                          {!inv.isVoided &&
-                            inv.paymentStatus !== "VOIDED" &&
-                            // void = moneyRecorder ฝั่ง server — ซ่อนปุ่มจาก role ที่กดแล้วโดนปฏิเสธ
-                            canRecordMoney && (
+                          {actions.canRecordPayment && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // ล้างฟอร์มก่อน — กันค่าหัก/สลิปค้างจากบิลก่อนหน้า แล้ว prefill = คงเหลือ
+                                resetPaymentForm();
+                                setPaymentAmount(balance.remaining.toString());
+                                setShowPaymentDialog(inv.id);
+                              }}
+                            >
+                              <CreditCard className="h-3 w-3" />
+                              บันทึกชำระ
+                            </Button>
+                          )}
+                          {actions.canRecordRefund && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-500"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                resetRefundForm();
+                                setRefundAmount(balance.netCash.toString());
+                                setShowRefundDialog(inv.id);
+                              }}
+                            >
+                              <Undo2 className="h-3 w-3" />
+                              คืนเงิน
+                            </Button>
+                          )}
+                          {actions.canVoid && (
                             <Button
                               variant="ghost"
                               size="sm"
