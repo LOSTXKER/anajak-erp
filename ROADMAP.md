@@ -75,6 +75,16 @@
 - [ ] UX7 **ตารางสินค้า→การ์ดมือถือ + matrix default** 【L】 — เสี่ยงสุด ไว้ท้าย
 - **ลำดับแนะนำ**: UX1→UX2→UX3→UX4→UX5→UX6→UX8→UX7 · คำถาม §4 เบสเคาะแล้ว 4/5 (2026-07-07 — เหลือข้อ 5 ยุบตรวจรับเสื้อ ไม่บล็อกงวดไหน) · ทับ C5 เดิม (ขยายเป็น UX1/UX2/UX8)
 
+### 🎯 UX Refactor UX0–UX3 — ทางเดินงานทั้งระบบ (เบสเคาะ 2026-07-11 · ใบงานเต็ม `docs/spec-ux-refactor-2026-07-11.md`)
+> ต่อจาก UX Revamp เดิมโดย **คง Prompt/สีแบรนด์/การ์ดเดิม** และแก้รากปัญหาเรื่องทางเข้า ลำดับงาน สิทธิ์ mobile และ accessibility แบบ targeted · ไม่มี schema migration/dependency ใหม่ · public URL/ข้อมูลเดิมต้องยังใช้ได้
+
+- [ ] **UX0 ฐาน UI + ความน่าเชื่อถือ** — control มือถือ ≥44px/input 16px (desktop 36px/14px) · `Field`/viewport-safe dialog/`ResponsiveList`/query state/capability gate · navigation registry เดียว+longest match · skip link/reduced motion/public forced-light · ปุ่ม hover-only และ empty-on-error ต้องหมด · jsx-a11y เปิด warning แล้วเคลียร์จนยก error
+- [ ] **UX1 ทางเข้าตามบทบาท + จุดโฟกัส** — `/home` ส่งผู้มี `supervise_operations` ไป Dashboard ที่เหลือไป `/my-tasks` · แยกต้องทำก่อน/งานของฉัน/คิวทีมและตัดซ้ำ · Production supervisor/operator เรียงเนื้อหาคนละแบบ · KPI drill-down ด้วย URL state · global entity search ตาม permission · เพิ่มทางเข้า `/factory`
+- [ ] **UX2 flow ประจำวัน** — intake เดียว `/orders/new` (`/quotations/new` → `?next=quote`) · จอแรกเหลือข้อมูลหลักราว 5 จุด · Order detail เหลือ 4 tab หลักและ URL เป็น source เดียว · Production action ตามชนิดขั้น · core lists ใช้ desktop table + mobile card · Customer quick-create/contact/open-work
+- [ ] **UX3 ปิดทางตัน + targeted refactor** — Billing row → order money + print/action · quotation `updateDraft` atomic + `prepareShare` · product price local draft · Sync dialog reducer · Outsource เหลือคิวปฏิบัติการและ helper เดียว · Analytics แยกรายงานออกจากประวัติระบบ · แยก mega-component เฉพาะ pure decision logic ที่มี test ก่อน
+- **preview gate ก่อนขยาย pattern**: `/my-tasks`, `/orders/new`, `/orders/[id]`, `/production/[id]` ต้องเปิดดูจริงทั้ง mobile/desktop แล้วจึงไล่ core lists/หน้าอื่น
+- **เกณฑ์ปิด**: 320/375/640/768/1024/1440 + landscape/zoom 200% · keyboard/Escape/focus-return/reduced-motion/dark/public-light · 6 role+override · core mobile ไม่มี horizontal scroll · action มือถือ ≥44px · a11y lint 0 error · UI permission ตรง server · error ไม่ปลอมเป็น empty · quotation ไม่มี partial save · console 0 error · unit เดิมห้ามถอย
+
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
 ~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
 
