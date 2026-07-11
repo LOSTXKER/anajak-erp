@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   CheckCircle2,
   XCircle,
@@ -9,7 +15,6 @@ import {
   RefreshCw,
   Package,
   Layers,
-  X,
   ChevronDown,
   ChevronUp,
   Cloud,
@@ -18,25 +23,11 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatDateTime } from "@/lib/utils";
-import type { SyncProductEntry, SyncMode } from "@/lib/stock-sync";
-
-// ─── Types ─────────────────────────────────────────────────
-
-interface SyncTotals {
-  productsCreated: number;
-  productsUpdated: number;
-  variantsCreated: number;
-  variantsUpdated: number;
-  errors: string[];
-}
-
-interface LogEntry {
-  type: "info" | "product" | "error";
-  text: string;
-  productEntry?: SyncProductEntry;
-}
-
-type SyncPhase = "idle" | "syncing" | "done" | "error";
+import type { SyncMode } from "@/lib/stock-sync";
+import {
+  createInitialSyncDialogState,
+  syncDialogReducer,
+} from "@/lib/sync-dialog-state";
 
 interface SyncDialogProps {
   open: boolean;
@@ -46,236 +37,135 @@ interface SyncDialogProps {
 // ─── Component ─────────────────────────────────────────────
 
 export function SyncDialog({ open, onClose }: SyncDialogProps) {
-  const [phase, setPhase] = useState<SyncPhase>("idle");
-  const [mode, setMode] = useState<SyncMode>("full");
-  const [elapsed, setElapsed] = useState(0);
-  const [showErrors, setShowErrors] = useState(false);
+  if (!open) return null;
+
+  return <SyncDialogSession onClose={onClose} />;
+}
+
+function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
+  const [state, dispatch] = useReducer(
+    syncDialogReducer,
+    undefined,
+    createInitialSyncDialogState
+  );
   const startTimeRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const logEndRef = useRef<HTMLDivElement>(null);
-  const abortRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Progress
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [processedCount, setProcessedCount] = useState(0);
-  const [recentProducts, setRecentProducts] = useState<SyncProductEntry[]>([]);
-  const [totals, setTotals] = useState<SyncTotals>({
-    productsCreated: 0,
-    productsUpdated: 0,
-    variantsCreated: 0,
-    variantsUpdated: 0,
-    errors: [],
-  });
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [cancelled, setCancelled] = useState(false);
-
-  // Real-time activity status & log
-  const [activityStatus, setActivityStatus] = useState("");
-  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
-
-  // For retry: remember where we stopped
-  const [lastFailedPage, setLastFailedPage] = useState<number | null>(null);
+  const {
+    phase,
+    mode,
+    elapsed,
+    showErrors,
+    totalProducts,
+    processedCount,
+    totals,
+    errorMessage,
+    cancelRequested,
+    activityStatus,
+    logEntries,
+    lastFailedPage,
+  } = state;
 
   const utils = trpc.useUtils();
   const syncPage = trpc.stockSync.syncPage.useMutation();
   const { data: syncStatus } = trpc.stockSync.status.useQuery(undefined, {
-    enabled: open,
+    enabled: true,
   });
-
-  // ─── Reset ────────────────────────────────────────────────
-  const resetState = useCallback(() => {
-    setPhase("idle");
-    setElapsed(0);
-    setShowErrors(false);
-    setCurrentPage(0);
-    setTotalPages(0);
-    setTotalProducts(0);
-    setProcessedCount(0);
-    setRecentProducts([]);
-    setTotals({
-      productsCreated: 0,
-      productsUpdated: 0,
-      variantsCreated: 0,
-      variantsUpdated: 0,
-      errors: [],
-    });
-    setErrorMessage(null);
-    setCancelled(false);
-    setLastFailedPage(null);
-    setActivityStatus("");
-    setLogEntries([]);
-    abortRef.current = false;
-  }, []);
 
   // Auto-scroll log
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    logEndRef.current?.scrollIntoView({ behavior: "auto" });
   }, [logEntries.length]);
 
-  // ─── Log helper ──────────────────────────────────────────
-  const pushLog = useCallback(
-    (type: LogEntry["type"], text: string, productEntry?: SyncProductEntry) => {
-      setLogEntries((prev) => [...prev, { type, text, productEntry }].slice(-50));
-    },
-    []
-  );
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = undefined;
+    }
+  }, []);
 
   // ─── Start sync ───────────────────────────────────────────
-  const startSync = useCallback(
-    async (syncMode: SyncMode, startPage = 1) => {
-      if (startPage === 1) resetState();
-      setMode(syncMode);
-      setPhase("syncing");
-      setCancelled(false);
-      abortRef.current = false;
-      startTimeRef.current = Date.now();
+  const startSync = async (syncMode: SyncMode, startPage = 1) => {
+    const resume = startPage > 1;
+    dispatch({ type: "START", mode: syncMode, resume });
+    abortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    startTimeRef.current = Date.now();
+    stopTimer();
+    timerRef.current = setInterval(() => {
+      dispatch({
+        type: "TICK",
+        elapsed: Math.floor((Date.now() - startTimeRef.current) / 1000),
+      });
+    }, 1000);
 
-      // Immediate activity feedback
-      setActivityStatus("กำลังเชื่อมต่อ Anajak Stock...");
-      setLogEntries([{ type: "info", text: "กำลังเชื่อมต่อ Anajak Stock..." }]);
+    let page = startPage;
+    let hasMore = true;
 
-      timerRef.current = setInterval(() => {
-        setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
-      }, 1000);
+    // For incremental mode, use lastSyncAt
+    const updatedAfter =
+      syncMode === "incremental" && syncStatus?.lastSyncAt
+        ? new Date(syncStatus.lastSyncAt).toISOString()
+        : null;
 
-      let page = startPage;
-      let hasMore = true;
-      const accumulated: SyncTotals =
-        startPage > 1
-          ? { ...totals }
-          : {
-              productsCreated: 0,
-              productsUpdated: 0,
-              variantsCreated: 0,
-              variantsUpdated: 0,
-              errors: [],
-            };
+    try {
+      while (hasMore && !abortController.signal.aborted) {
+        dispatch({ type: "PAGE_STARTED", page });
 
-      // For incremental mode, use lastSyncAt
-      const updatedAfter =
-        syncMode === "incremental" && syncStatus?.lastSyncAt
-          ? new Date(syncStatus.lastSyncAt).toISOString()
-          : null;
+        const pageResult = await syncPage.mutateAsync({
+          page,
+          mode: syncMode,
+          updatedAfter,
+        });
 
-      try {
-        while (hasMore && !abortRef.current) {
-          setCurrentPage(page);
+        dispatch({ type: "PAGE_SUCCEEDED", result: pageResult });
 
-          // Activity: fetching page
-          setActivityStatus("กำลังดึงรายการสินค้า...");
-          pushLog("info", "กำลังดึงรายการสินค้าจาก Stock...");
-
-          const pageResult = await syncPage.mutateAsync({
-            page,
-            mode: syncMode,
-            updatedAfter,
-          });
-
-          // Activity: processing result
-          const count = pageResult.syncedProducts.length;
-          const variantTotal = pageResult.variantsCreated + pageResult.variantsUpdated;
-          setActivityStatus(
-            `กำลังบันทึก ${count} สินค้า...`
-          );
-          pushLog(
-            "info",
-            `พบ ${count} สินค้า${variantTotal > 0 ? `, ${variantTotal} ตัวเลือก` : ""}`
-          );
-
-          // Push individual product entries to log
-          for (const entry of pageResult.syncedProducts) {
-            pushLog("product", "", entry);
-          }
-
-          // Push errors to log
-          for (const err of pageResult.errors) {
-            pushLog("error", err);
-          }
-
-          // Accumulate
-          accumulated.productsCreated += pageResult.productsCreated;
-          accumulated.productsUpdated += pageResult.productsUpdated;
-          accumulated.variantsCreated += pageResult.variantsCreated;
-          accumulated.variantsUpdated += pageResult.variantsUpdated;
-          accumulated.errors.push(...pageResult.errors);
-
-          setTotals({ ...accumulated });
-          setTotalPages(pageResult.totalPages);
-          setTotalProducts(pageResult.totalProducts);
-          setProcessedCount((prev) => prev + pageResult.syncedProducts.length);
-          setRecentProducts((prev) =>
-            [...prev, ...pageResult.syncedProducts].slice(-30)
-          );
-
-          hasMore = pageResult.hasMore;
-          if (hasMore) {
-            setActivityStatus("กำลังดึงสินค้าเพิ่มเติม...");
-          }
-          page++;
-        }
-
-        clearInterval(timerRef.current);
-        setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
-
-        if (abortRef.current) {
-          setCancelled(true);
-          setActivityStatus("Sync ถูกยกเลิก");
-          pushLog("info", "Sync ถูกยกเลิก");
-          setPhase("done");
-        } else {
-          setActivityStatus("Sync สำเร็จ!");
-          pushLog("info", "Sync สำเร็จ!");
-          setPhase("done");
-        }
-
-        utils.product.list.invalidate();
-        utils.stockSync.status.invalidate();
-      } catch (err) {
-        clearInterval(timerRef.current);
-        setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
-        const msg =
-          err instanceof Error ? err.message : "เกิดข้อผิดพลาดไม่ทราบสาเหตุ";
-        setErrorMessage(msg);
-        setActivityStatus("เกิดข้อผิดพลาด");
-        pushLog("error", msg);
-        setLastFailedPage(page);
-        setPhase("error");
+        hasMore = pageResult.hasMore;
+        page++;
       }
-    },
-    [resetState, pushLog, syncPage, utils, syncStatus?.lastSyncAt, totals]
-  );
+
+      stopTimer();
+      dispatch({
+        type: "FINISHED",
+        elapsed: Math.floor((Date.now() - startTimeRef.current) / 1000),
+        cancelled: abortController.signal.aborted,
+      });
+
+      utils.product.list.invalidate();
+      utils.stockSync.status.invalidate();
+    } catch (err) {
+      stopTimer();
+      const msg =
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดไม่ทราบสาเหตุ";
+      dispatch({
+        type: "FAILED",
+        elapsed: Math.floor((Date.now() - startTimeRef.current) / 1000),
+        message: msg,
+        page,
+      });
+    } finally {
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current = null;
+      }
+    }
+  };
 
   // ─── Cancel ───────────────────────────────────────────────
   const handleCancel = useCallback(() => {
-    abortRef.current = true;
+    dispatch({ type: "CANCEL_REQUESTED" });
+    abortControllerRef.current?.abort();
   }, []);
 
-  // Reset on open
+  // Cleanup in-flight work on unmount.
   useEffect(() => {
-    if (open && phase !== "syncing") {
-      resetState();
-    }
-  }, [open, phase, resetState]);
-
-  // Cleanup timer
-  useEffect(() => {
-    return () => clearInterval(timerRef.current);
-  }, []);
-
-  if (!open) return null;
-
-  // Inject keyframes
-  if (
-    typeof document !== "undefined" &&
-    !document.getElementById("sync-dialog-keyframes")
-  ) {
-    const style = document.createElement("style");
-    style.id = "sync-dialog-keyframes";
-    style.textContent = `@keyframes dialogIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}@keyframes logPulse{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:translateY(0)}}@keyframes dotPulse{0%,100%{opacity:.3}50%{opacity:1}}`;
-    document.head.appendChild(style);
-  }
+    return () => {
+      abortControllerRef.current?.abort();
+      stopTimer();
+    };
+  }, [stopTimer]);
 
   const totalChanges =
     totals.productsCreated +
@@ -283,35 +173,30 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
     totals.variantsCreated +
     totals.variantsUpdated;
   const hasErrors = totals.errors.length > 0;
+  const isCancelled = phase === "cancelled";
   const progressPct =
     totalProducts > 0
       ? Math.min(Math.round((processedCount / totalProducts) * 100), 100)
       : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={phase !== "syncing" ? onClose : undefined}
-      />
-
-      {/* Dialog */}
-      <div
-        className="relative mx-4 w-full max-w-md rounded-2xl bg-white shadow-2xl dark:bg-slate-900"
-        style={{ animation: "dialogIn 0.2s ease-out" }}
+    <Dialog
+      open
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && phase !== "syncing") onClose();
+      }}
+    >
+      <DialogContent
+        className={`gap-0 sm:max-w-md ${phase === "syncing" ? "[&>button]:hidden" : ""}`}
+        aria-busy={phase === "syncing"}
+        onEscapeKeyDown={(event) => {
+          if (phase === "syncing") event.preventDefault();
+        }}
+        onPointerDownOutside={(event) => {
+          if (phase === "syncing") event.preventDefault();
+        }}
       >
-        {/* Close */}
-        {phase !== "syncing" && (
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        )}
-
-        <div className="p-6">
+        <div>
           {/* ════════════════════════════════════════════════════
               IDLE — Mode selection
              ════════════════════════════════════════════════════ */}
@@ -320,12 +205,12 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950">
                 <Cloud className="h-8 w-8 text-blue-500" />
               </div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              <DialogTitle className="text-center text-lg">
                 Sync จาก Anajak Stock
-              </h2>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              </DialogTitle>
+              <DialogDescription className="mt-2 text-center">
                 ดึงข้อมูลสินค้า, Variant, ราคา และสต็อกมาอัปเดตในระบบ ERP
-              </p>
+              </DialogDescription>
 
               {/* Last sync info */}
               {syncStatus?.lastSyncAt && (
@@ -377,14 +262,14 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                 </div>
 
                 {/* Dynamic activity status */}
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                <DialogTitle className="text-center text-lg" aria-live="polite">
                   {activityStatus || "กำลัง Sync..."}
-                </h2>
+                </DialogTitle>
 
                 {/* Mode badge */}
-                <p className="mt-1 text-xs text-slate-400">
+                <DialogDescription className="mt-1 text-center text-xs">
                   {mode === "full" ? "Sync ทั้งหมด" : "Sync เฉพาะที่เปลี่ยน"}
-                </p>
+                </DialogDescription>
 
                 {/* Counter */}
                 {totalProducts > 0 && (
@@ -401,7 +286,14 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                     <span>{progressPct}%</span>
                     <span>{elapsed} วินาที</span>
                   </div>
-                  <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                  <div
+                    className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+                    role="progressbar"
+                    aria-label="ความคืบหน้าการ Sync"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={progressPct}
+                  >
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
                       style={{ width: `${progressPct}%` }}
@@ -438,12 +330,16 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
               )}
 
               {/* Live log — always visible */}
-              <div className="mt-4 max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-left dark:border-slate-700 dark:bg-slate-800/50">
+              <div
+                className="mt-4 max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-left dark:border-slate-700 dark:bg-slate-800/50"
+                role="log"
+                aria-live="polite"
+                aria-relevant="additions text"
+              >
                 {logEntries.length === 0 ? (
                   <div className="flex items-center gap-2 py-1 text-xs text-slate-400">
                     <span
-                      className="inline-block h-2 w-2 rounded-full bg-blue-400"
-                      style={{ animation: "dotPulse 1.2s ease-in-out infinite" }}
+                      className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-400"
                     />
                     <span>กำลังเริ่มต้น...</span>
                   </div>
@@ -461,12 +357,10 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                               ? "font-medium text-blue-600 dark:text-blue-400"
                               : "text-slate-400 dark:text-slate-500"
                           }`}
-                          style={isLast ? { animation: "logPulse 0.3s ease-out" } : undefined}
                         >
                           {isLast ? (
                             <span
-                              className="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-blue-400"
-                              style={{ animation: "dotPulse 1.2s ease-in-out infinite" }}
+                              className="inline-block h-2 w-2 flex-shrink-0 animate-pulse rounded-full bg-blue-400"
                             />
                           ) : (
                             <span className="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-slate-300 dark:bg-slate-600" />
@@ -482,7 +376,6 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                         <div
                           key={`log-${i}`}
                           className="flex items-start gap-2 py-1 text-xs text-red-500"
-                          style={isLast ? { animation: "logPulse 0.3s ease-out" } : undefined}
                         >
                           <XCircle className="mt-0.5 h-3 w-3 flex-shrink-0" />
                           <span className="truncate">{entry.text}</span>
@@ -501,7 +394,6 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                             ? "font-medium text-slate-700 dark:text-slate-200"
                             : "text-slate-400 dark:text-slate-500"
                         }`}
-                        style={isLast ? { animation: "logPulse 0.3s ease-out" } : undefined}
                       >
                         {pe.status === "error" ? (
                           <XCircle className="mt-0.5 h-3 w-3 flex-shrink-0 text-red-500" />
@@ -531,13 +423,11 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                   variant="ghost"
                   size="sm"
                   onClick={handleCancel}
-                  disabled={abortRef.current}
+                  disabled={cancelRequested}
                   className="text-slate-500"
                 >
                   <Ban className="h-3.5 w-3.5" />
-                  {abortRef.current
-                    ? "กำลังหยุด..."
-                    : "ยกเลิก"}
+                  {cancelRequested ? "กำลังหยุด..." : "ยกเลิก"}
                 </Button>
               </div>
             </div>
@@ -546,31 +436,31 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
           {/* ════════════════════════════════════════════════════
               DONE — Summary
              ════════════════════════════════════════════════════ */}
-          {phase === "done" && (
+          {(phase === "done" || phase === "cancelled") && (
             <div>
               <div className="text-center">
                 <div
                   className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${
-                    cancelled
+                    isCancelled
                       ? "bg-amber-50 dark:bg-amber-950"
                       : "bg-green-50 dark:bg-green-950"
                   }`}
                 >
-                  {cancelled ? (
+                  {isCancelled ? (
                     <Ban className="h-8 w-8 text-amber-500" />
                   ) : (
                     <CheckCircle2 className="h-8 w-8 text-green-500" />
                   )}
                 </div>
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                  {cancelled ? "Sync ถูกยกเลิก" : "Sync สำเร็จ!"}
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <DialogTitle className="text-center text-lg">
+                  {isCancelled ? "Sync ถูกยกเลิก" : "Sync สำเร็จ!"}
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-center">
                   ใช้เวลา {elapsed} วินาที
-                  {!cancelled &&
+                  {!isCancelled &&
                     totalChanges === 0 &&
                     " — ข้อมูลเป็นปัจจุบันแล้ว"}
-                </p>
+                </DialogDescription>
               </div>
 
               {/* Stats */}
@@ -605,8 +495,11 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
               {hasErrors && (
                 <div className="mt-4">
                   <button
-                    onClick={() => setShowErrors(!showErrors)}
-                    className="flex w-full items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/50 dark:hover:bg-amber-950"
+                    type="button"
+                    onClick={() => dispatch({ type: "TOGGLE_ERRORS" })}
+                    className="flex min-h-11 w-full items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/50 dark:hover:bg-amber-950"
+                    aria-expanded={showErrors}
+                    aria-controls="sync-error-list"
                   >
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -621,7 +514,10 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
                     )}
                   </button>
                   {showErrors && (
-                    <div className="mt-2 max-h-32 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50/50 p-3 dark:border-amber-800 dark:bg-amber-950/30">
+                    <div
+                      id="sync-error-list"
+                      className="mt-2 max-h-32 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50/50 p-3 dark:border-amber-800 dark:bg-amber-950/30"
+                    >
                       {totals.errors.map((err, i) => (
                         <p
                           key={i}
@@ -636,7 +532,7 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
               )}
 
               {/* No changes */}
-              {totalChanges === 0 && !hasErrors && !cancelled && (
+              {totalChanges === 0 && !hasErrors && !isCancelled && (
                 <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-center dark:border-slate-700 dark:bg-slate-800/50">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     ไม่มีการเปลี่ยนแปลง — สินค้าทั้งหมดตรงกับ Anajak Stock แล้ว
@@ -660,12 +556,12 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 dark:bg-red-950">
                 <XCircle className="h-8 w-8 text-red-500" />
               </div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              <DialogTitle className="text-center text-lg">
                 Sync ล้มเหลว
-              </h2>
-              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+              </DialogTitle>
+              <DialogDescription className="mt-2 text-center text-red-700 dark:text-red-400" role="alert">
                 {errorMessage || "เกิดข้อผิดพลาดไม่ทราบสาเหตุ"}
-              </p>
+              </DialogDescription>
 
               {/* Partial progress info */}
               {processedCount > 0 && (
@@ -701,8 +597,8 @@ export function SyncDialog({ open, onClose }: SyncDialogProps) {
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
