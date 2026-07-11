@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import {
   Dialog,
   DialogContent,
@@ -55,10 +56,26 @@ interface GoodsReceiptDialogProps {
 
 export function GoodsReceiptDialog(props: GoodsReceiptDialogProps) {
   const needContext = !props.presetLines;
-  const { data: context, isLoading } = trpc.goodsReceipt.context.useQuery(
+  const { data: context, isLoading, isError, refetch } = trpc.goodsReceipt.context.useQuery(
     { orderId: props.orderId, receiptType: props.receiptType },
     { enabled: needContext, gcTime: 0, staleTime: 0 }
   );
+
+  if (needContext && isError) {
+    return (
+      <Dialog open onOpenChange={(open) => !open && props.onClose()}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{RECEIPT_TYPE_LABELS[props.receiptType]}</DialogTitle>
+          </DialogHeader>
+          <QueryError
+            message="โหลดรายการสำหรับตรวจรับไม่สำเร็จ"
+            onRetry={() => void refetch()}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (needContext && (isLoading || !context)) {
     return (
@@ -200,8 +217,9 @@ function ReceiptForm({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-slate-500">{isReturn ? "คืน" : "นับได้"}</label>
+                  <label htmlFor={`receipt-count-${idx}`} className="text-xs text-slate-500">{isReturn ? "คืน" : "นับได้"}</label>
                   <Input
+                    id={`receipt-count-${idx}`}
                     type="number"
                     inputMode="numeric"
                     min={0}
@@ -222,8 +240,9 @@ function ReceiptForm({
               </div>
               {!isReturn && (
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-slate-500">ตำหนิ</label>
+                  <label htmlFor={`receipt-defect-${idx}`} className="text-xs text-slate-500">ตำหนิ</label>
                   <Input
+                    id={`receipt-defect-${idx}`}
                     type="number"
                     inputMode="numeric"
                     min={0}
@@ -265,9 +284,12 @@ function ReceiptForm({
                     <button
                       type="button"
                       onClick={() => setPhotoUrls((prev) => prev.filter((u) => u !== url))}
-                      className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
+                      aria-label="ลบรูปตรวจรับ"
+                      className="absolute -right-2 -top-2 flex h-11 w-11 items-start justify-end rounded-full bg-transparent p-1 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 sm:h-8 sm:w-8"
                     >
-                      <X className="h-2.5 w-2.5" />
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-700 shadow-sm">
+                        <X className="h-3.5 w-3.5" />
+                      </span>
                     </button>
                   </div>
                 ))}

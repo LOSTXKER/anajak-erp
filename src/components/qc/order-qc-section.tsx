@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import {
   Dialog,
   DialogContent,
@@ -64,7 +65,18 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const isQualityCheck = internalStatus === "QUALITY_CHECK";
-  const { data: records } = trpc.qc.listByOrder.useQuery({ orderId });
+  const { data: records, isError, refetch } = trpc.qc.listByOrder.useQuery({ orderId });
+
+  if (isError) {
+    return (
+      <Card>
+        <QueryError
+          message="โหลดประวัติ QC ไม่สำเร็จ"
+          onRetry={() => void refetch()}
+        />
+      </Card>
+    );
+  }
 
   if (!isQualityCheck && (records?.length ?? 0) === 0) return null;
 
@@ -222,10 +234,26 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
 // ============================================================
 
 export function QcCountDialog({ orderId, onClose }: { orderId: string; onClose: () => void }) {
-  const { data: context, isLoading } = trpc.qc.context.useQuery(
+  const { data: context, isLoading, isError, refetch } = trpc.qc.context.useQuery(
     { orderId },
     { gcTime: 0, staleTime: 0 }
   );
+
+  if (isError) {
+    return (
+      <Dialog open onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>นับจริง: ดีกี่ตัว เสียกี่ตัว</DialogTitle>
+          </DialogHeader>
+          <QueryError
+            message="โหลดรายการสำหรับ QC ไม่สำเร็จ"
+            onRetry={() => void refetch()}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (isLoading || !context) {
     return (
@@ -409,8 +437,9 @@ function QcCountForm({
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-500">จำนวน (ตัว)</label>
+                  <label htmlFor={`qc-defect-qty-${idx}`} className="text-xs text-slate-500">จำนวน (ตัว)</label>
                   <Input
+                    id={`qc-defect-qty-${idx}`}
                     type="number"
                     inputMode="numeric"
                     min={1}
@@ -422,12 +451,12 @@ function QcCountForm({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-500">ไซส์</label>
+                  <label htmlFor={`qc-defect-size-${idx}`} className="text-xs text-slate-500">ไซส์</label>
                   <Select
                     value={d.size === "" ? NONE : d.size}
                     onValueChange={(v) => update(idx, { size: v === NONE ? "" : v })}
                   >
-                    <SelectTrigger className="h-11">
+                    <SelectTrigger id={`qc-defect-size-${idx}`} className="h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -442,12 +471,12 @@ function QcCountForm({
                 </div>
                 {context.printLabels.length > 0 && (
                   <div className="space-y-1">
-                    <label className="text-xs text-slate-500">ลาย</label>
+                    <label htmlFor={`qc-defect-print-${idx}`} className="text-xs text-slate-500">ลาย</label>
                     <Select
                       value={d.printLabel === "" ? NONE : d.printLabel}
                       onValueChange={(v) => update(idx, { printLabel: v === NONE ? "" : v })}
                     >
-                      <SelectTrigger className="h-11">
+                      <SelectTrigger id={`qc-defect-print-${idx}`} className="h-11">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -467,12 +496,13 @@ function QcCountForm({
                     context.printLabels.length === 0 && "col-span-2"
                   )}
                 >
-                  <label className="text-xs text-slate-500">สาเหตุ</label>
+                  <label htmlFor={`qc-defect-reason-${idx}`} className="text-xs text-slate-500">สาเหตุ</label>
                   <Select
                     value={d.reason || undefined}
                     onValueChange={(v) => update(idx, { reason: v as QcDefectReason })}
                   >
                     <SelectTrigger
+                      id={`qc-defect-reason-${idx}`}
                       className={cn("h-11", !d.reason && "border-amber-400")}
                     >
                       <SelectValue placeholder="เลือกสาเหตุ" />
@@ -505,9 +535,12 @@ function QcCountForm({
                           onClick={() =>
                             update(idx, { photoUrls: d.photoUrls.filter((u) => u !== url) })
                           }
-                          className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
+                          aria-label="ลบรูปของเสีย"
+                          className="absolute -right-2 -top-2 flex h-11 w-11 items-start justify-end rounded-full bg-transparent p-1 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 sm:h-8 sm:w-8"
                         >
-                          <X className="h-2.5 w-2.5" />
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-700 shadow-sm">
+                            <X className="h-3.5 w-3.5" />
+                          </span>
                         </button>
                       </div>
                     ))}

@@ -71,8 +71,10 @@ export function ResponsiveList<T>({
       aria-busy={isLoading || undefined}
       {...props}
     >
-      <div className="hidden sm:block">{renderDesktop(resolvedItems)}</div>
-      <div className="sm:hidden">{renderMobile(resolvedItems)}</div>
+      {/* ที่ md sidebar กิน 256px ทำให้พื้นที่เนื้อหาจริงแคบกว่ามือถือแนวนอน
+          จึงคง card ถึงก่อน lg แล้วค่อยสลับเป็น table */}
+      <div className="hidden lg:block">{renderDesktop(resolvedItems)}</div>
+      <div className="lg:hidden">{renderMobile(resolvedItems)}</div>
       {pagination}
     </div>
   );

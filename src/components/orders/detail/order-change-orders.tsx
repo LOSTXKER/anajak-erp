@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { FileText, ArrowRight, ChevronDown, AlertTriangle } from "lucide-react";
+import { QueryError } from "@/components/ui/query-error";
 
 // ประวัติใบแก้ไขออเดอร์ (ก้อน 6 ชิ้น 3) — โชว์ใบแก้ไข (CO) ที่ออกหลังออเดอร์อนุมัติ:
 // เลขใบ · เหตุผล · ยอดเก่า→ใหม่ + ส่วนต่าง · ป้ายเตือนถ้าออกใบกำกับ/มัดจำไปแล้ว · คน/เวลา
@@ -20,7 +21,18 @@ interface OrderChangeOrdersProps {
 
 export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
   const [showAll, setShowAll] = useState(false);
-  const { data } = trpc.order.changeOrders.useQuery({ id: orderId });
+  const { data, isError, refetch } = trpc.order.changeOrders.useQuery({ id: orderId });
+
+  if (isError) {
+    return (
+      <Card>
+        <QueryError
+          message="โหลดประวัติใบแก้ไขออเดอร์ไม่สำเร็จ"
+          onRetry={() => void refetch()}
+        />
+      </Card>
+    );
+  }
 
   if (!data || data.length === 0) return null;
 

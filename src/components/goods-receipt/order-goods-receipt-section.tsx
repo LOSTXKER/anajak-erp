@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { RECEIPT_TYPE_LABELS, type ReceiptType } from "@/lib/goods-receipt";
 import { GoodsReceiptDialog } from "./goods-receipt-dialog";
+import { QueryError } from "@/components/ui/query-error";
 import { ClipboardCheck, PackageOpen, Undo2, ImageIcon } from "lucide-react";
 
 // การ์ด "ของเข้า / ตรวจรับ" บนหน้าออเดอร์ — จุดเดียวที่แอดมินบันทึกของเข้าโรงงาน
@@ -30,7 +31,7 @@ export function OrderGoodsReceiptSection({
   const hasCustomerGarment = itemSources.includes("CUSTOMER_PROVIDED");
   const hasSewingGarment = itemSources.includes("CUSTOM_MADE");
 
-  const { data: receipts } = trpc.goodsReceipt.listByOrder.useQuery(
+  const { data: receipts, isError, refetch } = trpc.goodsReceipt.listByOrder.useQuery(
     { orderId },
     { enabled: hasCustomerGarment || hasSewingGarment }
   );
@@ -87,7 +88,12 @@ export function OrderGoodsReceiptSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        {(receipts ?? []).length === 0 ? (
+        {isError ? (
+          <QueryError
+            message="โหลดรายการตรวจรับไม่สำเร็จ"
+            onRetry={() => void refetch()}
+          />
+        ) : (receipts ?? []).length === 0 ? (
           <p className="py-2 text-center text-sm text-slate-400">
             ยังไม่มีใบตรวจรับ — ของเข้าโรงงานเมื่อไหร่ กดนับทันที (นับจริงต่อไซส์)
           </p>

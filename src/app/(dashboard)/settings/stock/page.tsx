@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ import { SettingsPageHeader } from "@/components/settings-page-header";
 // ─── Setting Keys ──────────────────────────────────────────
 const STOCK_API_URL_KEY = "stock_api_url";
 const STOCK_API_KEY_KEY = "stock_api_key";
+const STOCK_SETTING_KEYS = [STOCK_API_URL_KEY, STOCK_API_KEY_KEY];
 
 // ─── Item Type Mapping Data ──────────────────────────────────
 const itemTypeMappings = [
@@ -47,12 +48,8 @@ const itemTypeMappings = [
 
 export default function StockSettingsPage() {
   // ─── Form State ─────────────────────────────────────────
-  const [apiUrl, setApiUrl] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const [draft, setDraft] = useState<{ apiUrl: string; apiKey: string } | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
-  const [isSaved, setIsSaved] = useState(true);
-  const [initialUrl, setInitialUrl] = useState("");
-  const [initialKey, setInitialKey] = useState("");
 
   // ─── Connection State ────────────────────────────────────
   const [connectionResult, setConnectionResult] = useState<{
@@ -76,28 +73,17 @@ export default function StockSettingsPage() {
     isError: settingsError,
     refetch: refetchSettings,
   } = trpc.settings.getMany.useQuery({
-    keys: [STOCK_API_URL_KEY, STOCK_API_KEY_KEY],
+    keys: STOCK_SETTING_KEYS,
   });
 
-  useEffect(() => {
-    if (savedSettings) {
-      const url = savedSettings[STOCK_API_URL_KEY] || "";
-      const key = savedSettings[STOCK_API_KEY_KEY] || "";
-      setApiUrl(url);
-      setApiKey(key);
-      setInitialUrl(url);
-      setInitialKey(key);
-      setIsSaved(true);
-    }
-  }, [savedSettings]);
-
-  // Track unsaved changes
-  useEffect(() => {
-    setIsSaved(apiUrl === initialUrl && apiKey === initialKey);
-  }, [apiUrl, apiKey, initialUrl, initialKey]);
+  const savedApiUrl = savedSettings?.[STOCK_API_URL_KEY] ?? "";
+  const savedApiKey = savedSettings?.[STOCK_API_KEY_KEY] ?? "";
+  const apiUrl = draft?.apiUrl ?? savedApiUrl;
+  const apiKey = draft?.apiKey ?? savedApiKey;
+  const isSaved = apiUrl === savedApiUrl && apiKey === savedApiKey;
 
   // ─── Queries ──────────────────────────────────────────────
-  const { data: syncStatus, isLoading: statusLoading } =
+  const { data: syncStatus, isLoading: statusLoading, isError: statusError, refetch: refetchStatus } =
     trpc.stockSync.status.useQuery();
 
   // ─── Mutations ────────────────────────────────────────────
@@ -105,9 +91,15 @@ export default function StockSettingsPage() {
 
   const saveSettings = trpc.settings.setMany.useMutation({
     onSuccess: () => {
-      setInitialUrl(apiUrl);
-      setInitialKey(apiKey);
-      setIsSaved(true);
+      utils.settings.getMany.setData(
+        { keys: STOCK_SETTING_KEYS },
+        {
+          ...(savedSettings ?? {}),
+          [STOCK_API_URL_KEY]: apiUrl.trim(),
+          [STOCK_API_KEY_KEY]: apiKey.trim(),
+        }
+      );
+      setDraft(null);
       toast.success("บันทึกการตั้งค่าสำเร็จ");
       // Invalidate so stock-sync router picks up new settings
       utils.settings.getMany.invalidate();
@@ -163,7 +155,6 @@ export default function StockSettingsPage() {
     });
   }
 
-  const isConnected = connectionResult?.connected === true;
   const hasCredentials = apiUrl.trim() && apiKey.trim();
 
   // โหลด settings ไม่สำเร็จ → ไม่ render ฟอร์มค่าว่าง กันบันทึกทับค่าเชื่อมต่อจริง
@@ -192,7 +183,12 @@ export default function StockSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {settingsLoading ? (
+            {settingsError ? (
+              <QueryError
+                message="โหลดค่าการเชื่อมต่อ Stock ไม่สำเร็จ"
+                onRetry={() => void refetchSettings()}
+              />
+            ) : settingsLoading ? (
               <div className="space-y-3">
                 <div className="h-10 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700" />
                 <div className="h-10 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700" />
@@ -201,12 +197,13 @@ export default function StockSettingsPage() {
               <>
                 {/* API URL */}
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="stock-api-url" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     API URL
                   </label>
                   <Input
+                    id="stock-api-url"
                     value={apiUrl}
-                    onChange={(e) => setApiUrl(e.target.value)}
+                    onChange={(e) => setDraft({ apiUrl: e.target.value, apiKey })}
                     placeholder="https://stock.anajak.com/api"
                     className="font-mono text-sm"
                   />
@@ -217,15 +214,16 @@ export default function StockSettingsPage() {
 
                 {/* API Key */}
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="stock-api-key" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     API Key
                   </label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input
+                        id="stock-api-key"
                         type={showApiKey ? "text" : "password"}
                         value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
+                        onChange={(e) => setDraft({ apiUrl, apiKey: e.target.value })}
                         placeholder="sk_xxxxxxxxxxxxxxxx"
                         className="pr-10 font-mono text-sm"
                       />
@@ -234,6 +232,7 @@ export default function StockSettingsPage() {
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => setShowApiKey(!showApiKey)}
+                        aria-label={showApiKey ? "ซ่อน API Key" : "แสดง API Key"}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                       >
                         {showApiKey ? (
@@ -329,7 +328,12 @@ export default function StockSettingsPage() {
           <CardContent className="space-y-4">
             {/* Sync status summary */}
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-              {statusLoading ? (
+              {statusError ? (
+                <QueryError
+                  message="โหลดสถานะ Stock ไม่สำเร็จ"
+                  onRetry={() => void refetchStatus()}
+                />
+              ) : statusLoading ? (
                 <div className="space-y-2">
                   <div className="h-4 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
                   <div className="h-4 w-32 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
@@ -428,13 +432,13 @@ export default function StockSettingsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800">
-                    <th className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
+                    <th scope="col" className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
                       หมวดหมู่ Stock
                     </th>
-                    <th className="px-4 py-2.5 text-center font-medium text-slate-400">
+                    <th scope="col" aria-label="แมปไปยัง" className="px-4 py-2.5 text-center font-medium text-slate-400">
                       →
                     </th>
-                    <th className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
+                    <th scope="col" className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
                       ประเภทสินค้า ERP
                     </th>
                   </tr>
@@ -445,11 +449,11 @@ export default function StockSettingsPage() {
                       key={i}
                       className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     >
-                      <td className="px-4 py-2.5 text-slate-900 dark:text-white">
+                      <th scope="row" className="px-4 py-2.5 text-left font-normal text-slate-900 dark:text-white">
                         {mapping.stockCategory}
-                      </td>
-                      <td className="px-4 py-2.5 text-center text-slate-400">→</td>
-                      <td className="px-4 py-2.5">
+                      </th>
+                      <td aria-hidden="true" className="px-4 py-2.5 text-center text-slate-400">→</td>
+                      <td aria-label={`${mapping.erpItemType} ${mapping.erpCode}`} className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <span className="text-slate-900 dark:text-white">
                             {mapping.erpItemType}

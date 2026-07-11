@@ -84,14 +84,16 @@ export function PrintTableRow({
       <tr className="group border-b border-slate-100 last:border-0 dark:border-slate-800">
         {/* Image */}
         <td className="py-2.5 pr-2 align-middle">
-          <input ref={inputRef} type="file" accept="image/*,.pdf,.ai,.psd" onChange={handleImageUpload} className="hidden" />
+          <input ref={inputRef} type="file" accept="image/*,.pdf,.ai,.psd" onChange={handleImageUpload} className="hidden" aria-label={`อัปโหลดไฟล์ลาย ${printIdx + 1}`} />
           {imageUrl ? (
             <div className="group/img relative inline-block">
-              <img src={imageUrl} alt={`ลาย ${printIdx + 1}`} className="h-10 w-10 cursor-pointer rounded-lg border border-slate-200 object-cover dark:border-slate-700" onClick={() => inputRef.current?.click()} />
-              <Button type="button" variant="destructive" size="icon" onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); onUpdate("artworkId", undefined); }} className="absolute -right-1.5 -top-1.5 h-5 w-5 rounded-full p-0.5 opacity-0 shadow-sm transition-opacity group-hover/img:opacity-100"><X className="h-3 w-3" /></Button>
+              <button type="button" onClick={() => inputRef.current?.click()} aria-label={`เปลี่ยนไฟล์ลาย ${printIdx + 1}`} className="block min-h-11 min-w-11 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                <img src={imageUrl} alt={`ลาย ${printIdx + 1}`} className="h-11 w-11 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
+              </button>
+              <Button type="button" variant="destructive" size="icon" aria-label={`ลบไฟล์ลาย ${printIdx + 1}`} onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); onUpdate("artworkId", undefined); }} className="absolute -right-3 -top-3 h-8 min-h-8 w-8 min-w-8 rounded-full p-0"><X className="h-3.5 w-3.5" /></Button>
             </div>
           ) : (
-            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600">
+            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`} className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600">
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             </button>
           )}
@@ -99,12 +101,12 @@ export function PrintTableRow({
         {/* Print type (+ catalog) */}
         <td className="px-1 py-2.5 align-middle">
           {printCatalog && printCatalog.length > 0 ? (
-            <NativeSelect value="" onChange={(e) => { if (e.target.value) onApplyCatalog(e.target.value); }}>
+            <NativeSelect aria-label={`เลือกวิธีพิมพ์หรือต้นแบบ จุดที่ ${printIdx + 1}`} value="" onChange={(e) => { if (e.target.value) onApplyCatalog(e.target.value); }}>
               <option value="">{print.printType ? PRINT_TYPES[print.printType] || print.printType : "วิธีพิมพ์..."}</option>
               {printCatalog.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </NativeSelect>
           ) : (
-            <NativeSelect value={print.printType} onChange={(e) => onUpdate("printType", e.target.value)}>
+            <NativeSelect aria-label={`เลือกวิธีพิมพ์ จุดที่ ${printIdx + 1}`} value={print.printType} onChange={(e) => onUpdate("printType", e.target.value)}>
               {Object.entries(PRINT_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </NativeSelect>
           )}
@@ -115,18 +117,19 @@ export function PrintTableRow({
         </td>
         {/* Delete */}
         <td className="py-2.5 pl-1 align-middle">
-          <Button type="button" variant="ghost" size="icon" onClick={onRemove} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"><Trash2 className="h-4 w-4" /></Button>
+          <Button type="button" variant="ghost" size="icon" aria-label={`ลบจุดพิมพ์ ${printIdx + 1}`} onClick={onRemove} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"><Trash2 className="h-4 w-4" /></Button>
         </td>
       </tr>
 
       {/* แถว toggle "เพิ่มเติม" — ของรอง (ขนาด/ตำแหน่ง/สี/custom) ซ่อนไว้ + badge สรุปค่าที่ตั้งไว้ */}
       <tr className="border-b border-slate-100 last:border-0 dark:border-slate-800">
-        <td />
+        <td aria-hidden="true" />
         <td colSpan={3} className="pb-2 pl-1">
           <button
             type="button"
             onClick={() => setShowMore((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            aria-expanded={showMore}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 sm:min-h-9"
           >
             <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
             {showMore ? (
