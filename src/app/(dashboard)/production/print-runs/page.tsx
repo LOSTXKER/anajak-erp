@@ -500,21 +500,11 @@ function QueueRow({
   const cap = entry.remaining > 0 ? entry.remaining : undefined;
   const invalid =
     selected && (!Number.isInteger(qty) || qty < 1 || (cap !== undefined && qty > cap));
-  return (
-    <li
-      onClick={canManage ? onToggle : undefined}
-      className={cn(
-        "flex min-h-[56px] items-center gap-3 px-4 py-3 transition-colors",
-        canManage && "cursor-pointer",
-        selected
-          ? "bg-blue-50/60 dark:bg-blue-950/20"
-          : canManage &&
-              "hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800"
-      )}
-    >
-      {/* checkbox เลือกเข้ารอบ — เฉพาะคนมีสิทธิ์ผลิต (B8) */}
+  const summary = (
+    <>
       {canManage && (
         <span
+          aria-hidden="true"
           className={cn(
             "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
             selected
@@ -526,7 +516,7 @@ function QueueRow({
         </span>
       )}
       <DesignThumb design={entry.design} />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 text-left">
         <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
           {entry.orderNumber}
           {entry.orderName && ` · ${entry.orderName}`}
@@ -543,11 +533,38 @@ function QueueRow({
           </span>
         </div>
       </div>
+    </>
+  );
+  return (
+    <li
+      className={cn(
+        "flex min-h-[56px] items-center transition-colors",
+        selected
+          ? "bg-blue-50/60 dark:bg-blue-950/20"
+          : ""
+      )}
+    >
+      {/* checkbox เลือกเข้ารอบ — เฉพาะคนมีสิทธิ์ผลิต (B8) */}
+      {canManage ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-pressed={selected}
+          aria-label={`${selected ? "นำออกจาก" : "เพิ่มเข้า"}รอบพิมพ์ ${entry.orderNumber}`}
+          className="flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800"
+        >
+          {summary}
+        </button>
+      ) : (
+        <div className="flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3">
+          {summary}
+        </div>
+      )}
       {selected ? (
-        // ช่องจำนวน — หยุด event ไม่ให้ไปสลับ checkbox ของแถว
-        <div className="shrink-0 text-right" onClick={(e) => e.stopPropagation()}>
-          <label className="mb-0.5 block text-[10px] text-slate-400">พิมพ์รอบนี้ (ชิ้น)</label>
+        <div className="shrink-0 py-3 pr-4 text-right">
+          <label htmlFor={`print-run-qty-${entry.stepId}`} className="mb-0.5 block text-[10px] text-slate-400">พิมพ์รอบนี้ (ชิ้น)</label>
           <Input
+            id={`print-run-qty-${entry.stepId}`}
             type="number"
             inputMode="numeric"
             min={1}
@@ -561,7 +578,7 @@ function QueueRow({
           />
         </div>
       ) : (
-        <span className="shrink-0 text-sm tabular-nums text-slate-500 dark:text-slate-400">
+        <span className="shrink-0 py-3 pr-4 text-sm tabular-nums text-slate-500 dark:text-slate-400">
           {entry.remaining > 0 ? `${entry.remaining} ชิ้น` : "—"}
         </span>
       )}
@@ -635,10 +652,11 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <label className="mb-0.5 block text-[10px] text-slate-400">
+                    <label htmlFor={`print-extra-qty-${item.id}`} className="mb-0.5 block text-[10px] text-slate-400">
                       ฟิล์มเผื่อ (ชิ้น)
                     </label>
                     <Input
+                      id={`print-extra-qty-${item.id}`}
                       type="number"
                       inputMode="numeric"
                       min={0}
@@ -658,10 +676,11 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
                 </div>
                 {extra.qty > 0 && (
                   <div className="mt-2">
-                    <label className="mb-0.5 block text-[10px] text-slate-400">
+                    <label htmlFor={`print-extra-label-${item.id}`} className="mb-0.5 block text-[10px] text-slate-400">
                       ป้ายลาย — เขียนให้รู้ว่าฟิล์มม้วนไหนคือลายอะไร
                     </label>
                     <Input
+                      id={`print-extra-label-${item.id}`}
                       value={extra.label}
                       maxLength={200}
                       onChange={(e) =>
