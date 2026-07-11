@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { ROLE_LABELS, ROLE_OPTIONS } from "@/lib/roles";
 import {
@@ -12,6 +11,7 @@ import {
   effectivePermissions,
   parsePermissionOverrides,
   countEffectiveOverrides,
+  permAllows,
 } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { QueryError } from "@/components/ui/query-error";
+import { SettingsPageHeader } from "@/components/settings-page-header";
 import {
   Dialog,
   DialogContent,
@@ -26,14 +28,19 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ArrowLeft, KeyRound, Plus, ShieldCheck, Users } from "lucide-react";
+import { KeyRound, Plus, ShieldCheck, Users } from "lucide-react";
 import type { Role } from "@prisma/client";
 
 export default function UsersSettingsPage() {
   const utils = trpc.useUtils();
 
-  const { data: me } = trpc.user.me.useQuery();
-  const { data: users, isLoading, error } = trpc.user.list.useQuery();
+  const meQuery = trpc.user.me.useQuery();
+  const me = meQuery.data;
+  const canManageUsers = permAllows(me?.permissions, "manage_users");
+  const usersQuery = trpc.user.list.useQuery(undefined, {
+    enabled: canManageUsers,
+  });
+  const { data: users, isLoading, error } = usersQuery;
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -113,23 +120,48 @@ export default function UsersSettingsPage() {
     updateMutation.error?.message ||
     setActiveMutation.error?.message;
 
+  const header = (
+    <SettingsPageHeader
+      title="จัดการผู้ใช้"
+      description="บัญชีพนักงาน สิทธิ์การใช้งาน และรหัสผ่าน"
+    />
+  );
+
+  if (meQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <Skeleton className="h-40 rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (meQuery.isError) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <QueryError
+          message="ตรวจสอบสิทธิ์จัดการผู้ใช้ไม่สำเร็จ"
+          onRetry={() => meQuery.refetch()}
+        />
+      </div>
+    );
+  }
+
+  if (!canManageUsers) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          หน้านี้ต้องมีสิทธิ์จัดการพนักงานและสิทธิ์ผู้ใช้
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/settings">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
-            จัดการผู้ใช้
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            บัญชีพนักงาน สิทธิ์การใช้งาน และรหัสผ่าน
-          </p>
-        </div>
-      </div>
+      {header}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -153,34 +185,38 @@ export default function UsersSettingsPage() {
               className="card-surface mb-4 grid grid-cols-1 items-end gap-3 rounded-2xl p-4 sm:grid-cols-2 lg:grid-cols-5"
             >
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-name" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
                   ชื่อ *
                 </label>
                 <Input
+                  id="new-user-name"
                   value={newUser.name}
                   onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                   placeholder="ชื่อพนักงาน"
                   required
-                  autoFocus
+                  autoComplete="name"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-email" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
                   อีเมล *
                 </label>
                 <Input
+                  id="new-user-email"
                   type="email"
                   value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   placeholder="email@anajak.com"
                   required
+                  autoComplete="email"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-role" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
                   บทบาท *
                 </label>
                 <NativeSelect
+                  id="new-user-role"
                   value={newUser.role}
                   onChange={(e) =>
                     setNewUser({ ...newUser, role: e.target.value as Role })
@@ -194,10 +230,11 @@ export default function UsersSettingsPage() {
                 </NativeSelect>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                <label htmlFor="new-user-password" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
                   รหัสผ่านเริ่มต้น * (8+ ตัว)
                 </label>
                 <Input
+                  id="new-user-password"
                   type="text"
                   value={newUser.password}
                   onChange={(e) =>
@@ -206,6 +243,7 @@ export default function UsersSettingsPage() {
                   placeholder="รหัสผ่านชั่วคราว"
                   minLength={8}
                   required
+                  autoComplete="new-password"
                 />
               </div>
               <div className="flex gap-2">
@@ -231,9 +269,10 @@ export default function UsersSettingsPage() {
               ))}
             </div>
           ) : error ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
-              {error.message}
-            </div>
+            <QueryError
+              message={error.message}
+              onRetry={() => usersQuery.refetch()}
+            />
           ) : !users || users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Users className="h-10 w-10 text-slate-300 dark:text-slate-600" />
@@ -244,19 +283,19 @@ export default function UsersSettingsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-slate-800">
-                    <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
                       ชื่อ
                     </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
                       อีเมล
                     </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
                       บทบาท
                     </th>
-                    <th className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
                       ใช้งาน
                     </th>
-                    <th className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
                       จัดการ
                     </th>
                   </tr>
@@ -291,6 +330,7 @@ export default function UsersSettingsPage() {
                             <NativeSelect
                               value={user.role}
                               disabled={updateMutation.isPending}
+                              aria-label={`บทบาทของ ${user.name}`}
                               onChange={(e) =>
                                 updateMutation.mutate({
                                   id: user.id,
@@ -311,6 +351,7 @@ export default function UsersSettingsPage() {
                           <Switch
                             checked={user.isActive}
                             disabled={isSelf || setActiveMutation.isPending}
+                            aria-label={`${user.isActive ? "ปิด" : "เปิด"}บัญชี ${user.name}`}
                             onCheckedChange={(checked) =>
                               setActiveMutation.mutate({
                                 id: user.id,
@@ -360,7 +401,7 @@ export default function UsersSettingsPage() {
           )}
 
           {mutationError && (
-            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
               {mutationError}
             </div>
           )}
@@ -386,20 +427,21 @@ export default function UsersSettingsPage() {
           </DialogHeader>
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+              <label htmlFor="reset-user-password" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
                 รหัสผ่านใหม่ (8+ ตัว)
               </label>
               <Input
+                id="reset-user-password"
                 type="text"
                 value={resetPassword}
                 onChange={(e) => setResetPassword(e.target.value)}
                 minLength={8}
                 required
-                autoFocus
+                autoComplete="new-password"
               />
             </div>
             {resetPasswordMutation.error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
                 {resetPasswordMutation.error.message}
               </div>
             )}
@@ -458,7 +500,7 @@ export default function UsersSettingsPage() {
                       return (
                         <label
                           key={def.key}
-                          className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm ${
+                          className={`flex min-h-11 items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm sm:min-h-9 ${
                             locked
                               ? "cursor-not-allowed opacity-50"
                               : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -493,7 +535,7 @@ export default function UsersSettingsPage() {
                 </div>
               ))}
               {setPermissionsMutation.error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
                   {setPermissionsMutation.error.message}
                 </div>
               )}

@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
+import { permAllows } from "@/lib/permissions";
 
 const labelClass = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
 
@@ -59,6 +60,10 @@ export default function PatternsPage() {
   const utils = trpc.useUtils();
   const confirmDialog = useConfirm();
 
+  const meQuery = trpc.user.me.useQuery();
+  const canCreate = permAllows(meQuery.data?.permissions, "create_design_assets");
+  const canEdit = permAllows(meQuery.data?.permissions, "manage_design_files");
+  const canDelete = permAllows(meQuery.data?.permissions, "manage_settings");
   const { data, isLoading, isError, refetch } = trpc.pattern.list.useQuery({ isActive: true });
   const patterns = data?.patterns;
 
@@ -88,6 +93,7 @@ export default function PatternsPage() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreate) return;
     createPattern.mutate({
       name: formData.name,
       productType: formData.productType || undefined,
@@ -100,7 +106,7 @@ export default function PatternsPage() {
   };
 
   const handleSaveEdit = () => {
-    if (!editingId) return;
+    if (!editingId || !canEdit) return;
     updatePattern.mutate({
       id: editingId,
       name: editData.name,
@@ -111,6 +117,7 @@ export default function PatternsPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
+    if (!canDelete) return;
     const ok = await confirmDialog({
       title: `ลบแพทเทิร์น "${name}"?`,
       confirmText: "ลบแพทเทิร์น",
@@ -142,6 +149,14 @@ export default function PatternsPage() {
   };
 
   // && !data: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
+  if (meQuery.isError) {
+    return (
+      <QueryError
+        message="ตรวจสอบสิทธิ์จัดการแพทเทิร์นไม่สำเร็จ"
+        onRetry={() => meQuery.refetch()}
+      />
+    );
+  }
   if (isError && !data) return <QueryError onRetry={() => refetch()} />;
 
   return (
@@ -154,20 +169,22 @@ export default function PatternsPage() {
             <Scissors className="h-4 w-4" />
             แพทเทิร์นทั้งหมด
           </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setShowAddForm(!showAddForm);
-              setFormData({ ...emptyForm });
-            }}
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            เพิ่มแพทเทิร์น
-          </Button>
+          {canCreate && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowAddForm(!showAddForm);
+                setFormData({ ...emptyForm });
+              }}
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              เพิ่มแพทเทิร์น
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
-          {showAddForm && (
+          {showAddForm && canCreate && (
             <form
               onSubmit={handleCreate}
               className="card-surface mb-4 space-y-3 rounded-2xl p-4"
@@ -177,8 +194,9 @@ export default function PatternsPage() {
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
-                  <label className={labelClass}>ชื่อแพทเทิร์น *</label>
+                  <label htmlFor="pattern-name" className={labelClass}>ชื่อแพทเทิร์น *</label>
                   <Input
+                    id="pattern-name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="เช่น เสื้อยืดคอกลม Regular V2"
@@ -186,8 +204,9 @@ export default function PatternsPage() {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>ประเภทสินค้า</label>
+                  <label htmlFor="pattern-product-type" className={labelClass}>ประเภทสินค้า</label>
                   <NativeSelect
+                    id="pattern-product-type"
                     value={formData.productType}
                     onChange={(e) => setFormData({ ...formData, productType: e.target.value })}
                   >
@@ -198,8 +217,9 @@ export default function PatternsPage() {
                   </NativeSelect>
                 </div>
                 <div>
-                  <label className={labelClass}>ทรงคอ</label>
+                  <label htmlFor="pattern-collar-type" className={labelClass}>ทรงคอ</label>
                   <NativeSelect
+                    id="pattern-collar-type"
                     value={formData.collarType}
                     onChange={(e) => setFormData({ ...formData, collarType: e.target.value })}
                   >
@@ -210,8 +230,9 @@ export default function PatternsPage() {
                   </NativeSelect>
                 </div>
                 <div>
-                  <label className={labelClass}>แขน</label>
+                  <label htmlFor="pattern-sleeve-type" className={labelClass}>แขน</label>
                   <NativeSelect
+                    id="pattern-sleeve-type"
                     value={formData.sleeveType}
                     onChange={(e) => setFormData({ ...formData, sleeveType: e.target.value })}
                   >
@@ -224,8 +245,9 @@ export default function PatternsPage() {
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
-                  <label className={labelClass}>ฟิต</label>
+                  <label htmlFor="pattern-body-fit" className={labelClass}>ฟิต</label>
                   <NativeSelect
+                    id="pattern-body-fit"
                     value={formData.bodyFit}
                     onChange={(e) => setFormData({ ...formData, bodyFit: e.target.value })}
                   >
@@ -236,13 +258,14 @@ export default function PatternsPage() {
                   </NativeSelect>
                 </div>
                 <div>
-                  <label className={labelClass}>ไฟล์แพทเทิร์น</label>
-                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600 dark:hover:border-amber-500">
+                  <label htmlFor="pattern-file" className={labelClass}>ไฟล์แพทเทิร์น</label>
+                  <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 focus-within:ring-2 focus-within:ring-blue-500/40 sm:min-h-9 dark:border-slate-600 dark:hover:border-amber-500">
                     <input
+                      id="pattern-file"
                       type="file"
                       accept=".pdf,.ai,.svg,image/*"
                       onChange={(e) => handleFileUpload(e, "form")}
-                      className="hidden"
+                      className="sr-only"
                       disabled={uploading}
                     />
                     <Upload className="h-3.5 w-3.5" />
@@ -284,18 +307,20 @@ export default function PatternsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-slate-800">
-                    <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">ชื่อ</th>
-                    <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">ประเภท</th>
-                    <th className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">ทรงคอ</th>
-                    <th className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">แขน</th>
-                    <th className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">ฟิต</th>
-                    <th className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">สถานะ</th>
-                    <th className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">จัดการ</th>
+                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">ชื่อ</th>
+                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">ประเภท</th>
+                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">ทรงคอ</th>
+                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">แขน</th>
+                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">ฟิต</th>
+                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">สถานะ</th>
+                    {(canEdit || canDelete) && (
+                      <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">จัดการ</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {patterns.map((p) => {
-                    const isEditing = editingId === p.id;
+                    const isEditing = canEdit && editingId === p.id;
                     return (
                       <tr
                         key={p.id}
@@ -304,6 +329,7 @@ export default function PatternsPage() {
                         <td className="px-3 py-2.5">
                           {isEditing ? (
                             <Input
+                              aria-label={`ชื่อแพทเทิร์น ${p.name}`}
                               value={editData.name ?? p.name}
                               onChange={(e) => setEditData({ ...editData, name: e.target.value })}
                               className="h-7 text-sm"
@@ -318,7 +344,7 @@ export default function PatternsPage() {
                                   href={p.fileUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="ml-2 text-[10px] text-blue-500 hover:underline"
+                                  className="ml-2 inline-flex min-h-11 items-center text-xs text-blue-600 hover:underline sm:min-h-9 dark:text-blue-400"
                                 >
                                   ดูไฟล์
                                 </a>
@@ -332,6 +358,7 @@ export default function PatternsPage() {
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
                             <NativeSelect
+                              aria-label={`ทรงคอของ ${p.name}`}
                               className="h-7 text-xs"
                               value={editData.collarType ?? p.collarType ?? ""}
                               onChange={(e) => setEditData({ ...editData, collarType: e.target.value })}
@@ -350,6 +377,7 @@ export default function PatternsPage() {
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
                             <NativeSelect
+                              aria-label={`แขนของ ${p.name}`}
                               className="h-7 text-xs"
                               value={editData.sleeveType ?? p.sleeveType ?? ""}
                               onChange={(e) => setEditData({ ...editData, sleeveType: e.target.value })}
@@ -368,6 +396,7 @@ export default function PatternsPage() {
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
                             <NativeSelect
+                              aria-label={`ฟิตของ ${p.name}`}
                               className="h-7 text-xs"
                               value={editData.bodyFit ?? p.bodyFit ?? ""}
                               onChange={(e) => setEditData({ ...editData, bodyFit: e.target.value })}
@@ -384,11 +413,19 @@ export default function PatternsPage() {
                           )}
                         </td>
                         <td className="px-3 py-2.5 text-center">
-                          <Switch
-                            checked={p.isActive}
-                            onCheckedChange={() => toggleActive.mutate({ id: p.id, isActive: !p.isActive })}
-                          />
+                          {canEdit ? (
+                            <Switch
+                              checked={p.isActive}
+                              aria-label={`${p.isActive ? "ปิด" : "เปิด"}ใช้งานแพทเทิร์น ${p.name}`}
+                              onCheckedChange={() => toggleActive.mutate({ id: p.id, isActive: !p.isActive })}
+                            />
+                          ) : (
+                            <Badge variant={p.isActive ? "success" : "default"} size="sm">
+                              {p.isActive ? "ใช้งาน" : "ปิด"}
+                            </Badge>
+                          )}
                         </td>
+                        {(canEdit || canDelete) && (
                         <td className="px-3 py-2.5 text-right">
                           {isEditing ? (
                             <div className="flex justify-end gap-1">
@@ -398,6 +435,7 @@ export default function PatternsPage() {
                                 onClick={handleSaveEdit}
                                 disabled={updatePattern.isPending}
                                 className="h-7 w-7 p-0 text-green-600 hover:text-green-700"
+                                aria-label={`บันทึกการแก้ไข ${p.name}`}
                               >
                                 <Check className="h-3.5 w-3.5" />
                               </Button>
@@ -406,32 +444,40 @@ export default function PatternsPage() {
                                 size="sm"
                                 onClick={() => { setEditingId(null); setEditData({}); }}
                                 className="h-7 w-7 p-0"
+                                aria-label={`ยกเลิกการแก้ไข ${p.name}`}
                               >
                                 <X className="h-3.5 w-3.5" />
                               </Button>
                             </div>
                           ) : (
                             <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => { setEditingId(p.id); setEditData({}); }}
-                                className="h-7 w-7 p-0 text-slate-500 hover:text-blue-600"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(p.id, p.name)}
-                                disabled={deletePattern.isPending}
-                                className="h-7 w-7 p-0 text-slate-500 hover:text-red-600"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              {canEdit && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => { setEditingId(p.id); setEditData({}); }}
+                                  className="h-7 w-7 p-0 text-slate-500 hover:text-blue-600"
+                                  aria-label={`แก้ไขแพทเทิร์น ${p.name}`}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                              {canDelete && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete(p.id, p.name)}
+                                  disabled={deletePattern.isPending}
+                                  className="h-7 w-7 p-0 text-slate-500 hover:text-red-600"
+                                  aria-label={`ลบแพทเทิร์น ${p.name}`}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                           )}
                         </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -441,7 +487,7 @@ export default function PatternsPage() {
           )}
 
           {(createPattern.isError || updatePattern.isError || deletePattern.isError) && (
-            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
               {createPattern.error?.message || updatePattern.error?.message || deletePattern.error?.message}
             </div>
           )}
