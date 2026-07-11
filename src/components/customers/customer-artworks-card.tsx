@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
+import { Field } from "@/components/ui/field";
 import {
   Dialog,
   DialogContent,
@@ -336,16 +337,14 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
             <DialogTitle>แก้ไขลาย</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">ชื่อลาย *</label>
+            <Field label="ชื่อลาย" required>
               <Input
                 value={editForm.name}
                 onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
               />
-            </div>
+            </Field>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">กว้าง (ซม.)</label>
+              <Field label="กว้าง (ซม.)">
                 <Input
                   type="number"
                   step="0.1"
@@ -353,9 +352,8 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                   value={editForm.widthCm}
                   onChange={(e) => setEditForm((f) => ({ ...f, widthCm: e.target.value }))}
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">สูง (ซม.)</label>
+              </Field>
+              <Field label="สูง (ซม.)">
                 <Input
                   type="number"
                   step="0.1"
@@ -363,45 +361,41 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                   value={editForm.heightCm}
                   onChange={(e) => setEditForm((f) => ({ ...f, heightCm: e.target.value }))}
                 />
-              </div>
+              </Field>
             </div>
             {/* สเปกรีด — หัวใจของ "สั่งซ้ำได้สเปกเดิมเป๊ะ" (กรอกครั้งเดียว ใช้ทุกรอบ) */}
             <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">อุณหภูมิ (°C)</label>
+              <Field label="อุณหภูมิ (°C)">
                 <Input
                   type="number"
                   min="0"
                   value={editForm.heatTempC}
                   onChange={(e) => setEditForm((f) => ({ ...f, heatTempC: e.target.value }))}
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">เวลารีด (วิ)</label>
+              </Field>
+              <Field label="เวลารีด (วิ)">
                 <Input
                   type="number"
                   min="0"
                   value={editForm.heatPressSec}
                   onChange={(e) => setEditForm((f) => ({ ...f, heatPressSec: e.target.value }))}
                 />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">แรงกด</label>
+              </Field>
+              <Field label="แรงกด">
                 <Input
                   placeholder="เบา/กลาง/หนัก"
                   value={editForm.heatPressure}
                   onChange={(e) => setEditForm((f) => ({ ...f, heatPressure: e.target.value }))}
                 />
-              </div>
+              </Field>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">โน้ตสเปก</label>
+            <Field label="โน้ตสเปก">
               <Textarea
                 rows={2}
                 value={editForm.specNotes}
                 onChange={(e) => setEditForm((f) => ({ ...f, specNotes: e.target.value }))}
               />
-            </div>
+            </Field>
             {editing && (
               <Button
                 variant="ghost"
@@ -440,16 +434,15 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
             <DialogTitle>เพิ่มลายเข้าคลัง</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">ชื่อลาย *</label>
+            <Field label="ชื่อลาย" required>
               <Input
                 value={addName}
                 onChange={(e) => setAddName(e.target.value)}
                 placeholder="เช่น โลโก้อกซ้าย ดำ"
               />
-            </div>
+            </Field>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">รูปลาย</label>
+              <p className="mb-1 block text-xs font-medium text-slate-500">รูปลาย</p>
               {addImageUrl ? (
                 <div className="flex items-center gap-2">
                   <img
