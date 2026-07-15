@@ -97,21 +97,21 @@
 ## 🔴 P0 — ฐานราก (ทำก่อนทุกอย่าง · ห้าม deploy/ใช้จริงจนจบ P0)
 
 ### P0.1 Auth จริง + RBAC
-- [ ] แก้ `src/server/trpc.ts:26-28` — lookup user ด้วย `supabaseId` (ตอนนี้ใช้ `id` = ไม่มีวัน match)
-- [ ] **ตัด dev-OWNER fallback ทิ้งทั้งหมด** (`getDevUserId`, fallback ใน `createContext`/`isAuthed`/`requireRole` — trpc.ts:13-20,38-39,53,58,68,75) → ไม่มี session = UNAUTHORIZED
-- [ ] login จริง (`src/app/(auth)/login/page.tsx` ตอนนี้เป็น TODO redirect) — Supabase signInWithPassword + signOut (user-menu logout ตอนนี้เป็นปุ่มหลอก)
-- [ ] สร้าง `src/middleware.ts` กัน route (dashboard)/(portal) + เช็ค session ใน layout
-- [ ] หน้า invite/จัดการ user (6 คน) ผูก supabaseId ↔ User + Role
-- [ ] ไล่ `requireRole` ให้ครบทุก mutation (ตอนนี้มีแค่ ~6/90 procedures) ตามตาราง role ใน `Anajak-Print-Features.md` §7
-- [ ] public procedures (design.getByToken/approveByToken) — เพิ่ม token expiry + กันตัดสินซ้ำฝั่ง server
+- [x] แก้ `src/server/trpc.ts:26-28` — lookup user ด้วย `supabaseId` (ตอนนี้ใช้ `id` = ไม่มีวัน match)
+- [x] **ตัด dev-OWNER fallback ทิ้งทั้งหมด** (`getDevUserId`, fallback ใน `createContext`/`isAuthed`/`requireRole` — trpc.ts:13-20,38-39,53,58,68,75) → ไม่มี session = UNAUTHORIZED
+- [x] login จริง (`src/app/(auth)/login/page.tsx` ตอนนี้เป็น TODO redirect) — Supabase signInWithPassword + signOut (user-menu logout ตอนนี้เป็นปุ่มหลอก)
+- [x] สร้าง `src/middleware.ts` กัน route (dashboard)/(portal) + เช็ค session ใน layout
+- [x] หน้า invite/จัดการ user (6 คน) ผูก supabaseId ↔ User + Role
+- [x] ไล่ `requireRole` ให้ครบทุก mutation (✅ 97/97 — audit เต็ม 2026-07-15: requirePermission/requireRole 88 + inline role check + per-user scope + token flow · ตัวสุดท้าย attachment.create ปิดด่าน INVOICE แล้ว + test 5 เคส) ตามตาราง role ใน `Anajak-Print-Features.md` §7
+- [x] public procedures (design.getByToken/approveByToken) — เพิ่ม token expiry + กันตัดสินซ้ำฝั่ง server
 
 ### P0.2 เงินถูกต้อง
-- [ ] Float → `Decimal` ทุก field เงินใน `prisma/schema.prisma` (54 จุด) + ปรับโค้ดคำนวณ (DB ว่าง — push ใหม่ได้เลย)
-- [ ] แก้บั๊ก platformFee: `src/server/routers/order.ts:394` (create ไม่รวม) vs `:728,:793` (update รวม) vs UI `orders/new/page.tsx:196` — เลือกสูตรเดียว ใช้ทุกที่
-- [ ] `billing.recordPayment` (billing.ts:118-179) — รวม 4 writes เป็น `$transaction` เดียว (รวม voidInvoice/recordRefund ด้วย)
-- [ ] **เลขเอกสารรันต่อเนื่อง** — สร้าง model `DocumentSequence` (ต่อชนิดเอกสาร/เดือน, กันชนใน transaction) แทนสุ่ม 4 หลักใน `src/lib/utils.ts:39-87` — บังคับตามกฎหมายใบกำกับภาษี
-- [ ] enforce status transition ที่ชั้น server กลาง — ปิดทาง `production.create` (production.ts:51-54) และ `design.upload/processDesignApproval` เขียน internalStatus ตรงข้าม `isValidTransition`
-- [ ] status guard ของ `order.updateFees`/`order.update` (ตอนนี้แก้เงินได้แม้ COMPLETED/CANCELLED)
+- [x] Float → `Decimal` ทุก field เงินใน `prisma/schema.prisma` (54 จุด) + ปรับโค้ดคำนวณ (DB ว่าง — push ใหม่ได้เลย)
+- [x] แก้บั๊ก platformFee: `src/server/routers/order.ts:394` (create ไม่รวม) vs `:728,:793` (update รวม) vs UI `orders/new/page.tsx:196` — เลือกสูตรเดียว ใช้ทุกที่
+- [x] `billing.recordPayment` (billing.ts:118-179) — รวม 4 writes เป็น `$transaction` เดียว (รวม voidInvoice/recordRefund ด้วย)
+- [x] **เลขเอกสารรันต่อเนื่อง** — สร้าง model `DocumentSequence` (ต่อชนิดเอกสาร/เดือน, กันชนใน transaction) แทนสุ่ม 4 หลักใน `src/lib/utils.ts:39-87` — บังคับตามกฎหมายใบกำกับภาษี
+- [x] enforce status transition ที่ชั้น server กลาง — ปิดทาง `production.create` (production.ts:51-54) และ `design.upload/processDesignApproval` เขียน internalStatus ตรงข้าม `isValidTransition`
+- [x] status guard ของ `order.updateFees`/`order.update` (ตอนนี้แก้เงินได้แม้ COMPLETED/CANCELLED)
 
 ### P0.3 วินัยฐานข้อมูล
 - [ ] เริ่ม `prisma migrate` + baseline (ตอนนี้ migrations ว่าง ใช้ db push อย่างเดียว = ย้อนกลับไม่ได้)

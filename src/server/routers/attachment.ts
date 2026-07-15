@@ -4,6 +4,7 @@ import { router, protectedProcedure } from "../trpc";
 import { byIdInput, fileUrlSchema } from "@/server/schemas";
 import { notFound, badRequest } from "@/server/errors";
 import { ATTACHMENT_CATEGORIES } from "@/lib/file-layers";
+import { hasPermission } from "@/lib/permissions";
 import { isOwnOutsourceFile } from "@/server/services/outsource-share";
 import type { PrismaTx } from "@/lib/prisma";
 
@@ -78,6 +79,19 @@ export const attachmentRouter = router({
         if (!isOwnOutsourceFile(input.entityId, input.fileUrl)) {
           badRequest("ไฟล์แนบใบงานร้านนอกต้องอัปโหลดผ่านช่องแนบไฟล์ของใบนั้น");
         }
+      }
+
+      // เอกสารการเงิน — แนบได้เฉพาะคนทำบิล/รับเงิน (สลิป/หลักฐานเงิน) · ปิด mutation
+      // สุดท้ายที่ยังไม่มีด่าน role (P0.1 ข้อ requireRole ครบทุก mutation · audit 07-15)
+      if (
+        input.entityType === "INVOICE" &&
+        !hasPermission(ctx.userRole, ctx.permissionOverrides, "manage_billing_docs") &&
+        !hasPermission(ctx.userRole, ctx.permissionOverrides, "record_payments")
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "แนบไฟล์บนเอกสารเงินได้เฉพาะทีมบิล/การเงิน",
+        });
       }
 
       // ไฟล์พิมพ์จริง (ชั้น 3) = ของฝ่ายผลิต/กราฟิก — ขาย/บัญชีไม่มีเหตุต้องแนบ
