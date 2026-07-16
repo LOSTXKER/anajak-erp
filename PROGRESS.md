@@ -4,7 +4,7 @@
 
 ## ตอนนี้
 
-> **NEXT (session หน้า):** UX Refactor UX0–UX3 ปิดครบแล้วบน branch `codex/ux-refactor` — รอเบสดู 4 flow หลักจาก branch นี้และเคาะ merge/push; ไม่มีงานโค้ดค้างใน scope นี้ และยังไม่ได้ push ขึ้น remote
+> **NEXT (session หน้า):** เบสเคาะแล้ว 2026-07-16 — `codex/ux-refactor` (UX0–UX3 + P0 ปิดหาง) merge เข้า `main` แบบ fast-forward และ push ขึ้น origin เรียบร้อย (verify ก่อน push: test 572/572 · tsc 0) · ไม่มีงานโค้ดค้าง — งานถัดไปหยิบจาก ROADMAP P1 ขึ้นไป
 
 - **✅ P0 ปิดหางสมบูรณ์ 2026-07-15 (Nami/bestos):** audit สิทธิ์เต็มทุก mutation **97/97 มีด่านครบ** (requirePermission/requireRole 88 · inline role check · per-user scope 3 · token flow 5) → เจอช่องเดียว: `attachment.create` เส้นทางทั่วไป login-only = staff ทุก role แนบไฟล์ใส่ INVOICE ได้ → ปิดด่าน (ต้องมี `manage_billing_docs`|`record_payments`) + test 5 เคส (`attachment.invoice-guard.test.ts`) · **ROADMAP P0.1/P0.2 tick ครบตามหลักฐานโค้ดจริง** (checkbox ว่างทั้งที่ทำแล้ว = drift ตั้งแต่ audit 07-02) · verify: test 572/572 · tsc 0 · lint 0 errors · migrate status up-to-date (32) · seed.ts typecheck strict ผ่าน (ยัง exclude จาก tsconfig — เช็คเดี่ยวสะอาด)
 - **🎯 UX Refactor UX0–UX3 จบ 2026-07-11:** คงธีม/สี/การ์ดเดิม แต่จัดทางเข้าตามบทบาท งานของฉัน คิวผลิต intake ออเดอร์ รายละเอียดออเดอร์ ใบผลิต Billing/Quotation/Product Sync/Outsource/Analytics และ core responsive lists ใหม่ตาม `docs/spec-ux-refactor-2026-07-11.md`
@@ -14,7 +14,7 @@
 - **UX3:** Billing row ไปแท็บเงินของออเดอร์ · quotation `updateDraft` + `prepareShare` atomic · ราคา Product เป็น local draft · Sync dialog เป็น reducer · Outsource เป็นคิวส่ง/รับ/QC และย้ายทะเบียนร้านไป Settings · Analytics แยก Audit Log ไป System · Billing/Delivery/Customer form/Order item composer ดึง pure decision logic พร้อม tests แบบ targeted
 - **browser QA ข้อมูลจริง:** เปิด `/my-tasks`, `/orders/new`, `/orders/[id]`, `/production/[id]` ทั้ง desktop/mobile และตรวจ `/orders` เพิ่มที่ 320/375/640/768/1024/1440px + landscape; ไม่มี horizontal scroll · action จริงบนมือถือ ≥44px · order tabs ใช้ keyboard/Arrow key ได้ · public error page บังคับ light แม้ระบบ dark · console 0 error
 - **verification:** `npm run typecheck` ผ่าน · `npm run lint -- --quiet` ผ่าน 0 error · `npm test` ผ่าน **567/567** (53 files; ฐานเดิม 495 ไม่ถอย) · `npm run verify:moneygate` ผ่าน **39/39** · production build ผ่านและสร้าง route 38/38 · permission tests ครบ 6 role + override · ไม่มี schema migration/dependency ใหม่
-- **ความสะอาด:** บัญชี QA ชั่วคราวถูกลบจาก Prisma/Supabase แล้ว · dev server 3001 หยุดแล้ว · `.codex/` เป็นไฟล์ของผู้ใช้ ไม่แตะ/ไม่ stage
+- **ความสะอาด:** บัญชี QA ชั่วคราวถูกลบจาก Prisma/Supabase แล้ว · dev server 3001 หยุดแล้ว · `.codex/` (hook โหลด PROGRESS.md ของ Codex) commit เข้า repo แล้ว 2026-07-16 ตามคำสั่งเบส — pattern เดียวกับ `.claude/` ที่ track อยู่เดิม
 
 ## บันทึกก่อนหน้า
 
