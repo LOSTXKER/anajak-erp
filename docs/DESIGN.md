@@ -12,6 +12,7 @@
 | Semantic | `--color-accent/-hover/-soft`, `--color-success/warning/danger(-soft)`, surface/border/text | ผ่าน utility: `bg-accent`, `bg-surface`, `text-text-muted` |
 
 กฎ: **ห้าม hex ตรงๆ ในโค้ด component** · สีเหลืองแบรนด์ใช้เฉพาะจุดเน้นพิเศษ (เช่น Job Ticket) ผ่าน `anajak-yellow` · `amber-*` = warning ตามเดิม
+· neutral มาตรฐาน = `slate-*` เท่านั้น (ramp ถูก override เข้าโทน Apple gray ที่ `@theme` แล้ว — UX4.4) — **ห้ามใช้ `gray-*`/`zinc-*` ปน** เพราะจะหลุดโทนที่ override ไว้
 
 ## Component มาตรฐาน — มีแล้ว ห้ามสร้างซ้ำ
 
@@ -24,9 +25,9 @@
 | badge อื่น | `ui/badge.tsx` (variant: default/accent/success/warning/destructive/outline) | อย่าเพิ่มสีใหม่ |
 | ว่างเปล่า | `ui/empty-state.tsx` | ทุก list ที่ว่างต้องมี |
 | โหลด/พัง | `ui/skeleton.tsx` + `ui/query-error.tsx` | ทุก query หลักของหน้า |
-| หัวข้อกลุ่ม/สถิติ | `ui/section.tsx` · `ui/stat-card.tsx` | |
+| หัวข้อกลุ่ม/สถิติ | `ui/section.tsx` · `ui/stat-card.tsx` | StatCard รับ `tone`/`href` สำหรับเลขเสี่ยง (ตัวเลขที่ต้องเด่น+กดไปดูได้ — UX4.3) |
 | ฟอร์ม | `ui/field.tsx` ครอบ `input|textarea|select|native-select|switch` + Zod เมื่อมี validation ซับซ้อน | label/id/required/description/error/aria ต้องมาจาก Field · ยังไม่เพิ่ม form dependency |
-| list responsive | `ui/responsive-list.tsx` | desktop table + mobile card เฉพาะหน้าจอ · ใช้ loading/error/empty/pagination ชุดเดียว |
+| list responsive | `ui/responsive-list.tsx` | desktop table + mobile card เฉพาะหน้าจอ · ใช้ loading/error/empty/pagination ชุดเดียว · มี `emptyAction` ใส่ปุ่มก้าวถัดไปตอน list ว่าง (UX4.7) |
 | สิทธิ์ UI | `ui/capability-gate.tsx` + `permAllows` | action ที่ server ไม่อนุญาตต้องไม่เปิดให้กรอกก่อนแล้วค่อย error |
 | ช่องทางจ่ายเงิน | `lib/payment-methods.ts` | ค่า+ป้ายที่เดียว |
 
@@ -43,7 +44,7 @@
 
 ตามที่ component มาตรฐานใช้อยู่: ฟอนต์ Prompt · ตัวเลขเงิน `tabular-nums` เสมอ ·
 การ์ด/กล่อง `rounded-2xl` · ปุ่ม/ช่องกรอก `rounded-lg` · mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px · metadata อย่างน้อย 12px และต้องผ่าน contrast
-หัวเรื่องหน้า `text-xl font-semibold` — ดูตัวอย่างจริงจาก component ใน `ui/` ไม่ต้องจำตาราง
+หัวเรื่องหน้า = `PageHeader` (`text-[26px] font-semibold tracking-tight`) — ทุกหน้าใช้ผ่าน component นี้ **ห้ามเขียน `<h1>` เอง** · หัว section ภายในหน้า = `Section` (`text-[15px] font-semibold` หรือ `compact` = label ตัวพิมพ์เล็ก uppercase) — ดูตัวอย่างจริงจาก component ใน `ui/` ไม่ต้องจำตาราง
 
 ## Interaction / navigation / state contract (UX0)
 

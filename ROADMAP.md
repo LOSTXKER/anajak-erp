@@ -86,6 +86,24 @@
 - **เกณฑ์ปิด**: 320/375/640/768/1024/1440 + landscape/zoom 200% · keyboard/Escape/focus-return/reduced-motion/dark/public-light · 6 role+override · core mobile ไม่มี horizontal scroll · action มือถือ ≥44px · a11y lint 0 error · UI permission ตรง server · error ไม่ปลอมเป็น empty · quotation ไม่มี partial save · console 0 error · unit เดิมห้ามถอย
 - **หลักฐานปิดงาน 2026-07-11**: browser จริงไม่มี horizontal scroll/console error และ public forced-light ผ่าน · keyboard tab navigation ผ่าน · role/override ตรวจด้วย permission tests ครบ 6 role + moneygate 39/39 · `typecheck` ผ่าน · lint 0 error · unit 567/567 (ฐานเดิม 495 ไม่ถอย) · production build ผ่าน 38/38 routes · ไม่มี schema/dependency ใหม่
 
+### 🎯 UX4 — จุดนำสายตา + ความเนี้ยบทั้งระบบ (เบสสั่ง 2026-07-16 "วิเคราะห์+ปรับ UX/UI ให้ใช้ง่าย สวย มีจุดนำสายตา" · จาก audit 6 กลุ่มหน้า 81 findings)
+> หลักการ: แก้ที่ primitive/config กลางก่อน (จุดเดียวส่งผลทุกหน้า) แล้วค่อยเก็บหน้า high-traffic · คงธีม/สี/โครงเดิมทั้งหมด · ไม่มี schema/dependency ใหม่
+
+- [x] **UX4.1 สเกลปุ่มจริง + เป้านิ้วหน้างาน** — `button.tsx`: sm เล็กจริงบน desktop (มือถือคง ≥44px) · secondary/subtle ยุบเข้า outline · ถอน override `h-9` ในบอร์ดผลิต/command center · ปุ่มเบิกเสื้อ h-8 → เต็มมาตรฐาน · QC ผ่าน (ร้านนอก) ต้องผ่าน useConfirm ก่อน
+- [x] **UX4.2 ภาษาสีสถานะชุดเดียว** — ลบ paymentStatusConfig ซ้ำใน /billing → ใช้ `lib/status-config.ts` ที่เดียว (เคาะ UNPAID=warning) · OrderStatusBadge dot ใหญ่ขึ้น + สีสถานะปลายทาง (ยกเลิก/เสร็จ)
+- [x] **UX4.3 เลขเสี่ยงต้องเด่น** — StatCard รับ `tone`/`href` · aging/billing "เกินกำหนด" แดง+กดได้ · WHT เลิกการ์ดทำมือ · Dashboard ตัด metric ซ้ำ (บิลเลยกำหนด=บิลค้างชำระ) + แถวสองเป็นภาพรวมสะสมย่อ + PulseCard ยุบเข้า StatCard + การ์ดกดได้ต้องกดได้ทั้งใบ
+- [x] **UX4.4 โทน neutral เดียว** — override slate ramp ใน `@theme` ให้เข้าตระกูล Apple gray เดียวกับ semantic token + green ramp anchor success · `.card-surface` ใช้ var · แก้ hex `#f5f5f7` หลุด 4 จุดใน layout
+- [x] **UX4.5 ตัวหนังสือ ≥12px หน้างาน** — กวาด text-[9..11px] ใน orders/new + production/print-runs เป็น text-xs ขั้นต่ำ (ตาม DESIGN.md metadata ≥12px)
+- [x] **UX4.6 หัวเรื่องมาตรฐานเดียว** — SettingsPageHeader → 26px semibold ให้ตรง PageHeader · label เมนูไทยล้วน (Dashboard→แดชบอร์ด, Outsource→จ้างร้านนอก · คำอังกฤษเก็บใน aliases) · DESIGN.md อัปเดตให้ตรงโค้ดจริง
+- [x] **UX4.7 ทางไปต่อเมื่อ list ว่าง** — ResponsiveList รับ `emptyAction` · orders ติดตัวกรอง CTA = ล้างตัวกรอง · เลนผลิตว่าง/หลังผลิตเป็น EmptyState มีลิงก์ · dashboard ออเดอร์ล่าสุดว่างไม่หายทั้ง section
+- [x] **UX4.8 ความเร่งด่วนบนแถว** — orders list: คอลัมน์กำหนดส่ง+สีเตือน (แดง=เลย, amber=ใน 48 ชม.) + sort ตามกำหนดส่ง + attention filter ยกเป็นแถว chip · my-tasks: badge ประเภทงานโชว์บนมือถือ + สีวันครบกำหนดตาม attention · production board มีวันส่งบนการ์ด
+- [x] **UX4.9 เสียงเดียวบน order detail** — ตัด "→ ถัดไป" ออกจาก status bar ให้การ์ดขั้นต่อไปเป็นจุดนำเดียว · แท็บมือถือ grid ตาม role จริง (ช่าง/กราฟิก 3 แท็บไม่มีช่องตาย)
+- [x] **UX4.10 ใบผลิตชี้ขั้นถัดไป** — steps list เน้น primary เฉพาะขั้นแรกที่ยังไม่เสร็จของเลน ขั้นหลังเป็น "รอขั้นก่อนหน้า" (ลอก pattern heatPressWaiting)
+- [x] **UX4.11 ลูกค้าเครดิตเทอมเล่าเรื่อง** — customer detail: ค้างชำระโชว์เสมอเมื่อมีสิทธิ์เงิน (แดงเมื่อ >0) · header เหลือ แก้ข้อมูล+เปิดงาน (ช่องทางติดต่อมีการ์ดอยู่แล้ว)
+- **ค้างไว้ก่อน (ใบงานถัดไป ไม่บล็อกงวดนี้)**: ฟอร์ม 3 มาตรฐาน → Field/DataTable กลาง (outsource dialog · customer create · users table · add-product-popover → Radix) 【L】 · typographic scale ประกาศใน @theme
+- **เกณฑ์ปิด**: typecheck/lint 0 error · unit เดิมไม่ถอย · browser จริง desktop+mobile หน้า dashboard/my-tasks/orders/order detail/production/billing ไม่มี regression · dark mode + public light คงเดิม
+- **ปิดงาน 2026-07-17 (Nami)**: ครบทั้ง 11 ข้อ · verify: tsc 0 · lint 0 error · test 576/576 (ฐาน 572 ไม่ถอย +4 เทสใหม่ firstPendingStepIdsByLane/navigation) · browser จริง light+dark: dashboard/orders/production board/billing/my-tasks mobile · ข้อยกเว้นตั้งใจ <12px เหลือ 2 จุด (ป้ายเวอร์ชันบน thumbnail + จุดนับบน badge กลม) · UX4.11 แถว "งานยังไม่ปิด" ไม่ได้ทำ — payload creditStatus ไม่มีข้อมูลนี้ (จดไว้รอใบงาน backend)
+
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
 ~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
 
