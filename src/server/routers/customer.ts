@@ -20,14 +20,24 @@ export const customerRouter = router({
     .use(customerEditors)
     .input(z.object({ customerId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const customer = await ctx.prisma.customer.findUniqueOrThrow({
-        where: { id: input.customerId },
-        select: { creditLimit: true },
-      });
-      const exposure = await creditExposureForCustomer(ctx.prisma, input.customerId);
+      const [customer, exposure, openOrders] = await Promise.all([
+        ctx.prisma.customer.findUniqueOrThrow({
+          where: { id: input.customerId },
+          select: { creditLimit: true },
+        }),
+        creditExposureForCustomer(ctx.prisma, input.customerId),
+        // งานยังไม่ปิดของลูกค้า — หน้า detail ใช้เล่าเรื่องคู่ยอดค้างชำระ (UX4.11)
+        ctx.prisma.order.count({
+          where: {
+            customerId: input.customerId,
+            internalStatus: { notIn: ["COMPLETED", "CANCELLED"] },
+          },
+        }),
+      ]);
       return {
         creditLimit: customer.creditLimit,
         ...exposure,
+        openOrders,
         available:
           customer.creditLimit != null ? customer.creditLimit - exposure.exposure : null,
       };

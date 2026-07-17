@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/field";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { Loader2, Truck } from "lucide-react";
 import type { ProductionStep } from "./types";
@@ -80,26 +81,25 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
             สร้างใบงาน outsource ผูกกับขั้นตอนนี้ — ติดตาม/รับกลับ/QC ที่หน้า Outsource
           </DialogDescription>
         </DialogHeader>
+        {/* label เขียนเองถูกยุบเข้า Field กลาง (UX4) — id/aria เดินสายอัตโนมัติ
+            ยกเว้น vendor: id ต้องลงที่ SelectTrigger (Radix Root ไม่มี DOM node)
+            จึงส่ง id เดียวกันให้ Field เพื่อให้ label htmlFor ชี้ตรง trigger */}
         <div className="space-y-4">
           <div>
-            <label
-              htmlFor={`${formId}-vendor`}
-              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
-            >
-              ร้าน (Vendor)
-            </label>
-            <Select value={vendorId} onValueChange={setVendorId}>
-              <SelectTrigger id={`${formId}-vendor`}>
-                <SelectValue placeholder="เลือกร้าน..." />
-              </SelectTrigger>
-              <SelectContent>
-                {vendors.data?.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Field label="ร้าน (Vendor)" id={`${formId}-vendor`}>
+              <Select value={vendorId} onValueChange={setVendorId}>
+                <SelectTrigger id={`${formId}-vendor`}>
+                  <SelectValue placeholder="เลือกร้าน..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendors.data?.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             {vendors.data?.length === 0 && (
               <div className="mt-2 rounded-lg bg-amber-50 p-3 dark:bg-amber-950/30">
                 <p className="text-xs text-amber-800 dark:text-amber-300">
@@ -111,70 +111,44 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
               </div>
             )}
           </div>
-          <div>
-            <label
-              htmlFor={`${formId}-description`}
-              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
-            >
-              รายละเอียดงาน
-            </label>
+          <Field label="รายละเอียดงาน">
             <Input
-              id={`${formId}-description`}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="เช่น สกรีนหน้าอก 2 สี"
             />
-          </div>
+          </Field>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label
-                htmlFor={`${formId}-quantity`}
-                className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
-              >
-                จำนวน (ชิ้น)
-              </label>
+            <Field
+              label="จำนวน (ชิ้น)"
+              description={
+                step.qtyTotal !== null && step.qtyTotal > 0
+                  ? `ทั้งขั้น ${step.qtyTotal} · ผ่านแล้ว ${step.qtyDone} — แบ่งส่งหลายรอบได้`
+                  : undefined
+              }
+            >
               <Input
-                id={`${formId}-quantity`}
                 type="number"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 min="1"
               />
-              {step.qtyTotal !== null && step.qtyTotal > 0 && (
-                <p className="mt-1 text-xs tabular-nums text-slate-400">
-                  ทั้งขั้น {step.qtyTotal} · ผ่านแล้ว {step.qtyDone} — แบ่งส่งหลายรอบได้
-                </p>
-              )}
-            </div>
-            <div>
-              <label
-                htmlFor={`${formId}-expected-back`}
-                className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
-              >
-                กำหนดรับกลับ
-              </label>
+            </Field>
+            <Field label="กำหนดรับกลับ">
               <Input
-                id={`${formId}-expected-back`}
                 type="date"
                 value={expectedBack}
                 onChange={(e) => setExpectedBack(e.target.value)}
               />
-            </div>
+            </Field>
           </div>
-          <div>
-            <label
-              htmlFor={`${formId}-notes`}
-              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
-            >
-              หมายเหตุ
-            </label>
+          <Field label="หมายเหตุ">
             <Input
-              id={`${formId}-notes`}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="เช่น ส่งพร้อมบล็อกเดิม"
             />
-          </div>
+          </Field>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>

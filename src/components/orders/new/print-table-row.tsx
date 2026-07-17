@@ -4,27 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { NativeSelect } from "@/components/ui/native-select";
-import { Plus, Trash2, AlertCircle, Loader2, X, ChevronDown } from "lucide-react";
+import { Plus, Trash2, Loader2, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   PRINT_POSITIONS,
   PRINT_TYPES,
   PRINT_SIZES,
 } from "@/types/order-form";
-import { useState, useRef, type ReactNode } from "react";
+import { useState, useRef } from "react";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
-import { labelClass } from "./order-item-card";
-
-export function Field({ label, error, required, children }: { label: string; error?: string; required?: boolean; children: ReactNode }) {
-  return (
-    <div>
-      <label className={labelClass}>{label} {required && <span className="text-red-400">*</span>}</label>
-      {children}
-      {error && <p className="mt-0.5 flex items-center gap-1 text-xs text-red-500"><AlertCircle className="h-3 w-3 flex-shrink-0" />{error}</p>}
-    </div>
-  );
-}
+// Field ประกาศ local ถูกยุบทิ้ง (UX4) — ใช้ตัวกลางที่เดินสาย id/aria/error ให้ครบ
+import { Field } from "@/components/ui/field";
 
 export function PrintTableRow({
   print, printIdx, onUpdate, onRemove, printCatalog, onApplyCatalog,

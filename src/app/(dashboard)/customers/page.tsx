@@ -19,6 +19,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Field } from "@/components/ui/field";
 import { formatCurrency } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { PAYMENT_TERMS, type PaymentTermsValue } from "@/lib/payment-terms";
@@ -229,8 +230,7 @@ function CustomersPageContent() {
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label htmlFor="customer-name" className="mb-1.5 block text-sm font-medium">ชื่อ {isCorporate ? "ผู้ติดต่อ" : ""} *</label>
+                <Field label={`ชื่อ${isCorporate ? "ผู้ติดต่อ" : ""}`} required>
                   <Input
                     id="customer-name"
                     value={formData.name}
@@ -238,11 +238,8 @@ function CustomersPageContent() {
                     placeholder={isCorporate ? "ชื่อผู้ติดต่อ" : "ชื่อลูกค้า"}
                     required
                   />
-                </div>
-                <div>
-                  <label htmlFor="customer-company" className="mb-1.5 block text-sm font-medium">
-                    บริษัท {isCorporate && <span className="text-red-500">*</span>}
-                  </label>
+                </Field>
+                <Field label="บริษัท" required={isCorporate}>
                   <Input
                     id="customer-company"
                     value={formData.company}
@@ -250,27 +247,24 @@ function CustomersPageContent() {
                     placeholder="ชื่อบริษัท/แบรนด์"
                     required={isCorporate}
                   />
-                </div>
-                <div>
-                  <label htmlFor="customer-phone" className="mb-1.5 block text-sm font-medium">โทรศัพท์</label>
+                </Field>
+                <Field label="โทรศัพท์">
                   <Input
                     id="customer-phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="08x-xxx-xxxx"
                   />
-                </div>
-                <div>
-                  <label htmlFor="customer-line" className="mb-1.5 block text-sm font-medium">LINE ID</label>
+                </Field>
+                <Field label="LINE ID">
                   <Input
                     id="customer-line"
                     value={formData.lineId}
                     onChange={(e) => setFormData({ ...formData, lineId: e.target.value })}
                     placeholder="@lineid"
                   />
-                </div>
-                <div>
-                  <label htmlFor="customer-email" className="mb-1.5 block text-sm font-medium">อีเมล</label>
+                </Field>
+                <Field label="อีเมล">
                   <Input
                     id="customer-email"
                     type="email"
@@ -278,16 +272,15 @@ function CustomersPageContent() {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="email@example.com"
                   />
-                </div>
-                <div>
-                  <label htmlFor="customer-address" className="mb-1.5 block text-sm font-medium">ที่อยู่ (ทั่วไป)</label>
+                </Field>
+                <Field label="ที่อยู่ (ทั่วไป)">
                   <Input
                     id="customer-address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     placeholder="ที่อยู่จัดส่ง"
                   />
-                </div>
+                </Field>
               </div>
 
               {/* Corporate-specific fields */}
@@ -296,10 +289,7 @@ function CustomersPageContent() {
                   <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                     <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">ข้อมูลนิติบุคคล</h4>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <div>
-                        <label htmlFor="customer-tax-id" className="mb-1.5 block text-sm font-medium">
-                          เลขประจำตัวผู้เสียภาษี <span className="text-red-500">*</span>
-                        </label>
+                      <Field label="เลขประจำตัวผู้เสียภาษี" required={isCorporate}>
                         <Input
                           id="customer-tax-id"
                           value={formData.taxId}
@@ -307,18 +297,19 @@ function CustomersPageContent() {
                           placeholder="เลข 13 หลัก"
                           required={isCorporate}
                         />
-                      </div>
-                      <div>
-                        <label htmlFor="customer-branch" className="mb-1.5 block text-sm font-medium">สาขา</label>
+                      </Field>
+                      <Field label="สาขา">
                         <Input
                           id="customer-branch"
                           value={formData.branchNumber}
                           onChange={(e) => setFormData({ ...formData, branchNumber: e.target.value })}
                           placeholder="00000 = สำนักงานใหญ่"
                         />
-                      </div>
-                      <div>
-                        <label htmlFor="customer-credit-limit" className="mb-1.5 block text-sm font-medium">วงเงินเครดิต (บาท)</label>
+                      </Field>
+                      <Field
+                        label="วงเงินเครดิต (บาท)"
+                        description={!canSetCredit ? "ผู้จัดการ/บัญชีเป็นคนกำหนด" : undefined}
+                      >
                         <Input
                           id="customer-credit-limit"
                           type="number"
@@ -327,28 +318,26 @@ function CustomersPageContent() {
                           placeholder="เช่น 50000"
                           disabled={!canSetCredit}
                         />
-                        {!canSetCredit && (
-                          <p className="mt-1 text-xs text-slate-400">ผู้จัดการ/บัญชีเป็นคนกำหนด</p>
-                        )}
-                      </div>
+                      </Field>
                     </div>
                     <div className="mt-4">
-                      <label htmlFor="customer-payment-terms" className="mb-1.5 block text-sm font-medium">เงื่อนไขการชำระเงิน (ค่าเริ่มต้น)</label>
-                      <Select
-                        value={formData.defaultPaymentTerms}
-                        onValueChange={(v) => setFormData({ ...formData, defaultPaymentTerms: v })}
-                      >
-                        <SelectTrigger id="customer-payment-terms" className="w-full md:w-64">
-                          <SelectValue placeholder="เลือกเงื่อนไข" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PAYMENT_TERMS.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Field label="เงื่อนไขการชำระเงิน (ค่าเริ่มต้น)" id="customer-payment-terms">
+                        <Select
+                          value={formData.defaultPaymentTerms}
+                          onValueChange={(v) => setFormData({ ...formData, defaultPaymentTerms: v })}
+                        >
+                          <SelectTrigger id="customer-payment-terms" className="w-full md:w-64">
+                            <SelectValue placeholder="เลือกเงื่อนไข" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAYMENT_TERMS.map((t) => (
+                              <SelectItem key={t.value} value={t.value}>
+                                {t.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
                     </div>
                   </div>
 
@@ -356,61 +345,56 @@ function CustomersPageContent() {
                     <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">ที่อยู่ออกใบกำกับภาษี</h4>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div className="md:col-span-2">
-                        <label htmlFor="customer-billing-address" className="mb-1.5 block text-sm font-medium">ที่อยู่</label>
-                        <Input
-                          id="customer-billing-address"
-                          value={formData.billingAddress}
-                          onChange={(e) => setFormData({ ...formData, billingAddress: e.target.value })}
-                          placeholder="เลขที่ ถนน"
-                        />
+                        <Field label="ที่อยู่">
+                          <Input
+                            id="customer-billing-address"
+                            value={formData.billingAddress}
+                            onChange={(e) => setFormData({ ...formData, billingAddress: e.target.value })}
+                            placeholder="เลขที่ ถนน"
+                          />
+                        </Field>
                       </div>
-                      <div>
-                        <label htmlFor="customer-billing-subdistrict" className="mb-1.5 block text-sm font-medium">แขวง/ตำบล</label>
+                      <Field label="แขวง/ตำบล">
                         <Input
                           id="customer-billing-subdistrict"
                           value={formData.billingSubDistrict}
                           onChange={(e) => setFormData({ ...formData, billingSubDistrict: e.target.value })}
                         />
-                      </div>
-                      <div>
-                        <label htmlFor="customer-billing-district" className="mb-1.5 block text-sm font-medium">เขต/อำเภอ</label>
+                      </Field>
+                      <Field label="เขต/อำเภอ">
                         <Input
                           id="customer-billing-district"
                           value={formData.billingDistrict}
                           onChange={(e) => setFormData({ ...formData, billingDistrict: e.target.value })}
                         />
-                      </div>
-                      <div>
-                        <label htmlFor="customer-billing-province" className="mb-1.5 block text-sm font-medium">จังหวัด</label>
+                      </Field>
+                      <Field label="จังหวัด">
                         <Input
                           id="customer-billing-province"
                           value={formData.billingProvince}
                           onChange={(e) => setFormData({ ...formData, billingProvince: e.target.value })}
                         />
-                      </div>
-                      <div>
-                        <label htmlFor="customer-billing-postal-code" className="mb-1.5 block text-sm font-medium">รหัสไปรษณีย์</label>
+                      </Field>
+                      <Field label="รหัสไปรษณีย์">
                         <Input
                           id="customer-billing-postal-code"
                           value={formData.billingPostalCode}
                           onChange={(e) => setFormData({ ...formData, billingPostalCode: e.target.value })}
                         />
-                      </div>
+                      </Field>
                     </div>
                   </div>
                 </>
               )}
 
-              <div>
-                <label htmlFor="customer-notes" className="mb-1.5 block text-sm font-medium">หมายเหตุ</label>
+              <Field label="หมายเหตุ">
                 <Textarea
-                  id="customer-notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="หมายเหตุเพิ่มเติม..."
                   rows={2}
                 />
-              </div>
+              </Field>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>ยกเลิก</Button>
                 <Button type="submit" disabled={createCustomer.isPending}>

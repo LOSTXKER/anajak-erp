@@ -28,6 +28,8 @@ export interface BillingUiInvoice {
 export interface BillingOverview {
   totalInvoiced: number;
   totalPaid: number;
+  /** ยอดค้างชำระรวมของใบเรียกเก็บที่ยังมีผล — Σ remaining ต่อใบ (นิยามเดียวกับป้ายรายใบ) */
+  totalOutstanding: number;
   pendingReceiptCount: number;
   unlinkedReceiptCount: number;
   hasLiveReceivable: boolean;
@@ -57,6 +59,7 @@ function isLiveReceivable(invoice: Pick<BillingUiInvoice, "type" | "isVoided">) 
 export function billingOverview(invoices: readonly BillingUiInvoice[]): BillingOverview {
   let totalInvoiced = 0;
   let totalPaid = 0;
+  let totalOutstanding = 0;
   let pendingReceiptCount = 0;
   let unlinkedReceiptCount = 0;
   let hasLiveReceivable = false;
@@ -66,6 +69,9 @@ export function billingOverview(invoices: readonly BillingUiInvoice[]): BillingO
 
     totalInvoiced += invoice.totalAmount;
     hasLiveReceivable ||= isLiveReceivable(invoice);
+    if (isLiveReceivable(invoice)) {
+      totalOutstanding += invoiceBalance(invoice).remaining;
+    }
 
     if (invoice.type === "RECEIPT" && !invoice.forPaymentId) {
       unlinkedReceiptCount += 1;
@@ -87,6 +93,7 @@ export function billingOverview(invoices: readonly BillingUiInvoice[]): BillingO
   return {
     totalInvoiced,
     totalPaid,
+    totalOutstanding,
     pendingReceiptCount,
     unlinkedReceiptCount,
     hasLiveReceivable,

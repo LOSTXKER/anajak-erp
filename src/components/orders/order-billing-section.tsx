@@ -350,6 +350,7 @@ export function OrderBillingSection({
   const {
     totalInvoiced,
     totalPaid,
+    totalOutstanding,
     pendingReceiptCount,
     unlinkedReceiptCount,
     hasLiveReceivable,
@@ -424,7 +425,7 @@ export function OrderBillingSection({
         </CardHeader>
         <CardContent>
           {/* Summary */}
-          <div className="mb-4 grid grid-cols-3 gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+          <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 sm:grid-cols-4 dark:bg-slate-800/50">
             <div className="text-center">
               <p className="text-xs text-slate-500 dark:text-slate-400">ยอดรวม</p>
               <p className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -441,6 +442,19 @@ export function OrderBillingSection({
               <p className="text-xs text-slate-500 dark:text-slate-400">ชำระแล้ว</p>
               <p className="text-sm font-semibold text-green-600 dark:text-green-400">
                 {formatCurrency(totalPaid)}
+              </p>
+            </div>
+            {/* เลขที่คนหน้างานถามบ่อยสุด "เหลือเก็บอีกเท่าไร" — แดงเมื่อยังค้าง (UX4) */}
+            <div className="text-center">
+              <p className="text-xs text-slate-500 dark:text-slate-400">ค้างชำระ</p>
+              <p
+                className={`text-sm font-semibold tabular-nums ${
+                  totalOutstanding > 0
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-slate-900 dark:text-white"
+                }`}
+              >
+                {formatCurrency(totalOutstanding)}
               </p>
             </div>
           </div>

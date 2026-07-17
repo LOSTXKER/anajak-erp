@@ -16,7 +16,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
-import { Field } from "./print-table-row";
+import { Field } from "@/components/ui/field";
 
 function QuickAddPattern({
   onCreated,

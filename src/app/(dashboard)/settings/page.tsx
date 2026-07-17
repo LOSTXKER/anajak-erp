@@ -33,11 +33,16 @@ interface SettingLink {
   title: string;
   description: string;
   permissionsAny?: readonly Permission[];
+  // จัดกลุ่ม hub ให้สแกนเจอเร็ว (UX4) — เดิม 10 ลิงก์แบนเรียงติดกันไม่มีหมวด
+  group: "กิจการและทีม" | "การผลิตและบริการ" | "ระบบและข้อมูล";
 }
+
+const SETTING_GROUPS = ["กิจการและทีม", "การผลิตและบริการ", "ระบบและข้อมูล"] as const;
 
 const SETTING_LINKS: readonly SettingLink[] = [
   {
     href: "/settings/company",
+    group: "กิจการและทีม",
     icon: Building,
     title: "ข้อมูลกิจการ",
     description: "ชื่อ/ที่อยู่/เลขผู้เสียภาษี — ขึ้นหัวเอกสารและใบกำกับภาษี",
@@ -45,6 +50,7 @@ const SETTING_LINKS: readonly SettingLink[] = [
   },
   {
     href: "/settings/users",
+    group: "กิจการและทีม",
     icon: Users,
     title: "จัดการผู้ใช้",
     description: "บัญชีพนักงาน สิทธิ์ และรหัสผ่าน",
@@ -52,6 +58,7 @@ const SETTING_LINKS: readonly SettingLink[] = [
   },
   {
     href: "/settings/stock",
+    group: "ระบบและข้อมูล",
     icon: Cloud,
     title: "เชื่อมต่อ Anajak Stock",
     description: "API URL/Key ระบบสต๊อกเสื้อ — จอง/เบิก/คืนใช้ท่อนี้",
@@ -59,6 +66,7 @@ const SETTING_LINKS: readonly SettingLink[] = [
   },
   {
     href: "/settings/vendors",
+    group: "การผลิตและบริการ",
     icon: Store,
     title: "ร้านรับจ้างภายนอก",
     description: "ทะเบียนร้านสำหรับงาน DTG, สกรีน, ปัก, ตัดเย็บ และป้ายคอ",
@@ -66,6 +74,7 @@ const SETTING_LINKS: readonly SettingLink[] = [
   },
   {
     href: "/settings/cost-rates",
+    group: "การผลิตและบริการ",
     icon: Calculator,
     title: "เรตต้นทุนกลาง",
     description: "เรตฟิล์ม/ค่าแรงเหมา — กำไรขั้นต้นโดยประมาณตอนตีราคา",
@@ -73,6 +82,7 @@ const SETTING_LINKS: readonly SettingLink[] = [
   },
   {
     href: "/settings/services",
+    group: "การผลิตและบริการ",
     icon: Wrench,
     title: "จัดการบริการ",
     description: "Add-ons, สกรีน, ค่าบริการ",
@@ -80,6 +90,7 @@ const SETTING_LINKS: readonly SettingLink[] = [
   },
   {
     href: "/settings/patterns",
+    group: "การผลิตและบริการ",
     icon: Scissors,
     title: "จัดการแพทเทิร์น",
     description: "แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ",
@@ -87,6 +98,7 @@ const SETTING_LINKS: readonly SettingLink[] = [
   },
   {
     href: "/settings/packaging",
+    group: "การผลิตและบริการ",
     icon: Package,
     title: "จัดการแพ็คเกจ",
     description: "ตัวเลือกแพ็คเกจสำหรับจัดส่ง",
@@ -94,6 +106,7 @@ const SETTING_LINKS: readonly SettingLink[] = [
   },
   {
     href: "/settings/backup",
+    group: "ระบบและข้อมูล",
     icon: HardDriveDownload,
     title: "สำรองข้อมูล",
     description: "ดาวน์โหลดข้อมูลทั้งระบบเก็บไว้เอง (เจ้าของเท่านั้น)",
@@ -101,6 +114,7 @@ const SETTING_LINKS: readonly SettingLink[] = [
   },
   {
     href: "/settings/audit",
+    group: "ระบบและข้อมูล",
     icon: History,
     title: "ประวัติระบบ",
     description: "ตรวจว่าใครเปลี่ยนข้อมูลอะไร เมื่อไหร่",
@@ -128,32 +142,41 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="ตั้งค่า" description="ตั้งค่าระบบ Anajak Print" />
+      <PageHeader
+        title="ตั้งค่า"
+        description="ตั้งค่าระบบ Anajak Print — ทุกหน้าบันทึกจริง แก้แล้วมีผลทันที"
+      />
 
-      <Section title="หมวดตั้งค่า" description="ทุกหน้าในนี้บันทึกจริง — แก้แล้วมีผลกับระบบทันที">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {visibleLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="group card-surface card-surface-hover flex items-center gap-3 rounded-2xl p-3.5 transition-colors"
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-slate-100 text-slate-500 transition-colors group-hover:bg-blue-50 group-hover:text-blue-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-blue-950/40 dark:group-hover:text-blue-300">
-                <link.icon className="h-4 w-4" strokeWidth={1.75} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
-                  {link.title}
-                </p>
-                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                  {link.description}
-                </p>
-              </div>
-              <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 dark:text-slate-600" />
-            </Link>
-          ))}
-        </div>
-      </Section>
+      {SETTING_GROUPS.map((group) => {
+        const links = visibleLinks.filter((link) => link.group === group);
+        if (links.length === 0) return null;
+        return (
+          <Section key={group} title={group} bordered={false} compact>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="group card-surface card-surface-hover flex items-center gap-3 rounded-2xl p-3.5 transition-colors"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-slate-100 text-slate-500 transition-colors group-hover:bg-blue-50 group-hover:text-blue-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-blue-950/40 dark:group-hover:text-blue-300">
+                    <link.icon className="h-4 w-4" strokeWidth={1.75} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                      {link.title}
+                    </p>
+                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                      {link.description}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 dark:text-slate-600" />
+                </Link>
+              ))}
+            </div>
+          </Section>
+        );
+      })}
     </div>
   );
 }

@@ -41,9 +41,23 @@ describe("billing UI policy", () => {
     expect(overview).toMatchObject({
       totalInvoiced: 157,
       totalPaid: 157,
+      // ใบแรกเคลียร์ครบ (107) · ใบสอง 50 ชำระครบ · ใบ void ไม่นับ → ค้าง 0
+      totalOutstanding: 0,
       pendingReceiptCount: 2,
       hasLiveReceivable: true,
     });
+  });
+
+  it("totalOutstanding รวมเฉพาะใบเรียกเก็บที่ยังมีผล นิยามเดียวกับ remaining รายใบ", () => {
+    expect(
+      billingOverview([
+        invoice({ totalAmount: 200, payments: [{ amount: 97, whtAmount: 3 }] }),
+        invoice({ totalAmount: 50 }),
+        // ใบเสร็จ/ใบ void ไม่ใช่ลูกหนี้ — ห้ามปนเข้ายอดค้าง
+        invoice({ type: "RECEIPT", totalAmount: 30, forPaymentId: "p1" }),
+        invoice({ totalAmount: 999, isVoided: true }),
+      ]).totalOutstanding
+    ).toBe(150);
   });
 
   it("นับใบเสร็จไม่ผูกงวดเฉพาะใบ active", () => {

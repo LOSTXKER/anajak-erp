@@ -80,7 +80,9 @@ function PulseCard({
   return (
     <div
       className={cn(
-        "rounded-2xl card-surface p-5",
+        // relative + after:inset-0 บนลิงก์หลัก = พื้นที่กด "ทั้งใบ" ตรงกับพื้นที่ hover
+        // (เดิมกดได้แค่ก้อน title+value — ขอบการ์ด hover ยกแต่กดแล้วเงียบ)
+        "relative rounded-2xl card-surface p-5",
         (href || subHref) && "card-surface-hover",
         className
       )}
@@ -88,7 +90,7 @@ function PulseCard({
       {href ? (
         <Link
           href={href}
-          className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+          className="block rounded-lg after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
           aria-label={`ดูรายการ ${title}: ${value}`}
         >
           {titleAndValue}
@@ -101,7 +103,8 @@ function PulseCard({
         <Link
           href={subHref}
           className={cn(
-            "mt-1 inline-flex min-h-11 items-center gap-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:min-h-8",
+            // z-10 ให้ลิงก์รองลอยเหนือพื้นที่กดของลิงก์หลัก — สองปลายทางบนใบเดียวไม่ทับกัน
+            "relative z-10 mt-1 inline-flex min-h-11 items-center gap-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:min-h-8",
             subClassName
           )}
         >

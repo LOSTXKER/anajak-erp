@@ -160,6 +160,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   </span>
                 </div>
               )}
+              {canSeeMoney && credit && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm text-slate-500"><ShoppingCart className="h-4 w-4" /> งานยังไม่ปิด</span>
+                  <span className="font-bold tabular-nums">
+                    {credit.openOrders > 0 ? `${credit.openOrders} งาน` : "—"}
+                  </span>
+                </div>
+              )}
               {customer.lastOrderAt && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-500">สั่งล่าสุด</span>
