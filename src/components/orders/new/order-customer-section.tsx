@@ -55,14 +55,14 @@ export function OrderCustomerSection({
             นิติบุคคล
           </Badge>
           {selectedCustomer.taxId && (
-            <span className="text-[11px] text-slate-500">
+            <span className="text-xs text-slate-500">
               Tax ID: {selectedCustomer.taxId}
             </span>
           )}
         </div>
       )}
       {selectedCustomer && customerProfileGaps(selectedCustomer).length > 0 && (
-        <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+        <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
           โปรไฟล์ยังไม่ครบ:{" "}
           {customerProfileGaps(selectedCustomer)
             .map((g) => g.label)
@@ -72,7 +72,7 @@ export function OrderCustomerSection({
       )}
       {canSeeCredit && creditStatus.data?.available != null && (
         <p
-          className={`mt-1.5 text-[11px] ${
+          className={`mt-1.5 text-xs ${
             creditStatus.data.available < 0
               ? "font-medium text-red-600 dark:text-red-400"
               : "text-slate-500"
@@ -86,7 +86,7 @@ export function OrderCustomerSection({
         </p>
       )}
       {selectedCustomer && filmCount > 0 && (
-        <p className="mt-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+        <p className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
           🎞️ ลูกค้ามีฟิล์มพร้อมรีดค้าง {filmCount} รายการ — เช็คที่{" "}
           <a
             href={`/production/films?search=${encodeURIComponent(selectedCustomer.name)}`}
@@ -100,7 +100,7 @@ export function OrderCustomerSection({
         </p>
       )}
       {selectedCustomer && artworkCount > 0 && (
-        <p className="mt-1.5 text-[11px] text-slate-500">
+        <p className="mt-1.5 text-xs text-slate-500">
           ลูกค้ามีลายในคลัง {artworkCount} ลาย —{" "}
           <a
             href={`/customers/${customerId}`}

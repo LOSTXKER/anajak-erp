@@ -64,7 +64,7 @@ export function SizeMatrix({
       <div className="flex flex-wrap items-end gap-2">
         {columns.map((size) => (
           <div key={size} className="w-14">
-            <label htmlFor={`size-matrix-${size}`} className="block text-center text-[11px] font-medium text-slate-500">{size}</label>
+            <label htmlFor={`size-matrix-${size}`} className="block text-center text-xs font-medium text-slate-500">{size}</label>
             <Input
               id={`size-matrix-${size}`}
               type="number"
@@ -80,7 +80,7 @@ export function SizeMatrix({
         {/* เพิ่มไซส์อื่น (XS/4XL/เด็ก/ตัวเลข) */}
         <div className="flex items-end gap-1">
           <div className="w-16">
-            <label htmlFor="size-matrix-new-size" className="block text-center text-[11px] text-slate-400">เพิ่มไซส์</label>
+            <label htmlFor="size-matrix-new-size" className="block text-center text-xs text-slate-400">เพิ่มไซส์</label>
             <Input
               id="size-matrix-new-size"
               value={newSize}

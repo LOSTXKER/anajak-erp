@@ -25,6 +25,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
+import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
 import {
   DollarSign,
   AlertCircle,
@@ -35,16 +36,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-const paymentStatusConfig: Record<
-  string,
-  { label: string; variant: "default" | "accent" | "success" | "warning" | "destructive" }
-> = {
-  UNPAID: { label: "ยังไม่จ่าย", variant: "warning" },
-  PARTIALLY_PAID: { label: "จ่ายบางส่วน", variant: "accent" },
-  PAID: { label: "จ่ายแล้ว", variant: "success" },
-  OVERDUE: { label: "เกินกำหนด", variant: "destructive" },
-  VOIDED: { label: "ยกเลิก", variant: "default" },
-};
+// ภาษาสีสถานะการชำระใช้ชุดกลางที่เดียว (UX4.2) — ห้ามประกาศ local ซ้ำ
+// ป้าย+สีจะได้ตรงกับแท็บเงินในออเดอร์ที่ทีมเปิดคู่กันทุกวัน
 
 // ตัวเลือกกรองชนิดใบ — เรียงตาม flow เงิน (QUOTATION ไม่ออกเป็น invoice แล้ว ไม่ใส่ตัวกรอง
 // แต่แถว legacy ยังโชว์ป้ายถูกผ่าน INVOICE_TYPE_LABELS ตอนเลือก "ทั้งหมด")
@@ -80,7 +73,7 @@ function BillingPageContent() {
   const searchParams = useSearchParams();
   const search = searchParams.get("q") ?? "";
   const rawStatus = searchParams.get("status");
-  const statusFilter = rawStatus && paymentStatusConfig[rawStatus] ? rawStatus : ALL;
+  const statusFilter = rawStatus && rawStatus in PAYMENT_STATUS_LABELS ? rawStatus : ALL;
   const rawType = searchParams.get("type");
   const typeFilter = rawType && TYPE_FILTER_OPTIONS.some((type) => type === rawType)
     ? rawType
@@ -176,16 +169,22 @@ function BillingPageContent() {
         />
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {/* สองใบแรกคือเลขเสี่ยง (UX4.3) — เด่น + กดไปดูรายการได้ · ศูนย์จริงลดเป็นสีจาง */}
           <StatCard
             title="ค้างชำระ"
             value={formatCurrency(stats.data?.totalUnpaid ?? 0)}
             icon={DollarSign}
+            tone={(stats.data?.totalUnpaid ?? 0) > 0 ? "default" : "muted"}
+            href="/billing/aging"
+            caption="ดูรายงานลูกหนี้"
           />
           <StatCard
             title="เกินกำหนด"
             value={stats.data?.overdueCount ?? 0}
             icon={AlertCircle}
             caption="บิล"
+            tone={(stats.data?.overdueCount ?? 0) > 0 ? "danger" : "muted"}
+            href="/billing?status=OVERDUE"
           />
           <StatCard
             title="รายได้เดือนนี้"
@@ -227,9 +226,9 @@ function BillingPageContent() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>ทุกสถานะ</SelectItem>
-            {Object.entries(paymentStatusConfig).map(([value, cfg]) => (
+            {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
               <SelectItem key={value} value={value}>
-                {cfg.label}
+                {label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -281,8 +280,14 @@ function BillingPageContent() {
         renderMobile={(invoices) => (
           <div className="space-y-3">
             {invoices.map((inv) => {
-              const statusCfg =
-                paymentStatusConfig[inv.paymentStatus] ?? paymentStatusConfig.UNPAID;
+              const statusVariant =
+                PAYMENT_STATUS_VARIANTS[
+                  inv.paymentStatus as keyof typeof PAYMENT_STATUS_VARIANTS
+                ] ?? "warning";
+              const statusLabel =
+                PAYMENT_STATUS_LABELS[
+                  inv.paymentStatus as keyof typeof PAYMENT_STATUS_LABELS
+                ] ?? PAYMENT_STATUS_LABELS.UNPAID;
               const moneyHref = `/orders/${inv.orderId}?tab=money`;
               return (
                 <article key={inv.id} className="card-surface rounded-2xl p-4">
@@ -300,7 +305,7 @@ function BillingPageContent() {
                           {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}
                         </p>
                       </div>
-                      <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
+                      <Badge variant={statusVariant}>{statusLabel}</Badge>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
                       <div className="min-w-0">
@@ -369,8 +374,14 @@ function BillingPageContent() {
             </DataTable.Head>
             <DataTable.Body>
               {invoices.map((inv) => {
-                const statusCfg =
-                  paymentStatusConfig[inv.paymentStatus] ?? paymentStatusConfig.UNPAID;
+                const statusVariant =
+                  PAYMENT_STATUS_VARIANTS[
+                    inv.paymentStatus as keyof typeof PAYMENT_STATUS_VARIANTS
+                  ] ?? "warning";
+                const statusLabel =
+                  PAYMENT_STATUS_LABELS[
+                    inv.paymentStatus as keyof typeof PAYMENT_STATUS_LABELS
+                  ] ?? PAYMENT_STATUS_LABELS.UNPAID;
                 const moneyHref = `/orders/${inv.orderId}?tab=money`;
                 return (
                   <DataTable.Row key={inv.id}>
@@ -400,7 +411,7 @@ function BillingPageContent() {
                     </DataTable.Td>
                     <DataTable.Td className="p-0">
                       <Link href={moneyHref} className="block px-5 py-3">
-                        <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
+                        <Badge variant={statusVariant}>{statusLabel}</Badge>
                       </Link>
                     </DataTable.Td>
                     <DataTable.Td className="p-0 text-xs text-slate-500 dark:text-slate-400">

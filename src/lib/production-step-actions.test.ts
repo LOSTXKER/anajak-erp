@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { getProductionStepActionPolicy } from "./production-step-actions";
+import {
+  firstPendingStepIdsByLane,
+  getProductionStepActionPolicy,
+} from "./production-step-actions";
 
 const policy = (overrides: Partial<Parameters<typeof getProductionStepActionPolicy>[0]> = {}) =>
   getProductionStepActionPolicy({
@@ -45,5 +48,33 @@ describe("getProductionStepActionPolicy", () => {
       primary: null,
       canRunInternal: false,
     });
+  });
+});
+
+describe("firstPendingStepIdsByLane", () => {
+  it("เลือกเฉพาะขั้นแรกที่ยังไม่เสร็จของแต่ละเลน", () => {
+    // เลน DTF (พิมพ์→รีด) + เลนแพ็ค — ขั้นรีดต้อง 'รอขั้นก่อนหน้า' ส่วนแพ็คเป็นตัวแรกของเลนตัวเอง
+    const ids = firstPendingStepIdsByLane([
+      { id: "print", stepType: "DTF_PRINT", status: "PENDING", sortOrder: 1 },
+      { id: "press", stepType: "HEAT_PRESS", status: "PENDING", sortOrder: 2 },
+      { id: "pack", stepType: "PACKAGING", status: "PENDING", sortOrder: 3 },
+    ]);
+    expect(ids).toEqual(new Set(["print", "pack"]));
+  });
+
+  it("ขั้นเสร็จแล้วไม่ถูกนับ — ตัวถัดไปในเลนขึ้นเป็นขั้นแรกที่ค้างแทน", () => {
+    const ids = firstPendingStepIdsByLane([
+      { id: "print", stepType: "DTF_PRINT", status: "COMPLETED", sortOrder: 1 },
+      { id: "press", stepType: "HEAT_PRESS", status: "IN_PROGRESS", sortOrder: 2 },
+    ]);
+    expect(ids).toEqual(new Set(["press"]));
+  });
+
+  it("เรียงตาม sortOrder ไม่ใช่ลำดับใน array", () => {
+    const ids = firstPendingStepIdsByLane([
+      { id: "press", stepType: "HEAT_PRESS", status: "PENDING", sortOrder: 5 },
+      { id: "print", stepType: "DTF_PRINT", status: "PENDING", sortOrder: 1 },
+    ]);
+    expect(ids).toEqual(new Set(["print"]));
   });
 });

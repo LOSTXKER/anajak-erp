@@ -57,33 +57,10 @@ export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentP
   return (
     <Card className="border-blue-200 dark:border-blue-900">
       <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
-            <Shirt className="h-4 w-4" />
-            เสื้อจากสต๊อค
-          </CardTitle>
-          {canUpdateStep && data.configured && (
-            <div className="flex gap-2">
-              {pickStep && needMore && (
-                <Button size="sm" className="h-8 gap-1 text-xs" onClick={() => setShowIssue(true)}>
-                  <PackageOpen className="h-3.5 w-3.5" />
-                  เบิกเสื้อ
-                </Button>
-              )}
-              {outstanding > 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 gap-1 text-xs"
-                  onClick={() => setShowReturn(true)}
-                >
-                  <Undo2 className="h-3.5 w-3.5" />
-                  คืนเศษ
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
+        <CardTitle className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+          <Shirt className="h-4 w-4" />
+          เสื้อจากสต๊อค
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {!data.configured && (
@@ -129,6 +106,28 @@ export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentP
             </div>
           );
         })}
+        {/* ปุ่มปิดขั้น GARMENT_PICK อยู่การ์ดนี้ที่เดียว (steps list ไม่มีปุ่มเร็ว) —
+            เป็นแถวเต็มความกว้างท้ายการ์ด มือถือเป้านิ้ว 44px ไม่ซุกมุม header (UX4) */}
+        {canUpdateStep && data.configured && ((pickStep && needMore) || outstanding > 0) && (
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row">
+            {pickStep && needMore && (
+              <Button className="w-full gap-1.5 sm:w-auto" onClick={() => setShowIssue(true)}>
+                <PackageOpen className="h-4 w-4" />
+                เบิกเสื้อ
+              </Button>
+            )}
+            {outstanding > 0 && (
+              <Button
+                variant="outline"
+                className="w-full gap-1.5 sm:w-auto"
+                onClick={() => setShowReturn(true)}
+              >
+                <Undo2 className="h-4 w-4" />
+                คืนเศษ
+              </Button>
+            )}
+          </div>
+        )}
       </CardContent>
 
       {showIssue && pickStep && (

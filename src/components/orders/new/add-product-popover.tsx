@@ -49,7 +49,7 @@ export function AddProductPopover({
                 <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" strokeWidth={1.75} />
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
-                  <span className="block text-[11px] text-slate-400 dark:text-slate-500">{desc}</span>
+                  <span className="block text-xs text-slate-400 dark:text-slate-500">{desc}</span>
                 </span>
               </button>
             ))}

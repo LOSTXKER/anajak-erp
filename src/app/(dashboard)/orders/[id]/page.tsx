@@ -641,7 +641,8 @@ function OrderDetailContent({
             semantics="tabs"
             idPrefix="order"
             aria-label="ส่วนของออเดอร์"
-            className="grid w-full grid-cols-4 sm:inline-flex sm:w-auto"
+            // auto-cols-fr: จำนวนช่องตามแท็บจริง — role ที่ไม่เห็นแท็บเงินมี 3 แท็บ ไม่เกิดช่องตาย
+            className="grid w-full grid-flow-col auto-cols-fr sm:inline-flex sm:w-auto"
           />
         </div>
         <DropdownMenu.Root>

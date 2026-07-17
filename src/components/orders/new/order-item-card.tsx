@@ -78,7 +78,7 @@ function OrderItemRow({
 
   return (
     <div className="flex items-center gap-2 border-b border-slate-200/60 py-2.5 dark:border-slate-700/50">
-      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
         {itemIdx + 1}
       </span>
       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -219,7 +219,7 @@ export function OrderItemCard({
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="text-left text-[10.5px] font-normal text-slate-400 dark:text-slate-500">
+              <tr className="text-left text-xs font-normal text-slate-400 dark:text-slate-500">
                 <th className="w-12 pb-1.5 pr-1">รูปแบบ</th>
                 <th className="pb-1.5 px-1">วิธีพิมพ์</th>
                 <th className="w-28 pb-1.5 px-1 text-right">ค่าสกรีน</th>
@@ -278,7 +278,7 @@ export function OrderItemCard({
               >
                 <Icon className="h-6 w-6 text-slate-400" strokeWidth={1.75} />
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
-                <span className="text-[11px] text-slate-400 dark:text-slate-500">{desc}</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500">{desc}</span>
               </button>
             ))}
           </div>
@@ -297,7 +297,7 @@ export function OrderItemCard({
                 <col style={{ width: 56 }} />
               </colgroup>
               <thead>
-                <tr className="text-[10.5px] font-normal text-slate-400 dark:text-slate-500">
+                <tr className="text-xs font-normal text-slate-400 dark:text-slate-500">
                   <th className="pb-1.5 pl-1 text-left">แหล่ง</th>
                   <th className="pb-1.5 pr-2 text-left">สินค้า</th>
                   <th className="pb-1.5 px-1.5 text-right">ราคา</th>
@@ -362,7 +362,7 @@ export function OrderItemCard({
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="text-left text-[10.5px] font-normal text-slate-400 dark:text-slate-500">
+              <tr className="text-left text-xs font-normal text-slate-400 dark:text-slate-500">
                 <th className="min-w-[100px] pb-1.5 px-1">ประเภท</th>
                 <th className="min-w-[120px] pb-1.5 px-1">ชื่อ</th>
                 <th className="min-w-[90px] pb-1.5 px-1">คิดราคา</th>
@@ -417,7 +417,7 @@ export function OrderItemCard({
                 <td className="py-1">
                   <span className="text-slate-700 dark:text-slate-200">{line.label}</span>
                   {line.detail && (
-                    <span className={cn("ml-1 text-slate-400", line.kind === "addon" && "text-[10px]")}>
+                    <span className={cn("ml-1 text-slate-400", line.kind === "addon" && "text-xs")}>
                       ({line.detail})
                     </span>
                   )}
@@ -445,7 +445,7 @@ export function OrderItemCard({
             </td>
           </tr>
           <tr>
-            <td colSpan={3} className="text-[11px] text-slate-400">
+            <td colSpan={3} className="text-xs text-slate-400">
               เฉลี่ย {formatCurrency(itemPriceSummary.averageUnitPrice ?? 0)} / ตัว
             </td>
             <td aria-hidden="true" />

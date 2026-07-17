@@ -62,7 +62,7 @@ const BOTH = ["sidebar", "palette"] as const;
 export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   {
     id: "dashboard",
-    label: "Dashboard",
+    label: "แดชบอร์ด",
     href: "/",
     icon: LayoutDashboard,
     group: "main",
@@ -146,7 +146,7 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   },
   {
     id: "outsource",
-    label: "Outsource",
+    label: "จ้างร้านนอก",
     href: "/outsource",
     icon: Truck,
     group: "production",

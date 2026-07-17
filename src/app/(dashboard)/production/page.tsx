@@ -274,6 +274,18 @@ function ProductionWorkspace() {
     });
   }
 
+  // QC ผ่านของร้านนอก flip สถานะทันทีและปุ่มอยู่ชิด "ไม่ผ่าน" — ครอบ confirm กันนิ้วพลาด
+  // แล้วงานเสียหลุดด่าน QC โดยไม่มีร่องรอยให้ย้อน (UX4)
+  async function handleOutsourceQcPass(outsourceId: string, vendorName: string) {
+    const ok = await confirm({
+      title: `ยืนยันของจากร้าน ${vendorName} ผ่าน QC?`,
+      description: "งานร้านนอกชิ้นนี้จะถูกบันทึกว่าผ่านการตรวจและปิดขั้นให้เลย",
+      confirmText: "QC ผ่าน",
+    });
+    if (!ok) return;
+    updateOutsource.mutate({ id: outsourceId, status: "QC_PASSED" });
+  }
+
   async function handleOutsourceQcFail(outsourceId: string) {
     const reason = await promptText({
       title: "QC ไม่ผ่าน — เพราะอะไร?",
@@ -467,6 +479,7 @@ function ProductionWorkspace() {
                   onOpenQty={setQtyStep}
                   onQuickPass={() => handleQuickPass(card)}
                   onOutsourceStatus={(id, status) => updateOutsource.mutate({ id, status })}
+                  onOutsourceQcPass={handleOutsourceQcPass}
                   onOutsourceQcFail={handleOutsourceQcFail}
                   onReceiveBack={(os) => handleReceiveBack(card, os)}
                 />
@@ -485,9 +498,21 @@ function ProductionWorkspace() {
             </span>
           </h2>
           {all.filter((o) => o.internalStatus === focusPostCol.status).length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-400 dark:border-slate-700">
-              — ว่าง —
-            </p>
+            <div className="rounded-2xl border border-dashed border-slate-200 py-8 text-center dark:border-slate-700">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                ยังไม่มีงานถึงขั้น{focusPostCol.title}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                งานจะโผล่ที่นี่เองเมื่อผ่านขั้นก่อนหน้า —{" "}
+                <button
+                  type="button"
+                  className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                  onClick={() => setFocus(null)}
+                >
+                  กลับภาพรวมสายผลิต
+                </button>
+              </p>
+            </div>
           ) : (
             <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
               {all
@@ -520,7 +545,7 @@ function ProductionWorkspace() {
                             size="sm"
                             disabled={busy}
                             onClick={() => setQcOrderId(o.id)}
-                            className="h-9 w-full gap-1.5"
+                            className="w-full gap-1.5"
                           >
                             <ClipboardCheck className="h-3.5 w-3.5" />
                             ตรวจนับ QC
@@ -535,20 +560,20 @@ function ProductionWorkspace() {
                                 internalStatus: focusPostCol.next!.to as never,
                               })
                             }
-                            className="h-9 w-full gap-1.5"
+                            className="w-full gap-1.5"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             {focusPostCol.next.label}
                           </Button>
                         ) : focusPostCol.key === "ready" ? (
-                          <Button variant="outline" size="sm" asChild className="h-9 w-full gap-1.5">
+                          <Button variant="outline" size="sm" asChild className="w-full gap-1.5">
                             <Link href={`/orders/${o.id}`}>
                               <Truck className="h-3.5 w-3.5" />
                               ไปจัดส่ง
                             </Link>
                           </Button>
                         ) : (
-                          <Button variant="outline" size="sm" asChild className="h-9 w-full">
+                          <Button variant="outline" size="sm" asChild className="w-full">
                             <Link href={href}>เปิดดู</Link>
                           </Button>
                         )}
@@ -611,6 +636,12 @@ function ProductionWorkspace() {
 // หัวการ์ดงาน — เลขออเดอร์/ชื่อ/ลูกค้า/กำหนดส่ง/จำนวน (ใช้ร่วมทุก section)
 function OrderCardHeader({ order, href }: { order: KanbanOrder; href: string }) {
   const isOverdue = order.deadline && new Date(order.deadline) < new Date();
+  // ใกล้กำหนดใน 48 ชม. = amber — เกณฑ์เดียวกับ attention ของหน้า orders
+  // (new Date() แบบเดียวกับ isOverdue ข้างบน — Date.now() โดน react-compiler ตี impure)
+  const isDueSoon =
+    !isOverdue &&
+    order.deadline &&
+    new Date(order.deadline).getTime() - new Date().getTime() <= 48 * 60 * 60 * 1000;
   return (
     <Link href={href} className="block space-y-1">
       <div className="flex items-start justify-between gap-2">
@@ -627,12 +658,13 @@ function OrderCardHeader({ order, href }: { order: KanbanOrder; href: string }) 
       {order.customerName && (
         <p className="truncate text-xs text-slate-400">{order.customerName}</p>
       )}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-400">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
         {order.deadline && (
           <span
             className={cn(
               "flex items-center gap-1",
-              isOverdue && "font-medium text-red-600 dark:text-red-400"
+              isOverdue && "font-medium text-red-600 dark:text-red-400",
+              isDueSoon && "font-medium text-amber-700 dark:text-amber-400"
             )}
           >
             {isOverdue ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
@@ -657,6 +689,7 @@ function LaneCardView({
   onOpenQty,
   onQuickPass,
   onOutsourceStatus,
+  onOutsourceQcPass,
   onOutsourceQcFail,
   onReceiveBack,
 }: {
@@ -670,6 +703,8 @@ function LaneCardView({
   onOpenQty: (step: KanbanStep) => void;
   onQuickPass: () => void;
   onOutsourceStatus: (outsourceId: string, status: "SENT" | "QC_PASSED") => void;
+  // QC ผ่านแยกทางจาก onOutsourceStatus — ต้องผ่าน confirm พร้อมชื่อร้านก่อน flip
+  onOutsourceQcPass: (outsourceId: string, vendorName: string) => void;
   onOutsourceQcFail: (outsourceId: string) => void;
   // รับของกลับ = เปิดใบตรวจนับก่อน (Gate B4) — ไม่ flip สถานะตรงจากการ์ดอีกแล้ว
   onReceiveBack: (outsource: KanbanStep["outsourceOrders"][number]) => void;
@@ -760,7 +795,7 @@ function LaneCardView({
           ขั้นมีปัญหา (FAILED) / QC ร้านไม่ผ่าน ต้องเข้าไปดูหน้าใบผลิต ห้ามผ่านรวดจากการ์ด */}
       {ownedByOther && (
         <div className="mt-2.5">
-          <Button variant="outline" size="sm" asChild className="h-9 w-full">
+          <Button variant="outline" size="sm" asChild className="w-full">
             <Link href={href}>งานของ {step.assignedTo!.name} — เปิดดู</Link>
           </Button>
         </div>
@@ -783,18 +818,18 @@ function LaneCardView({
       {canTouchStep && !(card.pressGate && !card.pressGate.ready && step.status !== "FAILED") && (
         <div className="mt-2.5 flex gap-2">
           {step.status === "FAILED" ? (
-            <Button variant="outline" size="sm" asChild className="h-9 w-full">
+            <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={href}>มีปัญหา — เปิดดู</Link>
             </Button>
           ) : activePrintRun ? (
-            <Button variant="outline" size="sm" asChild className="h-9 w-full gap-1.5">
+            <Button variant="outline" size="sm" asChild className="w-full gap-1.5">
               <Link href="/production/print-runs">
                 <Printer className="h-3.5 w-3.5" />
                 อยู่ในรอบพิมพ์ {activePrintRun.runNumber} — เปิดดู
               </Link>
             </Button>
           ) : latestOutsource?.status === "QC_FAILED" && step.status !== "COMPLETED" ? (
-            <Button variant="outline" size="sm" asChild className="h-9 w-full">
+            <Button variant="outline" size="sm" asChild className="w-full">
               <Link href={href}>QC ร้านไม่ผ่าน — ส่งแก้รอบใหม่</Link>
             </Button>
           ) : activeOutsource ? (
@@ -803,7 +838,7 @@ function LaneCardView({
                 size="sm"
                 disabled={busy}
                 onClick={() => onOutsourceStatus(activeOutsource.id, "SENT")}
-                className="h-9 flex-1 gap-1.5"
+                className="flex-1 gap-1.5"
               >
                 <Truck className="h-3.5 w-3.5" />
                 ส่งของให้ร้านแล้ว
@@ -814,8 +849,8 @@ function LaneCardView({
                   <Button
                     size="sm"
                     disabled={busy}
-                    onClick={() => onOutsourceStatus(activeOutsource.id, "QC_PASSED")}
-                    className="h-9 flex-1 gap-1"
+                    onClick={() => onOutsourceQcPass(activeOutsource.id, activeOutsource.vendor.name)}
+                    className="flex-1 gap-1"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     QC ผ่าน
@@ -825,13 +860,13 @@ function LaneCardView({
                     size="sm"
                     disabled={busy}
                     onClick={() => onOutsourceQcFail(activeOutsource.id)}
-                    className="h-9 flex-1 text-red-600 hover:text-red-700"
+                    className="flex-1 text-red-600 hover:text-red-700"
                   >
                     ไม่ผ่าน
                   </Button>
                 </>
               ) : (
-                <Button variant="outline" size="sm" asChild className="h-9 w-full">
+                <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={href}>รอหัวหน้าตัดสิน QC</Link>
                 </Button>
               )
@@ -840,7 +875,7 @@ function LaneCardView({
                 size="sm"
                 disabled={busy}
                 onClick={() => onReceiveBack(activeOutsource)}
-                className="h-9 flex-1 gap-1.5"
+                className="flex-1 gap-1.5"
               >
                 <PackageCheck className="h-3.5 w-3.5" />
                 รับของกลับแล้ว
@@ -852,7 +887,7 @@ function LaneCardView({
               size="sm"
               disabled={busy}
               onClick={onQuickPass}
-              className="h-9 flex-1 gap-1.5"
+              className="flex-1 gap-1.5"
             >
               <FastForward className="h-3.5 w-3.5" />
               ผ่านรวด
@@ -865,7 +900,7 @@ function LaneCardView({
                 size="sm"
                 disabled={busy}
                 onClick={() => onOpenQty(step)}
-                className="h-9 flex-1 gap-1.5"
+                className="flex-1 gap-1.5"
               >
                 <Plus className="h-3.5 w-3.5" />
                 บันทึกจำนวน ({step.qtyDone}/{step.qtyTotal})
@@ -875,7 +910,7 @@ function LaneCardView({
                 size="sm"
                 disabled={busy}
                 onClick={() => onComplete(step.id)}
-                className="h-9 flex-1 gap-1.5"
+                className="flex-1 gap-1.5"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 เสร็จขั้นนี้
@@ -886,7 +921,7 @@ function LaneCardView({
               size="sm"
               disabled={busy}
               onClick={() => onStart(step.id)}
-              className="h-9 flex-1 gap-1.5"
+              className="flex-1 gap-1.5"
             >
               <Play className="h-3.5 w-3.5" />
               เริ่มทำ

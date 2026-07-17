@@ -1,4 +1,4 @@
-import { isOutsourceStep } from "@/lib/production-steps";
+import { isOutsourceStep, laneOf } from "@/lib/production-steps";
 
 export type ProductionStepUiAction =
   | "send-outsource"
@@ -61,4 +61,27 @@ export function getProductionStepActionPolicy(
     canQuickPass,
     canRunInternal,
   };
+}
+
+export interface LaneOrderStepLite {
+  id: string;
+  stepType: string;
+  status: string;
+  sortOrder: number;
+}
+
+// UX4.10: "ขั้นแรกที่ยังไม่เสร็จ" ของแต่ละเลน — ปุ่ม primary เน้นเฉพาะขั้นนี้
+// ขั้นถัดๆ ไปในเลนเดียวกันถูกลดเป็นปุ่มรอง + ป้าย "รอขั้นก่อนหน้า"
+// (server ไม่กันการเริ่มข้ามลำดับ — จอเป็นด่านเดียว กันงาน IN_PROGRESS ผีข้ามขั้น)
+export function firstPendingStepIdsByLane(steps: LaneOrderStepLite[]): Set<string> {
+  const claimed = new Set<string>(); // เลนที่มีขั้นค้างตัวแรกแล้ว
+  const ids = new Set<string>();
+  for (const step of [...steps].sort((a, b) => a.sortOrder - b.sortOrder)) {
+    if (step.status === "COMPLETED") continue;
+    const lane = laneOf(step.stepType);
+    if (claimed.has(lane)) continue;
+    claimed.add(lane);
+    ids.add(step.id);
+  }
+  return ids;
 }

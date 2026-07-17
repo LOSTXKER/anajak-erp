@@ -63,7 +63,7 @@ function DeadlineChip({ deadline }: { deadline: Date | string | null }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium",
         overdue
           ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"
           : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
@@ -105,7 +105,7 @@ function DesignThumb({
           <ImageOff className="h-4 w-4" />
         </div>
       )}
-      <span className="absolute bottom-0 right-0 rounded-tl bg-black/70 px-1 text-[9px] font-bold tabular-nums text-white">
+      <span className="absolute bottom-0 right-0 rounded-tl bg-black/70 px-1 text-[10px] font-bold tabular-nums text-white">
         v{design.versionNumber}
       </span>
     </a>
@@ -353,7 +353,7 @@ export default function PrintRunsPage() {
       {canManage && pickedEntries.length > 0 && (
         <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-400">เข้ารอบพิมพ์ม้วนนี้</p>
+            <p className="text-xs text-slate-400">เข้ารอบพิมพ์ม้วนนี้</p>
             <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
               เลือก {pickedEntries.length} งาน · รวม {pickedTotal} ชิ้น
             </p>
@@ -526,7 +526,7 @@ function QueueRow({
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <DeadlineChip deadline={entry.dueDate} />
-          <span className="text-[11px] tabular-nums text-slate-400">
+          <span className="text-xs tabular-nums text-slate-400">
             {entry.qtyTotal > 0
               ? `พิมพ์แล้ว ${entry.qtyDone}/${entry.qtyTotal} · เหลือ ${entry.remaining}`
               : "ไม่ระบุจำนวน"}
@@ -562,7 +562,7 @@ function QueueRow({
       )}
       {selected ? (
         <div className="shrink-0 py-3 pr-4 text-right">
-          <label htmlFor={`print-run-qty-${entry.stepId}`} className="mb-0.5 block text-[10px] text-slate-400">พิมพ์รอบนี้ (ชิ้น)</label>
+          <label htmlFor={`print-run-qty-${entry.stepId}`} className="mb-0.5 block text-xs text-slate-400">พิมพ์รอบนี้ (ชิ้น)</label>
           <Input
             id={`print-run-qty-${entry.stepId}`}
             type="number"
@@ -652,7 +652,7 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <label htmlFor={`print-extra-qty-${item.id}`} className="mb-0.5 block text-[10px] text-slate-400">
+                    <label htmlFor={`print-extra-qty-${item.id}`} className="mb-0.5 block text-xs text-slate-400">
                       ฟิล์มเผื่อ (ชิ้น)
                     </label>
                     <Input
@@ -676,7 +676,7 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
                 </div>
                 {extra.qty > 0 && (
                   <div className="mt-2">
-                    <label htmlFor={`print-extra-label-${item.id}`} className="mb-0.5 block text-[10px] text-slate-400">
+                    <label htmlFor={`print-extra-label-${item.id}`} className="mb-0.5 block text-xs text-slate-400">
                       ป้ายลาย — เขียนให้รู้ว่าฟิล์มม้วนไหนคือลายอะไร
                     </label>
                     <Input

@@ -17,7 +17,10 @@ import {
   OUTSOURCE_ACTIVE_STATUSES,
   type ProductionLane,
 } from "@/lib/production-steps";
-import { getProductionStepActionPolicy } from "@/lib/production-step-actions";
+import {
+  firstPendingStepIdsByLane,
+  getProductionStepActionPolicy,
+} from "@/lib/production-step-actions";
 import {
   Check,
   Play,
@@ -78,6 +81,9 @@ export function ProductionStepsList({
   // gate ฟิล์ม∧เสื้อของขั้นรีด — mirror บอร์ดเลน: ยังไม่บรรจบ = ไม่โชว์ปุ่มเริ่ม
   // บอกตรงๆ ว่ารออะไรแทน (server ไม่มีด่านนี้ — จอเป็นด่านเดียว ห้ามชวนช่างเริ่มงานผี)
   const pressGate = evaluateHeatPressGate(steps);
+  // UX4.10 — ต่อเลนมีขั้นเดียวที่ "ถึงคิว": ปุ่ม primary เน้นเฉพาะขั้นนี้
+  // ขั้นถัดไปได้ป้าย "รอขั้นก่อนหน้า" กันช่างเริ่มข้ามลำดับ (server ไม่กัน — จอเป็นด่านเดียว)
+  const laneNextIds = firstPendingStepIdsByLane(steps);
 
   return (
     <div className="space-y-4">
@@ -103,6 +109,7 @@ export function ProductionStepsList({
               <StepRow
                 key={step.id}
                 step={step}
+                isLaneNext={laneNextIds.has(step.id)}
                 pressGate={pressGate}
                 canOutsource={canOutsource}
                 canUpdateStep={canUpdateStep}
@@ -125,6 +132,7 @@ export function ProductionStepsList({
 
 function StepRow({
   step,
+  isLaneNext,
   pressGate,
   canOutsource,
   canUpdateStep,
@@ -138,6 +146,8 @@ function StepRow({
   onCompleteStep,
 }: {
   step: ProductionStep;
+  /** ขั้นแรกที่ยังไม่เสร็จของเลนตัวเอง — ตัวเดียวที่ควรได้ปุ่ม primary */
+  isLaneNext: boolean;
   pressGate: HeatPressGate;
   canOutsource: boolean;
   canUpdateStep: boolean;
@@ -181,7 +191,14 @@ function StepRow({
     step.stepType === "HEAT_PRESS" && !pressGate.ready && step.status !== "FAILED";
 
   return (
-    <div className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+    <div
+      className={`flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border p-3 ${
+        // ขั้นที่ถึงคิว = กรอบ accent จางๆ นำสายตาโดยไม่ต้องอ่านทีละแถว
+        isLaneNext && step.status !== "COMPLETED"
+          ? "border-blue-200 dark:border-blue-900"
+          : "border-slate-200 dark:border-slate-700"
+      }`}
+    >
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
           step.status === "COMPLETED"
@@ -306,6 +323,12 @@ function StepRow({
                 </p>
               ))}
             </div>
+          ) : step.status === "PENDING" && !isLaneNext ? (
+            // ยังไม่ถึงคิวของเลนนี้ — ชี้ให้ไปทำขั้นแรกที่ค้างก่อน (mirror ปรัชญา pressGate)
+            <p className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              รอขั้นก่อนหน้า
+            </p>
           ) : activePrintRun ? (
             // ขั้นอยู่ในรอบพิมพ์ค้าง — updateStep ถูก server บล็อก จึงเป็นลิงก์ไปหน้ารอบแทน
             // (pattern เดียวกับการ์ดบอร์ดเลน — เดิมหน้านี้เงียบ ช่างเข้า dialog แล้วเจอ error)

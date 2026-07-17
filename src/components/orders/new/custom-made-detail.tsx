@@ -56,7 +56,7 @@ function QuickAddPattern({
 
   return (
     <div className="mt-2 rounded border border-amber-300 bg-white p-2.5 dark:border-amber-700 dark:bg-amber-950/30">
-      <span className="mb-2 block text-[11px] font-medium text-amber-700 dark:text-amber-300">สร้างแพทเทิร์นใหม่</span>
+      <span className="mb-2 block text-xs font-medium text-amber-700 dark:text-amber-300">สร้างแพทเทิร์นใหม่</span>
       <div className="flex items-end gap-2">
         <div className="flex-1 space-y-1.5">
           <Input
@@ -65,7 +65,7 @@ function QuickAddPattern({
             placeholder="ชื่อแพทเทิร์น เช่น คอกลมแขนสั้น"
             className="h-8 text-xs"
           />
-          <label className="flex w-fit cursor-pointer items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-[11px] text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600">
+          <label className="flex w-fit cursor-pointer items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600">
             <Plus className="h-3 w-3" />
             {file ? file.name : "แนบรูป/ไฟล์ (ไม่บังคับ)"}
             <input type="file" accept="image/*,.pdf,.ai,.psd" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
@@ -80,7 +80,7 @@ function QuickAddPattern({
         </div>
       </div>
       {error && (
-        <p className="mt-1.5 text-[11px] text-red-600 dark:text-red-400">{error}</p>
+        <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>
       )}
     </div>
   );
@@ -128,7 +128,7 @@ export function CustomMadeDetail({
             <button
               type="button"
               onClick={() => setShowQuickAdd(true)}
-              className="ml-auto flex items-center gap-1 text-[11px] text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
+              className="ml-auto flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
             >
               <Plus className="h-3 w-3" />สร้างใหม่
             </button>
@@ -169,7 +169,7 @@ export function CustomMadeDetail({
                   {selectedPattern.description && (
                     <span className="block text-slate-500">{selectedPattern.description}</span>
                   )}
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
                     {selectedPattern.collarType && <span>คอ: <span className="text-slate-600 dark:text-slate-300">{COLLAR_TYPES[selectedPattern.collarType] || selectedPattern.collarType}</span></span>}
                     {selectedPattern.sleeveType && <span>แขน: <span className="text-slate-600 dark:text-slate-300">{SLEEVE_TYPES[selectedPattern.sleeveType] || selectedPattern.sleeveType}</span></span>}
                     {selectedPattern.bodyFit && <span>ทรง: <span className="text-slate-600 dark:text-slate-300">{BODY_FITS[selectedPattern.bodyFit] || selectedPattern.bodyFit}</span></span>}

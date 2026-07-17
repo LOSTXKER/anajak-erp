@@ -83,7 +83,7 @@ function DeadlineTag({ deadline }: { deadline: Date | string | null }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-[11px] font-medium",
+        "inline-flex items-center gap-1 text-xs font-medium",
         overdue ? "text-red-600 dark:text-red-400" : "text-slate-400"
       )}
     >
@@ -150,7 +150,7 @@ export function ProductionCommandCenter({
                       <span
                         key={r.label}
                         className={cn(
-                          "rounded-md px-1.5 py-0.5 text-[11px] font-medium",
+                          "rounded-md px-1.5 py-0.5 text-xs font-medium",
                           r.tone === "red"
                             ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                             : "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
@@ -162,7 +162,7 @@ export function ProductionCommandCenter({
                   </div>
                   {/* "รอใคร" ของงานติดด่าน — คงคำถามในภาพรวมไม่ต้องแตะเข้าออเดอร์ก่อน */}
                   {f.note && (
-                    <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{f.note}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{f.note}</p>
                   )}
                 </>
               );
@@ -181,7 +181,7 @@ export function ProductionCommandCenter({
                       variant="outline"
                       size="sm"
                       onClick={() => onCreate(f.orderId)}
-                      className="h-9 shrink-0 text-xs text-slate-500"
+                      className="shrink-0 text-slate-500"
                     >
                       ข้ามด่าน
                     </Button>
@@ -263,7 +263,7 @@ export function ProductionCommandCenter({
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     <DeadlineTag deadline={q.deadline} />
                     {q.totalQuantity != null && q.totalQuantity > 0 && (
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-xs text-slate-400">
                         {q.totalQuantity.toLocaleString()} ชิ้น
                       </span>
                     )}
@@ -273,13 +273,13 @@ export function ProductionCommandCenter({
                   <Button
                     size="sm"
                     onClick={() => onCreate(q.orderId)}
-                    className="h-9 shrink-0 gap-1.5"
+                    className="shrink-0 gap-1.5"
                   >
                     <Plus className="h-4 w-4" />
                     เปิดใบผลิต
                   </Button>
                 ) : (
-                  <Button variant="outline" size="sm" asChild className="h-9 shrink-0">
+                  <Button variant="outline" size="sm" asChild className="shrink-0">
                     <Link href={`/orders/${q.orderId}`}>เปิดดู</Link>
                   </Button>
                 )}

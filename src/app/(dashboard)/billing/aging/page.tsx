@@ -253,10 +253,12 @@ function AgingPageContent() {
           value={formatCurrency(data?.grandTotal ?? 0)}
           icon={DollarSign}
         />
+        {/* เลขเสี่ยงของหน้านี้ — แดงเมื่อมีจริง ให้ตรงกับเซลล์แดงในตารางข้างล่าง (UX4.3) */}
         <StatCard
           title="เลยกำหนดแล้ว"
           value={formatCurrency(overdueTotal)}
           icon={AlertCircle}
+          tone={overdueTotal > 0 ? "danger" : "muted"}
         />
         <StatCard
           title="ยังไม่ครบกำหนด"

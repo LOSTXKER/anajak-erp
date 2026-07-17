@@ -66,7 +66,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
           ) : (
             <div className="flex h-32 w-32 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 text-slate-400 dark:border-slate-700">
               <ImageOff className="h-5 w-5" />
-              <span className="text-[11px]">ไฟล์ไม่ใช่รูป</span>
+              <span className="text-xs">ไฟล์ไม่ใช่รูป</span>
             </div>
           )}
           <div className="min-w-0 space-y-1 text-sm">

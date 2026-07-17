@@ -21,7 +21,10 @@ export function SettingsPageHeader({
         </Link>
       </Button>
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h1>
+        {/* ขนาดหัวเรื่องต้องตรงกับ PageHeader (page-header.tsx) — มาตรฐานเดียวทั้งระบบ */}
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
+          {title}
+        </h1>
         {description && (
           <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
         )}

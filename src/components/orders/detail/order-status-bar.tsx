@@ -23,10 +23,6 @@ export function OrderStatusBar({
   const onPath = currentStepIndex >= 0;
   const currentLabel =
     (INTERNAL_STATUS_LABELS as Record<string, string>)[internalStatus] ?? internalStatus;
-  const nextStep = onPath ? flowSteps[currentStepIndex + 1] : null;
-  const nextLabel = nextStep
-    ? (INTERNAL_STATUS_LABELS as Record<string, string>)[nextStep] ?? nextStep
-    : null;
   const dotColor = isCancelled
     ? "bg-red-500"
     : (CUSTOMER_STATUS_COLORS as Record<string, { dot: string }>)[customerStatus]?.dot ??
@@ -38,13 +34,9 @@ export function OrderStatusBar({
         <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", dotColor)} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <p className="text-xs text-slate-500 dark:text-slate-400">สถานะตอนนี้</p>
+          {/* UX4.9: ไม่บอก "ถัดไป" ที่นี่ — การ์ดขั้นต่อไป (order-next-step) เป็นเสียงเดียว */}
           <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
             {currentLabel}
-            {nextLabel && (
-              <span className="font-normal text-slate-500 dark:text-slate-400">
-                {" "}→ ถัดไป {nextLabel}
-              </span>
-            )}
           </p>
         </div>
         <span className="hidden text-xs text-slate-500 sm:inline dark:text-slate-400">

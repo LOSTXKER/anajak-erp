@@ -21,7 +21,7 @@ export function Field({ label, error, required, children }: { label: string; err
     <div>
       <label className={labelClass}>{label} {required && <span className="text-red-400">*</span>}</label>
       {children}
-      {error && <p className="mt-0.5 flex items-center gap-1 text-[11px] text-red-500"><AlertCircle className="h-3 w-3 flex-shrink-0" />{error}</p>}
+      {error && <p className="mt-0.5 flex items-center gap-1 text-xs text-red-500"><AlertCircle className="h-3 w-3 flex-shrink-0" />{error}</p>}
     </div>
   );
 }

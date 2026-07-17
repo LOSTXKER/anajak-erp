@@ -241,13 +241,17 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   return items;
 }
 
-function TaskRow({ item }: { item: TaskListItem }) {
+function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
   const attention = attentionLabel(item.attention);
   return (
     <li>
       <Link
         href={item.href}
-        className="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800"
+        className={cn(
+          "flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800",
+          // rail ซ้ายเฉพาะกลุ่ม "ต้องทำก่อน" — สัญญาณแยกจากแถวคิวทีมโดยไม่เปลี่ยนโครง
+          urgent && "border-l-2 border-red-400"
+        )}
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -269,8 +273,21 @@ function TaskRow({ item }: { item: TaskListItem }) {
             </p>
           )}
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+            {/* badge ประเภทงานอยู่ในแถว meta (flex-wrap) เพื่อให้เห็นทุกขนาดจอ — ห้ามซ่อนบนมือถือ */}
+            {item.badge && (
+              <Badge variant={item.badgeTone ?? "default"} size="sm">
+                {item.badge}
+              </Badge>
+            )}
             {item.deadline && (
-              <span className="inline-flex items-center gap-1">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1",
+                  (item.attention === "overdue" || item.attention === "blocked") &&
+                    "font-medium text-red-600 dark:text-red-400",
+                  item.attention === "due-soon" && "text-amber-700 dark:text-amber-400"
+                )}
+              >
                 <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                 {formatDate(item.deadline)}
               </span>
@@ -278,11 +295,6 @@ function TaskRow({ item }: { item: TaskListItem }) {
             {item.meta && <span className="tabular-nums">{item.meta}</span>}
           </div>
         </div>
-        {item.badge && (
-          <Badge variant={item.badgeTone ?? "default"} size="sm" className="hidden shrink-0 sm:inline-flex">
-            {item.badge}
-          </Badge>
-        )}
         <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
       </Link>
     </li>
@@ -324,7 +336,9 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
         </div>
       </div>
       <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-        {visible.map((item) => <TaskRow key={item.key} item={item} />)}
+        {visible.map((item) => (
+          <TaskRow key={item.key} item={item} urgent={group.id === "attention"} />
+        ))}
       </ul>
       {group.items.length > 5 && (
         <div className="border-t border-slate-100 p-2 dark:border-slate-800">

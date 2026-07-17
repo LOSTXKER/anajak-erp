@@ -55,7 +55,7 @@ export function ProductTableRow({
     <NativeSelect
       value=""
       onChange={(e) => { if (e.target.value) updateProduct("itemSource", e.target.value); }}
-      className="text-[11px]"
+      className="text-xs"
       aria-label="เลือกแหล่งที่มาของสินค้า"
     >
       <option value="">แหล่ง...</option>
@@ -89,7 +89,7 @@ export function ProductTableRow({
               <div className="min-w-0">
                 <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">{productLabel}</span>
                 {variantLabel && <span className="block text-xs text-slate-500">{variantLabel}</span>}
-                <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400">
+                <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
                   {product.productSku && <span>{product.productSku}</span>}
                   {product.stockAvailable != null && (
                     <span className={product.stockAvailable > 0 ? "text-green-600" : "text-red-500"}>คลัง {product.stockAvailable}</span>
@@ -107,7 +107,7 @@ export function ProductTableRow({
               />
               <div className="flex flex-wrap items-center gap-1.5">
                 {multi ? (
-                  <span className="text-[11px] text-slate-500">หลายไซส์ · รวม {totalQty} ตัว{variant.color ? ` · ${variant.color}` : ""}</span>
+                  <span className="text-xs text-slate-500">หลายไซส์ · รวม {totalQty} ตัว{variant.color ? ` · ${variant.color}` : ""}</span>
                 ) : (
                   <>
                     <Input aria-label={`สีสินค้า ${prodIdx + 1}`} value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" className="w-20 px-2 sm:h-9 sm:text-xs" />
@@ -120,7 +120,7 @@ export function ProductTableRow({
                     onClick={() => setShowMatrix((v) => !v)}
                     aria-expanded={multi}
                     disabled={product.variants.length > 1}
-                    className={cn("h-8 gap-1 px-2 text-[11px]", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
+                    className={cn("h-8 gap-1 px-2 text-xs", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
                     title={product.variants.length > 1 ? "ล้างจำนวนไซส์ให้เหลือไซส์เดียวก่อนปิด" : "กรอกหลายไซส์ในแถวเดียว"}
                   >
                     <LayoutGrid className="h-3 w-3" />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}
@@ -131,7 +131,7 @@ export function ProductTableRow({
                     type="button" variant="outline" size="sm"
                     onClick={() => setShowDetail(!showDetail)}
                     aria-expanded={showDetail}
-                    className={cn("h-8 gap-1 px-2 text-[11px]", showDetail && "border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300")}
+                    className={cn("h-8 gap-1 px-2 text-xs", showDetail && "border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300")}
                   >
                     <Scissors className="h-3 w-3" />{showDetail ? "ซ่อนสเปค" : "สเปคตัดเย็บ"}
                   </Button>
@@ -192,7 +192,7 @@ export function ProductTableRow({
             type="button"
             onClick={() => setShowMore((v) => !v)}
             aria-expanded={showMore}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 sm:min-h-9 sm:text-[11px] dark:text-slate-400 dark:hover:bg-slate-800"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 sm:min-h-9 sm:text-xs dark:text-slate-400 dark:hover:bg-slate-800"
           >
             <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
             {showMore ? (

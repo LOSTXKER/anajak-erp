@@ -276,7 +276,7 @@ export const orderRouter = router({
         createdAfter: z.string().optional(),
         createdBefore: z.string().optional(),
         attention: z.enum(ORDER_ATTENTIONS).optional(),
-        sortBy: z.enum(["createdAt", "totalAmount", "orderNumber"]).optional(),
+        sortBy: z.enum(["createdAt", "totalAmount", "orderNumber", "deadline"]).optional(),
         sortOrder: z.enum(["asc", "desc"]).optional(),
         page: z.number().default(1),
         limit: z.number().default(20),
@@ -328,9 +328,11 @@ export const orderRouter = router({
       const seesMoney = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money");
       const sortBy =
         !seesMoney && input.sortBy === "totalAmount" ? "createdAt" : (input.sortBy ?? "createdAt");
-      const orderBy: Record<string, string> = {
-        [sortBy]: input.sortOrder ?? "desc",
-      };
+      // deadline เป็น field ว่างได้ (งานไม่ระบุกำหนดส่ง) — ดันไว้ท้ายเสมอ ไม่ให้แซงงานที่มีกำหนดจริง
+      const orderBy =
+        sortBy === "deadline"
+          ? { deadline: { sort: input.sortOrder ?? "asc", nulls: "last" as const } }
+          : ({ [sortBy]: input.sortOrder ?? "desc" } as Record<string, string>);
 
       const [orders, total] = await Promise.all([
         ctx.prisma.order.findMany({

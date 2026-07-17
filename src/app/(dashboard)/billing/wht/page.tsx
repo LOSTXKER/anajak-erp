@@ -26,7 +26,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { permAllows } from "@/lib/permissions";
 import {
@@ -227,36 +227,14 @@ export default function WhtRegisterPage() {
             icon={Hourglass}
             caption="รายการ"
           />
-          {/* ยอดรอใบ — เด่น amber เมื่อ >0 (StatCard ไม่รับสี value เลยทำการ์ดเอง โครงเดียวกัน) */}
-          <div className="card-surface rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-[12.5px] font-medium text-slate-500 dark:text-slate-400">
-                ยอดหักที่ยังไม่มีใบ
-              </p>
-              <AlertTriangle
-                className={cn(
-                  "h-4 w-4",
-                  pendingAmount > 0
-                    ? "text-amber-500"
-                    : "text-slate-400 dark:text-slate-500"
-                )}
-                strokeWidth={1.75}
-              />
-            </div>
-            <p
-              className={cn(
-                "mt-2.5 text-[28px] font-semibold leading-none tracking-tight tabular-nums",
-                pendingAmount > 0
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-slate-900 dark:text-white"
-              )}
-            >
-              {formatCurrency(pendingAmount)}
-            </p>
-            <p className="mt-2 text-[12px] text-slate-400 dark:text-slate-500">
-              ไม่ได้ใบ = เครดิตภาษีส่วนนี้หายฟรี
-            </p>
-          </div>
+          {/* ยอดรอใบ — เด่น amber เมื่อ >0 (UX4.3: StatCard รับ tone แล้ว เลิกการ์ดทำมือ) */}
+          <StatCard
+            title="ยอดหักที่ยังไม่มีใบ"
+            value={formatCurrency(pendingAmount)}
+            icon={AlertTriangle}
+            tone={pendingAmount > 0 ? "warning" : "muted"}
+            caption="ไม่ได้ใบ = เครดิตภาษีส่วนนี้หายฟรี"
+          />
           <StatCard
             title="ได้ใบแล้วรวม"
             value={formatCurrency(stats.data?.receivedAmount ?? 0)}

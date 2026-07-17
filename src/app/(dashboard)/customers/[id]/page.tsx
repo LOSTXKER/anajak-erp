@@ -17,7 +17,8 @@ import { CustomerArtworksCard } from "@/components/customers/customer-artworks-c
 import { CustomerEditDialog } from "@/components/customers/customer-edit-dialog";
 import { CustomerCommLogDialog } from "@/components/customers/customer-comm-log-dialog";
 import { commChannelLabel } from "@/lib/comm-channels";
-import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText, Pencil, MessageSquarePlus, Plus } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText, Pencil, MessageSquarePlus, Plus } from "lucide-react";
 
 // แก้ข้อมูล/จดบันทึกการคุย = ทีมขาย-บัญชี-บริหาร (ตรง customerEditors ฝั่ง server)
 
@@ -34,10 +35,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนยอดสั่งรวม/ยอดออเดอร์ (server ส่ง null มาอยู่แล้ว)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });
-  // ภาระหนี้เทียบวงเงินเครดิต — ขอเฉพาะลูกค้าที่ตั้งวงเงินไว้ · non-money role ยิงไปก็โดน FORBIDDEN
+  // ภาระหนี้ + ยอดค้างชำระ — เปิดเสมอเมื่อเห็นเงิน (ลูกค้าไม่ตั้งวงเงินก็ต้องเห็นยอดค้าง
+  // ในการ์ดสรุป — ธุรกิจเครดิตเทอมถามก่อนว่า "ค้างเท่าไร") · non-money role ยิงไปก็โดน FORBIDDEN
   const { data: credit } = trpc.customer.creditStatus.useQuery(
     { customerId: id },
-    { enabled: canSeeMoney && customer?.creditLimit != null }
+    { enabled: canSeeMoney }
   );
 
   if (isLoading) {
@@ -57,74 +59,47 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button asChild variant="ghost" size="icon">
-          <Link href="/customers" aria-label="กลับไปหน้าลูกค้า">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold text-slate-900 dark:text-white">{customer.name}</h1>
+      {/* โทร/LINE/อีเมล/บันทึกการคุย ไม่อยู่ header — ซ้ำกับการ์ดข้อมูลติดต่อ+บันทึกการสื่อสารด้านล่าง */}
+      <PageHeader
+        breadcrumb={[
+          { label: "ลูกค้า", href: "/customers" },
+          { label: customer.name },
+        ]}
+        title={customer.name}
+        description={customer.company || undefined}
+        action={
+          <>
             {customer.customerType === "CORPORATE" ? (
               <Badge variant="default" className="gap-1"><Building2 className="h-3 w-3" /> นิติบุคคล</Badge>
             ) : (
               <Badge variant="secondary" className="gap-1"><User className="h-3 w-3" /> บุคคลธรรมดา</Badge>
             )}
-          </div>
-          {customer.company && <p className="text-sm text-slate-500">{customer.company}</p>}
-          {customerProfileGaps(customer).length > 0 && (
-            <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
-              โปรไฟล์ยังไม่ครบ: {customerProfileGaps(customer).map((g) => g.label).join(" · ")}
-            </p>
-          )}
-        </div>
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
-          {customer.phone && (
-            <Button asChild variant="outline" size="sm">
-              <a href={`tel:${customer.phone}`} aria-label={`โทรหา ${customer.name}`}>
-                <Phone className="h-4 w-4" /> โทร
-              </a>
-            </Button>
-          )}
-          {customer.lineId && (
-            <Button asChild variant="outline" size="sm">
-              <a
-                href={`https://line.me/R/ti/p/~${encodeURIComponent(customer.lineId)}`}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={`เปิด LINE ของ ${customer.name}`}
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-11 w-full sm:h-9 sm:w-auto"
+                onClick={() => setEditing(true)}
               >
-                <MessageCircle className="h-4 w-4" /> LINE
-              </a>
-            </Button>
-          )}
-          {customer.email && (
-            <Button asChild variant="outline" size="sm">
-              <a href={`mailto:${customer.email}`} aria-label={`ส่งอีเมลหา ${customer.name}`}>
-                <Mail className="h-4 w-4" /> อีเมล
-              </a>
-            </Button>
-          )}
-          {canEdit && (
-            <Button variant="outline" size="sm" onClick={() => setLoggingComm(true)}>
-              <MessageSquarePlus className="h-4 w-4" /> บันทึกการคุย
-            </Button>
-          )}
-          {canEdit && (
-            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-              <Pencil className="h-4 w-4" /> แก้ข้อมูล
-            </Button>
-          )}
-          {canCreateOrder && (
-            <Button asChild size="sm">
-              <Link href={`/orders/new?customerId=${id}`}>
-                <Plus className="h-4 w-4" /> เปิดงาน
-              </Link>
-            </Button>
-          )}
-        </div>
-      </div>
+                <Pencil className="h-4 w-4" /> แก้ไขข้อมูล
+              </Button>
+            )}
+            {canCreateOrder && (
+              <Button asChild size="sm" className="h-11 w-full sm:h-9 sm:w-auto">
+                <Link href={`/orders/new?customerId=${id}`}>
+                  <Plus className="h-4 w-4" /> เปิดงานใหม่
+                </Link>
+              </Button>
+            )}
+          </>
+        }
+      >
+        {customerProfileGaps(customer).length > 0 && (
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            โปรไฟล์ยังไม่ครบ: {customerProfileGaps(customer).map((g) => g.label).join(" · ")}
+          </p>
+        )}
+      </PageHeader>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Profile Card */}
@@ -171,6 +146,18 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-sm text-slate-500"><DollarSign className="h-4 w-4" /> ยอดสั่งรวม</span>
                   <span className="font-bold tabular-nums">{formatCurrency(customer.totalSpent ?? 0)}</span>
+                </div>
+              )}
+              {canSeeMoney && credit && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm text-slate-500"><FileText className="h-4 w-4" /> ค้างชำระ</span>
+                  <span
+                    className={`text-base font-semibold tabular-nums ${
+                      credit.invoiceOutstanding > 0 ? "text-red-600 dark:text-red-400" : ""
+                    }`}
+                  >
+                    {formatCurrency(credit.invoiceOutstanding)}
+                  </span>
                 </div>
               )}
               {customer.lastOrderAt && (

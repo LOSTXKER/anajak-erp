@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { OrderStatusBadge } from "@/components/order-status-badge";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import {
   CUSTOMER_STATUS_LABELS,
   INTERNAL_STATUS_LABELS,
@@ -72,6 +72,7 @@ const INTERNAL_STATUS_FILTERS = [
 const SORT_OPTIONS = [
   { value: "createdAt:desc", label: "วันที่ (ล่าสุด)" },
   { value: "createdAt:asc", label: "วันที่ (เก่าสุด)" },
+  { value: "deadline:asc", label: "กำหนดส่ง (ใกล้สุด)" },
   { value: "totalAmount:desc", label: "ยอดรวม (มาก→น้อย)" },
   { value: "totalAmount:asc", label: "ยอดรวม (น้อย→มาก)" },
   { value: "orderNumber:desc", label: "เลขออเดอร์ (ล่าสุด)" },
@@ -106,6 +107,25 @@ const PAYMENT_DOT: Record<string, { label: string; dot: string; text: string }> 
   unpaid: { label: "ค้างชำระ", dot: "bg-red-500", text: "text-red-700 dark:text-red-300" },
   partial: { label: "บางส่วน", dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
 };
+
+// ────────────────────────────────────────────────────────────
+// Deadline urgency tone — เกณฑ์เดียวกับ attention ฝั่ง server
+// (order-list-filter.ts: งานร่าง/ส่งแล้ว/จบ/ยกเลิก ไม่นับเร่งด่วน)
+// ────────────────────────────────────────────────────────────
+
+const ATTENTION_EXEMPT_STATUSES = new Set(["DRAFT", "SHIPPED", "COMPLETED", "CANCELLED"]);
+
+function deadlineToneClass(
+  deadline: string | Date | null | undefined,
+  internalStatus: string
+): string | null {
+  if (!deadline || ATTENTION_EXEMPT_STATUSES.has(internalStatus)) return null;
+  const due = new Date(deadline).getTime();
+  const now = Date.now();
+  if (due < now) return "font-medium text-red-600 dark:text-red-400";
+  if (due <= now + 48 * 60 * 60 * 1000) return "text-amber-700 dark:text-amber-400";
+  return null;
+}
 
 function PaymentIndicator({ status }: { status: string }) {
   const v = PAYMENT_DOT[status];
@@ -280,7 +300,7 @@ function OrdersPageContent() {
     ? rawSort
     : "createdAt:desc";
   const [sortBy, sortOrder] = sort.split(":") as [
-    "createdAt" | "totalAmount" | "orderNumber",
+    "createdAt" | "totalAmount" | "orderNumber" | "deadline",
     "asc" | "desc",
   ];
 
@@ -308,18 +328,35 @@ function OrdersPageContent() {
     }
   }, [data, page, replaceListState]);
 
+  // attention ไม่นับในป้ายกล่องตัวกรอง — มันมีบ้านเป็นแถว chip บนผิวหน้าแล้ว
   const activeFilterCount = [
     channel,
     orderType,
     customerStatus,
     internalStatus,
-    attention,
     createdAfter,
     createdBefore,
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     replaceListState({
+      channel: null,
+      type: null,
+      customerStatus: null,
+      status: null,
+      attention: null,
+      from: null,
+      to: null,
+      page: null,
+    });
+  };
+
+  // empty state ตอนหาไม่เจอ: ล้างตัวกรอง + คำค้นในจังหวะเดียว (คนละปุ่มกับในกล่องตัวกรองที่ล้างเฉพาะ filter)
+  const hasActiveFilters = activeFilterCount > 0 || Boolean(attention) || Boolean(search);
+  const clearFiltersAndSearch = () => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    replaceListState({
+      q: null,
       channel: null,
       type: null,
       customerStatus: null,
@@ -360,7 +397,8 @@ function OrdersPageContent() {
         }
       />
 
-      {/* Toolbar */}
+      {/* Toolbar + attention filter (คำถามหลักของหน้านี้ — โชว์ตลอด ไม่ต้องกางกล่องตัวกรอง) */}
+      <div className="space-y-2.5">
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
         <SearchInput
           ref={searchInputRef}
@@ -409,6 +447,26 @@ function OrdersPageContent() {
             )}
           </Button>
         </div>
+      </div>
+
+      {/* ความเร่งด่วน — คำถามหลักที่เปิดหน้านี้มาถามทุกเช้า โชว์เป็นแถว chip ตลอด ไม่ฝังในกล่องพับ */}
+      <div
+        className="flex flex-wrap items-center gap-1.5"
+        role="group"
+        aria-label="กรองตามความเร่งด่วน"
+      >
+        {ATTENTION_FILTERS.map((filter) => (
+          <FilterChip
+            key={filter.value || "all"}
+            selected={attention === filter.value}
+            onClick={() =>
+              replaceListState({ attention: filter.value || null, page: null })
+            }
+          >
+            {filter.label}
+          </FilterChip>
+        ))}
+      </div>
       </div>
 
       {showFilters && (
@@ -466,22 +524,6 @@ function OrdersPageContent() {
                 </FilterChip>
               ))}
             </FilterRow>
-            <FilterRow label="ความเร่งด่วน">
-              {ATTENTION_FILTERS.map((filter) => (
-                <FilterChip
-                  key={filter.value}
-                  selected={attention === filter.value}
-                  onClick={() =>
-                    replaceListState({
-                      attention: filter.value || null,
-                      page: null,
-                    })
-                  }
-                >
-                  {filter.label}
-                </FilterChip>
-              ))}
-            </FilterRow>
             <FilterRow label="วันที่สร้าง">
               <Input
                 aria-label="วันที่สร้างตั้งแต่"
@@ -532,7 +574,7 @@ function OrdersPageContent() {
                 <DataTable.Th>สถานะ</DataTable.Th>
                 {canSeeMoney && <DataTable.Th align="right">ยอดรวม</DataTable.Th>}
                 <DataTable.Th>การชำระ</DataTable.Th>
-                <DataTable.Th>วันที่</DataTable.Th>
+                <DataTable.Th>กำหนดส่ง</DataTable.Th>
               </tr>
             </DataTable.Head>
             <DataTable.Body>
@@ -582,8 +624,14 @@ function OrdersPageContent() {
                   <DataTable.Td>
                     <PaymentIndicator status={order.paymentLabel} />
                   </DataTable.Td>
-                  <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
-                    {order.createdAt ? formatDate(order.createdAt) : "—"}
+                  <DataTable.Td
+                    className={cn(
+                      "text-xs",
+                      deadlineToneClass(order.deadline, order.internalStatus) ??
+                        "text-slate-500 dark:text-slate-400"
+                    )}
+                  >
+                    {order.deadline ? formatDate(order.deadline) : "—"}
                   </DataTable.Td>
                 </DataTable.Row>
               ))}
@@ -636,7 +684,13 @@ function OrdersPageContent() {
                       <p className="text-slate-500 dark:text-slate-400">การชำระ</p>
                       <div className="mt-0.5"><PaymentIndicator status={order.paymentLabel} /></div>
                     </div>
-                    <div className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                    <div
+                      className={cn(
+                        "inline-flex items-center gap-1.5",
+                        deadlineToneClass(order.deadline, order.internalStatus) ??
+                          "text-slate-500 dark:text-slate-400"
+                      )}
+                    >
                       <Clock3 aria-hidden="true" className="h-3.5 w-3.5" />
                       {order.deadline ? `กำหนด ${formatDate(order.deadline)}` : `เปิด ${formatDate(order.createdAt)}`}
                     </div>
@@ -656,12 +710,16 @@ function OrdersPageContent() {
             icon={ShoppingCart}
             title="ไม่พบออเดอร์"
             description={
-              activeFilterCount > 0 || search
+              hasActiveFilters
                 ? "ลองล้างตัวกรองหรือปรับคำค้นหา"
                 : "เริ่มสร้างออเดอร์แรกของคุณได้เลย"
             }
             action={
-              canCreateOrder ? (
+              hasActiveFilters ? (
+                <Button variant="outline" size="sm" onClick={clearFiltersAndSearch}>
+                  ล้างตัวกรองและคำค้น
+                </Button>
+              ) : canCreateOrder ? (
                 <Button asChild size="sm">
                   <Link href="/orders/new">
                     <Plus className="h-4 w-4" />

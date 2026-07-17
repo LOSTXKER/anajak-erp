@@ -6,7 +6,6 @@ import {
   ShoppingCart,
   Users,
   TrendingUp,
-  AlertCircle,
   ChevronRight,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -14,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { cn, formatCurrency } from "@/lib/utils";
 import { OrderStatusBadge } from "@/components/order-status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
@@ -21,8 +22,9 @@ import { Badge } from "@/components/ui/badge";
 import { permAllows } from "@/lib/permissions";
 
 /**
- * การ์ดเล็กของแถบ "5 ตัวเลขเจ้าของ" — หน้าตาเดียวกับ StatCard แต่ย่อส่วน
- * ตัวเลขหลัก/รองแยกปลายทางได้ และไม่สร้างลิงก์เมื่อยังไม่มี filter ที่ตรงกับตัวเลข
+ * การ์ดแถบ "5 ตัวเลขเจ้าของ" — ยุบเข้า StatCard ไม่ได้เพราะการ์ดนี้มี "ลิงก์อิสระ 2 จุด"
+ * (ตัวเลขหลัก + บรรทัดรอง drill-down คนละปลายทาง) ขณะ StatCard.href ครอบทั้งใบ —
+ * ซ้อนกันจะเป็น <a> ใน <a> · จังหวะ p-5/mt-2.5 ต้องล็อกให้ตรง StatCard แถวล่างเสมอ
  */
 function PulseCard({
   href,
@@ -51,13 +53,14 @@ function PulseCard({
       </p>
       <p
         className={cn(
-          "mt-2 text-[28px] font-semibold leading-none tracking-tight tabular-nums",
+          "mt-2.5 text-[28px] font-semibold leading-none tracking-tight tabular-nums",
           tone === "danger"
             ? "text-red-600 dark:text-red-400"
             : tone === "warning"
               ? "text-amber-600 dark:text-amber-400"
               : tone === "muted"
-                ? "text-slate-300 dark:text-slate-600"
+                ? // ศูนย์จริงโชว์จาง แต่ต้องผ่าน contrast 3:1 ของ large text — ห้ามจางกว่านี้
+                  "text-slate-400 dark:text-slate-500"
                 : "text-slate-900 dark:text-white"
         )}
       >
@@ -77,7 +80,7 @@ function PulseCard({
   return (
     <div
       className={cn(
-        "rounded-2xl card-surface p-4",
+        "rounded-2xl card-surface p-5",
         (href || subHref) && "card-surface-hover",
         className
       )}
@@ -171,6 +174,14 @@ export default function DashboardPage() {
 
   const today = new Date();
 
+  // สถานะออเดอร์เรียงตามลำดับ flow จริง (key order ของ INTERNAL_STATUS_LABELS)
+  // ไม่ใช่เรียงตามจำนวน — เดิม "ยกเลิก" เยอะสุดเลยลอยขึ้นบนสุดของ list
+  const statusFlowRank = Object.keys(INTERNAL_STATUS_LABELS);
+  const ordersByStatus = [...(data?.ordersByStatus ?? [])].sort(
+    (a, b) => statusFlowRank.indexOf(a.status) - statusFlowRank.indexOf(b.status)
+  );
+  const statusTotal = ordersByStatus.reduce((sum, item) => sum + item.count, 0);
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -204,6 +215,7 @@ export default function DashboardPage() {
               sub={`ใกล้ถึงใน 48 ชม. ${pulse.atRiskOrders.dueSoon}`}
             />
             <PulseCard
+              href="/outsource"
               title="ค้างร้านนอก"
               value={pulse.outsource.pending}
               tone={pulse.outsource.pending === 0 ? "muted" : undefined}
@@ -213,6 +225,7 @@ export default function DashboardPage() {
             {/* open = ขั้นค้างทั้งระบบ ไม่ใช่ของวันนี้ — ห้ามเอามารวมเป็นตัวส่วน
                 ของ done (สื่อผิดว่า "วันนี้ต้องทำอีกเท่านี้") · แยกเป็นบรรทัดรองแทน */}
             <PulseCard
+              href="/production"
               title="เสร็จวันนี้"
               value={pulse.todayQueue.done}
               tone={pulse.todayQueue.done === 0 ? "muted" : undefined}
@@ -238,60 +251,65 @@ export default function DashboardPage() {
         </Section>
       )}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          title="ออเดอร์กำลังดำเนินการ"
-          value={data?.activeOrders ?? 0}
-          icon={ShoppingCart}
-        />
-        {canSeeFinance && (
+      {/* ภาพรวมสะสม — ตัวเลขสถิติ ไม่ใช่เรื่องเร่ง: ย่อ value ลง text-xl
+          ให้แถว Pulse ข้างบนเป็นจุดนำสายตาเดียว (UX4.3) · "บิลค้างชำระ" ถูกตัด —
+          เลขเดียวกับ "บิลเลยกำหนด" ใน Pulse โผล่สองชื่อแล้วเจ้าของงงว่าอันไหนจริง */}
+      <Section title="ภาพรวมสะสม" bordered={false} compact>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
           <StatCard
-            title="รายได้เดือนนี้"
-            value={formatCurrency(data?.revenueThisMonth ?? 0)}
-            icon={TrendingUp}
-            change={data?.revenueChange ?? undefined}
+            title="ออเดอร์กำลังดำเนินการ"
+            value={data?.activeOrders ?? 0}
+            icon={ShoppingCart}
+            valueClassName="text-xl"
           />
-        )}
-        <KpiDrilldown href="/customers" label="ดูรายชื่อลูกค้าทั้งหมด">
-          <StatCard
-            title="ลูกค้าทั้งหมด"
-            value={data?.totalCustomers ?? 0}
-            icon={Users}
-            caption={
-              data?.newCustomersThisMonth
-                ? `+${data.newCustomersThisMonth} เดือนนี้`
-                : undefined
-            }
-          />
-        </KpiDrilldown>
-        {canSeeFinance && (
-          <KpiDrilldown
-            href={canViewBilling ? "/billing?status=OVERDUE" : undefined}
-            label="ดูรายการบิลค้างชำระ"
-          >
+          {canSeeFinance && (
             <StatCard
-              title="บิลค้างชำระ"
-              value={data?.overdueInvoices ?? 0}
-              icon={AlertCircle}
+              title="รายได้เดือนนี้"
+              value={formatCurrency(data?.revenueThisMonth ?? 0)}
+              icon={TrendingUp}
+              change={data?.revenueChange ?? undefined}
+              valueClassName="text-xl"
+            />
+          )}
+          <KpiDrilldown href="/customers" label="ดูรายชื่อลูกค้าทั้งหมด">
+            <StatCard
+              title="ลูกค้าทั้งหมด"
+              value={data?.totalCustomers ?? 0}
+              icon={Users}
+              valueClassName="text-xl"
+              caption={
+                data?.newCustomersThisMonth
+                  ? `+${data.newCustomersThisMonth} เดือนนี้`
+                  : undefined
+              }
             />
           </KpiDrilldown>
-        )}
-      </div>
+        </div>
+      </Section>
 
-      {data?.recentOrders && data.recentOrders.length > 0 && (
-        <Section
-          title="ออเดอร์ล่าสุด"
-          bordered
-          flush
-          action={
-            <Link
-              href="/orders"
-              className="text-[13px] font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400"
-            >
-              ดูทั้งหมด
-            </Link>
-          }
-        >
+      <Section
+        title="ออเดอร์ล่าสุด"
+        bordered
+        flush
+        action={
+          <Link
+            href="/orders"
+            className="text-[13px] font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400"
+          >
+            ดูทั้งหมด
+          </Link>
+        }
+      >
+        {!data?.recentOrders || data.recentOrders.length === 0 ? (
+          // list ว่างห้ามซ่อนทั้ง section — พนักงานใหม่ต้องเห็นก้าวถัดไป (UX4.7)
+          <div className="px-6 py-8">
+            <EmptyState
+              icon={ShoppingCart}
+              title="ยังไม่มีออเดอร์"
+              description="เริ่มจากปุ่ม เปิดงานใหม่ มุมขวาบน — ออเดอร์ล่าสุดจะโผล่ที่นี่"
+            />
+          </div>
+        ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
             {data.recentOrders.map((o) => (
               <Link
@@ -340,25 +358,41 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
-        </Section>
-      )}
+        )}
+      </Section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Section title="สถานะออเดอร์" bordered>
-          <div className="space-y-2.5">
-            {data?.ordersByStatus?.map((item) => (
+          <div className="space-y-1.5">
+            {ordersByStatus.map((item) => (
               <Link
                 key={item.status}
                 href={`/orders?status=${item.status}`}
-                className="flex min-h-11 items-center justify-between rounded-lg px-2 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:bg-slate-800/40"
+                className="block min-h-11 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:bg-slate-800/40"
               >
-                <OrderStatusBadge internalStatus={item.status} compact />
-                <span className="text-sm font-medium tabular-nums text-slate-900 dark:text-white">
-                  {item.count}
-                </span>
+                <div className="flex items-center justify-between">
+                  <OrderStatusBadge internalStatus={item.status} compact />
+                  <span className="text-sm font-medium tabular-nums text-slate-900 dark:text-white">
+                    {item.count}
+                  </span>
+                </div>
+                {/* แถบสัดส่วน — สแกนด้วยตาได้โดยไม่ต้องอ่านเลขทีละบรรทัด (ยกเลิก = เทา ไม่แย่งสี) */}
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                  <div
+                    className={cn(
+                      "h-full rounded-full",
+                      item.status === "CANCELLED"
+                        ? "bg-slate-300 dark:bg-slate-600"
+                        : "bg-blue-500/70 dark:bg-blue-400/70"
+                    )}
+                    style={{
+                      width: `${statusTotal > 0 ? Math.max((item.count / statusTotal) * 100, 2) : 0}%`,
+                    }}
+                  />
+                </div>
               </Link>
             ))}
-            {(!data?.ordersByStatus || data.ordersByStatus.length === 0) && (
+            {ordersByStatus.length === 0 && (
               <p className="text-sm text-slate-400">ยังไม่มีออเดอร์</p>
             )}
           </div>
