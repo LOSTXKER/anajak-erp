@@ -104,6 +104,9 @@
 - **เกณฑ์ปิด**: typecheck/lint 0 error · unit เดิมไม่ถอย · browser จริง desktop+mobile หน้า dashboard/my-tasks/orders/order detail/production/billing ไม่มี regression · dark mode + public light คงเดิม
 - **ปิดงาน 2026-07-17 (Nami)**: ครบทั้ง 11 ข้อ · verify: tsc 0 · lint 0 error · test 576/576 (ฐาน 572 ไม่ถอย +4 เทสใหม่ firstPendingStepIdsByLane/navigation) · browser จริง light+dark: dashboard/orders/production board/billing/my-tasks mobile · ข้อยกเว้นตั้งใจ <12px เหลือ 2 จุด (ป้ายเวอร์ชันบน thumbnail + จุดนับบน badge กลม) · ~~UX4.11 แถว "งานยังไม่ปิด"~~ ✅ รอบเก็บตก 2026-07-17 (เพิ่ม openOrders ใน customer.creditStatus) · รอบเก็บตกเพิ่ม: ค้างชำระในแท็บเงินออเดอร์ (totalOutstanding+เทส) · settings hub จัด 3 หมวด · PulseCard กดได้ทั้งใบ · ฟอร์ม outsource/สร้างลูกค้า/print-table-row เข้า Field กลาง — verify รอบสอง: tsc 0 · lint 0 · test 577/577 · browser จริง settings/customer detail
 
+### 📓 UX5 — รายการออเดอร์เป็นตารางเดียว (ทำจริงแล้ว **เบสเคาะไม่เอา ย้อนกลับ** 2026-07-17)
+> ทำครบทั้งฟอร์ม (ยุบ ลาย/สินค้า/เสริม เป็นตาราง 6 คอลัมน์ ราคา×จำนวน=รวม ทุกแถว) และหน้ารายละเอียด (ตารางเดียวต่อรายการ) — เปิดงานจริงบน browser ยอดตรงสูตร แต่เบสดูแล้ว **ชอบแบบเดิม (แยกกลุ่ม ลาย/สินค้า/เสริม) มากกว่า** → revert ทั้งหมดก่อน commit · **อย่าหยิบไอเดีย "ตารางรวมชุดเดียว" มาทำซ้ำโดยไม่ถามเบสก่อน** · ถ้าจะปรับหน้านี้อีก ให้ปรับบนโครงแยกกลุ่มเดิม
+
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
 ~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
 

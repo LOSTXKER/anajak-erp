@@ -4,7 +4,9 @@
 
 ## ตอนนี้
 
-> **NEXT (session หน้า):** UX4 ปิดครบ 11 ข้อ + รอบเก็บตก (เบสให้อิสระ 2026-07-17) บน branch `feat/ux4-focal-polish` — **รอเบสเปิดดูแล้วเคาะ merge เข้า main** (ยังไม่ push) · งานค้างต่อคิวเล็กๆ: users table ดิบ → DataTable+mobile card · add-product-popover → Radix · typographic scale ใน @theme
+> **NEXT (session หน้า):** UX4 ปิดครบ 11 ข้อ + รอบเก็บตก บน branch `feat/ux4-focal-polish` — **รอเบสเปิดดูแล้วเคาะ merge เข้า main** (ยังไม่ push) · งานค้างต่อคิวเล็กๆ: users table ดิบ → DataTable+mobile card · add-product-popover → Radix · typographic scale ใน @theme
+
+- **📓 UX5 ตารางรายการ — ทำแล้วเบสเคาะไม่เอา revert 2026-07-17:** เบสสั่ง "รายการเป็นฟีลตาราง" → ทำจริงครบ (ฟอร์ม+หน้ารายละเอียด ตารางเดียว 6 คอลัมน์ ราคา×จำนวน=รวม · เปิดงานจริงยอดตรงสูตร ฿5,136) แต่เบสดูจอจริงแล้ว **ชอบแบบเดิมแยกกลุ่ม ลาย/สินค้า/เสริม มากกว่า** → revert ทั้งหมดก่อน commit (โค้ดไม่มีร่องรอย) · บันทึกการตัดสินใจอยู่ ROADMAP หัวข้อ UX5 — **อย่าหยิบมาทำซ้ำโดยไม่ถามเบส** · ออเดอร์ทดสอบ ORD-2607-0059 ลบจาก DB แล้ว · บัญชี QA รอบนี้มี audit log อ้างถึง → ปิด isActive + ถอน Supabase auth แทนการลบ (record คงไว้ให้ audit ครบ)
 
 - **🎨 UX4 รอบเก็บตก 2026-07-17 (เบสสั่ง "ให้อิสระ"):** แถว "งานยังไม่ปิด" บน customer detail (เพิ่ม `openOrders` ใน customer.creditStatus — query count เดียว ไม่แตะ logic เงิน) · ช่อง "ค้างชำระ" แดงในแถบสรุปแท็บเงินออเดอร์ (`billingOverview.totalOutstanding` + เทส) · settings hub จัด 3 หมวด (กิจการและทีม/การผลิตและบริการ/ระบบและข้อมูล) · PulseCard แดชบอร์ดกดได้ทั้งใบ (stretched-link ลิงก์รองยัง z-10) · ฟอร์ม outsource dialog + สร้างลูกค้า + print-table-row ยุบเข้า `ui/Field` กลาง (ลบ Field ประกาศซ้ำ) · verify: tsc 0 · lint 0 error · test 577/577 · browser จริง settings/customers/customer detail · บัญชี QA ชั่วคราวสร้าง-ใช้-ลบแล้ว
 
