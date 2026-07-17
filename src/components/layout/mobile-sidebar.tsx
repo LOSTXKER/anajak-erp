@@ -30,7 +30,7 @@ export function MobileSidebar() {
 
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none md:hidden" />
-        <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 w-72 max-w-[88vw] overflow-hidden border-r border-black/10 bg-[#f5f5f7] shadow-2xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left motion-reduce:animate-none md:hidden dark:border-white/10 dark:bg-slate-950">
+        <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 w-72 max-w-[88vw] overflow-hidden border-r border-black/10 bg-bg shadow-2xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left motion-reduce:animate-none md:hidden dark:border-white/10 dark:bg-slate-950">
           <DialogPrimitive.Title className="sr-only">เมนูหลัก</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
             เลือกหน้าในระบบ Anajak ERP

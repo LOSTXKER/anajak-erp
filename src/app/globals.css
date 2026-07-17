@@ -71,6 +71,39 @@
   --color-amber-900: #6f4b11;
   --color-amber-950: #412a07;
 
+  /* ramp slate — mirror เข้าตระกูล Apple gray (neutral เดียวทั้งระบบ)
+     slate ของ Tailwind อมฟ้า ไม่ตรงกับ semantic token (text #1d1d1f / muted #6e6e73)
+     override ที่นี่จุดเดียว ทุก utility slate-* (ใช้ 2,518 จุดทั้งแอป) สแนปเข้าโทน
+     Apple neutral โดยไม่แตะ markup · 900 = สี text หลัก · 500 = text-muted
+     คุม lightness ใกล้ Tailwind เดิมเพื่อไม่ให้ contrast ถอย (เลียน blue/red) */
+  --color-slate-50: #f7f7f8;
+  --color-slate-100: #f1f1f3;
+  --color-slate-200: #e2e2e6;
+  --color-slate-300: #cbcbd0;
+  --color-slate-400: #909095;
+  --color-slate-500: #6e6e73;
+  --color-slate-600: #55555a;
+  --color-slate-700: #3f3f44;
+  --color-slate-800: #2a2a2e;
+  --color-slate-900: #1d1d1f;
+  --color-slate-950: #101012;
+
+  /* ramp green — anchor 600 = --color-success (#1a8754)
+     ทั่วระบบใช้ green-* เป็นสี "สำเร็จ/รับแล้ว" 100+ จุด แต่ semantic success
+     นิยามอีกค่า — override ให้เขียวเป็นเฉดเดียวกันทั้งแอปโดยไม่แตะ markup
+     (emerald-* ไม่ถูกใช้ใน component เลย จึงไม่ต้อง mirror) */
+  --color-green-50: #effaf3;
+  --color-green-100: #d8f3e2;
+  --color-green-200: #b5e6c9;
+  --color-green-300: #83d3a5;
+  --color-green-400: #4bb97e;
+  --color-green-500: #2aa268;
+  --color-green-600: #1a8754;
+  --color-green-700: #156b45;
+  --color-green-800: #135538;
+  --color-green-900: #10462f;
+  --color-green-950: #08271a;
+
   /* Surface — Apple-style soft neutral page, pure white surface */
   --color-bg: #f5f5f7;
   --color-surface: #ffffff;
@@ -233,11 +266,11 @@ a,
    ใช้แทน `border border-slate-200 bg-white` ทั่วระบบ ให้ทุกการ์ดลุคเดียวกัน
    ============================================================ */
 .card-surface {
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 .dark .card-surface {
-  background-color: #1c1c1e;
+  background-color: var(--color-surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 /* ยกเงาเมื่อ hover — สำหรับการ์ดที่กดได้ */

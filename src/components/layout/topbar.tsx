@@ -94,7 +94,7 @@ export function Topbar() {
   const count = unreadCount ?? 0;
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-black/[0.07] bg-[#f5f5f7]/72 px-3 backdrop-blur-xl sm:gap-3 sm:px-8 lg:px-10 dark:border-white/[0.06] dark:bg-black/60">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-black/[0.07] bg-bg/80 px-3 backdrop-blur-xl sm:gap-3 sm:px-8 lg:px-10 dark:border-white/[0.06] dark:bg-black/60">
       {/* เมนูมือถือ — จอเล็ก sidebar ซ่อน เปิดผ่าน hamburger */}
       <MobileSidebar />
       {/* Search trigger (opens command palette) */}

@@ -37,8 +37,16 @@ export function OrderStatusBadge({
   return (
     <div className={compact ? "flex flex-col leading-tight" : "flex flex-col gap-0.5"}>
       {customerStatus && colors && (
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-800 dark:text-slate-200">
-          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${colors.dot}`} />
+        <span
+          className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+            // สถานะปลายทางต้องสะดุดตาตอนสแกน list — ย้อม label ตามสีสถานะ
+            // ส่วนสถานะระหว่างทางคง slate ตามปรัชญา no-pill
+            customerStatus === "CANCELLED" || customerStatus === "COMPLETED"
+              ? colors.text
+              : "text-slate-800 dark:text-slate-200"
+          }`}
+        >
+          <span className={`h-2 w-2 shrink-0 rounded-full ${colors.dot}`} />
           {CUSTOMER_STATUS_LABELS[customerStatus] ?? customerStatus}
         </span>
       )}

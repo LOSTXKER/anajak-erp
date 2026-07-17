@@ -4,6 +4,7 @@ type BadgeVariant =
   | "success"
   | "warning"
   | "destructive"
+  | "outline"
   | "secondary"
   | "purple";
 
@@ -24,13 +25,14 @@ function buildConfig<T extends string>(
   return { labels, variants };
 }
 
-// Payment status (used in billing section)
+// Payment status — ภาษาสีชุดเดียวทุกหน้าเงิน (UX4.2): ยังไม่ชำระ = เหลืองต้องตาม ·
+// บางส่วน = ฟ้าคืบหน้า · เกินกำหนด = แดง · ยกเลิก = outline จบเรื่องไม่แย่งสายตา
 const _paymentStatus = buildConfig({
-  UNPAID: { label: "ยังไม่ชำระ", variant: "default" },
-  PARTIALLY_PAID: { label: "ชำระบางส่วน", variant: "warning" },
+  UNPAID: { label: "ยังไม่ชำระ", variant: "warning" },
+  PARTIALLY_PAID: { label: "ชำระบางส่วน", variant: "accent" },
   PAID: { label: "ชำระแล้ว", variant: "success" },
   OVERDUE: { label: "เกินกำหนด", variant: "destructive" },
-  VOIDED: { label: "ยกเลิก", variant: "secondary" },
+  VOIDED: { label: "ยกเลิก", variant: "outline" },
 });
 export const PAYMENT_STATUS_LABELS = _paymentStatus.labels;
 export const PAYMENT_STATUS_VARIANTS = _paymentStatus.variants;

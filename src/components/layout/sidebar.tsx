@@ -52,9 +52,9 @@ export function Sidebar({
       className={cn(
         "flex-col transition-[width] duration-200",
         mobile
-          ? "flex h-full w-full bg-[#f5f5f7] dark:bg-slate-950"
+          ? "flex h-full w-full bg-bg dark:bg-slate-950"
           : cn(
-              "hidden h-screen border-r border-black/[0.07] bg-[#f5f5f7]/80 backdrop-blur-xl md:flex dark:border-white/[0.06] dark:bg-black/60",
+              "hidden h-screen border-r border-black/[0.07] bg-bg/80 backdrop-blur-xl md:flex dark:border-white/[0.06] dark:bg-black/60",
               collapsed ? "w-[68px]" : "w-64"
             )
       )}

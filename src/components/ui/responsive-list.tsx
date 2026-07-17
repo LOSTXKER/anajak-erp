@@ -17,6 +17,8 @@ export interface ResponsiveListProps<T>
   renderDesktop: (items: readonly T[]) => ReactNode;
   renderMobile: (items: readonly T[]) => ReactNode;
   emptyState?: ReactNode;
+  /** ปุ่มพาไปต่อใน empty state ปริยาย (ใช้เมื่อไม่ได้ส่ง emptyState เอง) — กัน list ว่างกลายเป็นทางตัน */
+  emptyAction?: ReactNode;
   loadingState?: ReactNode;
   pagination?: ReactNode;
   label?: string;
@@ -42,6 +44,7 @@ export function ResponsiveList<T>({
   renderDesktop,
   renderMobile,
   emptyState,
+  emptyAction,
   loadingState,
   pagination,
   label = "รายการ",
@@ -60,7 +63,12 @@ export function ResponsiveList<T>({
   if (resolvedItems.length === 0) {
     return (
       emptyState ?? (
-        <EmptyState icon={Inbox} title={`ยังไม่มี${label}`} description="ข้อมูลจะปรากฏที่นี่เมื่อมีรายการ" />
+        <EmptyState
+          icon={Inbox}
+          title={`ยังไม่มี${label}`}
+          description="ข้อมูลจะปรากฏที่นี่เมื่อมีรายการ"
+          action={emptyAction}
+        />
       )
     );
   }
