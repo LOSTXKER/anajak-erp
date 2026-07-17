@@ -4,7 +4,7 @@
 
 ## ตอนนี้
 
-> **NEXT (session หน้า):** UX4 ปิดครบ 11 ข้อ + รอบเก็บตก บน branch `feat/ux4-focal-polish` — **รอเบสเปิดดูแล้วเคาะ merge เข้า main** (ยังไม่ push) · งานค้างต่อคิวเล็กๆ: users table ดิบ → DataTable+mobile card · add-product-popover → Radix · typographic scale ใน @theme
+> **NEXT (session หน้า):** เบสเคาะ 2026-07-17 — UX4 ทั้งก้อน (11 ข้อ + รอบเก็บตก) merge เข้า `main` และ push origin แล้ว (verify ก่อนรวม: tsc 0 · lint 0 · test 577/577 · browser จริง) · ไม่มีงานโค้ดค้าง — ต่อคิวเล็กๆ: users table ดิบ → DataTable+mobile card · add-product-popover → Radix · typographic scale ใน @theme · งานใหญ่ถัดไปหยิบจาก ROADMAP P1
 
 - **📓 UX5 ตารางรายการ — ทำแล้วเบสเคาะไม่เอา revert 2026-07-17:** เบสสั่ง "รายการเป็นฟีลตาราง" → ทำจริงครบ (ฟอร์ม+หน้ารายละเอียด ตารางเดียว 6 คอลัมน์ ราคา×จำนวน=รวม · เปิดงานจริงยอดตรงสูตร ฿5,136) แต่เบสดูจอจริงแล้ว **ชอบแบบเดิมแยกกลุ่ม ลาย/สินค้า/เสริม มากกว่า** → revert ทั้งหมดก่อน commit (โค้ดไม่มีร่องรอย) · บันทึกการตัดสินใจอยู่ ROADMAP หัวข้อ UX5 — **อย่าหยิบมาทำซ้ำโดยไม่ถามเบส** · ออเดอร์ทดสอบ ORD-2607-0059 ลบจาก DB แล้ว · บัญชี QA รอบนี้มี audit log อ้างถึง → ปิด isActive + ถอน Supabase auth แทนการลบ (record คงไว้ให้ audit ครบ)
 
