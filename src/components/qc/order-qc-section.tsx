@@ -39,7 +39,6 @@ import {
   Loader2,
   Plus,
   Trash2,
-  ChevronDown,
   AlertTriangle,
   CheckCircle2,
   X,
@@ -62,7 +61,6 @@ interface OrderQcSectionProps {
 
 export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSectionProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const isQualityCheck = internalStatus === "QUALITY_CHECK";
   const { data: records, isError, refetch } = trpc.qc.listByOrder.useQuery({ orderId });
@@ -78,6 +76,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
     );
   }
 
+  // QC เป็น business-conditional: ยังไม่ถึงขั้นและไม่มีประวัติ = ไม่มีข้อมูลให้แสดง
   if (!isQualityCheck && (records?.length ?? 0) === 0) return null;
 
   const rounds = records ?? [];
@@ -122,15 +121,12 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
           </p>
         ) : (
           rounds.map((r, idx) => {
-            const expanded = expandedId === r.id;
             return (
               <div
                 key={r.id}
                 className="rounded-md border border-slate-100 dark:border-slate-800"
               >
-                <button
-                  type="button"
-                  onClick={() => setExpandedId(expanded ? null : r.id)}
+                <div
                   className="flex min-h-11 w-full flex-wrap items-center justify-between gap-2 px-3 py-2 text-left"
                 >
                   <div className="min-w-0">
@@ -155,15 +151,8 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                         ดีล้วน
                       </Badge>
                     )}
-                    <ChevronDown
-                      className={cn(
-                        "h-4 w-4 text-slate-400 transition-transform",
-                        expanded && "rotate-180"
-                      )}
-                    />
                   </div>
-                </button>
-                {expanded && (
+                </div>
                   <div className="space-y-2 border-t border-slate-100 px-3 py-2 dark:border-slate-800">
                     {r.defects.length === 0 ? (
                       <p className="text-xs text-slate-400">ไม่มีของเสียในรอบนี้</p>
@@ -206,6 +195,8 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                                   <img
                                     src={url}
                                     alt="รูปของเสีย"
+                                    loading="lazy"
+                                    decoding="async"
                                     className="h-full w-full rounded-md object-cover"
                                   />
                                 </a>
@@ -216,7 +207,6 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                       ))
                     )}
                   </div>
-                )}
               </div>
             );
           })
@@ -528,6 +518,8 @@ function QcCountForm({
                         <img
                           src={url}
                           alt="รูปของเสีย"
+                          loading="lazy"
+                          decoding="async"
                           className="h-full w-full rounded-md object-cover"
                         />
                         <button

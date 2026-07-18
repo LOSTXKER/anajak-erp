@@ -52,8 +52,6 @@ import {
   Plus,
   CreditCard,
   Loader2,
-  ChevronDown,
-  ChevronUp,
   Ban,
   Printer,
   DollarSign,
@@ -85,7 +83,6 @@ export function OrderBillingSection({
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState<string | null>(null);
   const [showVoidDialog, setShowVoidDialog] = useState<string | null>(null);
-  const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
 
   // Create invoice form state
   const [invoiceType, setInvoiceType] = useState("DEPOSIT_INVOICE");
@@ -491,7 +488,6 @@ export function OrderBillingSection({
           ) : (
             <div className="space-y-2">
               {invoices.data.map((inv) => {
-                const isExpanded = expandedInvoice === inv.id;
                 const balance = invoiceBalance(inv);
                 const actions = billingActionAvailability({
                   invoice: inv,
@@ -506,13 +502,7 @@ export function OrderBillingSection({
                     className="rounded-lg border border-slate-200 dark:border-slate-700"
                   >
                     <div className="flex items-stretch gap-1 p-1">
-                      <button
-                        type="button"
-                        aria-expanded={isExpanded}
-                        aria-controls={`invoice-details-${inv.id}`}
-                        className="flex min-h-11 min-w-0 flex-1 touch-manipulation flex-col items-stretch justify-between gap-2 rounded-md px-2 py-2 text-left hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:flex-row sm:items-center dark:hover:bg-slate-800/50"
-                        onClick={() => setExpandedInvoice(isExpanded ? null : inv.id)}
-                      >
+                      <div className="flex min-h-11 min-w-0 flex-1 flex-col items-stretch justify-between gap-2 rounded-md px-2 py-2 text-left sm:flex-row sm:items-center">
                         <div className="min-w-0 space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm font-medium text-slate-900 dark:text-white">
@@ -546,13 +536,8 @@ export function OrderBillingSection({
                           <span className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
                             {formatCurrency(inv.totalAmount)}
                           </span>
-                          {isExpanded ? (
-                            <ChevronUp className="h-4 w-4 text-slate-400" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4 text-slate-400" />
-                          )}
                         </div>
-                      </button>
+                      </div>
                       <a
                         href={`/print/invoice/${inv.id}`}
                         target="_blank"
@@ -565,7 +550,6 @@ export function OrderBillingSection({
                       </a>
                     </div>
 
-                    {isExpanded && (
                       <div
                         id={`invoice-details-${inv.id}`}
                         className="border-t border-slate-100 p-3 dark:border-slate-700"
@@ -718,7 +702,6 @@ export function OrderBillingSection({
                           )}
                         </div>
                       </div>
-                    )}
                   </div>
                 );
               })}

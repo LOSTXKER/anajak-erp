@@ -9,7 +9,6 @@ import { cn, formatCurrency } from "@/lib/utils";
 import {
   Trash2,
   ImageIcon,
-  Scissors,
   ChevronUp,
   ChevronDown,
   LayoutGrid,
@@ -22,7 +21,7 @@ import { CustomMadeDetail } from "./custom-made-detail";
 import { SizeMatrix } from "./size-matrix";
 
 // แถวสินค้า 1 ชิ้น — 5 คอลัมน์หลัก: แหล่ง · สินค้า · ราคา · จำนวน · รวม (+ ลบ)
-// ส่วนลด/แพค ย้ายไปใต้ "เพิ่มเติม" ต่อแถว (UX7 · ตารางแคบลง อ่านง่ายบนมือถือ)
+// ส่วนลด/แพคและสเปคที่เกี่ยวข้องกางให้เห็นตลอดตามชนิดสินค้า
 export function ProductTableRow({
   product, prodIdx, itemIdx, totalProducts, onSetItems,
 }: {
@@ -33,13 +32,11 @@ export function ProductTableRow({
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void;
 }) {
   const {
-    showDetail, setShowDetail,
     setShowMatrix,
-    showMore, setShowMore,
     updateProduct, updateVariantField, removeProduct, moveProduct,
     packagingOptions,
     qty, variant, isFromStock, isCustomMade, isCustomerProvided,
-    packName, canMatrix, multi, totalQty, lineTotal,
+    canMatrix, multi, totalQty, lineTotal,
     productLabel, variantLabel,
   } = useProductRow(product, prodIdx, itemIdx, totalProducts, onSetItems);
   const sourcePresentation = product.itemSource
@@ -126,16 +123,6 @@ export function ProductTableRow({
                     <LayoutGrid className="h-3 w-3" />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}
                   </Button>
                 )}
-                {isCustomMade && (
-                  <Button
-                    type="button" variant="outline" size="sm"
-                    onClick={() => setShowDetail(!showDetail)}
-                    aria-expanded={showDetail}
-                    className={cn("h-8 gap-1 px-2 text-xs", showDetail && "border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300")}
-                  >
-                    <Scissors className="h-3 w-3" />{showDetail ? "ซ่อนสเปค" : "สเปคตัดเย็บ"}
-                  </Button>
-                )}
               </div>
             </div>
           )}
@@ -184,31 +171,11 @@ export function ProductTableRow({
         </td>
       </tr>
 
-      {/* UX7: แถว "เพิ่มเติม" — ส่วนลด + แพค ซ่อนไว้ (คนส่วนใหญ่ไม่ใช้) + badge สรุปค่าที่ตั้งแล้ว */}
+      {/* ส่วนลด + แพค — แสดงตลอด ไม่ซ่อนค่าที่ตั้งไว้ */}
       <tr className="border-b border-slate-100 dark:border-slate-800">
         <td aria-hidden="true" />
-        <td colSpan={5} className="pb-2 pl-1">
-          <button
-            type="button"
-            onClick={() => setShowMore((v) => !v)}
-            aria-expanded={showMore}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 sm:min-h-9 sm:text-xs dark:text-slate-400 dark:hover:bg-slate-800"
-          >
-            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
-            {showMore ? (
-              "ซ่อนเพิ่มเติม"
-            ) : (
-              <span className="flex flex-wrap items-center gap-1">
-                <span>เพิ่มเติม</span>
-                {(product.discount || 0) > 0 && (
-                  <Badge variant="outline" size="sm">ส่วนลด {formatCurrency(product.discount || 0)}</Badge>
-                )}
-                {packName && <Badge variant="outline" size="sm">{packName}</Badge>}
-              </span>
-            )}
-          </button>
-          {showMore && (
-            <div className="mt-2 grid grid-cols-2 gap-3">
+        <td colSpan={5} className="pb-3 pl-1 pt-1">
+            <div className="grid grid-cols-2 gap-3">
               {!isCustomerProvided && (
                 <Field label="ส่วนลดต่อชิ้น">
                   <Input type="number" min={0} step={0.01} value={product.discount || ""} onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)} placeholder="0" className="w-full text-right" />
@@ -228,12 +195,11 @@ export function ProductTableRow({
                 </div>
               )}
             </div>
-          )}
         </td>
       </tr>
 
       {/* สเปคตัดเย็บ (CUSTOM_MADE) — แถวเสริมเต็มกว้าง */}
-      {isCustomMade && showDetail && (
+      {isCustomMade && (
         <tr className="border-b border-amber-100 dark:border-amber-900/30">
           <td aria-hidden="true" />
           <td colSpan={5} className="pb-3 pt-1 pr-1">

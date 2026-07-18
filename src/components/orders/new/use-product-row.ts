@@ -14,14 +14,11 @@ export function useProductRow(
   totalProducts: number,
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void
 ) {
-  const [showDetail, setShowDetail] = useState(false);
   // งานตัดเย็บ/ลูกค้าส่งมา แทบไม่มีไซส์เดียว → เปิดตารางหลายไซส์ (SizeMatrix) เป็น default (UX7)
   const [showMatrix, setShowMatrix] = useState(
     () =>
       product.itemSource === "CUSTOM_MADE" || product.itemSource === "CUSTOMER_PROVIDED"
   );
-  // ส่วนลด + แพค ซ่อนใต้ "เพิ่มเติม" (คนส่วนใหญ่ไม่ใช้)
-  const [showMore, setShowMore] = useState(false);
   const { data: packagingOptions } = trpc.packaging.list.useQuery();
 
   const updateProduct = (field: string, value: unknown) => {
@@ -75,7 +72,6 @@ export function useProductRow(
   const isFromStock = product.itemSource === "FROM_STOCK";
   const isCustomMade = product.itemSource === "CUSTOM_MADE";
   const isCustomerProvided = product.itemSource === "CUSTOMER_PROVIDED";
-  const packName = packagingOptions?.find((o) => o.id === product.packagingOptionId)?.name;
 
   // โหมดหลายไซส์ (matrix) — เฉพาะสินค้าที่กรอกเอง (ไม่ใช่จากสต๊อค) · มี >1 variant = บังคับเปิด
   const canMatrix = !isFromStock;
@@ -90,9 +86,7 @@ export function useProductRow(
 
   return {
     // state
-    showDetail, setShowDetail,
     showMatrix, setShowMatrix,
-    showMore, setShowMore,
     // handlers
     updateProduct, updateVariantField, removeProduct, moveProduct,
     // data
@@ -100,7 +94,7 @@ export function useProductRow(
     // derived
     variant, qty, netPrice,
     isFromStock, isCustomMade, isCustomerProvided,
-    packName, canMatrix, multi, totalQty, lineTotal,
+    canMatrix, multi, totalQty, lineTotal,
     productLabel, variantLabel,
   };
 }

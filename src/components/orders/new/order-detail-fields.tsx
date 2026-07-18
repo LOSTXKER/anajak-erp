@@ -1,14 +1,11 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { FilterChip } from "@/components/ui/filter-chip";
-import { Button } from "@/components/ui/button";
 import { CHANNEL_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 // ช่องข้อมูลงาน (ชื่อ/กำหนดส่ง/ช่องทาง/รายละเอียด/หมายเหตุ) — แยกจาก orders/new/page.tsx
 // ตอนรื้อฟอร์ม 2026-06-12 · ลำดับใหม่: รายละเอียดจากแชทขึ้นก่อน (จุด capture หลักตอนถือแชท)
@@ -54,9 +51,6 @@ export function OrderDetailFields({
   onNotesChange,
 }: OrderDetailFieldsProps) {
   const id = useId();
-  const [showMore, setShowMore] = useState(
-    Boolean(title || notes || channel !== "LINE" || externalOrderId || priority !== "NORMAL")
-  );
 
   return (
     <>
@@ -81,25 +75,7 @@ export function OrderDetailFields({
         />
       </div>
 
-      <Button
-        type="button"
-        variant="ghost"
-        className="w-full justify-between border border-dashed border-slate-200 px-3 text-slate-600 dark:border-slate-700 dark:text-slate-300"
-        onClick={() => setShowMore((current) => !current)}
-        aria-expanded={showMore}
-      >
-        <span className="inline-flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-          เพิ่มเติม
-        </span>
-        <ChevronDown
-          className={cn("h-4 w-4 transition-transform", showMore && "rotate-180")}
-          aria-hidden="true"
-        />
-      </Button>
-
-      {showMore && (
-        <div className="space-y-3.5 rounded-xl bg-slate-50/70 p-3 dark:bg-slate-900/50">
+      <div className="space-y-3.5 rounded-xl bg-slate-50/70 p-3 dark:bg-slate-900/50">
           <div>
             <label htmlFor={`${id}-title`} className={labelClass}>ชื่องาน</label>
             <Input
@@ -157,8 +133,7 @@ export function OrderDetailFields({
               />
             </div>
           </div>
-        </div>
-      )}
+      </div>
     </>
   );
 }

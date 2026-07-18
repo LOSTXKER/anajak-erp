@@ -2,10 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { NativeSelect } from "@/components/ui/native-select";
-import { Plus, Trash2, Loader2, X, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Plus, Trash2, Loader2, X } from "lucide-react";
 import {
   PRINT_POSITIONS,
   PRINT_TYPES,
@@ -28,7 +26,6 @@ export function PrintTableRow({
   onApplyCatalog: (catalogId: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
-  const [showMore, setShowMore] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const isCustomSize = print.printSize === "CUSTOM" || !print.printSize;
   const showColorCount = print.printType === "SILK_SCREEN" || print.printType === "HEAT_TRANSFER";
@@ -64,10 +61,6 @@ export function PrintTableRow({
       if (inputRef.current) inputRef.current.value = "";
     }
   };
-
-  // สรุปของรอง (โชว์เป็น badge บนปุ่ม "เพิ่มเติม" เพื่อรู้ค่าโดยไม่ต้องกาง)
-  const positionLabel = PRINT_POSITIONS[print.position] || print.position;
-  const sizeLabel = print.printSize ? (PRINT_SIZES[print.printSize]?.label ?? print.printSize) : null;
 
   return (
     <>
@@ -112,30 +105,11 @@ export function PrintTableRow({
         </td>
       </tr>
 
-      {/* แถว toggle "เพิ่มเติม" — ของรอง (ขนาด/ตำแหน่ง/สี/custom) ซ่อนไว้ + badge สรุปค่าที่ตั้งไว้ */}
+      {/* รายละเอียดลาย — กางตลอด */}
       <tr className="border-b border-slate-100 last:border-0 dark:border-slate-800">
         <td aria-hidden="true" />
-        <td colSpan={3} className="pb-2 pl-1">
-          <button
-            type="button"
-            onClick={() => setShowMore((v) => !v)}
-            aria-expanded={showMore}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 sm:min-h-9"
-          >
-            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
-            {showMore ? (
-              "ซ่อนรายละเอียดลาย"
-            ) : (
-              <span className="flex flex-wrap items-center gap-1">
-                <span>ตำแหน่ง/ขนาด</span>
-                <Badge variant="outline" size="sm">{positionLabel}</Badge>
-                {sizeLabel && <Badge variant="outline" size="sm">{sizeLabel}</Badge>}
-                {showColorCount && <Badge variant="outline" size="sm">{print.colorCount} สี</Badge>}
-              </span>
-            )}
-          </button>
-          {showMore && (
-            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <td colSpan={3} className="pb-3 pl-1 pt-1">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Field label="ขนาด">
                 <NativeSelect value={print.printSize || ""} onChange={(e) => handleSizePreset(e.target.value)}>
                   <option value="">ขนาด...</option>
@@ -162,7 +136,6 @@ export function PrintTableRow({
                 </Field>
               )}
             </div>
-          )}
         </td>
       </tr>
     </>

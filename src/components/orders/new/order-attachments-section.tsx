@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { Section } from "@/components/ui/section";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { PRINT_POSITIONS } from "@/types/order-form";
@@ -12,7 +12,7 @@ import type { ReferenceImage } from "@/types/order-form";
 import { ImageIcon, Upload, X, Loader2 } from "lucide-react";
 
 // รูป/ไฟล์อ้างอิงจากแชท — แยกจาก orders/new/page.tsx ตอนรื้อฟอร์ม 2026-06-12
-// (กล่องพับ + อัปโหลด Supabase + เลือกตำแหน่งพิมพ์ต่อรูป — พฤติกรรมเดิมทุกอย่าง)
+// (กางตลอด + อัปโหลด Supabase + เลือกตำแหน่งพิมพ์ต่อรูป)
 
 interface OrderAttachmentsSectionProps {
   title?: React.ReactNode;
@@ -71,10 +71,9 @@ export function OrderAttachmentsSection({
   };
 
   return (
-    <CollapsibleSection
+    <Section
       title={title}
-      defaultOpen
-      summary={images.length > 0 ? `${images.length} ไฟล์` : "แนะนำแนบรูปที่ลูกค้าส่งมา"}
+      description={images.length > 0 ? `${images.length} ไฟล์` : "แนะนำแนบรูปที่ลูกค้าส่งมา"}
     >
       <div className="space-y-3">
         {images.length > 0 && (
@@ -127,13 +126,13 @@ export function OrderAttachmentsSection({
           </div>
         )}
         {images.length < 5 && (
-          <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/40 px-4 py-5 text-sm text-slate-600 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:border-blue-500">
+          <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/40 px-4 py-5 text-sm text-slate-600 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:border-blue-500">
             <input
               type="file"
               accept="image/*,.pdf,.ai,.psd"
               multiple
               onChange={handleImageUpload}
-              className="hidden"
+              className="sr-only"
               disabled={uploading}
             />
             {uploading ? (
@@ -150,6 +149,6 @@ export function OrderAttachmentsSection({
           </label>
         )}
       </div>
-    </CollapsibleSection>
+    </Section>
   );
 }

@@ -75,6 +75,8 @@ function FileThumb({
         <img
           src={att.fileUrl}
           alt={att.fileName}
+          loading="lazy"
+          decoding="async"
           className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700"
         />
       ) : (

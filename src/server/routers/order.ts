@@ -36,6 +36,7 @@ import {
   computeRevisionOverage,
   REVISION_FEE_TYPE,
   REVISION_FEE_PER_ROUND,
+  visibleRevisionDescription,
 } from "@/lib/revision-policy";
 import {
   assertSalesWithinCreditLimit,
@@ -469,6 +470,11 @@ export const orderRouter = router({
       // หัวใบ (type/totalAmount/isVoided — order-tabs.ts) จึงตัด payments ได้โดยหน้าไม่พัง
       const seesCost = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_finance");
       const seesPayments = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money");
+      const canManageApprovalLinks = hasPermission(
+        ctx.userRole,
+        ctx.permissionOverrides,
+        "create_design_assets",
+      );
       // ⑦ (เบสเคาะ 2026-07-06): ราคาขายทั้งใบ = เงินฝั่งขาย — ช่าง/กราฟิกเห็นโครงงาน
       // (รายการ/จำนวน/ไซซ์/จุดพิมพ์) ครบ แต่ตัวเลขเงินเป็น null ทั้งหัวใบ+รายชิ้น+ค่าธรรมเนียม
       // (null ไม่ใช่ 0 — 0 อ่านเป็น "งานฟรี" ได้ · pattern เดียวกับ analytics)
@@ -504,6 +510,12 @@ export const orderRouter = router({
         costEntries: seesCost ? order.costEntries : [],
         totalCost: seesCost ? order.totalCost : 0,
         profitMargin: seesCost ? order.profitMargin : null,
+        // approvalToken คือ bearer secret ของ public approveByToken — ส่งเฉพาะคนที่มีสิทธิ์
+        // สร้าง/จัดการลิงก์อนุมัติแบบ ไม่ใช่แค่ซ่อนปุ่มฝั่ง client
+        designs: order.designs.map((design) => ({
+          ...design,
+          approvalToken: canManageApprovalLinks ? design.approvalToken : null,
+        })),
         // ทุน outsource/ต่อขั้นตอน = ต้นทุนก้อนใหญ่สุดของโรงงานนี้ (นอกจาก DTF ทำเอง
         // outsource หมด) — ปิดให้ครบชุดเดียวกับ costEntries ไม่งั้นซ่อนหน้าบ้านรั่วหลังบ้าน
         productions: seesCost
@@ -548,6 +560,11 @@ export const orderRouter = router({
           ...r,
           // หาไม่เจอ = ค่า literal เดิม (เช่น "ลูกค้า") — โชว์ตามนั้น
           changedByName: nameById.get(r.changedBy) ?? r.changedBy,
+          description: visibleRevisionDescription(
+            r.changeType,
+            r.description,
+            seesPayments,
+          ),
           // ⑦: revision ของ updateItems/updateFees/CO เก็บ JSON ยอดเงินไว้ใน old/newValue —
           // เงินต้องไม่ไหลถึง browser แม้ UI ไม่ render (มาตรฐานเดียวกับ production.ts) ·
           // แถว STATUS เก็บแค่ชื่อสถานะ — คงไว้ให้ timeline โชว์ได้
@@ -1633,6 +1650,9 @@ export const orderRouter = router({
       const seesMoney = hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money");
       return changeOrders.map((c) => ({
         ...c,
+        // reason เป็นข้อความอิสระจากฝ่ายขายและมักพิมพ์ส่วนต่างราคาไว้ด้วย — ปิดทั้งข้อความ
+        // สำหรับ role ที่ไม่เห็นเงิน แทนการไล่ regex ซึ่งกันรูปแบบจำนวนเงินได้ไม่ครบ
+        reason: seesMoney ? c.reason : "มีการแก้ไขออเดอร์",
         oldTotal: seesMoney ? c.oldTotal : null,
         newTotal: seesMoney ? c.newTotal : null,
         createdByName: nameById.get(c.createdById) ?? c.createdById,

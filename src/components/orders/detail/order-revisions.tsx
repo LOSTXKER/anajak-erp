@@ -1,16 +1,12 @@
-"use client";
-
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/utils";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
-import { Clock, ArrowRight, ChevronDown } from "lucide-react";
+import { Clock, ArrowRight } from "lucide-react";
 
 // ประวัติการเปลี่ยนแปลง — อ่านรู้เรื่องสำหรับคนหน้างาน (เบสชี้ 2026-06-12):
 // ป้ายชนิดเป็นไทย · แถวสถานะแปลจาก oldValue/newValue เป็นชื่อสถานะไทย ·
-// ชื่อคนมาจาก server (changedByName) · โชว์ 5 รายการล่าสุด ที่เหลือกดดู
+// ชื่อคนมาจาก server (changedByName) · โชว์ประวัติทั้งหมดโดยไม่พับซ่อน
 
 const CHANGE_TYPE_LABELS: Record<string, string> = {
   STATUS: "สถานะ",
@@ -21,8 +17,6 @@ const CHANGE_TYPE_LABELS: Record<string, string> = {
   INFO: "ข้อมูลออเดอร์",
   CHANGE_ORDER: "ใบแก้ไข",
 };
-
-const SHOW_COUNT = 5;
 
 interface Revision {
   id: string;
@@ -43,13 +37,6 @@ const statusLabel = (v: string | null | undefined) =>
   v ? ((INTERNAL_STATUS_LABELS as Record<string, string>)[v] ?? v) : null;
 
 export function OrderRevisions({ revisions }: OrderRevisionsProps) {
-  const [showAll, setShowAll] = useState(false);
-
-  if (!revisions || revisions.length === 0) return null;
-
-  const visible = showAll ? revisions : revisions.slice(0, SHOW_COUNT);
-  const hiddenCount = revisions.length - SHOW_COUNT;
-
   return (
     <Card>
       <CardHeader>
@@ -59,8 +46,13 @@ export function OrderRevisions({ revisions }: OrderRevisionsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {!revisions || revisions.length === 0 ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            ยังไม่มีประวัติการเปลี่ยนแปลง
+          </p>
+        ) : (
         <div className="space-y-3">
-          {visible.map((rev) => {
+          {revisions.map((rev) => {
             // แถวเปลี่ยนสถานะ: แปลจาก oldValue/newValue (enum) เป็นชื่อไทย —
             // description ใน DB เก่าเก็บข้อความอังกฤษดิบ ใช้เป็น fallback เท่านั้น
             const isStatusRow =
@@ -98,19 +90,8 @@ export function OrderRevisions({ revisions }: OrderRevisionsProps) {
               </div>
             );
           })}
-
-          {!showAll && hiddenCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAll(true)}
-              className="w-full gap-1 text-slate-500"
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-              ดูทั้งหมด ({revisions.length} รายการ)
-            </Button>
-          )}
         </div>
+        )}
       </CardContent>
     </Card>
   );

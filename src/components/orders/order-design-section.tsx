@@ -33,22 +33,21 @@ import {
   Copy,
   ExternalLink,
   MessageSquare,
-  Image,
   Loader2,
   Receipt,
 } from "lucide-react";
 
 interface OrderDesignSectionProps {
   orderId: string;
-  orderNumber: string;
   internalStatus: string;
+  canSeeMoney: boolean;
 }
 
 
 export function OrderDesignSection({
   orderId,
-  orderNumber,
   internalStatus,
+  canSeeMoney,
 }: OrderDesignSectionProps) {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showApproveDialog, setShowApproveDialog] = useState<string | null>(null);
@@ -86,7 +85,10 @@ export function OrderDesignSection({
     invalidate: [utils.design.listByOrder],
   });
   // ค่าแก้แบบเกินโควตา (ก้อน 4) — อ่าน fees จาก order (cache hit · มาจากหน้าออเดอร์อยู่แล้ว)
-  const order = trpc.order.getById.useQuery({ id: orderId });
+  const order = trpc.order.getById.useQuery(
+    { id: orderId },
+    { enabled: canSeeMoney },
+  );
   const addRevisionFee = useMutationWithInvalidation(trpc.order.addRevisionFee, {
     invalidate: [utils.order.getById],
     onSuccess: () => toast.success("คิดค่าแก้แบบเกินโควตาแล้ว — ดูที่ค่าธรรมเนียมออเดอร์"),
@@ -95,8 +97,10 @@ export function OrderDesignSection({
   // ปุ่มต้องตรงสิทธิ์ server (audit ข้อ 29): อัปแบบ = กราฟิกขึ้นไป (designerUp) ·
   // บันทึกผลแทนลูกค้า = ฝั่งขาย (salesUp — คนถือความสัมพันธ์ลูกค้า ไม่ใช่คนวาดเอง)
   const { data: me } = trpc.user.me.useQuery();
-  const roleCanUpload = !me || permAllows(me.permissions, "manage_design_files");
-  const roleCanApprove = !me || permAllows(me.permissions, "create_sales_docs");
+  // fail closed ระหว่างโหลดสิทธิ์ — หน้าออเดอร์กางส่วนนี้ทันทีจึงห้ามให้ปุ่มแวบขึ้นก่อนรู้ role
+  const roleCanUpload = !!me && permAllows(me.permissions, "manage_design_files");
+  const roleCanApprove = !!me && permAllows(me.permissions, "create_sales_docs");
+  const roleCanRegenerate = !!me && permAllows(me.permissions, "create_design_assets");
   const canUpload = internalStatus === "DESIGNING" && roleCanUpload;
 
   const canApprove = internalStatus === "DESIGNING" && roleCanApprove;
@@ -192,6 +196,8 @@ export function OrderDesignSection({
                             <img
                               src={design.thumbnailUrl || design.fileUrl}
                               alt={`Design v${design.versionNumber}`}
+                              loading="lazy"
+                              decoding="async"
                               className="h-full w-full object-cover"
                             />
                           </div>
@@ -246,7 +252,7 @@ export function OrderDesignSection({
                           </a>
                         </Button>
                       )}
-                      {design.approvalToken &&
+                      {roleCanRegenerate && design.approvalToken &&
                         design.approvalStatus === "PENDING" &&
                         (tokenExpired ? (
                           <Button
@@ -310,7 +316,7 @@ export function OrderDesignSection({
                 )}
               </div>
 
-              {overage.chargeableRounds > 0 && (
+              {canSeeMoney && overage.chargeableRounds > 0 && (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                   {chargedAmount > 0 ? (
                     // คิดไปแล้ว — โชว์ยอดที่คิดจริง (พนักงานอาจตั้งใจปรับ/ยกเว้น) ไม่ดันให้แก้กลับ
@@ -344,7 +350,9 @@ export function OrderDesignSection({
               )}
 
               <p className="mt-1.5 text-xs text-slate-400">
-                นับจากเวอร์ชันแบบ · คิดเมื่อจะคิด (กดเอง) — ลบ/แก้ยอดได้ที่ค่าธรรมเนียมออเดอร์
+                {canSeeMoney
+                  ? "นับจากเวอร์ชันแบบ · คิดเมื่อจะคิด (กดเอง) — ลบ/แก้ยอดได้ที่ค่าธรรมเนียมออเดอร์"
+                  : "นับจากจำนวนเวอร์ชันแบบ"}
               </p>
             </div>
           )}

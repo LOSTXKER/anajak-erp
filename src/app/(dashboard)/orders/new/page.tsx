@@ -5,7 +5,7 @@
 // (ด่านฝั่ง server กันให้: ยืนยันออเดอร์ต้องมีรายการ · ปิดงานต้องวางบิลครบ)
 //
 // รื้อโครง 2026-06-12 (เบสเคาะ): แตก section เป็น component + ลำดับสายตา 1-2-3
-// (ลูกค้า&งาน → รายการ&ราคา กางตลอด → ไฟล์&จัดส่ง พับ) + แถบสรุป/ปุ่ม sticky ล่างจอ
+// (ลูกค้า&งาน → รายการ&ราคา → ไฟล์&จัดส่ง กางตลอด) + แถบสรุป/ปุ่ม sticky ล่างจอ
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -20,7 +20,7 @@ import { type PaymentTermsValue, PAYMENT_TERMS_LABELS } from "@/lib/payment-term
 import { type PickerCustomer } from "@/components/customers/customer-picker";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
-import { Plus, Loader2, PackagePlus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
@@ -34,7 +34,10 @@ import {
   loadHeaderDraft,
   saveHeaderDraft,
 } from "@/hooks/use-order-items-form";
-import { useOrderShippingState } from "@/hooks/use-order-shipping";
+import {
+  shouldPrefillShippingOnCustomerChange,
+  useOrderShippingState,
+} from "@/hooks/use-order-shipping";
 import type { ReferenceImage } from "@/types/order-form";
 import {
   itemHasContent,
@@ -104,15 +107,15 @@ export default function NewOrderPage() {
   const [poNumber, setPoNumber] = useState("");
 
   const {
-    showShipping, setShowShipping,
-    shipping, updateShipping,
+    includeShipping, setIncludeShipping,
+    shippingDirty,
+    shipping, updateShipping, replaceShipping,
     validateShipping, shippingMutationInput,
   } = useOrderShippingState();
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [formErrors, setFormErrors] = useState<string[]>([]);
-  const [showItemComposer, setShowItemComposer] = useState(false);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
   // ลูกค้าเลือกผ่าน CustomerPicker (ค้นหา+เพิ่มด่วน) — เก็บ object ที่เลือกไว้ใช้ prefill
@@ -185,11 +188,6 @@ export default function NewOrderPage() {
   // มีเนื้อรายการจริงไหม — ตัวตัดสินเดียวแทนสวิตช์โหมดเดิม (สอบถาม/ระบุครบ):
   // ไม่มี = เปิดเป็นการสอบถาม (ตีราคาทีหลัง) · มี = validate + ส่งรายการไปคิดเงิน
   const hasItemContent = items.some(itemHasContent);
-  // UX3: โซนราคา (ค่าบริการ/ภาษี/เงื่อนไขชำระ/สรุปราคา) โผล่เมื่อมีรายการ — ฟอร์มว่างไม่รก
-  // คงโซนไว้ถ้ามี fee/ส่วนลดค้าง (กรณีลบรายการทีหลัง) ให้ลบได้ ตรงกับกับดัก validateForm — กันค่ากำพร้าซ่อนจนแก้ไม่ได้
-  const showPriceZone =
-    hasItemContent || discount > 0 || fees.some((f) => f.name || f.feeType || f.amount > 0);
-
   useEffect(() => {
     if (!deadline) return;
     const deadlineDate = new Date(deadline);
@@ -219,13 +217,21 @@ export default function NewOrderPage() {
   }, [isMarketplace]);
 
   useEffect(() => {
-    if (selectedCustomer?.address && !shipping.address && !shipping.recipientName) {
-      updateShipping("recipientName", selectedCustomer.name);
-      updateShipping("phone", selectedCustomer.phone ?? "");
-      updateShipping("address", selectedCustomer.address);
-    }
+    // ถ้าผู้ใช้เริ่มระบุที่อยู่จัดส่งแล้ว ให้ถือเป็นที่อยู่ไซต์งานและรักษาไว้แม้เปลี่ยนลูกค้าวางบิล
+    // แต่ถ้ายังไม่ได้เลือกใช้ที่อยู่ จึง prefill จากลูกค้ารายใหม่ได้
+    if (!shouldPrefillShippingOnCustomerChange(shippingDirty)) return;
+    replaceShipping({
+      recipientName: selectedCustomer?.name ?? "",
+      phone: selectedCustomer?.phone ?? "",
+      address: selectedCustomer?.address ?? "",
+      subDistrict: "",
+      district: "",
+      province: "",
+      postalCode: "",
+    });
+    // selectedCustomer ถูก set พร้อม customerId ทุกทางเข้า; ใช้ id เป็น trigger กัน prefill ทับตอนผู้ใช้พิมพ์
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerId]);
+  }, [customerId, replaceShipping, shippingDirty]);
 
   const isCorporateCustomer = selectedCustomer?.customerType === "CORPORATE";
   useEffect(() => {
@@ -500,27 +506,6 @@ export default function NewOrderPage() {
 
         <div className="min-w-0 space-y-4 xl:col-span-2">
 
-        {/* รายการ/ราคาเป็นทางเลือกหลัง capture ข้อมูลหลัก — ไม่กาง control หลายสิบจุดตั้งแต่จอแรก */}
-        {!showItemComposer && !hasItemContent ? (
-          <button
-            type="button"
-            onClick={() => setShowItemComposer(true)}
-            className="card-surface flex min-h-20 w-full items-center gap-3 rounded-2xl border-dashed px-5 py-4 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
-          >
-            <span className="rounded-xl bg-blue-50 p-2.5 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
-              <PackagePlus className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-slate-900 dark:text-white">
-                เพิ่มสินค้าและราคา (ถ้าพร้อม)
-              </span>
-              <span className="block text-xs text-slate-600 dark:text-slate-300">
-                ยังไม่ใส่ก็เปิดเป็นใบสอบถาม แล้วกลับมาเติมต่อได้
-              </span>
-            </span>
-            <Plus className="h-5 w-5 text-slate-400" aria-hidden="true" />
-          </button>
-        ) : (
         <Section
           title={
             <>
@@ -598,9 +583,6 @@ export default function NewOrderPage() {
               เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)
             </Button>
 
-            {/* UX3: โซนราคาโผล่เมื่อมีรายการ (หรือมี fee/ส่วนลดค้าง) —
-                ฟอร์มว่างสั้นลงเกือบครึ่ง + กับดัก "กรอกราคาก่อนมีของ" หายไปเอง */}
-            {showPriceZone && (
             <>
             <OrderFeeSection
               fees={fees}
@@ -668,17 +650,15 @@ export default function NewOrderPage() {
               marginEstimate={marginEstimate}
             />
             </>
-            )}
           </div>
         </Section>
-        )}
         </div>
         </div>
 
-        {/* จัดส่ง — ของไม่บังคับ พับไว้ (รูปจากแชทย้ายขึ้นท้ายส่วนลูกค้าแล้ว UX3) */}
+        {/* จัดส่ง — กางตลอด แต่ยังเป็นข้อมูลไม่บังคับ */}
         <OrderShippingSection
-          showShipping={showShipping}
-          onToggleShipping={() => setShowShipping(!showShipping)}
+          includeShipping={includeShipping}
+          onIncludeShippingChange={setIncludeShipping}
           shipping={shipping}
           onUpdate={updateShipping}
         />

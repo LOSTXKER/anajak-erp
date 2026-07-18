@@ -155,16 +155,16 @@ export function OrderSidebar({
           {order.updatedAt && (
             <Row label="แก้ไขล่าสุด">{formatDateTime(order.updatedAt)}</Row>
           )}
-          {order.deadline && (
-            <Row label="กำหนดส่ง">{formatDate(order.deadline)}</Row>
-          )}
-          {order.estimatedQuantity && (
-            <Row label="จำนวนโดยประมาณ">
-              ~{order.estimatedQuantity.toLocaleString()} ชิ้น
-            </Row>
-          )}
-          {order.priority && order.priority !== "NORMAL" && (
-            <Row label="ความเร่งด่วน">
+          <Row label="กำหนดส่ง">
+            {order.deadline ? formatDate(order.deadline) : "ยังไม่ระบุ"}
+          </Row>
+          <Row label="จำนวนโดยประมาณ">
+            {order.estimatedQuantity
+              ? `~${order.estimatedQuantity.toLocaleString()} ชิ้น`
+              : "ยังไม่ระบุ"}
+          </Row>
+          <Row label="ความเร่งด่วน">
+            {order.priority ? (
               <Badge
                 variant={
                   order.priority === "URGENT"
@@ -177,39 +177,40 @@ export function OrderSidebar({
               >
                 {PRIORITY_LABELS[order.priority] ?? order.priority}
               </Badge>
-            </Row>
-          )}
-          {order.paymentTerms && (
-            <Row label="เงื่อนไขชำระ">
-              {PAYMENT_TERMS_LABELS[order.paymentTerms] ?? order.paymentTerms}
-            </Row>
-          )}
+            ) : "ยังไม่ระบุ"}
+          </Row>
+          <Row label="เงื่อนไขชำระ">
+            {order.paymentTerms
+              ? PAYMENT_TERMS_LABELS[order.paymentTerms] ?? order.paymentTerms
+              : "ยังไม่ระบุ"}
+          </Row>
           {order.poNumber && (
             <Row label="เลขที่ PO">
               <span className="font-mono">{order.poNumber}</span>
             </Row>
           )}
-          {order.description && (
-            <p className="border-t border-slate-100 pt-2.5 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-              {order.description}
+          <div className="border-t border-slate-100 pt-2.5 dark:border-slate-800">
+            <p className="mb-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+              รายละเอียดงาน
             </p>
-          )}
-          {order.notes && (
-            <div className="border-t border-slate-100 pt-2.5 dark:border-slate-800">
-              <p className="mb-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                หมายเหตุ
-              </p>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                {order.notes}
-              </p>
-            </div>
-          )}
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              {order.description || "ยังไม่ระบุ"}
+            </p>
+          </div>
+          <div className="border-t border-slate-100 pt-2.5 dark:border-slate-800">
+            <p className="mb-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+              หมายเหตุ
+            </p>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              {order.notes || "ยังไม่ระบุ"}
+            </p>
+          </div>
         </div>
       </Section>
 
       {/* Shipping */}
-      {order.shippingRecipientName && (
-        <Section title={<SectionTitle icon={MapPin}>ที่อยู่จัดส่ง</SectionTitle>}>
+      <Section title={<SectionTitle icon={MapPin}>ที่อยู่จัดส่ง</SectionTitle>}>
+        {order.shippingRecipientName ? (
           <div className="space-y-1 text-sm">
             <p className="font-medium text-slate-900 dark:text-white">
               {order.shippingRecipientName}
@@ -235,18 +236,18 @@ export function OrderSidebar({
                 .join(" ")}
             </p>
           </div>
-        </Section>
-      )}
+        ) : (
+          <p className="text-xs text-slate-500 dark:text-slate-400">ยังไม่ระบุ</p>
+        )}
+      </Section>
 
       {/* Marketplace */}
       {isMarketplace && (
         <Section title={<SectionTitle icon={Store}>ข้อมูล Marketplace</SectionTitle>}>
           <div className="space-y-2.5">
-            {order.externalOrderId && (
-              <Row label="หมายเลขภายนอก">
-                <span className="font-mono text-xs">{order.externalOrderId}</span>
-              </Row>
-            )}
+            <Row label="หมายเลขภายนอก">
+              <span className="font-mono text-xs">{order.externalOrderId || "ยังไม่ระบุ"}</span>
+            </Row>
             {order.platformFee != null && (
               <Row label="ค่าธรรมเนียม">
                 <span className="tabular-nums text-red-600 dark:text-red-400">
@@ -254,11 +255,9 @@ export function OrderSidebar({
                 </span>
               </Row>
             )}
-            {order.trackingNumber && (
-              <Row label="เลขพัสดุ">
-                <span className="font-mono text-xs">{order.trackingNumber}</span>
-              </Row>
-            )}
+            <Row label="เลขพัสดุ">
+              <span className="font-mono text-xs">{order.trackingNumber || "ยังไม่ระบุ"}</span>
+            </Row>
           </div>
         </Section>
       )}

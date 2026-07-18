@@ -52,6 +52,7 @@ async function main() {
     quotations: [] as string[],
     invoices: [] as string[],
     products: [] as string[],
+    designs: [] as string[],
   };
 
   try {
@@ -116,6 +117,17 @@ async function main() {
       },
     });
     ids.invoices.push(inv.id);
+
+    const approvalToken = `mgate-approval-${Date.now()}`;
+    await prisma.designVersion.create({
+      data: {
+        orderId: order.id,
+        versionNumber: 1,
+        fileUrl: "https://example.com/mgate-design.png",
+        approvalToken,
+        tokenExpiresAt: new Date(Date.now() + 86_400_000),
+      },
+    });
 
     // ── ⑦ order.list ──
     const staffList = await asStaff.order.list({ search: MARK, limit: 5 });
@@ -220,6 +232,61 @@ async function main() {
         typeof ownerOrder.billedFloor === "number",
       ownerOrder.totalAmount
     );
+    check(
+      "7.6a order.getById: ช่างไม่ได้ approval token · เจ้าของได้ตามสิทธิ์",
+      staffOrder.designs[0]?.approvalToken === null &&
+        ownerOrder.designs[0]?.approvalToken === approvalToken,
+      {
+        staff: staffOrder.designs[0]?.approvalToken,
+        owner: ownerOrder.designs[0]?.approvalToken,
+      },
+    );
+    const staffDesigns = await asStaff.design.listByOrder({ orderId: order.id });
+    const ownerDesigns = await asOwner.design.listByOrder({ orderId: order.id });
+    check(
+      "7.6b design.listByOrder: bearer token ถูก redact ตาม create_design_assets",
+      staffDesigns[0]?.approvalToken === null &&
+        ownerDesigns[0]?.approvalToken === approvalToken,
+      {
+        staff: staffDesigns[0]?.approvalToken,
+        owner: ownerDesigns[0]?.approvalToken,
+      },
+    );
+    const uploadOrder = await prisma.order.create({
+      data: {
+        orderNumber: `MGATE-DESIGN-${Date.now()}`,
+        customerId: customer.id,
+        createdById: owner.id,
+        title: `${MARK} ทดสอบ upload token`,
+        internalStatus: "DESIGNING",
+        customerStatus: "PREPARING",
+      },
+    });
+    ids.orders.push(uploadOrder.id);
+    const asDesignerNoLinks = appRouter.createCaller({
+      prisma,
+      userId: owner.id,
+      userRole: "DESIGNER",
+      permissionOverrides: { create_design_assets: false },
+    });
+    const uploadedWithoutLinkPermission = await asDesignerNoLinks.design.upload({
+      orderId: uploadOrder.id,
+      fileUrl: "https://example.com/mgate-upload.png",
+    });
+    ids.designs.push(uploadedWithoutLinkPermission.id);
+    const storedUpload = await prisma.designVersion.findUniqueOrThrow({
+      where: { id: uploadedWithoutLinkPermission.id },
+    });
+    check(
+      "7.6c design.upload: ผู้มีสิทธิ์อัปแต่ไม่มีสิทธิ์ลิงก์ไม่ได้ bearer token ใน response",
+      uploadedWithoutLinkPermission.approvalToken === null &&
+        typeof storedUpload.approvalToken === "string" &&
+        storedUpload.approvalToken.length > 0,
+      {
+        response: uploadedWithoutLinkPermission.approvalToken,
+        stored: Boolean(storedUpload.approvalToken),
+      },
+    );
 
     // ⑦ ช่องอ้อมที่ review จับ: ใบแก้ไข (CO) + revision JSON + ลูกค้าฝังในใบ
     await asOwner.order.updateItems({
@@ -240,6 +307,18 @@ async function main() {
         },
       ],
     });
+    const revisionCount = await prisma.orderRevision.count({ where: { orderId: order.id } });
+    await prisma.orderRevision.create({
+      data: {
+        orderId: order.id,
+        version: revisionCount + 1,
+        changedBy: owner.id,
+        changeType: "CHANGE_ORDER",
+        description: `${MARK} ใบแก้ไข: เพิ่มงาน 500 บาท`,
+        oldValue: JSON.stringify({ totalAmount: 1000 }),
+        newValue: JSON.stringify({ totalAmount: 1500 }),
+      },
+    });
     const staffOrder2 = await asStaff.order.getById({ id: order.id });
     const moneyRevisions = staffOrder2.revisions.filter(
       (r) =>
@@ -251,17 +330,45 @@ async function main() {
       staffOrder2.revisions.length > 0 && moneyRevisions.length === 0,
       { revs: staffOrder2.revisions.length, leaked: moneyRevisions.length }
     );
+    const staffSensitiveRevision = staffOrder2.revisions.find(
+      (r) => r.changeType === "CHANGE_ORDER",
+    );
+    const ownerOrder2 = await asOwner.order.getById({ id: order.id });
+    const ownerSensitiveRevision = ownerOrder2.revisions.find(
+      (r) => r.changeType === "CHANGE_ORDER",
+    );
+    check(
+      "7.15b order.getById: ช่างได้คำอธิบายปลอดภัย · เจ้าของยังเห็นเหตุผลจริง",
+      staffSensitiveRevision?.description === "ออกใบแก้ไขออเดอร์" &&
+        ownerSensitiveRevision?.description.includes("500 บาท") === true,
+      {
+        staff: staffSensitiveRevision?.description,
+        owner: ownerSensitiveRevision?.description,
+      },
+    );
     check(
       "7.16 order.getById (ช่าง): เงินลูกค้าที่ฝังในใบ (totalSpent/creditLimit) = null",
       staffOrder2.customer.totalSpent === null && staffOrder2.customer.creditLimit === null,
       { s: staffOrder2.customer.totalSpent }
     );
+    await prisma.changeOrder.create({
+      data: {
+        changeNumber: `MGATE-CO-${Date.now()}`,
+        orderId: order.id,
+        reason: `${MARK} เพิ่มงาน 500 บาท`,
+        summary: "รายการ 1 · ค่าธรรมเนียม 0",
+        oldTotal: 1000,
+        newTotal: 1500,
+        createdById: owner.id,
+      },
+    });
     const staffCos = await asStaff.order.changeOrders({ id: order.id });
     const ownerCos = await asOwner.order.changeOrders({ id: order.id });
     check(
       "7.17 order.changeOrders (ช่าง): ยอดเก่า/ใหม่ = null ทุกใบ (เจ้าของเห็นปกติ)",
       staffCos.every((c) => c.oldTotal === null && c.newTotal === null) &&
-        ownerCos.every((c) => c.oldTotal !== null || staffCos.length === 0),
+        staffCos.every((c) => c.reason === "มีการแก้ไขออเดอร์") &&
+        ownerCos.every((c) => c.oldTotal !== null && c.reason.includes("500 บาท")),
       { staff: staffCos.length, owner: ownerCos.length }
     );
 
@@ -672,7 +779,7 @@ async function main() {
     await prisma.auditLog.deleteMany({
       where: {
         OR: [
-          { entityId: { in: [...orderIds, ...ids.quotations, ...ids.invoices, ...ids.customers] } },
+          { entityId: { in: [...orderIds, ...ids.quotations, ...ids.invoices, ...ids.customers, ...ids.designs] } },
           { newValue: { string_contains: MARK } },
         ],
       },

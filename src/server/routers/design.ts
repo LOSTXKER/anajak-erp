@@ -8,6 +8,7 @@ import { createAuditLog, createNotification } from "@/server/helpers";
 import { transitionOrder, processDesignApproval } from "@/server/services/order-status";
 import type { InternalStatus } from "@prisma/client";
 import type { PrismaTx } from "@/lib/prisma";
+import { hasPermission } from "@/lib/permissions";
 
 const designerUp = requirePermission("manage_design_files");
 // บันทึกผลอนุมัติแทนลูกค้า = คนถือความสัมพันธ์ลูกค้า — ไม่ให้ DESIGNER อนุมัติแบบตัวเอง
@@ -22,6 +23,16 @@ const APPROVABLE_STATUSES: InternalStatus[] = ["DESIGNING"];
 
 function approvalTokenExpiry(): Date {
   return new Date(Date.now() + APPROVAL_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+}
+
+function visibleDesignForApprovalPermission<T extends { approvalToken: string | null }>(
+  design: T,
+  canManageApprovalLinks: boolean,
+) {
+  return {
+    ...design,
+    approvalToken: canManageApprovalLinks ? design.approvalToken : null,
+  };
 }
 
 function assertTokenNotExpired(design: { tokenExpiresAt: Date | null }) {
@@ -85,10 +96,18 @@ export const designRouter = router({
   listByOrder: protectedProcedure
     .input(z.object({ orderId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.designVersion.findMany({
+      const designs = await ctx.prisma.designVersion.findMany({
         where: { orderId: input.orderId },
         orderBy: { versionNumber: "desc" },
       });
+      const canManageApprovalLinks = hasPermission(
+        ctx.userRole,
+        ctx.permissionOverrides,
+        "create_design_assets",
+      );
+      return designs.map((design) =>
+        visibleDesignForApprovalPermission(design, canManageApprovalLinks),
+      );
     }),
 
   upload: protectedProcedure
@@ -159,7 +178,14 @@ export const designRouter = router({
         newValue: { orderId: input.orderId, version: design.versionNumber },
       });
 
-      return design;
+      return visibleDesignForApprovalPermission(
+        design,
+        hasPermission(
+          ctx.userRole,
+          ctx.permissionOverrides,
+          "create_design_assets",
+        ),
+      );
     }),
 
   // ลิงก์อนุมัติหมดอายุ (30 วัน) → สร้างใหม่ได้ เฉพาะแบบที่ยังรอลูกค้าตัดสิน

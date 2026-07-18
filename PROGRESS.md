@@ -4,7 +4,9 @@
 
 ## ตอนนี้
 
-> **NEXT (session หน้า):** `/orders/new` สองคอลัมน์จบแล้วบน `codex/orders-new-two-column` — เบสดูจอจริงแล้ว merge เข้า `main` ถ้าโอเค · ต่อคิวเล็กๆ: users table ดิบ → DataTable+mobile card · add-product-popover → Radix · typographic scale ใน @theme · งานใหญ่ถัดไปหยิบจาก ROADMAP P1
+> **NEXT (session หน้า):** ให้เบสดู `/orders/new` และออเดอร์จริงบน branch `codex/orders-new-two-column`; ถ้าความหนาแน่นโอเคให้ merge เข้า `main` · ข้อมูลสร้าง/รายละเอียดกางครบแล้วโดยยังคงด่านสิทธิ์และเงื่อนไขงานจริง
+
+- **📖 เปิดข้อมูลสร้าง+รายละเอียดออเดอร์ทั้งหมด 2026-07-18 (เบสสั่งไม่ให้ซ่อน):** `/orders/new` กางข้อมูลงาน ไฟล์ รายการ/ราคา รายละเอียดลาย+สินค้า สเปคตัดเย็บ ค่าธรรมเนียม/ภาษี/สรุป และช่องจัดส่งตลอด (ที่อยู่ยัง optional ผ่านสวิตช์เจตนา; พิมพ์แล้วเปลี่ยนลูกค้าวางบิลไม่ล้างที่อยู่ไซต์งาน) · `/orders/[id]` ถอนแท็บและเมนู “เพิ่มเติม” แล้วเรียงข้อมูลเดิมของ UI รายการ→งานผลิต→จัดส่งเมื่อมีบริบท→เงิน/บิลตามสิทธิ์→ไฟล์→ประวัติในหน้าเดียว พร้อม anchor/focus และทางลัดข้อมูล sidebar บนมือถือ (ไม่เพิ่ม raw field จากฐานข้อมูลที่ยังไม่มี UI) · กาง status path, บิล, QC และประวัติทั้งหมด; รูปยาวใช้ lazy load · ปิดช่องเงินเพิ่มทั้ง revision description, เหตุผลใบแก้ไข ค่าแก้แบบ และ approval token ฝั่ง design พร้อม fail-closed ระหว่างโหลดสิทธิ์ · browser จริง light/dark + 320/375/768/1024/1280/1440 ไม่มี horizontal scroll/console error, `?next=quote` และ legacy `?tab=` ผ่าน · verify: typecheck 0 · lint 0 · unit **584/584** · `verify:moneygate` **43/43** · production build 38/38 routes
 
 - **🎨 `/orders/new` สองคอลัมน์ 2026-07-18 (เบสสั่ง "แบ่งเป็น 2 ฝั่ง"):** ขยายพื้นที่จาก `max-w-3xl` → `max-w-7xl` และใช้ grid ตอน `xl`: ซ้าย 1/3 = ลูกค้า/รายละเอียด/ไฟล์, ขวา 2/3 = รายการ/ราคา; จัดส่ง+sticky action คงเต็มแถวเพื่อไม่บีบฟอร์ม 4 คอลัมน์ · จอเล็ก DOM order เดิม ลูกค้า→รายการ→จัดส่ง · ไม่แตะ state/สูตร/mutation · browser จริง dark+light ที่ 320/375/768/1024/1280/1440 ไม่มี horizontal scroll, `/orders/new?next=quote` ผ่าน, app console 0 error (warning ที่เห็นมาจาก Chrome extension) · verify: typecheck 0 · lint 0 · test **577/577**
 

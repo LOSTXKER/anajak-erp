@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { NativeSelect } from "@/components/ui/native-select";
 import { cn, formatCurrency } from "@/lib/utils";
-import { Trash2, ImageIcon, Scissors, ChevronUp, ChevronDown, LayoutGrid } from "lucide-react";
+import { Trash2, ImageIcon, ChevronUp, ChevronDown, LayoutGrid } from "lucide-react";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 import { ITEM_SOURCES } from "@/types/order-form";
 import { useProductRow } from "./use-product-row";
@@ -28,13 +28,11 @@ export function ProductCardMobile({
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void;
 }) {
   const {
-    showDetail, setShowDetail,
     setShowMatrix,
-    showMore, setShowMore,
     updateProduct, updateVariantField, removeProduct, moveProduct,
     packagingOptions,
     qty, variant, isFromStock, isCustomMade, isCustomerProvided,
-    packName, canMatrix, multi, totalQty, lineTotal,
+    canMatrix, multi, totalQty, lineTotal,
     productLabel, variantLabel,
   } = useProductRow(product, prodIdx, itemIdx, totalProducts, onSetItems);
 
@@ -127,15 +125,6 @@ export function ProductCardMobile({
                 <LayoutGrid className="h-3 w-3" />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}
               </Button>
             )}
-            {isCustomMade && (
-              <Button
-                type="button" variant="outline" size="sm"
-                onClick={() => setShowDetail(!showDetail)}
-                className={cn("h-9 gap-1 px-2 text-xs", showDetail && "border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300")}
-              >
-                <Scissors className="h-3 w-3" />{showDetail ? "ซ่อนสเปค" : "สเปคตัดเย็บ"}
-              </Button>
-            )}
           </div>
         </div>
       )}
@@ -168,26 +157,8 @@ export function ProductCardMobile({
         </div>
       </div>
 
-      {/* เพิ่มเติม — ส่วนลด + แพค (ซ่อนไว้ เหมือนตารางเดสก์ท็อป) */}
-      <div>
-        <button
-          type="button"
-          onClick={() => setShowMore((v) => !v)}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-        >
-          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMore && "rotate-180")} />
-          {showMore ? (
-            "ซ่อนเพิ่มเติม"
-          ) : (
-            <span className="flex flex-wrap items-center gap-1">
-              <span>เพิ่มเติม</span>
-              {(product.discount || 0) > 0 && <Badge variant="outline" size="sm">ส่วนลด {formatCurrency(product.discount || 0)}</Badge>}
-              {packName && <Badge variant="outline" size="sm">{packName}</Badge>}
-            </span>
-          )}
-        </button>
-        {showMore && (
-          <div className="mt-2 grid grid-cols-2 gap-3">
+      {/* ส่วนลด + แพค — แสดงตลอด */}
+      <div className="grid grid-cols-2 gap-3">
             {!isCustomerProvided && (
               <div>
                 <label htmlFor={`mobile-product-discount-${itemIdx}-${prodIdx}`} className={fieldLabel}>ส่วนลดต่อชิ้น</label>
@@ -207,12 +178,10 @@ export function ProductCardMobile({
                 <><p className={fieldLabel}>แพค</p><span className="text-xs text-slate-400">ยังไม่มีตัวเลือกแพค</span></>
               )}
             </div>
-          </div>
-        )}
       </div>
 
       {/* สเปคตัดเย็บ (CUSTOM_MADE) */}
-      {isCustomMade && showDetail && (
+      {isCustomMade && (
         <div className="rounded-lg border border-amber-100 p-2 dark:border-amber-900/30">
           <CustomMadeDetail product={product} updateProduct={updateProduct} />
         </div>

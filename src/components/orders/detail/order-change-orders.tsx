@@ -1,27 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { FileText, ArrowRight, ChevronDown, AlertTriangle } from "lucide-react";
+import { FileText, ArrowRight, AlertTriangle } from "lucide-react";
 import { QueryError } from "@/components/ui/query-error";
 
 // ประวัติใบแก้ไขออเดอร์ (ก้อน 6 ชิ้น 3) — โชว์ใบแก้ไข (CO) ที่ออกหลังออเดอร์อนุมัติ:
 // เลขใบ · เหตุผล · ยอดเก่า→ใหม่ + ส่วนต่าง · ป้ายเตือนถ้าออกใบกำกับ/มัดจำไปแล้ว · คน/เวลา
-// query order.changeOrders (resolve ชื่อคนฝั่ง server) · ว่าง = ไม่ render (เลียน OrderRevisions)
-
-const SHOW_COUNT = 5;
+// query order.changeOrders (resolve ชื่อคนฝั่ง server) · แสดงทุกรายการโดยไม่ตัดเหลือ 5 รายการ
 
 interface OrderChangeOrdersProps {
   orderId: string;
 }
 
 export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
-  const [showAll, setShowAll] = useState(false);
-  const { data, isError, refetch } = trpc.order.changeOrders.useQuery({ id: orderId });
+  const { data, isLoading, isError, refetch } = trpc.order.changeOrders.useQuery({ id: orderId });
 
   if (isError) {
     return (
@@ -34,25 +29,27 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
     );
   }
 
-  if (!data || data.length === 0) return null;
-
-  const visible = showAll ? data : data.slice(0, SHOW_COUNT);
-  const hiddenCount = data.length - SHOW_COUNT;
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <FileText className="h-4 w-4" />
           ใบแก้ไขออเดอร์
-          <Badge variant="secondary" className="ml-0.5">
-            {data.length}
-          </Badge>
+          {!!data?.length && (
+            <Badge variant="secondary" className="ml-0.5">
+              {data.length}
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {isLoading ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">กำลังโหลดประวัติ...</p>
+        ) : !data || data.length === 0 ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">ยังไม่มีใบแก้ไขออเดอร์</p>
+        ) : (
         <div className="space-y-3">
-          {visible.map((co) => {
+          {data.map((co) => {
             // ⑦: server ส่งยอดเป็น null ให้ role ที่ไม่เห็นเงิน — ซ่อนแถวยอดทั้งบรรทัด
             const showMoney = co.oldTotal != null && co.newTotal != null;
             const diff = showMoney ? (co.newTotal ?? 0) - (co.oldTotal ?? 0) : 0;
@@ -100,19 +97,8 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
               </div>
             );
           })}
-
-          {!showAll && hiddenCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAll(true)}
-              className="w-full gap-1 text-slate-500"
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-              ดูทั้งหมด ({data.length} รายการ)
-            </Button>
-          )}
         </div>
+        )}
       </CardContent>
     </Card>
   );

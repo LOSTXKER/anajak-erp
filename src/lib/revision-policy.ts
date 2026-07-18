@@ -10,6 +10,26 @@ export const FREE_REVISION_ROUNDS = 2;
 export const REVISION_FEE_PER_ROUND = 100; // บาท/รอบ
 export const REVISION_FEE_TYPE = "DESIGN_REVISION"; // feeType บน OrderFee (แถวเดียวต่อออเดอร์)
 
+// description บางชนิดฝังยอดเงินหรือเหตุผลที่ผู้ใช้พิมพ์เอง (ซึ่งอาจมียอดเงิน) จึงห้าม
+// ส่งข้อความจริงให้ role ที่ไม่มี see_order_money แม้หน้าเว็บจะไม่ได้ render ตัวเลขก็ตาม
+const SAFE_REVISION_DESCRIPTIONS: Record<string, string> = {
+  ITEMS: "แก้ไขรายการสินค้า",
+  FEES: "แก้ไขค่าธรรมเนียม",
+  CHANGE_ORDER: "ออกใบแก้ไขออเดอร์",
+  DESIGN: "อัปเดตงานออกแบบ",
+  QUOTATION: "อัปเดตใบเสนอราคา",
+  INFO: "อัปเดตข้อมูลออเดอร์",
+};
+
+export function visibleRevisionDescription(
+  changeType: string,
+  description: string,
+  canSeeMoney: boolean,
+): string {
+  if (canSeeMoney || changeType === "STATUS") return description;
+  return SAFE_REVISION_DESCRIPTIONS[changeType] ?? "อัปเดตออเดอร์";
+}
+
 export interface RevisionOverage {
   versionCount: number; // จำนวนเวอร์ชันแบบทั้งหมด
   revisionRounds: number; // รอบแก้ (ไม่นับต้นฉบับ v1)
