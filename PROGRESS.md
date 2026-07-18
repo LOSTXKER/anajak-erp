@@ -4,7 +4,9 @@
 
 ## ตอนนี้
 
-> **NEXT (session หน้า):** เบสเคาะ 2026-07-17 — UX4 ทั้งก้อน (11 ข้อ + รอบเก็บตก) merge เข้า `main` และ push origin แล้ว (verify ก่อนรวม: tsc 0 · lint 0 · test 577/577 · browser จริง) · ไม่มีงานโค้ดค้าง — ต่อคิวเล็กๆ: users table ดิบ → DataTable+mobile card · add-product-popover → Radix · typographic scale ใน @theme · งานใหญ่ถัดไปหยิบจาก ROADMAP P1
+> **NEXT (session หน้า):** `/orders/new` สองคอลัมน์จบแล้วบน `codex/orders-new-two-column` — เบสดูจอจริงแล้ว merge เข้า `main` ถ้าโอเค · ต่อคิวเล็กๆ: users table ดิบ → DataTable+mobile card · add-product-popover → Radix · typographic scale ใน @theme · งานใหญ่ถัดไปหยิบจาก ROADMAP P1
+
+- **🎨 `/orders/new` สองคอลัมน์ 2026-07-18 (เบสสั่ง "แบ่งเป็น 2 ฝั่ง"):** ขยายพื้นที่จาก `max-w-3xl` → `max-w-7xl` และใช้ grid ตอน `xl`: ซ้าย 1/3 = ลูกค้า/รายละเอียด/ไฟล์, ขวา 2/3 = รายการ/ราคา; จัดส่ง+sticky action คงเต็มแถวเพื่อไม่บีบฟอร์ม 4 คอลัมน์ · จอเล็ก DOM order เดิม ลูกค้า→รายการ→จัดส่ง · ไม่แตะ state/สูตร/mutation · browser จริง dark+light ที่ 320/375/768/1024/1280/1440 ไม่มี horizontal scroll, `/orders/new?next=quote` ผ่าน, app console 0 error (warning ที่เห็นมาจาก Chrome extension) · verify: typecheck 0 · lint 0 · test **577/577**
 
 - **📓 UX5 ตารางรายการ — ทำแล้วเบสเคาะไม่เอา revert 2026-07-17:** เบสสั่ง "รายการเป็นฟีลตาราง" → ทำจริงครบ (ฟอร์ม+หน้ารายละเอียด ตารางเดียว 6 คอลัมน์ ราคา×จำนวน=รวม · เปิดงานจริงยอดตรงสูตร ฿5,136) แต่เบสดูจอจริงแล้ว **ชอบแบบเดิมแยกกลุ่ม ลาย/สินค้า/เสริม มากกว่า** → revert ทั้งหมดก่อน commit (โค้ดไม่มีร่องรอย) · บันทึกการตัดสินใจอยู่ ROADMAP หัวข้อ UX5 — **อย่าหยิบมาทำซ้ำโดยไม่ถามเบส** · ออเดอร์ทดสอบ ORD-2607-0059 ลบจาก DB แล้ว · บัญชี QA รอบนี้มี audit log อ้างถึง → ปิด isActive + ถอน Supabase auth แทนการลบ (record คงไว้ให้ audit ครบ)
 
