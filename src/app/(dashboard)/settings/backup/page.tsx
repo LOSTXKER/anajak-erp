@@ -153,7 +153,7 @@ export default function BackupSettingsPage() {
             )}
           </Button>
           {error && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{error}</p>}
-          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.75} />
             <div>
               <p className="font-medium">ไฟล์นี้มีข้อมูลลับทั้งระบบ — ห้ามส่งต่อ</p>

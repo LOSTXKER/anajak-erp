@@ -163,7 +163,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy }: Custom
           type="button"
           variant="outline"
           onClick={() => setShowCreate(true)}
-          className="shrink-0 gap-1"
+          className="shrink-0 gap-1.5"
           title="เพิ่มลูกค้าใหม่จากชื่อแชทได้เลย"
         >
           <UserPlus className="h-4 w-4" />
@@ -223,7 +223,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy }: Custom
             </Field>
 
             {similar && similar.length > 0 && (
-              <div className="space-y-1.5 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
+              <div className="space-y-1.5 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
                   เจอลูกค้าที่คล้ายกันในระบบ — ใช่คนเดียวกันไหม?
                 </p>
@@ -235,7 +235,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy }: Custom
                       pick(c);
                       closeCreate();
                     }}
-                    className="flex w-full items-center justify-between rounded-md bg-white px-2.5 py-1.5 text-left text-sm shadow-sm hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800"
+                    className="flex w-full items-center justify-between rounded-lg bg-white px-2.5 py-1.5 text-left text-sm shadow-sm hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800"
                   >
                     <span>
                       {c.name}

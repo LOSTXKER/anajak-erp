@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * working but they all map to muted neutral / semantic tones — no rainbow.
  */
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 whitespace-nowrap rounded-full font-medium transition-colors",
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-medium transition-colors",
   {
     variants: {
       variant: {

@@ -15,6 +15,9 @@ export interface CustomerEditForm {
   company: string;
   phone: string;
   lineId: string;
+  /** ชื่อ+ลิงก์ห้องแชทที่คุยกับลูกค้าจริง (เบสสั่ง 2026-07-31) */
+  chatName: string;
+  chatUrl: string;
   email: string;
   address: string;
   notes: string;
@@ -36,6 +39,8 @@ export interface CustomerEditRecord {
   company: string | null;
   phone: string | null;
   lineId: string | null;
+  chatName: string | null;
+  chatUrl: string | null;
   email: string | null;
   address: string | null;
   notes: string | null;
@@ -58,6 +63,9 @@ export interface CustomerUpdatePayload {
   company: string;
   phone: string;
   lineId: string;
+  /** ชื่อ+ลิงก์ห้องแชทที่คุยกับลูกค้าจริง (เบสสั่ง 2026-07-31) */
+  chatName: string;
+  chatUrl: string;
   email: string;
   address: string;
   notes: string;
@@ -97,6 +105,8 @@ export function customerEditFormFromRecord(customer: CustomerEditRecord): Custom
     company: customer.company ?? "",
     phone: customer.phone ?? "",
     lineId: customer.lineId ?? "",
+    chatName: customer.chatName ?? "",
+    chatUrl: customer.chatUrl ?? "",
     email: customer.email ?? "",
     address: customer.address ?? "",
     notes: customer.notes ?? "",
@@ -131,6 +141,8 @@ export function buildCustomerUpdatePayload(
     company: form.company.trim(),
     phone: form.phone.trim(),
     lineId: form.lineId.trim(),
+    chatName: form.chatName.trim(),
+    chatUrl: form.chatUrl.trim(),
     email: form.email.trim(),
     address: form.address.trim(),
     notes: form.notes.trim(),

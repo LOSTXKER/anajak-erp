@@ -318,7 +318,7 @@ export function OrderDeliverySection({
 
           {/* ธง blind ship — ต้องเห็นก่อนหยิบของลงกล่อง ห้ามพลาด */}
           {packContext.data?.blindShip && (
-            <div className="mt-2 rounded-lg border-2 border-red-500 bg-red-50 px-3 py-2 dark:border-red-600 dark:bg-red-950/40">
+            <div className="mt-2 rounded-xl border-2 border-red-500 bg-red-50 px-3 py-2 dark:border-red-600 dark:bg-red-950/40">
               <p className="text-sm font-semibold text-red-700 dark:text-red-300">
                 🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
               </p>
@@ -331,7 +331,7 @@ export function OrderDeliverySection({
             <button
               type="button"
               onClick={openBlindShipDialog}
-              className="mt-1 flex min-h-11 w-fit touch-manipulation items-center gap-1 text-xs text-slate-400 transition-colors hover:text-blue-500 sm:min-h-9"
+              className="mt-1 flex min-h-11 w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-blue-500 sm:min-h-9"
             >
               <Settings2 className="h-3 w-3" />
               {packContext.data.blindShip ? "ตั้งค่า blind ship" : "ตั้งค่า blind ship (ปิดอยู่)"}
@@ -379,7 +379,7 @@ export function OrderDeliverySection({
                     return (
                       <div
                         key={delivery.id}
-                        className="rounded-lg border border-slate-200 p-4 dark:border-slate-700"
+                        className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0 space-y-2">
@@ -449,7 +449,7 @@ export function OrderDeliverySection({
                               </div>
                             )}
 
-                            <div className="flex items-center gap-1 text-xs text-slate-500">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
                               <MapPin className="h-3 w-3" />
                               <span>{delivery.recipientName}</span>
                               {delivery.phone && <span>| {delivery.phone}</span>}
@@ -457,7 +457,7 @@ export function OrderDeliverySection({
 
                             {/* รายการต่อกล่อง (ก้อน 3) — กล่องนี้มีอะไรบ้าง เช่น "10 ตัว (M ดำ ×6 · L ดำ ×4)" */}
                             {delivery.lines.length > 0 && (
-                              <div className="flex items-start gap-1 text-xs text-slate-500 dark:text-slate-400">
+                              <div className="flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                                 <Package className="mt-0.5 h-3 w-3 shrink-0" />
                                 <span>
                                   {delivery.lines.reduce((s, l) => s + l.qty, 0)} ตัว (
@@ -483,7 +483,7 @@ export function OrderDeliverySection({
                           </div>
 
                           {/* Actions */}
-                          <div className="flex w-full shrink-0 flex-wrap justify-end gap-1 sm:w-auto">
+                          <div className="flex w-full shrink-0 flex-wrap justify-end gap-1.5 sm:w-auto">
                             {delivery.lines.length > 0 && (
                               <a
                                 href={`/print/packing-list/${delivery.id}`}
@@ -491,7 +491,7 @@ export function OrderDeliverySection({
                                 rel="noreferrer"
                                 title="ใบรายการแนบกล่อง"
                                 aria-label={`พิมพ์ใบรายการแนบกล่องสำหรับ ${delivery.recipientName}`}
-                                className="flex h-11 w-11 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                                className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400"
                               >
                                 <Printer className="h-3.5 w-3.5" />
                               </a>
@@ -631,7 +631,7 @@ export function OrderDeliverySection({
                   รายการรอบนี้ (นับยืนยัน)
                 </legend>
                 {totalRemaining === 0 ? (
-                  <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950/40 dark:text-green-400">
+                  <p className="rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950/40 dark:text-green-400">
                     ของครบทุกใบส่งแล้ว
                   </p>
                 ) : (

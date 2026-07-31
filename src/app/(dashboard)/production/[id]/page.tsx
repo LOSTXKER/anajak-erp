@@ -177,7 +177,7 @@ export default function ProductionDetailPage({
           </span>
         )}
         {isOverdue && (
-          <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300">
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300">
             <AlertTriangle className="h-3.5 w-3.5" />
             เลยกำหนด
           </span>

@@ -46,7 +46,7 @@ export function SizeMatrix({
   const total = sumVariantQty(variants.filter((v) => v.size.trim()));
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40">
+    <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40">
       <div className="mb-2 flex items-center gap-2">
         <label htmlFor="size-matrix-color" className="text-xs font-medium text-slate-600 dark:text-slate-300">สี (ใช้ทุกไซส์)</label>
         <Input
@@ -78,7 +78,7 @@ export function SizeMatrix({
         ))}
 
         {/* เพิ่มไซส์อื่น (XS/4XL/เด็ก/ตัวเลข) */}
-        <div className="flex items-end gap-1">
+        <div className="flex items-end gap-1.5">
           <div className="w-16">
             <label htmlFor="size-matrix-new-size" className="block text-center text-xs text-slate-400">เพิ่มไซส์</label>
             <Input

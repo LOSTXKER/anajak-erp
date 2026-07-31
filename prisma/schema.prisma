@@ -245,6 +245,10 @@ model Customer {
   email           String?
   phone           String?
   lineId          String?         @map("line_id")
+  // ชื่อ+ลิงก์ห้องแชทที่คุยกับลูกค้าจริง (เบสสั่ง 2026-07-31) — ไม่ผูกกับช่องทางใดช่องทางหนึ่ง
+  // ใช้ได้ทั้ง LINE / Shopee / Lazada / TikTok / Facebook · lineId เดิมคงไว้ ไม่แตะ
+  chatName        String?         @map("chat_name")
+  chatUrl         String?         @map("chat_url")
   address         String?
   taxId           String?         @map("tax_id")
   customerType    CustomerType    @default(INDIVIDUAL) @map("customer_type")

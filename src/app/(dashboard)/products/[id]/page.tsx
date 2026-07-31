@@ -180,7 +180,7 @@ export default function ProductDetailPage({
               <div
                 className={`h-2.5 w-2.5 rounded-full ${
                   product.isActive
-                    ? "bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]"
+                    ? "bg-green-400 dot-glow"
                     : "bg-slate-400"
                 }`}
               />
@@ -461,7 +461,7 @@ export default function ProductDetailPage({
 
           {/* Error display */}
           {(updateProduct.isError || updateVariant.isError || priceError) && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
               {priceError || updateProduct.error?.message || updateVariant.error?.message}
             </div>
           )}

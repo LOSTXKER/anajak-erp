@@ -274,7 +274,7 @@ export function OrderSidebar({
             <Calculator className="h-4 w-4" />
             ยอดรวม
           </span>
-          <span className="flex items-center gap-1 text-base font-semibold tabular-nums text-slate-900 dark:text-white">
+          <span className="flex items-center gap-1.5 text-base font-semibold tabular-nums text-slate-900 dark:text-white">
             {formatCurrency(totalAmount)}
             <ChevronRight className="h-4 w-4 text-slate-400" />
           </span>

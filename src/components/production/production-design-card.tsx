@@ -64,7 +64,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
               />
             </button>
           ) : (
-            <div className="flex h-32 w-32 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 text-slate-400 dark:border-slate-700">
+            <div className="flex h-32 w-32 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 text-slate-400 dark:border-slate-700">
               <ImageOff className="h-5 w-5" />
               <span className="text-xs">ไฟล์ไม่ใช่รูป</span>
             </div>
@@ -89,7 +89,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
         </div>
       ) : (
         prints.length > 0 && (
-          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+          <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
             ยังไม่มีแบบที่ลูกค้าอนุมัติ — เช็คกับแอดมินก่อนพิมพ์
           </p>
         )
@@ -105,7 +105,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
             {prints.map((pr) => (
               <div
                 key={pr.id}
-                className="flex items-center gap-3 rounded-xl border border-slate-200 p-2.5 dark:border-slate-700"
+                className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700"
               >
                 {isImageUrl(pr.designImageUrl) ? (
                   <button

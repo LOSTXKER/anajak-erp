@@ -104,7 +104,7 @@ function PulseCard({
           href={subHref}
           className={cn(
             // z-10 ให้ลิงก์รองลอยเหนือพื้นที่กดของลิงก์หลัก — สองปลายทางบนใบเดียวไม่ทับกัน
-            "relative z-10 mt-1 inline-flex min-h-11 items-center gap-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:min-h-8",
+            "relative z-10 mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:min-h-8",
             subClassName
           )}
         >

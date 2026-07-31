@@ -385,7 +385,7 @@ export default function StockSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Sync status summary */}
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
               {statusError ? (
                 <QueryError
                   message="โหลดสถานะ Stock ไม่สำเร็จ"
@@ -457,7 +457,7 @@ export default function StockSettingsPage() {
 
             {/* Last stock sync result */}
             {lastStockResult && (
-              <div className="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/50">
+              <div className="rounded-xl border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/50">
                 <p className="mb-1 text-sm font-medium text-green-700 dark:text-green-400">
                   ผลลัพธ์ Sync สต็อก
                 </p>
@@ -582,7 +582,7 @@ export default function StockSettingsPage() {
               </div>
             </div>
 
-            <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/50">
+            <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/50">
               <p className="text-xs text-blue-700 dark:text-blue-400">
                 <strong>Tip:</strong> ไม่ต้องตั้งค่า ENV แล้ว เพียงใส่ข้อมูลผ่านหน้าเว็บนี้ ระบบจะเก็บไว้ในฐานข้อมูลอัตโนมัติ
               </p>

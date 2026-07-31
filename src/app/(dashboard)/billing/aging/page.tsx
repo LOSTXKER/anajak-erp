@@ -268,7 +268,7 @@ function AgingPageContent() {
         <StatCard title="ลูกหนี้" value={data?.rows.length ?? 0} icon={Users} caption="ราย" />
       </div>
 
-      <div className="flex flex-col gap-2.5 sm:flex-row">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <SearchInput
           ref={searchInputRef}
           containerClassName="flex-1"
@@ -284,6 +284,7 @@ function AgingPageContent() {
           }}
         />
         <NativeSelect
+          shape="pill"
           aria-label="กรองช่วงอายุหนี้"
           value={status}
           onChange={(event) =>
@@ -298,6 +299,7 @@ function AgingPageContent() {
           ))}
         </NativeSelect>
         <NativeSelect
+          shape="pill"
           aria-label="เรียงรายการลูกหนี้"
           value={sort}
           onChange={(event) =>

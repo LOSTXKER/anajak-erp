@@ -377,7 +377,7 @@ export default function QuotationDetailPage({
           </p>
           <Link
             href={`/orders/${quotation.order.id}`}
-            className="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline dark:text-blue-300"
+            className="inline-flex items-center gap-1.5 text-sm text-blue-700 hover:underline dark:text-blue-300"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             ดูออเดอร์ {quotation.order.orderNumber}

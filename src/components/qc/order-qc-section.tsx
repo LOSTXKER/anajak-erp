@@ -99,7 +99,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
           </CardTitle>
           {isQualityCheck &&
             (canCount ? (
-              <Button size="sm" className="h-9 gap-1 text-xs" onClick={() => setDialogOpen(true)}>
+              <Button size="sm" className="h-9 gap-1.5 text-xs" onClick={() => setDialogOpen(true)}>
                 <ClipboardCheck className="h-3.5 w-3.5" />
                 ตรวจนับ
               </Button>
@@ -124,7 +124,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
             return (
               <div
                 key={r.id}
-                className="rounded-md border border-slate-100 dark:border-slate-800"
+                className="rounded-lg border border-slate-100 dark:border-slate-800"
               >
                 <div
                   className="flex min-h-11 w-full flex-wrap items-center justify-between gap-2 px-3 py-2 text-left"
@@ -160,7 +160,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                       r.defects.map((d) => (
                         <div
                           key={d.id}
-                          className="space-y-1.5 rounded-md bg-slate-50 p-2 dark:bg-slate-800/50"
+                          className="space-y-1.5 rounded-lg bg-slate-50 p-2 dark:bg-slate-800/50"
                         >
                           <p className="text-xs">
                             <span className="font-medium text-red-600 dark:text-red-400">
@@ -197,7 +197,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                                     alt="รูปของเสีย"
                                     loading="lazy"
                                     decoding="async"
-                                    className="h-full w-full rounded-md object-cover"
+                                    className="h-full w-full rounded-lg object-cover"
                                   />
                                 </a>
                               ))}
@@ -379,14 +379,14 @@ function QcCountForm({
           {/* นับดีครบยอดไปแล้ว (เช่น ของตีกลับหลังส่ง) — บอกทางเดินจริง ไม่ปล่อยเจอฟอร์มตัน:
               นับดีเพิ่มโดนกันนับเกิน · เดินหน้าใช้ปุ่มเปลี่ยนสถานะ (มีผลตรวจแล้วระบบให้ผ่าน) */}
           {context.totalExpected > 0 && remaining === 0 && (
-            <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
+            <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
               <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               นับดีครบยอดงานไปแล้ว — จะเดินหน้าเข้าแพ็ค กดเปลี่ยนสถานะที่หัวออเดอร์ได้เลย ·
               ฟอร์มนี้ใช้บันทึก &quot;ของเสียที่เจอเพิ่ม&quot; (เช่น ของตีกลับ) ซึ่งจะถอยงานกลับผลิต
             </div>
           )}
           {/* ของดี — default เหลือที่ยังไม่ผ่านตรวจ นับตรงกดบันทึกได้เลย */}
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
             <div className="min-w-0">
               <p className="text-sm font-medium text-slate-900 dark:text-white">ของดี (ตัว)</p>
               <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
@@ -409,7 +409,7 @@ function QcCountForm({
           {defects.map((d, idx) => (
             <div
               key={idx}
-              className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-900 dark:bg-amber-950/20"
+              className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-900 dark:bg-amber-950/20"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-medium text-slate-900 dark:text-white">
@@ -418,7 +418,7 @@ function QcCountForm({
                 <button
                   type="button"
                   onClick={() => removeRow(idx)}
-                  className="flex h-9 w-9 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
                   aria-label="ลบแถวของเสีย"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -520,7 +520,7 @@ function QcCountForm({
                           alt="รูปของเสีย"
                           loading="lazy"
                           decoding="async"
-                          className="h-full w-full rounded-md object-cover"
+                          className="h-full w-full rounded-lg object-cover"
                         />
                         <button
                           type="button"
@@ -569,25 +569,25 @@ function QcCountForm({
           {/* แถบเตือนผลที่จะเกิดก่อนกด — คนกดต้องรู้ว่างานจะไปทางไหน (ตรรกะเดียวกับ server) */}
           {qtyDefectTotal > 0 ? (
             context.spareAvailable < qtyDefectTotal ? (
-              <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+              <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 เสื้อสำรองไม่พอ (เหลือ {context.spareAvailable}/{qtyDefectTotal} ตัว) —
                 บันทึกแล้วงานจะพักรอของ คุยลูกค้า/สั่งเสื้อเพิ่มก่อน
               </div>
             ) : (
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+              <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 บันทึกแล้วงานจะถอยกลับผลิต + เปิดขั้นงานแก้อัตโนมัติ
               </div>
             )
           ) : qtyGood > 0 ? (
             qtyGood >= remaining ? (
-              <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+              <div className="flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
                 <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 ครบแล้วงานจะเข้าคิวแพ็คเอง
               </div>
             ) : (
-              <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+              <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
                 <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 ดีบางส่วน — บันทึกแล้วงานยังอยู่ด่านตรวจ เหลือตรวจอีก {remaining - qtyGood} ตัว
               </div>

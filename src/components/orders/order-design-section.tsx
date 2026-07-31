@@ -180,7 +180,7 @@ export function OrderDesignSection({
                 return (
                 <div
                   key={design.id}
-                  className="rounded-lg border border-slate-200 p-4 dark:border-slate-700"
+                  className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
@@ -192,7 +192,7 @@ export function OrderDesignSection({
                           rel="noopener noreferrer"
                           className="shrink-0"
                         >
-                          <div className="relative h-16 w-16 overflow-hidden rounded-md border border-slate-200 dark:border-slate-600">
+                          <div className="relative h-16 w-16 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-600">
                             <img
                               src={design.thumbnailUrl || design.fileUrl}
                               alt={`Design v${design.versionNumber}`}
@@ -223,7 +223,7 @@ export function OrderDesignSection({
                           </p>
                         )}
                         {design.customerComment && (
-                          <p className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                          <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
                             <MessageSquare className="h-3 w-3" />
                             {design.customerComment}
                           </p>
@@ -235,7 +235,7 @@ export function OrderDesignSection({
                     </div>
 
                     {/* Actions */}
-                    <div className="flex shrink-0 gap-1">
+                    <div className="flex shrink-0 gap-1.5">
                       {design.fileUrl && (
                         <Button
                           variant="ghost"
@@ -258,7 +258,7 @@ export function OrderDesignSection({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 gap-1 text-xs text-amber-700 dark:text-amber-300"
+                            className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300"
                             onClick={() => regenerateToken.mutate({ designId: design.id })}
                             disabled={regenerateToken.isPending}
                           >
@@ -287,7 +287,7 @@ export function OrderDesignSection({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 gap-1 text-xs"
+                          className="h-8 gap-1.5 text-xs"
                           onClick={() => setShowApproveDialog(design.id)}
                         >
                           ตรวจสอบ
@@ -303,7 +303,7 @@ export function OrderDesignSection({
 
           {/* นับรอบแก้แบบ + ค่าแก้เกินโควตา (ก้อน 4) — โชว์ให้เห็น พนักงานกดคิดเองถ้าจะคิด */}
           {hasDesigns && overage.revisionRounds > 0 && (
-            <div className="mt-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-700">
+            <div className="mt-3 rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-700">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span>
                   <span className="font-medium text-slate-700 dark:text-slate-200">
@@ -320,7 +320,7 @@ export function OrderDesignSection({
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                   {chargedAmount > 0 ? (
                     // คิดไปแล้ว — โชว์ยอดที่คิดจริง (พนักงานอาจตั้งใจปรับ/ยกเว้น) ไม่ดันให้แก้กลับ
-                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                    <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
                       <Check className="h-3.5 w-3.5" />
                       คิดค่าแก้แล้ว ฿{baht(chargedAmount)}
                     </span>
@@ -384,7 +384,7 @@ export function OrderDesignSection({
               <p className="text-sm text-red-500">{uploadError}</p>
             )}
             {needsThumbnail && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+              <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
                 <p className="mb-2 text-sm font-medium text-amber-800 dark:text-amber-200">
                   ไฟล์นี้ลูกค้าเปิดดูบนมือถือไม่ได้ (.ai/.psd/.pdf) — แนบรูปตัวอย่างให้ลูกค้าดูก่อนตัดสินแบบ
                 </p>

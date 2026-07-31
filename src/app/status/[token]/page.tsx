@@ -246,7 +246,7 @@ export default function OrderStatusPage({
             </CardHeader>
             <CardContent className="space-y-3 p-5 pt-0">
               {d.deliveries.map((dv, i) => (
-                <div key={i} className="rounded-lg border border-slate-200 p-3 text-sm">
+                <div key={i} className="rounded-xl border border-slate-200 p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-medium text-slate-800">
                       {SHIPPING_METHOD[dv.shippingMethod] ?? dv.shippingMethod}
@@ -294,7 +294,7 @@ export default function OrderStatusPage({
             </CardHeader>
             <CardContent className="space-y-2.5 p-5 pt-0">
               {d.quotations.map((q, i) => (
-                <div key={`q${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 p-3 text-sm">
+                <div key={`q${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 text-sm">
                   <div className="min-w-0">
                     <p className="font-medium text-slate-800">
                       ใบเสนอราคา {q.quotationNumber}
@@ -310,7 +310,7 @@ export default function OrderStatusPage({
                         href={q.pdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                        className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
                         PDF
@@ -325,7 +325,7 @@ export default function OrderStatusPage({
                   variant: "default" as const,
                 };
                 return (
-                  <div key={`i${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 p-3 text-sm">
+                  <div key={`i${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 text-sm">
                     <div className="min-w-0">
                       <p className="font-medium text-slate-800">
                         {INVOICE_TYPE_LABELS_CUSTOMER[inv.type] ?? "ใบแจ้งหนี้"} {inv.invoiceNumber}

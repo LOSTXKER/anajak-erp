@@ -56,14 +56,14 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
             return (
               <div
                 key={co.id}
-                className="rounded-lg border border-slate-200/70 p-3 dark:border-slate-700/60"
+                className="rounded-xl border border-slate-200/70 p-3 dark:border-slate-700/60"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-mono text-sm font-medium text-slate-900 dark:text-white">
                     {co.changeNumber}
                   </span>
                   {co.invoicedWarning && (
-                    <Badge variant="warning" size="sm" className="gap-1">
+                    <Badge variant="warning" size="sm" className="gap-1.5">
                       <AlertTriangle className="h-3 w-3" />
                       ออกใบกำกับ/มัดจำแล้ว
                     </Badge>

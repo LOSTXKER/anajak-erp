@@ -514,7 +514,7 @@ function ProductionWorkspace() {
               </p>
             </div>
           ) : (
-            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {all
                 .filter((o) => o.internalStatus === focusPostCol.status)
                 .map((o) => {
@@ -529,7 +529,7 @@ function ProductionWorkspace() {
                     ? `/production/${o.productionId}`
                     : `/orders/${o.id}`;
                   return (
-                    <div key={o.id} className="card-surface rounded-xl p-3">
+                    <div key={o.id} className="card-surface rounded-2xl p-3">
                       <OrderCardHeader order={o} href={href} />
                       {/* ธง blind ship บนคอลัมน์แพ็ค/พร้อมส่ง (ตรวจไม่ใส่ ของยังไม่ถึงคนแพ็ค) */}
                       {(focusPostCol.key === "packing" || focusPostCol.key === "ready") &&
@@ -662,7 +662,7 @@ function OrderCardHeader({ order, href }: { order: KanbanOrder; href: string }) 
         {order.deadline && (
           <span
             className={cn(
-              "flex items-center gap-1",
+              "flex items-center gap-1.5",
               isOverdue && "font-medium text-red-600 dark:text-red-400",
               isDueSoon && "font-medium text-amber-700 dark:text-amber-400"
             )}
@@ -740,7 +740,7 @@ function LaneCardView({
           : "bg-slate-300 dark:bg-slate-600";
 
   return (
-    <div className="card-surface relative overflow-hidden rounded-xl p-3 pl-4">
+    <div className="card-surface relative overflow-hidden rounded-2xl p-3 pl-4">
       <span
         aria-hidden
         className={cn("absolute inset-y-0 left-0 w-1", railTone)}
@@ -782,7 +782,7 @@ function LaneCardView({
         )}
       </div>
       {activeOutsource && (
-        <p className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-slate-500">
+        <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
           <Truck className="h-3 w-3 shrink-0" />
           {activeOutsource.vendor.name} ·{" "}
           {OUTSOURCE_STATUS_LABELS[activeOutsource.status] ?? activeOutsource.status}
@@ -850,7 +850,7 @@ function LaneCardView({
                     size="sm"
                     disabled={busy}
                     onClick={() => onOutsourceQcPass(activeOutsource.id, activeOutsource.vendor.name)}
-                    className="flex-1 gap-1"
+                    className="flex-1 gap-1.5"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     QC ผ่าน

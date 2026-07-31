@@ -241,7 +241,7 @@ function StepRow({
           <span className="text-xs text-slate-500">{step.assignedTo.name}</span>
         )}
         {latestOutsource && (
-          <p className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-slate-500">
+          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
             <Truck className="h-3 w-3 shrink-0" />
             {latestOutsource.vendor.name} ·{" "}
             {OUTSOURCE_STATUS_LABELS[latestOutsource.status] ?? latestOutsource.status}
@@ -257,7 +257,7 @@ function StepRow({
         {actionPolicy.canSendOutsource && (
           <Button
             size="sm"
-            className="gap-1"
+            className="gap-1.5"
             onClick={() => onOutsourceStep(step)}
           >
             <Truck className="h-3 w-3" />
@@ -268,7 +268,7 @@ function StepRow({
           <Button
             variant="outline"
             size="sm"
-            className="gap-1"
+            className="gap-1.5"
             onClick={() => onQuickPass(step)}
           >
             <FastForward className="h-3 w-3" />
@@ -296,7 +296,7 @@ function StepRow({
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1 text-slate-500"
+            className="gap-1.5 text-slate-500"
             onClick={() => onSelectStep(step)}
           >
             <MoreHorizontal className="h-3.5 w-3.5" />

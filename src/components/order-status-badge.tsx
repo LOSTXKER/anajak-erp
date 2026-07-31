@@ -26,6 +26,17 @@ export function OrderStatusBadge({
 }: OrderStatusBadgeProps) {
   if (!customerStatus && !internalStatus) return null;
 
+  // สถานะลูกค้ากับสถานะภายในบางคู่สะกดตรงกันเป๊ะ (เช่น "กำลังผลิต / กำลังผลิต")
+  // เขียนซ้ำสองบรรทัดไม่ได้บอกอะไรเพิ่ม มีแต่ทำให้คนอ่านสงสัยว่าต่างกันตรงไหน
+  // → ซ่อนบรรทัดล่างเมื่อข้อความเหมือนกัน (เบสสั่ง 2026-07-31 หลังเห็นจอจริง)
+  const customerLabel = customerStatus
+    ? (CUSTOMER_STATUS_LABELS[customerStatus] ?? customerStatus)
+    : null;
+  const internalLabel = internalStatus
+    ? (INTERNAL_STATUS_LABELS[internalStatus] ?? internalStatus)
+    : null;
+  const showInternal = internalLabel !== null && internalLabel !== customerLabel;
+
   const colors =
     customerStatus &&
     (CUSTOMER_STATUS_COLORS[customerStatus] ?? {
@@ -47,16 +58,16 @@ export function OrderStatusBadge({
           }`}
         >
           <span className={`h-2 w-2 shrink-0 rounded-full ${colors.dot}`} />
-          {CUSTOMER_STATUS_LABELS[customerStatus] ?? customerStatus}
+          {customerLabel}
         </span>
       )}
-      {internalStatus && (
+      {showInternal && (
         <span
           className={`text-2xs text-slate-500 dark:text-slate-400 ${
             customerStatus ? "pl-3" : ""
           }`}
         >
-          {INTERNAL_STATUS_LABELS[internalStatus] ?? internalStatus}
+          {internalLabel}
         </span>
       )}
     </div>

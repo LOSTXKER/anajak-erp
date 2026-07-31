@@ -180,7 +180,7 @@ export function OrderItemCard({
     <div>
       <div className="mb-2 flex items-center justify-between">
         <span className={groupLabelClass}>{compact ? "ลาย" : "ลายที่ต้องการสั่งผลิต"}</span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {otherItemsWithPrints.length > 0 && (
             <div className="relative">
               <NativeSelect
@@ -189,7 +189,7 @@ export function OrderItemCard({
                 onChange={(e) => {
                   if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
                 }}
-                className="w-auto appearance-none rounded-md border-0 bg-transparent pl-7 pr-2 text-slate-600 hover:bg-slate-100 sm:text-xs dark:text-slate-400 dark:hover:bg-slate-800"
+                className="w-auto appearance-none rounded-lg border-0 bg-transparent pl-7 pr-2 text-slate-600 hover:bg-slate-100 sm:text-xs dark:text-slate-400 dark:hover:bg-slate-800"
               >
                 <option value="">คัดลอกลาย...</option>
                 {otherItemsWithPrints.map(({ it, idx }) => (
@@ -264,7 +264,7 @@ export function OrderItemCard({
         // เลือกชนิดงานก่อน → ระบบโชว์เฉพาะ field ที่ชนิดนั้นใช้ (guided by type)
         <div>
           <p className="mb-2 text-center text-xs text-slate-500 dark:text-slate-400">งานนี้ใช้เสื้อแบบไหน? เลือกเพื่อเริ่ม</p>
-          <div className="grid gap-2.5 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-3">
             {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
               <button
                 key={key}

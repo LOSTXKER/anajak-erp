@@ -55,7 +55,7 @@ function QuickAddPattern({
   };
 
   return (
-    <div className="mt-2 rounded border border-amber-300 bg-white p-2.5 dark:border-amber-700 dark:bg-amber-950/30">
+    <div className="mt-2 rounded border border-amber-300 bg-white p-3 dark:border-amber-700 dark:bg-amber-950/30">
       <span className="mb-2 block text-xs font-medium text-amber-700 dark:text-amber-300">สร้างแพทเทิร์นใหม่</span>
       <div className="flex items-end gap-2">
         <div className="flex-1 space-y-1.5">
@@ -72,8 +72,8 @@ function QuickAddPattern({
           </label>
         </div>
         <div className="flex gap-1.5">
-          <Button type="button" variant="outline" size="sm" onClick={onCancel} className="h-7 px-2 text-xs" disabled={uploading}>ยกเลิก</Button>
-          <Button type="button" size="sm" onClick={handleSave} className="h-7 px-3 text-xs" disabled={!name.trim() || uploading}>
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} className="h-8 px-2 text-xs" disabled={uploading}>ยกเลิก</Button>
+          <Button type="button" size="sm" onClick={handleSave} className="h-8 px-3 text-xs" disabled={!name.trim() || uploading}>
             {uploading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
             บันทึก
           </Button>
@@ -118,7 +118,7 @@ export function CustomMadeDetail({
   };
 
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-800/50 dark:bg-amber-950/20">
+    <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-800/50 dark:bg-amber-950/20">
       {/* Pattern section */}
       <div className="mb-3">
         <div className="mb-2 flex items-center gap-2">
@@ -128,7 +128,7 @@ export function CustomMadeDetail({
             <button
               type="button"
               onClick={() => setShowQuickAdd(true)}
-              className="ml-auto flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
+              className="ml-auto flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
             >
               <Plus className="h-3 w-3" />สร้างใหม่
             </button>

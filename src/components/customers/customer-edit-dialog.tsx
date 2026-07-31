@@ -161,6 +161,22 @@ export function CustomerEditDialog({
             <Field label="LINE ID">
               <Input value={form.lineId} onChange={(e) => set({ lineId: e.target.value })} />
             </Field>
+            <Field label="ชื่อในแชท" description="ชื่อที่ลูกค้าใช้ในห้องแชท — ใช้ได้ทุกช่องทาง">
+              <Input
+                value={form.chatName}
+                onChange={(e) => set({ chatName: e.target.value })}
+                placeholder="เช่น ร้านเสื้อพี่หนึ่ง"
+              />
+            </Field>
+            <Field label="ลิงก์แชท" description="กดจากรายการออเดอร์แล้วเปิดห้องแชทได้เลย">
+              <Input
+                type="url"
+                inputMode="url"
+                value={form.chatUrl}
+                onChange={(e) => set({ chatUrl: e.target.value })}
+                placeholder="https://..."
+              />
+            </Field>
             <Field label="อีเมล">
               <Input
                 type="email"
@@ -174,14 +190,14 @@ export function CustomerEditDialog({
           </div>
 
           {(isCorporate || hasCorporateLeftover) && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
               <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
                 ข้อมูลนิติบุคคล
               </h4>
               {hasCorporateLeftover && (
                 <p
                   role="status"
-                  className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+                  className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
                 >
                   ลูกค้าเป็นบุคคลธรรมดาแต่ยังมีข้อมูลภาษี/วงเงินค้างอยู่ — ค่าพวกนี้ยังถูกใช้ออกใบกำกับ/กันวงเงินจริง
                   ถ้าไม่ใช้แล้วให้ลบออกให้ว่างแล้วบันทึก
@@ -291,7 +307,7 @@ export function CustomerEditDialog({
           {update.error && (
             <p
               role="alert"
-              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+              className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
             >
               บันทึกไม่สำเร็จ: {update.error.message}
             </p>

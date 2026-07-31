@@ -69,7 +69,7 @@ export function CreateProductionDialog({
 
         {/* ด่านพร้อมผลิตยังไม่ผ่าน — soft-gate: เปิดได้ (งานด่วน/เคสยกเว้น) แต่ต้องเห็นว่าติดอะไร */}
         {context?.readiness && !context.readiness.ready && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs dark:border-amber-800 dark:bg-amber-950/40">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs dark:border-amber-800 dark:bg-amber-950/40">
             <p className="mb-1 flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300">
               <AlertTriangle className="h-3.5 w-3.5" />
               งานนี้ยังติดด่านพร้อมผลิต
@@ -184,7 +184,7 @@ function StepBuilder({
                     {LANE_LABELS[lane]}
                   </p>
                 )}
-                <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700">
+                <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
                     {index + 1}
                   </span>
@@ -216,7 +216,7 @@ function StepBuilder({
                       variant="ghost"
                       size="icon"
                       aria-label="ลบขั้นตอน"
-                      className="h-7 w-7 text-slate-400 hover:text-red-600"
+                      className="h-8 w-8 text-slate-400 hover:text-red-600"
                       onClick={() => removeStep(index)}
                     >
                       <X className="h-3.5 w-3.5" />

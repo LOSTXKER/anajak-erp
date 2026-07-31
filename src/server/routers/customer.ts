@@ -12,6 +12,19 @@ import { hasPermission } from "@/lib/permissions";
 // PERM3: default = OWNER/MANAGER/ACCOUNTANT/SALES เดิมเป๊ะ + override รายคน
 const customerEditors = requirePermission("manage_customers");
 
+/** ลิงก์ห้องแชทที่พนักงานพิมพ์เอง — ต้องเป็นเว็บลิงก์จริงเท่านั้น
+ *  ปล่อยให้พิมพ์อะไรก็ได้แล้วเอาไปใส่ href = เปิดช่องยิงสคริปต์ใส่คนที่กด (javascript:)
+ *  เก็บเป็น null เมื่อเว้นว่าง เพื่อไม่ให้มีสตริงว่างปนในฐานข้อมูล */
+export const chatUrlSchema = z
+  .string()
+  .trim()
+  .max(500, "ลิงก์ยาวเกินไป")
+  .refine((v) => v === "" || /^https?:\/\//i.test(v), {
+    message: "ลิงก์ต้องขึ้นต้นด้วย http:// หรือ https://",
+  })
+  .optional()
+  .transform((v) => (v ? v : null));
+
 export const customerRouter = router({
   // สถานะวงเงินเครดิต: ภาระหนี้รวม (ใบค้างชำระ + งานผูกพันยังไม่วางบิล) เทียบ creditLimit
   // ใช้ตอนสร้าง/ยืนยันออเดอร์ + หน้า detail ลูกค้า — เฉพาะกลุ่มเห็นเงินฝั่งขาย
@@ -150,6 +163,8 @@ export const customerRouter = router({
           .optional()
           .transform((v) => (v ? normalizePhone(v) : v)),
         lineId: z.string().optional(),
+        chatName: z.string().trim().max(120).optional(),
+        chatUrl: chatUrlSchema,
         address: z.string().optional(),
         taxId: z.string().optional(),
         customerType: z.enum(["INDIVIDUAL", "CORPORATE"]).default("INDIVIDUAL"),
@@ -207,6 +222,8 @@ export const customerRouter = router({
           .optional()
           .transform((v) => (v ? normalizePhone(v) : v)),
         lineId: z.string().optional(),
+        chatName: z.string().trim().max(120).optional(),
+        chatUrl: chatUrlSchema,
         address: z.string().optional(),
         taxId: z.string().optional(),
         customerType: z.enum(["INDIVIDUAL", "CORPORATE"]).optional(),

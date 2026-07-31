@@ -117,7 +117,7 @@ export default function SalesTaxReportPage() {
         action={
           <div className="flex flex-wrap items-center gap-2">
             <Select value={selected} onValueChange={setSelected}>
-              <SelectTrigger className="h-10 w-[180px]">
+              <SelectTrigger shape="pill" className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

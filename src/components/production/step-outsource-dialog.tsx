@@ -101,7 +101,7 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
               </Select>
             </Field>
             {vendors.data?.length === 0 && (
-              <div className="mt-2 rounded-lg bg-amber-50 p-3 dark:bg-amber-950/30">
+              <div className="mt-2 rounded-xl bg-amber-50 p-3 dark:bg-amber-950/30">
                 <p className="text-xs text-amber-800 dark:text-amber-300">
                   ยังไม่มีร้านในระบบ
                 </p>

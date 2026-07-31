@@ -41,7 +41,7 @@ export function CollapsibleSection({
         <span className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
           {title}
         </span>
-        <span className="flex min-w-0 items-center gap-2.5">
+        <span className="flex min-w-0 items-center gap-2">
           {summary && (
             <span className="truncate text-xs text-slate-500 dark:text-slate-400">
               {summary}

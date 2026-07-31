@@ -408,7 +408,7 @@ export default function NewOrderPage() {
       />
 
       {hasDraft && (
-        <div className="flex items-center gap-3 rounded-lg bg-amber-50/60 px-3 py-1.5 text-xs dark:bg-amber-950/20">
+        <div className="flex items-center gap-3 rounded-xl bg-amber-50/60 px-3 py-1.5 text-xs dark:bg-amber-950/20">
           <span className="text-amber-800 dark:text-amber-200">
             พบข้อมูลร่างที่ยังไม่ได้บันทึก — กรอกต่อจากเดิมหรือเริ่มใหม่?
           </span>
@@ -577,7 +577,7 @@ export default function NewOrderPage() {
                 addItem();
                 setExpandedItemIdx(items.length);
               }}
-              className="w-full gap-1 text-slate-500"
+              className="w-full gap-1.5 text-slate-500"
             >
               <Plus className="h-3.5 w-3.5" />
               เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)

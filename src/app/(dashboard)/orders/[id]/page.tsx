@@ -483,7 +483,7 @@ function OrderDetailContent({
       ? "เปิดงานกลับ (→ จัดส่งแล้ว)"
       : INTERNAL_STATUS_LABELS[status as keyof typeof INTERNAL_STATUS_LABELS];
   const dropdownItemClass =
-    "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 outline-none data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white";
+    "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white";
 
   return (
     <div className="space-y-5">
@@ -509,7 +509,7 @@ function OrderDetailContent({
                   <DropdownMenu.Content
                     align="end"
                     sideOffset={6}
-                    className="z-50 min-w-[200px] rounded-2xl border border-slate-200/70 bg-white p-1 shadow-lg dark:border-slate-800/60 dark:bg-slate-900/80"
+                    className="z-50 min-w-[200px] rounded-2xl border border-slate-200/70 bg-white p-1 overlay-surface dark:border-slate-800/60 dark:bg-slate-900/80"
                   >
                     <DropdownMenu.Item className={dropdownItemClass} asChild>
                       <a href={`/print/job-ticket/${id}`} target="_blank" rel="noreferrer">

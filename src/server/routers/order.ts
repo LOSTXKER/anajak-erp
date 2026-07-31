@@ -53,6 +53,7 @@ import type { OrderType, TaxLineType } from "@prisma/client";
 import {
   ORDER_ATTENTIONS,
   orderAttentionWhere,
+  orderAttentionOf,
 } from "@/server/services/order-list-filter";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ (PERM3: default = OWNER/MANAGER/SALES เดิมเป๊ะ + override รายคน)
@@ -277,7 +278,9 @@ export const orderRouter = router({
         createdAfter: z.string().optional(),
         createdBefore: z.string().optional(),
         attention: z.enum(ORDER_ATTENTIONS).optional(),
-        sortBy: z.enum(["createdAt", "totalAmount", "orderNumber", "deadline"]).optional(),
+        sortBy: z
+          .enum(["createdAt", "totalAmount", "orderNumber", "deadline", "attention"])
+          .optional(),
         sortOrder: z.enum(["asc", "desc"]).optional(),
         page: z.number().default(1),
         limit: z.number().default(20),
@@ -330,16 +333,39 @@ export const orderRouter = router({
       const sortBy =
         !seesMoney && input.sortBy === "totalAmount" ? "createdAt" : (input.sortBy ?? "createdAt");
       // deadline เป็น field ว่างได้ (งานไม่ระบุกำหนดส่ง) — ดันไว้ท้ายเสมอ ไม่ให้แซงงานที่มีกำหนดจริง
+      // "เร่งด่วน" ไม่ใช่คอลัมน์ในฐานข้อมูล — เรียงด้วยกำหนดส่งเป็นหลัก (เลยกำหนดนานสุดขึ้นก่อน
+      // แล้วไล่มาใกล้กำหนด) ส่วนงานที่ไม่มีกำหนดส่งไปต่อท้าย เรียงจากใบที่นิ่งนานสุด = ติดหล่มก่อน
       const orderBy =
-        sortBy === "deadline"
-          ? { deadline: { sort: input.sortOrder ?? "asc", nulls: "last" as const } }
-          : ({ [sortBy]: input.sortOrder ?? "desc" } as Record<string, string>);
+        sortBy === "attention"
+          ? [
+              { deadline: { sort: input.sortOrder ?? "asc", nulls: "last" as const } },
+              { updatedAt: "asc" as const },
+            ]
+          : sortBy === "deadline"
+            ? { deadline: { sort: input.sortOrder ?? "asc", nulls: "last" as const } }
+            : ({ [sortBy]: input.sortOrder ?? "desc" } as Record<string, string>);
 
-      const [orders, total] = await Promise.all([
+      // จำนวนงานแยกตามสถานะภายใน — ป้อนแถบการ์ดสถานะเหนือตาราง (เบสเคาะ 2026-07-31)
+      // ต้องนับจาก where ที่ "ถอด internalStatus ออก" เท่านั้น ไม่งั้นพอกดเลือกสถานะหนึ่ง
+      // การ์ดอื่นจะกลายเป็น 0 ทั้งแถวทันที (คนอ่านนึกว่างานหายไปจากระบบ)
+      // ตัวกรองอื่น (ค้นหา/ช่องทาง/ประเภท/วันที่/ความเร่งด่วน) ยังมีผลกับตัวเลข
+      const whereForCounts: Record<string, unknown> = { ...where };
+      delete whereForCounts.internalStatus;
+
+      const [orders, total, statusGroups] = await Promise.all([
         ctx.prisma.order.findMany({
           where,
           include: {
-            customer: { select: { id: true, name: true, company: true } },
+            customer: {
+              select: {
+                id: true,
+                name: true,
+                company: true,
+                // ชื่อ+ลิงก์ห้องแชท — ตารางออเดอร์ใช้พาไปคุยต่อได้ในคลิกเดียว
+                chatName: true,
+                chatUrl: true,
+              },
+            },
             _count: { select: { items: true, designs: true, deliveries: true } },
             invoices: {
               where: { isVoided: false },
@@ -351,9 +377,29 @@ export const orderRouter = router({
           take: input.limit,
         }),
         ctx.prisma.order.count({ where }),
+        ctx.prisma.order.groupBy({
+          by: ["internalStatus"],
+          where: whereForCounts,
+          _count: { _all: true },
+        }),
         // sweep วิ่งคู่ query — .finally ผูกให้จบก่อน settle ทั้งทาง success/error
         // (review จับ: await แยกบรรทัดจะไปไม่ถึงเมื่อ query หลัก throw — sweep ลอยโดน freeze ตัด)
       ]).finally(() => sweepP);
+
+      const statusCounts = Object.fromEntries(
+        statusGroups.map((g) => [g.internalStatus, g._count._all]),
+      ) as Record<string, number>;
+
+      // "ติดหล่ม" ต้องดูประวัติแก้ไขด้วย (เกณฑ์เดียวกับตัวกรอง/แดชบอร์ด) หน้าเว็บคำนวณเองไม่ได้
+      // ถามเฉพาะ id ที่อยู่ในหน้านี้ — คิวรีเบาและไม่พาข้อมูลเกินจำเป็นออกไป
+      const pageIds = orders.map((o) => o.id);
+      const stuckRows = pageIds.length
+        ? await ctx.prisma.order.findMany({
+            where: { AND: [{ id: { in: pageIds } }, orderAttentionWhere("stuck")] },
+            select: { id: true },
+          })
+        : [];
+      const stuckIds = new Set(stuckRows.map((r) => r.id));
 
       const ordersWithPayment = orders.map((order) => {
         const invoices = order.invoices;
@@ -368,6 +414,7 @@ export const orderRouter = router({
         return {
           ...order,
           paymentLabel,
+          attention: orderAttentionOf(order, stuckIds),
           invoicedTotal: invoices.reduce((s, inv) => s + inv.totalAmount, 0),
         };
       });
@@ -394,7 +441,12 @@ export const orderRouter = router({
             }),
       }));
 
-      return { orders: sanitizedOrders, total, pages: Math.ceil(total / input.limit) };
+      return {
+        orders: sanitizedOrders,
+        total,
+        pages: Math.ceil(total / input.limit),
+        statusCounts,
+      };
     }),
 
   getById: protectedProcedure

@@ -17,7 +17,7 @@ export function FilterChip({ selected, onClick, children, className }: FilterChi
         "min-h-11 touch-manipulation whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 sm:min-h-9",
         selected
           ? "bg-blue-600 text-white dark:bg-blue-500"
-          : "bg-white text-slate-600 shadow-[0_0_0_0.5px_rgba(0,0,0,0.08)] hover:bg-slate-50 hover:text-slate-900 dark:bg-white/[0.06] dark:text-slate-300 dark:shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)] dark:hover:bg-white/10 dark:hover:text-white",
+          : "bg-white text-slate-600 hairline-ring hover:bg-slate-50 hover:text-slate-900 dark:bg-white/[0.06] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
         className,
       )}
     >

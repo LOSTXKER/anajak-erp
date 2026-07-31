@@ -165,7 +165,7 @@ export default function DesignApprovalPage({
                 />
               </div>
             ) : d.fileUrl ? (
-              <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+              <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
                 ไฟล์แบบเป็นไฟล์งาน (เปิดดูตัวอย่างในหน้านี้ไม่ได้) — กด &quot;เปิดไฟล์แบบ&quot;
                 ด้านล่างเพื่อดูก่อนตัดสินใจ
               </div>
@@ -176,7 +176,7 @@ export default function DesignApprovalPage({
                   href={d.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   {isImageUrl(d.fileUrl) ? "เปิดภาพเต็ม" : "เปิดไฟล์แบบ"}

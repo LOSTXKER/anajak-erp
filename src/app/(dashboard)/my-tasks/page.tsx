@@ -282,7 +282,7 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
             {item.deadline && (
               <span
                 className={cn(
-                  "inline-flex items-center gap-1",
+                  "inline-flex items-center gap-1.5",
                   (item.attention === "overdue" || item.attention === "blocked") &&
                     "font-medium text-red-600 dark:text-red-400",
                   item.attention === "due-soon" && "text-amber-700 dark:text-amber-400"

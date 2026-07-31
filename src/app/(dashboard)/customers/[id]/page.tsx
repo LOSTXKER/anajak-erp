@@ -70,9 +70,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         action={
           <>
             {customer.customerType === "CORPORATE" ? (
-              <Badge variant="default" className="gap-1"><Building2 className="h-3 w-3" /> นิติบุคคล</Badge>
+              <Badge variant="default" className="gap-1.5"><Building2 className="h-3 w-3" /> นิติบุคคล</Badge>
             ) : (
-              <Badge variant="secondary" className="gap-1"><User className="h-3 w-3" /> บุคคลธรรมดา</Badge>
+              <Badge variant="secondary" className="gap-1.5"><User className="h-3 w-3" /> บุคคลธรรมดา</Badge>
             )}
             {canEdit && (
               <Button
@@ -175,7 +175,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 </div>
               )}
               {customer.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 pt-2">
+                <div className="flex flex-wrap gap-1.5 pt-2">
                   {customer.tags.map((tag) => (
                     <Badge key={tag} variant="secondary">{tag}</Badge>
                   ))}
@@ -195,7 +195,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               <CardHeader><CardTitle className="text-base">ข้อมูลนิติบุคคล</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
                 {customer.customerType !== "CORPORATE" && (
-                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
                     ลูกค้าเป็นบุคคลธรรมดาแต่มีข้อมูลภาษี/วงเงินค้าง — ยังถูกใช้จริง ถ้าไม่ใช้แล้วกด
                     &quot;แก้ไขข้อมูล&quot; แล้วลบออก
                   </p>
@@ -227,7 +227,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   </div>
                 )}
                 {customer.billingAddress && (
-                  <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                  <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
                     <p className="mb-1 text-xs font-semibold text-slate-500">ที่อยู่ออกใบกำกับภาษี</p>
                     <p className="text-sm text-slate-700 dark:text-slate-300">
                       {customer.billingAddress}
@@ -259,7 +259,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     <Link
                       key={order.id}
                       href={`/orders/${order.id}`}
-                      className="flex items-center justify-between rounded-lg border border-slate-100 p-3 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                      className="flex items-center justify-between rounded-xl border border-slate-100 p-3 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
                     >
                       <div>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{order.orderNumber}</p>
@@ -287,7 +287,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     size="sm"
                     variant="outline"
                     onClick={() => setLoggingComm(true)}
-                    className="gap-1"
+                    className="gap-1.5"
                   >
                     <MessageSquarePlus className="h-3.5 w-3.5" />
                     บันทึกการคุย

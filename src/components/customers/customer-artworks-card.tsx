@@ -201,7 +201,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
           </CardTitle>
           <div className="flex items-center gap-2">
             {totalFilm > 0 && (
-              <Badge variant="warning" className="gap-1">
+              <Badge variant="warning" className="gap-1.5">
                 <Film className="h-3 w-3" />
                 ฟิล์มค้าง {totalFilm} ชิ้น
               </Badge>
@@ -210,7 +210,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 gap-1 px-2 text-xs"
+                className="h-8 gap-1.5 px-2 text-xs"
                 onClick={() => setAdding(true)}
               >
                 <Plus className="h-3 w-3" />
@@ -243,11 +243,11 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       <img
                         src={a.imageUrl}
                         alt={a.name}
-                        className="h-16 w-16 shrink-0 rounded-md border border-slate-200 object-cover dark:border-slate-700"
+                        className="h-16 w-16 shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700"
                       />
                     </a>
                   ) : (
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
                       <ImageIcon className="h-6 w-6 text-slate-300 dark:text-slate-600" />
                     </div>
                   )}
@@ -262,7 +262,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                         </Badge>
                       )}
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1 flex flex-wrap gap-1.5">
                       {specChips(a).map((c) => (
                         <Badge key={c} variant="secondary" className="text-2xs">
                           {c}
@@ -289,7 +289,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                     {canReorder && a.latestOrder && a.isActive && (
                       <Button
                         size="sm"
-                        className="h-7 gap-1 px-2 text-xs"
+                        className="h-8 gap-1.5 px-2 text-xs"
                         onClick={() => reorder(a)}
                         disabled={duplicateOrder.isPending}
                       >
@@ -305,7 +305,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 gap-1 px-2 text-xs"
+                        className="h-8 gap-1.5 px-2 text-xs"
                         onClick={() => openEdit(a)}
                       >
                         <Pencil className="h-3 w-3" />
@@ -320,7 +320,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 w-full text-xs text-slate-500"
+                className="h-8 w-full text-xs text-slate-500"
                 onClick={() => setShowAll((v) => !v)}
               >
                 {showAll ? "ย่อ" : `ดูทั้งหมด (${rows.length})`}
@@ -400,7 +400,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-xs text-slate-500"
+                className="h-8 px-2 text-xs text-slate-500"
                 onClick={() =>
                   toggleActive.mutate({ id: editing.id, isActive: !editing.isActive })
                 }
@@ -448,12 +448,12 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                   <img
                     src={addImageUrl}
                     alt="ลายใหม่"
-                    className="h-16 w-16 rounded-md border border-slate-200 object-cover dark:border-slate-700"
+                    className="h-16 w-16 rounded-lg border border-slate-200 object-cover dark:border-slate-700"
                   />
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2 text-xs"
+                    className="h-8 px-2 text-xs"
                     onClick={() => setAddImageUrl("")}
                   >
                     เปลี่ยนรูป

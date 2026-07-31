@@ -135,7 +135,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 gap-1 px-2 text-xs"
+                className="h-8 gap-1.5 px-2 text-xs"
                 onClick={() => setShowUpload((v) => !v)}
               >
                 <Upload className="h-3 w-3" />
@@ -178,7 +178,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                 {attachments.map((a) => (
                   <li
                     key={a.id}
-                    className="flex items-center gap-2 rounded-md border border-slate-200 p-2 text-sm dark:border-slate-700"
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-sm dark:border-slate-700"
                   >
                     {isImageUrl(a.fileUrl) ? (
                       <img
@@ -223,7 +223,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
             ) : shareUrl ? (
               <>
                 <div className="flex items-center gap-2">
-                  <code className="min-w-0 flex-1 truncate rounded-md bg-slate-100 px-2.5 py-2 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  <code className="min-w-0 flex-1 truncate rounded-lg bg-slate-100 px-2.5 py-2 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                     {shareUrl}
                   </code>
                 </div>

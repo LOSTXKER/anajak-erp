@@ -516,7 +516,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   {showErrors && (
                     <div
                       id="sync-error-list"
-                      className="mt-2 max-h-32 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50/50 p-3 dark:border-amber-800 dark:bg-amber-950/30"
+                      className="mt-2 max-h-32 overflow-y-auto rounded-xl border border-amber-200 bg-amber-50/50 p-3 dark:border-amber-800 dark:bg-amber-950/30"
                     >
                       {totals.errors.map((err, i) => (
                         <p
@@ -533,7 +533,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
 
               {/* No changes */}
               {totalChanges === 0 && !hasErrors && !isCancelled && (
-                <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-center dark:border-slate-700 dark:bg-slate-800/50">
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center dark:border-slate-700 dark:bg-slate-800/50">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     ไม่มีการเปลี่ยนแปลง — สินค้าทั้งหมดตรงกับ Anajak Stock แล้ว
                   </p>

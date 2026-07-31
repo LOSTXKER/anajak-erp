@@ -96,7 +96,7 @@ function CustomersPageContent() {
   }, [search]);
   const [formData, setFormData] = useState({
     name: "", company: "", email: "", phone: "",
-    lineId: "", address: "", notes: "",
+    lineId: "", chatName: "", chatUrl: "", address: "", notes: "",
     customerType: "INDIVIDUAL" as "INDIVIDUAL" | "CORPORATE",
     taxId: "", branchNumber: "",
     billingAddress: "", billingSubDistrict: "", billingDistrict: "",
@@ -147,7 +147,7 @@ function CustomersPageContent() {
     onSuccess: () => {
       setShowForm(false);
       setFormData({
-        name: "", company: "", email: "", phone: "", lineId: "", address: "", notes: "",
+        name: "", company: "", email: "", phone: "", lineId: "", chatName: "", chatUrl: "", address: "", notes: "",
         customerType: "INDIVIDUAL", taxId: "", branchNumber: "",
         billingAddress: "", billingSubDistrict: "", billingDistrict: "",
         billingProvince: "", billingPostalCode: "",
@@ -166,6 +166,8 @@ function CustomersPageContent() {
       email: formData.email || undefined,
       phone: formData.phone || undefined,
       lineId: formData.lineId || undefined,
+      chatName: formData.chatName || undefined,
+      chatUrl: formData.chatUrl || undefined,
       address: formData.address || undefined,
       notes: formData.notes || undefined,
       customerType: formData.customerType,
@@ -264,6 +266,24 @@ function CustomersPageContent() {
                     placeholder="@lineid"
                   />
                 </Field>
+                <Field label="ชื่อในแชท" description="ชื่อที่ลูกค้าใช้ในห้องแชท — ใช้ได้ทุกช่องทาง">
+                  <Input
+                    id="customer-chat-name"
+                    value={formData.chatName}
+                    onChange={(e) => setFormData({ ...formData, chatName: e.target.value })}
+                    placeholder="เช่น ร้านเสื้อพี่หนึ่ง"
+                  />
+                </Field>
+                <Field label="ลิงก์แชท" description="กดจากรายการออเดอร์แล้วเปิดห้องแชทได้เลย">
+                  <Input
+                    id="customer-chat-url"
+                    type="url"
+                    inputMode="url"
+                    value={formData.chatUrl}
+                    onChange={(e) => setFormData({ ...formData, chatUrl: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </Field>
                 <Field label="อีเมล">
                   <Input
                     id="customer-email"
@@ -286,7 +306,7 @@ function CustomersPageContent() {
               {/* Corporate-specific fields */}
               {isCorporate && (
                 <>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                     <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">ข้อมูลนิติบุคคล</h4>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                       <Field label="เลขประจำตัวผู้เสียภาษี" required={isCorporate}>
@@ -341,7 +361,7 @@ function CustomersPageContent() {
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                     <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">ที่อยู่ออกใบกำกับภาษี</h4>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div className="md:col-span-2">
@@ -405,7 +425,7 @@ function CustomersPageContent() {
         </Section>
       )}
 
-      <div className="flex flex-col gap-2.5 sm:flex-row">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <SearchInput
           ref={searchInputRef}
           containerClassName="flex-1"
@@ -421,6 +441,7 @@ function CustomersPageContent() {
           }}
         />
         <NativeSelect
+          shape="pill"
           aria-label="กรองกลุ่มลูกค้า"
           value={segment}
           onChange={(event) =>
@@ -478,7 +499,7 @@ function CustomersPageContent() {
                     </DataTable.Td>
                     <DataTable.Td>
                       {customer.customerType === "CORPORATE" ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
                           <Building2 className="h-3 w-3" /> นิติบุคคล
                         </span>
                       ) : (
@@ -537,7 +558,7 @@ function CustomersPageContent() {
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Badge variant={seg.variant}>{seg.label}</Badge>
-                      <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                         {customer.customerType === "CORPORATE" && (
                           <Building2 aria-hidden="true" className="h-3.5 w-3.5" />
                         )}

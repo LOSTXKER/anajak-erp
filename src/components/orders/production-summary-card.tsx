@@ -120,13 +120,13 @@ export function ProductionSummaryCard({
                       </span>
                     )}
                     {currentStep?.assignedTo && (
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1.5">
                         <User className="h-3 w-3" />
                         {currentStep.assignedTo.name}
                       </span>
                     )}
                     {hasActiveOutsource && (
-                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                      <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
                         <Truck className="h-3 w-3" />
                         มีงานอยู่ร้านนอก
                       </span>
