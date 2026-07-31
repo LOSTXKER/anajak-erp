@@ -161,6 +161,22 @@ export function CustomerEditDialog({
             <Field label="LINE ID">
               <Input value={form.lineId} onChange={(e) => set({ lineId: e.target.value })} />
             </Field>
+            <Field label="ชื่อในแชท" description="ชื่อที่ลูกค้าใช้ในห้องแชท — ใช้ได้ทุกช่องทาง">
+              <Input
+                value={form.chatName}
+                onChange={(e) => set({ chatName: e.target.value })}
+                placeholder="เช่น ร้านเสื้อพี่หนึ่ง"
+              />
+            </Field>
+            <Field label="ลิงก์แชท" description="กดจากรายการออเดอร์แล้วเปิดห้องแชทได้เลย">
+              <Input
+                type="url"
+                inputMode="url"
+                value={form.chatUrl}
+                onChange={(e) => set({ chatUrl: e.target.value })}
+                placeholder="https://..."
+              />
+            </Field>
             <Field label="อีเมล">
               <Input
                 type="email"

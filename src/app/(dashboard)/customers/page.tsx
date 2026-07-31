@@ -96,7 +96,7 @@ function CustomersPageContent() {
   }, [search]);
   const [formData, setFormData] = useState({
     name: "", company: "", email: "", phone: "",
-    lineId: "", address: "", notes: "",
+    lineId: "", chatName: "", chatUrl: "", address: "", notes: "",
     customerType: "INDIVIDUAL" as "INDIVIDUAL" | "CORPORATE",
     taxId: "", branchNumber: "",
     billingAddress: "", billingSubDistrict: "", billingDistrict: "",
@@ -147,7 +147,7 @@ function CustomersPageContent() {
     onSuccess: () => {
       setShowForm(false);
       setFormData({
-        name: "", company: "", email: "", phone: "", lineId: "", address: "", notes: "",
+        name: "", company: "", email: "", phone: "", lineId: "", chatName: "", chatUrl: "", address: "", notes: "",
         customerType: "INDIVIDUAL", taxId: "", branchNumber: "",
         billingAddress: "", billingSubDistrict: "", billingDistrict: "",
         billingProvince: "", billingPostalCode: "",
@@ -166,6 +166,8 @@ function CustomersPageContent() {
       email: formData.email || undefined,
       phone: formData.phone || undefined,
       lineId: formData.lineId || undefined,
+      chatName: formData.chatName || undefined,
+      chatUrl: formData.chatUrl || undefined,
       address: formData.address || undefined,
       notes: formData.notes || undefined,
       customerType: formData.customerType,
@@ -262,6 +264,24 @@ function CustomersPageContent() {
                     value={formData.lineId}
                     onChange={(e) => setFormData({ ...formData, lineId: e.target.value })}
                     placeholder="@lineid"
+                  />
+                </Field>
+                <Field label="ชื่อในแชท" description="ชื่อที่ลูกค้าใช้ในห้องแชท — ใช้ได้ทุกช่องทาง">
+                  <Input
+                    id="customer-chat-name"
+                    value={formData.chatName}
+                    onChange={(e) => setFormData({ ...formData, chatName: e.target.value })}
+                    placeholder="เช่น ร้านเสื้อพี่หนึ่ง"
+                  />
+                </Field>
+                <Field label="ลิงก์แชท" description="กดจากรายการออเดอร์แล้วเปิดห้องแชทได้เลย">
+                  <Input
+                    id="customer-chat-url"
+                    type="url"
+                    inputMode="url"
+                    value={formData.chatUrl}
+                    onChange={(e) => setFormData({ ...formData, chatUrl: e.target.value })}
+                    placeholder="https://..."
                   />
                 </Field>
                 <Field label="อีเมล">

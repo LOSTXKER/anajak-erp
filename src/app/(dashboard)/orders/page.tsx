@@ -31,6 +31,7 @@ import {
   ShoppingCart,
   ChevronRight,
   Clock3,
+  MessageCircle,
 } from "lucide-react";
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -124,6 +125,40 @@ function deadlineToneClass(
   if (due < now) return "font-medium text-red-600 dark:text-red-400";
   if (due <= now + 48 * 60 * 60 * 1000) return "text-amber-700 dark:text-amber-400";
   return null;
+}
+
+/** ห้องแชทของลูกค้า — กดแล้วเปิดแชทจริงในแท็บใหม่
+ *  รับเฉพาะลิงก์ http/https (ฝั่ง server กันไว้อีกชั้น) — ไม่ยอมให้ href กลายเป็นสคริปต์
+ *  กันคลิกทะลุไปเปิดหน้าออเดอร์ด้วย stopPropagation เพราะแถวทั้งแถวกดได้บนมือถือ */
+function ChatLink({
+  name,
+  url,
+}: {
+  name?: string | null;
+  url?: string | null;
+}) {
+  if (!name && !url) return null;
+  const safe = url && /^https?:\/\//i.test(url) ? url : null;
+  const label = name || "เปิดแชท";
+  if (!safe) {
+    return (
+      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+        {label}
+      </p>
+    );
+  }
+  return (
+    <a
+      href={safe}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="inline-flex max-w-full items-center gap-1.5 truncate text-xs text-blue-600 hover:underline dark:text-blue-400"
+    >
+      <MessageCircle aria-hidden="true" className="h-3 w-3 shrink-0" />
+      <span className="truncate">{label}</span>
+    </a>
+  );
 }
 
 function PaymentIndicator({ status }: { status: string }) {
@@ -571,7 +606,13 @@ function OrdersPageContent() {
         errorMessage="โหลดรายการออเดอร์ไม่สำเร็จ"
         onRetry={() => refetch()}
         label="ออเดอร์"
-        renderDesktop={(orders) => (
+        renderDesktop={(orders) => {
+          // คอลัมน์ที่ไม่มีข้อมูลสักแถวในหน้านี้ = กินที่เปล่าๆ (เบสสั่ง 2026-07-31
+          // หลังเห็นจอจริงว่า "การชำระ" กับ "กำหนดส่ง" เป็น — ทั้งคอลัมน์)
+          // ดูเฉพาะหน้าที่กำลังแสดง — พอเปลี่ยนหน้า/ตัวกรองแล้วมีข้อมูล คอลัมน์กลับมาเอง
+          const showPayment = orders.some((o) => o.paymentLabel !== "none");
+          const showDeadline = orders.some((o) => o.deadline);
+          return (
           <DataTable.Root>
             <DataTable.Head>
               <tr>
@@ -580,8 +621,8 @@ function OrdersPageContent() {
                 <DataTable.Th>ช่องทาง</DataTable.Th>
                 <DataTable.Th>สถานะ</DataTable.Th>
                 {canSeeMoney && <DataTable.Th align="right">ยอดรวม</DataTable.Th>}
-                <DataTable.Th>การชำระ</DataTable.Th>
-                <DataTable.Th>กำหนดส่ง</DataTable.Th>
+                {showPayment && <DataTable.Th>การชำระ</DataTable.Th>}
+                {showDeadline && <DataTable.Th>กำหนดส่ง</DataTable.Th>}
               </tr>
             </DataTable.Head>
             <DataTable.Body>
@@ -599,15 +640,18 @@ function OrdersPageContent() {
                     <div className="min-w-0">
                       <p className="truncate font-medium text-slate-900 dark:text-white">
                         {order.customer?.name ?? "—"}
-                      </p>
-                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        {order.title}
                         {order.orderType === "CUSTOM" && (
                           <Badge variant="accent" size="sm" className="ml-1.5">
                             Custom
                           </Badge>
                         )}
                       </p>
+                      {/* ชื่องานถูกถอดออก (เบสสั่ง 2026-07-31 — ซ้ำกับชื่อลูกค้าและอ่านไม่ทัน
+                          ตอนสแกนรายการ) แทนด้วยห้องแชทที่พาไปคุยต่อได้ในคลิกเดียว */}
+                      <ChatLink
+                        name={order.customer?.chatName}
+                        url={order.customer?.chatUrl}
+                      />
                     </div>
                   </DataTable.Td>
                   <DataTable.Td className="text-xs text-slate-600 dark:text-slate-400">
@@ -628,23 +672,28 @@ function OrdersPageContent() {
                       {formatCurrency(order.totalAmount ?? 0)}
                     </DataTable.Td>
                   )}
-                  <DataTable.Td>
-                    <PaymentIndicator status={order.paymentLabel} />
-                  </DataTable.Td>
-                  <DataTable.Td
-                    className={cn(
-                      "text-xs",
-                      deadlineToneClass(order.deadline, order.internalStatus) ??
-                        "text-slate-500 dark:text-slate-400"
-                    )}
-                  >
-                    {order.deadline ? formatDate(order.deadline) : "—"}
-                  </DataTable.Td>
+                  {showPayment && (
+                    <DataTable.Td>
+                      <PaymentIndicator status={order.paymentLabel} />
+                    </DataTable.Td>
+                  )}
+                  {showDeadline && (
+                    <DataTable.Td
+                      className={cn(
+                        "text-xs",
+                        deadlineToneClass(order.deadline, order.internalStatus) ??
+                          "text-slate-500 dark:text-slate-400"
+                      )}
+                    >
+                      {order.deadline ? formatDate(order.deadline) : "—"}
+                    </DataTable.Td>
+                  )}
                 </DataTable.Row>
               ))}
             </DataTable.Body>
           </DataTable.Root>
-        )}
+          );
+        }}
         renderMobile={(orders) => (
           <div role="list" aria-label="รายการออเดอร์" className="space-y-3">
             {orders.map((order) => (

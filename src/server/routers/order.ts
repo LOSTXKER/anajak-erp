@@ -339,7 +339,16 @@ export const orderRouter = router({
         ctx.prisma.order.findMany({
           where,
           include: {
-            customer: { select: { id: true, name: true, company: true } },
+            customer: {
+              select: {
+                id: true,
+                name: true,
+                company: true,
+                // ชื่อ+ลิงก์ห้องแชท — ตารางออเดอร์ใช้พาไปคุยต่อได้ในคลิกเดียว
+                chatName: true,
+                chatUrl: true,
+              },
+            },
             _count: { select: { items: true, designs: true, deliveries: true } },
             invoices: {
               where: { isVoided: false },
