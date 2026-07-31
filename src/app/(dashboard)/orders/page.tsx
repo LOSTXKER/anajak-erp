@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
+import { FilterPopover } from "@/components/ui/filter-popover";
+import { OrderStatusFlowBar } from "@/components/orders/order-status-flow-bar";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,7 +28,6 @@ import {
 import { PageHeader } from "@/components/page-header";
 import {
   Plus,
-  Filter,
   Download,
   ShoppingCart,
   ChevronRight,
@@ -53,31 +54,27 @@ const TYPE_FILTERS = [
   })),
 ];
 
-const CUSTOMER_STATUS_FILTERS = [
-  { value: "", label: "ทุกสถานะ" },
-  ...Object.entries(CUSTOMER_STATUS_LABELS).map(([value, label]) => ({
-    value,
-    label,
-  })),
-];
-
-const INTERNAL_STATUS_FILTERS = [
-  { value: "", label: "ทุกสถานะ" },
-  ...Object.entries(INTERNAL_STATUS_LABELS).map(([value, label]) => ({
-    value,
-    label,
-  })),
-];
-
+// ทุกคอลัมน์มีครบสองทิศ — หัวตารางกดสลับทิศได้ ค่าที่ได้ต้องผ่านด่านตรวจ (validation) ตัวเดียวกัน
 const SORT_OPTIONS = [
   { value: "createdAt:desc", label: "วันที่ (ล่าสุด)" },
   { value: "createdAt:asc", label: "วันที่ (เก่าสุด)" },
   { value: "deadline:asc", label: "กำหนดส่ง (ใกล้สุด)" },
+  { value: "deadline:desc", label: "กำหนดส่ง (ไกลสุด)" },
   { value: "totalAmount:desc", label: "ยอดรวม (มาก→น้อย)" },
   { value: "totalAmount:asc", label: "ยอดรวม (น้อย→มาก)" },
   { value: "orderNumber:desc", label: "เลขออเดอร์ (ล่าสุด)" },
   { value: "orderNumber:asc", label: "เลขออเดอร์ (เก่าสุด)" },
 ];
+
+/** ทิศที่จะได้ตอนกดหัวคอลัมน์ครั้งแรก — งานใหม่/ยอดมากขึ้นก่อน, กำหนดส่งใกล้สุดขึ้นก่อน */
+const SORT_DEFAULT_DIRECTION = {
+  orderNumber: "desc",
+  totalAmount: "desc",
+  createdAt: "desc",
+  deadline: "asc",
+} as const;
+
+type SortKey = keyof typeof SORT_DEFAULT_DIRECTION;
 
 const ATTENTION_FILTERS = [
   { value: "", label: "ทุกงาน" },
@@ -269,10 +266,8 @@ function OrdersPageContent() {
   const orderType = rawOrderType === "READY_MADE" || rawOrderType === "CUSTOM"
     ? rawOrderType
     : "";
-  const rawCustomerStatus = searchParams.get("customerStatus") ?? "";
-  const customerStatus = Object.hasOwn(CUSTOMER_STATUS_LABELS, rawCustomerStatus)
-    ? rawCustomerStatus
-    : "";
+  // ตัวกรอง "สถานะลูกค้า" ถูกถอดออกทั้งหมด (เบสสั่ง 2026-07-31) — ไม่มีหน้าไหนลิงก์มาด้วย
+  // พารามิเตอร์นี้ ถอดได้สะอาดโดยไม่ทำลายทางเข้าเดิม · สถานะภายในไปอยู่แถบการ์ดด้านบนแทน
   const rawInternalStatus = searchParams.get("status") ?? "";
   const internalStatus = Object.hasOwn(INTERNAL_STATUS_LABELS, rawInternalStatus)
     ? rawInternalStatus
@@ -287,7 +282,6 @@ function OrdersPageContent() {
   const page = positivePage(searchParams.get("page"));
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [showFilters, setShowFilters] = useState(false);
 
   const replaceListState = useCallback(
     (updates: Record<string, string | null>) => {
@@ -333,17 +327,21 @@ function OrdersPageContent() {
   const sort = sortOptions.some((option) => option.value === rawSort)
     ? rawSort
     : "createdAt:desc";
-  const [sortBy, sortOrder] = sort.split(":") as [
-    "createdAt" | "totalAmount" | "orderNumber" | "deadline",
-    "asc" | "desc",
-  ];
+  const [sortBy, sortOrder] = sort.split(":") as [SortKey, "asc" | "desc"];
+
+  /** props ให้หัวคอลัมน์ที่กดเรียงได้ — คอลัมน์ไหนกำลังเรียงอยู่ กดแล้วไปไหนต่อ */
+  const sortColumn = (key: SortKey) => ({
+    direction: sortBy === key ? sortOrder : null,
+    defaultDirection: SORT_DEFAULT_DIRECTION[key],
+    onSort: (direction: "asc" | "desc") =>
+      replaceListState({ sort: `${key}:${direction}`, page: null }),
+  });
 
   const { data, isLoading, isFetching, isError, refetch } = trpc.order.list.useQuery(
     {
       search: search.trim() || undefined,
       channel: channel || undefined,
       orderType: (orderType as OrderType) || undefined,
-      customerStatus: (customerStatus as CustomerStatus) || undefined,
       internalStatus: (internalStatus as InternalStatus) || undefined,
       createdAfter: createdAfter || undefined,
       createdBefore: createdBefore || undefined,
@@ -366,8 +364,6 @@ function OrdersPageContent() {
   const activeFilterCount = [
     channel,
     orderType,
-    customerStatus,
-    internalStatus,
     createdAfter,
     createdBefore,
   ].filter(Boolean).length;
@@ -376,8 +372,6 @@ function OrdersPageContent() {
     replaceListState({
       channel: null,
       type: null,
-      customerStatus: null,
-      status: null,
       attention: null,
       from: null,
       to: null,
@@ -393,7 +387,6 @@ function OrdersPageContent() {
       q: null,
       channel: null,
       type: null,
-      customerStatus: null,
       status: null,
       attention: null,
       from: null,
@@ -452,7 +445,8 @@ function OrdersPageContent() {
         />
 
         <div className="flex items-center gap-2">
-          {/* ไอคอน ⇅ ถูกถอดออก — ช่องเลือกบอกอยู่แล้วว่าเรียงด้วยอะไร ไม่ต้องมีไอคอนลอยข้างๆ */}
+          {/* ช่องเรียงเหลือไว้เฉพาะจอแคบ (เบสเคาะ 2026-07-31) — จอกว้างย้ายไปกดที่หัวตารางแทน
+              แต่จอแคบเป็นการ์ด ไม่มีหัวตารางให้กด ถ้าถอดทิ้งด้วยจะเรียงไม่ได้เลย */}
           <NativeSelect
             shape="pill"
             aria-label="เรียงลำดับ"
@@ -460,7 +454,7 @@ function OrdersPageContent() {
             onChange={(e) =>
               replaceListState({ sort: e.target.value, page: null })
             }
-            className="h-9 w-auto px-3 text-xs"
+            className="h-9 w-auto px-3 text-xs lg:hidden"
           >
             {sortOptions.map((o) => (
               <option key={o.value} value={o.value}>
@@ -469,51 +463,13 @@ function OrdersPageContent() {
             ))}
           </NativeSelect>
 
-          {/* เส้นคั่นบางๆ แยกกลุ่ม "ค้นหา/เรียง" ออกจาก "กรอง" */}
-          <span
-            aria-hidden
-            className="hidden h-5 w-px bg-slate-200 lg:block dark:bg-slate-800"
-          />
-
-          <Button
-            variant={showFilters || activeFilterCount > 0 ? "subtle" : "outline"}
-            size="sm"
-            onClick={() => setShowFilters((v) => !v)}
+          {/* ตัวกรองลอยใต้ปุ่ม — ตารางไม่ขยับ (เบสเคาะ 2026-07-31 แบบ ข)
+              เหลือ 3 หมวด: สถานะลูกค้าถูกถอดตามคำสั่ง · สถานะภายในย้ายขึ้นแถบการ์ดด้านบน */}
+          <FilterPopover
+            activeCount={activeFilterCount}
+            onClear={clearFilters}
+            resultLabel={`ดูผลลัพธ์ ${data?.total ?? 0} รายการ`}
           >
-            <Filter className="h-4 w-4" />
-            ตัวกรอง
-            {activeFilterCount > 0 && (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-2xs font-medium text-white">
-                {activeFilterCount}
-              </span>
-            )}
-          </Button>
-        </div>
-
-      {/* ความเร่งด่วน — คำถามหลักที่เปิดหน้านี้มาถามทุกเช้า โชว์เป็นแถว chip ตลอด ไม่ฝังในกล่องพับ
-          จอกว้าง = อยู่แถวเดียวกับ toolbar ชิดขวา · จอแคบ = ตกลงมาแถวล่างเอง */}
-      <div
-        className="flex flex-wrap items-center gap-1.5 lg:ml-auto"
-        role="group"
-        aria-label="กรองตามความเร่งด่วน"
-      >
-        {ATTENTION_FILTERS.map((filter) => (
-          <FilterChip
-            key={filter.value || "all"}
-            selected={attention === filter.value}
-            onClick={() =>
-              replaceListState({ attention: filter.value || null, page: null })
-            }
-          >
-            {filter.label}
-          </FilterChip>
-        ))}
-      </div>
-      </div>
-
-      {showFilters && (
-        <div className="card-surface rounded-2xl p-4">
-          <div className="space-y-3">
             <FilterRow label="ช่องทาง">
               {CHANNEL_FILTERS.map((f) => (
                 <FilterChip
@@ -534,32 +490,6 @@ function OrdersPageContent() {
                   selected={orderType === f.value}
                   onClick={() =>
                     replaceListState({ type: f.value || null, page: null })
-                  }
-                >
-                  {f.label}
-                </FilterChip>
-              ))}
-            </FilterRow>
-            <FilterRow label="สถานะลูกค้า">
-              {CUSTOMER_STATUS_FILTERS.map((f) => (
-                <FilterChip
-                  key={f.value}
-                  selected={customerStatus === f.value}
-                  onClick={() =>
-                    replaceListState({ customerStatus: f.value || null, page: null })
-                  }
-                >
-                  {f.label}
-                </FilterChip>
-              ))}
-            </FilterRow>
-            <FilterRow label="สถานะภายใน">
-              {INTERNAL_STATUS_FILTERS.map((f) => (
-                <FilterChip
-                  key={f.value}
-                  selected={internalStatus === f.value}
-                  onClick={() =>
-                    replaceListState({ status: f.value || null, page: null })
                   }
                 >
                   {f.label}
@@ -587,17 +517,39 @@ function OrdersPageContent() {
                 className="w-36 text-xs"
               />
             </FilterRow>
-
-            {activeFilterCount > 0 && (
-              <div className="flex justify-end">
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
-                  ล้างตัวกรองทั้งหมด
-                </Button>
-              </div>
-            )}
-          </div>
+          </FilterPopover>
         </div>
-      )}
+
+      {/* ความเร่งด่วน — คำถามหลักที่เปิดหน้านี้มาถามทุกเช้า โชว์เป็นแถว chip ตลอด ไม่ฝังในกล่องพับ
+          จอกว้าง = อยู่แถวเดียวกับ toolbar ชิดขวา · จอแคบ = ตกลงมาแถวล่างเอง */}
+      <div
+        className="flex flex-wrap items-center gap-1.5 lg:ml-auto"
+        role="group"
+        aria-label="กรองตามความเร่งด่วน"
+      >
+        {ATTENTION_FILTERS.map((filter) => (
+          <FilterChip
+            key={filter.value || "all"}
+            selected={attention === filter.value}
+            onClick={() =>
+              replaceListState({ attention: filter.value || null, page: null })
+            }
+          >
+            {filter.label}
+          </FilterChip>
+        ))}
+      </div>
+      </div>
+
+      {/* แถบสถานะงาน — ยกสถานะภายในขึ้นมาอยู่บนสุด กดกรองได้ทันทีโดยไม่ต้องเปิดกล่องอะไร */}
+      <OrderStatusFlowBar
+        counts={data?.statusCounts}
+        selected={internalStatus}
+        onSelect={(status: string) =>
+          replaceListState({ status: status || null, page: null })
+        }
+        isLoading={isLoading || isFetching}
+      />
 
       <ResponsiveList
         items={data?.orders}
@@ -616,13 +568,28 @@ function OrdersPageContent() {
           <DataTable.Root>
             <DataTable.Head>
               <tr>
-                <DataTable.Th>เลขออเดอร์</DataTable.Th>
+                {/* การเรียงย้ายมาอยู่ที่หัวคอลัมน์แล้ว (เบสสั่ง 2026-07-31) — กดซ้ำสลับทิศ
+                    เรียงได้เท่าที่ฐานข้อมูลรองรับ: เลขออเดอร์ · ยอดรวม · วันที่ · กำหนดส่ง */}
+                <DataTable.SortableTh {...sortColumn("orderNumber")}>
+                  เลขออเดอร์
+                </DataTable.SortableTh>
                 <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
                 <DataTable.Th>ช่องทาง</DataTable.Th>
                 <DataTable.Th>สถานะ</DataTable.Th>
-                {canSeeMoney && <DataTable.Th align="right">ยอดรวม</DataTable.Th>}
+                {canSeeMoney && (
+                  <DataTable.SortableTh align="right" {...sortColumn("totalAmount")}>
+                    ยอดรวม
+                  </DataTable.SortableTh>
+                )}
                 {showPayment && <DataTable.Th>การชำระ</DataTable.Th>}
-                {showDeadline && <DataTable.Th>กำหนดส่ง</DataTable.Th>}
+                <DataTable.SortableTh {...sortColumn("createdAt")}>
+                  วันที่
+                </DataTable.SortableTh>
+                {showDeadline && (
+                  <DataTable.SortableTh {...sortColumn("deadline")}>
+                    กำหนดส่ง
+                  </DataTable.SortableTh>
+                )}
               </tr>
             </DataTable.Head>
             <DataTable.Body>
@@ -677,6 +644,10 @@ function OrdersPageContent() {
                       <PaymentIndicator status={order.paymentLabel} />
                     </DataTable.Td>
                   )}
+                  {/* วันที่เปิดออเดอร์ — วางติดกำหนดส่งให้อ่านเป็นคู่ ต้นทาง–ปลายทาง */}
+                  <DataTable.Td className="whitespace-nowrap text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                    {formatDate(order.createdAt)}
+                  </DataTable.Td>
                   {showDeadline && (
                     <DataTable.Td
                       className={cn(
@@ -740,15 +711,23 @@ function OrdersPageContent() {
                       <p className="text-slate-500 dark:text-slate-400">การชำระ</p>
                       <div className="mt-0.5"><PaymentIndicator status={order.paymentLabel} /></div>
                     </div>
-                    <div
-                      className={cn(
-                        "inline-flex items-center gap-1.5",
-                        deadlineToneClass(order.deadline, order.internalStatus) ??
-                          "text-slate-500 dark:text-slate-400"
+                    {/* วันที่เปิดโชว์เสมอ (เดิมโชว์ต่อเมื่อไม่มีกำหนดส่ง) — คู่กับคอลัมน์วันที่ในตาราง */}
+                    <div>
+                      {order.deadline && (
+                        <div
+                          className={cn(
+                            "inline-flex items-center gap-1.5",
+                            deadlineToneClass(order.deadline, order.internalStatus) ??
+                              "text-slate-500 dark:text-slate-400"
+                          )}
+                        >
+                          <Clock3 aria-hidden="true" className="h-3.5 w-3.5" />
+                          {`กำหนด ${formatDate(order.deadline)}`}
+                        </div>
                       )}
-                    >
-                      <Clock3 aria-hidden="true" className="h-3.5 w-3.5" />
-                      {order.deadline ? `กำหนด ${formatDate(order.deadline)}` : `เปิด ${formatDate(order.createdAt)}`}
+                      <p className="text-slate-500 dark:text-slate-400">
+                        {`เปิด ${formatDate(order.createdAt)}`}
+                      </p>
                     </div>
                     {canSeeMoney && (
                       <p className="text-right font-semibold tabular-nums text-slate-900 dark:text-white">

@@ -335,7 +335,13 @@ export const orderRouter = router({
           ? { deadline: { sort: input.sortOrder ?? "asc", nulls: "last" as const } }
           : ({ [sortBy]: input.sortOrder ?? "desc" } as Record<string, string>);
 
-      const [orders, total] = await Promise.all([
+      // จำนวนงานแยกตามสถานะภายใน — ป้อนแถบการ์ดสถานะเหนือตาราง (เบสเคาะ 2026-07-31)
+      // ต้องนับจาก where ที่ "ถอด internalStatus ออก" เท่านั้น ไม่งั้นพอกดเลือกสถานะหนึ่ง
+      // การ์ดอื่นจะกลายเป็น 0 ทั้งแถวทันที (คนอ่านนึกว่างานหายไปจากระบบ)
+      // ตัวกรองอื่น (ค้นหา/ช่องทาง/ประเภท/วันที่/ความเร่งด่วน) ยังมีผลกับตัวเลข
+      const { internalStatus: _omitStatus, ...whereForCounts } = where;
+
+      const [orders, total, statusGroups] = await Promise.all([
         ctx.prisma.order.findMany({
           where,
           include: {
@@ -360,9 +366,18 @@ export const orderRouter = router({
           take: input.limit,
         }),
         ctx.prisma.order.count({ where }),
+        ctx.prisma.order.groupBy({
+          by: ["internalStatus"],
+          where: whereForCounts,
+          _count: { _all: true },
+        }),
         // sweep วิ่งคู่ query — .finally ผูกให้จบก่อน settle ทั้งทาง success/error
         // (review จับ: await แยกบรรทัดจะไปไม่ถึงเมื่อ query หลัก throw — sweep ลอยโดน freeze ตัด)
       ]).finally(() => sweepP);
+
+      const statusCounts = Object.fromEntries(
+        statusGroups.map((g) => [g.internalStatus, g._count._all]),
+      ) as Record<string, number>;
 
       const ordersWithPayment = orders.map((order) => {
         const invoices = order.invoices;
@@ -403,7 +418,12 @@ export const orderRouter = router({
             }),
       }));
 
-      return { orders: sanitizedOrders, total, pages: Math.ceil(total / input.limit) };
+      return {
+        orders: sanitizedOrders,
+        total,
+        pages: Math.ceil(total / input.limit),
+        statusCounts,
+      };
     }),
 
   getById: protectedProcedure

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -108,6 +109,78 @@ const Th = React.forwardRef<HTMLTableCellElement, ThProps>(
 );
 Th.displayName = "DataTable.Th";
 
+interface SortableThProps extends Omit<ThProps, "onClick"> {
+  /** ทิศที่กำลังเรียงอยู่ · null = คอลัมน์นี้ยังไม่ได้เป็นตัวเรียง */
+  direction?: "asc" | "desc" | null;
+  /** ทิศที่จะได้ตอนกดครั้งแรก — วันที่/ยอดเงินเริ่มมาก→น้อย, กำหนดส่งเริ่มใกล้สุด */
+  defaultDirection?: "asc" | "desc";
+  onSort: (direction: "asc" | "desc") => void;
+}
+
+/**
+ * หัวคอลัมน์ที่กดเรียงได้ — กดซ้ำสลับทิศ
+ * ลูกศรค้างไว้จางๆ ทุกคอลัมน์ที่เรียงได้ (บอกว่ากดได้) และเข้มขึ้นเมื่อเป็นตัวเรียงอยู่
+ * (เบสเคาะ 2026-07-31 จาก mockup orders-sort-in-header)
+ */
+const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
+  (
+    {
+      className,
+      align = "left",
+      scope = "col",
+      direction = null,
+      defaultDirection = "asc",
+      onSort,
+      children,
+      ...props
+    },
+    ref
+  ) => {
+    const active = direction !== null;
+    const nextDirection = active
+      ? direction === "asc"
+        ? "desc"
+        : "asc"
+      : defaultDirection;
+    const Arrow = (active ? direction : defaultDirection) === "asc" ? ArrowUp : ArrowDown;
+    return (
+      <th
+        ref={ref}
+        scope={scope}
+        aria-sort={
+          active ? (direction === "asc" ? "ascending" : "descending") : "none"
+        }
+        className={cn("p-0", className)}
+        {...props}
+      >
+        <button
+          type="button"
+          onClick={() => onSort(nextDirection)}
+          className={cn(
+            "flex w-full items-center gap-1.5 px-5 py-3 text-xs font-medium transition-colors",
+            "hover:bg-slate-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:hover:bg-slate-800/50",
+            active
+              ? "font-semibold text-blue-700 dark:text-blue-300"
+              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200",
+            align === "right" && "justify-end",
+            align === "center" && "justify-center"
+          )}
+        >
+          {children}
+          <Arrow
+            aria-hidden="true"
+            className={cn(
+              "h-3 w-3 shrink-0",
+              active ? "text-blue-600 dark:text-blue-400" : "text-slate-300 dark:text-slate-600"
+            )}
+          />
+        </button>
+      </th>
+    );
+  }
+);
+SortableTh.displayName = "DataTable.SortableTh";
+
 interface TdProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
   align?: "left" | "right" | "center";
 }
@@ -129,4 +202,4 @@ const Td = React.forwardRef<HTMLTableCellElement, TdProps>(
 );
 Td.displayName = "DataTable.Td";
 
-export const DataTable = { Root, Head, Body, Row, Th, Td };
+export const DataTable = { Root, Head, Body, Row, Th, SortableTh, Td };
