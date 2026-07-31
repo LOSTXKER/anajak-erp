@@ -212,7 +212,7 @@ export default function DashboardPage() {
             <PulseCard
               href="/orders?attention=overdue"
               subHref="/orders?attention=due-soon"
-              title="งานเสี่ยงเลยกำหนด"
+              title="งานเลยกำหนดส่ง"
               value={pulse.atRiskOrders.overdue}
               tone={pulse.atRiskOrders.overdue > 0 ? "danger" : "muted"}
               sub={`ใกล้ถึงใน 48 ชม. ${pulse.atRiskOrders.dueSoon}`}
@@ -244,10 +244,10 @@ export default function DashboardPage() {
             />
             <PulseCard
               href="/orders?attention=stuck"
-              title="งานติดหล่ม"
+              title="งานนิ่ง 3 วัน"
               value={pulse.stuckOrders}
               tone={pulse.stuckOrders > 0 ? "warning" : "muted"}
-              sub="เงียบเกิน 3 วัน"
+              sub="ไม่มีใครแตะเกิน 3 วัน"
               className="col-span-2 lg:col-span-1"
             />
           </div>

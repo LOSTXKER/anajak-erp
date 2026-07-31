@@ -252,14 +252,14 @@ export default function PrintRunsPage() {
       />
 
       {/* ── รอบค้าง — กำลังพิมพ์ / รอตัดแยก+ติดป้าย ── */}
-      <BlockSection icon={Printer} title="รอบค้าง" count={activeRuns.length}>
+      <BlockSection icon={Printer} title="รอบที่ยังพิมพ์ไม่จบ" count={activeRuns.length}>
         {/* query พัง (เน็ต/สิทธิ์) ต้องบอกตรงๆ + ปุ่มลองใหม่ — ห้ามโชว์ "ว่าง" หลอก */}
         {listQuery.isError ? (
           <QueryError onRetry={() => listQuery.refetch()} />
         ) : activeRuns.length === 0 ? (
           <EmptyState
             icon={Printer}
-            title="ยังไม่มีรอบค้าง"
+            title="ยังไม่มีรอบที่ค้างอยู่"
             description="เลือกงานจากคิวพิมพ์ด้านล่างเพื่อเปิดรอบพิมพ์ม้วนใหม่"
           />
         ) : (

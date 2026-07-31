@@ -242,7 +242,7 @@ function AgingPageContent() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="ลูกหนี้ค้างชำระ (Aging)"
+        title="ลูกหนี้ค้างชำระ"
         description="ยอดค้างต่อลูกค้า แยกตามอายุหนี้นับจากวันครบกำหนด"
         breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ลูกหนี้" }]}
       />

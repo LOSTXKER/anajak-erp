@@ -86,7 +86,7 @@ const ATTENTION_FILTERS = [
   { value: "", label: "ทุกงาน" },
   { value: "overdue", label: "เลยกำหนด" },
   { value: "due-soon", label: "ใกล้กำหนด 48 ชม." },
-  { value: "stuck", label: "ติดหล่มเกิน 3 วัน" },
+  { value: "stuck", label: "งานนิ่งเกิน 3 วัน" },
 ] as const;
 
 type OrderAttention = Exclude<(typeof ATTENTION_FILTERS)[number]["value"], "">;
@@ -147,7 +147,7 @@ const ATTENTION_BADGE: Record<
     text: "text-amber-700 dark:text-amber-300",
   },
   stuck: {
-    label: "ติดหล่ม",
+    label: "นิ่ง 3 วัน",
     dot: "bg-slate-400",
     text: "text-slate-600 dark:text-slate-300",
   },
