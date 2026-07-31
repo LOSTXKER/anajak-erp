@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>จัดส่วนบนหน้าออเดอร์ — Anajak ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sans:"Prompt",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --bg:#f5f5f7;--card:#fff;--line:#e5e5ea;--text:#1d1d1f;--muted:#6e6e73;--subtle:#86868b;
+    --blue:#3973b2;--blue-50:#e4edf6;--blue-700:#305f93;
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.06);
+    --hair:0 0 0 .5px rgba(0,0,0,.06);--float:0 20px 60px rgba(0,0,0,.15);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);font-size:14px;background:var(--bg);color:var(--text);
+       -webkit-font-smoothing:antialiased;letter-spacing:-.01em;padding:26px 20px 90px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:28px;font-weight:600;letter-spacing:-.02em;margin:0 0 6px}
+  .lead{font-size:14px;color:var(--muted);margin:0 0 20px;line-height:1.6;max-width:74ch}
+  .panel{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+  .panel h2{font-size:16px;font-weight:600;margin:0 0 4px}
+  .panel .sub{font-size:12px;color:var(--subtle);margin:0 0 14px;line-height:1.55}
+  .toggle{display:inline-flex;background:#ececf0;border-radius:999px;padding:3px;gap:3px;margin-bottom:14px;flex-wrap:wrap}
+  .toggle button{font-family:inherit;font-size:13px;font-weight:500;border:0;background:transparent;
+    color:var(--muted);padding:7px 15px;border-radius:999px;cursor:pointer}
+  .toggle button.on{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .note{font-size:12px;color:var(--muted);line-height:1.7;margin:14px 0 0}
+  .note b{color:var(--text)}.good{color:#1a7f37}.bad{color:#c32219}
+
+  /* จำลองพื้นที่จริงของเบส ~950px */
+  .stage{background:var(--bg);border-radius:14px;padding:14px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);
+         width:950px;max-width:100%;overflow:hidden}
+  .tag{font-size:11px;color:var(--subtle);margin-bottom:8px}
+
+  .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .ht{font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.15;margin:0}
+  .hd{font-size:12px;color:var(--muted);margin:2px 0 0}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 15px;border-radius:999px;
+       font-size:13px;font-weight:600;background:#fff;box-shadow:var(--hair);cursor:pointer}
+  .btn.primary{background:var(--blue);color:#fff;box-shadow:none}
+
+  .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .field{height:36px;border-radius:999px;background:#fff;box-shadow:var(--hair);display:flex;align-items:center;
+         gap:8px;padding:0 14px;font-size:13px;color:var(--subtle)}
+  .search{flex:1;min-width:200px;max-width:330px}
+  .btnf{height:36px;border-radius:999px;background:#fff;box-shadow:var(--hair);display:inline-flex;align-items:center;
+        gap:7px;padding:0 14px;font-size:13px;font-weight:500;cursor:pointer}
+  .sep{width:1px;height:20px;background:var(--line)}
+  .chips{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+  .chip{height:32px;display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;background:#fff;
+        box-shadow:var(--hair);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+  .chip.on{background:var(--blue);color:#fff;box-shadow:none}
+
+  /* ── แถบสถานะ ── */
+  .sbar{background:#fff;border-radius:16px;box-shadow:var(--shadow);padding:10px 12px;margin-bottom:12px}
+  .srow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .st{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:999px;
+      background:#f7f7f8;cursor:pointer;font-size:12px;white-space:nowrap;transition:.15s}
+  .st:hover{background:#efeff1}
+  .st.on{background:var(--blue-50);box-shadow:inset 0 0 0 1px var(--blue);color:var(--blue-700);font-weight:500}
+  .st .d{width:6px;height:6px;border-radius:99px;flex:none}
+  .st .n{font-weight:600;font-variant-numeric:tabular-nums}
+  .st.zero{opacity:.45}
+  .more{font-size:12px;color:var(--muted);cursor:pointer;padding:0 8px;height:34px;display:inline-flex;align-items:center}
+
+  /* แบบเก่า: การ์ดใหญ่ scroll */
+  .oldbar{background:#fff;border-radius:16px;box-shadow:var(--shadow);padding:12px;margin-bottom:12px;overflow-x:auto}
+  .oldrow{display:flex;gap:8px}
+  .oc{flex:none;min-width:112px;background:#f7f7f8;border-radius:12px;padding:9px 11px}
+  .oc .l{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;white-space:nowrap}
+  .oc .n{font-size:19px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  th{font-size:12px;font-weight:600;color:var(--muted);text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+  td{padding:10px 12px;border-bottom:1px solid #f2f2f4;font-size:13px}
+  tr:last-child td{border-bottom:0}
+  .lk{color:var(--blue);font-weight:500}
+  .metric{display:flex;gap:20px;margin-top:12px;flex-wrap:wrap}
+  .metric div{font-size:12px;color:var(--muted)}
+  .metric b{display:block;font-size:20px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>จัดส่วนบนหน้าออเดอร์</h1>
+  <p class="lead">เวทีข้างล่างกว้าง <b>950px</b> เท่าพื้นที่จริงของเบส (หลังหักแถบเมนูซ้าย) — จะได้เห็นปัญหาแบบเดียวกับที่เบสเห็น กดสลับดูก่อน/หลังได้</p>
+
+  <div class="panel">
+    <div class="toggle">
+      <button id="tA">ก่อน (ของวันนี้)</button>
+      <button id="tB" class="on">หลัง</button>
+    </div>
+    <div class="stage" id="stage"></div>
+    <p class="note" id="note"></p>
+  </div>
+
+  <div class="panel">
+    <h2>สรุปสิ่งที่เปลี่ยน</h2>
+    <p class="sub" style="margin:0;line-height:1.85">
+      <b>1 · จุดตัดจอผิด</b> — ตั้งให้ยุบเป็นแถวเดียวเมื่อจอ ≥1024px แต่พื้นที่จริงเหลือ 950px เงื่อนไขเลยไม่เคยติด · แก้เป็น ≥768px<br>
+      <b>2 · การ์ดสถานะเป็นชิปแทนกล่อง</b> — ชื่อกับเลขอยู่บรรทัดเดียวกัน สูงจาก 62px เหลือ 34px และตัดขวางน้อยลงจนขึ้นได้ 2 แถวโดยไม่ต้องเลื่อน<br>
+      <b>3 · สถานะที่ไม่มีงานพับเก็บ</b> — 8 จาก 14 สถานะเป็น 0 · ซ่อนไว้หลังปุ่ม "+8 สถานะที่ไม่มีงาน" กดเปิดได้ทุกเมื่อ ไม่ได้หายไปไหน<br>
+      <b>4 · ชิปความเร่งด่วนขึ้นแถวเดียวกับค้นหา</b> — ชิดขวา ตกบรรทัดเองเมื่อไม่พอ<br>
+      <b>ผล:</b> ส่วนบนเตี้ยลงราว <b>140px</b> — ตารางขึ้นมาให้เห็นเร็วขึ้นประมาณ 3 แถว
+    </p>
+  </div>
+</div>
+
+<script>
+const ST = [
+  ['ร่าง',0,'#86868b'],['สอบถาม',17,'#86868b'],['ยืนยันออเดอร์',17,'#3973b2'],['กำลังออกแบบ',2,'#3973b2'],
+  ['อนุมัติแบบแล้ว',0,'#3973b2'],['รอคิวผลิต',0,'#cf9209'],['กำลังผลิต',20,'#cf9209'],['ตรวจสอบคุณภาพ',0,'#cf9209'],
+  ['กำลังแพ็ค',0,'#cf9209'],['พร้อมจัดส่ง',0,'#cf9209'],['จัดส่งแล้ว',0,'#3973b2'],['เสร็จสิ้น',0,'#1a8754'],
+  ['พักงาน',0,'#cf9209'],['ยกเลิก',21,'#c32219'],
+];
+
+const HEAD = `
+  <div class="head">
+    <div><p class="ht">ออเดอร์</p><p class="hd">จัดการออเดอร์ทั้งหมด</p></div>
+    <div style="display:flex;gap:8px"><span class="btn">Export</span><span class="btn primary">+ สร้างออเดอร์</span></div>
+  </div>`;
+
+const TABLE = `
+  <table>
+    <tr><th>เลขออเดอร์ ↓</th><th>ลูกค้า</th><th>ช่องทาง</th><th>สถานะ</th><th style="text-align:right">ยอดรวม</th><th>วันที่</th></tr>
+    <tr><td class="lk">ORD-2607-0058</td><td>บริษัท สยามเท็กซ์</td><td>LINE</td><td>กำลังผลิต</td><td style="text-align:right">฿1,284</td><td>7 ก.ค. 2569</td></tr>
+    <tr><td class="lk">ORD-2607-0057</td><td>ร้านกีฬาเจริญพร</td><td>LINE</td><td>รับออเดอร์</td><td style="text-align:right">฿1,070</td><td>7 ก.ค. 2569</td></tr>
+    <tr><td class="lk">ORD-2607-0056</td><td>โรงเรียนบ้านสวน</td><td>Shopee</td><td>ยกเลิก</td><td style="text-align:right">฿1,284</td><td>7 ก.ค. 2569</td></tr>
+    <tr><td class="lk">ORD-2607-0055</td><td>ทีมฟุตบอลลุงหมี</td><td>Shopee</td><td>รับออเดอร์</td><td style="text-align:right">฿1,284</td><td>7 ก.ค. 2569</td></tr>
+  </table>`;
+
+function before(){
+  return HEAD + `
+    <div class="bar" style="display:block">
+      <div class="field" style="margin-bottom:8px">🔍 ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า…</div>
+      <div style="margin-bottom:8px"><span class="btnf">▽ ตัวกรอง</span></div>
+      <div class="chips" style="margin:0 0 8px 0">
+        <span class="chip on">ทุกงาน</span><span class="chip">เลยกำหนด</span><span class="chip">ใกล้กำหนด 48 ชม.</span><span class="chip">ติดหล่มเกิน 3 วัน</span></div>
+    </div>
+    <div class="oldbar"><div class="oldrow">` +
+    ST.map(([l,n,c])=>`<div class="oc"><div class="l"><span style="width:6px;height:6px;border-radius:99px;background:${c};display:inline-block"></span>${l}</div><div class="n" style="${n===0?'color:#c7c7cc':''}">${n}</div></div>`).join('') +
+    `</div></div>` + TABLE;
+}
+
+function after(){
+  const shown = ST.filter(s=>s[1]>0);
+  const hidden = ST.length - shown.length;
+  return HEAD + `
+    <div class="bar">
+      <div class="field search">🔍 ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า…</div>
+      <span class="btnf">▽ ตัวกรอง</span>
+      <span class="sep"></span>
+      <div class="chips">
+        <span class="chip on">ทุกงาน</span><span class="chip">เลยกำหนด</span><span class="chip">ใกล้กำหนด 48 ชม.</span><span class="chip">ติดหล่มเกิน 3 วัน</span></div>
+    </div>
+    <div class="sbar"><div class="srow">` +
+    shown.map(([l,n,c])=>`<span class="st ${l==='กำลังผลิต'?'on':''}"><span class="d" style="background:${c}"></span>${l}<span class="n">${n}</span></span>`).join('') +
+    `<span class="more">+${hidden} สถานะที่ไม่มีงาน ⌄</span></div></div>` + TABLE;
+}
+
+const NOTES={
+  A:'<b class="bad">ก่อน:</b> ค้นหา · ตัวกรอง · ชิป · การ์ดสถานะ = <b>4 แถวซ้อนกัน</b> ก่อนถึงตาราง · แถบสถานะกว้างเกินพื้นที่จนมีแถบเลื่อนแนวนอนโผล่ และการ์ดสุดท้ายถูกตัดครึ่ง — ดูแล้วเหมือนหน้ายังโหลดไม่เสร็จ · 8 ใบจาก 14 เป็นเลข 0 กินที่ไปเปล่าๆ',
+  B:'<b class="good">หลัง:</b> เหลือ <b>2 แถว</b> — ค้นหา+ตัวกรอง+ชิปอยู่แถวเดียวกัน · สถานะเป็นชิปเตี้ยๆ ชื่อกับเลขบรรทัดเดียว ขึ้นได้หมดโดยไม่ต้องเลื่อน ไม่มีอะไรถูกตัด · สถานะที่ไม่มีงานพับเก็บไว้หลังปุ่มเดียว กดดูได้ทุกเมื่อ · ส่วนบนเตี้ยลงราว 140px ตารางขึ้นมาเร็วขึ้น ~3 แถว'
+};
+
+function render(m){
+  document.getElementById('stage').innerHTML = (m==='A'?before():after());
+  document.getElementById('note').innerHTML = NOTES[m];
+  ['A','B'].forEach(x=>document.getElementById('t'+x).classList.toggle('on',x===m));
+}
+document.getElementById('tA').onclick=()=>render('A');
+document.getElementById('tB').onclick=()=>render('B');
+render('B');
+</script>
+</body>
+</html>

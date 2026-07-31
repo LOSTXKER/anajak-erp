@@ -33,6 +33,7 @@ import {
   ChevronRight,
   Clock3,
   MessageCircle,
+  X,
 } from "lucide-react";
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -64,6 +65,8 @@ const SORT_OPTIONS = [
   { value: "totalAmount:asc", label: "ยอดรวม (น้อย→มาก)" },
   { value: "orderNumber:desc", label: "เลขออเดอร์ (ล่าสุด)" },
   { value: "orderNumber:asc", label: "เลขออเดอร์ (เก่าสุด)" },
+  { value: "attention:asc", label: "เร่งด่วนก่อน" },
+  { value: "attention:desc", label: "ไม่เร่งก่อน" },
 ];
 
 /** ทิศที่จะได้ตอนกดหัวคอลัมน์ครั้งแรก — งานใหม่/ยอดมากขึ้นก่อน, กำหนดส่งใกล้สุดขึ้นก่อน */
@@ -72,6 +75,8 @@ const SORT_DEFAULT_DIRECTION = {
   totalAmount: "desc",
   createdAt: "desc",
   deadline: "asc",
+  // เร่งด่วนสุดขึ้นก่อนเสมอ — กดครั้งแรกต้องได้งานที่ไฟลนก้นที่สุด ไม่ใช่งานสบายๆ
+  attention: "asc",
 } as const;
 
 type SortKey = keyof typeof SORT_DEFAULT_DIRECTION;
@@ -122,6 +127,45 @@ function deadlineToneClass(
   if (due < now) return "font-medium text-red-600 dark:text-red-400";
   if (due <= now + 48 * 60 * 60 * 1000) return "text-amber-700 dark:text-amber-400";
   return null;
+}
+
+/** ป้าย "เร่งด่วน" ในตาราง — เกณฑ์มาจาก server (order-list-filter) ชุดเดียวกับแดชบอร์ด
+ *  ใบเดียวติดได้หลายข้อ server เลือกข้อที่แรงสุดมาให้แล้ว */
+const ATTENTION_BADGE: Record<
+  string,
+  { label: string; dot: string; text: string }
+> = {
+  overdue: {
+    label: "เลยกำหนด",
+    dot: "bg-red-500",
+    text: "text-red-700 dark:text-red-300",
+  },
+  "due-soon": {
+    label: "ใกล้กำหนด",
+    dot: "bg-amber-500",
+    text: "text-amber-700 dark:text-amber-300",
+  },
+  stuck: {
+    label: "ติดหล่ม",
+    dot: "bg-slate-400",
+    text: "text-slate-600 dark:text-slate-300",
+  },
+};
+
+function AttentionIndicator({ attention }: { attention: string | null }) {
+  const v = attention ? ATTENTION_BADGE[attention] : null;
+  if (!v) return <span className="text-xs text-slate-300">—</span>;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium",
+        v.text,
+      )}
+    >
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", v.dot)} />
+      {v.label}
+    </span>
+  );
 }
 
 /** ห้องแชทของลูกค้า — กดแล้วเปิดแชทจริงในแท็บใหม่
@@ -428,10 +472,10 @@ function OrdersPageContent() {
           แถวเดียวจบเมื่อจอกว้าง: ค้นหา · เรียง | กรอง · ชิปความเร่งด่วนชิดขวา
           (เบสสั่ง 2026-07-31 "ส่วนบนดีได้กว่านี้" — เดิมชิปแยกไปอีกแถวทั้งที่ขวายังว่าง
           และช่องค้นหายืดเต็มจอจนเป็นแถบว่างยาวบนจอใหญ่) */}
-      <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
+      <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
         <SearchInput
           ref={searchInputRef}
-          containerClassName="lg:max-w-md lg:flex-1"
+          containerClassName="md:max-w-sm md:flex-1"
           placeholder="ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า..."
           defaultValue={search}
           onChange={(event) => {
@@ -518,27 +562,25 @@ function OrdersPageContent() {
               />
             </FilterRow>
           </FilterPopover>
-        </div>
 
-      {/* ความเร่งด่วน — คำถามหลักที่เปิดหน้านี้มาถามทุกเช้า โชว์เป็นแถว chip ตลอด ไม่ฝังในกล่องพับ
-          จอกว้าง = อยู่แถวเดียวกับ toolbar ชิดขวา · จอแคบ = ตกลงมาแถวล่างเอง */}
-      <div
-        className="flex flex-wrap items-center gap-1.5 lg:ml-auto"
-        role="group"
-        aria-label="กรองตามความเร่งด่วน"
-      >
-        {ATTENTION_FILTERS.map((filter) => (
-          <FilterChip
-            key={filter.value || "all"}
-            selected={attention === filter.value}
-            onClick={() =>
-              replaceListState({ attention: filter.value || null, page: null })
-            }
-          >
-            {filter.label}
-          </FilterChip>
-        ))}
-      </div>
+          {/* แถวชิปความเร่งด่วนถูกถอดออกแล้ว (เบสสั่ง 2026-07-31 — ย้ายไปเป็นคอลัมน์
+              "เร่งด่วน" ที่เรียงได้แทน) · แต่แดชบอร์ดยังลิงก์มาด้วย ?attention= 3 ทาง
+              ถ้าไม่มีอะไรบอกเลย คนกดมาจากแดชบอร์ดจะเห็นรายการถูกกรองอยู่โดยไม่รู้ว่ากรองอะไร
+              และล้างไม่ได้ — จึงโชว์ป้ายเดียวเฉพาะตอนกรองค้างอยู่ กดกากบาทเพื่อล้าง */}
+          {attention && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 py-1 pl-3 pr-1 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+              {ATTENTION_FILTERS.find((f) => f.value === attention)?.label}
+              <button
+                type="button"
+                aria-label="ล้างตัวกรองความเร่งด่วน"
+                onClick={() => replaceListState({ attention: null, page: null })}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-blue-100 dark:hover:bg-blue-900"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          )}
+        </div>
       </div>
 
       {/* แถบสถานะงาน — ยกสถานะภายในขึ้นมาอยู่บนสุด กดกรองได้ทันทีโดยไม่ต้องเปิดกล่องอะไร */}
@@ -576,6 +618,9 @@ function OrdersPageContent() {
                 </DataTable.SortableTh>
                 <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
                 <DataTable.Th>ช่องทาง</DataTable.Th>
+                <DataTable.SortableTh {...sortColumn("attention")}>
+                  เร่งด่วน
+                </DataTable.SortableTh>
                 <DataTable.Th>สถานะ</DataTable.Th>
                 {canSeeMoney && (
                   <DataTable.SortableTh align="right" {...sortColumn("totalAmount")}>
@@ -624,6 +669,9 @@ function OrdersPageContent() {
                   </DataTable.Td>
                   <DataTable.Td className="text-xs text-slate-600 dark:text-slate-400">
                     {CHANNEL_LABELS[order.channel] ?? order.channel}
+                  </DataTable.Td>
+                  <DataTable.Td>
+                    <AttentionIndicator attention={order.attention} />
                   </DataTable.Td>
                   <DataTable.Td>
                     <OrderStatusBadge
