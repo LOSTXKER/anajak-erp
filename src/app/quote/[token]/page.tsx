@@ -83,7 +83,7 @@ export default function QuoteConfirmPage({
       <div className="text-center">
         <div className="mb-1 flex items-center justify-center gap-2">
           <FileText className="h-6 w-6 text-blue-600" />
-          <h1 className="text-xl font-bold text-slate-900">Anajak Print</h1>
+          <h1 className="text-xl font-semibold text-slate-900">Anajak Print</h1>
         </div>
         <p className="text-sm text-slate-500">ใบเสนอราคา {q.quotationNumber}</p>
       </div>
@@ -149,7 +149,7 @@ export default function QuoteConfirmPage({
             )}
             <div className="flex items-center justify-between border-t border-slate-200 pt-2.5">
               <span className="text-base font-semibold text-slate-900">ยอดรวมทั้งหมด</span>
-              <span className="text-lg font-bold tabular-nums text-blue-600">{baht(q.totalAmount)}</span>
+              <span className="text-lg font-semibold tabular-nums text-blue-600">{baht(q.totalAmount)}</span>
             </div>
           </div>
         </CardContent>

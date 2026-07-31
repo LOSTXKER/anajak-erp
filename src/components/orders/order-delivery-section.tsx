@@ -319,7 +319,7 @@ export function OrderDeliverySection({
           {/* ธง blind ship — ต้องเห็นก่อนหยิบของลงกล่อง ห้ามพลาด */}
           {packContext.data?.blindShip && (
             <div className="mt-2 rounded-lg border-2 border-red-500 bg-red-50 px-3 py-2 dark:border-red-600 dark:bg-red-950/40">
-              <p className="text-sm font-bold text-red-700 dark:text-red-300">
+              <p className="text-sm font-semibold text-red-700 dark:text-red-300">
                 🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
               </p>
               <p className="mt-0.5 text-xs font-medium text-red-600 dark:text-red-400">

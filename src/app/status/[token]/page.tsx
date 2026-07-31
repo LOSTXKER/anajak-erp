@@ -102,7 +102,7 @@ export default function OrderStatusPage({
         <div className="text-center">
           <div className="mb-1 flex items-center justify-center gap-2">
             <Package className="h-6 w-6 text-blue-600" />
-            <h1 className="text-xl font-bold text-slate-900">{d.brandName}</h1>
+            <h1 className="text-xl font-semibold text-slate-900">{d.brandName}</h1>
           </div>
           <p className="text-sm text-slate-500">ติดตามสถานะงานของคุณ</p>
         </div>

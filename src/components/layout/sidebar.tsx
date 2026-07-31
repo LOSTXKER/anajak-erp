@@ -70,7 +70,7 @@ export function Sidebar({
             <Printer className="h-4 w-4" />
           </div>
           {!collapsed && (
-            <span className="truncate text-[15px] font-semibold tracking-tight text-slate-900 dark:text-white">
+            <span className="truncate text-base font-semibold tracking-tight text-slate-900 dark:text-white">
               Anajak Print
             </span>
           )}
@@ -113,7 +113,7 @@ export function Sidebar({
                       title={collapsed ? item.label : undefined}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "group flex items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-colors",
+                        "group flex items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors",
                         mobile ? "min-h-11" : "min-h-10",
                         active
                           ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_0_0_0.5px_rgba(0,0,0,0.04)] dark:bg-white/10 dark:text-white"
@@ -158,17 +158,17 @@ export function Sidebar({
           {collapsed ? (
             <div
               title={me.name ?? undefined}
-              className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-[12px] font-semibold text-white"
+              className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white"
             >
               {me.name?.charAt(0).toUpperCase() ?? "?"}
             </div>
           ) : (
             <div className="flex items-center gap-2.5 rounded-xl bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_0_0_0.5px_rgba(0,0,0,0.04)] dark:bg-white/5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[12px] font-semibold text-white">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
                 {me.name?.charAt(0).toUpperCase() ?? "?"}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[12.5px] font-medium text-slate-900 dark:text-white">
+                <p className="truncate text-xs font-medium text-slate-900 dark:text-white">
                   {me.name ?? "..."}
                 </p>
                 <p className="truncate text-xs text-slate-500 dark:text-slate-400">

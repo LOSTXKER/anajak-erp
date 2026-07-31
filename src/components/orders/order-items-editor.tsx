@@ -484,7 +484,7 @@ export function OrderItemsEditor({
             )}
             <div className="mt-1 flex justify-between border-t border-blue-200 pt-1 dark:border-blue-800">
               <span className="font-semibold text-slate-900 dark:text-white">ยอดรวม</span>
-              <span className="font-bold text-blue-600 dark:text-blue-400">
+              <span className="font-semibold text-blue-600 dark:text-blue-400">
                 {formatCurrency(totalAmount)}
               </span>
             </div>

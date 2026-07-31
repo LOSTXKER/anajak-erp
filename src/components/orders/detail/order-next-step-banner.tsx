@@ -65,11 +65,11 @@ export function OrderNextStepBanner({
           <ArrowRight className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-blue-700/70 dark:text-blue-300/70">
+          <p className="text-2xs font-medium uppercase tracking-wide text-blue-700/70 dark:text-blue-300/70">
             ขั้นต่อไป
           </p>
           <p className="text-sm font-semibold text-slate-900 dark:text-white">{nextStep.title}</p>
-          <p className="text-[13px] text-slate-600 dark:text-slate-300">{nextStep.description}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">{nextStep.description}</p>
         </div>
       </div>
 

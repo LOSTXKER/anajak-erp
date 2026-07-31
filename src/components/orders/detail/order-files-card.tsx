@@ -82,13 +82,13 @@ function FileThumb({
       ) : (
         <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
           <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
-          <span className="mt-1 text-[10px] text-slate-400">
+          <span className="mt-1 text-2xs text-slate-400">
             {att.fileName.split(".").pop()?.toUpperCase()}
           </span>
         </div>
       )}
       {byCustomer && (
-        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded bg-blue-600/90 px-1 py-0.5 text-[9px] font-medium text-white">
+        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded bg-blue-600/90 px-1 py-0.5 text-2xs font-medium text-white">
           <User className="h-2.5 w-2.5" />
           ลูกค้า
         </span>
@@ -112,7 +112,7 @@ function FileThumb({
           {thumbInner}
         </a>
       )}
-      <p className="mt-0.5 max-w-[7rem] truncate text-[10px] text-slate-400">{att.fileName}</p>
+      <p className="mt-0.5 max-w-[7rem] truncate text-2xs text-slate-400">{att.fileName}</p>
     </div>
   );
 }
@@ -305,7 +305,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                       {linkCopied ? "คัดลอกแล้ว" : "คัดลอก"}
                     </Button>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="flex items-center justify-between text-2xs text-slate-500">
                     <span>
                       {linkData?.expiresAt
                         ? `หมดอายุ ${formatDate(linkData.expiresAt)}`
@@ -315,7 +315,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                       type="button"
                       variant="link"
                       size="sm"
-                      className="h-auto p-0 text-[11px]"
+                      className="h-auto p-0 text-2xs"
                       onClick={() => generateLink.mutate({ orderId })}
                       disabled={generateLink.isPending}
                     >
@@ -384,7 +384,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
           {Object.entries(positionGroups).map(([pos, imgs]) => (
             <div key={pos} className="mb-2">
               <p className="mb-2 text-xs font-medium text-slate-500">
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge variant="secondary" className="text-2xs">
                   {POSITION_LABELS[pos] || pos}
                 </Badge>
               </p>
@@ -431,7 +431,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
               <Printer className="h-4 w-4" />
               {FILE_LAYERS.PRINT.label}
             </p>
-            <Badge variant="secondary" className="gap-1 text-[10px]">
+            <Badge variant="secondary" className="gap-1 text-2xs">
               <Lock className="h-2.5 w-2.5" />
               ภายในเท่านั้น
             </Badge>

@@ -632,7 +632,7 @@ export function OrderBillingSection({
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="gap-1 px-2 text-[11px]"
+                                      className="gap-1 px-2 text-2xs"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openReceiptForPayment(p, inv);

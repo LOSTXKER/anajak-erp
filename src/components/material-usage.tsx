@@ -279,11 +279,11 @@ export function MaterialUsage({
                       {formatCurrency(m.totalCost)}
                     </span>
                   )}
-                  <Badge variant="success" className="h-5 text-[10px]">
+                  <Badge variant="success" className="h-5 text-2xs">
                     เบิกแล้ว
                   </Badge>
                   {m.stockMovementRef && (
-                    <span className="text-[10px] text-slate-400">{m.stockMovementRef}</span>
+                    <span className="text-2xs text-slate-400">{m.stockMovementRef}</span>
                   )}
                 </div>
               </div>
@@ -308,9 +308,9 @@ export function MaterialUsage({
                     <span className="truncate text-xs font-medium text-slate-900 dark:text-white">
                       {m.name}
                     </span>
-                    <span className="shrink-0 text-[10px] text-slate-400">{m.sku}</span>
+                    <span className="shrink-0 text-2xs text-slate-400">{m.sku}</span>
                   </div>
-                  <div className="mt-0.5 flex items-center gap-2 text-[10px]">
+                  <div className="mt-0.5 flex items-center gap-2 text-2xs">
                     <span
                       className={cn(
                         "tabular-nums",
@@ -367,7 +367,7 @@ export function MaterialUsage({
                 </div>
 
                 {/* Unit */}
-                <span className="w-8 text-center text-[10px] text-slate-400">{m.unit}</span>
+                <span className="w-8 text-center text-2xs text-slate-400">{m.unit}</span>
 
                 {/* Unit cost + row total — เงินโชว์/แก้ได้เฉพาะหัวหน้า */}
                 {showCosts && (
@@ -436,7 +436,7 @@ export function MaterialUsage({
           <div className="py-4 text-center">
             <Package className="mx-auto h-8 w-8 text-slate-200 dark:text-slate-700" />
             <p className="mt-1.5 text-xs text-slate-400">ยังไม่มีวัตถุดิบ</p>
-            <p className="text-[10px] text-slate-300 dark:text-slate-600">
+            <p className="text-2xs text-slate-300 dark:text-slate-600">
               กดปุ่ม &quot;เพิ่มวัตถุดิบ&quot; เพื่อเริ่มเพิ่มรายการ
             </p>
           </div>

@@ -638,7 +638,7 @@ function StatCard({
         <span className={iconColorMap[color] || iconColorMap.blue}>{icon}</span>
         <span className="text-xs opacity-80">{label}</span>
       </div>
-      <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
 }

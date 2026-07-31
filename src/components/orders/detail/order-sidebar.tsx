@@ -190,7 +190,7 @@ export function OrderSidebar({
             </Row>
           )}
           <div className="border-t border-slate-100 pt-2.5 dark:border-slate-800">
-            <p className="mb-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            <p className="mb-1 text-2xs font-medium text-slate-500 dark:text-slate-400">
               รายละเอียดงาน
             </p>
             <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -198,7 +198,7 @@ export function OrderSidebar({
             </p>
           </div>
           <div className="border-t border-slate-100 pt-2.5 dark:border-slate-800">
-            <p className="mb-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            <p className="mb-1 text-2xs font-medium text-slate-500 dark:text-slate-400">
               หมายเหตุ
             </p>
             <p className="text-xs text-slate-600 dark:text-slate-400">

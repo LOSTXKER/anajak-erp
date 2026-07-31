@@ -88,7 +88,7 @@ export function OrderMoneyTab({
 
             {hasCostEntries && (
               <div className="space-y-2.5 border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
-                <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">
+                <p className="text-2xs font-semibold uppercase tracking-wider text-slate-400">
                   ต้นทุน
                 </p>
                 <Row label="ต้นทุนรวม">

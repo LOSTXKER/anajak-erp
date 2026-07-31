@@ -210,7 +210,7 @@ export default function NotificationsPage() {
               if (items.length === 0) return null;
               return (
                 <div key={bucket}>
-                  <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
+                  <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-1.5 text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
                     {BUCKET_LABELS[bucket]}
                   </div>
                   <ul className="divide-y divide-slate-100 dark:divide-slate-800">

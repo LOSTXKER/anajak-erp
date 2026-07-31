@@ -1,0 +1,706 @@
+<title>ออเดอร์ — เสนอดีไซน์ใหม่ 2 ทิศทาง</title>
+
+<style>
+/* ══════════════════════════════════════════════════════════════
+   TOKENS — สีแบรนด์ Anajak เดิม (น้ำเงิน/เหลือง/แดง) + neutral อมน้ำเงิน
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --brand:   #3973b2;
+  --brand-2: #2a5b91;
+  --gold:    #cf9209;
+  --danger:  #d92c24;
+  --ok:      #1a8754;
+
+  /* neutral อมน้ำเงินจางๆ — ไม่ใช่เทากลางที่ดูไม่ได้เลือก */
+  --page:    #f4f5f8;
+  --card:    #ffffff;
+  --sunken:  #eceef2;
+  --line:    #e2e5ea;
+  --line-2:  #eef0f3;
+  --ink:     #16181d;
+  --ink-2:   #5b6270;
+  --ink-3:   #8b93a1;
+
+  --rail:    #1a1d24;
+  --rail-ink:#a8b0bf;
+
+  --tint-brand:  #eaf1f9;
+  --tint-danger: #fdeceb;
+  --tint-gold:   #fdf4e3;
+  --tint-ok:     #e8f6ee;
+
+  --shadow: 0 1px 2px rgb(16 24 40 / .04), 0 0 0 1px rgb(16 24 40 / .06);
+  --shadow-lift: 0 8px 24px rgb(16 24 40 / .08), 0 0 0 1px rgb(16 24 40 / .06);
+
+  --thai: "Sukhumvit Set", "Noto Sans Thai", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+  --r: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #0c0d10; --card: #16181c; --sunken: #1e2128;
+    --line: #272b33; --line-2: #1f232a;
+    --ink: #f2f4f7; --ink-2: #a2aab8; --ink-3: #6f7885;
+    --rail: #08090b; --rail-ink: #8b93a1;
+    --brand: #6ba3dd; --brand-2: #8fbde9;
+    --gold: #f0b429; --danger: #ff6b60; --ok: #37c97e;
+    --tint-brand: #16283a; --tint-danger: #33191a; --tint-gold: #322613; --tint-ok: #14301f;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 0 0 1px rgb(255 255 255 / .07);
+    --shadow-lift: 0 8px 24px rgb(0 0 0 / .5), 0 0 0 1px rgb(255 255 255 / .1);
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0c0d10; --card: #16181c; --sunken: #1e2128;
+  --line: #272b33; --line-2: #1f232a;
+  --ink: #f2f4f7; --ink-2: #a2aab8; --ink-3: #6f7885;
+  --rail: #08090b; --rail-ink: #8b93a1;
+  --brand: #6ba3dd; --brand-2: #8fbde9;
+  --gold: #f0b429; --danger: #ff6b60; --ok: #37c97e;
+  --tint-brand: #16283a; --tint-danger: #33191a; --tint-gold: #322613; --tint-ok: #14301f;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 0 0 1px rgb(255 255 255 / .07);
+  --shadow-lift: 0 8px 24px rgb(0 0 0 / .5), 0 0 0 1px rgb(255 255 255 / .1);
+}
+:root[data-theme="light"] {
+  --page: #f4f5f8; --card: #ffffff; --sunken: #eceef2;
+  --line: #e2e5ea; --line-2: #eef0f3;
+  --ink: #16181d; --ink-2: #5b6270; --ink-3: #8b93a1;
+  --rail: #1a1d24; --rail-ink: #a8b0bf;
+  --brand: #3973b2; --brand-2: #2a5b91;
+  --gold: #cf9209; --danger: #d92c24; --ok: #1a8754;
+  --tint-brand: #eaf1f9; --tint-danger: #fdeceb; --tint-gold: #fdf4e3; --tint-ok: #e8f6ee;
+  --shadow: 0 1px 2px rgb(16 24 40 / .04), 0 0 0 1px rgb(16 24 40 / .06);
+  --shadow-lift: 0 8px 24px rgb(16 24 40 / .08), 0 0 0 1px rgb(16 24 40 / .06);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font-family: var(--thai); font-size: 14px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased; letter-spacing: -.005em;
+}
+.tnum { font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2.5px solid color-mix(in srgb, var(--brand) 55%, transparent); outline-offset: 2px; border-radius: 6px; }
+
+/* ══════════════════ แถบเลือกแบบ (ของ mockup เท่านั้น) ══════════════════ */
+.pitchbar {
+  position: sticky; top: 0; z-index: 60;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  padding: 10px 16px; background: var(--rail); color: #fff;
+  border-bottom: 1px solid rgb(255 255 255 / .08);
+}
+.pitchbar .tag {
+  font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--rail-ink); font-weight: 600;
+}
+.seg { display: flex; gap: 2px; padding: 3px; background: rgb(255 255 255 / .08); border-radius: 9px; }
+.seg button {
+  border: 0; background: transparent; color: rgb(255 255 255 / .72);
+  padding: 5px 13px; border-radius: 7px; font-size: 13px; font-weight: 500;
+  transition: background .15s, color .15s;
+}
+.seg button[aria-pressed="true"] { background: #fff; color: #16181d; font-weight: 600; }
+.pitchbar .spacer { margin-left: auto; }
+.pitchbar .hint { font-size: 12px; color: var(--rail-ink); }
+
+/* ══════════════════ โครงเว็บ (shell) ══════════════════ */
+.shell { display: grid; grid-template-columns: 232px 1fr; min-height: calc(100vh - 49px); }
+@media (max-width: 900px) { .shell { grid-template-columns: 1fr; } .rail { display: none; } }
+
+.rail {
+  background: var(--rail); color: var(--rail-ink);
+  padding: 18px 12px; display: flex; flex-direction: column; gap: 22px;
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
+.brand .mark {
+  width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+  background: linear-gradient(145deg, #4a86c8, #2a5b91);
+  color: #fff; font-weight: 700; font-size: 14px; letter-spacing: -.02em;
+}
+.brand .name { color: #fff; font-weight: 600; font-size: 15px; letter-spacing: -.01em; }
+.brand .sub { font-size: 11px; color: var(--rail-ink); }
+
+.navgroup { display: flex; flex-direction: column; gap: 1px; }
+.navgroup .glabel {
+  font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: #5c6472; padding: 0 8px 6px; font-weight: 600;
+}
+.nav {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 9px; border-radius: 8px; font-size: 13.5px;
+  color: var(--rail-ink); text-decoration: none; transition: background .13s, color .13s;
+}
+.nav:hover { background: rgb(255 255 255 / .06); color: #fff; }
+.nav[aria-current] { background: rgb(255 255 255 / .1); color: #fff; font-weight: 600; }
+.nav .ico { width: 16px; text-align: center; opacity: .85; font-size: 13px; }
+.nav .pill {
+  margin-left: auto; font-size: 11px; font-weight: 600; padding: 1px 6px;
+  border-radius: 20px; background: var(--danger); color: #fff;
+}
+.rail .foot { margin-top: auto; padding: 10px 8px 0; border-top: 1px solid rgb(255 255 255 / .07); font-size: 12px; }
+.rail .foot .who { color: #fff; font-weight: 500; }
+
+.main { min-width: 0; display: flex; flex-direction: column; }
+
+/* ══════════════════ หัวหน้า ══════════════════ */
+.topbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 16px 24px 0;
+}
+.title { font-size: 25px; font-weight: 700; letter-spacing: -.024em; margin: 0; }
+.subtitle { font-size: 13px; color: var(--ink-2); margin: 3px 0 0; }
+.topbar .acts { margin-left: auto; display: flex; gap: 8px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 9px; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  box-shadow: 0 1px 1px rgb(16 24 40 / .03); transition: background .13s, box-shadow .13s, transform .08s;
+}
+.btn:hover { background: var(--sunken); }
+.btn:active { transform: translateY(.5px); }
+.btn-primary {
+  background: var(--brand); border-color: transparent; color: #fff; font-weight: 600;
+  box-shadow: 0 1px 2px rgb(57 115 178 / .3);
+}
+.btn-primary:hover { background: var(--brand-2); }
+:root[data-theme="dark"] .btn-primary, :root:not([data-theme="light"]) .btn-primary { color: #0c0d10; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .btn-primary { color: #fff; } }
+
+.body { padding: 18px 24px 40px; display: flex; flex-direction: column; gap: 16px; }
+
+/* ══════════════════ แถบเครื่องมือ ══════════════════ */
+.tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.search {
+  flex: 1 1 260px; max-width: 380px; position: relative;
+}
+.search input {
+  width: 100%; padding: 8px 12px 8px 32px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  font: inherit; font-size: 13.5px;
+}
+.search input::placeholder { color: var(--ink-3); }
+.search .ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-3); font-size: 13px; }
+.select {
+  padding: 8px 11px; border-radius: 9px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink); font: inherit; font-size: 13px;
+}
+
+.chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+  transition: border-color .13s, background .13s, color .13s;
+}
+.chip:hover { border-color: var(--ink-3); color: var(--ink); }
+.chip .n { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink-3); font-size: 12.5px; }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--card); }
+.chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--card) 75%, transparent); }
+.chip .dot { width: 6px; height: 6px; border-radius: 50%; }
+.chip.c-danger .dot { background: var(--danger); }
+.chip.c-gold .dot { background: var(--gold); }
+.chip.c-brand .dot { background: var(--brand); }
+.chip.c-danger[aria-pressed="true"] { background: var(--danger); border-color: var(--danger); color: #fff; }
+.chip.c-danger[aria-pressed="true"] .dot { background: #fff; }
+.chip.c-gold[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: #1a1408; }
+.chip.c-gold[aria-pressed="true"] .dot { background: #1a1408; }
+
+/* ══════════════════ ทิศ A — กระดานงานวันนี้ ══════════════════ */
+.groups { display: flex; flex-direction: column; gap: 22px; }
+.group > .ghead {
+  display: flex; align-items: baseline; gap: 9px; padding: 0 2px 8px;
+  position: sticky; top: 49px; background: var(--page); z-index: 20;
+}
+.ghead .gname { font-size: 13px; font-weight: 700; letter-spacing: -.01em; }
+.ghead .gcount { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.ghead .gline { flex: 1; height: 1px; background: var(--line); }
+.ghead .gsum { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.ghead.g-danger .gname { color: var(--danger); }
+.ghead.g-gold   .gname { color: var(--gold); }
+
+.jobs { display: flex; flex-direction: column; gap: 8px; }
+
+.job {
+  position: relative; display: grid; gap: 14px;
+  grid-template-columns: 4px minmax(0, 1fr) 168px 132px 132px;
+  align-items: center;
+  background: var(--card); border-radius: var(--r); box-shadow: var(--shadow);
+  padding: 11px 15px 11px 0; overflow: hidden;
+  transition: box-shadow .16s ease, transform .16s ease;
+}
+.job:hover { box-shadow: var(--shadow-lift); transform: translateY(-1px); }
+.job .edge { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--line); }
+.job.e-danger .edge { background: var(--danger); }
+.job.e-gold   .edge { background: var(--gold); }
+.job.e-ok     .edge { background: var(--ok); }
+.job.e-brand  .edge { background: var(--brand); }
+.job .pad { padding-left: 15px; min-width: 0; }
+
+.job .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.job .cust { font-weight: 600; font-size: 14.5px; letter-spacing: -.012em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.job .no {
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+  background: var(--sunken); padding: 1.5px 6px; border-radius: 5px; letter-spacing: -.02em; flex: none;
+}
+.job .what { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.job .what .qty { color: var(--ink-3); }
+.tag-rush {
+  flex: none; font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+  padding: 2px 6px; border-radius: 5px; background: var(--tint-danger); color: var(--danger);
+}
+
+/* ความคืบหน้า 5 ขั้น */
+.steps { display: flex; align-items: center; gap: 0; }
+.steps .s { display: flex; align-items: center; flex: 1; }
+.steps .s:last-child { flex: none; }
+.steps .bead {
+  width: 9px; height: 9px; border-radius: 50%; flex: none;
+  background: var(--sunken); box-shadow: inset 0 0 0 1.5px var(--line);
+}
+.steps .bar { height: 2px; flex: 1; background: var(--sunken); }
+.steps .s.done .bead { background: var(--ok); box-shadow: none; }
+.steps .s.done .bar { background: var(--ok); }
+.steps .s.now .bead {
+  background: var(--brand); box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--brand) 20%, transparent);
+  width: 10px; height: 10px;
+}
+.steps .s.now .bar { background: var(--sunken); }
+.steps.stalled .s.now .bead { background: var(--gold); box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--gold) 22%, transparent); }
+.steplabel { font-size: 11.5px; color: var(--ink-2); margin-top: 5px; display: flex; justify-content: space-between; gap: 6px; }
+.steplabel .stuck { color: var(--gold); font-weight: 600; }
+
+.due { text-align: right; }
+.due .big { font-size: 13.5px; font-weight: 600; letter-spacing: -.01em; }
+.due .small { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; margin-top: 1px; }
+.due.d-danger .big { color: var(--danger); }
+.due.d-gold   .big { color: var(--gold); }
+
+.money { text-align: right; }
+.money .amt { font-family: var(--mono); font-size: 13.5px; font-weight: 600; letter-spacing: -.03em; }
+.money .pay { font-size: 11.5px; margin-top: 2px; display: inline-flex; align-items: center; gap: 4px; }
+.pay.p-ok   { color: var(--ok); }
+.pay.p-wait { color: var(--ink-3); }
+.pay.p-late { color: var(--danger); font-weight: 600; }
+.pay .pd { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+@media (max-width: 1180px) {
+  .job { grid-template-columns: 4px minmax(0,1fr) 132px 122px; }
+  .job .stepwrap { display: none; }
+}
+@media (max-width: 720px) {
+  .job { grid-template-columns: 4px minmax(0,1fr) auto; padding-right: 12px; row-gap: 8px; }
+  .job .duewrap { grid-column: 3; }
+  .job .moneywrap { grid-column: 2 / -1; padding-left: 15px; display: flex; gap: 10px; align-items: baseline; text-align: left; }
+  .job .moneywrap .money { text-align: left; }
+}
+
+/* ══════════════════ ทิศ B — ตารางแน่น ══════════════════ */
+.tablecard { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+.tablescroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 780px; }
+thead th {
+  text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-2); padding: 10px 14px; background: var(--sunken);
+  border-bottom: 1px solid var(--line); white-space: nowrap; position: sticky; top: 49px; z-index: 10;
+}
+thead th.sortable { cursor: pointer; user-select: none; }
+thead th.sortable:hover { color: var(--ink); }
+thead th .arrow { opacity: .35; margin-left: 3px; font-size: 9px; }
+thead th[aria-sort] .arrow { opacity: 1; color: var(--brand); }
+tbody td { padding: 9px 14px; border-bottom: 1px solid var(--line-2); vertical-align: middle; }
+tbody tr { transition: background .12s; }
+tbody tr:hover { background: var(--sunken); }
+tbody tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--mono); font-size: 12.5px; letter-spacing: -.03em; }
+td.num a { color: var(--brand); text-decoration: none; font-weight: 600; }
+td.num a:hover { text-decoration: underline; }
+td .cname { font-weight: 600; font-size: 13.5px; }
+td .cjob { font-size: 12px; color: var(--ink-2); }
+.badge {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2.5px 8px 2.5px 6px;
+  border-radius: 6px; font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.badge .bd { width: 5px; height: 5px; border-radius: 50%; }
+.b-brand  { background: var(--tint-brand);  color: var(--brand); }
+.b-gold   { background: var(--tint-gold);   color: var(--gold); }
+.b-ok     { background: var(--tint-ok);     color: var(--ok); }
+.b-danger { background: var(--tint-danger); color: var(--danger); }
+.b-mute   { background: var(--sunken);      color: var(--ink-2); }
+.badge .bd { background: currentColor; }
+.b-brand .bd, .b-gold .bd, .b-ok .bd, .b-danger .bd { background: currentColor; }
+td.right { text-align: right; }
+.rowtiny { font-size: 11.5px; color: var(--ink-3); }
+
+/* ══════════════════ สถานะว่าง / เชิงอรรถ ══════════════════ */
+.empty {
+  background: var(--card); border-radius: var(--r); box-shadow: var(--shadow);
+  padding: 48px 24px; text-align: center;
+}
+.empty h3 { margin: 0 0 6px; font-size: 16px; letter-spacing: -.015em; }
+.empty p { margin: 0 0 16px; color: var(--ink-2); font-size: 13px; }
+
+.notes {
+  margin: 0 24px 32px; padding: 16px 18px; background: var(--card);
+  border-radius: var(--r); box-shadow: var(--shadow); font-size: 13px; color: var(--ink-2);
+}
+.notes h4 { margin: 0 0 8px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.notes ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.notes b { color: var(--ink); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .job:hover { transform: none; }
+}
+</style>
+
+<div class="pitchbar">
+  <span class="tag">เสนอดีไซน์</span>
+  <div class="seg" role="group" aria-label="เลือกทิศทางดีไซน์">
+    <button id="mA" aria-pressed="true">A · กระดานงานวันนี้</button>
+    <button id="mB" aria-pressed="false">B · ตารางแน่น</button>
+  </div>
+  <span class="hint">กดชิป · กดหัวตาราง · กดค้นหา — เล่นได้จริงทุกปุ่ม</span>
+  <span class="spacer"></span>
+  <div class="seg" role="group" aria-label="โหมดสี">
+    <button id="tL" aria-pressed="true">สว่าง</button>
+    <button id="tD" aria-pressed="false">มืด</button>
+  </div>
+</div>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <div class="mark">A</div>
+      <div>
+        <div class="name">Anajak</div>
+        <div class="sub">โรงงานสกรีนเสื้อ</div>
+      </div>
+    </div>
+
+    <nav class="navgroup">
+      <div class="glabel">งานประจำวัน</div>
+      <a class="nav" href="#"><span class="ico">▤</span> หน้าแรก</a>
+      <a class="nav" href="#" aria-current="page"><span class="ico">▣</span> ออเดอร์ <span class="pill">3</span></a>
+      <a class="nav" href="#"><span class="ico">◈</span> ใบเสนอราคา</a>
+      <a class="nav" href="#"><span class="ico">⚙</span> งานผลิต</a>
+      <a class="nav" href="#"><span class="ico">◇</span> งานจ้างนอก</a>
+    </nav>
+
+    <nav class="navgroup">
+      <div class="glabel">เงินและลูกค้า</div>
+      <a class="nav" href="#"><span class="ico">฿</span> วางบิล / รับเงิน</a>
+      <a class="nav" href="#"><span class="ico">☺</span> ลูกค้า</a>
+      <a class="nav" href="#"><span class="ico">▦</span> สินค้า</a>
+    </nav>
+
+    <nav class="navgroup">
+      <div class="glabel">อื่นๆ</div>
+      <a class="nav" href="#"><span class="ico">◔</span> รายงาน</a>
+      <a class="nav" href="#"><span class="ico">⚙</span> ตั้งค่า</a>
+    </nav>
+
+    <div class="foot">
+      <div class="who">เบส · เจ้าของ</div>
+      <div>เห็นทุกอย่าง</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <h1 class="title">ออเดอร์</h1>
+        <p class="subtitle" id="subtitle"></p>
+      </div>
+      <div class="acts">
+        <button class="btn">↓ ดาวน์โหลด Excel</button>
+        <button class="btn btn-primary">+ สร้างออเดอร์</button>
+      </div>
+    </header>
+
+    <div class="body">
+      <div class="tools">
+        <div class="search">
+          <span class="ico">⌕</span>
+          <input id="q" type="search" placeholder="ค้นชื่อลูกค้า เลขออเดอร์ หรือชื่องาน" aria-label="ค้นหาออเดอร์">
+        </div>
+        <select class="select" id="sortSel" aria-label="เรียงลำดับ">
+          <option value="deadline">ใกล้กำหนดส่งก่อน</option>
+          <option value="createdAt">เปิดงานล่าสุดก่อน</option>
+          <option value="totalAmount">ยอดมากก่อน</option>
+          <option value="customer">ชื่อลูกค้า ก–ฮ</option>
+        </select>
+        <button class="btn" id="moreFilter">ตัวกรอง</button>
+      </div>
+
+      <div class="chips" id="chips" role="group" aria-label="กรองตามความเร่งด่วน"></div>
+
+      <div id="view"></div>
+    </div>
+
+    <div class="notes">
+      <h4>สิ่งที่เปลี่ยนจากของเดิม</h4>
+      <ul>
+        <li><b>ทิศ A</b> — จัดกลุ่มตาม<b>กำหนดส่ง</b>แทนการเรียงเฉยๆ เปิดมาก็เห็นทันทีว่า "เลยกำหนด 3 ใบ วันนี้ 2 ใบ" ไม่ต้องอ่านคอลัมน์วันที่ทีละแถว</li>
+        <li><b>ความคืบหน้าเป็นเม็ด 5 ขั้น</b> — สถานะภายในของจริงมี 14 แบบ ยัดใน badge เดียวอ่านไม่ออกว่างานไปถึงไหน · ยุบเหลือ รับงาน → ออกแบบ → ผลิต → ตรวจ → ส่ง แล้วโชว์เป็นเม็ดต่อกัน · <b>เม็ดสีทอง = ค้างขั้นนี้เกิน 3 วัน</b></li>
+        <li><b>เลขออเดอร์เป็นตัวพิมพ์ดีด</b> (mono) ทุกที่ — รหัสกับเงินต้องเรียงตรงคอลัมน์ ตาถึงจะกวาดได้</li>
+        <li><b>ยอดเงินกับสถานะจ่ายอยู่ก้อนเดียวกัน</b> — เป็นคำถามเดียวกัน ("เก็บครบยัง") ไม่ควรอยู่คนละที่</li>
+        <li><b>ทิศ B</b> — สำหรับคนที่ชอบตารางแบบเดิมแต่แน่นกว่า อ่านได้เยอะกว่าต่อหน้าจอ · เหมาะถ้าใช้จอใหญ่และดูวันละหลายสิบใบ</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ข้อมูลตัวอย่าง (สมมุติ แต่รูปร่างตรงกับ order.list ของจริง) ──────────
+const STEPS = ["รับงาน", "ออกแบบ", "ผลิต", "ตรวจ", "ส่ง"];
+
+const ORDERS = [
+  { no:"AJ-2607-118", cust:"บริษัท ทีเอส สปอร์ต จำกัด", job:"เสื้อโปโลพนักงาน ปักอก",      qty:240, step:2, stuckDays:4, days:-3, total:74400,  pay:"late", payNote:"ค้าง 74,400 · เลย 12 วัน", rush:true },
+  { no:"AJ-2607-124", cust:"โรงเรียนสาธิตพัฒนา",          job:"เสื้อกีฬาสี DTF 4 สี",        qty:520, step:2, stuckDays:0, days:-1, total:96200,  pay:"wait", payNote:"มัดจำแล้ว 50%" },
+  { no:"AJ-2607-131", cust:"ร้านกาแฟ Morning Hill",        job:"เสื้อยืดพนักงาน สกรีน DTF",   qty:60,  step:3, stuckDays:0, days:-1, total:11400,  pay:"ok",   payNote:"รับครบแล้ว" },
+  { no:"AJ-2607-140", cust:"บจก. อินฟินิท มาร์เก็ตติ้ง",   job:"เสื้อแจ็คเก็ตงานอีเวนต์",     qty:150, step:1, stuckDays:0, days:0,  total:135000, pay:"wait", payNote:"รอมัดจำ", rush:true },
+  { no:"AJ-2607-142", cust:"ชมรมวิ่งลาดพร้าว",            job:"เสื้อวิ่ง sublimation",       qty:300, step:4, stuckDays:0, days:0,  total:63000,  pay:"ok",   payNote:"รับครบแล้ว" },
+  { no:"AJ-2607-145", cust:"บริษัท กรีนเวิลด์ โลจิสติกส์", job:"เสื้อช็อปช่าง ปักชื่อ",       qty:85,  step:2, stuckDays:0, days:1,  total:29750,  pay:"wait", payNote:"เครดิต 30 วัน" },
+  { no:"AJ-2607-147", cust:"คุณนภัสสร (ร้านออนไลน์)",      job:"เสื้อยืดลายพิมพ์ 12 แบบ",     qty:180, step:1, stuckDays:0, days:2,  total:34200,  pay:"wait", payNote:"รอมัดจำ" },
+  { no:"AJ-2607-151", cust:"มหาวิทยาลัยเทคโนโลยีฯ",        job:"เสื้อรับน้อง คณะวิศวะ",       qty:800, step:0, stuckDays:0, days:4,  total:168000, pay:"wait", payNote:"รอมัดจำ" },
+  { no:"AJ-2607-152", cust:"หจก. สยามคอนกรีต",            job:"เสื้อโปโล ปักโลโก้",          qty:120, step:1, stuckDays:0, days:5,  total:33600,  pay:"wait", payNote:"เครดิต 45 วัน" },
+  { no:"AJ-2607-155", cust:"ทีมฟุตบอล FC ลุมพินี",         job:"ชุดแข่ง sublimation ครบชุด",  qty:45,  step:0, stuckDays:0, days:8,  total:38250,  pay:"wait", payNote:"รอมัดจำ" },
+  { no:"AJ-2607-156", cust:"บริษัท ซันไรส์ ฟู้ดส์",        job:"หมวก + ผ้ากันเปื้อน สกรีน",   qty:200, step:0, stuckDays:0, days:11, total:41000,  pay:"wait", payNote:"เครดิต 30 วัน" },
+  { no:"AJ-2607-108", cust:"บจก. เดอะเบสท์ พรีเมียม",      job:"เสื้อยืดของแจก งานเปิดตัว",   qty:1000,step:4, stuckDays:0, days:-6, total:195000, pay:"ok",   payNote:"รับครบแล้ว" },
+  { no:"AJ-2607-112", cust:"ร้านสักลาย Ink&Co",           job:"เสื้อยืด DTF พิมพ์เต็มหลัง",  qty:30,  step:3, stuckDays:5, days:-2, total:6900,   pay:"late", payNote:"ค้าง 6,900 · เลย 5 วัน" },
+  { no:"AJ-2607-158", cust:"สหกรณ์การเกษตรบางเลน",         job:"เสื้อโปโลประชุมใหญ่",         qty:350, step:0, stuckDays:0, days:14, total:80500,  pay:"wait", payNote:"เครดิต 30 วัน" },
+];
+
+// ── ตัวช่วย ──────────────────────────────────────────────────────────
+const baht = n => n.toLocaleString("th-TH");
+const isOverdue = o => o.days < 0 && o.step < 4;
+const isDueSoon = o => o.days >= 0 && o.days <= 2 && o.step < 4;
+const isStuck   = o => o.stuckDays >= 3;
+
+function dueText(o) {
+  if (o.step === 4) return { big: "ส่งแล้ว", small: "ปิดงาน", cls: "" };
+  if (o.days < 0)  return { big: `เลย ${Math.abs(o.days)} วัน`, small: "กำหนด " + dateOf(o.days), cls: "d-danger" };
+  if (o.days === 0) return { big: "วันนี้", small: "กำหนด " + dateOf(0), cls: "d-gold" };
+  if (o.days === 1) return { big: "พรุ่งนี้", small: "กำหนด " + dateOf(1), cls: "d-gold" };
+  if (o.days <= 2)  return { big: `อีก ${o.days} วัน`, small: "กำหนด " + dateOf(o.days), cls: "d-gold" };
+  return { big: `อีก ${o.days} วัน`, small: "กำหนด " + dateOf(o.days), cls: "" };
+}
+// วันฐาน 31 ก.ค. 2026 — mockup ไม่ต้องผูกนาฬิกาจริง
+function dateOf(offset) {
+  const base = new Date(2026, 6, 31);
+  base.setDate(base.getDate() + offset);
+  const m = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  return `${base.getDate()} ${m[base.getMonth()]}`;
+}
+function edgeOf(o) {
+  if (o.step === 4) return "e-ok";
+  if (isOverdue(o)) return "e-danger";
+  if (isDueSoon(o) || isStuck(o)) return "e-gold";
+  return "e-brand";
+}
+
+// ── สถานะหน้า ────────────────────────────────────────────────────────
+let mode = "A", filter = "", query = "", sortBy = "deadline";
+
+const FILTERS = [
+  { v: "",        label: "ทุกงาน",           cls: "",         fn: () => true },
+  { v: "overdue", label: "เลยกำหนด",         cls: "c-danger", fn: isOverdue },
+  { v: "soon",    label: "ใกล้กำหนด 48 ชม.", cls: "c-gold",   fn: isDueSoon },
+  { v: "stuck",   label: "ติดหล่มเกิน 3 วัน", cls: "c-brand",  fn: isStuck },
+];
+
+function visible() {
+  const f = FILTERS.find(x => x.v === filter).fn;
+  const q = query.trim().toLowerCase();
+  let rows = ORDERS.filter(o => f(o) &&
+    (!q || o.cust.toLowerCase().includes(q) || o.no.toLowerCase().includes(q) || o.job.toLowerCase().includes(q)));
+  const cmp = {
+    deadline:    (a, b) => a.days - b.days,
+    createdAt:   (a, b) => b.no.localeCompare(a.no),
+    totalAmount: (a, b) => b.total - a.total,
+    customer:    (a, b) => a.cust.localeCompare(b.cust, "th"),
+  }[sortBy];
+  return rows.sort(cmp);
+}
+
+function renderChips() {
+  document.getElementById("chips").innerHTML = FILTERS.map(f => {
+    const n = ORDERS.filter(f.fn).length;
+    return `<button class="chip ${f.cls}" data-f="${f.v}" aria-pressed="${filter === f.v}">
+      ${f.cls ? '<span class="dot"></span>' : ""}${f.label}<span class="n">${n}</span></button>`;
+  }).join("");
+  document.querySelectorAll("#chips .chip").forEach(b =>
+    b.onclick = () => { filter = b.dataset.f; render(); });
+}
+
+function renderSubtitle() {
+  const late = ORDERS.filter(isOverdue).length;
+  const stuck = ORDERS.filter(isStuck).length;
+  const money = ORDERS.filter(o => o.pay === "late").reduce((s, o) => s + o.total, 0);
+  document.getElementById("subtitle").innerHTML =
+    `${ORDERS.length} ออเดอร์กำลังเดิน · <b style="color:var(--danger)">เลยกำหนด ${late}</b> · ติดหล่ม ${stuck} · ค้างรับ ${baht(money)} บาท`;
+}
+
+// ── ทิศ A ────────────────────────────────────────────────────────────
+function stepsHtml(o) {
+  const cells = STEPS.map((_, i) => {
+    const st = i < o.step ? "done" : i === o.step ? "now" : "";
+    return `<div class="s ${st}"><span class="bead"></span>${i < 4 ? '<span class="bar"></span>' : ""}</div>`;
+  }).join("");
+  const label = o.step === 4
+    ? `<span>ส่งของแล้ว</span>`
+    : `<span>${STEPS[o.step]}</span>` + (o.stuckDays >= 3 ? `<span class="stuck">ค้าง ${o.stuckDays} วัน</span>` : "");
+  return `<div class="stepwrap">
+    <div class="steps ${o.stuckDays >= 3 ? "stalled" : ""}">${cells}</div>
+    <div class="steplabel">${label}</div>
+  </div>`;
+}
+
+function jobHtml(o) {
+  const d = dueText(o);
+  return `<article class="job ${edgeOf(o)}">
+    <span class="edge"></span>
+    <div class="pad">
+      <div class="who">
+        <span class="cust">${o.cust}</span>
+        ${o.rush ? '<span class="tag-rush">ด่วน</span>' : ""}
+        <span class="no">${o.no}</span>
+      </div>
+      <div class="what">${o.job} <span class="qty">· ${baht(o.qty)} ตัว</span></div>
+    </div>
+    ${stepsHtml(o)}
+    <div class="duewrap due ${d.cls}">
+      <div class="big">${d.big}</div>
+      <div class="small">${d.small}</div>
+    </div>
+    <div class="moneywrap money">
+      <div class="amt">${baht(o.total)}</div>
+      <div class="pay p-${o.pay}"><span class="pd"></span>${o.payNote}</div>
+    </div>
+  </article>`;
+}
+
+function renderA(rows) {
+  const buckets = [
+    { key: "late",  name: "เลยกำหนดส่ง",    cls: "g-danger", fn: isOverdue },
+    { key: "today", name: "วันนี้–พรุ่งนี้", cls: "g-gold",   fn: o => o.step < 4 && o.days >= 0 && o.days <= 1 },
+    { key: "week",  name: "ภายในสัปดาห์นี้", cls: "",        fn: o => o.step < 4 && o.days >= 2 && o.days <= 7 },
+    { key: "later", name: "หลังจากนั้น",     cls: "",        fn: o => o.step < 4 && o.days > 7 },
+    { key: "done",  name: "ส่งของแล้ว",      cls: "",        fn: o => o.step === 4 },
+  ];
+  const html = buckets.map(b => {
+    const items = rows.filter(b.fn);
+    if (!items.length) return "";
+    const sum = items.reduce((s, o) => s + o.total, 0);
+    return `<section class="group">
+      <div class="ghead ${b.cls}">
+        <span class="gname">${b.name}</span>
+        <span class="gcount">${items.length} ใบ</span>
+        <span class="gline"></span>
+        <span class="gsum">${baht(sum)} บาท</span>
+      </div>
+      <div class="jobs">${items.map(jobHtml).join("")}</div>
+    </section>`;
+  }).join("");
+  return html ? `<div class="groups">${html}</div>` : emptyHtml();
+}
+
+// ── ทิศ B ────────────────────────────────────────────────────────────
+function badgeOf(o) {
+  if (o.step === 4) return `<span class="badge b-ok"><span class="bd"></span>ส่งแล้ว</span>`;
+  if (o.stuckDays >= 3) return `<span class="badge b-gold"><span class="bd"></span>${STEPS[o.step]} · ค้าง ${o.stuckDays} วัน</span>`;
+  if (o.step === 0) return `<span class="badge b-mute"><span class="bd"></span>รับงาน</span>`;
+  return `<span class="badge b-brand"><span class="bd"></span>${STEPS[o.step]}</span>`;
+}
+
+function renderB(rows) {
+  if (!rows.length) return emptyHtml();
+  const arrow = k => sortBy === k ? '<span class="arrow">▼</span>' : '<span class="arrow">▽</span>';
+  const sorted = k => sortBy === k ? 'aria-sort="descending"' : "";
+  return `<div class="tablecard"><div class="tablescroll"><table>
+    <thead><tr>
+      <th class="sortable" data-s="createdAt" ${sorted("createdAt")} style="width:14%">เลขออเดอร์ ${arrow("createdAt")}</th>
+      <th class="sortable" data-s="customer" ${sorted("customer")} style="width:32%">ลูกค้า / งาน ${arrow("customer")}</th>
+      <th style="width:19%">ขั้นตอน</th>
+      <th class="sortable" data-s="deadline" ${sorted("deadline")} style="width:15%">กำหนดส่ง ${arrow("deadline")}</th>
+      <th class="sortable right" data-s="totalAmount" ${sorted("totalAmount")} style="width:20%">ยอด / การชำระ ${arrow("totalAmount")}</th>
+    </tr></thead>
+    <tbody>${rows.map(o => {
+      const d = dueText(o);
+      return `<tr>
+        <td class="num"><a href="#">${o.no}</a></td>
+        <td>
+          <div class="cname">${o.cust} ${o.rush ? '<span class="tag-rush">ด่วน</span>' : ""}</div>
+          <div class="cjob">${o.job} · ${baht(o.qty)} ตัว</div>
+        </td>
+        <td>${badgeOf(o)}</td>
+        <td>
+          <div style="font-weight:600;font-size:13px;color:${d.cls === "d-danger" ? "var(--danger)" : d.cls === "d-gold" ? "var(--gold)" : "inherit"}">${d.big}</div>
+          <div class="rowtiny tnum">${d.small}</div>
+        </td>
+        <td class="right">
+          <div class="num" style="font-weight:600;font-size:13.5px">${baht(o.total)}</div>
+          <div class="pay p-${o.pay}" style="font-size:11.5px">${o.payNote}</div>
+        </td>
+      </tr>`;
+    }).join("")}</tbody>
+  </table></div></div>`;
+}
+
+function emptyHtml() {
+  return `<div class="empty">
+    <h3>ไม่พบออเดอร์ที่ตรงกับที่กรองไว้</h3>
+    <p>ลองล้างตัวกรองแล้วดูใหม่ หรือค้นด้วยชื่อลูกค้า</p>
+    <button class="btn" id="clearAll">ล้างตัวกรองและคำค้น</button>
+  </div>`;
+}
+
+// ── วาดหน้า ──────────────────────────────────────────────────────────
+function render() {
+  renderChips();
+  renderSubtitle();
+  const rows = visible();
+  document.getElementById("view").innerHTML = mode === "A" ? renderA(rows) : renderB(rows);
+
+  document.querySelectorAll("thead th.sortable").forEach(th =>
+    th.onclick = () => { sortBy = th.dataset.s; document.getElementById("sortSel").value = sortBy; render(); });
+
+  const clear = document.getElementById("clearAll");
+  if (clear) clear.onclick = () => {
+    filter = ""; query = ""; document.getElementById("q").value = ""; render();
+  };
+}
+
+document.getElementById("mA").onclick = () => setMode("A");
+document.getElementById("mB").onclick = () => setMode("B");
+function setMode(m) {
+  mode = m;
+  document.getElementById("mA").setAttribute("aria-pressed", m === "A");
+  document.getElementById("mB").setAttribute("aria-pressed", m === "B");
+  render();
+}
+
+document.getElementById("tL").onclick = () => setTheme("light");
+document.getElementById("tD").onclick = () => setTheme("dark");
+function setTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  document.getElementById("tL").setAttribute("aria-pressed", t === "light");
+  document.getElementById("tD").setAttribute("aria-pressed", t === "dark");
+}
+if (window.matchMedia("(prefers-color-scheme: dark)").matches) setTheme("dark");
+
+let t;
+document.getElementById("q").oninput = e => {
+  clearTimeout(t);
+  t = setTimeout(() => { query = e.target.value; render(); }, 180);
+};
+document.getElementById("sortSel").onchange = e => { sortBy = e.target.value; render(); };
+document.getElementById("moreFilter").onclick = function () {
+  this.textContent = this.textContent === "ตัวกรอง" ? "ตัวกรอง (ยังไม่ทำในตัวอย่างนี้)" : "ตัวกรอง";
+};
+
+render();
+</script>

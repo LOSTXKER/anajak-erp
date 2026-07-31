@@ -257,19 +257,19 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                         {a.name}
                       </p>
                       {!a.isActive && (
-                        <Badge variant="secondary" className="text-[10px]">
+                        <Badge variant="secondary" className="text-2xs">
                           ปิดใช้งาน
                         </Badge>
                       )}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {specChips(a).map((c) => (
-                        <Badge key={c} variant="secondary" className="text-[10px]">
+                        <Badge key={c} variant="secondary" className="text-2xs">
                           {c}
                         </Badge>
                       ))}
                     </div>
-                    <p className="mt-1 text-[11px] text-slate-500">
+                    <p className="mt-1 text-2xs text-slate-500">
                       ใช้ไป {a.usedOrderCount} ออเดอร์
                       {a.latestOrder ? ` · ล่าสุด ${a.latestOrder.orderNumber}` : ""}
                       {a.filmQty > 0 ? (
@@ -280,7 +280,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       ) : null}
                     </p>
                     {gaps.length > 0 && (
-                      <p className="mt-0.5 text-[11px] text-amber-600 dark:text-amber-400">
+                      <p className="mt-0.5 text-2xs text-amber-600 dark:text-amber-400">
                         สเปกยังไม่ครบ: {gaps.join(" · ")}
                       </p>
                     )}
@@ -469,7 +469,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                 />
               )}
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-2xs text-slate-400">
               สเปก (ขนาด/อุณหภูมิ/แรงกด) เติมทีหลังได้จากปุ่มแก้ไข
             </p>
           </div>

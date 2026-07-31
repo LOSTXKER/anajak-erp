@@ -48,12 +48,12 @@ function PulseCard({
 }) {
   const titleAndValue = (
     <>
-      <p className="text-[12.5px] font-medium text-slate-500 dark:text-slate-400">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
         {title}
       </p>
       <p
         className={cn(
-          "mt-2.5 text-[28px] font-semibold leading-none tracking-tight tabular-nums",
+          "mt-2.5 text-3xl font-semibold leading-none tracking-tight tabular-nums",
           tone === "danger"
             ? "text-red-600 dark:text-red-400"
             : tone === "warning"
@@ -69,7 +69,7 @@ function PulseCard({
     </>
   );
   const subClassName = cn(
-    "text-[12px]",
+    "text-xs",
     subTone === "danger"
       ? "text-red-600 dark:text-red-400"
       : subTone === "warning"
@@ -297,7 +297,7 @@ export default function DashboardPage() {
         action={
           <Link
             href="/orders"
-            className="text-[13px] font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400"
+            className="text-sm font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400"
           >
             ดูทั้งหมด
           </Link>
@@ -322,7 +322,7 @@ export default function DashboardPage() {
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-[13.5px] font-semibold tabular-nums text-slate-900 dark:text-white">
+                    <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
                       {o.orderNumber}
                     </p>
                     {o.printLabel && (
@@ -331,18 +331,18 @@ export default function DashboardPage() {
                       </Badge>
                     )}
                   </div>
-                  <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
+                  <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                     {o.customerName} · {o.title}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
                   {o.totalAmount != null && (
-                    <p className="text-[13.5px] font-semibold tabular-nums text-slate-900 dark:text-white">
+                    <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
                       {formatCurrency(o.totalAmount)}
                     </p>
                   )}
                   {o.deadline && (
-                    <p className="text-[11.5px] text-slate-400 dark:text-slate-500">
+                    <p className="text-2xs text-slate-400 dark:text-slate-500">
                       กำหนด{" "}
                       {new Date(o.deadline).toLocaleDateString("th-TH", {
                         day: "numeric",

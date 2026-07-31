@@ -140,12 +140,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-sm text-slate-500"><ShoppingCart className="h-4 w-4" /> ออเดอร์ทั้งหมด</span>
-                <span className="font-bold tabular-nums">{customer._count.orders}</span>
+                <span className="font-semibold tabular-nums">{customer._count.orders}</span>
               </div>
               {canSeeMoney && (
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-sm text-slate-500"><DollarSign className="h-4 w-4" /> ยอดสั่งรวม</span>
-                  <span className="font-bold tabular-nums">{formatCurrency(customer.totalSpent ?? 0)}</span>
+                  <span className="font-semibold tabular-nums">{formatCurrency(customer.totalSpent ?? 0)}</span>
                 </div>
               )}
               {canSeeMoney && credit && (
@@ -163,7 +163,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               {canSeeMoney && credit && (
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-sm text-slate-500"><ShoppingCart className="h-4 w-4" /> งานยังไม่ปิด</span>
-                  <span className="font-bold tabular-nums">
+                  <span className="font-semibold tabular-nums">
                     {credit.openOrders > 0 ? `${credit.openOrders} งาน` : "—"}
                   </span>
                 </div>

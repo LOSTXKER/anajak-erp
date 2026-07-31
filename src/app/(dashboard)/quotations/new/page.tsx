@@ -306,7 +306,7 @@ function QuotationFormPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
             {editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคาใหม่"}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -646,7 +646,7 @@ function QuotationFormPage() {
               <span className="text-lg font-semibold text-slate-900 dark:text-white">
                 ยอดรวมทั้งหมด
               </span>
-              <span className="text-2xl font-bold tabular-nums text-blue-600 dark:text-blue-400">
+              <span className="text-2xl font-semibold tabular-nums text-blue-600 dark:text-blue-400">
                 {formatCurrency(pricingSummary.total)}
               </span>
             </div>

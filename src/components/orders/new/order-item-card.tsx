@@ -25,7 +25,7 @@ import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
 
 export const labelClass =
-  "mb-1 block text-[12px] text-slate-500 dark:text-slate-400";
+  "mb-1 block text-xs text-slate-500 dark:text-slate-400";
 
 // หัวข้อกลุ่ม — เด่นชัด (แถบน้ำเงิน + ตัวหนาเข้ม) แยกกลุ่มให้สายตาจับได้ทันที (เบส: highlight หัวข้อ)
 const groupLabelClass =

@@ -59,7 +59,7 @@ export function StatCard({
       )}
     >
       <div className="flex items-center justify-between">
-        <p className="text-[12.5px] font-medium text-slate-500 dark:text-slate-400">
+        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
           {title}
         </p>
         {Icon && (
@@ -71,14 +71,14 @@ export function StatCard({
       </div>
       <p
         className={cn(
-          "mt-2.5 text-[28px] font-semibold leading-none tracking-tight tabular-nums",
+          "mt-2.5 text-3xl font-semibold leading-none tracking-tight tabular-nums",
           TONE_CLASSES[tone],
           valueClassName
         )}
       >
         {value}
       </p>
-      <div className="mt-2 flex items-center gap-2 text-[12px]">
+      <div className="mt-2 flex items-center gap-2 text-xs">
         {change !== undefined && (
           <span
             className={cn(

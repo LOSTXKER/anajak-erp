@@ -27,7 +27,7 @@ export function PageHeader({
       {breadcrumb && breadcrumb.length > 0 && (
         <nav
           aria-label="Breadcrumb"
-          className="flex flex-wrap items-center gap-1 text-[12.5px] text-slate-500 dark:text-slate-400"
+          className="flex flex-wrap items-center gap-1 text-xs text-slate-500 dark:text-slate-400"
         >
           {breadcrumb.map((item, idx) => {
             const isLast = idx === breadcrumb.length - 1;
@@ -61,11 +61,11 @@ export function PageHeader({
       )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 space-y-1">
-          <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
             {title}
           </h1>
           {description && (
-            <p className="text-[14px] text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {description}
             </p>
           )}

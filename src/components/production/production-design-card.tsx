@@ -173,10 +173,10 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
                   >
                     <span className="font-semibold">{v.size}</span>
                     {v.color ? <span className="text-slate-500"> {v.color}</span> : null}
-                    <span className="font-bold"> ×{v.quantity}</span>
+                    <span className="font-semibold"> ×{v.quantity}</span>
                   </span>
                 ))}
-                <span className="rounded-lg bg-slate-900 px-2.5 py-1.5 text-sm font-bold tabular-nums text-white dark:bg-white dark:text-slate-900">
+                <span className="rounded-lg bg-slate-900 px-2.5 py-1.5 text-sm font-semibold tabular-nums text-white dark:bg-white dark:text-slate-900">
                   รวม {p.totalQuantity}
                 </span>
               </div>

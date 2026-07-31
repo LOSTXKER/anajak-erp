@@ -57,12 +57,12 @@ import {
 } from "@/components/orders/new";
 import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
 
-const labelClass = "mb-1.5 block text-[12px] text-slate-500 dark:text-slate-400";
+const labelClass = "mb-1.5 block text-xs text-slate-500 dark:text-slate-400";
 
 // เลขกำกับหัวข้อ 1-2-3 — ลำดับสายตาชัดว่ากรอกอะไรก่อนหลัง
 function SectionNumber({ n }: { n: number }) {
   return (
-    <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 align-text-bottom text-[11px] font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+    <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 align-text-bottom text-2xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
       {n}
     </span>
   );
@@ -408,7 +408,7 @@ export default function NewOrderPage() {
       />
 
       {hasDraft && (
-        <div className="flex items-center gap-3 rounded-lg bg-amber-50/60 px-3 py-1.5 text-[12px] dark:bg-amber-950/20">
+        <div className="flex items-center gap-3 rounded-lg bg-amber-50/60 px-3 py-1.5 text-xs dark:bg-amber-950/20">
           <span className="text-amber-800 dark:text-amber-200">
             พบข้อมูลร่างที่ยังไม่ได้บันทึก — กรอกต่อจากเดิมหรือเริ่มใหม่?
           </span>
@@ -668,13 +668,13 @@ export default function NewOrderPage() {
           <div className="min-w-0 flex-1">
             {hasItemContent ? (
               <>
-                <p className="text-[11px] text-slate-400">ยอดรวม</p>
-                <p className="text-base font-bold tabular-nums text-slate-900 dark:text-white">
+                <p className="text-2xs text-slate-400">ยอดรวม</p>
+                <p className="text-base font-semibold tabular-nums text-slate-900 dark:text-white">
                   {formatCurrency(pricingSummary.grandTotal)}
                 </p>
               </>
             ) : (
-              <p className="text-[12px] leading-snug text-slate-500 dark:text-slate-400">
+              <p className="text-xs leading-snug text-slate-500 dark:text-slate-400">
                 ยังไม่ใส่รายการ/ราคา
                 <br className="sm:hidden" />
                 <span className="hidden sm:inline"> — </span>

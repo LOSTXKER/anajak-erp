@@ -252,7 +252,7 @@ export default function QuotationDetailPage({
           </Button>
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
+              <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
                 {quotation.quotationNumber}
               </h1>
               <Badge
@@ -503,7 +503,7 @@ export default function QuotationDetailPage({
                   <span className="text-base font-semibold text-slate-900 dark:text-white">
                     ยอดรวมทั้งหมด
                   </span>
-                  <span className="tabular-nums text-lg font-bold text-blue-600 dark:text-blue-400">
+                  <span className="tabular-nums text-lg font-semibold text-blue-600 dark:text-blue-400">
                     {formatCurrency(totalAmount)}
                   </span>
                 </div>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>บันไดขนาดตัวอักษร — Anajak ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sans:"Prompt",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --bg:#f5f5f7; --card:#fff; --line:#e5e5ea;
+    --text:#1d1d1f; --muted:#6e6e73; --subtle:#86868b;
+    --blue:#3973b2; --red:#e72f27; --yellow:#fec91b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);font-size:14px;background:var(--bg);color:var(--text);
+       -webkit-font-smoothing:antialiased;letter-spacing:-0.01em;padding:32px 20px 80px}
+  .wrap{max-width:960px;margin:0 auto}
+  h1{font-size:28px;font-weight:600;letter-spacing:-0.02em;line-height:1.2;margin:0 0 6px}
+  .lead{font-size:14px;color:var(--muted);margin:0 0 28px;line-height:1.6}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:20px}
+  .card > h2{font-size:16px;font-weight:600;letter-spacing:-0.015em;margin:0 0 4px}
+  .card > .sub{font-size:12px;color:var(--subtle);margin:0 0 18px}
+  table{width:100%;border-collapse:collapse}
+  th{font-size:12px;font-weight:600;color:var(--muted);text-align:left;padding:8px 10px;
+     border-bottom:1px solid var(--line);letter-spacing:0}
+  td{padding:10px;border-bottom:1px solid #f0f0f2;vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px;background:#f0f0f3;
+       padding:2px 6px;border-radius:5px;color:#305f93}
+  .num{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px;white-space:nowrap}
+  .use{font-size:12px;color:var(--muted)}
+  .bad{color:var(--red)}
+  .toggle{display:inline-flex;background:#ececf0;border-radius:10px;padding:3px;gap:3px;margin-bottom:18px}
+  .toggle button{font-family:inherit;font-size:13px;font-weight:500;border:0;background:transparent;
+    color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;transition:.15s}
+  .toggle button.on{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .demo{border:1px solid var(--line);border-radius:12px;padding:18px;background:#fff}
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .kpi{border:1px solid var(--line);border-radius:12px;padding:14px}
+  .kpi .lbl{color:var(--subtle);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+  .kpi .val{font-weight:600;letter-spacing:-0.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+  .kpi .delta{color:var(--muted);margin-top:5px}
+  .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-weight:500;
+         background:#e4edf6;color:#305f93}
+  .rowline{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #f0f0f2}
+  .rowline:last-child{border-bottom:0}
+  .rowline .t{font-weight:500}
+  .rowline .s{color:var(--muted);margin-top:2px}
+  .note{font-size:13px;line-height:1.65;color:var(--muted)}
+  .note b{color:var(--text);font-weight:600}
+  .swatch{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--yellow);margin-right:7px}
+
+  /* ---------- โหมด "ก่อน" — ขนาดมั่วตามของจริงในโค้ดวันนี้ ---------- */
+  .before .kpi .lbl{font-size:10.5px}
+  .before .kpi .val{font-size:26px}
+  .before .kpi .delta{font-size:11.5px}
+  .before .sec-head{font-size:15px;font-weight:600}
+  .before .rowline .t{font-size:13.5px}
+  .before .rowline .s{font-size:12.5px}
+  .before .badge{font-size:9.5px}
+  .before .money{font-size:13px;font-weight:700}
+  .before .foot{font-size:10px}
+
+  /* ---------- โหมด "หลัง" — บันได 8 ขั้น ---------- */
+  .after .kpi .lbl{font-size:11px}
+  .after .kpi .val{font-size:28px}
+  .after .kpi .delta{font-size:12px}
+  .after .sec-head{font-size:16px;font-weight:600}
+  .after .rowline .t{font-size:14px}
+  .after .rowline .s{font-size:12px}
+  .after .badge{font-size:11px}
+  .after .money{font-size:14px;font-weight:600}
+  .after .foot{font-size:11px}
+
+  .sec-head{letter-spacing:-0.015em;margin-bottom:10px}
+  .money{font-variant-numeric:tabular-nums}
+  .flag{display:none;font-size:12px;color:var(--red);margin-top:14px;line-height:1.6}
+  .before .flag{display:block}
+  .ok{display:none;font-size:12px;color:#1a7f37;margin-top:14px;line-height:1.6}
+  .after .ok{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>บันไดขนาดตัวอักษร</h1>
+  <p class="lead">ตอนนี้ทั้งระบบใช้ขนาดตัวอักษร 24 แบบ มีครึ่งพิกเซลปนอยู่ 5 แบบ (9.5 / 10.5 / 11.5 / 12.5 / 13.5px) — นั่นคือเหตุผลที่มองแล้วรู้สึกเบี้ยวแต่ชี้ไม่ถูกว่าตรงไหน · ข้างล่างคือบันได 8 ขั้นที่จะใช้แทน กดสลับดูของจริงได้</p>
+
+  <div class="card">
+    <h2>กดสลับดู ก่อน / หลัง</h2>
+    <p class="sub">องค์ประกอบชุดเดียวกัน ต่างกันแค่ขนาดตัวอักษร</p>
+    <div class="toggle">
+      <button id="bBefore">ก่อน (ของวันนี้)</button>
+      <button id="bAfter" class="on">หลัง (บันได 8 ขั้น)</button>
+    </div>
+    <div class="demo after" id="demo">
+      <div class="kpi-row">
+        <div class="kpi"><div class="lbl">ออเดอร์วันนี้</div><div class="val">18</div><div class="delta">+3 จากเมื่อวาน</div></div>
+        <div class="kpi"><div class="lbl">รอผลิต</div><div class="val">7</div><div class="delta">เกินกำหนด 1 งาน</div></div>
+        <div class="kpi"><div class="lbl">ค้างชำระ</div><div class="val">142,500</div><div class="delta">5 ใบ</div></div>
+      </div>
+      <div class="sec-head"><span class="swatch"></span>ออเดอร์ล่าสุด</div>
+      <div>
+        <div class="rowline">
+          <div><div class="t">ORD-2026-0184 · บริษัท สยามเท็กซ์ จำกัด</div><div class="s">เสื้อโปโล DTF 120 ตัว · กำหนดส่ง 5 ส.ค.</div></div>
+          <div style="text-align:right"><div class="money">36,000</div><div class="badge">กำลังผลิต</div></div>
+        </div>
+        <div class="rowline">
+          <div><div class="t">ORD-2026-0183 · ร้านกีฬาเจริญพร</div><div class="s">เสื้อกีฬา สกรีน 60 ตัว · กำหนดส่ง 2 ส.ค.</div></div>
+          <div style="text-align:right"><div class="money">14,400</div><div class="badge">รอมัดจำ</div></div>
+        </div>
+        <div class="rowline">
+          <div><div class="t">ORD-2026-0182 · โรงเรียนอนุบาลบ้านสวน</div><div class="s">เสื้อยูนิฟอร์ม ปัก 200 ตัว · กำหนดส่ง 12 ส.ค.</div></div>
+          <div style="text-align:right"><div class="money">78,000</div><div class="badge">ส่งงานนอก</div></div>
+        </div>
+      </div>
+      <div class="foot" style="color:var(--subtle);margin-top:14px">อัปเดตล่าสุด 14:20 น.</div>
+      <div class="flag">↑ สังเกต: ป้ายสถานะเล็กจนอ่านฝืน (9.5px) · ชื่อออเดอร์ 13.5px กับคำบรรยาย 12.5px ห่างกันแค่ 1px จนลำดับความสำคัญหาย · ตัวเลขเงินหนา 700 แข่งกับหัวข้อ</div>
+      <div class="ok">↑ ทุกขนาดลงบันไดหมด: ป้าย 11px · คำบรรยาย 12px · ชื่อออเดอร์ 14px · หัวข้อ 16px · ตัวเลขใหญ่ 28px — ระยะห่างชัดพอให้ตาไล่ลำดับได้เอง</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>บันได 8 ขั้น</h2>
+    <p class="sub">ไม่มีครึ่งพิกเซล · เว้นระยะพอให้แต่ละขั้นต่างกันจริง</p>
+    <table>
+      <thead><tr><th style="width:110px">ชื่อเรียก</th><th style="width:70px">ขนาด</th><th style="width:90px">น้ำหนัก</th><th>ใช้ตอนไหน</th><th style="width:230px">ตัวอย่าง</th></tr></thead>
+      <tbody>
+        <tr><td><code>text-2xs</code></td><td class="num">11px</td><td class="num">500</td><td class="use">ป้ายสถานะ · หัวคอลัมน์เล็ก · ข้อความกำกับ</td><td style="font-size:11px;font-weight:500">รอมัดจำ</td></tr>
+        <tr><td><code>text-xs</code></td><td class="num">12px</td><td class="num">400</td><td class="use">คำบรรยายใต้หัวข้อ · ข้อความรอง</td><td style="font-size:12px">เสื้อโปโล DTF 120 ตัว</td></tr>
+        <tr><td><code>text-sm</code></td><td class="num">14px</td><td class="num">400/500</td><td class="use">ตัวหนังสือหลัก · ทุกแถวในตาราง · ปุ่ม</td><td style="font-size:14px">ORD-2026-0184</td></tr>
+        <tr><td><code>text-base</code></td><td class="num">16px</td><td class="num">600</td><td class="use">หัวการ์ด · หัวหมวดในหน้า</td><td style="font-size:16px;font-weight:600">ออเดอร์ล่าสุด</td></tr>
+        <tr><td><code>text-lg</code></td><td class="num">18px</td><td class="num">600</td><td class="use">หัวข้อย่อยของหน้า · หัวกล่องเด้ง</td><td style="font-size:18px;font-weight:600">ข้อมูลลูกค้า</td></tr>
+        <tr><td><code>text-xl</code></td><td class="num">20px</td><td class="num">600</td><td class="use">ชื่อหน้า</td><td style="font-size:20px;font-weight:600">รายการออเดอร์</td></tr>
+        <tr><td><code>text-2xl</code></td><td class="num">24px</td><td class="num">600</td><td class="use">ตัวเลขสรุปขนาดกลาง</td><td style="font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">142,500</td></tr>
+        <tr><td><code>text-3xl</code></td><td class="num">28px</td><td class="num">600</td><td class="use">ตัวเลขเด่นบนแดชบอร์ด</td><td style="font-size:28px;font-weight:600;font-variant-numeric:tabular-nums">18</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>ขนาดเก่า 18 แบบ จะถูกย้ายไปไหน</h2>
+    <p class="sub">ทุกขนาดที่สั่งมือดิบๆ ในโค้ดวันนี้ · ตัวแดงคือครึ่งพิกเซลที่จะหายไป</p>
+    <table>
+      <thead><tr><th style="width:220px">ของเดิม</th><th style="width:60px">จำนวน</th><th>ย้ายไป</th></tr></thead>
+      <tbody>
+        <tr><td><code class="bad">9px · 9.5px</code> · <code>10px · 10.5px</code> · <code class="bad">11px · 11.5px</code></td><td class="num">40 จุด</td><td class="use"><code>text-2xs</code> 11px</td></tr>
+        <tr><td><code>12px</code> · <code class="bad">12.5px</code></td><td class="num">50 จุด</td><td class="use"><code>text-xs</code> 12px</td></tr>
+        <tr><td><code>13px</code> · <code class="bad">13.5px</code> · <code>14px</code> · <code>15px</code></td><td class="num">24 จุด</td><td class="use"><code>text-sm</code> 14px</td></tr>
+        <tr><td><code>16px</code> · <code>17px</code></td><td class="num">3 จุด</td><td class="use"><code>text-base</code> 16px</td></tr>
+        <tr><td><code>19px</code> · <code>20px</code></td><td class="num">2 จุด</td><td class="use"><code>text-xl</code> 20px</td></tr>
+        <tr><td><code>26px</code> · <code>28px</code></td><td class="num">5 จุด</td><td class="use"><code>text-3xl</code> 28px</td></tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin-top:16px"><b>ยกเว้นเอกสารสั่งพิมพ์</b> — ไฟล์ใบเสนอราคา/ใบวางบิล/ใบสั่งงาน (17 จุด) ขนาดต้องล็อกกับกระดาษ A4 ไม่ใช่กับจอ ฉันจะไม่แตะ</p>
+  </div>
+
+  <div class="card">
+    <h2>กฎน้ำหนักฟอนต์</h2>
+    <p class="sub">วันนี้ใช้ปนกัน 4 น้ำหนักโดยไม่มีกฎ (medium 392 จุด · semibold 188 · bold 57)</p>
+    <table>
+      <tbody>
+        <tr><td style="width:130px"><code>400 ปกติ</code></td><td class="use">ตัวหนังสือทั่วไป คำบรรยาย</td><td style="width:200px;font-weight:400">เสื้อโปโล DTF 120 ตัว</td></tr>
+        <tr><td><code>500 กลาง</code></td><td class="use">ชื่อรายการในตาราง · ป้าย · ปุ่ม</td><td style="font-weight:500">ORD-2026-0184</td></tr>
+        <tr><td><code>600 หนา</code></td><td class="use">หัวข้อทุกระดับ · ตัวเลขเด่น</td><td style="font-weight:600">ออเดอร์ล่าสุด</td></tr>
+        <tr><td><code style="text-decoration:line-through">700 หนามาก</code></td><td class="use">เลิกใช้ — 57 จุดที่ใช้อยู่จะลดเป็น 600 ทั้งหมด (Prompt ที่ 700 หนาจนแย่งสายตากับหัวข้อ)</td><td style="font-weight:700;color:var(--subtle)">78,000</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>ทำยังไงให้ไม่กลับไปมั่วอีก</h2>
+    <p class="note">
+      บันไดนี้จะไปอยู่ที่ <code>globals.css</code> ที่เดียว (ที่เดียวกับระบบสีที่วางไว้ดีอยู่แล้ว) พร้อมผูกความสูงบรรทัดกับระยะห่างตัวอักษรมาให้ในตัว —
+      แปลว่าเวลาเขียนหน้าใหม่ แค่พิมพ์ <code>text-sm</code> ก็ได้ทั้งขนาด ทั้งบรรทัด ทั้งระยะที่ถูกต้องมาเลย ไม่ต้องเดา<br><br>
+      แล้วฉันจะตั้งด่านอัตโนมัติไว้ (lint) ว่า <b>ห้ามสั่งขนาดเป็นพิกเซลดิบอีก</b> — ถ้าใครเผลอเขียน <code>text-[12.5px]</code> จะฟ้องทันทีตั้งแต่ตอนเขียน ไม่ต้องรอมาเห็นว่าเบี้ยวบนหน้าเว็บ
+    </p>
+  </div>
+
+</div>
+<script>
+  const demo=document.getElementById('demo'),b1=document.getElementById('bBefore'),b2=document.getElementById('bAfter');
+  b1.onclick=()=>{demo.className='demo before';b1.classList.add('on');b2.classList.remove('on')};
+  b2.onclick=()=>{demo.className='demo after';b2.classList.add('on');b1.classList.remove('on')};
+</script>
+</body>
+</html>

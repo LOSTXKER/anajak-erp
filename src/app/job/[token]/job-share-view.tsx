@@ -54,7 +54,7 @@ export function JobShareView({ token }: { token: string }) {
         <div className="text-center">
           <div className="mb-1 flex items-center justify-center gap-2">
             <Shirt className="h-6 w-6 text-blue-600" />
-            <h1 className="text-xl font-bold text-slate-900">ใบงานผลิต</h1>
+            <h1 className="text-xl font-semibold text-slate-900">ใบงานผลิต</h1>
           </div>
           <p className="text-sm text-slate-500">
             สำหรับ {d.vendorName} · อ้างอิง {d.orderNumber}
@@ -67,11 +67,11 @@ export function JobShareView({ token }: { token: string }) {
             <p className="text-lg font-semibold text-slate-900">{d.description}</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg bg-blue-50 p-3 text-center">
-                <p className="text-2xl font-bold tabular-nums text-blue-700">{d.quantity}</p>
+                <p className="text-2xl font-semibold tabular-nums text-blue-700">{d.quantity}</p>
                 <p className="text-xs text-slate-500">จำนวน (ชิ้น)</p>
               </div>
               <div className="rounded-lg bg-amber-50 p-3 text-center">
-                <p className="flex items-center justify-center gap-1.5 text-lg font-bold text-amber-700">
+                <p className="flex items-center justify-center gap-1.5 text-lg font-semibold text-amber-700">
                   <CalendarClock className="h-4 w-4 shrink-0" />
                   {d.expectedBackAt ? formatDate(d.expectedBackAt) : "—"}
                 </p>
@@ -113,7 +113,7 @@ export function JobShareView({ token }: { token: string }) {
                         alt={a.fileName}
                         className="h-36 w-full rounded-lg border border-slate-200 bg-white object-contain"
                       />
-                      <p className="mt-1 truncate text-[11px] text-slate-400">{a.fileName}</p>
+                      <p className="mt-1 truncate text-2xs text-slate-400">{a.fileName}</p>
                     </a>
                   ))}
                   {designIsImage && design && (
@@ -127,7 +127,7 @@ export function JobShareView({ token }: { token: string }) {
                         alt={`แบบ v${design.versionNumber}`}
                         className="h-36 w-full rounded-lg border border-slate-200 bg-white object-contain"
                       />
-                      <p className="mt-1 truncate text-[11px] text-slate-400">
+                      <p className="mt-1 truncate text-2xs text-slate-400">
                         แบบที่อนุมัติ (v{design.versionNumber})
                       </p>
                     </a>

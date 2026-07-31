@@ -173,7 +173,7 @@ export default function ProductDetailPage({
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
+              <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
                 {product.name}
               </h1>
               <Badge variant={typ.variant}>{typ.label}</Badge>
@@ -254,7 +254,7 @@ export default function ProductDetailPage({
                   return (
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500">ราคาขาย</span>
-                      <span className="font-bold tabular-nums text-blue-600 dark:text-blue-400">
+                      <span className="font-semibold tabular-nums text-blue-600 dark:text-blue-400">
                         {displayPrice}
                       </span>
                     </div>

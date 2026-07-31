@@ -216,7 +216,7 @@ export default function ProductsPage() {
                         <h3 className="truncate text-sm font-medium text-slate-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
                           {product.name}
                         </h3>
-                        <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                        <p className="truncate text-2xs text-slate-500 dark:text-slate-400">
                           {product.sku} · {typ.label}
                         </p>
                       </div>
@@ -238,7 +238,7 @@ export default function ProductsPage() {
                           return formatCurrency(product.basePrice);
                         })()}
                       </span>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      <span className="text-2xs text-slate-500 dark:text-slate-400">
                         สต็อก{" "}
                         <span className="tabular-nums font-medium text-slate-700 dark:text-slate-300">
                           {product.totalStock ?? 0}

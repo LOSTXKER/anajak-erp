@@ -441,7 +441,7 @@ function OrdersPageContent() {
             <Filter className="h-4 w-4" />
             ตัวกรอง
             {activeFilterCount > 0 && (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-medium text-white">
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-2xs font-medium text-white">
                 {activeFilterCount}
               </span>
             )}
