@@ -27,13 +27,25 @@ function getBaseUrl() {
 function ThemedToaster() {
   const { resolvedTheme } = useTheme();
   return (
+    // แจ้งเตือนใช้ภาษาเดียวกับที่เหลือของเว็บ (เบสสั่ง 2026-07-31 "ใช้ของเราเอง")
+    // มุมโค้ง 16px = ระดับ "กล่องเด้ง" ตามบันได · เงา overlay-surface ตัวเดียวกับเมนู/กล่องเด้ง
+    // ปิด richColors ที่ย้อมทั้งใบ — ใช้ไอคอนสีบอกชนิดแทน พื้นขาวอ่านง่ายกว่าและเข้าชุดกับการ์ด
     <Toaster
-      richColors
       position="bottom-right"
       theme={(resolvedTheme as "light" | "dark") ?? "system"}
       toastOptions={{
         classNames: {
-          toast: "rounded-lg border border-slate-200 dark:border-slate-800",
+          toast:
+            "overlay-surface rounded-2xl border-0 gap-3 p-4 font-sans text-slate-900 dark:text-white",
+          title: "text-sm font-medium",
+          description: "text-xs text-slate-500 dark:text-slate-400",
+          actionButton:
+            "rounded-full bg-blue-600 px-3 text-xs font-semibold text-white",
+          cancelButton:
+            "rounded-full bg-slate-100 px-3 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+          success: "[&_[data-icon]]:text-green-600",
+          warning: "[&_[data-icon]]:text-amber-600",
+          error: "[&_[data-icon]]:text-red-600",
         },
       }}
     />

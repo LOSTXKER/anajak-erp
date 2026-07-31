@@ -27,7 +27,6 @@ import { PageHeader } from "@/components/page-header";
 import {
   Plus,
   Filter,
-  ArrowUpDown,
   Download,
   ShoppingCart,
   ChevronRight,
@@ -397,12 +396,14 @@ function OrdersPageContent() {
         }
       />
 
-      {/* Toolbar + attention filter (คำถามหลักของหน้านี้ — โชว์ตลอด ไม่ต้องกางกล่องตัวกรอง) */}
-      <div className="space-y-2.5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      {/* Toolbar + attention filter (คำถามหลักของหน้านี้ — โชว์ตลอด ไม่ต้องกางกล่องตัวกรอง)
+          แถวเดียวจบเมื่อจอกว้าง: ค้นหา · เรียง | กรอง · ชิปความเร่งด่วนชิดขวา
+          (เบสสั่ง 2026-07-31 "ส่วนบนดีได้กว่านี้" — เดิมชิปแยกไปอีกแถวทั้งที่ขวายังว่าง
+          และช่องค้นหายืดเต็มจอจนเป็นแถบว่างยาวบนจอใหญ่) */}
+      <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
         <SearchInput
           ref={searchInputRef}
-          containerClassName="flex-1"
+          containerClassName="lg:max-w-md lg:flex-1"
           placeholder="ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า..."
           defaultValue={search}
           onChange={(event) => {
@@ -416,23 +417,28 @@ function OrdersPageContent() {
         />
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
-            <NativeSelect
-              shape="pill"
-              value={sort}
-              onChange={(e) =>
-                replaceListState({ sort: e.target.value, page: null })
-              }
-              className="h-9 px-2 text-xs"
-            >
-              {sortOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </NativeSelect>
-          </div>
+          {/* ไอคอน ⇅ ถูกถอดออก — ช่องเลือกบอกอยู่แล้วว่าเรียงด้วยอะไร ไม่ต้องมีไอคอนลอยข้างๆ */}
+          <NativeSelect
+            shape="pill"
+            aria-label="เรียงลำดับ"
+            value={sort}
+            onChange={(e) =>
+              replaceListState({ sort: e.target.value, page: null })
+            }
+            className="h-9 w-auto px-3 text-xs"
+          >
+            {sortOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </NativeSelect>
+
+          {/* เส้นคั่นบางๆ แยกกลุ่ม "ค้นหา/เรียง" ออกจาก "กรอง" */}
+          <span
+            aria-hidden
+            className="hidden h-5 w-px bg-slate-200 lg:block dark:bg-slate-800"
+          />
 
           <Button
             variant={showFilters || activeFilterCount > 0 ? "subtle" : "outline"}
@@ -448,11 +454,11 @@ function OrdersPageContent() {
             )}
           </Button>
         </div>
-      </div>
 
-      {/* ความเร่งด่วน — คำถามหลักที่เปิดหน้านี้มาถามทุกเช้า โชว์เป็นแถว chip ตลอด ไม่ฝังในกล่องพับ */}
+      {/* ความเร่งด่วน — คำถามหลักที่เปิดหน้านี้มาถามทุกเช้า โชว์เป็นแถว chip ตลอด ไม่ฝังในกล่องพับ
+          จอกว้าง = อยู่แถวเดียวกับ toolbar ชิดขวา · จอแคบ = ตกลงมาแถวล่างเอง */}
       <div
-        className="flex flex-wrap items-center gap-1.5"
+        className="flex flex-wrap items-center gap-1.5 lg:ml-auto"
         role="group"
         aria-label="กรองตามความเร่งด่วน"
       >
