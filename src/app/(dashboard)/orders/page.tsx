@@ -66,8 +66,6 @@ const SORT_OPTIONS = [
   { value: "totalAmount:asc", label: "ยอดรวม (น้อย→มาก)" },
   { value: "orderNumber:desc", label: "เลขออเดอร์ (ล่าสุด)" },
   { value: "orderNumber:asc", label: "เลขออเดอร์ (เก่าสุด)" },
-  { value: "attention:asc", label: "เร่งด่วนก่อน" },
-  { value: "attention:desc", label: "ไม่เร่งก่อน" },
 ];
 
 /** ทิศที่จะได้ตอนกดหัวคอลัมน์ครั้งแรก — งานใหม่/ยอดมากขึ้นก่อน, กำหนดส่งใกล้สุดขึ้นก่อน */
@@ -76,8 +74,6 @@ const SORT_DEFAULT_DIRECTION = {
   totalAmount: "desc",
   createdAt: "desc",
   deadline: "asc",
-  // เร่งด่วนสุดขึ้นก่อนเสมอ — กดครั้งแรกต้องได้งานที่ไฟลนก้นที่สุด ไม่ใช่งานสบายๆ
-  attention: "asc",
 } as const;
 
 type SortKey = keyof typeof SORT_DEFAULT_DIRECTION;
@@ -130,41 +126,65 @@ function deadlineToneClass(
   return null;
 }
 
-/** ป้าย "เร่งด่วน" ในตาราง — เกณฑ์มาจาก server (order-list-filter) ชุดเดียวกับแดชบอร์ด
- *  ใบเดียวติดได้หลายข้อ server เลือกข้อที่แรงสุดมาให้แล้ว */
-const ATTENTION_BADGE: Record<
-  string,
-  { label: string; dot: string; text: string }
-> = {
-  overdue: {
-    label: "เลยกำหนด",
-    dot: "bg-red-500",
-    text: "text-red-700 dark:text-red-300",
-  },
-  "due-soon": {
-    label: "ใกล้กำหนด",
-    dot: "bg-amber-500",
-    text: "text-amber-700 dark:text-amber-300",
-  },
-  stuck: {
-    label: "นิ่ง 3 วัน",
-    dot: "bg-slate-400",
-    text: "text-slate-600 dark:text-slate-300",
-  },
-};
+/** นับถอยหลังถึงกำหนดส่ง (เบสเคาะ 2026-08-01 — เดิมเป็นป้าย "เร่งด่วน" ที่บอกแค่หมวด
+ *  ตัวเลขวันบอกได้มากกว่าและตัดสินใจได้ทันทีว่าจะจับงานไหนก่อน)
+ *
+ *  งานร่าง/ส่งแล้ว/จบ/ยกเลิก ไม่นับถอยหลัง — เกณฑ์เดียวกับตัวกรองความเร่งด่วนฝั่ง server
+ *  ใช้เที่ยงคืนเป็นเส้นแบ่งวัน ไม่ใช่ 24 ชม.เป๊ะ ("พรุ่งนี้" ต้องขึ้นว่าเหลือ 1 วันเสมอ
+ *  ไม่ว่าจะเปิดดูตอนเช้าหรือตอนดึก)
+ */
+function daysUntil(deadline: Date | string): number {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const due = new Date(deadline);
+  due.setHours(0, 0, 0, 0);
+  return Math.round((due.getTime() - startOfToday.getTime()) / 86400000);
+}
 
-function AttentionIndicator({ attention }: { attention: string | null }) {
-  const v = attention ? ATTENTION_BADGE[attention] : null;
-  if (!v) return <span className="text-xs text-slate-300">—</span>;
+function OrderCountdown({
+  deadline,
+  internalStatus,
+}: {
+  deadline: Date | string | null | undefined;
+  internalStatus: string;
+}) {
+  if (!deadline || ATTENTION_EXEMPT_STATUSES.has(internalStatus)) {
+    return <span className="text-xs text-slate-300 dark:text-slate-600">—</span>;
+  }
+  const days = daysUntil(deadline);
+  const { label, dot, text } =
+    days < 0
+      ? {
+          label: `เลย ${Math.abs(days)} วัน`,
+          dot: "bg-red-500",
+          text: "font-medium text-red-600 dark:text-red-400",
+        }
+      : days === 0
+        ? {
+            label: "วันนี้",
+            dot: "bg-orange-500",
+            text: "font-medium text-orange-600 dark:text-orange-400",
+          }
+        : days <= 2
+          ? {
+              label: `เหลือ ${days} วัน`,
+              dot: "bg-amber-500",
+              text: "text-amber-700 dark:text-amber-400",
+            }
+          : {
+              label: `เหลือ ${days} วัน`,
+              dot: "bg-slate-300 dark:bg-slate-600",
+              text: "text-slate-600 dark:text-slate-400",
+            };
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium",
-        v.text,
+        "inline-flex items-center gap-1.5 whitespace-nowrap text-xs tabular-nums",
+        text,
       )}
     >
-      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", v.dot)} />
-      {v.label}
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dot)} />
+      {label}
     </span>
   );
 }
@@ -624,8 +644,8 @@ function OrdersPageContent() {
                 </DataTable.SortableTh>
                 <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
                 <DataTable.Th>ช่องทาง</DataTable.Th>
-                <DataTable.SortableTh {...sortColumn("attention")}>
-                  เร่งด่วน
+                <DataTable.SortableTh {...sortColumn("deadline")}>
+                  ระยะเวลาออเดอร์
                 </DataTable.SortableTh>
                 <DataTable.Th>สถานะ</DataTable.Th>
                 {canSeeMoney && (
@@ -677,7 +697,10 @@ function OrdersPageContent() {
                     {CHANNEL_LABELS[order.channel] ?? order.channel}
                   </DataTable.Td>
                   <DataTable.Td>
-                    <AttentionIndicator attention={order.attention} />
+                    <OrderCountdown
+                      deadline={order.deadline}
+                      internalStatus={order.internalStatus}
+                    />
                   </DataTable.Td>
                   <DataTable.Td>
                     <OrderStatusBadge
