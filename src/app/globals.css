@@ -345,6 +345,24 @@ a,
 .hairline-ring {
   box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06);
 }
+/* ============================================================
+   ช่องเลือก (<select>) — ปิดหน้าตาที่เบราว์เซอร์วาดเอง แล้ววาดลูกศรเป็นพื้นหลังแทน
+   (เบสแคปจอให้ดู 2026-07-31: สั่ง rounded-full แล้วมุมไม่ยอมโค้งเต็ม เพราะ Safari/macOS
+   ครอบหน้าตา native ทับอยู่ · วาดลูกศรเองด้วยพื้นหลังจึงไม่ต้องเพิ่ม element ใหม่
+   = โครงหน้าไม่ขยับสักจุด ต่างจากการห่อ wrapper)
+   ============================================================ */
+.native-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 1rem 1rem;
+}
+.dark .native-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
 /* จุดสถานะ "กำลังใช้งาน" — เรืองแสงรอบจุด ไม่ใช่เงากล่อง จึงแยกออกมา */
 .dot-glow {
   box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
