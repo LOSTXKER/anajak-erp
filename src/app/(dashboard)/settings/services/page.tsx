@@ -244,7 +244,7 @@ export default function ServicesPage() {
               setFormData({ ...emptyForm });
             }}
           >
-            <Plus className="mr-1 h-4 w-4" />
+            <Plus className="mr-1" />
             เพิ่มรายการ
           </Button>
         </CardHeader>
@@ -483,7 +483,7 @@ export default function ServicesPage() {
                                 disabled={updateItem.isPending}
                                 className="text-green-600 hover:text-green-700"
                               >
-                                <Check className="h-3.5 w-3.5" />
+                                <Check />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -491,7 +491,7 @@ export default function ServicesPage() {
                                 aria-label={`ยกเลิกการแก้ไข ${item.name}`}
                                 onClick={() => setEditingItem(null)}
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X />
                               </Button>
                             </div>
                           ) : (
@@ -503,7 +503,7 @@ export default function ServicesPage() {
                                 onClick={() => startEdit(item)}
                                 className="text-slate-500 hover:text-blue-600"
                               >
-                                <Pencil className="h-3.5 w-3.5" />
+                                <Pencil />
                               </Button>
                               {canDelete && (
                                 <Button
@@ -514,7 +514,7 @@ export default function ServicesPage() {
                                   disabled={deleteItem.isPending}
                                   className="text-slate-500 hover:text-red-600"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <Trash2 />
                                 </Button>
                               )}
                             </div>

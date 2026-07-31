@@ -4,6 +4,7 @@ import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CONTROL_H } from "./control-size";
 
 /** ทรงของ control — pill ใช้ในแถบเครื่องมือให้เข้าชุดกับปุ่ม (เบสสั่ง 2026-07-31
  *  หลังเห็นจอจริงว่าปุ่มโค้งเต็มแต่ช่องเลือกข้างกันโค้งแค่ 16px) · box คือฟอร์มกรอกข้อมูล */
@@ -102,7 +103,8 @@ const NativeSelect = React.forwardRef<HTMLButtonElement, NativeSelectProps>(
           aria-label={ariaLabel}
           className={cn(
             controlShapeClass(shape),
-            "flex h-11 min-h-11 w-full items-center justify-between gap-2 border border-slate-200/70 bg-white px-3 py-1 text-base transition-colors focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/15 sm:h-9 sm:min-h-9 sm:text-sm disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100",
+            CONTROL_H,
+            "flex w-full items-center justify-between gap-2 border border-slate-200/70 bg-white px-3 py-1 text-base transition-colors focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/15 sm:text-sm disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100",
             className,
           )}
           {...(rest as React.ComponentPropsWithoutRef<

@@ -9,12 +9,12 @@ export function PrintActions({ backHref }: { backHref: string }) {
     <div className="print-hidden mx-auto mb-4 flex w-full max-w-[210mm] items-center justify-between">
       <Button variant="outline" size="sm" asChild>
         <a href={backHref}>
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft />
           กลับ
         </a>
       </Button>
       <Button size="sm" onClick={() => window.print()}>
-        <Printer className="h-4 w-4" />
+        <Printer />
         พิมพ์ / บันทึก PDF
       </Button>
     </div>

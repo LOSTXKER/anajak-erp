@@ -186,7 +186,7 @@ export function MaterialUsage({
             onClick={() => setShowPicker(!showPicker)}
             className="h-8 gap-1.5 border-blue-200 text-xs text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950"
           >
-            <Plus className="h-3 w-3" />
+            <Plus />
             เพิ่มวัตถุดิบ
           </Button>
         </div>
@@ -346,7 +346,7 @@ export function MaterialUsage({
                     onClick={() => updateQuantity(m.id, m.quantity - 1)}
                     className="h-6 w-6"
                   >
-                    <Minus className="h-3 w-3" />
+                    <Minus />
                   </Button>
                   <Input
                     type="number"
@@ -362,7 +362,7 @@ export function MaterialUsage({
                     onClick={() => updateQuantity(m.id, m.quantity + 1)}
                     className="h-6 w-6"
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus />
                   </Button>
                 </div>
 
@@ -396,7 +396,7 @@ export function MaterialUsage({
                   onClick={() => removeMaterial(m.id)}
                   className="ml-1 h-5 w-5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
                 >
-                  <X className="h-3 w-3" />
+                  <X />
                 </Button>
               </div>
             ))}
@@ -421,9 +421,9 @@ export function MaterialUsage({
                 className="h-8 gap-1.5 text-xs"
               >
                 {issueMutation.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <Loader2 className=" animate-spin" />
                 ) : (
-                  <Package className="h-3 w-3" />
+                  <Package />
                 )}
                 เบิกวัตถุดิบ
               </Button>

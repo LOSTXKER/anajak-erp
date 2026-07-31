@@ -129,7 +129,7 @@ function QuotationsPageContent() {
           canCreateQuotation ? (
             <Button size="sm" asChild>
               <Link href="/orders/new?next=quote">
-                <Plus className="h-4 w-4" />
+                <Plus />
                 เปิดงานเพื่อออกใบเสนอ
               </Link>
             </Button>
@@ -184,7 +184,7 @@ function QuotationsPageContent() {
                 canCreateQuotation ? (
                   <Button size="sm" asChild>
                     <Link href="/orders/new?next=quote">
-                      <Plus className="h-4 w-4" />
+                      <Plus />
                       เปิดงานเพื่อออกใบเสนอ
                     </Link>
                   </Button>

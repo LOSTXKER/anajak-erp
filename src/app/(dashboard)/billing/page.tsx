@@ -342,14 +342,14 @@ function BillingPageContent() {
                         rel="noreferrer"
                         aria-label={`พิมพ์ ${inv.invoiceNumber}`}
                       >
-                        <Printer className="h-4 w-4" />
+                        <Printer />
                         พิมพ์
                       </Link>
                     </Button>
                     <Button size="sm" asChild>
                       <Link href={moneyHref}>
                         {paymentActionLabel(inv.paymentStatus, inv.type)}
-                        <ArrowRight className="h-4 w-4" />
+                        <ArrowRight />
                       </Link>
                     </Button>
                   </div>
@@ -429,7 +429,7 @@ function BillingPageContent() {
                             aria-label={`พิมพ์ ${inv.invoiceNumber}`}
                             title="พิมพ์"
                           >
-                            <Printer className="h-4 w-4" />
+                            <Printer />
                           </Link>
                         </Button>
                         <Button variant="outline" size="sm" asChild>

@@ -207,7 +207,7 @@ export default function WhtRegisterPage() {
             disabled={list.length === 0}
             className="gap-1.5"
           >
-            <Download className="h-4 w-4" />
+            <Download />
             Export CSV
           </Button>
         }
@@ -386,7 +386,7 @@ export default function WhtRegisterPage() {
                           onClick={() => openMarkDialog(row)}
                           className="gap-1.5"
                         >
-                          <FileCheck2 className="h-4 w-4" />
+                          <FileCheck2 />
                           ได้ใบแล้ว
                         </Button>
                       )}
@@ -466,14 +466,14 @@ export default function WhtRegisterPage() {
                         onClick={() => openMarkDialog(row)}
                         className="h-10 flex-1 gap-1.5"
                       >
-                        <FileCheck2 className="h-4 w-4" />
+                        <FileCheck2 />
                         ได้ใบแล้ว
                       </Button>
                     )}
                     {row.fileUrl && (
                       <Button asChild size="sm" variant="ghost" className="h-10 gap-1.5">
                         <a href={row.fileUrl} target="_blank" rel="noreferrer">
-                          <Paperclip className="h-4 w-4" />
+                          <Paperclip />
                           ดูไฟล์
                         </a>
                       </Button>
@@ -538,7 +538,7 @@ export default function WhtRegisterPage() {
                     className="shrink-0 text-slate-400 hover:text-red-600"
                     title="เอาไฟล์ออก"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X />
                   </Button>
                 </div>
               )}
@@ -573,9 +573,9 @@ export default function WhtRegisterPage() {
               className="gap-1.5"
             >
               {markReceived.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <FileCheck2 className="h-4 w-4" />
+                <FileCheck2 />
               )}
               บันทึกได้ใบแล้ว
             </Button>

@@ -100,7 +100,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
           {isQualityCheck &&
             (canCount ? (
               <Button size="sm" className="h-9 gap-1.5 text-xs" onClick={() => setDialogOpen(true)}>
-                <ClipboardCheck className="h-3.5 w-3.5" />
+                <ClipboardCheck />
                 ตรวจนับ
               </Button>
             ) : (
@@ -562,7 +562,7 @@ function QcCountForm({
             onClick={addRow}
             className="h-11 w-full gap-1.5 border-dashed text-sm"
           >
-            <Plus className="h-4 w-4" />
+            <Plus />
             เพิ่มของเสีย
           </Button>
 
@@ -612,9 +612,9 @@ function QcCountForm({
             className="h-11 gap-1.5"
           >
             {create.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className=" animate-spin" />
             ) : (
-              <ClipboardCheck className="h-4 w-4" />
+              <ClipboardCheck />
             )}
             บันทึก ดี {qtyGood} · เสีย {qtyDefectTotal}
           </Button>

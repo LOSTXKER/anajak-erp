@@ -174,7 +174,7 @@ export default function UsersSettingsPage() {
             size="sm"
             onClick={() => setShowAddForm(!showAddForm)}
           >
-            <Plus className="mr-1 h-4 w-4" />
+            <Plus className="mr-1" />
             เพิ่มผู้ใช้
           </Button>
         </CardHeader>
@@ -368,7 +368,7 @@ export default function UsersSettingsPage() {
                               onClick={() => openPermissions(user)}
                               className="h-8 px-2 text-slate-500 hover:text-blue-600"
                             >
-                              <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                              <ShieldCheck className="mr-1" />
                               สิทธิ์
                               {(() => {
                                 // นับเฉพาะที่ต่างจาก default ของ role ปัจจุบันจริง — ตรงกับป้าย "ปรับเอง" ใน dialog
@@ -388,7 +388,7 @@ export default function UsersSettingsPage() {
                             }
                             className="h-8 px-2 text-slate-500 hover:text-blue-600"
                           >
-                            <KeyRound className="mr-1 h-3.5 w-3.5" />
+                            <KeyRound className="mr-1" />
                             รีเซ็ตรหัส
                           </Button>
                         </td>

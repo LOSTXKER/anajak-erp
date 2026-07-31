@@ -120,7 +120,7 @@ export function ProductTableRow({
                     className={cn("h-8 gap-1.5 px-2 text-xs", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
                     title={product.variants.length > 1 ? "ล้างจำนวนไซส์ให้เหลือไซส์เดียวก่อนปิด" : "กรอกหลายไซส์ในแถวเดียว"}
                   >
-                    <LayoutGrid className="h-3 w-3" />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}
+                    <LayoutGrid />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}
                   </Button>
                 )}
               </div>
@@ -157,15 +157,15 @@ export function ProductTableRow({
             {totalProducts > 1 && (
               <div className="flex flex-col">
                 <Button type="button" variant="ghost" size="icon" aria-label={`เลื่อนสินค้า ${prodIdx + 1} ขึ้น`} onClick={() => moveProduct(-1)} disabled={prodIdx === 0} className="text-slate-300 hover:text-slate-600 disabled:opacity-30 sm:min-w-9 dark:text-slate-600 dark:hover:text-slate-300">
-                  <ChevronUp className="h-3.5 w-3.5" />
+                  <ChevronUp />
                 </Button>
                 <Button type="button" variant="ghost" size="icon" aria-label={`เลื่อนสินค้า ${prodIdx + 1} ลง`} onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} className="text-slate-300 hover:text-slate-600 disabled:opacity-30 sm:min-w-9 dark:text-slate-600 dark:hover:text-slate-300">
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  <ChevronDown />
                 </Button>
               </div>
             )}
             <Button type="button" variant="ghost" size="icon" aria-label={`ลบสินค้า ${prodIdx + 1}`} onClick={removeProduct} className="text-red-500 hover:bg-red-50 hover:text-red-600 sm:min-w-9 dark:hover:bg-red-950/40">
-              <Trash2 className="h-4 w-4" />
+              <Trash2 />
             </Button>
           </div>
         </td>

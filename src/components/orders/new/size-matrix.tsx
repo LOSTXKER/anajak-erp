@@ -95,8 +95,8 @@ export function SizeMatrix({
               className="h-8 px-1 text-center text-xs"
             />
           </div>
-          <Button type="button" variant="outline" size="icon" onClick={addSize} className="h-8 w-8">
-            <Plus className="h-3.5 w-3.5" />
+          <Button type="button" variant="outline" size="icon-sm" onClick={addSize}>
+            <Plus />
           </Button>
         </div>
       </div>

@@ -85,9 +85,9 @@ export function Sidebar({
             aria-label={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"}
           >
             {collapsed ? (
-              <PanelLeftOpen className="h-4 w-4" />
+              <PanelLeftOpen />
             ) : (
-              <PanelLeftClose className="h-4 w-4" />
+              <PanelLeftClose />
             )}
           </Button>
         )}

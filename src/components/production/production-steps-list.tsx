@@ -260,7 +260,7 @@ function StepRow({
             className="gap-1.5"
             onClick={() => onOutsourceStep(step)}
           >
-            <Truck className="h-3 w-3" />
+            <Truck />
             {step.outsourceOrders.length > 0 ? "ส่งแก้รอบใหม่" : "ส่งร้านนอก"}
           </Button>
         )}
@@ -271,7 +271,7 @@ function StepRow({
             className="gap-1.5"
             onClick={() => onQuickPass(step)}
           >
-            <FastForward className="h-3 w-3" />
+            <FastForward />
             ผ่านรวด
           </Button>
         )}
@@ -299,7 +299,7 @@ function StepRow({
             className="gap-1.5 text-slate-500"
             onClick={() => onSelectStep(step)}
           >
-            <MoreHorizontal className="h-3.5 w-3.5" />
+            <MoreHorizontal />
             เพิ่มเติม
           </Button>
         )}
@@ -334,7 +334,7 @@ function StepRow({
             // (pattern เดียวกับการ์ดบอร์ดเลน — เดิมหน้านี้เงียบ ช่างเข้า dialog แล้วเจอ error)
             <Button variant="outline" size="sm" asChild className="h-11 w-full gap-1.5 sm:h-9 sm:w-auto">
               <Link href="/production/print-runs">
-                <Printer className="h-3.5 w-3.5" />
+                <Printer />
                 รอบพิมพ์ {activePrintRun.runNumber}
               </Link>
             </Button>
@@ -345,7 +345,7 @@ function StepRow({
               onClick={() => onCompleteStep(step)}
               className="h-11 w-full gap-1.5 sm:h-9 sm:w-auto"
             >
-              <CheckCircle2 className="h-3.5 w-3.5" />
+              <CheckCircle2 />
               เสร็จขั้นนี้
             </Button>
           ) : (
@@ -355,7 +355,7 @@ function StepRow({
               onClick={() => onStartStep(step)}
               className="h-11 w-full gap-1.5 sm:h-9 sm:w-auto"
             >
-              <Play className="h-3.5 w-3.5" />
+              <Play />
               {/* ช่างกดบนขั้นว่าง = server claim ให้เป็นชื่อตัวเองจริง จึงใช้คำว่า "รับงาน"
                   ได้ไม่โกหก · หัวหน้า claim อัตโนมัติไม่เกิด (มอบงานผ่าน "เพิ่มเติม") = "เริ่มทำ" */}
               {!step.assignedTo && !canSupervise ? "รับงานนี้" : "เริ่มทำ"}

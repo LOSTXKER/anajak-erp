@@ -579,7 +579,7 @@ export default function NewOrderPage() {
               }}
               className="w-full gap-1.5 text-slate-500"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus />
               เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)
             </Button>
 
@@ -688,7 +688,7 @@ export default function NewOrderPage() {
             </Link>
           </Button>
           <Button type="submit" disabled={createOrder.isPending} className="gap-1.5">
-            {createOrder.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {createOrder.isPending && <Loader2 className=" animate-spin" />}
             {createOrder.isPending ? "กำลังบันทึก..." : "เปิดงาน"}
           </Button>
         </div>

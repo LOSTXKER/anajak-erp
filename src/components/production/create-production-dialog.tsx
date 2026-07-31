@@ -214,12 +214,12 @@ function StepBuilder({
                   {steps.length > 1 && (
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="icon-sm"
                       aria-label="ลบขั้นตอน"
-                      className="h-8 w-8 text-slate-400 hover:text-red-600"
+                      className=" text-slate-400 hover:text-red-600"
                       onClick={() => removeStep(index)}
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X />
                     </Button>
                   )}
                 </div>
@@ -261,9 +261,9 @@ function StepBuilder({
           className="gap-1.5"
         >
           {createProduction.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className=" animate-spin" />
           ) : (
-            <Factory className="h-4 w-4" />
+            <Factory />
           )}
           สร้างใบผลิต ({steps.length} ขั้นตอน)
         </Button>

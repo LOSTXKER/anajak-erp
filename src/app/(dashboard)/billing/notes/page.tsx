@@ -183,7 +183,7 @@ function BillingNotesPageContent() {
         breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ใบวางบิล" }]}
         action={
           <Button onClick={() => setShowCreate(true)} className="gap-1.5">
-            <Plus className="h-4 w-4" />
+            <Plus />
             สร้างใบวางบิล
           </Button>
         }
@@ -269,7 +269,7 @@ function BillingNotesPageContent() {
                           rel="noreferrer"
                           aria-label={`พิมพ์ใบวางบิล ${note.billingNoteNumber}`}
                         >
-                          <Printer className="h-4 w-4" />
+                          <Printer />
                         </a>
                       </Button>
                       {!note.isVoided && (
@@ -283,7 +283,7 @@ function BillingNotesPageContent() {
                             setVoidTarget(note.id);
                           }}
                         >
-                          <Ban className="h-4 w-4" />
+                          <Ban />
                         </Button>
                       )}
                     </div>
@@ -347,7 +347,7 @@ function BillingNotesPageContent() {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      <Printer className="h-4 w-4" />
+                      <Printer />
                       พิมพ์
                     </a>
                   </Button>
@@ -362,7 +362,7 @@ function BillingNotesPageContent() {
                         setVoidTarget(note.id);
                       }}
                     >
-                      <Ban className="h-4 w-4" />
+                      <Ban />
                     </Button>
                   )}
                 </div>
@@ -563,9 +563,9 @@ function BillingNotesPageContent() {
               className="gap-1.5"
             >
               {createNote.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <FileStack className="h-4 w-4" />
+                <FileStack />
               )}
               สร้างใบวางบิล
             </Button>
@@ -605,9 +605,9 @@ function BillingNotesPageContent() {
               className="gap-1.5"
             >
               {voidNote.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <Ban className="h-4 w-4" />
+                <Ban />
               )}
               ยืนยันยกเลิก
             </Button>

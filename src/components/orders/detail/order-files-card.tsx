@@ -236,7 +236,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
         className="absolute -right-1.5 -top-1.5 z-10 h-6 w-6 rounded-full shadow-sm"
         title="ลบไฟล์"
       >
-        <Trash2 className="h-3 w-3" />
+        <Trash2 />
       </Button>
     );
   }
@@ -264,7 +264,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
               className="h-8 gap-1.5 px-2 text-xs"
               onClick={() => setUploadingLayer(uploadingLayer === "RAW" ? null : "RAW")}
             >
-              {uploadingLayer === "RAW" ? <X className="h-3 w-3" /> : <Upload className="h-3 w-3" />}
+              {uploadingLayer === "RAW" ? <X /> : <Upload />}
               {uploadingLayer === "RAW" ? "ปิด" : "แนบไฟล์"}
             </Button>
             {canManageLink && (
@@ -274,7 +274,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                 className="h-8 gap-1.5 px-2 text-xs text-blue-600 dark:text-blue-400"
                 onClick={() => setShowLink((v) => !v)}
               >
-                <Link2 className="h-3 w-3" />
+                <Link2 />
                 ลิงก์ลูกค้า
               </Button>
             )}
@@ -298,9 +298,9 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                       onClick={copyUploadLink}
                     >
                       {linkCopied ? (
-                        <Check className="h-3.5 w-3.5" />
+                        <Check />
                       ) : (
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy />
                       )}
                       {linkCopied ? "คัดลอกแล้ว" : "คัดลอก"}
                     </Button>
@@ -336,7 +336,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                     onClick={() => generateLink.mutate({ orderId })}
                     disabled={generateLink.isPending}
                   >
-                    <Link2 className="h-3.5 w-3.5" />
+                    <Link2 />
                     สร้างลิงก์อัปโหลด
                   </Button>
                 </div>
@@ -443,7 +443,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                 className="h-8 gap-1.5 px-2 text-xs"
                 onClick={() => setUploadingLayer(uploadingLayer === "PRINT" ? null : "PRINT")}
               >
-                {uploadingLayer === "PRINT" ? <X className="h-3 w-3" /> : <Upload className="h-3 w-3" />}
+                {uploadingLayer === "PRINT" ? <X /> : <Upload />}
                 {uploadingLayer === "PRINT" ? "ปิด" : "แนบไฟล์"}
               </Button>
             )}

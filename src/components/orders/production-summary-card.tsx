@@ -67,7 +67,7 @@ export function ProductionSummaryCard({
             {canCreate && (
               <Button size="sm" asChild className="gap-1.5">
                 <Link href={`/production?create=${orderId}`}>
-                  <Plus className="h-3.5 w-3.5" />
+                  <Plus />
                   เปิดใบผลิต
                 </Link>
               </Button>
@@ -136,7 +136,7 @@ export function ProductionSummaryCard({
                   <Button variant="outline" size="sm" asChild className="gap-1.5">
                     <Link href={`/production/${prod.id}`}>
                       จัดการการผลิต
-                      <ArrowRight className="h-3.5 w-3.5" />
+                      <ArrowRight />
                     </Link>
                   </Button>
                 </div>

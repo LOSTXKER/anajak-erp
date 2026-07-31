@@ -162,7 +162,7 @@ export default function PackagingSettingsPage() {
               setNewName("");
             }}
           >
-            <Plus className="mr-1 h-4 w-4" />
+            <Plus className="mr-1" />
             เพิ่มแพ็คเกจ
           </Button>
         </CardHeader>
@@ -286,7 +286,7 @@ export default function PackagingSettingsPage() {
                                 disabled={updateMutation.isPending}
                                 className="text-green-600 hover:text-green-700"
                               >
-                                <Check className="h-3.5 w-3.5" />
+                                <Check />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -294,7 +294,7 @@ export default function PackagingSettingsPage() {
                                 aria-label={`ยกเลิกการแก้ไข ${opt.name}`}
                                 onClick={() => { setEditingId(null); setEditName(""); }}
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X />
                               </Button>
                             </div>
                           ) : (
@@ -306,7 +306,7 @@ export default function PackagingSettingsPage() {
                                 onClick={() => { setEditingId(opt.id); setEditName(opt.name); }}
                                 className="text-slate-500 hover:text-blue-600"
                               >
-                                <Pencil className="h-3.5 w-3.5" />
+                                <Pencil />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -316,7 +316,7 @@ export default function PackagingSettingsPage() {
                                 disabled={deleteMutation.isPending}
                                 className="text-slate-500 hover:text-red-600"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 />
                               </Button>
                             </div>
                           )}

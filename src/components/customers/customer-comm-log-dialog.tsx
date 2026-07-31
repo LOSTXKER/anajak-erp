@@ -140,9 +140,9 @@ export function CustomerCommLogDialog({
               className="gap-1.5"
             >
               {add.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <MessageSquarePlus className="h-4 w-4" />
+                <MessageSquarePlus />
               )}
               บันทึก
             </Button>

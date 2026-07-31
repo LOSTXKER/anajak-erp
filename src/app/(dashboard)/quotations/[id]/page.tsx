@@ -247,7 +247,7 @@ export default function QuotationDetailPage({
         <div className="flex items-start gap-3">
           <Button variant="ghost" size="icon" className="mt-0.5 shrink-0" asChild>
             <Link href="/quotations" aria-label="กลับไปรายการใบเสนอราคา">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft />
             </Link>
           </Button>
           <div className="space-y-1.5">
@@ -277,12 +277,12 @@ export default function QuotationDetailPage({
                 disabled={isPending}
                 className="gap-1.5"
               >
-                <Share2 className="h-4 w-4" />
+                <Share2 />
                 คัดลอก/แชร์ใบเสนอ
               </Button>
               <Button variant="outline" asChild className="gap-1.5">
                 <Link href={`/quotations/new?edit=${id}`}>
-                  <Pencil className="h-4 w-4" />
+                  <Pencil />
                   แก้ไข
                 </Link>
               </Button>
@@ -299,7 +299,7 @@ export default function QuotationDetailPage({
                 className="gap-1.5"
                 title="คัดลอกลิงก์ให้ลูกค้ายืนยันเอง (ไม่ต้อง login)"
               >
-                <Link2 className="h-4 w-4" />
+                <Link2 />
                 คัดลอก/แชร์ใบเสนอ
               </Button>
               <Button
@@ -308,7 +308,7 @@ export default function QuotationDetailPage({
                 disabled={isPending}
                 className="gap-1.5"
               >
-                <Check className="h-4 w-4" />
+                <Check />
                 ลูกค้าอนุมัติ
               </Button>
               <Button
@@ -317,7 +317,7 @@ export default function QuotationDetailPage({
                 disabled={isPending}
                 className="gap-1.5"
               >
-                <X className="h-4 w-4" />
+                <X />
                 ลูกค้าปฏิเสธ
               </Button>
             </>
@@ -330,7 +330,7 @@ export default function QuotationDetailPage({
               disabled={isPending}
               className="gap-1.5"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw />
               แปลงเป็นออเดอร์
             </Button>
           )}
@@ -346,7 +346,7 @@ export default function QuotationDetailPage({
               className="gap-1.5"
               title="กลับเป็นฉบับร่างเพื่อแก้รายการ/ราคา/วันหมดอายุ แล้วส่งใหม่"
             >
-              <Undo2 className="h-4 w-4" />
+              <Undo2 />
               ดึงกลับเป็นร่าง
             </Button>
           )}
@@ -354,7 +354,7 @@ export default function QuotationDetailPage({
           {canPrintQuotation && (
             <Button variant="outline" asChild className="gap-1.5">
               <Link href={`/print/quotation/${id}`} target="_blank" rel="noreferrer">
-                <Printer className="h-4 w-4" />
+                <Printer />
                 พิมพ์ / PDF
               </Link>
             </Button>

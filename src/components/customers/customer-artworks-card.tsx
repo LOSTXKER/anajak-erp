@@ -213,7 +213,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                 className="h-8 gap-1.5 px-2 text-xs"
                 onClick={() => setAdding(true)}
               >
-                <Plus className="h-3 w-3" />
+                <Plus />
                 เพิ่มลาย
               </Button>
             )}
@@ -294,9 +294,9 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                         disabled={duplicateOrder.isPending}
                       >
                         {duplicateOrder.isPending ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <Loader2 className=" animate-spin" />
                         ) : (
-                          <Copy className="h-3 w-3" />
+                          <Copy />
                         )}
                         สั่งซ้ำ
                       </Button>
@@ -308,7 +308,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                         className="h-8 gap-1.5 px-2 text-xs"
                         onClick={() => openEdit(a)}
                       >
-                        <Pencil className="h-3 w-3" />
+                        <Pencil />
                         แก้ไข
                       </Button>
                     )}
@@ -407,7 +407,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                 disabled={toggleActive.isPending}
               >
                 {toggleActive.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <Loader2 className=" animate-spin" />
                 ) : editing.isActive ? (
                   "ปิดใช้งานลายนี้ (เลิกใช้ — ไม่ลบ)"
                 ) : (
@@ -421,7 +421,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               ยกเลิก
             </Button>
             <Button onClick={submitEdit} disabled={updateArtwork.isPending || !editForm.name.trim()}>
-              {updateArtwork.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "บันทึก"}
+              {updateArtwork.isPending ? <Loader2 className=" animate-spin" /> : "บันทึก"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -487,7 +487,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               }
               disabled={createArtwork.isPending || !addName.trim()}
             >
-              {createArtwork.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "เพิ่มลาย"}
+              {createArtwork.isPending ? <Loader2 className=" animate-spin" /> : "เพิ่มลาย"}
             </Button>
           </DialogFooter>
         </DialogContent>

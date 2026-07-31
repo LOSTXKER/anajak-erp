@@ -74,7 +74,7 @@ export function PrintTableRow({
               <button type="button" onClick={() => inputRef.current?.click()} aria-label={`เปลี่ยนไฟล์ลาย ${printIdx + 1}`} className="block min-h-11 min-w-11 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                 <img src={imageUrl} alt={`ลาย ${printIdx + 1}`} className="h-11 w-11 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
               </button>
-              <Button type="button" variant="destructive" size="icon" aria-label={`ลบไฟล์ลาย ${printIdx + 1}`} onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); onUpdate("artworkId", undefined); }} className="absolute -right-3 -top-3 h-8 min-h-8 w-8 min-w-8 rounded-full p-0"><X className="h-3.5 w-3.5" /></Button>
+              <Button type="button" variant="destructive" size="icon" aria-label={`ลบไฟล์ลาย ${printIdx + 1}`} onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); onUpdate("artworkId", undefined); }} className="absolute -right-3 -top-3 h-8 min-h-8 w-8 min-w-8 rounded-full p-0"><X /></Button>
             </div>
           ) : (
             <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`} className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600">
@@ -101,7 +101,7 @@ export function PrintTableRow({
         </td>
         {/* Delete */}
         <td className="py-2.5 pl-1 align-middle">
-          <Button type="button" variant="ghost" size="icon" aria-label={`ลบจุดพิมพ์ ${printIdx + 1}`} onClick={onRemove} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"><Trash2 className="h-4 w-4" /></Button>
+          <Button type="button" variant="ghost" size="icon" aria-label={`ลบจุดพิมพ์ ${printIdx + 1}`} onClick={onRemove} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"><Trash2 /></Button>
         </td>
       </tr>
 

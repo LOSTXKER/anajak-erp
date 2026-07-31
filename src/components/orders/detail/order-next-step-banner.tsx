@@ -93,7 +93,7 @@ export function OrderNextStepBanner({
       ) : hideButton ? null : action.type !== "NONE" && nextStep.buttonLabel ? (
         <Button onClick={() => dispatch(action)} disabled={isPending} className="shrink-0 self-start sm:self-auto">
           {nextStep.buttonLabel}
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight />
         </Button>
       ) : null}
     </div>

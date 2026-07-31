@@ -225,7 +225,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   onClick={() => startSync("full")}
                   className="w-full"
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  <RefreshCw />
                   Sync ทั้งหมด
                 </Button>
 
@@ -235,7 +235,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                     onClick={() => startSync("incremental")}
                     className="w-full"
                   >
-                    <Zap className="h-4 w-4" />
+                    <Zap />
                     Sync เฉพาะที่เปลี่ยน
                   </Button>
                 )}
@@ -426,7 +426,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   disabled={cancelRequested}
                   className="text-slate-500"
                 >
-                  <Ban className="h-3.5 w-3.5" />
+                  <Ban />
                   {cancelRequested ? "กำลังหยุด..." : "ยกเลิก"}
                 </Button>
               </div>
@@ -578,7 +578,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                 {/* Retry from failed page */}
                 {lastFailedPage && (
                   <Button onClick={() => startSync(mode, lastFailedPage)}>
-                    <RefreshCw className="h-4 w-4" />
+                    <RefreshCw />
                     ลองใหม่ (ต่อจากหน้า {lastFailedPage})
                   </Button>
                 )}
@@ -587,7 +587,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   variant={lastFailedPage ? "outline" : "default"}
                   onClick={() => startSync(mode)}
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  <RefreshCw />
                   เริ่มใหม่ทั้งหมด
                 </Button>
                 <Button variant="ghost" onClick={onClose}>

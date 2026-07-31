@@ -62,16 +62,16 @@ export function ProductCardMobile({
         <div className="flex items-center gap-0.5">
           {totalProducts > 1 && (
             <>
-              <Button type="button" variant="ghost" size="icon" onClick={() => moveProduct(-1)} disabled={prodIdx === 0} aria-label="เลื่อนขึ้น" className="h-8 w-8 text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
-                <ChevronUp className="h-4 w-4" />
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => moveProduct(-1)} disabled={prodIdx === 0} aria-label="เลื่อนขึ้น" className="text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
+                <ChevronUp />
               </Button>
-              <Button type="button" variant="ghost" size="icon" onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} aria-label="เลื่อนลง" className="h-8 w-8 text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
-                <ChevronDown className="h-4 w-4" />
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} aria-label="เลื่อนลง" className="text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
+                <ChevronDown />
               </Button>
             </>
           )}
-          <Button type="button" variant="ghost" size="icon" onClick={removeProduct} aria-label="ลบสินค้า" className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
-            <Trash2 className="h-4 w-4" />
+          <Button type="button" variant="ghost" size="icon-sm" onClick={removeProduct} aria-label="ลบสินค้า" className=" text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
+            <Trash2 />
           </Button>
         </div>
       </div>
@@ -122,7 +122,7 @@ export function ProductCardMobile({
                 className={cn("h-9 gap-1.5 px-2 text-xs", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
                 title={product.variants.length > 1 ? "ล้างจำนวนไซส์ให้เหลือไซส์เดียวก่อนปิด" : "กรอกหลายไซส์ในแถวเดียว"}
               >
-                <LayoutGrid className="h-3 w-3" />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}
+                <LayoutGrid />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}
               </Button>
             )}
           </div>

@@ -173,7 +173,7 @@ export default function OutsourcePage() {
           canManageSettings ? (
             <Button asChild variant="outline" size="sm">
               <Link href="/settings/vendors">
-                <Settings2 className="h-4 w-4" />
+                <Settings2 />
                 จัดการร้าน
               </Link>
             </Button>
@@ -289,7 +289,7 @@ export default function OutsourcePage() {
                           disabled={updateStatus.isPending}
                           onClick={() => updateStatus.mutate({ id: o.id, status: "SENT" })}
                         >
-                          <Send className="h-4 w-4" />
+                          <Send />
                           ส่งของให้ร้านแล้ว
                         </Button>
                       )}
@@ -306,7 +306,7 @@ export default function OutsourcePage() {
                             })
                           }
                         >
-                          <PackageCheck className="h-4 w-4" />
+                          <PackageCheck />
                           รับของกลับแล้ว
                         </Button>
                       )}
@@ -318,7 +318,7 @@ export default function OutsourcePage() {
                             updateStatus.mutate({ id: o.id, status: "QC_PASSED" })
                           }
                         >
-                          <Check className="h-4 w-4" />
+                          <Check />
                           QC ผ่าน
                         </Button>
                       )}
@@ -333,7 +333,7 @@ export default function OutsourcePage() {
                             setQcFailTarget(o.id);
                           }}
                         >
-                          <X className="h-4 w-4" />
+                          <X />
                           QC ไม่ผ่าน
                         </Button>
                       )}
@@ -350,7 +350,7 @@ export default function OutsourcePage() {
                             })
                           }
                         >
-                          <Share2 className="h-4 w-4" />
+                          <Share2 />
                           แชร์ให้ร้าน
                         </Button>
                       )}
@@ -362,7 +362,7 @@ export default function OutsourcePage() {
                           disabled={cancelDraft.isPending}
                           onClick={() => cancelDraft.mutate({ id: o.id })}
                         >
-                          <X className="h-4 w-4" />
+                          <X />
                           ยกเลิกร่าง
                         </Button>
                       )}
@@ -414,9 +414,9 @@ export default function OutsourcePage() {
               className="gap-1.5"
             >
               {updateStatus.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <X className="h-4 w-4" />
+                <X />
               )}
               ยืนยัน QC ไม่ผ่าน
             </Button>

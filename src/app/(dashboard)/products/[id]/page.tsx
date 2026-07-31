@@ -168,7 +168,7 @@ export default function ProductDetailPage({
         <div className="flex items-center gap-3">
           <Button asChild variant="ghost" size="icon">
             <Link href="/products" aria-label="กลับไปหน้าสินค้า">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft />
             </Link>
           </Button>
           <div>
@@ -204,7 +204,7 @@ export default function ProductDetailPage({
             aria-label={`ลบสินค้า ${product.name}`}
             className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 />
           </Button>}
         </div>}
       </div>

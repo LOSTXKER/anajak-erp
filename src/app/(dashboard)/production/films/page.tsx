@@ -72,7 +72,7 @@ export default function FilmStockPage() {
         action={
           <Button variant="outline" size="sm" asChild className="gap-1.5">
             <Link href="/production/print-runs">
-              <Printer className="h-4 w-4" />
+              <Printer />
               รอบพิมพ์ฟิล์ม
             </Link>
           </Button>
@@ -200,7 +200,7 @@ export default function FilmStockPage() {
                         onClick={() => setConsuming(item)}
                         className="gap-1.5"
                       >
-                        <Hand className="h-4 w-4" />
+                        <Hand />
                         หยิบใช้
                       </Button>
                     )}
@@ -261,7 +261,7 @@ export default function FilmStockPage() {
                     onClick={() => setConsuming(item)}
                     className="mt-3 h-11 w-full gap-1.5"
                   >
-                    <Hand className="h-4 w-4" />
+                    <Hand />
                     หยิบใช้
                   </Button>
                 )}
@@ -353,9 +353,9 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
             className="h-11 gap-1.5"
           >
             {consume.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className=" animate-spin" />
             ) : (
-              <Hand className="h-4 w-4" />
+              <Hand />
             )}
             ยืนยันหยิบใช้
           </Button>

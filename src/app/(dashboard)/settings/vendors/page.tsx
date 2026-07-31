@@ -177,7 +177,7 @@ export default function VendorsSettingsPage() {
         description="เพิ่มหรือแก้ข้อมูลร้านที่เลือกใช้ตอนสร้างใบงานร้านนอก"
         action={
           <Button size="sm" onClick={openCreate} disabled={!canManage}>
-            <Plus className="h-4 w-4" />
+            <Plus />
             เพิ่มร้าน
           </Button>
         }
@@ -200,7 +200,7 @@ export default function VendorsSettingsPage() {
             description="เพิ่มร้านแรก แล้วร้านจะปรากฏให้เลือกตอนส่งขั้นผลิตออกไปทำภายนอก"
             action={
               <Button onClick={openCreate}>
-                <Plus className="h-4 w-4" />
+                <Plus />
                 เพิ่มร้านแรก
               </Button>
             }
@@ -227,7 +227,7 @@ export default function VendorsSettingsPage() {
                     aria-label={`แก้ไขร้าน ${vendor.name}`}
                     onClick={() => openEdit(vendor)}
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil />
                   </Button>
                 </div>
 
@@ -312,7 +312,7 @@ export default function VendorsSettingsPage() {
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={busy || !form.name.trim()}>
-                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {busy && <Loader2 className=" animate-spin" />}
                 บันทึก
               </Button>
             </DialogFooter>

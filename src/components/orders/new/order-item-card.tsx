@@ -96,7 +96,7 @@ function OrderItemRow({
       )}
       {canRemove && (
         <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveItem(itemIdx)} aria-label="ลบรายการ" className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
-          <Trash2 className="h-4 w-4" />
+          <Trash2 />
         </Button>
       )}
     </div>
@@ -202,7 +202,7 @@ export function OrderItemCard({
             </div>
           )}
           <Button type="button" variant="outline" size="sm" onClick={() => onAddPrint(itemIdx)}>
-            <Plus className="h-3.5 w-3.5" />เพิ่มลาย
+            <Plus />เพิ่มลาย
           </Button>
         </div>
       </div>
@@ -346,7 +346,7 @@ export function OrderItemCard({
       <div className="mb-2 flex items-center justify-between">
         <span className={groupLabelClass}>ส่วนเสริม (Add-ons)</span>
         <Button type="button" variant="outline" size="sm" onClick={() => onAddAddon(itemIdx)}>
-          <Plus className="h-3.5 w-3.5" />เพิ่มส่วนเสริม
+          <Plus />เพิ่มส่วนเสริม
         </Button>
       </div>
       {item.addons.length === 0 ? (
@@ -388,7 +388,7 @@ export function OrderItemCard({
                   <td className="px-1 py-1.5 align-middle"><Input aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`} value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" className="sm:h-9 sm:text-xs" /></td>
                   <td className="px-1 py-1.5 align-middle"><NativeSelect aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} className="sm:h-9 sm:text-xs"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></NativeSelect></td>
                   <td className="px-1 py-1.5 align-middle"><Input aria-label={`ราคาส่วนเสริม ${aIdx + 1}`} type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="sm:h-9 sm:text-xs" /></td>
-                  <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 className="h-4 w-4" /></Button></td>
+                  <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 /></Button></td>
                 </tr>
               ))}
             </tbody>

@@ -294,9 +294,9 @@ export default function StockSettingsPage() {
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                       >
                         {showApiKey ? (
-                          <EyeOff className="h-4 w-4" />
+                          <EyeOff />
                         ) : (
-                          <Eye className="h-4 w-4" />
+                          <Eye />
                         )}
                       </Button>
                     </div>
@@ -315,9 +315,9 @@ export default function StockSettingsPage() {
                     className="flex-1"
                   >
                     {testConnection.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className=" animate-spin" />
                     ) : (
-                      <Plug className="h-4 w-4" />
+                      <Plug />
                     )}
                     {testConnection.isPending ? "กำลังทดสอบ..." : "ทดสอบเชื่อมต่อ"}
                   </Button>
@@ -327,9 +327,9 @@ export default function StockSettingsPage() {
                     className="flex-1"
                   >
                     {saveSettings.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className=" animate-spin" />
                     ) : (
-                      <Save className="h-4 w-4" />
+                      <Save />
                     )}
                     {saveSettings.isPending ? "กำลังบันทึก..." : isSaved ? "บันทึกแล้ว" : "บันทึก"}
                   </Button>
@@ -437,7 +437,7 @@ export default function StockSettingsPage() {
                 disabled={!hasCredentials}
                 className="w-full"
               >
-                <Cloud className="h-4 w-4" />
+                <Cloud />
                 Sync สินค้า
               </Button>
               <Button
@@ -447,9 +447,9 @@ export default function StockSettingsPage() {
                 className="w-full"
               >
                 {syncStock.isPending ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <RefreshCw className=" animate-spin" />
                 ) : (
-                  <Database className="h-4 w-4" />
+                  <Database />
                 )}
                 {syncStock.isPending ? "กำลัง Sync..." : "Sync เฉพาะสต็อค"}
               </Button>

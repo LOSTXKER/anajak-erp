@@ -175,9 +175,9 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
             className="gap-1.5"
           >
             {createOutsource.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className=" animate-spin" />
             ) : (
-              <Truck className="h-4 w-4" />
+              <Truck />
             )}
             ส่งร้านนอก
           </Button>

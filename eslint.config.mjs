@@ -15,29 +15,11 @@ const jsxA11yErrors = Object.fromEntries(
   ]),
 );
 
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-  {
-    rules: {
-      // UX0: เคลียร์หนี้ a11y เดิมครบแล้ว — violation ใหม่ต้องหยุด CI ทันที
-      ...jsxA11yErrors,
-      // Deprecated และรายงานซ้ำกับ label-has-associated-control ทุกจุด
-      "jsx-a11y/label-has-for": "off",
-      // ห้าม window.prompt/confirm/alert — ใช้ useConfirm/usePromptText จาก
-      // @/components/ui/confirm-dialog (P1.0 กวาดของเก่าหมดแล้ว ยกเป็น error)
-      "no-alert": "error",
-      // catch เงียบ = กลืน error — อย่างน้อยต้องมี comment อธิบายว่าทำไมกลืนได้
-      "no-empty": "error",
-      // rule ชุด React Compiler (react-hooks v7) เจอ pattern เก่าในหน้า UI ที่
-      // P1.0 จะ redesign อยู่แล้ว — คง warn ไว้เป็นลิสต์หนี้ ห้ามเพิ่มใหม่ · P1.0 ยกเป็น error
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/refs": "warn",
-      "react-hooks/preserve-manual-memoization": "warn",
-      // ห้ามสั่งขนาดตัวอักษรเป็น px ดิบ — ใช้บันได 8 ขั้นใน globals.css เท่านั้น
-      // (เบสเคาะ 2026-07-31: ก่อนหน้านี้หลุดไป 24 ขนาด มีครึ่งพิกเซล 5 แบบ จนหน้าเว็บดูเบี้ยว)
-      // ยกเว้นเอกสารสั่งพิมพ์กับจอโรงงาน — ดู override ข้างล่าง
-      "no-restricted-syntax": [
-        "error",
+// กฎภาษาของ UI ที่ใช้ทั้งโปรเจกต์ — แยกเป็นตัวแปรเพราะ flat config ของ eslint
+// "แทนที่" กฎชื่อเดียวกันทั้งก้อนเมื่อประกาศซ้ำใน block หลัง ไม่ได้รวมให้
+// (เคยพลาดมาแล้ว: พอเพิ่มกฎเฉพาะ ui/** ด่าน text-[Npx]/shadow-[/ระยะครึ่งขั้น
+//  หายไปจากโฟลเดอร์นั้นเงียบๆ — ทดสอบเจอตอนแกล้งใส่โค้ดผิดกฎ)
+const uiLanguageRules = [
         {
           selector: "Literal[value=/text-\\[[0-9.]+px\\]/]",
           message:
@@ -68,6 +50,56 @@ const eslintConfig = [
             "Literal[value=/(^|[^-\\w])(p-(1|2|3)|gap-(2|3))\\.5([^\\w.]|$)/]",
           message:
             "ห้ามใช้ระยะครึ่งขั้น — gap ใช้ 1.5/2/3/4/6 · p ใช้ 2/3/4/5/6 (ยกเว้น gap-1.5 สำหรับไอคอนชิดข้อความ)",
+        },
+];
+
+const eslintConfig = [
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    rules: {
+      // UX0: เคลียร์หนี้ a11y เดิมครบแล้ว — violation ใหม่ต้องหยุด CI ทันที
+      ...jsxA11yErrors,
+      // Deprecated และรายงานซ้ำกับ label-has-associated-control ทุกจุด
+      "jsx-a11y/label-has-for": "off",
+      // ห้าม window.prompt/confirm/alert — ใช้ useConfirm/usePromptText จาก
+      // @/components/ui/confirm-dialog (P1.0 กวาดของเก่าหมดแล้ว ยกเป็น error)
+      "no-alert": "error",
+      // catch เงียบ = กลืน error — อย่างน้อยต้องมี comment อธิบายว่าทำไมกลืนได้
+      "no-empty": "error",
+      // rule ชุด React Compiler (react-hooks v7) เจอ pattern เก่าในหน้า UI ที่
+      // P1.0 จะ redesign อยู่แล้ว — คง warn ไว้เป็นลิสต์หนี้ ห้ามเพิ่มใหม่ · P1.0 ยกเป็น error
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/preserve-manual-memoization": "warn",
+      // ห้ามสั่งขนาดตัวอักษรเป็น px ดิบ — ใช้บันได 8 ขั้นใน globals.css เท่านั้น
+      // (เบสเคาะ 2026-07-31: ก่อนหน้านี้หลุดไป 24 ขนาด มีครึ่งพิกเซล 5 แบบ จนหน้าเว็บดูเบี้ยว)
+      // ยกเว้นเอกสารสั่งพิมพ์กับจอโรงงาน — ดู override ข้างล่าง
+      "no-restricted-syntax": ["error", ...uiLanguageRules],
+    },
+  },
+  {
+    // ห้ามเขียนสูตรความสูง control เองในของกลาง (เบสเคาะ 2026-08-01 "แก้ที่รากได้มั้ย")
+    // สูตร "h-11 ... sm:h-9" เคยถูกก๊อปซ้ำใน 6 component / 22 ไฟล์ พอสร้างของใหม่ก็ลอกกันมา
+    // และลอกผิดตระกูลได้ — ตัวเลือกช่วงวันที่เคยลอกสไตล์ "ช่องกรอก" มาทำปุ่มเปิดเมนู
+    // จนสูง/อักษร/น้ำหนักเพี้ยนจากปุ่มที่ยืนข้างกัน
+    //
+    // บังคับเฉพาะ src/components/ui/** = ที่ที่ "สร้าง control ใหม่" ตรงเจตนาของกฎ
+    // ปุ่มไอคอนที่หน้าต่างๆ เขียน markup เองยังไม่โดน — นั่นเป็นหนี้อีกก้อน
+    // (ควรเปลี่ยนไปใช้ <Button> แทน · บันทึกไว้ใน PROGRESS แล้ว)
+    files: ["src/components/ui/**/*.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...uiLanguageRules,
+        {
+          selector: "Literal[value=/h-11[^\"]*sm:h-[89]/]",
+          message:
+            "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM จาก ./control-size",
+        },
+        {
+          selector: "TemplateElement[value.raw=/h-11[^`]*sm:h-[89]/]",
+          message:
+            "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM จาก ./control-size",
         },
       ],
     },

@@ -242,7 +242,7 @@ export default function DesignApprovalPage({
                   }
                   disabled={approve.isPending}
                 >
-                  <X className="h-4 w-4" />
+                  <X />
                   ขอแก้ไข
                 </Button>
                 <Button
@@ -257,9 +257,9 @@ export default function DesignApprovalPage({
                   disabled={approve.isPending}
                 >
                   {approve.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className=" animate-spin" />
                   ) : (
-                    <Check className="h-4 w-4" />
+                    <Check />
                   )}
                   อนุมัติแบบ
                 </Button>

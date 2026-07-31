@@ -418,12 +418,12 @@ export function OrderItemsEditor({
                         className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
                         onClick={() => removeFee(fi)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 />
                       </Button>
                     </div>
                   ))}
                   <Button variant="outline" size="sm" onClick={addFee} className="w-full gap-1.5">
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus />
                     เพิ่มค่าธรรมเนียม
                   </Button>
                 </div>
@@ -534,9 +534,9 @@ export function OrderItemsEditor({
               className="gap-1.5"
             >
               {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <Save className="h-4 w-4" />
+                <Save />
               )}
               {changeOrderMode ? "ออกใบแก้ไข" : "บันทึกรายการ"}
             </Button>

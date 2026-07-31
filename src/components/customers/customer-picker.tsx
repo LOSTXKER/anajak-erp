@@ -166,7 +166,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy }: Custom
           className="shrink-0 gap-1.5"
           title="เพิ่มลูกค้าใหม่จากชื่อแชทได้เลย"
         >
-          <UserPlus className="h-4 w-4" />
+          <UserPlus />
           ใหม่
         </Button>
       </div>}
@@ -264,9 +264,9 @@ export function CustomerPicker({ value, onChange, required, labelledBy }: Custom
               className="gap-1.5"
             >
               {createCustomer.isPending || isChecking ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <UserPlus className="h-4 w-4" />
+                <UserPlus />
               )}
               เพิ่มลูกค้า
             </Button>

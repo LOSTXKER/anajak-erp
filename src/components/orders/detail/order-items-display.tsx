@@ -61,7 +61,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
           <span className="text-slate-400">ยังไม่ได้ตรวจรับ</span>
         )}
         <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1.5 px-2 text-2xs text-yellow-600 hover:text-yellow-800 dark:text-yellow-400">
-          <Edit3 className="h-3 w-3" />{product.receivedInspected ? "แก้ไข" : "ตรวจรับ"}
+          <Edit3 />{product.receivedInspected ? "แก้ไข" : "ตรวจรับ"}
         </Button>
       </div>
     );
@@ -93,7 +93,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
         </div>
         <div className="flex gap-1.5">
           <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receivedInspected: inspected, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1.5 bg-yellow-600 text-xs text-white hover:bg-yellow-700">
-            <Check className="h-3 w-3" />{mutation.isPending ? "กำลังบันทึก..." : "บันทึก"}
+            <Check />{mutation.isPending ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
           <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setCondition(product.garmentCondition ?? ""); setInspected(product.receivedInspected); setNote(product.receiveNote ?? ""); }} className="h-8 text-xs">
             ยกเลิก
@@ -136,7 +136,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
             </CardTitle>
             {onEditItems && !isEmpty && (
               <Button variant="outline" size="sm" onClick={onEditItems} className="gap-1.5">
-                <Edit3 className="h-3.5 w-3.5" />
+                <Edit3 />
                 แก้ไข
               </Button>
             )}
@@ -150,7 +150,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
               </p>
               {onEditItems && (
                 <Button onClick={onEditItems} className="gap-1.5">
-                  <PlusCircle className="h-4 w-4" />
+                  <PlusCircle />
                   ใส่รายการสินค้า
                 </Button>
               )}

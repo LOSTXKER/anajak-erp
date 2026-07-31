@@ -138,7 +138,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                 className="h-8 gap-1.5 px-2 text-xs"
                 onClick={() => setShowUpload((v) => !v)}
               >
-                <Upload className="h-3 w-3" />
+                <Upload />
                 แนบไฟล์
               </Button>
             </div>
@@ -205,7 +205,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                       onClick={() => deleteAttachment.mutate({ id: a.id })}
                       title="ลบไฟล์"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 />
                     </Button>
                   </li>
                 ))}
@@ -229,11 +229,11 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" className="gap-1.5" onClick={handleShareLine}>
-                    <MessageCircle className="h-3.5 w-3.5" />
+                    <MessageCircle />
                     แชร์เข้า LINE
                   </Button>
                   <Button variant="outline" size="sm" className="gap-1.5" onClick={handleCopy}>
-                    <Copy className="h-3.5 w-3.5" />
+                    <Copy />
                     คัดลอกลิงก์
                   </Button>
                   <Button
@@ -244,7 +244,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                     onClick={() => generateLink.mutate({ outsourceOrderId: job.id })}
                     title="ออกลิงก์ใหม่ — ลิงก์เดิมใช้ไม่ได้อีก"
                   >
-                    <RefreshCw className="h-3.5 w-3.5" />
+                    <RefreshCw />
                     สร้างลิงก์ใหม่
                   </Button>
                 </div>
@@ -263,9 +263,9 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                 onClick={() => generateLink.mutate({ outsourceOrderId: job.id })}
               >
                 {generateLink.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className=" animate-spin" />
                 ) : (
-                  <Link2 className="h-3.5 w-3.5" />
+                  <Link2 />
                 )}
                 สร้างลิงก์ใบงาน
               </Button>

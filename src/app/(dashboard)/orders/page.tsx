@@ -11,6 +11,7 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FilterPopover } from "@/components/ui/filter-popover";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { OrderStatusFlowBar } from "@/components/orders/order-status-flow-bar";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -468,14 +469,14 @@ function OrdersPageContent() {
                 size="sm"
                 onClick={() => exportOrdersCsv(data.orders, canSeeMoney)}
               >
-                <Download className="h-4 w-4" />
+                <Download />
                 Export
               </Button>
             )}
             {canCreateOrder && (
               <Button asChild size="sm">
                 <Link href="/orders/new">
-                  <Plus className="h-4 w-4" />
+                  <Plus />
                   สร้างออเดอร์
                 </Link>
               </Button>
@@ -499,11 +500,7 @@ function OrdersPageContent() {
         isLoading={isLoading || isFetching}
       />
 
-      {/* วัดจาก "ความกว้างของพื้นที่เนื้อหาจริง" ไม่ใช่ความกว้างหน้าต่าง (@container) —
-          เดิมใช้ md: ซึ่งวัดหน้าต่าง พอเบสซูมหน้าเว็บ พื้นที่จริงเหลือ ~750px
-          เงื่อนไขเลยไม่ติด ทุกอย่างกองลงมาทีละแถวทั้งที่ยังมีที่เหลือ */}
-      <div className="@container">
-      <div className="flex flex-col gap-2 @2xl:flex-row @2xl:flex-wrap @2xl:items-center">
+      <Toolbar>
         <SearchInput
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
@@ -519,7 +516,7 @@ function OrdersPageContent() {
           }}
         />
 
-        <div className="flex items-center gap-2">
+        <ToolbarGroup>
           {/* ช่องเรียงเหลือไว้เฉพาะจอแคบ (เบสเคาะ 2026-07-31) — จอกว้างย้ายไปกดที่หัวตารางแทน
               แต่จอแคบเป็นการ์ด ไม่มีหัวตารางให้กด ถ้าถอดทิ้งด้วยจะเรียงไม่ได้เลย */}
           <NativeSelect
@@ -600,9 +597,8 @@ function OrdersPageContent() {
               </button>
             </span>
           )}
-        </div>
-      </div>
-      </div>
+        </ToolbarGroup>
+      </Toolbar>
 
       <ResponsiveList
         items={data?.orders}
@@ -820,7 +816,7 @@ function OrdersPageContent() {
               ) : canCreateOrder ? (
                 <Button asChild size="sm">
                   <Link href="/orders/new">
-                    <Plus className="h-4 w-4" />
+                    <Plus />
                     สร้างออเดอร์
                   </Link>
                 </Button>

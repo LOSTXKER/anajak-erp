@@ -195,7 +195,7 @@ function CustomersPageContent() {
         action={
           canManageCustomers ? (
             <Button size="sm" onClick={() => setShowForm(!showForm)}>
-              <Plus className="h-4 w-4" />
+              <Plus />
               เพิ่มลูกค้า
             </Button>
           ) : undefined
@@ -601,7 +601,7 @@ function CustomersPageContent() {
             action={
               canManageCustomers ? (
                 <Button size="sm" onClick={() => setShowForm(true)}>
-                  <Plus className="h-4 w-4" />
+                  <Plus />
                   เพิ่มลูกค้า
                 </Button>
               ) : undefined

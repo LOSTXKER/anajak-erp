@@ -57,7 +57,7 @@ export function OrderGoodsReceiptSection({
                   className="h-8 gap-1.5 text-xs"
                   onClick={() => setDialogType("CUSTOMER_GARMENT")}
                 >
-                  <PackageOpen className="h-3.5 w-3.5" />
+                  <PackageOpen />
                   รับเสื้อลูกค้า
                 </Button>
               )}
@@ -68,7 +68,7 @@ export function OrderGoodsReceiptSection({
                   className="h-8 gap-1.5 text-xs"
                   onClick={() => setDialogType("SEWING_GARMENT")}
                 >
-                  <PackageOpen className="h-3.5 w-3.5" />
+                  <PackageOpen />
                   รับเสื้อโรงเย็บ
                 </Button>
               )}
@@ -79,7 +79,7 @@ export function OrderGoodsReceiptSection({
                   className="h-8 gap-1.5 text-xs text-slate-500"
                   onClick={() => setDialogType("CUSTOMER_RETURN")}
                 >
-                  <Undo2 className="h-3.5 w-3.5" />
+                  <Undo2 />
                   คืนของลูกค้า
                 </Button>
               )}

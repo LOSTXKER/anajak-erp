@@ -136,7 +136,7 @@ export default function SalesTaxReportPage() {
               }
               className="gap-1.5"
             >
-              <Download className="h-4 w-4" />
+              <Download />
               CSV รายงานภาษีขาย
             </Button>
             <Button
@@ -145,7 +145,7 @@ export default function SalesTaxReportPage() {
               onClick={() => downloadCsv(peakImportCsv(rows), `peak-import-${fileStamp}.csv`)}
               className="gap-1.5"
             >
-              <FileSpreadsheet className="h-4 w-4" />
+              <FileSpreadsheet />
               CSV สำหรับ PEAK
             </Button>
           </div>

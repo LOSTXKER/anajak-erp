@@ -502,7 +502,7 @@ function OrderDetailContent({
             <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
-                    <MoreHorizontal className="h-4 w-4" />
+                    <MoreHorizontal />
                   </Button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>

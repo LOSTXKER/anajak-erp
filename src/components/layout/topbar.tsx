@@ -143,7 +143,7 @@ export function Topbar() {
             aria-expanded={notifOpen}
             aria-haspopup="true"
           >
-            <Bell className="h-4 w-4" />
+            <Bell />
             {count > 0 && (
               <span className="absolute right-0.5 top-0.5 flex h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-950" />
             )}
@@ -168,7 +168,7 @@ export function Topbar() {
                     disabled={markAllRead.isPending}
                     className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600 disabled:opacity-50 dark:text-slate-400 dark:hover:text-blue-400"
                   >
-                    <CheckCheck className="h-3.5 w-3.5" />
+                    <CheckCheck />
                     อ่านทั้งหมด
                   </Button>
                 )}

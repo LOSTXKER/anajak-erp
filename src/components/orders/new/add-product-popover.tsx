@@ -32,7 +32,7 @@ export function AddProductPopover({
   return (
     <div className="relative">
       <Button type="button" variant="outline" size={triggerSize} onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu">
-        <Plus className="h-4 w-4" />เพิ่มสินค้า
+        <Plus />เพิ่มสินค้า
       </Button>
       {open && (
         <>

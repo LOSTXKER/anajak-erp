@@ -159,7 +159,7 @@ export function OrderDesignSection({
                 onClick={() => setShowUploadDialog(true)}
                 className="gap-1.5"
               >
-                <Upload className="h-3.5 w-3.5" />
+                <Upload />
                 อัปโหลดแบบ
               </Button>
             )}
@@ -239,16 +239,15 @@ export function OrderDesignSection({
                       {design.fileUrl && (
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="icon-sm"
                           asChild
-                          className="h-7 w-7"
                         >
                           <a
                             href={design.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
+                            <ExternalLink />
                           </a>
                         </Button>
                       )}
@@ -267,8 +266,7 @@ export function OrderDesignSection({
                         ) : (
                           <Button
                             variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
+                            size="icon-sm"
                             title={
                               design.tokenExpiresAt
                                 ? `คัดลอกลิงก์อนุมัติ (หมดอายุ ${formatDate(design.tokenExpiresAt)})`
@@ -277,9 +275,9 @@ export function OrderDesignSection({
                             onClick={() => copyApprovalLink(design.approvalToken!)}
                           >
                             {copiedToken === design.approvalToken ? (
-                              <Check className="h-3.5 w-3.5 text-green-500" />
+                              <Check className=" text-green-500" />
                             ) : (
-                              <Copy className="h-3.5 w-3.5" />
+                              <Copy />
                             )}
                           </Button>
                         ))}
@@ -337,9 +335,9 @@ export function OrderDesignSection({
                           disabled={addRevisionFee.isPending}
                         >
                           {addRevisionFee.isPending ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Loader2 className=" animate-spin" />
                           ) : (
-                            <Receipt className="h-3.5 w-3.5" />
+                            <Receipt />
                           )}
                           คิดค่าแก้แบบ ฿{baht(overage.fee)}
                         </Button>
@@ -429,9 +427,9 @@ export function OrderDesignSection({
               className="gap-1.5"
             >
               {uploadDesign.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <Upload className="h-4 w-4" />
+                <Upload />
               )}
               อัปโหลด
             </Button>
@@ -472,7 +470,7 @@ export function OrderDesignSection({
               disabled={approveDesign.isPending}
               className="gap-1.5"
             >
-              <X className="h-4 w-4" />
+              <X />
               ขอแก้ไข
             </Button>
             <Button
@@ -483,9 +481,9 @@ export function OrderDesignSection({
               className="gap-1.5"
             >
               {approveDesign.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <Check className="h-4 w-4" />
+                <Check />
               )}
               อนุมัติแบบ
             </Button>

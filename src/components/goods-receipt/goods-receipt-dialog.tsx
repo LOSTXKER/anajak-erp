@@ -322,9 +322,9 @@ function ReceiptForm({
             className="gap-1.5"
           >
             {create.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className=" animate-spin" />
             ) : (
-              <ClipboardCheck className="h-4 w-4" />
+              <ClipboardCheck />
             )}
             บันทึก {totalCounted} ตัว
           </Button>

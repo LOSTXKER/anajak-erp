@@ -81,13 +81,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 className="h-11 w-full sm:h-9 sm:w-auto"
                 onClick={() => setEditing(true)}
               >
-                <Pencil className="h-4 w-4" /> แก้ไขข้อมูล
+                <Pencil /> แก้ไขข้อมูล
               </Button>
             )}
             {canCreateOrder && (
               <Button asChild size="sm" className="h-11 w-full sm:h-9 sm:w-auto">
                 <Link href={`/orders/new?customerId=${id}`}>
-                  <Plus className="h-4 w-4" /> เปิดงานใหม่
+                  <Plus /> เปิดงานใหม่
                 </Link>
               </Button>
             )}
@@ -289,7 +289,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     onClick={() => setLoggingComm(true)}
                     className="gap-1.5"
                   >
-                    <MessageSquarePlus className="h-3.5 w-3.5" />
+                    <MessageSquarePlus />
                     บันทึกการคุย
                   </Button>
                 )}

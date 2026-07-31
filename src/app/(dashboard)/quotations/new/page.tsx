@@ -286,7 +286,7 @@ function QuotationFormPage() {
       <div className="space-y-6">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/orders">
-            <ArrowLeft className="mr-1 h-4 w-4" />
+            <ArrowLeft className="mr-1" />
             กลับ
           </Link>
         </Button>
@@ -303,7 +303,7 @@ function QuotationFormPage() {
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/quotations" aria-label="กลับไปรายการใบเสนอราคา">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft />
           </Link>
         </Button>
         <div>
@@ -420,7 +420,7 @@ function QuotationFormPage() {
               รายการสินค้า
             </CardTitle>
             <Button type="button" variant="outline" size="sm" onClick={addItem}>
-              <Plus className="mr-1 h-4 w-4" />
+              <Plus className="mr-1" />
               เพิ่มรายการ
             </Button>
           </CardHeader>
@@ -451,7 +451,7 @@ function QuotationFormPage() {
                           className="text-red-500 hover:text-red-700"
                           aria-label={`ลบรายการ ${idx + 1}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 />
                         </Button>
                       )}
                     </div>

@@ -351,7 +351,7 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
           >
             {expanded ? "ย่อรายการ" : `ดูทั้งหมดอีก ${remaining} งาน`}
             <ChevronDown
-              className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")}
+              className={cn(" transition-transform", expanded && "rotate-180")}
               aria-hidden="true"
             />
           </Button>

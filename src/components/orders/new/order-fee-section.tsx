@@ -45,7 +45,7 @@ export function OrderFeeSection({
       title="ค่าใช้จ่ายเพิ่มเติม"
       action={
         <Button type="button" variant="outline" size="sm" onClick={onAddFee}>
-          <Plus className="h-4 w-4" />
+          <Plus />
           เพิ่ม
         </Button>
       }
@@ -116,7 +116,7 @@ export function OrderFeeSection({
                     className="text-slate-400 hover:text-red-600"
                     onClick={() => onRemoveFee(fIdx)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 />
                   </Button>
                 </div>
               </div>

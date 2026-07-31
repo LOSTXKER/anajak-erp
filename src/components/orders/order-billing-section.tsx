@@ -415,7 +415,7 @@ export function OrderBillingSection({
                 onClick={openCreateDialog}
                 className="gap-1.5"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus />
                 สร้างบิล
               </Button>
             )}
@@ -639,7 +639,7 @@ export function OrderBillingSection({
                                         openReceiptForPayment(p, inv);
                                       }}
                                     >
-                                      <Receipt className="h-3 w-3" />
+                                      <Receipt />
                                       ออกใบเสร็จ/ใบกำกับ
                                     </Button>
                                   ) : null}
@@ -667,7 +667,7 @@ export function OrderBillingSection({
                                 setShowPaymentDialog(inv.id);
                               }}
                             >
-                              <CreditCard className="h-3 w-3" />
+                              <CreditCard />
                               บันทึกชำระ
                             </Button>
                           )}
@@ -683,7 +683,7 @@ export function OrderBillingSection({
                                 setShowRefundDialog(inv.id);
                               }}
                             >
-                              <Undo2 className="h-3 w-3" />
+                              <Undo2 />
                               คืนเงิน
                             </Button>
                           )}
@@ -697,7 +697,7 @@ export function OrderBillingSection({
                                 setShowVoidDialog(inv.id);
                               }}
                             >
-                              <Ban className="h-3 w-3" />
+                              <Ban />
                               ยกเลิกบิล
                             </Button>
                           )}
@@ -949,9 +949,9 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {createInvoice.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <Receipt className="h-4 w-4" />
+                <Receipt />
               )}
               สร้างบิล
             </Button>
@@ -1122,9 +1122,9 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {recordPayment.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <CreditCard className="h-4 w-4" />
+                <CreditCard />
               )}
               บันทึก
             </Button>
@@ -1196,9 +1196,9 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {recordRefund.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <Undo2 className="h-4 w-4" />
+                <Undo2 />
               )}
               ยืนยันคืนเงิน
             </Button>
@@ -1244,9 +1244,9 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {voidInvoice.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <Ban className="h-4 w-4" />
+                <Ban />
               )}
               ยืนยันยกเลิก
             </Button>

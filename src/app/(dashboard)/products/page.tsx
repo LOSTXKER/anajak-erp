@@ -87,11 +87,11 @@ export default function ProductsPage() {
           <>
             <Button asChild variant="ghost" size="icon-sm">
               <Link href="/settings/stock" aria-label="ตั้งค่าการเชื่อมต่อ Stock">
-                <Settings className="h-4 w-4" />
+                <Settings />
               </Link>
             </Button>
             <Button size="sm" onClick={() => setSyncDialogOpen(true)}>
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw />
               Sync
             </Button>
           </>
@@ -169,12 +169,12 @@ export default function ProductsPage() {
             action={canManageStock ? (
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setSyncDialogOpen(true)}>
-                  <RefreshCw className="h-4 w-4" />
+                  <RefreshCw />
                   Sync ตอนนี้
                 </Button>
                 <Button asChild variant="ghost" size="sm">
                   <Link href="/settings/stock">
-                    <Settings className="h-4 w-4" />
+                    <Settings />
                     ตั้งค่า
                   </Link>
                 </Button>

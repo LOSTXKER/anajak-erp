@@ -100,7 +100,7 @@ export function OrderAttachmentsSection({
                   aria-label={`ลบไฟล์ ${img.fileName}`}
                   className="absolute -right-2 -top-2 rounded-full opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                 >
-                  <X className="h-3 w-3" />
+                  <X />
                 </Button>
                 <NativeSelect
                   value={img.printPosition || ""}

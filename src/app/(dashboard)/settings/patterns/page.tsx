@@ -178,7 +178,7 @@ export default function PatternsPage() {
                 setFormData({ ...emptyForm });
               }}
             >
-              <Plus className="mr-1 h-4 w-4" />
+              <Plus className="mr-1" />
               เพิ่มแพทเทิร์น
             </Button>
           )}
@@ -437,7 +437,7 @@ export default function PatternsPage() {
                                 className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                                 aria-label={`บันทึกการแก้ไข ${p.name}`}
                               >
-                                <Check className="h-3.5 w-3.5" />
+                                <Check />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -446,7 +446,7 @@ export default function PatternsPage() {
                                 className="h-7 w-7 p-0"
                                 aria-label={`ยกเลิกการแก้ไข ${p.name}`}
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X />
                               </Button>
                             </div>
                           ) : (
@@ -459,7 +459,7 @@ export default function PatternsPage() {
                                   className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600"
                                   aria-label={`แก้ไขแพทเทิร์น ${p.name}`}
                                 >
-                                  <Pencil className="h-3.5 w-3.5" />
+                                  <Pencil />
                                 </Button>
                               )}
                               {canDelete && (
@@ -471,7 +471,7 @@ export default function PatternsPage() {
                                   className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
                                   aria-label={`ลบแพทเทิร์น ${p.name}`}
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <Trash2 />
                                 </Button>
                               )}
                             </div>

@@ -310,7 +310,7 @@ export function OrderDeliverySection({
                 }}
                 className="w-full gap-1.5 sm:w-auto"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus />
                 สร้างรายการจัดส่ง
               </Button>
             )}
@@ -424,7 +424,7 @@ export function OrderDeliverySection({
                                   }}
                                   disabled={updateDelivery.isPending}
                                 >
-                                  <Check className="h-3.5 w-3.5" />
+                                  <Check />
                                 </Button>
                               </div>
                             ) : (
@@ -518,7 +518,7 @@ export function OrderDeliverySection({
                                 aria-label={`ลบใบส่งของ ${delivery.recipientName}`}
                                 onClick={() => handleDelete(delivery.id)}
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 />
                               </Button>
                             )}
                           </div>
@@ -738,9 +738,9 @@ export function OrderDeliverySection({
               className="gap-1.5"
             >
               {createDelivery.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <Truck className="h-4 w-4" />
+                <Truck />
               )}
               สร้างรายการจัดส่ง
             </Button>
@@ -799,9 +799,9 @@ export function OrderDeliverySection({
               className="gap-1.5"
             >
               {updateDeliveryStatus.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <Check className="h-4 w-4" />
+                <Check />
               )}
               บันทึก
             </Button>
@@ -856,9 +856,9 @@ export function OrderDeliverySection({
               className="gap-1.5"
             >
               {setBlindShipMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className=" animate-spin" />
               ) : (
-                <Check className="h-4 w-4" />
+                <Check />
               )}
               บันทึก
             </Button>

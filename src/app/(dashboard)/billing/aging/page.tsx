@@ -359,7 +359,7 @@ function AgingPageContent() {
                           });
                         }}
                       >
-                        <MessageSquare className="h-3.5 w-3.5" />
+                        <MessageSquare />
                       </Button>
                     </div>
                   </DataTable.Td>
@@ -459,7 +459,7 @@ function AgingPageContent() {
                     });
                   }}
                 >
-                  <MessageSquare className="h-4 w-4" />
+                  <MessageSquare />
                   ร่างข้อความทวง
                 </Button>
               </article>
@@ -534,7 +534,7 @@ function AgingPageContent() {
                     {draft.data.invoiceCount} ใบ · ค้างรวม {formatCurrency(draft.data.totalOutstanding)}
                   </p>
                   <Button size="sm" className="gap-1.5" onClick={() => copyDraft(draft.data!.text!)}>
-                    <Copy className="h-3.5 w-3.5" />
+                    <Copy />
                     คัดลอกข้อความ
                   </Button>
                 </div>

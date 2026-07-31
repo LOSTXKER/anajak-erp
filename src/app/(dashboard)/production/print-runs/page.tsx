@@ -244,7 +244,7 @@ export default function PrintRunsPage() {
         action={
           <Button variant="outline" size="sm" asChild className="gap-1.5">
             <Link href="/production">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft />
               หน้าการผลิต
             </Link>
           </Button>
@@ -376,9 +376,9 @@ export default function PrintRunsPage() {
             className="h-11 gap-1.5"
           >
             {create.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className=" animate-spin" />
             ) : (
-              <Printer className="h-4 w-4" />
+              <Printer />
             )}
             เปิดรอบพิมพ์
           </Button>
@@ -455,7 +455,7 @@ function ActiveRunCard({
           {run.status === "PRINTING" ? (
             <>
               <Button disabled={busy} onClick={onMarkPrinted} className="h-11 flex-1 gap-1.5">
-                <Printer className="h-4 w-4" />
+                <Printer />
                 พิมพ์จบทั้งม้วน
               </Button>
               <Button
@@ -469,7 +469,7 @@ function ActiveRunCard({
             </>
           ) : (
             <Button disabled={busy} onClick={onComplete} className="h-11 w-full gap-1.5">
-              <Scissors className="h-4 w-4" />
+              <Scissors />
               ตัดแยก+ติดป้ายเสร็จ
             </Button>
           )}
@@ -704,9 +704,9 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
           </Button>
           <Button disabled={complete.isPending} onClick={handleSubmit} className="gap-1.5">
             {complete.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className=" animate-spin" />
             ) : (
-              <Scissors className="h-4 w-4" />
+              <Scissors />
             )}
             ตัดแยก+ติดป้ายเสร็จ{totalExtra > 0 && ` · เผื่อ ${totalExtra} ชิ้น`}
           </Button>

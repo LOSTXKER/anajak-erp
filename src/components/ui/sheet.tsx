@@ -4,6 +4,7 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CONTROL_H } from "./control-size";
 
 const Sheet = DialogPrimitive.Root;
 const SheetTrigger = DialogPrimitive.Trigger;
@@ -57,7 +58,7 @@ const SheetContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-2 top-2 inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-full opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:h-9 sm:w-9 dark:ring-offset-slate-900">
+      <DialogPrimitive.Close className={cn(CONTROL_H, "absolute right-2 top-2 inline-flex w-11 touch-manipulation items-center justify-center rounded-full opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-9 dark:ring-offset-slate-900")}>
         <X className="h-4 w-4" />
         <span className="sr-only">ปิดแผง</span>
       </DialogPrimitive.Close>

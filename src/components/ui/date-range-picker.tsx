@@ -196,7 +196,7 @@ export function DateRangePicker({
               }}
               className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
             >
-              <X className="h-3.5 w-3.5" />
+              <X />
             </span>
           )}
         </Button>
