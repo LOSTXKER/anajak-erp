@@ -233,7 +233,6 @@ function StepBuilder({
           value=""
           onChange={(e) => {
             if (e.target.value) addStep(e.target.value);
-            e.target.value = "";
           }}
           className="w-full text-slate-500"
         >

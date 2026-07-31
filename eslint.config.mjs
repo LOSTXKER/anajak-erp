@@ -91,15 +91,17 @@ const eslintConfig = [
       "no-restricted-syntax": [
         "error",
         ...uiLanguageRules,
+        // ดักทุกรูปที่เขียนความสูง control เอง ไม่ใช่แค่ "h-11 ... sm:h-9"
+        // (audit จับได้ว่ารูป min-h-11 ... sm:min-h-9 กับ sm:h-8 ลอดด่านเดิมไปได้)
         {
-          selector: "Literal[value=/h-11[^\"]*sm:h-[89]/]",
+          selector: "Literal[value=/(h-11|min-h-11)[^\"]*sm:(min-)?h-[89]/]",
           message:
-            "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM จาก ./control-size",
+            "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H จาก ./control-size",
         },
         {
-          selector: "TemplateElement[value.raw=/h-11[^`]*sm:h-[89]/]",
+          selector: "TemplateElement[value.raw=/(h-11|min-h-11)[^`]*sm:(min-)?h-[89]/]",
           message:
-            "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM จาก ./control-size",
+            "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H จาก ./control-size",
         },
       ],
     },

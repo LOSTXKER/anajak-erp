@@ -219,6 +219,16 @@ function QuotationFormPage() {
   // ---- submit ----
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ต้องตรวจเอง — ช่องเลือกลูกค้าเป็นเมนูของเราแล้ว prop required บอกได้แค่โปรแกรม
+    // อ่านหน้าจอ ไม่บล็อกการกดส่งเหมือน <select required> เดิม (ดู ui/native-select.tsx)
+    // ถ้าปล่อยผ่าน server จะโยน FK error ดิบๆ ขึ้นหน้าจอแทนข้อความที่คนอ่านรู้เรื่อง
+    if (!customerId) {
+      setEditError("กรุณาเลือกลูกค้าก่อนสร้างใบเสนอราคา");
+      document.getElementById("quotation-customer")?.focus();
+      return;
+    }
+
     const mappedItems = items.map((item) => ({
       name: item.name,
       description: item.description || undefined,
@@ -340,6 +350,7 @@ function QuotationFormPage() {
                   </div>
                 ) : (
                   <CustomerPicker
+                    id="quotation-customer"
                     value={customerId}
                     onChange={(id) => setCustomerId(id)}
                     required
@@ -352,7 +363,6 @@ function QuotationFormPage() {
                 </label>
                 <DatePicker
                   id="quotation-valid-until"
-                  
                   value={validUntil}
                   onChange={(v) => setValidUntil(v)}
                   required

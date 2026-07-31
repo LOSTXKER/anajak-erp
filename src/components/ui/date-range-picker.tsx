@@ -23,7 +23,8 @@ import {
 import { CalendarRange, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
-import { MONTHS, WEEKDAYS, buddhistYear, parseValue } from "./date-picker";
+import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
+import { MONTHS, MONTHS_SHORT, WEEKDAYS, buddhistYear, parseValue } from "./date-picker";
 
 /* ============================================================
    ช่วงวันที่ + ปุ่มทางลัด (เบสสั่ง 2026-08-01 "เอา filter วันที่ออกมาข้างนอก
@@ -76,7 +77,22 @@ function matchShortcut(from: string, to: string): Shortcut | null {
 }
 
 const shortDate = (d: Date) =>
-  `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)} ${buddhistYear(d)}`;
+  `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${buddhistYear(d)}`;
+
+/** ป้ายที่ไม่ต้องรู้ว่า "วันนี้" คือวันไหน — ใช้ตอน server render */
+function plainLabel(from: string, to: string): string | null {
+  const a = parseValue(from);
+  const b = parseValue(to);
+  if (a && b) {
+    if (a.getFullYear() === b.getFullYear()) {
+      return `${a.getDate()} ${MONTHS_SHORT[a.getMonth()]} – ${shortDate(b)}`;
+    }
+    return `${shortDate(a)} – ${shortDate(b)}`;
+  }
+  if (a) return `ตั้งแต่ ${shortDate(a)}`;
+  if (b) return `ถึง ${shortDate(b)}`;
+  return null;
+}
 
 function triggerLabel(from: string, to: string): string | null {
   const shortcut = matchShortcut(from, to);
@@ -86,7 +102,7 @@ function triggerLabel(from: string, to: string): string | null {
   if (a && b) {
     // ปีเดียวกันไม่ต้องเขียนปีสองรอบ — ประหยัดที่บนปุ่มโดยยังอ่านครบ
     if (a.getFullYear() === b.getFullYear()) {
-      return `${a.getDate()} ${MONTHS[a.getMonth()].slice(0, 3)} – ${shortDate(b)}`;
+      return `${a.getDate()} ${MONTHS_SHORT[a.getMonth()]} – ${shortDate(b)}`;
     }
     return `${shortDate(a)} – ${shortDate(b)}`;
   }
@@ -130,8 +146,14 @@ export function DateRangePicker({
 
   const selFrom = parseValue(from);
   const selTo = parseValue(to);
-  const label = triggerLabel(from, to);
-  const activeShortcut = matchShortcut(from, to);
+
+  // ชื่อทางลัด ("เดือนนี้") ต้องเทียบกับ "วันนี้" ซึ่งฝั่ง server กับ browser อาจคนละวัน
+  // (server มัก UTC · ไทย +07:00 → ต่างกันทั้งวันในช่วงเที่ยงคืนถึง 7 โมงเช้า)
+  // จึงแสดงวันที่ดิบไปก่อนแล้วค่อยเปลี่ยนเป็นชื่อทางลัดหลัง mount — กัน hydration mismatch
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  const label = mounted ? triggerLabel(from, to) : plainLabel(from, to);
+  const activeShortcut = mounted ? matchShortcut(from, to) : null;
 
   const days = React.useMemo(() => {
     const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 0 });
@@ -164,43 +186,36 @@ export function DateRangePicker({
 
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
-      <PopoverPrimitive.Trigger asChild>
-        {/* ใช้ Button ของกลางเป็นตัวเปิด ไม่ลอกสไตล์มาเอง — มันยืนข้างปุ่ม "ตัวกรอง"
-            บนแถบเดียวกัน ถ้าลอกสไตล์จะเพี้ยนทีละนิดทุกครั้งที่ Button เปลี่ยน
-            (เบสจับได้ 2026-08-01: สูง 36 vs 32 · อักษร 12 vs 14 · น้ำหนัก 400 vs 600) */}
-        <Button
-          variant="outline"
-          aria-label="ช่วงวันที่"
-          className={cn("font-medium", className)}
-        >
-          <CalendarRange className="shrink-0" />
-          <span className={cn("truncate", !label && "text-slate-400")}>
-            {label ?? placeholder}
-          </span>
-          {label && (
-            <span
-              role="button"
-              tabIndex={0}
-              aria-label="ล้างช่วงวันที่"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onChange("", "");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onChange("", "");
-                }
-              }}
-              className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
-            >
-              <X />
+      <span className="inline-flex items-center">
+        <PopoverPrimitive.Trigger asChild>
+          {/* ใช้ Button ของกลางเป็นตัวเปิด ไม่ลอกสไตล์มาเอง — มันยืนข้างปุ่ม "ตัวกรอง"
+              บนแถบเดียวกัน ถ้าลอกสไตล์จะเพี้ยนทีละนิดทุกครั้งที่ Button เปลี่ยน
+              (เบสจับได้ 2026-08-01: สูง 36 vs 32 · อักษร 12 vs 14 · น้ำหนัก 400 vs 600) */}
+          <Button
+            variant="outline"
+            aria-label={label ? `ช่วงวันที่: ${label}` : "เลือกช่วงวันที่"}
+            className={cn("font-medium", label && "pr-2", className)}
+          >
+            <CalendarRange className="shrink-0" />
+            <span className={cn("truncate", !label && "text-slate-400")}>
+              {label ?? placeholder}
             </span>
-          )}
-        </Button>
-      </PopoverPrimitive.Trigger>
+          </Button>
+        </PopoverPrimitive.Trigger>
+
+        {/* ปุ่มล้างเป็นปุ่มจริงนอกตัวเปิด — เดิมเป็น span role="button" ซ้อนใน <button>
+            ซึ่งผิดสเปค HTML และเครื่องอ่านหน้าจอส่วนใหญ่ไม่ประกาศให้ (audit ก่อน merge จับได้) */}
+        {label && (
+          <button
+            type="button"
+            aria-label="ล้างช่วงวันที่"
+            onClick={() => onChange("", "")}
+            className={cn(CONTROL_H, "-ml-7 inline-flex w-7 items-center justify-center rounded-full text-slate-400 transition-colors hover:text-slate-700 dark:hover:text-slate-200")}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </span>
 
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
@@ -230,7 +245,8 @@ export function DateRangePicker({
                     setOpen(false);
                   }}
                   className={cn(
-                    "rounded-full px-2.5 py-1 text-xs transition-colors",
+                    CONTROL_MIN_H,
+                    "inline-flex items-center rounded-full px-3 text-xs transition-colors",
                     isOn
                       ? "bg-blue-600 font-medium text-white"
                       : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700",
@@ -247,7 +263,7 @@ export function DateRangePicker({
               type="button"
               aria-label="เดือนก่อนหน้า"
               onClick={() => setCursor((c) => subMonths(c, 1))}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -258,7 +274,7 @@ export function DateRangePicker({
               type="button"
               aria-label="เดือนถัดไป"
               onClick={() => setCursor((c) => addMonths(c, 1))}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -287,7 +303,8 @@ export function DateRangePicker({
                   onMouseEnter={() => setHovered(day)}
                   onClick={() => pickDay(day)}
                   className={cn(
-                    "flex h-9 items-center justify-center text-sm tabular-nums transition-colors",
+                    CONTROL_H,
+                    "flex items-center justify-center text-sm tabular-nums transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
                     // ระบายพื้นช่วงให้ต่อกันเป็นแถบเดียว หัวท้ายโค้งมน
                     inRange && !isEdge && "bg-blue-50 dark:bg-blue-950/40",
@@ -319,7 +336,7 @@ export function DateRangePicker({
                 setDraftStart(null);
                 setOpen(false);
               }}
-              className="shrink-0 rounded-full px-3 py-1 font-medium text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              className={cn(CONTROL_MIN_H, "inline-flex shrink-0 items-center rounded-full px-3 font-medium text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800")}
             >
               ล้าง
             </button>

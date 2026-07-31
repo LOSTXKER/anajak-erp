@@ -763,7 +763,6 @@ export function OrderBillingSection({
                     description="ตามกฎหมาย = วันรับเงินจริง — แก้ได้เคสบันทึกย้อนหลัง (เงินเข้าแบงก์คนละวันกับวันบันทึก)"
                   >
                     <DatePicker
-                      
                       value={receiptIssueDate}
                       onChange={(v) => setReceiptIssueDate(v)}
                     />
@@ -910,7 +909,6 @@ export function OrderBillingSection({
               {!["RECEIPT", "CREDIT_NOTE"].includes(invoiceType) && (
                 <Field label="ครบกำหนด">
                   <DatePicker
-                    
                     value={invoiceDueDate}
                     onChange={(v) => {
                       setUserEdited((prev) => ({ ...prev, dueDate: true }));
@@ -1019,7 +1017,6 @@ export function OrderBillingSection({
                     </Field>
                     <Field label="วันที่ในใบ">
                       <DatePicker
-                        
                         value={whtCertDate}
                         onChange={(v) => setWhtCertDate(v)}
                       />

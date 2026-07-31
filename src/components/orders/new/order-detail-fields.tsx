@@ -70,7 +70,6 @@ export function OrderDetailFields({
         <label htmlFor={`${id}-deadline`} className={labelClass}>กำหนดส่ง</label>
         <DatePicker
           id={`${id}-deadline`}
-          
           value={deadline}
           onChange={(v) => onDeadlineChange(v)}
         />

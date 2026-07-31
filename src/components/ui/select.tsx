@@ -4,7 +4,7 @@ import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CONTROL_H } from "./control-size";
+import { CONTROL_H, CONTROL_MIN_H } from "./control-size";
 import { controlShapeClass, type ControlShape } from "./native-select";
 
 const Select = SelectPrimitive.Root;
@@ -41,7 +41,7 @@ const SelectScrollUpButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollUpButton
     ref={ref}
-    className={cn("flex min-h-11 cursor-default items-center justify-center py-1 sm:min-h-9", className)}
+    className={cn(CONTROL_MIN_H, "flex cursor-default items-center justify-center py-1", className)}
     {...props}
   >
     <ChevronUp className="h-4 w-4" />
@@ -55,7 +55,7 @@ const SelectScrollDownButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollDownButton
     ref={ref}
-    className={cn("flex min-h-11 cursor-default items-center justify-center py-1 sm:min-h-9", className)}
+    className={cn(CONTROL_MIN_H, "flex cursor-default items-center justify-center py-1", className)}
     {...props}
   >
     <ChevronDown className="h-4 w-4" />
@@ -113,8 +113,7 @@ const SelectItem = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
-    className={cn(
-      "relative flex min-h-11 w-full cursor-default select-none items-center rounded-lg py-1.5 pl-2 pr-8 text-base outline-none focus:bg-slate-100 focus:text-slate-900 sm:min-h-9 sm:text-sm data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:bg-slate-800 dark:focus:text-slate-100",
+    className={cn(CONTROL_MIN_H, "relative flex w-full cursor-default select-none items-center rounded-lg py-1.5 pl-2 pr-8 text-base outline-none focus:bg-slate-100 focus:text-slate-900 sm:text-sm data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:bg-slate-800 dark:focus:text-slate-100",
       className
     )}
     {...props}

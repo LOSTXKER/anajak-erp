@@ -19,8 +19,8 @@ import {
 } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CONTROL_H } from "./control-size";
 import { controlShapeClass, type ControlShape } from "./native-select";
+import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
 
 /* ============================================================
    ปฏิทินของเราเอง (เบสสั่ง 2026-07-31 "ปฏิทินใช้ฟอร์มของเว็บเราเอง")
@@ -38,6 +38,13 @@ export const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 export const MONTHS = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+];
+
+/** ตัวย่อเดือนแบบที่คนไทยใช้จริง — ตัดคำเอาเองด้วย slice(0,3) จะได้ "มกร/กุม/สิง"
+ *  ซึ่งไม่มีใครเขียนแบบนั้น (audit ก่อน merge จับได้) */
+export const MONTHS_SHORT = [
+  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
 ];
 
 /** ทั้งเว็บพูดเป็น พ.ศ. — ปฏิทินต้องพูดภาษาเดียวกัน ไม่งั้นคนกรอกผิดปีทั้งใบ */
@@ -71,7 +78,9 @@ export function DatePicker({
   className?: string;
   shape?: ControlShape;
   clearable?: boolean;
-  /** ช่องที่บังคับกรอก — ไม่ให้ล้างค่าทิ้ง (ปุ่มล้างหายไป) */
+  /** ช่องที่บังคับกรอก — ซ่อนปุ่มล้าง + บอกโปรแกรมอ่านหน้าจอ
+   *  ⚠️ ไม่บล็อกการส่งฟอร์มเหมือน <input required> เดิม (นี่คือปุ่ม ไม่ใช่ช่องกรอก)
+   *  ฟอร์มที่พึ่ง required ต้องตรวจเองก่อน submit + รัดที่ zod ฝั่ง server */
   required?: boolean;
 }) {
   const selected = parseValue(value);
@@ -162,7 +171,7 @@ export function DatePicker({
               type="button"
               aria-label="เดือนก่อนหน้า"
               onClick={() => setCursor((c) => subMonths(c, 1))}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -173,7 +182,7 @@ export function DatePicker({
               type="button"
               aria-label="เดือนถัดไป"
               onClick={() => setCursor((c) => addMonths(c, 1))}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -203,7 +212,8 @@ export function DatePicker({
                     setOpen(false);
                   }}
                   className={cn(
-                    "flex h-9 items-center justify-center rounded-lg text-sm tabular-nums transition-colors",
+                    CONTROL_H,
+                    "flex items-center justify-center rounded-lg text-sm tabular-nums transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
                     !inMonth && "text-slate-300 dark:text-slate-600",
                     inMonth && "text-slate-700 dark:text-slate-200",
@@ -228,7 +238,7 @@ export function DatePicker({
                 onChange(format(new Date(), "yyyy-MM-dd"));
                 setOpen(false);
               }}
-              className="flex-1 rounded-full py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40"
+              className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40")}
             >
               วันนี้
             </button>
@@ -239,7 +249,7 @@ export function DatePicker({
                   onChange("");
                   setOpen(false);
                 }}
-                className="flex-1 rounded-full py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800")}
               >
                 ล้าง
               </button>

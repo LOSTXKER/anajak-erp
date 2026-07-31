@@ -638,11 +638,10 @@ function OrdersPageContent() {
                 <DataTable.SortableTh {...sortColumn("createdAt")}>
                   วันที่
                 </DataTable.SortableTh>
-                {showDeadline && (
-                  <DataTable.SortableTh {...sortColumn("deadline")}>
-                    กำหนดส่ง
-                  </DataTable.SortableTh>
-                )}
+                {/* ไม่ทำให้เรียงได้ — คอลัมน์ "ระยะเวลาออเดอร์" เรียงด้วยกำหนดส่งอยู่แล้ว
+                    ถ้าให้เรียงได้ทั้งคู่ ตอนเรียงจะประกาศ aria-sort พร้อมกัน 2 คอลัมน์
+                    ซึ่งผิดมาตรฐานและทำให้โปรแกรมอ่านหน้าจอสับสน (audit ก่อน merge จับได้) */}
+                {showDeadline && <DataTable.Th>กำหนดส่ง</DataTable.Th>}
               </tr>
             </DataTable.Head>
             <DataTable.Body>

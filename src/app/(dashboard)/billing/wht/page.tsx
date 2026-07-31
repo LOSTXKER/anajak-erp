@@ -508,7 +508,6 @@ export default function WhtRegisterPage() {
               </Field>
               <Field label="วันที่ในใบ">
                 <DatePicker
-                  
                   value={certDate}
                   onChange={(v) => setCertDate(v)}
                 />

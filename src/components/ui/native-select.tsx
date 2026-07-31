@@ -4,7 +4,7 @@ import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CONTROL_H } from "./control-size";
+import { CONTROL_H, CONTROL_MIN_H } from "./control-size";
 
 /** ทรงของ control — pill ใช้ในแถบเครื่องมือให้เข้าชุดกับปุ่ม (เบสสั่ง 2026-07-31
  *  หลังเห็นจอจริงว่าปุ่มโค้งเต็มแต่ช่องเลือกข้างกันโค้งแค่ 16px) · box คือฟอร์มกรอกข้อมูล */
@@ -23,6 +23,13 @@ export const controlShapeClass = (shape: ControlShape = "box") =>
 
    ตรวจก่อนทำแล้วว่าทุกจุดใช้รูปแบบเดียวกันหมด: ควบคุมค่าเอง · อ่าน e.target.value
    อย่างเดียว · ไม่มี optgroup · ไม่มี defaultValue
+
+   ⚠️ ข้อต่างที่ต้องรู้: prop `required` ที่นี่ "ไม่บล็อก" การกดส่งฟอร์มเหมือน
+   <select required> ของเบราว์เซอร์ — Radix ซ่อน <select> ไว้ข้างหลังเพื่อส่งค่า
+   แต่เรามีตัวเลือกค่าว่างเป็น "__empty__" (Radix ไม่ยอมรับ "") ทำให้เบราว์เซอร์
+   มองว่า "มีค่าแล้ว" เสมอ valueMissing จึงไม่มีวันเกิด
+   → ฟอร์มที่เคยพึ่ง required ต้องตรวจเองก่อน submit + รัดที่ zod ฝั่ง server ด้วย
+   (เจอตอน audit ก่อน merge: /quotations/new กดสร้างโดยไม่เลือกลูกค้าได้)
    ============================================================ */
 
 /** Radix ไม่ยอมให้ value เป็นสตริงว่าง แต่ตัวเลือกแบบ "ทุกสถานะ" ในระบบนี้ใช้ ""
@@ -65,6 +72,8 @@ type NativeSelectProps = Omit<
   "onChange" | "value" | "size"
 > & {
   shape?: ControlShape;
+  /** บอกโปรแกรมอ่านหน้าจอว่าจำเป็น — ไม่บล็อกการส่งฟอร์ม ต้องตรวจเองก่อน submit */
+  required?: boolean;
   value?: string;
   onChange?: (event: { target: { value: string } }) => void;
 };
@@ -101,6 +110,9 @@ const NativeSelect = React.forwardRef<HTMLButtonElement, NativeSelectProps>(
           ref={ref}
           id={id}
           aria-label={ariaLabel}
+          // role="combobox" รองรับ aria-required (ต่าง <button> ธรรมดา) — บอกโปรแกรมอ่านหน้าจอได้
+          // แต่ "ไม่บล็อก" การส่งฟอร์มเหมือน <select required> เดิม ดูคำอธิบายที่ prop required
+          aria-required={required || undefined}
           className={cn(
             controlShapeClass(shape),
             CONTROL_H,
@@ -131,7 +143,7 @@ const NativeSelect = React.forwardRef<HTMLButtonElement, NativeSelectProps>(
                   key={o.value || EMPTY}
                   value={toInner(o.value)}
                   disabled={o.disabled}
-                  className="relative flex min-h-11 cursor-pointer select-none items-center justify-between gap-2 rounded-lg px-3 text-sm outline-none data-[highlighted]:bg-slate-100 data-[state=checked]:bg-blue-50 data-[state=checked]:font-medium data-[state=checked]:text-blue-700 sm:min-h-9 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:data-[highlighted]:bg-slate-800 dark:data-[state=checked]:bg-blue-950/50 dark:data-[state=checked]:text-blue-300"
+                  className={cn(CONTROL_MIN_H, "relative flex cursor-pointer select-none items-center justify-between gap-2 rounded-lg px-3 text-sm outline-none data-[highlighted]:bg-slate-100 data-[state=checked]:bg-blue-50 data-[state=checked]:font-medium data-[state=checked]:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:data-[highlighted]:bg-slate-800 dark:data-[state=checked]:bg-blue-950/50 dark:data-[state=checked]:text-blue-300")}
                 >
                   <SelectPrimitive.ItemText>{o.label}</SelectPrimitive.ItemText>
                   <SelectPrimitive.ItemIndicator>

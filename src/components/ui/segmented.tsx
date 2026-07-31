@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CONTROL_MIN_H } from "./control-size";
 
 export interface SegmentedOption<T extends string = string> {
   value: T;
@@ -73,8 +74,7 @@ export function SegmentedControl<T extends string = string>({
               );
               buttons?.[nextIndex]?.focus();
             }}
-            className={cn(
-              "inline-flex min-h-11 touch-manipulation items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:min-h-9",
+            className={cn(CONTROL_MIN_H, "inline-flex touch-manipulation items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
               size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-xs",
               active
                 ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white"

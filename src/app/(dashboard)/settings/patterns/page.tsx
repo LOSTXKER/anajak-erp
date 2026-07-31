@@ -144,7 +144,6 @@ export default function PatternsPage() {
       // silently fail
     } finally {
       setUploading(false);
-      e.target.value = "";
     }
   };
 
