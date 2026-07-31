@@ -6,6 +6,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -349,11 +350,11 @@ function QuotationFormPage() {
                 <label htmlFor="quotation-valid-until" className={sectionLabelClass}>
                   ใช้ได้ถึงวันที่ *
                 </label>
-                <Input
+                <DatePicker
                   id="quotation-valid-until"
-                  type="date"
+                  
                   value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
+                  onChange={(v) => setValidUntil(v)}
                   required
                 />
               </div>

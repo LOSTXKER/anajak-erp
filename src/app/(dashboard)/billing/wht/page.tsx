@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/ui/field";
 import { FileUpload } from "@/components/ui/file-upload";
@@ -506,10 +507,10 @@ export default function WhtRegisterPage() {
                 />
               </Field>
               <Field label="วันที่ในใบ">
-                <Input
-                  type="date"
+                <DatePicker
+                  
                   value={certDate}
-                  onChange={(e) => setCertDate(e.target.value)}
+                  onChange={(v) => setCertDate(v)}
                 />
               </Field>
             </div>

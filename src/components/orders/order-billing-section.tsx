@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { FileUpload } from "@/components/ui/file-upload";
@@ -761,10 +762,10 @@ export function OrderBillingSection({
                     label="วันที่เอกสาร (tax point)"
                     description="ตามกฎหมาย = วันรับเงินจริง — แก้ได้เคสบันทึกย้อนหลัง (เงินเข้าแบงก์คนละวันกับวันบันทึก)"
                   >
-                    <Input
-                      type="date"
+                    <DatePicker
+                      
                       value={receiptIssueDate}
-                      onChange={(e) => setReceiptIssueDate(e.target.value)}
+                      onChange={(v) => setReceiptIssueDate(v)}
                     />
                   </Field>
                 </div>
@@ -908,12 +909,12 @@ export function OrderBillingSection({
                   (server ทิ้งค่านี้อยู่แล้ว — ซ่อนช่องกันเข้าใจผิด) */}
               {!["RECEIPT", "CREDIT_NOTE"].includes(invoiceType) && (
                 <Field label="ครบกำหนด">
-                  <Input
-                    type="date"
+                  <DatePicker
+                    
                     value={invoiceDueDate}
-                    onChange={(e) => {
+                    onChange={(v) => {
                       setUserEdited((prev) => ({ ...prev, dueDate: true }));
-                      setInvoiceDueDate(e.target.value);
+                      setInvoiceDueDate(v);
                     }}
                   />
                 </Field>
@@ -1017,10 +1018,10 @@ export function OrderBillingSection({
                       />
                     </Field>
                     <Field label="วันที่ในใบ">
-                      <Input
-                        type="date"
+                      <DatePicker
+                        
                         value={whtCertDate}
-                        onChange={(e) => setWhtCertDate(e.target.value)}
+                        onChange={(v) => setWhtCertDate(v)}
                       />
                     </Field>
                   </div>

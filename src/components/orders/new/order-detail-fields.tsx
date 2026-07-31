@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -67,11 +68,11 @@ export function OrderDetailFields({
 
       <div>
         <label htmlFor={`${id}-deadline`} className={labelClass}>กำหนดส่ง</label>
-        <Input
+        <DatePicker
           id={`${id}-deadline`}
-          type="date"
+          
           value={deadline}
-          onChange={(e) => onDeadlineChange(e.target.value)}
+          onChange={(v) => onDeadlineChange(v)}
         />
       </div>
 

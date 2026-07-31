@@ -6,6 +6,7 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -253,10 +254,10 @@ export function OrderInfoEditDialog({
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="กำหนดส่ง">
-                <Input
-                  type="date"
+                <DatePicker
+                  
                   value={form.deadline}
-                  onChange={(e) => update("deadline", e.target.value)}
+                  onChange={(v) => update("deadline", v)}
                   className="h-9"
                 />
               </Field>

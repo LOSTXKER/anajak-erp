@@ -8,6 +8,7 @@ import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FilterPopover } from "@/components/ui/filter-popover";
@@ -472,10 +473,14 @@ function OrdersPageContent() {
           แถวเดียวจบเมื่อจอกว้าง: ค้นหา · เรียง | กรอง · ชิปความเร่งด่วนชิดขวา
           (เบสสั่ง 2026-07-31 "ส่วนบนดีได้กว่านี้" — เดิมชิปแยกไปอีกแถวทั้งที่ขวายังว่าง
           และช่องค้นหายืดเต็มจอจนเป็นแถบว่างยาวบนจอใหญ่) */}
-      <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
+      {/* วัดจาก "ความกว้างของพื้นที่เนื้อหาจริง" ไม่ใช่ความกว้างหน้าต่าง (@container) —
+          เดิมใช้ md: ซึ่งวัดหน้าต่าง พอเบสซูมหน้าเว็บ พื้นที่จริงเหลือ ~750px
+          เงื่อนไขเลยไม่ติด ทุกอย่างกองลงมาทีละแถวทั้งที่ยังมีที่เหลือ */}
+      <div className="@container">
+      <div className="flex flex-col gap-2 @2xl:flex-row @2xl:flex-wrap @2xl:items-center">
         <SearchInput
           ref={searchInputRef}
-          containerClassName="md:max-w-sm md:flex-1"
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า..."
           defaultValue={search}
           onChange={(event) => {
@@ -541,22 +546,22 @@ function OrdersPageContent() {
               ))}
             </FilterRow>
             <FilterRow label="วันที่สร้าง">
-              <Input
+              <DatePicker
                 aria-label="วันที่สร้างตั้งแต่"
-                type="date"
+                
                 value={createdAfter}
-                onChange={(e) =>
-                  replaceListState({ from: e.target.value || null, page: null })
+                onChange={(v) =>
+                  replaceListState({ from: v || null, page: null })
                 }
                 className="w-36 text-xs"
               />
               <span className="text-xs text-slate-400">ถึง</span>
-              <Input
+              <DatePicker
                 aria-label="วันที่สร้างถึง"
-                type="date"
+                
                 value={createdBefore}
-                onChange={(e) =>
-                  replaceListState({ to: e.target.value || null, page: null })
+                onChange={(v) =>
+                  replaceListState({ to: v || null, page: null })
                 }
                 className="w-36 text-xs"
               />
@@ -581,6 +586,7 @@ function OrdersPageContent() {
             </span>
           )}
         </div>
+      </div>
       </div>
 
       {/* แถบสถานะงาน — ยกสถานะภายในขึ้นมาอยู่บนสุด กดกรองได้ทันทีโดยไม่ต้องเปิดกล่องอะไร */}

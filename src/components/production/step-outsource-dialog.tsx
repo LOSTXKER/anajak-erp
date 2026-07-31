@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Field } from "@/components/ui/field";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { Loader2, Truck } from "lucide-react";
@@ -135,10 +136,10 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
               />
             </Field>
             <Field label="กำหนดรับกลับ">
-              <Input
-                type="date"
+              <DatePicker
+                
                 value={expectedBack}
-                onChange={(e) => setExpectedBack(e.target.value)}
+                onChange={(v) => setExpectedBack(v)}
               />
             </Field>
           </div>

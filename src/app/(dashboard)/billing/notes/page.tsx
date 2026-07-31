@@ -15,6 +15,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -527,7 +528,7 @@ function BillingNotesPageContent() {
                 <label htmlFor="billing-note-due-date" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   วันนัดรับชำระ
                 </label>
-                <Input id="billing-note-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                <DatePicker id="billing-note-due-date"  value={dueDate} onChange={(v) => setDueDate(v)} />
               </div>
               <div>
                 <label htmlFor="billing-note-notes" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
