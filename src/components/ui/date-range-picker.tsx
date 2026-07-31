@@ -22,7 +22,7 @@ import {
 } from "date-fns";
 import { CalendarRange, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { controlShapeClass, type ControlShape } from "./native-select";
+import { Button } from "./button";
 import { MONTHS, WEEKDAYS, buddhistYear, parseValue } from "./date-picker";
 
 /* ============================================================
@@ -99,7 +99,6 @@ export function DateRangePicker({
   from,
   to,
   onChange,
-  shape,
   className,
   align = "start",
   placeholder = "ช่วงวันที่",
@@ -108,7 +107,6 @@ export function DateRangePicker({
   from: string;
   to: string;
   onChange: (from: string, to: string) => void;
-  shape?: ControlShape;
   className?: string;
   align?: "start" | "center" | "end";
   placeholder?: string;
@@ -167,18 +165,15 @@ export function DateRangePicker({
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
       <PopoverPrimitive.Trigger asChild>
-        <button
-          type="button"
+        {/* ใช้ Button ของกลางเป็นตัวเปิด ไม่ลอกสไตล์มาเอง — มันยืนข้างปุ่ม "ตัวกรอง"
+            บนแถบเดียวกัน ถ้าลอกสไตล์จะเพี้ยนทีละนิดทุกครั้งที่ Button เปลี่ยน
+            (เบสจับได้ 2026-08-01: สูง 36 vs 32 · อักษร 12 vs 14 · น้ำหนัก 400 vs 600) */}
+        <Button
+          variant="outline"
           aria-label="ช่วงวันที่"
-          className={cn(
-            controlShapeClass(shape),
-            "flex h-11 min-h-11 items-center gap-2 border border-slate-200/70 bg-white px-3 text-sm transition-colors",
-            "focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/15",
-            "sm:h-9 sm:min-h-9 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100",
-            className,
-          )}
+          className={cn("font-medium", className)}
         >
-          <CalendarRange className="h-4 w-4 shrink-0 text-slate-400" />
+          <CalendarRange className="shrink-0" />
           <span className={cn("truncate", !label && "text-slate-400")}>
             {label ?? placeholder}
           </span>
@@ -204,7 +199,7 @@ export function DateRangePicker({
               <X className="h-3.5 w-3.5" />
             </span>
           )}
-        </button>
+        </Button>
       </PopoverPrimitive.Trigger>
 
       <PopoverPrimitive.Portal>

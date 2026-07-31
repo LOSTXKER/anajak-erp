@@ -529,7 +529,7 @@ function OrdersPageContent() {
             onChange={(e) =>
               replaceListState({ sort: e.target.value, page: null })
             }
-            className="h-9 w-auto px-3 text-xs lg:hidden"
+            className="w-auto px-3 lg:hidden"
           >
             {sortOptions.map((o) => (
               <option key={o.value} value={o.value}>
@@ -541,13 +541,11 @@ function OrdersPageContent() {
           {/* ช่วงวันที่ออกมาอยู่นอกกล่องตัวกรอง (เบสสั่ง 2026-08-01) — เป็นตัวกรองที่ใช้บ่อยสุด
               ไม่ควรต้องกดเปิดกล่องก่อน · มีปุ่มทางลัด เดือนนี้/ปีนี้/สัปดาห์นี้ ในตัว */}
           <DateRangePicker
-            shape="pill"
             from={createdAfter}
             to={createdBefore}
             onChange={(f, t) =>
               replaceListState({ from: f || null, to: t || null, page: null })
             }
-            className="text-xs"
           />
 
           {/* ตัวกรองลอยใต้ปุ่ม — ตารางไม่ขยับ (เบสเคาะ 2026-07-31 แบบ ข)

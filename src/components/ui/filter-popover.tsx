@@ -40,8 +40,17 @@ export function FilterPopover({
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
       <PopoverPrimitive.Trigger asChild>
-        <Button variant={hasFilters ? "subtle" : "outline"} size="sm">
-          <Filter className="h-4 w-4" />
+        {/* ไม่ใช้ size="sm" — ขนาดนั้น (32px) ตั้งใจไว้ใช้ในแถวตาราง
+            บนแถบเครื่องมือต้องสูง 36px เท่าช่องค้นหาที่ยืนข้างกัน */}
+        <Button
+          variant="outline"
+          className={cn(
+            "font-medium",
+            hasFilters &&
+              "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300",
+          )}
+        >
+          <Filter />
           ตัวกรอง
           {hasFilters && (
             <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-2xs font-medium text-white">
