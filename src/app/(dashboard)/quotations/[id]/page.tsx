@@ -252,7 +252,7 @@ export default function QuotationDetailPage({
           </Button>
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
+              <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
                 {quotation.quotationNumber}
               </h1>
               <Badge

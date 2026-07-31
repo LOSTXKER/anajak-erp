@@ -22,11 +22,11 @@ export function SettingsPageHeader({
       </Button>
       <div>
         {/* ขนาดหัวเรื่องต้องตรงกับ PageHeader (page-header.tsx) — มาตรฐานเดียวทั้งระบบ */}
-        <h1 className="text-xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
           {title}
         </h1>
         {description && (
-          <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{description}</p>
         )}
       </div>
     </div>

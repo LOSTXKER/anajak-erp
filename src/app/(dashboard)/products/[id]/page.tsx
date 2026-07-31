@@ -173,7 +173,7 @@ export default function ProductDetailPage({
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
+              <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
                 {product.name}
               </h1>
               <Badge variant={typ.variant}>{typ.label}</Badge>
