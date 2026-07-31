@@ -221,7 +221,7 @@ function BillingPageContent() {
             replaceListState({ status: v === ALL ? null : v, page: null });
           }}
         >
-          <SelectTrigger className="w-full sm:w-40" aria-label="กรองตามสถานะ">
+          <SelectTrigger shape="pill" className="w-full sm:w-40" aria-label="กรองตามสถานะ">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -239,7 +239,7 @@ function BillingPageContent() {
             replaceListState({ type: v === ALL ? null : v, page: null });
           }}
         >
-          <SelectTrigger className="w-full sm:w-48" aria-label="กรองตามประเภท">
+          <SelectTrigger shape="pill" className="w-full sm:w-48" aria-label="กรองตามประเภท">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

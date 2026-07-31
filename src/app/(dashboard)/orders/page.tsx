@@ -419,6 +419,7 @@ function OrdersPageContent() {
           <div className="flex items-center gap-1.5">
             <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
             <NativeSelect
+              shape="pill"
               value={sort}
               onChange={(e) =>
                 replaceListState({ sort: e.target.value, page: null })

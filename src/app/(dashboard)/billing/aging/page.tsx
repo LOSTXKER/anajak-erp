@@ -284,6 +284,7 @@ function AgingPageContent() {
           }}
         />
         <NativeSelect
+          shape="pill"
           aria-label="กรองช่วงอายุหนี้"
           value={status}
           onChange={(event) =>
@@ -298,6 +299,7 @@ function AgingPageContent() {
           ))}
         </NativeSelect>
         <NativeSelect
+          shape="pill"
           aria-label="เรียงรายการลูกหนี้"
           value={sort}
           onChange={(event) =>

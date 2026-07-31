@@ -124,6 +124,7 @@ export default function ProductsPage() {
           }}
         />
         <NativeSelect
+          shape="pill"
           aria-label="กรองประเภทสินค้า"
           value={productType}
           onChange={(e) => {

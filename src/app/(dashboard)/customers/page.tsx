@@ -421,6 +421,7 @@ function CustomersPageContent() {
           }}
         />
         <NativeSelect
+          shape="pill"
           aria-label="กรองกลุ่มลูกค้า"
           value={segment}
           onChange={(event) =>
