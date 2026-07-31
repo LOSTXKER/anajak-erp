@@ -493,6 +493,17 @@ function OrdersPageContent() {
           แถวเดียวจบเมื่อจอกว้าง: ค้นหา · เรียง | กรอง · ชิปความเร่งด่วนชิดขวา
           (เบสสั่ง 2026-07-31 "ส่วนบนดีได้กว่านี้" — เดิมชิปแยกไปอีกแถวทั้งที่ขวายังว่าง
           และช่องค้นหายืดเต็มจอจนเป็นแถบว่างยาวบนจอใหญ่) */}
+      {/* การ์ดสถานะงานมาก่อนแถบค้นหา/ตัวกรอง (เบสสั่ง 2026-08-01 — เรียงแบบระบบเก่า)
+          เปิดหน้ามาเห็นภาพรวมทั้งกระดานก่อน แล้วค่อยเจาะด้วยค้นหา/ตัวกรอง */}
+      <OrderStatusFlowBar
+        counts={data?.statusCounts}
+        selected={internalStatus}
+        onSelect={(status: string) =>
+          replaceListState({ status: status || null, page: null })
+        }
+        isLoading={isLoading || isFetching}
+      />
+
       {/* วัดจาก "ความกว้างของพื้นที่เนื้อหาจริง" ไม่ใช่ความกว้างหน้าต่าง (@container) —
           เดิมใช้ md: ซึ่งวัดหน้าต่าง พอเบสซูมหน้าเว็บ พื้นที่จริงเหลือ ~750px
           เงื่อนไขเลยไม่ติด ทุกอย่างกองลงมาทีละแถวทั้งที่ยังมีที่เหลือ */}
@@ -608,16 +619,6 @@ function OrdersPageContent() {
         </div>
       </div>
       </div>
-
-      {/* แถบสถานะงาน — ยกสถานะภายในขึ้นมาอยู่บนสุด กดกรองได้ทันทีโดยไม่ต้องเปิดกล่องอะไร */}
-      <OrderStatusFlowBar
-        counts={data?.statusCounts}
-        selected={internalStatus}
-        onSelect={(status: string) =>
-          replaceListState({ status: status || null, page: null })
-        }
-        isLoading={isLoading || isFetching}
-      />
 
       <ResponsiveList
         items={data?.orders}

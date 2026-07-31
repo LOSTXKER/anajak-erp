@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   INTERNAL_STATUS_LABELS,
@@ -10,16 +8,15 @@ import {
 import type { InternalStatus } from "@prisma/client";
 
 /* ============================================================
-   แถบสถานะงานเหนือตาราง — เรียงตามลำดับงานจริงตั้งแต่ร่างจนจบ (เบสเคาะ 2026-07-31)
+   การ์ดสถานะงานเหนือตาราง — เรียงเป็นตารางตามลำดับงานจริงตั้งแต่ร่างจนจบ
 
-   รอบแรกทำเป็นการ์ดสูง 62px เรียงกัน 14 ใบ → กว้างเกินพื้นที่จริงของเบส (~950px
-   หลังหักแถบเมนูซ้าย) จนมีแถบเลื่อนแนวนอนโผล่และการ์ดสุดท้ายถูกตัดครึ่ง
-   รอบนี้เป็นชิปเตี้ย 34px ชื่อกับเลขอยู่บรรทัดเดียว ขึ้นได้ครบโดยไม่ต้องเลื่อน
+   เบสส่งภาพระบบเก่ามาให้ดูแล้วสั่ง "อยากลองเอา card สถานะไว้ด้านบนแบบนี้"
+   (2026-08-01) แล้วเคาะทรง B จาก mockup: เรียงเป็นตารางเห็นครบ 14 สถานะ
+   พร้อมกันเหมือนระบบเก่า แต่ชื่อกับเลขอยู่บรรทัดเดียว —
+   ระบบเก่าการ์ดสูงมากจนกิน ~520px จากจอ ~700px ตารางเหลือที่ 1-2 แถว
 
-   สถานะที่ไม่มีงาน (8 จาก 14 ในข้อมูลจริง) พับเก็บหลังปุ่มเดียว — ไม่ได้หายไปไหน
-   กดดูได้ทุกเมื่อ · ตัวที่กำลังเลือกอยู่ไม่ถูกพับแม้จะเป็น 0 ไม่งั้นตัวเลือกหายจากจอ
-
-   กดชิป = กรองเฉพาะสถานะนั้น · กดชิปเดิมซ้ำ = ยกเลิกการกรอง
+   แสดงครบทุกใบรวมที่เป็น 0 (ไม่พับ) — เบสต้องการเห็นภาพรวมทั้งกระดาน
+   กดการ์ด = กรองเฉพาะสถานะนั้น · กดการ์ดเดิมซ้ำ = ยกเลิกการกรอง
    ============================================================ */
 
 function dotFor(status: InternalStatus) {
@@ -46,24 +43,16 @@ export function OrderStatusFlowBar({
   onSelect: (status: string) => void;
   isLoading?: boolean;
 }) {
-  const [showEmpty, setShowEmpty] = useState(false);
-
-  const withWork = STATUS_ORDER.filter(
-    (s) => (counts?.[s] ?? 0) > 0 || s === selected,
-  );
-  const empty = STATUS_ORDER.filter((s) => !withWork.includes(s));
-  const visible = showEmpty ? STATUS_ORDER : withWork;
-
   return (
     <div
       role="group"
       aria-label="กรองตามสถานะงาน"
       className={cn(
-        "card-surface flex flex-wrap items-center gap-1.5 rounded-2xl px-3 py-2.5",
+        "grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7",
         isLoading && "opacity-60",
       )}
     >
-      {visible.map((status) => {
+      {STATUS_ORDER.map((status) => {
         const count = counts?.[status] ?? 0;
         const isOn = selected === status;
         return (
@@ -73,24 +62,34 @@ export function OrderStatusFlowBar({
             aria-pressed={isOn}
             onClick={() => onSelect(isOn ? "" : status)}
             className={cn(
-              "inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-xs transition-colors sm:min-h-8",
+              "card-surface flex min-h-11 items-center justify-between gap-2 rounded-xl px-3 py-2 text-left transition-shadow",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
               isOn
-                ? "bg-blue-50 font-medium text-blue-700 ring-1 ring-blue-500 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-400"
-                : "bg-slate-50 text-slate-700 hover:bg-slate-100 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800",
+                ? "bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-950/40 dark:ring-blue-400"
+                : "card-surface-hover",
             )}
           >
             <span
-              aria-hidden
-              className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dotFor(status))}
-            />
-            <span className="whitespace-nowrap">
-              {INTERNAL_STATUS_LABELS[status]}
+              className={cn(
+                "flex min-w-0 items-center gap-1.5 text-xs leading-tight",
+                isOn
+                  ? "font-medium text-blue-700 dark:text-blue-300"
+                  : "text-slate-600 dark:text-slate-400",
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dotFor(status))}
+              />
+              <span className="truncate">{INTERNAL_STATUS_LABELS[status]}</span>
             </span>
             <span
               className={cn(
-                "font-semibold tabular-nums",
-                count === 0 && !isOn && "text-slate-300 dark:text-slate-600",
+                "shrink-0 text-lg font-semibold leading-none tabular-nums",
+                // ศูนย์ = ไม่มีงานค้างตรงนั้น จางไว้ไม่ให้แย่งสายตากับตัวเลขที่มีความหมาย
+                count === 0
+                  ? "text-slate-300 dark:text-slate-600"
+                  : "text-slate-900 dark:text-white",
               )}
             >
               {count}
@@ -98,21 +97,6 @@ export function OrderStatusFlowBar({
           </button>
         );
       })}
-
-      {empty.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setShowEmpty((v) => !v)}
-          aria-expanded={showEmpty}
-          className="inline-flex min-h-11 items-center gap-1 rounded-full px-2.5 text-xs text-slate-500 transition-colors hover:bg-slate-50 sm:min-h-8 dark:text-slate-400 dark:hover:bg-slate-800/40"
-        >
-          {showEmpty ? "ซ่อนสถานะที่ไม่มีงาน" : `+${empty.length} สถานะที่ไม่มีงาน`}
-          <ChevronDown
-            aria-hidden
-            className={cn("h-3.5 w-3.5 transition-transform", showEmpty && "rotate-180")}
-          />
-        </button>
-      )}
     </div>
   );
 }
