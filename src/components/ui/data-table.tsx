@@ -117,6 +117,15 @@ interface SortableThProps extends Omit<ThProps, "onClick"> {
   onSort: (direction: "asc" | "desc") => void;
 }
 
+/** กดหัวคอลัมน์แล้วได้ทิศไหนต่อ — คอลัมน์ที่เรียงอยู่ = สลับทิศ · คอลัมน์อื่น = ทิศตั้งต้นของมัน */
+function nextSortDirection(
+  direction: "asc" | "desc" | null,
+  defaultDirection: "asc" | "desc"
+): "asc" | "desc" {
+  if (direction === null) return defaultDirection;
+  return direction === "asc" ? "desc" : "asc";
+}
+
 /**
  * หัวคอลัมน์ที่กดเรียงได้ — กดซ้ำสลับทิศ
  * ลูกศรค้างไว้จางๆ ทุกคอลัมน์ที่เรียงได้ (บอกว่ากดได้) และเข้มขึ้นเมื่อเป็นตัวเรียงอยู่
@@ -137,11 +146,7 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
     ref
   ) => {
     const active = direction !== null;
-    const nextDirection = active
-      ? direction === "asc"
-        ? "desc"
-        : "asc"
-      : defaultDirection;
+    const nextDirection = nextSortDirection(direction, defaultDirection);
     const Arrow = (active ? direction : defaultDirection) === "asc" ? ArrowUp : ArrowDown;
     return (
       <th

@@ -563,7 +563,8 @@ function OrdersPageContent() {
           // หลังเห็นจอจริงว่า "การชำระ" กับ "กำหนดส่ง" เป็น — ทั้งคอลัมน์)
           // ดูเฉพาะหน้าที่กำลังแสดง — พอเปลี่ยนหน้า/ตัวกรองแล้วมีข้อมูล คอลัมน์กลับมาเอง
           const showPayment = orders.some((o) => o.paymentLabel !== "none");
-          const showDeadline = orders.some((o) => o.deadline);
+          // กำลังเรียงด้วยกำหนดส่งอยู่ = ต้องคงคอลัมน์ไว้ ไม่งั้นหัวที่เพิ่งกดหายไปทั้งอัน
+          const showDeadline = orders.some((o) => o.deadline) || sortBy === "deadline";
           return (
           <DataTable.Root>
             <DataTable.Head>
