@@ -37,14 +37,14 @@ export function AddProductPopover({
       {open && (
         <>
           <button type="button" tabIndex={-1} aria-label="ปิดเมนูเพิ่มสินค้า" className="fixed inset-0 z-40 cursor-default" onClick={() => setOpen(false)} />
-          <div role="menu" className="absolute right-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-md dark:border-slate-800 dark:bg-slate-900">
+          <div role="menu" className="absolute right-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 overlay-surface dark:border-slate-800 dark:bg-slate-900">
             {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
               <button
                 key={key}
                 type="button"
                 role="menuitem"
                 onClick={() => { handlers[key](); setOpen(false); }}
-                className="flex w-full items-start gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="flex w-full items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" strokeWidth={1.75} />
                 <span className="min-w-0">

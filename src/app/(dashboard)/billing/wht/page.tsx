@@ -372,7 +372,7 @@ export default function WhtRegisterPage() {
                           href={row.fileUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="rounded p-1.5 text-slate-400 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                          className="rounded p-2 text-slate-400 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
                           title="ดูไฟล์หนังสือรับรอง"
                         >
                           <Paperclip className="h-4 w-4" />
@@ -401,7 +401,7 @@ export default function WhtRegisterPage() {
             {list.map((row) => (
               <div
                 key={row.id}
-                className="card-surface rounded-2xl p-3.5"
+                className="card-surface rounded-2xl p-4"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -519,7 +519,7 @@ export default function WhtRegisterPage() {
                 แนบสแกนหนังสือรับรอง (ถ้ามี)
               </p>
               {fileUrl && (
-                <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
                   <a
                     href={fileUrl}
                     target="_blank"

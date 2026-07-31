@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase";
 import { ROLE_LABELS } from "@/lib/roles";
 
 const menuItemClass =
-  "flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 sm:min-h-8 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white";
+  "flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 sm:min-h-8 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white";
 
 export function UserMenu() {
   const router = useRouter();
@@ -46,7 +46,7 @@ export function UserMenu() {
           align="end"
           sideOffset={8}
           className={cn(
-            "z-50 min-w-[200px] rounded-xl border border-slate-200/70 bg-white p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.10)]",
+            "z-50 min-w-[200px] rounded-2xl border border-slate-200/70 bg-white p-2 overlay-surface",
             "dark:border-slate-800/60 dark:bg-slate-900",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
           )}
@@ -73,7 +73,7 @@ export function UserMenu() {
             <DropdownMenu.Portal>
               <DropdownMenu.SubContent
                 sideOffset={4}
-                className="z-50 min-w-[150px] rounded-xl border border-slate-200/70 bg-white p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.10)] dark:border-slate-800/60 dark:bg-slate-900"
+                className="z-50 min-w-[150px] rounded-2xl border border-slate-200/70 bg-white p-2 overlay-surface dark:border-slate-800/60 dark:bg-slate-900"
               >
                 <DropdownMenu.Item
                   className={menuItemClass}

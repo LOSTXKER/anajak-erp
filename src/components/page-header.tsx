@@ -27,16 +27,16 @@ export function PageHeader({
       {breadcrumb && breadcrumb.length > 0 && (
         <nav
           aria-label="Breadcrumb"
-          className="flex flex-wrap items-center gap-1 text-xs text-slate-500 dark:text-slate-400"
+          className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400"
         >
           {breadcrumb.map((item, idx) => {
             const isLast = idx === breadcrumb.length - 1;
             return (
-              <span key={`${item.label}-${idx}`} className="flex items-center gap-1">
+              <span key={`${item.label}-${idx}`} className="flex items-center gap-1.5">
                 {item.href && !isLast ? (
                   <Link
                     href={item.href}
-                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-1 transition-colors hover:text-slate-900 sm:min-h-8 sm:min-w-0 sm:justify-start sm:px-0 dark:hover:text-white"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-1 transition-colors hover:text-slate-900 sm:min-h-8 sm:min-w-0 sm:justify-start sm:px-0 dark:hover:text-white"
                   >
                     {item.label}
                   </Link>

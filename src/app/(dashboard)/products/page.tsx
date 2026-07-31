@@ -113,7 +113,7 @@ export default function ProductsPage() {
         options={itemTypes.map((g) => ({ value: g.value, label: g.label }))}
       />
 
-      <div className="flex flex-col gap-2.5 sm:flex-row">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <SearchInput
           containerClassName="flex-1"
           placeholder="ค้นหาชื่อสินค้า, SKU..."
@@ -182,7 +182,7 @@ export default function ProductsPage() {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data?.products?.map((product) => {
             const typ = typeConfig[product.productType] ?? {
               label: product.productType,
@@ -265,7 +265,7 @@ export default function ProductsPage() {
       {data && data.total > 0 && (
         <div className="flex flex-col items-center gap-3">
           {totalPages > 1 && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Button
                 variant="outline"
                 size="sm"

@@ -244,7 +244,7 @@ export default function VendorsSettingsPage() {
                     </span>
                   )}
                   {vendor.qualityRating !== null && (
-                    <span className="ml-auto inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300">
+                    <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
                       <Star className="h-3.5 w-3.5 fill-current" />
                       {vendor.qualityRating.toFixed(1)}
                     </span>

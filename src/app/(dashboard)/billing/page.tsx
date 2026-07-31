@@ -420,7 +420,7 @@ function BillingPageContent() {
                       </Link>
                     </DataTable.Td>
                     <DataTable.Td align="right">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1.5">
                         <Button variant="ghost" size="icon-sm" asChild>
                           <Link
                             href={`/print/invoice/${inv.id}`}

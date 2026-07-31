@@ -215,7 +215,7 @@ export default function FilmStockPage() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="card-surface rounded-2xl p-3.5"
+                className="card-surface rounded-2xl p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-base font-semibold text-slate-900 dark:text-white">
@@ -307,7 +307,7 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
             ตัดจำนวนออกจากคลัง — ใช้รีดงานสั่งซ้ำ หรือตัดทิ้งฟิล์มเสีย
           </DialogDescription>
         </DialogHeader>
-        <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-800/40">
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-800/40">
           <p className="text-sm font-medium text-slate-900 dark:text-white">{item.label}</p>
           <p className="mt-0.5 text-xs tabular-nums text-slate-500 dark:text-slate-400">
             {item.customer.name} · คงเหลือ {item.qty} ชิ้น

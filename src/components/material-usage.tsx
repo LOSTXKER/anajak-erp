@@ -184,7 +184,7 @@ export function MaterialUsage({
             variant="outline"
             size="sm"
             onClick={() => setShowPicker(!showPicker)}
-            className="h-7 gap-1 border-blue-200 text-xs text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950"
+            className="h-8 gap-1.5 border-blue-200 text-xs text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950"
           >
             <Plus className="h-3 w-3" />
             เพิ่มวัตถุดิบ
@@ -195,7 +195,7 @@ export function MaterialUsage({
       <CardContent className="space-y-3">
         {/* ---- Material Picker ---- */}
         {showPicker && (
-          <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
+          <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
               <Input
@@ -220,7 +220,7 @@ export function MaterialUsage({
                   <button
                     key={product.id}
                     onClick={() => addMaterial(product as never)}
-                    className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                    className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/50"
                   >
                     <div>
                       <span className="font-medium text-slate-900 dark:text-white">
@@ -259,7 +259,7 @@ export function MaterialUsage({
             {deductedMaterials.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between rounded-md border border-green-100 bg-green-50/50 px-3 py-2 dark:border-green-900 dark:bg-green-950/30"
+                className="flex items-center justify-between rounded-lg border border-green-100 bg-green-50/50 px-3 py-2 dark:border-green-900 dark:bg-green-950/30"
               >
                 <div className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
@@ -300,7 +300,7 @@ export function MaterialUsage({
             {localMaterials.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center gap-2 rounded-md border border-slate-100 px-3 py-2 dark:border-slate-800"
+                className="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 dark:border-slate-800"
               >
                 {/* Material info */}
                 <div className="min-w-0 flex-1">
@@ -339,7 +339,7 @@ export function MaterialUsage({
                 </div>
 
                 {/* Quantity */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <Button
                     variant="outline"
                     size="icon-sm"
@@ -418,7 +418,7 @@ export function MaterialUsage({
                 size="sm"
                 onClick={handleIssueMaterials}
                 disabled={localMaterials.length === 0 || issueMutation.isPending}
-                className="h-7 gap-1 text-xs"
+                className="h-8 gap-1.5 text-xs"
               >
                 {issueMutation.isPending ? (
                   <Loader2 className="h-3 w-3 animate-spin" />

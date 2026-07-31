@@ -199,7 +199,7 @@ function ReceiptForm({
           {lines.map((l, idx) => (
             <div
               key={`${l.orderItemProductId ?? "x"}-${l.size ?? ""}-${l.color ?? ""}-${idx}`}
-              className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-slate-700"
+              className="space-y-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -279,7 +279,7 @@ function ReceiptForm({
                     <img
                       src={url}
                       alt="รูปตรวจรับ"
-                      className="h-full w-full rounded-md object-cover"
+                      className="h-full w-full rounded-lg object-cover"
                     />
                     <button
                       type="button"

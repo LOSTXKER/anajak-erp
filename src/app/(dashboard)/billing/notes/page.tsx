@@ -260,7 +260,7 @@ function BillingNotesPageContent() {
                     )}
                   </DataTable.Td>
                   <DataTable.Td>
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1.5">
                       <Button asChild variant="ghost" size="icon-sm">
                         <a
                           href={`/print/billing-note/${note.id}`}
@@ -458,7 +458,7 @@ function BillingNotesPageContent() {
                 ) : eligible.isLoading ? (
                   <Skeleton className="h-16 w-full" />
                 ) : eligibleList.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-slate-300 p-3 text-sm text-slate-500 dark:border-slate-700">
+                  <p className="rounded-xl border border-dashed border-slate-300 p-3 text-sm text-slate-500 dark:border-slate-700">
                     ลูกค้ารายนี้ไม่มีใบแจ้งหนี้ค้างชำระที่วางบิลได้
                   </p>
                 ) : (
@@ -481,7 +481,7 @@ function BillingNotesPageContent() {
                     {eligibleList.map((inv) => (
                       <label
                         key={inv.id}
-                        className="flex cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        className="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                       >
                         <span className="flex items-center gap-2 text-sm">
                           <input

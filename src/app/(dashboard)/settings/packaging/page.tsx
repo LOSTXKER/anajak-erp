@@ -253,7 +253,7 @@ export default function PackagingSettingsPage() {
                               aria-label={`ชื่อแพ็คเกจ ${opt.name}`}
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
-                              className="h-7 text-sm"
+                              className="h-8 text-sm"
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") handleSaveEdit();
                                 if (e.key === "Escape") { setEditingId(null); setEditName(""); }
@@ -277,7 +277,7 @@ export default function PackagingSettingsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-right">
                           {isEditing ? (
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end gap-1.5">
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
@@ -298,7 +298,7 @@ export default function PackagingSettingsPage() {
                               </Button>
                             </div>
                           ) : (
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end gap-1.5">
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
@@ -330,7 +330,7 @@ export default function PackagingSettingsPage() {
           )}
 
           {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
-            <div role="alert" aria-live="polite" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <div role="alert" aria-live="polite" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
               {createMutation.error?.message || updateMutation.error?.message || deleteMutation.error?.message}
             </div>
           )}

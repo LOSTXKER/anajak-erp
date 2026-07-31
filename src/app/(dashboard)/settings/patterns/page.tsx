@@ -332,7 +332,7 @@ export default function PatternsPage() {
                               aria-label={`ชื่อแพทเทิร์น ${p.name}`}
                               value={editData.name ?? p.name}
                               onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                              className="h-7 text-sm"
+                              className="h-8 text-sm"
                             />
                           ) : (
                             <div>
@@ -359,7 +359,7 @@ export default function PatternsPage() {
                           {isEditing ? (
                             <NativeSelect
                               aria-label={`ทรงคอของ ${p.name}`}
-                              className="h-7 text-xs"
+                              className="h-8 text-xs"
                               value={editData.collarType ?? p.collarType ?? ""}
                               onChange={(e) => setEditData({ ...editData, collarType: e.target.value })}
                             >
@@ -378,7 +378,7 @@ export default function PatternsPage() {
                           {isEditing ? (
                             <NativeSelect
                               aria-label={`แขนของ ${p.name}`}
-                              className="h-7 text-xs"
+                              className="h-8 text-xs"
                               value={editData.sleeveType ?? p.sleeveType ?? ""}
                               onChange={(e) => setEditData({ ...editData, sleeveType: e.target.value })}
                             >
@@ -397,7 +397,7 @@ export default function PatternsPage() {
                           {isEditing ? (
                             <NativeSelect
                               aria-label={`ฟิตของ ${p.name}`}
-                              className="h-7 text-xs"
+                              className="h-8 text-xs"
                               value={editData.bodyFit ?? p.bodyFit ?? ""}
                               onChange={(e) => setEditData({ ...editData, bodyFit: e.target.value })}
                             >
@@ -428,13 +428,13 @@ export default function PatternsPage() {
                         {(canEdit || canDelete) && (
                         <td className="px-3 py-2.5 text-right">
                           {isEditing ? (
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end gap-1.5">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={handleSaveEdit}
                                 disabled={updatePattern.isPending}
-                                className="h-7 w-7 p-0 text-green-600 hover:text-green-700"
+                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                                 aria-label={`บันทึกการแก้ไข ${p.name}`}
                               >
                                 <Check className="h-3.5 w-3.5" />
@@ -450,13 +450,13 @@ export default function PatternsPage() {
                               </Button>
                             </div>
                           ) : (
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end gap-1.5">
                               {canEdit && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => { setEditingId(p.id); setEditData({}); }}
-                                  className="h-7 w-7 p-0 text-slate-500 hover:text-blue-600"
+                                  className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600"
                                   aria-label={`แก้ไขแพทเทิร์น ${p.name}`}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
@@ -468,7 +468,7 @@ export default function PatternsPage() {
                                   size="sm"
                                   onClick={() => handleDelete(p.id, p.name)}
                                   disabled={deletePattern.isPending}
-                                  className="h-7 w-7 p-0 text-slate-500 hover:text-red-600"
+                                  className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
                                   aria-label={`ลบแพทเทิร์น ${p.name}`}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -487,7 +487,7 @@ export default function PatternsPage() {
           )}
 
           {(createPattern.isError || updatePattern.isError || deletePattern.isError) && (
-            <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <div role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
               {createPattern.error?.message || updatePattern.error?.message || deletePattern.error?.message}
             </div>
           )}

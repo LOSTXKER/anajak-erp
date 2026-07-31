@@ -413,7 +413,7 @@ function ActiveRunCard({
 }) {
   const badge = RUN_STATUS_BADGE[run.status] ?? RUN_STATUS_BADGE.PRINTING;
   return (
-    <div className="card-surface rounded-2xl p-3.5">
+    <div className="card-surface rounded-2xl p-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-base font-semibold text-slate-900 dark:text-white">
           {run.runNumber}

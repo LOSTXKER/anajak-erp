@@ -23,7 +23,7 @@ export function TablePagination({
       <p className="text-xs text-slate-500">
         ทั้งหมด {total} {label}
       </p>
-      <div className="flex gap-1">
+      <div className="flex gap-1.5">
         <Button
           variant="ghost"
           size="sm"

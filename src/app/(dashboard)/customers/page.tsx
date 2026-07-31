@@ -286,7 +286,7 @@ function CustomersPageContent() {
               {/* Corporate-specific fields */}
               {isCorporate && (
                 <>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                     <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">ข้อมูลนิติบุคคล</h4>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                       <Field label="เลขประจำตัวผู้เสียภาษี" required={isCorporate}>
@@ -341,7 +341,7 @@ function CustomersPageContent() {
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                     <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">ที่อยู่ออกใบกำกับภาษี</h4>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div className="md:col-span-2">
@@ -405,7 +405,7 @@ function CustomersPageContent() {
         </Section>
       )}
 
-      <div className="flex flex-col gap-2.5 sm:flex-row">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <SearchInput
           ref={searchInputRef}
           containerClassName="flex-1"
@@ -478,7 +478,7 @@ function CustomersPageContent() {
                     </DataTable.Td>
                     <DataTable.Td>
                       {customer.customerType === "CORPORATE" ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
                           <Building2 className="h-3 w-3" /> นิติบุคคล
                         </span>
                       ) : (
@@ -537,7 +537,7 @@ function CustomersPageContent() {
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Badge variant={seg.variant}>{seg.label}</Badge>
-                      <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                         {customer.customerType === "CORPORATE" && (
                           <Building2 aria-hidden="true" className="h-3.5 w-3.5" />
                         )}

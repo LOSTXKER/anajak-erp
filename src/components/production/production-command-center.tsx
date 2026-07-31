@@ -83,7 +83,7 @@ function DeadlineTag({ deadline }: { deadline: Date | string | null }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-xs font-medium",
+        "inline-flex items-center gap-1.5 text-xs font-medium",
         overdue ? "text-red-600 dark:text-red-400" : "text-slate-400"
       )}
     >
@@ -150,7 +150,7 @@ export function ProductionCommandCenter({
                       <span
                         key={r.label}
                         className={cn(
-                          "rounded-md px-1.5 py-0.5 text-xs font-medium",
+                          "rounded-lg px-1.5 py-0.5 text-xs font-medium",
                           r.tone === "red"
                             ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                             : "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
@@ -214,7 +214,7 @@ export function ProductionCommandCenter({
             ยังไม่มีงานในไลน์ผลิต
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {lineLanes.map((tile) => (
               <LaneTileButton key={tile.key} tile={tile} onClick={() => onPickLane(tile)} />
             ))}
@@ -225,7 +225,7 @@ export function ProductionCommandCenter({
             <p className="pt-1 text-xs font-medium uppercase tracking-wide text-slate-400">
               หลังผลิต
             </p>
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-2">
               {postLanes.map((tile) => (
                 <LaneTileButton key={tile.key} tile={tile} onClick={() => onPickLane(tile)} />
               ))}
@@ -248,7 +248,7 @@ export function ProductionCommandCenter({
             {queue.map((q) => (
               <div
                 key={q.orderId}
-                className="card-surface flex min-h-[56px] items-center gap-3 rounded-xl px-3.5 py-2.5"
+                className="card-surface flex min-h-[56px] items-center gap-3 rounded-2xl px-3.5 py-2.5"
               >
                 <Link href={`/orders/${q.orderId}`} className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -355,8 +355,8 @@ function LaneTileButton({ tile, onClick }: { tile: LaneTile; onClick: () => void
       onClick={onClick}
       className="card-surface flex min-h-[76px] flex-col justify-between rounded-2xl p-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
     >
-      <div className="flex items-start justify-between gap-1">
-        <span className="flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+      <div className="flex items-start justify-between gap-1.5">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
           {tile.label}
           {tile.isOutsource && <Truck className="h-3 w-3 text-slate-400" />}
         </span>

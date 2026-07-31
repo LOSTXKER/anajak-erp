@@ -137,7 +137,7 @@ function QuotationsPageContent() {
         }
       />
 
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <SearchInput
           ref={searchInputRef}
           containerClassName="flex-1"
@@ -152,7 +152,7 @@ function QuotationsPageContent() {
             );
           }}
         />
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {QUOTATION_STATUSES.map((f) => (
             <FilterChip
               key={f.value}

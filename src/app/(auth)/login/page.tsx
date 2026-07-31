@@ -79,7 +79,7 @@ export default function LoginPage() {
             {errorMessage && (
               <div
                 role="alert"
-                className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
+                className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
               >
                 {errorMessage}
               </div>

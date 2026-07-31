@@ -64,7 +64,7 @@ export function Sidebar({
         <Link
           href="/home"
           onClick={onNavigate}
-          className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+          className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
             <Printer className="h-4 w-4" />
@@ -116,7 +116,7 @@ export function Sidebar({
                         "group flex items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors",
                         mobile ? "min-h-11" : "min-h-10",
                         active
-                          ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_0_0_0.5px_rgba(0,0,0,0.04)] dark:bg-white/10 dark:text-white"
+                          ? "bg-white text-slate-900 hairline-ring dark:bg-white/10 dark:text-white"
                           : "text-slate-600 hover:bg-black/[0.04] hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
                       )}
                     >
@@ -163,7 +163,7 @@ export function Sidebar({
               {me.name?.charAt(0).toUpperCase() ?? "?"}
             </div>
           ) : (
-            <div className="flex items-center gap-2.5 rounded-xl bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_0_0_0.5px_rgba(0,0,0,0.04)] dark:bg-white/5">
+            <div className="flex items-center gap-2 rounded-xl bg-white p-3 hairline-ring dark:bg-white/5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
                 {me.name?.charAt(0).toUpperCase() ?? "?"}
               </div>

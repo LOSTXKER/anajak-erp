@@ -273,7 +273,7 @@ export default function NotificationsPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-100 px-5 py-2.5 dark:border-slate-800">
             <p className="text-xs text-slate-500">ทั้งหมด {total} รายการ</p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Button
                 variant="ghost"
                 size="sm"

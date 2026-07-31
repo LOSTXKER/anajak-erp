@@ -261,7 +261,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs"
+              className="h-8 gap-1.5 px-2 text-xs"
               onClick={() => setUploadingLayer(uploadingLayer === "RAW" ? null : "RAW")}
             >
               {uploadingLayer === "RAW" ? <X className="h-3 w-3" /> : <Upload className="h-3 w-3" />}
@@ -271,7 +271,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1 px-2 text-xs text-blue-600 dark:text-blue-400"
+                className="h-8 gap-1.5 px-2 text-xs text-blue-600 dark:text-blue-400"
                 onClick={() => setShowLink((v) => !v)}
               >
                 <Link2 className="h-3 w-3" />
@@ -282,7 +282,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
 
           {/* ลิงก์อัปโหลดสำหรับลูกค้า — ส่งใน LINE ให้ลูกค้าอัปไฟล์เข้าออเดอร์ตรง (ไม่ต้อง login) */}
           {canManageLink && showLink && (
-            <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50/60 p-3 dark:border-blue-900 dark:bg-blue-950/30">
+            <div className="mb-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3 dark:border-blue-900 dark:bg-blue-950/30">
               {linkUrl ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -290,11 +290,11 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                       readOnly
                       value={linkUrl}
                       onFocus={(e) => e.currentTarget.select()}
-                      className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                      className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                     />
                     <Button
                       size="sm"
-                      className="h-8 shrink-0 gap-1 px-2 text-xs"
+                      className="h-8 shrink-0 gap-1.5 px-2 text-xs"
                       onClick={copyUploadLink}
                     >
                       {linkCopied ? (
@@ -332,7 +332,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                   </p>
                   <Button
                     size="sm"
-                    className="h-8 gap-1 px-3 text-xs"
+                    className="h-8 gap-1.5 px-3 text-xs"
                     onClick={() => generateLink.mutate({ orderId })}
                     disabled={generateLink.isPending}
                   >
@@ -401,7 +401,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
         </section>
 
         {/* ===== ชั้น 2 — แบบขออนุมัติ (สรุป — ตัวจริงอยู่การ์ดงานออกแบบ) ===== */}
-        <section className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+        <section className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm">
               <Palette className="h-4 w-4 text-blue-600" />
@@ -417,7 +417,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                 <span className="text-xs text-slate-400">ยังไม่มีแบบ</span>
               )}
             </div>
-            <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={scrollToDesign}>
+            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={scrollToDesign}>
               ไปที่งานออกแบบ
             </Button>
           </div>
@@ -431,7 +431,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
               <Printer className="h-4 w-4" />
               {FILE_LAYERS.PRINT.label}
             </p>
-            <Badge variant="secondary" className="gap-1 text-2xs">
+            <Badge variant="secondary" className="gap-1.5 text-2xs">
               <Lock className="h-2.5 w-2.5" />
               ภายในเท่านั้น
             </Badge>
@@ -440,7 +440,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1 px-2 text-xs"
+                className="h-8 gap-1.5 px-2 text-xs"
                 onClick={() => setUploadingLayer(uploadingLayer === "PRINT" ? null : "PRINT")}
               >
                 {uploadingLayer === "PRINT" ? <X className="h-3 w-3" /> : <Upload className="h-3 w-3" />}

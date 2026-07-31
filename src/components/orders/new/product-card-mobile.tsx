@@ -62,10 +62,10 @@ export function ProductCardMobile({
         <div className="flex items-center gap-0.5">
           {totalProducts > 1 && (
             <>
-              <Button type="button" variant="ghost" size="icon" onClick={() => moveProduct(-1)} disabled={prodIdx === 0} aria-label="เลื่อนขึ้น" className="h-7 w-7 text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
+              <Button type="button" variant="ghost" size="icon" onClick={() => moveProduct(-1)} disabled={prodIdx === 0} aria-label="เลื่อนขึ้น" className="h-8 w-8 text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
                 <ChevronUp className="h-4 w-4" />
               </Button>
-              <Button type="button" variant="ghost" size="icon" onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} aria-label="เลื่อนลง" className="h-7 w-7 text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
+              <Button type="button" variant="ghost" size="icon" onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} aria-label="เลื่อนลง" className="h-8 w-8 text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </>
@@ -119,7 +119,7 @@ export function ProductCardMobile({
                 type="button" variant="outline" size="sm"
                 onClick={() => setShowMatrix((v) => !v)}
                 disabled={product.variants.length > 1}
-                className={cn("h-9 gap-1 px-2 text-xs", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
+                className={cn("h-9 gap-1.5 px-2 text-xs", multi && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-300")}
                 title={product.variants.length > 1 ? "ล้างจำนวนไซส์ให้เหลือไซส์เดียวก่อนปิด" : "กรอกหลายไซส์ในแถวเดียว"}
               >
                 <LayoutGrid className="h-3 w-3" />{multi ? "ปิดหลายไซส์" : "หลายไซส์"}

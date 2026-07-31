@@ -50,7 +50,7 @@ const SheetContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed z-50 grid gap-4 overflow-y-auto overscroll-contain border-slate-200/70 bg-white p-5 pr-14 shadow-xl transition duration-200 ease-out data-[state=open]:animate-in data-[state=closed]:animate-out dark:border-slate-800 dark:bg-slate-900",
+        "fixed z-50 grid gap-4 overflow-y-auto overscroll-contain border-slate-200/70 bg-white p-5 pr-14 overlay-surface transition duration-200 ease-out data-[state=open]:animate-in data-[state=closed]:animate-out dark:border-slate-800 dark:bg-slate-900",
         sideClassNames[side],
         className,
       )}

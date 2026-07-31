@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ความสม่ำเสมอของกล่อง เงา ระยะ — Anajak ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sans:"Prompt",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --bg:#f5f5f7; --card:#fff; --line:#e5e5ea;
+    --text:#1d1d1f; --muted:#6e6e73; --subtle:#86868b;
+    --blue:#3973b2; --red:#e72f27;
+    --card-shadow:0 1px 2px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.06);
+    --float-shadow:0 20px 60px rgba(0,0,0,.15);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);font-size:14px;background:var(--bg);color:var(--text);
+       -webkit-font-smoothing:antialiased;letter-spacing:-.01em;padding:32px 20px 80px}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.2;margin:0 0 6px}
+  .lead{font-size:14px;color:var(--muted);margin:0 0 28px;line-height:1.6;max-width:70ch}
+  .panel{background:var(--card);border-radius:16px;box-shadow:var(--card-shadow);padding:20px;margin-bottom:20px}
+  .panel > h2{font-size:16px;font-weight:600;letter-spacing:-.015em;margin:0 0 4px}
+  .panel > .sub{font-size:12px;color:var(--subtle);margin:0 0 18px;line-height:1.5}
+  table{width:100%;border-collapse:collapse}
+  th{font-size:12px;font-weight:600;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:10px;border-bottom:1px solid #f0f0f2;vertical-align:middle;font-size:13px}
+  tr:last-child td{border-bottom:0}
+  code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px;background:#f0f0f3;
+       padding:2px 6px;border-radius:5px;color:#305f93;white-space:nowrap}
+  .muted{color:var(--muted)} .bad{color:var(--red)}
+  .num{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--muted)}
+
+  .toggle{display:inline-flex;background:#ececf0;border-radius:10px;padding:3px;gap:3px;margin-bottom:18px}
+  .toggle button{font-family:inherit;font-size:13px;font-weight:500;border:0;background:transparent;
+    color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;transition:.15s}
+  .toggle button.on{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+  /* ---------- เวทีเทียบ ---------- */
+  .stage{background:#fff;border-radius:16px;box-shadow:var(--card-shadow);padding:18px}
+  .stage .card{margin-bottom:14px}
+  .stage .card:last-child{margin-bottom:0}
+  .ct{font-size:16px;font-weight:600;letter-spacing:-.015em;margin:0 0 12px}
+  .inner{display:grid;grid-template-columns:1fr 1fr;}
+  .chip{display:inline-flex;align-items:center;font-size:11px;font-weight:500;background:#e4edf6;color:#305f93}
+  .kv .k{font-size:11px;color:var(--subtle);margin-bottom:3px}
+  .kv .v{font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-weight:500;
+       border:0;background:var(--blue);color:#fff;cursor:pointer;font-size:13px}
+  .btn.ghost{background:#f0f0f3;color:var(--text)}
+
+  /* ก่อน — ค่าจริงที่ปนอยู่ในโค้ดวันนี้ */
+  .before .card{border:1px solid var(--line);border-radius:8px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,.10)}
+  .before .card.alt{border-radius:12px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .before .card.alt2{border-radius:16px;padding:20px;box-shadow:none}
+  .before .inner{gap:6px}
+  .before .box{border:1px solid var(--line);border-radius:12px;padding:10px}
+  .before .box.b2{border-radius:8px;padding:14px}
+  .before .chip{border-radius:4px;padding:2px 6px}
+  .before .btn{height:28px;padding:0 10px;border-radius:6px}
+  .before .btn.ghost{height:36px;border-radius:10px}
+  .before .row{display:flex;gap:10px;align-items:center;margin-top:10px}
+
+  /* หลัง — บันได */
+  .after .card{border-radius:16px;padding:16px;box-shadow:var(--card-shadow);border:0}
+  .after .card.alt,.after .card.alt2{border-radius:16px;padding:16px;box-shadow:var(--card-shadow)}
+  .after .inner{gap:12px}
+  .after .box{border:1px solid var(--line);border-radius:12px;padding:12px}
+  .after .box.b2{border-radius:12px;padding:12px}
+  .after .chip{border-radius:999px;padding:3px 9px}
+  .after .btn{height:36px;padding:0 14px;border-radius:8px}
+  .after .btn.ghost{height:36px;border-radius:8px}
+  .after .row{display:flex;gap:8px;align-items:center;margin-top:12px}
+
+  .flag,.ok{font-size:12px;line-height:1.65;margin-top:14px}
+  .flag{display:none;color:var(--red)} .before .flag{display:block}
+  .ok{display:none;color:#1a7f37} .after .ok{display:block}
+
+  /* ตัวอย่างมุมโค้ง */
+  .radii{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  .radii .r{background:#eef1f5;width:92px;height:64px;display:flex;align-items:flex-end;justify-content:center;
+            padding-bottom:6px;font-size:11px;color:var(--muted)}
+  /* ตัวอย่างเงา */
+  .shadows{display:flex;gap:18px;flex-wrap:wrap}
+  .shadows .s{background:#fff;border-radius:16px;width:180px;height:84px;display:flex;align-items:center;
+              justify-content:center;font-size:12px;color:var(--muted);text-align:center;line-height:1.5}
+  .s1{box-shadow:var(--card-shadow)}
+  .s2{box-shadow:0 6px 20px rgba(0,0,0,.06), 0 0 0 .5px rgba(0,0,0,.055)}
+  .s3{box-shadow:var(--float-shadow)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>กล่อง · เงา · ระยะ</h1>
+  <p class="lead">ระบบมีของกลางที่ดีอยู่แล้ว (Card / Section / Dialog โค้งเท่ากันหมด) แต่มี 23 ไฟล์ที่ไม่ได้ใช้ของกลาง แล้วประกอบกล่องเองจากศูนย์ — พอเขียนเองก็เดาค่าเอง เลยได้มุมโค้งปนกัน เงาเขียนมือ 10 แบบ ระยะในกล่อง 11 ค่า · ข้างล่างคือกฎที่จะใช้แทน กดสลับดูได้</p>
+
+  <div class="panel">
+    <h2>กดสลับดู ก่อน / หลัง</h2>
+    <p class="sub">กล่องชุดเดียวกัน ต่างกันแค่มุมโค้ง เงา และระยะ — ตัวหนังสือเท่ากันหมดแล้วทั้งสองฝั่ง</p>
+    <div class="toggle">
+      <button id="bBefore">ก่อน (ของวันนี้)</button>
+      <button id="bAfter" class="on">หลัง (บันได)</button>
+    </div>
+
+    <div class="stage after" id="stage">
+      <div class="card">
+        <p class="ct">ออเดอร์ ORD-2026-0184</p>
+        <div class="inner">
+          <div class="box kv"><div class="k">ลูกค้า</div><div class="v">บริษัท สยามเท็กซ์ จำกัด</div></div>
+          <div class="box b2 kv"><div class="k">ยอดรวม</div><div class="v">36,000</div></div>
+        </div>
+        <div class="row">
+          <span class="chip">กำลังผลิต</span>
+          <span class="chip">DTF</span>
+          <button class="btn">เปิดใบผลิต</button>
+          <button class="btn ghost">แก้ไข</button>
+        </div>
+      </div>
+
+      <div class="card alt">
+        <p class="ct">งานผลิตในออเดอร์นี้</p>
+        <div class="inner">
+          <div class="box kv"><div class="k">พิมพ์ DTF</div><div class="v">120 / 120 ตัว</div></div>
+          <div class="box b2 kv"><div class="k">รีดติด</div><div class="v">84 / 120 ตัว</div></div>
+        </div>
+      </div>
+
+      <div class="card alt2">
+        <p class="ct">ไฟล์งาน</p>
+        <div class="inner">
+          <div class="box kv"><div class="k">ลายหน้าอก</div><div class="v">โลโก้-v3.png</div></div>
+          <div class="box b2 kv"><div class="k">ลายหลัง</div><div class="v">แบ็ค-v1.png</div></div>
+        </div>
+      </div>
+
+      <div class="flag">↑ สามกล่องเรียงกันในหน้าเดียว โค้งไม่เท่ากัน (8 / 12 / 16px) ระยะขอบไม่เท่ากัน (12 / 14 / 20px) เงาก็คนละแบบ — กล่องบนสุดเงาฟุ้งเหมือนของลอยทั้งที่มันแค่นั่งอยู่กับที่ · กล่องเล็กข้างในโค้งมากกว่ากล่องนอก = ผิดลำดับชั้น · ปุ่มสองปุ่มติดกันสูงไม่เท่ากัน (28 กับ 36px)</div>
+      <div class="ok">↑ กล่องระดับเดียวกันโค้งเท่ากันหมด (16px) กล่องข้างในโค้งน้อยกว่าเสมอ (12px) ระยะขอบเท่ากันทุกใบ (16px) เงาเป็นระดับเดียวกันเพราะเป็นของนั่งกับที่เหมือนกัน · ปุ่มสูงเท่ากัน · ป้ายเป็นทรงแคปซูลทั้งหมด</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>กฎมุมโค้ง — ยิ่งข้างในยิ่งโค้งน้อย</h2>
+    <p class="sub">กฎข้อเดียวจำง่าย: กล่องที่ซ้อนอยู่ข้างใน ต้องโค้งน้อยกว่ากล่องที่ครอบมันเสมอ</p>
+    <div class="radii">
+      <div class="r" style="border-radius:16px">การ์ด · กล่องเด้ง<br>16px</div>
+      <div class="r" style="border-radius:12px">กล่องย่อยในการ์ด<br>12px</div>
+      <div class="r" style="border-radius:8px">ปุ่ม · ช่องกรอก · รูปย่อ<br>8px</div>
+      <div class="r" style="border-radius:999px">ป้าย · ชิป · ปุ่มไอคอน<br>แคปซูล</div>
+    </div>
+    <table style="margin-top:18px">
+      <tr><td style="width:230px" class="muted">วันนี้กล่องทำมือใช้</td><td><code class="bad">rounded-lg</code> 96 จุด · <code class="bad">rounded-xl</code> 34 จุด ปนกับของกลางที่เป็น <code>rounded-2xl</code></td></tr>
+      <tr><td class="muted">จะเป็น</td><td>กล่องที่เป็น "การ์ด" จริง → ใช้ของกลาง <code>Card</code>/<code>Section</code> ไปเลย · ที่เหลือลงกฎ 4 ขั้นข้างบน</td></tr>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>กฎเงา — เหลือ 3 ระดับ ตามว่าของชิ้นนั้นลอยแค่ไหน</h2>
+    <p class="sub">วันนี้มีเงา 15 แบบ ในนั้น 10 แบบเป็นเงาเขียนมือดิบ — อาการเดียวกับครึ่งพิกเซลของฟอนต์</p>
+    <div class="shadows">
+      <div class="s s1">นั่งกับที่<br><span style="font-size:11px">การ์ดทั่วไป ตาราง กล่องย่อย</span></div>
+      <div class="s s2">ยกขึ้นตอนชี้<br><span style="font-size:11px">การ์ดที่กดได้ เฉพาะตอนเมาส์ชี้</span></div>
+      <div class="s s3">ลอยจริง<br><span style="font-size:11px">กล่องเด้ง เมนู ถาดมือถือ</span></div>
+    </div>
+    <p class="sub" style="margin:16px 0 0">สองระดับแรกมีอยู่ใน <code>globals.css</code> แล้ว (<code>card-surface</code>, <code>card-surface-hover</code>) แค่ยังไม่มีใครบังคับให้ใช้ · ระดับ "ลอยจริง" จะรวมเงาเขียนมือ 10 แบบให้เหลือตัวเดียว</p>
+  </div>
+
+  <div class="panel">
+    <h2>กฎระยะ — ไม่มีครึ่งขั้น</h2>
+    <p class="sub">ระยะในกล่องวันนี้มี 11 ค่า ระยะห่างระหว่างของมี 10 ค่า และมีครึ่งขั้นปนทั้งคู่</p>
+    <table>
+      <thead><tr><th style="width:150px">ใช้ตอนไหน</th><th style="width:120px">ค่า</th><th>หมายเหตุ</th></tr></thead>
+      <tbody>
+        <tr><td class="muted">ไอคอนชิดข้อความ</td><td><code>gap-1.5</code> 6px</td><td class="muted">ระยะเดียวที่ยอมให้เล็กกว่า 8px</td></tr>
+        <tr><td class="muted">ของในแถวเดียวกัน</td><td><code>gap-2</code> 8px</td><td class="muted">ปุ่มติดกัน ป้ายเรียงกัน</td></tr>
+        <tr><td class="muted">ระหว่างช่องกรอก</td><td><code>gap-3</code> 12px</td><td class="muted"></td></tr>
+        <tr><td class="muted">ระหว่างกล่องย่อย</td><td><code>gap-4</code> 16px</td><td class="muted"></td></tr>
+        <tr><td class="muted">ระหว่างการ์ด</td><td><code>gap-6</code> 24px</td><td class="muted"></td></tr>
+        <tr><td class="muted">ขอบในกล่องย่อย</td><td><code>p-3</code> 12px</td><td class="muted"></td></tr>
+        <tr><td class="muted">ขอบในการ์ด</td><td><code>p-4</code> 16px</td><td class="muted">จอเล็กใช้ 12px ได้</td></tr>
+        <tr><td class="muted">ขอบในกล่องเด้ง</td><td><code>p-5</code> 20px</td><td class="muted"></td></tr>
+      </tbody>
+    </table>
+    <p class="sub" style="margin:16px 0 0"><b>เลิกใช้:</b> <code class="bad">gap-1</code> <code class="bad">gap-2.5</code> <code class="bad">gap-3.5</code> <code class="bad">p-1.5</code> <code class="bad">p-2.5</code> <code class="bad">p-3.5</code> <code class="bad">p-7</code> — ครึ่งขั้นพวกนี้คือเหตุผลที่ของสองชิ้นดู "เกือบตรงกันแต่ไม่ตรง"</p>
+  </div>
+
+  <div class="panel">
+    <h2>กฎความสูงปุ่มและช่องกรอก</h2>
+    <p class="sub">วันนี้มี 7 ค่า (h-7 ถึง h-14) ปนกันโดยไม่มีกฎ</p>
+    <table>
+      <tr><td style="width:230px"><code>h-9</code> 36px / <code>h-11</code> 44px</td><td class="muted">ปุ่มและช่องกรอกมาตรฐาน — 44px บนมือถือให้นิ้วกดถูก, 36px บนเดสก์ท็อป <b>(คู่นี้มีอยู่แล้ว ถูกต้อง คงไว้)</b></td></tr>
+      <tr><td><code>h-8</code> 32px</td><td class="muted">ปุ่มเล็กในแถวตาราง เท่านั้น</td></tr>
+      <tr><td><code class="bad">h-7 · h-10 · h-12 · h-14</code></td><td class="muted">เลิกใช้ — ยกเว้นจอโรงงานที่ตั้งใจใหญ่</td></tr>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>ทำยังไงให้ไม่กลับไปมั่วอีก</h2>
+    <p class="sub" style="margin:0;font-size:13px;line-height:1.7;color:var(--muted)">
+      กฎทั้งหมดไปอยู่ที่ <code>globals.css</code> ที่เดียวกับสีและบันไดฟอนต์ · กล่องที่ควรเป็นการ์ดจริงจะถูกเปลี่ยนไปใช้ของกลาง <code>Card</code>/<code>Section</code> แทนการประกอบเอง — แก้ทีเดียวเปลี่ยนทั้งเว็บ<br><br>
+      แล้วตั้งด่านอัตโนมัติเพิ่มอีก 2 ข้อ ต่อจากด่านฟอนต์: <b>ห้ามเขียนเงาดิบ</b> (<code>shadow-[...]</code>) และ <b>ห้ามใช้ระยะครึ่งขั้น</b> — เผลอเขียนเมื่อไหร่ฟ้องทันทีตั้งแต่ตอนเขียน
+    </p>
+  </div>
+
+</div>
+<script>
+  const st=document.getElementById('stage'),b1=document.getElementById('bBefore'),b2=document.getElementById('bAfter');
+  b1.onclick=()=>{st.className='stage before';b1.classList.add('on');b2.classList.remove('on')};
+  b2.onclick=()=>{st.className='stage after';b2.classList.add('on');b1.classList.remove('on')};
+</script>
+</body>
+</html>

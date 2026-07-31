@@ -172,7 +172,7 @@ export function ProductPickerDialog({
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed inset-x-4 top-[5%] z-50 mx-auto flex max-h-[90vh] max-w-2xl flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 dark:border-slate-700 dark:bg-slate-900">
+        <Dialog.Content className="fixed inset-x-4 top-[5%] z-50 mx-auto flex max-h-[90vh] max-w-2xl flex-col rounded-2xl border border-slate-200 bg-white overlay-surface data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 dark:border-slate-700 dark:bg-slate-900">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
             <Dialog.Title className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
@@ -182,7 +182,7 @@ export function ProductPickerDialog({
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -253,7 +253,7 @@ export function ProductPickerDialog({
                       <button
                         type="button"
                         onClick={() => toggleExpand(product.id)}
-                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/40"
                       >
                         {isExpanded ? (
                           <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-400" />
@@ -367,7 +367,7 @@ export function ProductPickerDialog({
                                       {v.sellingPrice > 0 ? formatCurrency(v.sellingPrice) : formatCurrency(product.basePrice)}
                                     </td>
                                     <td className="w-28 px-3 py-1.5">
-                                      <div className={cn("flex items-center justify-center gap-1", !isChecked && "invisible")}>
+                                      <div className={cn("flex items-center justify-center gap-1.5", !isChecked && "invisible")}>
                                         <button
                                           type="button"
                                           aria-label={`ลดจำนวน ${v.sku}`}
@@ -419,7 +419,7 @@ export function ProductPickerDialog({
 
                       {/* No variants -- allow direct manual add */}
                       {isExpanded && product.variants.length === 0 && (
-                        <div className="mb-1 ml-10 mr-3 rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-center text-xs text-slate-400 dark:border-slate-800 dark:bg-slate-800/50">
+                        <div className="mb-1 ml-10 mr-3 rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-center text-xs text-slate-400 dark:border-slate-800 dark:bg-slate-800/50">
                           สินค้านี้ไม่มี variant -- ใช้ &quot;เพิ่มรายการด้วยตนเอง&quot; แทน
                         </div>
                       )}

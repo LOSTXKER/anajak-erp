@@ -180,7 +180,7 @@ export default function CustomerUploadPage({
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={busy}
-              className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 px-4 py-8 text-sm text-slate-500 transition-colors hover:border-blue-400 hover:text-blue-500 disabled:pointer-events-none disabled:opacity-50"
+              className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 px-4 py-8 text-sm text-slate-500 transition-colors hover:border-blue-400 hover:text-blue-500 disabled:pointer-events-none disabled:opacity-50"
             >
               {busy ? (
                 <>
@@ -204,7 +204,7 @@ export default function CustomerUploadPage({
                 {items.map((it, idx) => (
                   <li
                     key={`${it.name}-${idx}`}
-                    className="flex items-center gap-2 rounded-md bg-slate-50 px-3 py-2 text-sm"
+                    className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm"
                   >
                     {it.status === "uploading" && (
                       <Loader2 className="h-4 w-4 shrink-0 animate-spin text-blue-500" />

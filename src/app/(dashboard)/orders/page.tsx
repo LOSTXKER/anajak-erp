@@ -399,7 +399,7 @@ function OrdersPageContent() {
 
       {/* Toolbar + attention filter (คำถามหลักของหน้านี้ — โชว์ตลอด ไม่ต้องกางกล่องตัวกรอง) */}
       <div className="space-y-2.5">
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <SearchInput
           ref={searchInputRef}
           containerClassName="flex-1"
@@ -470,7 +470,7 @@ function OrdersPageContent() {
       </div>
 
       {showFilters && (
-        <div className="card-surface rounded-2xl p-3.5">
+        <div className="card-surface rounded-2xl p-4">
           <div className="space-y-3">
             <FilterRow label="ช่องทาง">
               {CHANNEL_FILTERS.map((f) => (

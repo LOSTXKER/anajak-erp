@@ -212,7 +212,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
             event.preventDefault();
             returnFocusRef.current.focus();
           }}
-          className="fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_24px_72px_rgba(0,0,0,0.18)] outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none sm:top-[14%] dark:border-slate-800/60 dark:bg-slate-900"
+          className="fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white overlay-surface outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none sm:top-[14%] dark:border-slate-800/60 dark:bg-slate-900"
         >
           <DialogPrimitive.Title className="sr-only">ค้นหา</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
@@ -233,7 +233,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
               autoComplete="off"
               className="min-w-0 flex-1 bg-transparent py-4 text-base text-slate-900 outline-none placeholder:text-slate-400 sm:text-sm dark:text-white"
             />
-            <kbd className="hidden rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500 sm:inline-block dark:bg-slate-800 dark:text-slate-400">
+            <kbd className="hidden rounded-lg bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500 sm:inline-block dark:bg-slate-800 dark:text-slate-400">
               ESC
             </kbd>
             <DialogPrimitive.Close asChild>
@@ -328,17 +328,17 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
           </div>
 
           <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-5 py-2.5 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-            <span className="flex items-center gap-1">
-              <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
+            <span className="flex items-center gap-1.5">
+              <kbd className="rounded-lg bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
                 ↑
               </kbd>
-              <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
+              <kbd className="rounded-lg bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
                 ↓
               </kbd>
               เลื่อน
             </span>
-            <span className="flex items-center gap-1">
-              <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
+            <span className="flex items-center gap-1.5">
+              <kbd className="rounded-lg bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
                 ↵
               </kbd>
               เลือก

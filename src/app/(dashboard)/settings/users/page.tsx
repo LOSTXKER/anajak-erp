@@ -366,7 +366,7 @@ export default function UsersSettingsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => openPermissions(user)}
-                              className="h-7 px-2 text-slate-500 hover:text-blue-600"
+                              className="h-8 px-2 text-slate-500 hover:text-blue-600"
                             >
                               <ShieldCheck className="mr-1 h-3.5 w-3.5" />
                               สิทธิ์
@@ -386,7 +386,7 @@ export default function UsersSettingsPage() {
                             onClick={() =>
                               setResetTarget({ id: user.id, name: user.name })
                             }
-                            className="h-7 px-2 text-slate-500 hover:text-blue-600"
+                            className="h-8 px-2 text-slate-500 hover:text-blue-600"
                           >
                             <KeyRound className="mr-1 h-3.5 w-3.5" />
                             รีเซ็ตรหัส
@@ -401,7 +401,7 @@ export default function UsersSettingsPage() {
           )}
 
           {mutationError && (
-            <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <div role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
               {mutationError}
             </div>
           )}
@@ -441,7 +441,7 @@ export default function UsersSettingsPage() {
               />
             </div>
             {resetPasswordMutation.error && (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+              <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
                 {resetPasswordMutation.error.message}
               </div>
             )}
@@ -500,7 +500,7 @@ export default function UsersSettingsPage() {
                       return (
                         <label
                           key={def.key}
-                          className={`flex min-h-11 items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm sm:min-h-9 ${
+                          className={`flex min-h-11 items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm sm:min-h-9 ${
                             locked
                               ? "cursor-not-allowed opacity-50"
                               : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -535,7 +535,7 @@ export default function UsersSettingsPage() {
                 </div>
               ))}
               {setPermissionsMutation.error && (
-                <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
                   {setPermissionsMutation.error.message}
                 </div>
               )}

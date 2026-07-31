@@ -66,11 +66,11 @@ export function JobShareView({ token }: { token: string }) {
           <CardContent className="space-y-4 p-5">
             <p className="text-lg font-semibold text-slate-900">{d.description}</p>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-blue-50 p-3 text-center">
+              <div className="rounded-xl bg-blue-50 p-3 text-center">
                 <p className="text-2xl font-semibold tabular-nums text-blue-700">{d.quantity}</p>
                 <p className="text-xs text-slate-500">จำนวน (ชิ้น)</p>
               </div>
-              <div className="rounded-lg bg-amber-50 p-3 text-center">
+              <div className="rounded-xl bg-amber-50 p-3 text-center">
                 <p className="flex items-center justify-center gap-1.5 text-lg font-semibold text-amber-700">
                   <CalendarClock className="h-4 w-4 shrink-0" />
                   {d.expectedBackAt ? formatDate(d.expectedBackAt) : "—"}
@@ -86,7 +86,7 @@ export function JobShareView({ token }: { token: string }) {
                 </div>
               )}
               {d.notes && (
-                <div className="rounded-md bg-slate-100 p-2.5 text-slate-700">
+                <div className="rounded-xl bg-slate-100 p-3 text-slate-700">
                   <span className="font-medium">หมายเหตุ:</span> {d.notes}
                 </div>
               )}
@@ -143,7 +143,7 @@ export function JobShareView({ token }: { token: string }) {
                         href={design.fileUrl ?? design.imageUrl ?? "#"}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 rounded-md border border-slate-200 bg-white p-2.5 text-sm text-blue-600 hover:bg-slate-50"
+                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-blue-600 hover:bg-slate-50"
                       >
                         <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
                         <span className="truncate">แบบที่อนุมัติ (v{design.versionNumber})</span>
@@ -156,7 +156,7 @@ export function JobShareView({ token }: { token: string }) {
                         href={a.fileUrl ?? "#"}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 rounded-md border border-slate-200 bg-white p-2.5 text-sm text-blue-600 hover:bg-slate-50"
+                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-blue-600 hover:bg-slate-50"
                       >
                         <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
                         <span className="truncate">{a.fileName}</span>
@@ -172,7 +172,7 @@ export function JobShareView({ token }: { token: string }) {
                   {prints.map((pr, i) => (
                     <div
                       key={i}
-                      className="flex gap-3 rounded-md bg-slate-100 p-2.5 text-sm text-slate-700"
+                      className="flex gap-3 rounded-xl bg-slate-100 p-3 text-sm text-slate-700"
                     >
                       {/* รูปลายรายจุดพิมพ์ — งานหลายจุด ร้านแยกออกว่าลายไหนตำแหน่งไหน */}
                       {pr.designImageUrl && isImageUrl(pr.designImageUrl) && (
@@ -228,7 +228,7 @@ export function JobShareView({ token }: { token: string }) {
             <CardContent className="space-y-4 p-5 pt-0">
               {/* ตาราง/สเปคเป็นของทั้งออเดอร์ — ใบ outsource ผูกกับขั้นตอนผลิต ไม่ได้แยกรายชิ้น
                   (งานที่ส่งหลายร้าน/แบ่งรอบ ให้ยึดที่ตกลงในแชทเป็นหลัก) */}
-              <p className="rounded-md bg-slate-100 p-2.5 text-xs text-slate-500">
+              <p className="rounded-xl bg-slate-100 p-3 text-xs text-slate-500">
                 {partialBatch
                   ? `รอบนี้ส่ง ${d.quantity} ชิ้น จากทั้งออเดอร์ ${d.orderTotalQuantity} ชิ้น — `
                   : ""}

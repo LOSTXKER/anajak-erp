@@ -422,7 +422,7 @@ export function OrderBillingSection({
         </CardHeader>
         <CardContent>
           {/* Summary */}
-          <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 sm:grid-cols-4 dark:bg-slate-800/50">
+          <div className="mb-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-4 dark:bg-slate-800/50">
             <div className="text-center">
               <p className="text-xs text-slate-500 dark:text-slate-400">ยอดรวม</p>
               <p className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -458,7 +458,7 @@ export function OrderBillingSection({
 
           {/* เตือนเฉพาะคนที่ออกใบได้ (canBill) — role อื่นเห็นแต่ทำอะไรไม่ได้ ชวนงง */}
           {canBill && pendingReceiptCount > 0 && (
-            <p className="mb-3 rounded-md bg-amber-50 px-2.5 py-2 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+            <p className="mb-3 rounded-lg bg-amber-50 px-2.5 py-2 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
               มี {pendingReceiptCount} งวดรับเงินที่ยังไม่ออกใบเสร็จ/ใบกำกับภาษี —
               งานจ้างทำของต้องออกทุกงวดรับเงิน (กดปุ่มที่งวดนั้นเพื่อออกได้เลย)
               {unlinkedReceiptCount > 0 &&
@@ -501,8 +501,8 @@ export function OrderBillingSection({
                     key={inv.id}
                     className="rounded-lg border border-slate-200 dark:border-slate-700"
                   >
-                    <div className="flex items-stretch gap-1 p-1">
-                      <div className="flex min-h-11 min-w-0 flex-1 flex-col items-stretch justify-between gap-2 rounded-md px-2 py-2 text-left sm:flex-row sm:items-center">
+                    <div className="flex items-stretch gap-1.5 p-1">
+                      <div className="flex min-h-11 min-w-0 flex-1 flex-col items-stretch justify-between gap-2 rounded-lg px-2 py-2 text-left sm:flex-row sm:items-center">
                         <div className="min-w-0 space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm font-medium text-slate-900 dark:text-white">
@@ -544,7 +544,7 @@ export function OrderBillingSection({
                         rel="noreferrer"
                         aria-label={`พิมพ์หรือเปิด PDF ${inv.invoiceNumber}`}
                         title="พิมพ์ / PDF"
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400"
                       >
                         <Printer className="h-3.5 w-3.5" />
                       </a>
@@ -589,7 +589,7 @@ export function OrderBillingSection({
                             {inv.payments.map((p) => (
                               <div
                                 key={p.id}
-                                className="flex items-center justify-between rounded-md bg-green-50 px-2 py-1.5 text-xs dark:bg-green-950/30"
+                                className="flex items-center justify-between rounded-lg bg-green-50 px-2 py-1.5 text-xs dark:bg-green-950/30"
                               >
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                                   <DollarSign className="h-3 w-3 text-green-600" />
@@ -612,7 +612,7 @@ export function OrderBillingSection({
                                       target="_blank"
                                       rel="noreferrer"
                                       aria-label={`ดูสลิปของรายการชำระ ${formatCurrency(p.amount)}`}
-                                      className="flex h-11 w-11 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:h-9 sm:w-9 dark:hover:bg-slate-900 dark:hover:text-blue-400"
+                                      className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:h-9 sm:w-9 dark:hover:bg-slate-900 dark:hover:text-blue-400"
                                       title="ดูสลิปโอน"
                                     >
                                       <Paperclip className="h-3 w-3" />
@@ -632,7 +632,7 @@ export function OrderBillingSection({
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="gap-1 px-2 text-2xs"
+                                      className="gap-1.5 px-2 text-2xs"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openReceiptForPayment(p, inv);
@@ -657,7 +657,7 @@ export function OrderBillingSection({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="gap-1 text-xs"
+                              className="gap-1.5 text-xs"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 // ล้างฟอร์มก่อน — กันค่าหัก/สลิปค้างจากบิลก่อนหน้า แล้ว prefill = คงเหลือ
@@ -674,7 +674,7 @@ export function OrderBillingSection({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="gap-1 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-500"
+                              className="gap-1.5 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-500"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 resetRefundForm();
@@ -690,7 +690,7 @@ export function OrderBillingSection({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="gap-1 text-xs text-red-500 hover:text-red-600"
+                              className="gap-1.5 text-xs text-red-500 hover:text-red-600"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowVoidDialog(inv.id);
@@ -927,7 +927,7 @@ export function OrderBillingSection({
                 placeholder="หมายเหตุเพิ่มเติม..."
               />
             </Field>
-            <div className="rounded-lg bg-blue-50 p-3 text-sm dark:bg-blue-950/30">
+            <div className="rounded-xl bg-blue-50 p-3 text-sm dark:bg-blue-950/30">
               <span className="text-slate-600 dark:text-slate-400">ยอดรวมบิล: </span>
               <span className="font-semibold text-slate-900 dark:text-white">
                 {formatCurrency(
@@ -982,7 +982,7 @@ export function OrderBillingSection({
               />
             </Field>
             {/* ลูกค้านิติบุคคลหักภาษี ณ ที่จ่าย 3% ค่าจ้างทำของ — โอนมา 97% + หนังสือรับรอง 3% */}
-            <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+            <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
               <div className="flex items-center justify-between gap-2">
                 <Label htmlFor="billing-wht-enabled">
                   ลูกค้าหักภาษี ณ ที่จ่าย (นิติบุคคล)
@@ -1076,7 +1076,7 @@ export function OrderBillingSection({
                   <img
                     src={evidenceUrl}
                     alt="สลิปโอน"
-                    className="h-full w-full rounded-md border border-slate-200 object-cover dark:border-slate-700"
+                    className="h-full w-full rounded-lg border border-slate-200 object-cover dark:border-slate-700"
                   />
                   <button
                     type="button"

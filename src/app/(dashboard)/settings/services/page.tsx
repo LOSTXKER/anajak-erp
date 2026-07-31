@@ -407,7 +407,7 @@ export default function ServicesPage() {
                                   name: e.target.value,
                                 })
                               }
-                              className="h-7 text-sm"
+                              className="h-8 text-sm"
                             />
                           ) : (
                             <span className="text-sm font-medium text-slate-900 dark:text-white">
@@ -445,7 +445,7 @@ export default function ServicesPage() {
                           {isEditing ? (
                             <NativeSelect
                               aria-label={`วิธีคิดราคาของ ${item.name}`}
-                              className="h-7 text-xs"
+                              className="h-8 text-xs"
                               value={editingItem.pricingType}
                               onChange={(e) =>
                                 setEditingItem({
@@ -474,7 +474,7 @@ export default function ServicesPage() {
                         </td>
                         <td className="px-3 py-2.5 text-right">
                           {isEditing ? (
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end gap-1.5">
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
@@ -495,7 +495,7 @@ export default function ServicesPage() {
                               </Button>
                             </div>
                           ) : (
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end gap-1.5">
                               <Button
                                 variant="ghost"
                                 size="icon-sm"

@@ -388,7 +388,7 @@ export function OrderItemsEditor({
                   {fees.map((fee, fi) => (
                     <div
                       key={fi}
-                      className="flex items-center gap-2 rounded-lg border border-slate-200 p-2.5 dark:border-slate-700"
+                      className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700"
                     >
                       <Input
                         type="text"
@@ -422,14 +422,14 @@ export function OrderItemsEditor({
                       </Button>
                     </div>
                   ))}
-                  <Button variant="outline" size="sm" onClick={addFee} className="w-full gap-1">
+                  <Button variant="outline" size="sm" onClick={addFee} className="w-full gap-1.5">
                     <Plus className="h-3.5 w-3.5" />
                     เพิ่มค่าธรรมเนียม
                   </Button>
                 </div>
               )}
 
-              <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+              <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
                 <label htmlFor="order-items-discount" className="text-sm text-slate-500">ส่วนลด</label>
                 <Input
                   id="order-items-discount"
@@ -446,7 +446,7 @@ export function OrderItemsEditor({
 
           {/* Validation errors — เกณฑ์เดียวกับหน้าเปิดงาน จับก่อนถึง server */}
           {formErrors.length > 0 && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
               <ul className="list-inside list-disc space-y-0.5">
                 {formErrors.map((err, i) => (
                   <li key={i}>{err}</li>
@@ -457,7 +457,7 @@ export function OrderItemsEditor({
 
           {/* สรุปราคา (สูตร A เดียวกับ server) — โชว์เมื่อเริ่มมีตัวเลขจริง ไม่โชว์ ฿0 เปล่าๆ */}
           {(subtotalItems > 0 || subtotalFees > 0 || discount > 0) && (
-          <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-950/30">
+          <div className="rounded-xl bg-blue-50 p-3 dark:bg-blue-950/30">
             <div className="flex justify-between text-sm">
               <span className="text-slate-600 dark:text-slate-400">รวมสินค้า</span>
               <span className="font-medium">{formatCurrency(subtotalItems)}</span>
@@ -493,7 +493,7 @@ export function OrderItemsEditor({
 
           {/* เพดานขาที่สอง (B9) — ยอดใหม่ต่ำกว่าบิลที่ออกแล้ว */}
           {belowBilledFloor && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-xs font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
               {changeOrderMode
                 ? `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — ออกใบแก้ไขได้ แต่ต้องออกใบลดหนี้ตามให้ยอดบิลตรงยอดจริง`
                 : `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — บันทึกไม่ผ่าน ต้องยกเลิกบิลเดิม (แล้วออกใหม่ตามยอดที่ถูก) ก่อนลดยอด`}
@@ -502,14 +502,14 @@ export function OrderItemsEditor({
 
           {/* กำไรขั้นต้นโดยประมาณ — เฉพาะ role การเงิน (null = ไม่ render เลย) */}
           {marginEstimate && (
-            <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+            <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
               <MarginEstimateBlock estimate={marginEstimate} />
             </div>
           )}
 
           {/* โหมดใบแก้ไข — เหตุผลบังคับ (server ออกเลข CO + บันทึกยอดเก่า→ใหม่) */}
           {changeOrderMode && (
-            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+            <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
               <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
                 ออเดอร์อนุมัติแล้ว — การแก้ไขจะออกเป็น “ใบแก้ไขออเดอร์” (บันทึกยอดเก่า → ใหม่)
               </p>
@@ -524,7 +524,7 @@ export function OrderItemsEditor({
           )}
 
           {/* ปุ่มบันทึก — sticky ล่างจอ มือถือกดถึงเสมอ */}
-          <div className="sticky bottom-3 flex justify-end gap-2 rounded-xl border border-slate-200/70 bg-white/95 p-2.5 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
+          <div className="sticky bottom-3 flex justify-end gap-2 rounded-xl border border-slate-200/70 bg-white/95 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
             <Button variant="outline" onClick={onCancel} disabled={saving}>
               ยกเลิก
             </Button>

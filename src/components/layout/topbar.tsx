@@ -104,11 +104,11 @@ export function Topbar() {
         onClick={() => setPaletteOpen(true)}
         aria-label="ค้นหาเมนู ออเดอร์ ลูกค้า ใบเสนอราคา หรือบิล"
         aria-haspopup="dialog"
-        className="group flex h-11 min-w-0 w-full max-w-md items-center gap-2.5 rounded-full bg-white/70 px-3 text-sm text-slate-400 shadow-[0_0_0_0.5px_rgba(0,0,0,0.06)] transition-colors hover:bg-white hover:text-slate-600 sm:h-9 sm:px-4 dark:bg-white/[0.06] dark:shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)] dark:hover:bg-white/10"
+        className="group flex h-11 min-w-0 w-full max-w-md items-center gap-2 rounded-full bg-white/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-white hover:text-slate-600 sm:h-9 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10"
       >
         <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
         <span className="flex-1 truncate text-left">ค้นหาเมนู เลขงาน ลูกค้า หรือบิล</span>
-        <kbd className="hidden items-center gap-0.5 rounded-md bg-black/[0.05] px-1.5 py-0.5 text-xs font-medium text-slate-500 sm:inline-flex dark:bg-white/10 dark:text-slate-400">
+        <kbd className="hidden items-center gap-0.5 rounded-lg bg-black/[0.05] px-1.5 py-0.5 text-xs font-medium text-slate-500 sm:inline-flex dark:bg-white/10 dark:text-slate-400">
           <span className="text-xs">⌘</span>K
         </kbd>
       </button>
@@ -150,7 +150,7 @@ export function Topbar() {
           </Button>
 
           {notifOpen && (
-            <div className="fixed left-2 right-2 top-16 z-50 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.08)] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="fixed left-2 right-2 top-16 z-50 overflow-hidden rounded-2xl border border-slate-200/70 bg-white overlay-surface sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5 dark:border-slate-800">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                   การแจ้งเตือน
@@ -166,7 +166,7 @@ export function Topbar() {
                     size="sm"
                     onClick={() => markAllRead.mutate()}
                     disabled={markAllRead.isPending}
-                    className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 disabled:opacity-50 dark:text-slate-400 dark:hover:text-blue-400"
+                    className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600 disabled:opacity-50 dark:text-slate-400 dark:hover:text-blue-400"
                   >
                     <CheckCheck className="h-3.5 w-3.5" />
                     อ่านทั้งหมด
@@ -185,7 +185,7 @@ export function Topbar() {
                         if (!notif.isRead) markRead.mutate({ id: notif.id });
                         setNotifOpen(false);
                       }}
-                      className={`flex gap-2.5 border-b border-slate-50 px-3.5 py-2.5 transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800/50 dark:hover:bg-slate-800/50 ${
+                      className={`flex gap-2 border-b border-slate-50 px-3.5 py-2.5 transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800/50 dark:hover:bg-slate-800/50 ${
                         !notif.isRead
                           ? "bg-blue-50/40 dark:bg-blue-950/20"
                           : ""

@@ -54,7 +54,7 @@ export function OrderGoodsReceiptSection({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1 text-xs"
+                  className="h-8 gap-1.5 text-xs"
                   onClick={() => setDialogType("CUSTOMER_GARMENT")}
                 >
                   <PackageOpen className="h-3.5 w-3.5" />
@@ -65,7 +65,7 @@ export function OrderGoodsReceiptSection({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1 text-xs"
+                  className="h-8 gap-1.5 text-xs"
                   onClick={() => setDialogType("SEWING_GARMENT")}
                 >
                   <PackageOpen className="h-3.5 w-3.5" />
@@ -76,7 +76,7 @@ export function OrderGoodsReceiptSection({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 gap-1 text-xs text-slate-500"
+                  className="h-8 gap-1.5 text-xs text-slate-500"
                   onClick={() => setDialogType("CUSTOMER_RETURN")}
                 >
                   <Undo2 className="h-3.5 w-3.5" />
@@ -107,7 +107,7 @@ export function OrderGoodsReceiptSection({
             return (
               <div
                 key={r.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-100 px-3 py-2 dark:border-slate-800"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-2 dark:border-slate-800"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-900 dark:text-white">
