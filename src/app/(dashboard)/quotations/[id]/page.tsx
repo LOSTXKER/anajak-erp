@@ -503,7 +503,7 @@ export default function QuotationDetailPage({
                   <span className="text-base font-semibold text-slate-900 dark:text-white">
                     ยอดรวมทั้งหมด
                   </span>
-                  <span className="tabular-nums text-lg font-bold text-blue-600 dark:text-blue-400">
+                  <span className="tabular-nums text-lg font-semibold text-blue-600 dark:text-blue-400">
                     {formatCurrency(totalAmount)}
                   </span>
                 </div>

@@ -53,14 +53,14 @@ function ReceiveTrackingInline({ product, onSuccess }: {
         <span className="font-medium text-yellow-700 dark:text-yellow-300">ตรวจรับของ:</span>
         {product.receivedInspected ? (
           <>
-            <Badge variant="default" className="text-[10px]">ตรวจรับแล้ว</Badge>
+            <Badge variant="default" className="text-2xs">ตรวจรับแล้ว</Badge>
             {product.garmentCondition && <span className="text-slate-500">สภาพ: {GARMENT_CONDITIONS[product.garmentCondition] ?? product.garmentCondition}</span>}
             {product.receiveNote && <span className="text-slate-500">({product.receiveNote})</span>}
           </>
         ) : (
           <span className="text-slate-400">ยังไม่ได้ตรวจรับ</span>
         )}
-        <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1 px-2 text-[10px] text-yellow-600 hover:text-yellow-800 dark:text-yellow-400">
+        <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1 px-2 text-2xs text-yellow-600 hover:text-yellow-800 dark:text-yellow-400">
           <Edit3 className="h-3 w-3" />{product.receivedInspected ? "แก้ไข" : "ตรวจรับ"}
         </Button>
       </div>
@@ -75,7 +75,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label htmlFor={`garment-condition-${product.id}`} className="mb-0.5 block text-[10px] font-medium text-slate-500">สภาพเสื้อ</label>
+          <label htmlFor={`garment-condition-${product.id}`} className="mb-0.5 block text-2xs font-medium text-slate-500">สภาพเสื้อ</label>
           <NativeSelect id={`garment-condition-${product.id}`} value={condition} onChange={(e) => setCondition(e.target.value)} className="h-8 px-2 py-1 text-xs focus:ring-yellow-500">
             <option value="">-- เลือก --</option>
             {Object.entries(GARMENT_CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -88,7 +88,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
           </label>
         </div>
         <div className="min-w-[160px] flex-1">
-          <label htmlFor={`garment-note-${product.id}`} className="mb-0.5 block text-[10px] font-medium text-slate-500">หมายเหตุ</label>
+          <label htmlFor={`garment-note-${product.id}`} className="mb-0.5 block text-2xs font-medium text-slate-500">หมายเหตุ</label>
           <Input id={`garment-note-${product.id}`} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" className="h-8 text-xs" />
         </div>
         <div className="flex gap-1">
@@ -165,7 +165,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                   {/* Item header — ชื่อนำ · จำนวนเป็นบรรทัดจาง (เลิก badge ซ้อน ลดความรก) */}
                   <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/20">
                     <div className="flex min-w-0 items-start gap-2.5">
-                      <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                      <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                         {itemIndex + 1}
                       </span>
                       <div className="min-w-0 space-y-0.5">
@@ -181,7 +181,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                       </div>
                     </div>
                     {showMoney && item.subtotal != null && (
-                      <p className="flex-shrink-0 tabular-nums text-sm font-bold text-slate-900 dark:text-white">
+                      <p className="flex-shrink-0 tabular-nums text-sm font-semibold text-slate-900 dark:text-white">
                         {formatCurrency(item.subtotal)}
                       </p>
                     )}
@@ -360,7 +360,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                       <tfoot>
                                         <tr className="border-t border-slate-100 dark:border-slate-800">
                                           <td colSpan={2} className="pt-1.5 text-xs font-medium text-slate-500">รวม</td>
-                                          <td className="pt-1.5 text-right tabular-nums text-sm font-bold text-slate-900 dark:text-white">{prodQty}</td>
+                                          <td className="pt-1.5 text-right tabular-nums text-sm font-semibold text-slate-900 dark:text-white">{prodQty}</td>
                                         </tr>
                                       </tfoot>
                                     </table>

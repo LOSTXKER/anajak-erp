@@ -52,7 +52,7 @@ export function OrderStatusBadge({
       )}
       {internalStatus && (
         <span
-          className={`text-[11px] text-slate-500 dark:text-slate-400 ${
+          className={`text-2xs text-slate-500 dark:text-slate-400 ${
             customerStatus ? "pl-3" : ""
           }`}
         >

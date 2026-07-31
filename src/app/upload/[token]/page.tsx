@@ -125,7 +125,7 @@ export default function CustomerUploadPage({
         <div className="text-center">
           <div className="mb-2 flex items-center justify-center gap-2">
             <Paperclip className="h-6 w-6 text-blue-600" />
-            <h1 className="text-xl font-bold text-slate-900">Anajak Print</h1>
+            <h1 className="text-xl font-semibold text-slate-900">Anajak Print</h1>
           </div>
           <p className="text-sm text-slate-500">ส่งไฟล์งานให้ทีมงาน</p>
         </div>

@@ -254,7 +254,7 @@ export default function ProductDetailPage({
                   return (
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500">ราคาขาย</span>
-                      <span className="font-bold tabular-nums text-blue-600 dark:text-blue-400">
+                      <span className="font-semibold tabular-nums text-blue-600 dark:text-blue-400">
                         {displayPrice}
                       </span>
                     </div>

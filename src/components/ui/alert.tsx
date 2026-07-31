@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * (quotations, public portal). ใช้คู่กับ <QueryError> ที่หนักกว่าสำหรับ error เต็มหน้า.
  */
 const alertVariants = cva(
-  "flex gap-2.5 rounded-xl border p-3 text-[13px] leading-relaxed",
+  "flex gap-2.5 rounded-xl border p-3 text-sm leading-relaxed",
   {
     variants: {
       variant: {

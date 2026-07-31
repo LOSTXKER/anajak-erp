@@ -117,7 +117,7 @@ const Td = React.forwardRef<HTMLTableCellElement, TdProps>(
     <td
       ref={ref}
       className={cn(
-        "px-5 py-3 text-[13px] text-slate-700 dark:text-slate-300",
+        "px-5 py-3 text-sm text-slate-700 dark:text-slate-300",
         align === "right" && "text-right",
         align === "center" && "text-center",
         align === "left" && "text-left",

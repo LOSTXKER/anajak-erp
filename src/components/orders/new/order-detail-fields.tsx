@@ -11,7 +11,7 @@ import { CHANNEL_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 // ตอนรื้อฟอร์ม 2026-06-12 · ลำดับใหม่: รายละเอียดจากแชทขึ้นก่อน (จุด capture หลักตอนถือแชท)
 
 const CHANNELS = Object.keys(CHANNEL_LABELS) as string[];
-const labelClass = "mb-1.5 block text-[12px] text-slate-500 dark:text-slate-400";
+const labelClass = "mb-1.5 block text-xs text-slate-500 dark:text-slate-400";
 
 type Priority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 

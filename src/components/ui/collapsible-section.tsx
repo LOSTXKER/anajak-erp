@@ -38,12 +38,12 @@ export function CollapsibleSection({
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left"
       >
-        <span className="text-[15px] font-semibold tracking-tight text-slate-900 dark:text-white">
+        <span className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
           {title}
         </span>
         <span className="flex min-w-0 items-center gap-2.5">
           {summary && (
-            <span className="truncate text-[12.5px] text-slate-500 dark:text-slate-400">
+            <span className="truncate text-xs text-slate-500 dark:text-slate-400">
               {summary}
             </span>
           )}

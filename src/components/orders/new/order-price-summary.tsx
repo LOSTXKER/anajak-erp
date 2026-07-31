@@ -90,7 +90,7 @@ export function useMarginEstimate(
 export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) {
   if (!estimate.configured) {
     return (
-      <p className="text-[12px] text-slate-400 dark:text-slate-500">
+      <p className="text-xs text-slate-400 dark:text-slate-500">
         <Link
           href="/settings/cost-rates"
           className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-slate-300"
@@ -118,7 +118,7 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
 
   return (
     <div className="space-y-1.5">
-      <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
         กำไรขั้นต้นโดยประมาณ
       </p>
       <p
@@ -135,7 +135,7 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
           </span>
         )}
       </p>
-      <div className="space-y-0.5 text-[12px] text-slate-500 dark:text-slate-400">
+      <div className="space-y-0.5 text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-center justify-between">
           <span>เสื้อ</span>
           <span className="tabular-nums">{formatCurrency(estimate.garmentCost)}</span>

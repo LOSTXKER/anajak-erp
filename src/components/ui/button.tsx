@@ -29,7 +29,7 @@ const buttonVariants = cva(
         default: "h-11 px-4 sm:h-9",
         // sm ต้องเล็กจริงบน desktop ให้ต่างจาก default (UX4.1) — มือถือคงเป้านิ้ว 44px
         // sm:min-h-8 จำเป็น: base มี sm:min-h-9 จะดันความสูงกลับเป็น 36px ถ้าไม่ทับ
-        sm: "h-11 px-3 text-[13px] sm:h-8 sm:min-h-8 sm:px-2.5",
+        sm: "h-11 px-3 text-sm sm:h-8 sm:min-h-8 sm:px-2.5",
         lg: "h-11 px-6 text-sm",
         icon: "h-11 w-11 sm:h-9 sm:w-9",
         "icon-sm": "h-11 w-11 sm:h-8 sm:min-h-8 sm:w-8",

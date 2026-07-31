@@ -94,7 +94,7 @@ export default function DesignApprovalPage({
         <div className="text-center">
           <div className="mb-2 flex items-center justify-center gap-2">
             <Palette className="h-6 w-6 text-blue-600" />
-            <h1 className="text-xl font-bold text-slate-900">
+            <h1 className="text-xl font-semibold text-slate-900">
               Anajak Print
             </h1>
           </div>

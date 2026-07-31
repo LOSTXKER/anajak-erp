@@ -63,12 +63,12 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
                     {title}
                   </h2>
                 ) : (
-                  <h2 className="text-[15px] font-semibold tracking-tight text-slate-900 dark:text-white">
+                  <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
                     {title}
                   </h2>
                 ))}
               {description && (
-                <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {description}
                 </p>
               )}

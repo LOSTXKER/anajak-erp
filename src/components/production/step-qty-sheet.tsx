@@ -77,7 +77,7 @@ export function StepQtySheet({
             onChange={(e) => setValue(e.target.value)}
             // แตะช่องแล้วเลขเดิมถูก select ทั้งก้อน — พิมพ์ใหม่แทนที่ทันที (กัน "50"→"5010")
             onFocus={(e) => e.currentTarget.select()}
-            className="h-14 text-center text-2xl font-bold tabular-nums"
+            className="h-14 text-center text-2xl font-semibold tabular-nums"
           />
           {!willComplete && (
             <button

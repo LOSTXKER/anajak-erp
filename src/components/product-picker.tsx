@@ -265,11 +265,11 @@ export function ProductPickerDialog({
                             <span className="truncate text-sm font-medium text-slate-900 dark:text-white">
                               {product.name}
                             </span>
-                            <span className="inline-flex flex-shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                            <span className="inline-flex flex-shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                               {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
                             </span>
                             {selectedFromProduct > 0 && (
-                              <span className="inline-flex flex-shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                              <span className="inline-flex flex-shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-2xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                                 เลือก {selectedFromProduct}
                               </span>
                             )}
@@ -404,7 +404,7 @@ export function ProductPickerDialog({
                                         </button>
                                       </div>
                                       {exceedsStock && (
-                                        <p className="text-center text-[10px] text-amber-600 dark:text-amber-400">
+                                        <p className="text-center text-2xs text-amber-600 dark:text-amber-400">
                                           เกินสต็อก (ต้องสั่งเพิ่ม)
                                         </p>
                                       )}

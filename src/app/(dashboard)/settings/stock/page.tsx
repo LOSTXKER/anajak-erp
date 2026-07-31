@@ -420,7 +420,7 @@ export default function StockSettingsPage() {
                   </div>
                   <div className="flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
                     <span className="text-slate-500 dark:text-slate-400">สินค้าทั้งหมด</span>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">
                       {syncStatus.totalProducts} รายการ
                     </span>
                   </div>
@@ -516,7 +516,7 @@ export default function StockSettingsPage() {
                           <span className="text-slate-900 dark:text-white">
                             {mapping.erpItemType}
                           </span>
-                          <Badge variant="secondary" className="text-[10px]">
+                          <Badge variant="secondary" className="text-2xs">
                             {mapping.erpCode}
                           </Badge>
                         </div>
@@ -540,7 +540,7 @@ export default function StockSettingsPage() {
           <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
             <div className="space-y-3">
               <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600 dark:bg-blue-900 dark:text-blue-400">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600 dark:bg-blue-900 dark:text-blue-400">
                   1
                 </div>
                 <div>
@@ -554,7 +554,7 @@ export default function StockSettingsPage() {
               </div>
 
               <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600 dark:bg-blue-900 dark:text-blue-400">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600 dark:bg-blue-900 dark:text-blue-400">
                   2
                 </div>
                 <div>
@@ -568,7 +568,7 @@ export default function StockSettingsPage() {
               </div>
 
               <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600 dark:bg-blue-900 dark:text-blue-400">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600 dark:bg-blue-900 dark:text-blue-400">
                   3
                 </div>
                 <div>

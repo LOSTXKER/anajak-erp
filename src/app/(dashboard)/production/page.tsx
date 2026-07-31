@@ -534,7 +534,7 @@ function ProductionWorkspace() {
                       {/* ธง blind ship บนคอลัมน์แพ็ค/พร้อมส่ง (ตรวจไม่ใส่ ของยังไม่ถึงคนแพ็ค) */}
                       {(focusPostCol.key === "packing" || focusPostCol.key === "ready") &&
                         o.blindShip && (
-                          <p className="mt-2 rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white">
+                          <p className="mt-2 rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-semibold text-white">
                             🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
                           </p>
                         )}
@@ -749,7 +749,7 @@ function LaneCardView({
 
       {/* ธง blind ship บนเลนแพ็ค — พลาดใส่เอกสาร Anajak ครั้งเดียวเสียลูกค้า reseller ทั้งราย */}
       {card.lane === "PACK" && card.order.blindShip && (
-        <p className="mt-2 rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white">
+        <p className="mt-2 rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-semibold text-white">
           🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
         </p>
       )}
