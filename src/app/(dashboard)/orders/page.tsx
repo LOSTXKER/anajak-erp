@@ -7,8 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FilterPopover } from "@/components/ui/filter-popover";
@@ -426,12 +425,8 @@ function OrdersPageContent() {
   }, [data, page, replaceListState]);
 
   // attention ไม่นับในป้ายกล่องตัวกรอง — มันมีบ้านเป็นแถว chip บนผิวหน้าแล้ว
-  const activeFilterCount = [
-    channel,
-    orderType,
-    createdAfter,
-    createdBefore,
-  ].filter(Boolean).length;
+  // นับเฉพาะตัวกรองที่ซ่อนอยู่ในกล่อง — ช่วงวันที่มีปุ่มของตัวเองบนแถบ เห็นอยู่แล้วว่าเลือกอะไร
+  const activeFilterCount = [channel, orderType].filter(Boolean).length;
 
   const clearFilters = () => {
     replaceListState({
@@ -543,8 +538,20 @@ function OrdersPageContent() {
             ))}
           </NativeSelect>
 
+          {/* ช่วงวันที่ออกมาอยู่นอกกล่องตัวกรอง (เบสสั่ง 2026-08-01) — เป็นตัวกรองที่ใช้บ่อยสุด
+              ไม่ควรต้องกดเปิดกล่องก่อน · มีปุ่มทางลัด เดือนนี้/ปีนี้/สัปดาห์นี้ ในตัว */}
+          <DateRangePicker
+            shape="pill"
+            from={createdAfter}
+            to={createdBefore}
+            onChange={(f, t) =>
+              replaceListState({ from: f || null, to: t || null, page: null })
+            }
+            className="text-xs"
+          />
+
           {/* ตัวกรองลอยใต้ปุ่ม — ตารางไม่ขยับ (เบสเคาะ 2026-07-31 แบบ ข)
-              เหลือ 3 หมวด: สถานะลูกค้าถูกถอดตามคำสั่ง · สถานะภายในย้ายขึ้นแถบการ์ดด้านบน */}
+              เหลือ 2 หมวด: สถานะลูกค้าถอดตามคำสั่ง · สถานะภายในอยู่แถบด้านบน · วันที่ออกมาข้างนอก */}
           <FilterPopover
             activeCount={activeFilterCount}
             onClear={clearFilters}
@@ -575,27 +582,6 @@ function OrdersPageContent() {
                   {f.label}
                 </FilterChip>
               ))}
-            </FilterRow>
-            <FilterRow label="วันที่สร้าง">
-              <DatePicker
-                aria-label="วันที่สร้างตั้งแต่"
-                
-                value={createdAfter}
-                onChange={(v) =>
-                  replaceListState({ from: v || null, page: null })
-                }
-                className="w-36 text-xs"
-              />
-              <span className="text-xs text-slate-400">ถึง</span>
-              <DatePicker
-                aria-label="วันที่สร้างถึง"
-                
-                value={createdBefore}
-                onChange={(v) =>
-                  replaceListState({ to: v || null, page: null })
-                }
-                className="w-36 text-xs"
-              />
             </FilterRow>
           </FilterPopover>
 

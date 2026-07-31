@@ -33,16 +33,16 @@ import { controlShapeClass, type ControlShape } from "./native-select";
    เพื่อให้จุดที่เรียกใช้ไม่ต้องแก้ตรรกะอะไรเลย
    ============================================================ */
 
-const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
-const MONTHS = [
+export const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+export const MONTHS = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
 ];
 
 /** ทั้งเว็บพูดเป็น พ.ศ. — ปฏิทินต้องพูดภาษาเดียวกัน ไม่งั้นคนกรอกผิดปีทั้งใบ */
-const buddhistYear = (d: Date) => d.getFullYear() + 543;
+export const buddhistYear = (d: Date) => d.getFullYear() + 543;
 
-function parseValue(value: string | undefined): Date | null {
+export function parseValue(value: string | undefined): Date | null {
   if (!value) return null;
   const d = parseISO(value);
   return isValid(d) ? d : null;
