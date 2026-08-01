@@ -8,7 +8,7 @@ import { Section } from "@/components/ui/section";
 import { Plus, Trash2, Receipt } from "lucide-react";
 import { resolveFeeCatalogSelection } from "@/lib/order-item-composer";
 import type { OrderFeeForm } from "@/types/order-form";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { DASHED, FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 interface FeeCatalogItem {
@@ -56,7 +56,7 @@ export function OrderFeeSection({
         <button
           type="button"
           onClick={onAddFee}
-          className={cn("flex min-h-11 w-full touch-manipulation flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40", FOCUS_BUTTON, "dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+          className={cn(DASHED, "flex min-h-11 w-full touch-manipulation flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40", FOCUS_BUTTON, "dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
         >
           <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
           <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าใช้จ่ายเพิ่มเติม — กดเพื่อเพิ่ม</span>

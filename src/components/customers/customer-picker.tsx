@@ -20,6 +20,9 @@ import { normalizePhone } from "@/lib/phone";
 import { QueryError } from "@/components/ui/query-error";
 import { Field } from "@/components/ui/field";
 
+import { cn } from "@/lib/utils";
+import { TINT } from "@/components/ui/tokens";
+
 // ตัวเลือกลูกค้ามาตรฐาน: ค้นหาผ่าน server + เพิ่มลูกค้าด่วนจากชื่อแชท + กันสร้างซ้ำ
 // หลักคิด "โปรไฟล์โตตามงาน" — ลูกค้าแชทใหม่เริ่มได้ด้วยชื่ออย่างเดียว ข้อมูลอื่นเติมทีหลัง
 
@@ -226,7 +229,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
             </Field>
 
             {similar && similar.length > 0 && (
-              <div className="space-y-1.5 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
+              <div className={cn(TINT.warning, "space-y-1.5 rounded-xl border p-3")}>
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
                   เจอลูกค้าที่คล้ายกันในระบบ — ใช่คนเดียวกันไหม?
                 </p>

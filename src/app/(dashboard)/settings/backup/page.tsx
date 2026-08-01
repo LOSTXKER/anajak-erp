@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { HardDriveDownload, Loader2, ShieldAlert } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 
 export default function BackupSettingsPage() {
   const utils = trpc.useUtils();
@@ -153,8 +154,7 @@ export default function BackupSettingsPage() {
             )}
           </Button>
           {error && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{error}</p>}
-          <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.75} />
+          <Alert variant="warning" icon={ShieldAlert}>
             <div>
               <p className="font-medium">ไฟล์นี้มีข้อมูลลับทั้งระบบ — ห้ามส่งต่อ</p>
               <p className="mt-1 text-amber-700 dark:text-amber-300">
@@ -163,7 +163,7 @@ export default function BackupSettingsPage() {
                 และหลังปิดยอดทุกสิ้นเดือน
               </p>
             </div>
-          </div>
+          </Alert>
         </CardContent>
       </Card>
     </div>

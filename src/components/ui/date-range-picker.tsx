@@ -24,7 +24,7 @@ import { CalendarRange, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
-import { FOCUS_BUTTON, OVERLAY_PANEL } from "./tokens";
+import { ACTIVE_FILTER, FOCUS_BUTTON, OVERLAY_PANEL } from "./tokens";
 import { MONTHS, MONTHS_SHORT, WEEKDAYS, buddhistYear, parseValue } from "./date-picker";
 
 /* ============================================================
@@ -201,7 +201,7 @@ export function DateRangePicker({
               // มีช่วงวันที่เลือกอยู่ = กรองอยู่ ต้องเห็นตั้งแต่ยังไม่กดเข้าไป
               // ใช้สีชุดเดียวกับปุ่ม "ตัวกรอง" ที่ยืนข้างกัน (เบสทักว่าสีไม่เหมือนกัน 2026-08-01)
               label &&
-                "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300",
+                ACTIVE_FILTER,
               className,
             )}
           >

@@ -23,6 +23,7 @@ import { PrintTableRow } from "./print-table-row";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
+import { DASHED } from "@/components/ui/tokens";
 
 export const labelClass =
   "mb-1 block text-xs text-slate-500 dark:text-slate-400";
@@ -210,7 +211,7 @@ export function OrderItemCard({
         <button
           type="button"
           onClick={() => onAddPrint(itemIdx)}
-          className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+          className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
         >
           <ImageIcon className="h-6 w-6 text-slate-300 dark:text-slate-600" />
           <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีลาย — กดเพื่อเพิ่มลายแรก</span>
@@ -274,7 +275,7 @@ export function OrderItemCard({
                   else if (key === "custom") addProductWithSource("CUSTOM_MADE");
                   else addProductWithSource("CUSTOMER_PROVIDED");
                 }}
-                className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-slate-200 p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+                className={cn(DASHED, "flex flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
               >
                 <Icon className="h-6 w-6 text-slate-400" strokeWidth={1.75} />
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
@@ -353,7 +354,7 @@ export function OrderItemCard({
         <button
           type="button"
           onClick={() => onAddAddon(itemIdx)}
-          className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+          className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
         >
           <Sparkles className="h-6 w-6 text-slate-300 dark:text-slate-600" />
           <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีส่วนเสริม — กดเพื่อเพิ่ม</span>

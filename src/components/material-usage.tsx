@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { DEFAULT_STOCK_LOCATION } from "@/lib/stock-constants";
 import { Spinner } from "@/components/ui/spinner";
 import { Alert } from "@/components/ui/alert";
+import { TINT } from "@/components/ui/tokens";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -261,7 +262,7 @@ export function MaterialUsage({
             {deductedMaterials.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between rounded-lg border border-green-100 bg-green-50/50 px-3 py-2 dark:border-green-900 dark:bg-green-950/30"
+                className={cn(TINT.success, "flex items-center justify-between rounded-lg border px-3 py-2")}
               >
                 <div className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />

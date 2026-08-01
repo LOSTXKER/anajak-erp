@@ -20,6 +20,7 @@ import { type PaymentTermsValue, PAYMENT_TERMS_LABELS } from "@/lib/payment-term
 import { type PickerCustomer } from "@/components/customers/customer-picker";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
 import { cn, formatCurrency } from "@/lib/utils";
+import { Alert } from "@/components/ui/alert";
 import { Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -436,18 +437,18 @@ export default function NewOrderPage() {
           กล่องพับซ่อนด้วย CSS ทำให้ browser validation บน input ที่มองไม่เห็นพัง submit เงียบ */}
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         {formErrors.length > 0 && (
-          <div
+          <Alert
             ref={errorSummaryRef}
-            role="alert"
+            variant="error"
+            title="กรุณาแก้ไข"
             aria-live="assertive"
             tabIndex={-1}
-            className={cn("rounded-xl border border-red-200 bg-red-50/80 p-3 outline-none dark:border-red-900 dark:bg-red-950/30", FOCUS_BUTTON)}
+            className={cn("outline-none", FOCUS_BUTTON)}
           >
-            <p className="mb-1 text-sm font-medium text-red-800 dark:text-red-200">กรุณาแก้ไข</p>
-            <ul className="list-inside list-disc space-y-1 text-sm text-red-700 dark:text-red-300">
+            <ul className="list-inside list-disc space-y-1">
               {formErrors.map((error) => <li key={error}>{error}</li>)}
             </ul>
-          </div>
+          </Alert>
         )}
 
         {createOrder.isError && (

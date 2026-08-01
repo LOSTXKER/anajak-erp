@@ -34,6 +34,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { canIssueChangeOrder } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
 import { Alert } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
+import { DASHED, TINT } from "@/components/ui/tokens";
 
 // ฟิลด์เงินเป็น number | null ตามชนิดจาก order.getById (นโยบาย ⑦ ปิดเงินให้ viewer นอกการเงิน)
 // — editor เปิดได้เฉพาะ flow ฝั่งขาย (role เห็นเงิน) ค่าจริงเลยเป็นตัวเลขเสมอ · ?? 0 แค่ให้ TS ผ่าน
@@ -363,7 +365,7 @@ export function OrderItemsEditor({
               addItem();
               setExpandedItemIdx(items.length);
             }}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-200 py-3 text-sm text-slate-500 transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+            className={cn(DASHED, "flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm text-slate-500 transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
           >
             <Plus className="h-4 w-4" />
             เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)
@@ -379,7 +381,7 @@ export function OrderItemsEditor({
                 <button
                   type="button"
                   onClick={addFee}
-                  className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+                  className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
                 >
                   <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
                   <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าธรรมเนียม — กดเพื่อเพิ่ม</span>
@@ -510,7 +512,7 @@ export function OrderItemsEditor({
 
           {/* โหมดใบแก้ไข — เหตุผลบังคับ (server ออกเลข CO + บันทึกยอดเก่า→ใหม่) */}
           {changeOrderMode && (
-            <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+            <div className={cn(TINT.warning, "space-y-2 rounded-xl border p-3")}>
               <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
                 ออเดอร์อนุมัติแล้ว — การแก้ไขจะออกเป็น “ใบแก้ไขออเดอร์” (บันทึกยอดเก่า → ใหม่)
               </p>

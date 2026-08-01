@@ -31,6 +31,8 @@ import { ShieldCheck, ClipboardCheck, Loader2, Plus, Trash2, AlertTriangle, Chec
 import { toast } from "sonner";
 
 import { ImageRemoveButton } from "@/components/ui/image-remove-button";
+import { Alert } from "@/components/ui/alert";
+import { DASHED, TINT } from "@/components/ui/tokens";
 
 // การ์ด "ตรวจนับ QC" บนหน้าออเดอร์ — นับของจุดที่ 2 ก่อนแพ็ค (FLOW-REDESIGN ก้อน 3)
 // นับจริง "ดีกี่ตัว เสียกี่ตัว" · ดีล้วน→เด้งแพ็คเอง · มีเสีย→ถอยกลับผลิต+งานแก้อัตโนมัติ
@@ -366,11 +368,10 @@ function QcCountForm({
           {/* นับดีครบยอดไปแล้ว (เช่น ของตีกลับหลังส่ง) — บอกทางเดินจริง ไม่ปล่อยเจอฟอร์มตัน:
               นับดีเพิ่มโดนกันนับเกิน · เดินหน้าใช้ปุ่มเปลี่ยนสถานะ (มีผลตรวจแล้วระบบให้ผ่าน) */}
           {context.totalExpected > 0 && remaining === 0 && (
-            <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
-              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <Alert variant="info" icon={CheckCircle2} className="px-3 py-2 text-xs">
               นับดีครบยอดงานไปแล้ว — จะเดินหน้าเข้าแพ็ค กดเปลี่ยนสถานะที่หัวออเดอร์ได้เลย ·
               ฟอร์มนี้ใช้บันทึก &quot;ของเสียที่เจอเพิ่ม&quot; (เช่น ของตีกลับ) ซึ่งจะถอยงานกลับผลิต
-            </div>
+            </Alert>
           )}
           {/* ของดี — default เหลือที่ยังไม่ผ่านตรวจ นับตรงกดบันทึกได้เลย */}
           <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
@@ -396,7 +397,7 @@ function QcCountForm({
           {defects.map((d, idx) => (
             <div
               key={idx}
-              className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-900 dark:bg-amber-950/20"
+              className={cn(TINT.warning, "space-y-2 rounded-xl border p-3")}
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-medium text-slate-900 dark:text-white">
@@ -519,7 +520,7 @@ function QcCountForm({
             type="button"
             variant="outline"
             onClick={addRow}
-            className="h-11 w-full gap-1.5 border-dashed text-sm"
+            className={cn(DASHED, "h-11 w-full gap-1.5 text-sm")}
           >
             <Plus />
             เพิ่มของเสีย
@@ -528,28 +529,24 @@ function QcCountForm({
           {/* แถบเตือนผลที่จะเกิดก่อนกด — คนกดต้องรู้ว่างานจะไปทางไหน (ตรรกะเดียวกับ server) */}
           {qtyDefectTotal > 0 ? (
             context.spareAvailable < qtyDefectTotal ? (
-              <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <Alert variant="error" icon={AlertTriangle} className="px-3 py-2 text-xs">
                 เสื้อสำรองไม่พอ (เหลือ {context.spareAvailable}/{qtyDefectTotal} ตัว) —
                 บันทึกแล้วงานจะพักรอของ คุยลูกค้า/สั่งเสื้อเพิ่มก่อน
-              </div>
+              </Alert>
             ) : (
-              <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <Alert variant="warning" icon={AlertTriangle} className="px-3 py-2 text-xs">
                 บันทึกแล้วงานจะถอยกลับผลิต + เปิดขั้นงานแก้อัตโนมัติ
-              </div>
+              </Alert>
             )
           ) : qtyGood > 0 ? (
             qtyGood >= remaining ? (
-              <div className="flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
-                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <Alert variant="success" icon={CheckCircle2} className="px-3 py-2 text-xs">
                 ครบแล้วงานจะเข้าคิวแพ็คเอง
-              </div>
+              </Alert>
             ) : (
-              <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <Alert variant="neutral" icon={CheckCircle2} className="px-3 py-2 text-xs">
                 ดีบางส่วน — บันทึกแล้วงานยังอยู่ด่านตรวจ เหลือตรวจอีก {remaining - qtyGood} ตัว
-              </div>
+              </Alert>
             )
           ) : null}
 
