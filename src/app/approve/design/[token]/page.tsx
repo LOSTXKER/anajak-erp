@@ -49,11 +49,15 @@ export default function DesignApprovalPage({
     );
   }
 
-  if (design.error) {
+  // ต้องเช็ค !data ด้วย ไม่ใช่แค่ error — react-query มีสถานะ "ยังไม่ยิง/หยุดพัก"
+  // ที่ isLoading=false + error=null + data=undefined พร้อมกัน · ของเดิมเขียน
+  // `design.data!` (บอก TS ว่ามีแน่ๆ) แล้วลูกค้าที่กดลิงก์เจอจอ error แดงของ Next
+  // แทนข้อความ "ลิงก์หมดอายุ" — อีก 3 หน้าลูกค้า (quote/status/upload) เช็คถูกอยู่แล้ว
+  if (design.error || !design.data) {
     return <PublicLinkError message="ไม่พบแบบที่ต้องการ ลิงก์อาจหมดอายุแล้ว" onRetry={() => void design.refetch()} />;
   }
 
-  const d = design.data!;
+  const d = design.data;
   const alreadyDecided = d.approvalStatus !== "PENDING";
 
   // Thank you screen after submission
