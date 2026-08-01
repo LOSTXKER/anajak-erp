@@ -420,7 +420,7 @@ export default function OutsourcePage() {
               className="gap-1.5"
             >
               {updateStatus.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <X />
               )}

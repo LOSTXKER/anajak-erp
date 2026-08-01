@@ -257,7 +257,7 @@ export default function DesignApprovalPage({
                   disabled={approve.isPending}
                 >
                   {approve.isPending ? (
-                    <Loader2 className=" animate-spin" />
+                    <Loader2 className="animate-spin" />
                   ) : (
                     <Check />
                   )}

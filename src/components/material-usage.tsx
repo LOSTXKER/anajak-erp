@@ -421,7 +421,7 @@ export function MaterialUsage({
                 className="h-8 gap-1.5 text-xs"
               >
                 {issueMutation.isPending ? (
-                  <Loader2 className=" animate-spin" />
+                  <Loader2 className="animate-spin" />
                 ) : (
                   <Package />
                 )}

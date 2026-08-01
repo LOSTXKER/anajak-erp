@@ -222,7 +222,7 @@ export default function CompanySettingsPage() {
               <div className="flex justify-end">
                 <Button type="submit" disabled={save.isPending} className="gap-1.5">
                   {save.isPending ? (
-                    <Loader2 className=" animate-spin" />
+                    <Loader2 className="animate-spin" />
                   ) : (
                     <Save />
                   )}

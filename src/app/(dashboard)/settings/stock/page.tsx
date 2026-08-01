@@ -315,7 +315,7 @@ export default function StockSettingsPage() {
                     className="flex-1"
                   >
                     {testConnection.isPending ? (
-                      <Loader2 className=" animate-spin" />
+                      <Loader2 className="animate-spin" />
                     ) : (
                       <Plug />
                     )}
@@ -327,7 +327,7 @@ export default function StockSettingsPage() {
                     className="flex-1"
                   >
                     {saveSettings.isPending ? (
-                      <Loader2 className=" animate-spin" />
+                      <Loader2 className="animate-spin" />
                     ) : (
                       <Save />
                     )}
@@ -447,7 +447,7 @@ export default function StockSettingsPage() {
                 className="w-full"
               >
                 {syncStock.isPending ? (
-                  <RefreshCw className=" animate-spin" />
+                  <RefreshCw className="animate-spin" />
                 ) : (
                   <Database />
                 )}

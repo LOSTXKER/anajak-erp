@@ -578,7 +578,7 @@ export default function WhtRegisterPage() {
               className="gap-1.5"
             >
               {markReceived.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <FileCheck2 />
               )}

@@ -738,7 +738,7 @@ export function OrderDeliverySection({
               className="gap-1.5"
             >
               {createDelivery.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <Truck />
               )}
@@ -799,7 +799,7 @@ export function OrderDeliverySection({
               className="gap-1.5"
             >
               {updateDeliveryStatus.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <Check />
               )}
@@ -856,7 +856,7 @@ export function OrderDeliverySection({
               className="gap-1.5"
             >
               {setBlindShipMutation.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <Check />
               )}

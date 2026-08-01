@@ -216,7 +216,7 @@ function StepBuilder({
                       variant="ghost"
                       size="icon-sm"
                       aria-label="ลบขั้นตอน"
-                      className=" text-slate-400 hover:text-red-600"
+                      className="text-slate-400 hover:text-red-600"
                       onClick={() => removeStep(index)}
                     >
                       <X />
@@ -260,7 +260,7 @@ function StepBuilder({
           className="gap-1.5"
         >
           {createProduction.isPending ? (
-            <Loader2 className=" animate-spin" />
+            <Loader2 className="animate-spin" />
           ) : (
             <Factory />
           )}

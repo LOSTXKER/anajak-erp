@@ -688,7 +688,7 @@ export default function NewOrderPage() {
             </Link>
           </Button>
           <Button type="submit" disabled={createOrder.isPending} className="gap-1.5">
-            {createOrder.isPending && <Loader2 className=" animate-spin" />}
+            {createOrder.isPending && <Loader2 className="animate-spin" />}
             {createOrder.isPending ? "กำลังบันทึก..." : "เปิดงาน"}
           </Button>
         </div>

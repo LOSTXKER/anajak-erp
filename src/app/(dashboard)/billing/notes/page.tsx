@@ -584,7 +584,7 @@ function BillingNotesPageContent() {
               className="gap-1.5"
             >
               {createNote.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <FileStack />
               )}
@@ -626,7 +626,7 @@ function BillingNotesPageContent() {
               className="gap-1.5"
             >
               {voidNote.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <Ban />
               )}

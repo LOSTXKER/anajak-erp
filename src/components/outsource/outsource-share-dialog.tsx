@@ -132,11 +132,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
               <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
                 ไฟล์ลาย ({attachments?.length ?? 0})
               </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 px-2 text-xs"
-                onClick={() => setShowUpload((v) => !v)}
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowUpload((v) => !v)}
               >
                 <Upload />
                 แนบไฟล์
@@ -263,7 +259,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                 onClick={() => generateLink.mutate({ outsourceOrderId: job.id })}
               >
                 {generateLink.isPending ? (
-                  <Loader2 className=" animate-spin" />
+                  <Loader2 className="animate-spin" />
                 ) : (
                   <Link2 />
                 )}

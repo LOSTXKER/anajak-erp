@@ -267,7 +267,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
               className="gap-1.5"
             >
               {createCustomer.isPending || isChecking ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <UserPlus />
               )}

@@ -630,11 +630,7 @@ export function OrderBillingSection({
                                       payment: p,
                                       canBill,
                                     }) ? (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="gap-1.5 px-2 text-2xs"
-                                      onClick={(e) => {
+                                    <Button variant="outline" size="sm" className="gap-1.5 text-2xs" onClick={(e) => {
                                         e.stopPropagation();
                                         openReceiptForPayment(p, inv);
                                       }}
@@ -947,7 +943,7 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {createInvoice.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <Receipt />
               )}
@@ -1119,7 +1115,7 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {recordPayment.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <CreditCard />
               )}
@@ -1193,7 +1189,7 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {recordRefund.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <Undo2 />
               )}
@@ -1241,7 +1237,7 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {voidInvoice.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <Ban />
               )}

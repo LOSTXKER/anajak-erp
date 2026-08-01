@@ -2,11 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Bell, Search, CheckCheck, Plus } from "lucide-react";
+import { Bell, Search, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { CommandPalette } from "./command-palette";
 import { UserMenu } from "./user-menu";
@@ -35,11 +34,6 @@ export function Topbar() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
-  const { data: me } = trpc.user.me.useQuery();
-  // เปิดงานใหม่ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12:
-  // กดแล้วกรอกทั้งฟอร์มค่อยโดน FORBIDDEN · ตรงกับ ⌘K ที่ gate create actions แล้ว)
-  const canCreateOrder = permAllows(me?.permissions, "create_sales_docs");
-
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -115,22 +109,9 @@ export function Topbar() {
 
       {/* Actions */}
       <div className="flex items-center gap-1.5">
-        {/* เปิดงานใหม่ — ทางลัดเปิดออเดอร์จากทุกหน้า (เฉพาะสิทธิ์ขาย · ใช้ <Button> มาตรฐาน) */}
-        {canCreateOrder && (
-          <>
-            <Button asChild className="hidden sm:inline-flex">
-              <Link href="/orders/new">
-                <Plus strokeWidth={2.1} />
-                เปิดงานใหม่
-              </Link>
-            </Button>
-            <Button asChild size="icon" className="sm:hidden">
-              <Link href="/orders/new" aria-label="เปิดงานใหม่">
-                <Plus strokeWidth={2.1} />
-              </Link>
-            </Button>
-          </>
-        )}
+        {/* ปุ่ม "เปิดงานใหม่" ถูกถอดออกจากแถบบน (เบสสั่ง 2026-08-01) —
+            ทุกหน้าที่เปิดออเดอร์ได้มีปุ่มของตัวเองอยู่แล้ว (/orders, แดชบอร์ด, งานของฉัน)
+            และยังเปิดจาก ⌘K ได้ · แถบบนเหลือเฉพาะค้นหา/แจ้งเตือน/โปรไฟล์ */}
 
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>

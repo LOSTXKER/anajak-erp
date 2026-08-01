@@ -319,7 +319,7 @@ export function CustomerEditDialog({
             </Button>
             <Button type="submit" disabled={update.isPending || !isFormValid} className="gap-1.5">
               {update.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <Save />
               )}

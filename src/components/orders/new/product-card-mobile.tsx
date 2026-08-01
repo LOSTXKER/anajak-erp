@@ -70,7 +70,7 @@ export function ProductCardMobile({
               </Button>
             </>
           )}
-          <Button type="button" variant="ghost" size="icon-sm" onClick={removeProduct} aria-label="ลบสินค้า" className=" text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
+          <Button type="button" variant="ghost" size="icon-sm" onClick={removeProduct} aria-label="ลบสินค้า" className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
             <Trash2 />
           </Button>
         </div>

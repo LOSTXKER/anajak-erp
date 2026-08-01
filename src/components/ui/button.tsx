@@ -30,11 +30,14 @@ const buttonVariants = cva(
           "text-blue-600 underline-offset-4 hover:underline dark:text-blue-400",
       },
       size: {
-        default: cn(CONTROL_H, "px-4"),
+        // ระยะขอบซ้าย-ขวา (เบสเคาะแบบ ก 2026-08-01 "รู้สึกมันติดขอบเกินไป และเป็นทุกปุ่มทั้งเว็บ")
+        // ปุ่มเราเป็นทรงแคปซูล มุมโค้งกินพื้นที่ด้านข้างไปส่วนหนึ่ง ตัวหนังสือจึงดูชิดขอบ
+        // กว่าปุ่มทรงเหลี่ยมที่ระยะเท่ากัน — ต้องเผื่อมากกว่าที่คิดจากตัวเลขเปล่าๆ
+        default: cn(CONTROL_H, "px-5"),
         // sm ต้องเล็กจริงบน desktop ให้ต่างจาก default (UX4.1) — มือถือคงเป้านิ้ว 44px
         // ห้ามใช้บนแถบเครื่องมือ: เตี้ยกว่าช่องค้นหาที่ยืนข้างกัน 4px (ดู control-size.ts)
-        sm: cn(CONTROL_H_SM, "px-3 text-sm sm:px-2.5"),
-        lg: "h-11 px-6 text-sm",
+        sm: cn(CONTROL_H_SM, "px-4 text-sm sm:px-3.5"),
+        lg: "h-11 px-7 text-sm",
         icon: cn(CONTROL_H, "w-11 sm:w-9"),
         "icon-sm": cn(CONTROL_H_SM, "w-11 sm:w-8"),
       },

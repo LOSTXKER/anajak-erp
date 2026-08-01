@@ -376,7 +376,7 @@ export default function PrintRunsPage() {
             className="h-11 gap-1.5"
           >
             {create.isPending ? (
-              <Loader2 className=" animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
               <Printer />
             )}
@@ -704,7 +704,7 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
           </Button>
           <Button disabled={complete.isPending} onClick={handleSubmit} className="gap-1.5">
             {complete.isPending ? (
-              <Loader2 className=" animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
               <Scissors />
             )}

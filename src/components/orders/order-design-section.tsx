@@ -275,7 +275,7 @@ export function OrderDesignSection({
                             onClick={() => copyApprovalLink(design.approvalToken!)}
                           >
                             {copiedToken === design.approvalToken ? (
-                              <Check className=" text-green-500" />
+                              <Check className="text-green-500" />
                             ) : (
                               <Copy />
                             )}
@@ -335,7 +335,7 @@ export function OrderDesignSection({
                           disabled={addRevisionFee.isPending}
                         >
                           {addRevisionFee.isPending ? (
-                            <Loader2 className=" animate-spin" />
+                            <Loader2 className="animate-spin" />
                           ) : (
                             <Receipt />
                           )}
@@ -427,7 +427,7 @@ export function OrderDesignSection({
               className="gap-1.5"
             >
               {uploadDesign.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <Upload />
               )}
@@ -481,7 +481,7 @@ export function OrderDesignSection({
               className="gap-1.5"
             >
               {approveDesign.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <Check />
               )}

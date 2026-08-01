@@ -207,11 +207,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               </Badge>
             )}
             {canCreate && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 px-2 text-xs"
-                onClick={() => setAdding(true)}
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAdding(true)}
               >
                 <Plus />
                 เพิ่มลาย
@@ -287,14 +283,11 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                   </div>
                   <div className="flex shrink-0 flex-col gap-1.5">
                     {canReorder && a.latestOrder && a.isActive && (
-                      <Button
-                        size="sm"
-                        className="h-8 gap-1.5 px-2 text-xs"
-                        onClick={() => reorder(a)}
+                      <Button size="sm" className="gap-1.5" onClick={() => reorder(a)}
                         disabled={duplicateOrder.isPending}
                       >
                         {duplicateOrder.isPending ? (
-                          <Loader2 className=" animate-spin" />
+                          <Loader2 className="animate-spin" />
                         ) : (
                           <Copy />
                         )}
@@ -302,11 +295,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       </Button>
                     )}
                     {canEdit && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 gap-1.5 px-2 text-xs"
-                        onClick={() => openEdit(a)}
+                      <Button variant="outline" size="sm" className="gap-1.5" onClick={() => openEdit(a)}
                       >
                         <Pencil />
                         แก้ไข
@@ -397,17 +386,13 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               />
             </Field>
             {editing && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-xs text-slate-500"
-                onClick={() =>
+              <Button variant="ghost" size="sm" className="text-slate-500" onClick={() =>
                   toggleActive.mutate({ id: editing.id, isActive: !editing.isActive })
                 }
                 disabled={toggleActive.isPending}
               >
                 {toggleActive.isPending ? (
-                  <Loader2 className=" animate-spin" />
+                  <Loader2 className="animate-spin" />
                 ) : editing.isActive ? (
                   "ปิดใช้งานลายนี้ (เลิกใช้ — ไม่ลบ)"
                 ) : (
@@ -421,7 +406,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               ยกเลิก
             </Button>
             <Button onClick={submitEdit} disabled={updateArtwork.isPending || !editForm.name.trim()}>
-              {updateArtwork.isPending ? <Loader2 className=" animate-spin" /> : "บันทึก"}
+              {updateArtwork.isPending ? <Loader2 className="animate-spin" /> : "บันทึก"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -450,11 +435,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                     alt="ลายใหม่"
                     className="h-16 w-16 rounded-lg border border-slate-200 object-cover dark:border-slate-700"
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-xs"
-                    onClick={() => setAddImageUrl("")}
+                  <Button variant="ghost" size="sm" onClick={() => setAddImageUrl("")}
                   >
                     เปลี่ยนรูป
                   </Button>
@@ -487,7 +468,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               }
               disabled={createArtwork.isPending || !addName.trim()}
             >
-              {createArtwork.isPending ? <Loader2 className=" animate-spin" /> : "เพิ่มลาย"}
+              {createArtwork.isPending ? <Loader2 className="animate-spin" /> : "เพิ่มลาย"}
             </Button>
           </DialogFooter>
         </DialogContent>

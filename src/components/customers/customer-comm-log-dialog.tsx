@@ -140,7 +140,7 @@ export function CustomerCommLogDialog({
               className="gap-1.5"
             >
               {add.isPending ? (
-                <Loader2 className=" animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <MessageSquarePlus />
               )}

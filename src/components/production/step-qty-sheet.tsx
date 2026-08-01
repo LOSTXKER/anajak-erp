@@ -112,7 +112,7 @@ export function StepQtySheet({
             className="h-11 flex-[2] gap-1.5"
           >
             {busy ? (
-              <Loader2 className=" animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
               <Check />
             )}

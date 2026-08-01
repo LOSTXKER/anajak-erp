@@ -72,8 +72,8 @@ function QuickAddPattern({
           </label>
         </div>
         <div className="flex gap-1.5">
-          <Button type="button" variant="outline" size="sm" onClick={onCancel} className="h-8 px-2 text-xs" disabled={uploading}>ยกเลิก</Button>
-          <Button type="button" size="sm" onClick={handleSave} className="h-8 px-3 text-xs" disabled={!name.trim() || uploading}>
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={uploading}>ยกเลิก</Button>
+          <Button type="button" size="sm" onClick={handleSave} disabled={!name.trim() || uploading}>
             {uploading ? <Loader2 className="mr-1 animate-spin" /> : null}
             บันทึก
           </Button>

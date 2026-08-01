@@ -322,7 +322,7 @@ function ReceiptForm({
             className="gap-1.5"
           >
             {create.isPending ? (
-              <Loader2 className=" animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
               <ClipboardCheck />
             )}

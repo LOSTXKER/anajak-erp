@@ -261,7 +261,7 @@ function IssueGarmentsDialog({
             className="gap-1.5"
           >
             {issue.isPending ? (
-              <Loader2 className=" animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
               <PackageOpen />
             )}
@@ -383,7 +383,7 @@ function ReturnGarmentsDialog({
             className="gap-1.5"
           >
             {ret.isPending ? (
-              <Loader2 className=" animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
               <Undo2 />
             )}

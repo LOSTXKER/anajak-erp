@@ -312,7 +312,7 @@ export default function VendorsSettingsPage() {
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={busy || !form.name.trim()}>
-                {busy && <Loader2 className=" animate-spin" />}
+                {busy && <Loader2 className="animate-spin" />}
                 บันทึก
               </Button>
             </DialogFooter>

@@ -215,7 +215,7 @@ export default function QuoteConfirmPage({
                   disabled={isPending}
                   className="w-full gap-1.5"
                 >
-                  {accept.isPending ? <Loader2 className=" animate-spin" /> : <CheckCircle2 />}
+                  {accept.isPending ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
                   ยืนยันใบเสนอ
                 </Button>
                 <Button
@@ -251,7 +251,7 @@ export default function QuoteConfirmPage({
                     disabled={isPending}
                     className="h-11 flex-1 gap-1.5"
                   >
-                    {reject.isPending ? <Loader2 className=" animate-spin" /> : null}
+                    {reject.isPending ? <Loader2 className="animate-spin" /> : null}
                     ส่งคำขอแก้ไข
                   </Button>
                 </div>

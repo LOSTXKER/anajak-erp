@@ -482,7 +482,7 @@ export function OrderInfoEditDialog({
             className="gap-1.5"
           >
             {updateMutation.isPending ? (
-              <Loader2 className=" animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
               <Save />
             )}

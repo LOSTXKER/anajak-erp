@@ -349,7 +349,7 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
             className="h-11 gap-1.5"
           >
             {consume.isPending ? (
-              <Loader2 className=" animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
               <Hand />
             )}

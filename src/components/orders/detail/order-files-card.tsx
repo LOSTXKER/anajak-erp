@@ -258,21 +258,13 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
               {FILE_LAYERS.RAW.label}
             </p>
             <span className="text-xs text-slate-400">({rawFiles.length})</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 px-2 text-xs"
-              onClick={() => setUploadingLayer(uploadingLayer === "RAW" ? null : "RAW")}
+            <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setUploadingLayer(uploadingLayer === "RAW" ? null : "RAW")}
             >
               {uploadingLayer === "RAW" ? <X /> : <Upload />}
               {uploadingLayer === "RAW" ? "ปิด" : "แนบไฟล์"}
             </Button>
             {canManageLink && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1.5 px-2 text-xs text-blue-600 dark:text-blue-400"
-                onClick={() => setShowLink((v) => !v)}
+              <Button variant="ghost" size="sm" className="gap-1.5 text-blue-600 dark:text-blue-400" onClick={() => setShowLink((v) => !v)}
               >
                 <Link2 />
                 ลิงก์ลูกค้า
@@ -292,11 +284,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                       onFocus={(e) => e.currentTarget.select()}
                       className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                     />
-                    <Button
-                      size="sm"
-                      className="h-8 shrink-0 gap-1.5 px-2 text-xs"
-                      onClick={copyUploadLink}
-                    >
+                    <Button size="sm" className="shrink-0 gap-1.5" onClick={copyUploadLink} >
                       {linkCopied ? (
                         <Check />
                       ) : (
@@ -330,10 +318,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                       ? "ลิงก์เดิมหมดอายุแล้ว"
                       : "ยังไม่มีลิงก์ — สร้างเพื่อส่งให้ลูกค้าอัปไฟล์เองทาง LINE"}
                   </p>
-                  <Button
-                    size="sm"
-                    className="h-8 gap-1.5 px-3 text-xs"
-                    onClick={() => generateLink.mutate({ orderId })}
+                  <Button size="sm" className="gap-1.5" onClick={() => generateLink.mutate({ orderId })}
                     disabled={generateLink.isPending}
                   >
                     <Link2 />
@@ -417,7 +402,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                 <span className="text-xs text-slate-400">ยังไม่มีแบบ</span>
               )}
             </div>
-            <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={scrollToDesign}>
+            <Button variant="outline" size="sm" onClick={scrollToDesign}>
               ไปที่งานออกแบบ
             </Button>
           </div>
@@ -437,11 +422,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
             </Badge>
             <span className="text-xs text-slate-400">({printFiles.length})</span>
             {canAttachPrint && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1.5 px-2 text-xs"
-                onClick={() => setUploadingLayer(uploadingLayer === "PRINT" ? null : "PRINT")}
+              <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setUploadingLayer(uploadingLayer === "PRINT" ? null : "PRINT")}
               >
                 {uploadingLayer === "PRINT" ? <X /> : <Upload />}
                 {uploadingLayer === "PRINT" ? "ปิด" : "แนบไฟล์"}
