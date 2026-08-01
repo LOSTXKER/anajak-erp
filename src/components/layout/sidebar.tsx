@@ -52,9 +52,12 @@ export function Sidebar({
       className={cn(
         "flex-col transition-[width] duration-200",
         mobile
-          ? "flex h-full w-full bg-bg dark:bg-slate-950"
+          ? "flex h-full w-full bg-bg"
           : cn(
-              "hidden h-screen border-r border-black/[0.07] bg-bg/80 backdrop-blur-xl md:flex dark:border-white/[0.06] dark:bg-black/60",
+              // พื้นเดียวกับหน้า (ขาว/ดำเทา) — เส้นขอบขวาคือสิ่งเดียวที่แยกแถบเมนู
+              // ออกจากเนื้อหา จึงเข้มกว่าเส้นทั่วไป (เบสสั่งพื้นขาว 2026-08-01)
+              // เดิมโหมดมืดฮาร์ดโค้ด bg-black/60 ไว้ — ดำกว่าพื้นใหม่ กลายเป็นแถบดำคาดจอ
+              "hidden h-screen border-r border-black/[0.09] bg-bg/85 backdrop-blur-xl md:flex dark:border-white/[0.08]",
               collapsed ? "w-[68px]" : "w-64"
             )
       )}
@@ -115,8 +118,10 @@ export function Sidebar({
                       className={cn(
                         "group flex items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors",
                         mobile ? "min-h-11" : "min-h-10",
+                        // เมนูที่เปิดอยู่ = เทาอ่อน (เดิมเป็น "ขาวบนพื้นเทา" — พอพื้นเป็นขาว
+                        // ก็หายไปทั้งอัน มองไม่ออกว่าตอนนี้อยู่หน้าไหน)
                         active
-                          ? "bg-white text-slate-900 hairline-ring dark:bg-white/10 dark:text-white"
+                          ? "bg-slate-100 text-slate-900 dark:bg-white/10 dark:text-white"
                           : "text-slate-600 hover:bg-black/[0.04] hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
                       )}
                     >
@@ -163,7 +168,7 @@ export function Sidebar({
               {me.name?.charAt(0).toUpperCase() ?? "?"}
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-xl bg-white p-3 hairline-ring dark:bg-white/5">
+            <div className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 hairline-ring dark:bg-white/5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
                 {me.name?.charAt(0).toUpperCase() ?? "?"}
               </div>

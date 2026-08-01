@@ -142,15 +142,25 @@
   --color-green-900: #10462f;
   --color-green-950: #08271a;
 
-  /* Surface — Apple-style soft neutral page, pure white surface */
-  --color-bg: #f5f5f7;
+  /* ============================================================
+     พื้นผิว — พื้นหน้าขาวล้วน (เบสสั่ง 2026-08-01 "พื้นหลังเว็บเป็นสีขาวไปเลย")
+
+     ของเดิมพื้นหน้าเป็นเทาอ่อน #f5f5f7 แล้วการ์ดขาวลอยขึ้นมา — "ความลึก" ของทั้งระบบ
+     มาจากพื้นเทาตัวนั้นตัวเดียว · พอพื้นเป็นขาว การ์ดขาวจะกลืนหายไปทันที
+     → ย้ายความลึกไปไว้ที่ **เส้นขอบ** แทน (ทางเดียวกับ GitHub/Notion/Stripe)
+       และของที่ "จมลงไป" (หัวตาราง · กล่องย่อยในการ์ด · เมนูที่เลือกอยู่)
+       เปลี่ยนจาก "ขาวกว่าพื้น" เป็น "เทากว่าพื้น"
+
+     ห้ามเอาพื้นเทากลับมาโดยไม่ลดความเข้มขอบพร้อมกัน — จะได้ขอบหนาเกินบนพื้นเทา
+     ============================================================ */
+  --color-bg: #ffffff;
   --color-surface: #ffffff;
   --color-surface-muted: #fafafb;
-  --color-surface-sunken: #f0f0f3;
+  --color-surface-sunken: #f2f2f4;
 
-  /* Border — barely-there hairlines */
-  --color-border: #e5e5e7;
-  --color-border-subtle: #ececef;
+  /* Border — ยังเป็นเส้นบาง แต่ต้องเห็น เพราะไม่มีพื้นเทาช่วยแยกการ์ดออกจากพื้นแล้ว */
+  --color-border: #dedee1;
+  --color-border-subtle: #e8e8ea;
 
   /* Text */
   --color-text: #1d1d1f;
@@ -173,13 +183,20 @@
 }
 
 .dark {
-  --color-bg: #000000;
-  --color-surface: #1c1c1e;
-  --color-surface-muted: #2c2c2e;
-  --color-surface-sunken: #18181a;
+  /* โหมดมืด = ดำเทา ไม่ใช่ดำสนิท (เบสสั่ง 2026-08-01) — เดิม #000000
+     พื้นสว่างขึ้น → การ์ดต้องสว่างตามเพื่อให้ยัง "ลอย" อยู่เหนือพื้น
+     ค่าที่เลือกวางคร่อมบันได slate ที่ระบบ hardcode ไว้อยู่แล้ว จึงเข้าที่ทั้งชุด:
+       slate-950 #101012  ช่องกรอก  → จมสุด
+       slate-900 #1d1d1f  พื้นจมในการ์ด → เข้มกว่าการ์ด (ของเดิมเท่ากับการ์ดพอดี จึงมองไม่เห็น)
+       การ์ด     #252528
+       slate-800 #2a2a2e  พื้นตอนชี้/เน้น → สว่างกว่าการ์ด */
+  --color-bg: #1a1a1c;
+  --color-surface: #252528;
+  --color-surface-muted: #2e2e31;
+  --color-surface-sunken: #151517;
 
-  --color-border: #2c2c2e;
-  --color-border-subtle: #232325;
+  --color-border: #34343a;
+  --color-border-subtle: #2b2b2f;
 
   --color-text: #f5f5f7;
   --color-text-muted: #a1a1a6;
@@ -281,13 +298,15 @@ a,
    การ์ดมาตรฐาน (ก้อน 6 / ทิศ A) — เงานุ่มลอย + ring 0.5px แทนเส้นขอบแข็ง
    ใช้แทน `border border-slate-200 bg-white` ทั่วระบบ ให้ทุกการ์ดลุคเดียวกัน
    ============================================================ */
+/* ขอบเข้มขึ้นจาก 0.06 (เบสสั่งพื้นขาว 2026-08-01) — เดิมการ์ดขาวเด่นได้เพราะพื้นเทา
+   ขอบเป็นแค่ของประดับ · ตอนนี้ขอบคือสิ่งเดียวที่บอกว่าการ์ดเริ่มตรงไหนจบตรงไหน */
 .card-surface {
   background-color: var(--color-surface);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.095);
 }
 .dark .card-surface {
   background-color: var(--color-surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 /* ยกเงาเมื่อ hover — สำหรับการ์ดที่กดได้ */
 .card-surface-hover {
@@ -317,16 +336,18 @@ a,
    dark:border-slate-800/60 dark:bg-slate-900` เพิ่มเอง แล้วเขียนไม่ตรงกัน
    บางจุดลืมเขียน = ไม่มีขอบเลย · ตอนนี้ครบในตัวเดียว ห้ามใส่ขอบ/พื้นซ้ำ
    (ทำแบบเดียวกับ .card-surface ที่รวมขอบไว้ในเงาอยู่แล้ว) */
+/* กล่องลอยบนพื้นขาว = ขาวบนขาว — ขอบกับเงาต้องแรงกว่าการ์ดธรรมดา
+   ไม่งั้นเมนู/กล่องเด้งจะดูเหมือน "เนื้อหาไหลต่อ" ไม่ใช่ของที่ลอยทับอยู่ */
 .overlay-surface {
   background-color: var(--color-surface);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.07), 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.11), 0 20px 60px rgba(0, 0, 0, 0.16);
 }
 .dark .overlay-surface {
-  background-color: var(--color-surface);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09), 0 20px 60px rgba(0, 0, 0, 0.5);
+  background-color: var(--color-surface-muted);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 .hairline-ring {
-  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.09);
 }
 /* จุดสถานะ "กำลังใช้งาน" — เรืองแสงรอบจุด ไม่ใช่เงากล่อง จึงแยกออกมา */
 .dot-glow {
