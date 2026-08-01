@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { SegmentedControl } from "@/components/ui/segmented";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
@@ -17,6 +16,7 @@ import { Package, RefreshCw, Cloud, Settings } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 
 import { SyncDialog } from "@/components/sync-dialog";
+import { FilterChip } from "@/components/ui/filter-chip";
 
 // ─── Product Group Tabs ─────────────────────────────────────
 const itemTypes = [
@@ -108,11 +108,18 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <SegmentedControl
-        value={itemType}
-        onChange={handleItemTypeChange}
-        options={itemTypes.map((g) => ({ value: g.value, label: g.label }))}
-      />
+      {/* ≤5 ตัวเลือก → ชิป (กติกาเดียวกับ /quotations, /notifications · ดู tokens.ts) */}
+      <div className="flex flex-wrap gap-2">
+        {itemTypes.map((g) => (
+          <FilterChip
+            key={g.value}
+            selected={itemType === g.value}
+            onClick={() => handleItemTypeChange(g.value)}
+          >
+            {g.label}
+          </FilterChip>
+        ))}
+      </div>
 
       {/* แถบเครื่องมือของกลาง — จุดตัดวัดจากความกว้างพื้นที่เนื้อหาจริง (@container)
           ไม่ใช่ความกว้างหน้าต่าง เลยใช้ @2xl: แทน sm: ที่เขียนไว้เดิม */}

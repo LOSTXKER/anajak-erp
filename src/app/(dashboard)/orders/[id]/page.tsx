@@ -59,6 +59,7 @@ import {
   OrderNextStepBanner,
   OrderMoneyTab,
 } from "@/components/orders/detail";
+import { RecordNotFound } from "@/components/ui/record-not-found";
 
 
 // ============================================================
@@ -324,7 +325,8 @@ function OrderDetailContent({
   // ----------------------------------------------------------
   if (isLoading) return <OrderDetailSkeleton />;
   if (isError) return <QueryError onRetry={() => refetch()} />;
-  if (!order) return null;
+  if (!order)
+    return <RecordNotFound what="ออเดอร์ใบนี้" backHref="/orders" backLabel="กลับไปรายการออเดอร์" />;
 
   // ----------------------------------------------------------
   // Derived data

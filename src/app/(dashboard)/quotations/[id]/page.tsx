@@ -30,6 +30,7 @@ import {
   Link2,
   Undo2,
 } from "lucide-react";
+import { RecordNotFound } from "@/components/ui/record-not-found";
 
 // ============================================================
 // Loading skeleton
@@ -164,7 +165,8 @@ export default function QuotationDetailPage({
   }
   if (isLoading) return <QuotationDetailSkeleton />;
   if (isError) return <QueryError onRetry={() => refetch()} />;
-  if (!quotation) return null;
+  if (!quotation)
+    return <RecordNotFound what="ใบเสนอราคาใบนี้" backHref="/quotations" backLabel="กลับไปรายการใบเสนอราคา" />;
 
   // ----------------------------------------------------------
   // Derived data

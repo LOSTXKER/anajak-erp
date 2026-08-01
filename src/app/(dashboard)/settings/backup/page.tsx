@@ -67,12 +67,16 @@ export default function BackupSettingsPage() {
   }
 
   const header = (
-    <PageHeader title="สำรองข้อมูล" description="ดาวน์โหลดข้อมูลทั้งระบบเก็บไว้เอง" />
+    <PageHeader
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
+      title="สำรองข้อมูล"
+      description="ดาวน์โหลดข้อมูลทั้งระบบเก็บไว้เอง"
+    />
   );
 
   if (meQuery.isLoading) {
     return (
-      <div className="space-y-5">
+      <div className="mx-auto max-w-2xl space-y-5">
         {header}
         <Skeleton className="h-48 rounded-2xl" />
       </div>
@@ -81,7 +85,7 @@ export default function BackupSettingsPage() {
 
   if (meQuery.isError) {
     return (
-      <div className="space-y-5">
+      <div className="mx-auto max-w-2xl space-y-5">
         {header}
         <QueryError
           message="ตรวจสอบสิทธิ์สำรองข้อมูลไม่สำเร็จ"
@@ -93,7 +97,7 @@ export default function BackupSettingsPage() {
 
   if (!canExport) {
     return (
-      <div className="space-y-5">
+      <div className="mx-auto max-w-2xl space-y-5">
         {header}
         <Card>
           <CardContent className="py-8 text-center text-sm text-slate-500">
@@ -105,7 +109,7 @@ export default function BackupSettingsPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-2xl space-y-5">
       {header}
 
       <Card>

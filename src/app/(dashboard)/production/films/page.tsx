@@ -12,7 +12,6 @@ import { Field } from "@/components/ui/field";
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatusLabel } from "@/components/ui/status-label";
-import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
@@ -29,6 +28,7 @@ import { formatDate, cn } from "@/lib/utils";
 import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { permAllows } from "@/lib/permissions";
 import { Film, Printer, Loader2, Hand } from "lucide-react";
+import { FilterChip } from "@/components/ui/filter-chip";
 
 // คลังฟิล์มพร้อมรีด (FLOW-REDESIGN ก้อน 2) — ฟิล์มพิมพ์เผื่อจากรอบพิมพ์
 // "ลายไหน ของลูกค้าไหน เหลือกี่ชิ้น" — ลูกค้าสั่งซ้ำเช็คที่นี่ก่อน รีดได้เลยไม่ต้องพิมพ์ใหม่
@@ -90,14 +90,11 @@ export default function FilmStockPage() {
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
         />
         <ToolbarGroup className="shrink-0">
-          <Switch checked={includeEmpty} onCheckedChange={setIncludeEmpty} />
-          <button
-            type="button"
-            onClick={() => setIncludeEmpty(!includeEmpty)}
-            className="text-sm text-slate-600 dark:text-slate-300"
-          >
+          {/* เดิมเป็นสวิตช์ + ปุ่มข้อความแยกกัน = ตัวกรองแบบที่ 5 ของระบบ
+              เปลี่ยนเป็นชิปเปิด/ปิด ให้เหมือนหน้ารายการอื่น (กติกาใน tokens.ts) */}
+          <FilterChip selected={includeEmpty} onClick={() => setIncludeEmpty(!includeEmpty)}>
             แสดงที่หมดแล้ว
-          </button>
+          </FilterChip>
         </ToolbarGroup>
       </Toolbar>
 

@@ -9,7 +9,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { SettingsPageHeader } from "@/components/settings-page-header";
 import type { CostRates } from "@/lib/cost-rates";
 import { permAllows } from "@/lib/permissions";
 import {
@@ -18,6 +17,7 @@ import {
   estimateFilmCost,
   estimateLaborOverhead,
 } from "@/lib/cost-rates";
+import { PageHeader } from "@/components/page-header";
 
 // เรตต้นทุนกลาง (FLOW-REDESIGN ก้อน 2) — เข็มทิศกำไรขั้นต้นตอนตีราคา ไม่ใช่บัญชีจริง
 // PERM: อ่าน = see_finance · แก้ = manage_settings (ตรง settings.costRates/setCostRates)
@@ -88,10 +88,10 @@ export default function CostRatesSettingsPage() {
   const sampleLaborOverhead = estimateLaborOverhead(SAMPLE_QTY, draft);
 
   const header = (
-    <SettingsPageHeader
+    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="เรตต้นทุนกลาง"
       description="ตั้งครั้งเดียว ระบบคูณเองทุกออเดอร์ — ใช้ดูกำไรขั้นต้นโดยประมาณตอนตีราคา ไม่ใช่บัญชีจริง"
-    />
+     />
   );
 
   if (meQuery.isLoading) {

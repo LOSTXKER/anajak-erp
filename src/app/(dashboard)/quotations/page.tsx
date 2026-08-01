@@ -7,7 +7,6 @@ import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
-import { FilterChip } from "@/components/ui/filter-chip";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
@@ -21,6 +20,7 @@ import { PageHeader } from "@/components/page-header";
 import { Plus, ClipboardList, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
+import { Select } from "@/components/ui/select";
 
 const QUOTATION_STATUSES = [
   { value: "", label: "ทั้งหมด" },
@@ -179,18 +179,23 @@ function QuotationsPageContent() {
             );
           }}
         />
-        <ToolbarGroup className="flex-wrap">
-          {QUOTATION_STATUSES.map((f) => (
-            <FilterChip
-              key={f.value}
-              selected={status === f.value}
-              onClick={() => {
-                replaceListState({ status: f.value || null, page: null });
-              }}
-            >
-              {f.label}
-            </FilterChip>
-          ))}
+        <ToolbarGroup>
+          {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}
+          <Select
+            shape="pill"
+            className="@2xl:w-52"
+            aria-label="กรองตามสถานะใบเสนอราคา"
+            value={status}
+            onChange={(e) =>
+              replaceListState({ status: e.target.value || null, page: null })
+            }
+          >
+            {QUOTATION_STATUSES.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </Select>
         </ToolbarGroup>
       </Toolbar>
 

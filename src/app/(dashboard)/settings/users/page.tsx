@@ -20,7 +20,6 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { QueryError } from "@/components/ui/query-error";
-import { SettingsPageHeader } from "@/components/settings-page-header";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +31,7 @@ import { KeyRound, Plus, ShieldCheck, Users } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { Alert } from "@/components/ui/alert";
+import { PageHeader } from "@/components/page-header";
 
 export default function UsersSettingsPage() {
   const utils = trpc.useUtils();
@@ -123,10 +123,10 @@ export default function UsersSettingsPage() {
     setActiveMutation.error?.message;
 
   const header = (
-    <SettingsPageHeader
+    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการผู้ใช้"
       description="บัญชีพนักงาน สิทธิ์การใช้งาน และรหัสผ่าน"
-    />
+     />
   );
 
   if (meQuery.isLoading) {
