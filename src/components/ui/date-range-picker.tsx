@@ -194,10 +194,18 @@ export function DateRangePicker({
           <Button
             variant="outline"
             aria-label={label ? `ช่วงวันที่: ${label}` : "เลือกช่วงวันที่"}
-            className={cn("font-medium", label && "pr-2", className)}
+            className={cn(
+              "font-medium",
+              label && "pr-2",
+              // มีช่วงวันที่เลือกอยู่ = กรองอยู่ ต้องเห็นตั้งแต่ยังไม่กดเข้าไป
+              // ใช้สีชุดเดียวกับปุ่ม "ตัวกรอง" ที่ยืนข้างกัน (เบสทักว่าสีไม่เหมือนกัน 2026-08-01)
+              label &&
+                "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300",
+              className,
+            )}
           >
             <CalendarRange className="shrink-0" />
-            <span className={cn("truncate", !label && "text-slate-400")}>
+            <span className="truncate">
               {label ?? placeholder}
             </span>
           </Button>
@@ -210,7 +218,7 @@ export function DateRangePicker({
             type="button"
             aria-label="ล้างช่วงวันที่"
             onClick={() => onChange("", "")}
-            className={cn(CONTROL_H, "-ml-7 inline-flex w-7 items-center justify-center rounded-full text-slate-400 transition-colors hover:text-slate-700 dark:hover:text-slate-200")}
+            className={cn(CONTROL_H, "-ml-7 inline-flex w-7 items-center justify-center rounded-full text-current opacity-60 transition-opacity hover:opacity-100")}
           >
             <X className="h-3.5 w-3.5" />
           </button>
