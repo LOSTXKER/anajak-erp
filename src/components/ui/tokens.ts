@@ -52,14 +52,19 @@ export const FOCUS_FIELD =
   "focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/15 dark:focus-visible:border-blue-400";
 
 /** ของที่ "กดแล้วเกิดอะไรขึ้น" — ปุ่ม · ชิป · สวิตช์ · ปุ่มในแถบสลับ · แถวที่กดได้
- *  วงแหวนชัดกว่า + เว้นช่องว่างรอบตัว เพราะไม่มีเคอร์เซอร์ช่วยบอกว่าอยู่ตรงไหน */
+ *  วงแหวนชัดกว่า + เว้นช่องว่างรอบตัว เพราะไม่มีเคอร์เซอร์ช่วยบอกว่าอยู่ตรงไหน
+ *
+ *  audit สี 2026-08-02 แก้ 2 เรื่อง (ครอบปุ่มทั้งระบบ 347 จุด):
+ *  ① วงแหวนเคยเป็นสีน้ำเงินจาง 40% — คนที่ใช้คีย์บอร์ดไล่ Tab แทบไม่เห็นว่าอยู่ปุ่มไหน
+ *  ② ช่องว่างรอบวงแหวนเคยล็อกเป็นขาว/ดำสนิทตายตัว — พอพื้นเว็บเปลี่ยนเป็นขาว/ดำเทา
+ *     โหมดมืดเลยได้ "แถบดำคาด" รอบปุ่ม · ผูกกับสีพื้นจริงแทน จะได้เปลี่ยนตามทุกครั้ง */
 export const FOCUS_BUTTON =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
 
 /** ของที่กดได้แต่เต็มพื้นที่จนไม่มีที่ให้เว้นขอบ — หัวคอลัมน์ตาราง · แถวในรายการ
  *  ใช้วงแหวนด้านใน เพราะ ring-offset จะโดนขอบตารางบังจนมองไม่เห็นว่าโฟกัสอยู่ไหน */
 export const FOCUS_INSET =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500";
 
 /** ช่องที่กรอกผิด — วงแหวนแดงแทนน้ำเงิน (ใช้คู่กับ border-red-* บนตัวช่อง)
  *  ของเดิมเขียนเอง 4 แบบไม่ตรงกัน: ring-red-400 · ring-red-500 · ring-red-500/40 · ring-amber-400

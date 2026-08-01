@@ -271,10 +271,10 @@ export default function DesignApprovalPage({
                   อนุมัติแบบ
                 </Button>
               </div>
+              {/* ลูกค้ากดอนุมัติแล้วไม่สำเร็จ ต้องเห็นชัด — เดิมเป็นบรรทัดแดงจางๆ
+                  ที่มองข้ามได้ง่าย แล้วลูกค้าจะนึกว่าอนุมัติไปแล้ว (audit สี 2026-08-02) */}
               {approve.error && (
-                <p className="text-center text-sm text-red-500">
-                  เกิดข้อผิดพลาด กรุณาลองอีกครั้ง
-                </p>
+                <Alert variant="error">เกิดข้อผิดพลาด กรุณาลองอีกครั้ง</Alert>
               )}
             </CardContent>
           </Card>

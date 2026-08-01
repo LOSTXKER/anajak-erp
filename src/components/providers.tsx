@@ -12,7 +12,11 @@ import superjson from "@/lib/superjson";
 import { OVERLAY_PANEL } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
-const PUBLIC_LIGHT_PREFIXES = ["/approve", "/upload", "/status", "/quote", "/job"];
+// หน้าที่บังคับโหมดสว่างเสมอ — หน้าที่ลูกค้าเปิด และ **หน้าเอกสารพิมพ์**
+// (/print เพิ่ม 2026-08-02 จาก audit สี: เอกสารเป็นกระดาษ A4 ขาวบนโต๊ะเทาอยู่แล้ว
+//  แต่ปุ่มกับป้ายในหน้ากลับตามธีมเครื่อง — เครื่องที่ตั้งโหมดมืดจะได้ปุ่มดำหลุดชุด
+//  และเสี่ยงพิมพ์ออกมาเป็นแถบดำเปลืองหมึก)
+const PUBLIC_LIGHT_PREFIXES = ["/approve", "/upload", "/status", "/quote", "/job", "/print"];
 
 function isPublicLightPath(pathname: string): boolean {
   return PUBLIC_LIGHT_PREFIXES.some(
