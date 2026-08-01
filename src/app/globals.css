@@ -277,28 +277,6 @@ a,
   font-variant-numeric: tabular-nums;
 }
 
-/* Apple-style focus ring */
-.focus-ring {
-  outline: none;
-}
-.focus-ring:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
-  outline-offset: 2px;
-}
-
-/* Frosted-glass surface */
-.glass {
-  background-color: color-mix(in srgb, var(--color-surface) 72%, transparent);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  backdrop-filter: saturate(180%) blur(20px);
-}
-
-/* Subtle pop on hover for interactive surfaces */
-.surface-hover {
-  transition: background-color 150ms ease, border-color 150ms ease,
-    transform 150ms ease;
-}
-
 /* ============================================================
    การ์ดมาตรฐาน (ก้อน 6 / ทิศ A) — เงานุ่มลอย + ring 0.5px แทนเส้นขอบแข็ง
    ใช้แทน `border border-slate-200 bg-white` ทั่วระบบ ให้ทุกการ์ดลุคเดียวกัน

@@ -6,11 +6,12 @@ import { toast } from "sonner";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { PageHeader } from "@/components/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
+import { StatusLabel } from "@/components/ui/status-label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -80,15 +81,14 @@ export default function FilmStockPage() {
       />
 
       {/* ── ค้นหา + toggle แสดงที่หมดแล้ว — อยู่นอก list area กัน focus หลุดตอนโหลด ── */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <Toolbar>
         <SearchInput
           placeholder="ค้นหาลาย / ชื่อลูกค้า / เลขออเดอร์..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          containerClassName="flex-1"
-          className="h-11"
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
         />
-        <div className="flex min-h-[44px] shrink-0 items-center gap-2">
+        <ToolbarGroup className="shrink-0">
           <Switch checked={includeEmpty} onCheckedChange={setIncludeEmpty} />
           <button
             type="button"
@@ -97,8 +97,8 @@ export default function FilmStockPage() {
           >
             แสดงที่หมดแล้ว
           </button>
-        </div>
-      </div>
+        </ToolbarGroup>
+      </Toolbar>
 
       {listQuery.isError ? (
         <QueryError onRetry={() => listQuery.refetch()} />
@@ -184,9 +184,9 @@ export default function FilmStockPage() {
                         </span>
                       </span>
                     ) : (
-                      <Badge size="sm" className="opacity-60">
-                        หมดแล้ว
-                      </Badge>
+                      /* ฟิล์มหมด = ปลายทางของรายการนี้ (ค่าเปลี่ยนตามการหยิบใช้)
+                         → เป็นสถานะ ใช้ป้ายจุดสีภาษาเดียวกับทั้งเว็บ · items-end ให้ชิดขวาตามคอลัมน์ */
+                      <StatusLabel label="หมดแล้ว" className="items-end" />
                     )}
                   </DataTable.Td>
                   <DataTable.Td className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
@@ -221,11 +221,7 @@ export default function FilmStockPage() {
                   <span className="text-base font-semibold text-slate-900 dark:text-white">
                     {item.label}
                   </span>
-                  {item.qty === 0 && (
-                    <Badge size="sm" className="opacity-60">
-                      หมดแล้ว
-                    </Badge>
-                  )}
+                  {item.qty === 0 && <StatusLabel label="หมดแล้ว" />}
                 </div>
                 {item.note && (
                   <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{item.note}</p>

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { APPROVAL_STATUS_LABELS } from "@/lib/status-config";
 import {
@@ -243,6 +244,9 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
 
 function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
   const attention = attentionLabel(item.attention);
+  // ติดปัญหา/เลยกำหนด = ปลายทางของแถวนี้ (ไม่เดินต่อเองจนกว่าจะมีคนแตะ) → ย้อมข้อความ
+  // ส่วน "ใกล้กำหนด" ยังเป็นระหว่างทาง ปล่อยให้จุดสีอำพันเป็นตัวบอกพอ
+  const urgentAttention = item.attention === "blocked" || item.attention === "overdue";
   return (
     <li>
       <Link
@@ -254,17 +258,16 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
         )}
       >
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
             <p className="min-w-0 truncate text-sm font-medium text-slate-900 dark:text-white">
               {item.title}
             </p>
             {attention && (
-              <Badge
-                variant={item.attention === "blocked" || item.attention === "overdue" ? "destructive" : "warning"}
-                size="sm"
-              >
-                {attention}
-              </Badge>
+              <StatusLabel
+                label={attention}
+                tone={urgentAttention ? "danger" : "warning"}
+                emphasize={urgentAttention}
+              />
             )}
           </div>
           {item.description && (
@@ -273,11 +276,14 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
             </p>
           )}
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
-            {/* badge ประเภทงานอยู่ในแถว meta (flex-wrap) เพื่อให้เห็นทุกขนาดจอ — ห้ามซ่อนบนมือถือ */}
+            {/* ป้ายสถานะของงานอยู่ในแถว meta (flex-wrap) เพื่อให้เห็นทุกขนาดจอ — ห้ามซ่อนบนมือถือ */}
             {item.badge && (
-              <Badge variant={item.badgeTone ?? "default"} size="sm">
-                {item.badge}
-              </Badge>
+              <StatusLabel
+                label={item.badge}
+                tone={toneFromBadgeVariant(item.badgeTone)}
+                // แดง = บิลเลยกำหนด ซึ่งเป็นปลายทางที่ต้องสะดุดตาตอนสแกน
+                emphasize={item.badgeTone === "destructive"}
+              />
             )}
             {item.deadline && (
               <span

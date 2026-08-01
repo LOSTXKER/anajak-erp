@@ -8,7 +8,7 @@ import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { StatCard } from "@/components/ui/stat-card";
@@ -254,9 +254,15 @@ export default function OutsourcePage() {
                         {o.vendor.name} · {o.quantity} ชิ้น · {order.customer.name}
                       </p>
                     </div>
-                    <Badge variant={status.variant} size="sm" className="shrink-0">
-                      {status.label}
-                    </Badge>
+                    {/* จุดสี + ข้อความ (ภาษาเดียวกับหน้าอื่นทั้งเว็บ) —
+                        ย้อมข้อความเฉพาะสถานะปลายทางคือ QC จบรอบ ผ่าน/ไม่ผ่าน
+                        ระหว่างทางปล่อยให้จุดสีบอก ไม่งั้นคิวจะกลายเป็นรุ้ง */}
+                    <StatusLabel
+                      label={status.label}
+                      tone={toneFromBadgeVariant(status.variant)}
+                      emphasize={o.status === "QC_PASSED" || o.status === "QC_FAILED"}
+                      className="shrink-0"
+                    />
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">

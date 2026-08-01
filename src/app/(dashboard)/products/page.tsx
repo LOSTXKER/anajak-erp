@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { SearchInput } from "@/components/ui/search-input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -113,9 +114,11 @@ export default function ProductsPage() {
         options={itemTypes.map((g) => ({ value: g.value, label: g.label }))}
       />
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      {/* แถบเครื่องมือของกลาง — จุดตัดวัดจากความกว้างพื้นที่เนื้อหาจริง (@container)
+          ไม่ใช่ความกว้างหน้าต่าง เลยใช้ @2xl: แทน sm: ที่เขียนไว้เดิม */}
+      <Toolbar>
         <SearchInput
-          containerClassName="flex-1"
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อสินค้า, SKU..."
           value={search}
           onChange={(e) => {
@@ -123,23 +126,26 @@ export default function ProductsPage() {
             setPage(1);
           }}
         />
-        <NativeSelect
-          shape="pill"
-          aria-label="กรองประเภทสินค้า"
-          value={productType}
-          onChange={(e) => {
-            setProductType(e.target.value);
-            setPage(1);
-          }}
-          className="sm:w-44"
-        >
-          {productTypes.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </NativeSelect>
-      </div>
+
+        <ToolbarGroup>
+          <NativeSelect
+            shape="pill"
+            aria-label="กรองประเภทสินค้า"
+            value={productType}
+            onChange={(e) => {
+              setProductType(e.target.value);
+              setPage(1);
+            }}
+            className="@2xl:w-44"
+          >
+            {productTypes.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </ToolbarGroup>
+      </Toolbar>
 
       {/* ─── Product Grid ────────────────────────────────────── */}
       {isError ? (

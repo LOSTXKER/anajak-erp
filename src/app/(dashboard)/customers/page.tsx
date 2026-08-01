@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Section } from "@/components/ui/section";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -425,10 +426,10 @@ function CustomersPageContent() {
         </Section>
       )}
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <Toolbar>
         <SearchInput
           ref={searchInputRef}
-          containerClassName="flex-1"
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อ, บริษัท, โทร, อีเมล..."
           defaultValue={search}
           onChange={(event) => {
@@ -440,22 +441,25 @@ function CustomersPageContent() {
             );
           }}
         />
-        <NativeSelect
-          shape="pill"
-          aria-label="กรองกลุ่มลูกค้า"
-          value={segment}
-          onChange={(event) =>
-            replaceListState({ status: event.target.value || null, page: null })
-          }
-          className="sm:w-44"
-        >
-          {SEGMENT_FILTERS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
-      </div>
+
+        <ToolbarGroup>
+          <NativeSelect
+            shape="pill"
+            aria-label="กรองกลุ่มลูกค้า"
+            value={segment}
+            onChange={(event) =>
+              replaceListState({ status: event.target.value || null, page: null })
+            }
+            className="@2xl:w-44"
+          >
+            {SEGMENT_FILTERS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </ToolbarGroup>
+      </Toolbar>
 
       <ResponsiveList
         items={customerItems}

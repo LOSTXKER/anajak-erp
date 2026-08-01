@@ -163,7 +163,7 @@ export function splitVatFromGross(
 }
 
 // วันที่ตามปฏิทินไทยของ instant นั้น เก็บเป็น UTC midnight — convention เดียวกับ
-// dueDate ที่มาจาก <input type="date"> (new Date("YYYY-MM-DD"))
+// dueDate ที่มาจากฟอร์ม (DatePicker ส่ง "YYYY-MM-DD" → new Date("YYYY-MM-DD"))
 export function thaiDateUtcMidnight(date = new Date()): Date {
   const day = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Bangkok",
@@ -192,7 +192,7 @@ export interface InvoiceSuggestion {
   amount: number; // ฐานภาษี (ก่อน VAT)
   tax: number; // VAT
   total: number; // ยอดรวมบิล = amount + tax
-  dueDate: string | null; // "YYYY-MM-DD" สำหรับ <input type="date">
+  dueDate: string | null; // "YYYY-MM-DD" — รูปแบบที่ DatePicker รับ/ส่ง
   remaining: number | null; // คงเหลือวางบิลได้ของกองนั้น (รวม VAT) · null = ไม่มีเพดาน
   taxRate: number; // อัตรา VAT ของออเดอร์ — UI ใช้คำนวณภาษีใหม่เมื่อผู้ใช้แก้ยอด
   // ใบลดหนี้ที่ "ยังไม่ผูกใบเดิม" (legacy/ผ่าน API เก่า) — ระบบหักให้ไม่ได้ UI ต้องเตือน

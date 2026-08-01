@@ -9,7 +9,8 @@ import { RECEIVABLE_TYPES } from "./receivables";
 // · maybeSweepOverdue ใน billing.stats (กวาดอัตโนมัติแบบ throttle ระหว่างยังไม่ deploy cron)
 
 // "เลยกำหนด" = พ้นสิ้นวันไทยของ dueDate แล้ว — dueDate เก็บเป็น UTC midnight ของวันตามปฏิทิน
-// (จาก <input type="date">) จึงเทียบกับ UTC midnight ของวันนี้(ไทย): ครบกำหนดวันนี้ยังไม่ถือว่าเลย
+// (ฝั่งหน้าเว็บใช้ DatePicker ของเรา ส่งค่าเป็น "YYYY-MM-DD" → new Date() ตีเป็น UTC midnight)
+// จึงเทียบกับ UTC midnight ของวันนี้(ไทย): ครบกำหนดวันนี้ยังไม่ถือว่าเลย
 export function overdueCutoffUtc(now = new Date()): Date {
   return thaiDateUtcMidnight(now);
 }

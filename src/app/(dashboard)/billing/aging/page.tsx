@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchInput } from "@/components/ui/search-input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { TablePagination } from "@/components/ui/table-pagination";
 import {
@@ -268,10 +269,13 @@ function AgingPageContent() {
         <StatCard title="ลูกหนี้" value={data?.rows.length ?? 0} icon={Users} caption="ราย" />
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      {/* แถบเครื่องมือของกลาง — จุดตัดวัดจากความกว้างพื้นที่เนื้อหาจริง (@container)
+          ไม่ใช่ความกว้างหน้าต่าง เลยใช้ @2xl: แทน sm: ที่เขียนไว้เดิม
+          ตัวกรองช่วงอายุหนี้ + การเรียง อยู่กลุ่มเดียวกัน ห้ามแตกแถวคั่นกลาง */}
+      <Toolbar>
         <SearchInput
           ref={searchInputRef}
-          containerClassName="flex-1"
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อลูกค้าหรือบริษัท..."
           defaultValue={search}
           onChange={(event) => {
@@ -283,37 +287,42 @@ function AgingPageContent() {
             );
           }}
         />
-        <NativeSelect
-          shape="pill"
-          aria-label="กรองช่วงอายุหนี้"
-          value={status}
-          onChange={(event) =>
-            replaceListState({ status: event.target.value || null, page: null })
-          }
-          className="sm:w-48"
-        >
-          {AGING_STATUS_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
-        <NativeSelect
-          shape="pill"
-          aria-label="เรียงรายการลูกหนี้"
-          value={sort}
-          onChange={(event) =>
-            replaceListState({ sort: event.target.value, page: null })
-          }
-          className="sm:w-48"
-        >
-          {AGING_SORT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
-      </div>
+
+        {/* flex-wrap: จอมือถือให้ช่องเลือกซ้อนกันเต็มความกว้างเหมือนเดิม —
+            ถ้าปล่อยเรียงคู่กัน ป้ายยาวอย่าง "ยอดเลยกำหนดมากสุด" จะโดนตัดจนอ่านไม่ออก */}
+        <ToolbarGroup className="flex-wrap">
+          <NativeSelect
+            shape="pill"
+            aria-label="กรองช่วงอายุหนี้"
+            value={status}
+            onChange={(event) =>
+              replaceListState({ status: event.target.value || null, page: null })
+            }
+            className="@2xl:w-48"
+          >
+            {AGING_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+          <NativeSelect
+            shape="pill"
+            aria-label="เรียงรายการลูกหนี้"
+            value={sort}
+            onChange={(event) =>
+              replaceListState({ sort: event.target.value, page: null })
+            }
+            className="@2xl:w-48"
+          >
+            {AGING_SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </ToolbarGroup>
+      </Toolbar>
 
       <ResponsiveList
         items={visibleRows}

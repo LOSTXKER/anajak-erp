@@ -363,7 +363,7 @@ export async function syncProductPage(
               skipDuplicates: true,
             });
             result.variantsCreated += created.count;
-          } catch (bErr) {
+          } catch {
             // If batch fails, fall back to individual creates
             for (const nv of newVariants) {
               try {

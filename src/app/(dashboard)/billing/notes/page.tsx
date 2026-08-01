@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar } from "@/components/ui/toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -49,6 +50,28 @@ export default function BillingNotesPage() {
 function positivePage(value: string | null) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
+/* สถานะใบวางบิล = จุดสี + ข้อความ ภาษาเดียวกับทั้งเว็บ (เดิมเป็นแคปซูล <Badge>)
+   ยกเลิก/รับครบแล้ว เป็นสถานะปลายทาง จึงย้อมข้อความให้สะดุดตาตอนสแกนตาราง
+   ส่วน "ใช้งาน" เป็นระหว่างทาง คงข้อความเทาเข้ม ปล่อยให้จุดสีเป็นตัวบอก
+   เขียนเป็นตัวช่วยตัวเดียวเพราะตาราง (เดสก์ท็อป) กับการ์ด (มือถือ) ต้องพูดตรงกันเสมอ */
+function NoteStatus({
+  isVoided,
+  outstanding,
+  className,
+}: {
+  isVoided: boolean;
+  outstanding: number;
+  className?: string;
+}) {
+  if (isVoided) {
+    return <StatusLabel label="ยกเลิก" tone="danger" emphasize className={className} />;
+  }
+  if (outstanding === 0) {
+    return <StatusLabel label="รับครบแล้ว" tone="success" emphasize className={className} />;
+  }
+  return <StatusLabel label="ใช้งาน" tone="accent" className={className} />;
 }
 
 function BillingNotesPageContent() {
@@ -189,19 +212,22 @@ function BillingNotesPageContent() {
         }
       />
 
-      <SearchInput
-        ref={searchInputRef}
-        placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
-        defaultValue={search}
-        onChange={(event) => {
-          if (searchTimer.current) clearTimeout(searchTimer.current);
-          const value = event.target.value;
-          searchTimer.current = setTimeout(
-            () => replaceListState({ q: value.trim() || null, page: null }),
-            300
-          );
-        }}
-      />
+      <Toolbar>
+        <SearchInput
+          ref={searchInputRef}
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
+          placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
+          defaultValue={search}
+          onChange={(event) => {
+            if (searchTimer.current) clearTimeout(searchTimer.current);
+            const value = event.target.value;
+            searchTimer.current = setTimeout(
+              () => replaceListState({ q: value.trim() || null, page: null }),
+              300
+            );
+          }}
+        />
+      </Toolbar>
 
       <ResponsiveList
         items={data?.notes}
@@ -252,13 +278,10 @@ function BillingNotesPageContent() {
                     {note.isVoided ? "—" : formatCurrency(note.currentOutstanding)}
                   </DataTable.Td>
                   <DataTable.Td>
-                    {note.isVoided ? (
-                      <Badge variant="default">ยกเลิก</Badge>
-                    ) : note.currentOutstanding === 0 ? (
-                      <Badge variant="success">รับครบแล้ว</Badge>
-                    ) : (
-                      <Badge variant="accent">ใช้งาน</Badge>
-                    )}
+                    <NoteStatus
+                      isVoided={note.isVoided}
+                      outstanding={note.currentOutstanding}
+                    />
                   </DataTable.Td>
                   <DataTable.Td>
                     <div className="flex items-center justify-end gap-1.5">
@@ -306,13 +329,11 @@ function BillingNotesPageContent() {
                       {note.customer.company || note.customer.name}
                     </p>
                   </div>
-                  {note.isVoided ? (
-                    <Badge variant="default">ยกเลิก</Badge>
-                  ) : note.currentOutstanding === 0 ? (
-                    <Badge variant="success">รับครบแล้ว</Badge>
-                  ) : (
-                    <Badge variant="accent">ใช้งาน</Badge>
-                  )}
+                  <NoteStatus
+                    isVoided={note.isVoided}
+                    outstanding={note.currentOutstanding}
+                    className="shrink-0"
+                  />
                 </div>
 
                 <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">

@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { Badge } from "@/components/ui/badge";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
+import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,6 +29,30 @@ const QUOTATION_STATUSES = [
   { value: "EXPIRED", label: "หมดอายุ" },
   { value: "CONVERTED", label: "แปลงแล้ว" },
 ];
+
+// สถานะปลายทางของใบเสนอ — จบเรื่องแล้ว ไม่ขยับต่อ จึงย้อมข้อความให้สะดุดตาตอนไล่สายตา
+// ที่เหลือ (ฉบับร่าง/ส่งแล้ว) เป็นระหว่างทาง ปล่อยให้จุดสีบอกอย่างเดียว
+const QUOTATION_TERMINAL_STATUSES = new Set([
+  "ACCEPTED",
+  "REJECTED",
+  "EXPIRED",
+  "CONVERTED",
+]);
+
+function QuotationStatusLabel({ status }: { status: string }) {
+  return (
+    <StatusLabel
+      label={
+        QUOTATION_STATUS_LABELS[status as keyof typeof QUOTATION_STATUS_LABELS] ??
+        status
+      }
+      tone={toneFromBadgeVariant(
+        QUOTATION_STATUS_VARIANTS[status as keyof typeof QUOTATION_STATUS_VARIANTS]
+      )}
+      emphasize={QUOTATION_TERMINAL_STATUSES.has(status)}
+    />
+  );
+}
 
 function positivePage(value: string | null) {
   const parsed = Number(value);
@@ -137,10 +162,10 @@ function QuotationsPageContent() {
         }
       />
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <Toolbar>
         <SearchInput
           ref={searchInputRef}
-          containerClassName="flex-1"
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
           defaultValue={search}
           onChange={(e) => {
@@ -152,7 +177,7 @@ function QuotationsPageContent() {
             );
           }}
         />
-        <div className="flex flex-wrap gap-1.5">
+        <ToolbarGroup className="flex-wrap">
           {QUOTATION_STATUSES.map((f) => (
             <FilterChip
               key={f.value}
@@ -164,8 +189,8 @@ function QuotationsPageContent() {
               {f.label}
             </FilterChip>
           ))}
-        </div>
-      </div>
+        </ToolbarGroup>
+      </Toolbar>
 
       <ResponsiveList
         items={data?.quotations}
@@ -211,17 +236,9 @@ function QuotationsPageContent() {
                       {q.title}
                     </p>
                   </div>
-                  <Badge
-                    variant={
-                      QUOTATION_STATUS_VARIANTS[
-                        q.status as keyof typeof QUOTATION_STATUS_VARIANTS
-                      ] ?? "default"
-                    }
-                  >
-                    {QUOTATION_STATUS_LABELS[
-                      q.status as keyof typeof QUOTATION_STATUS_LABELS
-                    ] ?? q.status}
-                  </Badge>
+                  <div className="shrink-0">
+                    <QuotationStatusLabel status={q.status} />
+                  </div>
                 </div>
                 <div className="mt-3 flex items-end justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
                   <div className="min-w-0">
@@ -284,17 +301,7 @@ function QuotationsPageContent() {
                     {formatCurrency(q.totalAmount)}
                   </DataTable.Td>
                   <DataTable.Td>
-                    <Badge
-                      variant={
-                        QUOTATION_STATUS_VARIANTS[
-                          q.status as keyof typeof QUOTATION_STATUS_VARIANTS
-                        ] ?? "default"
-                      }
-                    >
-                      {QUOTATION_STATUS_LABELS[
-                        q.status as keyof typeof QUOTATION_STATUS_LABELS
-                      ] ?? q.status}
-                    </Badge>
+                    <QuotationStatusLabel status={q.status} />
                   </DataTable.Td>
                   <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
                     {formatDate(q.createdAt)}

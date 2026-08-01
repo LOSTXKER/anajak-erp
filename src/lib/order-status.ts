@@ -422,13 +422,6 @@ export const PRIORITY_LABELS: Record<string, string> = {
   URGENT: "เร่งด่วน",
 };
 
-export const PRIORITY_COLORS: Record<string, { bg: string; text: string }> = {
-  LOW: NEUTRAL,
-  NORMAL: ACCENT,
-  HIGH: WARNING,
-  URGENT: DANGER,
-};
-
 // PAYMENT_TERMS_LABELS ย้ายไป src/lib/payment-terms.ts (รวมค่า+ป้าย+ความหมายที่เดียว)
 
 // ============================================================

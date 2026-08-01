@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
@@ -246,21 +247,22 @@ export default function WhtRegisterPage() {
       )}
 
       {/* ── filter แท็บ + ค้นหา ── */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <SegmentedControl
-          value={tab}
-          onChange={setTab}
-          options={FILTER_TABS.map((t) => ({ value: t.key, label: t.label }))}
-          className="w-fit shrink-0"
-        />
+      <Toolbar>
         <SearchInput
           placeholder="ค้นหาลูกค้า / เลขบิล / เลขใบรับรอง..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          containerClassName="flex-1"
-          className="h-11"
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
         />
-      </div>
+        <ToolbarGroup>
+          <SegmentedControl
+            value={tab}
+            onChange={setTab}
+            options={FILTER_TABS.map((t) => ({ value: t.key, label: t.label }))}
+            className="w-fit shrink-0"
+          />
+        </ToolbarGroup>
+      </Toolbar>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -325,7 +327,7 @@ export default function WhtRegisterPage() {
                     )}
                   </DataTable.Td>
                   <DataTable.Td>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <Link
                         href={`/orders/${row.invoice.orderId}`}
                         className="text-blue-600 hover:underline dark:text-blue-400"
@@ -334,9 +336,7 @@ export default function WhtRegisterPage() {
                       </Link>
                       {/* บิลถูกยกเลิกหลังหักแล้ว — แถวคงไว้เป็นหลักฐาน แต่ต้องดูออก */}
                       {row.invoice.isVoided && (
-                        <Badge variant="destructive" size="sm">
-                          บิลยกเลิก
-                        </Badge>
+                        <StatusLabel label="บิลยกเลิก" tone="danger" emphasize />
                       )}
                     </div>
                   </DataTable.Td>
@@ -354,30 +354,36 @@ export default function WhtRegisterPage() {
                   </DataTable.Td>
                   <DataTable.Td>
                     {row.received ? (
-                      <>
-                        <Badge variant="success">ได้ใบแล้ว</Badge>
-                        {row.certNumber && (
-                          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                            {row.certNumber}
-                          </p>
-                        )}
-                      </>
+                      /* ได้ใบแล้ว = ปลายทางของแถวนี้ → ย้อมข้อความให้สแกนเจอ · เลขใบเป็นบรรทัดรอง */
+                      <StatusLabel
+                        label="ได้ใบแล้ว"
+                        tone="success"
+                        emphasize
+                        sub={row.certNumber}
+                      />
                     ) : (
-                      <Badge variant="warning">รอใบ</Badge>
+                      <StatusLabel label="รอใบ" tone="warning" />
                     )}
                   </DataTable.Td>
                   <DataTable.Td align="right">
                     <div className="flex items-center justify-end gap-1.5">
                       {row.fileUrl && (
-                        <a
-                          href={row.fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded p-2 text-slate-400 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
-                          title="ดูไฟล์หนังสือรับรอง"
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
                         >
-                          <Paperclip className="h-4 w-4" />
-                        </a>
+                          <a
+                            href={row.fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="ดูไฟล์หนังสือรับรอง"
+                            aria-label="ดูไฟล์หนังสือรับรอง"
+                          >
+                            <Paperclip />
+                          </a>
+                        </Button>
                       )}
                       {!row.received && (
                         <Button
@@ -416,18 +422,20 @@ export default function WhtRegisterPage() {
                     )}
                   </div>
                   {row.received ? (
-                    <Badge variant="success" size="sm">
-                      ได้ใบแล้ว
-                    </Badge>
+                    <StatusLabel
+                      label="ได้ใบแล้ว"
+                      tone="success"
+                      emphasize
+                      className="shrink-0"
+                    />
                   ) : (
-                    <Badge variant="warning" size="sm">
-                      รอใบ
-                    </Badge>
+                    <StatusLabel label="รอใบ" tone="warning" className="shrink-0" />
                   )}
                 </div>
 
                 <div className="mt-2 flex items-center justify-between gap-2 text-sm">
-                  <span className="flex min-w-0 items-center gap-1.5">
+                  {/* div ไม่ใช่ span — ป้ายสถานะเป็น block ซ้อนใน span ไม่ได้ (HTML ไม่ถูกต้อง) */}
+                  <div className="flex min-w-0 items-center gap-2">
                     <Link
                       href={`/orders/${row.invoice.orderId}`}
                       className="text-blue-600 hover:underline dark:text-blue-400"
@@ -435,11 +443,9 @@ export default function WhtRegisterPage() {
                       {row.invoice.invoiceNumber}
                     </Link>
                     {row.invoice.isVoided && (
-                      <Badge variant="destructive" size="sm">
-                        บิลยกเลิก
-                      </Badge>
+                      <StatusLabel label="บิลยกเลิก" tone="danger" emphasize />
                     )}
-                  </span>
+                  </div>
                   <span className="shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400">
                     รับเงิน {formatDate(row.payment.createdAt)}
                   </span>

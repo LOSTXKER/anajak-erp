@@ -5,8 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatCard } from "@/components/ui/stat-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
@@ -51,6 +52,21 @@ const TYPE_FILTER_OPTIONS = [
 
 // Radix Select ห้าม value ว่าง — ใช้ sentinel แล้วแปลงเป็น undefined ตอนยิง query
 const ALL = "ALL";
+
+// ป้ายสถานะการชำระ — คิดที่เดียว ใช้ทั้งการ์ดมือถือและตารางเดสก์ท็อป
+// (เดิมสองที่คำนวณเองซ้ำกัน แก้ทีต้องแก้สองแห่ง)
+function paymentStatusProps(status: string) {
+  const label =
+    PAYMENT_STATUS_LABELS[status as keyof typeof PAYMENT_STATUS_LABELS] ??
+    PAYMENT_STATUS_LABELS.UNPAID;
+  const tone = toneFromBadgeVariant(
+    PAYMENT_STATUS_VARIANTS[status as keyof typeof PAYMENT_STATUS_VARIANTS] ?? "warning"
+  );
+  // ย้อมข้อความเฉพาะสถานะปลายทาง (ชำระแล้ว/เกินกำหนด/ยกเลิก) — ระหว่างทางปล่อยให้จุดสีบอกพอ
+  // ถ้าย้อมทุกสถานะ ตารางจะเป็นรุ้งจนหาบิลที่ต้องตามไม่เจอ
+  const emphasize = status === "PAID" || status === "OVERDUE" || status === "VOIDED";
+  return { label, tone, emphasize };
+}
 
 function paymentActionLabel(status: string, type: string) {
   if (type === "CREDIT_NOTE") return "ดูการลดหนี้";
@@ -199,59 +215,65 @@ function BillingPageContent() {
         </div>
       )}
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="flex-1">
-          <SearchInput
-            ref={searchInputRef}
-            placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
-            defaultValue={search}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (searchTimer.current) clearTimeout(searchTimer.current);
-              searchTimer.current = setTimeout(
-                () => replaceListState({ q: value.trim() || null, page: null }),
-                300
-              );
+      {/* แถบเครื่องมือใช้โครงกลาง — จุดตัดวัดจากพื้นที่เนื้อหาจริง (@container)
+          ไม่ใช่ความกว้างหน้าต่าง จะได้แตกแถวจังหวะเดียวกับหน้ารายการอื่น */}
+      <Toolbar>
+        <SearchInput
+          ref={searchInputRef}
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
+          placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
+          defaultValue={search}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (searchTimer.current) clearTimeout(searchTimer.current);
+            searchTimer.current = setTimeout(
+              () => replaceListState({ q: value.trim() || null, page: null }),
+              300
+            );
+          }}
+        />
+
+        {/* flex-wrap: จอแคบให้ตัวกรองเต็มความกว้างคนละบรรทัดเหมือนเดิม — ถ้าบีบสองช่องลงแถวเดียว
+            ป้ายยาวอย่าง "ใบแจ้งหนี้ส่วนที่เหลือ" จะถูกตัดกลางคำ · จอกว้างค่อยยืนเรียงกัน */}
+        <ToolbarGroup className="flex-wrap">
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => {
+              replaceListState({ status: v === ALL ? null : v, page: null });
             }}
-          />
-        </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(v) => {
-            replaceListState({ status: v === ALL ? null : v, page: null });
-          }}
-        >
-          <SelectTrigger shape="pill" className="w-full sm:w-40" aria-label="กรองตามสถานะ">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>ทุกสถานะ</SelectItem>
-            {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={typeFilter}
-          onValueChange={(v) => {
-            replaceListState({ type: v === ALL ? null : v, page: null });
-          }}
-        >
-          <SelectTrigger shape="pill" className="w-full sm:w-48" aria-label="กรองตามประเภท">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>ทุกประเภท</SelectItem>
-            {TYPE_FILTER_OPTIONS.map((value) => (
-              <SelectItem key={value} value={value}>
-                {INVOICE_TYPE_LABELS[value]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          >
+            <SelectTrigger shape="pill" className="w-full @2xl:w-40" aria-label="กรองตามสถานะ">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>ทุกสถานะ</SelectItem>
+              {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={typeFilter}
+            onValueChange={(v) => {
+              replaceListState({ type: v === ALL ? null : v, page: null });
+            }}
+          >
+            <SelectTrigger shape="pill" className="w-full @2xl:w-48" aria-label="กรองตามประเภท">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>ทุกประเภท</SelectItem>
+              {TYPE_FILTER_OPTIONS.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {INVOICE_TYPE_LABELS[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </ToolbarGroup>
+      </Toolbar>
 
       <ResponsiveList
         items={data?.invoices}
@@ -280,14 +302,7 @@ function BillingPageContent() {
         renderMobile={(invoices) => (
           <div className="space-y-3">
             {invoices.map((inv) => {
-              const statusVariant =
-                PAYMENT_STATUS_VARIANTS[
-                  inv.paymentStatus as keyof typeof PAYMENT_STATUS_VARIANTS
-                ] ?? "warning";
-              const statusLabel =
-                PAYMENT_STATUS_LABELS[
-                  inv.paymentStatus as keyof typeof PAYMENT_STATUS_LABELS
-                ] ?? PAYMENT_STATUS_LABELS.UNPAID;
+              const status = paymentStatusProps(inv.paymentStatus);
               const moneyHref = `/orders/${inv.orderId}?tab=money`;
               return (
                 <article key={inv.id} className="card-surface rounded-2xl p-4">
@@ -305,7 +320,12 @@ function BillingPageContent() {
                           {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}
                         </p>
                       </div>
-                      <Badge variant={statusVariant}>{statusLabel}</Badge>
+                      <StatusLabel
+                        label={status.label}
+                        tone={status.tone}
+                        emphasize={status.emphasize}
+                        className="shrink-0"
+                      />
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
                       <div className="min-w-0">
@@ -374,14 +394,7 @@ function BillingPageContent() {
             </DataTable.Head>
             <DataTable.Body>
               {invoices.map((inv) => {
-                const statusVariant =
-                  PAYMENT_STATUS_VARIANTS[
-                    inv.paymentStatus as keyof typeof PAYMENT_STATUS_VARIANTS
-                  ] ?? "warning";
-                const statusLabel =
-                  PAYMENT_STATUS_LABELS[
-                    inv.paymentStatus as keyof typeof PAYMENT_STATUS_LABELS
-                  ] ?? PAYMENT_STATUS_LABELS.UNPAID;
+                const status = paymentStatusProps(inv.paymentStatus);
                 const moneyHref = `/orders/${inv.orderId}?tab=money`;
                 return (
                   <DataTable.Row key={inv.id}>
@@ -411,7 +424,11 @@ function BillingPageContent() {
                     </DataTable.Td>
                     <DataTable.Td className="p-0">
                       <Link href={moneyHref} className="block px-5 py-3">
-                        <Badge variant={statusVariant}>{statusLabel}</Badge>
+                        <StatusLabel
+                          label={status.label}
+                          tone={status.tone}
+                          emphasize={status.emphasize}
+                        />
                       </Link>
                     </DataTable.Td>
                     <DataTable.Td className="p-0 text-xs text-slate-500 dark:text-slate-400">
