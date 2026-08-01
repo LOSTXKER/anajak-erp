@@ -56,7 +56,8 @@ export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentP
   const needMore = data.lines.some((l) => l.issued - l.returned < l.needed);
 
   return (
-    <Card className="border-blue-200 dark:border-blue-900">
+    // `border` ต้องมาคู่กับสีขอบ ไม่งั้นเส้นไม่ขึ้น (audit สี 2026-08-02)
+    <Card className="border border-blue-200 dark:border-blue-900">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
           <Shirt className="h-4 w-4" />
