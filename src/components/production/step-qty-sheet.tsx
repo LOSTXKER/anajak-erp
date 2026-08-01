@@ -11,6 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { Loader2, Check } from "lucide-react";
+import { DASHED } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 // bottom sheet ปิดขั้นแบบนับจำนวน (UX1) — ช่างบอก "ทำเพิ่มกี่ตัว" ใน 2 แตะ
 // default = ที่เหลือทั้งหมด (กดยืนยันเลย = ปิดขั้น) · กรอกน้อยกว่า = บันทึกบางส่วน
@@ -83,7 +85,7 @@ export function StepQtySheet({
             <button
               type="button"
               onClick={() => setValue(String(remaining))}
-              className="min-h-11 w-full rounded-lg border border-dashed border-slate-300 px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800/50"
+              className={cn(DASHED, "min-h-11 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50")}
             >
               ครบที่เหลือ ({remaining} ตัว)
             </button>

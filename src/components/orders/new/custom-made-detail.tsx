@@ -18,6 +18,8 @@ import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { Field } from "@/components/ui/field";
 import { Alert } from "@/components/ui/alert";
+import { DASHED } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 function QuickAddPattern({
   onCreated,
@@ -65,7 +67,7 @@ function QuickAddPattern({
             onChange={(e) => setName(e.target.value)}
             placeholder="ชื่อแพทเทิร์น เช่น คอกลมแขนสั้น"
           />
-          <label className="flex w-fit cursor-pointer items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600">
+          <label className={cn(DASHED, "flex w-fit cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600")}>
             <Plus className="h-3 w-3" />
             {file ? file.name : "แนบรูป/ไฟล์ (ไม่บังคับ)"}
             <input type="file" accept="image/*,.pdf,.ai,.psd" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />

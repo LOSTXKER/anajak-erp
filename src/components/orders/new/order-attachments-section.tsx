@@ -11,6 +11,8 @@ import { PRINT_POSITIONS } from "@/types/order-form";
 import type { ReferenceImage } from "@/types/order-form";
 import { ImageIcon, Upload, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { DASHED } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 // รูป/ไฟล์อ้างอิงจากแชท — แยกจาก orders/new/page.tsx ตอนรื้อฟอร์ม 2026-06-12
 // (กางตลอด + อัปโหลด Supabase + เลือกตำแหน่งพิมพ์ต่อรูป)
@@ -127,7 +129,7 @@ export function OrderAttachmentsSection({
           </div>
         )}
         {images.length < 5 && (
-          <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/40 px-4 py-5 text-sm text-slate-600 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:border-blue-500">
+          <label className={cn(DASHED, "flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-50/40 px-4 py-5 text-sm text-slate-600 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:border-blue-500")}>
             <input
               type="file"
               accept="image/*,.pdf,.ai,.psd"

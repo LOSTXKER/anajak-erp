@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import type { NextStep, NextStepAction } from "@/lib/order-next-step";
 import { shouldGateOnReadiness } from "@/lib/order-tabs";
 
+import { cn } from "@/lib/utils";
+import { TINT } from "@/components/ui/tokens";
+
 // รูปร่าง readiness ที่แถบต้องใช้ (มาจาก trpc.production.orderContext) — type-only เลี่ยงดึง server code
 interface ReadinessLike {
   ready: boolean;
@@ -59,7 +62,7 @@ export function OrderNextStepBanner({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-blue-200 bg-blue-50/70 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between dark:border-blue-900/50 dark:bg-blue-950/30">
+    <div className={cn(TINT.info, "flex flex-col gap-3 rounded-2xl border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between")}>
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
           <ArrowRight className="h-4 w-4" />

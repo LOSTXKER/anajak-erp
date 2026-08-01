@@ -14,7 +14,7 @@ import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 // Field ประกาศ local ถูกยุบทิ้ง (UX4) — ใช้ตัวกลางที่เดินสาย id/aria/error ให้ครบ
 import { Field } from "@/components/ui/field";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { DASHED, FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -80,7 +80,7 @@ export function PrintTableRow({
               <Button type="button" variant="destructive" size="icon" aria-label={`ลบไฟล์ลาย ${printIdx + 1}`} onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); onUpdate("artworkId", undefined); }} className="absolute -right-3 -top-3 h-8 min-h-8 w-8 min-w-8 rounded-full p-0"><X /></Button>
             </div>
           ) : (
-            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`} className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600">
+            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`} className={cn(DASHED, "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600")}>
               {uploading ? <Spinner size="md" /> : <Plus className="h-4 w-4" />}
             </button>
           )}

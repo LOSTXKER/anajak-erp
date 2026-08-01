@@ -32,6 +32,8 @@ import { PageHeader } from "@/components/page-header";
 import { FileStack, Plus, Printer, Ban, Loader2 } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
+import { DASHED } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 export default function BillingNotesPage() {
   return (
@@ -467,7 +469,7 @@ function BillingNotesPageContent() {
                 ) : eligible.isLoading ? (
                   <Skeleton className="h-16 w-full" />
                 ) : eligibleList.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-slate-300 p-3 text-sm text-slate-500 dark:border-slate-700">
+                  <p className={cn(DASHED, "rounded-xl p-3 text-sm text-slate-500")}>
                     ลูกค้ารายนี้ไม่มีใบแจ้งหนี้ค้างชำระที่วางบิลได้
                   </p>
                 ) : (

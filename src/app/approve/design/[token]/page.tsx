@@ -19,6 +19,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { DASHED } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 export default function DesignApprovalPage({
   params,
@@ -166,7 +168,7 @@ export default function DesignApprovalPage({
                 />
               </div>
             ) : d.fileUrl ? (
-              <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+              <div className={cn(DASHED, "rounded-xl p-6 text-center text-sm text-slate-500")}>
                 ไฟล์แบบเป็นไฟล์งาน (เปิดดูตัวอย่างในหน้านี้ไม่ได้) — กด &quot;เปิดไฟล์แบบ&quot;
                 ด้านล่างเพื่อดูก่อนตัดสินใจ
               </div>

@@ -20,7 +20,7 @@ import {
   Edit3,
   Check,
 } from "lucide-react";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, TINT } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 
@@ -51,7 +51,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
 
   if (!editing) {
     return (
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-yellow-200 bg-yellow-50/50 px-3 py-2 text-xs dark:border-yellow-900 dark:bg-yellow-950/20">
+      <div className={cn(TINT.warning, "flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-xs")}>
         <Package className="h-3.5 w-3.5 text-yellow-600" />
         <span className="font-medium text-yellow-700 dark:text-yellow-300">ตรวจรับของ:</span>
         {product.receivedInspected ? (

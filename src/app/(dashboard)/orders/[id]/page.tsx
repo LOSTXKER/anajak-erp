@@ -33,7 +33,7 @@ import {
   Share2,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
-import { OVERLAY_PANEL } from "@/components/ui/tokens";
+import { OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
 import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
@@ -59,6 +59,7 @@ import {
   OrderNextStepBanner,
   OrderMoneyTab,
 } from "@/components/orders/detail";
+
 
 // ============================================================
 // Loading skeleton
@@ -635,7 +636,7 @@ function OrderDetailContent({
       {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
           แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้) · จองสำเร็จดูได้จากประวัติออเดอร์ */}
       {order.stockReservationError && (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+        <div className={cn(TINT.error, "flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 text-sm")}>
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span className="min-w-0 flex-1">
             <span className="font-medium">จองสต๊อคไม่สำเร็จ:</span> {order.stockReservationError}

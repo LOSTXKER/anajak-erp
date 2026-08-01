@@ -16,6 +16,8 @@ import {
   User,
 } from "lucide-react";
 
+import { DASHED, TINT } from "@/components/ui/tokens";
+
 // ── ศูนย์บัญชาการผลิต (floor overview) — จอโฟกัสเดียวของงานผลิต ──
 // เบสเคาะ 2026-07-08: "เปิดมาต้องเห็นภาพรวมทั้งโรงงานก่อน" · ตอบ 3 คำถามใน 3 วิ:
 // ① ตรงไหนไฟไหม้ (ต้องรีบ) ② งานเดินถึงไหนแต่ละสาย ③ คิวถัดไป · แล้วแตะเข้าไปดูราย
@@ -172,7 +174,7 @@ export function ProductionCommandCenter({
                 return (
                   <div
                     key={f.orderId}
-                    className="flex min-h-[56px] items-center gap-3 rounded-xl border border-red-200/80 bg-red-50/50 px-3.5 py-2.5 dark:border-red-900/50 dark:bg-red-950/20"
+                    className={cn(TINT.error, "flex min-h-[56px] items-center gap-3 rounded-xl border px-3.5 py-2.5")}
                   >
                     <Link href={f.href} className="min-w-0 flex-1">
                       {info}
@@ -192,7 +194,7 @@ export function ProductionCommandCenter({
                 <Link
                   key={f.orderId}
                   href={f.href}
-                  className="flex min-h-[56px] items-center gap-3 rounded-xl border border-red-200/80 bg-red-50/50 px-3.5 py-2.5 transition-colors hover:bg-red-50 dark:border-red-900/50 dark:bg-red-950/20 dark:hover:bg-red-950/40"
+                  className={cn(TINT.error, "flex min-h-[56px] items-center gap-3 rounded-xl border px-3.5 py-2.5 transition-colors hover:bg-red-50 dark:hover:bg-red-950/40")}
                 >
                   <div className="min-w-0 flex-1">{info}</div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-red-300 dark:text-red-700" />
@@ -210,7 +212,7 @@ export function ProductionCommandCenter({
           สายการผลิต
         </h2>
         {lineLanes.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400 dark:border-slate-700">
+          <p className={cn(DASHED, "rounded-2xl py-8 text-center text-sm text-slate-400")}>
             ยังไม่มีงานในไลน์ผลิต
           </p>
         ) : (
@@ -299,7 +301,7 @@ function MyWorkSection({ items, primary = false }: { items: MyWorkItem[]; primar
     <section
       className={cn(
         "space-y-2.5",
-        primary && "rounded-2xl border border-blue-200 bg-blue-50/40 p-3 dark:border-blue-900 dark:bg-blue-950/20"
+        primary && cn(TINT.info, "rounded-2xl border p-3")
       )}
       aria-labelledby="production-my-work"
     >

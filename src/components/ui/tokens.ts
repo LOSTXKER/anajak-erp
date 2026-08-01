@@ -81,6 +81,43 @@ export const FIELD_SURFACE =
  *  ของเดิม 6 จุดใส่ซ้ำ ทำให้ในโหมดมืดได้ขอบสว่างซ้อนเงา และมุมโค้งไม่ตรงกัน */
 export const OVERLAY_PANEL = `overlay-surface ${RADIUS.surface}`;
 
+/** ขอบประ = "ที่ว่างรอของ" — ปุ่มเพิ่มของ · ช่องอัปโหลด · กล่องว่างที่กดเพิ่มได้
+ *  audit 2026-08-01: 21 จุดใช้ slate-200 สลับ slate-300 โดยไม่มีเหตุผล
+ *  และครึ่งหนึ่งลืมใส่สีโหมดมืด → ขอบหายไปเลยบนพื้นดำ */
+export const DASHED = "border border-dashed border-slate-300 dark:border-slate-700";
+
 /** ตัวเลือกหนึ่งบรรทัดในเมนูที่กางออกมา — สถานะชี้/ถูกเลือก/กดไม่ได้ ชุดเดียวกันทุกเมนู */
 export const MENU_ITEM =
   "relative flex cursor-pointer select-none items-center justify-between gap-2 px-3 text-sm outline-none data-[highlighted]:bg-slate-100 data-[state=checked]:bg-blue-50 data-[state=checked]:font-medium data-[state=checked]:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:data-[highlighted]:bg-slate-800 dark:data-[state=checked]:bg-blue-950/50 dark:data-[state=checked]:text-blue-300";
+
+/**
+ * สีกล่องแจ้งเตือน 5 ระดับ — **แยกออกมาจาก <Alert> โดยตั้งใจ**
+ * (เบสสั่ง 2026-08-01 "ตรวจดีๆ ว่ามีอะไรไม่เป็นมาตรฐาน")
+ *
+ * audit เจอกล่องสีเขียนเอง 47 จุด · 23 จุดเป็นข้อความล้วน → ใช้ <Alert> ได้ตรงๆ
+ * แต่อีก 8 จุดมี **ปุ่ม/ช่องกรอกอยู่ข้างใน** ซึ่งยัดเข้า <Alert> ไม่ได้:
+ * <Alert> ตั้ง role="alert" = พื้นที่ "ประกาศสด" ที่เครื่องอ่านหน้าจอจะขัดจังหวะ
+ * ผู้ใช้เพื่ออ่านทันที — ของที่กดได้/โฟกัสได้ไม่ควรอยู่ในนั้น
+ *
+ * → จุดพวกนั้นหยิบแค่ "สี" ไปใช้ (`TINT.warning`) แล้ววาง layout เอง
+ *   สิ่งที่เคยเพี้ยนคือเฉดสี ไม่ใช่ layout — แก้ตรงที่เพี้ยนพอ
+ */
+export const TINT = {
+  info: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200",
+  success:
+    "border-green-200 bg-green-50 text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200",
+  warning:
+    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200",
+  error:
+    "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
+  /** บอกเฉยๆ ไม่มีสัญญาณดี/ร้าย — เดิมเขียนเองด้วย slate-200/slate-50 เฉดไม่ตรงกัน */
+  neutral:
+    "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300",
+} as const;
+
+/** สถานะ "ตัวกรองนี้เปิดอยู่" — ปุ่มช่วงวันที่ · ปุ่มตัวกรอง · ปุ่มเลือกหลายชิ้น
+ *  audit 2026-08-01: สูตรนี้ถูกเขียนซ้ำคำต่อคำใน 2 ไฟล์ และมีอีกที่ใช้เฉดต่างกัน
+ *  (blue-400/blue-900) ทั้งที่หมายถึงเรื่องเดียวกัน — คนอ่านหน้าจอเห็นว่า
+ *  "กรองอยู่" ด้วยสีที่ไม่เท่ากันในแต่ละหน้า */
+export const ACTIVE_FILTER =
+  "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300";

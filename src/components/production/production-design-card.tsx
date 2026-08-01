@@ -12,7 +12,7 @@ import { PRINT_POSITIONS, PRINT_TYPES } from "@/types/order-form";
 import { isImageUrl, formatDate } from "@/lib/utils";
 import { Palette, ExternalLink, ImageOff } from "lucide-react";
 import type { ProductionDetail } from "./types";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { DASHED, FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 // การ์ด "แบบ + ไซส์" บนหน้าใบผลิต (UX1) — ช่างเห็นลายอนุมัติ+เวอร์ชัน+ตารางไซส์
@@ -66,7 +66,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
               />
             </button>
           ) : (
-            <div className="flex h-32 w-32 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 text-slate-400 dark:border-slate-700">
+            <div className={cn(DASHED, "flex h-32 w-32 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl text-slate-400")}>
               <ImageOff className="h-5 w-5" />
               <span className="text-xs">ไฟล์ไม่ใช่รูป</span>
             </div>
@@ -128,7 +128,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
                     />
                   </button>
                 ) : (
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-300 dark:border-slate-700">
+                  <div className={cn(DASHED, "flex h-14 w-14 shrink-0 items-center justify-center rounded-lg text-slate-300")}>
                     <ImageOff className="h-4 w-4" />
                   </div>
                 )}

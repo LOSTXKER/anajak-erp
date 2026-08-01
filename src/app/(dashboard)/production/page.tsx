@@ -52,6 +52,7 @@ import {
   Plus,
 } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
+import { DASHED } from "@/components/ui/tokens";
 
 // หน้าการผลิต — มุมมองแยกตามเทคนิคสกรีน (เบสเคาะ 2026-06-12: "เอาทั้งสองแบบ")
 // 1) คิวรอเปิดใบผลิต  2) งานในไลน์: แท็บต่อเทคนิค (มือถือ) / บอร์ดเลนรวม (จอใหญ่)
@@ -461,7 +462,7 @@ function ProductionWorkspace() {
             </span>
           </h2>
           {(laneCards.get(focus.lane) ?? []).length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-400 dark:border-slate-700">
+            <p className={cn(DASHED, "rounded-2xl py-10 text-center text-sm text-slate-400")}>
               สายนี้เคลียร์แล้ว — กลับไปภาพรวม
             </p>
           ) : (
@@ -498,7 +499,7 @@ function ProductionWorkspace() {
             </span>
           </h2>
           {all.filter((o) => o.internalStatus === focusPostCol.status).length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 py-8 text-center dark:border-slate-700">
+            <div className={cn(DASHED, "rounded-2xl py-8 text-center")}>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 ยังไม่มีงานถึงขั้น{focusPostCol.title}
               </p>

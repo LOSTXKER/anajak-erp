@@ -92,6 +92,23 @@ const tsxOnlyRules = [
     message:
       "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H จาก @/components/ui/control-size",
   },
+  // กล่องสีเตือน — เคยเขียนเอง 47 จุด ทั้งที่มี <Alert> อยู่แล้ว เฉดไม่ตรงกันสักที่
+  // (ขอบ 200 vs 300 · โหมดมืด 800 vs 900 · บางจุดลืมใส่โหมดมืด)
+  // ดักเฉพาะ "ขอบสี + พื้นสี ในก้อนเดียวกัน" = ตั้งใจทำกล่องเตือน ไม่ใช่แค่ใช้สี
+  {
+    selector:
+      "Literal[value=/rounded-(lg|xl|2xl)[^\"]*(?<![:\\w-])border-(red|amber|yellow|green|blue)-[0-9]+[^\"]*(?<![:\\w-])bg-(red|amber|yellow|green|blue)-[0-9]+|(?<![:\\w-])border-(red|amber|yellow|green|blue)-[0-9]+[^\"]*(?<![:\\w-])bg-(red|amber|yellow|green|blue)-[0-9]+[^\"]*rounded-(lg|xl|2xl)/]",
+    message:
+      "ห้ามเขียนกล่องสีเตือนเอง — ใช้ <Alert variant> จาก @/components/ui/alert · ถ้ามีปุ่ม/ฟอร์มอยู่ข้างใน (ใส่ใน role=\"alert\" ไม่ได้) ให้หยิบแค่สีด้วย TINT.<variant>",
+  },
+  // ขอบประ = "ที่ว่างรอของ" — เคยใช้ slate-200 สลับ slate-300 และครึ่งหนึ่งลืมโหมดมืด
+  {
+    // (ไม่ดักเส้นคั่นด้านเดียว border-t/b/l/r — คนละเรื่องกับ "กล่องขอบประ")
+    selector:
+      "Literal[value=/^(?!.*border-[tblr]\\b).*(border-dashed[^\"]*border-slate-[0-9]+|border-slate-[0-9]+[^\"]*border-dashed)/]",
+    message:
+      "ห้ามเขียนขอบประเอง — ใช้ DASHED จาก @/components/ui/tokens",
+  },
   // ตัวหมุนรอโหลดเคยมี 11 แบบ (7 ขนาด + 2 จุดปั่นวงกลมด้วยขอบ CSS คนละหน้าตากับที่เหลือ)
   // ใน <Button> ไม่ต้องสั่งขนาด (Button บังคับไอคอน 15px ให้แล้ว) — ที่ดักคือ "สั่งขนาดเอง"
   {

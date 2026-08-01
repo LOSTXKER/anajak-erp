@@ -30,6 +30,9 @@ import {
   syncDialogReducer,
 } from "@/lib/sync-dialog-state";
 
+import { cn } from "@/lib/utils";
+import { TINT } from "@/components/ui/tokens";
+
 interface SyncDialogProps {
   open: boolean;
   onClose: () => void;
@@ -329,7 +332,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
 
               {/* Live log — always visible */}
               <div
-                className="mt-4 max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2 text-left dark:border-slate-700 dark:bg-slate-800/50"
+                className={cn(TINT.neutral, "mt-4 max-h-44 overflow-y-auto rounded-xl border p-2 text-left")}
                 role="log"
                 aria-live="polite"
                 aria-relevant="additions text"
@@ -495,7 +498,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   <button
                     type="button"
                     onClick={() => dispatch({ type: "TOGGLE_ERRORS" })}
-                    className="flex min-h-11 w-full items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/50 dark:hover:bg-amber-950"
+                    className={cn(TINT.warning, "flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors hover:bg-amber-100 dark:hover:bg-amber-950")}
                     aria-expanded={showErrors}
                     aria-controls="sync-error-list"
                   >
@@ -514,7 +517,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   {showErrors && (
                     <div
                       id="sync-error-list"
-                      className="mt-2 max-h-32 overflow-y-auto rounded-xl border border-amber-200 bg-amber-50/50 p-3 dark:border-amber-800 dark:bg-amber-950/30"
+                      className={cn(TINT.warning, "mt-2 max-h-32 overflow-y-auto rounded-xl border p-3")}
                     >
                       {totals.errors.map((err, i) => (
                         <p
@@ -531,7 +534,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
 
               {/* No changes */}
               {totalChanges === 0 && !hasErrors && !isCancelled && (
-                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center dark:border-slate-700 dark:bg-slate-800/50">
+                <div className={cn(TINT.neutral, "mt-4 rounded-xl border p-3 text-center")}>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     ไม่มีการเปลี่ยนแปลง — สินค้าทั้งหมดตรงกับ Anajak Stock แล้ว
                   </p>

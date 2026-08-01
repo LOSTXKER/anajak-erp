@@ -5,7 +5,7 @@ import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { Filter, X } from "lucide-react";
 import { Button } from "./button";
 import { cn } from "@/lib/utils";
-import { OVERLAY_PANEL } from "./tokens";
+import { ACTIVE_FILTER, OVERLAY_PANEL } from "./tokens";
 
 /* ============================================================
    ตัวกรองแบบลอยใต้ปุ่ม (เบสเคาะ 2026-07-31 — เลือกแบบ ข)
@@ -48,7 +48,7 @@ export function FilterPopover({
           className={cn(
             "font-medium",
             hasFilters &&
-              "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300",
+              ACTIVE_FILTER,
           )}
         >
           <Filter />
