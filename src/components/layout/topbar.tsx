@@ -91,9 +91,9 @@ export function Topbar() {
   const count = unreadCount ?? 0;
 
   return (
-    // พื้นเดียวกับหน้า · เส้นล่างเข้มขึ้นเพราะพื้นขาวไม่ช่วยแยกแถบบนออกจากเนื้อหาแล้ว
-    // (เดิมโหมดมืดฮาร์ดโค้ด bg-black/60 — ดำกว่าพื้นใหม่)
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-black/[0.09] bg-bg/85 px-3 backdrop-blur-xl sm:gap-3 sm:px-8 lg:px-10 dark:border-white/[0.08]">
+    // พื้น "กรอบเว็บ" เดียวกับแถบเมนูซ้าย — เทาอ่อนกว่าเนื้อหานิดเดียว (เบสเคาะ 2026-08-02)
+    // ยังโปร่ง+เบลอ เพื่อให้เนื้อหาที่เลื่อนลอดใต้แถบเห็นจางๆ ตามเดิม
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-black/[0.07] bg-chrome/90 px-3 backdrop-blur-xl sm:gap-3 sm:px-8 lg:px-10 dark:border-white/[0.07]">
       {/* เมนูมือถือ — จอเล็ก sidebar ซ่อน เปิดผ่าน hamburger */}
       <MobileSidebar />
       {/* Search trigger (opens command palette) */}

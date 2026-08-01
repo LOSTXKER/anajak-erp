@@ -163,12 +163,14 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
           type="button"
           onClick={() => onSort(nextDirection)}
           className={cn(
-            "flex w-full items-center gap-1.5 px-5 py-3 text-xs font-medium transition-colors",
+            // ไม่ย้อมพื้นตอนเอาเมาส์ชี้ (เบสสั่ง 2026-08-02 "ไม่ชอบหัวตารางเปลี่ยนสีตอนชี้") —
+            // แถบเทาโผล่เฉพาะช่องที่ชี้อยู่ ทำให้หัวตารางดูขาดเป็นท่อนๆ
+            // บอกว่า "กดได้" ด้วยตัวหนังสือกับลูกศรที่เข้มขึ้นแทน — เบากว่าและไม่ทำให้แถวขาด
+            "group flex w-full items-center gap-1.5 px-5 py-3 text-xs font-medium transition-colors",
             FOCUS_INSET,
-            "hover:bg-slate-100/70 dark:hover:bg-slate-800/50",
             active
               ? "font-semibold text-blue-700 dark:text-blue-300"
-              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200",
+              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100",
             align === "right" && "justify-end",
             align === "center" && "justify-center"
           )}
@@ -177,8 +179,10 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
           <Arrow
             aria-hidden="true"
             className={cn(
-              "h-3 w-3 shrink-0",
-              active ? "text-blue-600 dark:text-blue-400" : "text-slate-300 dark:text-slate-600"
+              "h-3 w-3 shrink-0 transition-colors",
+              active
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-slate-300 group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-400"
             )}
           />
         </button>

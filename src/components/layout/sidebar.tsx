@@ -52,47 +52,68 @@ export function Sidebar({
       className={cn(
         "flex-col transition-[width] duration-200",
         mobile
-          ? "flex h-full w-full bg-bg"
+          ? "flex h-full w-full bg-chrome"
           : cn(
-              // พื้นเดียวกับหน้า (ขาว/ดำเทา) — เส้นขอบขวาคือสิ่งเดียวที่แยกแถบเมนู
-              // ออกจากเนื้อหา จึงเข้มกว่าเส้นทั่วไป (เบสสั่งพื้นขาว 2026-08-01)
-              // เดิมโหมดมืดฮาร์ดโค้ด bg-black/60 ไว้ — ดำกว่าพื้นใหม่ กลายเป็นแถบดำคาดจอ
-              "hidden h-screen border-r border-black/[0.09] bg-bg/85 backdrop-blur-xl md:flex dark:border-white/[0.08]",
+              // พื้น "กรอบเว็บ" — เทาอ่อนกว่าเนื้อหานิดเดียว (เบสเคาะ 2026-08-02)
+              // รอบแรกให้เป็นสีเดียวกับเนื้อหาแล้วหวังพึ่งเส้นคั่นอย่างเดียว —
+              // จอกว้างแล้วแยกไม่ออกว่าตรงไหนคือเมนู · เดิมโหมดมืดฮาร์ดโค้ด bg-black/60
+              "hidden h-screen border-r border-black/[0.07] bg-chrome/90 backdrop-blur-xl md:flex dark:border-white/[0.07]",
               collapsed ? "w-[68px]" : "w-64"
             )
       )}
     >
-      {/* Brand row */}
-      <div className="flex h-14 items-center justify-between gap-2 px-3.5">
-        <Link
-          href="/home"
-          onClick={onNavigate}
-          className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-        >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
-            <Printer className="h-4 w-4" />
-          </div>
-          {!collapsed && (
-            <span className="truncate text-base font-semibold tracking-tight text-slate-900 dark:text-white">
-              Anajak Print
-            </span>
-          )}
-        </Link>
-        {!mobile && (
+      {/* หัวแถบเมนู — ตอนย่อเหลือกว้าง 68px แต่ของข้างในกินรวม 112px
+          (ขอบ 28 + โลโก้ 40 + ช่องไฟ 8 + ปุ่ม 36) โลโก้กับปุ่มจึงเบียดทับกัน
+          (เบสเจอเอง 2026-08-02) → ตอนย่อเหลือปุ่มกางตรงกลางอย่างเดียว ซ่อนโลโก้
+          (เคยลองให้โลโก้สลับเป็นไอคอนกางตอนเอาเมาส์ชี้ — ทดสอบแล้วไม่สลับจริง
+          และถึงสลับได้ก็เดาไม่ออกอยู่ดีว่ากดโลโก้แล้วกางได้ · ตอนย่อคนต้องการพื้นที่
+          ไม่ใช่โลโก้ — VS Code/Linear ก็ไม่โชว์โลโก้ตอนย่อ) */}
+      <div
+        className={cn(
+          "flex h-14 items-center gap-2",
+          collapsed && !mobile ? "justify-center px-2" : "justify-between px-3.5"
+        )}
+      >
+        {collapsed && !mobile ? (
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            onClick={() => setCollapsed((v) => !v)}
-            className="h-9 w-9 shrink-0 text-slate-400 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
-            aria-label={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"}
+            onClick={() => setCollapsed(false)}
+            title="ขยายแถบเมนู"
+            aria-label="ขยายแถบเมนู"
+            className="h-9 w-9 shrink-0 text-slate-500 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
           >
-            {collapsed ? (
-              <PanelLeftOpen />
-            ) : (
-              <PanelLeftClose />
-            )}
+            <PanelLeftOpen />
           </Button>
+        ) : (
+          <>
+            <Link
+              href="/home"
+              onClick={onNavigate}
+              className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
+                <Printer className="h-4 w-4" />
+              </div>
+              <span className="truncate text-base font-semibold tracking-tight text-slate-900 dark:text-white">
+                Anajak Print
+              </span>
+            </Link>
+            {!mobile && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setCollapsed(true)}
+                title="ย่อแถบเมนู"
+                aria-label="ย่อแถบเมนู"
+                className="h-9 w-9 shrink-0 text-slate-400 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
+              >
+                <PanelLeftClose />
+              </Button>
+            )}
+          </>
         )}
       </div>
 
@@ -168,7 +189,7 @@ export function Sidebar({
               {me.name?.charAt(0).toUpperCase() ?? "?"}
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 hairline-ring dark:bg-white/5">
+            <div className="flex items-center gap-2 rounded-xl bg-white p-3 hairline-ring dark:bg-white/5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
                 {me.name?.charAt(0).toUpperCase() ?? "?"}
               </div>
