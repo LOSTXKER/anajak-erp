@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Switch } from "@/components/ui/switch";
-import { SettingsPageHeader } from "@/components/settings-page-header";
 import {
   Plus,
   Trash2,
@@ -23,6 +22,7 @@ import {
   ShieldX,
 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
+import { PageHeader } from "@/components/page-header";
 
 export default function PackagingSettingsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -88,10 +88,10 @@ export default function PackagingSettingsPage() {
   };
 
   const header = (
-    <SettingsPageHeader
+    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการแพ็คเกจจัดส่ง"
       description="ตัวเลือกแพ็คเกจสำหรับจัดส่งสินค้า"
-    />
+     />
   );
 
   if (meQuery.isError) {

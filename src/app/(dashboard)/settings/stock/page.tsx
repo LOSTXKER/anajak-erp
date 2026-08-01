@@ -34,8 +34,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { SyncDialog } from "@/components/sync-dialog";
-import { SettingsPageHeader } from "@/components/settings-page-header";
 import { Alert } from "@/components/ui/alert";
+import { PageHeader } from "@/components/page-header";
 
 // ─── Setting Keys ──────────────────────────────────────────
 const STOCK_API_URL_KEY = "stock_api_url";
@@ -166,10 +166,10 @@ export default function StockSettingsPage() {
 
   const hasCredentials = Boolean(apiUrl.trim() && apiKey.trim());
   const header = (
-    <SettingsPageHeader
+    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="เชื่อมต่อ Anajak Stock"
       description="ตั้งค่าการเชื่อมต่อและ Sync สินค้าจากระบบ Stock"
-    />
+     />
   );
 
   if (meQuery.isError) {

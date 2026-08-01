@@ -20,6 +20,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { permAllows, type Permission } from "@/lib/permissions";
 import { QueryError } from "@/components/ui/query-error";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // หน้าตั้งค่า = hub ลิงก์ไปหน้าตั้งค่าจริงเท่านั้น (Gate B8) — ฟอร์มปลอม 4 section เดิม
 // (ข้อมูลโรงงาน/การผลิต/ความปลอดภัย/เชื่อมต่อภายนอก) ถูกถอดทิ้ง: input ไม่ผูกอะไร
@@ -140,12 +141,35 @@ export default function SettingsPage() {
     );
   }
 
+  const header = (
+    <PageHeader
+      title="ตั้งค่า"
+      description="ตั้งค่าระบบ Anajak Print — ทุกหน้าบันทึกจริง แก้แล้วมีผลทันที"
+    />
+  );
+
+  // ระหว่างรอสิทธิ์ ต้องขึ้นโครงร่างเหมือนหน้าอื่น — ของเดิมเรนเดอร์รายการว่าง
+  // (visibleLinks กรองด้วย me ที่ยังไม่มา) ผู้ใช้จึงเห็น "หน้าเปล่า" แล้วนึกว่าเว็บค้าง
+  if (meQuery.isLoading) {
+    return (
+      <div className="space-y-5">
+        {header}
+        {SETTING_GROUPS.map((group) => (
+          <div key={group} className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Skeleton className="h-20 rounded-2xl" />
+              <Skeleton className="h-20 rounded-2xl" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
-      <PageHeader
-        title="ตั้งค่า"
-        description="ตั้งค่าระบบ Anajak Print — ทุกหน้าบันทึกจริง แก้แล้วมีผลทันที"
-      />
+      {header}
 
       {SETTING_GROUPS.map((group) => {
         const links = visibleLinks.filter((link) => link.group === group);

@@ -13,13 +13,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { Plus, Trash2, Pencil, X, Check, Settings, ShieldX } from "lucide-react";
-import { SettingsPageHeader } from "@/components/settings-page-header";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
 import { PRICING_TYPE_LABELS } from "@/types/order-form";
+import { PageHeader } from "@/components/page-header";
 
 // ============================================================
 // TYPES & CONSTANTS
@@ -156,10 +156,10 @@ export default function ServicesPage() {
   // ============================================================
 
   const header = (
-    <SettingsPageHeader
+    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการบริการ"
       description="ตั้งค่ารายการบริการเสริม, การสกรีน, และค่าบริการ"
-    />
+     />
   );
 
   if (meQuery.isError) {

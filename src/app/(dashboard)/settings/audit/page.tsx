@@ -6,7 +6,6 @@ import { History } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/utils";
-import { SettingsPageHeader } from "@/components/settings-page-header";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -14,6 +13,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { PageHeader } from "@/components/page-header";
 
 function positivePage(value: string | null) {
   const parsed = Number(value);
@@ -53,7 +53,7 @@ function AuditLogContent() {
   if (meQuery.isError) {
     return (
       <div className="space-y-5">
-        <SettingsPageHeader title="ประวัติระบบ" />
+        <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }} title="ประวัติระบบ"  />
         <QueryError
           message="ตรวจสิทธิ์ดูประวัติระบบไม่สำเร็จ"
           onRetry={() => void meQuery.refetch()}
@@ -65,7 +65,7 @@ function AuditLogContent() {
   if (!meLoading && !canView) {
     return (
       <div className="space-y-5">
-        <SettingsPageHeader title="ประวัติระบบ" />
+        <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }} title="ประวัติระบบ"  />
         <QueryError message="คุณไม่มีสิทธิ์ดูประวัติระบบ" />
       </div>
     );
@@ -73,10 +73,10 @@ function AuditLogContent() {
 
   return (
     <div className="space-y-5">
-      <SettingsPageHeader
+      <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
         title="ประวัติระบบ"
         description="ตรวจว่าใครเปลี่ยนข้อมูลอะไร เมื่อไหร่"
-      />
+       />
       <ResponsiveList
         items={query.data?.logs}
         isLoading={meLoading || query.isLoading || query.isFetching}

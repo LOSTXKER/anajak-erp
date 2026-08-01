@@ -14,7 +14,6 @@ import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
-import { SegmentedControl } from "@/components/ui/segmented";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +41,7 @@ import {
   Loader2,
   X,
 } from "lucide-react";
+import { FilterChip } from "@/components/ui/filter-chip";
 
 // ทะเบียนหัก ณ ที่จ่ายขารับ (50ทวิ) — แถวเกิดอัตโนมัติตอนบัญชีบันทึกรับเงินที่มี WHT
 // งานหน้านี้: ตามหนังสือรับรองจากลูกค้า (ไม่มีใบ = เครดิตภาษี 3% หายฟรี) + export CSV ให้นักบัญชี
@@ -255,12 +255,11 @@ export default function WhtRegisterPage() {
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
         />
         <ToolbarGroup>
-          <SegmentedControl
-            value={tab}
-            onChange={setTab}
-            options={FILTER_TABS.map((t) => ({ value: t.key, label: t.label }))}
-            className="w-fit shrink-0"
-          />
+          {FILTER_TABS.map((t) => (
+            <FilterChip key={t.key} selected={tab === t.key} onClick={() => setTab(t.key)}>
+              {t.label}
+            </FilterChip>
+          ))}
         </ToolbarGroup>
       </Toolbar>
 

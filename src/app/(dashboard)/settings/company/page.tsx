@@ -13,9 +13,9 @@ import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Save, Loader2, ShieldX } from "lucide-react";
 import { toast } from "sonner";
-import { SettingsPageHeader } from "@/components/settings-page-header";
 import type { CompanyProfile } from "@/lib/company-profile";
 import { EMPTY_COMPANY_PROFILE } from "@/lib/company-profile";
+import { PageHeader } from "@/components/page-header";
 
 // ข้อมูลกิจการ — ขึ้นหัวเอกสารพิมพ์ทุกใบ + เป็นข้อมูลบังคับของใบกำกับภาษีเต็มรูป
 export default function CompanySettingsPage() {
@@ -45,10 +45,10 @@ export default function CompanySettingsPage() {
     }));
 
   const header = (
-    <SettingsPageHeader
+    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ข้อมูลกิจการ"
       description="ขึ้นหัวเอกสารทุกใบ — ใบเสนอราคา/แจ้งหนี้/ใบเสร็จ/ใบกำกับภาษี"
-    />
+     />
   );
 
   if (meQuery.isError) {

@@ -19,7 +19,6 @@ import {
   Upload,
 } from "lucide-react";
 import { PRODUCT_TYPES, COLLAR_TYPES, SLEEVE_TYPES, BODY_FITS } from "@/types/order-form";
-import { SettingsPageHeader } from "@/components/settings-page-header";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -31,6 +30,7 @@ import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { DASHED } from "@/components/ui/tokens";
+import { PageHeader } from "@/components/page-header";
 
 const labelClass = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
 
@@ -164,7 +164,7 @@ export default function PatternsPage() {
 
   return (
     <div className="space-y-6">
-      <SettingsPageHeader title="จัดการแพทเทิร์น" description="แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ" />
+      <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }} title="จัดการแพทเทิร์น" description="แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ"  />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

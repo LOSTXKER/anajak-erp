@@ -27,6 +27,7 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { toast } from "sonner";
+import { RecordNotFound } from "@/components/ui/record-not-found";
 
 function ProductionDetailSkeleton() {
   return (
@@ -112,7 +113,8 @@ export default function ProductionDetailPage({
 
   if (isLoading) return <ProductionDetailSkeleton />;
   if (isError) return <QueryError onRetry={() => refetch()} />;
-  if (!production) return null;
+  if (!production)
+    return <RecordNotFound what="งานผลิตใบนี้" backHref="/production" backLabel="กลับไปการผลิต" />;
 
   const order = production.order;
   // step ของ sheet จำนวน — อ่านสดจาก query เสมอ (ดูคอมเมนต์ที่ qtyStepId)

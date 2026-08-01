@@ -6,7 +6,6 @@ import { Loader2, Pencil, Plus, ShieldX, Star, Store } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { SettingsPageHeader } from "@/components/settings-page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { QueryError } from "@/components/ui/query-error";
 import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/page-header";
 
 interface VendorFormState {
   name: string;
@@ -135,10 +135,10 @@ export default function VendorsSettingsPage() {
   }
 
   const header = (
-    <SettingsPageHeader
+    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ร้านรับจ้างภายนอก"
       description="ทะเบียนร้านสำหรับงาน DTG, สกรีน, ปัก, ตัดเย็บ และป้ายคอ"
-    />
+     />
   );
 
   if (meQuery.isError) {

@@ -20,6 +20,7 @@ import { commChannelLabel } from "@/lib/comm-channels";
 import { PageHeader } from "@/components/page-header";
 import { Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText, Pencil, MessageSquarePlus, Plus } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
+import { RecordNotFound } from "@/components/ui/record-not-found";
 
 // แก้ข้อมูล/จดบันทึกการคุย = ทีมขาย-บัญชี-บริหาร (ตรง customerEditors ฝั่ง server)
 
@@ -56,7 +57,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   }
 
   if (isError) return <QueryError onRetry={() => refetch()} />;
-  if (!customer) return null;
+  if (!customer)
+    return <RecordNotFound what="ลูกค้ารายนี้" backHref="/customers" backLabel="กลับไปรายการลูกค้า" />;
 
   return (
     <div className="space-y-6">
@@ -132,6 +134,13 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                   <MapPin className="h-4 w-4" /> {customer.address}
                 </div>
+              )}
+              {/* ลูกค้าที่ยังไม่กรอกช่องทางติดต่อเลย — เดิมการ์ดนี้เหลือแต่หัวข้อ ข้างในโล่ง
+                  คนอ่านแยกไม่ออกว่า "ยังไม่ได้กรอก" กับ "หน้าโหลดไม่ครบ" */}
+              {!customer.phone && !customer.email && !customer.lineId && !customer.address && (
+                <p className="text-slate-400 dark:text-slate-500">
+                  ยังไม่ได้กรอกช่องทางติดต่อ — กด “แก้ไขข้อมูล” เพื่อเพิ่มเบอร์/LINE/อีเมล
+                </p>
               )}
             </CardContent>
           </Card>

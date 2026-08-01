@@ -17,6 +17,7 @@ import { permAllows } from "@/lib/permissions";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { Alert } from "@/components/ui/alert";
+import { RecordNotFound } from "@/components/ui/record-not-found";
 
 // ============================================================
 // CONSTANTS
@@ -149,7 +150,8 @@ export default function ProductDetailPage({
   // && !product: refetch เบื้องหลังล้มทั้งที่มี cache ห้ามถอนหน้า (modal ลบเปิดค้างได้)
   if (isError && !product) return <QueryError onRetry={() => refetch()} />;
 
-  if (!product) return null;
+  if (!product)
+    return <RecordNotFound what="สินค้าชิ้นนี้" backHref="/products" backLabel="กลับไปรายการสินค้า" />;
 
   const typ = typeConfig[product.productType] ?? {
     label: product.productType,
