@@ -665,7 +665,7 @@ export default function NewOrderPage() {
         />
 
         {/* แถบสรุป+ปุ่ม sticky ล่างจอ — มือถือกดถึงเสมอ (pattern เดียวกับฟอร์มแก้รายการ) */}
-        <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
+        <div className="card-surface sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 backdrop-blur">
           <div className="min-w-0 flex-1">
             {hasItemContent ? (
               <>

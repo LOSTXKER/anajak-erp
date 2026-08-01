@@ -27,6 +27,7 @@ import {
 } from "@/lib/customer-form";
 import { Building2, User, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
+import { Alert } from "@/components/ui/alert";
 
 // ฟอร์มแก้ข้อมูลลูกค้า (Gate B7) — ต่อท่อ customer.update ที่มีอยู่แล้ว (เดิม dead mutation:
 // audit 2026-07-02 จับ "แก้ข้อมูลลูกค้าจาก UI ไม่ได้") · field ชุดเดียวกับฟอร์มเพิ่มลูกค้า
@@ -187,13 +188,10 @@ export function CustomerEditDialog({
                 ข้อมูลนิติบุคคล
               </h4>
               {hasCorporateLeftover && (
-                <p
-                  role="status"
-                  className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
-                >
+                <Alert variant="warning" className="mb-3 text-xs" role="status">
                   ลูกค้าเป็นบุคคลธรรมดาแต่ยังมีข้อมูลภาษี/วงเงินค้างอยู่ — ค่าพวกนี้ยังถูกใช้ออกใบกำกับ/กันวงเงินจริง
                   ถ้าไม่ใช้แล้วให้ลบออกให้ว่างแล้วบันทึก
-                </p>
+                </Alert>
               )}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <Field
@@ -299,12 +297,9 @@ export function CustomerEditDialog({
           </Field>
 
           {update.error && (
-            <p
-              role="alert"
-              className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-            >
+            <Alert variant="error">
               บันทึกไม่สำเร็จ: {update.error.message}
-            </p>
+            </Alert>
           )}
 
           <DialogFooter className="gap-2">

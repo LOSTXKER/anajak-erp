@@ -329,7 +329,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
 
               {/* Live log — always visible */}
               <div
-                className="mt-4 max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-left dark:border-slate-700 dark:bg-slate-800/50"
+                className="mt-4 max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2 text-left dark:border-slate-700 dark:bg-slate-800/50"
                 role="log"
                 aria-live="polite"
                 aria-relevant="additions text"

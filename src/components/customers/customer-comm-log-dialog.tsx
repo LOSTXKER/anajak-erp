@@ -24,6 +24,7 @@ import {
 } from "@/lib/customer-form";
 import { Loader2, MessageSquarePlus } from "lucide-react";
 import { toast } from "sonner";
+import { Alert } from "@/components/ui/alert";
 
 // บันทึกการคุยกับลูกค้า (Gate B7) — ต่อท่อ addCommunicationLog ที่มีอยู่แล้ว
 // (เดิม dead mutation) · คุยอะไรกับลูกค้าต้องอยู่ในระบบ ไม่ใช่ความจำคนขาย
@@ -115,12 +116,9 @@ export function CustomerCommLogDialog({
           </Field>
 
           {add.error && (
-            <p
-              role="alert"
-              className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-            >
+            <Alert variant="error">
               บันทึกไม่สำเร็จ: {add.error.message}
-            </p>
+            </Alert>
           )}
 
           <DialogFooter className="gap-2">

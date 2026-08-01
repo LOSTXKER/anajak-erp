@@ -31,6 +31,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 
 // ไฟล์ 3 ชั้นบนหน้าออเดอร์ (FLOW-REDESIGN ก้อน 4 — ดู src/lib/file-layers.ts)
 // ชั้น 1 = Attachment ทั่วไป (รวม REFERENCE_IMAGE เดิม) + ปุ่มแอดมินแนบแทนลูกค้า
@@ -80,7 +81,7 @@ function FileThumb({
           className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700"
         />
       ) : (
-        <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+        <div className="flex h-28 w-28 flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
           <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
           <span className="mt-1 text-2xs text-slate-400">
             {att.fileName.split(".").pop()?.toUpperCase()}
@@ -274,7 +275,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
 
           {/* ลิงก์อัปโหลดสำหรับลูกค้า — ส่งใน LINE ให้ลูกค้าอัปไฟล์เข้าออเดอร์ตรง (ไม่ต้อง login) */}
           {canManageLink && showLink && (
-            <div className="mb-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3 dark:border-blue-900 dark:bg-blue-950/30">
+            <Alert variant="info" className="mb-3">
               {linkUrl ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -282,7 +283,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                       readOnly
                       value={linkUrl}
                       onFocus={(e) => e.currentTarget.select()}
-                      className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                      className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                     />
                     <Button size="sm" className="shrink-0 gap-1.5" onClick={copyUploadLink} >
                       {linkCopied ? (
@@ -326,7 +327,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                   </Button>
                 </div>
               )}
-            </div>
+            </Alert>
           )}
 
           {uploadingLayer === "RAW" && (

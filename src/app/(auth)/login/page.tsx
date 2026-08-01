@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Printer } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -77,12 +78,9 @@ export default function LoginPage() {
               />
             </label>
             {errorMessage && (
-              <div
-                role="alert"
-                className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
-              >
+              <Alert variant="error">
                 {errorMessage}
-              </div>
+              </Alert>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}

@@ -171,7 +171,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
                 {p.variants.map((v) => (
                   <span
                     key={v.id}
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm tabular-nums text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm tabular-nums text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
                   >
                     <span className="font-semibold">{v.size}</span>
                     {v.color ? <span className="text-slate-500"> {v.color}</span> : null}

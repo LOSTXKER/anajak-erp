@@ -31,6 +31,7 @@ import {
 import { KeyRound, Plus, ShieldCheck, Users } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
+import { Alert } from "@/components/ui/alert";
 
 export default function UsersSettingsPage() {
   const utils = trpc.useUtils();
@@ -402,9 +403,9 @@ export default function UsersSettingsPage() {
           )}
 
           {mutationError && (
-            <div role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <Alert variant="error" className="mt-3">
               {mutationError}
-            </div>
+            </Alert>
           )}
         </CardContent>
       </Card>
@@ -442,9 +443,9 @@ export default function UsersSettingsPage() {
               />
             </div>
             {resetPasswordMutation.error && (
-              <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+              <Alert variant="error">
                 {resetPasswordMutation.error.message}
-              </div>
+              </Alert>
             )}
             <div className="flex justify-end gap-2">
               <Button
@@ -536,9 +537,9 @@ export default function UsersSettingsPage() {
                 </div>
               ))}
               {setPermissionsMutation.error && (
-                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                <Alert variant="error">
                   {setPermissionsMutation.error.message}
-                </div>
+                </Alert>
               )}
               <div className="flex justify-between gap-2">
                 <Button

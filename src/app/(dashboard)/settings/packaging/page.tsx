@@ -22,6 +22,7 @@ import {
   GripVertical,
   ShieldX,
 } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 
 export default function PackagingSettingsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -329,9 +330,9 @@ export default function PackagingSettingsPage() {
           )}
 
           {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
-            <div role="alert" aria-live="polite" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <Alert variant="error" className="mt-3" aria-live="polite">
               {createMutation.error?.message || updateMutation.error?.message || deleteMutation.error?.message}
-            </div>
+            </Alert>
           )}
         </CardContent>
       </Card>

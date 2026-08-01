@@ -144,7 +144,7 @@ export function OrderStatusFlowBar({
               aria-pressed={isOn}
               onClick={() => onSelect(isOn ? "" : status)}
               className={cn(
-                "card-surface flex min-h-11 items-center justify-between gap-2 rounded-xl px-3 py-2 text-left",
+                "card-surface flex min-h-11 items-center justify-between gap-2 rounded-2xl px-3 py-2 text-left",
                 FOCUS_BUTTON,
                 isOn &&
                   "bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-950/40 dark:ring-blue-400",

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
+import { Alert } from "@/components/ui/alert";
 
 type OrderData = RouterOutput["order"]["getById"];
 type OrderItem = OrderData["items"][number];
@@ -70,7 +71,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
   }
 
   return (
-    <div className="rounded-xl border border-yellow-300 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-950/30">
+    <Alert variant="warning">
       <div className="mb-2 flex items-center gap-2">
         <Package className="h-3.5 w-3.5 text-yellow-600" />
         <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">ตรวจรับของจากลูกค้า</span>
@@ -103,7 +104,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
         </div>
       </div>
       {mutation.isError && <p className="mt-1 text-xs text-red-500">{mutation.error.message}</p>}
-    </div>
+    </Alert>
   );
 }
 

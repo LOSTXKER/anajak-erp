@@ -23,6 +23,7 @@ import type { InternalStatus } from "@prisma/client";
 import { PAYMENT_TERMS_LABELS, type PaymentTermsValue } from "@/lib/payment-terms";
 import { calculateOrderSummary } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
+import { Alert } from "@/components/ui/alert";
 
 interface OrderInfoEditOrder {
   id: string;
@@ -280,7 +281,7 @@ export function OrderInfoEditDialog({
             <p className={sectionTitleClass}>การเงิน</p>
             {/* ล็อกอยู่ → ปิดช่องเงิน + บอกเหตุ (ที่อยู่/หมายเหตุ/PO ยังแก้ได้) */}
             {moneyLocked && (
-              <p className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
+              <p className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
                 {moneyLockHint}
               </p>
             )}
@@ -325,11 +326,11 @@ export function OrderInfoEditDialog({
             </div>
             {/* เพดานขาที่สอง (B9) — ส่วนลด/ภาษีใหม่ทำยอดรวมต่ำกว่าบิลที่ออกแล้ว */}
             {belowBilledFloor && (
-              <p className="rounded-lg border border-amber-200 bg-amber-50/60 px-2.5 py-2 text-xs font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+              <Alert variant="warning" className="text-xs font-medium">
                 ยอดรวมใหม่ {formatCurrency(previewTotal)} ต่ำกว่ายอดบิลที่ออกแล้ว{" "}
                 {formatCurrency(orderBilledFloor)} — บันทึกไม่ผ่าน
                 ต้องยกเลิกบิลเดิม (แล้วออกใหม่ตามยอดที่ถูก) ก่อนลดยอด
-              </p>
+              </Alert>
             )}
             <div className="grid grid-cols-2 gap-3">
               <Field label="เงื่อนไขชำระเงิน">

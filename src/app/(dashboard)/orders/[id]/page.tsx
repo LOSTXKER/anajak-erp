@@ -604,7 +604,7 @@ function OrderDetailContent({
       />
 
       {/* บริบทที่ต้องเห็นก่อนลงมือบนมือถือ — เดิมอยู่ sidebar ท้ายหน้าทั้งก้อน */}
-      <dl className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-200/70 bg-white p-3 text-xs dark:border-slate-800 dark:bg-slate-900 lg:hidden">
+      <dl className="card-surface grid grid-cols-3 gap-2 rounded-2xl p-3 text-xs lg:hidden">
         <div className="min-w-0">
           <dt className="text-slate-500 dark:text-slate-400">ลูกค้า</dt>
           <dd className="truncate font-medium text-slate-900 dark:text-white">

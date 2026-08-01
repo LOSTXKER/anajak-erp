@@ -29,6 +29,7 @@ import { safeFileExt } from "@/lib/file-urls";
 import { permAllows } from "@/lib/permissions";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
+import { Alert } from "@/components/ui/alert";
 
 const labelClass = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
 
@@ -484,9 +485,9 @@ export default function PatternsPage() {
           )}
 
           {(createPattern.isError || updatePattern.isError || deletePattern.isError) && (
-            <div role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <Alert variant="error" className="mt-3">
               {createPattern.error?.message || updatePattern.error?.message || deletePattern.error?.message}
-            </div>
+            </Alert>
           )}
         </CardContent>
       </Card>

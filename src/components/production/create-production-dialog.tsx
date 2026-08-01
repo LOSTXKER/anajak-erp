@@ -26,6 +26,7 @@ import {
 } from "@/lib/production-steps";
 import { AlertTriangle, Factory, Loader2, X } from "lucide-react";
 import type { ProductionStepType } from "@prisma/client";
+import { Alert } from "@/components/ui/alert";
 
 // ใบผลิต = แค่ยืนยันสายงาน ไม่ใช่ฟอร์มกรอก (เบสชี้ 2026-06-12: "ต้องกรอกแบบนี้หรอ"):
 // ระบบเดาสายงานจากเนื้อออเดอร์ครบ 3 อย่าง (วิธีพิมพ์ + แหล่งเสื้อ + ป้ายคอ) —
@@ -69,7 +70,7 @@ export function CreateProductionDialog({
 
         {/* ด่านพร้อมผลิตยังไม่ผ่าน — soft-gate: เปิดได้ (งานด่วน/เคสยกเว้น) แต่ต้องเห็นว่าติดอะไร */}
         {context?.readiness && !context.readiness.ready && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs dark:border-amber-800 dark:bg-amber-950/40">
+          <Alert variant="warning" className=".5 text-xs">
             <p className="mb-1 flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300">
               <AlertTriangle className="h-3.5 w-3.5" />
               งานนี้ยังติดด่านพร้อมผลิต
@@ -83,7 +84,7 @@ export function CreateProductionDialog({
                   </li>
                 ))}
             </ul>
-          </div>
+          </Alert>
         )}
 
         {/* รอ context ก่อน seed ขั้นตอน — StepBuilder mount หลังได้ค่า จึง seed ตอน mount

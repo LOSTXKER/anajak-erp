@@ -16,6 +16,7 @@ import { Package, Cloud, Trash2 } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
+import { Alert } from "@/components/ui/alert";
 
 // ============================================================
 // CONSTANTS
@@ -463,9 +464,9 @@ export default function ProductDetailPage({
 
           {/* Error display */}
           {(updateProduct.isError || updateVariant.isError || priceError) && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <Alert variant="error">
               {priceError || updateProduct.error?.message || updateVariant.error?.message}
-            </div>
+            </Alert>
           )}
         </div>
       </div>

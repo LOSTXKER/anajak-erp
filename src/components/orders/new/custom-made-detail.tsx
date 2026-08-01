@@ -17,6 +17,7 @@ import { trpc } from "@/lib/trpc";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { Field } from "@/components/ui/field";
+import { Alert } from "@/components/ui/alert";
 
 function QuickAddPattern({
   onCreated,
@@ -117,7 +118,7 @@ export function CustomMadeDetail({
   };
 
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-800/50 dark:bg-amber-950/20">
+    <Alert variant="warning">
       {/* Pattern section */}
       <div className="mb-3">
         <div className="mb-2 flex items-center gap-2">
@@ -223,6 +224,6 @@ export function CustomMadeDetail({
           <Input size="sm" value={product.patternNote} onChange={(e) => updateProduct("patternNote", e.target.value)} placeholder="หมายเหตุ..." />
         </Field>
       </div>
-    </div>
+    </Alert>
   );
 }

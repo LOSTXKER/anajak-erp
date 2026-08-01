@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { canIssueChangeOrder } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
+import { Alert } from "@/components/ui/alert";
 
 // ฟิลด์เงินเป็น number | null ตามชนิดจาก order.getById (นโยบาย ⑦ ปิดเงินให้ viewer นอกการเงิน)
 // — editor เปิดได้เฉพาะ flow ฝั่งขาย (role เห็นเงิน) ค่าจริงเลยเป็นตัวเลขเสมอ · ?? 0 แค่ให้ TS ผ่าน
@@ -446,13 +447,13 @@ export function OrderItemsEditor({
 
           {/* Validation errors — เกณฑ์เดียวกับหน้าเปิดงาน จับก่อนถึง server */}
           {formErrors.length > 0 && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+            <Alert variant="error">
               <ul className="list-inside list-disc space-y-0.5">
                 {formErrors.map((err, i) => (
                   <li key={i}>{err}</li>
                 ))}
               </ul>
-            </div>
+            </Alert>
           )}
 
           {/* สรุปราคา (สูตร A เดียวกับ server) — โชว์เมื่อเริ่มมีตัวเลขจริง ไม่โชว์ ฿0 เปล่าๆ */}
@@ -493,11 +494,11 @@ export function OrderItemsEditor({
 
           {/* เพดานขาที่สอง (B9) — ยอดใหม่ต่ำกว่าบิลที่ออกแล้ว */}
           {belowBilledFloor && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+            <Alert variant="warning" className="text-xs font-medium">
               {changeOrderMode
                 ? `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — ออกใบแก้ไขได้ แต่ต้องออกใบลดหนี้ตามให้ยอดบิลตรงยอดจริง`
                 : `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — บันทึกไม่ผ่าน ต้องยกเลิกบิลเดิม (แล้วออกใหม่ตามยอดที่ถูก) ก่อนลดยอด`}
-            </div>
+            </Alert>
           )}
 
           {/* กำไรขั้นต้นโดยประมาณ — เฉพาะ role การเงิน (null = ไม่ render เลย) */}
@@ -524,7 +525,7 @@ export function OrderItemsEditor({
           )}
 
           {/* ปุ่มบันทึก — sticky ล่างจอ มือถือกดถึงเสมอ */}
-          <div className="sticky bottom-3 flex justify-end gap-2 rounded-xl border border-slate-200/70 bg-white/95 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
+          <div className="card-surface sticky bottom-3 flex justify-end gap-2 rounded-2xl p-3 backdrop-blur">
             <Button variant="outline" onClick={onCancel} disabled={saving}>
               ยกเลิก
             </Button>

@@ -50,6 +50,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { CONTROL_H } from "@/components/ui/control-size";
 import { RADIUS } from "@/components/ui/tokens";
+import { Alert } from "@/components/ui/alert";
 
 type Delivery = RouterOutput["delivery"]["getByOrderId"][number];
 
@@ -317,14 +318,14 @@ export function OrderDeliverySection({
 
           {/* ธง blind ship — ต้องเห็นก่อนหยิบของลงกล่อง ห้ามพลาด */}
           {packContext.data?.blindShip && (
-            <div className="mt-2 rounded-xl border-2 border-red-500 bg-red-50 px-3 py-2 dark:border-red-600 dark:bg-red-950/40">
+            <Alert variant="error" className="mt-2">
               <p className="text-sm font-semibold text-red-700 dark:text-red-300">
                 🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
               </p>
               <p className="mt-0.5 text-xs font-medium text-red-600 dark:text-red-400">
                 ผู้ส่งบนใบ: {packContext.data.blindShipSenderName || packContext.data.customerName}
               </p>
-            </div>
+            </Alert>
           )}
           {canSetBlindShip && packContext.data && (
             <button

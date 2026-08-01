@@ -11,6 +11,7 @@ import { Package, Plus, Minus, Check, AlertCircle, Search, Loader2, X } from "lu
 import { toast } from "sonner";
 import { DEFAULT_STOCK_LOCATION } from "@/lib/stock-constants";
 import { Spinner } from "@/components/ui/spinner";
+import { Alert } from "@/components/ui/alert";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -196,7 +197,7 @@ export function MaterialUsage({
       <CardContent className="space-y-3">
         {/* ---- Material Picker ---- */}
         {showPicker && (
-          <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
+          <Alert variant="info">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
               <Input size="sm"
@@ -250,7 +251,7 @@ export function MaterialUsage({
             {searchResults && searchResults.length === 0 && searchTerm.length >= 1 && (
               <p className="py-3 text-center text-xs text-slate-400">ไม่พบวัตถุดิบ</p>
             )}
-          </div>
+          </Alert>
         )}
 
         {/* ---- Already-deducted materials ---- */}

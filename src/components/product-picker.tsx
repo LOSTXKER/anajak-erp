@@ -306,7 +306,7 @@ export function ProductPickerDialog({
 
                       {/* Expanded: variant selection with checkboxes + qty */}
                       {isExpanded && product.variants.length > 0 && (
-                        <div className="mb-1 ml-10 mr-3 rounded-lg border border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50">
+                        <div className="mb-1 ml-10 mr-3 rounded-xl border border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50">
                           <table className="w-full table-fixed text-xs">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">

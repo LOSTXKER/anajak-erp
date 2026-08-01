@@ -36,6 +36,7 @@ import {
   Loader2,
   Receipt,
 } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 
 interface OrderDesignSectionProps {
   orderId: string;
@@ -382,7 +383,7 @@ export function OrderDesignSection({
               <p className="text-sm text-red-500">{uploadError}</p>
             )}
             {needsThumbnail && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+              <Alert variant="warning">
                 <p className="mb-2 text-sm font-medium text-amber-800 dark:text-amber-200">
                   ไฟล์นี้ลูกค้าเปิดดูบนมือถือไม่ได้ (.ai/.psd/.pdf) — แนบรูปตัวอย่างให้ลูกค้าดูก่อนตัดสินแบบ
                 </p>
@@ -399,7 +400,7 @@ export function OrderDesignSection({
                     ✓ แนบรูปตัวอย่างแล้ว
                   </p>
                 )}
-              </div>
+              </Alert>
             )}
             <div>
               <label htmlFor="designer-notes" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">

@@ -105,7 +105,7 @@ export function JobShareView({ token }: { token: string }) {
                       <img
                         src={a.fileUrl ?? ""}
                         alt={a.fileName}
-                        className="h-36 w-full rounded-lg border border-slate-200 bg-white object-contain"
+                        className="h-36 w-full rounded-xl border border-slate-200 bg-white object-contain"
                       />
                       <p className="mt-1 truncate text-2xs text-slate-400">{a.fileName}</p>
                     </a>
@@ -119,7 +119,7 @@ export function JobShareView({ token }: { token: string }) {
                       <img
                         src={design.imageUrl ?? ""}
                         alt={`แบบ v${design.versionNumber}`}
-                        className="h-36 w-full rounded-lg border border-slate-200 bg-white object-contain"
+                        className="h-36 w-full rounded-xl border border-slate-200 bg-white object-contain"
                       />
                       <p className="mt-1 truncate text-2xs text-slate-400">
                         แบบที่อนุมัติ (v{design.versionNumber})
