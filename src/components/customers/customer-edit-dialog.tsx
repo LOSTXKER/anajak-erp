@@ -16,13 +16,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { PAYMENT_TERMS } from "@/lib/payment-terms";
 import {
   buildCustomerUpdatePayload,
@@ -120,23 +114,21 @@ export function CustomerEditDialog({
                 ]}
               />
             </fieldset>
-            <Select
-              value={form.segment}
-              onValueChange={(value) => set({ segment: value as CustomerEditForm["segment"] })}
-            >
-              <Field label="กลุ่มลูกค้า" id="customer-segment">
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-              </Field>
-                <SelectContent>
-                  {SEGMENT_OPTIONS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-            </Select>
+            <Field label="กลุ่มลูกค้า" id="customer-segment">
+              <Select
+                className="w-full"
+                value={form.segment}
+                onChange={(e) =>
+                  set({ segment: e.target.value as CustomerEditForm["segment"] })
+                }
+              >
+                {SEGMENT_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
             <Field
               label={`ชื่อ${isCorporate ? "ผู้ติดต่อ" : "ลูกค้า"}`}
               required
@@ -238,28 +230,30 @@ export function CustomerEditDialog({
                   />
                 </Field>
               </div>
-              <Select
-                value={form.defaultPaymentTerms || NONE}
-                onValueChange={(v) => set({ defaultPaymentTerms: v === NONE ? "" : v })}
+              <Field
+                label="เงื่อนไขการชำระเงิน (ค่าเริ่มต้น)"
+                id="customer-payment-terms"
+                className="mt-4"
               >
-                <Field
-                  label="เงื่อนไขการชำระเงิน (ค่าเริ่มต้น)"
-                  id="customer-payment-terms"
-                  className="mt-4"
+                <Select
+                  className="w-full sm:w-64"
+                  placeholder="ไม่กำหนด"
+                  value={form.defaultPaymentTerms || NONE}
+                  onChange={(e) =>
+                    set({
+                      defaultPaymentTerms:
+                        e.target.value === NONE ? "" : e.target.value,
+                    })
+                  }
                 >
-                  <SelectTrigger className="w-full sm:w-64">
-                    <SelectValue placeholder="ไม่กำหนด" />
-                  </SelectTrigger>
-                </Field>
-                  <SelectContent>
-                    <SelectItem value={NONE}>ไม่กำหนด</SelectItem>
-                    {PAYMENT_TERMS.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-              </Select>
+                  <option value={NONE}>ไม่กำหนด</option>
+                  {PAYMENT_TERMS.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="ที่อยู่ออกใบกำกับภาษี" className="sm:col-span-2">
                   <Input

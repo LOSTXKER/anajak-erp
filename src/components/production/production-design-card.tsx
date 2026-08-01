@@ -12,6 +12,8 @@ import { PRINT_POSITIONS, PRINT_TYPES } from "@/types/order-form";
 import { isImageUrl, formatDate } from "@/lib/utils";
 import { Palette, ExternalLink, ImageOff } from "lucide-react";
 import type { ProductionDetail } from "./types";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 // การ์ด "แบบ + ไซส์" บนหน้าใบผลิต (UX1) — ช่างเห็นลายอนุมัติ+เวอร์ชัน+ตารางไซส์
 // โดยไม่ต้องออกจากหน้า/พึ่งใบกระดาษ job ticket · ไม่มีตัวเลขเงินบน component นี้
@@ -54,7 +56,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
             <button
               type="button"
               onClick={() => setZoom({ src: approvedImage, label: `แบบอนุมัติ v${approvedDesign.versionNumber}` })}
-              className="shrink-0 overflow-hidden rounded-xl border border-slate-200 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:border-slate-700"
+              className={cn("shrink-0 overflow-hidden rounded-xl border border-slate-200 transition-opacity hover:opacity-90", FOCUS_BUTTON, "dark:border-slate-700")}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -116,7 +118,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
                         label: PRINT_POSITIONS[pr.position] ?? pr.position,
                       })
                     }
-                    className="shrink-0 overflow-hidden rounded-lg border border-slate-200 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:border-slate-700"
+                    className={cn("shrink-0 overflow-hidden rounded-lg border border-slate-200 transition-opacity hover:opacity-90", FOCUS_BUTTON, "dark:border-slate-700")}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img

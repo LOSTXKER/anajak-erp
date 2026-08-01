@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchInput } from "@/components/ui/search-input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -291,7 +291,7 @@ function AgingPageContent() {
         {/* flex-wrap: จอมือถือให้ช่องเลือกซ้อนกันเต็มความกว้างเหมือนเดิม —
             ถ้าปล่อยเรียงคู่กัน ป้ายยาวอย่าง "ยอดเลยกำหนดมากสุด" จะโดนตัดจนอ่านไม่ออก */}
         <ToolbarGroup className="flex-wrap">
-          <NativeSelect
+          <Select
             shape="pill"
             aria-label="กรองช่วงอายุหนี้"
             value={status}
@@ -305,8 +305,8 @@ function AgingPageContent() {
                 {option.label}
               </option>
             ))}
-          </NativeSelect>
-          <NativeSelect
+          </Select>
+          <Select
             shape="pill"
             aria-label="เรียงรายการลูกหนี้"
             value={sort}
@@ -320,7 +320,7 @@ function AgingPageContent() {
                 {option.label}
               </option>
             ))}
-          </NativeSelect>
+          </Select>
         </ToolbarGroup>
       </Toolbar>
 

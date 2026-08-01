@@ -203,7 +203,7 @@ export function MaterialUsage({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="ค้นหาวัตถุดิบ"
-                className="h-8 pl-8 text-xs"
+                className="pl-8 text-xs"
               />
             </div>
 

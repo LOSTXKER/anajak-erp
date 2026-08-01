@@ -22,6 +22,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatDate, formatDateTime, cn, isImageUrl } from "@/lib/utils";
+import { FOCUS_BUTTON, FOCUS_FIELD_INVALID, FOCUS_INSET } from "@/components/ui/tokens";
 import { permAllows } from "@/lib/permissions";
 import {
   ArrowLeft,
@@ -95,7 +96,7 @@ function DesignThumb({
       rel="noreferrer"
       onClick={(e) => e.stopPropagation()}
       title={`เปิดไฟล์ลาย v${design.versionNumber}`}
-      className="relative shrink-0 overflow-hidden rounded-lg border border-slate-200 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:border-slate-700"
+      className={cn("relative shrink-0 overflow-hidden rounded-lg border border-slate-200 transition-opacity hover:opacity-90", FOCUS_BUTTON, "dark:border-slate-700")}
     >
       {img ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -363,7 +364,7 @@ export default function PrintRunsPage() {
             onChange={(e) => setNote(e.target.value)}
             maxLength={500}
             placeholder="โน้ตรอบ เช่น ม้วนที่ 2 เครื่องซ้าย (ไม่บังคับ)"
-            className="order-3 h-11 w-full sm:order-none sm:w-64"
+            className="order-3 w-full sm:order-none sm:w-64"
           />
           <Button
             disabled={create.isPending || hasInvalidQty || pickedTotal < 1}
@@ -551,7 +552,7 @@ function QueueRow({
           onClick={onToggle}
           aria-pressed={selected}
           aria-label={`${selected ? "นำออกจาก" : "เพิ่มเข้า"}รอบพิมพ์ ${entry.orderNumber}`}
-          className="flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800"
+          className={cn("flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-slate-50", FOCUS_INSET, "active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800")}
         >
           {summary}
         </button>
@@ -573,7 +574,7 @@ function QueueRow({
             onChange={(e) => onQtyChange(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
             className={cn(
               "h-10 w-24 text-center tabular-nums",
-              invalid && "border-red-300 focus-visible:ring-red-400"
+              invalid && cn("border-red-300", FOCUS_FIELD_INVALID)
             )}
           />
         </div>

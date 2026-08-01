@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { Plus, Trash2, Pencil, X, Check, Settings, ShieldX } from "lucide-react";
 import { SettingsPageHeader } from "@/components/settings-page-header";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -311,7 +311,7 @@ export default function ServicesPage() {
                   <label htmlFor={`${formId}-pricing-type`} className="mb-1 block text-xs font-medium text-slate-500">
                     คิดราคา
                   </label>
-                  <NativeSelect
+                  <Select
                     id={`${formId}-pricing-type`}
                     value={formData.pricingType}
                     onChange={(e) =>
@@ -323,7 +323,7 @@ export default function ServicesPage() {
                   >
                     <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
                     <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
-                  </NativeSelect>
+                  </Select>
                 </div>
                 <div className="flex items-end gap-2">
                   <Button
@@ -407,7 +407,7 @@ export default function ServicesPage() {
                                   name: e.target.value,
                                 })
                               }
-                              className="h-8 text-sm"
+                              className="text-sm"
                             />
                           ) : (
                             <span className="text-sm font-medium text-slate-900 dark:text-white">
@@ -443,9 +443,9 @@ export default function ServicesPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <NativeSelect
+                            <Select
                               aria-label={`วิธีคิดราคาของ ${item.name}`}
-                              className="h-8 text-xs"
+                              className="text-xs"
                               value={editingItem.pricingType}
                               onChange={(e) =>
                                 setEditingItem({
@@ -458,7 +458,7 @@ export default function ServicesPage() {
                             >
                               <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
                               <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
-                            </NativeSelect>
+                            </Select>
                           ) : (
                             <Badge variant={ptConfig.variant}>
                               {ptConfig.label}

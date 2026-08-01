@@ -26,6 +26,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatDate, cn } from "@/lib/utils";
+import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { permAllows } from "@/lib/permissions";
 import { Film, Printer, Loader2, Hand } from "lucide-react";
 
@@ -322,8 +323,8 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
               value={qty}
               onChange={(e) => setQty(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
               className={cn(
-                "h-11 w-32 text-center tabular-nums",
-                invalid && "border-red-300 focus-visible:ring-red-400"
+                "w-32 text-center tabular-nums",
+                invalid && cn("border-red-300", FOCUS_FIELD_INVALID)
               )}
             />
           </Field>
@@ -333,7 +334,6 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
               maxLength={300}
               onChange={(e) => setNote(e.target.value)}
               placeholder="เช่น ใช้กับออเดอร์ ORD-xxxx / ฟิล์มเสีย ตัดทิ้ง"
-              className="h-11"
             />
           </Field>
         </div>

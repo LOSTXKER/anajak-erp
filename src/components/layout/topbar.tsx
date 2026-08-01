@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Bell, Search, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { OVERLAY_PANEL } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { CommandPalette } from "./command-palette";
@@ -131,7 +133,7 @@ export function Topbar() {
           </Button>
 
           {notifOpen && (
-            <div className="fixed left-2 right-2 top-16 z-50 overflow-hidden rounded-2xl border border-slate-200/70 bg-white overlay-surface sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 dark:border-slate-800 dark:bg-slate-900">
+            <div className={cn(OVERLAY_PANEL, "fixed left-2 right-2 top-16 z-50 overflow-hidden sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96")}>
               <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5 dark:border-slate-800">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                   การแจ้งเตือน

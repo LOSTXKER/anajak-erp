@@ -72,7 +72,7 @@ export function SizeMatrix({
               value={qtyOf(size) || ""}
               onChange={(e) => rebuild(size, parseInt(e.target.value) || 0)}
               placeholder="0"
-              className="h-8 px-1 text-center text-xs"
+              className="px-1 text-center text-xs"
             />
           </div>
         ))}
@@ -92,7 +92,7 @@ export function SizeMatrix({
                 }
               }}
               placeholder="XS/4XL"
-              className="h-8 px-1 text-center text-xs"
+              className="px-1 text-center text-xs"
             />
           </div>
           <Button type="button" variant="outline" size="icon-sm" onClick={addSize}>

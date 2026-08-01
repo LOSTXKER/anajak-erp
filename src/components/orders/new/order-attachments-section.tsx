@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Section } from "@/components/ui/section";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
@@ -102,7 +102,7 @@ export function OrderAttachmentsSection({
                 >
                   <X />
                 </Button>
-                <NativeSelect
+                <Select
                   value={img.printPosition || ""}
                   onChange={(e) => {
                     onImagesChange((prev) =>
@@ -112,7 +112,7 @@ export function OrderAttachmentsSection({
                     );
                   }}
                   aria-label={`ตำแหน่งพิมพ์ของ ${img.fileName}`}
-                  className="mt-1.5 h-11 w-24 px-1.5 py-0 text-sm sm:h-8 sm:text-xs"
+                  className="mt-1.5 w-24 px-1.5 py-0 text-sm sm:h-8 sm:text-xs"
                 >
                   <option value="">ทั่วไป</option>
                   {Object.entries(PRINT_POSITIONS).map(([k, v]) => (
@@ -120,7 +120,7 @@ export function OrderAttachmentsSection({
                       {v}
                     </option>
                   ))}
-                </NativeSelect>
+                </Select>
               </div>
             ))}
           </div>

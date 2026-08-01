@@ -20,6 +20,7 @@ import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { permAllows } from "@/lib/permissions";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 
 /**
  * การ์ดแถบ "5 ตัวเลขเจ้าของ" — ยุบเข้า StatCard ไม่ได้เพราะการ์ดนี้มี "ลิงก์อิสระ 2 จุด"
@@ -90,7 +91,7 @@ function PulseCard({
       {href ? (
         <Link
           href={href}
-          className="block rounded-lg after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+          className={cn("block rounded-lg after:absolute after:inset-0 after:rounded-2xl", FOCUS_BUTTON)}
           aria-label={`ดูรายการ ${title}: ${value}`}
         >
           {titleAndValue}
@@ -104,7 +105,7 @@ function PulseCard({
           href={subHref}
           className={cn(
             // z-10 ให้ลิงก์รองลอยเหนือพื้นที่กดของลิงก์หลัก — สองปลายทางบนใบเดียวไม่ทับกัน
-            "relative z-10 mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:min-h-8",
+            "relative z-10 mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-lg", FOCUS_BUTTON, "sm:min-h-8",
             subClassName
           )}
         >
@@ -133,7 +134,7 @@ function KpiDrilldown({
     <Link
       href={href}
       aria-label={label}
-      className="block h-full rounded-2xl transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
+      className={cn("block h-full rounded-2xl transition-opacity hover:opacity-95", FOCUS_BUTTON)}
     >
       {children}
     </Link>
@@ -371,7 +372,7 @@ export default function DashboardPage() {
               <Link
                 key={item.status}
                 href={`/orders?status=${item.status}`}
-                className="block min-h-11 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:bg-slate-800/40"
+                className={cn("block min-h-11 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50", FOCUS_BUTTON, "dark:hover:bg-slate-800/40")}
               >
                 <div className="flex items-center justify-between">
                   <OrderStatusBadge internalStatus={item.status} compact />
@@ -408,7 +409,7 @@ export default function DashboardPage() {
               <Link
                 key={customer.id}
                 href={`/customers/${customer.id}`}
-                className="flex min-h-11 items-center justify-between rounded-lg px-2 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:bg-slate-800/40"
+                className={cn("flex min-h-11 items-center justify-between rounded-lg px-2 transition-colors hover:bg-slate-50", FOCUS_BUTTON, "dark:hover:bg-slate-800/40")}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">

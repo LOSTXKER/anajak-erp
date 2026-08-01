@@ -23,13 +23,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -37,6 +31,7 @@ import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { QueryError } from "@/components/ui/query-error";
 import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
+import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS, SHIPPING_METHOD_LABELS } from "@/lib/status-config";
 import {
   Truck,
@@ -410,7 +405,7 @@ export function OrderDeliverySection({
                                   value={editTrackingValue}
                                   onChange={(e) => setEditTrackingValue(e.target.value)}
                                   placeholder="เลขพัสดุ..."
-                                  className="h-8 w-48 font-mono"
+                                  className="w-48 font-mono"
                                 />
                                 <Button
                                   variant="ghost"
@@ -599,21 +594,16 @@ export function OrderDeliverySection({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="delivery-shipping-method">วิธีจัดส่ง</Label>
-                <Select value={shippingMethod} onValueChange={setShippingMethod}>
-                  <SelectTrigger id="delivery-shipping-method">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="KERRY">Kerry Express</SelectItem>
-                    <SelectItem value="FLASH">Flash Express</SelectItem>
-                    <SelectItem value="THAILAND_POST">ไปรษณีย์ไทย</SelectItem>
-                    <SelectItem value="J_AND_T">J&T Express</SelectItem>
-                    <SelectItem value="GRAB">Grab Express</SelectItem>
-                    <SelectItem value="LALAMOVE">Lalamove</SelectItem>
-                    <SelectItem value="PICKUP">รับเอง</SelectItem>
-                    <SelectItem value="OTHER">อื่นๆ</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Select value={shippingMethod} onChange={(e) => setShippingMethod(e.target.value)} id="delivery-shipping-method">
+                    <option value="KERRY">Kerry Express</option>
+                    <option value="FLASH">Flash Express</option>
+                    <option value="THAILAND_POST">ไปรษณีย์ไทย</option>
+                    <option value="J_AND_T">J&T Express</option>
+                    <option value="GRAB">Grab Express</option>
+                    <option value="LALAMOVE">Lalamove</option>
+                    <option value="PICKUP">รับเอง</option>
+                    <option value="OTHER">อื่นๆ</option>
+                  </Select>
               </div>
               <Field label="ค่าจัดส่ง (บาท)">
                 <Input
@@ -669,9 +659,9 @@ export function OrderDeliverySection({
                             setPackQty((prev) => ({ ...prev, [r.key]: e.target.value }))
                           }
                           className={cn(
-                            "h-8 w-16 shrink-0 text-right",
+                            "w-16 shrink-0 text-right",
                             r.invalid &&
-                              "border-red-500 focus-visible:ring-red-500/40 dark:border-red-600"
+                              cn("border-red-500 dark:border-red-600", FOCUS_FIELD_INVALID)
                           )}
                         />
                       </div>
@@ -760,19 +750,14 @@ export function OrderDeliverySection({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="delivery-status">สถานะ</Label>
-              <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger id="delivery-status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+              <Select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} id="delivery-status">
                   {/* เฉพาะสถานะปัจจุบัน + ที่เดินไปได้ (B13) — เลือกสถานะที่ server จะปฏิเสธไม่ได้ */}
                   {nextDeliveryStatuses(statusFrom).map((s) => (
-                    <SelectItem key={s} value={s}>
+                    <option key={s} value={s}>
                       {DELIVERY_STATUS_LABELS[s]}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select>
             </div>
             {(newStatus === "SHIPPED" || newStatus === "PREPARING") && (
               <Field label="เลขพัสดุ">

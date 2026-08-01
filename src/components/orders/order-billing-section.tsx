@@ -15,13 +15,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,6 +56,8 @@ import {
 } from "lucide-react";
 import type { InvoiceType } from "@prisma/client";
 import type { RouterOutput } from "@/lib/trpc";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 type Invoice = RouterOutput["billing"]["listByOrder"][number];
 type Payment = Invoice["payments"][number];
@@ -545,7 +541,7 @@ export function OrderBillingSection({
                         rel="noreferrer"
                         aria-label={`พิมพ์หรือเปิด PDF ${inv.invoiceNumber}`}
                         title="พิมพ์ / PDF"
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                        className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400")}
                       >
                         <Printer className="h-3.5 w-3.5" />
                       </a>
@@ -613,7 +609,7 @@ export function OrderBillingSection({
                                       target="_blank"
                                       rel="noreferrer"
                                       aria-label={`ดูสลิปของรายการชำระ ${formatCurrency(p.amount)}`}
-                                      className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:h-9 sm:w-9 dark:hover:bg-slate-900 dark:hover:text-blue-400"
+                                      className={cn("flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white hover:text-blue-600", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:bg-slate-900 dark:hover:text-blue-400")}
                                       title="ดูสลิปโอน"
                                     >
                                       <Paperclip className="h-3 w-3" />
@@ -719,19 +715,13 @@ export function OrderBillingSection({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="billing-invoice-type">ประเภทบิล</Label>
-              <Select
-                value={invoiceType}
-                onValueChange={(v) => {
-                  setInvoiceType(v);
-                  setChosenType(v); // เปลี่ยนชนิด → suggest คำนวณยอดใหม่ให้ตามชนิดนั้น
+              <Select value={invoiceType}
+                onChange={(e) => {
+                  setInvoiceType(e.target.value);
+                  setChosenType(e.target.value); // เปลี่ยนชนิด → suggest คำนวณยอดใหม่ให้ตามชนิดนั้น
                   setUserEdited({ amount: false, tax: false, dueDate: false });
                   setReceiptForPayment(null); // เปลี่ยนชนิดเอง = เลิกผูกงวดรับเงิน
-                }}
-              >
-                <SelectTrigger id="billing-invoice-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+                }} id="billing-invoice-type">
                   {(
                     [
                       "DEPOSIT_INVOICE",
@@ -741,12 +731,11 @@ export function OrderBillingSection({
                       "DEBIT_NOTE",
                     ] as const
                   ).map((t) => (
-                    <SelectItem key={t} value={t}>
+                    <option key={t} value={t}>
                       {INVOICE_TYPE_LABELS[t]}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select>
               {invoiceType === "RECEIPT" && receiptForPayment && (
                 <div className="mt-1.5 space-y-2">
                   <p className="text-xs text-blue-600 dark:text-blue-400">
@@ -795,19 +784,14 @@ export function OrderBillingSection({
                       <span aria-hidden="true" className="ml-1 text-red-700 dark:text-red-400">*</span>
                       <span className="sr-only"> (จำเป็น)</span>
                     </Label>
-                    <Select value={originalInvoiceId} onValueChange={setOriginalInvoiceId}>
-                      <SelectTrigger id="billing-original-invoice" aria-required="true">
-                        <SelectValue placeholder="เลือกใบที่ต้องการลด/เพิ่มหนี้" />
-                      </SelectTrigger>
-                      <SelectContent>
+                    <Select value={originalInvoiceId} onChange={(e) => setOriginalInvoiceId(e.target.value)} id="billing-original-invoice" aria-required="true" placeholder="เลือกใบที่ต้องการลด/เพิ่มหนี้">
                         {adjustableOriginals.map((inv) => (
-                          <SelectItem key={inv.id} value={inv.id}>
+                          <option key={inv.id} value={inv.id}>
                             {inv.invoiceNumber} · {INVOICE_TYPE_LABELS[inv.type] ?? inv.type} ·{" "}
                             {formatCurrency(inv.totalAmount)}
-                          </SelectItem>
+                          </option>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </Select>
                     {adjustableOriginals.length === 0 ? (
                       <p className="mt-1 text-xs text-red-500">
                         ออเดอร์นี้ยังไม่มีใบกำกับ/ใบแจ้งหนี้ให้อ้างอิง — ออกใบลดหนี้/เพิ่มหนี้ไม่ได้
@@ -1038,18 +1022,13 @@ export function OrderBillingSection({
             </div>
             <div className="space-y-2">
               <Label htmlFor="billing-payment-method">วิธีชำระ</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger id="billing-payment-method">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+              <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} id="billing-payment-method">
                   {PAYMENT_METHODS.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>
+                    <option key={m.value} value={m.value}>
                       {m.label}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select>
             </div>
             <Field label="เลขอ้างอิง">
               <Input
@@ -1076,7 +1055,7 @@ export function OrderBillingSection({
                     type="button"
                     onClick={() => setEvidenceUrl("")}
                     aria-label="ลบรูปสลิปโอน"
-                    className="absolute -right-4 -top-4 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm hover:bg-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 sm:h-9 sm:w-9 dark:bg-red-600 dark:hover:bg-red-500"
+                    className={cn("absolute -right-4 -top-4 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm hover:bg-red-800", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:bg-red-600 dark:hover:bg-red-500")}
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -1149,18 +1128,13 @@ export function OrderBillingSection({
             </Field>
             <div className="space-y-2">
               <Label htmlFor="billing-refund-method">วิธีคืนเงิน</Label>
-              <Select value={refundMethod} onValueChange={setRefundMethod}>
-                <SelectTrigger id="billing-refund-method">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+              <Select value={refundMethod} onChange={(e) => setRefundMethod(e.target.value)} id="billing-refund-method">
                   {PAYMENT_METHODS.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>
+                    <option key={m.value} value={m.value}>
                       {m.label}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select>
             </div>
             <Field label="เลขอ้างอิง">
               <Input

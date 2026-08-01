@@ -15,13 +15,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { permAllows } from "@/lib/permissions";
@@ -36,6 +30,8 @@ import {
   Printer,
   ArrowRight,
 } from "lucide-react";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 // ภาษาสีสถานะการชำระใช้ชุดกลางที่เดียว (UX4.2) — ห้ามประกาศ local ซ้ำ
 // ป้าย+สีจะได้ตรงกับแท็บเงินในออเดอร์ที่ทีมเปิดคู่กันทุกวัน
@@ -236,42 +232,28 @@ function BillingPageContent() {
         {/* flex-wrap: จอแคบให้ตัวกรองเต็มความกว้างคนละบรรทัดเหมือนเดิม — ถ้าบีบสองช่องลงแถวเดียว
             ป้ายยาวอย่าง "ใบแจ้งหนี้ส่วนที่เหลือ" จะถูกตัดกลางคำ · จอกว้างค่อยยืนเรียงกัน */}
         <ToolbarGroup className="flex-wrap">
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => {
-              replaceListState({ status: v === ALL ? null : v, page: null });
-            }}
-          >
-            <SelectTrigger shape="pill" className="w-full @2xl:w-40" aria-label="กรองตามสถานะ">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>ทุกสถานะ</SelectItem>
+          <Select value={statusFilter}
+            onChange={(e) => {
+              replaceListState({ status: e.target.value === ALL ? null : e.target.value, page: null });
+            }} shape="pill" className="w-full @2xl:w-40" aria-label="กรองตามสถานะ">
+              <option value={ALL}>ทุกสถานะ</option>
               {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
+                <option key={value} value={value}>
                   {label}
-                </SelectItem>
+                </option>
               ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={typeFilter}
-            onValueChange={(v) => {
-              replaceListState({ type: v === ALL ? null : v, page: null });
-            }}
-          >
-            <SelectTrigger shape="pill" className="w-full @2xl:w-48" aria-label="กรองตามประเภท">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>ทุกประเภท</SelectItem>
+            </Select>
+          <Select value={typeFilter}
+            onChange={(e) => {
+              replaceListState({ type: e.target.value === ALL ? null : e.target.value, page: null });
+            }} shape="pill" className="w-full @2xl:w-48" aria-label="กรองตามประเภท">
+              <option value={ALL}>ทุกประเภท</option>
               {TYPE_FILTER_OPTIONS.map((value) => (
-                <SelectItem key={value} value={value}>
+                <option key={value} value={value}>
                   {INVOICE_TYPE_LABELS[value]}
-                </SelectItem>
+                </option>
               ))}
-            </SelectContent>
-          </Select>
+            </Select>
         </ToolbarGroup>
       </Toolbar>
 
@@ -308,7 +290,7 @@ function BillingPageContent() {
                 <article key={inv.id} className="card-surface rounded-2xl p-4">
                   <Link
                     href={moneyHref}
-                    className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                    className={cn("block rounded-xl", FOCUS_BUTTON)}
                     aria-label={`เปิดออเดอร์ ${inv.order.orderNumber} ที่แท็บเงินและบิล`}
                   >
                     <div className="flex items-start justify-between gap-3">

@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { QueryError } from "@/components/ui/query-error";
@@ -215,7 +215,7 @@ export default function UsersSettingsPage() {
                 <label htmlFor="new-user-role" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
                   บทบาท *
                 </label>
-                <NativeSelect
+                <Select
                   id="new-user-role"
                   value={newUser.role}
                   onChange={(e) =>
@@ -227,7 +227,7 @@ export default function UsersSettingsPage() {
                       {opt.label}
                     </option>
                   ))}
-                </NativeSelect>
+                </Select>
               </div>
               <div>
                 <label htmlFor="new-user-password" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -327,7 +327,7 @@ export default function UsersSettingsPage() {
                               {ROLE_LABELS[user.role]}
                             </span>
                           ) : (
-                            <NativeSelect
+                            <Select
                               value={user.role}
                               disabled={updateMutation.isPending}
                               aria-label={`บทบาทของ ${user.name}`}
@@ -337,14 +337,14 @@ export default function UsersSettingsPage() {
                                   role: e.target.value as Role,
                                 })
                               }
-                              className="h-8 w-36"
+                              className="w-36"
                             >
                               {ROLE_OPTIONS.map((opt) => (
                                 <option key={opt.value} value={opt.value}>
                                   {opt.label}
                                 </option>
                               ))}
-                            </NativeSelect>
+                            </Select>
                           )}
                         </td>
                         <td className="px-3 py-2.5 text-center">

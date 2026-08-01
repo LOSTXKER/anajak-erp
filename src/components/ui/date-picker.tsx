@@ -19,7 +19,7 @@ import {
 } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { controlShapeClass, type ControlShape } from "./native-select";
+import { FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, controlShapeClass, type ControlShape } from "./tokens";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
 
 /* ============================================================
@@ -114,7 +114,7 @@ export function DatePicker({
             controlShapeClass(shape),
             CONTROL_H,
             "flex w-full items-center justify-between gap-2 border border-slate-200/70 bg-white px-3 py-1 text-base transition-colors",
-            "focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/15",
+            FOCUS_FIELD,
             "sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
             "dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100",
             className,
@@ -159,7 +159,8 @@ export function DatePicker({
           sideOffset={8}
           collisionPadding={12}
           className={cn(
-            "overlay-surface z-50 w-[19rem] rounded-2xl p-3",
+            OVERLAY_PANEL,
+            "z-50 w-[19rem] p-3",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -214,7 +215,7 @@ export function DatePicker({
                   className={cn(
                     CONTROL_H,
                     "flex items-center justify-center rounded-lg text-sm tabular-nums transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
+                    FOCUS_BUTTON,
                     !inMonth && "text-slate-300 dark:text-slate-600",
                     inMonth && "text-slate-700 dark:text-slate-200",
                     !isSelected && "hover:bg-slate-100 dark:hover:bg-slate-800",

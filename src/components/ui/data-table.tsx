@@ -1,6 +1,7 @@
 import * as React from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FOCUS_INSET } from "./tokens";
 
 /**
  * Minimal table primitive that gives every list page the same look-and-feel:
@@ -163,7 +164,8 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
           onClick={() => onSort(nextDirection)}
           className={cn(
             "flex w-full items-center gap-1.5 px-5 py-3 text-xs font-medium transition-colors",
-            "hover:bg-slate-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:hover:bg-slate-800/50",
+            FOCUS_INSET,
+            "hover:bg-slate-100/70 dark:hover:bg-slate-800/50",
             active
               ? "font-semibold text-blue-700 dark:text-blue-300"
               : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200",

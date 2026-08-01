@@ -13,7 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -199,7 +199,7 @@ function StepBuilder({
                         updated[index] = { ...updated[index], customStepName: e.target.value };
                         setSteps(updated);
                       }}
-                      className="h-8 flex-1"
+                      className="flex-1"
                     />
                   ) : (
                     <span className="flex-1 text-sm font-medium text-slate-800 dark:text-slate-200">
@@ -229,7 +229,7 @@ function StepBuilder({
         </div>
 
         {/* เพิ่มขั้นตอน — เลือกแล้วต่อท้ายทันที (ค่า reset กลับ) */}
-        <NativeSelect
+        <Select
           value=""
           onChange={(e) => {
             if (e.target.value) addStep(e.target.value);
@@ -242,7 +242,7 @@ function StepBuilder({
               {STEP_TYPE_LABELS[t]}
             </option>
           ))}
-        </NativeSelect>
+        </Select>
       </div>
 
       {createProduction.error && (

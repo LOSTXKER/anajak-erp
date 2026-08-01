@@ -7,6 +7,7 @@ import {
   INTERNAL_STATUS_STAGES,
 } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 
 /* ============================================================
    แถบเส้นทางงานเหนือตาราง (เบสเคาะแบบ C 2026-08-01)
@@ -87,7 +88,7 @@ export function OrderStatusFlowBar({
                 onClick={() => onSelect(isOn ? "" : status)}
                 className={cn(
                   "rounded-lg px-1 py-1.5 text-center transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
+                  FOCUS_BUTTON,
                   isOn
                     ? "bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-950/40 dark:ring-blue-400"
                     : "hover:bg-slate-50 dark:hover:bg-slate-800/50",
@@ -144,7 +145,7 @@ export function OrderStatusFlowBar({
               onClick={() => onSelect(isOn ? "" : status)}
               className={cn(
                 "card-surface flex min-h-11 items-center justify-between gap-2 rounded-xl px-3 py-2 text-left",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
+                FOCUS_BUTTON,
                 isOn &&
                   "bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-950/40 dark:ring-blue-400",
               )}

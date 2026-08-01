@@ -5,6 +5,7 @@ import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { Filter, X } from "lucide-react";
 import { Button } from "./button";
 import { cn } from "@/lib/utils";
+import { OVERLAY_PANEL } from "./tokens";
 
 /* ============================================================
    ตัวกรองแบบลอยใต้ปุ่ม (เบสเคาะ 2026-07-31 — เลือกแบบ ข)
@@ -66,7 +67,8 @@ export function FilterPopover({
           sideOffset={8}
           collisionPadding={12}
           className={cn(
-            "overlay-surface z-50 w-[min(28rem,calc(100vw-1.5rem))] rounded-2xl p-4",
+            OVERLAY_PANEL,
+            "z-50 w-[min(28rem,calc(100vw-1.5rem))] p-4",
             "max-h-[min(32rem,calc(100dvh-8rem))] overflow-y-auto overscroll-contain",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",

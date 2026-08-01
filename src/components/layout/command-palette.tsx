@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OVERLAY_PANEL } from "@/components/ui/tokens";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { navigationItemsForSurface } from "@/lib/navigation";
@@ -212,7 +213,10 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
             event.preventDefault();
             returnFocusRef.current.focus();
           }}
-          className="fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white overlay-surface outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none sm:top-[14%] dark:border-slate-800/60 dark:bg-slate-900"
+          className={cn(
+            OVERLAY_PANEL,
+            "fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none sm:top-[14%]",
+          )}
         >
           <DialogPrimitive.Title className="sr-only">ค้นหา</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">

@@ -53,6 +53,34 @@ const uiLanguageRules = [
         },
 ];
 
+/* กฎที่บังคับเฉพาะไฟล์ .tsx (เบสสั่ง 2026-08-01 "ตรวจดีๆ ว่ามีอะไรไม่เป็นมาตรฐาน")
+   จงใจไม่บังคับกับ .ts เพราะ src/components/ui/tokens.ts คือที่ที่ "ประกาศ" สูตร
+   พวกนี้ — ถ้าบังคับด้วย ตัวนิยามเองจะผิดกฎตัวเอง (control-size.ts ก็ยกเว้นด้วยเหตุผลเดียวกัน) */
+const tsxOnlyRules = [
+  // กล่องลอย 15 จุดเคยเขียนขอบ/พื้น/มุมโค้งเพิ่มเองข้าง .overlay-surface แล้วเขียนไม่ตรงกัน
+  // 5 สูตร: มุม lg/xl/2xl ปนกัน · บางจุดมีขอบ บางจุดไม่มี · โหมดมืดคนละเฉด
+  {
+    selector:
+      "Literal[value=/overlay-surface[^\"]*(bg-white|border-slate|rounded-)|(bg-white|border-slate|rounded-)[^\"]*overlay-surface/]",
+    message:
+      "ห้ามใส่ขอบ/พื้น/มุมโค้งซ้ำให้กล่องลอย — ใช้ OVERLAY_PANEL จาก @/components/ui/tokens (.overlay-surface ให้ครบแล้ว)",
+  },
+  // วงแหวนโฟกัสเคยมี 8 สูตร ทั้งที่มีแค่ 4 ความหมาย — ต่างกันแค่ความเข้ม/ระยะเว้น
+  // โดยไม่มีเหตุผล ทำให้ "โฟกัสอยู่ตรงไหน" ดูไม่เท่ากันทั้งเว็บ
+  {
+    selector:
+      "Literal[value=/(focus|focus-visible):ring-(blue|red|amber|yellow|green|slate|orange)-[0-9]/]",
+    message:
+      "ห้ามเขียนวงแหวนโฟกัสเอง — ใช้ FOCUS_FIELD (ช่องกรอก) · FOCUS_BUTTON (ปุ่ม/แถวที่กดได้) · FOCUS_INSET (เต็มพื้นที่ เช่นหัวตาราง) · FOCUS_FIELD_INVALID (ช่องกรอกผิด) จาก @/components/ui/tokens",
+  },
+  {
+    selector:
+      "TemplateElement[value.raw=/(focus|focus-visible):ring-(blue|red|amber|yellow|green|slate|orange)-[0-9]/]",
+    message:
+      "ห้ามเขียนวงแหวนโฟกัสเอง — ใช้ FOCUS_FIELD / FOCUS_BUTTON / FOCUS_INSET / FOCUS_FIELD_INVALID จาก @/components/ui/tokens",
+  },
+];
+
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
@@ -78,6 +106,14 @@ const eslintConfig = [
     },
   },
   {
+    // ⚠️ flat config "แทนที่" กฎชื่อเดียวกันทั้งก้อน ไม่ได้รวมให้ — ทุก block ที่ประกาศ
+    // no-restricted-syntax ซ้ำต้องกระจาย uiLanguageRules เข้าไปด้วย ไม่งั้นด่านเดิมหายเงียบๆ
+    files: ["src/**/*.tsx"],
+    rules: {
+      "no-restricted-syntax": ["error", ...uiLanguageRules, ...tsxOnlyRules],
+    },
+  },
+  {
     // ห้ามเขียนสูตรความสูง control เองในของกลาง (เบสเคาะ 2026-08-01 "แก้ที่รากได้มั้ย")
     // สูตร "h-11 ... sm:h-9" เคยถูกก๊อปซ้ำใน 6 component / 22 ไฟล์ พอสร้างของใหม่ก็ลอกกันมา
     // และลอกผิดตระกูลได้ — ตัวเลือกช่วงวันที่เคยลอกสไตล์ "ช่องกรอก" มาทำปุ่มเปิดเมนู
@@ -91,6 +127,7 @@ const eslintConfig = [
       "no-restricted-syntax": [
         "error",
         ...uiLanguageRules,
+        ...tsxOnlyRules,
         // ดักทุกรูปที่เขียนความสูง control เอง ไม่ใช่แค่ "h-11 ... sm:h-9"
         // (audit จับได้ว่ารูป min-h-11 ... sm:min-h-9 กับ sm:h-8 ลอดด่านเดิมไปได้)
         {

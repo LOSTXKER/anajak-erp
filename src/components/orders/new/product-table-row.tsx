@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   Trash2,
@@ -49,7 +49,7 @@ export function ProductTableRow({
       {sourcePresentation.label}
     </Badge>
   ) : (
-    <NativeSelect
+    <Select
       value=""
       onChange={(e) => { if (e.target.value) updateProduct("itemSource", e.target.value); }}
       className="text-xs"
@@ -59,7 +59,7 @@ export function ProductTableRow({
       {Object.entries(ITEM_SOURCES)
         .filter(([key]) => key !== "FROM_STOCK")
         .map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-    </NativeSelect>
+    </Select>
   );
 
   const dash = <span className="text-xs text-slate-300">—</span>;
@@ -183,10 +183,10 @@ export function ProductTableRow({
               )}
               {packagingOptions && packagingOptions.length > 0 ? (
                 <Field label="แพค">
-                  <NativeSelect value={product.packagingOptionId} onChange={(e) => updateProduct("packagingOptionId", e.target.value)}>
+                  <Select value={product.packagingOptionId} onChange={(e) => updateProduct("packagingOptionId", e.target.value)}>
                     <option value="">—</option>
                     {packagingOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
-                  </NativeSelect>
+                  </Select>
                 </Field>
               ) : (
                 <div>

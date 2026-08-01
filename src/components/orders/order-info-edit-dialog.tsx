@@ -16,13 +16,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { Loader2, Save } from "lucide-react";
 import { PRIORITY_LABELS, isOrderLocked, orderEditLockedReason } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
@@ -240,7 +234,6 @@ export function OrderInfoEditDialog({
                 value={form.title}
                 onChange={(e) => update("title", e.target.value)}
                 placeholder="ชื่อออเดอร์"
-                className="h-9"
               />
             </Field>
             <Field label="รายละเอียด">
@@ -261,21 +254,14 @@ export function OrderInfoEditDialog({
                 />
               </Field>
               <Field label="ความเร่งด่วน">
-                <Select
-                  value={form.priority}
-                  onValueChange={(v) => update("priority", v)}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
+                <Select value={form.priority}
+                  onChange={(e) => update("priority", e.target.value)}>
                     {Object.entries(PRIORITY_LABELS).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>
+                      <option key={key} value={key}>
                         {label}
-                      </SelectItem>
+                      </option>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </Select>
               </Field>
             </div>
             <Field label="หมายเหตุ">
@@ -307,7 +293,6 @@ export function OrderInfoEditDialog({
                     update("taxRate", parseFloat(e.target.value) || 0)
                   }
                   placeholder="0"
-                  className="h-9"
                   min="0"
                   max="100"
                   disabled={moneyLocked}
@@ -321,7 +306,6 @@ export function OrderInfoEditDialog({
                     update("discount", parseFloat(e.target.value) || 0)
                   }
                   placeholder="0"
-                  className="h-9"
                   min="0"
                   disabled={moneyLocked}
                 />
@@ -334,7 +318,6 @@ export function OrderInfoEditDialog({
                     update("platformFee", parseFloat(e.target.value) || 0)
                   }
                   placeholder="0"
-                  className="h-9"
                   min="0"
                   disabled={moneyLocked}
                 />
@@ -350,34 +333,24 @@ export function OrderInfoEditDialog({
             )}
             <div className="grid grid-cols-2 gap-3">
               <Field label="เงื่อนไขชำระเงิน">
-                <Select
-                  value={form.paymentTerms || "_none"}
-                  onValueChange={(v) =>
-                    update("paymentTerms", v === "_none" ? "" : v)
-                  }
-                  disabled={moneyLocked}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="เลือก..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_none">-- ไม่ระบุ --</SelectItem>
+                <Select value={form.paymentTerms || "_none"}
+                  onChange={(e) => update("paymentTerms", e.target.value === "_none" ? "" : e.target.value)}
+                  disabled={moneyLocked} placeholder="เลือก...">
+                    <option value="_none">-- ไม่ระบุ --</option>
                     {Object.entries(PAYMENT_TERMS_LABELS).map(
                       ([key, label]) => (
-                        <SelectItem key={key} value={key}>
+                        <option key={key} value={key}>
                           {label}
-                        </SelectItem>
+                        </option>
                       ),
                     )}
-                  </SelectContent>
-                </Select>
+                  </Select>
               </Field>
               <Field label="เลขที่ PO">
                 <Input
                   value={form.poNumber}
                   onChange={(e) => update("poNumber", e.target.value)}
                   placeholder="เลขที่ PO"
-                  className="h-9"
                 />
               </Field>
             </div>
@@ -394,7 +367,6 @@ export function OrderInfoEditDialog({
                     update("shippingRecipientName", e.target.value)
                   }
                   placeholder="ชื่อผู้รับ"
-                  className="h-9"
                 />
               </Field>
               <Field label="เบอร์โทร">
@@ -402,7 +374,6 @@ export function OrderInfoEditDialog({
                   value={form.shippingPhone}
                   onChange={(e) => update("shippingPhone", e.target.value)}
                   placeholder="เบอร์โทร"
-                  className="h-9"
                 />
               </Field>
             </div>
@@ -411,7 +382,6 @@ export function OrderInfoEditDialog({
                 value={form.shippingAddress}
                 onChange={(e) => update("shippingAddress", e.target.value)}
                 placeholder="ที่อยู่"
-                className="h-9"
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
@@ -422,7 +392,6 @@ export function OrderInfoEditDialog({
                     update("shippingSubDistrict", e.target.value)
                   }
                   placeholder="ตำบล/แขวง"
-                  className="h-9"
                 />
               </Field>
               <Field label="อำเภอ/เขต">
@@ -430,7 +399,6 @@ export function OrderInfoEditDialog({
                   value={form.shippingDistrict}
                   onChange={(e) => update("shippingDistrict", e.target.value)}
                   placeholder="อำเภอ/เขต"
-                  className="h-9"
                 />
               </Field>
             </div>
@@ -440,7 +408,6 @@ export function OrderInfoEditDialog({
                   value={form.shippingProvince}
                   onChange={(e) => update("shippingProvince", e.target.value)}
                   placeholder="จังหวัด"
-                  className="h-9"
                 />
               </Field>
               <Field label="รหัสไปรษณีย์">
@@ -450,7 +417,6 @@ export function OrderInfoEditDialog({
                     update("shippingPostalCode", e.target.value)
                   }
                   placeholder="รหัสไปรษณีย์"
-                  className="h-9"
                 />
               </Field>
             </div>
@@ -465,7 +431,6 @@ export function OrderInfoEditDialog({
                   value={form.externalOrderId}
                   onChange={(e) => update("externalOrderId", e.target.value)}
                   placeholder="หมายเลขจาก Shopee / Lazada / TikTok"
-                  className="h-9"
                 />
               </Field>
             </div>

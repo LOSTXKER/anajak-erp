@@ -19,6 +19,8 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import { PageHeader } from "@/components/page-header";
 import { Plus, ClipboardList, ChevronRight } from "lucide-react";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 const QUOTATION_STATUSES = [
   { value: "", label: "ทั้งหมด" },
@@ -224,7 +226,7 @@ function QuotationsPageContent() {
               <Link
                 key={q.id}
                 href={`/quotations/${q.id}`}
-                className="card-surface block rounded-2xl p-4 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:bg-slate-900"
+                className={cn("card-surface block rounded-2xl p-4 transition-colors hover:bg-slate-50", FOCUS_BUTTON, "dark:hover:bg-slate-900")}
                 aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
               >
                 <div className="flex items-start justify-between gap-3">

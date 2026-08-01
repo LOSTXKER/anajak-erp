@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Plus, Trash2, Loader2, X } from "lucide-react";
 import {
   PRINT_POSITIONS,
@@ -14,6 +14,8 @@ import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 // Field ประกาศ local ถูกยุบทิ้ง (UX4) — ใช้ตัวกลางที่เดินสาย id/aria/error ให้ครบ
 import { Field } from "@/components/ui/field";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 export function PrintTableRow({
   print, printIdx, onUpdate, onRemove, printCatalog, onApplyCatalog,
@@ -71,7 +73,7 @@ export function PrintTableRow({
           <input ref={inputRef} type="file" accept="image/*,.pdf,.ai,.psd" onChange={handleImageUpload} className="hidden" aria-label={`อัปโหลดไฟล์ลาย ${printIdx + 1}`} />
           {imageUrl ? (
             <div className="group/img relative inline-block">
-              <button type="button" onClick={() => inputRef.current?.click()} aria-label={`เปลี่ยนไฟล์ลาย ${printIdx + 1}`} className="block min-h-11 min-w-11 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+              <button type="button" onClick={() => inputRef.current?.click()} aria-label={`เปลี่ยนไฟล์ลาย ${printIdx + 1}`} className={cn("block min-h-11 min-w-11 rounded-lg", FOCUS_BUTTON)}>
                 <img src={imageUrl} alt={`ลาย ${printIdx + 1}`} className="h-11 w-11 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
               </button>
               <Button type="button" variant="destructive" size="icon" aria-label={`ลบไฟล์ลาย ${printIdx + 1}`} onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); onUpdate("artworkId", undefined); }} className="absolute -right-3 -top-3 h-8 min-h-8 w-8 min-w-8 rounded-full p-0"><X /></Button>
@@ -85,14 +87,14 @@ export function PrintTableRow({
         {/* Print type (+ catalog) */}
         <td className="px-1 py-2.5 align-middle">
           {printCatalog && printCatalog.length > 0 ? (
-            <NativeSelect aria-label={`เลือกวิธีพิมพ์หรือต้นแบบ จุดที่ ${printIdx + 1}`} value="" onChange={(e) => { if (e.target.value) onApplyCatalog(e.target.value); }}>
+            <Select aria-label={`เลือกวิธีพิมพ์หรือต้นแบบ จุดที่ ${printIdx + 1}`} value="" onChange={(e) => { if (e.target.value) onApplyCatalog(e.target.value); }}>
               <option value="">{print.printType ? PRINT_TYPES[print.printType] || print.printType : "วิธีพิมพ์..."}</option>
               {printCatalog.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </NativeSelect>
+            </Select>
           ) : (
-            <NativeSelect aria-label={`เลือกวิธีพิมพ์ จุดที่ ${printIdx + 1}`} value={print.printType} onChange={(e) => onUpdate("printType", e.target.value)}>
+            <Select aria-label={`เลือกวิธีพิมพ์ จุดที่ ${printIdx + 1}`} value={print.printType} onChange={(e) => onUpdate("printType", e.target.value)}>
               {Object.entries(PRINT_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </NativeSelect>
+            </Select>
           )}
         </td>
         {/* Price (ค่าสกรีน) */}
@@ -111,15 +113,15 @@ export function PrintTableRow({
         <td colSpan={3} className="pb-3 pl-1 pt-1">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Field label="ขนาด">
-                <NativeSelect value={print.printSize || ""} onChange={(e) => handleSizePreset(e.target.value)}>
+                <Select value={print.printSize || ""} onChange={(e) => handleSizePreset(e.target.value)}>
                   <option value="">ขนาด...</option>
                   {Object.entries(PRINT_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </NativeSelect>
+                </Select>
               </Field>
               <Field label="ตำแหน่ง">
-                <NativeSelect value={print.position} onChange={(e) => onUpdate("position", e.target.value)}>
+                <Select value={print.position} onChange={(e) => onUpdate("position", e.target.value)}>
                   {Object.entries(PRINT_POSITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </NativeSelect>
+                </Select>
               </Field>
               {showColorCount && (
                 <Field label="จำนวนสี">

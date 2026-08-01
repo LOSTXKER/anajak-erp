@@ -237,7 +237,7 @@ export function OrderPriceSummary({
                 onPlatformFeeChange(parseFloat(e.target.value) || 0)
               }
               placeholder="0.00"
-              className="h-8 w-28 text-right"
+              className="w-28 text-right"
             />
           </div>
         )}
@@ -256,7 +256,7 @@ export function OrderPriceSummary({
               onDiscountChange(parseFloat(e.target.value) || 0)
             }
             placeholder="0.00"
-            className="h-8 w-28 text-right"
+            className="w-28 text-right"
           />
         </div>
 

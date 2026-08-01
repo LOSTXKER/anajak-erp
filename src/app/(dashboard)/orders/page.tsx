@@ -14,7 +14,7 @@ import { FilterPopover } from "@/components/ui/filter-popover";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { OrderStatusFlowBar } from "@/components/orders/order-status-flow-bar";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 
 // ────────────────────────────────────────────────────────────
 // Filter options
@@ -519,7 +520,7 @@ function OrdersPageContent() {
         <ToolbarGroup>
           {/* ช่องเรียงเหลือไว้เฉพาะจอแคบ (เบสเคาะ 2026-07-31) — จอกว้างย้ายไปกดที่หัวตารางแทน
               แต่จอแคบเป็นการ์ด ไม่มีหัวตารางให้กด ถ้าถอดทิ้งด้วยจะเรียงไม่ได้เลย */}
-          <NativeSelect
+          <Select
             shape="pill"
             aria-label="เรียงลำดับ"
             value={sort}
@@ -533,7 +534,7 @@ function OrdersPageContent() {
                 {o.label}
               </option>
             ))}
-          </NativeSelect>
+          </Select>
 
           {/* ช่วงวันที่ออกมาอยู่นอกกล่องตัวกรอง (เบสสั่ง 2026-08-01) — เป็นตัวกรองที่ใช้บ่อยสุด
               ไม่ควรต้องกดเปิดกล่องก่อน · มีปุ่มทางลัด เดือนนี้/ปีนี้/สัปดาห์นี้ ในตัว */}
@@ -729,7 +730,7 @@ function OrdersPageContent() {
               <article key={order.id} role="listitem" className="card-surface rounded-2xl">
                 <Link
                   href={`/orders/${order.id}`}
-                  className="block min-h-11 rounded-2xl p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className={cn("block min-h-11 rounded-2xl p-4", FOCUS_BUTTON)}
                   aria-label={`เปิดออเดอร์ ${order.orderNumber} ${order.customer?.name ?? ""}`}
                 >
                   <div className="flex items-start justify-between gap-3">

@@ -14,13 +14,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Field } from "@/components/ui/field";
@@ -88,18 +82,13 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
         <div className="space-y-4">
           <div>
             <Field label="ร้าน (Vendor)" id={`${formId}-vendor`}>
-              <Select value={vendorId} onValueChange={setVendorId}>
-                <SelectTrigger id={`${formId}-vendor`}>
-                  <SelectValue placeholder="เลือกร้าน..." />
-                </SelectTrigger>
-                <SelectContent>
+              <Select value={vendorId} onChange={(e) => setVendorId(e.target.value)} id={`${formId}-vendor`} placeholder="เลือกร้าน...">
                   {vendors.data?.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
+                    <option key={v.id} value={v.id}>
                       {v.name}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select>
             </Field>
             {vendors.data?.length === 0 && (
               <div className="mt-2 rounded-xl bg-amber-50 p-3 dark:bg-amber-950/30">

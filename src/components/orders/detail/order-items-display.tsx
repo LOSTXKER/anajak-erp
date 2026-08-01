@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { formatCurrency, isImageUrl } from "@/lib/utils";
 import { COLLAR_TYPES, SLEEVE_TYPES, BODY_FITS, GARMENT_CONDITIONS, PRICING_TYPE_LABELS } from "@/types/order-form";
 import type { PricingType } from "@/types/order-form";
@@ -20,6 +20,8 @@ import {
   Edit3,
   Check,
 } from "lucide-react";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 type OrderData = RouterOutput["order"]["getById"];
 type OrderItem = OrderData["items"][number];
@@ -76,20 +78,20 @@ function ReceiveTrackingInline({ product, onSuccess }: {
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <label htmlFor={`garment-condition-${product.id}`} className="mb-0.5 block text-2xs font-medium text-slate-500">สภาพเสื้อ</label>
-          <NativeSelect id={`garment-condition-${product.id}`} value={condition} onChange={(e) => setCondition(e.target.value)} className="h-8 px-2 py-1 text-xs focus:ring-yellow-500">
+          <Select id={`garment-condition-${product.id}`} value={condition} onChange={(e) => setCondition(e.target.value)} className={cn("px-2 py-1 text-xs", FOCUS_BUTTON)}>
             <option value="">-- เลือก --</option>
             {Object.entries(GARMENT_CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </NativeSelect>
+          </Select>
         </div>
         <div>
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={inspected} onChange={(e) => setInspected(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-yellow-600 focus:ring-yellow-500" />
+            <input type="checkbox" checked={inspected} onChange={(e) => setInspected(e.target.checked)} className={cn("h-4 w-4 rounded border-slate-300 text-yellow-600", FOCUS_BUTTON)} />
             <span className="text-xs font-medium text-slate-700 dark:text-slate-300">ตรวจรับแล้ว</span>
           </label>
         </div>
         <div className="min-w-[160px] flex-1">
           <label htmlFor={`garment-note-${product.id}`} className="mb-0.5 block text-2xs font-medium text-slate-500">หมายเหตุ</label>
-          <Input id={`garment-note-${product.id}`} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" className="h-8 text-xs" />
+          <Input id={`garment-note-${product.id}`} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" className="text-xs" />
         </div>
         <div className="flex gap-1.5">
           <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receivedInspected: inspected, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1.5 bg-yellow-600 text-xs text-white hover:bg-yellow-700">

@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { OVERLAY_PANEL } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 import { Plus, Package, Scissors, Shirt } from "lucide-react";
 import { useState } from "react";
 
@@ -37,7 +39,7 @@ export function AddProductPopover({
       {open && (
         <>
           <button type="button" tabIndex={-1} aria-label="ปิดเมนูเพิ่มสินค้า" className="fixed inset-0 z-40 cursor-default" onClick={() => setOpen(false)} />
-          <div role="menu" className="absolute right-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 overlay-surface dark:border-slate-800 dark:bg-slate-900">
+          <div role="menu" className={cn(OVERLAY_PANEL, "absolute right-0 top-full z-50 mt-1 w-64 overflow-hidden p-1")}>
             {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
               <button
                 key={key}

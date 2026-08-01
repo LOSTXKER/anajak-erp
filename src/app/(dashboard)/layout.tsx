@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { getServerSession } from "@/lib/supabase-server";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 export default async function DashboardLayout({
   children,
@@ -18,7 +20,7 @@ export default async function DashboardLayout({
     <div className="flex h-dvh overflow-hidden bg-bg">
       <a
         href="#main-content"
-        className="fixed left-4 top-4 z-[100] -translate-y-24 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-lg transition-transform focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-white dark:text-slate-950"
+        className={cn("fixed left-4 top-4 z-[100] -translate-y-24 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-lg transition-transform focus:translate-y-0", FOCUS_BUTTON, "dark:bg-white dark:text-slate-950")}
       >
         ข้ามไปเนื้อหาหลัก
       </a>

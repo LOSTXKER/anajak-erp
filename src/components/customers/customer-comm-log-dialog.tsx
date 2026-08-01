@@ -15,13 +15,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { COMM_CHANNELS } from "@/lib/comm-channels";
 import {
   buildCustomerCommunicationPayload,
@@ -85,20 +79,19 @@ export function CustomerCommLogDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Select value={form.channel} onValueChange={(channel) => set({ channel })}>
-              <Field label="ช่องทาง" id="communication-channel">
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-              </Field>
-                <SelectContent>
-                  {COMM_CHANNELS.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-            </Select>
+            <Field label="ช่องทาง" id="communication-channel">
+              <Select
+                className="w-full"
+                value={form.channel}
+                onChange={(e) => set({ channel: e.target.value })}
+              >
+                {COMM_CHANNELS.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
             <Field label="หัวข้อ (ถ้ามี)">
               <Input
                 value={form.subject}

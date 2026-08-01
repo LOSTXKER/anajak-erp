@@ -4,7 +4,7 @@ import { useId } from "react";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { CHANNEL_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 
@@ -113,7 +113,7 @@ export function OrderDetailFields({
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label htmlFor={`${id}-priority`} className={labelClass}>ความเร่งด่วน</label>
-              <NativeSelect
+              <Select
                 id={`${id}-priority`}
                 value={priority}
                 onChange={(e) => onPriorityChange(e.target.value as Priority)}
@@ -121,7 +121,7 @@ export function OrderDetailFields({
                 {Object.entries(PRIORITY_LABELS).map(([key, value]) => (
                   <option key={key} value={key}>{value}</option>
                 ))}
-              </NativeSelect>
+              </Select>
             </div>
             <div>
               <label htmlFor={`${id}-notes`} className={labelClass}>หมายเหตุภายใน</label>

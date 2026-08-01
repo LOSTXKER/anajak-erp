@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { trpc } from "@/lib/trpc";
 import { cn, formatCurrency } from "@/lib/utils";
+import { FOCUS_BUTTON, OVERLAY_PANEL } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Package, X, ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
+import { Package, X, ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
 
 export interface SelectedVariantItem {
   productId: string;
@@ -172,7 +174,12 @@ export function ProductPickerDialog({
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed inset-x-4 top-[5%] z-50 mx-auto flex max-h-[90vh] max-w-2xl flex-col rounded-2xl border border-slate-200 bg-white overlay-surface data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 dark:border-slate-700 dark:bg-slate-900">
+        <Dialog.Content
+          className={cn(
+            OVERLAY_PANEL,
+            "fixed inset-x-4 top-[5%] z-50 mx-auto flex max-h-[90vh] max-w-2xl flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          )}
+        >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
             <Dialog.Title className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
@@ -191,17 +198,12 @@ export function ProductPickerDialog({
 
           {/* Search & Filters */}
           <div className="space-y-3 border-b border-slate-200 px-5 py-3 dark:border-slate-700">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="ค้นหาชื่อสินค้า, SKU, บาร์โค้ด..."
-                className="flex h-10 w-full rounded-2xl border border-slate-200/70 bg-white pl-10 pr-3 text-sm transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
-              />
-            </div>
+            <SearchInput
+              ref={inputRef}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ค้นหาชื่อสินค้า, SKU, บาร์โค้ด..."
+            />
             <div className="flex flex-wrap gap-1.5">
               {ITEM_TYPE_FILTERS.map((g) => (
                 <button
@@ -336,7 +338,7 @@ export function ProductPickerDialog({
                                         aria-label={`เลือก ${v.sku} สี ${v.color || "ไม่ระบุ"} ไซส์ ${v.size}`}
                                         checked={isChecked}
                                         onChange={() => toggleVariant(v.id)}
-                                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                        className={cn("h-3.5 w-3.5 rounded border-slate-300 text-blue-600", FOCUS_BUTTON)}
                                       />
                                     </td>
                                     <td className="truncate px-3 py-1.5 font-mono text-slate-500 dark:text-slate-400">

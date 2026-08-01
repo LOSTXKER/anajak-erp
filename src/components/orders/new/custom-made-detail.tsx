@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Plus, Scissors, Loader2 } from "lucide-react";
 import type { OrderItemProductForm } from "@/types/order-form";
 import {
@@ -63,7 +63,7 @@ function QuickAddPattern({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="ชื่อแพทเทิร์น เช่น คอกลมแขนสั้น"
-            className="h-8 text-xs"
+            className="text-xs"
           />
           <label className="flex w-fit cursor-pointer items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600">
             <Plus className="h-3 w-3" />
@@ -142,10 +142,10 @@ export function CustomMadeDetail({
           />
         ) : (
           <div>
-            <NativeSelect
+            <Select
               value={product.patternId || ""}
               onChange={(e) => handlePatternSelect(e.target.value)}
-              className="h-8 text-xs"
+              className="text-xs"
               disabled={patternsLoading}
             >
               <option value="">{patternsLoading ? "กำลังโหลด..." : "-- เลือกแพทเทิร์น --"}</option>
@@ -154,7 +154,7 @@ export function CustomMadeDetail({
                   {p.name}{p.description ? ` — ${p.description}` : ""}
                 </option>
               ))}
-            </NativeSelect>
+            </Select>
             {selectedPattern && (
               <div className="mt-2 flex items-start gap-3 rounded border border-amber-200 bg-white p-2 dark:border-amber-800 dark:bg-amber-950/30">
                 {selectedPattern.thumbnailUrl && (
@@ -184,45 +184,45 @@ export function CustomMadeDetail({
       {/* Fabric + Garment spec */}
       <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
         <Field label="ประเภทสินค้า">
-          <NativeSelect value={product.productType} onChange={(e) => updateProduct("productType", e.target.value)} className="h-8 text-xs">
+          <Select value={product.productType} onChange={(e) => updateProduct("productType", e.target.value)} className="text-xs">
             {Object.entries(PRODUCT_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </NativeSelect>
+          </Select>
         </Field>
         <Field label="ชนิดผ้า">
-          <NativeSelect value={product.fabricType} onChange={(e) => updateProduct("fabricType", e.target.value)} className="h-8 text-xs">
+          <Select value={product.fabricType} onChange={(e) => updateProduct("fabricType", e.target.value)} className="text-xs">
             <option value="">-- เลือก --</option>
             {Object.entries(FABRIC_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </NativeSelect>
+          </Select>
         </Field>
         <Field label="ส่วนผสมผ้า">
-          <Input value={product.material} onChange={(e) => updateProduct("material", e.target.value)} placeholder="เช่น Cotton 60% Poly 40%" className="h-8 text-xs" />
+          <Input value={product.material} onChange={(e) => updateProduct("material", e.target.value)} placeholder="เช่น Cotton 60% Poly 40%" className="text-xs" />
         </Field>
         <Field label="น้ำหนักผ้า">
-          <Input value={product.fabricWeight} onChange={(e) => updateProduct("fabricWeight", e.target.value)} placeholder="160gsm" className="h-8 text-xs" />
+          <Input value={product.fabricWeight} onChange={(e) => updateProduct("fabricWeight", e.target.value)} placeholder="160gsm" className="text-xs" />
         </Field>
         <Field label="สีผ้า">
-          <Input value={product.fabricColor} onChange={(e) => updateProduct("fabricColor", e.target.value)} placeholder="ขาว, ดำ" className="h-8 text-xs" />
+          <Input value={product.fabricColor} onChange={(e) => updateProduct("fabricColor", e.target.value)} placeholder="ขาว, ดำ" className="text-xs" />
         </Field>
         <Field label="ทรงคอ">
-          <NativeSelect value={product.collarType} onChange={(e) => updateProduct("collarType", e.target.value)} className="h-8 text-xs">
+          <Select value={product.collarType} onChange={(e) => updateProduct("collarType", e.target.value)} className="text-xs">
             <option value="">-- เลือก --</option>
             {Object.entries(COLLAR_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </NativeSelect>
+          </Select>
         </Field>
         <Field label="แขน">
-          <NativeSelect value={product.sleeveType} onChange={(e) => updateProduct("sleeveType", e.target.value)} className="h-8 text-xs">
+          <Select value={product.sleeveType} onChange={(e) => updateProduct("sleeveType", e.target.value)} className="text-xs">
             <option value="">-- เลือก --</option>
             {Object.entries(SLEEVE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </NativeSelect>
+          </Select>
         </Field>
         <Field label="ทรงตัว">
-          <NativeSelect value={product.bodyFit} onChange={(e) => updateProduct("bodyFit", e.target.value)} className="h-8 text-xs">
+          <Select value={product.bodyFit} onChange={(e) => updateProduct("bodyFit", e.target.value)} className="text-xs">
             <option value="">-- เลือก --</option>
             {Object.entries(BODY_FITS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </NativeSelect>
+          </Select>
         </Field>
         <Field label="หมายเหตุแพทเทิร์น">
-          <Input value={product.patternNote} onChange={(e) => updateProduct("patternNote", e.target.value)} placeholder="หมายเหตุ..." className="h-8 text-xs" />
+          <Input value={product.patternNote} onChange={(e) => updateProduct("patternNote", e.target.value)} placeholder="หมายเหตุ..." className="text-xs" />
         </Field>
       </div>
     </div>

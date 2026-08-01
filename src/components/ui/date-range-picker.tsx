@@ -24,6 +24,7 @@ import { CalendarRange, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
+import { FOCUS_BUTTON, OVERLAY_PANEL } from "./tokens";
 import { MONTHS, MONTHS_SHORT, WEEKDAYS, buddhistYear, parseValue } from "./date-picker";
 
 /* ============================================================
@@ -231,7 +232,8 @@ export function DateRangePicker({
           sideOffset={8}
           collisionPadding={12}
           className={cn(
-            "overlay-surface z-50 w-[19.5rem] rounded-2xl p-3",
+            OVERLAY_PANEL,
+            "z-50 w-[19.5rem] p-3",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -313,7 +315,7 @@ export function DateRangePicker({
                   className={cn(
                     CONTROL_H,
                     "flex items-center justify-center text-sm tabular-nums transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
+                    FOCUS_BUTTON,
                     // ระบายพื้นช่วงให้ต่อกันเป็นแถบเดียว หัวท้ายโค้งมน
                     inRange && !isEdge && "bg-blue-50 dark:bg-blue-950/40",
                     isEdgeStart && !isEdgeEnd && "rounded-l-lg",

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { FOCUS_BUTTON } from "./tokens";
 import { CONTROL_H } from "./control-size";
 
 interface SwitchProps
@@ -23,7 +24,7 @@ export function Switch({
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        cn(CONTROL_H, "inline-flex w-11 shrink-0 touch-manipulation items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 sm:w-9 disabled:cursor-not-allowed disabled:opacity-50"),
+        cn(CONTROL_H, "inline-flex w-11 shrink-0 touch-manipulation items-center justify-center rounded-full", FOCUS_BUTTON, "sm:w-9 disabled:cursor-not-allowed disabled:opacity-50"),
         className,
       )}
       {...props}

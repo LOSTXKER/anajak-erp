@@ -221,7 +221,7 @@ function QuotationFormPage() {
     e.preventDefault();
 
     // ต้องตรวจเอง — ช่องเลือกลูกค้าเป็นเมนูของเราแล้ว prop required บอกได้แค่โปรแกรม
-    // อ่านหน้าจอ ไม่บล็อกการกดส่งเหมือน <select required> เดิม (ดู ui/native-select.tsx)
+    // อ่านหน้าจอ ไม่บล็อกการกดส่งเหมือน <select required> เดิม (ดู ui/select.tsx)
     // ถ้าปล่อยผ่าน server จะโยน FK error ดิบๆ ขึ้นหน้าจอแทนข้อความที่คนอ่านรู้เรื่อง
     if (!customerId) {
       setEditError("กรุณาเลือกลูกค้าก่อนสร้างใบเสนอราคา");

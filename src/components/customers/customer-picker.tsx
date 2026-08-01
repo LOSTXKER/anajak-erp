@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -143,7 +143,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
           onRetry={() => void refetch()}
         />
       ) : <div className="flex gap-1.5">
-        <NativeSelect
+        <Select
           id={id}
           aria-labelledby={labelledBy}
           aria-label={labelledBy ? undefined : "เลือกลูกค้า"}
@@ -161,7 +161,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
               {c.customerType === "CORPORATE" ? " [นิติบุคคล]" : ""}
             </option>
           ))}
-        </NativeSelect>
+        </Select>
         <Button
           type="button"
           variant="outline"
@@ -216,13 +216,13 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
               </Field>
             </div>
             <Field label="ประเภทลูกค้า">
-              <NativeSelect
+              <Select
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as "INDIVIDUAL" | "CORPORATE")}
               >
                 <option value="INDIVIDUAL">บุคคลธรรมดา</option>
                 <option value="CORPORATE">นิติบุคคล (บริษัท/หจก. — เติมเลขภาษีทีหลังได้)</option>
-              </NativeSelect>
+              </Select>
             </Field>
 
             {similar && similar.length > 0 && (

@@ -13,13 +13,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
@@ -98,18 +92,13 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
         </DialogHeader>
         <div className="space-y-4">
           <Field label="สถานะ">
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PENDING">รอดำเนินการ</SelectItem>
-                <SelectItem value="IN_PROGRESS">กำลังทำ</SelectItem>
-                <SelectItem value="COMPLETED">เสร็จแล้ว</SelectItem>
-                <SelectItem value="ON_HOLD">พักไว้</SelectItem>
-                <SelectItem value="FAILED">มีปัญหา</SelectItem>
-              </SelectContent>
-            </Select>
+            <Select value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option value="PENDING">รอดำเนินการ</option>
+                <option value="IN_PROGRESS">กำลังทำ</option>
+                <option value="COMPLETED">เสร็จแล้ว</option>
+                <option value="ON_HOLD">พักไว้</option>
+                <option value="FAILED">มีปัญหา</option>
+              </Select>
           </Field>
           {/* บอกบางส่วนได้: พิมพ์ไปแล้ว 120 จาก 300 — ไม่บังคับกรอก (ติ๊กเสร็จ = ครบเอง) */}
           <div className="grid grid-cols-2 gap-3">
@@ -143,30 +132,20 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
                 onRetry={() => void assignables.refetch()}
               />
             ) : <Field label="ผู้รับผิดชอบ">
-              <Select value={assignee} onValueChange={setAssignee}>
-                <SelectTrigger>
-                  <SelectValue placeholder="ยังไม่มอบหมาย" />
-                </SelectTrigger>
-                <SelectContent>
+              <Select value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder="ยังไม่มอบหมาย">
                   {(assignables.data ?? []).map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
+                    <option key={u.id} value={u.id}>
                       {u.name}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select>
             </Field>
           )}
           <Field label="QC">
-            <Select value={qcPassed} onValueChange={setQcPassed}>
-              <SelectTrigger>
-                <SelectValue placeholder="ยังไม่ได้ตรวจ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">ผ่าน</SelectItem>
-                <SelectItem value="false">ไม่ผ่าน</SelectItem>
-              </SelectContent>
-            </Select>
+            <Select value={qcPassed} onChange={(e) => setQcPassed(e.target.value)} placeholder="ยังไม่ได้ตรวจ">
+                <option value="true">ผ่าน</option>
+                <option value="false">ไม่ผ่าน</option>
+              </Select>
           </Field>
           {qcPassed === "false" && (
             <Field label="หมายเหตุ QC">

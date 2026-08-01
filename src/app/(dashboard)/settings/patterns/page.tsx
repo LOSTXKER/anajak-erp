@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { PRODUCT_TYPES, COLLAR_TYPES, SLEEVE_TYPES, BODY_FITS } from "@/types/order-form";
 import { SettingsPageHeader } from "@/components/settings-page-header";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
@@ -204,7 +204,7 @@ export default function PatternsPage() {
                 </div>
                 <div>
                   <label htmlFor="pattern-product-type" className={labelClass}>ประเภทสินค้า</label>
-                  <NativeSelect
+                  <Select
                     id="pattern-product-type"
                     value={formData.productType}
                     onChange={(e) => setFormData({ ...formData, productType: e.target.value })}
@@ -213,11 +213,11 @@ export default function PatternsPage() {
                     {Object.entries(PRODUCT_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </NativeSelect>
+                  </Select>
                 </div>
                 <div>
                   <label htmlFor="pattern-collar-type" className={labelClass}>ทรงคอ</label>
-                  <NativeSelect
+                  <Select
                     id="pattern-collar-type"
                     value={formData.collarType}
                     onChange={(e) => setFormData({ ...formData, collarType: e.target.value })}
@@ -226,11 +226,11 @@ export default function PatternsPage() {
                     {Object.entries(COLLAR_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </NativeSelect>
+                  </Select>
                 </div>
                 <div>
                   <label htmlFor="pattern-sleeve-type" className={labelClass}>แขน</label>
-                  <NativeSelect
+                  <Select
                     id="pattern-sleeve-type"
                     value={formData.sleeveType}
                     onChange={(e) => setFormData({ ...formData, sleeveType: e.target.value })}
@@ -239,13 +239,13 @@ export default function PatternsPage() {
                     {Object.entries(SLEEVE_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </NativeSelect>
+                  </Select>
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
                   <label htmlFor="pattern-body-fit" className={labelClass}>ฟิต</label>
-                  <NativeSelect
+                  <Select
                     id="pattern-body-fit"
                     value={formData.bodyFit}
                     onChange={(e) => setFormData({ ...formData, bodyFit: e.target.value })}
@@ -254,7 +254,7 @@ export default function PatternsPage() {
                     {Object.entries(BODY_FITS).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </NativeSelect>
+                  </Select>
                 </div>
                 <div>
                   <label htmlFor="pattern-file" className={labelClass}>ไฟล์แพทเทิร์น</label>
@@ -331,7 +331,7 @@ export default function PatternsPage() {
                               aria-label={`ชื่อแพทเทิร์น ${p.name}`}
                               value={editData.name ?? p.name}
                               onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                              className="h-8 text-sm"
+                              className="text-sm"
                             />
                           ) : (
                             <div>
@@ -356,9 +356,9 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <NativeSelect
+                            <Select
                               aria-label={`ทรงคอของ ${p.name}`}
-                              className="h-8 text-xs"
+                              className="text-xs"
                               value={editData.collarType ?? p.collarType ?? ""}
                               onChange={(e) => setEditData({ ...editData, collarType: e.target.value })}
                             >
@@ -366,7 +366,7 @@ export default function PatternsPage() {
                               {Object.entries(COLLAR_TYPES).map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
                               ))}
-                            </NativeSelect>
+                            </Select>
                           ) : (
                             <span className="text-xs">
                               {p.collarType ? (COLLAR_TYPES[p.collarType] ?? p.collarType) : "-"}
@@ -375,9 +375,9 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <NativeSelect
+                            <Select
                               aria-label={`แขนของ ${p.name}`}
-                              className="h-8 text-xs"
+                              className="text-xs"
                               value={editData.sleeveType ?? p.sleeveType ?? ""}
                               onChange={(e) => setEditData({ ...editData, sleeveType: e.target.value })}
                             >
@@ -385,7 +385,7 @@ export default function PatternsPage() {
                               {Object.entries(SLEEVE_TYPES).map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
                               ))}
-                            </NativeSelect>
+                            </Select>
                           ) : (
                             <span className="text-xs">
                               {p.sleeveType ? (SLEEVE_TYPES[p.sleeveType] ?? p.sleeveType) : "-"}
@@ -394,9 +394,9 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <NativeSelect
+                            <Select
                               aria-label={`ฟิตของ ${p.name}`}
-                              className="h-8 text-xs"
+                              className="text-xs"
                               value={editData.bodyFit ?? p.bodyFit ?? ""}
                               onChange={(e) => setEditData({ ...editData, bodyFit: e.target.value })}
                             >
@@ -404,7 +404,7 @@ export default function PatternsPage() {
                               {Object.entries(BODY_FITS).map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
                               ))}
-                            </NativeSelect>
+                            </Select>
                           ) : (
                             <span className="text-xs">
                               {p.bodyFit ? (BODY_FITS[p.bodyFit] ?? p.bodyFit) : "-"}

@@ -33,6 +33,7 @@ import {
   Share2,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
+import { OVERLAY_PANEL } from "@/components/ui/tokens";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
 import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
@@ -509,7 +510,7 @@ function OrderDetailContent({
                   <DropdownMenu.Content
                     align="end"
                     sideOffset={6}
-                    className="z-50 min-w-[200px] rounded-2xl border border-slate-200/70 bg-white p-1 overlay-surface dark:border-slate-800/60 dark:bg-slate-900/80"
+                    className={cn(OVERLAY_PANEL, "z-50 min-w-[200px] p-1")}
                   >
                     <DropdownMenu.Item className={dropdownItemClass} asChild>
                       <a href={`/print/job-ticket/${id}`} target="_blank" rel="noreferrer">

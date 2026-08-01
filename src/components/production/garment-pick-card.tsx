@@ -17,6 +17,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { Shirt, Check, Loader2, AlertTriangle, PackageOpen, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ProductionStep } from "./types";
@@ -351,7 +352,7 @@ function ReturnGarmentsDialog({
                   }
                   className={cn(
                     "h-10 w-24 text-center tabular-nums",
-                    over && "border-red-300 focus-visible:ring-red-400"
+                    over && cn("border-red-300", FOCUS_FIELD_INVALID)
                   )}
                 />
               </div>

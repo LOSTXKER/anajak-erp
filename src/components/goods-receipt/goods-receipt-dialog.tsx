@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 import { RECEIPT_TYPE_LABELS, type ReceiptType } from "@/lib/goods-receipt";
 import { ClipboardCheck, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { FOCUS_FIELD } from "@/components/ui/tokens";
 
 // ใบตรวจรับของเข้า/ใบคืนของลูกค้า — นับจริงต่อไซส์ + รูป + ตำหนิ (mobile-first:
 // คนนับถือมือถือหน้ากองเสื้อ — แถวใหญ่ กดง่าย ไม่มีเรื่องเงิน)
@@ -230,10 +232,10 @@ function ReceiptForm({
                       })
                     }
                     className={cn(
-                      "h-11 w-20 text-center text-base tabular-nums",
+                      "w-20 text-center text-base tabular-nums",
                       !isReturn &&
                         l.qtyCounted !== l.qtyExpected &&
-                        "border-amber-400 focus-visible:ring-amber-400"
+                        cn("border-amber-400", FOCUS_FIELD)
                     )}
                   />
                 </div>
@@ -252,14 +254,14 @@ function ReceiptForm({
                         defectQty: Math.max(0, Math.floor(Number(e.target.value) || 0)),
                       })
                     }
-                    className="h-9 w-16 text-center tabular-nums"
+                    className="w-16 text-center tabular-nums"
                   />
                   {l.defectQty > 0 && (
                     <Input
                       value={l.defectNote}
                       onChange={(e) => update(idx, { defectNote: e.target.value })}
                       placeholder="ตำหนิอะไร เช่น รอยเปื้อน/รูขาด"
-                      className="h-9 flex-1 text-sm"
+                      className="flex-1 text-sm"
                     />
                   )}
                 </div>
@@ -285,7 +287,7 @@ function ReceiptForm({
                       type="button"
                       onClick={() => setPhotoUrls((prev) => prev.filter((u) => u !== url))}
                       aria-label="ลบรูปตรวจรับ"
-                      className="absolute -right-2 -top-2 flex h-11 w-11 items-start justify-end rounded-full bg-transparent p-1 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 sm:h-8 sm:w-8"
+                      className={cn("absolute -right-2 -top-2 flex h-11 w-11 items-start justify-end rounded-full bg-transparent p-1 text-white", FOCUS_BUTTON, "sm:h-8 sm:w-8")}
                     >
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-700 shadow-sm">
                         <X className="h-3.5 w-3.5" />

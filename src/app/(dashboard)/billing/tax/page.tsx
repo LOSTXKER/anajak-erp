@@ -9,13 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Alert } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -116,18 +110,13 @@ export default function SalesTaxReportPage() {
         breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ภาษีขาย" }]}
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={selected} onValueChange={setSelected}>
-              <SelectTrigger shape="pill" className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
+            <Select value={selected} onChange={(e) => setSelected(e.target.value)} shape="pill" className="w-[180px]">
                 {options.map((o) => (
-                  <SelectItem key={`${o.year}-${o.month}`} value={`${o.year}-${o.month}`}>
+                  <option key={`${o.year}-${o.month}`} value={`${o.year}-${o.month}`}>
                     {o.label}
-                  </SelectItem>
+                  </option>
                 ))}
-              </SelectContent>
-            </Select>
+              </Select>
             <Button
               variant="outline"
               disabled={rows.length === 0}

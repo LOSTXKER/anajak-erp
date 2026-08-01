@@ -26,13 +26,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { FileStack, Plus, Printer, Ban, Loader2 } from "lucide-react";
@@ -445,24 +439,17 @@ function BillingNotesPageContent() {
                   onRetry={() => customers.refetch()}
                 />
               ) : (
-                <Select
-                  value={customerId}
-                  onValueChange={(v) => {
-                    setCustomerId(v);
+                <Select value={customerId}
+                  onChange={(e) => {
+                    setCustomerId(e.target.value);
                     setSelectedIds(new Set());
-                  }}
-                >
-                  <SelectTrigger aria-label="เลือกลูกค้าออกใบวางบิล">
-                    <SelectValue placeholder="เลือกลูกค้า..." />
-                  </SelectTrigger>
-                  <SelectContent>
+                  }} aria-label="เลือกลูกค้าออกใบวางบิล" placeholder="เลือกลูกค้า...">
                     {customers.data?.customers.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
+                      <option key={c.id} value={c.id}>
                         {c.company ? `${c.company} (${c.name})` : c.name}
-                      </SelectItem>
+                      </option>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </Select>
               )}
             </div>
 

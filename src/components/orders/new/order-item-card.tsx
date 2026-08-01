@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { cn, formatCurrency } from "@/lib/utils";
 import { buildOrderItemPriceSummary } from "@/lib/order-item-composer";
 import {
@@ -183,7 +183,7 @@ export function OrderItemCard({
         <div className="flex items-center gap-1.5">
           {otherItemsWithPrints.length > 0 && (
             <div className="relative">
-              <NativeSelect
+              <Select
                 aria-label="คัดลอกลายจากรายการอื่น"
                 value=""
                 onChange={(e) => {
@@ -197,7 +197,7 @@ export function OrderItemCard({
                     #{idx + 1} {it.description.slice(0, 20)} ({it.prints.length} ลาย)
                   </option>
                 ))}
-              </NativeSelect>
+              </Select>
               <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
             </div>
           )}
@@ -377,16 +377,16 @@ export function OrderItemCard({
                 <tr key={aIdx} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
                   <td className="px-1 py-1.5 align-middle">
                     {addonCatalog && addonCatalog.length > 0 ? (
-                      <NativeSelect aria-label={`เลือกประเภทส่วนเสริม ${aIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); }} className="sm:h-9 sm:text-xs">
+                      <Select aria-label={`เลือกประเภทส่วนเสริม ${aIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); }} className="sm:h-9 sm:text-xs">
                         <option value="">{a.addonType || "แค็ตตาล็อก..."}</option>
                         {addonCatalog.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </NativeSelect>
+                      </Select>
                     ) : (
                       <Input aria-label={`ประเภทส่วนเสริม ${aIdx + 1}`} value={a.addonType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." className="sm:h-9 sm:text-xs" />
                     )}
                   </td>
                   <td className="px-1 py-1.5 align-middle"><Input aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`} value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" className="sm:h-9 sm:text-xs" /></td>
-                  <td className="px-1 py-1.5 align-middle"><NativeSelect aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} className="sm:h-9 sm:text-xs"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></NativeSelect></td>
+                  <td className="px-1 py-1.5 align-middle"><Select aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} className="sm:h-9 sm:text-xs"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></Select></td>
                   <td className="px-1 py-1.5 align-middle"><Input aria-label={`ราคาส่วนเสริม ${aIdx + 1}`} type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="sm:h-9 sm:text-xs" /></td>
                   <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 /></Button></td>
                 </tr>

@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { SearchInput } from "@/components/ui/search-input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
@@ -128,7 +128,7 @@ export default function ProductsPage() {
         />
 
         <ToolbarGroup>
-          <NativeSelect
+          <Select
             shape="pill"
             aria-label="กรองประเภทสินค้า"
             value={productType}
@@ -143,7 +143,7 @@ export default function ProductsPage() {
                 {t.label}
               </option>
             ))}
-          </NativeSelect>
+          </Select>
         </ToolbarGroup>
       </Toolbar>
 

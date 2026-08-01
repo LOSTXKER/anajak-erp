@@ -395,21 +395,21 @@ export function OrderItemsEditor({
                         value={fee.feeType}
                         onChange={(e) => updateFee(fi, "feeType", e.target.value)}
                         placeholder="ประเภท"
-                        className="h-8 w-28"
+                        className="w-28"
                       />
                       <Input
                         type="text"
                         value={fee.name}
                         onChange={(e) => updateFee(fi, "name", e.target.value)}
                         placeholder="ชื่อ"
-                        className="h-8 flex-1"
+                        className="flex-1"
                       />
                       <Input
                         type="number"
                         value={fee.amount || ""}
                         onChange={(e) => updateFee(fi, "amount", parseFloat(e.target.value) || 0)}
                         placeholder="จำนวน"
-                        className="h-8 w-28"
+                        className="w-28"
                         min="0"
                       />
                       <Button
@@ -436,7 +436,7 @@ export function OrderItemsEditor({
                   type="number"
                   value={discount || ""}
                   onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                  className="h-8 w-32"
+                  className="w-32"
                   min="0"
                 />
                 <span className="text-sm text-slate-400">บาท</span>

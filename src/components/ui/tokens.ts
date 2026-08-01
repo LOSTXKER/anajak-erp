@@ -1,0 +1,86 @@
+/* ============================================================
+   ภาษาหน้าตาของ UI — นิยามที่เดียวของทั้งระบบ (เบสสั่ง 2026-08-01
+   "ตรวจดีๆ ว่ามีอะไรไม่เป็นมาตรฐานบ้าง")
+
+   คู่กับ control-size.ts ที่นิยาม "control สูงเท่าไร" — ไฟล์นี้นิยามที่เหลือ:
+   มุมโค้งเท่าไร · วงแหวนตอนโฟกัสหน้าตายังไง · ผิวช่องกรอก/กล่องลอยเป็นแบบไหน
+
+   ทำไมต้องมี: audit รอบนี้พบว่าของที่ทำหน้าที่เดียวกันมีหลายหน้าตา เพราะไม่มี
+   ที่ให้ยึด — คนสร้างของใหม่จึงก๊อปจากตัวที่ "ดูใกล้เคียงที่สุด" แล้วค่าเพี้ยนสะสม
+     · มุมโค้ง 4 ค่าใช้ปนกันไม่มีกฎ (lg 58 ไฟล์ · xl 61 · 2xl 51 · full 48)
+     · กล่องลอย 15 จุดเขียนสูตรผิวเอง 5 แบบ — มุมโค้ง lg/xl/2xl ปนกัน
+       บางจุดใส่ขอบ+พื้นซ้ำทั้งที่ .overlay-surface ให้มาแล้ว
+     · วงแหวนโฟกัส 3 สูตร ทั้งที่มีแค่ 2 ความหมาย (ช่องกรอก vs ปุ่ม)
+
+   เป็นค่าคงที่ TypeScript ไม่ใช่ CSS class ด้วยเหตุผลเดียวกับ control-size.ts:
+   คลาสของเราจะอยู่หลัง utilities ของ Tailwind เสมอ ถ้าทำเป็น CSS จะชนะ className
+   ที่ส่งมาแล้ว override ไม่ได้ · เก็บเป็น string แล้วให้ cn()/twMerge จัดการแทน
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   มุมโค้ง — 4 ระดับ เลือกจาก "ของชิ้นนั้นใหญ่แค่ไหน" ไม่ใช่จากความชอบ
+   ยิ่งกล่องใหญ่ มุมยิ่งต้องโค้งมาก ไม่งั้นจะดูแข็ง · กลับกันของชิ้นเล็ก
+   ถ้าโค้งมากจะกลายเป็นเม็ดยา
+   ------------------------------------------------------------ */
+export const RADIUS = {
+  /** 8px — ชิ้นเล็กในรายการ: ตัวเลือกในเมนู · ปุ่มในแถบสลับ · แถบโครงร่างตอนโหลด */
+  item: "rounded-lg",
+  /** 12px — กล่องย่อยที่ซ้อนอยู่ในการ์ด · รูปย่อ · ป้ายสี่เหลี่ยม */
+  inner: "rounded-xl",
+  /** 16px — ของชิ้นใหญ่: การ์ด · ส่วน · ช่องกรอกทรงเหลี่ยม · กล่องเด้ง · เมนูที่กางออกมา */
+  surface: "rounded-2xl",
+  /** เต็ม — ของทรงแคปซูล: ปุ่ม · ชิปตัวกรอง · ช่องค้นหา · สวิตช์ */
+  pill: "rounded-full",
+} as const;
+
+/** ทรงของ control — pill ใช้ในแถบเครื่องมือให้เข้าชุดกับปุ่ม (เบสสั่ง 2026-07-31
+ *  หลังเห็นจอจริงว่าปุ่มโค้งเต็มแต่ช่องเลือกข้างกันโค้งแค่ 16px) · box คือฟอร์มกรอกข้อมูล
+ *
+ *  อยู่ที่นี่ไม่ได้อยู่ในไฟล์ช่องเลือกแล้ว — ของเดิม input.tsx ต้อง import จาก
+ *  native-select.tsx ทั้งที่ไม่เกี่ยวกัน ถ้าไฟล์นั้นถูกลบช่องกรอกทั้งระบบพัง */
+export type ControlShape = "box" | "pill";
+export const controlShapeClass = (shape: ControlShape = "box") =>
+  shape === "pill" ? RADIUS.pill : RADIUS.surface;
+
+/* ------------------------------------------------------------
+   วงแหวนตอนโฟกัส — มี 2 ความหมายเท่านั้น ห้ามคิดแบบที่ 3
+   ------------------------------------------------------------ */
+
+/** ช่องที่ "พิมพ์ลงไปได้" — ช่องกรอก · กล่องข้อความ · ช่องเลือก
+ *  เส้นขอบเปลี่ยนเป็นน้ำเงิน + เรืองจางๆ รอบนอก (เบาเพราะเคอร์เซอร์บอกตำแหน่งอยู่แล้ว) */
+export const FOCUS_FIELD =
+  "focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/15 dark:focus-visible:border-blue-400";
+
+/** ของที่ "กดแล้วเกิดอะไรขึ้น" — ปุ่ม · ชิป · สวิตช์ · ปุ่มในแถบสลับ · แถวที่กดได้
+ *  วงแหวนชัดกว่า + เว้นช่องว่างรอบตัว เพราะไม่มีเคอร์เซอร์ช่วยบอกว่าอยู่ตรงไหน */
+export const FOCUS_BUTTON =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950";
+
+/** ของที่กดได้แต่เต็มพื้นที่จนไม่มีที่ให้เว้นขอบ — หัวคอลัมน์ตาราง · แถวในรายการ
+ *  ใช้วงแหวนด้านใน เพราะ ring-offset จะโดนขอบตารางบังจนมองไม่เห็นว่าโฟกัสอยู่ไหน */
+export const FOCUS_INSET =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40";
+
+/** ช่องที่กรอกผิด — วงแหวนแดงแทนน้ำเงิน (ใช้คู่กับ border-red-* บนตัวช่อง)
+ *  ของเดิมเขียนเอง 4 แบบไม่ตรงกัน: ring-red-400 · ring-red-500 · ring-red-500/40 · ring-amber-400
+ *  ทั้งที่หมายถึงเรื่องเดียวกัน — ความเข้มต่างกันทำให้ "ผิดแรงไม่เท่ากัน" โดยไม่มีเหตุผล */
+export const FOCUS_FIELD_INVALID =
+  "focus-visible:outline-none focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-500/30";
+
+/* ------------------------------------------------------------
+   ผิวของพื้นผิวแต่ละแบบ
+   ------------------------------------------------------------ */
+
+/** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — ขอบ พื้น สีตัวอักษร ครบทั้งสว่างและมืด
+ *  (ไม่รวมมุมโค้งกับความสูง — สองอย่างนั้นต่างกันตามทรงและตำแหน่งที่ใช้) */
+export const FIELD_SURFACE =
+  "border border-slate-200/70 bg-white text-slate-900 placeholder:text-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500";
+
+/** กล่องที่ลอยขึ้นมาทับเนื้อหา — เมนู · ปฏิทิน · ตัวกรอง · กล่องเด้ง
+ *  .overlay-surface (globals.css) ให้ทั้งพื้นและเงามาแล้ว — ห้ามใส่ bg-white/border ซ้ำ
+ *  ของเดิม 6 จุดใส่ซ้ำ ทำให้ในโหมดมืดได้ขอบสว่างซ้อนเงา และมุมโค้งไม่ตรงกัน */
+export const OVERLAY_PANEL = `overlay-surface ${RADIUS.surface}`;
+
+/** ตัวเลือกหนึ่งบรรทัดในเมนูที่กางออกมา — สถานะชี้/ถูกเลือก/กดไม่ได้ ชุดเดียวกันทุกเมนู */
+export const MENU_ITEM =
+  "relative flex cursor-pointer select-none items-center justify-between gap-2 px-3 text-sm outline-none data-[highlighted]:bg-slate-100 data-[state=checked]:bg-blue-50 data-[state=checked]:font-medium data-[state=checked]:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:data-[highlighted]:bg-slate-800 dark:data-[state=checked]:bg-blue-950/50 dark:data-[state=checked]:text-blue-300";

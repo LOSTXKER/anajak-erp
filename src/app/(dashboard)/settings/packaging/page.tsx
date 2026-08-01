@@ -253,7 +253,7 @@ export default function PackagingSettingsPage() {
                               aria-label={`ชื่อแพ็คเกจ ${opt.name}`}
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
-                              className="h-8 text-sm"
+                              className="text-sm"
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") handleSaveEdit();
                                 if (e.key === "Escape") { setEditingId(null); setEditName(""); }

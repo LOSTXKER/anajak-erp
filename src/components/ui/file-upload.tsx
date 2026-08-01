@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { CONTROL_H } from "./control-size";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
+import { FOCUS_BUTTON } from "./tokens";
 
 interface FileUploadProps {
   bucket: string;
@@ -100,7 +101,7 @@ export function FileUpload({
             type="button"
             onClick={clearFile}
             aria-label="ลบไฟล์ที่เลือก"
-            className={cn(CONTROL_H, "absolute -right-3 -top-3 inline-flex w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm hover:bg-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 sm:w-9")}
+            className={cn(CONTROL_H, "absolute -right-3 -top-3 inline-flex w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm hover:bg-red-800", FOCUS_BUTTON, "sm:w-9")}
           >
             <X className="h-4 w-4" />
           </button>
