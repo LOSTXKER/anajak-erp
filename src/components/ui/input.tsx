@@ -1,19 +1,38 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { CONTROL_H, CONTROL_H_SM } from "./control-size";
+import {
+  FIELD_SURFACE,
+  FOCUS_FIELD,
+  controlShapeClass,
+  type ControlShape,
+} from "./tokens";
 
-import { controlShapeClass, type ControlShape } from "./native-select";
+/** ขนาดของช่องกรอก — sm ใช้เฉพาะในแถวตารางที่ต้องอัดหลายช่องต่อแถว
+ *  (เดิม 20 กว่าจุดสั่ง className="h-8 text-xs" เอง ซึ่งได้ 32px ทั้งบนมือถือ
+ *  ต่ำกว่าเป้านิ้วขั้นต่ำ 44px — sm ให้ 44px บนมือถือ 32px บนเดสก์ท็อป) */
+type InputSize = "default" | "sm";
 
 const Input = React.forwardRef<
   HTMLInputElement,
-  React.ComponentProps<"input"> & { shape?: ControlShape }
+  // ตัด size ของ HTML ทิ้ง (ที่แปลว่า "กว้างกี่ตัวอักษร") — ในระบบเรา size = ขนาด control
+  Omit<React.ComponentProps<"input">, "size"> & {
+    shape?: ControlShape;
+    size?: InputSize;
+  }
 >(
-  ({ className, type, shape, ...props }, ref) => {
+  ({ className, type, shape, size = "default", ...props }, ref) => {
     return (
       <input
         type={type}
         className={cn(
           controlShapeClass(shape),
-          "flex h-11 min-h-11 w-full border border-slate-200/70 bg-white px-3 py-1 text-base text-slate-900 transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/15 sm:h-9 sm:min-h-9 sm:text-sm disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus-visible:border-blue-400",
+          FIELD_SURFACE,
+          FOCUS_FIELD,
+          "flex w-full px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
+          // หลังก้อนพื้นฐานเสมอ — twMerge ตัดสินจาก "ตัวหลังชนะ" ถ้าวางก่อน text-base/sm:text-sm
+          // ที่อยู่ข้างบนจะทับ text-xs กลับ (เขียนสลับแล้วขนาดไม่เปลี่ยน หาสาเหตุยาก)
+          size === "sm" ? cn(CONTROL_H_SM, "text-xs sm:text-xs") : CONTROL_H,
           className
         )}
         ref={ref}

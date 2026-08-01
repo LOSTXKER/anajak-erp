@@ -1,12 +1,17 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { FIELD_SURFACE, FOCUS_FIELD, RADIUS } from "./tokens";
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<"textarea">>(
   ({ className, ...props }, ref) => {
     return (
       <textarea
         className={cn(
-          "flex min-h-[96px] w-full rounded-2xl border border-slate-200/70 bg-white px-3 py-2 text-base placeholder:text-slate-400 focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/15 sm:text-sm disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100",
+          RADIUS.surface,
+          FIELD_SURFACE,
+          FOCUS_FIELD,
+          // ความสูงขั้นต่ำ ~3 บรรทัด — ยืดตามเนื้อหา จึงไม่ผูกกับ CONTROL_H
+          "flex min-h-24 w-full px-3 py-2 text-base sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         ref={ref}

@@ -14,14 +14,9 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Field } from "@/components/ui/field";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { Loader2, Truck } from "lucide-react";
@@ -87,18 +82,13 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
         <div className="space-y-4">
           <div>
             <Field label="ร้าน (Vendor)" id={`${formId}-vendor`}>
-              <Select value={vendorId} onValueChange={setVendorId}>
-                <SelectTrigger id={`${formId}-vendor`}>
-                  <SelectValue placeholder="เลือกร้าน..." />
-                </SelectTrigger>
-                <SelectContent>
+              <Select value={vendorId} onChange={(e) => setVendorId(e.target.value)} id={`${formId}-vendor`} placeholder="เลือกร้าน...">
                   {vendors.data?.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
+                    <option key={v.id} value={v.id}>
                       {v.name}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select>
             </Field>
             {vendors.data?.length === 0 && (
               <div className="mt-2 rounded-xl bg-amber-50 p-3 dark:bg-amber-950/30">
@@ -135,10 +125,9 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
               />
             </Field>
             <Field label="กำหนดรับกลับ">
-              <Input
-                type="date"
+              <DatePicker
                 value={expectedBack}
-                onChange={(e) => setExpectedBack(e.target.value)}
+                onChange={(v) => setExpectedBack(v)}
               />
             </Field>
           </div>
@@ -174,9 +163,9 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
             className="gap-1.5"
           >
             {createOutsource.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
-              <Truck className="h-4 w-4" />
+              <Truck />
             )}
             ส่งร้านนอก
           </Button>

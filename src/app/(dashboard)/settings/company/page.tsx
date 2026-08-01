@@ -6,7 +6,7 @@ import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
@@ -165,7 +165,7 @@ export default function CompanySettingsPage() {
                   <label htmlFor="company-branch-kind" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     สำนักงาน
                   </label>
-                  <NativeSelect
+                  <Select
                     id="company-branch-kind"
                     value={form.branch === "สำนักงานใหญ่" ? "สำนักงานใหญ่" : "branch"}
                     onChange={(e) =>
@@ -174,7 +174,7 @@ export default function CompanySettingsPage() {
                   >
                     <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
                     <option value="branch">สาขา (ระบุเอง)</option>
-                  </NativeSelect>
+                  </Select>
                   {form.branch !== "สำนักงานใหญ่" && (
                     <>
                       <label htmlFor="company-branch-name" className="sr-only">
@@ -222,9 +222,9 @@ export default function CompanySettingsPage() {
               <div className="flex justify-end">
                 <Button type="submit" disabled={save.isPending} className="gap-1.5">
                   {save.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="animate-spin" />
                   ) : (
-                    <Save className="h-4 w-4" />
+                    <Save />
                   )}
                   บันทึก
                 </Button>

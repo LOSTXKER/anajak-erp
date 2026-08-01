@@ -147,7 +147,7 @@ export default function NotificationsPage() {
               onClick={() => markAllRead.mutate()}
               disabled={markAllRead.isPending}
             >
-              <CheckCheck className="h-4 w-4" />
+              <CheckCheck />
               อ่านทั้งหมด
             </Button>
           ) : undefined
@@ -280,7 +280,7 @@ export default function NotificationsPage() {
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft />
               </Button>
               <span className="px-1 text-xs text-slate-500">
                 {page} / {totalPages}
@@ -291,7 +291,7 @@ export default function NotificationsPage() {
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight />
               </Button>
             </div>
           </div>

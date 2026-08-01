@@ -21,7 +21,7 @@ export function QueryError({
       <p className="mt-3 text-sm text-red-700 dark:text-red-300">{message}</p>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry} className="mt-4 gap-1.5">
-          <RefreshCw className="h-3.5 w-3.5" />
+          <RefreshCw />
           ลองใหม่
         </Button>
       )}

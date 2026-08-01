@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { FOCUS_BUTTON } from "./tokens";
 
 interface StatCardProps {
   title: string;
@@ -110,7 +111,7 @@ export function StatCard({
       href={href}
       aria-label={`ดูรายการ ${title}: ${value}`}
       className={cn(
-        "block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950",
+        "block h-full rounded-2xl", FOCUS_BUTTON,
         className
       )}
     >

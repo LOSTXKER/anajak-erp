@@ -17,6 +17,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { Shirt, Check, Loader2, AlertTriangle, PackageOpen, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ProductionStep } from "./types";
@@ -112,7 +113,7 @@ export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentP
           <div className="flex flex-col gap-2 pt-1 sm:flex-row">
             {pickStep && needMore && (
               <Button className="w-full gap-1.5 sm:w-auto" onClick={() => setShowIssue(true)}>
-                <PackageOpen className="h-4 w-4" />
+                <PackageOpen />
                 เบิกเสื้อ
               </Button>
             )}
@@ -122,7 +123,7 @@ export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentP
                 className="w-full gap-1.5 sm:w-auto"
                 onClick={() => setShowReturn(true)}
               >
-                <Undo2 className="h-4 w-4" />
+                <Undo2 />
                 คืนเศษ
               </Button>
             )}
@@ -261,9 +262,9 @@ function IssueGarmentsDialog({
             className="gap-1.5"
           >
             {issue.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
-              <PackageOpen className="h-4 w-4" />
+              <PackageOpen />
             )}
             เบิก {total} ตัว
           </Button>
@@ -351,7 +352,7 @@ function ReturnGarmentsDialog({
                   }
                   className={cn(
                     "h-10 w-24 text-center tabular-nums",
-                    over && "border-red-300 focus-visible:ring-red-400"
+                    over && cn("border-red-300", FOCUS_FIELD_INVALID)
                   )}
                 />
               </div>
@@ -383,9 +384,9 @@ function ReturnGarmentsDialog({
             className="gap-1.5"
           >
             {ret.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
-              <Undo2 className="h-4 w-4" />
+              <Undo2 />
             )}
             คืน {total} ตัว
           </Button>

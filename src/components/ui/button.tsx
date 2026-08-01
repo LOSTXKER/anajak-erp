@@ -2,9 +2,15 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
+import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
+import { FOCUS_BUTTON } from "./tokens";
 
 const buttonVariants = cva(
-  "inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white sm:min-h-9 sm:min-w-0 dark:focus-visible:ring-offset-slate-950 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:pointer-events-none [&_svg]:size-[15px] [&_svg]:shrink-0",
+  cn(
+    CONTROL_MIN_H,
+    FOCUS_BUTTON,
+    "inline-flex min-w-11 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all sm:min-w-0 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:pointer-events-none [&_svg]:size-[15px] [&_svg]:shrink-0",
+  ),
   {
     variants: {
       variant: {
@@ -26,13 +32,16 @@ const buttonVariants = cva(
           "text-blue-600 underline-offset-4 hover:underline dark:text-blue-400",
       },
       size: {
-        default: "h-11 px-4 sm:h-9",
+        // ระยะขอบซ้าย-ขวา (เบสเคาะแบบ ก 2026-08-01 "รู้สึกมันติดขอบเกินไป และเป็นทุกปุ่มทั้งเว็บ")
+        // ปุ่มเราเป็นทรงแคปซูล มุมโค้งกินพื้นที่ด้านข้างไปส่วนหนึ่ง ตัวหนังสือจึงดูชิดขอบ
+        // กว่าปุ่มทรงเหลี่ยมที่ระยะเท่ากัน — ต้องเผื่อมากกว่าที่คิดจากตัวเลขเปล่าๆ
+        default: cn(CONTROL_H, "px-5"),
         // sm ต้องเล็กจริงบน desktop ให้ต่างจาก default (UX4.1) — มือถือคงเป้านิ้ว 44px
-        // sm:min-h-8 จำเป็น: base มี sm:min-h-9 จะดันความสูงกลับเป็น 36px ถ้าไม่ทับ
-        sm: "h-11 px-3 text-sm sm:h-8 sm:min-h-8 sm:px-2.5",
-        lg: "h-11 px-6 text-sm",
-        icon: "h-11 w-11 sm:h-9 sm:w-9",
-        "icon-sm": "h-11 w-11 sm:h-8 sm:min-h-8 sm:w-8",
+        // ห้ามใช้บนแถบเครื่องมือ: เตี้ยกว่าช่องค้นหาที่ยืนข้างกัน 4px (ดู control-size.ts)
+        sm: cn(CONTROL_H_SM, "px-4 text-sm sm:px-3.5"),
+        lg: "h-11 px-7 text-sm",
+        icon: cn(CONTROL_H, "w-11 sm:w-9"),
+        "icon-sm": cn(CONTROL_H_SM, "w-11 sm:w-8"),
       },
     },
     defaultVariants: {

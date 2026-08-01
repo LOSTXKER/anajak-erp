@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -29,10 +29,12 @@ interface CustomerPickerProps {
   value: string;
   onChange: (customerId: string, customer: PickerCustomer | null) => void;
   required?: boolean;
+  /** ให้ฟอร์มโฟกัสกลับมาที่ช่องนี้ได้เมื่อตรวจไม่ผ่าน */
+  id?: string;
   labelledBy?: string;
 }
 
-export function CustomerPicker({ value, onChange, required, labelledBy }: CustomerPickerProps) {
+export function CustomerPicker({ value, onChange, required, labelledBy, id }: CustomerPickerProps) {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   // ลูกค้าที่เลือกอยู่ — ปักไว้ใน dropdown แม้ผลค้นหาปัจจุบันไม่มีรายนี้
@@ -141,7 +143,8 @@ export function CustomerPicker({ value, onChange, required, labelledBy }: Custom
           onRetry={() => void refetch()}
         />
       ) : <div className="flex gap-1.5">
-        <NativeSelect
+        <Select
+          id={id}
           aria-labelledby={labelledBy}
           aria-label={labelledBy ? undefined : "เลือกลูกค้า"}
           value={value}
@@ -158,7 +161,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy }: Custom
               {c.customerType === "CORPORATE" ? " [นิติบุคคล]" : ""}
             </option>
           ))}
-        </NativeSelect>
+        </Select>
         <Button
           type="button"
           variant="outline"
@@ -166,7 +169,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy }: Custom
           className="shrink-0 gap-1.5"
           title="เพิ่มลูกค้าใหม่จากชื่อแชทได้เลย"
         >
-          <UserPlus className="h-4 w-4" />
+          <UserPlus />
           ใหม่
         </Button>
       </div>}
@@ -213,13 +216,13 @@ export function CustomerPicker({ value, onChange, required, labelledBy }: Custom
               </Field>
             </div>
             <Field label="ประเภทลูกค้า">
-              <NativeSelect
+              <Select
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as "INDIVIDUAL" | "CORPORATE")}
               >
                 <option value="INDIVIDUAL">บุคคลธรรมดา</option>
                 <option value="CORPORATE">นิติบุคคล (บริษัท/หจก. — เติมเลขภาษีทีหลังได้)</option>
-              </NativeSelect>
+              </Select>
             </Field>
 
             {similar && similar.length > 0 && (
@@ -264,9 +267,9 @@ export function CustomerPicker({ value, onChange, required, labelledBy }: Custom
               className="gap-1.5"
             >
               {createCustomer.isPending || isChecking ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <UserPlus className="h-4 w-4" />
+                <UserPlus />
               )}
               เพิ่มลูกค้า
             </Button>

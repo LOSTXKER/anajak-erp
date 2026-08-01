@@ -19,6 +19,7 @@ import { CustomerCommLogDialog } from "@/components/customers/customer-comm-log-
 import { commChannelLabel } from "@/lib/comm-channels";
 import { PageHeader } from "@/components/page-header";
 import { Phone, Mail, MessageCircle, MapPin, ShoppingCart, DollarSign, Building2, User, CreditCard, FileText, Pencil, MessageSquarePlus, Plus } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 
 // แก้ข้อมูล/จดบันทึกการคุย = ทีมขาย-บัญชี-บริหาร (ตรง customerEditors ฝั่ง server)
 
@@ -78,16 +79,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               <Button
                 variant="outline"
                 size="sm"
-                className="h-11 w-full sm:h-9 sm:w-auto"
+                className="w-full sm:w-auto"
                 onClick={() => setEditing(true)}
               >
-                <Pencil className="h-4 w-4" /> แก้ไขข้อมูล
+                <Pencil /> แก้ไขข้อมูล
               </Button>
             )}
             {canCreateOrder && (
-              <Button asChild size="sm" className="h-11 w-full sm:h-9 sm:w-auto">
+              <Button asChild size="sm" className="w-full sm:w-auto">
                 <Link href={`/orders/new?customerId=${id}`}>
-                  <Plus className="h-4 w-4" /> เปิดงานใหม่
+                  <Plus /> เปิดงานใหม่
                 </Link>
               </Button>
             )}
@@ -195,10 +196,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               <CardHeader><CardTitle className="text-base">ข้อมูลนิติบุคคล</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
                 {customer.customerType !== "CORPORATE" && (
-                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                  <Alert variant="warning" className="text-xs">
                     ลูกค้าเป็นบุคคลธรรมดาแต่มีข้อมูลภาษี/วงเงินค้าง — ยังถูกใช้จริง ถ้าไม่ใช้แล้วกด
                     &quot;แก้ไขข้อมูล&quot; แล้วลบออก
-                  </p>
+                  </Alert>
                 )}
                 {customer.taxId && (
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
@@ -289,7 +290,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     onClick={() => setLoggingComm(true)}
                     className="gap-1.5"
                   >
-                    <MessageSquarePlus className="h-3.5 w-3.5" />
+                    <MessageSquarePlus />
                     บันทึกการคุย
                   </Button>
                 )}

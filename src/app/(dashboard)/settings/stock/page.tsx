@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner";
 import { SyncDialog } from "@/components/sync-dialog";
 import { SettingsPageHeader } from "@/components/settings-page-header";
+import { Alert } from "@/components/ui/alert";
 
 // ─── Setting Keys ──────────────────────────────────────────
 const STOCK_API_URL_KEY = "stock_api_url";
@@ -294,9 +295,9 @@ export default function StockSettingsPage() {
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                       >
                         {showApiKey ? (
-                          <EyeOff className="h-4 w-4" />
+                          <EyeOff />
                         ) : (
-                          <Eye className="h-4 w-4" />
+                          <Eye />
                         )}
                       </Button>
                     </div>
@@ -315,9 +316,9 @@ export default function StockSettingsPage() {
                     className="flex-1"
                   >
                     {testConnection.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="animate-spin" />
                     ) : (
-                      <Plug className="h-4 w-4" />
+                      <Plug />
                     )}
                     {testConnection.isPending ? "กำลังทดสอบ..." : "ทดสอบเชื่อมต่อ"}
                   </Button>
@@ -327,9 +328,9 @@ export default function StockSettingsPage() {
                     className="flex-1"
                   >
                     {saveSettings.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="animate-spin" />
                     ) : (
-                      <Save className="h-4 w-4" />
+                      <Save />
                     )}
                     {saveSettings.isPending ? "กำลังบันทึก..." : isSaved ? "บันทึกแล้ว" : "บันทึก"}
                   </Button>
@@ -437,7 +438,7 @@ export default function StockSettingsPage() {
                 disabled={!hasCredentials}
                 className="w-full"
               >
-                <Cloud className="h-4 w-4" />
+                <Cloud />
                 Sync สินค้า
               </Button>
               <Button
@@ -447,9 +448,9 @@ export default function StockSettingsPage() {
                 className="w-full"
               >
                 {syncStock.isPending ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <RefreshCw className="animate-spin" />
                 ) : (
-                  <Database className="h-4 w-4" />
+                  <Database />
                 )}
                 {syncStock.isPending ? "กำลัง Sync..." : "Sync เฉพาะสต็อค"}
               </Button>
@@ -457,7 +458,7 @@ export default function StockSettingsPage() {
 
             {/* Last stock sync result */}
             {lastStockResult && (
-              <div className="rounded-xl border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/50">
+              <Alert variant="success">
                 <p className="mb-1 text-sm font-medium text-green-700 dark:text-green-400">
                   ผลลัพธ์ Sync สต็อก
                 </p>
@@ -469,7 +470,7 @@ export default function StockSettingsPage() {
                     ข้อผิดพลาด: {lastStockResult.errors.length} รายการ
                   </p>
                 )}
-              </div>
+              </Alert>
             )}
           </CardContent>
         </Card>
@@ -582,11 +583,11 @@ export default function StockSettingsPage() {
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/50">
+            <Alert variant="info" className="mt-4">
               <p className="text-xs text-blue-700 dark:text-blue-400">
                 <strong>Tip:</strong> ไม่ต้องตั้งค่า ENV แล้ว เพียงใส่ข้อมูลผ่านหน้าเว็บนี้ ระบบจะเก็บไว้ในฐานข้อมูลอัตโนมัติ
               </p>
-            </div>
+            </Alert>
           </CardContent>
         </Card>
       </div>

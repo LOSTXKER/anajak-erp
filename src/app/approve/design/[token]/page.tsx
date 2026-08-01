@@ -18,6 +18,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function DesignApprovalPage({
   params,
@@ -39,7 +40,7 @@ export default function DesignApprovalPage({
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex items-center gap-2 text-slate-500">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Spinner size="lg" />
           <span>กำลังโหลด...</span>
         </div>
       </div>
@@ -242,7 +243,7 @@ export default function DesignApprovalPage({
                   }
                   disabled={approve.isPending}
                 >
-                  <X className="h-4 w-4" />
+                  <X />
                   ขอแก้ไข
                 </Button>
                 <Button
@@ -257,9 +258,9 @@ export default function DesignApprovalPage({
                   disabled={approve.isPending}
                 >
                   {approve.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="animate-spin" />
                   ) : (
-                    <Check className="h-4 w-4" />
+                    <Check />
                   )}
                   อนุมัติแบบ
                 </Button>

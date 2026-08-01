@@ -3,11 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Section } from "@/components/ui/section";
 import { Plus, Trash2, Receipt } from "lucide-react";
 import { resolveFeeCatalogSelection } from "@/lib/order-item-composer";
 import type { OrderFeeForm } from "@/types/order-form";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 interface FeeCatalogItem {
   id: string;
@@ -45,7 +47,7 @@ export function OrderFeeSection({
       title="ค่าใช้จ่ายเพิ่มเติม"
       action={
         <Button type="button" variant="outline" size="sm" onClick={onAddFee}>
-          <Plus className="h-4 w-4" />
+          <Plus />
           เพิ่ม
         </Button>
       }
@@ -54,7 +56,7 @@ export function OrderFeeSection({
         <button
           type="button"
           onClick={onAddFee}
-          className="flex min-h-11 w-full touch-manipulation flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
+          className={cn("flex min-h-11 w-full touch-manipulation flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40", FOCUS_BUTTON, "dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
         >
           <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
           <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าใช้จ่ายเพิ่มเติม — กดเพื่อเพิ่ม</span>
@@ -65,7 +67,7 @@ export function OrderFeeSection({
             <div key={fIdx} className="space-y-1.5">
               {feeCatalog && feeCatalog.length > 0 && (
                 <Field label={`เลือกค่าใช้จ่ายแถว ${fIdx + 1} จากแค็ตตาล็อก`} visuallyHiddenLabel>
-                  <NativeSelect
+                  <Select
                     value=""
                     onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
                   >
@@ -75,7 +77,7 @@ export function OrderFeeSection({
                         {c.name} — ฿{c.defaultPrice.toLocaleString()}
                       </option>
                     ))}
-                  </NativeSelect>
+                  </Select>
                 </Field>
               )}
               <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_44px]">
@@ -116,7 +118,7 @@ export function OrderFeeSection({
                     className="text-slate-400 hover:text-red-600"
                     onClick={() => onRemoveFee(fIdx)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 />
                   </Button>
                 </div>
               </div>

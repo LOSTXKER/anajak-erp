@@ -142,12 +142,12 @@ export default function BackupSettingsPage() {
           <Button onClick={handleDownload} disabled={downloading}>
             {downloading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
                 กำลังเตรียมไฟล์... (อย่าปิดหน้านี้)
               </>
             ) : (
               <>
-                <HardDriveDownload className="mr-2 h-4 w-4" />
+                <HardDriveDownload className="mr-2" />
                 ดาวน์โหลดไฟล์สำรองข้อมูล
               </>
             )}

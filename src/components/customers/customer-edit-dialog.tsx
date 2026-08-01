@@ -16,13 +16,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { PAYMENT_TERMS } from "@/lib/payment-terms";
 import {
   buildCustomerUpdatePayload,
@@ -33,6 +27,7 @@ import {
 } from "@/lib/customer-form";
 import { Building2, User, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
+import { Alert } from "@/components/ui/alert";
 
 // ฟอร์มแก้ข้อมูลลูกค้า (Gate B7) — ต่อท่อ customer.update ที่มีอยู่แล้ว (เดิม dead mutation:
 // audit 2026-07-02 จับ "แก้ข้อมูลลูกค้าจาก UI ไม่ได้") · field ชุดเดียวกับฟอร์มเพิ่มลูกค้า
@@ -120,23 +115,21 @@ export function CustomerEditDialog({
                 ]}
               />
             </fieldset>
-            <Select
-              value={form.segment}
-              onValueChange={(value) => set({ segment: value as CustomerEditForm["segment"] })}
-            >
-              <Field label="กลุ่มลูกค้า" id="customer-segment">
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-              </Field>
-                <SelectContent>
-                  {SEGMENT_OPTIONS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-            </Select>
+            <Field label="กลุ่มลูกค้า" id="customer-segment">
+              <Select
+                className="w-full"
+                value={form.segment}
+                onChange={(e) =>
+                  set({ segment: e.target.value as CustomerEditForm["segment"] })
+                }
+              >
+                {SEGMENT_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
             <Field
               label={`ชื่อ${isCorporate ? "ผู้ติดต่อ" : "ลูกค้า"}`}
               required
@@ -195,13 +188,10 @@ export function CustomerEditDialog({
                 ข้อมูลนิติบุคคล
               </h4>
               {hasCorporateLeftover && (
-                <p
-                  role="status"
-                  className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
-                >
+                <Alert variant="warning" className="mb-3 text-xs" role="status">
                   ลูกค้าเป็นบุคคลธรรมดาแต่ยังมีข้อมูลภาษี/วงเงินค้างอยู่ — ค่าพวกนี้ยังถูกใช้ออกใบกำกับ/กันวงเงินจริง
                   ถ้าไม่ใช้แล้วให้ลบออกให้ว่างแล้วบันทึก
-                </p>
+                </Alert>
               )}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <Field
@@ -238,28 +228,30 @@ export function CustomerEditDialog({
                   />
                 </Field>
               </div>
-              <Select
-                value={form.defaultPaymentTerms || NONE}
-                onValueChange={(v) => set({ defaultPaymentTerms: v === NONE ? "" : v })}
+              <Field
+                label="เงื่อนไขการชำระเงิน (ค่าเริ่มต้น)"
+                id="customer-payment-terms"
+                className="mt-4"
               >
-                <Field
-                  label="เงื่อนไขการชำระเงิน (ค่าเริ่มต้น)"
-                  id="customer-payment-terms"
-                  className="mt-4"
+                <Select
+                  className="w-full sm:w-64"
+                  placeholder="ไม่กำหนด"
+                  value={form.defaultPaymentTerms || NONE}
+                  onChange={(e) =>
+                    set({
+                      defaultPaymentTerms:
+                        e.target.value === NONE ? "" : e.target.value,
+                    })
+                  }
                 >
-                  <SelectTrigger className="w-full sm:w-64">
-                    <SelectValue placeholder="ไม่กำหนด" />
-                  </SelectTrigger>
-                </Field>
-                  <SelectContent>
-                    <SelectItem value={NONE}>ไม่กำหนด</SelectItem>
-                    {PAYMENT_TERMS.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-              </Select>
+                  <option value={NONE}>ไม่กำหนด</option>
+                  {PAYMENT_TERMS.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="ที่อยู่ออกใบกำกับภาษี" className="sm:col-span-2">
                   <Input
@@ -305,12 +297,9 @@ export function CustomerEditDialog({
           </Field>
 
           {update.error && (
-            <p
-              role="alert"
-              className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-            >
+            <Alert variant="error">
               บันทึกไม่สำเร็จ: {update.error.message}
-            </p>
+            </Alert>
           )}
 
           <DialogFooter className="gap-2">
@@ -319,9 +308,9 @@ export function CustomerEditDialog({
             </Button>
             <Button type="submit" disabled={update.isPending || !isFormValid} className="gap-1.5">
               {update.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <Save className="h-4 w-4" />
+                <Save />
               )}
               บันทึก
             </Button>

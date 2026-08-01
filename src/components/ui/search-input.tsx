@@ -3,7 +3,8 @@ import { Search } from "lucide-react";
 import { Input } from "./input";
 import { cn } from "@/lib/utils";
 
-interface SearchInputProps extends Omit<React.ComponentProps<"input">, "type"> {
+interface SearchInputProps
+  extends Omit<React.ComponentProps<"input">, "type" | "size"> {
   containerClassName?: string;
 }
 

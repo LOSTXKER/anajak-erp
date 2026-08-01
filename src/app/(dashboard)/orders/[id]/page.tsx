@@ -33,6 +33,7 @@ import {
   Share2,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
+import { OVERLAY_PANEL } from "@/components/ui/tokens";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
 import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
@@ -502,14 +503,14 @@ function OrderDetailContent({
             <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
-                    <MoreHorizontal className="h-4 w-4" />
+                    <MoreHorizontal />
                   </Button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
                   <DropdownMenu.Content
                     align="end"
                     sideOffset={6}
-                    className="z-50 min-w-[200px] rounded-2xl border border-slate-200/70 bg-white p-1 overlay-surface dark:border-slate-800/60 dark:bg-slate-900/80"
+                    className={cn(OVERLAY_PANEL, "z-50 min-w-[200px] p-1")}
                   >
                     <DropdownMenu.Item className={dropdownItemClass} asChild>
                       <a href={`/print/job-ticket/${id}`} target="_blank" rel="noreferrer">
@@ -603,7 +604,7 @@ function OrderDetailContent({
       />
 
       {/* บริบทที่ต้องเห็นก่อนลงมือบนมือถือ — เดิมอยู่ sidebar ท้ายหน้าทั้งก้อน */}
-      <dl className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-200/70 bg-white p-3 text-xs dark:border-slate-800 dark:bg-slate-900 lg:hidden">
+      <dl className="card-surface grid grid-cols-3 gap-2 rounded-2xl p-3 text-xs lg:hidden">
         <div className="min-w-0">
           <dt className="text-slate-500 dark:text-slate-400">ลูกค้า</dt>
           <dd className="truncate font-medium text-slate-900 dark:text-white">

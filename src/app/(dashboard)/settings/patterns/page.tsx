@@ -20,13 +20,16 @@ import {
 } from "lucide-react";
 import { PRODUCT_TYPES, COLLAR_TYPES, SLEEVE_TYPES, BODY_FITS } from "@/types/order-form";
 import { SettingsPageHeader } from "@/components/settings-page-header";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { permAllows } from "@/lib/permissions";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
+import { cn } from "@/lib/utils";
+import { Alert } from "@/components/ui/alert";
 
 const labelClass = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
 
@@ -144,7 +147,6 @@ export default function PatternsPage() {
       // silently fail
     } finally {
       setUploading(false);
-      e.target.value = "";
     }
   };
 
@@ -178,7 +180,7 @@ export default function PatternsPage() {
                 setFormData({ ...emptyForm });
               }}
             >
-              <Plus className="mr-1 h-4 w-4" />
+              <Plus className="mr-1" />
               เพิ่มแพทเทิร์น
             </Button>
           )}
@@ -205,7 +207,7 @@ export default function PatternsPage() {
                 </div>
                 <div>
                   <label htmlFor="pattern-product-type" className={labelClass}>ประเภทสินค้า</label>
-                  <NativeSelect
+                  <Select
                     id="pattern-product-type"
                     value={formData.productType}
                     onChange={(e) => setFormData({ ...formData, productType: e.target.value })}
@@ -214,11 +216,11 @@ export default function PatternsPage() {
                     {Object.entries(PRODUCT_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </NativeSelect>
+                  </Select>
                 </div>
                 <div>
                   <label htmlFor="pattern-collar-type" className={labelClass}>ทรงคอ</label>
-                  <NativeSelect
+                  <Select
                     id="pattern-collar-type"
                     value={formData.collarType}
                     onChange={(e) => setFormData({ ...formData, collarType: e.target.value })}
@@ -227,11 +229,11 @@ export default function PatternsPage() {
                     {Object.entries(COLLAR_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </NativeSelect>
+                  </Select>
                 </div>
                 <div>
                   <label htmlFor="pattern-sleeve-type" className={labelClass}>แขน</label>
-                  <NativeSelect
+                  <Select
                     id="pattern-sleeve-type"
                     value={formData.sleeveType}
                     onChange={(e) => setFormData({ ...formData, sleeveType: e.target.value })}
@@ -240,13 +242,13 @@ export default function PatternsPage() {
                     {Object.entries(SLEEVE_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </NativeSelect>
+                  </Select>
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
                   <label htmlFor="pattern-body-fit" className={labelClass}>ฟิต</label>
-                  <NativeSelect
+                  <Select
                     id="pattern-body-fit"
                     value={formData.bodyFit}
                     onChange={(e) => setFormData({ ...formData, bodyFit: e.target.value })}
@@ -255,11 +257,11 @@ export default function PatternsPage() {
                     {Object.entries(BODY_FITS).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
-                  </NativeSelect>
+                  </Select>
                 </div>
                 <div>
                   <label htmlFor="pattern-file" className={labelClass}>ไฟล์แพทเทิร์น</label>
-                  <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 focus-within:ring-2 focus-within:ring-blue-500/40 sm:min-h-9 dark:border-slate-600 dark:hover:border-amber-500">
+                  <label className={cn(CONTROL_MIN_H, "flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 focus-within:ring-2 focus-within:ring-blue-500/40 dark:border-slate-600 dark:hover:border-amber-500")}>
                     <input
                       id="pattern-file"
                       type="file"
@@ -328,11 +330,10 @@ export default function PatternsPage() {
                       >
                         <td className="px-3 py-2.5">
                           {isEditing ? (
-                            <Input
+                            <Input size="sm"
                               aria-label={`ชื่อแพทเทิร์น ${p.name}`}
                               value={editData.name ?? p.name}
                               onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                              className="h-8 text-sm"
                             />
                           ) : (
                             <div>
@@ -344,7 +345,7 @@ export default function PatternsPage() {
                                   href={p.fileUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="ml-2 inline-flex min-h-11 items-center text-xs text-blue-600 hover:underline sm:min-h-9 dark:text-blue-400"
+                                  className={cn(CONTROL_MIN_H, "ml-2 inline-flex items-center text-xs text-blue-600 hover:underline dark:text-blue-400")}
                                 >
                                   ดูไฟล์
                                 </a>
@@ -357,9 +358,8 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <NativeSelect
+                            <Select size="sm"
                               aria-label={`ทรงคอของ ${p.name}`}
-                              className="h-8 text-xs"
                               value={editData.collarType ?? p.collarType ?? ""}
                               onChange={(e) => setEditData({ ...editData, collarType: e.target.value })}
                             >
@@ -367,7 +367,7 @@ export default function PatternsPage() {
                               {Object.entries(COLLAR_TYPES).map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
                               ))}
-                            </NativeSelect>
+                            </Select>
                           ) : (
                             <span className="text-xs">
                               {p.collarType ? (COLLAR_TYPES[p.collarType] ?? p.collarType) : "-"}
@@ -376,9 +376,8 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <NativeSelect
+                            <Select size="sm"
                               aria-label={`แขนของ ${p.name}`}
-                              className="h-8 text-xs"
                               value={editData.sleeveType ?? p.sleeveType ?? ""}
                               onChange={(e) => setEditData({ ...editData, sleeveType: e.target.value })}
                             >
@@ -386,7 +385,7 @@ export default function PatternsPage() {
                               {Object.entries(SLEEVE_TYPES).map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
                               ))}
-                            </NativeSelect>
+                            </Select>
                           ) : (
                             <span className="text-xs">
                               {p.sleeveType ? (SLEEVE_TYPES[p.sleeveType] ?? p.sleeveType) : "-"}
@@ -395,9 +394,8 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <NativeSelect
+                            <Select size="sm"
                               aria-label={`ฟิตของ ${p.name}`}
-                              className="h-8 text-xs"
                               value={editData.bodyFit ?? p.bodyFit ?? ""}
                               onChange={(e) => setEditData({ ...editData, bodyFit: e.target.value })}
                             >
@@ -405,7 +403,7 @@ export default function PatternsPage() {
                               {Object.entries(BODY_FITS).map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
                               ))}
-                            </NativeSelect>
+                            </Select>
                           ) : (
                             <span className="text-xs">
                               {p.bodyFit ? (BODY_FITS[p.bodyFit] ?? p.bodyFit) : "-"}
@@ -437,7 +435,7 @@ export default function PatternsPage() {
                                 className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                                 aria-label={`บันทึกการแก้ไข ${p.name}`}
                               >
-                                <Check className="h-3.5 w-3.5" />
+                                <Check />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -446,7 +444,7 @@ export default function PatternsPage() {
                                 className="h-7 w-7 p-0"
                                 aria-label={`ยกเลิกการแก้ไข ${p.name}`}
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X />
                               </Button>
                             </div>
                           ) : (
@@ -459,7 +457,7 @@ export default function PatternsPage() {
                                   className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600"
                                   aria-label={`แก้ไขแพทเทิร์น ${p.name}`}
                                 >
-                                  <Pencil className="h-3.5 w-3.5" />
+                                  <Pencil />
                                 </Button>
                               )}
                               {canDelete && (
@@ -471,7 +469,7 @@ export default function PatternsPage() {
                                   className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
                                   aria-label={`ลบแพทเทิร์น ${p.name}`}
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <Trash2 />
                                 </Button>
                               )}
                             </div>
@@ -487,9 +485,9 @@ export default function PatternsPage() {
           )}
 
           {(createPattern.isError || updatePattern.isError || deletePattern.isError) && (
-            <div role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <Alert variant="error" className="mt-3">
               {createPattern.error?.message || updatePattern.error?.message || deletePattern.error?.message}
-            </div>
+            </Alert>
           )}
         </CardContent>
       </Card>

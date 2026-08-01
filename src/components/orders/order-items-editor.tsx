@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { canIssueChangeOrder } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
+import { Alert } from "@/components/ui/alert";
 
 // ฟิลด์เงินเป็น number | null ตามชนิดจาก order.getById (นโยบาย ⑦ ปิดเงินให้ viewer นอกการเงิน)
 // — editor เปิดได้เฉพาะ flow ฝั่งขาย (role เห็นเงิน) ค่าจริงเลยเป็นตัวเลขเสมอ · ?? 0 แค่ให้ TS ผ่าน
@@ -390,26 +391,26 @@ export function OrderItemsEditor({
                       key={fi}
                       className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700"
                     >
-                      <Input
+                      <Input size="sm"
                         type="text"
                         value={fee.feeType}
                         onChange={(e) => updateFee(fi, "feeType", e.target.value)}
                         placeholder="ประเภท"
-                        className="h-8 w-28"
+                        className="w-28"
                       />
-                      <Input
+                      <Input size="sm"
                         type="text"
                         value={fee.name}
                         onChange={(e) => updateFee(fi, "name", e.target.value)}
                         placeholder="ชื่อ"
-                        className="h-8 flex-1"
+                        className="flex-1"
                       />
-                      <Input
+                      <Input size="sm"
                         type="number"
                         value={fee.amount || ""}
                         onChange={(e) => updateFee(fi, "amount", parseFloat(e.target.value) || 0)}
                         placeholder="จำนวน"
-                        className="h-8 w-28"
+                        className="w-28"
                         min="0"
                       />
                       <Button
@@ -418,12 +419,12 @@ export function OrderItemsEditor({
                         className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
                         onClick={() => removeFee(fi)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 />
                       </Button>
                     </div>
                   ))}
                   <Button variant="outline" size="sm" onClick={addFee} className="w-full gap-1.5">
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus />
                     เพิ่มค่าธรรมเนียม
                   </Button>
                 </div>
@@ -431,12 +432,12 @@ export function OrderItemsEditor({
 
               <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
                 <label htmlFor="order-items-discount" className="text-sm text-slate-500">ส่วนลด</label>
-                <Input
+                <Input size="sm"
                   id="order-items-discount"
                   type="number"
                   value={discount || ""}
                   onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                  className="h-8 w-32"
+                  className="w-32"
                   min="0"
                 />
                 <span className="text-sm text-slate-400">บาท</span>
@@ -446,13 +447,13 @@ export function OrderItemsEditor({
 
           {/* Validation errors — เกณฑ์เดียวกับหน้าเปิดงาน จับก่อนถึง server */}
           {formErrors.length > 0 && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+            <Alert variant="error">
               <ul className="list-inside list-disc space-y-0.5">
                 {formErrors.map((err, i) => (
                   <li key={i}>{err}</li>
                 ))}
               </ul>
-            </div>
+            </Alert>
           )}
 
           {/* สรุปราคา (สูตร A เดียวกับ server) — โชว์เมื่อเริ่มมีตัวเลขจริง ไม่โชว์ ฿0 เปล่าๆ */}
@@ -493,11 +494,11 @@ export function OrderItemsEditor({
 
           {/* เพดานขาที่สอง (B9) — ยอดใหม่ต่ำกว่าบิลที่ออกแล้ว */}
           {belowBilledFloor && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+            <Alert variant="warning" className="text-xs font-medium">
               {changeOrderMode
                 ? `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — ออกใบแก้ไขได้ แต่ต้องออกใบลดหนี้ตามให้ยอดบิลตรงยอดจริง`
                 : `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — บันทึกไม่ผ่าน ต้องยกเลิกบิลเดิม (แล้วออกใหม่ตามยอดที่ถูก) ก่อนลดยอด`}
-            </div>
+            </Alert>
           )}
 
           {/* กำไรขั้นต้นโดยประมาณ — เฉพาะ role การเงิน (null = ไม่ render เลย) */}
@@ -524,7 +525,7 @@ export function OrderItemsEditor({
           )}
 
           {/* ปุ่มบันทึก — sticky ล่างจอ มือถือกดถึงเสมอ */}
-          <div className="sticky bottom-3 flex justify-end gap-2 rounded-xl border border-slate-200/70 bg-white/95 p-3 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
+          <div className="card-surface sticky bottom-3 flex justify-end gap-2 rounded-2xl p-3 backdrop-blur">
             <Button variant="outline" onClick={onCancel} disabled={saving}>
               ยกเลิก
             </Button>
@@ -534,9 +535,9 @@ export function OrderItemsEditor({
               className="gap-1.5"
             >
               {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <Save className="h-4 w-4" />
+                <Save />
               )}
               {changeOrderMode ? "ออกใบแก้ไข" : "บันทึกรายการ"}
             </Button>

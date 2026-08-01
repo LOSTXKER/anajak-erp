@@ -2,11 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Bell, Search, CheckCheck, Plus } from "lucide-react";
+import { Bell, Search, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { CONTROL_H } from "@/components/ui/control-size";
+import { FOCUS_BUTTON, OVERLAY_PANEL, RADIUS } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
-import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { CommandPalette } from "./command-palette";
 import { UserMenu } from "./user-menu";
@@ -35,11 +37,6 @@ export function Topbar() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
-  const { data: me } = trpc.user.me.useQuery();
-  // เปิดงานใหม่ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12:
-  // กดแล้วกรอกทั้งฟอร์มค่อยโดน FORBIDDEN · ตรงกับ ⌘K ที่ gate create actions แล้ว)
-  const canCreateOrder = permAllows(me?.permissions, "create_sales_docs");
-
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -104,7 +101,15 @@ export function Topbar() {
         onClick={() => setPaletteOpen(true)}
         aria-label="ค้นหาเมนู ออเดอร์ ลูกค้า ใบเสนอราคา หรือบิล"
         aria-haspopup="dialog"
-        className="group flex h-11 min-w-0 w-full max-w-md items-center gap-2 rounded-full bg-white/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-white hover:text-slate-600 sm:h-9 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10"
+        // ความสูงเอาจากของกลาง ไม่เขียนสูตรเอง — ปุ่มนี้ยืนแถวเดียวกับปุ่มแจ้งเตือน/โปรไฟล์
+        // (audit 2026-08-01 จับได้ว่าที่นี่ก๊อปสูตร "h-11 … sm:h-9" มาไว้เอง
+        //  ด่าน lint ตัวนั้นบังคับเฉพาะ src/components/ui/** จึงลอดมาได้)
+        className={cn(
+          CONTROL_H,
+          RADIUS.pill,
+          FOCUS_BUTTON,
+          "group flex w-full min-w-0 max-w-md items-center gap-2 bg-white/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-white hover:text-slate-600 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10",
+        )}
       >
         <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
         <span className="flex-1 truncate text-left">ค้นหาเมนู เลขงาน ลูกค้า หรือบิล</span>
@@ -115,22 +120,9 @@ export function Topbar() {
 
       {/* Actions */}
       <div className="flex items-center gap-1.5">
-        {/* เปิดงานใหม่ — ทางลัดเปิดออเดอร์จากทุกหน้า (เฉพาะสิทธิ์ขาย · ใช้ <Button> มาตรฐาน) */}
-        {canCreateOrder && (
-          <>
-            <Button asChild className="hidden sm:inline-flex">
-              <Link href="/orders/new">
-                <Plus strokeWidth={2.1} />
-                เปิดงานใหม่
-              </Link>
-            </Button>
-            <Button asChild size="icon" className="sm:hidden">
-              <Link href="/orders/new" aria-label="เปิดงานใหม่">
-                <Plus strokeWidth={2.1} />
-              </Link>
-            </Button>
-          </>
-        )}
+        {/* ปุ่ม "เปิดงานใหม่" ถูกถอดออกจากแถบบน (เบสสั่ง 2026-08-01) —
+            ทุกหน้าที่เปิดออเดอร์ได้มีปุ่มของตัวเองอยู่แล้ว (/orders, แดชบอร์ด, งานของฉัน)
+            และยังเปิดจาก ⌘K ได้ · แถบบนเหลือเฉพาะค้นหา/แจ้งเตือน/โปรไฟล์ */}
 
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
@@ -143,14 +135,14 @@ export function Topbar() {
             aria-expanded={notifOpen}
             aria-haspopup="true"
           >
-            <Bell className="h-4 w-4" />
+            <Bell />
             {count > 0 && (
               <span className="absolute right-0.5 top-0.5 flex h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-950" />
             )}
           </Button>
 
           {notifOpen && (
-            <div className="fixed left-2 right-2 top-16 z-50 overflow-hidden rounded-2xl border border-slate-200/70 bg-white overlay-surface sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 dark:border-slate-800 dark:bg-slate-900">
+            <div className={cn(OVERLAY_PANEL, "fixed left-2 right-2 top-16 z-50 overflow-hidden sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96")}>
               <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5 dark:border-slate-800">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                   การแจ้งเตือน
@@ -168,7 +160,7 @@ export function Topbar() {
                     disabled={markAllRead.isPending}
                     className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600 disabled:opacity-50 dark:text-slate-400 dark:hover:text-blue-400"
                   >
-                    <CheckCheck className="h-3.5 w-3.5" />
+                    <CheckCheck />
                     อ่านทั้งหมด
                   </Button>
                 )}

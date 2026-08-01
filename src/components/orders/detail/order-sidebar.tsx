@@ -268,7 +268,7 @@ export function OrderSidebar({
         <button
           type="button"
           onClick={onOpenMoney}
-          className="flex w-full items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-4 py-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:border-slate-800/60 dark:bg-slate-900/40 dark:hover:bg-blue-950/20"
+          className="card-surface flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition-colors hover:bg-blue-50/40 dark:hover:bg-blue-950/20"
         >
           <span className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Calculator className="h-4 w-4" />

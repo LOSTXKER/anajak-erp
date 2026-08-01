@@ -154,13 +154,13 @@ export default function ProductionDetailPage({
           <>
             <Button variant="outline" size="sm" asChild>
               <a href={`/print/job-ticket/${order.id}`} target="_blank" rel="noreferrer">
-                <ClipboardList className="h-4 w-4" />
+                <ClipboardList />
                 ใบสั่งงาน
               </a>
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link href={`/orders/${order.id}`}>
-                <ExternalLink className="h-4 w-4" />
+                <ExternalLink />
                 ดูออเดอร์
               </Link>
             </Button>

@@ -19,13 +19,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { cn, formatDate } from "@/lib/utils";
 import {
   QC_DEFECT_REASONS,
@@ -33,17 +27,10 @@ import {
   qcReasonLabel,
   type QcDefectReason,
 } from "@/lib/qc";
-import {
-  ShieldCheck,
-  ClipboardCheck,
-  Loader2,
-  Plus,
-  Trash2,
-  AlertTriangle,
-  CheckCircle2,
-  X,
-} from "lucide-react";
+import { ShieldCheck, ClipboardCheck, Loader2, Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+
+import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 
 // การ์ด "ตรวจนับ QC" บนหน้าออเดอร์ — นับของจุดที่ 2 ก่อนแพ็ค (FLOW-REDESIGN ก้อน 3)
 // นับจริง "ดีกี่ตัว เสียกี่ตัว" · ดีล้วน→เด้งแพ็คเอง · มีเสีย→ถอยกลับผลิต+งานแก้อัตโนมัติ
@@ -100,7 +87,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
           {isQualityCheck &&
             (canCount ? (
               <Button size="sm" className="h-9 gap-1.5 text-xs" onClick={() => setDialogOpen(true)}>
-                <ClipboardCheck className="h-3.5 w-3.5" />
+                <ClipboardCheck />
                 ตรวจนับ
               </Button>
             ) : (
@@ -401,7 +388,7 @@ function QcCountForm({
               onChange={(e) =>
                 setQtyGood(Math.max(0, Math.floor(Number(e.target.value) || 0)))
               }
-              className="h-11 w-24 text-center text-base tabular-nums"
+              className="w-24 text-center text-base tabular-nums"
             />
           </div>
 
@@ -415,14 +402,15 @@ function QcCountForm({
                 <p className="text-sm font-medium text-slate-900 dark:text-white">
                   ของเสีย #{idx + 1}
                 </p>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={() => removeRow(idx)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+                  className="text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
                   aria-label="ลบแถวของเสีย"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                  <Trash2 />
+                </Button>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -437,47 +425,33 @@ function QcCountForm({
                     onChange={(e) =>
                       update(idx, { qty: Math.max(0, Math.floor(Number(e.target.value) || 0)) })
                     }
-                    className="h-11 text-center text-base tabular-nums"
+                    className="text-center text-base tabular-nums"
                   />
                 </div>
                 <div className="space-y-1">
                   <label htmlFor={`qc-defect-size-${idx}`} className="text-xs text-slate-500">ไซส์</label>
-                  <Select
-                    value={d.size === "" ? NONE : d.size}
-                    onValueChange={(v) => update(idx, { size: v === NONE ? "" : v })}
-                  >
-                    <SelectTrigger id={`qc-defect-size-${idx}`} className="h-11">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>ไม่ระบุ</SelectItem>
+                  <Select value={d.size === "" ? NONE : d.size}
+                    onChange={(e) => update(idx, { size: e.target.value === NONE ? "" : e.target.value })} id={`qc-defect-size-${idx}`}>
+                      <option value={NONE}>ไม่ระบุ</option>
                       {sizes.map((s) => (
-                        <SelectItem key={s} value={s}>
+                        <option key={s} value={s}>
                           {s}
-                        </SelectItem>
+                        </option>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </Select>
                 </div>
                 {context.printLabels.length > 0 && (
                   <div className="space-y-1">
                     <label htmlFor={`qc-defect-print-${idx}`} className="text-xs text-slate-500">ลาย</label>
-                    <Select
-                      value={d.printLabel === "" ? NONE : d.printLabel}
-                      onValueChange={(v) => update(idx, { printLabel: v === NONE ? "" : v })}
-                    >
-                      <SelectTrigger id={`qc-defect-print-${idx}`} className="h-11">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NONE}>ไม่ระบุ</SelectItem>
+                    <Select value={d.printLabel === "" ? NONE : d.printLabel}
+                      onChange={(e) => update(idx, { printLabel: e.target.value === NONE ? "" : e.target.value })} id={`qc-defect-print-${idx}`}>
+                        <option value={NONE}>ไม่ระบุ</option>
                         {context.printLabels.map((p) => (
-                          <SelectItem key={p} value={p}>
+                          <option key={p} value={p}>
                             {p}
-                          </SelectItem>
+                          </option>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </Select>
                   </div>
                 )}
                 <div
@@ -487,24 +461,15 @@ function QcCountForm({
                   )}
                 >
                   <label htmlFor={`qc-defect-reason-${idx}`} className="text-xs text-slate-500">สาเหตุ</label>
-                  <Select
-                    value={d.reason || undefined}
-                    onValueChange={(v) => update(idx, { reason: v as QcDefectReason })}
-                  >
-                    <SelectTrigger
-                      id={`qc-defect-reason-${idx}`}
-                      className={cn("h-11", !d.reason && "border-amber-400")}
-                    >
-                      <SelectValue placeholder="เลือกสาเหตุ" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  <Select value={d.reason || undefined}
+                    onChange={(e) => update(idx, { reason: e.target.value as QcDefectReason })} id={`qc-defect-reason-${idx}`}
+                      className={cn("", !d.reason && "border-amber-400")} placeholder="เลือกสาเหตุ">
                       {QC_DEFECT_REASONS.map((r) => (
-                        <SelectItem key={r} value={r}>
+                        <option key={r} value={r}>
                           {QC_DEFECT_REASON_LABELS[r]}
-                        </SelectItem>
+                        </option>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </Select>
                 </div>
               </div>
 
@@ -522,18 +487,12 @@ function QcCountForm({
                           decoding="async"
                           className="h-full w-full rounded-lg object-cover"
                         />
-                        <button
-                          type="button"
+                        <ImageRemoveButton
                           onClick={() =>
                             update(idx, { photoUrls: d.photoUrls.filter((u) => u !== url) })
                           }
-                          aria-label="ลบรูปของเสีย"
-                          className="absolute -right-2 -top-2 flex h-11 w-11 items-start justify-end rounded-full bg-transparent p-1 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 sm:h-8 sm:w-8"
-                        >
-                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-700 shadow-sm">
-                            <X className="h-3.5 w-3.5" />
-                          </span>
-                        </button>
+                          label="ลบรูปของเสีย"
+                        />
                       </div>
                     ))}
                   </div>
@@ -551,7 +510,7 @@ function QcCountForm({
                 value={d.note}
                 onChange={(e) => update(idx, { note: e.target.value })}
                 placeholder="หมายเหตุ เช่น จุดไหนของตัวเสื้อ"
-                className="h-11 text-sm"
+                className="text-sm"
               />
             </div>
           ))}
@@ -562,7 +521,7 @@ function QcCountForm({
             onClick={addRow}
             className="h-11 w-full gap-1.5 border-dashed text-sm"
           >
-            <Plus className="h-4 w-4" />
+            <Plus />
             เพิ่มของเสีย
           </Button>
 
@@ -612,9 +571,9 @@ function QcCountForm({
             className="h-11 gap-1.5"
           >
             {create.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
-              <ClipboardCheck className="h-4 w-4" />
+              <ClipboardCheck />
             )}
             บันทึก ดี {qtyGood} · เสีย {qtyDefectTotal}
           </Button>

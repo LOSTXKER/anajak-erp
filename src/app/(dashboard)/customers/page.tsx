@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Section } from "@/components/ui/section";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +19,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
 import { formatCurrency } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
@@ -26,7 +27,8 @@ import { PAYMENT_TERMS, type PaymentTermsValue } from "@/lib/payment-terms";
 import { PageHeader } from "@/components/page-header";
 import { Plus, Users, UserPlus, Crown, UserX, Building2, User, ChevronRight } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 const segmentConfig: Record<string, { label: string; variant: "default" | "accent" | "success" | "warning" | "destructive" }> = {
   VIP: { label: "VIP", variant: "success" },
@@ -195,7 +197,7 @@ function CustomersPageContent() {
         action={
           canManageCustomers ? (
             <Button size="sm" onClick={() => setShowForm(!showForm)}>
-              <Plus className="h-4 w-4" />
+              <Plus />
               เพิ่มลูกค้า
             </Button>
           ) : undefined
@@ -342,21 +344,14 @@ function CustomersPageContent() {
                     </div>
                     <div className="mt-4">
                       <Field label="เงื่อนไขการชำระเงิน (ค่าเริ่มต้น)" id="customer-payment-terms">
-                        <Select
-                          value={formData.defaultPaymentTerms}
-                          onValueChange={(v) => setFormData({ ...formData, defaultPaymentTerms: v })}
-                        >
-                          <SelectTrigger id="customer-payment-terms" className="w-full md:w-64">
-                            <SelectValue placeholder="เลือกเงื่อนไข" />
-                          </SelectTrigger>
-                          <SelectContent>
+                        <Select value={formData.defaultPaymentTerms}
+                          onChange={(e) => setFormData({ ...formData, defaultPaymentTerms: e.target.value })} id="customer-payment-terms" className="w-full md:w-64" placeholder="เลือกเงื่อนไข">
                             {PAYMENT_TERMS.map((t) => (
-                              <SelectItem key={t.value} value={t.value}>
+                              <option key={t.value} value={t.value}>
                                 {t.label}
-                              </SelectItem>
+                              </option>
                             ))}
-                          </SelectContent>
-                        </Select>
+                          </Select>
                       </Field>
                     </div>
                   </div>
@@ -425,10 +420,10 @@ function CustomersPageContent() {
         </Section>
       )}
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <Toolbar>
         <SearchInput
           ref={searchInputRef}
-          containerClassName="flex-1"
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อ, บริษัท, โทร, อีเมล..."
           defaultValue={search}
           onChange={(event) => {
@@ -440,22 +435,25 @@ function CustomersPageContent() {
             );
           }}
         />
-        <NativeSelect
-          shape="pill"
-          aria-label="กรองกลุ่มลูกค้า"
-          value={segment}
-          onChange={(event) =>
-            replaceListState({ status: event.target.value || null, page: null })
-          }
-          className="sm:w-44"
-        >
-          {SEGMENT_FILTERS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
-      </div>
+
+        <ToolbarGroup>
+          <Select
+            shape="pill"
+            aria-label="กรองกลุ่มลูกค้า"
+            value={segment}
+            onChange={(event) =>
+              replaceListState({ status: event.target.value || null, page: null })
+            }
+            className="@2xl:w-44"
+          >
+            {SEGMENT_FILTERS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </ToolbarGroup>
+      </Toolbar>
 
       <ResponsiveList
         items={customerItems}
@@ -540,7 +538,7 @@ function CustomersPageContent() {
                 <article key={customer.id} role="listitem" className="card-surface rounded-2xl">
                   <Link
                     href={`/customers/${customer.id}`}
-                    className="block min-h-11 rounded-2xl p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className={cn("block min-h-11 rounded-2xl p-4", FOCUS_BUTTON)}
                     aria-label={`เปิดข้อมูลลูกค้า ${customer.name}`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -601,7 +599,7 @@ function CustomersPageContent() {
             action={
               canManageCustomers ? (
                 <Button size="sm" onClick={() => setShowForm(true)}>
-                  <Plus className="h-4 w-4" />
+                  <Plus />
                   เพิ่มลูกค้า
                 </Button>
               ) : undefined

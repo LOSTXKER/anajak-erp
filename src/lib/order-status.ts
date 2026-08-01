@@ -32,6 +32,34 @@ export const INTERNAL_STATUS_LABELS: Record<InternalStatus, string> = {
 };
 
 // ============================================================
+// ระยะของงาน — จัดสถานะภายใน 14 ตัวเป็น 5 ช่วงตามเส้นทางงานจริง
+// (เบสเคาะ 2026-08-01 — แถบสถานะหน้า /orders อ่านซ้ายไปขวาเป็นเส้นทางงาน
+//  ให้เห็นว่างานกองอยู่ช่วงไหนของสายการผลิต)
+//
+// ลำดับสถานะในแต่ละกลุ่มต้องตรงกับลำดับใน INTERNAL_STATUS_LABELS —
+// นั่นคือลำดับ flow จริงที่ทั้งระบบยึด (แดชบอร์ดก็เรียงตามนี้)
+// ============================================================
+
+export const INTERNAL_STATUS_STAGES = [
+  { label: "รับงาน", statuses: ["DRAFT", "INQUIRY", "CONFIRMED"] },
+  { label: "ออกแบบ", statuses: ["DESIGNING", "DESIGN_APPROVED"] },
+  { label: "ผลิต", statuses: ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK"] },
+  { label: "ส่งของ", statuses: ["PACKING", "READY_TO_SHIP", "SHIPPED"] },
+  { label: "ปิดงาน", statuses: ["COMPLETED", "CANCELLED", "ON_HOLD"] },
+] as const satisfies ReadonlyArray<{
+  label: string;
+  statuses: ReadonlyArray<InternalStatus>;
+}>;
+
+/** ด่านตอนคอมไพล์: เพิ่มสถานะใหม่ใน schema แล้วลืมจัดกลุ่ม = คอมไพล์ไม่ผ่านทันที
+ *  (ถ้าไม่มีด่านนี้ สถานะใหม่จะหายไปจากแถบเงียบๆ โดยไม่มีใครรู้) */
+type StagedStatus = (typeof INTERNAL_STATUS_STAGES)[number]["statuses"][number];
+type _EveryStatusHasStage = Exclude<InternalStatus, StagedStatus> extends never
+  ? true
+  : ["ยังไม่ได้จัดกลุ่มให้สถานะ:", Exclude<InternalStatus, StagedStatus>];
+export const _everyStatusHasStage: _EveryStatusHasStage = true;
+
+// ============================================================
 // CUSTOMER STATUS COLORS (for badges)
 // ============================================================
 
@@ -392,13 +420,6 @@ export const PRIORITY_LABELS: Record<string, string> = {
   NORMAL: "ปกติ",
   HIGH: "สูง",
   URGENT: "เร่งด่วน",
-};
-
-export const PRIORITY_COLORS: Record<string, { bg: string; text: string }> = {
-  LOW: NEUTRAL,
-  NORMAL: ACCENT,
-  HIGH: WARNING,
-  URGENT: DANGER,
 };
 
 // PAYMENT_TERMS_LABELS ย้ายไป src/lib/payment-terms.ts (รวมค่า+ป้าย+ความหมายที่เดียว)

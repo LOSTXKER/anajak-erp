@@ -6,14 +6,8 @@ import { ARTWORK_POSITION_LABELS } from "@/lib/artwork";
 import { PRINT_TYPES } from "@/types/order-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLinkError } from "@/components/public-link-error";
-import {
-  Loader2,
-  Shirt,
-  CalendarClock,
-  Paperclip,
-  Palette,
-  FileText,
-} from "lucide-react";
+import { Shirt, CalendarClock, Paperclip, Palette, FileText } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 // หน้าใบงานสำหรับร้านนอก (Gate B14 — LINE-friendly ไม่พิมพ์กระดาษ)
 // เปิดผ่านลิงก์ token ไม่ต้อง login — โชว์เฉพาะสิ่งที่ร้านต้องใช้ทำงาน
@@ -26,7 +20,7 @@ export function JobShareView({ token }: { token: string }) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex items-center gap-2 text-slate-500">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Spinner size="lg" />
           <span>กำลังโหลด...</span>
         </div>
       </div>
@@ -111,7 +105,7 @@ export function JobShareView({ token }: { token: string }) {
                       <img
                         src={a.fileUrl ?? ""}
                         alt={a.fileName}
-                        className="h-36 w-full rounded-lg border border-slate-200 bg-white object-contain"
+                        className="h-36 w-full rounded-xl border border-slate-200 bg-white object-contain"
                       />
                       <p className="mt-1 truncate text-2xs text-slate-400">{a.fileName}</p>
                     </a>
@@ -125,7 +119,7 @@ export function JobShareView({ token }: { token: string }) {
                       <img
                         src={design.imageUrl ?? ""}
                         alt={`แบบ v${design.versionNumber}`}
-                        className="h-36 w-full rounded-lg border border-slate-200 bg-white object-contain"
+                        className="h-36 w-full rounded-xl border border-slate-200 bg-white object-contain"
                       />
                       <p className="mt-1 truncate text-2xs text-slate-400">
                         แบบที่อนุมัติ (v{design.versionNumber})

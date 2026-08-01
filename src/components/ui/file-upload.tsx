@@ -1,10 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Upload, X, FileImage, Loader2 } from "lucide-react";
+import { Upload, X, FileImage } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CONTROL_H } from "./control-size";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
+import { FOCUS_BUTTON } from "./tokens";
+import { Spinner } from "./spinner";
 
 interface FileUploadProps {
   bucket: string;
@@ -99,7 +102,7 @@ export function FileUpload({
             type="button"
             onClick={clearFile}
             aria-label="ลบไฟล์ที่เลือก"
-            className="absolute -right-3 -top-3 inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm hover:bg-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 sm:h-9 sm:w-9"
+            className={cn(CONTROL_H, "absolute -right-3 -top-3 inline-flex w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm hover:bg-red-800", FOCUS_BUTTON, "sm:w-9")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -116,7 +119,7 @@ export function FileUpload({
         >
           {uploading ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Spinner size="lg" />
               กำลังอัปโหลด...
             </>
           ) : (
@@ -132,7 +135,7 @@ export function FileUpload({
         <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
           <FileImage className="h-4 w-4" />
           {fileName}
-          {uploading && <Loader2 className="h-3 w-3 animate-spin" />}
+          {uploading && <Spinner size="sm" />}
         </div>
       )}
     </div>

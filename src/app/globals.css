@@ -277,28 +277,6 @@ a,
   font-variant-numeric: tabular-nums;
 }
 
-/* Apple-style focus ring */
-.focus-ring {
-  outline: none;
-}
-.focus-ring:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
-  outline-offset: 2px;
-}
-
-/* Frosted-glass surface */
-.glass {
-  background-color: color-mix(in srgb, var(--color-surface) 72%, transparent);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  backdrop-filter: saturate(180%) blur(20px);
-}
-
-/* Subtle pop on hover for interactive surfaces */
-.surface-hover {
-  transition: background-color 150ms ease, border-color 150ms ease,
-    transform 150ms ease;
-}
-
 /* ============================================================
    การ์ดมาตรฐาน (ก้อน 6 / ทิศ A) — เงานุ่มลอย + ring 0.5px แทนเส้นขอบแข็ง
    ใช้แทน `border border-slate-200 bg-white` ทั่วระบบ ให้ทุกการ์ดลุคเดียวกัน
@@ -334,13 +312,18 @@ a,
    .hairline-ring = เส้นขอบบางกว่า 1px (ใช้แทนขอบแข็งบนพื้นโปร่ง เช่นชิปตัวกรอง
    ช่องค้นหาบนแถบบน เมนูที่กำลังถูกเลือก) — ของเดิมเขียนมือ 0 0 0 0.5px 4 แบบไม่ตรงกัน
    ============================================================ */
+/* เส้นขอบบางรวมอยู่ในเงาแล้ว (เบสสั่ง 2026-08-01 "ตรวจดีๆ ว่ามีอะไรไม่เป็นมาตรฐาน")
+   — ของเดิมให้แค่พื้น+เงา ทำให้ 6 จุดต้องเขียน `border border-slate-200/70 bg-white
+   dark:border-slate-800/60 dark:bg-slate-900` เพิ่มเอง แล้วเขียนไม่ตรงกัน
+   บางจุดลืมเขียน = ไม่มีขอบเลย · ตอนนี้ครบในตัวเดียว ห้ามใส่ขอบ/พื้นซ้ำ
+   (ทำแบบเดียวกับ .card-surface ที่รวมขอบไว้ในเงาอยู่แล้ว) */
 .overlay-surface {
   background-color: var(--color-surface);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.07), 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 .dark .overlay-surface {
   background-color: var(--color-surface);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09), 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 .hairline-ring {
   box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06);

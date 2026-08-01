@@ -114,7 +114,9 @@ export const quotationRouter = router({
     .use(salesUp)
     .input(
       z.object({
-        customerId: z.string(),
+        // .min(1) จำเป็น — ช่องเลือกลูกค้าบนหน้าเว็บเป็นเมนูของเราแล้ว native required
+        // ไม่บล็อกการส่งอีก ถ้าไม่รัดตรงนี้จะไปตายที่ FK ของฐานข้อมูลแล้วโยนข้อความดิบขึ้นจอ
+        customerId: z.string().min(1, 'กรุณาเลือกลูกค้า'),
         // ออกใบเสนอ "จากออเดอร์" — ผูกกันตั้งแต่เกิด ตอนลูกค้าตกลงจะยืนยันออเดอร์เดิม
         // ไม่สร้างออเดอร์ซ้ำ (audit ข้อ 8 BLOCKER)
         orderId: z.string().optional(),

@@ -8,9 +8,13 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { createClient } from "@/lib/supabase";
 import { ROLE_LABELS } from "@/lib/roles";
+import { FOCUS_BUTTON, OVERLAY_PANEL } from "@/components/ui/tokens";
+import { CONTROL_H, CONTROL_MIN_H } from "@/components/ui/control-size";
 
-const menuItemClass =
-  "flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 sm:min-h-8 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white";
+const menuItemClass = cn(
+  CONTROL_MIN_H,
+  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white",
+);
 
 export function UserMenu() {
   const router = useRouter();
@@ -35,7 +39,7 @@ export function UserMenu() {
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 sm:h-9 sm:w-9 dark:focus-visible:ring-offset-slate-950"
+          className={cn(CONTROL_H, "flex w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition-transform hover:scale-105 sm:w-9", FOCUS_BUTTON)}
           aria-label="เมนูผู้ใช้"
         >
           {me?.name?.charAt(0).toUpperCase() ?? "?"}
@@ -46,8 +50,8 @@ export function UserMenu() {
           align="end"
           sideOffset={8}
           className={cn(
-            "z-50 min-w-[200px] rounded-2xl border border-slate-200/70 bg-white p-2 overlay-surface",
-            "dark:border-slate-800/60 dark:bg-slate-900",
+            OVERLAY_PANEL,
+            "z-50 min-w-[200px] p-2",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
           )}
         >
@@ -73,7 +77,7 @@ export function UserMenu() {
             <DropdownMenu.Portal>
               <DropdownMenu.SubContent
                 sideOffset={4}
-                className="z-50 min-w-[150px] rounded-2xl border border-slate-200/70 bg-white p-2 overlay-surface dark:border-slate-800/60 dark:bg-slate-900"
+                className={cn(OVERLAY_PANEL, "z-50 min-w-[150px] p-2")}
               >
                 <DropdownMenu.Item
                   className={menuItemClass}

@@ -10,6 +10,8 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { Package, Plus, Minus, Check, AlertCircle, Search, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { DEFAULT_STOCK_LOCATION } from "@/lib/stock-constants";
+import { Spinner } from "@/components/ui/spinner";
+import { Alert } from "@/components/ui/alert";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -186,7 +188,7 @@ export function MaterialUsage({
             onClick={() => setShowPicker(!showPicker)}
             className="h-8 gap-1.5 border-blue-200 text-xs text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950"
           >
-            <Plus className="h-3 w-3" />
+            <Plus />
             เพิ่มวัตถุดิบ
           </Button>
         </div>
@@ -195,21 +197,21 @@ export function MaterialUsage({
       <CardContent className="space-y-3">
         {/* ---- Material Picker ---- */}
         {showPicker && (
-          <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
+          <Alert variant="info">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
-              <Input
+              <Input size="sm"
                 placeholder="ค้นหาวัตถุดิบ (ชื่อ / SKU / บาร์โค้ด)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="ค้นหาวัตถุดิบ"
-                className="h-8 pl-8 text-xs"
+                className="pl-8"
               />
             </div>
 
             {isSearching && (
               <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-400">
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <Spinner size="sm" />
                 กำลังค้นหา...
               </div>
             )}
@@ -249,7 +251,7 @@ export function MaterialUsage({
             {searchResults && searchResults.length === 0 && searchTerm.length >= 1 && (
               <p className="py-3 text-center text-xs text-slate-400">ไม่พบวัตถุดิบ</p>
             )}
-          </div>
+          </Alert>
         )}
 
         {/* ---- Already-deducted materials ---- */}
@@ -346,7 +348,7 @@ export function MaterialUsage({
                     onClick={() => updateQuantity(m.id, m.quantity - 1)}
                     className="h-6 w-6"
                   >
-                    <Minus className="h-3 w-3" />
+                    <Minus />
                   </Button>
                   <Input
                     type="number"
@@ -362,7 +364,7 @@ export function MaterialUsage({
                     onClick={() => updateQuantity(m.id, m.quantity + 1)}
                     className="h-6 w-6"
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus />
                   </Button>
                 </div>
 
@@ -396,7 +398,7 @@ export function MaterialUsage({
                   onClick={() => removeMaterial(m.id)}
                   className="ml-1 h-5 w-5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
                 >
-                  <X className="h-3 w-3" />
+                  <X />
                 </Button>
               </div>
             ))}
@@ -421,9 +423,9 @@ export function MaterialUsage({
                 className="h-8 gap-1.5 text-xs"
               >
                 {issueMutation.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <Loader2 className="animate-spin" />
                 ) : (
-                  <Package className="h-3 w-3" />
+                  <Package />
                 )}
                 เบิกวัตถุดิบ
               </Button>

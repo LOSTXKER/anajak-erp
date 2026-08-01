@@ -24,7 +24,7 @@ export function MobileSidebar() {
           className="md:hidden"
           aria-label="เปิดเมนู"
         >
-          <Menu className="h-5 w-5" />
+          <Menu />
         </Button>
       </DialogPrimitive.Trigger>
 
@@ -47,7 +47,7 @@ export function MobileSidebar() {
               className="absolute right-1.5 top-1.5 bg-white/80 text-slate-700 shadow-sm hover:bg-white dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800"
               aria-label="ปิดเมนู"
             >
-              <X className="h-5 w-5" />
+              <X />
             </Button>
           </DialogPrimitive.Close>
         </DialogPrimitive.Content>

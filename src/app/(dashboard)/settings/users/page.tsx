@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { QueryError } from "@/components/ui/query-error";
@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/dialog";
 import { KeyRound, Plus, ShieldCheck, Users } from "lucide-react";
 import type { Role } from "@prisma/client";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
+import { Alert } from "@/components/ui/alert";
 
 export default function UsersSettingsPage() {
   const utils = trpc.useUtils();
@@ -174,7 +176,7 @@ export default function UsersSettingsPage() {
             size="sm"
             onClick={() => setShowAddForm(!showAddForm)}
           >
-            <Plus className="mr-1 h-4 w-4" />
+            <Plus className="mr-1" />
             เพิ่มผู้ใช้
           </Button>
         </CardHeader>
@@ -215,7 +217,7 @@ export default function UsersSettingsPage() {
                 <label htmlFor="new-user-role" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
                   บทบาท *
                 </label>
-                <NativeSelect
+                <Select
                   id="new-user-role"
                   value={newUser.role}
                   onChange={(e) =>
@@ -227,7 +229,7 @@ export default function UsersSettingsPage() {
                       {opt.label}
                     </option>
                   ))}
-                </NativeSelect>
+                </Select>
               </div>
               <div>
                 <label htmlFor="new-user-password" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -327,7 +329,7 @@ export default function UsersSettingsPage() {
                               {ROLE_LABELS[user.role]}
                             </span>
                           ) : (
-                            <NativeSelect
+                            <Select size="sm"
                               value={user.role}
                               disabled={updateMutation.isPending}
                               aria-label={`บทบาทของ ${user.name}`}
@@ -337,14 +339,14 @@ export default function UsersSettingsPage() {
                                   role: e.target.value as Role,
                                 })
                               }
-                              className="h-8 w-36"
+                              className="w-36"
                             >
                               {ROLE_OPTIONS.map((opt) => (
                                 <option key={opt.value} value={opt.value}>
                                   {opt.label}
                                 </option>
                               ))}
-                            </NativeSelect>
+                            </Select>
                           )}
                         </td>
                         <td className="px-3 py-2.5 text-center">
@@ -368,7 +370,7 @@ export default function UsersSettingsPage() {
                               onClick={() => openPermissions(user)}
                               className="h-8 px-2 text-slate-500 hover:text-blue-600"
                             >
-                              <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                              <ShieldCheck className="mr-1" />
                               สิทธิ์
                               {(() => {
                                 // นับเฉพาะที่ต่างจาก default ของ role ปัจจุบันจริง — ตรงกับป้าย "ปรับเอง" ใน dialog
@@ -388,7 +390,7 @@ export default function UsersSettingsPage() {
                             }
                             className="h-8 px-2 text-slate-500 hover:text-blue-600"
                           >
-                            <KeyRound className="mr-1 h-3.5 w-3.5" />
+                            <KeyRound className="mr-1" />
                             รีเซ็ตรหัส
                           </Button>
                         </td>
@@ -401,9 +403,9 @@ export default function UsersSettingsPage() {
           )}
 
           {mutationError && (
-            <div role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <Alert variant="error" className="mt-3">
               {mutationError}
-            </div>
+            </Alert>
           )}
         </CardContent>
       </Card>
@@ -441,9 +443,9 @@ export default function UsersSettingsPage() {
               />
             </div>
             {resetPasswordMutation.error && (
-              <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+              <Alert variant="error">
                 {resetPasswordMutation.error.message}
-              </div>
+              </Alert>
             )}
             <div className="flex justify-end gap-2">
               <Button
@@ -500,7 +502,7 @@ export default function UsersSettingsPage() {
                       return (
                         <label
                           key={def.key}
-                          className={`flex min-h-11 items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm sm:min-h-9 ${
+                          className={`${CONTROL_MIN_H} flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm ${
                             locked
                               ? "cursor-not-allowed opacity-50"
                               : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -535,9 +537,9 @@ export default function UsersSettingsPage() {
                 </div>
               ))}
               {setPermissionsMutation.error && (
-                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                <Alert variant="error">
                   {setPermissionsMutation.error.message}
-                </div>
+                </Alert>
               )}
               <div className="flex justify-between gap-2">
                 <Button

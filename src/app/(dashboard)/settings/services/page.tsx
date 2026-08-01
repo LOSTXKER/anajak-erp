@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { Plus, Trash2, Pencil, X, Check, Settings, ShieldX } from "lucide-react";
 import { SettingsPageHeader } from "@/components/settings-page-header";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SegmentedControl } from "@/components/ui/segmented";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -244,7 +244,7 @@ export default function ServicesPage() {
               setFormData({ ...emptyForm });
             }}
           >
-            <Plus className="mr-1 h-4 w-4" />
+            <Plus className="mr-1" />
             เพิ่มรายการ
           </Button>
         </CardHeader>
@@ -311,7 +311,7 @@ export default function ServicesPage() {
                   <label htmlFor={`${formId}-pricing-type`} className="mb-1 block text-xs font-medium text-slate-500">
                     คิดราคา
                   </label>
-                  <NativeSelect
+                  <Select
                     id={`${formId}-pricing-type`}
                     value={formData.pricingType}
                     onChange={(e) =>
@@ -323,7 +323,7 @@ export default function ServicesPage() {
                   >
                     <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
                     <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
-                  </NativeSelect>
+                  </Select>
                 </div>
                 <div className="flex items-end gap-2">
                   <Button
@@ -398,7 +398,7 @@ export default function ServicesPage() {
                       >
                         <td className="px-3 py-2.5">
                           {isEditing ? (
-                            <Input
+                            <Input size="sm"
                               aria-label={`ชื่อบริการ ${item.name}`}
                               value={editingItem.name}
                               onChange={(e) =>
@@ -407,7 +407,6 @@ export default function ServicesPage() {
                                   name: e.target.value,
                                 })
                               }
-                              className="h-8 text-sm"
                             />
                           ) : (
                             <span className="text-sm font-medium text-slate-900 dark:text-white">
@@ -443,9 +442,8 @@ export default function ServicesPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <NativeSelect
+                            <Select size="sm"
                               aria-label={`วิธีคิดราคาของ ${item.name}`}
-                              className="h-8 text-xs"
                               value={editingItem.pricingType}
                               onChange={(e) =>
                                 setEditingItem({
@@ -458,7 +456,7 @@ export default function ServicesPage() {
                             >
                               <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
                               <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
-                            </NativeSelect>
+                            </Select>
                           ) : (
                             <Badge variant={ptConfig.variant}>
                               {ptConfig.label}
@@ -483,7 +481,7 @@ export default function ServicesPage() {
                                 disabled={updateItem.isPending}
                                 className="text-green-600 hover:text-green-700"
                               >
-                                <Check className="h-3.5 w-3.5" />
+                                <Check />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -491,7 +489,7 @@ export default function ServicesPage() {
                                 aria-label={`ยกเลิกการแก้ไข ${item.name}`}
                                 onClick={() => setEditingItem(null)}
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X />
                               </Button>
                             </div>
                           ) : (
@@ -503,7 +501,7 @@ export default function ServicesPage() {
                                 onClick={() => startEdit(item)}
                                 className="text-slate-500 hover:text-blue-600"
                               >
-                                <Pencil className="h-3.5 w-3.5" />
+                                <Pencil />
                               </Button>
                               {canDelete && (
                                 <Button
@@ -514,7 +512,7 @@ export default function ServicesPage() {
                                   disabled={deleteItem.isPending}
                                   className="text-slate-500 hover:text-red-600"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <Trash2 />
                                 </Button>
                               )}
                             </div>

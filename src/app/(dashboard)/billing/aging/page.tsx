@@ -12,7 +12,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchInput } from "@/components/ui/search-input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { TablePagination } from "@/components/ui/table-pagination";
 import {
@@ -25,15 +26,8 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
-import {
-  Users,
-  DollarSign,
-  AlertCircle,
-  Hourglass,
-  MessageSquare,
-  Copy,
-  Loader2,
-} from "lucide-react";
+import { Users, DollarSign, AlertCircle, Hourglass, MessageSquare, Copy } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 type DunningTone = "gentle" | "firm";
 
@@ -242,7 +236,7 @@ function AgingPageContent() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="ลูกหนี้ค้างชำระ (Aging)"
+        title="ลูกหนี้ค้างชำระ"
         description="ยอดค้างต่อลูกค้า แยกตามอายุหนี้นับจากวันครบกำหนด"
         breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ลูกหนี้" }]}
       />
@@ -268,10 +262,13 @@ function AgingPageContent() {
         <StatCard title="ลูกหนี้" value={data?.rows.length ?? 0} icon={Users} caption="ราย" />
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      {/* แถบเครื่องมือของกลาง — จุดตัดวัดจากความกว้างพื้นที่เนื้อหาจริง (@container)
+          ไม่ใช่ความกว้างหน้าต่าง เลยใช้ @2xl: แทน sm: ที่เขียนไว้เดิม
+          ตัวกรองช่วงอายุหนี้ + การเรียง อยู่กลุ่มเดียวกัน ห้ามแตกแถวคั่นกลาง */}
+      <Toolbar>
         <SearchInput
           ref={searchInputRef}
-          containerClassName="flex-1"
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อลูกค้าหรือบริษัท..."
           defaultValue={search}
           onChange={(event) => {
@@ -283,37 +280,42 @@ function AgingPageContent() {
             );
           }}
         />
-        <NativeSelect
-          shape="pill"
-          aria-label="กรองช่วงอายุหนี้"
-          value={status}
-          onChange={(event) =>
-            replaceListState({ status: event.target.value || null, page: null })
-          }
-          className="sm:w-48"
-        >
-          {AGING_STATUS_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
-        <NativeSelect
-          shape="pill"
-          aria-label="เรียงรายการลูกหนี้"
-          value={sort}
-          onChange={(event) =>
-            replaceListState({ sort: event.target.value, page: null })
-          }
-          className="sm:w-48"
-        >
-          {AGING_SORT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </NativeSelect>
-      </div>
+
+        {/* flex-wrap: จอมือถือให้ช่องเลือกซ้อนกันเต็มความกว้างเหมือนเดิม —
+            ถ้าปล่อยเรียงคู่กัน ป้ายยาวอย่าง "ยอดเลยกำหนดมากสุด" จะโดนตัดจนอ่านไม่ออก */}
+        <ToolbarGroup className="flex-wrap">
+          <Select
+            shape="pill"
+            aria-label="กรองช่วงอายุหนี้"
+            value={status}
+            onChange={(event) =>
+              replaceListState({ status: event.target.value || null, page: null })
+            }
+            className="@2xl:w-48"
+          >
+            {AGING_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+          <Select
+            shape="pill"
+            aria-label="เรียงรายการลูกหนี้"
+            value={sort}
+            onChange={(event) =>
+              replaceListState({ sort: event.target.value, page: null })
+            }
+            className="@2xl:w-48"
+          >
+            {AGING_SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </ToolbarGroup>
+      </Toolbar>
 
       <ResponsiveList
         items={visibleRows}
@@ -359,7 +361,7 @@ function AgingPageContent() {
                           });
                         }}
                       >
-                        <MessageSquare className="h-3.5 w-3.5" />
+                        <MessageSquare />
                       </Button>
                     </div>
                   </DataTable.Td>
@@ -459,7 +461,7 @@ function AgingPageContent() {
                     });
                   }}
                 >
-                  <MessageSquare className="h-4 w-4" />
+                  <MessageSquare />
                   ร่างข้อความทวง
                 </Button>
               </article>
@@ -516,7 +518,7 @@ function AgingPageContent() {
             </div>
             {draft.isLoading ? (
               <div className="flex items-center gap-2 py-8 text-sm text-slate-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size="md" />
                 กำลังร่าง...
               </div>
             ) : draft.isError ? (
@@ -534,7 +536,7 @@ function AgingPageContent() {
                     {draft.data.invoiceCount} ใบ · ค้างรวม {formatCurrency(draft.data.totalOutstanding)}
                   </p>
                   <Button size="sm" className="gap-1.5" onClick={() => copyDraft(draft.data!.text!)}>
-                    <Copy className="h-3.5 w-3.5" />
+                    <Copy />
                     คัดลอกข้อความ
                   </Button>
                 </div>

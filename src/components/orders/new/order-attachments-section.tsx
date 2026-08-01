@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import { Section } from "@/components/ui/section";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { PRINT_POSITIONS } from "@/types/order-form";
 import type { ReferenceImage } from "@/types/order-form";
-import { ImageIcon, Upload, X, Loader2 } from "lucide-react";
+import { ImageIcon, Upload, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 // รูป/ไฟล์อ้างอิงจากแชท — แยกจาก orders/new/page.tsx ตอนรื้อฟอร์ม 2026-06-12
 // (กางตลอด + อัปโหลด Supabase + เลือกตำแหน่งพิมพ์ต่อรูป)
@@ -100,9 +101,9 @@ export function OrderAttachmentsSection({
                   aria-label={`ลบไฟล์ ${img.fileName}`}
                   className="absolute -right-2 -top-2 rounded-full opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                 >
-                  <X className="h-3 w-3" />
+                  <X />
                 </Button>
-                <NativeSelect
+                <Select
                   value={img.printPosition || ""}
                   onChange={(e) => {
                     onImagesChange((prev) =>
@@ -112,7 +113,7 @@ export function OrderAttachmentsSection({
                     );
                   }}
                   aria-label={`ตำแหน่งพิมพ์ของ ${img.fileName}`}
-                  className="mt-1.5 h-11 w-24 px-1.5 py-0 text-sm sm:h-8 sm:text-xs"
+                  className="mt-1.5 w-24 px-1.5 py-0 text-sm sm:h-8 sm:text-xs"
                 >
                   <option value="">ทั่วไป</option>
                   {Object.entries(PRINT_POSITIONS).map(([k, v]) => (
@@ -120,7 +121,7 @@ export function OrderAttachmentsSection({
                       {v}
                     </option>
                   ))}
-                </NativeSelect>
+                </Select>
               </div>
             ))}
           </div>
@@ -137,7 +138,7 @@ export function OrderAttachmentsSection({
             />
             {uploading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size="md" />
                 กำลังอัปโหลด...
               </>
             ) : (

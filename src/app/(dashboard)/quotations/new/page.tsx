@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -218,6 +220,16 @@ function QuotationFormPage() {
   // ---- submit ----
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ต้องตรวจเอง — ช่องเลือกลูกค้าเป็นเมนูของเราแล้ว prop required บอกได้แค่โปรแกรม
+    // อ่านหน้าจอ ไม่บล็อกการกดส่งเหมือน <select required> เดิม (ดู ui/select.tsx)
+    // ถ้าปล่อยผ่าน server จะโยน FK error ดิบๆ ขึ้นหน้าจอแทนข้อความที่คนอ่านรู้เรื่อง
+    if (!customerId) {
+      setEditError("กรุณาเลือกลูกค้าก่อนสร้างใบเสนอราคา");
+      document.getElementById("quotation-customer")?.focus();
+      return;
+    }
+
     const mappedItems = items.map((item) => ({
       name: item.name,
       description: item.description || undefined,
@@ -285,7 +297,7 @@ function QuotationFormPage() {
       <div className="space-y-6">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/orders">
-            <ArrowLeft className="mr-1 h-4 w-4" />
+            <ArrowLeft className="mr-1" />
             กลับ
           </Link>
         </Button>
@@ -298,26 +310,17 @@ function QuotationFormPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/quotations" aria-label="กลับไปรายการใบเสนอราคา">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
-            {editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคาใหม่"}
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {fromOrderId
-              ? `ผูกกับออเดอร์ ${linkedOrder?.orderNumber ?? "..."} — ลูกค้าตกลงแล้วระบบจะยืนยันออเดอร์ใบเดิม ไม่สร้างซ้ำ`
-              : editId
-                ? editing?.quotationNumber ?? ""
-                : "กรอกรายละเอียดใบเสนอราคา"}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
+        title={editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคาใหม่"}
+        description={
+          fromOrderId
+            ? `ผูกกับออเดอร์ ${linkedOrder?.orderNumber ?? "..."} — ลูกค้าตกลงแล้วระบบจะยืนยันออเดอร์ใบเดิม ไม่สร้างซ้ำ`
+            : editId
+              ? editing?.quotationNumber ?? ""
+              : "กรอกรายละเอียดใบเสนอราคา"
+        }
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ============================================================ */}
@@ -339,6 +342,7 @@ function QuotationFormPage() {
                   </div>
                 ) : (
                   <CustomerPicker
+                    id="quotation-customer"
                     value={customerId}
                     onChange={(id) => setCustomerId(id)}
                     required
@@ -349,11 +353,10 @@ function QuotationFormPage() {
                 <label htmlFor="quotation-valid-until" className={sectionLabelClass}>
                   ใช้ได้ถึงวันที่ *
                 </label>
-                <Input
+                <DatePicker
                   id="quotation-valid-until"
-                  type="date"
                   value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
+                  onChange={(v) => setValidUntil(v)}
                   required
                 />
               </div>
@@ -419,7 +422,7 @@ function QuotationFormPage() {
               รายการสินค้า
             </CardTitle>
             <Button type="button" variant="outline" size="sm" onClick={addItem}>
-              <Plus className="mr-1 h-4 w-4" />
+              <Plus className="mr-1" />
               เพิ่มรายการ
             </Button>
           </CardHeader>
@@ -450,7 +453,7 @@ function QuotationFormPage() {
                           className="text-red-500 hover:text-red-700"
                           aria-label={`ลบรายการ ${idx + 1}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 />
                         </Button>
                       )}
                     </div>

@@ -23,13 +23,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -37,6 +31,7 @@ import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { QueryError } from "@/components/ui/query-error";
 import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
+import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS, SHIPPING_METHOD_LABELS } from "@/lib/status-config";
 import {
   Truck,
@@ -51,6 +46,11 @@ import {
   Settings2,
 } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
+import { Spinner } from "@/components/ui/spinner";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
+import { CONTROL_H } from "@/components/ui/control-size";
+import { RADIUS } from "@/components/ui/tokens";
+import { Alert } from "@/components/ui/alert";
 
 type Delivery = RouterOutput["delivery"]["getByOrderId"][number];
 
@@ -310,7 +310,7 @@ export function OrderDeliverySection({
                 }}
                 className="w-full gap-1.5 sm:w-auto"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus />
                 สร้างรายการจัดส่ง
               </Button>
             )}
@@ -318,20 +318,20 @@ export function OrderDeliverySection({
 
           {/* ธง blind ship — ต้องเห็นก่อนหยิบของลงกล่อง ห้ามพลาด */}
           {packContext.data?.blindShip && (
-            <div className="mt-2 rounded-xl border-2 border-red-500 bg-red-50 px-3 py-2 dark:border-red-600 dark:bg-red-950/40">
+            <Alert variant="error" className="mt-2">
               <p className="text-sm font-semibold text-red-700 dark:text-red-300">
                 🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
               </p>
               <p className="mt-0.5 text-xs font-medium text-red-600 dark:text-red-400">
                 ผู้ส่งบนใบ: {packContext.data.blindShipSenderName || packContext.data.customerName}
               </p>
-            </div>
+            </Alert>
           )}
           {canSetBlindShip && packContext.data && (
             <button
               type="button"
               onClick={openBlindShipDialog}
-              className="mt-1 flex min-h-11 w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-blue-500 sm:min-h-9"
+              className={cn(CONTROL_MIN_H, "mt-1 flex w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-blue-500")}
             >
               <Settings2 className="h-3 w-3" />
               {packContext.data.blindShip ? "ตั้งค่า blind ship" : "ตั้งค่า blind ship (ปิดอยู่)"}
@@ -350,7 +350,7 @@ export function OrderDeliverySection({
               aria-live="polite"
               className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500"
             >
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner size="md" />
               กำลังโหลดข้อมูลจัดส่ง
             </div>
           ) : (
@@ -404,13 +404,13 @@ export function OrderDeliverySection({
                             {/* Tracking number */}
                             {editTrackingId === delivery.id && actions.canEditTracking ? (
                               <div className="flex items-center gap-2">
-                                <Input
+                                <Input size="sm"
                                   type="text"
                                   aria-label={`เลขพัสดุ ${delivery.recipientName}`}
                                   value={editTrackingValue}
                                   onChange={(e) => setEditTrackingValue(e.target.value)}
                                   placeholder="เลขพัสดุ..."
-                                  className="h-8 w-48 font-mono"
+                                  className="w-48 font-mono"
                                 />
                                 <Button
                                   variant="ghost"
@@ -424,7 +424,7 @@ export function OrderDeliverySection({
                                   }}
                                   disabled={updateDelivery.isPending}
                                 >
-                                  <Check className="h-3.5 w-3.5" />
+                                  <Check />
                                 </Button>
                               </div>
                             ) : (
@@ -437,7 +437,7 @@ export function OrderDeliverySection({
                                 ) : actions.canEditTracking ? (
                                   <button
                                     type="button"
-                                    className="min-h-11 touch-manipulation text-xs text-slate-400 hover:text-blue-500 sm:min-h-9"
+                                    className={cn(CONTROL_MIN_H, "touch-manipulation text-xs text-slate-400 hover:text-blue-500")}
                                     onClick={() => {
                                       setEditTrackingId(delivery.id);
                                       setEditTrackingValue(delivery.trackingNumber || "");
@@ -491,7 +491,7 @@ export function OrderDeliverySection({
                                 rel="noreferrer"
                                 title="ใบรายการแนบกล่อง"
                                 aria-label={`พิมพ์ใบรายการแนบกล่องสำหรับ ${delivery.recipientName}`}
-                                className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                                className={cn(CONTROL_H, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400")}
                               >
                                 <Printer className="h-3.5 w-3.5" />
                               </a>
@@ -518,7 +518,7 @@ export function OrderDeliverySection({
                                 aria-label={`ลบใบส่งของ ${delivery.recipientName}`}
                                 onClick={() => handleDelete(delivery.id)}
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 />
                               </Button>
                             )}
                           </div>
@@ -599,21 +599,16 @@ export function OrderDeliverySection({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="delivery-shipping-method">วิธีจัดส่ง</Label>
-                <Select value={shippingMethod} onValueChange={setShippingMethod}>
-                  <SelectTrigger id="delivery-shipping-method">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="KERRY">Kerry Express</SelectItem>
-                    <SelectItem value="FLASH">Flash Express</SelectItem>
-                    <SelectItem value="THAILAND_POST">ไปรษณีย์ไทย</SelectItem>
-                    <SelectItem value="J_AND_T">J&T Express</SelectItem>
-                    <SelectItem value="GRAB">Grab Express</SelectItem>
-                    <SelectItem value="LALAMOVE">Lalamove</SelectItem>
-                    <SelectItem value="PICKUP">รับเอง</SelectItem>
-                    <SelectItem value="OTHER">อื่นๆ</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Select value={shippingMethod} onChange={(e) => setShippingMethod(e.target.value)} id="delivery-shipping-method">
+                    <option value="KERRY">Kerry Express</option>
+                    <option value="FLASH">Flash Express</option>
+                    <option value="THAILAND_POST">ไปรษณีย์ไทย</option>
+                    <option value="J_AND_T">J&T Express</option>
+                    <option value="GRAB">Grab Express</option>
+                    <option value="LALAMOVE">Lalamove</option>
+                    <option value="PICKUP">รับเอง</option>
+                    <option value="OTHER">อื่นๆ</option>
+                  </Select>
               </div>
               <Field label="ค่าจัดส่ง (บาท)">
                 <Input
@@ -655,7 +650,7 @@ export function OrderDeliverySection({
                             สั่ง {r.ordered} · ส่งแล้ว {r.packed}
                           </p>
                         </div>
-                        <Input
+                        <Input size="sm"
                           type="number"
                           aria-label={`จำนวน ${sizeColorLabel(r)} ในรอบนี้`}
                           aria-invalid={r.invalid || undefined}
@@ -669,9 +664,9 @@ export function OrderDeliverySection({
                             setPackQty((prev) => ({ ...prev, [r.key]: e.target.value }))
                           }
                           className={cn(
-                            "h-8 w-16 shrink-0 text-right",
+                            "w-16 shrink-0 text-right",
                             r.invalid &&
-                              "border-red-500 focus-visible:ring-red-500/40 dark:border-red-600"
+                              cn("border-red-500 dark:border-red-600", FOCUS_FIELD_INVALID)
                           )}
                         />
                       </div>
@@ -738,9 +733,9 @@ export function OrderDeliverySection({
               className="gap-1.5"
             >
               {createDelivery.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <Truck className="h-4 w-4" />
+                <Truck />
               )}
               สร้างรายการจัดส่ง
             </Button>
@@ -760,19 +755,14 @@ export function OrderDeliverySection({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="delivery-status">สถานะ</Label>
-              <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger id="delivery-status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+              <Select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} id="delivery-status">
                   {/* เฉพาะสถานะปัจจุบัน + ที่เดินไปได้ (B13) — เลือกสถานะที่ server จะปฏิเสธไม่ได้ */}
                   {nextDeliveryStatuses(statusFrom).map((s) => (
-                    <SelectItem key={s} value={s}>
+                    <option key={s} value={s}>
                       {DELIVERY_STATUS_LABELS[s]}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select>
             </div>
             {(newStatus === "SHIPPED" || newStatus === "PREPARING") && (
               <Field label="เลขพัสดุ">
@@ -799,9 +789,9 @@ export function OrderDeliverySection({
               className="gap-1.5"
             >
               {updateDeliveryStatus.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <Check className="h-4 w-4" />
+                <Check />
               )}
               บันทึก
             </Button>
@@ -856,9 +846,9 @@ export function OrderDeliverySection({
               className="gap-1.5"
             >
               {setBlindShipMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <Check className="h-4 w-4" />
+                <Check />
               )}
               บันทึก
             </Button>

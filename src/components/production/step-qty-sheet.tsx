@@ -112,9 +112,9 @@ export function StepQtySheet({
             className="h-11 flex-[2] gap-1.5"
           >
             {busy ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
-              <Check className="h-4 w-4" />
+              <Check />
             )}
             {willComplete ? "เสร็จครบ — ปิดขั้นนี้" : `บันทึก ${newDone}/${total}`}
           </Button>

@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar } from "@/components/ui/toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -15,6 +16,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -24,13 +26,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { FileStack, Plus, Printer, Ban, Loader2 } from "lucide-react";
@@ -48,6 +44,28 @@ export default function BillingNotesPage() {
 function positivePage(value: string | null) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
+/* สถานะใบวางบิล = จุดสี + ข้อความ ภาษาเดียวกับทั้งเว็บ (เดิมเป็นแคปซูล <Badge>)
+   ยกเลิก/รับครบแล้ว เป็นสถานะปลายทาง จึงย้อมข้อความให้สะดุดตาตอนสแกนตาราง
+   ส่วน "ใช้งาน" เป็นระหว่างทาง คงข้อความเทาเข้ม ปล่อยให้จุดสีเป็นตัวบอก
+   เขียนเป็นตัวช่วยตัวเดียวเพราะตาราง (เดสก์ท็อป) กับการ์ด (มือถือ) ต้องพูดตรงกันเสมอ */
+function NoteStatus({
+  isVoided,
+  outstanding,
+  className,
+}: {
+  isVoided: boolean;
+  outstanding: number;
+  className?: string;
+}) {
+  if (isVoided) {
+    return <StatusLabel label="ยกเลิก" tone="danger" emphasize className={className} />;
+  }
+  if (outstanding === 0) {
+    return <StatusLabel label="รับครบแล้ว" tone="success" emphasize className={className} />;
+  }
+  return <StatusLabel label="ใช้งาน" tone="accent" className={className} />;
 }
 
 function BillingNotesPageContent() {
@@ -182,25 +200,28 @@ function BillingNotesPageContent() {
         breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ใบวางบิล" }]}
         action={
           <Button onClick={() => setShowCreate(true)} className="gap-1.5">
-            <Plus className="h-4 w-4" />
+            <Plus />
             สร้างใบวางบิล
           </Button>
         }
       />
 
-      <SearchInput
-        ref={searchInputRef}
-        placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
-        defaultValue={search}
-        onChange={(event) => {
-          if (searchTimer.current) clearTimeout(searchTimer.current);
-          const value = event.target.value;
-          searchTimer.current = setTimeout(
-            () => replaceListState({ q: value.trim() || null, page: null }),
-            300
-          );
-        }}
-      />
+      <Toolbar>
+        <SearchInput
+          ref={searchInputRef}
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
+          placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
+          defaultValue={search}
+          onChange={(event) => {
+            if (searchTimer.current) clearTimeout(searchTimer.current);
+            const value = event.target.value;
+            searchTimer.current = setTimeout(
+              () => replaceListState({ q: value.trim() || null, page: null }),
+              300
+            );
+          }}
+        />
+      </Toolbar>
 
       <ResponsiveList
         items={data?.notes}
@@ -251,13 +272,10 @@ function BillingNotesPageContent() {
                     {note.isVoided ? "—" : formatCurrency(note.currentOutstanding)}
                   </DataTable.Td>
                   <DataTable.Td>
-                    {note.isVoided ? (
-                      <Badge variant="default">ยกเลิก</Badge>
-                    ) : note.currentOutstanding === 0 ? (
-                      <Badge variant="success">รับครบแล้ว</Badge>
-                    ) : (
-                      <Badge variant="accent">ใช้งาน</Badge>
-                    )}
+                    <NoteStatus
+                      isVoided={note.isVoided}
+                      outstanding={note.currentOutstanding}
+                    />
                   </DataTable.Td>
                   <DataTable.Td>
                     <div className="flex items-center justify-end gap-1.5">
@@ -268,7 +286,7 @@ function BillingNotesPageContent() {
                           rel="noreferrer"
                           aria-label={`พิมพ์ใบวางบิล ${note.billingNoteNumber}`}
                         >
-                          <Printer className="h-4 w-4" />
+                          <Printer />
                         </a>
                       </Button>
                       {!note.isVoided && (
@@ -282,7 +300,7 @@ function BillingNotesPageContent() {
                             setVoidTarget(note.id);
                           }}
                         >
-                          <Ban className="h-4 w-4" />
+                          <Ban />
                         </Button>
                       )}
                     </div>
@@ -305,13 +323,11 @@ function BillingNotesPageContent() {
                       {note.customer.company || note.customer.name}
                     </p>
                   </div>
-                  {note.isVoided ? (
-                    <Badge variant="default">ยกเลิก</Badge>
-                  ) : note.currentOutstanding === 0 ? (
-                    <Badge variant="success">รับครบแล้ว</Badge>
-                  ) : (
-                    <Badge variant="accent">ใช้งาน</Badge>
-                  )}
+                  <NoteStatus
+                    isVoided={note.isVoided}
+                    outstanding={note.currentOutstanding}
+                    className="shrink-0"
+                  />
                 </div>
 
                 <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
@@ -346,7 +362,7 @@ function BillingNotesPageContent() {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      <Printer className="h-4 w-4" />
+                      <Printer />
                       พิมพ์
                     </a>
                   </Button>
@@ -361,7 +377,7 @@ function BillingNotesPageContent() {
                         setVoidTarget(note.id);
                       }}
                     >
-                      <Ban className="h-4 w-4" />
+                      <Ban />
                     </Button>
                   )}
                 </div>
@@ -423,24 +439,17 @@ function BillingNotesPageContent() {
                   onRetry={() => customers.refetch()}
                 />
               ) : (
-                <Select
-                  value={customerId}
-                  onValueChange={(v) => {
-                    setCustomerId(v);
+                <Select value={customerId}
+                  onChange={(e) => {
+                    setCustomerId(e.target.value);
                     setSelectedIds(new Set());
-                  }}
-                >
-                  <SelectTrigger aria-label="เลือกลูกค้าออกใบวางบิล">
-                    <SelectValue placeholder="เลือกลูกค้า..." />
-                  </SelectTrigger>
-                  <SelectContent>
+                  }} aria-label="เลือกลูกค้าออกใบวางบิล" placeholder="เลือกลูกค้า...">
                     {customers.data?.customers.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
+                      <option key={c.id} value={c.id}>
                         {c.company ? `${c.company} (${c.name})` : c.name}
-                      </SelectItem>
+                      </option>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </Select>
               )}
             </div>
 
@@ -527,7 +536,7 @@ function BillingNotesPageContent() {
                 <label htmlFor="billing-note-due-date" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   วันนัดรับชำระ
                 </label>
-                <Input id="billing-note-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                <DatePicker id="billing-note-due-date"  value={dueDate} onChange={(v) => setDueDate(v)} />
               </div>
               <div>
                 <label htmlFor="billing-note-notes" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -562,9 +571,9 @@ function BillingNotesPageContent() {
               className="gap-1.5"
             >
               {createNote.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <FileStack className="h-4 w-4" />
+                <FileStack />
               )}
               สร้างใบวางบิล
             </Button>
@@ -604,9 +613,9 @@ function BillingNotesPageContent() {
               className="gap-1.5"
             >
               {voidNote.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <Ban className="h-4 w-4" />
+                <Ban />
               )}
               ยืนยันยกเลิก
             </Button>

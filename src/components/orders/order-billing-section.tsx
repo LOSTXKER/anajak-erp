@@ -15,14 +15,9 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { FileUpload } from "@/components/ui/file-upload";
@@ -47,20 +42,13 @@ import {
   receiptAmounts,
   suggestedWht,
 } from "@/lib/billing-ui";
-import {
-  Receipt,
-  Plus,
-  CreditCard,
-  Loader2,
-  Ban,
-  Printer,
-  DollarSign,
-  Paperclip,
-  Undo2,
-  X,
-} from "lucide-react";
+import { Receipt, Plus, CreditCard, Loader2, Ban, Printer, DollarSign, Paperclip, Undo2 } from "lucide-react";
 import type { InvoiceType } from "@prisma/client";
 import type { RouterOutput } from "@/lib/trpc";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
+import { Spinner } from "@/components/ui/spinner";
+import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 
 type Invoice = RouterOutput["billing"]["listByOrder"][number];
 type Payment = Invoice["payments"][number];
@@ -414,7 +402,7 @@ export function OrderBillingSection({
                 onClick={openCreateDialog}
                 className="gap-1.5"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus />
                 สร้างบิล
               </Button>
             )}
@@ -478,7 +466,7 @@ export function OrderBillingSection({
               aria-live="polite"
               className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500"
             >
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner size="md" />
               กำลังโหลดข้อมูลบิล
             </div>
           ) : !invoices.data || invoices.data.length === 0 ? (
@@ -544,7 +532,7 @@ export function OrderBillingSection({
                         rel="noreferrer"
                         aria-label={`พิมพ์หรือเปิด PDF ${inv.invoiceNumber}`}
                         title="พิมพ์ / PDF"
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                        className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400")}
                       >
                         <Printer className="h-3.5 w-3.5" />
                       </a>
@@ -612,7 +600,7 @@ export function OrderBillingSection({
                                       target="_blank"
                                       rel="noreferrer"
                                       aria-label={`ดูสลิปของรายการชำระ ${formatCurrency(p.amount)}`}
-                                      className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:h-9 sm:w-9 dark:hover:bg-slate-900 dark:hover:text-blue-400"
+                                      className={cn("flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white hover:text-blue-600", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:bg-slate-900 dark:hover:text-blue-400")}
                                       title="ดูสลิปโอน"
                                     >
                                       <Paperclip className="h-3 w-3" />
@@ -629,16 +617,12 @@ export function OrderBillingSection({
                                       payment: p,
                                       canBill,
                                     }) ? (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="gap-1.5 px-2 text-2xs"
-                                      onClick={(e) => {
+                                    <Button variant="outline" size="sm" className="gap-1.5 text-2xs" onClick={(e) => {
                                         e.stopPropagation();
                                         openReceiptForPayment(p, inv);
                                       }}
                                     >
-                                      <Receipt className="h-3 w-3" />
+                                      <Receipt />
                                       ออกใบเสร็จ/ใบกำกับ
                                     </Button>
                                   ) : null}
@@ -666,7 +650,7 @@ export function OrderBillingSection({
                                 setShowPaymentDialog(inv.id);
                               }}
                             >
-                              <CreditCard className="h-3 w-3" />
+                              <CreditCard />
                               บันทึกชำระ
                             </Button>
                           )}
@@ -682,7 +666,7 @@ export function OrderBillingSection({
                                 setShowRefundDialog(inv.id);
                               }}
                             >
-                              <Undo2 className="h-3 w-3" />
+                              <Undo2 />
                               คืนเงิน
                             </Button>
                           )}
@@ -696,7 +680,7 @@ export function OrderBillingSection({
                                 setShowVoidDialog(inv.id);
                               }}
                             >
-                              <Ban className="h-3 w-3" />
+                              <Ban />
                               ยกเลิกบิล
                             </Button>
                           )}
@@ -722,19 +706,13 @@ export function OrderBillingSection({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="billing-invoice-type">ประเภทบิล</Label>
-              <Select
-                value={invoiceType}
-                onValueChange={(v) => {
-                  setInvoiceType(v);
-                  setChosenType(v); // เปลี่ยนชนิด → suggest คำนวณยอดใหม่ให้ตามชนิดนั้น
+              <Select value={invoiceType}
+                onChange={(e) => {
+                  setInvoiceType(e.target.value);
+                  setChosenType(e.target.value); // เปลี่ยนชนิด → suggest คำนวณยอดใหม่ให้ตามชนิดนั้น
                   setUserEdited({ amount: false, tax: false, dueDate: false });
                   setReceiptForPayment(null); // เปลี่ยนชนิดเอง = เลิกผูกงวดรับเงิน
-                }}
-              >
-                <SelectTrigger id="billing-invoice-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+                }} id="billing-invoice-type">
                   {(
                     [
                       "DEPOSIT_INVOICE",
@@ -744,12 +722,11 @@ export function OrderBillingSection({
                       "DEBIT_NOTE",
                     ] as const
                   ).map((t) => (
-                    <SelectItem key={t} value={t}>
+                    <option key={t} value={t}>
                       {INVOICE_TYPE_LABELS[t]}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select>
               {invoiceType === "RECEIPT" && receiptForPayment && (
                 <div className="mt-1.5 space-y-2">
                   <p className="text-xs text-blue-600 dark:text-blue-400">
@@ -761,10 +738,9 @@ export function OrderBillingSection({
                     label="วันที่เอกสาร (tax point)"
                     description="ตามกฎหมาย = วันรับเงินจริง — แก้ได้เคสบันทึกย้อนหลัง (เงินเข้าแบงก์คนละวันกับวันบันทึก)"
                   >
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={receiptIssueDate}
-                      onChange={(e) => setReceiptIssueDate(e.target.value)}
+                      onChange={(v) => setReceiptIssueDate(v)}
                     />
                   </Field>
                 </div>
@@ -799,19 +775,14 @@ export function OrderBillingSection({
                       <span aria-hidden="true" className="ml-1 text-red-700 dark:text-red-400">*</span>
                       <span className="sr-only"> (จำเป็น)</span>
                     </Label>
-                    <Select value={originalInvoiceId} onValueChange={setOriginalInvoiceId}>
-                      <SelectTrigger id="billing-original-invoice" aria-required="true">
-                        <SelectValue placeholder="เลือกใบที่ต้องการลด/เพิ่มหนี้" />
-                      </SelectTrigger>
-                      <SelectContent>
+                    <Select value={originalInvoiceId} onChange={(e) => setOriginalInvoiceId(e.target.value)} id="billing-original-invoice" aria-required="true" placeholder="เลือกใบที่ต้องการลด/เพิ่มหนี้">
                         {adjustableOriginals.map((inv) => (
-                          <SelectItem key={inv.id} value={inv.id}>
+                          <option key={inv.id} value={inv.id}>
                             {inv.invoiceNumber} · {INVOICE_TYPE_LABELS[inv.type] ?? inv.type} ·{" "}
                             {formatCurrency(inv.totalAmount)}
-                          </SelectItem>
+                          </option>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </Select>
                     {adjustableOriginals.length === 0 ? (
                       <p className="mt-1 text-xs text-red-500">
                         ออเดอร์นี้ยังไม่มีใบกำกับ/ใบแจ้งหนี้ให้อ้างอิง — ออกใบลดหนี้/เพิ่มหนี้ไม่ได้
@@ -908,12 +879,11 @@ export function OrderBillingSection({
                   (server ทิ้งค่านี้อยู่แล้ว — ซ่อนช่องกันเข้าใจผิด) */}
               {!["RECEIPT", "CREDIT_NOTE"].includes(invoiceType) && (
                 <Field label="ครบกำหนด">
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={invoiceDueDate}
-                    onChange={(e) => {
+                    onChange={(v) => {
                       setUserEdited((prev) => ({ ...prev, dueDate: true }));
-                      setInvoiceDueDate(e.target.value);
+                      setInvoiceDueDate(v);
                     }}
                   />
                 </Field>
@@ -948,9 +918,9 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {createInvoice.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <Receipt className="h-4 w-4" />
+                <Receipt />
               )}
               สร้างบิล
             </Button>
@@ -1017,10 +987,9 @@ export function OrderBillingSection({
                       />
                     </Field>
                     <Field label="วันที่ในใบ">
-                      <Input
-                        type="date"
+                      <DatePicker
                         value={whtCertDate}
-                        onChange={(e) => setWhtCertDate(e.target.value)}
+                        onChange={(v) => setWhtCertDate(v)}
                       />
                     </Field>
                   </div>
@@ -1044,18 +1013,13 @@ export function OrderBillingSection({
             </div>
             <div className="space-y-2">
               <Label htmlFor="billing-payment-method">วิธีชำระ</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger id="billing-payment-method">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+              <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} id="billing-payment-method">
                   {PAYMENT_METHODS.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>
+                    <option key={m.value} value={m.value}>
                       {m.label}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select>
             </div>
             <Field label="เลขอ้างอิง">
               <Input
@@ -1078,14 +1042,10 @@ export function OrderBillingSection({
                     alt="สลิปโอน"
                     className="h-full w-full rounded-lg border border-slate-200 object-cover dark:border-slate-700"
                   />
-                  <button
-                    type="button"
+                  <ImageRemoveButton
                     onClick={() => setEvidenceUrl("")}
-                    aria-label="ลบรูปสลิปโอน"
-                    className="absolute -right-4 -top-4 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm hover:bg-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 sm:h-9 sm:w-9 dark:bg-red-600 dark:hover:bg-red-500"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                    label="ลบรูปสลิปโอน"
+                  />
                 </div>
               ) : (
                 <FileUpload
@@ -1121,9 +1081,9 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {recordPayment.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <CreditCard className="h-4 w-4" />
+                <CreditCard />
               )}
               บันทึก
             </Button>
@@ -1155,18 +1115,13 @@ export function OrderBillingSection({
             </Field>
             <div className="space-y-2">
               <Label htmlFor="billing-refund-method">วิธีคืนเงิน</Label>
-              <Select value={refundMethod} onValueChange={setRefundMethod}>
-                <SelectTrigger id="billing-refund-method">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+              <Select value={refundMethod} onChange={(e) => setRefundMethod(e.target.value)} id="billing-refund-method">
                   {PAYMENT_METHODS.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>
+                    <option key={m.value} value={m.value}>
                       {m.label}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </Select>
             </div>
             <Field label="เลขอ้างอิง">
               <Input
@@ -1195,9 +1150,9 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {recordRefund.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <Undo2 className="h-4 w-4" />
+                <Undo2 />
               )}
               ยืนยันคืนเงิน
             </Button>
@@ -1243,9 +1198,9 @@ export function OrderBillingSection({
               className="gap-1.5"
             >
               {voidInvoice.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <Ban className="h-4 w-4" />
+                <Ban />
               )}
               ยืนยันยกเลิก
             </Button>

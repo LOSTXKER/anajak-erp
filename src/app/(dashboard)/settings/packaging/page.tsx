@@ -22,6 +22,7 @@ import {
   GripVertical,
   ShieldX,
 } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 
 export default function PackagingSettingsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -162,7 +163,7 @@ export default function PackagingSettingsPage() {
               setNewName("");
             }}
           >
-            <Plus className="mr-1 h-4 w-4" />
+            <Plus className="mr-1" />
             เพิ่มแพ็คเกจ
           </Button>
         </CardHeader>
@@ -249,11 +250,10 @@ export default function PackagingSettingsPage() {
                         </td>
                         <td className="px-3 py-2.5">
                           {isEditing ? (
-                            <Input
+                            <Input size="sm"
                               aria-label={`ชื่อแพ็คเกจ ${opt.name}`}
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
-                              className="h-8 text-sm"
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") handleSaveEdit();
                                 if (e.key === "Escape") { setEditingId(null); setEditName(""); }
@@ -286,7 +286,7 @@ export default function PackagingSettingsPage() {
                                 disabled={updateMutation.isPending}
                                 className="text-green-600 hover:text-green-700"
                               >
-                                <Check className="h-3.5 w-3.5" />
+                                <Check />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -294,7 +294,7 @@ export default function PackagingSettingsPage() {
                                 aria-label={`ยกเลิกการแก้ไข ${opt.name}`}
                                 onClick={() => { setEditingId(null); setEditName(""); }}
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X />
                               </Button>
                             </div>
                           ) : (
@@ -306,7 +306,7 @@ export default function PackagingSettingsPage() {
                                 onClick={() => { setEditingId(opt.id); setEditName(opt.name); }}
                                 className="text-slate-500 hover:text-blue-600"
                               >
-                                <Pencil className="h-3.5 w-3.5" />
+                                <Pencil />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -316,7 +316,7 @@ export default function PackagingSettingsPage() {
                                 disabled={deleteMutation.isPending}
                                 className="text-slate-500 hover:text-red-600"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 />
                               </Button>
                             </div>
                           )}
@@ -330,9 +330,9 @@ export default function PackagingSettingsPage() {
           )}
 
           {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
-            <div role="alert" aria-live="polite" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <Alert variant="error" className="mt-3" aria-live="polite">
               {createMutation.error?.message || updateMutation.error?.message || deleteMutation.error?.message}
-            </div>
+            </Alert>
           )}
         </CardContent>
       </Card>

@@ -15,13 +15,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { COMM_CHANNELS } from "@/lib/comm-channels";
 import {
   buildCustomerCommunicationPayload,
@@ -30,6 +24,7 @@ import {
 } from "@/lib/customer-form";
 import { Loader2, MessageSquarePlus } from "lucide-react";
 import { toast } from "sonner";
+import { Alert } from "@/components/ui/alert";
 
 // บันทึกการคุยกับลูกค้า (Gate B7) — ต่อท่อ addCommunicationLog ที่มีอยู่แล้ว
 // (เดิม dead mutation) · คุยอะไรกับลูกค้าต้องอยู่ในระบบ ไม่ใช่ความจำคนขาย
@@ -85,20 +80,19 @@ export function CustomerCommLogDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Select value={form.channel} onValueChange={(channel) => set({ channel })}>
-              <Field label="ช่องทาง" id="communication-channel">
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-              </Field>
-                <SelectContent>
-                  {COMM_CHANNELS.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-            </Select>
+            <Field label="ช่องทาง" id="communication-channel">
+              <Select
+                className="w-full"
+                value={form.channel}
+                onChange={(e) => set({ channel: e.target.value })}
+              >
+                {COMM_CHANNELS.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
             <Field label="หัวข้อ (ถ้ามี)">
               <Input
                 value={form.subject}
@@ -122,12 +116,9 @@ export function CustomerCommLogDialog({
           </Field>
 
           {add.error && (
-            <p
-              role="alert"
-              className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-            >
+            <Alert variant="error">
               บันทึกไม่สำเร็จ: {add.error.message}
-            </p>
+            </Alert>
           )}
 
           <DialogFooter className="gap-2">
@@ -140,9 +131,9 @@ export function CustomerCommLogDialog({
               className="gap-1.5"
             >
               {add.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <MessageSquarePlus className="h-4 w-4" />
+                <MessageSquarePlus />
               )}
               บันทึก
             </Button>

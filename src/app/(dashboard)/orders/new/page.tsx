@@ -19,10 +19,10 @@ import { isMarketplaceChannel, CHANNEL_LABELS } from "@/lib/order-status";
 import { type PaymentTermsValue, PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { type PickerCustomer } from "@/components/customers/customer-picker";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { Select } from "@/components/ui/select";
 import {
   ProductPickerDialog,
   type SelectedVariantItem,
@@ -56,6 +56,7 @@ import {
   OrderAttachmentsSection,
 } from "@/components/orders/new";
 import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 
 const labelClass = "mb-1.5 block text-xs text-slate-500 dark:text-slate-400";
 
@@ -440,7 +441,7 @@ export default function NewOrderPage() {
             role="alert"
             aria-live="assertive"
             tabIndex={-1}
-            className="rounded-xl border border-red-200 bg-red-50/80 p-3 outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:border-red-900 dark:bg-red-950/30"
+            className={cn("rounded-xl border border-red-200 bg-red-50/80 p-3 outline-none dark:border-red-900 dark:bg-red-950/30", FOCUS_BUTTON)}
           >
             <p className="mb-1 text-sm font-medium text-red-800 dark:text-red-200">กรุณาแก้ไข</p>
             <ul className="list-inside list-disc space-y-1 text-sm text-red-700 dark:text-red-300">
@@ -579,7 +580,7 @@ export default function NewOrderPage() {
               }}
               className="w-full gap-1.5 text-slate-500"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus />
               เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)
             </Button>
 
@@ -611,7 +612,7 @@ export default function NewOrderPage() {
               </div>
               <div>
                 <label htmlFor="order-payment-terms" className={labelClass}>เงื่อนไขชำระ</label>
-                <NativeSelect
+                <Select
                   id="order-payment-terms"
                   value={paymentTerms}
                   onChange={(e) => setPaymentTerms(e.target.value)}
@@ -622,7 +623,7 @@ export default function NewOrderPage() {
                       {v}
                     </option>
                   ))}
-                </NativeSelect>
+                </Select>
               </div>
               {isCorporateCustomer && (
                 <div>
@@ -664,7 +665,7 @@ export default function NewOrderPage() {
         />
 
         {/* แถบสรุป+ปุ่ม sticky ล่างจอ — มือถือกดถึงเสมอ (pattern เดียวกับฟอร์มแก้รายการ) */}
-        <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
+        <div className="card-surface sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 backdrop-blur">
           <div className="min-w-0 flex-1">
             {hasItemContent ? (
               <>
@@ -688,7 +689,7 @@ export default function NewOrderPage() {
             </Link>
           </Button>
           <Button type="submit" disabled={createOrder.isPending} className="gap-1.5">
-            {createOrder.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {createOrder.isPending && <Loader2 className="animate-spin" />}
             {createOrder.isPending ? "กำลังบันทึก..." : "เปิดงาน"}
           </Button>
         </div>

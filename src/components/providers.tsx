@@ -9,6 +9,8 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { Toaster } from "sonner";
 import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import superjson from "@/lib/superjson";
+import { OVERLAY_PANEL } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 const PUBLIC_LIGHT_PREFIXES = ["/approve", "/upload", "/status", "/quote", "/job"];
 
@@ -36,7 +38,7 @@ function ThemedToaster() {
       toastOptions={{
         classNames: {
           toast:
-            "overlay-surface rounded-2xl border-0 gap-3 p-4 font-sans text-slate-900 dark:text-white",
+            cn(OVERLAY_PANEL, "border-0 gap-3 p-4 font-sans text-slate-900 dark:text-white"),
           title: "text-sm font-medium",
           description: "text-xs text-slate-500 dark:text-slate-400",
           actionButton:

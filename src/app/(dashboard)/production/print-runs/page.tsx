@@ -22,6 +22,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatDate, formatDateTime, cn, isImageUrl } from "@/lib/utils";
+import { FOCUS_BUTTON, FOCUS_FIELD_INVALID, FOCUS_INSET } from "@/components/ui/tokens";
 import { permAllows } from "@/lib/permissions";
 import {
   ArrowLeft,
@@ -95,7 +96,7 @@ function DesignThumb({
       rel="noreferrer"
       onClick={(e) => e.stopPropagation()}
       title={`เปิดไฟล์ลาย v${design.versionNumber}`}
-      className="relative shrink-0 overflow-hidden rounded-lg border border-slate-200 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:border-slate-700"
+      className={cn("relative shrink-0 overflow-hidden rounded-lg border border-slate-200 transition-opacity hover:opacity-90", FOCUS_BUTTON, "dark:border-slate-700")}
     >
       {img ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -244,7 +245,7 @@ export default function PrintRunsPage() {
         action={
           <Button variant="outline" size="sm" asChild className="gap-1.5">
             <Link href="/production">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft />
               หน้าการผลิต
             </Link>
           </Button>
@@ -252,14 +253,14 @@ export default function PrintRunsPage() {
       />
 
       {/* ── รอบค้าง — กำลังพิมพ์ / รอตัดแยก+ติดป้าย ── */}
-      <BlockSection icon={Printer} title="รอบค้าง" count={activeRuns.length}>
+      <BlockSection icon={Printer} title="รอบที่ยังพิมพ์ไม่จบ" count={activeRuns.length}>
         {/* query พัง (เน็ต/สิทธิ์) ต้องบอกตรงๆ + ปุ่มลองใหม่ — ห้ามโชว์ "ว่าง" หลอก */}
         {listQuery.isError ? (
           <QueryError onRetry={() => listQuery.refetch()} />
         ) : activeRuns.length === 0 ? (
           <EmptyState
             icon={Printer}
-            title="ยังไม่มีรอบค้าง"
+            title="ยังไม่มีรอบที่ค้างอยู่"
             description="เลือกงานจากคิวพิมพ์ด้านล่างเพื่อเปิดรอบพิมพ์ม้วนใหม่"
           />
         ) : (
@@ -351,7 +352,7 @@ export default function PrintRunsPage() {
 
       {/* ── แถบเปิดรอบ sticky ล่างจอ — โผล่เมื่อเลือกงานแล้ว (pattern เดียวกับ orders/new) · B8 เฉพาะคนมีสิทธิ์ผลิต ── */}
       {canManage && pickedEntries.length > 0 && (
-        <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95">
+        <div className="card-surface sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 backdrop-blur">
           <div className="min-w-0 flex-1">
             <p className="text-xs text-slate-400">เข้ารอบพิมพ์ม้วนนี้</p>
             <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
@@ -363,7 +364,7 @@ export default function PrintRunsPage() {
             onChange={(e) => setNote(e.target.value)}
             maxLength={500}
             placeholder="โน้ตรอบ เช่น ม้วนที่ 2 เครื่องซ้าย (ไม่บังคับ)"
-            className="order-3 h-11 w-full sm:order-none sm:w-64"
+            className="order-3 w-full sm:order-none sm:w-64"
           />
           <Button
             disabled={create.isPending || hasInvalidQty || pickedTotal < 1}
@@ -376,9 +377,9 @@ export default function PrintRunsPage() {
             className="h-11 gap-1.5"
           >
             {create.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
-              <Printer className="h-4 w-4" />
+              <Printer />
             )}
             เปิดรอบพิมพ์
           </Button>
@@ -455,7 +456,7 @@ function ActiveRunCard({
           {run.status === "PRINTING" ? (
             <>
               <Button disabled={busy} onClick={onMarkPrinted} className="h-11 flex-1 gap-1.5">
-                <Printer className="h-4 w-4" />
+                <Printer />
                 พิมพ์จบทั้งม้วน
               </Button>
               <Button
@@ -469,7 +470,7 @@ function ActiveRunCard({
             </>
           ) : (
             <Button disabled={busy} onClick={onComplete} className="h-11 w-full gap-1.5">
-              <Scissors className="h-4 w-4" />
+              <Scissors />
               ตัดแยก+ติดป้ายเสร็จ
             </Button>
           )}
@@ -551,7 +552,7 @@ function QueueRow({
           onClick={onToggle}
           aria-pressed={selected}
           aria-label={`${selected ? "นำออกจาก" : "เพิ่มเข้า"}รอบพิมพ์ ${entry.orderNumber}`}
-          className="flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800"
+          className={cn("flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-slate-50", FOCUS_INSET, "active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800")}
         >
           {summary}
         </button>
@@ -573,7 +574,7 @@ function QueueRow({
             onChange={(e) => onQtyChange(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
             className={cn(
               "h-10 w-24 text-center tabular-nums",
-              invalid && "border-red-300 focus-visible:ring-red-400"
+              invalid && cn("border-red-300", FOCUS_FIELD_INVALID)
             )}
           />
         </div>
@@ -704,9 +705,9 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
           </Button>
           <Button disabled={complete.isPending} onClick={handleSubmit} className="gap-1.5">
             {complete.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
-              <Scissors className="h-4 w-4" />
+              <Scissors />
             )}
             ตัดแยก+ติดป้ายเสร็จ{totalExtra > 0 && ` · เผื่อ ${totalExtra} ชิ้น`}
           </Button>

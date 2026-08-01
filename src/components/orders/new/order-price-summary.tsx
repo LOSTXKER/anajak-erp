@@ -227,7 +227,7 @@ export function OrderPriceSummary({
                 หักจากยอดโอนเข้าร้าน — ไม่รวมในยอดบิล
               </span>
             </label>
-            <Input
+            <Input size="sm"
               id="order-platform-fee"
               type="number"
               min={0}
@@ -237,7 +237,7 @@ export function OrderPriceSummary({
                 onPlatformFeeChange(parseFloat(e.target.value) || 0)
               }
               placeholder="0.00"
-              className="h-8 w-28 text-right"
+              className="w-28 text-right"
             />
           </div>
         )}
@@ -246,7 +246,7 @@ export function OrderPriceSummary({
           <label htmlFor="order-discount" className="text-sm text-slate-500 dark:text-slate-400">
             ส่วนลด
           </label>
-          <Input
+          <Input size="sm"
             id="order-discount"
             type="number"
             min={0}
@@ -256,7 +256,7 @@ export function OrderPriceSummary({
               onDiscountChange(parseFloat(e.target.value) || 0)
             }
             placeholder="0.00"
-            className="h-8 w-28 text-right"
+            className="w-28 text-right"
           />
         </div>
 

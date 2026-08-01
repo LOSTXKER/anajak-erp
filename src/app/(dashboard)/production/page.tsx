@@ -417,14 +417,14 @@ function ProductionWorkspace() {
         action={
           focus ? (
             <Button variant="ghost" size="sm" onClick={() => setFocus(null)} className="gap-1.5">
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft />
               ภาพรวม
             </Button>
           ) : (
             // จอช่างพิมพ์ DTF — รวมหลายงานลงม้วนเดียว (FLOW-REDESIGN ก้อน 2)
             <Button variant="outline" size="sm" asChild className="gap-1.5">
               <Link href="/production/print-runs">
-                <Printer className="h-4 w-4" />
+                <Printer />
                 รอบพิมพ์ฟิล์ม
               </Link>
             </Button>
@@ -547,7 +547,7 @@ function ProductionWorkspace() {
                             onClick={() => setQcOrderId(o.id)}
                             className="w-full gap-1.5"
                           >
-                            <ClipboardCheck className="h-3.5 w-3.5" />
+                            <ClipboardCheck />
                             ตรวจนับ QC
                           </Button>
                         ) : focusPostCol.next && canAdvance ? (
@@ -562,13 +562,13 @@ function ProductionWorkspace() {
                             }
                             className="w-full gap-1.5"
                           >
-                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <CheckCircle2 />
                             {focusPostCol.next.label}
                           </Button>
                         ) : focusPostCol.key === "ready" ? (
                           <Button variant="outline" size="sm" asChild className="w-full gap-1.5">
                             <Link href={`/orders/${o.id}`}>
-                              <Truck className="h-3.5 w-3.5" />
+                              <Truck />
                               ไปจัดส่ง
                             </Link>
                           </Button>
@@ -824,7 +824,7 @@ function LaneCardView({
           ) : activePrintRun ? (
             <Button variant="outline" size="sm" asChild className="w-full gap-1.5">
               <Link href="/production/print-runs">
-                <Printer className="h-3.5 w-3.5" />
+                <Printer />
                 อยู่ในรอบพิมพ์ {activePrintRun.runNumber} — เปิดดู
               </Link>
             </Button>
@@ -840,7 +840,7 @@ function LaneCardView({
                 onClick={() => onOutsourceStatus(activeOutsource.id, "SENT")}
                 className="flex-1 gap-1.5"
               >
-                <Truck className="h-3.5 w-3.5" />
+                <Truck />
                 ส่งของให้ร้านแล้ว
               </Button>
             ) : activeOutsource.status === "RECEIVED_BACK" ? (
@@ -852,7 +852,7 @@ function LaneCardView({
                     onClick={() => onOutsourceQcPass(activeOutsource.id, activeOutsource.vendor.name)}
                     className="flex-1 gap-1.5"
                   >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <CheckCircle2 />
                     QC ผ่าน
                   </Button>
                   <Button
@@ -877,7 +877,7 @@ function LaneCardView({
                 onClick={() => onReceiveBack(activeOutsource)}
                 className="flex-1 gap-1.5"
               >
-                <PackageCheck className="h-3.5 w-3.5" />
+                <PackageCheck />
                 รับของกลับแล้ว
               </Button>
             )
@@ -889,7 +889,7 @@ function LaneCardView({
               onClick={onQuickPass}
               className="flex-1 gap-1.5"
             >
-              <FastForward className="h-3.5 w-3.5" />
+              <FastForward />
               ผ่านรวด
             </Button>
           ) : step.status === "IN_PROGRESS" ? (
@@ -902,7 +902,7 @@ function LaneCardView({
                 onClick={() => onOpenQty(step)}
                 className="flex-1 gap-1.5"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus />
                 บันทึกจำนวน ({step.qtyDone}/{step.qtyTotal})
               </Button>
             ) : (
@@ -912,7 +912,7 @@ function LaneCardView({
                 onClick={() => onComplete(step.id)}
                 className="flex-1 gap-1.5"
               >
-                <CheckCircle2 className="h-3.5 w-3.5" />
+                <CheckCircle2 />
                 เสร็จขั้นนี้
               </Button>
             )
@@ -923,7 +923,7 @@ function LaneCardView({
               onClick={() => onStart(step.id)}
               className="flex-1 gap-1.5"
             >
-              <Play className="h-3.5 w-3.5" />
+              <Play />
               เริ่มทำ
             </Button>
           )}

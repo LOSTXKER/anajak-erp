@@ -3,21 +3,15 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import {
-  Search,
-  ShoppingCart,
-  ClipboardList,
-  Users,
-  FileText,
-  Plus,
-  CornerDownLeft,
-  LoaderCircle,
-  X,
-} from "lucide-react";
+import { Search, ShoppingCart, ClipboardList, Users, FileText, Plus, CornerDownLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OVERLAY_PANEL } from "@/components/ui/tokens";
+import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { navigationItemsForSurface } from "@/lib/navigation";
+import { Spinner } from "@/components/ui/spinner";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
 
 type CommandItem = {
   id: string;
@@ -212,7 +206,10 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
             event.preventDefault();
             returnFocusRef.current.focus();
           }}
-          className="fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white overlay-surface outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none sm:top-[14%] dark:border-slate-800/60 dark:bg-slate-900"
+          className={cn(
+            OVERLAY_PANEL,
+            "fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none sm:top-[14%]",
+          )}
         >
           <DialogPrimitive.Title className="sr-only">ค้นหา</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
@@ -237,13 +234,14 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
               ESC
             </kbd>
             <DialogPrimitive.Close asChild>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon"
                 aria-label="ปิดหน้าค้นหา"
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 sm:hidden dark:hover:bg-slate-800 dark:hover:text-white"
+                className="shrink-0 sm:hidden"
               >
-                <X className="h-5 w-5" />
-              </button>
+                <X />
+              </Button>
             </DialogPrimitive.Close>
           </div>
 
@@ -270,7 +268,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
                       onMouseEnter={() => setActiveIdx(idx)}
                       onClick={() => item.action()}
                       className={cn(
-                        "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors sm:min-h-9",
+                        CONTROL_MIN_H, "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
                         active
                           ? "bg-blue-600 text-white"
                           : "text-slate-700 dark:text-slate-300"
@@ -308,7 +306,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
             <div aria-live="polite" className="px-5 py-1 text-xs text-slate-400">
               {entitySearchPending && (
                 <span className="flex items-center gap-2">
-                  <LoaderCircle className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
+                  <Spinner size="sm" />
                   กำลังค้นหาข้อมูลจริง...
                 </span>
               )}
@@ -318,7 +316,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
                   <button
                     type="button"
                     onClick={() => entityQuery.refetch()}
-                    className="min-h-11 shrink-0 rounded-lg px-3 font-medium text-blue-700 hover:bg-blue-50 sm:min-h-9 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                    className={cn(CONTROL_MIN_H, "shrink-0 rounded-lg px-3 font-medium text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-950/40")}
                   >
                     ลองใหม่
                   </button>

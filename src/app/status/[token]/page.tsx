@@ -11,17 +11,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PublicLinkError } from "@/components/public-link-error";
-import {
-  Loader2,
-  Package,
-  CheckCircle2,
-  Palette,
-  FileText,
-  Truck,
-  ExternalLink,
-  Check,
-  XCircle,
-} from "lucide-react";
+import { Package, CheckCircle2, Palette, FileText, Truck, ExternalLink, Check, XCircle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 // หน้าสถานะออเดอร์สำหรับลูกค้า (FLOW-REDESIGN ก้อน 4 — portal ขั้น 1)
 // เปิดผ่านลิงก์ token ไม่ต้อง login — โชว์เฉพาะข้อมูลของลูกค้า (sanitize ที่ server แล้ว)
@@ -79,7 +70,7 @@ export default function OrderStatusPage({
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex items-center gap-2 text-slate-500">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Spinner size="lg" />
           <span>กำลังโหลด...</span>
         </div>
       </div>

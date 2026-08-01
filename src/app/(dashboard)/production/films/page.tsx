@@ -6,11 +6,12 @@ import { toast } from "sonner";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { PageHeader } from "@/components/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { SearchInput } from "@/components/ui/search-input";
+import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
+import { StatusLabel } from "@/components/ui/status-label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -25,6 +26,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatDate, cn } from "@/lib/utils";
+import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { permAllows } from "@/lib/permissions";
 import { Film, Printer, Loader2, Hand } from "lucide-react";
 
@@ -72,7 +74,7 @@ export default function FilmStockPage() {
         action={
           <Button variant="outline" size="sm" asChild className="gap-1.5">
             <Link href="/production/print-runs">
-              <Printer className="h-4 w-4" />
+              <Printer />
               รอบพิมพ์ฟิล์ม
             </Link>
           </Button>
@@ -80,15 +82,14 @@ export default function FilmStockPage() {
       />
 
       {/* ── ค้นหา + toggle แสดงที่หมดแล้ว — อยู่นอก list area กัน focus หลุดตอนโหลด ── */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <Toolbar>
         <SearchInput
           placeholder="ค้นหาลาย / ชื่อลูกค้า / เลขออเดอร์..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          containerClassName="flex-1"
-          className="h-11"
+          containerClassName="@2xl:max-w-sm @2xl:flex-1"
         />
-        <div className="flex min-h-[44px] shrink-0 items-center gap-2">
+        <ToolbarGroup className="shrink-0">
           <Switch checked={includeEmpty} onCheckedChange={setIncludeEmpty} />
           <button
             type="button"
@@ -97,8 +98,8 @@ export default function FilmStockPage() {
           >
             แสดงที่หมดแล้ว
           </button>
-        </div>
-      </div>
+        </ToolbarGroup>
+      </Toolbar>
 
       {listQuery.isError ? (
         <QueryError onRetry={() => listQuery.refetch()} />
@@ -184,9 +185,9 @@ export default function FilmStockPage() {
                         </span>
                       </span>
                     ) : (
-                      <Badge size="sm" className="opacity-60">
-                        หมดแล้ว
-                      </Badge>
+                      /* ฟิล์มหมด = ปลายทางของรายการนี้ (ค่าเปลี่ยนตามการหยิบใช้)
+                         → เป็นสถานะ ใช้ป้ายจุดสีภาษาเดียวกับทั้งเว็บ · items-end ให้ชิดขวาตามคอลัมน์ */
+                      <StatusLabel label="หมดแล้ว" className="items-end" />
                     )}
                   </DataTable.Td>
                   <DataTable.Td className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
@@ -200,7 +201,7 @@ export default function FilmStockPage() {
                         onClick={() => setConsuming(item)}
                         className="gap-1.5"
                       >
-                        <Hand className="h-4 w-4" />
+                        <Hand />
                         หยิบใช้
                       </Button>
                     )}
@@ -221,11 +222,7 @@ export default function FilmStockPage() {
                   <span className="text-base font-semibold text-slate-900 dark:text-white">
                     {item.label}
                   </span>
-                  {item.qty === 0 && (
-                    <Badge size="sm" className="opacity-60">
-                      หมดแล้ว
-                    </Badge>
-                  )}
+                  {item.qty === 0 && <StatusLabel label="หมดแล้ว" />}
                 </div>
                 {item.note && (
                   <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{item.note}</p>
@@ -261,7 +258,7 @@ export default function FilmStockPage() {
                     onClick={() => setConsuming(item)}
                     className="mt-3 h-11 w-full gap-1.5"
                   >
-                    <Hand className="h-4 w-4" />
+                    <Hand />
                     หยิบใช้
                   </Button>
                 )}
@@ -326,8 +323,8 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
               value={qty}
               onChange={(e) => setQty(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
               className={cn(
-                "h-11 w-32 text-center tabular-nums",
-                invalid && "border-red-300 focus-visible:ring-red-400"
+                "w-32 text-center tabular-nums",
+                invalid && cn("border-red-300", FOCUS_FIELD_INVALID)
               )}
             />
           </Field>
@@ -337,7 +334,6 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
               maxLength={300}
               onChange={(e) => setNote(e.target.value)}
               placeholder="เช่น ใช้กับออเดอร์ ORD-xxxx / ฟิล์มเสีย ตัดทิ้ง"
-              className="h-11"
             />
           </Field>
         </div>
@@ -353,9 +349,9 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
             className="h-11 gap-1.5"
           >
             {consume.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
-              <Hand className="h-4 w-4" />
+              <Hand />
             )}
             ยืนยันหยิบใช้
           </Button>

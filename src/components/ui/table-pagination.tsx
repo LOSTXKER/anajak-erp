@@ -31,7 +31,7 @@ export function TablePagination({
           onClick={() => onPageChange(page - 1)}
           aria-label="หน้าก่อนหน้า"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft />
         </Button>
         <span className="flex items-center px-2 text-xs text-slate-500">
           {page} / {totalPages}
@@ -43,7 +43,7 @@ export function TablePagination({
           onClick={() => onPageChange(page + 1)}
           aria-label="หน้าถัดไป"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight />
         </Button>
       </div>
     </nav>
