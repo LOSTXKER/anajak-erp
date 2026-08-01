@@ -65,14 +65,14 @@ export function SizeMatrix({
         {columns.map((size) => (
           <div key={size} className="w-14">
             <label htmlFor={`size-matrix-${size}`} className="block text-center text-xs font-medium text-slate-500">{size}</label>
-            <Input
+            <Input size="sm"
               id={`size-matrix-${size}`}
               type="number"
               min={0}
               value={qtyOf(size) || ""}
               onChange={(e) => rebuild(size, parseInt(e.target.value) || 0)}
               placeholder="0"
-              className="px-1 text-center text-xs"
+              className="px-1 text-center"
             />
           </div>
         ))}
@@ -81,7 +81,7 @@ export function SizeMatrix({
         <div className="flex items-end gap-1.5">
           <div className="w-16">
             <label htmlFor="size-matrix-new-size" className="block text-center text-xs text-slate-400">เพิ่มไซส์</label>
-            <Input
+            <Input size="sm"
               id="size-matrix-new-size"
               value={newSize}
               onChange={(e) => setNewSize(e.target.value)}
@@ -92,7 +92,7 @@ export function SizeMatrix({
                 }
               }}
               placeholder="XS/4XL"
-              className="px-1 text-center text-xs"
+              className="px-1 text-center"
             />
           </div>
           <Button type="button" variant="outline" size="icon-sm" onClick={addSize}>

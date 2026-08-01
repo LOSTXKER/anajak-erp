@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
@@ -309,26 +310,17 @@ function QuotationFormPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/quotations" aria-label="กลับไปรายการใบเสนอราคา">
-            <ArrowLeft />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
-            {editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคาใหม่"}
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {fromOrderId
-              ? `ผูกกับออเดอร์ ${linkedOrder?.orderNumber ?? "..."} — ลูกค้าตกลงแล้วระบบจะยืนยันออเดอร์ใบเดิม ไม่สร้างซ้ำ`
-              : editId
-                ? editing?.quotationNumber ?? ""
-                : "กรอกรายละเอียดใบเสนอราคา"}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
+        title={editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคาใหม่"}
+        description={
+          fromOrderId
+            ? `ผูกกับออเดอร์ ${linkedOrder?.orderNumber ?? "..."} — ลูกค้าตกลงแล้วระบบจะยืนยันออเดอร์ใบเดิม ไม่สร้างซ้ำ`
+            : editId
+              ? editing?.quotationNumber ?? ""
+              : "กรอกรายละเอียดใบเสนอราคา"
+        }
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ============================================================ */}

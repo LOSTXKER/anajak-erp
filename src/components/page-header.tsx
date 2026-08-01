@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
+import { cn } from "@/lib/utils";
 
 export interface BreadcrumbItem {
   label: string;
@@ -8,18 +11,29 @@ export interface BreadcrumbItem {
 }
 
 interface PageHeaderProps {
-  title: string;
-  description?: string;
+  title: ReactNode;
+  description?: ReactNode;
   action?: ReactNode;
   breadcrumb?: BreadcrumbItem[];
+  /** ป้าย/สถานะที่ยืนข้างหัวข้อ — แยกจาก title เพื่อให้ <h1> มีแต่ข้อความจริง
+   *  (เครื่องอ่านหน้าจอประกาศหัวข้อหน้า ไม่ควรมีคำว่า "ร่าง"/"VIP" ปนเข้าไป) */
+  titleBadge?: ReactNode;
+  /** ปุ่มย้อนกลับหน้าหัวข้อ — หน้ารายละเอียดใช้ */
+  back?: { href: string; label: string };
   children?: ReactNode;
 }
 
+/* หัวข้อหน้า = ที่เดียวของทั้งระบบ (เบสสั่ง 2026-08-01 "ตรวจดีๆ ว่ามีอะไรไม่เป็นมาตรฐาน")
+   audit เจอ 3 หน้าเขียนสูตร <h1> เองซ้ำกับที่นี่ทุกตัวอักษร เพราะที่นี่ไม่รองรับ
+   "ปุ่มย้อนกลับ + ป้ายข้างหัวข้อ" ที่หน้ารายละเอียดต้องใช้ — เพิ่ม back/titleBadge
+   ให้รองรับ แทนที่จะปล่อยให้ก๊อปต่อไป (ก๊อปแล้วมันจะเพี้ยนวันที่แก้ที่นี่) */
 export function PageHeader({
   title,
   description,
   action,
   breadcrumb,
+  titleBadge,
+  back,
   children,
 }: PageHeaderProps) {
   return (
@@ -36,7 +50,7 @@ export function PageHeader({
                 {item.href && !isLast ? (
                   <Link
                     href={item.href}
-                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-1 transition-colors hover:text-slate-900 sm:min-h-8 sm:min-w-0 sm:justify-start sm:px-0 dark:hover:text-white"
+                    className={cn(CONTROL_MIN_H, "inline-flex min-w-11 items-center justify-center rounded-lg px-1 transition-colors hover:text-slate-900 sm:min-w-0 sm:justify-start sm:px-0 dark:hover:text-white")}
                   >
                     {item.label}
                   </Link>
@@ -60,15 +74,27 @@ export function PageHeader({
         </nav>
       )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 space-y-1">
-          <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
-            {title}
-          </h1>
-          {description && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {description}
-            </p>
+        <div className="flex min-w-0 items-start gap-3">
+          {back && (
+            <Button asChild variant="ghost" size="icon" className="mt-0.5 shrink-0">
+              <Link href={back.href} aria-label={back.label}>
+                <ArrowLeft />
+              </Link>
+            </Button>
           )}
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
+                {title}
+              </h1>
+              {titleBadge}
+            </div>
+            {description && (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {description}
+              </p>
+            )}
+          </div>
         </div>
         {action && (
           // flex-wrap: หน้าออเดอร์ยัดป้ายสถานะ+ปุ่มหลายชิ้นในแถวนี้ — จอเล็กต้องห่อ ไม่ล้น

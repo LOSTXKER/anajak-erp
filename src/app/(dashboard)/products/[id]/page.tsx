@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -11,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { ArrowLeft, Package, Cloud, Trash2 } from "lucide-react";
+import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
+import { Package, Cloud, Trash2 } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
@@ -163,51 +163,53 @@ export default function ProductDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="icon">
-            <Link href="/products" aria-label="กลับไปหน้าสินค้า">
-              <ArrowLeft />
-            </Link>
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
-                {product.name}
-              </h1>
-              <Badge variant={typ.variant}>{typ.label}</Badge>
-              <div
-                className={`h-2.5 w-2.5 rounded-full ${
-                  product.isActive
-                    ? "bg-green-400 dot-glow"
-                    : "bg-slate-400"
-                }`}
-              />
-            </div>
-            <p className="text-sm text-slate-500">{product.sku}</p>
-          </div>
-        </div>
-        {(canManage || canDelete) && <div className="flex items-center gap-2">
-          {canManage && <Button
-            variant="outline"
-            size="sm"
-            onClick={handleToggleProductActive}
-            disabled={updateProduct.isPending}
-          >
-            {product.isActive ? "ปิดใช้งาน" : "เปิดใช้งาน"}
-          </Button>}
-          {canDelete && <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void handleDelete()}
-            aria-label={`ลบสินค้า ${product.name}`}
-            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950"
-          >
-            <Trash2 />
-          </Button>}
-        </div>}
-      </div>
+      <PageHeader
+        back={{ href: "/products", label: "กลับไปหน้าสินค้า" }}
+        title={product.name}
+        titleBadge={
+          <>
+            <Badge variant={typ.variant}>{typ.label}</Badge>
+            <span
+              aria-hidden="true"
+              className={cn(
+                "h-2.5 w-2.5 rounded-full",
+                product.isActive ? "bg-green-400 dot-glow" : "bg-slate-400",
+              )}
+            />
+            <span className="sr-only">
+              {product.isActive ? "เปิดใช้งานอยู่" : "ปิดใช้งานอยู่"}
+            </span>
+          </>
+        }
+        description={product.sku}
+        action={
+          (canManage || canDelete) && (
+            <>
+              {canManage && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToggleProductActive}
+                  disabled={updateProduct.isPending}
+                >
+                  {product.isActive ? "ปิดใช้งาน" : "เปิดใช้งาน"}
+                </Button>
+              )}
+              {canDelete && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleDelete()}
+                  aria-label={`ลบสินค้า ${product.name}`}
+                  className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950"
+                >
+                  <Trash2 />
+                </Button>
+              )}
+            </>
+          )
+        }
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left: Product image + info */}

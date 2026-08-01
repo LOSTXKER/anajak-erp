@@ -78,14 +78,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               <Button
                 variant="outline"
                 size="sm"
-                className="h-11 w-full sm:h-9 sm:w-auto"
+                className="w-full sm:w-auto"
                 onClick={() => setEditing(true)}
               >
                 <Pencil /> แก้ไขข้อมูล
               </Button>
             )}
             {canCreateOrder && (
-              <Button asChild size="sm" className="h-11 w-full sm:h-9 sm:w-auto">
+              <Button asChild size="sm" className="w-full sm:w-auto">
                 <Link href={`/orders/new?customerId=${id}`}>
                   <Plus /> เปิดงานใหม่
                 </Link>

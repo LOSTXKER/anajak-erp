@@ -79,6 +79,26 @@ const tsxOnlyRules = [
     message:
       "ห้ามเขียนวงแหวนโฟกัสเอง — ใช้ FOCUS_FIELD / FOCUS_BUTTON / FOCUS_INSET / FOCUS_FIELD_INVALID จาก @/components/ui/tokens",
   },
+  // ความสูง control — เดิมบังคับเฉพาะ src/components/ui/** ทำให้แถบบนก๊อปสูตร
+  // "h-11 … sm:h-9" มาเขียนเองได้โดยไม่มีอะไรเตือน (audit 2026-08-01 จับได้)
+  // ตอนนี้ครอบทั้ง src/**/*.tsx — ตัวนิยามอยู่ใน control-size.ts (เป็น .ts จึงไม่โดนกฎตัวเอง)
+  {
+    selector: "Literal[value=/(h-11|min-h-11)[^\"]*sm:(min-)?h-[89]/]",
+    message:
+      "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H จาก @/components/ui/control-size",
+  },
+  {
+    selector: "TemplateElement[value.raw=/(h-11|min-h-11)[^`]*sm:(min-)?h-[89]/]",
+    message:
+      "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H จาก @/components/ui/control-size",
+  },
+  // ตัวหมุนรอโหลดเคยมี 11 แบบ (7 ขนาด + 2 จุดปั่นวงกลมด้วยขอบ CSS คนละหน้าตากับที่เหลือ)
+  // ใน <Button> ไม่ต้องสั่งขนาด (Button บังคับไอคอน 15px ให้แล้ว) — ที่ดักคือ "สั่งขนาดเอง"
+  {
+    selector: "Literal[value=/animate-spin[^\"]*\\b(h|w|size)-|\\b(h|w|size)-[^\"]*animate-spin/]",
+    message:
+      "ห้ามสั่งขนาดตัวหมุนเอง — ใช้ <Spinner size=\"sm|md|lg|xl\" /> จาก @/components/ui/spinner (ในปุ่มไม่ต้องใส่ขนาดเลย)",
+  },
 ];
 
 const eslintConfig = [
@@ -111,36 +131,6 @@ const eslintConfig = [
     files: ["src/**/*.tsx"],
     rules: {
       "no-restricted-syntax": ["error", ...uiLanguageRules, ...tsxOnlyRules],
-    },
-  },
-  {
-    // ห้ามเขียนสูตรความสูง control เองในของกลาง (เบสเคาะ 2026-08-01 "แก้ที่รากได้มั้ย")
-    // สูตร "h-11 ... sm:h-9" เคยถูกก๊อปซ้ำใน 6 component / 22 ไฟล์ พอสร้างของใหม่ก็ลอกกันมา
-    // และลอกผิดตระกูลได้ — ตัวเลือกช่วงวันที่เคยลอกสไตล์ "ช่องกรอก" มาทำปุ่มเปิดเมนู
-    // จนสูง/อักษร/น้ำหนักเพี้ยนจากปุ่มที่ยืนข้างกัน
-    //
-    // บังคับเฉพาะ src/components/ui/** = ที่ที่ "สร้าง control ใหม่" ตรงเจตนาของกฎ
-    // ปุ่มไอคอนที่หน้าต่างๆ เขียน markup เองยังไม่โดน — นั่นเป็นหนี้อีกก้อน
-    // (ควรเปลี่ยนไปใช้ <Button> แทน · บันทึกไว้ใน PROGRESS แล้ว)
-    files: ["src/components/ui/**/*.tsx"],
-    rules: {
-      "no-restricted-syntax": [
-        "error",
-        ...uiLanguageRules,
-        ...tsxOnlyRules,
-        // ดักทุกรูปที่เขียนความสูง control เอง ไม่ใช่แค่ "h-11 ... sm:h-9"
-        // (audit จับได้ว่ารูป min-h-11 ... sm:min-h-9 กับ sm:h-8 ลอดด่านเดิมไปได้)
-        {
-          selector: "Literal[value=/(h-11|min-h-11)[^\"]*sm:(min-)?h-[89]/]",
-          message:
-            "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H จาก ./control-size",
-        },
-        {
-          selector: "TemplateElement[value.raw=/(h-11|min-h-11)[^`]*sm:(min-)?h-[89]/]",
-          message:
-            "ห้ามเขียนความสูง control เอง — import CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H จาก ./control-size",
-        },
-      ],
     },
   },
   {

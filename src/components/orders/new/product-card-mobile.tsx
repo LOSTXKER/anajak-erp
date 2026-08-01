@@ -47,10 +47,10 @@ export function ProductCardMobile({
             {ITEM_SOURCES[product.itemSource] || product.itemSource}
           </Badge>
         ) : (
-          <Select
+          <Select size="sm"
             value=""
             onChange={(e) => { if (e.target.value) updateProduct("itemSource", e.target.value); }}
-            className="w-auto text-xs"
+            className="w-auto"
             aria-label="เลือกแหล่งที่มาของสินค้า"
           >
             <option value="">แหล่ง...</option>

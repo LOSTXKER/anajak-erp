@@ -189,7 +189,7 @@ function StepBuilder({
                     {index + 1}
                   </span>
                   {step.stepType === "CUSTOM" ? (
-                    <Input
+                    <Input size="sm"
                       type="text"
                       placeholder="ชื่อขั้นตอน..."
                       aria-label={`ชื่อขั้นตอนที่ ${index + 1}`}

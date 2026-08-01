@@ -15,6 +15,7 @@ import {
   XCircle,
   Clock,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 // หน้ายืนยันใบเสนอราคาสำหรับลูกค้า (FLOW-REDESIGN ก้อน 4 — ขอบลูกค้า)
 // เปิดผ่านลิงก์ token ไม่ต้อง login — โชว์รายการ+ราคาเต็ม (ลูกค้าตกลงราคานี้) → ยืนยัน / ขอแก้ไข
@@ -60,7 +61,7 @@ export default function QuoteConfirmPage({
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex items-center gap-2 text-slate-500">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Spinner size="lg" />
           <span>กำลังโหลด...</span>
         </div>
       </div>

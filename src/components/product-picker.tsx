@@ -4,11 +4,13 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { trpc } from "@/lib/trpc";
 import { cn, formatCurrency } from "@/lib/utils";
-import { FOCUS_BUTTON, OVERLAY_PANEL } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, OVERLAY_PANEL, RADIUS } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { SearchInput } from "@/components/ui/search-input";
 import { Package, X, ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
+import { CONTROL_H_SM } from "@/components/ui/control-size";
 
 export interface SelectedVariantItem {
   productId: string;
@@ -187,12 +189,9 @@ export function ProductPickerDialog({
               เลือกสินค้าจากแค็ตตาล็อก
             </Dialog.Title>
             <Dialog.Close asChild>
-              <button
-                type="button"
-                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <Button variant="ghost" size="icon" aria-label="ปิดหน้าต่างเลือกสินค้า">
+                <X />
+              </Button>
             </Dialog.Close>
           </div>
 
@@ -227,7 +226,7 @@ export function ProductPickerDialog({
           <div className="flex-1 overflow-y-auto px-2 py-2">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600 dark:border-slate-600 dark:border-t-blue-400" />
+                <Spinner size="xl" />
                 <p className="mt-3 text-sm">กำลังโหลด...</p>
               </div>
             ) : !products || products.length === 0 ? (
@@ -375,7 +374,7 @@ export function ProductPickerDialog({
                                           aria-label={`ลดจำนวน ${v.sku}`}
                                           tabIndex={isChecked ? 0 : -1}
                                           onClick={() => setVariantQty(v.id, qty - 1)}
-                                          className="flex h-11 w-11 items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:h-8 sm:w-8 dark:hover:bg-slate-700"
+                                          className={cn(CONTROL_H_SM, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700")}
                                         >
                                           <Minus className="h-3 w-3" />
                                         </button>
@@ -400,7 +399,7 @@ export function ProductPickerDialog({
                                           aria-label={`เพิ่มจำนวน ${v.sku}`}
                                           tabIndex={isChecked ? 0 : -1}
                                           onClick={() => setVariantQty(v.id, qty + 1)}
-                                          className="flex h-11 w-11 items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:h-8 sm:w-8 dark:hover:bg-slate-700"
+                                          className={cn(CONTROL_H_SM, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700")}
                                         >
                                           <Plus className="h-3 w-3" />
                                         </button>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -254,11 +255,8 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
             <div>
               {/* Header */}
               <div className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
-                  <div className="relative">
-                    <div className="h-14 w-14 animate-spin rounded-full border-4 border-blue-100 border-t-blue-500 dark:border-slate-700 dark:border-t-blue-400" />
-                    <RefreshCw className="absolute top-1/2 left-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-blue-500" />
-                  </div>
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center text-blue-500 dark:text-blue-400">
+                  <Spinner size="xl" />
                 </div>
 
                 {/* Dynamic activity status */}

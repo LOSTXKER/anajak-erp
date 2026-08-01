@@ -390,21 +390,21 @@ export function OrderItemsEditor({
                       key={fi}
                       className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700"
                     >
-                      <Input
+                      <Input size="sm"
                         type="text"
                         value={fee.feeType}
                         onChange={(e) => updateFee(fi, "feeType", e.target.value)}
                         placeholder="ประเภท"
                         className="w-28"
                       />
-                      <Input
+                      <Input size="sm"
                         type="text"
                         value={fee.name}
                         onChange={(e) => updateFee(fi, "name", e.target.value)}
                         placeholder="ชื่อ"
                         className="flex-1"
                       />
-                      <Input
+                      <Input size="sm"
                         type="number"
                         value={fee.amount || ""}
                         onChange={(e) => updateFee(fi, "amount", parseFloat(e.target.value) || 0)}
@@ -431,7 +431,7 @@ export function OrderItemsEditor({
 
               <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
                 <label htmlFor="order-items-discount" className="text-sm text-slate-500">ส่วนลด</label>
-                <Input
+                <Input size="sm"
                   id="order-items-discount"
                   type="number"
                   value={discount || ""}

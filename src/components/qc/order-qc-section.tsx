@@ -27,18 +27,10 @@ import {
   qcReasonLabel,
   type QcDefectReason,
 } from "@/lib/qc";
-import {
-  ShieldCheck,
-  ClipboardCheck,
-  Loader2,
-  Plus,
-  Trash2,
-  AlertTriangle,
-  CheckCircle2,
-  X,
-} from "lucide-react";
+import { ShieldCheck, ClipboardCheck, Loader2, Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+
+import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 
 // การ์ด "ตรวจนับ QC" บนหน้าออเดอร์ — นับของจุดที่ 2 ก่อนแพ็ค (FLOW-REDESIGN ก้อน 3)
 // นับจริง "ดีกี่ตัว เสียกี่ตัว" · ดีล้วน→เด้งแพ็คเอง · มีเสีย→ถอยกลับผลิต+งานแก้อัตโนมัติ
@@ -410,14 +402,15 @@ function QcCountForm({
                 <p className="text-sm font-medium text-slate-900 dark:text-white">
                   ของเสีย #{idx + 1}
                 </p>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={() => removeRow(idx)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+                  className="text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
                   aria-label="ลบแถวของเสีย"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                  <Trash2 />
+                </Button>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -494,18 +487,12 @@ function QcCountForm({
                           decoding="async"
                           className="h-full w-full rounded-lg object-cover"
                         />
-                        <button
-                          type="button"
+                        <ImageRemoveButton
                           onClick={() =>
                             update(idx, { photoUrls: d.photoUrls.filter((u) => u !== url) })
                           }
-                          aria-label="ลบรูปของเสีย"
-                          className={cn("absolute -right-2 -top-2 flex h-11 w-11 items-start justify-end rounded-full bg-transparent p-1 text-white", FOCUS_BUTTON, "sm:h-8 sm:w-8")}
-                        >
-                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-700 shadow-sm">
-                            <X className="h-3.5 w-3.5" />
-                          </span>
-                        </button>
+                          label="ลบรูปของเสีย"
+                        />
                       </div>
                     ))}
                   </div>

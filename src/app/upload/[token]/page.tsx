@@ -6,14 +6,8 @@ import { uploadToCustomerSignedUrl } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLinkError } from "@/components/public-link-error";
-import {
-  Upload,
-  Loader2,
-  CheckCircle,
-  FileCheck,
-  Paperclip,
-  X,
-} from "lucide-react";
+import { Upload, CheckCircle, FileCheck, Paperclip, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 // หน้าอัปโหลดไฟล์ของลูกค้า (FLOW-REDESIGN ก้อน 4 ชิ้น 3) — เปิดผ่านลิงก์ token ไม่ต้อง login
 // flow: createUploadUrl (server ออก signed URL) → อัปตรงเข้า storage → confirmUpload (บันทึก)
@@ -104,7 +98,7 @@ export default function CustomerUploadPage({
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex items-center gap-2 text-slate-500">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Spinner size="lg" />
           <span>กำลังโหลด...</span>
         </div>
       </div>
@@ -184,7 +178,7 @@ export default function CustomerUploadPage({
             >
               {busy ? (
                 <>
-                  <Loader2 className="h-7 w-7 animate-spin" />
+                  <Spinner size="xl" />
                   กำลังอัปโหลด...
                 </>
               ) : (
@@ -207,7 +201,7 @@ export default function CustomerUploadPage({
                     className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm"
                   >
                     {it.status === "uploading" && (
-                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-blue-500" />
+                      <Spinner size="md" className="shrink-0 text-blue-500" />
                     )}
                     {it.status === "done" && (
                       <CheckCircle className="h-4 w-4 shrink-0 text-green-500" />

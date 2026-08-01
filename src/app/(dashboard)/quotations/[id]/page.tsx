@@ -17,7 +17,6 @@ import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status
 import type { QuotationStatus } from "@/lib/quotation-status";
 import { PageHeader } from "@/components/page-header";
 import {
-  ArrowLeft,
   Share2,
   Check,
   X,
@@ -240,35 +239,19 @@ export default function QuotationDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* ====================================================
-          HEADER
-      ==================================================== */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <Button variant="ghost" size="icon" className="mt-0.5 shrink-0" asChild>
-            <Link href="/quotations" aria-label="กลับไปรายการใบเสนอราคา">
-              <ArrowLeft />
-            </Link>
-          </Button>
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
-                {quotation.quotationNumber}
-              </h1>
-              <Badge
-                variant={QUOTATION_STATUS_VARIANTS[quotation.status as keyof typeof QUOTATION_STATUS_VARIANTS] ?? "secondary"}
-              >
-                {QUOTATION_STATUS_LABELS[quotation.status as keyof typeof QUOTATION_STATUS_LABELS] ?? quotation.status}
-              </Badge>
-            </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {quotation.title}
-            </p>
-          </div>
-        </div>
-
-        {/* Action buttons based on status */}
-        <div className="flex shrink-0 flex-wrap gap-2">
+      <PageHeader
+        back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
+        title={quotation.quotationNumber}
+        titleBadge={
+          <Badge
+            variant={QUOTATION_STATUS_VARIANTS[quotation.status as keyof typeof QUOTATION_STATUS_VARIANTS] ?? "secondary"}
+          >
+            {QUOTATION_STATUS_LABELS[quotation.status as keyof typeof QUOTATION_STATUS_LABELS] ?? quotation.status}
+          </Badge>
+        }
+        description={quotation.title}
+        action={
+          <>
           {/* DRAFT actions */}
           {canManageQuotation && quotation.status === "DRAFT" && (
             <>
@@ -359,8 +342,9 @@ export default function QuotationDetailPage({
               </Link>
             </Button>
           )}
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Error display */}
       {(updateStatus.isError || convertToOrder.isError || prepareShare.isError) && (

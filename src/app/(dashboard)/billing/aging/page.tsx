@@ -26,15 +26,8 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
-import {
-  Users,
-  DollarSign,
-  AlertCircle,
-  Hourglass,
-  MessageSquare,
-  Copy,
-  Loader2,
-} from "lucide-react";
+import { Users, DollarSign, AlertCircle, Hourglass, MessageSquare, Copy } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 type DunningTone = "gentle" | "firm";
 
@@ -525,7 +518,7 @@ function AgingPageContent() {
             </div>
             {draft.isLoading ? (
               <div className="flex items-center gap-2 py-8 text-sm text-slate-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size="md" />
                 กำลังร่าง...
               </div>
             ) : draft.isError ? (

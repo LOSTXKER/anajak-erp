@@ -10,6 +10,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { Package, Plus, Minus, Check, AlertCircle, Search, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { DEFAULT_STOCK_LOCATION } from "@/lib/stock-constants";
+import { Spinner } from "@/components/ui/spinner";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -198,18 +199,18 @@ export function MaterialUsage({
           <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
-              <Input
+              <Input size="sm"
                 placeholder="ค้นหาวัตถุดิบ (ชื่อ / SKU / บาร์โค้ด)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="ค้นหาวัตถุดิบ"
-                className="pl-8 text-xs"
+                className="pl-8"
               />
             </div>
 
             {isSearching && (
               <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-400">
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <Spinner size="sm" />
                 กำลังค้นหา...
               </div>
             )}

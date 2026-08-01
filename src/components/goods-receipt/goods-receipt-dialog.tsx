@@ -19,10 +19,11 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { RECEIPT_TYPE_LABELS, type ReceiptType } from "@/lib/goods-receipt";
-import { ClipboardCheck, Loader2, X } from "lucide-react";
+import { ClipboardCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+
 import { FOCUS_FIELD } from "@/components/ui/tokens";
+import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 
 // ใบตรวจรับของเข้า/ใบคืนของลูกค้า — นับจริงต่อไซส์ + รูป + ตำหนิ (mobile-first:
 // คนนับถือมือถือหน้ากองเสื้อ — แถวใหญ่ กดง่าย ไม่มีเรื่องเงิน)
@@ -283,16 +284,10 @@ function ReceiptForm({
                       alt="รูปตรวจรับ"
                       className="h-full w-full rounded-lg object-cover"
                     />
-                    <button
-                      type="button"
+                    <ImageRemoveButton
                       onClick={() => setPhotoUrls((prev) => prev.filter((u) => u !== url))}
-                      aria-label="ลบรูปตรวจรับ"
-                      className={cn("absolute -right-2 -top-2 flex h-11 w-11 items-start justify-end rounded-full bg-transparent p-1 text-white", FOCUS_BUTTON, "sm:h-8 sm:w-8")}
-                    >
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-700 shadow-sm">
-                        <X className="h-3.5 w-3.5" />
-                      </span>
-                    </button>
+                      label="ลบรูปตรวจรับ"
+                    />
                   </div>
                 ))}
               </div>

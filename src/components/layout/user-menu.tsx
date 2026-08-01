@@ -9,9 +9,12 @@ import { trpc } from "@/lib/trpc";
 import { createClient } from "@/lib/supabase";
 import { ROLE_LABELS } from "@/lib/roles";
 import { FOCUS_BUTTON, OVERLAY_PANEL } from "@/components/ui/tokens";
+import { CONTROL_H, CONTROL_MIN_H } from "@/components/ui/control-size";
 
-const menuItemClass =
-  "flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 sm:min-h-8 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white";
+const menuItemClass = cn(
+  CONTROL_MIN_H,
+  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white",
+);
 
 export function UserMenu() {
   const router = useRouter();
@@ -36,7 +39,7 @@ export function UserMenu() {
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
-          className={cn("flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition-transform hover:scale-105 sm:h-9 sm:w-9", FOCUS_BUTTON)}
+          className={cn(CONTROL_H, "flex w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition-transform hover:scale-105 sm:w-9", FOCUS_BUTTON)}
           aria-label="เมนูผู้ใช้"
         >
           {me?.name?.charAt(0).toUpperCase() ?? "?"}

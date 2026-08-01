@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Upload, X, FileImage, Loader2 } from "lucide-react";
+import { Upload, X, FileImage } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CONTROL_H } from "./control-size";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { FOCUS_BUTTON } from "./tokens";
+import { Spinner } from "./spinner";
 
 interface FileUploadProps {
   bucket: string;
@@ -118,7 +119,7 @@ export function FileUpload({
         >
           {uploading ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Spinner size="lg" />
               กำลังอัปโหลด...
             </>
           ) : (
@@ -134,7 +135,7 @@ export function FileUpload({
         <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
           <FileImage className="h-4 w-4" />
           {fileName}
-          {uploading && <Loader2 className="h-3 w-3 animate-spin" />}
+          {uploading && <Spinner size="sm" />}
         </div>
       )}
     </div>

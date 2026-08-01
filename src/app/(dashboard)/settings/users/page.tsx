@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { KeyRound, Plus, ShieldCheck, Users } from "lucide-react";
 import type { Role } from "@prisma/client";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
 
 export default function UsersSettingsPage() {
   const utils = trpc.useUtils();
@@ -327,7 +328,7 @@ export default function UsersSettingsPage() {
                               {ROLE_LABELS[user.role]}
                             </span>
                           ) : (
-                            <Select
+                            <Select size="sm"
                               value={user.role}
                               disabled={updateMutation.isPending}
                               aria-label={`บทบาทของ ${user.name}`}
@@ -500,7 +501,7 @@ export default function UsersSettingsPage() {
                       return (
                         <label
                           key={def.key}
-                          className={`flex min-h-11 items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm sm:min-h-9 ${
+                          className={`${CONTROL_MIN_H} flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm ${
                             locked
                               ? "cursor-not-allowed opacity-50"
                               : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"

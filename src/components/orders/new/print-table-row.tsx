@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import {
   PRINT_POSITIONS,
   PRINT_TYPES,
@@ -16,6 +16,7 @@ import { safeFileExt } from "@/lib/file-urls";
 import { Field } from "@/components/ui/field";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
+import { Spinner } from "@/components/ui/spinner";
 
 export function PrintTableRow({
   print, printIdx, onUpdate, onRemove, printCatalog, onApplyCatalog,
@@ -80,7 +81,7 @@ export function PrintTableRow({
             </div>
           ) : (
             <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`} className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600">
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {uploading ? <Spinner size="md" /> : <Plus className="h-4 w-4" />}
             </button>
           )}
         </td>

@@ -142,7 +142,7 @@ export default function BackupSettingsPage() {
           <Button onClick={handleDownload} disabled={downloading}>
             {downloading ? (
               <>
-                <Loader2 className="mr-2 animate-spin" />
+                <Loader2 className="animate-spin" />
                 กำลังเตรียมไฟล์... (อย่าปิดหน้านี้)
               </>
             ) : (

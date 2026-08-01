@@ -249,11 +249,10 @@ export default function PackagingSettingsPage() {
                         </td>
                         <td className="px-3 py-2.5">
                           {isEditing ? (
-                            <Input
+                            <Input size="sm"
                               aria-label={`ชื่อแพ็คเกจ ${opt.name}`}
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
-                              className="text-sm"
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") handleSaveEdit();
                                 if (e.key === "Escape") { setEditingId(null); setEditName(""); }

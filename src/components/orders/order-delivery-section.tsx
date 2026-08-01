@@ -46,6 +46,10 @@ import {
   Settings2,
 } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
+import { Spinner } from "@/components/ui/spinner";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
+import { CONTROL_H } from "@/components/ui/control-size";
+import { RADIUS } from "@/components/ui/tokens";
 
 type Delivery = RouterOutput["delivery"]["getByOrderId"][number];
 
@@ -326,7 +330,7 @@ export function OrderDeliverySection({
             <button
               type="button"
               onClick={openBlindShipDialog}
-              className="mt-1 flex min-h-11 w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-blue-500 sm:min-h-9"
+              className={cn(CONTROL_MIN_H, "mt-1 flex w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-blue-500")}
             >
               <Settings2 className="h-3 w-3" />
               {packContext.data.blindShip ? "ตั้งค่า blind ship" : "ตั้งค่า blind ship (ปิดอยู่)"}
@@ -345,7 +349,7 @@ export function OrderDeliverySection({
               aria-live="polite"
               className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500"
             >
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner size="md" />
               กำลังโหลดข้อมูลจัดส่ง
             </div>
           ) : (
@@ -399,7 +403,7 @@ export function OrderDeliverySection({
                             {/* Tracking number */}
                             {editTrackingId === delivery.id && actions.canEditTracking ? (
                               <div className="flex items-center gap-2">
-                                <Input
+                                <Input size="sm"
                                   type="text"
                                   aria-label={`เลขพัสดุ ${delivery.recipientName}`}
                                   value={editTrackingValue}
@@ -432,7 +436,7 @@ export function OrderDeliverySection({
                                 ) : actions.canEditTracking ? (
                                   <button
                                     type="button"
-                                    className="min-h-11 touch-manipulation text-xs text-slate-400 hover:text-blue-500 sm:min-h-9"
+                                    className={cn(CONTROL_MIN_H, "touch-manipulation text-xs text-slate-400 hover:text-blue-500")}
                                     onClick={() => {
                                       setEditTrackingId(delivery.id);
                                       setEditTrackingValue(delivery.trackingNumber || "");
@@ -486,7 +490,7 @@ export function OrderDeliverySection({
                                 rel="noreferrer"
                                 title="ใบรายการแนบกล่อง"
                                 aria-label={`พิมพ์ใบรายการแนบกล่องสำหรับ ${delivery.recipientName}`}
-                                className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                                className={cn(CONTROL_H, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400")}
                               >
                                 <Printer className="h-3.5 w-3.5" />
                               </a>
@@ -645,7 +649,7 @@ export function OrderDeliverySection({
                             สั่ง {r.ordered} · ส่งแล้ว {r.packed}
                           </p>
                         </div>
-                        <Input
+                        <Input size="sm"
                           type="number"
                           aria-label={`จำนวน ${sizeColorLabel(r)} ในรอบนี้`}
                           aria-invalid={r.invalid || undefined}

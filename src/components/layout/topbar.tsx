@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Bell, Search, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { OVERLAY_PANEL } from "@/components/ui/tokens";
+import { CONTROL_H } from "@/components/ui/control-size";
+import { FOCUS_BUTTON, OVERLAY_PANEL, RADIUS } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -100,7 +101,15 @@ export function Topbar() {
         onClick={() => setPaletteOpen(true)}
         aria-label="ค้นหาเมนู ออเดอร์ ลูกค้า ใบเสนอราคา หรือบิล"
         aria-haspopup="dialog"
-        className="group flex h-11 min-w-0 w-full max-w-md items-center gap-2 rounded-full bg-white/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-white hover:text-slate-600 sm:h-9 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10"
+        // ความสูงเอาจากของกลาง ไม่เขียนสูตรเอง — ปุ่มนี้ยืนแถวเดียวกับปุ่มแจ้งเตือน/โปรไฟล์
+        // (audit 2026-08-01 จับได้ว่าที่นี่ก๊อปสูตร "h-11 … sm:h-9" มาไว้เอง
+        //  ด่าน lint ตัวนั้นบังคับเฉพาะ src/components/ui/** จึงลอดมาได้)
+        className={cn(
+          CONTROL_H,
+          RADIUS.pill,
+          FOCUS_BUTTON,
+          "group flex w-full min-w-0 max-w-md items-center gap-2 bg-white/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-white hover:text-slate-600 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10",
+        )}
       >
         <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
         <span className="flex-1 truncate text-left">ค้นหาเมนู เลขงาน ลูกค้า หรือบิล</span>

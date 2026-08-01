@@ -27,6 +27,8 @@ import { QueryError } from "@/components/ui/query-error";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { permAllows } from "@/lib/permissions";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
+import { cn } from "@/lib/utils";
 
 const labelClass = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
 
@@ -258,7 +260,7 @@ export default function PatternsPage() {
                 </div>
                 <div>
                   <label htmlFor="pattern-file" className={labelClass}>ไฟล์แพทเทิร์น</label>
-                  <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 focus-within:ring-2 focus-within:ring-blue-500/40 sm:min-h-9 dark:border-slate-600 dark:hover:border-amber-500">
+                  <label className={cn(CONTROL_MIN_H, "flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 focus-within:ring-2 focus-within:ring-blue-500/40 dark:border-slate-600 dark:hover:border-amber-500")}>
                     <input
                       id="pattern-file"
                       type="file"
@@ -327,11 +329,10 @@ export default function PatternsPage() {
                       >
                         <td className="px-3 py-2.5">
                           {isEditing ? (
-                            <Input
+                            <Input size="sm"
                               aria-label={`ชื่อแพทเทิร์น ${p.name}`}
                               value={editData.name ?? p.name}
                               onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                              className="text-sm"
                             />
                           ) : (
                             <div>
@@ -343,7 +344,7 @@ export default function PatternsPage() {
                                   href={p.fileUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="ml-2 inline-flex min-h-11 items-center text-xs text-blue-600 hover:underline sm:min-h-9 dark:text-blue-400"
+                                  className={cn(CONTROL_MIN_H, "ml-2 inline-flex items-center text-xs text-blue-600 hover:underline dark:text-blue-400")}
                                 >
                                   ดูไฟล์
                                 </a>
@@ -356,9 +357,8 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <Select
+                            <Select size="sm"
                               aria-label={`ทรงคอของ ${p.name}`}
-                              className="text-xs"
                               value={editData.collarType ?? p.collarType ?? ""}
                               onChange={(e) => setEditData({ ...editData, collarType: e.target.value })}
                             >
@@ -375,9 +375,8 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <Select
+                            <Select size="sm"
                               aria-label={`แขนของ ${p.name}`}
-                              className="text-xs"
                               value={editData.sleeveType ?? p.sleeveType ?? ""}
                               onChange={(e) => setEditData({ ...editData, sleeveType: e.target.value })}
                             >
@@ -394,9 +393,8 @@ export default function PatternsPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <Select
+                            <Select size="sm"
                               aria-label={`ฟิตของ ${p.name}`}
-                              className="text-xs"
                               value={editData.bodyFit ?? p.bodyFit ?? ""}
                               onChange={(e) => setEditData({ ...editData, bodyFit: e.target.value })}
                             >

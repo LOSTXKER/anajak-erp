@@ -398,7 +398,7 @@ export default function ServicesPage() {
                       >
                         <td className="px-3 py-2.5">
                           {isEditing ? (
-                            <Input
+                            <Input size="sm"
                               aria-label={`ชื่อบริการ ${item.name}`}
                               value={editingItem.name}
                               onChange={(e) =>
@@ -407,7 +407,6 @@ export default function ServicesPage() {
                                   name: e.target.value,
                                 })
                               }
-                              className="text-sm"
                             />
                           ) : (
                             <span className="text-sm font-medium text-slate-900 dark:text-white">
@@ -443,9 +442,8 @@ export default function ServicesPage() {
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           {isEditing ? (
-                            <Select
+                            <Select size="sm"
                               aria-label={`วิธีคิดราคาของ ${item.name}`}
-                              className="text-xs"
                               value={editingItem.pricingType}
                               onChange={(e) =>
                                 setEditingItem({

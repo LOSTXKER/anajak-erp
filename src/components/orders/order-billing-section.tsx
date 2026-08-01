@@ -42,22 +42,13 @@ import {
   receiptAmounts,
   suggestedWht,
 } from "@/lib/billing-ui";
-import {
-  Receipt,
-  Plus,
-  CreditCard,
-  Loader2,
-  Ban,
-  Printer,
-  DollarSign,
-  Paperclip,
-  Undo2,
-  X,
-} from "lucide-react";
+import { Receipt, Plus, CreditCard, Loader2, Ban, Printer, DollarSign, Paperclip, Undo2 } from "lucide-react";
 import type { InvoiceType } from "@prisma/client";
 import type { RouterOutput } from "@/lib/trpc";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
+import { Spinner } from "@/components/ui/spinner";
+import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 
 type Invoice = RouterOutput["billing"]["listByOrder"][number];
 type Payment = Invoice["payments"][number];
@@ -475,7 +466,7 @@ export function OrderBillingSection({
               aria-live="polite"
               className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500"
             >
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner size="md" />
               กำลังโหลดข้อมูลบิล
             </div>
           ) : !invoices.data || invoices.data.length === 0 ? (
@@ -1051,14 +1042,10 @@ export function OrderBillingSection({
                     alt="สลิปโอน"
                     className="h-full w-full rounded-lg border border-slate-200 object-cover dark:border-slate-700"
                   />
-                  <button
-                    type="button"
+                  <ImageRemoveButton
                     onClick={() => setEvidenceUrl("")}
-                    aria-label="ลบรูปสลิปโอน"
-                    className={cn("absolute -right-4 -top-4 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-red-700 text-white shadow-sm hover:bg-red-800", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:bg-red-600 dark:hover:bg-red-500")}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                    label="ลบรูปสลิปโอน"
+                  />
                 </div>
               ) : (
                 <FileUpload

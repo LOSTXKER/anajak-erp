@@ -332,7 +332,7 @@ function StepRow({
           ) : activePrintRun ? (
             // ขั้นอยู่ในรอบพิมพ์ค้าง — updateStep ถูก server บล็อก จึงเป็นลิงก์ไปหน้ารอบแทน
             // (pattern เดียวกับการ์ดบอร์ดเลน — เดิมหน้านี้เงียบ ช่างเข้า dialog แล้วเจอ error)
-            <Button variant="outline" size="sm" asChild className="h-11 w-full gap-1.5 sm:h-9 sm:w-auto">
+            <Button variant="outline" size="sm" asChild className="w-full gap-1.5 sm:w-auto">
               <Link href="/production/print-runs">
                 <Printer />
                 รอบพิมพ์ {activePrintRun.runNumber}
@@ -343,7 +343,7 @@ function StepRow({
               size="sm"
               disabled={busy}
               onClick={() => onCompleteStep(step)}
-              className="h-11 w-full gap-1.5 sm:h-9 sm:w-auto"
+              className="w-full gap-1.5 sm:w-auto"
             >
               <CheckCircle2 />
               เสร็จขั้นนี้
@@ -353,7 +353,7 @@ function StepRow({
               size="sm"
               disabled={busy}
               onClick={() => onStartStep(step)}
-              className="h-11 w-full gap-1.5 sm:h-9 sm:w-auto"
+              className="w-full gap-1.5 sm:w-auto"
             >
               <Play />
               {/* ช่างกดบนขั้นว่าง = server claim ให้เป็นชื่อตัวเองจริง จึงใช้คำว่า "รับงาน"

@@ -9,7 +9,8 @@ import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { PRINT_POSITIONS } from "@/types/order-form";
 import type { ReferenceImage } from "@/types/order-form";
-import { ImageIcon, Upload, X, Loader2 } from "lucide-react";
+import { ImageIcon, Upload, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 // รูป/ไฟล์อ้างอิงจากแชท — แยกจาก orders/new/page.tsx ตอนรื้อฟอร์ม 2026-06-12
 // (กางตลอด + อัปโหลด Supabase + เลือกตำแหน่งพิมพ์ต่อรูป)
@@ -137,7 +138,7 @@ export function OrderAttachmentsSection({
             />
             {uploading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size="md" />
                 กำลังอัปโหลด...
               </>
             ) : (

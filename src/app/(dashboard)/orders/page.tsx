@@ -588,14 +588,15 @@ function OrdersPageContent() {
           {attention && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 py-1 pl-3 pr-1 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
               {ATTENTION_FILTERS.find((f) => f.value === attention)?.label}
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 aria-label="ล้างตัวกรองความเร่งด่วน"
                 onClick={() => replaceListState({ attention: null, page: null })}
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-blue-100 dark:hover:bg-blue-900"
+                className="h-6 w-6 min-w-0 text-current hover:bg-blue-100 dark:hover:bg-blue-900"
               >
-                <X className="h-3.5 w-3.5" />
-              </button>
+                <X />
+              </Button>
             </span>
           )}
         </ToolbarGroup>
