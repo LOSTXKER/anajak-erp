@@ -552,7 +552,7 @@ function QueueRow({
           onClick={onToggle}
           aria-pressed={selected}
           aria-label={`${selected ? "นำออกจาก" : "เพิ่มเข้า"}รอบพิมพ์ ${entry.orderNumber}`}
-          className={cn("flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-slate-50", FOCUS_INSET, "active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800")}
+          className={cn("flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-slate-100", FOCUS_INSET, "active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800")}
         >
           {summary}
         </button>

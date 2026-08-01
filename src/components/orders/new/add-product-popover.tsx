@@ -46,7 +46,7 @@ export function AddProductPopover({
                 type="button"
                 role="menuitem"
                 onClick={() => { handlers[key](); setOpen(false); }}
-                className="flex w-full items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="flex w-full items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" strokeWidth={1.75} />
                 <span className="min-w-0">

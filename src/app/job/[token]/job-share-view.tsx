@@ -137,7 +137,7 @@ export function JobShareView({ token }: { token: string }) {
                         href={design.fileUrl ?? design.imageUrl ?? "#"}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-blue-600 hover:bg-slate-50"
+                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-blue-600 hover:bg-slate-100"
                       >
                         <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
                         <span className="truncate">แบบที่อนุมัติ (v{design.versionNumber})</span>
@@ -150,7 +150,7 @@ export function JobShareView({ token }: { token: string }) {
                         href={a.fileUrl ?? "#"}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-blue-600 hover:bg-slate-50"
+                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-blue-600 hover:bg-slate-100"
                       >
                         <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
                         <span className="truncate">{a.fileName}</span>

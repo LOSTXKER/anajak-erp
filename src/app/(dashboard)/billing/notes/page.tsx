@@ -492,7 +492,7 @@ function BillingNotesPageContent() {
                     {eligibleList.map((inv) => (
                       <label
                         key={inv.id}
-                        className="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        className="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/50"
                       >
                         <span className="flex items-center gap-2 text-sm">
                           <input

@@ -410,7 +410,9 @@ export function OrderBillingSection({
         </CardHeader>
         <CardContent>
           {/* Summary */}
-          <div className="mb-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-4 dark:bg-slate-800/50">
+          {/* แถบสรุป 4 ช่อง (ยอดรวม/บิลแล้ว/รับแล้ว/ค้าง) — กล่องนี้ไม่มีขอบ ต้องพึ่งพื้นล้วน
+              เดิมโหมดมืดต่างจากพื้นการ์ดแค่ 2 จาก 255 = ไม่เห็นว่าเป็นกลุ่มเดียวกัน */}
+          <div className="mb-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-100 p-3 sm:grid-cols-4 dark:bg-white/[0.06]">
             <div className="text-center">
               <p className="text-xs text-slate-500 dark:text-slate-400">ยอดรวม</p>
               <p className="text-sm font-semibold text-slate-900 dark:text-white">

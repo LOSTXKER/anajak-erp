@@ -319,7 +319,7 @@ export default function DashboardPage() {
               <Link
                 key={o.id}
                 href={`/orders/${o.id}`}
-                className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/30"
+                className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-slate-100/70 dark:hover:bg-slate-800/30"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -372,7 +372,7 @@ export default function DashboardPage() {
               <Link
                 key={item.status}
                 href={`/orders?status=${item.status}`}
-                className={cn("block min-h-11 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50", FOCUS_BUTTON, "dark:hover:bg-slate-800/40")}
+                className={cn("block min-h-11 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100", FOCUS_BUTTON, "dark:hover:bg-slate-800/40")}
               >
                 <div className="flex items-center justify-between">
                   <OrderStatusBadge internalStatus={item.status} compact />
@@ -409,7 +409,7 @@ export default function DashboardPage() {
               <Link
                 key={customer.id}
                 href={`/customers/${customer.id}`}
-                className={cn("flex min-h-11 items-center justify-between rounded-lg px-2 transition-colors hover:bg-slate-50", FOCUS_BUTTON, "dark:hover:bg-slate-800/40")}
+                className={cn("flex min-h-11 items-center justify-between rounded-lg px-2 transition-colors hover:bg-slate-100", FOCUS_BUTTON, "dark:hover:bg-slate-800/40")}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">

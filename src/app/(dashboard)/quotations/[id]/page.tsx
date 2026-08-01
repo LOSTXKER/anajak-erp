@@ -414,7 +414,7 @@ export default function QuotationDetailPage({
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800/50">
                     {quotation.items?.map(
                       (
                         item: {

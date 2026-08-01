@@ -128,8 +128,9 @@ export function OrderAttachmentsSection({
             ))}
           </div>
         )}
+        {/* ช่องลากไฟล์มาวาง — เดิมชี้แล้วสั่งให้เป็นสีขาว ซึ่งเท่ากับสีการ์ดพอดี = ไม่มีอะไรเปลี่ยน */}
         {images.length < 5 && (
-          <label className={cn(DASHED, "flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-50/40 px-4 py-5 text-sm text-slate-600 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:border-blue-500")}>
+          <label className={cn(DASHED, "flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-5 text-sm text-slate-600 transition-colors hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:border-blue-500 dark:hover:bg-blue-950/30")}>
             <input
               type="file"
               accept="image/*,.pdf,.ai,.psd"
