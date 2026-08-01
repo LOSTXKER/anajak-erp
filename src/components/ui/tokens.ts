@@ -93,7 +93,12 @@ export const DASHED = "border border-dashed border-slate-300 dark:border-slate-7
 
 /** ตัวเลือกหนึ่งบรรทัดในเมนูที่กางออกมา — สถานะชี้/ถูกเลือก/กดไม่ได้ ชุดเดียวกันทุกเมนู */
 export const MENU_ITEM =
-  "relative flex cursor-pointer select-none items-center justify-between gap-2 px-3 text-sm outline-none data-[highlighted]:bg-slate-100 data-[state=checked]:bg-blue-50 data-[state=checked]:font-medium data-[state=checked]:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:data-[highlighted]:bg-slate-800 dark:data-[state=checked]:bg-blue-950/50 dark:data-[state=checked]:text-blue-300";
+  "relative flex cursor-pointer select-none items-center justify-between gap-2 px-3 text-sm outline-none data-[highlighted]:bg-slate-100 data-[state=checked]:bg-blue-50 data-[state=checked]:font-medium data-[state=checked]:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:data-[highlighted]:bg-white/10 dark:data-[state=checked]:bg-blue-950/50 dark:data-[state=checked]:text-blue-300";
+
+/** เส้นคั่นในเมนูที่กางออกมา — เดิมเขียนซ้ำคำต่อคำ 4 จุด (เมนูโปรไฟล์ 2 · เมนู "…" ของออเดอร์ 2)
+ *  โหมดมืดเคยใช้ slate-800 ซึ่งเข้มกว่าพื้นกล่องลอย = เส้นหายไปเลย
+ *  ผลคือเส้นเหนือ "ออกจากระบบ" / "ยกเลิกออเดอร์" ไม่มี — เพิ่มโอกาสกดพลาดของอันตราย */
+export const MENU_SEPARATOR = "my-1 h-px bg-slate-200 dark:bg-white/10";
 
 /**
  * สีกล่องแจ้งเตือน 5 ระดับ — **แยกออกมาจาก <Alert> โดยตั้งใจ**

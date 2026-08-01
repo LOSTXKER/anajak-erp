@@ -116,7 +116,7 @@ export function OrderStatusFlowBar({
                 >
                   {INTERNAL_STATUS_LABELS[status]}
                 </span>
-                <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
                   <span
                     className={cn("block h-full rounded-full", dotFor(status))}
                     style={{ width: `${Math.round((count / max) * 100)}%` }}

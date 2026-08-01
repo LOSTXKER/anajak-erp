@@ -8,12 +8,14 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { createClient } from "@/lib/supabase";
 import { ROLE_LABELS } from "@/lib/roles";
-import { FOCUS_BUTTON, OVERLAY_PANEL } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, MENU_SEPARATOR, OVERLAY_PANEL } from "@/components/ui/tokens";
 import { CONTROL_H, CONTROL_MIN_H } from "@/components/ui/control-size";
 
 const menuItemClass = cn(
   CONTROL_MIN_H,
-  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white",
+  // โหมดมืด: แถบไฮไลต์เคยเป็น slate-800 ซึ่ง **เข้มกว่า** พื้นเมนู = ทำผิดทิศ
+  // ไล่ลูกศรบนคีย์บอร์ดแล้วมองไม่ออกว่าค้างบรรทัดไหน (audit สี 2026-08-02)
+  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-white/10 dark:data-[highlighted]:text-white",
 );
 
 export function UserMenu() {
@@ -64,7 +66,7 @@ export function UserMenu() {
               {me?.role ? ` · ${ROLE_LABELS[me.role] ?? me.role}` : ""}
             </p>
           </div>
-          <DropdownMenu.Separator className="my-1 h-px bg-slate-100 dark:bg-slate-800" />
+          <DropdownMenu.Separator className={MENU_SEPARATOR} />
 
           <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger className={menuItemClass}>
@@ -104,7 +106,7 @@ export function UserMenu() {
             </DropdownMenu.Portal>
           </DropdownMenu.Sub>
 
-          <DropdownMenu.Separator className="my-1 h-px bg-slate-100 dark:bg-slate-800" />
+          <DropdownMenu.Separator className={MENU_SEPARATOR} />
 
           <DropdownMenu.Item
             className={cn(

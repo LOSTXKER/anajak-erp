@@ -381,7 +381,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 {/* แถบสัดส่วน — สแกนด้วยตาได้โดยไม่ต้องอ่านเลขทีละบรรทัด (ยกเลิก = เทา ไม่แย่งสี) */}
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
                   <div
                     className={cn(
                       "h-full rounded-full",

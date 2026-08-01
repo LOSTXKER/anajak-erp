@@ -50,7 +50,9 @@ const Head = React.forwardRef<
   <thead
     ref={ref}
     className={cn(
-      "border-b border-slate-100 bg-slate-50/60 text-slate-500 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400",
+      // หัวตารางเคยจางระดับ 1.04 ต่อ 1 = แทบเป็นสีเดียวกับการ์ด แยกไม่ออกว่าแถวไหนคือหัว
+      // โหมดมืดเคยใช้ slate-900 ซึ่งเข้มกว่าพื้นการ์ด — ขาวโปร่งสว่างกว่าพื้นเสมอ
+      "border-b border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400",
       className
     )}
     {...props}
@@ -65,7 +67,8 @@ const Body = React.forwardRef<
   <tbody
     ref={ref}
     className={cn(
-      "divide-y divide-slate-100 dark:divide-slate-800/70",
+      // เส้นคั่นแถว — เดิมจางจนทุกแถวดูไหลต่อกันเป็นก้อนเดียว (ครอบหน้ารายการ 9 หน้า)
+      "divide-y divide-slate-200 dark:divide-white/10",
       className
     )}
     {...props}
@@ -80,7 +83,8 @@ const Row = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40",
+      // ชี้แถวไหนต้องรู้ทันที — ตารางกว้างแล้วกดผิดแถวคือกดผิดออเดอร์
+      "transition-colors hover:bg-slate-100 dark:hover:bg-white/[0.06]",
       className
     )}
     {...props}
