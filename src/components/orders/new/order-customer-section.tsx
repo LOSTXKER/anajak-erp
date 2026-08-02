@@ -70,7 +70,13 @@ export function OrderCustomerSection({
       <p className="mb-1.5 block text-xs text-slate-500 dark:text-slate-400" id="new-order-customer-label">
         ลูกค้า <span aria-hidden="true" className="text-red-700">*</span><span className="sr-only"> (จำเป็น)</span>
       </p>
-      <CustomerPicker value={customerId} onChange={onSelect} required labelledBy="new-order-customer-label" />
+      <CustomerPicker
+        value={customerId}
+        onChange={onSelect}
+        required
+        labelledBy="new-order-customer-label"
+        layout="inline"
+      />
       {hasCustomerContext && (
         <div className="mt-2 space-y-1.5 rounded-xl bg-slate-100/70 px-3 py-2.5 dark:bg-white/[0.04]">
           {selectedCustomer && isCorporate && (

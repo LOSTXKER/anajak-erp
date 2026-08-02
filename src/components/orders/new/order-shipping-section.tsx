@@ -22,6 +22,9 @@ interface OrderShippingSectionProps {
   onIncludeShippingChange: (value: boolean) => void;
   shipping: ShippingData;
   onUpdate: <K extends keyof ShippingData>(field: K, value: ShippingData[K]) => void;
+  embedded?: boolean;
+  title?: React.ReactNode;
+  className?: string;
 }
 
 export function OrderShippingSection({
@@ -29,11 +32,16 @@ export function OrderShippingSection({
   onIncludeShippingChange,
   shipping,
   onUpdate,
+  embedded = false,
+  title = "การจัดส่ง",
+  className,
 }: OrderShippingSectionProps) {
   return (
     <Section
-      title="การจัดส่ง"
-      description="ไม่บังคับ — เปิดสวิตช์เมื่อให้นำส่งตามที่อยู่นี้ (ปิดอยู่ = ไม่บันทึก)"
+      title={title}
+      description="ไม่บังคับ · ปิดอยู่ = ไม่บันทึกที่อยู่นี้"
+      bordered={!embedded}
+      className={className}
       action={
         <label htmlFor="include-order-shipping" className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
           <Switch

@@ -4,6 +4,11 @@
 
 ## ตอนนี้
 
+> **✅ `/orders/new` composition pass 2 — ลดกรอบ ลดเสียงรบกวน และเรียง flow เดียว (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
+> รวม 4 ช่วง รับเรื่อง → รายการงาน → ราคาและเงื่อนไข → จัดส่ง ไว้บน ledger ผิวเดียว คั่นด้วยเส้นและเลขลำดับแทนการ์ดใหญ่หลายใบ · customer picker กระชับ · ช่องทางเหลือ select เดียว · ลดข้อความซ้ำ/กล่อง upload/empty CTA ขนาดใหญ่ · ตัวเลือกแหล่งสินค้า ลาย ส่วนเสริม และค่าใช้จ่ายเป็น action สั้น · ราคา/summary เรียงลงมา ไม่แบ่งสองฝั่งและไม่ทำ card ซ้อน · เมื่อมีสินค้าจอกว้างแสดงตาราง 8 คอลัมน์พร้อมหัวตาราง ส่วนพื้นที่แคบใช้ card เดิม · ไม่แตะ state สูตรราคา validation draft permission หรือ mutation
+> **verify:** browser origin สะอาด `/orders/new` light ที่ 320/375/768/1024/1280/1440px และ dark 1280px ไม่มี horizontal overflow/error overlay/console warning-error · ทดลองเพิ่มสินค้า ลาย ส่วนเสริม ค่าใช้จ่าย เปิดที่อยู่ และยืนยันตารางสินค้า/ลาย/ส่วนเสริมแสดงจริง · เปิด `/orders/[id]` และ dialog แก้ไขเดิมได้ · typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ที่แตะ 5 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · diff-check ผ่าน · ไม่รัน build ขณะ dev server ทำงาน
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
 > **✅ พื้นหน้าเทา + Navbar/Sidebar ขาวทั้งเว็บในธีมสว่าง (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
 > สลับลำดับชั้นที่ token กลาง: ผืนหน้าเป็นเทา `#f3f4f6` ส่วน Navbar, Sidebar, เมนูมือถือ, การ์ด และตารางคงขาว `#fff` · Topbar/Sidebar desktop ใช้ขาวทึบใน light แต่คืนความโปร่ง `chrome/90` + blur เฉพาะ dark จึงไม่เปลี่ยนหน้าตาธีมมืด · อัปเดตคู่มือสีให้ตรง implementation โดยไม่ไล่ทาสีรายหน้าและไม่แตะกฎงานพิมพ์
 > **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ layout ที่แตะ 0) · `verify:ui` ผ่าน · browser จริง light บน dashboard/orders/orders-new/settings และ drawer มือถือ 390px วัดพื้นหน้า `rgb(243,244,246)` กับ Navbar/Sidebar/card/table head `rgb(255,255,255)` · dark dashboard คง token `#1a1a1c/#161618/#252528` · ไม่มี horizontal overflow, runtime/tRPC error หรือ console warning/error · คืน viewport และธีมสว่างแล้ว

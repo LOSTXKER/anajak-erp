@@ -7,7 +7,7 @@
 // รื้อโครง 2026-06-12 (เบสเคาะ): แตก section เป็น component + ลำดับสายตา 1-2-3
 // (ลูกค้า&งาน → รายการ&ราคา → ไฟล์&จัดส่ง กางตลอด) + แถบสรุป/ปุ่ม sticky ล่างจอ
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
@@ -59,6 +59,19 @@ import {
 } from "@/components/orders/new";
 import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
 import { FOCUS_BUTTON, TINT } from "@/components/ui/tokens";
+
+const ledgerSectionClass = "px-5 py-6 sm:px-7 sm:py-7";
+
+function StepTitle({ number, children }: { number: string; children: ReactNode }) {
+  return (
+    <span className="flex items-baseline gap-2">
+      <span aria-hidden="true" className="text-xs font-semibold tabular-nums text-blue-600 dark:text-blue-400">
+        {number}
+      </span>
+      <span>{children}</span>
+    </span>
+  );
+}
 
 export default function NewOrderPage() {
   const router = useRouter();
@@ -389,14 +402,14 @@ export default function NewOrderPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="mx-auto max-w-5xl space-y-4">
       <PageHeader
         breadcrumb={[
           { label: "ออเดอร์", href: "/orders" },
           { label: "เปิดงานใหม่" },
         ]}
         title="เปิดงานใหม่"
-        description="เริ่มจากสิ่งที่ลูกค้าต้องการ แล้วเติมรายการ ราคา และการส่งมอบตามลำดับ"
+        description="บันทึกจากบทสนทนา แล้วเติมรายการและเงื่อนไขตามลำดับ"
       />
 
       {hasDraft && (
@@ -447,235 +460,247 @@ export default function NewOrderPage() {
           </Alert>
         )}
 
-        {/* รับเรื่อง — ลูกค้าเป็นช่องบังคับเพียงช่องเดียว */}
-        <Section
-          title="รับเรื่อง"
-          description="ลูกค้า ช่องทาง และสิ่งที่ต้องการจากบทสนทนานี้"
-        >
-          <div className="space-y-5">
-            <OrderCustomerSection
-              customerId={customerId}
-              selectedCustomer={selectedCustomer}
-              onSelect={(id, customer) => {
-                setCustomerId(id);
-                setSelectedCustomer(customer);
-              }}
-            />
-            <OrderDetailFields
-              title={title}
-              onTitleChange={setTitle}
-              deadline={deadline}
-              onDeadlineChange={setDeadline}
-              priority={priority}
-              onPriorityChange={setPriority}
-              channel={channel}
-              onChannelChange={setChannel}
-              isMarketplace={isMarketplace}
-              externalOrderId={externalOrderId}
-              onExternalOrderIdChange={setExternalOrderId}
-              description={description}
-              onDescriptionChange={setDescription}
-              notes={notes}
-              onNotesChange={setNotes}
-            />
-            <div className="border-t border-slate-200 pt-5 dark:border-white/10">
-              <OrderAttachmentsSection
-                images={referenceImages}
-                onImagesChange={setReferenceImages}
+        <div className="card-surface divide-y divide-slate-200 rounded-2xl dark:divide-white/10">
+          {/* รับเรื่อง — ลูกค้าเป็นช่องบังคับเพียงช่องเดียว */}
+          <Section
+            title={<StepTitle number="01">รับเรื่อง</StepTitle>}
+            bordered={false}
+            className={ledgerSectionClass}
+          >
+            <div className="space-y-4">
+              <OrderCustomerSection
+                customerId={customerId}
+                selectedCustomer={selectedCustomer}
+                onSelect={(id, customer) => {
+                  setCustomerId(id);
+                  setSelectedCustomer(customer);
+                }}
+              />
+              <OrderDetailFields
+                title={title}
+                onTitleChange={setTitle}
+                deadline={deadline}
+                onDeadlineChange={setDeadline}
+                priority={priority}
+                onPriorityChange={setPriority}
+                channel={channel}
+                onChannelChange={setChannel}
+                isMarketplace={isMarketplace}
+                externalOrderId={externalOrderId}
+                onExternalOrderIdChange={setExternalOrderId}
+                description={description}
+                onDescriptionChange={setDescription}
+                notes={notes}
+                onNotesChange={setNotes}
+              />
+              <div className="border-t border-slate-200 pt-4 dark:border-white/10">
+                <OrderAttachmentsSection
+                  images={referenceImages}
+                  onImagesChange={setReferenceImages}
+                  embedded
+                />
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            title={<StepTitle number="02">รายการงาน</StepTitle>}
+            bordered={false}
+            className={ledgerSectionClass}
+          >
+            <div className="space-y-4">
+              {/* รายการเดียว = โหมด solo ไม่มีชั้น "รายการ #1" — ชุดเดียวกับฟอร์มแก้รายการ */}
+              {items.length === 1 ? (
+                <OrderItemCard
+                  item={items[0]}
+                  itemIdx={0}
+                  canRemove={false}
+                  isExpanded
+                  solo
+                  compact
+                  appearance="intake"
+                  onToggleExpand={() => {}}
+                  allItems={items}
+                  printCatalog={printCatalog}
+                  addonCatalog={addonCatalog}
+                  onUpdateItem={updateItem}
+                  onRemoveItem={() => {}}
+                  onAddPrint={addPrint}
+                  onRemovePrint={removePrint}
+                  onUpdatePrint={updatePrint}
+                  onAddAddon={addAddon}
+                  onRemoveAddon={removeAddon}
+                  onUpdateAddon={updateAddon}
+                  onOpenPicker={() => setPickerOpen(true)}
+                  // setter ตรง — updater(items) แบบ eager ทำ multi-update ใน tick เดียวทับกันเอง
+                  onSetItems={setItems}
+                />
+              ) : (
+                <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/70 dark:divide-slate-800 dark:border-slate-800/60">
+                  {items.map((item, itemIdx) => (
+                    <OrderItemCard
+                      key={itemIdx}
+                      item={item}
+                      itemIdx={itemIdx}
+                      canRemove={items.length > 1}
+                      isExpanded
+                      compact
+                      appearance="intake"
+                      allItems={items}
+                      printCatalog={printCatalog}
+                      addonCatalog={addonCatalog}
+                      onUpdateItem={updateItem}
+                      onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
+                      onAddPrint={addPrint}
+                      onRemovePrint={removePrint}
+                      onUpdatePrint={updatePrint}
+                      onAddAddon={addAddon}
+                      onRemoveAddon={removeAddon}
+                      onUpdateAddon={updateAddon}
+                      onOpenPicker={() => setPickerOpen(true)}
+                      onSetItems={setItems}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    addItem();
+                    setExpandedItemIdx(items.length);
+                  }}
+                  className="w-full gap-1.5 text-slate-500 sm:w-auto"
+                >
+                  <Plus />
+                  เพิ่มชุดงาน
+                </Button>
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            title={<StepTitle number="03">ราคาและเงื่อนไข</StepTitle>}
+            bordered={false}
+            className={ledgerSectionClass}
+          >
+            <div className="space-y-4">
+              <OrderFeeSection
+                fees={fees}
+                onAddFee={addFee}
+                onRemoveFee={removeFee}
+                onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
+                feeCatalog={feeCatalog}
                 embedded
               />
-            </div>
-          </div>
-        </Section>
 
-        <Section
-          title="รายการงาน"
-          description="เริ่มจากสินค้า แล้วระบุลายและส่วนเสริมของแต่ละชุด · เว้นว่างได้หากยังเป็นการสอบถาม"
-        >
-          <div className="space-y-4">
-            {/* รายการเดียว = โหมด solo ไม่มีชั้น "รายการ #1" — ชุดเดียวกับฟอร์มแก้รายการ */}
-            {items.length === 1 ? (
-              <OrderItemCard
-                item={items[0]}
-                itemIdx={0}
-                canRemove={false}
-                isExpanded
-                solo
-                compact
-                appearance="intake"
-                onToggleExpand={() => {}}
-                allItems={items}
-                printCatalog={printCatalog}
-                addonCatalog={addonCatalog}
-                onUpdateItem={updateItem}
-                onRemoveItem={() => {}}
-                onAddPrint={addPrint}
-                onRemovePrint={removePrint}
-                onUpdatePrint={updatePrint}
-                onAddAddon={addAddon}
-                onRemoveAddon={removeAddon}
-                onUpdateAddon={updateAddon}
-                onOpenPicker={() => setPickerOpen(true)}
-                // setter ตรง — updater(items) แบบ eager ทำ multi-update ใน tick เดียวทับกันเอง
-                onSetItems={setItems}
-              />
-            ) : (
-              <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/70 dark:divide-slate-800 dark:border-slate-800/60">
-                {items.map((item, itemIdx) => (
-                  <OrderItemCard
-                    key={itemIdx}
-                    item={item}
-                    itemIdx={itemIdx}
-                    canRemove={items.length > 1}
-                    isExpanded
-                    compact
-                    appearance="intake"
-                    allItems={items}
-                    printCatalog={printCatalog}
-                    addonCatalog={addonCatalog}
-                    onUpdateItem={updateItem}
-                    onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
-                    onAddPrint={addPrint}
-                    onRemovePrint={removePrint}
-                    onUpdatePrint={updatePrint}
-                    onAddAddon={addAddon}
-                    onRemoveAddon={removeAddon}
-                    onUpdateAddon={updateAddon}
-                    onOpenPicker={() => setPickerOpen(true)}
-                    onSetItems={setItems}
+              <div className="space-y-5 border-t border-slate-200 pt-5 dark:border-white/10">
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
+                    เงื่อนไขการขาย
+                  </h3>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    <Field label="ภาษี (%)" id="order-tax-rate">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.01}
+                        value={taxRate || ""}
+                        onChange={(e) => {
+                          taxRateTouched.current = true; // ผู้ใช้แตะเอง — เลิกสลับ default ตามช่องทาง
+                          setTaxRate(parseFloat(e.target.value) || 0);
+                        }}
+                        placeholder="0"
+                      />
+                    </Field>
+                    <Field label="เงื่อนไขชำระ" id="order-payment-terms">
+                      <Select
+                        value={paymentTerms}
+                        onChange={(e) => setPaymentTerms(e.target.value)}
+                      >
+                        <option value="">-- ไม่ระบุ --</option>
+                        {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
+                          <option key={k} value={k}>
+                            {v}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                    {isCorporateCustomer && (
+                      <Field label="เลขที่ PO" id="order-po-number" className="lg:col-span-2">
+                        <Input
+                          value={poNumber}
+                          onChange={(e) => setPoNumber(e.target.value)}
+                          placeholder="PO Number"
+                        />
+                      </Field>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-200 pt-5 dark:border-white/10">
+                  <OrderPriceSummary
+                    pricingSummary={pricingSummary}
+                    showFeeSections={true}
+                    isMarketplace={isMarketplace}
+                    channelLabel={CHANNEL_LABELS[channel]}
+                    taxRate={taxRate}
+                    platformFee={platformFee}
+                    discount={discount}
+                    onPlatformFeeChange={setPlatformFee}
+                    onDiscountChange={setDiscount}
+                    marginEstimate={marginEstimate}
+                    embedded
                   />
-                ))}
+                </div>
               </div>
-            )}
+            </div>
+          </Section>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                addItem();
-                setExpandedItemIdx(items.length);
-              }}
-              className="w-full gap-1.5 text-slate-500"
-            >
-              <Plus />
-              เพิ่มชุดงานอีกชุด
+          {/* จัดส่ง — กางตลอด แต่ยังเป็นข้อมูลไม่บังคับ */}
+          <OrderShippingSection
+            includeShipping={includeShipping}
+            onIncludeShippingChange={setIncludeShipping}
+            shipping={shipping}
+            onUpdate={updateShipping}
+            embedded
+            title={<StepTitle number="04">การจัดส่ง</StepTitle>}
+            className={ledgerSectionClass}
+          />
+
+          {/* footer ของฟอร์มติดขอบล่าง — เป็นส่วนเดียวกับ ledger ไม่ลอยเป็นการ์ดอีกใบ */}
+          <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 bg-surface/95 px-5 py-3 backdrop-blur sm:px-7">
+            <div className="min-w-0 flex-1">
+              {hasItemContent ? (
+                <>
+                  <p className="text-2xs text-slate-400">ยอดรวม</p>
+                  <p className="text-base font-semibold tabular-nums text-slate-900 dark:text-white">
+                    {formatCurrency(pricingSummary.grandTotal)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs leading-snug text-slate-500 dark:text-slate-400">
+                  ยังไม่ใส่รายการ/ราคา
+                  <br className="sm:hidden" />
+                  <span className="hidden sm:inline"> — </span>
+                  เปิดเป็นใบสอบถามแล้วเติมทีหลังได้
+                </p>
+              )}
+            </div>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/orders" aria-disabled={createOrder.isPending}>
+                ยกเลิก
+              </Link>
+            </Button>
+            <Button type="submit" disabled={createOrder.isPending} className="gap-1.5">
+              {createOrder.isPending && <Loader2 className="animate-spin" />}
+              {createOrder.isPending ? "กำลังบันทึก..." : "เปิดงาน"}
             </Button>
           </div>
-        </Section>
-
-        <Section
-          title="ราคาและเงื่อนไข"
-          description="ค่าใช้จ่ายส่วนกลาง ภาษี เงื่อนไขบิล และยอดที่ลูกค้าต้องชำระ"
-        >
-          <div className="space-y-5">
-            <OrderFeeSection
-              fees={fees}
-              onAddFee={addFee}
-              onRemoveFee={removeFee}
-              onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
-              feeCatalog={feeCatalog}
-              embedded
-            />
-
-            <div className="border-t border-slate-200 pt-5 dark:border-white/10">
-              <h3 className="mb-3 text-base font-semibold tracking-tight text-slate-900 dark:text-white">
-                เงื่อนไขการขาย
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <Field label="ภาษี (%)" id="order-tax-rate">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={0.01}
-                    value={taxRate || ""}
-                    onChange={(e) => {
-                      taxRateTouched.current = true; // ผู้ใช้แตะเอง — เลิกสลับ default ตามช่องทาง
-                      setTaxRate(parseFloat(e.target.value) || 0);
-                    }}
-                    placeholder="0"
-                  />
-                </Field>
-                <Field label="เงื่อนไขชำระ" id="order-payment-terms">
-                  <Select
-                    value={paymentTerms}
-                    onChange={(e) => setPaymentTerms(e.target.value)}
-                  >
-                    <option value="">-- ไม่ระบุ --</option>
-                    {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
-                      <option key={k} value={k}>
-                        {v}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                {isCorporateCustomer && (
-                  <Field label="เลขที่ PO" id="order-po-number">
-                    <Input
-                      value={poNumber}
-                      onChange={(e) => setPoNumber(e.target.value)}
-                      placeholder="PO Number"
-                    />
-                  </Field>
-                )}
-              </div>
-            </div>
-
-            <div className="border-t border-slate-200 pt-5 dark:border-white/10">
-              <OrderPriceSummary
-                pricingSummary={pricingSummary}
-                showFeeSections={true}
-                isMarketplace={isMarketplace}
-                channelLabel={CHANNEL_LABELS[channel]}
-                taxRate={taxRate}
-                platformFee={platformFee}
-                discount={discount}
-                onPlatformFeeChange={setPlatformFee}
-                onDiscountChange={setDiscount}
-                marginEstimate={marginEstimate}
-                embedded
-              />
-            </div>
-          </div>
-        </Section>
-
-        {/* จัดส่ง — กางตลอด แต่ยังเป็นข้อมูลไม่บังคับ */}
-        <OrderShippingSection
-          includeShipping={includeShipping}
-          onIncludeShippingChange={setIncludeShipping}
-          shipping={shipping}
-          onUpdate={updateShipping}
-        />
-
-        {/* แถบสรุป+ปุ่ม sticky ล่างจอ — มือถือกดถึงเสมอ (pattern เดียวกับฟอร์มแก้รายการ) */}
-        <div className="card-surface sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 backdrop-blur">
-          <div className="min-w-0 flex-1">
-            {hasItemContent ? (
-              <>
-                <p className="text-2xs text-slate-400">ยอดรวม</p>
-                <p className="text-base font-semibold tabular-nums text-slate-900 dark:text-white">
-                  {formatCurrency(pricingSummary.grandTotal)}
-                </p>
-              </>
-            ) : (
-              <p className="text-xs leading-snug text-slate-500 dark:text-slate-400">
-                ยังไม่ใส่รายการ/ราคา
-                <br className="sm:hidden" />
-                <span className="hidden sm:inline"> — </span>
-                เปิดเป็นใบสอบถามแล้วเติมทีหลังได้
-              </p>
-            )}
-          </div>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/orders" aria-disabled={createOrder.isPending}>
-              ยกเลิก
-            </Link>
-          </Button>
-          <Button type="submit" disabled={createOrder.isPending} className="gap-1.5">
-            {createOrder.isPending && <Loader2 className="animate-spin" />}
-            {createOrder.isPending ? "กำลังบันทึก..." : "เปิดงาน"}
-          </Button>
         </div>
       </form>
 
