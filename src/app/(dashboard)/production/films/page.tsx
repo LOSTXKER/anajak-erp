@@ -167,7 +167,7 @@ export default function FilmStockPage() {
                         {item.order.orderNumber}
                       </Link>
                     ) : (
-                      <span className="text-slate-500 dark:text-slate-400">—</span>
+                      <span className="text-slate-400">—</span>
                     )}
                   </DataTable.Td>
                   <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
@@ -177,7 +177,7 @@ export default function FilmStockPage() {
                     {item.qty > 0 ? (
                       <span className="tabular-nums font-medium text-slate-900 dark:text-white">
                         {item.qty}
-                        <span className="font-normal text-slate-500 dark:text-slate-400">
+                        <span className="font-normal text-slate-400">
                           /{item.initialQty} ชิ้น
                         </span>
                       </span>
@@ -301,7 +301,7 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
             ตัดจำนวนออกจากคลัง — ใช้รีดงานสั่งซ้ำ หรือตัดทิ้งฟิล์มเสีย
           </DialogDescription>
         </DialogHeader>
-        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 dark:border-white/10 dark:bg-slate-800/40">
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-800/40">
           <p className="text-sm font-medium text-slate-900 dark:text-white">{item.label}</p>
           <p className="mt-0.5 text-xs tabular-nums text-slate-500 dark:text-slate-400">
             {item.customer.name} · คงเหลือ {item.qty} ชิ้น

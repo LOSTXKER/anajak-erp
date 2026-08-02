@@ -174,7 +174,7 @@ export default function ProductionDetailPage({
       <div className="card-surface flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl px-4 py-3 text-sm">
         {order.deadline && (
           <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-            <Clock className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            <Clock className="h-4 w-4 text-slate-400" />
             กำหนดส่ง {formatDate(order.deadline)}
           </span>
         )}
@@ -191,11 +191,11 @@ export default function ProductionDetailPage({
         )}
         {totalQty > 0 && (
           <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-            <Shirt className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            <Shirt className="h-4 w-4 text-slate-400" />
             {totalQty.toLocaleString()} ชิ้น
           </span>
         )}
-        <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">
+        <span className="ml-auto text-xs text-slate-400">
           สถานะออเดอร์:{" "}
           {(INTERNAL_STATUS_LABELS as Record<string, string>)[order.internalStatus] ??
             order.internalStatus}

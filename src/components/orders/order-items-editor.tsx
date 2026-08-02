@@ -325,7 +325,7 @@ export function OrderItemsEditor({
               compact
             />
           ) : (
-            <div className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200/70 dark:divide-slate-800 dark:border-slate-800/60">
+            <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/70 dark:divide-slate-800 dark:border-slate-800/60">
               {items.map((item, itemIdx) => (
                 <OrderItemCard
                   key={itemIdx}
@@ -383,7 +383,7 @@ export function OrderItemsEditor({
                   onClick={addFee}
                   className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
                 >
-                  <Receipt className="h-6 w-6 text-slate-400 dark:text-slate-500" />
+                  <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
                   <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าธรรมเนียม — กดเพื่อเพิ่ม</span>
                 </button>
               ) : (
@@ -442,7 +442,7 @@ export function OrderItemsEditor({
                   className="w-32"
                   min="0"
                 />
-                <span className="text-sm text-slate-500 dark:text-slate-400">บาท</span>
+                <span className="text-sm text-slate-400">บาท</span>
               </div>
             </div>
           </div>

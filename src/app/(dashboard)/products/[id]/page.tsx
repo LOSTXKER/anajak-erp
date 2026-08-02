@@ -308,15 +308,15 @@ export default function ProductDetailPage({
                   </div>
                 )}
                 {product.lastSyncAt && (
-                  <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
                       <Cloud className="h-3 w-3" />
                       Sync ล่าสุด: {formatDateTime(product.lastSyncAt)}
                     </div>
                   </div>
                 )}
                 {product.description && (
-                  <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
+                  <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
                     <p className="text-slate-600 dark:text-slate-400">
                       {product.description}
                     </p>
@@ -339,7 +339,7 @@ export default function ProductDetailPage({
               {/* Variants table */}
               {product.variants.length === 0 ? (
                 <div className="flex flex-col items-center py-8">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <p className="text-sm text-slate-400">
                     ยังไม่มีตัวเลือก — Sync จาก Anajak Stock เพื่อดึงข้อมูล
                   </p>
                 </div>
@@ -347,7 +347,7 @@ export default function ProductDetailPage({
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-800">
+                      <tr className="border-b border-slate-100 dark:border-slate-800">
                         <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
                           สี
                         </th>
@@ -371,7 +371,7 @@ export default function ProductDetailPage({
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {product.variants.map((variant) => (
                         <tr
                           key={variant.id}

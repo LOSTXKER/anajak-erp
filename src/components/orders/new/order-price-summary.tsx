@@ -90,7 +90,7 @@ export function useMarginEstimate(
 export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) {
   if (!estimate.configured) {
     return (
-      <p className="text-xs text-slate-500 dark:text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-slate-500">
         <Link
           href="/settings/cost-rates"
           className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-slate-300"
@@ -154,13 +154,13 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
       {warnings.length > 0 && (
         <div className="space-y-0.5">
           {warnings.map((w) => (
-            <p key={w} className="text-xs text-amber-800 dark:text-amber-400">
+            <p key={w} className="text-xs text-amber-600 dark:text-amber-400">
               {w}
             </p>
           ))}
         </div>
       )}
-      <p className="text-xs text-slate-500 dark:text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-slate-500">
         เข็มทิศตอนตั้งราคา — ไม่ใช่ตัวเลขบัญชี
       </p>
     </div>
@@ -223,7 +223,7 @@ export function OrderPriceSummary({
           <div className="flex items-center justify-between gap-2">
             <label htmlFor="order-platform-fee" className="text-sm text-slate-500 dark:text-slate-400">
               ค่าธรรมเนียม {channelLabel}
-              <span className="block text-xs text-slate-500 dark:text-slate-400">
+              <span className="block text-xs text-slate-400 dark:text-slate-500">
                 หักจากยอดโอนเข้าร้าน — ไม่รวมในยอดบิล
               </span>
             </label>
@@ -268,11 +268,11 @@ export function OrderPriceSummary({
         )}
       </div>
 
-      <div className="mt-3 flex items-baseline justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
+      <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
         <span className="text-sm font-medium text-slate-900 dark:text-white">
           ยอดรวมทั้งหมด
           {taxRate > 0 && (
-            <span className="ml-1 text-xs font-normal text-slate-500 dark:text-slate-400">
+            <span className="ml-1 text-xs font-normal text-slate-400">
               (รวม VAT)
             </span>
           )}
@@ -284,7 +284,7 @@ export function OrderPriceSummary({
 
       {/* กำไรขั้นต้นโดยประมาณ — โชว์เฉพาะ role การเงิน (caller ส่ง null = ไม่ render เลย) */}
       {marginEstimate && (
-        <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-800">
+        <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
           <MarginEstimateBlock estimate={marginEstimate} />
         </div>
       )}

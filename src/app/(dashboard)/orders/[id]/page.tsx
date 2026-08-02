@@ -614,7 +614,7 @@ function OrderDetailContent({
             {order.customer?.name ?? "—"}
           </dd>
         </div>
-        <div className="min-w-0 border-x border-slate-200 px-2 dark:border-slate-800">
+        <div className="min-w-0 border-x border-slate-100 px-2 dark:border-slate-800">
           <dt className="text-slate-500 dark:text-slate-400">กำหนดส่ง</dt>
           <dd className="truncate font-medium text-slate-900 dark:text-white">
             {order.deadline ? formatDate(order.deadline) : "ยังไม่ระบุ"}

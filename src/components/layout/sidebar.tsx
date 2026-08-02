@@ -108,7 +108,7 @@ export function Sidebar({
                 onClick={() => setCollapsed(true)}
                 title="ย่อแถบเมนู"
                 aria-label="ย่อแถบเมนู"
-                className="h-9 w-9 shrink-0 text-slate-500 dark:text-slate-400 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
+                className="h-9 w-9 shrink-0 text-slate-400 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
               >
                 <PanelLeftClose />
               </Button>
@@ -151,7 +151,7 @@ export function Sidebar({
                           "h-[17px] w-[17px] shrink-0",
                           active
                             ? "text-blue-600 dark:text-blue-400"
-                            : "text-slate-500 dark:text-slate-400"
+                            : "text-slate-500 dark:text-slate-500"
                         )}
                         strokeWidth={1.75}
                       />

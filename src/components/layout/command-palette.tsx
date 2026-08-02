@@ -216,8 +216,8 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
             ค้นหาเมนู หน้า หรือคำสั่งที่ใช้บ่อย
           </DialogPrimitive.Description>
 
-          <div className="flex items-center gap-3 border-b border-slate-200 px-5 dark:border-slate-800">
-            <Search className="h-[18px] w-[18px] shrink-0 text-slate-500 dark:text-slate-400" strokeWidth={1.75} />
+          <div className="flex items-center gap-3 border-b border-slate-100 px-5 dark:border-slate-800">
+            <Search className="h-[18px] w-[18px] shrink-0 text-slate-400" strokeWidth={1.75} />
             <input
               ref={inputRef}
               value={query}
@@ -247,7 +247,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
 
           <div className="min-h-0 flex-1 overflow-y-auto py-2.5">
             {grouped.length === 0 && !entitySearchPending && !entitySearchFailed && (
-              <p className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+              <p className="px-4 py-10 text-center text-sm text-slate-400">
                 {query.trim().length === 1
                   ? "พิมพ์อีก 1 ตัวอักษรเพื่อค้นหาออเดอร์ ลูกค้า และเอกสาร"
                   : "ไม่พบรายการที่ค้นหา"}
@@ -277,7 +277,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
                       <item.icon
                         className={cn(
                           "h-[17px] w-[17px] shrink-0",
-                          active ? "text-white" : "text-slate-500 dark:text-slate-400"
+                          active ? "text-white" : "text-slate-400"
                         )}
                         strokeWidth={1.75}
                       />
@@ -287,7 +287,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
                           <span
                             className={cn(
                               "block truncate text-xs",
-                              active ? "text-white/75" : "text-slate-500 dark:text-slate-400"
+                              active ? "text-white/75" : "text-slate-400 dark:text-slate-500"
                             )}
                           >
                             {item.hint}
@@ -303,7 +303,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
               </div>
             ))}
 
-            <div aria-live="polite" className="px-5 py-1 text-xs text-slate-500 dark:text-slate-400">
+            <div aria-live="polite" className="px-5 py-1 text-xs text-slate-400">
               {entitySearchPending && (
                 <span className="flex items-center gap-2">
                   <Spinner size="sm" />
@@ -325,7 +325,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-5 py-2.5 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-5 py-2.5 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
             <span className="flex items-center gap-1.5">
               <kbd className="rounded-lg bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
                 ↑

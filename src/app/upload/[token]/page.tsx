@@ -187,7 +187,7 @@ export default function CustomerUploadPage({
                 <>
                   <Upload className="h-7 w-7" />
                   <span className="font-medium">เลือกไฟล์เพื่ออัปโหลด</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                  <span className="text-xs text-slate-400">
                     รูปภาพ / PDF / AI / PSD / ZIP · สูงสุด {MAX_MB}MB ต่อไฟล์
                   </span>
                 </>
@@ -249,10 +249,10 @@ export default function CustomerUploadPage({
                     className="flex items-center justify-between gap-2 text-sm"
                   >
                     <span className="flex min-w-0 items-center gap-2 text-slate-700">
-                      <Paperclip className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
+                      <Paperclip className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                       <span className="truncate">{f.fileName}</span>
                     </span>
-                    <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
+                    <span className="shrink-0 text-xs text-slate-400">
                       {formatDate(f.createdAt)}
                     </span>
                   </li>
@@ -262,7 +262,7 @@ export default function CustomerUploadPage({
           </Card>
         )}
 
-        <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-center text-xs text-slate-400">
           Powered by Anajak Print ERP
         </p>
       </div>

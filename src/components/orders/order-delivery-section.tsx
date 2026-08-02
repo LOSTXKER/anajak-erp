@@ -322,7 +322,7 @@ export function OrderDeliverySection({
               <p className="text-sm font-semibold text-red-700 dark:text-red-300">
                 🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
               </p>
-              <p className="mt-0.5 text-xs font-medium text-red-700 dark:text-red-400">
+              <p className="mt-0.5 text-xs font-medium text-red-600 dark:text-red-400">
                 ผู้ส่งบนใบ: {packContext.data.blindShipSenderName || packContext.data.customerName}
               </p>
             </Alert>
@@ -331,7 +331,7 @@ export function OrderDeliverySection({
             <button
               type="button"
               onClick={openBlindShipDialog}
-              className={cn(CONTROL_MIN_H, "mt-1 flex w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-500 transition-colors hover:text-blue-500 dark:text-slate-400")}
+              className={cn(CONTROL_MIN_H, "mt-1 flex w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-blue-500")}
             >
               <Settings2 className="h-3 w-3" />
               {packContext.data.blindShip ? "ตั้งค่า blind ship" : "ตั้งค่า blind ship (ปิดอยู่)"}
@@ -437,7 +437,7 @@ export function OrderDeliverySection({
                                 ) : actions.canEditTracking ? (
                                   <button
                                     type="button"
-                                    className={cn(CONTROL_MIN_H, "touch-manipulation text-xs text-slate-500 hover:text-blue-500 dark:text-slate-400")}
+                                    className={cn(CONTROL_MIN_H, "touch-manipulation text-xs text-slate-400 hover:text-blue-500")}
                                     onClick={() => {
                                       setEditTrackingId(delivery.id);
                                       setEditTrackingValue(delivery.trackingNumber || "");
@@ -469,7 +469,7 @@ export function OrderDeliverySection({
                               </div>
                             )}
 
-                            <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
+                            <div className="flex flex-wrap gap-3 text-xs text-slate-400">
                               {delivery.shippedAt && (
                                 <span>ส่ง: {formatDateTime(delivery.shippedAt)}</span>
                               )}
@@ -491,7 +491,7 @@ export function OrderDeliverySection({
                                 rel="noreferrer"
                                 title="ใบรายการแนบกล่อง"
                                 aria-label={`พิมพ์ใบรายการแนบกล่องสำหรับ ${delivery.recipientName}`}
-                                className={cn(CONTROL_H, RADIUS.item, "flex w-11 items-center justify-center text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400")}
+                                className={cn(CONTROL_H, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400")}
                               >
                                 <Printer className="h-3.5 w-3.5" />
                               </a>
@@ -634,7 +634,7 @@ export function OrderDeliverySection({
                     {packRows.map((r) => (
                       <div
                         key={r.key}
-                        className="flex items-center gap-2 border-b border-slate-200 px-3 py-2 dark:border-slate-800"
+                        className="flex items-center gap-2 border-b border-slate-100 px-3 py-2 dark:border-slate-800"
                       >
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm text-slate-900 dark:text-white">
@@ -646,7 +646,7 @@ export function OrderDeliverySection({
                               </span>
                             )}
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                          <p className="text-xs text-slate-400">
                             สั่ง {r.ordered} · ส่งแล้ว {r.packed}
                           </p>
                         </div>
@@ -675,7 +675,7 @@ export function OrderDeliverySection({
                       <span className="text-sm font-medium text-slate-900 dark:text-white">
                         รวมรอบนี้ {packTotal} ตัว
                       </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                      <span className="text-xs text-slate-400">
                         เหลือทั้งหมด {totalRemaining} ตัว
                       </span>
                     </div>
@@ -706,11 +706,11 @@ export function OrderDeliverySection({
               <span>
                 บันทึกเป็นที่อยู่หลักของลูกค้า (เติมเบอร์นี้ให้โปรไฟล์ด้วยถ้ายังว่าง)
                 {!customerHasAddress ? (
-                  <span className="block text-xs text-amber-800 dark:text-amber-400">
+                  <span className="block text-xs text-amber-600 dark:text-amber-400">
                     ลูกค้ารายนี้ยังไม่มีที่อยู่ในระบบ — บันทึกไว้ ออเดอร์หน้าจะกรอกให้อัตโนมัติ
                   </span>
                 ) : (
-                  <span className="block text-xs text-slate-500 dark:text-slate-400">
+                  <span className="block text-xs text-slate-400">
                     ลูกค้ามีที่อยู่หลักอยู่แล้ว — ติ๊กเฉพาะถ้าต้องการแทนที่ด้วยที่อยู่นี้
                   </span>
                 )}

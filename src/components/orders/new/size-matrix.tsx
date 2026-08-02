@@ -80,7 +80,7 @@ export function SizeMatrix({
         {/* เพิ่มไซส์อื่น (XS/4XL/เด็ก/ตัวเลข) */}
         <div className="flex items-end gap-1.5">
           <div className="w-16">
-            <label htmlFor="size-matrix-new-size" className="block text-center text-xs text-slate-500 dark:text-slate-400">เพิ่มไซส์</label>
+            <label htmlFor="size-matrix-new-size" className="block text-center text-xs text-slate-400">เพิ่มไซส์</label>
             <Input size="sm"
               id="size-matrix-new-size"
               value={newSize}

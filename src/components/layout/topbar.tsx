@@ -112,7 +112,7 @@ export function Topbar() {
           FOCUS_BUTTON,
           // ช่องค้นหาเคยเป็น "ขาวบนพื้นเทา" — พื้นขาวแล้วมองไม่เห็นว่าตรงนี้กดได้
           // สลับเป็นเทาอ่อน (ของที่จมลงไปในพื้น) ให้เห็นเป็นช่องเหมือนเดิม
-          "group flex w-full min-w-0 max-w-md items-center gap-2 bg-slate-100/70 px-3 text-sm text-slate-500 dark:text-slate-400 hairline-ring transition-colors hover:bg-slate-100 hover:text-slate-600 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10",
+          "group flex w-full min-w-0 max-w-md items-center gap-2 bg-slate-100/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-slate-100 hover:text-slate-600 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10",
         )}
       >
         <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -148,7 +148,7 @@ export function Topbar() {
 
           {notifOpen && (
             <div className={cn(OVERLAY_PANEL, "fixed left-2 right-2 top-16 z-50 overflow-hidden sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96")}>
-              <div className="flex items-center justify-between border-b border-slate-200 px-3.5 py-2.5 dark:border-slate-800">
+              <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5 dark:border-slate-800">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                   การแจ้งเตือน
                   {count > 0 && (
@@ -209,13 +209,13 @@ export function Topbar() {
                     </Link>
                   ))
                 ) : (
-                  <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                  <div className="px-4 py-8 text-center text-sm text-slate-400">
                     ยังไม่มีการแจ้งเตือน
                   </div>
                 )}
               </div>
 
-              <div className="border-t border-slate-200 dark:border-slate-800">
+              <div className="border-t border-slate-100 dark:border-slate-800">
                 <Link
                   href="/notifications"
                   onClick={() => setNotifOpen(false)}

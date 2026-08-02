@@ -98,7 +98,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         }
       >
         {customerProfileGaps(customer).length > 0 && (
-          <p className="text-xs text-amber-800 dark:text-amber-400">
+          <p className="text-xs text-amber-600 dark:text-amber-400">
             โปรไฟล์ยังไม่ครบ: {customerProfileGaps(customer).map((g) => g.label).join(" · ")}
           </p>
         )}
@@ -138,7 +138,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               {/* ลูกค้าที่ยังไม่กรอกช่องทางติดต่อเลย — เดิมการ์ดนี้เหลือแต่หัวข้อ ข้างในโล่ง
                   คนอ่านแยกไม่ออกว่า "ยังไม่ได้กรอก" กับ "หน้าโหลดไม่ครบ" */}
               {!customer.phone && !customer.email && !customer.lineId && !customer.address && (
-                <p className="text-slate-500 dark:text-slate-400">
+                <p className="text-slate-400 dark:text-slate-500">
                   ยังไม่ได้กรอกช่องทางติดต่อ — กด “แก้ไขข้อมูล” เพื่อเพิ่มเบอร์/LINE/อีเมล
                 </p>
               )}
@@ -213,7 +213,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 {customer.taxId && (
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                     <FileText className="h-4 w-4" /> เลขผู้เสียภาษี: {customer.taxId}
-                    {customer.branchNumber && <span className="text-slate-500 dark:text-slate-400">(สาขา {customer.branchNumber === "00000" ? "สำนักงานใหญ่" : customer.branchNumber})</span>}
+                    {customer.branchNumber && <span className="text-slate-400">(สาขา {customer.branchNumber === "00000" ? "สำนักงานใหญ่" : customer.branchNumber})</span>}
                   </div>
                 )}
                 {customer.creditLimit != null && (
@@ -237,7 +237,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   </div>
                 )}
                 {customer.billingAddress && (
-                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                  <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
                     <p className="mb-1 text-xs font-semibold text-slate-500">ที่อยู่ออกใบกำกับภาษี</p>
                     <p className="text-sm text-slate-700 dark:text-slate-300">
                       {customer.billingAddress}
@@ -262,14 +262,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader><CardTitle className="text-base">ออเดอร์ล่าสุด</CardTitle></CardHeader>
             <CardContent>
               {customer.orders.length === 0 ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400">ยังไม่มีออเดอร์</p>
+                <p className="text-sm text-slate-400">ยังไม่มีออเดอร์</p>
               ) : (
                 <div className="space-y-2">
                   {customer.orders.map((order) => (
                     <Link
                       key={order.id}
                       href={`/orders/${order.id}`}
-                      className="flex items-center justify-between rounded-xl border border-slate-200 p-3 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                      className="flex items-center justify-between rounded-xl border border-slate-100 p-3 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800/50"
                     >
                       <div>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{order.orderNumber}</p>
@@ -307,15 +307,15 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             </CardHeader>
             <CardContent>
               {customer.communicationLogs.length === 0 ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400">ยังไม่มีบันทึก — คุยอะไรกับลูกค้าจดไว้ ทีมอื่นเห็นด้วย</p>
+                <p className="text-sm text-slate-400">ยังไม่มีบันทึก — คุยอะไรกับลูกค้าจดไว้ ทีมอื่นเห็นด้วย</p>
               ) : (
                 <div className="space-y-3">
                   {customer.communicationLogs.map((log) => (
                     <div key={log.id} className="border-l-2 border-slate-200 pl-4 dark:border-slate-700">
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary">{commChannelLabel(log.channel)}</Badge>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">{formatDateTime(log.createdAt)}</span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">- {log.user.name}</span>
+                        <span className="text-xs text-slate-400">{formatDateTime(log.createdAt)}</span>
+                        <span className="text-xs text-slate-400">- {log.user.name}</span>
                       </div>
                       {log.subject && <p className="text-sm font-medium mt-1">{log.subject}</p>}
                       <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{log.content}</p>

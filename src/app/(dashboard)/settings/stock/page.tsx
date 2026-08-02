@@ -266,7 +266,7 @@ export default function StockSettingsPage() {
                     placeholder="https://stock.anajak.com/api"
                     className="font-mono text-sm"
                   />
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                     URL ของ Stock API (ดูได้ที่หน้า Integrations ในระบบ Stock)
                   </p>
                 </div>
@@ -292,7 +292,7 @@ export default function StockSettingsPage() {
                         size="icon-sm"
                         onClick={() => setShowApiKey(!showApiKey)}
                         aria-label={showApiKey ? "ซ่อน API Key" : "แสดง API Key"}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                       >
                         {showApiKey ? (
                           <EyeOff />
@@ -302,7 +302,7 @@ export default function StockSettingsPage() {
                       </Button>
                     </div>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                     สร้าง API Key ได้ที่ระบบ Stock &gt; ตั้งค่า &gt; เชื่อมต่อระบบ &gt; เพิ่ม Custom ERP
                   </p>
                 </div>
@@ -338,7 +338,7 @@ export default function StockSettingsPage() {
 
                 {/* Unsaved changes indicator */}
                 {!isSaved && (
-                  <p className="text-xs text-amber-800 dark:text-amber-400">
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
                     * มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก
                   </p>
                 )}
@@ -494,7 +494,7 @@ export default function StockSettingsPage() {
                     <th scope="col" className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
                       หมวดหมู่ Stock
                     </th>
-                    <th scope="col" aria-label="แมปไปยัง" className="px-4 py-2.5 text-center font-medium text-slate-500 dark:text-slate-400">
+                    <th scope="col" aria-label="แมปไปยัง" className="px-4 py-2.5 text-center font-medium text-slate-400">
                       →
                     </th>
                     <th scope="col" className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
@@ -511,7 +511,7 @@ export default function StockSettingsPage() {
                       <th scope="row" className="px-4 py-2.5 text-left font-normal text-slate-900 dark:text-white">
                         {mapping.stockCategory}
                       </th>
-                      <td aria-hidden="true" className="px-4 py-2.5 text-center text-slate-500 dark:text-slate-400">→</td>
+                      <td aria-hidden="true" className="px-4 py-2.5 text-center text-slate-400">→</td>
                       <td aria-label={`${mapping.erpItemType} ${mapping.erpCode}`} className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <span className="text-slate-900 dark:text-white">

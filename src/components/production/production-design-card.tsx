@@ -40,7 +40,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
   return (
     <div className="card-surface space-y-4 rounded-2xl p-4 sm:p-5">
       <div className="flex items-center gap-2">
-        <Palette className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+        <Palette className="h-4 w-4 text-slate-400" />
         <h2 className="text-sm font-semibold text-slate-900 dark:text-white">แบบ + ไซส์</h2>
         {approvedDesign && (
           <Badge variant="success" size="sm">
@@ -66,7 +66,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
               />
             </button>
           ) : (
-            <div className={cn(DASHED, "flex h-32 w-32 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl text-slate-500 dark:text-slate-400")}>
+            <div className={cn(DASHED, "flex h-32 w-32 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl text-slate-400")}>
               <ImageOff className="h-5 w-5" />
               <span className="text-xs">ไฟล์ไม่ใช่รูป</span>
             </div>
@@ -80,7 +80,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
                 อนุมัติ {formatDate(approvedDesign.approvedAt)}
               </p>
             )}
-            <p className="text-xs text-slate-500 dark:text-slate-400">แตะรูปเพื่อขยาย · กันพิมพ์ผิดเวอร์ชัน</p>
+            <p className="text-xs text-slate-400">แตะรูปเพื่อขยาย · กันพิมพ์ผิดเวอร์ชัน</p>
             <Button variant="outline" size="sm" asChild className="h-9">
               <a href={approvedDesign.fileUrl} target="_blank" rel="noreferrer">
                 <ExternalLink />
@@ -146,7 +146,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
                     {pr.colorCount ? ` · ${pr.colorCount} สี` : ""}
                   </p>
                   {pr.designNote && (
-                    <p className="truncate text-slate-500 dark:text-slate-400">{pr.designNote}</p>
+                    <p className="truncate text-slate-400">{pr.designNote}</p>
                   )}
                 </div>
               </div>

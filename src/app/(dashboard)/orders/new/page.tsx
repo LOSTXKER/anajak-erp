@@ -544,7 +544,7 @@ export default function NewOrderPage() {
                 onSetItems={setItems}
               />
             ) : (
-              <div className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200/70 dark:divide-slate-800 dark:border-slate-800/60">
+              <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/70 dark:divide-slate-800 dark:border-slate-800/60">
                 {items.map((item, itemIdx) => (
                   <OrderItemCard
                     key={itemIdx}
@@ -670,7 +670,7 @@ export default function NewOrderPage() {
           <div className="min-w-0 flex-1">
             {hasItemContent ? (
               <>
-                <p className="text-2xs text-slate-500 dark:text-slate-400">ยอดรวม</p>
+                <p className="text-2xs text-slate-400">ยอดรวม</p>
                 <p className="text-base font-semibold tabular-nums text-slate-900 dark:text-white">
                   {formatCurrency(pricingSummary.grandTotal)}
                 </p>

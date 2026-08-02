@@ -55,7 +55,7 @@ export function OrderStatusBar({
 
       <ol
         aria-label="เส้นทางสถานะคำสั่งซื้อ"
-        className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-200 pt-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-[repeat(11,minmax(0,1fr))] dark:border-slate-800"
+        className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-[repeat(11,minmax(0,1fr))] dark:border-slate-800"
       >
         {flowSteps.map((step, i) => {
           const isPast = onPath && i < currentStepIndex;

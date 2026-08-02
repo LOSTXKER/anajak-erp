@@ -360,7 +360,7 @@ export default function ServicesPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800">
+                  <tr className="border-b border-slate-100 dark:border-slate-800">
                     <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
                       ชื่อ
                     </th>
@@ -381,7 +381,7 @@ export default function ServicesPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {items.map((item) => {
                     const isEditing = editingItem?.id === item.id;
                     const ptConfig = pricingTypeConfig[item.pricingType] ?? {

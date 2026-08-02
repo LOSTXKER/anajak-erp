@@ -123,7 +123,7 @@ export function DatePicker({
             className,
           )}
         >
-          <span className={cn("truncate", !selected && "text-slate-500 dark:text-slate-400")}>
+          <span className={cn("truncate", !selected && "text-slate-400")}>
             {selected
               ? `${selected.getDate()} ${MONTHS[selected.getMonth()]} ${buddhistYear(selected)}`
               : placeholder}
@@ -146,12 +146,12 @@ export function DatePicker({
                     onChange("");
                   }
                 }}
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
               >
                 <X className="h-3.5 w-3.5" />
               </span>
             )}
-            <CalendarDays className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            <CalendarDays className="h-4 w-4 text-slate-400" />
           </span>
         </button>
       </PopoverPrimitive.Trigger>
@@ -196,7 +196,7 @@ export function DatePicker({
             {WEEKDAYS.map((w) => (
               <div
                 key={w}
-                className="pb-1 text-center text-2xs font-medium text-slate-500 dark:text-slate-300"
+                className="pb-1 text-center text-2xs font-medium text-slate-400"
               >
                 {w}
               </div>
@@ -219,7 +219,7 @@ export function DatePicker({
                     CONTROL_H,
                     "flex items-center justify-center rounded-lg text-sm tabular-nums transition-colors",
                     FOCUS_BUTTON,
-                    !inMonth && "text-slate-500 dark:text-slate-400",
+                    !inMonth && "text-slate-300 dark:text-slate-600",
                     inMonth && "text-slate-700 dark:text-slate-200",
                     !isSelected && "hover:bg-slate-100 dark:hover:bg-slate-800",
                     isToday &&

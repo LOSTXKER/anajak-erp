@@ -292,7 +292,7 @@ export function DateRangePicker({
 
           <div className="grid grid-cols-7 gap-y-0.5" onMouseLeave={() => setHovered(null)}>
             {WEEKDAYS.map((w) => (
-              <div key={w} className="pb-1 text-center text-2xs font-medium text-slate-500 dark:text-slate-300">
+              <div key={w} className="pb-1 text-center text-2xs font-medium text-slate-400">
                 {w}
               </div>
             ))}
@@ -322,7 +322,7 @@ export function DateRangePicker({
                     isEdgeEnd && !isEdgeStart && "rounded-r-lg",
                     isEdge && "rounded-lg bg-blue-600 font-semibold text-white",
                     !inRange && "rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800",
-                    !inMonth && !isEdge && "text-slate-500 dark:text-slate-400",
+                    !inMonth && !isEdge && "text-slate-300 dark:text-slate-600",
                     inMonth && !isEdge && "text-slate-700 dark:text-slate-200",
                     isToday && !isEdge && "font-semibold text-blue-600 dark:text-blue-400",
                   )}

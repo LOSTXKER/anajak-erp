@@ -119,7 +119,7 @@ export default function CostRatesSettingsPage() {
     return (
       <div className="mx-auto max-w-2xl space-y-6">
         {header}
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-slate-400">
           หน้านี้ต้องมีสิทธิ์เห็นทุน กำไร และรายงานการเงิน
         </p>
       </div>
@@ -280,7 +280,7 @@ export default function CostRatesSettingsPage() {
                     ค่าแรง/โสหุ้ย {formatBaht(sampleLaborOverhead)} บาท
                   </p>
                 ) : (
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  <p className="mt-1 text-sm text-slate-400">
                     ยังไม่ได้ตั้งเรต — กรอกเรตด้านบนเพื่อดูตัวอย่าง
                   </p>
                 )}

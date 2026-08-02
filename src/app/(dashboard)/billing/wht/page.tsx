@@ -184,7 +184,7 @@ export default function WhtRegisterPage() {
           title="ทะเบียนหัก ณ ที่จ่าย (50ทวิ)"
           description="ตามหนังสือรับรองหัก ณ ที่จ่ายจากลูกค้า"
         />
-        <p className="text-sm text-slate-500 dark:text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
+        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
       </div>
     );
   }
@@ -371,7 +371,7 @@ export default function WhtRegisterPage() {
                           asChild
                           variant="ghost"
                           size="icon-sm"
-                          className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+                          className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
                         >
                           <a
                             href={row.fileUrl}
@@ -539,7 +539,7 @@ export default function WhtRegisterPage() {
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setFileUrl("")}
-                    className="shrink-0 text-slate-500 dark:text-slate-400 hover:text-red-600"
+                    className="shrink-0 text-slate-400 hover:text-red-600"
                     title="เอาไฟล์ออก"
                   >
                     <X />

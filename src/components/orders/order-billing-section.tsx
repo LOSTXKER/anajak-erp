@@ -534,7 +534,7 @@ export function OrderBillingSection({
                         rel="noreferrer"
                         aria-label={`พิมพ์หรือเปิด PDF ${inv.invoiceNumber}`}
                         title="พิมพ์ / PDF"
-                        className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400")}
+                        className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400")}
                       >
                         <Printer className="h-3.5 w-3.5" />
                       </a>
@@ -542,7 +542,7 @@ export function OrderBillingSection({
 
                       <div
                         id={`invoice-details-${inv.id}`}
-                        className="border-t border-slate-200 p-3 dark:border-slate-700"
+                        className="border-t border-slate-100 p-3 dark:border-slate-700"
                       >
                         {/* Invoice details */}
                         <div className="mb-3 grid grid-cols-3 gap-2 text-xs">
@@ -587,7 +587,7 @@ export function OrderBillingSection({
                                     {PAYMENT_METHOD_LABELS[p.method] || p.method}
                                   </span>
                                   {p.reference && (
-                                    <span className="text-slate-500 dark:text-slate-400">
+                                    <span className="text-slate-400">
                                       #{p.reference}
                                     </span>
                                   )}
@@ -602,7 +602,7 @@ export function OrderBillingSection({
                                       target="_blank"
                                       rel="noreferrer"
                                       aria-label={`ดูสลิปของรายการชำระ ${formatCurrency(p.amount)}`}
-                                      className={cn("flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 transition-colors hover:bg-white hover:text-blue-600", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:bg-slate-900 dark:hover:text-blue-400")}
+                                      className={cn("flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white hover:text-blue-600", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:bg-slate-900 dark:hover:text-blue-400")}
                                       title="ดูสลิปโอน"
                                     >
                                       <Paperclip className="h-3 w-3" />
@@ -660,7 +660,7 @@ export function OrderBillingSection({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="gap-1.5 text-xs text-amber-800 hover:text-amber-700 dark:text-amber-500"
+                              className="gap-1.5 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-500"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 resetRefundForm();
@@ -763,7 +763,7 @@ export function OrderBillingSection({
                 </p>
               )}
               {suggestion.data && suggestion.data.creditNoteTotal > 0 && (
-                <p className="mt-1 text-xs text-amber-800 dark:text-amber-400">
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
                   มีใบลดหนี้ที่ยังไม่ผูกใบเดิมรวม{" "}
                   {formatCurrency(suggestion.data.creditNoteTotal)} — ระบบหักให้อัตโนมัติไม่ได้
                   ตรวจยอดก่อนสร้างบิล (ใบลดหนี้ที่ผูกใบเดิมถูกหักจากยอดค้างแล้ว)
@@ -820,7 +820,7 @@ export function OrderBillingSection({
                 customerProfileGaps(billCustomer.data).some(
                   (g) => g.key === "address" || g.key === "taxInfo"
                 ) && (
-                  <p className="mt-1 text-xs text-amber-800 dark:text-amber-400">
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
                     เอกสารภาษีต้องมีชื่อ-ที่อยู่ลูกค้า — รายนี้ยัง{" "}
                     {customerProfileGaps(billCustomer.data)
                       .filter((g) => g.key === "address" || g.key === "taxInfo")

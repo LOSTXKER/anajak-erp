@@ -157,7 +157,7 @@ export default function QuotationDetailPage({
           title="ใบเสนอราคา"
           description="จัดการใบเสนอราคาทั้งหมด"
         />
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-slate-400">
           หน้านี้เปิดเฉพาะทีมขาย ผู้จัดการ และบัญชี
         </p>
       </div>
@@ -393,7 +393,7 @@ export default function QuotationDetailPage({
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800">
+                    <tr className="border-b border-slate-100 dark:border-slate-800">
                       <th className="pb-3 pr-4 text-left text-xs font-medium uppercase text-slate-500">
                         #
                       </th>
@@ -429,7 +429,7 @@ export default function QuotationDetailPage({
                         index: number,
                       ) => (
                         <tr key={item.id}>
-                          <td className="py-3 pr-4 text-sm text-slate-500 dark:text-slate-400">
+                          <td className="py-3 pr-4 text-sm text-slate-400">
                             {index + 1}
                           </td>
                           <td className="py-3 pr-4">
@@ -437,7 +437,7 @@ export default function QuotationDetailPage({
                               {item.name}
                             </p>
                             {item.description && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                              <p className="text-xs text-slate-400">
                                 {item.description}
                               </p>
                             )}
@@ -462,7 +462,7 @@ export default function QuotationDetailPage({
               </div>
 
               {/* Price breakdown */}
-              <div className="mt-4 space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+              <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">ยอดรวมสินค้า</span>
                   <span className="tabular-nums text-slate-900 dark:text-white">
@@ -508,7 +508,7 @@ export default function QuotationDetailPage({
               <CardContent className="space-y-4 text-sm">
                 {quotation.description && (
                   <div>
-                    <p className="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <p className="mb-1 text-xs font-medium text-slate-400">
                       รายละเอียด
                     </p>
                     <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">
@@ -518,7 +518,7 @@ export default function QuotationDetailPage({
                 )}
                 {quotation.terms && (
                   <div>
-                    <p className="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <p className="mb-1 text-xs font-medium text-slate-400">
                       เงื่อนไข
                     </p>
                     <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">
@@ -528,7 +528,7 @@ export default function QuotationDetailPage({
                 )}
                 {quotation.notes && (
                   <div>
-                    <p className="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <p className="mb-1 text-xs font-medium text-slate-400">
                       หมายเหตุ
                     </p>
                     <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">
@@ -642,8 +642,8 @@ export default function QuotationDetailPage({
                 </div>
               )}
               {quotation.rejectedReason && (
-                <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
-                  <p className="mb-1 text-xs text-slate-500 dark:text-slate-400">เหตุผลที่ปฏิเสธ</p>
+                <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
+                  <p className="mb-1 text-xs text-slate-400">เหตุผลที่ปฏิเสธ</p>
                   <p className="text-slate-500">{quotation.rejectedReason}</p>
                 </div>
               )}

@@ -301,7 +301,7 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
             {item.meta && <span className="tabular-nums">{item.meta}</span>}
           </div>
         </div>
-        <ChevronRight className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden="true" />
+        <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
       </Link>
     </li>
   );
@@ -321,7 +321,7 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
         group.id === "attention" && "border border-red-200 dark:border-red-900"
       )}
     >
-      <div className="flex items-start gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+      <div className="flex items-start gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
         <div
           className={cn(
             "mt-0.5 rounded-lg p-2",
@@ -342,13 +342,13 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
           <p className="text-xs text-slate-600 dark:text-slate-300">{group.description}</p>
         </div>
       </div>
-      <ul className="divide-y divide-slate-200 dark:divide-slate-800">
+      <ul className="divide-y divide-slate-100 dark:divide-slate-800">
         {visible.map((item) => (
           <TaskRow key={item.key} item={item} urgent={group.id === "attention"} />
         ))}
       </ul>
       {group.items.length > 5 && (
-        <div className="border-t border-slate-200 p-2 dark:border-slate-800">
+        <div className="border-t border-slate-100 p-2 dark:border-slate-800">
           <Button
             type="button"
             variant="ghost"

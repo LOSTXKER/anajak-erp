@@ -127,7 +127,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
   return (
     <div className="space-y-1.5">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
         <Input
           aria-label="ค้นหาลูกค้า"
           value={search}
@@ -246,7 +246,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
                     <span>
                       {c.name}
                       {c.company && <span className="text-slate-500"> ({c.company})</span>}
-                      <span className="ml-1.5 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="ml-1.5 text-xs text-slate-400">
                         {[c.phone, c.lineId].filter(Boolean).join(" · ")}
                       </span>
                     </span>

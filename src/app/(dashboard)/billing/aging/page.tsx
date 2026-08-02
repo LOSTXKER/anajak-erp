@@ -224,7 +224,7 @@ function AgingPageContent() {
     return (
       <div className="space-y-5">
         <PageHeader title="ลูกหนี้ค้างชำระ" description="ยอดค้างแยกตามอายุหนี้" />
-        <p className="text-sm text-slate-500 dark:text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
+        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
       </div>
     );
   }
@@ -432,7 +432,7 @@ function AgingPageContent() {
                   </p>
                 </div>
 
-                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-200 pt-3 text-xs dark:border-slate-800">
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
                   {BUCKETS.filter((bucket) => row.buckets[bucket.key] > 0).map((bucket) => (
                     <div key={bucket.key} className="flex items-center justify-between gap-2">
                       <dt className="text-slate-500 dark:text-slate-400">{bucket.label}</dt>
@@ -542,7 +542,7 @@ function AgingPageContent() {
                 </div>
               </>
             ) : (
-              <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+              <p className="py-8 text-center text-sm text-slate-400">
                 ลูกค้ารายนี้ไม่มียอดค้าง — ไม่มีอะไรต้องทวง
               </p>
             )}

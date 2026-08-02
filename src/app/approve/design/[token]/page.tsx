@@ -280,7 +280,7 @@ export default function DesignApprovalPage({
           </Card>
         )}
 
-        <p className="text-center text-xs text-slate-500">
+        <p className="text-center text-xs text-slate-400">
           Powered by Anajak Print ERP
         </p>
       </div>

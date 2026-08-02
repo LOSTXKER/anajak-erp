@@ -45,7 +45,7 @@ export function OrderGoodsReceiptSection({
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <ClipboardCheck className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            <ClipboardCheck className="h-4 w-4 text-slate-400" />
             ของเข้า / ตรวจรับ
           </CardTitle>
           {canReceive && (
@@ -94,7 +94,7 @@ export function OrderGoodsReceiptSection({
             onRetry={() => void refetch()}
           />
         ) : (receipts ?? []).length === 0 ? (
-          <p className="py-2 text-center text-sm text-slate-500 dark:text-slate-400">
+          <p className="py-2 text-center text-sm text-slate-400">
             ยังไม่มีใบตรวจรับ — ของเข้าโรงงานเมื่อไหร่ กดนับทันที (นับจริงต่อไซส์)
           </p>
         ) : (
@@ -107,7 +107,7 @@ export function OrderGoodsReceiptSection({
             return (
               <div
                 key={r.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-2 dark:border-slate-800"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-900 dark:text-white">
@@ -123,7 +123,7 @@ export function OrderGoodsReceiptSection({
                 </div>
                 <div className="flex items-center gap-1.5">
                   {r.photoUrls.length > 0 && (
-                    <span className="flex items-center gap-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    <span className="flex items-center gap-0.5 text-xs text-slate-400">
                       <ImageIcon className="h-3 w-3" />
                       {r.photoUrls.length}
                     </span>

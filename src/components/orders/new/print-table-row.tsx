@@ -68,7 +68,7 @@ export function PrintTableRow({
   return (
     <>
       {/* แถวหลัก: รูป · วิธีพิมพ์ · ค่าสกรีน · ลบ */}
-      <tr className="group border-b border-slate-200 last:border-0 dark:border-slate-800">
+      <tr className="group border-b border-slate-100 last:border-0 dark:border-slate-800">
         {/* Image */}
         <td className="py-2.5 pr-2 align-middle">
           <input ref={inputRef} type="file" accept="image/*,.pdf,.ai,.psd" onChange={handleImageUpload} className="hidden" aria-label={`อัปโหลดไฟล์ลาย ${printIdx + 1}`} />
@@ -80,7 +80,7 @@ export function PrintTableRow({
               <Button type="button" variant="destructive" size="icon" aria-label={`ลบไฟล์ลาย ${printIdx + 1}`} onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); onUpdate("artworkId", undefined); }} className="absolute -right-3 -top-3 h-8 min-h-8 w-8 min-w-8 rounded-full p-0"><X /></Button>
             </div>
           ) : (
-            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`} className={cn(DASHED, "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600")}>
+            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`} className={cn(DASHED, "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600")}>
               {uploading ? <Spinner size="md" /> : <Plus className="h-4 w-4" />}
             </button>
           )}
@@ -109,7 +109,7 @@ export function PrintTableRow({
       </tr>
 
       {/* รายละเอียดลาย — กางตลอด */}
-      <tr className="border-b border-slate-200 last:border-0 dark:border-slate-800">
+      <tr className="border-b border-slate-100 last:border-0 dark:border-slate-800">
         <td aria-hidden="true" />
         <td colSpan={3} className="pb-3 pl-1 pt-1">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -133,7 +133,7 @@ export function PrintTableRow({
                 <Field label="ขนาดเอง (ซม.)">
                   <div className="flex items-center gap-1.5">
                     <Input type="number" min={0} step={0.1} value={print.width || ""} onChange={(e) => onUpdate("width", parseFloat(e.target.value) || 0)} placeholder="กว้าง" className="w-full text-center" />
-                    <span className="text-xs text-slate-500 dark:text-slate-400">x</span>
+                    <span className="text-xs text-slate-400">x</span>
                     <Input type="number" min={0} step={0.1} value={print.height || ""} onChange={(e) => onUpdate("height", parseFloat(e.target.value) || 0)} placeholder="สูง" className="w-full text-center" />
                   </div>
                 </Field>

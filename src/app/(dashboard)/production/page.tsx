@@ -462,7 +462,7 @@ function ProductionWorkspace() {
             </span>
           </h2>
           {(laneCards.get(focus.lane) ?? []).length === 0 ? (
-            <p className={cn(DASHED, "rounded-2xl py-10 text-center text-sm text-slate-500 dark:text-slate-400")}>
+            <p className={cn(DASHED, "rounded-2xl py-10 text-center text-sm text-slate-400")}>
               สายนี้เคลียร์แล้ว — กลับไปภาพรวม
             </p>
           ) : (
@@ -492,7 +492,7 @@ function ProductionWorkspace() {
         // ── ลงลึกหลังผลิต — ตรวจนับ QC / เลื่อนสถานะ / ไปจัดส่ง (ของเดิม) ──
         <section className="space-y-2.5">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-            <PackageCheck className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            <PackageCheck className="h-4 w-4 text-slate-400" />
             {focusPostCol.title}
             <span className="rounded-full bg-slate-100 px-1.5 text-xs tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               {all.filter((o) => o.internalStatus === focusPostCol.status).length}
@@ -503,7 +503,7 @@ function ProductionWorkspace() {
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 ยังไม่มีงานถึงขั้น{focusPostCol.title}
               </p>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-xs text-slate-400">
                 งานจะโผล่ที่นี่เองเมื่อผ่านขั้นก่อนหน้า —{" "}
                 <button
                   type="button"
@@ -657,14 +657,14 @@ function OrderCardHeader({ order, href }: { order: KanbanOrder; href: string }) 
       </div>
       <p className="truncate text-xs text-slate-600 dark:text-slate-300">{order.title}</p>
       {order.customerName && (
-        <p className="truncate text-xs text-slate-500 dark:text-slate-400">{order.customerName}</p>
+        <p className="truncate text-xs text-slate-400">{order.customerName}</p>
       )}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
         {order.deadline && (
           <span
             className={cn(
               "flex items-center gap-1.5",
-              isOverdue && "font-medium text-red-700 dark:text-red-400",
+              isOverdue && "font-medium text-red-600 dark:text-red-400",
               isDueSoon && "font-medium text-amber-700 dark:text-amber-400"
             )}
           >
@@ -772,12 +772,12 @@ function LaneCardView({
         </span>
         {/* บอกบางส่วนได้: ทำแล้วกี่ตัวจากทั้งกอง (โชว์เมื่อขั้นนับจำนวน) */}
         {step.qtyTotal !== null && step.qtyTotal > 0 && (
-          <span className="shrink-0 tabular-nums text-slate-500 dark:text-slate-400">
+          <span className="shrink-0 tabular-nums text-slate-400">
             {step.qtyDone}/{step.qtyTotal} ตัว
           </span>
         )}
         {step.assignedTo && (
-          <span className="max-w-[90px] shrink-0 truncate text-slate-500 dark:text-slate-400">
+          <span className="max-w-[90px] shrink-0 truncate text-slate-400">
             {step.assignedTo.name}
           </span>
         )}
@@ -861,7 +861,7 @@ function LaneCardView({
                     size="sm"
                     disabled={busy}
                     onClick={() => onOutsourceQcFail(activeOutsource.id)}
-                    className="flex-1 text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200"
+                    className="flex-1 text-red-600 hover:text-red-700"
                   >
                     ไม่ผ่าน
                   </Button>

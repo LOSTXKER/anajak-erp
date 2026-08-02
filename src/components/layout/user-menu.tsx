@@ -72,7 +72,7 @@ export function UserMenu() {
             <DropdownMenu.SubTrigger className={menuItemClass}>
               {themeIcon}
               ธีม
-              <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">
+              <span className="ml-auto text-xs text-slate-400">
                 {theme === "system" ? "ระบบ" : theme === "dark" ? "มืด" : "สว่าง"}
               </span>
             </DropdownMenu.SubTrigger>

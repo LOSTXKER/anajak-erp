@@ -552,7 +552,7 @@ function CustomersPageContent() {
                           </p>
                         )}
                       </div>
-                      <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
+                      <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-slate-400" />
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Badge variant={seg.variant}>{seg.label}</Badge>
@@ -563,7 +563,7 @@ function CustomersPageContent() {
                         {customer.customerType === "CORPORATE" ? "นิติบุคคล" : "บุคคล"}
                       </span>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-200 pt-3 text-xs dark:border-slate-800">
+                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
                       <div className="min-w-0">
                         <p className="text-slate-500 dark:text-slate-400">ติดต่อ</p>
                         <p className="mt-0.5 truncate text-slate-800 dark:text-slate-200">

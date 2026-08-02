@@ -62,7 +62,7 @@ export function OrderCustomerSection({
         </div>
       )}
       {selectedCustomer && customerProfileGaps(selectedCustomer).length > 0 && (
-        <p className="mt-1.5 text-xs text-amber-800 dark:text-amber-400">
+        <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
           โปรไฟล์ยังไม่ครบ:{" "}
           {customerProfileGaps(selectedCustomer)
             .map((g) => g.label)
@@ -86,7 +86,7 @@ export function OrderCustomerSection({
         </p>
       )}
       {selectedCustomer && filmCount > 0 && (
-        <p className="mt-1.5 text-xs font-medium text-amber-800 dark:text-amber-400">
+        <p className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
           🎞️ ลูกค้ามีฟิล์มพร้อมรีดค้าง {filmCount} รายการ — เช็คที่{" "}
           <a
             href={`/production/films?search=${encodeURIComponent(selectedCustomer.name)}`}

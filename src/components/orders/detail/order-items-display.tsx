@@ -61,7 +61,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
             {product.receiveNote && <span className="text-slate-500">({product.receiveNote})</span>}
           </>
         ) : (
-          <span className="text-slate-500 dark:text-slate-400">ยังไม่ได้ตรวจรับ</span>
+          <span className="text-slate-400">ยังไม่ได้ตรวจรับ</span>
         )}
         <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1.5 px-2 text-2xs text-yellow-600 hover:text-yellow-800 dark:text-yellow-400">
           <Edit3 />{product.receivedInspected ? "แก้ไข" : "ตรวจรับ"}
@@ -166,7 +166,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
               return (
                 <div key={item.id} className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
                   {/* Item header — ชื่อนำ · จำนวนเป็นบรรทัดจาง (เลิก badge ซ้อน ลดความรก) */}
-                  <div className="flex items-start justify-between gap-3 border-b border-slate-200 bg-slate-50/60 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/20">
+                  <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/20">
                     <div className="flex min-w-0 items-start gap-2">
                       <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                         {itemIndex + 1}
@@ -175,7 +175,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                         <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
                           {item.description || `รายการที่ ${itemIndex + 1}`}
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
                           {item.products?.length ?? 0} สินค้า · {itemTotalQty} ชิ้น
                         </p>
                         {item.notes && (
@@ -201,7 +201,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="border-b border-slate-200 dark:border-slate-800">
+                              <tr className="border-b border-slate-100 dark:border-slate-800">
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">แบบ</th>
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ตำแหน่ง</th>
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
@@ -226,7 +226,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                         />
                                       </a>
                                     ) : (
-                                      <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
+                                      <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
                                     )}
                                   </td>
                                   <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{p.position || "-"}</td>
@@ -262,7 +262,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                           <ShoppingBag className="h-3.5 w-3.5" />
                           สินค้า ({item.products.length})
                         </div>
-                        <div className="divide-y divide-slate-200 dark:divide-slate-800">
+                        <div className="divide-y divide-slate-100 dark:divide-slate-800">
                           {item.products.map((prod, prodIdx) => {
                             const prodQty = prod.variants?.reduce((s: number, v: OrderItemVariant) => s + v.quantity, 0) ?? 0;
                             const netPrice = Math.max(0, (prod.baseUnitPrice ?? 0) - (prod.discount ?? 0));
@@ -273,7 +273,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                 <div className="mb-2 flex items-start justify-between">
                                   <div className="space-y-1">
                                     <div className="flex flex-wrap items-center gap-2">
-                                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{prodIdx + 1}.</span>
+                                      <span className="text-xs font-medium text-slate-400">{prodIdx + 1}.</span>
                                       {prod.product?.imageUrl && (
                                         <img src={prod.product.imageUrl} alt="" className="h-8 w-8 rounded border object-cover" />
                                       )}
@@ -281,7 +281,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                         {prod.product?.name || prod.description || "สินค้า"}
                                       </span>
                                       {prod.product?.sku && (
-                                        <span className="font-mono text-xs text-slate-500 dark:text-slate-400">{prod.product.sku}</span>
+                                        <span className="font-mono text-xs text-slate-400">{prod.product.sku}</span>
                                       )}
                                       {prod.itemSource && (
                                         <Badge variant={
@@ -345,7 +345,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                   <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                       <thead>
-                                        <tr className="border-b border-slate-200 dark:border-slate-800">
+                                        <tr className="border-b border-slate-100 dark:border-slate-800">
                                           <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">สี</th>
                                           <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ไซส์</th>
                                           <th className="pb-2 text-right text-xs font-medium text-slate-500">จำนวน</th>
@@ -361,7 +361,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                         ))}
                                       </tbody>
                                       <tfoot>
-                                        <tr className="border-t border-slate-200 dark:border-slate-800">
+                                        <tr className="border-t border-slate-100 dark:border-slate-800">
                                           <td colSpan={2} className="pt-1.5 text-xs font-medium text-slate-500">รวม</td>
                                           <td className="pt-1.5 text-right tabular-nums text-sm font-semibold text-slate-900 dark:text-white">{prodQty}</td>
                                         </tr>
@@ -386,7 +386,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="border-b border-slate-200 dark:border-slate-800">
+                              <tr className="border-b border-slate-100 dark:border-slate-800">
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ชื่อ</th>
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
                                 <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">คิดราคา</th>
@@ -438,7 +438,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
               {fees.map((fee, i) => (
                   <div
                     key={fee.id ?? i}
-                    className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-2.5 dark:border-slate-800"
+                    className="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-2.5 dark:border-slate-800"
                   >
                     <div className="flex items-center gap-2">
                       {fee.feeType && (

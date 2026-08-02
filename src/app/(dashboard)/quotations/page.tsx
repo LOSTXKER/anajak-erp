@@ -140,7 +140,7 @@ function QuotationsPageContent() {
           title="ใบเสนอราคา"
           description="จัดการใบเสนอราคาทั้งหมด"
         />
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-slate-400">
           ต้องมีสิทธิ์ &quot;เห็นเงินฝั่งขาย&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
         </p>
       </div>
@@ -247,7 +247,7 @@ function QuotationsPageContent() {
                     <QuotationStatusLabel status={q.status} />
                   </div>
                 </div>
-                <div className="mt-3 flex items-end justify-between gap-3 border-t border-slate-200 pt-3 dark:border-slate-800">
+                <div className="mt-3 flex items-end justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
                   <div className="min-w-0">
                     <p className="truncate text-sm text-slate-700 dark:text-slate-300">
                       {q.customer.name}
@@ -260,7 +260,7 @@ function QuotationsPageContent() {
                     <span className="tabular-nums font-semibold text-slate-900 dark:text-white">
                       {formatCurrency(q.totalAmount)}
                     </span>
-                    <ChevronRight className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
+                    <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
                   </div>
                 </div>
               </Link>

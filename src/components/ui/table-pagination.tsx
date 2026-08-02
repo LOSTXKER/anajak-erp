@@ -19,7 +19,7 @@ export function TablePagination({
   if (totalPages <= 1) return null;
 
   return (
-    <nav aria-label="การแบ่งหน้า" className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-800">
+    <nav aria-label="การแบ่งหน้า" className="flex items-center justify-between border-t border-slate-100 px-4 py-3 dark:border-slate-800">
       <p className="text-xs text-slate-500">
         ทั้งหมด {total} {label}
       </p>

@@ -22,13 +22,8 @@ let failed = 0;
 function check(name: string, html: string, must: string[], mustNot: string[] = []) {
   const cls = /class="([^"]*)"/.exec(html)?.[1] ?? "";
   const set = new Set(cls.split(/\s+/));
-  // ลงท้ายด้วย "-" = เช็คแค่ว่า "มีคลาสตระกูลนี้อยู่" ไม่สนว่าเฉดไหน
-  // (เพิ่ม 2026-08-02 — ของเดิมเทียบตรงตัวอย่างเดียว ทำให้พอเปลี่ยนเฉดสีให้ผ่านเกณฑ์
-  //  อ่านออก เทสก็แดงทั้งที่จอถูกต้อง · เทสนี้ควรกัน "ลืมใส่" ไม่ใช่ "ห้ามเปลี่ยนสี")
-  const has = (c: string) =>
-    c.endsWith("-") ? [...set].some((x) => x.startsWith(c)) : set.has(c);
-  const missing = must.filter((c) => !has(c));
-  const extra = mustNot.filter((c) => has(c));
+  const missing = must.filter((c) => !set.has(c));
+  const extra = mustNot.filter((c) => set.has(c));
   if (missing.length || extra.length) {
     failed++;
     console.log(`❌ ${name}`);
@@ -84,23 +79,14 @@ check(
 check("สั่งความสูงทับเองได้", renderToStaticMarkup(<Input className="h-20 min-h-20" />), ["h-20", "min-h-20"], ["h-11", "min-h-11"]);
 
 // ⑤ ปุ่ม = วงแหวนโฟกัสคนละสูตรกับช่องกรอก (ชัดกว่า + เว้นขอบ)
-//
-// เช็ค "โครงสร้าง" ไม่ใช่ "เฉดสี" (แก้ 2026-08-02 จาก audit สี)
-// ของเดิมล็อกไว้ว่าต้องเป็น ring-blue-500/40 + ring-offset-white เป๊ะๆ — พอ audit
-// สั่งให้เลิกใช้วงแหวนจางและเลิกล็อกช่องว่างเป็นสีขาวตายตัว **เทสแดงทั้งที่จอถูกต้อง**
-// คนที่มาเจอจะสรุปว่า "แก้แล้วพัง" แล้วถอย · สิ่งที่เทสนี้ต้องกันคือ "ลืมใส่วงแหวน"
-// กับ "ใช้สูตรของช่องกรอกมาใส่ปุ่ม" — ไม่ใช่ห้ามเปลี่ยนเฉดสี
 check("ปุ่ม", renderToStaticMarkup(<Button>ก</Button>), [
   ...h,
   "rounded-full",
-  "focus-visible:ring-2",
-  "focus-visible:ring-blue-500",
+  "focus-visible:ring-blue-500/40",
   "focus-visible:ring-offset-2",
-  "focus-visible:ring-offset-", // ต้องผูกช่องว่างรอบวงแหวนกับสีพื้น ไม่ใช่ปล่อยว่าง
-], [
-  "focus-visible:ring-blue-500/15", // สูตรช่องกรอก — ห้ามหลุดมาอยู่บนปุ่ม
-  "focus-visible:ring-offset-white", // ล็อกขาวตายตัว = โหมดมืดได้แถบขาวคาดรอบปุ่ม
-]);
+  "focus-visible:ring-offset-white",
+  "dark:focus-visible:ring-offset-slate-950",
+], ["focus-visible:ring-blue-500/15"]);
 check("ปุ่มขนาดเล็ก", renderToStaticMarkup(<Button size="sm">ก</Button>), hSm, ["sm:h-9", "sm:min-h-9"]);
 
 console.log(failed ? `\n❌ ไม่ผ่าน ${failed} ข้อ` : "\n✅ ผ่านครบ");

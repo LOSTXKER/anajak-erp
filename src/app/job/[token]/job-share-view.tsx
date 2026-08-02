@@ -107,7 +107,7 @@ export function JobShareView({ token }: { token: string }) {
                         alt={a.fileName}
                         className="h-36 w-full rounded-xl border border-slate-200 bg-white object-contain"
                       />
-                      <p className="mt-1 truncate text-2xs text-slate-500">{a.fileName}</p>
+                      <p className="mt-1 truncate text-2xs text-slate-400">{a.fileName}</p>
                     </a>
                   ))}
                   {designIsImage && design && (
@@ -121,7 +121,7 @@ export function JobShareView({ token }: { token: string }) {
                         alt={`แบบ v${design.versionNumber}`}
                         className="h-36 w-full rounded-xl border border-slate-200 bg-white object-contain"
                       />
-                      <p className="mt-1 truncate text-2xs text-slate-500">
+                      <p className="mt-1 truncate text-2xs text-slate-400">
                         แบบที่อนุมัติ (v{design.versionNumber})
                       </p>
                     </a>
@@ -139,7 +139,7 @@ export function JobShareView({ token }: { token: string }) {
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-blue-600 hover:bg-slate-100"
                       >
-                        <Paperclip className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                        <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
                         <span className="truncate">แบบที่อนุมัติ (v{design.versionNumber})</span>
                       </a>
                     </li>
@@ -152,7 +152,7 @@ export function JobShareView({ token }: { token: string }) {
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-blue-600 hover:bg-slate-100"
                       >
-                        <Paperclip className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                        <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
                         <span className="truncate">{a.fileName}</span>
                       </a>
                     </li>
@@ -214,7 +214,7 @@ export function JobShareView({ token }: { token: string }) {
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileText className="h-4 w-4 text-blue-600" />
                 ตารางไซซ์
-                <span className="font-normal text-slate-500">
+                <span className="font-normal text-slate-400">
                   (ทั้งออเดอร์ {d.orderTotalQuantity} ชิ้น)
                 </span>
               </CardTitle>
@@ -233,7 +233,7 @@ export function JobShareView({ token }: { token: string }) {
                   {it.description && (
                     <p className="text-sm font-medium text-slate-800">
                       {it.description}
-                      <span className="ml-1 font-normal text-slate-500">
+                      <span className="ml-1 font-normal text-slate-400">
                         ({it.totalQuantity} ชิ้น)
                       </span>
                     </p>
@@ -254,7 +254,7 @@ export function JobShareView({ token }: { token: string }) {
                           </thead>
                           <tbody>
                             {p.variants.map((v, k) => (
-                              <tr key={k} className="border-b border-slate-200">
+                              <tr key={k} className="border-b border-slate-100">
                                 <td className="py-1.5 pr-2 font-medium text-slate-800">{v.size}</td>
                                 <td className="py-1.5 pr-2 text-slate-600">{v.color ?? "—"}</td>
                                 <td className="py-1.5 text-right tabular-nums text-slate-800">
@@ -273,7 +273,7 @@ export function JobShareView({ token }: { token: string }) {
           </Card>
         )}
 
-        <p className="pb-4 text-center text-xs text-slate-500">
+        <p className="pb-4 text-center text-xs text-slate-400">
           เปิดจากลิงก์ที่ได้รับเท่านั้น — หากข้อมูลไม่ตรงกับที่คุยไว้ กรุณาติดต่อผู้ส่งงาน
         </p>
       </div>

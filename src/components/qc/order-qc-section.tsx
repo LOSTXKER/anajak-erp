@@ -83,7 +83,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <ShieldCheck className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            <ShieldCheck className="h-4 w-4 text-slate-400" />
             ตรวจนับ QC
           </CardTitle>
           {isQualityCheck &&
@@ -93,7 +93,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                 ตรวจนับ
               </Button>
             ) : (
-              <span className="text-xs text-slate-500 dark:text-slate-400">รอทีมผลิตนับของ</span>
+              <span className="text-xs text-slate-400">รอทีมผลิตนับของ</span>
             ))}
         </div>
         {rounds.length > 0 && (
@@ -105,7 +105,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
       </CardHeader>
       <CardContent className="space-y-2">
         {rounds.length === 0 ? (
-          <p className="py-2 text-center text-sm text-slate-500 dark:text-slate-400">
+          <p className="py-2 text-center text-sm text-slate-400">
             ยังไม่มีผลตรวจ — นับจริงก่อนแพ็ค: ดีกี่ตัว เสียกี่ตัว
           </p>
         ) : (
@@ -113,7 +113,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
             return (
               <div
                 key={r.id}
-                className="rounded-lg border border-slate-200 dark:border-slate-800"
+                className="rounded-lg border border-slate-100 dark:border-slate-800"
               >
                 <div
                   className="flex min-h-11 w-full flex-wrap items-center justify-between gap-2 px-3 py-2 text-left"
@@ -142,9 +142,9 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                     )}
                   </div>
                 </div>
-                  <div className="space-y-2 border-t border-slate-200 px-3 py-2 dark:border-slate-800">
+                  <div className="space-y-2 border-t border-slate-100 px-3 py-2 dark:border-slate-800">
                     {r.defects.length === 0 ? (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">ไม่มีของเสียในรอบนี้</p>
+                      <p className="text-xs text-slate-400">ไม่มีของเสียในรอบนี้</p>
                     ) : (
                       r.defects.map((d) => (
                         <div
@@ -407,7 +407,7 @@ function QcCountForm({
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => removeRow(idx)}
-                  className="text-slate-500 dark:text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+                  className="text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
                   aria-label="ลบแถวของเสีย"
                 >
                   <Trash2 />

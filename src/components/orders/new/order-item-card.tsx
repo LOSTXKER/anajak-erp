@@ -199,7 +199,7 @@ export function OrderItemCard({
                   </option>
                 ))}
               </Select>
-              <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
+              <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
             </div>
           )}
           <Button type="button" variant="outline" size="sm" onClick={() => onAddPrint(itemIdx)}>
@@ -213,14 +213,14 @@ export function OrderItemCard({
           onClick={() => onAddPrint(itemIdx)}
           className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
         >
-          <ImageIcon className="h-6 w-6 text-slate-400 dark:text-slate-500" />
+          <ImageIcon className="h-6 w-6 text-slate-300 dark:text-slate-600" />
           <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีลาย — กดเพื่อเพิ่มลายแรก</span>
         </button>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="text-left text-xs font-normal text-slate-500 dark:text-slate-400">
+              <tr className="text-left text-xs font-normal text-slate-400 dark:text-slate-500">
                 <th className="w-12 pb-1.5 pr-1">รูปแบบ</th>
                 <th className="pb-1.5 px-1">วิธีพิมพ์</th>
                 <th className="w-28 pb-1.5 px-1 text-right">ค่าสกรีน</th>
@@ -277,9 +277,9 @@ export function OrderItemCard({
                 }}
                 className={cn(DASHED, "flex flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
               >
-                <Icon className="h-6 w-6 text-slate-500 dark:text-slate-400" strokeWidth={1.75} />
+                <Icon className="h-6 w-6 text-slate-400" strokeWidth={1.75} />
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">{desc}</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500">{desc}</span>
               </button>
             ))}
           </div>
@@ -298,7 +298,7 @@ export function OrderItemCard({
                 <col style={{ width: 56 }} />
               </colgroup>
               <thead>
-                <tr className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                <tr className="text-xs font-normal text-slate-400 dark:text-slate-500">
                   <th className="pb-1.5 pl-1 text-left">แหล่ง</th>
                   <th className="pb-1.5 pr-2 text-left">สินค้า</th>
                   <th className="pb-1.5 px-1.5 text-right">ราคา</th>
@@ -356,14 +356,14 @@ export function OrderItemCard({
           onClick={() => onAddAddon(itemIdx)}
           className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
         >
-          <Sparkles className="h-6 w-6 text-slate-400 dark:text-slate-500" />
+          <Sparkles className="h-6 w-6 text-slate-300 dark:text-slate-600" />
           <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีส่วนเสริม — กดเพื่อเพิ่ม</span>
         </button>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="text-left text-xs font-normal text-slate-500 dark:text-slate-400">
+              <tr className="text-left text-xs font-normal text-slate-400 dark:text-slate-500">
                 <th className="min-w-[100px] pb-1.5 px-1">ประเภท</th>
                 <th className="min-w-[120px] pb-1.5 px-1">ชื่อ</th>
                 <th className="min-w-[90px] pb-1.5 px-1">คิดราคา</th>
@@ -375,7 +375,7 @@ export function OrderItemCard({
             </thead>
             <tbody>
               {item.addons.map((a, aIdx) => (
-                <tr key={aIdx} className="border-b border-slate-200 last:border-0 dark:border-slate-800">
+                <tr key={aIdx} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
                   <td className="px-1 py-1.5 align-middle">
                     {addonCatalog && addonCatalog.length > 0 ? (
                       <Select aria-label={`เลือกประเภทส่วนเสริม ${aIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); }} className="sm:h-9 sm:text-xs">
@@ -418,7 +418,7 @@ export function OrderItemCard({
                 <td className="py-1">
                   <span className="text-slate-700 dark:text-slate-200">{line.label}</span>
                   {line.detail && (
-                    <span className={cn("ml-1 text-slate-500 dark:text-slate-400", line.kind === "addon" && "text-xs")}>
+                    <span className={cn("ml-1 text-slate-400", line.kind === "addon" && "text-xs")}>
                       ({line.detail})
                     </span>
                   )}
@@ -426,8 +426,8 @@ export function OrderItemCard({
                     <span className="ml-1 text-red-500">-{formatCurrency(line.discount || 0)}</span>
                   )}
                 </td>
-                <td className="px-2 py-1 text-right tabular-nums text-slate-500 dark:text-slate-400">{formatCurrency(line.unitPrice)}</td>
-                <td className="px-2 py-1 text-right tabular-nums text-slate-500 dark:text-slate-400">×{line.quantity}</td>
+                <td className="px-2 py-1 text-right tabular-nums text-slate-400">{formatCurrency(line.unitPrice)}</td>
+                <td className="px-2 py-1 text-right tabular-nums text-slate-400">×{line.quantity}</td>
                 <td className="py-1 text-right tabular-nums">{formatCurrency(line.total)}</td>
               </tr>
             );
@@ -438,7 +438,7 @@ export function OrderItemCard({
             <td colSpan={2} className="pt-2 text-sm font-semibold text-slate-900 dark:text-white">
               รวมทั้งหมด
             </td>
-            <td className="px-2 pt-2 text-right text-xs tabular-nums text-slate-500 dark:text-slate-400">
+            <td className="px-2 pt-2 text-right text-xs tabular-nums text-slate-400">
               {totalQty} ตัว
             </td>
             <td className="pt-2 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
@@ -446,7 +446,7 @@ export function OrderItemCard({
             </td>
           </tr>
           <tr>
-            <td colSpan={3} className="text-xs text-slate-500 dark:text-slate-400">
+            <td colSpan={3} className="text-xs text-slate-400">
               เฉลี่ย {formatCurrency(itemPriceSummary.averageUnitPrice ?? 0)} / ตัว
             </td>
             <td aria-hidden="true" />

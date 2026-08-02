@@ -178,7 +178,7 @@ export default function NotificationsPage() {
       {/* List */}
       <div className="card-surface overflow-hidden rounded-2xl">
         {isLoading && (
-          <div className="divide-y divide-slate-200 dark:divide-slate-800">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex gap-3 px-5 py-3.5">
                 <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
@@ -210,10 +210,10 @@ export default function NotificationsPage() {
               if (items.length === 0) return null;
               return (
                 <div key={bucket}>
-                  <div className="border-b border-slate-200 bg-slate-50/50 px-5 py-1.5 text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
+                  <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-1.5 text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
                     {BUCKET_LABELS[bucket]}
                   </div>
-                  <ul className="divide-y divide-slate-200 dark:divide-slate-800">
+                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                     {items.map((notif) => (
                       <li key={notif.id}>
                         <button
@@ -259,7 +259,7 @@ export default function NotificationsPage() {
                                 {notif.message}
                               </p>
                             )}
-                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                               {timeAgo(notif.createdAt)}
                             </p>
                           </div>
@@ -275,7 +275,7 @@ export default function NotificationsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-200 px-5 py-2.5 dark:border-slate-800">
+          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-2.5 dark:border-slate-800">
             <p className="text-xs text-slate-500">ทั้งหมด {total} รายการ</p>
             <div className="flex items-center gap-1.5">
               <Button

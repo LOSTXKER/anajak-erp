@@ -50,7 +50,7 @@ function ThemedToaster() {
           cancelButton:
             "rounded-full bg-slate-100 px-3 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200",
           success: "[&_[data-icon]]:text-green-600",
-          warning: "[&_[data-icon]]:text-amber-800",
+          warning: "[&_[data-icon]]:text-amber-600",
           error: "[&_[data-icon]]:text-red-600",
         },
       }}

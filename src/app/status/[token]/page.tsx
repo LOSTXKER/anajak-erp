@@ -157,7 +157,7 @@ export default function OrderStatusPage({
                             ? "bg-green-500 text-white"
                             : current
                               ? "bg-blue-600 text-white ring-4 ring-blue-100"
-                              : "bg-slate-200 text-slate-500"
+                              : "bg-slate-200 text-slate-400"
                         }`}
                       >
                         {done ? <Check className="h-4 w-4" /> : i + 1}
@@ -168,7 +168,7 @@ export default function OrderStatusPage({
                             ? "font-semibold text-blue-700"
                             : done
                               ? "text-slate-700"
-                              : "text-slate-500"
+                              : "text-slate-400"
                         }`}
                       >
                         {s.label}
@@ -252,7 +252,7 @@ export default function OrderStatusPage({
                     </p>
                   )}
                   {dv.shippedAt && (
-                    <p className="text-xs text-slate-500">ส่งเมื่อ {formatDate(dv.shippedAt)}</p>
+                    <p className="text-xs text-slate-400">ส่งเมื่อ {formatDate(dv.shippedAt)}</p>
                   )}
                   {dv.deliveredAt && (
                     <p className="text-xs text-green-600">ถึงปลายทาง {formatDate(dv.deliveredAt)}</p>
@@ -337,7 +337,7 @@ export default function OrderStatusPage({
           </Card>
         )}
 
-        <p className="text-center text-xs text-slate-500">
+        <p className="text-center text-xs text-slate-400">
           {d.isBlindShip ? "" : "Powered by Anajak Print ERP"}
         </p>
       </div>

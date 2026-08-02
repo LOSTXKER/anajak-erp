@@ -186,7 +186,7 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
               "h-3 w-3 shrink-0 transition-colors",
               active
                 ? "text-blue-600 dark:text-blue-400"
-                : "text-slate-300 group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-500 dark:text-slate-400"
+                : "text-slate-300 group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-400"
             )}
           />
         </button>

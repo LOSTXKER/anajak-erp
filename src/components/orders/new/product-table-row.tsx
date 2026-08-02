@@ -66,7 +66,7 @@ export function ProductTableRow({
 
   return (
     <>
-      <tr className="border-b border-slate-200 dark:border-slate-800">
+      <tr className="border-b border-slate-100 dark:border-slate-800">
         {/* แหล่ง */}
         <td className="py-2 pl-1 align-top">{sourceBadge}</td>
 
@@ -80,13 +80,13 @@ export function ProductTableRow({
                 <img src={product.productImageUrl} alt={productLabel} className="h-9 w-9 flex-shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
               ) : (
                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                  <ImageIcon className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+                  <ImageIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" />
                 </div>
               )}
               <div className="min-w-0">
                 <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">{productLabel}</span>
                 {variantLabel && <span className="block text-xs text-slate-500">{variantLabel}</span>}
-                <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
                   {product.productSku && <span>{product.productSku}</span>}
                   {product.stockAvailable != null && (
                     <span className={product.stockAvailable > 0 ? "text-green-600" : "text-red-500"}>คลัง {product.stockAvailable}</span>
@@ -172,7 +172,7 @@ export function ProductTableRow({
       </tr>
 
       {/* ส่วนลด + แพค — แสดงตลอด ไม่ซ่อนค่าที่ตั้งไว้ */}
-      <tr className="border-b border-slate-200 dark:border-slate-800">
+      <tr className="border-b border-slate-100 dark:border-slate-800">
         <td aria-hidden="true" />
         <td colSpan={5} className="pb-3 pl-1 pt-1">
             <div className="grid grid-cols-2 gap-3">
@@ -191,7 +191,7 @@ export function ProductTableRow({
               ) : (
                 <div>
                   <p className="mb-1 text-sm font-medium text-slate-700 dark:text-slate-300">แพค</p>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีตัวเลือกแพค</span>
+                  <span className="text-xs text-slate-400">ยังไม่มีตัวเลือกแพค</span>
                 </div>
               )}
             </div>
@@ -210,7 +210,7 @@ export function ProductTableRow({
 
       {/* หลายไซส์ — ตารางกรอกไซส์×จำนวน (ก้อน 4 / P1.12) */}
       {multi && (
-        <tr className="border-b border-slate-200 dark:border-slate-800">
+        <tr className="border-b border-slate-100 dark:border-slate-800">
           <td aria-hidden="true" />
           <td colSpan={5} className="pb-3 pt-1 pr-1">
             <SizeMatrix variants={product.variants} onChange={(v) => updateProduct("variants", v)} />
