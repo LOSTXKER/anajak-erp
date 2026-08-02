@@ -118,7 +118,7 @@ export function Topbar() {
           FOCUS_BUTTON,
           // ช่องค้นหาเคยเป็น "ขาวบนพื้นเทา" — พื้นขาวแล้วมองไม่เห็นว่าตรงนี้กดได้
           // สลับเป็นเทาอ่อน (ของที่จมลงไปในพื้น) ให้เห็นเป็นช่องเหมือนเดิม
-          "group flex w-full min-w-0 max-w-md items-center gap-2 bg-slate-100/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-slate-100 hover:text-slate-600 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10",
+          "group flex w-full min-w-0 max-w-md items-center gap-2 bg-surface-muted/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-surface-muted hover:text-slate-600 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10",
         )}
       >
         <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -148,7 +148,7 @@ export function Topbar() {
             <Bell />
             {/* วงแหวนรอบจุดแดงต้องเป็นสีพื้นแถบบน ไม่ใช่ขาว/ดำตายตัว — ไม่งั้นเห็นเป็นวงขาวคาด */}
             {count > 0 && (
-              <span className="absolute right-0.5 top-0.5 flex h-2 w-2 rounded-full bg-red-500 ring-2 ring-bg" />
+              <span className="absolute right-0.5 top-0.5 flex h-2 w-2 rounded-full bg-red-500 ring-2 ring-chrome" />
             )}
           </Button>
 

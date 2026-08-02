@@ -150,6 +150,14 @@
 - [x] verify: typecheck · lint · unit/verify:ui · browser จริง desktop+mobile และกดกรองสถานะข้อยกเว้นได้ ✅ 2026-08-02
 - **ปิดงาน 2026-08-02:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo) · unit 599/599 · `verify:ui` ผ่าน · browser จริง 320/1280px ไม่มี horizontal scroll/console error · กรองยกเลิก 21 งาน/พักงาน 0 งาน/ล้างตัวกรองกลับ 77 งานถูกต้อง · ไม่รัน build ขณะ dev server ทำงาน
 
+### 🎯 UX follow-up — ธีมสว่างแบบ A บนพื้นขาว (เบสเคาะจากตัวอย่าง 2026-08-02)
+> ขอบเขต design-token only: พื้นเนื้อหาและการ์ดขาวตามแบบ A · กรอบเว็บ/พื้นจมใช้เทากลางคนละระดับเพื่อแยกโซน · ธีมมืดและเอกสารพิมพ์ต้องไม่เปลี่ยน
+
+- [x] แยกพื้นหน้า/การ์ด/กล่องย่อย/กรอบเว็บให้เป็น 4 ชั้น โดยพื้นหน้าและการ์ดคงขาวตามแบบ A แต่ใช้เทากลางกับกรอบเว็บ พื้นจม และเมนูที่เลือก ✅ 2026-08-02
+- [x] คงสีแบรนด์และสีสถานะเดิม · ไม่ไล่ทาสีรายหน้า · overlay/dialog ยังต้องลอยและอ่านง่ายบนทั้งสองธีม ✅ 2026-08-02
+- [x] verify: typecheck · lint · `verify:ui` · browser จริง light/dark บน dashboard/orders/orders-new/settings ที่ desktop+mobile โดยไม่มี console error หรือ horizontal scroll ✅ 2026-08-02
+- **ปิดงาน 2026-08-02:** พื้นหน้า/การ์ด `#fff` · กรอบเว็บ `#f3f4f6` · พื้นจม `#eceff2` · เมนูที่เลือกเข้มขึ้นหนึ่งขั้น · dark token และกฎงานพิมพ์ไม่เปลี่ยน · typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; layout ที่แก้ตรวจซ้ำ 0) · `verify:ui` ผ่าน · browser จริง 1280/390px ทั้ง light/dark บน 4 หน้าครบ ไม่มี horizontal scroll/console error · ไม่รัน build ขณะ dev server ทำงาน
+
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
 ~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
 

@@ -142,7 +142,7 @@ export function Sidebar({
                         // เมนูที่เปิดอยู่ = เทาอ่อน (เดิมเป็น "ขาวบนพื้นเทา" — พอพื้นเป็นขาว
                         // ก็หายไปทั้งอัน มองไม่ออกว่าตอนนี้อยู่หน้าไหน)
                         active
-                          ? "bg-slate-100 text-slate-900 dark:bg-white/10 dark:text-white"
+                          ? "bg-slate-200/70 text-slate-900 dark:bg-white/10 dark:text-white"
                           : "text-slate-600 hover:bg-black/[0.04] hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
                       )}
                     >
