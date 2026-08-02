@@ -294,7 +294,7 @@ export default function WhtRegisterPage() {
       ) : (
         <>
           {/* ── จอใหญ่ = ตาราง ── */}
-          <DataTable.Root className="hidden md:block">
+          <DataTable.Root className="hidden lg:block">
             <DataTable.Head>
               <tr>
                 <DataTable.Th>วันที่รับเงิน</DataTable.Th>
@@ -402,8 +402,8 @@ export default function WhtRegisterPage() {
             </DataTable.Body>
           </DataTable.Root>
 
-          {/* ── มือถือ = การ์ด ── */}
-          <div className="space-y-3 md:hidden">
+          {/* ── มือถือ/แท็บเล็ต = การ์ด ── */}
+          <div className="space-y-3 lg:hidden">
             {list.map((row) => (
               <div
                 key={row.id}

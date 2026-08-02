@@ -4,7 +4,15 @@
 
 ## ตอนนี้
 
-> **⏳ NEXT — รอเบสเคาะ: branch `ui-white-bg` (ยังไม่ merge)** · เบสสั่ง 2026-08-01 "พื้นหลังเว็บเป็นสีขาวไปเลย ธีมมืดก็เอาดำเทา แล้วปรับส่วนอื่นให้เหมาะสมด้วย"
+> **✅ UI-P0 responsive + data states ปิดครบ (2026-08-02 · branch `codex/ui-p0-responsive-states`)**
+> เบสสั่ง “ทำเลย” ต่อจาก audit ทั้งเว็บ → แก้เฉพาะบั๊กใช้งานจริง 3 ก้อน โดยคงสี/ความ minimal/business logic เดิม:
+> ① `PageHeader` ยอมห่อ action โดยกันพื้นที่หัวข้อ · `/billing/tax`, `/billing/wht`, `/production/films` คง card ถึง `lg` (ช่วง 800px ที่ sidebar กินพื้นที่ไม่บีบตารางแล้ว) · ภาษีขายมี card mobile/tablet ครบข้อมูล
+> ② Product Picker เมื่อขยายสี/ไซซ์เป็น grid card ที่ 320/390px · checkbox/จำนวนเป้ากด 44px · footer ไม่บีบ · desktop คงตาราง 7 คอลัมน์ · เติม Dialog description ปิด console warning
+> ③ notification dropdown, ไฟล์แนบออเดอร์ และเครดิตลูกค้า/ฟอร์มเปิดงาน แยก loading/error/empty ชัดเจน + retry · `OrderFilesCard` ไม่ตีความ `undefined` เป็น “ไม่มีไฟล์” อีก
+> **verify:** typecheck 0 · lint 0 error (39 warning เดิม) · unit 589/589 · verify:ui ผ่าน · diff-check ผ่าน · browser จริง 320/390/800/1440px ไม่มี horizontal scroll/error overlay/console error · จำลอง API ล้มด้วยการปิด dev server: notification ขึ้น error+retry แล้วกู้รายการกลับได้เมื่อเปิด server · ไม่รัน build ขณะ dev server ทำงาน
+> **ต่อ:** งานชุดนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
+> **✅ MERGED — branch `ui-white-bg` เข้า main แล้วที่ `e922946`** · เบสสั่ง 2026-08-01 "พื้นหลังเว็บเป็นสีขาวไปเลย ธีมมืดก็เอาดำเทา แล้วปรับส่วนอื่นให้เหมาะสมด้วย"
 > **พื้นสว่าง เทา #f5f5f7 → ขาวล้วน · พื้นมืด ดำสนิท → ดำเทา #1a1a1c** — แก้ที่ token กลางใน `globals.css` จุดเดียว ทั้งเว็บเปลี่ยนตาม
 > ของที่ต้องแก้ตามมา (พื้นเปลี่ยน = ของที่เคยเด่นเพราะ "ขาวบนพื้นเทา" หายหมด):
 > ① **ความลึกย้ายจาก "พื้นเทา" ไปอยู่ที่ "เส้นขอบ"** — การ์ดขาวบนพื้นขาวจะกลืน → ขอบการ์ด 0.06 → 0.095 · กล่องลอย 0.07 → 0.11 (ขาวบนขาวต้องแรงกว่า ไม่งั้นเมนูดูเหมือนเนื้อหาไหลต่อ)

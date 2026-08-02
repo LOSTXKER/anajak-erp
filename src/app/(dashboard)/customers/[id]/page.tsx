@@ -39,10 +39,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });
   // ภาระหนี้ + ยอดค้างชำระ — เปิดเสมอเมื่อเห็นเงิน (ลูกค้าไม่ตั้งวงเงินก็ต้องเห็นยอดค้าง
   // ในการ์ดสรุป — ธุรกิจเครดิตเทอมถามก่อนว่า "ค้างเท่าไร") · non-money role ยิงไปก็โดน FORBIDDEN
-  const { data: credit } = trpc.customer.creditStatus.useQuery(
+  const creditQuery = trpc.customer.creditStatus.useQuery(
     { customerId: id },
     { enabled: canSeeMoney }
   );
+  const credit = creditQuery.data;
+  const creditLoading =
+    canSeeMoney &&
+    !credit &&
+    (creditQuery.isLoading || creditQuery.isFetching);
+  const creditError = canSeeMoney && !credit && creditQuery.isError;
 
   if (isLoading) {
     return (
@@ -158,6 +164,36 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   <span className="font-semibold tabular-nums">{formatCurrency(customer.totalSpent ?? 0)}</span>
                 </div>
               )}
+              {creditLoading && (
+                <div
+                  role="status"
+                  aria-label="กำลังโหลดสถานะเครดิต"
+                  className="space-y-3"
+                >
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-4/5" />
+                </div>
+              )}
+              {creditError && (
+                <Alert variant="error" className="text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span>โหลดสถานะเครดิตไม่สำเร็จ</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void creditQuery.refetch()}
+                    >
+                      ลองใหม่
+                    </Button>
+                  </div>
+                </Alert>
+              )}
+              {canSeeMoney && !creditLoading && !creditError && !credit && (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  ยังไม่มีข้อมูลสถานะเครดิต
+                </p>
+              )}
               {canSeeMoney && credit && (
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-sm text-slate-500"><FileText className="h-4 w-4" /> ค้างชำระ</span>
@@ -221,6 +257,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                       <CreditCard className="h-4 w-4" /> วงเงินเครดิต: {formatCurrency(customer.creditLimit)}
                     </div>
+                    {creditLoading && (
+                      <div role="status" aria-label="กำลังโหลดภาระหนี้" className="pl-6 pt-1">
+                        <Skeleton className="h-3.5 w-full" />
+                      </div>
+                    )}
+                    {creditError && (
+                      <p className="pl-6 text-xs text-red-700 dark:text-red-300">
+                        โหลดภาระหนี้ไม่สำเร็จ — ลองใหม่ได้จากการ์ดสรุป
+                      </p>
+                    )}
                     {credit && credit.available != null && (
                       <p className={`pl-6 text-xs ${credit.available < 0 ? "font-medium text-red-600 dark:text-red-400" : "text-slate-500"}`}>
                         ภาระหนี้ {formatCurrency(credit.exposure)} (ค้างชำระ {formatCurrency(credit.invoiceOutstanding)} + งานยังไม่วางบิล {formatCurrency(credit.unbilled)})
@@ -229,6 +275,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                           : ` — ใช้ได้อีก ${formatCurrency(credit.available)}`}
                       </p>
                     )}
+                    {canSeeMoney &&
+                      !creditLoading &&
+                      !creditError &&
+                      credit?.available == null && (
+                        <p className="pl-6 text-xs text-slate-500 dark:text-slate-400">
+                          ยังไม่มีข้อมูลภาระหนี้
+                        </p>
+                      )}
                   </div>
                 )}
                 {customer.defaultPaymentTerms && (

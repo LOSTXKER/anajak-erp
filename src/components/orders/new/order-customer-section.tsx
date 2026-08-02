@@ -3,6 +3,9 @@
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CustomerPicker, type PickerCustomer } from "@/components/customers/customer-picker";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { formatCurrency } from "@/lib/utils";
@@ -27,12 +30,21 @@ export function OrderCustomerSection({
   // หน้านี้เป็นของทีมขายอยู่แล้ว แต่กันไว้อีกชั้น) · me ยังไม่โหลด = ซ่อนก่อน (B12)
   const { data: me } = trpc.user.me.useQuery();
   const canSeeCredit = permAllows(me?.permissions, "see_order_money");
+  const showCreditStatus = canSeeCredit && !!customerId && !!selectedCustomer;
+  const shouldLoadCredit =
+    showCreditStatus && selectedCustomer.creditLimit != null;
 
   // ภาระหนี้เทียบวงเงิน — เตือนตั้งแต่ตอนเลือกลูกค้า (ด่านจริงอยู่ฝั่ง server ตอนยืนยันออเดอร์)
   const creditStatus = trpc.customer.creditStatus.useQuery(
     { customerId },
-    { enabled: canSeeCredit && !!customerId && selectedCustomer?.creditLimit != null }
+    { enabled: shouldLoadCredit }
   );
+  const creditLoading =
+    shouldLoadCredit &&
+    !creditStatus.data &&
+    (creditStatus.isLoading || creditStatus.isFetching);
+  const creditError =
+    shouldLoadCredit && !creditStatus.data && creditStatus.isError;
 
   // เช็คฟิล์มค้าง+คลังลายตอนรับงานซ้ำ (หนี้ก้อน 2 — ลูกค้าทักมาสั่งซ้ำ แอดมินคีย์ใบใหม่
   // คือเคสที่พบบ่อยกว่าปุ่มสำเนา) — query count เบาๆ ตัวเดียว ไม่ลากแถวมานับเอง
@@ -70,7 +82,36 @@ export function OrderCustomerSection({
           — ขอจากลูกค้าแล้วเติมได้ที่หน้าลูกค้า
         </p>
       )}
-      {canSeeCredit && creditStatus.data?.available != null && (
+      {showCreditStatus && !shouldLoadCredit && (
+        <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+          ยังไม่ได้กำหนดวงเงินเครดิต
+        </p>
+      )}
+      {creditLoading && (
+        <div
+          role="status"
+          aria-label="กำลังโหลดสถานะเครดิต"
+          className="mt-2"
+        >
+          <Skeleton className="h-3.5 w-64 max-w-full" />
+        </div>
+      )}
+      {creditError && (
+        <Alert variant="error" className="mt-2 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>โหลดสถานะเครดิตไม่สำเร็จ</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void creditStatus.refetch()}
+            >
+              ลองใหม่
+            </Button>
+          </div>
+        </Alert>
+      )}
+      {shouldLoadCredit && creditStatus.data?.available != null && (
         <p
           className={`mt-1.5 text-xs ${
             creditStatus.data.available < 0
@@ -85,6 +126,14 @@ export function OrderCustomerSection({
             : ` (ใช้ได้อีก ${formatCurrency(creditStatus.data.available)})`}
         </p>
       )}
+      {shouldLoadCredit &&
+        !creditLoading &&
+        !creditError &&
+        creditStatus.data?.available == null && (
+          <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+            ยังไม่มีข้อมูลสถานะเครดิต
+          </p>
+        )}
       {selectedCustomer && filmCount > 0 && (
         <p className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
           🎞️ ลูกค้ามีฟิล์มพร้อมรีดค้าง {filmCount} รายการ — เช็คที่{" "}

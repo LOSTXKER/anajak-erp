@@ -40,7 +40,8 @@ import { Alert } from "@/components/ui/alert";
 
 interface OrderFilesCardProps {
   orderId: string;
-  attachments: any[] | undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
+  // รับเฉพาะผล query ที่สำเร็จแล้ว — undefined ห้ามถูกตีความเป็น "ไม่มีไฟล์"
+  attachments: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   userId?: string;
   userRole?: string;
   // ปุ่ม "ไปที่งานออกแบบ" — การ์ดงานออกแบบอยู่คนละแท็บ (production) ต้องให้ page สลับแท็บ+scroll ให้
@@ -156,7 +157,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
     onError: (err: { message?: string }) => toast.error(err.message ?? "ลบไฟล์ไม่สำเร็จ"),
   });
 
-  const all = attachments ?? [];
+  const all = attachments;
   const rawFiles = all.filter((a) => layerForCategory(a.category) === "RAW");
   const printFiles = all.filter((a) => layerForCategory(a.category) === "PRINT");
 

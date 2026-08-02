@@ -176,7 +176,15 @@ function OrderDetailContent({
   }
 
   const { data: order, isLoading, isError, refetch } = trpc.order.getById.useQuery({ id });
-  const { data: attachments } = trpc.attachment.listByEntity.useQuery({ entityType: "ORDER", entityId: id });
+  const attachmentsQuery = trpc.attachment.listByEntity.useQuery({
+    entityType: "ORDER",
+    entityId: id,
+  });
+  const attachmentsLoading =
+    !attachmentsQuery.data &&
+    (attachmentsQuery.isLoading || attachmentsQuery.isFetching);
+  const attachmentsError =
+    !attachmentsQuery.data && attachmentsQuery.isError;
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
   // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ระหว่าง me โหลด permAllows คืน false = ซ่อนไว้ก่อน
@@ -828,16 +836,23 @@ function OrderDetailContent({
                 message="โหลดสิทธิ์ผู้ใช้ไม่สำเร็จ"
                 onRetry={() => void meQuery.refetch()}
               />
-            ) : permissionsReady && me ? (
+            ) : !permissionsReady || !me || attachmentsLoading ? (
+              <div role="status" aria-label="กำลังโหลดไฟล์แนบออเดอร์">
+                <Skeleton className="h-56 rounded-xl" />
+              </div>
+            ) : attachmentsError ? (
+              <QueryError
+                message="โหลดไฟล์แนบออเดอร์ไม่สำเร็จ"
+                onRetry={() => void attachmentsQuery.refetch()}
+              />
+            ) : (
               <OrderFilesCard
                 orderId={id}
-                attachments={attachments}
+                attachments={attachmentsQuery.data ?? []}
                 userId={me?.id}
                 userRole={me?.role}
                 onGoToDesign={() => goToSection("order-section-design")}
               />
-            ) : (
-              <Skeleton className="h-56 rounded-xl" />
             )}
           </section>
 

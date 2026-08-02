@@ -117,6 +117,14 @@
 - [x] คง permission/state gates ทุกชั้น: ผู้ไม่มี `see_order_money` ต้องไม่เห็นเงิน/ต้นทุน/กำไร/บิล · action แก้ไข/สถานะ/ผลิต/QC/จัดส่งยังตรงด่าน server · business-conditional และ action workflow ไม่ถูกบังคับให้ render ก่อนมีบริบท — ✅ 2026-07-18
 - **เกณฑ์ปิดผ่าน 2026-07-18:** browser จริง `/orders/new`, `?next=quote`, `/orders/[id]` ที่ 320/375/768/1024/1280/1440px · light/dark · ไม่มี horizontal scroll/console error · ลิงก์เก่า `?tab=` แปลงเป็น anchor + focus ถูกจุด · `verify:moneygate` 43/43 (รวม description/reason/approval token) · typecheck/lint 0 error · unit 584/584
 
+### 🎯 UX follow-up — ปิดบั๊ก responsive + สถานะข้อมูลจาก audit ทั้งเว็บ (เบสสั่ง 2026-08-02 “ทำเลย”)
+> ขอบเขต surgical: แก้เฉพาะบั๊กใช้งานจริงที่ยืนยันจาก browser แล้ว · คงชุดสี/ความ minimal/โครงหน้าปัจจุบัน · ไม่มี schema หรือ dependency ใหม่
+
+- [x] **UI-P0.1 แท็บเล็ตไม่บีบหัวข้อและตาราง** — `PageHeader` ต้องยอมตัด action ลงแถวใหม่เมื่อพื้นที่ไม่พอ · `/billing/tax`, `/billing/wht`, `/production/films` ใช้ mobile card ถึง breakpoint ที่มีพื้นที่พอจริง ✅ 2026-08-02
+- [x] **UI-P0.2 Product Picker มือถือเลือกตัวแปรได้จริง** — รายการสินค้าเดิมคงไว้ · เมื่อขยายสี/ไซซ์บนจอเล็กต้องเป็นแถว/การ์ดอ่านง่าย ไม่มีหัวตารางหรือราคา/สต๊อก/จำนวนทับกัน · desktop คงตารางเดิม ✅ 2026-08-02
+- [x] **UI-P0.3 ไม่ใช้ empty state กลบ loading/error** — notification dropdown, ไฟล์แนบออเดอร์ และสถานะเครดิตลูกค้า แยก “กำลังโหลด / โหลดไม่สำเร็จ / ไม่มีข้อมูล” ชัดเจน พร้อม retry ในจุดที่เหมาะสม ✅ 2026-08-02
+- **ปิดงาน 2026-08-02:** typecheck ผ่าน · lint 0 error (39 warning เดิม) · unit 589/589 · verify:ui ผ่าน · browser จริง 320/390/800/1440px ไม่มี horizontal scroll/error overlay/console error · ปิด dev server จำลอง API ล้มเหลวแล้วยืนยัน notification แสดง error+retry และกู้ข้อมูลกลับได้
+
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
 ~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
 

@@ -125,7 +125,7 @@ export default function FilmStockPage() {
       ) : (
         <>
           {/* ── จอใหญ่ = ตาราง ── */}
-          <DataTable.Root className="hidden md:block">
+          <DataTable.Root className="hidden lg:block">
             <DataTable.Head>
               <tr>
                 <DataTable.Th>ป้ายลาย</DataTable.Th>
@@ -208,8 +208,8 @@ export default function FilmStockPage() {
             </DataTable.Body>
           </DataTable.Root>
 
-          {/* ── มือถือ = การ์ด ── */}
-          <div className="space-y-3 md:hidden">
+          {/* ── มือถือ/แท็บเล็ต = การ์ด ── */}
+          <div className="space-y-3 lg:hidden">
             {items.map((item) => (
               <div
                 key={item.id}

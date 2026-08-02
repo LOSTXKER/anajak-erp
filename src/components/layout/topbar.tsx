@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Bell, Search, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { QueryError } from "@/components/ui/query-error";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CONTROL_H } from "@/components/ui/control-size";
 import { FOCUS_BUTTON, OVERLAY_PANEL, RADIUS } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -75,10 +77,14 @@ export function Topbar() {
     undefined,
     { refetchInterval: 30_000 }
   );
-  const { data: notifData } = trpc.notification.list.useQuery(
+  const notifQuery = trpc.notification.list.useQuery(
     { limit: 5 },
     { enabled: notifOpen },
   );
+  const notifData = notifQuery.data;
+  const notifLoading =
+    !notifData && (notifQuery.isLoading || notifQuery.isFetching);
+  const notifError = !notifData && notifQuery.isError;
 
   const utils = trpc.useUtils();
   const markAllRead = useMutationWithInvalidation(trpc.notification.markAllRead, {
@@ -172,7 +178,29 @@ export function Topbar() {
               </div>
 
               <div className="max-h-80 overflow-y-auto">
-                {notifData?.notifications && notifData.notifications.length > 0 ? (
+                {notifLoading ? (
+                  <div
+                    role="status"
+                    aria-label="กำลังโหลดการแจ้งเตือน"
+                    className="divide-y divide-slate-100 dark:divide-slate-800"
+                  >
+                    {[0, 1, 2].map((index) => (
+                      <div key={index} className="flex gap-2 px-3.5 py-3">
+                        <Skeleton className="mt-1 h-2 w-2 shrink-0 rounded-full" />
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <Skeleton className="h-3.5 w-3/5" />
+                          <Skeleton className="h-3 w-4/5" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : notifError ? (
+                  <QueryError
+                    message="โหลดการแจ้งเตือนไม่สำเร็จ"
+                    onRetry={() => void notifQuery.refetch()}
+                  />
+                ) : notifData && notifData.notifications.length > 0 ? (
                   notifData.notifications.map((notif) => (
                     // กดแจ้งเตือน → ติ๊กอ่าน + เด้งไปหน้างานจริงตาม link (เช่น /orders/xxx)
                     <Link
