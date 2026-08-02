@@ -328,7 +328,7 @@ function MyWorkSection({ items, primary = false }: { items: MyWorkItem[]; primar
             <li key={work.stepId}>
               <Link
                 href={`/production/${work.productionId}`}
-                className="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-100 active:bg-slate-100 dark:hover:bg-slate-800/50"
+                className="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/50"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-slate-900 dark:text-white">

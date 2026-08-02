@@ -308,7 +308,7 @@ export default function UsersSettingsPage() {
                     return (
                       <tr
                         key={user.id}
-                        className={`transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/50 ${!user.isActive ? "opacity-50" : ""}`}
+                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${!user.isActive ? "opacity-50" : ""}`}
                       >
                         <td className="px-3 py-2.5">
                           <span className="text-sm font-medium text-slate-900 dark:text-white">
@@ -505,7 +505,7 @@ export default function UsersSettingsPage() {
                           className={`${CONTROL_MIN_H} flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm ${
                             locked
                               ? "cursor-not-allowed opacity-50"
-                              : "cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                              : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           }`}
                         >
                           <span className="flex items-center gap-2">

@@ -241,7 +241,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
                       pick(c);
                       closeCreate();
                     }}
-                    className="flex w-full items-center justify-between rounded-lg bg-white px-2.5 py-1.5 text-left text-sm shadow-sm hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800"
+                    className="flex w-full items-center justify-between rounded-lg bg-white px-2.5 py-1.5 text-left text-sm shadow-sm hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800"
                   >
                     <span>
                       {c.name}

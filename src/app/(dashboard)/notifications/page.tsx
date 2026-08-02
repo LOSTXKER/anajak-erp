@@ -225,12 +225,8 @@ export default function NotificationsPage() {
                             if (notif.link) router.push(notif.link);
                           }}
                           className={cn(
-                            // แถวที่ยังไม่อ่านมีพื้นฟ้าอยู่แล้ว — ตอนชี้ต้องเข้มขึ้นในโทนฟ้า
-                            // ห้ามใช้เทา ไม่งั้นชี้แล้วแถวเปลี่ยนจากฟ้าเป็นเทา ดูเหมือนถูกลดความสำคัญ
-                            "flex w-full gap-3 px-5 py-3.5 text-left transition-colors",
-                            !notif.isRead
-                              ? "bg-blue-50/40 hover:bg-blue-100/60 dark:bg-blue-950/20 dark:hover:bg-blue-950/50"
-                              : "hover:bg-slate-100 dark:hover:bg-white/[0.06]"
+                            "flex w-full gap-3 px-5 py-3.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50",
+                            !notif.isRead && "bg-blue-50/40 dark:bg-blue-950/20"
                           )}
                         >
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">

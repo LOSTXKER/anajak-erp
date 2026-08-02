@@ -432,7 +432,7 @@ export function OrderItemsEditor({
                 </div>
               )}
 
-              <div className="flex items-center gap-3 rounded-xl bg-slate-100 p-3 dark:bg-white/[0.06]">
+              <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
                 <label htmlFor="order-items-discount" className="text-sm text-slate-500">ส่วนลด</label>
                 <Input size="sm"
                   id="order-items-discount"
@@ -505,7 +505,7 @@ export function OrderItemsEditor({
 
           {/* กำไรขั้นต้นโดยประมาณ — เฉพาะ role การเงิน (null = ไม่ render เลย) */}
           {marginEstimate && (
-            <div className="rounded-xl bg-slate-100 p-3 dark:bg-white/[0.06]">
+            <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
               <MarginEstimateBlock estimate={marginEstimate} />
             </div>
           )}

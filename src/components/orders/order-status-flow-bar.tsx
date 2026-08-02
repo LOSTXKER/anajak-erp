@@ -91,7 +91,7 @@ export function OrderStatusFlowBar({
                   FOCUS_BUTTON,
                   isOn
                     ? "bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-950/40 dark:ring-blue-400"
-                    : "hover:bg-slate-100 dark:hover:bg-slate-800/50",
+                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50",
                 )}
               >
                 <span

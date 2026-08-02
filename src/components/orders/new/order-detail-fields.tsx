@@ -75,7 +75,7 @@ export function OrderDetailFields({
         />
       </div>
 
-      <div className="space-y-3.5 rounded-xl bg-slate-100 p-3 dark:bg-white/[0.05]">
+      <div className="space-y-3.5 rounded-xl bg-slate-50/70 p-3 dark:bg-slate-900/50">
           <div>
             <label htmlFor={`${id}-title`} className={labelClass}>ชื่องาน</label>
             <Input

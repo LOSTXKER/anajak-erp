@@ -231,7 +231,7 @@ function QuotationsPageContent() {
               <Link
                 key={q.id}
                 href={`/quotations/${q.id}`}
-                className={cn("card-surface block rounded-2xl p-4 transition-colors hover:bg-slate-100", FOCUS_BUTTON, "dark:hover:bg-slate-900")}
+                className={cn("card-surface block rounded-2xl p-4 transition-colors hover:bg-slate-50", FOCUS_BUTTON, "dark:hover:bg-slate-900")}
                 aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
               >
                 <div className="flex items-start justify-between gap-3">

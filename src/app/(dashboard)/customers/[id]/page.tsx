@@ -269,7 +269,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     <Link
                       key={order.id}
                       href={`/orders/${order.id}`}
-                      className="flex items-center justify-between rounded-xl border border-slate-100 p-3 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                      className="flex items-center justify-between rounded-xl border border-slate-100 p-3 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
                     >
                       <div>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{order.orderNumber}</p>

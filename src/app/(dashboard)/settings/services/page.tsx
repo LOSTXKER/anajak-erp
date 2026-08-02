@@ -392,7 +392,7 @@ export default function ServicesPage() {
                     return (
                       <tr
                         key={item.id}
-                        className={`transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/50 ${
+                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
                           !item.isActive ? "opacity-50" : ""
                         }`}
                       >

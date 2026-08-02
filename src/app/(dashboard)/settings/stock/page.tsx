@@ -506,7 +506,7 @@ export default function StockSettingsPage() {
                   {itemTypeMappings.map((mapping, i) => (
                     <tr
                       key={i}
-                      className="transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                      className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     >
                       <th scope="row" className="px-4 py-2.5 text-left font-normal text-slate-900 dark:text-white">
                         {mapping.stockCategory}

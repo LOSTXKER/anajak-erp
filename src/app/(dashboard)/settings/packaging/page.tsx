@@ -243,7 +243,7 @@ export default function PackagingSettingsPage() {
                     return (
                       <tr
                         key={opt.id}
-                        className={`transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/50 ${!opt.isActive ? "opacity-50" : ""}`}
+                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${!opt.isActive ? "opacity-50" : ""}`}
                       >
                         <td className="px-3 py-2.5 text-center">
                           <GripVertical aria-hidden="true" className="inline h-4 w-4 text-slate-300" />

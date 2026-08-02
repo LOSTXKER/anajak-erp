@@ -252,7 +252,7 @@ function TaskRow({ item, urgent }: { item: TaskListItem; urgent?: boolean }) {
       <Link
         href={item.href}
         className={cn(
-          "flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-100 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800",
+          "flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800",
           // rail ซ้ายเฉพาะกลุ่ม "ต้องทำก่อน" — สัญญาณแยกจากแถวคิวทีมโดยไม่เปลี่ยนโครง
           urgent && "border-l-2 border-red-400"
         )}

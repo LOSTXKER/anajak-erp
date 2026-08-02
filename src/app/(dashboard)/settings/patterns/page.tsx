@@ -327,7 +327,7 @@ export default function PatternsPage() {
                     return (
                       <tr
                         key={p.id}
-                        className={`transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/50 ${!p.isActive ? "opacity-50" : ""}`}
+                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${!p.isActive ? "opacity-50" : ""}`}
                       >
                         <td className="px-3 py-2.5">
                           {isEditing ? (

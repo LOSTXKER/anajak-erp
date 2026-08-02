@@ -212,7 +212,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                 )}
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-200 dark:divide-slate-800/50">
+                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                               {item.prints.map((p) => (
                                 <tr key={p.id}>
                                   <td className="py-1.5 pr-4">
@@ -351,7 +351,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                           <th className="pb-2 text-right text-xs font-medium text-slate-500">จำนวน</th>
                                         </tr>
                                       </thead>
-                                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800/50">
+                                      <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                         {prod.variants.map((v) => (
                                           <tr key={v.id}>
                                             <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{v.color || "-"}</td>
@@ -395,7 +395,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                 )}
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-200 dark:divide-slate-800/50">
+                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                               {item.addons.map((a) => (
                                 <tr key={a.id}>
                                   <td className="py-1.5 pr-4 text-slate-700 dark:text-slate-300">{a.name || "-"}</td>

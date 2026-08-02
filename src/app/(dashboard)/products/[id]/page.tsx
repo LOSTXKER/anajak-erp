@@ -375,7 +375,7 @@ export default function ProductDetailPage({
                       {product.variants.map((variant) => (
                         <tr
                           key={variant.id}
-                          className={`transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/50 ${
+                          className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
                             !variant.isActive ? "opacity-50" : ""
                           }`}
                         >
