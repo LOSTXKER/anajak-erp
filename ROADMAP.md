@@ -125,6 +125,14 @@
 - [x] แยกราคา/ค่าใช้จ่าย/เงื่อนไขออกจากการ์ดรายการ และคง sticky bar ให้เหลือยอดหลัก + ยกเลิก + เปิดงาน ✅ 2026-08-02
 - **ปิดงาน 2026-08-02:** browser จริง `/orders/new` และ `?next=quote` ที่ 320/375/768/1024/1280/1440px + light/dark ไม่มี horizontal scroll หรือ error overlay · ทดลองเพิ่มสินค้า ลาย ส่วนเสริม ค่าใช้จ่าย เปิด/ปิดที่อยู่ และกดส่งเพื่อดูสรุปช่องที่ขาด · `/orders/[id]` editor ยังใช้หน้าตาเดิมเมื่อไม่ส่ง presentation prop · typecheck ผ่าน · lint 0 error (38 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · ไม่รัน build ขณะ dev server ทำงาน
 
+### 🎯 UX follow-up — `/orders/new` composition pass 2 (เบส feedback 2026-08-03 ว่า “ยังรกและจัดองค์ประกอบไม่ดี”)
+> ขอบเขต presentation-only ต่อจากรอบก่อน: ทุก field ยังมองเห็น หน้าเดียวยาว ไม่มี wizard/accordion/สองฝั่ง · คง product/print/add-on แยกกลุ่มและไม่แตะ state สูตรราคา validation permission หรือ mutation
+
+- [ ] เปลี่ยนการ์ดใหญ่ 4 ใบเป็นฟอร์มผิวเดียวแบบ ledger แบ่ง 4 ช่วงด้วยเส้นบางและลำดับเลข เพื่อให้สายตาเห็น flow แทนการเห็นกรอบ
+- [ ] ลดเสียงรบกวนช่วงรับเรื่อง: customer picker กระชับบนจอกว้าง · ช่องทางเป็น select · ลด copy ซ้ำ · ไฟล์อ้างอิงเป็นแถว action สั้นโดยไม่ซ่อนข้อมูล
+- [ ] ลด empty surface ในรายการ/ราคา: CTA ลายและส่วนเสริมอยู่แถวเดียวเมื่อยังว่าง · ค่าใช้จ่ายระดับออเดอร์เป็นแถวสั้น · summary และ action footer ไม่สร้าง card ซ้อน
+- [ ] verify browser จริงแบบก่อน–หลังที่ 320/375/768/1024/1280/1440px + light/dark · ไม่มี horizontal scroll/error overlay · เพิ่มสินค้า ลาย ส่วนเสริม ค่าใช้จ่าย เปิด/ปิดที่อยู่ และ shared `/orders/[id]` editor ไม่ถอย · typecheck/lint/unit/`verify:ui` ผ่าน
+
 ### 🎯 UX follow-up — เปิดข้อมูลสร้าง/รายละเอียดออเดอร์ทั้งหมด (เบสสั่ง 2026-07-18)
 - [x] `/orders/new`: กางข้อมูลงาน รายการ+ราคา ไฟล์ ที่อยู่ รายละเอียดลาย/สินค้า และสเปคตัดเย็บที่ UI มีอยู่เดิมตลอด · เลิกปุ่ม “เพิ่มเติม/ซ่อน” ที่ใช้เพื่อ declutter · ที่อยู่ยัง optional และเงื่อนไขตามชนิดลูกค้า/ช่องทาง/สินค้าเดิมต้องไม่เปลี่ยน — ✅ 2026-07-18
 - [x] `/orders/[id]`: เลิกซ่อนเนื้อหาที่ UI มีอยู่เดิมหลังแท็บและเมนู “เพิ่มเติม” · แสดงรายการ งานผลิต จัดส่ง เงิน/บิล ไฟล์ และประวัติต่อกัน พร้อมปุ่มลัดแบบ scroll · กางเส้นทางสถานะและประวัติทั้งหมด โดยไม่เพิ่ม raw field จากฐานข้อมูลที่ยังไม่มี UI — ✅ 2026-07-18
@@ -171,6 +179,13 @@
 - [x] audit `<thead>` ทุกจุดและเก็บหัวตาราง custom ที่ยังมีพื้นเทา โดยไม่ทาสีซ้ำจุดที่โปร่งเห็นพื้นกล่องอยู่แล้ว ✅ 2026-08-03
 - [x] verify: ไม่มีหัวตาราง UI เหลือ `bg-slate-50/100` ใน light · typecheck · lint · `verify:ui` · browser จริงหน้าตาราง custom ทั้ง light/dark ✅ 2026-08-03
 - **ปิดงาน 2026-08-03:** ตรวจ `<thead>` 21 จุดครบ — UI 17 จุด + เอกสารพิมพ์ 4 จุด · แก้ 4 จุดที่หลุดจริง (ตารางสินค้า/ลาย/ส่วนเสริมใน `/orders/new` และแมปหมวดหมู่ `/settings/stock`) · รวมสูตรหัวบน surface เป็น `TABLE_HEAD_SURFACE` และเพิ่ม assertion ใน `verify:ui` · 12 หัว custom ที่โปร่งเห็นพื้นกล่องตรงอยู่แล้วคงไว้ · typecheck ผ่าน · lint 0 error (38 warning เดิม) · browser จริง light/dark ไม่มี overflow, error overlay หรือ console error
+
+### 🎯 UX follow-up — พื้นหน้าเทา + Navbar/Sidebar ขาว (เบสสั่ง 2026-08-03)
+> ขอบเขต design-token/layout only: สลับลำดับชั้นเฉพาะธีมสว่าง · การ์ด/ตารางคงขาว · ธีมมืดและเอกสารพิมพ์คงเดิม
+
+- [x] พื้นหน้าสว่างใช้เทา `#f3f4f6` · Navbar/Sidebar/เมนูมือถือใช้ขาว `#fff` แบบทึบ · คง surface ขาวและ muted surface เดิม ✅ 2026-08-03
+- [x] verify: typecheck · lint · `verify:ui` · browser จริง dashboard/orders/orders-new/settings ที่ desktop และเมนูมือถือ รวม light/dark โดยไม่มี console error หรือ horizontal overflow ✅ 2026-08-03
+- **ปิดงาน 2026-08-03:** สลับ token กลางเฉพาะ light เป็นพื้นหน้า `#f3f4f6` และ chrome/surface `#fff` · Topbar/Sidebar desktop ขาวทึบ ส่วน dark คง `chrome/90` + blur เดิม · browser จริง light บน dashboard/orders/orders-new/settings และ drawer มือถือ 390px สีตรงทุกชั้น · dark dashboard คง token เดิม · ไม่มี horizontal overflow, runtime/tRPC error หรือ console warning/error · typecheck ผ่าน · lint 0 error (38 warning เดิม) · `verify:ui` ผ่าน · ไม่แตะกฎงานพิมพ์
 
 ### 🐛 Regression follow-up — tRPC context หลุดบน Turbopack (เบสพบ 2026-08-03)
 > ขอบเขต surgical: ตามเส้นทาง `RootLayout → Providers → DashboardLayout → Sidebar` และแก้เฉพาะอายุของ tRPC context/provider · ไม่แตะ query, auth หรือ business logic

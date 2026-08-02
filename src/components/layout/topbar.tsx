@@ -97,9 +97,8 @@ export function Topbar() {
   const count = unreadCount ?? 0;
 
   return (
-    // พื้น "กรอบเว็บ" เดียวกับแถบเมนูซ้าย — เทาอ่อนกว่าเนื้อหานิดเดียว (เบสเคาะ 2026-08-02)
-    // ยังโปร่ง+เบลอ เพื่อให้เนื้อหาที่เลื่อนลอดใต้แถบเห็นจางๆ ตามเดิม
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-black/[0.07] bg-chrome/90 px-3 backdrop-blur-xl sm:gap-3 sm:px-8 lg:px-10 dark:border-white/[0.07]">
+    // Light เป็นขาวทึบบนพื้นหน้าเทา · dark คงความโปร่งและ blur เดิม
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-black/[0.07] bg-chrome px-3 sm:gap-3 sm:px-8 lg:px-10 dark:border-white/[0.07] dark:bg-chrome/90 dark:backdrop-blur-xl">
       {/* เมนูมือถือ — จอเล็ก sidebar ซ่อน เปิดผ่าน hamburger */}
       <MobileSidebar />
       {/* Search trigger (opens command palette) */}
@@ -116,8 +115,7 @@ export function Topbar() {
           CONTROL_H,
           RADIUS.pill,
           FOCUS_BUTTON,
-          // ช่องค้นหาเคยเป็น "ขาวบนพื้นเทา" — พื้นขาวแล้วมองไม่เห็นว่าตรงนี้กดได้
-          // สลับเป็นเทาอ่อน (ของที่จมลงไปในพื้น) ให้เห็นเป็นช่องเหมือนเดิม
+          // Navbar ขาว — ช่องค้นหาใช้เทาอ่อนเป็นของที่จมลงไป ให้เห็นว่าตรงนี้กดได้
           "group flex w-full min-w-0 max-w-md items-center gap-2 bg-surface-muted/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-surface-muted hover:text-slate-600 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10",
         )}
       >

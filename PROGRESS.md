@@ -4,6 +4,11 @@
 
 ## ตอนนี้
 
+> **✅ พื้นหน้าเทา + Navbar/Sidebar ขาวทั้งเว็บในธีมสว่าง (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
+> สลับลำดับชั้นที่ token กลาง: ผืนหน้าเป็นเทา `#f3f4f6` ส่วน Navbar, Sidebar, เมนูมือถือ, การ์ด และตารางคงขาว `#fff` · Topbar/Sidebar desktop ใช้ขาวทึบใน light แต่คืนความโปร่ง `chrome/90` + blur เฉพาะ dark จึงไม่เปลี่ยนหน้าตาธีมมืด · อัปเดตคู่มือสีให้ตรง implementation โดยไม่ไล่ทาสีรายหน้าและไม่แตะกฎงานพิมพ์
+> **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ layout ที่แตะ 0) · `verify:ui` ผ่าน · browser จริง light บน dashboard/orders/orders-new/settings และ drawer มือถือ 390px วัดพื้นหน้า `rgb(243,244,246)` กับ Navbar/Sidebar/card/table head `rgb(255,255,255)` · dark dashboard คง token `#1a1a1c/#161618/#252528` · ไม่มี horizontal overflow, runtime/tRPC error หรือ console warning/error · คืน viewport และธีมสว่างแล้ว
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
 > **✅ หัวตารางสีเดียวกับกล่องครบทุกตารางบนเว็บ (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
 > ตรวจ `<thead>` ครบ 21 จุด: UI 17 จุดและเอกสารพิมพ์ 4 จุด · DataTable กลางครอบ 9 หน้าอยู่แล้ว · เก็บสีเทาที่หลุดอีก 4 จุดในตารางสินค้า/ลาย/ส่วนเสริมของหน้าเปิดงานและตารางแมป Stock · หัว custom อีก 12 จุดโปร่งเห็นพื้นกล่องตรงอยู่แล้วจึงไม่ทาสีซ้ำ · เอกสารพิมพ์และ dark override เดิมไม่เปลี่ยน · รวมสูตรที่ใช้ร่วมกันไว้ใน `TABLE_HEAD_SURFACE` และเพิ่มด่าน `verify:ui` กันถอยหลัง
 > **verify:** source scan ไม่มีหัวตาราง UI เหลือ `bg-slate-50/100` ใน light · typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ที่แตะ 0) · `verify:ui` ผ่านรวม assertion ใหม่ · browser จริง `/orders/new` แสดงหัวสินค้า/ลาย/ส่วนเสริมครบ 3 และ `/settings/stock` ทั้ง light/dark สีตรงตามกำหนด · ไม่มี horizontal overflow, error overlay หรือ console error · คืนธีมสว่างและปิด dev server ทดสอบแล้ว

@@ -54,10 +54,8 @@ export function Sidebar({
         mobile
           ? "flex h-full w-full bg-chrome"
           : cn(
-              // พื้น "กรอบเว็บ" — เทาอ่อนกว่าเนื้อหานิดเดียว (เบสเคาะ 2026-08-02)
-              // รอบแรกให้เป็นสีเดียวกับเนื้อหาแล้วหวังพึ่งเส้นคั่นอย่างเดียว —
-              // จอกว้างแล้วแยกไม่ออกว่าตรงไหนคือเมนู · เดิมโหมดมืดฮาร์ดโค้ด bg-black/60
-              "hidden h-screen border-r border-black/[0.07] bg-chrome/90 backdrop-blur-xl md:flex dark:border-white/[0.07]",
+              // Light เป็นขาวทึบบนพื้นหน้าเทา · dark คงกรอบโปร่งและ blur เดิม
+              "hidden h-screen border-r border-black/[0.07] bg-chrome md:flex dark:border-white/[0.07] dark:bg-chrome/90 dark:backdrop-blur-xl",
               collapsed ? "w-[68px]" : "w-64"
             )
       )}

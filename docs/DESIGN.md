@@ -16,7 +16,7 @@
 |---|---|---|
 | Primitive | สีแบรนด์: `--color-anajak-blue #3973b2` · `--color-anajak-yellow #fec91b` · `--color-anajak-red #e72f27` | **ห้ามใช้ตรงใน component** |
 | Ramp | สเกล `blue-50..950` / `red-50..950` ของ Tailwind ถูก override เป็น ramp จากสีแบรนด์ (เลข 600 = สีแบรนด์เป๊ะ) | ใช้ utility ปกติ: `bg-blue-600`, `text-red-700` — ได้โทนแบรนด์อัตโนมัติ |
-| Semantic | เหลือ 5 ตัวที่ใช้จริง: `--color-bg` (พื้นหน้า) · `--color-chrome` (แถบเมนู+แถบบน) · `--color-surface` (การ์ด) · `--color-surface-muted` (กล่องลอยโหมดมืด) · `--color-text` | ใช้ผ่าน `bg-bg` / `bg-chrome` · ที่เหลือใช้ ramp ตรงๆ |
+| Semantic | เหลือ 5 ตัวที่ใช้จริง: `--color-bg` (light `#f3f4f6` พื้นหน้าเทา) · `--color-chrome` (light `#fff` แถบเมนู+แถบบน) · `--color-surface` (light `#fff` การ์ด/ตาราง) · `--color-surface-muted` (กล่องจม/กล่องลอยโหมดมืด) · `--color-text` | ใช้ผ่าน `bg-bg` / `bg-chrome` / `bg-surface` · ที่เหลือใช้ ramp ตรงๆ |
 
 > **แก้ 2026-08-02 จาก audit สี:** เคยมีสี semantic อีก 17 ตัว (`accent` · `success` ·
 > `warning` · `danger` · `border` · `text-muted` ฯลฯ) เขียนไว้ในเอกสารนี้ว่า "ให้ใช้"
@@ -31,7 +31,8 @@
 | ตัวหนังสือหลัก | `text-slate-900 dark:text-white` |
 | ตัวหนังสือรอง (คำบรรยาย · วันที่ · meta) | `text-slate-500 dark:text-slate-400` ← **คู่นี้เสมอ ห้ามสลับข้าง** |
 | ค่าว่าง / เลขศูนย์ | `text-slate-400 dark:text-slate-500` |
-| พื้นที่จมลงไป (หัวตาราง · กล่องย่อยในการ์ด · พื้นตอนชี้) | `bg-slate-100 dark:bg-white/[0.06]` |
+| หัวตารางบนการ์ด | `TABLE_HEAD_SURFACE` (`bg-surface dark:bg-white/[0.03]`) |
+| พื้นที่จมลงไป (กล่องย่อยในการ์ด · พื้นตอนชี้) | `bg-slate-100 dark:bg-white/[0.06]` |
 | เส้นคั่น | `border-slate-200 dark:border-white/10` (ในกล่องลอยใช้ `dark:bg-white/10`) |
 
 **โหมดมืดใช้ "ขาวโปร่ง" ไม่ใช่เทาเข้ม** — `bg-white/10` สว่างกว่าพื้นเสมอไม่ว่าวางบนการ์ด
