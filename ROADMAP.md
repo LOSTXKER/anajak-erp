@@ -165,6 +165,13 @@
 - [x] verify: typecheck · lint · `verify:ui` · browser จริง `/orders` และตารางมาตรฐานหน้าอื่นใน light/dark โดยไม่มี console error หรือ horizontal scroll ✅ 2026-08-03
 - **ปิดงาน 2026-08-03:** `DataTable.Head` ใช้ `bg-surface` ใน light ทำให้หัวกับกรอบเป็น `#fff` เท่ากันทั้ง `/orders`, `/customers`, `/billing` · คงเส้นคั่นและ `dark:bg-white/[0.03]` เดิม · typecheck/lint/`verify:ui` ผ่าน · browser จริง 1280px ทั้ง light/dark ไม่มี error overlay, console error หรือ horizontal scroll · ไม่แตะตาราง custom/เอกสารพิมพ์
 
+### 🎯 UX follow-up — ขยายสีหัวตารางให้ครบทุกตารางบนเว็บ (เบสสั่งต่อ 2026-08-03)
+> ขอบเขต: ทุกตารางที่แสดงเป็น UI ให้หัวใช้สีเดียวกับกล่องในโหมดสว่าง · คง dark override ของแต่ละบริบท · เอกสารพิมพ์คงเดิม
+
+- [x] audit `<thead>` ทุกจุดและเก็บหัวตาราง custom ที่ยังมีพื้นเทา โดยไม่ทาสีซ้ำจุดที่โปร่งเห็นพื้นกล่องอยู่แล้ว ✅ 2026-08-03
+- [x] verify: ไม่มีหัวตาราง UI เหลือ `bg-slate-50/100` ใน light · typecheck · lint · `verify:ui` · browser จริงหน้าตาราง custom ทั้ง light/dark ✅ 2026-08-03
+- **ปิดงาน 2026-08-03:** ตรวจ `<thead>` 21 จุดครบ — UI 17 จุด + เอกสารพิมพ์ 4 จุด · แก้ 4 จุดที่หลุดจริง (ตารางสินค้า/ลาย/ส่วนเสริมใน `/orders/new` และแมปหมวดหมู่ `/settings/stock`) · รวมสูตรหัวบน surface เป็น `TABLE_HEAD_SURFACE` และเพิ่ม assertion ใน `verify:ui` · 12 หัว custom ที่โปร่งเห็นพื้นกล่องตรงอยู่แล้วคงไว้ · typecheck ผ่าน · lint 0 error (38 warning เดิม) · browser จริง light/dark ไม่มี overflow, error overlay หรือ console error
+
 ### 🐛 Regression follow-up — tRPC context หลุดบน Turbopack (เบสพบ 2026-08-03)
 > ขอบเขต surgical: ตามเส้นทาง `RootLayout → Providers → DashboardLayout → Sidebar` และแก้เฉพาะอายุของ tRPC context/provider · ไม่แตะ query, auth หรือ business logic
 

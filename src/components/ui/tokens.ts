@@ -86,6 +86,11 @@ export const FIELD_SURFACE =
  *  ของเดิม 6 จุดใส่ซ้ำ ทำให้ในโหมดมืดได้ขอบสว่างซ้อนเงา และมุมโค้งไม่ตรงกัน */
 export const OVERLAY_PANEL = `overlay-surface ${RADIUS.surface}`;
 
+/** หัวตารางที่วางบน surface ปกติ — light ต้องกลืนกับกล่องตารางตามแบบ A
+ *  ส่วน dark คงชั้นขาวโปร่งเดิมที่อ่านง่ายและเบสชอบอยู่แล้ว */
+export const TABLE_HEAD_SURFACE =
+  "border-b border-slate-200 bg-surface text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400";
+
 /** ขอบประ = "ที่ว่างรอของ" — ปุ่มเพิ่มของ · ช่องอัปโหลด · กล่องว่างที่กดเพิ่มได้
  *  audit 2026-08-01: 21 จุดใช้ slate-200 สลับ slate-300 โดยไม่มีเหตุผล
  *  และครึ่งหนึ่งลืมใส่สีโหมดมืด → ขอบหายไปเลยบนพื้นดำ */

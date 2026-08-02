@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FOCUS_INSET } from "./tokens";
+import { FOCUS_INSET, TABLE_HEAD_SURFACE } from "./tokens";
 
 /**
  * Minimal table primitive that gives every list page the same look-and-feel:
@@ -50,9 +50,7 @@ const Head = React.forwardRef<
   <thead
     ref={ref}
     className={cn(
-      // โหมดสว่างใช้พื้นเดียวกับกรอบตารางตามภาพจริง — แยกหัวด้วยเส้นคั่นและน้ำหนักตัวอักษร
-      // โหมดมืดคง overlay เดิมเพื่อไม่ให้หน้าตาที่เบสชอบเปลี่ยนตาม
-      "border-b border-slate-200 bg-surface text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400",
+      TABLE_HEAD_SURFACE,
       className
     )}
     {...props}

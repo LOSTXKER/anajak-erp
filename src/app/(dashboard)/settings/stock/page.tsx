@@ -490,7 +490,7 @@ export default function StockSettingsPage() {
             <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800">
+                  <tr className="bg-surface dark:bg-slate-800">
                     <th scope="col" className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
                       หมวดหมู่ Stock
                     </th>

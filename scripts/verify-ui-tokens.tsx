@@ -13,6 +13,7 @@ import { Select } from "../src/components/ui/select";
 import { Input } from "../src/components/ui/input";
 import { Textarea } from "../src/components/ui/textarea";
 import { Button } from "../src/components/ui/button";
+import { DataTable } from "../src/components/ui/data-table";
 import {
   CONTROL_H,
   CONTROL_H_SM,
@@ -94,6 +95,20 @@ check("ปุ่ม", renderToStaticMarkup(<Button>ก</Button>), [
   "focus-visible:ring-offset-white",
 ]);
 check("ปุ่มขนาดเล็ก", renderToStaticMarkup(<Button size="sm">ก</Button>), hSm, ["sm:h-9", "sm:min-h-9"]);
+
+// ⑥ หัวตารางบน surface ใช้สีเดียวกับกล่องใน light และคงชั้นเดิมใน dark
+check(
+  "หัวตารางบนกล่อง",
+  renderToStaticMarkup(
+    <table>
+      <DataTable.Head>
+        <tr><DataTable.Th>หัว</DataTable.Th></tr>
+      </DataTable.Head>
+    </table>,
+  ),
+  ["bg-surface", "dark:bg-white/[0.03]"],
+  ["bg-slate-50", "bg-slate-100"],
+);
 
 console.log(failed ? `\n❌ ไม่ผ่าน ${failed} ข้อ` : "\n✅ ผ่านครบ");
 process.exit(failed ? 1 : 0);

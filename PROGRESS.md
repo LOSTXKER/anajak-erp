@@ -4,6 +4,11 @@
 
 ## ตอนนี้
 
+> **✅ หัวตารางสีเดียวกับกล่องครบทุกตารางบนเว็บ (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
+> ตรวจ `<thead>` ครบ 21 จุด: UI 17 จุดและเอกสารพิมพ์ 4 จุด · DataTable กลางครอบ 9 หน้าอยู่แล้ว · เก็บสีเทาที่หลุดอีก 4 จุดในตารางสินค้า/ลาย/ส่วนเสริมของหน้าเปิดงานและตารางแมป Stock · หัว custom อีก 12 จุดโปร่งเห็นพื้นกล่องตรงอยู่แล้วจึงไม่ทาสีซ้ำ · เอกสารพิมพ์และ dark override เดิมไม่เปลี่ยน · รวมสูตรที่ใช้ร่วมกันไว้ใน `TABLE_HEAD_SURFACE` และเพิ่มด่าน `verify:ui` กันถอยหลัง
+> **verify:** source scan ไม่มีหัวตาราง UI เหลือ `bg-slate-50/100` ใน light · typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ที่แตะ 0) · `verify:ui` ผ่านรวม assertion ใหม่ · browser จริง `/orders/new` แสดงหัวสินค้า/ลาย/ส่วนเสริมครบ 3 และ `/settings/stock` ทั้ง light/dark สีตรงตามกำหนด · ไม่มี horizontal overflow, error overlay หรือ console error · คืนธีมสว่างและปิด dev server ทดสอบแล้ว
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
 > **✅ หัวตารางมาตรฐานสีเดียวกับกรอบตารางในธีมสว่าง (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
 > เปลี่ยน `DataTable.Head` กลางจากพื้นเทาเป็น `surface` เดียวกับ `card-surface` ตามภาพจริง ทำให้หัวตารางขาวกลืนกับกล่องโดยยังมีเส้นคั่นและน้ำหนักตัวอักษรช่วยแยกชั้น · ครอบ 9 หน้าที่ใช้ DataTable มาตรฐาน โดยไม่กวาดตารางย่อย/เอกสารพิมพ์ที่มีหน้าที่ต่างกัน · ธีมมืดคง overlay เดิม
 > **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ที่แตะ 0) · `verify:ui` ผ่าน · browser จริง `/orders`, `/customers`, `/billing` ที่ 1280px: light วัดหัว/กรอบ `rgb(255,255,255)` เท่ากันทุกหน้า · dark คง `white/3%` · ไม่มี horizontal scroll, error overlay หรือ console error · คืนธีมเป็นสว่างและปิด dev server ทดสอบแล้ว

@@ -24,7 +24,7 @@ import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
-import { DASHED } from "@/components/ui/tokens";
+import { DASHED, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
 export const labelClass =
   "mb-1 block text-xs text-slate-500 dark:text-slate-400";
@@ -247,7 +247,7 @@ export function OrderItemCard({
                 <col style={{ width: 84 }} />
                 <col style={{ width: 40 }} />
               </colgroup>
-              <thead className="border-b border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+              <thead className={TABLE_HEAD_SURFACE}>
                 <tr className="text-xs font-medium">
                   <th className="whitespace-nowrap px-2 py-2.5 text-left">
                     รูปแบบ
@@ -362,7 +362,7 @@ export function OrderItemCard({
                 <col style={{ width: 84 }} />
                 <col style={{ width: 80 }} />
               </colgroup>
-              <thead className="border-b border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+              <thead className={TABLE_HEAD_SURFACE}>
                 <tr className="text-xs font-medium">
                   <th className="px-2 py-2.5 text-left">แหล่ง</th>
                   <th className="px-2 py-2.5 text-left">สินค้า</th>
@@ -437,7 +437,7 @@ export function OrderItemCard({
           )}
         >
           <table className="w-full">
-            <thead className="border-b border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+            <thead className={TABLE_HEAD_SURFACE}>
               <tr className="text-left text-xs font-medium">
                 <th className="min-w-[100px] px-2 py-2.5">ประเภท</th>
                 <th className="min-w-[120px] px-2 py-2.5">ชื่อ</th>
