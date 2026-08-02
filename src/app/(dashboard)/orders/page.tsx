@@ -163,13 +163,13 @@ function OrderCountdown({
       : days === 0
         ? {
             label: "วันนี้",
-            dot: "bg-orange-500",
-            text: "font-medium text-orange-600 dark:text-orange-400",
+            dot: "bg-amber-600",
+            text: "font-medium text-amber-700 dark:text-amber-400",
           }
         : days <= 2
           ? {
               label: `เหลือ ${days} วัน`,
-              dot: "bg-amber-500",
+              dot: "bg-amber-400",
               text: "text-amber-700 dark:text-amber-400",
             }
           : {

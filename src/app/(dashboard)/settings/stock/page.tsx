@@ -266,7 +266,7 @@ export default function StockSettingsPage() {
                     placeholder="https://stock.anajak.com/api"
                     className="font-mono text-sm"
                   />
-                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     URL ของ Stock API (ดูได้ที่หน้า Integrations ในระบบ Stock)
                   </p>
                 </div>
@@ -302,7 +302,7 @@ export default function StockSettingsPage() {
                       </Button>
                     </div>
                   </div>
-                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     สร้าง API Key ได้ที่ระบบ Stock &gt; ตั้งค่า &gt; เชื่อมต่อระบบ &gt; เพิ่ม Custom ERP
                   </p>
                 </div>

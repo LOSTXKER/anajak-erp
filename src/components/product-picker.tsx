@@ -225,12 +225,12 @@ export function ProductPickerDialog({
           {/* Product list */}
           <div className="flex-1 overflow-y-auto px-2 py-2">
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
+              <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
                 <Spinner size="xl" />
                 <p className="mt-3 text-sm">กำลังโหลด...</p>
               </div>
             ) : !products || products.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
+              <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
                 <Package className="h-10 w-10" />
                 <p className="mt-3 text-sm">ไม่พบสินค้า</p>
                 {search && (

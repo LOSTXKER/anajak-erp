@@ -287,7 +287,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
                           <span
                             className={cn(
                               "block truncate text-xs",
-                              active ? "text-white/75" : "text-slate-400 dark:text-slate-500"
+                              active ? "text-white/75" : "text-slate-500 dark:text-slate-400"
                             )}
                           >
                             {item.hint}

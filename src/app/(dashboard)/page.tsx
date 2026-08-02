@@ -61,7 +61,7 @@ function PulseCard({
               ? "text-amber-600 dark:text-amber-400"
               : tone === "muted"
                 ? // ศูนย์จริงโชว์จาง แต่ต้องผ่าน contrast 3:1 ของ large text — ห้ามจางกว่านี้
-                  "text-slate-400 dark:text-slate-500"
+                  "text-slate-500 dark:text-slate-400"
                 : "text-slate-900 dark:text-white"
         )}
       >
@@ -343,7 +343,7 @@ export default function DashboardPage() {
                     </p>
                   )}
                   {o.deadline && (
-                    <p className="text-2xs text-slate-400 dark:text-slate-500">
+                    <p className="text-2xs text-slate-500 dark:text-slate-400">
                       กำหนด{" "}
                       {new Date(o.deadline).toLocaleDateString("th-TH", {
                         day: "numeric",
