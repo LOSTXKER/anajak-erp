@@ -86,7 +86,7 @@ function DeadlineTag({ deadline }: { deadline: Date | string | null }) {
     <span
       className={cn(
         "inline-flex items-center gap-1.5 text-xs font-medium",
-        overdue ? "text-red-600 dark:text-red-400" : "text-slate-400"
+        overdue ? "text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-400"
       )}
     >
       {overdue ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
@@ -212,7 +212,7 @@ export function ProductionCommandCenter({
           สายการผลิต
         </h2>
         {lineLanes.length === 0 ? (
-          <p className={cn(DASHED, "rounded-2xl py-8 text-center text-sm text-slate-400")}>
+          <p className={cn(DASHED, "rounded-2xl py-8 text-center text-sm text-slate-500 dark:text-slate-400")}>
             ยังไม่มีงานในไลน์ผลิต
           </p>
         ) : (
@@ -224,7 +224,7 @@ export function ProductionCommandCenter({
         )}
         {postLanes.length > 0 && (
           <>
-            <p className="pt-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+            <p className="pt-1 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               หลังผลิต
             </p>
             <div className="grid grid-cols-3 gap-2">
@@ -265,7 +265,7 @@ export function ProductionCommandCenter({
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     <DeadlineTag deadline={q.deadline} />
                     {q.totalQuantity != null && q.totalQuantity > 0 && (
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
                         {q.totalQuantity.toLocaleString()} ชิ้น
                       </span>
                     )}
@@ -323,7 +323,7 @@ function MyWorkSection({ items, primary = false }: { items: MyWorkItem[]; primar
         )}
       </div>
       <div className="card-surface overflow-hidden rounded-2xl">
-        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+        <ul className="divide-y divide-slate-200 dark:divide-slate-800">
           {items.map((work) => (
             <li key={work.stepId}>
               <Link
@@ -339,7 +339,7 @@ function MyWorkSection({ items, primary = false }: { items: MyWorkItem[]; primar
                 <Badge variant={work.status === "IN_PROGRESS" ? "accent" : "default"} size="sm">
                   {work.status === "IN_PROGRESS" ? "ทำต่อ" : "เริ่มงาน"}
                 </Badge>
-                <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden="true" />
               </Link>
             </li>
           ))}
@@ -362,7 +362,7 @@ function LaneTileButton({ tile, onClick }: { tile: LaneTile; onClick: () => void
       <div className="flex items-start justify-between gap-1.5">
         <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
           {tile.label}
-          {tile.isOutsource && <Truck className="h-3 w-3 text-slate-400" />}
+          {tile.isOutsource && <Truck className="h-3 w-3 text-slate-500 dark:text-slate-400" />}
         </span>
         {tile.overdue > 0 && (
           <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-2xs font-semibold text-white">
@@ -374,7 +374,7 @@ function LaneTileButton({ tile, onClick }: { tile: LaneTile; onClick: () => void
         <span className="text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
           {tile.count}
         </span>
-        <ChevronRight className="h-4 w-4 text-slate-300 dark:text-slate-600" />
+        <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500" />
       </div>
     </button>
   );

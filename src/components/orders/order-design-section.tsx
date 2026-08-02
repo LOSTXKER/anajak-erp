@@ -224,12 +224,12 @@ export function OrderDesignSection({
                           </p>
                         )}
                         {design.customerComment && (
-                          <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                          <p className="flex items-center gap-1.5 text-xs text-amber-800 dark:text-amber-400">
                             <MessageSquare className="h-3 w-3" />
                             {design.customerComment}
                           </p>
                         )}
-                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           {formatDateTime(design.createdAt)}
                         </p>
                       </div>
@@ -308,7 +308,7 @@ export function OrderDesignSection({
                   <span className="font-medium text-slate-700 dark:text-slate-200">
                     แก้แบบมาแล้ว {overage.revisionRounds} รอบ
                   </span>
-                  <span className="text-slate-400"> · ฟรี {overage.freeRounds} รอบ</span>
+                  <span className="text-slate-500 dark:text-slate-400"> · ฟรี {overage.freeRounds} รอบ</span>
                 </span>
                 {overage.chargeableRounds > 0 && (
                   <Badge variant="warning">เกินโควตา {overage.chargeableRounds} รอบ</Badge>
@@ -348,7 +348,7 @@ export function OrderDesignSection({
                 </div>
               )}
 
-              <p className="mt-1.5 text-xs text-slate-400">
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
                 {canSeeMoney
                   ? "นับจากเวอร์ชันแบบ · คิดเมื่อจะคิด (กดเอง) — ลบ/แก้ยอดได้ที่ค่าธรรมเนียมออเดอร์"
                   : "นับจากจำนวนเวอร์ชันแบบ"}

@@ -11,7 +11,7 @@ interface StatCardProps {
   icon?: LucideIcon;
   /**
    * Legacy prop kept for backwards compatibility — ignored by the new minimal
-   * design. Kept so existing call sites (`color="text-amber-600 bg-amber-50"`)
+   * design. Kept so existing call sites (`color="text-amber-800 bg-amber-50"`)
    * don't break.
    */
   color?: string;
@@ -35,9 +35,9 @@ interface StatCardProps {
 const TONE_CLASSES: Record<NonNullable<StatCardProps["tone"]>, string> = {
   default: "text-slate-900 dark:text-white",
   danger: "text-red-600 dark:text-red-400",
-  warning: "text-amber-600 dark:text-amber-400",
+  warning: "text-amber-800 dark:text-amber-400",
   success: "text-green-600 dark:text-green-400",
-  muted: "text-slate-400 dark:text-slate-500",
+  muted: "text-slate-500 dark:text-slate-400",
 };
 
 export function StatCard({
@@ -65,7 +65,7 @@ export function StatCard({
         </p>
         {Icon && (
           <Icon
-            className="h-4 w-4 text-slate-400 dark:text-slate-500"
+            className="h-4 w-4 text-slate-500 dark:text-slate-400"
             strokeWidth={1.75}
           />
         )}
@@ -86,7 +86,7 @@ export function StatCard({
               "inline-flex items-center font-medium tabular-nums",
               change >= 0
                 ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400"
+                : "text-red-700 dark:text-red-400"
             )}
           >
             {change >= 0 ? (
@@ -98,7 +98,7 @@ export function StatCard({
           </span>
         )}
         {caption && (
-          <span className="text-slate-400 dark:text-slate-500">{caption}</span>
+          <span className="text-slate-500 dark:text-slate-400">{caption}</span>
         )}
       </div>
     </div>

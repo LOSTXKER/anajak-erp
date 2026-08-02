@@ -218,9 +218,9 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
       </CardHeader>
       <CardContent>
         {artworks.isLoading ? (
-          <p className="text-sm text-slate-400">กำลังโหลด...</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">กำลังโหลด...</p>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             ยังไม่มีลายในคลัง — ลายจะเข้าคลังเองเมื่องานพิมพ์ผ่าน QC หรือกด &quot;เพิ่มลาย&quot;
           </p>
         ) : (
@@ -244,7 +244,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                     </a>
                   ) : (
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                      <ImageIcon className="h-6 w-6 text-slate-300 dark:text-slate-600" />
+                      <ImageIcon className="h-6 w-6 text-slate-400 dark:text-slate-500" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
@@ -269,14 +269,14 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                       ใช้ไป {a.usedOrderCount} ออเดอร์
                       {a.latestOrder ? ` · ล่าสุด ${a.latestOrder.orderNumber}` : ""}
                       {a.filmQty > 0 ? (
-                        <span className="font-medium text-amber-600 dark:text-amber-400">
+                        <span className="font-medium text-amber-800 dark:text-amber-400">
                           {" "}
                           · ฟิล์มค้าง {a.filmQty} ชิ้น
                         </span>
                       ) : null}
                     </p>
                     {gaps.length > 0 && (
-                      <p className="mt-0.5 text-2xs text-amber-600 dark:text-amber-400">
+                      <p className="mt-0.5 text-2xs text-amber-800 dark:text-amber-400">
                         สเปกยังไม่ครบ: {gaps.join(" · ")}
                       </p>
                     )}
@@ -450,7 +450,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                 />
               )}
             </div>
-            <p className="text-2xs text-slate-400">
+            <p className="text-2xs text-slate-500 dark:text-slate-400">
               สเปก (ขนาด/อุณหภูมิ/แรงกด) เติมทีหลังได้จากปุ่มแก้ไข
             </p>
           </div>

@@ -195,7 +195,7 @@ function ReceiptForm({
 
         <div className="space-y-3">
           {lines.length === 0 && (
-            <p className="py-3 text-center text-sm text-slate-400">
+            <p className="py-3 text-center text-sm text-slate-500 dark:text-slate-400">
               ไม่มีรายการให้{isReturn ? "คืน" : "ตรวจรับ"}
             </p>
           )}

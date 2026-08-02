@@ -122,7 +122,7 @@ function deadlineToneClass(
   if (!deadline || ATTENTION_EXEMPT_STATUSES.has(internalStatus)) return null;
   const due = new Date(deadline).getTime();
   const now = Date.now();
-  if (due < now) return "font-medium text-red-600 dark:text-red-400";
+  if (due < now) return "font-medium text-red-700 dark:text-red-400";
   if (due <= now + 48 * 60 * 60 * 1000) return "text-amber-700 dark:text-amber-400";
   return null;
 }
@@ -150,7 +150,7 @@ function OrderCountdown({
   internalStatus: string;
 }) {
   if (!deadline || ATTENTION_EXEMPT_STATUSES.has(internalStatus)) {
-    return <span className="text-xs text-slate-300 dark:text-slate-600">—</span>;
+    return <span className="text-xs text-slate-500 dark:text-slate-400">—</span>;
   }
   const days = daysUntil(deadline);
   const { label, dot, text } =
@@ -158,13 +158,13 @@ function OrderCountdown({
       ? {
           label: `เลย ${Math.abs(days)} วัน`,
           dot: "bg-red-500",
-          text: "font-medium text-red-600 dark:text-red-400",
+          text: "font-medium text-red-700 dark:text-red-400",
         }
       : days === 0
         ? {
             label: "วันนี้",
-            dot: "bg-orange-500",
-            text: "font-medium text-orange-600 dark:text-orange-400",
+            dot: "bg-amber-600",
+            text: "font-medium text-amber-800 dark:text-amber-300",
           }
         : days <= 2
           ? {
@@ -226,7 +226,7 @@ function ChatLink({
 
 function PaymentIndicator({ status }: { status: string }) {
   const v = PAYMENT_DOT[status];
-  if (!v) return <span className="text-xs text-slate-400">—</span>;
+  if (!v) return <span className="text-xs text-slate-500 dark:text-slate-400">—</span>;
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${v.text}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${v.dot}`} />
@@ -746,7 +746,7 @@ function OrdersPageContent() {
                         {order.title}
                       </p>
                     </div>
-                    <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-slate-400" />
+                    <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400" />
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -760,7 +760,7 @@ function OrdersPageContent() {
                     )}
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
+                  <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-200 pt-3 text-xs dark:border-slate-800">
                     <div>
                       <p className="text-slate-500 dark:text-slate-400">ช่องทาง</p>
                       <p className="mt-0.5 text-slate-800 dark:text-slate-200">

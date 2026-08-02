@@ -225,12 +225,12 @@ export function ProductPickerDialog({
           {/* Product list */}
           <div className="flex-1 overflow-y-auto px-2 py-2">
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
+              <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
                 <Spinner size="xl" />
                 <p className="mt-3 text-sm">กำลังโหลด...</p>
               </div>
             ) : !products || products.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
+              <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
                 <Package className="h-10 w-10" />
                 <p className="mt-3 text-sm">ไม่พบสินค้า</p>
                 {search && (
@@ -257,9 +257,9 @@ export function ProductPickerDialog({
                         className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/40"
                       >
                         {isExpanded ? (
-                          <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-400" />
+                          <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-500 dark:text-slate-400" />
                         ) : (
-                          <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-400" />
+                          <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-500 dark:text-slate-400" />
                         )}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
@@ -277,14 +277,14 @@ export function ProductPickerDialog({
                           </div>
                           <div className="mt-0.5 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                             <span className="font-mono">{product.sku}</span>
-                            <span className="text-slate-300 dark:text-slate-600">|</span>
+                            <span className="text-slate-400 dark:text-slate-500">|</span>
                             <span>
                               ราคา{" "}
                               <span className="font-medium text-slate-700 dark:text-slate-300">
                                 {formatCurrency(product.basePrice)}
                               </span>
                             </span>
-                            <span className="text-slate-300 dark:text-slate-600">|</span>
+                            <span className="text-slate-400 dark:text-slate-500">|</span>
                             <span>
                               คงเหลือ{" "}
                               <span
@@ -293,7 +293,7 @@ export function ProductPickerDialog({
                                   totalStock > 10
                                     ? "text-green-600 dark:text-green-400"
                                     : totalStock > 0
-                                      ? "text-amber-600 dark:text-amber-400"
+                                      ? "text-amber-800 dark:text-amber-400"
                                       : "text-red-500 dark:text-red-400",
                                 )}
                               >
@@ -306,7 +306,7 @@ export function ProductPickerDialog({
 
                       {/* Expanded: variant selection with checkboxes + qty */}
                       {isExpanded && product.variants.length > 0 && (
-                        <div className="mb-1 ml-10 mr-3 rounded-xl border border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50">
+                        <div className="mb-1 ml-10 mr-3 rounded-xl border border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50">
                           <table className="w-full table-fixed text-xs">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">
@@ -329,7 +329,7 @@ export function ProductPickerDialog({
                                 return (
                                   <tr
                                     key={v.id}
-                                    className="border-b border-slate-100 last:border-0 dark:border-slate-700/50"
+                                    className="border-b border-slate-200 last:border-0 dark:border-slate-700/50"
                                   >
                                     <td className="px-2 py-1.5 text-center">
                                       <input
@@ -374,7 +374,7 @@ export function ProductPickerDialog({
                                           aria-label={`ลดจำนวน ${v.sku}`}
                                           tabIndex={isChecked ? 0 : -1}
                                           onClick={() => setVariantQty(v.id, qty - 1)}
-                                          className={cn(CONTROL_H_SM, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700")}
+                                          className={cn(CONTROL_H_SM, RADIUS.item, "flex w-11 items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700")}
                                         >
                                           <Minus className="h-3 w-3" />
                                         </button>
@@ -399,13 +399,13 @@ export function ProductPickerDialog({
                                           aria-label={`เพิ่มจำนวน ${v.sku}`}
                                           tabIndex={isChecked ? 0 : -1}
                                           onClick={() => setVariantQty(v.id, qty + 1)}
-                                          className={cn(CONTROL_H_SM, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700")}
+                                          className={cn(CONTROL_H_SM, RADIUS.item, "flex w-11 items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700")}
                                         >
                                           <Plus className="h-3 w-3" />
                                         </button>
                                       </div>
                                       {exceedsStock && (
-                                        <p className="text-center text-2xs text-amber-600 dark:text-amber-400">
+                                        <p className="text-center text-2xs text-amber-800 dark:text-amber-400">
                                           เกินสต็อก (ต้องสั่งเพิ่ม)
                                         </p>
                                       )}
@@ -420,7 +420,7 @@ export function ProductPickerDialog({
 
                       {/* No variants -- allow direct manual add */}
                       {isExpanded && product.variants.length === 0 && (
-                        <div className="mb-1 ml-10 mr-3 rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-center text-xs text-slate-400 dark:border-slate-800 dark:bg-slate-800/50">
+                        <div className="mb-1 ml-10 mr-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-center text-xs text-slate-500 dark:text-slate-400 dark:border-slate-800 dark:bg-slate-800/50">
                           สินค้านี้ไม่มี variant -- ใช้ &quot;เพิ่มรายการด้วยตนเอง&quot; แทน
                         </div>
                       )}

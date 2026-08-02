@@ -164,9 +164,9 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
             )}
 
             {loadingFiles ? (
-              <p className="text-xs text-slate-400">กำลังโหลด...</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">กำลังโหลด...</p>
             ) : !attachments || attachments.length === 0 ? (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 ยังไม่มีไฟล์ — แนบไฟล์ลายให้ร้านโหลดไปทำงานได้จากลิงก์
               </p>
             ) : (
@@ -183,7 +183,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                         className="h-9 w-9 shrink-0 rounded object-cover"
                       />
                     ) : (
-                      <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
+                      <Paperclip className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
                     )}
                     <a
                       href={a.fileUrl}
@@ -196,7 +196,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      className="shrink-0 text-slate-400 hover:text-red-500"
+                      className="shrink-0 text-slate-500 dark:text-slate-400 hover:text-red-500"
                       disabled={deleteAttachment.isPending}
                       onClick={() => deleteAttachment.mutate({ id: a.id })}
                       title="ลบไฟล์"
@@ -215,7 +215,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
               ลิงก์ใบงาน
             </p>
             {loadingLink ? (
-              <p className="text-xs text-slate-400">กำลังโหลด...</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">กำลังโหลด...</p>
             ) : shareUrl ? (
               <>
                 <div className="flex items-center gap-2">
@@ -245,7 +245,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                   </Button>
                 </div>
                 {link?.expiresAt && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     ลิงก์ใช้ได้ถึง {formatDate(link.expiresAt)} · ร้านเปิดได้โดยไม่ต้อง login —
                     เห็นเฉพาะ งาน/จำนวน/ตารางไซซ์/ลาย/กำหนดส่งคืน (ไม่มีราคา/ชื่อลูกค้า)
                   </p>

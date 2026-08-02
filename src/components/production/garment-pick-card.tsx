@@ -83,7 +83,7 @@ export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentP
           return (
             <div
               key={l.sku}
-              className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2 dark:border-slate-800"
+              className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-slate-900 dark:text-white">

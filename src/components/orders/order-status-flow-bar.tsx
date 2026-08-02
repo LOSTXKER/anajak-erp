@@ -68,7 +68,7 @@ export function OrderStatusFlowBar({
             <p
               key={stage.label}
               style={{ gridColumn: `span ${stage.statuses.length}` }}
-              className="border-b-2 border-slate-100 pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500"
+              className="border-b-2 border-slate-200 pb-1 text-center text-2xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400"
             >
               {stage.label}
             </p>
@@ -98,7 +98,7 @@ export function OrderStatusFlowBar({
                   className={cn(
                     "block text-lg font-semibold leading-none tabular-nums",
                     count === 0
-                      ? "font-normal text-slate-300 dark:text-slate-600"
+                      ? "font-normal text-slate-500 dark:text-slate-400"
                       : isOn
                         ? "text-blue-700 dark:text-blue-300"
                         : "text-slate-900 dark:text-white",
@@ -168,7 +168,7 @@ export function OrderStatusFlowBar({
                 className={cn(
                   "shrink-0 text-base font-semibold leading-none tabular-nums",
                   count === 0
-                    ? "text-slate-300 dark:text-slate-600"
+                    ? "text-slate-500 dark:text-slate-400"
                     : "text-slate-900 dark:text-white",
                 )}
               >

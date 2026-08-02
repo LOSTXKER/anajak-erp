@@ -189,7 +189,7 @@ function BillingNotesPageContent() {
     return (
       <div className="space-y-5">
         <PageHeader title="ใบวางบิล" description="รวมใบแจ้งหนี้ค้างชำระเรียกเก็บตามรอบ" />
-        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
       </div>
     );
   }
@@ -332,7 +332,7 @@ function BillingNotesPageContent() {
                   />
                 </div>
 
-                <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
+                <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-200 pt-3 text-xs dark:border-slate-800">
                   <div>
                     <dt className="text-slate-500 dark:text-slate-400">วันที่วางบิล</dt>
                     <dd className="mt-0.5 text-slate-800 dark:text-slate-200">{formatDate(note.billingDate)}</dd>
@@ -474,7 +474,7 @@ function BillingNotesPageContent() {
                   </p>
                 ) : (
                   <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-slate-200 p-2 dark:border-slate-700">
-                    <label className="flex cursor-pointer items-center gap-2 border-b border-slate-100 px-2 pb-1.5 text-sm font-medium dark:border-slate-800">
+                    <label className="flex cursor-pointer items-center gap-2 border-b border-slate-200 px-2 pb-1.5 text-sm font-medium dark:border-slate-800">
                       <input
                         type="checkbox"
                         checked={allSelected}
@@ -525,7 +525,7 @@ function BillingNotesPageContent() {
                   </p>
                 )}
                 {creditNoteTotal > 0 && (
-                  <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
+                  <p className="mt-1.5 text-xs text-amber-800 dark:text-amber-400">
                     ลูกค้ารายนี้มีใบลดหนี้ที่ยังไม่ผูกใบเดิมรวม {formatCurrency(creditNoteTotal)} —
                     ระบบหักให้อัตโนมัติไม่ได้ ตรวจยอดเรียกเก็บก่อนส่งลูกค้า (ใบที่ผูกใบเดิมถูกหักจากยอดค้างแล้ว)
                   </p>

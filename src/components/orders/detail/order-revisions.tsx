@@ -69,7 +69,7 @@ export function OrderRevisions({ revisions }: OrderRevisionsProps) {
                       <span className="text-slate-500 dark:text-slate-400">
                         {statusLabel(rev.oldValue)}
                       </span>
-                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
                       <span className="font-medium">{statusLabel(rev.newValue)}</span>
                     </p>
                   ) : (
@@ -77,7 +77,7 @@ export function OrderRevisions({ revisions }: OrderRevisionsProps) {
                       {rev.description}
                     </p>
                   )}
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {rev.changedByName ?? rev.changedBy} &mdash;{" "}
                     {formatDateTime(rev.createdAt)}
                   </p>

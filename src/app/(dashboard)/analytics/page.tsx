@@ -69,7 +69,7 @@ export default function AnalyticsPage() {
           bordered
         >
           {!canViewRevenue ? (
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               ต้องมีสิทธิ์ &quot;เห็นทุน/กำไร/รายงานการเงิน&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
             </p>
           ) : revenueError ? (
@@ -78,7 +78,7 @@ export default function AnalyticsPage() {
               onRetry={() => refetchRevenue()}
             />
           ) : !revenueData || revenueData.length === 0 ? (
-            <p className="text-sm text-slate-400">ยังไม่มีข้อมูล</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">ยังไม่มีข้อมูล</p>
           ) : (
             <div className="space-y-3">
               {revenueData.map((item) => {
@@ -92,7 +92,7 @@ export default function AnalyticsPage() {
                       </span>
                       <span className="font-medium tabular-nums text-slate-900 dark:text-white">
                         {formatCurrency(item.revenue)}
-                        <span className="ml-1 text-xs font-normal text-slate-400">
+                        <span className="ml-1 text-xs font-normal text-slate-500 dark:text-slate-400">
                           ({item.orders} ออเดอร์)
                         </span>
                       </span>
@@ -121,7 +121,7 @@ export default function AnalyticsPage() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{c.name}</p>
                     {c.company && (
-                      <p className="truncate text-xs text-slate-400">
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                         {c.company}
                       </p>
                     )}
@@ -134,7 +134,7 @@ export default function AnalyticsPage() {
             ))}
             {(!dashboard?.topCustomers ||
               dashboard.topCustomers.length === 0) && (
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {canViewRevenue
                   ? "ยังไม่มีข้อมูล"
                   : "ต้องมีสิทธิ์ 'เห็นทุน/กำไร/รายงานการเงิน'"}

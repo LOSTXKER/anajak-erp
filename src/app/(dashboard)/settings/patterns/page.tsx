@@ -262,7 +262,7 @@ export default function PatternsPage() {
                 </div>
                 <div>
                   <label htmlFor="pattern-file" className={labelClass}>ไฟล์แพทเทิร์น</label>
-                  <label className={cn(CONTROL_MIN_H, DASHED, "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 focus-within:ring-2 focus-within:ring-blue-500/40 dark:border-slate-600 dark:hover:border-amber-500")}>
+                  <label className={cn(CONTROL_MIN_H, DASHED, "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-800 focus-within:ring-2 focus-within:ring-blue-500/40 dark:border-slate-600 dark:hover:border-amber-500")}>
                     <input
                       id="pattern-file"
                       type="file"
@@ -309,7 +309,7 @@ export default function PatternsPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800">
+                  <tr className="border-b border-slate-200 dark:border-slate-800">
                     <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">ชื่อ</th>
                     <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">ประเภท</th>
                     <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">ทรงคอ</th>
@@ -321,7 +321,7 @@ export default function PatternsPage() {
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {patterns.map((p) => {
                     const isEditing = canEdit && editingId === p.id;
                     return (

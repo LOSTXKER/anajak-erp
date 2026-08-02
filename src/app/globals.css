@@ -156,7 +156,6 @@
   --color-bg: #ffffff;
   --color-surface: #ffffff;
   --color-surface-muted: #fafafb;
-  --color-surface-sunken: #f2f2f4;
 
   /* กรอบของเว็บ (แถบเมนูซ้าย · แถบบน) — เทาอ่อนกว่าเนื้อหาแค่นิดเดียว
      เบสเคาะ 2026-08-02 หลังเห็นจอจริง: พื้นขาวล้วนทั้งจอทำให้ "ไม่รู้ว่าตรงไหนคือเมนู"
@@ -164,29 +163,25 @@
      (โหมดมืดใช้ทางกลับกัน — กรอบเข้มกว่าเนื้อหา แบบเดียวกับ Slack/VS Code) */
   --color-chrome: #fafafb;
 
-  /* Border — ยังเป็นเส้นบาง แต่ต้องเห็น เพราะไม่มีพื้นเทาช่วยแยกการ์ดออกจากพื้นแล้ว */
-  --color-border: #dedee1;
-  --color-border-subtle: #e8e8ea;
-
-  /* Text */
+  /* สีตัวหนังสือหลักของ <body> — ที่เหลือทั้งเว็บใช้ ramp slate ตรงๆ */
   --color-text: #1d1d1f;
-  --color-text-muted: #6e6e73;
-  --color-text-subtle: #86868b;
-
-  /* Accent — ชั้น SEMANTIC ชี้สีแบรนด์ (เดิม Apple blue → Anajak blue) */
-  --color-accent: var(--color-anajak-blue);
-  --color-accent-hover: var(--color-blue-700);
-  --color-accent-soft: var(--color-blue-50);
-  --color-accent-soft-text: var(--color-blue-700);
-
-  /* Semantic */
-  --color-success: #1a8754;
-  --color-success-soft: #effaf3;
-  --color-warning: #b25d00;
-  --color-warning-soft: #fff7ed;
-  --color-danger: #d70015;
-  --color-danger-soft: #fef2f2;
 }
+
+/* ------------------------------------------------------------------
+   เคยมีสีชุด "ทางการ" อีก 17 ตัวตรงนี้ (border/text-muted/text-subtle/
+   accent/success/warning/danger + คู่ -soft) — **ลบทิ้ง 2026-08-02**
+   จาก audit สี: ทั้ง 17 ตัวไม่มีใครเรียกใช้เลยสักจุดตั้งแต่วันที่ประกาศ
+   (ทั้งใน .tsx และใน CSS นี้เอง) ของจริงทั้งเว็บเขียนด้วย ramp slate/blue/
+   green/amber โดยตรง
+
+   ที่ต้องลบไม่ใช่แค่ "ไม่มีใครใช้" แต่เพราะ **ค่าที่ตั้งไว้ขัดกับสีจริง**:
+   --color-danger เป็นแดง Apple (#d70015) คนละเฉดกับแดงแบรนด์ที่ใช้จริง ·
+   --color-warning-soft เป็นส้ม แต่กล่องเตือนจริงเป็นเหลือง
+   → วินาทีที่ใครเริ่มใช้ตามเอกสาร จะได้ "แดงสองแดง เหลืองสองเหลือง" ในหน้าเดียว
+
+   เหลือไว้เฉพาะที่ใช้จริง: bg · chrome · surface · surface-muted · text
+   ถ้าจะเพิ่มสีกลางใหม่ ให้เพิ่มตอนที่มีคนใช้จริงเท่านั้น
+   ------------------------------------------------------------------ */
 
 .dark {
   /* โหมดมืด = ดำเทา ไม่ใช่ดำสนิท (เบสสั่ง 2026-08-01) — เดิม #000000

@@ -102,7 +102,7 @@ export function OrderShippingSection({
               />
             </Field>
           </div>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             ที่อยู่จัดส่งสามารถแก้ไขได้ภายหลังในหน้ารายละเอียดออเดอร์
           </p>
       </fieldset>

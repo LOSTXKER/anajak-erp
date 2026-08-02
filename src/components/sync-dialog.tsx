@@ -218,7 +218,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
 
               {/* Last sync info */}
               {syncStatus?.lastSyncAt && (
-                <p className="mt-2 text-xs text-slate-400">
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                   Sync ล่าสุด: {formatDateTime(syncStatus.lastSyncAt)}
                 </p>
               )}
@@ -283,7 +283,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
               {/* Progress bar */}
               {totalProducts > 0 && (
                 <div className="mt-4">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                     <span>{progressPct}%</span>
                     <span>{elapsed} วินาที</span>
                   </div>
@@ -312,7 +312,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                     สินค้า{" "}
                     {totals.productsCreated + totals.productsUpdated}
                   </span>
-                  <span className="text-slate-300 dark:text-slate-600">|</span>
+                  <span className="text-slate-400 dark:text-slate-500">|</span>
                   <span>
                     <Layers className="mr-1 inline h-3 w-3" />
                     ตัวเลือก{" "}
@@ -320,7 +320,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   </span>
                   {totals.errors.length > 0 && (
                     <>
-                      <span className="text-slate-300 dark:text-slate-600">|</span>
+                      <span className="text-slate-400 dark:text-slate-500">|</span>
                       <span className="text-red-500">
                         <AlertTriangle className="mr-1 inline h-3 w-3" />
                         {totals.errors.length}
@@ -338,7 +338,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                 aria-relevant="additions text"
               >
                 {logEntries.length === 0 ? (
-                  <div className="flex items-center gap-2 py-1 text-xs text-slate-400">
+                  <div className="flex items-center gap-2 py-1 text-xs text-slate-500 dark:text-slate-400">
                     <span
                       className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-400"
                     />
@@ -356,7 +356,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                           className={`flex items-center gap-2 py-1 text-xs ${
                             isLast
                               ? "font-medium text-blue-600 dark:text-blue-400"
-                              : "text-slate-400 dark:text-slate-500"
+                              : "text-slate-500 dark:text-slate-400"
                           }`}
                         >
                           {isLast ? (
@@ -393,7 +393,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                         className={`flex items-start gap-2 py-1 text-xs ${
                           isLast
                             ? "font-medium text-slate-700 dark:text-slate-200"
-                            : "text-slate-400 dark:text-slate-500"
+                            : "text-slate-500 dark:text-slate-400"
                         }`}
                       >
                         {pe.status === "error" ? (
@@ -406,7 +406,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                         <span className="truncate">
                           {pe.sku} — {pe.name}
                           {pe.variantCount > 0 && (
-                            <span className="ml-1 text-slate-400">
+                            <span className="ml-1 text-slate-500 dark:text-slate-400">
                               ({pe.variantCount} ตัวเลือก)
                             </span>
                           )}
@@ -566,12 +566,12 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
 
               {/* Partial progress info */}
               {processedCount > 0 && (
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   สำเร็จ {processedCount} สินค้า ก่อนเกิดข้อผิดพลาด
                 </p>
               )}
 
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                 ตรวจสอบการเชื่อมต่อ API ที่หน้าตั้งค่า
               </p>
 

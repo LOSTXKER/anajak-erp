@@ -211,9 +211,9 @@ export default function PackagingSettingsPage() {
             </div>
           ) : !options || options.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <Package className="h-10 w-10 text-slate-300 dark:text-slate-600" />
-              <p className="mt-3 text-sm text-slate-400">ยังไม่มีแพ็คเกจ</p>
-              <p className="mt-1 text-xs text-slate-400">
+              <Package className="h-10 w-10 text-slate-400 dark:text-slate-500" />
+              <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">ยังไม่มีแพ็คเกจ</p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 เพิ่มตัวเลือกแพ็คเกจเพื่อใช้ในออเดอร์
               </p>
             </div>
@@ -221,7 +221,7 @@ export default function PackagingSettingsPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800">
+                  <tr className="border-b border-slate-200 dark:border-slate-800">
                     <th scope="col" aria-label="ลำดับ" className="w-8 px-3 py-2.5" />
                     <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
                       ชื่อแพ็คเกจ
@@ -237,7 +237,7 @@ export default function PackagingSettingsPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {options.map((opt) => {
                     const isEditing = editingId === opt.id;
                     return (
@@ -265,7 +265,7 @@ export default function PackagingSettingsPage() {
                             </span>
                           )}
                         </td>
-                        <td className="px-3 py-2.5 text-center text-xs text-slate-400">
+                        <td className="px-3 py-2.5 text-center text-xs text-slate-500 dark:text-slate-400">
                           {opt.sortOrder}
                         </td>
                         <td className="px-3 py-2.5 text-center">

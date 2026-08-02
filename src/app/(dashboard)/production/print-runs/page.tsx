@@ -129,10 +129,10 @@ function BlockSection({
 }) {
   return (
     <section className="card-surface overflow-hidden rounded-2xl">
-      <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
         <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" strokeWidth={1.75} />
         <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h2>
-        {hint && <span className="hidden text-xs text-slate-400 sm:inline">{hint}</span>}
+        {hint && <span className="hidden text-xs text-slate-500 dark:text-slate-400 sm:inline">{hint}</span>}
         <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">
           {count}
         </span>
@@ -296,7 +296,7 @@ export default function PrintRunsPage() {
             description="งานขั้นพิมพ์ฟิล์ม DTF ที่แบบอนุมัติแล้วจะเข้าคิวที่นี่เอง"
           />
         ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+          <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {queue.map((entry) => (
               <QueueRow
                 key={entry.stepId}
@@ -324,7 +324,7 @@ export default function PrintRunsPage() {
             description="รอบที่ปิดเสร็จหรือยกเลิกแล้วจะมาแสดงที่นี่"
           />
         ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+          <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {historyRuns.map((run) => {
               const badge = RUN_STATUS_BADGE[run.status] ?? RUN_STATUS_BADGE.CANCELLED;
               const extraTotal = run.items.reduce((s, i) => s + i.extraQty, 0);
@@ -340,7 +340,7 @@ export default function PrintRunsPage() {
                     {run.items.length} งาน · รวม {runTotalQty(run)} ชิ้น
                     {extraTotal > 0 && ` · เผื่อ ${extraTotal} ชิ้น`}
                   </span>
-                  <span className="shrink-0 text-xs tabular-nums text-slate-400">
+                  <span className="shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400">
                     {formatDateTime(run.completedAt ?? run.createdAt)}
                   </span>
                 </li>
@@ -354,7 +354,7 @@ export default function PrintRunsPage() {
       {canManage && pickedEntries.length > 0 && (
         <div className="card-surface sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 backdrop-blur">
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-slate-400">เข้ารอบพิมพ์ม้วนนี้</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">เข้ารอบพิมพ์ม้วนนี้</p>
             <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
               เลือก {pickedEntries.length} งาน · รวม {pickedTotal} ชิ้น
             </p>
@@ -420,7 +420,7 @@ function ActiveRunCard({
           {run.runNumber}
         </span>
         <Badge variant={badge.variant}>{badge.label}</Badge>
-        <span className="ml-auto text-xs tabular-nums text-slate-400">
+        <span className="ml-auto text-xs tabular-nums text-slate-500 dark:text-slate-400">
           {run.items.length} งาน · รวม {runTotalQty(run)} ชิ้น
         </span>
       </div>
@@ -428,7 +428,7 @@ function ActiveRunCard({
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{run.note}</p>
       )}
 
-      <ul className="mt-2.5 divide-y divide-slate-100 rounded-lg border border-slate-100 dark:divide-slate-800 dark:border-slate-800">
+      <ul className="mt-2.5 divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
         {run.items.map((item) => (
           <li key={item.id} className="flex min-h-[44px] items-center gap-3 px-3 py-2">
             <DesignThumb design={item.order.designs[0] ?? null} size="sm" />
@@ -445,7 +445,7 @@ function ActiveRunCard({
         ))}
       </ul>
 
-      <p className="mt-2 text-xs text-slate-400">
+      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
         เปิดรอบโดย {run.createdBy.name} · {formatDateTime(run.createdAt)}
         {run.printedAt && ` · พิมพ์จบ ${formatDateTime(run.printedAt)}`}
       </p>
@@ -527,7 +527,7 @@ function QueueRow({
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <DeadlineChip deadline={entry.dueDate} />
-          <span className="text-xs tabular-nums text-slate-400">
+          <span className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
             {entry.qtyTotal > 0
               ? `พิมพ์แล้ว ${entry.qtyDone}/${entry.qtyTotal} · เหลือ ${entry.remaining}`
               : "ไม่ระบุจำนวน"}
@@ -563,7 +563,7 @@ function QueueRow({
       )}
       {selected ? (
         <div className="shrink-0 py-3 pr-4 text-right">
-          <label htmlFor={`print-run-qty-${entry.stepId}`} className="mb-0.5 block text-xs text-slate-400">พิมพ์รอบนี้ (ชิ้น)</label>
+          <label htmlFor={`print-run-qty-${entry.stepId}`} className="mb-0.5 block text-xs text-slate-500 dark:text-slate-400">พิมพ์รอบนี้ (ชิ้น)</label>
           <Input
             id={`print-run-qty-${entry.stepId}`}
             type="number"
@@ -640,7 +640,7 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
             return (
               <div
                 key={item.id}
-                className="rounded-lg border border-slate-100 p-3 dark:border-slate-800"
+                className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"
               >
                 <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
@@ -653,7 +653,7 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <label htmlFor={`print-extra-qty-${item.id}`} className="mb-0.5 block text-xs text-slate-400">
+                    <label htmlFor={`print-extra-qty-${item.id}`} className="mb-0.5 block text-xs text-slate-500 dark:text-slate-400">
                       ฟิล์มเผื่อ (ชิ้น)
                     </label>
                     <Input
@@ -677,7 +677,7 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
                 </div>
                 {extra.qty > 0 && (
                   <div className="mt-2">
-                    <label htmlFor={`print-extra-label-${item.id}`} className="mb-0.5 block text-xs text-slate-400">
+                    <label htmlFor={`print-extra-label-${item.id}`} className="mb-0.5 block text-xs text-slate-500 dark:text-slate-400">
                       ป้ายลาย — เขียนให้รู้ว่าฟิล์มม้วนไหนคือลายอะไร
                     </label>
                     <Input

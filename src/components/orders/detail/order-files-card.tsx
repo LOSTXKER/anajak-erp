@@ -82,8 +82,8 @@ function FileThumb({
         />
       ) : (
         <div className="flex h-28 w-28 flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
-          <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
-          <span className="mt-1 text-2xs text-slate-400">
+          <ImageIcon className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+          <span className="mt-1 text-2xs text-slate-500 dark:text-slate-400">
             {att.fileName.split(".").pop()?.toUpperCase()}
           </span>
         </div>
@@ -113,7 +113,7 @@ function FileThumb({
           {thumbInner}
         </a>
       )}
-      <p className="mt-0.5 max-w-[7rem] truncate text-2xs text-slate-400">{att.fileName}</p>
+      <p className="mt-0.5 max-w-[7rem] truncate text-2xs text-slate-500 dark:text-slate-400">{att.fileName}</p>
     </div>
   );
 }
@@ -258,7 +258,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {FILE_LAYERS.RAW.label}
             </p>
-            <span className="text-xs text-slate-400">({rawFiles.length})</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">({rawFiles.length})</span>
             <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setUploadingLayer(uploadingLayer === "RAW" ? null : "RAW")}
             >
               {uploadingLayer === "RAW" ? <X /> : <Upload />}
@@ -346,7 +346,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
           )}
 
           {rawFiles.length === 0 && uploadingLayer !== "RAW" && (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               ยังไม่มีไฟล์จากลูกค้า — กด &quot;แนบไฟล์&quot; เพื่อแนบของจากแชทแทนลูกค้า
             </p>
           )}
@@ -400,14 +400,14 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                   {DESIGN_STATUS_LABELS[latestDesign.approvalStatus] ?? latestDesign.approvalStatus}
                 </span>
               ) : (
-                <span className="text-xs text-slate-400">ยังไม่มีแบบ</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีแบบ</span>
               )}
             </div>
             <Button variant="outline" size="sm" onClick={scrollToDesign}>
               ไปที่งานออกแบบ
             </Button>
           </div>
-          <p className="mt-1 text-xs text-slate-400">{FILE_LAYERS.APPROVAL.description}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{FILE_LAYERS.APPROVAL.description}</p>
         </section>
 
         {/* ===== ชั้น 3 — ไฟล์พิมพ์จริง (ภายในเท่านั้น) ===== */}
@@ -421,7 +421,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
               <Lock className="h-2.5 w-2.5" />
               ภายในเท่านั้น
             </Badge>
-            <span className="text-xs text-slate-400">({printFiles.length})</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">({printFiles.length})</span>
             {canAttachPrint && (
               <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setUploadingLayer(uploadingLayer === "PRINT" ? null : "PRINT")}
               >
@@ -446,7 +446,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
           )}
 
           {printFiles.length === 0 && uploadingLayer !== "PRINT" ? (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               ยังไม่มีไฟล์พิมพ์ — gang sheet/ไฟล์ production เก็บชั้นนี้ ไม่ปนกับแบบที่ลูกค้าเห็น
             </p>
           ) : (

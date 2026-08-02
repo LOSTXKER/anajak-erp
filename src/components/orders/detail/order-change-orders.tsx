@@ -71,14 +71,14 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
                 </div>
 
                 <p className="mt-1 text-sm text-slate-900 dark:text-white">{co.reason}</p>
-                {co.summary && <p className="text-xs text-slate-400">{co.summary}</p>}
+                {co.summary && <p className="text-xs text-slate-500 dark:text-slate-400">{co.summary}</p>}
 
                 {showMoney && (
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
-                    <span className="text-slate-400 line-through">
+                    <span className="text-slate-500 dark:text-slate-400 line-through">
                       {formatCurrency(co.oldTotal ?? 0)}
                     </span>
-                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
                     <span className="font-medium text-slate-900 dark:text-white">
                       {formatCurrency(co.newTotal ?? 0)}
                     </span>
@@ -91,7 +91,7 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
                   </div>
                 )}
 
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   {co.createdByName} &mdash; {formatDateTime(co.createdAt)}
                 </p>
               </div>

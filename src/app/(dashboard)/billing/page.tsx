@@ -159,7 +159,7 @@ function BillingPageContent() {
           title="บิล/การเงิน"
           description="ใบแจ้งหนี้ ใบเสร็จ และสถานะรับชำระ"
         />
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
         </p>
       </div>
@@ -309,7 +309,7 @@ function BillingPageContent() {
                         className="shrink-0"
                       />
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-200 pt-3 dark:border-slate-800">
                       <div className="min-w-0">
                         <p className="text-xs text-slate-500 dark:text-slate-400">ลูกค้า</p>
                         <p className="mt-1 truncate text-sm font-medium text-slate-900 dark:text-white">
@@ -336,7 +336,7 @@ function BillingPageContent() {
                       </div>
                     </div>
                   </Link>
-                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-200 pt-3 dark:border-slate-800">
                     <Button variant="outline" size="sm" asChild>
                       <Link
                         href={`/print/invoice/${inv.id}`}

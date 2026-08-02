@@ -58,7 +58,7 @@ export function OrderFeeSection({
           onClick={onAddFee}
           className={cn(DASHED, "flex min-h-11 w-full touch-manipulation flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40", FOCUS_BUTTON, "dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
         >
-          <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
+          <Receipt className="h-6 w-6 text-slate-400 dark:text-slate-500" />
           <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าใช้จ่ายเพิ่มเติม — กดเพื่อเพิ่ม</span>
         </button>
       ) : (
@@ -115,7 +115,7 @@ export function OrderFeeSection({
                     variant="ghost"
                     size="icon"
                     aria-label={`ลบค่าใช้จ่าย ${fIdx + 1}`}
-                    className="text-slate-400 hover:text-red-600"
+                    className="text-slate-500 dark:text-slate-400 hover:text-red-600"
                     onClick={() => onRemoveFee(fIdx)}
                   >
                     <Trash2 />

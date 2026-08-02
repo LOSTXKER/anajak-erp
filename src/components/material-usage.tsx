@@ -200,7 +200,7 @@ export function MaterialUsage({
         {showPicker && (
           <Alert variant="info">
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
               <Input size="sm"
                 placeholder="ค้นหาวัตถุดิบ (ชื่อ / SKU / บาร์โค้ด)..."
                 value={searchTerm}
@@ -211,7 +211,7 @@ export function MaterialUsage({
             </div>
 
             {isSearching && (
-              <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-400">
+              <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-500 dark:text-slate-400">
                 <Spinner size="sm" />
                 กำลังค้นหา...
               </div>
@@ -229,7 +229,7 @@ export function MaterialUsage({
                       <span className="font-medium text-slate-900 dark:text-white">
                         {product.name}
                       </span>
-                      <span className="ml-2 text-slate-400">{product.sku}</span>
+                      <span className="ml-2 text-slate-500 dark:text-slate-400">{product.sku}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span
@@ -250,7 +250,7 @@ export function MaterialUsage({
             )}
 
             {searchResults && searchResults.length === 0 && searchTerm.length >= 1 && (
-              <p className="py-3 text-center text-xs text-slate-400">ไม่พบวัตถุดิบ</p>
+              <p className="py-3 text-center text-xs text-slate-500 dark:text-slate-400">ไม่พบวัตถุดิบ</p>
             )}
           </Alert>
         )}
@@ -270,7 +270,7 @@ export function MaterialUsage({
                     <span className="text-xs font-medium text-slate-900 dark:text-white">
                       {m.name}
                     </span>
-                    <span className="ml-1.5 text-xs text-slate-400">{m.sku}</span>
+                    <span className="ml-1.5 text-xs text-slate-500 dark:text-slate-400">{m.sku}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -278,7 +278,7 @@ export function MaterialUsage({
                     {m.quantity} {m.unit}
                   </span>
                   {showCosts && (
-                    <span className="text-xs tabular-nums text-slate-400">
+                    <span className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
                       {formatCurrency(m.totalCost)}
                     </span>
                   )}
@@ -286,7 +286,7 @@ export function MaterialUsage({
                     เบิกแล้ว
                   </Badge>
                   {m.stockMovementRef && (
-                    <span className="text-2xs text-slate-400">{m.stockMovementRef}</span>
+                    <span className="text-2xs text-slate-500 dark:text-slate-400">{m.stockMovementRef}</span>
                   )}
                 </div>
               </div>
@@ -303,7 +303,7 @@ export function MaterialUsage({
             {localMaterials.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 dark:border-slate-800"
+                className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800"
               >
                 {/* Material info */}
                 <div className="min-w-0 flex-1">
@@ -311,7 +311,7 @@ export function MaterialUsage({
                     <span className="truncate text-xs font-medium text-slate-900 dark:text-white">
                       {m.name}
                     </span>
-                    <span className="shrink-0 text-2xs text-slate-400">{m.sku}</span>
+                    <span className="shrink-0 text-2xs text-slate-500 dark:text-slate-400">{m.sku}</span>
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-2xs">
                     <span
@@ -321,7 +321,7 @@ export function MaterialUsage({
                           ? "text-red-500"
                           : m.currentStock < m.quantity
                             ? "text-amber-500"
-                            : "text-slate-400"
+                            : "text-slate-500 dark:text-slate-400"
                       )}
                     >
                       คงเหลือ: {m.currentStock}
@@ -370,7 +370,7 @@ export function MaterialUsage({
                 </div>
 
                 {/* Unit */}
-                <span className="w-8 text-center text-2xs text-slate-400">{m.unit}</span>
+                <span className="w-8 text-center text-2xs text-slate-500 dark:text-slate-400">{m.unit}</span>
 
                 {/* Unit cost + row total — เงินโชว์/แก้ได้เฉพาะหัวหน้า */}
                 {showCosts && (
@@ -397,7 +397,7 @@ export function MaterialUsage({
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => removeMaterial(m.id)}
-                  className="ml-1 h-5 w-5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+                  className="ml-1 h-5 w-5 text-slate-500 dark:text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
                 >
                   <X />
                 </Button>
@@ -405,7 +405,7 @@ export function MaterialUsage({
             ))}
 
             {/* Total + Issue button */}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-2 dark:border-slate-800">
+            <div className="flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-800">
               <div className="text-xs text-slate-500">
                 รวม {localMaterials.length} รายการ
                 {showCosts && (
@@ -438,8 +438,8 @@ export function MaterialUsage({
         {localMaterials.length === 0 && deductedMaterials.length === 0 && !showPicker && (
           <div className="py-4 text-center">
             <Package className="mx-auto h-8 w-8 text-slate-200 dark:text-slate-700" />
-            <p className="mt-1.5 text-xs text-slate-400">ยังไม่มีวัตถุดิบ</p>
-            <p className="text-2xs text-slate-300 dark:text-slate-600">
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">ยังไม่มีวัตถุดิบ</p>
+            <p className="text-2xs text-slate-400 dark:text-slate-500">
               กดปุ่ม &quot;เพิ่มวัตถุดิบ&quot; เพื่อเริ่มเพิ่มรายการ
             </p>
           </div>

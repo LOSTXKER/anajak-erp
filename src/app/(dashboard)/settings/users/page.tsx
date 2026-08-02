@@ -277,14 +277,14 @@ export default function UsersSettingsPage() {
             />
           ) : !users || users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <Users className="h-10 w-10 text-slate-300 dark:text-slate-600" />
-              <p className="mt-3 text-sm text-slate-400">ยังไม่มีผู้ใช้</p>
+              <Users className="h-10 w-10 text-slate-400 dark:text-slate-500" />
+              <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">ยังไม่มีผู้ใช้</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800">
+                  <tr className="border-b border-slate-200 dark:border-slate-800">
                     <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
                       ชื่อ
                     </th>
@@ -302,7 +302,7 @@ export default function UsersSettingsPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {users.map((user) => {
                     const isSelf = user.id === me?.id;
                     return (
@@ -527,7 +527,7 @@ export default function UsersSettingsPage() {
                               </span>
                             )}
                             {locked && (
-                              <span className="text-2xs text-slate-400">เจ้าของเท่านั้น</span>
+                              <span className="text-2xs text-slate-500 dark:text-slate-300">เจ้าของเท่านั้น</span>
                             )}
                           </span>
                         </label>

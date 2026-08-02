@@ -84,13 +84,13 @@ export function ProductCardMobile({
             <img src={product.productImageUrl} alt="" className="h-10 w-10 flex-shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
           ) : (
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-              <ImageIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" />
+              <ImageIcon className="h-4 w-4 text-slate-400 dark:text-slate-500" />
             </div>
           )}
           <div className="min-w-0">
             <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">{productLabel}</span>
             {variantLabel && <span className="block text-xs text-slate-500">{variantLabel}</span>}
-            <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
+            <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               {product.productSku && <span>{product.productSku}</span>}
               {product.stockAvailable != null && (
                 <span className={product.stockAvailable > 0 ? "text-green-600" : "text-red-500"}>คลัง {product.stockAvailable}</span>
@@ -175,7 +175,7 @@ export function ProductCardMobile({
                 </Select>
                 </>
               ) : (
-                <><p className={fieldLabel}>แพค</p><span className="text-xs text-slate-400">ยังไม่มีตัวเลือกแพค</span></>
+                <><p className={fieldLabel}>แพค</p><span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีตัวเลือกแพค</span></>
               )}
             </div>
       </div>

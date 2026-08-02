@@ -88,7 +88,7 @@ export default function SalesTaxReportPage() {
     return (
       <div className="space-y-5">
         <PageHeader title="ภาษีขาย" description="รายงานภาษีขายรายเดือน" />
-        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
       </div>
     );
   }
@@ -186,7 +186,7 @@ export default function SalesTaxReportPage() {
         <div className="card-surface overflow-x-auto rounded-2xl">
           <table className="w-full min-w-[880px] text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-left text-xs text-slate-500 dark:border-slate-800">
+              <tr className="border-b border-slate-200 text-left text-xs text-slate-500 dark:border-slate-800">
                 <th className="px-3 py-2.5 font-medium">#</th>
                 <th className="px-3 py-2.5 font-medium">วันที่</th>
                 <th className="px-3 py-2.5 font-medium">เลขที่</th>
@@ -203,10 +203,10 @@ export default function SalesTaxReportPage() {
                 <tr
                   key={r.invoiceNumber}
                   className={`border-b border-slate-50 last:border-0 dark:border-slate-800/60 ${
-                    r.isVoided ? "text-slate-400 line-through" : ""
+                    r.isVoided ? "text-slate-500 dark:text-slate-400 line-through" : ""
                   }`}
                 >
-                  <td className="px-3 py-2.5 tabular-nums text-slate-400">{r.seq}</td>
+                  <td className="px-3 py-2.5 tabular-nums text-slate-500 dark:text-slate-400">{r.seq}</td>
                   <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">
                     {formatThaiDateBE(r.date)}
                   </td>
@@ -223,7 +223,7 @@ export default function SalesTaxReportPage() {
                   </td>
                   <td className="max-w-[220px] px-3 py-2.5">
                     <p className="truncate">{r.customerName}</p>
-                    {r.note && <p className="truncate text-xs text-slate-400">{r.note}</p>}
+                    {r.note && <p className="truncate text-xs text-slate-500 dark:text-slate-400">{r.note}</p>}
                   </td>
                   <td className="px-3 py-2.5 text-xs text-slate-500">
                     {r.taxId || "—"}

@@ -58,10 +58,10 @@ function PulseCard({
           tone === "danger"
             ? "text-red-600 dark:text-red-400"
             : tone === "warning"
-              ? "text-amber-600 dark:text-amber-400"
+              ? "text-amber-800 dark:text-amber-400"
               : tone === "muted"
                 ? // ศูนย์จริงโชว์จาง แต่ต้องผ่าน contrast 3:1 ของ large text — ห้ามจางกว่านี้
-                  "text-slate-400 dark:text-slate-500"
+                  "text-slate-500 dark:text-slate-400"
                 : "text-slate-900 dark:text-white"
         )}
       >
@@ -74,7 +74,7 @@ function PulseCard({
     subTone === "danger"
       ? "text-red-600 dark:text-red-400"
       : subTone === "warning"
-        ? "text-amber-600 dark:text-amber-400"
+        ? "text-amber-800 dark:text-amber-400"
         : "text-slate-500 dark:text-slate-400"
   );
 
@@ -314,7 +314,7 @@ export default function DashboardPage() {
             />
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+          <div className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {data.recentOrders.map((o) => (
               <Link
                 key={o.id}
@@ -343,7 +343,7 @@ export default function DashboardPage() {
                     </p>
                   )}
                   {o.deadline && (
-                    <p className="text-2xs text-slate-400 dark:text-slate-500">
+                    <p className="text-2xs text-slate-500 dark:text-slate-400">
                       กำหนด{" "}
                       {new Date(o.deadline).toLocaleDateString("th-TH", {
                         day: "numeric",
@@ -397,7 +397,7 @@ export default function DashboardPage() {
               </Link>
             ))}
             {ordersByStatus.length === 0 && (
-              <p className="text-sm text-slate-400">ยังไม่มีออเดอร์</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">ยังไม่มีออเดอร์</p>
             )}
           </div>
         </Section>
@@ -420,7 +420,7 @@ export default function DashboardPage() {
                       {customer.name}
                     </p>
                     {customer.company && (
-                      <p className="truncate text-xs text-slate-400">
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                         {customer.company}
                       </p>
                     )}
@@ -430,14 +430,14 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium tabular-nums text-slate-900 dark:text-white">
                     {formatCurrency(customer.totalSpent)}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {customer.totalOrders} ออเดอร์
                   </p>
                 </div>
               </Link>
             ))}
             {(!data?.topCustomers || data.topCustomers.length === 0) && (
-              <p className="text-sm text-slate-400">ยังไม่มีข้อมูลลูกค้า</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">ยังไม่มีข้อมูลลูกค้า</p>
             )}
           </div>
         </Section>

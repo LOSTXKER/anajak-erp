@@ -92,7 +92,7 @@ export function OrderAttachmentsSection({
                   />
                 ) : (
                   <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-slate-200/60 bg-slate-50 dark:border-slate-700/60 dark:bg-slate-800">
-                    <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
+                    <ImageIcon className="h-8 w-8 text-slate-400 dark:text-slate-500" />
                   </div>
                 )}
                 <Button

@@ -189,7 +189,7 @@ export function OrderSidebar({
               <span className="font-mono">{order.poNumber}</span>
             </Row>
           )}
-          <div className="border-t border-slate-100 pt-2.5 dark:border-slate-800">
+          <div className="border-t border-slate-200 pt-2.5 dark:border-slate-800">
             <p className="mb-1 text-2xs font-medium text-slate-500 dark:text-slate-400">
               รายละเอียดงาน
             </p>
@@ -197,7 +197,7 @@ export function OrderSidebar({
               {order.description || "ยังไม่ระบุ"}
             </p>
           </div>
-          <div className="border-t border-slate-100 pt-2.5 dark:border-slate-800">
+          <div className="border-t border-slate-200 pt-2.5 dark:border-slate-800">
             <p className="mb-1 text-2xs font-medium text-slate-500 dark:text-slate-400">
               หมายเหตุ
             </p>
@@ -276,7 +276,7 @@ export function OrderSidebar({
           </span>
           <span className="flex items-center gap-1.5 text-base font-semibold tabular-nums text-slate-900 dark:text-white">
             {formatCurrency(totalAmount)}
-            <ChevronRight className="h-4 w-4 text-slate-400" />
+            <ChevronRight className="h-4 w-4 text-slate-500 dark:text-slate-400" />
           </span>
         </button>
       )}

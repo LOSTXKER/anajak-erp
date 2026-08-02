@@ -79,7 +79,7 @@ export function OrderMoneyTab({
                 <span className="tabular-nums">{formatCurrency(order.taxAmount ?? 0)}</span>
               </Row>
             )}
-            <div className="flex items-baseline justify-between border-t border-slate-100 pt-2.5 dark:border-slate-800">
+            <div className="flex items-baseline justify-between border-t border-slate-200 pt-2.5 dark:border-slate-800">
               <span className="text-sm font-medium text-slate-900 dark:text-white">ยอดรวมทั้งหมด</span>
               <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-white">
                 {formatCurrency(totalAmount)}
@@ -88,7 +88,7 @@ export function OrderMoneyTab({
 
             {hasCostEntries && (
               <div className="space-y-2.5 border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
-                <p className="text-2xs font-semibold uppercase tracking-wider text-slate-400">
+                <p className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   ต้นทุน
                 </p>
                 <Row label="ต้นทุนรวม">
@@ -104,7 +104,7 @@ export function OrderMoneyTab({
                         profitMargin >= 30
                           ? "text-green-600 dark:text-green-400"
                           : profitMargin >= 15
-                            ? "text-amber-600 dark:text-amber-400"
+                            ? "text-amber-800 dark:text-amber-400"
                             : "text-red-600 dark:text-red-400"
                       }`}
                     >

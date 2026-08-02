@@ -67,7 +67,7 @@ function QuickAddPattern({
             onChange={(e) => setName(e.target.value)}
             placeholder="ชื่อแพทเทิร์น เช่น คอกลมแขนสั้น"
           />
-          <label className={cn(DASHED, "flex w-fit cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600")}>
+          <label className={cn(DASHED, "flex w-fit cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-800 dark:border-slate-600")}>
             <Plus className="h-3 w-3" />
             {file ? file.name : "แนบรูป/ไฟล์ (ไม่บังคับ)"}
             <input type="file" accept="image/*,.pdf,.ai,.psd" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
@@ -124,13 +124,13 @@ export function CustomMadeDetail({
       {/* Pattern section */}
       <div className="mb-3">
         <div className="mb-2 flex items-center gap-2">
-          <Scissors className="h-3.5 w-3.5 text-amber-600" />
+          <Scissors className="h-3.5 w-3.5 text-amber-800" />
           <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">แพทเทิร์น</span>
           {!showQuickAdd && (
             <button
               type="button"
               onClick={() => setShowQuickAdd(true)}
-              className="ml-auto flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
+              className="ml-auto flex items-center gap-1.5 text-xs text-amber-800 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
             >
               <Plus className="h-3 w-3" />สร้างใหม่
             </button>
@@ -170,7 +170,7 @@ export function CustomMadeDetail({
                   {selectedPattern.description && (
                     <span className="block text-slate-500">{selectedPattern.description}</span>
                   )}
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400">
                     {selectedPattern.collarType && <span>คอ: <span className="text-slate-600 dark:text-slate-300">{COLLAR_TYPES[selectedPattern.collarType] || selectedPattern.collarType}</span></span>}
                     {selectedPattern.sleeveType && <span>แขน: <span className="text-slate-600 dark:text-slate-300">{SLEEVE_TYPES[selectedPattern.sleeveType] || selectedPattern.sleeveType}</span></span>}
                     {selectedPattern.bodyFit && <span>ทรง: <span className="text-slate-600 dark:text-slate-300">{BODY_FITS[selectedPattern.bodyFit] || selectedPattern.bodyFit}</span></span>}
