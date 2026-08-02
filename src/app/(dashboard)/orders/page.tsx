@@ -24,7 +24,7 @@ import {
   CUSTOMER_STATUS_LABELS,
   INTERNAL_STATUS_LABELS,
   CHANNEL_LABELS,
-  ORDER_TYPE_LABELS,
+  ORDER_TYPE_UI_LABELS,
 } from "@/lib/order-status";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -39,6 +39,7 @@ import {
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { hasActiveOrderListFilters } from "@/lib/order-list-ui";
 
 // ────────────────────────────────────────────────────────────
 // Filter options
@@ -51,7 +52,7 @@ const CHANNEL_FILTERS = [
 
 const TYPE_FILTERS = [
   { value: "", label: "ทุกประเภท" },
-  ...Object.entries(ORDER_TYPE_LABELS).map(([value, label]) => ({
+  ...Object.entries(ORDER_TYPE_UI_LABELS).map(([value, label]) => ({
     value,
     label,
   })),
@@ -282,7 +283,7 @@ function exportOrdersCsv(
     o.customer?.name ?? "",
     o.customer?.company ?? "",
     CHANNEL_LABELS[o.channel] ?? o.channel,
-    ORDER_TYPE_LABELS[o.orderType as OrderType] ?? o.orderType,
+    ORDER_TYPE_UI_LABELS[o.orderType as OrderType] ?? o.orderType,
     CUSTOMER_STATUS_LABELS[o.customerStatus as CustomerStatus] ?? o.customerStatus,
     INTERNAL_STATUS_LABELS[o.internalStatus as InternalStatus] ?? o.internalStatus,
     ...(canSeeMoney ? [String(o.totalAmount ?? 0)] : []),
@@ -441,8 +442,17 @@ function OrdersPageContent() {
     });
   };
 
-  // empty state ตอนหาไม่เจอ: ล้างตัวกรอง + คำค้นในจังหวะเดียว (คนละปุ่มกับในกล่องตัวกรองที่ล้างเฉพาะ filter)
-  const hasActiveFilters = activeFilterCount > 0 || Boolean(attention) || Boolean(search);
+  // empty state ตอนหาไม่เจอ: นับทั้งสถานะ/วันที่/คำค้น แล้วล้างทุกอย่างในจังหวะเดียว
+  // (คนละปุ่มกับในกล่องตัวกรองที่ล้างเฉพาะ filter)
+  const hasActiveFilters = hasActiveOrderListFilters({
+    search,
+    channel,
+    orderType,
+    internalStatus,
+    attention,
+    createdAfter,
+    createdBefore,
+  });
   const clearFiltersAndSearch = () => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     replaceListState({
@@ -471,7 +481,7 @@ function OrdersPageContent() {
                 onClick={() => exportOrdersCsv(data.orders, canSeeMoney)}
               >
                 <Download />
-                Export
+                ส่งออก CSV
               </Button>
             )}
             {canCreateOrder && (
@@ -517,7 +527,7 @@ function OrdersPageContent() {
           }}
         />
 
-        <ToolbarGroup>
+        <ToolbarGroup className="w-full flex-wrap @2xl:w-auto @2xl:flex-nowrap">
           {/* ช่องเรียงเหลือไว้เฉพาะจอแคบ (เบสเคาะ 2026-07-31) — จอกว้างย้ายไปกดที่หัวตารางแทน
               แต่จอแคบเป็นการ์ด ไม่มีหัวตารางให้กด ถ้าถอดทิ้งด้วยจะเรียงไม่ได้เลย */}
           <Select
@@ -600,6 +610,18 @@ function OrdersPageContent() {
             </span>
           )}
         </ToolbarGroup>
+
+        {data && (
+          <p
+            aria-busy={isFetching}
+            aria-live="polite"
+            className="self-end whitespace-nowrap text-xs tabular-nums text-slate-500 @2xl:ml-auto @2xl:self-auto dark:text-slate-400"
+          >
+            {isFetching
+              ? "กำลังอัปเดต…"
+              : `${data.total.toLocaleString("th-TH")} ออเดอร์`}
+          </p>
+        )}
       </Toolbar>
 
       <ResponsiveList
@@ -614,8 +636,14 @@ function OrdersPageContent() {
           // หลังเห็นจอจริงว่า "การชำระ" กับ "กำหนดส่ง" เป็น — ทั้งคอลัมน์)
           // ดูเฉพาะหน้าที่กำลังแสดง — พอเปลี่ยนหน้า/ตัวกรองแล้วมีข้อมูล คอลัมน์กลับมาเอง
           const showPayment = orders.some((o) => o.paymentLabel !== "none");
-          // กำลังเรียงด้วยกำหนดส่งอยู่ = ต้องคงคอลัมน์ไว้ ไม่งั้นหัวที่เพิ่งกดหายไปทั้งอัน
-          const showDeadline = orders.some((o) => o.deadline) || sortBy === "deadline";
+          const hasDeadline = orders.some((o) => o.deadline);
+          const hasTrackableDeadline = orders.some(
+            (o) => o.deadline && !ATTENTION_EXEMPT_STATUSES.has(o.internalStatus),
+          );
+          // คอลัมน์นับถอยหลังไม่มีประโยชน์เมื่อทั้งหน้าเป็นขีด — แต่ถ้าผู้ใช้กำลังเรียง
+          // ด้วยกำหนดส่ง ต้องคงหัว sortable ไว้ ไม่ให้ control ที่เพิ่งกดหายไป
+          const showCountdown = hasTrackableDeadline || sortBy === "deadline";
+          const showDeadline = hasDeadline;
           return (
           <DataTable.Root>
             <DataTable.Head>
@@ -627,9 +655,11 @@ function OrdersPageContent() {
                 </DataTable.SortableTh>
                 <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
                 <DataTable.Th>ช่องทาง</DataTable.Th>
-                <DataTable.SortableTh {...sortColumn("deadline")}>
-                  ระยะเวลาออเดอร์
-                </DataTable.SortableTh>
+                {showCountdown && (
+                  <DataTable.SortableTh {...sortColumn("deadline")}>
+                    เหลือเวลา
+                  </DataTable.SortableTh>
+                )}
                 <DataTable.Th>สถานะ</DataTable.Th>
                 {canSeeMoney && (
                   <DataTable.SortableTh align="right" {...sortColumn("totalAmount")}>
@@ -640,7 +670,7 @@ function OrdersPageContent() {
                 <DataTable.SortableTh {...sortColumn("createdAt")}>
                   วันที่
                 </DataTable.SortableTh>
-                {/* ไม่ทำให้เรียงได้ — คอลัมน์ "ระยะเวลาออเดอร์" เรียงด้วยกำหนดส่งอยู่แล้ว
+                {/* ไม่ทำให้เรียงได้ — คอลัมน์ "เหลือเวลา" เรียงด้วยกำหนดส่งอยู่แล้ว
                     ถ้าให้เรียงได้ทั้งคู่ ตอนเรียงจะประกาศ aria-sort พร้อมกัน 2 คอลัมน์
                     ซึ่งผิดมาตรฐานและทำให้โปรแกรมอ่านหน้าจอสับสน (audit ก่อน merge จับได้) */}
                 {showDeadline && <DataTable.Th>กำหนดส่ง</DataTable.Th>}
@@ -663,7 +693,7 @@ function OrdersPageContent() {
                         {order.customer?.name ?? "—"}
                         {order.orderType === "CUSTOM" && (
                           <Badge variant="accent" size="sm" className="ml-1.5">
-                            Custom
+                            {ORDER_TYPE_UI_LABELS[order.orderType]}
                           </Badge>
                         )}
                       </p>
@@ -678,12 +708,14 @@ function OrdersPageContent() {
                   <DataTable.Td className="text-xs text-slate-600 dark:text-slate-400">
                     {CHANNEL_LABELS[order.channel] ?? order.channel}
                   </DataTable.Td>
-                  <DataTable.Td>
-                    <OrderCountdown
-                      deadline={order.deadline}
-                      internalStatus={order.internalStatus}
-                    />
-                  </DataTable.Td>
+                  {showCountdown && (
+                    <DataTable.Td>
+                      <OrderCountdown
+                        deadline={order.deadline}
+                        internalStatus={order.internalStatus}
+                      />
+                    </DataTable.Td>
+                  )}
                   <DataTable.Td>
                     <OrderStatusBadge
                       customerStatus={order.customerStatus}
@@ -756,7 +788,9 @@ function OrdersPageContent() {
                       compact
                     />
                     {order.orderType === "CUSTOM" && (
-                      <Badge variant="accent" size="sm">Custom</Badge>
+                      <Badge variant="accent" size="sm">
+                        {ORDER_TYPE_UI_LABELS[order.orderType]}
+                      </Badge>
                     )}
                   </div>
 

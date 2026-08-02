@@ -8,6 +8,10 @@ import {
   isOrderLocked,
   canIssueChangeOrder,
   orderEditLockedReason,
+  INTERNAL_STATUS_EXCEPTIONS,
+  INTERNAL_STATUS_STAGES,
+  ORDER_TYPE_LABELS,
+  ORDER_TYPE_UI_LABELS,
 } from "./order-status";
 
 // เกราะของ status machine — ทุก transition ใหม่/ที่แก้ ต้องบันทึกไว้ที่นี่
@@ -16,6 +20,25 @@ describe("getInitialStatus", () => {
   it("CUSTOM เริ่มที่ INQUIRY · READY_MADE เริ่มที่ CONFIRMED", () => {
     expect(getInitialStatus("CUSTOM")).toBe("INQUIRY");
     expect(getInitialStatus("READY_MADE")).toBe("CONFIRMED");
+  });
+});
+
+describe("metadata สำหรับหน้าออเดอร์", () => {
+  it("เส้นทางหลักจบที่ COMPLETED และแยกพักงาน/ยกเลิกเป็นสถานะนอกเส้นทาง", () => {
+    const flowStatuses = INTERNAL_STATUS_STAGES.flatMap((stage) => stage.statuses);
+
+    expect(INTERNAL_STATUS_STAGES.at(-1)).toEqual({
+      label: "ปิดงาน",
+      statuses: ["COMPLETED"],
+    });
+    expect(flowStatuses).not.toContain("ON_HOLD");
+    expect(flowStatuses).not.toContain("CANCELLED");
+    expect(INTERNAL_STATUS_EXCEPTIONS).toEqual(["ON_HOLD", "CANCELLED"]);
+  });
+
+  it("ชื่อประเภทออเดอร์บน UI เป็นภาษาไทย โดยไม่เปลี่ยนสัญญา MCP เดิม", () => {
+    expect(ORDER_TYPE_UI_LABELS.CUSTOM).toBe("สั่งทำ");
+    expect(ORDER_TYPE_LABELS.CUSTOM).toBe("Custom");
   });
 });
 
