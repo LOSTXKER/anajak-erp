@@ -79,7 +79,7 @@ export const FOCUS_FIELD_INVALID =
 /** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — ขอบ พื้น สีตัวอักษร ครบทั้งสว่างและมืด
  *  (ไม่รวมมุมโค้งกับความสูง — สองอย่างนั้นต่างกันตามทรงและตำแหน่งที่ใช้) */
 export const FIELD_SURFACE =
-  "border border-slate-200/70 bg-white text-slate-900 placeholder:text-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500";
+  "border border-slate-400 bg-white text-slate-900 placeholder:text-slate-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-400";
 
 /** กล่องที่ลอยขึ้นมาทับเนื้อหา — เมนู · ปฏิทิน · ตัวกรอง · กล่องเด้ง
  *  .overlay-surface (globals.css) ให้ทั้งพื้นและเงามาแล้ว — ห้ามใส่ bg-white/border ซ้ำ
