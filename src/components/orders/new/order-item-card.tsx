@@ -59,6 +59,8 @@ interface OrderItemCardProps {
   // โหมดกระชับ (หน้าแก้รายการ): ยุบ คำอธิบาย/ส่วนเสริม/หมายเหตุ เป็น "รายละเอียดเพิ่มเติม" ·
   // ตัดสรุปราคาต่อรายการ (sidebar มีรวมแล้ว) · ย่อหัวข้อ (redesign 2026-06-12)
   compact?: boolean;
+  /** presentation เฉพาะหน้าเปิดงานใหม่: สินค้าก่อนลาย + empty CTA กระชับ */
+  appearance?: "default" | "intake";
 }
 
 // ============================================================
@@ -118,8 +120,13 @@ export function OrderItemCard({
   onOpenPicker, onSetItems,
   showPrints = true, showAddons = true,
   solo = false, compact = false,
+  appearance = "default",
 }: OrderItemCardProps) {
   const expanded = solo || isExpanded;
+  const isIntake = appearance === "intake";
+  const groupHeadingClass = isIntake
+    ? "text-sm font-semibold text-slate-800 dark:text-slate-100"
+    : groupLabelClass;
   const otherItemsWithPrints = (allItems ?? []).map((it, idx) => ({ it, idx })).filter(({ idx }) => idx !== itemIdx).filter(({ it }) => it.prints.length > 0);
 
   const copyPrintsFrom = (sourceIdx: number) => {
@@ -172,8 +179,8 @@ export function OrderItemCard({
 
   // ── section: คำอธิบายงาน ──
   const descField = (
-    <Field label="คำอธิบายงาน">
-      <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder="เช่น งานสกรีนทีม ABC, งานพิมพ์เสื้อกิจกรรม..." />
+    <Field label={isIntake ? "ชื่อชุดงาน" : "คำอธิบายงาน"}>
+      <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder={isIntake ? "เช่น เสื้อทีมหน้าร้าน 30 ตัว" : "เช่น งานสกรีนทีม ABC, งานพิมพ์เสื้อกิจกรรม..."} />
     </Field>
   );
 
@@ -181,45 +188,54 @@ export function OrderItemCard({
   const printsSection = (
     <div className="@container">
       <div className="mb-2 flex items-center justify-between">
-        <span className={groupLabelClass}>{compact ? "ลาย" : "ลายที่ต้องการสั่งผลิต"}</span>
-        <div className="flex items-center gap-1.5">
-          {otherItemsWithPrints.length > 0 && (
-            <div className="relative">
-              <Select
-                aria-label="คัดลอกลายจากรายการอื่น"
-                value=""
-                onChange={(e) => {
-                  if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
-                }}
-                className="w-auto appearance-none rounded-lg border-0 bg-transparent pl-7 pr-2 text-slate-600 hover:bg-slate-100 sm:text-xs dark:text-slate-400 dark:hover:bg-slate-800"
-              >
-                <option value="">คัดลอกลาย...</option>
-                {otherItemsWithPrints.map(({ it, idx }) => (
-                  <option key={idx} value={idx}>
-                    #{idx + 1} {it.description.slice(0, 20)} ({it.prints.length} ลาย)
-                  </option>
-                ))}
-              </Select>
-              <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
-            </div>
-          )}
-          <Button type="button" variant="outline" size="sm" onClick={() => onAddPrint(itemIdx)}>
-            <Plus />เพิ่มลาย
-          </Button>
-        </div>
+        <span className={groupHeadingClass}>{isIntake ? "ลายและงานพิมพ์" : compact ? "ลาย" : "ลายที่ต้องการสั่งผลิต"}</span>
+        {(!isIntake || item.prints.length > 0 || otherItemsWithPrints.length > 0) && (
+          <div className="flex items-center gap-1.5">
+            {otherItemsWithPrints.length > 0 && (
+              <div className="relative">
+                <Select
+                  aria-label="คัดลอกลายจากรายการอื่น"
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
+                  }}
+                  className="w-auto appearance-none rounded-lg border-0 bg-transparent pl-7 pr-2 text-slate-600 hover:bg-slate-100 sm:text-xs dark:text-slate-400 dark:hover:bg-slate-800"
+                >
+                  <option value="">คัดลอกลาย...</option>
+                  {otherItemsWithPrints.map(({ it, idx }) => (
+                    <option key={idx} value={idx}>
+                      #{idx + 1} {it.description.slice(0, 20)} ({it.prints.length} ลาย)
+                    </option>
+                  ))}
+                </Select>
+                <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
+              </div>
+            )}
+            {(!isIntake || item.prints.length > 0) && (
+              <Button type="button" variant="outline" size="sm" onClick={() => onAddPrint(itemIdx)}>
+                <Plus />เพิ่มลาย
+              </Button>
+            )}
+          </div>
+        )}
       </div>
       {item.prints.length === 0 ? (
         <button
           type="button"
           onClick={() => onAddPrint(itemIdx)}
-          className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+          className={cn(DASHED, "flex w-full items-center justify-center gap-2 rounded-xl px-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20", isIntake ? "py-3.5" : "flex-col py-6")}
         >
-          <ImageIcon className="h-6 w-6 text-slate-300 dark:text-slate-600" />
-          <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีลาย — กดเพื่อเพิ่มลายแรก</span>
+          <ImageIcon className={cn("text-slate-400 dark:text-slate-500", isIntake ? "h-4 w-4" : "h-6 w-6")} />
+          <span className="text-xs text-slate-500 dark:text-slate-400">{isIntake ? "เพิ่มลายหรืองานพิมพ์" : "ยังไม่มีลาย — กดเพื่อเพิ่มลายแรก"}</span>
         </button>
       ) : (
         <>
-          <div className="hidden overflow-hidden rounded-xl border border-slate-200 @3xl:block dark:border-white/10">
+          <div
+            className={cn(
+              "hidden overflow-hidden rounded-xl border border-slate-200 dark:border-white/10",
+              isIntake ? "@2xl:block" : "@3xl:block"
+            )}
+          >
             <table className="w-full table-fixed">
               <colgroup>
                 <col style={{ width: 64 }} />
@@ -266,7 +282,7 @@ export function OrderItemCard({
               </tbody>
             </table>
           </div>
-          <div className="space-y-2.5 @3xl:hidden">
+          <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
             {item.prints.map((print, printIdx) => (
               <PrintCardMobile
                 key={printIdx}
@@ -292,7 +308,7 @@ export function OrderItemCard({
   const productsSection = (
     <div className="@container">
       <div className="mb-2 flex items-center justify-between">
-        <span className={groupLabelClass}>{compact ? "สินค้า" : "สินค้าที่ต้องการสั่งผลิต"}</span>
+        <span className={groupHeadingClass}>{isIntake ? "สินค้าในชุดงาน" : compact ? "สินค้า" : "สินค้าที่ต้องการสั่งผลิต"}</span>
         {item.products.length > 0 && (
           <AddProductPopover
             onAddFromStock={onOpenPicker}
@@ -304,7 +320,7 @@ export function OrderItemCard({
       {item.products.length === 0 ? (
         // เลือกชนิดงานก่อน → ระบบโชว์เฉพาะ field ที่ชนิดนั้นใช้ (guided by type)
         <div>
-          <p className="mb-2 text-center text-xs text-slate-500 dark:text-slate-400">งานนี้ใช้เสื้อแบบไหน? เลือกเพื่อเริ่ม</p>
+          <p className={cn("mb-2 text-xs text-slate-500 dark:text-slate-400", !isIntake && "text-center")}>{isIntake ? "เริ่มจากเลือกว่าสินค้ามาจากไหน" : "งานนี้ใช้เสื้อแบบไหน? เลือกเพื่อเริ่ม"}</p>
           <div className="grid gap-2 sm:grid-cols-3">
             {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
               <button
@@ -315,19 +331,26 @@ export function OrderItemCard({
                   else if (key === "custom") addProductWithSource("CUSTOM_MADE");
                   else addProductWithSource("CUSTOMER_PROVIDED");
                 }}
-                className={cn(DASHED, "flex flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+                className={cn(DASHED, "flex rounded-xl transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20", isIntake ? "items-start gap-2 p-3 text-left" : "flex-col items-center gap-1.5 p-4 text-center")}
               >
-                <Icon className="h-6 w-6 text-slate-400" strokeWidth={1.75} />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">{desc}</span>
+                <Icon className={cn("shrink-0 text-slate-400", isIntake ? "mt-0.5 h-4 w-4" : "h-6 w-6")} strokeWidth={1.75} />
+                <span className={cn(isIntake && "min-w-0")}>
+                  <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400">{desc}</span>
+                </span>
               </button>
             ))}
           </div>
         </div>
       ) : (
         <>
-          {/* จอกว้าง: ตารางหนึ่งแถวต่อสินค้า พร้อมหัวคอลัมน์ครบ */}
-          <div className="hidden overflow-hidden rounded-xl border border-slate-200 @3xl:block dark:border-white/10">
+          {/* พื้นที่กว้างพอ (container ≥ 2xl): ตารางหนึ่งแถวต่อสินค้า พร้อมหัวคอลัมน์ครบ */}
+          <div
+            className={cn(
+              "hidden overflow-hidden rounded-xl border border-slate-200 dark:border-white/10",
+              isIntake ? "@2xl:block" : "@3xl:block"
+            )}
+          >
             <table className="w-full table-fixed">
               <colgroup>
                 <col style={{ width: 76 }} />
@@ -368,7 +391,7 @@ export function OrderItemCard({
             </table>
           </div>
           {/* จอแคบใช้การ์ด ไม่บีบตาราง 8 คอลัมน์ลงมือถือ/แท็บเล็ต */}
-          <div className="space-y-2.5 @3xl:hidden">
+          <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
             {item.products.map((prod, pIdx) => (
               <ProductCardMobile
                 key={pIdx}
@@ -389,23 +412,30 @@ export function OrderItemCard({
   const addonsSection = (
     <div className="@container">
       <div className="mb-2 flex items-center justify-between">
-        <span className={groupLabelClass}>ส่วนเสริม (Add-ons)</span>
-        <Button type="button" variant="outline" size="sm" onClick={() => onAddAddon(itemIdx)}>
-          <Plus />เพิ่มส่วนเสริม
-        </Button>
+        <span className={groupHeadingClass}>{isIntake ? "ส่วนเสริมในชุดงาน" : "ส่วนเสริม (Add-ons)"}</span>
+        {(!isIntake || item.addons.length > 0) && (
+          <Button type="button" variant="outline" size="sm" onClick={() => onAddAddon(itemIdx)}>
+            <Plus />เพิ่มส่วนเสริม
+          </Button>
+        )}
       </div>
       {item.addons.length === 0 ? (
         <button
           type="button"
           onClick={() => onAddAddon(itemIdx)}
-          className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+          className={cn(DASHED, "flex w-full items-center justify-center gap-2 rounded-xl px-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20", isIntake ? "py-3.5" : "flex-col py-6")}
         >
-          <Sparkles className="h-6 w-6 text-slate-300 dark:text-slate-600" />
-          <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีส่วนเสริม — กดเพื่อเพิ่ม</span>
+          <Sparkles className={cn("text-slate-400 dark:text-slate-500", isIntake ? "h-4 w-4" : "h-6 w-6")} />
+          <span className="text-xs text-slate-500 dark:text-slate-400">{isIntake ? "เพิ่มส่วนเสริมในชุดงาน" : "ยังไม่มีส่วนเสริม — กดเพื่อเพิ่ม"}</span>
         </button>
       ) : (
         <>
-        <div className="hidden overflow-hidden rounded-xl border border-slate-200 @3xl:block dark:border-white/10">
+        <div
+          className={cn(
+            "hidden overflow-hidden rounded-xl border border-slate-200 dark:border-white/10",
+            isIntake ? "@2xl:block" : "@3xl:block"
+          )}
+        >
           <table className="w-full">
             <thead className="border-b border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
               <tr className="text-left text-xs font-medium">
@@ -440,7 +470,7 @@ export function OrderItemCard({
             </tbody>
           </table>
         </div>
-        <div className="space-y-2.5 @3xl:hidden">
+        <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
           {item.addons.map((addon, addonIdx) => (
             <div key={addonIdx} className="space-y-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700/60">
               <div className="flex items-center justify-between gap-2">
@@ -483,15 +513,15 @@ export function OrderItemCard({
 
   // ── section: หมายเหตุ ──
   const notesField = (
-    <Field label="หมายเหตุรายการ">
-      <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder="หมายเหตุเพิ่มเติมสำหรับรายการนี้..." />
+    <Field label={isIntake ? "หมายเหตุการผลิตชุดนี้" : "หมายเหตุรายการ"}>
+      <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder={isIntake ? "รายละเอียดที่ทีมผลิตต้องรู้..." : "หมายเหตุเพิ่มเติมสำหรับรายการนี้..."} />
     </Field>
   );
 
   // ── section: สรุปราคาต่อรายการ (เฉพาะโหมดปกติ — compact ใช้สรุปรวมที่ sidebar) ──
   const priceSummary = totalQty > 0 ? (
     <div className="border-t border-slate-200/70 pt-3 dark:border-slate-700/60">
-      <p className={cn(groupLabelClass, "mb-2")}>สรุปราคารายการ</p>
+      <p className={cn(groupHeadingClass, "mb-2")}>สรุปราคารายการ</p>
       <table className="w-full text-xs">
         <tbody className="text-slate-600 dark:text-slate-300">
           {itemPriceSummary.lines.map((line) => {
@@ -538,6 +568,18 @@ export function OrderItemCard({
     </div>
   ) : null;
 
+  const productionSections = isIntake ? (
+    <>
+      {productsSection}
+      {showPrints && printsSection}
+    </>
+  ) : (
+    <>
+      {showPrints && printsSection}
+      {productsSection}
+    </>
+  );
+
   return (
     // ทุกรายการกางเห็นหมด (ไม่ accordion) — หัว "รายการที่ N" + เนื้อหา · คั่นด้วย divide-y ของ parent
     <div className={cn(!solo && "px-4")}>
@@ -554,16 +596,14 @@ export function OrderItemCard({
             <>
               {/* คำอธิบายงานอยู่บนสุด ใต้เลขรายการ (เบส: คำอธิบายไปอยู่ข้างบนกับเลข) */}
               {descField}
-              {showPrints && printsSection}
-              {productsSection}
+              {productionSections}
               {showAddons && addonsSection}
               {notesField}
             </>
           ) : (
             <>
               {descField}
-              {showPrints && printsSection}
-              {productsSection}
+              {productionSections}
               {showAddons && addonsSection}
               {notesField}
               {priceSummary}

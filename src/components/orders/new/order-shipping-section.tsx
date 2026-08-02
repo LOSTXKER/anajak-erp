@@ -32,9 +32,8 @@ export function OrderShippingSection({
 }: OrderShippingSectionProps) {
   return (
     <Section
-      title="ที่อยู่จัดส่ง (ไม่บังคับ)"
-      description="ช่องแสดงไว้เสมอ · เปิดสวิตช์เพื่อใช้หรือแก้ไขที่อยู่นี้ (ปิดอยู่ = ไม่บันทึก)"
-      compact
+      title="การจัดส่ง"
+      description="ไม่บังคับ — เปิดสวิตช์เมื่อให้นำส่งตามที่อยู่นี้ (ปิดอยู่ = ไม่บันทึก)"
       action={
         <label htmlFor="include-order-shipping" className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
           <Switch
@@ -42,7 +41,7 @@ export function OrderShippingSection({
             checked={includeShipping}
             onCheckedChange={onIncludeShippingChange}
           />
-          ใช้ที่อยู่นี้
+          จัดส่งตามที่อยู่
         </label>
       }
     >

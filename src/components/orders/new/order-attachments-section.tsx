@@ -21,12 +21,15 @@ interface OrderAttachmentsSectionProps {
   title?: React.ReactNode;
   images: ReferenceImage[];
   onImagesChange: React.Dispatch<React.SetStateAction<ReferenceImage[]>>;
+  /** วางใน Section หลักของหน้าโดยไม่สร้าง card-surface ซ้อนอีกชั้น */
+  embedded?: boolean;
 }
 
 export function OrderAttachmentsSection({
-  title = "รูป / ไฟล์อ้างอิงจากแชท",
+  title = "ไฟล์อ้างอิงจากแชท",
   images,
   onImagesChange,
+  embedded = false,
 }: OrderAttachmentsSectionProps) {
   const [uploading, setUploading] = useState(false);
 
@@ -76,7 +79,9 @@ export function OrderAttachmentsSection({
   return (
     <Section
       title={title}
-      description={images.length > 0 ? `${images.length} ไฟล์` : "แนะนำแนบรูปที่ลูกค้าส่งมา"}
+      description={images.length > 0 ? `${images.length} ไฟล์` : "รูปงาน ตัวอย่าง หรือไฟล์ที่ลูกค้าส่งมา"}
+      bordered={!embedded}
+      headingLevel={embedded ? 3 : 2}
     >
       <div className="space-y-3">
         {images.length > 0 && (
@@ -129,7 +134,7 @@ export function OrderAttachmentsSection({
           </div>
         )}
         {images.length < 5 && (
-          <label className={cn(DASHED, "flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-50/40 px-4 py-5 text-sm text-slate-600 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:border-blue-500")}>
+          <label className={cn(DASHED, "flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-50/40 px-4 py-3.5 text-sm text-slate-600 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:bg-white/[0.02] dark:text-slate-300 dark:hover:border-blue-500")}>
             <input
               type="file"
               accept="image/*,.pdf,.ai,.psd"
@@ -146,7 +151,7 @@ export function OrderAttachmentsSection({
             ) : (
               <>
                 <Upload className="h-4 w-4" />
-                อัปโหลดภาพอ้างอิง (สูงสุด 5 ภาพ)
+                แนบไฟล์อ้างอิง (สูงสุด 5 ไฟล์)
               </>
             )}
           </label>

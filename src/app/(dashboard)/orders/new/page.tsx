@@ -21,6 +21,7 @@ import { type PickerCustomer } from "@/components/customers/customer-picker";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
+import { Field } from "@/components/ui/field";
 import { Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -57,18 +58,7 @@ import {
   OrderAttachmentsSection,
 } from "@/components/orders/new";
 import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
-
-const labelClass = "mb-1.5 block text-xs text-slate-500 dark:text-slate-400";
-
-// เลขกำกับหัวข้อ 1-2-3 — ลำดับสายตาชัดว่ากรอกอะไรก่อนหลัง
-function SectionNumber({ n }: { n: number }) {
-  return (
-    <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 align-text-bottom text-2xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-      {n}
-    </span>
-  );
-}
+import { FOCUS_BUTTON, TINT } from "@/components/ui/tokens";
 
 export default function NewOrderPage() {
   const router = useRouter();
@@ -399,19 +389,19 @@ export default function NewOrderPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="mx-auto max-w-6xl space-y-5">
       <PageHeader
         breadcrumb={[
           { label: "ออเดอร์", href: "/orders" },
           { label: "เปิดงานใหม่" },
         ]}
         title="เปิดงานใหม่"
-        description="จับข้อมูลจากแชทให้ทันก่อน — สินค้า ราคา และรายละเอียดอื่นเติมต่อได้"
+        description="เริ่มจากสิ่งที่ลูกค้าต้องการ แล้วเติมรายการ ราคา และการส่งมอบตามลำดับ"
       />
 
       {hasDraft && (
-        <div className="flex items-center gap-3 rounded-xl bg-amber-50/60 px-3 py-1.5 text-xs dark:bg-amber-950/20">
-          <span className="text-amber-800 dark:text-amber-200">
+        <div className={cn(TINT.warning, "flex flex-wrap items-center gap-3 rounded-xl border px-3 py-2 text-xs")}>
+          <span>
             พบข้อมูลร่างที่ยังไม่ได้บันทึก — กรอกต่อจากเดิมหรือเริ่มใหม่?
           </span>
           <Button
@@ -452,21 +442,17 @@ export default function NewOrderPage() {
         )}
 
         {createOrder.isError && (
-          <div role="alert" className="rounded-xl bg-red-50/80 p-3 text-sm text-red-800 dark:bg-red-950/30 dark:text-red-200">
+          <Alert variant="error">
             {createOrder.error.message}
-          </div>
+          </Alert>
         )}
 
-        {/* ============ 1 · ลูกค้า & งาน — แกนบังคับ (ลูกค้าช่องเดียว) ============ */}
+        {/* รับเรื่อง — ลูกค้าเป็นช่องบังคับเพียงช่องเดียว */}
         <Section
-          title={
-            <>
-              <SectionNumber n={1} />
-              ลูกค้า & งาน
-            </>
-          }
+          title="รับเรื่อง"
+          description="ลูกค้า ช่องทาง และสิ่งที่ต้องการจากบทสนทนานี้"
         >
-          <div className="space-y-3.5">
+          <div className="space-y-5">
             <OrderCustomerSection
               customerId={customerId}
               selectedCustomer={selectedCustomer}
@@ -492,23 +478,19 @@ export default function NewOrderPage() {
               notes={notes}
               onNotesChange={setNotes}
             />
+            <div className="border-t border-slate-200 pt-5 dark:border-white/10">
+              <OrderAttachmentsSection
+                images={referenceImages}
+                onImagesChange={setReferenceImages}
+                embedded
+              />
+            </div>
           </div>
         </Section>
 
-        {/* รูป/ไฟล์อ้างอิงจากแชท — ยกขึ้นใกล้จุด capture ตอนถือแชท (UX3) · พับเองถ้ายังไม่มีรูป */}
-        <OrderAttachmentsSection
-          images={referenceImages}
-          onImagesChange={setReferenceImages}
-        />
-
         <Section
-          title={
-            <>
-              <SectionNumber n={2} />
-              สินค้า & ราคา
-            </>
-          }
-          description="ไม่ใส่ตอนนี้ = เปิดเป็นใบสอบถาม แล้วไปเติมที่หน้าออเดอร์ได้"
+          title="รายการงาน"
+          description="เริ่มจากสินค้า แล้วระบุลายและส่วนเสริมของแต่ละชุด · เว้นว่างได้หากยังเป็นการสอบถาม"
         >
           <div className="space-y-4">
             {/* รายการเดียว = โหมด solo ไม่มีชั้น "รายการ #1" — ชุดเดียวกับฟอร์มแก้รายการ */}
@@ -520,6 +502,7 @@ export default function NewOrderPage() {
                 isExpanded
                 solo
                 compact
+                appearance="intake"
                 onToggleExpand={() => {}}
                 allItems={items}
                 printCatalog={printCatalog}
@@ -546,6 +529,7 @@ export default function NewOrderPage() {
                     canRemove={items.length > 1}
                     isExpanded
                     compact
+                    appearance="intake"
                     allItems={items}
                     printCatalog={printCatalog}
                     addonCatalog={addonCatalog}
@@ -575,76 +559,84 @@ export default function NewOrderPage() {
               className="w-full gap-1.5 text-slate-500"
             >
               <Plus />
-              เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)
+              เพิ่มชุดงานอีกชุด
             </Button>
+          </div>
+        </Section>
 
-            <>
+        <Section
+          title="ราคาและเงื่อนไข"
+          description="ค่าใช้จ่ายส่วนกลาง ภาษี เงื่อนไขบิล และยอดที่ลูกค้าต้องชำระ"
+        >
+          <div className="space-y-5">
             <OrderFeeSection
               fees={fees}
               onAddFee={addFee}
               onRemoveFee={removeFee}
               onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
               feeCatalog={feeCatalog}
+              embedded
             />
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <div>
-                <label htmlFor="order-tax-rate" className={labelClass}>ภาษี (%)</label>
-                <Input
-                  id="order-tax-rate"
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.01}
-                  value={taxRate || ""}
-                  onChange={(e) => {
-                    taxRateTouched.current = true; // ผู้ใช้แตะเอง — เลิกสลับ default ตามช่องทาง
-                    setTaxRate(parseFloat(e.target.value) || 0);
-                  }}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label htmlFor="order-payment-terms" className={labelClass}>เงื่อนไขชำระ</label>
-                <Select
-                  id="order-payment-terms"
-                  value={paymentTerms}
-                  onChange={(e) => setPaymentTerms(e.target.value)}
-                >
-                  <option value="">-- ไม่ระบุ --</option>
-                  {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              {isCorporateCustomer && (
-                <div>
-                  <label htmlFor="order-po-number" className={labelClass}>เลขที่ PO</label>
+            <div className="border-t border-slate-200 pt-5 dark:border-white/10">
+              <h3 className="mb-3 text-base font-semibold tracking-tight text-slate-900 dark:text-white">
+                เงื่อนไขการขาย
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Field label="ภาษี (%)" id="order-tax-rate">
                   <Input
-                    id="order-po-number"
-                    value={poNumber}
-                    onChange={(e) => setPoNumber(e.target.value)}
-                    placeholder="PO Number"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                    value={taxRate || ""}
+                    onChange={(e) => {
+                      taxRateTouched.current = true; // ผู้ใช้แตะเอง — เลิกสลับ default ตามช่องทาง
+                      setTaxRate(parseFloat(e.target.value) || 0);
+                    }}
+                    placeholder="0"
                   />
-                </div>
-              )}
+                </Field>
+                <Field label="เงื่อนไขชำระ" id="order-payment-terms">
+                  <Select
+                    value={paymentTerms}
+                    onChange={(e) => setPaymentTerms(e.target.value)}
+                  >
+                    <option value="">-- ไม่ระบุ --</option>
+                    {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                {isCorporateCustomer && (
+                  <Field label="เลขที่ PO" id="order-po-number">
+                    <Input
+                      value={poNumber}
+                      onChange={(e) => setPoNumber(e.target.value)}
+                      placeholder="PO Number"
+                    />
+                  </Field>
+                )}
+              </div>
             </div>
 
-            <OrderPriceSummary
-              pricingSummary={pricingSummary}
-              showFeeSections={true}
-              isMarketplace={isMarketplace}
-              channelLabel={CHANNEL_LABELS[channel]}
-              taxRate={taxRate}
-              platformFee={platformFee}
-              discount={discount}
-              onPlatformFeeChange={setPlatformFee}
-              onDiscountChange={setDiscount}
-              marginEstimate={marginEstimate}
-            />
-            </>
+            <div className="border-t border-slate-200 pt-5 dark:border-white/10">
+              <OrderPriceSummary
+                pricingSummary={pricingSummary}
+                showFeeSections={true}
+                isMarketplace={isMarketplace}
+                channelLabel={CHANNEL_LABELS[channel]}
+                taxRate={taxRate}
+                platformFee={platformFee}
+                discount={discount}
+                onPlatformFeeChange={setPlatformFee}
+                onDiscountChange={setDiscount}
+                marginEstimate={marginEstimate}
+                embedded
+              />
+            </div>
           </div>
         </Section>
 
