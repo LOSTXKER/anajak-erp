@@ -30,7 +30,7 @@ export function MobileSidebar() {
 
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none md:hidden" />
-        <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 w-72 max-w-[88vw] overflow-hidden border-r border-black/10 bg-bg overlay-surface outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left motion-reduce:animate-none md:hidden dark:border-white/10 dark:bg-slate-950">
+        <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 w-72 max-w-[88vw] overflow-hidden border-r border-black/10 bg-chrome overlay-surface outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left motion-reduce:animate-none md:hidden dark:border-white/10">
           <DialogPrimitive.Title className="sr-only">เมนูหลัก</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
             เลือกหน้าในระบบ Anajak ERP
@@ -44,7 +44,7 @@ export function MobileSidebar() {
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-1.5 top-1.5 bg-white/80 text-slate-700 shadow-sm hover:bg-white dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="absolute right-1.5 top-1.5 bg-slate-100/85 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
               aria-label="ปิดเมนู"
             >
               <X />

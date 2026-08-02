@@ -142,60 +142,46 @@
   --color-green-900: #10462f;
   --color-green-950: #08271a;
 
-  /* Surface — Apple-style soft neutral page, pure white surface */
-  --color-bg: #f5f5f7;
+  /* ============================================================
+     พื้นผิว — พื้นหน้าขาวล้วน (เบสสั่ง 2026-08-01 "พื้นหลังเว็บเป็นสีขาวไปเลย")
+
+     ของเดิมพื้นหน้าเป็นเทาอ่อน #f5f5f7 แล้วการ์ดขาวลอยขึ้นมา — "ความลึก" ของทั้งระบบ
+     มาจากพื้นเทาตัวนั้นตัวเดียว · พอพื้นเป็นขาว การ์ดขาวจะกลืนหายไปทันที
+     → ย้ายความลึกไปไว้ที่ **เส้นขอบ** แทน (ทางเดียวกับ GitHub/Notion/Stripe)
+       และของที่ "จมลงไป" (หัวตาราง · กล่องย่อยในการ์ด · เมนูที่เลือกอยู่)
+       เปลี่ยนจาก "ขาวกว่าพื้น" เป็น "เทากว่าพื้น"
+
+     ห้ามเอาพื้นเทากลับมาโดยไม่ลดความเข้มขอบพร้อมกัน — จะได้ขอบหนาเกินบนพื้นเทา
+     ============================================================ */
+  --color-bg: #ffffff;
   --color-surface: #ffffff;
   --color-surface-muted: #fafafb;
-  --color-surface-sunken: #f0f0f3;
 
-  /* Border — barely-there hairlines */
-  --color-border: #e5e5e7;
-  --color-border-subtle: #ececef;
+  /* กรอบของเว็บ (แถบเมนูซ้าย · แถบบน) — เทาอ่อนกว่าเนื้อหาแค่นิดเดียว
+     เบสเคาะ 2026-08-02 หลังเห็นจอจริง: พื้นขาวล้วนทั้งจอทำให้ "ไม่รู้ว่าตรงไหนคือเมนู"
+     เส้นคั่นเส้นเดียวไม่พอเมื่อจอกว้าง · ต่างกันนิดเดียวสายตาก็แยกโซนได้แล้ว
+     (โหมดมืดใช้ทางกลับกัน — กรอบเข้มกว่าเนื้อหา แบบเดียวกับ Slack/VS Code) */
+  --color-chrome: #fafafb;
 
-  /* Text */
+  /* สีตัวหนังสือหลักของ <body> — ที่เหลือทั้งเว็บใช้ ramp slate ตรงๆ
+     (สี semantic อีก 17 ตัวลบทิ้ง 2026-08-02: ไม่มีใครใช้เลย และค่าที่ตั้งไว้ขัดกับสีจริง) */
   --color-text: #1d1d1f;
-  --color-text-muted: #6e6e73;
-  --color-text-subtle: #86868b;
-
-  /* Accent — ชั้น SEMANTIC ชี้สีแบรนด์ (เดิม Apple blue → Anajak blue) */
-  --color-accent: var(--color-anajak-blue);
-  --color-accent-hover: var(--color-blue-700);
-  --color-accent-soft: var(--color-blue-50);
-  --color-accent-soft-text: var(--color-blue-700);
-
-  /* Semantic */
-  --color-success: #1a8754;
-  --color-success-soft: #effaf3;
-  --color-warning: #b25d00;
-  --color-warning-soft: #fff7ed;
-  --color-danger: #d70015;
-  --color-danger-soft: #fef2f2;
 }
 
 .dark {
-  --color-bg: #000000;
-  --color-surface: #1c1c1e;
-  --color-surface-muted: #2c2c2e;
-  --color-surface-sunken: #18181a;
-
-  --color-border: #2c2c2e;
-  --color-border-subtle: #232325;
+  /* โหมดมืด = ดำเทา ไม่ใช่ดำสนิท (เบสสั่ง 2026-08-01) — เดิม #000000
+     พื้นสว่างขึ้น → การ์ดต้องสว่างตามเพื่อให้ยัง "ลอย" อยู่เหนือพื้น
+     ค่าที่เลือกวางคร่อมบันได slate ที่ระบบ hardcode ไว้อยู่แล้ว จึงเข้าที่ทั้งชุด:
+       slate-950 #101012  ช่องกรอก  → จมสุด
+       slate-900 #1d1d1f  พื้นจมในการ์ด → เข้มกว่าการ์ด (ของเดิมเท่ากับการ์ดพอดี จึงมองไม่เห็น)
+       การ์ด     #252528
+       slate-800 #2a2a2e  พื้นตอนชี้/เน้น → สว่างกว่าการ์ด */
+  --color-bg: #1a1a1c;
+  --color-surface: #252528;
+  --color-surface-muted: #2e2e31;
+  --color-chrome: #161618;
 
   --color-text: #f5f5f7;
-  --color-text-muted: #a1a1a6;
-  --color-text-subtle: #6e6e73;
-
-  --color-accent: var(--color-blue-400);
-  --color-accent-hover: var(--color-blue-300);
-  --color-accent-soft: color-mix(in srgb, var(--color-anajak-blue) 14%, transparent);
-  --color-accent-soft-text: var(--color-blue-300);
-
-  --color-success: #30d158;
-  --color-success-soft: #30d15814;
-  --color-warning: #ff9f0a;
-  --color-warning-soft: #ff9f0a14;
-  --color-danger: #ff453a;
-  --color-danger-soft: #ff453a14;
 }
 
 html,
@@ -281,23 +267,47 @@ a,
    การ์ดมาตรฐาน (ก้อน 6 / ทิศ A) — เงานุ่มลอย + ring 0.5px แทนเส้นขอบแข็ง
    ใช้แทน `border border-slate-200 bg-white` ทั่วระบบ ให้ทุกการ์ดลุคเดียวกัน
    ============================================================ */
+/* ⚠️ ทุกคลาสผิวข้างล่างนี้ต้องอยู่ใน @layer components — ห้ามย้ายออก
+   (audit สี 2026-08-02 จับได้ว่าเดิมประกาศไว้ "นอกชั้น")
+
+   CSS ที่เขียนนอกชั้นจะชนะทุกอย่างที่อยู่ในชั้น รวมทั้ง utility ของ Tailwind ทั้งหมด
+   ผลคือหน้าที่เขียน `hover:bg-slate-100` หรือ `bg-blue-50` ทับการ์ดไว้ **ไม่มีผลเลย
+   สักจุด** — คนใช้เอาเมาส์ชี้/กดของที่กดได้แล้วจอไม่ขยับ (การ์ดใบเสนอราคาบนมือถือ ·
+   ปุ่มยอดรวมในแถบข้างออเดอร์ · แผ่นสายผลิตหน้า /production · แถบสถานะบนจอแคบ)
+   พอย้ายเข้าชั้น utility ที่หน้าส่งมาจะชนะตามลำดับปกติของ Tailwind */
+@layer components {
+
+/* การ์ด = เส้นขอบบาง + เงานุ่มใต้ตัว (เบสเคาะ 2026-08-02 หลังเห็นจอจริง)
+   ทางแรกใช้ขอบเข้มอย่างเดียว (0.095) — บนพื้นขาวการ์ดตัวเลขบนแดชบอร์ดเลย
+   "หมดน้ำหนัก" ดูเหมือนกล่องเปล่าวางเรียง ไม่เหมือนป้ายตัวเลขสำคัญ
+   → คืนความรู้สึก "ลอย" ด้วยเงานุ่ม แล้วลดขอบลงเป็นตัวช่วย ไม่ใช่ตัวหลัก */
 .card-surface {
   background-color: var(--color-surface);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 6px 16px -6px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.07);
 }
 .dark .card-surface {
   background-color: var(--color-surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 8px 20px -8px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 /* ยกเงาเมื่อ hover — สำหรับการ์ดที่กดได้ */
 .card-surface-hover {
   transition: box-shadow 150ms ease;
 }
 .card-surface-hover:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06), 0 0 0 0.5px rgba(0, 0, 0, 0.055);
+  box-shadow:
+    0 10px 28px -8px rgba(0, 0, 0, 0.14),
+    0 0 0 1px rgba(0, 0, 0, 0.07);
 }
 .dark .card-surface-hover:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 12px 30px -8px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 /* ============================================================
@@ -317,16 +327,18 @@ a,
    dark:border-slate-800/60 dark:bg-slate-900` เพิ่มเอง แล้วเขียนไม่ตรงกัน
    บางจุดลืมเขียน = ไม่มีขอบเลย · ตอนนี้ครบในตัวเดียว ห้ามใส่ขอบ/พื้นซ้ำ
    (ทำแบบเดียวกับ .card-surface ที่รวมขอบไว้ในเงาอยู่แล้ว) */
+/* กล่องลอยบนพื้นขาว = ขาวบนขาว — ขอบกับเงาต้องแรงกว่าการ์ดธรรมดา
+   ไม่งั้นเมนู/กล่องเด้งจะดูเหมือน "เนื้อหาไหลต่อ" ไม่ใช่ของที่ลอยทับอยู่ */
 .overlay-surface {
   background-color: var(--color-surface);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.07), 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.11), 0 20px 60px rgba(0, 0, 0, 0.16);
 }
 .dark .overlay-surface {
-  background-color: var(--color-surface);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09), 0 20px 60px rgba(0, 0, 0, 0.5);
+  background-color: var(--color-surface-muted);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 .hairline-ring {
-  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.09);
 }
 /* จุดสถานะ "กำลังใช้งาน" — เรืองแสงรอบจุด ไม่ใช่เงากล่อง จึงแยกออกมา */
 .dot-glow {
@@ -335,6 +347,8 @@ a,
 .dark .hairline-ring {
   box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.08);
 }
+
+} /* ปิด @layer components */
 
 /* ============================================================
    เอกสารพิมพ์ A4 (P1 — ใบเสนอราคา/แจ้งหนี้/เสร็จ/ใบกำกับภาษี)

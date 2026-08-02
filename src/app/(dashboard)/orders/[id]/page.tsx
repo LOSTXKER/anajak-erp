@@ -33,7 +33,7 @@ import {
   Share2,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
-import { OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
+import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
 import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
@@ -569,7 +569,7 @@ function OrderDetailContent({
                     )}
                     {otherNext.length > 0 && (
                       <>
-                        <DropdownMenu.Separator className="my-1 h-px bg-slate-100 dark:bg-slate-800" />
+                        <DropdownMenu.Separator className={MENU_SEPARATOR} />
                         {otherNext.map((status) => (
                           <DropdownMenu.Item
                             key={status}
@@ -585,7 +585,7 @@ function OrderDetailContent({
                     )}
                     {canCancel && (
                       <>
-                        <DropdownMenu.Separator className="my-1 h-px bg-slate-100 dark:bg-slate-800" />
+                        <DropdownMenu.Separator className={MENU_SEPARATOR} />
                         <DropdownMenu.Item
                           className={cn(
                             dropdownItemClass,

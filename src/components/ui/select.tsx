@@ -146,7 +146,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
         >
           <span className="truncate text-left">
             {current?.label ?? (
-              <span className="text-slate-400 dark:text-slate-500">
+              <span className="text-slate-500 dark:text-slate-400">
                 {placeholder ?? "เลือก…"}
               </span>
             )}

@@ -37,7 +37,7 @@ const TONE_CLASSES: Record<NonNullable<StatCardProps["tone"]>, string> = {
   danger: "text-red-600 dark:text-red-400",
   warning: "text-amber-600 dark:text-amber-400",
   success: "text-green-600 dark:text-green-400",
-  muted: "text-slate-400 dark:text-slate-500",
+  muted: "text-slate-500 dark:text-slate-400",
 };
 
 export function StatCard({
@@ -65,7 +65,7 @@ export function StatCard({
         </p>
         {Icon && (
           <Icon
-            className="h-4 w-4 text-slate-400 dark:text-slate-500"
+            className="h-4 w-4 text-slate-500 dark:text-slate-400"
             strokeWidth={1.75}
           />
         )}
@@ -98,7 +98,7 @@ export function StatCard({
           </span>
         )}
         {caption && (
-          <span className="text-slate-400 dark:text-slate-500">{caption}</span>
+          <span className="text-slate-500 dark:text-slate-400">{caption}</span>
         )}
       </div>
     </div>

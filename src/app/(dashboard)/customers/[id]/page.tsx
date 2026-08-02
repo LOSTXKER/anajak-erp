@@ -138,7 +138,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               {/* ลูกค้าที่ยังไม่กรอกช่องทางติดต่อเลย — เดิมการ์ดนี้เหลือแต่หัวข้อ ข้างในโล่ง
                   คนอ่านแยกไม่ออกว่า "ยังไม่ได้กรอก" กับ "หน้าโหลดไม่ครบ" */}
               {!customer.phone && !customer.email && !customer.lineId && !customer.address && (
-                <p className="text-slate-400 dark:text-slate-500">
+                <p className="text-slate-500 dark:text-slate-400">
                   ยังไม่ได้กรอกช่องทางติดต่อ — กด “แก้ไขข้อมูล” เพื่อเพิ่มเบอร์/LINE/อีเมล
                 </p>
               )}

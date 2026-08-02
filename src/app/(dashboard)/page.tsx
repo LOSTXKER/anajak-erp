@@ -61,7 +61,7 @@ function PulseCard({
               ? "text-amber-600 dark:text-amber-400"
               : tone === "muted"
                 ? // ศูนย์จริงโชว์จาง แต่ต้องผ่าน contrast 3:1 ของ large text — ห้ามจางกว่านี้
-                  "text-slate-400 dark:text-slate-500"
+                  "text-slate-500 dark:text-slate-400"
                 : "text-slate-900 dark:text-white"
         )}
       >
@@ -343,7 +343,7 @@ export default function DashboardPage() {
                     </p>
                   )}
                   {o.deadline && (
-                    <p className="text-2xs text-slate-400 dark:text-slate-500">
+                    <p className="text-2xs text-slate-500 dark:text-slate-400">
                       กำหนด{" "}
                       {new Date(o.deadline).toLocaleDateString("th-TH", {
                         day: "numeric",
@@ -381,7 +381,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 {/* แถบสัดส่วน — สแกนด้วยตาได้โดยไม่ต้องอ่านเลขทีละบรรทัด (ยกเลิก = เทา ไม่แย่งสี) */}
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
                   <div
                     className={cn(
                       "h-full rounded-full",

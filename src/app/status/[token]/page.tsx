@@ -68,7 +68,7 @@ export default function OrderStatusPage({
 
   if (status.isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-bg">
         <div className="flex items-center gap-2 text-slate-500">
           <Spinner size="lg" />
           <span>กำลังโหลด...</span>
@@ -87,7 +87,7 @@ export default function OrderStatusPage({
   const statusColor = CUSTOMER_STATUS_COLORS[d.customerStatus];
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
+    <div className="min-h-screen bg-bg p-4">
       <div className="mx-auto max-w-2xl space-y-5 py-6">
         {/* Header */}
         <div className="text-center">

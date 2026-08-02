@@ -24,11 +24,26 @@ export function PrintPage({ children }: { children: React.ReactNode }) {
   return <div className="print-page font-sans">{children}</div>;
 }
 
+/**
+ * ลายน้ำ "ยกเลิก" บนใบกำกับภาษี/ใบวางบิลที่ถูกยกเลิก
+ *
+ * เดิมใช้ red-300 ที่ความทึบ 60% = คอนทราสต์ 1.4 ต่อ 1 บนกระดาษขาว — **จางจนดู
+ * เหมือนใบที่ยังใช้ได้** ซึ่งเป็นความเสี่ยงเรื่องเงินจริง (ลูกค้าจ่ายตามใบที่ยกเลิก
+ * ไปแล้ว · บัญชียื่นภาษีผิดใบ) · เจอจาก audit สี 2026-08-02
+ *
+ * red-700 ที่ความทึบเดิม 60% = 3.03 ต่อ 1 ผ่านเกณฑ์ตัวอักษรขนาดใหญ่พอดี
+ * (ห้ามดันความทึบให้สูงกว่านี้ — ลายน้ำทับตัวเลขในใบอยู่ ไม่ได้อยู่ใต้)
+ * + แถบทึบใต้ลายน้ำ เพราะเครื่องพิมพ์ขาวดำจะแปลงแดงเป็นเทา — ตัวขาวบนแถบเข้ม
+ *   ยังอ่านออกเสมอไม่ว่าพิมพ์สีหรือขาวดำ
+ */
 export function VoidWatermark() {
   return (
-    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-      <span className="rotate-[-24deg] border-8 border-red-300 px-10 py-3 text-7xl font-bold tracking-widest text-red-300 opacity-60">
+    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-4">
+      <span className="rotate-[-24deg] border-8 border-red-700 px-10 py-3 text-7xl font-bold tracking-widest text-red-700 opacity-60">
         ยกเลิก
+      </span>
+      <span className="rotate-[-24deg] rounded bg-red-700 px-4 py-1.5 text-sm font-semibold tracking-wide text-white">
+        เอกสารนี้ถูกยกเลิก — ไม่มีผลทางบัญชี
       </span>
     </div>
   );

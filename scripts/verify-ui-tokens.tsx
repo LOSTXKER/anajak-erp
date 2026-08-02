@@ -22,8 +22,11 @@ let failed = 0;
 function check(name: string, html: string, must: string[], mustNot: string[] = []) {
   const cls = /class="([^"]*)"/.exec(html)?.[1] ?? "";
   const set = new Set(cls.split(/\s+/));
-  const missing = must.filter((c) => !set.has(c));
-  const extra = mustNot.filter((c) => set.has(c));
+  // ลงท้ายด้วย "-" = เช็คแค่ว่า "มีคลาสตระกูลนี้อยู่" ไม่สนว่าเฉดไหน
+  const has = (c: string) =>
+    c.endsWith("-") ? [...set].some((x) => x.startsWith(c)) : set.has(c);
+  const missing = must.filter((c) => !has(c));
+  const extra = mustNot.filter((c) => has(c));
   if (missing.length || extra.length) {
     failed++;
     console.log(`❌ ${name}`);
@@ -82,11 +85,14 @@ check("สั่งความสูงทับเองได้", renderToSt
 check("ปุ่ม", renderToStaticMarkup(<Button>ก</Button>), [
   ...h,
   "rounded-full",
-  "focus-visible:ring-blue-500/40",
+  "focus-visible:ring-2",
+  "focus-visible:ring-blue-500",
   "focus-visible:ring-offset-2",
+  "focus-visible:ring-offset-", // ผูกช่องว่างรอบวงแหวนกับสีพื้น ไม่ล็อกเป็นขาวตายตัว
+], [
+  "focus-visible:ring-blue-500/15",
   "focus-visible:ring-offset-white",
-  "dark:focus-visible:ring-offset-slate-950",
-], ["focus-visible:ring-blue-500/15"]);
+]);
 check("ปุ่มขนาดเล็ก", renderToStaticMarkup(<Button size="sm">ก</Button>), hSm, ["sm:h-9", "sm:min-h-9"]);
 
 console.log(failed ? `\n❌ ไม่ผ่าน ${failed} ข้อ` : "\n✅ ผ่านครบ");

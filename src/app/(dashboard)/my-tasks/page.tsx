@@ -317,7 +317,8 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
     <section
       className={cn(
         "card-surface overflow-hidden rounded-2xl",
-        group.id === "attention" && "border-red-200 dark:border-red-900"
+        // ต้องมี `border` คู่ด้วย ไม่งั้นสั่งแค่สีขอบ = เส้นไม่ขึ้นเลย (audit สี 2026-08-02)
+        group.id === "attention" && "border border-red-200 dark:border-red-900"
       )}
     >
       <div className="flex items-start gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">

@@ -356,7 +356,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                           className={`flex items-center gap-2 py-1 text-xs ${
                             isLast
                               ? "font-medium text-blue-600 dark:text-blue-400"
-                              : "text-slate-400 dark:text-slate-500"
+                              : "text-slate-500 dark:text-slate-400"
                           }`}
                         >
                           {isLast ? (
@@ -393,7 +393,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                         className={`flex items-start gap-2 py-1 text-xs ${
                           isLast
                             ? "font-medium text-slate-700 dark:text-slate-200"
-                            : "text-slate-400 dark:text-slate-500"
+                            : "text-slate-500 dark:text-slate-400"
                         }`}
                       >
                         {pe.status === "error" ? (

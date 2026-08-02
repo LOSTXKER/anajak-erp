@@ -175,7 +175,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                         <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
                           {item.description || `รายการที่ ${itemIndex + 1}`}
                         </p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           {item.products?.length ?? 0} สินค้า · {itemTotalQty} ชิ้น
                         </p>
                         {item.notes && (

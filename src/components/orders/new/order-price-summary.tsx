@@ -90,7 +90,7 @@ export function useMarginEstimate(
 export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) {
   if (!estimate.configured) {
     return (
-      <p className="text-xs text-slate-400 dark:text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         <Link
           href="/settings/cost-rates"
           className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-slate-300"
@@ -160,7 +160,7 @@ export function MarginEstimateBlock({ estimate }: { estimate: MarginEstimate }) 
           ))}
         </div>
       )}
-      <p className="text-xs text-slate-400 dark:text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         เข็มทิศตอนตั้งราคา — ไม่ใช่ตัวเลขบัญชี
       </p>
     </div>
@@ -223,7 +223,7 @@ export function OrderPriceSummary({
           <div className="flex items-center justify-between gap-2">
             <label htmlFor="order-platform-fee" className="text-sm text-slate-500 dark:text-slate-400">
               ค่าธรรมเนียม {channelLabel}
-              <span className="block text-xs text-slate-400 dark:text-slate-500">
+              <span className="block text-xs text-slate-500 dark:text-slate-400">
                 หักจากยอดโอนเข้าร้าน — ไม่รวมในยอดบิล
               </span>
             </label>

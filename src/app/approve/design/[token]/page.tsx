@@ -40,7 +40,7 @@ export default function DesignApprovalPage({
 
   if (design.isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-bg">
         <div className="flex items-center gap-2 text-slate-500">
           <Spinner size="lg" />
           <span>กำลังโหลด...</span>
@@ -63,7 +63,7 @@ export default function DesignApprovalPage({
   // Thank you screen after submission
   if (submitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-bg p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center">
             {submitted === "approved" ? (
@@ -95,7 +95,7 @@ export default function DesignApprovalPage({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
+    <div className="min-h-screen bg-bg p-4">
       <div className="mx-auto max-w-2xl space-y-6 py-8">
         {/* Header */}
         <div className="text-center">
@@ -271,10 +271,10 @@ export default function DesignApprovalPage({
                   อนุมัติแบบ
                 </Button>
               </div>
+              {/* ลูกค้ากดอนุมัติแล้วไม่สำเร็จ ต้องเห็นชัด — เดิมเป็นบรรทัดแดงจางๆ
+                  ที่มองข้ามได้ง่าย แล้วลูกค้าจะนึกว่าอนุมัติไปแล้ว (audit สี 2026-08-02) */}
               {approve.error && (
-                <p className="text-center text-sm text-red-500">
-                  เกิดข้อผิดพลาด กรุณาลองอีกครั้ง
-                </p>
+                <Alert variant="error">เกิดข้อผิดพลาด กรุณาลองอีกครั้ง</Alert>
               )}
             </CardContent>
           </Card>
