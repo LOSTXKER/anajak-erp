@@ -4,6 +4,10 @@
 
 ## ตอนนี้
 
+> **⚠️ รอปิดหาง — tRPC context หลุดหลัง Turbopack Fast Refresh (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
+> ไล่ครบแล้วว่า provider ใน source ถูกต้องและ dependency ไม่ซ้ำ · trace ชี้ Sidebar/Topbar ถูก HMR คนละรอบกับ shared provider chunk · ทำ differential ยืนยันว่า origin ใหม่ `localhost:31873` ใช้ source เดียวกันผ่าน dashboard/orders/settings โดยไม่มี error แต่ origin 3000 ยัง hydrate client code เก่าก่อนหลาย commit จึงเป็น browser cache/Fast Refresh state ไม่ใช่บั๊ก query หรือธีม · probe ถูกถอดออกหมด ไม่มี source workaround ค้าง
+> **ทำแล้ว:** ย้าย `.next` เก่าออก · cold restart dev server 3000 · server ตอบ tRPC 200 ปกติ · ไม่เพิ่ม provider ซ้อน/global singleton เพราะหลักฐานหักล้าง · **ค้าง:** เบสปิดแท็บ localhost:3000 ทั้งหมดแล้ว hard reload/ล้าง site data หนึ่งครั้ง ถ้ายังเกิดค่อยขออนุญาตเปลี่ยน dev script จาก Turbopack เป็น Webpack
+
 > **✅ ธีมสว่างแบบ A บนพื้นขาว (2026-08-02 · branch `codex/ui-p0-responsive-states`)**
 > คงพื้นเนื้อหาและการ์ดขาวตามแบบ A แล้วแยกลำดับชั้นด้วยกรอบเว็บเทาอ่อน (`#f3f4f6`) · กล่องย่อย/ช่องค้นหาเทากลาง (`#eceff2`) · เมนูที่เลือกเข้มขึ้นหนึ่งขั้น จึงไม่กลับไปเป็นจอขาวทั้งผืน · สีแบรนด์/สถานะ ธีมมืด และกฎงานพิมพ์เดิมไม่เปลี่ยน
 > **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; layout ที่แก้ตรวจซ้ำ 0) · `verify:ui` ผ่าน · browser จริง dashboard/orders/orders-new/settings ที่ 1280/390px ทั้ง light/dark ไม่มี horizontal scroll หรือ console error · ตรวจสลับธีมผ่านเมนูจริงและคืนเป็นสว่างแล้ว · ไม่รัน build ขณะ dev server ทำงาน

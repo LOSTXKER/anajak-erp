@@ -158,6 +158,15 @@
 - [x] verify: typecheck · lint · `verify:ui` · browser จริง light/dark บน dashboard/orders/orders-new/settings ที่ desktop+mobile โดยไม่มี console error หรือ horizontal scroll ✅ 2026-08-02
 - **ปิดงาน 2026-08-02:** พื้นหน้า/การ์ด `#fff` · กรอบเว็บ `#f3f4f6` · พื้นจม `#eceff2` · เมนูที่เลือกเข้มขึ้นหนึ่งขั้น · dark token และกฎงานพิมพ์ไม่เปลี่ยน · typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; layout ที่แก้ตรวจซ้ำ 0) · `verify:ui` ผ่าน · browser จริง 1280/390px ทั้ง light/dark บน 4 หน้าครบ ไม่มี horizontal scroll/console error · ไม่รัน build ขณะ dev server ทำงาน
 
+### 🐛 Regression follow-up — tRPC context หลุดบน Turbopack (เบสพบ 2026-08-03)
+> ขอบเขต surgical: ตามเส้นทาง `RootLayout → Providers → DashboardLayout → Sidebar` และแก้เฉพาะอายุของ tRPC context/provider · ไม่แตะ query, auth หรือ business logic
+
+- [x] ตาม render path และ bundle graph ครบ: `RootLayout → Providers → DashboardLayout → Sidebar` ถูกต้อง · provider ครอบทั้ง Suspense หลัก/fallback · React/tRPC/React Query มีอย่างละชุด · Provider/Sidebar import `src/lib/trpc.ts` module เดียวกัน ✅ 2026-08-03
+- [x] ทำ differential ได้: origin เดิม `localhost:3000` hydrate client code เก่าคนละรุ่นกับ server (ข้อความ/class/breakpoint ก่อนหลาย commit) ขณะที่ origin ใหม่ `localhost:31873` จาก source และ `.next` ชุดเดียวกันผ่าน dashboard/orders/settings โดยไม่มี tRPC/runtime error ✅ 2026-08-03
+- [x] ย้าย `.next` เก่าออกและ cold restart แล้ว · ไม่เติม provider ซ้อน/global singleton เพราะสมมติฐานนั้นถูกหักล้างและจะกลบต้นเหตุ ✅ 2026-08-03
+- [ ] ปิดแท็บ `localhost:3000` ของผู้ใช้ทั้งหมดแล้วล้าง cache/site data ของ origin หนึ่งครั้ง จากนั้น verify หน้าเดิมอีกครั้ง · ถ้ายังเกิดค่อยขออนุญาตถอด `--turbopack` จาก dev script (config change)
+- **สถานะ 2026-08-03:** source code ไม่พังและ production path ไม่ได้รับผล · ปัญหาอยู่ที่ client cache/Fast Refresh เฉพาะ dev origin 3000 · server 3000 ถูกเปิดใหม่แล้ว แต่แท็บจริงต้องทิ้ง client chunks เก่าให้หมดก่อน
+
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
 ~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
 
