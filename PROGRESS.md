@@ -4,6 +4,11 @@
 
 ## ตอนนี้
 
+> **✅ หัวตารางมาตรฐานสีเดียวกับกรอบตารางในธีมสว่าง (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
+> เปลี่ยน `DataTable.Head` กลางจากพื้นเทาเป็น `surface` เดียวกับ `card-surface` ตามภาพจริง ทำให้หัวตารางขาวกลืนกับกล่องโดยยังมีเส้นคั่นและน้ำหนักตัวอักษรช่วยแยกชั้น · ครอบ 9 หน้าที่ใช้ DataTable มาตรฐาน โดยไม่กวาดตารางย่อย/เอกสารพิมพ์ที่มีหน้าที่ต่างกัน · ธีมมืดคง overlay เดิม
+> **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ที่แตะ 0) · `verify:ui` ผ่าน · browser จริง `/orders`, `/customers`, `/billing` ที่ 1280px: light วัดหัว/กรอบ `rgb(255,255,255)` เท่ากันทุกหน้า · dark คง `white/3%` · ไม่มี horizontal scroll, error overlay หรือ console error · คืนธีมเป็นสว่างและปิด dev server ทดสอบแล้ว
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
 > **⚠️ รอปิดหาง — tRPC context หลุดหลัง Turbopack Fast Refresh (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
 > ไล่ครบแล้วว่า provider ใน source ถูกต้องและ dependency ไม่ซ้ำ · trace ชี้ Sidebar/Topbar ถูก HMR คนละรอบกับ shared provider chunk · ทำ differential ยืนยันว่า origin ใหม่ `localhost:31873` ใช้ source เดียวกันผ่าน dashboard/orders/settings โดยไม่มี error แต่ origin 3000 ยัง hydrate client code เก่าก่อนหลาย commit จึงเป็น browser cache/Fast Refresh state ไม่ใช่บั๊ก query หรือธีม · probe ถูกถอดออกหมด ไม่มี source workaround ค้าง
 > **ทำแล้ว:** ย้าย `.next` เก่าออก · cold restart dev server 3000 · server ตอบ tRPC 200 ปกติ · ไม่เพิ่ม provider ซ้อน/global singleton เพราะหลักฐานหักล้าง · **ค้าง:** เบสปิดแท็บ localhost:3000 ทั้งหมดแล้ว hard reload/ล้าง site data หนึ่งครั้ง ถ้ายังเกิดค่อยขออนุญาตเปลี่ยน dev script จาก Turbopack เป็น Webpack

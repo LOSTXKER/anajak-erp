@@ -50,9 +50,9 @@ const Head = React.forwardRef<
   <thead
     ref={ref}
     className={cn(
-      // หัวตารางเคยจางระดับ 1.04 ต่อ 1 = แทบเป็นสีเดียวกับการ์ด แยกไม่ออกว่าแถวไหนคือหัว
-      // โหมดมืดเคยใช้ slate-900 ซึ่งเข้มกว่าพื้นการ์ด — ขาวโปร่งสว่างกว่าพื้นเสมอ
-      "border-b border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400",
+      // โหมดสว่างใช้พื้นเดียวกับกรอบตารางตามภาพจริง — แยกหัวด้วยเส้นคั่นและน้ำหนักตัวอักษร
+      // โหมดมืดคง overlay เดิมเพื่อไม่ให้หน้าตาที่เบสชอบเปลี่ยนตาม
+      "border-b border-slate-200 bg-surface text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400",
       className
     )}
     {...props}

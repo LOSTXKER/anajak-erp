@@ -158,6 +158,13 @@
 - [x] verify: typecheck · lint · `verify:ui` · browser จริง light/dark บน dashboard/orders/orders-new/settings ที่ desktop+mobile โดยไม่มี console error หรือ horizontal scroll ✅ 2026-08-02
 - **ปิดงาน 2026-08-02:** พื้นหน้า/การ์ด `#fff` · กรอบเว็บ `#f3f4f6` · พื้นจม `#eceff2` · เมนูที่เลือกเข้มขึ้นหนึ่งขั้น · dark token และกฎงานพิมพ์ไม่เปลี่ยน · typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; layout ที่แก้ตรวจซ้ำ 0) · `verify:ui` ผ่าน · browser จริง 1280/390px ทั้ง light/dark บน 4 หน้าครบ ไม่มี horizontal scroll/console error · ไม่รัน build ขณะ dev server ทำงาน
 
+### 🎯 UX follow-up — หัวตารางสีเดียวกับกรอบตาราง (เบสเคาะจากภาพจริง 2026-08-03)
+> ขอบเขต surgical ที่ `DataTable` กลาง: โหมดสว่างให้หัวตารางใช้พื้น `surface` เดียวกับกรอบตาราง · คงเส้นคั่น สีตัวอักษร สีแถว และธีมมืดเดิม
+
+- [x] เปลี่ยนหัวตารางมาตรฐานจากพื้นเทาเป็นพื้นเดียวกับ `card-surface` โดยไม่ไล่แก้รายหน้า ✅ 2026-08-03
+- [x] verify: typecheck · lint · `verify:ui` · browser จริง `/orders` และตารางมาตรฐานหน้าอื่นใน light/dark โดยไม่มี console error หรือ horizontal scroll ✅ 2026-08-03
+- **ปิดงาน 2026-08-03:** `DataTable.Head` ใช้ `bg-surface` ใน light ทำให้หัวกับกรอบเป็น `#fff` เท่ากันทั้ง `/orders`, `/customers`, `/billing` · คงเส้นคั่นและ `dark:bg-white/[0.03]` เดิม · typecheck/lint/`verify:ui` ผ่าน · browser จริง 1280px ทั้ง light/dark ไม่มี error overlay, console error หรือ horizontal scroll · ไม่แตะตาราง custom/เอกสารพิมพ์
+
 ### 🐛 Regression follow-up — tRPC context หลุดบน Turbopack (เบสพบ 2026-08-03)
 > ขอบเขต surgical: ตามเส้นทาง `RootLayout → Providers → DashboardLayout → Sidebar` และแก้เฉพาะอายุของ tRPC context/provider · ไม่แตะ query, auth หรือ business logic
 
