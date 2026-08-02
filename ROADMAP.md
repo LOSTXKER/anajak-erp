@@ -187,14 +187,15 @@
 - [x] verify: typecheck · lint · `verify:ui` · browser จริง dashboard/orders/orders-new/settings ที่ desktop และเมนูมือถือ รวม light/dark โดยไม่มี console error หรือ horizontal overflow ✅ 2026-08-03
 - **ปิดงาน 2026-08-03:** สลับ token กลางเฉพาะ light เป็นพื้นหน้า `#f3f4f6` และ chrome/surface `#fff` · Topbar/Sidebar desktop ขาวทึบ ส่วน dark คง `chrome/90` + blur เดิม · browser จริง light บน dashboard/orders/orders-new/settings และ drawer มือถือ 390px สีตรงทุกชั้น · dark dashboard คง token เดิม · ไม่มี horizontal overflow, runtime/tRPC error หรือ console warning/error · typecheck ผ่าน · lint 0 error (38 warning เดิม) · `verify:ui` ผ่าน · ไม่แตะกฎงานพิมพ์
 
-### 🐛 Regression follow-up — tRPC context หลุดบน Turbopack (เบสพบ 2026-08-03)
-> ขอบเขต surgical: ตามเส้นทาง `RootLayout → Providers → DashboardLayout → Sidebar` และแก้เฉพาะอายุของ tRPC context/provider · ไม่แตะ query, auth หรือ business logic
+### 🐛 Regression follow-up — Turbopack โหลด client/server คนละรุ่น (เบสพบ 2026-08-03)
+> ขอบเขต surgical: ตามเส้นทาง `RootLayout → Providers → DashboardLayout → Sidebar/Topbar` และแยก source bug ออกจาก Fast Refresh/client state · ไม่แตะ query, auth หรือ business logic
 
 - [x] ตาม render path และ bundle graph ครบ: `RootLayout → Providers → DashboardLayout → Sidebar` ถูกต้อง · provider ครอบทั้ง Suspense หลัก/fallback · React/tRPC/React Query มีอย่างละชุด · Provider/Sidebar import `src/lib/trpc.ts` module เดียวกัน ✅ 2026-08-03
 - [x] ทำ differential ได้: origin เดิม `localhost:3000` hydrate client code เก่าคนละรุ่นกับ server (ข้อความ/class/breakpoint ก่อนหลาย commit) ขณะที่ origin ใหม่ `localhost:31873` จาก source และ `.next` ชุดเดียวกันผ่าน dashboard/orders/settings โดยไม่มี tRPC/runtime error ✅ 2026-08-03
 - [x] ย้าย `.next` เก่าออกและ cold restart แล้ว · ไม่เติม provider ซ้อน/global singleton เพราะสมมติฐานนั้นถูกหักล้างและจะกลบต้นเหตุ ✅ 2026-08-03
+- [x] reproduce hydration class mismatch หลังเปลี่ยนสี shell ได้บน origin 3000 · source + SSR/client chunk ใช้ class รุ่นใหม่ตรงกัน และ cold origin 31879 จาก source เดียวกัน hydrate ผ่านโดยไม่มี console error จึงยืนยันว่าไม่ใช่ class/theme logic ✅ 2026-08-03
 - [ ] ปิดแท็บ `localhost:3000` ของผู้ใช้ทั้งหมดแล้วล้าง cache/site data ของ origin หนึ่งครั้ง จากนั้น verify หน้าเดิมอีกครั้ง · ถ้ายังเกิดค่อยขออนุญาตถอด `--turbopack` จาก dev script (config change)
-- **สถานะ 2026-08-03:** source code ไม่พังและ production path ไม่ได้รับผล · ปัญหาอยู่ที่ client cache/Fast Refresh เฉพาะ dev origin 3000 · server 3000 ถูกเปิดใหม่แล้ว แต่แท็บจริงต้องทิ้ง client chunks เก่าให้หมดก่อน
+- **สถานะ 2026-08-03:** source code ไม่พังและ production path ไม่ได้รับผล · ปัญหาอยู่ที่ client state/Fast Refresh เฉพาะ dev origin 3000 · server 3000 ถูกเปิดใหม่แล้ว แต่แท็บจริงต้องทิ้ง client chunks เก่าให้หมดก่อน
 
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
 ~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)

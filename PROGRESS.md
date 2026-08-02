@@ -19,9 +19,9 @@
 > **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ที่แตะ 0) · `verify:ui` ผ่าน · browser จริง `/orders`, `/customers`, `/billing` ที่ 1280px: light วัดหัว/กรอบ `rgb(255,255,255)` เท่ากันทุกหน้า · dark คง `white/3%` · ไม่มี horizontal scroll, error overlay หรือ console error · คืนธีมเป็นสว่างและปิด dev server ทดสอบแล้ว
 > **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
 
-> **⚠️ รอปิดหาง — tRPC context หลุดหลัง Turbopack Fast Refresh (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
-> ไล่ครบแล้วว่า provider ใน source ถูกต้องและ dependency ไม่ซ้ำ · trace ชี้ Sidebar/Topbar ถูก HMR คนละรอบกับ shared provider chunk · ทำ differential ยืนยันว่า origin ใหม่ `localhost:31873` ใช้ source เดียวกันผ่าน dashboard/orders/settings โดยไม่มี error แต่ origin 3000 ยัง hydrate client code เก่าก่อนหลาย commit จึงเป็น browser cache/Fast Refresh state ไม่ใช่บั๊ก query หรือธีม · probe ถูกถอดออกหมด ไม่มี source workaround ค้าง
-> **ทำแล้ว:** ย้าย `.next` เก่าออก · cold restart dev server 3000 · server ตอบ tRPC 200 ปกติ · ไม่เพิ่ม provider ซ้อน/global singleton เพราะหลักฐานหักล้าง · **ค้าง:** เบสปิดแท็บ localhost:3000 ทั้งหมดแล้ว hard reload/ล้าง site data หนึ่งครั้ง ถ้ายังเกิดค่อยขออนุญาตเปลี่ยน dev script จาก Turbopack เป็น Webpack
+> **⚠️ รอผู้ใช้ล้าง client state — Turbopack โหลด HTML/JS คนละรุ่นบน `localhost:3000` (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
+> reproduce ได้ทั้ง tRPC context หลุดและ hydration class mismatch ที่ `Sidebar`/`Topbar` หลัง Fast Refresh · source ปัจจุบัน, SSR chunk และ client chunk บนดิสก์มี class รุ่นใหม่ตรงกันทั้งหมด ไม่มี branch เวลา/random/window ที่เปลี่ยน class และ dependency ไม่ซ้ำ · cold server จากสำเนา source เดียวกันบน `localhost:31879` hydrate ผ่านโดยไม่มี console error จึงหักล้าง source/theme/provider bug; ปัญหาเหลือเฉพาะ origin 3000 ที่แท็บถือ client state คนละรุ่นกับ HTML
+> **ทำแล้ว:** differential สอง origin · cold restart dev server 3000 · ยืนยัน tRPC 200 และไม่ใส่ source workaround กลบอาการ · **ค้าง:** เบสปิดแท็บ `localhost:3000` ทุกแท็บ แล้วกด `Cmd+Shift+R` หรือ Clear site data หนึ่งครั้ง; ถ้ายังเกิดบน first cold load ค่อยขออนุญาตถอด `--turbopack` จาก dev script (config change)
 
 > **✅ ธีมสว่างแบบ A บนพื้นขาว (2026-08-02 · branch `codex/ui-p0-responsive-states`)**
 > คงพื้นเนื้อหาและการ์ดขาวตามแบบ A แล้วแยกลำดับชั้นด้วยกรอบเว็บเทาอ่อน (`#f3f4f6`) · กล่องย่อย/ช่องค้นหาเทากลาง (`#eceff2`) · เมนูที่เลือกเข้มขึ้นหนึ่งขั้น จึงไม่กลับไปเป็นจอขาวทั้งผืน · สีแบรนด์/สถานะ ธีมมืด และกฎงานพิมพ์เดิมไม่เปลี่ยน
