@@ -20,6 +20,7 @@ import {
   itemHasContent,
 } from "@/types/order-form";
 import { PrintTableRow } from "./print-table-row";
+import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
@@ -178,7 +179,7 @@ export function OrderItemCard({
 
   // ── section: ลาย ──
   const printsSection = (
-    <div>
+    <div className="@container">
       <div className="mb-2 flex items-center justify-between">
         <span className={groupLabelClass}>{compact ? "ลาย" : "ลายที่ต้องการสั่งผลิต"}</span>
         <div className="flex items-center gap-1.5">
@@ -217,40 +218,79 @@ export function OrderItemCard({
           <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีลาย — กดเพื่อเพิ่มลายแรก</span>
         </button>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-xs font-normal text-slate-500 dark:text-slate-400">
-                <th className="w-12 pb-1.5 pr-1">รูปแบบ</th>
-                <th className="pb-1.5 px-1">วิธีพิมพ์</th>
-                <th className="w-28 pb-1.5 px-1 text-right">ค่าสกรีน</th>
-                <th className="w-10 pb-1.5">
-                  <span className="sr-only">การทำงาน</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {item.prints.map((p, pIdx) => (
-                <PrintTableRow
-                  key={pIdx}
-                  print={p}
-                  printIdx={pIdx}
-                  onUpdate={(field, value) => onUpdatePrint(itemIdx, pIdx, field, value)}
-                  onRemove={() => onRemovePrint(itemIdx, pIdx)}
-                  printCatalog={printCatalog}
-                  onApplyCatalog={(catalogId) => applyPrintFromCatalog(pIdx, catalogId)}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="hidden overflow-hidden rounded-xl border border-slate-200 @3xl:block dark:border-white/10">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col style={{ width: 64 }} />
+                <col />
+                <col style={{ width: 104 }} />
+                <col style={{ width: 124 }} />
+                <col style={{ width: 92 }} />
+                <col style={{ width: 64 }} />
+                <col style={{ width: 84 }} />
+                <col style={{ width: 40 }} />
+              </colgroup>
+              <thead className="border-b border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+                <tr className="text-xs font-medium">
+                  <th className="whitespace-nowrap px-2 py-2.5 text-left">
+                    รูปแบบ
+                  </th>
+                  <th className="px-2 py-2.5 text-left">วิธีพิมพ์</th>
+                  <th className="px-2 py-2.5 text-left">ขนาด</th>
+                  <th className="px-2 py-2.5 text-center">กว้าง × สูง</th>
+                  <th className="px-2 py-2.5 text-left">ตำแหน่ง</th>
+                  <th className="px-2 py-2.5 text-center">จำนวนสี</th>
+                  <th className="px-2 py-2.5 text-right">ค่าสกรีน</th>
+                  <th className="py-2.5">
+                    <span className="sr-only">ลบลาย</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {item.prints.map((print, printIdx) => (
+                  <PrintTableRow
+                    key={printIdx}
+                    print={print}
+                    printIdx={printIdx}
+                    onUpdate={(field, value) =>
+                      onUpdatePrint(itemIdx, printIdx, field, value)
+                    }
+                    onRemove={() => onRemovePrint(itemIdx, printIdx)}
+                    printCatalog={printCatalog}
+                    onApplyCatalog={(catalogId) =>
+                      applyPrintFromCatalog(printIdx, catalogId)
+                    }
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="space-y-2.5 @3xl:hidden">
+            {item.prints.map((print, printIdx) => (
+              <PrintCardMobile
+                key={printIdx}
+                print={print}
+                printIdx={printIdx}
+                onUpdate={(field, value) =>
+                  onUpdatePrint(itemIdx, printIdx, field, value)
+                }
+                onRemove={() => onRemovePrint(itemIdx, printIdx)}
+                printCatalog={printCatalog}
+                onApplyCatalog={(catalogId) =>
+                  applyPrintFromCatalog(printIdx, catalogId)
+                }
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
 
   // ── section: สินค้า ──
   const productsSection = (
-    <div>
+    <div className="@container">
       <div className="mb-2 flex items-center justify-between">
         <span className={groupLabelClass}>{compact ? "สินค้า" : "สินค้าที่ต้องการสั่งผลิต"}</span>
         {item.products.length > 0 && (
@@ -286,25 +326,29 @@ export function OrderItemCard({
         </div>
       ) : (
         <>
-          {/* เดสก์ท็อป (≥ sm): ตาราง 5 คอลัมน์หลัก */}
-          <div className="hidden overflow-x-auto sm:block">
-            <table className="w-full" style={{ tableLayout: "fixed" }}>
+          {/* จอกว้าง: ตารางหนึ่งแถวต่อสินค้า พร้อมหัวคอลัมน์ครบ */}
+          <div className="hidden overflow-hidden rounded-xl border border-slate-200 @3xl:block dark:border-white/10">
+            <table className="w-full table-fixed">
               <colgroup>
                 <col style={{ width: 76 }} />
                 <col />
-                <col style={{ width: 82 }} />
+                <col style={{ width: 92 }} />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 84 }} />
                 <col style={{ width: 64 }} />
-                <col style={{ width: 88 }} />
-                <col style={{ width: 56 }} />
+                <col style={{ width: 84 }} />
+                <col style={{ width: 80 }} />
               </colgroup>
-              <thead>
-                <tr className="text-xs font-normal text-slate-500 dark:text-slate-400">
-                  <th className="pb-1.5 pl-1 text-left">แหล่ง</th>
-                  <th className="pb-1.5 pr-2 text-left">สินค้า</th>
-                  <th className="pb-1.5 px-1.5 text-right">ราคา</th>
-                  <th className="pb-1.5 px-1.5 text-center">จำนวน</th>
-                  <th className="pb-1.5 px-1.5 text-right">รวม</th>
-                  <th className="pb-1.5">
+              <thead className="border-b border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+                <tr className="text-xs font-medium">
+                  <th className="px-2 py-2.5 text-left">แหล่ง</th>
+                  <th className="px-2 py-2.5 text-left">สินค้า</th>
+                  <th className="px-2 py-2.5 text-left">แพค</th>
+                  <th className="px-2 py-2.5 text-right">ราคา</th>
+                  <th className="px-2 py-2.5 text-right">ส่วนลด</th>
+                  <th className="px-2 py-2.5 text-center">จำนวน</th>
+                  <th className="px-2 py-2.5 text-right">รวม</th>
+                  <th className="py-2.5">
                     <span className="sr-only">จัดลำดับและลบสินค้า</span>
                   </th>
                 </tr>
@@ -323,8 +367,8 @@ export function OrderItemCard({
               </tbody>
             </table>
           </div>
-          {/* มือถือ (< sm): การ์ดเรียงแนวตั้ง — ไม่ต้องเลื่อนซ้ายขวา (UX7) */}
-          <div className="space-y-2.5 sm:hidden">
+          {/* จอแคบใช้การ์ด ไม่บีบตาราง 8 คอลัมน์ลงมือถือ/แท็บเล็ต */}
+          <div className="space-y-2.5 @3xl:hidden">
             {item.products.map((prod, pIdx) => (
               <ProductCardMobile
                 key={pIdx}
@@ -343,7 +387,7 @@ export function OrderItemCard({
 
   // ── section: ส่วนเสริม ──
   const addonsSection = (
-    <div>
+    <div className="@container">
       <div className="mb-2 flex items-center justify-between">
         <span className={groupLabelClass}>ส่วนเสริม (Add-ons)</span>
         <Button type="button" variant="outline" size="sm" onClick={() => onAddAddon(itemIdx)}>
@@ -360,15 +404,16 @@ export function OrderItemCard({
           <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีส่วนเสริม — กดเพื่อเพิ่ม</span>
         </button>
       ) : (
-        <div className="overflow-x-auto">
+        <>
+        <div className="hidden overflow-hidden rounded-xl border border-slate-200 @3xl:block dark:border-white/10">
           <table className="w-full">
-            <thead>
-              <tr className="text-left text-xs font-normal text-slate-500 dark:text-slate-400">
-                <th className="min-w-[100px] pb-1.5 px-1">ประเภท</th>
-                <th className="min-w-[120px] pb-1.5 px-1">ชื่อ</th>
-                <th className="min-w-[90px] pb-1.5 px-1">คิดราคา</th>
-                <th className="min-w-[80px] pb-1.5 px-1">ราคา</th>
-                <th className="w-10 pb-1.5">
+            <thead className="border-b border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+              <tr className="text-left text-xs font-medium">
+                <th className="min-w-[100px] px-2 py-2.5">ประเภท</th>
+                <th className="min-w-[120px] px-2 py-2.5">ชื่อ</th>
+                <th className="min-w-[90px] px-2 py-2.5">คิดราคา</th>
+                <th className="min-w-[80px] px-2 py-2.5 text-right">ราคา</th>
+                <th className="w-10 py-2.5">
                   <span className="sr-only">ลบส่วนเสริม</span>
                 </th>
               </tr>
@@ -395,6 +440,43 @@ export function OrderItemCard({
             </tbody>
           </table>
         </div>
+        <div className="space-y-2.5 @3xl:hidden">
+          {item.addons.map((addon, addonIdx) => (
+            <div key={addonIdx} className="space-y-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700/60">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  ส่วนเสริม #{addonIdx + 1}
+                </p>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, addonIdx)}><Trash2 /></Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="ประเภท">
+                  {addonCatalog && addonCatalog.length > 0 ? (
+                    <Select aria-label={`เลือกประเภทส่วนเสริม ${addonIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(addonIdx, e.target.value); }}>
+                      <option value="">{addon.addonType || "แค็ตตาล็อก..."}</option>
+                      {addonCatalog.map((catalogItem) => <option key={catalogItem.id} value={catalogItem.id}>{catalogItem.name}</option>)}
+                    </Select>
+                  ) : (
+                    <Input aria-label={`ประเภทส่วนเสริม ${addonIdx + 1}`} value={addon.addonType} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." />
+                  )}
+                </Field>
+                <Field label="ชื่อ">
+                  <Input aria-label={`ชื่อส่วนเสริม ${addonIdx + 1}`} value={addon.name} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "name", e.target.value)} placeholder="ชื่อ add-on" />
+                </Field>
+                <Field label="คิดราคา">
+                  <Select aria-label={`วิธีคิดราคาส่วนเสริม ${addonIdx + 1}`} value={addon.pricingType} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")}>
+                    <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
+                    <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
+                  </Select>
+                </Field>
+                <Field label="ราคา">
+                  <Input aria-label={`ราคาส่วนเสริม ${addonIdx + 1}`} type="number" min={0} step={0.01} value={addon.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="text-right" />
+                </Field>
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
       )}
     </div>
   );

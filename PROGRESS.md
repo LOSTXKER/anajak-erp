@@ -4,6 +4,11 @@
 
 ## ตอนนี้
 
+> **✅ `/orders/new` คอลัมน์เดียว + รายการเป็นตาราง (2026-08-02 · branch `codex/ui-p0-responsive-states`)**
+> ตามคำสั่งเบส ยกเลิก layout desktop สองฝั่ง แล้วเรียง ลูกค้า/งาน → ไฟล์ → รายการ/ราคา → จัดส่ง ลงมาเต็มความกว้าง · ลาย/สินค้า/ส่วนเสริมเป็นตารางหัวคอลัมน์ชัดบนพื้นที่กว้าง ส่วนพื้นที่แคบใช้การ์ด · จุดตัดวัดจากความกว้างพื้นที่จริง จึงไม่บีบตารางในหน้าแก้รายการที่ใช้ฟอร์มร่วมกัน · แยก logic ลายไว้จุดเดียวเพื่อให้ upload/preset ทำงานตรงกันทั้งสอง layout · ไม่แตะ state/สูตรราคา/mutation
+> **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิม; ไฟล์ที่แตะมี 5 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · diff-check ผ่าน · browser จริง `/orders/new` และ `?next=quote` ที่ 320/375/768/1024/1280/1440px + dark 1440px ไม่มี horizontal scroll/console error · เพิ่ม/แสดงลายและสินค้าทั้ง table/card ถูก · ล้าง draft ทดสอบและคืน theme เดิมแล้ว · ไม่รัน build ขณะ dev server ทำงาน
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
 > **✅ UI-P0 responsive + data states ปิดครบ (2026-08-02 · branch `codex/ui-p0-responsive-states`)**
 > เบสสั่ง “ทำเลย” ต่อจาก audit ทั้งเว็บ → แก้เฉพาะบั๊กใช้งานจริง 3 ก้อน โดยคงสี/ความ minimal/business logic เดิม:
 > ① `PageHeader` ยอมห่อ action โดยกันพื้นที่หัวข้อ · `/billing/tax`, `/billing/wht`, `/production/films` คง card ถึง `lg` (ช่วง 800px ที่ sidebar กินพื้นที่ไม่บีบตารางแล้ว) · ภาษีขายมี card mobile/tablet ครบข้อมูล

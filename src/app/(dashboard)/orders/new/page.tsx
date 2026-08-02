@@ -399,7 +399,7 @@ export default function NewOrderPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
+    <div className="mx-auto max-w-5xl space-y-5">
       <PageHeader
         breadcrumb={[
           { label: "ออเดอร์", href: "/orders" },
@@ -457,10 +457,6 @@ export default function NewOrderPage() {
           </div>
         )}
 
-        {/* Desktop: ข้อมูลรับงานฝั่งซ้าย · รายการและราคาฝั่งขวาที่กว้างกว่า
-            จอเล็กยังเรียง ลูกค้า → รายการ → จัดส่ง ตามลำดับเดิม */}
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="min-w-0 space-y-4 self-start">
         {/* ============ 1 · ลูกค้า & งาน — แกนบังคับ (ลูกค้าช่องเดียว) ============ */}
         <Section
           title={
@@ -504,9 +500,6 @@ export default function NewOrderPage() {
           images={referenceImages}
           onImagesChange={setReferenceImages}
         />
-        </div>
-
-        <div className="min-w-0 space-y-4 xl:col-span-2">
 
         <Section
           title={
@@ -654,8 +647,6 @@ export default function NewOrderPage() {
             </>
           </div>
         </Section>
-        </div>
-        </div>
 
         {/* จัดส่ง — กางตลอด แต่ยังเป็นข้อมูลไม่บังคับ */}
         <OrderShippingSection
