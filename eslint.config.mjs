@@ -116,6 +116,23 @@ const tsxOnlyRules = [
     message:
       "ห้ามสั่งขนาดตัวหมุนเอง — ใช้ <Spinner size=\"sm|md|lg|xl\" /> จาก @/components/ui/spinner (ในปุ่มไม่ต้องใส่ขนาดเลย)",
   },
+  // ข้อ 10 — สีนอกจานแบรนด์ (เพิ่ม 2026-08-02 จาก audit สี)
+  // ด่าน 9 ข้อก่อนหน้าคุมขนาด/เงา/ระยะ/โฟกัส/ความสูง/กล่องเตือน/ขอบประ/ตัวหมุนครบ
+  // **แต่สีปล่อยฟรี** ผลคือมีสีส้มนอกจานหลุดเข้ามาแล้วโดยไม่มีอะไรเตือน
+  // จานที่ระบบใช้: slate (neutral) · blue (แบรนด์/ลิงก์) · red (อันตราย) · amber (เตือน) · green (สำเร็จ)
+  // ทั้ง 5 ตระกูลถูก override เป็นโทนแบรนด์ใน globals.css แล้ว — ตระกูลอื่นจะหลุดโทนทันที
+  {
+    selector:
+      "Literal[value=/\\b(?:bg|text|border|ring|divide|from|via|to|fill|stroke|shadow|outline|accent|caret|decoration|placeholder)-(?:gray|zinc|neutral|stone|orange|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose)-[0-9]/]",
+    message:
+      "ใช้สีนอกจานแบรนด์ — ระบบใช้แค่ slate/blue/red/amber/green (ทั้ง 5 ถูก override เป็นโทน Anajak แล้ว) · เทา = slate ห้าม gray/zinc · ส้ม/เหลือง = amber · ฟ้า = blue",
+  },
+  {
+    selector:
+      "TemplateElement[value.raw=/\\b(?:bg|text|border|ring|divide|from|via|to|fill|stroke|shadow|outline|accent|caret|decoration|placeholder)-(?:gray|zinc|neutral|stone|orange|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose)-[0-9]/]",
+    message:
+      "ใช้สีนอกจานแบรนด์ — ระบบใช้แค่ slate/blue/red/amber/green (ทั้ง 5 ถูก override เป็นโทน Anajak แล้ว) · เทา = slate ห้าม gray/zinc · ส้ม/เหลือง = amber · ฟ้า = blue",
+  },
 ];
 
 const eslintConfig = [

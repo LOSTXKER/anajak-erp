@@ -19,7 +19,7 @@ import {
 } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, controlShapeClass, type ControlShape } from "./tokens";
+import { FIELD_SURFACE, FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, controlShapeClass, type ControlShape } from "./tokens";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
 
 /* ============================================================
@@ -113,10 +113,13 @@ export function DatePicker({
           className={cn(
             controlShapeClass(shape),
             CONTROL_H,
-            "flex w-full items-center justify-between gap-2 border border-slate-200/70 bg-white px-3 py-1 text-base transition-colors",
+            // ใช้ผิวช่องกรอกของกลาง — เดิมก๊อปสูตรมาเขียนเอง (ตัวเดียวใน ui/ ที่ทำแบบนี้)
+            // แล้ว **ตกสีตัวอักษรฝั่งสว่างไป** ช่องนี้จึงเป็นช่องเดียวที่สีตัวอักษรไม่เท่าช่องอื่น
+            // (audit สี 2026-08-02) · แก้แล้ววันหน้าเปลี่ยนผิวช่องกรอกทีเดียวจบทุกช่อง
+            "flex w-full items-center justify-between gap-2 px-3 py-1 text-base transition-colors",
+            FIELD_SURFACE,
             FOCUS_FIELD,
             "sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
-            "dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100",
             className,
           )}
         >

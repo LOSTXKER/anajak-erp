@@ -2,6 +2,13 @@
 
 > หน้าใหม่ + หน้าที่ถูกแตะใน P1-P3 ต้องตามนี้ทันที · หน้าเก่าที่ยังไม่มีงานไปแตะ ปล่อยไว้ก่อน
 > (รอบเก็บตกอยู่ปลาย P1 ตาม ROADMAP) — **ห้าม redesign หน้าที่ไม่มีงาน functional**
+>
+> ⚠️ **ถ้าเอกสารนี้ขัดกับโค้ด ให้เชื่อโค้ด แล้วกลับมาแก้เอกสารในคอมมิตเดียวกัน**
+> (audit 2026-08-02 พบว่าไฟล์นี้ระบุผิด 8 จุด — สั่งให้ใช้สีที่ไม่มีใครใช้ · อ้างไฟล์ที่ไม่มีอยู่จริง
+>  2 ไฟล์ · บอกมุมโค้งปุ่มผิด · สอนวิธีเขียนที่ด่าน lint ตีตก · และเป็นสาเหตุตรงที่ทำให้ของใหม่
+>  ออกมาไม่เข้าชุด เพราะคนใหม่เปิดไฟล์นี้เป็นไฟล์แรก)
+>
+> **หน้าตัวอย่างที่ทำถูกทั้งหน้า:** `src/app/(dashboard)/customers/page.tsx`
 
 ## สี — token 3 ชั้น (`src/app/globals.css`)
 
@@ -9,9 +16,29 @@
 |---|---|---|
 | Primitive | สีแบรนด์: `--color-anajak-blue #3973b2` · `--color-anajak-yellow #fec91b` · `--color-anajak-red #e72f27` | **ห้ามใช้ตรงใน component** |
 | Ramp | สเกล `blue-50..950` / `red-50..950` ของ Tailwind ถูก override เป็น ramp จากสีแบรนด์ (เลข 600 = สีแบรนด์เป๊ะ) | ใช้ utility ปกติ: `bg-blue-600`, `text-red-700` — ได้โทนแบรนด์อัตโนมัติ |
-| Semantic | `--color-accent/-hover/-soft`, `--color-success/warning/danger(-soft)`, surface/border/text | ผ่าน utility: `bg-accent`, `bg-surface`, `text-text-muted` |
+| Semantic | เหลือ 5 ตัวที่ใช้จริง: `--color-bg` (พื้นหน้า) · `--color-chrome` (แถบเมนู+แถบบน) · `--color-surface` (การ์ด) · `--color-surface-muted` (กล่องลอยโหมดมืด) · `--color-text` | ใช้ผ่าน `bg-bg` / `bg-chrome` · ที่เหลือใช้ ramp ตรงๆ |
 
-กฎ: **ห้าม hex ตรงๆ ในโค้ด component** · สีเหลืองแบรนด์ใช้เฉพาะจุดเน้นพิเศษ (เช่น Job Ticket) ผ่าน `anajak-yellow` · `amber-*` = warning ตามเดิม
+> **แก้ 2026-08-02 จาก audit สี:** เคยมีสี semantic อีก 17 ตัว (`accent` · `success` ·
+> `warning` · `danger` · `border` · `text-muted` ฯลฯ) เขียนไว้ในเอกสารนี้ว่า "ให้ใช้"
+> — ตรวจแล้ว **ไม่มีใครเรียกใช้เลยสักจุดตั้งแต่วันที่ประกาศ** และค่าที่ตั้งไว้ขัดกับสีจริง
+> (`--color-danger` เป็นแดง Apple คนละเฉดกับแดงแบรนด์) → **ลบทิ้งแล้ว** ห้ามเขียนกลับมา
+> โดยไม่มีคนใช้จริง
+
+**สีตัวหนังสือ/พื้น ใช้ ramp ตรงๆ** (นี่คือของจริงที่ทั้งเว็บใช้ ไม่ใช่ token):
+
+| ใช้ทำอะไร | เขียนยังไง |
+|---|---|
+| ตัวหนังสือหลัก | `text-slate-900 dark:text-white` |
+| ตัวหนังสือรอง (คำบรรยาย · วันที่ · meta) | `text-slate-500 dark:text-slate-400` ← **คู่นี้เสมอ ห้ามสลับข้าง** |
+| ค่าว่าง / เลขศูนย์ | `text-slate-400 dark:text-slate-500` |
+| พื้นที่จมลงไป (หัวตาราง · กล่องย่อยในการ์ด · พื้นตอนชี้) | `bg-slate-100 dark:bg-white/[0.06]` |
+| เส้นคั่น | `border-slate-200 dark:border-white/10` (ในกล่องลอยใช้ `dark:bg-white/10`) |
+
+**โหมดมืดใช้ "ขาวโปร่ง" ไม่ใช่เทาเข้ม** — `bg-white/10` สว่างกว่าพื้นเสมอไม่ว่าวางบนการ์ด
+พื้นหน้า หรือกล่องลอย · ถ้าใช้ `dark:bg-slate-800` จะกลืนกับพื้นการ์ด (ต่างกัน 5 จาก 255)
+
+กฎ: **ห้าม hex ตรงๆ ในโค้ด component** · ใช้ได้แค่ 5 ตระกูล **slate / blue / red / amber / green**
+(ทั้งหมดถูก override เป็นโทนแบรนด์แล้ว) — ตระกูลอื่นมีด่าน lint ข้อ 10 ดักไว้
 · neutral มาตรฐาน = `slate-*` เท่านั้น (ramp ถูก override เข้าโทน Apple gray ที่ `@theme` แล้ว — UX4.4) — **ห้ามใช้ `gray-*`/`zinc-*` ปน** เพราะจะหลุดโทนที่ override ไว้
 
 ## Component มาตรฐาน — มีแล้ว ห้ามสร้างซ้ำ
@@ -26,9 +53,11 @@
 | ว่างเปล่า | `ui/empty-state.tsx` | ทุก list ที่ว่างต้องมี |
 | โหลด/พัง | `ui/skeleton.tsx` + `ui/query-error.tsx` | ทุก query หลักของหน้า |
 | หัวข้อกลุ่ม/สถิติ | `ui/section.tsx` · `ui/stat-card.tsx` | StatCard รับ `tone`/`href` สำหรับเลขเสี่ยง (ตัวเลขที่ต้องเด่น+กดไปดูได้ — UX4.3) |
-| ฟอร์ม | `ui/field.tsx` ครอบ `input|textarea|select|native-select|switch` + Zod เมื่อมี validation ซับซ้อน | label/id/required/description/error/aria ต้องมาจาก Field · ยังไม่เพิ่ม form dependency |
+| ฟอร์ม | `ui/field.tsx` ครอบ `input\|textarea\|select\|switch` + Zod เมื่อมี validation ซับซ้อน | label/id/required/description/error/aria ต้องมาจาก Field · **`native-select` ถูกยุบเข้า `ui/select.tsx` แล้ว** ไม่มีไฟล์นั้น |
 | list responsive | `ui/responsive-list.tsx` | desktop table + mobile card เฉพาะหน้าจอ · ใช้ loading/error/empty/pagination ชุดเดียว · มี `emptyAction` ใส่ปุ่มก้าวถัดไปตอน list ว่าง (UX4.7) |
-| สิทธิ์ UI | `ui/capability-gate.tsx` + `permAllows` | action ที่ server ไม่อนุญาตต้องไม่เปิดให้กรอกก่อนแล้วค่อย error |
+| สิทธิ์ UI | `permAllows` จาก `lib/permissions` | action ที่ server ไม่อนุญาตต้องไม่เปิดให้กรอกก่อนแล้วค่อย error · (เอกสารเคยอ้าง `ui/capability-gate.tsx` — **ไฟล์นั้นไม่มีอยู่จริง** ลบข้อมูลผิดออก 2026-08-02) |
+| ภาษาหน้าตา (มุมโค้ง · วงแหวนโฟกัส · ผิวช่องกรอก · สีกล่องเตือน) | `ui/tokens.ts` | RADIUS · FOCUS_FIELD/BUTTON/INSET · FIELD_SURFACE · OVERLAY_PANEL · MENU_ITEM · MENU_SEPARATOR · TINT · DASHED · ACTIVE_FILTER — **ด่าน lint บังคับให้ใช้ ห้ามเขียนเอง** |
+| ความสูง control | `ui/control-size.ts` | CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H |
 | ช่องทางจ่ายเงิน | `lib/payment-methods.ts` | ค่า+ป้ายที่เดียว |
 
 ## Mobile-first (หน้า ops: task queue / production / งานหน้าเครื่อง)
@@ -43,8 +72,19 @@
 ## Typography / spacing / radius
 
 ตามที่ component มาตรฐานใช้อยู่: ฟอนต์ Prompt · ตัวเลขเงิน `tabular-nums` เสมอ ·
-การ์ด/กล่อง `rounded-2xl` · ปุ่ม/ช่องกรอก `rounded-lg` · mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px · metadata อย่างน้อย 12px และต้องผ่าน contrast
-หัวเรื่องหน้า = `PageHeader` (`text-[26px] font-semibold tracking-tight`) — ทุกหน้าใช้ผ่าน component นี้ **ห้ามเขียน `<h1>` เอง** · หัว section ภายในหน้า = `Section` (`text-[15px] font-semibold` หรือ `compact` = label ตัวพิมพ์เล็ก uppercase) — ดูตัวอย่างจริงจาก component ใน `ui/` ไม่ต้องจำตาราง
+mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px · metadata อย่างน้อย 12px และต้องผ่าน contrast
+
+**มุมโค้ง — ใช้ `RADIUS` จาก `ui/tokens.ts` เท่านั้น** (แก้ข้อมูลผิด 2026-08-02: เอกสารเคยบอกว่าปุ่ม/ช่องกรอกเป็น 8px ซึ่งไม่ตรงของจริง ทำตามแล้วมุมไม่เท่าหน้าอื่น):
+
+| ของชิ้นไหน | ค่า |
+|---|---|
+| ชิ้นเล็กในรายการ (ตัวเลือกในเมนู · ปุ่มในแถบสลับ) | `RADIUS.item` = 8px |
+| กล่องย่อยในการ์ด · รูปย่อ | `RADIUS.inner` = 12px |
+| การ์ด · ส่วน · ช่องกรอกทรงเหลี่ยม · กล่องเด้ง | `RADIUS.surface` = 16px |
+| **ปุ่ม · ชิปตัวกรอง · ช่องค้นหา · สวิตช์** | `RADIUS.pill` = มนเต็ม |
+
+**ขนาดตัวอักษร** ใช้บันได 8 ขั้นใน `globals.css` (`text-2xs` … `text-3xl`) — **ห้ามสั่งเป็น px ดิบ มีด่าน lint ดักไว้**
+หัวเรื่องหน้า = `PageHeader` (`text-2xl` = 24px · แก้ข้อมูลผิด 2026-08-02: เอกสารเคยเขียน `text-[26px]` ซึ่ง**ด่าน lint ตีตกทันที**ทั้งที่ทำตามเอกสารเป๊ะ) — ทุกหน้าใช้ผ่าน component นี้ **ห้ามเขียน `<h1>` เอง** · หัว section ภายในหน้า = `Section`
 
 ## Interaction / navigation / state contract (UX0)
 
