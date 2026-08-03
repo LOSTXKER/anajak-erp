@@ -77,8 +77,9 @@ function collectOptions(children: React.ReactNode, out: OptionItem[] = []) {
 }
 
 /** ขนาดของช่องเลือก — sm ใช้เฉพาะในแถวตารางที่ต้องอัดหลายช่องต่อแถว
- *  ให้ 44px บนมือถือ (เป้านิ้วขั้นต่ำ) · 32px บนเดสก์ท็อป — ดู control-size.ts */
-type SelectSize = "default" | "sm";
+ *  ให้ 44px บนมือถือ (เป้านิ้วขั้นต่ำ) · 32px บนเดสก์ท็อป — ดู control-size.ts
+ *  dense = สูงมาตรฐาน + อักษร xs บนเดสก์ท็อป สำหรับ editable grid (ดู input.tsx) */
+type SelectSize = "default" | "sm" | "dense";
 
 export type SelectProps = Omit<
   React.ComponentProps<"select">,
@@ -137,7 +138,11 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             FOCUS_FIELD,
             "flex w-full items-center justify-between gap-2 px-3 py-1 text-base transition-colors sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
             // หลังก้อนพื้นฐานเสมอ — twMerge ตัดสินจาก "ตัวหลังชนะ" (ดูคำอธิบายเดียวกันใน input.tsx)
-            size === "sm" ? cn(CONTROL_H_SM, "text-xs sm:text-xs") : CONTROL_H,
+            size === "sm"
+              ? cn(CONTROL_H_SM, "text-xs sm:text-xs")
+              : size === "dense"
+                ? cn(CONTROL_H, "sm:text-xs")
+                : CONTROL_H,
             className,
           )}
           {...(rest as React.ComponentPropsWithoutRef<

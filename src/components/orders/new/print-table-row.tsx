@@ -154,7 +154,7 @@ export function PrintTableRow({
                 onUpdate("width", parseFloat(event.target.value) || 0)
               }
               placeholder="0"
-              className="w-full px-1 text-center sm:h-9 sm:text-xs"
+              size="dense" className="w-full px-1 text-center"
             />
             <span className="text-xs text-slate-400">×</span>
             <Input
@@ -167,7 +167,7 @@ export function PrintTableRow({
                 onUpdate("height", parseFloat(event.target.value) || 0)
               }
               placeholder="0"
-              className="w-full px-1 text-center sm:h-9 sm:text-xs"
+              size="dense" className="w-full px-1 text-center"
             />
           </div>
         ) : (
@@ -179,7 +179,7 @@ export function PrintTableRow({
 
       <td className="px-1 py-2 align-middle">
         <Select
-          size="sm"
+          size="dense"
           aria-label={`ตำแหน่งลาย จุดที่ ${printIdx + 1}`}
           value={print.position}
           onChange={(event) => onUpdate("position", event.target.value)}
@@ -202,7 +202,7 @@ export function PrintTableRow({
             onChange={(event) =>
               onUpdate("colorCount", parseInt(event.target.value) || 1)
             }
-            className="w-full px-1 text-center sm:h-9 sm:text-xs"
+            size="dense" className="w-full px-1 text-center"
           />
         ) : (
           <div className="flex h-9 items-center justify-center">{dash}</div>
@@ -220,7 +220,7 @@ export function PrintTableRow({
             onUpdate("unitPrice", parseFloat(event.target.value) || 0)
           }
           placeholder="0.00"
-          className="w-full px-2 text-right sm:h-9 sm:text-xs"
+          size="dense" className="w-full px-2 text-right"
         />
       </td>
 
