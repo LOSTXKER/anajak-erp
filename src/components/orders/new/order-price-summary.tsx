@@ -271,7 +271,7 @@ export function OrderPriceSummary({
         )}
       </div>
 
-      <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+      <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 pt-3 dark:border-white/10">
         <span className="text-sm font-medium text-slate-900 dark:text-white">
           ยอดรวมทั้งหมด
           {taxRate > 0 && (
@@ -287,7 +287,7 @@ export function OrderPriceSummary({
 
       {/* กำไรขั้นต้นโดยประมาณ — โชว์เฉพาะ role การเงิน (caller ส่ง null = ไม่ render เลย) */}
       {marginEstimate && (
-        <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+        <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
           <MarginEstimateBlock estimate={marginEstimate} />
         </div>
       )}

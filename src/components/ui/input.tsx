@@ -35,8 +35,11 @@ const Input = React.forwardRef<
           "flex w-full px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
           // หลังก้อนพื้นฐานเสมอ — twMerge ตัดสินจาก "ตัวหลังชนะ" ถ้าวางก่อน text-base/sm:text-sm
           // ที่อยู่ข้างบนจะทับ text-xs กลับ (เขียนสลับแล้วขนาดไม่เปลี่ยน หาสาเหตุยาก)
+          // มือถือคง text-base (16px) เสมอ — ต่ำกว่านั้น iOS Safari ซูมหน้าจอทุกครั้งที่แตะช่อง
+          // แล้วผู้ใช้ต้องถอยกลับมาเองทีละช่อง (audit 2026-08-03 · กติกา DESIGN.md
+          // "mobile input ต้อง 16px กัน browser zoom") — ชุด dense ทำถูกอยู่แล้ว sm ตกหล่น
           size === "sm"
-            ? cn(CONTROL_H_SM, "text-xs sm:text-xs")
+            ? cn(CONTROL_H_SM, "sm:text-xs")
             : size === "dense"
               ? cn(CONTROL_H, "sm:text-xs")
               : CONTROL_H,

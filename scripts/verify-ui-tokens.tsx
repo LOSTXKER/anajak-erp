@@ -69,13 +69,17 @@ check(
   ["rounded-2xl"],
 );
 
-// ③ ขนาดเล็กสำหรับแถวตาราง — ต้องได้ทั้งความสูงและขนาดอักษร (ลำดับ cn() ถูก)
-check("ช่องกรอกขนาดเล็ก", renderToStaticMarkup(<Input size="sm" />), [...hSm, "text-xs", "sm:text-xs"], ["sm:h-9", "sm:min-h-9"]);
+// ③ ขนาดเล็กสำหรับแถวตาราง — เตี้ยเฉพาะเดสก์ท็อป และอักษรเล็กเฉพาะเดสก์ท็อป
+// แก้ 2026-08-03: เดิมด่านนี้บังคับ "text-xs" เปล่า (12px ทั้งมือถือ) ซึ่งขัด DESIGN.md
+// "mobile input ต้อง 16px กัน browser zoom" — iOS Safari ซูมจอทุกครั้งที่แตะช่อง แล้วไม่ซูมกลับ
+// (audit /orders/new 2026-08-03 · ชุด dense ทำถูกอยู่แล้ว sm เป็นตัวเดียวที่ตกหล่น)
+// ห้าม text-xs เปล่ากลับมา — จึงใส่ไว้ในลิสต์ "ต้องไม่มี" เหมือน dense
+check("ช่องกรอกขนาดเล็ก", renderToStaticMarkup(<Input size="sm" />), [...hSm, "sm:text-xs"], ["sm:h-9", "sm:min-h-9", "text-xs"]);
 check(
   "ช่องเลือกขนาดเล็ก",
   renderToStaticMarkup(<Select size="sm" value="" onChange={() => {}}><option value="">ก</option></Select>),
-  [...hSm, "text-xs", "sm:text-xs"],
-  ["sm:h-9", "sm:min-h-9"],
+  [...hSm, "sm:text-xs"],
+  ["sm:h-9", "sm:min-h-9", "text-xs"],
 );
 
 // (CONTROL_H_SM = "h-11 min-h-11 sm:h-8 sm:min-h-8" — มือถือยังเป็น 44px เป้านิ้ว

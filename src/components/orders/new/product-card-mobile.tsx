@@ -83,7 +83,7 @@ export function ProductCardMobile({
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={product.productImageUrl} alt="" className="h-10 w-10 flex-shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
           ) : (
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.06]">
               <ImageIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" />
             </div>
           )}
@@ -110,8 +110,10 @@ export function ProductCardMobile({
               <span className="text-xs text-muted">หลายไซส์ · รวม {totalQty} ตัว{variant.color ? ` · ${variant.color}` : ""}</span>
             ) : (
               <>
-                <Input value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" className="w-24 px-2 text-xs" />
-                <Input value={variant.size} onChange={(e) => updateVariantField("size", e.target.value)} placeholder="ไซส์" className="w-20 px-2 text-xs" />
+                {/* การ์ดนี้โผล่เฉพาะจอเล็ก — text-xs เปล่า (12px) ทำให้ iOS ซูมจอทุกครั้งที่แตะ
+                    ปล่อยให้ Input คุมขนาดอักษรเอง (16px มือถือ / 14px เดสก์ท็อป) */}
+                <Input value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" className="w-24 px-2" />
+                <Input value={variant.size} onChange={(e) => updateVariantField("size", e.target.value)} placeholder="ไซส์" className="w-20 px-2" />
               </>
             )}
             {canMatrix && (
@@ -182,9 +184,8 @@ export function ProductCardMobile({
 
       {/* สเปคตัดเย็บ (CUSTOM_MADE) */}
       {isCustomMade && (
-        <div className="rounded-lg border border-amber-100 p-2 dark:border-amber-900/30">
-          <CustomMadeDetail product={product} updateProduct={updateProduct} />
-        </div>
+        /* กรอบเหลืองชั้นนอกถูกถอด — CustomMadeDetail เป็นกล่องเทาในตัวแล้ว (ไม่ซ้อน 2 กรอบ) */
+        <CustomMadeDetail product={product} updateProduct={updateProduct} />
       )}
 
       {/* หลายไซส์ — ตารางกรอกไซส์×จำนวน */}

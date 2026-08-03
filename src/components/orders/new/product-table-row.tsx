@@ -78,7 +78,7 @@ export function ProductTableRow({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={product.productImageUrl} alt={productLabel} className="h-9 w-9 flex-shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
               ) : (
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.06]">
                   <ImageIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" />
                 </div>
               )}
@@ -203,7 +203,7 @@ export function ProductTableRow({
 
       {/* สเปคตัดเย็บ (CUSTOM_MADE) — แถวเสริมเต็มกว้าง */}
       {isCustomMade && (
-        <tr className="border-b border-amber-100 dark:border-amber-900/30">
+        <tr className="border-b border-slate-100 dark:border-white/10">
           <td aria-hidden="true" />
           <td colSpan={7} className="pb-3 pt-1 pr-1">
             <CustomMadeDetail product={product} updateProduct={updateProduct} />

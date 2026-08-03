@@ -132,6 +132,19 @@
 - [x] แยกราคา/ค่าใช้จ่าย/เงื่อนไขออกจากการ์ดรายการ และคง sticky bar ให้เหลือยอดหลัก + ยกเลิก + เปิดงาน ✅ 2026-08-02
 - **ปิดงาน 2026-08-02:** browser จริง `/orders/new` และ `?next=quote` ที่ 320/375/768/1024/1280/1440px + light/dark ไม่มี horizontal scroll หรือ error overlay · ทดลองเพิ่มสินค้า ลาย ส่วนเสริม ค่าใช้จ่าย เปิด/ปิดที่อยู่ และกดส่งเพื่อดูสรุปช่องที่ขาด · `/orders/[id]` editor ยังใช้หน้าตาเดิมเมื่อไม่ส่ง presentation prop · typecheck ผ่าน · lint 0 error (38 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · ไม่รัน build ขณะ dev server ทำงาน
 
+### 🎯 UX follow-up — `/orders/new` แบบ B: การ์ดแบบแดชบอร์ด (เบสเคาะจาก mockup 2026-08-03)
+> เบสสั่ง “ปรับ UXUI ให้เข้ากับหน้าอื่นๆ อย่างแดชบอร์ด และทำให้ดูใช้งานง่าย” → ส่ง mockup 3 แบบให้เคาะก่อน เบสเลือก **แบบ B** (แยกการ์ด + แถบขั้นตอน) และสั่งแก้บั๊กที่เจอไปด้วย
+> ขอบเขต: ทุกช่องยังกางครบ · **ไม่มี wizard / ไม่พับซ่อน / ไม่สองฝั่ง** ตามมติเดิม · ไม่แตะสูตรราคา validation permission หรือ mutation (ยกเว้นบั๊ก 3 ตัวที่เบสสั่งให้แก้)
+
+- [x] เลิก ledger ผิวเดียว → 4 การ์ด `Section` บนพื้นเทา + `PageShell width="wide"` (ได้ระยะ space-y-6 และชั้น loading/error/denied กลาง) ✅ 2026-08-03
+- [x] หัวข้อตอน: เลขเป็นชิปกลม + คำอธิบายใต้หัวข้อ · `StepRail` sticky กดกระโดด + จุดบอกตอนที่มีข้อมูล + ป้าย “เก็บร่างอัตโนมัติแล้ว” ✅ 2026-08-03
+- [x] แถบล่างเลิกโปร่ง+blur เป็น `card-surface` ทึบ + เผื่อ safe-area · ยอดรวมเรียกชื่อเดียวกับสรุปยอด ✅ 2026-08-03
+- [x] กล่องสเปคตัดเย็บเลิกใช้ `<Alert variant="warning">` (role=alert + ช่องกรอกข้างใน = ผิดกติกา tokens.ts) → กล่องพื้นจมเทา · ป้าย “ลูกค้า” ใช้ `<Label htmlFor>` มาตรฐาน · หัวข้อ “เงื่อนไขการขาย” ใช้ `Section headingLevel={3}` · เส้นคั่นโหมดมืด 8 จุด slate-800 → white/10 ✅ 2026-08-03
+- [x] **ของกลาง:** `Input`/`Select` `size="sm"` เลิกบังคับ 12px บนมือถือ (iOS ซูมทุกครั้งที่แตะ · ขัด DESIGN.md 16px) → `sm:text-xs` + แก้ assertion `verify:ui` ให้ตรงกฎจริง ✅ 2026-08-03
+- [x] บั๊ก 3 ตัว: ภาษี 0% ถูกทับเป็น 7% ตอนเลือกนิติบุคคล · ร่างหัวฟอร์มกู้คืนเงียบไม่มีแบนเนอร์ · เลขที่ PO ค้างเมื่อสลับลูกค้า ✅ 2026-08-03
+- [ ] **verify browser จริงยังทำไม่ได้** — dev server ไม่ hydrate (reproduce กับโค้ดเดิมด้วย = incident client state เดิม) · ต้องให้เบส Clear site data ก่อน แล้วตรวจ: ชิปแถบขั้นตอนกระโดดจริง · มือถือ 375px แตะช่องแล้วไม่ซูม · บั๊ก 3 ตัวหายจริง · 320/375/768/1024/1280/1440px light+dark ไม่มี horizontal scroll/console error
+- **verify ที่ผ่านแล้ว:** typecheck 0 · lint 0 error (37 warning · ลดจาก 38) · unit 599/599 · `verify:ui` ผ่าน · `next build` ผ่านทุก route
+
 ### 🎯 UX follow-up — `/orders/new` composition pass 2 (เบส feedback 2026-08-03 ว่า “ยังรกและจัดองค์ประกอบไม่ดี”)
 > ขอบเขต presentation-only ต่อจากรอบก่อน: ทุก field ยังมองเห็น หน้าเดียวยาว ไม่มี wizard/accordion/สองฝั่ง · คง product/print/add-on แยกกลุ่มและไม่แตะ state สูตรราคา validation permission หรือ mutation
 

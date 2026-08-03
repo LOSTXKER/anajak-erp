@@ -138,8 +138,9 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             FOCUS_FIELD,
             "flex w-full items-center justify-between gap-2 px-3 py-1 text-base transition-colors sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
             // หลังก้อนพื้นฐานเสมอ — twMerge ตัดสินจาก "ตัวหลังชนะ" (ดูคำอธิบายเดียวกันใน input.tsx)
+            // มือถือคง text-base (16px) เสมอ — เหตุผลเดียวกับ input.tsx (iOS ซูมเมื่อ < 16px)
             size === "sm"
-              ? cn(CONTROL_H_SM, "text-xs sm:text-xs")
+              ? cn(CONTROL_H_SM, "sm:text-xs")
               : size === "dense"
                 ? cn(CONTROL_H, "sm:text-xs")
                 : CONTROL_H,
