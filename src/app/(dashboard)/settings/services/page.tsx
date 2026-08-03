@@ -221,7 +221,7 @@ export default function ServicesPage() {
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div>
-                  <label htmlFor={`${formId}-type`} className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-type`} className="mb-1 block text-xs font-medium text-muted">
                     ประเภท *
                   </label>
                   <Input
@@ -235,7 +235,7 @@ export default function ServicesPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor={`${formId}-name`} className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-name`} className="mb-1 block text-xs font-medium text-muted">
                     ชื่อ *
                   </label>
                   <Input
@@ -249,7 +249,7 @@ export default function ServicesPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor={`${formId}-price`} className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-price`} className="mb-1 block text-xs font-medium text-muted">
                     ราคา (บาท) *
                   </label>
                   <Input
@@ -269,7 +269,7 @@ export default function ServicesPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor={`${formId}-pricing-type`} className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-pricing-type`} className="mb-1 block text-xs font-medium text-muted">
                     คิดราคา
                   </label>
                   <Select
@@ -445,7 +445,7 @@ export default function ServicesPage() {
                                 size="icon-sm"
                                 aria-label={`แก้ไข ${item.name}`}
                                 onClick={() => startEdit(item)}
-                                className="text-slate-500 hover:text-blue-600"
+                                className="text-muted hover:text-blue-600"
                               >
                                 <Pencil />
                               </Button>
@@ -456,7 +456,7 @@ export default function ServicesPage() {
                                   aria-label={`ลบ ${item.name}`}
                                   onClick={() => handleDelete(item.id, item.name)}
                                   disabled={deleteItem.isPending}
-                                  className="text-slate-500 hover:text-red-600"
+                                  className="text-muted hover:text-red-600"
                                 >
                                   <Trash2 />
                                 </Button>

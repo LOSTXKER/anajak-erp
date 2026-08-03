@@ -89,7 +89,7 @@ export function ProductCardMobile({
           )}
           <div className="min-w-0">
             <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">{productLabel}</span>
-            {variantLabel && <span className="block text-xs text-slate-500">{variantLabel}</span>}
+            {variantLabel && <span className="block text-xs text-muted">{variantLabel}</span>}
             <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
               {product.productSku && <span>{product.productSku}</span>}
               {product.stockAvailable != null && (
@@ -107,7 +107,7 @@ export function ProductCardMobile({
           />
           <div className="flex flex-wrap items-center gap-1.5">
             {multi ? (
-              <span className="text-xs text-slate-500">หลายไซส์ · รวม {totalQty} ตัว{variant.color ? ` · ${variant.color}` : ""}</span>
+              <span className="text-xs text-muted">หลายไซส์ · รวม {totalQty} ตัว{variant.color ? ` · ${variant.color}` : ""}</span>
             ) : (
               <>
                 <Input value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" className="w-24 px-2 text-xs" />

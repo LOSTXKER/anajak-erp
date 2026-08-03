@@ -80,7 +80,7 @@ export function FilterPopover({
             <p className="text-base font-semibold">ตัวกรอง</p>
             <PopoverPrimitive.Close
               aria-label="ปิดตัวกรอง"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <X className="h-4 w-4" />
             </PopoverPrimitive.Close>

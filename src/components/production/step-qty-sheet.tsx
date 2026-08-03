@@ -90,7 +90,7 @@ export function StepQtySheet({
               ครบที่เหลือ ({remaining} ตัว)
             </button>
           )}
-          <p className="text-center text-sm text-slate-500">
+          <p className="text-center text-sm text-muted">
             รวมเป็น{" "}
             <span className="font-semibold tabular-nums text-slate-900 dark:text-white">
               {newDone}/{total}

@@ -783,7 +783,7 @@ function LaneCardView({
         )}
       </div>
       {activeOutsource && (
-        <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+        <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
           <Truck className="h-3 w-3 shrink-0" />
           {activeOutsource.vendor.name} ·{" "}
           {OUTSOURCE_STATUS_LABELS[activeOutsource.status] ?? activeOutsource.status}

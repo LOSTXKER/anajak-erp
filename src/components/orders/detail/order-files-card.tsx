@@ -295,7 +295,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                       {linkCopied ? "คัดลอกแล้ว" : "คัดลอก"}
                     </Button>
                   </div>
-                  <div className="flex items-center justify-between text-2xs text-slate-500">
+                  <div className="flex items-center justify-between text-2xs text-muted">
                     <span>
                       {linkData?.expiresAt
                         ? `หมดอายุ ${formatDate(linkData.expiresAt)}`
@@ -315,7 +315,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted">
                     {linkData?.token && linkExpired
                       ? "ลิงก์เดิมหมดอายุแล้ว"
                       : "ยังไม่มีลิงก์ — สร้างเพื่อส่งให้ลูกค้าอัปไฟล์เองทาง LINE"}
@@ -355,7 +355,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
           {generalRaw.length > 0 && (
             <div className="mb-2">
               {Object.keys(positionGroups).length > 0 && (
-                <p className="mb-2 text-xs font-medium text-slate-500">ทั่วไป</p>
+                <p className="mb-2 text-xs font-medium text-muted">ทั่วไป</p>
               )}
               <div className="flex flex-wrap gap-3">
                 {generalRaw.map((att) => (
@@ -370,7 +370,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
 
           {Object.entries(positionGroups).map(([pos, imgs]) => (
             <div key={pos} className="mb-2">
-              <p className="mb-2 text-xs font-medium text-slate-500">
+              <p className="mb-2 text-xs font-medium text-muted">
                 <Badge variant="secondary" className="text-2xs">
                   {POSITION_LABELS[pos] || pos}
                 </Badge>
@@ -396,7 +396,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                 {FILE_LAYERS.APPROVAL.label}
               </span>
               {latestDesign ? (
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted">
                   {designs.data!.length} เวอร์ชัน · ล่าสุด v{latestDesign.versionNumber}{" "}
                   {DESIGN_STATUS_LABELS[latestDesign.approvalStatus] ?? latestDesign.approvalStatus}
                 </span>

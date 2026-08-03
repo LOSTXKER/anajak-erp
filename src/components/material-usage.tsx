@@ -258,7 +258,7 @@ export function MaterialUsage({
         {/* ---- Already-deducted materials ---- */}
         {deductedMaterials.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-slate-500">เบิกแล้ว</p>
+            <p className="text-xs font-medium text-muted">เบิกแล้ว</p>
             {deductedMaterials.map((m) => (
               <div
                 key={m.id}
@@ -298,7 +298,7 @@ export function MaterialUsage({
         {localMaterials.length > 0 && (
           <div className="space-y-1.5">
             {deductedMaterials.length > 0 && (
-              <p className="text-xs font-medium text-slate-500">รอเบิก</p>
+              <p className="text-xs font-medium text-muted">รอเบิก</p>
             )}
             {localMaterials.map((m) => (
               <div
@@ -406,7 +406,7 @@ export function MaterialUsage({
 
             {/* Total + Issue button */}
             <div className="flex items-center justify-between border-t border-slate-100 pt-2 dark:border-slate-800">
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-muted">
                 รวม {localMaterials.length} รายการ
                 {showCosts && (
                   <>

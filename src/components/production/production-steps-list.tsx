@@ -238,10 +238,10 @@ function StepRow({
           )}
         </p>
         {step.assignedTo && (
-          <span className="text-xs text-slate-500">{step.assignedTo.name}</span>
+          <span className="text-xs text-muted">{step.assignedTo.name}</span>
         )}
         {latestOutsource && (
-          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
             <Truck className="h-3 w-3 shrink-0" />
             {latestOutsource.vendor.name} ·{" "}
             {OUTSOURCE_STATUS_LABELS[latestOutsource.status] ?? latestOutsource.status}
@@ -296,7 +296,7 @@ function StepRow({
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1.5 text-slate-500"
+            className="gap-1.5 text-muted"
             onClick={() => onSelectStep(step)}
           >
             <MoreHorizontal />

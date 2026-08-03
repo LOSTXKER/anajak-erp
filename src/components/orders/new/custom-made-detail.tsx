@@ -67,7 +67,7 @@ function QuickAddPattern({
             onChange={(e) => setName(e.target.value)}
             placeholder="ชื่อแพทเทิร์น เช่น คอกลมแขนสั้น"
           />
-          <label className={cn(DASHED, "flex w-fit cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600")}>
+          <label className={cn(DASHED, "flex w-fit cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-xs text-muted transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600")}>
             <Plus className="h-3 w-3" />
             {file ? file.name : "แนบรูป/ไฟล์ (ไม่บังคับ)"}
             <input type="file" accept="image/*,.pdf,.ai,.psd" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
@@ -178,7 +178,7 @@ export function CustomMadeDetail({
                 <div className="min-w-0 text-xs">
                   <span className="block font-medium text-slate-700 dark:text-slate-200">{selectedPattern.name}</span>
                   {selectedPattern.description && (
-                    <span className="block text-slate-500">{selectedPattern.description}</span>
+                    <span className="block text-muted">{selectedPattern.description}</span>
                   )}
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
                     {selectedPattern.collarType && <span>คอ: <span className="text-slate-600 dark:text-slate-300">{COLLAR_TYPES[selectedPattern.collarType] || selectedPattern.collarType}</span></span>}

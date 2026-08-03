@@ -247,7 +247,7 @@ function BillingNotesPageContent() {
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          className="text-slate-500 hover:text-red-700"
+                          className="text-muted hover:text-red-700"
                           aria-label={`ยกเลิกใบวางบิล ${note.billingNoteNumber}`}
                           onClick={() => {
                             setVoidReason("");
@@ -420,7 +420,7 @@ function BillingNotesPageContent() {
                 ) : eligible.isLoading ? (
                   <Skeleton className="h-16 w-full" />
                 ) : eligibleList.length === 0 ? (
-                  <p className={cn(DASHED, "rounded-xl p-3 text-sm text-slate-500")}>
+                  <p className={cn(DASHED, "rounded-xl p-3 text-sm text-muted")}>
                     ลูกค้ารายนี้ไม่มีใบแจ้งหนี้ค้างชำระที่วางบิลได้
                   </p>
                 ) : (
@@ -456,7 +456,7 @@ function BillingNotesPageContent() {
                             <span className="font-medium text-slate-900 dark:text-white">
                               {inv.invoiceNumber}
                             </span>
-                            <span className="ml-1.5 text-xs text-slate-500">
+                            <span className="ml-1.5 text-xs text-muted">
                               {INVOICE_TYPE_LABELS[inv.type] ?? inv.type} · {inv.orderNumber}
                               {inv.dueDate && ` · ครบกำหนด ${formatDate(inv.dueDate)}`}
                             </span>

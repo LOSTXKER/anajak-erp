@@ -155,12 +155,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader><CardTitle className="text-base">สรุป</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm text-slate-500"><ShoppingCart className="h-4 w-4" /> ออเดอร์ทั้งหมด</span>
+                <span className="flex items-center gap-2 text-sm text-muted"><ShoppingCart className="h-4 w-4" /> ออเดอร์ทั้งหมด</span>
                 <span className="font-semibold tabular-nums">{customer._count.orders}</span>
               </div>
               {canSeeMoney && (
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm text-slate-500"><DollarSign className="h-4 w-4" /> ยอดสั่งรวม</span>
+                  <span className="flex items-center gap-2 text-sm text-muted"><DollarSign className="h-4 w-4" /> ยอดสั่งรวม</span>
                   <span className="font-semibold tabular-nums">{formatCurrency(customer.totalSpent ?? 0)}</span>
                 </div>
               )}
@@ -196,7 +196,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               )}
               {canSeeMoney && credit && (
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm text-slate-500"><FileText className="h-4 w-4" /> ค้างชำระ</span>
+                  <span className="flex items-center gap-2 text-sm text-muted"><FileText className="h-4 w-4" /> ค้างชำระ</span>
                   <span
                     className={`text-base font-semibold tabular-nums ${
                       credit.invoiceOutstanding > 0 ? "text-red-600 dark:text-red-400" : ""
@@ -208,7 +208,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               )}
               {canSeeMoney && credit && (
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm text-slate-500"><ShoppingCart className="h-4 w-4" /> งานยังไม่ปิด</span>
+                  <span className="flex items-center gap-2 text-sm text-muted"><ShoppingCart className="h-4 w-4" /> งานยังไม่ปิด</span>
                   <span className="font-semibold tabular-nums">
                     {credit.openOrders > 0 ? `${credit.openOrders} งาน` : "—"}
                   </span>
@@ -216,7 +216,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               )}
               {customer.lastOrderAt && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-500">สั่งล่าสุด</span>
+                  <span className="text-sm text-muted">สั่งล่าสุด</span>
                   <span className="text-sm">{formatDate(customer.lastOrderAt)}</span>
                 </div>
               )}
@@ -292,7 +292,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 )}
                 {customer.billingAddress && (
                   <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
-                    <p className="mb-1 text-xs font-semibold text-slate-500">ที่อยู่ออกใบกำกับภาษี</p>
+                    <p className="mb-1 text-xs font-semibold text-muted">ที่อยู่ออกใบกำกับภาษี</p>
                     <p className="text-sm text-slate-700 dark:text-slate-300">
                       {customer.billingAddress}
                       {customer.billingSubDistrict && ` ${customer.billingSubDistrict}`}
@@ -327,7 +327,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     >
                       <div>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{order.orderNumber}</p>
-                        <p className="text-xs text-slate-500">{order.title}</p>
+                        <p className="text-xs text-muted">{order.title}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <OrderStatusBadge customerStatus={order.customerStatus} internalStatus={order.internalStatus} />

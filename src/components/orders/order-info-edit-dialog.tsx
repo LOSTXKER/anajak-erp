@@ -213,7 +213,7 @@ export function OrderInfoEditDialog({
   const sectionClass =
     "space-y-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700";
   const sectionTitleClass =
-    "mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500";
+    "mb-3 text-xs font-semibold uppercase tracking-wider text-muted";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

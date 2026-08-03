@@ -84,7 +84,7 @@ export default function AnalyticsPage() {
                 return (
                   <div key={item.month} className="space-y-1">
                     <div className="flex items-baseline justify-between text-sm">
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-muted">
                         {item.month}
                       </span>
                       <span className="font-medium tabular-nums text-slate-900 dark:text-white">

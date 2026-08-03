@@ -262,7 +262,7 @@ export function CustomerPicker({
                   >
                     <span>
                       {c.name}
-                      {c.company && <span className="text-slate-500"> ({c.company})</span>}
+                      {c.company && <span className="text-muted"> ({c.company})</span>}
                       <span className="ml-1.5 text-xs text-slate-400">
                         {[c.phone, c.lineId].filter(Boolean).join(" · ")}
                       </span>

@@ -80,7 +80,7 @@ export function Sidebar({
             onClick={() => setCollapsed(false)}
             title="ขยายแถบเมนู"
             aria-label="ขยายแถบเมนู"
-            className="h-9 w-9 shrink-0 text-slate-500 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
+            className="h-9 w-9 shrink-0 text-muted hover:bg-black/5 hover:text-secondary dark:hover:bg-white/5 dark:hover:text-slate-200"
           >
             <PanelLeftOpen />
           </Button>
@@ -106,7 +106,7 @@ export function Sidebar({
                 onClick={() => setCollapsed(true)}
                 title="ย่อแถบเมนู"
                 aria-label="ย่อแถบเมนู"
-                className="h-9 w-9 shrink-0 text-slate-400 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
+                className="h-9 w-9 shrink-0 text-slate-400 hover:bg-black/5 hover:text-secondary dark:hover:bg-white/5 dark:hover:text-slate-200"
               >
                 <PanelLeftClose />
               </Button>

@@ -450,7 +450,7 @@ export default function QuotationDetailPage({
                         <DataTable.Td align="right" className="tabular-nums text-slate-900 dark:text-white">
                           {item.quantity}
                         </DataTable.Td>
-                        <DataTable.Td className="text-slate-500">
+                        <DataTable.Td className="text-muted">
                           {item.unit}
                         </DataTable.Td>
                         <DataTable.Td align="right" className="tabular-nums text-slate-900 dark:text-white">
@@ -468,14 +468,14 @@ export default function QuotationDetailPage({
               {/* Price breakdown */}
               <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">ยอดรวมสินค้า</span>
+                  <span className="text-muted">ยอดรวมสินค้า</span>
                   <span className="tabular-nums text-slate-900 dark:text-white">
                     {formatCurrency(subtotal)}
                   </span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">ส่วนลด</span>
+                    <span className="text-muted">ส่วนลด</span>
                     <span className="tabular-nums text-red-600 dark:text-red-400">
                       -{formatCurrency(discountAmount)}
                     </span>
@@ -483,7 +483,7 @@ export default function QuotationDetailPage({
                 )}
                 {taxAmount > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">ภาษี</span>
+                    <span className="text-muted">ภาษี</span>
                     <span className="tabular-nums text-slate-900 dark:text-white">
                       +{formatCurrency(taxAmount)}
                     </span>
@@ -569,17 +569,17 @@ export default function QuotationDetailPage({
                     {quotation.customer.name}
                   </Link>
                   {quotation.customer.company && (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-muted">
                       {quotation.customer.company}
                     </p>
                   )}
                   {quotation.customer.phone && (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-muted">
                       {quotation.customer.phone}
                     </p>
                   )}
                   {quotation.customer.email && (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-muted">
                       {quotation.customer.email}
                     </p>
                   )}
@@ -600,7 +600,7 @@ export default function QuotationDetailPage({
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500">สถานะ</span>
+                <span className="text-muted">สถานะ</span>
                 <Badge
                   variant={QUOTATION_STATUS_VARIANTS[quotation.status as keyof typeof QUOTATION_STATUS_VARIANTS] ?? "secondary"}
                 >
@@ -608,14 +608,14 @@ export default function QuotationDetailPage({
                 </Badge>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">วันที่สร้าง</span>
+                <span className="text-muted">วันที่สร้าง</span>
                 <span className="text-slate-900 dark:text-white">
                   {formatDate(quotation.createdAt)}
                 </span>
               </div>
               {quotation.validUntil && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">ใช้ได้ถึง</span>
+                  <span className="text-muted">ใช้ได้ถึง</span>
                   <span className="font-medium text-slate-900 dark:text-white">
                     {formatDate(quotation.validUntil)}
                   </span>
@@ -623,7 +623,7 @@ export default function QuotationDetailPage({
               )}
               {quotation.sentAt && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">ส่งเมื่อ</span>
+                  <span className="text-muted">ส่งเมื่อ</span>
                   <span className="text-slate-900 dark:text-white">
                     {formatDateTime(quotation.sentAt)}
                   </span>
@@ -631,7 +631,7 @@ export default function QuotationDetailPage({
               )}
               {quotation.acceptedAt && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">อนุมัติเมื่อ</span>
+                  <span className="text-muted">อนุมัติเมื่อ</span>
                   <span className="text-slate-900 dark:text-white">
                     {formatDateTime(quotation.acceptedAt)}
                   </span>
@@ -639,7 +639,7 @@ export default function QuotationDetailPage({
               )}
               {quotation.rejectedAt && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">ปฏิเสธเมื่อ</span>
+                  <span className="text-muted">ปฏิเสธเมื่อ</span>
                   <span className="text-slate-900 dark:text-white">
                     {formatDateTime(quotation.rejectedAt)}
                   </span>
@@ -648,12 +648,12 @@ export default function QuotationDetailPage({
               {quotation.rejectedReason && (
                 <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
                   <p className="mb-1 text-xs text-slate-400">เหตุผลที่ปฏิเสธ</p>
-                  <p className="text-slate-500">{quotation.rejectedReason}</p>
+                  <p className="text-muted">{quotation.rejectedReason}</p>
                 </div>
               )}
               {quotation.createdBy && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">สร้างโดย</span>
+                  <span className="text-muted">สร้างโดย</span>
                   <span className="text-slate-900 dark:text-white">
                     {quotation.createdBy.name}
                   </span>
@@ -661,7 +661,7 @@ export default function QuotationDetailPage({
               )}
               {quotation.updatedAt && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500">แก้ไขล่าสุด</span>
+                  <span className="text-muted">แก้ไขล่าสุด</span>
                   <span className="text-slate-900 dark:text-white">
                     {formatDateTime(quotation.updatedAt)}
                   </span>

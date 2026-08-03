@@ -264,7 +264,7 @@ export default function PatternsPage() {
                 </div>
                 <div>
                   <label htmlFor="pattern-file" className={labelClass}>ไฟล์แพทเทิร์น</label>
-                  <label className={cn(CONTROL_MIN_H, DASHED, "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 focus-within:ring-2 focus-within:ring-blue-500/40 dark:border-slate-600 dark:hover:border-amber-500")}>
+                  <label className={cn(CONTROL_MIN_H, DASHED, "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted transition-colors hover:border-amber-400 hover:text-amber-600 focus-within:ring-2 focus-within:ring-blue-500/40 dark:border-slate-600 dark:hover:border-amber-500")}>
                     <input
                       id="pattern-file"
                       type="file"
@@ -355,7 +355,7 @@ export default function PatternsPage() {
                           </div>
                         )}
                       </DataTable.Td>
-                      <DataTable.Td className="text-slate-500">
+                      <DataTable.Td className="text-muted">
                         {p.productType ? (PRODUCT_TYPES[p.productType] ?? p.productType) : "-"}
                       </DataTable.Td>
                       <DataTable.Td align="center">
@@ -456,7 +456,7 @@ export default function PatternsPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => { setEditingId(p.id); setEditData({}); }}
-                                className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600"
+                                className="h-8 w-8 p-0 text-muted hover:text-blue-600"
                                 aria-label={`แก้ไขแพทเทิร์น ${p.name}`}
                               >
                                 <Pencil />
@@ -468,7 +468,7 @@ export default function PatternsPage() {
                                 size="sm"
                                 onClick={() => handleDelete(p.id, p.name)}
                                 disabled={deletePattern.isPending}
-                                className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
+                                className="h-8 w-8 p-0 text-muted hover:text-red-600"
                                 aria-label={`ลบแพทเทิร์น ${p.name}`}
                               >
                                 <Trash2 />

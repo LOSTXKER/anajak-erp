@@ -173,7 +173,7 @@ export function OrderBillingSection({
             <div
               role="status"
               aria-live="polite"
-              className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500"
+              className="flex items-center justify-center gap-2 py-8 text-sm text-muted"
             >
               <Spinner size="md" />
               กำลังโหลดข้อมูลบิล
@@ -220,7 +220,7 @@ export function OrderBillingSection({
                               ] || inv.paymentStatus}
                             </Badge>
                           </div>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted">
                             {/* วันที่เอกสารตามกฎหมาย (ใบผูกงวด = วันรับเงิน) — ตรงกับใบพิมพ์ */}
                             {inv.issueDate
                               ? formatDate(inv.issueDate)
@@ -254,25 +254,25 @@ export function OrderBillingSection({
                         {/* Invoice details */}
                         <div className="mb-3 grid grid-cols-3 gap-2 text-xs">
                           <div>
-                            <span className="text-slate-500">ยอดเงิน</span>
+                            <span className="text-muted">ยอดเงิน</span>
                             <p className="font-medium">{formatCurrency(inv.amount)}</p>
                           </div>
                           {inv.discount > 0 && (
                             <div>
-                              <span className="text-slate-500">ส่วนลด</span>
+                              <span className="text-muted">ส่วนลด</span>
                               <p className="font-medium">-{formatCurrency(inv.discount)}</p>
                             </div>
                           )}
                           {inv.tax > 0 && (
                             <div>
-                              <span className="text-slate-500">ภาษี</span>
+                              <span className="text-muted">ภาษี</span>
                               <p className="font-medium">+{formatCurrency(inv.tax)}</p>
                             </div>
                           )}
                         </div>
 
                         {inv.notes && (
-                          <p className="mb-3 text-xs text-slate-500">
+                          <p className="mb-3 text-xs text-muted">
                             {inv.notes}
                           </p>
                         )}

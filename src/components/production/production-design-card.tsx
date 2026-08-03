@@ -76,7 +76,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
               แบบอนุมัติล่าสุด — เวอร์ชัน {approvedDesign.versionNumber}
             </p>
             {approvedDesign.approvedAt && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted">
                 อนุมัติ {formatDate(approvedDesign.approvedAt)}
               </p>
             )}
@@ -135,11 +135,11 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
                 <div className="min-w-0 text-xs">
                   <p className="font-semibold text-slate-900 dark:text-white">
                     {PRINT_POSITIONS[pr.position] ?? pr.position}
-                    <span className="ml-1.5 font-normal text-slate-500">
+                    <span className="ml-1.5 font-normal text-muted">
                       {PRINT_TYPES[pr.printType] ?? pr.printType}
                     </span>
                   </p>
-                  <p className="text-slate-500">
+                  <p className="text-muted">
                     {pr.width && pr.height
                       ? `${pr.width} × ${pr.height} ซม.`
                       : (pr.printSize ?? "ไม่ระบุขนาด")}
@@ -174,7 +174,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
                     className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm tabular-nums text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
                   >
                     <span className="font-semibold">{v.size}</span>
-                    {v.color ? <span className="text-slate-500"> {v.color}</span> : null}
+                    {v.color ? <span className="text-muted"> {v.color}</span> : null}
                     <span className="font-semibold"> ×{v.quantity}</span>
                   </span>
                 ))}

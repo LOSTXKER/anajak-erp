@@ -30,9 +30,9 @@ export function PublicPageShell({
         <header className="text-center">
           <div className="mb-1 flex items-center justify-center gap-2">
             {icon}
-            <h1 className="text-xl font-semibold text-slate-900">{title}</h1>
+            <h1 className="text-xl font-semibold text-strong">{title}</h1>
           </div>
-          <p className="text-sm text-slate-500">{subtitle}</p>
+          <p className="text-sm text-muted">{subtitle}</p>
         </header>
         {children}
         {!hideFooter && (
@@ -49,7 +49,7 @@ export function PublicPageShell({
 export function FullScreenLoading() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg">
-      <div className="flex items-center gap-2 text-slate-500">
+      <div className="flex items-center gap-2 text-muted">
         <Spinner size="lg" />
         <span>กำลังโหลด...</span>
       </div>
@@ -67,7 +67,7 @@ export function InfoRow({
 }) {
   return (
     <div className="flex justify-between gap-3">
-      <span className="text-slate-500">{label}</span>
+      <span className="text-muted">{label}</span>
       <span className="text-right font-medium text-slate-800">{children}</span>
     </div>
   );

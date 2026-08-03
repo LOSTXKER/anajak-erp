@@ -299,7 +299,7 @@ function AgingPageContent() {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        className="shrink-0 text-slate-500 hover:text-blue-700 dark:hover:text-blue-300"
+                        className="shrink-0 text-muted hover:text-blue-700 dark:hover:text-blue-300"
                         aria-label={`ร่างข้อความทวง ${row.company || row.name}`}
                         onClick={() => {
                           setTone("gentle");
@@ -465,7 +465,7 @@ function AgingPageContent() {
               ))}
             </div>
             {draft.isLoading ? (
-              <div className="flex items-center gap-2 py-8 text-sm text-slate-500">
+              <div className="flex items-center gap-2 py-8 text-sm text-muted">
                 <Spinner size="md" />
                 กำลังร่าง...
               </div>
@@ -480,7 +480,7 @@ function AgingPageContent() {
                   className="font-mono text-xs"
                 />
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted">
                     {draft.data.invoiceCount} ใบ · ค้างรวม {formatCurrency(draft.data.totalOutstanding)}
                   </p>
                   <Button size="sm" className="gap-1.5" onClick={() => copyDraft(draft.data!.text!)}>

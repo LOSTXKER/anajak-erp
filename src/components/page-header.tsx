@@ -50,7 +50,7 @@ export function PageHeader({
                 {item.href && !isLast ? (
                   <Link
                     href={item.href}
-                    className={cn(CONTROL_MIN_H, "inline-flex min-w-11 items-center justify-center rounded-lg px-1 transition-colors hover:text-slate-900 sm:min-w-0 sm:justify-start sm:px-0 dark:hover:text-white")}
+                    className={cn(CONTROL_MIN_H, "inline-flex min-w-11 items-center justify-center rounded-lg px-1 transition-colors hover:text-strong sm:min-w-0 sm:justify-start sm:px-0 dark:hover:text-white")}
                   >
                     {item.label}
                   </Link>

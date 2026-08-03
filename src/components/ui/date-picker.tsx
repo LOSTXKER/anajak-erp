@@ -146,7 +146,7 @@ export function DatePicker({
                     onChange("");
                   }
                 }}
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-secondary dark:hover:bg-slate-800"
               >
                 <X className="h-3.5 w-3.5" />
               </span>
@@ -175,7 +175,7 @@ export function DatePicker({
               type="button"
               aria-label="เดือนก่อนหน้า"
               onClick={() => setCursor((c) => subMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -186,7 +186,7 @@ export function DatePicker({
               type="button"
               aria-label="เดือนถัดไป"
               onClick={() => setCursor((c) => addMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -253,7 +253,7 @@ export function DatePicker({
                   onChange("");
                   setOpen(false);
                 }}
-                className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800")}
+                className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-muted transition-colors hover:bg-slate-100 dark:hover:bg-slate-800")}
               >
                 ล้าง
               </button>

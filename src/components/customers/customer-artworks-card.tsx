@@ -265,7 +265,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
                         </Badge>
                       ))}
                     </div>
-                    <p className="mt-1 text-2xs text-slate-500">
+                    <p className="mt-1 text-2xs text-muted">
                       ใช้ไป {a.usedOrderCount} ออเดอร์
                       {a.latestOrder ? ` · ล่าสุด ${a.latestOrder.orderNumber}` : ""}
                       {a.filmQty > 0 ? (
@@ -309,7 +309,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-full text-xs text-slate-500"
+                className="h-8 w-full text-xs text-muted"
                 onClick={() => setShowAll((v) => !v)}
               >
                 {showAll ? "ย่อ" : `ดูทั้งหมด (${rows.length})`}
@@ -386,7 +386,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               />
             </Field>
             {editing && (
-              <Button variant="ghost" size="sm" className="text-slate-500" onClick={() =>
+              <Button variant="ghost" size="sm" className="text-muted" onClick={() =>
                   toggleActive.mutate({ id: editing.id, isActive: !editing.isActive })
                 }
                 disabled={toggleActive.isPending}
@@ -426,7 +426,7 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               />
             </Field>
             <div>
-              <p className="mb-1 block text-xs font-medium text-slate-500">รูปลาย</p>
+              <p className="mb-1 block text-xs font-medium text-muted">รูปลาย</p>
               {addImageUrl ? (
                 <div className="flex items-center gap-2">
                   <img

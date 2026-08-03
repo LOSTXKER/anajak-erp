@@ -235,7 +235,7 @@ function StepBuilder({
           onChange={(e) => {
             if (e.target.value) addStep(e.target.value);
           }}
-          className="w-full text-slate-500"
+          className="w-full text-muted"
         >
           <option value="">+ เพิ่มขั้นตอน...</option>
           {STEP_TYPE_OPTIONS.map((t) => (

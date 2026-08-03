@@ -387,7 +387,7 @@ export function OrderItemsEditor({
               addItem();
               setExpandedItemIdx(items.length);
             }}
-            className={cn(DASHED, "flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm text-slate-500 transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+            className={cn(DASHED, "flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm text-muted transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
           >
             <Plus className="h-4 w-4" />
             เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)
@@ -455,7 +455,7 @@ export function OrderItemsEditor({
               )}
 
               <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
-                <label htmlFor="order-items-discount" className="text-sm text-slate-500">ส่วนลด</label>
+                <label htmlFor="order-items-discount" className="text-sm text-muted">ส่วนลด</label>
                 <Input size="sm"
                   id="order-items-discount"
                   type="number"

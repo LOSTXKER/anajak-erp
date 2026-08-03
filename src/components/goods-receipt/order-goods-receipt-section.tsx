@@ -76,7 +76,7 @@ export function OrderGoodsReceiptSection({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 gap-1.5 text-xs text-slate-500"
+                  className="h-8 gap-1.5 text-xs text-muted"
                   onClick={() => setDialogType("CUSTOMER_RETURN")}
                 >
                   <Undo2 />
@@ -112,7 +112,7 @@ export function OrderGoodsReceiptSection({
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-900 dark:text-white">
                     {RECEIPT_TYPE_LABELS[r.receiptType as ReceiptType] ?? r.receiptType}
-                    <span className="ml-2 text-xs font-normal tabular-nums text-slate-500">
+                    <span className="ml-2 text-xs font-normal tabular-nums text-muted">
                       {counted} ตัว
                     </span>
                   </p>

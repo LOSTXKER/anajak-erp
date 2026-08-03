@@ -255,7 +255,7 @@ export default function PackagingSettingsPage() {
                               size="icon-sm"
                               aria-label={`แก้ไข ${opt.name}`}
                               onClick={() => { setEditingId(opt.id); setEditName(opt.name); }}
-                              className="text-slate-500 hover:text-blue-600"
+                              className="text-muted hover:text-blue-600"
                             >
                               <Pencil />
                             </Button>
@@ -265,7 +265,7 @@ export default function PackagingSettingsPage() {
                               aria-label={`ปิดการใช้งาน ${opt.name}`}
                               onClick={() => handleDelete(opt.id, opt.name)}
                               disabled={deleteMutation.isPending}
-                              className="text-slate-500 hover:text-red-600"
+                              className="text-muted hover:text-red-600"
                             >
                               <Trash2 />
                             </Button>

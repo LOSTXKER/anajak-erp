@@ -237,7 +237,7 @@ export default function SalesTaxReportPage() {
                     <p className="truncate">{r.customerName}</p>
                     {r.note && <p className="truncate text-xs text-slate-400">{r.note}</p>}
                   </DataTable.Td>
-                  <DataTable.Td className="text-xs text-slate-500">
+                  <DataTable.Td className="text-xs text-muted">
                     {r.taxId || "—"}
                     {r.branch && <p>{r.branch}</p>}
                   </DataTable.Td>

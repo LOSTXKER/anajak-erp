@@ -259,7 +259,7 @@ export default function ProductDetailPage({
                     : formatCurrency(product.basePrice);
                   return (
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">ราคาขาย</span>
+                      <span className="text-muted">ราคาขาย</span>
                       <span className="font-semibold tabular-nums text-blue-600 dark:text-blue-400">
                         {displayPrice}
                       </span>
@@ -268,43 +268,43 @@ export default function ProductDetailPage({
                 })()}
                 {canSeeCost && product.costPrice && product.costPrice > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">ราคาทุน</span>
+                    <span className="text-muted">ราคาทุน</span>
                     <span className="tabular-nums">
                       {formatCurrency(product.costPrice)}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">สต็อกรวม</span>
+                  <span className="text-muted">สต็อกรวม</span>
                   <span className="font-semibold tabular-nums">
                     {product.totalStock || totalStock} ชิ้น
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">ตัวเลือก</span>
+                  <span className="text-muted">ตัวเลือก</span>
                   <span>{product.variants.length} รายการ</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">กลุ่มสินค้า</span>
+                  <span className="text-muted">กลุ่มสินค้า</span>
                   <Badge variant="secondary">
                     {itemTypeLabels[product.itemType] || product.itemType}
                   </Badge>
                 </div>
                 {product.category && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">หมวดหมู่</span>
+                    <span className="text-muted">หมวดหมู่</span>
                     <span>{product.category}</span>
                   </div>
                 )}
                 {product.barcode && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Barcode</span>
+                    <span className="text-muted">Barcode</span>
                     <span className="font-mono text-xs">{product.barcode}</span>
                   </div>
                 )}
                 {product.unit && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">หน่วย</span>
+                    <span className="text-muted">หน่วย</span>
                     <span>{product.unitName || product.unit}</span>
                   </div>
                 )}
@@ -369,7 +369,7 @@ export default function ProductDetailPage({
                         <DataTable.Td className="font-medium text-slate-900 dark:text-white">
                           {variant.size}
                         </DataTable.Td>
-                        <DataTable.Td className="font-mono text-xs text-slate-500">
+                        <DataTable.Td className="font-mono text-xs text-muted">
                           {variant.sku}
                         </DataTable.Td>
                         <DataTable.Td align="right" className="tabular-nums">

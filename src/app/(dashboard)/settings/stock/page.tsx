@@ -390,7 +390,7 @@ export default function StockSettingsPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">ไม่สามารถโหลดสถานะได้</p>
+                <p className="text-sm text-muted">ไม่สามารถโหลดสถานะได้</p>
               )}
             </div>
 

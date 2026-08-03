@@ -208,7 +208,7 @@ function ReceiptForm({
                   <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
                     {l.description}
                     {l.size && (
-                      <span className="ml-1.5 text-slate-500">
+                      <span className="ml-1.5 text-muted">
                         {l.size}
                         {l.color ? `/${l.color}` : ""}
                       </span>
@@ -219,7 +219,7 @@ function ReceiptForm({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label htmlFor={`receipt-count-${idx}`} className="text-xs text-slate-500">{isReturn ? "คืน" : "นับได้"}</label>
+                  <label htmlFor={`receipt-count-${idx}`} className="text-xs text-muted">{isReturn ? "คืน" : "นับได้"}</label>
                   <Input
                     id={`receipt-count-${idx}`}
                     type="number"
@@ -242,7 +242,7 @@ function ReceiptForm({
               </div>
               {!isReturn && (
                 <div className="flex items-center gap-2">
-                  <label htmlFor={`receipt-defect-${idx}`} className="text-xs text-slate-500">ตำหนิ</label>
+                  <label htmlFor={`receipt-defect-${idx}`} className="text-xs text-muted">ตำหนิ</label>
                   <Input
                     id={`receipt-defect-${idx}`}
                     type="number"
@@ -271,7 +271,7 @@ function ReceiptForm({
 
           {/* รูปถ่ายของจริง — แนบได้หลายรูป (กองเสื้อ/จุดตำหนิ) */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-slate-500">รูปถ่าย (ถ้ามี)</p>
+            <p className="text-xs font-medium text-muted">รูปถ่าย (ถ้ามี)</p>
             {photoUrls.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {photoUrls.map((url) => (

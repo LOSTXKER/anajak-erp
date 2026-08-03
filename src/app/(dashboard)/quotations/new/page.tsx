@@ -599,7 +599,7 @@ function QuotationFormPage() {
 
             {/* Summary breakdown */}
             <div className="space-y-1.5 border-t border-slate-200 pt-3 text-sm dark:border-slate-700">
-              <div className="flex justify-between text-slate-500">
+              <div className="flex justify-between text-muted">
                 <span>ยอดรวมสินค้า</span>
                 <span className="tabular-nums">
                   {formatCurrency(pricingSummary.subtotal)}
@@ -614,7 +614,7 @@ function QuotationFormPage() {
                 </div>
               )}
               {pricingSummary.tax > 0 && (
-                <div className="flex justify-between text-slate-500">
+                <div className="flex justify-between text-muted">
                   <span>+ ภาษี</span>
                   <span className="tabular-nums">
                     +{formatCurrency(pricingSummary.tax)}

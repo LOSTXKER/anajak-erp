@@ -573,7 +573,7 @@ export default function NewOrderPage() {
                     addItem();
                     setExpandedItemIdx(items.length);
                   }}
-                  className="w-full gap-1.5 text-slate-500 sm:w-auto"
+                  className="w-full gap-1.5 text-muted sm:w-auto"
                 >
                   <Plus />
                   เพิ่มชุดงาน

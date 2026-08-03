@@ -182,7 +182,7 @@ export function OrderDeliverySection({
             <div
               role="status"
               aria-live="polite"
-              className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500"
+              className="flex items-center justify-center gap-2 py-8 text-sm text-muted"
             >
               <Spinner size="md" />
               กำลังโหลดข้อมูลจัดส่ง
@@ -283,7 +283,7 @@ export function OrderDeliverySection({
                               </div>
                             )}
 
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                            <div className="flex items-center gap-1.5 text-xs text-muted">
                               <MapPin className="h-3 w-3" />
                               <span>{delivery.recipientName}</span>
                               {delivery.phone && <span>| {delivery.phone}</span>}

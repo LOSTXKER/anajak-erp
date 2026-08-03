@@ -12,6 +12,13 @@
 6. surgical: แตะเฉพาะที่ใบงานสั่ง · โครงเดิมดี (order module/status machine/token approval) — ต่อยอด อย่ารื้อ
 7. **refactor = targeted ไม่ big-bang** — ห้ามรื้อทั้ง codebase รอบเดียว (ไม่มี test คุ้มกัน) · ลำดับ: test แกนก่อน → refactor เฉพาะส่วนที่กำลังแตะ → boy-scout rule (แตะไฟล์ไหน เก็บกวาดไฟล์นั้น)
 8. **UI ใหม่ผ่าน design system ไม่ใช่ไล่ทาสีทีละหน้า** — วางมาตรฐานกลางครั้งเดียว (P1.0) ทุกหน้าที่แตะหลังจากนั้นขึ้นมาตรฐานใหม่ทันที · ห้าม redesign หน้าที่ยังไม่มีงาน functional ไปแตะ (จะได้ไม่ทำซ้ำตอน P2-P3 เปลี่ยนหน้านั้นอยู่ดี)
+9. **มาตรฐาน UI ที่เคาะแล้ว (2026-08-03 จาก audit — โค้ดใหม่ต้องตาม · ของเดิมเก็บตอนแตะไฟล์):**
+   - โครงหน้า dashboard = `PageShell` (header + โหลด/พัง/ไม่มีสิทธิ์ + spacing/width) · หน้า public = `PublicPageShell` · state หน้า list = `useListPageState`
+   - **validation ฟอร์ม**: กติกาต่อช่อง = validator function ใน `src/lib/` (มี test ได้ — แบบ `lib/customer-form.ts`) แสดงผ่าน `Field` prop `error` · ฟอร์มยาวเพิ่มกล่องสรุปหัวฟอร์ม (แบบ orders/new) · **toast สงวนไว้ server error หลัง submit และห้ามยิงคู่กับ Alert ในฟอร์ม** (เลือกที่เดียว — ในฟอร์มดีกว่า) · ห้ามพึ่ง HTML `required` อย่างเดียว (Select ของระบบไม่ block submit — ดู comment ใน ui/select.tsx)
+   - **dialog**: เปิดแบบ conditional mount เท่านั้น (กติกาหัวไฟล์ `ui/dialog.tsx`) · ปุ่มท้าย = `DialogSubmitFooter`
+   - ตาราง = `DataTable` (หัว sentence-case ห้าม UPPERCASE) · หน้า list = `ResponsiveList` (โหลด/พัง/ว่าง/สลับการ์ดมือถือ) · หัวตาราง custom = `TABLE_HEAD_SURFACE`
+   - สีตัวหนังสือ = `text-strong` / `text-secondary` / `text-muted` (สลับธีมในตัว — ห้ามเขียนคู่ `dark:` เองสำหรับ 3 ระดับนี้ · ด่านใน `verify:ui`) · ช่องตัวเลข/เงิน = `NumberInput` / `MoneyInput` · ติ๊ก = `Checkbox`
+   - สถานะ→สี/ป้าย ประกาศที่ `lib/status-config.ts` (+ `*_LABELS_CUSTOMER` สำหรับหน้า public) · วิธีส่ง `lib/shipping-methods.ts` · ช่องทางจ่าย `lib/payment-methods.ts` — ห้ามประกาศ map ซ้ำในหน้า
 
 ---
 

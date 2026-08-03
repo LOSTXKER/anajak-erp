@@ -95,7 +95,7 @@ export default function BackupSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {last && (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted">
               สำรองครั้งล่าสุด:{" "}
               <span className="font-medium text-slate-900 dark:text-white">
                 {formatDateTime(last.createdAt)}

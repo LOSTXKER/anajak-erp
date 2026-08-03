@@ -20,7 +20,7 @@ export function TablePagination({
 
   return (
     <nav aria-label="การแบ่งหน้า" className="flex items-center justify-between border-t border-slate-100 px-4 py-3 dark:border-slate-800">
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted">
         ทั้งหมด {total} {label}
       </p>
       <div className="flex gap-1.5">
@@ -33,7 +33,7 @@ export function TablePagination({
         >
           <ChevronLeft />
         </Button>
-        <span className="flex items-center px-2 text-xs text-slate-500">
+        <span className="flex items-center px-2 text-xs text-muted">
           {page} / {totalPages}
         </span>
         <Button
