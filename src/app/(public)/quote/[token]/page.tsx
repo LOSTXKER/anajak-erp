@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatBaht } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
@@ -24,8 +24,7 @@ import {
 // หน้ายืนยันใบเสนอราคาสำหรับลูกค้า (FLOW-REDESIGN ก้อน 4 — ขอบลูกค้า)
 // เปิดผ่านลิงก์ token ไม่ต้อง login — โชว์รายการ+ราคาเต็ม (ลูกค้าตกลงราคานี้) → ยืนยัน / ขอแก้ไข
 
-const baht = (n: number) =>
-  `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const baht = formatBaht;
 
 export default function QuoteConfirmPage({
   params,

@@ -5,6 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// โซนเวลาไทย — ปักที่เดียวให้วันที่ render เท่ากันทุกเครื่อง: server ที่ไม่ใช่เวลาไทย
+// format ต่างจาก browser ได้ (คลาดวัน 1 วัน + hydration mismatch) · จุด format
+// เฉพาะทางที่ไม่ใช้ helper กลางให้ส่ง timeZone: BANGKOK_TZ เอง
+// (ปี พ.ศ. ของฟอร์มสรรพากรอยู่ lib/sales-tax-report.ts — pin แยกและมี test แล้ว)
+export const BANGKOK_TZ = "Asia/Bangkok";
+
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("th-TH", {
     style: "currency",
@@ -14,11 +20,29 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+/** เงินแบบทศนิยม 2 ตำแหน่งเสมอ (หน้าลูกค้า/เอกสาร) — เดิม const baht ก๊อปซ้ำหลายหน้า */
+export function formatBaht(amount: number): string {
+  return `฿${amount.toLocaleString("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export function formatDate(date: Date | string): string {
   return new Intl.DateTimeFormat("th-TH", {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: BANGKOK_TZ,
+  }).format(new Date(date));
+}
+
+/** วันที่แบบสั้นไม่มีปี (ชิปกำหนดส่ง/จอโรงงาน) */
+export function formatDateShort(date: Date | string | number): string {
+  return new Intl.DateTimeFormat("th-TH", {
+    month: "short",
+    day: "numeric",
+    timeZone: BANGKOK_TZ,
   }).format(new Date(date));
 }
 
@@ -29,6 +53,16 @@ export function formatDateTime(date: Date | string): string {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: BANGKOK_TZ,
+  }).format(new Date(date));
+}
+
+/** เวลาอย่างเดียว ชม.:นาที (จอโรงงาน/คิวงาน) */
+export function formatTime(date: Date | string | number): string {
+  return new Intl.DateTimeFormat("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: BANGKOK_TZ,
   }).format(new Date(date));
 }
 

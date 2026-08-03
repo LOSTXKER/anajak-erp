@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { formatDateTime } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -128,10 +129,7 @@ export default function BackupSettingsPage() {
             <p className="text-sm text-slate-500">
               สำรองครั้งล่าสุด:{" "}
               <span className="font-medium text-slate-900 dark:text-white">
-                {new Date(last.createdAt).toLocaleString("th-TH", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })}
+                {formatDateTime(last.createdAt)}
               </span>{" "}
               โดย {last.user?.name ?? "-"}
             </p>

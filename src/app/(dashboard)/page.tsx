@@ -11,7 +11,7 @@ import {
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatDateShort, BANGKOK_TZ } from "@/lib/utils";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
@@ -190,7 +190,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <PageHeader
         title="แดชบอร์ด"
-        description={`ภาพรวมระบบ Anajak Print · ${today.toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`}
+        description={`ภาพรวมระบบ Anajak Print · ${today.toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: BANGKOK_TZ })}`}
       />
 
       {pulse && (
@@ -345,10 +345,7 @@ export default function DashboardPage() {
                   {o.deadline && (
                     <p className="text-2xs text-slate-500 dark:text-slate-400">
                       กำหนด{" "}
-                      {new Date(o.deadline).toLocaleDateString("th-TH", {
-                        day: "numeric",
-                        month: "short",
-                      })}
+                      {formatDateShort(o.deadline)}
                     </p>
                   )}
                 </div>

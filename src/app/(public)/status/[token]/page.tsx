@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import { trpc } from "@/lib/trpc";
-import { formatDate, isImageUrl } from "@/lib/utils";
+import { formatDate, formatBaht, isImageUrl } from "@/lib/utils";
 import { INVOICE_TYPE_LABELS_CUSTOMER } from "@/lib/invoice-labels";
 import {
   PAYMENT_STATUS_LABELS,
@@ -32,8 +32,7 @@ import { Package, CheckCircle2, Palette, FileText, Truck, ExternalLink, Check, X
 // สถานะ/วิธีส่งทุกชุดมาจาก lib กลาง — ห้ามประกาศ map ในไฟล์นี้อีก
 // (เคยประกาศเอง 4 ชุดแล้ว drift: สี PARTIALLY_PAID กับคำหลายตัวไม่ตรงฝั่งทีม)
 
-const baht = (n: number) =>
-  `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const baht = formatBaht;
 
 export default function OrderStatusPage({
   params,
