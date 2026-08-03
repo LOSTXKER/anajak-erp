@@ -7,10 +7,10 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { EmptyState } from "@/components/ui/empty-state";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { cn } from "@/lib/utils";
 import {
   Bell,
@@ -20,8 +20,6 @@ import {
   AlertTriangle,
   Info,
   MessageSquare,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 
 function timeAgo(date: Date | string): string {
@@ -131,28 +129,25 @@ export default function NotificationsPage() {
     return result;
   }, [notifications]);
 
-  // ต้องอยู่หลัง hooks ทั้งหมด (มี useMemo ด้านบน) — กันผิดกฎ rules of hooks
-  if (isError) return <QueryError onRetry={() => refetch()} />;
-
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="การแจ้งเตือน"
-        description="ติดตามการแจ้งเตือนทั้งหมดของคุณ"
-        action={
-          (unreadCount ?? 0) > 0 ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => markAllRead.mutate()}
-              disabled={markAllRead.isPending}
-            >
-              <CheckCheck />
-              อ่านทั้งหมด
-            </Button>
-          ) : undefined
-        }
-      />
+    <PageShell
+      title="การแจ้งเตือน"
+      description="ติดตามการแจ้งเตือนทั้งหมดของคุณ"
+      error={isError ? { onRetry: () => void refetch(), message: "เกิดข้อผิดพลาดในการโหลดข้อมูล" } : null}
+      action={
+        (unreadCount ?? 0) > 0 ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => markAllRead.mutate()}
+            disabled={markAllRead.isPending}
+          >
+            <CheckCheck />
+            อ่านทั้งหมด
+          </Button>
+        ) : undefined
+      }
+    >
 
       {/* Filter chips */}
       <div className="flex flex-wrap items-center gap-1.5">
@@ -269,34 +264,14 @@ export default function NotificationsPage() {
           </div>
         )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-2.5 dark:border-slate-800">
-            <p className="text-xs text-muted">ทั้งหมด {total} รายการ</p>
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                <ChevronLeft />
-              </Button>
-              <span className="px-1 text-xs text-muted">
-                {page} / {totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                <ChevronRight />
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* เดิมก๊อปโครง TablePagination มาเขียนเอง (ขาด aria-label/nav landmark) — ใช้ตัวกลาง */}
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          onPageChange={setPage}
+        />
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -16,6 +16,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ListCards, ListCardItem, ListCardMetaGrid, ListCardMeta } from "@/components/ui/list-card";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Select } from "@/components/ui/select";
 import { Alert } from "@/components/ui/alert";
@@ -281,14 +282,14 @@ function CustomersPageContent() {
           </DataTable.Root>
         )}
         renderMobile={(customers) => (
-          <div role="list" aria-label="รายชื่อลูกค้า" className="space-y-3">
+          <ListCards label="รายชื่อลูกค้า">
             {customers.map((customer) => {
               const seg = segmentConfig[customer.segment] ?? {
                 label: customer.segment,
                 variant: "default" as const,
               };
               return (
-                <article key={customer.id} role="listitem" className="card-surface rounded-2xl">
+                <ListCardItem key={customer.id}>
                   <Link
                     href={`/customers/${customer.id}`}
                     className={cn("block min-h-11 rounded-2xl p-4", FOCUS_BUTTON)}
@@ -296,11 +297,11 @@ function CustomersPageContent() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-semibold text-slate-900 dark:text-white">
+                        <p className="font-semibold text-strong">
                           {customer.company || customer.name}
                         </p>
                         {customer.company && (
-                          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                          <p className="mt-0.5 text-xs text-muted">
                             ผู้ติดต่อ {customer.name}
                           </p>
                         )}
@@ -309,36 +310,30 @@ function CustomersPageContent() {
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Badge variant={seg.variant}>{seg.label}</Badge>
-                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-muted">
                         {customer.customerType === "CORPORATE" && (
                           <Building2 aria-hidden="true" className="h-3.5 w-3.5" />
                         )}
                         {customer.customerType === "CORPORATE" ? "นิติบุคคล" : "บุคคล"}
                       </span>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-xs dark:border-slate-800">
-                      <div className="min-w-0">
-                        <p className="text-slate-500 dark:text-slate-400">ติดต่อ</p>
-                        <p className="mt-0.5 truncate text-slate-800 dark:text-slate-200">
-                          {customer.phone || customer.email || "ยังไม่มีข้อมูล"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-slate-500 dark:text-slate-400">
-                          {customer._count.orders} ออเดอร์
-                        </p>
+                    <ListCardMetaGrid>
+                      <ListCardMeta label="ติดต่อ">
+                        {customer.phone || customer.email || "ยังไม่มีข้อมูล"}
+                      </ListCardMeta>
+                      <ListCardMeta label={`${customer._count.orders} ออเดอร์`} align="right">
                         {canSeeMoney && (
-                          <p className="mt-0.5 font-semibold tabular-nums text-slate-900 dark:text-white">
+                          <span className="font-semibold tabular-nums text-strong">
                             {formatCurrency(customer.totalSpent ?? 0)}
-                          </p>
+                          </span>
                         )}
-                      </div>
-                    </div>
+                      </ListCardMeta>
+                    </ListCardMetaGrid>
                   </Link>
-                </article>
+                </ListCardItem>
               );
             })}
-          </div>
+          </ListCards>
         )}
         emptyState={
           <EmptyState
