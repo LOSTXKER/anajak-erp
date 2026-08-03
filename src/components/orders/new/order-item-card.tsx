@@ -106,6 +106,26 @@ function OrderItemRow({
   );
 }
 
+/* โครงคอลัมน์ร่วมของ 3 ตารางในชุดงาน (สินค้า · ลาย · ส่วนเสริม)
+   เบสสั่ง 2026-08-03 "แถวคอลัมขอให้มันตรงกันทั้งหมด เพื่อความสวย" — เดิมแต่ละตาราง
+   ตั้งความกว้างเองคนละชุด (สินค้า 76/-/92/80/84/64/84/80 · ลาย 64/-/104/124/92/64/84/40)
+   คอลัมน์ตัวเลขกับปุ่มถังขยะจึงอยู่คนละตำแหน่งเมื่อวางซ้อนกันในการ์ดเดียว
+   ตารางส่วนเสริมมี 4 ช่องข้อมูล จึงใช้ colSpan ยืดให้ "ราคา" กับถังขยะไปลงตำแหน่งเดียวกัน */
+function ItemTableCols() {
+  return (
+    <colgroup>
+      <col style={{ width: 76 }} />
+      <col />
+      <col style={{ width: 104 }} />
+      <col style={{ width: 116 }} />
+      <col style={{ width: 92 }} />
+      <col style={{ width: 76 }} />
+      <col style={{ width: 96 }} />
+      <col style={{ width: 44 }} />
+    </colgroup>
+  );
+}
+
 // ============================================================
 // MAIN ORDER ITEM CARD
 // ============================================================
@@ -249,16 +269,7 @@ export function OrderItemCard({
             )}
           >
             <table className="w-full table-fixed">
-              <colgroup>
-                <col style={{ width: 64 }} />
-                <col />
-                <col style={{ width: 104 }} />
-                <col style={{ width: 124 }} />
-                <col style={{ width: 92 }} />
-                <col style={{ width: 64 }} />
-                <col style={{ width: 84 }} />
-                <col style={{ width: 40 }} />
-              </colgroup>
+              <ItemTableCols />
               <thead className={TABLE_HEAD_SURFACE}>
                 <tr className="text-xs font-medium">
                   <th className="whitespace-nowrap px-2 py-2.5 text-left">
@@ -386,16 +397,7 @@ export function OrderItemCard({
             )}
           >
             <table className="w-full table-fixed">
-              <colgroup>
-                <col style={{ width: 76 }} />
-                <col />
-                <col style={{ width: 92 }} />
-                <col style={{ width: 80 }} />
-                <col style={{ width: 84 }} />
-                <col style={{ width: 64 }} />
-                <col style={{ width: 84 }} />
-                <col style={{ width: 80 }} />
-              </colgroup>
+              <ItemTableCols />
               <thead className={TABLE_HEAD_SURFACE}>
                 <tr className="text-xs font-medium">
                   <th className="px-2 py-2.5 text-left">แหล่ง</th>
@@ -483,14 +485,15 @@ export function OrderItemCard({
             isIntake ? "@2xl:block" : "@3xl:block"
           )}
         >
-          <table className="w-full">
+          <table className="w-full table-fixed">
+            <ItemTableCols />
             <thead className={TABLE_HEAD_SURFACE}>
               <tr className="text-left text-xs font-medium">
-                <th className="min-w-[100px] px-2 py-2.5">ประเภท</th>
-                <th className="min-w-[120px] px-2 py-2.5">ชื่อ</th>
-                <th className="min-w-[90px] px-2 py-2.5">คิดราคา</th>
-                <th className="min-w-[80px] px-2 py-2.5 text-right">ราคา</th>
-                <th className="w-10 py-2.5">
+                <th colSpan={2} className="px-2 py-2.5">ประเภท</th>
+                <th colSpan={2} className="px-2 py-2.5">ชื่อ</th>
+                <th colSpan={2} className="px-2 py-2.5">คิดราคา</th>
+                <th className="px-2 py-2.5 text-right">ราคา</th>
+                <th className="py-2.5">
                   <span className="sr-only">ลบส่วนเสริม</span>
                 </th>
               </tr>
@@ -498,7 +501,7 @@ export function OrderItemCard({
             <tbody>
               {item.addons.map((a, aIdx) => (
                 <tr key={aIdx} className="border-b border-slate-100 last:border-0 dark:border-white/10">
-                  <td className="px-1 py-1.5 align-middle">
+                  <td colSpan={2} className="px-1 py-1.5 align-middle">
                     {addonCatalog && addonCatalog.length > 0 ? (
                       <Select aria-label={`เลือกประเภทส่วนเสริม ${aIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); }} size="dense">
                         <option value="">{a.addonType || "แค็ตตาล็อก..."}</option>
@@ -508,8 +511,8 @@ export function OrderItemCard({
                       <Input aria-label={`ประเภทส่วนเสริม ${aIdx + 1}`} value={a.addonType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." size="dense" />
                     )}
                   </td>
-                  <td className="px-1 py-1.5 align-middle"><Input aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`} value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" size="dense" /></td>
-                  <td className="px-1 py-1.5 align-middle"><Select aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} size="dense"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></Select></td>
+                  <td colSpan={2} className="px-1 py-1.5 align-middle"><Input aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`} value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" size="dense" /></td>
+                  <td colSpan={2} className="px-1 py-1.5 align-middle"><Select aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} size="dense"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></Select></td>
                   <td className="px-1 py-1.5 align-middle"><Input aria-label={`ราคาส่วนเสริม ${aIdx + 1}`} type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" size="dense" /></td>
                   <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 /></Button></td>
                 </tr>

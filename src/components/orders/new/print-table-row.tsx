@@ -90,7 +90,7 @@ export function PrintTableRow({
 
       <td className="px-1 py-2 align-middle">
         {printCatalog && printCatalog.length > 0 ? (
-          <Select quiet
+          <Select
             size="sm"
             aria-label={`เลือกวิธีพิมพ์หรือต้นแบบ จุดที่ ${printIdx + 1}`}
             value=""
@@ -110,7 +110,7 @@ export function PrintTableRow({
             ))}
           </Select>
         ) : (
-          <Select quiet
+          <Select
             size="sm"
             aria-label={`เลือกวิธีพิมพ์ จุดที่ ${printIdx + 1}`}
             value={print.printType}
@@ -126,7 +126,7 @@ export function PrintTableRow({
       </td>
 
       <td className="px-1 py-2 align-middle">
-        <Select quiet
+        <Select
           size="sm"
           aria-label={`ขนาดลาย จุดที่ ${printIdx + 1}`}
           value={print.printSize || ""}
@@ -144,7 +144,7 @@ export function PrintTableRow({
       <td className="px-1 py-2 align-middle">
         {isCustomSize ? (
           <div className="flex items-center gap-0.5">
-            <Input quiet
+            <Input
               aria-label={`ความกว้างลาย จุดที่ ${printIdx + 1} (ซม.)`}
               type="number"
               min={0}
@@ -157,7 +157,7 @@ export function PrintTableRow({
               size="dense" className="w-full px-1 text-center"
             />
             <span className="text-xs text-slate-400">×</span>
-            <Input quiet
+            <Input
               aria-label={`ความสูงลาย จุดที่ ${printIdx + 1} (ซม.)`}
               type="number"
               min={0}
@@ -178,7 +178,7 @@ export function PrintTableRow({
       </td>
 
       <td className="px-1 py-2 align-middle">
-        <Select quiet
+        <Select
           size="dense"
           aria-label={`ตำแหน่งลาย จุดที่ ${printIdx + 1}`}
           value={print.position}
@@ -194,7 +194,7 @@ export function PrintTableRow({
 
       <td className="px-1 py-2 align-middle">
         {showColorCount ? (
-          <Input quiet
+          <Input
             aria-label={`จำนวนสีของลาย จุดที่ ${printIdx + 1}`}
             type="number"
             min={1}
@@ -210,7 +210,7 @@ export function PrintTableRow({
       </td>
 
       <td className="px-1 py-2 align-middle">
-        <Input quiet
+        <Input
           aria-label={`ค่าสกรีน จุดที่ ${printIdx + 1}`}
           type="number"
           min={0}
