@@ -20,8 +20,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { toast } from "sonner";
 import { Copy, Film, ImageIcon, Loader2, Palette, Pencil, Plus } from "lucide-react";
 
@@ -401,14 +401,13 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               </Button>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>
-              ยกเลิก
-            </Button>
-            <Button onClick={submitEdit} disabled={updateArtwork.isPending || !editForm.name.trim()}>
-              {updateArtwork.isPending ? <Loader2 className="animate-spin" /> : "บันทึก"}
-            </Button>
-          </DialogFooter>
+          <DialogSubmitFooter
+            pending={updateArtwork.isPending}
+            disabled={!editForm.name.trim()}
+            submitLabel="บันทึก"
+            onCancel={() => setEditing(null)}
+            onSubmit={submitEdit}
+          />
         </DialogContent>
       </Dialog>
 
@@ -454,23 +453,19 @@ export function CustomerArtworksCard({ customerId }: CustomerArtworksCardProps) 
               สเปก (ขนาด/อุณหภูมิ/แรงกด) เติมทีหลังได้จากปุ่มแก้ไข
             </p>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAdding(false)}>
-              ยกเลิก
-            </Button>
-            <Button
-              onClick={() =>
-                createArtwork.mutate({
-                  customerId,
-                  name: addName.trim(),
-                  imageUrl: addImageUrl || undefined,
-                })
-              }
-              disabled={createArtwork.isPending || !addName.trim()}
-            >
-              {createArtwork.isPending ? <Loader2 className="animate-spin" /> : "เพิ่มลาย"}
-            </Button>
-          </DialogFooter>
+          <DialogSubmitFooter
+            pending={createArtwork.isPending}
+            disabled={!addName.trim()}
+            submitLabel="เพิ่มลาย"
+            onCancel={() => setAdding(false)}
+            onSubmit={() =>
+              createArtwork.mutate({
+                customerId,
+                name: addName.trim(),
+                imageUrl: addImageUrl || undefined,
+              })
+            }
+          />
         </DialogContent>
       </Dialog>
     </Card>

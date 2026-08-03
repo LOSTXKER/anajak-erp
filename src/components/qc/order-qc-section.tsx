@@ -16,9 +16,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
 import { cn, formatDate } from "@/lib/utils";
 import {
@@ -27,7 +27,7 @@ import {
   qcReasonLabel,
   type QcDefectReason,
 } from "@/lib/qc";
-import { ShieldCheck, ClipboardCheck, Loader2, Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, ClipboardCheck, Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ImageRemoveButton } from "@/components/ui/image-remove-button";
@@ -558,23 +558,14 @@ function QcCountForm({
           />
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} className="h-11">
-            ยกเลิก
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={create.isPending || !canSave}
-            className="h-11 gap-1.5"
-          >
-            {create.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <ClipboardCheck />
-            )}
-            บันทึก ดี {qtyGood} · เสีย {qtyDefectTotal}
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={create.isPending}
+          disabled={!canSave}
+          submitLabel={`บันทึก ดี ${qtyGood} · เสีย ${qtyDefectTotal}`}
+          submitIcon={<ClipboardCheck />}
+          onCancel={onClose}
+          onSubmit={handleSave}
+        />
       </DialogContent>
     </Dialog>
   );

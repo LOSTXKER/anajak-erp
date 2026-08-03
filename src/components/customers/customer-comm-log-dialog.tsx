@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/ui/field";
@@ -12,9 +11,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
 import { COMM_CHANNELS } from "@/lib/comm-channels";
 import {
@@ -22,7 +21,7 @@ import {
   validateCustomerCommunicationForm,
   type CustomerCommunicationForm,
 } from "@/lib/customer-form";
-import { Loader2, MessageSquarePlus } from "lucide-react";
+import { MessageSquarePlus } from "lucide-react";
 import { toast } from "sonner";
 import { Alert } from "@/components/ui/alert";
 
@@ -121,23 +120,13 @@ export function CustomerCommLogDialog({
             </Alert>
           )}
 
-          <DialogFooter className="gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              ยกเลิก
-            </Button>
-            <Button
-              type="submit"
-              disabled={add.isPending || !isFormValid}
-              className="gap-1.5"
-            >
-              {add.isPending ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <MessageSquarePlus />
-              )}
-              บันทึก
-            </Button>
-          </DialogFooter>
+          <DialogSubmitFooter
+            pending={add.isPending}
+            disabled={!isFormValid}
+            submitLabel="บันทึก"
+            submitIcon={<MessageSquarePlus />}
+            onCancel={onClose}
+          />
         </form>
       </DialogContent>
     </Dialog>

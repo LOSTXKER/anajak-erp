@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
@@ -14,12 +13,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { cn } from "@/lib/utils";
 import { RECEIPT_TYPE_LABELS, type ReceiptType } from "@/lib/goods-receipt";
-import { ClipboardCheck, Loader2 } from "lucide-react";
+import { ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { FOCUS_FIELD } from "@/components/ui/tokens";
@@ -309,23 +308,14 @@ function ReceiptForm({
           />
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose}>
-            ยกเลิก
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={create.isPending || (totalCounted <= 0 && totalDefect <= 0)}
-            className="gap-1.5"
-          >
-            {create.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <ClipboardCheck />
-            )}
-            บันทึก {totalCounted} ตัว
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={create.isPending}
+          disabled={totalCounted <= 0 && totalDefect <= 0}
+          submitLabel={`บันทึก ${totalCounted} ตัว`}
+          submitIcon={<ClipboardCheck />}
+          onCancel={onClose}
+          onSubmit={handleSave}
+        />
       </DialogContent>
     </Dialog>
   );

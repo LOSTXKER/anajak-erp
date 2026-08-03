@@ -26,9 +26,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageShell } from "@/components/page-shell";
 import { permAllows } from "@/lib/permissions";
@@ -40,7 +40,6 @@ import {
   CheckCircle2,
   Hourglass,
   AlertTriangle,
-  Loader2,
   X,
 } from "lucide-react";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -573,23 +572,13 @@ function WhtRegisterPageContent() {
             </Field>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setMarkTarget(null)}>
-              ยกเลิก
-            </Button>
-            <Button
-              onClick={handleMarkReceived}
-              disabled={markReceived.isPending}
-              className="gap-1.5"
-            >
-              {markReceived.isPending ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <FileCheck2 />
-              )}
-              บันทึกได้ใบแล้ว
-            </Button>
-          </DialogFooter>
+          <DialogSubmitFooter
+            pending={markReceived.isPending}
+            submitLabel="บันทึกได้ใบแล้ว"
+            submitIcon={<FileCheck2 />}
+            onCancel={() => setMarkTarget(null)}
+            onSubmit={handleMarkReceived}
+          />
         </DialogContent>
       </Dialog>
     </PageShell>

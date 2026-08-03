@@ -17,9 +17,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { formatDate, formatDateTime, cn, isImageUrl } from "@/lib/utils";
 import { FOCUS_BUTTON, FOCUS_FIELD_INVALID, FOCUS_INSET } from "@/components/ui/tokens";
 import { permAllows } from "@/lib/permissions";
@@ -686,19 +686,15 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
             );
           })}
         </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose}>
-            ยกเลิก
-          </Button>
-          <Button disabled={complete.isPending} onClick={handleSubmit} className="gap-1.5">
-            {complete.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Scissors />
-            )}
-            ตัดแยก+ติดป้ายเสร็จ{totalExtra > 0 && ` · เผื่อ ${totalExtra} ชิ้น`}
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={complete.isPending}
+          submitLabel={
+            <>ตัดแยก+ติดป้ายเสร็จ{totalExtra > 0 && ` · เผื่อ ${totalExtra} ชิ้น`}</>
+          }
+          submitIcon={<Scissors />}
+          onCancel={onClose}
+          onSubmit={handleSubmit}
+        />
       </DialogContent>
     </Dialog>
   );

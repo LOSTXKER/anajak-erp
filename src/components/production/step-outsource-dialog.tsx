@@ -11,15 +11,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Field } from "@/components/ui/field";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
-import { Loader2, Truck } from "lucide-react";
+import { Truck } from "lucide-react";
 import type { ProductionStep } from "./types";
 
 // ป้าย/สถานะงานร้านนอกย้ายไป lib กลาง (src/lib/production-steps.ts) — ใช้ที่เดียวทั้งระบบ
@@ -139,37 +139,23 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
             />
           </Field>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            ยกเลิก
-          </Button>
-          <Button
-            onClick={() =>
-              createOutsource.mutate({
-                productionStepId: step.id,
-                vendorId,
-                description,
-                quantity: parseInt(quantity, 10) || 0,
-                expectedBackAt: expectedBack || undefined,
-                notes: notes || undefined,
-              })
-            }
-            disabled={
-              !vendorId ||
-              !description ||
-              !(parseInt(quantity, 10) > 0) ||
-              createOutsource.isPending
-            }
-            className="gap-1.5"
-          >
-            {createOutsource.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Truck />
-            )}
-            ส่งร้านนอก
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={createOutsource.isPending}
+          disabled={!vendorId || !description || !(parseInt(quantity, 10) > 0)}
+          submitLabel="ส่งร้านนอก"
+          submitIcon={<Truck />}
+          onCancel={onClose}
+          onSubmit={() =>
+            createOutsource.mutate({
+              productionStepId: step.id,
+              vendorId,
+              description,
+              quantity: parseInt(quantity, 10) || 0,
+              expectedBackAt: expectedBack || undefined,
+              notes: notes || undefined,
+            })
+          }
+        />
       </DialogContent>
     </Dialog>
   );

@@ -22,13 +22,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { formatDate, cn } from "@/lib/utils";
 import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { permAllows } from "@/lib/permissions";
-import { Film, Printer, Loader2, Hand } from "lucide-react";
+import { Film, Printer, Hand } from "lucide-react";
 import { FilterChip } from "@/components/ui/filter-chip";
 
 // คลังฟิล์มพร้อมรีด (FLOW-REDESIGN ก้อน 2) — ฟิล์มพิมพ์เผื่อจากรอบพิมพ์
@@ -328,25 +328,16 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
             />
           </Field>
         </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} className="h-11">
-            ยกเลิก
-          </Button>
-          <Button
-            disabled={consume.isPending || invalid}
-            onClick={() =>
-              consume.mutate({ id: item.id, qty, note: note.trim() || undefined })
-            }
-            className="h-11 gap-1.5"
-          >
-            {consume.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Hand />
-            )}
-            ยืนยันหยิบใช้
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={consume.isPending}
+          disabled={invalid}
+          submitLabel="ยืนยันหยิบใช้"
+          submitIcon={<Hand />}
+          onCancel={onClose}
+          onSubmit={() =>
+            consume.mutate({ id: item.id, qty, note: note.trim() || undefined })
+          }
+        />
       </DialogContent>
     </Dialog>
   );

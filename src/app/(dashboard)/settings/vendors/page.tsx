@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, Star, Store } from "lucide-react";
+import { Pencil, Plus, Star, Store } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -12,10 +12,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -292,15 +292,12 @@ export default function VendorsSettingsPage() {
                 placeholder="สกรีน, ปัก, เย็บ"
               />
             </Field>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeDialog} disabled={busy}>
-                ยกเลิก
-              </Button>
-              <Button type="submit" disabled={busy || !form.name.trim()}>
-                {busy && <Loader2 className="animate-spin" />}
-                บันทึก
-              </Button>
-            </DialogFooter>
+            <DialogSubmitFooter
+              pending={busy}
+              disabled={!form.name.trim()}
+              submitLabel="บันทึก"
+              onCancel={closeDialog}
+            />
           </form>
         </DialogContent>
       </Dialog>

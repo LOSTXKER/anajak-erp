@@ -19,9 +19,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { formatDate } from "@/lib/utils";
 import {
   Truck,
@@ -30,7 +30,6 @@ import {
   Check,
   X,
   AlertCircle,
-  Loader2,
   Share2,
   Settings2,
 } from "lucide-react";
@@ -402,31 +401,23 @@ export default function OutsourcePage() {
               placeholder="เช่น สีเพี้ยนจากแบบ 5 ตัว, ตำแหน่งพิมพ์เบี้ยว..."
             />
           </Field>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setQcFailTarget(null)}>
-              ยกเลิก
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={!qcFailNotes || updateStatus.isPending}
-              onClick={() =>
-                qcFailTarget &&
+          <DialogSubmitFooter
+            pending={updateStatus.isPending}
+            disabled={!qcFailNotes}
+            submitLabel="ยืนยัน QC ไม่ผ่าน"
+            submitIcon={<X />}
+            destructive
+            onCancel={() => setQcFailTarget(null)}
+            onSubmit={() => {
+              if (qcFailTarget) {
                 updateStatus.mutate({
                   id: qcFailTarget,
                   status: "QC_FAILED",
                   qcNotes: qcFailNotes,
-                })
+                });
               }
-              className="gap-1.5"
-            >
-              {updateStatus.isPending ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <X />
-              )}
-              ยืนยัน QC ไม่ผ่าน
-            </Button>
-          </DialogFooter>
+            }}
+          />
         </DialogContent>
       </Dialog>
 

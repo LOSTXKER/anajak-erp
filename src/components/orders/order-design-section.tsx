@@ -21,6 +21,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDateTime, formatDate, isImageUrl } from "@/lib/utils";
@@ -428,26 +429,14 @@ export function OrderDesignSection({
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowUploadDialog(false)}
-            >
-              ยกเลิก
-            </Button>
-            <Button
-              onClick={handleUploadSubmit}
-              disabled={!uploadedUrl || (needsThumbnail && !uploadedThumbUrl) || uploadDesign.isPending}
-              className="gap-1.5"
-            >
-              {uploadDesign.isPending ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <Upload />
-              )}
-              อัปโหลด
-            </Button>
-          </DialogFooter>
+          <DialogSubmitFooter
+            pending={uploadDesign.isPending}
+            disabled={!uploadedUrl || (needsThumbnail && !uploadedThumbUrl)}
+            submitLabel="อัปโหลด"
+            submitIcon={<Upload />}
+            onCancel={() => setShowUploadDialog(false)}
+            onSubmit={handleUploadSubmit}
+          />
         </DialogContent>
       </Dialog>
 

@@ -12,10 +12,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { UserPlus, Loader2, Search } from "lucide-react";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
+import { UserPlus, Search } from "lucide-react";
 import { normalizePhone } from "@/lib/phone";
 import { QueryError } from "@/components/ui/query-error";
 import { Field } from "@/components/ui/field";
@@ -276,24 +276,14 @@ export function CustomerPicker({
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeCreate}>
-              ยกเลิก
-            </Button>
-            <Button
-              type="button"
-              onClick={handleCreate}
-              disabled={!newName.trim() || createCustomer.isPending || isChecking}
-              className="gap-1.5"
-            >
-              {createCustomer.isPending || isChecking ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <UserPlus />
-              )}
-              เพิ่มลูกค้า
-            </Button>
-          </DialogFooter>
+          <DialogSubmitFooter
+            pending={createCustomer.isPending || isChecking}
+            disabled={!newName.trim()}
+            submitLabel="เพิ่มลูกค้า"
+            submitIcon={<UserPlus />}
+            onCancel={closeCreate}
+            onSubmit={handleCreate}
+          />
         </DialogContent>
       </Dialog>
     </div>
