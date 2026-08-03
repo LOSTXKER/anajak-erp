@@ -5,6 +5,14 @@ import { trpc } from "@/lib/trpc";
 import { formatDate, isImageUrl } from "@/lib/utils";
 import { INVOICE_TYPE_LABELS_CUSTOMER } from "@/lib/invoice-labels";
 import {
+  PAYMENT_STATUS_LABELS,
+  PAYMENT_STATUS_VARIANTS,
+  QUOTATION_STATUS_LABELS_CUSTOMER,
+  DELIVERY_STATUS_LABELS_CUSTOMER,
+  DELIVERY_STATUS_VARIANTS,
+} from "@/lib/status-config";
+import { SHIPPING_METHOD_LABELS } from "@/lib/shipping-methods";
+import {
   CUSTOMER_STATUS_LABELS,
   CUSTOMER_STATUS_COLORS,
 } from "@/lib/order-status";
@@ -17,43 +25,8 @@ import { Spinner } from "@/components/ui/spinner";
 // หน้าสถานะออเดอร์สำหรับลูกค้า (FLOW-REDESIGN ก้อน 4 — portal ขั้น 1)
 // เปิดผ่านลิงก์ token ไม่ต้อง login — โชว์เฉพาะข้อมูลของลูกค้า (sanitize ที่ server แล้ว)
 
-const PAYMENT_STATUS: Record<string, { label: string; variant: "success" | "warning" | "destructive" | "default" }> = {
-  UNPAID: { label: "ยังไม่ชำระ", variant: "warning" },
-  PARTIALLY_PAID: { label: "ชำระบางส่วน", variant: "warning" },
-  PAID: { label: "ชำระแล้ว", variant: "success" },
-  OVERDUE: { label: "เลยกำหนด", variant: "destructive" },
-  VOIDED: { label: "ยกเลิก", variant: "default" },
-};
-
-const QUOTATION_STATUS: Record<string, string> = {
-  DRAFT: "ร่าง",
-  SENT: "ส่งแล้ว",
-  ACCEPTED: "ตกลงแล้ว",
-  REJECTED: "ปฏิเสธ",
-  EXPIRED: "หมดอายุ",
-  CONVERTED: "ยืนยันเป็นออเดอร์",
-};
-
-const DELIVERY_STATUS: Record<string, string> = {
-  PENDING: "รอจัดส่ง",
-  PREPARING: "กำลังเตรียมส่ง",
-  SHIPPED: "จัดส่งแล้ว",
-  DELIVERED: "ส่งถึงแล้ว",
-  RETURNED: "ตีกลับ",
-};
-
-const SHIPPING_METHOD: Record<string, string> = {
-  PICKUP: "รับเอง",
-  KERRY: "Kerry Express",
-  FLASH: "Flash Express",
-  THAILAND_POST: "ไปรษณีย์ไทย",
-  J_AND_T: "J&T Express",
-  GRAB: "Grab",
-  LALAMOVE: "Lalamove",
-  SHOPEE_SHIP: "Shopee",
-  LAZADA_SHIP: "Lazada",
-  OTHER: "อื่นๆ",
-};
+// สถานะ/วิธีส่งทุกชุดมาจาก lib กลาง — ห้ามประกาศ map ในไฟล์นี้อีก
+// (เคยประกาศเอง 4 ชุดแล้ว drift: สี PARTIALLY_PAID กับคำหลายตัวไม่ตรงฝั่งทีม)
 
 const baht = (n: number) =>
   `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -240,10 +213,10 @@ export default function OrderStatusPage({
                 <div key={i} className="rounded-xl border border-slate-200 p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-medium text-slate-800">
-                      {SHIPPING_METHOD[dv.shippingMethod] ?? dv.shippingMethod}
+                      {SHIPPING_METHOD_LABELS[dv.shippingMethod] ?? dv.shippingMethod}
                     </span>
-                    <Badge variant="secondary">
-                      {DELIVERY_STATUS[dv.status] ?? dv.status}
+                    <Badge variant={DELIVERY_STATUS_VARIANTS[dv.status as keyof typeof DELIVERY_STATUS_VARIANTS] ?? "secondary"}>
+                      {DELIVERY_STATUS_LABELS_CUSTOMER[dv.status] ?? dv.status}
                     </Badge>
                   </div>
                   {dv.trackingNumber && (
@@ -291,7 +264,7 @@ export default function OrderStatusPage({
                       ใบเสนอราคา {q.quotationNumber}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {QUOTATION_STATUS[q.status] ?? q.status} · ยืนราคาถึง {formatDate(q.validUntil)}
+                      {QUOTATION_STATUS_LABELS_CUSTOMER[q.status] ?? q.status} · ยืนราคาถึง {formatDate(q.validUntil)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -311,9 +284,9 @@ export default function OrderStatusPage({
                 </div>
               ))}
               {d.invoices.map((inv, i) => {
-                const ps = PAYMENT_STATUS[inv.paymentStatus] ?? {
-                  label: inv.paymentStatus,
-                  variant: "default" as const,
+                const ps = {
+                  label: PAYMENT_STATUS_LABELS[inv.paymentStatus as keyof typeof PAYMENT_STATUS_LABELS] ?? inv.paymentStatus,
+                  variant: PAYMENT_STATUS_VARIANTS[inv.paymentStatus as keyof typeof PAYMENT_STATUS_VARIANTS] ?? ("default" as const),
                 };
                 return (
                   <div key={`i${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 text-sm">

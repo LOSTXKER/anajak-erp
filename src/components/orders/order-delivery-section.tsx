@@ -32,7 +32,8 @@ import { Label } from "@/components/ui/label";
 import { QueryError } from "@/components/ui/query-error";
 import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
 import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
-import { DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS, SHIPPING_METHOD_LABELS } from "@/lib/status-config";
+import { DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS } from "@/lib/status-config";
+import { SHIPPING_METHODS, SHIPPING_METHOD_LABELS } from "@/lib/shipping-methods";
 import {
   Truck,
   Plus,
@@ -600,14 +601,9 @@ export function OrderDeliverySection({
               <div className="space-y-2">
                 <Label htmlFor="delivery-shipping-method">วิธีจัดส่ง</Label>
                 <Select value={shippingMethod} onChange={(e) => setShippingMethod(e.target.value)} id="delivery-shipping-method">
-                    <option value="KERRY">Kerry Express</option>
-                    <option value="FLASH">Flash Express</option>
-                    <option value="THAILAND_POST">ไปรษณีย์ไทย</option>
-                    <option value="J_AND_T">J&T Express</option>
-                    <option value="GRAB">Grab Express</option>
-                    <option value="LALAMOVE">Lalamove</option>
-                    <option value="PICKUP">รับเอง</option>
-                    <option value="OTHER">อื่นๆ</option>
+                    {SHIPPING_METHODS.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
                   </Select>
               </div>
               <Field label="ค่าจัดส่ง (บาท)">

@@ -82,17 +82,22 @@ export const QUOTATION_STATUS_LABELS = _quotationStatus.labels;
 export const QUOTATION_STATUS_VARIANTS = _quotationStatus.variants;
 
 // Payment method ย้ายไป src/lib/payment-methods.ts (ค่า+ป้ายต้องอยู่ที่เดียว)
+// Shipping method ย้ายไป src/lib/shipping-methods.ts (เหตุผลเดียวกัน — ชุดเดิมที่นี่
+// มีคีย์ตายไม่ตรง schema และไม่มี OTHER จนใบแนบกล่องพิมพ์ค่าดิบ)
 
-// Shipping method labels
-export const SHIPPING_METHOD_LABELS: Record<string, string> = {
-  KERRY: "Kerry Express",
-  FLASH: "Flash Express",
-  THAILAND_POST: "ไปรษณีย์ไทย",
-  J_AND_T: "J&T Express",
-  SHOPEE_EXPRESS: "Shopee Express",
-  LAZADA_EXPRESS: "Lazada Express",
-  GRAB: "Grab Express",
-  LALAMOVE: "Lalamove",
-  SELF_DELIVERY: "จัดส่งเอง",
-  PICKUP: "ลูกค้ารับเอง",
+// คำสำหรับหน้าลูกค้า — override เฉพาะสถานะที่ตั้งใจใช้คำในบริบทลูกค้า
+// (pattern เดียวกับ INVOICE_TYPE_LABELS_CUSTOMER ใน invoice-labels.ts)
+// อยู่ไฟล์เดียวกับ config หลัก: เพิ่ม/แก้สถานะแล้วเห็นทั้งสองฝั่ง ไม่ drift อีก
+// — ก่อนหน้านี้หน้า /status/[token] ประกาศ map เองแล้วเพี้ยนจริง (PARTIALLY_PAID
+// เหลืองฝั่งลูกค้าแต่ฟ้าฝั่งทีม · "เลยกำหนด" vs "เกินกำหนด")
+export const QUOTATION_STATUS_LABELS_CUSTOMER: Record<string, string> = {
+  ...QUOTATION_STATUS_LABELS,
+  ACCEPTED: "ตกลงแล้ว",
+  CONVERTED: "ยืนยันเป็นออเดอร์",
+};
+
+export const DELIVERY_STATUS_LABELS_CUSTOMER: Record<string, string> = {
+  ...DELIVERY_STATUS_LABELS,
+  PENDING: "รอจัดส่ง",
+  PREPARING: "กำลังเตรียมส่ง",
 };
