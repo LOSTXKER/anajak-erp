@@ -15,6 +15,7 @@ import {
 } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -486,14 +487,12 @@ export default function UsersSettingsPage() {
                           }`}
                         >
                           <span className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={checked}
                               disabled={locked}
                               onChange={() =>
                                 setPermDraft((d) => ({ ...d, [def.key]: !checked }))
                               }
-                              className="h-4 w-4 accent-blue-600"
                             />
                             {def.label}
                           </span>

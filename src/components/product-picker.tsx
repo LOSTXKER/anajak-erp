@@ -7,6 +7,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, RADIUS } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/spinner";
 import { QueryError } from "@/components/ui/query-error";
 import { SearchInput } from "@/components/ui/search-input";
@@ -339,16 +340,13 @@ export function ProductPickerDialog({
                                     className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] gap-x-3 gap-y-2 border-b border-slate-100 px-3 py-3 last:border-0 dark:border-slate-700/50 sm:table-row sm:p-0"
                                   >
                                     <td className="col-start-1 row-span-2 row-start-1 flex p-0 sm:table-cell sm:px-2 sm:py-1.5 sm:text-center">
-                                      <label className="flex h-11 w-11 cursor-pointer items-center justify-center sm:inline-flex sm:h-auto sm:w-auto">
-                                        <input
-                                          type="checkbox"
+                                      <label htmlFor={`variant-select-${v.id}`} className="flex h-11 w-11 cursor-pointer items-center justify-center sm:inline-flex sm:h-auto sm:w-auto">
+                                        <Checkbox
+                                          id={`variant-select-${v.id}`}
                                           aria-label={`เลือก ${v.sku} สี ${v.color || "ไม่ระบุ"} ไซส์ ${v.size}`}
                                           checked={isChecked}
                                           onChange={() => toggleVariant(v.id)}
-                                          className={cn(
-                                            "h-5 w-5 rounded border-slate-300 text-blue-600 sm:h-3.5 sm:w-3.5",
-                                            FOCUS_BUTTON,
-                                          )}
+                                          className="h-5 w-5 sm:h-3.5 sm:w-3.5"
                                         />
                                       </label>
                                     </td>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
 import { formatCurrency, isImageUrl } from "@/lib/utils";
 import { COLLAR_TYPES, SLEEVE_TYPES, BODY_FITS, GARMENT_CONDITIONS, PRICING_TYPE_LABELS } from "@/types/order-form";
@@ -85,8 +86,8 @@ function ReceiveTrackingInline({ product, onSuccess }: {
           </Select>
         </div>
         <div>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={inspected} onChange={(e) => setInspected(e.target.checked)} className={cn("h-4 w-4 rounded border-slate-300 text-yellow-600", FOCUS_BUTTON)} />
+          <label className="flex items-center gap-2" htmlFor={`garment-inspected-${product.id}`}>
+            <Checkbox id={`garment-inspected-${product.id}`} checked={inspected} onChange={(e) => setInspected(e.target.checked)} />
             <span className="text-xs font-medium text-slate-700 dark:text-slate-300">ตรวจรับแล้ว</span>
           </label>
         </div>
