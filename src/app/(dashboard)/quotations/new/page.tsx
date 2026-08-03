@@ -6,6 +6,8 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/page-shell";
+import { Field } from "@/components/ui/field";
+import { FIELD_LABEL } from "@/components/ui/tokens";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,8 +47,7 @@ const emptyItem: LineItem = {
 // STYLES
 // ============================================================
 
-const labelClass =
-  "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
+const labelClass = FIELD_LABEL;
 
 const sectionLabelClass =
   "mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300";
@@ -347,66 +348,46 @@ function QuotationFormPage() {
                   />
                 )}
               </fieldset>
-              <div>
-                <label htmlFor="quotation-valid-until" className={sectionLabelClass}>
-                  ใช้ได้ถึงวันที่ *
-                </label>
+              <Field label="ใช้ได้ถึงวันที่" required id="quotation-valid-until">
                 <DatePicker
-                  id="quotation-valid-until"
                   value={validUntil}
                   onChange={(v) => setValidUntil(v)}
                   required
                 />
-              </div>
+              </Field>
             </div>
-            <div>
-              <label htmlFor="quotation-title" className={sectionLabelClass}>
-                ชื่อใบเสนอราคา *
-              </label>
+            <Field label="ชื่อใบเสนอราคา" required id="quotation-title">
               <Input
-                id="quotation-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="เช่น ใบเสนอราคาเสื้อทีม ABC, ถุงผ้ารณรงค์..."
                 required
               />
-            </div>
-            <div>
-              <label htmlFor="quotation-description" className={sectionLabelClass}>
-                รายละเอียด
-              </label>
+            </Field>
+            <Field label="รายละเอียด" id="quotation-description">
               <Textarea
-                id="quotation-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="รายละเอียดเพิ่มเติม..."
                 rows={3}
               />
-            </div>
-            <div>
-              <label htmlFor="quotation-terms" className={sectionLabelClass}>
-                เงื่อนไข
-              </label>
+            </Field>
+            <Field label="เงื่อนไข" id="quotation-terms">
               <Textarea
-                id="quotation-terms"
                 value={terms}
                 onChange={(e) => setTerms(e.target.value)}
                 placeholder="เงื่อนไขการชำระเงิน, การจัดส่ง..."
                 rows={3}
               />
-            </div>
-            <div>
-              <label htmlFor="quotation-notes" className={sectionLabelClass}>
-                หมายเหตุ
-              </label>
+            </Field>
+            <Field label="หมายเหตุ" id="quotation-notes">
               <Textarea
-                id="quotation-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="หมายเหตุภายใน..."
                 rows={2}
               />
-            </div>
+            </Field>
           </CardContent>
         </Card>
 

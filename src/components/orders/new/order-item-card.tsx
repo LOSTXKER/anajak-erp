@@ -24,10 +24,9 @@ import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
-import { DASHED, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { DASHED, FIELD_LABEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
-export const labelClass =
-  "mb-1 block text-xs text-slate-500 dark:text-slate-400";
+export const labelClass = FIELD_LABEL;
 
 // หัวข้อกลุ่ม — เด่นชัด (แถบน้ำเงิน + ตัวหนาเข้ม) แยกกลุ่มให้สายตาจับได้ทันที (เบส: highlight หัวข้อ)
 const groupLabelClass =

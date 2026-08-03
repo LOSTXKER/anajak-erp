@@ -18,6 +18,7 @@ import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/ui/field";
 import {
   Dialog,
   DialogContent,
@@ -374,17 +375,14 @@ function BillingNotesPageContent() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label htmlFor="billing-note-customer-search" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                ค้นหาและเลือกลูกค้า
-              </label>
-              <Input
-                id="billing-note-customer-search"
-                value={customerSearch}
-                onChange={(e) => setCustomerSearch(e.target.value)}
-                placeholder="พิมพ์ค้นหาชื่อลูกค้า/บริษัท..."
-                className="mb-2"
-              />
+            <div className="space-y-2">
+              <Field label="ค้นหาและเลือกลูกค้า" id="billing-note-customer-search">
+                <Input
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  placeholder="พิมพ์ค้นหาชื่อลูกค้า/บริษัท..."
+                />
+              </Field>
               {/* query พังห้ามเงียบ — dropdown ว่างเปล่าอ่านเป็น "ไม่มีลูกค้า" ได้ (DESIGN.md) */}
               {customers.isError && !customers.data ? (
                 <QueryError
@@ -407,10 +405,12 @@ function BillingNotesPageContent() {
             </div>
 
             {customerId && (
-              <div>
-                <p className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              // fieldset/legend ไม่ใช่ <Field> — ตัวถูกติดป้ายเป็น "กลุ่ม checkbox" ไม่ใช่ช่องเดี่ยว
+              // (label htmlFor ชี้กลุ่มไม่ได้ · เดิมเป็น <p> โปรแกรมอ่านหน้าจอจับคู่ไม่ได้เลย)
+              <fieldset>
+                <legend className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   ใบแจ้งหนี้ค้างชำระ
-                </p>
+                </legend>
                 {/* isError มาก่อน — query พังแล้วโชว์ "ไม่มีใบค้าง" = เลขโกหก คนข้ามใบจริง */}
                 {eligible.isError && !eligible.data ? (
                   <QueryError
@@ -481,27 +481,20 @@ function BillingNotesPageContent() {
                     ระบบหักให้อัตโนมัติไม่ได้ ตรวจยอดเรียกเก็บก่อนส่งลูกค้า (ใบที่ผูกใบเดิมถูกหักจากยอดค้างแล้ว)
                   </p>
                 )}
-              </div>
+              </fieldset>
             )}
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="billing-note-due-date" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  วันนัดรับชำระ
-                </label>
-                <DatePicker id="billing-note-due-date"  value={dueDate} onChange={(v) => setDueDate(v)} />
-              </div>
-              <div>
-                <label htmlFor="billing-note-notes" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  หมายเหตุ
-                </label>
+              <Field label="วันนัดรับชำระ" id="billing-note-due-date">
+                <DatePicker value={dueDate} onChange={(v) => setDueDate(v)} />
+              </Field>
+              <Field label="หมายเหตุ" id="billing-note-notes">
                 <Input
-                  id="billing-note-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="เช่น รอบวางบิลสิ้นเดือน"
                 />
-              </div>
+              </Field>
             </div>
           </div>
           <DialogFooter>
@@ -543,18 +536,14 @@ function BillingNotesPageContent() {
               ใบแจ้งหนี้ในใบนี้จะกลับมาวางบิลใหม่ได้ (ยกเลิก-ออกใหม่เท่านั้น ห้ามลบ)
             </DialogDescription>
           </DialogHeader>
-          <div>
-            <label htmlFor="billing-note-void-reason" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              เหตุผลที่ยกเลิก
-            </label>
+          <Field label="เหตุผลที่ยกเลิก" id="billing-note-void-reason">
             <Textarea
-              id="billing-note-void-reason"
               value={voidReason}
               onChange={(e) => setVoidReason(e.target.value)}
               rows={3}
               placeholder="ระบุเหตุผล..."
             />
-          </div>
+          </Field>
           <DialogFooter>
             <Button variant="outline" onClick={() => setVoidTarget(null)}>
               ไม่ยกเลิก
