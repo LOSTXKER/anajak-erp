@@ -27,7 +27,11 @@ export default async function DashboardLayout({
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar />
-        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto outline-none">
+        {/* relative จำเป็น: Radix Select ฝัง <select> จริงแบบ absolute ไว้ใช้กับ form —
+            ถ้าไม่มี positioned ancestor มันยึดกับ <html> แล้วยื่นท้ายเอกสาร ทำให้หน้าที่ฟอร์มยาว
+            (เช่น /orders/new) มี scrollbar นอก shell — เลื่อนสุดฟอร์มแล้วทั้ง shell ไหลหนีขึ้น
+            (เบสเจอ 2026-08-03) · anchor ไว้ใน main ให้มันเลื่อนตามเนื้อหา */}
+        <main id="main-content" tabIndex={-1} className="relative flex-1 overflow-y-auto outline-none">
           <div className="mx-auto w-full max-w-screen-2xl px-5 py-8 sm:px-8 lg:px-10">
             {children}
           </div>
