@@ -10,16 +10,16 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
-import { Plus, Trash2, Pencil, X, Check, Settings, ShieldX } from "lucide-react";
+import { Plus, Trash2, Pencil, X, Check, Settings } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SegmentedControl } from "@/components/ui/segmented";
-import { EmptyState } from "@/components/ui/empty-state";
-import { QueryError } from "@/components/ui/query-error";
 import { PRICING_TYPE_LABELS } from "@/types/order-form";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { DataTable } from "@/components/ui/data-table";
 
 // ============================================================
 // TYPES & CONSTANTS
@@ -155,69 +155,30 @@ export default function ServicesPage() {
   // RENDER
   // ============================================================
 
-  const header = (
-    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
+  return (
+    <PageShell
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการบริการ"
       description="ตั้งค่ารายการบริการเสริม, การสกรีน, และค่าบริการ"
-     />
-  );
-
-  if (meQuery.isError) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="ตรวจสอบสิทธิ์หน้าจัดการบริการไม่ได้"
-          onRetry={() => void meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (meQuery.isLoading) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Skeleton className="h-72 rounded-2xl" />
-      </div>
-    );
-  }
-
-  if (!canManage) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Card>
-          <CardContent>
-            <EmptyState
-              icon={ShieldX}
-              title="ไม่มีสิทธิ์จัดการบริการ"
-              description="หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น"
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // && !items: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
-  if (isError && !items) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="โหลดรายการบริการไม่สำเร็จ"
-          onRetry={() => void refetch()}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      {header}
-
+      loading={meQuery.isLoading}
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์หน้าจัดการบริการไม่ได้",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : // && !items: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
+            isError && !items
+            ? { message: "โหลดรายการบริการไม่สำเร็จ", onRetry: () => void refetch() }
+            : null
+      }
+      denied={
+        !canManage && {
+          title: "ไม่มีสิทธิ์จัดการบริการ",
+          description: "หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น",
+        }
+      }
+    >
       {/* Tabs */}
       <SegmentedControl
         value={activeTab}
@@ -260,7 +221,7 @@ export default function ServicesPage() {
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div>
-                  <label htmlFor={`${formId}-type`} className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-type`} className="mb-1 block text-xs font-medium text-muted">
                     ประเภท *
                   </label>
                   <Input
@@ -274,7 +235,7 @@ export default function ServicesPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor={`${formId}-name`} className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-name`} className="mb-1 block text-xs font-medium text-muted">
                     ชื่อ *
                   </label>
                   <Input
@@ -288,7 +249,7 @@ export default function ServicesPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor={`${formId}-price`} className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-price`} className="mb-1 block text-xs font-medium text-muted">
                     ราคา (บาท) *
                   </label>
                   <Input
@@ -308,7 +269,7 @@ export default function ServicesPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor={`${formId}-pricing-type`} className="mb-1 block text-xs font-medium text-slate-500">
+                  <label htmlFor={`${formId}-pricing-type`} className="mb-1 block text-xs font-medium text-muted">
                     คิดราคา
                   </label>
                   <Select
@@ -357,31 +318,18 @@ export default function ServicesPage() {
           ) : !items || items.length === 0 ? (
             <EmptyState icon={Settings} title="ยังไม่มีรายการ" />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800">
-                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                      ชื่อ
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                      ประเภท
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
-                      ราคา
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
-                      คิดราคา
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
-                      สถานะ
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
-                      จัดการ
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <DataTable.Root bordered={false}>
+              <DataTable.Head>
+                <tr>
+                  <DataTable.Th>ชื่อ</DataTable.Th>
+                  <DataTable.Th>ประเภท</DataTable.Th>
+                  <DataTable.Th align="right">ราคา</DataTable.Th>
+                  <DataTable.Th align="center">คิดราคา</DataTable.Th>
+                  <DataTable.Th align="center">สถานะ</DataTable.Th>
+                  <DataTable.Th align="right">จัดการ</DataTable.Th>
+                </tr>
+              </DataTable.Head>
+              <DataTable.Body>
                   {items.map((item) => {
                     const isEditing = editingItem?.id === item.id;
                     const ptConfig = pricingTypeConfig[item.pricingType] ?? {
@@ -390,13 +338,11 @@ export default function ServicesPage() {
                     };
 
                     return (
-                      <tr
+                      <DataTable.Row
                         key={item.id}
-                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                          !item.isActive ? "opacity-50" : ""
-                        }`}
+                        className={!item.isActive ? "opacity-50" : undefined}
                       >
-                        <td className="px-3 py-2.5">
+                        <DataTable.Td>
                           {isEditing ? (
                             <Input size="sm"
                               aria-label={`ชื่อบริการ ${item.name}`}
@@ -413,11 +359,11 @@ export default function ServicesPage() {
                               {item.name}
                             </span>
                           )}
-                        </td>
-                        <td className="px-3 py-2.5 text-sm text-slate-500">
+                        </DataTable.Td>
+                        <DataTable.Td className="text-slate-500 dark:text-slate-400">
                           {item.type}
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
+                        </DataTable.Td>
+                        <DataTable.Td align="right">
                           {isEditing ? (
                             <Input
                               aria-label={`ราคาบริการ ${item.name}`}
@@ -439,8 +385,8 @@ export default function ServicesPage() {
                               {formatCurrency(item.defaultPrice)}
                             </span>
                           )}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
+                        </DataTable.Td>
+                        <DataTable.Td align="center">
                           {isEditing ? (
                             <Select size="sm"
                               aria-label={`วิธีคิดราคาของ ${item.name}`}
@@ -462,15 +408,15 @@ export default function ServicesPage() {
                               {ptConfig.label}
                             </Badge>
                           )}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
+                        </DataTable.Td>
+                        <DataTable.Td align="center">
                           <Switch
                             aria-label={`${item.isActive ? "ปิด" : "เปิด"}การใช้งาน ${item.name}`}
                             checked={item.isActive}
                             onCheckedChange={() => handleToggleActive(item.id, item.isActive)}
                           />
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
+                        </DataTable.Td>
+                        <DataTable.Td align="right">
                           {isEditing ? (
                             <div className="flex justify-end gap-1.5">
                               <Button
@@ -499,7 +445,7 @@ export default function ServicesPage() {
                                 size="icon-sm"
                                 aria-label={`แก้ไข ${item.name}`}
                                 onClick={() => startEdit(item)}
-                                className="text-slate-500 hover:text-blue-600"
+                                className="text-muted hover:text-blue-600"
                               >
                                 <Pencil />
                               </Button>
@@ -510,20 +456,19 @@ export default function ServicesPage() {
                                   aria-label={`ลบ ${item.name}`}
                                   onClick={() => handleDelete(item.id, item.name)}
                                   disabled={deleteItem.isPending}
-                                  className="text-slate-500 hover:text-red-600"
+                                  className="text-muted hover:text-red-600"
                                 >
                                   <Trash2 />
                                 </Button>
                               )}
                             </div>
                           )}
-                        </td>
-                      </tr>
+                        </DataTable.Td>
+                      </DataTable.Row>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
+              </DataTable.Body>
+            </DataTable.Root>
           )}
 
           {/* Error display */}
@@ -537,6 +482,6 @@ export default function ServicesPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

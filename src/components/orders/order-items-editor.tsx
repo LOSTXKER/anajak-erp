@@ -156,14 +156,18 @@ export function OrderItemsEditor({
 
   const utils = trpc.useUtils();
 
-  const { data: printCatalog } = trpc.serviceCatalog.list.useQuery({
+  const printCatalogQuery = trpc.serviceCatalog.list.useQuery({
     category: "PRINT",
     isActive: true,
   });
-  const { data: addonCatalog } = trpc.serviceCatalog.list.useQuery({
+  const addonCatalogQuery = trpc.serviceCatalog.list.useQuery({
     category: "ADDON",
     isActive: true,
   });
+  const printCatalog = printCatalogQuery.data;
+  const addonCatalog = addonCatalogQuery.data;
+  // catalog พังแล้วเงียบ = ตัวเลือกลาย/ส่วนเสริมหายเฉยๆ ผู้ใช้ไม่รู้ว่าระบบมีปัญหา
+  const catalogError = printCatalogQuery.isError || addonCatalogQuery.isError;
 
   const updateItemsMutation = useMutationWithInvalidation(trpc.order.updateItems, {
     invalidate: [utils.order.getById],
@@ -296,6 +300,24 @@ export function OrderItemsEditor({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {catalogError && (
+            <Alert variant="warning">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm">โหลดแค็ตตาล็อกลาย/ส่วนเสริมไม่สำเร็จ — ตัวเลือกจากแค็ตตาล็อกจะไม่ขึ้น</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (printCatalogQuery.isError) void printCatalogQuery.refetch();
+                    if (addonCatalogQuery.isError) void addonCatalogQuery.refetch();
+                  }}
+                >
+                  ลองใหม่
+                </Button>
+              </div>
+            </Alert>
+          )}
           {/* รายการสินค้า — ฟอร์มชุดเดียวกับหน้าเปิดงาน
               รายการเดียว = โหมด solo: ไม่มีชั้น "รายการ #1" ให้แบก โชว์ ลาย/สินค้า ตรงๆ */}
           {items.length === 1 ? (
@@ -365,7 +387,7 @@ export function OrderItemsEditor({
               addItem();
               setExpandedItemIdx(items.length);
             }}
-            className={cn(DASHED, "flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm text-slate-500 transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+            className={cn(DASHED, "flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm text-muted transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
           >
             <Plus className="h-4 w-4" />
             เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)
@@ -433,7 +455,7 @@ export function OrderItemsEditor({
               )}
 
               <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
-                <label htmlFor="order-items-discount" className="text-sm text-slate-500">ส่วนลด</label>
+                <label htmlFor="order-items-discount" className="text-sm text-muted">ส่วนลด</label>
                 <Input size="sm"
                   id="order-items-discount"
                   type="number"

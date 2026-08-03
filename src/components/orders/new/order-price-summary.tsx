@@ -30,6 +30,8 @@ interface OrderPriceSummaryProps {
   onDiscountChange: (value: number) => void;
   /** กำไรขั้นต้นโดยประมาณ (ก้อน 2 ชิ้น 5b) — null/ไม่ส่ง = ไม่โชว์บล็อก (role นอกการเงิน) */
   marginEstimate?: MarginEstimate | null;
+  /** วางใน Section หลักของหน้าโดยไม่สร้าง card-surface ซ้อนอีกชั้น */
+  embedded?: boolean;
 }
 
 // ============ กำไรขั้นต้นโดยประมาณ (FLOW-REDESIGN ก้อน 2 ชิ้น 5b) ============
@@ -203,9 +205,10 @@ export function OrderPriceSummary({
   onPlatformFeeChange,
   onDiscountChange,
   marginEstimate,
+  embedded = false,
 }: OrderPriceSummaryProps) {
   return (
-    <Section title="สรุปราคา" compact>
+    <Section title="สรุปยอด" compact={!embedded} bordered={!embedded} headingLevel={embedded ? 3 : 2}>
       <div className="space-y-2">
         <Row
           label="รวมสินค้า"
@@ -244,7 +247,7 @@ export function OrderPriceSummary({
 
         <div className="flex items-center justify-between gap-2">
           <label htmlFor="order-discount" className="text-sm text-slate-500 dark:text-slate-400">
-            ส่วนลด
+            ส่วนลดท้ายบิล
           </label>
           <Input size="sm"
             id="order-discount"

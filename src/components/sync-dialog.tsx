@@ -425,7 +425,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   size="sm"
                   onClick={handleCancel}
                   disabled={cancelRequested}
-                  className="text-slate-500"
+                  className="text-muted"
                 >
                   <Ban />
                   {cancelRequested ? "กำลังหยุด..." : "ยกเลิก"}
@@ -618,8 +618,8 @@ const colorMap: Record<string, string> = {
 const iconColorMap: Record<string, string> = {
   blue: "text-blue-500",
   indigo: "text-blue-500",
-  purple: "text-slate-500",
-  violet: "text-slate-500",
+  purple: "text-muted",
+  violet: "text-muted",
 };
 
 function StatCard({

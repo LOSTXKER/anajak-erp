@@ -273,7 +273,7 @@ export function DateRangePicker({
               type="button"
               aria-label="เดือนก่อนหน้า"
               onClick={() => setCursor((c) => subMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -284,7 +284,7 @@ export function DateRangePicker({
               type="button"
               aria-label="เดือนถัดไป"
               onClick={() => setCursor((c) => addMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -346,7 +346,7 @@ export function DateRangePicker({
                 setDraftStart(null);
                 setOpen(false);
               }}
-              className={cn(CONTROL_MIN_H, "inline-flex shrink-0 items-center rounded-full px-3 font-medium text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_MIN_H, "inline-flex shrink-0 items-center rounded-full px-3 font-medium text-muted transition-colors hover:bg-slate-100 dark:hover:bg-slate-800")}
             >
               ล้าง
             </button>

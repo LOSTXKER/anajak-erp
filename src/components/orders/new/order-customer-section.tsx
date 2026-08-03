@@ -3,6 +3,9 @@
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CustomerPicker, type PickerCustomer } from "@/components/customers/customer-picker";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { formatCurrency } from "@/lib/utils";
@@ -22,17 +25,29 @@ export function OrderCustomerSection({
   onSelect,
 }: OrderCustomerSectionProps) {
   const isCorporate = selectedCustomer?.customerType === "CORPORATE";
+  const profileGaps = selectedCustomer
+    ? customerProfileGaps(selectedCustomer)
+    : [];
 
   // วงเงินเครดิต = เงินฝั่งขาย — ช่าง/กราฟิกห้ามเห็น (Policy ⑦ · server requireRole แล้ว
   // หน้านี้เป็นของทีมขายอยู่แล้ว แต่กันไว้อีกชั้น) · me ยังไม่โหลด = ซ่อนก่อน (B12)
   const { data: me } = trpc.user.me.useQuery();
   const canSeeCredit = permAllows(me?.permissions, "see_order_money");
+  const showCreditStatus = canSeeCredit && !!customerId && !!selectedCustomer;
+  const shouldLoadCredit =
+    showCreditStatus && selectedCustomer.creditLimit != null;
 
   // ภาระหนี้เทียบวงเงิน — เตือนตั้งแต่ตอนเลือกลูกค้า (ด่านจริงอยู่ฝั่ง server ตอนยืนยันออเดอร์)
   const creditStatus = trpc.customer.creditStatus.useQuery(
     { customerId },
-    { enabled: canSeeCredit && !!customerId && selectedCustomer?.creditLimit != null }
+    { enabled: shouldLoadCredit }
   );
+  const creditLoading =
+    shouldLoadCredit &&
+    !creditStatus.data &&
+    (creditStatus.isLoading || creditStatus.isFetching);
+  const creditError =
+    shouldLoadCredit && !creditStatus.data && creditStatus.isError;
 
   // เช็คฟิล์มค้าง+คลังลายตอนรับงานซ้ำ (หนี้ก้อน 2 — ลูกค้าทักมาสั่งซ้ำ แอดมินคีย์ใบใหม่
   // คือเคสที่พบบ่อยกว่าปุ่มสำเนา) — query count เบาๆ ตัวเดียว ไม่ลากแถวมานับเอง
@@ -42,75 +57,121 @@ export function OrderCustomerSection({
   );
   const filmCount = summary.data?.filmCount ?? 0;
   const artworkCount = summary.data?.artworkCount ?? 0;
+  const hasCustomerContext =
+    !!selectedCustomer &&
+    (isCorporate ||
+      profileGaps.length > 0 ||
+      showCreditStatus ||
+      filmCount > 0 ||
+      artworkCount > 0);
 
   return (
     <div>
       <p className="mb-1.5 block text-xs text-slate-500 dark:text-slate-400" id="new-order-customer-label">
         ลูกค้า <span aria-hidden="true" className="text-red-700">*</span><span className="sr-only"> (จำเป็น)</span>
       </p>
-      <CustomerPicker value={customerId} onChange={onSelect} required labelledBy="new-order-customer-label" />
-      {selectedCustomer && isCorporate && (
-        <div className="mt-1.5 flex items-center gap-1.5">
-          <Badge variant="accent" size="sm">
-            นิติบุคคล
-          </Badge>
-          {selectedCustomer.taxId && (
-            <span className="text-xs text-slate-500">
-              Tax ID: {selectedCustomer.taxId}
-            </span>
+      <CustomerPicker
+        value={customerId}
+        onChange={onSelect}
+        required
+        labelledBy="new-order-customer-label"
+        layout="inline"
+      />
+      {hasCustomerContext && (
+        <div className="mt-2 space-y-1.5 rounded-xl bg-slate-100/70 px-3 py-2.5 dark:bg-white/[0.04]">
+          {selectedCustomer && isCorporate && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge variant="accent" size="sm">
+                นิติบุคคล
+              </Badge>
+              {selectedCustomer.taxId && (
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Tax ID: {selectedCustomer.taxId}
+                </span>
+              )}
+            </div>
+          )}
+          {profileGaps.length > 0 && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              โปรไฟล์ยังไม่ครบ: {profileGaps.map((g) => g.label).join(" · ")} — ขอจากลูกค้าแล้วเติมได้ที่หน้าลูกค้า
+            </p>
+          )}
+          {showCreditStatus && !shouldLoadCredit && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              ยังไม่ได้กำหนดวงเงินเครดิต
+            </p>
+          )}
+          {creditLoading && (
+            <div role="status" aria-label="กำลังโหลดสถานะเครดิต">
+              <Skeleton className="h-3.5 w-64 max-w-full" />
+            </div>
+          )}
+          {creditError && (
+            <Alert variant="error" className="text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>โหลดสถานะเครดิตไม่สำเร็จ</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void creditStatus.refetch()}
+                >
+                  ลองใหม่
+                </Button>
+              </div>
+            </Alert>
+          )}
+          {shouldLoadCredit && creditStatus.data?.available != null && (
+            <p
+              className={`text-xs ${
+                creditStatus.data.available < 0
+                  ? "font-medium text-red-600 dark:text-red-400"
+                  : "text-slate-500 dark:text-slate-400"
+              }`}
+            >
+              วงเงินเครดิต: ใช้ไป {formatCurrency(creditStatus.data.exposure)} /{" "}
+              {formatCurrency(creditStatus.data.creditLimit ?? 0)}
+              {creditStatus.data.available < 0
+                ? ` — เกินวงเงินแล้ว ${formatCurrency(Math.abs(creditStatus.data.available))}`
+                : ` (ใช้ได้อีก ${formatCurrency(creditStatus.data.available)})`}
+            </p>
+          )}
+          {shouldLoadCredit &&
+            !creditLoading &&
+            !creditError &&
+            creditStatus.data?.available == null && (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                ยังไม่มีข้อมูลสถานะเครดิต
+              </p>
+            )}
+          {selectedCustomer && filmCount > 0 && (
+            <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+              🎞️ ลูกค้ามีฟิล์มพร้อมรีดค้าง {filmCount} รายการ — เช็คที่{" "}
+              <a
+                href={`/production/films?search=${encodeURIComponent(selectedCustomer.name)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                คลังฟิล์ม
+              </a>{" "}
+              ก่อนเปิดรอบพิมพ์ใหม่
+            </p>
+          )}
+          {selectedCustomer && artworkCount > 0 && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              ลูกค้ามีลายในคลัง {artworkCount} ลาย —{" "}
+              <a
+                href={`/customers/${customerId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                ดูคลังลาย/สั่งซ้ำ 1 คลิก
+              </a>
+            </p>
           )}
         </div>
-      )}
-      {selectedCustomer && customerProfileGaps(selectedCustomer).length > 0 && (
-        <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
-          โปรไฟล์ยังไม่ครบ:{" "}
-          {customerProfileGaps(selectedCustomer)
-            .map((g) => g.label)
-            .join(" · ")}{" "}
-          — ขอจากลูกค้าแล้วเติมได้ที่หน้าลูกค้า
-        </p>
-      )}
-      {canSeeCredit && creditStatus.data?.available != null && (
-        <p
-          className={`mt-1.5 text-xs ${
-            creditStatus.data.available < 0
-              ? "font-medium text-red-600 dark:text-red-400"
-              : "text-slate-500"
-          }`}
-        >
-          วงเงินเครดิต: ใช้ไป {formatCurrency(creditStatus.data.exposure)} /{" "}
-          {formatCurrency(creditStatus.data.creditLimit ?? 0)}
-          {creditStatus.data.available < 0
-            ? ` — เกินวงเงินแล้ว ${formatCurrency(Math.abs(creditStatus.data.available))}`
-            : ` (ใช้ได้อีก ${formatCurrency(creditStatus.data.available)})`}
-        </p>
-      )}
-      {selectedCustomer && filmCount > 0 && (
-        <p className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-          🎞️ ลูกค้ามีฟิล์มพร้อมรีดค้าง {filmCount} รายการ — เช็คที่{" "}
-          <a
-            href={`/production/films?search=${encodeURIComponent(selectedCustomer.name)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline"
-          >
-            คลังฟิล์ม
-          </a>{" "}
-          ก่อนเปิดรอบพิมพ์ใหม่
-        </p>
-      )}
-      {selectedCustomer && artworkCount > 0 && (
-        <p className="mt-1.5 text-xs text-slate-500">
-          ลูกค้ามีลายในคลัง {artworkCount} ลาย —{" "}
-          <a
-            href={`/customers/${customerId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline"
-          >
-            ดูคลังลาย/สั่งซ้ำ 1 คลิก
-          </a>
-        </p>
       )}
     </div>
   );

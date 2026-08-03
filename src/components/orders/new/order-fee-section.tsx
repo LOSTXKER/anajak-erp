@@ -25,6 +25,8 @@ interface OrderFeeSectionProps {
   onRemoveFee: (idx: number) => void;
   onUpdateFee: (idx: number, field: string, value: unknown) => void;
   feeCatalog?: FeeCatalogItem[];
+  /** วางใน Section หลักของหน้าโดยไม่สร้าง card-surface ซ้อนอีกชั้น */
+  embedded?: boolean;
 }
 
 export function OrderFeeSection({
@@ -33,6 +35,7 @@ export function OrderFeeSection({
   onRemoveFee,
   onUpdateFee,
   feeCatalog,
+  embedded = false,
 }: OrderFeeSectionProps) {
   const handleCatalogSelect = (fIdx: number, catalogId: string) => {
     const selection = resolveFeeCatalogSelection(feeCatalog, catalogId);
@@ -44,23 +47,28 @@ export function OrderFeeSection({
 
   return (
     <Section
-      title="ค่าใช้จ่ายเพิ่มเติม"
-      action={
+      title={embedded ? "ค่าใช้จ่ายเพิ่มเติม" : "ค่าใช้จ่ายระดับออเดอร์"}
+      description="ค่าจัดส่งหรือค่าบริการที่อยู่นอกชุดงาน"
+      bordered={!embedded}
+      headingLevel={embedded ? 3 : 2}
+      action={embedded || fees.length > 0 ? (
         <Button type="button" variant="outline" size="sm" onClick={onAddFee}>
           <Plus />
-          เพิ่ม
+          {embedded ? "เพิ่มค่าใช้จ่าย" : "เพิ่ม"}
         </Button>
-      }
+      ) : undefined}
     >
       {fees.length === 0 ? (
-        <button
-          type="button"
-          onClick={onAddFee}
-          className={cn(DASHED, "flex min-h-11 w-full touch-manipulation flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40", FOCUS_BUTTON, "dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-        >
-          <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
-          <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าใช้จ่ายเพิ่มเติม — กดเพื่อเพิ่ม</span>
-        </button>
+        embedded ? null : (
+          <button
+            type="button"
+            onClick={onAddFee}
+            className={cn(DASHED, "flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40", FOCUS_BUTTON, "dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+          >
+            <Receipt className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+            <span className="text-xs text-slate-500 dark:text-slate-400">เพิ่มค่าใช้จ่ายระดับออเดอร์</span>
+          </button>
+        )
       ) : (
         <div className="space-y-3">
           {fees.map((f, fIdx) => (

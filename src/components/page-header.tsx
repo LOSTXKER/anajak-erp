@@ -50,7 +50,7 @@ export function PageHeader({
                 {item.href && !isLast ? (
                   <Link
                     href={item.href}
-                    className={cn(CONTROL_MIN_H, "inline-flex min-w-11 items-center justify-center rounded-lg px-1 transition-colors hover:text-slate-900 sm:min-w-0 sm:justify-start sm:px-0 dark:hover:text-white")}
+                    className={cn(CONTROL_MIN_H, "inline-flex min-w-11 items-center justify-center rounded-lg px-1 transition-colors hover:text-strong sm:min-w-0 sm:justify-start sm:px-0 dark:hover:text-white")}
                   >
                     {item.label}
                   </Link>
@@ -73,8 +73,8 @@ export function PageHeader({
           })}
         </nav>
       )}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3 sm:min-w-64 sm:flex-1">
           {back && (
             <Button asChild variant="ghost" size="icon" className="mt-0.5 shrink-0">
               <Link href={back.href} aria-label={back.label}>
@@ -97,8 +97,8 @@ export function PageHeader({
           </div>
         </div>
         {action && (
-          // flex-wrap: หน้าออเดอร์ยัดป้ายสถานะ+ปุ่มหลายชิ้นในแถวนี้ — จอเล็กต้องห่อ ไม่ล้น
-          <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div>
+          // ล็อกพื้นที่หัวข้อไว้ก่อน: action ยอมห่อและลงแถวใหม่เมื่อพื้นที่จริงหลังหัก sidebar ไม่พอ
+          <div className="flex max-w-full flex-wrap items-center gap-2 sm:ml-auto">{action}</div>
         )}
       </div>
       {children}

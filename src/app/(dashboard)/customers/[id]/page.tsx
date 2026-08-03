@@ -39,10 +39,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });
   // ภาระหนี้ + ยอดค้างชำระ — เปิดเสมอเมื่อเห็นเงิน (ลูกค้าไม่ตั้งวงเงินก็ต้องเห็นยอดค้าง
   // ในการ์ดสรุป — ธุรกิจเครดิตเทอมถามก่อนว่า "ค้างเท่าไร") · non-money role ยิงไปก็โดน FORBIDDEN
-  const { data: credit } = trpc.customer.creditStatus.useQuery(
+  const creditQuery = trpc.customer.creditStatus.useQuery(
     { customerId: id },
     { enabled: canSeeMoney }
   );
+  const credit = creditQuery.data;
+  const creditLoading =
+    canSeeMoney &&
+    !credit &&
+    (creditQuery.isLoading || creditQuery.isFetching);
+  const creditError = canSeeMoney && !credit && creditQuery.isError;
 
   if (isLoading) {
     return (
@@ -149,18 +155,48 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader><CardTitle className="text-base">สรุป</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm text-slate-500"><ShoppingCart className="h-4 w-4" /> ออเดอร์ทั้งหมด</span>
+                <span className="flex items-center gap-2 text-sm text-muted"><ShoppingCart className="h-4 w-4" /> ออเดอร์ทั้งหมด</span>
                 <span className="font-semibold tabular-nums">{customer._count.orders}</span>
               </div>
               {canSeeMoney && (
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm text-slate-500"><DollarSign className="h-4 w-4" /> ยอดสั่งรวม</span>
+                  <span className="flex items-center gap-2 text-sm text-muted"><DollarSign className="h-4 w-4" /> ยอดสั่งรวม</span>
                   <span className="font-semibold tabular-nums">{formatCurrency(customer.totalSpent ?? 0)}</span>
                 </div>
               )}
+              {creditLoading && (
+                <div
+                  role="status"
+                  aria-label="กำลังโหลดสถานะเครดิต"
+                  className="space-y-3"
+                >
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-4/5" />
+                </div>
+              )}
+              {creditError && (
+                <Alert variant="error" className="text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span>โหลดสถานะเครดิตไม่สำเร็จ</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void creditQuery.refetch()}
+                    >
+                      ลองใหม่
+                    </Button>
+                  </div>
+                </Alert>
+              )}
+              {canSeeMoney && !creditLoading && !creditError && !credit && (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  ยังไม่มีข้อมูลสถานะเครดิต
+                </p>
+              )}
               {canSeeMoney && credit && (
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm text-slate-500"><FileText className="h-4 w-4" /> ค้างชำระ</span>
+                  <span className="flex items-center gap-2 text-sm text-muted"><FileText className="h-4 w-4" /> ค้างชำระ</span>
                   <span
                     className={`text-base font-semibold tabular-nums ${
                       credit.invoiceOutstanding > 0 ? "text-red-600 dark:text-red-400" : ""
@@ -172,7 +208,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               )}
               {canSeeMoney && credit && (
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm text-slate-500"><ShoppingCart className="h-4 w-4" /> งานยังไม่ปิด</span>
+                  <span className="flex items-center gap-2 text-sm text-muted"><ShoppingCart className="h-4 w-4" /> งานยังไม่ปิด</span>
                   <span className="font-semibold tabular-nums">
                     {credit.openOrders > 0 ? `${credit.openOrders} งาน` : "—"}
                   </span>
@@ -180,7 +216,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               )}
               {customer.lastOrderAt && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-500">สั่งล่าสุด</span>
+                  <span className="text-sm text-muted">สั่งล่าสุด</span>
                   <span className="text-sm">{formatDate(customer.lastOrderAt)}</span>
                 </div>
               )}
@@ -221,6 +257,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                       <CreditCard className="h-4 w-4" /> วงเงินเครดิต: {formatCurrency(customer.creditLimit)}
                     </div>
+                    {creditLoading && (
+                      <div role="status" aria-label="กำลังโหลดภาระหนี้" className="pl-6 pt-1">
+                        <Skeleton className="h-3.5 w-full" />
+                      </div>
+                    )}
+                    {creditError && (
+                      <p className="pl-6 text-xs text-red-700 dark:text-red-300">
+                        โหลดภาระหนี้ไม่สำเร็จ — ลองใหม่ได้จากการ์ดสรุป
+                      </p>
+                    )}
                     {credit && credit.available != null && (
                       <p className={`pl-6 text-xs ${credit.available < 0 ? "font-medium text-red-600 dark:text-red-400" : "text-slate-500"}`}>
                         ภาระหนี้ {formatCurrency(credit.exposure)} (ค้างชำระ {formatCurrency(credit.invoiceOutstanding)} + งานยังไม่วางบิล {formatCurrency(credit.unbilled)})
@@ -229,6 +275,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                           : ` — ใช้ได้อีก ${formatCurrency(credit.available)}`}
                       </p>
                     )}
+                    {canSeeMoney &&
+                      !creditLoading &&
+                      !creditError &&
+                      credit?.available == null && (
+                        <p className="pl-6 text-xs text-slate-500 dark:text-slate-400">
+                          ยังไม่มีข้อมูลภาระหนี้
+                        </p>
+                      )}
                   </div>
                 )}
                 {customer.defaultPaymentTerms && (
@@ -238,7 +292,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 )}
                 {customer.billingAddress && (
                   <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
-                    <p className="mb-1 text-xs font-semibold text-slate-500">ที่อยู่ออกใบกำกับภาษี</p>
+                    <p className="mb-1 text-xs font-semibold text-muted">ที่อยู่ออกใบกำกับภาษี</p>
                     <p className="text-sm text-slate-700 dark:text-slate-300">
                       {customer.billingAddress}
                       {customer.billingSubDistrict && ` ${customer.billingSubDistrict}`}
@@ -273,7 +327,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     >
                       <div>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{order.orderNumber}</p>
-                        <p className="text-xs text-slate-500">{order.title}</p>
+                        <p className="text-xs text-muted">{order.title}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <OrderStatusBadge customerStatus={order.customerStatus} internalStatus={order.internalStatus} />

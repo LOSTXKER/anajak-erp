@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
-import { cn } from "@/lib/utils";
+import { cn, formatDateShort, formatTime } from "@/lib/utils";
 import { AlertTriangle, Printer, Flame, Package, Clock, Truck } from "lucide-react";
 
 // ทีวีคิวรวมโรงงาน (UX4) — read-only จอติดผนัง อ่านที่ 3-5 เมตร · โพลล์ 30 วิ · ไม่มีเงินเลย
@@ -12,12 +12,9 @@ type Board = RouterOutput["factory"]["board"];
 
 const STALE_MS = 2 * 60 * 1000; // เกิน 2 นาทีไม่มีข้อมูลใหม่ = ขึ้นแถบ "ข้อมูลค้าง" (B8 ห้ามจอโกหก)
 
-function fmtTime(d: Date | string | number) {
-  return new Date(d).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
-}
-function fmtDate(d: Date | string | number) {
-  return new Date(d).toLocaleDateString("th-TH", { day: "numeric", month: "short" });
-}
+// วันที่/เวลาใช้ formatDateShort/formatTime จาก lib กลาง (ปัก Asia/Bangkok แล้ว)
+const fmtTime = formatTime;
+const fmtDate = formatDateShort;
 function isOverdue(deadline: Date | string | null): boolean {
   return deadline != null && new Date(deadline) < new Date();
 }

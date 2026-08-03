@@ -67,7 +67,7 @@ function QuickAddPattern({
             onChange={(e) => setName(e.target.value)}
             placeholder="ชื่อแพทเทิร์น เช่น คอกลมแขนสั้น"
           />
-          <label className={cn(DASHED, "flex w-fit cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-xs text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600")}>
+          <label className={cn(DASHED, "flex w-fit cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-xs text-muted transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600")}>
             <Plus className="h-3 w-3" />
             {file ? file.name : "แนบรูป/ไฟล์ (ไม่บังคับ)"}
             <input type="file" accept="image/*,.pdf,.ai,.psd" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
@@ -94,8 +94,9 @@ export function CustomMadeDetail({
   product: OrderItemProductForm;
   updateProduct: (field: string, value: unknown) => void;
 }) {
-  const { data, isLoading: patternsLoading } = trpc.pattern.list.useQuery({ isActive: true });
-  const patterns = data?.patterns;
+  const patternsQuery = trpc.pattern.list.useQuery({ isActive: true });
+  const { isLoading: patternsLoading, isError: patternsError } = patternsQuery;
+  const patterns = patternsQuery.data?.patterns;
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const selectedPattern = product.patternId
     ? patterns?.find((p) => p.id === product.patternId)
@@ -147,7 +148,7 @@ export function CustomMadeDetail({
             <Select size="sm"
               value={product.patternId || ""}
               onChange={(e) => handlePatternSelect(e.target.value)}
-              disabled={patternsLoading}
+              disabled={patternsLoading || patternsError}
             >
               <option value="">{patternsLoading ? "กำลังโหลด..." : "-- เลือกแพทเทิร์น --"}</option>
               {patterns?.map((p) => (
@@ -156,6 +157,15 @@ export function CustomMadeDetail({
                 </option>
               ))}
             </Select>
+            {/* query พัง ≠ ไม่มีแพทเทิร์น — เดิม select ว่างเฉยๆ ผู้ใช้เข้าใจว่ายังไม่เคยสร้าง */}
+            {patternsError && (
+              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
+                โหลดแพทเทิร์นไม่สำเร็จ{" "}
+                <button type="button" className="underline" onClick={() => void patternsQuery.refetch()}>
+                  ลองใหม่
+                </button>
+              </p>
+            )}
             {selectedPattern && (
               <div className="mt-2 flex items-start gap-3 rounded border border-amber-200 bg-white p-2 dark:border-amber-800 dark:bg-amber-950/30">
                 {selectedPattern.thumbnailUrl && (
@@ -168,7 +178,7 @@ export function CustomMadeDetail({
                 <div className="min-w-0 text-xs">
                   <span className="block font-medium text-slate-700 dark:text-slate-200">{selectedPattern.name}</span>
                   {selectedPattern.description && (
-                    <span className="block text-slate-500">{selectedPattern.description}</span>
+                    <span className="block text-muted">{selectedPattern.description}</span>
                   )}
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
                     {selectedPattern.collarType && <span>คอ: <span className="text-slate-600 dark:text-slate-300">{COLLAR_TYPES[selectedPattern.collarType] || selectedPattern.collarType}</span></span>}

@@ -9,14 +9,16 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { Toaster } from "sonner";
 import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import superjson from "@/lib/superjson";
+import { PUBLIC_CUSTOMER_PREFIXES } from "@/lib/public-routes";
 import { OVERLAY_PANEL } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
-// หน้าที่บังคับโหมดสว่างเสมอ — หน้าที่ลูกค้าเปิด และ **หน้าเอกสารพิมพ์**
+// หน้าที่บังคับโหมดสว่างเสมอ — หน้าที่ลูกค้าเปิด (รายชื่อจาก lib/public-routes.ts
+// ที่เดียว) และ **หน้าเอกสารพิมพ์**
 // (/print เพิ่ม 2026-08-02 จาก audit สี: เอกสารเป็นกระดาษ A4 ขาวบนโต๊ะเทาอยู่แล้ว
 //  แต่ปุ่มกับป้ายในหน้ากลับตามธีมเครื่อง — เครื่องที่ตั้งโหมดมืดจะได้ปุ่มดำหลุดชุด
 //  และเสี่ยงพิมพ์ออกมาเป็นแถบดำเปลืองหมึก)
-const PUBLIC_LIGHT_PREFIXES = ["/approve", "/upload", "/status", "/quote", "/job", "/print"];
+const PUBLIC_LIGHT_PREFIXES = [...PUBLIC_CUSTOMER_PREFIXES, "/print"];
 
 function isPublicLightPath(pathname: string): boolean {
   return PUBLIC_LIGHT_PREFIXES.some(

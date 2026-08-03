@@ -81,6 +81,30 @@ export interface CustomerUpdatePayload {
   creditLimit?: number | null;
 }
 
+/** payload ฝั่งสร้าง — ตรง input ของ customer.create (field ว่างไม่ส่ง = undefined) */
+export interface CustomerCreatePayload {
+  customerType: CustomerTypeValue;
+  name: string;
+  company?: string;
+  phone?: string;
+  lineId?: string;
+  chatName?: string;
+  chatUrl?: string;
+  email?: string;
+  address?: string;
+  notes?: string;
+  segment: CustomerSegmentValue;
+  taxId?: string;
+  branchNumber?: string;
+  billingAddress?: string;
+  billingSubDistrict?: string;
+  billingDistrict?: string;
+  billingProvince?: string;
+  billingPostalCode?: string;
+  creditLimit?: number;
+  defaultPaymentTerms?: PaymentTermsValue;
+}
+
 export type CustomerEditErrors = Partial<
   Record<"name" | "company" | "taxId" | "creditLimit", string>
 >;
@@ -123,8 +147,74 @@ export function customerEditFormFromRecord(customer: CustomerEditRecord): Custom
   };
 }
 
+/** ค่าตั้งต้นฟอร์มเพิ่มลูกค้า — segment "NEW" ตรง default ของ customer.create ฝั่ง server */
+export function emptyCustomerForm(): CustomerEditForm {
+  return {
+    customerType: "INDIVIDUAL",
+    name: "",
+    company: "",
+    phone: "",
+    lineId: "",
+    chatName: "",
+    chatUrl: "",
+    email: "",
+    address: "",
+    notes: "",
+    segment: "NEW",
+    taxId: "",
+    branchNumber: "",
+    creditLimit: "",
+    defaultPaymentTerms: "",
+    billingAddress: "",
+    billingSubDistrict: "",
+    billingDistrict: "",
+    billingProvince: "",
+    billingPostalCode: "",
+  };
+}
+
 function nullableTrimmed(value: string): string | null {
   return value.trim() || null;
+}
+
+function undefinedTrimmed(value: string): string | undefined {
+  return value.trim() || undefined;
+}
+
+/**
+ * สร้าง payload ให้ตรง customer.create — field ว่างไม่ส่ง (undefined ต่างจาก update ที่ล้างด้วย null)
+ * รวมกติกา "SALES ไม่ส่ง creditLimit เลย — ส่งไปโดน FORBIDDEN (ช่องก็ disabled แล้ว)"
+ */
+export function buildCustomerCreatePayload(
+  form: CustomerEditForm,
+  canSetCredit: boolean
+): CustomerCreatePayload {
+  return {
+    customerType: form.customerType,
+    name: form.name.trim(),
+    company: undefinedTrimmed(form.company),
+    phone: undefinedTrimmed(form.phone),
+    lineId: undefinedTrimmed(form.lineId),
+    chatName: undefinedTrimmed(form.chatName),
+    chatUrl: undefinedTrimmed(form.chatUrl),
+    email: undefinedTrimmed(form.email),
+    address: undefinedTrimmed(form.address),
+    notes: undefinedTrimmed(form.notes),
+    segment: form.segment,
+    taxId: undefinedTrimmed(form.taxId),
+    branchNumber: undefinedTrimmed(form.branchNumber),
+    billingAddress: undefinedTrimmed(form.billingAddress),
+    billingSubDistrict: undefinedTrimmed(form.billingSubDistrict),
+    billingDistrict: undefinedTrimmed(form.billingDistrict),
+    billingProvince: undefinedTrimmed(form.billingProvince),
+    billingPostalCode: undefinedTrimmed(form.billingPostalCode),
+    ...(canSetCredit && form.creditLimit
+      ? { creditLimit: Number.parseFloat(form.creditLimit) }
+      : {}),
+    ...(form.defaultPaymentTerms
+      ? { defaultPaymentTerms: form.defaultPaymentTerms as PaymentTermsValue }
+      : {}),
+  };
 }
 
 /** สร้าง payload ให้ตรง customer.update รวมกติกา "ไม่มีสิทธิ์ = ไม่ส่งวงเงิน" */

@@ -10,8 +10,7 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { CreateProductionDialog } from "@/components/production/create-production-dialog";
 import { StepQtySheet } from "@/components/production/step-qty-sheet";
 import {
@@ -189,21 +188,6 @@ function ProductionWorkspace() {
     setCreateOrderId(createParam);
     router.replace("/production", { scroll: false });
   }, [createParam, router]);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-5">
-        <PageHeader title="การผลิต" description="สายการผลิตแยกตามเทคนิค" />
-        <Skeleton className="h-28 rounded-2xl" />
-        <Skeleton className="h-80 rounded-2xl" />
-      </div>
-    );
-  }
-
-  // บอร์ดโหลดไม่สำเร็จต้องบอกตรงๆ — ไม่งั้น orders ?? [] โชว์บอร์ดว่างเหมือน "ไม่มีงาน"
-  // && !orders: พังเฉพาะโหลดแรก — refetch เบื้องหลังล้มทั้งที่มี cache ห้ามถอนบอร์ด
-  // (dialog นับ QC/รับของที่เปิดค้างจะโดน unmount ตัวเลขที่พิมพ์หาย — review จับ)
-  if (isError && !orders) return <QueryError onRetry={() => refetch()} />;
 
   const all = orders ?? [];
   const role = me?.role;
@@ -403,36 +387,52 @@ function ProductionWorkspace() {
   const focusPostCol = focus?.kind === "post" ? POST_COLUMNS.find((c) => c.key === focus.key) : null;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={canCreate ? "ศูนย์บัญชาการผลิต" : "งานผลิตของฉัน"}
-        description={
-          focus
+    <PageShell
+      // ระหว่างโหลด/พังยังไม่รู้ role+จำนวนงาน — ใช้หัวกลางๆ เดิม (ทุก state มี header ไม่ให้จอกระโดด)
+      title={orders ? (canCreate ? "ศูนย์บัญชาการผลิต" : "งานผลิตของฉัน") : "การผลิต"}
+      description={
+        !orders
+          ? "สายการผลิตแยกตามเทคนิค"
+          : focus
             ? "แตะ ← เพื่อกลับภาพรวม"
             : canCreate
               ? `ภาพรวมทั้งโรงงาน · ${all.length} งานในระบบ`
               : myWork.length > 0
                 ? `${myWork.length} ขั้นที่คุณรับผิดชอบ · งานของคุณอยู่บนสุด`
                 : "ยังไม่มีงานที่มอบให้คุณ · ดูคิวทีมด้านล่างได้"
-        }
-        action={
-          focus ? (
-            <Button variant="ghost" size="sm" onClick={() => setFocus(null)} className="gap-1.5">
-              <ChevronLeft />
-              ภาพรวม
-            </Button>
-          ) : (
-            // จอช่างพิมพ์ DTF — รวมหลายงานลงม้วนเดียว (FLOW-REDESIGN ก้อน 2)
-            <Button variant="outline" size="sm" asChild className="gap-1.5">
-              <Link href="/production/print-runs">
-                <Printer />
-                รอบพิมพ์ฟิล์ม
-              </Link>
-            </Button>
-          )
-        }
-      />
-
+      }
+      action={
+        focus ? (
+          <Button variant="ghost" size="sm" onClick={() => setFocus(null)} className="gap-1.5">
+            <ChevronLeft />
+            ภาพรวม
+          </Button>
+        ) : (
+          // จอช่างพิมพ์ DTF — รวมหลายงานลงม้วนเดียว (FLOW-REDESIGN ก้อน 2)
+          <Button variant="outline" size="sm" asChild className="gap-1.5">
+            <Link href="/production/print-runs">
+              <Printer />
+              รอบพิมพ์ฟิล์ม
+            </Link>
+          </Button>
+        )
+      }
+      loading={isLoading}
+      skeleton={
+        <>
+          <Skeleton className="h-28 rounded-2xl" />
+          <Skeleton className="h-80 rounded-2xl" />
+        </>
+      }
+      // บอร์ดโหลดไม่สำเร็จต้องบอกตรงๆ — ไม่งั้น orders ?? [] โชว์บอร์ดว่างเหมือน "ไม่มีงาน"
+      // && !orders: พังเฉพาะโหลดแรก — refetch เบื้องหลังล้มทั้งที่มี cache ห้ามถอนบอร์ด
+      // (dialog นับ QC/รับของที่เปิดค้างจะโดน unmount ตัวเลขที่พิมพ์หาย — review จับ)
+      error={
+        isError && !orders
+          ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
+          : null
+      }
+    >
       {focus === null ? (
         // ── ภาพรวม (default) — ศูนย์บัญชาการ ──
         <ProductionCommandCenter
@@ -630,7 +630,7 @@ function ProductionWorkspace() {
           onClose={() => setQtyStep(null)}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -783,7 +783,7 @@ function LaneCardView({
         )}
       </div>
       {activeOutsource && (
-        <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+        <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
           <Truck className="h-3 w-3 shrink-0" />
           {activeOutsource.vendor.name} ·{" "}
           {OUTSOURCE_STATUS_LABELS[activeOutsource.status] ?? activeOutsource.status}

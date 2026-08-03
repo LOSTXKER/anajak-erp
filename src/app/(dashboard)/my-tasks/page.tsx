@@ -12,11 +12,10 @@ import {
   UsersRound,
 } from "lucide-react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
@@ -371,31 +370,36 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
 export default function MyTasksPage() {
   const { data, isLoading, isError, refetch } = trpc.task.myToday.useQuery();
 
-  if (isLoading) {
-    return (
-      <div className="space-y-5">
-        <PageHeader title="งานของฉัน" description="เรียงสิ่งที่ต้องทำก่อนให้แล้ว" />
-        {[0, 1, 2].map((index) => <Skeleton key={index} className="h-44 rounded-2xl" />)}
-      </div>
-    );
-  }
-
-  if (isError || !data) return <QueryError onRetry={() => refetch()} />;
-
-  const groups = groupTaskItems(buildTaskItems(data)).filter((group) => group.items.length > 0);
+  const groups = data
+    ? groupTaskItems(buildTaskItems(data)).filter((group) => group.items.length > 0)
+    : [];
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="งานของฉัน"
-        description={
-          total > 0
+    <PageShell
+      title="งานของฉัน"
+      // ระหว่างโหลด/พังยังไม่รู้จำนวนงาน — ใช้ข้อความกลางเดิม (header อยู่ครบทุก state)
+      description={
+        !data
+          ? "เรียงสิ่งที่ต้องทำก่อนให้แล้ว"
+          : total > 0
             ? `${total} งาน · เรียงงานติดปัญหาและใกล้กำหนดไว้ก่อนแล้ว`
             : "เคลียร์หมดแล้ว — ไม่มีงานค้าง"
-        }
-      />
-
+      }
+      loading={isLoading}
+      skeleton={
+        <>
+          {[0, 1, 2].map((index) => (
+            <Skeleton key={index} className="h-44 rounded-2xl" />
+          ))}
+        </>
+      }
+      error={
+        isError || (!isLoading && !data)
+          ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
+          : null
+      }
+    >
       {groups.length === 0 ? (
         <div className="card-surface rounded-2xl">
           <EmptyState
@@ -409,6 +413,6 @@ export default function MyTasksPage() {
           {groups.map((group) => <TaskGroupCard key={group.id} group={group} />)}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

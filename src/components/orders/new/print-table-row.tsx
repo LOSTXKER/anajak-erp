@@ -1,146 +1,241 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import {
   PRINT_POSITIONS,
   PRINT_TYPES,
   PRINT_SIZES,
+  type PrintForm,
 } from "@/types/order-form";
-import { useState, useRef } from "react";
-import { uploadFile } from "@/lib/supabase";
-import { safeFileExt } from "@/lib/file-urls";
-// Field ประกาศ local ถูกยุบทิ้ง (UX4) — ใช้ตัวกลางที่เดินสาย id/aria/error ให้ครบ
-import { Field } from "@/components/ui/field";
-import { DASHED, FOCUS_BUTTON } from "@/components/ui/tokens";
+import { DASHED, FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
+import { usePrintRow } from "./use-print-row";
 
 export function PrintTableRow({
   print, printIdx, onUpdate, onRemove, printCatalog, onApplyCatalog,
 }: {
-  print: import("@/types/order-form").PrintForm;
+  print: PrintForm;
   printIdx: number;
   onUpdate: (field: string, value: unknown) => void;
   onRemove: () => void;
   printCatalog?: Array<{ id: string; name: string; type: string; defaultPrice: number; pricingType: string }>;
   onApplyCatalog: (catalogId: string) => void;
 }) {
-  const [uploading, setUploading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const isCustomSize = print.printSize === "CUSTOM" || !print.printSize;
-  const showColorCount = print.printType === "SILK_SCREEN" || print.printType === "HEAT_TRANSFER";
-  const imageUrl = print.designImagePreview || print.designImageUrl;
-
-  const handleSizePreset = (preset: string) => {
-    onUpdate("printSize", preset);
-    const sizeConfig = PRINT_SIZES[preset];
-    if (sizeConfig && preset !== "CUSTOM") {
-      onUpdate("width", sizeConfig.width);
-      onUpdate("height", sizeConfig.height);
-    }
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || file.size > 10 * 1024 * 1024) return;
-    setUploading(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => onUpdate("designImagePreview", ev.target?.result as string);
-    reader.readAsDataURL(file);
-    try {
-      const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeFileExt(file.name)}`;
-      const url = await uploadFile("designs", `orders/prints/${uniqueName}`, file);
-      onUpdate("designImageUrl", url);
-      // identity ของลายในคลัง = รูป — เปลี่ยนรูปแล้วลิงก์คลังเดิมต้องหลุด
-      // (server กรองซ้ำอีกชั้น แต่ล้างที่ต้นทางให้ state ตรงความจริง)
-      onUpdate("artworkId", undefined);
-    } catch {
-      onUpdate("designImagePreview", undefined);
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  };
+  const {
+    uploading,
+    inputRef,
+    handleSizePreset,
+    handleImageUpload,
+    clearImage,
+    isCustomSize,
+    showColorCount,
+    imageUrl,
+    sizePreset,
+  } = usePrintRow(print, onUpdate);
+  const dash = <span className="text-xs text-slate-300 dark:text-slate-600">—</span>;
 
   return (
-    <>
-      {/* แถวหลัก: รูป · วิธีพิมพ์ · ค่าสกรีน · ลบ */}
-      <tr className="group border-b border-slate-100 last:border-0 dark:border-slate-800">
-        {/* Image */}
-        <td className="py-2.5 pr-2 align-middle">
-          <input ref={inputRef} type="file" accept="image/*,.pdf,.ai,.psd" onChange={handleImageUpload} className="hidden" aria-label={`อัปโหลดไฟล์ลาย ${printIdx + 1}`} />
-          {imageUrl ? (
-            <div className="group/img relative inline-block">
-              <button type="button" onClick={() => inputRef.current?.click()} aria-label={`เปลี่ยนไฟล์ลาย ${printIdx + 1}`} className={cn("block min-h-11 min-w-11 rounded-lg", FOCUS_BUTTON)}>
-                <img src={imageUrl} alt={`ลาย ${printIdx + 1}`} className="h-11 w-11 rounded-lg border border-slate-200 object-cover dark:border-slate-700" />
-              </button>
-              <Button type="button" variant="destructive" size="icon" aria-label={`ลบไฟล์ลาย ${printIdx + 1}`} onClick={() => { onUpdate("designImageUrl", undefined); onUpdate("designImagePreview", undefined); onUpdate("artworkId", undefined); }} className="absolute -right-3 -top-3 h-8 min-h-8 w-8 min-w-8 rounded-full p-0"><X /></Button>
-            </div>
-          ) : (
-            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading} aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`} className={cn(DASHED, "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-slate-600")}>
-              {uploading ? <Spinner size="md" /> : <Plus className="h-4 w-4" />}
+    <tr className="border-b border-slate-200 last:border-0 dark:border-white/10">
+      <td className="py-2 pr-1 align-middle">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*,.pdf,.ai,.psd"
+          onChange={handleImageUpload}
+          className="hidden"
+          aria-label={`อัปโหลดไฟล์ลาย ${printIdx + 1}`}
+        />
+        {imageUrl ? (
+          <div className="relative inline-block">
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              aria-label={`เปลี่ยนไฟล์ลาย ${printIdx + 1}`}
+              className={cn(RADIUS.item, FOCUS_BUTTON, "block min-h-11 min-w-11")}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageUrl}
+                alt={`ลาย ${printIdx + 1}`}
+                className={cn(RADIUS.item, "h-11 w-11 border border-slate-200 object-cover dark:border-slate-700")}
+              />
             </button>
-          )}
-        </td>
-        {/* Print type (+ catalog) */}
-        <td className="px-1 py-2.5 align-middle">
-          {printCatalog && printCatalog.length > 0 ? (
-            <Select aria-label={`เลือกวิธีพิมพ์หรือต้นแบบ จุดที่ ${printIdx + 1}`} value="" onChange={(e) => { if (e.target.value) onApplyCatalog(e.target.value); }}>
-              <option value="">{print.printType ? PRINT_TYPES[print.printType] || print.printType : "วิธีพิมพ์..."}</option>
-              {printCatalog.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </Select>
-          ) : (
-            <Select aria-label={`เลือกวิธีพิมพ์ จุดที่ ${printIdx + 1}`} value={print.printType} onChange={(e) => onUpdate("printType", e.target.value)}>
-              {Object.entries(PRINT_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </Select>
-          )}
-        </td>
-        {/* Price (ค่าสกรีน) */}
-        <td className="px-1 py-2.5 align-middle">
-          <Input type="number" min={0} step={0.01} value={print.unitPrice || ""} onChange={(e) => onUpdate("unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="w-full text-right" />
-        </td>
-        {/* Delete */}
-        <td className="py-2.5 pl-1 align-middle">
-          <Button type="button" variant="ghost" size="icon" aria-label={`ลบจุดพิมพ์ ${printIdx + 1}`} onClick={onRemove} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"><Trash2 /></Button>
-        </td>
-      </tr>
+            <ImageRemoveButton
+              label={`ลบไฟล์ลาย ${printIdx + 1}`}
+              onClick={clearImage}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`}
+            className={cn(
+              DASHED,
+              RADIUS.item,
+              FOCUS_BUTTON,
+              "flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500"
+            )}
+          >
+            {uploading ? <Spinner size="md" /> : <Plus />}
+          </button>
+        )}
+      </td>
 
-      {/* รายละเอียดลาย — กางตลอด */}
-      <tr className="border-b border-slate-100 last:border-0 dark:border-slate-800">
-        <td aria-hidden="true" />
-        <td colSpan={3} className="pb-3 pl-1 pt-1">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <Field label="ขนาด">
-                <Select value={print.printSize || ""} onChange={(e) => handleSizePreset(e.target.value)}>
-                  <option value="">ขนาด...</option>
-                  {Object.entries(PRINT_SIZES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </Select>
-              </Field>
-              <Field label="ตำแหน่ง">
-                <Select value={print.position} onChange={(e) => onUpdate("position", e.target.value)}>
-                  {Object.entries(PRINT_POSITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </Select>
-              </Field>
-              {showColorCount && (
-                <Field label="จำนวนสี">
-                  <Input type="number" min={1} value={print.colorCount} onChange={(e) => onUpdate("colorCount", parseInt(e.target.value) || 1)} className="text-center" />
-                </Field>
-              )}
-              {isCustomSize && (
-                <Field label="ขนาดเอง (ซม.)">
-                  <div className="flex items-center gap-1.5">
-                    <Input type="number" min={0} step={0.1} value={print.width || ""} onChange={(e) => onUpdate("width", parseFloat(e.target.value) || 0)} placeholder="กว้าง" className="w-full text-center" />
-                    <span className="text-xs text-slate-400">x</span>
-                    <Input type="number" min={0} step={0.1} value={print.height || ""} onChange={(e) => onUpdate("height", parseFloat(e.target.value) || 0)} placeholder="สูง" className="w-full text-center" />
-                  </div>
-                </Field>
-              )}
-            </div>
-        </td>
-      </tr>
-    </>
+      <td className="px-1 py-2 align-middle">
+        {printCatalog && printCatalog.length > 0 ? (
+          <Select
+            size="sm"
+            aria-label={`เลือกวิธีพิมพ์หรือต้นแบบ จุดที่ ${printIdx + 1}`}
+            value=""
+            onChange={(event) => {
+              if (event.target.value) onApplyCatalog(event.target.value);
+            }}
+          >
+            <option value="">
+              {print.printType
+                ? PRINT_TYPES[print.printType] || print.printType
+                : "วิธีพิมพ์..."}
+            </option>
+            {printCatalog.map((catalogItem) => (
+              <option key={catalogItem.id} value={catalogItem.id}>
+                {catalogItem.name}
+              </option>
+            ))}
+          </Select>
+        ) : (
+          <Select
+            size="sm"
+            aria-label={`เลือกวิธีพิมพ์ จุดที่ ${printIdx + 1}`}
+            value={print.printType}
+            onChange={(event) => onUpdate("printType", event.target.value)}
+          >
+            {Object.entries(PRINT_TYPES).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        )}
+      </td>
+
+      <td className="px-1 py-2 align-middle">
+        <Select
+          size="sm"
+          aria-label={`ขนาดลาย จุดที่ ${printIdx + 1}`}
+          value={print.printSize || ""}
+          onChange={(event) => handleSizePreset(event.target.value)}
+        >
+          <option value="">ขนาด...</option>
+          {Object.entries(PRINT_SIZES).map(([key, value]) => (
+            <option key={key} value={key}>
+              {key === "CUSTOM" ? value.label : key}
+            </option>
+          ))}
+        </Select>
+      </td>
+
+      <td className="px-1 py-2 align-middle">
+        {isCustomSize ? (
+          <div className="flex items-center gap-0.5">
+            <Input
+              aria-label={`ความกว้างลาย จุดที่ ${printIdx + 1} (ซม.)`}
+              type="number"
+              min={0}
+              step={0.1}
+              value={print.width || ""}
+              onChange={(event) =>
+                onUpdate("width", parseFloat(event.target.value) || 0)
+              }
+              placeholder="0"
+              size="dense" className="w-full px-1 text-center"
+            />
+            <span className="text-xs text-slate-400">×</span>
+            <Input
+              aria-label={`ความสูงลาย จุดที่ ${printIdx + 1} (ซม.)`}
+              type="number"
+              min={0}
+              step={0.1}
+              value={print.height || ""}
+              onChange={(event) =>
+                onUpdate("height", parseFloat(event.target.value) || 0)
+              }
+              placeholder="0"
+              size="dense" className="w-full px-1 text-center"
+            />
+          </div>
+        ) : (
+          <div className="flex h-9 items-center justify-center text-xs tabular-nums text-slate-500 dark:text-slate-400">
+            {sizePreset ? `${sizePreset.width} × ${sizePreset.height}` : dash}
+          </div>
+        )}
+      </td>
+
+      <td className="px-1 py-2 align-middle">
+        <Select
+          size="dense"
+          aria-label={`ตำแหน่งลาย จุดที่ ${printIdx + 1}`}
+          value={print.position}
+          onChange={(event) => onUpdate("position", event.target.value)}
+        >
+          {Object.entries(PRINT_POSITIONS).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
+        </Select>
+      </td>
+
+      <td className="px-1 py-2 align-middle">
+        {showColorCount ? (
+          <Input
+            aria-label={`จำนวนสีของลาย จุดที่ ${printIdx + 1}`}
+            type="number"
+            min={1}
+            value={print.colorCount}
+            onChange={(event) =>
+              onUpdate("colorCount", parseInt(event.target.value) || 1)
+            }
+            size="dense" className="w-full px-1 text-center"
+          />
+        ) : (
+          <div className="flex h-9 items-center justify-center">{dash}</div>
+        )}
+      </td>
+
+      <td className="px-1 py-2 align-middle">
+        <Input
+          aria-label={`ค่าสกรีน จุดที่ ${printIdx + 1}`}
+          type="number"
+          min={0}
+          step={0.01}
+          value={print.unitPrice || ""}
+          onChange={(event) =>
+            onUpdate("unitPrice", parseFloat(event.target.value) || 0)
+          }
+          placeholder="0.00"
+          size="dense" className="w-full px-2 text-right"
+        />
+      </td>
+
+      <td className="py-2 pl-1 align-middle">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`ลบจุดพิมพ์ ${printIdx + 1}`}
+          onClick={onRemove}
+          className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+        >
+          <Trash2 />
+        </Button>
+      </td>
+    </tr>
   );
 }

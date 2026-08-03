@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
+import { DataTable } from "@/components/ui/data-table";
 import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { Package, Cloud, Trash2 } from "lucide-react";
@@ -258,7 +259,7 @@ export default function ProductDetailPage({
                     : formatCurrency(product.basePrice);
                   return (
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">ราคาขาย</span>
+                      <span className="text-muted">ราคาขาย</span>
                       <span className="font-semibold tabular-nums text-blue-600 dark:text-blue-400">
                         {displayPrice}
                       </span>
@@ -267,43 +268,43 @@ export default function ProductDetailPage({
                 })()}
                 {canSeeCost && product.costPrice && product.costPrice > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">ราคาทุน</span>
+                    <span className="text-muted">ราคาทุน</span>
                     <span className="tabular-nums">
                       {formatCurrency(product.costPrice)}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">สต็อกรวม</span>
+                  <span className="text-muted">สต็อกรวม</span>
                   <span className="font-semibold tabular-nums">
                     {product.totalStock || totalStock} ชิ้น
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">ตัวเลือก</span>
+                  <span className="text-muted">ตัวเลือก</span>
                   <span>{product.variants.length} รายการ</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">กลุ่มสินค้า</span>
+                  <span className="text-muted">กลุ่มสินค้า</span>
                   <Badge variant="secondary">
                     {itemTypeLabels[product.itemType] || product.itemType}
                   </Badge>
                 </div>
                 {product.category && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">หมวดหมู่</span>
+                    <span className="text-muted">หมวดหมู่</span>
                     <span>{product.category}</span>
                   </div>
                 )}
                 {product.barcode && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Barcode</span>
+                    <span className="text-muted">Barcode</span>
                     <span className="font-mono text-xs">{product.barcode}</span>
                   </div>
                 )}
                 {product.unit && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">หน่วย</span>
+                    <span className="text-muted">หน่วย</span>
                     <span>{product.unitName || product.unit}</span>
                   </div>
                 )}
@@ -344,122 +345,104 @@ export default function ProductDetailPage({
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-slate-100 dark:border-slate-800">
-                        <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                          สี
-                        </th>
-                        <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                          ไซส์
-                        </th>
-                        <th className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                          SKU
-                        </th>
-                        <th className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
-                          ราคา
-                        </th>
-                        <th className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
-                          ปรับราคา (ERP)
-                        </th>
-                        <th className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
-                          สต็อก
-                        </th>
-                        <th className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
-                          สถานะ
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {product.variants.map((variant) => (
-                        <tr
-                          key={variant.id}
-                          className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                            !variant.isActive ? "opacity-50" : ""
-                          }`}
-                        >
-                          <td className="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">
-                            {variant.color}
-                          </td>
-                          <td className="px-3 py-2.5 text-sm font-medium text-slate-900 dark:text-white">
-                            {variant.size}
-                          </td>
-                          <td className="px-3 py-2.5 font-mono text-xs text-slate-500">
-                            {variant.sku}
-                          </td>
-                          <td className="px-3 py-2.5 text-right text-sm tabular-nums">
-                            <span className="font-medium text-slate-900 dark:text-white">
-                              {formatCurrency(
-                                (variant.sellingPrice > 0 ? variant.sellingPrice : product.basePrice) + variant.priceAdj
+                <DataTable.Root bordered={false}>
+                  <DataTable.Head>
+                    <tr>
+                      <DataTable.Th>สี</DataTable.Th>
+                      <DataTable.Th>ไซส์</DataTable.Th>
+                      <DataTable.Th>SKU</DataTable.Th>
+                      <DataTable.Th align="right">ราคา</DataTable.Th>
+                      <DataTable.Th align="right">ปรับราคา (ERP)</DataTable.Th>
+                      <DataTable.Th align="right">สต็อก</DataTable.Th>
+                      <DataTable.Th align="center">สถานะ</DataTable.Th>
+                    </tr>
+                  </DataTable.Head>
+                  <DataTable.Body>
+                    {product.variants.map((variant) => (
+                      <DataTable.Row
+                        key={variant.id}
+                        className={!variant.isActive ? "opacity-50" : undefined}
+                      >
+                        <DataTable.Td className="text-slate-600 dark:text-slate-400">
+                          {variant.color}
+                        </DataTable.Td>
+                        <DataTable.Td className="font-medium text-slate-900 dark:text-white">
+                          {variant.size}
+                        </DataTable.Td>
+                        <DataTable.Td className="font-mono text-xs text-muted">
+                          {variant.sku}
+                        </DataTable.Td>
+                        <DataTable.Td align="right" className="tabular-nums">
+                          <span className="font-medium text-slate-900 dark:text-white">
+                            {formatCurrency(
+                              (variant.sellingPrice > 0 ? variant.sellingPrice : product.basePrice) + variant.priceAdj
+                            )}
+                          </span>
+                        </DataTable.Td>
+                        <DataTable.Td align="right">
+                          {canManage ? (
+                            <div className="ml-auto w-28">
+                              <Input
+                                type="number"
+                                step={0.01}
+                                value={priceDrafts[variant.id] ?? String(variant.priceAdj || 0)}
+                                onChange={(event) => {
+                                  setPriceError(null);
+                                  setPriceDrafts((current) => ({
+                                    ...current,
+                                    [variant.id]: event.target.value,
+                                  }));
+                                }}
+                                onBlur={() => commitVariantPriceAdj(variant.id, variant.priceAdj)}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") event.currentTarget.blur();
+                                  if (event.key === "Escape") {
+                                    setPriceDrafts((current) => {
+                                      const next = { ...current };
+                                      delete next[variant.id];
+                                      return next;
+                                    });
+                                    event.currentTarget.blur();
+                                  }
+                                }}
+                                aria-label={`ปรับราคาของ ${variant.color} ${variant.size}`}
+                                className="text-right tabular-nums"
+                              />
+                              {priceDrafts[variant.id] !== undefined && (
+                                <span className="mt-1 block text-xs text-amber-700 dark:text-amber-300">
+                                  ออกจากช่องเพื่อบันทึก
+                                </span>
                               )}
+                            </div>
+                          ) : (
+                            <span className="text-sm tabular-nums text-slate-600 dark:text-slate-300">
+                              {formatCurrency(variant.priceAdj)}
                             </span>
-                          </td>
-                          <td className="px-3 py-2.5 text-right">
-                            {canManage ? (
-                              <div className="ml-auto w-28">
-                                <Input
-                                  type="number"
-                                  step={0.01}
-                                  value={priceDrafts[variant.id] ?? String(variant.priceAdj || 0)}
-                                  onChange={(event) => {
-                                    setPriceError(null);
-                                    setPriceDrafts((current) => ({
-                                      ...current,
-                                      [variant.id]: event.target.value,
-                                    }));
-                                  }}
-                                  onBlur={() => commitVariantPriceAdj(variant.id, variant.priceAdj)}
-                                  onKeyDown={(event) => {
-                                    if (event.key === "Enter") event.currentTarget.blur();
-                                    if (event.key === "Escape") {
-                                      setPriceDrafts((current) => {
-                                        const next = { ...current };
-                                        delete next[variant.id];
-                                        return next;
-                                      });
-                                      event.currentTarget.blur();
-                                    }
-                                  }}
-                                  aria-label={`ปรับราคาของ ${variant.color} ${variant.size}`}
-                                  className="text-right tabular-nums"
-                                />
-                                {priceDrafts[variant.id] !== undefined && (
-                                  <span className="mt-1 block text-xs text-amber-700 dark:text-amber-300">
-                                    ออกจากช่องเพื่อบันทึก
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-sm tabular-nums text-slate-600 dark:text-slate-300">
-                                {formatCurrency(variant.priceAdj)}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5 text-right text-sm tabular-nums text-slate-600 dark:text-slate-400">
-                            {variant.totalStock || variant.stock}
-                          </td>
-                          <td className="px-3 py-2.5 text-center">
-                            {canManage ? <Switch
-                              checked={variant.isActive}
-                              onCheckedChange={() =>
-                                handleToggleVariantActive(
-                                  variant.id,
-                                  variant.isActive
-                                )
-                              }
-                              aria-label={`${variant.isActive ? "ปิด" : "เปิด"}ตัวเลือก ${variant.color} ${variant.size}`}
-                            /> : (
-                              <Badge variant={variant.isActive ? "success" : "secondary"} size="sm">
-                                {variant.isActive ? "ใช้งาน" : "ปิด"}
-                              </Badge>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          )}
+                        </DataTable.Td>
+                        <DataTable.Td align="right" className="tabular-nums text-slate-600 dark:text-slate-400">
+                          {variant.totalStock || variant.stock}
+                        </DataTable.Td>
+                        <DataTable.Td align="center">
+                          {canManage ? <Switch
+                            checked={variant.isActive}
+                            onCheckedChange={() =>
+                              handleToggleVariantActive(
+                                variant.id,
+                                variant.isActive
+                              )
+                            }
+                            aria-label={`${variant.isActive ? "ปิด" : "เปิด"}ตัวเลือก ${variant.color} ${variant.size}`}
+                          /> : (
+                            <Badge variant={variant.isActive ? "success" : "secondary"} size="sm">
+                              {variant.isActive ? "ใช้งาน" : "ปิด"}
+                            </Badge>
+                          )}
+                        </DataTable.Td>
+                      </DataTable.Row>
+                    ))}
+                  </DataTable.Body>
+                </DataTable.Root>
               )}
             </CardContent>
           </Card>

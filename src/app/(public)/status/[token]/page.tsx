@@ -2,8 +2,16 @@
 
 import { use } from "react";
 import { trpc } from "@/lib/trpc";
-import { formatDate, isImageUrl } from "@/lib/utils";
+import { formatDate, formatBaht, isImageUrl } from "@/lib/utils";
 import { INVOICE_TYPE_LABELS_CUSTOMER } from "@/lib/invoice-labels";
+import {
+  PAYMENT_STATUS_LABELS,
+  PAYMENT_STATUS_VARIANTS,
+  QUOTATION_STATUS_LABELS_CUSTOMER,
+  DELIVERY_STATUS_LABELS_CUSTOMER,
+  DELIVERY_STATUS_VARIANTS,
+} from "@/lib/status-config";
+import { SHIPPING_METHOD_LABELS } from "@/lib/shipping-methods";
 import {
   CUSTOMER_STATUS_LABELS,
   CUSTOMER_STATUS_COLORS,
@@ -11,52 +19,20 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PublicLinkError } from "@/components/public-link-error";
+import {
+  PublicPageShell,
+  FullScreenLoading,
+  InfoRow,
+} from "@/components/public/public-page";
 import { Package, CheckCircle2, Palette, FileText, Truck, ExternalLink, Check, XCircle } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
 
 // หน้าสถานะออเดอร์สำหรับลูกค้า (FLOW-REDESIGN ก้อน 4 — portal ขั้น 1)
 // เปิดผ่านลิงก์ token ไม่ต้อง login — โชว์เฉพาะข้อมูลของลูกค้า (sanitize ที่ server แล้ว)
 
-const PAYMENT_STATUS: Record<string, { label: string; variant: "success" | "warning" | "destructive" | "default" }> = {
-  UNPAID: { label: "ยังไม่ชำระ", variant: "warning" },
-  PARTIALLY_PAID: { label: "ชำระบางส่วน", variant: "warning" },
-  PAID: { label: "ชำระแล้ว", variant: "success" },
-  OVERDUE: { label: "เลยกำหนด", variant: "destructive" },
-  VOIDED: { label: "ยกเลิก", variant: "default" },
-};
+// สถานะ/วิธีส่งทุกชุดมาจาก lib กลาง — ห้ามประกาศ map ในไฟล์นี้อีก
+// (เคยประกาศเอง 4 ชุดแล้ว drift: สี PARTIALLY_PAID กับคำหลายตัวไม่ตรงฝั่งทีม)
 
-const QUOTATION_STATUS: Record<string, string> = {
-  DRAFT: "ร่าง",
-  SENT: "ส่งแล้ว",
-  ACCEPTED: "ตกลงแล้ว",
-  REJECTED: "ปฏิเสธ",
-  EXPIRED: "หมดอายุ",
-  CONVERTED: "ยืนยันเป็นออเดอร์",
-};
-
-const DELIVERY_STATUS: Record<string, string> = {
-  PENDING: "รอจัดส่ง",
-  PREPARING: "กำลังเตรียมส่ง",
-  SHIPPED: "จัดส่งแล้ว",
-  DELIVERED: "ส่งถึงแล้ว",
-  RETURNED: "ตีกลับ",
-};
-
-const SHIPPING_METHOD: Record<string, string> = {
-  PICKUP: "รับเอง",
-  KERRY: "Kerry Express",
-  FLASH: "Flash Express",
-  THAILAND_POST: "ไปรษณีย์ไทย",
-  J_AND_T: "J&T Express",
-  GRAB: "Grab",
-  LALAMOVE: "Lalamove",
-  SHOPEE_SHIP: "Shopee",
-  LAZADA_SHIP: "Lazada",
-  OTHER: "อื่นๆ",
-};
-
-const baht = (n: number) =>
-  `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const baht = formatBaht;
 
 export default function OrderStatusPage({
   params,
@@ -67,14 +43,7 @@ export default function OrderStatusPage({
   const status = trpc.customerStatus.getStatus.useQuery({ token });
 
   if (status.isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Spinner size="lg" />
-          <span>กำลังโหลด...</span>
-        </div>
-      </div>
-    );
+    return <FullScreenLoading />;
   }
 
   if (status.error || !status.data) {
@@ -87,17 +56,12 @@ export default function OrderStatusPage({
   const statusColor = CUSTOMER_STATUS_COLORS[d.customerStatus];
 
   return (
-    <div className="min-h-screen bg-bg p-4">
-      <div className="mx-auto max-w-2xl space-y-5 py-6">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mb-1 flex items-center justify-center gap-2">
-            <Package className="h-6 w-6 text-blue-600" />
-            <h1 className="text-xl font-semibold text-slate-900">{d.brandName}</h1>
-          </div>
-          <p className="text-sm text-slate-500">ติดตามสถานะงานของคุณ</p>
-        </div>
-
+    <PublicPageShell
+      icon={<Package className="h-6 w-6 text-blue-600" />}
+      title={d.brandName}
+      subtitle="ติดตามสถานะงานของคุณ"
+      hideFooter={d.isBlindShip}
+    >
         {/* Order info + current status */}
         <Card>
           <CardContent className="space-y-4 p-5">
@@ -114,15 +78,9 @@ export default function OrderStatusPage({
               </span>
             </div>
             <div className="grid gap-1.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-500">ลูกค้า</span>
-                <span className="font-medium text-slate-800">{d.customerName}</span>
-              </div>
+              <InfoRow label="ลูกค้า">{d.customerName}</InfoRow>
               {d.deadline && (
-                <div className="flex justify-between">
-                  <span className="text-slate-500">กำหนดส่ง</span>
-                  <span className="font-medium text-slate-800">{formatDate(d.deadline)}</span>
-                </div>
+                <InfoRow label="กำหนดส่ง">{formatDate(d.deadline)}</InfoRow>
               )}
             </div>
           </CardContent>
@@ -240,10 +198,10 @@ export default function OrderStatusPage({
                 <div key={i} className="rounded-xl border border-slate-200 p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-medium text-slate-800">
-                      {SHIPPING_METHOD[dv.shippingMethod] ?? dv.shippingMethod}
+                      {SHIPPING_METHOD_LABELS[dv.shippingMethod] ?? dv.shippingMethod}
                     </span>
-                    <Badge variant="secondary">
-                      {DELIVERY_STATUS[dv.status] ?? dv.status}
+                    <Badge variant={DELIVERY_STATUS_VARIANTS[dv.status as keyof typeof DELIVERY_STATUS_VARIANTS] ?? "secondary"}>
+                      {DELIVERY_STATUS_LABELS_CUSTOMER[dv.status] ?? dv.status}
                     </Badge>
                   </div>
                   {dv.trackingNumber && (
@@ -291,7 +249,7 @@ export default function OrderStatusPage({
                       ใบเสนอราคา {q.quotationNumber}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {QUOTATION_STATUS[q.status] ?? q.status} · ยืนราคาถึง {formatDate(q.validUntil)}
+                      {QUOTATION_STATUS_LABELS_CUSTOMER[q.status] ?? q.status} · ยืนราคาถึง {formatDate(q.validUntil)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -311,9 +269,9 @@ export default function OrderStatusPage({
                 </div>
               ))}
               {d.invoices.map((inv, i) => {
-                const ps = PAYMENT_STATUS[inv.paymentStatus] ?? {
-                  label: inv.paymentStatus,
-                  variant: "default" as const,
+                const ps = {
+                  label: PAYMENT_STATUS_LABELS[inv.paymentStatus as keyof typeof PAYMENT_STATUS_LABELS] ?? inv.paymentStatus,
+                  variant: PAYMENT_STATUS_VARIANTS[inv.paymentStatus as keyof typeof PAYMENT_STATUS_VARIANTS] ?? ("default" as const),
                 };
                 return (
                   <div key={`i${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 text-sm">
@@ -336,11 +294,6 @@ export default function OrderStatusPage({
             </CardContent>
           </Card>
         )}
-
-        <p className="text-center text-xs text-slate-400">
-          {d.isBlindShip ? "" : "Powered by Anajak Print ERP"}
-        </p>
-      </div>
-    </div>
+    </PublicPageShell>
   );
 }

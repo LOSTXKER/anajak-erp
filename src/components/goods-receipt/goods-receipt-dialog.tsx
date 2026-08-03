@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
@@ -14,12 +13,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { cn } from "@/lib/utils";
 import { RECEIPT_TYPE_LABELS, type ReceiptType } from "@/lib/goods-receipt";
-import { ClipboardCheck, Loader2 } from "lucide-react";
+import { ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { FOCUS_FIELD } from "@/components/ui/tokens";
@@ -209,7 +208,7 @@ function ReceiptForm({
                   <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
                     {l.description}
                     {l.size && (
-                      <span className="ml-1.5 text-slate-500">
+                      <span className="ml-1.5 text-muted">
                         {l.size}
                         {l.color ? `/${l.color}` : ""}
                       </span>
@@ -220,7 +219,7 @@ function ReceiptForm({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label htmlFor={`receipt-count-${idx}`} className="text-xs text-slate-500">{isReturn ? "คืน" : "นับได้"}</label>
+                  <label htmlFor={`receipt-count-${idx}`} className="text-xs text-muted">{isReturn ? "คืน" : "นับได้"}</label>
                   <Input
                     id={`receipt-count-${idx}`}
                     type="number"
@@ -243,7 +242,7 @@ function ReceiptForm({
               </div>
               {!isReturn && (
                 <div className="flex items-center gap-2">
-                  <label htmlFor={`receipt-defect-${idx}`} className="text-xs text-slate-500">ตำหนิ</label>
+                  <label htmlFor={`receipt-defect-${idx}`} className="text-xs text-muted">ตำหนิ</label>
                   <Input
                     id={`receipt-defect-${idx}`}
                     type="number"
@@ -272,7 +271,7 @@ function ReceiptForm({
 
           {/* รูปถ่ายของจริง — แนบได้หลายรูป (กองเสื้อ/จุดตำหนิ) */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-slate-500">รูปถ่าย (ถ้ามี)</p>
+            <p className="text-xs font-medium text-muted">รูปถ่าย (ถ้ามี)</p>
             {photoUrls.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {photoUrls.map((url) => (
@@ -309,23 +308,14 @@ function ReceiptForm({
           />
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose}>
-            ยกเลิก
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={create.isPending || (totalCounted <= 0 && totalDefect <= 0)}
-            className="gap-1.5"
-          >
-            {create.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <ClipboardCheck />
-            )}
-            บันทึก {totalCounted} ตัว
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={create.isPending}
+          disabled={totalCounted <= 0 && totalDefect <= 0}
+          submitLabel={`บันทึก ${totalCounted} ตัว`}
+          submitIcon={<ClipboardCheck />}
+          onCancel={onClose}
+          onSubmit={handleSave}
+        />
       </DialogContent>
     </Dialog>
   );

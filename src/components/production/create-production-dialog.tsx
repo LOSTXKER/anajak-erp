@@ -9,9 +9,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,7 +24,7 @@ import {
   isOutsourceStep,
   LANE_LABELS,
 } from "@/lib/production-steps";
-import { AlertTriangle, Factory, Loader2, X } from "lucide-react";
+import { AlertTriangle, Factory, X } from "lucide-react";
 import type { ProductionStepType } from "@prisma/client";
 import { Alert } from "@/components/ui/alert";
 
@@ -235,7 +235,7 @@ function StepBuilder({
           onChange={(e) => {
             if (e.target.value) addStep(e.target.value);
           }}
-          className="w-full text-slate-500"
+          className="w-full text-muted"
         >
           <option value="">+ เพิ่มขั้นตอน...</option>
           {STEP_TYPE_OPTIONS.map((t) => (
@@ -251,23 +251,14 @@ function StepBuilder({
           {createProduction.error.message}
         </p>
       )}
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          ยกเลิก
-        </Button>
-        <Button
-          onClick={handleCreate}
-          disabled={steps.length === 0 || hasUnnamedCustom || createProduction.isPending}
-          className="gap-1.5"
-        >
-          {createProduction.isPending ? (
-            <Loader2 className="animate-spin" />
-          ) : (
-            <Factory />
-          )}
-          สร้างใบผลิต ({steps.length} ขั้นตอน)
-        </Button>
-      </DialogFooter>
+      <DialogSubmitFooter
+        pending={createProduction.isPending}
+        disabled={steps.length === 0 || hasUnnamedCustom}
+        submitLabel={`สร้างใบผลิต (${steps.length} ขั้นตอน)`}
+        submitIcon={<Factory />}
+        onCancel={onClose}
+        onSubmit={handleCreate}
+      />
     </>
   );
 }

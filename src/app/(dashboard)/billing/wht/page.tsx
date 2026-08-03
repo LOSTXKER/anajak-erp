@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useListPageState } from "@/hooks/use-list-page-state";
 import { Button } from "@/components/ui/button";
 import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
@@ -13,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ResponsiveList } from "@/components/ui/responsive-list";
 import { StatCard } from "@/components/ui/stat-card";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -24,11 +26,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { permAllows } from "@/lib/permissions";
 import {
   ReceiptText,
@@ -38,7 +40,6 @@ import {
   CheckCircle2,
   Hourglass,
   AlertTriangle,
-  Loader2,
   X,
 } from "lucide-react";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -116,9 +117,19 @@ function exportWhtCsv(rows: WhtRow[]) {
 // ────────────────────────────────────────────────────────────
 
 export default function WhtRegisterPage() {
-  const [tab, setTab] = useState<FilterTab>("pending");
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  return (
+    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+      <WhtRegisterPageContent />
+    </Suspense>
+  );
+}
+
+function WhtRegisterPageContent() {
+  const { search, searchParams, replaceListState, onSearchChange, searchInputRef } =
+    useListPageState();
+  // แท็บสถานะอยู่ใน URL (?status=received|all) — ไม่มี param/ค่าเพี้ยน = "pending" (default)
+  const rawTab = searchParams.get("status");
+  const tab: FilterTab = rawTab === "received" || rawTab === "all" ? rawTab : "pending";
 
   // Dialog "บันทึกรับหนังสือรับรอง"
   const [markTarget, setMarkTarget] = useState<WhtRow | null>(null);
@@ -127,12 +138,6 @@ export default function WhtRegisterPage() {
   const [fileUrl, setFileUrl] = useState("");
   const [notes, setNotes] = useState("");
 
-  // debounce 300ms — pattern เดียวกับหน้าคลังฟิล์ม
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
   const { data: me } = trpc.user.me.useQuery();
   const canView = me ? permAllows(me.permissions, "manage_billing_docs") : true;
 
@@ -140,7 +145,7 @@ export default function WhtRegisterPage() {
   const { data: rows, isLoading, isError, refetch } = trpc.wht.list.useQuery(
     {
       received: tab === "all" ? undefined : tab === "received",
-      search: debouncedSearch.trim() || undefined,
+      search: search.trim() || undefined,
     },
     { enabled: canView }
   );
@@ -177,43 +182,40 @@ export default function WhtRegisterPage() {
     });
   }
 
-  if (me && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader
-          title="ทะเบียนหัก ณ ที่จ่าย (50ทวิ)"
-          description="ตามหนังสือรับรองหัก ณ ที่จ่ายจากลูกค้า"
-        />
-        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
-      </div>
-    );
-  }
-
-  if (isError) return <QueryError onRetry={() => refetch()} />;
-
   const list = rows ?? [];
-  const hasSearch = debouncedSearch.trim().length > 0;
+  const hasSearch = search.trim().length > 0;
   const pendingAmount = stats.data?.pendingAmount ?? 0;
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="ทะเบียนหัก ณ ที่จ่าย (50ทวิ)"
-        description="ลูกค้าหัก 3% แล้วต้องส่งหนังสือรับรองมาให้ — ไม่มีใบ เครดิตภาษีหายฟรี"
-        breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "หัก ณ ที่จ่าย" }]}
-        action={
-          <Button
-            variant="outline"
-            onClick={() => exportWhtCsv(list)}
-            disabled={list.length === 0}
-            className="gap-1.5"
-          >
-            <Download />
-            Export CSV
-          </Button>
-        }
-      />
-
+    <PageShell
+      title="ทะเบียนหัก ณ ที่จ่าย (50ทวิ)"
+      description="ลูกค้าหัก 3% แล้วต้องส่งหนังสือรับรองมาให้ — ไม่มีใบ เครดิตภาษีหายฟรี"
+      breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "หัก ณ ที่จ่าย" }]}
+      action={
+        <Button
+          variant="outline"
+          onClick={() => exportWhtCsv(list)}
+          disabled={list.length === 0}
+          className="gap-1.5"
+        >
+          <Download />
+          Export CSV
+        </Button>
+      }
+      error={
+        isError
+          ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
+          : null
+      }
+      denied={
+        me && !canView
+          ? {
+              description:
+                'ต้องมีสิทธิ์ "ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
+            }
+          : undefined
+      }
+    >
       {/* ── สถิติ 3 ใบ ── */}
       {/* stats พังต้องบอก — เลขภาษีโชว์ 0/฿0 เงียบๆ อ่านเป็น "ไม่มียอดรอใบ" ได้ (ขัด DESIGN.md) */}
       {stats.isError ? (
@@ -249,29 +251,34 @@ export default function WhtRegisterPage() {
       {/* ── filter แท็บ + ค้นหา ── */}
       <Toolbar>
         <SearchInput
+          ref={searchInputRef}
           placeholder="ค้นหาลูกค้า / เลขบิล / เลขใบรับรอง..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          defaultValue={search}
+          onChange={(e) => onSearchChange(e.target.value)}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
         />
         <ToolbarGroup>
           {FILTER_TABS.map((t) => (
-            <FilterChip key={t.key} selected={tab === t.key} onClick={() => setTab(t.key)}>
+            <FilterChip
+              key={t.key}
+              selected={tab === t.key}
+              // "pending" = ค่า default → ส่ง null ให้ลบ param (URL สะอาด)
+              onClick={() =>
+                replaceListState({ status: t.key === "pending" ? null : t.key, page: null })
+              }
+            >
               {t.label}
             </FilterChip>
           ))}
         </ToolbarGroup>
       </Toolbar>
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-16 rounded-2xl" />
-          ))}
-        </div>
-      ) : list.length === 0 ? (
-        <div className="card-surface rounded-2xl">
-          {hasSearch ? (
+      {/* โหลด/ว่าง/สลับตาราง↔การ์ดที่ lg — ResponsiveList จัดการ (error หลักอยู่ที่ PageShell แล้ว) */}
+      <ResponsiveList
+        items={rows}
+        isLoading={isLoading}
+        emptyState={
+          hasSearch ? (
             <EmptyState
               icon={ReceiptText}
               title="ไม่พบรายการที่ค้นหา"
@@ -289,12 +296,10 @@ export default function WhtRegisterPage() {
               title="ยังไม่มีรายการ"
               description="แถวทะเบียนจะเกิดอัตโนมัติเมื่อบันทึกรับเงินที่มีหัก ณ ที่จ่าย"
             />
-          )}
-        </div>
-      ) : (
-        <>
-          {/* ── จอใหญ่ = ตาราง ── */}
-          <DataTable.Root className="hidden md:block">
+          )
+        }
+        renderDesktop={(items) => (
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>วันที่รับเงิน</DataTable.Th>
@@ -310,7 +315,7 @@ export default function WhtRegisterPage() {
               </tr>
             </DataTable.Head>
             <DataTable.Body>
-              {list.map((row) => (
+              {items.map((row) => (
                 <DataTable.Row key={row.id}>
                   <DataTable.Td className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
                     {formatDate(row.payment.createdAt)}
@@ -401,10 +406,10 @@ export default function WhtRegisterPage() {
               ))}
             </DataTable.Body>
           </DataTable.Root>
-
-          {/* ── มือถือ = การ์ด ── */}
-          <div className="space-y-3 md:hidden">
-            {list.map((row) => (
+        )}
+        renderMobile={(items) => (
+          <div className="space-y-3">
+            {items.map((row) => (
               <div
                 key={row.id}
                 className="card-surface rounded-2xl p-4"
@@ -488,8 +493,8 @@ export default function WhtRegisterPage() {
               </div>
             ))}
           </div>
-        </>
-      )}
+        )}
+      />
 
       {/* ── Dialog บันทึกรับหนังสือรับรอง ── */}
       <Dialog open={markTarget !== null} onOpenChange={(open) => !open && setMarkTarget(null)}>
@@ -567,25 +572,15 @@ export default function WhtRegisterPage() {
             </Field>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setMarkTarget(null)}>
-              ยกเลิก
-            </Button>
-            <Button
-              onClick={handleMarkReceived}
-              disabled={markReceived.isPending}
-              className="gap-1.5"
-            >
-              {markReceived.isPending ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <FileCheck2 />
-              )}
-              บันทึกได้ใบแล้ว
-            </Button>
-          </DialogFooter>
+          <DialogSubmitFooter
+            pending={markReceived.isPending}
+            submitLabel="บันทึกได้ใบแล้ว"
+            submitIcon={<FileCheck2 />}
+            onCancel={() => setMarkTarget(null)}
+            onSubmit={handleMarkReceived}
+          />
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

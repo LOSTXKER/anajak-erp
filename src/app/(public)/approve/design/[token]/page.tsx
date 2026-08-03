@@ -10,6 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLinkError } from "@/components/public-link-error";
 import {
+  PublicPageShell,
+  FullScreenLoading,
+} from "@/components/public/public-page";
+import {
   Check,
   X,
   ExternalLink,
@@ -18,7 +22,6 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
 import { DASHED } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
@@ -39,14 +42,7 @@ export default function DesignApprovalPage({
   });
 
   if (design.isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Spinner size="lg" />
-          <span>กำลังโหลด...</span>
-        </div>
-      </div>
-    );
+    return <FullScreenLoading />;
   }
 
   // ต้องเช็ค !data ด้วย ไม่ใช่แค่ error — react-query มีสถานะ "ยังไม่ยิง/หยุดพัก"
@@ -95,18 +91,10 @@ export default function DesignApprovalPage({
   }
 
   return (
-    <div className="min-h-screen bg-bg p-4">
-      <div className="mx-auto max-w-2xl space-y-6 py-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mb-2 flex items-center justify-center gap-2">
-            <Palette className="h-6 w-6 text-blue-600" />
-            <h1 className="text-xl font-semibold text-slate-900">
-              Anajak Print
-            </h1>
-          </div>
-          <p className="text-sm text-slate-500">ตรวจสอบและอนุมัติแบบ</p>
-        </div>
+    <PublicPageShell
+      icon={<Palette className="h-6 w-6 text-blue-600" />}
+      subtitle="ตรวจสอบและอนุมัติแบบ"
+    >
 
         {/* Order Info */}
         <Card>
@@ -279,11 +267,6 @@ export default function DesignApprovalPage({
             </CardContent>
           </Card>
         )}
-
-        <p className="text-center text-xs text-slate-400">
-          Powered by Anajak Print ERP
-        </p>
-      </div>
-    </div>
+    </PublicPageShell>
   );
 }

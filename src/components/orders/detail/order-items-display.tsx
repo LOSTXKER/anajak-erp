@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
 import { formatCurrency, isImageUrl } from "@/lib/utils";
 import { COLLAR_TYPES, SLEEVE_TYPES, BODY_FITS, GARMENT_CONDITIONS, PRICING_TYPE_LABELS } from "@/types/order-form";
@@ -20,7 +21,7 @@ import {
   Edit3,
   Check,
 } from "lucide-react";
-import { FOCUS_BUTTON, TINT } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 
@@ -57,8 +58,8 @@ function ReceiveTrackingInline({ product, onSuccess }: {
         {product.receivedInspected ? (
           <>
             <Badge variant="default" className="text-2xs">ตรวจรับแล้ว</Badge>
-            {product.garmentCondition && <span className="text-slate-500">สภาพ: {GARMENT_CONDITIONS[product.garmentCondition] ?? product.garmentCondition}</span>}
-            {product.receiveNote && <span className="text-slate-500">({product.receiveNote})</span>}
+            {product.garmentCondition && <span className="text-muted">สภาพ: {GARMENT_CONDITIONS[product.garmentCondition] ?? product.garmentCondition}</span>}
+            {product.receiveNote && <span className="text-muted">({product.receiveNote})</span>}
           </>
         ) : (
           <span className="text-slate-400">ยังไม่ได้ตรวจรับ</span>
@@ -78,20 +79,20 @@ function ReceiveTrackingInline({ product, onSuccess }: {
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label htmlFor={`garment-condition-${product.id}`} className="mb-0.5 block text-2xs font-medium text-slate-500">สภาพเสื้อ</label>
+          <label htmlFor={`garment-condition-${product.id}`} className="mb-0.5 block text-2xs font-medium text-muted">สภาพเสื้อ</label>
           <Select size="sm" id={`garment-condition-${product.id}`} value={condition} onChange={(e) => setCondition(e.target.value)} className={cn("px-2 py-1 text-xs", FOCUS_BUTTON)}>
             <option value="">-- เลือก --</option>
             {Object.entries(GARMENT_CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
         </div>
         <div>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={inspected} onChange={(e) => setInspected(e.target.checked)} className={cn("h-4 w-4 rounded border-slate-300 text-yellow-600", FOCUS_BUTTON)} />
+          <label className="flex items-center gap-2" htmlFor={`garment-inspected-${product.id}`}>
+            <Checkbox id={`garment-inspected-${product.id}`} checked={inspected} onChange={(e) => setInspected(e.target.checked)} />
             <span className="text-xs font-medium text-slate-700 dark:text-slate-300">ตรวจรับแล้ว</span>
           </label>
         </div>
         <div className="min-w-[160px] flex-1">
-          <label htmlFor={`garment-note-${product.id}`} className="mb-0.5 block text-2xs font-medium text-slate-500">หมายเหตุ</label>
+          <label htmlFor={`garment-note-${product.id}`} className="mb-0.5 block text-2xs font-medium text-muted">หมายเหตุ</label>
           <Input size="sm" id={`garment-note-${product.id}`} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" />
         </div>
         <div className="flex gap-1.5">
@@ -194,21 +195,21 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                     {/* Prints */}
                     {item.prints && item.prints.length > 0 && (
                       <div>
-                        <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
                           <Palette className="h-3.5 w-3.5" />
                           งานพิมพ์
                         </div>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-slate-100 dark:border-slate-800">
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">แบบ</th>
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ตำแหน่ง</th>
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
-                                <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">สี</th>
-                                <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">ขนาด (ซม.)</th>
+                            <thead className={TABLE_HEAD_SURFACE}>
+                              <tr>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">แบบ</th>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">ตำแหน่ง</th>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">ประเภท</th>
+                                <th className="pb-2 pr-4 text-right text-xs font-medium">สี</th>
+                                <th className="pb-2 pr-4 text-right text-xs font-medium">ขนาด (ซม.)</th>
                                 {showMoney && (
-                                  <th className="pb-2 text-right text-xs font-medium text-slate-500">ราคา/ชิ้น</th>
+                                  <th className="pb-2 text-right text-xs font-medium">ราคา/ชิ้น</th>
                                 )}
                               </tr>
                             </thead>
@@ -245,7 +246,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                           {item.prints.some((p) => p.designNote) && (
                             <div className="mt-2 space-y-1">
                               {item.prints.filter((p) => p.designNote).map((p) => (
-                                <p key={p.id} className="text-xs text-slate-500">
+                                <p key={p.id} className="text-xs text-muted">
                                   <span className="font-medium">{p.position}:</span> {p.designNote}
                                 </p>
                               ))}
@@ -258,7 +259,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                     {/* Products */}
                     {item.products && item.products.length > 0 && (
                       <div>
-                        <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
                           <ShoppingBag className="h-3.5 w-3.5" />
                           สินค้า ({item.products.length})
                         </div>
@@ -299,14 +300,14 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                       {prod.material && <Badge variant="outline">{prod.material}</Badge>}
                                     </div>
                                     {(prod.fabricType || prod.fabricWeight || prod.fabricColor) && (
-                                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                                         {prod.fabricType && <span>ผ้า: {prod.fabricType}</span>}
                                         {prod.fabricWeight && <span>น้ำหนัก: {prod.fabricWeight}</span>}
                                         {prod.fabricColor && <span>สีผ้า: {prod.fabricColor}</span>}
                                       </div>
                                     )}
                                     {(prod.collarType || prod.sleeveType || prod.bodyFit) && (
-                                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
                                         {prod.collarType && <span>ทรงคอ: {COLLAR_TYPES[prod.collarType] ?? prod.collarType}</span>}
                                         {prod.sleeveType && <span>แขน: {SLEEVE_TYPES[prod.sleeveType] ?? prod.sleeveType}</span>}
                                         {prod.bodyFit && <span>ฟิต: {BODY_FITS[prod.bodyFit] ?? prod.bodyFit}</span>}
@@ -314,12 +315,12 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                       </div>
                                     )}
                                     {prod.packagingOption && (
-                                      <div className="text-xs text-slate-500">แพ็คเกจ: {prod.packagingOption.name}</div>
+                                      <div className="text-xs text-muted">แพ็คเกจ: {prod.packagingOption.name}</div>
                                     )}
                                   </div>
                                   {showMoney && (
                                     <div className="text-right">
-                                      <p className="text-xs text-slate-500">
+                                      <p className="text-xs text-muted">
                                         {formatCurrency(prod.baseUnitPrice ?? 0)}/ชิ้น
                                         {(prod.discount ?? 0) > 0 && <span className="ml-1 text-red-500">(-{formatCurrency(prod.discount ?? 0)})</span>}
                                       </p>
@@ -344,11 +345,11 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                 {prod.variants && prod.variants.length > 0 && (
                                   <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
-                                      <thead>
-                                        <tr className="border-b border-slate-100 dark:border-slate-800">
-                                          <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">สี</th>
-                                          <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ไซส์</th>
-                                          <th className="pb-2 text-right text-xs font-medium text-slate-500">จำนวน</th>
+                                      <thead className={TABLE_HEAD_SURFACE}>
+                                        <tr>
+                                          <th className="pb-2 pr-4 text-left text-xs font-medium">สี</th>
+                                          <th className="pb-2 pr-4 text-left text-xs font-medium">ไซส์</th>
+                                          <th className="pb-2 text-right text-xs font-medium">จำนวน</th>
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -362,7 +363,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                       </tbody>
                                       <tfoot>
                                         <tr className="border-t border-slate-100 dark:border-slate-800">
-                                          <td colSpan={2} className="pt-1.5 text-xs font-medium text-slate-500">รวม</td>
+                                          <td colSpan={2} className="pt-1.5 text-xs font-medium text-muted">รวม</td>
                                           <td className="pt-1.5 text-right tabular-nums text-sm font-semibold text-slate-900 dark:text-white">{prodQty}</td>
                                         </tr>
                                       </tfoot>
@@ -379,19 +380,19 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                     {/* Addons list */}
                     {item.addons && item.addons.length > 0 && (
                       <div>
-                        <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
                           <PlusCircle className="h-3.5 w-3.5" />
                           ส่วนเสริม
                         </div>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-slate-100 dark:border-slate-800">
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ชื่อ</th>
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">คิดราคา</th>
+                            <thead className={TABLE_HEAD_SURFACE}>
+                              <tr>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">ชื่อ</th>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">ประเภท</th>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">คิดราคา</th>
                                 {showMoney && (
-                                  <th className="pb-2 text-right text-xs font-medium text-slate-500">ราคา</th>
+                                  <th className="pb-2 text-right text-xs font-medium">ราคา</th>
                                 )}
                               </tr>
                             </thead>

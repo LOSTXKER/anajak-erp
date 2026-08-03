@@ -16,7 +16,7 @@
 |---|---|---|
 | Primitive | สีแบรนด์: `--color-anajak-blue #3973b2` · `--color-anajak-yellow #fec91b` · `--color-anajak-red #e72f27` | **ห้ามใช้ตรงใน component** |
 | Ramp | สเกล `blue-50..950` / `red-50..950` ของ Tailwind ถูก override เป็น ramp จากสีแบรนด์ (เลข 600 = สีแบรนด์เป๊ะ) | ใช้ utility ปกติ: `bg-blue-600`, `text-red-700` — ได้โทนแบรนด์อัตโนมัติ |
-| Semantic | เหลือ 5 ตัวที่ใช้จริง: `--color-bg` (พื้นหน้า) · `--color-chrome` (แถบเมนู+แถบบน) · `--color-surface` (การ์ด) · `--color-surface-muted` (กล่องลอยโหมดมืด) · `--color-text` | ใช้ผ่าน `bg-bg` / `bg-chrome` · ที่เหลือใช้ ramp ตรงๆ |
+| Semantic | เหลือ 5 ตัวที่ใช้จริง: `--color-bg` (light `#f3f4f6` พื้นหน้าเทา) · `--color-chrome` (light `#fff` แถบเมนู+แถบบน) · `--color-surface` (light `#fff` การ์ด/ตาราง) · `--color-surface-muted` (กล่องจม/กล่องลอยโหมดมืด) · `--color-text` | ใช้ผ่าน `bg-bg` / `bg-chrome` / `bg-surface` · ที่เหลือใช้ ramp ตรงๆ |
 
 > **แก้ 2026-08-02 จาก audit สี:** เคยมีสี semantic อีก 17 ตัว (`accent` · `success` ·
 > `warning` · `danger` · `border` · `text-muted` ฯลฯ) เขียนไว้ในเอกสารนี้ว่า "ให้ใช้"
@@ -31,7 +31,8 @@
 | ตัวหนังสือหลัก | `text-slate-900 dark:text-white` |
 | ตัวหนังสือรอง (คำบรรยาย · วันที่ · meta) | `text-slate-500 dark:text-slate-400` ← **คู่นี้เสมอ ห้ามสลับข้าง** |
 | ค่าว่าง / เลขศูนย์ | `text-slate-400 dark:text-slate-500` |
-| พื้นที่จมลงไป (หัวตาราง · กล่องย่อยในการ์ด · พื้นตอนชี้) | `bg-slate-100 dark:bg-white/[0.06]` |
+| หัวตารางบนการ์ด | `TABLE_HEAD_SURFACE` (`bg-surface dark:bg-white/[0.03]`) |
+| พื้นที่จมลงไป (กล่องย่อยในการ์ด · พื้นตอนชี้) | `bg-slate-100 dark:bg-white/[0.06]` |
 | เส้นคั่น | `border-slate-200 dark:border-white/10` (ในกล่องลอยใช้ `dark:bg-white/10`) |
 
 **โหมดมืดใช้ "ขาวโปร่ง" ไม่ใช่เทาเข้ม** — `bg-white/10` สว่างกว่าพื้นเสมอไม่ว่าวางบนการ์ด
@@ -45,9 +46,16 @@
 
 | งาน | ใช้ตัวนี้ | หมายเหตุ |
 |---|---|---|
-| ตาราง list | `ui/data-table.tsx` (DataTable.Root/Head/Body/...) + `ui/table-pagination.tsx` | จอเล็ก: ดูหัวข้อ Mobile |
+| **โครงหน้า dashboard** | `components/page-shell.tsx` (PageShell) | header + โหลด/พัง/ไม่มีสิทธิ์ + spacing/width (full/wide/content/form) — เขียน header ครั้งเดียว **ห้าม return branch พร้อม PageHeader ซ้ำเอง** |
+| **โครงหน้า public (token)** | `components/public/public-page.tsx` (PublicPageShell / FullScreenLoading / InfoRow) | route อยู่ใน `(public)` — layout กลางใส่ noindex ให้ · prefix ธีมสว่างอยู่ `lib/public-routes.ts` |
+| **ไม่มีสิทธิ์** | `ui/access-denied.tsx` | ผ่าน prop `denied` ของ PageShell — ห้ามใช้ QueryError/`<p>` เทาแทน |
+| **state หน้า list** | `hooks/use-list-page-state.ts` (useListPageState + usePageClamp) | URL state + debounce ค้นหา + page clamp — ห้ามเขียน replaceListState เอง |
+| ตาราง list | `ui/data-table.tsx` (DataTable.Root/Head/Body/...) + `ui/table-pagination.tsx` | หัว sentence-case ห้าม UPPERCASE · หัวตาราง custom ใช้ `TABLE_HEAD_SURFACE` · จอเล็ก: ดูหัวข้อ Mobile |
 | ยืนยัน/ถามเหตุผล | `useConfirm()` / `usePromptText()` จาก `ui/confirm-dialog.tsx` | **ห้าม window.confirm/prompt — lint เป็น error** |
-| dialog ทั่วไป | `ui/dialog.tsx` (Radix) | |
+| dialog ทั่วไป | `ui/dialog.tsx` (Radix) | **เปิดแบบ conditional mount เท่านั้น** — กติกาอยู่ comment หัวไฟล์ |
+| **ปุ่มท้าย dialog ฟอร์ม** | `ui/dialog-submit-footer.tsx` (DialogSubmitFooter) | ยกเลิก+บันทึก · pending/spinner/disabled/มือถือเต็มแถว ให้ครบในตัว |
+| **ติ๊ก** | `ui/checkbox.tsx` | ห้าม `<input type="checkbox">` ดิบ |
+| **ช่องตัวเลข/เงิน** | `ui/number-input.tsx` (NumberInput / MoneyInput) | คุม empty/fallback/tabular-nums — ห้ามเขียน parseFloat เองรายช่อง |
 | สถานะออเดอร์ | `components/order-status-badge.tsx` | dot + customer status + internal มาตรฐานเดียว |
 | badge อื่น | `ui/badge.tsx` (variant: default/accent/success/warning/destructive/outline) | อย่าเพิ่มสีใหม่ |
 | ว่างเปล่า | `ui/empty-state.tsx` | ทุก list ที่ว่างต้องมี |
@@ -57,14 +65,18 @@
 | list responsive | `ui/responsive-list.tsx` | desktop table + mobile card เฉพาะหน้าจอ · ใช้ loading/error/empty/pagination ชุดเดียว · มี `emptyAction` ใส่ปุ่มก้าวถัดไปตอน list ว่าง (UX4.7) |
 | สิทธิ์ UI | `permAllows` จาก `lib/permissions` | action ที่ server ไม่อนุญาตต้องไม่เปิดให้กรอกก่อนแล้วค่อย error · (เอกสารเคยอ้าง `ui/capability-gate.tsx` — **ไฟล์นั้นไม่มีอยู่จริง** ลบข้อมูลผิดออก 2026-08-02) |
 | ภาษาหน้าตา (มุมโค้ง · วงแหวนโฟกัส · ผิวช่องกรอก · สีกล่องเตือน) | `ui/tokens.ts` | RADIUS · FOCUS_FIELD/BUTTON/INSET · FIELD_SURFACE · OVERLAY_PANEL · MENU_ITEM · MENU_SEPARATOR · TINT · DASHED · ACTIVE_FILTER — **ด่าน lint บังคับให้ใช้ ห้ามเขียนเอง** |
-| ความสูง control | `ui/control-size.ts` | CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H |
+| ความสูง control | `ui/control-size.ts` + size ของ Input/Select | CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H · `size="sm"` (32px desktop) / `size="dense"` (สูงมาตรฐาน+อักษร xs สำหรับ editable grid) |
 | ช่องทางจ่ายเงิน | `lib/payment-methods.ts` | ค่า+ป้ายที่เดียว |
+| วิธีจัดส่ง | `lib/shipping-methods.ts` | ค่า+ป้ายที่เดียว (ตรง schema) — ห้าม hardcode `<option>` |
+| สถานะ→สี/ป้าย | `lib/status-config.ts` (+ `*_LABELS_CUSTOMER`) · `lib/order-status.ts` | ห้ามประกาศ map สถานะในหน้า — หน้า public ใช้ชุด `_CUSTOMER` |
+| **สีตัวหนังสือ** | `text-strong` / `text-secondary` / `text-muted` (globals.css) | สลับธีมในตัว — slate 900/700/500 เดี่ยวๆ ไม่มีคู่ `dark:` โดนด่านใน `verify:ui` ตีตก |
+| วันที่/เงิน (แสดงผล) | `lib/utils.ts` — formatDate/formatDateShort/formatDateTime/formatTime (ปัก Asia/Bangkok) · formatCurrency/formatBaht | ห้าม `toLocaleDateString` สดโดยไม่ปัก timezone |
 
 ## Mobile-first (หน้า ops: task queue / production / งานหน้าเครื่อง)
 
 พนักงานใช้มือถือหน้างาน — หน้า ops ต้อง:
 1. **เป้านิ้ว ≥ 44px**: control กลางทุกชนิดสูงอย่างน้อย 44px บนจอ < `sm`; desktop กลับเป็น 36px ได้ · แถว/ไอคอนที่กดได้มี hit area ≥ 44×44px
-2. **ตาราง → การ์ด**: จอ < `sm` ห้ามให้ scroll ตารางแนวนอนเป็นทางหลัก — แสดงเป็น card list (`hidden sm:block` ตาราง / `sm:hidden` การ์ด)
+2. **ตาราง → การ์ด**: ใช้ `ResponsiveList` (สลับที่ `lg` — จอแคบกว่านั้น sidebar กินพื้นที่จนตารางบีบ) — ห้ามเขียน `hidden lg:block`/`lg:hidden` เอง
 3. **action หลักติดจอ**: ปุ่มยืนยันงานใช้ sticky bottom bar บนมือถือ
 4. **dialog**: ConfirmDialog ทำให้แล้ว (ปุ่มเต็มแถวซ้อนกันบนจอเล็ก) — dialog ใหม่ทำตาม
 5. เริ่มเขียน layout จากจอเล็กก่อนแล้วค่อย `sm:`/`lg:` ขึ้นไป

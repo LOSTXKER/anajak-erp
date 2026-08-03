@@ -54,10 +54,8 @@ export function Sidebar({
         mobile
           ? "flex h-full w-full bg-chrome"
           : cn(
-              // พื้น "กรอบเว็บ" — เทาอ่อนกว่าเนื้อหานิดเดียว (เบสเคาะ 2026-08-02)
-              // รอบแรกให้เป็นสีเดียวกับเนื้อหาแล้วหวังพึ่งเส้นคั่นอย่างเดียว —
-              // จอกว้างแล้วแยกไม่ออกว่าตรงไหนคือเมนู · เดิมโหมดมืดฮาร์ดโค้ด bg-black/60
-              "hidden h-screen border-r border-black/[0.07] bg-chrome/90 backdrop-blur-xl md:flex dark:border-white/[0.07]",
+              // Light เป็นขาวทึบบนพื้นหน้าเทา · dark คงกรอบโปร่งและ blur เดิม
+              "hidden h-screen border-r border-black/[0.07] bg-chrome md:flex dark:border-white/[0.07] dark:bg-chrome/90 dark:backdrop-blur-xl",
               collapsed ? "w-[68px]" : "w-64"
             )
       )}
@@ -82,7 +80,7 @@ export function Sidebar({
             onClick={() => setCollapsed(false)}
             title="ขยายแถบเมนู"
             aria-label="ขยายแถบเมนู"
-            className="h-9 w-9 shrink-0 text-slate-500 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
+            className="h-9 w-9 shrink-0 text-muted hover:bg-black/5 hover:text-secondary dark:hover:bg-white/5 dark:hover:text-slate-200"
           >
             <PanelLeftOpen />
           </Button>
@@ -108,7 +106,7 @@ export function Sidebar({
                 onClick={() => setCollapsed(true)}
                 title="ย่อแถบเมนู"
                 aria-label="ย่อแถบเมนู"
-                className="h-9 w-9 shrink-0 text-slate-400 hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200"
+                className="h-9 w-9 shrink-0 text-slate-400 hover:bg-black/5 hover:text-secondary dark:hover:bg-white/5 dark:hover:text-slate-200"
               >
                 <PanelLeftClose />
               </Button>
@@ -142,7 +140,7 @@ export function Sidebar({
                         // เมนูที่เปิดอยู่ = เทาอ่อน (เดิมเป็น "ขาวบนพื้นเทา" — พอพื้นเป็นขาว
                         // ก็หายไปทั้งอัน มองไม่ออกว่าตอนนี้อยู่หน้าไหน)
                         active
-                          ? "bg-slate-100 text-slate-900 dark:bg-white/10 dark:text-white"
+                          ? "bg-slate-200/70 text-slate-900 dark:bg-white/10 dark:text-white"
                           : "text-slate-600 hover:bg-black/[0.04] hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
                       )}
                     >

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, ShieldX, Star, Store } from "lucide-react";
+import { Pencil, Plus, Star, Store } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -12,17 +12,17 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { QueryError } from "@/components/ui/query-error";
 import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 
 interface VendorFormState {
   name: string;
@@ -134,44 +134,29 @@ export default function VendorsSettingsPage() {
     });
   }
 
-  const header = (
-    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
+  return (
+    <PageShell
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ร้านรับจ้างภายนอก"
       description="ทะเบียนร้านสำหรับงาน DTG, สกรีน, ปัก, ตัดเย็บ และป้ายคอ"
-     />
-  );
-
-  if (meQuery.isError) {
-    return (
-      <div className="space-y-5">
-        {header}
-        <QueryError
-          message="ตรวจสอบสิทธิ์ไม่ได้ กรุณาลองใหม่"
-          onRetry={() => meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (!meQuery.isLoading && !canManage) {
-    return (
-      <div className="space-y-5">
-        {header}
-        <Section>
-          <EmptyState
-            icon={ShieldX}
-            title="ไม่มีสิทธิ์จัดการทะเบียนร้าน"
-            description="หน้านี้เปิดให้เจ้าของ ผู้จัดการ หรือผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น"
-          />
-        </Section>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      {header}
-
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์ไม่ได้ กรุณาลองใหม่",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : null
+      }
+      // ไม่ส่ง loading — ระหว่างรอ me ให้โชว์ skeleton grid ใน Section ตามเดิม (denied เช็คหลัง me มาแล้วเท่านั้น)
+      denied={
+        !meQuery.isLoading &&
+        !canManage && {
+          title: "ไม่มีสิทธิ์จัดการทะเบียนร้าน",
+          description:
+            "หน้านี้เปิดให้เจ้าของ ผู้จัดการ หรือผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น",
+        }
+      }
+    >
       <Section
         title={`ร้านที่ใช้งานอยู่ (${vendorsQuery.data?.length ?? 0})`}
         description="เพิ่มหรือแก้ข้อมูลร้านที่เลือกใช้ตอนสร้างใบงานร้านนอก"
@@ -307,18 +292,15 @@ export default function VendorsSettingsPage() {
                 placeholder="สกรีน, ปัก, เย็บ"
               />
             </Field>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeDialog} disabled={busy}>
-                ยกเลิก
-              </Button>
-              <Button type="submit" disabled={busy || !form.name.trim()}>
-                {busy && <Loader2 className="animate-spin" />}
-                บันทึก
-              </Button>
-            </DialogFooter>
+            <DialogSubmitFooter
+              pending={busy}
+              disabled={!form.name.trim()}
+              submitLabel="บันทึก"
+              onCancel={closeDialog}
+            />
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

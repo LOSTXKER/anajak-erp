@@ -5,7 +5,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
-import { SHIPPING_METHOD_LABELS } from "@/lib/status-config";
+import { SHIPPING_METHOD_LABELS } from "@/lib/shipping-methods";
 import {
   PrintPage,
   NotesBlock,

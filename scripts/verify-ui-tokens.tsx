@@ -9,10 +9,13 @@
 // tsx คอมไพล์ JSX เป็น React.createElement (classic runtime) — ต้อง import React ตรงๆ
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { Select } from "../src/components/ui/select";
 import { Input } from "../src/components/ui/input";
 import { Textarea } from "../src/components/ui/textarea";
 import { Button } from "../src/components/ui/button";
+import { DataTable } from "../src/components/ui/data-table";
 import {
   CONTROL_H,
   CONTROL_H_SM,
@@ -78,6 +81,15 @@ check(
 // (CONTROL_H_SM = "h-11 min-h-11 sm:h-8 sm:min-h-8" — มือถือยังเป็น 44px เป้านิ้ว
 //  เล็กเฉพาะเดสก์ท็อป จึงห้ามเช็คว่าไม่มี h-11)
 
+// ③.๒ ขนาด dense สำหรับ editable grid — สูงมาตรฐาน + อักษร xs เฉพาะเดสก์ท็อป
+check("ช่องกรอกขนาด dense", renderToStaticMarkup(<Input size="dense" />), [...h, "sm:text-xs"], ["text-xs"]);
+check(
+  "ช่องเลือกขนาด dense",
+  renderToStaticMarkup(<Select size="dense" value="" onChange={() => {}}><option value="">ก</option></Select>),
+  [...h, "sm:text-xs"],
+  ["text-xs"],
+);
+
 // ④ ความสูงที่สั่งทับผ่าน className ต้องยังทับได้ (เหตุผลที่ token เป็น TS ไม่ใช่ CSS)
 check("สั่งความสูงทับเองได้", renderToStaticMarkup(<Input className="h-20 min-h-20" />), ["h-20", "min-h-20"], ["h-11", "min-h-11"]);
 
@@ -94,6 +106,57 @@ check("ปุ่ม", renderToStaticMarkup(<Button>ก</Button>), [
   "focus-visible:ring-offset-white",
 ]);
 check("ปุ่มขนาดเล็ก", renderToStaticMarkup(<Button size="sm">ก</Button>), hSm, ["sm:h-9", "sm:min-h-9"]);
+
+// ⑥ หัวตารางบน surface ใช้สีเดียวกับกล่องใน light และคงชั้นเดิมใน dark
+check(
+  "หัวตารางบนกล่อง",
+  renderToStaticMarkup(
+    <table>
+      <DataTable.Head>
+        <tr><DataTable.Th>หัว</DataTable.Th></tr>
+      </DataTable.Head>
+    </table>,
+  ),
+  ["bg-surface", "dark:bg-white/[0.03]"],
+  ["bg-slate-50", "bg-slate-100"],
+);
+
+// ⑦ ด่านธีมมืด: ในโซนที่สลับธีมได้ ห้ามมีตัวหนังสือ slate เข้มระดับหลัก (900/700/500)
+// ที่ไม่มีคู่ dark: บนบรรทัดเดียวกัน — ใช้ semantic token แทน (text-strong /
+// text-secondary / text-muted ใน globals.css) · เคยหลุด 186 จุดจนตัวหนังสือจมใน
+// ธีมมืด (audit 2026-08-03) · โซน (print)/(public)/components/print เป็น forced-light
+// ไม่เข้าด่านนี้
+{
+  const roots = ["src/app/(dashboard)", "src/app/factory", "src/components"];
+  const skip = [join("src", "components", "print")];
+  const offenders: string[] = [];
+  const bare = /text-slate-(900|700|500)(?![\d/])/;
+  function walk(dir: string) {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (skip.some((s) => p.startsWith(s))) continue;
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.tsx?$/.test(name)) {
+        readFileSync(p, "utf8")
+          .split("\n")
+          .forEach((line, i) => {
+            if (bare.test(line) && !line.includes("dark:text-")) {
+              offenders.push(`${p}:${i + 1}`);
+            }
+          });
+      }
+    }
+  }
+  roots.forEach(walk);
+  if (offenders.length) {
+    failed++;
+    console.log(`❌ ตัวหนังสือ slate หลักไม่มีคู่ dark: (ใช้ text-strong/secondary/muted แทน) — ${offenders.length} จุด`);
+    offenders.slice(0, 20).forEach((o) => console.log(`   ${o}`));
+    if (offenders.length > 20) console.log(`   ...และอีก ${offenders.length - 20} จุด`);
+  } else {
+    console.log("✅ ไม่มีตัวหนังสือ slate หลักที่ลืมธีมมืดในโซนสลับธีม");
+  }
+}
 
 console.log(failed ? `\n❌ ไม่ผ่าน ${failed} ข้อ` : "\n✅ ผ่านครบ");
 process.exit(failed ? 1 : 0);

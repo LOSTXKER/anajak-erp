@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import {
   CUSTOMER_STATUS_LABELS,
   INTERNAL_STATUS_LABELS,
   CHANNEL_LABELS,
-  ORDER_TYPE_LABELS,
+  ORDER_TYPE_UI_LABELS,
 } from "@/lib/order-status";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -39,6 +39,7 @@ import {
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { hasActiveOrderListFilters } from "@/lib/order-list-ui";
 
 // ────────────────────────────────────────────────────────────
 // Filter options
@@ -51,7 +52,7 @@ const CHANNEL_FILTERS = [
 
 const TYPE_FILTERS = [
   { value: "", label: "ทุกประเภท" },
-  ...Object.entries(ORDER_TYPE_LABELS).map(([value, label]) => ({
+  ...Object.entries(ORDER_TYPE_UI_LABELS).map(([value, label]) => ({
     value,
     label,
   })),
@@ -68,6 +69,10 @@ const SORT_OPTIONS = [
   { value: "orderNumber:desc", label: "เลขออเดอร์ (ล่าสุด)" },
   { value: "orderNumber:asc", label: "เลขออเดอร์ (เก่าสุด)" },
 ];
+
+/** sort ค่า default ไม่เก็บใน URL (URL สะอาด) — caller ต้องแปลงเป็น null เอง
+ *  ก่อนส่งเข้า replaceListState ของ hook กลาง เพราะ hook ไม่รู้จักกติกาเฉพาะหน้านี้ */
+const DEFAULT_SORT = "createdAt:desc";
 
 /** ทิศที่จะได้ตอนกดหัวคอลัมน์ครั้งแรก — งานใหม่/ยอดมากขึ้นก่อน, กำหนดส่งใกล้สุดขึ้นก่อน */
 const SORT_DEFAULT_DIRECTION = {
@@ -87,11 +92,6 @@ const ATTENTION_FILTERS = [
 ] as const;
 
 type OrderAttention = Exclude<(typeof ATTENTION_FILTERS)[number]["value"], "">;
-
-function positivePage(value: string | null) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
-}
 
 function validDateParam(value: string | null) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
@@ -282,7 +282,7 @@ function exportOrdersCsv(
     o.customer?.name ?? "",
     o.customer?.company ?? "",
     CHANNEL_LABELS[o.channel] ?? o.channel,
-    ORDER_TYPE_LABELS[o.orderType as OrderType] ?? o.orderType,
+    ORDER_TYPE_UI_LABELS[o.orderType as OrderType] ?? o.orderType,
     CUSTOMER_STATUS_LABELS[o.customerStatus as CustomerStatus] ?? o.customerStatus,
     INTERNAL_STATUS_LABELS[o.internalStatus as InternalStatus] ?? o.internalStatus,
     ...(canSeeMoney ? [String(o.totalAmount ?? 0)] : []),
@@ -322,10 +322,15 @@ export default function OrdersPage() {
 }
 
 function OrdersPageContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.get("q") ?? "";
+  const {
+    search,
+    page,
+    searchParams,
+    replaceListState,
+    onSearchChange,
+    searchInputRef,
+    searchTimer,
+  } = useListPageState();
   const rawChannel = searchParams.get("channel") ?? "";
   const channel = Object.hasOwn(CHANNEL_LABELS, rawChannel) ? rawChannel : "";
   const rawOrderType = searchParams.get("type") ?? "";
@@ -344,43 +349,7 @@ function OrdersPageContent() {
   const attention = ATTENTION_FILTERS.some((option) => option.value === rawAttention)
     ? rawAttention
     : "";
-  const rawSort = searchParams.get("sort") ?? "createdAt:desc";
-  const page = positivePage(searchParams.get("page"));
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const replaceListState = useCallback(
-    (updates: Record<string, string | null>) => {
-      // อ่าน query ล่าสุดตอน action ทำงาน เพื่อให้ debounce ค้นหาไม่ทับ filter ที่เพิ่งกด
-      const next = new URLSearchParams(window.location.search);
-      for (const [key, value] of Object.entries(updates)) {
-        if (
-          !value ||
-          (key === "page" && value === "1") ||
-          (key === "sort" && value === "createdAt:desc")
-        ) {
-          next.delete(key);
-        } else {
-          next.set(key, value);
-        }
-      }
-      const query = next.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [pathname, router]
-  );
-
-  useEffect(
-    () => () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    },
-    []
-  );
-  useEffect(() => {
-    if (searchInputRef.current && searchInputRef.current.value !== search) {
-      searchInputRef.current.value = search;
-    }
-  }, [search]);
+  const rawSort = searchParams.get("sort") ?? DEFAULT_SORT;
 
   const { data: me } = trpc.user.me.useQuery();
   // เปิดออเดอร์ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ปุ่มสร้าง (B12)
@@ -392,15 +361,20 @@ function OrdersPageContent() {
     : SORT_OPTIONS.filter((o) => !o.value.startsWith("totalAmount"));
   const sort = sortOptions.some((option) => option.value === rawSort)
     ? rawSort
-    : "createdAt:desc";
+    : DEFAULT_SORT;
   const [sortBy, sortOrder] = sort.split(":") as [SortKey, "asc" | "desc"];
 
   /** props ให้หัวคอลัมน์ที่กดเรียงได้ — คอลัมน์ไหนกำลังเรียงอยู่ กดแล้วไปไหนต่อ */
   const sortColumn = (key: SortKey) => ({
     direction: sortBy === key ? sortOrder : null,
     defaultDirection: SORT_DEFAULT_DIRECTION[key],
-    onSort: (direction: "asc" | "desc") =>
-      replaceListState({ sort: `${key}:${direction}`, page: null }),
+    onSort: (direction: "asc" | "desc") => {
+      const value = `${key}:${direction}`;
+      replaceListState({
+        sort: value === DEFAULT_SORT ? null : value,
+        page: null,
+      });
+    },
   });
 
   const { data, isLoading, isFetching, isError, refetch } = trpc.order.list.useQuery(
@@ -420,11 +394,7 @@ function OrdersPageContent() {
     { placeholderData: (previous) => previous }
   );
 
-  useEffect(() => {
-    if (data && page > data.pages && data.pages >= 1) {
-      replaceListState({ page: String(data.pages) });
-    }
-  }, [data, page, replaceListState]);
+  usePageClamp(page, data?.pages, replaceListState);
 
   // attention ไม่นับในป้ายกล่องตัวกรอง — มันมีบ้านเป็นแถว chip บนผิวหน้าแล้ว
   // นับเฉพาะตัวกรองที่ซ่อนอยู่ในกล่อง — ช่วงวันที่มีปุ่มของตัวเองบนแถบ เห็นอยู่แล้วว่าเลือกอะไร
@@ -441,8 +411,17 @@ function OrdersPageContent() {
     });
   };
 
-  // empty state ตอนหาไม่เจอ: ล้างตัวกรอง + คำค้นในจังหวะเดียว (คนละปุ่มกับในกล่องตัวกรองที่ล้างเฉพาะ filter)
-  const hasActiveFilters = activeFilterCount > 0 || Boolean(attention) || Boolean(search);
+  // empty state ตอนหาไม่เจอ: นับทั้งสถานะ/วันที่/คำค้น แล้วล้างทุกอย่างในจังหวะเดียว
+  // (คนละปุ่มกับในกล่องตัวกรองที่ล้างเฉพาะ filter)
+  const hasActiveFilters = hasActiveOrderListFilters({
+    search,
+    channel,
+    orderType,
+    internalStatus,
+    attention,
+    createdAfter,
+    createdBefore,
+  });
   const clearFiltersAndSearch = () => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     replaceListState({
@@ -471,7 +450,7 @@ function OrdersPageContent() {
                 onClick={() => exportOrdersCsv(data.orders, canSeeMoney)}
               >
                 <Download />
-                Export
+                ส่งออก CSV
               </Button>
             )}
             {canCreateOrder && (
@@ -507,17 +486,10 @@ function OrdersPageContent() {
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า..."
           defaultValue={search}
-          onChange={(event) => {
-            if (searchTimer.current) clearTimeout(searchTimer.current);
-            const value = event.target.value;
-            searchTimer.current = setTimeout(
-              () => replaceListState({ q: value.trim() || null, page: null }),
-              300
-            );
-          }}
+          onChange={(event) => onSearchChange(event.target.value)}
         />
 
-        <ToolbarGroup>
+        <ToolbarGroup className="w-full flex-wrap @2xl:w-auto @2xl:flex-nowrap">
           {/* ช่องเรียงเหลือไว้เฉพาะจอแคบ (เบสเคาะ 2026-07-31) — จอกว้างย้ายไปกดที่หัวตารางแทน
               แต่จอแคบเป็นการ์ด ไม่มีหัวตารางให้กด ถ้าถอดทิ้งด้วยจะเรียงไม่ได้เลย */}
           <Select
@@ -525,7 +497,10 @@ function OrdersPageContent() {
             aria-label="เรียงลำดับ"
             value={sort}
             onChange={(e) =>
-              replaceListState({ sort: e.target.value, page: null })
+              replaceListState({
+                sort: e.target.value === DEFAULT_SORT ? null : e.target.value,
+                page: null,
+              })
             }
             className="w-auto px-3 lg:hidden"
           >
@@ -600,6 +575,18 @@ function OrdersPageContent() {
             </span>
           )}
         </ToolbarGroup>
+
+        {data && (
+          <p
+            aria-busy={isFetching}
+            aria-live="polite"
+            className="self-end whitespace-nowrap text-xs tabular-nums text-slate-500 @2xl:ml-auto @2xl:self-auto dark:text-slate-400"
+          >
+            {isFetching
+              ? "กำลังอัปเดต…"
+              : `${data.total.toLocaleString("th-TH")} ออเดอร์`}
+          </p>
+        )}
       </Toolbar>
 
       <ResponsiveList
@@ -614,8 +601,14 @@ function OrdersPageContent() {
           // หลังเห็นจอจริงว่า "การชำระ" กับ "กำหนดส่ง" เป็น — ทั้งคอลัมน์)
           // ดูเฉพาะหน้าที่กำลังแสดง — พอเปลี่ยนหน้า/ตัวกรองแล้วมีข้อมูล คอลัมน์กลับมาเอง
           const showPayment = orders.some((o) => o.paymentLabel !== "none");
-          // กำลังเรียงด้วยกำหนดส่งอยู่ = ต้องคงคอลัมน์ไว้ ไม่งั้นหัวที่เพิ่งกดหายไปทั้งอัน
-          const showDeadline = orders.some((o) => o.deadline) || sortBy === "deadline";
+          const hasDeadline = orders.some((o) => o.deadline);
+          const hasTrackableDeadline = orders.some(
+            (o) => o.deadline && !ATTENTION_EXEMPT_STATUSES.has(o.internalStatus),
+          );
+          // คอลัมน์นับถอยหลังไม่มีประโยชน์เมื่อทั้งหน้าเป็นขีด — แต่ถ้าผู้ใช้กำลังเรียง
+          // ด้วยกำหนดส่ง ต้องคงหัว sortable ไว้ ไม่ให้ control ที่เพิ่งกดหายไป
+          const showCountdown = hasTrackableDeadline || sortBy === "deadline";
+          const showDeadline = hasDeadline;
           return (
           <DataTable.Root>
             <DataTable.Head>
@@ -627,9 +620,11 @@ function OrdersPageContent() {
                 </DataTable.SortableTh>
                 <DataTable.Th>ลูกค้า / งาน</DataTable.Th>
                 <DataTable.Th>ช่องทาง</DataTable.Th>
-                <DataTable.SortableTh {...sortColumn("deadline")}>
-                  ระยะเวลาออเดอร์
-                </DataTable.SortableTh>
+                {showCountdown && (
+                  <DataTable.SortableTh {...sortColumn("deadline")}>
+                    เหลือเวลา
+                  </DataTable.SortableTh>
+                )}
                 <DataTable.Th>สถานะ</DataTable.Th>
                 {canSeeMoney && (
                   <DataTable.SortableTh align="right" {...sortColumn("totalAmount")}>
@@ -640,7 +635,7 @@ function OrdersPageContent() {
                 <DataTable.SortableTh {...sortColumn("createdAt")}>
                   วันที่
                 </DataTable.SortableTh>
-                {/* ไม่ทำให้เรียงได้ — คอลัมน์ "ระยะเวลาออเดอร์" เรียงด้วยกำหนดส่งอยู่แล้ว
+                {/* ไม่ทำให้เรียงได้ — คอลัมน์ "เหลือเวลา" เรียงด้วยกำหนดส่งอยู่แล้ว
                     ถ้าให้เรียงได้ทั้งคู่ ตอนเรียงจะประกาศ aria-sort พร้อมกัน 2 คอลัมน์
                     ซึ่งผิดมาตรฐานและทำให้โปรแกรมอ่านหน้าจอสับสน (audit ก่อน merge จับได้) */}
                 {showDeadline && <DataTable.Th>กำหนดส่ง</DataTable.Th>}
@@ -663,7 +658,7 @@ function OrdersPageContent() {
                         {order.customer?.name ?? "—"}
                         {order.orderType === "CUSTOM" && (
                           <Badge variant="accent" size="sm" className="ml-1.5">
-                            Custom
+                            {ORDER_TYPE_UI_LABELS[order.orderType]}
                           </Badge>
                         )}
                       </p>
@@ -678,12 +673,14 @@ function OrdersPageContent() {
                   <DataTable.Td className="text-xs text-slate-600 dark:text-slate-400">
                     {CHANNEL_LABELS[order.channel] ?? order.channel}
                   </DataTable.Td>
-                  <DataTable.Td>
-                    <OrderCountdown
-                      deadline={order.deadline}
-                      internalStatus={order.internalStatus}
-                    />
-                  </DataTable.Td>
+                  {showCountdown && (
+                    <DataTable.Td>
+                      <OrderCountdown
+                        deadline={order.deadline}
+                        internalStatus={order.internalStatus}
+                      />
+                    </DataTable.Td>
+                  )}
                   <DataTable.Td>
                     <OrderStatusBadge
                       customerStatus={order.customerStatus}
@@ -756,7 +753,9 @@ function OrdersPageContent() {
                       compact
                     />
                     {order.orderType === "CUSTOM" && (
-                      <Badge variant="accent" size="sm">Custom</Badge>
+                      <Badge variant="accent" size="sm">
+                        {ORDER_TYPE_UI_LABELS[order.orderType]}
+                      </Badge>
                     )}
                   </div>
 

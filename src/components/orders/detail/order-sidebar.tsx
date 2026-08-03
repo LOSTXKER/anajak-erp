@@ -6,7 +6,7 @@ import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import type { OrderType } from "@prisma/client";
 import {
   CHANNEL_LABELS,
-  ORDER_TYPE_LABELS,
+  ORDER_TYPE_UI_LABELS,
   PRIORITY_LABELS,
 } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
@@ -136,7 +136,7 @@ export function OrderSidebar({
         <div className="space-y-2.5">
           <Row label="ประเภท">
             <Badge variant={order.orderType === "CUSTOM" ? "accent" : "default"} size="sm">
-              {ORDER_TYPE_LABELS[order.orderType]}
+              {ORDER_TYPE_UI_LABELS[order.orderType]}
             </Badge>
           </Row>
           <Row label="ช่องทาง">

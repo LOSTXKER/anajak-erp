@@ -14,8 +14,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { QueryError } from "@/components/ui/query-error";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/utils";
 import {
   Cloud,
@@ -30,12 +28,12 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  ShieldX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SyncDialog } from "@/components/sync-dialog";
 import { Alert } from "@/components/ui/alert";
-import { PageHeader } from "@/components/page-header";
+import { DataTable } from "@/components/ui/data-table";
+import { PageShell } from "@/components/page-shell";
 
 // ─── Setting Keys ──────────────────────────────────────────
 const STOCK_API_URL_KEY = "stock_api_url";
@@ -165,70 +163,35 @@ export default function StockSettingsPage() {
   }
 
   const hasCredentials = Boolean(apiUrl.trim() && apiKey.trim());
-  const header = (
-    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
-      title="เชื่อมต่อ Anajak Stock"
-      description="ตั้งค่าการเชื่อมต่อและ Sync สินค้าจากระบบ Stock"
-     />
-  );
-
-  if (meQuery.isError) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="ตรวจสอบสิทธิ์หน้าการเชื่อมต่อ Stock ไม่ได้"
-          onRetry={() => void meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (meQuery.isLoading) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Skeleton className="h-80 rounded-2xl" />
-      </div>
-    );
-  }
-
-  if (!canManage) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Card>
-          <CardContent>
-            <EmptyState
-              icon={ShieldX}
-              title="ไม่มีสิทธิ์ตั้งค่าการเชื่อมต่อ Stock"
-              description="หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น"
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // โหลด settings ไม่สำเร็จ → ไม่ render ฟอร์มค่าว่าง กันบันทึกทับค่าเชื่อมต่อจริง
-  // && !data: refetch เบื้องหลังล้มระหว่างแก้ฟอร์มอยู่ ห้ามถอนฟอร์ม (ของที่พิมพ์หาย)
-  if (settingsError && !savedSettings) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="โหลดค่าการเชื่อมต่อ Stock ไม่สำเร็จ"
-          onRetry={() => void refetchSettings()}
-        />
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      {/* ─── Header ──────────────────────────────────────────── */}
-      {header}
-
+    <PageShell
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
+      title="เชื่อมต่อ Anajak Stock"
+      description="ตั้งค่าการเชื่อมต่อและ Sync สินค้าจากระบบ Stock"
+      loading={meQuery.isLoading}
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์หน้าการเชื่อมต่อ Stock ไม่ได้",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : // โหลด settings ไม่สำเร็จ → ไม่ render ฟอร์มค่าว่าง กันบันทึกทับค่าเชื่อมต่อจริง
+            // && !data: refetch เบื้องหลังล้มระหว่างแก้ฟอร์มอยู่ ห้ามถอนฟอร์ม (ของที่พิมพ์หาย)
+            settingsError && !savedSettings
+            ? {
+                message: "โหลดค่าการเชื่อมต่อ Stock ไม่สำเร็จ",
+                onRetry: () => void refetchSettings(),
+              }
+            : null
+      }
+      denied={
+        !canManage && {
+          title: "ไม่มีสิทธิ์ตั้งค่าการเชื่อมต่อ Stock",
+          description: "หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น",
+        }
+      }
+    >
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* ─── Connection Section ─────────────────────────────── */}
         <Card>
@@ -427,7 +390,7 @@ export default function StockSettingsPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">ไม่สามารถโหลดสถานะได้</p>
+                <p className="text-sm text-muted">ไม่สามารถโหลดสถานะได้</p>
               )}
             </div>
 
@@ -487,46 +450,35 @@ export default function StockSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800">
-                    <th scope="col" className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
-                      หมวดหมู่ Stock
+            <DataTable.Root bordered={false}>
+              <DataTable.Head>
+                <tr>
+                  <DataTable.Th>หมวดหมู่ Stock</DataTable.Th>
+                  <DataTable.Th aria-label="แมปไปยัง" align="center">→</DataTable.Th>
+                  <DataTable.Th>ประเภทสินค้า ERP</DataTable.Th>
+                </tr>
+              </DataTable.Head>
+              <DataTable.Body>
+                {itemTypeMappings.map((mapping, i) => (
+                  <DataTable.Row key={i}>
+                    <th scope="row" className="px-5 py-3 text-left text-sm font-normal text-slate-900 dark:text-white">
+                      {mapping.stockCategory}
                     </th>
-                    <th scope="col" aria-label="แมปไปยัง" className="px-4 py-2.5 text-center font-medium text-slate-400">
-                      →
-                    </th>
-                    <th scope="col" className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
-                      ประเภทสินค้า ERP
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {itemTypeMappings.map((mapping, i) => (
-                    <tr
-                      key={i}
-                      className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                    >
-                      <th scope="row" className="px-4 py-2.5 text-left font-normal text-slate-900 dark:text-white">
-                        {mapping.stockCategory}
-                      </th>
-                      <td aria-hidden="true" className="px-4 py-2.5 text-center text-slate-400">→</td>
-                      <td aria-label={`${mapping.erpItemType} ${mapping.erpCode}`} className="px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-900 dark:text-white">
-                            {mapping.erpItemType}
-                          </span>
-                          <Badge variant="secondary" className="text-2xs">
-                            {mapping.erpCode}
-                          </Badge>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    <DataTable.Td aria-hidden="true" align="center" className="text-slate-400">→</DataTable.Td>
+                    <DataTable.Td aria-label={`${mapping.erpItemType} ${mapping.erpCode}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-900 dark:text-white">
+                          {mapping.erpItemType}
+                        </span>
+                        <Badge variant="secondary" className="text-2xs">
+                          {mapping.erpCode}
+                        </Badge>
+                      </div>
+                    </DataTable.Td>
+                  </DataTable.Row>
+                ))}
+              </DataTable.Body>
+            </DataTable.Root>
           </CardContent>
         </Card>
 
@@ -597,6 +549,6 @@ export default function StockSettingsPage() {
         open={syncDialogOpen}
         onClose={() => setSyncDialogOpen(false)}
       />
-    </div>
+    </PageShell>
   );
 }

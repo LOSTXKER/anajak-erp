@@ -12,6 +12,13 @@
 6. surgical: แตะเฉพาะที่ใบงานสั่ง · โครงเดิมดี (order module/status machine/token approval) — ต่อยอด อย่ารื้อ
 7. **refactor = targeted ไม่ big-bang** — ห้ามรื้อทั้ง codebase รอบเดียว (ไม่มี test คุ้มกัน) · ลำดับ: test แกนก่อน → refactor เฉพาะส่วนที่กำลังแตะ → boy-scout rule (แตะไฟล์ไหน เก็บกวาดไฟล์นั้น)
 8. **UI ใหม่ผ่าน design system ไม่ใช่ไล่ทาสีทีละหน้า** — วางมาตรฐานกลางครั้งเดียว (P1.0) ทุกหน้าที่แตะหลังจากนั้นขึ้นมาตรฐานใหม่ทันที · ห้าม redesign หน้าที่ยังไม่มีงาน functional ไปแตะ (จะได้ไม่ทำซ้ำตอน P2-P3 เปลี่ยนหน้านั้นอยู่ดี)
+9. **มาตรฐาน UI ที่เคาะแล้ว (2026-08-03 จาก audit — โค้ดใหม่ต้องตาม · ของเดิมเก็บตอนแตะไฟล์):**
+   - โครงหน้า dashboard = `PageShell` (header + โหลด/พัง/ไม่มีสิทธิ์ + spacing/width) · หน้า public = `PublicPageShell` · state หน้า list = `useListPageState`
+   - **validation ฟอร์ม**: กติกาต่อช่อง = validator function ใน `src/lib/` (มี test ได้ — แบบ `lib/customer-form.ts`) แสดงผ่าน `Field` prop `error` · ฟอร์มยาวเพิ่มกล่องสรุปหัวฟอร์ม (แบบ orders/new) · **toast สงวนไว้ server error หลัง submit และห้ามยิงคู่กับ Alert ในฟอร์ม** (เลือกที่เดียว — ในฟอร์มดีกว่า) · ห้ามพึ่ง HTML `required` อย่างเดียว (Select ของระบบไม่ block submit — ดู comment ใน ui/select.tsx)
+   - **dialog**: เปิดแบบ conditional mount เท่านั้น (กติกาหัวไฟล์ `ui/dialog.tsx`) · ปุ่มท้าย = `DialogSubmitFooter`
+   - ตาราง = `DataTable` (หัว sentence-case ห้าม UPPERCASE) · หน้า list = `ResponsiveList` (โหลด/พัง/ว่าง/สลับการ์ดมือถือ) · หัวตาราง custom = `TABLE_HEAD_SURFACE`
+   - สีตัวหนังสือ = `text-strong` / `text-secondary` / `text-muted` (สลับธีมในตัว — ห้ามเขียนคู่ `dark:` เองสำหรับ 3 ระดับนี้ · ด่านใน `verify:ui`) · ช่องตัวเลข/เงิน = `NumberInput` / `MoneyInput` · ติ๊ก = `Checkbox`
+   - สถานะ→สี/ป้าย ประกาศที่ `lib/status-config.ts` (+ `*_LABELS_CUSTOMER` สำหรับหน้า public) · วิธีส่ง `lib/shipping-methods.ts` · ช่องทางจ่าย `lib/payment-methods.ts` — ห้ามประกาศ map ซ้ำในหน้า
 
 ---
 
@@ -111,11 +118,103 @@
 - [x] จอ desktop แบ่งข้อมูลรับงาน (ลูกค้า/รายละเอียด/ไฟล์) ฝั่งซ้าย 1/3 + รายการ/ราคาฝั่งขวา 2/3 โดยจัดส่งและปุ่มเปิดงานคงเต็มแถว · จอเล็กเรียงคอลัมน์เดียวตามลำดับงานเดิม · คง progressive disclosure และโครงรายการแยก ลาย/สินค้า/เสริมตามมติ UX5 ✅ 2026-07-18
 - **เกณฑ์ปิดผ่าน:** browser จริง 320/375/768/1024/1280/1440px ไม่มี horizontal scroll · light/dark + app console 0 error · `/orders/new` และ `?next=quote` โหลดถูก · ไม่แตะ logic/state/mutation · typecheck/lint 0 error · unit 577/577
 
+### 🎯 UX follow-up — `/orders/new` คอลัมน์เดียว + รายการเป็นตาราง (เบสสั่ง 2026-08-02)
+- [x] ยกเลิกโครง desktop สองฝั่ง ให้ลูกค้า/งาน → ไฟล์ → สินค้า/ราคา → จัดส่ง เรียงลงมาเต็มความกว้าง ✅ 2026-08-02
+- [x] คงลาย/สินค้า/ส่วนเสริมเป็นคนละกลุ่มตามมติ UX5 · จอกว้างให้แต่ละกลุ่มเป็นตารางแถวเดียวพร้อมหัวคอลัมน์ · จอแคบเปลี่ยนทั้ง 3 กลุ่มเป็นการ์ด และใช้ container breakpoint ตามพื้นที่จริงเพื่อไม่บีบ/ตัดตารางในหน้าแก้รายการ ✅ 2026-08-02
+- **เกณฑ์ปิดผ่าน 2026-08-02:** ไม่แตะ state/สูตรราคา/mutation · browser จริง `/orders/new` และ `?next=quote` ที่ 320/375/768/1024/1280/1440px + dark 1440px ไม่มี horizontal scroll/console error · typecheck ผ่าน · lint 0 error (38 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน
+
+### 🎯 UX follow-up — `/orders/new` รื้อโครงรับงานให้คลีนและใช้ง่าย (เบสสั่ง 2026-08-02)
+> ขอบเขต presentation-only: คงหน้าเดียวคอลัมน์เดียว ข้อมูลกางครบ สูตรราคา validation draft permission และ mutation เดิม · ไม่กลับไป wizard/พับซ่อน/สองฝั่ง · ไม่รวมลาย/สินค้า/ส่วนเสริมเป็นตารางเดียวตามมติ UX5
+
+- [x] จัด flow ใหม่เป็น 4 ตอนที่ชื่อและน้ำหนักสม่ำเสมอ: รับเรื่อง → รายการงาน → ราคาและเงื่อนไข → จัดส่ง โดยหนึ่ง surface ต่อหนึ่งตอนและไม่มี `Section`/การ์ดซ้อนกัน ✅ 2026-08-02
+- [x] รวมไฟล์อ้างอิงไว้กับจุดรับเรื่อง · จัด field รองให้กระชับด้วย grid เฉพาะช่องที่สัมพันธ์กัน · ใช้ `Field`/`Alert` มาตรฐานแทน raw label/error surface ที่แตะ ✅ 2026-08-02
+- [x] ในแต่ละชุดงานให้สินค้าอยู่ก่อนลายตามลำดับคำนวณจริง · คงตารางแยก 3 กลุ่มพร้อม mobile card · กลุ่มว่างมี CTA เดียวและถ้อยคำแยกระดับออเดอร์/ระดับชุดงานชัดเจน ✅ 2026-08-02
+- [x] แยกราคา/ค่าใช้จ่าย/เงื่อนไขออกจากการ์ดรายการ และคง sticky bar ให้เหลือยอดหลัก + ยกเลิก + เปิดงาน ✅ 2026-08-02
+- **ปิดงาน 2026-08-02:** browser จริง `/orders/new` และ `?next=quote` ที่ 320/375/768/1024/1280/1440px + light/dark ไม่มี horizontal scroll หรือ error overlay · ทดลองเพิ่มสินค้า ลาย ส่วนเสริม ค่าใช้จ่าย เปิด/ปิดที่อยู่ และกดส่งเพื่อดูสรุปช่องที่ขาด · `/orders/[id]` editor ยังใช้หน้าตาเดิมเมื่อไม่ส่ง presentation prop · typecheck ผ่าน · lint 0 error (38 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · ไม่รัน build ขณะ dev server ทำงาน
+
+### 🎯 UX follow-up — `/orders/new` composition pass 2 (เบส feedback 2026-08-03 ว่า “ยังรกและจัดองค์ประกอบไม่ดี”)
+> ขอบเขต presentation-only ต่อจากรอบก่อน: ทุก field ยังมองเห็น หน้าเดียวยาว ไม่มี wizard/accordion/สองฝั่ง · คง product/print/add-on แยกกลุ่มและไม่แตะ state สูตรราคา validation permission หรือ mutation
+
+- [x] เปลี่ยนการ์ดใหญ่ 4 ใบเป็นฟอร์มผิวเดียวแบบ ledger แบ่ง 4 ช่วงด้วยเส้นบางและลำดับเลข เพื่อให้สายตาเห็น flow แทนการเห็นกรอบ ✅ 2026-08-03
+- [x] ลดเสียงรบกวนช่วงรับเรื่อง: customer picker กระชับบนจอกว้าง · ช่องทางเป็น select · ลด copy ซ้ำ · ไฟล์อ้างอิงเป็นแถว action สั้นโดยไม่ซ่อนข้อมูล ✅ 2026-08-03
+- [x] ลด empty surface ในรายการ/ราคา: CTA แหล่งสินค้า/ลาย/ส่วนเสริมเป็น action สั้น · ค่าใช้จ่ายระดับออเดอร์เป็นแถวสั้น · summary และ action footer ไม่สร้าง card ซ้อน ✅ 2026-08-03
+- [x] verify browser จริงแบบก่อน–หลังที่ 320/375/768/1024/1280/1440px · light ทุก breakpoint + dark 1280px · ไม่มี horizontal scroll/error overlay/console error · เพิ่มสินค้า ลาย ส่วนเสริม ค่าใช้จ่าย เปิดที่อยู่ และ shared `/orders/[id]` ไม่ถอย · typecheck/lint/unit/`verify:ui` ผ่าน ✅ 2026-08-03
+- **ปิดงาน 2026-08-03:** ใช้ origin สะอาดหลบ client state เก่าของ Turbopack ที่ `localhost:3000` ตาม incident ที่บันทึกไว้ · ตารางสินค้าจอกว้างมีหัวครบ 8 คอลัมน์และพื้นที่แคบใช้ card · interaction ทั้ง 4 จุดผ่าน · lint 0 error (38 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · ไม่รัน build ขณะ dev server ทำงาน
+
 ### 🎯 UX follow-up — เปิดข้อมูลสร้าง/รายละเอียดออเดอร์ทั้งหมด (เบสสั่ง 2026-07-18)
 - [x] `/orders/new`: กางข้อมูลงาน รายการ+ราคา ไฟล์ ที่อยู่ รายละเอียดลาย/สินค้า และสเปคตัดเย็บที่ UI มีอยู่เดิมตลอด · เลิกปุ่ม “เพิ่มเติม/ซ่อน” ที่ใช้เพื่อ declutter · ที่อยู่ยัง optional และเงื่อนไขตามชนิดลูกค้า/ช่องทาง/สินค้าเดิมต้องไม่เปลี่ยน — ✅ 2026-07-18
 - [x] `/orders/[id]`: เลิกซ่อนเนื้อหาที่ UI มีอยู่เดิมหลังแท็บและเมนู “เพิ่มเติม” · แสดงรายการ งานผลิต จัดส่ง เงิน/บิล ไฟล์ และประวัติต่อกัน พร้อมปุ่มลัดแบบ scroll · กางเส้นทางสถานะและประวัติทั้งหมด โดยไม่เพิ่ม raw field จากฐานข้อมูลที่ยังไม่มี UI — ✅ 2026-07-18
 - [x] คง permission/state gates ทุกชั้น: ผู้ไม่มี `see_order_money` ต้องไม่เห็นเงิน/ต้นทุน/กำไร/บิล · action แก้ไข/สถานะ/ผลิต/QC/จัดส่งยังตรงด่าน server · business-conditional และ action workflow ไม่ถูกบังคับให้ render ก่อนมีบริบท — ✅ 2026-07-18
 - **เกณฑ์ปิดผ่าน 2026-07-18:** browser จริง `/orders/new`, `?next=quote`, `/orders/[id]` ที่ 320/375/768/1024/1280/1440px · light/dark · ไม่มี horizontal scroll/console error · ลิงก์เก่า `?tab=` แปลงเป็น anchor + focus ถูกจุด · `verify:moneygate` 43/43 (รวม description/reason/approval token) · typecheck/lint 0 error · unit 584/584
+
+### 🎯 UX follow-up — ปิดบั๊ก responsive + สถานะข้อมูลจาก audit ทั้งเว็บ (เบสสั่ง 2026-08-02 “ทำเลย”)
+> ขอบเขต surgical: แก้เฉพาะบั๊กใช้งานจริงที่ยืนยันจาก browser แล้ว · คงชุดสี/ความ minimal/โครงหน้าปัจจุบัน · ไม่มี schema หรือ dependency ใหม่
+
+- [x] **UI-P0.1 แท็บเล็ตไม่บีบหัวข้อและตาราง** — `PageHeader` ต้องยอมตัด action ลงแถวใหม่เมื่อพื้นที่ไม่พอ · `/billing/tax`, `/billing/wht`, `/production/films` ใช้ mobile card ถึง breakpoint ที่มีพื้นที่พอจริง ✅ 2026-08-02
+- [x] **UI-P0.2 Product Picker มือถือเลือกตัวแปรได้จริง** — รายการสินค้าเดิมคงไว้ · เมื่อขยายสี/ไซซ์บนจอเล็กต้องเป็นแถว/การ์ดอ่านง่าย ไม่มีหัวตารางหรือราคา/สต๊อก/จำนวนทับกัน · desktop คงตารางเดิม ✅ 2026-08-02
+- [x] **UI-P0.3 ไม่ใช้ empty state กลบ loading/error** — notification dropdown, ไฟล์แนบออเดอร์ และสถานะเครดิตลูกค้า แยก “กำลังโหลด / โหลดไม่สำเร็จ / ไม่มีข้อมูล” ชัดเจน พร้อม retry ในจุดที่เหมาะสม ✅ 2026-08-02
+- **ปิดงาน 2026-08-02:** typecheck ผ่าน · lint 0 error (39 warning เดิม) · unit 589/589 · verify:ui ผ่าน · browser จริง 320/390/800/1440px ไม่มี horizontal scroll/error overlay/console error · ปิด dev server จำลอง API ล้มเหลวแล้วยืนยัน notification แสดง error+retry และกู้ข้อมูลกลับได้
+
+### 🎯 UX follow-up — ลำดับชั้นข้อมูลหน้าออเดอร์ (เบสเคาะจากภาพจริง 2026-08-02)
+> ขอบเขต surgical: ปรับเฉพาะ `/orders` และ metadata สถานะกลาง · คงสี ระยะ และโครงตารางเดิม · ไม่แตะ query/business logic
+
+- [x] แยก `พักงาน`/`ยกเลิก` ออกจากเส้นทางงานหลัก แต่คงปุ่มกรองและจำนวนครบ ✅ 2026-08-02
+- [x] ลดเสียงรบกวนของสถานะเลขศูนย์ + ใช้ชื่อย่อที่อ่านครบในแถบ โดยชื่อเต็มยังอยู่ใน accessible label/tooltip ✅ 2026-08-02
+- [x] เปลี่ยนคอลัมน์นับถอยหลังเป็น `เหลือเวลา` และซ่อนเมื่อหน้านั้นไม่มีวันส่งที่ต้องติดตาม (เว้นกรณีกำลังเรียงตามกำหนดส่ง) ✅ 2026-08-02
+- [x] ภาษาไทยสม่ำเสมอ (`ส่งออก CSV`, `สั่งทำ`) + แสดงจำนวนผลลัพธ์ใกล้ตัวกรอง โดยแยก label UI ไม่เปลี่ยนสัญญา MCP ✅ 2026-08-02
+- [x] กลุ่มเรียง/วันที่/ตัวกรองที่ 320px ต้องห่อบรรทัด ไม่ตัดปุ่มทิ้งแม้หน้าไม่มี horizontal scroll ✅ 2026-08-02
+- [x] verify: typecheck · lint · unit/verify:ui · browser จริง desktop+mobile และกดกรองสถานะข้อยกเว้นได้ ✅ 2026-08-02
+- **ปิดงาน 2026-08-02:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo) · unit 599/599 · `verify:ui` ผ่าน · browser จริง 320/1280px ไม่มี horizontal scroll/console error · กรองยกเลิก 21 งาน/พักงาน 0 งาน/ล้างตัวกรองกลับ 77 งานถูกต้อง · ไม่รัน build ขณะ dev server ทำงาน
+
+### 🎯 UX follow-up — ธีมสว่างแบบ A บนพื้นขาว (เบสเคาะจากตัวอย่าง 2026-08-02)
+> ขอบเขต design-token only: พื้นเนื้อหาและการ์ดขาวตามแบบ A · กรอบเว็บ/พื้นจมใช้เทากลางคนละระดับเพื่อแยกโซน · ธีมมืดและเอกสารพิมพ์ต้องไม่เปลี่ยน
+
+- [x] แยกพื้นหน้า/การ์ด/กล่องย่อย/กรอบเว็บให้เป็น 4 ชั้น โดยพื้นหน้าและการ์ดคงขาวตามแบบ A แต่ใช้เทากลางกับกรอบเว็บ พื้นจม และเมนูที่เลือก ✅ 2026-08-02
+- [x] คงสีแบรนด์และสีสถานะเดิม · ไม่ไล่ทาสีรายหน้า · overlay/dialog ยังต้องลอยและอ่านง่ายบนทั้งสองธีม ✅ 2026-08-02
+- [x] verify: typecheck · lint · `verify:ui` · browser จริง light/dark บน dashboard/orders/orders-new/settings ที่ desktop+mobile โดยไม่มี console error หรือ horizontal scroll ✅ 2026-08-02
+- **ปิดงาน 2026-08-02:** พื้นหน้า/การ์ด `#fff` · กรอบเว็บ `#f3f4f6` · พื้นจม `#eceff2` · เมนูที่เลือกเข้มขึ้นหนึ่งขั้น · dark token และกฎงานพิมพ์ไม่เปลี่ยน · typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; layout ที่แก้ตรวจซ้ำ 0) · `verify:ui` ผ่าน · browser จริง 1280/390px ทั้ง light/dark บน 4 หน้าครบ ไม่มี horizontal scroll/console error · ไม่รัน build ขณะ dev server ทำงาน
+
+### 🎯 UX follow-up — หัวตารางสีเดียวกับกรอบตาราง (เบสเคาะจากภาพจริง 2026-08-03)
+> ขอบเขต surgical ที่ `DataTable` กลาง: โหมดสว่างให้หัวตารางใช้พื้น `surface` เดียวกับกรอบตาราง · คงเส้นคั่น สีตัวอักษร สีแถว และธีมมืดเดิม
+
+- [x] เปลี่ยนหัวตารางมาตรฐานจากพื้นเทาเป็นพื้นเดียวกับ `card-surface` โดยไม่ไล่แก้รายหน้า ✅ 2026-08-03
+- [x] verify: typecheck · lint · `verify:ui` · browser จริง `/orders` และตารางมาตรฐานหน้าอื่นใน light/dark โดยไม่มี console error หรือ horizontal scroll ✅ 2026-08-03
+- **ปิดงาน 2026-08-03:** `DataTable.Head` ใช้ `bg-surface` ใน light ทำให้หัวกับกรอบเป็น `#fff` เท่ากันทั้ง `/orders`, `/customers`, `/billing` · คงเส้นคั่นและ `dark:bg-white/[0.03]` เดิม · typecheck/lint/`verify:ui` ผ่าน · browser จริง 1280px ทั้ง light/dark ไม่มี error overlay, console error หรือ horizontal scroll · ไม่แตะตาราง custom/เอกสารพิมพ์
+
+### 🎯 UX follow-up — ขยายสีหัวตารางให้ครบทุกตารางบนเว็บ (เบสสั่งต่อ 2026-08-03)
+> ขอบเขต: ทุกตารางที่แสดงเป็น UI ให้หัวใช้สีเดียวกับกล่องในโหมดสว่าง · คง dark override ของแต่ละบริบท · เอกสารพิมพ์คงเดิม
+
+- [x] audit `<thead>` ทุกจุดและเก็บหัวตาราง custom ที่ยังมีพื้นเทา โดยไม่ทาสีซ้ำจุดที่โปร่งเห็นพื้นกล่องอยู่แล้ว ✅ 2026-08-03
+- [x] verify: ไม่มีหัวตาราง UI เหลือ `bg-slate-50/100` ใน light · typecheck · lint · `verify:ui` · browser จริงหน้าตาราง custom ทั้ง light/dark ✅ 2026-08-03
+- **ปิดงาน 2026-08-03:** ตรวจ `<thead>` 21 จุดครบ — UI 17 จุด + เอกสารพิมพ์ 4 จุด · แก้ 4 จุดที่หลุดจริง (ตารางสินค้า/ลาย/ส่วนเสริมใน `/orders/new` และแมปหมวดหมู่ `/settings/stock`) · รวมสูตรหัวบน surface เป็น `TABLE_HEAD_SURFACE` และเพิ่ม assertion ใน `verify:ui` · 12 หัว custom ที่โปร่งเห็นพื้นกล่องตรงอยู่แล้วคงไว้ · typecheck ผ่าน · lint 0 error (38 warning เดิม) · browser จริง light/dark ไม่มี overflow, error overlay หรือ console error
+
+### 🎯 UX follow-up — พื้นหน้าเทา + Navbar/Sidebar ขาว (เบสสั่ง 2026-08-03)
+> ขอบเขต design-token/layout only: สลับลำดับชั้นเฉพาะธีมสว่าง · การ์ด/ตารางคงขาว · ธีมมืดและเอกสารพิมพ์คงเดิม
+
+- [x] พื้นหน้าสว่างใช้เทา `#f3f4f6` · Navbar/Sidebar/เมนูมือถือใช้ขาว `#fff` แบบทึบ · คง surface ขาวและ muted surface เดิม ✅ 2026-08-03
+- [x] verify: typecheck · lint · `verify:ui` · browser จริง dashboard/orders/orders-new/settings ที่ desktop และเมนูมือถือ รวม light/dark โดยไม่มี console error หรือ horizontal overflow ✅ 2026-08-03
+- **ปิดงาน 2026-08-03:** สลับ token กลางเฉพาะ light เป็นพื้นหน้า `#f3f4f6` และ chrome/surface `#fff` · Topbar/Sidebar desktop ขาวทึบ ส่วน dark คง `chrome/90` + blur เดิม · browser จริง light บน dashboard/orders/orders-new/settings และ drawer มือถือ 390px สีตรงทุกชั้น · dark dashboard คง token เดิม · ไม่มี horizontal overflow, runtime/tRPC error หรือ console warning/error · typecheck ผ่าน · lint 0 error (38 warning เดิม) · `verify:ui` ผ่าน · ไม่แตะกฎงานพิมพ์
+
+### 🐛 Regression follow-up — Turbopack โหลด client/server คนละรุ่น (เบสพบ 2026-08-03)
+> ขอบเขต surgical: ตามเส้นทาง `RootLayout → Providers → DashboardLayout → Sidebar/Topbar` และแยก source bug ออกจาก Fast Refresh/client state · ไม่แตะ query, auth หรือ business logic
+
+- [x] ตาม render path และ bundle graph ครบ: `RootLayout → Providers → DashboardLayout → Sidebar` ถูกต้อง · provider ครอบทั้ง Suspense หลัก/fallback · React/tRPC/React Query มีอย่างละชุด · Provider/Sidebar import `src/lib/trpc.ts` module เดียวกัน ✅ 2026-08-03
+- [x] ทำ differential ได้: origin เดิม `localhost:3000` hydrate client code เก่าคนละรุ่นกับ server (ข้อความ/class/breakpoint ก่อนหลาย commit) ขณะที่ origin ใหม่ `localhost:31873` จาก source และ `.next` ชุดเดียวกันผ่าน dashboard/orders/settings โดยไม่มี tRPC/runtime error ✅ 2026-08-03
+- [x] ย้าย `.next` เก่าออกและ cold restart แล้ว · ไม่เติม provider ซ้อน/global singleton เพราะสมมติฐานนั้นถูกหักล้างและจะกลบต้นเหตุ ✅ 2026-08-03
+- [x] reproduce hydration class mismatch หลังเปลี่ยนสี shell ได้บน origin 3000 · source + SSR/client chunk ใช้ class รุ่นใหม่ตรงกัน และ cold origin 31879 จาก source เดียวกัน hydrate ผ่านโดยไม่มี console error จึงยืนยันว่าไม่ใช่ class/theme logic ✅ 2026-08-03
+- [ ] ปิดแท็บ `localhost:3000` ของผู้ใช้ทั้งหมดแล้วล้าง cache/site data ของ origin หนึ่งครั้ง จากนั้น verify หน้าเดิมอีกครั้ง · ถ้ายังเกิดค่อยขออนุญาตถอด `--turbopack` จาก dev script (config change)
+- **สถานะ 2026-08-03:** source code ไม่พังและ production path ไม่ได้รับผล · ปัญหาอยู่ที่ client state/Fast Refresh เฉพาะ dev origin 3000 · server 3000 ถูกเปิดใหม่แล้ว แต่แท็บจริงต้องทิ้ง client chunks เก่าให้หมดก่อน
+
+### 🎯 UX Standardize — refactor UI ให้มาตรฐานเดียวทั้งระบบ (เบสเคาะ "ทำเลยทั้งหมด" 2026-08-03 · จาก audit 13 ทีม 59 findings ผ่าน adversarial verify)
+> ขอบเขต: ยกระดับ "มาตรฐานที่มีอยู่แล้วให้ไปถึงทั้งระบบ" — ไม่ redesign ภาพ ไม่แตะ business logic/query/permission · ทุกชิ้นเป็น commit เล็กแยกกัน ห้าม big-bang · รายละเอียดหลักฐานเต็ม: audit output 2026-08-03 (จะสรุปย่อยลงใบงานตอนทำแต่ละชิ้น)
+
+- [x] **ชุด 0** — เพิ่มขนาด dense ใน `control-size.ts` (เป็น `size="dense"` ของ Input/Select) + กวาดสูตรก๊อป 15 จุด + Select ในแถวเดียวกันที่เตี้ยกว่า 4px เข้าแถว ✅ 2026-08-03
+- [x] **ชุด 1 บั๊กจริง** — (a) `lib/shipping-methods.ts` + `*_LABELS_CUSTOMER` ใน status-config (บั๊กใบแนบกล่องพิมพ์ OTHER + สี/คำหน้า status ลูกค้า drift หายแล้ว · ฟอร์มใบส่งได้ตัวเลือก Shopee/Lazada ที่หายไป) (b) จอโกหก 4 component แยก โหลด/พัง/ว่าง ครบ (c) 5 หน้า public เข้า `(public)` + noindex ทุกหน้า + PublicPageShell/FullScreenLoading/InfoRow + providers อ่าน prefix จาก `lib/public-routes.ts` (d) formatter กลางปัก Asia/Bangkok + `formatDateShort/formatTime/formatBaht` แทนสูตรเขียนสด ✅ 2026-08-03
+- [x] **ชุด 2 ชั้นที่หายไป** — (a) `PageShell` + `AccessDenied` migrate 23 หน้า (รวม home/my-tasks/analytics/print-runs/notifications) ทุก state มี header · description ที่ drift สองเวอร์ชันถูกยุบ (b) `useListPageState` + `usePageClamp` 10 หน้า — products ได้ debounce + filter ใน URL · films เลิก hack window.location (c) `DialogSubmitFooter` + กติกา conditional-mount ใน dialog.tsx + migrate footer 21 dialog (เหลือ 1 จุด 2-action โดยตั้งใจ) (d) `text-strong/secondary/muted` + กวาด 154 จุดใน 48 ไฟล์ + ด่านใหม่ใน `verify:ui` ✅ 2026-08-03
+- [x] **ชุด 3 กวาดเข้ามาตรฐาน** — (a+b) ตารางดิบ 7 จุด → DataTable · tax/wht/films → ResponsiveList · thead custom ที่เหลือใช้ TABLE_HEAD_SURFACE (c) มาตรฐาน validation เขียนเป็นกติกา build ข้อ 9 + quotations/new + billing/notes เข้า Field (d) `order-billing-section` 1,212→446 บรรทัด (dialog เงิน 4 ตัวแยกไฟล์ conditional mount — ปิดคลาสบั๊ก reset มือค่าค้าง) + `order-delivery-section` 856→409 (3 dialog) ✅ 2026-08-03
+- [x] **ชุด 4 เก็บตก** — Checkbox (แทนดิบครบ) · NumberInput/MoneyInput (primitive พร้อม — จุดใช้เดิมทยอยแทนตอนแตะไฟล์ตามกติกา 7) · ListCards/ListCardItem/MetaGrid + customers เป็นตัวอย่าง · CustomerFormFields (validation สร้าง=แก้ · server error แสดงที่เดียว) · notifications ใช้ TablePagination (products คงเลขหน้า custom — logic อยู่บน URL state แล้ว) · DESIGN.md ตรงของจริง ✅ 2026-08-03
+- [x] verify: typecheck 0 error · lint 0 error · unit 599/599 · `verify:ui` ผ่านครบรวมด่านธีมมืดใหม่ · smoke ทุก route ไม่มี 500/error marker · `next build` production ผ่านทุก route ✅ 2026-08-03
+- [x] ตรวจตาบน browser จริง (production build · origin 31902 · session จริงของเบส) — dashboard/orders/orders-new/orders-[id]/customers/settings-services/billing-tax/notifications ครบทั้ง dark และ light · **dialog สร้างบิลที่แตกใหม่เปิดจริง: prefill จาก billing.suggest มาครบ (ชนิดบิล/ยอด/ภาษี/ยอดรวม)** · มือถือ 390px ไม่มี horizontal overflow + ListCard แสดงถูก · หน้า /status token ผิด → PublicLinkError บนธีมสว่างบังคับ · console 0 error ตลอดรอบ ✅ 2026-08-03 — จุดหน้าตาเปลี่ยนโดยตั้งใจให้เบสดูผ่านตา: หัวตาราง settings เลิก UPPERCASE · AccessDenied เดียวทั้งระบบ · quotations/new เป็น max-w-5xl · สี "ชำระบางส่วน" หน้าลูกค้าเป็นฟ้า · spinner แทน text-swap ใน dialog
 
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
 ~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)

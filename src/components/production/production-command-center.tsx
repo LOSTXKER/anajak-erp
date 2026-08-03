@@ -183,7 +183,7 @@ export function ProductionCommandCenter({
                       variant="outline"
                       size="sm"
                       onClick={() => onCreate(f.orderId)}
-                      className="shrink-0 text-slate-500"
+                      className="shrink-0 text-muted"
                     >
                       ข้ามด่าน
                     </Button>

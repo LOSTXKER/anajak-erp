@@ -8,8 +8,6 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Switch } from "@/components/ui/switch";
 import {
   Plus,
@@ -19,10 +17,10 @@ import {
   Check,
   Package,
   GripVertical,
-  ShieldX,
 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
-import { PageHeader } from "@/components/page-header";
+import { DataTable } from "@/components/ui/data-table";
+import { PageShell } from "@/components/page-shell";
 
 export default function PackagingSettingsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -87,68 +85,30 @@ export default function PackagingSettingsPage() {
     if (ok) deleteMutation.mutate({ id });
   };
 
-  const header = (
-    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
+  return (
+    <PageShell
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการแพ็คเกจจัดส่ง"
       description="ตัวเลือกแพ็คเกจสำหรับจัดส่งสินค้า"
-     />
-  );
-
-  if (meQuery.isError) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="ตรวจสอบสิทธิ์หน้าจัดการแพ็คเกจไม่ได้"
-          onRetry={() => void meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (meQuery.isLoading) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Skeleton className="h-72 rounded-2xl" />
-      </div>
-    );
-  }
-
-  if (!canManage) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Card>
-          <CardContent>
-            <EmptyState
-              icon={ShieldX}
-              title="ไม่มีสิทธิ์จัดการแพ็คเกจ"
-              description="หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น"
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // && !options: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
-  if (isError && !options) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="โหลดรายการแพ็คเกจไม่สำเร็จ"
-          onRetry={() => void refetch()}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {header}
-
+      loading={meQuery.isLoading}
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์หน้าจัดการแพ็คเกจไม่ได้",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : // && !options: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
+            isError && !options
+            ? { message: "โหลดรายการแพ็คเกจไม่สำเร็จ", onRetry: () => void refetch() }
+            : null
+      }
+      denied={
+        !canManage && {
+          title: "ไม่มีสิทธิ์จัดการแพ็คเกจ",
+          description: "หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น",
+        }
+      }
+    >
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -218,115 +178,105 @@ export default function PackagingSettingsPage() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800">
-                    <th scope="col" aria-label="ลำดับ" className="w-8 px-3 py-2.5" />
-                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                      ชื่อแพ็คเกจ
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
-                      ลำดับ
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
-                      สถานะ
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
-                      จัดการ
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {options.map((opt) => {
-                    const isEditing = editingId === opt.id;
-                    return (
-                      <tr
-                        key={opt.id}
-                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${!opt.isActive ? "opacity-50" : ""}`}
-                      >
-                        <td className="px-3 py-2.5 text-center">
-                          <GripVertical aria-hidden="true" className="inline h-4 w-4 text-slate-300" />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          {isEditing ? (
-                            <Input size="sm"
-                              aria-label={`ชื่อแพ็คเกจ ${opt.name}`}
-                              value={editName}
-                              onChange={(e) => setEditName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSaveEdit();
-                                if (e.key === "Escape") { setEditingId(null); setEditName(""); }
-                              }}
-                            />
-                          ) : (
-                            <span className="text-sm font-medium text-slate-900 dark:text-white">
-                              {opt.name}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-center text-xs text-slate-400">
-                          {opt.sortOrder}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          <Switch
-                            aria-label={`${opt.isActive ? "ปิด" : "เปิด"}การใช้งาน ${opt.name}`}
-                            checked={opt.isActive}
-                            onCheckedChange={() => handleToggleActive(opt.id, opt.isActive)}
+            <DataTable.Root bordered={false}>
+              <DataTable.Head>
+                <tr>
+                  <DataTable.Th aria-label="ลำดับ" className="w-8" />
+                  <DataTable.Th>ชื่อแพ็คเกจ</DataTable.Th>
+                  <DataTable.Th align="center">ลำดับ</DataTable.Th>
+                  <DataTable.Th align="center">สถานะ</DataTable.Th>
+                  <DataTable.Th align="right">จัดการ</DataTable.Th>
+                </tr>
+              </DataTable.Head>
+              <DataTable.Body>
+                {options.map((opt) => {
+                  const isEditing = editingId === opt.id;
+                  return (
+                    <DataTable.Row
+                      key={opt.id}
+                      className={!opt.isActive ? "opacity-50" : undefined}
+                    >
+                      <DataTable.Td align="center">
+                        <GripVertical aria-hidden="true" className="inline h-4 w-4 text-slate-300" />
+                      </DataTable.Td>
+                      <DataTable.Td>
+                        {isEditing ? (
+                          <Input size="sm"
+                            aria-label={`ชื่อแพ็คเกจ ${opt.name}`}
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSaveEdit();
+                              if (e.key === "Escape") { setEditingId(null); setEditName(""); }
+                            }}
                           />
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
-                          {isEditing ? (
-                            <div className="flex justify-end gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`บันทึกการแก้ไข ${opt.name}`}
-                                onClick={handleSaveEdit}
-                                disabled={updateMutation.isPending}
-                                className="text-green-600 hover:text-green-700"
-                              >
-                                <Check />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`ยกเลิกการแก้ไข ${opt.name}`}
-                                onClick={() => { setEditingId(null); setEditName(""); }}
-                              >
-                                <X />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex justify-end gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`แก้ไข ${opt.name}`}
-                                onClick={() => { setEditingId(opt.id); setEditName(opt.name); }}
-                                className="text-slate-500 hover:text-blue-600"
-                              >
-                                <Pencil />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`ปิดการใช้งาน ${opt.name}`}
-                                onClick={() => handleDelete(opt.id, opt.name)}
-                                disabled={deleteMutation.isPending}
-                                className="text-slate-500 hover:text-red-600"
-                              >
-                                <Trash2 />
-                              </Button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        ) : (
+                          <span className="text-sm font-medium text-slate-900 dark:text-white">
+                            {opt.name}
+                          </span>
+                        )}
+                      </DataTable.Td>
+                      <DataTable.Td align="center" className="text-xs text-slate-400">
+                        {opt.sortOrder}
+                      </DataTable.Td>
+                      <DataTable.Td align="center">
+                        <Switch
+                          aria-label={`${opt.isActive ? "ปิด" : "เปิด"}การใช้งาน ${opt.name}`}
+                          checked={opt.isActive}
+                          onCheckedChange={() => handleToggleActive(opt.id, opt.isActive)}
+                        />
+                      </DataTable.Td>
+                      <DataTable.Td align="right">
+                        {isEditing ? (
+                          <div className="flex justify-end gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`บันทึกการแก้ไข ${opt.name}`}
+                              onClick={handleSaveEdit}
+                              disabled={updateMutation.isPending}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <Check />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`ยกเลิกการแก้ไข ${opt.name}`}
+                              onClick={() => { setEditingId(null); setEditName(""); }}
+                            >
+                              <X />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`แก้ไข ${opt.name}`}
+                              onClick={() => { setEditingId(opt.id); setEditName(opt.name); }}
+                              className="text-muted hover:text-blue-600"
+                            >
+                              <Pencil />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`ปิดการใช้งาน ${opt.name}`}
+                              onClick={() => handleDelete(opt.id, opt.name)}
+                              disabled={deleteMutation.isPending}
+                              className="text-muted hover:text-red-600"
+                            >
+                              <Trash2 />
+                            </Button>
+                          </div>
+                        )}
+                      </DataTable.Td>
+                    </DataTable.Row>
+                  );
+                })}
+              </DataTable.Body>
+            </DataTable.Root>
           )}
 
           {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
@@ -336,6 +286,6 @@ export default function PackagingSettingsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

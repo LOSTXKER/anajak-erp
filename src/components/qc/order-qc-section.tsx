@@ -16,9 +16,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
 import { cn, formatDate } from "@/lib/utils";
 import {
@@ -27,7 +27,7 @@ import {
   qcReasonLabel,
   type QcDefectReason,
 } from "@/lib/qc";
-import { ShieldCheck, ClipboardCheck, Loader2, Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, ClipboardCheck, Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ImageRemoveButton } from "@/components/ui/image-remove-button";
@@ -121,7 +121,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-900 dark:text-white">
                       ตรวจรอบที่ {rounds.length - idx}
-                      <span className="ml-2 text-xs font-normal tabular-nums text-slate-500">
+                      <span className="ml-2 text-xs font-normal tabular-nums text-muted">
                         ดี {r.qtyGood} · เสีย {r.qtyDefect}
                       </span>
                     </p>
@@ -156,14 +156,14 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                               {d.qty} ตัว · {qcReasonLabel(d.reason)}
                             </span>
                             {d.size && (
-                              <span className="text-slate-500">
+                              <span className="text-muted">
                                 {" "}
                                 · ไซส์ {d.size}
                                 {d.color ? `/${d.color}` : ""}
                               </span>
                             )}
                             {d.printLabel && (
-                              <span className="text-slate-500"> · ลาย {d.printLabel}</span>
+                              <span className="text-muted"> · ลาย {d.printLabel}</span>
                             )}
                           </p>
                           {d.note && (
@@ -416,7 +416,7 @@ function QcCountForm({
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label htmlFor={`qc-defect-qty-${idx}`} className="text-xs text-slate-500">จำนวน (ตัว)</label>
+                  <label htmlFor={`qc-defect-qty-${idx}`} className="text-xs text-muted">จำนวน (ตัว)</label>
                   <Input
                     id={`qc-defect-qty-${idx}`}
                     type="number"
@@ -430,7 +430,7 @@ function QcCountForm({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor={`qc-defect-size-${idx}`} className="text-xs text-slate-500">ไซส์</label>
+                  <label htmlFor={`qc-defect-size-${idx}`} className="text-xs text-muted">ไซส์</label>
                   <Select value={d.size === "" ? NONE : d.size}
                     onChange={(e) => update(idx, { size: e.target.value === NONE ? "" : e.target.value })} id={`qc-defect-size-${idx}`}>
                       <option value={NONE}>ไม่ระบุ</option>
@@ -443,7 +443,7 @@ function QcCountForm({
                 </div>
                 {context.printLabels.length > 0 && (
                   <div className="space-y-1">
-                    <label htmlFor={`qc-defect-print-${idx}`} className="text-xs text-slate-500">ลาย</label>
+                    <label htmlFor={`qc-defect-print-${idx}`} className="text-xs text-muted">ลาย</label>
                     <Select value={d.printLabel === "" ? NONE : d.printLabel}
                       onChange={(e) => update(idx, { printLabel: e.target.value === NONE ? "" : e.target.value })} id={`qc-defect-print-${idx}`}>
                         <option value={NONE}>ไม่ระบุ</option>
@@ -461,7 +461,7 @@ function QcCountForm({
                     context.printLabels.length === 0 && "col-span-2"
                   )}
                 >
-                  <label htmlFor={`qc-defect-reason-${idx}`} className="text-xs text-slate-500">สาเหตุ</label>
+                  <label htmlFor={`qc-defect-reason-${idx}`} className="text-xs text-muted">สาเหตุ</label>
                   <Select value={d.reason || undefined}
                     onChange={(e) => update(idx, { reason: e.target.value as QcDefectReason })} id={`qc-defect-reason-${idx}`}
                       className={cn("", !d.reason && "border-amber-400")} placeholder="เลือกสาเหตุ">
@@ -476,7 +476,7 @@ function QcCountForm({
 
               {/* รูปจุดเสีย — แนบได้หลายรูป */}
               <div className="space-y-2">
-                <p className="text-xs text-slate-500">รูปจุดเสีย (ถ้ามี)</p>
+                <p className="text-xs text-muted">รูปจุดเสีย (ถ้ามี)</p>
                 {d.photoUrls.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {d.photoUrls.map((url) => (
@@ -558,23 +558,14 @@ function QcCountForm({
           />
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} className="h-11">
-            ยกเลิก
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={create.isPending || !canSave}
-            className="h-11 gap-1.5"
-          >
-            {create.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <ClipboardCheck />
-            )}
-            บันทึก ดี {qtyGood} · เสีย {qtyDefectTotal}
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={create.isPending}
+          disabled={!canSave}
+          submitLabel={`บันทึก ดี ${qtyGood} · เสีย ${qtyDefectTotal}`}
+          submitIcon={<ClipboardCheck />}
+          onCancel={onClose}
+          onSubmit={handleSave}
+        />
       </DialogContent>
     </Dialog>
   );

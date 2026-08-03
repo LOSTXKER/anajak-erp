@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
+import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
@@ -47,22 +48,32 @@ const typeConfig: Record<string, { label: string }> = {
 };
 
 export default function ProductsPage() {
-  const [search, setSearch] = useState("");
-  const [productType, setProductType] = useState("");
-  const [itemType, setItemType] = useState("");
-  const [page, setPage] = useState(1);
+  return (
+    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+      <ProductsPageContent />
+    </Suspense>
+  );
+}
+
+function ProductsPageContent() {
+  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
+    useListPageState();
+  const productType = searchParams.get("type") ?? "";
+  const itemType = searchParams.get("itemType") ?? "";
   const limit = 24;
   const { data: me } = trpc.user.me.useQuery();
   const canManageStock = permAllows(me?.permissions, "manage_settings");
 
   // ─── Queries ──────────────────────────────────────────────
   const { data, isLoading, isError, refetch } = trpc.product.list.useQuery({
-    search: search || undefined,
+    search: search.trim() || undefined,
     productType: productType || undefined,
     itemType: itemType || undefined,
     page,
     limit,
   });
+
+  usePageClamp(page, data?.pages, replaceListState);
 
   const { data: syncStatus } = trpc.stockSync.status.useQuery(undefined, {
     enabled: canManageStock,
@@ -73,8 +84,7 @@ export default function ProductsPage() {
 
   // Reset page when filters change
   const handleItemTypeChange = (value: string) => {
-    setItemType(value);
-    setPage(1);
+    replaceListState({ itemType: value || null, page: null });
   };
 
   const totalPages = data?.pages ?? 1;
@@ -127,11 +137,9 @@ export default function ProductsPage() {
         <SearchInput
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อสินค้า, SKU..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
+          ref={searchInputRef}
+          defaultValue={search}
+          onChange={(e) => onSearchChange(e.target.value)}
         />
 
         <ToolbarGroup>
@@ -139,10 +147,7 @@ export default function ProductsPage() {
             shape="pill"
             aria-label="กรองประเภทสินค้า"
             value={productType}
-            onChange={(e) => {
-              setProductType(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => replaceListState({ type: e.target.value || null, page: null })}
             className="@2xl:w-44"
           >
             {productTypes.map((t) => (
@@ -284,7 +289,7 @@ export default function ProductsPage() {
                 variant="outline"
                 size="sm"
                 disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => replaceListState({ page: String(Math.max(1, page - 1)) })}
               >
                 ก่อนหน้า
               </Button>
@@ -315,7 +320,7 @@ export default function ProductsPage() {
                       key={p}
                       variant={page === p ? "default" : "outline"}
                       size="sm"
-                      onClick={() => setPage(p as number)}
+                      onClick={() => replaceListState({ page: String(p) })}
                       className="min-w-[2rem]"
                     >
                       {p}
@@ -326,7 +331,7 @@ export default function ProductsPage() {
                 variant="outline"
                 size="sm"
                 disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => replaceListState({ page: String(Math.min(totalPages, page + 1)) })}
               >
                 ถัดไป
               </Button>

@@ -64,7 +64,7 @@ export function SizeMatrix({
       <div className="flex flex-wrap items-end gap-2">
         {columns.map((size) => (
           <div key={size} className="w-14">
-            <label htmlFor={`size-matrix-${size}`} className="block text-center text-xs font-medium text-slate-500">{size}</label>
+            <label htmlFor={`size-matrix-${size}`} className="block text-center text-xs font-medium text-muted">{size}</label>
             <Input size="sm"
               id={`size-matrix-${size}`}
               type="number"
@@ -101,7 +101,7 @@ export function SizeMatrix({
         </div>
       </div>
 
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-muted">
         รวม <span className="font-semibold text-slate-700 dark:text-slate-200">{total}</span> ตัว
       </p>
     </div>

@@ -32,9 +32,11 @@ export const INTERNAL_STATUS_LABELS: Record<InternalStatus, string> = {
 };
 
 // ============================================================
-// ระยะของงาน — จัดสถานะภายใน 14 ตัวเป็น 5 ช่วงตามเส้นทางงานจริง
+// ระยะของงาน — แยกเส้นทางงานจริงออกจากสถานะที่หยุด/ออกจากเส้นทาง
 // (เบสเคาะ 2026-08-01 — แถบสถานะหน้า /orders อ่านซ้ายไปขวาเป็นเส้นทางงาน
 //  ให้เห็นว่างานกองอยู่ช่วงไหนของสายการผลิต)
+// (เบสเคาะจากจอจริง 2026-08-02 — CANCELLED/ON_HOLD ไม่ใช่ขั้นถัดไปของสายงาน
+//  จึงต้องอยู่เป็นตัวกรองข้อยกเว้น ไม่ปนกับ "ปิดงาน")
 //
 // ลำดับสถานะในแต่ละกลุ่มต้องตรงกับลำดับใน INTERNAL_STATUS_LABELS —
 // นั่นคือลำดับ flow จริงที่ทั้งระบบยึด (แดชบอร์ดก็เรียงตามนี้)
@@ -45,15 +47,23 @@ export const INTERNAL_STATUS_STAGES = [
   { label: "ออกแบบ", statuses: ["DESIGNING", "DESIGN_APPROVED"] },
   { label: "ผลิต", statuses: ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK"] },
   { label: "ส่งของ", statuses: ["PACKING", "READY_TO_SHIP", "SHIPPED"] },
-  { label: "ปิดงาน", statuses: ["COMPLETED", "CANCELLED", "ON_HOLD"] },
+  { label: "ปิดงาน", statuses: ["COMPLETED"] },
 ] as const satisfies ReadonlyArray<{
   label: string;
   statuses: ReadonlyArray<InternalStatus>;
 }>;
 
+/** สถานะที่ไม่ได้เป็นขั้นถัดไปของ flow แต่ยังต้องกรองจากหน้า /orders ได้ */
+export const INTERNAL_STATUS_EXCEPTIONS = [
+  "ON_HOLD",
+  "CANCELLED",
+] as const satisfies ReadonlyArray<InternalStatus>;
+
 /** ด่านตอนคอมไพล์: เพิ่มสถานะใหม่ใน schema แล้วลืมจัดกลุ่ม = คอมไพล์ไม่ผ่านทันที
  *  (ถ้าไม่มีด่านนี้ สถานะใหม่จะหายไปจากแถบเงียบๆ โดยไม่มีใครรู้) */
-type StagedStatus = (typeof INTERNAL_STATUS_STAGES)[number]["statuses"][number];
+type StagedStatus =
+  | (typeof INTERNAL_STATUS_STAGES)[number]["statuses"][number]
+  | (typeof INTERNAL_STATUS_EXCEPTIONS)[number];
 type _EveryStatusHasStage = Exclude<InternalStatus, StagedStatus> extends never
   ? true
   : ["ยังไม่ได้จัดกลุ่มให้สถานะ:", Exclude<InternalStatus, StagedStatus>];
@@ -452,6 +462,12 @@ export const CHANNEL_COLORS: Record<string, { bg: string; text: string }> = {
 export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
   READY_MADE: "สำเร็จรูป",
   CUSTOM: "Custom",
+};
+
+/** ชื่อที่ใช้บนหน้าจอ — แยกจาก ORDER_TYPE_LABELS เพื่อไม่เปลี่ยนสัญญา MCP เดิม */
+export const ORDER_TYPE_UI_LABELS: Record<OrderType, string> = {
+  READY_MADE: "สำเร็จรูป",
+  CUSTOM: "สั่งทำ",
 };
 
 /**

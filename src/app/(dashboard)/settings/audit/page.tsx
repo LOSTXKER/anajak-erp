@@ -1,24 +1,18 @@
 "use client";
 
 import { Suspense } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { History } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useListPageState } from "@/hooks/use-list-page-state";
 import { permAllows } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { QueryError } from "@/components/ui/query-error";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { PageHeader } from "@/components/page-header";
-
-function positivePage(value: string | null) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
-}
+import { PageShell } from "@/components/page-shell";
 
 export default function AuditLogPage() {
   return (
@@ -29,10 +23,7 @@ export default function AuditLogPage() {
 }
 
 function AuditLogContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const page = positivePage(searchParams.get("page"));
+  const { page, replaceListState } = useListPageState();
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
   const meLoading = meQuery.isLoading;
@@ -42,41 +33,27 @@ function AuditLogContent() {
     { enabled: canView }
   );
 
-  const goToPage = (nextPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (nextPage <= 1) params.delete("page");
-    else params.set("page", String(nextPage));
-    const next = params.toString();
-    router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
-  };
-
-  if (meQuery.isError) {
-    return (
-      <div className="space-y-5">
-        <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }} title="ประวัติระบบ"  />
-        <QueryError
-          message="ตรวจสิทธิ์ดูประวัติระบบไม่สำเร็จ"
-          onRetry={() => void meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (!meLoading && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }} title="ประวัติระบบ"  />
-        <QueryError message="คุณไม่มีสิทธิ์ดูประวัติระบบ" />
-      </div>
-    );
-  }
+  // เดิมลบ page ทิ้งเมื่อ nextPage <= 1 — hook ลบให้เองเฉพาะค่า "1" จึงส่ง null ครอบเคส <= 1
+  const goToPage = (nextPage: number) =>
+    replaceListState({ page: nextPage > 1 ? String(nextPage) : null });
 
   return (
-    <div className="space-y-5">
-      <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
-        title="ประวัติระบบ"
-        description="ตรวจว่าใครเปลี่ยนข้อมูลอะไร เมื่อไหร่"
-       />
+    <PageShell
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
+      title="ประวัติระบบ"
+      description="ตรวจว่าใครเปลี่ยนข้อมูลอะไร เมื่อไหร่"
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสิทธิ์ดูประวัติระบบไม่สำเร็จ",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : null
+      }
+      // !meLoading: ระหว่างเช็คสิทธิ์ยังตอบไม่ได้ว่า "ไม่มีสิทธิ์" — ให้ ResponsiveList
+      // โชว์ skeleton รูปรายการของมันเองไปก่อน (ไม่ส่ง loading ให้ shell)
+      denied={!meLoading && !canView && { title: "คุณไม่มีสิทธิ์ดูประวัติระบบ" }}
+    >
       <ResponsiveList
         items={query.data?.logs}
         isLoading={meLoading || query.isLoading || query.isFetching}
@@ -139,6 +116,6 @@ function AuditLogContent() {
           ) : undefined
         }
       />
-    </div>
+    </PageShell>
   );
 }

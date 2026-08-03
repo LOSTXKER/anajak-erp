@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, type ComponentType } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,14 +17,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { formatDate, formatDateTime, cn, isImageUrl } from "@/lib/utils";
 import { FOCUS_BUTTON, FOCUS_FIELD_INVALID, FOCUS_INSET } from "@/components/ui/tokens";
 import { permAllows } from "@/lib/permissions";
 import {
-  ArrowLeft,
   Printer,
   Film,
   Scissors,
@@ -202,17 +200,6 @@ export default function PrintRunsPage() {
     cancelRun.mutate({ runId: run.id });
   }
 
-  if (queueQuery.isLoading || listQuery.isLoading) {
-    return (
-      <div className="space-y-5">
-        <PageHeader title="รอบพิมพ์ฟิล์ม DTF" description="รวมหลายงานลงม้วนเดียว แล้วกดเป็นจังหวะชุด" />
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-40 rounded-2xl" />
-        ))}
-      </div>
-    );
-  }
-
   const queue = queueQuery.data ?? [];
   const runs = listQuery.data ?? [];
   const activeRuns = runs.filter((r) => r.status === "PRINTING" || r.status === "PRINTED");
@@ -238,20 +225,20 @@ export default function PrintRunsPage() {
   const busy = markPrinted.isPending || cancelRun.isPending;
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="รอบพิมพ์ฟิล์ม DTF"
-        description="รวมหลายงานลงม้วนเดียว → พิมพ์จบทั้งม้วน → ตัดแยก+ติดป้ายปิดรอบ"
-        action={
-          <Button variant="outline" size="sm" asChild className="gap-1.5">
-            <Link href="/production">
-              <ArrowLeft />
-              หน้าการผลิต
-            </Link>
-          </Button>
-        }
-      />
-
+    <PageShell
+      // ทางกลับหน้าการผลิตย้ายจากปุ่ม action มาเป็น breadcrumb ตามตำแหน่งมาตรฐาน
+      breadcrumb={[{ label: "การผลิต", href: "/production" }, { label: "รอบพิมพ์ฟิล์ม" }]}
+      title="รอบพิมพ์ฟิล์ม DTF"
+      description="รวมหลายงานลงม้วนเดียว → พิมพ์จบทั้งม้วน → ตัดแยก+ติดป้ายปิดรอบ"
+      loading={queueQuery.isLoading || listQuery.isLoading}
+      skeleton={
+        <>
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-40 rounded-2xl" />
+          ))}
+        </>
+      }
+    >
       {/* ── รอบค้าง — กำลังพิมพ์ / รอตัดแยก+ติดป้าย ── */}
       <BlockSection icon={Printer} title="รอบที่ยังพิมพ์ไม่จบ" count={activeRuns.length}>
         {/* query พัง (เน็ต/สิทธิ์) ต้องบอกตรงๆ + ปุ่มลองใหม่ — ห้ามโชว์ "ว่าง" หลอก */}
@@ -389,7 +376,7 @@ export default function PrintRunsPage() {
       {completing && (
         <CompleteRunDialog run={completing} onClose={() => setCompleting(null)} />
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -699,19 +686,15 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
             );
           })}
         </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose}>
-            ยกเลิก
-          </Button>
-          <Button disabled={complete.isPending} onClick={handleSubmit} className="gap-1.5">
-            {complete.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Scissors />
-            )}
-            ตัดแยก+ติดป้ายเสร็จ{totalExtra > 0 && ` · เผื่อ ${totalExtra} ชิ้น`}
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={complete.isPending}
+          submitLabel={
+            <>ตัดแยก+ติดป้ายเสร็จ{totalExtra > 0 && ` · เผื่อ ${totalExtra} ชิ้น`}</>
+          }
+          submitIcon={<Scissors />}
+          onCancel={onClose}
+          onSubmit={handleSubmit}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Bell, Search, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { QueryError } from "@/components/ui/query-error";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CONTROL_H } from "@/components/ui/control-size";
 import { FOCUS_BUTTON, OVERLAY_PANEL, RADIUS } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -75,10 +77,14 @@ export function Topbar() {
     undefined,
     { refetchInterval: 30_000 }
   );
-  const { data: notifData } = trpc.notification.list.useQuery(
+  const notifQuery = trpc.notification.list.useQuery(
     { limit: 5 },
     { enabled: notifOpen },
   );
+  const notifData = notifQuery.data;
+  const notifLoading =
+    !notifData && (notifQuery.isLoading || notifQuery.isFetching);
+  const notifError = !notifData && notifQuery.isError;
 
   const utils = trpc.useUtils();
   const markAllRead = useMutationWithInvalidation(trpc.notification.markAllRead, {
@@ -91,9 +97,8 @@ export function Topbar() {
   const count = unreadCount ?? 0;
 
   return (
-    // พื้น "กรอบเว็บ" เดียวกับแถบเมนูซ้าย — เทาอ่อนกว่าเนื้อหานิดเดียว (เบสเคาะ 2026-08-02)
-    // ยังโปร่ง+เบลอ เพื่อให้เนื้อหาที่เลื่อนลอดใต้แถบเห็นจางๆ ตามเดิม
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-black/[0.07] bg-chrome/90 px-3 backdrop-blur-xl sm:gap-3 sm:px-8 lg:px-10 dark:border-white/[0.07]">
+    // Light เป็นขาวทึบบนพื้นหน้าเทา · dark คงความโปร่งและ blur เดิม
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-black/[0.07] bg-chrome px-3 sm:gap-3 sm:px-8 lg:px-10 dark:border-white/[0.07] dark:bg-chrome/90 dark:backdrop-blur-xl">
       {/* เมนูมือถือ — จอเล็ก sidebar ซ่อน เปิดผ่าน hamburger */}
       <MobileSidebar />
       {/* Search trigger (opens command palette) */}
@@ -110,9 +115,8 @@ export function Topbar() {
           CONTROL_H,
           RADIUS.pill,
           FOCUS_BUTTON,
-          // ช่องค้นหาเคยเป็น "ขาวบนพื้นเทา" — พื้นขาวแล้วมองไม่เห็นว่าตรงนี้กดได้
-          // สลับเป็นเทาอ่อน (ของที่จมลงไปในพื้น) ให้เห็นเป็นช่องเหมือนเดิม
-          "group flex w-full min-w-0 max-w-md items-center gap-2 bg-slate-100/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-slate-100 hover:text-slate-600 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10",
+          // Navbar ขาว — ช่องค้นหาใช้เทาอ่อนเป็นของที่จมลงไป ให้เห็นว่าตรงนี้กดได้
+          "group flex w-full min-w-0 max-w-md items-center gap-2 bg-surface-muted/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-surface-muted hover:text-slate-600 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10",
         )}
       >
         <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -142,7 +146,7 @@ export function Topbar() {
             <Bell />
             {/* วงแหวนรอบจุดแดงต้องเป็นสีพื้นแถบบน ไม่ใช่ขาว/ดำตายตัว — ไม่งั้นเห็นเป็นวงขาวคาด */}
             {count > 0 && (
-              <span className="absolute right-0.5 top-0.5 flex h-2 w-2 rounded-full bg-red-500 ring-2 ring-bg" />
+              <span className="absolute right-0.5 top-0.5 flex h-2 w-2 rounded-full bg-red-500 ring-2 ring-chrome" />
             )}
           </Button>
 
@@ -172,7 +176,29 @@ export function Topbar() {
               </div>
 
               <div className="max-h-80 overflow-y-auto">
-                {notifData?.notifications && notifData.notifications.length > 0 ? (
+                {notifLoading ? (
+                  <div
+                    role="status"
+                    aria-label="กำลังโหลดการแจ้งเตือน"
+                    className="divide-y divide-slate-100 dark:divide-slate-800"
+                  >
+                    {[0, 1, 2].map((index) => (
+                      <div key={index} className="flex gap-2 px-3.5 py-3">
+                        <Skeleton className="mt-1 h-2 w-2 shrink-0 rounded-full" />
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <Skeleton className="h-3.5 w-3/5" />
+                          <Skeleton className="h-3 w-4/5" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : notifError ? (
+                  <QueryError
+                    message="โหลดการแจ้งเตือนไม่สำเร็จ"
+                    onRetry={() => void notifQuery.refetch()}
+                  />
+                ) : notifData && notifData.notifications.length > 0 ? (
                   notifData.notifications.map((notif) => (
                     // กดแจ้งเตือน → ติ๊กอ่าน + เด้งไปหน้างานจริงตาม link (เช่น /orders/xxx)
                     <Link

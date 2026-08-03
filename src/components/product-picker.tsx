@@ -4,10 +4,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { trpc } from "@/lib/trpc";
 import { cn, formatCurrency } from "@/lib/utils";
-import { FOCUS_BUTTON, OVERLAY_PANEL, RADIUS } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, RADIUS, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/spinner";
+import { QueryError } from "@/components/ui/query-error";
 import { SearchInput } from "@/components/ui/search-input";
 import { Package, X, ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
 import { CONTROL_H_SM } from "@/components/ui/control-size";
@@ -108,7 +110,7 @@ export function ProductPickerDialog({
     }
   }, [open, initialGroup]);
 
-  const { data: products, isLoading } = trpc.product.searchForOrder.useQuery(
+  const { data: products, isLoading, isError, refetch } = trpc.product.searchForOrder.useQuery(
     { search: debouncedSearch || undefined, itemType: selectedGroup, limit: 20 },
     { enabled: open },
   );
@@ -184,8 +186,8 @@ export function ProductPickerDialog({
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
-            <Dialog.Title className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-              <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Dialog.Title className="flex min-w-0 items-start gap-2 text-lg font-semibold leading-tight text-slate-900 dark:text-white">
+              <Package className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
               เลือกสินค้าจากแค็ตตาล็อก
             </Dialog.Title>
             <Dialog.Close asChild>
@@ -194,6 +196,9 @@ export function ProductPickerDialog({
               </Button>
             </Dialog.Close>
           </div>
+          <Dialog.Description className="sr-only">
+            ค้นหาสินค้าและเลือกสี ไซส์ และจำนวนที่ต้องการเพิ่มลงในรายการงาน
+          </Dialog.Description>
 
           {/* Search & Filters */}
           <div className="space-y-3 border-b border-slate-200 px-5 py-3 dark:border-slate-700">
@@ -229,6 +234,9 @@ export function ProductPickerDialog({
                 <Spinner size="xl" />
                 <p className="mt-3 text-sm">กำลังโหลด...</p>
               </div>
+            ) : isError ? (
+              // query พัง ≠ ไม่มีสินค้า — เดิมโชว์ "ไม่พบสินค้า" ตอนเน็ตล่ม ผู้ใช้เข้าใจผิด
+              <QueryError message="โหลดรายการสินค้าไม่สำเร็จ" onRetry={() => void refetch()} />
             ) : !products || products.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
                 <Package className="h-10 w-10" />
@@ -306,10 +314,10 @@ export function ProductPickerDialog({
 
                       {/* Expanded: variant selection with checkboxes + qty */}
                       {isExpanded && product.variants.length > 0 && (
-                        <div className="mb-1 ml-10 mr-3 rounded-xl border border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50">
-                          <table className="w-full table-fixed text-xs">
-                            <thead>
-                              <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                        <div className="mx-1 mb-1 overflow-hidden rounded-xl border border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50 sm:ml-10 sm:mr-3">
+                          <table className="block w-full text-xs sm:table sm:table-fixed">
+                            <thead className={cn(TABLE_HEAD_SURFACE, "hidden sm:table-header-group")}>
+                              <tr>
                                 <th scope="col" aria-label="เลือก" className="w-9 px-2 py-1.5" />
                                 <th className="px-3 py-1.5 text-left font-medium">SKU</th>
                                 <th className="w-[14%] px-3 py-1.5 text-left font-medium">สี</th>
@@ -319,7 +327,7 @@ export function ProductPickerDialog({
                                 <th className="w-28 px-3 py-1.5 text-center font-medium">จำนวน</th>
                               </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="block sm:table-row-group">
                               {product.variants.map((v) => {
                                 const vStock = v.totalStock ?? v.stock;
                                 const qty = selections[v.id] ?? 0;
@@ -329,27 +337,38 @@ export function ProductPickerDialog({
                                 return (
                                   <tr
                                     key={v.id}
-                                    className="border-b border-slate-100 last:border-0 dark:border-slate-700/50"
+                                    className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] gap-x-3 gap-y-2 border-b border-slate-100 px-3 py-3 last:border-0 dark:border-slate-700/50 sm:table-row sm:p-0"
                                   >
-                                    <td className="px-2 py-1.5 text-center">
-                                      <input
-                                        type="checkbox"
-                                        aria-label={`เลือก ${v.sku} สี ${v.color || "ไม่ระบุ"} ไซส์ ${v.size}`}
-                                        checked={isChecked}
-                                        onChange={() => toggleVariant(v.id)}
-                                        className={cn("h-3.5 w-3.5 rounded border-slate-300 text-blue-600", FOCUS_BUTTON)}
-                                      />
+                                    <td className="col-start-1 row-span-2 row-start-1 flex p-0 sm:table-cell sm:px-2 sm:py-1.5 sm:text-center">
+                                      <label htmlFor={`variant-select-${v.id}`} className="flex h-11 w-11 cursor-pointer items-center justify-center sm:inline-flex sm:h-auto sm:w-auto">
+                                        <Checkbox
+                                          id={`variant-select-${v.id}`}
+                                          aria-label={`เลือก ${v.sku} สี ${v.color || "ไม่ระบุ"} ไซส์ ${v.size}`}
+                                          checked={isChecked}
+                                          onChange={() => toggleVariant(v.id)}
+                                          className="h-5 w-5 sm:h-3.5 sm:w-3.5"
+                                        />
+                                      </label>
                                     </td>
-                                    <td className="truncate px-3 py-1.5 font-mono text-slate-500 dark:text-slate-400">
+                                    <td className="col-span-2 col-start-2 row-start-1 min-w-0 break-all p-0 font-mono text-slate-500 dark:text-slate-400 sm:table-cell sm:truncate sm:px-3 sm:py-1.5">
                                       {v.sku}
                                     </td>
-                                    <td className="px-3 py-1.5 text-slate-600 dark:text-slate-400">
-                                      {v.color || "-"}
+                                    <td className="col-start-2 min-w-0 p-0 text-slate-600 dark:text-slate-400 sm:table-cell sm:px-3 sm:py-1.5">
+                                      <span className="block text-2xs text-slate-400 dark:text-slate-500 sm:hidden">
+                                        สี
+                                      </span>
+                                      <span className="block truncate">{v.color || "-"}</span>
                                     </td>
-                                    <td className="px-3 py-1.5 font-medium text-slate-700 dark:text-slate-300">
-                                      {v.size}
+                                    <td className="col-start-3 min-w-0 p-0 font-medium text-slate-700 dark:text-slate-300 sm:table-cell sm:px-3 sm:py-1.5">
+                                      <span className="block text-2xs font-normal text-slate-400 dark:text-slate-500 sm:hidden">
+                                        ไซส์
+                                      </span>
+                                      <span className="block truncate">{v.size}</span>
                                     </td>
-                                    <td className="px-3 py-1.5 text-right">
+                                    <td className="col-start-2 p-0 sm:table-cell sm:px-3 sm:py-1.5 sm:text-right">
+                                      <span className="mb-1 block text-2xs text-slate-400 dark:text-slate-500 sm:hidden">
+                                        คงเหลือ
+                                      </span>
                                       <Badge
                                         variant={
                                           vStock > 10
@@ -364,22 +383,43 @@ export function ProductPickerDialog({
                                         {vStock}
                                       </Badge>
                                     </td>
-                                    <td className="px-3 py-1.5 text-right font-medium text-slate-700 dark:text-slate-300">
-                                      {v.sellingPrice > 0 ? formatCurrency(v.sellingPrice) : formatCurrency(product.basePrice)}
+                                    <td className="col-start-3 min-w-0 p-0 font-medium text-slate-700 dark:text-slate-300 sm:table-cell sm:px-3 sm:py-1.5 sm:text-right">
+                                      <span className="block text-2xs font-normal text-slate-400 dark:text-slate-500 sm:hidden">
+                                        ราคา
+                                      </span>
+                                      <span className="block break-words">
+                                        {v.sellingPrice > 0
+                                          ? formatCurrency(v.sellingPrice)
+                                          : formatCurrency(product.basePrice)}
+                                      </span>
                                     </td>
-                                    <td className="w-28 px-3 py-1.5">
-                                      <div className={cn("flex items-center justify-center gap-1.5", !isChecked && "invisible")}>
+                                    <td className="col-span-3 col-start-1 p-0 sm:table-cell sm:w-28 sm:px-3 sm:py-1.5">
+                                      <div
+                                        className={cn(
+                                          "mt-1 items-center justify-between gap-3 border-t border-slate-200 pt-3 dark:border-slate-700 sm:mt-0 sm:justify-center sm:gap-1.5 sm:border-0 sm:pt-0",
+                                          isChecked ? "flex" : "hidden sm:flex sm:invisible",
+                                        )}
+                                      >
+                                        <span className="font-medium text-slate-600 dark:text-slate-300 sm:hidden">
+                                          จำนวน
+                                        </span>
                                         <button
                                           type="button"
                                           aria-label={`ลดจำนวน ${v.sku}`}
                                           tabIndex={isChecked ? 0 : -1}
                                           onClick={() => setVariantQty(v.id, qty - 1)}
-                                          className={cn(CONTROL_H_SM, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700")}
+                                          className={cn(
+                                            CONTROL_H_SM,
+                                            FOCUS_BUTTON,
+                                            RADIUS.item,
+                                            "flex w-11 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700",
+                                          )}
                                         >
                                           <Minus className="h-3 w-3" />
                                         </button>
                                         <input
                                           type="number"
+                                          inputMode="numeric"
                                           aria-label={`จำนวน ${v.sku}`}
                                           min={1}
                                           tabIndex={isChecked ? 0 : -1}
@@ -388,7 +428,9 @@ export function ProductPickerDialog({
                                             setVariantQty(v.id, parseInt(e.target.value) || 0)
                                           }
                                           className={cn(
-                                            "h-6 w-12 rounded border bg-white px-1 text-center text-xs dark:bg-slate-900 dark:text-slate-100",
+                                            CONTROL_H_SM,
+                                            FOCUS_FIELD,
+                                            "w-14 rounded border bg-white px-1 text-center text-sm dark:bg-slate-900 dark:text-slate-100 sm:h-6 sm:min-h-0 sm:w-12 sm:text-xs",
                                             exceedsStock
                                               ? "border-amber-400 dark:border-amber-600"
                                               : "border-slate-200 dark:border-slate-700",
@@ -399,7 +441,12 @@ export function ProductPickerDialog({
                                           aria-label={`เพิ่มจำนวน ${v.sku}`}
                                           tabIndex={isChecked ? 0 : -1}
                                           onClick={() => setVariantQty(v.id, qty + 1)}
-                                          className={cn(CONTROL_H_SM, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700")}
+                                          className={cn(
+                                            CONTROL_H_SM,
+                                            FOCUS_BUTTON,
+                                            RADIUS.item,
+                                            "flex w-11 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700",
+                                          )}
                                         >
                                           <Plus className="h-3 w-3" />
                                         </button>
@@ -432,15 +479,18 @@ export function ProductPickerDialog({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3 dark:border-slate-700">
+          <div className="flex flex-col gap-2 border-t border-slate-200 px-5 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
             <button
               type="button"
               onClick={handleManualEntry}
-              className="text-sm text-slate-500 underline-offset-2 transition-colors hover:text-slate-700 hover:underline dark:text-slate-400 dark:hover:text-slate-300"
+              className={cn(
+                FOCUS_BUTTON,
+                "min-h-11 text-center text-sm text-slate-500 underline-offset-2 transition-colors hover:text-slate-700 hover:underline sm:min-h-0 sm:text-left dark:text-slate-400 dark:hover:text-slate-300",
+              )}
             >
               เพิ่มรายการด้วยตนเอง
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-end gap-2">
               <Button
                 type="button"
                 onClick={onClose}

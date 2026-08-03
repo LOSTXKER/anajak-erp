@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useListPageState } from "@/hooks/use-list-page-state";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,20 +15,20 @@ import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatusLabel } from "@/components/ui/status-label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
+import { ResponsiveList } from "@/components/ui/responsive-list";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { formatDate, cn } from "@/lib/utils";
 import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { permAllows } from "@/lib/permissions";
-import { Film, Printer, Loader2, Hand } from "lucide-react";
+import { Film, Printer, Hand } from "lucide-react";
 import { FilterChip } from "@/components/ui/filter-chip";
 
 // คลังฟิล์มพร้อมรีด (FLOW-REDESIGN ก้อน 2) — ฟิล์มพิมพ์เผื่อจากรอบพิมพ์
@@ -37,34 +38,31 @@ import { FilterChip } from "@/components/ui/filter-chip";
 type FilmStockItem = RouterOutput["filmStock"]["list"][number];
 
 export default function FilmStockPage() {
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  return (
+    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+      <FilmStockPageContent />
+    </Suspense>
+  );
+}
+
+function FilmStockPageContent() {
+  // ช่องค้นหาใช้ param "search" (ไม่ใช่ "q" มาตรฐาน) — ลิงก์เตือนฟิล์มค้างจาก
+  // ฟอร์มเปิดงาน (order-customer-section) ส่ง ?search=<ชื่อลูกค้า> มาแบบเดิม ต้องรับได้ต่อ
+  const { search, onSearchChange, searchInputRef } = useListPageState({
+    searchParam: "search",
+  });
   const [includeEmpty, setIncludeEmpty] = useState(false);
   const [consuming, setConsuming] = useState<FilmStockItem | null>(null);
   // B8: ปุ่ม "หยิบใช้" (ตัดคงเหลือฟิล์ม) เฉพาะคนมีสิทธิ์ผลิต — role อื่นเห็นคลังอ่านอย่างเดียว
   const { data: me } = trpc.user.me.useQuery();
   const canManage = permAllows(me?.permissions, "manage_production");
 
-  // รับ ?search= จากลิงก์เตือนฟิล์มค้าง (ฟอร์มเปิดงาน) — อ่านครั้งเดียวตอน mount
-  // (อ่านจาก window แทน useSearchParams — ไม่ต้องห่อ Suspense)
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("search");
-    if (q) setSearch(q);
-  }, []);
-
-  // debounce 300ms — pattern เดียวกับ ProductPicker
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
   const listQuery = trpc.filmStock.list.useQuery({
-    search: debouncedSearch.trim() || undefined,
+    search: search.trim() || undefined,
     includeEmpty,
   });
 
-  const items = listQuery.data ?? [];
-  const hasSearch = debouncedSearch.trim().length > 0;
+  const hasSearch = search.trim().length > 0;
 
   return (
     <div className="space-y-5">
@@ -84,9 +82,10 @@ export default function FilmStockPage() {
       {/* ── ค้นหา + toggle แสดงที่หมดแล้ว — อยู่นอก list area กัน focus หลุดตอนโหลด ── */}
       <Toolbar>
         <SearchInput
+          ref={searchInputRef}
           placeholder="ค้นหาลาย / ชื่อลูกค้า / เลขออเดอร์..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          defaultValue={search}
+          onChange={(e) => onSearchChange(e.target.value)}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
         />
         <ToolbarGroup className="shrink-0">
@@ -98,17 +97,14 @@ export default function FilmStockPage() {
         </ToolbarGroup>
       </Toolbar>
 
-      {listQuery.isError ? (
-        <QueryError onRetry={() => listQuery.refetch()} />
-      ) : listQuery.isLoading ? (
-        <div className="space-y-3">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-2xl" />
-          ))}
-        </div>
-      ) : items.length === 0 ? (
-        <div className="card-surface rounded-2xl">
-          {hasSearch ? (
+      {/* โหลด/พัง/ว่าง/สลับตาราง↔การ์ดที่ lg — ResponsiveList จัดการแทน branch ทำมือ */}
+      <ResponsiveList
+        items={listQuery.data}
+        isLoading={listQuery.isLoading}
+        isError={listQuery.isError}
+        onRetry={() => listQuery.refetch()}
+        emptyState={
+          hasSearch ? (
             <EmptyState
               icon={Film}
               title="ไม่พบฟิล์มที่ค้นหา"
@@ -120,12 +116,10 @@ export default function FilmStockPage() {
               title="ยังไม่มีฟิล์มในคลัง"
               description="ฟิล์มพิมพ์เผื่อจากรอบพิมพ์จะมาอยู่ที่นี่"
             />
-          )}
-        </div>
-      ) : (
-        <>
-          {/* ── จอใหญ่ = ตาราง ── */}
-          <DataTable.Root className="hidden md:block">
+          )
+        }
+        renderDesktop={(items) => (
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>ป้ายลาย</DataTable.Th>
@@ -207,9 +201,9 @@ export default function FilmStockPage() {
               ))}
             </DataTable.Body>
           </DataTable.Root>
-
-          {/* ── มือถือ = การ์ด ── */}
-          <div className="space-y-3 md:hidden">
+        )}
+        renderMobile={(items) => (
+          <div className="space-y-3">
             {items.map((item) => (
               <div
                 key={item.id}
@@ -262,8 +256,8 @@ export default function FilmStockPage() {
               </div>
             ))}
           </div>
-        </>
-      )}
+        )}
+      />
 
       {consuming && <ConsumeDialog item={consuming} onClose={() => setConsuming(null)} />}
     </div>
@@ -334,25 +328,16 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
             />
           </Field>
         </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} className="h-11">
-            ยกเลิก
-          </Button>
-          <Button
-            disabled={consume.isPending || invalid}
-            onClick={() =>
-              consume.mutate({ id: item.id, qty, note: note.trim() || undefined })
-            }
-            className="h-11 gap-1.5"
-          >
-            {consume.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Hand />
-            )}
-            ยืนยันหยิบใช้
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={consume.isPending}
+          disabled={invalid}
+          submitLabel="ยืนยันหยิบใช้"
+          submitIcon={<Hand />}
+          onCancel={onClose}
+          onSubmit={() =>
+            consume.mutate({ id: item.id, qty, note: note.trim() || undefined })
+          }
+        />
       </DialogContent>
     </Dialog>
   );

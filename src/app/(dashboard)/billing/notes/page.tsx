@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { Button } from "@/components/ui/button";
 import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
@@ -18,6 +18,7 @@ import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/ui/field";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { FileStack, Plus, Printer, Ban, Loader2 } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
@@ -41,11 +42,6 @@ export default function BillingNotesPage() {
       <BillingNotesPageContent />
     </Suspense>
   );
-}
-
-function positivePage(value: string | null) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
 /* สถานะใบวางบิล = จุดสี + ข้อความ ภาษาเดียวกับทั้งเว็บ (เดิมเป็นแคปซูล <Badge>)
@@ -71,13 +67,8 @@ function NoteStatus({
 }
 
 function BillingNotesPageContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.get("q") ?? "";
-  const page = positivePage(searchParams.get("page"));
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const { search, page, replaceListState, onSearchChange, searchInputRef } =
+    useListPageState();
   const [showCreate, setShowCreate] = useState(false);
   const [voidTarget, setVoidTarget] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
@@ -89,31 +80,6 @@ function BillingNotesPageContent() {
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
 
-  const replaceListState = useCallback(
-    (updates: Record<string, string | null>) => {
-      const next = new URLSearchParams(window.location.search);
-      for (const [key, value] of Object.entries(updates)) {
-        if (!value || (key === "page" && value === "1")) next.delete(key);
-        else next.set(key, value);
-      }
-      const query = next.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [pathname, router]
-  );
-
-  useEffect(
-    () => () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    },
-    []
-  );
-  useEffect(() => {
-    if (searchInputRef.current && searchInputRef.current.value !== search) {
-      searchInputRef.current.value = search;
-    }
-  }, [search]);
-
   const { data: me } = trpc.user.me.useQuery();
   const canView = me ? permAllows(me.permissions, "manage_billing_docs") : true;
 
@@ -123,11 +89,7 @@ function BillingNotesPageContent() {
     { enabled: canView, placeholderData: (previous) => previous }
   );
 
-  useEffect(() => {
-    if (data && page > data.pages && data.pages >= 1) {
-      replaceListState({ page: String(data.pages) });
-    }
-  }, [data, page, replaceListState]);
+  usePageClamp(page, data?.pages, replaceListState);
   // ค้นหาผ่าน server — ลูกค้าเกินหน้าแรกของลิสต์ต้องหาเจอด้วยการพิมพ์ ไม่หายเงียบ
   const customers = trpc.customer.list.useQuery(
     { search: customerSearch || undefined, limit: 50 },
@@ -185,43 +147,33 @@ function BillingNotesPageContent() {
     .reduce((sum, inv) => sum + inv.outstanding, 0);
   const allSelected = eligibleList.length > 0 && selectedIds.size === eligibleList.length;
 
-  if (me && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader title="ใบวางบิล" description="รวมใบแจ้งหนี้ค้างชำระเรียกเก็บตามรอบ" />
-        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="ใบวางบิล"
-        description="รวมใบแจ้งหนี้ค้างชำระของลูกค้าเรียกเก็บตามรอบ"
-        breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ใบวางบิล" }]}
-        action={
-          <Button onClick={() => setShowCreate(true)} className="gap-1.5">
-            <Plus />
-            สร้างใบวางบิล
-          </Button>
-        }
-      />
-
+    <PageShell
+      title="ใบวางบิล"
+      description="รวมใบแจ้งหนี้ค้างชำระของลูกค้าเรียกเก็บตามรอบ"
+      breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ใบวางบิล" }]}
+      action={
+        <Button onClick={() => setShowCreate(true)} className="gap-1.5">
+          <Plus />
+          สร้างใบวางบิล
+        </Button>
+      }
+      denied={
+        me && !canView
+          ? {
+              description:
+                'ต้องมีสิทธิ์ "ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
+            }
+          : null
+      }
+    >
       <Toolbar>
         <SearchInput
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
           defaultValue={search}
-          onChange={(event) => {
-            if (searchTimer.current) clearTimeout(searchTimer.current);
-            const value = event.target.value;
-            searchTimer.current = setTimeout(
-              () => replaceListState({ q: value.trim() || null, page: null }),
-              300
-            );
-          }}
+          onChange={(event) => onSearchChange(event.target.value)}
         />
       </Toolbar>
 
@@ -295,7 +247,7 @@ function BillingNotesPageContent() {
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          className="text-slate-500 hover:text-red-700"
+                          className="text-muted hover:text-red-700"
                           aria-label={`ยกเลิกใบวางบิล ${note.billingNoteNumber}`}
                           onClick={() => {
                             setVoidReason("");
@@ -423,17 +375,14 @@ function BillingNotesPageContent() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label htmlFor="billing-note-customer-search" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                ค้นหาและเลือกลูกค้า
-              </label>
-              <Input
-                id="billing-note-customer-search"
-                value={customerSearch}
-                onChange={(e) => setCustomerSearch(e.target.value)}
-                placeholder="พิมพ์ค้นหาชื่อลูกค้า/บริษัท..."
-                className="mb-2"
-              />
+            <div className="space-y-2">
+              <Field label="ค้นหาและเลือกลูกค้า" id="billing-note-customer-search">
+                <Input
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  placeholder="พิมพ์ค้นหาชื่อลูกค้า/บริษัท..."
+                />
+              </Field>
               {/* query พังห้ามเงียบ — dropdown ว่างเปล่าอ่านเป็น "ไม่มีลูกค้า" ได้ (DESIGN.md) */}
               {customers.isError && !customers.data ? (
                 <QueryError
@@ -456,10 +405,12 @@ function BillingNotesPageContent() {
             </div>
 
             {customerId && (
-              <div>
-                <p className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              // fieldset/legend ไม่ใช่ <Field> — ตัวถูกติดป้ายเป็น "กลุ่ม checkbox" ไม่ใช่ช่องเดี่ยว
+              // (label htmlFor ชี้กลุ่มไม่ได้ · เดิมเป็น <p> โปรแกรมอ่านหน้าจอจับคู่ไม่ได้เลย)
+              <fieldset>
+                <legend className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                   ใบแจ้งหนี้ค้างชำระ
-                </p>
+                </legend>
                 {/* isError มาก่อน — query พังแล้วโชว์ "ไม่มีใบค้าง" = เลขโกหก คนข้ามใบจริง */}
                 {eligible.isError && !eligible.data ? (
                   <QueryError
@@ -469,7 +420,7 @@ function BillingNotesPageContent() {
                 ) : eligible.isLoading ? (
                   <Skeleton className="h-16 w-full" />
                 ) : eligibleList.length === 0 ? (
-                  <p className={cn(DASHED, "rounded-xl p-3 text-sm text-slate-500")}>
+                  <p className={cn(DASHED, "rounded-xl p-3 text-sm text-muted")}>
                     ลูกค้ารายนี้ไม่มีใบแจ้งหนี้ค้างชำระที่วางบิลได้
                   </p>
                 ) : (
@@ -505,7 +456,7 @@ function BillingNotesPageContent() {
                             <span className="font-medium text-slate-900 dark:text-white">
                               {inv.invoiceNumber}
                             </span>
-                            <span className="ml-1.5 text-xs text-slate-500">
+                            <span className="ml-1.5 text-xs text-muted">
                               {INVOICE_TYPE_LABELS[inv.type] ?? inv.type} · {inv.orderNumber}
                               {inv.dueDate && ` · ครบกำหนด ${formatDate(inv.dueDate)}`}
                             </span>
@@ -530,27 +481,20 @@ function BillingNotesPageContent() {
                     ระบบหักให้อัตโนมัติไม่ได้ ตรวจยอดเรียกเก็บก่อนส่งลูกค้า (ใบที่ผูกใบเดิมถูกหักจากยอดค้างแล้ว)
                   </p>
                 )}
-              </div>
+              </fieldset>
             )}
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="billing-note-due-date" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  วันนัดรับชำระ
-                </label>
-                <DatePicker id="billing-note-due-date"  value={dueDate} onChange={(v) => setDueDate(v)} />
-              </div>
-              <div>
-                <label htmlFor="billing-note-notes" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  หมายเหตุ
-                </label>
+              <Field label="วันนัดรับชำระ" id="billing-note-due-date">
+                <DatePicker value={dueDate} onChange={(v) => setDueDate(v)} />
+              </Field>
+              <Field label="หมายเหตุ" id="billing-note-notes">
                 <Input
-                  id="billing-note-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="เช่น รอบวางบิลสิ้นเดือน"
                 />
-              </div>
+              </Field>
             </div>
           </div>
           <DialogFooter>
@@ -592,18 +536,14 @@ function BillingNotesPageContent() {
               ใบแจ้งหนี้ในใบนี้จะกลับมาวางบิลใหม่ได้ (ยกเลิก-ออกใหม่เท่านั้น ห้ามลบ)
             </DialogDescription>
           </DialogHeader>
-          <div>
-            <label htmlFor="billing-note-void-reason" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              เหตุผลที่ยกเลิก
-            </label>
+          <Field label="เหตุผลที่ยกเลิก" id="billing-note-void-reason">
             <Textarea
-              id="billing-note-void-reason"
               value={voidReason}
               onChange={(e) => setVoidReason(e.target.value)}
               rows={3}
               placeholder="ระบุเหตุผล..."
             />
-          </div>
+          </Field>
           <DialogFooter>
             <Button variant="outline" onClick={() => setVoidTarget(null)}>
               ไม่ยกเลิก
@@ -624,6 +564,6 @@ function BillingNotesPageContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

@@ -4,21 +4,20 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { QueryError } from "@/components/ui/query-error";
-import { Loader2, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import type { StepStatus } from "@prisma/client";
 import type { ProductionStep } from "./types";
 
@@ -171,19 +170,13 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
             </p>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            ยกเลิก
-          </Button>
-          <Button onClick={handleSave} disabled={updateStep.isPending} className="gap-1.5">
-            {updateStep.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Check />
-            )}
-            บันทึก
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={updateStep.isPending}
+          submitLabel="บันทึก"
+          submitIcon={<Check />}
+          onCancel={onClose}
+          onSubmit={handleSave}
+        />
       </DialogContent>
     </Dialog>
   );

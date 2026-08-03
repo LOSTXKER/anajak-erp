@@ -14,6 +14,8 @@ interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> 
    * rather than a card title.
    */
   compact?: boolean;
+  /** ใช้ 3 เมื่อนำ Section แบบไม่มีผิวไปเป็นกลุ่มย่อยภายใน Section หลัก */
+  headingLevel?: 2 | 3;
 }
 
 /**
@@ -30,12 +32,15 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
       bordered = true,
       flush = false,
       compact = false,
+      headingLevel = 2,
       className,
       children,
       ...props
     },
     ref
   ) => {
+    const Heading = headingLevel === 3 ? "h3" : "h2";
+
     return (
       <section
         ref={ref}
@@ -59,13 +64,13 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
             <div className="min-w-0 space-y-0.5">
               {title &&
                 (compact ? (
-                  <h2 className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <Heading className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     {title}
-                  </h2>
+                  </Heading>
                 ) : (
-                  <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
+                  <Heading className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
                     {title}
-                  </h2>
+                  </Heading>
                 ))}
               {description && (
                 <p className="text-xs text-slate-500 dark:text-slate-400">

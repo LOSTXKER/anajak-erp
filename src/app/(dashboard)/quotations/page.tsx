@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
+import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { Plus, ClipboardList, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -56,11 +56,6 @@ function QuotationStatusLabel({ status }: { status: string }) {
   );
 }
 
-function positivePage(value: string | null) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
-}
-
 export default function QuotationsPage() {
   return (
     <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
@@ -70,46 +65,12 @@ export default function QuotationsPage() {
 }
 
 function QuotationsPageContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.get("q") ?? "";
+  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
+    useListPageState();
   const rawStatus = searchParams.get("status") ?? "";
   const status = QUOTATION_STATUSES.some((option) => option.value === rawStatus)
     ? rawStatus
     : "";
-  const page = positivePage(searchParams.get("page"));
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const replaceListState = useCallback(
-    (updates: Record<string, string | null>) => {
-      // อ่าน URL สดตอนกดจริง — กัน debounce คำค้นที่เริ่มก่อนผู้ใช้เปลี่ยน filter
-      // แล้ว callback เก่าเขียนทับ status/page ที่เพิ่งเลือก
-      const next = new URLSearchParams(window.location.search);
-      for (const [key, value] of Object.entries(updates)) {
-        if (!value || (key === "page" && value === "1")) next.delete(key);
-        else next.set(key, value);
-      }
-      const query = next.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [pathname, router]
-  );
-
-  useEffect(
-    () => () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    },
-    []
-  );
-
-  // browser back/forward ต้องคืนคำค้นในช่อง โดยไม่ remount input จน focus หลุด
-  useEffect(() => {
-    if (searchInputRef.current && searchInputRef.current.value !== search) {
-      searchInputRef.current.value = search;
-    }
-  }, [search]);
 
   const { data: me } = trpc.user.me.useQuery();
   // สร้างใบเสนอ = สิทธิ์ขาย (quotation.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12)
@@ -127,78 +88,59 @@ function QuotationsPageContent() {
     { enabled: canView }
   );
 
-  useEffect(() => {
-    if (data && page > data.pages && data.pages >= 1) {
-      replaceListState({ page: String(data.pages) });
-    }
-  }, [data, page, replaceListState]);
-
-  if (me && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader
-          title="ใบเสนอราคา"
-          description="จัดการใบเสนอราคาทั้งหมด"
-        />
-        <p className="text-sm text-slate-400">
-          ต้องมีสิทธิ์ &quot;เห็นเงินฝั่งขาย&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
-        </p>
-      </div>
-    );
-  }
+  usePageClamp(page, data?.pages, replaceListState);
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="ใบเสนอราคา"
-        description="จัดการใบเสนอราคาทั้งหมด"
-        action={
-          canCreateQuotation ? (
-            <Button size="sm" asChild>
-              <Link href="/orders/new?next=quote">
-                <Plus />
-                เปิดงานเพื่อออกใบเสนอ
-              </Link>
-            </Button>
-          ) : undefined
+    <PageShell
+      title="ใบเสนอราคา"
+      description="จัดการใบเสนอราคาทั้งหมด"
+      action={
+        canCreateQuotation ? (
+          <Button size="sm" asChild>
+            <Link href="/orders/new?next=quote">
+              <Plus />
+              เปิดงานเพื่อออกใบเสนอ
+            </Link>
+          </Button>
+        ) : undefined
+      }
+      denied={
+        !!me &&
+        !canView && {
+          description:
+            'ต้องมีสิทธิ์ "เห็นเงินฝั่งขาย" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
         }
-      />
-
-      <Toolbar>
-        <SearchInput
-          ref={searchInputRef}
-          containerClassName="@2xl:max-w-sm @2xl:flex-1"
-          placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
-          defaultValue={search}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (searchTimer.current) clearTimeout(searchTimer.current);
-            searchTimer.current = setTimeout(
-              () => replaceListState({ q: value.trim() || null, page: null }),
-              300
-            );
-          }}
-        />
-        <ToolbarGroup>
-          {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}
-          <Select
-            shape="pill"
-            className="@2xl:w-52"
-            aria-label="กรองตามสถานะใบเสนอราคา"
-            value={status}
-            onChange={(e) =>
-              replaceListState({ status: e.target.value || null, page: null })
-            }
-          >
-            {QUOTATION_STATUSES.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
-          </Select>
-        </ToolbarGroup>
-      </Toolbar>
-
+      }
+      headerChildren={
+        <Toolbar>
+          <SearchInput
+            ref={searchInputRef}
+            containerClassName="@2xl:max-w-sm @2xl:flex-1"
+            placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
+            defaultValue={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+          <ToolbarGroup>
+            {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}
+            <Select
+              shape="pill"
+              className="@2xl:w-52"
+              aria-label="กรองตามสถานะใบเสนอราคา"
+              value={status}
+              onChange={(e) =>
+                replaceListState({ status: e.target.value || null, page: null })
+              }
+            >
+              {QUOTATION_STATUSES.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </Select>
+          </ToolbarGroup>
+        </Toolbar>
+      }
+    >
       <ResponsiveList
         items={data?.quotations}
         isLoading={isLoading || isFetching}
@@ -331,6 +273,6 @@ function QuotationsPageContent() {
           ) : undefined
         }
       />
-    </div>
+    </PageShell>
   );
 }

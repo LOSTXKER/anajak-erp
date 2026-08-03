@@ -13,12 +13,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { cn } from "@/lib/utils";
 import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
-import { Shirt, Check, Loader2, AlertTriangle, PackageOpen, Undo2 } from "lucide-react";
+import { Shirt, Check, AlertTriangle, PackageOpen, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ProductionStep } from "./types";
 
@@ -244,32 +244,23 @@ function IssueGarmentsDialog({
             );
           })}
         </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose}>
-            ยกเลิก
-          </Button>
-          <Button
-            disabled={total <= 0 || issue.isPending}
-            onClick={() =>
-              issue.mutate({
-                productionId,
-                stepId,
-                idempotencyKey,
-                lines: lines
-                  .map((l) => ({ sku: l.sku, qty: qty[l.sku] ?? 0 }))
-                  .filter((l) => l.qty > 0),
-              })
-            }
-            className="gap-1.5"
-          >
-            {issue.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <PackageOpen />
-            )}
-            เบิก {total} ตัว
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={issue.isPending}
+          disabled={total <= 0}
+          submitLabel={`เบิก ${total} ตัว`}
+          submitIcon={<PackageOpen />}
+          onCancel={onClose}
+          onSubmit={() =>
+            issue.mutate({
+              productionId,
+              stepId,
+              idempotencyKey,
+              lines: lines
+                .map((l) => ({ sku: l.sku, qty: qty[l.sku] ?? 0 }))
+                .filter((l) => l.qty > 0),
+            })
+          }
+        />
       </DialogContent>
     </Dialog>
   );
@@ -366,32 +357,23 @@ function ReturnGarmentsDialog({
             placeholder="หมายเหตุ (ถ้ามี) เช่น เหลือจากเผื่อเสีย"
           />
         </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose}>
-            ยกเลิก
-          </Button>
-          <Button
-            disabled={total <= 0 || overLimit || ret.isPending}
-            onClick={() =>
-              ret.mutate({
-                productionId,
-                idempotencyKey,
-                note: note || undefined,
-                lines: returnable
-                  .map((l) => ({ sku: l.sku, qty: qty[l.sku] ?? 0 }))
-                  .filter((l) => l.qty > 0),
-              })
-            }
-            className="gap-1.5"
-          >
-            {ret.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Undo2 />
-            )}
-            คืน {total} ตัว
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={ret.isPending}
+          disabled={total <= 0 || overLimit}
+          submitLabel={`คืน ${total} ตัว`}
+          submitIcon={<Undo2 />}
+          onCancel={onClose}
+          onSubmit={() =>
+            ret.mutate({
+              productionId,
+              idempotencyKey,
+              note: note || undefined,
+              lines: returnable
+                .map((l) => ({ sku: l.sku, qty: qty[l.sku] ?? 0 }))
+                .filter((l) => l.qty > 0),
+            })
+          }
+        />
       </DialogContent>
     </Dialog>
   );

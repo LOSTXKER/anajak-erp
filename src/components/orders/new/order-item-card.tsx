@@ -20,13 +20,13 @@ import {
   itemHasContent,
 } from "@/types/order-form";
 import { PrintTableRow } from "./print-table-row";
+import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
-import { DASHED } from "@/components/ui/tokens";
+import { DASHED, FIELD_LABEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
-export const labelClass =
-  "mb-1 block text-xs text-slate-500 dark:text-slate-400";
+export const labelClass = FIELD_LABEL;
 
 // หัวข้อกลุ่ม — เด่นชัด (แถบน้ำเงิน + ตัวหนาเข้ม) แยกกลุ่มให้สายตาจับได้ทันที (เบส: highlight หัวข้อ)
 const groupLabelClass =
@@ -58,6 +58,8 @@ interface OrderItemCardProps {
   // โหมดกระชับ (หน้าแก้รายการ): ยุบ คำอธิบาย/ส่วนเสริม/หมายเหตุ เป็น "รายละเอียดเพิ่มเติม" ·
   // ตัดสรุปราคาต่อรายการ (sidebar มีรวมแล้ว) · ย่อหัวข้อ (redesign 2026-06-12)
   compact?: boolean;
+  /** presentation เฉพาะหน้าเปิดงานใหม่: สินค้าก่อนลาย + empty CTA กระชับ */
+  appearance?: "default" | "intake";
 }
 
 // ============================================================
@@ -117,8 +119,13 @@ export function OrderItemCard({
   onOpenPicker, onSetItems,
   showPrints = true, showAddons = true,
   solo = false, compact = false,
+  appearance = "default",
 }: OrderItemCardProps) {
   const expanded = solo || isExpanded;
+  const isIntake = appearance === "intake";
+  const groupHeadingClass = isIntake
+    ? "text-sm font-semibold text-slate-800 dark:text-slate-100"
+    : groupLabelClass;
   const otherItemsWithPrints = (allItems ?? []).map((it, idx) => ({ it, idx })).filter(({ idx }) => idx !== itemIdx).filter(({ it }) => it.prints.length > 0);
 
   const copyPrintsFrom = (sourceIdx: number) => {
@@ -171,88 +178,149 @@ export function OrderItemCard({
 
   // ── section: คำอธิบายงาน ──
   const descField = (
-    <Field label="คำอธิบายงาน">
-      <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder="เช่น งานสกรีนทีม ABC, งานพิมพ์เสื้อกิจกรรม..." />
+    <Field label={isIntake ? "ชื่อชุดงาน" : "คำอธิบายงาน"}>
+      <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder={isIntake ? "เช่น เสื้อทีมหน้าร้าน 30 ตัว" : "เช่น งานสกรีนทีม ABC, งานพิมพ์เสื้อกิจกรรม..."} />
     </Field>
   );
 
   // ── section: ลาย ──
   const printsSection = (
-    <div>
-      <div className="mb-2 flex items-center justify-between">
-        <span className={groupLabelClass}>{compact ? "ลาย" : "ลายที่ต้องการสั่งผลิต"}</span>
-        <div className="flex items-center gap-1.5">
-          {otherItemsWithPrints.length > 0 && (
-            <div className="relative">
-              <Select
-                aria-label="คัดลอกลายจากรายการอื่น"
-                value=""
-                onChange={(e) => {
-                  if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
-                }}
-                className="w-auto appearance-none rounded-lg border-0 bg-transparent pl-7 pr-2 text-slate-600 hover:bg-slate-100 sm:text-xs dark:text-slate-400 dark:hover:bg-slate-800"
-              >
-                <option value="">คัดลอกลาย...</option>
-                {otherItemsWithPrints.map(({ it, idx }) => (
-                  <option key={idx} value={idx}>
-                    #{idx + 1} {it.description.slice(0, 20)} ({it.prints.length} ลาย)
-                  </option>
-                ))}
-              </Select>
-              <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
-            </div>
-          )}
-          <Button type="button" variant="outline" size="sm" onClick={() => onAddPrint(itemIdx)}>
-            <Plus />เพิ่มลาย
-          </Button>
+    <div className="@container">
+      {(!isIntake || item.prints.length > 0 || otherItemsWithPrints.length > 0) && (
+        <div className="mb-2 flex items-center justify-between">
+          <span className={groupHeadingClass}>{isIntake ? "ลายและงานพิมพ์" : compact ? "ลาย" : "ลายที่ต้องการสั่งผลิต"}</span>
+          <div className="flex items-center gap-1.5">
+            {otherItemsWithPrints.length > 0 && (
+              <div className="relative">
+                <Select
+                  aria-label="คัดลอกลายจากรายการอื่น"
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
+                  }}
+                  className="w-auto appearance-none rounded-lg border-0 bg-transparent pl-7 pr-2 text-slate-600 hover:bg-slate-100 sm:text-xs dark:text-slate-400 dark:hover:bg-slate-800"
+                >
+                  <option value="">คัดลอกลาย...</option>
+                  {otherItemsWithPrints.map(({ it, idx }) => (
+                    <option key={idx} value={idx}>
+                      #{idx + 1} {it.description.slice(0, 20)} ({it.prints.length} ลาย)
+                    </option>
+                  ))}
+                </Select>
+                <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
+              </div>
+            )}
+            {(!isIntake || item.prints.length > 0) && (
+              <Button type="button" variant="outline" size="sm" onClick={() => onAddPrint(itemIdx)}>
+                <Plus />เพิ่มลาย
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
       {item.prints.length === 0 ? (
-        <button
-          type="button"
-          onClick={() => onAddPrint(itemIdx)}
-          className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-        >
-          <ImageIcon className="h-6 w-6 text-slate-300 dark:text-slate-600" />
-          <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีลาย — กดเพื่อเพิ่มลายแรก</span>
-        </button>
+        isIntake ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onAddPrint(itemIdx)}
+            className="gap-2 text-slate-600 dark:text-slate-300"
+          >
+            <ImageIcon className="h-4 w-4" />
+            เพิ่มลายหรืองานพิมพ์
+          </Button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onAddPrint(itemIdx)}
+            className={cn(DASHED, "flex w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+          >
+            <ImageIcon className="h-6 w-6 text-slate-400 dark:text-slate-500" />
+            <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีลาย — กดเพื่อเพิ่มลายแรก</span>
+          </button>
+        )
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-xs font-normal text-slate-500 dark:text-slate-400">
-                <th className="w-12 pb-1.5 pr-1">รูปแบบ</th>
-                <th className="pb-1.5 px-1">วิธีพิมพ์</th>
-                <th className="w-28 pb-1.5 px-1 text-right">ค่าสกรีน</th>
-                <th className="w-10 pb-1.5">
-                  <span className="sr-only">การทำงาน</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {item.prints.map((p, pIdx) => (
-                <PrintTableRow
-                  key={pIdx}
-                  print={p}
-                  printIdx={pIdx}
-                  onUpdate={(field, value) => onUpdatePrint(itemIdx, pIdx, field, value)}
-                  onRemove={() => onRemovePrint(itemIdx, pIdx)}
-                  printCatalog={printCatalog}
-                  onApplyCatalog={(catalogId) => applyPrintFromCatalog(pIdx, catalogId)}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div
+            className={cn(
+              "hidden overflow-hidden rounded-xl border border-slate-200 dark:border-white/10",
+              isIntake ? "@2xl:block" : "@3xl:block"
+            )}
+          >
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col style={{ width: 64 }} />
+                <col />
+                <col style={{ width: 104 }} />
+                <col style={{ width: 124 }} />
+                <col style={{ width: 92 }} />
+                <col style={{ width: 64 }} />
+                <col style={{ width: 84 }} />
+                <col style={{ width: 40 }} />
+              </colgroup>
+              <thead className={TABLE_HEAD_SURFACE}>
+                <tr className="text-xs font-medium">
+                  <th className="whitespace-nowrap px-2 py-2.5 text-left">
+                    รูปแบบ
+                  </th>
+                  <th className="px-2 py-2.5 text-left">วิธีพิมพ์</th>
+                  <th className="px-2 py-2.5 text-left">ขนาด</th>
+                  <th className="px-2 py-2.5 text-center">กว้าง × สูง</th>
+                  <th className="px-2 py-2.5 text-left">ตำแหน่ง</th>
+                  <th className="px-2 py-2.5 text-center">จำนวนสี</th>
+                  <th className="px-2 py-2.5 text-right">ค่าสกรีน</th>
+                  <th className="py-2.5">
+                    <span className="sr-only">ลบลาย</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {item.prints.map((print, printIdx) => (
+                  <PrintTableRow
+                    key={printIdx}
+                    print={print}
+                    printIdx={printIdx}
+                    onUpdate={(field, value) =>
+                      onUpdatePrint(itemIdx, printIdx, field, value)
+                    }
+                    onRemove={() => onRemovePrint(itemIdx, printIdx)}
+                    printCatalog={printCatalog}
+                    onApplyCatalog={(catalogId) =>
+                      applyPrintFromCatalog(printIdx, catalogId)
+                    }
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
+            {item.prints.map((print, printIdx) => (
+              <PrintCardMobile
+                key={printIdx}
+                print={print}
+                printIdx={printIdx}
+                onUpdate={(field, value) =>
+                  onUpdatePrint(itemIdx, printIdx, field, value)
+                }
+                onRemove={() => onRemovePrint(itemIdx, printIdx)}
+                printCatalog={printCatalog}
+                onApplyCatalog={(catalogId) =>
+                  applyPrintFromCatalog(printIdx, catalogId)
+                }
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
 
   // ── section: สินค้า ──
   const productsSection = (
-    <div>
+    <div className="@container">
       <div className="mb-2 flex items-center justify-between">
-        <span className={groupLabelClass}>{compact ? "สินค้า" : "สินค้าที่ต้องการสั่งผลิต"}</span>
+        <span className={groupHeadingClass}>{isIntake ? "สินค้าในชุดงาน" : compact ? "สินค้า" : "สินค้าที่ต้องการสั่งผลิต"}</span>
         {item.products.length > 0 && (
           <AddProductPopover
             onAddFromStock={onOpenPicker}
@@ -263,48 +331,81 @@ export function OrderItemCard({
       </div>
       {item.products.length === 0 ? (
         // เลือกชนิดงานก่อน → ระบบโชว์เฉพาะ field ที่ชนิดนั้นใช้ (guided by type)
-        <div>
-          <p className="mb-2 text-center text-xs text-slate-500 dark:text-slate-400">งานนี้ใช้เสื้อแบบไหน? เลือกเพื่อเริ่ม</p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
-              <button
+        isIntake ? (
+          <div className="flex flex-wrap gap-2">
+            {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label }) => (
+              <Button
                 key={key}
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   if (key === "stock") onOpenPicker();
                   else if (key === "custom") addProductWithSource("CUSTOM_MADE");
                   else addProductWithSource("CUSTOMER_PROVIDED");
                 }}
-                className={cn(DASHED, "flex flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+                className="gap-2 text-slate-600 dark:text-slate-300"
               >
-                <Icon className="h-6 w-6 text-slate-400" strokeWidth={1.75} />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">{desc}</span>
-              </button>
+                <Icon className="h-4 w-4" strokeWidth={1.75} />
+                {label}
+              </Button>
             ))}
           </div>
-        </div>
+        ) : (
+          <div>
+            <p className="mb-2 text-center text-xs text-slate-500 dark:text-slate-400">งานนี้ใช้เสื้อแบบไหน? เลือกเพื่อเริ่ม</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    if (key === "stock") onOpenPicker();
+                    else if (key === "custom") addProductWithSource("CUSTOM_MADE");
+                    else addProductWithSource("CUSTOMER_PROVIDED");
+                  }}
+                  className={cn(DASHED, "flex flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+                >
+                  <Icon className="h-6 w-6 shrink-0 text-slate-400" strokeWidth={1.75} />
+                  <span>
+                    <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
+                    <span className="block text-xs text-slate-500 dark:text-slate-400">{desc}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )
       ) : (
         <>
-          {/* เดสก์ท็อป (≥ sm): ตาราง 5 คอลัมน์หลัก */}
-          <div className="hidden overflow-x-auto sm:block">
-            <table className="w-full" style={{ tableLayout: "fixed" }}>
+          {/* พื้นที่กว้างพอ (container ≥ 2xl): ตารางหนึ่งแถวต่อสินค้า พร้อมหัวคอลัมน์ครบ */}
+          <div
+            className={cn(
+              "hidden overflow-hidden rounded-xl border border-slate-200 dark:border-white/10",
+              isIntake ? "@2xl:block" : "@3xl:block"
+            )}
+          >
+            <table className="w-full table-fixed">
               <colgroup>
                 <col style={{ width: 76 }} />
                 <col />
-                <col style={{ width: 82 }} />
+                <col style={{ width: 92 }} />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 84 }} />
                 <col style={{ width: 64 }} />
-                <col style={{ width: 88 }} />
-                <col style={{ width: 56 }} />
+                <col style={{ width: 84 }} />
+                <col style={{ width: 80 }} />
               </colgroup>
-              <thead>
-                <tr className="text-xs font-normal text-slate-500 dark:text-slate-400">
-                  <th className="pb-1.5 pl-1 text-left">แหล่ง</th>
-                  <th className="pb-1.5 pr-2 text-left">สินค้า</th>
-                  <th className="pb-1.5 px-1.5 text-right">ราคา</th>
-                  <th className="pb-1.5 px-1.5 text-center">จำนวน</th>
-                  <th className="pb-1.5 px-1.5 text-right">รวม</th>
-                  <th className="pb-1.5">
+              <thead className={TABLE_HEAD_SURFACE}>
+                <tr className="text-xs font-medium">
+                  <th className="px-2 py-2.5 text-left">แหล่ง</th>
+                  <th className="px-2 py-2.5 text-left">สินค้า</th>
+                  <th className="px-2 py-2.5 text-left">แพค</th>
+                  <th className="px-2 py-2.5 text-right">ราคา</th>
+                  <th className="px-2 py-2.5 text-right">ส่วนลด</th>
+                  <th className="px-2 py-2.5 text-center">จำนวน</th>
+                  <th className="px-2 py-2.5 text-right">รวม</th>
+                  <th className="py-2.5">
                     <span className="sr-only">จัดลำดับและลบสินค้า</span>
                   </th>
                 </tr>
@@ -323,8 +424,8 @@ export function OrderItemCard({
               </tbody>
             </table>
           </div>
-          {/* มือถือ (< sm): การ์ดเรียงแนวตั้ง — ไม่ต้องเลื่อนซ้ายขวา (UX7) */}
-          <div className="space-y-2.5 sm:hidden">
+          {/* จอแคบใช้การ์ด ไม่บีบตาราง 8 คอลัมน์ลงมือถือ/แท็บเล็ต */}
+          <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
             {item.products.map((prod, pIdx) => (
               <ProductCardMobile
                 key={pIdx}
@@ -343,32 +444,53 @@ export function OrderItemCard({
 
   // ── section: ส่วนเสริม ──
   const addonsSection = (
-    <div>
-      <div className="mb-2 flex items-center justify-between">
-        <span className={groupLabelClass}>ส่วนเสริม (Add-ons)</span>
-        <Button type="button" variant="outline" size="sm" onClick={() => onAddAddon(itemIdx)}>
-          <Plus />เพิ่มส่วนเสริม
-        </Button>
-      </div>
+    <div className="@container">
+      {(!isIntake || item.addons.length > 0) && (
+        <div className="mb-2 flex items-center justify-between">
+          <span className={groupHeadingClass}>{isIntake ? "ส่วนเสริมในชุดงาน" : "ส่วนเสริม (Add-ons)"}</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => onAddAddon(itemIdx)}>
+            <Plus />เพิ่มส่วนเสริม
+          </Button>
+        </div>
+      )}
       {item.addons.length === 0 ? (
-        <button
-          type="button"
-          onClick={() => onAddAddon(itemIdx)}
-          className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-        >
-          <Sparkles className="h-6 w-6 text-slate-300 dark:text-slate-600" />
-          <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีส่วนเสริม — กดเพื่อเพิ่ม</span>
-        </button>
+        isIntake ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onAddAddon(itemIdx)}
+            className="gap-2 text-slate-600 dark:text-slate-300"
+          >
+            <Sparkles className="h-4 w-4" />
+            เพิ่มส่วนเสริม
+          </Button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onAddAddon(itemIdx)}
+            className={cn(DASHED, "flex w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+          >
+            <Sparkles className="h-6 w-6 text-slate-400 dark:text-slate-500" />
+            <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีส่วนเสริม — กดเพื่อเพิ่ม</span>
+          </button>
+        )
       ) : (
-        <div className="overflow-x-auto">
+        <>
+        <div
+          className={cn(
+            "hidden overflow-hidden rounded-xl border border-slate-200 dark:border-white/10",
+            isIntake ? "@2xl:block" : "@3xl:block"
+          )}
+        >
           <table className="w-full">
-            <thead>
-              <tr className="text-left text-xs font-normal text-slate-500 dark:text-slate-400">
-                <th className="min-w-[100px] pb-1.5 px-1">ประเภท</th>
-                <th className="min-w-[120px] pb-1.5 px-1">ชื่อ</th>
-                <th className="min-w-[90px] pb-1.5 px-1">คิดราคา</th>
-                <th className="min-w-[80px] pb-1.5 px-1">ราคา</th>
-                <th className="w-10 pb-1.5">
+            <thead className={TABLE_HEAD_SURFACE}>
+              <tr className="text-left text-xs font-medium">
+                <th className="min-w-[100px] px-2 py-2.5">ประเภท</th>
+                <th className="min-w-[120px] px-2 py-2.5">ชื่อ</th>
+                <th className="min-w-[90px] px-2 py-2.5">คิดราคา</th>
+                <th className="min-w-[80px] px-2 py-2.5 text-right">ราคา</th>
+                <th className="w-10 py-2.5">
                   <span className="sr-only">ลบส่วนเสริม</span>
                 </th>
               </tr>
@@ -378,38 +500,75 @@ export function OrderItemCard({
                 <tr key={aIdx} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
                   <td className="px-1 py-1.5 align-middle">
                     {addonCatalog && addonCatalog.length > 0 ? (
-                      <Select aria-label={`เลือกประเภทส่วนเสริม ${aIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); }} className="sm:h-9 sm:text-xs">
+                      <Select aria-label={`เลือกประเภทส่วนเสริม ${aIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); }} size="dense">
                         <option value="">{a.addonType || "แค็ตตาล็อก..."}</option>
                         {addonCatalog.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </Select>
                     ) : (
-                      <Input aria-label={`ประเภทส่วนเสริม ${aIdx + 1}`} value={a.addonType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." className="sm:h-9 sm:text-xs" />
+                      <Input aria-label={`ประเภทส่วนเสริม ${aIdx + 1}`} value={a.addonType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." size="dense" />
                     )}
                   </td>
-                  <td className="px-1 py-1.5 align-middle"><Input aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`} value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" className="sm:h-9 sm:text-xs" /></td>
-                  <td className="px-1 py-1.5 align-middle"><Select aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} className="sm:h-9 sm:text-xs"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></Select></td>
-                  <td className="px-1 py-1.5 align-middle"><Input aria-label={`ราคาส่วนเสริม ${aIdx + 1}`} type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="sm:h-9 sm:text-xs" /></td>
+                  <td className="px-1 py-1.5 align-middle"><Input aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`} value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" size="dense" /></td>
+                  <td className="px-1 py-1.5 align-middle"><Select aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} size="dense"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></Select></td>
+                  <td className="px-1 py-1.5 align-middle"><Input aria-label={`ราคาส่วนเสริม ${aIdx + 1}`} type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" size="dense" /></td>
                   <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 /></Button></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
+          {item.addons.map((addon, addonIdx) => (
+            <div key={addonIdx} className="space-y-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700/60">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  ส่วนเสริม #{addonIdx + 1}
+                </p>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, addonIdx)}><Trash2 /></Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="ประเภท">
+                  {addonCatalog && addonCatalog.length > 0 ? (
+                    <Select aria-label={`เลือกประเภทส่วนเสริม ${addonIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(addonIdx, e.target.value); }}>
+                      <option value="">{addon.addonType || "แค็ตตาล็อก..."}</option>
+                      {addonCatalog.map((catalogItem) => <option key={catalogItem.id} value={catalogItem.id}>{catalogItem.name}</option>)}
+                    </Select>
+                  ) : (
+                    <Input aria-label={`ประเภทส่วนเสริม ${addonIdx + 1}`} value={addon.addonType} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "addonType", e.target.value)} placeholder="LABEL, TAG..." />
+                  )}
+                </Field>
+                <Field label="ชื่อ">
+                  <Input aria-label={`ชื่อส่วนเสริม ${addonIdx + 1}`} value={addon.name} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "name", e.target.value)} placeholder="ชื่อ add-on" />
+                </Field>
+                <Field label="คิดราคา">
+                  <Select aria-label={`วิธีคิดราคาส่วนเสริม ${addonIdx + 1}`} value={addon.pricingType} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")}>
+                    <option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option>
+                    <option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option>
+                  </Select>
+                </Field>
+                <Field label="ราคา">
+                  <Input aria-label={`ราคาส่วนเสริม ${addonIdx + 1}`} type="number" min={0} step={0.01} value={addon.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, addonIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" className="text-right" />
+                </Field>
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
       )}
     </div>
   );
 
   // ── section: หมายเหตุ ──
   const notesField = (
-    <Field label="หมายเหตุรายการ">
-      <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder="หมายเหตุเพิ่มเติมสำหรับรายการนี้..." />
+    <Field label={isIntake ? "หมายเหตุการผลิตชุดนี้" : "หมายเหตุรายการ"}>
+      <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder={isIntake ? "รายละเอียดที่ทีมผลิตต้องรู้..." : "หมายเหตุเพิ่มเติมสำหรับรายการนี้..."} />
     </Field>
   );
 
   // ── section: สรุปราคาต่อรายการ (เฉพาะโหมดปกติ — compact ใช้สรุปรวมที่ sidebar) ──
   const priceSummary = totalQty > 0 ? (
     <div className="border-t border-slate-200/70 pt-3 dark:border-slate-700/60">
-      <p className={cn(groupLabelClass, "mb-2")}>สรุปราคารายการ</p>
+      <p className={cn(groupHeadingClass, "mb-2")}>สรุปราคารายการ</p>
       <table className="w-full text-xs">
         <tbody className="text-slate-600 dark:text-slate-300">
           {itemPriceSummary.lines.map((line) => {
@@ -456,6 +615,54 @@ export function OrderItemCard({
     </div>
   ) : null;
 
+  const showCompactDetailActions =
+    isIntake &&
+    showPrints &&
+    showAddons &&
+    item.prints.length === 0 &&
+    item.addons.length === 0;
+
+  const productionSections = isIntake ? (
+    <>
+      {productsSection}
+      {showCompactDetailActions ? (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onAddPrint(itemIdx)}
+            className="gap-2 text-slate-600 dark:text-slate-300"
+          >
+            <ImageIcon className="h-4 w-4" />
+            เพิ่มลายหรืองานพิมพ์
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onAddAddon(itemIdx)}
+            className="gap-2 text-slate-600 dark:text-slate-300"
+          >
+            <Sparkles className="h-4 w-4" />
+            เพิ่มส่วนเสริม
+          </Button>
+        </div>
+      ) : (
+        <>
+          {showPrints && printsSection}
+          {showAddons && addonsSection}
+        </>
+      )}
+    </>
+  ) : (
+    <>
+      {showPrints && printsSection}
+      {productsSection}
+      {showAddons && addonsSection}
+    </>
+  );
+
   return (
     // ทุกรายการกางเห็นหมด (ไม่ accordion) — หัว "รายการที่ N" + เนื้อหา · คั่นด้วย divide-y ของ parent
     <div className={cn(!solo && "px-4")}>
@@ -472,17 +679,13 @@ export function OrderItemCard({
             <>
               {/* คำอธิบายงานอยู่บนสุด ใต้เลขรายการ (เบส: คำอธิบายไปอยู่ข้างบนกับเลข) */}
               {descField}
-              {showPrints && printsSection}
-              {productsSection}
-              {showAddons && addonsSection}
+              {productionSections}
               {notesField}
             </>
           ) : (
             <>
               {descField}
-              {showPrints && printsSection}
-              {productsSection}
-              {showAddons && addonsSection}
+              {productionSections}
               {notesField}
               {priceSummary}
             </>

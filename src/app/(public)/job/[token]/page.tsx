@@ -1,19 +1,11 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { formatDate } from "@/lib/utils";
 import { JobShareView } from "./job-share-view";
 
 // หน้าใบงานร้านนอก (Gate B14 — เปิดผ่านลิงก์ token ไม่ต้อง login)
 // wrapper ฝั่ง server มีไว้ทำ OG metadata อย่างเดียว — LINE unfurl ลิงก์เป็นการ์ด
 // title/description ให้ร้านเห็นสรุปงานก่อนกด · เนื้อหาจริง render ฝั่ง client ผ่าน tRPC public
-
-function bkkDate(d: Date): string {
-  return d.toLocaleDateString("th-TH", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "Asia/Bangkok",
-  });
-}
 
 export async function generateMetadata({
   params,
@@ -31,7 +23,7 @@ export async function generateMetadata({
   }
   const title = `ใบงาน: ${job.description} — ${job.quantity} ชิ้น`;
   const description = job.expectedBackAt
-    ? `กำหนดส่งคืน ${bkkDate(job.expectedBackAt)} · เปิดดูตารางไซซ์ + ไฟล์ลาย`
+    ? `กำหนดส่งคืน ${formatDate(job.expectedBackAt)} · เปิดดูตารางไซซ์ + ไฟล์ลาย`
     : "เปิดดูตารางไซซ์ + ไฟล์ลาย";
   return {
     title,

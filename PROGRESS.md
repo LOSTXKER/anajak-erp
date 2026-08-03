@@ -4,7 +4,66 @@
 
 ## ตอนนี้
 
-> **⏳ NEXT — รอเบสเคาะ: branch `ui-white-bg` (ยังไม่ merge)** · เบสสั่ง 2026-08-01 "พื้นหลังเว็บเป็นสีขาวไปเลย ธีมมืดก็เอาดำเทา แล้วปรับส่วนอื่นให้เหมาะสมด้วย"
+> **✅ UX Standardize — refactor UI มาตรฐานเดียวทั้งระบบ 5 ชุดครบ (2026-08-03 · branch `codex/ui-p0-responsive-states` · 20 commits · เบสเคาะ "ทำเลยทั้งหมด")**
+> จาก audit 13 ทีม 59 findings → ทำครบชุด 0–4 ตามใบงานใน ROADMAP (`### 🎯 UX Standardize`): **ชั้นที่หายไป 3 ชั้น** — `PageShell` (header+โหลด/พัง/ไม่มีสิทธิ์ · 23 หน้า) · `useListPageState` (URL state+debounce · 10 หน้า — products เลิกยิง query ทุกตัวอักษร) · `DialogSubmitFooter`+กติกา conditional-mount (21 dialog) · **บั๊กจริงที่ปิด** — ใบแนบกล่องพิมพ์ OTHER ดิบ (shipping-methods กลาง) · หน้า /status ลูกค้าสี/คำ drift (`*_LABELS_CUSTOMER`) · จอโกหก 4 component · quote/status token ไม่มี noindex (route group `(public)` + layout เดียว) · formatter วันที่ไม่ปัก timezone (Asia/Bangkok แล้ว — ตัดคลาส hydration mismatch) · validation ฟอร์มสร้างลูกค้า = ฟอร์มแก้ (CustomerFormFields) · **แตกไฟล์ยักษ์** — order-billing-section 1,212→446 · order-delivery-section 856→409 (dialog เงิน/จัดส่ง 7 ตัวแยกไฟล์ conditional mount ลบ reset มือ) · **กวาดเข้ามาตรฐาน** — ตารางดิบ 7 จุด→DataTable · tax/wht/films→ResponsiveList · Field/label (FIELD_LABEL token) · Checkbox/NumberInput/MoneyInput/ListCard primitives · `text-strong/secondary/muted` สลับธีมในตัว (กวาด 154 จุด 48 ไฟล์) + **ด่านใหม่ใน verify:ui** กันถอยหลัง · กติกาทั้งหมดเขียนเป็น **ROADMAP กติกา build ข้อ 9** + DESIGN.md ตรงของจริงแล้ว
+> **verify:** typecheck 0 error · lint 0 error (warning เดิม) · unit 599/599 · `verify:ui` ผ่านครบรวมด่านธีมมืด · smoke ทุก route (37 เส้น) ไม่มี 500/error marker · `next build` production ผ่านทุก route (รันหลังปิด dev server) · unit lib/customer-form 7/7
+> **verify browser จริง (production build · origin 31902 · session เบส):** dashboard / orders / orders-new / orders-[id] / customers / settings-services / billing-tax / notifications ครบ dark+light · dialog สร้างบิลที่แตกใหม่เปิดจริง prefill จาก billing.suggest ครบ (ชนิดบิล/ยอด/ภาษี/ยอดรวม ฿1,284) · มือถือ 390px ไม่มี overflow + ListCard ถูกต้อง · /status token ผิด → PublicLinkError ธีมสว่างบังคับ · console 0 error ตลอดรอบ · ธีมของเบสคืนเป็น "ตามระบบ" แล้ว · server ทดสอบยังเปิดที่ `localhost:31902` (production build) ให้กดเล่นต่อได้
+> **fix เพิ่มหลังเบสตรวจตา (2026-08-03):** เบสเจอ `/orders/new` เลื่อนสุดฟอร์มแล้วทั้ง shell ไหลหนีขึ้นเหลือพื้นเทา — root cause: Radix Select ฝัง `<select>` จริง 1px แบบ `position:absolute` ไว้ใช้กับ form โดยไม่มี positioned ancestor เลยยึด `<html>` แล้วยื่นท้ายเอกสารเกิน shell `h-dvh` → เกิด scrollbar นอก + scroll chaining · แก้เพิ่ม `relative` ที่ `<main>` ใน layout กลาง (commit c37e6fe) · verify: docScrollH 1485→721 เลื่อนทะลุไม่ได้แล้ว บั๊กนี้มีมาตั้งแต่ custom Select 2026-08-01 เพิ่งโผล่เพราะฟอร์มยาว+พื้นเทาทำให้เห็นชัด
+> **ต่อ/ค้าง:** ① เบสไล่ดูผ่านตา (จุดเปลี่ยนโดยตั้งใจ: หัวตาราง settings เลิก UPPERCASE · AccessDenied เดียว · quotations/new เป็น max-w-5xl · สี "ชำระบางส่วน" หน้าลูกค้าเป็นฟ้า · spinner แทน "กำลังบันทึก..." · ฟอร์มใบส่งได้ Shopee/Lazada) ② NumberInput/MoneyInput สร้างแล้ว จุดใช้เดิม 68 จุดทยอยแทนตอนแตะไฟล์ (กติกา 7) ③ merge เข้า main + push แล้ว (เบสสั่ง 2026-08-03)
+
+> **✅ `/orders/new` composition pass 2 — ลดกรอบ ลดเสียงรบกวน และเรียง flow เดียว (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
+> รวม 4 ช่วง รับเรื่อง → รายการงาน → ราคาและเงื่อนไข → จัดส่ง ไว้บน ledger ผิวเดียว คั่นด้วยเส้นและเลขลำดับแทนการ์ดใหญ่หลายใบ · customer picker กระชับ · ช่องทางเหลือ select เดียว · ลดข้อความซ้ำ/กล่อง upload/empty CTA ขนาดใหญ่ · ตัวเลือกแหล่งสินค้า ลาย ส่วนเสริม และค่าใช้จ่ายเป็น action สั้น · ราคา/summary เรียงลงมา ไม่แบ่งสองฝั่งและไม่ทำ card ซ้อน · เมื่อมีสินค้าจอกว้างแสดงตาราง 8 คอลัมน์พร้อมหัวตาราง ส่วนพื้นที่แคบใช้ card เดิม · ไม่แตะ state สูตรราคา validation draft permission หรือ mutation
+> **verify:** browser origin สะอาด `/orders/new` light ที่ 320/375/768/1024/1280/1440px และ dark 1280px ไม่มี horizontal overflow/error overlay/console warning-error · ทดลองเพิ่มสินค้า ลาย ส่วนเสริม ค่าใช้จ่าย เปิดที่อยู่ และยืนยันตารางสินค้า/ลาย/ส่วนเสริมแสดงจริง · เปิด `/orders/[id]` และ dialog แก้ไขเดิมได้ · typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ที่แตะ 5 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · diff-check ผ่าน · ไม่รัน build ขณะ dev server ทำงาน
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
+> **✅ พื้นหน้าเทา + Navbar/Sidebar ขาวทั้งเว็บในธีมสว่าง (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
+> สลับลำดับชั้นที่ token กลาง: ผืนหน้าเป็นเทา `#f3f4f6` ส่วน Navbar, Sidebar, เมนูมือถือ, การ์ด และตารางคงขาว `#fff` · Topbar/Sidebar desktop ใช้ขาวทึบใน light แต่คืนความโปร่ง `chrome/90` + blur เฉพาะ dark จึงไม่เปลี่ยนหน้าตาธีมมืด · อัปเดตคู่มือสีให้ตรง implementation โดยไม่ไล่ทาสีรายหน้าและไม่แตะกฎงานพิมพ์
+> **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ layout ที่แตะ 0) · `verify:ui` ผ่าน · browser จริง light บน dashboard/orders/orders-new/settings และ drawer มือถือ 390px วัดพื้นหน้า `rgb(243,244,246)` กับ Navbar/Sidebar/card/table head `rgb(255,255,255)` · dark dashboard คง token `#1a1a1c/#161618/#252528` · ไม่มี horizontal overflow, runtime/tRPC error หรือ console warning/error · คืน viewport และธีมสว่างแล้ว
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
+> **✅ หัวตารางสีเดียวกับกล่องครบทุกตารางบนเว็บ (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
+> ตรวจ `<thead>` ครบ 21 จุด: UI 17 จุดและเอกสารพิมพ์ 4 จุด · DataTable กลางครอบ 9 หน้าอยู่แล้ว · เก็บสีเทาที่หลุดอีก 4 จุดในตารางสินค้า/ลาย/ส่วนเสริมของหน้าเปิดงานและตารางแมป Stock · หัว custom อีก 12 จุดโปร่งเห็นพื้นกล่องตรงอยู่แล้วจึงไม่ทาสีซ้ำ · เอกสารพิมพ์และ dark override เดิมไม่เปลี่ยน · รวมสูตรที่ใช้ร่วมกันไว้ใน `TABLE_HEAD_SURFACE` และเพิ่มด่าน `verify:ui` กันถอยหลัง
+> **verify:** source scan ไม่มีหัวตาราง UI เหลือ `bg-slate-50/100` ใน light · typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ที่แตะ 0) · `verify:ui` ผ่านรวม assertion ใหม่ · browser จริง `/orders/new` แสดงหัวสินค้า/ลาย/ส่วนเสริมครบ 3 และ `/settings/stock` ทั้ง light/dark สีตรงตามกำหนด · ไม่มี horizontal overflow, error overlay หรือ console error · คืนธีมสว่างและปิด dev server ทดสอบแล้ว
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
+> **✅ หัวตารางมาตรฐานสีเดียวกับกรอบตารางในธีมสว่าง (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
+> เปลี่ยน `DataTable.Head` กลางจากพื้นเทาเป็น `surface` เดียวกับ `card-surface` ตามภาพจริง ทำให้หัวตารางขาวกลืนกับกล่องโดยยังมีเส้นคั่นและน้ำหนักตัวอักษรช่วยแยกชั้น · ครอบ 9 หน้าที่ใช้ DataTable มาตรฐาน โดยไม่กวาดตารางย่อย/เอกสารพิมพ์ที่มีหน้าที่ต่างกัน · ธีมมืดคง overlay เดิม
+> **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; ไฟล์ที่แตะ 0) · `verify:ui` ผ่าน · browser จริง `/orders`, `/customers`, `/billing` ที่ 1280px: light วัดหัว/กรอบ `rgb(255,255,255)` เท่ากันทุกหน้า · dark คง `white/3%` · ไม่มี horizontal scroll, error overlay หรือ console error · คืนธีมเป็นสว่างและปิด dev server ทดสอบแล้ว
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
+> **⚠️ รอผู้ใช้ล้าง client state — Turbopack โหลด HTML/JS คนละรุ่นบน `localhost:3000` (2026-08-03 · branch `codex/ui-p0-responsive-states`)**
+> reproduce ได้ทั้ง tRPC context หลุดและ hydration class mismatch ที่ `Sidebar`/`Topbar` หลัง Fast Refresh · source ปัจจุบัน, SSR chunk และ client chunk บนดิสก์มี class รุ่นใหม่ตรงกันทั้งหมด ไม่มี branch เวลา/random/window ที่เปลี่ยน class และ dependency ไม่ซ้ำ · cold server จากสำเนา source เดียวกันบน `localhost:31879` hydrate ผ่านโดยไม่มี console error จึงหักล้าง source/theme/provider bug; ปัญหาเหลือเฉพาะ origin 3000 ที่แท็บถือ client state คนละรุ่นกับ HTML
+> **ทำแล้ว:** differential สอง origin · cold restart dev server 3000 · ยืนยัน tRPC 200 และไม่ใส่ source workaround กลบอาการ · **ค้าง:** เบสปิดแท็บ `localhost:3000` ทุกแท็บ แล้วกด `Cmd+Shift+R` หรือ Clear site data หนึ่งครั้ง; ถ้ายังเกิดบน first cold load ค่อยขออนุญาตถอด `--turbopack` จาก dev script (config change)
+
+> **✅ ธีมสว่างแบบ A บนพื้นขาว (2026-08-02 · branch `codex/ui-p0-responsive-states`)**
+> คงพื้นเนื้อหาและการ์ดขาวตามแบบ A แล้วแยกลำดับชั้นด้วยกรอบเว็บเทาอ่อน (`#f3f4f6`) · กล่องย่อย/ช่องค้นหาเทากลาง (`#eceff2`) · เมนูที่เลือกเข้มขึ้นหนึ่งขั้น จึงไม่กลับไปเป็นจอขาวทั้งผืน · สีแบรนด์/สถานะ ธีมมืด และกฎงานพิมพ์เดิมไม่เปลี่ยน
+> **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo; layout ที่แก้ตรวจซ้ำ 0) · `verify:ui` ผ่าน · browser จริง dashboard/orders/orders-new/settings ที่ 1280/390px ทั้ง light/dark ไม่มี horizontal scroll หรือ console error · ตรวจสลับธีมผ่านเมนูจริงและคืนเป็นสว่างแล้ว · ไม่รัน build ขณะ dev server ทำงาน
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
+> **✅ `/orders/new` รื้อ flow รับงานใหม่ให้คลีนขึ้น (2026-08-02 · branch `codex/ui-p0-responsive-states`)**
+> จัดหน้าเป็น 4 ตอนเรียงลงมา: รับเรื่อง → รายการงาน → ราคาและเงื่อนไข → จัดส่ง · ลดการ์ดซ้อนและรวมไฟล์อ้างอิงไว้กับจุดรับเรื่อง · ในแต่ละชุดงานเรียงสินค้า → ลาย/งานพิมพ์ → ส่วนเสริมตามลำดับคำนวณจริง พร้อมตารางหัวคอลัมน์บนจอกว้างและการ์ดบนจอแคบ · แยกค่าใช้จ่าย/ภาษี/การชำระออกจากรายการ และคงแถบยอดรวม+ปุ่มเปิดงานไว้ท้ายจอ · ไม่แตะ state สูตรราคา validation draft permission หรือ mutation
+> **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo) · unit 599/599 · `verify:ui` ผ่าน · diff-check ผ่าน · browser จริง `/orders/new` และ `?next=quote` ที่ 320/375/768/1024/1280/1440px + light/dark ไม่มี horizontal scroll หรือ error overlay · ทดลองเพิ่มสินค้า/ลาย/ส่วนเสริม/ค่าใช้จ่าย เปิด-ปิดที่อยู่ และตรวจ summary เมื่อข้อมูลไม่ครบ · shared editor `/orders/[id]` ไม่ถอย · ไม่รัน build ขณะ dev server ทำงาน
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
+> **✅ `/orders` ลำดับสถานะและข้อมูลอ่านง่ายขึ้น (2026-08-02 · branch `codex/ui-p0-responsive-states`)**
+> แยก `พักงาน`/`ยกเลิก` เป็น “นอกเส้นทาง” · สถานะศูนย์ใช้ขีดและไม่วาดแถบ · ย่อคำบนแถบโดยคงชื่อเต็มใน accessible label · ซ่อนคอลัมน์เหลือเวลาที่ทั้งหน้าไม่มีข้อมูล · เปลี่ยนคำบน UI เป็นไทยและเพิ่มจำนวนผลลัพธ์/สถานะกำลังอัปเดต · toolbar 320px ห่อครบ · empty state จากตัวกรองศูนย์รายการล้างกลับได้ถูกต้อง · label “สั่งทำ” แยกจากสัญญา MCP เดิม
+> **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิมทั้ง repo) · unit 599/599 · `verify:ui` ผ่าน · diff-check ผ่าน · browser จริง 320/1280px ไม่มี horizontal scroll/console error · กรอง `ยกเลิก` → 21 งาน, `พักงาน` → empty state, ล้าง → 77 งานถูกต้อง · ไม่รัน build ขณะ dev server ทำงาน
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
+> **✅ `/orders/new` คอลัมน์เดียว + รายการเป็นตาราง (2026-08-02 · branch `codex/ui-p0-responsive-states`)**
+> ตามคำสั่งเบส ยกเลิก layout desktop สองฝั่ง แล้วเรียง ลูกค้า/งาน → ไฟล์ → รายการ/ราคา → จัดส่ง ลงมาเต็มความกว้าง · ลาย/สินค้า/ส่วนเสริมเป็นตารางหัวคอลัมน์ชัดบนพื้นที่กว้าง ส่วนพื้นที่แคบใช้การ์ด · จุดตัดวัดจากความกว้างพื้นที่จริง จึงไม่บีบตารางในหน้าแก้รายการที่ใช้ฟอร์มร่วมกัน · แยก logic ลายไว้จุดเดียวเพื่อให้ upload/preset ทำงานตรงกันทั้งสอง layout · ไม่แตะ state/สูตรราคา/mutation
+> **verify:** typecheck ผ่าน · lint 0 error (38 warning เดิม; ไฟล์ที่แตะมี 5 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · diff-check ผ่าน · browser จริง `/orders/new` และ `?next=quote` ที่ 320/375/768/1024/1280/1440px + dark 1440px ไม่มี horizontal scroll/console error · เพิ่ม/แสดงลายและสินค้าทั้ง table/card ถูก · ล้าง draft ทดสอบและคืน theme เดิมแล้ว · ไม่รัน build ขณะ dev server ทำงาน
+> **ต่อ:** งานนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
+> **✅ UI-P0 responsive + data states ปิดครบ (2026-08-02 · branch `codex/ui-p0-responsive-states`)**
+> เบสสั่ง “ทำเลย” ต่อจาก audit ทั้งเว็บ → แก้เฉพาะบั๊กใช้งานจริง 3 ก้อน โดยคงสี/ความ minimal/business logic เดิม:
+> ① `PageHeader` ยอมห่อ action โดยกันพื้นที่หัวข้อ · `/billing/tax`, `/billing/wht`, `/production/films` คง card ถึง `lg` (ช่วง 800px ที่ sidebar กินพื้นที่ไม่บีบตารางแล้ว) · ภาษีขายมี card mobile/tablet ครบข้อมูล
+> ② Product Picker เมื่อขยายสี/ไซซ์เป็น grid card ที่ 320/390px · checkbox/จำนวนเป้ากด 44px · footer ไม่บีบ · desktop คงตาราง 7 คอลัมน์ · เติม Dialog description ปิด console warning
+> ③ notification dropdown, ไฟล์แนบออเดอร์ และเครดิตลูกค้า/ฟอร์มเปิดงาน แยก loading/error/empty ชัดเจน + retry · `OrderFilesCard` ไม่ตีความ `undefined` เป็น “ไม่มีไฟล์” อีก
+> **verify:** typecheck 0 · lint 0 error (39 warning เดิม) · unit 589/589 · verify:ui ผ่าน · diff-check ผ่าน · browser จริง 320/390/800/1440px ไม่มี horizontal scroll/error overlay/console error · จำลอง API ล้มด้วยการปิด dev server: notification ขึ้น error+retry แล้วกู้รายการกลับได้เมื่อเปิด server · ไม่รัน build ขณะ dev server ทำงาน
+> **ต่อ:** งานชุดนี้ไม่มีค้าง · ยังไม่ merge/push ตามกติกา รอเบสเคาะ
+
+> **✅ MERGED — branch `ui-white-bg` เข้า main แล้วที่ `e922946`** · เบสสั่ง 2026-08-01 "พื้นหลังเว็บเป็นสีขาวไปเลย ธีมมืดก็เอาดำเทา แล้วปรับส่วนอื่นให้เหมาะสมด้วย"
 > **พื้นสว่าง เทา #f5f5f7 → ขาวล้วน · พื้นมืด ดำสนิท → ดำเทา #1a1a1c** — แก้ที่ token กลางใน `globals.css` จุดเดียว ทั้งเว็บเปลี่ยนตาม
 > ของที่ต้องแก้ตามมา (พื้นเปลี่ยน = ของที่เคยเด่นเพราะ "ขาวบนพื้นเทา" หายหมด):
 > ① **ความลึกย้ายจาก "พื้นเทา" ไปอยู่ที่ "เส้นขอบ"** — การ์ดขาวบนพื้นขาวจะกลืน → ขอบการ์ด 0.06 → 0.095 · กล่องลอย 0.07 → 0.11 (ขาวบนขาวต้องแรงกว่า ไม่งั้นเมนูดูเหมือนเนื้อหาไหลต่อ)

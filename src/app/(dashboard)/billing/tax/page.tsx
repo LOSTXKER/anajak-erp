@@ -5,13 +5,13 @@ import { trpc, type RouterOutput } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Alert } from "@/components/ui/alert";
 import { Select } from "@/components/ui/select";
-import { PageHeader } from "@/components/page-header";
-import { formatCurrency } from "@/lib/utils";
+import { DataTable } from "@/components/ui/data-table";
+import { ResponsiveList } from "@/components/ui/responsive-list";
+import { PageShell } from "@/components/page-shell";
+import { cn, formatCurrency } from "@/lib/utils";
 import {
   salesTaxReportCsv,
   peakImportCsv,
@@ -84,17 +84,6 @@ export default function SalesTaxReportPage() {
     { enabled: canView }
   );
 
-  if (me && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader title="ภาษีขาย" description="รายงานภาษีขายรายเดือน" />
-        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
-      </div>
-    );
-  }
-
-  if (isError) return <QueryError onRetry={() => refetch()} />;
-
   const rows: SalesTaxRow[] = (data?.rows ?? []).map((r) => ({
     ...r,
     date: new Date(r.date),
@@ -103,44 +92,55 @@ export default function SalesTaxReportPage() {
   const fileStamp = `${year}-${String(month).padStart(2, "0")}`;
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="ภาษีขาย"
-        description="ใบกำกับภาษีของงวด (ใบเสร็จ/ใบกำกับ · ใบลดหนี้ · ใบเพิ่มหนี้) — งวดตามวันที่เอกสาร"
-        breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ภาษีขาย" }]}
-        action={
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={selected} onChange={(e) => setSelected(e.target.value)} shape="pill" className="w-[180px]">
-                {options.map((o) => (
-                  <option key={`${o.year}-${o.month}`} value={`${o.year}-${o.month}`}>
-                    {o.label}
-                  </option>
-                ))}
-              </Select>
-            <Button
-              variant="outline"
-              disabled={rows.length === 0}
-              onClick={() =>
-                downloadCsv(salesTaxReportCsv(rows, periodLabel), `sales-tax-${fileStamp}.csv`)
-              }
-              className="gap-1.5"
-            >
-              <Download />
-              CSV รายงานภาษีขาย
-            </Button>
-            <Button
-              variant="outline"
-              disabled={rows.filter((r) => !r.isVoided).length === 0}
-              onClick={() => downloadCsv(peakImportCsv(rows), `peak-import-${fileStamp}.csv`)}
-              className="gap-1.5"
-            >
-              <FileSpreadsheet />
-              CSV สำหรับ PEAK
-            </Button>
-          </div>
-        }
-      />
-
+    <PageShell
+      title="ภาษีขาย"
+      description="ใบกำกับภาษีของงวด (ใบเสร็จ/ใบกำกับ · ใบลดหนี้ · ใบเพิ่มหนี้) — งวดตามวันที่เอกสาร"
+      breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ภาษีขาย" }]}
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={selected} onChange={(e) => setSelected(e.target.value)} shape="pill" className="w-[180px]">
+              {options.map((o) => (
+                <option key={`${o.year}-${o.month}`} value={`${o.year}-${o.month}`}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          <Button
+            variant="outline"
+            disabled={rows.length === 0}
+            onClick={() =>
+              downloadCsv(salesTaxReportCsv(rows, periodLabel), `sales-tax-${fileStamp}.csv`)
+            }
+            className="gap-1.5"
+          >
+            <Download />
+            CSV รายงานภาษีขาย
+          </Button>
+          <Button
+            variant="outline"
+            disabled={rows.filter((r) => !r.isVoided).length === 0}
+            onClick={() => downloadCsv(peakImportCsv(rows), `peak-import-${fileStamp}.csv`)}
+            className="gap-1.5"
+          >
+            <FileSpreadsheet />
+            CSV สำหรับ PEAK
+          </Button>
+        </div>
+      }
+      error={
+        isError
+          ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
+          : null
+      }
+      denied={
+        me && !canView
+          ? {
+              description:
+                'ต้องมีสิทธิ์ "ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
+            }
+          : undefined
+      }
+    >
       {/* ── สรุปงวด ── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="เอกสารในงวด" value={summary?.docCount ?? 0} icon={ReceiptText} />
@@ -169,96 +169,181 @@ export default function SalesTaxReportPage() {
         </Alert>
       )}
 
-      {/* ── ตารางรายการ ── */}
-      {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-12 rounded-xl" />
-          <Skeleton className="h-12 rounded-xl" />
-          <Skeleton className="h-12 rounded-xl" />
-        </div>
-      ) : rows.length === 0 ? (
-        <EmptyState
-          icon={ReceiptText}
-          title={`งวด ${periodLabel} ยังไม่มีใบกำกับภาษี`}
-          description="ใบเสร็จ/ใบกำกับเกิดตอนบันทึกรับเงินแล้วกดออกใบที่งวดนั้น (tax point จ้างทำของ)"
-        />
-      ) : (
-        <div className="card-surface overflow-x-auto rounded-2xl">
-          <table className="w-full min-w-[880px] text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 text-left text-xs text-slate-500 dark:border-slate-800">
-                <th className="px-3 py-2.5 font-medium">#</th>
-                <th className="px-3 py-2.5 font-medium">วันที่</th>
-                <th className="px-3 py-2.5 font-medium">เลขที่</th>
-                <th className="px-3 py-2.5 font-medium">ประเภท</th>
-                <th className="px-3 py-2.5 font-medium">ผู้ซื้อ</th>
-                <th className="px-3 py-2.5 font-medium">เลขภาษี/สาขา</th>
-                <th className="px-3 py-2.5 text-right font-medium">ฐานภาษี</th>
-                <th className="px-3 py-2.5 text-right font-medium">VAT</th>
-                <th className="px-3 py-2.5 text-right font-medium">รวม</th>
+      {/* ── รายการเอกสาร ── */}
+      <ResponsiveList
+        items={rows}
+        isLoading={isLoading}
+        label="ใบกำกับภาษี"
+        emptyState={
+          <EmptyState
+            icon={ReceiptText}
+            title={`งวด ${periodLabel} ยังไม่มีใบกำกับภาษี`}
+            description="ใบเสร็จ/ใบกำกับเกิดตอนบันทึกรับเงินแล้วกดออกใบที่งวดนั้น (tax point จ้างทำของ)"
+          />
+        }
+        renderDesktop={(items) => (
+          // พื้นที่หลังหัก sidebar ที่ช่วง tablet ไม่พอสำหรับ 9 คอลัมน์ —
+          // ล็อกความกว้างขั้นต่ำให้ตารางเลื่อนข้างแทนการบีบคอลัมน์
+          <DataTable.Root className="[&_table]:min-w-[880px]">
+            <DataTable.Head>
+              <tr>
+                <DataTable.Th>#</DataTable.Th>
+                <DataTable.Th>วันที่</DataTable.Th>
+                <DataTable.Th>เลขที่</DataTable.Th>
+                <DataTable.Th>ประเภท</DataTable.Th>
+                <DataTable.Th>ผู้ซื้อ</DataTable.Th>
+                <DataTable.Th>เลขภาษี/สาขา</DataTable.Th>
+                <DataTable.Th align="right">ฐานภาษี</DataTable.Th>
+                <DataTable.Th align="right">VAT</DataTable.Th>
+                <DataTable.Th align="right">รวม</DataTable.Th>
               </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr
+            </DataTable.Head>
+            <DataTable.Body>
+              {items.map((r) => (
+                <DataTable.Row
                   key={r.invoiceNumber}
-                  className={`border-b border-slate-50 last:border-0 dark:border-slate-800/60 ${
-                    r.isVoided ? "text-slate-400 line-through" : ""
-                  }`}
+                  className={r.isVoided ? "text-slate-400 line-through" : undefined}
                 >
-                  <td className="px-3 py-2.5 tabular-nums text-slate-400">{r.seq}</td>
-                  <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">
+                  <DataTable.Td className="tabular-nums text-slate-400">{r.seq}</DataTable.Td>
+                  <DataTable.Td
+                    className={cn(
+                      "whitespace-nowrap tabular-nums",
+                      r.isVoided && "text-slate-400"
+                    )}
+                  >
                     {formatThaiDateBE(r.date)}
-                  </td>
-                  <td className="px-3 py-2.5 whitespace-nowrap font-medium">
+                  </DataTable.Td>
+                  <DataTable.Td
+                    className={cn(
+                      "whitespace-nowrap font-medium",
+                      r.isVoided && "text-slate-400"
+                    )}
+                  >
                     {r.invoiceNumber}
                     {r.isVoided && (
                       <Badge variant="destructive" size="sm" className="ml-1.5 no-underline">
                         ยกเลิก
                       </Badge>
                     )}
-                  </td>
-                  <td className="px-3 py-2.5 whitespace-nowrap">
+                  </DataTable.Td>
+                  <DataTable.Td
+                    className={cn("whitespace-nowrap", r.isVoided && "text-slate-400")}
+                  >
                     {SALES_TAX_DOC_LABELS[r.docType]}
-                  </td>
-                  <td className="max-w-[220px] px-3 py-2.5">
+                  </DataTable.Td>
+                  <DataTable.Td
+                    className={cn("max-w-[220px]", r.isVoided && "text-slate-400")}
+                  >
                     <p className="truncate">{r.customerName}</p>
                     {r.note && <p className="truncate text-xs text-slate-400">{r.note}</p>}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-slate-500">
+                  </DataTable.Td>
+                  <DataTable.Td className="text-xs text-muted">
                     {r.taxId || "—"}
                     {r.branch && <p>{r.branch}</p>}
-                  </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{r.base.toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{r.vat.toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-right font-medium tabular-nums">
+                  </DataTable.Td>
+                  <DataTable.Td
+                    align="right"
+                    className={cn("tabular-nums", r.isVoided && "text-slate-400")}
+                  >
+                    {r.base.toFixed(2)}
+                  </DataTable.Td>
+                  <DataTable.Td
+                    align="right"
+                    className={cn("tabular-nums", r.isVoided && "text-slate-400")}
+                  >
+                    {r.vat.toFixed(2)}
+                  </DataTable.Td>
+                  <DataTable.Td
+                    align="right"
+                    className={cn("font-medium tabular-nums", r.isVoided && "text-slate-400")}
+                  >
                     {r.total.toFixed(2)}
-                  </td>
-                </tr>
+                  </DataTable.Td>
+                </DataTable.Row>
               ))}
-            </tbody>
+            </DataTable.Body>
             {summary && (
               <tfoot>
                 <tr className="border-t border-slate-200 font-semibold dark:border-slate-700">
-                  <td colSpan={6} className="px-3 py-2.5 text-right">
+                  <DataTable.Td colSpan={6} align="right">
                     รวมงวด {periodLabel} ({summary.docCount} ฉบับ
                     {summary.voidedCount > 0 ? ` · ยกเลิก ${summary.voidedCount}` : ""})
-                  </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">
+                  </DataTable.Td>
+                  <DataTable.Td align="right" className="tabular-nums">
                     {summary.totalBase.toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">
+                  </DataTable.Td>
+                  <DataTable.Td align="right" className="tabular-nums">
                     {summary.totalVat.toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">
+                  </DataTable.Td>
+                  <DataTable.Td align="right" className="tabular-nums">
                     {summary.totalAmount.toFixed(2)}
-                  </td>
+                  </DataTable.Td>
                 </tr>
               </tfoot>
             )}
-          </table>
-        </div>
-      )}
-    </div>
+          </DataTable.Root>
+        )}
+        renderMobile={(items) => (
+          <div className="space-y-3">
+            {items.map((r) => (
+              <div key={r.invoiceNumber} className="card-surface rounded-2xl p-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs tabular-nums text-slate-400">#{r.seq}</span>
+                    <p
+                      className={`font-medium ${
+                        r.isVoided
+                          ? "text-slate-400 line-through"
+                          : "text-slate-900 dark:text-white"
+                      }`}
+                    >
+                      {r.invoiceNumber}
+                    </p>
+                    {r.isVoided && (
+                      <Badge variant="destructive" size="sm">
+                        ยกเลิก
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                    {formatThaiDateBE(r.date)} · {SALES_TAX_DOC_LABELS[r.docType]}
+                  </p>
+                </div>
+
+                <div className={`mt-3 ${r.isVoided ? "text-slate-400 line-through" : ""}`}>
+                  <p className="text-sm font-medium">{r.customerName}</p>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    เลขผู้เสียภาษี {r.taxId || "—"}
+                    {r.branch && ` · ${r.branch}`}
+                  </p>
+                  {r.note && (
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{r.note}</p>
+                  )}
+                </div>
+
+                <dl
+                  className={`mt-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-right dark:border-slate-800 ${
+                    r.isVoided ? "text-slate-400 line-through" : ""
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <dt className="text-xs text-slate-500 dark:text-slate-400">ฐานภาษี</dt>
+                    <dd className="mt-0.5 text-sm tabular-nums">{r.base.toFixed(2)}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-xs text-slate-500 dark:text-slate-400">VAT</dt>
+                    <dd className="mt-0.5 text-sm tabular-nums">{r.vat.toFixed(2)}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-xs text-slate-500 dark:text-slate-400">รวม</dt>
+                    <dd className="mt-0.5 text-sm font-medium tabular-nums">{r.total.toFixed(2)}</dd>
+                  </div>
+                </dl>
+              </div>
+            ))}
+          </div>
+        )}
+      />
+    </PageShell>
   );
 }

@@ -1,0 +1,325 @@
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import type { RouterOutput } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
+import { Select } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/ui/field";
+import { Label } from "@/components/ui/label";
+import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
+import { SHIPPING_METHODS } from "@/lib/shipping-methods";
+import { Truck } from "lucide-react";
+
+type PackContextData = RouterOutput["delivery"]["packContext"];
+
+// คีย์แถวนับต่อไซส์+สี — ต้อง normalize เหมือนฝั่ง server (delivery.ts packKey) ให้ map ตรงกัน
+const lineKey = (size?: string | null, color?: string | null) =>
+  `${(size ?? "").trim().toLowerCase()}|${(color ?? "").trim().toLowerCase()}`;
+
+// ป้ายไซส์/สีสั้นๆ ไว้โชว์ในสรุปต่อกล่อง เช่น "M ดำ" — ไม่มีทั้งคู่ค่อยถอยไปใช้ description
+// (export ให้ไฟล์แม่ใช้ในการ์ดใบส่งด้วย — ทิศทาง import แม่→dialog ทางเดียว ไม่วนกลับ)
+export const sizeColorLabel = (l: {
+  size?: string | null;
+  color?: string | null;
+  description: string;
+}) => [l.size, l.color].filter(Boolean).join(" ") || l.description;
+
+// dialog สร้างใบส่งของ — แตกจาก order-delivery-section (เดิมถือ form state ~13 ตัว + resetCreateForm มือ)
+// conditional mount ตามกติกาใน ui/dialog.tsx: mount ใหม่ทุกครั้งที่เปิด seed จาก props ใน useState
+// initializer ได้ค่าสดเสมอ · packContext query อยู่ที่ parent (ใช้ทั้งแถบหัว section) — รับ data เป็น prop
+export function CreateDeliveryDialog({
+  orderId,
+  customerName,
+  customerPhone,
+  customerHasAddress,
+  packData,
+  onClose,
+}: {
+  orderId: string;
+  customerName?: string;
+  customerPhone?: string;
+  // ลูกค้ามีที่อยู่ในโปรไฟล์แล้วหรือยัง — ถ้ายัง default ติ๊กบันทึกที่อยู่จัดส่งกลับโปรไฟล์
+  customerHasAddress?: boolean;
+  /** บริบทแพ็ค: เหลือเท่าไหร่ต่อไซส์ — parent เปิด dialog ได้ต่อเมื่อ data พร้อมแล้วเท่านั้น */
+  packData: PackContextData;
+  onClose: () => void;
+}) {
+  const [recipientName, setRecipientName] = useState(customerName || "");
+  const [phone, setPhone] = useState(customerPhone || "");
+  const [address, setAddress] = useState("");
+  const [subDistrict, setSubDistrict] = useState("");
+  const [district, setDistrict] = useState("");
+  const [province, setProvince] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [shippingMethod, setShippingMethod] = useState("KERRY");
+  const [shippingCost, setShippingCost] = useState("0");
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+  // ลูกค้ายังไม่มีที่อยู่ในโปรไฟล์ → default บันทึกกลับให้เลย (ออเดอร์หน้า prefill อัตโนมัติ)
+  // derive ใหม่ทุกครั้งที่เปิด dialog (mount ใหม่) — หลังบันทึกที่อยู่รอบแรก รอบถัดไปต้องไม่ติ๊กค้าง
+  // (ไม่งั้นส่งรอบสองไปที่อยู่อื่นจะทับที่อยู่หลักเงียบๆ)
+  const [saveAsCustomerAddress, setSaveAsCustomerAddress] = useState(!customerHasAddress);
+
+  // แพ็คนับยืนยันต่อไซส์ (ก้อน 3) — จำนวนรอบนี้ต่อแถว key = ไซส์|สี (เก็บ string ให้พิมพ์แก้ได้)
+  // นับยืนยันรอบนี้ default = ที่เหลือทั้งหมดต่อแถว (เคสปกติ: ส่งครบในรอบเดียว แก้ลงได้)
+  const [packQty, setPackQty] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const l of packData.lines) {
+      init[lineKey(l.size, l.color)] = String(l.remaining);
+    }
+    return init;
+  });
+
+  const utils = trpc.useUtils();
+  const createDelivery = trpc.delivery.create.useMutation({
+    onError: (e) => toast.error(e.message),
+    onSuccess: () => {
+      utils.delivery.getByOrderId.invalidate({ orderId });
+      utils.delivery.packContext.invalidate({ orderId });
+      utils.order.getById.invalidate({ id: orderId });
+      onClose();
+    },
+  });
+
+  // แถวนับยืนยัน — ผูกค่าที่กรอกเข้ากับแถวจาก packContext
+  const packLines = packData.lines;
+  const totalRemaining = packData.totalRemaining;
+  const packRows = packLines.map((l) => {
+    const key = lineKey(l.size, l.color);
+    const raw = packQty[key] ?? "";
+    const qty = raw.trim() === "" ? 0 : Number(raw);
+    // ห้ามเกิน remaining / ติดลบ / ไม่ใช่จำนวนเต็ม — ขอบแดง + กันกดสร้าง (server กันอีกชั้น)
+    const invalid = !Number.isInteger(qty) || qty < 0 || qty > l.remaining;
+    return { ...l, key, raw, qty, invalid };
+  });
+  const packInvalid = packRows.some((r) => r.invalid);
+  const packTotal = packRows.reduce((s, r) => s + (r.invalid ? 0 : r.qty), 0);
+
+  function handleCreate() {
+    createDelivery.mutate({
+      orderId,
+      recipientName,
+      phone,
+      address,
+      subDistrict: subDistrict || undefined,
+      district: district || undefined,
+      province: province || undefined,
+      postalCode: postalCode || undefined,
+      shippingMethod,
+      shippingCost: parseFloat(shippingCost) || 0,
+      notes: deliveryNotes || undefined,
+      saveAsCustomerAddress,
+      // ส่งเฉพาะแถวที่นับจริง (qty > 0) — ออเดอร์ไม่มีรายการไซส์ = [] ทำงานแบบเดิม
+      lines: packRows
+        .filter((r) => !r.invalid && r.qty > 0)
+        .map((r) => ({
+          description: r.description,
+          size: r.size ?? undefined,
+          color: r.color ?? undefined,
+          qty: r.qty,
+        })),
+    });
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>สร้างรายการจัดส่ง</DialogTitle>
+          <DialogDescription>กรอกข้อมูลผู้รับและวิธีจัดส่ง</DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[60vh] space-y-4 overflow-y-auto">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="ชื่อผู้รับ" required>
+              <Input
+                type="text"
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
+              />
+            </Field>
+            <Field label="เบอร์โทร" required>
+              <Input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </Field>
+          </div>
+          <Field label="ที่อยู่" required>
+            <Textarea
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              rows={2}
+            />
+          </Field>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="ตำบล/แขวง">
+              <Input
+                type="text"
+                value={subDistrict}
+                onChange={(e) => setSubDistrict(e.target.value)}
+              />
+            </Field>
+            <Field label="อำเภอ/เขต">
+              <Input
+                type="text"
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="จังหวัด">
+              <Input
+                type="text"
+                value={province}
+                onChange={(e) => setProvince(e.target.value)}
+              />
+            </Field>
+            <Field label="รหัสไปรษณีย์">
+              <Input
+                type="text"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="delivery-shipping-method">วิธีจัดส่ง</Label>
+              <Select value={shippingMethod} onChange={(e) => setShippingMethod(e.target.value)} id="delivery-shipping-method">
+                  {SHIPPING_METHODS.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </Select>
+            </div>
+            <Field label="ค่าจัดส่ง (บาท)">
+              <Input
+                type="number"
+                value={shippingCost}
+                onChange={(e) => setShippingCost(e.target.value)}
+                min="0"
+              />
+            </Field>
+          </div>
+          {/* รายการรอบนี้ (นับยืนยัน) — ออเดอร์ไม่มีรายการไซส์ → ซ่อน ทำงานแบบเดิม */}
+          {packRows.length > 0 && (
+            <fieldset>
+              <legend className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                รายการรอบนี้ (นับยืนยัน)
+              </legend>
+              {totalRemaining === 0 ? (
+                <p className="rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950/40 dark:text-green-400">
+                  ของครบทุกใบส่งแล้ว
+                </p>
+              ) : (
+                <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+                  {packRows.map((r) => (
+                    <div
+                      key={r.key}
+                      className="flex items-center gap-2 border-b border-slate-100 px-3 py-2 dark:border-slate-800"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm text-slate-900 dark:text-white">
+                          {r.description}
+                          {(r.size || r.color) && (
+                            <span className="text-slate-500 dark:text-slate-400">
+                              {" — "}
+                              {[r.size, r.color].filter(Boolean).join(" / ")}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          สั่ง {r.ordered} · ส่งแล้ว {r.packed}
+                        </p>
+                      </div>
+                      <Input size="sm"
+                        type="number"
+                        aria-label={`จำนวน ${sizeColorLabel(r)} ในรอบนี้`}
+                        aria-invalid={r.invalid || undefined}
+                        aria-describedby={packInvalid ? "delivery-pack-error" : undefined}
+                        inputMode="numeric"
+                        min={0}
+                        max={r.remaining}
+                        value={r.raw}
+                        disabled={r.remaining === 0}
+                        onChange={(e) =>
+                          setPackQty((prev) => ({ ...prev, [r.key]: e.target.value }))
+                        }
+                        className={cn(
+                          "w-16 shrink-0 text-right",
+                          r.invalid &&
+                            cn("border-red-500 dark:border-red-600", FOCUS_FIELD_INVALID)
+                        )}
+                      />
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between bg-slate-50 px-3 py-2 dark:bg-slate-800/50">
+                    <span className="text-sm font-medium text-slate-900 dark:text-white">
+                      รวมรอบนี้ {packTotal} ตัว
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      เหลือทั้งหมด {totalRemaining} ตัว
+                    </span>
+                  </div>
+                </div>
+              )}
+              {packInvalid && (
+                <p id="delivery-pack-error" role="alert" className="mt-1 text-xs text-red-500">
+                  จำนวนเกินที่เหลือ — แก้ช่องขอบแดงก่อนสร้างใบส่ง
+                </p>
+              )}
+            </fieldset>
+          )}
+          <Field label="หมายเหตุ">
+            <Textarea
+              value={deliveryNotes}
+              onChange={(e) => setDeliveryNotes(e.target.value)}
+              rows={2}
+              placeholder="หมายเหตุ..."
+            />
+          </Field>
+          <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <Checkbox
+              checked={saveAsCustomerAddress}
+              onChange={(e) => setSaveAsCustomerAddress(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              บันทึกเป็นที่อยู่หลักของลูกค้า (เติมเบอร์นี้ให้โปรไฟล์ด้วยถ้ายังว่าง)
+              {!customerHasAddress ? (
+                <span className="block text-xs text-amber-600 dark:text-amber-400">
+                  ลูกค้ารายนี้ยังไม่มีที่อยู่ในระบบ — บันทึกไว้ ออเดอร์หน้าจะกรอกให้อัตโนมัติ
+                </span>
+              ) : (
+                <span className="block text-xs text-slate-400">
+                  ลูกค้ามีที่อยู่หลักอยู่แล้ว — ติ๊กเฉพาะถ้าต้องการแทนที่ด้วยที่อยู่นี้
+                </span>
+              )}
+            </span>
+          </label>
+        </div>
+        <DialogSubmitFooter
+          pending={createDelivery.isPending}
+          disabled={!recipientName || !phone || !address || packInvalid}
+          submitLabel="สร้างรายการจัดส่ง"
+          submitIcon={<Truck />}
+          onCancel={onClose}
+          onSubmit={handleCreate}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}

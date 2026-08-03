@@ -235,7 +235,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="gap-1.5 text-slate-500"
+                    className="gap-1.5 text-muted"
                     disabled={generateLink.isPending}
                     onClick={() => generateLink.mutate({ outsourceOrderId: job.id })}
                     title="ออกลิงก์ใหม่ — ลิงก์เดิมใช้ไม่ได้อีก"

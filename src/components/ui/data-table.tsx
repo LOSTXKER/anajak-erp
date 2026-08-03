@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FOCUS_INSET } from "./tokens";
+import { FOCUS_INSET, TABLE_HEAD_SURFACE } from "./tokens";
 
 /**
  * Minimal table primitive that gives every list page the same look-and-feel:
@@ -50,9 +50,7 @@ const Head = React.forwardRef<
   <thead
     ref={ref}
     className={cn(
-      // หัวตารางเคยจางระดับ 1.04 ต่อ 1 = แทบเป็นสีเดียวกับการ์ด แยกไม่ออกว่าแถวไหนคือหัว
-      // โหมดมืดเคยใช้ slate-900 ซึ่งเข้มกว่าพื้นการ์ด — ขาวโปร่งสว่างกว่าพื้นเสมอ
-      "border-b border-slate-200 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400",
+      TABLE_HEAD_SURFACE,
       className
     )}
     {...props}

@@ -40,7 +40,8 @@ import { Alert } from "@/components/ui/alert";
 
 interface OrderFilesCardProps {
   orderId: string;
-  attachments: any[] | undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
+  // รับเฉพาะผล query ที่สำเร็จแล้ว — undefined ห้ามถูกตีความเป็น "ไม่มีไฟล์"
+  attachments: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   userId?: string;
   userRole?: string;
   // ปุ่ม "ไปที่งานออกแบบ" — การ์ดงานออกแบบอยู่คนละแท็บ (production) ต้องให้ page สลับแท็บ+scroll ให้
@@ -156,7 +157,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
     onError: (err: { message?: string }) => toast.error(err.message ?? "ลบไฟล์ไม่สำเร็จ"),
   });
 
-  const all = attachments ?? [];
+  const all = attachments;
   const rawFiles = all.filter((a) => layerForCategory(a.category) === "RAW");
   const printFiles = all.filter((a) => layerForCategory(a.category) === "PRINT");
 
@@ -294,7 +295,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                       {linkCopied ? "คัดลอกแล้ว" : "คัดลอก"}
                     </Button>
                   </div>
-                  <div className="flex items-center justify-between text-2xs text-slate-500">
+                  <div className="flex items-center justify-between text-2xs text-muted">
                     <span>
                       {linkData?.expiresAt
                         ? `หมดอายุ ${formatDate(linkData.expiresAt)}`
@@ -314,7 +315,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted">
                     {linkData?.token && linkExpired
                       ? "ลิงก์เดิมหมดอายุแล้ว"
                       : "ยังไม่มีลิงก์ — สร้างเพื่อส่งให้ลูกค้าอัปไฟล์เองทาง LINE"}
@@ -354,7 +355,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
           {generalRaw.length > 0 && (
             <div className="mb-2">
               {Object.keys(positionGroups).length > 0 && (
-                <p className="mb-2 text-xs font-medium text-slate-500">ทั่วไป</p>
+                <p className="mb-2 text-xs font-medium text-muted">ทั่วไป</p>
               )}
               <div className="flex flex-wrap gap-3">
                 {generalRaw.map((att) => (
@@ -369,7 +370,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
 
           {Object.entries(positionGroups).map(([pos, imgs]) => (
             <div key={pos} className="mb-2">
-              <p className="mb-2 text-xs font-medium text-slate-500">
+              <p className="mb-2 text-xs font-medium text-muted">
                 <Badge variant="secondary" className="text-2xs">
                   {POSITION_LABELS[pos] || pos}
                 </Badge>
@@ -395,7 +396,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                 {FILE_LAYERS.APPROVAL.label}
               </span>
               {latestDesign ? (
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted">
                   {designs.data!.length} เวอร์ชัน · ล่าสุด v{latestDesign.versionNumber}{" "}
                   {DESIGN_STATUS_LABELS[latestDesign.approvalStatus] ?? latestDesign.approvalStatus}
                 </span>

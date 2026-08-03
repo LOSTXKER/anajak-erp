@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
@@ -17,7 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
@@ -80,50 +80,14 @@ export default function BillingPage() {
 }
 
 function BillingPageContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.get("q") ?? "";
+  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
+    useListPageState();
   const rawStatus = searchParams.get("status");
   const statusFilter = rawStatus && rawStatus in PAYMENT_STATUS_LABELS ? rawStatus : ALL;
   const rawType = searchParams.get("type");
   const typeFilter = rawType && TYPE_FILTER_OPTIONS.some((type) => type === rawType)
     ? rawType
     : ALL;
-  const parsedPage = Number(searchParams.get("page"));
-  const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const replaceListState = useCallback(
-    (updates: Record<string, string | null>) => {
-      // อ่าน URL สดตอนกดจริง — กัน debounce คำค้นที่เริ่มก่อนผู้ใช้เปลี่ยน filter
-      // แล้ว callback เก่าเขียนทับ status/type/page ที่เพิ่งเลือก
-      const next = new URLSearchParams(window.location.search);
-      for (const [key, value] of Object.entries(updates)) {
-        if (!value || (key === "page" && value === "1")) next.delete(key);
-        else next.set(key, value);
-      }
-      const query = next.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [pathname, router]
-  );
-
-  // debounce คำค้นลง URL 300ms และยกเลิก timer เมื่อออกจากหน้า
-  useEffect(
-    () => () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    },
-    []
-  );
-
-  // browser back/forward ต้องคืนคำค้นในช่อง โดยไม่ remount input จน focus หลุด
-  useEffect(() => {
-    if (searchInputRef.current && searchInputRef.current.value !== search) {
-      searchInputRef.current.value = search;
-    }
-  }, [search]);
 
   const { data: me } = trpc.user.me.useQuery();
   // หน้าการเงินทั้งหน้าเป็นของฝั่งบริหาร-บัญชี (ตรงกับ requireRole ฝั่ง server)
@@ -144,35 +108,21 @@ function BillingPageContent() {
     { enabled: canView, placeholderData: (prev) => prev }
   );
 
-  // clamp หน้าเกินช่วง — กดหน้าถัดไปช่วง placeholder ค้างเลขหน้าชุดกรองเก่า แล้วชุดใหม่
-  // มีหน้าน้อยกว่า จะค้างบนหน้าว่างที่ไม่มีแถบ pagination ให้ถอยกลับ (review จับ)
-  useEffect(() => {
-    if (data && page > data.pages && data.pages >= 1) {
-      replaceListState({ page: String(data.pages) });
-    }
-  }, [data, page, replaceListState]);
-
-  if (me && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader
-          title="บิล/การเงิน"
-          description="ใบแจ้งหนี้ ใบเสร็จ และสถานะรับชำระ"
-        />
-        <p className="text-sm text-slate-400">
-          ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
-        </p>
-      </div>
-    );
-  }
+  usePageClamp(page, data?.pages, replaceListState);
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="บิล/การเงิน"
-        description="ใบแจ้งหนี้ ใบเสร็จ และสถานะรับชำระ"
-      />
-
+    <PageShell
+      title="บิล/การเงิน"
+      description="ใบแจ้งหนี้ ใบเสร็จ และสถานะรับชำระ"
+      denied={
+        me && !canView
+          ? {
+              description:
+                'ต้องมีสิทธิ์ "ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
+            }
+          : undefined
+      }
+    >
       {/* stats พังต้องบอก — เลขเงินโชว์ ฿0 เงียบๆ อ่านเป็น "ไม่มียอดค้าง" ได้ (ขัด DESIGN.md) */}
       {stats.isError ? (
         <QueryError
@@ -219,14 +169,7 @@ function BillingPageContent() {
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาเลขบิล, ชื่อลูกค้า..."
           defaultValue={search}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (searchTimer.current) clearTimeout(searchTimer.current);
-            searchTimer.current = setTimeout(
-              () => replaceListState({ q: value.trim() || null, page: null }),
-              300
-            );
-          }}
+          onChange={(e) => onSearchChange(e.target.value)}
         />
 
         {/* flex-wrap: จอแคบให้ตัวกรองเต็มความกว้างคนละบรรทัดเหมือนเดิม — ถ้าบีบสองช่องลงแถวเดียว
@@ -458,6 +401,6 @@ function BillingPageContent() {
           ) : undefined
         }
       />
-    </div>
+    </PageShell>
   );
 }

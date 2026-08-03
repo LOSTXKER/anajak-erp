@@ -12,10 +12,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { UserPlus, Loader2, Search } from "lucide-react";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
+import { UserPlus, Search } from "lucide-react";
 import { normalizePhone } from "@/lib/phone";
 import { QueryError } from "@/components/ui/query-error";
 import { Field } from "@/components/ui/field";
@@ -35,9 +35,18 @@ interface CustomerPickerProps {
   /** ให้ฟอร์มโฟกัสกลับมาที่ช่องนี้ได้เมื่อตรวจไม่ผ่าน */
   id?: string;
   labelledBy?: string;
+  /** จัดช่องค้นหาและตัวเลือกไว้แถวเดียวบนจอกว้าง โดยคงค่าเริ่มต้นของหน้าที่ใช้ร่วมกัน */
+  layout?: "stacked" | "inline";
 }
 
-export function CustomerPicker({ value, onChange, required, labelledBy, id }: CustomerPickerProps) {
+export function CustomerPicker({
+  value,
+  onChange,
+  required,
+  labelledBy,
+  id,
+  layout = "stacked",
+}: CustomerPickerProps) {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   // ลูกค้าที่เลือกอยู่ — ปักไว้ใน dropdown แม้ผลค้นหาปัจจุบันไม่มีรายนี้
@@ -125,7 +134,13 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
   }
 
   return (
-    <div className="space-y-1.5">
+    <div
+      className={cn(
+        layout === "inline"
+          ? "grid gap-2 lg:grid-cols-2"
+          : "space-y-1.5"
+      )}
+    >
       <div className="relative">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
         <Input
@@ -141,10 +156,12 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
         />
       </div>
       {isError ? (
-        <QueryError
-          message="โหลดรายชื่อลูกค้าไม่สำเร็จ"
-          onRetry={() => void refetch()}
-        />
+        <div className={cn(layout === "inline" && "lg:col-span-2")}>
+          <QueryError
+            message="โหลดรายชื่อลูกค้าไม่สำเร็จ"
+            onRetry={() => void refetch()}
+          />
+        </div>
       ) : <div className="flex gap-1.5">
         <Select
           id={id}
@@ -245,7 +262,7 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
                   >
                     <span>
                       {c.name}
-                      {c.company && <span className="text-slate-500"> ({c.company})</span>}
+                      {c.company && <span className="text-muted"> ({c.company})</span>}
                       <span className="ml-1.5 text-xs text-slate-400">
                         {[c.phone, c.lineId].filter(Boolean).join(" · ")}
                       </span>
@@ -259,24 +276,14 @@ export function CustomerPicker({ value, onChange, required, labelledBy, id }: Cu
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeCreate}>
-              ยกเลิก
-            </Button>
-            <Button
-              type="button"
-              onClick={handleCreate}
-              disabled={!newName.trim() || createCustomer.isPending || isChecking}
-              className="gap-1.5"
-            >
-              {createCustomer.isPending || isChecking ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <UserPlus />
-              )}
-              เพิ่มลูกค้า
-            </Button>
-          </DialogFooter>
+          <DialogSubmitFooter
+            pending={createCustomer.isPending || isChecking}
+            disabled={!newName.trim()}
+            submitLabel="เพิ่มลูกค้า"
+            submitIcon={<UserPlus />}
+            onCancel={closeCreate}
+            onSubmit={handleCreate}
+          />
         </DialogContent>
       </Dialog>
     </div>
