@@ -127,7 +127,7 @@ export function OrderAttachmentsSection({
                     className="h-24 w-24 rounded-xl border border-slate-200/60 object-cover dark:border-slate-700/60"
                   />
                 ) : (
-                  <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-slate-200/60 bg-slate-50 dark:border-slate-700/60 dark:bg-slate-800">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-slate-200/60 bg-slate-50 dark:border-white/10 dark:bg-white/[0.06]">
                     <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
                   </div>
                 )}

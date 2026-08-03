@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { CONTROL_H, CONTROL_H_SM } from "./control-size";
 import {
   FIELD_SURFACE,
+  FIELD_SURFACE_QUIET,
   FOCUS_FIELD,
   controlShapeClass,
   type ControlShape,
@@ -22,21 +23,27 @@ const Input = React.forwardRef<
   Omit<React.ComponentProps<"input">, "size"> & {
     shape?: ControlShape;
     size?: InputSize;
+    /** ช่องในตารางแก้ข้อมูล — โปร่งสนิท เห็นพื้นเฉพาะตอนชี้/โฟกัส
+     *  (หลายช่องเรียงแถวเดียวกัน ถ้าเติมพื้นทุกช่องจะได้ก้อนเทาแย่งสายตากับข้อมูล) */
+    quiet?: boolean;
   }
 >(
-  ({ className, type, shape, size = "default", ...props }, ref) => {
+  ({ className, type, shape, size = "default", quiet = false, ...props }, ref) => {
     return (
       <input
         type={type}
         className={cn(
           controlShapeClass(shape),
-          FIELD_SURFACE,
+          quiet ? FIELD_SURFACE_QUIET : FIELD_SURFACE,
           FOCUS_FIELD,
           "flex w-full px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
           // หลังก้อนพื้นฐานเสมอ — twMerge ตัดสินจาก "ตัวหลังชนะ" ถ้าวางก่อน text-base/sm:text-sm
           // ที่อยู่ข้างบนจะทับ text-xs กลับ (เขียนสลับแล้วขนาดไม่เปลี่ยน หาสาเหตุยาก)
+          // มือถือคง text-base (16px) เสมอ — ต่ำกว่านั้น iOS Safari ซูมหน้าจอทุกครั้งที่แตะช่อง
+          // แล้วผู้ใช้ต้องถอยกลับมาเองทีละช่อง (audit 2026-08-03 · กติกา DESIGN.md
+          // "mobile input ต้อง 16px กัน browser zoom") — ชุด dense ทำถูกอยู่แล้ว sm ตกหล่น
           size === "sm"
-            ? cn(CONTROL_H_SM, "text-xs sm:text-xs")
+            ? cn(CONTROL_H_SM, "sm:text-xs")
             : size === "dense"
               ? cn(CONTROL_H, "sm:text-xs")
               : CONTROL_H,

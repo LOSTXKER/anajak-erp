@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { SUNK_PANEL } from "@/components/ui/tokens";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { VariantForm } from "@/types/order-form";
@@ -46,7 +48,7 @@ export function SizeMatrix({
   const total = sumVariantQty(variants.filter((v) => v.size.trim()));
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40">
+    <div className={cn("rounded-xl p-3", SUNK_PANEL)}>
       <div className="mb-2 flex items-center gap-2">
         <label htmlFor="size-matrix-color" className="text-xs font-medium text-slate-600 dark:text-slate-300">สี (ใช้ทุกไซส์)</label>
         <Input
@@ -57,7 +59,10 @@ export function SizeMatrix({
             rebuild(null, 0, e.target.value);
           }}
           placeholder="เช่น ดำ"
-          className="h-7 w-28 text-xs"
+          size="sm"
+          // h-7 เดิมเป็นค่าหลอก (min-h-11 ชนะอยู่แล้ว ไม่เคยสูง 28px จริง) และ text-xs
+          // เปล่าทำให้ iOS ซูมจอเมื่อแตะ — ใช้ size="sm" ที่คุมทั้งสองอย่างให้แล้ว
+          className="w-28"
         />
       </div>
 

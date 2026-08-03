@@ -6,15 +6,19 @@
 //
 // รื้อโครง 2026-06-12 (เบสเคาะ): แตก section เป็น component + ลำดับสายตา 1-2-3
 // (ลูกค้า&งาน → รายการ&ราคา → ไฟล์&จัดส่ง กางตลอด) + แถบสรุป/ปุ่ม sticky ล่างจอ
+//
+// UX แบบ B 2026-08-03 (เบสเคาะจาก mockup): เลิก ledger ผิวเดียว → 4 การ์ดแยกบนพื้นเทา
+// เหมือนทั้งเว็บ + PageShell กลาง + แถบขั้นตอนกระโดด · ทุกช่องยังกางครบเหมือนเดิม
+// ไม่มีพับซ่อน/wizard/สองฝั่ง ตามมติเดิม
 
-import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Section } from "@/components/ui/section";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { isMarketplaceChannel, CHANNEL_LABELS } from "@/lib/order-status";
 import { type PaymentTermsValue, PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { type PickerCustomer } from "@/components/customers/customer-picker";
@@ -58,18 +62,108 @@ import {
   OrderAttachmentsSection,
 } from "@/components/orders/new";
 import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
-import { FOCUS_BUTTON, TINT } from "@/components/ui/tokens";
+import { Badge } from "@/components/ui/badge";
+import { FOCUS_BUTTON, RADIUS, TINT } from "@/components/ui/tokens";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
 
-const ledgerSectionClass = "px-5 py-6 sm:px-7 sm:py-7";
+/** id ของ 4 ตอน — ใช้ร่วมกันระหว่างหัวข้อการ์ดกับแถบขั้นตอนที่กดกระโดด */
+const STEP_IDS = {
+  intake: "new-order-step-intake",
+  items: "new-order-step-items",
+  pricing: "new-order-step-pricing",
+  shipping: "new-order-step-shipping",
+} as const;
 
+/* เลขตอนเป็นชิปกลม ไม่ใช่ตัวเลขลอย — เลข 01-04 เดิมเป็นภาษาหัวข้อแบบที่ 3 ของระบบ
+   (audit 2026-08-03) · aria-hidden เพราะ <h2> ควรอ่านแค่ชื่อตอน ไม่ต้องอ่าน "01" */
 function StepTitle({ number, children }: { number: string; children: ReactNode }) {
   return (
-    <span className="flex items-baseline gap-2">
-      <span aria-hidden="true" className="text-xs font-semibold tabular-nums text-blue-600 dark:text-blue-400">
+    <span className="flex items-center gap-2">
+      <span
+        aria-hidden="true"
+        className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-blue-50 text-2xs font-semibold tabular-nums text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+      >
         {number}
       </span>
       <span>{children}</span>
     </span>
+  );
+}
+
+/* แถบขั้นตอน — ทางลัดกระโดดในฟอร์มยาว 4 จอ ไม่ได้ซ่อนอะไร (ทุกช่องยังกางครบ)
+   จุดเขียว = ตอนนั้นมีข้อมูลแล้ว · ป้ายขวา = บอกว่าร่างถูกเก็บอัตโนมัติ
+   (ระบบเก็บลงเครื่องอยู่แล้วผ่าน use-order-items-form แต่ไม่เคยบอกผู้ใช้) */
+function StepRail({
+  steps,
+  draftSaved,
+}: {
+  steps: { id: string; label: string; done: boolean }[];
+  draftSaved: boolean;
+}) {
+  /* เลื่อนไปตอนที่กด — เลื่อน "กล่อง main" ตรงๆ ไม่ใช่ scrollIntoView
+     เหตุผล: เครื่องที่ปิด smooth scrolling ไว้ (ตั้งค่าลดการเคลื่อนไหวของ macOS/Chrome)
+     สั่ง behavior:"smooth" แล้วจอ "ไม่ขยับเลย" — ปุ่มนี้เป็นตัวนำทาง กดแล้วต้องไปถึงเสมอ
+     จึงเช็คหลังสั่งไป 1 จังหวะ ถ้ายังไม่ขยับให้กระโดดทันทีแทน */
+  const goTo = useCallback((elId: string) => {
+    requestAnimationFrame(() => {
+      const target = document.getElementById(elId);
+      const scroller = target?.closest("main");
+      if (!target || !scroller) return;
+      target.focus({ preventScroll: true });
+
+      const top = Math.max(
+        0,
+        scroller.scrollTop +
+          target.getBoundingClientRect().top -
+          scroller.getBoundingClientRect().top -
+          12
+      );
+      const before = scroller.scrollTop;
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      scroller.scrollTo({ top, behavior: reduced ? "auto" : "smooth" });
+      if (reduced) return;
+      window.setTimeout(() => {
+        if (scroller.scrollTop === before) scroller.scrollTop = top;
+      }, 120);
+    });
+  }, []);
+
+  return (
+    <nav
+      aria-label="ข้ามไปตอนที่ต้องการ"
+      className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center gap-1.5 bg-bg px-1 py-2"
+    >
+      {steps.map((step) => (
+        <button
+          key={step.id}
+          type="button"
+          onClick={() => goTo(step.id)}
+          className={cn(
+            CONTROL_MIN_H,
+            RADIUS.pill,
+            // ไม่มีขอบ — ชิปขาวบนพื้นเทาแยกตัวเองด้วยสีพื้นอยู่แล้ว (รอบ "ลดเส้นทั้งเว็บ")
+            "inline-flex items-center gap-2 bg-surface px-3 text-xs text-secondary transition-colors hover:text-strong",
+            FOCUS_BUTTON
+          )}
+        >
+          <span
+            aria-hidden="true"
+            className={cn(
+              "h-1.5 w-1.5 shrink-0 rounded-full",
+              step.done ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"
+            )}
+          />
+          {step.label}
+          <span className="sr-only">{step.done ? " — กรอกแล้ว" : " — ยังว่าง"}</span>
+        </button>
+      ))}
+      {draftSaved && (
+        <p className="ml-auto hidden items-center gap-1.5 text-2xs text-muted sm:flex">
+          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-green-500" />
+          เก็บร่างอัตโนมัติแล้ว
+        </p>
+      )}
+    </nav>
   );
 }
 
@@ -123,6 +217,11 @@ export default function NewOrderPage() {
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
+  // hasDraft ของ useOrderItemsForm ดูแค่ "ร่างรายการ" — ถ้าค้างไว้แค่ลูกค้า/ชื่องาน/ข้อความแชท
+  // หน้าจะ restore ลูกค้ารายเก่ากลับมาเงียบๆ โดยไม่มีแบนเนอร์บอก แล้วคนคีย์งานให้ลูกค้าผิดคน
+  // (บั๊กจาก audit 2026-08-03) → จำไว้ว่า header draft ถูกกู้คืนด้วย แล้ว OR เข้าเงื่อนไขแบนเนอร์
+  const [restoredHeaderDraft, setRestoredHeaderDraft] = useState(false);
+
   // ลูกค้าเลือกผ่าน CustomerPicker (ค้นหา+เพิ่มด่วน) — เก็บ object ที่เลือกไว้ใช้ prefill
   const [selectedCustomer, setSelectedCustomer] = useState<PickerCustomer | null>(null);
 
@@ -133,6 +232,7 @@ export default function NewOrderPage() {
     if (d?.title) setTitle(d.title);
     if (d?.description) setDescription(d.description);
     if (d?.selectedCustomer) setSelectedCustomer(d.selectedCustomer as PickerCustomer);
+    if (d?.customerId || d?.title || d?.description) setRestoredHeaderDraft(true);
 
     const requestedCustomerId = new URLSearchParams(window.location.search).get("customerId");
     if (!requestedCustomerId || d?.customerId) return;
@@ -240,12 +340,18 @@ export default function NewOrderPage() {
 
   const isCorporateCustomer = selectedCustomer?.customerType === "CORPORATE";
   useEffect(() => {
+    // เลขที่ PO ผูกกับลูกค้ารายที่เลือกไว้ตอนนั้น — สลับลูกค้าแล้วค่าเก่าค้างและถูกส่งไปด้วย
+    // (บั๊กจาก audit 2026-08-03 · ช่องนี้โผล่เฉพาะนิติบุคคล พอสลับไปบุคคลธรรมดาจะมองไม่เห็นด้วยซ้ำ)
+    setPoNumber("");
+
     if (!selectedCustomer) return;
     if (selectedCustomer.customerType === "CORPORATE") {
       if (selectedCustomer.defaultPaymentTerms && !paymentTerms) {
         setPaymentTerms(selectedCustomer.defaultPaymentTerms);
       }
-      if (taxRate === 0) {
+      // ผู้ใช้พิมพ์ 0 เอง (งานยกเว้นภาษี) แล้วเลือกลูกค้านิติบุคคล → เดิมเด้งกลับเป็น 7 ทับเงียบๆ
+      // เคารพ taxRateTouched แบบเดียวกับ effect ช่องทาง marketplace ด้านบน
+      if (taxRate === 0 && !taxRateTouched.current) {
         setTaxRate(7);
       }
     }
@@ -401,19 +507,29 @@ export default function NewOrderPage() {
     createOrder.mutate(buildMutationInput());
   };
 
-  return (
-    <div className="mx-auto max-w-5xl space-y-4">
-      <PageHeader
-        breadcrumb={[
-          { label: "ออเดอร์", href: "/orders" },
-          { label: "เปิดงานใหม่" },
-        ]}
-        title="เปิดงานใหม่"
-        description="บันทึกจากบทสนทนา แล้วเติมรายการและเงื่อนไขตามลำดับ"
-      />
+  const showDraftBanner = hasDraft || restoredHeaderDraft;
+  const resetDraft = () => {
+    dismissDraft();
+    clearDraft();
+    setRestoredHeaderDraft(false);
+    setCustomerId("");
+    setSelectedCustomer(null);
+    setTitle("");
+    setDescription("");
+  };
 
-      {hasDraft && (
-        <div className={cn(TINT.warning, "flex flex-wrap items-center gap-3 rounded-xl border px-3 py-2 text-xs")}>
+  return (
+    <PageShell
+      width="wide"
+      breadcrumb={[
+        { label: "ออเดอร์", href: "/orders" },
+        { label: "เปิดงานใหม่" },
+      ]}
+      title="เปิดงานใหม่"
+      description="บันทึกจากบทสนทนา แล้วเติมรายการและเงื่อนไขตามลำดับ"
+    >
+      {showDraftBanner && (
+        <div className={cn(TINT.warning, "flex flex-wrap items-center gap-3 rounded-2xl border px-3 py-2 text-xs")}>
           <span>
             พบข้อมูลร่างที่ยังไม่ได้บันทึก — กรอกต่อจากเดิมหรือเริ่มใหม่?
           </span>
@@ -421,14 +537,7 @@ export default function NewOrderPage() {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => {
-              dismissDraft();
-              clearDraft();
-              setCustomerId("");
-              setSelectedCustomer(null);
-              setTitle("");
-              setDescription("");
-            }}
+            onClick={resetDraft}
             className="ml-auto"
           >
             เริ่มใหม่
@@ -436,9 +545,19 @@ export default function NewOrderPage() {
         </div>
       )}
 
+      <StepRail
+        draftSaved={showDraftBanner || !!customerId || hasItemContent}
+        steps={[
+          { id: STEP_IDS.intake, label: "รับเรื่อง", done: !!customerId },
+          { id: STEP_IDS.items, label: "รายการงาน", done: hasItemContent },
+          { id: STEP_IDS.pricing, label: "ราคา", done: pricingSummary.grandTotal > 0 },
+          { id: STEP_IDS.shipping, label: "จัดส่ง", done: includeShipping },
+        ]}
+      />
+
       {/* noValidate: ใช้ validateForm (กล่อง error เดียว) แทน native validation —
           กล่องพับซ่อนด้วย CSS ทำให้ browser validation บน input ที่มองไม่เห็นพัง submit เงียบ */}
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {formErrors.length > 0 && (
           <Alert
             ref={errorSummaryRef}
@@ -460,12 +579,14 @@ export default function NewOrderPage() {
           </Alert>
         )}
 
-        <div className="card-surface divide-y divide-slate-200 rounded-2xl dark:divide-white/10">
+        <div className="space-y-6">
           {/* รับเรื่อง — ลูกค้าเป็นช่องบังคับเพียงช่องเดียว */}
           <Section
+            id={STEP_IDS.intake}
+            tabIndex={-1}
             title={<StepTitle number="01">รับเรื่อง</StepTitle>}
-            bordered={false}
-            className={ledgerSectionClass}
+            description="บังคับแค่ลูกค้า — ที่เหลือเติมทีหลังได้"
+            className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
               <OrderCustomerSection
@@ -504,9 +625,18 @@ export default function NewOrderPage() {
           </Section>
 
           <Section
+            id={STEP_IDS.items}
+            tabIndex={-1}
             title={<StepTitle number="02">รายการงาน</StepTitle>}
-            bordered={false}
-            className={ledgerSectionClass}
+            description="สินค้า ลาย และส่วนเสริมของชุดงานนี้"
+            action={
+              hasItemContent ? (
+                <Badge variant="default" size="sm">
+                  {items.length} ชุดงาน
+                </Badge>
+              ) : undefined
+            }
+            className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
               {/* รายการเดียว = โหมด solo ไม่มีชั้น "รายการ #1" — ชุดเดียวกับฟอร์มแก้รายการ */}
@@ -536,7 +666,7 @@ export default function NewOrderPage() {
                   onSetItems={setItems}
                 />
               ) : (
-                <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/70 dark:divide-slate-800 dark:border-slate-800/60">
+                <div className="divide-y divide-slate-200/70 dark:divide-white/10">
                   {items.map((item, itemIdx) => (
                     <OrderItemCard
                       key={itemIdx}
@@ -567,7 +697,7 @@ export default function NewOrderPage() {
               <div className="flex justify-end">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => {
                     addItem();
@@ -583,9 +713,11 @@ export default function NewOrderPage() {
           </Section>
 
           <Section
+            id={STEP_IDS.pricing}
+            tabIndex={-1}
             title={<StepTitle number="03">ราคาและเงื่อนไข</StepTitle>}
-            bordered={false}
-            className={ledgerSectionClass}
+            description="ค่าใช้จ่ายระดับออเดอร์ ภาษี และเงื่อนไขชำระ"
+            className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
               <OrderFeeSection
@@ -598,10 +730,9 @@ export default function NewOrderPage() {
               />
 
               <div className="space-y-5 border-t border-slate-200 pt-5 dark:border-white/10">
-                <div>
-                  <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
-                    เงื่อนไขการขาย
-                  </h3>
+                {/* หัวข้อย่อยชั้นเดียวกับ "ค่าใช้จ่ายเพิ่มเติม"/"สรุปยอด" — เดิมเขียน <h3> เอง
+                    ขนาด 14px ต่างจากอีกสองอันที่ 16px ทั้งที่อยู่ชั้นเดียวกัน (audit 2026-08-03) */}
+                <Section title="เงื่อนไขการขาย" bordered={false} headingLevel={3}>
                   <div className="grid gap-3 lg:grid-cols-2">
                     <Field label="ภาษี (%)" id="order-tax-rate">
                       <Input
@@ -640,7 +771,7 @@ export default function NewOrderPage() {
                       </Field>
                     )}
                   </div>
-                </div>
+                </Section>
 
                 <div className="border-t border-slate-200 pt-5 dark:border-white/10">
                   <OrderPriceSummary
@@ -663,27 +794,30 @@ export default function NewOrderPage() {
 
           {/* จัดส่ง — กางตลอด แต่ยังเป็นข้อมูลไม่บังคับ */}
           <OrderShippingSection
+            id={STEP_IDS.shipping}
             includeShipping={includeShipping}
             onIncludeShippingChange={setIncludeShipping}
             shipping={shipping}
             onUpdate={updateShipping}
-            embedded
             title={<StepTitle number="04">การจัดส่ง</StepTitle>}
-            className={ledgerSectionClass}
+            className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           />
 
-          {/* footer ของฟอร์มติดขอบล่าง — เป็นส่วนเดียวกับ ledger ไม่ลอยเป็นการ์ดอีกใบ */}
-          <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 bg-surface/95 px-5 py-3 backdrop-blur sm:px-7">
+          {/* แถบยอด+ปุ่มติดขอบล่างจอ — ทึบ + เส้นขอบบน (เดิมโปร่ง 95% + blur จนตัวหนังสือ
+              ด้านบนอ่านทะลุกัน) · pb เผื่อแถบขีดกลับหน้าหลักของ iPhone ไม่ให้ทับปุ่ม "เปิดงาน" */}
+          <div className="card-surface sticky bottom-0 z-10 -mb-2 flex flex-wrap items-center gap-2 rounded-t-2xl px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
             <div className="min-w-0 flex-1">
               {hasItemContent ? (
                 <>
-                  <p className="text-2xs text-slate-400">ยอดรวม</p>
-                  <p className="text-base font-semibold tabular-nums text-slate-900 dark:text-white">
+                  {/* ชื่อเดียวกับบรรทัดสุดท้ายของ "สรุปยอด" — เดิมเรียก "ยอดรวม" กับ
+                      "ยอดรวมทั้งหมด" คนละที่คนละขนาด อ่านแล้วไม่แน่ใจว่าเลขเดียวกันไหม */}
+                  <p className="text-2xs text-muted">ยอดรวมทั้งหมด (รวม VAT)</p>
+                  <p className="truncate text-xl font-semibold tracking-tight tabular-nums text-strong">
                     {formatCurrency(pricingSummary.grandTotal)}
                   </p>
                 </>
               ) : (
-                <p className="text-xs leading-snug text-slate-500 dark:text-slate-400">
+                <p className="text-xs leading-snug text-muted">
                   ยังไม่ใส่รายการ/ราคา
                   <br className="sm:hidden" />
                   <span className="hidden sm:inline"> — </span>
@@ -691,12 +825,12 @@ export default function NewOrderPage() {
                 </p>
               )}
             </div>
-            <Button asChild variant="ghost" size="sm">
+            <Button asChild variant="outline" size="sm">
               <Link href="/orders" aria-disabled={createOrder.isPending}>
                 ยกเลิก
               </Link>
             </Button>
-            <Button type="submit" disabled={createOrder.isPending} className="gap-1.5">
+            <Button type="submit" size="sm" disabled={createOrder.isPending} className="gap-1.5">
               {createOrder.isPending && <Loader2 className="animate-spin" />}
               {createOrder.isPending ? "กำลังบันทึก..." : "เปิดงาน"}
             </Button>
@@ -709,6 +843,6 @@ export default function NewOrderPage() {
         onClose={() => setPickerOpen(false)}
         onSelectVariants={handleVariantsSelected}
       />
-    </div>
+    </PageShell>
   );
 }

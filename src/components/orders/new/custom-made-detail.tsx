@@ -17,8 +17,8 @@ import { trpc } from "@/lib/trpc";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { Field } from "@/components/ui/field";
-import { Alert } from "@/components/ui/alert";
-import { DASHED } from "@/components/ui/tokens";
+import { DASHED, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 
 function QuickAddPattern({
@@ -58,8 +58,8 @@ function QuickAddPattern({
   };
 
   return (
-    <div className="mt-2 rounded border border-amber-300 bg-white p-3 dark:border-amber-700 dark:bg-amber-950/30">
-      <span className="mb-2 block text-xs font-medium text-amber-700 dark:text-amber-300">สร้างแพทเทิร์นใหม่</span>
+    <div className={cn("mt-2 bg-surface p-3", RADIUS.item)}>
+      <span className="mb-2 block text-xs font-medium text-secondary">สร้างแพทเทิร์นใหม่</span>
       <div className="flex items-end gap-2">
         <div className="flex-1 space-y-1.5">
           <Input size="sm"
@@ -67,7 +67,8 @@ function QuickAddPattern({
             onChange={(e) => setName(e.target.value)}
             placeholder="ชื่อแพทเทิร์น เช่น คอกลมแขนสั้น"
           />
-          <label className={cn(DASHED, "flex w-fit cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-xs text-muted transition-colors hover:border-amber-400 hover:text-amber-600 dark:border-slate-600")}>
+          {/* เป้านิ้ว ≥44px บนจอเล็ก — เดิม py-1 ได้ราว 26px กดพลาดตลอดบนมือถือ */}
+          <label className={cn(DASHED, RADIUS.item, CONTROL_MIN_H, "flex w-fit cursor-pointer items-center gap-1.5 px-3 py-1 text-xs text-muted transition-colors hover:border-blue-300 hover:text-strong")}>
             <Plus className="h-3 w-3" />
             {file ? file.name : "แนบรูป/ไฟล์ (ไม่บังคับ)"}
             <input type="file" accept="image/*,.pdf,.ai,.psd" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
@@ -121,20 +122,27 @@ export function CustomMadeDetail({
   };
 
   return (
-    <Alert variant="warning">
+    /* กล่องย่อยในการ์ด (พื้นจม) ไม่ใช่ <Alert variant="warning"> —
+       ① สีเหลืองในระบบแปลว่า "ต้องระวัง" แต่นี่คือช่องกรอกสเปคปกติ 9 ช่อง
+       ② <Alert> ตั้ง role="alert" = พื้นที่ประกาศสด ที่ ui/tokens.ts เขียนกติกาไว้ว่า
+          "ของที่กดได้/โฟกัสได้ไม่ควรอยู่ในนั้น" — ทั้งกล่องนี้เป็นช่องกรอกล้วน
+       (เบสเคาะจาก mockup 2026-08-03) */
+    <div className={cn(SUNK_PANEL, "p-3", RADIUS.inner)}>
       {/* Pattern section */}
       <div className="mb-3">
         <div className="mb-2 flex items-center gap-2">
-          <Scissors className="h-3.5 w-3.5 text-amber-600" />
-          <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">แพทเทิร์น</span>
+          <Scissors className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
+          <span className="text-xs font-semibold text-secondary">สเปคตัดเย็บ</span>
           {!showQuickAdd && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setShowQuickAdd(true)}
-              className="ml-auto flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
+              className="ml-auto gap-1.5 text-xs text-muted"
             >
-              <Plus className="h-3 w-3" />สร้างใหม่
-            </button>
+              <Plus className="h-3 w-3" />สร้างแพทเทิร์นใหม่
+            </Button>
           )}
         </div>
 
@@ -167,7 +175,7 @@ export function CustomMadeDetail({
               </p>
             )}
             {selectedPattern && (
-              <div className="mt-2 flex items-start gap-3 rounded border border-amber-200 bg-white p-2 dark:border-amber-800 dark:bg-amber-950/30">
+              <div className={cn("mt-2 flex items-start gap-3 bg-surface p-2", RADIUS.item)}>
                 {selectedPattern.thumbnailUrl && (
                   <img
                     src={selectedPattern.thumbnailUrl}
@@ -236,6 +244,6 @@ export function CustomMadeDetail({
           <Input size="sm" value={product.patternNote} onChange={(e) => updateProduct("patternNote", e.target.value)} placeholder="หมายเหตุ..." />
         </Field>
       </div>
-    </Alert>
+    </div>
   );
 }

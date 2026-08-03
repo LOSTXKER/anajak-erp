@@ -323,7 +323,7 @@ function MyWorkSection({ items, primary = false }: { items: MyWorkItem[]; primar
         )}
       </div>
       <div className="card-surface overflow-hidden rounded-2xl">
-        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+        <ul className="">
           {items.map((work) => (
             <li key={work.stepId}>
               <Link

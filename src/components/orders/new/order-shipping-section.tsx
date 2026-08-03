@@ -25,6 +25,8 @@ interface OrderShippingSectionProps {
   embedded?: boolean;
   title?: React.ReactNode;
   className?: string;
+  /** anchor ให้แถบขั้นตอนของหน้าเปิดงานกระโดดมาได้ */
+  id?: string;
 }
 
 export function OrderShippingSection({
@@ -35,15 +37,18 @@ export function OrderShippingSection({
   embedded = false,
   title = "การจัดส่ง",
   className,
+  id,
 }: OrderShippingSectionProps) {
   return (
     <Section
+      id={id}
+      tabIndex={id ? -1 : undefined}
       title={title}
       description="ไม่บังคับ · ปิดอยู่ = ไม่บันทึกที่อยู่นี้"
       bordered={!embedded}
       className={className}
       action={
-        <label htmlFor="include-order-shipping" className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+        <label htmlFor="include-order-shipping" className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-medium text-secondary">
           <Switch
             id="include-order-shipping"
             checked={includeShipping}

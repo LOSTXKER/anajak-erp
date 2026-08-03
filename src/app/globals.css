@@ -225,6 +225,18 @@ a,
   touch-action: manipulation;
 }
 
+/* ลูกศรขึ้น-ลงของช่องตัวเลข — ซ่อนทั้งเว็บ (เบสเคาะ 2026-08-03 รอบ "ลดเส้น")
+   แถวสินค้าแถวเดียวมีช่องตัวเลข 4 ช่อง = ลูกศร 4 คู่แย่งสายตากับตัวเลขจริง
+   ทั้งที่คนคีย์งานพิมพ์เลขเอาไม่เคยกด · ลูกศรคีย์บอร์ด ↑↓ ยังใช้ได้ตามปกติ */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html:focus-within {
     scroll-behavior: auto;
@@ -296,21 +308,22 @@ a,
    พอย้ายเข้าชั้น utility ที่หน้าส่งมาจะชนะตามลำดับปกติของ Tailwind */
 @layer components {
 
-/* การ์ดคงพื้นขาวบนผืนหน้าเทา + เส้นขอบบางและเงานุ่มช่วยจัดกลุ่มข้อมูล
-   ไม่ย้อมก้อนข้อมูลหลัก · โหมดมืดคงผิวเดิม */
+/* การ์ดคงพื้นขาวบนผืนหน้าเทา แยกชั้นด้วย "สีพื้น + เงานุ่ม" ไม่ใช่เส้นขอบ
+   (เบสเคาะ 2026-08-03 "อยากลดการใช้เส้น ขอบทั้งเว็บ ให้มัน minimal")
+   เดิมมี `0 0 0 1px` = เส้นบางรอบการ์ดทุกใบ ซึ่งไปซ้อนกับเส้นของกล่องย่อย/ตาราง/
+   ช่องกรอกข้างใน จนจอฟอร์มเดียวมีเส้น 133 เส้น · ถอดวงแหวนออก แล้วขยายเงาให้
+   ชัดขึ้นเล็กน้อยเพื่อให้การ์ดยัง "ลอย" เหนือพื้นเทาได้เท่าเดิม */
 .card-surface {
   background-color: var(--color-surface);
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 6px 16px -6px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(0, 0, 0, 0.07);
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 10px 26px -14px rgba(0, 0, 0, 0.16);
 }
 .dark .card-surface {
   background-color: var(--color-surface);
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.3),
-    0 8px 20px -8px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.07);
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    0 12px 28px -14px rgba(0, 0, 0, 0.6);
 }
 /* ยกเงาเมื่อ hover — สำหรับการ์ดที่กดได้ */
 .card-surface-hover {
@@ -318,13 +331,13 @@ a,
 }
 .card-surface-hover:hover {
   box-shadow:
-    0 10px 28px -8px rgba(0, 0, 0, 0.14),
-    0 0 0 1px rgba(0, 0, 0, 0.07);
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 14px 32px -12px rgba(0, 0, 0, 0.22);
 }
 .dark .card-surface-hover:hover {
   box-shadow:
-    0 12px 30px -8px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.12);
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 16px 34px -12px rgba(0, 0, 0, 0.7);
 }
 
 /* ============================================================

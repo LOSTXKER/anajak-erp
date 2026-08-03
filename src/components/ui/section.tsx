@@ -54,11 +54,13 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
           <header
             className={cn(
               "flex items-start justify-between gap-3",
+              // ขอบ 28px (เบสเคาะ 2026-08-03 รอบ "ปรับสัดส่วน") — การ์ดกว้าง 1,024px
+              // ขอบ 24px แน่นเกินสัดส่วน · หัวข้อ→เนื้อหา 20px ให้เป็นบันได 8/16/20/28
               bordered
                 ? compact
-                  ? "px-5 pt-4 pb-2.5"
-                  : "px-6 pt-5 pb-4"
-                : "pb-3"
+                  ? "px-5 pt-4 pb-3"
+                  : "px-7 pt-6 pb-5"
+                : "pb-4"
             )}
           >
             <div className="min-w-0 space-y-0.5">
@@ -83,7 +85,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
         )}
         <div
           className={cn(
-            !flush && bordered && (compact ? "px-5 pb-5" : "px-6 pb-6"),
+            !flush && bordered && (compact ? "px-5 pb-5" : "px-7 pb-7"),
             !bordered && ""
           )}
         >

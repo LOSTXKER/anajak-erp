@@ -141,7 +141,7 @@ export function PrintCardMobile({
           size="icon-sm"
           aria-label={`ลบจุดพิมพ์ ${printIdx + 1}`}
           onClick={onRemove}
-          className="shrink-0 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+          className="shrink-0 text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
         >
           <Trash2 />
         </Button>

@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Alert } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomerPicker, type PickerCustomer } from "@/components/customers/customer-picker";
@@ -67,14 +68,21 @@ export function OrderCustomerSection({
 
   return (
     <div>
-      <p className="mb-1.5 block text-xs text-slate-500 dark:text-slate-400" id="new-order-customer-label">
-        ลูกค้า <span aria-hidden="true" className="text-red-700">*</span><span className="sr-only"> (จำเป็น)</span>
-      </p>
+      {/* ป้ายช่องบังคับช่องเดียวของหน้า ต้องหน้าตาเท่าป้ายช่องอื่นที่ <Field> วาดให้
+          (14px/500/slate-700) — เดิมเป็น <p> 12px/400/slate-500 จึงเบากว่าช่องไม่บังคับ
+          ที่อยู่ใต้มัน และดอกจันไม่มีคู่ dark: จนจมหายในธีมมืด (audit 2026-08-03)
+          ใช้ <Label htmlFor> ไม่ใช่ <Field> เพราะ Field clone prop aria-* ลงลูก
+          ซึ่ง CustomerPicker (ไม่ใช่ control เดี่ยว) ไม่รับ — กดที่ป้ายแล้วโฟกัสลงช่องได้เหมือนกัน */}
+      <Label htmlFor="new-order-customer" className="mb-2 block">
+        ลูกค้า
+        <span aria-hidden="true" className="ml-1 text-red-700 dark:text-red-400">*</span>
+        <span className="sr-only"> (จำเป็น)</span>
+      </Label>
       <CustomerPicker
+        id="new-order-customer"
         value={customerId}
         onChange={onSelect}
         required
-        labelledBy="new-order-customer-label"
         layout="inline"
       />
       {hasCustomerContext && (
