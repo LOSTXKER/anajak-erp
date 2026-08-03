@@ -152,7 +152,7 @@ export function Topbar() {
 
           {notifOpen && (
             <div className={cn(OVERLAY_PANEL, "fixed left-2 right-2 top-16 z-50 overflow-hidden sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96")}>
-              <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5 dark:border-slate-800">
+              <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5 dark:border-white/10">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                   การแจ้งเตือน
                   {count > 0 && (
@@ -208,7 +208,7 @@ export function Topbar() {
                         if (!notif.isRead) markRead.mutate({ id: notif.id });
                         setNotifOpen(false);
                       }}
-                      className={`flex gap-2 border-b border-slate-50 px-3.5 py-2.5 transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800/50 dark:hover:bg-slate-800/50 ${
+                      className={`flex gap-2 border-b border-slate-50 px-3.5 py-2.5 transition-colors last:border-0 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.06] ${
                         !notif.isRead
                           ? "bg-blue-50/40 dark:bg-blue-950/20"
                           : ""
@@ -241,11 +241,11 @@ export function Topbar() {
                 )}
               </div>
 
-              <div className="border-t border-slate-100 dark:border-slate-800">
+              <div className="border-t border-slate-100 dark:border-white/10">
                 <Link
                   href="/notifications"
                   onClick={() => setNotifOpen(false)}
-                  className="block px-3.5 py-2 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-blue-400"
+                  className="block px-3.5 py-2 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-blue-400"
                 >
                   ดูทั้งหมด
                 </Link>

@@ -106,7 +106,9 @@ export const FIELD_MEASURE = "max-w-[calc(50%-0.5rem)]";
 /** กล่องย่อยที่จมลงไปในการ์ด (กลุ่มฟอร์ม · แถบสรุป)
  *  คลาส `sunk-panel` สลับ `--field-bg` ให้ช่องกรอกข้างในเป็นพื้นขาวอัตโนมัติ
  *  (globals.css) — ช่องเทาในกล่องเทาคือเหตุที่เคยกลืนหาย */
-export const SUNK_PANEL = "sunk-panel bg-slate-100 dark:bg-white/[0.05]";
+// dark ใช้ black/25 (เข้มกว่าการ์ด) — เบสเคาะ 2026-08-04 "ของที่จม = เข้มกว่าเสมอ"
+// เดิม white/5 สว่างกว่าการ์ด → ลำดับซิกแซก การ์ด<แผง>ช่องกรอก อ่านทิศความลึกไม่ออก
+export const SUNK_PANEL = "sunk-panel bg-slate-100 dark:bg-black/25";
 
 /** กล่องที่ลอยขึ้นมาทับเนื้อหา — เมนู · ปฏิทิน · ตัวกรอง · กล่องเด้ง
  *  .overlay-surface (globals.css) ให้ทั้งพื้นและเงามาแล้ว — ห้ามใส่ bg-white/border ซ้ำ

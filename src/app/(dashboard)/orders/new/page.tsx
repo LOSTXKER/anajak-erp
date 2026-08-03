@@ -131,7 +131,7 @@ function StepRail({
   return (
     <nav
       aria-label="ข้ามไปตอนที่ต้องการ"
-      className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center gap-1.5 bg-bg px-1 py-2"
+      className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center gap-1.5 border-b border-slate-200/70 bg-bg px-1 py-2 dark:border-white/10"
     >
       {steps.map((step) => (
         <button
@@ -142,7 +142,7 @@ function StepRail({
             CONTROL_MIN_H,
             RADIUS.pill,
             // ไม่มีขอบ — ชิปขาวบนพื้นเทาแยกตัวเองด้วยสีพื้นอยู่แล้ว (รอบ "ลดเส้นทั้งเว็บ")
-            "inline-flex items-center gap-2 bg-surface px-3 text-xs text-secondary transition-colors hover:text-strong",
+            "inline-flex items-center gap-2 bg-surface hairline-ring px-3 text-xs text-secondary transition-colors hover:text-strong",
             FOCUS_BUTTON
           )}
         >
@@ -805,7 +805,7 @@ export default function NewOrderPage() {
 
           {/* แถบยอด+ปุ่มติดขอบล่างจอ — ทึบ + เส้นขอบบน (เดิมโปร่ง 95% + blur จนตัวหนังสือ
               ด้านบนอ่านทะลุกัน) · pb เผื่อแถบขีดกลับหน้าหลักของ iPhone ไม่ให้ทับปุ่ม "เปิดงาน" */}
-          <div className="card-surface sticky bottom-0 z-10 -mb-2 flex flex-wrap items-center gap-2 rounded-t-2xl px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+          <div className="card-surface sticky bottom-0 z-10 -mb-2 flex flex-wrap items-center gap-2 rounded-t-2xl border-t border-slate-200 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 dark:border-white/10">
             <div className="min-w-0 flex-1">
               {hasItemContent ? (
                 <>

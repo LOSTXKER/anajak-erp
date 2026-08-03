@@ -105,7 +105,7 @@ function validDateParam(value: string | null) {
 const PAYMENT_DOT: Record<string, { label: string; dot: string; text: string }> = {
   paid: { label: "ชำระแล้ว", dot: "bg-green-500", text: "text-green-700 dark:text-green-300" },
   unpaid: { label: "ค้างชำระ", dot: "bg-red-500", text: "text-red-700 dark:text-red-300" },
-  partial: { label: "บางส่วน", dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
+  partial: { label: "บางส่วน", dot: "bg-amber-700 dark:bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
 };
 
 // ────────────────────────────────────────────────────────────
@@ -163,13 +163,13 @@ function OrderCountdown({
       : days === 0
         ? {
             label: "วันนี้",
-            dot: "bg-amber-600",
+            dot: "bg-amber-700 dark:bg-amber-500",
             text: "font-medium text-amber-700 dark:text-amber-400",
           }
         : days <= 2
           ? {
               label: `เหลือ ${days} วัน`,
-              dot: "bg-amber-400",
+              dot: "bg-amber-700 dark:bg-amber-500",
               text: "text-amber-700 dark:text-amber-400",
             }
           : {
