@@ -94,8 +94,9 @@ export function CustomMadeDetail({
   product: OrderItemProductForm;
   updateProduct: (field: string, value: unknown) => void;
 }) {
-  const { data, isLoading: patternsLoading } = trpc.pattern.list.useQuery({ isActive: true });
-  const patterns = data?.patterns;
+  const patternsQuery = trpc.pattern.list.useQuery({ isActive: true });
+  const { isLoading: patternsLoading, isError: patternsError } = patternsQuery;
+  const patterns = patternsQuery.data?.patterns;
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const selectedPattern = product.patternId
     ? patterns?.find((p) => p.id === product.patternId)
@@ -147,7 +148,7 @@ export function CustomMadeDetail({
             <Select size="sm"
               value={product.patternId || ""}
               onChange={(e) => handlePatternSelect(e.target.value)}
-              disabled={patternsLoading}
+              disabled={patternsLoading || patternsError}
             >
               <option value="">{patternsLoading ? "กำลังโหลด..." : "-- เลือกแพทเทิร์น --"}</option>
               {patterns?.map((p) => (
@@ -156,6 +157,15 @@ export function CustomMadeDetail({
                 </option>
               ))}
             </Select>
+            {/* query พัง ≠ ไม่มีแพทเทิร์น — เดิม select ว่างเฉยๆ ผู้ใช้เข้าใจว่ายังไม่เคยสร้าง */}
+            {patternsError && (
+              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
+                โหลดแพทเทิร์นไม่สำเร็จ{" "}
+                <button type="button" className="underline" onClick={() => void patternsQuery.refetch()}>
+                  ลองใหม่
+                </button>
+              </p>
+            )}
             {selectedPattern && (
               <div className="mt-2 flex items-start gap-3 rounded border border-amber-200 bg-white p-2 dark:border-amber-800 dark:bg-amber-950/30">
                 {selectedPattern.thumbnailUrl && (

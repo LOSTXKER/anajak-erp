@@ -8,6 +8,7 @@ import { FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, RADIUS } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { QueryError } from "@/components/ui/query-error";
 import { SearchInput } from "@/components/ui/search-input";
 import { Package, X, ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
 import { CONTROL_H_SM } from "@/components/ui/control-size";
@@ -108,7 +109,7 @@ export function ProductPickerDialog({
     }
   }, [open, initialGroup]);
 
-  const { data: products, isLoading } = trpc.product.searchForOrder.useQuery(
+  const { data: products, isLoading, isError, refetch } = trpc.product.searchForOrder.useQuery(
     { search: debouncedSearch || undefined, itemType: selectedGroup, limit: 20 },
     { enabled: open },
   );
@@ -232,6 +233,9 @@ export function ProductPickerDialog({
                 <Spinner size="xl" />
                 <p className="mt-3 text-sm">กำลังโหลด...</p>
               </div>
+            ) : isError ? (
+              // query พัง ≠ ไม่มีสินค้า — เดิมโชว์ "ไม่พบสินค้า" ตอนเน็ตล่ม ผู้ใช้เข้าใจผิด
+              <QueryError message="โหลดรายการสินค้าไม่สำเร็จ" onRetry={() => void refetch()} />
             ) : !products || products.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
                 <Package className="h-10 w-10" />

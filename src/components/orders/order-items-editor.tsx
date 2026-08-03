@@ -156,14 +156,18 @@ export function OrderItemsEditor({
 
   const utils = trpc.useUtils();
 
-  const { data: printCatalog } = trpc.serviceCatalog.list.useQuery({
+  const printCatalogQuery = trpc.serviceCatalog.list.useQuery({
     category: "PRINT",
     isActive: true,
   });
-  const { data: addonCatalog } = trpc.serviceCatalog.list.useQuery({
+  const addonCatalogQuery = trpc.serviceCatalog.list.useQuery({
     category: "ADDON",
     isActive: true,
   });
+  const printCatalog = printCatalogQuery.data;
+  const addonCatalog = addonCatalogQuery.data;
+  // catalog พังแล้วเงียบ = ตัวเลือกลาย/ส่วนเสริมหายเฉยๆ ผู้ใช้ไม่รู้ว่าระบบมีปัญหา
+  const catalogError = printCatalogQuery.isError || addonCatalogQuery.isError;
 
   const updateItemsMutation = useMutationWithInvalidation(trpc.order.updateItems, {
     invalidate: [utils.order.getById],
@@ -296,6 +300,24 @@ export function OrderItemsEditor({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {catalogError && (
+            <Alert variant="warning">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm">โหลดแค็ตตาล็อกลาย/ส่วนเสริมไม่สำเร็จ — ตัวเลือกจากแค็ตตาล็อกจะไม่ขึ้น</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (printCatalogQuery.isError) void printCatalogQuery.refetch();
+                    if (addonCatalogQuery.isError) void addonCatalogQuery.refetch();
+                  }}
+                >
+                  ลองใหม่
+                </Button>
+              </div>
+            </Alert>
+          )}
           {/* รายการสินค้า — ฟอร์มชุดเดียวกับหน้าเปิดงาน
               รายการเดียว = โหมด solo: ไม่มีชั้น "รายการ #1" ให้แบก โชว์ ลาย/สินค้า ตรงๆ */}
           {items.length === 1 ? (

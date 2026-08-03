@@ -37,6 +37,8 @@ import {
   Receipt,
 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
+import { Spinner } from "@/components/ui/spinner";
+import { QueryError } from "@/components/ui/query-error";
 
 interface OrderDesignSectionProps {
   orderId: string;
@@ -167,7 +169,18 @@ export function OrderDesignSection({
           </div>
         </CardHeader>
         <CardContent>
-          {!hasDesigns ? (
+          {/* แยก โหลด/พัง/ว่างจริง — เดิมทั้งสามเคสโชว์ "ยังไม่มีไฟล์ออกแบบ" (จอโกหก) */}
+          {designs.isLoading ? (
+            <div className="flex items-center gap-2 py-2 text-sm text-slate-500 dark:text-slate-400">
+              <Spinner size="sm" />
+              กำลังโหลดไฟล์ออกแบบ...
+            </div>
+          ) : designs.isError ? (
+            <QueryError
+              message="โหลดไฟล์ออกแบบไม่สำเร็จ"
+              onRetry={() => void designs.refetch()}
+            />
+          ) : !hasDesigns ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">
               ยังไม่มีไฟล์ออกแบบ
             </p>
