@@ -198,6 +198,16 @@
 - [ ] ปิดแท็บ `localhost:3000` ของผู้ใช้ทั้งหมดแล้วล้าง cache/site data ของ origin หนึ่งครั้ง จากนั้น verify หน้าเดิมอีกครั้ง · ถ้ายังเกิดค่อยขออนุญาตถอด `--turbopack` จาก dev script (config change)
 - **สถานะ 2026-08-03:** source code ไม่พังและ production path ไม่ได้รับผล · ปัญหาอยู่ที่ client state/Fast Refresh เฉพาะ dev origin 3000 · server 3000 ถูกเปิดใหม่แล้ว แต่แท็บจริงต้องทิ้ง client chunks เก่าให้หมดก่อน
 
+### 🎯 UX Standardize — refactor UI ให้มาตรฐานเดียวทั้งระบบ (เบสเคาะ "ทำเลยทั้งหมด" 2026-08-03 · จาก audit 13 ทีม 59 findings ผ่าน adversarial verify)
+> ขอบเขต: ยกระดับ "มาตรฐานที่มีอยู่แล้วให้ไปถึงทั้งระบบ" — ไม่ redesign ภาพ ไม่แตะ business logic/query/permission · ทุกชิ้นเป็น commit เล็กแยกกัน ห้าม big-bang · รายละเอียดหลักฐานเต็ม: audit output 2026-08-03 (จะสรุปย่อยลงใบงานตอนทำแต่ละชิ้น)
+
+- [ ] **ชุด 0** — เพิ่มขนาด dense ใน `control-size.ts` + กวาดสูตรก๊อป `sm:h-9 sm:text-xs` 15 จุดใน orders/new
+- [ ] **ชุด 1 บั๊กจริง** — (a) `lib/shipping-methods.ts` รวมนิยาม 3 ที่ + หน้า `/status/[token]` เลิกประกาศตารางสถานะเอง 3 ชุด ใช้ registry กลาง (b) แก้ 4 component query พังแต่โชว์ "ไม่มีข้อมูล" (c) หน้า public token 5 หน้าเข้า route group `(public)` + layout ร่วม + noindex + PublicPageShell (d) ปัก timezone Asia/Bangkok ที่ formatter กลาง + รวมสูตรวันที่/พ.ศ./เงินที่เขียนสด ~10 จุด
+- [ ] **ชุด 2 ชั้นที่หายไป** — (a) `PageShell` + `AccessDenied` แล้ว migrate settings 9 หน้า + billing 5 หน้า + หน้า error-ไม่มี-header (b) hook `useListPageState` ยุบโค้ดก๊อป ~70 บรรทัด×7 หน้า + products ต้อง debounce (c) `DialogSubmitFooter` + ประกาศกติกา conditional-mount ใน dialog.tsx แล้วไล่ dialog แตกแถว (d) semantic text token + กวาดจุดหลุดธีมมืด + ตัวดักใน `verify:ui`
+- [ ] **ชุด 3 กวาดเข้ามาตรฐาน** — (a) thead เขียนมือ ~10 จุด → `TABLE_HEAD_SURFACE` (b) ตารางดิบ 7 จุด → DataTable · tax/wht/films → ResponsiveList (c) เคาะมาตรฐาน validation เดียว (validator ใน lib + Field error + toast เฉพาะ server error) + migrate ฟอร์ม settings/quotations-new/billing-notes เข้า Field (d) แตก `order-billing-section` (1,212 บรรทัด 4 dialog) แล้วต่อ `order-delivery-section` (860) — ทีละ dialog ทีละ commit
+- [ ] **ชุด 4 เก็บตก** — Checkbox primitive (แทนดิบ 6 จุด) · NumberInput/MoneyInput · ListCard + migrate หน้าแรก · CustomerFormFields รวมฟอร์มสร้าง/แก้ (validation ให้เท่ากัน) · pagination รวม (notifications/products) · อัปเดต `docs/DESIGN.md` ให้ตรงของจริง
+- [ ] verify ปิดงาน: typecheck · lint · unit · `verify:ui` · browser จริง dashboard/public/print ทั้ง light/dark ไม่มี console error/horizontal overflow
+
 ### Quick wins คั่นระหว่าง Gate (ต่อปุ่มให้ backend ที่มีอยู่ — ชิ้นละ ≤ ครึ่งวัน)
 ~~ปุ่ม "ดึงกลับเป็นร่าง" ใบเสนอ SENT (ทำใน A3)~~ · ~~ปุ่มร่างทวงหนี้บนหน้า aging~~ ✅ 2026-07-03 (tRPC billingNote.dunningDraft + dialog สลับโทน+คัดลอก) · ~~ปุ่ม UI recordRefund~~ ✅ 2026-07-03 (dialog บนการ์ดบิล) · ~~แก้เลข "ค้างชำระ" /billing ให้สูตรเดียวกับ aging~~ ✅ 2026-07-03 (Σ outstandingOf) · **เหลือ**: ตารางบิลกดได้+filter+pagination · เมนู "งานออกแบบ" เลิกชี้หน้า stub · จับ isError 17 หน้าที่เงียบ (ขัด DESIGN.md เอง)
 
