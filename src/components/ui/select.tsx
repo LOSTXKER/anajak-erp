@@ -151,10 +151,20 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           >)}
         >
           <span className="truncate text-left">
-            {current?.label ?? (
-              <span className="text-slate-500 dark:text-slate-400">
-                {placeholder ?? "เลือก…"}
+            {/* ค่าว่างต้องดูว่าง (benchmark 2026-08-04) — เดิม option value=""
+                ("-- ไม่ระบุ --") ถูกวาดเป็นตัวเข้มเหมือนเลือกแล้ว 13 จุดทั่วระบบ
+                กวาดตาแล้วแยกช่องที่ยังไม่กรอกไม่ออก · คู่สีจางตรง placeholder
+                ของ FIELD_SURFACE (tokens.ts) ให้เท่ากันทุก control */}
+            {(value ?? "") === "" ? (
+              <span className="text-slate-400 dark:text-slate-500">
+                {(current?.label || placeholder) ?? "เลือก…"}
               </span>
+            ) : (
+              current?.label ?? (
+                <span className="text-slate-400 dark:text-slate-500">
+                  {placeholder ?? "เลือก…"}
+                </span>
+              )
             )}
           </span>
           <SelectPrimitive.Icon asChild>

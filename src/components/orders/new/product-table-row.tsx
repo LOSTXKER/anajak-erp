@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput, NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -154,14 +155,14 @@ export function ProductTableRow({
         {/* ราคา */}
         <td className="px-1.5 py-2 align-top">
           {isCustomerProvided ? dash : (
-            <Input aria-label={`ราคาสินค้า ${prodIdx + 1}`} type="number" min={0} step={0.01} value={product.baseUnitPrice || ""} onChange={(e) => updateProduct("baseUnitPrice", parseFloat(e.target.value) || 0)} placeholder="0" size="dense" className="w-full px-2 text-right" />
+            <MoneyInput aria-label={`ราคาสินค้า ${prodIdx + 1}`} value={product.baseUnitPrice} onValueChange={(v) => updateProduct("baseUnitPrice", v)} size="dense" className="w-full px-2" />
           )}
         </td>
 
         {/* ส่วนลดต่อชิ้น */}
         <td className="px-1.5 py-2 align-top">
           {isCustomerProvided ? dash : (
-            <Input aria-label={`ส่วนลดต่อชิ้น สินค้า ${prodIdx + 1}`} type="number" min={0} step={0.01} value={product.discount || ""} onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)} placeholder="0" size="dense" className="w-full px-2 text-right" />
+            <MoneyInput aria-label={`ส่วนลดต่อชิ้น สินค้า ${prodIdx + 1}`} value={product.discount} onValueChange={(v) => updateProduct("discount", v)} size="dense" className="w-full px-2" />
           )}
         </td>
 
@@ -170,7 +171,7 @@ export function ProductTableRow({
           {multi ? (
             <div className="flex h-9 items-center justify-center text-sm font-medium text-slate-700 dark:text-slate-200">{totalQty}</div>
           ) : (
-            <Input aria-label={`จำนวนสินค้า ${prodIdx + 1}`} type="number" min={0} value={qty || ""} onChange={(e) => updateVariantField("quantity", parseInt(e.target.value) || 0)} placeholder="0" size="dense" className="w-full text-center" />
+            <NumberInput integer aria-label={`จำนวนสินค้า ${prodIdx + 1}`} min={0} value={qty} onValueChange={(v) => updateVariantField("quantity", v)} placeholder="0" size="dense" className="w-full text-center" />
           )}
         </td>
 

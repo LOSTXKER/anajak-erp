@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
-import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/number-input";
 import { Section } from "@/components/ui/section";
 import { formatCurrency } from "@/lib/utils";
 import { itemHasContent, type OrderItemForm } from "@/types/order-form";
@@ -231,17 +231,11 @@ export function OrderPriceSummary({
                 หักจากยอดโอนเข้าร้าน — ไม่รวมในยอดบิล
               </span>
             </label>
-            <Input size="sm"
+            <MoneyInput size="sm"
               id="order-platform-fee"
-              type="number"
-              min={0}
-              step={0.01}
-              value={platformFee || ""}
-              onChange={(e) =>
-                onPlatformFeeChange(parseFloat(e.target.value) || 0)
-              }
-              placeholder="0.00"
-              className="w-28 text-right"
+              value={platformFee}
+              onValueChange={onPlatformFeeChange}
+              className="w-28"
             />
           </div>
         )}
@@ -250,17 +244,11 @@ export function OrderPriceSummary({
           <label htmlFor="order-discount" className="text-sm text-slate-500 dark:text-slate-400">
             ส่วนลดท้ายบิล
           </label>
-          <Input size="sm"
+          <MoneyInput size="sm"
             id="order-discount"
-            type="number"
-            min={0}
-            step={0.01}
-            value={discount || ""}
-            onChange={(e) =>
-              onDiscountChange(parseFloat(e.target.value) || 0)
-            }
-            placeholder="0.00"
-            className="w-28 text-right"
+            value={discount}
+            onValueChange={onDiscountChange}
+            className="w-28"
           />
         </div>
 

@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
 import { Section } from "@/components/ui/section";
 import { Plus, Trash2, Receipt } from "lucide-react";
@@ -79,7 +80,7 @@ export function OrderFeeSection({
                     value=""
                     onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
                   >
-                    <option value="">-- เลือกจากแค็ตตาล็อก --</option>
+                    <option value="">เลือกจากแค็ตตาล็อก</option>
                     {feeCatalog.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name} — ฿{c.defaultPrice.toLocaleString()}
@@ -106,15 +107,9 @@ export function OrderFeeSection({
                   />
                 </Field>
                 <Field label="จำนวนเงิน" required visuallyHiddenLabel={fIdx > 0} className="space-y-1">
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={f.amount || ""}
-                    onChange={(e) =>
-                      onUpdateFee(fIdx, "amount", parseFloat(e.target.value) || 0)
-                    }
-                    placeholder="0.00"
+                  <MoneyInput
+                    value={f.amount}
+                    onValueChange={(v) => onUpdateFee(fIdx, "amount", v)}
                   />
                 </Field>
                 <div className="flex justify-end">

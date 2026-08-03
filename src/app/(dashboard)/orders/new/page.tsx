@@ -28,6 +28,7 @@ import { Alert } from "@/components/ui/alert";
 import { Field } from "@/components/ui/field";
 import { Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
 import {
   ProductPickerDialog,
@@ -735,15 +736,14 @@ export default function NewOrderPage() {
                 <Section title="เงื่อนไขการขาย" bordered={false} headingLevel={3}>
                   <div className="grid gap-3 lg:grid-cols-2">
                     <Field label="ภาษี (%)" id="order-tax-rate">
-                      <Input
-                        type="number"
+                      <NumberInput
                         min={0}
                         max={100}
                         step={0.01}
-                        value={taxRate || ""}
-                        onChange={(e) => {
+                        value={taxRate}
+                        onValueChange={(v) => {
                           taxRateTouched.current = true; // ผู้ใช้แตะเอง — เลิกสลับ default ตามช่องทาง
-                          setTaxRate(parseFloat(e.target.value) || 0);
+                          setTaxRate(v);
                         }}
                         placeholder="0"
                       />
@@ -753,7 +753,7 @@ export default function NewOrderPage() {
                         value={paymentTerms}
                         onChange={(e) => setPaymentTerms(e.target.value)}
                       >
-                        <option value="">-- ไม่ระบุ --</option>
+                        <option value="">ไม่ระบุ</option>
                         {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
                           <option key={k} value={k}>
                             {v}

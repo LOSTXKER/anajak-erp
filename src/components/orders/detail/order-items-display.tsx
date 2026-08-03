@@ -81,7 +81,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
         <div>
           <label htmlFor={`garment-condition-${product.id}`} className="mb-0.5 block text-2xs font-medium text-muted">สภาพเสื้อ</label>
           <Select size="sm" id={`garment-condition-${product.id}`} value={condition} onChange={(e) => setCondition(e.target.value)} className={cn("px-2 py-1 text-xs", FOCUS_BUTTON)}>
-            <option value="">-- เลือก --</option>
+            <option value="">เลือก</option>
             {Object.entries(GARMENT_CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
         </div>

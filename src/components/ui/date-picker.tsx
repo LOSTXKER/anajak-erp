@@ -123,7 +123,7 @@ export function DatePicker({
             className,
           )}
         >
-          <span className={cn("truncate", !selected && "text-slate-400")}>
+          <span className={cn("truncate", !selected && "text-slate-400 dark:text-slate-500")}>
             {selected
               ? `${selected.getDate()} ${MONTHS[selected.getMonth()]} ${buddhistYear(selected)}`
               : placeholder}

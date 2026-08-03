@@ -226,7 +226,7 @@ export function OrderInfoEditDialog({
         </DialogHeader>
 
         <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
-          {/* ---- Basic Info ---- */}
+          {/* --Basic Info-- */}
           <div className={sectionClass}>
             <p className={sectionTitleClass}>ข้อมูลทั่วไป</p>
             <Field label="ชื่อออเดอร์" required>
@@ -275,7 +275,7 @@ export function OrderInfoEditDialog({
             </Field>
           </div>
 
-          {/* ---- Financial ---- */}
+          {/* --Financial-- */}
           <div className={sectionClass}>
             <p className={sectionTitleClass}>การเงิน</p>
             {/* ล็อกอยู่ → ปิดช่องเงิน + บอกเหตุ (ที่อยู่/หมายเหตุ/PO ยังแก้ได้) */}
@@ -336,7 +336,7 @@ export function OrderInfoEditDialog({
                 <Select value={form.paymentTerms || "_none"}
                   onChange={(e) => update("paymentTerms", e.target.value === "_none" ? "" : e.target.value)}
                   disabled={moneyLocked} placeholder="เลือก...">
-                    <option value="_none">-- ไม่ระบุ --</option>
+                    <option value="_none">ไม่ระบุ</option>
                     {Object.entries(PAYMENT_TERMS_LABELS).map(
                       ([key, label]) => (
                         <option key={key} value={key}>
@@ -356,7 +356,7 @@ export function OrderInfoEditDialog({
             </div>
           </div>
 
-          {/* ---- Shipping ---- */}
+          {/* --Shipping-- */}
           <div className={sectionClass}>
             <p className={sectionTitleClass}>ที่อยู่จัดส่ง</p>
             <div className="grid grid-cols-2 gap-3">
@@ -422,7 +422,7 @@ export function OrderInfoEditDialog({
             </div>
           </div>
 
-          {/* ---- Marketplace ---- */}
+          {/* --Marketplace-- */}
           {isMarketplace && (
             <div className={sectionClass}>
               <p className={sectionTitleClass}>Marketplace</p>

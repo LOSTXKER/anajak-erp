@@ -215,7 +215,7 @@ export default function PatternsPage() {
                     value={formData.productType}
                     onChange={(e) => setFormData({ ...formData, productType: e.target.value })}
                   >
-                    <option value="">-- ทุกประเภท --</option>
+                    <option value="">ทุกประเภท</option>
                     {Object.entries(PRODUCT_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
@@ -228,7 +228,7 @@ export default function PatternsPage() {
                     value={formData.collarType}
                     onChange={(e) => setFormData({ ...formData, collarType: e.target.value })}
                   >
-                    <option value="">-- เลือก --</option>
+                    <option value="">เลือก</option>
                     {Object.entries(COLLAR_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
@@ -241,7 +241,7 @@ export default function PatternsPage() {
                     value={formData.sleeveType}
                     onChange={(e) => setFormData({ ...formData, sleeveType: e.target.value })}
                   >
-                    <option value="">-- เลือก --</option>
+                    <option value="">เลือก</option>
                     {Object.entries(SLEEVE_TYPES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
@@ -256,7 +256,7 @@ export default function PatternsPage() {
                     value={formData.bodyFit}
                     onChange={(e) => setFormData({ ...formData, bodyFit: e.target.value })}
                   >
-                    <option value="">-- เลือก --</option>
+                    <option value="">เลือก</option>
                     {Object.entries(BODY_FITS).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}

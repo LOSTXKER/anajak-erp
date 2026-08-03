@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
 import {
@@ -210,17 +211,11 @@ export function PrintTableRow({
       </td>
 
       <td className="px-1 py-2 align-middle">
-        <Input
+        <MoneyInput
           aria-label={`ค่าสกรีน จุดที่ ${printIdx + 1}`}
-          type="number"
-          min={0}
-          step={0.01}
-          value={print.unitPrice || ""}
-          onChange={(event) =>
-            onUpdate("unitPrice", parseFloat(event.target.value) || 0)
-          }
-          placeholder="0.00"
-          size="dense" className="w-full px-2 text-right"
+          value={print.unitPrice}
+          onValueChange={(v) => onUpdate("unitPrice", v)}
+          size="dense" className="w-full px-2"
         />
       </td>
 

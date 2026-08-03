@@ -55,14 +55,16 @@ export function OrderDetailFields({
 
   return (
     <div className="space-y-4">
+      {/* คำสั่งสอนอยู่ description ใต้ช่อง (ไม่หายตอนพิมพ์) — placeholder เหลือตัวอย่างค่า */}
       <Field
         label="ข้อความจากลูกค้า"
         id={`${id}-description`}
+        description="สรุปจากแชท: แบบ สี จำนวน งบ และสิ่งที่ลูกค้าเน้น"
       >
         <Textarea
           value={description}
           onChange={(e) => onDescriptionChange(e.target.value)}
-          placeholder="สรุปจากแชท: แบบ สี จำนวน งบ และสิ่งที่ลูกค้าเน้น"
+          placeholder="โปโล 120 ตัว สีกรม ปักอกซ้าย ส่งก่อน 25 ส.ค."
           rows={3}
         />
       </Field>
@@ -94,11 +96,15 @@ export function OrderDetailFields({
             ))}
           </Select>
         </Field>
-        <Field label="ชื่องาน (เว้นว่างได้)" id={`${id}-title`}>
+        <Field
+          label="ชื่องาน (เว้นว่างได้)"
+          id={`${id}-title`}
+          description="เว้นว่าง = ระบบตั้งชื่อจากลูกค้าให้"
+        >
           <Input
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
-            placeholder="ระบบจะใช้ชื่อลูกค้าให้"
+            placeholder="เสื้อทีมหน้าร้าน 30 ตัว"
           />
         </Field>
       </div>

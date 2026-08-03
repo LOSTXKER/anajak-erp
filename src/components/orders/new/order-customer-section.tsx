@@ -84,6 +84,7 @@ export function OrderCustomerSection({
         onChange={onSelect}
         required
         layout="inline"
+        autoFocusSearch
       />
       {hasCustomerContext && (
         <div className="mt-2 space-y-1.5 rounded-xl bg-slate-100/70 px-3 py-2.5 dark:bg-white/[0.04]">
