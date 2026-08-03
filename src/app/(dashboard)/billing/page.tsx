@@ -17,7 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from "@/lib/status-config";
@@ -152,27 +152,19 @@ function BillingPageContent() {
     }
   }, [data, page, replaceListState]);
 
-  if (me && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader
-          title="บิล/การเงิน"
-          description="ใบแจ้งหนี้ ใบเสร็จ และสถานะรับชำระ"
-        />
-        <p className="text-sm text-slate-400">
-          ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="บิล/การเงิน"
-        description="ใบแจ้งหนี้ ใบเสร็จ และสถานะรับชำระ"
-      />
-
+    <PageShell
+      title="บิล/การเงิน"
+      description="ใบแจ้งหนี้ ใบเสร็จ และสถานะรับชำระ"
+      denied={
+        me && !canView
+          ? {
+              description:
+                'ต้องมีสิทธิ์ "ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
+            }
+          : undefined
+      }
+    >
       {/* stats พังต้องบอก — เลขเงินโชว์ ฿0 เงียบๆ อ่านเป็น "ไม่มียอดค้าง" ได้ (ขัด DESIGN.md) */}
       {stats.isError ? (
         <QueryError
@@ -458,6 +450,6 @@ function BillingPageContent() {
           ) : undefined
         }
       />
-    </div>
+    </PageShell>
   );
 }

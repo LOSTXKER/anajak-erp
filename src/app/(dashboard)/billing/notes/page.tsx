@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { FileStack, Plus, Printer, Ban, Loader2 } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
@@ -185,29 +185,26 @@ function BillingNotesPageContent() {
     .reduce((sum, inv) => sum + inv.outstanding, 0);
   const allSelected = eligibleList.length > 0 && selectedIds.size === eligibleList.length;
 
-  if (me && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader title="ใบวางบิล" description="รวมใบแจ้งหนี้ค้างชำระเรียกเก็บตามรอบ" />
-        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="ใบวางบิล"
-        description="รวมใบแจ้งหนี้ค้างชำระของลูกค้าเรียกเก็บตามรอบ"
-        breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ใบวางบิล" }]}
-        action={
-          <Button onClick={() => setShowCreate(true)} className="gap-1.5">
-            <Plus />
-            สร้างใบวางบิล
-          </Button>
-        }
-      />
-
+    <PageShell
+      title="ใบวางบิล"
+      description="รวมใบแจ้งหนี้ค้างชำระของลูกค้าเรียกเก็บตามรอบ"
+      breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ใบวางบิล" }]}
+      action={
+        <Button onClick={() => setShowCreate(true)} className="gap-1.5">
+          <Plus />
+          สร้างใบวางบิล
+        </Button>
+      }
+      denied={
+        me && !canView
+          ? {
+              description:
+                'ต้องมีสิทธิ์ "ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
+            }
+          : null
+      }
+    >
       <Toolbar>
         <SearchInput
           ref={searchInputRef}
@@ -624,6 +621,6 @@ function BillingNotesPageContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

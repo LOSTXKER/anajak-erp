@@ -9,11 +9,10 @@ import { formatDateTime } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { QueryError } from "@/components/ui/query-error";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 
 function positivePage(value: string | null) {
   const parsed = Number(value);
@@ -50,33 +49,23 @@ function AuditLogContent() {
     router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
   };
 
-  if (meQuery.isError) {
-    return (
-      <div className="space-y-5">
-        <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }} title="ประวัติระบบ"  />
-        <QueryError
-          message="ตรวจสิทธิ์ดูประวัติระบบไม่สำเร็จ"
-          onRetry={() => void meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (!meLoading && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }} title="ประวัติระบบ"  />
-        <QueryError message="คุณไม่มีสิทธิ์ดูประวัติระบบ" />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-5">
-      <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
-        title="ประวัติระบบ"
-        description="ตรวจว่าใครเปลี่ยนข้อมูลอะไร เมื่อไหร่"
-       />
+    <PageShell
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
+      title="ประวัติระบบ"
+      description="ตรวจว่าใครเปลี่ยนข้อมูลอะไร เมื่อไหร่"
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสิทธิ์ดูประวัติระบบไม่สำเร็จ",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : null
+      }
+      // !meLoading: ระหว่างเช็คสิทธิ์ยังตอบไม่ได้ว่า "ไม่มีสิทธิ์" — ให้ ResponsiveList
+      // โชว์ skeleton รูปรายการของมันเองไปก่อน (ไม่ส่ง loading ให้ shell)
+      denied={!meLoading && !canView && { title: "คุณไม่มีสิทธิ์ดูประวัติระบบ" }}
+    >
       <ResponsiveList
         items={query.data?.logs}
         isLoading={meLoading || query.isLoading || query.isFetching}
@@ -139,6 +128,6 @@ function AuditLogContent() {
           ) : undefined
         }
       />
-    </div>
+    </PageShell>
   );
 }

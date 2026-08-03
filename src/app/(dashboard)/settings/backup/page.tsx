@@ -9,10 +9,8 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { formatDateTime } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
-import { QueryError } from "@/components/ui/query-error";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
   CardContent,
@@ -67,52 +65,23 @@ export default function BackupSettingsPage() {
     }
   }
 
-  const header = (
-    <PageHeader
+  return (
+    <PageShell
+      width="form"
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="สำรองข้อมูล"
       description="ดาวน์โหลดข้อมูลทั้งระบบเก็บไว้เอง"
-    />
-  );
-
-  if (meQuery.isLoading) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-5">
-        {header}
-        <Skeleton className="h-48 rounded-2xl" />
-      </div>
-    );
-  }
-
-  if (meQuery.isError) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-5">
-        {header}
-        <QueryError
-          message="ตรวจสอบสิทธิ์สำรองข้อมูลไม่สำเร็จ"
-          onRetry={() => meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (!canExport) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-5">
-        {header}
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-slate-500">
-            หน้านี้สำหรับเจ้าของเท่านั้น
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      {header}
-
+      loading={meQuery.isLoading}
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์สำรองข้อมูลไม่สำเร็จ",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : null
+      }
+      denied={!canExport && { description: "หน้านี้สำหรับเจ้าของเท่านั้น" }}
+    >
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -168,6 +137,6 @@ export default function BackupSettingsPage() {
           </Alert>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

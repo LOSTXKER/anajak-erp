@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { Plus, ClipboardList, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -133,72 +133,64 @@ function QuotationsPageContent() {
     }
   }, [data, page, replaceListState]);
 
-  if (me && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader
-          title="ใบเสนอราคา"
-          description="จัดการใบเสนอราคาทั้งหมด"
-        />
-        <p className="text-sm text-slate-400">
-          ต้องมีสิทธิ์ &quot;เห็นเงินฝั่งขาย&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="ใบเสนอราคา"
-        description="จัดการใบเสนอราคาทั้งหมด"
-        action={
-          canCreateQuotation ? (
-            <Button size="sm" asChild>
-              <Link href="/orders/new?next=quote">
-                <Plus />
-                เปิดงานเพื่อออกใบเสนอ
-              </Link>
-            </Button>
-          ) : undefined
+    <PageShell
+      title="ใบเสนอราคา"
+      description="จัดการใบเสนอราคาทั้งหมด"
+      action={
+        canCreateQuotation ? (
+          <Button size="sm" asChild>
+            <Link href="/orders/new?next=quote">
+              <Plus />
+              เปิดงานเพื่อออกใบเสนอ
+            </Link>
+          </Button>
+        ) : undefined
+      }
+      denied={
+        !!me &&
+        !canView && {
+          description:
+            'ต้องมีสิทธิ์ "เห็นเงินฝั่งขาย" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
         }
-      />
-
-      <Toolbar>
-        <SearchInput
-          ref={searchInputRef}
-          containerClassName="@2xl:max-w-sm @2xl:flex-1"
-          placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
-          defaultValue={search}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (searchTimer.current) clearTimeout(searchTimer.current);
-            searchTimer.current = setTimeout(
-              () => replaceListState({ q: value.trim() || null, page: null }),
-              300
-            );
-          }}
-        />
-        <ToolbarGroup>
-          {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}
-          <Select
-            shape="pill"
-            className="@2xl:w-52"
-            aria-label="กรองตามสถานะใบเสนอราคา"
-            value={status}
-            onChange={(e) =>
-              replaceListState({ status: e.target.value || null, page: null })
-            }
-          >
-            {QUOTATION_STATUSES.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
-          </Select>
-        </ToolbarGroup>
-      </Toolbar>
-
+      }
+      headerChildren={
+        <Toolbar>
+          <SearchInput
+            ref={searchInputRef}
+            containerClassName="@2xl:max-w-sm @2xl:flex-1"
+            placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
+            defaultValue={search}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (searchTimer.current) clearTimeout(searchTimer.current);
+              searchTimer.current = setTimeout(
+                () => replaceListState({ q: value.trim() || null, page: null }),
+                300
+              );
+            }}
+          />
+          <ToolbarGroup>
+            {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}
+            <Select
+              shape="pill"
+              className="@2xl:w-52"
+              aria-label="กรองตามสถานะใบเสนอราคา"
+              value={status}
+              onChange={(e) =>
+                replaceListState({ status: e.target.value || null, page: null })
+              }
+            >
+              {QUOTATION_STATUSES.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </Select>
+          </ToolbarGroup>
+        </Toolbar>
+      }
+    >
       <ResponsiveList
         items={data?.quotations}
         isLoading={isLoading || isFetching}
@@ -331,6 +323,6 @@ function QuotationsPageContent() {
           ) : undefined
         }
       />
-    </div>
+    </PageShell>
   );
 }

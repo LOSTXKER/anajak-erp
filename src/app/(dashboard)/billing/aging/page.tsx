@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { Users, DollarSign, AlertCircle, Hourglass, MessageSquare, Copy } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -220,27 +220,24 @@ function AgingPageContent() {
     }
   }, [data, page, replaceListState, totalPages]);
 
-  if (me && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader title="ลูกหนี้ค้างชำระ" description="ยอดค้างแยกตามอายุหนี้" />
-        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
-      </div>
-    );
-  }
-
   const overdueTotal = data
     ? data.totals.d1_30 + data.totals.d31_60 + data.totals.d61_90 + data.totals.d90plus
     : 0;
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="ลูกหนี้ค้างชำระ"
-        description="ยอดค้างต่อลูกค้า แยกตามอายุหนี้นับจากวันครบกำหนด"
-        breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ลูกหนี้" }]}
-      />
-
+    <PageShell
+      title="ลูกหนี้ค้างชำระ"
+      description="ยอดค้างต่อลูกค้า แยกตามอายุหนี้นับจากวันครบกำหนด"
+      breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ลูกหนี้" }]}
+      denied={
+        me && !canView
+          ? {
+              description:
+                'ต้องมีสิทธิ์ "ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
+            }
+          : null
+      }
+    >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           title="ลูกหนี้รวม"
@@ -549,6 +546,6 @@ function AgingPageContent() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

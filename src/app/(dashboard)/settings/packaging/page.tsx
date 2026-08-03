@@ -8,8 +8,6 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Switch } from "@/components/ui/switch";
 import {
   Plus,
@@ -19,10 +17,9 @@ import {
   Check,
   Package,
   GripVertical,
-  ShieldX,
 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 
 export default function PackagingSettingsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -87,68 +84,30 @@ export default function PackagingSettingsPage() {
     if (ok) deleteMutation.mutate({ id });
   };
 
-  const header = (
-    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
+  return (
+    <PageShell
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการแพ็คเกจจัดส่ง"
       description="ตัวเลือกแพ็คเกจสำหรับจัดส่งสินค้า"
-     />
-  );
-
-  if (meQuery.isError) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="ตรวจสอบสิทธิ์หน้าจัดการแพ็คเกจไม่ได้"
-          onRetry={() => void meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (meQuery.isLoading) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Skeleton className="h-72 rounded-2xl" />
-      </div>
-    );
-  }
-
-  if (!canManage) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Card>
-          <CardContent>
-            <EmptyState
-              icon={ShieldX}
-              title="ไม่มีสิทธิ์จัดการแพ็คเกจ"
-              description="หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น"
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // && !options: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
-  if (isError && !options) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="โหลดรายการแพ็คเกจไม่สำเร็จ"
-          onRetry={() => void refetch()}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {header}
-
+      loading={meQuery.isLoading}
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์หน้าจัดการแพ็คเกจไม่ได้",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : // && !options: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
+            isError && !options
+            ? { message: "โหลดรายการแพ็คเกจไม่สำเร็จ", onRetry: () => void refetch() }
+            : null
+      }
+      denied={
+        !canManage && {
+          title: "ไม่มีสิทธิ์จัดการแพ็คเกจ",
+          description: "หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น",
+        }
+      }
+    >
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -336,6 +295,6 @@ export default function PackagingSettingsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

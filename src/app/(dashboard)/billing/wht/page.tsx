@@ -28,7 +28,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { permAllows } from "@/lib/permissions";
 import {
   ReceiptText,
@@ -177,43 +177,40 @@ export default function WhtRegisterPage() {
     });
   }
 
-  if (me && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader
-          title="ทะเบียนหัก ณ ที่จ่าย (50ทวิ)"
-          description="ตามหนังสือรับรองหัก ณ ที่จ่ายจากลูกค้า"
-        />
-        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
-      </div>
-    );
-  }
-
-  if (isError) return <QueryError onRetry={() => refetch()} />;
-
   const list = rows ?? [];
   const hasSearch = debouncedSearch.trim().length > 0;
   const pendingAmount = stats.data?.pendingAmount ?? 0;
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="ทะเบียนหัก ณ ที่จ่าย (50ทวิ)"
-        description="ลูกค้าหัก 3% แล้วต้องส่งหนังสือรับรองมาให้ — ไม่มีใบ เครดิตภาษีหายฟรี"
-        breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "หัก ณ ที่จ่าย" }]}
-        action={
-          <Button
-            variant="outline"
-            onClick={() => exportWhtCsv(list)}
-            disabled={list.length === 0}
-            className="gap-1.5"
-          >
-            <Download />
-            Export CSV
-          </Button>
-        }
-      />
-
+    <PageShell
+      title="ทะเบียนหัก ณ ที่จ่าย (50ทวิ)"
+      description="ลูกค้าหัก 3% แล้วต้องส่งหนังสือรับรองมาให้ — ไม่มีใบ เครดิตภาษีหายฟรี"
+      breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "หัก ณ ที่จ่าย" }]}
+      action={
+        <Button
+          variant="outline"
+          onClick={() => exportWhtCsv(list)}
+          disabled={list.length === 0}
+          className="gap-1.5"
+        >
+          <Download />
+          Export CSV
+        </Button>
+      }
+      error={
+        isError
+          ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
+          : null
+      }
+      denied={
+        me && !canView
+          ? {
+              description:
+                'ต้องมีสิทธิ์ "ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
+            }
+          : undefined
+      }
+    >
       {/* ── สถิติ 3 ใบ ── */}
       {/* stats พังต้องบอก — เลขภาษีโชว์ 0/฿0 เงียบๆ อ่านเป็น "ไม่มียอดรอใบ" ได้ (ขัด DESIGN.md) */}
       {stats.isError ? (
@@ -586,6 +583,6 @@ export default function WhtRegisterPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

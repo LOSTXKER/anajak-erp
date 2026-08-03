@@ -17,7 +17,7 @@ import {
   estimateFilmCost,
   estimateLaborOverhead,
 } from "@/lib/cost-rates";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 
 // เรตต้นทุนกลาง (FLOW-REDESIGN ก้อน 2) — เข็มทิศกำไรขั้นต้นตอนตีราคา ไม่ใช่บัญชีจริง
 // PERM: อ่าน = see_finance · แก้ = manage_settings (ตรง settings.costRates/setCostRates)
@@ -87,49 +87,27 @@ export default function CostRatesSettingsPage() {
   const sampleFilm = estimateFilmCost(SAMPLE_PRINT, SAMPLE_QTY, draft);
   const sampleLaborOverhead = estimateLaborOverhead(SAMPLE_QTY, draft);
 
-  const header = (
-    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
+  return (
+    <PageShell
+      width="form"
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="เรตต้นทุนกลาง"
       description="ตั้งครั้งเดียว ระบบคูณเองทุกออเดอร์ — ใช้ดูกำไรขั้นต้นโดยประมาณตอนตีราคา ไม่ใช่บัญชีจริง"
-     />
-  );
-
-  if (meQuery.isLoading) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6">
-        {header}
-        <Skeleton className="h-48 rounded-2xl" />
-      </div>
-    );
-  }
-
-  if (meQuery.isError) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6">
-        {header}
-        <QueryError
-          message="ตรวจสอบสิทธิ์ดูเรตต้นทุนไม่สำเร็จ"
-          onRetry={() => meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (!canView) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6">
-        {header}
-        <p className="text-sm text-slate-400">
-          หน้านี้ต้องมีสิทธิ์เห็นทุน กำไร และรายงานการเงิน
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      {header}
-
+      loading={meQuery.isLoading}
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์ดูเรตต้นทุนไม่สำเร็จ",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : null
+      }
+      denied={
+        !canView && {
+          description: "หน้านี้ต้องมีสิทธิ์เห็นทุน กำไร และรายงานการเงิน",
+        }
+      }
+    >
       <Card>
         <CardHeader>
           <CardTitle className="text-base">เรตต้นทุน 4 ก้อน</CardTitle>
@@ -310,6 +288,6 @@ export default function CostRatesSettingsPage() {
       <p className="text-xs text-slate-500 dark:text-slate-400">
         ทุนตัวเสื้อมาจากราคาทุนจริงในแอป Stock อัตโนมัติ · ค่าจ้างร้านนอกตามบิลร้าน (ไม่อยู่ในเรตนี้)
       </p>
-    </div>
+    </PageShell>
   );
 }

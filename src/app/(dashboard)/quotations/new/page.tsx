@@ -5,18 +5,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customers/customer-picker";
 import { permAllows } from "@/lib/permissions";
-import { ArrowLeft, Plus, Trash2, FileText, User } from "lucide-react";
+import { Plus, Trash2, FileText, User } from "lucide-react";
 
 // ============================================================
 // TYPES
@@ -284,44 +283,43 @@ function QuotationFormPage() {
   // RENDER
   // ============================================================
 
-  // โหลด prefill ไม่สำเร็จ (โหมดผูกออเดอร์/แก้ไข) → กันฟอร์มเปล่าไปเซฟทับใบเดิม
-  // && !data: กันเฉพาะโหลดแรกพัง — refetch เบื้องหลังล้มระหว่างกรอกฟอร์มอยู่ ห้ามถอนฟอร์มทิ้ง
-  if (fromOrderId && linkedOrderIsError && !linkedOrder)
-    return <QueryError onRetry={() => refetchLinkedOrder()} />;
-  if (editId && editingIsError && !editing)
-    return <QueryError onRetry={() => refetchEditing()} />;
-  if (redirectToCanonicalIntake) return <Skeleton className="h-96 rounded-2xl" />;
-
-  if (me && !canAuthor)
-    return (
-      <div className="space-y-6">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/orders">
-            <ArrowLeft className="mr-1" />
-            กลับ
-          </Link>
-        </Button>
-        <p className="text-sm text-slate-400">
-          ใบเสนอราคาเป็นเอกสารราคา — ต้องมีสิทธิ์ &quot;เห็นเงินฝั่งขาย&quot; จึงจะสร้างได้
-          (เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้)
-        </p>
-      </div>
-    );
-
   return (
-    <div className="space-y-6">
-      <PageHeader
-        back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
-        title={editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคาใหม่"}
-        description={
-          fromOrderId
-            ? `ผูกกับออเดอร์ ${linkedOrder?.orderNumber ?? "..."} — ลูกค้าตกลงแล้วระบบจะยืนยันออเดอร์ใบเดิม ไม่สร้างซ้ำ`
-            : editId
-              ? editing?.quotationNumber ?? ""
-              : "กรอกรายละเอียดใบเสนอราคา"
+    <PageShell
+      width="wide"
+      back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
+      title={editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคาใหม่"}
+      description={
+        fromOrderId
+          ? `ผูกกับออเดอร์ ${linkedOrder?.orderNumber ?? "..."} — ลูกค้าตกลงแล้วระบบจะยืนยันออเดอร์ใบเดิม ไม่สร้างซ้ำ`
+          : editId
+            ? editing?.quotationNumber ?? ""
+            : "กรอกรายละเอียดใบเสนอราคา"
+      }
+      error={
+        // โหลด prefill ไม่สำเร็จ (โหมดผูกออเดอร์/แก้ไข) → กันฟอร์มเปล่าไปเซฟทับใบเดิม
+        // && !data: กันเฉพาะโหลดแรกพัง — refetch เบื้องหลังล้มระหว่างกรอกฟอร์มอยู่ ห้ามถอนฟอร์มทิ้ง
+        fromOrderId && linkedOrderIsError && !linkedOrder
+          ? {
+              message: "เกิดข้อผิดพลาดในการโหลดข้อมูล",
+              onRetry: () => void refetchLinkedOrder(),
+            }
+          : editId && editingIsError && !editing
+            ? {
+                message: "เกิดข้อผิดพลาดในการโหลดข้อมูล",
+                onRetry: () => void refetchEditing(),
+              }
+            : null
+      }
+      loading={redirectToCanonicalIntake}
+      skeleton={<Skeleton className="h-96 rounded-2xl" />}
+      denied={
+        !!me &&
+        !canAuthor && {
+          description:
+            'ใบเสนอราคาเป็นเอกสารราคา — ต้องมีสิทธิ์ "เห็นเงินฝั่งขาย" จึงจะสร้างได้ (เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้)',
         }
-      />
-
+      }
+    >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ============================================================ */}
         {/* BASIC INFO                                                   */}
@@ -684,6 +682,6 @@ function QuotationFormPage() {
           </Alert>
         )}
       </form>
-    </div>
+    </PageShell>
   );
 }

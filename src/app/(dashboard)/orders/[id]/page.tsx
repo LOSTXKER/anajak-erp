@@ -332,9 +332,20 @@ function OrderDetailContent({
   // Loading state
   // ----------------------------------------------------------
   if (isLoading) return <OrderDetailSkeleton />;
-  if (isError) return <QueryError onRetry={() => refetch()} />;
+  if (isError)
+    return (
+      <div className="space-y-6">
+        <PageHeader breadcrumb={[{ label: "ออเดอร์", href: "/orders" }]} title="ออเดอร์" />
+        <QueryError onRetry={() => refetch()} />
+      </div>
+    );
   if (!order)
-    return <RecordNotFound what="ออเดอร์ใบนี้" backHref="/orders" backLabel="กลับไปรายการออเดอร์" />;
+    return (
+      <div className="space-y-6">
+        <PageHeader breadcrumb={[{ label: "ออเดอร์", href: "/orders" }]} title="ออเดอร์" />
+        <RecordNotFound what="ออเดอร์ใบนี้" backHref="/orders" backLabel="กลับไปรายการออเดอร์" />
+      </div>
+    );
 
   // ----------------------------------------------------------
   // Derived data
@@ -498,7 +509,7 @@ function OrderDetailContent({
     "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-slate-800 dark:data-[highlighted]:text-white";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         breadcrumb={[
           { label: "ออเดอร์", href: "/orders" },

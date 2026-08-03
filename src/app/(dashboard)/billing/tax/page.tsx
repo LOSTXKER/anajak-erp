@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Alert } from "@/components/ui/alert";
 import { Select } from "@/components/ui/select";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { formatCurrency } from "@/lib/utils";
 import {
   salesTaxReportCsv,
@@ -84,17 +83,6 @@ export default function SalesTaxReportPage() {
     { enabled: canView }
   );
 
-  if (me && !canView) {
-    return (
-      <div className="space-y-5">
-        <PageHeader title="ภาษีขาย" description="รายงานภาษีขายรายเดือน" />
-        <p className="text-sm text-slate-400">ต้องมีสิทธิ์ &quot;ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี&quot; — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้</p>
-      </div>
-    );
-  }
-
-  if (isError) return <QueryError onRetry={() => refetch()} />;
-
   const rows: SalesTaxRow[] = (data?.rows ?? []).map((r) => ({
     ...r,
     date: new Date(r.date),
@@ -103,44 +91,55 @@ export default function SalesTaxReportPage() {
   const fileStamp = `${year}-${String(month).padStart(2, "0")}`;
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="ภาษีขาย"
-        description="ใบกำกับภาษีของงวด (ใบเสร็จ/ใบกำกับ · ใบลดหนี้ · ใบเพิ่มหนี้) — งวดตามวันที่เอกสาร"
-        breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ภาษีขาย" }]}
-        action={
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={selected} onChange={(e) => setSelected(e.target.value)} shape="pill" className="w-[180px]">
-                {options.map((o) => (
-                  <option key={`${o.year}-${o.month}`} value={`${o.year}-${o.month}`}>
-                    {o.label}
-                  </option>
-                ))}
-              </Select>
-            <Button
-              variant="outline"
-              disabled={rows.length === 0}
-              onClick={() =>
-                downloadCsv(salesTaxReportCsv(rows, periodLabel), `sales-tax-${fileStamp}.csv`)
-              }
-              className="gap-1.5"
-            >
-              <Download />
-              CSV รายงานภาษีขาย
-            </Button>
-            <Button
-              variant="outline"
-              disabled={rows.filter((r) => !r.isVoided).length === 0}
-              onClick={() => downloadCsv(peakImportCsv(rows), `peak-import-${fileStamp}.csv`)}
-              className="gap-1.5"
-            >
-              <FileSpreadsheet />
-              CSV สำหรับ PEAK
-            </Button>
-          </div>
-        }
-      />
-
+    <PageShell
+      title="ภาษีขาย"
+      description="ใบกำกับภาษีของงวด (ใบเสร็จ/ใบกำกับ · ใบลดหนี้ · ใบเพิ่มหนี้) — งวดตามวันที่เอกสาร"
+      breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ภาษีขาย" }]}
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={selected} onChange={(e) => setSelected(e.target.value)} shape="pill" className="w-[180px]">
+              {options.map((o) => (
+                <option key={`${o.year}-${o.month}`} value={`${o.year}-${o.month}`}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          <Button
+            variant="outline"
+            disabled={rows.length === 0}
+            onClick={() =>
+              downloadCsv(salesTaxReportCsv(rows, periodLabel), `sales-tax-${fileStamp}.csv`)
+            }
+            className="gap-1.5"
+          >
+            <Download />
+            CSV รายงานภาษีขาย
+          </Button>
+          <Button
+            variant="outline"
+            disabled={rows.filter((r) => !r.isVoided).length === 0}
+            onClick={() => downloadCsv(peakImportCsv(rows), `peak-import-${fileStamp}.csv`)}
+            className="gap-1.5"
+          >
+            <FileSpreadsheet />
+            CSV สำหรับ PEAK
+          </Button>
+        </div>
+      }
+      error={
+        isError
+          ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
+          : null
+      }
+      denied={
+        me && !canView
+          ? {
+              description:
+                'ต้องมีสิทธิ์ "ออกใบแจ้งหนี้/ใบวางบิล/รายงานภาษี" — เช็คสิทธิ์ที่ ตั้งค่า → ผู้ใช้',
+            }
+          : undefined
+      }
+    >
       {/* ── สรุปงวด ── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="เอกสารในงวด" value={summary?.docCount ?? 0} icon={ReceiptText} />
@@ -321,6 +320,6 @@ export default function SalesTaxReportPage() {
           </div>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

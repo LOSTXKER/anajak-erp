@@ -22,7 +22,6 @@ import { PRODUCT_TYPES, COLLAR_TYPES, SLEEVE_TYPES, BODY_FITS } from "@/types/or
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/empty-state";
-import { QueryError } from "@/components/ui/query-error";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { permAllows } from "@/lib/permissions";
@@ -30,7 +29,7 @@ import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { DASHED } from "@/components/ui/tokens";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 
 const labelClass = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
 
@@ -151,21 +150,23 @@ export default function PatternsPage() {
     }
   };
 
-  // && !data: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
-  if (meQuery.isError) {
-    return (
-      <QueryError
-        message="ตรวจสอบสิทธิ์จัดการแพทเทิร์นไม่สำเร็จ"
-        onRetry={() => meQuery.refetch()}
-      />
-    );
-  }
-  if (isError && !data) return <QueryError onRetry={() => refetch()} />;
-
   return (
-    <div className="space-y-6">
-      <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }} title="จัดการแพทเทิร์น" description="แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ"  />
-
+    <PageShell
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
+      title="จัดการแพทเทิร์น"
+      description="แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ"
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์จัดการแพทเทิร์นไม่สำเร็จ",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : // && !data: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
+            isError && !data
+            ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => void refetch() }
+            : null
+      }
+    >
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -492,6 +493,6 @@ export default function PatternsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

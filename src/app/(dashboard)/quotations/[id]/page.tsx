@@ -152,7 +152,7 @@ export default function QuotationDetailPage({
   // ----------------------------------------------------------
   if (me && !canView) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-6">
         <PageHeader
           title="ใบเสนอราคา"
           description="จัดการใบเสนอราคาทั้งหมด"
@@ -164,9 +164,26 @@ export default function QuotationDetailPage({
     );
   }
   if (isLoading) return <QuotationDetailSkeleton />;
-  if (isError) return <QueryError onRetry={() => refetch()} />;
+  if (isError)
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
+          title="ใบเสนอราคา"
+        />
+        <QueryError onRetry={() => refetch()} />
+      </div>
+    );
   if (!quotation)
-    return <RecordNotFound what="ใบเสนอราคาใบนี้" backHref="/quotations" backLabel="กลับไปรายการใบเสนอราคา" />;
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
+          title="ใบเสนอราคา"
+        />
+        <RecordNotFound what="ใบเสนอราคาใบนี้" backHref="/quotations" backLabel="กลับไปรายการใบเสนอราคา" />
+      </div>
+    );
 
   // ----------------------------------------------------------
   // Derived data

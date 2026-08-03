@@ -20,6 +20,7 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { QueryError } from "@/components/ui/query-error";
+import { PageShell } from "@/components/page-shell";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +32,6 @@ import { KeyRound, Plus, ShieldCheck, Users } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { Alert } from "@/components/ui/alert";
-import { PageHeader } from "@/components/page-header";
 
 export default function UsersSettingsPage() {
   const utils = trpc.useUtils();
@@ -122,49 +122,26 @@ export default function UsersSettingsPage() {
     updateMutation.error?.message ||
     setActiveMutation.error?.message;
 
-  const header = (
-    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
+  return (
+    <PageShell
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการผู้ใช้"
       description="บัญชีพนักงาน สิทธิ์การใช้งาน และรหัสผ่าน"
-     />
-  );
-
-  if (meQuery.isLoading) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Skeleton className="h-40 rounded-2xl" />
-      </div>
-    );
-  }
-
-  if (meQuery.isError) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="ตรวจสอบสิทธิ์จัดการผู้ใช้ไม่สำเร็จ"
-          onRetry={() => meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (!canManageUsers) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          หน้านี้ต้องมีสิทธิ์จัดการพนักงานและสิทธิ์ผู้ใช้
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {header}
-
+      loading={meQuery.isLoading}
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์จัดการผู้ใช้ไม่สำเร็จ",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : null
+      }
+      denied={
+        !canManageUsers && {
+          description: "หน้านี้ต้องมีสิทธิ์จัดการพนักงานและสิทธิ์ผู้ใช้",
+        }
+      }
+    >
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -582,6 +559,6 @@ export default function UsersSettingsPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

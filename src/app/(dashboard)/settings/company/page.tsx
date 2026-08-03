@@ -9,13 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Save, Loader2, ShieldX } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { CompanyProfile } from "@/lib/company-profile";
 import { EMPTY_COMPANY_PROFILE } from "@/lib/company-profile";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 
 // ข้อมูลกิจการ — ขึ้นหัวเอกสารพิมพ์ทุกใบ + เป็นข้อมูลบังคับของใบกำกับภาษีเต็มรูป
 export default function CompanySettingsPage() {
@@ -44,60 +42,36 @@ export default function CompanySettingsPage() {
       [key]: value,
     }));
 
-  const header = (
-    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
+  return (
+    <PageShell
+      width="form"
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ข้อมูลกิจการ"
       description="ขึ้นหัวเอกสารทุกใบ — ใบเสนอราคา/แจ้งหนี้/ใบเสร็จ/ใบกำกับภาษี"
-     />
-  );
-
-  if (meQuery.isError) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6">
-        {header}
-        <QueryError
-          message="ตรวจสอบสิทธิ์หน้าข้อมูลกิจการไม่ได้"
-          onRetry={() => void meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (!meQuery.isLoading && !canManage) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6">
-        {header}
-        <Card>
-          <CardContent>
-            <EmptyState
-              icon={ShieldX}
-              title="ไม่มีสิทธิ์แก้ข้อมูลกิจการ"
-              description="หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น"
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // โหลดไม่สำเร็จห้ามแสดงฟอร์มค่าว่าง — เซฟทับจะลบข้อมูลกิจการจริง (หัวใบกำกับภาษี)
-  // && !data: refetch เบื้องหลังล้มระหว่างแก้ฟอร์มอยู่ ห้ามถอนฟอร์ม (ของที่พิมพ์หาย)
-  if (profileQuery.isError && !profileQuery.data) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6">
-        {header}
-        <QueryError
-          message="โหลดข้อมูลกิจการไม่สำเร็จ"
-          onRetry={() => void profileQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      {header}
-
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์หน้าข้อมูลกิจการไม่ได้",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : // โหลดไม่สำเร็จห้ามแสดงฟอร์มค่าว่าง — เซฟทับจะลบข้อมูลกิจการจริง (หัวใบกำกับภาษี)
+            // && !data: refetch เบื้องหลังล้มระหว่างแก้ฟอร์มอยู่ ห้ามถอนฟอร์ม (ของที่พิมพ์หาย)
+            profileQuery.isError && !profileQuery.data
+            ? {
+                message: "โหลดข้อมูลกิจการไม่สำเร็จ",
+                onRetry: () => void profileQuery.refetch(),
+              }
+            : null
+      }
+      // !meQuery.isLoading: ระหว่างเช็คสิทธิ์ยังโชว์ skeleton ฟอร์มใน Card (ตามเดิม) ไม่ใช่จอไม่มีสิทธิ์
+      denied={
+        !meQuery.isLoading &&
+        !canManage && {
+          title: "ไม่มีสิทธิ์แก้ข้อมูลกิจการ",
+          description: "หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น",
+        }
+      }
+    >
       <Card>
         <CardHeader>
           <CardTitle className="text-base">ข้อมูลผู้ออกเอกสาร</CardTitle>
@@ -233,6 +207,6 @@ export default function CompanySettingsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

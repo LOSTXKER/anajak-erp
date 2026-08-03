@@ -112,9 +112,20 @@ export default function ProductionDetailPage({
   }
 
   if (isLoading) return <ProductionDetailSkeleton />;
-  if (isError) return <QueryError onRetry={() => refetch()} />;
+  if (isError)
+    return (
+      <div className="mx-auto max-w-4xl space-y-5">
+        <PageHeader breadcrumb={[{ label: "การผลิต", href: "/production" }]} title="งานผลิต" />
+        <QueryError onRetry={() => refetch()} />
+      </div>
+    );
   if (!production)
-    return <RecordNotFound what="งานผลิตใบนี้" backHref="/production" backLabel="กลับไปการผลิต" />;
+    return (
+      <div className="mx-auto max-w-4xl space-y-5">
+        <PageHeader breadcrumb={[{ label: "การผลิต", href: "/production" }]} title="งานผลิต" />
+        <RecordNotFound what="งานผลิตใบนี้" backHref="/production" backLabel="กลับไปการผลิต" />
+      </div>
+    );
 
   const order = production.order;
   // step ของ sheet จำนวน — อ่านสดจาก query เสมอ (ดูคอมเมนต์ที่ qtyStepId)

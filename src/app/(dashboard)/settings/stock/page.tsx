@@ -14,8 +14,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { QueryError } from "@/components/ui/query-error";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/utils";
 import {
   Cloud,
@@ -30,12 +28,11 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  ShieldX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SyncDialog } from "@/components/sync-dialog";
 import { Alert } from "@/components/ui/alert";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 
 // ─── Setting Keys ──────────────────────────────────────────
 const STOCK_API_URL_KEY = "stock_api_url";
@@ -165,70 +162,35 @@ export default function StockSettingsPage() {
   }
 
   const hasCredentials = Boolean(apiUrl.trim() && apiKey.trim());
-  const header = (
-    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
-      title="เชื่อมต่อ Anajak Stock"
-      description="ตั้งค่าการเชื่อมต่อและ Sync สินค้าจากระบบ Stock"
-     />
-  );
-
-  if (meQuery.isError) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="ตรวจสอบสิทธิ์หน้าการเชื่อมต่อ Stock ไม่ได้"
-          onRetry={() => void meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (meQuery.isLoading) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Skeleton className="h-80 rounded-2xl" />
-      </div>
-    );
-  }
-
-  if (!canManage) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Card>
-          <CardContent>
-            <EmptyState
-              icon={ShieldX}
-              title="ไม่มีสิทธิ์ตั้งค่าการเชื่อมต่อ Stock"
-              description="หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น"
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // โหลด settings ไม่สำเร็จ → ไม่ render ฟอร์มค่าว่าง กันบันทึกทับค่าเชื่อมต่อจริง
-  // && !data: refetch เบื้องหลังล้มระหว่างแก้ฟอร์มอยู่ ห้ามถอนฟอร์ม (ของที่พิมพ์หาย)
-  if (settingsError && !savedSettings) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="โหลดค่าการเชื่อมต่อ Stock ไม่สำเร็จ"
-          onRetry={() => void refetchSettings()}
-        />
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      {/* ─── Header ──────────────────────────────────────────── */}
-      {header}
-
+    <PageShell
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
+      title="เชื่อมต่อ Anajak Stock"
+      description="ตั้งค่าการเชื่อมต่อและ Sync สินค้าจากระบบ Stock"
+      loading={meQuery.isLoading}
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์หน้าการเชื่อมต่อ Stock ไม่ได้",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : // โหลด settings ไม่สำเร็จ → ไม่ render ฟอร์มค่าว่าง กันบันทึกทับค่าเชื่อมต่อจริง
+            // && !data: refetch เบื้องหลังล้มระหว่างแก้ฟอร์มอยู่ ห้ามถอนฟอร์ม (ของที่พิมพ์หาย)
+            settingsError && !savedSettings
+            ? {
+                message: "โหลดค่าการเชื่อมต่อ Stock ไม่สำเร็จ",
+                onRetry: () => void refetchSettings(),
+              }
+            : null
+      }
+      denied={
+        !canManage && {
+          title: "ไม่มีสิทธิ์ตั้งค่าการเชื่อมต่อ Stock",
+          description: "หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น",
+        }
+      }
+    >
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* ─── Connection Section ─────────────────────────────── */}
         <Card>
@@ -597,6 +559,6 @@ export default function StockSettingsPage() {
         open={syncDialogOpen}
         onClose={() => setSyncDialogOpen(false)}
       />
-    </div>
+    </PageShell>
   );
 }
