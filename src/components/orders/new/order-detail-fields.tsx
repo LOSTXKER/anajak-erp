@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
 import { CHANNEL_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
+import { FIELD_MEASURE } from "@/components/ui/tokens";
 
 // ช่องข้อมูลงาน (ชื่อ/กำหนดส่ง/ช่องทาง/รายละเอียด/หมายเหตุ) — แยกจาก orders/new/page.tsx
 // ตอนรื้อฟอร์ม 2026-06-12 · ลำดับใหม่: รายละเอียดจากแชทขึ้นก่อน (จุด capture หลักตอนถือแชท)
@@ -53,7 +54,7 @@ export function OrderDetailFields({
   const id = useId();
 
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-4">
       <Field
         label="ข้อความจากลูกค้า"
         id={`${id}-description`}
@@ -66,7 +67,7 @@ export function OrderDetailFields({
         />
       </Field>
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Field label="ช่องทาง" id={`${id}-channel`}>
           <Select
             value={channel}
@@ -103,7 +104,7 @@ export function OrderDetailFields({
       </div>
 
       {isMarketplace && (
-        <Field label={`เลขออเดอร์ ${CHANNEL_LABELS[channel]}`} id={`${id}-external`}>
+        <Field label={`เลขออเดอร์ ${CHANNEL_LABELS[channel]}`} id={`${id}-external`} className={FIELD_MEASURE}>
           <Input
             value={externalOrderId}
             onChange={(e) => onExternalOrderIdChange(e.target.value)}
@@ -112,7 +113,7 @@ export function OrderDetailFields({
         </Field>
       )}
 
-      <Field label="หมายเหตุภายใน (ลูกค้าไม่เห็น)" id={`${id}-notes`}>
+      <Field label="หมายเหตุภายใน (ลูกค้าไม่เห็น)" id={`${id}-notes`} className={FIELD_MEASURE}>
         <Input
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}

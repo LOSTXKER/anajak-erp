@@ -24,7 +24,7 @@ import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
-import { DASHED, FIELD_LABEL, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { DASHED, FIELD_LABEL, FIELD_MEASURE, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
 export const labelClass = FIELD_LABEL;
 
@@ -178,7 +178,7 @@ export function OrderItemCard({
 
   // ── section: คำอธิบายงาน ──
   const descField = (
-    <Field label={isIntake ? "ชื่อชุดงาน" : "คำอธิบายงาน"}>
+    <Field label={isIntake ? "ชื่อชุดงาน" : "คำอธิบายงาน"} className={isIntake ? FIELD_MEASURE : undefined}>
       <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder={isIntake ? "เช่น เสื้อทีมหน้าร้าน 30 ตัว" : "เช่น งานสกรีนทีม ABC, งานพิมพ์เสื้อกิจกรรม..."} />
     </Field>
   );
@@ -560,7 +560,7 @@ export function OrderItemCard({
 
   // ── section: หมายเหตุ ──
   const notesField = (
-    <Field label={isIntake ? "หมายเหตุการผลิตชุดนี้" : "หมายเหตุรายการ"}>
+    <Field label={isIntake ? "หมายเหตุการผลิตชุดนี้" : "หมายเหตุรายการ"} className={isIntake ? FIELD_MEASURE : undefined}>
       <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder={isIntake ? "รายละเอียดที่ทีมผลิตต้องรู้..." : "หมายเหตุเพิ่มเติมสำหรับรายการนี้..."} />
     </Field>
   );

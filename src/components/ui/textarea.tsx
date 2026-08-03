@@ -7,7 +7,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<"tex
     return (
       <textarea
         className={cn(
-          RADIUS.surface,
+          RADIUS.field,
           FIELD_SURFACE,
           FOCUS_FIELD,
           // ความสูงขั้นต่ำ ~3 บรรทัด — ยืดตามเนื้อหา จึงไม่ผูกกับ CONTROL_H

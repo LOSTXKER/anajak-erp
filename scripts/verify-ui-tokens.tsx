@@ -57,39 +57,39 @@ const FIELD = [
 ];
 // ห้ามขอบถาวรกลับมา — เขียนไว้ในลิสต์ "ต้องไม่มี" ของทุกช่องกรอกด้านล่าง
 const FIELD_NO = ["border-slate-200/70", "bg-white"];
-check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-2xl"], FIELD_NO);
+check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-[10px]"], [...FIELD_NO, "rounded-2xl"]);
 check(
   "ช่องเลือก (Select)",
   renderToStaticMarkup(<Select value="" onChange={() => {}}><option value="">ก</option></Select>),
-  [...h, ...FIELD, "rounded-2xl"],
-  FIELD_NO,
+  [...h, ...FIELD, "rounded-[10px]"],
+  [...FIELD_NO, "rounded-2xl"],
 );
-check("กล่องข้อความ (Textarea)", renderToStaticMarkup(<Textarea />), [...FIELD, "rounded-2xl", "min-h-24"], FIELD_NO);
+check("กล่องข้อความ (Textarea)", renderToStaticMarkup(<Textarea />), [...FIELD, "rounded-[10px]", "min-h-24"], [...FIELD_NO, "rounded-2xl"]);
 
 // ② ทรงแคปซูลสำหรับแถบเครื่องมือ
-check("ช่องกรอกทรงแคปซูล", renderToStaticMarkup(<Input shape="pill" />), ["rounded-full"], ["rounded-2xl"]);
+check("ช่องกรอกทรงแคปซูล", renderToStaticMarkup(<Input shape="pill" />), ["rounded-full"], ["rounded-[10px]"]);
 check(
   "ช่องเลือกทรงแคปซูล",
   renderToStaticMarkup(<Select shape="pill" value="" onChange={() => {}}><option value="">ก</option></Select>),
   ["rounded-full"],
-  ["rounded-2xl"],
+  ["rounded-[10px]"],
 );
 
-// ③ ขนาดเล็กสำหรับแถวตาราง — เตี้ยเฉพาะเดสก์ท็อป และอักษรเล็กเฉพาะเดสก์ท็อป
+// ③ ขนาดเล็ก — ความสูงยุบมาเท่ามาตรฐานแล้ว (2026-08-03 รอบ "ปรับสัดส่วน":
+// จอเดียวเคยมี 2 ความสูงปนกัน 32/36px ยืนติดกัน ขอบล่างไม่ตรง) เหลือต่างแค่ขนาดอักษร
 // แก้ 2026-08-03: เดิมด่านนี้บังคับ "text-xs" เปล่า (12px ทั้งมือถือ) ซึ่งขัด DESIGN.md
 // "mobile input ต้อง 16px กัน browser zoom" — iOS Safari ซูมจอทุกครั้งที่แตะช่อง แล้วไม่ซูมกลับ
 // (audit /orders/new 2026-08-03 · ชุด dense ทำถูกอยู่แล้ว sm เป็นตัวเดียวที่ตกหล่น)
 // ห้าม text-xs เปล่ากลับมา — จึงใส่ไว้ในลิสต์ "ต้องไม่มี" เหมือน dense
-check("ช่องกรอกขนาดเล็ก", renderToStaticMarkup(<Input size="sm" />), [...hSm, "sm:text-xs"], ["sm:h-9", "sm:min-h-9", "text-xs"]);
+check("ช่องกรอกขนาดเล็ก", renderToStaticMarkup(<Input size="sm" />), [...hSm, "sm:text-xs"], ["sm:h-8", "sm:min-h-8", "text-xs"]);
 check(
   "ช่องเลือกขนาดเล็ก",
   renderToStaticMarkup(<Select size="sm" value="" onChange={() => {}}><option value="">ก</option></Select>),
   [...hSm, "sm:text-xs"],
-  ["sm:h-9", "sm:min-h-9", "text-xs"],
+  ["sm:h-8", "sm:min-h-8", "text-xs"],
 );
 
-// (CONTROL_H_SM = "h-11 min-h-11 sm:h-8 sm:min-h-8" — มือถือยังเป็น 44px เป้านิ้ว
-//  เล็กเฉพาะเดสก์ท็อป จึงห้ามเช็คว่าไม่มี h-11)
+// (CONTROL_H_SM = CONTROL_H แล้ว — ห้าม sm:h-8 กลับมา ไม่งั้นได้ 2 ความสูงปนกันอีก)
 
 // ③.๒ ขนาด dense สำหรับ editable grid — สูงมาตรฐาน + อักษร xs เฉพาะเดสก์ท็อป
 check("ช่องกรอกขนาด dense", renderToStaticMarkup(<Input size="dense" />), [...h, "sm:text-xs"], ["text-xs"]);
@@ -115,7 +115,7 @@ check("ปุ่ม", renderToStaticMarkup(<Button>ก</Button>), [
   "focus-visible:ring-blue-500/15",
   "focus-visible:ring-offset-white",
 ]);
-check("ปุ่มขนาดเล็ก", renderToStaticMarkup(<Button size="sm">ก</Button>), hSm, ["sm:h-9", "sm:min-h-9"]);
+check("ปุ่มขนาดเล็ก", renderToStaticMarkup(<Button size="sm">ก</Button>), hSm, ["sm:h-8", "sm:min-h-8"]);
 
 // ⑥ หัวตารางบน surface ใช้สีเดียวกับกล่องใน light และคงชั้นเดิมใน dark
 check(

@@ -73,7 +73,7 @@ export function OrderCustomerSection({
           ที่อยู่ใต้มัน และดอกจันไม่มีคู่ dark: จนจมหายในธีมมืด (audit 2026-08-03)
           ใช้ <Label htmlFor> ไม่ใช่ <Field> เพราะ Field clone prop aria-* ลงลูก
           ซึ่ง CustomerPicker (ไม่ใช่ control เดี่ยว) ไม่รับ — กดที่ป้ายแล้วโฟกัสลงช่องได้เหมือนกัน */}
-      <Label htmlFor="new-order-customer" className="mb-1.5 block">
+      <Label htmlFor="new-order-customer" className="mb-2 block">
         ลูกค้า
         <span aria-hidden="true" className="ml-1 text-red-700 dark:text-red-400">*</span>
         <span className="sr-only"> (จำเป็น)</span>

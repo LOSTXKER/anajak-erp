@@ -81,7 +81,7 @@ function StepTitle({ number, children }: { number: string; children: ReactNode }
     <span className="flex items-center gap-2">
       <span
         aria-hidden="true"
-        className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-blue-50 text-2xs font-semibold tabular-nums text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+        className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-blue-50 text-2xs font-semibold tabular-nums text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
       >
         {number}
       </span>
@@ -812,7 +812,7 @@ export default function NewOrderPage() {
                   {/* ชื่อเดียวกับบรรทัดสุดท้ายของ "สรุปยอด" — เดิมเรียก "ยอดรวม" กับ
                       "ยอดรวมทั้งหมด" คนละที่คนละขนาด อ่านแล้วไม่แน่ใจว่าเลขเดียวกันไหม */}
                   <p className="text-2xs text-muted">ยอดรวมทั้งหมด (รวม VAT)</p>
-                  <p className="truncate text-base font-semibold tabular-nums text-strong">
+                  <p className="truncate text-xl font-semibold tracking-tight tabular-nums text-strong">
                     {formatCurrency(pricingSummary.grandTotal)}
                   </p>
                 </>
