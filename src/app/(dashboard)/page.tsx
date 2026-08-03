@@ -10,12 +10,11 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
 import { cn, formatCurrency, formatDateShort, BANGKOK_TZ } from "@/lib/utils";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
@@ -154,28 +153,6 @@ export default function DashboardPage() {
   const canViewBilling = permAllows(me?.permissions, "manage_billing_docs");
   const canViewQuotations = permAllows(me?.permissions, "see_order_money");
 
-  if (isLoading) {
-    return (
-      <div className="space-y-8">
-        <PageHeader title="แดชบอร์ด" description="ภาพรวมระบบ Anajak Print" />
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="card-surface rounded-2xl p-5"
-            >
-              <Skeleton className="mb-3 h-3 w-24" />
-              <Skeleton className="h-8 w-20" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // query หลักพัง — ตัดจบทั้งหน้า กัน StatCard โชว์เลขศูนย์หลอกๆ
-  if (isError) return <QueryError onRetry={() => refetch()} />;
-
   const today = new Date();
 
   // สถานะออเดอร์เรียงตามลำดับ flow จริง (key order ของ INTERNAL_STATUS_LABELS)
@@ -187,12 +164,27 @@ export default function DashboardPage() {
   const statusTotal = ordersByStatus.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="แดชบอร์ด"
-        description={`ภาพรวมระบบ Anajak Print · ${today.toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: BANGKOK_TZ })}`}
-      />
-
+    <PageShell
+      title="แดชบอร์ด"
+      description={`ภาพรวมระบบ Anajak Print · ${today.toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: BANGKOK_TZ })}`}
+      loading={isLoading}
+      skeleton={
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card-surface rounded-2xl p-5">
+              <Skeleton className="mb-3 h-3 w-24" />
+              <Skeleton className="h-8 w-20" />
+            </div>
+          ))}
+        </div>
+      }
+      // query หลักพัง — ตัดจบทั้งหน้า กัน StatCard โชว์เลขศูนย์หลอกๆ
+      error={
+        isError
+          ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
+          : null
+      }
+    >
       {pulse && (
         <Section
           title="เช้านี้ใน 10 วินาที"
@@ -440,6 +432,6 @@ export default function DashboardPage() {
         </Section>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

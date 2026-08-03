@@ -9,7 +9,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { Section } from "@/components/ui/section";
 
 
@@ -34,34 +34,31 @@ export default function AnalyticsPage() {
     { enabled: canViewRevenue }
   );
 
-  if (isLoading) {
-    return (
-      <div className="space-y-5">
-        <PageHeader title="รายงาน" description="แนวโน้มรายได้และลูกค้า" />
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-lg" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // เฉพาะ query แกนหน้าพัง → error ทั้งหน้า · กราฟรายได้พังแยกเป็นราย section
-  // ด้านล่าง (เหมือน audit log) — ไม่ดับสถิติส่วนที่ยังโหลดได้ (review จับ)
-  if (dashboardError) {
-    return <QueryError onRetry={() => refetchDashboard()} />;
-  }
-
   const maxRevenue = Math.max(
     ...((revenueData ?? []).map((r) => r.revenue) ?? [1]),
     1
   );
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="รายงาน" description="ดูแนวโน้มระยะยาว ส่วนงานเร่งด่วนอยู่ที่ Dashboard" />
-
+    <PageShell
+      title="รายงาน"
+      description="ดูแนวโน้มระยะยาว ส่วนงานเร่งด่วนอยู่ที่ Dashboard"
+      loading={isLoading}
+      skeleton={
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-lg" />
+          ))}
+        </div>
+      }
+      // เฉพาะ query แกนหน้าพัง → error ทั้งหน้า · กราฟรายได้พังแยกเป็นราย section
+      // ด้านล่าง (เหมือน audit log) — ไม่ดับสถิติส่วนที่ยังโหลดได้ (review จับ)
+      error={
+        dashboardError
+          ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetchDashboard() }
+          : null
+      }
+    >
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Section
           title={<span className="inline-flex items-center gap-2"><TrendingUp className="h-4 w-4" aria-hidden="true" />รายได้ 6 เดือนย้อนหลัง</span>}
@@ -143,7 +140,6 @@ export default function AnalyticsPage() {
           </div>
         </Section>
       </div>
-
-    </div>
+    </PageShell>
   );
 }
