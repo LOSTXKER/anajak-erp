@@ -130,7 +130,7 @@ export function ProductTableRow({
         </td>
 
         {/* แพค */}
-        <td className="px-1.5 py-2 align-top">
+        <td className="px-2 py-2 align-top">
           {packagingOptions && packagingOptions.length > 0 ? (
             <Select
               size="dense"
@@ -153,21 +153,21 @@ export function ProductTableRow({
         </td>
 
         {/* ราคา */}
-        <td className="px-1.5 py-2 align-top">
+        <td className="px-2 py-2 align-top">
           {isCustomerProvided ? dash : (
             <MoneyInput aria-label={`ราคาสินค้า ${prodIdx + 1}`} value={product.baseUnitPrice} onValueChange={(v) => updateProduct("baseUnitPrice", v)} size="dense" className="w-full px-2" />
           )}
         </td>
 
         {/* ส่วนลดต่อชิ้น */}
-        <td className="px-1.5 py-2 align-top">
+        <td className="px-2 py-2 align-top">
           {isCustomerProvided ? dash : (
             <MoneyInput aria-label={`ส่วนลดต่อชิ้น สินค้า ${prodIdx + 1}`} value={product.discount} onValueChange={(v) => updateProduct("discount", v)} size="dense" className="w-full px-2" />
           )}
         </td>
 
         {/* จำนวน */}
-        <td className="px-1.5 py-2 align-top">
+        <td className="px-2 py-2 align-top">
           {multi ? (
             <div className="flex h-9 items-center justify-center text-sm font-medium text-slate-700 dark:text-slate-200">{totalQty}</div>
           ) : (
@@ -176,7 +176,7 @@ export function ProductTableRow({
         </td>
 
         {/* รวม */}
-        <td className="px-1.5 py-2 text-right align-top">
+        <td className="px-2 py-2 text-right align-top">
           {isCustomerProvided ? dash : (
             <div className="flex h-9 items-center justify-end text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">{formatCurrency(lineTotal)}</div>
           )}

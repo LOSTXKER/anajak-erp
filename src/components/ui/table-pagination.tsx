@@ -7,6 +7,8 @@ interface TablePaginationProps {
   total: number;
   onPageChange: (page: number) => void;
   label?: string;
+  /** จำนวนต่อหน้า — ส่งมาแล้วจะบอก "แสดง 1–20 จาก 210" แทนยอดรวมเฉยๆ */
+  limit?: number;
 }
 
 export function TablePagination({
@@ -15,13 +17,16 @@ export function TablePagination({
   total,
   onPageChange,
   label = "รายการ",
+  limit,
 }: TablePaginationProps) {
   if (totalPages <= 1) return null;
+  const from = limit ? (page - 1) * limit + 1 : null;
+  const to = limit ? Math.min(page * limit, total) : null;
 
   return (
-    <nav aria-label="การแบ่งหน้า" className="flex items-center justify-between border-t border-slate-100 px-4 py-3 dark:border-slate-800">
-      <p className="text-xs text-muted">
-        ทั้งหมด {total} {label}
+    <nav aria-label="การแบ่งหน้า" className="flex items-center justify-between border-t border-slate-100 px-4 py-3 dark:border-white/10">
+      <p className="text-xs tabular-nums text-muted">
+        {from != null ? `แสดง ${from}–${to} จาก ${total} ${label}` : `ทั้งหมด ${total} ${label}`}
       </p>
       <div className="flex gap-1.5">
         <Button

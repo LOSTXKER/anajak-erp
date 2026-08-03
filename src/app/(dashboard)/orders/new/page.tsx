@@ -143,7 +143,7 @@ function StepRail({
             CONTROL_MIN_H,
             RADIUS.pill,
             // ไม่มีขอบ — ชิปขาวบนพื้นเทาแยกตัวเองด้วยสีพื้นอยู่แล้ว (รอบ "ลดเส้นทั้งเว็บ")
-            "inline-flex items-center gap-2 bg-surface hairline-ring px-3 text-xs text-secondary transition-colors hover:text-strong",
+            "inline-flex items-center gap-2 bg-surface hairline-ring px-3 text-xs text-secondary transition-colors hover:text-strong active:scale-[0.98]",
             FOCUS_BUTTON
           )}
         >

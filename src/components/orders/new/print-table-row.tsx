@@ -89,7 +89,7 @@ export function PrintTableRow({
         )}
       </td>
 
-      <td className="px-1 py-2 align-middle">
+      <td className="px-2 py-2 align-middle">
         {printCatalog && printCatalog.length > 0 ? (
           <Select
             size="sm"
@@ -126,7 +126,7 @@ export function PrintTableRow({
         )}
       </td>
 
-      <td className="px-1 py-2 align-middle">
+      <td className="px-2 py-2 align-middle">
         <Select
           size="sm"
           aria-label={`ขนาดลาย จุดที่ ${printIdx + 1}`}
@@ -142,7 +142,7 @@ export function PrintTableRow({
         </Select>
       </td>
 
-      <td className="px-1 py-2 align-middle">
+      <td className="px-2 py-2 align-middle">
         {isCustomSize ? (
           <div className="flex items-center gap-0.5">
             <Input
@@ -178,7 +178,7 @@ export function PrintTableRow({
         )}
       </td>
 
-      <td className="px-1 py-2 align-middle">
+      <td className="px-2 py-2 align-middle">
         <Select
           size="dense"
           aria-label={`ตำแหน่งลาย จุดที่ ${printIdx + 1}`}
@@ -193,7 +193,7 @@ export function PrintTableRow({
         </Select>
       </td>
 
-      <td className="px-1 py-2 align-middle">
+      <td className="px-2 py-2 align-middle">
         {showColorCount ? (
           <Input
             aria-label={`จำนวนสีของลาย จุดที่ ${printIdx + 1}`}
@@ -210,7 +210,7 @@ export function PrintTableRow({
         )}
       </td>
 
-      <td className="px-1 py-2 align-middle">
+      <td className="px-2 py-2 align-middle">
         <MoneyInput
           aria-label={`ค่าสกรีน จุดที่ ${printIdx + 1}`}
           value={print.unitPrice}

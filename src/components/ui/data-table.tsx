@@ -1,4 +1,7 @@
+"use client";
+
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FOCUS_INSET, TABLE_HEAD_SURFACE } from "./tokens";
@@ -77,20 +80,42 @@ const Body = React.forwardRef<
 ));
 Body.displayName = "DataTable.Body";
 
-const Row = React.forwardRef<
-  HTMLTableRowElement,
-  React.HTMLAttributes<HTMLTableRowElement>
->(({ className, ...props }, ref) => (
-  <tr
-    ref={ref}
-    className={cn(
-      // ชี้แถวไหนต้องรู้ทันที — ตารางกว้างแล้วกดผิดแถวคือกดผิดออเดอร์
-      "transition-colors hover:bg-slate-100 dark:hover:bg-white/[0.06]",
-      className
-    )}
-    {...props}
-  />
-));
+interface RowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+  /** แถวกดได้ทั้งแถว — hover เต็มแถวสัญญากับผู้ใช้แล้วต้องทำตาม (benchmark 2026-08-04)
+   *  ลิงก์จริงในแถว (เลขออเดอร์) คงไว้เป็นทาง keyboard/เปิดแท็บใหม่ ·
+   *  ปุ่มในแถวที่ไม่อยากให้พาไป ให้ stopPropagation เอง */
+  href?: string;
+}
+
+const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
+  ({ className, href, onClick, ...props }, ref) => {
+    const router = useRouter();
+    return (
+      <tr
+        ref={ref}
+        onClick={
+          href
+            ? (e) => {
+                onClick?.(e);
+                if (e.defaultPrevented) return;
+                // อย่าแย่งคลิกจาก control/ลิงก์จริงข้างใน
+                const t = e.target as HTMLElement;
+                if (t.closest("a,button,input,select,textarea,[role=combobox]")) return;
+                router.push(href);
+              }
+            : onClick
+        }
+        className={cn(
+          // ชี้แถวไหนต้องรู้ทันที — ตารางกว้างแล้วกดผิดแถวคือกดผิดออเดอร์
+          "transition-colors hover:bg-slate-100 dark:hover:bg-white/[0.06]",
+          href && "cursor-pointer active:bg-slate-100 dark:active:bg-white/[0.08]",
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
 Row.displayName = "DataTable.Row";
 
 interface ThProps extends React.ThHTMLAttributes<HTMLTableCellElement> {

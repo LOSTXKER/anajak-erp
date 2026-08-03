@@ -33,7 +33,7 @@ import {
   Share2,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
-import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
+import { MENU_SEPARATOR, OVERLAY_PANEL, TINT, FOCUS_BUTTON } from "@/components/ui/tokens";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
 import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
@@ -60,6 +60,7 @@ import {
   OrderMoneyTab,
 } from "@/components/orders/detail";
 import { RecordNotFound } from "@/components/ui/record-not-found";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
 
 
 // ============================================================
@@ -692,27 +693,28 @@ function OrderDetailContent({
         canSeeMoney={canSeeMoney}
       />
 
+      {/* sticky ตาม scroll — หน้ายาว 7 ส่วน แถบกระโดดต้องตามมาด้วย
+          (สูตรเดียวกับ StepRail หน้าเปิดงาน — ระบบเดียวกัน pattern เดียวกัน) */}
       <nav
         aria-label="ไปยังส่วนของออเดอร์"
-        className="card-surface flex flex-wrap gap-2 rounded-2xl p-3"
+        className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center gap-1.5 border-b border-slate-200/70 bg-bg px-1 py-2 dark:border-white/10"
       >
         {sectionShortcuts.map((section) => (
-          <Button
+          <a
             key={section.id}
-            variant="outline"
-            size="sm"
-            asChild
+            href={`#${section.id}`}
+            onClick={(event) => {
+              event.preventDefault();
+              goToSection(section.id);
+            }}
+            className={cn(
+              CONTROL_MIN_H,
+              "inline-flex items-center rounded-full bg-surface hairline-ring px-3 text-xs text-secondary transition-colors hover:text-strong active:scale-[0.98]",
+              FOCUS_BUTTON
+            )}
           >
-            <a
-              href={`#${section.id}`}
-              onClick={(event) => {
-                event.preventDefault();
-                goToSection(section.id);
-              }}
-            >
-              {section.label}
-            </a>
-          </Button>
+            {section.label}
+          </a>
         ))}
       </nav>
 

@@ -15,7 +15,7 @@ export function FilterChip({ selected, onClick, children, className }: FilterChi
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={cn(CONTROL_MIN_H, "touch-manipulation whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors", FOCUS_BUTTON,
+      className={cn(CONTROL_MIN_H, "touch-manipulation whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors active:scale-[0.98]", FOCUS_BUTTON,
         selected
           // "กรองอยู่" = ฟ้าอ่อนชุด ACTIVE_FILTER ทั้งระบบ — น้ำเงินทึบสงวนให้ปุ่มหลัก
           ? "bg-blue-50 text-blue-700 hairline-ring dark:bg-blue-950/40 dark:text-blue-300"

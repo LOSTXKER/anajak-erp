@@ -153,7 +153,8 @@ export default function PatternsPage() {
 
   return (
     <PageShell
-      back={{ href: "/settings", label: "ย้อนกลับ" }}
+      // เข้าหน้านี้จาก sidebar กลุ่ม "สินค้า" — ปุ่มย้อนต้องพากลับที่ที่เคยผ่าน ไม่ใช่ตั้งค่า
+      back={{ href: "/products", label: "กลับไปหน้าสินค้า" }}
       title="จัดการแพทเทิร์น"
       description="แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ"
       error={

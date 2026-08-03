@@ -264,6 +264,7 @@ export default function DashboardPage() {
               value={formatCurrency(data?.revenueThisMonth ?? 0)}
               icon={TrendingUp}
               change={data?.revenueChange ?? undefined}
+              changeSuffix="เทียบเดือนก่อน"
               valueClassName="text-xl"
             />
           )}

@@ -150,7 +150,7 @@ function OrderCountdown({
   internalStatus: string;
 }) {
   if (!deadline || ATTENTION_EXEMPT_STATUSES.has(internalStatus)) {
-    return <span className="text-xs text-slate-300 dark:text-slate-600">—</span>;
+    return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
   }
   const days = daysUntil(deadline);
   const { label, dot, text } =
@@ -226,7 +226,7 @@ function ChatLink({
 
 function PaymentIndicator({ status }: { status: string }) {
   const v = PAYMENT_DOT[status];
-  if (!v) return <span className="text-xs text-slate-400">—</span>;
+  if (!v) return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${v.text}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${v.dot}`} />
@@ -437,7 +437,8 @@ function OrdersPageContent() {
   };
 
   return (
-    <div className="space-y-7">
+    // 24px = จังหวะระดับหน้าค่าเดียวทั้งเว็บ (เบสเคาะ 2026-08-04 — เดิม 3 หน้า 3 ค่า)
+    <div className="space-y-6">
       <PageHeader
         title="ออเดอร์"
         description="จัดการออเดอร์ทั้งหมด"
@@ -477,7 +478,9 @@ function OrdersPageContent() {
         onSelect={(status: string) =>
           replaceListState({ status: status || null, page: null })
         }
-        isLoading={isLoading || isFetching}
+        // จางเฉพาะโหลดครั้งแรก — ตอน refetch มีข้อความ "กำลังอัปเดต…" ที่ toolbar อยู่แล้ว
+        // (เดิมส่ง isFetching ด้วย → กดกรองทีไรแถบวูบกระพริบ)
+        isLoading={isLoading}
       />
 
       <Toolbar>
@@ -643,7 +646,7 @@ function OrdersPageContent() {
             </DataTable.Head>
             <DataTable.Body>
               {orders.map((order) => (
-                <DataTable.Row key={order.id}>
+                <DataTable.Row key={order.id} href={`/orders/${order.id}`}>
                   <DataTable.Td>
                     <Link
                       href={`/orders/${order.id}`}
@@ -832,6 +835,7 @@ function OrdersPageContent() {
               page={page}
               totalPages={data.pages}
               total={data.total}
+              limit={20}
               onPageChange={(nextPage) =>
                 replaceListState({ page: String(nextPage) })
               }

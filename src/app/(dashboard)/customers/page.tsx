@@ -130,7 +130,7 @@ function CustomersPageContent() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="ลูกค้า"
         description="จัดการข้อมูลลูกค้าและ CRM"

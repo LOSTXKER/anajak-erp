@@ -84,7 +84,7 @@ function MobileStatusButton({
       title={`${fullLabel} · ${count} งาน`}
       onClick={onPress}
       className={cn(
-        "bg-surface hairline-ring flex min-h-11 items-center justify-between gap-2 rounded-2xl px-3 py-2 text-left",
+        "bg-surface hairline-ring active:scale-[0.98] flex min-h-11 items-center justify-between gap-2 rounded-2xl px-3 py-2 text-left",
         FOCUS_BUTTON,
         isOn &&
           "bg-blue-50 text-blue-700 hairline-ring dark:bg-blue-950/40 dark:text-blue-300",
@@ -221,7 +221,7 @@ export function OrderStatusFlowBar({
   };
 
   return (
-    <div className={cn("@container", isLoading && "opacity-60")}>
+    <div className={cn("@container transition-opacity duration-200", isLoading && "opacity-60")}>
       {/* ── เส้นทางงาน (พื้นที่กว้างพอ) ── */}
       <div
         role="group"
