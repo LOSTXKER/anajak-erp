@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
+import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
@@ -56,11 +56,6 @@ function QuotationStatusLabel({ status }: { status: string }) {
   );
 }
 
-function positivePage(value: string | null) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
-}
-
 export default function QuotationsPage() {
   return (
     <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
@@ -70,46 +65,12 @@ export default function QuotationsPage() {
 }
 
 function QuotationsPageContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.get("q") ?? "";
+  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
+    useListPageState();
   const rawStatus = searchParams.get("status") ?? "";
   const status = QUOTATION_STATUSES.some((option) => option.value === rawStatus)
     ? rawStatus
     : "";
-  const page = positivePage(searchParams.get("page"));
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const replaceListState = useCallback(
-    (updates: Record<string, string | null>) => {
-      // อ่าน URL สดตอนกดจริง — กัน debounce คำค้นที่เริ่มก่อนผู้ใช้เปลี่ยน filter
-      // แล้ว callback เก่าเขียนทับ status/page ที่เพิ่งเลือก
-      const next = new URLSearchParams(window.location.search);
-      for (const [key, value] of Object.entries(updates)) {
-        if (!value || (key === "page" && value === "1")) next.delete(key);
-        else next.set(key, value);
-      }
-      const query = next.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [pathname, router]
-  );
-
-  useEffect(
-    () => () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    },
-    []
-  );
-
-  // browser back/forward ต้องคืนคำค้นในช่อง โดยไม่ remount input จน focus หลุด
-  useEffect(() => {
-    if (searchInputRef.current && searchInputRef.current.value !== search) {
-      searchInputRef.current.value = search;
-    }
-  }, [search]);
 
   const { data: me } = trpc.user.me.useQuery();
   // สร้างใบเสนอ = สิทธิ์ขาย (quotation.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12)
@@ -127,11 +88,7 @@ function QuotationsPageContent() {
     { enabled: canView }
   );
 
-  useEffect(() => {
-    if (data && page > data.pages && data.pages >= 1) {
-      replaceListState({ page: String(data.pages) });
-    }
-  }, [data, page, replaceListState]);
+  usePageClamp(page, data?.pages, replaceListState);
 
   return (
     <PageShell
@@ -161,14 +118,7 @@ function QuotationsPageContent() {
             containerClassName="@2xl:max-w-sm @2xl:flex-1"
             placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
             defaultValue={search}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (searchTimer.current) clearTimeout(searchTimer.current);
-              searchTimer.current = setTimeout(
-                () => replaceListState({ q: value.trim() || null, page: null }),
-                300
-              );
-            }}
+            onChange={(e) => onSearchChange(e.target.value)}
           />
           <ToolbarGroup>
             {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}

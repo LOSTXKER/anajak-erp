@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { Button } from "@/components/ui/button";
 import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
@@ -43,11 +43,6 @@ export default function BillingNotesPage() {
   );
 }
 
-function positivePage(value: string | null) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
-}
-
 /* สถานะใบวางบิล = จุดสี + ข้อความ ภาษาเดียวกับทั้งเว็บ (เดิมเป็นแคปซูล <Badge>)
    ยกเลิก/รับครบแล้ว เป็นสถานะปลายทาง จึงย้อมข้อความให้สะดุดตาตอนสแกนตาราง
    ส่วน "ใช้งาน" เป็นระหว่างทาง คงข้อความเทาเข้ม ปล่อยให้จุดสีเป็นตัวบอก
@@ -71,13 +66,8 @@ function NoteStatus({
 }
 
 function BillingNotesPageContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.get("q") ?? "";
-  const page = positivePage(searchParams.get("page"));
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const { search, page, replaceListState, onSearchChange, searchInputRef } =
+    useListPageState();
   const [showCreate, setShowCreate] = useState(false);
   const [voidTarget, setVoidTarget] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
@@ -89,31 +79,6 @@ function BillingNotesPageContent() {
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
 
-  const replaceListState = useCallback(
-    (updates: Record<string, string | null>) => {
-      const next = new URLSearchParams(window.location.search);
-      for (const [key, value] of Object.entries(updates)) {
-        if (!value || (key === "page" && value === "1")) next.delete(key);
-        else next.set(key, value);
-      }
-      const query = next.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [pathname, router]
-  );
-
-  useEffect(
-    () => () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    },
-    []
-  );
-  useEffect(() => {
-    if (searchInputRef.current && searchInputRef.current.value !== search) {
-      searchInputRef.current.value = search;
-    }
-  }, [search]);
-
   const { data: me } = trpc.user.me.useQuery();
   const canView = me ? permAllows(me.permissions, "manage_billing_docs") : true;
 
@@ -123,11 +88,7 @@ function BillingNotesPageContent() {
     { enabled: canView, placeholderData: (previous) => previous }
   );
 
-  useEffect(() => {
-    if (data && page > data.pages && data.pages >= 1) {
-      replaceListState({ page: String(data.pages) });
-    }
-  }, [data, page, replaceListState]);
+  usePageClamp(page, data?.pages, replaceListState);
   // ค้นหาผ่าน server — ลูกค้าเกินหน้าแรกของลิสต์ต้องหาเจอด้วยการพิมพ์ ไม่หายเงียบ
   const customers = trpc.customer.list.useQuery(
     { search: customerSearch || undefined, limit: 50 },
@@ -211,14 +172,7 @@ function BillingNotesPageContent() {
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
           defaultValue={search}
-          onChange={(event) => {
-            if (searchTimer.current) clearTimeout(searchTimer.current);
-            const value = event.target.value;
-            searchTimer.current = setTimeout(
-              () => replaceListState({ q: value.trim() || null, page: null }),
-              300
-            );
-          }}
+          onChange={(event) => onSearchChange(event.target.value)}
         />
       </Toolbar>
 

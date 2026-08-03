@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,10 @@ const SORT_OPTIONS = [
   { value: "orderNumber:asc", label: "เลขออเดอร์ (เก่าสุด)" },
 ];
 
+/** sort ค่า default ไม่เก็บใน URL (URL สะอาด) — caller ต้องแปลงเป็น null เอง
+ *  ก่อนส่งเข้า replaceListState ของ hook กลาง เพราะ hook ไม่รู้จักกติกาเฉพาะหน้านี้ */
+const DEFAULT_SORT = "createdAt:desc";
+
 /** ทิศที่จะได้ตอนกดหัวคอลัมน์ครั้งแรก — งานใหม่/ยอดมากขึ้นก่อน, กำหนดส่งใกล้สุดขึ้นก่อน */
 const SORT_DEFAULT_DIRECTION = {
   orderNumber: "desc",
@@ -88,11 +92,6 @@ const ATTENTION_FILTERS = [
 ] as const;
 
 type OrderAttention = Exclude<(typeof ATTENTION_FILTERS)[number]["value"], "">;
-
-function positivePage(value: string | null) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
-}
 
 function validDateParam(value: string | null) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
@@ -323,10 +322,15 @@ export default function OrdersPage() {
 }
 
 function OrdersPageContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.get("q") ?? "";
+  const {
+    search,
+    page,
+    searchParams,
+    replaceListState,
+    onSearchChange,
+    searchInputRef,
+    searchTimer,
+  } = useListPageState();
   const rawChannel = searchParams.get("channel") ?? "";
   const channel = Object.hasOwn(CHANNEL_LABELS, rawChannel) ? rawChannel : "";
   const rawOrderType = searchParams.get("type") ?? "";
@@ -345,43 +349,7 @@ function OrdersPageContent() {
   const attention = ATTENTION_FILTERS.some((option) => option.value === rawAttention)
     ? rawAttention
     : "";
-  const rawSort = searchParams.get("sort") ?? "createdAt:desc";
-  const page = positivePage(searchParams.get("page"));
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const replaceListState = useCallback(
-    (updates: Record<string, string | null>) => {
-      // อ่าน query ล่าสุดตอน action ทำงาน เพื่อให้ debounce ค้นหาไม่ทับ filter ที่เพิ่งกด
-      const next = new URLSearchParams(window.location.search);
-      for (const [key, value] of Object.entries(updates)) {
-        if (
-          !value ||
-          (key === "page" && value === "1") ||
-          (key === "sort" && value === "createdAt:desc")
-        ) {
-          next.delete(key);
-        } else {
-          next.set(key, value);
-        }
-      }
-      const query = next.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [pathname, router]
-  );
-
-  useEffect(
-    () => () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    },
-    []
-  );
-  useEffect(() => {
-    if (searchInputRef.current && searchInputRef.current.value !== search) {
-      searchInputRef.current.value = search;
-    }
-  }, [search]);
+  const rawSort = searchParams.get("sort") ?? DEFAULT_SORT;
 
   const { data: me } = trpc.user.me.useQuery();
   // เปิดออเดอร์ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ปุ่มสร้าง (B12)
@@ -393,15 +361,20 @@ function OrdersPageContent() {
     : SORT_OPTIONS.filter((o) => !o.value.startsWith("totalAmount"));
   const sort = sortOptions.some((option) => option.value === rawSort)
     ? rawSort
-    : "createdAt:desc";
+    : DEFAULT_SORT;
   const [sortBy, sortOrder] = sort.split(":") as [SortKey, "asc" | "desc"];
 
   /** props ให้หัวคอลัมน์ที่กดเรียงได้ — คอลัมน์ไหนกำลังเรียงอยู่ กดแล้วไปไหนต่อ */
   const sortColumn = (key: SortKey) => ({
     direction: sortBy === key ? sortOrder : null,
     defaultDirection: SORT_DEFAULT_DIRECTION[key],
-    onSort: (direction: "asc" | "desc") =>
-      replaceListState({ sort: `${key}:${direction}`, page: null }),
+    onSort: (direction: "asc" | "desc") => {
+      const value = `${key}:${direction}`;
+      replaceListState({
+        sort: value === DEFAULT_SORT ? null : value,
+        page: null,
+      });
+    },
   });
 
   const { data, isLoading, isFetching, isError, refetch } = trpc.order.list.useQuery(
@@ -421,11 +394,7 @@ function OrdersPageContent() {
     { placeholderData: (previous) => previous }
   );
 
-  useEffect(() => {
-    if (data && page > data.pages && data.pages >= 1) {
-      replaceListState({ page: String(data.pages) });
-    }
-  }, [data, page, replaceListState]);
+  usePageClamp(page, data?.pages, replaceListState);
 
   // attention ไม่นับในป้ายกล่องตัวกรอง — มันมีบ้านเป็นแถว chip บนผิวหน้าแล้ว
   // นับเฉพาะตัวกรองที่ซ่อนอยู่ในกล่อง — ช่วงวันที่มีปุ่มของตัวเองบนแถบ เห็นอยู่แล้วว่าเลือกอะไร
@@ -517,14 +486,7 @@ function OrdersPageContent() {
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า..."
           defaultValue={search}
-          onChange={(event) => {
-            if (searchTimer.current) clearTimeout(searchTimer.current);
-            const value = event.target.value;
-            searchTimer.current = setTimeout(
-              () => replaceListState({ q: value.trim() || null, page: null }),
-              300
-            );
-          }}
+          onChange={(event) => onSearchChange(event.target.value)}
         />
 
         <ToolbarGroup className="w-full flex-wrap @2xl:w-auto @2xl:flex-nowrap">
@@ -535,7 +497,10 @@ function OrdersPageContent() {
             aria-label="เรียงลำดับ"
             value={sort}
             onChange={(e) =>
-              replaceListState({ sort: e.target.value, page: null })
+              replaceListState({
+                sort: e.target.value === DEFAULT_SORT ? null : e.target.value,
+                page: null,
+              })
             }
             className="w-auto px-3 lg:hidden"
           >

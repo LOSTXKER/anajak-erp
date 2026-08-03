@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { StatCard } from "@/components/ui/stat-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
@@ -55,11 +55,6 @@ const AGING_SORT_OPTIONS = [
 
 const PAGE_SIZE = 20;
 
-function positivePage(value: string | null) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
-}
-
 export default function AgingPage() {
   return (
     <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
@@ -69,10 +64,8 @@ export default function AgingPage() {
 }
 
 function AgingPageContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.get("q") ?? "";
+  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
+    useListPageState();
   const rawStatus = searchParams.get("status") ?? "";
   const status = AGING_STATUS_OPTIONS.some((option) => option.value === rawStatus)
     ? rawStatus
@@ -81,41 +74,6 @@ function AgingPageContent() {
   const sort = AGING_SORT_OPTIONS.some((option) => option.value === rawSort)
     ? rawSort
     : "total:desc";
-  const page = positivePage(searchParams.get("page"));
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const replaceListState = useCallback(
-    (updates: Record<string, string | null>) => {
-      const next = new URLSearchParams(window.location.search);
-      for (const [key, value] of Object.entries(updates)) {
-        if (
-          !value ||
-          (key === "page" && value === "1") ||
-          (key === "sort" && value === "total:desc")
-        ) {
-          next.delete(key);
-        } else {
-          next.set(key, value);
-        }
-      }
-      const query = next.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [pathname, router]
-  );
-
-  useEffect(
-    () => () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    },
-    []
-  );
-  useEffect(() => {
-    if (searchInputRef.current && searchInputRef.current.value !== search) {
-      searchInputRef.current.value = search;
-    }
-  }, [search]);
 
   const { data: me } = trpc.user.me.useQuery();
   const canView = me ? permAllows(me.permissions, "manage_billing_docs") : true;
@@ -214,11 +172,7 @@ function AgingPageContent() {
     ? filteredRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
     : undefined;
 
-  useEffect(() => {
-    if (data && page > totalPages) {
-      replaceListState({ page: String(totalPages) });
-    }
-  }, [data, page, replaceListState, totalPages]);
+  usePageClamp(page, data ? totalPages : undefined, replaceListState);
 
   const overdueTotal = data
     ? data.totals.d1_30 + data.totals.d31_60 + data.totals.d61_90 + data.totals.d90plus
@@ -268,14 +222,7 @@ function AgingPageContent() {
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อลูกค้าหรือบริษัท..."
           defaultValue={search}
-          onChange={(event) => {
-            if (searchTimer.current) clearTimeout(searchTimer.current);
-            const value = event.target.value;
-            searchTimer.current = setTimeout(
-              () => replaceListState({ q: value.trim() || null, page: null }),
-              300
-            );
-          }}
+          onChange={(event) => onSearchChange(event.target.value)}
         />
 
         {/* flex-wrap: จอมือถือให้ช่องเลือกซ้อนกันเต็มความกว้างเหมือนเดิม —
@@ -301,7 +248,11 @@ function AgingPageContent() {
             aria-label="เรียงรายการลูกหนี้"
             value={sort}
             onChange={(event) =>
-              replaceListState({ sort: event.target.value, page: null })
+              // sort ค่า default ไม่เก็บใน URL (ให้ URL สะอาด) — hook ลบ param เมื่อได้ null
+              replaceListState({
+                sort: event.target.value === "total:desc" ? null : event.target.value,
+                page: null,
+              })
             }
             className="@2xl:w-48"
           >

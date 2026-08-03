@@ -1,9 +1,9 @@
 "use client";
 
 import { Suspense } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { History } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useListPageState } from "@/hooks/use-list-page-state";
 import { permAllows } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -14,11 +14,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { PageShell } from "@/components/page-shell";
 
-function positivePage(value: string | null) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
-}
-
 export default function AuditLogPage() {
   return (
     <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
@@ -28,10 +23,7 @@ export default function AuditLogPage() {
 }
 
 function AuditLogContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const page = positivePage(searchParams.get("page"));
+  const { page, replaceListState } = useListPageState();
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
   const meLoading = meQuery.isLoading;
@@ -41,13 +33,9 @@ function AuditLogContent() {
     { enabled: canView }
   );
 
-  const goToPage = (nextPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (nextPage <= 1) params.delete("page");
-    else params.set("page", String(nextPage));
-    const next = params.toString();
-    router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
-  };
+  // เดิมลบ page ทิ้งเมื่อ nextPage <= 1 — hook ลบให้เองเฉพาะค่า "1" จึงส่ง null ครอบเคส <= 1
+  const goToPage = (nextPage: number) =>
+    replaceListState({ page: nextPage > 1 ? String(nextPage) : null });
 
   return (
     <PageShell

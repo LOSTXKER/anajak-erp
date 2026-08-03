@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useListPageState } from "@/hooks/use-list-page-state";
 import { Button } from "@/components/ui/button";
 import { StatusLabel } from "@/components/ui/status-label";
 import { SearchInput } from "@/components/ui/search-input";
@@ -116,9 +117,19 @@ function exportWhtCsv(rows: WhtRow[]) {
 // ────────────────────────────────────────────────────────────
 
 export default function WhtRegisterPage() {
-  const [tab, setTab] = useState<FilterTab>("pending");
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  return (
+    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+      <WhtRegisterPageContent />
+    </Suspense>
+  );
+}
+
+function WhtRegisterPageContent() {
+  const { search, searchParams, replaceListState, onSearchChange, searchInputRef } =
+    useListPageState();
+  // แท็บสถานะอยู่ใน URL (?status=received|all) — ไม่มี param/ค่าเพี้ยน = "pending" (default)
+  const rawTab = searchParams.get("status");
+  const tab: FilterTab = rawTab === "received" || rawTab === "all" ? rawTab : "pending";
 
   // Dialog "บันทึกรับหนังสือรับรอง"
   const [markTarget, setMarkTarget] = useState<WhtRow | null>(null);
@@ -127,12 +138,6 @@ export default function WhtRegisterPage() {
   const [fileUrl, setFileUrl] = useState("");
   const [notes, setNotes] = useState("");
 
-  // debounce 300ms — pattern เดียวกับหน้าคลังฟิล์ม
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
   const { data: me } = trpc.user.me.useQuery();
   const canView = me ? permAllows(me.permissions, "manage_billing_docs") : true;
 
@@ -140,7 +145,7 @@ export default function WhtRegisterPage() {
   const { data: rows, isLoading, isError, refetch } = trpc.wht.list.useQuery(
     {
       received: tab === "all" ? undefined : tab === "received",
-      search: debouncedSearch.trim() || undefined,
+      search: search.trim() || undefined,
     },
     { enabled: canView }
   );
@@ -178,7 +183,7 @@ export default function WhtRegisterPage() {
   }
 
   const list = rows ?? [];
-  const hasSearch = debouncedSearch.trim().length > 0;
+  const hasSearch = search.trim().length > 0;
   const pendingAmount = stats.data?.pendingAmount ?? 0;
 
   return (
@@ -246,14 +251,22 @@ export default function WhtRegisterPage() {
       {/* ── filter แท็บ + ค้นหา ── */}
       <Toolbar>
         <SearchInput
+          ref={searchInputRef}
           placeholder="ค้นหาลูกค้า / เลขบิล / เลขใบรับรอง..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          defaultValue={search}
+          onChange={(e) => onSearchChange(e.target.value)}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
         />
         <ToolbarGroup>
           {FILTER_TABS.map((t) => (
-            <FilterChip key={t.key} selected={tab === t.key} onClick={() => setTab(t.key)}>
+            <FilterChip
+              key={t.key}
+              selected={tab === t.key}
+              // "pending" = ค่า default → ส่ง null ให้ลบ param (URL สะอาด)
+              onClick={() =>
+                replaceListState({ status: t.key === "pending" ? null : t.key, page: null })
+              }
+            >
               {t.label}
             </FilterChip>
           ))}

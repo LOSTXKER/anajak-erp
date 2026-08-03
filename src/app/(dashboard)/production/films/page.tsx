@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
+import { useListPageState } from "@/hooks/use-list-page-state";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,34 +38,32 @@ import { FilterChip } from "@/components/ui/filter-chip";
 type FilmStockItem = RouterOutput["filmStock"]["list"][number];
 
 export default function FilmStockPage() {
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  return (
+    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+      <FilmStockPageContent />
+    </Suspense>
+  );
+}
+
+function FilmStockPageContent() {
+  // ช่องค้นหาใช้ param "search" (ไม่ใช่ "q" มาตรฐาน) — ลิงก์เตือนฟิล์มค้างจาก
+  // ฟอร์มเปิดงาน (order-customer-section) ส่ง ?search=<ชื่อลูกค้า> มาแบบเดิม ต้องรับได้ต่อ
+  const { search, onSearchChange, searchInputRef } = useListPageState({
+    searchParam: "search",
+  });
   const [includeEmpty, setIncludeEmpty] = useState(false);
   const [consuming, setConsuming] = useState<FilmStockItem | null>(null);
   // B8: ปุ่ม "หยิบใช้" (ตัดคงเหลือฟิล์ม) เฉพาะคนมีสิทธิ์ผลิต — role อื่นเห็นคลังอ่านอย่างเดียว
   const { data: me } = trpc.user.me.useQuery();
   const canManage = permAllows(me?.permissions, "manage_production");
 
-  // รับ ?search= จากลิงก์เตือนฟิล์มค้าง (ฟอร์มเปิดงาน) — อ่านครั้งเดียวตอน mount
-  // (อ่านจาก window แทน useSearchParams — ไม่ต้องห่อ Suspense)
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("search");
-    if (q) setSearch(q);
-  }, []);
-
-  // debounce 300ms — pattern เดียวกับ ProductPicker
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
   const listQuery = trpc.filmStock.list.useQuery({
-    search: debouncedSearch.trim() || undefined,
+    search: search.trim() || undefined,
     includeEmpty,
   });
 
   const items = listQuery.data ?? [];
-  const hasSearch = debouncedSearch.trim().length > 0;
+  const hasSearch = search.trim().length > 0;
 
   return (
     <div className="space-y-5">
@@ -84,9 +83,10 @@ export default function FilmStockPage() {
       {/* ── ค้นหา + toggle แสดงที่หมดแล้ว — อยู่นอก list area กัน focus หลุดตอนโหลด ── */}
       <Toolbar>
         <SearchInput
+          ref={searchInputRef}
           placeholder="ค้นหาลาย / ชื่อลูกค้า / เลขออเดอร์..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          defaultValue={search}
+          onChange={(e) => onSearchChange(e.target.value)}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
         />
         <ToolbarGroup className="shrink-0">
