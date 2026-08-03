@@ -6,9 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Section } from "@/components/ui/section";
-import { SegmentedControl } from "@/components/ui/segmented";
 import { SearchInput } from "@/components/ui/search-input";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatCard } from "@/components/ui/stat-card";
@@ -20,13 +18,18 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { Select } from "@/components/ui/select";
-import { Field } from "@/components/ui/field";
+import { Alert } from "@/components/ui/alert";
 import { formatCurrency } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
-import { PAYMENT_TERMS, type PaymentTermsValue } from "@/lib/payment-terms";
+import { CustomerFormFields } from "@/components/customers/customer-form-fields";
+import {
+  buildCustomerCreatePayload,
+  emptyCustomerForm,
+  validateCustomerEditForm,
+  type CustomerEditForm,
+} from "@/lib/customer-form";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Users, UserPlus, Crown, UserX, Building2, User, ChevronRight } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { Plus, Users, UserPlus, Crown, UserX, Building2, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
@@ -61,16 +64,12 @@ function CustomersPageContent() {
   const rawSegment = searchParams.get("status") ?? "";
   const segment = Object.hasOwn(segmentConfig, rawSegment) ? rawSegment : "";
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "", company: "", email: "", phone: "",
-    lineId: "", chatName: "", chatUrl: "", address: "", notes: "",
-    customerType: "INDIVIDUAL" as "INDIVIDUAL" | "CORPORATE",
-    taxId: "", branchNumber: "",
-    billingAddress: "", billingSubDistrict: "", billingDistrict: "",
-    billingProvince: "", billingPostalCode: "",
-    creditLimit: "",
-    defaultPaymentTerms: "",
-  });
+  // ฟอร์มเพิ่มลูกค้าใช้ field ชุดเดียวกับฟอร์มแก้ไข (CustomerFormFields + CustomerEditForm)
+  // — เดิมเขียนช่องซ้ำเองแล้ว drift: เลขภาษี/วงเงินไม่ถูก validate ตอนสร้าง
+  const [form, setForm] = useState(emptyCustomerForm);
+  // ฟอร์มใหม่เริ่มจากว่างทุกช่อง — โชว์ error หลังกดบันทึกครั้งแรกเท่านั้น
+  // (ต่างจากฟอร์มแก้ไขที่ข้อมูลตั้งต้นถูกอยู่แล้ว โชว์สดได้)
+  const [showErrors, setShowErrors] = useState(false);
 
   const utils = trpc.useUtils();
   const { data: me } = trpc.user.me.useQuery();
@@ -101,51 +100,32 @@ function CustomersPageContent() {
 
   usePageClamp(page, data?.pages, replaceListState);
 
-  // useMutationWithInvalidation = ได้ toast error ฟรี (เดิม fail เงียบ — SALES กรอกวงเงิน
-  // โดน FORBIDDEN แล้วฟอร์มค้างเฉยๆ ไม่มีอะไรบอก · review B7 จับ)
+  // เดิม fail เงียบ — SALES กรอกวงเงินโดน FORBIDDEN แล้วฟอร์มค้างเฉยๆ ไม่มีอะไรบอก
+  // (review B7 จับ) · ตอนนี้ server error แสดงใน Alert ในฟอร์มที่เดียว (มาตรฐานเดียวกับ
+  // ฟอร์มแก้ไข) — onError noop กัน hook ยิง toast ซ้ำเป็นสองทาง
   const createCustomer = useMutationWithInvalidation(trpc.customer.create, {
     invalidate: [utils.customer.list, utils.customer.stats],
     onSuccess: () => {
       setShowForm(false);
-      setFormData({
-        name: "", company: "", email: "", phone: "", lineId: "", chatName: "", chatUrl: "", address: "", notes: "",
-        customerType: "INDIVIDUAL", taxId: "", branchNumber: "",
-        billingAddress: "", billingSubDistrict: "", billingDistrict: "",
-        billingProvince: "", billingPostalCode: "",
-        creditLimit: "", defaultPaymentTerms: "",
-      });
+      setForm(emptyCustomerForm());
+      setShowErrors(false);
     },
+    onError: () => {},
   });
 
-  const isCorporate = formData.customerType === "CORPORATE";
+  // validate ชุดเดียวกับฟอร์มแก้ไข — เลขภาษีนิติบุคคล/วงเงินถูกตรวจตอนสร้างด้วย
+  const validationErrors = validateCustomerEditForm(form);
+  const setFormPatch = (patch: Partial<CustomerEditForm>) =>
+    setForm((f) => ({ ...f, ...patch }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createCustomer.mutate({
-      name: formData.name,
-      company: formData.company || undefined,
-      email: formData.email || undefined,
-      phone: formData.phone || undefined,
-      lineId: formData.lineId || undefined,
-      chatName: formData.chatName || undefined,
-      chatUrl: formData.chatUrl || undefined,
-      address: formData.address || undefined,
-      notes: formData.notes || undefined,
-      customerType: formData.customerType,
-      taxId: formData.taxId || undefined,
-      branchNumber: formData.branchNumber || undefined,
-      billingAddress: formData.billingAddress || undefined,
-      billingSubDistrict: formData.billingSubDistrict || undefined,
-      billingDistrict: formData.billingDistrict || undefined,
-      billingProvince: formData.billingProvince || undefined,
-      billingPostalCode: formData.billingPostalCode || undefined,
-      // SALES ไม่ส่ง creditLimit เลย — ส่งไปโดน FORBIDDEN (ช่องก็ disabled แล้ว)
-      creditLimit:
-        canSetCredit && formData.creditLimit ? parseFloat(formData.creditLimit) : undefined,
-      defaultPaymentTerms: (formData.defaultPaymentTerms || undefined) as
-        | PaymentTermsValue
-        | undefined,
-    });
+    if (Object.keys(validationErrors).length > 0) {
+      setShowErrors(true);
+      return;
+    }
+    // SALES ไม่ส่ง creditLimit เลย — ส่งไปโดน FORBIDDEN (ช่องก็ disabled แล้ว)
+    createCustomer.mutate(buildCustomerCreatePayload(form, canSetCredit));
   };
 
   return (
@@ -178,197 +158,18 @@ function CustomersPageContent() {
       {showForm && canManageCustomers && (
         <Section title="เพิ่มลูกค้าใหม่">
           <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Customer Type Toggle */}
-              <div>
-                <p id="customer-type-label" className="mb-1.5 block text-sm font-medium">ประเภทลูกค้า</p>
-                <SegmentedControl
-                  aria-labelledby="customer-type-label"
-                  value={formData.customerType}
-                  onChange={(v) => setFormData({ ...formData, customerType: v })}
-                  options={[
-                    { value: "INDIVIDUAL", label: "บุคคลธรรมดา", icon: User },
-                    { value: "CORPORATE", label: "นิติบุคคล", icon: Building2 },
-                  ]}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Field label={`ชื่อ${isCorporate ? "ผู้ติดต่อ" : ""}`} required>
-                  <Input
-                    id="customer-name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder={isCorporate ? "ชื่อผู้ติดต่อ" : "ชื่อลูกค้า"}
-                    required
-                  />
-                </Field>
-                <Field label="บริษัท" required={isCorporate}>
-                  <Input
-                    id="customer-company"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    placeholder="ชื่อบริษัท/แบรนด์"
-                    required={isCorporate}
-                  />
-                </Field>
-                <Field label="โทรศัพท์">
-                  <Input
-                    id="customer-phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="08x-xxx-xxxx"
-                  />
-                </Field>
-                <Field label="LINE ID">
-                  <Input
-                    id="customer-line"
-                    value={formData.lineId}
-                    onChange={(e) => setFormData({ ...formData, lineId: e.target.value })}
-                    placeholder="@lineid"
-                  />
-                </Field>
-                <Field label="ชื่อในแชท" description="ชื่อที่ลูกค้าใช้ในห้องแชท — ใช้ได้ทุกช่องทาง">
-                  <Input
-                    id="customer-chat-name"
-                    value={formData.chatName}
-                    onChange={(e) => setFormData({ ...formData, chatName: e.target.value })}
-                    placeholder="เช่น ร้านเสื้อพี่หนึ่ง"
-                  />
-                </Field>
-                <Field label="ลิงก์แชท" description="กดจากรายการออเดอร์แล้วเปิดห้องแชทได้เลย">
-                  <Input
-                    id="customer-chat-url"
-                    type="url"
-                    inputMode="url"
-                    value={formData.chatUrl}
-                    onChange={(e) => setFormData({ ...formData, chatUrl: e.target.value })}
-                    placeholder="https://..."
-                  />
-                </Field>
-                <Field label="อีเมล">
-                  <Input
-                    id="customer-email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="email@example.com"
-                  />
-                </Field>
-                <Field label="ที่อยู่ (ทั่วไป)">
-                  <Input
-                    id="customer-address"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="ที่อยู่จัดส่ง"
-                  />
-                </Field>
-              </div>
-
-              {/* Corporate-specific fields */}
-              {isCorporate && (
-                <>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-                    <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">ข้อมูลนิติบุคคล</h4>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <Field label="เลขประจำตัวผู้เสียภาษี" required={isCorporate}>
-                        <Input
-                          id="customer-tax-id"
-                          value={formData.taxId}
-                          onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
-                          placeholder="เลข 13 หลัก"
-                          required={isCorporate}
-                        />
-                      </Field>
-                      <Field label="สาขา">
-                        <Input
-                          id="customer-branch"
-                          value={formData.branchNumber}
-                          onChange={(e) => setFormData({ ...formData, branchNumber: e.target.value })}
-                          placeholder="00000 = สำนักงานใหญ่"
-                        />
-                      </Field>
-                      <Field
-                        label="วงเงินเครดิต (บาท)"
-                        description={!canSetCredit ? "ผู้จัดการ/บัญชีเป็นคนกำหนด" : undefined}
-                      >
-                        <Input
-                          id="customer-credit-limit"
-                          type="number"
-                          value={formData.creditLimit}
-                          onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
-                          placeholder="เช่น 50000"
-                          disabled={!canSetCredit}
-                        />
-                      </Field>
-                    </div>
-                    <div className="mt-4">
-                      <Field label="เงื่อนไขการชำระเงิน (ค่าเริ่มต้น)" id="customer-payment-terms">
-                        <Select value={formData.defaultPaymentTerms}
-                          onChange={(e) => setFormData({ ...formData, defaultPaymentTerms: e.target.value })} id="customer-payment-terms" className="w-full md:w-64" placeholder="เลือกเงื่อนไข">
-                            {PAYMENT_TERMS.map((t) => (
-                              <option key={t.value} value={t.value}>
-                                {t.label}
-                              </option>
-                            ))}
-                          </Select>
-                      </Field>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-                    <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">ที่อยู่ออกใบกำกับภาษี</h4>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div className="md:col-span-2">
-                        <Field label="ที่อยู่">
-                          <Input
-                            id="customer-billing-address"
-                            value={formData.billingAddress}
-                            onChange={(e) => setFormData({ ...formData, billingAddress: e.target.value })}
-                            placeholder="เลขที่ ถนน"
-                          />
-                        </Field>
-                      </div>
-                      <Field label="แขวง/ตำบล">
-                        <Input
-                          id="customer-billing-subdistrict"
-                          value={formData.billingSubDistrict}
-                          onChange={(e) => setFormData({ ...formData, billingSubDistrict: e.target.value })}
-                        />
-                      </Field>
-                      <Field label="เขต/อำเภอ">
-                        <Input
-                          id="customer-billing-district"
-                          value={formData.billingDistrict}
-                          onChange={(e) => setFormData({ ...formData, billingDistrict: e.target.value })}
-                        />
-                      </Field>
-                      <Field label="จังหวัด">
-                        <Input
-                          id="customer-billing-province"
-                          value={formData.billingProvince}
-                          onChange={(e) => setFormData({ ...formData, billingProvince: e.target.value })}
-                        />
-                      </Field>
-                      <Field label="รหัสไปรษณีย์">
-                        <Input
-                          id="customer-billing-postal-code"
-                          value={formData.billingPostalCode}
-                          onChange={(e) => setFormData({ ...formData, billingPostalCode: e.target.value })}
-                        />
-                      </Field>
-                    </div>
-                  </div>
-                </>
+              <CustomerFormFields
+                form={form}
+                set={setFormPatch}
+                errors={showErrors ? validationErrors : {}}
+                canEditCredit={canSetCredit}
+                mode="create"
+              />
+              {createCustomer.error && (
+                <Alert variant="error">
+                  บันทึกไม่สำเร็จ: {createCustomer.error.message}
+                </Alert>
               )}
-
-              <Field label="หมายเหตุ">
-                <Textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="หมายเหตุเพิ่มเติม..."
-                  rows={2}
-                />
-              </Field>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>ยกเลิก</Button>
                 <Button type="submit" disabled={createCustomer.isPending}>
