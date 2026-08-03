@@ -7,6 +7,22 @@ import { cn } from "@/lib/utils";
 import { CONTROL_H } from "./control-size";
 import { FOCUS_BUTTON, OVERLAY_PANEL } from "./tokens";
 
+/* ============================================================
+   กติกาการเปิด-ปิด dialog (มาตรฐานเดียวทั้งระบบ): **conditional mount**
+
+     const [target, setTarget] = useState<Invoice | null>(null);
+     {target && <XDialog data={target} onClose={() => setTarget(null)} />}
+
+   ให้ dialog mount ใหม่ทุกครั้งที่เปิด — state ฟอร์ม seed จาก props ใน
+   useState initializer ได้ค่าสดเสมอ และ React ล้าง state ให้ฟรีตอนปิด
+   (ตัวอย่างที่ทำถูก: step-update-dialog · customer-edit-dialog · goods-receipt-dialog)
+
+   ❌ หลีกเลี่ยง "controlled open" ที่ dialog ค้าง mount ตลอด — ต้อง useEffect
+   seed ฟอร์มตอน open หรือเขียนฟังก์ชัน reset มือให้ครบทุก field ทุกทางออก
+   ลืม field เดียว = ค่าเก่าค้างโผล่รอบถัดไป (บั๊กเงียบ เคยเกิดกับ dialog เงิน)
+   · ฟอร์มใน dialog ใช้ <DialogSubmitFooter> เป็นปุ่มท้ายมาตรฐาน
+   ============================================================ */
+
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;

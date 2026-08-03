@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/ui/field";
@@ -13,9 +12,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
 import { PAYMENT_TERMS } from "@/lib/payment-terms";
 import {
@@ -25,7 +24,7 @@ import {
   validateCustomerEditForm,
   type CustomerEditForm,
 } from "@/lib/customer-form";
-import { Building2, User, Loader2, Save } from "lucide-react";
+import { Building2, User, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Alert } from "@/components/ui/alert";
 
@@ -302,19 +301,13 @@ export function CustomerEditDialog({
             </Alert>
           )}
 
-          <DialogFooter className="gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              ยกเลิก
-            </Button>
-            <Button type="submit" disabled={update.isPending || !isFormValid} className="gap-1.5">
-              {update.isPending ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <Save />
-              )}
-              บันทึก
-            </Button>
-          </DialogFooter>
+          <DialogSubmitFooter
+            pending={update.isPending}
+            disabled={!isFormValid}
+            submitLabel="บันทึก"
+            submitIcon={<Save />}
+            onCancel={onClose}
+          />
         </form>
       </DialogContent>
     </Dialog>

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -13,11 +12,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
-import { Loader2, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { PRIORITY_LABELS, isOrderLocked, orderEditLockedReason } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
 import { PAYMENT_TERMS_LABELS, type PaymentTermsValue } from "@/lib/payment-terms";
@@ -438,23 +437,14 @@ export function OrderInfoEditDialog({
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            ยกเลิก
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!form.title || updateMutation.isPending}
-            className="gap-1.5"
-          >
-            {updateMutation.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Save />
-            )}
-            บันทึก
-          </Button>
-        </DialogFooter>
+        <DialogSubmitFooter
+          pending={updateMutation.isPending}
+          disabled={!form.title}
+          submitLabel="บันทึก"
+          submitIcon={<Save />}
+          onCancel={() => onOpenChange(false)}
+          onSubmit={handleSave}
+        />
       </DialogContent>
     </Dialog>
   );
