@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { SyncDialog } from "@/components/sync-dialog";
 import { Alert } from "@/components/ui/alert";
+import { DataTable } from "@/components/ui/data-table";
 import { PageShell } from "@/components/page-shell";
 
 // ─── Setting Keys ──────────────────────────────────────────
@@ -449,46 +450,35 @@ export default function StockSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-surface dark:bg-slate-800">
-                    <th scope="col" className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
-                      หมวดหมู่ Stock
+            <DataTable.Root bordered={false}>
+              <DataTable.Head>
+                <tr>
+                  <DataTable.Th>หมวดหมู่ Stock</DataTable.Th>
+                  <DataTable.Th aria-label="แมปไปยัง" align="center">→</DataTable.Th>
+                  <DataTable.Th>ประเภทสินค้า ERP</DataTable.Th>
+                </tr>
+              </DataTable.Head>
+              <DataTable.Body>
+                {itemTypeMappings.map((mapping, i) => (
+                  <DataTable.Row key={i}>
+                    <th scope="row" className="px-5 py-3 text-left text-sm font-normal text-slate-900 dark:text-white">
+                      {mapping.stockCategory}
                     </th>
-                    <th scope="col" aria-label="แมปไปยัง" className="px-4 py-2.5 text-center font-medium text-slate-400">
-                      →
-                    </th>
-                    <th scope="col" className="px-4 py-2.5 text-left font-medium text-slate-600 dark:text-slate-400">
-                      ประเภทสินค้า ERP
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {itemTypeMappings.map((mapping, i) => (
-                    <tr
-                      key={i}
-                      className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                    >
-                      <th scope="row" className="px-4 py-2.5 text-left font-normal text-slate-900 dark:text-white">
-                        {mapping.stockCategory}
-                      </th>
-                      <td aria-hidden="true" className="px-4 py-2.5 text-center text-slate-400">→</td>
-                      <td aria-label={`${mapping.erpItemType} ${mapping.erpCode}`} className="px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-900 dark:text-white">
-                            {mapping.erpItemType}
-                          </span>
-                          <Badge variant="secondary" className="text-2xs">
-                            {mapping.erpCode}
-                          </Badge>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    <DataTable.Td aria-hidden="true" align="center" className="text-slate-400">→</DataTable.Td>
+                    <DataTable.Td aria-label={`${mapping.erpItemType} ${mapping.erpCode}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-900 dark:text-white">
+                          {mapping.erpItemType}
+                        </span>
+                        <Badge variant="secondary" className="text-2xs">
+                          {mapping.erpCode}
+                        </Badge>
+                      </div>
+                    </DataTable.Td>
+                  </DataTable.Row>
+                ))}
+              </DataTable.Body>
+            </DataTable.Root>
           </CardContent>
         </Card>
 

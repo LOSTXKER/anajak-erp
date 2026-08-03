@@ -15,8 +15,8 @@ import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { StatusLabel } from "@/components/ui/status-label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
+import { ResponsiveList } from "@/components/ui/responsive-list";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +62,6 @@ function FilmStockPageContent() {
     includeEmpty,
   });
 
-  const items = listQuery.data ?? [];
   const hasSearch = search.trim().length > 0;
 
   return (
@@ -98,17 +97,14 @@ function FilmStockPageContent() {
         </ToolbarGroup>
       </Toolbar>
 
-      {listQuery.isError ? (
-        <QueryError onRetry={() => listQuery.refetch()} />
-      ) : listQuery.isLoading ? (
-        <div className="space-y-3">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-2xl" />
-          ))}
-        </div>
-      ) : items.length === 0 ? (
-        <div className="card-surface rounded-2xl">
-          {hasSearch ? (
+      {/* โหลด/พัง/ว่าง/สลับตาราง↔การ์ดที่ lg — ResponsiveList จัดการแทน branch ทำมือ */}
+      <ResponsiveList
+        items={listQuery.data}
+        isLoading={listQuery.isLoading}
+        isError={listQuery.isError}
+        onRetry={() => listQuery.refetch()}
+        emptyState={
+          hasSearch ? (
             <EmptyState
               icon={Film}
               title="ไม่พบฟิล์มที่ค้นหา"
@@ -120,12 +116,10 @@ function FilmStockPageContent() {
               title="ยังไม่มีฟิล์มในคลัง"
               description="ฟิล์มพิมพ์เผื่อจากรอบพิมพ์จะมาอยู่ที่นี่"
             />
-          )}
-        </div>
-      ) : (
-        <>
-          {/* ── จอใหญ่ = ตาราง ── */}
-          <DataTable.Root className="hidden lg:block">
+          )
+        }
+        renderDesktop={(items) => (
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>ป้ายลาย</DataTable.Th>
@@ -207,9 +201,9 @@ function FilmStockPageContent() {
               ))}
             </DataTable.Body>
           </DataTable.Root>
-
-          {/* ── มือถือ/แท็บเล็ต = การ์ด ── */}
-          <div className="space-y-3 lg:hidden">
+        )}
+        renderMobile={(items) => (
+          <div className="space-y-3">
             {items.map((item) => (
               <div
                 key={item.id}
@@ -262,8 +256,8 @@ function FilmStockPageContent() {
               </div>
             ))}
           </div>
-        </>
-      )}
+        )}
+      />
 
       {consuming && <ConsumeDialog item={consuming} onClose={() => setConsuming(null)} />}
     </div>

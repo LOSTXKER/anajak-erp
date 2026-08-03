@@ -5,12 +5,13 @@ import { trpc, type RouterOutput } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Alert } from "@/components/ui/alert";
 import { Select } from "@/components/ui/select";
+import { DataTable } from "@/components/ui/data-table";
+import { ResponsiveList } from "@/components/ui/responsive-list";
 import { PageShell } from "@/components/page-shell";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import {
   salesTaxReportCsv,
   peakImportCsv,
@@ -169,99 +170,122 @@ export default function SalesTaxReportPage() {
       )}
 
       {/* ── รายการเอกสาร ── */}
-      {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-12 rounded-xl" />
-          <Skeleton className="h-12 rounded-xl" />
-          <Skeleton className="h-12 rounded-xl" />
-        </div>
-      ) : rows.length === 0 ? (
-        <EmptyState
-          icon={ReceiptText}
-          title={`งวด ${periodLabel} ยังไม่มีใบกำกับภาษี`}
-          description="ใบเสร็จ/ใบกำกับเกิดตอนบันทึกรับเงินแล้วกดออกใบที่งวดนั้น (tax point จ้างทำของ)"
-        />
-      ) : (
-        <>
-          {/* พื้นที่หลังหัก sidebar ที่ช่วง tablet ไม่พอสำหรับ 9 คอลัมน์ — คงตารางเดิมเมื่อถึง lg */}
-          <div className="card-surface hidden overflow-x-auto rounded-2xl lg:block">
-            <table className="w-full min-w-[880px] text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 text-left text-xs text-slate-500 dark:border-slate-800">
-                  <th className="px-3 py-2.5 font-medium">#</th>
-                  <th className="px-3 py-2.5 font-medium">วันที่</th>
-                  <th className="px-3 py-2.5 font-medium">เลขที่</th>
-                  <th className="px-3 py-2.5 font-medium">ประเภท</th>
-                  <th className="px-3 py-2.5 font-medium">ผู้ซื้อ</th>
-                  <th className="px-3 py-2.5 font-medium">เลขภาษี/สาขา</th>
-                  <th className="px-3 py-2.5 text-right font-medium">ฐานภาษี</th>
-                  <th className="px-3 py-2.5 text-right font-medium">VAT</th>
-                  <th className="px-3 py-2.5 text-right font-medium">รวม</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr
-                    key={r.invoiceNumber}
-                    className={`border-b border-slate-50 last:border-0 dark:border-slate-800/60 ${
-                      r.isVoided ? "text-slate-400 line-through" : ""
-                    }`}
+      <ResponsiveList
+        items={rows}
+        isLoading={isLoading}
+        label="ใบกำกับภาษี"
+        emptyState={
+          <EmptyState
+            icon={ReceiptText}
+            title={`งวด ${periodLabel} ยังไม่มีใบกำกับภาษี`}
+            description="ใบเสร็จ/ใบกำกับเกิดตอนบันทึกรับเงินแล้วกดออกใบที่งวดนั้น (tax point จ้างทำของ)"
+          />
+        }
+        renderDesktop={(items) => (
+          // พื้นที่หลังหัก sidebar ที่ช่วง tablet ไม่พอสำหรับ 9 คอลัมน์ —
+          // ล็อกความกว้างขั้นต่ำให้ตารางเลื่อนข้างแทนการบีบคอลัมน์
+          <DataTable.Root className="[&_table]:min-w-[880px]">
+            <DataTable.Head>
+              <tr>
+                <DataTable.Th>#</DataTable.Th>
+                <DataTable.Th>วันที่</DataTable.Th>
+                <DataTable.Th>เลขที่</DataTable.Th>
+                <DataTable.Th>ประเภท</DataTable.Th>
+                <DataTable.Th>ผู้ซื้อ</DataTable.Th>
+                <DataTable.Th>เลขภาษี/สาขา</DataTable.Th>
+                <DataTable.Th align="right">ฐานภาษี</DataTable.Th>
+                <DataTable.Th align="right">VAT</DataTable.Th>
+                <DataTable.Th align="right">รวม</DataTable.Th>
+              </tr>
+            </DataTable.Head>
+            <DataTable.Body>
+              {items.map((r) => (
+                <DataTable.Row
+                  key={r.invoiceNumber}
+                  className={r.isVoided ? "text-slate-400 line-through" : undefined}
+                >
+                  <DataTable.Td className="tabular-nums text-slate-400">{r.seq}</DataTable.Td>
+                  <DataTable.Td
+                    className={cn(
+                      "whitespace-nowrap tabular-nums",
+                      r.isVoided && "text-slate-400"
+                    )}
                   >
-                    <td className="px-3 py-2.5 tabular-nums text-slate-400">{r.seq}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">
-                      {formatThaiDateBE(r.date)}
-                    </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap font-medium">
-                      {r.invoiceNumber}
-                      {r.isVoided && (
-                        <Badge variant="destructive" size="sm" className="ml-1.5 no-underline">
-                          ยกเลิก
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap">
-                      {SALES_TAX_DOC_LABELS[r.docType]}
-                    </td>
-                    <td className="max-w-[220px] px-3 py-2.5">
-                      <p className="truncate">{r.customerName}</p>
-                      {r.note && <p className="truncate text-xs text-slate-400">{r.note}</p>}
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-slate-500">
-                      {r.taxId || "—"}
-                      {r.branch && <p>{r.branch}</p>}
-                    </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{r.base.toFixed(2)}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{r.vat.toFixed(2)}</td>
-                    <td className="px-3 py-2.5 text-right font-medium tabular-nums">
-                      {r.total.toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              {summary && (
-                <tfoot>
-                  <tr className="border-t border-slate-200 font-semibold dark:border-slate-700">
-                    <td colSpan={6} className="px-3 py-2.5 text-right">
-                      รวมงวด {periodLabel} ({summary.docCount} ฉบับ
-                      {summary.voidedCount > 0 ? ` · ยกเลิก ${summary.voidedCount}` : ""})
-                    </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">
-                      {summary.totalBase.toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">
-                      {summary.totalVat.toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">
-                      {summary.totalAmount.toFixed(2)}
-                    </td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </div>
-
-          <div className="space-y-3 lg:hidden">
-            {rows.map((r) => (
+                    {formatThaiDateBE(r.date)}
+                  </DataTable.Td>
+                  <DataTable.Td
+                    className={cn(
+                      "whitespace-nowrap font-medium",
+                      r.isVoided && "text-slate-400"
+                    )}
+                  >
+                    {r.invoiceNumber}
+                    {r.isVoided && (
+                      <Badge variant="destructive" size="sm" className="ml-1.5 no-underline">
+                        ยกเลิก
+                      </Badge>
+                    )}
+                  </DataTable.Td>
+                  <DataTable.Td
+                    className={cn("whitespace-nowrap", r.isVoided && "text-slate-400")}
+                  >
+                    {SALES_TAX_DOC_LABELS[r.docType]}
+                  </DataTable.Td>
+                  <DataTable.Td
+                    className={cn("max-w-[220px]", r.isVoided && "text-slate-400")}
+                  >
+                    <p className="truncate">{r.customerName}</p>
+                    {r.note && <p className="truncate text-xs text-slate-400">{r.note}</p>}
+                  </DataTable.Td>
+                  <DataTable.Td className="text-xs text-slate-500">
+                    {r.taxId || "—"}
+                    {r.branch && <p>{r.branch}</p>}
+                  </DataTable.Td>
+                  <DataTable.Td
+                    align="right"
+                    className={cn("tabular-nums", r.isVoided && "text-slate-400")}
+                  >
+                    {r.base.toFixed(2)}
+                  </DataTable.Td>
+                  <DataTable.Td
+                    align="right"
+                    className={cn("tabular-nums", r.isVoided && "text-slate-400")}
+                  >
+                    {r.vat.toFixed(2)}
+                  </DataTable.Td>
+                  <DataTable.Td
+                    align="right"
+                    className={cn("font-medium tabular-nums", r.isVoided && "text-slate-400")}
+                  >
+                    {r.total.toFixed(2)}
+                  </DataTable.Td>
+                </DataTable.Row>
+              ))}
+            </DataTable.Body>
+            {summary && (
+              <tfoot>
+                <tr className="border-t border-slate-200 font-semibold dark:border-slate-700">
+                  <DataTable.Td colSpan={6} align="right">
+                    รวมงวด {periodLabel} ({summary.docCount} ฉบับ
+                    {summary.voidedCount > 0 ? ` · ยกเลิก ${summary.voidedCount}` : ""})
+                  </DataTable.Td>
+                  <DataTable.Td align="right" className="tabular-nums">
+                    {summary.totalBase.toFixed(2)}
+                  </DataTable.Td>
+                  <DataTable.Td align="right" className="tabular-nums">
+                    {summary.totalVat.toFixed(2)}
+                  </DataTable.Td>
+                  <DataTable.Td align="right" className="tabular-nums">
+                    {summary.totalAmount.toFixed(2)}
+                  </DataTable.Td>
+                </tr>
+              </tfoot>
+            )}
+          </DataTable.Root>
+        )}
+        renderMobile={(items) => (
+          <div className="space-y-3">
+            {items.map((r) => (
               <div key={r.invoiceNumber} className="card-surface rounded-2xl p-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -318,8 +342,8 @@ export default function SalesTaxReportPage() {
               </div>
             ))}
           </div>
-        </>
-      )}
+        )}
+      />
     </PageShell>
   );
 }

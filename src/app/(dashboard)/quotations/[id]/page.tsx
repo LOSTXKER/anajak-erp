@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
+import { DataTable } from "@/components/ui/data-table";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import type { QuotationStatus } from "@/lib/quotation-status";
@@ -407,76 +408,62 @@ export default function QuotationDetailPage({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-100 dark:border-slate-800">
-                      <th className="pb-3 pr-4 text-left text-xs font-medium uppercase text-slate-500">
-                        #
-                      </th>
-                      <th className="pb-3 pr-4 text-left text-xs font-medium uppercase text-slate-500">
-                        รายการ
-                      </th>
-                      <th className="pb-3 pr-4 text-right text-xs font-medium uppercase text-slate-500">
-                        จำนวน
-                      </th>
-                      <th className="pb-3 pr-4 text-left text-xs font-medium uppercase text-slate-500">
-                        หน่วย
-                      </th>
-                      <th className="pb-3 pr-4 text-right text-xs font-medium uppercase text-slate-500">
-                        ราคา/หน่วย
-                      </th>
-                      <th className="pb-3 text-right text-xs font-medium uppercase text-slate-500">
-                        รวม
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                    {quotation.items?.map(
-                      (
-                        item: {
-                          id: string;
-                          name: string;
-                          description?: string | null;
-                          quantity: number;
-                          unit: string;
-                          unitPrice: number;
-                          totalPrice: number;
-                        },
-                        index: number,
-                      ) => (
-                        <tr key={item.id}>
-                          <td className="py-3 pr-4 text-sm text-slate-400">
-                            {index + 1}
-                          </td>
-                          <td className="py-3 pr-4">
-                            <p className="text-sm font-medium text-slate-900 dark:text-white">
-                              {item.name}
+              <DataTable.Root bordered={false}>
+                <DataTable.Head>
+                  <tr>
+                    <DataTable.Th>#</DataTable.Th>
+                    <DataTable.Th>รายการ</DataTable.Th>
+                    <DataTable.Th align="right">จำนวน</DataTable.Th>
+                    <DataTable.Th>หน่วย</DataTable.Th>
+                    <DataTable.Th align="right">ราคา/หน่วย</DataTable.Th>
+                    <DataTable.Th align="right">รวม</DataTable.Th>
+                  </tr>
+                </DataTable.Head>
+                <DataTable.Body>
+                  {quotation.items?.map(
+                    (
+                      item: {
+                        id: string;
+                        name: string;
+                        description?: string | null;
+                        quantity: number;
+                        unit: string;
+                        unitPrice: number;
+                        totalPrice: number;
+                      },
+                      index: number,
+                    ) => (
+                      <DataTable.Row key={item.id}>
+                        <DataTable.Td className="text-slate-400">
+                          {index + 1}
+                        </DataTable.Td>
+                        <DataTable.Td>
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">
+                            {item.name}
+                          </p>
+                          {item.description && (
+                            <p className="text-xs text-slate-400">
+                              {item.description}
                             </p>
-                            {item.description && (
-                              <p className="text-xs text-slate-400">
-                                {item.description}
-                              </p>
-                            )}
-                          </td>
-                          <td className="py-3 pr-4 text-right text-sm tabular-nums text-slate-900 dark:text-white">
-                            {item.quantity}
-                          </td>
-                          <td className="py-3 pr-4 text-sm text-slate-500">
-                            {item.unit}
-                          </td>
-                          <td className="py-3 pr-4 text-right text-sm tabular-nums text-slate-900 dark:text-white">
-                            {formatCurrency(item.unitPrice)}
-                          </td>
-                          <td className="py-3 text-right text-sm tabular-nums font-medium text-slate-900 dark:text-white">
-                            {formatCurrency(item.totalPrice)}
-                          </td>
-                        </tr>
-                      ),
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                          )}
+                        </DataTable.Td>
+                        <DataTable.Td align="right" className="tabular-nums text-slate-900 dark:text-white">
+                          {item.quantity}
+                        </DataTable.Td>
+                        <DataTable.Td className="text-slate-500">
+                          {item.unit}
+                        </DataTable.Td>
+                        <DataTable.Td align="right" className="tabular-nums text-slate-900 dark:text-white">
+                          {formatCurrency(item.unitPrice)}
+                        </DataTable.Td>
+                        <DataTable.Td align="right" className="tabular-nums font-medium text-slate-900 dark:text-white">
+                          {formatCurrency(item.totalPrice)}
+                        </DataTable.Td>
+                      </DataTable.Row>
+                    ),
+                  )}
+                </DataTable.Body>
+              </DataTable.Root>
 
               {/* Price breakdown */}
               <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">

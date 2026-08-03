@@ -19,6 +19,7 @@ import { PRICING_TYPE_LABELS } from "@/types/order-form";
 import { PageShell } from "@/components/page-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { DataTable } from "@/components/ui/data-table";
 
 // ============================================================
 // TYPES & CONSTANTS
@@ -317,31 +318,18 @@ export default function ServicesPage() {
           ) : !items || items.length === 0 ? (
             <EmptyState icon={Settings} title="ยังไม่มีรายการ" />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800">
-                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                      ชื่อ
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                      ประเภท
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
-                      ราคา
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
-                      คิดราคา
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
-                      สถานะ
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
-                      จัดการ
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <DataTable.Root bordered={false}>
+              <DataTable.Head>
+                <tr>
+                  <DataTable.Th>ชื่อ</DataTable.Th>
+                  <DataTable.Th>ประเภท</DataTable.Th>
+                  <DataTable.Th align="right">ราคา</DataTable.Th>
+                  <DataTable.Th align="center">คิดราคา</DataTable.Th>
+                  <DataTable.Th align="center">สถานะ</DataTable.Th>
+                  <DataTable.Th align="right">จัดการ</DataTable.Th>
+                </tr>
+              </DataTable.Head>
+              <DataTable.Body>
                   {items.map((item) => {
                     const isEditing = editingItem?.id === item.id;
                     const ptConfig = pricingTypeConfig[item.pricingType] ?? {
@@ -350,13 +338,11 @@ export default function ServicesPage() {
                     };
 
                     return (
-                      <tr
+                      <DataTable.Row
                         key={item.id}
-                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                          !item.isActive ? "opacity-50" : ""
-                        }`}
+                        className={!item.isActive ? "opacity-50" : undefined}
                       >
-                        <td className="px-3 py-2.5">
+                        <DataTable.Td>
                           {isEditing ? (
                             <Input size="sm"
                               aria-label={`ชื่อบริการ ${item.name}`}
@@ -373,11 +359,11 @@ export default function ServicesPage() {
                               {item.name}
                             </span>
                           )}
-                        </td>
-                        <td className="px-3 py-2.5 text-sm text-slate-500">
+                        </DataTable.Td>
+                        <DataTable.Td className="text-slate-500 dark:text-slate-400">
                           {item.type}
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
+                        </DataTable.Td>
+                        <DataTable.Td align="right">
                           {isEditing ? (
                             <Input
                               aria-label={`ราคาบริการ ${item.name}`}
@@ -399,8 +385,8 @@ export default function ServicesPage() {
                               {formatCurrency(item.defaultPrice)}
                             </span>
                           )}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
+                        </DataTable.Td>
+                        <DataTable.Td align="center">
                           {isEditing ? (
                             <Select size="sm"
                               aria-label={`วิธีคิดราคาของ ${item.name}`}
@@ -422,15 +408,15 @@ export default function ServicesPage() {
                               {ptConfig.label}
                             </Badge>
                           )}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
+                        </DataTable.Td>
+                        <DataTable.Td align="center">
                           <Switch
                             aria-label={`${item.isActive ? "ปิด" : "เปิด"}การใช้งาน ${item.name}`}
                             checked={item.isActive}
                             onCheckedChange={() => handleToggleActive(item.id, item.isActive)}
                           />
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
+                        </DataTable.Td>
+                        <DataTable.Td align="right">
                           {isEditing ? (
                             <div className="flex justify-end gap-1.5">
                               <Button
@@ -477,13 +463,12 @@ export default function ServicesPage() {
                               )}
                             </div>
                           )}
-                        </td>
-                      </tr>
+                        </DataTable.Td>
+                      </DataTable.Row>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
+              </DataTable.Body>
+            </DataTable.Root>
           )}
 
           {/* Error display */}

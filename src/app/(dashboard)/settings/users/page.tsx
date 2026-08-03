@@ -21,6 +21,7 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { QueryError } from "@/components/ui/query-error";
+import { DataTable } from "@/components/ui/data-table";
 import { PageShell } from "@/components/page-shell";
 import {
   Dialog,
@@ -259,36 +260,25 @@ export default function UsersSettingsPage() {
               <p className="mt-3 text-sm text-slate-400">ยังไม่มีผู้ใช้</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800">
-                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                      ชื่อ
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                      อีเมล
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">
-                      บทบาท
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">
-                      ใช้งาน
-                    </th>
-                    <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">
-                      จัดการ
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <DataTable.Root bordered={false}>
+              <DataTable.Head>
+                <tr>
+                  <DataTable.Th>ชื่อ</DataTable.Th>
+                  <DataTable.Th>อีเมล</DataTable.Th>
+                  <DataTable.Th>บทบาท</DataTable.Th>
+                  <DataTable.Th align="center">ใช้งาน</DataTable.Th>
+                  <DataTable.Th align="right">จัดการ</DataTable.Th>
+                </tr>
+              </DataTable.Head>
+              <DataTable.Body>
                   {users.map((user) => {
                     const isSelf = user.id === me?.id;
                     return (
-                      <tr
+                      <DataTable.Row
                         key={user.id}
-                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${!user.isActive ? "opacity-50" : ""}`}
+                        className={!user.isActive ? "opacity-50" : undefined}
                       >
-                        <td className="px-3 py-2.5">
+                        <DataTable.Td>
                           <span className="text-sm font-medium text-slate-900 dark:text-white">
                             {user.name}
                           </span>
@@ -297,11 +287,11 @@ export default function UsersSettingsPage() {
                               คุณ
                             </span>
                           )}
-                        </td>
-                        <td className="px-3 py-2.5 text-sm text-slate-500 dark:text-slate-400">
+                        </DataTable.Td>
+                        <DataTable.Td className="text-slate-500 dark:text-slate-400">
                           {user.email}
-                        </td>
-                        <td className="px-3 py-2.5">
+                        </DataTable.Td>
+                        <DataTable.Td>
                           {isSelf ? (
                             <span className="text-sm text-slate-700 dark:text-slate-300">
                               {ROLE_LABELS[user.role]}
@@ -326,8 +316,8 @@ export default function UsersSettingsPage() {
                               ))}
                             </Select>
                           )}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
+                        </DataTable.Td>
+                        <DataTable.Td align="center">
                           <Switch
                             checked={user.isActive}
                             disabled={isSelf || setActiveMutation.isPending}
@@ -339,8 +329,8 @@ export default function UsersSettingsPage() {
                               })
                             }
                           />
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
+                        </DataTable.Td>
+                        <DataTable.Td align="right">
                           {!isSelf && (
                             <Button
                               variant="ghost"
@@ -371,13 +361,12 @@ export default function UsersSettingsPage() {
                             <KeyRound className="mr-1" />
                             รีเซ็ตรหัส
                           </Button>
-                        </td>
-                      </tr>
+                        </DataTable.Td>
+                      </DataTable.Row>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
+              </DataTable.Body>
+            </DataTable.Root>
           )}
 
           {mutationError && (

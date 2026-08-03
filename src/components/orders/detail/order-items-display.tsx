@@ -21,7 +21,7 @@ import {
   Edit3,
   Check,
 } from "lucide-react";
-import { FOCUS_BUTTON, TINT } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 
@@ -201,15 +201,15 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                         </div>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-slate-100 dark:border-slate-800">
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">แบบ</th>
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ตำแหน่ง</th>
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
-                                <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">สี</th>
-                                <th className="pb-2 pr-4 text-right text-xs font-medium text-slate-500">ขนาด (ซม.)</th>
+                            <thead className={TABLE_HEAD_SURFACE}>
+                              <tr>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">แบบ</th>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">ตำแหน่ง</th>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">ประเภท</th>
+                                <th className="pb-2 pr-4 text-right text-xs font-medium">สี</th>
+                                <th className="pb-2 pr-4 text-right text-xs font-medium">ขนาด (ซม.)</th>
                                 {showMoney && (
-                                  <th className="pb-2 text-right text-xs font-medium text-slate-500">ราคา/ชิ้น</th>
+                                  <th className="pb-2 text-right text-xs font-medium">ราคา/ชิ้น</th>
                                 )}
                               </tr>
                             </thead>
@@ -345,11 +345,11 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                 {prod.variants && prod.variants.length > 0 && (
                                   <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
-                                      <thead>
-                                        <tr className="border-b border-slate-100 dark:border-slate-800">
-                                          <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">สี</th>
-                                          <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ไซส์</th>
-                                          <th className="pb-2 text-right text-xs font-medium text-slate-500">จำนวน</th>
+                                      <thead className={TABLE_HEAD_SURFACE}>
+                                        <tr>
+                                          <th className="pb-2 pr-4 text-left text-xs font-medium">สี</th>
+                                          <th className="pb-2 pr-4 text-left text-xs font-medium">ไซส์</th>
+                                          <th className="pb-2 text-right text-xs font-medium">จำนวน</th>
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -386,13 +386,13 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                         </div>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-slate-100 dark:border-slate-800">
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ชื่อ</th>
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">ประเภท</th>
-                                <th className="pb-2 pr-4 text-left text-xs font-medium text-slate-500">คิดราคา</th>
+                            <thead className={TABLE_HEAD_SURFACE}>
+                              <tr>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">ชื่อ</th>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">ประเภท</th>
+                                <th className="pb-2 pr-4 text-left text-xs font-medium">คิดราคา</th>
                                 {showMoney && (
-                                  <th className="pb-2 text-right text-xs font-medium text-slate-500">ราคา</th>
+                                  <th className="pb-2 text-right text-xs font-medium">ราคา</th>
                                 )}
                               </tr>
                             </thead>

@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ResponsiveList } from "@/components/ui/responsive-list";
 import { StatCard } from "@/components/ui/stat-card";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -273,15 +274,12 @@ function WhtRegisterPageContent() {
         </ToolbarGroup>
       </Toolbar>
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-16 rounded-2xl" />
-          ))}
-        </div>
-      ) : list.length === 0 ? (
-        <div className="card-surface rounded-2xl">
-          {hasSearch ? (
+      {/* โหลด/ว่าง/สลับตาราง↔การ์ดที่ lg — ResponsiveList จัดการ (error หลักอยู่ที่ PageShell แล้ว) */}
+      <ResponsiveList
+        items={rows}
+        isLoading={isLoading}
+        emptyState={
+          hasSearch ? (
             <EmptyState
               icon={ReceiptText}
               title="ไม่พบรายการที่ค้นหา"
@@ -299,12 +297,10 @@ function WhtRegisterPageContent() {
               title="ยังไม่มีรายการ"
               description="แถวทะเบียนจะเกิดอัตโนมัติเมื่อบันทึกรับเงินที่มีหัก ณ ที่จ่าย"
             />
-          )}
-        </div>
-      ) : (
-        <>
-          {/* ── จอใหญ่ = ตาราง ── */}
-          <DataTable.Root className="hidden lg:block">
+          )
+        }
+        renderDesktop={(items) => (
+          <DataTable.Root>
             <DataTable.Head>
               <tr>
                 <DataTable.Th>วันที่รับเงิน</DataTable.Th>
@@ -320,7 +316,7 @@ function WhtRegisterPageContent() {
               </tr>
             </DataTable.Head>
             <DataTable.Body>
-              {list.map((row) => (
+              {items.map((row) => (
                 <DataTable.Row key={row.id}>
                   <DataTable.Td className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
                     {formatDate(row.payment.createdAt)}
@@ -411,10 +407,10 @@ function WhtRegisterPageContent() {
               ))}
             </DataTable.Body>
           </DataTable.Root>
-
-          {/* ── มือถือ/แท็บเล็ต = การ์ด ── */}
-          <div className="space-y-3 lg:hidden">
-            {list.map((row) => (
+        )}
+        renderMobile={(items) => (
+          <div className="space-y-3">
+            {items.map((row) => (
               <div
                 key={row.id}
                 className="card-surface rounded-2xl p-4"
@@ -498,8 +494,8 @@ function WhtRegisterPageContent() {
               </div>
             ))}
           </div>
-        </>
-      )}
+        )}
+      />
 
       {/* ── Dialog บันทึกรับหนังสือรับรอง ── */}
       <Dialog open={markTarget !== null} onOpenChange={(open) => !open && setMarkTarget(null)}>

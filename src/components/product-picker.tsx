@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { trpc } from "@/lib/trpc";
 import { cn, formatCurrency } from "@/lib/utils";
-import { FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, RADIUS } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, RADIUS, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -314,10 +314,10 @@ export function ProductPickerDialog({
 
                       {/* Expanded: variant selection with checkboxes + qty */}
                       {isExpanded && product.variants.length > 0 && (
-                        <div className="mx-1 mb-1 rounded-xl border border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50 sm:ml-10 sm:mr-3">
+                        <div className="mx-1 mb-1 overflow-hidden rounded-xl border border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50 sm:ml-10 sm:mr-3">
                           <table className="block w-full text-xs sm:table sm:table-fixed">
-                            <thead className="hidden sm:table-header-group">
-                              <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                            <thead className={cn(TABLE_HEAD_SURFACE, "hidden sm:table-header-group")}>
+                              <tr>
                                 <th scope="col" aria-label="เลือก" className="w-9 px-2 py-1.5" />
                                 <th className="px-3 py-1.5 text-left font-medium">SKU</th>
                                 <th className="w-[14%] px-3 py-1.5 text-left font-medium">สี</th>

@@ -28,6 +28,7 @@ import { permAllows } from "@/lib/permissions";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
+import { DataTable } from "@/components/ui/data-table";
 import { DASHED } from "@/components/ui/tokens";
 import { PageShell } from "@/components/page-shell";
 
@@ -307,183 +308,181 @@ export default function PatternsPage() {
           ) : !patterns || patterns.length === 0 ? (
             <EmptyState icon={Scissors} title="ยังไม่มีแพทเทิร์น" description="เพิ่มแพทเทิร์นสำเร็จรูปเพื่อใช้ซ้ำในออเดอร์ตัดเย็บ" />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800">
-                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">ชื่อ</th>
-                    <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium uppercase text-slate-500">ประเภท</th>
-                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">ทรงคอ</th>
-                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">แขน</th>
-                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">ฟิต</th>
-                    <th scope="col" className="px-3 py-2.5 text-center text-xs font-medium uppercase text-slate-500">สถานะ</th>
-                    {(canEdit || canDelete) && (
-                      <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium uppercase text-slate-500">จัดการ</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {patterns.map((p) => {
-                    const isEditing = canEdit && editingId === p.id;
-                    return (
-                      <tr
-                        key={p.id}
-                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${!p.isActive ? "opacity-50" : ""}`}
-                      >
-                        <td className="px-3 py-2.5">
-                          {isEditing ? (
-                            <Input size="sm"
-                              aria-label={`ชื่อแพทเทิร์น ${p.name}`}
-                              value={editData.name ?? p.name}
-                              onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                            />
-                          ) : (
-                            <div>
-                              <span className="text-sm font-medium text-slate-900 dark:text-white">
-                                {p.name}
-                              </span>
-                              {p.fileUrl && (
-                                <a
-                                  href={p.fileUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={cn(CONTROL_MIN_H, "ml-2 inline-flex items-center text-xs text-blue-600 hover:underline dark:text-blue-400")}
-                                >
-                                  ดูไฟล์
-                                </a>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-sm text-slate-500">
-                          {p.productType ? (PRODUCT_TYPES[p.productType] ?? p.productType) : "-"}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          {isEditing ? (
-                            <Select size="sm"
-                              aria-label={`ทรงคอของ ${p.name}`}
-                              value={editData.collarType ?? p.collarType ?? ""}
-                              onChange={(e) => setEditData({ ...editData, collarType: e.target.value })}
-                            >
-                              <option value="">-</option>
-                              {Object.entries(COLLAR_TYPES).map(([k, v]) => (
-                                <option key={k} value={k}>{v}</option>
-                              ))}
-                            </Select>
-                          ) : (
-                            <span className="text-xs">
-                              {p.collarType ? (COLLAR_TYPES[p.collarType] ?? p.collarType) : "-"}
+            <DataTable.Root bordered={false}>
+              <DataTable.Head>
+                <tr>
+                  <DataTable.Th>ชื่อ</DataTable.Th>
+                  <DataTable.Th>ประเภท</DataTable.Th>
+                  <DataTable.Th align="center">ทรงคอ</DataTable.Th>
+                  <DataTable.Th align="center">แขน</DataTable.Th>
+                  <DataTable.Th align="center">ฟิต</DataTable.Th>
+                  <DataTable.Th align="center">สถานะ</DataTable.Th>
+                  {(canEdit || canDelete) && (
+                    <DataTable.Th align="right">จัดการ</DataTable.Th>
+                  )}
+                </tr>
+              </DataTable.Head>
+              <DataTable.Body>
+                {patterns.map((p) => {
+                  const isEditing = canEdit && editingId === p.id;
+                  return (
+                    <DataTable.Row
+                      key={p.id}
+                      className={!p.isActive ? "opacity-50" : undefined}
+                    >
+                      <DataTable.Td>
+                        {isEditing ? (
+                          <Input size="sm"
+                            aria-label={`ชื่อแพทเทิร์น ${p.name}`}
+                            value={editData.name ?? p.name}
+                            onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                          />
+                        ) : (
+                          <div>
+                            <span className="text-sm font-medium text-slate-900 dark:text-white">
+                              {p.name}
                             </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          {isEditing ? (
-                            <Select size="sm"
-                              aria-label={`แขนของ ${p.name}`}
-                              value={editData.sleeveType ?? p.sleeveType ?? ""}
-                              onChange={(e) => setEditData({ ...editData, sleeveType: e.target.value })}
-                            >
-                              <option value="">-</option>
-                              {Object.entries(SLEEVE_TYPES).map(([k, v]) => (
-                                <option key={k} value={k}>{v}</option>
-                              ))}
-                            </Select>
-                          ) : (
-                            <span className="text-xs">
-                              {p.sleeveType ? (SLEEVE_TYPES[p.sleeveType] ?? p.sleeveType) : "-"}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          {isEditing ? (
-                            <Select size="sm"
-                              aria-label={`ฟิตของ ${p.name}`}
-                              value={editData.bodyFit ?? p.bodyFit ?? ""}
-                              onChange={(e) => setEditData({ ...editData, bodyFit: e.target.value })}
-                            >
-                              <option value="">-</option>
-                              {Object.entries(BODY_FITS).map(([k, v]) => (
-                                <option key={k} value={k}>{v}</option>
-                              ))}
-                            </Select>
-                          ) : (
-                            <span className="text-xs">
-                              {p.bodyFit ? (BODY_FITS[p.bodyFit] ?? p.bodyFit) : "-"}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          {canEdit ? (
-                            <Switch
-                              checked={p.isActive}
-                              aria-label={`${p.isActive ? "ปิด" : "เปิด"}ใช้งานแพทเทิร์น ${p.name}`}
-                              onCheckedChange={() => toggleActive.mutate({ id: p.id, isActive: !p.isActive })}
-                            />
-                          ) : (
-                            <Badge variant={p.isActive ? "success" : "default"} size="sm">
-                              {p.isActive ? "ใช้งาน" : "ปิด"}
-                            </Badge>
-                          )}
-                        </td>
-                        {(canEdit || canDelete) && (
-                        <td className="px-3 py-2.5 text-right">
-                          {isEditing ? (
-                            <div className="flex justify-end gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleSaveEdit}
-                                disabled={updatePattern.isPending}
-                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                                aria-label={`บันทึกการแก้ไข ${p.name}`}
+                            {p.fileUrl && (
+                              <a
+                                href={p.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={cn(CONTROL_MIN_H, "ml-2 inline-flex items-center text-xs text-blue-600 hover:underline dark:text-blue-400")}
                               >
-                                <Check />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => { setEditingId(null); setEditData({}); }}
-                                className="h-7 w-7 p-0"
-                                aria-label={`ยกเลิกการแก้ไข ${p.name}`}
-                              >
-                                <X />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex justify-end gap-1.5">
-                              {canEdit && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => { setEditingId(p.id); setEditData({}); }}
-                                  className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600"
-                                  aria-label={`แก้ไขแพทเทิร์น ${p.name}`}
-                                >
-                                  <Pencil />
-                                </Button>
-                              )}
-                              {canDelete && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDelete(p.id, p.name)}
-                                  disabled={deletePattern.isPending}
-                                  className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
-                                  aria-label={`ลบแพทเทิร์น ${p.name}`}
-                                >
-                                  <Trash2 />
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                                ดูไฟล์
+                              </a>
+                            )}
+                          </div>
                         )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      </DataTable.Td>
+                      <DataTable.Td className="text-slate-500">
+                        {p.productType ? (PRODUCT_TYPES[p.productType] ?? p.productType) : "-"}
+                      </DataTable.Td>
+                      <DataTable.Td align="center">
+                        {isEditing ? (
+                          <Select size="sm"
+                            aria-label={`ทรงคอของ ${p.name}`}
+                            value={editData.collarType ?? p.collarType ?? ""}
+                            onChange={(e) => setEditData({ ...editData, collarType: e.target.value })}
+                          >
+                            <option value="">-</option>
+                            {Object.entries(COLLAR_TYPES).map(([k, v]) => (
+                              <option key={k} value={k}>{v}</option>
+                            ))}
+                          </Select>
+                        ) : (
+                          <span className="text-xs">
+                            {p.collarType ? (COLLAR_TYPES[p.collarType] ?? p.collarType) : "-"}
+                          </span>
+                        )}
+                      </DataTable.Td>
+                      <DataTable.Td align="center">
+                        {isEditing ? (
+                          <Select size="sm"
+                            aria-label={`แขนของ ${p.name}`}
+                            value={editData.sleeveType ?? p.sleeveType ?? ""}
+                            onChange={(e) => setEditData({ ...editData, sleeveType: e.target.value })}
+                          >
+                            <option value="">-</option>
+                            {Object.entries(SLEEVE_TYPES).map(([k, v]) => (
+                              <option key={k} value={k}>{v}</option>
+                            ))}
+                          </Select>
+                        ) : (
+                          <span className="text-xs">
+                            {p.sleeveType ? (SLEEVE_TYPES[p.sleeveType] ?? p.sleeveType) : "-"}
+                          </span>
+                        )}
+                      </DataTable.Td>
+                      <DataTable.Td align="center">
+                        {isEditing ? (
+                          <Select size="sm"
+                            aria-label={`ฟิตของ ${p.name}`}
+                            value={editData.bodyFit ?? p.bodyFit ?? ""}
+                            onChange={(e) => setEditData({ ...editData, bodyFit: e.target.value })}
+                          >
+                            <option value="">-</option>
+                            {Object.entries(BODY_FITS).map(([k, v]) => (
+                              <option key={k} value={k}>{v}</option>
+                            ))}
+                          </Select>
+                        ) : (
+                          <span className="text-xs">
+                            {p.bodyFit ? (BODY_FITS[p.bodyFit] ?? p.bodyFit) : "-"}
+                          </span>
+                        )}
+                      </DataTable.Td>
+                      <DataTable.Td align="center">
+                        {canEdit ? (
+                          <Switch
+                            checked={p.isActive}
+                            aria-label={`${p.isActive ? "ปิด" : "เปิด"}ใช้งานแพทเทิร์น ${p.name}`}
+                            onCheckedChange={() => toggleActive.mutate({ id: p.id, isActive: !p.isActive })}
+                          />
+                        ) : (
+                          <Badge variant={p.isActive ? "success" : "default"} size="sm">
+                            {p.isActive ? "ใช้งาน" : "ปิด"}
+                          </Badge>
+                        )}
+                      </DataTable.Td>
+                      {(canEdit || canDelete) && (
+                      <DataTable.Td align="right">
+                        {isEditing ? (
+                          <div className="flex justify-end gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleSaveEdit}
+                              disabled={updatePattern.isPending}
+                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                              aria-label={`บันทึกการแก้ไข ${p.name}`}
+                            >
+                              <Check />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setEditingId(null); setEditData({}); }}
+                              className="h-7 w-7 p-0"
+                              aria-label={`ยกเลิกการแก้ไข ${p.name}`}
+                            >
+                              <X />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end gap-1.5">
+                            {canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => { setEditingId(p.id); setEditData({}); }}
+                                className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600"
+                                aria-label={`แก้ไขแพทเทิร์น ${p.name}`}
+                              >
+                                <Pencil />
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(p.id, p.name)}
+                                disabled={deletePattern.isPending}
+                                className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
+                                aria-label={`ลบแพทเทิร์น ${p.name}`}
+                              >
+                                <Trash2 />
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </DataTable.Td>
+                      )}
+                    </DataTable.Row>
+                  );
+                })}
+              </DataTable.Body>
+            </DataTable.Root>
           )}
 
           {(createPattern.isError || updatePattern.isError || deletePattern.isError) && (
