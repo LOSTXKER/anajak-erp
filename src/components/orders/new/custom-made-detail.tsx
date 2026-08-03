@@ -58,7 +58,7 @@ function QuickAddPattern({
   };
 
   return (
-    <div className={cn("mt-2 bg-surface p-3", RADIUS.item)}>
+    <div className={cn("mt-2 p-3", RADIUS.item)}>
       <span className="mb-2 block text-xs font-medium text-secondary">สร้างแพทเทิร์นใหม่</span>
       <div className="flex items-end gap-2">
         <div className="flex-1 space-y-1.5">

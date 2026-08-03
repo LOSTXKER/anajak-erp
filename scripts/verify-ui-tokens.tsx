@@ -44,20 +44,18 @@ function check(name: string, html: string, must: string[], mustNot: string[] = [
 const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
 
-// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้น+ขอบ+โฟกัสชุดเดียว
-// แก้ 2026-08-03 รอบสอง (เบสสั่ง "ช่องที่ต้อง fill ไม่ต้องซ่อน · บางช่องถูกกลืนไปกับ
-// พื้นหลังสีเทา"): กลับมาเป็น **พื้นขาว + เส้นบาง** — รอบก่อนถอดขอบแล้วใช้พื้นเทาจม
-// ซึ่งต่างจากพื้นหน้า/กล่องย่อยแค่ 1-6 ขั้น คนเลยไม่รู้ว่าตรงนั้นกรอกได้
-// (เส้นที่ลดไปรอบก่อนยังลดอยู่ — ที่ถอดคือขอบของ "กล่องครอบ" ไม่ใช่ขอบช่องกรอก)
+// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้น+โฟกัสชุดเดียว
+// แก้ 2026-08-04 (เบสเคาะ "คือไม่ต้องมีเส้นเยอะ"): ไม่มีเส้นขอบ · เห็นว่าเป็นช่อง
+// ด้วยพื้น `--field-bg` ที่บริบทเลือกสีให้ (การ์ดขาว→เทาจม #eceff2 · .sunk-panel→ขาว)
+// border-transparent ต้องอยู่ — FOCUS_FIELD เปลี่ยนสีขอบตอนโฟกัส
 const FIELD = [
-  "border-slate-200",
-  "bg-surface",
-  "dark:bg-slate-950",
+  "border-transparent",
+  "bg-[var(--field-bg)]",
   "focus-visible:border-blue-500",
   "focus-visible:ring-blue-500/15",
 ];
-// ห้ามกลับไปเป็นพื้นเทาจนกลืนกับพื้นหลัง
-const FIELD_NO = ["bg-slate-100", "border-transparent"];
+// ห้ามพื้นตายตัวกลับมา — จางไป (slate-100) ก็กลืนพื้น · ขาวตายตัว (bg-surface) ก็ต้องพึ่งเส้น
+const FIELD_NO = ["bg-slate-100", "bg-surface", "border-slate-200"];
 check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-[10px]"], [...FIELD_NO, "rounded-2xl"]);
 check(
   "ช่องเลือก (Select)",
