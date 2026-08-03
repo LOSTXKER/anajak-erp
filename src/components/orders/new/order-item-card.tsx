@@ -24,7 +24,7 @@ import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
-import { DASHED, FIELD_LABEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { DASHED, FIELD_LABEL, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
 export const labelClass = FIELD_LABEL;
 
@@ -98,7 +98,7 @@ function OrderItemRow({
         </>
       )}
       {canRemove && (
-        <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveItem(itemIdx)} aria-label="ลบรายการ" className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
+        <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveItem(itemIdx)} aria-label="ลบรายการ" className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
           <Trash2 />
         </Button>
       )}
@@ -211,7 +211,7 @@ export function OrderItemCard({
               </div>
             )}
             {(!isIntake || item.prints.length > 0) && (
-              <Button type="button" variant="outline" size="sm" onClick={() => onAddPrint(itemIdx)}>
+              <Button type="button" variant="ghost" size="sm" onClick={() => onAddPrint(itemIdx)}>
                 <Plus />เพิ่มลาย
               </Button>
             )}
@@ -222,7 +222,7 @@ export function OrderItemCard({
         isIntake ? (
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onAddPrint(itemIdx)}
             className="gap-2 text-slate-600 dark:text-slate-300"
@@ -244,7 +244,7 @@ export function OrderItemCard({
         <>
           <div
             className={cn(
-              "hidden overflow-hidden rounded-xl border border-slate-200 dark:border-white/10",
+              "hidden overflow-hidden",
               isIntake ? "@2xl:block" : "@3xl:block"
             )}
           >
@@ -337,7 +337,7 @@ export function OrderItemCard({
               <Button
                 key={key}
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => {
                   if (key === "stock") onOpenPicker();
@@ -381,7 +381,7 @@ export function OrderItemCard({
           {/* พื้นที่กว้างพอ (container ≥ 2xl): ตารางหนึ่งแถวต่อสินค้า พร้อมหัวคอลัมน์ครบ */}
           <div
             className={cn(
-              "hidden overflow-hidden rounded-xl border border-slate-200 dark:border-white/10",
+              "hidden overflow-hidden",
               isIntake ? "@2xl:block" : "@3xl:block"
             )}
           >
@@ -448,7 +448,7 @@ export function OrderItemCard({
       {(!isIntake || item.addons.length > 0) && (
         <div className="mb-2 flex items-center justify-between">
           <span className={groupHeadingClass}>{isIntake ? "ส่วนเสริมในชุดงาน" : "ส่วนเสริม (Add-ons)"}</span>
-          <Button type="button" variant="outline" size="sm" onClick={() => onAddAddon(itemIdx)}>
+          <Button type="button" variant="ghost" size="sm" onClick={() => onAddAddon(itemIdx)}>
             <Plus />เพิ่มส่วนเสริม
           </Button>
         </div>
@@ -457,7 +457,7 @@ export function OrderItemCard({
         isIntake ? (
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onAddAddon(itemIdx)}
             className="gap-2 text-slate-600 dark:text-slate-300"
@@ -479,7 +479,7 @@ export function OrderItemCard({
         <>
         <div
           className={cn(
-            "hidden overflow-hidden rounded-xl border border-slate-200 dark:border-white/10",
+            "hidden overflow-hidden",
             isIntake ? "@2xl:block" : "@3xl:block"
           )}
         >
@@ -511,7 +511,7 @@ export function OrderItemCard({
                   <td className="px-1 py-1.5 align-middle"><Input aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`} value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" size="dense" /></td>
                   <td className="px-1 py-1.5 align-middle"><Select aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} size="dense"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></Select></td>
                   <td className="px-1 py-1.5 align-middle"><Input aria-label={`ราคาส่วนเสริม ${aIdx + 1}`} type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" size="dense" /></td>
-                  <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 /></Button></td>
+                  <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 /></Button></td>
                 </tr>
               ))}
             </tbody>
@@ -519,12 +519,12 @@ export function OrderItemCard({
         </div>
         <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
           {item.addons.map((addon, addonIdx) => (
-            <div key={addonIdx} className="space-y-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700/60">
+            <div key={addonIdx} className={cn("space-y-3 rounded-xl p-3", SUNK_PANEL)}>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                   ส่วนเสริม #{addonIdx + 1}
                 </p>
-                <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, addonIdx)}><Trash2 /></Button>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, addonIdx)}><Trash2 /></Button>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="ประเภท">
@@ -629,7 +629,7 @@ export function OrderItemCard({
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onAddPrint(itemIdx)}
             className="gap-2 text-slate-600 dark:text-slate-300"
@@ -639,7 +639,7 @@ export function OrderItemCard({
           </Button>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onAddAddon(itemIdx)}
             className="gap-2 text-slate-600 dark:text-slate-300"

@@ -52,7 +52,7 @@ export function OrderFeeSection({
       bordered={!embedded}
       headingLevel={embedded ? 3 : 2}
       action={embedded || fees.length > 0 ? (
-        <Button type="button" variant="outline" size="sm" onClick={onAddFee}>
+        <Button type="button" variant="ghost" size="sm" onClick={onAddFee}>
           <Plus />
           {embedded ? "เพิ่มค่าใช้จ่าย" : "เพิ่ม"}
         </Button>

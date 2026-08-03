@@ -48,7 +48,7 @@ export function ProductTableRow({
       {sourcePresentation.label}
     </Badge>
   ) : (
-    <Select
+    <Select quiet
       size="dense"
       value=""
       onChange={(e) => { if (e.target.value) updateProduct("itemSource", e.target.value); }}
@@ -95,7 +95,7 @@ export function ProductTableRow({
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Input
+              <Input quiet
                 aria-label={`ชื่อสินค้า ${prodIdx + 1}`}
                 value={product.description}
                 onChange={(e) => updateProduct("description", e.target.value)}
@@ -107,8 +107,8 @@ export function ProductTableRow({
                   <span className="text-xs text-muted">หลายไซส์ · รวม {totalQty} ตัว{variant.color ? ` · ${variant.color}` : ""}</span>
                 ) : (
                   <>
-                    <Input aria-label={`สีสินค้า ${prodIdx + 1}`} value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" size="dense" className="w-20 px-2" />
-                    <Input aria-label={`ไซส์สินค้า ${prodIdx + 1}`} value={variant.size} onChange={(e) => updateVariantField("size", e.target.value)} placeholder="ไซส์" size="dense" className="w-16 px-2" />
+                    <Input quiet aria-label={`สีสินค้า ${prodIdx + 1}`} value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" size="dense" className="w-20 px-2" />
+                    <Input quiet aria-label={`ไซส์สินค้า ${prodIdx + 1}`} value={variant.size} onChange={(e) => updateVariantField("size", e.target.value)} placeholder="ไซส์" size="dense" className="w-16 px-2" />
                   </>
                 )}
                 {canMatrix && (
@@ -131,7 +131,7 @@ export function ProductTableRow({
         {/* แพค */}
         <td className="px-1.5 py-2 align-top">
           {packagingOptions && packagingOptions.length > 0 ? (
-            <Select
+            <Select quiet
               size="dense"
               aria-label={`แพคสินค้า ${prodIdx + 1}`}
               value={product.packagingOptionId}
@@ -154,14 +154,14 @@ export function ProductTableRow({
         {/* ราคา */}
         <td className="px-1.5 py-2 align-top">
           {isCustomerProvided ? dash : (
-            <Input aria-label={`ราคาสินค้า ${prodIdx + 1}`} type="number" min={0} step={0.01} value={product.baseUnitPrice || ""} onChange={(e) => updateProduct("baseUnitPrice", parseFloat(e.target.value) || 0)} placeholder="0" size="dense" className="w-full px-2 text-right" />
+            <Input quiet aria-label={`ราคาสินค้า ${prodIdx + 1}`} type="number" min={0} step={0.01} value={product.baseUnitPrice || ""} onChange={(e) => updateProduct("baseUnitPrice", parseFloat(e.target.value) || 0)} placeholder="0" size="dense" className="w-full px-2 text-right" />
           )}
         </td>
 
         {/* ส่วนลดต่อชิ้น */}
         <td className="px-1.5 py-2 align-top">
           {isCustomerProvided ? dash : (
-            <Input aria-label={`ส่วนลดต่อชิ้น สินค้า ${prodIdx + 1}`} type="number" min={0} step={0.01} value={product.discount || ""} onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)} placeholder="0" size="dense" className="w-full px-2 text-right" />
+            <Input quiet aria-label={`ส่วนลดต่อชิ้น สินค้า ${prodIdx + 1}`} type="number" min={0} step={0.01} value={product.discount || ""} onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)} placeholder="0" size="dense" className="w-full px-2 text-right" />
           )}
         </td>
 
@@ -170,7 +170,7 @@ export function ProductTableRow({
           {multi ? (
             <div className="flex h-9 items-center justify-center text-sm font-medium text-slate-700 dark:text-slate-200">{totalQty}</div>
           ) : (
-            <Input aria-label={`จำนวนสินค้า ${prodIdx + 1}`} type="number" min={0} value={qty || ""} onChange={(e) => updateVariantField("quantity", parseInt(e.target.value) || 0)} placeholder="0" size="dense" className="w-full text-center" />
+            <Input quiet aria-label={`จำนวนสินค้า ${prodIdx + 1}`} type="number" min={0} value={qty || ""} onChange={(e) => updateVariantField("quantity", parseInt(e.target.value) || 0)} placeholder="0" size="dense" className="w-full text-center" />
           )}
         </td>
 
@@ -194,7 +194,7 @@ export function ProductTableRow({
                 </Button>
               </div>
             )}
-            <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบสินค้า ${prodIdx + 1}`} onClick={removeProduct} className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
+            <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบสินค้า ${prodIdx + 1}`} onClick={removeProduct} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
               <Trash2 />
             </Button>
           </div>

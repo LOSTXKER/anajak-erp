@@ -44,21 +44,27 @@ function check(name: string, html: string, must: string[], mustNot: string[] = [
 const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
 
-// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน ขอบ+พื้น+โฟกัสชุดเดียว
+// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้น+โฟกัสชุดเดียว
+// แก้ 2026-08-03 (เบสสั่ง "ลดเส้น ขอบทั้งเว็บ ให้ minimal"): ช่องกรอกไม่มีขอบแล้ว
+// บอกตัวเองด้วยพื้นที่จม (slate-100 / dark slate-950) แทน · ยังต้องมี border-transparent
+// ไว้ให้ FOCUS_FIELD เปลี่ยนสีขอบตอนโฟกัสได้ และความสูงไม่ขยับ 2px
 const FIELD = [
-  "border-slate-200/70",
-  "bg-white",
+  "border-transparent",
+  "bg-slate-100",
   "dark:bg-slate-950",
   "focus-visible:border-blue-500",
   "focus-visible:ring-blue-500/15",
 ];
-check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-2xl"]);
+// ห้ามขอบถาวรกลับมา — เขียนไว้ในลิสต์ "ต้องไม่มี" ของทุกช่องกรอกด้านล่าง
+const FIELD_NO = ["border-slate-200/70", "bg-white"];
+check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-2xl"], FIELD_NO);
 check(
   "ช่องเลือก (Select)",
   renderToStaticMarkup(<Select value="" onChange={() => {}}><option value="">ก</option></Select>),
   [...h, ...FIELD, "rounded-2xl"],
+  FIELD_NO,
 );
-check("กล่องข้อความ (Textarea)", renderToStaticMarkup(<Textarea />), [...FIELD, "rounded-2xl", "min-h-24"]);
+check("กล่องข้อความ (Textarea)", renderToStaticMarkup(<Textarea />), [...FIELD, "rounded-2xl", "min-h-24"], FIELD_NO);
 
 // ② ทรงแคปซูลสำหรับแถบเครื่องมือ
 check("ช่องกรอกทรงแคปซูล", renderToStaticMarkup(<Input shape="pill" />), ["rounded-full"], ["rounded-2xl"]);

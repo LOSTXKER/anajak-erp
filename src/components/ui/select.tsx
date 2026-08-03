@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
 import {
   FIELD_SURFACE,
+  FIELD_SURFACE_QUIET,
   FOCUS_FIELD,
   MENU_ITEM,
   OVERLAY_PANEL,
@@ -93,6 +94,8 @@ export type SelectProps = Omit<
   onChange?: (event: { target: { value: string } }) => void;
   /** ข้อความตอนยังไม่ได้เลือก — ไม่ใส่ก็ขึ้น "เลือก…" */
   placeholder?: string;
+  /** ช่องในตารางแก้ข้อมูล — โปร่งสนิท เห็นพื้นเฉพาะตอนชี้/โฟกัส (ดู Input) */
+  quiet?: boolean;
 };
 
 const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
@@ -109,6 +112,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       name,
       id,
       placeholder,
+      quiet = false,
       "aria-label": ariaLabel,
       ...rest
     },
@@ -134,7 +138,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           aria-required={required || undefined}
           className={cn(
             controlShapeClass(shape),
-            FIELD_SURFACE,
+            quiet ? FIELD_SURFACE_QUIET : FIELD_SURFACE,
             FOCUS_FIELD,
             "flex w-full items-center justify-between gap-2 px-3 py-1 text-base transition-colors sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
             // หลังก้อนพื้นฐานเสมอ — twMerge ตัดสินจาก "ตัวหลังชนะ" (ดูคำอธิบายเดียวกันใน input.tsx)

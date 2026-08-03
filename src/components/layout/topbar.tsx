@@ -180,7 +180,7 @@ export function Topbar() {
                   <div
                     role="status"
                     aria-label="กำลังโหลดการแจ้งเตือน"
-                    className="divide-y divide-slate-100 dark:divide-slate-800"
+                    className=""
                   >
                     {[0, 1, 2].map((index) => (
                       <div key={index} className="flex gap-2 px-3.5 py-3">

@@ -17,7 +17,7 @@ import { trpc } from "@/lib/trpc";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { Field } from "@/components/ui/field";
-import { DASHED, RADIUS } from "@/components/ui/tokens";
+import { DASHED, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +58,7 @@ function QuickAddPattern({
   };
 
   return (
-    <div className={cn("mt-2 border border-slate-200 bg-surface p-3 dark:border-white/10", RADIUS.item)}>
+    <div className={cn("mt-2 bg-surface p-3", RADIUS.item)}>
       <span className="mb-2 block text-xs font-medium text-secondary">สร้างแพทเทิร์นใหม่</span>
       <div className="flex items-end gap-2">
         <div className="flex-1 space-y-1.5">
@@ -127,7 +127,7 @@ export function CustomMadeDetail({
        ② <Alert> ตั้ง role="alert" = พื้นที่ประกาศสด ที่ ui/tokens.ts เขียนกติกาไว้ว่า
           "ของที่กดได้/โฟกัสได้ไม่ควรอยู่ในนั้น" — ทั้งกล่องนี้เป็นช่องกรอกล้วน
        (เบสเคาะจาก mockup 2026-08-03) */
-    <div className={cn("bg-slate-100 p-3 dark:bg-white/[0.06]", RADIUS.inner)}>
+    <div className={cn(SUNK_PANEL, "p-3", RADIUS.inner)}>
       {/* Pattern section */}
       <div className="mb-3">
         <div className="mb-2 flex items-center gap-2">
@@ -175,7 +175,7 @@ export function CustomMadeDetail({
               </p>
             )}
             {selectedPattern && (
-              <div className={cn("mt-2 flex items-start gap-3 border border-slate-200 bg-surface p-2 dark:border-white/10", RADIUS.item)}>
+              <div className={cn("mt-2 flex items-start gap-3 bg-surface p-2", RADIUS.item)}>
                 {selectedPattern.thumbnailUrl && (
                   <img
                     src={selectedPattern.thumbnailUrl}

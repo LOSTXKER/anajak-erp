@@ -306,7 +306,7 @@ export default function DashboardPage() {
             />
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+          <div className="">
             {data.recentOrders.map((o) => (
               <Link
                 key={o.id}

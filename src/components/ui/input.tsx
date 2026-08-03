@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { CONTROL_H, CONTROL_H_SM } from "./control-size";
 import {
   FIELD_SURFACE,
+  FIELD_SURFACE_QUIET,
   FOCUS_FIELD,
   controlShapeClass,
   type ControlShape,
@@ -22,15 +23,18 @@ const Input = React.forwardRef<
   Omit<React.ComponentProps<"input">, "size"> & {
     shape?: ControlShape;
     size?: InputSize;
+    /** ช่องในตารางแก้ข้อมูล — โปร่งสนิท เห็นพื้นเฉพาะตอนชี้/โฟกัส
+     *  (หลายช่องเรียงแถวเดียวกัน ถ้าเติมพื้นทุกช่องจะได้ก้อนเทาแย่งสายตากับข้อมูล) */
+    quiet?: boolean;
   }
 >(
-  ({ className, type, shape, size = "default", ...props }, ref) => {
+  ({ className, type, shape, size = "default", quiet = false, ...props }, ref) => {
     return (
       <input
         type={type}
         className={cn(
           controlShapeClass(shape),
-          FIELD_SURFACE,
+          quiet ? FIELD_SURFACE_QUIET : FIELD_SURFACE,
           FOCUS_FIELD,
           "flex w-full px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
           // หลังก้อนพื้นฐานเสมอ — twMerge ตัดสินจาก "ตัวหลังชนะ" ถ้าวางก่อน text-base/sm:text-sm

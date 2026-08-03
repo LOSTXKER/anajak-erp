@@ -141,9 +141,9 @@ function StepRail({
           className={cn(
             CONTROL_MIN_H,
             RADIUS.pill,
-            "inline-flex items-center gap-2 border border-slate-200 bg-surface px-3 text-xs text-secondary transition-colors hover:border-blue-300 hover:text-strong",
-            FOCUS_BUTTON,
-            "dark:border-white/10"
+            // ไม่มีขอบ — ชิปขาวบนพื้นเทาแยกตัวเองด้วยสีพื้นอยู่แล้ว (รอบ "ลดเส้นทั้งเว็บ")
+            "inline-flex items-center gap-2 bg-surface px-3 text-xs text-secondary transition-colors hover:text-strong",
+            FOCUS_BUTTON
           )}
         >
           <span
@@ -666,7 +666,7 @@ export default function NewOrderPage() {
                   onSetItems={setItems}
                 />
               ) : (
-                <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/70 dark:divide-white/10 dark:border-white/10">
+                <div className="divide-y divide-slate-200/70 dark:divide-white/10">
                   {items.map((item, itemIdx) => (
                     <OrderItemCard
                       key={itemIdx}
@@ -697,7 +697,7 @@ export default function NewOrderPage() {
               <div className="flex justify-end">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => {
                     addItem();

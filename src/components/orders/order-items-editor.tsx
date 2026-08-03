@@ -347,7 +347,7 @@ export function OrderItemsEditor({
               compact
             />
           ) : (
-            <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/70 dark:divide-slate-800 dark:border-slate-800/60">
+            <div className="divide-y divide-slate-200/70 dark:divide-white/10">
               {items.map((item, itemIdx) => (
                 <OrderItemCard
                   key={itemIdx}
