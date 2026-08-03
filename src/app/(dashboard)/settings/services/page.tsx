@@ -10,16 +10,15 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
-import { Plus, Trash2, Pencil, X, Check, Settings, ShieldX } from "lucide-react";
+import { Plus, Trash2, Pencil, X, Check, Settings } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SegmentedControl } from "@/components/ui/segmented";
-import { EmptyState } from "@/components/ui/empty-state";
-import { QueryError } from "@/components/ui/query-error";
 import { PRICING_TYPE_LABELS } from "@/types/order-form";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // ============================================================
 // TYPES & CONSTANTS
@@ -155,69 +154,30 @@ export default function ServicesPage() {
   // RENDER
   // ============================================================
 
-  const header = (
-    <PageHeader back={{ href: "/settings", label: "ย้อนกลับ" }}
+  return (
+    <PageShell
+      back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการบริการ"
       description="ตั้งค่ารายการบริการเสริม, การสกรีน, และค่าบริการ"
-     />
-  );
-
-  if (meQuery.isError) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="ตรวจสอบสิทธิ์หน้าจัดการบริการไม่ได้"
-          onRetry={() => void meQuery.refetch()}
-        />
-      </div>
-    );
-  }
-
-  if (meQuery.isLoading) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Skeleton className="h-72 rounded-2xl" />
-      </div>
-    );
-  }
-
-  if (!canManage) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <Card>
-          <CardContent>
-            <EmptyState
-              icon={ShieldX}
-              title="ไม่มีสิทธิ์จัดการบริการ"
-              description="หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น"
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // && !items: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
-  if (isError && !items) {
-    return (
-      <div className="space-y-6">
-        {header}
-        <QueryError
-          message="โหลดรายการบริการไม่สำเร็จ"
-          onRetry={() => void refetch()}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      {header}
-
+      loading={meQuery.isLoading}
+      error={
+        meQuery.isError
+          ? {
+              message: "ตรวจสอบสิทธิ์หน้าจัดการบริการไม่ได้",
+              onRetry: () => void meQuery.refetch(),
+            }
+          : // && !items: refetch เบื้องหลังล้มระหว่างกรอกฟอร์มสร้าง/แก้ ห้ามถอนหน้า
+            isError && !items
+            ? { message: "โหลดรายการบริการไม่สำเร็จ", onRetry: () => void refetch() }
+            : null
+      }
+      denied={
+        !canManage && {
+          title: "ไม่มีสิทธิ์จัดการบริการ",
+          description: "หน้านี้เปิดให้ผู้ที่ได้รับสิทธิ์ตั้งค่าระบบเท่านั้น",
+        }
+      }
+    >
       {/* Tabs */}
       <SegmentedControl
         value={activeTab}
@@ -537,6 +497,6 @@ export default function ServicesPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }
