@@ -174,6 +174,13 @@ export const TINT = {
    ไม่ใช้กรองรายการ — มันดูเหมือนแท็บ คนจะนึกว่ากดแล้วเปลี่ยนหน้า
    ------------------------------------------------------------ */
 
+/** ยอดเงินสรุป — สูตรเดียวทุกจุดที่โชว์ "ยอดจริง" (benchmark 2026-08-04:
+ *  Stripe ใช้ display-amount สูตรเดียวจนคนจำได้ว่าเลขแบบนี้ = ยอดจริง
+ *  ของเราเคยมี 4 หน้าตา: 16/20/20/24px + จุดหนึ่งเป็นสีน้ำเงิน)
+ *  ป้ายกำกับใช้ DISPLAY_AMOUNT_LABEL คู่กันเสมอ */
+export const DISPLAY_AMOUNT = "text-xl font-semibold tabular-nums text-strong";
+export const DISPLAY_AMOUNT_LABEL = "text-xs text-muted";
+
 /** label เบานอก <Field> — ใช้ในแถวตาราง/ช่องย่อยที่ Field เต็มตัวใหญ่เกิน
  *  (Field ยังเป็นทางหลักของฟอร์ม — ตัวนี้สำหรับ editable grid เท่านั้น)
  *  เดิม labelClass ถูกประกาศซ้ำ 3 ไฟล์ค่าไม่เท่ากัน (บางไฟล์ไม่มี font-medium) */

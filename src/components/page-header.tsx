@@ -84,13 +84,15 @@ export function PageHeader({
           )}
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
+              <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">
                 {title}
               </h1>
               {titleBadge}
             </div>
             {description && (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              /* 14px ไม่ใช่ 12px — "คำอธิบายทั้งหน้า" ต้องขั้นถัดลงจาก h1 24px
+                 ไม่ใช่แต่งตัวเหมือน meta ในแถวตาราง (benchmark 2026-08-04) */
+              <p className="text-sm text-muted">
                 {description}
               </p>
             )}

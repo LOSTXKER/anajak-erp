@@ -1,4 +1,10 @@
 @import "tailwindcss";
+/* เครื่องยนต์ animation ของ overlay ทั้งเว็บ (เบสอนุมัติ 2026-08-04) —
+   benchmark audit พบว่าคลาส animate-in/fade-in/zoom-in ถูกเขียนรอไว้ 9 ไฟล์
+   แต่ไม่เคยมีปลั๊กอินให้มันทำงาน → dialog/เมนูเด้งโผล่ 0ms มาตลอด
+   reduced-motion ปลอดภัยสองชั้น: บล็อก prefers-reduced-motion ด้านล่าง +
+   คลาส motion-reduce:animate-none ที่จุดใช้ */
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -25,25 +31,41 @@
      น้ำหนักใช้ 3 ระดับพอ: 400 ตัวหนังสือ · 500 ชื่อรายการ/ป้าย · 600 หัวข้อ+ตัวเลขเด่น
      (700 เลิกใช้ — Prompt ที่ 700 หนาจนแย่งสายตากับหัวข้อ)
 
-     ความสูงบรรทัดคงตามค่าเดิมของ Tailwind ทุกขั้นที่ระบบใช้อยู่ — จงใจ ไม่ให้ความสูง
-     ของแถว/ตาราง/ป้ายขยับตามไปด้วย · แก้ที่ "ขนาด" อย่างเดียวตามโจทย์
+     ความสูงบรรทัด: ขั้น 2xs..xl คงค่าเดิมของ Tailwind — จงใจ ไม่ให้ความสูงแถว/ตาราง
+     ขยับ · ขั้น display (2xl/3xl = ชื่อหน้า/ตัวเลขเด่น ไม่อยู่ในแถวตาราง) ฝัง lh แน่น
+     ในตัว (1.2/1.15) แทนที่จะให้จุดใช้ patch leading-tight เอง — audit 2026-08-04 พบ
+     4 จุด patch เอง อีก 6 จุดลืม ได้ lh คนละค่าบน object ความหมายเดียวกัน
+     (3xl ห้ามต่ำกว่า 1.15 — วรรณยุกต์ชั้นบนของ Prompt จะชนบรรทัด)
+
+     ช่องไฟตัวอักษร (letter-spacing) เป็นบันไดตามขนาด ฝังในคู่ต่อขั้นเช่นกัน
+     (audit 2026-08-04: เดิม tracking-tight ค่าเดียวโรยมือ 11 จุด — หัว 16px กับ
+     ตัวเลข 28px ได้ -0.025em เท่ากัน ส่วนตัวเล็ก 11px โดนบีบจาก body เหมาอีกชั้น):
+     ยิ่งใหญ่ยิ่งบีบ ยิ่งเล็กยิ่งปล่อย — 2xl/3xl:-0.02em · sm..xl:-0.01em · 2xs/xs:0
      ============================================================ */
   --text-2xs: 11px;
   --text-2xs--line-height: 1rem;
+  --text-2xs--letter-spacing: 0em;
   --text-xs: 12px;
   --text-xs--line-height: 1rem;
+  --text-xs--letter-spacing: 0em;
   --text-sm: 14px;
   --text-sm--line-height: 1.25rem;
+  --text-sm--letter-spacing: -0.01em;
   --text-base: 16px;
   --text-base--line-height: 1.5rem;
+  --text-base--letter-spacing: -0.01em;
   --text-lg: 18px;
   --text-lg--line-height: 1.75rem;
+  --text-lg--letter-spacing: -0.01em;
   --text-xl: 20px;
   --text-xl--line-height: 1.75rem;
+  --text-xl--letter-spacing: -0.01em;
   --text-2xl: 24px;
-  --text-2xl--line-height: 2rem;
+  --text-2xl--line-height: 1.2;
+  --text-2xl--letter-spacing: -0.02em;
   --text-3xl: 28px;
-  --text-3xl--line-height: 2.25rem;
+  --text-3xl--line-height: 1.15;
+  --text-3xl--letter-spacing: -0.02em;
 
   /* ============================================================
      ชั้น PRIMITIVE — สีแบรนด์ Anajak (P1.0)

@@ -79,7 +79,7 @@ export function UserMenu() {
             <DropdownMenu.Portal>
               <DropdownMenu.SubContent
                 sideOffset={4}
-                className={cn(OVERLAY_PANEL, "z-50 min-w-[150px] p-2")}
+                className={cn(OVERLAY_PANEL, "z-50 min-w-[150px] p-2", "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95")}
               >
                 <DropdownMenu.Item
                   className={menuItemClass}

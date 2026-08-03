@@ -60,7 +60,7 @@ export default function FactoryBoardPage() {
     <div className="flex h-screen flex-col gap-4 p-6">
       {/* หัวจอ — ชื่อ + เวลาอัปเดต */}
       <header className="flex items-baseline justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-semibold">
           ANAJAK <span className="text-neutral-500">·</span> สายการผลิตวันนี้
         </h1>
         <div className="flex items-baseline gap-5 text-neutral-400">

@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { OrderStatusBadge } from "@/components/order-status-badge";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, formatBaht } from "@/lib/utils";
 import {
   CUSTOMER_STATUS_LABELS,
   INTERNAL_STATUS_LABELS,
@@ -654,7 +654,7 @@ function OrdersPageContent() {
                   </DataTable.Td>
                   <DataTable.Td>
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-900 dark:text-white">
+                      <p className="truncate text-slate-900 dark:text-white">
                         {order.customer?.name ?? "—"}
                         {order.orderType === "CUSTOM" && (
                           <Badge variant="accent" size="sm" className="ml-1.5">
@@ -691,9 +691,11 @@ function OrdersPageContent() {
                   {canSeeMoney && (
                     <DataTable.Td
                       align="right"
-                      className="font-medium tabular-nums text-slate-900 dark:text-white"
+                      // เงินในคอลัมน์ = ทศนิยม 2 ตำแหน่งเสมอ ให้หลักสตางค์เรียงแนวดิ่ง
+                      // น้ำหนักปกติ — คอลัมน์นำของแถวคือเลขออเดอร์ตัวเดียว (benchmark 2026-08-04)
+                      className="tabular-nums text-slate-900 dark:text-white"
                     >
-                      {formatCurrency(order.totalAmount ?? 0)}
+                      {formatBaht(order.totalAmount ?? 0)}
                     </DataTable.Td>
                   )}
                   {showPayment && (

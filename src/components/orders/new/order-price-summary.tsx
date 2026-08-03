@@ -8,6 +8,7 @@ import { Section } from "@/components/ui/section";
 import { formatCurrency } from "@/lib/utils";
 import { itemHasContent, type OrderItemForm } from "@/types/order-form";
 import type { MarginEstimate } from "@/server/services/margin-estimate";
+import { DISPLAY_AMOUNT } from "@/components/ui/tokens";
 
 interface PricingSummary {
   subtotalItems: number;
@@ -280,7 +281,7 @@ export function OrderPriceSummary({
             </span>
           )}
         </span>
-        <span className="text-xl font-semibold tabular-nums text-slate-900 dark:text-white">
+        <span className={DISPLAY_AMOUNT}>
           {formatCurrency(pricingSummary.grandTotal)}
         </span>
       </div>

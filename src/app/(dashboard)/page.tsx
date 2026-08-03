@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatCurrency, formatDateShort, BANGKOK_TZ } from "@/lib/utils";
+import { cn, formatCurrency, formatDateShort, BANGKOK_TZ, formatBaht } from "@/lib/utils";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
@@ -53,7 +53,7 @@ function PulseCard({
       </p>
       <p
         className={cn(
-          "mt-2.5 text-3xl font-semibold leading-none tracking-tight tabular-nums",
+          "mt-2.5 text-3xl font-semibold tabular-nums",
           tone === "danger"
             ? "text-red-600 dark:text-red-400"
             : tone === "warning"
@@ -315,7 +315,7 @@ export default function DashboardPage() {
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                    <p className="text-sm font-medium tabular-nums text-slate-900 dark:text-white">
                       {o.orderNumber}
                     </p>
                     {o.printLabel && (
@@ -330,8 +330,8 @@ export default function DashboardPage() {
                 </div>
                 <div className="shrink-0 text-right">
                   {o.totalAmount != null && (
-                    <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
-                      {formatCurrency(o.totalAmount)}
+                    <p className="text-sm tabular-nums text-slate-900 dark:text-white">
+                      {formatBaht(o.totalAmount)}
                     </p>
                   )}
                   {o.deadline && (
@@ -416,8 +416,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-medium tabular-nums text-slate-900 dark:text-white">
-                    {formatCurrency(customer.totalSpent)}
+                  <p className="text-sm tabular-nums text-slate-900 dark:text-white">
+                    {formatBaht(customer.totalSpent)}
                   </p>
                   <p className="text-xs text-slate-400">
                     {customer.totalOrders} ออเดอร์

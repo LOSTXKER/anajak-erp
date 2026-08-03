@@ -63,7 +63,7 @@ import {
 } from "@/components/orders/new";
 import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
 import { Badge } from "@/components/ui/badge";
-import { FOCUS_BUTTON, RADIUS, TINT } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, RADIUS, TINT, DISPLAY_AMOUNT } from "@/components/ui/tokens";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 
 /** id ของ 4 ตอน — ใช้ร่วมกันระหว่างหัวข้อการ์ดกับแถบขั้นตอนที่กดกระโดด */
@@ -812,7 +812,7 @@ export default function NewOrderPage() {
                   {/* ชื่อเดียวกับบรรทัดสุดท้ายของ "สรุปยอด" — เดิมเรียก "ยอดรวม" กับ
                       "ยอดรวมทั้งหมด" คนละที่คนละขนาด อ่านแล้วไม่แน่ใจว่าเลขเดียวกันไหม */}
                   <p className="text-2xs text-muted">ยอดรวมทั้งหมด (รวม VAT)</p>
-                  <p className="truncate text-xl font-semibold tracking-tight tabular-nums text-strong">
+                  <p className={cn("truncate", DISPLAY_AMOUNT)}>
                     {formatCurrency(pricingSummary.grandTotal)}
                   </p>
                 </>

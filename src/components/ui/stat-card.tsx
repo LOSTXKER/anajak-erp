@@ -72,7 +72,7 @@ export function StatCard({
       </div>
       <p
         className={cn(
-          "mt-2.5 text-3xl font-semibold leading-none tracking-tight tabular-nums",
+          "mt-2.5 text-3xl font-semibold tabular-nums",
           TONE_CLASSES[tone],
           valueClassName
         )}

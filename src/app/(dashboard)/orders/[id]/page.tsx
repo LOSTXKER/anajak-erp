@@ -111,7 +111,7 @@ function OrderContentHeading({
   return (
     <div className="flex items-center gap-2 px-1">
       <span className="h-5 w-1 rounded-full bg-blue-500" aria-hidden="true" />
-      <h2 id={id} className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
+      <h2 id={id} className="text-base font-semibold text-slate-900 dark:text-white">
         {children}
       </h2>
     </div>
@@ -532,7 +532,7 @@ function OrderDetailContent({
                   <DropdownMenu.Content
                     align="end"
                     sideOffset={6}
-                    className={cn(OVERLAY_PANEL, "z-50 min-w-[200px] p-1")}
+                    className={cn(OVERLAY_PANEL, "z-50 min-w-[200px] p-1", "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95")}
                   >
                     <DropdownMenu.Item className={dropdownItemClass} asChild>
                       <a href={`/print/job-ticket/${id}`} target="_blank" rel="noreferrer">
