@@ -6,8 +6,11 @@ import { ARTWORK_POSITION_LABELS } from "@/lib/artwork";
 import { PRINT_TYPES } from "@/types/order-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLinkError } from "@/components/public-link-error";
+import {
+  PublicPageShell,
+  FullScreenLoading,
+} from "@/components/public/public-page";
 import { Shirt, CalendarClock, Paperclip, Palette, FileText } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
 
 // หน้าใบงานสำหรับร้านนอก (Gate B14 — LINE-friendly ไม่พิมพ์กระดาษ)
 // เปิดผ่านลิงก์ token ไม่ต้อง login — โชว์เฉพาะสิ่งที่ร้านต้องใช้ทำงาน
@@ -17,14 +20,7 @@ export function JobShareView({ token }: { token: string }) {
   const job = trpc.outsourceShare.getByToken.useQuery({ token });
 
   if (job.isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Spinner size="lg" />
-          <span>กำลังโหลด...</span>
-        </div>
-      </div>
-    );
+    return <FullScreenLoading />;
   }
 
   if (job.error || !job.data) {
@@ -42,18 +38,12 @@ export function JobShareView({ token }: { token: string }) {
   const designFileOnly = !!design && !designIsImage && !!(design.fileUrl || design.imageUrl);
 
   return (
-    <div className="min-h-screen bg-bg p-4">
-      <div className="mx-auto max-w-2xl space-y-5 py-6">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mb-1 flex items-center justify-center gap-2">
-            <Shirt className="h-6 w-6 text-blue-600" />
-            <h1 className="text-xl font-semibold text-slate-900">ใบงานผลิต</h1>
-          </div>
-          <p className="text-sm text-slate-500">
-            สำหรับ {d.vendorName} · อ้างอิง {d.orderNumber}
-          </p>
-        </div>
+    <PublicPageShell
+      icon={<Shirt className="h-6 w-6 text-blue-600" />}
+      title="ใบงานผลิต"
+      subtitle={`สำหรับ ${d.vendorName} · อ้างอิง ${d.orderNumber}`}
+      footer="เปิดจากลิงก์ที่ได้รับเท่านั้น — หากข้อมูลไม่ตรงกับที่คุยไว้ กรุณาติดต่อผู้ส่งงาน"
+    >
 
         {/* งาน + จำนวน + กำหนดส่งคืน */}
         <Card>
@@ -272,11 +262,6 @@ export function JobShareView({ token }: { token: string }) {
             </CardContent>
           </Card>
         )}
-
-        <p className="pb-4 text-center text-xs text-slate-400">
-          เปิดจากลิงก์ที่ได้รับเท่านั้น — หากข้อมูลไม่ตรงกับที่คุยไว้ กรุณาติดต่อผู้ส่งงาน
-        </p>
-      </div>
-    </div>
+    </PublicPageShell>
   );
 }

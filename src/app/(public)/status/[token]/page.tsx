@@ -19,8 +19,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PublicLinkError } from "@/components/public-link-error";
+import {
+  PublicPageShell,
+  FullScreenLoading,
+  InfoRow,
+} from "@/components/public/public-page";
 import { Package, CheckCircle2, Palette, FileText, Truck, ExternalLink, Check, XCircle } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
 
 // หน้าสถานะออเดอร์สำหรับลูกค้า (FLOW-REDESIGN ก้อน 4 — portal ขั้น 1)
 // เปิดผ่านลิงก์ token ไม่ต้อง login — โชว์เฉพาะข้อมูลของลูกค้า (sanitize ที่ server แล้ว)
@@ -40,14 +44,7 @@ export default function OrderStatusPage({
   const status = trpc.customerStatus.getStatus.useQuery({ token });
 
   if (status.isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Spinner size="lg" />
-          <span>กำลังโหลด...</span>
-        </div>
-      </div>
-    );
+    return <FullScreenLoading />;
   }
 
   if (status.error || !status.data) {
@@ -60,17 +57,12 @@ export default function OrderStatusPage({
   const statusColor = CUSTOMER_STATUS_COLORS[d.customerStatus];
 
   return (
-    <div className="min-h-screen bg-bg p-4">
-      <div className="mx-auto max-w-2xl space-y-5 py-6">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mb-1 flex items-center justify-center gap-2">
-            <Package className="h-6 w-6 text-blue-600" />
-            <h1 className="text-xl font-semibold text-slate-900">{d.brandName}</h1>
-          </div>
-          <p className="text-sm text-slate-500">ติดตามสถานะงานของคุณ</p>
-        </div>
-
+    <PublicPageShell
+      icon={<Package className="h-6 w-6 text-blue-600" />}
+      title={d.brandName}
+      subtitle="ติดตามสถานะงานของคุณ"
+      hideFooter={d.isBlindShip}
+    >
         {/* Order info + current status */}
         <Card>
           <CardContent className="space-y-4 p-5">
@@ -87,15 +79,9 @@ export default function OrderStatusPage({
               </span>
             </div>
             <div className="grid gap-1.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-500">ลูกค้า</span>
-                <span className="font-medium text-slate-800">{d.customerName}</span>
-              </div>
+              <InfoRow label="ลูกค้า">{d.customerName}</InfoRow>
               {d.deadline && (
-                <div className="flex justify-between">
-                  <span className="text-slate-500">กำหนดส่ง</span>
-                  <span className="font-medium text-slate-800">{formatDate(d.deadline)}</span>
-                </div>
+                <InfoRow label="กำหนดส่ง">{formatDate(d.deadline)}</InfoRow>
               )}
             </div>
           </CardContent>
@@ -309,11 +295,6 @@ export default function OrderStatusPage({
             </CardContent>
           </Card>
         )}
-
-        <p className="text-center text-xs text-slate-400">
-          {d.isBlindShip ? "" : "Powered by Anajak Print ERP"}
-        </p>
-      </div>
-    </div>
+    </PublicPageShell>
   );
 }

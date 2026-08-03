@@ -9,27 +9,23 @@ import { Alert } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { PublicLinkError } from "@/components/public-link-error";
 import {
+  PublicPageShell,
+  FullScreenLoading,
+  InfoRow,
+} from "@/components/public/public-page";
+import {
   Loader2,
   FileText,
   CheckCircle2,
   XCircle,
   Clock,
 } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
 
 // หน้ายืนยันใบเสนอราคาสำหรับลูกค้า (FLOW-REDESIGN ก้อน 4 — ขอบลูกค้า)
 // เปิดผ่านลิงก์ token ไม่ต้อง login — โชว์รายการ+ราคาเต็ม (ลูกค้าตกลงราคานี้) → ยืนยัน / ขอแก้ไข
 
 const baht = (n: number) =>
   `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-bg p-4">
-      <div className="mx-auto max-w-2xl space-y-5 py-6">{children}</div>
-    </div>
-  );
-}
 
 export default function QuoteConfirmPage({
   params,
@@ -58,14 +54,7 @@ export default function QuoteConfirmPage({
   });
 
   if (quote.isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Spinner size="lg" />
-          <span>กำลังโหลด...</span>
-        </div>
-      </div>
-    );
+    return <FullScreenLoading />;
   }
 
   if (quote.error || !quote.data) {
@@ -79,16 +68,10 @@ export default function QuoteConfirmPage({
   const decided = done ?? (q.status === "ACCEPTED" || q.status === "CONVERTED" ? "ACCEPTED" : q.status === "REJECTED" ? "REJECTED" : null);
 
   return (
-    <Shell>
-      {/* Header */}
-      <div className="text-center">
-        <div className="mb-1 flex items-center justify-center gap-2">
-          <FileText className="h-6 w-6 text-blue-600" />
-          <h1 className="text-xl font-semibold text-slate-900">Anajak Print</h1>
-        </div>
-        <p className="text-sm text-slate-500">ใบเสนอราคา {q.quotationNumber}</p>
-      </div>
-
+    <PublicPageShell
+      icon={<FileText className="h-6 w-6 text-blue-600" />}
+      subtitle={`ใบเสนอราคา ${q.quotationNumber}`}
+    >
       {/* Quote header card */}
       <Card>
         <CardContent className="space-y-4 p-5">
@@ -99,14 +82,8 @@ export default function QuoteConfirmPage({
             )}
           </div>
           <div className="grid gap-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-500">ลูกค้า</span>
-              <span className="font-medium text-slate-800">{q.customerName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">ยืนราคาถึง</span>
-              <span className="font-medium text-slate-800">{formatDate(q.validUntil)}</span>
-            </div>
+            <InfoRow label="ลูกค้า">{q.customerName}</InfoRow>
+            <InfoRow label="ยืนราคาถึง">{formatDate(q.validUntil)}</InfoRow>
           </div>
         </CardContent>
       </Card>
@@ -261,8 +238,6 @@ export default function QuoteConfirmPage({
           </CardContent>
         </Card>
       ) : null}
-
-      <p className="text-center text-xs text-slate-400">Powered by Anajak Print ERP</p>
-    </Shell>
+    </PublicPageShell>
   );
 }

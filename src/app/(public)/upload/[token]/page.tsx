@@ -6,6 +6,11 @@ import { uploadToCustomerSignedUrl } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PublicLinkError } from "@/components/public-link-error";
+import {
+  PublicPageShell,
+  FullScreenLoading,
+  InfoRow,
+} from "@/components/public/public-page";
 import { Upload, CheckCircle, FileCheck, Paperclip, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { DASHED } from "@/components/ui/tokens";
@@ -97,14 +102,7 @@ export default function CustomerUploadPage({
   }
 
   if (info.isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Spinner size="lg" />
-          <span>กำลังโหลด...</span>
-        </div>
-      </div>
-    );
+    return <FullScreenLoading />;
   }
 
   if (info.error || !info.data) {
@@ -115,17 +113,10 @@ export default function CustomerUploadPage({
   const doneCount = items.filter((i) => i.status === "done").length;
 
   return (
-    <div className="min-h-screen bg-bg p-4">
-      <div className="mx-auto max-w-2xl space-y-6 py-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mb-2 flex items-center justify-center gap-2">
-            <Paperclip className="h-6 w-6 text-blue-600" />
-            <h1 className="text-xl font-semibold text-slate-900">Anajak Print</h1>
-          </div>
-          <p className="text-sm text-slate-500">ส่งไฟล์งานให้ทีมงาน</p>
-        </div>
-
+    <PublicPageShell
+      icon={<Paperclip className="h-6 w-6 text-blue-600" />}
+      subtitle="ส่งไฟล์งานให้ทีมงาน"
+    >
         {/* Order Info */}
         <Card>
           <CardHeader>
@@ -133,25 +124,11 @@ export default function CustomerUploadPage({
           </CardHeader>
           <CardContent>
             <div className="grid gap-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-500">เลขออเดอร์</span>
-                <span className="font-medium text-slate-900">{d.orderNumber}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">ชื่องาน</span>
-                <span className="font-medium text-slate-900">{d.title}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">ลูกค้า</span>
-                <span className="font-medium text-slate-900">{d.customerName}</span>
-              </div>
+              <InfoRow label="เลขออเดอร์">{d.orderNumber}</InfoRow>
+              <InfoRow label="ชื่องาน">{d.title}</InfoRow>
+              <InfoRow label="ลูกค้า">{d.customerName}</InfoRow>
               {d.deadline && (
-                <div className="flex justify-between">
-                  <span className="text-slate-500">กำหนดส่ง</span>
-                  <span className="font-medium text-slate-900">
-                    {formatDate(d.deadline)}
-                  </span>
-                </div>
+                <InfoRow label="กำหนดส่ง">{formatDate(d.deadline)}</InfoRow>
               )}
             </div>
           </CardContent>
@@ -261,11 +238,6 @@ export default function CustomerUploadPage({
             </CardContent>
           </Card>
         )}
-
-        <p className="text-center text-xs text-slate-400">
-          Powered by Anajak Print ERP
-        </p>
-      </div>
-    </div>
+    </PublicPageShell>
   );
 }
