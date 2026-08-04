@@ -694,12 +694,13 @@ export default function NewOrderPage() {
           >
             {/* แบบ A (เบสเลือกจาก mockup 2026-08-04): ซ้าย = ของที่ต้องกรอก ·
                 ขวา = ตัวเลขที่อ่าน — ยอดรวมอยู่ระดับสายตาเดียวกับตอนกำลังพิมพ์
-                ตัดสินด้วย @container = "พื้นที่จริงของการ์ดใบนี้" ไม่ใช่ความกว้างจอ —
-                lg: ดูแต่ขนาดจอ พอหักแถบเมนูซ้าย 256px + ขอบหน้าออกแล้วการ์ดแคบกว่านั้นมาก
-                จอกว้างแต่การ์ดไม่พอ ก็ยังตกเป็นคอลัมน์เดียวอยู่ดี (เบสเจอเอง 2026-08-04) */}
-            <div className="@container">
-            <div className="grid items-start gap-6 @xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-              <div className="space-y-6">
+                ── ไม่ใช้ "เกณฑ์ความกว้าง" ใดๆ เลย ──
+                ลองมาแล้วสองแบบและพลาดทั้งคู่: `lg:` วัดขนาดจอ (ไม่ใช่ขนาดการ์ด) ·
+                `@container` วัดถูกแต่ก็ยังไม่ออกบนเครื่องเบส (2026-08-04)
+                → เปลี่ยนเป็น flex-wrap + ความกว้างขั้นต่ำของแต่ละฝั่ง: มีที่พอ = ยืนคู่กันเอง
+                ไม่พอ = ตกลงมาซ้อนกันเอง · ไม่มี media/container query ให้พลาดอีก */}
+            <div className="flex flex-wrap items-start gap-6">
+              <div className="min-w-0 flex-1 basis-88 space-y-6">
                 <OrderFeeSection
                   fees={fees}
                   onAddFee={addFee}
@@ -763,7 +764,7 @@ export default function NewOrderPage() {
               </div>
 
               {/* สรุปยอดเป็นก้อนพื้นจม — อ่านออกทันทีว่านี่คือผลลัพธ์ ไม่ใช่ช่องให้กรอกต่อ */}
-              <div className={cn(RADIUS.surface, SUNK_PANEL, "p-5")}>
+              <div className={cn(RADIUS.surface, SUNK_PANEL, "min-w-0 flex-1 basis-72 p-5")}>
                 <OrderPriceSummary
                   pricingSummary={pricingSummary}
                   showFeeSections={true}
@@ -776,7 +777,6 @@ export default function NewOrderPage() {
                   embedded
                 />
               </div>
-            </div>
             </div>
           </Section>
 
