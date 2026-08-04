@@ -53,8 +53,6 @@ interface OrderItemCardProps {
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void;
   showPrints?: boolean;
   showAddons?: boolean;
-  // โหมดรายการเดียว: ไม่โชว์หัวแถว "รายการ #1" — เนื้อฟอร์มกางตลอด (redesign 2026-06-11)
-  solo?: boolean;
   // โหมดกระชับ (หน้าแก้รายการ): ยุบ คำอธิบาย/ส่วนเสริม/หมายเหตุ เป็น "รายละเอียดเพิ่มเติม" ·
   // ตัดสรุปราคาต่อรายการ (sidebar มีรวมแล้ว) · ย่อหัวข้อ (redesign 2026-06-12)
   compact?: boolean;
@@ -140,10 +138,10 @@ export function OrderItemCard({
   onAddAddon, onRemoveAddon, onUpdateAddon,
   onOpenPicker, onSetItems,
   showPrints = true, showAddons = true,
-  solo = false, compact = false,
+  compact = false,
   appearance = "default",
 }: OrderItemCardProps) {
-  const expanded = solo || isExpanded;
+  const expanded = isExpanded;
   const isIntake = appearance === "intake";
   const groupHeadingClass = isIntake
     ? "text-sm font-semibold text-slate-800 dark:text-slate-100"
@@ -208,8 +206,7 @@ export function OrderItemCard({
   // ── section: ลาย ──
   const printsSection = (
     <div className="@container">
-      {(!isIntake || item.prints.length > 0 || otherItemsWithPrints.length > 0) && (
-        <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between">
           <span className={groupHeadingClass}>{isIntake ? "ลายและงานพิมพ์" : compact ? "ลาย" : "ลายที่ต้องการสั่งผลิต"}</span>
           <div className="flex items-center gap-1.5">
             {otherItemsWithPrints.length > 0 && (
@@ -232,36 +229,22 @@ export function OrderItemCard({
                 <Copy className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
               </div>
             )}
-            {(!isIntake || item.prints.length > 0) && (
+            {item.prints.length > 0 && (
               <Button type="button" variant="ghost" size="sm" onClick={() => onAddPrint(itemIdx)}>
                 <Plus />เพิ่มลาย
               </Button>
             )}
           </div>
-        </div>
-      )}
+      </div>
       {item.prints.length === 0 ? (
-        isIntake ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onAddPrint(itemIdx)}
-            className="gap-2 text-slate-600 dark:text-slate-300"
-          >
-            <ImageIcon className="h-4 w-4" />
-            เพิ่มลายหรืองานพิมพ์
-          </Button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onAddPrint(itemIdx)}
-            className={cn(DASHED, "flex w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-          >
-            <ImageIcon className="h-6 w-6 text-slate-400 dark:text-slate-500" />
-            <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีลาย — กดเพื่อเพิ่มลายแรก</span>
-          </button>
-        )
+        <button
+          type="button"
+          onClick={() => onAddPrint(itemIdx)}
+          className={cn(DASHED, "flex w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+        >
+          <ImageIcon className="h-6 w-6 text-slate-400 dark:text-slate-500" />
+          <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีลาย — กดเพื่อเพิ่ม</span>
+        </button>
       ) : (
         <>
           <div
@@ -344,28 +327,8 @@ export function OrderItemCard({
       </div>
       {item.products.length === 0 ? (
         // เลือกชนิดงานก่อน → ระบบโชว์เฉพาะ field ที่ชนิดนั้นใช้ (guided by type)
-        isIntake ? (
-          <div className="flex flex-wrap gap-2">
-            {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label }) => (
-              <Button
-                key={key}
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (key === "stock") onOpenPicker();
-                  else if (key === "custom") addProductWithSource("CUSTOM_MADE");
-                  else addProductWithSource("CUSTOMER_PROVIDED");
-                }}
-                className="gap-2 text-slate-600 dark:text-slate-300"
-              >
-                <Icon className="h-4 w-4" strokeWidth={1.75} />
-                {label}
-              </Button>
-            ))}
-          </div>
-        ) : (
-          /* การ์ด 3 ใบมีชื่อ+คำอธิบายในตัวแล้ว — ไม่ต้องมีคำถามนำข้างบน */
+        <div className="space-y-2">
+          <p className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีสินค้า</p>
           <div className="grid gap-2 sm:grid-cols-3">
             {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
               <button
@@ -386,7 +349,7 @@ export function OrderItemCard({
               </button>
             ))}
           </div>
-        )
+        </div>
       ) : (
         <>
           {/* พื้นที่กว้างพอ (container ≥ 2xl): ตารางหนึ่งแถวต่อสินค้า พร้อมหัวคอลัมน์ครบ */}
@@ -668,13 +631,11 @@ export function OrderItemCard({
 
   return (
     // ทุกรายการกางเห็นหมด (ไม่ accordion) — หัว "รายการที่ N" + เนื้อหา · คั่นด้วย divide-y ของ parent
-    <div className={cn(!solo && "px-4")}>
-      {!solo && (
-        <OrderItemRow
-          item={item} itemIdx={itemIdx} canRemove={canRemove}
-          onRemoveItem={onRemoveItem}
-        />
-      )}
+    <div className="px-4">
+      <OrderItemRow
+        item={item} itemIdx={itemIdx} canRemove={canRemove}
+        onRemoveItem={onRemoveItem}
+      />
 
       {expanded && (
         <div className="space-y-4 py-4">

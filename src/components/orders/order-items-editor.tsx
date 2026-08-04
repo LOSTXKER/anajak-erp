@@ -318,68 +318,40 @@ export function OrderItemsEditor({
               </div>
             </Alert>
           )}
-          {/* รายการสินค้า — ฟอร์มชุดเดียวกับหน้าเปิดงาน
-              รายการเดียว = โหมด solo: ไม่มีชั้น "รายการ #1" ให้แบก โชว์ ลาย/สินค้า ตรงๆ */}
-          {items.length === 1 ? (
-            <OrderItemCard
-              item={items[0]}
-              itemIdx={0}
-              canRemove={false}
-              isExpanded
-              solo
-              onToggleExpand={() => {}}
-              allItems={items}
-              printCatalog={printCatalog}
-              addonCatalog={addonCatalog}
-              onUpdateItem={updateItem}
-              onRemoveItem={() => {}}
-              onAddPrint={addPrint}
-              onRemovePrint={removePrint}
-              onUpdatePrint={updatePrint}
-              onAddAddon={addAddon}
-              onRemoveAddon={removeAddon}
-              onUpdateAddon={updateAddon}
-              onOpenPicker={() => setPickerOpen(true)}
-              // setter ตรง — eager updater ทำ multi-update ใน tick เดียวทับกันเอง
-              onSetItems={setItems}
-              showPrints={canAddPrints}
-              showAddons={canAddPrints}
-              compact
-            />
-          ) : (
-            <div className="divide-y divide-slate-200/70 dark:divide-white/10">
-              {items.map((item, itemIdx) => (
-                <OrderItemCard
-                  key={itemIdx}
-                  item={item}
-                  itemIdx={itemIdx}
-                  canRemove={items.length > 1}
-                  isExpanded
-                  allItems={items}
-                  printCatalog={printCatalog}
-                  addonCatalog={addonCatalog}
-                  onUpdateItem={updateItem}
-                  onRemoveItem={(idx) => {
-                    removeItem(idx);
-                    if (expandedItemIdx === idx) setExpandedItemIdx(null);
-                    else if (expandedItemIdx != null && expandedItemIdx > idx)
-                      setExpandedItemIdx(expandedItemIdx - 1);
-                  }}
-                  onAddPrint={addPrint}
-                  onRemovePrint={removePrint}
-                  onUpdatePrint={updatePrint}
-                  onAddAddon={addAddon}
-                  onRemoveAddon={removeAddon}
-                  onUpdateAddon={updateAddon}
-                  onOpenPicker={() => setPickerOpen(true)}
-                  onSetItems={setItems}
-                  showPrints={canAddPrints}
-                  showAddons={canAddPrints}
-                  compact
-                />
-              ))}
-            </div>
-          )}
+          {/* รายการสินค้า — ฟอร์มชุดเดียวกับหน้าเปิดงาน (เลข "รายการที่ N" ขึ้นตั้งแต่ชุดแรก) */}
+          <div className="divide-y divide-slate-200/70 dark:divide-white/10">
+            {items.map((item, itemIdx) => (
+              <OrderItemCard
+                key={itemIdx}
+                item={item}
+                itemIdx={itemIdx}
+                canRemove={items.length > 1}
+                isExpanded
+                allItems={items}
+                printCatalog={printCatalog}
+                addonCatalog={addonCatalog}
+                onUpdateItem={updateItem}
+                onRemoveItem={(idx) => {
+                  removeItem(idx);
+                  if (expandedItemIdx === idx) setExpandedItemIdx(null);
+                  else if (expandedItemIdx != null && expandedItemIdx > idx)
+                    setExpandedItemIdx(expandedItemIdx - 1);
+                }}
+                onAddPrint={addPrint}
+                onRemovePrint={removePrint}
+                onUpdatePrint={updatePrint}
+                onAddAddon={addAddon}
+                onRemoveAddon={removeAddon}
+                onUpdateAddon={updateAddon}
+                onOpenPicker={() => setPickerOpen(true)}
+                onSetItems={setItems}
+                showPrints={canAddPrints}
+                showAddons={canAddPrints}
+                compact
+              />
+            ))}
+          </div>
+
 
           <button
             type="button"

@@ -632,60 +632,36 @@ export default function NewOrderPage() {
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
-              {/* รายการเดียว = โหมด solo ไม่มีชั้น "รายการ #1" — ชุดเดียวกับฟอร์มแก้รายการ */}
-              {items.length === 1 ? (
-                <OrderItemCard
-                  item={items[0]}
-                  itemIdx={0}
-                  canRemove={false}
-                  isExpanded
-                  solo
-                  compact
-                  appearance="intake"
-                  onToggleExpand={() => {}}
-                  allItems={items}
-                  printCatalog={printCatalog}
-                  addonCatalog={addonCatalog}
-                  onUpdateItem={updateItem}
-                  onRemoveItem={() => {}}
-                  onAddPrint={addPrint}
-                  onRemovePrint={removePrint}
-                  onUpdatePrint={updatePrint}
-                  onAddAddon={addAddon}
-                  onRemoveAddon={removeAddon}
-                  onUpdateAddon={updateAddon}
-                  onOpenPicker={() => setPickerOpen(true)}
-                  // setter ตรง — updater(items) แบบ eager ทำ multi-update ใน tick เดียวทับกันเอง
-                  onSetItems={setItems}
-                />
-              ) : (
-                <div className="divide-y divide-slate-200/70 dark:divide-white/10">
-                  {items.map((item, itemIdx) => (
-                    <OrderItemCard
-                      key={itemIdx}
-                      item={item}
-                      itemIdx={itemIdx}
-                      canRemove={items.length > 1}
-                      isExpanded
-                      compact
-                      appearance="intake"
-                      allItems={items}
-                      printCatalog={printCatalog}
-                      addonCatalog={addonCatalog}
-                      onUpdateItem={updateItem}
-                      onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
-                      onAddPrint={addPrint}
-                      onRemovePrint={removePrint}
-                      onUpdatePrint={updatePrint}
-                      onAddAddon={addAddon}
-                      onRemoveAddon={removeAddon}
-                      onUpdateAddon={updateAddon}
-                      onOpenPicker={() => setPickerOpen(true)}
-                      onSetItems={setItems}
-                    />
-                  ))}
-                </div>
-              )}
+              {/* เลข "รายการที่ N" ขึ้นตั้งแต่ชุดแรก — ไม่ต้องรอกดเพิ่มชุดที่ 2 ถึงจะมีเลข
+                  (เบสเคาะจาก mockup 2026-08-04) · เดิมมีโหมด solo ที่ซ่อนเลขตอนมีชุดเดียว
+                  ทำให้พอเพิ่มชุดที่ 2 เลขโผล่มาทีหลัง ผู้ใช้ต้องอ่านหน้าใหม่ */}
+              <div className="divide-y divide-slate-200/70 dark:divide-white/10">
+                {items.map((item, itemIdx) => (
+                  <OrderItemCard
+                    key={itemIdx}
+                    item={item}
+                    itemIdx={itemIdx}
+                    canRemove={items.length > 1}
+                    isExpanded
+                    compact
+                    appearance="intake"
+                    allItems={items}
+                    printCatalog={printCatalog}
+                    addonCatalog={addonCatalog}
+                    onUpdateItem={updateItem}
+                    onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
+                    onAddPrint={addPrint}
+                    onRemovePrint={removePrint}
+                    onUpdatePrint={updatePrint}
+                    onAddAddon={addAddon}
+                    onRemoveAddon={removeAddon}
+                    onUpdateAddon={updateAddon}
+                    onOpenPicker={() => setPickerOpen(true)}
+                    // setter ตรง — updater(items) แบบ eager ทำ multi-update ใน tick เดียวทับกันเอง
+                    onSetItems={setItems}
+                  />
+                ))}
+              </div>
 
               <div className="flex justify-end">
                 <Button
