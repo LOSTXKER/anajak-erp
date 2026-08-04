@@ -132,7 +132,6 @@ export default function NotificationsPage() {
   return (
     <PageShell
       title="การแจ้งเตือน"
-      description="ติดตามการแจ้งเตือนทั้งหมดของคุณ"
       error={isError ? { onRetry: () => void refetch(), message: "เกิดข้อผิดพลาดในการโหลดข้อมูล" } : null}
       action={
         (unreadCount ?? 0) > 0 ? (

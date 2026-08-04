@@ -93,7 +93,6 @@ function QuotationsPageContent() {
   return (
     <PageShell
       title="ใบเสนอราคา"
-      description="จัดการใบเสนอราคาทั้งหมด"
       action={
         canCreateQuotation ? (
           <Button size="sm" asChild>

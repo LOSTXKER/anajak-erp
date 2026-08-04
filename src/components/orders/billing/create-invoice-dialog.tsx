@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Field } from "@/components/ui/field";
@@ -189,9 +188,6 @@ export function CreateInvoiceDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>สร้างบิลใหม่</DialogTitle>
-          <DialogDescription>
-            สร้างใบแจ้งหนี้สำหรับออเดอร์นี้
-          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">

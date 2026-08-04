@@ -365,28 +365,26 @@ export function OrderItemCard({
             ))}
           </div>
         ) : (
-          <div>
-            <p className="mb-2 text-center text-xs text-slate-500 dark:text-slate-400">งานนี้ใช้เสื้อแบบไหน? เลือกเพื่อเริ่ม</p>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => {
-                    if (key === "stock") onOpenPicker();
-                    else if (key === "custom") addProductWithSource("CUSTOM_MADE");
-                    else addProductWithSource("CUSTOMER_PROVIDED");
-                  }}
-                  className={cn(DASHED, "flex flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-                >
-                  <Icon className="h-6 w-6 shrink-0 text-slate-400" strokeWidth={1.75} />
-                  <span>
-                    <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
-                    <span className="block text-xs text-slate-500 dark:text-slate-400">{desc}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
+          /* การ์ด 3 ใบมีชื่อ+คำอธิบายในตัวแล้ว — ไม่ต้องมีคำถามนำข้างบน */
+          <div className="grid gap-2 sm:grid-cols-3">
+            {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  if (key === "stock") onOpenPicker();
+                  else if (key === "custom") addProductWithSource("CUSTOM_MADE");
+                  else addProductWithSource("CUSTOMER_PROVIDED");
+                }}
+                className={cn(DASHED, "flex flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+              >
+                <Icon className="h-6 w-6 shrink-0 text-slate-400" strokeWidth={1.75} />
+                <span>
+                  <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400">{desc}</span>
+                </span>
+              </button>
+            ))}
           </div>
         )
       ) : (

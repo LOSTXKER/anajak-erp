@@ -89,7 +89,6 @@ export default function PackagingSettingsPage() {
     <PageShell
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการแพ็คเกจจัดส่ง"
-      description="ตัวเลือกแพ็คเกจสำหรับจัดส่งสินค้า"
       loading={meQuery.isLoading}
       error={
         meQuery.isError

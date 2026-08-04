@@ -150,7 +150,6 @@ function BillingNotesPageContent() {
   return (
     <PageShell
       title="ใบวางบิล"
-      description="รวมใบแจ้งหนี้ค้างชำระของลูกค้าเรียกเก็บตามรอบ"
       breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ใบวางบิล" }]}
       action={
         <Button onClick={() => setShowCreate(true)} className="gap-1.5">
@@ -370,9 +369,6 @@ function BillingNotesPageContent() {
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>สร้างใบวางบิล</DialogTitle>
-            <DialogDescription>
-              เลือกลูกค้าแล้วติ๊กใบแจ้งหนี้ค้างชำระที่จะรวมเรียกเก็บ
-            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

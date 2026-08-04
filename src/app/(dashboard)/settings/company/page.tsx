@@ -47,7 +47,7 @@ export default function CompanySettingsPage() {
       width="form"
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ข้อมูลกิจการ"
-      description="ขึ้นหัวเอกสารทุกใบ — ใบเสนอราคา/แจ้งหนี้/ใบเสร็จ/ใบกำกับภาษี"
+      description="ข้อมูลนี้ขึ้นหัวเอกสารทุกใบที่ส่งให้ลูกค้า"
       error={
         meQuery.isError
           ? {

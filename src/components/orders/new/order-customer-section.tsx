@@ -102,7 +102,7 @@ export function OrderCustomerSection({
           )}
           {profileGaps.length > 0 && (
             <p className="text-xs text-amber-600 dark:text-amber-400">
-              โปรไฟล์ยังไม่ครบ: {profileGaps.map((g) => g.label).join(" · ")} — ขอจากลูกค้าแล้วเติมได้ที่หน้าลูกค้า
+              โปรไฟล์ยังไม่ครบ: {profileGaps.map((g) => g.label).join(" · ")} — เติมที่หน้าลูกค้า
             </p>
           )}
           {showCreditStatus && !shouldLoadCredit && (
@@ -176,7 +176,7 @@ export function OrderCustomerSection({
                 rel="noopener noreferrer"
                 className="underline"
               >
-                ดูคลังลาย/สั่งซ้ำ 1 คลิก
+                ดูคลังลาย
               </a>
             </p>
           )}

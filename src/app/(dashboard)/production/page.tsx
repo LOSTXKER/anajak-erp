@@ -224,7 +224,7 @@ function ProductionWorkspace() {
     const stepName = step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
     const ok = await confirm({
       title: "ผ่านรวดขั้นตอนนี้?",
-      description: `"${stepName}" ของ ${card.order.orderNumber} จะถูกบันทึกว่าเสร็จแล้ว — ใช้เมื่องานร้านนอกเสร็จเรียบร้อยโดยไม่ได้เปิดใบส่งร้านในระบบ`,
+      description: `"${stepName}" ของ ${card.order.orderNumber} จะถูกปิดเป็นเสร็จ — ใช้เมื่อร้านนอกทำเสร็จแล้วแต่ไม่ได้เปิดใบส่งร้าน`,
       confirmText: "ผ่านรวด",
     });
     if (!ok) return;
@@ -394,12 +394,12 @@ function ProductionWorkspace() {
         !orders
           ? "สายการผลิตแยกตามเทคนิค"
           : focus
-            ? "แตะ ← เพื่อกลับภาพรวม"
+            ? undefined
             : canCreate
-              ? `ภาพรวมทั้งโรงงาน · ${all.length} งานในระบบ`
+              ? `${all.length} งานในระบบ`
               : myWork.length > 0
-                ? `${myWork.length} ขั้นที่คุณรับผิดชอบ · งานของคุณอยู่บนสุด`
-                : "ยังไม่มีงานที่มอบให้คุณ · ดูคิวทีมด้านล่างได้"
+                ? `${myWork.length} ขั้นที่คุณรับผิดชอบ`
+                : "ยังไม่มีงานที่มอบให้คุณ"
       }
       action={
         focus ? (

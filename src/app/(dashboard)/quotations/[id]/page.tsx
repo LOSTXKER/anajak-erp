@@ -156,7 +156,6 @@ export default function QuotationDetailPage({
       <div className="space-y-6">
         <PageHeader
           title="ใบเสนอราคา"
-          description="จัดการใบเสนอราคาทั้งหมด"
         />
         <p className="text-sm text-slate-400">
           หน้านี้เปิดเฉพาะทีมขาย ผู้จัดการ และบัญชี
@@ -376,9 +375,6 @@ export default function QuotationDetailPage({
       {/* Converted order link */}
       {quotation.status === "CONVERTED" && quotation.order && (
         <Alert variant="info" icon={RefreshCw}>
-          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-            ใบเสนอราคานี้ถูกแปลงเป็นออเดอร์แล้ว
-          </p>
           <Link
             href={`/orders/${quotation.order.id}`}
             className="inline-flex items-center gap-1.5 text-sm text-blue-700 hover:underline dark:text-blue-300"

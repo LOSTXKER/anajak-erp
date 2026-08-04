@@ -305,23 +305,16 @@ function MyWorkSection({ items, primary = false }: { items: MyWorkItem[]; primar
       )}
       aria-labelledby="production-my-work"
     >
-      <div>
-        <h2
-          id="production-my-work"
-          className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100"
-        >
-          <User className="h-4 w-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
-          งานของฉัน
-          <span className="rounded-full bg-blue-100 px-1.5 text-xs tabular-nums text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-            {items.length}
-          </span>
-        </h2>
-        {primary && (
-          <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
-            เลือกงานถัดไปแล้วบันทึกจำนวนหรือปิดขั้นได้จากหน้าใบผลิต
-          </p>
-        )}
-      </div>
+      <h2
+        id="production-my-work"
+        className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100"
+      >
+        <User className="h-4 w-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+        งานของฉัน
+        <span className="rounded-full bg-blue-100 px-1.5 text-xs tabular-nums text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+          {items.length}
+        </span>
+      </h2>
       <div className="card-surface overflow-hidden rounded-2xl">
         <ul className="">
           {items.map((work) => (

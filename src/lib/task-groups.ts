@@ -17,7 +17,7 @@ export type TaskListItem = {
 export type TaskGroup = {
   id: "attention" | "mine" | "team";
   title: string;
-  description: string;
+  description?: string;
   items: TaskListItem[];
 };
 
@@ -75,7 +75,6 @@ export function groupTaskItems(items: TaskListItem[]): TaskGroup[] {
     {
       id: "mine",
       title: "งานของฉัน",
-      description: "งานที่มอบให้คุณโดยตรง",
       items: takeUnique((item) => item.ownership === "mine"),
     },
     {

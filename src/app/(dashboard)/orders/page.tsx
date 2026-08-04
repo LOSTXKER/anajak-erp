@@ -441,7 +441,6 @@ function OrdersPageContent() {
     <div className="space-y-6">
       <PageHeader
         title="ออเดอร์"
-        description="จัดการออเดอร์ทั้งหมด"
         action={
           <>
             {data && data.orders.length > 0 && (

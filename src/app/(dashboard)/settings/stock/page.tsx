@@ -168,7 +168,6 @@ export default function StockSettingsPage() {
     <PageShell
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="เชื่อมต่อ Anajak Stock"
-      description="ตั้งค่าการเชื่อมต่อและ Sync สินค้าจากระบบ Stock"
       loading={meQuery.isLoading}
       error={
         meQuery.isError
@@ -230,7 +229,7 @@ export default function StockSettingsPage() {
                     className="font-mono text-sm"
                   />
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    URL ของ Stock API (ดูได้ที่หน้า Integrations ในระบบ Stock)
+                    ดูได้ที่หน้า Integrations ในระบบ Stock
                   </p>
                 </div>
 
@@ -343,9 +342,6 @@ export default function StockSettingsPage() {
               <RefreshCw className="h-4 w-4" />
               Sync สินค้า
             </CardTitle>
-            <CardDescription>
-              ดึงข้อมูลสินค้าและสต็อกจาก Anajak Stock
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Sync status summary */}
@@ -446,7 +442,7 @@ export default function StockSettingsPage() {
               การแมปหมวดหมู่
             </CardTitle>
             <CardDescription>
-              หมวดหมู่จาก Stock จะถูกแมปเข้ากลุ่มสินค้าใน ERP โดยอัตโนมัติ
+              ระบบแมปเข้ากลุ่มสินค้าให้อัตโนมัติ
             </CardDescription>
           </CardHeader>
           <CardContent>

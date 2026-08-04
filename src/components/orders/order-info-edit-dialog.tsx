@@ -12,7 +12,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
@@ -220,9 +219,6 @@ export function OrderInfoEditDialog({
       <DialogContent className="max-h-[90vh] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>แก้ไขข้อมูลออเดอร์</DialogTitle>
-          <DialogDescription>
-            แก้ไขข้อมูลทั่วไป การเงิน และที่อยู่จัดส่ง
-          </DialogDescription>
         </DialogHeader>
 
         <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">

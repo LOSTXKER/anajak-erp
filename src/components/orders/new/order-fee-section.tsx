@@ -49,7 +49,6 @@ export function OrderFeeSection({
   return (
     <Section
       title={embedded ? "ค่าใช้จ่ายเพิ่มเติม" : "ค่าใช้จ่ายระดับออเดอร์"}
-      description="ค่าจัดส่งหรือค่าบริการที่อยู่นอกชุดงาน"
       bordered={!embedded}
       headingLevel={embedded ? 3 : 2}
       action={embedded || fees.length > 0 ? (

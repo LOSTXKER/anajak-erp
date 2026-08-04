@@ -97,7 +97,7 @@ export function OrderDetailFields({
           </Select>
         </Field>
         <Field
-          label="ชื่องาน (เว้นว่างได้)"
+          label="ชื่องาน"
           id={`${id}-title`}
           description="เว้นว่าง = ระบบตั้งชื่อจากลูกค้าให้"
         >

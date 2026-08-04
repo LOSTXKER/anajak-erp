@@ -521,7 +521,6 @@ export default function NewOrderPage() {
         { label: "เปิดงานใหม่" },
       ]}
       title="เปิดงานใหม่"
-      description="บันทึกจากบทสนทนา แล้วเติมรายการและเงื่อนไขตามลำดับ"
     >
       {showDraftBanner && (
         <div className={cn(TINT.warning, "flex flex-wrap items-center gap-3 rounded-2xl border px-3 py-2 text-xs")}>
@@ -580,7 +579,7 @@ export default function NewOrderPage() {
             id={STEP_IDS.intake}
             tabIndex={-1}
             title={<StepTitle number="01">รับเรื่อง</StepTitle>}
-            description="บังคับแค่ลูกค้า — ที่เหลือเติมทีหลังได้"
+            description="ที่เหลือเติมทีหลังได้"
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
@@ -623,7 +622,6 @@ export default function NewOrderPage() {
             id={STEP_IDS.items}
             tabIndex={-1}
             title={<StepTitle number="02">รายการงาน</StepTitle>}
-            description="สินค้า ลาย และส่วนเสริมของชุดงานนี้"
             action={
               hasItemContent ? (
                 <Badge variant="default" size="sm">
@@ -711,7 +709,6 @@ export default function NewOrderPage() {
             id={STEP_IDS.pricing}
             tabIndex={-1}
             title={<StepTitle number="03">ราคาและเงื่อนไข</StepTitle>}
-            description="ค่าใช้จ่ายระดับออเดอร์ ภาษี และเงื่อนไขชำระ"
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
@@ -733,7 +730,7 @@ export default function NewOrderPage() {
                     (order.updateInfo รับ taxRate อยู่แล้ว — ไม่แตะสูตร ไม่แตะ mutation) */}
                 <Section
                   title="เงื่อนไขการขาย"
-                  description="ภาษีระบบตั้งให้เอง — ดูอัตราจริงที่บรรทัด VAT ในสรุปยอด · แก้ได้ที่หน้าออเดอร์"
+                  description="ภาษีระบบตั้งให้เอง (ดูอัตราที่บรรทัด VAT) — แก้ได้ที่หน้าออเดอร์"
                   bordered={false}
                   headingLevel={3}
                 >

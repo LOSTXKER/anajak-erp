@@ -338,7 +338,9 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
               {group.items.length}
             </Badge>
           </div>
-          <p className="text-xs text-slate-600 dark:text-slate-300">{group.description}</p>
+          {group.description && (
+            <p className="text-xs text-slate-600 dark:text-slate-300">{group.description}</p>
+          )}
         </div>
       </div>
       <ul className="divide-y divide-slate-100 dark:divide-slate-800">

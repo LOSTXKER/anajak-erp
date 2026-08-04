@@ -70,7 +70,6 @@ export default function BackupSettingsPage() {
       width="form"
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="สำรองข้อมูล"
-      description="ดาวน์โหลดข้อมูลทั้งระบบเก็บไว้เอง"
       loading={meQuery.isLoading}
       error={
         meQuery.isError
@@ -89,8 +88,7 @@ export default function BackupSettingsPage() {
             ดาวน์โหลดไฟล์สำรองข้อมูล
           </CardTitle>
           <CardDescription>
-            ได้ไฟล์เดียวรวมข้อมูลทุกตารางในระบบ (ออเดอร์ / ลูกค้า / บิล / เอกสารภาษี ฯลฯ)
-            ณ เวลาที่กด — เก็บไว้ใช้กู้ข้อมูลกรณีฉุกเฉิน · ใช้เวลาเตรียมไฟล์ราว 10-30 วินาที
+            ไฟล์เดียวรวมทุกข้อมูลในระบบ ณ เวลาที่กด · เตรียมไฟล์ราว 10-30 วินาที
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

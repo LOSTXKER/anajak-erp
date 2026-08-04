@@ -41,7 +41,6 @@ function AuditLogContent() {
     <PageShell
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ประวัติระบบ"
-      description="ตรวจว่าใครเปลี่ยนข้อมูลอะไร เมื่อไหร่"
       error={
         meQuery.isError
           ? {

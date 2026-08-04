@@ -42,7 +42,9 @@ function PulseCard({
   value: string | number;
   /** สีเน้นตัวเลขหลัก — "muted" = ศูนย์จริง โชว์สีจาง (ไม่ซ่อน) */
   tone?: "danger" | "warning" | "muted";
-  sub: string;
+  /** บรรทัดล่าง — ใส่เฉพาะเมื่อบอก "เรื่องที่สอง" ที่หัวข้อไม่ได้บอก
+   *  (ห้ามใช้ขยายความหัวข้อตัวเอง — พูดซ้ำเปล่าๆ) */
+  sub?: string;
   subTone?: "danger" | "warning";
   className?: string;
 }) {
@@ -99,7 +101,7 @@ function PulseCard({
         <div>{titleAndValue}</div>
       )}
 
-      {subHref ? (
+      {subHref && sub ? (
         <Link
           href={subHref}
           className={cn(
@@ -112,7 +114,7 @@ function PulseCard({
           <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
         </Link>
       ) : (
-        <p className={cn("mt-1.5", subClassName)}>{sub}</p>
+        sub && <p className={cn("mt-1.5", subClassName)}>{sub}</p>
       )}
     </div>
   );
@@ -166,7 +168,7 @@ export default function DashboardPage() {
   return (
     <PageShell
       title="แดชบอร์ด"
-      description={`ภาพรวมระบบ Anajak Print · ${today.toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: BANGKOK_TZ })}`}
+      description={`${today.toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: BANGKOK_TZ })}`}
       loading={isLoading}
       skeleton={
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -240,7 +242,6 @@ export default function DashboardPage() {
               title="งานนิ่ง 3 วัน"
               value={pulse.stuckOrders}
               tone={pulse.stuckOrders > 0 ? "warning" : "muted"}
-              sub="ไม่มีใครแตะเกิน 3 วัน"
               className="col-span-2 lg:col-span-1"
             />
           </div>
@@ -303,7 +304,7 @@ export default function DashboardPage() {
             <EmptyState
               icon={ShoppingCart}
               title="ยังไม่มีออเดอร์"
-              description="เริ่มจากปุ่ม เปิดงานใหม่ มุมขวาบน — ออเดอร์ล่าสุดจะโผล่ที่นี่"
+              description="ออเดอร์ล่าสุดจะขึ้นที่นี่"
             />
           </div>
         ) : (

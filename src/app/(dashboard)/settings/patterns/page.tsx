@@ -156,7 +156,6 @@ export default function PatternsPage() {
       // เข้าหน้านี้จาก sidebar กลุ่ม "สินค้า" — ปุ่มย้อนต้องพากลับที่ที่เคยผ่าน ไม่ใช่ตั้งค่า
       back={{ href: "/products", label: "กลับไปหน้าสินค้า" }}
       title="จัดการแพทเทิร์น"
-      description="แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ"
       error={
         meQuery.isError
           ? {
@@ -195,9 +194,6 @@ export default function PatternsPage() {
               onSubmit={handleCreate}
               className="card-surface mb-4 space-y-3 rounded-2xl p-4"
             >
-              <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
-                เพิ่มแพทเทิร์นใหม่
-              </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <label htmlFor="pattern-name" className={labelClass}>ชื่อแพทเทิร์น *</label>

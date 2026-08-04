@@ -73,7 +73,7 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
         <DialogHeader>
           <DialogTitle>ส่งงานร้านนอก</DialogTitle>
           <DialogDescription>
-            สร้างใบงาน outsource ผูกกับขั้นตอนนี้ — ติดตาม/รับกลับ/QC ที่หน้า Outsource
+            ติดตาม/รับกลับ/QC ต่อที่หน้างานร้านนอก
           </DialogDescription>
         </DialogHeader>
         {/* label เขียนเองถูกยุบเข้า Field กลาง (UX4) — id/aria เดินสายอัตโนมัติ

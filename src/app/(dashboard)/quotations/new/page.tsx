@@ -294,7 +294,7 @@ function QuotationFormPage() {
           ? `ผูกกับออเดอร์ ${linkedOrder?.orderNumber ?? "..."} — ลูกค้าตกลงแล้วระบบจะยืนยันออเดอร์ใบเดิม ไม่สร้างซ้ำ`
           : editId
             ? editing?.quotationNumber ?? ""
-            : "กรอกรายละเอียดใบเสนอราคา"
+            : undefined
       }
       error={
         // โหลด prefill ไม่สำเร็จ (โหมดผูกออเดอร์/แก้ไข) → กันฟอร์มเปล่าไปเซฟทับใบเดิม

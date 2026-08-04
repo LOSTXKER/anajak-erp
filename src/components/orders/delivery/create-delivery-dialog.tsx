@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
@@ -138,7 +137,6 @@ export function CreateDeliveryDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>สร้างรายการจัดส่ง</DialogTitle>
-          <DialogDescription>กรอกข้อมูลผู้รับและวิธีจัดส่ง</DialogDescription>
         </DialogHeader>
         <div className="max-h-[60vh] space-y-4 overflow-y-auto">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

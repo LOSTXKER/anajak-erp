@@ -64,7 +64,7 @@ export function CreateProductionDialog({
           <DialogTitle>เปิดใบผลิต</DialogTitle>
           <DialogDescription>
             {context ? `${context.orderNumber} · ${context.title} — ` : ""}
-            สายงานตั้งให้ตามเนื้องานแล้ว (เสื้อ/เทคนิค/ป้าย) ลบ/เพิ่มได้ถ้าไม่ตรง
+            สายงานตั้งให้ตามเนื้องานแล้ว — แก้ได้
           </DialogDescription>
         </DialogHeader>
 

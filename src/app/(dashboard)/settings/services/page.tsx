@@ -159,7 +159,6 @@ export default function ServicesPage() {
     <PageShell
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="จัดการบริการ"
-      description="ตั้งค่ารายการบริการเสริม, การสกรีน, และค่าบริการ"
       loading={meQuery.isLoading}
       error={
         meQuery.isError
@@ -216,9 +215,6 @@ export default function ServicesPage() {
               onSubmit={handleCreate}
               className="card-surface mb-4 space-y-3 rounded-2xl p-4"
             >
-              <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                เพิ่มรายการใหม่
-              </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div>
                   <label htmlFor={`${formId}-type`} className="mb-1 block text-xs font-medium text-muted">

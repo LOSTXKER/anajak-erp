@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Field } from "@/components/ui/field";
@@ -127,7 +126,6 @@ export function RecordPaymentDialog({
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>บันทึกการชำระเงิน</DialogTitle>
-          <DialogDescription>บันทึกยอดชำระเงินจากลูกค้า</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <Field label="จำนวนเงิน (บาท)">
