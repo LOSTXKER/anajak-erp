@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput, NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -48,7 +49,7 @@ export function ProductTableRow({
       {sourcePresentation.label}
     </Badge>
   ) : (
-    <Select quiet
+    <Select
       size="dense"
       value=""
       onChange={(e) => { if (e.target.value) updateProduct("itemSource", e.target.value); }}
@@ -61,13 +62,13 @@ export function ProductTableRow({
     </Select>
   );
 
-  const dash = <span className="text-xs text-slate-300 dark:text-slate-600">—</span>;
+  const dash = <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
 
   return (
     <>
       <tr className="border-b border-slate-200 dark:border-white/10">
         {/* แหล่ง */}
-        <td className="py-2 pl-1 align-top">{sourceBadge}</td>
+        <td className="py-2 pl-1 pr-3 align-top">{sourceBadge}</td>
 
         {/* สินค้า */}
         <td className="py-2 pr-2 align-top">
@@ -95,7 +96,7 @@ export function ProductTableRow({
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Input quiet
+              <Input
                 aria-label={`ชื่อสินค้า ${prodIdx + 1}`}
                 value={product.description}
                 onChange={(e) => updateProduct("description", e.target.value)}
@@ -107,8 +108,8 @@ export function ProductTableRow({
                   <span className="text-xs text-muted">หลายไซส์ · รวม {totalQty} ตัว{variant.color ? ` · ${variant.color}` : ""}</span>
                 ) : (
                   <>
-                    <Input quiet aria-label={`สีสินค้า ${prodIdx + 1}`} value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" size="dense" className="w-20 px-2" />
-                    <Input quiet aria-label={`ไซส์สินค้า ${prodIdx + 1}`} value={variant.size} onChange={(e) => updateVariantField("size", e.target.value)} placeholder="ไซส์" size="dense" className="w-16 px-2" />
+                    <Input aria-label={`สีสินค้า ${prodIdx + 1}`} value={variant.color} onChange={(e) => updateVariantField("color", e.target.value)} placeholder="สี" size="dense" className="w-20 px-2" />
+                    <Input aria-label={`ไซส์สินค้า ${prodIdx + 1}`} value={variant.size} onChange={(e) => updateVariantField("size", e.target.value)} placeholder="ไซส์" size="dense" className="w-16 px-2" />
                   </>
                 )}
                 {canMatrix && (
@@ -129,9 +130,9 @@ export function ProductTableRow({
         </td>
 
         {/* แพค */}
-        <td className="px-1.5 py-2 align-top">
+        <td className="px-2 py-2 align-top">
           {packagingOptions && packagingOptions.length > 0 ? (
-            <Select quiet
+            <Select
               size="dense"
               aria-label={`แพคสินค้า ${prodIdx + 1}`}
               value={product.packagingOptionId}
@@ -152,32 +153,32 @@ export function ProductTableRow({
         </td>
 
         {/* ราคา */}
-        <td className="px-1.5 py-2 align-top">
+        <td className="px-2 py-2 text-center align-top">
           {isCustomerProvided ? dash : (
-            <Input quiet aria-label={`ราคาสินค้า ${prodIdx + 1}`} type="number" min={0} step={0.01} value={product.baseUnitPrice || ""} onChange={(e) => updateProduct("baseUnitPrice", parseFloat(e.target.value) || 0)} placeholder="0" size="dense" className="w-full px-2 text-right" />
+            <MoneyInput aria-label={`ราคาสินค้า ${prodIdx + 1}`} value={product.baseUnitPrice} onValueChange={(v) => updateProduct("baseUnitPrice", v)} size="dense" className="w-full px-2" />
           )}
         </td>
 
         {/* ส่วนลดต่อชิ้น */}
-        <td className="px-1.5 py-2 align-top">
+        <td className="px-2 py-2 text-center align-top">
           {isCustomerProvided ? dash : (
-            <Input quiet aria-label={`ส่วนลดต่อชิ้น สินค้า ${prodIdx + 1}`} type="number" min={0} step={0.01} value={product.discount || ""} onChange={(e) => updateProduct("discount", parseFloat(e.target.value) || 0)} placeholder="0" size="dense" className="w-full px-2 text-right" />
+            <MoneyInput aria-label={`ส่วนลดต่อชิ้น สินค้า ${prodIdx + 1}`} value={product.discount} onValueChange={(v) => updateProduct("discount", v)} size="dense" className="w-full px-2" />
           )}
         </td>
 
         {/* จำนวน */}
-        <td className="px-1.5 py-2 align-top">
+        <td className="px-2 py-2 align-top">
           {multi ? (
             <div className="flex h-9 items-center justify-center text-sm font-medium text-slate-700 dark:text-slate-200">{totalQty}</div>
           ) : (
-            <Input quiet aria-label={`จำนวนสินค้า ${prodIdx + 1}`} type="number" min={0} value={qty || ""} onChange={(e) => updateVariantField("quantity", parseInt(e.target.value) || 0)} placeholder="0" size="dense" className="w-full text-center" />
+            <NumberInput integer aria-label={`จำนวนสินค้า ${prodIdx + 1}`} min={0} value={qty} onValueChange={(v) => updateVariantField("quantity", v)} placeholder="0" size="dense" className="w-full text-center" />
           )}
         </td>
 
-        {/* รวม */}
-        <td className="px-1.5 py-2 text-right align-top">
+        {/* รวม — กึ่งกลางตรงหัวคอลัมน์ (เบสเคาะ 2026-08-04) */}
+        <td className="px-2 py-2 text-center align-top">
           {isCustomerProvided ? dash : (
-            <div className="flex h-9 items-center justify-end text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">{formatCurrency(lineTotal)}</div>
+            <div className="flex h-9 items-center justify-center text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">{formatCurrency(lineTotal)}</div>
           )}
         </td>
 

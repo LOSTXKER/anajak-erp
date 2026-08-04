@@ -7,7 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/page-shell";
 import { Field } from "@/components/ui/field";
-import { FIELD_LABEL } from "@/components/ui/tokens";
+import { FIELD_LABEL, DISPLAY_AMOUNT } from "@/components/ui/tokens";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
@@ -294,7 +294,7 @@ function QuotationFormPage() {
           ? `ผูกกับออเดอร์ ${linkedOrder?.orderNumber ?? "..."} — ลูกค้าตกลงแล้วระบบจะยืนยันออเดอร์ใบเดิม ไม่สร้างซ้ำ`
           : editId
             ? editing?.quotationNumber ?? ""
-            : "กรอกรายละเอียดใบเสนอราคา"
+            : undefined
       }
       error={
         // โหลด prefill ไม่สำเร็จ (โหมดผูกออเดอร์/แก้ไข) → กันฟอร์มเปล่าไปเซฟทับใบเดิม
@@ -628,7 +628,7 @@ function QuotationFormPage() {
               <span className="text-lg font-semibold text-slate-900 dark:text-white">
                 ยอดรวมทั้งหมด
               </span>
-              <span className="text-2xl font-semibold tabular-nums text-blue-600 dark:text-blue-400">
+              <span className={DISPLAY_AMOUNT}>
                 {formatCurrency(pricingSummary.total)}
               </span>
             </div>

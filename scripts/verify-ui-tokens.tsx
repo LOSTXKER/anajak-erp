@@ -44,19 +44,18 @@ function check(name: string, html: string, must: string[], mustNot: string[] = [
 const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
 
-// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้น+โฟกัสชุดเดียว
-// แก้ 2026-08-03 (เบสสั่ง "ลดเส้น ขอบทั้งเว็บ ให้ minimal"): ช่องกรอกไม่มีขอบแล้ว
-// บอกตัวเองด้วยพื้นที่จม (slate-100 / dark slate-950) แทน · ยังต้องมี border-transparent
-// ไว้ให้ FOCUS_FIELD เปลี่ยนสีขอบตอนโฟกัสได้ และความสูงไม่ขยับ 2px
+// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้น+ขอบ+โฟกัสชุดเดียว
+// เบสเคาะสุดท้าย 2026-08-04 หลังเห็นจอจริงทั้งสองแบบ: "พื้นขาว มีขอบบางๆ ธีมมืดสลับ"
+// (ลองพื้นเทาไร้ขอบแล้ว — ช่องกลืนกับพื้น/กล่องรอบตัวง่ายเกิน)
 const FIELD = [
-  "border-transparent",
-  "bg-slate-100",
+  "border-slate-200",
+  "bg-surface",
   "dark:bg-slate-950",
   "focus-visible:border-blue-500",
   "focus-visible:ring-blue-500/15",
 ];
-// ห้ามขอบถาวรกลับมา — เขียนไว้ในลิสต์ "ต้องไม่มี" ของทุกช่องกรอกด้านล่าง
-const FIELD_NO = ["border-slate-200/70", "bg-white"];
+// ห้ามย้อนไปพื้นเทา/ไร้ขอบ — เคยลองแล้วเบสตีกลับทั้งสองรอบ
+const FIELD_NO = ["bg-slate-100", "border-transparent", "bg-[var(--field-bg)]"];
 check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-[10px]"], [...FIELD_NO, "rounded-2xl"]);
 check(
   "ช่องเลือก (Select)",

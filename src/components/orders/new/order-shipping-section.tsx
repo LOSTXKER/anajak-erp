@@ -44,7 +44,7 @@ export function OrderShippingSection({
       id={id}
       tabIndex={id ? -1 : undefined}
       title={title}
-      description="ไม่บังคับ · ปิดอยู่ = ไม่บันทึกที่อยู่นี้"
+      description="ปิดอยู่ = ไม่บันทึกที่อยู่นี้"
       bordered={!embedded}
       className={className}
       action={
@@ -114,9 +114,6 @@ export function OrderShippingSection({
               />
             </Field>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            ที่อยู่จัดส่งสามารถแก้ไขได้ภายหลังในหน้ารายละเอียดออเดอร์
-          </p>
       </fieldset>
     </Section>
   );

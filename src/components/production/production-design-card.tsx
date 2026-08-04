@@ -80,7 +80,6 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
                 อนุมัติ {formatDate(approvedDesign.approvedAt)}
               </p>
             )}
-            <p className="text-xs text-slate-400">แตะรูปเพื่อขยาย · กันพิมพ์ผิดเวอร์ชัน</p>
             <Button variant="outline" size="sm" asChild className="h-9">
               <a href={approvedDesign.fileUrl} target="_blank" rel="noreferrer">
                 <ExternalLink />

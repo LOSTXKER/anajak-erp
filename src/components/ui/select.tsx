@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
 import {
   FIELD_SURFACE,
-  FIELD_SURFACE_QUIET,
   FOCUS_FIELD,
   MENU_ITEM,
   OVERLAY_PANEL,
@@ -94,8 +93,6 @@ export type SelectProps = Omit<
   onChange?: (event: { target: { value: string } }) => void;
   /** ข้อความตอนยังไม่ได้เลือก — ไม่ใส่ก็ขึ้น "เลือก…" */
   placeholder?: string;
-  /** ช่องในตารางแก้ข้อมูล — โปร่งสนิท เห็นพื้นเฉพาะตอนชี้/โฟกัส (ดู Input) */
-  quiet?: boolean;
 };
 
 const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
@@ -112,7 +109,6 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       name,
       id,
       placeholder,
-      quiet = false,
       "aria-label": ariaLabel,
       ...rest
     },
@@ -138,7 +134,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           aria-required={required || undefined}
           className={cn(
             controlShapeClass(shape),
-            quiet ? FIELD_SURFACE_QUIET : FIELD_SURFACE,
+            FIELD_SURFACE,
             FOCUS_FIELD,
             "flex w-full items-center justify-between gap-2 px-3 py-1 text-base transition-colors sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
             // หลังก้อนพื้นฐานเสมอ — twMerge ตัดสินจาก "ตัวหลังชนะ" (ดูคำอธิบายเดียวกันใน input.tsx)
@@ -155,10 +151,20 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           >)}
         >
           <span className="truncate text-left">
-            {current?.label ?? (
-              <span className="text-slate-500 dark:text-slate-400">
-                {placeholder ?? "เลือก…"}
+            {/* ค่าว่างต้องดูว่าง (benchmark 2026-08-04) — เดิม option value=""
+                ("-- ไม่ระบุ --") ถูกวาดเป็นตัวเข้มเหมือนเลือกแล้ว 13 จุดทั่วระบบ
+                กวาดตาแล้วแยกช่องที่ยังไม่กรอกไม่ออก · คู่สีจางตรง placeholder
+                ของ FIELD_SURFACE (tokens.ts) ให้เท่ากันทุก control */}
+            {(value ?? "") === "" ? (
+              <span className="text-slate-400 dark:text-slate-500">
+                {(current?.label || placeholder) ?? "เลือก…"}
               </span>
+            ) : (
+              current?.label ?? (
+                <span className="text-slate-400 dark:text-slate-500">
+                  {placeholder ?? "เลือก…"}
+                </span>
+              )
             )}
           </span>
           <SelectPrimitive.Icon asChild>

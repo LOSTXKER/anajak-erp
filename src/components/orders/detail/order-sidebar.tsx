@@ -2,7 +2,7 @@ import Link from "next/link";
 import { User, Info, MapPin, Store, Calculator, ChevronRight } from "lucide-react";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import type { OrderType } from "@prisma/client";
 import {
   CHANNEL_LABELS,
@@ -10,6 +10,7 @@ import {
   PRIORITY_LABELS,
 } from "@/lib/order-status";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
+import { DISPLAY_AMOUNT } from "@/components/ui/tokens";
 
 interface OrderSidebarOrder {
   id: string;
@@ -274,7 +275,7 @@ export function OrderSidebar({
             <Calculator className="h-4 w-4" />
             ยอดรวม
           </span>
-          <span className="flex items-center gap-1.5 text-base font-semibold tabular-nums text-slate-900 dark:text-white">
+          <span className={cn("flex items-center gap-1.5", DISPLAY_AMOUNT)}>
             {formatCurrency(totalAmount)}
             <ChevronRight className="h-4 w-4 text-slate-400" />
           </span>

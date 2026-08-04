@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { OrderStatusBadge } from "@/components/order-status-badge";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, formatBaht } from "@/lib/utils";
 import {
   CUSTOMER_STATUS_LABELS,
   INTERNAL_STATUS_LABELS,
@@ -105,7 +105,7 @@ function validDateParam(value: string | null) {
 const PAYMENT_DOT: Record<string, { label: string; dot: string; text: string }> = {
   paid: { label: "ชำระแล้ว", dot: "bg-green-500", text: "text-green-700 dark:text-green-300" },
   unpaid: { label: "ค้างชำระ", dot: "bg-red-500", text: "text-red-700 dark:text-red-300" },
-  partial: { label: "บางส่วน", dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
+  partial: { label: "บางส่วน", dot: "bg-amber-700 dark:bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
 };
 
 // ────────────────────────────────────────────────────────────
@@ -150,7 +150,7 @@ function OrderCountdown({
   internalStatus: string;
 }) {
   if (!deadline || ATTENTION_EXEMPT_STATUSES.has(internalStatus)) {
-    return <span className="text-xs text-slate-300 dark:text-slate-600">—</span>;
+    return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
   }
   const days = daysUntil(deadline);
   const { label, dot, text } =
@@ -163,13 +163,13 @@ function OrderCountdown({
       : days === 0
         ? {
             label: "วันนี้",
-            dot: "bg-amber-600",
+            dot: "bg-amber-700 dark:bg-amber-500",
             text: "font-medium text-amber-700 dark:text-amber-400",
           }
         : days <= 2
           ? {
               label: `เหลือ ${days} วัน`,
-              dot: "bg-amber-400",
+              dot: "bg-amber-700 dark:bg-amber-500",
               text: "text-amber-700 dark:text-amber-400",
             }
           : {
@@ -226,7 +226,7 @@ function ChatLink({
 
 function PaymentIndicator({ status }: { status: string }) {
   const v = PAYMENT_DOT[status];
-  if (!v) return <span className="text-xs text-slate-400">—</span>;
+  if (!v) return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${v.text}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${v.dot}`} />
@@ -437,10 +437,10 @@ function OrdersPageContent() {
   };
 
   return (
-    <div className="space-y-7">
+    // 24px = จังหวะระดับหน้าค่าเดียวทั้งเว็บ (เบสเคาะ 2026-08-04 — เดิม 3 หน้า 3 ค่า)
+    <div className="space-y-6">
       <PageHeader
         title="ออเดอร์"
-        description="จัดการออเดอร์ทั้งหมด"
         action={
           <>
             {data && data.orders.length > 0 && (
@@ -477,7 +477,9 @@ function OrdersPageContent() {
         onSelect={(status: string) =>
           replaceListState({ status: status || null, page: null })
         }
-        isLoading={isLoading || isFetching}
+        // จางเฉพาะโหลดครั้งแรก — ตอน refetch มีข้อความ "กำลังอัปเดต…" ที่ toolbar อยู่แล้ว
+        // (เดิมส่ง isFetching ด้วย → กดกรองทีไรแถบวูบกระพริบ)
+        isLoading={isLoading}
       />
 
       <Toolbar>
@@ -643,7 +645,7 @@ function OrdersPageContent() {
             </DataTable.Head>
             <DataTable.Body>
               {orders.map((order) => (
-                <DataTable.Row key={order.id}>
+                <DataTable.Row key={order.id} href={`/orders/${order.id}`}>
                   <DataTable.Td>
                     <Link
                       href={`/orders/${order.id}`}
@@ -654,7 +656,7 @@ function OrdersPageContent() {
                   </DataTable.Td>
                   <DataTable.Td>
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-900 dark:text-white">
+                      <p className="truncate text-slate-900 dark:text-white">
                         {order.customer?.name ?? "—"}
                         {order.orderType === "CUSTOM" && (
                           <Badge variant="accent" size="sm" className="ml-1.5">
@@ -691,9 +693,11 @@ function OrdersPageContent() {
                   {canSeeMoney && (
                     <DataTable.Td
                       align="right"
-                      className="font-medium tabular-nums text-slate-900 dark:text-white"
+                      // เงินในคอลัมน์ = ทศนิยม 2 ตำแหน่งเสมอ ให้หลักสตางค์เรียงแนวดิ่ง
+                      // น้ำหนักปกติ — คอลัมน์นำของแถวคือเลขออเดอร์ตัวเดียว (benchmark 2026-08-04)
+                      className="tabular-nums text-slate-900 dark:text-white"
                     >
-                      {formatCurrency(order.totalAmount ?? 0)}
+                      {formatBaht(order.totalAmount ?? 0)}
                     </DataTable.Td>
                   )}
                   {showPayment && (
@@ -830,6 +834,7 @@ function OrdersPageContent() {
               page={page}
               totalPages={data.pages}
               total={data.total}
+              limit={20}
               onPageChange={(nextPage) =>
                 replaceListState({ page: String(nextPage) })
               }

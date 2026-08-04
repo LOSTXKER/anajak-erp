@@ -33,7 +33,7 @@ import {
   Share2,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
-import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
+import { MENU_SEPARATOR, OVERLAY_PANEL, TINT, FOCUS_BUTTON } from "@/components/ui/tokens";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
 import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
@@ -60,6 +60,7 @@ import {
   OrderMoneyTab,
 } from "@/components/orders/detail";
 import { RecordNotFound } from "@/components/ui/record-not-found";
+import { CONTROL_MIN_H } from "@/components/ui/control-size";
 
 
 // ============================================================
@@ -111,7 +112,7 @@ function OrderContentHeading({
   return (
     <div className="flex items-center gap-2 px-1">
       <span className="h-5 w-1 rounded-full bg-blue-500" aria-hidden="true" />
-      <h2 id={id} className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
+      <h2 id={id} className="text-base font-semibold text-slate-900 dark:text-white">
         {children}
       </h2>
     </div>
@@ -532,7 +533,7 @@ function OrderDetailContent({
                   <DropdownMenu.Content
                     align="end"
                     sideOffset={6}
-                    className={cn(OVERLAY_PANEL, "z-50 min-w-[200px] p-1")}
+                    className={cn(OVERLAY_PANEL, "z-50 min-w-[200px] p-1", "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95")}
                   >
                     <DropdownMenu.Item className={dropdownItemClass} asChild>
                       <a href={`/print/job-ticket/${id}`} target="_blank" rel="noreferrer">
@@ -692,27 +693,28 @@ function OrderDetailContent({
         canSeeMoney={canSeeMoney}
       />
 
+      {/* sticky ตาม scroll — หน้ายาว 7 ส่วน แถบกระโดดต้องตามมาด้วย
+          (สูตรเดียวกับ StepRail หน้าเปิดงาน — ระบบเดียวกัน pattern เดียวกัน) */}
       <nav
         aria-label="ไปยังส่วนของออเดอร์"
-        className="card-surface flex flex-wrap gap-2 rounded-2xl p-3"
+        className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center gap-1.5 border-b border-slate-200/70 bg-bg px-1 py-2 dark:border-white/10"
       >
         {sectionShortcuts.map((section) => (
-          <Button
+          <a
             key={section.id}
-            variant="outline"
-            size="sm"
-            asChild
+            href={`#${section.id}`}
+            onClick={(event) => {
+              event.preventDefault();
+              goToSection(section.id);
+            }}
+            className={cn(
+              CONTROL_MIN_H,
+              "inline-flex items-center rounded-full bg-surface hairline-ring px-3 text-xs text-secondary transition-colors hover:text-strong active:scale-[0.98]",
+              FOCUS_BUTTON
+            )}
           >
-            <a
-              href={`#${section.id}`}
-              onClick={(event) => {
-                event.preventDefault();
-                goToSection(section.id);
-              }}
-            >
-              {section.label}
-            </a>
-          </Button>
+            {section.label}
+          </a>
         ))}
       </nav>
 

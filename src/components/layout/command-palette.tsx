@@ -34,6 +34,9 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
   const [query, setQuery] = React.useState("");
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [activeIdx, setActiveIdx] = React.useState(0);
+  // รายการที่เลือกต้องอยู่ในจอเสมอ (benchmark: Linear/Raycast) — เดิมกดลูกศร
+  // เกินครึ่งลิสต์แล้วตัวเลือกหลุดจอ มองไม่เห็นว่า Enter จะโดนอะไร
+  const activeRef = React.useRef<HTMLButtonElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const { data: me } = trpc.user.me.useQuery();
 
@@ -173,6 +176,9 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
   }, [open]);
 
   const safeActiveIdx = Math.min(activeIdx, Math.max(filtered.length - 1, 0));
+  React.useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest" });
+  }, [safeActiveIdx]);
   const trimmedQuery = query.trim();
   const entitySearchIsCurrent = debouncedQuery === trimmedQuery;
   const entitySearchPending =
@@ -264,6 +270,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
                   return (
                     <button
                       key={item.id}
+                      ref={active ? activeRef : undefined}
                       type="button"
                       onMouseEnter={() => setActiveIdx(idx)}
                       onClick={() => item.action()}

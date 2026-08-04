@@ -145,7 +145,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   คนอ่านแยกไม่ออกว่า "ยังไม่ได้กรอก" กับ "หน้าโหลดไม่ครบ" */}
               {!customer.phone && !customer.email && !customer.lineId && !customer.address && (
                 <p className="text-slate-500 dark:text-slate-400">
-                  ยังไม่ได้กรอกช่องทางติดต่อ — กด “แก้ไขข้อมูล” เพื่อเพิ่มเบอร์/LINE/อีเมล
+                  ยังไม่ได้กรอกช่องทางติดต่อ
                 </p>
               )}
             </CardContent>

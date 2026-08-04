@@ -229,7 +229,6 @@ export default function PrintRunsPage() {
       // ทางกลับหน้าการผลิตย้ายจากปุ่ม action มาเป็น breadcrumb ตามตำแหน่งมาตรฐาน
       breadcrumb={[{ label: "การผลิต", href: "/production" }, { label: "รอบพิมพ์ฟิล์ม" }]}
       title="รอบพิมพ์ฟิล์ม DTF"
-      description="รวมหลายงานลงม้วนเดียว → พิมพ์จบทั้งม้วน → ตัดแยก+ติดป้ายปิดรอบ"
       loading={queueQuery.isLoading || listQuery.isLoading}
       skeleton={
         <>
@@ -617,8 +616,7 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
         <DialogHeader>
           <DialogTitle>ตัดแยก+ติดป้ายเสร็จ — {run.runNumber}</DialogTitle>
           <DialogDescription>
-            ยืนยันว่าตัดแยกฟิล์มและติดป้ายครบทุกออเดอร์แล้ว — ขั้นพิมพ์ฟิล์มของงานในรอบจะถูกนับให้
-            · ฟิล์มที่พิมพ์เผื่อจะเข้าคลังฟิล์มพร้อมรีดไว้ใช้รอบหน้า
+            กดยืนยันแล้ว: ขั้นพิมพ์ฟิล์มของทุกงานในรอบจะถูกนับให้ · ฟิล์มเผื่อเข้าคลังฟิล์มพร้อมรีด
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
@@ -665,7 +663,7 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
                 {extra.qty > 0 && (
                   <div className="mt-2">
                     <label htmlFor={`print-extra-label-${item.id}`} className="mb-0.5 block text-xs text-slate-400">
-                      ป้ายลาย — เขียนให้รู้ว่าฟิล์มม้วนไหนคือลายอะไร
+                      ป้ายลาย
                     </label>
                     <Input
                       id={`print-extra-label-${item.id}`}

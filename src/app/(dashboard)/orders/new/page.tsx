@@ -63,7 +63,7 @@ import {
 } from "@/components/orders/new";
 import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
 import { Badge } from "@/components/ui/badge";
-import { FOCUS_BUTTON, RADIUS, TINT } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, RADIUS, TINT, DISPLAY_AMOUNT } from "@/components/ui/tokens";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 
 /** id ของ 4 ตอน — ใช้ร่วมกันระหว่างหัวข้อการ์ดกับแถบขั้นตอนที่กดกระโดด */
@@ -131,7 +131,7 @@ function StepRail({
   return (
     <nav
       aria-label="ข้ามไปตอนที่ต้องการ"
-      className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center gap-1.5 bg-bg px-1 py-2"
+      className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center gap-1.5 border-b border-slate-200/70 bg-bg px-1 py-2 dark:border-white/10"
     >
       {steps.map((step) => (
         <button
@@ -142,7 +142,7 @@ function StepRail({
             CONTROL_MIN_H,
             RADIUS.pill,
             // ไม่มีขอบ — ชิปขาวบนพื้นเทาแยกตัวเองด้วยสีพื้นอยู่แล้ว (รอบ "ลดเส้นทั้งเว็บ")
-            "inline-flex items-center gap-2 bg-surface px-3 text-xs text-secondary transition-colors hover:text-strong",
+            "inline-flex items-center gap-2 bg-surface hairline-ring px-3 text-xs text-secondary transition-colors hover:text-strong active:scale-[0.98]",
             FOCUS_BUTTON
           )}
         >
@@ -312,10 +312,8 @@ export default function NewOrderPage() {
   }, [isMarketplace, paymentTerms]);
 
   // ราคาช่องทาง marketplace (Shopee/Lazada/TikTok) รวม VAT ในตัวแล้ว — default 7%
-  // จะบวกภาษีทับซ้ำ · สลับเฉพาะค่า default (7↔0) ไม่ทับค่าที่ผู้ใช้พิมพ์เอง
-  const taxRateTouched = useRef(false);
+  // จะบวกภาษีทับซ้ำ · สลับค่าตามช่องทางให้อัตโนมัติ (ฟอร์มนี้ไม่มีช่องให้กรอกภาษีแล้ว)
   useEffect(() => {
-    if (taxRateTouched.current) return;
     if (isMarketplace && taxRate === 7) setTaxRate(0);
     if (!isMarketplace && taxRate === 0) setTaxRate(7);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -349,9 +347,10 @@ export default function NewOrderPage() {
       if (selectedCustomer.defaultPaymentTerms && !paymentTerms) {
         setPaymentTerms(selectedCustomer.defaultPaymentTerms);
       }
-      // ผู้ใช้พิมพ์ 0 เอง (งานยกเว้นภาษี) แล้วเลือกลูกค้านิติบุคคล → เดิมเด้งกลับเป็น 7 ทับเงียบๆ
-      // เคารพ taxRateTouched แบบเดียวกับ effect ช่องทาง marketplace ด้านบน
-      if (taxRate === 0 && !taxRateTouched.current) {
+      // นิติบุคคลต้องมีภาษีขาย — ยกเว้นช่องทางมาร์เก็ตเพลสที่ราคารวม VAT อยู่แล้ว
+      // (ถ้าดันกลับเป็น 7 จะบวกภาษีทับซ้ำ · เดิมเงื่อนไขนี้พึ่งการที่ผู้ใช้แตะช่องเอง
+      //  พอถอดช่องกรอกออกเลยต้องกันที่ตัวเงื่อนไขตรงๆ)
+      if (taxRate === 0 && !isMarketplace) {
         setTaxRate(7);
       }
     }
@@ -403,10 +402,6 @@ export default function NewOrderPage() {
       if (deadlineDate < new Date()) {
         errors.push("กำหนดส่งต้องไม่เป็นวันที่ผ่านมาแล้ว");
       }
-    }
-
-    if (taxRate < 0 || taxRate > 100) {
-      errors.push("ภาษีต้องอยู่ระหว่าง 0–100%");
     }
 
     // ของที่พิมพ์ไว้ในกล่องรายการแต่ระบบจะไม่ส่ง (เพราะยังไม่มีตัวรายการจริง) — ห้ามทิ้งเงียบ
@@ -526,7 +521,6 @@ export default function NewOrderPage() {
         { label: "เปิดงานใหม่" },
       ]}
       title="เปิดงานใหม่"
-      description="บันทึกจากบทสนทนา แล้วเติมรายการและเงื่อนไขตามลำดับ"
     >
       {showDraftBanner && (
         <div className={cn(TINT.warning, "flex flex-wrap items-center gap-3 rounded-2xl border px-3 py-2 text-xs")}>
@@ -585,7 +579,7 @@ export default function NewOrderPage() {
             id={STEP_IDS.intake}
             tabIndex={-1}
             title={<StepTitle number="01">รับเรื่อง</StepTitle>}
-            description="บังคับแค่ลูกค้า — ที่เหลือเติมทีหลังได้"
+            description="ที่เหลือเติมทีหลังได้"
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
@@ -628,7 +622,6 @@ export default function NewOrderPage() {
             id={STEP_IDS.items}
             tabIndex={-1}
             title={<StepTitle number="02">รายการงาน</StepTitle>}
-            description="สินค้า ลาย และส่วนเสริมของชุดงานนี้"
             action={
               hasItemContent ? (
                 <Badge variant="default" size="sm">
@@ -716,7 +709,6 @@ export default function NewOrderPage() {
             id={STEP_IDS.pricing}
             tabIndex={-1}
             title={<StepTitle number="03">ราคาและเงื่อนไข</StepTitle>}
-            description="ค่าใช้จ่ายระดับออเดอร์ ภาษี และเงื่อนไขชำระ"
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
@@ -732,28 +724,23 @@ export default function NewOrderPage() {
               <div className="space-y-5 border-t border-slate-200 pt-5 dark:border-white/10">
                 {/* หัวข้อย่อยชั้นเดียวกับ "ค่าใช้จ่ายเพิ่มเติม"/"สรุปยอด" — เดิมเขียน <h3> เอง
                     ขนาด 14px ต่างจากอีกสองอันที่ 16px ทั้งที่อยู่ชั้นเดียวกัน (audit 2026-08-03) */}
-                <Section title="เงื่อนไขการขาย" bordered={false} headingLevel={3}>
+                {/* ไม่มีช่อง "ภาษี (%)" แล้ว (เบสเคาะ 2026-08-04 "vat 7% ไม่ต้องมีให้กรอกก็ได้") —
+                    ระบบตั้งให้เอง: ปกติ 7% · ช่องทางมาร์เก็ตเพลสเป็น 0% (ราคารวม VAT อยู่แล้ว)
+                    อัตราจริงยังเห็นได้ที่บรรทัด VAT ในสรุปยอด · งานยกเว้นภาษีแก้ที่หน้าออเดอร์
+                    (order.updateInfo รับ taxRate อยู่แล้ว — ไม่แตะสูตร ไม่แตะ mutation) */}
+                <Section
+                  title="เงื่อนไขการขาย"
+                  description="ภาษีระบบตั้งให้เอง (ดูอัตราที่บรรทัด VAT) — แก้ได้ที่หน้าออเดอร์"
+                  bordered={false}
+                  headingLevel={3}
+                >
                   <div className="grid gap-3 lg:grid-cols-2">
-                    <Field label="ภาษี (%)" id="order-tax-rate">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={0.01}
-                        value={taxRate || ""}
-                        onChange={(e) => {
-                          taxRateTouched.current = true; // ผู้ใช้แตะเอง — เลิกสลับ default ตามช่องทาง
-                          setTaxRate(parseFloat(e.target.value) || 0);
-                        }}
-                        placeholder="0"
-                      />
-                    </Field>
                     <Field label="เงื่อนไขชำระ" id="order-payment-terms">
                       <Select
                         value={paymentTerms}
                         onChange={(e) => setPaymentTerms(e.target.value)}
                       >
-                        <option value="">-- ไม่ระบุ --</option>
+                        <option value="">ไม่ระบุ</option>
                         {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
                           <option key={k} value={k}>
                             {v}
@@ -805,14 +792,14 @@ export default function NewOrderPage() {
 
           {/* แถบยอด+ปุ่มติดขอบล่างจอ — ทึบ + เส้นขอบบน (เดิมโปร่ง 95% + blur จนตัวหนังสือ
               ด้านบนอ่านทะลุกัน) · pb เผื่อแถบขีดกลับหน้าหลักของ iPhone ไม่ให้ทับปุ่ม "เปิดงาน" */}
-          <div className="card-surface sticky bottom-0 z-10 -mb-2 flex flex-wrap items-center gap-2 rounded-t-2xl px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+          <div className="card-surface sticky bottom-0 z-10 -mb-2 flex flex-wrap items-center gap-2 rounded-t-2xl border-t border-slate-200 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 dark:border-white/10">
             <div className="min-w-0 flex-1">
               {hasItemContent ? (
                 <>
                   {/* ชื่อเดียวกับบรรทัดสุดท้ายของ "สรุปยอด" — เดิมเรียก "ยอดรวม" กับ
                       "ยอดรวมทั้งหมด" คนละที่คนละขนาด อ่านแล้วไม่แน่ใจว่าเลขเดียวกันไหม */}
                   <p className="text-2xs text-muted">ยอดรวมทั้งหมด (รวม VAT)</p>
-                  <p className="truncate text-xl font-semibold tracking-tight tabular-nums text-strong">
+                  <p className={cn("truncate", DISPLAY_AMOUNT)}>
                     {formatCurrency(pricingSummary.grandTotal)}
                   </p>
                 </>

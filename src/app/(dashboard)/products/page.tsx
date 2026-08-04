@@ -93,7 +93,6 @@ function ProductsPageContent() {
     <div className="space-y-5">
       <PageHeader
         title="สินค้า"
-        description="แคตตาล็อกสินค้าและตัวเลือก"
         action={canManageStock ? (
           <>
             <Button asChild variant="ghost" size="icon-sm">

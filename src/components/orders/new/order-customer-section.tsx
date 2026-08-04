@@ -84,6 +84,7 @@ export function OrderCustomerSection({
         onChange={onSelect}
         required
         layout="inline"
+        autoFocusSearch
       />
       {hasCustomerContext && (
         <div className="mt-2 space-y-1.5 rounded-xl bg-slate-100/70 px-3 py-2.5 dark:bg-white/[0.04]">
@@ -101,7 +102,7 @@ export function OrderCustomerSection({
           )}
           {profileGaps.length > 0 && (
             <p className="text-xs text-amber-600 dark:text-amber-400">
-              โปรไฟล์ยังไม่ครบ: {profileGaps.map((g) => g.label).join(" · ")} — ขอจากลูกค้าแล้วเติมได้ที่หน้าลูกค้า
+              โปรไฟล์ยังไม่ครบ: {profileGaps.map((g) => g.label).join(" · ")} — เติมที่หน้าลูกค้า
             </p>
           )}
           {showCreditStatus && !shouldLoadCredit && (
@@ -175,7 +176,7 @@ export function OrderCustomerSection({
                 rel="noopener noreferrer"
                 className="underline"
               >
-                ดูคลังลาย/สั่งซ้ำ 1 คลิก
+                ดูคลังลาย
               </a>
             </p>
           )}

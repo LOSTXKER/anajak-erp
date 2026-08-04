@@ -364,7 +364,7 @@ export function OrderDesignSection({
 
               <p className="mt-1.5 text-xs text-slate-400">
                 {canSeeMoney
-                  ? "นับจากเวอร์ชันแบบ · คิดเมื่อจะคิด (กดเอง) — ลบ/แก้ยอดได้ที่ค่าธรรมเนียมออเดอร์"
+                  ? "คิดเมื่อกดเอง — แก้/ลบยอดได้ที่ค่าธรรมเนียมออเดอร์"
                   : "นับจากจำนวนเวอร์ชันแบบ"}
               </p>
             </div>
@@ -378,7 +378,7 @@ export function OrderDesignSection({
           <DialogHeader>
             <DialogTitle>อัปโหลดแบบใหม่</DialogTitle>
             <DialogDescription>
-              อัปโหลดไฟล์แบบ (PNG, JPG, PDF, AI, PSD) เพื่อส่งให้ลูกค้าอนุมัติ
+              PNG, JPG, PDF, AI, PSD — ไฟล์นี้ลูกค้าจะเห็นตอนอนุมัติ
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -448,9 +448,6 @@ export function OrderDesignSection({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>ตรวจสอบแบบ</DialogTitle>
-            <DialogDescription>
-              อนุมัติแบบเพื่อดำเนินการผลิต หรือขอให้แก้ไข
-            </DialogDescription>
           </DialogHeader>
           <div>
             <label htmlFor="design-approval-comment" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">

@@ -38,13 +38,22 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className="space-y-4">
-      {breadcrumb && breadcrumb.length > 0 && (
+      {(() => {
+        // ตัวสุดท้ายที่ซ้ำกับชื่อหน้า (h1 บรรทัดถัดไป) คำต่อคำ — ตัดทิ้ง เหลือ path พ่อแม่
+        // (benchmark: Stripe ใส่แค่ทางเดิน ให้หัวหน้าเป็นชื่อหน้าเอง)
+        const deduped =
+          !!breadcrumb &&
+          typeof title === "string" &&
+          breadcrumb.length > 0 &&
+          breadcrumb[breadcrumb.length - 1].label === title;
+        const crumbs = deduped ? breadcrumb!.slice(0, -1) : breadcrumb;
+        return crumbs && crumbs.length > 0 ? (
         <nav
           aria-label="Breadcrumb"
           className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400"
         >
-          {breadcrumb.map((item, idx) => {
-            const isLast = idx === breadcrumb.length - 1;
+          {crumbs.map((item, idx) => {
+            const isLast = idx === crumbs.length - 1;
             return (
               <span key={`${item.label}-${idx}`} className="flex items-center gap-1.5">
                 {item.href && !isLast ? (
@@ -56,6 +65,8 @@ export function PageHeader({
                   </Link>
                 ) : (
                   <span
+                    // ตัวสุดท้ายเป็น "หน้าปัจจุบัน" เฉพาะเมื่อไม่ได้ถูกตัดเพราะซ้ำ h1
+                    aria-current={isLast && !deduped ? "page" : undefined}
                     className={
                       isLast
                         ? "text-slate-700 dark:text-slate-300"
@@ -72,7 +83,8 @@ export function PageHeader({
             );
           })}
         </nav>
-      )}
+        ) : null;
+      })()}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="flex min-w-0 items-start gap-3 sm:min-w-64 sm:flex-1">
           {back && (
@@ -84,13 +96,15 @@ export function PageHeader({
           )}
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">
+              <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">
                 {title}
               </h1>
               {titleBadge}
             </div>
             {description && (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              /* 14px ไม่ใช่ 12px — "คำอธิบายทั้งหน้า" ต้องขั้นถัดลงจาก h1 24px
+                 ไม่ใช่แต่งตัวเหมือน meta ในแถวตาราง (benchmark 2026-08-04) */
+              <p className="text-sm text-muted">
                 {description}
               </p>
             )}

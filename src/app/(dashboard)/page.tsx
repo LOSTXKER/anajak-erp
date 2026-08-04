@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatCurrency, formatDateShort, BANGKOK_TZ } from "@/lib/utils";
+import { cn, formatCurrency, formatDateShort, BANGKOK_TZ, formatBaht } from "@/lib/utils";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
@@ -42,7 +42,9 @@ function PulseCard({
   value: string | number;
   /** สีเน้นตัวเลขหลัก — "muted" = ศูนย์จริง โชว์สีจาง (ไม่ซ่อน) */
   tone?: "danger" | "warning" | "muted";
-  sub: string;
+  /** บรรทัดล่าง — ใส่เฉพาะเมื่อบอก "เรื่องที่สอง" ที่หัวข้อไม่ได้บอก
+   *  (ห้ามใช้ขยายความหัวข้อตัวเอง — พูดซ้ำเปล่าๆ) */
+  sub?: string;
   subTone?: "danger" | "warning";
   className?: string;
 }) {
@@ -53,7 +55,7 @@ function PulseCard({
       </p>
       <p
         className={cn(
-          "mt-2.5 text-3xl font-semibold leading-none tracking-tight tabular-nums",
+          "mt-2.5 text-3xl font-semibold tabular-nums",
           tone === "danger"
             ? "text-red-600 dark:text-red-400"
             : tone === "warning"
@@ -99,7 +101,7 @@ function PulseCard({
         <div>{titleAndValue}</div>
       )}
 
-      {subHref ? (
+      {subHref && sub ? (
         <Link
           href={subHref}
           className={cn(
@@ -112,7 +114,7 @@ function PulseCard({
           <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
         </Link>
       ) : (
-        <p className={cn("mt-1.5", subClassName)}>{sub}</p>
+        sub && <p className={cn("mt-1.5", subClassName)}>{sub}</p>
       )}
     </div>
   );
@@ -166,7 +168,7 @@ export default function DashboardPage() {
   return (
     <PageShell
       title="แดชบอร์ด"
-      description={`ภาพรวมระบบ Anajak Print · ${today.toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: BANGKOK_TZ })}`}
+      description={`${today.toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: BANGKOK_TZ })}`}
       loading={isLoading}
       skeleton={
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -240,7 +242,6 @@ export default function DashboardPage() {
               title="งานนิ่ง 3 วัน"
               value={pulse.stuckOrders}
               tone={pulse.stuckOrders > 0 ? "warning" : "muted"}
-              sub="ไม่มีใครแตะเกิน 3 วัน"
               className="col-span-2 lg:col-span-1"
             />
           </div>
@@ -264,6 +265,7 @@ export default function DashboardPage() {
               value={formatCurrency(data?.revenueThisMonth ?? 0)}
               icon={TrendingUp}
               change={data?.revenueChange ?? undefined}
+              changeSuffix="เทียบเดือนก่อน"
               valueClassName="text-xl"
             />
           )}
@@ -302,7 +304,7 @@ export default function DashboardPage() {
             <EmptyState
               icon={ShoppingCart}
               title="ยังไม่มีออเดอร์"
-              description="เริ่มจากปุ่ม เปิดงานใหม่ มุมขวาบน — ออเดอร์ล่าสุดจะโผล่ที่นี่"
+              description="ออเดอร์ล่าสุดจะขึ้นที่นี่"
             />
           </div>
         ) : (
@@ -311,11 +313,11 @@ export default function DashboardPage() {
               <Link
                 key={o.id}
                 href={`/orders/${o.id}`}
-                className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/30"
+                className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-slate-100 dark:hover:bg-white/[0.06]"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                    <p className="text-sm font-medium tabular-nums text-slate-900 dark:text-white">
                       {o.orderNumber}
                     </p>
                     {o.printLabel && (
@@ -330,8 +332,8 @@ export default function DashboardPage() {
                 </div>
                 <div className="shrink-0 text-right">
                   {o.totalAmount != null && (
-                    <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
-                      {formatCurrency(o.totalAmount)}
+                    <p className="text-sm tabular-nums text-slate-900 dark:text-white">
+                      {formatBaht(o.totalAmount)}
                     </p>
                   )}
                   {o.deadline && (
@@ -361,7 +363,7 @@ export default function DashboardPage() {
               <Link
                 key={item.status}
                 href={`/orders?status=${item.status}`}
-                className={cn("block min-h-11 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50", FOCUS_BUTTON, "dark:hover:bg-slate-800/40")}
+                className={cn("block min-h-11 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100", FOCUS_BUTTON, "dark:hover:bg-white/[0.06]")}
               >
                 <div className="flex items-center justify-between">
                   <OrderStatusBadge internalStatus={item.status} compact />
@@ -398,7 +400,7 @@ export default function DashboardPage() {
               <Link
                 key={customer.id}
                 href={`/customers/${customer.id}`}
-                className={cn("flex min-h-11 items-center justify-between rounded-lg px-2 transition-colors hover:bg-slate-50", FOCUS_BUTTON, "dark:hover:bg-slate-800/40")}
+                className={cn("flex min-h-11 items-center justify-between rounded-lg px-2 transition-colors hover:bg-slate-100", FOCUS_BUTTON, "dark:hover:bg-white/[0.06]")}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
@@ -416,8 +418,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-medium tabular-nums text-slate-900 dark:text-white">
-                    {formatCurrency(customer.totalSpent)}
+                  <p className="text-sm tabular-nums text-slate-900 dark:text-white">
+                    {formatBaht(customer.totalSpent)}
                   </p>
                   <p className="text-xs text-slate-400">
                     {customer.totalOrders} ออเดอร์

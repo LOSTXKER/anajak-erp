@@ -113,7 +113,6 @@ function BillingPageContent() {
   return (
     <PageShell
       title="บิล/การเงิน"
-      description="ใบแจ้งหนี้ ใบเสร็จ และสถานะรับชำระ"
       denied={
         me && !canView
           ? {

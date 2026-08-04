@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
@@ -87,7 +86,6 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>อัปเดตขั้นตอน</DialogTitle>
-          <DialogDescription>เปลี่ยนสถานะหรือบันทึกข้อมูลเพิ่มเติม</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <Field label="สถานะ">

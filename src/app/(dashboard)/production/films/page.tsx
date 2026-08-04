@@ -68,7 +68,7 @@ function FilmStockPageContent() {
     <div className="space-y-5">
       <PageHeader
         title="คลังฟิล์มพร้อมรีด"
-        description="ฟิล์มพิมพ์เผื่อ — เช็คก่อนพิมพ์ใหม่ทุกครั้งที่ลูกค้าสั่งซ้ำ"
+        description="เช็คก่อนพิมพ์ใหม่ทุกครั้งที่ลูกค้าสั่งซ้ำ"
         action={
           <Button variant="outline" size="sm" asChild className="gap-1.5">
             <Link href="/production/print-runs">
@@ -292,7 +292,7 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
         <DialogHeader>
           <DialogTitle>หยิบใช้ฟิล์ม</DialogTitle>
           <DialogDescription>
-            ตัดจำนวนออกจากคลัง — ใช้รีดงานสั่งซ้ำ หรือตัดทิ้งฟิล์มเสีย
+            ตัดจำนวนออกจากคลัง
           </DialogDescription>
         </DialogHeader>
         <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-800/40">

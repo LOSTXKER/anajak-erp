@@ -42,7 +42,7 @@ export default function AnalyticsPage() {
   return (
     <PageShell
       title="รายงาน"
-      description="ดูแนวโน้มระยะยาว ส่วนงานเร่งด่วนอยู่ที่ Dashboard"
+      description="ดูแนวโน้มระยะยาว"
       loading={isLoading}
       skeleton={
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -62,7 +62,6 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Section
           title={<span className="inline-flex items-center gap-2"><TrendingUp className="h-4 w-4" aria-hidden="true" />รายได้ 6 เดือนย้อนหลัง</span>}
-          description="เปรียบเทียบแนวโน้ม ไม่ใช่คิวงานประจำวัน"
           bordered
         >
           {!canViewRevenue ? (

@@ -144,7 +144,7 @@ export default function SettingsPage() {
   const header = (
     <PageHeader
       title="ตั้งค่า"
-      description="ตั้งค่าระบบ Anajak Print — ทุกหน้าบันทึกจริง แก้แล้วมีผลทันที"
+      description="แก้แล้วมีผลกับงานจริงทันที"
     />
   );
 

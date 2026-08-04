@@ -51,6 +51,10 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      // dialog ที่ไม่มีคำอธิบาย (ชื่อ dialog บอกครบแล้ว) ต้องประกาศว่า "ตั้งใจไม่มี"
+      // ไม่งั้น Radix ขึ้น warning ใน console ทุกครั้งที่เปิด — ส่งเป็นค่าเริ่มต้น
+      // ที่นี่จุดเดียว · dialog ที่มี DialogDescription จะ override ทับเองผ่าน {...props}
+      aria-describedby={undefined}
       className={cn(
         OVERLAY_PANEL,
         "fixed left-1/2 top-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain p-5 pr-14 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-6 sm:pr-14",
@@ -100,7 +104,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold leading-tight tracking-tight text-slate-900 dark:text-white", className)}
+    className={cn("text-lg font-semibold leading-tight text-slate-900 dark:text-white", className)}
     {...props}
   />
 ));

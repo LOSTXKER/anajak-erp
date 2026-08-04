@@ -167,7 +167,6 @@ export default function OutsourcePage() {
     <div className="space-y-5">
       <PageHeader
         title="งานร้านนอก"
-        description="เดินงานตามคิวเดียว: ยืนยันส่งร้าน → นับรับกลับ → QC"
         action={
           canManageSettings ? (
             <Button asChild variant="outline" size="sm">
@@ -189,7 +188,6 @@ export default function OutsourcePage() {
 
       <Section
         title={`${currentQueue.label} (${visibleOrders.length})`}
-        description="แยกตามจังหวะงาน เพื่อให้แต่ละคนเห็นปุ่มที่ต้องทำต่อเพียงชุดเดียว"
         bordered
       >
         <div

@@ -110,7 +110,7 @@ export function CustomerFormFields({
         <Field label="LINE ID">
           <Input value={form.lineId} onChange={(e) => set({ lineId: e.target.value })} />
         </Field>
-        <Field label="ชื่อในแชท" description="ชื่อที่ลูกค้าใช้ในห้องแชท — ใช้ได้ทุกช่องทาง">
+        <Field label="ชื่อในแชท">
           <Input
             value={form.chatName}
             onChange={(e) => set({ chatName: e.target.value })}

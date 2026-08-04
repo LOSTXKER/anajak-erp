@@ -13,7 +13,7 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
         <Icon className="h-5 w-5" strokeWidth={1.5} />
       </div>
-      <p className="mt-4 text-sm font-medium tracking-tight text-slate-800 dark:text-slate-100">
+      <p className="mt-4 text-sm font-medium text-slate-800 dark:text-slate-100">
         {title}
       </p>
       {description && (

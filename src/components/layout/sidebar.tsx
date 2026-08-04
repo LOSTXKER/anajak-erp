@@ -8,7 +8,7 @@ import {
   PanelLeftOpen,
   Printer,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
@@ -25,6 +25,19 @@ export function Sidebar({
 } = {}) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  // จำสถานะย่อ/กางข้าม refresh — init false เสมอกัน hydration mismatch แล้วอ่านหลัง mount
+  useEffect(() => {
+    // rAF เลื่อน setState พ้น effect body — กัน cascading render (กติกา lint เดียวกับที่อื่น)
+    if (localStorage.getItem("sidebar-collapsed") !== "1") return;
+    const raf = requestAnimationFrame(() => setCollapsed(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      localStorage.setItem("sidebar-collapsed", prev ? "0" : "1");
+      return !prev;
+    });
+  };
   const { data: me } = trpc.user.me.useQuery();
   const { data: navBadges } = trpc.task.navBadges.useQuery(undefined, {
     refetchInterval: 60_000,
@@ -77,7 +90,7 @@ export function Sidebar({
             type="button"
             variant="ghost"
             size="icon-sm"
-            onClick={() => setCollapsed(false)}
+            onClick={toggleCollapsed}
             title="ขยายแถบเมนู"
             aria-label="ขยายแถบเมนู"
             className="h-9 w-9 shrink-0 text-muted hover:bg-black/5 hover:text-secondary dark:hover:bg-white/5 dark:hover:text-slate-200"
@@ -94,7 +107,7 @@ export function Sidebar({
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
                 <Printer className="h-4 w-4" />
               </div>
-              <span className="truncate text-base font-semibold tracking-tight text-slate-900 dark:text-white">
+              <span className="truncate text-base font-semibold text-slate-900 dark:text-white">
                 Anajak Print
               </span>
             </Link>
@@ -103,7 +116,7 @@ export function Sidebar({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => setCollapsed(true)}
+                onClick={toggleCollapsed}
                 title="ย่อแถบเมนู"
                 aria-label="ย่อแถบเมนู"
                 className="h-9 w-9 shrink-0 text-slate-400 hover:bg-black/5 hover:text-secondary dark:hover:bg-white/5 dark:hover:text-slate-200"
@@ -132,7 +145,13 @@ export function Sidebar({
                     <Link
                       href={item.href}
                       onClick={onNavigate}
-                      title={collapsed ? item.label : undefined}
+                      title={
+                        collapsed
+                          ? badgeFor(item.href) !== undefined
+                            ? `${item.label} — ค้าง ${badgeFor(item.href)} งาน`
+                            : item.label
+                          : undefined
+                      }
                       aria-current={active ? "page" : undefined}
                       className={cn(
                         "group flex items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors",
@@ -144,15 +163,25 @@ export function Sidebar({
                           : "text-slate-600 hover:bg-black/[0.04] hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
                       )}
                     >
-                      <item.icon
-                        className={cn(
-                          "h-[17px] w-[17px] shrink-0",
-                          active
-                            ? "text-blue-600 dark:text-blue-400"
-                            : "text-slate-500 dark:text-slate-500"
+                      {/* ย่อแล้วเลขงานค้างต้องไม่หายทั้งก้อน — จุดแดงบนไอคอน
+                          (สูตรเดียวกับกระดิ่ง topbar) + จำนวนเต็มอยู่ใน title */}
+                      <span className="relative shrink-0">
+                        <item.icon
+                          className={cn(
+                            "h-[17px] w-[17px]",
+                            active
+                              ? "text-blue-600 dark:text-blue-400"
+                              : "text-slate-500 dark:text-slate-500"
+                          )}
+                          strokeWidth={1.75}
+                        />
+                        {collapsed && badgeFor(item.href) !== undefined && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-chrome"
+                          />
                         )}
-                        strokeWidth={1.75}
-                      />
+                      </span>
                       {!collapsed && (
                         <>
                           <span className="truncate">{item.label}</span>

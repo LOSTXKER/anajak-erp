@@ -88,7 +88,7 @@ export default function ProductionDetailPage({
     const stepName = step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
     const ok = await confirm({
       title: "ผ่านรวดขั้นตอนนี้?",
-      description: `"${stepName}" จะถูกบันทึกว่าเสร็จแล้ว — ใช้เมื่องานร้านนอกเสร็จเรียบร้อยโดยไม่ได้เปิดใบส่งร้านในระบบ`,
+      description: `"${stepName}" จะถูกปิดเป็นเสร็จ — ใช้เมื่อร้านนอกทำเสร็จแล้วแต่ไม่ได้เปิดใบส่งร้าน`,
       confirmText: "ผ่านรวด",
     });
     if (!ok) return;

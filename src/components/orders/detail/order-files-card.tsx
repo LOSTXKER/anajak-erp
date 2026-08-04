@@ -348,7 +348,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
 
           {rawFiles.length === 0 && uploadingLayer !== "RAW" && (
             <p className="text-xs text-slate-400">
-              ยังไม่มีไฟล์จากลูกค้า — กด &quot;แนบไฟล์&quot; เพื่อแนบของจากแชทแทนลูกค้า
+              ยังไม่มีไฟล์จากลูกค้า — แนบแทนลูกค้าได้
             </p>
           )}
 
@@ -448,7 +448,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
 
           {printFiles.length === 0 && uploadingLayer !== "PRINT" ? (
             <p className="text-xs text-slate-400">
-              ยังไม่มีไฟล์พิมพ์ — gang sheet/ไฟล์ production เก็บชั้นนี้ ไม่ปนกับแบบที่ลูกค้าเห็น
+              ยังไม่มีไฟล์พิมพ์ — gang sheet/ไฟล์ production เก็บที่นี่
             </p>
           ) : (
             <div className="flex flex-wrap gap-3">

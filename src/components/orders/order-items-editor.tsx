@@ -390,7 +390,7 @@ export function OrderItemsEditor({
             className={cn(DASHED, "flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm text-muted transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
           >
             <Plus className="h-4 w-4" />
-            เพิ่มรายการงานอีกชุด (ลาย/เงื่อนไขต่างจากชุดแรก)
+            เพิ่มรายการงานอีกชุด
           </button>
 
           {/* ค่าธรรมเนียม + ส่วนลด — โชว์ตรงๆ ไม่พับซ่อน (เบส: ไม่ต้องซ่อน แต่ดูง่าย) */}

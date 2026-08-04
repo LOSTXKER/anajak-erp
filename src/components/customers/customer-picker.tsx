@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/lib/trpc";
@@ -35,6 +35,9 @@ interface CustomerPickerProps {
   /** ให้ฟอร์มโฟกัสกลับมาที่ช่องนี้ได้เมื่อตรวจไม่ผ่าน */
   id?: string;
   labelledBy?: string;
+  /** โฟกัสช่องค้นหาทันทีที่เปิดหน้า — เฉพาะจอ ≥sm (มือถือคีย์บอร์ดจะเด้งบังฟอร์ม)
+   *  ใช้ที่หน้าเปิดงาน: "เปิดงานได้ในไม่กี่วินาทีระหว่างถือแชท" ต้องพร้อมพิมพ์ทันที */
+  autoFocusSearch?: boolean;
   /** จัดช่องค้นหาและตัวเลือกไว้แถวเดียวบนจอกว้าง โดยคงค่าเริ่มต้นของหน้าที่ใช้ร่วมกัน */
   layout?: "stacked" | "inline";
 }
@@ -46,8 +49,15 @@ export function CustomerPicker({
   labelledBy,
   id,
   layout = "stacked",
+  autoFocusSearch = false,
 }: CustomerPickerProps) {
   const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  // โฟกัสหลัง mount เฉพาะจอ ≥sm — ไม่ใช้ attribute autoFocus เพราะเลือก breakpoint ไม่ได้
+  useEffect(() => {
+    if (!autoFocusSearch) return;
+    if (window.matchMedia("(min-width: 640px)").matches) searchRef.current?.focus();
+  }, [autoFocusSearch]);
   const [showCreate, setShowCreate] = useState(false);
   // ลูกค้าที่เลือกอยู่ — ปักไว้ใน dropdown แม้ผลค้นหาปัจจุบันไม่มีรายนี้
   const [selected, setSelected] = useState<PickerCustomer | null>(null);
@@ -144,6 +154,7 @@ export function CustomerPicker({
       <div className="relative">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
         <Input
+          ref={searchRef}
           aria-label="ค้นหาลูกค้า"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -173,7 +184,7 @@ export function CustomerPicker({
           className="flex-1"
         >
           <option value="">
-            {isLoading ? "กำลังโหลด..." : `-- เลือกลูกค้า${search ? ` (${list.length} ราย)` : ""} --`}
+            {isLoading ? "กำลังโหลด..." : `เลือกลูกค้า${search ? ` (${list.length} ราย)` : ""}`}
           </option>
           {options.map((c) => (
             <option key={c.id} value={c.id}>

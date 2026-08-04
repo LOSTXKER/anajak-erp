@@ -58,7 +58,7 @@ function QuickAddPattern({
   };
 
   return (
-    <div className={cn("mt-2 bg-surface p-3", RADIUS.item)}>
+    <div className={cn("mt-2 p-3", RADIUS.item)}>
       <span className="mb-2 block text-xs font-medium text-secondary">สร้างแพทเทิร์นใหม่</span>
       <div className="flex items-end gap-2">
         <div className="flex-1 space-y-1.5">
@@ -158,7 +158,7 @@ export function CustomMadeDetail({
               onChange={(e) => handlePatternSelect(e.target.value)}
               disabled={patternsLoading || patternsError}
             >
-              <option value="">{patternsLoading ? "กำลังโหลด..." : "-- เลือกแพทเทิร์น --"}</option>
+              <option value="">{patternsLoading ? "กำลังโหลด..." : "เลือกแพทเทิร์น"}</option>
               {patterns?.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}{p.description ? ` — ${p.description}` : ""}
@@ -209,7 +209,7 @@ export function CustomMadeDetail({
         </Field>
         <Field label="ชนิดผ้า">
           <Select size="sm" value={product.fabricType} onChange={(e) => updateProduct("fabricType", e.target.value)}>
-            <option value="">-- เลือก --</option>
+            <option value="">เลือก</option>
             {Object.entries(FABRIC_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
         </Field>
@@ -224,19 +224,19 @@ export function CustomMadeDetail({
         </Field>
         <Field label="ทรงคอ">
           <Select size="sm" value={product.collarType} onChange={(e) => updateProduct("collarType", e.target.value)}>
-            <option value="">-- เลือก --</option>
+            <option value="">เลือก</option>
             {Object.entries(COLLAR_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
         </Field>
         <Field label="แขน">
           <Select size="sm" value={product.sleeveType} onChange={(e) => updateProduct("sleeveType", e.target.value)}>
-            <option value="">-- เลือก --</option>
+            <option value="">เลือก</option>
             {Object.entries(SLEEVE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
         </Field>
         <Field label="ทรงตัว">
           <Select size="sm" value={product.bodyFit} onChange={(e) => updateProduct("bodyFit", e.target.value)}>
-            <option value="">-- เลือก --</option>
+            <option value="">เลือก</option>
             {Object.entries(BODY_FITS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
         </Field>

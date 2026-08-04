@@ -63,7 +63,7 @@ export function RecordRefundDialog({
         <DialogHeader>
           <DialogTitle>คืนเงินให้ลูกค้า</DialogTitle>
           <DialogDescription>
-            บันทึกการคืนเงิน — คู่กับใบลดหนี้ที่ออกให้ลูกค้า (คืนได้ไม่เกินเงินที่รับไว้)
+            คู่กับใบลดหนี้ที่ออกให้ลูกค้า · คืนได้ไม่เกินเงินที่รับไว้
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">

@@ -70,7 +70,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
                     {title}
                   </Heading>
                 ) : (
-                  <Heading className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
+                  <Heading className="text-base font-semibold text-slate-900 dark:text-white">
                     {title}
                   </Heading>
                 ))}

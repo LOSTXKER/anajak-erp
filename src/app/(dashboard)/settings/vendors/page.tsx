@@ -159,7 +159,6 @@ export default function VendorsSettingsPage() {
     >
       <Section
         title={`ร้านที่ใช้งานอยู่ (${vendorsQuery.data?.length ?? 0})`}
-        description="เพิ่มหรือแก้ข้อมูลร้านที่เลือกใช้ตอนสร้างใบงานร้านนอก"
         action={
           <Button size="sm" onClick={openCreate} disabled={!canManage}>
             <Plus />
@@ -279,7 +278,7 @@ export default function VendorsSettingsPage() {
             </Field>
             <Field
               label="ประเภทงานที่รับ"
-              description="คั่นแต่ละประเภทด้วยเครื่องหมายจุลภาค เช่น สกรีน, ปัก, เย็บ"
+              description="คั่นด้วยจุลภาค เช่น สกรีน, ปัก, เย็บ"
             >
               <Input
                 value={form.capabilities}

@@ -50,7 +50,8 @@ export function StatCard({
   change,
   className,
   valueClassName,
-}: StatCardProps) {
+  changeSuffix,
+  }: StatCardProps) {
   const card = (
     <div
       className={cn(
@@ -72,7 +73,7 @@ export function StatCard({
       </div>
       <p
         className={cn(
-          "mt-2.5 text-3xl font-semibold leading-none tracking-tight tabular-nums",
+          "mt-2.5 text-3xl font-semibold tabular-nums",
           TONE_CLASSES[tone],
           valueClassName
         )}
@@ -96,6 +97,9 @@ export function StatCard({
             )}
             {Math.abs(change).toFixed(1)}%
           </span>
+        )}
+        {change !== undefined && changeSuffix && (
+          <span className="text-slate-500 dark:text-slate-400">{changeSuffix}</span>
         )}
         {caption && (
           <span className="text-slate-500 dark:text-slate-400">{caption}</span>
