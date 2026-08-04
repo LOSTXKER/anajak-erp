@@ -10,14 +10,23 @@ export interface OrderTabDef {
 
 // UX6: แท็บ "เงิน/บิล" ใหม่ (gate canSeeMoney ที่หน้า — role ไม่เห็นเงินจะถูกกรองออก) ·
 // "บิล/ไฟล์" เดิมไม่มีบิลจริง → เปลี่ยนชื่อเป็น "ไฟล์" (ป้ายตรงของจริง)
+// 2026-08-05 กลับมาใช้แท็บอีกครั้ง (เบสเคาะเอง หลังเคยสั่งเลิกซ่อน 2026-07-18) —
+// key เดิมทั้งชุดคงไว้ ลิงก์เก่าและ ?tab=docs ยังเข้าได้ · เปลี่ยนแต่ป้ายให้ตรงของจริง:
+// "ภาพรวม" ข้างในไม่มีภาพรวมอะไรเลย มีแต่ตารางรายการ → "รายการ"
 export const ORDER_TAB_DEFS: OrderTabDef[] = [
-  { key: "overview", label: "ภาพรวม" },
+  { key: "overview", label: "รายการ" },
   { key: "production", label: "งานผลิต" },
   { key: "delivery", label: "จัดส่ง" },
-  { key: "money", label: "เงิน/บิล" },
+  { key: "money", label: "เงิน & บิล" },
   { key: "files", label: "ไฟล์" },
   { key: "history", label: "ประวัติ" },
 ];
+
+/** แท็บที่เปิดมาเจอเสมอ — เบสเคาะ 2026-08-05 ให้ล็อกตายตัว ไม่เด้งตามสถานะ
+ *  เหตุผลของเบส: ออเดอร์เดิมต้องเปิดเจอที่เดิมทุกครั้ง จะได้สั่งงานทางโทรศัพท์ได้
+ *  ("เปิดออเดอร์นี้ ดูแท็บรายการ") · `defaultTabForStatus` ข้างล่างจึงไม่ได้ใช้ที่หน้าแล้ว
+ *  แต่คงไว้พร้อมเทส เผื่อเปลี่ยนใจ — อย่าเอาไปต่อกลับโดยไม่ถามเบสก่อน */
+export const ORDER_DEFAULT_TAB: TabKey = "overview";
 
 export function normalizeOrderTab(value: string | null): TabKey | null {
   // deep link เก่าใช้ ?tab=docs — คงเข้าได้ แล้วหน้า canonicalize เป็น files

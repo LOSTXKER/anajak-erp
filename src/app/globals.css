@@ -392,6 +392,18 @@ input[type="number"] {
 .hairline-ring {
   box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.09);
 }
+/* แถบที่เลื่อนแนวนอนได้บนจอแคบ (แถบแท็บ) — ยังเลื่อนได้ปกติ แค่ไม่มีแถบเลื่อนมากินที่
+   scroll-snap ให้แท็บหยุดตรงขอบพอดี ไม่ค้างครึ่งใบ */
+.no-scrollbar {
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar > * {
+  scroll-snap-align: start;
+}
 /* จุดสถานะ "กำลังใช้งาน" — เรืองแสงรอบจุด ไม่ใช่เงากล่อง จึงแยกออกมา */
 .dot-glow {
   box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
