@@ -632,6 +632,24 @@ export default function NewOrderPage() {
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
+              {/* ปุ่มเพิ่มอยู่บนซ้ายเหนือรายการ — เห็นพร้อมหัวข้อตั้งแต่ยังไม่ scroll
+                  (เดิมอยู่ล่างสุดขวา ต้องเลื่อนผ่านทั้งชุดงานถึงจะเจอ) */}
+              <div className="flex">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    addItem();
+                    setExpandedItemIdx(items.length);
+                  }}
+                  className="w-full gap-1.5 text-muted sm:w-auto"
+                >
+                  <Plus />
+                  เพิ่มชุดงาน
+                </Button>
+              </div>
+
               {/* เลข "รายการที่ N" ขึ้นตั้งแต่ชุดแรก — ไม่ต้องรอกดเพิ่มชุดที่ 2 ถึงจะมีเลข
                   (เบสเคาะจาก mockup 2026-08-04) · เดิมมีโหมด solo ที่ซ่อนเลขตอนมีชุดเดียว
                   ทำให้พอเพิ่มชุดที่ 2 เลขโผล่มาทีหลัง ผู้ใช้ต้องอ่านหน้าใหม่ */}
@@ -661,22 +679,6 @@ export default function NewOrderPage() {
                     onSetItems={setItems}
                   />
                 ))}
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    addItem();
-                    setExpandedItemIdx(items.length);
-                  }}
-                  className="w-full gap-1.5 text-muted sm:w-auto"
-                >
-                  <Plus />
-                  เพิ่มชุดงาน
-                </Button>
               </div>
             </div>
           </Section>

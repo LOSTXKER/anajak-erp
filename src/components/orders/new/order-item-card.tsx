@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -120,7 +119,7 @@ function AddCard({
     <button
       type="button"
       onClick={onClick}
-      className={cn(DASHED, "flex flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+      className={cn(DASHED, "flex w-full flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
     >
       <Icon className="h-6 w-6 shrink-0 text-slate-400" strokeWidth={1.75} />
       <span>
@@ -128,16 +127,6 @@ function AddCard({
         <span className="block text-xs text-slate-500 dark:text-slate-400">{desc}</span>
       </span>
     </button>
-  );
-}
-
-/* บรรทัดบอกสถานะเหนือการ์ด — "ยังไม่มี…" (เบสขอให้มีข้อความบอก ไม่ใช่ปุ่มลอยๆ) */
-function EmptyGroup({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-      {children}
-    </div>
   );
 }
 
@@ -274,14 +263,12 @@ export function OrderItemCard({
           </div>
       </div>
       {item.prints.length === 0 ? (
-        <EmptyGroup label="ยังไม่มีลาย">
-          <AddCard
-            icon={ImageIcon}
-            label="เพิ่มลาย"
-            desc="งานพิมพ์/สกรีน/ปัก ที่ลงบนเสื้อ"
-            onClick={() => onAddPrint(itemIdx)}
-          />
-        </EmptyGroup>
+        <AddCard
+          icon={ImageIcon}
+          label="เพิ่มลาย"
+          desc="งานพิมพ์/สกรีน/ปัก ที่ลงบนเสื้อ"
+          onClick={() => onAddPrint(itemIdx)}
+        />
       ) : (
         <>
           <div
@@ -364,23 +351,21 @@ export function OrderItemCard({
       </div>
       {item.products.length === 0 ? (
         // เลือกชนิดงานก่อน → ระบบโชว์เฉพาะ field ที่ชนิดนั้นใช้ (guided by type)
-        <EmptyGroup label="ยังไม่มีสินค้า">
-          <div className="grid gap-2 sm:grid-cols-3">
-            {PRODUCT_TYPE_OPTIONS.map(({ key, icon, label, desc }) => (
-              <AddCard
-                key={key}
-                icon={icon}
-                label={label}
-                desc={desc}
-                onClick={() => {
-                  if (key === "stock") onOpenPicker();
-                  else if (key === "custom") addProductWithSource("CUSTOM_MADE");
-                  else addProductWithSource("CUSTOMER_PROVIDED");
-                }}
-              />
-            ))}
-          </div>
-        </EmptyGroup>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {PRODUCT_TYPE_OPTIONS.map(({ key, icon, label, desc }) => (
+            <AddCard
+              key={key}
+              icon={icon}
+              label={label}
+              desc={desc}
+              onClick={() => {
+                if (key === "stock") onOpenPicker();
+                else if (key === "custom") addProductWithSource("CUSTOM_MADE");
+                else addProductWithSource("CUSTOMER_PROVIDED");
+              }}
+            />
+          ))}
+        </div>
       ) : (
         <>
           {/* พื้นที่กว้างพอ (container ≥ 2xl): ตารางหนึ่งแถวต่อสินค้า พร้อมหัวคอลัมน์ครบ */}
@@ -450,14 +435,12 @@ export function OrderItemCard({
         )}
       </div>
       {item.addons.length === 0 ? (
-        <EmptyGroup label="ยังไม่มีส่วนเสริม">
-          <AddCard
-            icon={Sparkles}
-            label="เพิ่มส่วนเสริม"
-            desc="ป้ายคอ · ถุงแพ็ค · งานเพิ่มนอกจากตัวเสื้อ"
-            onClick={() => onAddAddon(itemIdx)}
-          />
-        </EmptyGroup>
+        <AddCard
+          icon={Sparkles}
+          label="เพิ่มส่วนเสริม"
+          desc="ป้ายคอ · ถุงแพ็ค · งานเพิ่มนอกจากตัวเสื้อ"
+          onClick={() => onAddAddon(itemIdx)}
+        />
       ) : (
         <>
         <div
