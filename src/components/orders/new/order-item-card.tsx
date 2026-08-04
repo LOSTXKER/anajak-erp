@@ -463,7 +463,7 @@ export function OrderItemCard({
             </thead>
             <tbody>
               {item.addons.map((a, aIdx) => (
-                <tr key={aIdx} className="border-b border-slate-100 last:border-0 dark:border-white/10">
+                <tr key={aIdx}>
                   <td colSpan={2} className="px-2 py-1.5 align-middle">
                     {addonCatalog && addonCatalog.length > 0 ? (
                       <Select aria-label={`เลือกประเภทส่วนเสริม ${aIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); }} size="dense">

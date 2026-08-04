@@ -27,8 +27,9 @@ interface OrderPriceSummaryProps {
   taxRate: number;
   platformFee: number;
   discount: number;
-  onPlatformFeeChange: (value: number) => void;
-  onDiscountChange: (value: number) => void;
+  /** ไม่ส่ง = โหมดอ่านอย่างเดียว (ช่องกรอกอยู่ที่อื่นแล้ว) */
+  onPlatformFeeChange?: (value: number) => void;
+  onDiscountChange?: (value: number) => void;
   /** กำไรขั้นต้นโดยประมาณ (ก้อน 2 ชิ้น 5b) — null/ไม่ส่ง = ไม่โชว์บล็อก (role นอกการเงิน) */
   marginEstimate?: MarginEstimate | null;
   /** วางใน Section หลักของหน้าโดยไม่สร้าง card-surface ซ้อนอีกชั้น */
@@ -223,34 +224,41 @@ export function OrderPriceSummary({
           />
         )}
 
-        {isMarketplace && (
+        {isMarketplace &&
+          (onPlatformFeeChange ? (
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="order-platform-fee" className="text-sm text-slate-500 dark:text-slate-400">
+                ค่าธรรมเนียม {channelLabel}
+                <span className="block text-xs text-slate-500 dark:text-slate-400">
+                  หักจากยอดโอนเข้าร้าน — ไม่รวมในยอดบิล
+                </span>
+              </label>
+              <MoneyInput size="sm"
+                id="order-platform-fee"
+                value={platformFee}
+                onValueChange={onPlatformFeeChange}
+                className="w-28"
+              />
+            </div>
+          ) : (
+            <Row label={`ค่าธรรมเนียม ${channelLabel}`} value={formatCurrency(platformFee)} />
+          ))}
+
+        {onDiscountChange ? (
           <div className="flex items-center justify-between gap-2">
-            <label htmlFor="order-platform-fee" className="text-sm text-slate-500 dark:text-slate-400">
-              ค่าธรรมเนียม {channelLabel}
-              <span className="block text-xs text-slate-500 dark:text-slate-400">
-                หักจากยอดโอนเข้าร้าน — ไม่รวมในยอดบิล
-              </span>
+            <label htmlFor="order-discount" className="text-sm text-slate-500 dark:text-slate-400">
+              ส่วนลดท้ายบิล
             </label>
             <MoneyInput size="sm"
-              id="order-platform-fee"
-              value={platformFee}
-              onValueChange={onPlatformFeeChange}
+              id="order-discount"
+              value={discount}
+              onValueChange={onDiscountChange}
               className="w-28"
             />
           </div>
+        ) : (
+          discount > 0 && <Row label="ส่วนลดท้ายบิล" value={`-${formatCurrency(discount)}`} />
         )}
-
-        <div className="flex items-center justify-between gap-2">
-          <label htmlFor="order-discount" className="text-sm text-slate-500 dark:text-slate-400">
-            ส่วนลดท้ายบิล
-          </label>
-          <MoneyInput size="sm"
-            id="order-discount"
-            value={discount}
-            onValueChange={onDiscountChange}
-            className="w-28"
-          />
-        </div>
 
         {taxRate > 0 && (
           <Row

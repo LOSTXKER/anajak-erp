@@ -41,7 +41,7 @@ export function PrintTableRow({
   const dash = <span className="text-xs text-slate-300 dark:text-slate-600">—</span>;
 
   return (
-    <tr className="border-b border-slate-200 last:border-0 dark:border-white/10">
+    <tr>
       {/* จัดกลางให้ตรงกับหัวคอลัมน์ "ลาย" (เบสเห็นจอจริง 2026-08-04) */}
       <td className="py-2 pr-1 text-center align-middle">
         <input

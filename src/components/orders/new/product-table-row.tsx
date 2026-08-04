@@ -66,7 +66,7 @@ export function ProductTableRow({
 
   return (
     <>
-      <tr className="border-b border-slate-200 dark:border-white/10">
+      <tr>
         {/* แหล่ง */}
         <td className="py-2 pl-1 pr-3 align-top">{sourceBadge}</td>
 
@@ -204,7 +204,7 @@ export function ProductTableRow({
 
       {/* สเปคตัดเย็บ (CUSTOM_MADE) — แถวเสริมเต็มกว้าง */}
       {isCustomMade && (
-        <tr className="border-b border-slate-100 dark:border-white/10">
+        <tr>
           <td aria-hidden="true" />
           <td colSpan={7} className="pb-3 pt-1 pr-1">
             <CustomMadeDetail product={product} updateProduct={updateProduct} />
@@ -214,7 +214,7 @@ export function ProductTableRow({
 
       {/* หลายไซส์ — ตารางกรอกไซส์×จำนวน (ก้อน 4 / P1.12) */}
       {multi && (
-        <tr className="border-b border-slate-200 dark:border-white/10">
+        <tr>
           <td aria-hidden="true" />
           <td colSpan={7} className="pb-3 pt-1 pr-1">
             <SizeMatrix variants={product.variants} onChange={(v) => updateProduct("variants", v)} />

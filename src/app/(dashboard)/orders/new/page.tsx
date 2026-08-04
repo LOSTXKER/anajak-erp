@@ -63,7 +63,8 @@ import {
 } from "@/components/orders/new";
 import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
 import { Badge } from "@/components/ui/badge";
-import { FOCUS_BUTTON, RADIUS, TINT, DISPLAY_AMOUNT } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, RADIUS, SUNK_PANEL, TINT, DISPLAY_AMOUNT } from "@/components/ui/tokens";
+import { MoneyInput } from "@/components/ui/number-input";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 
 /** id ของ 4 ตอน — ใช้ร่วมกันระหว่างหัวข้อการ์ดกับแถบขั้นตอนที่กดกระโดด */
@@ -691,30 +692,25 @@ export default function NewOrderPage() {
             title={<StepTitle number="03">ราคาและเงื่อนไข</StepTitle>}
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
-            <div className="space-y-4">
-              <OrderFeeSection
-                fees={fees}
-                onAddFee={addFee}
-                onRemoveFee={removeFee}
-                onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
-                feeCatalog={feeCatalog}
-                embedded
-              />
+            {/* แบบ A (เบสเลือกจาก mockup 2026-08-04): ซ้าย = ของที่ต้องกรอก ·
+                ขวา = ตัวเลขที่อ่าน — ยอดรวมอยู่ระดับสายตาเดียวกับตอนกำลังพิมพ์
+                จอแคบ (< lg) ตกลงมาเป็นบนล่างเหมือนเดิม · ไม่มีเส้นคั่นสักเส้น */}
+            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+              <div className="space-y-6">
+                <OrderFeeSection
+                  fees={fees}
+                  onAddFee={addFee}
+                  onRemoveFee={removeFee}
+                  onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
+                  feeCatalog={feeCatalog}
+                  embedded
+                />
 
-              <div className="space-y-5 border-t border-slate-200 pt-5 dark:border-white/10">
-                {/* หัวข้อย่อยชั้นเดียวกับ "ค่าใช้จ่ายเพิ่มเติม"/"สรุปยอด" — เดิมเขียน <h3> เอง
-                    ขนาด 14px ต่างจากอีกสองอันที่ 16px ทั้งที่อยู่ชั้นเดียวกัน (audit 2026-08-03) */}
                 {/* ไม่มีช่อง "ภาษี (%)" แล้ว (เบสเคาะ 2026-08-04 "vat 7% ไม่ต้องมีให้กรอกก็ได้") —
                     ระบบตั้งให้เอง: ปกติ 7% · ช่องทางมาร์เก็ตเพลสเป็น 0% (ราคารวม VAT อยู่แล้ว)
-                    อัตราจริงยังเห็นได้ที่บรรทัด VAT ในสรุปยอด · งานยกเว้นภาษีแก้ที่หน้าออเดอร์
-                    (order.updateInfo รับ taxRate อยู่แล้ว — ไม่แตะสูตร ไม่แตะ mutation) */}
-                <Section
-                  title="เงื่อนไขการขาย"
-                  description="ภาษีระบบตั้งให้เอง (ดูอัตราที่บรรทัด VAT) — แก้ได้ที่หน้าออเดอร์"
-                  bordered={false}
-                  headingLevel={3}
-                >
-                  <div className="grid gap-3 lg:grid-cols-2">
+                    อัตราจริงยังเห็นได้ที่บรรทัด VAT ในสรุปยอด · งานยกเว้นภาษีแก้ที่หน้าออเดอร์ */}
+                <Section title="เงื่อนไขการขาย" bordered={false} headingLevel={3}>
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="เงื่อนไขชำระ" id="order-payment-terms">
                       <Select
                         value={paymentTerms}
@@ -728,8 +724,30 @@ export default function NewOrderPage() {
                         ))}
                       </Select>
                     </Field>
+                    {/* ส่วนลดท้ายบิลเป็น "ช่องกรอก" — ย้ายมาอยู่ฝั่งช่องกรอก
+                        (เดิมแอบอยู่ในรายการตัวเลขอ่านอย่างเดียวของสรุปยอด คนไม่รู้ว่ากรอกได้) */}
+                    <Field label="ส่วนลดท้ายบิล" id="order-discount">
+                      <MoneyInput
+                        id="order-discount"
+                        value={discount}
+                        onValueChange={setDiscount}
+                      />
+                    </Field>
+                    {isMarketplace && (
+                      <Field
+                        label={`ค่าธรรมเนียม ${CHANNEL_LABELS[channel]}`}
+                        id="order-platform-fee"
+                        description="หักจากยอดโอนเข้าร้าน — ไม่รวมในยอดบิล"
+                      >
+                        <MoneyInput
+                          id="order-platform-fee"
+                          value={platformFee}
+                          onValueChange={setPlatformFee}
+                        />
+                      </Field>
+                    )}
                     {isCorporateCustomer && (
-                      <Field label="เลขที่ PO" id="order-po-number" className="lg:col-span-2">
+                      <Field label="เลขที่ PO" id="order-po-number">
                         <Input
                           value={poNumber}
                           onChange={(e) => setPoNumber(e.target.value)}
@@ -739,22 +757,21 @@ export default function NewOrderPage() {
                     )}
                   </div>
                 </Section>
+              </div>
 
-                <div className="border-t border-slate-200 pt-5 dark:border-white/10">
-                  <OrderPriceSummary
-                    pricingSummary={pricingSummary}
-                    showFeeSections={true}
-                    isMarketplace={isMarketplace}
-                    channelLabel={CHANNEL_LABELS[channel]}
-                    taxRate={taxRate}
-                    platformFee={platformFee}
-                    discount={discount}
-                    onPlatformFeeChange={setPlatformFee}
-                    onDiscountChange={setDiscount}
-                    marginEstimate={marginEstimate}
-                    embedded
-                  />
-                </div>
+              {/* สรุปยอดเป็นก้อนพื้นจม — อ่านออกทันทีว่านี่คือผลลัพธ์ ไม่ใช่ช่องให้กรอกต่อ */}
+              <div className={cn(RADIUS.surface, SUNK_PANEL, "p-5")}>
+                <OrderPriceSummary
+                  pricingSummary={pricingSummary}
+                  showFeeSections={true}
+                  isMarketplace={isMarketplace}
+                  channelLabel={CHANNEL_LABELS[channel]}
+                  taxRate={taxRate}
+                  platformFee={platformFee}
+                  discount={discount}
+                  marginEstimate={marginEstimate}
+                  embedded
+                />
               </div>
             </div>
           </Section>
