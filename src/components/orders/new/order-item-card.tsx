@@ -282,9 +282,7 @@ export function OrderItemCard({
               <ItemTableCols />
               <thead className={TABLE_HEAD_SURFACE}>
                 <tr className="text-xs font-medium">
-                  <th className="whitespace-nowrap px-2 py-2.5 text-left">
-                    รูปแบบ
-                  </th>
+                  <th className="whitespace-nowrap px-2 py-2.5 text-center">ลาย</th>
                   <th className="px-2 py-2.5 text-left">วิธีพิมพ์</th>
                   <th className="px-2 py-2.5 text-center">ขนาด</th>
                   <th className="px-2 py-2.5 text-center">กว้าง × สูง</th>
