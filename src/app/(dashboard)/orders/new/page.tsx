@@ -28,7 +28,6 @@ import { Alert } from "@/components/ui/alert";
 import { Field } from "@/components/ui/field";
 import { Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { NumberInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
 import {
   ProductPickerDialog,
@@ -313,10 +312,8 @@ export default function NewOrderPage() {
   }, [isMarketplace, paymentTerms]);
 
   // ราคาช่องทาง marketplace (Shopee/Lazada/TikTok) รวม VAT ในตัวแล้ว — default 7%
-  // จะบวกภาษีทับซ้ำ · สลับเฉพาะค่า default (7↔0) ไม่ทับค่าที่ผู้ใช้พิมพ์เอง
-  const taxRateTouched = useRef(false);
+  // จะบวกภาษีทับซ้ำ · สลับค่าตามช่องทางให้อัตโนมัติ (ฟอร์มนี้ไม่มีช่องให้กรอกภาษีแล้ว)
   useEffect(() => {
-    if (taxRateTouched.current) return;
     if (isMarketplace && taxRate === 7) setTaxRate(0);
     if (!isMarketplace && taxRate === 0) setTaxRate(7);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -350,9 +347,10 @@ export default function NewOrderPage() {
       if (selectedCustomer.defaultPaymentTerms && !paymentTerms) {
         setPaymentTerms(selectedCustomer.defaultPaymentTerms);
       }
-      // ผู้ใช้พิมพ์ 0 เอง (งานยกเว้นภาษี) แล้วเลือกลูกค้านิติบุคคล → เดิมเด้งกลับเป็น 7 ทับเงียบๆ
-      // เคารพ taxRateTouched แบบเดียวกับ effect ช่องทาง marketplace ด้านบน
-      if (taxRate === 0 && !taxRateTouched.current) {
+      // นิติบุคคลต้องมีภาษีขาย — ยกเว้นช่องทางมาร์เก็ตเพลสที่ราคารวม VAT อยู่แล้ว
+      // (ถ้าดันกลับเป็น 7 จะบวกภาษีทับซ้ำ · เดิมเงื่อนไขนี้พึ่งการที่ผู้ใช้แตะช่องเอง
+      //  พอถอดช่องกรอกออกเลยต้องกันที่ตัวเงื่อนไขตรงๆ)
+      if (taxRate === 0 && !isMarketplace) {
         setTaxRate(7);
       }
     }
@@ -404,10 +402,6 @@ export default function NewOrderPage() {
       if (deadlineDate < new Date()) {
         errors.push("กำหนดส่งต้องไม่เป็นวันที่ผ่านมาแล้ว");
       }
-    }
-
-    if (taxRate < 0 || taxRate > 100) {
-      errors.push("ภาษีต้องอยู่ระหว่าง 0–100%");
     }
 
     // ของที่พิมพ์ไว้ในกล่องรายการแต่ระบบจะไม่ส่ง (เพราะยังไม่มีตัวรายการจริง) — ห้ามทิ้งเงียบ
@@ -733,21 +727,17 @@ export default function NewOrderPage() {
               <div className="space-y-5 border-t border-slate-200 pt-5 dark:border-white/10">
                 {/* หัวข้อย่อยชั้นเดียวกับ "ค่าใช้จ่ายเพิ่มเติม"/"สรุปยอด" — เดิมเขียน <h3> เอง
                     ขนาด 14px ต่างจากอีกสองอันที่ 16px ทั้งที่อยู่ชั้นเดียวกัน (audit 2026-08-03) */}
-                <Section title="เงื่อนไขการขาย" bordered={false} headingLevel={3}>
+                {/* ไม่มีช่อง "ภาษี (%)" แล้ว (เบสเคาะ 2026-08-04 "vat 7% ไม่ต้องมีให้กรอกก็ได้") —
+                    ระบบตั้งให้เอง: ปกติ 7% · ช่องทางมาร์เก็ตเพลสเป็น 0% (ราคารวม VAT อยู่แล้ว)
+                    อัตราจริงยังเห็นได้ที่บรรทัด VAT ในสรุปยอด · งานยกเว้นภาษีแก้ที่หน้าออเดอร์
+                    (order.updateInfo รับ taxRate อยู่แล้ว — ไม่แตะสูตร ไม่แตะ mutation) */}
+                <Section
+                  title="เงื่อนไขการขาย"
+                  description="ภาษีระบบตั้งให้เอง — ดูอัตราจริงที่บรรทัด VAT ในสรุปยอด · แก้ได้ที่หน้าออเดอร์"
+                  bordered={false}
+                  headingLevel={3}
+                >
                   <div className="grid gap-3 lg:grid-cols-2">
-                    <Field label="ภาษี (%)" id="order-tax-rate">
-                      <NumberInput
-                        min={0}
-                        max={100}
-                        step={0.01}
-                        value={taxRate}
-                        onValueChange={(v) => {
-                          taxRateTouched.current = true; // ผู้ใช้แตะเอง — เลิกสลับ default ตามช่องทาง
-                          setTaxRate(v);
-                        }}
-                        placeholder="0"
-                      />
-                    </Field>
                     <Field label="เงื่อนไขชำระ" id="order-payment-terms">
                       <Select
                         value={paymentTerms}
