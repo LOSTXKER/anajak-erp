@@ -12,6 +12,11 @@ import type { OrderFeeForm } from "@/types/order-form";
 import { DASHED, FOCUS_BUTTON, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
+/** ค่าที่ตรงกับคอมเมนต์ใน schema (DESIGN_FEE, SCREEN_SETUP, ..., CUSTOM) */
+const CUSTOM_FEE_TYPE = "CUSTOM";
+/** ค่าใน <option> เท่านั้น ไม่ได้เก็บลงฐานข้อมูล */
+const OTHER_FEE_OPTION = "__other";
+
 interface FeeCatalogItem {
   id: string;
   name: string;
@@ -40,7 +45,21 @@ export function OrderFeeSection({
 }: OrderFeeSectionProps) {
   const hasCatalog = !!feeCatalog && feeCatalog.length > 0;
 
+  /* ช่อง "ประเภท" ที่เคยให้พิมพ์เองถูกถอดออก (เบส 2026-08-04 "ประเภทจะมีไว้ทำไม") —
+     มันคือรหัสภายในอย่าง SHIPPING/SETUP ที่คนขายไม่ควรต้องจำหรือพิมพ์
+     ตอนนี้ระบบตั้งให้เองจากรายการที่เลือก · เลือก "อื่นๆ" = CUSTOM แล้วพิมพ์ชื่อเอง */
+  const currentValue = (f: OrderFeeForm) => {
+    const hit = feeCatalog?.find((c) => c.name === f.name && c.type === f.feeType);
+    if (hit) return hit.id;
+    return f.feeType ? OTHER_FEE_OPTION : "";
+  };
+
   const handleCatalogSelect = (fIdx: number, catalogId: string) => {
+    if (catalogId === OTHER_FEE_OPTION) {
+      // เลือก "อื่นๆ" = ตั้งประเภทเป็น CUSTOM แล้วปล่อยให้พิมพ์ชื่อ/ยอดเอง
+      onUpdateFee(fIdx, "feeType", CUSTOM_FEE_TYPE);
+      return;
+    }
     const selection = resolveFeeCatalogSelection(feeCatalog, catalogId);
     if (!selection) return;
     onUpdateFee(fIdx, "feeType", selection.feeType);
@@ -79,16 +98,14 @@ export function OrderFeeSection({
           <div className="hidden sm:block">
             <table className="w-full table-fixed">
               <colgroup>
-                {hasCatalog && <col style={{ width: 168 }} />}
-                <col style={{ width: 140 }} />
+                <col style={{ width: 200 }} />
                 <col />
                 <col style={{ width: 120 }} />
                 <col style={{ width: 44 }} />
               </colgroup>
               <thead className={TABLE_HEAD_SURFACE}>
                 <tr className="text-xs font-medium">
-                  {hasCatalog && <th className="px-2 py-2.5 text-left">แค็ตตาล็อก</th>}
-                  <th className="px-2 py-2.5 text-left">ประเภท</th>
+                  <th className="px-2 py-2.5 text-left">รายการ</th>
                   <th className="px-2 py-2.5 text-left">ชื่อ</th>
                   <th className="px-2 py-2.5 text-center">จำนวนเงิน</th>
                   <th className="py-2.5">
@@ -99,31 +116,22 @@ export function OrderFeeSection({
               <tbody>
                 {fees.map((f, fIdx) => (
                   <tr key={fIdx}>
-                    {hasCatalog && (
-                      <td className="px-2 py-2 align-middle">
-                        <Select
-                          size="sm"
-                          aria-label={`เลือกค่าใช้จ่ายแถว ${fIdx + 1} จากแค็ตตาล็อก`}
-                          value=""
-                          onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
-                        >
-                          <option value="">เลือก...</option>
-                          {feeCatalog!.map((c) => (
+                    <td className="px-2 py-2 align-middle">
+                      <Select
+                        size="sm"
+                        aria-label={`รายการค่าใช้จ่ายแถว ${fIdx + 1}`}
+                        value={currentValue(f)}
+                        onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
+                      >
+                        <option value="">เลือก...</option>
+                        {hasCatalog &&
+                          feeCatalog!.map((c) => (
                             <option key={c.id} value={c.id}>
                               {c.name} — ฿{c.defaultPrice.toLocaleString()}
                             </option>
                           ))}
-                        </Select>
-                      </td>
-                    )}
-                    <td className="px-2 py-2 align-middle">
-                      <Input
-                        size="sm"
-                        aria-label={`ประเภทค่าใช้จ่าย ${fIdx + 1}`}
-                        value={f.feeType}
-                        onChange={(e) => onUpdateFee(fIdx, "feeType", e.target.value)}
-                        placeholder="SHIPPING..."
-                      />
+                        <option value={OTHER_FEE_OPTION}>อื่นๆ (พิมพ์ชื่อเอง)</option>
+                      </Select>
                     </td>
                     <td className="px-2 py-2 align-middle">
                       <Input
@@ -165,27 +173,20 @@ export function OrderFeeSection({
           <div className="space-y-3 sm:hidden">
             {fees.map((f, fIdx) => (
               <div key={fIdx} className="space-y-2">
-                {hasCatalog && (
-                  <Field label={`เลือกค่าใช้จ่ายแถว ${fIdx + 1} จากแค็ตตาล็อก`} visuallyHiddenLabel>
-                    <Select
-                      value=""
-                      onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
-                    >
-                      <option value="">เลือกจากแค็ตตาล็อก</option>
-                      {feeCatalog!.map((c) => (
+                <Field label="รายการ" className="space-y-1">
+                  <Select
+                    value={currentValue(f)}
+                    onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
+                  >
+                    <option value="">เลือก...</option>
+                    {hasCatalog &&
+                      feeCatalog!.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name} — ฿{c.defaultPrice.toLocaleString()}
                         </option>
                       ))}
-                    </Select>
-                  </Field>
-                )}
-                <Field label="ประเภท" className="space-y-1">
-                  <Input
-                    value={f.feeType}
-                    onChange={(e) => onUpdateFee(fIdx, "feeType", e.target.value)}
-                    placeholder="SHIPPING, SETUP..."
-                  />
+                    <option value={OTHER_FEE_OPTION}>อื่นๆ (พิมพ์ชื่อเอง)</option>
+                  </Select>
                 </Field>
                 <Field label="ชื่อ" className="space-y-1">
                   <Input
