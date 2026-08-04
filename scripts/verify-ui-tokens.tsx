@@ -167,5 +167,46 @@ check(
   }
 }
 
+/* ── การ์ดชุดงานตอนยังว่าง: 3 ส่วนต้องหน้าตาเดียวกัน ────────────────────────
+   เบสเจอบนของจริง 2026-08-04 ว่า "ลาย/ส่วนเสริม ไม่เหมือนสินค้าในชุดงาน" —
+   ต้นเหตุคือมีเส้นทางลัดซ่อนอยู่ (ลายกับส่วนเสริมว่างพร้อมกัน = ยุบเป็นปุ่มจาง 2 อัน
+   แทนทั้งสองส่วน) ที่ tsc/lint มองไม่เห็น · ล็อกไว้ด้วยการ render จริงแล้วนับ */
+{
+  // tsx แปลง JSX เป็น React.createElement แบบ classic — ไฟล์ในแอปไม่ได้ import React เอง
+  // จึงต้องวางไว้บน global ก่อน แล้วค่อย require (import ปกติถูกยกขึ้นไปบนสุด)
+  (globalThis as Record<string, unknown>).React = React;
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { OrderItemCard } = require("../src/components/orders/new/order-item-card");
+  const { EMPTY_ITEM } = require("../src/types/order-form");
+  const noop = () => {};
+  const html = renderToStaticMarkup(
+    React.createElement(OrderItemCard, {
+      item: EMPTY_ITEM, itemIdx: 0, canRemove: false, isExpanded: true,
+      compact: true, appearance: "intake", allItems: [EMPTY_ITEM],
+      printCatalog: [], addonCatalog: [],
+      onUpdateItem: noop, onRemoveItem: noop, onAddPrint: noop, onRemovePrint: noop,
+      onUpdatePrint: noop, onAddAddon: noop, onRemoveAddon: noop, onUpdateAddon: noop,
+      onOpenPicker: noop, onSetItems: noop,
+    })
+  );
+  const cards = [...html.matchAll(/class="([^"]*border-dashed[^"]*)"/g)].map((m) => m[1]);
+  const problems: string[] = [];
+  for (const t of ["รายการที่ 1", "สินค้าในชุดงาน", "ลายและงานพิมพ์", "ส่วนเสริมในชุดงาน",
+                   "ยังไม่มีสินค้า", "ยังไม่มีลาย", "ยังไม่มีส่วนเสริม"]) {
+    if (!html.includes(t)) problems.push(`ไม่เจอข้อความ "${t}"`);
+  }
+  // สินค้า 3 ใบ + ลาย 1 + ส่วนเสริม 1 · ทุกใบต้องใช้คลาสชุดเดียวกันเป๊ะ
+  if (cards.length !== 5) problems.push(`การ์ดขอบประควรมี 5 ใบ แต่ได้ ${cards.length}`);
+  if (new Set(cards).size > 1) problems.push("การ์ดขอบประใช้คลาสไม่เหมือนกันทุกใบ");
+  if (html.includes("<thead")) problems.push('ตอนว่างต้องไม่มีหัวตาราง (เบสเคาะ "เอาหัวตารางออก")');
+  if (problems.length) {
+    failed++;
+    console.log("❌ การ์ดชุดงานตอนว่าง 3 ส่วนไม่เหมือนกัน");
+    problems.forEach((x) => console.log(`   ${x}`));
+  } else {
+    console.log("✅ การ์ดชุดงานตอนว่าง — สินค้า/ลาย/ส่วนเสริม หน้าตาเดียวกัน");
+  }
+}
+
 console.log(failed ? `\n❌ ไม่ผ่าน ${failed} ข้อ` : "\n✅ ผ่านครบ");
 process.exit(failed ? 1 : 0);

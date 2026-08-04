@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -100,6 +102,41 @@ function OrderItemRow({
           <Trash2 />
         </Button>
       )}
+    </div>
+  );
+}
+
+/* การ์ดเพิ่มของตอนยังว่าง — สินค้า/ลาย/ส่วนเสริม ใช้หน้าตาเดียวกัน
+   (เบสเห็นของจริง 2026-08-04: "ลาย/ส่วนเสริม ไม่เหมือนตัวอย่าง เอาแบบสินค้าในชุดงาน") */
+function AddCard({
+  icon: Icon, label, desc, onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  desc: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(DASHED, "flex flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+    >
+      <Icon className="h-6 w-6 shrink-0 text-slate-400" strokeWidth={1.75} />
+      <span>
+        <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
+        <span className="block text-xs text-slate-500 dark:text-slate-400">{desc}</span>
+      </span>
+    </button>
+  );
+}
+
+/* บรรทัดบอกสถานะเหนือการ์ด — "ยังไม่มี…" (เบสขอให้มีข้อความบอก ไม่ใช่ปุ่มลอยๆ) */
+function EmptyGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+      {children}
     </div>
   );
 }
@@ -237,14 +274,14 @@ export function OrderItemCard({
           </div>
       </div>
       {item.prints.length === 0 ? (
-        <button
-          type="button"
-          onClick={() => onAddPrint(itemIdx)}
-          className={cn(DASHED, "flex w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-        >
-          <ImageIcon className="h-6 w-6 text-slate-400 dark:text-slate-500" />
-          <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีลาย — กดเพื่อเพิ่ม</span>
-        </button>
+        <EmptyGroup label="ยังไม่มีลาย">
+          <AddCard
+            icon={ImageIcon}
+            label="เพิ่มลาย"
+            desc="งานพิมพ์/สกรีน/ปัก ที่ลงบนเสื้อ"
+            onClick={() => onAddPrint(itemIdx)}
+          />
+        </EmptyGroup>
       ) : (
         <>
           <div
@@ -327,29 +364,23 @@ export function OrderItemCard({
       </div>
       {item.products.length === 0 ? (
         // เลือกชนิดงานก่อน → ระบบโชว์เฉพาะ field ที่ชนิดนั้นใช้ (guided by type)
-        <div className="space-y-2">
-          <p className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีสินค้า</p>
+        <EmptyGroup label="ยังไม่มีสินค้า">
           <div className="grid gap-2 sm:grid-cols-3">
-            {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
-              <button
+            {PRODUCT_TYPE_OPTIONS.map(({ key, icon, label, desc }) => (
+              <AddCard
                 key={key}
-                type="button"
+                icon={icon}
+                label={label}
+                desc={desc}
                 onClick={() => {
                   if (key === "stock") onOpenPicker();
                   else if (key === "custom") addProductWithSource("CUSTOM_MADE");
                   else addProductWithSource("CUSTOMER_PROVIDED");
                 }}
-                className={cn(DASHED, "flex flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-              >
-                <Icon className="h-6 w-6 shrink-0 text-slate-400" strokeWidth={1.75} />
-                <span>
-                  <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
-                  <span className="block text-xs text-slate-500 dark:text-slate-400">{desc}</span>
-                </span>
-              </button>
+              />
             ))}
           </div>
-        </div>
+        </EmptyGroup>
       ) : (
         <>
           {/* พื้นที่กว้างพอ (container ≥ 2xl): ตารางหนึ่งแถวต่อสินค้า พร้อมหัวคอลัมน์ครบ */}
@@ -410,36 +441,23 @@ export function OrderItemCard({
   // ── section: ส่วนเสริม ──
   const addonsSection = (
     <div className="@container">
-      {(!isIntake || item.addons.length > 0) && (
-        <div className="mb-2 flex items-center justify-between">
-          <span className={groupHeadingClass}>{isIntake ? "ส่วนเสริมในชุดงาน" : "ส่วนเสริม (Add-ons)"}</span>
+      <div className="mb-2 flex items-center justify-between">
+        <span className={groupHeadingClass}>{isIntake ? "ส่วนเสริมในชุดงาน" : "ส่วนเสริม (Add-ons)"}</span>
+        {item.addons.length > 0 && (
           <Button type="button" variant="ghost" size="sm" onClick={() => onAddAddon(itemIdx)}>
             <Plus />เพิ่มส่วนเสริม
           </Button>
-        </div>
-      )}
+        )}
+      </div>
       {item.addons.length === 0 ? (
-        isIntake ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
+        <EmptyGroup label="ยังไม่มีส่วนเสริม">
+          <AddCard
+            icon={Sparkles}
+            label="เพิ่มส่วนเสริม"
+            desc="ป้ายคอ · ถุงแพ็ค · งานเพิ่มนอกจากตัวเสื้อ"
             onClick={() => onAddAddon(itemIdx)}
-            className="gap-2 text-slate-600 dark:text-slate-300"
-          >
-            <Sparkles className="h-4 w-4" />
-            เพิ่มส่วนเสริม
-          </Button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onAddAddon(itemIdx)}
-            className={cn(DASHED, "flex w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-          >
-            <Sparkles className="h-6 w-6 text-slate-400 dark:text-slate-500" />
-            <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีส่วนเสริม — กดเพื่อเพิ่ม</span>
-          </button>
-        )
+          />
+        </EmptyGroup>
       ) : (
         <>
         <div
@@ -581,45 +599,13 @@ export function OrderItemCard({
     </div>
   ) : null;
 
-  const showCompactDetailActions =
-    isIntake &&
-    showPrints &&
-    showAddons &&
-    item.prints.length === 0 &&
-    item.addons.length === 0;
-
+  // โหมดรับเรื่องเรียงสินค้าขึ้นก่อน (เลือกเสื้อ → ค่อยว่าจะพิมพ์อะไรลงไป)
+  // ทั้ง 3 ส่วนใช้หัวข้อ+การ์ดว่างชุดเดียวกัน ไม่มีทางลัดยุบรวมอีกแล้ว
   const productionSections = isIntake ? (
     <>
       {productsSection}
-      {showCompactDetailActions ? (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onAddPrint(itemIdx)}
-            className="gap-2 text-slate-600 dark:text-slate-300"
-          >
-            <ImageIcon className="h-4 w-4" />
-            เพิ่มลายหรืองานพิมพ์
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onAddAddon(itemIdx)}
-            className="gap-2 text-slate-600 dark:text-slate-300"
-          >
-            <Sparkles className="h-4 w-4" />
-            เพิ่มส่วนเสริม
-          </Button>
-        </div>
-      ) : (
-        <>
-          {showPrints && printsSection}
-          {showAddons && addonsSection}
-        </>
-      )}
+      {showPrints && printsSection}
+      {showAddons && addonsSection}
     </>
   ) : (
     <>
