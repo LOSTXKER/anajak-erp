@@ -694,8 +694,11 @@ export default function NewOrderPage() {
           >
             {/* แบบ A (เบสเลือกจาก mockup 2026-08-04): ซ้าย = ของที่ต้องกรอก ·
                 ขวา = ตัวเลขที่อ่าน — ยอดรวมอยู่ระดับสายตาเดียวกับตอนกำลังพิมพ์
-                จอแคบ (< lg) ตกลงมาเป็นบนล่างเหมือนเดิม · ไม่มีเส้นคั่นสักเส้น */}
-            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+                ตัดสินด้วย @container = "พื้นที่จริงของการ์ดใบนี้" ไม่ใช่ความกว้างจอ —
+                lg: ดูแต่ขนาดจอ พอหักแถบเมนูซ้าย 256px + ขอบหน้าออกแล้วการ์ดแคบกว่านั้นมาก
+                จอกว้างแต่การ์ดไม่พอ ก็ยังตกเป็นคอลัมน์เดียวอยู่ดี (เบสเจอเอง 2026-08-04) */}
+            <div className="@container">
+            <div className="grid items-start gap-6 @xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
               <div className="space-y-6">
                 <OrderFeeSection
                   fees={fees}
@@ -773,6 +776,7 @@ export default function NewOrderPage() {
                   embedded
                 />
               </div>
+            </div>
             </div>
           </Section>
 

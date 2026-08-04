@@ -70,7 +70,7 @@ export function OrderFeeSection({
           </button>
         )
       ) : (
-        <div className="space-y-3">
+        <div className="@container space-y-3">
           {fees.map((f, fIdx) => (
             <div key={fIdx} className="space-y-1.5">
               {feeCatalog && feeCatalog.length > 0 && (
@@ -88,7 +88,9 @@ export function OrderFeeSection({
                   </Select>
                 </Field>
               )}
-              <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_44px]">
+              {/* @container = วัดพื้นที่ของคอลัมน์ที่มันอยู่จริง ไม่ใช่ขนาดจอ —
+                  พอถูกวางในคอลัมน์ซ้ายที่แคบลง ต้องยอมเรียงลงเอง ไม่ใช่บีบ 4 ช่องให้แบน */}
+              <div className="grid grid-cols-1 items-end gap-2 @sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_44px]">
                 <Field label="ประเภท" visuallyHiddenLabel={fIdx > 0} className="space-y-1">
                   <Input
                     value={f.feeType}
