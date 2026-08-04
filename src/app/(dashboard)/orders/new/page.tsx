@@ -635,7 +635,7 @@ export default function NewOrderPage() {
               {/* เลข "รายการที่ N" ขึ้นตั้งแต่ชุดแรก — ไม่ต้องรอกดเพิ่มชุดที่ 2 ถึงจะมีเลข
                   (เบสเคาะจาก mockup 2026-08-04) · เดิมมีโหมด solo ที่ซ่อนเลขตอนมีชุดเดียว
                   ทำให้พอเพิ่มชุดที่ 2 เลขโผล่มาทีหลัง ผู้ใช้ต้องอ่านหน้าใหม่ */}
-              <div className="divide-y divide-slate-200/70 dark:divide-white/10">
+              <div className="space-y-4">
                 {items.map((item, itemIdx) => (
                   <OrderItemCard
                     key={itemIdx}

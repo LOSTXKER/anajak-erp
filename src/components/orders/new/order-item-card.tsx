@@ -25,7 +25,7 @@ import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
-import { DASHED, FIELD_LABEL, FIELD_MEASURE, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { DASHED, FIELD_LABEL, FIELD_MEASURE, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
 export const labelClass = FIELD_LABEL;
 
@@ -79,7 +79,8 @@ function OrderItemRow({
   const empty = !itemHasContent(item);
 
   return (
-    <div className="flex items-center gap-2 border-b border-slate-200/60 py-2.5 dark:border-slate-700/50">
+    // ไม่มีเส้นใต้ — เลขวงกลม+ตัวหนาแยกหัวออกจากเนื้อได้เองแล้ว (เบส 2026-08-04 "เส้นบางๆ ที่แบ่ง section รกเยอะไป")
+    <div className="flex items-center gap-2 pt-2">
       <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
         {itemIdx + 1}
       </span>
@@ -599,8 +600,10 @@ export function OrderItemCard({
   );
 
   return (
-    // ทุกรายการกางเห็นหมด (ไม่ accordion) — หัว "รายการที่ N" + เนื้อหา · คั่นด้วย divide-y ของ parent
-    <div className="px-4">
+    // ทุกรายการกางเห็นหมด (ไม่ accordion) · แต่ละชุดงานยืนบน "พื้นจม" ของตัวเอง —
+    // แยกชุดที่ 1 กับ 2 ออกจากกันชัดโดยไม่ต้องมีเส้น (เบส 2026-08-04: เส้นบางๆ รก
+    // แต่ขอให้แบ่งกันชัดเจน) · พื้นจมเป็นก้อนตัน สายตาอ่านขอบเขตได้ทันทีกว่าเส้น 1px
+    <div className={cn(RADIUS.surface, SUNK_PANEL, "px-4 pb-4 pt-1")}>
       <OrderItemRow
         item={item} itemIdx={itemIdx} canRemove={canRemove}
         onRemoveItem={onRemoveItem}

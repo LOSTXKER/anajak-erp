@@ -319,7 +319,7 @@ export function OrderItemsEditor({
             </Alert>
           )}
           {/* รายการสินค้า — ฟอร์มชุดเดียวกับหน้าเปิดงาน (เลข "รายการที่ N" ขึ้นตั้งแต่ชุดแรก) */}
-          <div className="divide-y divide-slate-200/70 dark:divide-white/10">
+          <div className="space-y-4">
             {items.map((item, itemIdx) => (
               <OrderItemCard
                 key={itemIdx}
