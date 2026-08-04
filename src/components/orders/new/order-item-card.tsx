@@ -1,6 +1,6 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
+import { AddCard } from "@/components/ui/add-card";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,7 @@ import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
-import { DASHED, FIELD_LABEL, FIELD_MEASURE, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { FIELD_LABEL, FIELD_MEASURE, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
 export const labelClass = FIELD_LABEL;
 
@@ -108,29 +108,6 @@ function OrderItemRow({
 
 /* การ์ดเพิ่มของตอนยังว่าง — สินค้า/ลาย/ส่วนเสริม ใช้หน้าตาเดียวกัน
    (เบสเห็นของจริง 2026-08-04: "ลาย/ส่วนเสริม ไม่เหมือนตัวอย่าง เอาแบบสินค้าในชุดงาน") */
-function AddCard({
-  icon: Icon, label, desc, onClick,
-}: {
-  icon: LucideIcon;
-  label: string;
-  desc: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(DASHED, "flex w-full flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-    >
-      <Icon className="h-6 w-6 shrink-0 text-slate-400" strokeWidth={1.75} />
-      <span>
-        <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
-        <span className="block text-xs text-slate-500 dark:text-slate-400">{desc}</span>
-      </span>
-    </button>
-  );
-}
-
 /* โครงคอลัมน์ร่วมของ 3 ตารางในชุดงาน (สินค้า · ลาย · ส่วนเสริม)
    เบสสั่ง 2026-08-03 "แถวคอลัมขอให้มันตรงกันทั้งหมด เพื่อความสวย" — เดิมแต่ละตาราง
    ตั้งความกว้างเองคนละชุด (สินค้า 76/-/92/80/84/64/84/80 · ลาย 64/-/104/124/92/64/84/40)

@@ -1,5 +1,6 @@
 "use client";
 
+import { AddCard } from "@/components/ui/add-card";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -9,8 +10,7 @@ import { Section } from "@/components/ui/section";
 import { Plus, Trash2, Receipt } from "lucide-react";
 import { resolveFeeCatalogSelection } from "@/lib/order-item-composer";
 import type { OrderFeeForm } from "@/types/order-form";
-import { DASHED, FOCUS_BUTTON, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
-import { cn } from "@/lib/utils";
+import { TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
 /** ค่าที่ตรงกับคอมเมนต์ใน schema (DESIGN_FEE, SCREEN_SETUP, ..., CUSTOM) */
 const CUSTOM_FEE_TYPE = "CUSTOM";
@@ -72,7 +72,7 @@ export function OrderFeeSection({
       title={embedded ? "ค่าใช้จ่ายเพิ่มเติม" : "ค่าใช้จ่ายระดับออเดอร์"}
       bordered={!embedded}
       headingLevel={embedded ? 3 : 2}
-      action={embedded || fees.length > 0 ? (
+      action={fees.length > 0 ? (
         <Button type="button" variant="ghost" size="sm" onClick={onAddFee}>
           <Plus />
           {embedded ? "เพิ่มค่าใช้จ่าย" : "เพิ่ม"}
@@ -80,16 +80,14 @@ export function OrderFeeSection({
       ) : undefined}
     >
       {fees.length === 0 ? (
-        embedded ? null : (
-          <button
-            type="button"
-            onClick={onAddFee}
-            className={cn(DASHED, "flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40", FOCUS_BUTTON, "dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-          >
-            <Receipt className="h-4 w-4 text-slate-400 dark:text-slate-500" />
-            <span className="text-xs text-slate-500 dark:text-slate-400">เพิ่มค่าใช้จ่ายระดับออเดอร์</span>
-          </button>
-        )
+        /* ว่าง = กล่อง CTA ขอบประเต็มแถว ชุดเดียวกับสินค้า/ลาย/ส่วนเสริมในชุดงาน
+           (เบสสั่ง 2026-08-05) — เดิมโหมด embedded ไม่โชว์อะไรเลย เหลือแต่ปุ่มเล็กมุมขวา */
+        <AddCard
+          icon={Receipt}
+          label="เพิ่มค่าใช้จ่าย"
+          desc="ค่าส่ง · ค่าเซ็ตอัพ · ค่าเร่ง ที่คิดกับทั้งออเดอร์"
+          onClick={onAddFee}
+        />
       ) : (
         <>
           {/* ตาราง 1 ค่าใช้จ่าย = 1 แถว (เบสสั่ง 2026-08-04) — หน้าตาชุดเดียวกับ
