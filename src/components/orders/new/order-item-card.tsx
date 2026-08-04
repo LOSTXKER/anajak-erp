@@ -1,5 +1,6 @@
 "use client";
 
+import { AddCard } from "@/components/ui/add-card";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
-import { DASHED, FIELD_LABEL, FIELD_MEASURE, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { FIELD_LABEL, FIELD_MEASURE, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
 export const labelClass = FIELD_LABEL;
 
@@ -78,22 +79,26 @@ function OrderItemRow({
   const empty = !itemHasContent(item);
 
   return (
-    <div className="flex items-center gap-2 border-b border-slate-200/60 py-2.5 dark:border-slate-700/50">
+    // ไม่มีเส้นใต้ — เลขวงกลม+ตัวหนาแยกหัวออกจากเนื้อได้เองแล้ว (เบส 2026-08-04 "เส้นบางๆ ที่แบ่ง section รกเยอะไป")
+    <div className="flex items-center gap-2 pt-2">
       <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
         {itemIdx + 1}
       </span>
       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
         รายการที่ {itemIdx + 1}
       </span>
-      {!empty && (
-        <>
-          <span className="w-12 flex-shrink-0 text-right text-xs tabular-nums text-slate-500 dark:text-slate-400">
-            {totalQty > 0 ? `${totalQty} ตัว` : "—"}
-          </span>
-          <span className="w-20 flex-shrink-0 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
-            {subtotal > 0 ? formatCurrency(subtotal) : "—"}
-          </span>
-        </>
+      {/* จำนวน/ยอด โผล่เมื่อมีเลขจริงเท่านั้น — เดิมใส่ขีด "—" ไว้แทนค่าว่าง
+          กลายเป็นขีดลอยสองอันบนหัวรายการที่ไม่ได้บอกอะไร (เบสถามเอง 2026-08-05
+          "ขีดนี้คืออะไร" = สัญญาณว่ามันสื่อความไม่ได้) */}
+      {!empty && totalQty > 0 && (
+        <span className="flex-shrink-0 text-right text-xs tabular-nums text-slate-500 dark:text-slate-400">
+          {totalQty} ตัว
+        </span>
+      )}
+      {!empty && subtotal > 0 && (
+        <span className="flex-shrink-0 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+          {formatCurrency(subtotal)}
+        </span>
       )}
       {canRemove && (
         <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveItem(itemIdx)} aria-label="ลบรายการ" className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
@@ -104,6 +109,8 @@ function OrderItemRow({
   );
 }
 
+/* การ์ดเพิ่มของตอนยังว่าง — สินค้า/ลาย/ส่วนเสริม ใช้หน้าตาเดียวกัน
+   (เบสเห็นของจริง 2026-08-04: "ลาย/ส่วนเสริม ไม่เหมือนตัวอย่าง เอาแบบสินค้าในชุดงาน") */
 /* โครงคอลัมน์ร่วมของ 3 ตารางในชุดงาน (สินค้า · ลาย · ส่วนเสริม)
    เบสสั่ง 2026-08-03 "แถวคอลัมขอให้มันตรงกันทั้งหมด เพื่อความสวย" — เดิมแต่ละตาราง
    ตั้งความกว้างเองคนละชุด (สินค้า 76/-/92/80/84/64/84/80 · ลาย 64/-/104/124/92/64/84/40)
@@ -237,14 +244,12 @@ export function OrderItemCard({
           </div>
       </div>
       {item.prints.length === 0 ? (
-        <button
-          type="button"
+        <AddCard
+          icon={ImageIcon}
+          label="เพิ่มลาย"
+          desc="งานพิมพ์/สกรีน/ปัก ที่ลงบนเสื้อ"
           onClick={() => onAddPrint(itemIdx)}
-          className={cn(DASHED, "flex w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-        >
-          <ImageIcon className="h-6 w-6 text-slate-400 dark:text-slate-500" />
-          <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีลาย — กดเพื่อเพิ่ม</span>
-        </button>
+        />
       ) : (
         <>
           <div
@@ -257,9 +262,7 @@ export function OrderItemCard({
               <ItemTableCols />
               <thead className={TABLE_HEAD_SURFACE}>
                 <tr className="text-xs font-medium">
-                  <th className="whitespace-nowrap px-2 py-2.5 text-left">
-                    รูปแบบ
-                  </th>
+                  <th className="whitespace-nowrap px-2 py-2.5 text-center">ลาย</th>
                   <th className="px-2 py-2.5 text-left">วิธีพิมพ์</th>
                   <th className="px-2 py-2.5 text-center">ขนาด</th>
                   <th className="px-2 py-2.5 text-center">กว้าง × สูง</th>
@@ -327,28 +330,20 @@ export function OrderItemCard({
       </div>
       {item.products.length === 0 ? (
         // เลือกชนิดงานก่อน → ระบบโชว์เฉพาะ field ที่ชนิดนั้นใช้ (guided by type)
-        <div className="space-y-2">
-          <p className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีสินค้า</p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {PRODUCT_TYPE_OPTIONS.map(({ key, icon: Icon, label, desc }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  if (key === "stock") onOpenPicker();
-                  else if (key === "custom") addProductWithSource("CUSTOM_MADE");
-                  else addProductWithSource("CUSTOMER_PROVIDED");
-                }}
-                className={cn(DASHED, "flex flex-col items-center gap-1.5 rounded-xl p-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-              >
-                <Icon className="h-6 w-6 shrink-0 text-slate-400" strokeWidth={1.75} />
-                <span>
-                  <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
-                  <span className="block text-xs text-slate-500 dark:text-slate-400">{desc}</span>
-                </span>
-              </button>
-            ))}
-          </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {PRODUCT_TYPE_OPTIONS.map(({ key, icon, label, desc }) => (
+            <AddCard
+              key={key}
+              icon={icon}
+              label={label}
+              desc={desc}
+              onClick={() => {
+                if (key === "stock") onOpenPicker();
+                else if (key === "custom") addProductWithSource("CUSTOM_MADE");
+                else addProductWithSource("CUSTOMER_PROVIDED");
+              }}
+            />
+          ))}
         </div>
       ) : (
         <>
@@ -410,36 +405,21 @@ export function OrderItemCard({
   // ── section: ส่วนเสริม ──
   const addonsSection = (
     <div className="@container">
-      {(!isIntake || item.addons.length > 0) && (
-        <div className="mb-2 flex items-center justify-between">
-          <span className={groupHeadingClass}>{isIntake ? "ส่วนเสริมในชุดงาน" : "ส่วนเสริม (Add-ons)"}</span>
+      <div className="mb-2 flex items-center justify-between">
+        <span className={groupHeadingClass}>{isIntake ? "ส่วนเสริมในชุดงาน" : "ส่วนเสริม (Add-ons)"}</span>
+        {item.addons.length > 0 && (
           <Button type="button" variant="ghost" size="sm" onClick={() => onAddAddon(itemIdx)}>
             <Plus />เพิ่มส่วนเสริม
           </Button>
-        </div>
-      )}
+        )}
+      </div>
       {item.addons.length === 0 ? (
-        isIntake ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onAddAddon(itemIdx)}
-            className="gap-2 text-slate-600 dark:text-slate-300"
-          >
-            <Sparkles className="h-4 w-4" />
-            เพิ่มส่วนเสริม
-          </Button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onAddAddon(itemIdx)}
-            className={cn(DASHED, "flex w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
-          >
-            <Sparkles className="h-6 w-6 text-slate-400 dark:text-slate-500" />
-            <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีส่วนเสริม — กดเพื่อเพิ่ม</span>
-          </button>
-        )
+        <AddCard
+          icon={Sparkles}
+          label="เพิ่มส่วนเสริม"
+          desc="ป้ายคอ · ถุงแพ็ค · งานเพิ่มนอกจากตัวเสื้อ"
+          onClick={() => onAddAddon(itemIdx)}
+        />
       ) : (
         <>
         <div
@@ -463,7 +443,7 @@ export function OrderItemCard({
             </thead>
             <tbody>
               {item.addons.map((a, aIdx) => (
-                <tr key={aIdx} className="border-b border-slate-100 last:border-0 dark:border-white/10">
+                <tr key={aIdx}>
                   <td colSpan={2} className="px-2 py-1.5 align-middle">
                     {addonCatalog && addonCatalog.length > 0 ? (
                       <Select aria-label={`เลือกประเภทส่วนเสริม ${aIdx + 1} จากแค็ตตาล็อก`} value="" onChange={(e) => { if (e.target.value) applyAddonFromCatalog(aIdx, e.target.value); }} size="dense">
@@ -581,45 +561,13 @@ export function OrderItemCard({
     </div>
   ) : null;
 
-  const showCompactDetailActions =
-    isIntake &&
-    showPrints &&
-    showAddons &&
-    item.prints.length === 0 &&
-    item.addons.length === 0;
-
+  // โหมดรับเรื่องเรียงสินค้าขึ้นก่อน (เลือกเสื้อ → ค่อยว่าจะพิมพ์อะไรลงไป)
+  // ทั้ง 3 ส่วนใช้หัวข้อ+การ์ดว่างชุดเดียวกัน ไม่มีทางลัดยุบรวมอีกแล้ว
   const productionSections = isIntake ? (
     <>
       {productsSection}
-      {showCompactDetailActions ? (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onAddPrint(itemIdx)}
-            className="gap-2 text-slate-600 dark:text-slate-300"
-          >
-            <ImageIcon className="h-4 w-4" />
-            เพิ่มลายหรืองานพิมพ์
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onAddAddon(itemIdx)}
-            className="gap-2 text-slate-600 dark:text-slate-300"
-          >
-            <Sparkles className="h-4 w-4" />
-            เพิ่มส่วนเสริม
-          </Button>
-        </div>
-      ) : (
-        <>
-          {showPrints && printsSection}
-          {showAddons && addonsSection}
-        </>
-      )}
+      {showPrints && printsSection}
+      {showAddons && addonsSection}
     </>
   ) : (
     <>
@@ -630,8 +578,9 @@ export function OrderItemCard({
   );
 
   return (
-    // ทุกรายการกางเห็นหมด (ไม่ accordion) — หัว "รายการที่ N" + เนื้อหา · คั่นด้วย divide-y ของ parent
-    <div className="px-4">
+    // แต่ละชุดงานเป็นกล่องมีขอบของตัวเอง — เบสลองพื้นจมแล้วขอเปลี่ยนเป็นเส้นขอบ
+    // (2026-08-04 "การแบ่งรายการ ขอลองแบบเส้นขอบดีกว่า")
+    <div className={cn(RADIUS.surface, "border border-slate-200 px-4 pb-4 pt-1 dark:border-white/10")}>
       <OrderItemRow
         item={item} itemIdx={itemIdx} canRemove={canRemove}
         onRemoveItem={onRemoveItem}

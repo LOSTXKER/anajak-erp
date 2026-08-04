@@ -19,6 +19,9 @@ import { cn } from "@/lib/utils";
 
 interface OrderAttachmentsSectionProps {
   title?: React.ReactNode;
+  /** anchor + โฟกัสให้แถบขั้นตอนกระโดดมาได้ (ใช้ตอนเป็นตอนเต็มของหน้าเปิดงาน) */
+  id?: string;
+  className?: string;
   images: ReferenceImage[];
   onImagesChange: React.Dispatch<React.SetStateAction<ReferenceImage[]>>;
   /** วางใน Section หลักของหน้าโดยไม่สร้าง card-surface ซ้อนอีกชั้น */
@@ -27,6 +30,8 @@ interface OrderAttachmentsSectionProps {
 
 export function OrderAttachmentsSection({
   title = "ไฟล์อ้างอิงจากแชท",
+  id,
+  className,
   images,
   onImagesChange,
   embedded = false,
@@ -108,6 +113,9 @@ export function OrderAttachmentsSection({
 
   return (
     <Section
+      id={id}
+      tabIndex={id ? -1 : undefined}
+      className={className}
       title={title}
       description={images.length > 0 ? `${images.length}/5 ไฟล์` : "สูงสุด 5 ไฟล์"}
       bordered={!embedded}
