@@ -153,14 +153,14 @@ export function ProductTableRow({
         </td>
 
         {/* ราคา */}
-        <td className="px-2 py-2 align-top">
+        <td className="px-2 py-2 text-center align-top">
           {isCustomerProvided ? dash : (
             <MoneyInput aria-label={`ราคาสินค้า ${prodIdx + 1}`} value={product.baseUnitPrice} onValueChange={(v) => updateProduct("baseUnitPrice", v)} size="dense" className="w-full px-2" />
           )}
         </td>
 
         {/* ส่วนลดต่อชิ้น */}
-        <td className="px-2 py-2 align-top">
+        <td className="px-2 py-2 text-center align-top">
           {isCustomerProvided ? dash : (
             <MoneyInput aria-label={`ส่วนลดต่อชิ้น สินค้า ${prodIdx + 1}`} value={product.discount} onValueChange={(v) => updateProduct("discount", v)} size="dense" className="w-full px-2" />
           )}
@@ -175,10 +175,10 @@ export function ProductTableRow({
           )}
         </td>
 
-        {/* รวม */}
-        <td className="px-2 py-2 text-right align-top">
+        {/* รวม — กึ่งกลางตรงหัวคอลัมน์ (เบสเคาะ 2026-08-04) */}
+        <td className="px-2 py-2 text-center align-top">
           {isCustomerProvided ? dash : (
-            <div className="flex h-9 items-center justify-end text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">{formatCurrency(lineTotal)}</div>
+            <div className="flex h-9 items-center justify-center text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">{formatCurrency(lineTotal)}</div>
           )}
         </td>
 

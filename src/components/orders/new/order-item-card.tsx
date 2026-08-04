@@ -278,11 +278,11 @@ export function OrderItemCard({
                     รูปแบบ
                   </th>
                   <th className="px-2 py-2.5 text-left">วิธีพิมพ์</th>
-                  <th className="px-2 py-2.5 text-left">ขนาด</th>
+                  <th className="px-2 py-2.5 text-center">ขนาด</th>
                   <th className="px-2 py-2.5 text-center">กว้าง × สูง</th>
-                  <th className="px-2 py-2.5 text-left">ตำแหน่ง</th>
+                  <th className="px-2 py-2.5 text-center">ตำแหน่ง</th>
                   <th className="px-2 py-2.5 text-center">จำนวนสี</th>
-                  <th className="px-2 py-2.5 text-right">ค่าสกรีน</th>
+                  <th className="px-2 py-2.5 text-center">ค่าสกรีน</th>
                   <th className="py-2.5">
                     <span className="sr-only">ลบลาย</span>
                   </th>
@@ -404,11 +404,11 @@ export function OrderItemCard({
                 <tr className="text-xs font-medium">
                   <th className="px-2 py-2.5 text-left">แหล่ง</th>
                   <th className="px-2 py-2.5 text-left">สินค้า</th>
-                  <th className="px-2 py-2.5 text-left">แพค</th>
-                  <th className="px-2 py-2.5 text-right">ราคา</th>
-                  <th className="px-2 py-2.5 text-right">ส่วนลด</th>
+                  <th className="px-2 py-2.5 text-center">แพค</th>
+                  <th className="px-2 py-2.5 text-center">ราคา</th>
+                  <th className="px-2 py-2.5 text-center">ส่วนลด</th>
                   <th className="px-2 py-2.5 text-center">จำนวน</th>
-                  <th className="px-2 py-2.5 text-right">รวม</th>
+                  <th className="px-2 py-2.5 text-center">รวม</th>
                   <th className="py-2.5">
                     <span className="sr-only">จัดลำดับและลบสินค้า</span>
                   </th>
@@ -493,8 +493,8 @@ export function OrderItemCard({
               <tr className="text-left text-xs font-medium">
                 <th colSpan={2} className="px-2 py-2.5">ประเภท</th>
                 <th colSpan={2} className="px-2 py-2.5">ชื่อ</th>
-                <th colSpan={2} className="px-2 py-2.5">คิดราคา</th>
-                <th className="px-2 py-2.5 text-right">ราคา</th>
+                <th colSpan={2} className="px-2 py-2.5 text-center">คิดราคา</th>
+                <th className="px-2 py-2.5 text-center">ราคา</th>
                 <th className="py-2.5">
                   <span className="sr-only">ลบส่วนเสริม</span>
                 </th>
