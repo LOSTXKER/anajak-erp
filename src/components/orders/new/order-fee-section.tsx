@@ -9,7 +9,7 @@ import { Section } from "@/components/ui/section";
 import { Plus, Trash2, Receipt } from "lucide-react";
 import { resolveFeeCatalogSelection } from "@/lib/order-item-composer";
 import type { OrderFeeForm } from "@/types/order-form";
-import { DASHED, FOCUS_BUTTON } from "@/components/ui/tokens";
+import { DASHED, FOCUS_BUTTON, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 interface FeeCatalogItem {
@@ -38,6 +38,8 @@ export function OrderFeeSection({
   feeCatalog,
   embedded = false,
 }: OrderFeeSectionProps) {
+  const hasCatalog = !!feeCatalog && feeCatalog.length > 0;
+
   const handleCatalogSelect = (fIdx: number, catalogId: string) => {
     const selection = resolveFeeCatalogSelection(feeCatalog, catalogId);
     if (!selection) return;
@@ -70,52 +72,135 @@ export function OrderFeeSection({
           </button>
         )
       ) : (
-        <div className="space-y-3">
-          {fees.map((f, fIdx) => (
-            <div key={fIdx} className="space-y-1.5">
-              {feeCatalog && feeCatalog.length > 0 && (
-                <Field label={`เลือกค่าใช้จ่ายแถว ${fIdx + 1} จากแค็ตตาล็อก`} visuallyHiddenLabel>
-                  <Select
-                    value=""
-                    onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
-                  >
-                    <option value="">เลือกจากแค็ตตาล็อก</option>
-                    {feeCatalog.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} — ฿{c.defaultPrice.toLocaleString()}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-              )}
-              {/* กลับมาใช้ sm: (ขนาดจอ) — container query ไม่ทำงานจริงบนหน้านี้:
-                  เบสส่งภาพ 2026-08-04 แถวนี้แตกเป็น 4 บรรทัดทั้งที่การ์ดกว้างเกือบ 900px
-                  ทั้งที่เกณฑ์ @sm = 384px · CSS generate ถูกแต่เบราว์เซอร์ไม่ใช้
-                  (อาการเดียวกับตอนแบ่ง 2 คอลัมน์ที่ไม่เคยออก) — อย่าเปลี่ยนกลับโดยไม่เปิดดูจริง */}
-              <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_44px]">
-                <Field label="ประเภท" visuallyHiddenLabel={fIdx > 0} className="space-y-1">
+        <>
+          {/* ตาราง 1 ค่าใช้จ่าย = 1 แถว (เบสสั่ง 2026-08-04) — หน้าตาชุดเดียวกับ
+              ตารางลาย/สินค้า/ส่วนเสริมในชุดงาน: หัวคอลัมน์ครั้งเดียว ไม่ซ้ำทุกแถว
+              · เกณฑ์ใช้ sm: (ขนาดจอ) เท่านั้น — container query ไม่ทำงานบนหน้านี้ */}
+          <div className="hidden sm:block">
+            <table className="w-full table-fixed">
+              <colgroup>
+                {hasCatalog && <col style={{ width: 168 }} />}
+                <col style={{ width: 140 }} />
+                <col />
+                <col style={{ width: 120 }} />
+                <col style={{ width: 44 }} />
+              </colgroup>
+              <thead className={TABLE_HEAD_SURFACE}>
+                <tr className="text-xs font-medium">
+                  {hasCatalog && <th className="px-2 py-2.5 text-left">แค็ตตาล็อก</th>}
+                  <th className="px-2 py-2.5 text-left">ประเภท</th>
+                  <th className="px-2 py-2.5 text-left">ชื่อ</th>
+                  <th className="px-2 py-2.5 text-center">จำนวนเงิน</th>
+                  <th className="py-2.5">
+                    <span className="sr-only">ลบค่าใช้จ่าย</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {fees.map((f, fIdx) => (
+                  <tr key={fIdx}>
+                    {hasCatalog && (
+                      <td className="px-2 py-2 align-middle">
+                        <Select
+                          size="sm"
+                          aria-label={`เลือกค่าใช้จ่ายแถว ${fIdx + 1} จากแค็ตตาล็อก`}
+                          value=""
+                          onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
+                        >
+                          <option value="">เลือก...</option>
+                          {feeCatalog!.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} — ฿{c.defaultPrice.toLocaleString()}
+                            </option>
+                          ))}
+                        </Select>
+                      </td>
+                    )}
+                    <td className="px-2 py-2 align-middle">
+                      <Input
+                        size="sm"
+                        aria-label={`ประเภทค่าใช้จ่าย ${fIdx + 1}`}
+                        value={f.feeType}
+                        onChange={(e) => onUpdateFee(fIdx, "feeType", e.target.value)}
+                        placeholder="SHIPPING..."
+                      />
+                    </td>
+                    <td className="px-2 py-2 align-middle">
+                      <Input
+                        size="sm"
+                        aria-label={`ชื่อค่าใช้จ่าย ${fIdx + 1}`}
+                        value={f.name}
+                        onChange={(e) => onUpdateFee(fIdx, "name", e.target.value)}
+                        placeholder="ค่าจัดส่ง, ค่าเซ็ตอัพ..."
+                      />
+                    </td>
+                    <td className="px-2 py-2 align-middle">
+                      <MoneyInput
+                        size="sm"
+                        required
+                        aria-label={`จำนวนเงินค่าใช้จ่าย ${fIdx + 1}`}
+                        value={f.amount}
+                        onValueChange={(v) => onUpdateFee(fIdx, "amount", v)}
+                      />
+                    </td>
+                    <td className="py-2 align-middle">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`ลบค่าใช้จ่าย ${fIdx + 1}`}
+                        className="text-slate-400 hover:text-red-600"
+                        onClick={() => onRemoveFee(fIdx)}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* จอแคบ: ตาราง 4-5 คอลัมน์ลงไม่ไหว — ใช้การ์ดต่อรายการเหมือนที่อื่นในหน้านี้ */}
+          <div className="space-y-3 sm:hidden">
+            {fees.map((f, fIdx) => (
+              <div key={fIdx} className="space-y-2">
+                {hasCatalog && (
+                  <Field label={`เลือกค่าใช้จ่ายแถว ${fIdx + 1} จากแค็ตตาล็อก`} visuallyHiddenLabel>
+                    <Select
+                      value=""
+                      onChange={(e) => handleCatalogSelect(fIdx, e.target.value)}
+                    >
+                      <option value="">เลือกจากแค็ตตาล็อก</option>
+                      {feeCatalog!.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} — ฿{c.defaultPrice.toLocaleString()}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                )}
+                <Field label="ประเภท" className="space-y-1">
                   <Input
                     value={f.feeType}
-                    onChange={(e) =>
-                      onUpdateFee(fIdx, "feeType", e.target.value)
-                    }
+                    onChange={(e) => onUpdateFee(fIdx, "feeType", e.target.value)}
                     placeholder="SHIPPING, SETUP..."
                   />
                 </Field>
-                <Field label="ชื่อ" visuallyHiddenLabel={fIdx > 0} className="space-y-1">
+                <Field label="ชื่อ" className="space-y-1">
                   <Input
                     value={f.name}
                     onChange={(e) => onUpdateFee(fIdx, "name", e.target.value)}
                     placeholder="ค่าจัดส่ง, ค่าเซ็ตอัพ..."
                   />
                 </Field>
-                <Field label="จำนวนเงิน" required visuallyHiddenLabel={fIdx > 0} className="space-y-1">
-                  <MoneyInput
-                    value={f.amount}
-                    onValueChange={(v) => onUpdateFee(fIdx, "amount", v)}
-                  />
-                </Field>
-                <div className="flex justify-end">
+                <div className="flex items-end gap-2">
+                  <Field label="จำนวนเงิน" required className="flex-1 space-y-1">
+                    <MoneyInput
+                      value={f.amount}
+                      onValueChange={(v) => onUpdateFee(fIdx, "amount", v)}
+                    />
+                  </Field>
                   <Button
                     type="button"
                     variant="ghost"
@@ -128,9 +213,9 @@ export function OrderFeeSection({
                   </Button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </Section>
   );
