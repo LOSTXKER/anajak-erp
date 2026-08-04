@@ -87,15 +87,18 @@ function OrderItemRow({
       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
         รายการที่ {itemIdx + 1}
       </span>
-      {!empty && (
-        <>
-          <span className="w-12 flex-shrink-0 text-right text-xs tabular-nums text-slate-500 dark:text-slate-400">
-            {totalQty > 0 ? `${totalQty} ตัว` : "—"}
-          </span>
-          <span className="w-20 flex-shrink-0 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
-            {subtotal > 0 ? formatCurrency(subtotal) : "—"}
-          </span>
-        </>
+      {/* จำนวน/ยอด โผล่เมื่อมีเลขจริงเท่านั้น — เดิมใส่ขีด "—" ไว้แทนค่าว่าง
+          กลายเป็นขีดลอยสองอันบนหัวรายการที่ไม่ได้บอกอะไร (เบสถามเอง 2026-08-05
+          "ขีดนี้คืออะไร" = สัญญาณว่ามันสื่อความไม่ได้) */}
+      {!empty && totalQty > 0 && (
+        <span className="flex-shrink-0 text-right text-xs tabular-nums text-slate-500 dark:text-slate-400">
+          {totalQty} ตัว
+        </span>
+      )}
+      {!empty && subtotal > 0 && (
+        <span className="flex-shrink-0 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+          {formatCurrency(subtotal)}
+        </span>
       )}
       {canRemove && (
         <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveItem(itemIdx)} aria-label="ลบรายการ" className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
