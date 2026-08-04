@@ -692,15 +692,11 @@ export default function NewOrderPage() {
             title={<StepTitle number="03">ราคาและเงื่อนไข</StepTitle>}
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
-            {/* แบบ A (เบสเลือกจาก mockup 2026-08-04): ซ้าย = ของที่ต้องกรอก ·
-                ขวา = ตัวเลขที่อ่าน — ยอดรวมอยู่ระดับสายตาเดียวกับตอนกำลังพิมพ์
-                ── ไม่ใช้ "เกณฑ์ความกว้าง" ใดๆ เลย ──
-                ลองมาแล้วสองแบบและพลาดทั้งคู่: `lg:` วัดขนาดจอ (ไม่ใช่ขนาดการ์ด) ·
-                `@container` วัดถูกแต่ก็ยังไม่ออกบนเครื่องเบส (2026-08-04)
-                → เปลี่ยนเป็น flex-wrap + ความกว้างขั้นต่ำของแต่ละฝั่ง: มีที่พอ = ยืนคู่กันเอง
-                ไม่พอ = ตกลงมาซ้อนกันเอง · ไม่มี media/container query ให้พลาดอีก */}
-            <div className="flex flex-wrap items-start gap-6">
-              <div className="min-w-0 flex-1 basis-88 space-y-6">
+            {/* เรียงลงคอลัมน์เดียว (เบสเคาะ 2026-08-04 "ไม่ต้องแบ่ง 2 ฝั่งละ") —
+                ลองแบ่งซ้าย/ขวามา 3 รอบแล้วไม่ลงตัว เลิกแบ่ง แต่คงของที่ดีขึ้นไว้ทั้งหมด:
+                ไม่มีเส้นคั่นสักเส้น · ส่วนลดท้ายบิลอยู่ฝั่งช่องกรอก · สรุปยอดเป็นก้อนพื้นจมปิดท้าย */}
+            <div className="space-y-6">
+              <div className="space-y-6">
                 <OrderFeeSection
                   fees={fees}
                   onAddFee={addFee}
@@ -764,7 +760,7 @@ export default function NewOrderPage() {
               </div>
 
               {/* สรุปยอดเป็นก้อนพื้นจม — อ่านออกทันทีว่านี่คือผลลัพธ์ ไม่ใช่ช่องให้กรอกต่อ */}
-              <div className={cn(RADIUS.surface, SUNK_PANEL, "min-w-0 flex-1 basis-72 p-5")}>
+              <div className={cn(RADIUS.surface, SUNK_PANEL, "p-5")}>
                 <OrderPriceSummary
                   pricingSummary={pricingSummary}
                   showFeeSections={true}
