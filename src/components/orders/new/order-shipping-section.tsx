@@ -46,6 +46,7 @@ export function OrderShippingSection({
       title={title}
       description="ปิดอยู่ = ไม่บันทึกที่อยู่นี้"
       bordered={!embedded}
+      headingLevel={embedded ? 3 : 2}
       className={className}
       action={
         <label htmlFor="include-order-shipping" className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-medium text-secondary">

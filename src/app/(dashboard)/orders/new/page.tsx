@@ -71,7 +71,7 @@ const STEP_IDS = {
   intake: "new-order-step-intake",
   items: "new-order-step-items",
   pricing: "new-order-step-pricing",
-  shipping: "new-order-step-shipping",
+  attachments: "new-order-step-attachments",
 } as const;
 
 /* เลขตอนเป็นชิปกลม ไม่ใช่ตัวเลขลอย — เลข 01-04 เดิมเป็นภาษาหัวข้อแบบที่ 3 ของระบบ
@@ -545,7 +545,7 @@ export default function NewOrderPage() {
           { id: STEP_IDS.intake, label: "รับเรื่อง", done: !!customerId },
           { id: STEP_IDS.items, label: "รายการงาน", done: hasItemContent },
           { id: STEP_IDS.pricing, label: "ราคา", done: pricingSummary.grandTotal > 0 },
-          { id: STEP_IDS.shipping, label: "จัดส่ง", done: includeShipping },
+          { id: STEP_IDS.attachments, label: "ไฟล์แนบ", done: referenceImages.length > 0 },
         ]}
       />
 
@@ -608,13 +608,15 @@ export default function NewOrderPage() {
                 notes={notes}
                 onNotesChange={setNotes}
               />
-              <div className="border-t border-slate-200 pt-4 dark:border-white/10">
-                <OrderAttachmentsSection
-                  images={referenceImages}
-                  onImagesChange={setReferenceImages}
-                  embedded
-                />
-              </div>
+              {/* จัดส่งอยู่กับรับเรื่อง — ที่อยู่ผู้รับมาจากแชทรอบเดียวกับข้อมูลลูกค้า
+                  (เบสสั่ง 2026-08-04) · ไม่มีเส้นคั่น ใช้หัวข้อย่อย h3 แยกพอ */}
+              <OrderShippingSection
+                includeShipping={includeShipping}
+                onIncludeShippingChange={setIncludeShipping}
+                shipping={shipping}
+                onUpdate={updateShipping}
+                embedded
+              />
             </div>
           </Section>
 
@@ -757,14 +759,13 @@ export default function NewOrderPage() {
             </div>
           </Section>
 
-          {/* จัดส่ง — กางตลอด แต่ยังเป็นข้อมูลไม่บังคับ */}
-          <OrderShippingSection
-            id={STEP_IDS.shipping}
-            includeShipping={includeShipping}
-            onIncludeShippingChange={setIncludeShipping}
-            shipping={shipping}
-            onUpdate={updateShipping}
-            title={<StepTitle number="04">การจัดส่ง</StepTitle>}
+          {/* ไฟล์แนบอยู่ล่างสุด (เบสสั่ง 2026-08-04) — เป็นของที่แนบทีหลังได้เสมอ
+              ไม่ควรขวางทางระหว่างกรอกลูกค้า→รายการ→ราคา */}
+          <OrderAttachmentsSection
+            id={STEP_IDS.attachments}
+            images={referenceImages}
+            onImagesChange={setReferenceImages}
+            title={<StepTitle number="04">ไฟล์แนบ</StepTitle>}
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           />
 

@@ -600,10 +600,9 @@ export function OrderItemCard({
   );
 
   return (
-    // ทุกรายการกางเห็นหมด (ไม่ accordion) · แต่ละชุดงานยืนบน "พื้นจม" ของตัวเอง —
-    // แยกชุดที่ 1 กับ 2 ออกจากกันชัดโดยไม่ต้องมีเส้น (เบส 2026-08-04: เส้นบางๆ รก
-    // แต่ขอให้แบ่งกันชัดเจน) · พื้นจมเป็นก้อนตัน สายตาอ่านขอบเขตได้ทันทีกว่าเส้น 1px
-    <div className={cn(RADIUS.surface, SUNK_PANEL, "px-4 pb-4 pt-1")}>
+    // แต่ละชุดงานเป็นกล่องมีขอบของตัวเอง — เบสลองพื้นจมแล้วขอเปลี่ยนเป็นเส้นขอบ
+    // (2026-08-04 "การแบ่งรายการ ขอลองแบบเส้นขอบดีกว่า")
+    <div className={cn(RADIUS.surface, "border border-slate-200 px-4 pb-4 pt-1 dark:border-white/10")}>
       <OrderItemRow
         item={item} itemIdx={itemIdx} canRemove={canRemove}
         onRemoveItem={onRemoveItem}
