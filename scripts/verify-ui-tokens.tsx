@@ -44,18 +44,18 @@ function check(name: string, html: string, must: string[], mustNot: string[] = [
 const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
 
-// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้น+โฟกัสชุดเดียว
-// แก้ 2026-08-04 (เบสเคาะ "คือไม่ต้องมีเส้นเยอะ"): ไม่มีเส้นขอบ · เห็นว่าเป็นช่อง
-// ด้วยพื้น `--field-bg` ที่บริบทเลือกสีให้ (การ์ดขาว→เทาจม #eceff2 · .sunk-panel→ขาว)
-// border-transparent ต้องอยู่ — FOCUS_FIELD เปลี่ยนสีขอบตอนโฟกัส
+// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้น+ขอบ+โฟกัสชุดเดียว
+// เบสเคาะสุดท้าย 2026-08-04 หลังเห็นจอจริงทั้งสองแบบ: "พื้นขาว มีขอบบางๆ ธีมมืดสลับ"
+// (ลองพื้นเทาไร้ขอบแล้ว — ช่องกลืนกับพื้น/กล่องรอบตัวง่ายเกิน)
 const FIELD = [
-  "border-transparent",
-  "bg-[var(--field-bg)]",
+  "border-slate-200",
+  "bg-surface",
+  "dark:bg-slate-950",
   "focus-visible:border-blue-500",
   "focus-visible:ring-blue-500/15",
 ];
-// ห้ามพื้นตายตัวกลับมา — จางไป (slate-100) ก็กลืนพื้น · ขาวตายตัว (bg-surface) ก็ต้องพึ่งเส้น
-const FIELD_NO = ["bg-slate-100", "bg-surface", "border-slate-200"];
+// ห้ามย้อนไปพื้นเทา/ไร้ขอบ — เคยลองแล้วเบสตีกลับทั้งสองรอบ
+const FIELD_NO = ["bg-slate-100", "border-transparent", "bg-[var(--field-bg)]"];
 check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-[10px]"], [...FIELD_NO, "rounded-2xl"]);
 check(
   "ช่องเลือก (Select)",

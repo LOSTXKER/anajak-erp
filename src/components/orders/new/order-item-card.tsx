@@ -114,10 +114,12 @@ function OrderItemRow({
 function ItemTableCols() {
   return (
     <colgroup>
-      <col style={{ width: 76 }} />
+      {/* 100px — ป้ายแหล่งยาวสุด "ลูกค้าส่งมา" ต้องมีลมหายใจก่อนถึงคอลัมน์สินค้า
+          (เบสเห็นจอจริง 2026-08-04 "คอลัมแหล่งกับสินค้าดูติดไป") */}
+      <col style={{ width: 100 }} />
       <col />
       <col style={{ width: 104 }} />
-      <col style={{ width: 116 }} />
+      <col style={{ width: 112 }} />
       <col style={{ width: 92 }} />
       <col style={{ width: 76 }} />
       <col style={{ width: 96 }} />

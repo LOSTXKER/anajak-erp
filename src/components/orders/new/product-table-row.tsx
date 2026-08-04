@@ -62,13 +62,13 @@ export function ProductTableRow({
     </Select>
   );
 
-  const dash = <span className="text-xs text-slate-300 dark:text-slate-600">—</span>;
+  const dash = <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
 
   return (
     <>
       <tr className="border-b border-slate-200 dark:border-white/10">
         {/* แหล่ง */}
-        <td className="py-2 pl-1 align-top">{sourceBadge}</td>
+        <td className="py-2 pl-1 pr-3 align-top">{sourceBadge}</td>
 
         {/* สินค้า */}
         <td className="py-2 pr-2 align-top">
