@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { requirePrintPermission } from "@/lib/supabase-server";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
 import {
+  formatBranchLabel,
+  formatCustomerDocAddress,
+} from "@/lib/customer-doc-address";
+import {
   PrintPage,
   DocHeader,
   PartyBlock,
@@ -60,9 +64,9 @@ export default async function PrintQuotationPage({
           label="เสนอต่อ"
           name={customer.name}
           company={customer.company}
-          address={customer.billingAddress || customer.address}
+          address={formatCustomerDocAddress(customer)}
           taxId={customer.taxId}
-          branch={customer.branchNumber ? `สาขา ${customer.branchNumber}` : undefined}
+          branch={formatBranchLabel(customer.branchNumber)}
           phone={customer.phone}
         />
 

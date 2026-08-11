@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { requirePrintPermission } from "@/lib/supabase-server";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
 import {
+  formatBranchLabel,
+  formatCustomerDocAddress,
+} from "@/lib/customer-doc-address";
+import {
   PrintPage,
   DocHeader,
   PartyBlock,
@@ -80,15 +84,9 @@ export default async function PrintBillingNotePage({
           label="วางบิลถึง"
           name={note.customer.name}
           company={note.customer.company}
-          address={note.customer.billingAddress || note.customer.address}
+          address={formatCustomerDocAddress(note.customer)}
           taxId={note.customer.taxId}
-          branch={
-            note.customer.branchNumber
-              ? note.customer.branchNumber === "00000"
-                ? "สำนักงานใหญ่"
-                : `สาขา ${note.customer.branchNumber}`
-              : undefined
-          }
+          branch={formatBranchLabel(note.customer.branchNumber)}
           phone={note.customer.phone}
         />
 

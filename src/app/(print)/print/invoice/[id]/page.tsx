@@ -5,6 +5,10 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePrintPermission } from "@/lib/supabase-server";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
+import {
+  formatBranchLabel,
+  formatCustomerDocAddress,
+} from "@/lib/customer-doc-address";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payment-methods";
 import type { InvoiceType } from "@prisma/client";
 import {
@@ -153,15 +157,9 @@ export default async function PrintInvoicePage({
             label={invoice.type === "RECEIPT" ? "ได้รับเงินจาก" : "ลูกค้า"}
             name={invoice.customer.name}
             company={invoice.customer.company}
-            address={invoice.customer.billingAddress || invoice.customer.address}
+            address={formatCustomerDocAddress(invoice.customer)}
             taxId={invoice.customer.taxId}
-            branch={
-              invoice.customer.branchNumber
-                ? invoice.customer.branchNumber === "00000"
-                  ? "สำนักงานใหญ่"
-                  : `สาขา ${invoice.customer.branchNumber}`
-                : undefined
-            }
+            branch={formatBranchLabel(invoice.customer.branchNumber)}
             phone={invoice.customer.phone}
           />
 
