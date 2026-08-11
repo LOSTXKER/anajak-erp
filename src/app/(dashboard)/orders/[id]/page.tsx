@@ -601,11 +601,16 @@ function OrderDetailContent({
         </div>
       </dl>
 
+      {/* revisions = ชุดเดียวกับที่แท็บประวัติใช้ (ไม่ยิง query เพิ่ม) — แถบสถานะเอาไปหาว่า
+          งานพัก/ยกเลิกค้างไว้ที่ขั้นไหนของสายงาน เพราะ 2 สถานะนี้ไม่มีที่ยืนใน flow */}
       <OrderStatusBar
         flowSteps={flowSteps}
         currentStepIndex={currentStepIndex}
         internalStatus={order.internalStatus}
         customerStatus={order.customerStatus}
+        revisions={order.revisions ?? []}
+        cancelledAt={order.cancelledAt}
+        cancelledReason={order.cancelledReason}
       />
 
       {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
