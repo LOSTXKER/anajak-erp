@@ -206,12 +206,19 @@ export const deliveryRouter = router({
         });
 
         // จงใจให้ทุก role ที่สร้างใบส่งได้ (รวมฝ่ายผลิตที่แพ็คของ) เขียนผ่านช่องนี้ —
-        // คนแพ็คคือคนที่ได้ที่อยู่มา · ขอบเขตแคบ: address + phone-เฉพาะตอนว่าง · มี audit เต็ม
+        // คนแพ็คคือคนที่ได้ที่อยู่มา · ขอบเขตแคบ: **เติมเฉพาะตอนโปรไฟล์ยังว่าง** · มี audit เต็ม
+        //
+        // เดิมช่องนี้ทับที่อยู่เดิมได้เสมอ (เบสสั่งปิด 2026-08-12): customer.address คือที่อยู่
+        // สำรองบนใบกำกับภาษี/ใบเสนอราคา/ใบวางบิล (`billingAddress || address`) → ที่อยู่
+        // ปลายทางของรอบส่งเดียว (ลูกค้าของลูกค้า / ไซต์งานชั่วคราว) ไหลไปโผล่บนเอกสารภาษี
+        // ใบถัดไปโดยไม่มีใครรู้ · เปลี่ยนที่อยู่ประจำต้องทำที่หน้าลูกค้าซึ่งเห็นผลกระทบครบ
         if (saveAsCustomerAddress) {
           const order = await tx.order.findUniqueOrThrow({
             where: { id: input.orderId },
             select: { customerId: true, customer: { select: { address: true, phone: true } } },
           });
+          const fillAddress = !order.customer.address?.trim();
+          const fillPhone = !order.customer.phone;
           const fullAddress = [
             input.address,
             input.subDistrict,
@@ -221,25 +228,30 @@ export const deliveryRouter = router({
           ]
             .filter(Boolean)
             .join(" ");
-          const fillPhone = !order.customer.phone;
-          await tx.customer.update({
-            where: { id: order.customerId },
-            data: {
-              address: fullAddress,
-              // เบอร์เติมเฉพาะตอนโปรไฟล์ยังว่าง — ไม่ทับเบอร์หลักด้วยเบอร์ผู้รับของ
-              ...(fillPhone ? { phone: normalizePhone(input.phone) } : {}),
-            },
-          });
-          // ทับข้อมูลหลักลูกค้า = ต้องมี oldValue ให้ตรวจย้อน/กู้ได้ (pattern เดียวกับ customer.update)
-          await createAuditLog(tx, {
-            userId: ctx.userId,
-            action: "UPDATE",
-            entityType: "CUSTOMER",
-            entityId: order.customerId,
-            oldValue: { address: order.customer.address, phone: order.customer.phone },
-            newValue: { address: fullAddress, ...(fillPhone ? { phone: input.phone } : {}) },
-            reason: `บันทึกจากใบจัดส่ง ${delivery.id}`,
-          });
+          // ทั้งสองช่องมีของอยู่แล้ว = ไม่มีอะไรต้องเติม (UI ปิดช่องไว้แล้ว — นี่คือด่าน server)
+          if (fillAddress || fillPhone) {
+            await tx.customer.update({
+              where: { id: order.customerId },
+              data: {
+                ...(fillAddress ? { address: fullAddress } : {}),
+                // เบอร์เติมเฉพาะตอนโปรไฟล์ยังว่าง — ไม่ทับเบอร์หลักด้วยเบอร์ผู้รับของ
+                ...(fillPhone ? { phone: normalizePhone(input.phone) } : {}),
+              },
+            });
+            // แตะข้อมูลหลักลูกค้า = ต้องมี oldValue ให้ตรวจย้อน/กู้ได้ (pattern เดียวกับ customer.update)
+            await createAuditLog(tx, {
+              userId: ctx.userId,
+              action: "UPDATE",
+              entityType: "CUSTOMER",
+              entityId: order.customerId,
+              oldValue: { address: order.customer.address, phone: order.customer.phone },
+              newValue: {
+                ...(fillAddress ? { address: fullAddress } : {}),
+                ...(fillPhone ? { phone: input.phone } : {}),
+              },
+              reason: `เติมจากใบจัดส่ง ${delivery.id} (โปรไฟล์ยังว่าง)`,
+            });
+          }
         }
 
         await createAuditLog(tx, {

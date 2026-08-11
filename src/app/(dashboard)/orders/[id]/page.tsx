@@ -773,6 +773,8 @@ function OrderDetailContent({
                 customerName={order.customer?.name}
                 customerPhone={order.customer?.phone ?? undefined}
                 customerHasAddress={!!order.customer?.address}
+                customerAddress={order.customer?.address}
+                orderShipping={order}
               />
             ) : (
               /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือ

@@ -20,6 +20,13 @@ import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { SHIPPING_METHODS } from "@/lib/shipping-methods";
+import {
+  fillFromCustomer,
+  fillFromOrderShipping,
+  hasAddressContent,
+  type OrderShippingSource,
+} from "@/lib/address-fill";
+import { UseAddressButton } from "@/components/orders/use-address-button";
 import { Truck } from "lucide-react";
 
 type PackContextData = RouterOutput["delivery"]["packContext"];
@@ -44,32 +51,48 @@ export function CreateDeliveryDialog({
   customerName,
   customerPhone,
   customerHasAddress,
+  customerAddress,
+  orderShipping,
   packData,
   onClose,
 }: {
   orderId: string;
   customerName?: string;
   customerPhone?: string;
-  // ลูกค้ามีที่อยู่ในโปรไฟล์แล้วหรือยัง — ถ้ายัง default ติ๊กบันทึกที่อยู่จัดส่งกลับโปรไฟล์
+  // ลูกค้ามีที่อยู่ในโปรไฟล์แล้วหรือยัง — มีแล้วห้ามทับ (ปิดช่องบันทึกกลับ)
   customerHasAddress?: boolean;
+  /** ที่อยู่ผู้ติดต่อของลูกค้า — ทางเลือกที่สองของปุ่มก๊อป (ใช้เมื่อใบงานไม่ได้ระบุที่อยู่ส่ง) */
+  customerAddress?: string | null;
+  /** ที่อยู่จัดส่งที่กรอกไว้ตอนเปิดงาน — ต้นทางหลักของใบส่ง (เบสสั่ง 2026-08-12)
+   *  เดิม dialog นี้เริ่มจากช่องว่างเปล่า คนแพ็คต้องพิมพ์ที่อยู่ใหม่ทุกใบ แล้วได้ที่อยู่
+   *  2 ชุดที่ไม่ตรงกันบนออเดอร์ใบเดียว (ใบแนบกล่องพิมพ์จากใบส่ง ไม่ใช่จากออเดอร์) */
+  orderShipping?: OrderShippingSource | null;
   /** บริบทแพ็ค: เหลือเท่าไหร่ต่อไซส์ — parent เปิด dialog ได้ต่อเมื่อ data พร้อมแล้วเท่านั้น */
   packData: PackContextData;
   onClose: () => void;
 }) {
-  const [recipientName, setRecipientName] = useState(customerName || "");
-  const [phone, setPhone] = useState(customerPhone || "");
-  const [address, setAddress] = useState("");
-  const [subDistrict, setSubDistrict] = useState("");
-  const [district, setDistrict] = useState("");
-  const [province, setProvince] = useState("");
-  const [postalCode, setPostalCode] = useState("");
+  // seed จากที่อยู่จัดส่งของใบงานก่อน — ไม่มีค่อยถอยไปใช้ชื่อ/เบอร์ลูกค้าแบบเดิม
+  const orderFill = fillFromOrderShipping(orderShipping);
+  const hasOrderShipping = hasAddressContent(orderFill);
+
+  const [recipientName, setRecipientName] = useState(
+    orderFill.recipientName || customerName || "",
+  );
+  const [phone, setPhone] = useState(orderFill.phone || customerPhone || "");
+  const [address, setAddress] = useState(orderFill.address);
+  const [subDistrict, setSubDistrict] = useState(orderFill.subDistrict);
+  const [district, setDistrict] = useState(orderFill.district);
+  const [province, setProvince] = useState(orderFill.province);
+  const [postalCode, setPostalCode] = useState(orderFill.postalCode);
   const [shippingMethod, setShippingMethod] = useState("KERRY");
   const [shippingCost, setShippingCost] = useState("0");
   const [deliveryNotes, setDeliveryNotes] = useState("");
-  // ลูกค้ายังไม่มีที่อยู่ในโปรไฟล์ → default บันทึกกลับให้เลย (ออเดอร์หน้า prefill อัตโนมัติ)
-  // derive ใหม่ทุกครั้งที่เปิด dialog (mount ใหม่) — หลังบันทึกที่อยู่รอบแรก รอบถัดไปต้องไม่ติ๊กค้าง
-  // (ไม่งั้นส่งรอบสองไปที่อยู่อื่นจะทับที่อยู่หลักเงียบๆ)
+  // ลูกค้ายังไม่มีที่อยู่ในโปรไฟล์ → default เติมกลับให้เลย · มีแล้ว = ปิดตาย ห้ามทับ
+  // (เบสสั่ง 2026-08-12) เดิมติ๊กทับได้เสมอ ทุก role ที่แพ็คของทำได้ แล้ว customer.address
+  // คือที่อยู่สำรองบนใบกำกับภาษี → ที่อยู่ปลายทางรอบนั้นไหลไปโผล่บนเอกสารภาษีใบต่อไป
+  // (เคสจริง: ส่งของให้ลูกค้าของลูกค้า / ส่งไปไซต์งานชั่วคราว) · server กันอีกชั้น
   const [saveAsCustomerAddress, setSaveAsCustomerAddress] = useState(!customerHasAddress);
+  const canSaveAsCustomerAddress = !customerHasAddress;
 
   // แพ็คนับยืนยันต่อไซส์ (ก้อน 3) — จำนวนรอบนี้ต่อแถว key = ไซส์|สี (เก็บ string ให้พิมพ์แก้ได้)
   // นับยืนยันรอบนี้ default = ที่เหลือทั้งหมดต่อแถว (เคสปกติ: ส่งครบในรอบเดียว แก้ลงได้)
@@ -106,6 +129,18 @@ export function CreateDeliveryDialog({
   const packInvalid = packRows.some((r) => r.invalid);
   const packTotal = packRows.reduce((s, r) => s + (r.invalid ? 0 : r.qty), 0);
 
+  // ที่อยู่ที่ก๊อปมาใช้ได้ — ที่อยู่ของใบงานมาก่อนเสมอ (ตรงกับที่ฝ่ายขายรับปากลูกค้าไว้)
+  const customerFill = fillFromCustomer({
+    name: customerName,
+    phone: customerPhone,
+    address: customerAddress,
+  });
+  const copySource = hasOrderShipping
+    ? { fill: orderFill, label: "ใช้ที่อยู่จัดส่งของงานนี้" }
+    : hasAddressContent(customerFill)
+      ? { fill: customerFill, label: "ใช้ที่อยู่ผู้ติดต่อ" }
+      : null;
+
   function handleCreate() {
     createDelivery.mutate({
       orderId,
@@ -139,6 +174,24 @@ export function CreateDeliveryDialog({
           <DialogTitle>สร้างรายการจัดส่ง</DialogTitle>
         </DialogHeader>
         <div className="max-h-[60vh] space-y-4 overflow-y-auto">
+          {/* ปุ่มก๊อป — ใบงานมีที่อยู่จัดส่งก็ดึงชุดนั้น (ครบ 7 ช่อง) ไม่มีค่อยถอยไปที่อยู่ผู้ติดต่อ
+              (โปรไฟล์เก็บที่อยู่ก้อนเดียว เติมได้แค่ช่อง "ที่อยู่") */}
+          {copySource && (
+            <UseAddressButton
+              onClick={() => {
+                const fill = copySource.fill;
+                setRecipientName(fill.recipientName || recipientName);
+                setPhone(fill.phone || phone);
+                setAddress(fill.address);
+                setSubDistrict(fill.subDistrict);
+                setDistrict(fill.district);
+                setProvince(fill.province);
+                setPostalCode(fill.postalCode);
+              }}
+            >
+              {copySource.label}
+            </UseAddressButton>
+          )}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="ชื่อผู้รับ" required>
               <Input
@@ -289,21 +342,30 @@ export function CreateDeliveryDialog({
               placeholder="หมายเหตุ..."
             />
           </Field>
-          <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+          {/* เติมที่อยู่กลับโปรไฟล์ได้เฉพาะตอนโปรไฟล์ยังว่าง — กติกาเดียวกับเบอร์โทรที่ทำถูกอยู่แล้ว
+              ที่อยู่ผู้ติดต่อ = ที่อยู่สำรองบนใบกำกับภาษี ห้ามให้ที่อยู่ปลายทางรอบเดียวมาทับ */}
+          <label
+            className={cn(
+              "flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300",
+              canSaveAsCustomerAddress ? "cursor-pointer" : "cursor-not-allowed opacity-60",
+            )}
+          >
             <Checkbox
-              checked={saveAsCustomerAddress}
+              checked={canSaveAsCustomerAddress && saveAsCustomerAddress}
+              disabled={!canSaveAsCustomerAddress}
               onChange={(e) => setSaveAsCustomerAddress(e.target.checked)}
               className="mt-0.5"
             />
             <span>
-              บันทึกเป็นที่อยู่หลักของลูกค้า (เติมเบอร์นี้ให้โปรไฟล์ด้วยถ้ายังว่าง)
-              {!customerHasAddress ? (
+              เติมเป็นที่อยู่ผู้ติดต่อของลูกค้า (เติมเบอร์นี้ให้โปรไฟล์ด้วยถ้ายังว่าง)
+              {canSaveAsCustomerAddress ? (
                 <span className="block text-xs text-amber-600 dark:text-amber-400">
-                  ลูกค้ารายนี้ยังไม่มีที่อยู่ในระบบ — บันทึกไว้ ออเดอร์หน้าจะกรอกให้อัตโนมัติ
+                  ลูกค้ารายนี้ยังไม่มีที่อยู่ในระบบ — เติมไว้แล้วใช้บนเอกสารได้เลย
                 </span>
               ) : (
                 <span className="block text-xs text-slate-400">
-                  ลูกค้ามีที่อยู่หลักอยู่แล้ว — ติ๊กเฉพาะถ้าต้องการแทนที่ด้วยที่อยู่นี้
+                  ลูกค้ามีที่อยู่ผู้ติดต่ออยู่แล้ว — ที่อยู่นี้เป็นของใบส่งรอบนี้เท่านั้น
+                  ถ้าต้องการเปลี่ยนที่อยู่ประจำ ให้แก้ที่หน้าลูกค้า
                 </span>
               )}
             </span>

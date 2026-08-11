@@ -20,6 +20,8 @@ import { PRIORITY_LABELS, isOrderLocked, orderEditLockedReason } from "@/lib/ord
 import type { InternalStatus } from "@prisma/client";
 import { PAYMENT_TERMS_LABELS, type PaymentTermsValue } from "@/lib/payment-terms";
 import { calculateOrderSummary } from "@/lib/pricing";
+import { fillFromCustomer, hasAddressContent } from "@/lib/address-fill";
+import { UseAddressButton } from "@/components/orders/use-address-button";
 import { formatCurrency } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 
@@ -53,6 +55,13 @@ interface OrderInfoEditOrder {
   shippingProvince: string | null;
   shippingPostalCode: string | null;
   externalOrderId: string | null;
+  /** ที่อยู่ผู้ติดต่อของลูกค้า — ต้นทางของปุ่ม "ใช้ที่อยู่ลูกค้า" (อ่านอย่างเดียว ไม่แก้ที่นี่) */
+  customer?: {
+    name: string;
+    company: string | null;
+    phone: string | null;
+    address: string | null;
+  } | null;
 }
 
 interface OrderInfoEditDialogProps {
@@ -171,6 +180,9 @@ export function OrderInfoEditDialog({
 
   const isMarketplace = ["SHOPEE", "LAZADA", "TIKTOK"].includes(order?.channel);
 
+  // ปุ่ม "ใช้ที่อยู่ลูกค้า" โผล่เมื่อโปรไฟล์ลูกค้ามีที่อยู่ให้ก๊อปจริง
+  const canUseCustomerAddress = hasAddressContent(fillFromCustomer(order?.customer));
+
   // ยอด/ส่วนลด/ภาษี/เทอม แก้ตรงไม่ได้เมื่อออเดอร์ล็อก (อนุมัติ→ใบแก้ไข · พักงาน→ปลดพัก)
   // — server order.update block เฉพาะ field เงิน (touchesMoney) แต่ dialog เดิมแนบ
   // discount+taxRate เสมอ → กด Save แก้ที่อยู่ก็โดนเด้งทั้งใบ · ปิดช่องเงิน + ไม่แนบตอนล็อก
@@ -200,6 +212,9 @@ export function OrderInfoEditDialog({
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  /** ช่องว่าง → null (ลบค่าเดิมจริง) · Prisma อ่าน undefined ว่า "ไม่แตะ field นี้" */
+  const emptyToNull = (v: string) => (v.trim() ? v.trim() : null);
+
   function handleSave() {
     updateMutation.mutate({
       id: order.id,
@@ -220,13 +235,16 @@ export function OrderInfoEditDialog({
             paymentTerms: (form.paymentTerms || null) as PaymentTermsValue | null,
           }),
       poNumber: form.poNumber || undefined,
-      shippingRecipientName: form.shippingRecipientName || undefined,
-      shippingPhone: form.shippingPhone || undefined,
-      shippingAddress: form.shippingAddress || undefined,
-      shippingSubDistrict: form.shippingSubDistrict || undefined,
-      shippingDistrict: form.shippingDistrict || undefined,
-      shippingProvince: form.shippingProvince || undefined,
-      shippingPostalCode: form.shippingPostalCode || undefined,
+      // ที่อยู่จัดส่ง: ช่องว่าง = null (ลบทิ้งจริง) ไม่ใช่ undefined ที่ Prisma อ่านว่า "ไม่แตะ"
+      // — เดิมลบข้อความในช่องแล้วกดบันทึก ค่าเก่ายังอยู่เงียบๆ (เบสสั่งแก้ 2026-08-12)
+      // ที่อยู่ผิดบนใบส่งของ = ของไปผิดบ้าน จึงต้องลบให้ว่างได้จริง
+      shippingRecipientName: emptyToNull(form.shippingRecipientName),
+      shippingPhone: emptyToNull(form.shippingPhone),
+      shippingAddress: emptyToNull(form.shippingAddress),
+      shippingSubDistrict: emptyToNull(form.shippingSubDistrict),
+      shippingDistrict: emptyToNull(form.shippingDistrict),
+      shippingProvince: emptyToNull(form.shippingProvince),
+      shippingPostalCode: emptyToNull(form.shippingPostalCode),
       externalOrderId: form.externalOrderId || undefined,
     });
   }
@@ -377,6 +395,25 @@ export function OrderInfoEditDialog({
           {/* --Shipping-- */}
           <div id="order-edit-shipping" className={sectionClass}>
             <p className={sectionTitleClass}>ที่อยู่จัดส่ง</p>
+            {/* ก๊อปที่อยู่ผู้ติดต่อลงช่องจัดส่ง (เบสสั่ง 2026-08-12) — เดิมแท็บภาพรวมโชว์
+                ที่อยู่ลูกค้าเป็นข้อความ "ก๊อปมาใช้ได้" แต่ไม่มีปุ่ม ต้องลากเมาส์ก๊อปเองแล้วมาวาง
+                โปรไฟล์เก็บที่อยู่เป็นก้อนเดียว จึงเติมได้แค่ช่อง "ที่อยู่" — 4 ช่องล่างคนเติมเอง */}
+            {canUseCustomerAddress && (
+              <UseAddressButton
+                onClick={() => {
+                  const fill = fillFromCustomer(order.customer);
+                  setForm((f) => ({
+                    ...f,
+                    shippingRecipientName: fill.recipientName,
+                    shippingPhone: fill.phone,
+                    shippingAddress: fill.address,
+                  }));
+                }}
+                className="mb-3"
+              >
+                ใช้ที่อยู่ลูกค้า
+              </UseAddressButton>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <Field label="ชื่อผู้รับ">
                 <Input

@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Section } from "@/components/ui/section";
 import { Field } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
+import { UseAddressButton } from "@/components/orders/use-address-button";
 import { cn } from "@/lib/utils";
 
 interface ShippingData {
@@ -27,6 +28,9 @@ interface OrderShippingSectionProps {
   className?: string;
   /** anchor ให้แถบขั้นตอนของหน้าเปิดงานกระโดดมาได้ */
   id?: string;
+  /** ปุ่ม "ใช้ที่อยู่ลูกค้า" — ส่งมาเมื่อลูกค้าที่เลือกมีที่อยู่ผู้ติดต่อให้ก๊อปจริง
+   *  (เบสสั่ง 2026-08-12 · แทนการเติมให้เงียบๆ ซึ่งทำให้ที่อยู่หายตอนบันทึก) */
+  onUseCustomerAddress?: () => void;
 }
 
 export function OrderShippingSection({
@@ -38,6 +42,7 @@ export function OrderShippingSection({
   title = "การจัดส่ง",
   className,
   id,
+  onUseCustomerAddress,
 }: OrderShippingSectionProps) {
   return (
     <Section
@@ -59,6 +64,13 @@ export function OrderShippingSection({
         </label>
       }
     >
+      {/* ปุ่มก๊อปอยู่นอก fieldset — ต้องกดได้ตอนสวิตช์ยังปิด (กดแล้วเปิดสวิตช์ให้เอง)
+          ไม่งั้นคนต้องรู้ลำดับ "เปิดสวิตช์ก่อนแล้วค่อยกดปุ่ม" ซึ่งไม่มีอะไรบอก */}
+      {onUseCustomerAddress && (
+        <UseAddressButton onClick={onUseCustomerAddress} className="mb-3">
+          ใช้ที่อยู่ลูกค้า
+        </UseAddressButton>
+      )}
       <fieldset
         disabled={!includeShipping}
         className={cn("space-y-3 transition-opacity", !includeShipping && "opacity-55")}

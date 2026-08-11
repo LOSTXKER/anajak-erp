@@ -67,7 +67,8 @@ export interface CustomerUpdatePayload {
   chatName: string;
   chatUrl: string;
   email: string;
-  address: string;
+  /** null = ล้างที่อยู่ผู้ติดต่อทิ้ง (server รับ nullable เท่ากับ billing*) */
+  address: string | null;
   notes: string;
   segment: CustomerSegmentValue;
   taxId: string;
@@ -234,7 +235,10 @@ export function buildCustomerUpdatePayload(
     chatName: form.chatName.trim(),
     chatUrl: form.chatUrl.trim(),
     email: form.email.trim(),
-    address: form.address.trim(),
+    // ที่อยู่ผู้ติดต่อล้างได้จริง (เบสสั่ง 2026-08-12) — ว่าง = null ไม่ใช่ ""
+    // เดิมส่ง "" ไป ฐานข้อมูลเลยมีทั้ง null และ "" ปนกัน แล้ว `!!customer.address`
+    // อ่านว่า "มีที่อยู่" ทั้งที่ว่างเปล่า (กระทบด่านเตือนโปรไฟล์ไม่ครบ + ปุ่มก๊อป)
+    address: nullableTrimmed(form.address),
     notes: form.notes.trim(),
     segment: form.segment,
     taxId: form.taxId.trim(),

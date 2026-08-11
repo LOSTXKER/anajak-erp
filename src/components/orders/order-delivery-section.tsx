@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { toast } from "sonner";
 import { type DeliveryStatus } from "@/lib/delivery-status";
+import { type OrderShippingSource } from "@/lib/address-fill";
 import {
   canCreateDelivery,
   deliveryActionAvailability,
@@ -51,8 +52,11 @@ interface OrderDeliverySectionProps {
   internalStatus: string;
   customerName?: string;
   customerPhone?: string;
-  // ลูกค้ามีที่อยู่ในโปรไฟล์แล้วหรือยัง — ถ้ายัง default ติ๊กบันทึกที่อยู่จัดส่งกลับโปรไฟล์
+  // ลูกค้ามีที่อยู่ในโปรไฟล์แล้วหรือยัง — มีแล้วห้ามให้ใบส่งทับ (ปิดช่องเติมกลับ)
   customerHasAddress?: boolean;
+  customerAddress?: string | null;
+  /** ที่อยู่จัดส่งบนใบงาน — ใช้ตั้งต้นฟอร์มสร้างใบส่ง (เดิมคนแพ็คต้องพิมพ์ใหม่ทั้งชุด) */
+  orderShipping?: OrderShippingSource | null;
 }
 
 
@@ -62,6 +66,8 @@ export function OrderDeliverySection({
   customerName,
   customerPhone,
   customerHasAddress,
+  customerAddress,
+  orderShipping,
 }: OrderDeliverySectionProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   // ใบส่ง + สถานะแนะนำที่กำลังจะอัปเดต — conditional mount DeliveryStatusDialog (กติกา ui/dialog.tsx)
@@ -378,6 +384,8 @@ export function OrderDeliverySection({
           customerName={customerName}
           customerPhone={customerPhone}
           customerHasAddress={customerHasAddress}
+          customerAddress={customerAddress}
+          orderShipping={orderShipping}
           packData={packContext.data}
           onClose={() => setShowCreateDialog(false)}
         />

@@ -136,9 +136,15 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   <MessageCircle className="h-4 w-4" /> {customer.lineId}
                 </a>
               )}
+              {/* เดิมมีแต่ไอคอนหมุด ไม่มีป้าย — คนอ่านเดาไม่ออกว่านี่ที่อยู่อะไร (ส่งของ? ออกบิล?)
+                  ต้องเรียกชื่อเดียวกับฟอร์มที่กรอกค่านี้ = "ที่อยู่ผู้ติดต่อ" (เบสสั่ง 2026-08-12) */}
               {customer.address && (
-                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                  <MapPin className="h-4 w-4" /> {customer.address}
+                <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span className="min-w-0">
+                    <span className="block text-xs text-muted">ที่อยู่ผู้ติดต่อ</span>
+                    <span className="block [overflow-wrap:anywhere]">{customer.address}</span>
+                  </span>
                 </div>
               )}
               {/* ลูกค้าที่ยังไม่กรอกช่องทางติดต่อเลย — เดิมการ์ดนี้เหลือแต่หัวข้อ ข้างในโล่ง

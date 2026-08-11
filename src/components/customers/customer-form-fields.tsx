@@ -133,7 +133,16 @@ export function CustomerFormFields({
             onChange={(e) => set({ email: e.target.value })}
           />
         </Field>
-        <Field label="ที่อยู่ (จัดส่ง)">
+        {/* ป้ายเดิมเขียนว่า "ที่อยู่ (จัดส่ง)" ซึ่งผิด (เบสสั่งแก้ 2026-08-12) — ช่องนี้คือ
+            ที่อยู่ประจำของลูกค้า และเป็น**ที่อยู่สำรองบนเอกสารภาษี** (print/invoice ·
+            quotation · billing-note ใช้ `billingAddress || address`) · เขียนว่า "จัดส่ง"
+            ชวนให้กรอกที่อยู่ปลายทางของงานล่าสุด แล้วมันไปโผล่บนใบกำกับเงียบๆ
+            ที่อยู่ส่งของอยู่ในใบงานแต่ละใบ (Order.shipping*) ไม่ใช่ที่นี่ */}
+        <Field
+          label="ที่อยู่ผู้ติดต่อ"
+          className="sm:col-span-2"
+          description="ที่อยู่ประจำของลูกค้า · ใช้พิมพ์บนใบเสนอราคา/ใบกำกับ ถ้าไม่ได้กรอกที่อยู่ออกใบกำกับภาษีแยกไว้"
+        >
           <Input value={form.address} onChange={(e) => set({ address: e.target.value })} />
         </Field>
       </div>
@@ -216,13 +225,15 @@ export function CustomerFormFields({
                 placeholder="เลขที่ ถนน"
               />
             </Field>
-            <Field label="แขวง/ตำบล">
+            {/* ลำดับคำต้องตรงกับฟอร์มที่อยู่ทุกใบในระบบ ("ตำบล/แขวง" · "อำเภอ/เขต")
+                — เดิมที่นี่สลับเป็น "แขวง/ตำบล" อยู่ใบเดียว */}
+            <Field label="ตำบล/แขวง">
               <Input
                 value={form.billingSubDistrict}
                 onChange={(e) => set({ billingSubDistrict: e.target.value })}
               />
             </Field>
-            <Field label="เขต/อำเภอ">
+            <Field label="อำเภอ/เขต">
               <Input
                 value={form.billingDistrict}
                 onChange={(e) => set({ billingDistrict: e.target.value })}

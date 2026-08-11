@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   buildShippingMutationInput,
-  shouldPrefillShippingOnCustomerChange,
   validateShippingState,
   type ShippingState,
 } from "./use-order-shipping";
@@ -35,8 +34,7 @@ describe("optional shipping intent", () => {
     expect(buildShippingMutationInput(shipping, true)).toEqual(shipping);
   });
 
-  it("เปิดสวิตช์อย่างเดียวยัง prefill ลูกค้าใหม่ได้ แต่ข้อมูลที่พิมพ์เองต้องรักษาไว้", () => {
-    expect(shouldPrefillShippingOnCustomerChange(false)).toBe(true);
-    expect(shouldPrefillShippingOnCustomerChange(true)).toBe(false);
-  });
+  // กติกา "ที่อยู่ค้างจากลูกค้ารายเก่า" ย้ายไป lib/address-fill.ts แล้ว
+  // (shouldClearShippingOnCustomerChange — เทสอยู่ที่ address-fill.test.ts)
+  // เพราะหน้าเปิดงานเลิก prefill เงียบๆ แล้ว ใช้ปุ่ม "ใช้ที่อยู่ลูกค้า" แทน (เบสสั่ง 2026-08-12)
 });

@@ -1158,13 +1158,16 @@ export const orderRouter = router({
         poNumber: z.string().nullable().optional(),
         estimatedQuantity: z.number().int().min(1).nullable().optional(),
         taxRate: z.number().min(0).max(100).optional(),
-        shippingRecipientName: z.string().optional(),
-        shippingPhone: z.string().optional(),
-        shippingAddress: z.string().optional(),
-        shippingSubDistrict: z.string().optional(),
-        shippingDistrict: z.string().optional(),
-        shippingProvince: z.string().optional(),
-        shippingPostalCode: z.string().optional(),
+        // nullable = ลบที่อยู่ที่กรอกผิดออกได้ (เบสสั่ง 2026-08-12) — เดิมเป็น optional ล้วน
+        // ฟอร์มส่ง `undefined` เมื่อช่องว่าง แล้ว Prisma อ่าน undefined ว่า "ไม่แตะ"
+        // → ลบข้อความในช่องแล้วกดบันทึก ค่าเก่ายังอยู่เงียบๆ ไม่มี error บอก
+        shippingRecipientName: z.string().nullable().optional(),
+        shippingPhone: z.string().nullable().optional(),
+        shippingAddress: z.string().nullable().optional(),
+        shippingSubDistrict: z.string().nullable().optional(),
+        shippingDistrict: z.string().nullable().optional(),
+        shippingProvince: z.string().nullable().optional(),
+        shippingPostalCode: z.string().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

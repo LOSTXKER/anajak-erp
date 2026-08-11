@@ -224,7 +224,10 @@ export const customerRouter = router({
         lineId: z.string().optional(),
         chatName: z.string().trim().max(120).optional(),
         chatUrl: chatUrlSchema,
-        address: z.string().optional(),
+        // nullable เท่ากับ billing* — ที่อยู่ผู้ติดต่อล้างให้ว่างได้จริง (เบสสั่ง 2026-08-12)
+        // เดิม optional ล้วน → ล้างไม่ได้ ทำได้แค่ทับด้วยสตริงว่าง ฐานข้อมูลเลยมีทั้ง null
+        // และ "" ปนกัน (โค้ดที่เช็ค `!!customer.address` ยังผ่าน = "มีที่อยู่" ทั้งที่ว่างเปล่า)
+        address: z.string().nullable().optional(),
         taxId: z.string().optional(),
         customerType: z.enum(["INDIVIDUAL", "CORPORATE"]).optional(),
         branchNumber: z.string().nullable().optional(),

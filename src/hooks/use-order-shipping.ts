@@ -24,26 +24,39 @@ export function useOrderShippingState() {
   const [includeShipping, setIncludeShipping] = useState(false);
   const [shippingDirty, setShippingDirty] = useState(false);
   const [shipping, setShipping] = useState<ShippingState>(INITIAL_SHIPPING);
+  // ที่อยู่ชุดนี้ก๊อปมาจากโปรไฟล์ลูกค้ารายไหน (null = คนพิมพ์เอง เช่นที่อยู่ไซต์งาน)
+  // ใช้ตัดสินตอนสลับลูกค้าว่าต้องล้างทิ้งไหม — ดู shouldClearShippingOnCustomerChange
+  const [filledFromCustomerId, setFilledFromCustomerId] = useState<string | null>(null);
 
   const updateShipping = useCallback(
     <K extends keyof ShippingState>(field: K, value: ShippingState[K]) => {
       setShipping((prev) => ({ ...prev, [field]: value }));
-      // การพิมพ์ในช่องคือเจตนาระบุที่อยู่; prefill ใช้ replaceShipping จึงไม่เปิดเอง
+      // การพิมพ์ในช่องคือเจตนาระบุที่อยู่ — เปิดสวิตช์ให้เลย ไม่งั้นพิมพ์เสร็จแล้วที่อยู่หายตอนบันทึก
       setIncludeShipping(true);
       setShippingDirty(true);
+      // พิมพ์ทับแล้วไม่ใช่ที่อยู่ของโปรไฟล์อีกต่อไป
+      setFilledFromCustomerId(null);
     },
     [],
   );
 
-  const replaceShipping = useCallback((value: ShippingState) => {
-    setShipping(value);
-    setShippingDirty(false);
-  }, []);
+  /** เติมที่อยู่จากโปรไฟล์ลูกค้า (ปุ่ม "ใช้ที่อยู่ลูกค้า") — เปิดสวิตช์ให้พร้อมกัน
+   *  บั๊กเดิม: prefill ให้เงียบๆ แต่สวิตช์ยังปิด → กดเปิดงานแล้วที่อยู่ถูกทิ้งทั้งชุดไม่มีคำเตือน */
+  const fillShippingFromCustomer = useCallback(
+    (value: ShippingState, customerId: string | null) => {
+      setShipping(value);
+      setIncludeShipping(true);
+      setShippingDirty(false);
+      setFilledFromCustomerId(customerId);
+    },
+    [],
+  );
 
   const resetShipping = useCallback(() => {
     setShipping(INITIAL_SHIPPING);
     setIncludeShipping(false);
     setShippingDirty(false);
+    setFilledFromCustomerId(null);
   }, []);
 
   const validateShipping = useCallback(() => {
@@ -59,8 +72,9 @@ export function useOrderShippingState() {
     setIncludeShipping,
     shippingDirty,
     shipping,
+    filledFromCustomerId,
     updateShipping,
-    replaceShipping,
+    fillShippingFromCustomer,
     resetShipping,
     validateShipping,
     shippingMutationInput: toMutationInput,
@@ -82,12 +96,6 @@ export function validateShippingState(
     errors.push("รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก");
   }
   return errors;
-}
-
-// แยก "เลือกส่งที่อยู่นี้" ออกจาก "ผู้ใช้แก้ที่อยู่เองแล้ว" — เปิดสวิตช์เฉยๆ ยังรับ
-// prefill ของลูกค้ารายใหม่ได้ แต่ที่อยู่ไซต์งานที่พิมพ์เองต้องไม่ถูกล้างเมื่อเปลี่ยนผู้วางบิล
-export function shouldPrefillShippingOnCustomerChange(shippingDirty: boolean): boolean {
-  return !shippingDirty;
 }
 
 export function buildShippingMutationInput(

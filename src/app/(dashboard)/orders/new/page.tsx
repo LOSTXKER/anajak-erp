@@ -50,10 +50,12 @@ import {
   loadHeaderDraft,
   saveHeaderDraft,
 } from "@/hooks/use-order-items-form";
+import { useOrderShippingState } from "@/hooks/use-order-shipping";
 import {
-  shouldPrefillShippingOnCustomerChange,
-  useOrderShippingState,
-} from "@/hooks/use-order-shipping";
+  fillFromCustomer,
+  hasAddressContent,
+  shouldClearShippingOnCustomerChange,
+} from "@/lib/address-fill";
 import type { ReferenceImage } from "@/types/order-form";
 import {
   itemHasContent,
@@ -125,8 +127,8 @@ export default function NewOrderPage() {
 
   const {
     includeShipping, setIncludeShipping,
-    shippingDirty,
-    shipping, updateShipping, replaceShipping,
+    shipping, updateShipping,
+    filledFromCustomerId, fillShippingFromCustomer, resetShipping,
     validateShipping, shippingMutationInput,
   } = useOrderShippingState();
 
@@ -282,21 +284,22 @@ export default function NewOrderPage() {
   }, [isMarketplace]);
 
   useEffect(() => {
-    // ถ้าผู้ใช้เริ่มระบุที่อยู่จัดส่งแล้ว ให้ถือเป็นที่อยู่ไซต์งานและรักษาไว้แม้เปลี่ยนลูกค้าวางบิล
-    // แต่ถ้ายังไม่ได้เลือกใช้ที่อยู่ จึง prefill จากลูกค้ารายใหม่ได้
-    if (!shouldPrefillShippingOnCustomerChange(shippingDirty)) return;
-    replaceShipping({
-      recipientName: selectedCustomer?.name ?? "",
-      phone: selectedCustomer?.phone ?? "",
-      address: selectedCustomer?.address ?? "",
-      subDistrict: "",
-      district: "",
-      province: "",
-      postalCode: "",
-    });
-    // selectedCustomer ถูก set พร้อม customerId ทุกทางเข้า; ใช้ id เป็น trigger กัน prefill ทับตอนผู้ใช้พิมพ์
+    // เลิกเติมที่อยู่ลูกค้าให้เงียบๆ แล้ว (เบสสั่ง 2026-08-12) — เดิมเติมให้แต่ไม่เปิดสวิตช์
+    // "จัดส่งตามที่อยู่" ช่องเลยดูเหมือนกรอกแล้วแต่จาง และตอนกดเปิดงานที่อยู่ถูกทิ้งทั้งชุด
+    // ไม่มีคำเตือน · ตอนนี้คนกดปุ่ม "ใช้ที่อยู่ลูกค้า" เอง (เห็นชัดว่าที่อยู่มาจากไหน)
+    //
+    // สิ่งที่ยังต้องกันเหมือนเดิม: ที่อยู่ที่ก๊อปมาจากลูกค้ารายเก่าห้ามค้างเมื่อสลับลูกค้า
+    // (ที่อยู่ที่พิมพ์เอง = ที่อยู่ไซต์งาน ยังรักษาไว้)
+    if (shouldClearShippingOnCustomerChange(filledFromCustomerId, customerId || null)) {
+      resetShipping();
+    }
+    // customerId เป็น trigger เดียว — filledFromCustomerId เปลี่ยนตอนกดปุ่มเติมเอง ไม่ต้องวิ่งซ้ำ
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerId, replaceShipping, shippingDirty]);
+  }, [customerId]);
+
+  // ที่อยู่ผู้ติดต่อของลูกค้าที่เลือก — พอก๊อปลงช่องจัดส่งได้ไหม (ปุ่มโผล่เมื่อมีของให้ก๊อปจริง)
+  const customerAddressFill = fillFromCustomer(selectedCustomer);
+  const canUseCustomerAddress = hasAddressContent(customerAddressFill);
 
   const isCorporateCustomer = selectedCustomer?.customerType === "CORPORATE";
   useEffect(() => {
@@ -654,6 +657,11 @@ export default function NewOrderPage() {
                 shipping={shipping}
                 onUpdate={updateShipping}
                 embedded
+                onUseCustomerAddress={
+                  canUseCustomerAddress
+                    ? () => fillShippingFromCustomer(customerAddressFill, customerId || null)
+                    : undefined
+                }
               />
             </div>
           </Section>
