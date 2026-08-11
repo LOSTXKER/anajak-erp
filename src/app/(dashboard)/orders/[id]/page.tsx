@@ -63,7 +63,8 @@ import {
   OrderFilesCard,
   OrderRevisions,
   OrderChangeOrders,
-  OrderNextStepBanner,
+  OrderNextStepAction,
+  nextStepBlockers,
   OrderMoneyTab,
 } from "@/components/orders/detail";
 import { RecordNotFound } from "@/components/ui/record-not-found";
@@ -473,9 +474,23 @@ function OrderDetailContent({
         description={order.title || undefined}
         action={
           <>
+            {/* ปุ่มขั้นต่อไป (เบสสั่งถอดแถบฟ้าออก 2026-08-11 → ย้ายปุ่มมาไว้ตรงนี้)
+                ยังเป็นทางเดียวที่เช็คด่านพร้อมผลิตให้ก่อนกด · ติดด่านเมื่อไหร่ปุ่มจะหายไป
+                แล้วแถบสถานะจะบอกแทนว่าติดอะไร (กันปุ่มที่กดแล้ว server ปฏิเสธ — B8) */}
+            <OrderNextStepAction
+              nextStep={nextStep}
+              readiness={orderContext.data?.readiness ?? null}
+              isPending={updateStatus.isPending}
+              onStatus={handleStatusChange}
+              // gate เดียวกับปุ่มแก้รายการจุดอื่น — ช่างกดแล้วเจอฟอร์มราคา (0 จาก null)
+              // ก่อนไปตาย FORBIDDEN ตอนบันทึก (review ⑦ จับ)
+              onEditItems={isSalesUp ? openItemsEditor : undefined}
+              onAnchor={handleAnchor}
+              canSeeMoney={canSeeMoney}
+            />
             {/* dropdown ต้องมีเสมอ — "ใบสั่งงาน" อยู่ในนี้ ทุก role/ทุกสถานะต้องพิมพ์ได้
                 (review จับ: เดิม gate ตาม role ทำช่าง/กราฟิกพิมพ์ใบสั่งงานไม่ได้)
-                UX5: ปุ่มสถานะหลักบน header ถูกตัด — เลื่อนสถานะผ่านแถบขั้นต่อไป (เช็ค readiness) + รายการใน dropdown นี้ */}
+                UX5: ปุ่มสถานะหลักบน header ถูกตัด — เลื่อนสถานะผ่านปุ่มขั้นต่อไป (เช็ค readiness) + รายการใน dropdown นี้ */}
             <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <Button variant="outline" size="icon-sm" aria-label="เพิ่มเติม">
@@ -611,6 +626,8 @@ function OrderDetailContent({
         revisions={order.revisions ?? []}
         cancelledAt={order.cancelledAt}
         cancelledReason={order.cancelledReason}
+        // ปุ่มขั้นต่อไปหายไปตอนติดด่าน — เหตุผลต้องมาโผล่ตรงนี้แทน ไม่งั้นปุ่มหายเงียบ
+        blockers={nextStepBlockers(nextStep, orderContext.data?.readiness ?? null)}
       />
 
       {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
@@ -636,20 +653,6 @@ function OrderDetailContent({
             )}
         </div>
       )}
-
-      {/* แถบ "ขั้นต่อไป" — จุดโฟกัสเดียว: ระบบบอกว่าตอนนี้ต้องทำอะไร + กดทำเลย (getOrderNextStep กลับมาเป็นแถบ)
-          ถ้าขั้นต่อไป=เดินสถานะแต่ด่านพร้อมผลิตไม่ผ่าน → โชว์ "ติดอะไร" แทนปุ่ม (กันกดแล้ว server ปฏิเสธเงียบ) */}
-      <OrderNextStepBanner
-        nextStep={nextStep}
-        readiness={orderContext.data?.readiness ?? null}
-        isPending={updateStatus.isPending}
-        onStatus={handleStatusChange}
-        // gate เดียวกับปุ่มแก้รายการจุดอื่น — ช่างกดจากแถบแล้วเจอฟอร์มราคา (0 จาก null)
-        // ก่อนไปตาย FORBIDDEN ตอนบันทึก (review ⑦ จับ)
-        onEditItems={isSalesUp ? openItemsEditor : undefined}
-        onAnchor={handleAnchor}
-        canSeeMoney={canSeeMoney}
-      />
 
       {/* ====================================================
           แท็บ + เนื้อหา · การ์ดบริบทฝั่งขวาอยู่ "นอกแท็บ" ไม่ขยับตอนสลับ

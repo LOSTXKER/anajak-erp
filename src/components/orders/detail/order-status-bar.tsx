@@ -44,6 +44,10 @@ interface OrderStatusBarProps {
   /** เวลา+เหตุผลที่ยกเลิก (มีเฉพาะใบที่ยกเลิก — พักงานไม่มีช่องเก็บเหตุผลในฐานข้อมูล) */
   cancelledAt?: Date | string | null;
   cancelledReason?: string | null;
+  /** ด่านที่ยังไม่ผ่าน ทำให้งานเดินต่อไม่ได้ — โผล่เฉพาะตอนติดจริง (nextStepBlockers)
+   *  เดิมข้อความนี้อยู่บนแถบ "ขั้นต่อไป" ที่เบสสั่งถอดออก 2026-08-11 · ต้องมีที่อยู่
+   *  ไม่งั้นปุ่มหายไปเฉยๆ โดยไม่บอกเหตุผล = คนไม่รู้ว่าต้องแก้อะไรถึงจะไปต่อได้ */
+  blockers?: string[];
 }
 
 export function OrderStatusBar({
@@ -54,6 +58,7 @@ export function OrderStatusBar({
   revisions,
   cancelledAt,
   cancelledReason,
+  blockers = [],
 }: OrderStatusBarProps) {
   const railRef = useRef<HTMLOListElement>(null);
 
@@ -233,6 +238,26 @@ export function OrderStatusBar({
         >
           {note}
         </p>
+      )}
+
+      {blockers.length > 0 && (
+        <div className="mt-2.5 rounded-xl bg-amber-50 px-3 py-2 text-xs dark:bg-amber-950/40">
+          <p className="font-medium text-amber-800 dark:text-amber-200">ยังไปต่อไม่ได้ — ติด:</p>
+          <ul className="mt-1 space-y-1">
+            {blockers.map((b) => (
+              <li
+                key={b}
+                className="flex items-start gap-1.5 text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300"
+              >
+                <span
+                  aria-hidden="true"
+                  className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-500"
+                />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {isOffPath && !offPathAnchor && (
