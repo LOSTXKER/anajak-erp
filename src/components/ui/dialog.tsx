@@ -58,6 +58,12 @@ const DialogContent = React.forwardRef<
       className={cn(
         OVERLAY_PANEL,
         "fixed left-1/2 top-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain p-5 pr-14 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-6 sm:pr-14",
+        // ฟอร์มยาวกว่ากรอบ: ปุ่มท้ายต้องปักก้นกรอบ ไม่เลื่อนหนีไปกับเนื้อหา
+        // (เบสส่งภาพ 2026-08-12 · วัดของจริง: เนื้อใน 1171px ในกรอบ 744px → ปุ่มบันทึก
+        //  จมอยู่ต่ำกว่าขอบ 367px · เลื่อนถึงได้ แต่ไม่มีอะไรบอกว่าเลื่อนได้)
+        // ที่ว่างล่างยกไปให้ footer ถือแทน — ไม่ใช้ negative margin เพราะทดลองแล้ว
+        // เกิดช่องโหว่ให้เนื้อหาลอดโผล่ใต้ปุ่ม · dialog ที่ไม่มี footer คงระยะเดิมทุกด้าน
+        "has-[[data-dialog-footer]]:pb-0 sm:has-[[data-dialog-footer]]:pb-0",
         className
       )}
       {...props}
@@ -85,13 +91,22 @@ function DialogHeader({
 }
 DialogHeader.displayName = "DialogHeader";
 
+/* ปุ่มท้าย dialog — ปักก้นกรอบเสมอ ไม่เลื่อนหนีไปกับเนื้อหา
+   sticky เกาะ "บรรพบุรุษที่เลื่อนได้ตัวใกล้สุด" = DialogContent เอง จึงได้ผลแม้ปุ่ม
+   ถูกห่ออยู่ใน <form> ลึกเข้าไปอีกชั้น (customer-edit-dialog เป็นแบบนั้น)
+   พื้นต้องตรงกับ .overlay-surface: light=surface · dark=surface-muted
+   data-dialog-footer = ธงให้ DialogContent ยกที่ว่างล่างมาให้ footer ถือ */
 function DialogFooter({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+      data-dialog-footer=""
+      className={cn(
+        "sticky bottom-0 z-10 flex flex-col-reverse gap-2 bg-surface pb-5 pt-3 sm:flex-row sm:justify-end sm:pb-6 dark:bg-surface-muted",
+        className
+      )}
       {...props}
     />
   );

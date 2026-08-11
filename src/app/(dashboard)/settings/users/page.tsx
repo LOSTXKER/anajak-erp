@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { KeyRound, Plus, ShieldCheck, Users } from "lucide-react";
 import type { Role } from "@prisma/client";
@@ -505,7 +506,10 @@ export default function UsersSettingsPage() {
                   {setPermissionsMutation.error.message}
                 </Alert>
               )}
-              <div className="flex justify-between gap-2">
+              {/* ใช้ DialogFooter เพื่อให้ปุ่มปักก้นกรอบเหมือน dialog อื่น — รายการสิทธิ์ 20 ข้อ
+                  ยาวเกินกรอบเสมอ ปุ่มบันทึกเดิมจึงจมอยู่ล่างสุดของกล่องที่ต้องเลื่อนหา
+                  (รูปทรง 2 ฝั่ง: รีเซ็ตซ้าย · ยกเลิก/บันทึกขวา — ต่างจากค่าเริ่มต้นที่ชิดขวาล้วน) */}
+              <DialogFooter className="flex-row justify-between sm:justify-between">
                 <Button
                   type="button"
                   variant="ghost"
@@ -541,7 +545,7 @@ export default function UsersSettingsPage() {
                     {setPermissionsMutation.isPending ? "กำลังบันทึก..." : "บันทึกสิทธิ์"}
                   </Button>
                 </div>
-              </div>
+              </DialogFooter>
             </div>
           )}
         </DialogContent>

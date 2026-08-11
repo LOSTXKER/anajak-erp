@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
@@ -479,7 +480,9 @@ function AgingPageContent() {
                   rows={12}
                   className="font-mono text-xs"
                 />
-                <div className="flex items-center justify-between gap-2">
+                {/* ปุ่มคัดลอก = action หลักของ dialog นี้ — ใช้ DialogFooter ให้ปักก้นกรอบ
+                    เหมือน dialog อื่น (ข้อความทวงยาวตามจำนวนใบ ดันปุ่มตกนอกสายตาได้) */}
+                <DialogFooter className="flex-row items-center justify-between sm:justify-between">
                   <p className="text-xs text-muted">
                     {draft.data.invoiceCount} ใบ · ค้างรวม {formatCurrency(draft.data.totalOutstanding)}
                   </p>
@@ -487,7 +490,7 @@ function AgingPageContent() {
                     <Copy />
                     คัดลอกข้อความ
                   </Button>
-                </div>
+                </DialogFooter>
               </>
             ) : (
               <p className="py-8 text-center text-sm text-slate-400">
