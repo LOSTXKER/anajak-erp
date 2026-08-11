@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, use, useState, useEffect, useRef, useCallback } from "react";
+import { Suspense, use, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -31,9 +31,10 @@ import {
   ClipboardList,
   AlertTriangle,
   Share2,
+  Truck,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
-import { MENU_SEPARATOR, OVERLAY_PANEL, TINT, FOCUS_BUTTON } from "@/components/ui/tokens";
+import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
 import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
@@ -47,8 +48,14 @@ import { shouldShowDeliverySection } from "@/lib/delivery-ui";
 import {
   normalizeOrderTab,
   buildNextStepInput,
+  tabForAnchor,
+  ORDER_TAB_DEFS,
+  ORDER_DEFAULT_TAB,
   type TabKey,
 } from "@/lib/order-tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Section } from "@/components/ui/section";
+import { AddCard } from "@/components/ui/add-card";
 import {
   OrderItemsDisplay,
   OrderStatusBar,
@@ -60,7 +67,6 @@ import {
   OrderMoneyTab,
 } from "@/components/orders/detail";
 import { RecordNotFound } from "@/components/ui/record-not-found";
-import { CONTROL_MIN_H } from "@/components/ui/control-size";
 
 
 // ============================================================
@@ -93,32 +99,6 @@ function OrderDetailSkeleton() {
   );
 }
 
-const SECTION_ID_BY_LEGACY_TAB: Record<TabKey, string> = {
-  overview: "order-section-items",
-  production: "order-section-design",
-  delivery: "order-section-delivery",
-  money: "order-section-billing",
-  files: "order-section-files",
-  history: "order-section-history",
-};
-
-function OrderContentHeading({
-  id,
-  children,
-}: {
-  id: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-2 px-1">
-      <span className="h-5 w-1 rounded-full bg-blue-500" aria-hidden="true" />
-      <h2 id={id} className="text-base font-semibold text-slate-900 dark:text-white">
-        {children}
-      </h2>
-    </div>
-  );
-}
-
 // ============================================================
 // Main page component
 // ============================================================
@@ -144,36 +124,39 @@ function OrderDetailContent({
   // แก้รายการ = ฟอร์มเต็มแสดง inline ตรงส่วนรายการสินค้า (เบสเคาะ: ไม่เอา popup)
   const [editingItems, setEditingItems] = useState(false);
   const [showInfoEditDialog, setShowInfoEditDialog] = useState(false);
-  const deepLinkHandledRef = useRef<string | null>(null);
+  /* ── แท็บ (เบสเคาะกลับมาใช้ 2026-08-05) ────────────────────────────────
+     URL เป็นแหล่งความจริงร่วม แต่ตัว state เก็บใน React — เขียน URL ด้วย
+     history API ตรงๆ ไม่ผ่าน router.replace เพราะ router จะรีเฟรช RSC ทั้งหน้า
+     ทำให้สลับแท็บกระตุก · ผลคือ refresh/back/ส่งลิงก์ให้กันได้แท็บเดิม */
+  const initialTab = normalizeOrderTab(searchParams.get("tab")) ?? ORDER_DEFAULT_TAB;
+  const [tab, setTabState] = useState<TabKey>(initialTab);
 
-  const scrollToSection = useCallback((elId: string) => {
-    requestAnimationFrame(() => {
-      const target = document.getElementById(elId);
-      if (!target) return;
-      target.focus({ preventScroll: true });
-      target.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "auto"
-          : "smooth",
-        block: "start",
-      });
-    });
+  const changeTab = useCallback((key: string) => {
+    const next = normalizeOrderTab(key) ?? ORDER_DEFAULT_TAB;
+    setTabState(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", next);
+    url.hash = "";
+    window.history.pushState({}, "", url);
   }, []);
 
-  const goToSection = useCallback((elId: string, replaceHistory = false) => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete("tab");
-    url.hash = elId;
-    window.history[replaceHistory ? "replaceState" : "pushState"]({}, "", url);
-    scrollToSection(elId);
-  }, [scrollToSection]);
+  // ปุ่มย้อนกลับของเบราว์เซอร์ต้องพากลับแท็บเดิม ไม่ใช่เด้งออกจากหน้า
+  useEffect(() => {
+    const onPop = () => {
+      const t = normalizeOrderTab(new URL(window.location.href).searchParams.get("tab"));
+      setTabState(t ?? ORDER_DEFAULT_TAB);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   function openItemsEditor() {
     setEditingItems(true);
-    goToSection("order-section-items");
+    changeTab("overview");
   }
-  // ANCHOR action ของแถบขั้นต่อไป → scroll ไปส่วนที่กางอยู่ในหน้าเดียวกัน
+  // ANCHOR ของแถบขั้นต่อไป → สลับไปแท็บที่เกี่ยว (แผนที่เดียวกับ tabForAnchor ไม่มีตรรกะใหม่)
   function handleAnchor(target: "billing" | "design" | "production" | "delivery" | "qc") {
-    goToSection(`order-section-${target}`);
+    changeTab(tabForAnchor(target) ?? ORDER_DEFAULT_TAB);
   }
 
   const { data: order, isLoading, isError, refetch } = trpc.order.getById.useQuery({ id });
@@ -280,54 +263,17 @@ function OrderDetailContent({
     }
   }
 
-  const rawTab = searchParams.get("tab");
-  const requestedTab = normalizeOrderTab(rawTab);
-
-  // รองรับลิงก์เดิม ?tab= และลิงก์ #section โดยเปิดข้อมูลทั้งหมดแล้วเลื่อนไปยังจุดหมาย
+  // ลิงก์เก่า ?tab=docs → canonicalize เป็น files ครั้งเดียว (normalizeOrderTab แปลงให้แล้ว
+  // ตอนอ่าน แต่ URL ยังเป็นของเก่า — เขียนทับให้ตรงกัน เผื่อคนก๊อป URL ต่อ)
   useEffect(() => {
-    if (!order || !permissionsReady) return;
-    const legacyTarget = requestedTab ? SECTION_ID_BY_LEGACY_TAB[requestedTab] : null;
-    const hashTarget = window.location.hash.replace(/^#/, "");
-    const target = legacyTarget || hashTarget;
-    if (!target) return;
-    if (target === "order-section-billing" && !canSeeMoney) return;
-    if (target === "order-section-delivery" && !showDeliverySection) return;
-
-    const handledKey = `${id}:${rawTab ?? ""}:${target}`;
-    if (deepLinkHandledRef.current === handledKey) return;
-    deepLinkHandledRef.current = handledKey;
-
-    if (legacyTarget) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("tab");
-      url.hash = legacyTarget;
-      window.history.replaceState({}, "", url);
-    }
-    scrollToSection(target);
-  }, [
-    canSeeMoney,
-    id,
-    order,
-    permissionsReady,
-    rawTab,
-    requestedTab,
-    scrollToSection,
-    showDeliverySection,
-  ]);
-
-  // back/forward ของ hash ต้องย้าย focus ตาม เพื่อให้คีย์บอร์ดและ screen reader รู้ตำแหน่งใหม่
-  useEffect(() => {
-    if (!order || !permissionsReady) return;
-    const handleHashChange = () => {
-      const target = window.location.hash.replace(/^#/, "");
-      if (!target) return;
-      if (target === "order-section-billing" && !canSeeMoney) return;
-      if (target === "order-section-delivery" && !showDeliverySection) return;
-      scrollToSection(target);
-    };
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [canSeeMoney, order, permissionsReady, scrollToSection, showDeliverySection]);
+    const raw = new URL(window.location.href).searchParams.get("tab");
+    if (!raw) return;
+    const normalized = normalizeOrderTab(raw);
+    if (!normalized || normalized === raw) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", normalized);
+    window.history.replaceState({}, "", url);
+  }, []);
 
   // ----------------------------------------------------------
   // Loading state
@@ -403,15 +349,22 @@ function OrderDetailContent({
   // แถบ "ขั้นต่อไป" — ระบบจำว่างานนี้ต้องทำอะไรต่อ (logic lib/order-next-step.ts) แทนให้ผู้ใช้ไล่เดาจากการ์ด
   const nextStepInput = buildNextStepInput(order);
   const nextStep = getOrderNextStep(nextStepInput);
-  const sectionShortcuts = [
-    { id: "order-section-items", label: "รายการ & ราคา" },
-    { id: "order-section-design", label: "งานผลิต" },
-    ...(showDeliverySection ? [{ id: "order-section-delivery", label: "จัดส่ง" }] : []),
-    ...(canSeeMoney ? [{ id: "order-section-billing", label: "เงิน & บิล" }] : []),
-    { id: "order-section-files", label: "ไฟล์" },
-    { id: "order-section-history", label: "ประวัติ" },
-    { id: "order-section-info", label: "ข้อมูลออเดอร์" },
-  ];
+  /* แท็บที่คนนี้เห็น — ซ่อนได้ตาม "สิทธิ์" เท่านั้น ห้ามซ่อนตามสถานะ
+     (สิทธิ์ผูกกับคน = ชุดแท็บคงที่ตลอดการใช้งาน · สถานะเดินหลายรอบต่อวัน
+      ถ้าซ่อนตามสถานะ ตำแหน่งแท็บจะขยับใต้มือ) */
+  const visibleTabs = ORDER_TAB_DEFS.filter((t) => t.key !== "money" || canSeeMoney);
+
+  /* deep link ไปแท็บที่ตัวเองไม่มีสิทธิ์ → ตกกลับแท็บเริ่มต้นเงียบๆ ไม่ขึ้น error */
+  const activeTab: TabKey = visibleTabs.some((t) => t.key === tab) ? tab : ORDER_DEFAULT_TAB;
+
+  /* จุดแดงบนหัวแท็บ — ใช้ปลายทางของแถบ "ขั้นต่อไป" ตัวเดียวกัน ไม่มีตรรกะใหม่
+     (ถ้าเขียนกฎใหม่ จุดแดงกับแถบขั้นต่อไปจะเพี้ยนกันวันที่แก้ข้างใดข้างหนึ่ง) */
+  const pendingTab: TabKey | null =
+    nextStep?.action.type === "ANCHOR"
+      ? tabForAnchor(nextStep.action.target)
+      : nextStep?.action.type === "EDIT_ITEMS"
+        ? "overview"
+        : null;
 
   // ----------------------------------------------------------
   // Handlers
@@ -693,44 +646,28 @@ function OrderDetailContent({
         canSeeMoney={canSeeMoney}
       />
 
-      {/* sticky ตาม scroll — หน้ายาว 7 ส่วน แถบกระโดดต้องตามมาด้วย
-          (สูตรเดียวกับ StepRail หน้าเปิดงาน — ระบบเดียวกัน pattern เดียวกัน) */}
-      <nav
-        aria-label="ไปยังส่วนของออเดอร์"
-        className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center gap-1.5 border-b border-slate-200/70 bg-bg px-1 py-2 dark:border-white/10"
-      >
-        {sectionShortcuts.map((section) => (
-          <a
-            key={section.id}
-            href={`#${section.id}`}
-            onClick={(event) => {
-              event.preventDefault();
-              goToSection(section.id);
-            }}
-            className={cn(
-              CONTROL_MIN_H,
-              "inline-flex items-center rounded-full bg-surface hairline-ring px-3 text-xs text-secondary transition-colors hover:text-strong active:scale-[0.98]",
-              FOCUS_BUTTON
-            )}
-          >
-            {section.label}
-          </a>
-        ))}
-      </nav>
-
       {/* ====================================================
-          MAIN GRID: CONTENT + SIDEBAR
+          แท็บ + เนื้อหา · การ์ดบริบทฝั่งขวาอยู่ "นอกแท็บ" ไม่ขยับตอนสลับ
       ==================================================== */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* LEFT: MAIN CONTENT (2/3) — ทุกส่วนกางต่อกัน */}
-        <div className="space-y-8 lg:col-span-2">
-          <section
-            id="order-section-items"
-            tabIndex={-1}
-            aria-labelledby="order-section-items-heading"
-            className="scroll-mt-20 space-y-3"
-          >
-            <OrderContentHeading id="order-section-items-heading">รายการ & ราคา</OrderContentHeading>
+      <Tabs value={activeTab} onValueChange={changeTab}>
+        {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ */}
+        <TabsList aria-label="ส่วนของออเดอร์" className="sticky top-0 z-20">
+          {visibleTabs.map((t) => (
+            <TabsTrigger
+              key={t.key}
+              value={t.key}
+              hasPending={t.key === pendingTab}
+              aria-label={t.key === pendingTab ? `${t.label} — มีงานค้าง` : undefined}
+            >
+              {t.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* LEFT: เนื้อหาแท็บ (2/3) */}
+        <div className="lg:col-span-2">
+          <TabsContent value="overview" className="space-y-6">
               {editingItems && canEditItems ? (
                 <OrderItemsEditor
                   orderId={id}
@@ -749,22 +686,15 @@ function OrderDetailContent({
                   showMoney={canSeeMoney}
                 />
               )}
-          </section>
+            <OrderChangeOrders orderId={id} />
+          </TabsContent>
 
-          <section className="space-y-6" aria-labelledby="order-production-heading">
-            <div
-              id="order-section-design"
-              tabIndex={-1}
-              aria-labelledby="order-production-heading"
-              className="scroll-mt-20 space-y-3"
-            >
-                <OrderContentHeading id="order-production-heading">งานผลิต</OrderContentHeading>
-                <OrderDesignSection
-                  orderId={id}
-                  internalStatus={order.internalStatus}
-                  canSeeMoney={canSeeMoney}
-                />
-            </div>
+          <TabsContent value="production" className="space-y-6">
+            <OrderDesignSection
+              orderId={id}
+              internalStatus={order.internalStatus}
+              canSeeMoney={canSeeMoney}
+            />
 
             {/* ของเข้า/ตรวจรับ — เสื้อลูกค้า/เสื้อโรงเย็บ นับจริงต่อไซส์ (ก้อน 1) */}
             <OrderGoodsReceiptSection
@@ -778,52 +708,49 @@ function OrderDetailContent({
             />
 
             {/* ตรวจนับ QC — นับของจุดที่ 2 ก่อนแพ็ค (ก้อน 3): ดีล้วนเด้งแพ็ค · มีเสียถอยกลับผลิต */}
-            <div id="order-section-qc" tabIndex={-1} aria-label="ตรวจนับ QC" className="scroll-mt-20">
-              <OrderQcSection
-                orderId={id}
-                internalStatus={order.internalStatus}
-                canCount={!!me && permAllows(me.permissions, "manage_production")}
-              />
-            </div>
+            <OrderQcSection
+              orderId={id}
+              internalStatus={order.internalStatus}
+              canCount={!!me && permAllows(me.permissions, "manage_production")}
+            />
 
             {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production/[id] (เบสเคาะแยกโมดูล) */}
-            <div id="order-section-production" tabIndex={-1} aria-label="การผลิต" className="scroll-mt-20">
-              <ProductionSummaryCard
+            <ProductionSummaryCard
+              orderId={id}
+              internalStatus={order.internalStatus}
+              productions={order.productions ?? []}
+              isManagerUp={!!me && permAllows(me.permissions, "supervise_operations")}
+            />
+          </TabsContent>
+
+          <TabsContent value="delivery" className="space-y-6">
+            {showDeliverySection ? (
+              <OrderDeliverySection
                 orderId={id}
                 internalStatus={order.internalStatus}
-                productions={order.productions ?? []}
-                isManagerUp={!!me && permAllows(me.permissions, "supervise_operations")}
+                customerName={order.customer?.name}
+                customerPhone={order.customer?.phone ?? undefined}
+                customerHasAddress={!!order.customer?.address}
               />
-            </div>
-          </section>
-
-          {showDeliverySection && (
-            <section
-              id="order-section-delivery"
-              tabIndex={-1}
-              aria-labelledby="order-section-delivery-heading"
-              className="scroll-mt-20 space-y-3"
-            >
-              <OrderContentHeading id="order-section-delivery-heading">จัดส่ง</OrderContentHeading>
-                <OrderDeliverySection
-                  orderId={id}
-                  internalStatus={order.internalStatus}
-                  customerName={order.customer?.name}
-                  customerPhone={order.customer?.phone ?? undefined}
-                  customerHasAddress={!!order.customer?.address}
+            ) : (
+              /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือ
+                 ระหว่างวันเดียวกัน (สถานะเดินหลายรอบต่อวัน) ตำแหน่งที่คนจำไว้จะขยับ */
+              <Section title="จัดส่ง">
+                <AddCard
+                  icon={Truck}
+                  label="ยังไม่ถึงขั้นจัดส่ง"
+                  desc="เปิดใช้เมื่อผลิตและตรวจนับเสร็จ"
+                  onClick={() => {}}
                 />
-            </section>
-          )}
+              </Section>
+            )}
+          </TabsContent>
 
-          {/* เงิน/บิลยัง gate canSeeMoney ทั้ง section */}
+          {/* ไม่มีสิทธิ์ดูเงิน = ไม่ render ทั้งก้อน (แท็บก็ถูกกรองออกจาก visibleTabs)
+              — Radix forceMount ทำให้เนื้อหาแท็บอยู่ใน DOM แม้ไม่ได้เปิด ถ้า gate แค่ที่แท็บ
+              ข้อมูลเงินจะยังหลุดไปอยู่ในหน้า */}
           {canSeeMoney && (
-            <section
-              id="order-section-billing"
-              tabIndex={-1}
-              aria-labelledby="order-section-billing-heading"
-              className="scroll-mt-20 space-y-3"
-            >
-              <OrderContentHeading id="order-section-billing-heading">เงิน & บิล</OrderContentHeading>
+            <TabsContent value="money" className="space-y-6">
               <OrderMoneyTab
                 order={order}
                 subtotalItems={subtotalItems}
@@ -834,16 +761,10 @@ function OrderDetailContent({
                 hasCostEntries={!!hasCostEntries}
                 profitMargin={profitMargin}
               />
-            </section>
+            </TabsContent>
           )}
 
-          <section
-            id="order-section-files"
-            tabIndex={-1}
-            aria-labelledby="order-section-files-heading"
-            className="scroll-mt-20 space-y-3"
-          >
-            <OrderContentHeading id="order-section-files-heading">ไฟล์</OrderContentHeading>
+          <TabsContent value="files" className="space-y-6">
             {meQuery.isError ? (
               <QueryError
                 message="โหลดสิทธิ์ผู้ใช้ไม่สำเร็จ"
@@ -864,40 +785,30 @@ function OrderDetailContent({
                 attachments={attachmentsQuery.data ?? []}
                 userId={me?.id}
                 userRole={me?.role}
-                onGoToDesign={() => goToSection("order-section-design")}
+                onGoToDesign={() => changeTab("production")}
               />
             )}
-          </section>
+          </TabsContent>
 
-          <section
-            id="order-section-history"
-            tabIndex={-1}
-            aria-labelledby="order-section-history-heading"
-            className="scroll-mt-20 space-y-6"
-          >
-            <OrderContentHeading id="order-section-history-heading">ประวัติ</OrderContentHeading>
-              <OrderChangeOrders orderId={id} />
-              <OrderRevisions revisions={order.revisions ?? []} />
-          </section>
+          <TabsContent value="history" className="space-y-6">
+            <OrderRevisions revisions={order.revisions ?? []} />
+          </TabsContent>
         </div>
 
-        {/* RIGHT: SIDEBAR (1/3) */}
-        <div
-          id="order-section-info"
-          tabIndex={-1}
-          aria-label="ข้อมูลออเดอร์"
-          className="scroll-mt-20"
-        >
+        {/* RIGHT: การ์ดบริบท (1/3) — อยู่ "นอกแท็บ" เห็นทุกแท็บ
+            ถ้ายัดเข้าแท็บใดแท็บหนึ่งจะกลายเป็น "อยากรู้กำหนดส่งต้องสลับแท็บ" ซึ่งแย่กว่าเดิม */}
+        <div aria-label="ข้อมูลออเดอร์">
           <OrderSidebar
             order={order}
             showMoney={canSeeMoney}
             totalAmount={totalAmount}
-            onOpenMoney={() => goToSection("order-section-billing")}
+            onOpenMoney={() => changeTab("money")}
             channelColor={channelColor}
             isMarketplace={isMarketplace}
           />
         </div>
       </div>
+      </Tabs>
 
       {/* ====================================================
           EDIT DIALOGS
