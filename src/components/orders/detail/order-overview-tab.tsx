@@ -1,16 +1,13 @@
 import Link from "next/link";
 import {
-  ClipboardList,
   User,
   Info,
   MapPin,
   Palette,
-  AlertTriangle,
 } from "lucide-react";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Alert } from "@/components/ui/alert";
 import { ChatLink } from "@/components/customers/chat-link";
 import { cn, formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import type { OrderType, CustomerStatus } from "@prisma/client";
@@ -122,7 +119,7 @@ interface OrderOverviewTabProps {
   // การ์ดบิล+สรุปราคาอยู่แท็บ "เงิน/บิล" — ที่นี่โชว์ยอดรวมบรรทัดเดียว กดแล้วเด้งไปแท็บนั้น
   onOpenMoney?: () => void;
   // เปิด OrderInfoEditDialog — ไม่ส่งมา = ไม่มีสิทธิ์แก้ ปุ่มไม่ต้องขึ้น
-  onEditInfo?: () => void;
+  onEditInfo?: (section: "info" | "shipping") => void;
   channelColor: { bg: string; text: string };
   isMarketplace: boolean;
 }
@@ -307,51 +304,36 @@ export function OrderOverviewTab({
     customer?.billingPostalCode ?? null,
   ]);
 
-  const editAction = onEditInfo ? (
-    <Button type="button" variant="ghost" size="sm" onClick={onEditInfo}>
-      แก้ไข
-    </Button>
-  ) : undefined;
+  /* แต่ละการ์ดมีปุ่มแก้ไขของตัวเอง (เบสสั่ง 2026-08-11) — ปุ่มเดียวบนการ์ดเดียว
+     ทำให้คนที่อยากแก้ที่อยู่ต้องเดาว่าปุ่มบนการ์ดอื่นแก้ที่อยู่ได้ด้วย
+     ฟอร์มยังเป็นใบเดียวตามเดิม (ยอด/ภาษี/ส่วนลดผูกกันข้ามหัวข้อ) แค่เลื่อนไปหัวข้อที่กดมา */
+  const editButton = (section: "info" | "shipping") =>
+    onEditInfo ? (
+      <Button type="button" variant="ghost" size="sm" onClick={() => onEditInfo(section)}>
+        แก้ไข
+      </Button>
+    ) : undefined;
 
   return (
     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-      {/* ① งานนี้คืออะไร — คำถามแรกที่ทุกคนถามตอนเปิดใบ จึงกินเต็มความกว้างอยู่บนสุด */}
+      {/* การ์ด "งานนี้คืออะไร" ถูกถอดออก — เบสสั่ง 2026-08-11 ("ไม่จำเป็น มันรก")
+          ถูกแล้ว: ชื่องานขึ้นเป็นบรรทัดใต้เลขออเดอร์บนหัวหน้าอยู่แล้ว การ์ดนี้จึงพูดซ้ำ
+          ของข้างในย้ายไปอยู่ที่ที่ถูกกว่า — รายละเอียดงาน → การ์ด "ข้อมูลออเดอร์"
+          · ธง blind ship → นอกแท็บ (คนแพ็คทำงานอยู่แท็บจัดส่ง ต้องเห็นโดยไม่ต้องกลับมา) */}
+
+      {/* ① ลูกค้า & ผู้ติดต่อ */}
       <Section
-        className="md:col-span-2"
-        title={<SectionTitle icon={ClipboardList}>งานนี้คืออะไร</SectionTitle>}
-        action={editAction}
+        title={<SectionTitle icon={User}>ลูกค้า &amp; ผู้ติดต่อ</SectionTitle>}
+        action={
+          customer ? (
+            /* ข้อมูลลูกค้าแก้จากใบออเดอร์ไม่ได้ (มันติดตัวลูกค้า ไม่ใช่ของใบนี้)
+               ปุ่มจึงพาไปหน้าลูกค้าตรงๆ และเขียนป้ายให้ตรงว่าไปไหน ไม่ใช่คำว่า "แก้ไข" ลอยๆ */
+            <Button asChild variant="ghost" size="sm">
+              <Link href={`/customers/${customer.id}`}>แก้ที่หน้าลูกค้า</Link>
+            </Button>
+          ) : undefined
+        }
       >
-        <div className="space-y-4">
-          {/* blind ship = ห้ามมีชื่อ/เอกสาร Anajak ในกล่อง · พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย
-              จึงเขียนเป็นประโยคเต็ม ไม่ใช้ไอคอน/สีล้วน (สีบอกว่า "มีอะไรบางอย่าง" แต่ไม่บอกว่าต้องทำอะไร) */}
-          {order.blindShip && (
-            <Alert variant="warning" icon={AlertTriangle}>
-              ส่งแบบไม่ระบุผู้ส่ง · ชื่อผู้ส่งบนกล่อง:{" "}
-              {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
-            </Alert>
-          )}
-
-          <div className="space-y-3.5">
-            <div className="min-w-0 space-y-0.5">
-              <p className="text-xs text-muted">ชื่องาน</p>
-              <p className="text-sm font-medium text-strong [overflow-wrap:anywhere]">
-                {order.title}
-              </p>
-            </div>
-            <dl className="space-y-3.5">
-              <Field label="รายละเอียดงาน" wide>
-                {order.description}
-              </Field>
-              {/* "หมายเหตุใบนี้" (order.notes) ไม่อยู่ที่นี่ — มันอยู่นอกแท็บเหนือแถบแท็บ
-                  เพราะคนแพ็ค/ช่างทำงานอยู่แท็บอื่นและต้องเห็น ("ห้ามพับ/ส่งก่อนบ่าย 3")
-                  พลาดแล้วงานเสีย · ใส่ที่นี่ด้วยจะกลายเป็นของชิ้นเดียวมีสองบ้าน */}
-            </dl>
-          </div>
-        </div>
-      </Section>
-
-      {/* ② ลูกค้า & ผู้ติดต่อ */}
-      <Section title={<SectionTitle icon={User}>ลูกค้า &amp; ผู้ติดต่อ</SectionTitle>}>
         {customer ? (
           <div className="space-y-4">
             <FieldGrid>
@@ -457,9 +439,19 @@ export function OrderOverviewTab({
 
       {/* ③ ข้อมูลออเดอร์ — เรียงตามที่คนใช้จริงถาม: ส่งเมื่อไหร่ → งานแบบไหน/บิลยังไง → เกิดอะไรมาแล้วบ้าง
           (ของเดิมเรียงตามลำดับที่ข้อมูลถูกสร้าง เลยเอา "วันที่สร้าง" มาก่อน "กำหนดส่ง") */}
-      <Section title={<SectionTitle icon={Info}>ข้อมูลออเดอร์</SectionTitle>} action={editAction}>
+      <Section title={<SectionTitle icon={Info}>ข้อมูลออเดอร์</SectionTitle>} action={editButton("info")}>
         <div className="space-y-4">
-          <Group label="งานนี้ต้องส่งเมื่อไหร่">
+          {/* รายละเอียดงาน = บรีฟจากลูกค้า ย้ายมาจากการ์ด "งานนี้คืออะไร" ที่เบสสั่งถอด
+              (ชื่องานไม่ต้องเอามาด้วย — มันขึ้นใต้เลขออเดอร์บนหัวหน้าอยู่แล้ว) */}
+          {order.description?.trim() && (
+            <Group label="รายละเอียดงาน">
+              <p className="text-sm text-secondary [overflow-wrap:anywhere]">
+                {order.description}
+              </p>
+            </Group>
+          )}
+
+          <Group label="งานนี้ต้องส่งเมื่อไหร่" divided={Boolean(order.description?.trim())}>
             <FieldGrid>
               <Field label="กำหนดส่ง">{order.deadline && formatDate(order.deadline)}</Field>
               <Field label="ความเร่งด่วน">
@@ -604,7 +596,7 @@ export function OrderOverviewTab({
       </Section>
 
       {/* ④ ที่อยู่ — ส่งของกับออกบิลคนละใบ ต้องอ่านแยกกันได้โดยไม่ต้องเดา */}
-      <Section title={<SectionTitle icon={MapPin}>ที่อยู่</SectionTitle>}>
+      <Section title={<SectionTitle icon={MapPin}>ที่อยู่</SectionTitle>} action={editButton("shipping")}>
         <div className="space-y-4">
           <Group label="ส่งของ">
             {hasShipping ? (

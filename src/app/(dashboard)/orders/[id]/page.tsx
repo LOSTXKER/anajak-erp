@@ -121,6 +121,9 @@ function OrderDetailContent({
   // แก้รายการ = ฟอร์มเต็มแสดง inline ตรงส่วนรายการสินค้า (เบสเคาะ: ไม่เอา popup)
   const [editingItems, setEditingItems] = useState(false);
   const [showInfoEditDialog, setShowInfoEditDialog] = useState(false);
+  // แต่ละการ์ดบนแท็บภาพรวมมีปุ่มแก้ไขของตัวเอง (เบสสั่ง 2026-08-11) — ฟอร์มใบเดียวเหมือนเดิม
+  // แต่จำว่ากดมาจากการ์ดไหน เพื่อเลื่อนไปหัวข้อนั้นให้ ไม่ต้องเลื่อนหาเอง
+  const [editSection, setEditSection] = useState<"info" | "shipping">("info");
   /* ── แท็บ (เบสเคาะกลับมาใช้ 2026-08-05) ────────────────────────────────
      URL เป็นแหล่งความจริงร่วม แต่ตัว state เก็บใน React — เขียน URL ด้วย
      history API ตรงๆ ไม่ผ่าน router.replace เพราะ router จะรีเฟรช RSC ทั้งหน้า
@@ -509,7 +512,10 @@ function OrderDetailContent({
                       <>
                         <DropdownMenu.Item
                           className={dropdownItemClass}
-                          onSelect={() => setShowInfoEditDialog(true)}
+                          onSelect={() => {
+                            setEditSection("info");
+                            setShowInfoEditDialog(true);
+                          }}
                         >
                           <FileText className="h-4 w-4" />
                           แก้ไขข้อมูลออเดอร์
@@ -635,6 +641,19 @@ function OrderDetailContent({
       {/* หมายเหตุใบนี้อยู่ "นอกแท็บ" โดยตั้งใจ — คนแพ็ค (แท็บจัดส่ง) กับช่าง (แท็บงานผลิต)
           ต้องเห็น "ห้ามพับ / ส่งก่อนบ่าย 3" โดยไม่ต้องสลับกลับมาแท็บภาพรวม พลาดแล้วงานเสีย
           โผล่เฉพาะใบที่มีหมายเหตุ — ใบปกติไม่กินที่เลย */}
+      {/* blind ship = ห้ามมีชื่อ/เอกสาร Anajak ในกล่อง · พลาดครั้งเดียวเสียลูกค้าขายซ้ำทั้งราย
+          อยู่นอกแท็บเพราะคนแพ็คทำงานอยู่แท็บ "จัดส่ง" — เดิมอยู่ในการ์ดแท็บภาพรวมที่ไม่มีใครกลับไปเปิด
+          เขียนเป็นประโยคเต็ม ไม่ใช้ไอคอน/สีล้วน (สีบอกว่า "มีอะไรบางอย่าง" แต่ไม่บอกว่าต้องทำอะไร) */}
+      {order.blindShip && (
+        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-xl border px-4 py-3 text-sm")}>
+          <span className="font-medium">ส่งแบบไม่ระบุผู้ส่ง</span>
+          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+            ชื่อผู้ส่งบนกล่อง:{" "}
+            {order.blindShipSenderName || "ยังไม่ระบุ — ต้องกรอกก่อนแพ็ค"}
+          </span>
+        </div>
+      )}
+
       {order.notes?.trim() && (
         <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-xl border px-4 py-3 text-sm")}>
           <span className="font-medium">หมายเหตุใบนี้</span>
@@ -674,7 +693,14 @@ function OrderDetailContent({
               totalAmount={totalAmount}
               totalQuantity={sumOrderQuantity(order.items ?? [])}
               onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}
-              onEditInfo={isSalesUp ? () => setShowInfoEditDialog(true) : undefined}
+              onEditInfo={
+                isSalesUp
+                  ? (section) => {
+                      setEditSection(section);
+                      setShowInfoEditDialog(true);
+                    }
+                  : undefined
+              }
               channelColor={channelColor}
               isMarketplace={isMarketplace}
             />
@@ -817,6 +843,7 @@ function OrderDetailContent({
         open={showInfoEditDialog}
         onOpenChange={setShowInfoEditDialog}
         order={order}
+        focusSection={editSection}
       />
     </div>
   );

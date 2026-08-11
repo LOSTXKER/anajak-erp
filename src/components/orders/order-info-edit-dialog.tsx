@@ -59,6 +59,11 @@ interface OrderInfoEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   order: OrderInfoEditOrder;
+  /** เปิดมาแล้วเลื่อนไปหัวข้อไหน — แต่ละการ์ดบนแท็บภาพรวมมีปุ่มแก้ไขของตัวเอง
+   *  (เบสสั่ง 2026-08-11) แต่ฟอร์มยังเป็นใบเดียว: กดจากการ์ด "ที่อยู่" แล้วต้องไม่
+   *  ต้องเลื่อนหาเอง · ไม่แยกเป็นหลาย dialog เพราะยอด/ภาษี/ส่วนลด ผูกกันข้ามหัวข้อ
+   *  (แก้ที่อยู่แล้วเซฟทั้งใบด้วย mutation ตัวเดียวตามเดิม) */
+  focusSection?: "info" | "shipping";
 }
 
 interface FormData {
@@ -93,6 +98,7 @@ export function OrderInfoEditDialog({
   open,
   onOpenChange,
   order,
+  focusSection,
 }: OrderInfoEditDialogProps) {
   const [form, setForm] = useState<FormData>({
     title: "",
@@ -121,6 +127,22 @@ export function OrderInfoEditDialog({
     invalidate: [utils.order.getById],
     onSuccess: () => onOpenChange(false),
   });
+
+  /* กดปุ่มแก้ไขจากการ์ดไหน ก็เลื่อนไปหัวข้อนั้นให้เลย — ไม่งั้นคนกดจากการ์ด "ที่อยู่"
+     จะเจอช่องชื่อออเดอร์เป็นอย่างแรกแล้วนึกว่ากดผิดปุ่ม · รอ 1 เฟรมให้ dialog วาดเสร็จก่อน */
+  useEffect(() => {
+    if (!open || !focusSection) return;
+    const id = focusSection === "shipping" ? "order-edit-shipping" : "order-edit-info";
+    const raf = requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "start",
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open, focusSection]);
 
   useEffect(() => {
     if (open && order) {
@@ -223,7 +245,7 @@ export function OrderInfoEditDialog({
 
         <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
           {/* --Basic Info-- */}
-          <div className={sectionClass}>
+          <div id="order-edit-info" className={sectionClass}>
             <p className={sectionTitleClass}>ข้อมูลทั่วไป</p>
             <Field label="ชื่อออเดอร์" required>
               <Input
@@ -353,7 +375,7 @@ export function OrderInfoEditDialog({
           </div>
 
           {/* --Shipping-- */}
-          <div className={sectionClass}>
+          <div id="order-edit-shipping" className={sectionClass}>
             <p className={sectionTitleClass}>ที่อยู่จัดส่ง</p>
             <div className="grid grid-cols-2 gap-3">
               <Field label="ชื่อผู้รับ">
