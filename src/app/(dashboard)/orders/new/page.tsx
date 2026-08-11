@@ -11,13 +11,23 @@
 // เหมือนทั้งเว็บ + PageShell กลาง + แถบขั้นตอนกระโดด · ทุกช่องยังกางครบเหมือนเดิม
 // ไม่มีพับซ่อน/wizard/สองฝั่ง ตามมติเดิม
 
-import { useState, useMemo, useEffect, useRef, useCallback, type ReactNode } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Section } from "@/components/ui/section";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  ORDER_FORM_TABS,
+  ORDER_FORM_DEFAULT_TAB,
+  buildOrderFormTabMarks,
+  firstErrorTab,
+  normalizeOrderFormTab,
+  type OrderFormError,
+  type OrderFormTabKey,
+} from "@/lib/order-form-tabs";
 import { PageShell } from "@/components/page-shell";
 import { isMarketplaceChannel, CHANNEL_LABELS } from "@/lib/order-status";
 import { type PaymentTermsValue, PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
@@ -65,108 +75,15 @@ import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
 import { Badge } from "@/components/ui/badge";
 import { FOCUS_BUTTON, RADIUS, SUNK_PANEL, TINT, DISPLAY_AMOUNT } from "@/components/ui/tokens";
 import { MoneyInput } from "@/components/ui/number-input";
-import { CONTROL_MIN_H } from "@/components/ui/control-size";
 
-/** id ของ 4 ตอน — ใช้ร่วมกันระหว่างหัวข้อการ์ดกับแถบขั้นตอนที่กดกระโดด */
+/** id ของ 4 ตอน — เหลือไว้เป็นจุดโฟกัส/scroll-mt ของแต่ละแท็บ
+ *  (แถบขั้นตอนที่เคยใช้ id พวกนี้กระโดด ถูกแทนด้วยแท็บแล้ว — เบสสั่ง 2026-08-11) */
 const STEP_IDS = {
   intake: "new-order-step-intake",
   items: "new-order-step-items",
   pricing: "new-order-step-pricing",
   attachments: "new-order-step-attachments",
 } as const;
-
-/* เลขตอนเป็นชิปกลม ไม่ใช่ตัวเลขลอย — เลข 01-04 เดิมเป็นภาษาหัวข้อแบบที่ 3 ของระบบ
-   (audit 2026-08-03) · aria-hidden เพราะ <h2> ควรอ่านแค่ชื่อตอน ไม่ต้องอ่าน "01" */
-function StepTitle({ number, children }: { number: string; children: ReactNode }) {
-  return (
-    <span className="flex items-center gap-2">
-      <span
-        aria-hidden="true"
-        className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-blue-50 text-2xs font-semibold tabular-nums text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
-      >
-        {number}
-      </span>
-      <span>{children}</span>
-    </span>
-  );
-}
-
-/* แถบขั้นตอน — ทางลัดกระโดดในฟอร์มยาว 4 จอ ไม่ได้ซ่อนอะไร (ทุกช่องยังกางครบ)
-   จุดเขียว = ตอนนั้นมีข้อมูลแล้ว · ป้ายขวา = บอกว่าร่างถูกเก็บอัตโนมัติ
-   (ระบบเก็บลงเครื่องอยู่แล้วผ่าน use-order-items-form แต่ไม่เคยบอกผู้ใช้) */
-function StepRail({
-  steps,
-  draftSaved,
-}: {
-  steps: { id: string; label: string; done: boolean }[];
-  draftSaved: boolean;
-}) {
-  /* เลื่อนไปตอนที่กด — เลื่อน "กล่อง main" ตรงๆ ไม่ใช่ scrollIntoView
-     เหตุผล: เครื่องที่ปิด smooth scrolling ไว้ (ตั้งค่าลดการเคลื่อนไหวของ macOS/Chrome)
-     สั่ง behavior:"smooth" แล้วจอ "ไม่ขยับเลย" — ปุ่มนี้เป็นตัวนำทาง กดแล้วต้องไปถึงเสมอ
-     จึงเช็คหลังสั่งไป 1 จังหวะ ถ้ายังไม่ขยับให้กระโดดทันทีแทน */
-  const goTo = useCallback((elId: string) => {
-    requestAnimationFrame(() => {
-      const target = document.getElementById(elId);
-      const scroller = target?.closest("main");
-      if (!target || !scroller) return;
-      target.focus({ preventScroll: true });
-
-      const top = Math.max(
-        0,
-        scroller.scrollTop +
-          target.getBoundingClientRect().top -
-          scroller.getBoundingClientRect().top -
-          12
-      );
-      const before = scroller.scrollTop;
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      scroller.scrollTo({ top, behavior: reduced ? "auto" : "smooth" });
-      if (reduced) return;
-      window.setTimeout(() => {
-        if (scroller.scrollTop === before) scroller.scrollTop = top;
-      }, 120);
-    });
-  }, []);
-
-  return (
-    <nav
-      aria-label="ข้ามไปตอนที่ต้องการ"
-      className="sticky top-0 z-20 -mx-1 flex flex-wrap items-center gap-1.5 border-b border-slate-200/70 bg-bg px-1 py-2 dark:border-white/10"
-    >
-      {steps.map((step) => (
-        <button
-          key={step.id}
-          type="button"
-          onClick={() => goTo(step.id)}
-          className={cn(
-            CONTROL_MIN_H,
-            RADIUS.pill,
-            // ไม่มีขอบ — ชิปขาวบนพื้นเทาแยกตัวเองด้วยสีพื้นอยู่แล้ว (รอบ "ลดเส้นทั้งเว็บ")
-            "inline-flex items-center gap-2 bg-surface hairline-ring px-3 text-xs text-secondary transition-colors hover:text-strong active:scale-[0.98]",
-            FOCUS_BUTTON
-          )}
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              "h-1.5 w-1.5 shrink-0 rounded-full",
-              step.done ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"
-            )}
-          />
-          {step.label}
-          <span className="sr-only">{step.done ? " — กรอกแล้ว" : " — ยังว่าง"}</span>
-        </button>
-      ))}
-      {draftSaved && (
-        <p className="ml-auto hidden items-center gap-1.5 text-2xs text-muted sm:flex">
-          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-green-500" />
-          เก็บร่างอัตโนมัติแล้ว
-        </p>
-      )}
-    </nav>
-  );
-}
 
 export default function NewOrderPage() {
   const router = useRouter();
@@ -215,7 +132,38 @@ export default function NewOrderPage() {
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [formErrors, setFormErrors] = useState<OrderFormError[]>([]);
+  const [tab, setTabState] = useState<OrderFormTabKey>(ORDER_FORM_DEFAULT_TAB);
+  const [submitted, setSubmitted] = useState(false);
+
+  /* เขียนแท็บลง URL ด้วย history API ตรงๆ ไม่ผ่าน router — router.replace จะรีเฟรช RSC ทั้งหน้า
+     (ฟอร์มที่กรอกค้างไว้จะกระตุก) · ใช้ URL เดิมแล้ว set เฉพาะ tab จึงไม่ทับ ?next=quote / ?customerId= */
+  const changeTab = useCallback((key: string) => {
+    const next = normalizeOrderFormTab(key) ?? ORDER_FORM_DEFAULT_TAB;
+    setTabState(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", next);
+    window.history.pushState({}, "", url);
+    // เนื้อแท็บที่ซ่อนอยู่สูงไม่เท่ากัน — สลับจากแท็บยาวไปแท็บสั้นแล้วจะค้างอยู่กลางจอว่าง
+    requestAnimationFrame(() => {
+      document.querySelector("main")?.scrollTo({
+        top: 0,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+      });
+    });
+  }, []);
+
+  // ปุ่มย้อนกลับของเบราว์เซอร์ต้องพากลับแท็บเดิม ไม่ใช่เด้งออกจากฟอร์มที่กรอกค้าง
+  useEffect(() => {
+    const onPop = () => {
+      const t = normalizeOrderFormTab(new URL(window.location.href).searchParams.get("tab"));
+      setTabState(t ?? ORDER_FORM_DEFAULT_TAB);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
   // hasDraft ของ useOrderItemsForm ดูแค่ "ร่างรายการ" — ถ้าค้างไว้แค่ลูกค้า/ชื่องาน/ข้อความแชท
@@ -246,7 +194,9 @@ export default function NewOrderPage() {
       })
       .catch(() => {
         if (!cancelled) {
-          setFormErrors(["เปิดข้อมูลลูกค้าที่เลือกไว้ไม่สำเร็จ — ค้นหาลูกค้าอีกครั้ง"]);
+          setFormErrors([
+            { tab: "intake", message: "เปิดข้อมูลลูกค้าที่เลือกไว้ไม่สำเร็จ — ค้นหาลูกค้าอีกครั้ง" },
+          ]);
         }
       });
     return () => {
@@ -393,15 +343,17 @@ export default function NewOrderPage() {
     });
   };
 
-  const validateForm = (): string[] => {
-    const errors: string[] = [];
+  /* คืนพร้อม "แท็บที่ต้องไปแก้" — ติดป้ายที่บรรทัด push เดิมทุกจุด ไม่เพิ่มเงื่อนไขใหม่แม้แต่ข้อเดียว
+     (กติกาจาก order-form-tabs.ts: จุดแดง/เด้งแท็บ ต้องคิดจากตัวตรวจตัวเดียวกับที่กันบันทึกอยู่แล้ว) */
+  const validateForm = (): OrderFormError[] => {
+    const errors: OrderFormError[] = [];
 
-    if (!customerId) errors.push("กรุณาเลือกลูกค้า");
+    if (!customerId) errors.push({ tab: "intake", message: "กรุณาเลือกลูกค้า" });
 
     if (deadline) {
       const deadlineDate = new Date(deadline + "T23:59:59");
       if (deadlineDate < new Date()) {
-        errors.push("กำหนดส่งต้องไม่เป็นวันที่ผ่านมาแล้ว");
+        errors.push({ tab: "intake", message: "กำหนดส่งต้องไม่เป็นวันที่ผ่านมาแล้ว" });
       }
     }
 
@@ -410,12 +362,17 @@ export default function NewOrderPage() {
       const hasFeeContent = fees.some((f) => f.name || f.feeType || f.amount > 0);
       const hasItemNotes = items.some((it) => it.notes?.trim());
       if (hasFeeContent || hasItemNotes) {
-        errors.push(
-          "มีค่าใช้จ่าย/หมายเหตุที่กรอกไว้ แต่ยังไม่มีรายการสินค้า — เพิ่มรายการสินค้า หรือลบข้อมูลนั้นออกก่อนเปิดงาน"
-        );
+        errors.push({
+          tab: "pricing",
+          message:
+            "มีค่าใช้จ่าย/หมายเหตุที่กรอกไว้ แต่ยังไม่มีรายการสินค้า — เพิ่มรายการสินค้า หรือลบข้อมูลนั้นออกก่อนเปิดงาน",
+        });
       }
       if (discount > 0) {
-        errors.push("ใส่ส่วนลดไว้แต่ยังไม่มีรายการสินค้า — ล้างส่วนลดหรือเพิ่มรายการก่อน");
+        errors.push({
+          tab: "pricing",
+          message: "ใส่ส่วนลดไว้แต่ยังไม่มีรายการสินค้า — ล้างส่วนลดหรือเพิ่มรายการก่อน",
+        });
       }
     }
 
@@ -424,24 +381,33 @@ export default function NewOrderPage() {
         const itemErrors = validateOrderItem(item);
         const errMsgs = Object.values(itemErrors).filter(Boolean);
         if (errMsgs.length > 0) {
-          errors.push(`รายการ #${idx + 1}: ${errMsgs.join(", ")}`);
+          errors.push({ tab: "items", message: `รายการ #${idx + 1}: ${errMsgs.join(", ")}` });
         }
         item.products.forEach((prod, pIdx) => {
           const prodErrors = validateOrderItemProduct(prod);
           const prodErrMsgs = Object.values(prodErrors).filter(Boolean);
           if (prodErrMsgs.length > 0) {
-            errors.push(`รายการ #${idx + 1} สินค้า #${pIdx + 1}: ${prodErrMsgs.join(", ")}`);
+            errors.push({
+              tab: "items",
+              message: `รายการ #${idx + 1} สินค้า #${pIdx + 1}: ${prodErrMsgs.join(", ")}`,
+            });
           }
         });
       });
 
       const subtotal = pricingSummary.subtotalItems + pricingSummary.subtotalFees;
       if (discount > subtotal) {
-        errors.push(`ส่วนลด (${formatCurrency(discount)}) มากกว่ายอดรวมก่อนหักส่วนลด (${formatCurrency(subtotal)})`);
+        errors.push({
+          tab: "pricing",
+          message: `ส่วนลด (${formatCurrency(discount)}) มากกว่ายอดรวมก่อนหักส่วนลด (${formatCurrency(subtotal)})`,
+        });
       }
     }
 
-    errors.push(...validateShipping());
+    // ที่อยู่จัดส่งอยู่ในแท็บรับเรื่อง — ข้อความจาก validateShipping() ใช้ของเดิมทั้งชุด
+    errors.push(
+      ...validateShipping().map((message) => ({ tab: "intake" as const, message })),
+    );
 
     return errors;
   };
@@ -476,7 +442,13 @@ export default function NewOrderPage() {
     e.preventDefault();
     const errors = validateForm();
     setFormErrors(errors);
+    setSubmitted(true);
     if (errors.length > 0) {
+      /* เด้งไปแท็บแรกที่ติดให้เอง — ถ้าไม่ทำ อาการที่คนใช้เจอคือ "กดบันทึกแล้วไม่มีอะไรเกิดขึ้น"
+         เพราะข้อความ error ชี้ไปที่ช่องในแท็บที่เขามองไม่เห็น (แย่กว่าฟอร์มเลื่อนยาวแบบเดิม)
+         ต้องสลับแท็บ "ก่อน" แล้วรอ 1 เฟรมค่อย focus — เนื้อแท็บที่ซ่อนเป็น display:none จึง focus ไม่ติด */
+      const target = firstErrorTab(errors);
+      if (target && target !== tab) changeTab(target);
       requestAnimationFrame(() => errorSummaryRef.current?.focus());
       return;
     }
@@ -502,6 +474,19 @@ export default function NewOrderPage() {
 
     createOrder.mutate(buildMutationInput());
   };
+
+  /* จุดเขียว/จุดแดงบนหัวแท็บ — ค่าบูลีน 4 ตัวชุดเดียวกับแถบขั้นตอนเดิม + ผลจาก validateForm ตัวเดิม
+     (ตรรกะรวมอยู่ใน lib/order-form-tabs.ts ที่มีเทสคุม — ห้ามเขียนกฎครบ/ไม่ครบขึ้นใหม่ที่นี่) */
+  const tabMarks = buildOrderFormTabMarks({
+    filled: {
+      intake: !!customerId,
+      items: hasItemContent,
+      pricing: pricingSummary.grandTotal > 0,
+      attachments: referenceImages.length > 0,
+    },
+    errors: formErrors,
+    submitted,
+  });
 
   const showDraftBanner = hasDraft || restoredHeaderDraft;
   const resetDraft = () => {
@@ -540,30 +525,41 @@ export default function NewOrderPage() {
         </div>
       )}
 
-      <StepRail
-        draftSaved={showDraftBanner || !!customerId || hasItemContent}
-        steps={[
-          { id: STEP_IDS.intake, label: "รับเรื่อง", done: !!customerId },
-          { id: STEP_IDS.items, label: "รายการงาน", done: hasItemContent },
-          { id: STEP_IDS.pricing, label: "ราคา", done: pricingSummary.grandTotal > 0 },
-          { id: STEP_IDS.attachments, label: "ไฟล์แนบ", done: referenceImages.length > 0 },
-        ]}
-      />
-
       {/* noValidate: ใช้ validateForm (กล่อง error เดียว) แทน native validation —
-          กล่องพับซ่อนด้วย CSS ทำให้ browser validation บน input ที่มองไม่เห็นพัง submit เงียบ */}
+          ยิ่งสำคัญตอนเป็นแท็บ เพราะตอนนี้มี input ที่ display:none จริงๆ แล้ว
+          (TabsContent ซ่อนด้วย CSS ไม่ถอด DOM — ของที่พิมพ์ค้างจึงไม่หายตอนสลับแท็บ)
+
+          form ต้องครอบ <Tabs> ทั้งก้อน ไม่ใช่ครอบทีละ TabsContent — ไม่งั้นปุ่มบันทึก
+          ที่อยู่นอกแท็บ (แถบล่าง sticky) จะไม่ผูกกับฟอร์ม */}
       <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {formErrors.length > 0 && (
           <Alert
             ref={errorSummaryRef}
             variant="error"
-            title="กรุณาแก้ไข"
+            title={`กรุณาแก้ไข ${formErrors.length} จุด`}
             aria-live="assertive"
             tabIndex={-1}
             className={cn("outline-none", FOCUS_BUTTON)}
           >
+            {/* ทุกข้อมีปุ่มพาไปแท็บที่ต้องแก้ — ข้อความอย่างเดียวไม่พอแล้วเมื่อเนื้อหาถูกซ่อน */}
             <ul className="list-inside list-disc space-y-1">
-              {formErrors.map((error) => <li key={error}>{error}</li>)}
+              {formErrors.map((error, i) => (
+                <li key={`${error.tab}-${i}`}>
+                  {error.message}
+                  {error.tab !== tab && (
+                    <button
+                      type="button"
+                      onClick={() => changeTab(error.tab)}
+                      className={cn(
+                        "ml-2 rounded text-2xs font-medium underline underline-offset-2",
+                        FOCUS_BUTTON,
+                      )}
+                    >
+                      ไปแก้ที่แท็บ{ORDER_FORM_TABS.find((t) => t.key === error.tab)?.label}
+                    </button>
+                  )}
+                </li>
+              ))}
             </ul>
           </Alert>
         )}
@@ -574,12 +570,39 @@ export default function NewOrderPage() {
           </Alert>
         )}
 
-        <div className="space-y-6">
+        <Tabs value={tab} onValueChange={changeTab}>
+          {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ (ที่เดียวกับที่แถบขั้นตอนเดิมอยู่) */}
+          <TabsList aria-label="ตอนของฟอร์มเปิดงาน" className="sticky top-0 z-20">
+            {tabMarks.map((t) => (
+              <TabsTrigger
+                key={t.key}
+                value={t.key}
+                hasPending={t.red}
+                aria-label={
+                  t.red
+                    ? `${t.label} — มี ${t.errors.length} จุดต้องแก้`
+                    : t.green
+                      ? `${t.label} — กรอกแล้ว`
+                      : undefined
+                }
+              >
+                <span aria-hidden="true" className="text-2xs text-muted max-sm:hidden">
+                  {t.number}
+                </span>
+                {t.label}
+                {/* จุดเขียว = มีข้อมูลแล้ว · จุดแดงมาจาก hasPending ของ TabsTrigger (แดงชนะเขียว) */}
+                {t.green && !t.red && (
+                  <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="intake" className="mt-6">
           {/* รับเรื่อง — ลูกค้าเป็นช่องบังคับเพียงช่องเดียว */}
           <Section
             id={STEP_IDS.intake}
             tabIndex={-1}
-            title={<StepTitle number="01">รับเรื่อง</StepTitle>}
             description="ที่เหลือเติมทีหลังได้"
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
@@ -620,11 +643,12 @@ export default function NewOrderPage() {
               />
             </div>
           </Section>
+          </TabsContent>
 
+          <TabsContent value="items" className="mt-6">
           <Section
             id={STEP_IDS.items}
             tabIndex={-1}
-            title={<StepTitle number="02">รายการงาน</StepTitle>}
             action={
               hasItemContent ? (
                 <Badge variant="default" size="sm">
@@ -685,11 +709,12 @@ export default function NewOrderPage() {
               </div>
             </div>
           </Section>
+          </TabsContent>
 
+          <TabsContent value="pricing" className="mt-6">
           <Section
             id={STEP_IDS.pricing}
             tabIndex={-1}
-            title={<StepTitle number="03">ราคาและเงื่อนไข</StepTitle>}
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             {/* เรียงลงคอลัมน์เดียว (เบสเคาะ 2026-08-04 "ไม่ต้องแบ่ง 2 ฝั่งละ") —
@@ -775,16 +800,19 @@ export default function NewOrderPage() {
               </div>
             </div>
           </Section>
+          </TabsContent>
 
-          {/* ไฟล์แนบอยู่ล่างสุด (เบสสั่ง 2026-08-04) — เป็นของที่แนบทีหลังได้เสมอ
-              ไม่ควรขวางทางระหว่างกรอกลูกค้า→รายการ→ราคา */}
+          {/* ไฟล์แนบเป็นแท็บสุดท้าย (เดิมอยู่ล่างสุดของฟอร์ม เบสสั่ง 2026-08-04)
+              — เป็นของที่แนบทีหลังได้เสมอ ไม่ควรขวางทางระหว่างกรอกลูกค้า→รายการ→ราคา */}
+          <TabsContent value="attachments" className="mt-6">
           <OrderAttachmentsSection
             id={STEP_IDS.attachments}
             images={referenceImages}
             onImagesChange={setReferenceImages}
-            title={<StepTitle number="04">ไฟล์แนบ</StepTitle>}
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           />
+          </TabsContent>
+        </Tabs>
 
           {/* แถบยอด+ปุ่มติดขอบล่างจอ — ทึบ + เส้นขอบบน (เดิมโปร่ง 95% + blur จนตัวหนังสือ
               ด้านบนอ่านทะลุกัน) · pb เผื่อแถบขีดกลับหน้าหลักของ iPhone ไม่ให้ทับปุ่ม "เปิดงาน" */}
@@ -818,7 +846,6 @@ export default function NewOrderPage() {
               {createOrder.isPending ? "กำลังบันทึก..." : "เปิดงาน"}
             </Button>
           </div>
-        </div>
       </form>
 
       <ProductPickerDialog
