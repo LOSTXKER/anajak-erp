@@ -87,8 +87,6 @@ export function OrderStatusBar({
       : ((CUSTOMER_STATUS_COLORS as Record<string, { dot: string }>)[customerStatus]?.dot ??
         "bg-blue-500");
 
-  const eyebrow = isCancelled ? "งานถูกปิด" : isOnHold ? "งานหยุดอยู่" : "สถานะตอนนี้";
-
   // บรรทัดหมายเหตุ — โผล่เฉพาะตอนไม่ปกติ จึงไม่กินความสูงในเคสทั่วไป
   // เหตุผลมีจริงเฉพาะการยกเลิก (Order.cancelledReason) · พักงานบอกได้แค่ว่าพักตั้งแต่เมื่อไหร่
   const noteParts: string[] = [];
@@ -121,24 +119,30 @@ export function OrderStatusBar({
 
   return (
     <div className="card-surface rounded-2xl px-4 py-3.5">
-      <div className="flex min-h-[26px] items-center gap-3">
-        <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", headDot)} aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs leading-snug text-slate-500 dark:text-slate-400">{eyebrow}</p>
-          {/* UX4.9: ไม่บอก "ถัดไป" ที่นี่ — การ์ดขั้นต่อไปเป็นเสียงเดียว */}
-          <p className="text-sm font-semibold leading-snug text-slate-900 dark:text-white">
+      {/* หัวแถบ ("สถานะตอนนี้ / กำลังผลิต / ขั้น 6/11") ถูกตัดออกตอนงานปกติ — เบสสั่ง 2026-08-11
+          เพราะรางบอกซ้ำอยู่แล้ว (ขั้นที่ยืนอยู่เป็นตัวหนาน้ำเงิน + ตำแหน่งบนรางบอกความคืบหน้า)
+          แต่ **พักงาน/ยกเลิกไม่มีจุดบนราง** ถ้าตัดด้วยจะกลายเป็นงานพักดูเหมือนงานปกติ
+          จึงเหลือบรรทัดเดียวไว้เฉพาะสถานะนอกเส้นทาง (โผล่เฉพาะตอนไม่ปกติ = ไม่กินที่ในเคสทั่วไป) */}
+      {isOffPath && (
+        <div className="mb-3 flex min-h-[22px] flex-wrap items-center gap-2">
+          <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", headDot)} aria-hidden="true" />
+          <span
+            className={cn(
+              "text-sm font-semibold",
+              isCancelled
+                ? "text-red-700 dark:text-red-300"
+                : "text-amber-800 dark:text-amber-300",
+            )}
+          >
             {currentLabel}
-          </p>
+          </span>
+          {offPathAnchor && (
+            <Badge variant={isCancelled ? "destructive" : "warning"} size="sm" className="shrink-0">
+              {isCancelled ? "หยุดที่" : "ค้างที่"} {label(offPathAnchor.status)}
+            </Badge>
+          )}
         </div>
-        {offPathAnchor && (
-          <Badge variant={isCancelled ? "destructive" : "warning"} size="sm" className="shrink-0">
-            {isCancelled ? "หยุดที่" : "ค้างที่"} {label(offPathAnchor.status)}
-          </Badge>
-        )}
-        <span className="shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400">
-          ขั้น {anchorIndex >= 0 ? anchorIndex + 1 : "—"}/{flowSteps.length}
-        </span>
-      </div>
+      )}
 
       {anchorIndex >= 0 && (
         <span
@@ -156,7 +160,7 @@ export function OrderStatusBar({
       <ol
         ref={railRef}
         aria-label="เส้นทางสถานะคำสั่งซื้อ"
-        className="mt-3.5 flex overflow-x-auto pb-0.5"
+        className="flex overflow-x-auto pb-0.5"
       >
         {flowSteps.map((step, i) => {
           const st = railStepState({ index: i, anchorIndex, cancelled: isCancelled });
