@@ -14,7 +14,6 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   INTERNAL_STATUS_LABELS,
   CHANNEL_COLORS,
-  PRIORITY_LABELS,
   getFlowSteps,
   getNextStatuses,
   canPermsSetStatus,
@@ -33,7 +32,7 @@ import {
   Share2,
   Truck,
 } from "lucide-react";
-import { cn, formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
@@ -45,6 +44,7 @@ import { OrderGoodsReceiptSection } from "@/components/goods-receipt/order-goods
 import { OrderQcSection } from "@/components/qc/order-qc-section";
 import { getOrderNextStep } from "@/lib/order-next-step";
 import { shouldShowDeliverySection } from "@/lib/delivery-ui";
+import { sumOrderQuantity } from "@/lib/pricing";
 import {
   normalizeOrderTab,
   buildNextStepInput,
@@ -59,7 +59,7 @@ import { AddCard } from "@/components/ui/add-card";
 import {
   OrderItemsDisplay,
   OrderStatusBar,
-  OrderSidebar,
+  OrderOverviewTab,
   OrderFilesCard,
   OrderRevisions,
   OrderChangeOrders,
@@ -85,16 +85,12 @@ function OrderDetailSkeleton() {
         </div>
       </div>
       <Skeleton className="h-20 rounded-xl" />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Skeleton className="h-64 rounded-xl" />
-          <Skeleton className="h-48 rounded-xl" />
-        </div>
-        <div className="space-y-6">
-          <Skeleton className="h-40 rounded-xl" />
-          <Skeleton className="h-48 rounded-xl" />
-          <Skeleton className="h-56 rounded-xl" />
-        </div>
+      {/* โครงต้องตรงกับของจริง (แถบแท็บ + เนื้อหาเต็มความกว้าง) ไม่งั้นจอกระโดดตอนโหลดเสร็จ */}
+      <Skeleton className="h-11 w-96 max-w-full rounded-lg" />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <Skeleton className="h-40 rounded-xl md:col-span-2" />
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
       </div>
     </div>
   );
@@ -153,7 +149,7 @@ function OrderDetailContent({
 
   function openItemsEditor() {
     setEditingItems(true);
-    changeTab("overview");
+    changeTab("items");
   }
   // ANCHOR ของแถบขั้นต่อไป → สลับไปแท็บที่เกี่ยว (แผนที่เดียวกับ tabForAnchor ไม่มีตรรกะใหม่)
   function handleAnchor(target: "billing" | "design" | "production" | "delivery" | "qc") {
@@ -364,7 +360,7 @@ function OrderDetailContent({
     nextStep?.action.type === "ANCHOR"
       ? tabForAnchor(nextStep.action.target)
       : nextStep?.action.type === "EDIT_ITEMS"
-        ? "overview"
+        ? "items"
         : null;
 
   // ----------------------------------------------------------
@@ -594,27 +590,9 @@ function OrderDetailContent({
         }
       />
 
-      {/* บริบทที่ต้องเห็นก่อนลงมือบนมือถือ — เดิมอยู่ sidebar ท้ายหน้าทั้งก้อน */}
-      <dl className="card-surface grid grid-cols-3 gap-2 rounded-2xl p-3 text-xs lg:hidden">
-        <div className="min-w-0">
-          <dt className="text-slate-500 dark:text-slate-400">ลูกค้า</dt>
-          <dd className="truncate font-medium text-slate-900 dark:text-white">
-            {order.customer?.name ?? "—"}
-          </dd>
-        </div>
-        <div className="min-w-0 border-x border-slate-100 px-2 dark:border-slate-800">
-          <dt className="text-slate-500 dark:text-slate-400">กำหนดส่ง</dt>
-          <dd className="truncate font-medium text-slate-900 dark:text-white">
-            {order.deadline ? formatDate(order.deadline) : "ยังไม่ระบุ"}
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="text-slate-500 dark:text-slate-400">ความเร่งด่วน</dt>
-          <dd className="truncate font-medium text-slate-900 dark:text-white">
-            {PRIORITY_LABELS[order.priority] ?? order.priority}
-          </dd>
-        </div>
-      </dl>
+      {/* แถบสรุป 3 ช่องบนมือถือ (ลูกค้า/กำหนดส่ง/ความเร่งด่วน) ถูกถอดออก — เบสสั่ง 2026-08-11
+          หลังเห็นจอจริง · ทั้งสามอย่างย้ายไปอยู่บนสุดของการ์ด "ข้อมูลออเดอร์" ในแท็บภาพรวม
+          (แท็บแรกที่เปิดมาเจอ) จึงไม่ได้หายไปจากหน้า แค่ไม่ต้องมีแถบซ้ำอีกชั้น */}
 
       {/* revisions = ชุดเดียวกับที่แท็บประวัติใช้ (ไม่ยิง query เพิ่ม) — แถบสถานะเอาไปหาว่า
           งานพัก/ยกเลิกค้างไว้ที่ขั้นไหนของสายงาน เพราะ 2 สถานะนี้ไม่มีที่ยืนใน flow */}
@@ -654,8 +632,21 @@ function OrderDetailContent({
         </div>
       )}
 
+      {/* หมายเหตุใบนี้อยู่ "นอกแท็บ" โดยตั้งใจ — คนแพ็ค (แท็บจัดส่ง) กับช่าง (แท็บงานผลิต)
+          ต้องเห็น "ห้ามพับ / ส่งก่อนบ่าย 3" โดยไม่ต้องสลับกลับมาแท็บภาพรวม พลาดแล้วงานเสีย
+          โผล่เฉพาะใบที่มีหมายเหตุ — ใบปกติไม่กินที่เลย */}
+      {order.notes?.trim() && (
+        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-xl border px-4 py-3 text-sm")}>
+          <span className="font-medium">หมายเหตุใบนี้</span>
+          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{order.notes}</span>
+        </div>
+      )}
+
       {/* ====================================================
-          แท็บ + เนื้อหา · การ์ดบริบทฝั่งขวาอยู่ "นอกแท็บ" ไม่ขยับตอนสลับ
+          แท็บ + เนื้อหา — เต็มความกว้าง ไม่มีคอลัมน์ขวาแล้ว
+          คอลัมน์ขวาเดิม (ลูกค้า/ข้อมูลออเดอร์/ที่อยู่) คือของชิ้นเดียวกับแท็บ "ภาพรวม" เป๊ะ
+          เก็บไว้ทั้งคู่ = พูดเรื่องเดียวกัน 2 ที่ แล้ววันหลังแก้ที่เดียวอีกที่ค้าง
+          ผลพลอยได้: แถบแท็บไม่พาดคลุมของที่กดแล้วไม่เปลี่ยนอีกต่อไป (เบสบ่นเรื่องนี้ตรงๆ)
       ==================================================== */}
       <Tabs value={activeTab} onValueChange={changeTab}>
         {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ */}
@@ -672,10 +663,24 @@ function OrderDetailContent({
           ))}
         </TabsList>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* LEFT: เนื้อหาแท็บ (2/3) */}
-        <div className="lg:col-span-2">
+      <div className="mt-6">
+        <div>
+          {/* แท็บแรก: ภาพรวม — ผู้ติดต่อ/ข้อมูลงาน/ที่อยู่/แบรนด์ (เบสสั่ง 2026-08-11)
+              นี่คือบ้านของสิ่งที่เคยอยู่คอลัมน์ขวา บวกของที่มีในฐานแต่หน้าไม่เคยโชว์ */}
           <TabsContent value="overview" className="space-y-6">
+            <OrderOverviewTab
+              order={order}
+              showMoney={canSeeMoney}
+              totalAmount={totalAmount}
+              totalQuantity={sumOrderQuantity(order.items ?? [])}
+              onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}
+              onEditInfo={isSalesUp ? () => setShowInfoEditDialog(true) : undefined}
+              channelColor={channelColor}
+              isMarketplace={isMarketplace}
+            />
+          </TabsContent>
+
+          <TabsContent value="items" className="space-y-6">
               {editingItems && canEditItems ? (
                 <OrderItemsEditor
                   orderId={id}
@@ -801,19 +806,6 @@ function OrderDetailContent({
           <TabsContent value="history" className="space-y-6">
             <OrderRevisions revisions={order.revisions ?? []} />
           </TabsContent>
-        </div>
-
-        {/* RIGHT: การ์ดบริบท (1/3) — อยู่ "นอกแท็บ" เห็นทุกแท็บ
-            ถ้ายัดเข้าแท็บใดแท็บหนึ่งจะกลายเป็น "อยากรู้กำหนดส่งต้องสลับแท็บ" ซึ่งแย่กว่าเดิม */}
-        <div aria-label="ข้อมูลออเดอร์">
-          <OrderSidebar
-            order={order}
-            showMoney={canSeeMoney}
-            totalAmount={totalAmount}
-            onOpenMoney={() => changeTab("money")}
-            channelColor={channelColor}
-            isMarketplace={isMarketplace}
-          />
         </div>
       </div>
       </Tabs>

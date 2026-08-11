@@ -195,3 +195,85 @@ export function getFormItemTotalQty(item: OrderItemFormLike): number {
     0,
   );
 }
+
+// ============================================================
+// แจกแจงราคาเป็นบรรทัด (สำหรับตาราง "สรุปราคา" บนหน้าออเดอร์)
+// ============================================================
+
+/**
+ * แตกยอดของ 1 รายการออกเป็นบรรทัด ราคา/หน่วย × จำนวน = รวม
+ *
+ * ทำไมต้องมี: หน้าออเดอร์เดิมโชว์ตัวเลขกระจาย 4 ที่ (ราคาเสื้อ/ชิ้น · ยอดเสื้อ ·
+ * ราคาพิมพ์/ชิ้น · ยอดรวมรายการ) โดยไม่มีอะไรบอกว่าอันไหนรวมเป็นอันไหน — ยอดพิมพ์
+ * (ราคา/ชิ้น × จำนวน) ไม่เคยโผล่บนจอเลย และ**ส่วนเสริมแบบต่อชิ้นโชว์แค่ราคา/หน่วย**
+ * ทั้งที่ระบบเก็บเงิน unitPrice × จำนวน → อ่านผิดแล้วไปเถียงกับลูกค้าผิดเงินจริง
+ *
+ * สูตรตรงกับ `calculateItemSubtotal` ข้างบนและ server (`services/pricing.ts`) เป๊ะ —
+ * ผลรวมของ `total` ทุกบรรทัดต้องเท่ากับ subtotal ของรายการเสมอ (มีเทสยืนยัน)
+ * แก้สูตรที่ไหนต้องแก้ครบทั้งสามที่
+ */
+export interface PriceLine {
+  kind: "product" | "print" | "addon";
+  /** ตำแหน่งใน array ต้นทาง — ผู้เรียกเอาไปหยิบชื่อ/ป้ายไทยมาแสดงเอง (ที่นี่ไม่รู้จักภาษา) */
+  index: number;
+  unitPrice: number;
+  quantity: number;
+  total: number;
+}
+
+export function buildItemPriceLines(item: PricingItem): PriceLine[] {
+  const qty = item.totalQuantity;
+  const lines: PriceLine[] = [];
+
+  (item.products ?? []).forEach((p, index) => {
+    const unitPrice = Math.max(0, p.baseUnitPrice - (p.discount || 0));
+    lines.push({
+      kind: "product",
+      index,
+      unitPrice,
+      quantity: p.totalQuantity,
+      total: unitPrice * p.totalQuantity,
+    });
+  });
+
+  item.prints.forEach((pr, index) => {
+    // งานพิมพ์คิดต่อชิ้นเสมอ กับจำนวนรวมทั้งรายการ (ไม่ใช่ต่อ product)
+    lines.push({
+      kind: "print",
+      index,
+      unitPrice: pr.unitPrice,
+      quantity: qty,
+      total: pr.unitPrice * qty,
+    });
+  });
+
+  item.addons.forEach((a, index) => {
+    // PER_PIECE: ใช้จำนวนของ addon เองถ้าระบุ ไม่งั้นเท่าจำนวนรวมรายการ · อื่นๆ = ต่อออเดอร์ (×1)
+    const quantity = a.pricingType === "PER_PIECE" ? (a.quantity ?? qty) : 1;
+    lines.push({
+      kind: "addon",
+      index,
+      unitPrice: a.unitPrice,
+      quantity,
+      total: a.unitPrice * quantity,
+    });
+  });
+
+  return lines;
+}
+
+/** จำนวนชิ้นรวมทั้งใบ — บวกข้ามรายการและข้ามสินค้า (หน้าออเดอร์ถามคำถามนี้ก่อนเพื่อน) */
+export function sumOrderQuantity(
+  items: { products?: { variants?: { quantity: number }[] | null }[] | null }[] | null | undefined,
+): number {
+  if (!items?.length) return 0;
+  return items.reduce(
+    (sum, item) =>
+      sum +
+      (item.products ?? []).reduce(
+        (s, p) => s + calculateTotalQuantity(p.variants ?? []),
+        0,
+      ),
+    0,
+  );
+}

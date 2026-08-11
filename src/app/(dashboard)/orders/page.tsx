@@ -33,13 +33,13 @@ import {
   ShoppingCart,
   ChevronRight,
   Clock3,
-  MessageCircle,
   X,
 } from "lucide-react";
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { hasActiveOrderListFilters } from "@/lib/order-list-ui";
+import { ChatLink } from "@/components/customers/chat-link";
 
 // ────────────────────────────────────────────────────────────
 // Filter options
@@ -187,40 +187,6 @@ function OrderCountdown({
       <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dot)} />
       {label}
     </span>
-  );
-}
-
-/** ห้องแชทของลูกค้า — กดแล้วเปิดแชทจริงในแท็บใหม่
- *  รับเฉพาะลิงก์ http/https (ฝั่ง server กันไว้อีกชั้น) — ไม่ยอมให้ href กลายเป็นสคริปต์
- *  กันคลิกทะลุไปเปิดหน้าออเดอร์ด้วย stopPropagation เพราะแถวทั้งแถวกดได้บนมือถือ */
-function ChatLink({
-  name,
-  url,
-}: {
-  name?: string | null;
-  url?: string | null;
-}) {
-  if (!name && !url) return null;
-  const safe = url && /^https?:\/\//i.test(url) ? url : null;
-  const label = name || "เปิดแชท";
-  if (!safe) {
-    return (
-      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-        {label}
-      </p>
-    );
-  }
-  return (
-    <a
-      href={safe}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-      className="inline-flex max-w-full items-center gap-1.5 truncate text-xs text-blue-600 hover:underline dark:text-blue-400"
-    >
-      <MessageCircle aria-hidden="true" className="h-3 w-3 shrink-0" />
-      <span className="truncate">{label}</span>
-    </a>
   );
 }
 
@@ -667,6 +633,7 @@ function OrdersPageContent() {
                       {/* ชื่องานถูกถอดออก (เบสสั่ง 2026-07-31 — ซ้ำกับชื่อลูกค้าและอ่านไม่ทัน
                           ตอนสแกนรายการ) แทนด้วยห้องแชทที่พาไปคุยต่อได้ในคลิกเดียว */}
                       <ChatLink
+                        stopPropagation
                         name={order.customer?.chatName}
                         url={order.customer?.chatUrl}
                       />

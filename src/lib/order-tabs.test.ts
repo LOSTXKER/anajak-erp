@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
+  ORDER_TAB_DEFS,
+  ORDER_DEFAULT_TAB,
   defaultTabForStatus,
   normalizeOrderTab,
   tabForAnchor,
@@ -164,5 +166,48 @@ describe("buildNextStepInput — map + สูตร billingHandled (เป๊ะ
     expect(input.billingHandled).toBe(true);
     expect(input.hasInvoice).toBe(true);
     expect(input.totalAmount).toBeNull();
+  });
+});
+
+describe("ผังแท็บ 7 อัน (เบสสั่ง 2026-08-11 — แท็บแรกเป็นภาพรวม รายการแยกไปอีกแท็บ)", () => {
+  it("มี 7 แท็บ เรียงตามลำดับที่เคาะ", () => {
+    expect(ORDER_TAB_DEFS.map((t) => t.key)).toEqual([
+      "overview",
+      "items",
+      "production",
+      "delivery",
+      "money",
+      "files",
+      "history",
+    ]);
+  });
+
+  it("แท็บแรกคือภาพรวม และเป็นแท็บที่เปิดมาเจอเสมอ", () => {
+    expect(ORDER_TAB_DEFS[0]).toEqual({ key: "overview", label: "ภาพรวม" });
+    expect(ORDER_DEFAULT_TAB).toBe(ORDER_TAB_DEFS[0].key);
+  });
+
+  it("แท็บที่สองคือรายการ", () => {
+    expect(ORDER_TAB_DEFS[1]).toEqual({ key: "items", label: "รายการ" });
+  });
+
+  it("ลิงก์เก่าทุกตัวยังเข้าได้ ไม่มีใครเจอหน้าตาย", () => {
+    for (const old of ["overview", "production", "delivery", "money", "files", "history"]) {
+      expect(normalizeOrderTab(old)).toBe(old);
+    }
+    expect(normalizeOrderTab("docs")).toBe("files");
+    expect(normalizeOrderTab("items")).toBe("items");
+  });
+
+  it("ป้ายแท็บห้ามซ้ำกัน (กันคนกดผิดแท็บ)", () => {
+    const labels = ORDER_TAB_DEFS.map((t) => t.label);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  it("ปลายทางของ tabForAnchor ต้องเป็นแท็บที่มีอยู่จริงทุกตัว", () => {
+    for (const target of ["billing", "design", "production", "delivery", "qc"] as const) {
+      const key = tabForAnchor(target);
+      expect(ORDER_TAB_DEFS.some((t) => t.key === key)).toBe(true);
+    }
   });
 });

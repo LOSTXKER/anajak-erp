@@ -1,6 +1,6 @@
 export { OrderItemsDisplay } from "./order-items-display";
 export { OrderStatusBar } from "./order-status-bar";
-export { OrderSidebar } from "./order-sidebar";
+export { OrderOverviewTab } from "./order-overview-tab";
 export { OrderMoneyTab } from "./order-money-tab";
 export { OrderFilesCard } from "./order-files-card";
 export { OrderRevisions } from "./order-revisions";
