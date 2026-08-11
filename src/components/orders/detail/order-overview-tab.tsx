@@ -191,7 +191,11 @@ function Field({
               : "text-slate-400 dark:text-slate-500"
         )}
       >
-        {filled ? children : (emptyText ?? "ยังไม่ระบุ")}
+        {/* ว่างเฉยๆ = ขีดเดียว (เบสสั่ง 2026-08-11) — เดิมขึ้น "ยังไม่ระบุ" ทุกช่อง
+            ซึ่งดังเท่าข้อมูลจริงและมีหลายช่องพร้อมกัน ตาต้องอ่านทุกแถวก่อนรู้ว่าแถวไหนมีของ
+            ยกเว้นช่องที่ "ว่างแล้วมีผลกระทบ" (เลขภาษี/ที่อยู่ส่งของ) ซึ่งส่ง emptyText มาเอง —
+            ขีดจะกลืนไปกับช่องว่างธรรมดาแล้วไม่มีใครเห็นว่างานติด */}
+        {filled ? children : (emptyText ?? "-")}
       </dd>
     </div>
   );
@@ -620,25 +624,23 @@ export function OrderOverviewTab({
               </FieldGrid>
             ) : (
               /* ยังไม่กรอก → เอาที่อยู่ลูกค้ามาวางต่อทันที คนกรอกจะได้ก๊อปได้เลย
-                 ไม่ต้องเปิดหน้าลูกค้าอีกแท็บแล้วสลับไปมา (ขั้นตอนที่เสียเวลาที่สุดของงานนี้) */
-              <div className="space-y-3">
-                <p className="text-sm text-slate-400 dark:text-slate-500">
-                  ยังไม่กรอกที่อยู่ส่งของ
-                </p>
-                <div className="rounded-xl bg-slate-100 p-3 dark:bg-black/25">
-                  <p className="mb-1 text-xs text-muted">ที่อยู่ลูกค้า (ก๊อปมาใช้ได้)</p>
-                  <p
-                    className={cn(
-                      "text-sm [overflow-wrap:anywhere]",
-                      customer?.address
-                        ? "text-strong"
-                        : "text-slate-400 dark:text-slate-500"
-                    )}
-                  >
-                    {customer?.address || "ลูกค้ายังไม่มีที่อยู่ในระบบ"}
+                 ไม่ต้องเปิดหน้าลูกค้าอีกแท็บแล้วสลับไปมา (ขั้นตอนที่เสียเวลาที่สุดของงานนี้)
+                 ลูกค้าไม่มีที่อยู่ด้วย = กล่องก๊อปไม่มีประโยชน์ เหลือขีดเดียวพอ (เบสสั่ง 2026-08-11) */
+              customer?.address ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-400 dark:text-slate-500">
+                    ยังไม่กรอกที่อยู่ส่งของ
                   </p>
+                  <div className="rounded-xl bg-slate-100 p-3 dark:bg-black/25">
+                    <p className="mb-1 text-xs text-muted">ที่อยู่ลูกค้า (ก๊อปมาใช้ได้)</p>
+                    <p className="text-sm text-strong [overflow-wrap:anywhere]">
+                      {customer.address}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p className="text-sm text-slate-400 dark:text-slate-500">-</p>
+              )
             )}
           </Group>
 
