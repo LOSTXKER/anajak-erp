@@ -40,6 +40,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
     ref
   ) => {
     const Heading = headingLevel === 3 ? "h3" : "h2";
+    const hasHeader = Boolean(title || description || action);
 
     return (
       <section
@@ -50,7 +51,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
         )}
         {...props}
       >
-        {(title || description || action) && (
+        {hasHeader && (
           <header
             className={cn(
               "flex items-start justify-between gap-3",
@@ -86,6 +87,11 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
         <div
           className={cn(
             !flush && bordered && (compact ? "px-5 pb-5" : "px-7 pb-7"),
+            /* ไม่มีหัวการ์ด = ต้องเติมระยะบนเอง — ระยะบนของการ์ดมาจาก header (pt-6/pt-4) มาตลอด
+               พอใช้ Section แบบไม่มีหัว (เกิดขึ้นครั้งแรกตอนทำแท็บ 2026-08-12 ที่ป้ายแท็บ
+               ทำหน้าที่หัวข้อแทน) เนื้อในเลยชนขอบบนการ์ด — เบสเห็นจากจอจริง
+               ใช้ค่าเดียวกับขอบข้าง/ล่าง ให้การ์ดมีขอบเท่ากันทั้งสี่ด้าน */
+            !flush && bordered && !hasHeader && (compact ? "pt-5" : "pt-7"),
             !bordered && ""
           )}
         >

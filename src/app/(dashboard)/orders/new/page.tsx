@@ -155,6 +155,17 @@ export default function NewOrderPage() {
     });
   }, []);
 
+  /* อ่านแท็บจาก URL "หลัง mount" ไม่ใช่ตอนตั้งค่าเริ่มต้น — หน้านี้ไม่ได้ห่อด้วย <Suspense>
+     (ต่างจากหน้ารายละเอียดออเดอร์) ฝั่ง server จึงมองไม่เห็น searchParams ตอน SSR
+     ถ้าอ่านตั้งแต่ตั้งค่าเริ่มต้น server จะได้ "intake" แต่ client ได้ "pricing"
+     → hydration mismatch แล้ว React ไม่ patch ให้ = แท็บค้างผิดใบทั้งหน้า (เจอจริง 2026-08-12)
+     แลกด้วยการกะพริบ 1 เฟรมตอนเปิดลิงก์ ?tab= ซึ่งเป็นทางเข้าที่ไม่บ่อย */
+  useEffect(() => {
+    const t = normalizeOrderFormTab(new URL(window.location.href).searchParams.get("tab"));
+    if (t) setTabState(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- อ่านครั้งเดียวตอน mount
+  }, []);
+
   // ปุ่มย้อนกลับของเบราว์เซอร์ต้องพากลับแท็บเดิม ไม่ใช่เด้งออกจากฟอร์มที่กรอกค้าง
   useEffect(() => {
     const onPop = () => {
