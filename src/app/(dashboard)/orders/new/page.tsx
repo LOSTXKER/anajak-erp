@@ -18,7 +18,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Section } from "@/components/ui/section";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsBar, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   ORDER_FORM_TABS,
   ORDER_FORM_DEFAULT_TAB,
@@ -571,8 +571,10 @@ export default function NewOrderPage() {
         )}
 
         <Tabs value={tab} onValueChange={changeTab}>
-          {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ (ที่เดียวกับที่แถบขั้นตอนเดิมอยู่) */}
-          <TabsList aria-label="ตอนของฟอร์มเปิดงาน" className="sticky top-0 z-20">
+          {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ (ที่เดียวกับที่แถบขั้นตอนเดิมอยู่)
+              TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บ */}
+          <TabsBar>
+          <TabsList aria-label="ตอนของฟอร์มเปิดงาน">
             {tabMarks.map((t) => (
               <TabsTrigger
                 key={t.key}
@@ -597,6 +599,7 @@ export default function NewOrderPage() {
               </TabsTrigger>
             ))}
           </TabsList>
+          </TabsBar>
 
           <TabsContent value="intake" className="mt-6">
           {/* รับเรื่อง — ลูกค้าเป็นช่องบังคับเพียงช่องเดียว */}

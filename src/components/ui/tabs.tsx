@@ -19,6 +19,32 @@ import { cn } from "@/lib/utils";
  */
 export const Tabs = TabsPrimitive.Root;
 
+/**
+ * แถบรองของ TabsList ตอนปักหมุด (sticky) — **ต้องใช้ทุกครั้งที่ TabsList เป็น sticky**
+ *
+ * ทำไมต้องมี: TabsList กว้างเท่าแท็บจริง (`w-fit`) พอปักหมุดแล้วเลื่อนหน้า
+ * ที่ว่างข้างๆ แถบเป็นพื้นโปร่ง → ตัวหนังสือของฟอร์มวิ่งทะลุขึ้นมาอยู่ข้างแท็บ
+ * (เบสเห็นบนจอจริง 2026-08-12: ช่อง "ช่องทาง" กับ "กำหนดส่ง" โผล่ข้างแถบ)
+ *
+ * สูตรนี้ยกมาจากแถบขั้นตอนเดิมของหน้าเปิดงานที่แก้ปัญหานี้ไปแล้ว —
+ * พื้นสีเดียวกับพื้นหน้า + ระยะบนล่าง + เส้นบางเป็นขอบให้รู้ว่าของเลื่อนลอดข้างใต้
+ * (-mx-1/px-1 เผื่อวงแหวนโฟกัสของแท็บไม่ให้โดนตัด)
+ */
+export function TabsBar({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "sticky top-0 z-20 -mx-1 border-b border-slate-200/70 bg-bg px-1 py-2 dark:border-white/10",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
 export const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>

@@ -53,7 +53,7 @@ import {
   ORDER_DEFAULT_TAB,
   type TabKey,
 } from "@/lib/order-tabs";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsBar, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Section } from "@/components/ui/section";
 import { AddCard } from "@/components/ui/add-card";
 import {
@@ -668,8 +668,10 @@ function OrderDetailContent({
           ผลพลอยได้: แถบแท็บไม่พาดคลุมของที่กดแล้วไม่เปลี่ยนอีกต่อไป (เบสบ่นเรื่องนี้ตรงๆ)
       ==================================================== */}
       <Tabs value={activeTab} onValueChange={changeTab}>
-        {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ */}
-        <TabsList aria-label="ส่วนของออเดอร์" className="sticky top-0 z-20">
+        {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้
+            TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บตอนเลื่อน */}
+        <TabsBar>
+        <TabsList aria-label="ส่วนของออเดอร์">
           {visibleTabs.map((t) => (
             <TabsTrigger
               key={t.key}
@@ -681,6 +683,7 @@ function OrderDetailContent({
             </TabsTrigger>
           ))}
         </TabsList>
+        </TabsBar>
 
       <div className="mt-6">
         <div>
