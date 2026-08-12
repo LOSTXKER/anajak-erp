@@ -300,7 +300,7 @@ function AgingPageContent() {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        className="shrink-0 text-muted hover:text-blue-700 dark:hover:text-blue-300"
+                        className="shrink-0 text-muted hover:text-strong dark:hover:text-strong"
                         aria-label={`ร่างข้อความทวง ${row.company || row.name}`}
                         onClick={() => {
                           setTone("gentle");

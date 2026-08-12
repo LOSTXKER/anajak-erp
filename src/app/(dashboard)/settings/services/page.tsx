@@ -441,7 +441,7 @@ export default function ServicesPage() {
                                 size="icon-sm"
                                 aria-label={`แก้ไข ${item.name}`}
                                 onClick={() => startEdit(item)}
-                                className="text-muted hover:text-blue-600 dark:hover:text-blue-400"
+                                className="text-muted hover:text-strong dark:hover:text-strong"
                               >
                                 <Pencil />
                               </Button>

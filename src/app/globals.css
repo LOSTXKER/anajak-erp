@@ -159,13 +159,13 @@
   --color-green-950: #052e16;
 
   /* ============================================================
-     ระบบสีพื้นผิว 2026-08-13 — neutral สงบ + interaction เป็นหมอกน้ำเงิน
+     ระบบสีพื้นผิว 2026-08-13 — neutral สงบ + interaction เป็นเทากลาง
 
        page            #f8f9fb  ผืนงานเกือบขาว
        chrome/surface  #ffffff  navigation / card
        sunk            #f3f5f7  กลุ่มย่อยและช่องค้นหา
        elevated        #ffffff  menu / dialog
-       hover/pressed   ฟ้าอ่อนมาก — บอกว่ากำลังโต้ตอบโดยไม่เป็นแถบเทาหนัก
+       hover/pressed   เทาอ่อน — บอกว่ากำลังโต้ตอบโดยไม่เป็นแถบเทาหนัก
 
      น้ำเงินแบรนด์ #3973b2 คงเดิมและสงวนให้ primary/selected/focus
      ============================================================ */
@@ -180,8 +180,8 @@
   --color-border-strong: #87919d;
   --color-divider: #e8ebef;
   --color-skeleton: #e2e6ea;
-  --color-interactive-hover: #eaf4fd;
-  --color-interactive-pressed: #ddebf8;
+  --color-interactive-hover: #eceef1;
+  --color-interactive-pressed: #e3e6e9;
   --color-interactive-selected: #d2e4f6;
   --color-interactive-selected-text: #305f93;
   --color-backdrop: rgb(15 23 42 / 0.28);
@@ -214,11 +214,19 @@
 }
 
 .dark {
-  /* Dark ใช้ blue-black แทนดำเทาตัน · depth อ่านทิศเดียวกับ light:
-     page < card < elevated ขณะที่ sunk จมลง และ interaction ยกด้วย hue น้ำเงิน */
+  /* Dark กลับเป็น neutral gray ตามบริบทใช้งานในโรงงาน · depth อ่านทิศเดียวกับ light:
+     chrome < page < card ขณะที่ sunk/field จมลง และ elevated ใช้ border/เงาแยกจาก card
+     hover/pressed เป็นเทากลาง ไม่ใช้ hue น้ำเงินแข่งกับ selected/focus/primary */
   /* compatibility utility: slate-400 ถูกใช้เป็นข้อความจริงใน markup เก่า จึงต้อง AA
      ทั้งสองธีม; print-page ด้านล่างยังล็อก grayscale ของเอกสารเอง */
-  --color-slate-400: #9ca6b2;
+  --color-slate-200: #e2e2e6;
+  --color-slate-300: #cbcbd0;
+  --color-slate-400: #a4a4aa;
+  --color-slate-600: #55555a;
+  --color-slate-700: #3f3f44;
+  --color-slate-800: #303034;
+  --color-slate-900: #1d1d1f;
+  --color-slate-950: #101012;
   /* shade 500 เป็นสีข้อความได้บน Light; ใน Dark สลับเป็นเฉดสว่างเพื่อให้ utility
      รุ่นเก่าที่ไม่มี dark: pair ยังอ่านได้ โดย 600 (Anajak blue) ไม่เปลี่ยน */
   --color-blue-500: #6b9cca;
@@ -226,28 +234,28 @@
   --color-yellow-500: #fbbf24;
   --color-amber-500: #fbbf24;
   --color-green-500: #4ade80;
-  --color-bg: #111418;
-  --color-surface: #181c22;
-  --color-surface-muted: #12161b;
-  --color-surface-elevated: #1d232b;
-  --color-field: #0c0f13;
-  --color-chrome: #0c0f13;
-  --color-border: #2d343d;
-  --color-field-border: #667789;
-  --color-placeholder: #87919d;
-  --color-border-strong: #667789;
-  --color-divider: #262d35;
-  --color-skeleton: #2d343d;
-  --color-interactive-hover: #1e2a36;
-  --color-interactive-pressed: #22374b;
+  --color-bg: #1a1a1c;
+  --color-surface: #252528;
+  --color-surface-muted: #1d1d1f;
+  --color-surface-elevated: #252528;
+  --color-field: #101012;
+  --color-chrome: #161618;
+  --color-border: #343438;
+  --color-field-border: #74747c;
+  --color-placeholder: #9a9aa1;
+  --color-border-strong: #74747c;
+  --color-divider: #303034;
+  --color-skeleton: #343438;
+  --color-interactive-hover: #303034;
+  --color-interactive-pressed: #38383c;
   --color-interactive-selected: #173c61;
   --color-interactive-selected-text: #c6daed;
   --color-backdrop: rgb(0 0 0 / 0.62);
 
-  --color-text: #f4f6f8;
-  --color-strong: #f4f6f8;
-  --color-secondary: #c9d0d9;
-  --color-muted: #9ca6b2;
+  --color-text: #f5f5f7;
+  --color-strong: #f5f5f7;
+  --color-secondary: #cbcbd0;
+  --color-muted: #a4a4aa;
 }
 
 html,

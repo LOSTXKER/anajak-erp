@@ -16,7 +16,13 @@ import { Input } from "../src/components/ui/input";
 import { Textarea } from "../src/components/ui/textarea";
 import { Button } from "../src/components/ui/button";
 import { DataTable } from "../src/components/ui/data-table";
-import { SUNK_PANEL } from "../src/components/ui/tokens";
+import {
+  ACTIVE_FILTER,
+  FOCUS_BUTTON,
+  FOCUS_FIELD,
+  FOCUS_INSET,
+  SUNK_PANEL,
+} from "../src/components/ui/tokens";
 import {
   CONTROL_H,
   CONTROL_H_SM,
@@ -280,9 +286,9 @@ check(
   }
 }
 
-// ⑧ hover/pressed เป็น interaction state ไม่ใช่พื้น structural
+// ⑧ hover/pressed เป็น semantic state แยกจากพื้น structural
 // เบสจับจากจอจริงว่าของเดิมใช้ slate-100 เท่ากับ surface-muted (#f2f2f4) พอดี
-// จึงชี้แล้วกลืน ด่านนี้กันไม่ให้ component กลับไปผูก state กับ neutral ramp อีก
+// จึงชี้แล้วกลืน ด่านนี้กันไม่ให้ component เขียน neutral utility เองจนกลับไปชนพื้นอีก
 {
   const roots = ["src/app/(dashboard)", "src/app/factory", "src/components"];
   const skip = [
@@ -292,6 +298,7 @@ check(
     join("src", "components", "layout", "mobile-sidebar.tsx"),
   ];
   const offenders: string[] = [];
+  const blueHoverOffenders: string[] = [];
   const oldNeutralInteraction =
     /(?:hover|active|group-hover|group-active|data-\[highlighted\]):bg-(?:slate-[0-9]+|white|black)(?:\/[0-9.\[\]]+)?/;
   function walk(dir: string) {
@@ -304,14 +311,21 @@ check(
           .split("\n")
           .forEach((line, index) => {
             if (oldNeutralInteraction.test(line)) offenders.push(`${p}:${index + 1}`);
+            const blueState = /(?:dark:)?(hover|active|group-hover|group-active|data-\[highlighted\]):(bg|text|border)-blue-[0-9]+(?:\/[0-9]+)?/g;
+            const baseClasses = line.replace(/\S*(?:hover|active|group-hover|group-active|data-\[highlighted\]):\S*/g, "");
+            for (const match of line.matchAll(blueState)) {
+              const property = match[2]!;
+              const alreadyBlue = new RegExp(`(?:^|[\\s\"'])${property}-blue-[0-9]+`).test(baseClasses);
+              if (!alreadyBlue) blueHoverOffenders.push(`${p}:${index + 1}`);
+            }
             const darkBaseCanMaskHover =
               /dark:bg-(?!interactive-hover)/.test(line) &&
               line.includes("hover:bg-interactive-hover") &&
-              !line.includes("dark:hover:bg-interactive-hover");
+              !/dark:(?:group-)?hover:bg-interactive-hover/.test(line);
             const darkBaseCanMaskPressed =
               /dark:bg-(?!interactive-pressed)/.test(line) &&
               line.includes("active:bg-interactive-pressed") &&
-              !line.includes("dark:active:bg-interactive-pressed");
+              !/dark:(?:group-)?active:bg-interactive-pressed/.test(line);
             if (darkBaseCanMaskHover || darkBaseCanMaskPressed) {
               offenders.push(`${p}:${index + 1} (dark base ทับ interaction)`);
             }
@@ -328,19 +342,94 @@ check(
   const tokenLayersValid = tokenCountsValid && hover.every((value, index) =>
     new Set([surfaceMuted[index], value, pressed[index]]).size === 3
   );
+  const interactionIsNeutral = [...hover, ...pressed].every((value) => {
+    const channels = hexRgb(value);
+    return Math.max(...channels) - Math.min(...channels) <= 6;
+  });
+  const surface = colorValues("surface");
+  const stateContrastIsBalanced = tokenCountsValid && surface.length === 2 && hover.every((value, index) => {
+    const hoverFromSurface = contrast(hexRgb(value), hexRgb(surface[index]!));
+    const pressedFromHover = contrast(hexRgb(pressed[index]!), hexRgb(value));
+    return hoverFromSurface >= 1.1 && hoverFromSurface <= 1.25 && pressedFromHover >= 1.05;
+  });
+  const darkSurfacesAreNeutral = [
+    "bg",
+    "chrome",
+    "surface",
+    "surface-muted",
+    "surface-elevated",
+    "field",
+    "slate-200",
+    "slate-300",
+    "slate-600",
+    "slate-700",
+    "slate-800",
+    "slate-900",
+    "slate-950",
+  ]
+    .every((name) => {
+      const value = colorValues(name)[1];
+      if (!value) return false;
+      const channels = hexRgb(value);
+      return Math.max(...channels) - Math.min(...channels) <= 6;
+    });
   const sunkIsStructural = !/(?:hover|active|focus|data-\[)/.test(SUNK_PANEL);
-  if (offenders.length || !tokenCountsValid || !tokenLayersValid || !sunkIsStructural) {
+  const brandBlueIsLocked = colorValues("blue-600")[0]?.toLowerCase() === "#3973b2";
+  const selectedStaysBlue = [
+    ...colorValues("interactive-selected"),
+    ...colorValues("interactive-selected-text"),
+  ].every((value) => {
+    const [red, green, blue] = hexRgb(value);
+    return blue - red >= 20 && blue - green >= 10;
+  });
+  const focusStaysBlue = [FOCUS_FIELD, FOCUS_BUTTON, FOCUS_INSET]
+    .every((token) => token.includes("blue-"));
+  const selectedControlStaysSelected =
+    ACTIVE_FILTER.includes("hover:bg-interactive-selected") &&
+    ACTIVE_FILTER.includes("active:bg-interactive-selected") &&
+    !ACTIVE_FILTER.includes("hover:bg-interactive-hover") &&
+    !ACTIVE_FILTER.includes("active:bg-interactive-pressed");
+  if (
+    offenders.length ||
+    blueHoverOffenders.length ||
+    !tokenCountsValid ||
+    !tokenLayersValid ||
+    !interactionIsNeutral ||
+    !stateContrastIsBalanced ||
+    !darkSurfacesAreNeutral ||
+    !brandBlueIsLocked ||
+    !selectedStaysBlue ||
+    !focusStaysBlue ||
+    !selectedControlStaysSelected ||
+    !sunkIsStructural
+  ) {
     failed++;
     console.log("❌ interaction state ยังผูกกับพื้นเทา หรือ token light/dark ไม่ครบ");
     offenders.forEach((o) => console.log(`   ${o}`));
+    blueHoverOffenders.forEach((o) => console.log(`   interaction เปลี่ยน neutral เป็นฟ้า: ${o}`));
     if (!tokenCountsValid || !tokenLayersValid) {
       console.log(`   surface=${surfaceMuted.join("/")}, hover=${hover.join("/")}, pressed=${pressed.join("/")}`);
+    }
+    if (!interactionIsNeutral) {
+      console.log(`   hover/pressed ต้องเป็น neutral gray: ${[...hover, ...pressed].join("/")}`);
+    }
+    if (!stateContrastIsBalanced) {
+      console.log("   hover ต้องเห็นบน surface แบบเบา และ pressed ต้องชัดกว่า hover");
+    }
+    if (!darkSurfacesAreNeutral) {
+      console.log("   พื้น Dark ต้องเป็น neutral gray ไม่ใช่ blue-black");
+    }
+    if (!brandBlueIsLocked || !selectedStaysBlue || !focusStaysBlue) {
+      console.log("   น้ำเงิน #3973b2 ต้องสงวนอยู่ที่ primary/selected/focus");
+    }
+    if (!selectedControlStaysSelected) {
+      console.log(`   selected control ต้องไม่กลับเป็น neutral ตอนชี้/กด: ${ACTIVE_FILTER}`);
     }
     if (!sunkIsStructural) {
       console.log(`   SUNK_PANEL ต้องไม่มี interaction state: ${SUNK_PANEL}`);
     }
   } else {
-    console.log("✅ interaction hover/pressed แยกจากพื้น structural และมีครบสองธีม");
+    console.log("✅ neutral interaction สมดุล · Dark ไม่อมฟ้า · primary/selected/focus ยังเป็นน้ำเงิน");
   }
 }
 

@@ -376,7 +376,7 @@ function WhtRegisterPageContent() {
                           asChild
                           variant="ghost"
                           size="icon-sm"
-                          className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+                          className="text-slate-400 hover:text-strong dark:hover:text-strong"
                         >
                           <a
                             href={row.fileUrl}

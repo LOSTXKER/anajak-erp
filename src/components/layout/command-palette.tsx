@@ -326,7 +326,7 @@ export function CommandPalette({
                   <button
                     type="button"
                     onClick={() => entityQuery.refetch()}
-                    className={cn(CONTROL_MIN_H, "shrink-0 rounded-lg px-3 font-medium text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-950/40")}
+                    className={cn(CONTROL_MIN_H, "shrink-0 rounded-lg px-3 font-medium text-blue-700 hover:bg-interactive-hover dark:text-blue-300 dark:hover:bg-interactive-hover")}
                   >
                     ลองใหม่
                   </button>

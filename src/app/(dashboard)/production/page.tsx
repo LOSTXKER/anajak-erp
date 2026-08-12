@@ -646,7 +646,7 @@ function OrderCardHeader({ order, href }: { order: KanbanOrder; href: string }) 
   return (
     <Link href={href} className="block space-y-1">
       <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-semibold text-slate-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
+        <span className="text-sm font-semibold text-slate-900 hover:text-strong dark:text-white dark:hover:text-strong">
           {order.orderNumber}
         </span>
         {order.priority && order.priority !== "NORMAL" && (

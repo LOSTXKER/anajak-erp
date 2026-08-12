@@ -183,7 +183,7 @@ export default function SettingsPage() {
                   href={link.href}
                   className="group card-surface card-surface-hover flex items-center gap-3 rounded-2xl p-4 transition-colors"
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors group-hover:bg-blue-50 group-hover:text-blue-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-blue-950/40 dark:group-hover:text-blue-300">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors group-hover:bg-interactive-hover group-hover:text-strong dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-interactive-hover dark:group-hover:text-strong">
                     <link.icon className="h-4 w-4" strokeWidth={1.75} />
                   </div>
                   <div className="min-w-0 flex-1">

@@ -81,7 +81,7 @@ export const FOCUS_FIELD_INVALID =
    ผิวของพื้นผิวแต่ละแบบ
    ------------------------------------------------------------ */
 
-/** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — light เป็นขาว, dark เป็น blue-black จมลง
+/** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — light เป็นขาว, dark เป็น neutral gray จมลง
  *  ขอบ field-border แยกจากขอบการ์ดโดยตั้งใจและผ่าน 3:1 กับ surface ทั้งสองธีม */
 export const FIELD_SURFACE =
   "border border-field-border bg-field text-strong placeholder:text-placeholder";
@@ -192,4 +192,4 @@ export const FIELD_LABEL =
  *  (blue-400/blue-900) ทั้งที่หมายถึงเรื่องเดียวกัน — คนอ่านหน้าจอเห็นว่า
  *  "กรองอยู่" ด้วยสีที่ไม่เท่ากันในแต่ละหน้า */
 export const ACTIVE_FILTER =
-  "border-blue-200 bg-interactive-selected text-interactive-selected-text hover:bg-interactive-pressed dark:border-blue-800";
+  "border-blue-200 bg-interactive-selected text-interactive-selected-text hover:bg-interactive-selected hover:text-interactive-selected-text active:bg-interactive-selected active:text-interactive-selected-text dark:border-blue-800";

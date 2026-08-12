@@ -231,7 +231,7 @@ function ProductsPageContent() {
                   <div className="space-y-1.5 p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-sm font-medium text-slate-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                        <h3 className="truncate text-sm font-medium text-slate-900 group-hover:text-strong dark:text-white dark:group-hover:text-strong">
                           {product.name}
                         </h3>
                         <p className="truncate text-2xs text-slate-500 dark:text-slate-400">

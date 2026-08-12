@@ -187,7 +187,7 @@ export function MaterialUsage({
             variant="outline"
             size="sm"
             onClick={() => setShowPicker(!showPicker)}
-            className="h-8 gap-1.5 border-blue-200 text-xs text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950"
+            className="h-8 gap-1.5 border-blue-200 text-xs text-blue-700 hover:bg-interactive-hover dark:border-blue-800 dark:text-blue-300 dark:hover:bg-interactive-hover"
           >
             <Plus />
             เพิ่มวัตถุดิบ

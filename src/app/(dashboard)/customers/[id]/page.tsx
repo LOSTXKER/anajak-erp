@@ -118,12 +118,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader><CardTitle className="text-base">ข้อมูลติดต่อ</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               {customer.phone && (
-                <a href={`tel:${customer.phone}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-blue-700 dark:text-slate-300 dark:hover:text-blue-300">
+                <a href={`tel:${customer.phone}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-strong dark:text-slate-300 dark:hover:text-strong">
                   <Phone className="h-4 w-4" /> {customer.phone}
                 </a>
               )}
               {customer.email && (
-                <a href={`mailto:${customer.email}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-blue-700 dark:text-slate-300 dark:hover:text-blue-300">
+                <a href={`mailto:${customer.email}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-strong dark:text-slate-300 dark:hover:text-strong">
                   <Mail className="h-4 w-4" /> {customer.email}
                 </a>
               )}
@@ -132,7 +132,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   href={`https://line.me/R/ti/p/~${encodeURIComponent(customer.lineId)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-blue-700 dark:text-slate-300 dark:hover:text-blue-300"
+                  className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-strong dark:text-slate-300 dark:hover:text-strong"
                 >
                   <MessageCircle className="h-4 w-4" /> {customer.lineId}
                 </a>

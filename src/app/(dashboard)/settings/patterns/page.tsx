@@ -453,7 +453,7 @@ export default function PatternsPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => { setEditingId(p.id); setEditData({}); }}
-                                className="h-8 w-8 p-0 text-muted hover:text-blue-600 dark:hover:text-blue-400"
+                                className="h-8 w-8 p-0 text-muted hover:text-strong dark:hover:text-strong"
                                 aria-label={`แก้ไขแพทเทิร์น ${p.name}`}
                               >
                                 <Pencil />

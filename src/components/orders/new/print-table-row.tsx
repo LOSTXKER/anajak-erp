@@ -82,7 +82,7 @@ export function PrintTableRow({
               DASHED,
               RADIUS.item,
               FOCUS_BUTTON,
-              "mx-auto flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:hover:text-blue-400"
+              "mx-auto flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 transition-colors hover:border-border-strong hover:text-strong dark:hover:text-strong"
             )}
           >
             {uploading ? <Spinner size="md" /> : <Plus />}

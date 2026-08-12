@@ -242,7 +242,7 @@ export function DatePicker({
                 onChange(format(new Date(), "yyyy-MM-dd"));
                 setOpen(false);
               }}
-              className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40")}
+              className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-blue-600 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:text-blue-400 dark:hover:bg-interactive-hover")}
             >
               วันนี้
             </button>

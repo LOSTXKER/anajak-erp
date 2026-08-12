@@ -12,20 +12,21 @@
 
 ## สี — semantic system (`src/app/globals.css`)
 
-รอบ 2026-08-13 เปลี่ยนทั้ง Light/Dark เป็นระบบเดียวกัน: ฐาน neutral อมฟ้าเล็กน้อย,
-interaction เป็น “blue mist” จางแทนแถบเทา และคงน้ำเงิน Anajak `#3973b2` เป็นสีหลักเดิม
+รอบเก็บสี 2026-08-13 คง Light เกือบขาว คืน Dark เป็น neutral gray เข้มแบบเดิม
+และใช้ hover/pressed เป็นเทากลางแทนฟ้า · น้ำเงิน Anajak `#3973b2` สงวนให้ primary,
+selected และ focus เพื่อให้สถานะชี้กับสถานะเลือกไม่สื่อความหมายซ้ำกัน
 
 | บทบาท | Light | Dark | utility |
 |---|---|---|---|
-| พื้นหน้า | `#f8f9fb` | `#111418` | `bg-bg` |
-| navbar/sidebar | `#fff` | `#0c0f13` | `bg-chrome` |
-| card | `#fff` | `#181c22` | `bg-surface` / `card-surface` |
-| menu/dialog | `#fff` | `#1d232b` | `bg-surface-elevated` / `overlay-surface` |
-| กล่องจม | `#f3f5f7` | `#12161b` | `bg-surface-muted` / `SUNK_PANEL` |
-| ช่องกรอก | `#fff` | `#0c0f13` | `bg-field` / `FIELD_SURFACE` |
-| ขอบทั่วไป / เส้นคั่น | `#e2e6ea` / `#e8ebef` | `#2d343d` / `#262d35` | `border-border` / `border-divider` |
-| Hover | `#eaf4fd` | `#1e2a36` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
-| Pressed | `#ddebf8` | `#22374b` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
+| พื้นหน้า | `#f8f9fb` | `#1a1a1c` | `bg-bg` |
+| navbar/sidebar | `#fff` | `#161618` | `bg-chrome` |
+| card | `#fff` | `#252528` | `bg-surface` / `card-surface` |
+| menu/dialog | `#fff` | `#252528` | `bg-surface-elevated` / `overlay-surface` |
+| กล่องจม | `#f3f5f7` | `#1d1d1f` | `bg-surface-muted` / `SUNK_PANEL` |
+| ช่องกรอก | `#fff` | `#101012` | `bg-field` / `FIELD_SURFACE` |
+| ขอบทั่วไป / เส้นคั่น | `#e2e6ea` / `#e8ebef` | `#343438` / `#303034` | `border-border` / `border-divider` |
+| Hover | `#eceef1` | `#303034` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
+| Pressed | `#e3e6e9` | `#38383c` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
 | Selected | `#d2e4f6` | `#173c61` | `bg-interactive-selected text-interactive-selected-text` |
 
 **ข้อความใช้ semantic ก่อน** — ทุกค่าข้างล่างสลับธีมเองและผ่าน AA บน surface กับ interaction states:

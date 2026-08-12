@@ -85,7 +85,7 @@ export function OrderAttachmentsSection({
     <label
       className={cn(
         DASHED,
-        "flex min-h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-surface-muted px-3 py-2 text-sm text-secondary transition-colors hover:border-blue-400 hover:bg-interactive-hover hover:text-blue-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:hover:border-blue-300 dark:hover:text-blue-300",
+        "flex min-h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-surface-muted px-3 py-2 text-sm text-secondary transition-colors hover:border-border-strong hover:bg-interactive-hover hover:text-strong focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:hover:text-strong",
         !embedded && "w-full px-4 py-3.5"
       )}
     >

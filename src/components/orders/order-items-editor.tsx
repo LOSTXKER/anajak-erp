@@ -359,7 +359,7 @@ export function OrderItemsEditor({
               addItem();
               setExpandedItemIdx(items.length);
             }}
-            className={cn(DASHED, "flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm text-muted transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+            className={cn(DASHED, "flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm text-muted transition-colors hover:border-border-strong hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed")}
           >
             <Plus className="h-4 w-4" />
             เพิ่มรายการงานอีกชุด
@@ -375,7 +375,7 @@ export function OrderItemsEditor({
                 <button
                   type="button"
                   onClick={addFee}
-                  className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-700 dark:hover:bg-blue-950/20")}
+                  className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-border-strong hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed")}
                 >
                   <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
                   <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าธรรมเนียม — กดเพื่อเพิ่ม</span>

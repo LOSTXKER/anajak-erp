@@ -68,7 +68,7 @@ function QuickAddPattern({
             placeholder="ชื่อแพทเทิร์น เช่น คอกลมแขนสั้น"
           />
           {/* เป้านิ้ว ≥44px บนจอเล็ก — เดิม py-1 ได้ราว 26px กดพลาดตลอดบนมือถือ */}
-          <label className={cn(DASHED, RADIUS.item, CONTROL_MIN_H, "flex w-fit cursor-pointer items-center gap-1.5 px-3 py-1 text-xs text-muted transition-colors hover:border-blue-300 hover:text-strong")}>
+          <label className={cn(DASHED, RADIUS.item, CONTROL_MIN_H, "flex w-fit cursor-pointer items-center gap-1.5 px-3 py-1 text-xs text-muted transition-colors hover:border-border-strong hover:text-strong")}>
             <Plus className="h-3 w-3" />
             {file ? file.name : "แนบรูป/ไฟล์ (ไม่บังคับ)"}
             <input type="file" accept="image/*,.pdf,.ai,.psd" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />

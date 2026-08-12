@@ -254,7 +254,7 @@ export default function PackagingSettingsPage() {
                               size="icon-sm"
                               aria-label={`แก้ไข ${opt.name}`}
                               onClick={() => { setEditingId(opt.id); setEditName(opt.name); }}
-                              className="text-muted hover:text-blue-600 dark:hover:text-blue-400"
+                              className="text-muted hover:text-strong dark:hover:text-strong"
                             >
                               <Pencil />
                             </Button>

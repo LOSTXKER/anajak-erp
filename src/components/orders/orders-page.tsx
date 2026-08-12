@@ -536,7 +536,7 @@ function OrdersPageContent() {
                 size="icon-sm"
                 aria-label="ล้างตัวกรองความเร่งด่วน"
                 onClick={() => replaceListState({ attention: null, page: null })}
-                className="h-6 w-6 min-w-0 text-current hover:bg-blue-100 dark:hover:bg-blue-900"
+                className="h-6 w-6 min-w-0 text-current hover:bg-interactive-hover dark:hover:bg-interactive-hover"
               >
                 <X />
               </Button>
