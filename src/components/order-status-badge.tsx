@@ -10,6 +10,8 @@ interface OrderStatusBadgeProps {
   internalStatus?: InternalStatus;
   /** When true, renders compactly (e.g. inside table cells). */
   compact?: boolean;
+  /** ปรับบรรทัดสถานะภายในเฉพาะบริบทที่พื้นเปลี่ยน เช่น row hover */
+  subClassName?: string;
 }
 
 /** โทนของสถานะฝั่งลูกค้า — ปลายทาง (จบ/ยกเลิก) เท่านั้นที่ย้อมข้อความ */
@@ -32,6 +34,7 @@ export function OrderStatusBadge({
   customerStatus,
   internalStatus,
   compact,
+  subClassName,
 }: OrderStatusBadgeProps) {
   if (!customerStatus && !internalStatus) return null;
 
@@ -48,6 +51,7 @@ export function OrderStatusBadge({
       <StatusLabel
         label={internalLabel}
         tone="neutral"
+        subClassName={subClassName}
         className={compact ? undefined : "gap-0.5"}
       />
     );
@@ -63,6 +67,7 @@ export function OrderStatusBadge({
       // ซ่อนบรรทัดล่างเมื่อสะกดตรงกับบรรทัดบน (เช่น "กำลังผลิต / กำลังผลิต")
       // — เขียนซ้ำไม่ได้บอกอะไรเพิ่ม มีแต่ทำให้สงสัยว่าต่างกันตรงไหน
       sub={internalLabel}
+      subClassName={subClassName}
       className={compact ? undefined : "gap-0.5"}
     />
   );

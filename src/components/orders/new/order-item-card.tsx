@@ -224,7 +224,7 @@ export function OrderItemCard({
                   onChange={(e) => {
                     if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
                   }}
-                  className="w-auto appearance-none rounded-lg border-0 bg-transparent pl-7 pr-2 text-slate-600 hover:bg-slate-100 sm:text-xs dark:text-slate-400 dark:hover:bg-slate-800"
+                  className="w-auto appearance-none rounded-lg border-0 bg-transparent pl-7 pr-2 text-slate-600 hover:bg-interactive-hover hover:text-secondary sm:text-xs dark:text-slate-400 dark:hover:bg-interactive-hover dark:hover:text-secondary"
                 >
                   <option value="">คัดลอกลาย...</option>
                   {otherItemsWithPrints.map(({ it, idx }) => (

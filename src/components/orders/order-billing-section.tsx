@@ -241,7 +241,7 @@ export function OrderBillingSection({
                         rel="noreferrer"
                         aria-label={`พิมพ์หรือเปิด PDF ${inv.invoiceNumber}`}
                         title="พิมพ์ / PDF"
-                        className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400")}
+                        className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-interactive-hover hover:text-blue-600", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:text-blue-400")}
                       >
                         <Printer className="h-3.5 w-3.5" />
                       </a>

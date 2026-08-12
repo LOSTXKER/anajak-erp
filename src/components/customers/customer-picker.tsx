@@ -269,12 +269,12 @@ export function CustomerPicker({
                       pick(c);
                       closeCreate();
                     }}
-                    className="flex w-full items-center justify-between rounded-lg bg-white px-2.5 py-1.5 text-left text-sm shadow-sm hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800"
+                    className="group flex w-full items-center justify-between rounded-lg bg-white px-2.5 py-1.5 text-left text-sm shadow-sm hover:bg-interactive-hover active:bg-interactive-pressed dark:bg-slate-900 dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
                   >
                     <span>
                       {c.name}
-                      {c.company && <span className="text-muted"> ({c.company})</span>}
-                      <span className="ml-1.5 text-xs text-slate-400">
+                      {c.company && <span className="text-muted group-hover:text-secondary group-active:text-secondary"> ({c.company})</span>}
+                      <span className="ml-1.5 text-xs text-slate-400 group-hover:text-secondary group-active:text-secondary">
                         {[c.phone, c.lineId].filter(Boolean).join(" · ")}
                       </span>
                     </span>

@@ -148,18 +148,21 @@ function DesktopStatusButton({
       title={`${fullLabel} · ${count} งาน`}
       onClick={onPress}
       className={cn(
-        "rounded-lg px-1 py-1.5 text-center transition-colors",
+        "group rounded-lg px-1 py-1.5 text-center transition-colors",
         FOCUS_BUTTON,
         isOn
           ? "bg-blue-50 text-blue-700 hairline-ring dark:bg-blue-950/40 dark:text-blue-300"
-          : "hover:bg-slate-50 dark:hover:bg-slate-800/50",
+          : "hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed",
       )}
     >
       <span
         className={cn(
           "block text-lg font-semibold leading-none tabular-nums",
           count === 0
-            ? "font-normal text-slate-500 dark:text-slate-400"
+            ? cn(
+                "font-normal text-slate-500 dark:text-slate-400",
+                !isOn && "group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary",
+              )
             : isOn
               ? "text-blue-700 dark:text-blue-300"
               : "text-slate-900 dark:text-white",
@@ -173,7 +176,7 @@ function DesktopStatusButton({
           isFlowStatus ? "block truncate" : "inline-flex items-center gap-1",
           isOn
             ? "font-medium text-blue-700 dark:text-blue-300"
-            : "text-slate-500 dark:text-slate-400",
+            : "text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary",
         )}
       >
         {isFlowStatus ? null : (

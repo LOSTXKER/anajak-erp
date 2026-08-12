@@ -85,7 +85,7 @@ export function StepQtySheet({
             <button
               type="button"
               onClick={() => setValue(String(remaining))}
-              className={cn(DASHED, "min-h-11 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50")}
+              className={cn(DASHED, "min-h-11 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:text-slate-300 dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed")}
             >
               ครบที่เหลือ ({remaining} ตัว)
             </button>

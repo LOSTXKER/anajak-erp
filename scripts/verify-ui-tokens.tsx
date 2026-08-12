@@ -16,6 +16,7 @@ import { Input } from "../src/components/ui/input";
 import { Textarea } from "../src/components/ui/textarea";
 import { Button } from "../src/components/ui/button";
 import { DataTable } from "../src/components/ui/data-table";
+import { SUNK_PANEL } from "../src/components/ui/tokens";
 import {
   CONTROL_H,
   CONTROL_H_SM,
@@ -115,6 +116,24 @@ check("ปุ่ม", renderToStaticMarkup(<Button>ก</Button>), [
   "focus-visible:ring-offset-white",
 ]);
 check("ปุ่มขนาดเล็ก", renderToStaticMarkup(<Button size="sm">ก</Button>), hSm, ["sm:h-8", "sm:min-h-8"]);
+check(
+  "ปุ่มรองตอบสนองด้วย interaction semantic",
+  renderToStaticMarkup(<Button variant="ghost">ก</Button>),
+  [
+    "hover:bg-interactive-hover",
+    "hover:text-strong",
+    "active:bg-interactive-pressed",
+    "dark:hover:bg-interactive-hover",
+    "dark:active:bg-interactive-pressed",
+  ],
+  ["hover:bg-slate-50", "hover:bg-slate-100"],
+);
+check(
+  "ปุ่มอันตรายโหมดมืดไม่ย้อนเป็นแดงอ่อน",
+  renderToStaticMarkup(<Button variant="destructive">ลบ</Button>),
+  ["dark:bg-red-700", "dark:hover:bg-red-800", "dark:active:bg-red-900"],
+  ["dark:bg-red-600", "dark:hover:bg-red-500"],
+);
 
 // ⑥ หัวตารางบน surface ใช้สีเดียวกับกล่องใน light และคงชั้นเดิมใน dark
 check(
@@ -149,7 +168,9 @@ check(
         readFileSync(p, "utf8")
           .split("\n")
           .forEach((line, i) => {
-            if (bare.test(line) && !line.includes("dark:text-")) {
+            const hasDarkPair =
+              line.includes("dark:text-") || line.includes("dark:hover:[&_.text-slate-");
+            if (bare.test(line) && !hasDarkPair) {
               offenders.push(`${p}:${i + 1}`);
             }
           });
@@ -164,6 +185,68 @@ check(
     if (offenders.length > 20) console.log(`   ...และอีก ${offenders.length - 20} จุด`);
   } else {
     console.log("✅ ไม่มีตัวหนังสือ slate หลักที่ลืมธีมมืดในโซนสลับธีม");
+  }
+}
+
+// ⑧ hover/pressed เป็น interaction state ไม่ใช่พื้น structural
+// เบสจับจากจอจริงว่าของเดิมใช้ slate-100 เท่ากับ surface-muted (#f2f2f4) พอดี
+// จึงชี้แล้วกลืน ด่านนี้กันไม่ให้ component กลับไปผูก state กับ neutral ramp อีก
+{
+  const roots = ["src/app/(dashboard)", "src/app/factory", "src/components"];
+  const skip = [join("src", "components", "print")];
+  const offenders: string[] = [];
+  const oldNeutralInteraction =
+    /(?:hover|active):bg-slate-(?:50|100)|data-\[highlighted\]:bg-slate-(?:50|100)/;
+  function walk(dir: string) {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (skip.some((s) => p.startsWith(s))) continue;
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.tsx?$/.test(name)) {
+        readFileSync(p, "utf8")
+          .split("\n")
+          .forEach((line, index) => {
+            if (oldNeutralInteraction.test(line)) offenders.push(`${p}:${index + 1}`);
+            const darkBaseCanMaskHover =
+              /dark:bg-(?!interactive-hover)/.test(line) &&
+              line.includes("hover:bg-interactive-hover") &&
+              !line.includes("dark:hover:bg-interactive-hover");
+            const darkBaseCanMaskPressed =
+              /dark:bg-(?!interactive-pressed)/.test(line) &&
+              line.includes("active:bg-interactive-pressed") &&
+              !line.includes("dark:active:bg-interactive-pressed");
+            if (darkBaseCanMaskHover || darkBaseCanMaskPressed) {
+              offenders.push(`${p}:${index + 1} (dark base ทับ interaction)`);
+            }
+          });
+      }
+    }
+  }
+  roots.forEach(walk);
+
+  const globals = readFileSync("src/app/globals.css", "utf8");
+  const values = (name: string) =>
+    [...globals.matchAll(new RegExp(`--color-${name}:\\s*([^;]+);`, "g"))].map((m) => m[1]?.trim());
+  const surfaceMuted = values("surface-muted");
+  const hover = values("interactive-hover");
+  const pressed = values("interactive-pressed");
+  const tokenCountsValid = hover.length === 2 && pressed.length === 2 && surfaceMuted.length === 2;
+  const tokenLayersValid = tokenCountsValid && hover.every((value, index) =>
+    new Set([surfaceMuted[index], value, pressed[index]]).size === 3
+  );
+  const sunkIsStructural = !/(?:hover|active|focus|data-\[)/.test(SUNK_PANEL);
+  if (offenders.length || !tokenCountsValid || !tokenLayersValid || !sunkIsStructural) {
+    failed++;
+    console.log("❌ interaction state ยังผูกกับพื้นเทา หรือ token light/dark ไม่ครบ");
+    offenders.forEach((o) => console.log(`   ${o}`));
+    if (!tokenCountsValid || !tokenLayersValid) {
+      console.log(`   surface=${surfaceMuted.join("/")}, hover=${hover.join("/")}, pressed=${pressed.join("/")}`);
+    }
+    if (!sunkIsStructural) {
+      console.log(`   SUNK_PANEL ต้องไม่มี interaction state: ${SUNK_PANEL}`);
+    }
+  } else {
+    console.log("✅ interaction hover/pressed แยกจากพื้น structural และมีครบสองธีม");
   }
 }
 

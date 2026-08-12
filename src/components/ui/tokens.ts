@@ -101,6 +101,19 @@ export const FIELD_MEASURE = "max-w-[calc(50%-0.5rem)]";
 // เดิม white/5 สว่างกว่าการ์ด → ลำดับซิกแซก การ์ด<แผง>ช่องกรอก อ่านทิศความลึกไม่ออก
 export const SUNK_PANEL = "bg-surface-muted dark:bg-black/25";
 
+/** ของที่กดได้ตอนชี้ — คนละชั้นกับ SUNK_PANEL เสมอ
+ * แยก hover/pressed คนละ token เพื่อให้แถวที่ใช้แค่ช่วยไล่สายตาไม่หลอกว่ากดได้ */
+export const INTERACTIVE_HOVER =
+  "hover:bg-interactive-hover hover:text-strong dark:hover:bg-interactive-hover dark:hover:text-strong";
+
+/** feedback ตอนกำลังกด — compose เฉพาะ element ที่มี action จริง */
+export const INTERACTIVE_PRESSED =
+  "active:bg-interactive-pressed active:text-strong dark:active:bg-interactive-pressed dark:active:text-strong";
+
+/** ของที่กำลังถูกเลือก — เข้มกว่า hover แต่ยังไม่แย่งปุ่ม action หลัก */
+export const INTERACTIVE_SELECTED =
+  "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300";
+
 /** กล่องที่ลอยขึ้นมาทับเนื้อหา — เมนู · ปฏิทิน · ตัวกรอง · กล่องเด้ง
  *  .overlay-surface (globals.css) ให้ทั้งพื้นและเงามาแล้ว — ห้ามใส่ bg-white/border ซ้ำ
  *  ของเดิม 6 จุดใส่ซ้ำ ทำให้ในโหมดมืดได้ขอบสว่างซ้อนเงา และมุมโค้งไม่ตรงกัน */
@@ -118,7 +131,7 @@ export const DASHED = "border border-dashed border-slate-300 dark:border-slate-7
 
 /** ตัวเลือกหนึ่งบรรทัดในเมนูที่กางออกมา — สถานะชี้/ถูกเลือก/กดไม่ได้ ชุดเดียวกันทุกเมนู */
 export const MENU_ITEM =
-  "relative flex cursor-pointer select-none items-center justify-between gap-2 px-3 text-sm outline-none data-[highlighted]:bg-slate-100 data-[state=checked]:bg-blue-50 data-[state=checked]:font-medium data-[state=checked]:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:data-[highlighted]:bg-white/10 dark:data-[state=checked]:bg-blue-950/50 dark:data-[state=checked]:text-blue-300";
+  "relative flex cursor-pointer select-none items-center justify-between gap-2 px-3 text-sm outline-none data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong data-[state=checked]:bg-blue-50 data-[state=checked]:font-medium data-[state=checked]:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:data-[state=checked]:bg-blue-950/50 dark:data-[state=checked]:text-blue-300";
 
 /** เส้นคั่นในเมนูที่กางออกมา — เดิมเขียนซ้ำคำต่อคำ 4 จุด (เมนูโปรไฟล์ 2 · เมนู "…" ของออเดอร์ 2)
  *  โหมดมืดเคยใช้ slate-800 ซึ่งเข้มกว่าพื้นกล่องลอย = เส้นหายไปเลย

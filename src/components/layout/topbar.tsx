@@ -116,7 +116,7 @@ export function Topbar() {
           RADIUS.pill,
           FOCUS_BUTTON,
           // Navbar ขาว — ช่องค้นหาใช้เทาอ่อนเป็นของที่จมลงไป ให้เห็นว่าตรงนี้กดได้
-          "group flex w-full min-w-0 max-w-md items-center gap-2 bg-surface-muted/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-surface-muted hover:text-slate-600 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-white/10",
+          "group flex w-full min-w-0 max-w-md items-center gap-2 bg-surface-muted/70 px-3 text-sm text-slate-400 hairline-ring transition-colors hover:bg-interactive-hover hover:text-slate-600 sm:px-4 dark:bg-white/[0.06] dark:hover:bg-interactive-hover dark:hover:text-secondary",
         )}
       >
         <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -208,7 +208,7 @@ export function Topbar() {
                         if (!notif.isRead) markRead.mutate({ id: notif.id });
                         setNotifOpen(false);
                       }}
-                      className={`flex gap-2 border-b border-slate-50 px-3.5 py-2.5 transition-colors last:border-0 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.06] ${
+                      className={`flex gap-2 border-b border-slate-50 px-3.5 py-2.5 transition-colors last:border-0 hover:bg-interactive-hover dark:border-white/10 ${
                         !notif.isRead
                           ? "bg-blue-50/40 dark:bg-blue-950/20"
                           : ""
@@ -245,7 +245,7 @@ export function Topbar() {
                 <Link
                   href="/notifications"
                   onClick={() => setNotifOpen(false)}
-                  className="block px-3.5 py-2 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-blue-400"
+                  className="block px-3.5 py-2 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-interactive-hover hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
                 >
                   ดูทั้งหมด
                 </Link>

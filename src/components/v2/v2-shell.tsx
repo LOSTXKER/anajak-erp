@@ -29,7 +29,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CONTROL_H, CONTROL_MIN_H } from "@/components/ui/control-size";
-import { FOCUS_BUTTON, FOCUS_INSET, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
+import {
+  FOCUS_BUTTON,
+  FOCUS_INSET,
+  INTERACTIVE_HOVER,
+  INTERACTIVE_PRESSED,
+  INTERACTIVE_SELECTED,
+  RADIUS,
+  SUNK_PANEL,
+} from "@/components/ui/tokens";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UserMenu } from "@/components/layout/user-menu";
 
@@ -99,8 +107,8 @@ function MoreMenu({
                         RADIUS.item,
                         "group flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
                         activeNavigationId === item.id
-                          ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
-                          : "text-secondary hover:bg-slate-100 hover:text-strong dark:hover:bg-white/[0.06]",
+                          ? INTERACTIVE_SELECTED
+                          : cn("text-secondary", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
                       )}
                     >
                       <item.icon className="h-4 w-4 text-muted" strokeWidth={1.75} />
@@ -192,7 +200,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="flex h-dvh overflow-hidden bg-bg"
+      className="grid h-dvh grid-cols-1 grid-rows-[4rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[15rem_minmax(0,1fr)]"
       style={
         {
           "--app-bottom-nav-offset":
@@ -212,23 +220,71 @@ function AppShellContent({ children }: { children: ReactNode }) {
         ข้ามไปเนื้อหาหลัก
       </a>
 
-      <aside className="hidden h-full w-60 shrink-0 border-r border-black/[0.07] bg-chrome lg:block dark:border-white/[0.07]">
-        <div className="flex h-full flex-col">
-          <div className="flex h-16 items-center gap-3 px-5">
-            <div
-              className={cn(
-                RADIUS.inner,
-                "flex h-9 w-9 items-center justify-center bg-blue-600 text-white",
-              )}
-            >
-              <Printer className="h-4 w-4" strokeWidth={1.75} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-strong">Anajak Print</p>
-            </div>
+      <header className="relative z-30 col-span-full row-start-1 flex h-16 min-w-0 items-center border-b border-black/[0.07] bg-chrome dark:border-white/[0.07]">
+        <Link
+          href="/"
+          aria-label="ภาพรวม"
+          className={cn(
+            FOCUS_BUTTON,
+            "flex h-full w-16 shrink-0 items-center justify-center lg:w-60 lg:justify-start lg:gap-3 lg:border-r lg:border-black/[0.07] lg:px-5 dark:lg:border-white/[0.07]",
+          )}
+        >
+          <div
+            className={cn(
+              RADIUS.inner,
+              "flex h-9 w-9 items-center justify-center bg-blue-600 text-white",
+            )}
+          >
+            <Printer className="h-4 w-4" strokeWidth={1.75} />
           </div>
+          <span className="hidden truncate text-sm font-semibold text-strong lg:block">
+            Anajak Print
+          </span>
+        </Link>
 
-          <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2 px-3 sm:px-5">
+          <button
+            ref={searchTriggerRef}
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            aria-label="ค้นหาเมนู ออเดอร์ ลูกค้า ใบเสนอราคา หรือบิล"
+            aria-haspopup="dialog"
+            className={cn(
+              CONTROL_H,
+              FOCUS_BUTTON,
+              RADIUS.pill,
+              SUNK_PANEL,
+              INTERACTIVE_HOVER,
+              INTERACTIVE_PRESSED,
+              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors sm:max-w-lg sm:px-4",
+            )}
+          >
+            <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+            <span className="min-w-0 flex-1 truncate text-left">ค้นหาเลขงาน ลูกค้า หรือเมนู</span>
+            <kbd className="hidden text-2xs sm:inline">⌘K</kbd>
+          </button>
+
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <Button asChild variant="ghost" size="icon" className="relative shrink-0">
+              <Link
+                href="/notifications"
+                aria-label={count > 0 ? `การแจ้งเตือน ยังไม่อ่าน ${count} รายการ` : "การแจ้งเตือน"}
+              >
+                <Bell />
+                {count > 0 && (
+                  <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-2xs font-semibold text-white ring-2 ring-chrome">
+                    {count > 99 ? "99+" : count}
+                  </span>
+                )}
+              </Link>
+            </Button>
+            <UserMenu />
+          </div>
+        </div>
+      </header>
+
+      <aside className="hidden min-h-0 border-r border-black/[0.07] bg-chrome lg:col-start-1 lg:row-start-2 lg:flex lg:flex-col dark:border-white/[0.07]">
+        <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
             <ul className="space-y-1">
               {primaryItems.map((item: AppNavItem) => {
                 const active = activeNavigationId === item.id;
@@ -243,8 +299,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
                         RADIUS.inner,
                         "group flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
                         active
-                          ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
-                          : "text-secondary hover:bg-slate-100 hover:text-strong dark:hover:bg-white/[0.06]",
+                          ? INTERACTIVE_SELECTED
+                          : cn("text-secondary", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
                       )}
                     >
                       <item.icon
@@ -263,25 +319,9 @@ function AppShellContent({ children }: { children: ReactNode }) {
               })}
             </ul>
 
-            <div className="my-5 h-px bg-slate-200 dark:bg-white/10" />
-            <button
-              type="button"
-              onClick={() => setPaletteOpen(true)}
-              className={cn(
-                CONTROL_H,
-                FOCUS_BUTTON,
-                RADIUS.pill,
-                SUNK_PANEL,
-                "flex w-full items-center gap-2 px-3 text-left text-sm text-muted transition-colors hover:text-strong",
-              )}
-            >
-              <Search className="h-4 w-4" strokeWidth={1.75} />
-              <span className="min-w-0 flex-1 truncate">ค้นหาทั้งระบบ</span>
-              <kbd className="text-2xs">⌘K</kbd>
-            </button>
-
-            <details
-              className="group mt-3"
+          <div className="my-5 h-px bg-slate-200 dark:bg-white/10" />
+          <details
+              className="group"
               open={secondaryActive || allMenuOpen}
               onToggle={(event) => {
                 if (!secondaryActive) setAllMenuOpen(event.currentTarget.open);
@@ -294,8 +334,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
                   RADIUS.inner,
                   "flex cursor-pointer list-none items-center gap-3 px-3 py-2 text-sm font-medium transition-colors [&::-webkit-details-marker]:hidden",
                   secondaryActive
-                    ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
-                    : "text-secondary hover:bg-slate-100 hover:text-strong dark:hover:bg-white/[0.06]",
+                    ? INTERACTIVE_SELECTED
+                    : cn("text-secondary", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
                 )}
               >
                 <MoreHorizontal className="h-[18px] w-[18px] text-muted" strokeWidth={1.75} />
@@ -322,8 +362,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
                                 RADIUS.inner,
                                 "flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
                                 active
-                                  ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
-                                  : "text-secondary hover:bg-slate-100 hover:text-strong dark:hover:bg-white/[0.06]",
+                                  ? INTERACTIVE_SELECTED
+                                  : cn("text-secondary", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
                               )}
                             >
                               <item.icon className="h-4 w-4 text-muted" strokeWidth={1.75} />
@@ -336,57 +376,19 @@ function AppShellContent({ children }: { children: ReactNode }) {
                   </div>
                 ))}
               </div>
-            </details>
-          </nav>
-        </div>
+          </details>
+        </nav>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-black/[0.07] bg-chrome px-3 sm:px-5 dark:border-white/[0.07]">
-          <Link href="/" className={cn(FOCUS_BUTTON, RADIUS.inner, "flex h-11 w-11 shrink-0 items-center justify-center bg-blue-600 text-white lg:hidden")} aria-label="ภาพรวม">
-            <Printer className="h-4 w-4" strokeWidth={1.75} />
-          </Link>
-          <button
-            ref={searchTriggerRef}
-            type="button"
-            onClick={() => setPaletteOpen(true)}
-            aria-label="ค้นหาเมนู ออเดอร์ ลูกค้า ใบเสนอราคา หรือบิล"
-            aria-haspopup="dialog"
-            className={cn(
-              CONTROL_H,
-              FOCUS_BUTTON,
-              RADIUS.pill,
-              SUNK_PANEL,
-              "group flex min-w-0 flex-1 items-center gap-2 px-3 text-sm text-muted transition-colors hover:text-strong sm:max-w-lg sm:px-4",
-            )}
-          >
-            <Search className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-            <span className="min-w-0 flex-1 truncate text-left">ค้นหาเลขงาน ลูกค้า หรือเมนู</span>
-            <kbd className="hidden text-2xs sm:inline">⌘K</kbd>
-          </button>
-
-          <Button asChild variant="ghost" size="icon" className="relative shrink-0">
-            <Link
-              href="/notifications"
-              aria-label={count > 0 ? `การแจ้งเตือน ยังไม่อ่าน ${count} รายการ` : "การแจ้งเตือน"}
-            >
-              <Bell />
-              {count > 0 && (
-                <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-2xs font-semibold text-white ring-2 ring-chrome">
-                  {count > 99 ? "99+" : count}
-                </span>
-              )}
-            </Link>
-          </Button>
-          <UserMenu />
-        </header>
-
-        <main id="main-content" tabIndex={-1} className="relative flex-1 overflow-y-auto outline-none">
-          <div className="mx-auto w-full max-w-screen-2xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
-            {children}
-          </div>
-        </main>
-      </div>
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="relative col-start-1 row-start-2 min-h-0 min-w-0 overflow-y-auto outline-none lg:col-start-2"
+      >
+        <div className="mx-auto w-full max-w-screen-2xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
+          {children}
+        </div>
+      </main>
 
       <nav
         aria-label="เมนูหลักบนมือถือ"
@@ -409,7 +411,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
                   CONTROL_MIN_H,
                   FOCUS_INSET,
                   RADIUS.item,
-                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs font-medium",
+                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs font-medium active:bg-interactive-pressed",
                   active ? "text-blue-700 dark:text-blue-300" : "text-muted",
                 )}
               >
@@ -428,7 +430,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
               CONTROL_MIN_H,
               FOCUS_INSET,
               RADIUS.item,
-              "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs font-medium",
+              "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs font-medium active:bg-interactive-pressed",
               mobileMoreActive ? "text-blue-700 dark:text-blue-300" : "text-muted",
             )}
           >

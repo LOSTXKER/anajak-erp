@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ Hover แยกชั้นชัด + Navbar เต็มจอแล้ว 2026-08-13 — จากภาพจริงของเบส**
+> สีเทาโครงสร้างเดิมยังคงหน้าที่ชัดเจน: page `#f7f7f8`, card/chrome `#fff`, sunk `#f2f2f4` · เพิ่ม semantic interaction แยกเป็น hover/pressed: light `#e2e2e6/#d4d4da`, dark `#3a3a3e/#47474c` · control, menu, table row, filter, calendar และจุดที่กดได้ใช้ชุดเดียวกัน แต่แถวตารางที่อ่านอย่างเดียวไม่มี pressed หลอก · metadata ที่อยู่บน hover ถูกดันสีเฉพาะบริบทเพื่อคง WCAG AA
+>
+> **AppShell:** header เป็นผืนเดียวเต็ม viewport แล้ว โลโก้อยู่ใน header เหนือ sidebar · sidebar/main เริ่มใต้ header และเลื่อนแยกกัน · search เหลือจุดเดียว ไม่ซ้ำใน sidebar · bell/user ชิดขวา · mobile bottom nav, safe-area และ sticky actions เดิมไม่ถอย · Command Palette จอเตี้ยจำกัดความสูงตามตำแหน่งจริง รายการสุดท้ายยังเห็นและ Escape คืน focus
+>
+> **verify production build:** 390/768/1023/1024/1440 header `x=0` และกว้างเท่า viewport, document ไม่ล้น/ไม่เป็น scroll owner · pointer จริง light: แถวขาว `transparent → #e2e2e6`, quick link `#f2f2f4 → #e2e2e6`; dark: search/quick link `black/25 → #3a3a3e` · บรรทัดสถานะบน hover เป็น `#3f3f44` (light) / `#cbd5e1` (dark) และปุ่มอันตราย base/hover/pressed ผ่าน AA · 390px bottom-nav target 56px และ sticky เปิดงานจบเหนือ nav 11px · 1024×800 palette จบ y=784 และรายการสุดท้าย y=707–743 · dashboard→orders, theme switch, keyboard/Escape/focus return ผ่าน · console/hydration error 0
+>
+> **ด่านโค้ด:** typecheck ผ่าน · lint 0 error (36 warningเดิม) · unit **685/685** · `verify:ui` เพิ่มด่านกัน hover กลับไปชน structural/dark cascade/SUNK contamination และผ่าน · `next build` ผ่าน · outsider audit 3 มุมไม่เหลือ P0/P1 · production server รันที่ `:3000`
+
 > **✅ V2 เลื่อนขึ้นเป็น UI หลักแล้ว + พื้นทั้งระบบขาวนวลขึ้น 2026-08-12 — URL เดิมคือของจริงชุดเดียว**
 > `/` และ `/orders`, `/orders/new`, `/orders/[id]` ใช้ shell/dashboard/order presentation ที่เบสเคาะจาก V2 โดยตรงแล้ว · `/v2*` เหลือ compatibility redirect ขนาดเล็กไป URL หลักและรักษา query/แท็บเดิม · ถ้า session หมดอายุ ระบบเก็บ canonical destination ใน `?next=` แล้วกลับหน้าเดิมหลัง login โดยตรวจ open redirect ซ้ำก่อนและหลังตัด prefix
 >

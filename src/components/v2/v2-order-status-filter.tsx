@@ -84,15 +84,15 @@ export function OrderStatusFilter({
           aria-pressed={!selected}
           onClick={() => onSelect("")}
           className={cn(
-            "inline-flex min-h-11 items-center gap-2 rounded-full px-3.5 text-sm font-medium transition-colors",
+            "group inline-flex min-h-11 items-center gap-2 rounded-full px-3.5 text-sm font-medium transition-colors",
             FOCUS_BUTTON,
             !selected
               ? "bg-blue-600 text-white"
-              : "bg-surface hairline-ring text-secondary hover:bg-slate-50 hover:text-strong dark:hover:bg-white/[0.06]",
+              : "bg-surface hairline-ring text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed",
           )}
         >
           ทั้งหมด
-          <span className={cn("text-xs tabular-nums", !selected ? "text-blue-100" : "text-muted")}>
+          <span className={cn("text-xs tabular-nums", !selected ? "text-blue-100" : "text-muted group-hover:text-secondary group-active:text-secondary")}>
             {countLabel(allCount)}
           </span>
         </button>
@@ -106,16 +106,16 @@ export function OrderStatusFilter({
               aria-pressed={active}
               onClick={() => onSelect(active ? "" : status)}
               className={cn(
-                "inline-flex min-h-11 items-center gap-2 rounded-full px-3.5 text-sm transition-colors",
+                "group inline-flex min-h-11 items-center gap-2 rounded-full px-3.5 text-sm transition-colors",
                 index >= 2 && "max-sm:hidden",
                 FOCUS_BUTTON,
                 active
                   ? "bg-blue-50 font-medium text-blue-700 hairline-ring dark:bg-blue-950/50 dark:text-blue-300"
-                  : "bg-surface hairline-ring text-secondary hover:bg-slate-50 hover:text-strong dark:hover:bg-white/[0.06]",
+                  : "bg-surface hairline-ring text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed",
               )}
             >
               {INTERNAL_STATUS_LABELS[status]}
-              <span className="text-xs tabular-nums text-muted">
+              <span className="text-xs tabular-nums text-muted group-hover:text-secondary group-active:text-secondary">
                 {countLabel(counts?.[status])}
               </span>
             </button>
@@ -128,11 +128,11 @@ export function OrderStatusFilter({
             className={cn(
               RADIUS.pill,
               FOCUS_BUTTON,
-              "bg-surface hairline-ring flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 px-3.5 text-sm font-medium text-secondary transition-colors hover:bg-slate-50 hover:text-strong sm:w-fit sm:justify-start dark:hover:bg-white/[0.06] [&::-webkit-details-marker]:hidden",
+              "bg-surface hairline-ring flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 px-3.5 text-sm font-medium text-secondary transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed sm:w-fit sm:justify-start dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed [&::-webkit-details-marker]:hidden",
             )}
           >
             ทุกสถานะ
-            <ChevronDown className="h-4 w-4 text-muted transition-transform group-open:rotate-180" />
+            <ChevronDown className="h-4 w-4 text-muted transition-transform group-hover:text-secondary group-active:text-secondary group-open:rotate-180" />
           </summary>
           <div className="mt-3 w-full max-w-full rounded-2xl bg-slate-50/80 p-3 dark:bg-white/[0.03]">
             <OrderStatusFlowBar

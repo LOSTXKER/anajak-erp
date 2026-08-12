@@ -330,11 +330,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     <Link
                       key={order.id}
                       href={`/orders/${order.id}`}
-                      className="flex items-center justify-between rounded-xl border border-slate-100 p-3 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                      className="group flex items-center justify-between rounded-xl border border-slate-100 p-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:border-slate-800 dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
                     >
                       <div>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{order.orderNumber}</p>
-                        <p className="text-xs text-muted">{order.title}</p>
+                        <p className="text-xs text-muted group-hover:text-secondary group-active:text-secondary">{order.title}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <OrderStatusBadge customerStatus={order.customerStatus} internalStatus={order.internalStatus} />

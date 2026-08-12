@@ -219,7 +219,7 @@ export default function NotificationsPage() {
                             if (notif.link) router.push(notif.link);
                           }}
                           className={cn(
-                            "flex w-full gap-3 px-5 py-3.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50",
+                            "group flex w-full gap-3 px-5 py-3.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed",
                             !notif.isRead && "bg-blue-50/40 dark:bg-blue-950/20"
                           )}
                         >
@@ -245,11 +245,11 @@ export default function NotificationsPage() {
                               )}
                             </div>
                             {notif.message && (
-                              <p className="mt-0.5 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+                              <p className="mt-0.5 line-clamp-2 text-sm text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary">
                                 {notif.message}
                               </p>
                             )}
-                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            <p className="mt-1 text-xs text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary">
                               {timeAgo(notif.createdAt)}
                             </p>
                           </div>

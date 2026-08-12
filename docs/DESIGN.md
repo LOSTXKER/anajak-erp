@@ -16,7 +16,7 @@
 |---|---|---|
 | Primitive | สีแบรนด์: `--color-anajak-blue #3973b2` · `--color-anajak-yellow #fec91b` · `--color-anajak-red #e72f27` | **ห้ามใช้ตรงใน component** |
 | Ramp | สเกล `blue-50..950` / `red-50..950` ของ Tailwind ถูก override เป็น ramp จากสีแบรนด์ (เลข 600 = สีแบรนด์เป๊ะ) | ใช้ utility ปกติ: `bg-blue-600`, `text-red-700` — ได้โทนแบรนด์อัตโนมัติ |
-| Semantic | พื้น: `--color-bg` (light `#f7f7f8` ขาวนวล) · `--color-chrome` / `--color-surface` (light `#fff`) · `--color-surface-muted` (light `#f2f2f4`) · ข้อความ: `--color-text` / `--color-strong` / `--color-secondary` / `--color-muted` | ใช้ผ่าน `bg-bg` / `bg-chrome` / `bg-surface` / `bg-surface-muted` และ `text-strong` / `text-secondary` / `text-muted` |
+| Semantic | พื้น: `--color-bg` (light `#f7f7f8` ขาวนวล) · `--color-chrome` / `--color-surface` (light `#fff`) · `--color-surface-muted` (light `#f2f2f4`) · interaction: `--color-interactive-hover` / `--color-interactive-pressed` · ข้อความ: `--color-text` / `--color-strong` / `--color-secondary` / `--color-muted` | ใช้ผ่าน `bg-bg` / `bg-chrome` / `bg-surface` / `bg-surface-muted` / `bg-interactive-hover` / `bg-interactive-pressed` และ `text-strong` / `text-secondary` / `text-muted` |
 
 > **แก้ 2026-08-02 จาก audit สี:** เคยมีสี semantic ที่ซ้ำกับ ramp อีก 17 ตัว (`accent` · `success` ·
 > `warning` · `danger` · `border` · `text-muted` ฯลฯ) เขียนไว้ในเอกสารนี้ว่า "ให้ใช้"
@@ -33,7 +33,7 @@
 | คำบรรยาย · วันที่ · meta | `text-muted` (ของเดิม: `text-slate-500 dark:text-slate-400`) |
 | ค่าว่าง / เลขศูนย์ | `text-slate-400 dark:text-slate-500` |
 | หัวตารางบนการ์ด | `TABLE_HEAD_SURFACE` (`bg-surface dark:bg-white/[0.03]`) |
-| พื้นที่จมลงไป — กล่องย่อยในการ์ดใช้ `SUNK_PANEL` (จม = **เข้มกว่า** พื้นเสมอ ทั้งสองธีม · เบสเคาะ 2026-08-04) · พื้นตอนชี้ | `SUNK_PANEL` (`bg-surface-muted dark:bg-black/25`) · hover `bg-slate-100 dark:bg-white/[0.06]` |
+| พื้นที่จมลงไป — กล่องย่อยในการ์ดใช้ `SUNK_PANEL` (จม = **เข้มกว่า** พื้นเสมอ ทั้งสองธีม · เบสเคาะ 2026-08-04) · พื้นตอนชี้ | `SUNK_PANEL` (`bg-surface-muted dark:bg-black/25`) · hover `bg-interactive-hover` · pressed `bg-interactive-pressed` (ห้ามกลับไป `slate-100` เพราะเท่ากับพื้นจม) |
 | เส้นคั่น | `border-slate-200 dark:border-white/10` (ในกล่องลอยใช้ `dark:bg-white/10`) |
 
 **โหมดมืดใช้ "ขาวโปร่ง" ไม่ใช่เทาเข้ม** — `bg-white/10` สว่างกว่าพื้นเสมอไม่ว่าวางบนการ์ด

@@ -273,7 +273,7 @@ export function DateRangePicker({
               type="button"
               aria-label="เดือนก่อนหน้า"
               onClick={() => setCursor((c) => subMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-interactive-hover hover:text-secondary sm:w-8 dark:hover:bg-interactive-hover dark:hover:text-secondary")}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -284,7 +284,7 @@ export function DateRangePicker({
               type="button"
               aria-label="เดือนถัดไป"
               onClick={() => setCursor((c) => addMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-interactive-hover hover:text-secondary sm:w-8 dark:hover:bg-interactive-hover dark:hover:text-secondary")}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -321,10 +321,10 @@ export function DateRangePicker({
                     isEdgeStart && !isEdgeEnd && "rounded-l-lg",
                     isEdgeEnd && !isEdgeStart && "rounded-r-lg",
                     isEdge && "rounded-lg bg-blue-600 font-semibold text-white",
-                    !inRange && "rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800",
+                    !inRange && "rounded-lg hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary",
                     !inMonth && !isEdge && "text-slate-300 dark:text-slate-600",
                     inMonth && !isEdge && "text-slate-700 dark:text-slate-200",
-                    isToday && !isEdge && "font-semibold text-blue-600 dark:text-blue-400",
+                    isToday && !isEdge && "font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300",
                   )}
                 >
                   {day.getDate()}
@@ -346,7 +346,7 @@ export function DateRangePicker({
                 setDraftStart(null);
                 setOpen(false);
               }}
-              className={cn(CONTROL_MIN_H, "inline-flex shrink-0 items-center rounded-full px-3 font-medium text-muted transition-colors hover:bg-slate-100 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_MIN_H, "inline-flex shrink-0 items-center rounded-full px-3 font-medium text-muted transition-colors hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary")}
             >
               ล้าง
             </button>

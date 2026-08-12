@@ -19,7 +19,7 @@ export function FilterChip({ selected, onClick, children, className }: FilterChi
         selected
           // "กรองอยู่" = ฟ้าอ่อนชุด ACTIVE_FILTER ทั้งระบบ — น้ำเงินทึบสงวนให้ปุ่มหลัก
           ? "bg-blue-50 text-blue-700 hairline-ring dark:bg-blue-950/40 dark:text-blue-300"
-          : "bg-white text-slate-600 hairline-ring hover:bg-slate-50 hover:text-slate-900 dark:bg-white/[0.06] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
+          : "bg-white text-slate-600 hairline-ring hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:bg-white/[0.06] dark:text-slate-300 dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed dark:active:text-strong",
         className,
       )}
     >

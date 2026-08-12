@@ -331,7 +331,7 @@ export function OrderDeliverySection({
                                 rel="noreferrer"
                                 title="ใบรายการแนบกล่อง"
                                 aria-label={`พิมพ์ใบรายการแนบกล่องสำหรับ ${delivery.recipientName}`}
-                                className={cn(CONTROL_H, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400")}
+                                className={cn(CONTROL_H, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 transition-colors hover:bg-interactive-hover hover:text-blue-600 sm:w-9 dark:hover:text-blue-400")}
                               >
                                 <Printer className="h-3.5 w-3.5" />
                               </a>

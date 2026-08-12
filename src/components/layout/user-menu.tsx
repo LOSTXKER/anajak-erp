@@ -15,7 +15,7 @@ const menuItemClass = cn(
   CONTROL_MIN_H,
   // โหมดมืด: แถบไฮไลต์เคยเป็น slate-800 ซึ่ง **เข้มกว่า** พื้นเมนู = ทำผิดทิศ
   // ไล่ลูกศรบนคีย์บอร์ดแล้วมองไม่ออกว่าค้างบรรทัดไหน (audit สี 2026-08-02)
-  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-white/10 dark:data-[highlighted]:text-white",
+  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong dark:text-slate-300",
 );
 
 export function UserMenu() {

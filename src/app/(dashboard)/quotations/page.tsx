@@ -173,7 +173,7 @@ function QuotationsPageContent() {
               <Link
                 key={q.id}
                 href={`/quotations/${q.id}`}
-                className={cn("card-surface block rounded-2xl p-4 transition-colors hover:bg-slate-50", FOCUS_BUTTON, "dark:hover:bg-slate-900")}
+                className={cn("card-surface group block rounded-2xl p-4 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed", FOCUS_BUTTON)}
                 aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -194,7 +194,7 @@ function QuotationsPageContent() {
                     <p className="truncate text-sm text-slate-700 dark:text-slate-300">
                       {q.customer.name}
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-0.5 text-xs text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary">
                       {formatDate(q.createdAt)}
                     </p>
                   </div>

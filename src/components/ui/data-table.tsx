@@ -4,7 +4,12 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FOCUS_INSET, TABLE_HEAD_SURFACE } from "./tokens";
+import {
+  FOCUS_INSET,
+  INTERACTIVE_HOVER,
+  INTERACTIVE_PRESSED,
+  TABLE_HEAD_SURFACE,
+} from "./tokens";
 
 /**
  * Minimal table primitive that gives every list page the same look-and-feel:
@@ -107,8 +112,9 @@ const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
         }
         className={cn(
           // ชี้แถวไหนต้องรู้ทันที — ตารางกว้างแล้วกดผิดแถวคือกดผิดออเดอร์
-          "transition-colors hover:bg-slate-100 dark:hover:bg-white/[0.06]",
-          href && "cursor-pointer active:bg-slate-100 dark:active:bg-white/[0.08]",
+          INTERACTIVE_HOVER,
+          "group transition-colors hover:[&_.text-muted]:text-secondary hover:[&_.text-slate-500]:text-secondary dark:hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-slate-500]:text-secondary",
+          href && cn("cursor-pointer", INTERACTIVE_PRESSED),
           className
         )}
         {...props}

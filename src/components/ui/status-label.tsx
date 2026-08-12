@@ -36,6 +36,7 @@ export function StatusLabel({
   sub,
   emphasize,
   className,
+  subClassName,
 }: {
   label: React.ReactNode;
   tone?: StatusTone;
@@ -44,6 +45,8 @@ export function StatusLabel({
   /** ย้อมข้อความตามโทน — ใช้กับสถานะปลายทาง (จบ/ยกเลิก/เกินกำหนด) */
   emphasize?: boolean;
   className?: string;
+  /** ปรับบรรทัดรองเฉพาะบริบท เช่น row ที่เปลี่ยนพื้นตอน hover */
+  subClassName?: string;
 }) {
   const showSub = sub != null && sub !== "" && sub !== label;
   return (
@@ -60,7 +63,7 @@ export function StatusLabel({
         {label}
       </span>
       {showSub && (
-        <span className="pl-3 text-2xs text-slate-500 dark:text-slate-400">
+        <span className={cn("pl-3 text-2xs text-slate-500 dark:text-slate-400", subClassName)}>
           {sub}
         </span>
       )}

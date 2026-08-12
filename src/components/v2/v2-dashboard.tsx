@@ -36,7 +36,14 @@ import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
-import { FOCUS_BUTTON, FOCUS_INSET, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
+import {
+  FOCUS_BUTTON,
+  FOCUS_INSET,
+  INTERACTIVE_HOVER,
+  INTERACTIVE_PRESSED,
+  RADIUS,
+  SUNK_PANEL,
+} from "@/components/ui/tokens";
 
 const ATTENTION_ICONS: Record<DashboardAttentionKind, ComponentType<{ className?: string }>> = {
   "overdue-order": CalendarClock,
@@ -70,7 +77,9 @@ function AttentionRow({ item }: { item: DashboardAttentionItem }) {
       className={cn(
         CONTROL_MIN_H,
         FOCUS_INSET,
-        "group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-slate-100 dark:hover:bg-white/[0.06]",
+        INTERACTIVE_HOVER,
+        INTERACTIVE_PRESSED,
+        "group flex items-center gap-3 px-5 py-3 transition-colors",
       )}
     >
       <div
@@ -87,7 +96,7 @@ function AttentionRow({ item }: { item: DashboardAttentionItem }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-strong">{item.title}</p>
         {item.kind === "outsource" && item.detail.startsWith("เลยกำหนด") && (
-          <p className="truncate text-xs text-muted">{item.detail}</p>
+          <p className="truncate text-xs text-muted group-hover:text-secondary group-active:text-secondary">{item.detail}</p>
         )}
       </div>
       <span
@@ -197,10 +206,10 @@ function QuickLink({
         CONTROL_MIN_H,
         FOCUS_BUTTON,
         RADIUS.inner,
-        "group flex min-h-16 items-center gap-3 p-3 transition-transform hover:-translate-y-0.5",
+        "group flex min-h-16 items-center gap-3 p-3 transition-all hover:-translate-y-0.5",
         primary
-          ? "bg-blue-600 text-white"
-          : cn(SUNK_PANEL, "text-secondary hover:text-strong"),
+          ? "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800"
+          : cn(SUNK_PANEL, INTERACTIVE_HOVER, INTERACTIVE_PRESSED, "text-secondary"),
       )}
     >
       <div
@@ -370,7 +379,9 @@ export function DashboardHome() {
                 className={cn(
                   CONTROL_MIN_H,
                   FOCUS_INSET,
-                  "group grid gap-3 px-5 py-4 transition-colors hover:bg-slate-100 dark:hover:bg-white/[0.06] sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center",
+                  INTERACTIVE_HOVER,
+                  INTERACTIVE_PRESSED,
+                  "group grid gap-3 px-5 py-4 transition-colors sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center",
                 )}
               >
                 <div className="min-w-0">
@@ -380,11 +391,11 @@ export function DashboardHome() {
                       <Badge variant="accent" size="sm">{order.printLabel}</Badge>
                     )}
                   </div>
-                  <p className="mt-1 truncate text-xs text-muted">
+                  <p className="mt-1 truncate text-xs text-muted group-hover:text-secondary group-active:text-secondary">
                     {order.customerName} · {order.title}
                   </p>
                   {order.deadline && (
-                    <p className="mt-1 text-2xs text-muted">กำหนด {formatDateShort(order.deadline)}</p>
+                    <p className="mt-1 text-2xs text-muted group-hover:text-secondary group-active:text-secondary">กำหนด {formatDateShort(order.deadline)}</p>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-3 sm:justify-end">
@@ -392,6 +403,7 @@ export function DashboardHome() {
                     customerStatus={order.customerStatus}
                     internalStatus={order.internalStatus}
                     compact
+                    subClassName="group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary"
                   />
                   {order.totalAmount != null && (
                     <p className="text-sm font-medium tabular-nums text-strong">{formatBaht(order.totalAmount)}</p>
