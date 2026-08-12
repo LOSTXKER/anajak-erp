@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildDashboardAttentionItems,
   type DashboardPulseData,
-} from "./v2-dashboard";
+} from "./dashboard";
 
 const CLEAR_PULSE: DashboardPulseData = {
   atRiskOrders: { overdue: 0, dueSoon: 0 },

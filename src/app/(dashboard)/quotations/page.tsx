@@ -5,7 +5,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { permAllows } from "@/lib/permissions";
-import { canCreateOrderWithPricing } from "@/lib/v2-order-access";
+import { canCreateOrderWithPricing } from "@/lib/order-access";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { TablePagination } from "@/components/ui/table-pagination";

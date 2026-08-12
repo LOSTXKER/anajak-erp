@@ -19,14 +19,14 @@ import {
   Users,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { canCreateOrderWithPricing } from "@/lib/v2-order-access";
+import { canCreateOrderWithPricing } from "@/lib/order-access";
 import { permAllows } from "@/lib/permissions";
 import { cn, formatBaht, formatDateShort } from "@/lib/utils";
 import {
   buildDashboardAttentionItems,
   type DashboardAttentionItem,
   type DashboardAttentionKind,
-} from "@/lib/v2-dashboard";
+} from "@/lib/dashboard";
 import { PageShell } from "@/components/page-shell";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -221,10 +221,9 @@ function QuickLink({
       >
         <Icon className="h-4 w-4" />
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{label}</p>
-      </div>
-      <ArrowRight className={cn("h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5", primary ? "text-white/80" : "text-muted")} />
+      <p className="min-w-0 flex-1 text-pretty text-sm font-semibold leading-snug">
+        {label}
+      </p>
     </Link>
   );
 }

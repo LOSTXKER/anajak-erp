@@ -1,4 +1,4 @@
-import { DashboardHome } from "@/components/v2/v2-dashboard";
+import { DashboardHome } from "@/components/dashboard/dashboard-home";
 
 export default function Page() {
   return <DashboardHome />;

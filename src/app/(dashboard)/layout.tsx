@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AppShell } from "@/components/v2/v2-shell";
+import { AppShell } from "@/components/layout/app-shell";
 import { getServerSession } from "@/lib/supabase-server";
 
 export default async function DashboardLayout({

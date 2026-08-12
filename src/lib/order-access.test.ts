@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canCreateOrderWithPricing } from "./v2-order-access";
+import { canCreateOrderWithPricing } from "./order-access";
 
 describe("order create access", () => {
   it("เปิดฟอร์มเมื่อมีทั้งสิทธิ์สร้างเอกสารขายและเห็นเงิน", () => {

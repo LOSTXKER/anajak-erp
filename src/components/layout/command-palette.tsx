@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { OVERLAY_PANEL } from "@/components/ui/tokens";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { canCreateOrderWithPricing } from "@/lib/v2-order-access";
+import { canCreateOrderWithPricing } from "@/lib/order-access";
 import { navigationItemsForSurface } from "@/lib/navigation";
 import { Spinner } from "@/components/ui/spinner";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";

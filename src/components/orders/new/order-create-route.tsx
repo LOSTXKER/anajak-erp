@@ -4,7 +4,7 @@ import OrderCreatePage from "@/components/orders/new/order-create-page";
 import { PageShell } from "@/components/page-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { canCreateOrderWithPricing } from "@/lib/v2-order-access";
+import { canCreateOrderWithPricing } from "@/lib/order-access";
 
 export function OrderCreateRoute() {
   const meQuery = trpc.user.me.useQuery();
@@ -12,7 +12,7 @@ export function OrderCreateRoute() {
 
   if (canCreateOrder) {
     return (
-      <OrderCreatePage />
+      <OrderCreatePage draftScope={meQuery.data!.id} />
     );
   }
 

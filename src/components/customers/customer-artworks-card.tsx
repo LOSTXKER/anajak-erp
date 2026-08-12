@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
-import { canCreateOrderWithPricing } from "@/lib/v2-order-access";
+import { canCreateOrderWithPricing } from "@/lib/order-access";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { isImageUrl } from "@/lib/utils";
