@@ -5,6 +5,7 @@ import { createAuditLog } from "@/server/helpers";
 import { moneyInput } from "@/server/services/money";
 import { computeQuotationTotals } from "@/server/services/pricing";
 import { isQuotationExpired, newConfirmToken } from "@/server/services/quotation-confirm";
+import { buildDocumentPartySnapshot } from "@/server/services/document-party";
 
 export interface QuotationDraftItemInput {
   name: string;
@@ -49,6 +50,7 @@ export async function updateQuotationDraft(
       select: {
         status: true,
         title: true,
+        customerId: true,
         validUntil: true,
         discount: true,
         tax: true,
@@ -69,10 +71,16 @@ export async function updateQuotationDraft(
       tax: params.tax,
     });
 
+    // ยังเป็นร่าง = ยังไม่ถึงมือลูกค้า → รีเฟรชสำเนาคู่สัญญาให้ตรงโปรไฟล์ล่าสุด
+    // (เบสสั่ง 2026-08-12) ไม่งั้นแก้ที่อยู่ลูกค้าแล้วมาแก้ร่างต่อ จะได้ใบที่พกที่อยู่เก่า
+    // ตั้งแต่ยังไม่ทันส่ง · พอกด "ส่งใบ" (prepareShare) snapshot ก็ตรึงตั้งแต่นั้น
+    const party = await buildDocumentPartySnapshot(tx, existing.customerId);
+
     await tx.quotationItem.deleteMany({ where: { quotationId: params.id } });
     const updated = await tx.quotation.update({
       where: { id: params.id },
       data: {
+        ...party,
         title: params.title,
         description: params.description ?? null,
         validUntil: params.validUntil,

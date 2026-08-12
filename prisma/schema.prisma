@@ -731,6 +731,27 @@ model Quotation {
   notes           String?
   // ลิงก์ยืนยันใบเสนอให้ลูกค้า (ก้อน 4) — gate หมดอายุใช้ validUntil (ไม่มี expiry แยก)
   confirmToken    String?   @unique @map("confirm_token")
+
+  /* สำเนาคู่สัญญา ณ วันออกใบ — ดูคำอธิบายเต็มที่ model Invoice
+     ใบเสนอราคาแก้ร่างได้หลังสร้าง จึงรีเฟรช snapshot ตอนแก้ร่างด้วย แล้วตรึงเมื่อส่งใบ
+     (sentAt) — ใบที่ส่งไปแล้วคือใบที่ลูกค้าถืออยู่ ห้ามเปลี่ยนตามโปรไฟล์ */
+  buyerName         String? @map("buyer_name")
+  buyerCompany      String? @map("buyer_company")
+  buyerTaxId        String? @map("buyer_tax_id")
+  buyerBranchNumber String? @map("buyer_branch_number")
+  buyerPhone        String? @map("buyer_phone")
+  buyerAddress      String? @map("buyer_address")
+  buyerSubDistrict  String? @map("buyer_sub_district")
+  buyerDistrict     String? @map("buyer_district")
+  buyerProvince     String? @map("buyer_province")
+  buyerPostalCode   String? @map("buyer_postal_code")
+  sellerName    String? @map("seller_name")
+  sellerAddress String? @map("seller_address")
+  sellerTaxId   String? @map("seller_tax_id")
+  sellerBranch  String? @map("seller_branch")
+  sellerPhone   String? @map("seller_phone")
+  sellerEmail   String? @map("seller_email")
+
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
@@ -1320,6 +1341,32 @@ model Invoice {
   issueDate    DateTime? @map("issue_date")
   // ใบเสร็จ/ใบกำกับที่ออกให้งวดรับเงินไหน — unique: 1 งวด 1 ใบ (กันออกซ้ำ/นับซ้ำถาวร)
   forPaymentId String?   @unique @map("for_payment_id")
+  /* ── สำเนาคู่สัญญา ณ วันออกเอกสาร (เบสสั่ง 2026-08-12) ──────────────────────
+     ห้ามอัปเดตตาม Customer/Setting ภายหลัง — นี่คือ "ต้นฉบับที่ลูกค้าถืออยู่"
+     เดิมหน้าพิมพ์ join สดทุกครั้ง → ย้ายออฟฟิศ/ลูกค้าแก้ที่อยู่ แล้วพิมพ์ใบเก่าซ้ำ
+     ได้ข้อมูลใหม่ทั้งกอง ไม่ตรงสำเนาที่ยื่นสรรพากรไปแล้ว (ม.86/4 บังคับว่าสำเนา
+     ต้องตรงต้นฉบับ) · nullable ทั้งหมด: ใบที่ออกก่อน migration นี้ยังพิมพ์ได้ด้วย
+     การถอยไปอ่านค่าสด (หน้าพิมพ์ทำ `snapshot ?? ค่าสด` ให้แล้ว)
+     ที่อยู่เก็บแยกช่องเหมือน Customer/Order/Delivery — ไม่ใช่ข้อความ format แล้ว
+     ────────────────────────────────────────────────────────────────────────── */
+  buyerName         String? @map("buyer_name")
+  buyerCompany      String? @map("buyer_company")
+  buyerTaxId        String? @map("buyer_tax_id")
+  buyerBranchNumber String? @map("buyer_branch_number") // เลขดิบ ("00000" = สำนักงานใหญ่) ไม่ใช่ป้าย
+  buyerPhone        String? @map("buyer_phone")
+  buyerAddress      String? @map("buyer_address")
+  buyerSubDistrict  String? @map("buyer_sub_district")
+  buyerDistrict     String? @map("buyer_district")
+  buyerProvince     String? @map("buyer_province")
+  buyerPostalCode   String? @map("buyer_postal_code")
+  // ผู้ขาย = กิจการเรา (Setting.company_profile แถวเดียวทั้งระบบ แก้ทับได้ไม่มี history)
+  sellerName    String? @map("seller_name")
+  sellerAddress String? @map("seller_address")
+  sellerTaxId   String? @map("seller_tax_id")
+  sellerBranch  String? @map("seller_branch")
+  sellerPhone   String? @map("seller_phone")
+  sellerEmail   String? @map("seller_email")
+
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -1413,6 +1460,25 @@ model BillingNote {
   isVoided          Boolean   @default(false) @map("is_voided")
   voidedReason      String?   @map("voided_reason")
   notes             String?
+
+  /* สำเนาคู่สัญญา ณ วันวางบิล — ดูคำอธิบายเต็มที่ model Invoice */
+  buyerName         String? @map("buyer_name")
+  buyerCompany      String? @map("buyer_company")
+  buyerTaxId        String? @map("buyer_tax_id")
+  buyerBranchNumber String? @map("buyer_branch_number")
+  buyerPhone        String? @map("buyer_phone")
+  buyerAddress      String? @map("buyer_address")
+  buyerSubDistrict  String? @map("buyer_sub_district")
+  buyerDistrict     String? @map("buyer_district")
+  buyerProvince     String? @map("buyer_province")
+  buyerPostalCode   String? @map("buyer_postal_code")
+  sellerName    String? @map("seller_name")
+  sellerAddress String? @map("seller_address")
+  sellerTaxId   String? @map("seller_tax_id")
+  sellerBranch  String? @map("seller_branch")
+  sellerPhone   String? @map("seller_phone")
+  sellerEmail   String? @map("seller_email")
+
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 

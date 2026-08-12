@@ -4,10 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePrintPermission } from "@/lib/supabase-server";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
-import {
-  formatBranchLabel,
-  formatCustomerDocAddress,
-} from "@/lib/customer-doc-address";
+import { resolveDocBuyer, resolveDocSeller } from "@/lib/customer-doc-address";
 import {
   PrintPage,
   DocHeader,
@@ -43,8 +40,9 @@ export default async function PrintQuotationPage({
   ]);
   if (!quotation) notFound();
 
-  const company = parseCompanyProfile(companySetting?.value);
-  const customer = quotation.customer;
+  // สำเนาคู่สัญญาบนใบก่อน ไม่มี (ใบที่ออกก่อน 2026-08-12) ค่อยถอยไปค่าสด
+  const company = resolveDocSeller(quotation, parseCompanyProfile(companySetting?.value));
+  const buyer = resolveDocBuyer(quotation, quotation.customer);
 
   return (
     <div className="print-viewport">
@@ -60,15 +58,7 @@ export default async function PrintQuotationPage({
           refLines={[{ label: "ยืนราคาถึง", value: formatDocDate(quotation.validUntil) }]}
         />
 
-        <PartyBlock
-          label="เสนอต่อ"
-          name={customer.name}
-          company={customer.company}
-          address={formatCustomerDocAddress(customer)}
-          taxId={customer.taxId}
-          branch={formatBranchLabel(customer.branchNumber)}
-          phone={customer.phone}
-        />
+        <PartyBlock label="เสนอต่อ" {...buyer} />
 
         <p className="mt-3 font-semibold">{quotation.title}</p>
         {quotation.description && (

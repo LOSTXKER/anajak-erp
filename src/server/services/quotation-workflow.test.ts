@@ -10,6 +10,7 @@ function makePrisma(overrides: Record<string, unknown> = {}) {
       findUniqueOrThrow: vi.fn().mockResolvedValue({
         status: "DRAFT",
         title: "หัวเดิม",
+        customerId: "cust-1",
         validUntil: futureDate,
         discount: 0,
         tax: 0,
@@ -23,6 +24,23 @@ function makePrisma(overrides: Record<string, unknown> = {}) {
     },
     quotationItem: { deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
     auditLog: { create: vi.fn().mockResolvedValue({ id: "audit-1" }) },
+    // แก้ร่างแล้วรีเฟรชสำเนาคู่สัญญาด้วย (เบสสั่ง 2026-08-12) — ใบร่างยังไม่ถึงมือลูกค้า
+    customer: {
+      findUniqueOrThrow: vi.fn().mockResolvedValue({
+        name: "ลูกค้าทดสอบ",
+        company: null,
+        taxId: null,
+        branchNumber: null,
+        phone: null,
+        address: "ที่อยู่ผู้ติดต่อ",
+        billingAddress: null,
+        billingSubDistrict: null,
+        billingDistrict: null,
+        billingProvince: null,
+        billingPostalCode: null,
+      }),
+    },
+    setting: { findUnique: vi.fn().mockResolvedValue(null) },
     ...overrides,
   };
   const prisma = {

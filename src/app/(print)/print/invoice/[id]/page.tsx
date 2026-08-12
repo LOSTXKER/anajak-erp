@@ -5,10 +5,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePrintPermission } from "@/lib/supabase-server";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
-import {
-  formatBranchLabel,
-  formatCustomerDocAddress,
-} from "@/lib/customer-doc-address";
+import { resolveDocBuyer, resolveDocSeller } from "@/lib/customer-doc-address";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payment-methods";
 import type { InvoiceType } from "@prisma/client";
 import {
@@ -92,7 +89,9 @@ export default async function PrintInvoicePage({
   ]);
   if (!invoice) notFound();
 
-  const company = parseCompanyProfile(companySetting?.value);
+  // สำเนาคู่สัญญาบนใบก่อน ไม่มี (ใบที่ออกก่อน 2026-08-12) ค่อยถอยไปค่าสด
+  const company = resolveDocSeller(invoice, parseCompanyProfile(companySetting?.value));
+  const buyer = resolveDocBuyer(invoice, invoice.customer);
   const doc = DOC_TITLES[invoice.type];
   const copies = TAX_DOC_TYPES.includes(invoice.type)
     ? ["ต้นฉบับ (สำหรับลูกค้า)", "สำเนา (สำหรับผู้ขาย)"]
@@ -155,12 +154,7 @@ export default async function PrintInvoicePage({
 
           <PartyBlock
             label={invoice.type === "RECEIPT" ? "ได้รับเงินจาก" : "ลูกค้า"}
-            name={invoice.customer.name}
-            company={invoice.customer.company}
-            address={formatCustomerDocAddress(invoice.customer)}
-            taxId={invoice.customer.taxId}
-            branch={formatBranchLabel(invoice.customer.branchNumber)}
-            phone={invoice.customer.phone}
+            {...buyer}
           />
 
           <ItemsTable

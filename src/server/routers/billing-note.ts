@@ -16,6 +16,7 @@ import { buildDunningDraft } from "@/server/services/dunning";
 import { parseCompanyProfile, COMPANY_PROFILE_KEY } from "@/lib/company-profile";
 import { aggToNumber } from "@/server/services/money";
 import type { PrismaTx } from "@/lib/prisma";
+import { buildDocumentPartySnapshot } from "@/server/services/document-party";
 
 // ใบวางบิล + รายงานลูกหนี้ — เอกสาร/รายงานการเงิน = บัญชี + ระดับบริหาร (ชุดเดียวกับ billing
 // · PERM3: default เดิมเป๊ะ + override รายคน)
@@ -141,10 +142,14 @@ export const billingNoteRouter = router({
           }
           const totalAmount = items.reduce((sum, i) => sum.plus(i.amount), new Prisma.Decimal(0));
 
+          // สำเนาคู่สัญญา ณ วันวางบิล — อ่านในทรานแซกชันเดียวกับการสร้าง
+          const party = await buildDocumentPartySnapshot(tx, input.customerId);
+
           const created = await tx.billingNote.create({
             data: {
               billingNoteNumber: await nextDocumentNumber(tx, "BILLING_NOTE"),
               customerId: input.customerId,
+              ...party,
               dueDate: input.dueDate ? new Date(input.dueDate) : null,
               totalAmount: totalAmount.toNumber(),
               notes: input.notes,

@@ -4,10 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePrintPermission } from "@/lib/supabase-server";
 import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
-import {
-  formatBranchLabel,
-  formatCustomerDocAddress,
-} from "@/lib/customer-doc-address";
+import { resolveDocBuyer, resolveDocSeller } from "@/lib/customer-doc-address";
 import {
   PrintPage,
   DocHeader,
@@ -58,7 +55,9 @@ export default async function PrintBillingNotePage({
   ]);
   if (!note) notFound();
 
-  const company = parseCompanyProfile(companySetting?.value);
+  // สำเนาคู่สัญญาบนใบก่อน ไม่มี (ใบที่ออกก่อน 2026-08-12) ค่อยถอยไปค่าสด
+  const company = resolveDocSeller(note, parseCompanyProfile(companySetting?.value));
+  const buyer = resolveDocBuyer(note, note.customer);
 
   return (
     <div className="print-viewport">
@@ -80,15 +79,7 @@ export default async function PrintBillingNotePage({
           }
         />
 
-        <PartyBlock
-          label="วางบิลถึง"
-          name={note.customer.name}
-          company={note.customer.company}
-          address={formatCustomerDocAddress(note.customer)}
-          taxId={note.customer.taxId}
-          branch={formatBranchLabel(note.customer.branchNumber)}
-          phone={note.customer.phone}
-        />
+        <PartyBlock label="วางบิลถึง" {...buyer} />
 
         <ItemsTable
           rows={note.items.map((item) => ({

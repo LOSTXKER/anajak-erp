@@ -42,7 +42,8 @@
     "verify:supabase": "tsx --env-file=.env scripts/verify-supabase-audit.ts",
     "verify:moneygate": "tsx --env-file=.env scripts/verify-money-gate.ts",
     "key:agent": "tsx --env-file=.env scripts/create-agent-key.ts",
-    "verify:ui": "tsx scripts/verify-ui-tokens.tsx"
+    "verify:ui": "tsx scripts/verify-ui-tokens.tsx",
+    "verify:docsnap": "tsx --env-file=.env scripts/verify-doc-snapshot.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.26.0",

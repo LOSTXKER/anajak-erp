@@ -21,6 +21,7 @@ import { transitionOrder, addOrderRevision } from "@/server/services/order-statu
 import { syncOrderStockReservation } from "@/server/services/stock-reservation";
 // นิยาม "หมดอายุ" อยู่ที่ service เดียว (กัน drift กับลิงก์ยืนยันใบเสนอ ก้อน 4)
 import { isQuotationExpired } from "@/server/services/quotation-confirm";
+import { buildDocumentPartySnapshot } from "@/server/services/document-party";
 // เส้นทางสถานะใบเสนอ — validate ทุกการเปลี่ยน (Gate A3 · audit 2026-07-02)
 import { canQuotationTransition, quotationStatusLabel } from "@/lib/quotation-status";
 import { stripOrderMoneyForRole } from "@/lib/roles";
@@ -156,12 +157,17 @@ export const quotationRouter = router({
       // เลขใบเสนอราคารันต่อเนื่อง — สร้างใน transaction เดียวกับเอกสารเสมอ
       const quotation = await withDocNumberRetry(() =>
         ctx.prisma.$transaction(async (tx) => {
+          // สำเนาคู่สัญญา ณ วันออกใบ — ใบเสนอราคาเป็นร่างแก้ได้ จึงรีเฟรชตอนแก้ร่างด้วย
+          // (updateDraft) แล้วตรึงเมื่อส่งใบ — ใบที่ส่งไปแล้วคือใบที่ลูกค้าถืออยู่
+          const party = await buildDocumentPartySnapshot(tx, data.customerId);
+
           const created = await tx.quotation.create({
             data: {
               quotationNumber: await nextDocumentNumber(tx, "QUOTATION"),
               orderId: data.orderId,
               customerId: data.customerId,
               createdById: ctx.userId,
+              ...party,
               title: data.title,
               description: data.description,
               validUntil: new Date(data.validUntil),

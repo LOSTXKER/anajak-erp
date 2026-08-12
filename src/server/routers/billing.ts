@@ -28,6 +28,7 @@ import {
   outstandingOf,
 } from "@/server/services/receivables";
 import type { PrismaTx } from "@/lib/prisma";
+import { buildDocumentPartySnapshot } from "@/server/services/document-party";
 
 // เปิดบิล/จัดการสถานะบิล — บัญชี + ระดับบริหาร (PERM3: default เดิมเป๊ะ + override รายคน)
 const billingStaff = requirePermission("manage_billing_docs");
@@ -335,11 +336,16 @@ export const billingRouter = router({
             issueDate = input.issueDate ? new Date(input.issueDate) : payment.createdAt;
           }
 
+          // สำเนาคู่สัญญา ณ วันออกใบ — อ่านในทรานแซกชันเดียวกับการสร้าง (ม.86/4)
+          // ใบลดหนี้/เพิ่มหนี้ก็ snapshot ของตัวเอง: ออกคนละวันกับใบเดิม ที่อยู่อาจต่างกันจริง
+          const party = await buildDocumentPartySnapshot(tx, input.customerId);
+
           const created = await tx.invoice.create({
             data: {
               invoiceNumber: await nextDocumentNumber(tx, input.type),
               orderId: input.orderId,
               customerId: input.customerId,
+              ...party,
               type: input.type,
               amount: amount.toNumber(),
               discount: discount.toNumber(),
