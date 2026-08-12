@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ UI V2 แบบคู่ขนานเสร็จแล้ว 2026-08-12 — เปิดของจริงที่ `/v2` โดยหน้าเดิม `/` ยังอยู่ครบ**
+> เบสสั่งข้าม mockupและทำ URL แยกเพื่อเทียบของจริง · รอบนี้แก้ shell + dashboard ก่อน: desktop เหลือเมนูหลัก 5 จุดและค้นหาทั้งระบบด้วย `⌘K` · mobile เป็น bottom nav 4 จุด + “เพิ่มเติม” · เนื้อหาบนสุดเรียง “ต้องเช็กก่อน” → ทางลัด → สถิติรอง → ออเดอร์ล่าสุด · ซ่อนการ์ดเลขศูนย์และใช้สีแบรนด์เฉพาะ action/สถานะสำคัญ
+>
+> **ข้อมูล/สิทธิ์:** ใช้ `analytics.dashboard`, `analytics.ownerPulse`, `user.me`, notification เดิมทั้งหมด · `ownerPulse` ยิงเฉพาะคนมี `view_admin_reports` · ยอดเงินที่ dashboard คืน `null` จะไม่ render · ไม่เรียก `task.myToday` ใน V2 จึงไม่ขยายช่อง permission เดิมของ follow-up amount
+>
+> **verify ของจริงบน production build:** 1440×1000 sidebar แยกขึ้นครบและ `scrollWidth=innerWidth=1440` · 390×844 งานแรกอยู่ y=262.8 (ก่อนแก้ dashboard เดิมเนื้อหาที่ลงมือทำได้เริ่มต่ำกว่านี้หลายจอ) และ `scrollWidth=innerWidth=390` · target ที่เห็นบนมือถือทุกอัน ≥44px · `⌘K`/Escape/focus return ผ่าน · เมนู “เพิ่มเติม”/Escape คืน focus ถูกปุ่ม · กด `ORD-2607-0058` ไป `/orders/[id]` จริงและโหลดสถานะผลิตได้ · unauthenticated `/v2` → `/login` · ไม่มี hydration/error overlay
+>
+> **ด่านโค้ด:** typecheck ผ่าน · lint 0 error (warning เดิมนอก V2) · unit **676/676** · `verify:ui` ผ่าน · `next build` ผ่าน (`/v2` 9.97 kB / first load 151 kB) · เพิ่ม unit 4 ข้อให้ลำดับความเร่งด่วน/ซ่อนเลขศูนย์/permission เงิน/ไม่บวก outsource ซ้ำ
+>
+> **ขอบเขตที่ตั้งใจ:** ไม่แตะ schema, migration, business logic, dependency, config หรือ route เดิม · V2 เป็นพื้นที่เริ่มงานและพาเข้า flow เดิม รอบต่อไปค่อยใช้ผลเทียบจากจอจริงตัดสินว่าจะย้ายหน้ารายการใดเข้า shell V2 ต่อ
+
 > **✅ รอบที่ 2 ของวันเดียวกัน 2026-08-12 (เบสสั่ง "ทำหมดเลย") — ทำครบ 3 ข้อที่เสนอไว้**
 > commit `ab6558d` · `8d32f98` · `28396f5` · `923e75e`
 >

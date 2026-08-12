@@ -5,6 +5,13 @@
 ## เป้าหมาย
 ERP หลังบ้านโรงงานสกรีนเสื้อ Anajak — ให้ทีม 5 คน+เจ้าของ จัดการ ขาย→ผลิต→outsource→ส่ง→ออกบิล/ภาษี ของลูกค้า B2B (เครดิตเทอม) ครบวงจร ออกเอกสารภาษีเต็มรูปเอง + เชื่อม Anajak Stock · **ห้าม deploy/ใช้จริงจนจบ P0** (ROADMAP.md:18)
 
+## 🧭 UI V2 แบบคู่ขนาน (`/v2`)
+- [x] **เป็นของจริง ไม่ใช่ mockup** — อ่านข้อมูลจาก tRPC ชุดเดิมและทุก action พาไป flow ที่ใช้งานได้จริง · ห้ามมีตัวเลข/รายการตัวอย่างที่เขียนค้างในหน้า
+- [x] **ปลอดภัยต่อของเดิม** — auth/permission เหมือน dashboard เดิม · `/v2` แยก URL และมีทางกลับ `/` · ไม่เปลี่ยนพฤติกรรม route เดิม
+- [x] **จุดโฟกัสชัดใน 3 วินาที** — งานเสี่ยง/งานค้างและ action หลักมาก่อนสถิติสะสม · navigation ชั้นแรกมีเฉพาะงานหลัก ส่วนโมดูลที่เหลือค้นหาได้จากจุดเดียว
+- [x] **ใช้ได้จริงสองขนาดจอ** — 390px และ 1440px ไม่มี horizontal overflow · เป้ากดมือถือ ≥44px · keyboard focus เห็น · ภาษาไทยไม่ตัด · reduced-motion ใช้งานได้ครบ
+- [x] **สถานะไม่โกหก** — query หลักมี loading/error/retry/empty แยกกัน · ข้อมูลเงินและเมนู gated ตาม permission เดิม
+
 ## 🔐 P0 deploy-gate — verified ครบแล้ว (audit 2026-07-02 อ่านโค้ดจริง + adversarial verify)
 - [x] **คนนอกเปิดเว็บแล้วเข้าไม่ได้** — `src/middleware.ts:31-78` refresh session ทุก request รวม /api · ยกเว้นเฉพาะหน้า public token (approve/upload/status/quote) + /api/mcp (auth ด้วย key เอง)
 - [x] **ทีม login จริงได้ตาม role** — login `signInWithPassword` + error ไทย (`(auth)/login/page.tsx:24-37`) · logout จริง (`user-menu.tsx:22`) · จัดการ user ครบวงจรถึง Supabase ban (`user.ts:87-226`)
