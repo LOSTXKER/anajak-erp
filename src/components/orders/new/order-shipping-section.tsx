@@ -31,6 +31,10 @@ interface OrderShippingSectionProps {
   /** ปุ่ม "ใช้ที่อยู่ลูกค้า" — ส่งมาเมื่อลูกค้าที่เลือกมีที่อยู่ผู้ติดต่อให้ก๊อปจริง
    *  (เบสสั่ง 2026-08-12 · แทนการเติมให้เงียบๆ ซึ่งทำให้ที่อยู่หายตอนบันทึก) */
   onUseCustomerAddress?: () => void;
+  /** โหมดแก้ออเดอร์: ไม่มีสวิตช์ "จัดส่งตามที่อยู่" — ออเดอร์ที่เปิดแล้วลบที่อยู่ทิ้ง
+   *  ด้วยการล้างช่องได้ตรงๆ (input เป็น nullable ตั้งแต่ 2026-08-12) สวิตช์จึงเป็น
+   *  ขั้นตอนซ้ำที่ทำให้สับสนว่า "ปิดแล้วที่อยู่เดิมหายไหม" */
+  alwaysOn?: boolean;
 }
 
 export function OrderShippingSection({
@@ -43,25 +47,29 @@ export function OrderShippingSection({
   className,
   id,
   onUseCustomerAddress,
+  alwaysOn = false,
 }: OrderShippingSectionProps) {
+  const active = alwaysOn || includeShipping;
   return (
     <Section
       id={id}
       tabIndex={id ? -1 : undefined}
       title={title}
-      description="ปิดอยู่ = ไม่บันทึกที่อยู่นี้"
+      description={alwaysOn ? "ล้างช่องให้ว่าง = ลบที่อยู่จัดส่งของงานนี้" : "ปิดอยู่ = ไม่บันทึกที่อยู่นี้"}
       bordered={!embedded}
       headingLevel={embedded ? 3 : 2}
       className={className}
       action={
-        <label htmlFor="include-order-shipping" className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-medium text-secondary">
-          <Switch
-            id="include-order-shipping"
-            checked={includeShipping}
-            onCheckedChange={onIncludeShippingChange}
-          />
-          จัดส่งตามที่อยู่
-        </label>
+        alwaysOn ? undefined : (
+          <label htmlFor="include-order-shipping" className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-medium text-secondary">
+            <Switch
+              id="include-order-shipping"
+              checked={includeShipping}
+              onCheckedChange={onIncludeShippingChange}
+            />
+            จัดส่งตามที่อยู่
+          </label>
+        )
       }
     >
       {/* ปุ่มก๊อปอยู่นอก fieldset — ต้องกดได้ตอนสวิตช์ยังปิด (กดแล้วเปิดสวิตช์ให้เอง)
@@ -72,13 +80,13 @@ export function OrderShippingSection({
         </UseAddressButton>
       )}
       <fieldset
-        disabled={!includeShipping}
-        className={cn("space-y-3 transition-opacity", !includeShipping && "opacity-55")}
+        disabled={!active}
+        className={cn("space-y-3 transition-opacity", !active && "opacity-55")}
       >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Field label="ชื่อผู้รับ" required={includeShipping}>
+            <Field label="ชื่อผู้รับ" required={active}>
               <Input
-                required={includeShipping}
+                required={active}
                 value={shipping.recipientName}
                 onChange={(e) => onUpdate("recipientName", e.target.value)}
                 placeholder="ชื่อ-นามสกุล ผู้รับ"
@@ -92,9 +100,9 @@ export function OrderShippingSection({
               />
             </Field>
           </div>
-          <Field label="ที่อยู่" required={includeShipping}>
+          <Field label="ที่อยู่" required={active}>
             <Textarea
-              required={includeShipping}
+              required={active}
               value={shipping.address}
               onChange={(e) => onUpdate("address", e.target.value)}
               placeholder="บ้านเลขที่ ถนน ซอย..."

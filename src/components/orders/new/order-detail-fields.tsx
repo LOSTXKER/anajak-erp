@@ -32,6 +32,9 @@ interface OrderDetailFieldsProps {
   onDescriptionChange: (v: string) => void;
   notes: string;
   onNotesChange: (v: string) => void;
+  /** โหมดแก้ออเดอร์: ช่องทางเปลี่ยนไม่ได้ (ผูกกับเลขออเดอร์/สูตรภาษีที่คิดไปแล้ว)
+   *  โชว์เป็นช่องเทาพร้อมเหตุผล — ห้ามซ่อน ไม่งั้นคนคิดว่าข้อมูลหาย (เบสสั่ง) */
+  channelLockedReason?: string;
 }
 
 export function OrderDetailFields({
@@ -50,6 +53,7 @@ export function OrderDetailFields({
   onDescriptionChange,
   notes,
   onNotesChange,
+  channelLockedReason,
 }: OrderDetailFieldsProps) {
   const id = useId();
 
@@ -70,10 +74,12 @@ export function OrderDetailFields({
       </Field>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Field label="ช่องทาง" id={`${id}-channel`}>
+        <Field label="ช่องทาง" id={`${id}-channel`} description={channelLockedReason}>
           <Select
             value={channel}
             onChange={(e) => onChannelChange(e.target.value)}
+            disabled={Boolean(channelLockedReason)}
+            title={channelLockedReason}
           >
             {CHANNELS.map((ch) => (
               <option key={ch} value={ch}>{CHANNEL_LABELS[ch]}</option>

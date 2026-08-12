@@ -5,8 +5,6 @@ import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +15,6 @@ import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
 import { Save } from "lucide-react";
 import {
-  PRIORITY_LABELS,
   isMarketplaceChannel,
   isOrderLocked,
   orderEditLockedReason,
@@ -26,7 +23,8 @@ import type { InternalStatus } from "@prisma/client";
 import { PAYMENT_TERMS_LABELS, type PaymentTermsValue } from "@/lib/payment-terms";
 import { calculateOrderSummary } from "@/lib/pricing";
 import { fillFromCustomer, hasAddressContent } from "@/lib/address-fill";
-import { UseAddressButton } from "@/components/orders/use-address-button";
+// ฟอร์มชุดเดียวกับหน้าเปิดงาน — เบสสั่ง "ใช้ฟอร์มเดียวกับสร้างออเดอร์ UI จะได้เหมือนกัน"
+import { OrderDetailFields, OrderShippingSection } from "@/components/orders/new";
 import { formatCurrency } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 
@@ -79,6 +77,18 @@ interface OrderInfoEditDialogProps {
    *  (แก้ที่อยู่แล้วเซฟทั้งใบด้วย mutation ตัวเดียวตามเดิม) */
   focusSection?: "info" | "shipping";
 }
+
+/** ชื่อช่องในฟอร์มที่อยู่กลาง → ชื่อช่องบนออเดอร์ (Order.shipping*)
+ *  คนละชื่อกันตั้งแต่ schema — ตารางนี้คือที่เดียวที่แปลง ไม่ให้ไปเดาซ้ำหลายที่ */
+const SHIPPING_FIELD_MAP = {
+  recipientName: "shippingRecipientName",
+  phone: "shippingPhone",
+  address: "shippingAddress",
+  subDistrict: "shippingSubDistrict",
+  district: "shippingDistrict",
+  province: "shippingProvince",
+  postalCode: "shippingPostalCode",
+} as const;
 
 interface FormData {
   title: string;
@@ -267,53 +277,29 @@ export function OrderInfoEditDialog({
         </DialogHeader>
 
         <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
-          {/* --Basic Info-- */}
+          {/* --Basic Info-- ใช้ช่องชุดเดียวกับหน้าเปิดงาน (ก้อน 3 · เบสสั่ง 2026-08-11
+              "หน้ารายละเอียดกดแก้ไข ก็ใช้ฟอร์มเดียวกับสร้างออเดอร์เลย UI จะได้เหมือนกัน")
+              — เดิมที่นี่เขียนช่องเอง จึงเรียงคนละลำดับ ป้ายคนละคำ และตกช่องที่หน้าเปิดงานมี */}
           <div id="order-edit-info" className={sectionClass}>
             <p className={sectionTitleClass}>ข้อมูลทั่วไป</p>
-            <Field label="ชื่อออเดอร์" required>
-              <Input
-                value={form.title}
-                onChange={(e) => update("title", e.target.value)}
-                placeholder="ชื่อออเดอร์"
-              />
-            </Field>
-            <Field label="รายละเอียด">
-              <Textarea
-                value={form.description}
-                onChange={(e) => update("description", e.target.value)}
-                placeholder="รายละเอียดออเดอร์"
-                rows={2}
-                className="resize-none"
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="กำหนดส่ง">
-                <DatePicker
-                  value={form.deadline}
-                  onChange={(v) => update("deadline", v)}
-                  className="h-9"
-                />
-              </Field>
-              <Field label="ความเร่งด่วน">
-                <Select value={form.priority}
-                  onChange={(e) => update("priority", e.target.value)}>
-                    {Object.entries(PRIORITY_LABELS).map(([key, label]) => (
-                      <option key={key} value={key}>
-                        {label}
-                      </option>
-                    ))}
-                  </Select>
-              </Field>
-            </div>
-            <Field label="หมายเหตุ">
-              <Textarea
-                value={form.notes}
-                onChange={(e) => update("notes", e.target.value)}
-                placeholder="หมายเหตุเพิ่มเติม"
-                rows={2}
-                className="resize-none"
-              />
-            </Field>
+            <OrderDetailFields
+              title={form.title}
+              onTitleChange={(v) => update("title", v)}
+              deadline={form.deadline}
+              onDeadlineChange={(v) => update("deadline", v)}
+              priority={form.priority as "LOW" | "NORMAL" | "HIGH" | "URGENT"}
+              onPriorityChange={(v) => update("priority", v)}
+              channel={order?.channel ?? "LINE"}
+              onChannelChange={() => {}}
+              channelLockedReason="ช่องทางเปลี่ยนไม่ได้หลังเปิดงาน — ผูกกับเลขออเดอร์ฝั่งแพลตฟอร์มและสูตรภาษีที่คิดไปแล้ว"
+              isMarketplace={isMarketplace}
+              externalOrderId={form.externalOrderId}
+              onExternalOrderIdChange={(v) => update("externalOrderId", v)}
+              description={form.description}
+              onDescriptionChange={(v) => update("description", v)}
+              notes={form.notes}
+              onNotesChange={(v) => update("notes", v)}
+            />
           </div>
 
           {/* --Financial-- */}
@@ -397,104 +383,44 @@ export function OrderInfoEditDialog({
             </div>
           </div>
 
-          {/* --Shipping-- */}
-          <div id="order-edit-shipping" className={sectionClass}>
-            <p className={sectionTitleClass}>ที่อยู่จัดส่ง</p>
-            {/* ก๊อปที่อยู่ผู้ติดต่อลงช่องจัดส่ง (เบสสั่ง 2026-08-12) — เดิมแท็บภาพรวมโชว์
-                ที่อยู่ลูกค้าเป็นข้อความ "ก๊อปมาใช้ได้" แต่ไม่มีปุ่ม ต้องลากเมาส์ก๊อปเองแล้วมาวาง
-                โปรไฟล์เก็บที่อยู่เป็นก้อนเดียว จึงเติมได้แค่ช่อง "ที่อยู่" — 4 ช่องล่างคนเติมเอง */}
-            {canUseCustomerAddress && (
-              <UseAddressButton
-                onClick={() => {
-                  const fill = fillFromCustomer(order.customer);
-                  setForm((f) => ({
-                    ...f,
-                    shippingRecipientName: fill.recipientName,
-                    shippingPhone: fill.phone,
-                    shippingAddress: fill.address,
-                  }));
-                }}
-                className="mb-3"
-              >
-                ใช้ที่อยู่ลูกค้า
-              </UseAddressButton>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="ชื่อผู้รับ">
-                <Input
-                  value={form.shippingRecipientName}
-                  onChange={(e) =>
-                    update("shippingRecipientName", e.target.value)
-                  }
-                  placeholder="ชื่อผู้รับ"
-                />
-              </Field>
-              <Field label="เบอร์โทร">
-                <Input
-                  value={form.shippingPhone}
-                  onChange={(e) => update("shippingPhone", e.target.value)}
-                  placeholder="เบอร์โทร"
-                />
-              </Field>
-            </div>
-            <Field label="ที่อยู่">
-              <Input
-                value={form.shippingAddress}
-                onChange={(e) => update("shippingAddress", e.target.value)}
-                placeholder="ที่อยู่"
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="ตำบล/แขวง">
-                <Input
-                  value={form.shippingSubDistrict}
-                  onChange={(e) =>
-                    update("shippingSubDistrict", e.target.value)
-                  }
-                  placeholder="ตำบล/แขวง"
-                />
-              </Field>
-              <Field label="อำเภอ/เขต">
-                <Input
-                  value={form.shippingDistrict}
-                  onChange={(e) => update("shippingDistrict", e.target.value)}
-                  placeholder="อำเภอ/เขต"
-                />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="จังหวัด">
-                <Input
-                  value={form.shippingProvince}
-                  onChange={(e) => update("shippingProvince", e.target.value)}
-                  placeholder="จังหวัด"
-                />
-              </Field>
-              <Field label="รหัสไปรษณีย์">
-                <Input
-                  value={form.shippingPostalCode}
-                  onChange={(e) =>
-                    update("shippingPostalCode", e.target.value)
-                  }
-                  placeholder="รหัสไปรษณีย์"
-                />
-              </Field>
-            </div>
+          {/* --Shipping-- ใช้ฟอร์มที่อยู่ตัวเดียวกับหน้าเปิดงาน (ก้อน 3)
+              alwaysOn = ไม่มีสวิตช์ "จัดส่งตามที่อยู่" — ออเดอร์ที่เปิดแล้วลบที่อยู่ทิ้ง
+              ด้วยการล้างช่องได้ตรงๆ (input เป็น nullable ตั้งแต่ 2026-08-12) */}
+          <div id="order-edit-shipping">
+            <OrderShippingSection
+              embedded
+              alwaysOn
+              title="ที่อยู่จัดส่ง"
+              includeShipping
+              onIncludeShippingChange={() => {}}
+              shipping={{
+                recipientName: form.shippingRecipientName,
+                phone: form.shippingPhone,
+                address: form.shippingAddress,
+                subDistrict: form.shippingSubDistrict,
+                district: form.shippingDistrict,
+                province: form.shippingProvince,
+                postalCode: form.shippingPostalCode,
+              }}
+              onUpdate={(field, value) => update(SHIPPING_FIELD_MAP[field], value)}
+              onUseCustomerAddress={
+                canUseCustomerAddress
+                  ? () => {
+                      const fill = fillFromCustomer(order.customer);
+                      setForm((f) => ({
+                        ...f,
+                        shippingRecipientName: fill.recipientName,
+                        shippingPhone: fill.phone,
+                        shippingAddress: fill.address,
+                      }));
+                    }
+                  : undefined
+              }
+            />
           </div>
 
-          {/* --Marketplace-- */}
-          {isMarketplace && (
-            <div className={sectionClass}>
-              <p className={sectionTitleClass}>Marketplace</p>
-              <Field label="หมายเลขออเดอร์ภายนอก">
-                <Input
-                  value={form.externalOrderId}
-                  onChange={(e) => update("externalOrderId", e.target.value)}
-                  placeholder="หมายเลขจาก Shopee / Lazada / TikTok"
-                />
-              </Field>
-            </div>
-          )}
+          {/* บล็อก Marketplace เดิมถูกยุบ — เลขออเดอร์ฝั่งแพลตฟอร์มอยู่ในช่องข้อมูลงาน
+              ชุดเดียวกับหน้าเปิดงานแล้ว (โผล่เองเมื่อช่องทางเป็นมาร์เก็ตเพลส) */}
         </div>
 
         <DialogSubmitFooter
