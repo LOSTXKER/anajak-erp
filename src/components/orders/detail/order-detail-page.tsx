@@ -54,7 +54,14 @@ import {
   ORDER_DEFAULT_TAB,
   type TabKey,
 } from "@/lib/order-tabs";
-import { Tabs, TabsBar, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsBar,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  type TabsAppearance,
+} from "@/components/ui/tabs";
 import { Section } from "@/components/ui/section";
 import { AddCard } from "@/components/ui/add-card";
 import {
@@ -75,7 +82,11 @@ import { RecordNotFound } from "@/components/ui/record-not-found";
 // Loading skeleton
 // ============================================================
 
-function OrderDetailSkeleton() {
+function OrderDetailSkeleton({
+  tabAppearance = "segmented",
+}: {
+  tabAppearance?: TabsAppearance;
+}) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -87,7 +98,15 @@ function OrderDetailSkeleton() {
       </div>
       <Skeleton className="h-20 rounded-xl" />
       {/* โครงต้องตรงกับของจริง (แถบแท็บ + เนื้อหาเต็มความกว้าง) ไม่งั้นจอกระโดดตอนโหลดเสร็จ */}
-      <Skeleton className="h-11 w-96 max-w-full rounded-lg" />
+      {tabAppearance === "underline" ? (
+        <div className="flex h-11 items-center gap-6 overflow-hidden border-b border-slate-200/70 dark:border-white/10">
+          <Skeleton className="h-4 w-16 rounded" />
+          <Skeleton className="h-4 w-20 rounded" />
+          <Skeleton className="h-4 w-16 rounded" />
+        </div>
+      ) : (
+        <Skeleton className="h-11 w-96 max-w-full rounded-lg" />
+      )}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Skeleton className="h-40 rounded-xl md:col-span-2" />
         <Skeleton className="h-64 rounded-xl" />
@@ -105,17 +124,20 @@ export default function OrderDetailPage({
   params,
   ordersBasePath = "/orders",
   stickyActionsOffset = "default",
+  tabAppearance = "segmented",
 }: {
   params: Promise<{ id: string }>;
   ordersBasePath?: string;
   stickyActionsOffset?: "default" | "v2";
+  tabAppearance?: TabsAppearance;
 }) {
   return (
-    <Suspense fallback={<OrderDetailSkeleton />}>
+    <Suspense fallback={<OrderDetailSkeleton tabAppearance={tabAppearance} />}>
       <OrderDetailContent
         params={params}
         ordersBasePath={ordersBasePath}
         stickyActionsOffset={stickyActionsOffset}
+        tabAppearance={tabAppearance}
       />
     </Suspense>
   );
@@ -125,10 +147,12 @@ function OrderDetailContent({
   params,
   ordersBasePath,
   stickyActionsOffset,
+  tabAppearance,
 }: {
   params: Promise<{ id: string }>;
   ordersBasePath: string;
   stickyActionsOffset: "default" | "v2";
+  tabAppearance: TabsAppearance;
 }) {
   const { id } = use(params);
   const router = useRouter();
@@ -295,7 +319,7 @@ function OrderDetailContent({
   // ----------------------------------------------------------
   // Loading state
   // ----------------------------------------------------------
-  if (isLoading) return <OrderDetailSkeleton />;
+  if (isLoading) return <OrderDetailSkeleton tabAppearance={tabAppearance} />;
   if (isError)
     return (
       <div className="space-y-6">
@@ -687,19 +711,19 @@ function OrderDetailContent({
       <Tabs value={activeTab} onValueChange={changeTab}>
         {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้
             TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บตอนเลื่อน */}
-        <TabsBar>
-        <TabsList aria-label="ส่วนของออเดอร์">
-          {visibleTabs.map((t) => (
-            <TabsTrigger
-              key={t.key}
-              value={t.key}
-              hasPending={t.key === pendingTab}
-              aria-label={t.key === pendingTab ? `${t.label} — มีงานค้าง` : undefined}
-            >
-              {t.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <TabsBar appearance={tabAppearance}>
+          <TabsList aria-label="ส่วนของออเดอร์">
+            {visibleTabs.map((t) => (
+              <TabsTrigger
+                key={t.key}
+                value={t.key}
+                hasPending={t.key === pendingTab}
+                aria-label={t.key === pendingTab ? `${t.label} — มีงานค้าง` : undefined}
+              >
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
         </TabsBar>
 
       <div className="mt-6">

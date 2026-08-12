@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ V2 เปลี่ยนแท็บเป็นข้อความ + เส้นใต้แบบ minimal แล้ว 2026-08-12 — ตามภาพอ้างอิงของเบส**
+> หน้า `/v2/orders/new` และ `/v2/orders/[id]` ไม่มีถาดเทา แผ่นขาว เงา หรือมุมโค้งที่แท็บแล้ว · แท็บที่เลือกใช้เส้นใต้ 2px บน baseline เดียว · หน้าเปิดงานตัดเลข `01–04` เฉพาะ V2 แต่คงจุดเขียว/แดงที่บอกข้อมูลและ validation · หน้า `/orders*` เดิมยังเป็น segmented มีเลข ถาด และแผ่น active เหมือนเดิม
+>
+> **พฤติกรรมเดิมไม่เสีย:** ยังใช้ Radix ชุดเดียวกัน · ArrowLeft/Home/End, URL, browser Back, deep-link และ validation ที่พากลับแท็บผิดผ่าน · mobile เลื่อน active เข้าจอเองและทุกแท็บสูง 44px · focus ring แยกจากเส้น active · light ใช้เส้น slate-900 และ dark ใช้เส้นขาว
+>
+> **verify production build:** 1440×1000 V2 tablist กว้างเต็มพื้นที่ 1,024px ไม่มี tray/shadow/radius · 390×844 หน้าเปิดงาน tablist `358/373px` และหน้ารายละเอียด 7 แท็บ `358/516px`; แท็บท้ายเลื่อนมาเห็นเต็ม · ทั้งสองขนาด `scrollWidth=innerWidth` · V1 segmented วัดซ้ำแล้วพื้น `#eceff2`, radius 8px, active ขาวมีเงา · console/hydration error 0
+>
+> **ด่านโค้ด:** typecheck ผ่าน · lint 0 error (36 warningเดิม) · unit **682/682** · `verify:ui` ผ่าน · `next build` ผ่านและ production server กลับมารันที่ `:3000`
+
 > **✅ V2 ลดคำอธิบาย + คืนแถบสถานะเดิมแล้ว 2026-08-12 — จาก feedback จอจริงของเบส**
 > ตัดคำโปรยที่หัวข้อ/ปุ่ม/placeholder สื่ออยู่แล้วออกจาก dashboard, shell, รายการ และหน้าเปิดงาน V2 · คง draft recovery, validation, error, permission, ภาษี/เงิน และคำเตือนที่มีผลต่อการตัดสินใจทั้งหมด · หน้า `/orders*` เดิมยังมีคำแนะนำชุดเดิมเพราะ shared component ใช้ `showGuidance=true` เป็นค่าเริ่มต้น
 >

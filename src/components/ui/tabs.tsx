@@ -3,12 +3,16 @@
 import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
-import { FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, FOCUS_INSET, RADIUS } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
+export type TabsAppearance = "segmented" | "underline";
+
+const TabsAppearanceContext = React.createContext<TabsAppearance>("segmented");
+
 /**
- * แถบแท็บของทั้งระบบ — แคปซูลพื้นจม ปุ่มที่เลือกอยู่เป็นแผ่นขาวลอยขึ้นมา
- * (ภาษาเดียวกับตัวสลับอื่นในเว็บ ไม่ใช่แท็บขีดเส้นใต้ซึ่งจะเพิ่มเส้นให้หน้าอีก)
+ * แถบแท็บของทั้งระบบ — ค่าเริ่มต้นเป็น segmented เดิม ส่วน underline ใช้กับ V2
+ * ที่ต้องการข้อความ + เส้น active โดยไม่เปลี่ยน semantics หรือพฤติกรรมของ Radix
  *
  * ที่ต้องรู้ก่อนใช้:
  * - จอแคบ: แถบเลื่อนแนวนอนได้ ป้ายชุดเดียวกับจอกว้าง (ห้ามมีป้ายคนละชุด 2 จอ — สอนงานกันไม่ได้)
@@ -31,45 +35,52 @@ export const Tabs = TabsPrimitive.Root;
  * (-mx-1/px-1 เผื่อวงแหวนโฟกัสของแท็บไม่ให้โดนตัด)
  */
 export function TabsBar({
+  appearance = "segmented",
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: React.HTMLAttributes<HTMLDivElement> & { appearance?: TabsAppearance }) {
   return (
-    <div
-      className={cn(
-        "sticky top-0 z-20 -mx-1 border-b border-slate-200/70 bg-bg px-1 py-2 dark:border-white/10",
-        className
-      )}
-      {...props}
-    />
+    <TabsAppearanceContext.Provider value={appearance}>
+      <div
+        className={cn(
+          "sticky top-0 z-20 -mx-1 border-b border-slate-200/70 bg-bg px-1 dark:border-white/10",
+          appearance === "segmented" && "py-2",
+          className
+        )}
+        {...props}
+      />
+    </TabsAppearanceContext.Provider>
   );
 }
 
 export const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      // no-scrollbar: จอแคบเลื่อนได้แต่ไม่มีแถบเลื่อนมากินที่
-      // w-fit: ถาดกว้างเท่าแท็บจริง ไม่ยืดเต็มบรรทัด — ยืดแล้วมันจะไปพาดคลุมของที่ตัวเอง
-      // ไม่ได้คุม (เบสเห็นจอจริง 2026-08-11 แล้วบอกว่า "ไม่เห็นแยกหน้า tab ให้เลย")
-      // max-w-full ต้องมาคู่เสมอ ไม่งั้นจอแคบเลื่อนแถบไม่ได้
-      "no-scrollbar flex w-fit max-w-full gap-0.5 overflow-x-auto p-1",
-      // เดิมใช้ SUNK_PANEL (slate-100 #f1f1f3) วางบนพื้นหน้า (--bg #f3f4f6) — ต่างกัน 2 หน่วยสี
-      // ตามองไม่เห็นถาด เหลือแค่คำเทาลอยๆ ไม่มีอะไรมัดว่า "6 อันนี้เป็นชุดเดียว เลือกได้ทีละอัน"
-      // (SUNK_PANEL ออกแบบมาให้จมใน "การ์ดขาว" ไม่ใช่บนพื้นเทาของหน้า — ใช้ผิดบริบท)
-      // สูตรนี้ยกมาจาก SegmentedControl ที่เห็นชัดบนพื้นเทาเดียวกันอยู่แล้ว ไม่ได้เพิ่มสี/เส้นใหม่ให้ระบบ
-      "bg-surface-muted ring-1 ring-inset ring-slate-200 dark:ring-white/10",
-      // มุม 8px = "ปุ่มในแถบสลับ" ตามที่ RADIUS.item เขียนกำกับตัวเองไว้ · ทรงแคปซูลสงวนให้
-      // ชิปตัวกรอง ซึ่งกติกาสีกลับด้านกัน (ตัวกรอง: ขาว = ยังไม่เลือก · แท็บ: ขาว = เปิดอยู่)
-      RADIUS.item,
-      className
-    )}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const appearance = React.useContext(TabsAppearanceContext);
+
+  return (
+    <TabsPrimitive.List
+      ref={ref}
+      className={cn(
+        // no-scrollbar: จอแคบเลื่อนได้แต่ไม่มีแถบเลื่อนมากินที่
+        "no-scrollbar flex max-w-full overflow-x-auto",
+        appearance === "segmented"
+          ? cn(
+              // w-fit: ถาดกว้างเท่าแท็บจริง ไม่ยืดเต็มบรรทัด — ยืดแล้วมันจะไปพาดคลุมของที่ตัวเอง
+              // ไม่ได้คุม (เบสเห็นจอจริง 2026-08-11 แล้วบอกว่า "ไม่เห็นแยกหน้า tab ให้เลย")
+              "w-fit gap-0.5 p-1",
+              // ถาด segmented เดิมยังเป็นค่าเริ่มต้นของระบบและหน้า V1
+              "bg-surface-muted ring-1 ring-inset ring-slate-200 dark:ring-white/10",
+              RADIUS.item,
+            )
+          : "w-full gap-6 pr-1 sm:gap-8",
+        className
+      )}
+      {...props}
+    />
+  );
+});
 TabsList.displayName = "TabsList";
 
 export const TabsTrigger = React.forwardRef<
@@ -79,6 +90,7 @@ export const TabsTrigger = React.forwardRef<
     hasPending?: boolean;
   }
 >(({ className, children, hasPending = false, onClick, ...props }, forwardedRef) => {
+  const appearance = React.useContext(TabsAppearanceContext);
   const localRef = React.useRef<React.ElementRef<typeof TabsPrimitive.Trigger>>(null);
   const ref = React.useCallback(
     (node: React.ElementRef<typeof TabsPrimitive.Trigger> | null) => {
@@ -114,11 +126,13 @@ export const TabsTrigger = React.forwardRef<
       ref={ref}
       className={cn(
         CONTROL_MIN_H,
-        FOCUS_BUTTON,
-        RADIUS.item,
-        "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-4 text-sm font-medium text-muted transition-colors",
+        appearance === "segmented" ? FOCUS_BUTTON : FOCUS_INSET,
+        appearance === "segmented" && RADIUS.item,
+        "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-medium text-muted transition-colors",
         "hover:text-secondary",
-        "data-[state=active]:bg-surface data-[state=active]:font-semibold data-[state=active]:text-strong data-[state=active]:shadow-sm",
+        appearance === "segmented"
+          ? "px-4 data-[state=active]:bg-surface data-[state=active]:font-semibold data-[state=active]:text-strong data-[state=active]:shadow-sm"
+          : "-mb-px border-b-2 border-transparent px-1 data-[state=active]:border-slate-900 data-[state=active]:font-semibold data-[state=active]:text-strong dark:data-[state=active]:border-white",
         className,
       )}
       onClick={(event) => {

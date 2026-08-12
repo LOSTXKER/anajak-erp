@@ -16,6 +16,7 @@ export function V2OrderCreateRoute() {
         ordersBasePath="/v2/orders"
         stickyActionsOffset="v2"
         showGuidance={false}
+        tabAppearance="underline"
       />
     );
   }

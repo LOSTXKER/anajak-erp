@@ -6,6 +6,7 @@ export default function Page(props: { params: Promise<{ id: string }> }) {
       {...props}
       ordersBasePath="/v2/orders"
       stickyActionsOffset="v2"
+      tabAppearance="underline"
     />
   );
 }

@@ -18,7 +18,14 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Section } from "@/components/ui/section";
-import { Tabs, TabsBar, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsBar,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  type TabsAppearance,
+} from "@/components/ui/tabs";
 import {
   ORDER_FORM_TABS,
   ORDER_FORM_DEFAULT_TAB,
@@ -91,11 +98,13 @@ export default function OrderCreatePage({
   ordersBasePath = "/orders",
   stickyActionsOffset = "default",
   showGuidance = true,
+  tabAppearance = "segmented",
 }: {
   ordersBasePath?: string;
   stickyActionsOffset?: "default" | "v2";
   /** V2 ตัดคำอธิบายที่ placeholder/หัวข้อสื่ออยู่แล้ว แต่คง validation และคำเตือนทั้งหมด */
   showGuidance?: boolean;
+  tabAppearance?: TabsAppearance;
 }) {
   const router = useRouter();
   const confirmDialog = useConfirm();
@@ -599,32 +608,37 @@ export default function OrderCreatePage({
         <Tabs value={tab} onValueChange={changeTab}>
           {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ (ที่เดียวกับที่แถบขั้นตอนเดิมอยู่)
               TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บ */}
-          <TabsBar>
-          <TabsList aria-label="ตอนของฟอร์มเปิดงาน">
-            {tabMarks.map((t) => (
-              <TabsTrigger
-                key={t.key}
-                value={t.key}
-                hasPending={t.red}
-                aria-label={
-                  t.red
-                    ? `${t.label} — มี ${t.errors.length} จุดต้องแก้`
-                    : t.green
-                      ? `${t.label} — กรอกแล้ว`
-                      : undefined
-                }
-              >
-                <span aria-hidden="true" className="text-2xs text-muted max-sm:hidden">
-                  {t.number}
-                </span>
-                {t.label}
-                {/* จุดเขียว = มีข้อมูลแล้ว · จุดแดงมาจาก hasPending ของ TabsTrigger (แดงชนะเขียว) */}
-                {t.green && !t.red && (
-                  <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <TabsBar appearance={tabAppearance}>
+            <TabsList aria-label="ตอนของฟอร์มเปิดงาน">
+              {tabMarks.map((t) => (
+                <TabsTrigger
+                  key={t.key}
+                  value={t.key}
+                  hasPending={t.red}
+                  aria-label={
+                    t.red
+                      ? `${t.label} — มี ${t.errors.length} จุดต้องแก้`
+                      : t.green
+                        ? `${t.label} — กรอกแล้ว`
+                        : undefined
+                  }
+                >
+                  {tabAppearance === "segmented" && (
+                    <span aria-hidden="true" className="text-2xs text-muted max-sm:hidden">
+                      {t.number}
+                    </span>
+                  )}
+                  {t.label}
+                  {/* จุดเขียว = มีข้อมูลแล้ว · จุดแดงมาจาก hasPending ของ TabsTrigger (แดงชนะเขียว) */}
+                  {t.green && !t.red && (
+                    <span
+                      aria-hidden="true"
+                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500"
+                    />
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
           </TabsBar>
 
           <TabsContent value="intake" className="mt-6">
