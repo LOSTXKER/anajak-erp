@@ -193,10 +193,21 @@ function OrderDetailContent({
      ทำให้สลับแท็บกระตุก · ผลคือ refresh/back/ส่งลิงก์ให้กันได้แท็บเดิม */
   const initialTab = normalizeOrderTab(searchParams.get("tab")) ?? ORDER_DEFAULT_TAB;
   const [tab, setTabState] = useState<TabKey>(initialTab);
+  // detail lazy ตอนเปิดครั้งแรก แต่แท็บที่เคยเข้าแล้วต้องคง DOM ไว้
+  // ไม่งั้นสลับออกจากฟอร์มแก้รายการแล้วค่าที่ยังไม่บันทึกจะหาย
+  const [visitedTabs, setVisitedTabs] = useState<Set<TabKey>>(
+    () => new Set([ORDER_DEFAULT_TAB, initialTab]),
+  );
 
   const changeTab = useCallback((key: string) => {
     const next = normalizeOrderTab(key) ?? ORDER_DEFAULT_TAB;
     setTabState(next);
+    setVisitedTabs((current) => {
+      if (current.has(next)) return current;
+      const updated = new Set(current);
+      updated.add(next);
+      return updated;
+    });
     const url = new URL(window.location.href);
     url.searchParams.set("tab", next);
     url.hash = "";
@@ -207,7 +218,14 @@ function OrderDetailContent({
   useEffect(() => {
     const onPop = () => {
       const t = normalizeOrderTab(new URL(window.location.href).searchParams.get("tab"));
-      setTabState(t ?? ORDER_DEFAULT_TAB);
+      const next = t ?? ORDER_DEFAULT_TAB;
+      setTabState(next);
+      setVisitedTabs((current) => {
+        if (current.has(next)) return current;
+        const updated = new Set(current);
+        updated.add(next);
+        return updated;
+      });
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -769,7 +787,7 @@ function OrderDetailContent({
         <div>
           {/* แท็บแรก: ภาพรวม — ผู้ติดต่อ/ข้อมูลงาน/ที่อยู่/แบรนด์ (เบสสั่ง 2026-08-11)
               นี่คือบ้านของสิ่งที่เคยอยู่คอลัมน์ขวา บวกของที่มีในฐานแต่หน้าไม่เคยโชว์ */}
-          <TabsContent value="overview" className="space-y-6">
+          {visitedTabs.has("overview") && <TabsContent value="overview" keepMounted className="space-y-6">
             <OrderOverviewTab
               order={order}
               showMoney={canSeeMoney}
@@ -787,9 +805,9 @@ function OrderDetailContent({
               channelColor={channelColor}
               isMarketplace={isMarketplace}
             />
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="items" className="space-y-6">
+          {visitedTabs.has("items") && <TabsContent value="items" keepMounted className="space-y-6">
               {editingItems && canEditItems ? (
                 <OrderItemsEditor
                   orderId={id}
@@ -809,9 +827,9 @@ function OrderDetailContent({
                 />
               )}
             <OrderChangeOrders orderId={id} />
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="production" className="space-y-6">
+          {visitedTabs.has("production") && <TabsContent value="production" keepMounted className="space-y-6">
             <OrderDesignSection
               orderId={id}
               internalStatus={order.internalStatus}
@@ -843,9 +861,9 @@ function OrderDetailContent({
               productions={order.productions ?? []}
               isManagerUp={!!me && permAllows(me.permissions, "supervise_operations")}
             />
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="delivery" className="space-y-6">
+          {visitedTabs.has("delivery") && <TabsContent value="delivery" keepMounted className="space-y-6">
             {showDeliverySection ? (
               <OrderDeliverySection
                 orderId={id}
@@ -867,11 +885,11 @@ function OrderDetailContent({
                 />
               </Section>
             )}
-          </TabsContent>
+          </TabsContent>}
 
           {/* ไม่มีสิทธิ์ดูเงิน = ไม่ render ทั้งก้อน (แท็บก็ถูกกรองออกจาก visibleTabs) */}
-          {canSeeMoney && (
-            <TabsContent value="money" className="space-y-6">
+          {canSeeMoney && visitedTabs.has("money") && (
+            <TabsContent value="money" keepMounted className="space-y-6">
               <OrderMoneyTab
                 order={order}
                 subtotalItems={subtotalItems}
@@ -885,18 +903,18 @@ function OrderDetailContent({
             </TabsContent>
           )}
 
-          <TabsContent value="files" className="space-y-6">
+          {visitedTabs.has("files") && <TabsContent value="files" keepMounted className="space-y-6">
             <OrderFilesPanel
               orderId={id}
               userId={me.id}
               userRole={me.role}
               onGoToDesign={() => changeTab("production")}
             />
-          </TabsContent>
+          </TabsContent>}
 
-          <TabsContent value="history" className="space-y-6">
+          {visitedTabs.has("history") && <TabsContent value="history" keepMounted className="space-y-6">
             <OrderRevisions revisions={order.revisions ?? []} />
-          </TabsContent>
+          </TabsContent>}
         </div>
       </div>
       </Tabs>
