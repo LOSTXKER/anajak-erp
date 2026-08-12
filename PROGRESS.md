@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ V2 ลดคำอธิบาย + คืนแถบสถานะเดิมแล้ว 2026-08-12 — จาก feedback จอจริงของเบส**
+> ตัดคำโปรยที่หัวข้อ/ปุ่ม/placeholder สื่ออยู่แล้วออกจาก dashboard, shell, รายการ และหน้าเปิดงาน V2 · คง draft recovery, validation, error, permission, ภาษี/เงิน และคำเตือนที่มีผลต่อการตัดสินใจทั้งหมด · หน้า `/orders*` เดิมยังมีคำแนะนำชุดเดิมเพราะ shared component ใช้ `showGuidance=true` เป็นค่าเริ่มต้น
+>
+> **หน้ารวมออเดอร์:** 1440px กลับมาใช้ rail เดิมครบ 14 สถานะ แบ่ง รับงาน→ออกแบบ→ผลิต→ส่งของ→ปิดงาน→นอกเส้นทาง เหมือนภาพอ้างอิง (กว้าง 1,088px · ตารางแถวแรก y=392.25) · 390px คงแบบย่อ “ทั้งหมด + 2 สถานะที่มีงาน/ถูกเลือก + ทุกสถานะ” รายการแรก y=512.8 และสถานะที่เลือกอยู่นอก quick set ยังถูกดันขึ้นมาเห็นเสมอ · กดสถานะ/กดซ้ำล้าง/URL/aria/focus ผ่าน
+>
+> **หน้าเปิดงาน:** V2 ซ่อน helper ใต้ช่องและยุบที่อยู่จัดส่งเหลือสวิตช์ตอนปิด โดยเปิดกลับแล้วค่าใน state ไม่ถูกล้าง · validation ว่างยังเด้ง “กรุณาเลือกลูกค้า” · ด่านปุ่มเปิดงานบน dashboard/list ใช้ permission เดียวกับ route (ต้องสร้างเอกสารขาย + เห็นเงิน) ไม่พาเข้า Access Denied แล้ว
+>
+> **verify production build:** 390×844 และ 1440×1000 ไม่มี horizontal overflow/error overlay/hydration/console error · V1 `/orders/new` ยังมี guidance และช่องจัดส่งเดิม · typecheck ผ่าน · lint 0 error (36 warningเดิม) · unit **682/682** · `verify:ui` ผ่าน · `next build` ผ่านและ V1/V2 routes ครบ
+
 > **✅ V2 Orders ครบ 3 เส้นทางแล้ว 2026-08-12 — `/v2/orders` · `/v2/orders/new` · `/v2/orders/[id]`**
 > หน้ารวม/เปิดงาน/รายละเอียดใช้ query, mutation, draft, สูตรราคา, status transition, เอกสาร และ permission ชุดเดียวกับ `/orders*` ผ่าน shared screen — route เดิมจึงยังอยู่และไม่มีกฎธุรกิจสำเนาชุดที่สอง
 >

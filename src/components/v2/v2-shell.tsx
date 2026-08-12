@@ -27,7 +27,6 @@ import {
 import { cn } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -84,10 +83,10 @@ function V2MoreMenu({
       >
         <DialogHeader className="border-b border-slate-200 px-5 pb-4 pt-5 pr-14 text-left dark:border-white/10">
           <DialogTitle>พื้นที่ทำงานทั้งหมด</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className={user ? undefined : "sr-only"}>
             {user
               ? `${user.name} · ${ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] ?? user.role}`
-              : "เลือกโมดูลที่ต้องการ"}
+              : "เมนูเพิ่มเติม"}
           </DialogDescription>
         </DialogHeader>
 
@@ -216,11 +215,7 @@ function V2ShellContent({ children }: { children: ReactNode }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-strong">Anajak Print</p>
-              <p className="text-2xs text-muted">ERP Workspace</p>
             </div>
-            <Badge variant="accent" size="sm">
-              V2
-            </Badge>
           </div>
 
           <nav aria-label="เมนูหลัก V2" className="flex-1 px-3 py-4">

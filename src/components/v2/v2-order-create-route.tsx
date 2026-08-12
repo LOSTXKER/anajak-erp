@@ -15,6 +15,7 @@ export function V2OrderCreateRoute() {
       <OrderCreatePage
         ordersBasePath="/v2/orders"
         stickyActionsOffset="v2"
+        showGuidance={false}
       />
     );
   }

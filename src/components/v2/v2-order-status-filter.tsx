@@ -54,8 +54,9 @@ export function V2OrderStatusFilter({
     const visible = QUICK_STATUS_ORDER.filter(
       (status) => (counts?.[status] ?? 0) > 0 || selected === status,
     );
-    if (selected && !visible.includes(selected as (typeof QUICK_STATUS_ORDER)[number])) {
-      return [selected as InternalStatus, ...visible].slice(0, 4);
+    if (selected) {
+      const selectedStatus = selected as InternalStatus;
+      return [selectedStatus, ...visible.filter((status) => status !== selectedStatus)].slice(0, 4);
     }
     return visible.slice(0, 4);
   }, [counts, selected]);
@@ -68,7 +69,16 @@ export function V2OrderStatusFilter({
 
   return (
     <section aria-label="กรองตามสถานะ" className={cn("space-y-2", isLoading && "opacity-60")}>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="hidden xl:block">
+        <OrderStatusFlowBar
+          counts={counts}
+          selected={selected}
+          onSelect={onSelect}
+          isLoading={isLoading}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 xl:hidden">
         <button
           type="button"
           aria-pressed={!selected}
@@ -87,7 +97,7 @@ export function V2OrderStatusFilter({
           </span>
         </button>
 
-        {quickStatuses.map((status) => {
+        {quickStatuses.map((status, index) => {
           const active = selected === status;
           return (
             <button
@@ -97,6 +107,7 @@ export function V2OrderStatusFilter({
               onClick={() => onSelect(active ? "" : status)}
               className={cn(
                 "inline-flex min-h-11 items-center gap-2 rounded-full px-3.5 text-sm transition-colors",
+                index >= 2 && "max-sm:hidden",
                 FOCUS_BUTTON,
                 active
                   ? "bg-blue-50 font-medium text-blue-700 hairline-ring dark:bg-blue-950/50 dark:text-blue-300"

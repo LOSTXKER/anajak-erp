@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
+import { canAccessV2OrderCreate } from "@/lib/v2-order-access";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -332,7 +333,9 @@ function OrdersPageContent({
 
   const { data: me } = trpc.user.me.useQuery();
   // เปิดออเดอร์ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ปุ่มสร้าง (B12)
-  const canCreateOrder = permAllows(me?.permissions, "create_sales_docs");
+  const canCreateOrder = variant === "v2"
+    ? canAccessV2OrderCreate(me?.permissions)
+    : permAllows(me?.permissions, "create_sales_docs");
   // ⑦ ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนคอลัมน์ยอดรวม + sort ยอดรวม (ระหว่างโหลด me = ซ่อนไว้ก่อน ปลอดภัยกว่า)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const sortOptions = canSeeMoney
@@ -420,11 +423,6 @@ function OrdersPageContent({
     <div className="space-y-6">
       <PageHeader
         title={variant === "v2" ? "ออเดอร์ทั้งหมด" : "ออเดอร์"}
-        description={
-          variant === "v2"
-            ? "ค้นหา เปิดต่อ และติดตามงานจากรายการเดียว"
-            : undefined
-        }
         action={
           <>
             {data && data.orders.length > 0 && (
@@ -464,6 +462,17 @@ function OrdersPageContent({
           }
           // จางเฉพาะโหลดครั้งแรก — ตอน refetch มีข้อความ "กำลังอัปเดต…" ที่ toolbar อยู่แล้ว
           // (เดิมส่ง isFetching ด้วย → กดกรองทีไรแถบวูบกระพริบ)
+          isLoading={isLoading}
+        />
+      )}
+      {variant === "v2" && (
+        <V2OrderStatusFilter
+          counts={data?.statusCounts}
+          total={data?.total}
+          selected={internalStatus}
+          onSelect={(status) =>
+            replaceListState({ status: status || null, page: null })
+          }
           isLoading={isLoading}
         />
       )}
@@ -576,20 +585,6 @@ function OrdersPageContent({
           </p>
         )}
       </Toolbar>
-
-      {variant === "v2" && (
-        <div className="-mt-2">
-          <V2OrderStatusFilter
-            counts={data?.statusCounts}
-            total={data?.total}
-            selected={internalStatus}
-            onSelect={(status) =>
-              replaceListState({ status: status || null, page: null })
-            }
-            isLoading={isLoading}
-          />
-        </div>
-      )}
 
       <ResponsiveList
         items={data?.orders}

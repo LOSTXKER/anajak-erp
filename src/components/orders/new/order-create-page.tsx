@@ -90,9 +90,12 @@ const STEP_IDS = {
 export default function OrderCreatePage({
   ordersBasePath = "/orders",
   stickyActionsOffset = "default",
+  showGuidance = true,
 }: {
   ordersBasePath?: string;
   stickyActionsOffset?: "default" | "v2";
+  /** V2 ตัดคำอธิบายที่ placeholder/หัวข้อสื่ออยู่แล้ว แต่คง validation และคำเตือนทั้งหมด */
+  showGuidance?: boolean;
 }) {
   const router = useRouter();
   const confirmDialog = useConfirm();
@@ -629,7 +632,7 @@ export default function OrderCreatePage({
           <Section
             id={STEP_IDS.intake}
             tabIndex={-1}
-            description="ที่เหลือเติมทีหลังได้"
+            description={showGuidance ? "ที่เหลือเติมทีหลังได้" : undefined}
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
@@ -657,6 +660,7 @@ export default function OrderCreatePage({
                 onDescriptionChange={setDescription}
                 notes={notes}
                 onNotesChange={setNotes}
+                showGuidance={showGuidance}
               />
               {/* จัดส่งอยู่กับรับเรื่อง — ที่อยู่ผู้รับมาจากแชทรอบเดียวกับข้อมูลลูกค้า
                   (เบสสั่ง 2026-08-04) · ไม่มีเส้นคั่น ใช้หัวข้อย่อย h3 แยกพอ */}
@@ -666,6 +670,8 @@ export default function OrderCreatePage({
                 shipping={shipping}
                 onUpdate={updateShipping}
                 embedded
+                showGuidance={showGuidance}
+                collapseWhenInactive={!showGuidance}
                 onUseCustomerAddress={
                   canUseCustomerAddress
                     ? () => fillShippingFromCustomer(customerAddressFill, customerId || null)
@@ -868,9 +874,13 @@ export default function OrderCreatePage({
               ) : (
                 <p className="text-xs leading-snug text-muted">
                   ยังไม่ใส่รายการ/ราคา
-                  <br className="sm:hidden" />
-                  <span className="hidden sm:inline"> — </span>
-                  เปิดเป็นใบสอบถามแล้วเติมทีหลังได้
+                  {showGuidance && (
+                    <>
+                      <br className="sm:hidden" />
+                      <span className="hidden sm:inline"> — </span>
+                      เปิดเป็นใบสอบถามแล้วเติมทีหลังได้
+                    </>
+                  )}
                 </p>
               )}
             </div>
