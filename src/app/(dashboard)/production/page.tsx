@@ -136,7 +136,14 @@ function ProductionWorkspace() {
   const promptText = usePromptText();
 
   const { data: me } = trpc.user.me.useQuery();
-  const { data: orders, isLoading, isError, refetch } = trpc.production.kanban.useQuery();
+  const { data: orders, isLoading, isError, refetch } = trpc.production.kanban.useQuery(
+    undefined,
+    {
+      refetchInterval: 30_000,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+    },
+  );
   const utils = trpc.useUtils();
 
   const [createOrderId, setCreateOrderId] = useState<string | null>(null);
@@ -384,6 +391,22 @@ function ProductionWorkspace() {
       )
     : [];
 
+  // ถ้าไม่มีงานไฟไหม้ หัวหน้าเปิดมาเจอ “งานจริงที่ทำต่อได้” ก่อนตัวเลขรวม
+  // การ์ดสายด้านล่างยังเป็นตัวกรอง ส่วนรายการนี้เรียงกำหนดส่ง→ความเร่งด่วนให้ลงมือได้ทันที
+  const priorityRank: Record<string, number> = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
+  const overviewCards = canCreate && fires.length === 0
+    ? [...laneCards.values()]
+        .flat()
+        .sort((a, b) => {
+          const aDeadline = a.order.deadline ? new Date(a.order.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+          const bDeadline = b.order.deadline ? new Date(b.order.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+          if (aDeadline !== bDeadline) return aDeadline - bDeadline;
+          return (priorityRank[a.order.priority ?? "NORMAL"] ?? 2) -
+            (priorityRank[b.order.priority ?? "NORMAL"] ?? 2);
+        })
+        .slice(0, 6)
+    : [];
+
   const focusPostCol = focus?.kind === "post" ? POST_COLUMNS.find((c) => c.key === focus.key) : null;
 
   return (
@@ -396,7 +419,7 @@ function ProductionWorkspace() {
           : focus
             ? undefined
             : canCreate
-              ? `${all.length} งานในระบบ`
+              ? `${all.length} ออเดอร์ · หนึ่งออเดอร์อาจอยู่หลายสาย`
               : myWork.length > 0
                 ? `${myWork.length} ขั้นที่คุณรับผิดชอบ`
                 : "ยังไม่มีงานที่มอบให้คุณ"
@@ -440,6 +463,42 @@ function ProductionWorkspace() {
           lanes={[...laneTiles, ...postTiles]}
           queue={queueItems}
           myWork={myWork}
+          workPreview={
+            overviewCards.length > 0 ? (
+              <section className="space-y-2.5" aria-labelledby="production-work-now">
+                <h2
+                  id="production-work-now"
+                  className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
+                >
+                  <Play className="h-4 w-4 text-blue-500" aria-hidden="true" />
+                  งานที่ทำต่อได้ตอนนี้
+                  <span className="rounded-full bg-blue-50 px-1.5 text-xs tabular-nums text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                    {overviewCards.length}
+                  </span>
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {overviewCards.map((card) => (
+                    <LaneCardView
+                      key={`${card.productionId}:${card.lane}`}
+                      card={card}
+                      perms={me?.permissions}
+                      meId={me?.id}
+                      canQc={canQc}
+                      busy={busy}
+                      onStart={(stepId) => updateStep.mutate({ stepId, status: "IN_PROGRESS" })}
+                      onComplete={(stepId) => updateStep.mutate({ stepId, status: "COMPLETED" })}
+                      onOpenQty={setQtyStep}
+                      onQuickPass={() => handleQuickPass(card)}
+                      onOutsourceStatus={(id, status) => updateOutsource.mutate({ id, status })}
+                      onOutsourceQcPass={handleOutsourceQcPass}
+                      onOutsourceQcFail={handleOutsourceQcFail}
+                      onReceiveBack={(outsource) => handleReceiveBack(card, outsource)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : undefined
+          }
           prioritizeMyWork={!canCreate}
           canCreate={canCreate}
           onPickLane={(tile) =>

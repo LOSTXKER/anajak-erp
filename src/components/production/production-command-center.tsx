@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,6 +102,7 @@ export function ProductionCommandCenter({
   lanes,
   queue,
   myWork,
+  workPreview,
   prioritizeMyWork,
   canCreate,
   onPickLane,
@@ -110,6 +112,8 @@ export function ProductionCommandCenter({
   lanes: LaneTile[];
   queue: QueueItem[];
   myWork: MyWorkItem[];
+  /** การ์ดงานจริงที่ทำต่อได้ — แสดงก่อนตัวกรองสายเมื่อไม่มีงานไฟไหม้ */
+  workPreview?: ReactNode;
   // ช่างเปิดมาเห็นงานที่ตัวเองถือก่อน; หัวหน้ายังคงเห็นภาพรวมโรงงานก่อน
   prioritizeMyWork: boolean;
   // เปิด/ข้ามด่านใบผลิตได้ (หัวหน้าขึ้นไป — ตรง supervise_operations ฝั่ง server)
@@ -204,6 +208,8 @@ export function ProductionCommandCenter({
           </div>
         </section>
       )}
+
+      {workPreview}
 
       {/* ② สายการผลิต — กวาดตาเห็นงานเดินถึงไหนแต่ละสาย แตะ tile = เข้าไปดูรายการจริง */}
       <section className="space-y-3">

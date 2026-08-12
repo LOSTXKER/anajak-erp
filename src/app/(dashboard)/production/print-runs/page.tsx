@@ -148,8 +148,16 @@ function usePrintRunInvalidate() {
 
 export default function PrintRunsPage() {
   const confirm = useConfirm();
-  const queueQuery = trpc.printRun.queue.useQuery();
-  const listQuery = trpc.printRun.list.useQuery();
+  const queueQuery = trpc.printRun.queue.useQuery(undefined, {
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+  const listQuery = trpc.printRun.list.useQuery(undefined, {
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
   const invalidate = usePrintRunInvalidate();
   // B8: ปุ่มสั่งงาน (เปิดรอบ/พิมพ์จบ/ยกเลิก/ตัดแยก) เฉพาะคนมีสิทธิ์ผลิต — role อื่นเห็นคิวอ่านอย่างเดียว
   const { data: me } = trpc.user.me.useQuery();
@@ -248,6 +256,7 @@ export default function PrintRunsPage() {
             icon={Printer}
             title="ยังไม่มีรอบที่ค้างอยู่"
             description="เลือกงานจากคิวพิมพ์ด้านล่างเพื่อเปิดรอบพิมพ์ม้วนใหม่"
+            density="compact"
           />
         ) : (
           <div className="space-y-3 p-3">
@@ -280,6 +289,7 @@ export default function PrintRunsPage() {
             icon={Film}
             title="คิวพิมพ์ว่าง"
             description="งานขั้นพิมพ์ฟิล์ม DTF ที่แบบอนุมัติแล้วจะเข้าคิวที่นี่เอง"
+            density="compact"
           />
         ) : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -308,6 +318,7 @@ export default function PrintRunsPage() {
             icon={History}
             title="ยังไม่มีประวัติรอบใน 7 วันล่าสุด"
             description="รอบที่ปิดเสร็จหรือยกเลิกแล้วจะมาแสดงที่นี่"
+            density="compact"
           />
         ) : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
