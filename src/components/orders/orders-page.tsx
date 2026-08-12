@@ -151,7 +151,7 @@ function OrderCountdown({
   internalStatus: string;
 }) {
   if (!deadline || ATTENTION_EXEMPT_STATUSES.has(internalStatus)) {
-    return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
+    return <span className="text-xs text-muted">—</span>;
   }
   const days = daysUntil(deadline);
   const { label, dot, text } =
@@ -193,7 +193,7 @@ function OrderCountdown({
 
 function PaymentIndicator({ status }: { status: string }) {
   const v = PAYMENT_DOT[status];
-  if (!v) return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
+  if (!v) return <span className="text-xs text-muted">—</span>;
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${v.text}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${v.dot}`} />

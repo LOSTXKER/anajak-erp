@@ -320,7 +320,7 @@ function AgingPageContent() {
                       align="right"
                       className={`tabular-nums ${
                         row.buckets[bucket.key] === 0
-                          ? "text-slate-400 dark:text-slate-600"
+                          ? "text-muted"
                           : bucket.key === "current"
                             ? ""
                             : "font-medium text-red-700 dark:text-red-300"
@@ -471,7 +471,7 @@ function AgingPageContent() {
                 กำลังร่าง...
               </div>
             ) : draft.isError ? (
-              <p className="py-8 text-center text-sm text-red-500">ร่างข้อความไม่สำเร็จ</p>
+              <p className="py-8 text-center text-sm text-red-600 dark:text-red-400">ร่างข้อความไม่สำเร็จ</p>
             ) : draft.data?.text ? (
               <>
                 <Textarea

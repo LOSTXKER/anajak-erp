@@ -170,13 +170,13 @@ function AttentionPanel({
         </div>
       ) : (
         <>
-          <div className="divide-y divide-slate-200 dark:divide-white/10">
+          <div className="divide-y divide-divider">
             {visible.map((item) => (
               <AttentionRow key={item.kind} item={item} />
             ))}
           </div>
           {hidden > 0 && (
-            <div className="border-t border-slate-200 px-5 py-2 dark:border-white/10">
+            <div className="border-t border-divider px-5 py-2">
               <Button asChild variant="ghost" size="sm" className="w-full">
                 <Link href="/my-tasks">ดูงานอื่นอีก {hidden} เรื่อง</Link>
               </Button>
@@ -216,7 +216,7 @@ function QuickLink({
         className={cn(
           RADIUS.item,
           "flex h-9 w-9 shrink-0 items-center justify-center",
-          primary ? "bg-white/15" : "bg-surface text-blue-600 dark:bg-white/10 dark:text-blue-300",
+          primary ? "bg-white/15" : "bg-surface text-blue-600 dark:text-blue-300",
         )}
       >
         <Icon className="h-4 w-4" />
@@ -331,7 +331,7 @@ export function DashboardHome() {
       </div>
 
       <Section title="ภาพรวม" compact flush>
-        <div className="grid grid-cols-2 gap-px overflow-hidden bg-slate-200 dark:bg-white/10 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px overflow-hidden bg-divider lg:grid-cols-4">
           <Metric label="ออเดอร์กำลังเดิน" value={data?.activeOrders ?? 0} />
           <Metric label="ปิดงานเดือนนี้" value={data?.completedThisMonth ?? 0} />
           <Metric label="ลูกค้าทั้งหมด" value={data?.totalCustomers ?? 0} note={data?.newCustomersThisMonth ? `+${data.newCustomersThisMonth} เดือนนี้` : undefined} />
@@ -371,7 +371,7 @@ export function DashboardHome() {
             }
           />
         ) : (
-          <div className="divide-y divide-slate-200 dark:divide-white/10">
+          <div className="divide-y divide-divider">
             {data.recentOrders.map((order) => (
               <Link
                 key={order.id}

@@ -56,7 +56,7 @@ export function SegmentedControl<T extends string = string>({
     <div
       role={semantics === "tabs" ? "tablist" : "group"}
       className={cn(
-        "inline-flex gap-0.5 rounded-lg bg-slate-50 p-0.5 ring-1 ring-inset ring-slate-200 dark:bg-slate-900/80 dark:ring-slate-800/60",
+        "inline-flex gap-0.5 rounded-lg bg-surface-muted p-0.5 ring-1 ring-inset ring-border",
         className,
       )}
       {...props}
@@ -95,8 +95,8 @@ export function SegmentedControl<T extends string = string>({
             className={cn(CONTROL_H_SM, "inline-flex touch-manipulation items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition-colors", FOCUS_BUTTON,
               size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-xs",
               active
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white"
-                : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
+                ? "bg-interactive-selected text-interactive-selected-text shadow-sm"
+                : "text-muted hover:bg-interactive-hover hover:text-strong",
             )}
           >
             {Icon && <Icon className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />}

@@ -309,7 +309,7 @@ export function OrderBillingSection({
                                       target="_blank"
                                       rel="noreferrer"
                                       aria-label={`ดูสลิปของรายการชำระ ${formatCurrency(p.amount)}`}
-                                      className={cn("flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white hover:text-blue-600", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:bg-slate-900 dark:hover:text-blue-400")}
+                                      className={cn("flex h-11 w-11 items-center justify-center rounded-lg text-muted transition-colors hover:bg-interactive-hover hover:text-blue-600 active:bg-interactive-pressed", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:text-blue-300")}
                                       title="ดูสลิปโอน"
                                     >
                                       <Paperclip className="h-3 w-3" />
@@ -364,7 +364,7 @@ export function OrderBillingSection({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="gap-1.5 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-500"
+                              className="gap-1.5 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowRefundDialog(inv.id);
@@ -378,7 +378,7 @@ export function OrderBillingSection({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="gap-1.5 text-xs text-red-500 hover:text-red-600"
+                              className="gap-1.5 text-xs text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowVoidDialog(inv.id);

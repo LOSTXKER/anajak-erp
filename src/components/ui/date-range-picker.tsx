@@ -24,7 +24,7 @@ import { CalendarRange, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
-import { ACTIVE_FILTER, FOCUS_BUTTON, OVERLAY_PANEL } from "./tokens";
+import { ACTIVE_FILTER, FOCUS_BUTTON, INTERACTIVE_SELECTED, OVERLAY_PANEL } from "./tokens";
 import { MONTHS, MONTHS_SHORT, WEEKDAYS, buddhistYear, parseValue } from "./date-picker";
 
 /* ============================================================
@@ -258,8 +258,8 @@ export function DateRangePicker({
                     CONTROL_MIN_H,
                     "inline-flex items-center rounded-full px-3 text-xs transition-colors",
                     isOn
-                      ? "bg-blue-600 font-medium text-white"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700",
+                      ? cn(INTERACTIVE_SELECTED, "font-medium")
+                      : "bg-surface-muted text-secondary hover:bg-interactive-hover active:bg-interactive-pressed",
                   )}
                 >
                   {s.label}
@@ -292,7 +292,7 @@ export function DateRangePicker({
 
           <div className="grid grid-cols-7 gap-y-0.5" onMouseLeave={() => setHovered(null)}>
             {WEEKDAYS.map((w) => (
-              <div key={w} className="pb-1 text-center text-2xs font-medium text-slate-400">
+              <div key={w} className="pb-1 text-center text-2xs font-medium text-muted">
                 {w}
               </div>
             ))}
@@ -322,8 +322,8 @@ export function DateRangePicker({
                     isEdgeEnd && !isEdgeStart && "rounded-r-lg",
                     isEdge && "rounded-lg bg-blue-600 font-semibold text-white",
                     !inRange && "rounded-lg hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary",
-                    !inMonth && !isEdge && "text-slate-300 dark:text-slate-600",
-                    inMonth && !isEdge && "text-slate-700 dark:text-slate-200",
+                    !inMonth && !isEdge && "text-muted",
+                    inMonth && !isEdge && "text-secondary",
                     isToday && !isEdge && "font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300",
                   )}
                 >
@@ -333,8 +333,8 @@ export function DateRangePicker({
             })}
           </div>
 
-          <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-200 pt-2 text-xs dark:border-slate-800">
-            <span className="text-slate-500 dark:text-slate-400">
+          <div className="mt-3 flex items-center justify-between gap-2 border-t border-divider pt-2 text-xs">
+            <span className="text-muted">
               {draftStart
                 ? `เริ่ม ${shortDate(draftStart)} — เลือกวันสิ้นสุด`
                 : (label ?? "ยังไม่ได้เลือกช่วง")}

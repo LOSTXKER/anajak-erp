@@ -62,7 +62,7 @@ export function ProductTableRow({
     </Select>
   );
 
-  const dash = <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
+  const dash = <span className="text-xs text-muted">—</span>;
 
   return (
     <>
@@ -89,7 +89,7 @@ export function ProductTableRow({
                 <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
                   {product.productSku && <span>{product.productSku}</span>}
                   {product.stockAvailable != null && (
-                    <span className={product.stockAvailable > 0 ? "text-green-600" : "text-red-500"}>คลัง {product.stockAvailable}</span>
+                    <span className={product.stockAvailable > 0 ? "text-green-600 dark:text-green-400" : "text-red-700 dark:text-red-300"}>คลัง {product.stockAvailable}</span>
                   )}
                 </div>
               </div>
@@ -195,7 +195,7 @@ export function ProductTableRow({
                 </Button>
               </div>
             )}
-            <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบสินค้า ${prodIdx + 1}`} onClick={removeProduct} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
+            <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบสินค้า ${prodIdx + 1}`} onClick={removeProduct} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400">
               <Trash2 />
             </Button>
           </div>

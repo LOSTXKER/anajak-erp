@@ -407,7 +407,7 @@ function QcCountForm({
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => removeRow(idx)}
-                  className="text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+                  className="text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                   aria-label="ลบแถวของเสีย"
                 >
                   <Trash2 />

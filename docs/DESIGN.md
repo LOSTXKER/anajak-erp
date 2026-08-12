@@ -10,38 +10,47 @@
 >
 > **หน้าตัวอย่างที่ทำถูกทั้งหน้า:** `src/app/(dashboard)/customers/page.tsx`
 
-## สี — token 3 ชั้น (`src/app/globals.css`)
+## สี — semantic system (`src/app/globals.css`)
 
-| ชั้น | คืออะไร | ใช้ยังไง |
-|---|---|---|
-| Primitive | สีแบรนด์: `--color-anajak-blue #3973b2` · `--color-anajak-yellow #fec91b` · `--color-anajak-red #e72f27` | **ห้ามใช้ตรงใน component** |
-| Ramp | สเกล `blue-50..950` / `red-50..950` ของ Tailwind ถูก override เป็น ramp จากสีแบรนด์ (เลข 600 = สีแบรนด์เป๊ะ) | ใช้ utility ปกติ: `bg-blue-600`, `text-red-700` — ได้โทนแบรนด์อัตโนมัติ |
-| Semantic | พื้น: `--color-bg` (light `#f7f7f8` ขาวนวล) · `--color-chrome` / `--color-surface` (light `#fff`) · `--color-surface-muted` (light `#f2f2f4`) · interaction: `--color-interactive-hover` / `--color-interactive-pressed` · ข้อความ: `--color-text` / `--color-strong` / `--color-secondary` / `--color-muted` | ใช้ผ่าน `bg-bg` / `bg-chrome` / `bg-surface` / `bg-surface-muted` / `bg-interactive-hover` / `bg-interactive-pressed` และ `text-strong` / `text-secondary` / `text-muted` |
+รอบ 2026-08-13 เปลี่ยนทั้ง Light/Dark เป็นระบบเดียวกัน: ฐาน neutral อมฟ้าเล็กน้อย,
+interaction เป็น “blue mist” จางแทนแถบเทา และคงน้ำเงิน Anajak `#3973b2` เป็นสีหลักเดิม
 
-> **แก้ 2026-08-02 จาก audit สี:** เคยมีสี semantic ที่ซ้ำกับ ramp อีก 17 ตัว (`accent` · `success` ·
-> `warning` · `danger` · `border` · `text-muted` ฯลฯ) เขียนไว้ในเอกสารนี้ว่า "ให้ใช้"
-> — ตรวจแล้ว **ไม่มีใครเรียกใช้เลยสักจุดตั้งแต่วันที่ประกาศ** และค่าที่ตั้งไว้ขัดกับสีจริง
-> (`--color-danger` เป็นแดง Apple คนละเฉดกับแดงแบรนด์) → **ลบทิ้งแล้ว** ห้ามเขียนกลับมา
-> โดยไม่มีคนใช้จริง · semantic ข้อความ 3 ระดับด้านบนเพิ่มภายหลังเพื่อแก้การสลับธีมและมีด่านตรวจรองรับ
+| บทบาท | Light | Dark | utility |
+|---|---|---|---|
+| พื้นหน้า | `#f8f9fb` | `#111418` | `bg-bg` |
+| navbar/sidebar | `#fff` | `#0c0f13` | `bg-chrome` |
+| card | `#fff` | `#181c22` | `bg-surface` / `card-surface` |
+| menu/dialog | `#fff` | `#1d232b` | `bg-surface-elevated` / `overlay-surface` |
+| กล่องจม | `#f3f5f7` | `#12161b` | `bg-surface-muted` / `SUNK_PANEL` |
+| ช่องกรอก | `#fff` | `#0c0f13` | `bg-field` / `FIELD_SURFACE` |
+| ขอบทั่วไป / เส้นคั่น | `#e2e6ea` / `#e8ebef` | `#2d343d` / `#262d35` | `border-border` / `border-divider` |
+| Hover | `#eaf4fd` | `#1e2a36` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
+| Pressed | `#ddebf8` | `#22374b` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
+| Selected | `#d2e4f6` | `#173c61` | `bg-interactive-selected text-interactive-selected-text` |
 
-**สีตัวหนังสือใหม่ใช้ semantic ก่อน** ส่วน markup เดิมที่ยังใช้ ramp จะได้ค่าเฉดเดียวกันจาก `globals.css`:
+**ข้อความใช้ semantic ก่อน** — ทุกค่าข้างล่างสลับธีมเองและผ่าน AA บน surface กับ interaction states:
 
 | ใช้ทำอะไร | เขียนยังไง |
 |---|---|
-| ตัวหนังสือหลัก | `text-strong` (ของเดิม: `text-slate-900 dark:text-white`) |
-| ตัวหนังสือรอง | `text-secondary` |
-| คำบรรยาย · วันที่ · meta | `text-muted` (ของเดิม: `text-slate-500 dark:text-slate-400`) |
-| ค่าว่าง / เลขศูนย์ | `text-slate-400 dark:text-slate-500` |
-| หัวตารางบนการ์ด | `TABLE_HEAD_SURFACE` (`bg-surface dark:bg-white/[0.03]`) |
-| พื้นที่จมลงไป — กล่องย่อยในการ์ดใช้ `SUNK_PANEL` (จม = **เข้มกว่า** พื้นเสมอ ทั้งสองธีม · เบสเคาะ 2026-08-04) · พื้นตอนชี้ | `SUNK_PANEL` (`bg-surface-muted dark:bg-black/25`) · hover `bg-interactive-hover` · pressed `bg-interactive-pressed` (ห้ามกลับไป `slate-100` เพราะเท่ากับพื้นจม) |
-| เส้นคั่น | `border-slate-200 dark:border-white/10` (ในกล่องลอยใช้ `dark:bg-white/10`) |
+| หัวข้อ/ชื่อ/ค่าหลัก | `text-strong` |
+| ข้อความรอง | `text-secondary` |
+| คำบรรยาย · วันที่ · meta | `text-muted` |
+| ข้อความตัวอย่างในช่อง | `text-placeholder` / `placeholder:text-placeholder` |
+| ค่าว่างที่ไม่ใช่ placeholder | ใช้ `text-muted`; จางกว่านี้ได้เฉพาะ disabled/decoration ที่ไม่ใช่ข้อมูล |
+| หัวตาราง | `TABLE_HEAD_SURFACE` |
 
-**โหมดมืดใช้ "ขาวโปร่ง" ไม่ใช่เทาเข้ม** — `bg-white/10` สว่างกว่าพื้นเสมอไม่ว่าวางบนการ์ด
-พื้นหน้า หรือกล่องลอย · ถ้าใช้ `dark:bg-slate-800` จะกลืนกับพื้นการ์ด (ต่างกัน 5 จาก 255)
+กติกา interaction:
 
-กฎ: **ห้าม hex ตรงๆ ในโค้ด component** · ใช้ได้แค่ 5 ตระกูล **slate / blue / red / amber / green**
-(ทั้งหมดถูก override เป็นโทนแบรนด์แล้ว) — ตระกูลอื่นมีด่าน lint ข้อ 10 ดักไว้
-· neutral มาตรฐาน = `slate-*` เท่านั้น (ramp ถูก override เข้าโทน Apple gray ที่ `@theme` แล้ว — UX4.4) — **ห้ามใช้ `gray-*`/`zinc-*` ปน** เพราะจะหลุดโทนที่ override ไว้
+- ของที่ชี้ได้ใช้ `INTERACTIVE_HOVER`; ของที่กดได้จริงจึงค่อย compose `INTERACTIVE_PRESSED`
+- ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
+- Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
+- ช่องกรอกใช้ `FIELD_SURFACE` เสมอ เพื่อให้พื้น/ขอบ/placeholder/focus ผ่านทั้งสองธีม
+- สีสถานะใช้เฉพาะ **blue / red / amber / green** ผ่าน `Badge`, `Alert`, `StatusLabel`, `TINT`
+- `slate-*` เป็น compatibility ramp สำหรับ markup เก่า ไม่ใช่ทางหลักของ component ใหม่
+- เอกสารใน `.print-page` ล็อก grayscale ของตัวเองและ public/print บังคับ Light เสมอ
+
+กฎ: **ห้าม hex ตรงใน component** · ห้าม `gray-*`/`zinc-*` ปน · ห้ามเขียน neutral hover
+ด้วย `slate/white/black` ตรง ๆ; `verify:ui` ตรวจทั้ง class, token layer และ contrast จริงค่ะ
 
 ## Component มาตรฐาน — มีแล้ว ห้ามสร้างซ้ำ
 

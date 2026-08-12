@@ -123,7 +123,7 @@ export function DatePicker({
             className,
           )}
         >
-          <span className={cn("truncate", !selected && "text-slate-400 dark:text-slate-500")}>
+          <span className={cn("truncate", !selected && "text-placeholder")}>
             {selected
               ? `${selected.getDate()} ${MONTHS[selected.getMonth()]} ${buddhistYear(selected)}`
               : placeholder}
@@ -196,7 +196,7 @@ export function DatePicker({
             {WEEKDAYS.map((w) => (
               <div
                 key={w}
-                className="pb-1 text-center text-2xs font-medium text-slate-400"
+                className="pb-1 text-center text-2xs font-medium text-muted"
               >
                 {w}
               </div>
@@ -219,8 +219,8 @@ export function DatePicker({
                     CONTROL_H,
                     "flex items-center justify-center rounded-lg text-sm tabular-nums transition-colors",
                     FOCUS_BUTTON,
-                    !inMonth && "text-slate-300 dark:text-slate-600",
-                    inMonth && "text-slate-700 dark:text-slate-200",
+                    !inMonth && "text-muted",
+                    inMonth && "text-secondary",
                     !isSelected && "hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary",
                     isToday &&
                       !isSelected &&
@@ -235,7 +235,7 @@ export function DatePicker({
             })}
           </div>
 
-          <div className="mt-2 flex gap-2 border-t border-slate-200 pt-2 dark:border-slate-800">
+          <div className="mt-2 flex gap-2 border-t border-divider pt-2">
             <button
               type="button"
               onClick={() => {

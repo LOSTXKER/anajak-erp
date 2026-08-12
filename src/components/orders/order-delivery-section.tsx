@@ -171,7 +171,7 @@ export function OrderDeliverySection({
             <button
               type="button"
               onClick={() => setShowBlindShipDialog(true)}
-              className={cn(CONTROL_MIN_H, "mt-1 flex w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-blue-500")}
+              className={cn(CONTROL_MIN_H, "mt-1 flex w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-blue-500 dark:hover:text-blue-400")}
             >
               <Settings2 className="h-3 w-3" />
               {packContext.data.blindShip ? "ตั้งค่า blind ship" : "ตั้งค่า blind ship (ปิดอยู่)"}
@@ -277,7 +277,7 @@ export function OrderDeliverySection({
                                 ) : actions.canEditTracking ? (
                                   <button
                                     type="button"
-                                    className={cn(CONTROL_MIN_H, "touch-manipulation text-xs text-slate-400 hover:text-blue-500")}
+                                    className={cn(CONTROL_MIN_H, "touch-manipulation text-xs text-slate-400 hover:text-blue-500 dark:hover:text-blue-400")}
                                     onClick={() => {
                                       setEditTrackingId(delivery.id);
                                       setEditTrackingValue(delivery.trackingNumber || "");

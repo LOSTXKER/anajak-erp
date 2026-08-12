@@ -223,21 +223,21 @@ export function MaterialUsage({
                   <button
                     key={product.id}
                     onClick={() => addMaterial(product as never)}
-                    className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                    className="group flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
                   >
                     <div>
                       <span className="font-medium text-slate-900 dark:text-white">
                         {product.name}
                       </span>
-                      <span className="ml-2 text-slate-400">{product.sku}</span>
+                      <span className="ml-2 text-muted group-hover:text-secondary group-active:text-secondary">{product.sku}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span
                         className={cn(
                           "tabular-nums",
                           (product.totalStock ?? 0) <= 0
-                            ? "text-red-500"
-                            : "text-slate-500 dark:text-slate-400"
+                            ? "text-red-700 dark:text-red-300"
+                            : "text-muted group-hover:text-secondary group-active:text-secondary"
                         )}
                       >
                         คงเหลือ: {product.totalStock ?? 0}
@@ -397,7 +397,7 @@ export function MaterialUsage({
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => removeMaterial(m.id)}
-                  className="ml-1 h-5 w-5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+                  className="ml-1 h-5 w-5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 dark:hover:text-red-400"
                 >
                   <X />
                 </Button>
@@ -439,7 +439,7 @@ export function MaterialUsage({
           <div className="py-4 text-center">
             <Package className="mx-auto h-8 w-8 text-slate-200 dark:text-slate-700" />
             <p className="mt-1.5 text-xs text-slate-400">ยังไม่มีวัตถุดิบ</p>
-            <p className="text-2xs text-slate-300 dark:text-slate-600">
+            <p className="text-2xs text-muted">
               กดปุ่ม &quot;เพิ่มวัตถุดิบ&quot; เพื่อเริ่มเพิ่มรายการ
             </p>
           </div>

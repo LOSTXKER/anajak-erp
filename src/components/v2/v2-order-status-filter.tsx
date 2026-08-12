@@ -92,7 +92,7 @@ export function OrderStatusFilter({
           )}
         >
           ทั้งหมด
-          <span className={cn("text-xs tabular-nums", !selected ? "text-blue-100" : "text-muted group-hover:text-secondary group-active:text-secondary")}>
+          <span className={cn("text-xs tabular-nums", !selected ? "text-white" : "text-muted group-hover:text-secondary group-active:text-secondary")}>
             {countLabel(allCount)}
           </span>
         </button>
@@ -134,7 +134,7 @@ export function OrderStatusFilter({
             ทุกสถานะ
             <ChevronDown className="h-4 w-4 text-muted transition-transform group-hover:text-secondary group-active:text-secondary group-open:rotate-180" />
           </summary>
-          <div className="mt-3 w-full max-w-full rounded-2xl bg-slate-50/80 p-3 dark:bg-white/[0.03]">
+          <div className="mt-3 w-full max-w-full rounded-2xl bg-surface-muted p-3">
             <OrderStatusFlowBar
               counts={counts}
               selected={selected}

@@ -861,7 +861,7 @@ function LaneCardView({
                     size="sm"
                     disabled={busy}
                     onClick={() => onOutsourceQcFail(activeOutsource.id)}
-                    className="flex-1 text-red-600 hover:text-red-700"
+                    className="flex-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                   >
                     ไม่ผ่าน
                   </Button>

@@ -272,7 +272,7 @@ export function OrderPriceSummary({
         <span className="text-sm font-medium text-slate-900 dark:text-white">
           ยอดรวมทั้งหมด
           {taxRate > 0 && (
-            <span className="ml-1 text-xs font-normal text-slate-400">
+            <span className="ml-1 text-xs font-normal text-muted">
               (รวม VAT)
             </span>
           )}

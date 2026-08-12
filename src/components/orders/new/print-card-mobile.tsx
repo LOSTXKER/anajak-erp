@@ -93,7 +93,7 @@ export function PrintCardMobile({
               DASHED,
               RADIUS.item,
               FOCUS_BUTTON,
-              "flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500"
+              "flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:hover:text-blue-400"
             )}
           >
             {uploading ? <Spinner size="md" /> : <Plus />}
@@ -141,7 +141,7 @@ export function PrintCardMobile({
           size="icon-sm"
           aria-label={`ลบจุดพิมพ์ ${printIdx + 1}`}
           onClick={onRemove}
-          className="shrink-0 text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+          className="shrink-0 text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
         >
           <Trash2 />
         </Button>

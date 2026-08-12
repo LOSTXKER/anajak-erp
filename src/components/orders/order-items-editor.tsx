@@ -412,7 +412,7 @@ export function OrderItemsEditor({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+                        className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                         onClick={() => removeFee(fi)}
                       >
                         <Trash2 />

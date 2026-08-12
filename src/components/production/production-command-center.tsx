@@ -358,7 +358,7 @@ function LaneTileButton({ tile, onClick }: { tile: LaneTile; onClick: () => void
           {tile.isOutsource && <Truck className="h-3 w-3 text-slate-400" />}
         </span>
         {tile.overdue > 0 && (
-          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-2xs font-semibold text-white">
+          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-700 px-1 text-2xs font-semibold text-white">
             {tile.overdue}
           </span>
         )}

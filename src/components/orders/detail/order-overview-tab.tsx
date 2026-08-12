@@ -185,7 +185,7 @@ function Field({
             ? "font-medium text-strong"
             : emptyTone === "warn"
               ? "text-amber-700 dark:text-amber-300"
-              : "text-slate-400 dark:text-slate-500"
+              : "text-muted"
         )}
       >
         {/* ว่างเฉยๆ = ขีดเดียว (เบสสั่ง 2026-08-11) — เดิมขึ้น "ยังไม่ระบุ" ทุกช่อง
@@ -434,7 +434,7 @@ export function OrderOverviewTab({
             )}
           </div>
         ) : (
-          <p className="text-sm text-slate-400 dark:text-slate-500">
+          <p className="text-sm text-muted">
             ใบนี้ยังไม่ผูกกับลูกค้า
           </p>
         )}
@@ -623,7 +623,7 @@ export function OrderOverviewTab({
                  ลูกค้าไม่มีที่อยู่ด้วย = กล่องก๊อปไม่มีประโยชน์ เหลือขีดเดียวพอ (เบสสั่ง 2026-08-11) */
               customer?.address ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-slate-400 dark:text-slate-500">
+                  <p className="text-sm text-muted">
                     ยังไม่กรอกที่อยู่ส่งของ
                   </p>
                   <div className="rounded-xl bg-slate-100 p-3 dark:bg-black/25">
@@ -634,7 +634,7 @@ export function OrderOverviewTab({
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-400 dark:text-slate-500">-</p>
+                <p className="text-sm text-muted">-</p>
               )
             )}
           </Group>
@@ -646,7 +646,7 @@ export function OrderOverviewTab({
                 {billingArea && <p>{billingArea}</p>}
               </div>
             ) : (
-              <p className="text-sm text-slate-400 dark:text-slate-500">ใช้ที่อยู่ลูกค้า</p>
+              <p className="text-sm text-muted">ใช้ที่อยู่ลูกค้า</p>
             )}
           </Group>
 

@@ -79,7 +79,7 @@ function MoreMenu({
         }}
         className="bottom-0 left-0 right-0 top-auto max-h-[82dvh] w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-b-none p-0 pr-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:p-0 sm:pr-0"
       >
-        <DialogHeader className="border-b border-slate-200 px-5 pb-4 pt-5 pr-14 text-left dark:border-white/10">
+        <DialogHeader className="border-b border-divider px-5 pb-4 pt-5 pr-14 text-left">
           <DialogTitle>พื้นที่ทำงานทั้งหมด</DialogTitle>
           <DialogDescription className={user ? undefined : "sr-only"}>
             {user
@@ -220,13 +220,13 @@ function AppShellContent({ children }: { children: ReactNode }) {
         ข้ามไปเนื้อหาหลัก
       </a>
 
-      <header className="relative z-30 col-span-full row-start-1 flex h-16 min-w-0 items-center border-b border-black/[0.07] bg-chrome dark:border-white/[0.07]">
+      <header className="relative z-30 col-span-full row-start-1 flex h-16 min-w-0 items-center border-b border-divider bg-chrome">
         <Link
           href="/"
           aria-label="ภาพรวม"
           className={cn(
             FOCUS_BUTTON,
-            "flex h-full w-16 shrink-0 items-center justify-center lg:w-60 lg:justify-start lg:gap-3 lg:border-r lg:border-black/[0.07] lg:px-5 dark:lg:border-white/[0.07]",
+            "flex h-full w-16 shrink-0 items-center justify-center lg:w-60 lg:justify-start lg:gap-3 lg:border-r lg:border-divider lg:px-5",
           )}
         >
           <div
@@ -283,7 +283,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <aside className="hidden min-h-0 border-r border-black/[0.07] bg-chrome lg:col-start-1 lg:row-start-2 lg:flex lg:flex-col dark:border-white/[0.07]">
+      <aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-start-2 lg:flex lg:flex-col">
         <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
             <ul className="space-y-1">
               {primaryItems.map((item: AppNavItem) => {
@@ -319,7 +319,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
               })}
             </ul>
 
-          <div className="my-5 h-px bg-slate-200 dark:bg-white/10" />
+          <div className="my-5 h-px bg-divider" />
           <details
               className="group"
               open={secondaryActive || allMenuOpen}
@@ -342,7 +342,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
                 <span className="min-w-0 flex-1">เมนูทั้งหมด</span>
                 <ChevronRight className="h-4 w-4 text-muted transition-transform group-open:rotate-90" />
               </summary>
-              <div className="mt-3 space-y-4 border-t border-slate-200 pt-3 dark:border-white/10">
+              <div className="mt-3 space-y-4 border-t border-divider pt-3">
                 {secondaryGroups.map((group) => (
                   <div key={group.id}>
                     {group.label && (
@@ -392,7 +392,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
       <nav
         aria-label="เมนูหลักบนมือถือ"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-black/[0.07] bg-chrome px-1 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-1 lg:hidden dark:border-white/[0.07]"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-divider bg-chrome px-1 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-1 lg:hidden"
       >
         <div
           className="grid"

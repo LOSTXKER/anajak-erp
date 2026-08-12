@@ -321,7 +321,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   {totals.errors.length > 0 && (
                     <>
                       <span className="text-slate-300 dark:text-slate-600">|</span>
-                      <span className="text-red-500">
+                      <span className="text-red-700 dark:text-red-300">
                         <AlertTriangle className="mr-1 inline h-3 w-3" />
                         {totals.errors.length}
                       </span>
@@ -338,7 +338,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                 aria-relevant="additions text"
               >
                 {logEntries.length === 0 ? (
-                  <div className="flex items-center gap-2 py-1 text-xs text-slate-400">
+                  <div className="flex items-center gap-2 py-1 text-xs text-muted">
                     <span
                       className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-400"
                     />
@@ -376,7 +376,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                       return (
                         <div
                           key={`log-${i}`}
-                          className="flex items-start gap-2 py-1 text-xs text-red-500"
+                          className="flex items-start gap-2 py-1 text-xs text-red-700 dark:text-red-300"
                         >
                           <XCircle className="mt-0.5 h-3 w-3 flex-shrink-0" />
                           <span className="truncate">{entry.text}</span>
@@ -406,7 +406,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                         <span className="truncate">
                           {pe.sku} — {pe.name}
                           {pe.variantCount > 0 && (
-                            <span className="ml-1 text-slate-400">
+                            <span className="ml-1 text-muted">
                               ({pe.variantCount} ตัวเลือก)
                             </span>
                           )}
@@ -637,7 +637,7 @@ function StatCard({
     <div className={`rounded-xl p-3 ${colorMap[color] || colorMap.blue}`}>
       <div className="flex items-center gap-2">
         <span className={iconColorMap[color] || iconColorMap.blue}>{icon}</span>
-        <span className="text-xs opacity-80">{label}</span>
+        <span className="text-xs">{label}</span>
       </div>
       <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
     </div>

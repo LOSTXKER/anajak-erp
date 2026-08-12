@@ -449,7 +449,7 @@ function ActiveRunCard({
                 variant="outline"
                 disabled={busy}
                 onClick={onCancel}
-                className="h-11 text-red-600 hover:text-red-700"
+                className="h-11 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
               >
                 ยกเลิกรอบ
               </Button>

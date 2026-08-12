@@ -156,12 +156,12 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                 กวาดตาแล้วแยกช่องที่ยังไม่กรอกไม่ออก · คู่สีจางตรง placeholder
                 ของ FIELD_SURFACE (tokens.ts) ให้เท่ากันทุก control */}
             {(value ?? "") === "" ? (
-              <span className="text-slate-400 dark:text-slate-500">
+              <span className="text-placeholder">
                 {(current?.label || placeholder) ?? "เลือก…"}
               </span>
             ) : (
               current?.label ?? (
-                <span className="text-slate-400 dark:text-slate-500">
+                <span className="text-placeholder">
                   {placeholder ?? "เลือก…"}
                 </span>
               )

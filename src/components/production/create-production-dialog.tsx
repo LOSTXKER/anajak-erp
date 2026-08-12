@@ -217,7 +217,7 @@ function StepBuilder({
                       variant="ghost"
                       size="icon-sm"
                       aria-label="ลบขั้นตอน"
-                      className="text-slate-400 hover:text-red-600"
+                      className="text-slate-400 hover:text-red-600 dark:hover:text-red-400"
                       onClick={() => removeStep(index)}
                     >
                       <X />

@@ -421,7 +421,7 @@ export default function ServicesPage() {
                                 aria-label={`บันทึกการแก้ไข ${item.name}`}
                                 onClick={handleSaveEdit}
                                 disabled={updateItem.isPending}
-                                className="text-green-600 hover:text-green-700"
+                                className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
                               >
                                 <Check />
                               </Button>
@@ -441,7 +441,7 @@ export default function ServicesPage() {
                                 size="icon-sm"
                                 aria-label={`แก้ไข ${item.name}`}
                                 onClick={() => startEdit(item)}
-                                className="text-muted hover:text-blue-600"
+                                className="text-muted hover:text-blue-600 dark:hover:text-blue-400"
                               >
                                 <Pencil />
                               </Button>
@@ -452,7 +452,7 @@ export default function ServicesPage() {
                                   aria-label={`ลบ ${item.name}`}
                                   onClick={() => handleDelete(item.id, item.name)}
                                   disabled={deleteItem.isPending}
-                                  className="text-muted hover:text-red-600"
+                                  className="text-muted hover:text-red-600 dark:hover:text-red-400"
                                 >
                                   <Trash2 />
                                 </Button>

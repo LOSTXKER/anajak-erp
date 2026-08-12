@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ ออกแบบระบบสีทั้งเว็บใหม่แล้ว 2026-08-13 — Light + Dark โดยคงน้ำเงิน Anajak เดิม**
+> Light ใช้ผืนงาน `#f8f9fb`, card/chrome `#fff`, sunk `#f3f5f7` และ interaction เป็นหมอกน้ำเงิน `hover #eaf4fd → pressed #ddebf8 → selected #d2e4f6` แทนแถบเทาเข้ม · Dark เปลี่ยนจากเทาดำตันเป็น blue-black: page `#111418`, chrome `#0c0f13`, card `#181c22`, sunk `#12161b`, hover `#1e2a36`, pressed `#22374b`, selected `#173c61` · primary ยังเป็นน้ำเงินเดิม `#3973b2`
+>
+> **ครอบทั้งระบบ:** semantic token ชุดเดียวคุม page/card/elevated/field/border/overlay/text/interaction/status · form, table, menu, dialog, filter, tabs, shell, dashboard, orders, production, billing และ settings รับชุดเดียวกัน · legacy slate/status utilities ถูกทำเป็น compatibility ramp พร้อมกวาด action hover ที่ไม่มีคู่ dark · `/factory` บังคับ dark ตามชุดใหม่ · public link บังคับ light · `.print-page` ล็อกกระดาษขาวและ grayscale เดิม ไม่รับ theme หลังบ้าน
+>
+> **ด่านถาวร:** `verify:ui` คำนวณ WCAG contrast matrix ของ text/placeholder/field/focus/status บน surface, sunk, hover, pressed, selected ทั้งสองธีม และกัน neutral hover, dark cascade, SUNK contamination, colored hover ที่ไม่มีคู่ dark · outsider audit 3 มุมไม่เหลือ P0/P1
+>
+> **verify production build ของจริง:** desktop 1280 header `x=0` กว้างเต็ม viewport · pointer จริง light row `transparent → #eaf4fd`, quick link `#f3f5f7 → #eaf4fd`; dark row `transparent → #1e2a36` · 390×844 dashboard งานแรก y=220.8, `/orders` รายการแรก y=512.8, document ไม่ล้น และไม่มี target ที่เห็นต่ำกว่า 44px · detail tabs สูง 44px และแท็บท้าย auto-scroll เข้า viewport · dashboard→orders→detail→new, Command Palette/Escape/focus return ผ่าน · public forced-light, print white, factory forced-dark ผ่าน · fresh production tab console/hydration error 0
+>
+> **ด่านโค้ด:** typecheck ผ่าน · lint 0 error (36 warningเดิม) · unit **685/685** · `verify:ui` ผ่าน · `next build` ผ่าน · production server รันที่ `:3000`
+
 > **✅ Hover แยกชั้นชัด + Navbar เต็มจอแล้ว 2026-08-13 — จากภาพจริงของเบส**
 > สีเทาโครงสร้างเดิมยังคงหน้าที่ชัดเจน: page `#f7f7f8`, card/chrome `#fff`, sunk `#f2f2f4` · เพิ่ม semantic interaction แยกเป็น hover/pressed: light `#e2e2e6/#d4d4da`, dark `#3a3a3e/#47474c` · control, menu, table row, filter, calendar และจุดที่กดได้ใช้ชุดเดียวกัน แต่แถวตารางที่อ่านอย่างเดียวไม่มี pressed หลอก · metadata ที่อยู่บน hover ถูกดันสีเฉพาะบริบทเพื่อคง WCAG AA
 >

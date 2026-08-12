@@ -193,10 +193,10 @@ export function OrderStatusBar({
                   NODE_SIZE,
                   st === "done" &&
                     (tone === "cancel"
-                      ? "bg-slate-300 text-white dark:bg-slate-700"
+                      ? "bg-slate-600 text-white dark:bg-slate-700"
                       : tone === "hold"
-                        ? "bg-amber-500 text-white"
-                        : "bg-blue-500 text-white"),
+                        ? "bg-amber-700 text-white"
+                        : "bg-blue-600 text-white"),
                   st === "current" &&
                     (tone === "cancel"
                       ? "bg-red-600 ring-[3px] ring-red-100 dark:ring-red-500/25"
@@ -221,7 +221,7 @@ export function OrderStatusBar({
                         : "font-semibold text-blue-700 dark:text-blue-300"),
                   st === "done" && "text-slate-700 dark:text-slate-300",
                   st === "todo" && "text-slate-500 dark:text-slate-400",
-                  st === "skipped" && "text-slate-400 line-through dark:text-slate-600",
+                  st === "skipped" && "text-muted line-through",
                 )}
               >
                 {label(step)}

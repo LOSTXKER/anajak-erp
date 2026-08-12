@@ -36,7 +36,7 @@ export function TabsBar({
   return (
     <div
       className={cn(
-        "sticky top-0 z-20 -mx-1 border-b border-slate-200/70 bg-bg px-1 dark:border-white/10",
+        "sticky top-0 z-20 -mx-1 border-b border-divider bg-bg px-1",
         className,
       )}
       {...props}
