@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ Sidebar เข้าระบบสีล่าสุดครบแล้ว 2026-08-13 — desktop, drawer และ bottom nav ใช้ภาษาสถานะเดียวกัน**
+> Sidebar คง chrome ขาว/เทาดำ `#fff/#161618` แต่มี interaction สำหรับ chrome โดยเฉพาะ: Light `hover #eceef1 → pressed #e3e6e9`, Dark `hover #252528 → pressed #303034` จึงไม่กลายเป็นแถบหนักใกล้ selected · primary/secondary/drawer ใช้สูตรกลางเดียว: inactive ตัวปกติ+icon muted, hover/pressed ขยับ icon ตามลำดับ, active label+icon ใช้ selected blue เดียวกัน, focus inset และ radius 8px
+>
+> **เมนูรอง + mobile:** “เมนูทั้งหมด” เป็น disclosure กลาง ไม่ selected ซ้ำกับ child · route ลึกเลื่อนไปหา exact current หลัง permission โหลดครบ (`/settings/stock` current y=668–704 ใน nav y=64–720, `aria-current` 1 จุด) · 390×844 bottom nav สูง 73px, target 60px, current มีทั้ง icon pill+font-semibold และ “เพิ่มเติม” มี `aria-current=page` · sheet ชี้ child current จริง, Escape ปิดและคืน focus ให้ “เพิ่มเติม”
+>
+> **ด่าน:** Light/Dark 1280×720 + 390×844 ไม่มี horizontal overflow/error overlay · typecheck ผ่าน · lint 0 error (36 warningเดิม) · unit **685/685** · `verify:ui`/Impeccable detector ผ่าน · outsider audit ไม่เหลือ P0/P1 · `next build` ผ่าน · production serverรันที่ `:3000`
+
+### ประวัติก่อนหน้า
+
 > **✅ Dark กลับเป็นเทาเข้ม + Hover ทั้งเว็บเป็นเทากลางแล้ว 2026-08-13 — ตาม feedback จอจริงของเบส**
 > Light คงผืน `#f8f9fb`, card ขาว และ sunk `#f3f5f7` แต่เปลี่ยน interaction จากฟ้าเป็น neutral `hover #eceef1 → pressed #e3e6e9` · Dark คืนบรรยากาศเดิมด้วย page `#1a1a1c`, chrome `#161618`, card/overlay `#252528`, sunk `#1d1d1f`, field `#101012` และ neutral `hover #303034 → pressed #38383c` · น้ำเงิน Anajak `#3973b2` สงวนให้ primary, selected และ focus
 >
@@ -12,8 +21,6 @@
 > **verify production build ของจริง:** 1280px Light hover แถวจริง `transparent → #eceef1`; Dark page/card `#1a1a1c/#252528`, แถวและตาราง `transparent → #303034`, search `#1d1d1f → #303034`, selected nav ยัง `#173c61` · settings icon เปลี่ยน sunk `#f3f5f7 → #eceef1` โดยไม่เป็นฟ้า · 390×844 dashboard/orders/new/detail `scrollWidth=390`, รายการออเดอร์แรก y=512.8, bottom nav 69px, tabs 44px และไม่มี error overlay · print คงกระดาษขาว และเส้นทาง public forced-light ไม่ถูกแตะ · fresh console/hydration error 0
 >
 > **ด่านโค้ด:** typecheck ผ่าน · lint 0 error (36 warningเดิม) · unit **685/685** · `verify:ui` ผ่าน · `next build` ผ่าน · outsider audit ไม่เหลือ P0/P1 · production server รันที่ `:3000`
-
-### ประวัติก่อนหน้า
 
 > **✅ ออกแบบระบบสีทั้งเว็บใหม่แล้ว 2026-08-13 — Light + Dark โดยคงน้ำเงิน Anajak เดิม**
 > Light ใช้ผืนงาน `#f8f9fb`, card/chrome `#fff`, sunk `#f3f5f7` และ interaction เป็นหมอกน้ำเงิน `hover #eaf4fd → pressed #ddebf8 → selected #d2e4f6` แทนแถบเทาเข้ม · Dark เปลี่ยนจากเทาดำตันเป็น blue-black: page `#111418`, chrome `#0c0f13`, card `#181c22`, sunk `#12161b`, hover `#1e2a36`, pressed `#22374b`, selected `#173c61` · primary ยังเป็นน้ำเงินเดิม `#3973b2`

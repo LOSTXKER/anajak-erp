@@ -105,6 +105,14 @@ export const INTERACTIVE_HOVER =
 export const INTERACTIVE_PRESSED =
   "active:bg-interactive-pressed active:text-strong dark:active:bg-interactive-pressed dark:active:text-strong";
 
+/** interaction ที่วางบน navbar/sidebar — Light ใช้ชุดเดียวกับ surface;
+ *  Dark เบาลงหนึ่งชั้นเพราะ chrome เข้มกว่า card ไม่เช่นนั้น hover จะเกือบเท่า selected */
+export const INTERACTIVE_CHROME_HOVER =
+  "hover:bg-interactive-chrome-hover hover:text-strong dark:hover:bg-interactive-chrome-hover dark:hover:text-strong";
+
+export const INTERACTIVE_CHROME_PRESSED =
+  "active:bg-interactive-chrome-pressed active:text-strong dark:active:bg-interactive-chrome-pressed dark:active:text-strong";
+
 /** ของที่กำลังถูกเลือก — เข้มกว่า hover แต่ยังไม่แย่งปุ่ม action หลัก */
 export const INTERACTIVE_SELECTED =
   "bg-interactive-selected text-interactive-selected-text";

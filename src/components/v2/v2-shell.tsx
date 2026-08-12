@@ -32,6 +32,8 @@ import { CONTROL_H, CONTROL_MIN_H } from "@/components/ui/control-size";
 import {
   FOCUS_BUTTON,
   FOCUS_INSET,
+  INTERACTIVE_CHROME_HOVER,
+  INTERACTIVE_CHROME_PRESSED,
   INTERACTIVE_HOVER,
   INTERACTIVE_PRESSED,
   INTERACTIVE_SELECTED,
@@ -47,6 +49,37 @@ const PRIMARY_NAV_IDS = ["dashboard", "my-tasks", "orders", "production", "custo
 const MOBILE_NAV_IDS = ["dashboard", "my-tasks", "orders", "production"] as const;
 const PRIMARY_NAV_ID_SET = new Set<string>(PRIMARY_NAV_IDS);
 const MOBILE_EXCLUDED_IDS = new Set<string>(MOBILE_NAV_IDS);
+
+function sidebarNavItemClass({
+  active,
+  alwaysMedium = false,
+  onChrome = false,
+}: {
+  active: boolean;
+  alwaysMedium?: boolean;
+  onChrome?: boolean;
+}) {
+  return cn(
+    CONTROL_MIN_H,
+    FOCUS_INSET,
+    RADIUS.item,
+    "group/sidebar-item flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
+    active
+      ? cn("font-medium", INTERACTIVE_SELECTED)
+      : cn(
+          alwaysMedium ? "font-medium" : "font-normal",
+          "text-secondary",
+          onChrome ? INTERACTIVE_CHROME_HOVER : INTERACTIVE_HOVER,
+          onChrome ? INTERACTIVE_CHROME_PRESSED : INTERACTIVE_PRESSED,
+        ),
+  );
+}
+
+function sidebarNavIconClass(active: boolean) {
+  return active
+    ? "text-interactive-selected-text"
+    : "text-muted group-hover/sidebar-item:text-secondary group-active/sidebar-item:text-strong";
+}
 
 function MoreMenu({
   open,
@@ -101,19 +134,24 @@ function MoreMenu({
                       href={item.href}
                       onClick={onClose}
                       aria-current={activeNavigationId === item.id ? "page" : undefined}
-                      className={cn(
-                        CONTROL_MIN_H,
-                        FOCUS_INSET,
-                        RADIUS.item,
-                        "group flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
-                        activeNavigationId === item.id
-                          ? INTERACTIVE_SELECTED
-                          : cn("text-secondary", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
-                      )}
+                      className={sidebarNavItemClass({
+                        active: activeNavigationId === item.id,
+                      })}
                     >
-                      <item.icon className="h-4 w-4 text-muted" strokeWidth={1.75} />
+                      <item.icon
+                        className={cn(
+                          "h-4 w-4",
+                          sidebarNavIconClass(activeNavigationId === item.id),
+                        )}
+                        strokeWidth={1.75}
+                      />
                       <span className="flex-1">{item.label}</span>
-                      <ChevronRight className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5" />
+                      <ChevronRight
+                        className={cn(
+                          "h-4 w-4 transition-transform group-hover/sidebar-item:translate-x-0.5",
+                          sidebarNavIconClass(activeNavigationId === item.id),
+                        )}
+                      />
                     </Link>
                   </li>
                 ))}
@@ -133,6 +171,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const activeSecondaryRef = useRef<HTMLAnchorElement>(null);
   const { data: me } = trpc.user.me.useQuery();
   const { data: unreadCount } = trpc.notification.unreadCount.useQuery(undefined, {
     refetchInterval: 30_000,
@@ -197,6 +236,20 @@ function AppShellContent({ children }: { children: ReactNode }) {
       ),
   );
   const [allMenuOpen, setAllMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!secondaryActive) return;
+    let positionFrame = 0;
+    const openFrame = requestAnimationFrame(() => {
+      positionFrame = requestAnimationFrame(() => {
+        activeSecondaryRef.current?.scrollIntoView({ block: "nearest" });
+      });
+    });
+    return () => {
+      cancelAnimationFrame(openFrame);
+      cancelAnimationFrame(positionFrame);
+    };
+  }, [activeNavigationId, secondaryActive, secondaryGroups]);
 
   return (
     <div
@@ -293,22 +346,12 @@ function AppShellContent({ children }: { children: ReactNode }) {
                     <Link
                       href={item.href}
                       aria-current={active ? "page" : undefined}
-                      className={cn(
-                        CONTROL_MIN_H,
-                        FOCUS_BUTTON,
-                        RADIUS.inner,
-                        "group flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
-                        active
-                          ? INTERACTIVE_SELECTED
-                          : cn("text-secondary", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
-                      )}
+                      className={sidebarNavItemClass({ active, onChrome: true })}
                     >
                       <item.icon
                         className={cn(
                           "h-[18px] w-[18px]",
-                          active
-                            ? "text-blue-600 dark:text-blue-400"
-                            : "text-muted",
+                          sidebarNavIconClass(active),
                         )}
                         strokeWidth={1.75}
                       />
@@ -319,7 +362,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
               })}
             </ul>
 
-          <div className="my-5 h-px bg-divider" />
+          <div className="my-4 h-px bg-divider" />
           <details
               className="group"
               open={secondaryActive || allMenuOpen}
@@ -329,20 +372,30 @@ function AppShellContent({ children }: { children: ReactNode }) {
             >
               <summary
                 className={cn(
-                  CONTROL_MIN_H,
-                  FOCUS_BUTTON,
-                  RADIUS.inner,
-                  "flex cursor-pointer list-none items-center gap-3 px-3 py-2 text-sm font-medium transition-colors [&::-webkit-details-marker]:hidden",
-                  secondaryActive
-                    ? INTERACTIVE_SELECTED
-                    : cn("text-secondary", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
+                  sidebarNavItemClass({
+                    active: false,
+                    alwaysMedium: true,
+                    onChrome: true,
+                  }),
+                  "cursor-pointer list-none [&::-webkit-details-marker]:hidden",
                 )}
               >
-                <MoreHorizontal className="h-[18px] w-[18px] text-muted" strokeWidth={1.75} />
+                <MoreHorizontal
+                  className={cn(
+                    "h-[18px] w-[18px]",
+                    sidebarNavIconClass(false),
+                  )}
+                  strokeWidth={1.75}
+                />
                 <span className="min-w-0 flex-1">เมนูทั้งหมด</span>
-                <ChevronRight className="h-4 w-4 text-muted transition-transform group-open:rotate-90" />
+                <ChevronRight
+                  className={cn(
+                    "h-4 w-4 transition-transform group-open:rotate-90",
+                    sidebarNavIconClass(false),
+                  )}
+                />
               </summary>
-              <div className="mt-3 space-y-4 border-t border-divider pt-3">
+              <div className="mt-2 space-y-4 pl-2">
                 {secondaryGroups.map((group) => (
                   <div key={group.id}>
                     {group.label && (
@@ -354,19 +407,18 @@ function AppShellContent({ children }: { children: ReactNode }) {
                         return (
                           <li key={item.id}>
                             <Link
+                              ref={active ? activeSecondaryRef : undefined}
                               href={item.href}
                               aria-current={active ? "page" : undefined}
-                              className={cn(
-                                CONTROL_MIN_H,
-                                FOCUS_BUTTON,
-                                RADIUS.inner,
-                                "flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
-                                active
-                                  ? INTERACTIVE_SELECTED
-                                  : cn("text-secondary", INTERACTIVE_HOVER, INTERACTIVE_PRESSED),
-                              )}
+                              className={sidebarNavItemClass({ active, onChrome: true })}
                             >
-                              <item.icon className="h-4 w-4 text-muted" strokeWidth={1.75} />
+                              <item.icon
+                                className={cn(
+                                  "h-4 w-4",
+                                  sidebarNavIconClass(active),
+                                )}
+                                strokeWidth={1.75}
+                              />
                               <span>{item.label}</span>
                             </Link>
                           </li>
@@ -411,11 +463,21 @@ function AppShellContent({ children }: { children: ReactNode }) {
                   CONTROL_MIN_H,
                   FOCUS_INSET,
                   RADIUS.item,
-                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs font-medium active:bg-interactive-pressed",
-                  active ? "text-blue-700 dark:text-blue-300" : "text-muted",
+                  "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors active:bg-interactive-chrome-pressed",
+                  active
+                    ? "font-semibold text-interactive-selected-text"
+                    : "font-medium text-muted",
                 )}
               >
-                <item.icon className="h-5 w-5" strokeWidth={active ? 2 : 1.75} />
+                <span
+                  className={cn(
+                    RADIUS.pill,
+                    "flex h-6 min-w-10 items-center justify-center",
+                    active && "bg-interactive-selected",
+                  )}
+                >
+                  <item.icon className="h-5 w-5" strokeWidth={active ? 2 : 1.75} />
+                </span>
                 <span className="truncate">{item.label}</span>
               </Link>
             );
@@ -426,15 +488,26 @@ function AppShellContent({ children }: { children: ReactNode }) {
             onClick={() => setMoreOpen(true)}
             aria-haspopup="dialog"
             aria-expanded={moreOpen}
+            aria-current={mobileMoreActive ? "page" : undefined}
             className={cn(
               CONTROL_MIN_H,
               FOCUS_INSET,
               RADIUS.item,
-              "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs font-medium active:bg-interactive-pressed",
-              mobileMoreActive ? "text-blue-700 dark:text-blue-300" : "text-muted",
+              "flex flex-col items-center justify-center gap-1 px-1 py-2 text-2xs transition-colors active:bg-interactive-chrome-pressed",
+              mobileMoreActive
+                ? "font-semibold text-interactive-selected-text"
+                : "font-medium text-muted",
             )}
           >
-            <MoreHorizontal className="h-5 w-5" strokeWidth={1.75} />
+            <span
+              className={cn(
+                RADIUS.pill,
+                "flex h-6 min-w-10 items-center justify-center",
+                mobileMoreActive && "bg-interactive-selected",
+              )}
+            >
+              <MoreHorizontal className="h-5 w-5" strokeWidth={1.75} />
+            </span>
             <span>เพิ่มเติม</span>
           </button>
         </div>

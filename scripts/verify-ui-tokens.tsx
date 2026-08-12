@@ -21,6 +21,8 @@ import {
   FOCUS_BUTTON,
   FOCUS_FIELD,
   FOCUS_INSET,
+  INTERACTIVE_CHROME_HOVER,
+  INTERACTIVE_CHROME_PRESSED,
   SUNK_PANEL,
 } from "../src/components/ui/tokens";
 import {
@@ -338,11 +340,19 @@ check(
   const surfaceMuted = colorValues("surface-muted");
   const hover = colorValues("interactive-hover");
   const pressed = colorValues("interactive-pressed");
+  const chrome = colorValues("chrome");
+  const chromeHover = colorValues("interactive-chrome-hover");
+  const chromePressed = colorValues("interactive-chrome-pressed");
   const tokenCountsValid = hover.length === 2 && pressed.length === 2 && surfaceMuted.length === 2;
+  const chromeTokenCountsValid =
+    chrome.length === 2 && chromeHover.length === 2 && chromePressed.length === 2;
   const tokenLayersValid = tokenCountsValid && hover.every((value, index) =>
     new Set([surfaceMuted[index], value, pressed[index]]).size === 3
   );
-  const interactionIsNeutral = [...hover, ...pressed].every((value) => {
+  const chromeTokenLayersValid = chromeTokenCountsValid && chromeHover.every((value, index) =>
+    new Set([chrome[index], value, chromePressed[index]]).size === 3
+  );
+  const interactionIsNeutral = [...hover, ...pressed, ...chromeHover, ...chromePressed].every((value) => {
     const channels = hexRgb(value);
     return Math.max(...channels) - Math.min(...channels) <= 6;
   });
@@ -352,6 +362,14 @@ check(
     const pressedFromHover = contrast(hexRgb(pressed[index]!), hexRgb(value));
     return hoverFromSurface >= 1.1 && hoverFromSurface <= 1.25 && pressedFromHover >= 1.05;
   });
+  const chromeStateContrastIsBalanced = chromeTokenCountsValid && chromeHover.every((value, index) => {
+    const hoverFromChrome = contrast(hexRgb(value), hexRgb(chrome[index]!));
+    const pressedFromHover = contrast(hexRgb(chromePressed[index]!), hexRgb(value));
+    return hoverFromChrome >= 1.1 && hoverFromChrome <= 1.25 && pressedFromHover >= 1.05;
+  });
+  const chromeTokensAreWired =
+    INTERACTIVE_CHROME_HOVER.includes("bg-interactive-chrome-hover") &&
+    INTERACTIVE_CHROME_PRESSED.includes("bg-interactive-chrome-pressed");
   const darkSurfacesAreNeutral = [
     "bg",
     "chrome",
@@ -393,9 +411,13 @@ check(
     offenders.length ||
     blueHoverOffenders.length ||
     !tokenCountsValid ||
+    !chromeTokenCountsValid ||
     !tokenLayersValid ||
+    !chromeTokenLayersValid ||
     !interactionIsNeutral ||
     !stateContrastIsBalanced ||
+    !chromeStateContrastIsBalanced ||
+    !chromeTokensAreWired ||
     !darkSurfacesAreNeutral ||
     !brandBlueIsLocked ||
     !selectedStaysBlue ||
@@ -407,14 +429,23 @@ check(
     console.log("❌ interaction state ยังผูกกับพื้นเทา หรือ token light/dark ไม่ครบ");
     offenders.forEach((o) => console.log(`   ${o}`));
     blueHoverOffenders.forEach((o) => console.log(`   interaction เปลี่ยน neutral เป็นฟ้า: ${o}`));
-    if (!tokenCountsValid || !tokenLayersValid) {
+    if (
+      !tokenCountsValid ||
+      !chromeTokenCountsValid ||
+      !tokenLayersValid ||
+      !chromeTokenLayersValid
+    ) {
       console.log(`   surface=${surfaceMuted.join("/")}, hover=${hover.join("/")}, pressed=${pressed.join("/")}`);
+      console.log(`   chrome=${chrome.join("/")}, hover=${chromeHover.join("/")}, pressed=${chromePressed.join("/")}`);
     }
     if (!interactionIsNeutral) {
       console.log(`   hover/pressed ต้องเป็น neutral gray: ${[...hover, ...pressed].join("/")}`);
     }
     if (!stateContrastIsBalanced) {
       console.log("   hover ต้องเห็นบน surface แบบเบา และ pressed ต้องชัดกว่า hover");
+    }
+    if (!chromeStateContrastIsBalanced || !chromeTokensAreWired) {
+      console.log("   hover บน navbar/sidebar ต้องเบากว่า selected และใช้ semantic on-chrome");
     }
     if (!darkSurfacesAreNeutral) {
       console.log("   พื้น Dark ต้องเป็น neutral gray ไม่ใช่ blue-black");
