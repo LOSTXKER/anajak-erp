@@ -4,6 +4,7 @@ import * as React from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { Filter, X } from "lucide-react";
 import { Button } from "./button";
+import { ControlIconButton } from "./control-icon-button";
 import { cn } from "@/lib/utils";
 import { ACTIVE_FILTER, OVERLAY_PANEL } from "./tokens";
 
@@ -78,11 +79,10 @@ export function FilterPopover({
         >
           <div className="mb-3 flex items-center justify-between">
             <p className="text-base font-semibold">ตัวกรอง</p>
-            <PopoverPrimitive.Close
-              aria-label="ปิดตัวกรอง"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary"
-            >
-              <X className="h-4 w-4" />
+            <PopoverPrimitive.Close asChild>
+              <ControlIconButton aria-label="ปิดตัวกรอง">
+                <X className="h-4 w-4" />
+              </ControlIconButton>
             </PopoverPrimitive.Close>
           </div>
 

@@ -19,6 +19,7 @@ import {
 } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ControlIconButton } from "./control-icon-button";
 import { FIELD_SURFACE, FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, controlShapeClass, type ControlShape } from "./tokens";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
 
@@ -104,57 +105,46 @@ export function DatePicker({
 
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
-      <PopoverPrimitive.Trigger asChild>
-        <button
-          type="button"
-          id={id}
-          aria-label={ariaLabel}
-          disabled={disabled}
-          className={cn(
-            controlShapeClass(shape),
-            CONTROL_H,
-            // ใช้ผิวช่องกรอกของกลาง — เดิมก๊อปสูตรมาเขียนเอง (ตัวเดียวใน ui/ ที่ทำแบบนี้)
-            // แล้ว **ตกสีตัวอักษรฝั่งสว่างไป** ช่องนี้จึงเป็นช่องเดียวที่สีตัวอักษรไม่เท่าช่องอื่น
-            // (audit สี 2026-08-02) · แก้แล้ววันหน้าเปลี่ยนผิวช่องกรอกทีเดียวจบทุกช่อง
-            "flex w-full items-center justify-between gap-2 px-3 py-1 text-base transition-colors",
-            FIELD_SURFACE,
-            FOCUS_FIELD,
-            "sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
-            className,
-          )}
-        >
-          <span className={cn("truncate", !selected && "text-placeholder")}>
-            {selected
-              ? `${selected.getDate()} ${MONTHS[selected.getMonth()]} ${buddhistYear(selected)}`
-              : placeholder}
-          </span>
-          <span className="flex shrink-0 items-center gap-1">
-            {canClear && selected && !disabled && (
-              <span
-                role="button"
-                tabIndex={0}
-                aria-label="ล้างวันที่"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onChange("");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onChange("");
-                  }
-                }}
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary"
-              >
-                <X className="h-3.5 w-3.5" />
-              </span>
+      <span className="relative block w-full">
+        <PopoverPrimitive.Trigger asChild>
+          <button
+            type="button"
+            id={id}
+            aria-label={ariaLabel}
+            disabled={disabled}
+            className={cn(
+              controlShapeClass(shape),
+              CONTROL_H,
+              // ใช้ผิวช่องกรอกของกลาง — เดิมก๊อปสูตรมาเขียนเอง (ตัวเดียวใน ui/ ที่ทำแบบนี้)
+              // แล้ว **ตกสีตัวอักษรฝั่งสว่างไป** ช่องนี้จึงเป็นช่องเดียวที่สีตัวอักษรไม่เท่าช่องอื่น
+              // (audit สี 2026-08-02) · แก้แล้ววันหน้าเปลี่ยนผิวช่องกรอกทีเดียวจบทุกช่อง
+              "flex w-full items-center justify-between gap-2 px-3 py-1 text-base transition-colors",
+              canClear && selected && !disabled && "pr-20",
+              FIELD_SURFACE,
+              FOCUS_FIELD,
+              "sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
+              className,
             )}
-            <CalendarDays className="h-4 w-4 text-slate-400" />
-          </span>
-        </button>
-      </PopoverPrimitive.Trigger>
+          >
+            <span className={cn("truncate", !selected && "text-placeholder")}>
+              {selected
+                ? `${selected.getDate()} ${MONTHS[selected.getMonth()]} ${buddhistYear(selected)}`
+                : placeholder}
+            </span>
+            <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
+          </button>
+        </PopoverPrimitive.Trigger>
+
+        {canClear && selected && !disabled && (
+          <ControlIconButton
+            aria-label="ล้างวันที่"
+            onClick={() => onChange("")}
+            className="absolute right-9 top-1/2 -translate-y-1/2 text-slate-400"
+          >
+            <X className="h-3.5 w-3.5" />
+          </ControlIconButton>
+        )}
+      </span>
 
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content

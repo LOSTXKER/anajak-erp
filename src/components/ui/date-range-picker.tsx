@@ -23,6 +23,7 @@ import {
 import { CalendarRange, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
+import { ControlIconButton } from "./control-icon-button";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
 import { ACTIVE_FILTER, FOCUS_BUTTON, INTERACTIVE_SELECTED, OVERLAY_PANEL } from "./tokens";
 import { MONTHS, MONTHS_SHORT, WEEKDAYS, buddhistYear, parseValue } from "./date-picker";
@@ -197,7 +198,7 @@ export function DateRangePicker({
             aria-label={label ? `ช่วงวันที่: ${label}` : "เลือกช่วงวันที่"}
             className={cn(
               "font-medium",
-              label && "pr-2",
+              label && "pr-10",
               // มีช่วงวันที่เลือกอยู่ = กรองอยู่ ต้องเห็นตั้งแต่ยังไม่กดเข้าไป
               // ใช้สีชุดเดียวกับปุ่ม "ตัวกรอง" ที่ยืนข้างกัน (เบสทักว่าสีไม่เหมือนกัน 2026-08-01)
               label &&
@@ -215,14 +216,13 @@ export function DateRangePicker({
         {/* ปุ่มล้างเป็นปุ่มจริงนอกตัวเปิด — เดิมเป็น span role="button" ซ้อนใน <button>
             ซึ่งผิดสเปค HTML และเครื่องอ่านหน้าจอส่วนใหญ่ไม่ประกาศให้ (audit ก่อน merge จับได้) */}
         {label && (
-          <button
-            type="button"
+          <ControlIconButton
             aria-label="ล้างช่วงวันที่"
             onClick={() => onChange("", "")}
-            className={cn(CONTROL_H, "-ml-7 inline-flex w-7 items-center justify-center rounded-full text-current opacity-60 transition-opacity hover:opacity-100")}
+            className="-ml-11 text-current opacity-60 hover:opacity-100 sm:-ml-9"
           >
             <X className="h-3.5 w-3.5" />
-          </button>
+          </ControlIconButton>
         )}
       </span>
 

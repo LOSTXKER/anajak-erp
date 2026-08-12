@@ -1,5 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import type { OrderItemForm, OrderFeeForm } from "@/types/order-form";
+import { useState, useCallback } from "react";
+import type {
+  OrderItemForm,
+  OrderFeeForm,
+  ReferenceImage,
+} from "@/types/order-form";
 import {
   EMPTY_PRINT,
   EMPTY_ADDON,
@@ -7,128 +11,273 @@ import {
   EMPTY_FEE,
   itemHasContent,
 } from "@/types/order-form";
+import {
+  EMPTY_ORDER_HEADER,
+  type OrderHeaderState,
+  type OrderPriority,
+} from "@/hooks/use-order-header-form";
+import type { ShippingState } from "@/hooks/use-order-shipping";
 
-const DRAFT_KEY = "order-draft-items";
-const HEADER_DRAFT_KEY = "order-draft-header";
-const DRAFT_DEBOUNCE_MS = 800;
+export const ORDER_DRAFT_VERSION = 2 as const;
+export const ORDER_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const ORDER_DRAFT_DEBOUNCE_MS = 800;
 
-// หัวฟอร์มเปิดงาน (ลูกค้า/ชื่องาน/รายละเอียดจากแชท) ก็ต้องรอด refresh เหมือนรายการ —
-// เดิม draft เก็บแค่ items ลูกค้าที่เลือก+ข้อความจากแชทหายหมด (audit ข้อ 6)
-export type OrderHeaderDraft = {
-  customerId?: string;
-  // เก็บ object ลูกค้าที่เลือกทั้งก้อน (ข้อมูลจาก server) — restore picker ได้ทันที
-  selectedCustomer?: unknown;
-  title?: string;
-  description?: string;
-};
+const ORDER_DRAFT_KEY = `order-draft-v${ORDER_DRAFT_VERSION}`;
+const LEGACY_DRAFT_KEYS = ["order-draft-items", "order-draft-header"] as const;
 
-export function loadHeaderDraft(): OrderHeaderDraft | null {
-  if (typeof window === "undefined") return null;
+type DraftStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+
+export interface OrderDraftData {
+  header: OrderHeaderState;
+  // เก็บ object ที่ picker เลือกไว้เพื่อคืนชื่อ/ประเภทลูกค้าทันทีหลัง refresh
+  selectedCustomer: unknown | null;
+  items: OrderItemForm[];
+  fees: OrderFeeForm[];
+  includeShipping: boolean;
+  shipping: ShippingState;
+  filledFromCustomerId: string | null;
+  // preview เป็น data URL ขนาดใหญ่และเป็นข้อมูลซ้ำกับไฟล์บน storage — ห้ามเขียนลง localStorage
+  referenceImages: Array<Omit<ReferenceImage, "preview">>;
+}
+
+export interface OrderDraftEnvelope {
+  version: typeof ORDER_DRAFT_VERSION;
+  updatedAt: number;
+  data: OrderDraftData;
+}
+
+interface DraftStorageOptions {
+  storage?: DraftStorage;
+  now?: number;
+}
+
+const ORDER_PRIORITIES: readonly OrderPriority[] = ["LOW", "NORMAL", "HIGH", "URGENT"];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function finiteNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function stringValue(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function normalizeHeader(value: unknown): OrderHeaderState {
+  const raw = isRecord(value) ? value : {};
+  const priority = ORDER_PRIORITIES.includes(raw.priority as OrderPriority)
+    ? (raw.priority as OrderPriority)
+    : EMPTY_ORDER_HEADER.priority;
+  return {
+    customerId: stringValue(raw.customerId),
+    channel: stringValue(raw.channel, EMPTY_ORDER_HEADER.channel),
+    title: stringValue(raw.title),
+    description: stringValue(raw.description),
+    deadline: stringValue(raw.deadline),
+    notes: stringValue(raw.notes),
+    priority,
+    paymentTerms: stringValue(raw.paymentTerms),
+    poNumber: stringValue(raw.poNumber),
+    externalOrderId: stringValue(raw.externalOrderId),
+    taxRate: finiteNumber(raw.taxRate, EMPTY_ORDER_HEADER.taxRate),
+    discount: finiteNumber(raw.discount, EMPTY_ORDER_HEADER.discount),
+    platformFee: finiteNumber(raw.platformFee, EMPTY_ORDER_HEADER.platformFee),
+  };
+}
+
+function normalizeItems(value: unknown): OrderItemForm[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    return [structuredClone(EMPTY_ITEM)];
+  }
+  return value.map((valueItem) => {
+    const item = isRecord(valueItem) ? valueItem : {};
+    const prints = Array.isArray(item.prints)
+      ? item.prints.filter(isRecord).map((print) => {
+          // ไฟล์ถูกอัปโหลดก่อนใส่ designImageUrl แล้ว — data URL ใช้แค่ preview ระหว่าง session
+          const persisted = { ...print };
+          delete persisted.designImagePreview;
+          return { ...EMPTY_PRINT, ...persisted } as OrderItemForm["prints"][number];
+        })
+      : [];
+    return {
+      ...structuredClone(EMPTY_ITEM),
+      ...item,
+      description: stringValue(item.description),
+      notes: stringValue(item.notes),
+      products: Array.isArray(item.products) ? item.products as OrderItemForm["products"] : [],
+      prints,
+      addons: Array.isArray(item.addons) ? item.addons as OrderItemForm["addons"] : [],
+    };
+  });
+}
+
+function normalizeFees(value: unknown): OrderFeeForm[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isRecord).map((fee) => ({
+    feeType: stringValue(fee.feeType),
+    name: stringValue(fee.name),
+    amount: finiteNumber(fee.amount, 0),
+  }));
+}
+
+function normalizeShipping(value: unknown): ShippingState {
+  const raw = isRecord(value) ? value : {};
+  return {
+    recipientName: stringValue(raw.recipientName),
+    phone: stringValue(raw.phone),
+    address: stringValue(raw.address),
+    subDistrict: stringValue(raw.subDistrict),
+    district: stringValue(raw.district),
+    province: stringValue(raw.province),
+    postalCode: stringValue(raw.postalCode),
+  };
+}
+
+export function referenceImagesForDraft(
+  value: readonly ReferenceImage[],
+): Array<Omit<ReferenceImage, "preview">> {
+  return value
+    .filter((image) => !!image.fileUrl && !!image.fileName)
+    .map(({ fileUrl, fileName, fileSize, printPosition }) => ({
+      fileUrl,
+      fileName,
+      ...(typeof fileSize === "number" && Number.isFinite(fileSize) ? { fileSize } : {}),
+      ...(printPosition ? { printPosition } : {}),
+    }));
+}
+
+function normalizeReferenceImages(value: unknown): Array<Omit<ReferenceImage, "preview">> {
+  if (!Array.isArray(value)) return [];
+  const images: ReferenceImage[] = value.filter(isRecord).map((image) => ({
+    fileUrl: stringValue(image.fileUrl),
+    fileName: stringValue(image.fileName),
+    fileSize: typeof image.fileSize === "number" ? image.fileSize : undefined,
+    printPosition: typeof image.printPosition === "string" ? image.printPosition : undefined,
+  }));
+  return referenceImagesForDraft(images);
+}
+
+export function normalizeOrderDraftData(value: unknown): OrderDraftData | null {
+  if (!isRecord(value)) return null;
+  return {
+    header: normalizeHeader(value.header),
+    selectedCustomer: isRecord(value.selectedCustomer) ? value.selectedCustomer : null,
+    items: normalizeItems(value.items),
+    fees: normalizeFees(value.fees),
+    includeShipping: value.includeShipping === true,
+    shipping: normalizeShipping(value.shipping),
+    filledFromCustomerId:
+      typeof value.filledFromCustomerId === "string" ? value.filledFromCustomerId : null,
+    referenceImages: normalizeReferenceImages(value.referenceImages),
+  };
+}
+
+export function orderDraftHasContent(draft: OrderDraftData): boolean {
+  const headerChanged = (Object.keys(EMPTY_ORDER_HEADER) as Array<keyof OrderHeaderState>)
+    .some((key) => draft.header[key] !== EMPTY_ORDER_HEADER[key]);
+  const shippingChanged = Object.values(draft.shipping).some((value) => value.trim().length > 0);
+  return (
+    headerChanged ||
+    draft.items.some(itemHasContent) ||
+    draft.fees.some((fee) => !!(fee.feeType || fee.name || fee.amount)) ||
+    draft.includeShipping ||
+    shippingChanged ||
+    draft.referenceImages.length > 0
+  );
+}
+
+export function parseOrderDraft(raw: string, now = Date.now()): OrderDraftData | null {
   try {
-    const raw = localStorage.getItem(HEADER_DRAFT_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as OrderHeaderDraft;
+    const envelope = JSON.parse(raw) as unknown;
+    if (!isRecord(envelope)) return null;
+    if (envelope.version !== ORDER_DRAFT_VERSION) return null;
+    if (typeof envelope.updatedAt !== "number" || !Number.isFinite(envelope.updatedAt)) return null;
+    if (now - envelope.updatedAt > ORDER_DRAFT_TTL_MS) return null;
+    return normalizeOrderDraftData(envelope.data);
   } catch {
     return null;
   }
 }
 
-export function saveHeaderDraft(draft: OrderHeaderDraft) {
-  if (typeof window === "undefined") return;
-  try {
-    const hasContent = !!(draft.customerId || draft.title?.trim() || draft.description?.trim());
-    if (hasContent) {
-      localStorage.setItem(HEADER_DRAFT_KEY, JSON.stringify(draft));
-    } else {
-      localStorage.removeItem(HEADER_DRAFT_KEY);
-    }
-  } catch {
-    // storage full or unavailable
-  }
+export function orderDraftStorageKey(draftScope?: string): string {
+  const scope = draftScope?.trim();
+  return scope ? `${ORDER_DRAFT_KEY}:${encodeURIComponent(scope)}` : ORDER_DRAFT_KEY;
 }
 
-function loadDraft(): OrderItemForm[] | null {
+function resolveStorage(storage?: DraftStorage): DraftStorage | null {
+  if (storage) return storage;
   if (typeof window === "undefined") return null;
+  return window.localStorage;
+}
+
+export function loadOrderDraft(
+  draftScope?: string,
+  options: DraftStorageOptions = {},
+): OrderDraftData | null {
+  const storage = resolveStorage(options.storage);
+  if (!storage) return null;
+  const key = orderDraftStorageKey(draftScope);
   try {
-    const raw = localStorage.getItem(DRAFT_KEY);
+    const raw = storage.getItem(key);
+    // draft รุ่นเก่าไม่มี timestamp จึงพิสูจน์อายุไม่ได้ — ลบทิ้งแทนการต่ออายุของเก่าเงียบๆ
+    if (!draftScope) LEGACY_DRAFT_KEYS.forEach((legacyKey) => storage.removeItem(legacyKey));
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.map((item: Partial<OrderItemForm>) => ({
-        ...structuredClone(EMPTY_ITEM),
-        ...item,
-      }));
-    }
+    const draft = parseOrderDraft(raw, options.now ?? Date.now());
+    if (!draft) storage.removeItem(key);
+    return draft;
   } catch {
-    // corrupted draft
+    return null;
   }
-  return null;
 }
 
-function saveDraft(items: OrderItemForm[]) {
-  if (typeof window === "undefined") return;
+export function saveOrderDraft(
+  draft: OrderDraftData,
+  draftScope?: string,
+  options: DraftStorageOptions = {},
+): void {
+  const storage = resolveStorage(options.storage);
+  if (!storage) return;
+  const key = orderDraftStorageKey(draftScope);
   try {
-    // เกณฑ์เดียวกับ hasItemContent ของหน้าเปิดงาน — เนื้อหายหมด = ลบ draft ทิ้งด้วย
-    // (เดิมเกณฑ์แคบกว่า + ไม่เคยลบ → ลบของในฟอร์มแล้ว draft เก่ายังเด้งกลับมา)
-    if (items.some(itemHasContent)) {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(items));
-    } else {
-      localStorage.removeItem(DRAFT_KEY);
+    const normalized = normalizeOrderDraftData(draft);
+    if (!normalized || !orderDraftHasContent(normalized)) {
+      storage.removeItem(key);
+      return;
     }
+    const envelope: OrderDraftEnvelope = {
+      version: ORDER_DRAFT_VERSION,
+      updatedAt: options.now ?? Date.now(),
+      data: normalized,
+    };
+    storage.setItem(key, JSON.stringify(envelope));
   } catch {
-    // storage full or unavailable
+    // storage full, private mode หรือข้อมูล serialize ไม่ได้ — ฟอร์มหลักยังทำงานต่อ
   }
 }
 
-export function clearDraft() {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(DRAFT_KEY);
-  localStorage.removeItem(HEADER_DRAFT_KEY);
+export function clearOrderDraft(
+  draftScope?: string,
+  options: Pick<DraftStorageOptions, "storage"> = {},
+): void {
+  const storage = resolveStorage(options.storage);
+  if (!storage) return;
+  try {
+    storage.removeItem(orderDraftStorageKey(draftScope));
+    if (!draftScope) LEGACY_DRAFT_KEYS.forEach((legacyKey) => storage.removeItem(legacyKey));
+  } catch {
+    // localStorage อาจถูก browser ปิด — reset state ในหน้ายังต้องทำงานต่อ
+  }
 }
 
 export function useOrderItemsForm(
   initialItems?: OrderItemForm[],
-  options?: { enableDraft?: boolean },
 ) {
-  const enableDraft = options?.enableDraft ?? false;
-
-  // เริ่มด้วยค่า SSR-safe (ไม่อ่าน localStorage ตอน init) — กัน hydration mismatch
-  // (server ไม่มี localStorage = ได้ค่าว่าง · ถ้า init จาก draft ฝั่ง client จะไม่ตรง server)
   const [items, setItems] = useState<OrderItemForm[]>(() => {
     if (initialItems && initialItems.length > 0) return initialItems;
     return [structuredClone(EMPTY_ITEM)];
   });
-
-  const [hasDraft, setHasDraft] = useState(false);
-
-  // โหลด draft หลัง mount เท่านั้น (client) — เรนเดอร์แรกตรงกับ server แล้วค่อยเติม draft
-  const draftLoaded = useRef(false);
-  useEffect(() => {
-    if (draftLoaded.current) return;
-    draftLoaded.current = true;
-    if (!enableDraft || (initialItems && initialItems.length > 0)) return;
-    const draft = loadDraft();
-    if (draft) {
-      setItems(draft);
-      setHasDraft(true);
-    }
-  }, [enableDraft, initialItems]);
-
-  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (!enableDraft) return;
-    if (draftTimer.current) clearTimeout(draftTimer.current);
-    draftTimer.current = setTimeout(() => saveDraft(items), DRAFT_DEBOUNCE_MS);
-    return () => {
-      if (draftTimer.current) clearTimeout(draftTimer.current);
-    };
-  }, [items, enableDraft]);
-
-  const dismissDraft = useCallback(() => {
-    clearDraft();
-    setHasDraft(false);
-    setItems([structuredClone(EMPTY_ITEM)]);
-  }, []);
 
   const addItem = useCallback(
     () => setItems((prev) => [...prev, structuredClone(EMPTY_ITEM)]),
@@ -224,9 +373,8 @@ export function useOrderItemsForm(
   const resetItems = useCallback(
     (newItems?: OrderItemForm[]) => {
       setItems(newItems ?? [structuredClone(EMPTY_ITEM)]);
-      if (enableDraft) clearDraft();
     },
-    [enableDraft],
+    [],
   );
 
   return {
@@ -242,13 +390,8 @@ export function useOrderItemsForm(
     removeAddon,
     updateAddon,
     resetItems,
-    hasDraft,
-    dismissDraft,
   };
 }
-
-// useOrderDraft + OrderDraftData (full-form draft) ถูกลบตอน P0.5 — ไม่มีใครใช้
-// draft ที่ใช้จริงคือระบบ DRAFT_KEY (เฉพาะ items) ใน useOrderItemsForm ข้างบน
 
 export function useOrderFeesForm(initialFees?: OrderFeeForm[]) {
   const [fees, setFees] = useState<OrderFeeForm[]>(initialFees ?? []);

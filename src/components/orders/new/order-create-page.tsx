@@ -35,7 +35,7 @@ import {
   type OrderFormTabKey,
 } from "@/lib/order-form-tabs";
 import { PageShell } from "@/components/page-shell";
-import { isMarketplaceChannel, CHANNEL_LABELS } from "@/lib/order-status";
+import { CHANNEL_LABELS } from "@/lib/order-status";
 import { type PaymentTermsValue, PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { type PickerCustomer } from "@/components/customers/customer-picker";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
@@ -52,10 +52,14 @@ import {
 import {
   useOrderItemsForm,
   useOrderFeesForm,
-  clearDraft,
-  loadHeaderDraft,
-  saveHeaderDraft,
+  clearOrderDraft,
+  loadOrderDraft,
+  saveOrderDraft,
+  ORDER_DRAFT_DEBOUNCE_MS,
+  referenceImagesForDraft,
+  type OrderDraftData,
 } from "@/hooks/use-order-items-form";
+import { useOrderHeaderForm } from "@/hooks/use-order-header-form";
 import { useOrderShippingState } from "@/hooks/use-order-shipping";
 import {
   fillFromCustomer,
@@ -93,48 +97,52 @@ const STEP_IDS = {
   attachments: "new-order-step-attachments",
 } as const;
 
-export default function OrderCreatePage() {
+export default function OrderCreatePage({ draftScope }: { draftScope?: string }) {
   const router = useRouter();
   const confirmDialog = useConfirm();
   const utils = trpc.useUtils();
 
-  const [channel, setChannel] = useState("LINE");
-  const [externalOrderId, setExternalOrderId] = useState("");
-
-  // หัวฟอร์มรอด refresh เหมือนรายการ — restore จาก header draft (audit ข้อ 6)
-  // SSR-safe: init ว่าง (ไม่อ่าน localStorage ตอน render) — โหลด header draft หลัง mount ใน effect ด้านล่าง
-  const [customerId, setCustomerId] = useState("");
-  const [title, setTitle] = useState("");
-  const [deadline, setDeadline] = useState("");
-  const [description, setDescription] = useState("");
-  const [notes, setNotes] = useState("");
+  // หัวฟอร์มเป็น state ก้อนเดียวกับ dialog แก้ข้อมูลออเดอร์ — ลดโอกาสเพิ่ม field แล้ว draft หลุด
+  const {
+    header,
+    setField: setHeaderField,
+    patch: patchHeader,
+    reset: resetHeader,
+    isMarketplace,
+  } = useOrderHeaderForm();
+  const {
+    customerId,
+    channel,
+    title,
+    description,
+    deadline,
+    notes,
+    priority,
+    paymentTerms,
+    poNumber,
+    externalOrderId,
+    taxRate,
+    discount,
+    platformFee,
+  } = header;
 
   const {
     items, setItems,
     addItem, removeItem, updateItem,
     addPrint, removePrint, updatePrint,
     addAddon, removeAddon, updateAddon,
-    hasDraft, dismissDraft,
-  } = useOrderItemsForm(undefined, { enableDraft: true });
+    resetItems,
+  } = useOrderItemsForm();
 
   const [expandedItemIdx, setExpandedItemIdx] = useState<number | null>(0);
 
-  const { fees, addFee, removeFee, updateFee } = useOrderFeesForm();
-
-  const [platformFee, setPlatformFee] = useState(0);
-  const [discount, setDiscount] = useState(0);
-  // default 7% — บริษัทจด VAT ทุกการขายต้องมีภาษีขาย (Gate B2 · เบส confirm 2026-07-02)
-  // งานยกเว้นภาษี = ผู้ใช้ตั้ง 0 เอง (เดิม default 0 → ภาษีขายขาด เสี่ยงประเมินย้อนหลัง)
-  const [taxRate, setTaxRate] = useState(7);
-
-  const [priority, setPriority] = useState<"LOW" | "NORMAL" | "HIGH" | "URGENT">("NORMAL");
-  const [paymentTerms, setPaymentTerms] = useState("");
-  const [poNumber, setPoNumber] = useState("");
+  const { fees, addFee, removeFee, updateFee, resetFees } = useOrderFeesForm();
 
   const {
     includeShipping, setIncludeShipping,
     shipping, updateShipping,
     filledFromCustomerId, fillShippingFromCustomer, resetShipping,
+    restoreShipping,
     validateShipping, shippingMutationInput,
   } = useOrderShippingState();
 
@@ -143,6 +151,8 @@ export default function OrderCreatePage() {
   const [formErrors, setFormErrors] = useState<OrderFormError[]>([]);
   const [tab, setTabState] = useState<OrderFormTabKey>(ORDER_FORM_DEFAULT_TAB);
   const [submitted, setSubmitted] = useState(false);
+  const [draftStorageReady, setDraftStorageReady] = useState(false);
+  const [restoredDraft, setRestoredDraft] = useState(false);
 
   /* เขียนแท็บลง URL ด้วย history API ตรงๆ ไม่ผ่าน router — router.replace จะรีเฟรช RSC ทั้งหน้า
      (ฟอร์มที่กรอกค้างไว้จะกระตุก) · ใช้ URL เดิมแล้ว set เฉพาะ tab จึงไม่ทับ ?next=quote / ?customerId= */
@@ -184,59 +194,104 @@ export default function OrderCreatePage() {
   }, []);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
-  // hasDraft ของ useOrderItemsForm ดูแค่ "ร่างรายการ" — ถ้าค้างไว้แค่ลูกค้า/ชื่องาน/ข้อความแชท
-  // หน้าจะ restore ลูกค้ารายเก่ากลับมาเงียบๆ โดยไม่มีแบนเนอร์บอก แล้วคนคีย์งานให้ลูกค้าผิดคน
-  // (บั๊กจาก audit 2026-08-03) → จำไว้ว่า header draft ถูกกู้คืนด้วย แล้ว OR เข้าเงื่อนไขแบนเนอร์
-  const [restoredHeaderDraft, setRestoredHeaderDraft] = useState(false);
-
   // ลูกค้าเลือกผ่าน CustomerPicker (ค้นหา+เพิ่มด่วน) — เก็บ object ที่เลือกไว้ใช้ prefill
   const [selectedCustomer, setSelectedCustomer] = useState<PickerCustomer | null>(null);
+  // ตอนกู้ draft ห้าม effect "สลับลูกค้า" ล้าง PO ที่เพิ่งกู้กลับมา
+  const restoredCustomerIdRef = useRef<string | null>(null);
+  const draftStorageReadyRef = useRef(false);
+  const skipDraftResaveOnUnmountRef = useRef(false);
+  const latestDraftRef = useRef<OrderDraftData | null>(null);
 
-  // โหลด header draft หลัง mount เท่านั้น (client) — เรนเดอร์แรกตรงกับ server กัน hydration mismatch
+  // โหลด draft หลัง mount เท่านั้น — SSR เริ่มด้วยค่ามาตรฐานเหมือน client render แรก
   useEffect(() => {
-    const d = loadHeaderDraft();
-    if (d?.customerId) setCustomerId(d.customerId);
-    if (d?.title) setTitle(d.title);
-    if (d?.description) setDescription(d.description);
-    if (d?.selectedCustomer) setSelectedCustomer(d.selectedCustomer as PickerCustomer);
-    if (d?.customerId || d?.title || d?.description) setRestoredHeaderDraft(true);
-
+    const draft = loadOrderDraft(draftScope);
     const requestedCustomerId = new URLSearchParams(window.location.search).get("customerId");
-    if (!requestedCustomerId || d?.customerId) return;
     let cancelled = false;
-    void utils.customer.getById.fetch({ id: requestedCustomerId })
-      .then((customer) => {
-        if (cancelled || !customer) return;
-        setCustomerId(customer.id);
-        setSelectedCustomer(customer as unknown as PickerCustomer);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setFormErrors([
-            { tab: "intake", message: "เปิดข้อมูลลูกค้าที่เลือกไว้ไม่สำเร็จ — ค้นหาลูกค้าอีกครั้ง" },
-          ]);
-        }
-      });
+    // localStorage เป็น external source — apply ใน microtask ให้พ้น effect body และ batch state ทุก hook
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (draft) {
+        latestDraftRef.current = draft;
+        patchHeader(draft.header);
+        setSelectedCustomer(draft.selectedCustomer as PickerCustomer | null);
+        setItems(draft.items);
+        resetFees(draft.fees);
+        restoreShipping({
+          includeShipping: draft.includeShipping,
+          shipping: draft.shipping,
+          filledFromCustomerId: draft.filledFromCustomerId,
+        });
+        setReferenceImages(draft.referenceImages);
+        restoredCustomerIdRef.current = draft.header.customerId || null;
+        setRestoredDraft(true);
+      }
+
+      draftStorageReadyRef.current = true;
+      setDraftStorageReady(true);
+
+      if (!requestedCustomerId || draft?.header.customerId) return;
+      void utils.customer.getById.fetch({ id: requestedCustomerId })
+        .then((customer) => {
+          if (cancelled || !customer) return;
+          setHeaderField("customerId", customer.id);
+          setSelectedCustomer(customer as unknown as PickerCustomer);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setFormErrors([
+              { tab: "intake", message: "เปิดข้อมูลลูกค้าที่เลือกไว้ไม่สำเร็จ — ค้นหาลูกค้าอีกครั้ง" },
+            ]);
+          }
+        });
+    });
     return () => {
       cancelled = true;
     };
+    // draftScope คงที่ตลอดอายุ route · setter ของ hooks คง identity
     // eslint-disable-next-line react-hooks/exhaustive-deps -- โหลดครั้งเดียวตอน mount
   }, []);
 
-  // เซฟหัวฟอร์มลง draft ทุกครั้งที่เปลี่ยน — ข้ามรอบแรก (mount) กัน save ค่าว่างทับ draft ก่อนโหลด
-  const headerSaveSkip = useRef(true);
+  const draftSnapshot = useMemo<OrderDraftData>(() => ({
+    header,
+    selectedCustomer,
+    items,
+    fees,
+    includeShipping,
+    shipping,
+    filledFromCustomerId,
+    referenceImages: referenceImagesForDraft(referenceImages),
+  }), [
+    header,
+    selectedCustomer,
+    items,
+    fees,
+    includeShipping,
+    shipping,
+    filledFromCustomerId,
+    referenceImages,
+  ]);
+  // เซฟทั้งฟอร์มใน envelope เดียว — debounce กัน localStorage เขียนทุก keystroke
   useEffect(() => {
-    if (headerSaveSkip.current) {
-      headerSaveSkip.current = false;
-      return;
+    latestDraftRef.current = draftSnapshot;
+    if (!draftStorageReady) return;
+    latestDraftRef.current = draftSnapshot;
+    const timer = window.setTimeout(
+      () => saveOrderDraft(draftSnapshot, draftScope),
+      ORDER_DRAFT_DEBOUNCE_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [draftScope, draftSnapshot, draftStorageReady]);
+
+  // ปิดแท็บ/กดยกเลิกก่อน debounce ครบก็ต้องเก็บค่าล่าสุด · แต่ success ห้ามชุบ draft กลับหลัง clear
+  useEffect(() => () => {
+    if (
+      draftStorageReadyRef.current &&
+      !skipDraftResaveOnUnmountRef.current &&
+      latestDraftRef.current
+    ) {
+      saveOrderDraft(latestDraftRef.current, draftScope);
     }
-    saveHeaderDraft({
-      customerId: customerId || undefined,
-      selectedCustomer: selectedCustomer ?? undefined,
-      title: title || undefined,
-      description: description || undefined,
-    });
-  }, [customerId, selectedCustomer, title, description]);
+  }, [draftScope]);
 
   const { data: printCatalog } = trpc.serviceCatalog.list.useQuery(
     { category: "PRINT", isActive: true },
@@ -250,7 +305,8 @@ export default function OrderCreatePage() {
 
   const createOrder = trpc.order.create.useMutation({
     onSuccess: (data) => {
-      clearDraft();
+      skipDraftResaveOnUnmountRef.current = true;
+      clearOrderDraft(draftScope);
       utils.order.list.invalidate();
       const next = new URLSearchParams(window.location.search).get("next");
       router.push(
@@ -261,8 +317,6 @@ export default function OrderCreatePage() {
     },
   });
 
-  const isMarketplace = isMarketplaceChannel(channel);
-
   // มีเนื้อรายการจริงไหม — ตัวตัดสินเดียวแทนสวิตช์โหมดเดิม (สอบถาม/ระบุครบ):
   // ไม่มี = เปิดเป็นการสอบถาม (ตีราคาทีหลัง) · มี = validate + ส่งรายการไปคิดเงิน
   const hasItemContent = items.some(itemHasContent);
@@ -272,25 +326,24 @@ export default function OrderCreatePage() {
     const now = new Date();
     const daysUntil = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     if (daysUntil <= 3) {
-      setPriority("URGENT");
+      setHeaderField("priority", "URGENT");
     } else if (daysUntil <= 7) {
-      setPriority("HIGH");
+      setHeaderField("priority", "HIGH");
     }
-  }, [deadline]);
+  }, [deadline, setHeaderField]);
 
   useEffect(() => {
     if (isMarketplace && !paymentTerms) {
-      setPaymentTerms("COD");
+      setHeaderField("paymentTerms", "COD");
     }
-  }, [isMarketplace, paymentTerms]);
+  }, [isMarketplace, paymentTerms, setHeaderField]);
 
   // ราคาช่องทาง marketplace (Shopee/Lazada/TikTok) รวม VAT ในตัวแล้ว — default 7%
   // จะบวกภาษีทับซ้ำ · สลับค่าตามช่องทางให้อัตโนมัติ (ฟอร์มนี้ไม่มีช่องให้กรอกภาษีแล้ว)
   useEffect(() => {
-    if (isMarketplace && taxRate === 7) setTaxRate(0);
-    if (!isMarketplace && taxRate === 0) setTaxRate(7);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMarketplace]);
+    if (isMarketplace && taxRate === 7) setHeaderField("taxRate", 0);
+    if (!isMarketplace && taxRate === 0) setHeaderField("taxRate", 7);
+  }, [isMarketplace, setHeaderField, taxRate]);
 
   useEffect(() => {
     // เลิกเติมที่อยู่ลูกค้าให้เงียบๆ แล้ว (เบสสั่ง 2026-08-12) — เดิมเติมให้แต่ไม่เปิดสวิตช์
@@ -312,20 +365,24 @@ export default function OrderCreatePage() {
 
   const isCorporateCustomer = selectedCustomer?.customerType === "CORPORATE";
   useEffect(() => {
+    if (restoredCustomerIdRef.current === customerId) {
+      restoredCustomerIdRef.current = null;
+      return;
+    }
     // เลขที่ PO ผูกกับลูกค้ารายที่เลือกไว้ตอนนั้น — สลับลูกค้าแล้วค่าเก่าค้างและถูกส่งไปด้วย
     // (บั๊กจาก audit 2026-08-03 · ช่องนี้โผล่เฉพาะนิติบุคคล พอสลับไปบุคคลธรรมดาจะมองไม่เห็นด้วยซ้ำ)
-    setPoNumber("");
+    setHeaderField("poNumber", "");
 
     if (!selectedCustomer) return;
     if (selectedCustomer.customerType === "CORPORATE") {
       if (selectedCustomer.defaultPaymentTerms && !paymentTerms) {
-        setPaymentTerms(selectedCustomer.defaultPaymentTerms);
+        setHeaderField("paymentTerms", selectedCustomer.defaultPaymentTerms);
       }
       // นิติบุคคลต้องมีภาษีขาย — ยกเว้นช่องทางมาร์เก็ตเพลสที่ราคารวม VAT อยู่แล้ว
       // (ถ้าดันกลับเป็น 7 จะบวกภาษีทับซ้ำ · เดิมเงื่อนไขนี้พึ่งการที่ผู้ใช้แตะช่องเอง
       //  พอถอดช่องกรอกออกเลยต้องกันที่ตัวเงื่อนไขตรงๆ)
       if (taxRate === 0 && !isMarketplace) {
-        setTaxRate(7);
+        setHeaderField("taxRate", 7);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -511,15 +568,25 @@ export default function OrderCreatePage() {
     submitted,
   });
 
-  const showDraftBanner = hasDraft || restoredHeaderDraft;
+  const showDraftBanner = restoredDraft;
   const resetDraft = () => {
-    dismissDraft();
-    clearDraft();
-    setRestoredHeaderDraft(false);
-    setCustomerId("");
+    clearOrderDraft(draftScope);
+    latestDraftRef.current = null;
+    restoredCustomerIdRef.current = null;
+    resetHeader();
     setSelectedCustomer(null);
-    setTitle("");
-    setDescription("");
+    resetItems();
+    resetFees();
+    resetShipping();
+    setReferenceImages([]);
+    setExpandedItemIdx(0);
+    setFormErrors([]);
+    setSubmitted(false);
+    setRestoredDraft(false);
+    setTabState(ORDER_FORM_DEFAULT_TAB);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", ORDER_FORM_DEFAULT_TAB);
+    window.history.replaceState({}, "", url);
   };
 
   return (
@@ -624,7 +691,7 @@ export default function OrderCreatePage() {
             </TabsList>
           </TabsBar>
 
-          <TabsContent value="intake" className="mt-6">
+          <TabsContent value="intake" keepMounted className="mt-6">
           {/* รับเรื่อง — ลูกค้าเป็นช่องบังคับเพียงช่องเดียว */}
           <Section
             id={STEP_IDS.intake}
@@ -636,26 +703,26 @@ export default function OrderCreatePage() {
                 customerId={customerId}
                 selectedCustomer={selectedCustomer}
                 onSelect={(id, customer) => {
-                  setCustomerId(id);
+                  setHeaderField("customerId", id);
                   setSelectedCustomer(customer);
                 }}
               />
               <OrderDetailFields
                 title={title}
-                onTitleChange={setTitle}
+                onTitleChange={(value) => setHeaderField("title", value)}
                 deadline={deadline}
-                onDeadlineChange={setDeadline}
+                onDeadlineChange={(value) => setHeaderField("deadline", value)}
                 priority={priority}
-                onPriorityChange={setPriority}
+                onPriorityChange={(value) => setHeaderField("priority", value)}
                 channel={channel}
-                onChannelChange={setChannel}
+                onChannelChange={(value) => setHeaderField("channel", value)}
                 isMarketplace={isMarketplace}
                 externalOrderId={externalOrderId}
-                onExternalOrderIdChange={setExternalOrderId}
+                onExternalOrderIdChange={(value) => setHeaderField("externalOrderId", value)}
                 description={description}
-                onDescriptionChange={setDescription}
+                onDescriptionChange={(value) => setHeaderField("description", value)}
                 notes={notes}
-                onNotesChange={setNotes}
+                onNotesChange={(value) => setHeaderField("notes", value)}
                 showGuidance={false}
               />
               {/* จัดส่งอยู่กับรับเรื่อง — ที่อยู่ผู้รับมาจากแชทรอบเดียวกับข้อมูลลูกค้า
@@ -678,7 +745,7 @@ export default function OrderCreatePage() {
           </Section>
           </TabsContent>
 
-          <TabsContent value="items" className="mt-6">
+          <TabsContent value="items" keepMounted className="mt-6">
           <Section
             id={STEP_IDS.items}
             tabIndex={-1}
@@ -744,7 +811,7 @@ export default function OrderCreatePage() {
           </Section>
           </TabsContent>
 
-          <TabsContent value="pricing" className="mt-6">
+          <TabsContent value="pricing" keepMounted className="mt-6">
           <Section
             id={STEP_IDS.pricing}
             tabIndex={-1}
@@ -772,7 +839,7 @@ export default function OrderCreatePage() {
                     <Field label="เงื่อนไขชำระ" id="order-payment-terms">
                       <Select
                         value={paymentTerms}
-                        onChange={(e) => setPaymentTerms(e.target.value)}
+                        onChange={(e) => setHeaderField("paymentTerms", e.target.value)}
                       >
                         <option value="">ไม่ระบุ</option>
                         {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
@@ -788,7 +855,7 @@ export default function OrderCreatePage() {
                       <MoneyInput
                         id="order-discount"
                         value={discount}
-                        onValueChange={setDiscount}
+                        onValueChange={(value) => setHeaderField("discount", value)}
                       />
                     </Field>
                     {isMarketplace && (
@@ -800,7 +867,7 @@ export default function OrderCreatePage() {
                         <MoneyInput
                           id="order-platform-fee"
                           value={platformFee}
-                          onValueChange={setPlatformFee}
+                          onValueChange={(value) => setHeaderField("platformFee", value)}
                         />
                       </Field>
                     )}
@@ -808,7 +875,7 @@ export default function OrderCreatePage() {
                       <Field label="เลขที่ PO" id="order-po-number">
                         <Input
                           value={poNumber}
-                          onChange={(e) => setPoNumber(e.target.value)}
+                          onChange={(e) => setHeaderField("poNumber", e.target.value)}
                           placeholder="PO Number"
                         />
                       </Field>
@@ -837,7 +904,7 @@ export default function OrderCreatePage() {
 
           {/* ไฟล์แนบเป็นแท็บสุดท้าย (เดิมอยู่ล่างสุดของฟอร์ม เบสสั่ง 2026-08-04)
               — เป็นของที่แนบทีหลังได้เสมอ ไม่ควรขวางทางระหว่างกรอกลูกค้า→รายการ→ราคา */}
-          <TabsContent value="attachments" className="mt-6">
+          <TabsContent value="attachments" keepMounted className="mt-6">
           <OrderAttachmentsSection
             id={STEP_IDS.attachments}
             images={referenceImages}
@@ -871,11 +938,15 @@ export default function OrderCreatePage() {
                 </p>
               )}
             </div>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/orders" aria-disabled={createOrder.isPending}>
+            {createOrder.isPending ? (
+              <Button variant="outline" size="sm" disabled>
                 ยกเลิก
-              </Link>
-            </Button>
+              </Button>
+            ) : (
+              <Button asChild variant="outline" size="sm">
+                <Link href="/orders">ยกเลิก</Link>
+              </Button>
+            )}
             <Button type="submit" size="sm" disabled={createOrder.isPending} className="gap-1.5">
               {createOrder.isPending && <Loader2 className="animate-spin" />}
               {createOrder.isPending ? "กำลังบันทึก..." : "เปิดงาน"}

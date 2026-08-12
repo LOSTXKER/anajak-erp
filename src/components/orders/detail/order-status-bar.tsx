@@ -11,6 +11,7 @@ import {
 } from "@/lib/order-status-rail";
 import { cn, formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { FOCUS_INSET, RADIUS } from "@/components/ui/tokens";
 
 /* ============================================================
    แถบสถานะ = "ราง" ขั้นต่อกัน (เบสเคาะแบบ A จาก 3 ตัวอย่าง 2026-08-11)
@@ -159,8 +160,10 @@ export function OrderStatusBar({
       {/* ราง: ทุกขั้นกว้างเท่ากันและอย่างน้อย 84px — พื้นที่ไม่พอเมื่อไหร่ก็เลื่อนแทนบีบป้าย */}
       <ol
         ref={railRef}
-        aria-label="เส้นทางสถานะคำสั่งซื้อ"
-        className="flex overflow-x-auto pb-0.5"
+        aria-label="เส้นทางสถานะออเดอร์ เลื่อนซ้ายขวาเพื่อดูทุกขั้น"
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- รางที่เลื่อนได้ต้องรับโฟกัสเพื่อให้ผู้ใช้คีย์บอร์ดดูทุกขั้นได้ (WCAG 2.1.1)
+        tabIndex={0}
+        className={cn("flex overflow-x-auto pb-0.5", RADIUS.item, FOCUS_INSET)}
       >
         {flowSteps.map((step, i) => {
           const st = railStepState({ index: i, anchorIndex, cancelled: isCancelled });

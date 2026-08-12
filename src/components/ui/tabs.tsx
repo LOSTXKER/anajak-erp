@@ -11,10 +11,8 @@ import { cn } from "@/lib/utils";
  *
  * ที่ต้องรู้ก่อนใช้:
  * - จอแคบ: แถบเลื่อนแนวนอนได้ ป้ายชุดเดียวกับจอกว้าง (ห้ามมีป้ายคนละชุด 2 จอ — สอนงานกันไม่ได้)
- * - `TabsContent` ที่นี่ **บังคับ forceMount เสมอ** แล้วซ่อนด้วย CSS แทนการถอดออกจากหน้า
- *   เหตุผล: ของเดิมเป็นหน้าเดียวเลื่อนยาว ทุกส่วน mount อยู่แล้ว · ถ้าปล่อยให้ Radix ถอด DOM
- *   ทิ้งตามค่าเริ่มต้น คนที่กำลังพิมพ์แก้รายการแล้วสลับแท็บจะเสียของที่ยังไม่เซฟ
- *   (แลกด้วยการ render ทุกแท็บ = เท่าพฤติกรรมเดิมของหน้า ไม่ได้หนักขึ้นกว่าเดิม)
+ * - `TabsContent` lazy ตามค่าเริ่มต้น เพื่อไม่ยิง query/render panel ที่ยังไม่เปิด
+ * - ฟอร์มที่ต้องรักษาค่าระหว่างสลับแท็บให้ opt-in `keepMounted` เฉพาะจุด
  */
 export const Tabs = TabsPrimitive.Root;
 
@@ -129,13 +127,17 @@ TabsTrigger.displayName = "TabsTrigger";
 
 export const TabsContent = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content> & {
+    /** คง panel ไว้ใน DOM ตอน inactive — ใช้เฉพาะฟอร์มที่มี state ยังไม่บันทึก */
+    keepMounted?: boolean;
+  }
+>(({ className, keepMounted = false, ...props }, ref) => (
   <TabsPrimitive.Content
     ref={ref}
-    forceMount
+    forceMount={keepMounted ? true : undefined}
     className={cn(
-      "outline-none data-[state=inactive]:hidden",
+      "outline-none",
+      keepMounted && "data-[state=inactive]:hidden",
       FOCUS_BUTTON,
       className
     )}

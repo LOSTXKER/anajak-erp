@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
+import { Alert } from "@/components/ui/alert";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/page-header";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
@@ -62,7 +64,6 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import { Section } from "@/components/ui/section";
-import { AddCard } from "@/components/ui/add-card";
 import {
   OrderItemsDisplay,
   OrderStatusBar,
@@ -104,6 +105,53 @@ function OrderDetailSkeleton() {
         <Skeleton className="h-64 rounded-xl" />
       </div>
     </div>
+  );
+}
+
+function OrderFilesPanel({
+  orderId,
+  userId,
+  userRole,
+  onGoToDesign,
+}: {
+  orderId: string;
+  userId: string;
+  userRole: string;
+  onGoToDesign: () => void;
+}) {
+  const attachmentsQuery = trpc.attachment.listByEntity.useQuery({
+    entityType: "ORDER",
+    entityId: orderId,
+  });
+  const isInitialLoading =
+    !attachmentsQuery.data &&
+    (attachmentsQuery.isLoading || attachmentsQuery.isFetching);
+
+  if (isInitialLoading) {
+    return (
+      <div role="status" aria-label="กำลังโหลดไฟล์แนบออเดอร์">
+        <Skeleton className="h-56 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (!attachmentsQuery.data && attachmentsQuery.isError) {
+    return (
+      <QueryError
+        message="โหลดไฟล์แนบออเดอร์ไม่สำเร็จ"
+        onRetry={() => void attachmentsQuery.refetch()}
+      />
+    );
+  }
+
+  return (
+    <OrderFilesCard
+      orderId={orderId}
+      attachments={attachmentsQuery.data ?? []}
+      userId={userId}
+      userRole={userRole}
+      onGoToDesign={onGoToDesign}
+    />
   );
 }
 
@@ -175,21 +223,12 @@ function OrderDetailContent({
   }
 
   const { data: order, isLoading, isError, refetch } = trpc.order.getById.useQuery({ id });
-  const attachmentsQuery = trpc.attachment.listByEntity.useQuery({
-    entityType: "ORDER",
-    entityId: id,
-  });
-  const attachmentsLoading =
-    !attachmentsQuery.data &&
-    (attachmentsQuery.isLoading || attachmentsQuery.isFetching);
-  const attachmentsError =
-    !attachmentsQuery.data && attachmentsQuery.isError;
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
-  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ระหว่าง me โหลด permAllows คืน false = ซ่อนไว้ก่อน
-  // (safe default ตาม B12) · คุมทั้งแท็บ "เงิน/บิล" + ยอดใน sidebar (UX6) · ห้ามใช้ isSalesUp — ชุดนั้นไม่มี ACCOUNTANT
+  // นโยบาย ⑦: ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — รอ query สิทธิ์ก่อนวาดหน้า
+  // เพื่อไม่ให้ action/แท็บหายแล้วโผล่ภายหลัง · ห้ามใช้ isSalesUp เพราะชุดนั้นไม่มี ACCOUNTANT
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
-  const permissionsReady = !meQuery.isLoading;
+  const deniedTab: TabKey | null = tab === "money" && !canSeeMoney ? "money" : null;
   const showDeliverySection = shouldShowDeliverySection(
     order?.internalStatus ?? "",
     Boolean(order?.deliveries?.length),
@@ -290,10 +329,20 @@ function OrderDetailContent({
     window.history.replaceState({}, "", url);
   }, []);
 
+  // deep link ที่ไม่มีสิทธิ์ต้องบอกเหตุผลและ canonicalize URL แทนการตกกลับเงียบๆ
+  useEffect(() => {
+    if (meQuery.isLoading || meQuery.isError || !me) return;
+    if (tab !== "money" || canSeeMoney) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", ORDER_DEFAULT_TAB);
+    window.history.replaceState({}, "", url);
+  }, [canSeeMoney, me, meQuery.isError, meQuery.isLoading, tab]);
+
   // ----------------------------------------------------------
   // Loading state
   // ----------------------------------------------------------
-  if (isLoading) return <OrderDetailSkeleton />;
+  if (isLoading || meQuery.isLoading) return <OrderDetailSkeleton />;
   if (isError)
     return (
       <div className="space-y-6">
@@ -306,6 +355,16 @@ function OrderDetailContent({
       <div className="space-y-6">
         <PageHeader breadcrumb={[{ label: "ออเดอร์", href: "/orders" }]} title="ออเดอร์" />
         <RecordNotFound what="ออเดอร์ใบนี้" backHref="/orders" backLabel="กลับไปรายการออเดอร์" />
+      </div>
+    );
+  if (meQuery.isError || !me)
+    return (
+      <div className="space-y-6">
+        <PageHeader breadcrumb={[{ label: "ออเดอร์", href: "/orders" }]} title="ออเดอร์" />
+        <QueryError
+          message="โหลดสิทธิ์ผู้ใช้ไม่สำเร็จ จึงยังเปิด action ของออเดอร์ไม่ได้"
+          onRetry={() => void meQuery.refetch()}
+        />
       </div>
     );
 
@@ -369,7 +428,7 @@ function OrderDetailContent({
       ถ้าซ่อนตามสถานะ ตำแหน่งแท็บจะขยับใต้มือ) */
   const visibleTabs = ORDER_TAB_DEFS.filter((t) => t.key !== "money" || canSeeMoney);
 
-  /* deep link ไปแท็บที่ตัวเองไม่มีสิทธิ์ → ตกกลับแท็บเริ่มต้นเงียบๆ ไม่ขึ้น error */
+  /* ระหว่าง effect canonicalize deep link ให้แสดงแท็บที่เข้าได้ก่อนเสมอ */
   const activeTab: TabKey = visibleTabs.some((t) => t.key === tab) ? tab : ORDER_DEFAULT_TAB;
 
   /* จุดแดงบนหัวแท็บ — ใช้ปลายทางของแถบ "ขั้นต่อไป" ตัวเดียวกัน ไม่มีตรรกะใหม่
@@ -682,6 +741,12 @@ function OrderDetailContent({
           เก็บไว้ทั้งคู่ = พูดเรื่องเดียวกัน 2 ที่ แล้ววันหลังแก้ที่เดียวอีกที่ค้าง
           ผลพลอยได้: แถบแท็บไม่พาดคลุมของที่กดแล้วไม่เปลี่ยนอีกต่อไป (เบสบ่นเรื่องนี้ตรงๆ)
       ==================================================== */}
+      {deniedTab === "money" && (
+        <Alert variant="warning" icon={AlertTriangle} title="เปิดส่วนเงินและบิลไม่ได้">
+          บัญชีนี้ไม่มีสิทธิ์ดูข้อมูลการเงิน ระบบจึงพากลับมาที่ภาพรวม
+        </Alert>
+      )}
+
       <Tabs value={activeTab} onValueChange={changeTab}>
         {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้
             TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บตอนเลื่อน */}
@@ -795,19 +860,16 @@ function OrderDetailContent({
               /* แท็บอยู่เสมอแม้ยังไม่ถึงเฟส — ถ้าซ่อนตามสถานะ ชุดแท็บจะเปลี่ยนใต้มือ
                  ระหว่างวันเดียวกัน (สถานะเดินหลายรอบต่อวัน) ตำแหน่งที่คนจำไว้จะขยับ */
               <Section title="จัดส่ง">
-                <AddCard
+                <EmptyState
                   icon={Truck}
-                  label="ยังไม่ถึงขั้นจัดส่ง"
-                  desc="เปิดใช้เมื่อผลิตและตรวจนับเสร็จ"
-                  onClick={() => {}}
+                  title="ยังไม่ถึงขั้นจัดส่ง"
+                  description="ส่วนนี้จะเปิดเมื่อผลิตและตรวจนับเสร็จ"
                 />
               </Section>
             )}
           </TabsContent>
 
-          {/* ไม่มีสิทธิ์ดูเงิน = ไม่ render ทั้งก้อน (แท็บก็ถูกกรองออกจาก visibleTabs)
-              — Radix forceMount ทำให้เนื้อหาแท็บอยู่ใน DOM แม้ไม่ได้เปิด ถ้า gate แค่ที่แท็บ
-              ข้อมูลเงินจะยังหลุดไปอยู่ในหน้า */}
+          {/* ไม่มีสิทธิ์ดูเงิน = ไม่ render ทั้งก้อน (แท็บก็ถูกกรองออกจาก visibleTabs) */}
           {canSeeMoney && (
             <TabsContent value="money" className="space-y-6">
               <OrderMoneyTab
@@ -824,29 +886,12 @@ function OrderDetailContent({
           )}
 
           <TabsContent value="files" className="space-y-6">
-            {meQuery.isError ? (
-              <QueryError
-                message="โหลดสิทธิ์ผู้ใช้ไม่สำเร็จ"
-                onRetry={() => void meQuery.refetch()}
-              />
-            ) : !permissionsReady || !me || attachmentsLoading ? (
-              <div role="status" aria-label="กำลังโหลดไฟล์แนบออเดอร์">
-                <Skeleton className="h-56 rounded-xl" />
-              </div>
-            ) : attachmentsError ? (
-              <QueryError
-                message="โหลดไฟล์แนบออเดอร์ไม่สำเร็จ"
-                onRetry={() => void attachmentsQuery.refetch()}
-              />
-            ) : (
-              <OrderFilesCard
-                orderId={id}
-                attachments={attachmentsQuery.data ?? []}
-                userId={me?.id}
-                userRole={me?.role}
-                onGoToDesign={() => changeTab("production")}
-              />
-            )}
+            <OrderFilesPanel
+              orderId={id}
+              userId={me.id}
+              userRole={me.role}
+              onGoToDesign={() => changeTab("production")}
+            />
           </TabsContent>
 
           <TabsContent value="history" className="space-y-6">

@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
 import { CHANNEL_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import { FIELD_MEASURE } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 // ช่องข้อมูลงาน (ชื่อ/กำหนดส่ง/ช่องทาง/รายละเอียด/หมายเหตุ) — แยกจาก orders/new/page.tsx
 // ตอนรื้อฟอร์ม 2026-06-12 · ลำดับใหม่: รายละเอียดจากแชทขึ้นก่อน (จุด capture หลักตอนถือแชท)
@@ -127,7 +128,11 @@ export function OrderDetailFields({
         </Field>
       )}
 
-      <Field label="หมายเหตุภายใน (ลูกค้าไม่เห็น)" id={`${id}-notes`} className={FIELD_MEASURE}>
+      <Field
+        label="หมายเหตุภายใน (ลูกค้าไม่เห็น)"
+        id={`${id}-notes`}
+        className={cn(FIELD_MEASURE, "w-full max-sm:max-w-none")}
+      >
         <Input
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
