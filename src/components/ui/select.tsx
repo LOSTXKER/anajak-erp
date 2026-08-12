@@ -77,7 +77,7 @@ function collectOptions(children: React.ReactNode, out: OptionItem[] = []) {
 }
 
 /** ขนาดของช่องเลือก — sm ใช้เฉพาะในแถวตารางที่ต้องอัดหลายช่องต่อแถว
- *  ให้ 44px บนมือถือ (เป้านิ้วขั้นต่ำ) · 32px บนเดสก์ท็อป — ดู control-size.ts
+ *  ให้ 44px บนมือถือ (เป้านิ้วขั้นต่ำ) · 36px บนเดสก์ท็อป — ดู control-size.ts
  *  dense = สูงมาตรฐาน + อักษร xs บนเดสก์ท็อป สำหรับ editable grid (ดู input.tsx) */
 type SelectSize = "default" | "sm" | "dense";
 

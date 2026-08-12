@@ -42,8 +42,7 @@ export function FilterPopover({
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
       <PopoverPrimitive.Trigger asChild>
-        {/* ไม่ใช้ size="sm" — ขนาดนั้น (32px) ตั้งใจไว้ใช้ในแถวตาราง
-            บนแถบเครื่องมือต้องสูง 36px เท่าช่องค้นหาที่ยืนข้างกัน */}
+        {/* ใช้ความสูงมาตรฐานเดียวกับช่องค้นหา/ช่วงวันที่ที่ยืนข้างกัน */}
         <Button
           variant="outline"
           className={cn(
