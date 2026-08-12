@@ -8,18 +8,12 @@
  * รัน: npx tsx scripts/verify-doc-snapshot.ts
  * สร้างข้อมูลทดสอบเองแล้วลบทิ้งท้ายสคริปต์ (ไม่แตะข้อมูลจริง)
  */
-import { PrismaClient } from "@prisma/client";
-import {
-  resolveDocBuyer,
-  resolveDocSeller,
-} from "../src/lib/customer-doc-address";
-import {
-  COMPANY_PROFILE_KEY,
-  parseCompanyProfile,
-} from "../src/lib/company-profile";
-import { buildDocumentPartySnapshot } from "../src/server/services/document-party";
-
-const prisma = new PrismaClient();
+// ใช้ client ตัวเดียวกับแอป (extend แล้ว — Decimal→number ฯลฯ) ไม่ใช่ PrismaClient ดิบ
+// เหมือนสคริปต์ verify ตัวอื่นในโฟลเดอร์นี้
+import { prisma } from "@/lib/prisma";
+import { resolveDocBuyer, resolveDocSeller } from "@/lib/customer-doc-address";
+import { COMPANY_PROFILE_KEY, parseCompanyProfile } from "@/lib/company-profile";
+import { buildDocumentPartySnapshot } from "@/server/services/document-party";
 const TAG = "[VERIFY-SNAPSHOT]";
 
 let pass = 0;

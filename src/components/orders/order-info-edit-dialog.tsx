@@ -16,7 +16,12 @@ import {
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Select } from "@/components/ui/select";
 import { Save } from "lucide-react";
-import { PRIORITY_LABELS, isOrderLocked, orderEditLockedReason } from "@/lib/order-status";
+import {
+  PRIORITY_LABELS,
+  isMarketplaceChannel,
+  isOrderLocked,
+  orderEditLockedReason,
+} from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
 import { PAYMENT_TERMS_LABELS, type PaymentTermsValue } from "@/lib/payment-terms";
 import { calculateOrderSummary } from "@/lib/pricing";
@@ -178,7 +183,7 @@ export function OrderInfoEditDialog({
     }
   }, [open, order]);
 
-  const isMarketplace = ["SHOPEE", "LAZADA", "TIKTOK"].includes(order?.channel);
+  const isMarketplace = isMarketplaceChannel(order?.channel ?? "");
 
   // ปุ่ม "ใช้ที่อยู่ลูกค้า" โผล่เมื่อโปรไฟล์ลูกค้ามีที่อยู่ให้ก๊อปจริง
   const canUseCustomerAddress = hasAddressContent(fillFromCustomer(order?.customer));

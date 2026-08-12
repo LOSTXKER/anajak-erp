@@ -17,6 +17,7 @@ import {
   getFlowSteps,
   getNextStatuses,
   canPermsSetStatus,
+  isMarketplaceChannel,
 } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
 import { permAllows } from "@/lib/permissions";
@@ -311,7 +312,7 @@ function OrderDetailContent({
 
   const isCompleted = order.internalStatus === "COMPLETED";
 
-  const isMarketplace = ["SHOPEE", "LAZADA", "TIKTOK"].includes(order.channel);
+  const isMarketplace = isMarketplaceChannel(order.channel);
 
   const totalCost =
     order.costEntries?.reduce(
