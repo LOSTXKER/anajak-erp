@@ -17,6 +17,14 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **รายการออเดอร์เริ่มจากงาน ไม่เริ่มจากแผงสถานะ** — มือถือเห็นรายการหรือ empty/error ที่ลงมือทำได้ก่อน `y=600` · จอกว้างเห็น status rail ครบ · search/filter/sort/pagination/CSV ยังใช้งานจริง
 - [x] **เปิดงานและรายละเอียดคง flow เดิม** — draft/validation/upload/`next=quote`/duplicate/status/เอกสาร/แท็บ URL+Back ผ่าน service/server guard เดิม · แท็บเป็น underline minimal และไม่เสีย ARIA/keyboard
 
+## 🧩 UX integrity refactor (Impeccable audit 2026-08-13)
+- [ ] **โค้ด UI หลักมีบ้านเดียว** — shell/dashboard/order primitives ที่เป็น canonical ไม่ใช้ชื่อ V2 หลังเลื่อนขึ้นเป็นระบบจริงแล้ว · ถอด shell เก่าที่ไม่มี caller เพื่อกันแก้ผิดชุด
+- [ ] **แท็บโหลดเท่าที่ใช้** — หน้ารายละเอียดออเดอร์ mount/query เฉพาะ panel ที่เปิด · ฟอร์มเปิดงาน opt-in keep-mounted เพื่อไม่ทำข้อมูลที่พิมพ์ค้างหาย
+- [ ] **interaction ไม่โกหก** — ไม่มี interactive element ซ้อนกัน · ปุ่มล้าง/ปิดบนมือถือมีเป้ากด≥44px · สถานะที่ยังทำไม่ได้ไม่วาดเป็นปุ่ม · ป้าย action ห้ามถูกตัดจนเดาความหมายไม่ได้
+- [ ] **สิทธิ์และ deep link ชัดเจน** — order detail รอ permission ก่อนวาด action/แท็บ · query สิทธิ์พังเป็น error ระดับหน้า · ลิงก์ไปแท็บที่ไม่มีสิทธิ์ต้องบอกเหตุผลและกลับแท็บที่เข้าได้
+- [ ] **คิวผลิตสดพอสำหรับหลายคน** — `/production` โพลล์ข้อมูลและ refetch เมื่อกลับแท็บ ไม่พึ่งเฉพาะ mutation ของเครื่องตัวเอง
+- [ ] **กู้ร่างได้ตรงกับคำที่บอก** — `/orders/new` กู้ค่าหัวออเดอร์ เงื่อนไข ค่าใช้จ่าย ที่อยู่จัดส่ง และ metadata ไฟล์ที่อัปโหลดแล้ว หรือต้องบอกตรงๆ ว่าส่วนใดไม่ถูกเก็บ
+
 ## 🔐 P0 deploy-gate — verified ครบแล้ว (audit 2026-07-02 อ่านโค้ดจริง + adversarial verify)
 - [x] **คนนอกเปิดเว็บแล้วเข้าไม่ได้** — `src/middleware.ts:31-78` refresh session ทุก request รวม /api · ยกเว้นเฉพาะหน้า public token (approve/upload/status/quote) + /api/mcp (auth ด้วย key เอง)
 - [x] **ทีม login จริงได้ตาม role** — login `signInWithPassword` + error ไทย (`(auth)/login/page.tsx:24-37`) · logout จริง (`user-menu.tsx:22`) · จัดการ user ครบวงจรถึง Supabase ban (`user.ts:87-226`)
