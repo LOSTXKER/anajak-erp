@@ -257,6 +257,22 @@ export function saveOrderDraft(
   }
 }
 
+/** callback ของ debounce อาจถูก queue ไว้ก่อน success/reset — เขียนได้เฉพาะ revision ล่าสุดที่ยังไม่ block */
+export function saveOrderDraftIfCurrent(
+  draft: OrderDraftData,
+  draftScope: string | undefined,
+  guard: {
+    scheduledRevision: number;
+    currentRevision: number;
+    blocked: boolean;
+  },
+  options: DraftStorageOptions = {},
+): boolean {
+  if (guard.blocked || guard.scheduledRevision !== guard.currentRevision) return false;
+  saveOrderDraft(draft, draftScope, options);
+  return true;
+}
+
 export function clearOrderDraft(
   draftScope?: string,
   options: Pick<DraftStorageOptions, "storage"> = {},

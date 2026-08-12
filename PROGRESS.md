@@ -4,14 +4,23 @@
 
 ## ตอนนี้
 
+> **✅ Impeccable UX integrity refactor จบแล้ว 2026-08-13 — เก็บ visual world เดิม แต่รื้อจุดที่ UI ไม่ซื่อสัตย์กับงานจริง**
+> UI หลักมี canonical home แล้ว: shell/dashboard/order route/filter/helper พ้นชื่อ `v2-*` และลบ Sidebar/Topbar/MobileSidebar เก่ารวม 561 บรรทัด โดยคง `/v2*` redirect กับ `v2-navigation` compatibility · dashboard shortcut ไม่ตัดคำ · DatePicker/DateRange clear เป็น sibling button จริง 44px mobile/36px desktop · delivery ที่ยังใช้ไม่ได้เป็น empty state ไม่ใช่ปุ่มหลอก · รางสถานะออเดอร์มือถือรับ focus/Arrow key ได้และ Axe 0 violation
+>
+> **flow หลัก:** order detail รอ permission ก่อนวาด action, permission error เป็น page error และ deep-link เงินที่ไม่มีสิทธิ์บอกเหตุผล · แท็บ initial render/query เฉพาะ panel แรก แล้ว preserve DOM/state เฉพาะแท็บที่เคยเปิด; ฟอร์มเปิดงาน keep-mounted ครบ 4 แท็บ · draft v2 แยกตาม user, TTL 7 วัน, กู้ header/items/fees/shipping/reference metadata ครบ และไม่เก็บ base64 · reset ทั้งฟอร์มและปิด Cancel จริงระหว่าง submit · timer+revision guard กัน debounce ชุบ draft กลับหลังสร้างสำเร็จ/reset
+>
+> **ศูนย์ผลิต:** `/production` เปิดมาเห็น preview 6 เลนที่ลงมือได้ก่อน lane tiles พร้อม next action/blocked reason; badge สรุปจากชุดเต็มเป็น `X ออเดอร์ · Y เลน` ไม่เอา 6 ใบที่แสดงมาตีเป็นยอดรวม และ copy หัวหน้าระบุ `20 ออเดอร์ · หนึ่งออเดอร์อาจอยู่หลายสาย` · kanban/print-runs poll 30 วินาทีและ refetch เมื่อ focus/reconnect · print-runs empty stateยุบเหลือ 190.5px ทำให้ประวัติขึ้น first viewport
+>
+> **ด่าน:** ตรวจจอจริง 1280×720 + 390×844 บน dashboard/orders/new/detail/production/print-runs ไม่มี document overflow, Next overlay, app/hydration/runtime error · visible mobile targets ≥44px · draft save→refresh→restore→reset ผ่านโดยไม่ submit · detail lazy/preserve และ polling/focus/reconnect ยืนยันจาก network · typecheck ผ่าน · lint 0 error (warningเดิม) · unit **693/693** · `verify:ui`/Impeccable detector ผ่าน · `next build` ผ่าน · production serverคืนที่ `:3000` · Impeccable finish review **GO ไม่มี P0/P1** · ภาพอยู่ `anajak-implementation-verify-pass1-2026-08-13/`
+
+### ประวัติก่อนหน้า
+
 > **✅ Sidebar เข้าระบบสีล่าสุดครบแล้ว 2026-08-13 — desktop, drawer และ bottom nav ใช้ภาษาสถานะเดียวกัน**
 > Sidebar คง chrome ขาว/เทาดำ `#fff/#161618` แต่มี interaction สำหรับ chrome โดยเฉพาะ: Light `hover #eceef1 → pressed #e3e6e9`, Dark `hover #252528 → pressed #303034` จึงไม่กลายเป็นแถบหนักใกล้ selected · primary/secondary/drawer ใช้สูตรกลางเดียว: inactive ตัวปกติ+icon muted, hover/pressed ขยับ icon ตามลำดับ, active label+icon ใช้ selected blue เดียวกัน, focus inset และ radius 8px
 >
 > **เมนูรอง + mobile:** “เมนูทั้งหมด” เป็น disclosure กลาง ไม่ selected ซ้ำกับ child · route ลึกเลื่อนไปหา exact current หลัง permission โหลดครบ (`/settings/stock` current y=668–704 ใน nav y=64–720, `aria-current` 1 จุด) · 390×844 bottom nav สูง 73px, target 60px, current มีทั้ง icon pill+font-semibold และ “เพิ่มเติม” มี `aria-current=page` · sheet ชี้ child current จริง, Escape ปิดและคืน focus ให้ “เพิ่มเติม”
 >
 > **ด่าน:** Light/Dark 1280×720 + 390×844 ไม่มี horizontal overflow/error overlay · typecheck ผ่าน · lint 0 error (36 warningเดิม) · unit **685/685** · `verify:ui`/Impeccable detector ผ่าน · outsider audit ไม่เหลือ P0/P1 · `next build` ผ่าน · production serverรันที่ `:3000`
-
-### ประวัติก่อนหน้า
 
 > **✅ Dark กลับเป็นเทาเข้ม + Hover ทั้งเว็บเป็นเทากลางแล้ว 2026-08-13 — ตาม feedback จอจริงของเบส**
 > Light คงผืน `#f8f9fb`, card ขาว และ sunk `#f3f5f7` แต่เปลี่ยน interaction จากฟ้าเป็น neutral `hover #eceef1 → pressed #e3e6e9` · Dark คืนบรรยากาศเดิมด้วย page `#1a1a1c`, chrome `#161618`, card/overlay `#252528`, sunk `#1d1d1f`, field `#101012` และ neutral `hover #303034 → pressed #38383c` · น้ำเงิน Anajak `#3973b2` สงวนให้ primary, selected และ focus

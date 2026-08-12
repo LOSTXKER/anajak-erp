@@ -6,7 +6,6 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { isImageUrl, formatDate } from "@/lib/utils";
 import {
   FILE_LAYERS,
-  ATTACHMENT_CATEGORY_LABELS,
   layerForCategory,
   type AttachmentCategory,
 } from "@/lib/file-layers";

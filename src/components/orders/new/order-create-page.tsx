@@ -55,6 +55,7 @@ import {
   clearOrderDraft,
   loadOrderDraft,
   saveOrderDraft,
+  saveOrderDraftIfCurrent,
   ORDER_DRAFT_DEBOUNCE_MS,
   referenceImagesForDraft,
   type OrderDraftData,
@@ -201,6 +202,13 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
   const draftStorageReadyRef = useRef(false);
   const skipDraftResaveOnUnmountRef = useRef(false);
   const latestDraftRef = useRef<OrderDraftData | null>(null);
+  const draftSaveTimerRef = useRef<number | null>(null);
+  const draftSaveRevisionRef = useRef(0);
+  const cancelPendingDraftSave = useCallback(() => {
+    if (draftSaveTimerRef.current === null) return;
+    window.clearTimeout(draftSaveTimerRef.current);
+    draftSaveTimerRef.current = null;
+  }, []);
 
   // โหลด draft หลัง mount เท่านั้น — SSR เริ่มด้วยค่ามาตรฐานเหมือน client render แรก
   useEffect(() => {
@@ -273,17 +281,34 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
   // เซฟทั้งฟอร์มใน envelope เดียว — debounce กัน localStorage เขียนทุก keystroke
   useEffect(() => {
     latestDraftRef.current = draftSnapshot;
-    if (!draftStorageReady) return;
-    latestDraftRef.current = draftSnapshot;
-    const timer = window.setTimeout(
-      () => saveOrderDraft(draftSnapshot, draftScope),
-      ORDER_DRAFT_DEBOUNCE_MS,
-    );
-    return () => window.clearTimeout(timer);
-  }, [draftScope, draftSnapshot, draftStorageReady]);
+    cancelPendingDraftSave();
+    if (!draftStorageReady || skipDraftResaveOnUnmountRef.current) return;
+
+    const scheduledRevision = ++draftSaveRevisionRef.current;
+    const timer = window.setTimeout(() => {
+      if (draftSaveTimerRef.current === timer) draftSaveTimerRef.current = null;
+      saveOrderDraftIfCurrent(
+        draftSnapshot,
+        draftScope,
+        {
+          scheduledRevision,
+          currentRevision: draftSaveRevisionRef.current,
+          blocked: skipDraftResaveOnUnmountRef.current,
+        },
+      );
+    }, ORDER_DRAFT_DEBOUNCE_MS);
+    draftSaveTimerRef.current = timer;
+
+    return () => {
+      if (draftSaveTimerRef.current === timer) cancelPendingDraftSave();
+      draftSaveRevisionRef.current += 1;
+    };
+  }, [cancelPendingDraftSave, draftScope, draftSnapshot, draftStorageReady]);
 
   // ปิดแท็บ/กดยกเลิกก่อน debounce ครบก็ต้องเก็บค่าล่าสุด · แต่ success ห้ามชุบ draft กลับหลัง clear
   useEffect(() => () => {
+    cancelPendingDraftSave();
+    draftSaveRevisionRef.current += 1;
     if (
       draftStorageReadyRef.current &&
       !skipDraftResaveOnUnmountRef.current &&
@@ -291,7 +316,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     ) {
       saveOrderDraft(latestDraftRef.current, draftScope);
     }
-  }, [draftScope]);
+  }, [cancelPendingDraftSave, draftScope]);
 
   const { data: printCatalog } = trpc.serviceCatalog.list.useQuery(
     { category: "PRINT", isActive: true },
@@ -306,6 +331,8 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
   const createOrder = trpc.order.create.useMutation({
     onSuccess: (data) => {
       skipDraftResaveOnUnmountRef.current = true;
+      draftSaveRevisionRef.current += 1;
+      cancelPendingDraftSave();
       clearOrderDraft(draftScope);
       utils.order.list.invalidate();
       const next = new URLSearchParams(window.location.search).get("next");
@@ -570,6 +597,8 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
 
   const showDraftBanner = restoredDraft;
   const resetDraft = () => {
+    draftSaveRevisionRef.current += 1;
+    cancelPendingDraftSave();
     clearOrderDraft(draftScope);
     latestDraftRef.current = null;
     restoredCustomerIdRef.current = null;

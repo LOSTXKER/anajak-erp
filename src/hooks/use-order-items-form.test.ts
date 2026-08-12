@@ -10,6 +10,7 @@ import {
   orderDraftStorageKey,
   referenceImagesForDraft,
   saveOrderDraft,
+  saveOrderDraftIfCurrent,
   type OrderDraftData,
 } from "./use-order-items-form";
 
@@ -164,5 +165,36 @@ describe("order create draft v2", () => {
     }, undefined, { storage, now: 100 });
 
     expect(storage.getItem(key)).toBeNull();
+  });
+
+  it("callback debounce เก่าหรือ callback หลัง success เขียน draft ที่ล้างแล้วกลับมาไม่ได้", () => {
+    const storage = new MemoryStorage();
+    const draft = completeDraft();
+    const key = orderDraftStorageKey();
+
+    saveOrderDraft(draft, undefined, { storage, now: 100 });
+    clearOrderDraft(undefined, { storage });
+
+    expect(saveOrderDraftIfCurrent(
+      draft,
+      undefined,
+      { scheduledRevision: 1, currentRevision: 2, blocked: false },
+      { storage, now: 101 },
+    )).toBe(false);
+    expect(saveOrderDraftIfCurrent(
+      draft,
+      undefined,
+      { scheduledRevision: 2, currentRevision: 2, blocked: true },
+      { storage, now: 102 },
+    )).toBe(false);
+    expect(storage.getItem(key)).toBeNull();
+
+    expect(saveOrderDraftIfCurrent(
+      draft,
+      undefined,
+      { scheduledRevision: 3, currentRevision: 3, blocked: false },
+      { storage, now: 103 },
+    )).toBe(true);
+    expect(storage.getItem(key)).not.toBeNull();
   });
 });

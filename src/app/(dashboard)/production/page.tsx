@@ -22,6 +22,7 @@ import { QcCountDialog } from "@/components/qc/order-qc-section";
 import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
 import { useConfirm, usePromptText } from "@/components/ui/confirm-dialog";
 import { canPermsSetStatus, PRIORITY_LABELS } from "@/lib/order-status";
+import { summarizeActionableWork } from "@/lib/production-overview";
 import {
   STEP_TYPE_LABELS,
   laneOf,
@@ -394,7 +395,7 @@ function ProductionWorkspace() {
   // ถ้าไม่มีงานไฟไหม้ หัวหน้าเปิดมาเจอ “งานจริงที่ทำต่อได้” ก่อนตัวเลขรวม
   // การ์ดสายด้านล่างยังเป็นตัวกรอง ส่วนรายการนี้เรียงกำหนดส่ง→ความเร่งด่วนให้ลงมือได้ทันที
   const priorityRank: Record<string, number> = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
-  const overviewCards = canCreate && fires.length === 0
+  const actionableCards = canCreate && fires.length === 0
     ? [...laneCards.values()]
         .flat()
         .sort((a, b) => {
@@ -404,8 +405,10 @@ function ProductionWorkspace() {
           return (priorityRank[a.order.priority ?? "NORMAL"] ?? 2) -
             (priorityRank[b.order.priority ?? "NORMAL"] ?? 2);
         })
-        .slice(0, 6)
     : [];
+  const actionableSummary = summarizeActionableWork(
+    actionableCards.map((card) => ({ orderId: card.order.id }))
+  );
 
   const focusPostCol = focus?.kind === "post" ? POST_COLUMNS.find((c) => c.key === focus.key) : null;
 
@@ -464,20 +467,25 @@ function ProductionWorkspace() {
           queue={queueItems}
           myWork={myWork}
           workPreview={
-            overviewCards.length > 0 ? (
+            actionableCards.length > 0 ? (
               <section className="space-y-2.5" aria-labelledby="production-work-now">
                 <h2
                   id="production-work-now"
-                  className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
+                  className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
                 >
                   <Play className="h-4 w-4 text-blue-500" aria-hidden="true" />
                   งานที่ทำต่อได้ตอนนี้
-                  <span className="rounded-full bg-blue-50 px-1.5 text-xs tabular-nums text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-                    {overviewCards.length}
+                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium tabular-nums text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                    {actionableSummary.orderCount} ออเดอร์ · {actionableSummary.laneCount} เลน
                   </span>
                 </h2>
+                {actionableSummary.laneCount > 6 && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    แสดง 6 เลนแรก เรียงตามกำหนดส่งและความเร่งด่วน
+                  </p>
+                )}
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {overviewCards.map((card) => (
+                  {actionableCards.slice(0, 6).map((card) => (
                     <LaneCardView
                       key={`${card.productionId}:${card.lane}`}
                       card={card}
