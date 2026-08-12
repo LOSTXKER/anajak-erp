@@ -1,5 +1,5 @@
-export type V2AttentionTone = "danger" | "warning";
-export type V2AttentionKind =
+export type DashboardAttentionTone = "danger" | "warning";
+export type DashboardAttentionKind =
   | "overdue-order"
   | "due-soon"
   | "outsource"
@@ -7,7 +7,7 @@ export type V2AttentionKind =
   | "overdue-invoice"
   | "quotation";
 
-export interface V2PulseData {
+export interface DashboardPulseData {
   atRiskOrders: { overdue: number; dueSoon: number };
   outsource: { pending: number; overduePickup: number };
   todayQueue: { done: number; open: number };
@@ -15,31 +15,31 @@ export interface V2PulseData {
   stuckOrders: number;
 }
 
-export interface V2AttentionItem {
-  kind: V2AttentionKind;
+export interface DashboardAttentionItem {
+  kind: DashboardAttentionKind;
   title: string;
   detail: string;
   count: number;
   href: string;
-  tone: V2AttentionTone;
+  tone: DashboardAttentionTone;
   priority: number;
 }
 
 /**
- * แปลง Owner Pulse เป็นรายการที่ "ต้องเช็กก่อน" สำหรับ V2
+ * แปลง Owner Pulse เป็นรายการที่ "ต้องเช็กก่อน" บนหน้าหลัก
  *
  * - ไม่สร้างการ์ดเลขศูนย์
  * - ไม่รวมเรื่องคนละความหมายเป็นเลขเดียว
  * - เรื่องเงินเข้า view-model ต่อเมื่อคนใช้มีสิทธิ์ไปยังปลายทางจริง
  */
-export function buildV2AttentionItems(
-  pulse: V2PulseData,
+export function buildDashboardAttentionItems(
+  pulse: DashboardPulseData,
   permissions: {
     canViewBilling: boolean;
     canViewQuotations: boolean;
   },
-): V2AttentionItem[] {
-  const items: V2AttentionItem[] = [];
+): DashboardAttentionItem[] {
+  const items: DashboardAttentionItem[] = [];
 
   if (pulse.atRiskOrders.overdue > 0) {
     items.push({

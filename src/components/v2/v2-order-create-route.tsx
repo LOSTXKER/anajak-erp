@@ -4,20 +4,15 @@ import OrderCreatePage from "@/components/orders/new/order-create-page";
 import { PageShell } from "@/components/page-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { canAccessV2OrderCreate } from "@/lib/v2-order-access";
+import { canCreateOrderWithPricing } from "@/lib/v2-order-access";
 
-export function V2OrderCreateRoute() {
+export function OrderCreateRoute() {
   const meQuery = trpc.user.me.useQuery();
-  const canCreateOrder = canAccessV2OrderCreate(meQuery.data?.permissions);
+  const canCreateOrder = canCreateOrderWithPricing(meQuery.data?.permissions);
 
   if (canCreateOrder) {
     return (
-      <OrderCreatePage
-        ordersBasePath="/v2/orders"
-        stickyActionsOffset="v2"
-        showGuidance={false}
-        tabAppearance="underline"
-      />
+      <OrderCreatePage />
     );
   }
 
@@ -25,7 +20,7 @@ export function V2OrderCreateRoute() {
     <PageShell
       width="wide"
       breadcrumb={[
-        { label: "ออเดอร์", href: "/v2/orders" },
+        { label: "ออเดอร์", href: "/orders" },
         { label: "เปิดงานใหม่" },
       ]}
       title="เปิดงานใหม่"

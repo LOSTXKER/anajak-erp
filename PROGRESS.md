@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ V2 เลื่อนขึ้นเป็น UI หลักแล้ว + พื้นทั้งระบบขาวนวลขึ้น 2026-08-12 — URL เดิมคือของจริงชุดเดียว**
+> `/` และ `/orders`, `/orders/new`, `/orders/[id]` ใช้ shell/dashboard/order presentation ที่เบสเคาะจาก V2 โดยตรงแล้ว · `/v2*` เหลือ compatibility redirect ขนาดเล็กไป URL หลักและรักษา query/แท็บเดิม · ถ้า session หมดอายุ ระบบเก็บ canonical destination ใน `?next=` แล้วกลับหน้าเดิมหลัง login โดยตรวจ open redirect ซ้ำก่อนและหลังตัด prefix
+>
+> **refactor:** ตัด branch classic/V2, base-path resolver, tab appearance, guidance/sticky props และ dashboard เดิมออกจาก runtime รวมสุทธิราว 500 บรรทัด · navigation/permission/CTA เปิดงานอ่านกติกากลางชุดเดียว · desktop เหลือ 5 งานหลัก + เมนูทั้งหมด, mobile 4 งานหลัก + เพิ่มเติม และทุกโมดูลยัง gated ตามสิทธิ์ · ไฟล์ `sidebar.tsx`/`topbar.tsx`/`mobile-sidebar.tsx` เดิมไม่มี caller แล้วแต่ยังไม่ลบตามกติกาที่ต้องขออนุญาตก่อน
+>
+> **ภาพ:** light page `#f7f7f8`, card/chrome `#fff`, sunk `#f2f2f4`, text strong/secondary/muted `#1d1d1f/#3f3f44/#6e6e73`; เงาการ์ดเบาลง · dark/status/brand คงเดิม · รายการมือถือไม่โชว์ “การชำระ —” ที่ไม่มีข้อมูล
+>
+> **verify production build:** 390×844 `/orders` ไม่ล้นแนวนอน, รายการแรก y=512.8, target ที่เห็น 0 จุดต่ำกว่า 44px · หน้าเปิดงานแท็บ 44px และ sticky footer เว้น bottom nav 11px · 1440×900 status rail y=156, ตารางแถวแรก y=392.25, ไม่มี overflow · dashboard งานแรก y=221 · detail deep-link `?tab=history` เลือกแท็บจริง · `/v2/...?...` ไป canonical พร้อม query ซ้ำ · mobile More active ที่ลูกค้า · fresh-tab console/hydration error 0
+>
+> **ด่านโค้ด:** typecheck ผ่าน · lint 0 error (36 warningเดิม) · unit **685/685** · `verify:ui` ผ่าน · `next build` ผ่าน · outsider audit 3 มุมไม่เหลือ P0/P1 · production server กลับมารันที่ `:3000`
+
 > **✅ V2 เปลี่ยนแท็บเป็นข้อความ + เส้นใต้แบบ minimal แล้ว 2026-08-12 — ตามภาพอ้างอิงของเบส**
 > หน้า `/v2/orders/new` และ `/v2/orders/[id]` ไม่มีถาดเทา แผ่นขาว เงา หรือมุมโค้งที่แท็บแล้ว · แท็บที่เลือกใช้เส้นใต้ 2px บน baseline เดียว · หน้าเปิดงานตัดเลข `01–04` เฉพาะ V2 แต่คงจุดเขียว/แดงที่บอกข้อมูลและ validation · หน้า `/orders*` เดิมยังเป็น segmented มีเลข ถาด และแผ่น active เหมือนเดิม
 >

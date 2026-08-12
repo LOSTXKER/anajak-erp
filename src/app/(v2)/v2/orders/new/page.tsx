@@ -1,5 +1,10 @@
-import { V2OrderCreateRoute } from "@/components/v2/v2-order-create-route";
+import { permanentRedirect } from "next/navigation";
+import { legacyV2RedirectHref, type LegacySearchParams } from "@/lib/v2-navigation";
 
-export default function Page() {
-  return <V2OrderCreateRoute />;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<LegacySearchParams>;
+}) {
+  permanentRedirect(legacyV2RedirectHref("/v2/orders/new", await searchParams));
 }

@@ -24,7 +24,6 @@ import {
   TabsList,
   TabsTrigger,
   TabsContent,
-  type TabsAppearance,
 } from "@/components/ui/tabs";
 import {
   ORDER_FORM_TABS,
@@ -94,18 +93,7 @@ const STEP_IDS = {
   attachments: "new-order-step-attachments",
 } as const;
 
-export default function OrderCreatePage({
-  ordersBasePath = "/orders",
-  stickyActionsOffset = "default",
-  showGuidance = true,
-  tabAppearance = "segmented",
-}: {
-  ordersBasePath?: string;
-  stickyActionsOffset?: "default" | "v2";
-  /** V2 ตัดคำอธิบายที่ placeholder/หัวข้อสื่ออยู่แล้ว แต่คง validation และคำเตือนทั้งหมด */
-  showGuidance?: boolean;
-  tabAppearance?: TabsAppearance;
-}) {
+export default function OrderCreatePage() {
   const router = useRouter();
   const confirmDialog = useConfirm();
   const utils = trpc.useUtils();
@@ -268,7 +256,7 @@ export default function OrderCreatePage({
       router.push(
         next === "quote"
           ? `/quotations/new?orderId=${data.id}`
-          : `${ordersBasePath}/${data.id}`,
+          : `/orders/${data.id}`,
       );
     },
   });
@@ -538,7 +526,7 @@ export default function OrderCreatePage({
     <PageShell
       width="wide"
       breadcrumb={[
-        { label: "ออเดอร์", href: ordersBasePath },
+        { label: "ออเดอร์", href: "/orders" },
         { label: "เปิดงานใหม่" },
       ]}
       title="เปิดงานใหม่"
@@ -608,7 +596,7 @@ export default function OrderCreatePage({
         <Tabs value={tab} onValueChange={changeTab}>
           {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ (ที่เดียวกับที่แถบขั้นตอนเดิมอยู่)
               TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บ */}
-          <TabsBar appearance={tabAppearance}>
+          <TabsBar>
             <TabsList aria-label="ตอนของฟอร์มเปิดงาน">
               {tabMarks.map((t) => (
                 <TabsTrigger
@@ -623,11 +611,6 @@ export default function OrderCreatePage({
                         : undefined
                   }
                 >
-                  {tabAppearance === "segmented" && (
-                    <span aria-hidden="true" className="text-2xs text-muted max-sm:hidden">
-                      {t.number}
-                    </span>
-                  )}
                   {t.label}
                   {/* จุดเขียว = มีข้อมูลแล้ว · จุดแดงมาจาก hasPending ของ TabsTrigger (แดงชนะเขียว) */}
                   {t.green && !t.red && (
@@ -646,7 +629,6 @@ export default function OrderCreatePage({
           <Section
             id={STEP_IDS.intake}
             tabIndex={-1}
-            description={showGuidance ? "ที่เหลือเติมทีหลังได้" : undefined}
             className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
           >
             <div className="space-y-4">
@@ -674,7 +656,7 @@ export default function OrderCreatePage({
                 onDescriptionChange={setDescription}
                 notes={notes}
                 onNotesChange={setNotes}
-                showGuidance={showGuidance}
+                showGuidance={false}
               />
               {/* จัดส่งอยู่กับรับเรื่อง — ที่อยู่ผู้รับมาจากแชทรอบเดียวกับข้อมูลลูกค้า
                   (เบสสั่ง 2026-08-04) · ไม่มีเส้นคั่น ใช้หัวข้อย่อย h3 แยกพอ */}
@@ -684,8 +666,8 @@ export default function OrderCreatePage({
                 shipping={shipping}
                 onUpdate={updateShipping}
                 embedded
-                showGuidance={showGuidance}
-                collapseWhenInactive={!showGuidance}
+                showGuidance={false}
+                collapseWhenInactive
                 onUseCustomerAddress={
                   canUseCustomerAddress
                     ? () => fillShippingFromCustomer(customerAddressFill, customerId || null)
@@ -870,9 +852,7 @@ export default function OrderCreatePage({
           <div
             className={cn(
               "card-surface sticky z-10 -mb-2 flex flex-wrap items-center gap-2 rounded-t-2xl border-t border-slate-200 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 dark:border-white/10",
-              stickyActionsOffset === "v2"
-                ? "bottom-[var(--v2-bottom-nav-offset)] lg:bottom-0"
-                : "bottom-0",
+              "bottom-[var(--app-bottom-nav-offset)] lg:bottom-0",
             )}
           >
             <div className="min-w-0 flex-1">
@@ -888,18 +868,11 @@ export default function OrderCreatePage({
               ) : (
                 <p className="text-xs leading-snug text-muted">
                   ยังไม่ใส่รายการ/ราคา
-                  {showGuidance && (
-                    <>
-                      <br className="sm:hidden" />
-                      <span className="hidden sm:inline"> — </span>
-                      เปิดเป็นใบสอบถามแล้วเติมทีหลังได้
-                    </>
-                  )}
                 </p>
               )}
             </div>
             <Button asChild variant="outline" size="sm">
-              <Link href={ordersBasePath} aria-disabled={createOrder.isPending}>
+              <Link href="/orders" aria-disabled={createOrder.isPending}>
                 ยกเลิก
               </Link>
             </Button>

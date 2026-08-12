@@ -1,5 +1,5 @@
-import OrderCreatePage from "@/components/orders/new/order-create-page";
+import { OrderCreateRoute } from "@/components/v2/v2-order-create-route";
 
 export default function Page() {
-  return <OrderCreatePage />;
+  return <OrderCreateRoute />;
 }

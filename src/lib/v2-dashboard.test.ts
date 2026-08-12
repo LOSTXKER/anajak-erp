@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildV2AttentionItems, type V2PulseData } from "./v2-dashboard";
+import {
+  buildDashboardAttentionItems,
+  type DashboardPulseData,
+} from "./v2-dashboard";
 
-const CLEAR_PULSE: V2PulseData = {
+const CLEAR_PULSE: DashboardPulseData = {
   atRiskOrders: { overdue: 0, dueSoon: 0 },
   outsource: { pending: 0, overduePickup: 0 },
   todayQueue: { done: 0, open: 0 },
@@ -9,10 +12,10 @@ const CLEAR_PULSE: V2PulseData = {
   stuckOrders: 0,
 };
 
-describe("buildV2AttentionItems", () => {
+describe("buildDashboardAttentionItems", () => {
   it("ไม่สร้างรายการเลขศูนย์", () => {
     expect(
-      buildV2AttentionItems(CLEAR_PULSE, {
+      buildDashboardAttentionItems(CLEAR_PULSE, {
         canViewBilling: true,
         canViewQuotations: true,
       }),
@@ -20,7 +23,7 @@ describe("buildV2AttentionItems", () => {
   });
 
   it("เรียงงานเลยกำหนดก่อนเรื่องเตือน", () => {
-    const items = buildV2AttentionItems(
+    const items = buildDashboardAttentionItems(
       {
         ...CLEAR_PULSE,
         atRiskOrders: { overdue: 2, dueSoon: 4 },
@@ -37,7 +40,7 @@ describe("buildV2AttentionItems", () => {
   });
 
   it("ไม่ส่งเรื่องเงินเข้า UI เมื่อไม่มีสิทธิ์ไปปลายทาง", () => {
-    const items = buildV2AttentionItems(
+    const items = buildDashboardAttentionItems(
       {
         ...CLEAR_PULSE,
         money: { overdueInvoices: 3, quotationsAwaiting: 5 },
@@ -49,7 +52,7 @@ describe("buildV2AttentionItems", () => {
   });
 
   it("งานร้านนอกหนึ่งแถวบอกจำนวนเลยกำหนดโดยไม่บวกซ้ำ", () => {
-    const [item] = buildV2AttentionItems(
+    const [item] = buildDashboardAttentionItems(
       {
         ...CLEAR_PULSE,
         outsource: { pending: 6, overduePickup: 2 },

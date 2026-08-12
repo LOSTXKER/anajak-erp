@@ -5,16 +5,15 @@
 ## เป้าหมาย
 ERP หลังบ้านโรงงานสกรีนเสื้อ Anajak — ให้ทีม 5 คน+เจ้าของ จัดการ ขาย→ผลิต→outsource→ส่ง→ออกบิล/ภาษี ของลูกค้า B2B (เครดิตเทอม) ครบวงจร ออกเอกสารภาษีเต็มรูปเอง + เชื่อม Anajak Stock · **ห้าม deploy/ใช้จริงจนจบ P0** (ROADMAP.md:18)
 
-## 🧭 UI V2 แบบคู่ขนาน (`/v2`)
-- [x] **เป็นของจริง ไม่ใช่ mockup** — อ่านข้อมูลจาก tRPC ชุดเดิมและทุก action พาไป flow ที่ใช้งานได้จริง · ห้ามมีตัวเลข/รายการตัวอย่างที่เขียนค้างในหน้า
-- [x] **ปลอดภัยต่อของเดิม** — auth/permission เหมือน dashboard เดิม · `/v2` แยก URL และมีทางกลับ `/` · ไม่เปลี่ยนพฤติกรรม route เดิม
-- [x] **จุดโฟกัสชัดใน 3 วินาที** — งานเสี่ยง/งานค้างและ action หลักมาก่อนสถิติสะสม · navigation ชั้นแรกมีเฉพาะงานหลัก ส่วนโมดูลที่เหลือค้นหาได้จากจุดเดียว
-- [x] **ใช้ได้จริงสองขนาดจอ** — 390px และ 1440px ไม่มี horizontal overflow · เป้ากดมือถือ ≥44px · keyboard focus เห็น · ภาษาไทยไม่ตัด · reduced-motion ใช้งานได้ครบ
-- [x] **สถานะไม่โกหก** — query หลักมี loading/error/retry/empty แยกกัน · ข้อมูลเงินและเมนู gated ตาม permission เดิม
-- [x] **งานขายหลักอยู่ใน V2 ครบเส้นทาง** — `/v2/orders`, `/v2/orders/new`, `/v2/orders/[id]` ใช้ข้อมูล/mutation/permission ชุดเดียวกับหน้าเดิม · ลิงก์ภายในไม่หลุด shell V2 · URL เดิมยังทำงานเหมือนเดิม
-- [x] **รายการออเดอร์เริ่มจากงาน ไม่เริ่มจากแผงสถานะ** — มือถือเห็นรายการหรือ empty/error ที่ลงมือทำได้ก่อน `y=600` · สถานะครบทุกค่าแต่ยุบเปิดดูเพิ่มได้ · search/filter/sort/pagination/CSV ยังใช้งานจริง
-- [x] **เปิดงานและรายละเอียดปลอดภัย** — ผู้ไม่มี `create_sales_docs` เข้า `/v2/orders/new` แล้ว fail closed · ผู้ไม่มี `see_order_money` ไม่เห็นเงิน · สร้าง/duplicate/เปลี่ยนสถานะ/แท็บ/เอกสารยังผ่าน service/server guard เดิม
-- [x] **สามหน้า V2 ผ่านจอจริง** — 390px และ 1440px ไม่มี horizontal overflow/error overlay/hydration warning · เป้ากดมือถือ ≥44px · keyboard/focus/URL state/back-refresh ใช้ได้
+## 🧭 UI หลักแบบ minimal (เลื่อน V2 ขึ้นเป็นระบบจริง 2026-08-12)
+- [x] **URL หลักมีหน้าตาเดียว** — `/` และ `/orders*` ใช้ dashboard/shell/order presentation ที่ผ่านการทดลองใน V2 · ไม่มี branch classic/V2 ใน component หลัก · `/v2*` เป็น compatibility redirect มายัง URL หลักและรักษา query เดิม
+- [x] **เป็นของจริง ไม่ใช่ mockup** — อ่านข้อมูลจาก tRPC/service/permission ชุดเดิมและทุก action พาไป flow ที่ใช้งานได้จริง · ห้ามมีตัวเลข/รายการตัวอย่างเขียนค้างในหน้า
+- [x] **จุดโฟกัสชัดใน 3 วินาที** — งานเสี่ยง/งานค้างและ action หลักมาก่อนสถิติสะสม · navigation ชั้นแรกมีเฉพาะงานหลัก แต่ทุกโมดูลที่มีสิทธิ์ยังเข้าถึงได้จากเมนูหรือค้นหา
+- [x] **พื้นผิวขาวนวลและมีลำดับชั้น** — พื้นหน้าใช้ off-white อ่อนกว่าของเดิม · card/chrome ขาว · พื้นจม/เส้น/เงาอ่านชั้นได้โดยไม่เป็นกล่องหนัก · semantic text ผ่าน WCAG AA · dark theme ไม่ถอย
+- [x] **ใช้ได้จริงหลายขนาดจอ** — 390px และ 1440px ไม่มี horizontal overflow · เป้ากดมือถือ ≥44px · sticky action ไม่ถูก bottom navigation ทับ · keyboard focus/ภาษาไทย/reduced-motion ใช้ได้ครบ
+- [x] **สถานะและสิทธิ์ไม่โกหก** — loading/error/retry/empty แยกกัน · ข้อมูลเงินและเมนู gated ตาม permission เดิม · ทางเข้าฟอร์มเปิดงานทุกจุดใช้กติกาเดียวกันและ fail closed
+- [x] **รายการออเดอร์เริ่มจากงาน ไม่เริ่มจากแผงสถานะ** — มือถือเห็นรายการหรือ empty/error ที่ลงมือทำได้ก่อน `y=600` · จอกว้างเห็น status rail ครบ · search/filter/sort/pagination/CSV ยังใช้งานจริง
+- [x] **เปิดงานและรายละเอียดคง flow เดิม** — draft/validation/upload/`next=quote`/duplicate/status/เอกสาร/แท็บ URL+Back ผ่าน service/server guard เดิม · แท็บเป็น underline minimal และไม่เสีย ARIA/keyboard
 
 ## 🔐 P0 deploy-gate — verified ครบแล้ว (audit 2026-07-02 อ่านโค้ดจริง + adversarial verify)
 - [x] **คนนอกเปิดเว็บแล้วเข้าไม่ได้** — `src/middleware.ts:31-78` refresh session ทุก request รวม /api · ยกเว้นเฉพาะหน้า public token (approve/upload/status/quote) + /api/mcp (auth ด้วย key เอง)

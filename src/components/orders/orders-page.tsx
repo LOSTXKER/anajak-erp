@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
-import { canAccessV2OrderCreate } from "@/lib/v2-order-access";
+import { canCreateOrderWithPricing } from "@/lib/v2-order-access";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -13,8 +13,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FilterPopover } from "@/components/ui/filter-popover";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
-import { OrderStatusFlowBar } from "@/components/orders/order-status-flow-bar";
-import { V2OrderStatusFilter } from "@/components/v2/v2-order-status-filter";
+import { OrderStatusFilter } from "@/components/v2/v2-order-status-filter";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -281,27 +280,15 @@ function exportOrdersCsv(
 // Page component
 // ────────────────────────────────────────────────────────────
 
-export default function OrdersPage({
-  ordersBasePath = "/orders",
-  variant = "classic",
-}: {
-  ordersBasePath?: string;
-  variant?: "classic" | "v2";
-}) {
+export default function OrdersPage() {
   return (
     <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
-      <OrdersPageContent ordersBasePath={ordersBasePath} variant={variant} />
+      <OrdersPageContent />
     </Suspense>
   );
 }
 
-function OrdersPageContent({
-  ordersBasePath,
-  variant,
-}: {
-  ordersBasePath: string;
-  variant: "classic" | "v2";
-}) {
+function OrdersPageContent() {
   const {
     search,
     page,
@@ -332,10 +319,8 @@ function OrdersPageContent({
   const rawSort = searchParams.get("sort") ?? DEFAULT_SORT;
 
   const { data: me } = trpc.user.me.useQuery();
-  // เปิดออเดอร์ = สิทธิ์ขาย (order.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ปุ่มสร้าง (B12)
-  const canCreateOrder = variant === "v2"
-    ? canAccessV2OrderCreate(me?.permissions)
-    : permAllows(me?.permissions, "create_sales_docs");
+  // เปิดออเดอร์ต้องสร้างเอกสารขายและเห็นราคาได้ — ใช้ด่านเดียวกับ route เพื่อไม่ให้ CTA พาไปชน AccessDenied
+  const canCreateOrder = canCreateOrderWithPricing(me?.permissions);
   // ⑦ ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนคอลัมน์ยอดรวม + sort ยอดรวม (ระหว่างโหลด me = ซ่อนไว้ก่อน ปลอดภัยกว่า)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const sortOptions = canSeeMoney
@@ -422,7 +407,7 @@ function OrdersPageContent({
     // 24px = จังหวะระดับหน้าค่าเดียวทั้งเว็บ (เบสเคาะ 2026-08-04 — เดิม 3 หน้า 3 ค่า)
     <div className="space-y-6">
       <PageHeader
-        title={variant === "v2" ? "ออเดอร์ทั้งหมด" : "ออเดอร์"}
+        title="ออเดอร์ทั้งหมด"
         action={
           <>
             {data && data.orders.length > 0 && (
@@ -437,7 +422,7 @@ function OrdersPageContent({
             )}
             {canCreateOrder && (
               <Button asChild size="sm">
-                <Link href={`${ordersBasePath}/new`}>
+                <Link href="/orders/new">
                   <Plus />
                   สร้างออเดอร์
                 </Link>
@@ -453,29 +438,15 @@ function OrdersPageContent({
           และช่องค้นหายืดเต็มจอจนเป็นแถบว่างยาวบนจอใหญ่) */}
       {/* การ์ดสถานะงานมาก่อนแถบค้นหา/ตัวกรอง (เบสสั่ง 2026-08-01 — เรียงแบบระบบเก่า)
           เปิดหน้ามาเห็นภาพรวมทั้งกระดานก่อน แล้วค่อยเจาะด้วยค้นหา/ตัวกรอง */}
-      {variant === "classic" && (
-        <OrderStatusFlowBar
-          counts={data?.statusCounts}
-          selected={internalStatus}
-          onSelect={(status: string) =>
-            replaceListState({ status: status || null, page: null })
-          }
-          // จางเฉพาะโหลดครั้งแรก — ตอน refetch มีข้อความ "กำลังอัปเดต…" ที่ toolbar อยู่แล้ว
-          // (เดิมส่ง isFetching ด้วย → กดกรองทีไรแถบวูบกระพริบ)
-          isLoading={isLoading}
-        />
-      )}
-      {variant === "v2" && (
-        <V2OrderStatusFilter
-          counts={data?.statusCounts}
-          total={data?.total}
-          selected={internalStatus}
-          onSelect={(status) =>
-            replaceListState({ status: status || null, page: null })
-          }
-          isLoading={isLoading}
-        />
-      )}
+      <OrderStatusFilter
+        counts={data?.statusCounts}
+        total={data?.total}
+        selected={internalStatus}
+        onSelect={(status) =>
+          replaceListState({ status: status || null, page: null })
+        }
+        isLoading={isLoading}
+      />
 
       <Toolbar>
         <SearchInput
@@ -640,10 +611,10 @@ function OrdersPageContent({
             </DataTable.Head>
             <DataTable.Body>
               {orders.map((order) => (
-                <DataTable.Row key={order.id} href={`${ordersBasePath}/${order.id}`}>
+                <DataTable.Row key={order.id} href={`/orders/${order.id}`}>
                   <DataTable.Td>
                     <Link
-                      href={`${ordersBasePath}/${order.id}`}
+                      href={`/orders/${order.id}`}
                       className="font-medium text-blue-600 hover:underline dark:text-blue-400"
                     >
                       {order.orderNumber}
@@ -727,7 +698,7 @@ function OrdersPageContent({
             {orders.map((order) => (
               <article key={order.id} role="listitem" className="card-surface rounded-2xl">
                 <Link
-                  href={`${ordersBasePath}/${order.id}`}
+                  href={`/orders/${order.id}`}
                   className={cn("block min-h-11 rounded-2xl p-4", FOCUS_BUTTON)}
                   aria-label={`เปิดออเดอร์ ${order.orderNumber} ${order.customer?.name ?? ""}`}
                 >
@@ -766,10 +737,16 @@ function OrdersPageContent({
                         {CHANNEL_LABELS[order.channel] ?? order.channel}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-slate-500 dark:text-slate-400">การชำระ</p>
-                      <div className="mt-0.5"><PaymentIndicator status={order.paymentLabel} /></div>
-                    </div>
+                    {order.paymentLabel !== "none" ? (
+                      <div>
+                        <p className="text-slate-500 dark:text-slate-400">การชำระ</p>
+                        <div className="mt-0.5"><PaymentIndicator status={order.paymentLabel} /></div>
+                      </div>
+                    ) : canSeeMoney ? (
+                      <p className="text-right font-semibold tabular-nums text-slate-900 dark:text-white">
+                        {formatCurrency(order.totalAmount ?? 0)}
+                      </p>
+                    ) : null}
                     {/* วันที่เปิดโชว์เสมอ (เดิมโชว์ต่อเมื่อไม่มีกำหนดส่ง) — คู่กับคอลัมน์วันที่ในตาราง */}
                     <div>
                       {order.deadline && (
@@ -788,7 +765,7 @@ function OrdersPageContent({
                         {`เปิด ${formatDate(order.createdAt)}`}
                       </p>
                     </div>
-                    {canSeeMoney && (
+                    {canSeeMoney && order.paymentLabel !== "none" && (
                       <p className="text-right font-semibold tabular-nums text-slate-900 dark:text-white">
                         {formatCurrency(order.totalAmount ?? 0)}
                       </p>
@@ -815,7 +792,7 @@ function OrdersPageContent({
                 </Button>
               ) : canCreateOrder ? (
                 <Button asChild size="sm">
-                  <Link href={`${ordersBasePath}/new`}>
+                  <Link href="/orders/new">
                     <Plus />
                     สร้างออเดอร์
                   </Link>

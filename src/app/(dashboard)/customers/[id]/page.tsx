@@ -11,6 +11,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
+import { canCreateOrderWithPricing } from "@/lib/v2-order-access";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { CustomerArtworksCard } from "@/components/customers/customer-artworks-card";
@@ -33,7 +34,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const [loggingComm, setLoggingComm] = useState(false);
   const { data: me } = trpc.user.me.useQuery();
   const canEdit = !!me && permAllows(me.permissions, "manage_customers");
-  const canCreateOrder = !!me && permAllows(me.permissions, "create_sales_docs");
+  const canCreateOrder = canCreateOrderWithPricing(me?.permissions);
   // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนยอดสั่งรวม/ยอดออเดอร์ (server ส่ง null มาอยู่แล้ว)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });

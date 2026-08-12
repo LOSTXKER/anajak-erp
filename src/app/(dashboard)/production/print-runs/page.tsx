@@ -338,7 +338,7 @@ export default function PrintRunsPage() {
 
       {/* ── แถบเปิดรอบ sticky ล่างจอ — โผล่เมื่อเลือกงานแล้ว (pattern เดียวกับ orders/new) · B8 เฉพาะคนมีสิทธิ์ผลิต ── */}
       {canManage && pickedEntries.length > 0 && (
-        <div className="card-surface sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 backdrop-blur">
+        <div className="card-surface sticky bottom-[calc(var(--app-bottom-nav-offset)+0.75rem)] z-10 flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 backdrop-blur lg:bottom-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs text-slate-400">เข้ารอบพิมพ์ม้วนนี้</p>
             <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { OVERLAY_PANEL } from "@/components/ui/tokens";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { permAllows } from "@/lib/permissions";
+import { canCreateOrderWithPricing } from "@/lib/v2-order-access";
 import { navigationItemsForSurface } from "@/lib/navigation";
 import { Spinner } from "@/components/ui/spinner";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
@@ -27,20 +27,12 @@ interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   returnFocusRef?: React.RefObject<HTMLButtonElement | null>;
-  /** ปรับปลายทางตาม shell ที่เรียกใช้; ค่าเริ่มต้นคง route เดิมทุกจุด */
-  resolveHref?: (href: string) => string;
-  /** shell อาจเข้มกว่าค่า default เช่น V2 ไม่ mount ฟอร์มราคาถ้าขาดสิทธิ์เห็นเงิน */
-  canCreateOrder?: boolean;
 }
-
-const passthroughHref = (href: string) => href;
 
 export function CommandPalette({
   open,
   onOpenChange,
   returnFocusRef,
-  resolveHref = passthroughHref,
-  canCreateOrder,
 }: CommandPaletteProps) {
   const router = useRouter();
   const [query, setQuery] = React.useState("");
@@ -54,17 +46,15 @@ export function CommandPalette({
 
   const navigate = React.useCallback(
     (path: string) => {
-      router.push(resolveHref(path));
+      router.push(path);
       onOpenChange(false);
     },
-    [router, onOpenChange, resolveHref]
+    [router, onOpenChange]
   );
 
   const items = React.useMemo(() => {
     const result: CommandItem[] = [];
-    const canCreateSalesDocs = permAllows(me?.permissions, "create_sales_docs");
-    const canSeeOrderMoney = permAllows(me?.permissions, "see_order_money");
-    const showCreateOrder = canCreateOrder ?? canCreateSalesDocs;
+    const showCreateOrder = canCreateOrderWithPricing(me?.permissions);
 
     if (showCreateOrder) {
       result.push({
@@ -77,7 +67,7 @@ export function CommandPalette({
         action: () => navigate("/orders/new"),
       });
     }
-    if (canCreateSalesDocs && canSeeOrderMoney) {
+    if (showCreateOrder) {
       result.push({
         id: "new-quotation",
         label: "เปิดงานเพื่อทำใบเสนอ",
@@ -100,7 +90,7 @@ export function CommandPalette({
       }))
     );
     return result;
-  }, [canCreateOrder, me?.permissions, navigate]);
+  }, [me?.permissions, navigate]);
 
   React.useEffect(() => {
     const trimmed = query.trim();

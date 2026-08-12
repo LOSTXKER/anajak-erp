@@ -417,6 +417,16 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] **minimal แต่ไม่เสียสถานะ** — ตัดเลข 01–04 ใน V2 · คง label, validation dot, filled dot, focus ring และ active underline
 - [x] **verify ของจริง** — 390/1440 ไม่มี overflow · active tab เลื่อนเข้าจอ · Arrow/Home/End, URL/back/deep-link/validation ผ่าน · typecheck/lint/test/verify:ui/build ผ่าน
 
+#### ใบงาน Promote V2 → UI หลัก + พื้นขาวนวล (เบสเคาะจากจอจริง 2026-08-12)
+> ผลทดลอง V2 ผ่านแล้ว เบสให้แทน V1 บน URL เดิมและขอ refactor ไม่ให้มีสอง presentation ต่อกัน · ใช้ semantic token กลางปรับพื้นหน้าเป็น off-white/การ์ดขาว/พื้นจมอ่อน ลด halo ของเงา และคง brand/status/dark theme
+
+- [x] **canonical shell + routes ทางเดียว** — `/` และ `/orders*` ใช้ UI ที่เคยอยู่ V2 · navigation อ่าน canonical registry โดยตรง · `/v2*` redirect พร้อม query · ไม่มีลิงก์ “เวอร์ชันเดิม” หรือ runtime prefix resolver
+- [x] **ลด compatibility branch** — orders/create/detail/tabs/permission helper เหลือค่า production ชุดเดียว · ไม่ copy query/mutation/business logic · ไฟล์ shell V1 ที่ไม่มี caller ยังไม่ลบจนเบสอนุญาต
+- [x] **เมนูและสิทธิ์ไม่ถอย** — desktop/mobile เข้าถึงทุกโมดูลตาม permission ได้ · CTA เปิดงานทั้งหมดใช้ gate สร้างเอกสาร+เห็นเงินชุดเดียว · unauthenticated ยังเข้าไม่ได้
+- [x] **พื้นผิวสว่างขึ้นจาก token กลาง** — page bg `#f7f7f8` · surface/chrome ขาว · sunk `#f2f2f4` · semantic neutral ตรง ramp/ผ่าน AA · เงาการ์ด light เบาลง · dark/overlay/status color คงเดิม
+- [x] **shell regression ปิดครบ** — bottom-nav offset กลางครอบเปิดงาน/แก้รายการ/รอบพิมพ์ · ตารางกว้างไม่ถูกบีบ · active nav/⌘K/More/focus return/notifications link ใช้ได้
+- [x] **verify ของจริงก่อนจบ** — dashboard/orders/create/detail + อย่างน้อย production/billing/settings ที่ 390/1440 · redirect query/back-refresh · permission/loading/error/empty · ไม่มี overflow/hydration/console error · typecheck/lint/test/verify:ui/build ผ่าน
+
 **เพิ่มเข้า P1 (เบสเคาะ 2026-06-12 — รื้อโมดูลผลิตตามความจริงโรงงาน):** ✅ ทำแล้ว 2026-06-12 — เบสชี้ "การผลิตเอาไปใช้จริงไม่ได้" + ให้ความจริงใหม่: **ทำเองมีแค่ DTF** (พิมพ์ฟิล์ม→รีดร้อน 2 ขั้น) · DTG/สกรีน/ปัก/Sublimation/ตัดเย็บใหม่/ป้ายคอเย็บติด = **outsource ทั้งหมด กด "ผ่านรวด" ปิดขั้นได้โดยไม่ต้องเปิดใบส่งร้าน/ไม่กรอกเงิน** → ใบผลิตเป็น "สายงานต่อเลน": เตรียมเสื้อ (เบิกสต๊อค/ตรวจรับเสื้อลูกค้า) · ตัดเย็บ (เลนแยก outsource) · เลนต่อเทคนิคพิมพ์ · ป้ายคอ (งอกเองจาก add-on) · แพ็ค (โผล่เมื่อสายอื่นเสร็จ) — ตัวแนะนำอ่านครบ 3 อย่าง: วิธีพิมพ์+แหล่งเสื้อ+add-on · หน้า /production = แท็บต่อเทคนิค + บอร์ดเลน (เบสเคาะ "เอาทั้งสองแบบ") · **มติใหญ่: เลิกคิดต้นทุนต่องานทั้งระบบ** (ดูกติกา 4)
 **เพิ่มเข้า P1 (เบสเคาะ 2026-06-11 — redesign การเปิดงาน):** ✅ **ฟอร์มเปิดงานโหมดเดียว + ไม่ถามชนิดออเดอร์** (ทำแล้ว 2026-06-11) — เบสชี้: 2 โหมด (สอบถาม/ระบุครบ) + คำถาม สำเร็จรูป/custom ทำให้ใช้ยาก ไม่มีจุดโฟกัส → ยุบเหลือฟอร์มเดียว เปิดงานได้ด้วยลูกค้า+ชื่องาน · ระบบ **derive ชนิดออเดอร์จากเนื้อรายการเอง** (มีรายการ+ไม่มีลายพิมพ์=สำเร็จรูป · นอกนั้น=custom · re-derive ตอนแก้รายการเฉพาะช่วง DRAFT/INQUIRY) + **ภาษีต่อรายการ** (มีลาย=จ้างทำของ · ไม่มี=ขายสินค้า — ออเดอร์ผสมถูกกฎหมายกว่าเหมาทั้งใบ) · ด่านชดเชยฝั่ง server: ยืนยันออเดอร์ต้องมีรายการ · การ์ด "ขั้นถัดไป" บนหน้าออเดอร์ (`src/lib/order-next-step.ts`) บอกจุดโฟกัสเดียวต่อสถานะ · **เบสเคาะเพิ่มรอบสอง: บังคับแค่ลูกค้าช่องเดียว** — ชื่องาน/รายละเอียดไม่บังคับ (ชื่อว่าง = server ตั้งให้จากรายการแรกหรือชื่อลูกค้า+วันที่) + ถอดจำนวนโดยประมาณออกจากฟอร์ม
 

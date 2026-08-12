@@ -31,7 +31,7 @@ function countLabel(count: number | undefined) {
   return count === undefined ? "—" : count.toLocaleString("th-TH");
 }
 
-export function V2OrderStatusFilter({
+export function OrderStatusFilter({
   counts,
   total,
   selected,

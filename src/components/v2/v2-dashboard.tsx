@@ -19,14 +19,13 @@ import {
   Users,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { resolveV2Href } from "@/lib/v2-navigation";
-import { canAccessV2OrderCreate } from "@/lib/v2-order-access";
+import { canCreateOrderWithPricing } from "@/lib/v2-order-access";
 import { permAllows } from "@/lib/permissions";
 import { cn, formatBaht, formatDateShort } from "@/lib/utils";
 import {
-  buildV2AttentionItems,
-  type V2AttentionItem,
-  type V2AttentionKind,
+  buildDashboardAttentionItems,
+  type DashboardAttentionItem,
+  type DashboardAttentionKind,
 } from "@/lib/v2-dashboard";
 import { PageShell } from "@/components/page-shell";
 import { Section } from "@/components/ui/section";
@@ -39,7 +38,7 @@ import { OrderStatusBadge } from "@/components/order-status-badge";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { FOCUS_BUTTON, FOCUS_INSET, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 
-const ATTENTION_ICONS: Record<V2AttentionKind, ComponentType<{ className?: string }>> = {
+const ATTENTION_ICONS: Record<DashboardAttentionKind, ComponentType<{ className?: string }>> = {
   "overdue-order": CalendarClock,
   "due-soon": Hourglass,
   outsource: Truck,
@@ -61,13 +60,13 @@ function DashboardSkeleton() {
   );
 }
 
-function AttentionRow({ item }: { item: V2AttentionItem }) {
+function AttentionRow({ item }: { item: DashboardAttentionItem }) {
   const Icon = ATTENTION_ICONS[item.kind];
   const danger = item.tone === "danger";
 
   return (
     <Link
-      href={resolveV2Href(item.href)}
+      href={item.href}
       className={cn(
         CONTROL_MIN_H,
         FOCUS_INSET,
@@ -115,7 +114,7 @@ function AttentionPanel({
   loading: boolean;
   error: boolean;
   onRetry: () => void;
-  items: V2AttentionItem[];
+  items: DashboardAttentionItem[];
 }) {
   const visible = items.slice(0, 5);
   const hidden = Math.max(items.length - visible.length, 0);
@@ -231,14 +230,14 @@ function Metric({ label, value, note }: { label: string; value: ReactNode; note?
   );
 }
 
-export function V2Dashboard() {
+export function DashboardHome() {
   const dashboardQuery = trpc.analytics.dashboard.useQuery();
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
   const data = dashboardQuery.data;
 
   const canViewPulse = permAllows(me?.permissions, "view_admin_reports");
-  const canCreateOrder = canAccessV2OrderCreate(me?.permissions);
+  const canCreateOrder = canCreateOrderWithPricing(me?.permissions);
   const canViewBilling = permAllows(me?.permissions, "manage_billing_docs");
   const canViewQuotations = permAllows(me?.permissions, "see_order_money");
   const pulseQuery = trpc.analytics.ownerPulse.useQuery(undefined, {
@@ -247,7 +246,7 @@ export function V2Dashboard() {
   });
 
   const attentionItems = pulseQuery.data
-    ? buildV2AttentionItems(pulseQuery.data, {
+    ? buildDashboardAttentionItems(pulseQuery.data, {
         canViewBilling,
         canViewQuotations,
       })
@@ -263,11 +262,12 @@ export function V2Dashboard() {
 
   return (
     <PageShell
+      className="mx-auto max-w-6xl"
       title="ภาพรวมวันนี้"
       action={
         canCreateOrder ? (
           <Button asChild className="hidden sm:inline-flex">
-            <Link href="/v2/orders/new">
+            <Link href="/orders/new">
               <Plus />
               เปิดงานใหม่
             </Link>
@@ -295,7 +295,7 @@ export function V2Dashboard() {
           <div className="grid grid-cols-2 gap-2">
             {canCreateOrder && (
               <QuickLink
-                href="/v2/orders/new"
+                href="/orders/new"
                 icon={Plus}
                 label="เปิดงาน"
                 primary
@@ -342,7 +342,7 @@ export function V2Dashboard() {
         flush
         action={
           <Button asChild variant="ghost" size="sm">
-            <Link href="/v2/orders">
+            <Link href="/orders">
               ดูทั้งหมด
               <ArrowRight />
             </Link>
@@ -356,7 +356,7 @@ export function V2Dashboard() {
             action={
               canCreateOrder ? (
                 <Button asChild>
-                  <Link href="/v2/orders/new">เปิดงานแรก</Link>
+                  <Link href="/orders/new">เปิดงานแรก</Link>
                 </Button>
               ) : undefined
             }
@@ -366,7 +366,7 @@ export function V2Dashboard() {
             {data.recentOrders.map((order) => (
               <Link
                 key={order.id}
-                href={`/v2/orders/${order.id}`}
+                href={`/orders/${order.id}`}
                 className={cn(
                   CONTROL_MIN_H,
                   FOCUS_INSET,

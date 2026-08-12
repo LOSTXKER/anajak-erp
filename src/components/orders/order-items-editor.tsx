@@ -104,7 +104,6 @@ interface OrderItemsEditorProps {
   order: OrderItemsEditorOrder;
   onDone: () => void;
   onCancel: () => void;
-  stickyActionsOffset?: "default" | "v2";
 }
 
 export function OrderItemsEditor({
@@ -114,7 +113,6 @@ export function OrderItemsEditor({
   order,
   onDone,
   onCancel,
-  stickyActionsOffset = "default",
 }: OrderItemsEditorProps) {
   // ช่วง DRAFT/INQUIRY server ยัง re-derive ชนิดออเดอร์จากเนื้อรายการ — ออเดอร์ที่กลายเป็น
   // READY_MADE (เปิดเบา→เติมเสื้อเปล่า) ต้องเพิ่มลายได้ ไม่งั้นต้องยกเลิกเปิดใหม่ (audit ข้อ 3)
@@ -526,9 +524,7 @@ export function OrderItemsEditor({
           <div
             className={cn(
               "card-surface sticky flex justify-end gap-2 rounded-2xl p-3 backdrop-blur",
-              stickyActionsOffset === "v2"
-                ? "bottom-[calc(var(--v2-bottom-nav-offset)+0.75rem)] lg:bottom-3"
-                : "bottom-3",
+              "bottom-[calc(var(--app-bottom-nav-offset)+0.75rem)] lg:bottom-3",
             )}
           >
             <Button variant="outline" onClick={onCancel} disabled={saving}>

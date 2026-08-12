@@ -1,5 +1,10 @@
-import { V2Dashboard } from "@/components/v2/v2-dashboard";
+import { permanentRedirect } from "next/navigation";
+import { legacyV2RedirectHref, type LegacySearchParams } from "@/lib/v2-navigation";
 
-export default function V2Page() {
-  return <V2Dashboard />;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<LegacySearchParams>;
+}) {
+  permanentRedirect(legacyV2RedirectHref("/v2", await searchParams));
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { permAllows } from "@/lib/permissions";
+import { canCreateOrderWithPricing } from "@/lib/v2-order-access";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -73,8 +74,8 @@ function QuotationsPageContent() {
     : "";
 
   const { data: me } = trpc.user.me.useQuery();
-  // สร้างใบเสนอ = สิทธิ์ขาย (quotation.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12)
-  const canCreateQuotation = permAllows(me?.permissions, "create_sales_docs");
+  // เริ่มใบเสนอผ่านฟอร์มเปิดงานที่มีราคา — ใช้ด่านเดียวกับปลายทาง ไม่ให้ CTA ชน AccessDenied
+  const canCreateQuotation = canCreateOrderWithPricing(me?.permissions);
   // ใบเสนอทั้งหน้าเป็นเรื่องราคาขาย — ช่าง/กราฟิกห้ามเห็น (Policy ⑦ · ตรงกับ requireRole ฝั่ง server)
   const canView = me ? permAllows(me.permissions, "see_order_money") : true;
 

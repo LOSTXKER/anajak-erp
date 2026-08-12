@@ -1,5 +1,10 @@
-import OrdersPage from "@/components/orders/orders-page";
+import { permanentRedirect } from "next/navigation";
+import { legacyV2RedirectHref, type LegacySearchParams } from "@/lib/v2-navigation";
 
-export default function Page() {
-  return <OrdersPage ordersBasePath="/v2/orders" variant="v2" />;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<LegacySearchParams>;
+}) {
+  permanentRedirect(legacyV2RedirectHref("/v2/orders", await searchParams));
 }
