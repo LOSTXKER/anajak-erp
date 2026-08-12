@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
-import { formatCurrency, isImageUrl } from "@/lib/utils";
+import { cn, formatCurrency, isImageUrl } from "@/lib/utils";
 import {
   COLLAR_TYPES,
   SLEEVE_TYPES,
@@ -35,7 +35,6 @@ import {
   Check,
 } from "lucide-react";
 import { FOCUS_BUTTON, SUNK_PANEL, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
-import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 
 type OrderData = RouterOutput["order"]["getById"];
@@ -99,7 +98,10 @@ function ReceiveTrackingInline({ product, onSuccess }: {
           </Select>
         </div>
         <div>
-          <label className="flex items-center gap-2" htmlFor={`garment-inspected-${product.id}`}>
+          <label
+            className="flex min-h-11 cursor-pointer items-center gap-2"
+            htmlFor={`garment-inspected-${product.id}`}
+          >
             <Checkbox id={`garment-inspected-${product.id}`} checked={inspected} onChange={(e) => setInspected(e.target.checked)} />
             <span className="text-xs font-medium text-slate-700 dark:text-slate-300">ตรวจรับแล้ว</span>
           </label>
@@ -408,7 +410,16 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                 <tr key={p.id}>
                                   <td className="py-1.5 pr-4">
                                     {isImageUrl(p.designImageUrl) ? (
-                                      <a href={p.designImageUrl!} target="_blank" rel="noreferrer" title="เปิดภาพเต็ม">
+                                      <a
+                                        href={p.designImageUrl!}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        title="เปิดภาพเต็ม"
+                                        className={cn(
+                                          "inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg",
+                                          FOCUS_BUTTON,
+                                        )}
+                                      >
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
                                           src={p.designImageUrl!}
@@ -418,7 +429,15 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                       </a>
                                     ) : p.designImageUrl ? (
                                       // มีไฟล์แต่ไม่ใช่รูป (เช่น .ai/.pdf) — ยังต้องกดเปิดได้ ไม่ใช่ขึ้นว่าไม่มีไฟล์
-                                      <a href={p.designImageUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline dark:text-blue-400">
+                                      <a
+                                        href={p.designImageUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className={cn(
+                                          "inline-flex min-h-11 min-w-11 items-center rounded-lg text-xs text-blue-600 hover:underline dark:text-blue-400",
+                                          FOCUS_BUTTON,
+                                        )}
+                                      >
                                         เปิดไฟล์แบบ
                                       </a>
                                     ) : (

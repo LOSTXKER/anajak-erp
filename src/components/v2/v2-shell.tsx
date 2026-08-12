@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode, RefObject } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, ReactNode, RefObject } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Bell,
   ChevronRight,
@@ -13,6 +14,11 @@ import {
   Search,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import {
+  findActiveV2NavigationItem,
+  resolveV2Href,
+} from "@/lib/v2-navigation";
+import { canAccessV2OrderCreate } from "@/lib/v2-order-access";
 import {
   groupedNavigationItems,
   navigationItemsForSurface,
@@ -95,7 +101,7 @@ function V2MoreMenu({
                 {group.items.map((item) => (
                   <li key={item.id}>
                     <Link
-                      href={item.href}
+                      href={resolveV2Href(item.href)}
                       onClick={onClose}
                       className={cn(
                         CONTROL_MIN_H,
@@ -127,7 +133,8 @@ function V2MoreMenu({
   );
 }
 
-export function V2Shell({ children }: { children: ReactNode }) {
+function V2ShellContent({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
@@ -173,9 +180,18 @@ export function V2Shell({ children }: { children: ReactNode }) {
   }, []);
 
   const count = unreadCount ?? 0;
+  const activeNavigationId = findActiveV2NavigationItem(pathname)?.id;
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-bg">
+    <div
+      className="flex h-dvh overflow-hidden bg-bg"
+      style={
+        {
+          "--v2-bottom-nav-offset":
+            "calc(5rem + env(safe-area-inset-bottom))",
+        } as CSSProperties
+      }
+    >
       <a
         href="#main-content"
         className={cn(
@@ -210,11 +226,14 @@ export function V2Shell({ children }: { children: ReactNode }) {
           <nav aria-label="เมนูหลัก V2" className="flex-1 px-3 py-4">
             <ul className="space-y-1">
               {[OVERVIEW_ITEM, ...primaryItems].map((item) => {
-                const active = item.id === OVERVIEW_ITEM.id;
+                const active =
+                  item.id === OVERVIEW_ITEM.id
+                    ? activeNavigationId === "dashboard"
+                    : activeNavigationId === item.id;
                 return (
                   <li key={item.id}>
                     <Link
-                      href={item.href}
+                      href={resolveV2Href(item.href)}
                       aria-current={active ? "page" : undefined}
                       className={cn(
                         CONTROL_MIN_H,
@@ -324,14 +343,20 @@ export function V2Shell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <nav aria-label="เมนูหลักบนมือถือ" className="fixed inset-x-0 bottom-0 z-40 border-t border-black/[0.07] bg-chrome px-1 pb-2 pt-1 lg:hidden dark:border-white/[0.07]">
+      <nav
+        aria-label="เมนูหลักบนมือถือ"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-black/[0.07] bg-chrome px-1 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-1 lg:hidden dark:border-white/[0.07]"
+      >
         <div className="grid grid-cols-5">
           {[OVERVIEW_ITEM, ...mobileItems].map((item) => {
-            const active = item.id === OVERVIEW_ITEM.id;
+            const active =
+              item.id === OVERVIEW_ITEM.id
+                ? activeNavigationId === "dashboard"
+                : activeNavigationId === item.id;
             return (
               <Link
                 key={item.id}
-                href={item.href}
+                href={resolveV2Href(item.href)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   CONTROL_MIN_H,
@@ -368,6 +393,8 @@ export function V2Shell({ children }: { children: ReactNode }) {
         open={paletteOpen}
         onOpenChange={setPaletteOpen}
         returnFocusRef={searchTriggerRef}
+        resolveHref={resolveV2Href}
+        canCreateOrder={canAccessV2OrderCreate(me?.permissions)}
       />
       <V2MoreMenu
         open={moreOpen}
@@ -377,5 +404,21 @@ export function V2Shell({ children }: { children: ReactNode }) {
         returnFocusRef={moreTriggerRef}
       />
     </div>
+  );
+}
+
+export function V2Shell({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="h-dvh bg-bg"
+          role="status"
+          aria-label="กำลังโหลดพื้นที่ทำงาน V2"
+        />
+      }
+    >
+      <V2ShellContent>{children}</V2ShellContent>
+    </Suspense>
   );
 }

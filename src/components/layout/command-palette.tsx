@@ -27,9 +27,21 @@ interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   returnFocusRef?: React.RefObject<HTMLButtonElement | null>;
+  /** ปรับปลายทางตาม shell ที่เรียกใช้; ค่าเริ่มต้นคง route เดิมทุกจุด */
+  resolveHref?: (href: string) => string;
+  /** shell อาจเข้มกว่าค่า default เช่น V2 ไม่ mount ฟอร์มราคาถ้าขาดสิทธิ์เห็นเงิน */
+  canCreateOrder?: boolean;
 }
 
-export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPaletteProps) {
+const passthroughHref = (href: string) => href;
+
+export function CommandPalette({
+  open,
+  onOpenChange,
+  returnFocusRef,
+  resolveHref = passthroughHref,
+  canCreateOrder,
+}: CommandPaletteProps) {
   const router = useRouter();
   const [query, setQuery] = React.useState("");
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
@@ -42,18 +54,19 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
 
   const navigate = React.useCallback(
     (path: string) => {
-      router.push(path);
+      router.push(resolveHref(path));
       onOpenChange(false);
     },
-    [router, onOpenChange]
+    [router, onOpenChange, resolveHref]
   );
 
   const items = React.useMemo(() => {
     const result: CommandItem[] = [];
     const canCreateSalesDocs = permAllows(me?.permissions, "create_sales_docs");
     const canSeeOrderMoney = permAllows(me?.permissions, "see_order_money");
+    const showCreateOrder = canCreateOrder ?? canCreateSalesDocs;
 
-    if (canCreateSalesDocs) {
+    if (showCreateOrder) {
       result.push({
         id: "new-order",
         label: "เปิดงานใหม่",
@@ -87,7 +100,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
       }))
     );
     return result;
-  }, [me?.permissions, navigate]);
+  }, [canCreateOrder, me?.permissions, navigate]);
 
   React.useEffect(() => {
     const trimmed = query.trim();

@@ -233,7 +233,10 @@ function PhoneLink({ phone }: { phone: string }) {
   return (
     <a
       href={`tel:${phone.replace(/[^\d+]/g, "")}`}
-      className={cn("text-blue-600 hover:underline dark:text-blue-400", FOCUS_BUTTON)}
+      className={cn(
+        "inline-flex min-h-11 min-w-11 items-center rounded-lg text-blue-600 hover:underline dark:text-blue-400",
+        FOCUS_BUTTON,
+      )}
     >
       {phone}
     </a>
@@ -341,7 +344,7 @@ export function OrderOverviewTab({
                 <Link
                   href={`/customers/${customer.id}`}
                   className={cn(
-                    "text-blue-600 hover:underline dark:text-blue-400",
+                    "inline-flex min-h-11 min-w-11 items-center rounded-lg text-blue-600 hover:underline dark:text-blue-400",
                     FOCUS_BUTTON
                   )}
                 >
@@ -361,7 +364,7 @@ export function OrderOverviewTab({
                     name={customer.chatName}
                     url={customer.chatUrl}
                     wrap
-                    className="text-sm"
+                    className="min-h-11 min-w-11 text-sm"
                   />
                 )}
               </Field>
@@ -485,7 +488,7 @@ export function OrderOverviewTab({
                         onClick={onOpenMoney}
                         className={cn(
                           DISPLAY_AMOUNT,
-                          "rounded-lg text-left hover:underline",
+                          "inline-flex min-h-11 min-w-11 items-center rounded-lg text-left hover:underline",
                           FOCUS_BUTTON
                         )}
                       >
@@ -673,7 +676,7 @@ export function OrderOverviewTab({
                   target="_blank"
                   rel="noopener noreferrer"
                   className={cn(
-                    "text-blue-600 hover:underline dark:text-blue-400",
+                    "inline-flex min-h-11 min-w-11 items-center rounded-lg text-blue-600 hover:underline dark:text-blue-400",
                     FOCUS_BUTTON
                   )}
                 >

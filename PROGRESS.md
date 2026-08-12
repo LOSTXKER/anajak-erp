@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ V2 Orders ครบ 3 เส้นทางแล้ว 2026-08-12 — `/v2/orders` · `/v2/orders/new` · `/v2/orders/[id]`**
+> หน้ารวม/เปิดงาน/รายละเอียดใช้ query, mutation, draft, สูตรราคา, status transition, เอกสาร และ permission ชุดเดียวกับ `/orders*` ผ่าน shared screen — route เดิมจึงยังอยู่และไม่มีกฎธุรกิจสำเนาชุดที่สอง
+>
+> **สิ่งที่เห็นต่างใน V2:** เมนูออเดอร์/ผลค้นหา/ออเดอร์ล่าสุดวิ่งต่อใน shell V2 · mobile ยุบสถานะเหลือ “ทั้งหมด + สถานะที่มีงาน” และเปิด “ทุกสถานะ” ได้ · รายการแรกอยู่ `y=580.8` ที่ 390×844 (เดิมอยู่ราว `y=800.8`) · bottom nav เผื่อ safe area และไม่ทับ sticky submit · แท็บยาวเลื่อน active เข้าจอเอง · target ที่กดได้ในรายละเอียด/รายการ ≥44px
+>
+> **สิทธิ์:** `/v2/orders/new` fail closed ก่อน mount ฟอร์มถ้าขาด `create_sales_docs` **หรือ** `see_order_money` เพราะฟอร์มชุดปัจจุบันมีราคา/ส่วนลดอยู่ในเนื้อหาเดียวกัน · command palette ซ่อน action เดียวกันตามด่านนี้ · หน้ารายละเอียดยังใช้ server strip + DOM gate เงินเดิม · unauthenticated ทั้ง 3 route → `/login`
+>
+> **verify production build:** 390px/1440px ทั้ง 3 route ไม่มี horizontal overflow · หน้า list งานแรกก่อน y=600 · detail CTA/overview/items target ผ่าน 44px · URL tab/deep-link/refresh และ focus ของ tab/status ผ่าน · Command Palette เลือก Dashboard แล้วอยู่ `/v2` · `/orders`, `/orders/new`, `/orders/[id]` โหลดข้อมูลจริงเหมือนเดิม · console ไม่มี error/hydration overlay
+>
+> **ด่านโค้ด:** typecheck ผ่าน · lint 0 error (36 warningเดิม) · unit **682/682** · `verify:ui` ผ่าน · `next build` ผ่านและมี V1+V2 ครบ 6 route (`/v2/orders` 203 kB first load · new 311 kB · detail 366 kB)
+
 > **✅ UI V2 แบบคู่ขนานเสร็จแล้ว 2026-08-12 — เปิดของจริงที่ `/v2` โดยหน้าเดิม `/` ยังอยู่ครบ**
 > เบสสั่งข้าม mockupและทำ URL แยกเพื่อเทียบของจริง · รอบนี้แก้ shell + dashboard ก่อน: desktop เหลือเมนูหลัก 5 จุดและค้นหาทั้งระบบด้วย `⌘K` · mobile เป็น bottom nav 4 จุด + “เพิ่มเติม” · เนื้อหาบนสุดเรียง “ต้องเช็กก่อน” → ทางลัด → สถิติรอง → ออเดอร์ล่าสุด · ซ่อนการ์ดเลขศูนย์และใช้สีแบรนด์เฉพาะ action/สถานะสำคัญ
 >

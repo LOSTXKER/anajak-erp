@@ -284,7 +284,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
                       readOnly
                       value={linkUrl}
                       onFocus={(e) => e.currentTarget.select()}
-                      className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                      className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                     />
                     <Button size="sm" className="shrink-0 gap-1.5" onClick={copyUploadLink} >
                       {linkCopied ? (

@@ -11,6 +11,10 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **จุดโฟกัสชัดใน 3 วินาที** — งานเสี่ยง/งานค้างและ action หลักมาก่อนสถิติสะสม · navigation ชั้นแรกมีเฉพาะงานหลัก ส่วนโมดูลที่เหลือค้นหาได้จากจุดเดียว
 - [x] **ใช้ได้จริงสองขนาดจอ** — 390px และ 1440px ไม่มี horizontal overflow · เป้ากดมือถือ ≥44px · keyboard focus เห็น · ภาษาไทยไม่ตัด · reduced-motion ใช้งานได้ครบ
 - [x] **สถานะไม่โกหก** — query หลักมี loading/error/retry/empty แยกกัน · ข้อมูลเงินและเมนู gated ตาม permission เดิม
+- [x] **งานขายหลักอยู่ใน V2 ครบเส้นทาง** — `/v2/orders`, `/v2/orders/new`, `/v2/orders/[id]` ใช้ข้อมูล/mutation/permission ชุดเดียวกับหน้าเดิม · ลิงก์ภายในไม่หลุด shell V2 · URL เดิมยังทำงานเหมือนเดิม
+- [x] **รายการออเดอร์เริ่มจากงาน ไม่เริ่มจากแผงสถานะ** — มือถือเห็นรายการหรือ empty/error ที่ลงมือทำได้ก่อน `y=600` · สถานะครบทุกค่าแต่ยุบเปิดดูเพิ่มได้ · search/filter/sort/pagination/CSV ยังใช้งานจริง
+- [x] **เปิดงานและรายละเอียดปลอดภัย** — ผู้ไม่มี `create_sales_docs` เข้า `/v2/orders/new` แล้ว fail closed · ผู้ไม่มี `see_order_money` ไม่เห็นเงิน · สร้าง/duplicate/เปลี่ยนสถานะ/แท็บ/เอกสารยังผ่าน service/server guard เดิม
+- [x] **สามหน้า V2 ผ่านจอจริง** — 390px และ 1440px ไม่มี horizontal overflow/error overlay/hydration warning · เป้ากดมือถือ ≥44px · keyboard/focus/URL state/back-refresh ใช้ได้
 
 ## 🔐 P0 deploy-gate — verified ครบแล้ว (audit 2026-07-02 อ่านโค้ดจริง + adversarial verify)
 - [x] **คนนอกเปิดเว็บแล้วเข้าไม่ได้** — `src/middleware.ts:31-78` refresh session ทุก request รวม /api · ยกเว้นเฉพาะหน้า public token (approve/upload/status/quote) + /api/mcp (auth ด้วย key เอง)

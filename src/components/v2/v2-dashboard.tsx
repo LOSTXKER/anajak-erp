@@ -20,6 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { resolveV2Href } from "@/lib/v2-navigation";
 import { permAllows } from "@/lib/permissions";
 import { cn, formatBaht, formatDateShort } from "@/lib/utils";
 import {
@@ -66,7 +67,7 @@ function AttentionRow({ item }: { item: V2AttentionItem }) {
 
   return (
     <Link
-      href={item.href}
+      href={resolveV2Href(item.href)}
       className={cn(
         CONTROL_MIN_H,
         FOCUS_INSET,
@@ -288,7 +289,7 @@ export function V2Dashboard() {
       action={
         canCreateSalesDocs ? (
           <Button asChild className="hidden sm:inline-flex">
-            <Link href="/orders/new">
+            <Link href="/v2/orders/new">
               <Plus />
               เปิดงานใหม่
             </Link>
@@ -320,7 +321,7 @@ export function V2Dashboard() {
           <div className="grid grid-cols-2 gap-2">
             {canCreateSalesDocs && (
               <QuickLink
-                href="/orders/new"
+                href="/v2/orders/new"
                 icon={Plus}
                 label="เปิดงาน"
                 description="ลูกค้าใหม่"
@@ -373,7 +374,7 @@ export function V2Dashboard() {
         flush
         action={
           <Button asChild variant="ghost" size="sm">
-            <Link href="/orders">
+            <Link href="/v2/orders">
               ดูทั้งหมด
               <ArrowRight />
             </Link>
@@ -388,7 +389,7 @@ export function V2Dashboard() {
             action={
               canCreateSalesDocs ? (
                 <Button asChild>
-                  <Link href="/orders/new">เปิดงานแรก</Link>
+                  <Link href="/v2/orders/new">เปิดงานแรก</Link>
                 </Button>
               ) : undefined
             }
@@ -398,7 +399,7 @@ export function V2Dashboard() {
             {data.recentOrders.map((order) => (
               <Link
                 key={order.id}
-                href={`/orders/${order.id}`}
+                href={`/v2/orders/${order.id}`}
                 className={cn(
                   CONTROL_MIN_H,
                   FOCUS_INSET,

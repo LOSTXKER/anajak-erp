@@ -78,30 +78,66 @@ export const TabsTrigger = React.forwardRef<
     /** จุดแดง = แท็บนี้มีของค้าง (คิดจากข้อมูลชุดเดียวกับแถบขั้นต่อไป ห้ามเขียนตรรกะใหม่) */
     hasPending?: boolean;
   }
->(({ className, children, hasPending = false, ...props }, ref) => (
-  <TabsPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      CONTROL_MIN_H,
-      FOCUS_BUTTON,
-      RADIUS.item,
-      "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-4 text-sm font-medium text-muted transition-colors",
-      "hover:text-secondary",
-      "data-[state=active]:bg-surface data-[state=active]:font-semibold data-[state=active]:text-strong data-[state=active]:shadow-sm",
-      className
-    )}
-    {...props}
-  >
-    {children}
-    {hasPending && (
-      <span
-        // ข้อความจริงอยู่ใน aria-label ของ trigger ที่ผู้เรียกส่งมา — จุดนี้เป็นภาพล้วน
-        aria-hidden="true"
-        className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
-      />
-    )}
-  </TabsPrimitive.Trigger>
-));
+>(({ className, children, hasPending = false, onClick, ...props }, forwardedRef) => {
+  const localRef = React.useRef<React.ElementRef<typeof TabsPrimitive.Trigger>>(null);
+  const ref = React.useCallback(
+    (node: React.ElementRef<typeof TabsPrimitive.Trigger> | null) => {
+      localRef.current = node;
+      if (typeof forwardedRef === "function") forwardedRef(node);
+      else if (forwardedRef) forwardedRef.current = node;
+    },
+    [forwardedRef],
+  );
+
+  const bringActiveTabIntoView = React.useCallback(() => {
+    requestAnimationFrame(() => {
+      if (localRef.current?.getAttribute("data-state") === "active") {
+        localRef.current.scrollIntoView({ inline: "nearest", block: "nearest" });
+      }
+    });
+  }, []);
+
+  React.useEffect(() => {
+    const node = localRef.current;
+    if (!node) return;
+
+    // Radix เปลี่ยน data-state ผ่าน context ตอน URL back / validation พาไปแท็บอื่น
+    // ซึ่งไม่ได้เกิดจาก click บน trigger เป้าหมายเสมอ จึงเฝ้า state จริงที่ DOM จุดเดียว
+    const observer = new MutationObserver(bringActiveTabIntoView);
+    observer.observe(node, { attributes: true, attributeFilter: ["data-state"] });
+    bringActiveTabIntoView();
+    return () => observer.disconnect();
+  }, [bringActiveTabIntoView]);
+
+  return (
+    <TabsPrimitive.Trigger
+      ref={ref}
+      className={cn(
+        CONTROL_MIN_H,
+        FOCUS_BUTTON,
+        RADIUS.item,
+        "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-4 text-sm font-medium text-muted transition-colors",
+        "hover:text-secondary",
+        "data-[state=active]:bg-surface data-[state=active]:font-semibold data-[state=active]:text-strong data-[state=active]:shadow-sm",
+        className,
+      )}
+      onClick={(event) => {
+        onClick?.(event);
+        bringActiveTabIntoView();
+      }}
+      {...props}
+    >
+      {children}
+      {hasPending && (
+        <span
+          // ข้อความจริงอยู่ใน aria-label ของ trigger ที่ผู้เรียกส่งมา — จุดนี้เป็นภาพล้วน
+          aria-hidden="true"
+          className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
+        />
+      )}
+    </TabsPrimitive.Trigger>
+  );
+});
 TabsTrigger.displayName = "TabsTrigger";
 
 export const TabsContent = React.forwardRef<
