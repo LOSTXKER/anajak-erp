@@ -16,6 +16,14 @@ import {
 import { createAuditLog } from "@/server/helpers";
 import type { PrismaTx } from "@/lib/prisma";
 import { byIdInput, fileUrlSchema } from "@/server/schemas";
+import {
+  addressLine,
+  nullableAddressLine,
+  nullablePostalCode,
+  optionalAddressLine,
+  optionalPostalCode,
+} from "@/lib/address-schema";
+import { normalizePhone } from "@/lib/phone";
 import { badRequest } from "@/server/errors";
 import { nextDocumentNumber } from "@/server/services/document-number";
 import { priceOrderItems, computeOrderTotals, type PricedItem } from "@/server/services/pricing";
@@ -629,14 +637,17 @@ export const orderRouter = router({
         // default 7% — บริษัทจด VAT (Gate B2) · ยกเว้นภาษี = ระบุ 0 มาชัดๆ
         taxRate: z.number().min(0).max(100).default(7),
         estimatedQuantity: z.number().int().min(1).optional(),
+        // ด่านที่อยู่ฝั่ง server (เบสสั่ง 2026-08-12) — เดิมไม่ตรวจอะไรเลย ยิง API ตรงส่ง
+        // สตริงว่าง/ข้อความยาวทั้งหน้า/ไปรษณีย์มั่ว เข้าได้หมดแล้วไปโผล่บนใบส่งของ
+        // เบอร์ normalize ให้เหมือนฝั่งลูกค้า (เก็บตัวเลขล้วนทุกทางเข้า)
         shippingAddress: z.object({
-          recipientName: z.string(),
-          phone: z.string(),
-          address: z.string(),
-          subDistrict: z.string().optional(),
-          district: z.string().optional(),
-          province: z.string().optional(),
-          postalCode: z.string().optional(),
+          recipientName: addressLine(120),
+          phone: z.string().trim().max(30).transform((v) => (v ? normalizePhone(v) : v)),
+          address: addressLine(300),
+          subDistrict: optionalAddressLine(120),
+          district: optionalAddressLine(120),
+          province: optionalAddressLine(120),
+          postalCode: optionalPostalCode,
         }).optional(),
         // Items can be empty for INQUIRY/DRAFT (Quick Inquiry mode)
         items: z.array(orderItemSchema).default([]),
@@ -1161,13 +1172,20 @@ export const orderRouter = router({
         // nullable = ลบที่อยู่ที่กรอกผิดออกได้ (เบสสั่ง 2026-08-12) — เดิมเป็น optional ล้วน
         // ฟอร์มส่ง `undefined` เมื่อช่องว่าง แล้ว Prisma อ่าน undefined ว่า "ไม่แตะ"
         // → ลบข้อความในช่องแล้วกดบันทึก ค่าเก่ายังอยู่เงียบๆ ไม่มี error บอก
-        shippingRecipientName: z.string().nullable().optional(),
-        shippingPhone: z.string().nullable().optional(),
-        shippingAddress: z.string().nullable().optional(),
-        shippingSubDistrict: z.string().nullable().optional(),
-        shippingDistrict: z.string().nullable().optional(),
-        shippingProvince: z.string().nullable().optional(),
-        shippingPostalCode: z.string().nullable().optional(),
+        // + ด่านความยาว/รูปแบบชุดเดียวกับ order.create ("" → null ไม่ปนกับ undefined)
+        shippingRecipientName: nullableAddressLine(120),
+        shippingPhone: z
+          .string()
+          .trim()
+          .max(30)
+          .nullable()
+          .optional()
+          .transform((v) => (v ? normalizePhone(v) : v === undefined ? undefined : null)),
+        shippingAddress: nullableAddressLine(300),
+        shippingSubDistrict: nullableAddressLine(120),
+        shippingDistrict: nullableAddressLine(120),
+        shippingProvince: nullableAddressLine(120),
+        shippingPostalCode: nullablePostalCode,
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -1889,6 +1907,16 @@ export const orderRouter = router({
                 subtotalFees: original.subtotalFees,
                 taxAmount: original.taxAmount,
                 totalAmount: original.totalAmount,
+                // ที่อยู่จัดส่งก๊อปมาด้วย (เบสสั่ง 2026-08-12) — งานซ้ำของลูกค้าเดิมมักส่งที่เดิม
+                // เดิมไม่ก๊อป ที่อยู่เลยหายทุกครั้งที่กด "ทำซ้ำ" ต้องพิมพ์ใหม่ทั้ง 7 ช่อง
+                // (แก้ต่อได้ปกติ · ส่งคนละที่ก็ลบทิ้งได้แล้วตั้งแต่รอบนี้)
+                shippingRecipientName: original.shippingRecipientName,
+                shippingPhone: original.shippingPhone,
+                shippingAddress: original.shippingAddress,
+                shippingSubDistrict: original.shippingSubDistrict,
+                shippingDistrict: original.shippingDistrict,
+                shippingProvince: original.shippingProvince,
+                shippingPostalCode: original.shippingPostalCode,
                 items: {
                   create: original.items.map((item, index) => {
                     const data = buildItemCreateData({

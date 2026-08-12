@@ -6,6 +6,12 @@ import { byIdInput } from "@/server/schemas";
 import { getStartOfMonth } from "@/lib/date-utils";
 import { PAYMENT_TERMS_VALUES } from "@/lib/payment-terms";
 import { normalizePhone } from "@/lib/phone";
+import {
+  nullableAddressLine,
+  nullablePostalCode,
+  optionalAddressLine,
+  optionalPostalCode,
+} from "@/lib/address-schema";
 import { creditExposureForCustomer } from "@/server/services/receivables";
 import { hasPermission } from "@/lib/permissions";
 
@@ -165,19 +171,20 @@ export const customerRouter = router({
         lineId: z.string().optional(),
         chatName: z.string().trim().max(120).optional(),
         chatUrl: chatUrlSchema,
-        address: z.string().optional(),
+        // ด่านที่อยู่ชุดเดียวกับฝั่งออเดอร์/ใบส่ง (เบสสั่ง 2026-08-12) — เดิมรับสตริงอะไรก็ได้
+        address: optionalAddressLine(300),
         taxId: z.string().optional(),
         customerType: z.enum(["INDIVIDUAL", "CORPORATE"]).default("INDIVIDUAL"),
         branchNumber: z.string().optional(),
         segment: z.enum(["VIP", "REGULAR", "NEW", "INACTIVE", "WHOLESALE", "RETAIL"]).default("NEW"),
         notes: z.string().optional(),
         tags: z.array(z.string()).default([]),
-        // Billing address
-        billingAddress: z.string().optional(),
-        billingSubDistrict: z.string().optional(),
-        billingDistrict: z.string().optional(),
-        billingProvince: z.string().optional(),
-        billingPostalCode: z.string().optional(),
+        // ที่อยู่ออกใบกำกับ — ขึ้นกระดาษจริง ยิ่งต้องไม่ให้ข้อมูลผิดรูปหลุดเข้า
+        billingAddress: optionalAddressLine(300),
+        billingSubDistrict: optionalAddressLine(120),
+        billingDistrict: optionalAddressLine(120),
+        billingProvince: optionalAddressLine(120),
+        billingPostalCode: optionalPostalCode,
         // Credit management
         creditLimit: z.number().optional(),
         defaultPaymentTerms: z.enum(PAYMENT_TERMS_VALUES).optional(),
@@ -227,7 +234,7 @@ export const customerRouter = router({
         // nullable เท่ากับ billing* — ที่อยู่ผู้ติดต่อล้างให้ว่างได้จริง (เบสสั่ง 2026-08-12)
         // เดิม optional ล้วน → ล้างไม่ได้ ทำได้แค่ทับด้วยสตริงว่าง ฐานข้อมูลเลยมีทั้ง null
         // และ "" ปนกัน (โค้ดที่เช็ค `!!customer.address` ยังผ่าน = "มีที่อยู่" ทั้งที่ว่างเปล่า)
-        address: z.string().nullable().optional(),
+        address: nullableAddressLine(300),
         taxId: z.string().optional(),
         customerType: z.enum(["INDIVIDUAL", "CORPORATE"]).optional(),
         branchNumber: z.string().nullable().optional(),
@@ -235,11 +242,11 @@ export const customerRouter = router({
         notes: z.string().optional(),
         tags: z.array(z.string()).optional(),
         // Billing address
-        billingAddress: z.string().nullable().optional(),
-        billingSubDistrict: z.string().nullable().optional(),
-        billingDistrict: z.string().nullable().optional(),
-        billingProvince: z.string().nullable().optional(),
-        billingPostalCode: z.string().nullable().optional(),
+        billingAddress: nullableAddressLine(300),
+        billingSubDistrict: nullableAddressLine(120),
+        billingDistrict: nullableAddressLine(120),
+        billingProvince: nullableAddressLine(120),
+        billingPostalCode: nullablePostalCode,
         // Credit management
         creditLimit: z.number().nullable().optional(),
         defaultPaymentTerms: z.enum(PAYMENT_TERMS_VALUES).nullable().optional(),

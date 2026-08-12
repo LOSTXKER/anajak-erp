@@ -5,6 +5,7 @@ import { badRequest } from "@/server/errors";
 import { createAuditLog, createNotification } from "@/server/helpers";
 import { advanceOrderForward } from "@/server/services/order-status";
 import { normalizePhone } from "@/lib/phone";
+import { addressLine, optionalAddressLine, optionalPostalCode } from "@/lib/address-schema";
 import { isValidDeliveryTransition, type DeliveryStatus } from "@/lib/delivery-status";
 import { DELIVERY_STATUS_LABELS } from "@/lib/status-config";
 
@@ -112,13 +113,20 @@ export const deliveryRouter = router({
     .input(
       z.object({
         orderId: z.string(),
-        recipientName: z.string().min(1),
-        phone: z.string().min(1),
-        address: z.string().min(1),
-        subDistrict: z.string().optional(),
-        district: z.string().optional(),
-        province: z.string().optional(),
-        postalCode: z.string().optional(),
+        // ที่อยู่บนใบส่ง = ที่อยู่ที่ของจะไปจริง — บังคับ 3 ช่องแรกเหมือนเดิม
+        // + ด่านความยาว/ไปรษณีย์ชุดเดียวกับ order (เบสสั่ง 2026-08-12) · เบอร์ normalize
+        recipientName: addressLine(120).min(1, "กรุณาระบุชื่อผู้รับ"),
+        phone: z
+          .string()
+          .trim()
+          .min(1, "กรุณาระบุเบอร์ผู้รับ")
+          .max(30)
+          .transform((v) => normalizePhone(v)),
+        address: addressLine(300).min(1, "กรุณาระบุที่อยู่"),
+        subDistrict: optionalAddressLine(120),
+        district: optionalAddressLine(120),
+        province: optionalAddressLine(120),
+        postalCode: optionalPostalCode,
         shippingMethod: z.string(),
         shippingCost: z.number().default(0),
         isPaid: z.boolean().default(false),
@@ -274,13 +282,18 @@ export const deliveryRouter = router({
     .use(salesOrProduction)
     .input(
       byIdInput.extend({
-        recipientName: z.string().optional(),
-        phone: z.string().optional(),
-        address: z.string().optional(),
-        subDistrict: z.string().optional(),
-        district: z.string().optional(),
-        province: z.string().optional(),
-        postalCode: z.string().optional(),
+        recipientName: optionalAddressLine(120),
+        phone: z
+          .string()
+          .trim()
+          .max(30)
+          .optional()
+          .transform((v) => (v ? normalizePhone(v) : v)),
+        address: optionalAddressLine(300),
+        subDistrict: optionalAddressLine(120),
+        district: optionalAddressLine(120),
+        province: optionalAddressLine(120),
+        postalCode: optionalPostalCode,
         shippingMethod: z.string().optional(),
         trackingNumber: z.string().optional(),
         shippingCost: z.number().optional(),
@@ -290,7 +303,53 @@ export const deliveryRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      return ctx.prisma.delivery.update({ where: { id }, data });
+      // แก้ใบส่งของต้องทิ้งร่องรอย (เบสสั่ง 2026-08-12) — เดิม update ตรงไม่มี audit เลย
+      // ต่างจาก create ที่มีครบ · ที่อยู่/เลขพัสดุบนใบที่ส่งออกไปแล้วถูกแก้ได้เงียบๆ
+      // แล้วไล่ไม่ได้ว่าใครแก้ตอนไหน (ของไปผิดบ้าน = ต้องสืบย้อนได้)
+      return ctx.prisma.$transaction(async (tx) => {
+        const before = await tx.delivery.findUniqueOrThrow({
+          where: { id },
+          select: {
+            recipientName: true,
+            phone: true,
+            address: true,
+            subDistrict: true,
+            district: true,
+            province: true,
+            postalCode: true,
+            shippingMethod: true,
+            trackingNumber: true,
+            shippingCost: true,
+            isPaid: true,
+            notes: true,
+            status: true,
+          },
+        });
+
+        const updated = await tx.delivery.update({ where: { id }, data });
+
+        // เก็บเฉพาะช่องที่เปลี่ยนจริง — log ทั้งใบทุกครั้งอ่านไม่ออกว่าอะไรขยับ
+        const changed = Object.entries(data).filter(
+          ([k, v]) => v !== undefined && String(before[k as keyof typeof before] ?? "") !== String(v ?? "")
+        );
+        if (changed.length > 0) {
+          await createAuditLog(tx, {
+            userId: ctx.userId,
+            action: "UPDATE",
+            entityType: "DELIVERY",
+            entityId: id,
+            oldValue: Object.fromEntries(
+              changed.map(([k]) => [k, before[k as keyof typeof before]])
+            ),
+            newValue: Object.fromEntries(changed),
+            // ส่งของออกไปแล้วยังแก้ได้ (ของจริงมีเคสแก้เลขพัสดุ/ที่อยู่ตามที่ขนส่งแจ้ง)
+            // แต่ต้องอ่านออกจาก log ว่าแก้ตอนใบอยู่สถานะไหน
+            reason: `แก้ใบจัดส่งขณะสถานะ ${before.status}`,
+          });
+        }
+
+        return updated;
+      });
     }),
 
   updateStatus: protectedProcedure
