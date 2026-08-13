@@ -27,6 +27,8 @@ export type AddonForm = {
 };
 
 export type OrderItemProductForm = {
+  // Stable UI identity — ไม่ส่งเข้า mutation/ฐานข้อมูล ใช้กัน local state ย้ายผิดสินค้าเมื่อ reorder
+  formKey?: string;
   productId?: string;
   productType: string;
   description: string;
@@ -124,6 +126,34 @@ export const EMPTY_PRODUCT: OrderItemProductForm = {
   receivedInspected: false,
   receiveNote: "",
 };
+
+let fallbackProductKeySequence = 0;
+
+function createProductFormKey(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return `product-${globalThis.crypto.randomUUID()}`;
+  }
+  fallbackProductKeySequence += 1;
+  return `product-${Date.now().toString(36)}-${fallbackProductKeySequence.toString(36)}`;
+}
+
+export function createOrderItemProduct(
+  overrides: Partial<OrderItemProductForm> = {},
+): OrderItemProductForm {
+  return {
+    ...structuredClone(EMPTY_PRODUCT),
+    ...overrides,
+    formKey: overrides.formKey || createProductFormKey(),
+  };
+}
+
+export function ensureOrderItemProductFormKey(
+  product: OrderItemProductForm,
+): OrderItemProductForm {
+  return typeof product.formKey === "string" && product.formKey
+    ? product
+    : { ...product, formKey: createProductFormKey() };
+}
 
 export const EMPTY_ITEM: OrderItemForm = {
   description: "",

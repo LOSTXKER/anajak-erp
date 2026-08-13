@@ -1,5 +1,5 @@
 import type { OrderItemForm } from "@/types/order-form";
-import { EMPTY_ITEM, EMPTY_PRODUCT } from "@/types/order-form";
+import { EMPTY_ITEM, createOrderItemProduct } from "@/types/order-form";
 import type { SelectedVariantItem } from "@/components/product-picker";
 
 // รวมสินค้าที่หยิบจากสต๊อกเข้า items ของฟอร์ม — logic เดียวใช้ทั้งหน้าเปิดงาน (orders/new)
@@ -66,8 +66,7 @@ export function mergeStockVariantsIntoItems(
         !updatedProducts[0].productId &&
         !updatedProducts[0].description &&
         !updatedProducts[0].itemSource;
-      const newProd: typeof EMPTY_PRODUCT = {
-        ...structuredClone(EMPTY_PRODUCT),
+      const newProd = createOrderItemProduct({
         productId: v.productId,
         itemSource: "FROM_STOCK",
         productType: v.productType,
@@ -78,7 +77,7 @@ export function mergeStockVariantsIntoItems(
         productSku: v.sku,
         productName: v.name,
         stockAvailable: v.stock,
-      };
+      });
       if (isEmptyFirst) {
         updatedProducts[0] = newProd;
       } else {

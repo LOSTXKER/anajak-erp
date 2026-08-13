@@ -17,13 +17,14 @@ import {
 import type { OrderItemForm } from "@/types/order-form";
 import {
   PRICING_TYPE_LABELS,
-  EMPTY_PRODUCT,
+  createOrderItemProduct,
   itemHasContent,
 } from "@/types/order-form";
 import { PrintTableRow } from "./print-table-row";
 import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
+import { ProductAdaptiveCard } from "./product-adaptive-card";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
 import { FIELD_LABEL, FIELD_MEASURE, FOCUS_BUTTON, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
@@ -193,9 +194,10 @@ export function OrderItemCard({
   const addProductWithSource = (source: string) => {
     onSetItems((prev) => {
       const copy = [...prev];
-      const newProd = structuredClone(EMPTY_PRODUCT);
-      newProd.itemSource = source;
-      if (source === "CUSTOMER_PROVIDED") newProd.baseUnitPrice = 0;
+      const newProd = createOrderItemProduct({
+        itemSource: source,
+        ...(source === "CUSTOMER_PROVIDED" ? { baseUnitPrice: 0 } : {}),
+      });
       copy[itemIdx] = { ...copy[itemIdx], products: [...copy[itemIdx].products, newProd] };
       return copy;
     });
@@ -204,6 +206,9 @@ export function OrderItemCard({
   const itemPriceSummary = buildOrderItemPriceSummary(item);
   const { totalQuantity: totalQty, subtotal } = itemPriceSummary;
   const headingId = `${cardId}-heading`;
+  const usesAdaptiveProductBlocks = item.products.some(
+    (product) => product.itemSource !== "FROM_STOCK",
+  );
 
   // ── section: คำอธิบายงาน ──
   const descField = (
@@ -349,49 +354,11 @@ export function OrderItemCard({
           ))}
         </div>
       ) : (
-        <>
-          {/* พื้นที่กว้างพอ (container ≥ 2xl): ตารางหนึ่งแถวต่อสินค้า พร้อมหัวคอลัมน์ครบ */}
-          <div
-            className={cn(
-              "hidden overflow-hidden",
-              isIntake ? "@2xl:block" : "@3xl:block"
-            )}
-          >
-            <table className="w-full table-fixed">
-              <ItemTableCols />
-              <thead className={TABLE_HEAD_SURFACE}>
-                <tr className="text-xs font-medium">
-                  <th className="px-2 py-2.5 text-left">แหล่ง</th>
-                  <th className="px-2 py-2.5 text-left">สินค้า</th>
-                  <th className="px-2 py-2.5 text-center">แพค</th>
-                  <th className="px-2 py-2.5 text-center">ราคา</th>
-                  <th className="px-2 py-2.5 text-center">ส่วนลด</th>
-                  <th className="px-2 py-2.5 text-center">จำนวน</th>
-                  <th className="px-2 py-2.5 text-center">รวม</th>
-                  <th className="py-2.5">
-                    <span className="sr-only">จัดลำดับและลบสินค้า</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {item.products.map((prod, pIdx) => (
-                  <ProductTableRow
-                    key={pIdx}
-                    product={prod}
-                    prodIdx={pIdx}
-                    itemIdx={itemIdx}
-                    totalProducts={item.products.length}
-                    onSetItems={onSetItems}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {/* จอแคบใช้การ์ด ไม่บีบตาราง 8 คอลัมน์ลงมือถือ/แท็บเล็ต */}
-          <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
+        usesAdaptiveProductBlocks ? (
+          <div className="space-y-3">
             {item.products.map((prod, pIdx) => (
-              <ProductCardMobile
-                key={pIdx}
+              <ProductAdaptiveCard
+                key={prod.formKey ?? `${prod.itemSource}-${pIdx}`}
                 product={prod}
                 prodIdx={pIdx}
                 itemIdx={itemIdx}
@@ -400,7 +367,60 @@ export function OrderItemCard({
               />
             ))}
           </div>
-        </>
+        ) : (
+          <>
+            {/* สินค้าจากสต็อกล้วนคงตารางเดิมที่เบสเคาะไว้ */}
+            <div
+              className={cn(
+                "hidden overflow-hidden",
+                isIntake ? "@2xl:block" : "@3xl:block"
+              )}
+            >
+              <table className="w-full table-fixed">
+                <ItemTableCols />
+                <thead className={TABLE_HEAD_SURFACE}>
+                  <tr className="text-xs font-medium">
+                    <th className="px-2 py-2.5 text-left">แหล่ง</th>
+                    <th className="px-2 py-2.5 text-left">สินค้า</th>
+                    <th className="px-2 py-2.5 text-center">แพค</th>
+                    <th className="px-2 py-2.5 text-center">ราคา</th>
+                    <th className="px-2 py-2.5 text-center">ส่วนลด</th>
+                    <th className="px-2 py-2.5 text-center">จำนวน</th>
+                    <th className="px-2 py-2.5 text-center">รวม</th>
+                    <th className="py-2.5">
+                      <span className="sr-only">จัดลำดับและลบสินค้า</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {item.products.map((prod, pIdx) => (
+                    <ProductTableRow
+                      key={prod.formKey ?? `stock-table-${pIdx}`}
+                      product={prod}
+                      prodIdx={pIdx}
+                      itemIdx={itemIdx}
+                      totalProducts={item.products.length}
+                      onSetItems={onSetItems}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* จอแคบใช้การ์ด ไม่บีบตาราง 8 คอลัมน์ลงมือถือ/แท็บเล็ต */}
+            <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
+              {item.products.map((prod, pIdx) => (
+                <ProductCardMobile
+                  key={prod.formKey ?? `stock-mobile-${pIdx}`}
+                  product={prod}
+                  prodIdx={pIdx}
+                  itemIdx={itemIdx}
+                  totalProducts={item.products.length}
+                  onSetItems={onSetItems}
+                />
+              ))}
+            </div>
+          </>
+        )
       )}
     </div>
   );

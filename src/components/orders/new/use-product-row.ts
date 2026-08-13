@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { sumVariantQty } from "@/lib/size-matrix";
+import { moveOrderItemProduct } from "@/lib/order-item-composer";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 
 // Logic แถวสินค้า 1 ชิ้น (handlers + state + derived) — ใช้ร่วม ProductTableRow (เดสก์ท็อป/ตาราง)
@@ -11,7 +12,6 @@ export function useProductRow(
   product: OrderItemProductForm,
   prodIdx: number,
   itemIdx: number,
-  totalProducts: number,
   onSetItems: (updater: (prev: OrderItemForm[]) => OrderItemForm[]) => void
 ) {
   // งานตัดเย็บ/ลูกค้าส่งมา แทบไม่มีไซส์เดียว → เปิดตารางหลายไซส์ (SizeMatrix) เป็น default (UX7)
@@ -55,15 +55,9 @@ export function useProductRow(
   };
 
   const moveProduct = (direction: -1 | 1) => {
-    const newIdx = prodIdx + direction;
-    if (newIdx < 0 || newIdx >= totalProducts) return;
-    onSetItems((prev) => {
-      const copy = [...prev];
-      const products = [...copy[itemIdx].products];
-      [products[prodIdx], products[newIdx]] = [products[newIdx], products[prodIdx]];
-      copy[itemIdx] = { ...copy[itemIdx], products };
-      return copy;
-    });
+    onSetItems((prev) =>
+      moveOrderItemProduct(prev, itemIdx, prodIdx, direction)
+    );
   };
 
   const variant = product.variants[0] || { size: "", color: "", quantity: 0 };

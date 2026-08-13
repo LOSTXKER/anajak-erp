@@ -9,6 +9,7 @@ import {
   EMPTY_ADDON,
   EMPTY_ITEM,
   EMPTY_FEE,
+  ensureOrderItemProductFormKey,
   itemHasContent,
 } from "@/types/order-form";
 import {
@@ -106,7 +107,9 @@ function normalizeItems(value: unknown): OrderItemForm[] {
       ...item,
       description: stringValue(item.description),
       notes: stringValue(item.notes),
-      products: Array.isArray(item.products) ? item.products as OrderItemForm["products"] : [],
+      products: Array.isArray(item.products)
+        ? (item.products as OrderItemForm["products"]).map(ensureOrderItemProductFormKey)
+        : [],
       prints,
       addons: Array.isArray(item.addons) ? item.addons as OrderItemForm["addons"] : [],
     };

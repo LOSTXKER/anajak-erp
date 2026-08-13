@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { cn, formatCurrency } from "@/lib/utils";
-import { Trash2, ImageIcon, ChevronUp, ChevronDown, LayoutGrid } from "lucide-react";
+import { ImageIcon, LayoutGrid } from "lucide-react";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
 import { ITEM_SOURCES } from "@/types/order-form";
 import { useProductRow } from "./use-product-row";
 import { CustomMadeDetail } from "./custom-made-detail";
 import { SizeMatrix } from "./size-matrix";
+import { ProductRowActions } from "./product-row-actions";
 
 // การ์ดสินค้า 1 ชิ้น — เวอร์ชันมือถือ (จอ < sm) · เรียงแนวตั้ง ไม่ต้องเลื่อนซ้ายขวา (UX7)
 // logic เดียวกับ ProductTableRow (เดสก์ท็อป) ผ่าน useProductRow — JSX ต่างแค่ layout
@@ -34,7 +35,7 @@ export function ProductCardMobile({
     qty, variant, isFromStock, isCustomMade, isCustomerProvided,
     canMatrix, multi, totalQty, lineTotal,
     productLabel, variantLabel,
-  } = useProductRow(product, prodIdx, itemIdx, totalProducts, onSetItems);
+  } = useProductRow(product, prodIdx, itemIdx, onSetItems);
 
   const fieldLabel = "mb-1 block text-xs text-slate-500 dark:text-slate-400";
 
@@ -59,21 +60,12 @@ export function ProductCardMobile({
               .map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </Select>
         )}
-        <div className="flex items-center gap-0.5">
-          {totalProducts > 1 && (
-            <>
-              <Button type="button" variant="ghost" size="icon-sm" onClick={() => moveProduct(-1)} disabled={prodIdx === 0} aria-label="เลื่อนขึ้น" className="text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
-                <ChevronUp />
-              </Button>
-              <Button type="button" variant="ghost" size="icon-sm" onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} aria-label="เลื่อนลง" className="text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
-                <ChevronDown />
-              </Button>
-            </>
-          )}
-          <Button type="button" variant="ghost" size="icon-sm" onClick={removeProduct} aria-label="ลบสินค้า" className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400">
-            <Trash2 />
-          </Button>
-        </div>
+        <ProductRowActions
+          productIndex={prodIdx}
+          totalProducts={totalProducts}
+          onMove={moveProduct}
+          onRemove={removeProduct}
+        />
       </div>
 
       {/* สินค้า */}
@@ -189,7 +181,13 @@ export function ProductCardMobile({
       )}
 
       {/* หลายไซส์ — ตารางกรอกไซส์×จำนวน */}
-      {multi && <SizeMatrix variants={product.variants} onChange={(v) => updateProduct("variants", v)} />}
+      {multi && (
+        <SizeMatrix
+          idPrefix={`mobile-size-${itemIdx}-${prodIdx}`}
+          variants={product.variants}
+          onChange={(v) => updateProduct("variants", v)}
+        />
+      )}
     </div>
   );
 }

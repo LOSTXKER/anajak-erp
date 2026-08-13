@@ -7,10 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
-  Trash2,
   ImageIcon,
-  ChevronUp,
-  ChevronDown,
   LayoutGrid,
 } from "lucide-react";
 import type { OrderItemForm, OrderItemProductForm } from "@/types/order-form";
@@ -19,6 +16,7 @@ import { getProductSourcePresentation } from "@/lib/order-item-composer";
 import { useProductRow } from "./use-product-row";
 import { CustomMadeDetail } from "./custom-made-detail";
 import { SizeMatrix } from "./size-matrix";
+import { ProductRowActions } from "./product-row-actions";
 
 // แถวสินค้า 1 ชิ้น — 8 คอลัมน์: แหล่ง · สินค้า · แพค · ราคา · ส่วนลด · จำนวน · รวม · จัดการ
 // สเปคตัดเย็บและหลายไซส์ยังอยู่แถวเสริมเต็มกว้าง เพราะเป็นข้อมูลหลายช่องในตัวเอง
@@ -38,7 +36,7 @@ export function ProductTableRow({
     qty, variant, isFromStock, isCustomMade, isCustomerProvided,
     canMatrix, multi, totalQty, lineTotal,
     productLabel, variantLabel,
-  } = useProductRow(product, prodIdx, itemIdx, totalProducts, onSetItems);
+  } = useProductRow(product, prodIdx, itemIdx, onSetItems);
   const sourcePresentation = product.itemSource
     ? getProductSourcePresentation(product.itemSource)
     : null;
@@ -182,23 +180,15 @@ export function ProductTableRow({
           )}
         </td>
 
-        {/* ลบ + เลื่อนลำดับ */}
+        {/* จัดการ — เมนูเดียวพอดีกับคอลัมน์ 44px ไม่ซ้อนลูกศรสูง 72px */}
         <td className="py-2 pr-1 align-top">
-          <div className="flex items-center justify-end gap-0.5">
-            {totalProducts > 1 && (
-              <div className="flex flex-col">
-                <Button type="button" variant="ghost" size="icon-sm" aria-label={`เลื่อนสินค้า ${prodIdx + 1} ขึ้น`} onClick={() => moveProduct(-1)} disabled={prodIdx === 0} className="text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
-                  <ChevronUp />
-                </Button>
-                <Button type="button" variant="ghost" size="icon-sm" aria-label={`เลื่อนสินค้า ${prodIdx + 1} ลง`} onClick={() => moveProduct(1)} disabled={prodIdx === totalProducts - 1} className="text-slate-300 hover:text-slate-600 disabled:opacity-30 dark:text-slate-600 dark:hover:text-slate-300">
-                  <ChevronDown />
-                </Button>
-              </div>
-            )}
-            <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบสินค้า ${prodIdx + 1}`} onClick={removeProduct} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400">
-              <Trash2 />
-            </Button>
-          </div>
+          <ProductRowActions
+            mode="menu"
+            productIndex={prodIdx}
+            totalProducts={totalProducts}
+            onMove={moveProduct}
+            onRemove={removeProduct}
+          />
         </td>
       </tr>
 
@@ -217,7 +207,11 @@ export function ProductTableRow({
         <tr>
           <td aria-hidden="true" />
           <td colSpan={7} className="pb-3 pt-1 pr-1">
-            <SizeMatrix variants={product.variants} onChange={(v) => updateProduct("variants", v)} />
+            <SizeMatrix
+              idPrefix={`desktop-size-${itemIdx}-${prodIdx}`}
+              variants={product.variants}
+              onChange={(v) => updateProduct("variants", v)}
+            />
           </td>
         </tr>
       )}

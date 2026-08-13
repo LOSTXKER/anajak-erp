@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EMPTY_ITEM, EMPTY_PRINT } from "@/types/order-form";
+import { EMPTY_ITEM, EMPTY_PRINT, createOrderItemProduct } from "@/types/order-form";
 import { EMPTY_ORDER_HEADER } from "./use-order-header-form";
 import { EMPTY_SHIPPING_STATE } from "./use-order-shipping";
 import {
@@ -115,6 +115,45 @@ describe("order create draft v2", () => {
       designImageUrl: "https://storage.example/print.png",
     });
     expect(restoredPrint).not.toHaveProperty("designImagePreview");
+  });
+
+  it("กู้ลำดับสินค้าและ form key พร้อมสเปคของแต่ละแหล่งได้ครบ", () => {
+    const storage = new MemoryStorage();
+    const draft = completeDraft();
+    draft.items[0].products = [
+      createOrderItemProduct({
+        formKey: "provided-1",
+        itemSource: "CUSTOMER_PROVIDED",
+        description: "เสื้อลูกค้า",
+        garmentCondition: "GOOD",
+        variants: [{ color: "ขาว", size: "L", quantity: 12 }],
+      }),
+      createOrderItemProduct({
+        formKey: "custom-1",
+        itemSource: "CUSTOM_MADE",
+        description: "ตัดเย็บใหม่",
+        patternId: "pattern-1",
+        fabricType: "COTTON",
+        variants: [{ color: "ดำ", size: "XL", quantity: 8 }],
+      }),
+    ];
+
+    saveOrderDraft(draft, "reorder-user", { storage, now: 100 });
+    const restored = loadOrderDraft("reorder-user", { storage, now: 101 });
+
+    expect(restored?.items[0].products.map((entry) => entry.formKey)).toEqual([
+      "provided-1",
+      "custom-1",
+    ]);
+    expect(restored?.items[0].products[0]).toMatchObject({
+      garmentCondition: "GOOD",
+      variants: [{ color: "ขาว", size: "L", quantity: 12 }],
+    });
+    expect(restored?.items[0].products[1]).toMatchObject({
+      patternId: "pattern-1",
+      fabricType: "COTTON",
+      variants: [{ color: "ดำ", size: "XL", quantity: 8 }],
+    });
   });
 
   it("ลบ draft ที่หมดอายุหรือคนละ version แทนการกู้ข้อมูลเก่า", () => {
