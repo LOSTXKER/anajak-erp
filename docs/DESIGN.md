@@ -24,7 +24,7 @@ selected และ focus เพื่อให้สถานะชี้กั�
 | card | `#fff` | `#252528` | `bg-surface` / `card-surface` |
 | menu/dialog | `#fff` | `#252528` | `bg-surface-elevated` / `overlay-surface` |
 | กล่องจมเชิงโครงสร้าง/disabled | `#f3f5f7` | `#1d1d1f` | `bg-surface-muted` / `SUNK_PANEL` |
-| ช่องกรอก | `#fff` + ขอบ `#848e99` | `#101012` + ขอบ `#6f6f77` | `FIELD_SURFACE` |
+| ช่องกรอก | `#fff` + ขอบ `#c8d0d9` | `#101012` + ขอบ `#3f3f44` | `FIELD_SURFACE` |
 | control บน toolbar | `#fff` + เงา | `#252528` + เงา | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
 | ปุ่มรอง | `#fff` + ขอบบาง+เงา | `#252528` + ขอบบาง+เงา | `Button outline/secondary/subtle` |
 | ขอบทั่วไป / เส้นคั่น | `#e2e6ea` / `#e8ebef` | `#343438` / `#303034` | `border-border` / `border-divider` |
@@ -52,8 +52,8 @@ selected และ focus เพื่อให้สถานะชี้กั�
 - ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
-- Minimal = ไม่มีเส้นกรอบ **ตกแต่ง** แต่ functional boundary ต้องอยู่: card/table/status rail ใช้ surface+เงาโดยไร้ outline · field ใช้ขาว/เข้ม + เส้น 1px ที่ผ่าน 3:1 · toolbar/secondary action ใช้ surface ยก · กล่องจมใช้ `surface-muted` เฉพาะโครงสร้าง
-- ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — `border-field-border bg-field` ไม่มีเงา; focus/error เปลี่ยนสีเส้นเดิมโดยความสูงไม่ขยับ · ห้าม ancestor เปลี่ยนสี field ตามตำแหน่ง
+- Minimal = ไม่มีเส้นกรอบ **ตกแต่ง**: card/table/status rail ใช้ surface+เงาโดยไร้ outline · field ใช้ขาว/เข้ม + เส้น resting อ่อนเพื่อช่วยเห็นรูปทรง · toolbar/secondary action ใช้ surface ยก · กล่องจมใช้ `surface-muted` เฉพาะโครงสร้าง
+- ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — `border-field-border bg-field` ไม่มีเงา; resting boundary ต้องอยู่ในช่วงที่ guard ล็อกไว้ไม่ให้จางจนกลืนหรือเข้มจนเป็นตาราง · focus/error ใช้เส้น contrast สูงและเปลี่ยนสีเส้นเดิมโดยความสูงไม่ขยับ · ห้าม ancestor เปลี่ยนสี field ตามตำแหน่ง
 - `SearchInput`/`Select` ที่อยู่บน `Toolbar` ระบุ `surface="raised"`; ใน form/dialog ระบุ/default `field`; action ในแถวที่ตั้งใจโปร่งใช้ `surface="inline"` แทน class สีดิบ
 - field และ Button ที่ disabled ใช้ muted fill/text + `shadow-none` โดยไม่ลด opacity ทั้งก้อน เพื่อให้ยังอ่านค่าที่ล็อกอยู่ได้; icon-only/checkbox/switch คง feedback disabled ของ primitive ตัวเอง
 - สีสถานะใช้เฉพาะ **blue / red / amber / green** ผ่าน `Badge`, `Alert`, `StatusLabel`, `TINT`

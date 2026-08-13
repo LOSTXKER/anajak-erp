@@ -81,9 +81,9 @@ export const FOCUS_FIELD_INVALID =
    ผิวของพื้นผิวแต่ละแบบ
    ------------------------------------------------------------ */
 
-/** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — พื้น field + เส้น functional ที่เห็นทุกบริบท
- *  card ยังไร้กรอบ แต่พื้นที่ที่ต้องกรอกห้ามพึ่งความต่างของ fill เพียงอย่างเดียว
- *  focus/error เปลี่ยนสีเส้นเดิม จึงไม่ทำให้ขนาด control ขยับ */
+/** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — พื้น field + เส้น resting ที่สงบ
+ *  label/content/context บอกว่าเป็น control; เส้นมีไว้ช่วยเห็นรูปทรง ไม่ใช่สร้างตาราง
+ *  focus/error เปลี่ยนสีเส้นเดิมเป็น contrast สูง จึงไม่ทำให้ขนาด control ขยับ */
 export const FIELD_SURFACE =
   "border border-field-border bg-field text-strong placeholder:text-placeholder aria-invalid:border-red-500 aria-invalid:bg-red-50/50 aria-invalid:focus-visible:border-red-500 aria-invalid:focus-visible:ring-red-500/30 data-[invalid=true]:border-red-500 data-[invalid=true]:bg-red-50/50 data-[invalid=true]:focus-visible:border-red-500 data-[invalid=true]:focus-visible:ring-red-500/30 dark:aria-invalid:border-red-400 dark:aria-invalid:bg-red-950/20 dark:aria-invalid:focus-visible:border-red-400 dark:aria-invalid:focus-visible:ring-red-400/30 dark:data-[invalid=true]:border-red-400 dark:data-[invalid=true]:bg-red-950/20 dark:data-[invalid=true]:focus-visible:border-red-400 dark:data-[invalid=true]:focus-visible:ring-red-400/30";
 

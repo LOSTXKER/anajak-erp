@@ -81,6 +81,22 @@ function checkContrast(name: string, foreground: Rgb, background: Rgb, minimum: 
   }
 }
 
+function checkContrastWindow(
+  name: string,
+  foreground: Rgb,
+  background: Rgb,
+  minimum: number,
+  maximum: number,
+) {
+  const ratio = contrast(foreground, background);
+  if (ratio < minimum || ratio > maximum) {
+    failed++;
+    console.log(
+      `❌ ${name}: ${ratio.toFixed(2)}:1 (ต้องอยู่ระหว่าง ${minimum}–${maximum}:1)`,
+    );
+  }
+}
+
 function check(name: string, html: string, must: string[], mustNot: string[] = []) {
   const cls = /class="([^"]*)"/.exec(html)?.[1] ?? "";
   const set = new Set(cls.split(/\s+/));
@@ -103,8 +119,8 @@ function check(name: string, html: string, must: string[], mustNot: string[] = [
 const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
 
-// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้นขาว+functional boundary
-// card ยังไร้กรอบ แต่ field ต้องเห็นบนทั้ง card ขาวและกล่องจม — มติล่าสุด 2026-08-14
+// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้นขาว+ขอบ resting อ่อน
+// label/content/context บอกว่าเป็น control; เส้นช่วยเห็นรูปทรงแต่ห้ามเข้มจนฟอร์มเป็นตาราง
 const FIELD = [
   "border-field-border",
   "bg-field",
@@ -737,14 +753,44 @@ check(
       hexRgb(colorValues("field")[theme]!),
       4.5,
     );
+    const restingWindows = theme === 0
+      ? {
+          field: [1.45, 1.8],
+          surface: [1.45, 1.8],
+          "surface-muted": [1.3, 1.65],
+          bg: [1.35, 1.7],
+        }
+      : {
+          field: [1.65, 2.2],
+          surface: [1.35, 1.8],
+          "surface-muted": [1.45, 1.9],
+          bg: [1.5, 2.0],
+        };
     for (const adjacent of ["field", "surface", "surface-muted", "bg"] as const) {
-      checkContrast(
-        `${theme === 0 ? "light" : "dark"} ขอบ field บน ${adjacent}`,
+      const [minimum, maximum] = restingWindows[adjacent];
+      checkContrastWindow(
+        `${theme === 0 ? "light" : "dark"} ขอบ resting field บน ${adjacent}`,
         hexRgb(fieldBorders[theme]!),
         hexRgb(colorValues(adjacent)[theme]!),
-        3,
+        minimum,
+        maximum,
       );
     }
+
+    const focusColor = theme === 0 ? "blue-500" : "blue-300";
+    const errorColor = theme === 0 ? "red-500" : "red-400";
+    checkContrast(
+      `${theme === 0 ? "light" : "dark"} ขอบ focus บน field`,
+      hexRgb(colorValues(focusColor)[0]!),
+      hexRgb(fields[theme]!),
+      3,
+    );
+    checkContrast(
+      `${theme === 0 ? "light" : "dark"} ขอบ error บน field`,
+      hexRgb(colorValues(errorColor)[0]!),
+      hexRgb(fields[theme]!),
+      3,
+    );
     checkContrast(
       `${theme === 0 ? "light" : "dark"} selected text`,
       hexRgb(colorValues("interactive-selected-text")[theme]!),
