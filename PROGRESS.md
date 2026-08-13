@@ -4,8 +4,13 @@
 
 ## ตอนนี้
 
+> **✅ Hover แบบ minimal แยกตามชนิด interaction แล้ว 2026-08-13 — ไม่มีแถบเต็มใน navigation/status/card**
+> Sidebar, เมนูรอง, More drawer และขั้นสถานะบน rail เปลี่ยนเฉพาะสีข้อความ+ไอคอนตอนชี้ · clickable card ยกเงาและขยับข้อความ/ไอคอนโดยไม่ย้อมพื้น · current/selected คงพื้นฟ้า · keyboard focus และ touch pressed คง feedback เดิม · ปุ่ม, ตัวกรอง, menu highlight และตารางยังมี surface feedback เพื่อบอกพื้นที่กดและกันไล่ผิดแถว
+>
+> **ด่าน:** cold production Light/Dark 1280×720 + mobile 390×844 ผ่าน · inactive navigation และ status bg ก่อน/หลัง hover เท่าเดิม · production/quotation card bg คงเดิมและเงายก · Dark outsource lane label `#cbcbd0→#f5f5f7`, icon `#a4a4aa/#55555a→#cbcbd0` · selected/focus/60px bottom-nav target ผ่าน · ไม่มี overflow, hydration/app console error หรือ overlay · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit **693/693** · `verify:ui`/Impeccable detector/build ผ่าน · ภาพอยู่ `anajak-navigation-hover-confirm-pass1-2026-08-13/` และ `anajak-production-lane-confirm-pass2-2026-08-13/`
+
 > **✅ คืน visual contract แบบ minimal มี hierarchy แล้ว 2026-08-13 — แก้ regression จากก้อนสีและแก้ over-flatten จากรอบแรก**
-> Card/table/list/status rail ใช้ surface สีขาว+ambient shadow ไม่มี zero-offset ring · search/sort/date/filter ที่ยืนบนผืนหน้าใช้ raised surface สีขาว+เงา จึงไม่กลืนกับ page · field ในฟอร์มและปุ่มรองทั่วไปยังใช้พื้นจมตามบริบท · production lane hover เปลี่ยนพื้น+ยกเงาโดยไม่วาดขอบ · overlay/sticky divider/drop target ยังเก็บ boundary ที่จำเป็น
+> Card/table/list/status rail ใช้ surface สีขาว+ambient shadow ไม่มี zero-offset ring · search/sort/date/filter ที่ยืนบนผืนหน้าใช้ raised surface สีขาว+เงา จึงไม่กลืนกับ page · field ในฟอร์มและปุ่มรองทั่วไปยังใช้พื้นจมตามบริบท · production lane hover ยกเงาและข้อความโดยไม่ย้อมพื้น/วาดขอบ · overlay/sticky divider/drop target ยังเก็บ boundary ที่จำเป็น
 >
 > **interaction/a11y:** focus วาดเส้นน้ำเงิน+ring, error วาดเส้น/พื้น/วงแดงจาก primitive กลาง (DatePicker ใช้ `data-invalid` + `aria-describedby` ตาม role ที่รองรับ) · FilterChip มี `aria-pressed` + เครื่องหมายถูก ไม่พึ่งสีอย่างเดียว · target/keyboard/Escape/focus return เดิมไม่ถอย
 >
@@ -23,7 +28,7 @@
 ### ประวัติก่อนหน้า
 
 > **✅ Sidebar เข้าระบบสีล่าสุดครบแล้ว 2026-08-13 — desktop, drawer และ bottom nav ใช้ภาษาสถานะเดียวกัน**
-> Sidebar คง chrome ขาว/เทาดำ `#fff/#161618` แต่มี interaction สำหรับ chrome โดยเฉพาะ: Light `hover #eceef1 → pressed #e3e6e9`, Dark `hover #252528 → pressed #303034` จึงไม่กลายเป็นแถบหนักใกล้ selected · primary/secondary/drawer ใช้สูตรกลางเดียว: inactive ตัวปกติ+icon muted, hover/pressed ขยับ icon ตามลำดับ, active label+icon ใช้ selected blue เดียวกัน, focus inset และ radius 8px
+> Sidebar คง chrome ขาว/เทาดำ `#fff/#161618`; มติล่าสุดทับ hover พื้นเดิมแล้ว — inactive hover เปลี่ยนเฉพาะข้อความ+ไอคอน, pressed ยังใช้พื้น `#e3e6e9/#303034`, active label+icon ใช้ selected blue และพื้นฟ้าเดิม, focus inset และ radius 8px
 >
 > **เมนูรอง + mobile:** “เมนูทั้งหมด” เป็น disclosure กลาง ไม่ selected ซ้ำกับ child · route ลึกเลื่อนไปหา exact current หลัง permission โหลดครบ (`/settings/stock` current y=668–704 ใน nav y=64–720, `aria-current` 1 จุด) · 390×844 bottom nav สูง 73px, target 60px, current มีทั้ง icon pill+font-semibold และ “เพิ่มเติม” มี `aria-current=page` · sheet ชี้ child current จริง, Escape ปิดและคืน focus ให้ “เพิ่มเติม”
 >

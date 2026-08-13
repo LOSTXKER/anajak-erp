@@ -183,7 +183,6 @@
   --color-skeleton: #e2e6ea;
   --color-interactive-hover: #eceef1;
   --color-interactive-pressed: #e3e6e9;
-  --color-interactive-chrome-hover: #eceef1;
   --color-interactive-chrome-pressed: #e3e6e9;
   --color-interactive-selected: #d2e4f6;
   --color-interactive-selected-text: #305f93;
@@ -251,7 +250,6 @@
   --color-skeleton: #343438;
   --color-interactive-hover: #303034;
   --color-interactive-pressed: #38383c;
-  --color-interactive-chrome-hover: #252528;
   --color-interactive-chrome-pressed: #303034;
   --color-interactive-selected: #173c61;
   --color-interactive-selected-text: #c6daed;

@@ -13,7 +13,8 @@
 ## สี — semantic system (`src/app/globals.css`)
 
 รอบเก็บสี 2026-08-13 คง Light เกือบขาว คืน Dark เป็น neutral gray เข้มแบบเดิม
-และใช้ hover/pressed เป็นเทากลางแทนฟ้า · น้ำเงิน Anajak `#3973b2` สงวนให้ primary,
+และใช้ surface hover/pressed เป็นเทากลางแทนฟ้าเฉพาะ control/row/card ที่ต้องบอกพื้นที่กด ·
+navigation hover เปลี่ยนเฉพาะข้อความ+ไอคอน · น้ำเงิน Anajak `#3973b2` สงวนให้ primary,
 selected และ focus เพื่อให้สถานะชี้กับสถานะเลือกไม่สื่อความหมายซ้ำกัน
 
 | บทบาท | Light | Dark | utility |
@@ -28,7 +29,7 @@ selected และ focus เพื่อให้สถานะชี้กั�
 | ขอบทั่วไป / เส้นคั่น | `#e2e6ea` / `#e8ebef` | `#343438` / `#303034` | `border-border` / `border-divider` |
 | Hover | `#eceef1` | `#303034` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
 | Pressed | `#e3e6e9` | `#38383c` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
-| Hover บน navbar/sidebar | `#eceef1` | `#252528` | `bg-interactive-chrome-hover` / `INTERACTIVE_CHROME_HOVER` |
+| Hover บน navigation | ไม่มีพื้นเพิ่ม · ข้อความเข้มขึ้น | ไม่มีพื้นเพิ่ม · ข้อความสว่างขึ้น | `NAVIGATION_HOVER` |
 | Pressed บน navbar/sidebar | `#e3e6e9` | `#303034` | `bg-interactive-chrome-pressed` / `INTERACTIVE_CHROME_PRESSED` |
 | Selected | `#d2e4f6` | `#173c61` | `bg-interactive-selected text-interactive-selected-text` |
 
@@ -45,7 +46,9 @@ selected และ focus เพื่อให้สถานะชี้กั�
 
 กติกา interaction:
 
-- ของที่ชี้ได้ใช้ `INTERACTIVE_HOVER`; ของที่กดได้จริงจึงค่อย compose `INTERACTIVE_PRESSED`
+- navigation และขั้นสถานะบน rail ที่ยังไม่ถูกเลือกเปลี่ยนเฉพาะข้อความ+ไอคอน · selected/current คงพื้นฟ้า · touch pressed คงพื้นตอบสนอง
+- clickable card ใช้ `card-surface-hover` เพื่อยกเงาแทนการย้อมพื้นทั้งใบ
+- control, menu option และ row ที่ต้องบอกพื้นที่กดใช้ `INTERACTIVE_HOVER`; ของที่กดได้จริงจึงค่อย compose `INTERACTIVE_PRESSED`
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
 - Minimal = ไม่มีเส้นกรอบตกแต่ง แต่ห้ามทำทุกอย่างแบน: card/table/status rail ใช้ surface สีขาว+เงา · standalone toolbar control ใช้ `RAISED_CONTROL_SURFACE` · field ในฟอร์มจึงค่อยใช้พื้นจม · เส้นมีเฉพาะ focus/error, ขอบประพื้นที่เพิ่มของ และ divider ที่จำเป็นต่อการอ่าน

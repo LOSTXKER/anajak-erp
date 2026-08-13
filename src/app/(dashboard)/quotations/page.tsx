@@ -173,7 +173,7 @@ function QuotationsPageContent() {
               <Link
                 key={q.id}
                 href={`/quotations/${q.id}`}
-                className={cn("card-surface group block rounded-2xl p-4 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed", FOCUS_BUTTON)}
+                className={cn("card-surface card-surface-hover group block rounded-2xl p-4 active:bg-interactive-pressed dark:active:bg-interactive-pressed", FOCUS_BUTTON)}
                 aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -202,7 +202,7 @@ function QuotationsPageContent() {
                     <span className="tabular-nums font-semibold text-slate-900 dark:text-white">
                       {formatCurrency(q.totalAmount)}
                     </span>
-                    <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                    <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-secondary group-active:text-strong" aria-hidden="true" />
                   </div>
                 </div>
               </Link>

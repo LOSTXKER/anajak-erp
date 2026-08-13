@@ -456,6 +456,13 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] **mobile current state ไม่พึ่งสีอย่างเดียว** — active มีทั้งน้ำหนักและรูปทรง · “เพิ่มเติม” มี `aria-current` เมื่อ route ปัจจุบันอยู่ในกลุ่ม
 - [x] **verify Sidebar ของจริง** — Light/Dark desktop + 390px ไม่มี overflow · active/hover/pressed/focus แยกได้ · permission/navigation เดิมไม่ถอย · typecheck/lint/test/verify:ui/build ผ่าน
 
+#### ใบงานลด hover ของ navigation ให้เหลือ typography (เบสทักต่อ 2026-08-13)
+> Minimal ของระบบไม่ควรวาดแถบเต็มเมื่อเพียงชี้เมนู: navigation ที่ยังไม่ถูกเลือกเปลี่ยนน้ำหนักด้วยสีข้อความ+ไอคอนเท่านั้น · current/selected ยังคงพื้นฟ้า · focus และ touch pressed ยังคง feedback ที่มองเห็น
+
+- [x] **แยก semantic ตามชนิด interaction** — desktop sidebar, More drawer และขั้นสถานะบน rail ใช้ text/icon-only hover · clickable card ใช้เงา+ข้อความ/ไอคอน · ไม่แตะปุ่ม, icon control, filter/status choice บนมือถือ, menu highlight หรือตารางที่ต้องมี surface feedback
+- [x] **คง state ที่จำเป็น** — selected/current มีพื้นฟ้าและ `aria-current` เดิม · keyboard focus ring เดิม · pressed บน touch ยังมีพื้นตอบสนอง · mobile bottom nav ไม่ถอย
+- [x] **ล็อก regression + ตรวจจอจริง** — guard ห้าม navigation/status step/card วาดพื้นตอน hover แต่บังคับ text/elevation/pressed/selected/focus ตามชนิด · ตรวจ Light/Dark desktop + drawer/mobile และรัน typecheck/lint/unit/verify:ui/build
+
 #### ใบงาน Impeccable UX integrity refactor (เบสให้ audit + รื้อได้ทั้งระบบ 2026-08-13)
 > Audit โค้ดและจอจริง desktop/mobile พบว่า visual world ล่าสุดมีลำดับและควรคงไว้ · หนี้ที่ควรรื้อคือความซื่อสัตย์ของ interaction, query ที่ยิงโดยไม่จำเป็น, คิวหลายคนที่ค้าง, draft ที่บอกว่ากู้ได้แต่เก็บไม่ครบ และชื่อ V2/dead shell ที่ทำให้คนแก้ผิดบ้าน
 

@@ -10,7 +10,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **เป็นของจริง ไม่ใช่ mockup** — อ่านข้อมูลจาก tRPC/service/permission ชุดเดิมและทุก action พาไป flow ที่ใช้งานได้จริง · ห้ามมีตัวเลข/รายการตัวอย่างเขียนค้างในหน้า
 - [x] **จุดโฟกัสชัดใน 3 วินาที** — งานเสี่ยง/งานค้างและ action หลักมาก่อนสถิติสะสม · navigation ชั้นแรกมีเฉพาะงานหลัก แต่ทุกโมดูลที่มีสิทธิ์ยังเข้าถึงได้จากเมนูหรือค้นหา
 - [x] **ชุดสีเดียวทั้งระบบทั้งสองธีม** — ล็อกน้ำเงินแบรนด์ `#3973b2` ไว้ · Light ใช้ผืนเกือบขาว · Dark เป็น neutral gray เข้ม · page, chrome, card, sunk, field, overlay, border และข้อความทุกระดับอ่านลำดับเดียวกัน · semantic text ผ่าน WCAG AA · public/print ไม่ถูกธีมหลังบ้านรบกวน
-- [x] **สถานะโต้ตอบชัดแต่ไม่เป็นแถบหนัก** — hover/pressed เป็น neutral gray ไม่อมฟ้าและไม่กลืนกับ page/card/sunk · pressed/selected/focus/disabled แยกหน้าที่ชัด · น้ำเงินใช้กับ primary/selected/focus · ข้อความบนทุก state ผ่าน WCAG AA
+- [x] **สถานะโต้ตอบชัดแต่ไม่เป็นแถบหนัก** — navigation/ขั้นสถานะ hover เปลี่ยนเฉพาะสีข้อความ+ไอคอน · clickable card ใช้เงา · ปุ่ม/ตัวกรอง/แถวข้อมูลจึงค่อยใช้ neutral surface feedback · pressed/selected/focus/disabled แยกหน้าที่ชัด · น้ำเงินใช้กับ primary/selected/focus · ข้อความบนทุก state ผ่าน WCAG AA
 - [x] **แถบบนเป็นผืนเดียวเต็มจอ** — chrome และเส้นคั่นของ navbar พาดเต็ม viewport รวมส่วนโลโก้เหนือ sidebar · เนื้อหา/เมนูยังเลื่อนแยกกันและ mobile bottom navigation ไม่ถอย
 - [x] **ใช้ได้จริงหลายขนาดจอ** — 390px และ 1440px ไม่มี horizontal overflow · เป้ากดมือถือ ≥44px · sticky action ไม่ถูก bottom navigation ทับ · keyboard focus/ภาษาไทย/reduced-motion ใช้ได้ครบ
 - [x] **สถานะและสิทธิ์ไม่โกหก** — loading/error/retry/empty แยกกัน · ข้อมูลเงินและเมนู gated ตาม permission เดิม · ทางเข้าฟอร์มเปิดงานทุกจุดใช้กติกาเดียวกันและ fail closed
