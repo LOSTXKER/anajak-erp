@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FOCUS_BUTTON, RAISED_CONTROL_SURFACE } from "@/components/ui/tokens";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { hasActiveOrderListFilters } from "@/lib/order-list-ui";
 import { ChatLink } from "@/components/customers/chat-link";
 
@@ -452,7 +452,7 @@ function OrdersPageContent() {
         <SearchInput
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
-          className={RAISED_CONTROL_SURFACE}
+          surface="raised"
           placeholder="ค้นหาเลขออเดอร์, ชื่อ, ลูกค้า..."
           defaultValue={search}
           onChange={(event) => onSearchChange(event.target.value)}
@@ -463,6 +463,7 @@ function OrdersPageContent() {
               แต่จอแคบเป็นการ์ด ไม่มีหัวตารางให้กด ถ้าถอดทิ้งด้วยจะเรียงไม่ได้เลย */}
           <Select
             shape="pill"
+            surface="raised"
             aria-label="เรียงลำดับ"
             value={sort}
             onChange={(e) =>
@@ -471,7 +472,7 @@ function OrdersPageContent() {
                 page: null,
               })
             }
-            className={cn(RAISED_CONTROL_SURFACE, "w-auto px-3 lg:hidden")}
+            className="w-auto px-3 lg:hidden"
           >
             {sortOptions.map((o) => (
               <option key={o.value} value={o.value}>
@@ -488,7 +489,6 @@ function OrdersPageContent() {
             onChange={(f, t) =>
               replaceListState({ from: f || null, to: t || null, page: null })
             }
-            className={RAISED_CONTROL_SURFACE}
           />
 
           {/* ตัวกรองลอยใต้ปุ่ม — ตารางไม่ขยับ (เบสเคาะ 2026-07-31 แบบ ข)
@@ -497,7 +497,6 @@ function OrdersPageContent() {
             activeCount={activeFilterCount}
             onClear={clearFilters}
             resultLabel={`ดูผลลัพธ์ ${data?.total ?? 0} รายการ`}
-            triggerClassName={RAISED_CONTROL_SURFACE}
           >
             <FilterRow label="ช่องทาง">
               {CHANNEL_FILTERS.map((f) => (

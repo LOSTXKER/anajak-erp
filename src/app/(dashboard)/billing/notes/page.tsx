@@ -169,6 +169,7 @@ function BillingNotesPageContent() {
     >
       <Toolbar>
         <SearchInput
+          surface="raised"
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."

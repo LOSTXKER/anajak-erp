@@ -153,6 +153,7 @@ export default function NotificationsPage() {
         {FILTER_TABS.map((tab) => (
           <FilterChip
             key={tab.value}
+            surface="raised"
             selected={filter === tab.value}
             onClick={() => {
               setFilter(tab.value);

@@ -81,10 +81,26 @@ export const FOCUS_FIELD_INVALID =
    ผิวของพื้นผิวแต่ละแบบ
    ------------------------------------------------------------ */
 
-/** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — พื้นจมบอก affordance โดยไม่ตีกรอบถาวร
- *  คง border-transparent ไว้ให้ focus/error เปลี่ยนสีได้โดย control ไม่ขยับ */
+/** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — พื้น field + เส้น functional ที่เห็นทุกบริบท
+ *  card ยังไร้กรอบ แต่พื้นที่ที่ต้องกรอกห้ามพึ่งความต่างของ fill เพียงอย่างเดียว
+ *  focus/error เปลี่ยนสีเส้นเดิม จึงไม่ทำให้ขนาด control ขยับ */
 export const FIELD_SURFACE =
-  "border border-transparent bg-field text-strong placeholder:text-placeholder aria-invalid:border-red-500 aria-invalid:bg-red-50/50 aria-invalid:focus-visible:border-red-500 aria-invalid:focus-visible:ring-red-500/30 data-[invalid=true]:border-red-500 data-[invalid=true]:bg-red-50/50 data-[invalid=true]:focus-visible:border-red-500 data-[invalid=true]:focus-visible:ring-red-500/30 dark:aria-invalid:border-red-400 dark:aria-invalid:bg-red-950/20 dark:aria-invalid:focus-visible:border-red-400 dark:aria-invalid:focus-visible:ring-red-400/30 dark:data-[invalid=true]:border-red-400 dark:data-[invalid=true]:bg-red-950/20 dark:data-[invalid=true]:focus-visible:border-red-400 dark:data-[invalid=true]:focus-visible:ring-red-400/30";
+  "border border-field-border bg-field text-strong placeholder:text-placeholder aria-invalid:border-red-500 aria-invalid:bg-red-50/50 aria-invalid:focus-visible:border-red-500 aria-invalid:focus-visible:ring-red-500/30 data-[invalid=true]:border-red-500 data-[invalid=true]:bg-red-50/50 data-[invalid=true]:focus-visible:border-red-500 data-[invalid=true]:focus-visible:ring-red-500/30 dark:aria-invalid:border-red-400 dark:aria-invalid:bg-red-950/20 dark:aria-invalid:focus-visible:border-red-400 dark:aria-invalid:focus-visible:ring-red-400/30 dark:data-[invalid=true]:border-red-400 dark:data-[invalid=true]:bg-red-950/20 dark:data-[invalid=true]:focus-visible:border-red-400 dark:data-[invalid=true]:focus-visible:ring-red-400/30";
+
+/** control ที่ยืนเดี่ยวบนผืนหน้า — ขาว+เงาเบา โดยไม่ใช้ field-border เข้ม
+ *  caller บอกเพียง semantic role ผ่าน prop; primitive เป็นเจ้าของผิว */
+export const RAISED_CONTROL_SURFACE =
+  "border-transparent bg-surface shadow-sm";
+
+/** inline ใช้กับ control ที่ทำหน้าที่เป็น action ในแถว ไม่ใช่พื้นที่กรอก เช่นเมนูคัดลอก */
+export type ControlSurface = "field" | "raised" | "inline";
+
+export const INLINE_CONTROL_SURFACE =
+  "border-transparent bg-transparent shadow-none";
+
+/** disabled ยังต้องอ่านค่าและเห็นรูปทรงได้ — ใช้ muted fill โดยไม่ลด opacity ทั้งก้อน */
+export const DISABLED_CONTROL_SURFACE =
+  "disabled:border-border disabled:bg-surface-muted disabled:text-muted disabled:shadow-none disabled:opacity-100";
 
 /** ช่องกรอกบรรทัดเดียวที่ยืนลำพัง — กว้างเท่า 1 คอลัมน์ของกริด 2 ช่อง (ขอบขวาตรงกับ
  *  ช่องที่อยู่เหนือมันพอดี) · เดิมยืดเต็มการ์ด 976px = กว้างกว่าข้อความที่จะพิมพ์ 5 เท่า
@@ -93,12 +109,8 @@ export const FIELD_SURFACE =
 export const FIELD_MEASURE = "max-w-[calc(50%-0.5rem)]";
 
 /** กล่องย่อยที่จมลงไปในการ์ด (กลุ่มฟอร์ม · แถบสรุป)
- *  light สลับ field ข้างในเป็นขาว ไม่ให้พื้นเทากลืนกัน; dark คง field เข้มเดิม */
-export const SUNK_PANEL = "sunk-panel bg-surface-muted";
-
-/** control ที่ยืนเดี่ยวบนผืนหน้า (search/filter/sort ใน toolbar) — ยกขึ้นหนึ่งชั้น
- *  ด้วยพื้น surface + เงาเบาโดยไม่วาดเส้นรอบ · อย่าใช้กับ field ในฟอร์มที่ต้องจมลง */
-export const RAISED_CONTROL_SURFACE = "bg-surface shadow-sm";
+ *  เป็น structural surface เท่านั้น ห้ามเปลี่ยนสี field ลูกตามตำแหน่ง */
+export const SUNK_PANEL = "bg-surface-muted";
 
 /** ของที่กดได้ตอนชี้ — คนละชั้นกับ SUNK_PANEL เสมอ
  * แยก hover/pressed คนละ token เพื่อให้แถวที่ใช้แค่ช่วยไล่สายตาไม่หลอกว่ากดได้ */

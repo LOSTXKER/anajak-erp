@@ -2,8 +2,12 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { CONTROL_H, CONTROL_H_SM } from "./control-size";
 import {
+  type ControlSurface,
+  DISABLED_CONTROL_SURFACE,
   FIELD_SURFACE,
   FOCUS_FIELD,
+  INLINE_CONTROL_SURFACE,
+  RAISED_CONTROL_SURFACE,
   controlShapeClass,
   type ControlShape,
 } from "./tokens";
@@ -22,17 +26,22 @@ const Input = React.forwardRef<
   Omit<React.ComponentProps<"input">, "size"> & {
     shape?: ControlShape;
     size?: InputSize;
+    /** field = ช่องในฟอร์ม · raised = control ที่ยืนบนผืนหน้า/toolbar */
+    surface?: ControlSurface;
   }
 >(
-  ({ className, type, shape, size = "default", ...props }, ref) => {
+  ({ className, type, shape, size = "default", surface = "field", ...props }, ref) => {
     return (
       <input
         type={type}
         className={cn(
           controlShapeClass(shape),
           FIELD_SURFACE,
+          surface === "raised" && RAISED_CONTROL_SURFACE,
+          surface === "inline" && INLINE_CONTROL_SURFACE,
           FOCUS_FIELD,
-          "flex w-full px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
+          DISABLED_CONTROL_SURFACE,
+          "flex w-full px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium sm:text-sm disabled:cursor-not-allowed",
           // หลังก้อนพื้นฐานเสมอ — twMerge ตัดสินจาก "ตัวหลังชนะ" ถ้าวางก่อน text-base/sm:text-sm
           // ที่อยู่ข้างบนจะทับ text-xs กลับ (เขียนสลับแล้วขนาดไม่เปลี่ยน หาสาเหตุยาก)
           // มือถือคง text-base (16px) เสมอ — ต่ำกว่านั้น iOS Safari ซูมหน้าจอทุกครั้งที่แตะช่อง

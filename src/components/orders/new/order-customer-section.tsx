@@ -18,12 +18,14 @@ interface OrderCustomerSectionProps {
   customerId: string;
   selectedCustomer: PickerCustomer | null;
   onSelect: (id: string, customer: PickerCustomer | null) => void;
+  invalid?: boolean;
 }
 
 export function OrderCustomerSection({
   customerId,
   selectedCustomer,
   onSelect,
+  invalid = false,
 }: OrderCustomerSectionProps) {
   const isCorporate = selectedCustomer?.customerType === "CORPORATE";
   const profileGaps = selectedCustomer
@@ -83,6 +85,7 @@ export function OrderCustomerSection({
         value={customerId}
         onChange={onSelect}
         required
+        invalid={invalid}
         layout="inline"
         autoFocusSearch
       />

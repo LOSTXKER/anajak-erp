@@ -219,12 +219,13 @@ export function OrderItemCard({
             {otherItemsWithPrints.length > 0 && (
               <div className="relative">
                 <Select
+                  surface="inline"
                   aria-label="คัดลอกลายจากรายการอื่น"
                   value=""
                   onChange={(e) => {
                     if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
                   }}
-                  className="w-auto appearance-none rounded-lg border-0 bg-transparent pl-7 pr-2 text-slate-600 hover:bg-interactive-hover hover:text-secondary sm:text-xs dark:text-slate-400 dark:hover:bg-interactive-hover dark:hover:text-secondary"
+                  className="w-auto appearance-none rounded-lg pl-7 pr-2 text-slate-600 hover:bg-interactive-hover hover:text-secondary sm:text-xs dark:text-slate-400 dark:hover:bg-interactive-hover dark:hover:text-secondary"
                 >
                   <option value="">คัดลอกลาย...</option>
                   {otherItemsWithPrints.map(({ it, idx }) => (

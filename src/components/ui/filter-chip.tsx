@@ -9,19 +9,32 @@ interface FilterChipProps {
   onClick: () => void;
   children: React.ReactNode;
   className?: string;
+  /** muted = ตัวเลือกในกลุ่ม/overlay · raised = ตัวกรองที่ยืนบนผืนหน้า */
+  surface?: "muted" | "raised";
 }
 
-export function FilterChip({ selected, onClick, children, className }: FilterChipProps) {
+export function FilterChip({
+  selected,
+  onClick,
+  children,
+  className,
+  surface = "muted",
+}: FilterChipProps) {
   return (
     <button
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={cn(CONTROL_MIN_H, "inline-flex touch-manipulation items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors active:scale-[0.98]", FOCUS_BUTTON,
+      className={cn(
+        CONTROL_MIN_H,
+        "inline-flex touch-manipulation items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors active:scale-[0.98]",
+        FOCUS_BUTTON,
         selected
           // "กรองอยู่" = ฟ้าอ่อนชุด ACTIVE_FILTER ทั้งระบบ — น้ำเงินทึบสงวนให้ปุ่มหลัก
-          ? "bg-interactive-selected text-interactive-selected-text"
-          : "bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
+          ? "border-transparent bg-interactive-selected text-interactive-selected-text"
+          : surface === "raised"
+            ? "border-border bg-surface text-secondary shadow-sm hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong"
+            : "border-transparent bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
         className,
       )}
     >

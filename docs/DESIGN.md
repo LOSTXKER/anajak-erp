@@ -23,9 +23,10 @@ selected และ focus เพื่อให้สถานะชี้กั�
 | navbar/sidebar | `#fff` | `#161618` | `bg-chrome` |
 | card | `#fff` | `#252528` | `bg-surface` / `card-surface` |
 | menu/dialog | `#fff` | `#252528` | `bg-surface-elevated` / `overlay-surface` |
-| กล่องจม | `#f3f5f7` | `#1d1d1f` | `bg-surface-muted` / `SUNK_PANEL` |
-| ช่องกรอก/ปุ่มรอง | `#f3f5f7` | `#101012` | `bg-field` / `FIELD_SURFACE` |
-| control บน toolbar | `#fff` | `#252528` | `RAISED_CONTROL_SURFACE` (`bg-surface shadow-sm`) |
+| กล่องจมเชิงโครงสร้าง/disabled | `#f3f5f7` | `#1d1d1f` | `bg-surface-muted` / `SUNK_PANEL` |
+| ช่องกรอก | `#fff` + ขอบ `#848e99` | `#101012` + ขอบ `#6f6f77` | `FIELD_SURFACE` |
+| control บน toolbar | `#fff` + เงา | `#252528` + เงา | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
+| ปุ่มรอง | `#fff` + ขอบบาง+เงา | `#252528` + ขอบบาง+เงา | `Button outline/secondary/subtle` |
 | ขอบทั่วไป / เส้นคั่น | `#e2e6ea` / `#e8ebef` | `#343438` / `#303034` | `border-border` / `border-divider` |
 | Hover | `#f1f3f5` | `#303034` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
 | Pressed | `#e3e6e9` | `#38383c` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
@@ -51,8 +52,10 @@ selected และ focus เพื่อให้สถานะชี้กั�
 - ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
-- Minimal = ไม่มีเส้นกรอบตกแต่ง แต่ห้ามทำทุกอย่างแบน: card/table/status rail ใช้ surface สีขาว+เงา · standalone toolbar control ใช้ `RAISED_CONTROL_SURFACE` · field ในฟอร์มจึงค่อยใช้พื้นจม · เส้นมีเฉพาะ focus/error, ขอบประพื้นที่เพิ่มของ และ divider ที่จำเป็นต่อการอ่าน
-- ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — ปกติ `border-transparent`; เมื่อ focus/error จึงเปลี่ยนเป็นเส้นสีที่บอกสถานะ โดยความสูงไม่ขยับ
+- Minimal = ไม่มีเส้นกรอบ **ตกแต่ง** แต่ functional boundary ต้องอยู่: card/table/status rail ใช้ surface+เงาโดยไร้ outline · field ใช้ขาว/เข้ม + เส้น 1px ที่ผ่าน 3:1 · toolbar/secondary action ใช้ surface ยก · กล่องจมใช้ `surface-muted` เฉพาะโครงสร้าง
+- ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — `border-field-border bg-field` ไม่มีเงา; focus/error เปลี่ยนสีเส้นเดิมโดยความสูงไม่ขยับ · ห้าม ancestor เปลี่ยนสี field ตามตำแหน่ง
+- `SearchInput`/`Select` ที่อยู่บน `Toolbar` ระบุ `surface="raised"`; ใน form/dialog ระบุ/default `field`; action ในแถวที่ตั้งใจโปร่งใช้ `surface="inline"` แทน class สีดิบ
+- field และ Button ที่ disabled ใช้ muted fill/text + `shadow-none` โดยไม่ลด opacity ทั้งก้อน เพื่อให้ยังอ่านค่าที่ล็อกอยู่ได้; icon-only/checkbox/switch คง feedback disabled ของ primitive ตัวเอง
 - สีสถานะใช้เฉพาะ **blue / red / amber / green** ผ่าน `Badge`, `Alert`, `StatusLabel`, `TINT`
 - `slate-*` เป็น compatibility ramp สำหรับ markup เก่า ไม่ใช่ทางหลักของ component ใหม่
 - เอกสารใน `.print-page` ล็อก grayscale ของตัวเองและ public/print บังคับ Light เสมอ
@@ -83,7 +86,7 @@ selected และ focus เพื่อให้สถานะชี้กั�
 | ฟอร์ม | `ui/field.tsx` ครอบ `input\|textarea\|select\|switch` + Zod เมื่อมี validation ซับซ้อน | label/id/required/description/error/aria ต้องมาจาก Field · **`native-select` ถูกยุบเข้า `ui/select.tsx` แล้ว** ไม่มีไฟล์นั้น |
 | list responsive | `ui/responsive-list.tsx` | desktop table + mobile card เฉพาะหน้าจอ · ใช้ loading/error/empty/pagination ชุดเดียว · มี `emptyAction` ใส่ปุ่มก้าวถัดไปตอน list ว่าง (UX4.7) |
 | สิทธิ์ UI | `permAllows` จาก `lib/permissions` | action ที่ server ไม่อนุญาตต้องไม่เปิดให้กรอกก่อนแล้วค่อย error · (เอกสารเคยอ้าง `ui/capability-gate.tsx` — **ไฟล์นั้นไม่มีอยู่จริง** ลบข้อมูลผิดออก 2026-08-02) |
-| ภาษาหน้าตา (มุมโค้ง · วงแหวนโฟกัส · ผิวช่องกรอก · สีกล่องเตือน) | `ui/tokens.ts` | RADIUS · FOCUS_FIELD/BUTTON/INSET · FIELD_SURFACE · OVERLAY_PANEL · MENU_ITEM · MENU_SEPARATOR · TINT · DASHED · ACTIVE_FILTER — **ด่าน lint บังคับให้ใช้ ห้ามเขียนเอง** |
+| ภาษาหน้าตา (มุมโค้ง · วงแหวนโฟกัส · ผิวช่องกรอก · สีกล่องเตือน) | `ui/tokens.ts` | RADIUS · FOCUS_FIELD/BUTTON/INSET · FIELD/RAISED/INLINE/DISABLED surface · OVERLAY_PANEL · MENU_ITEM · MENU_SEPARATOR · TINT · DASHED · ACTIVE_FILTER — **ด่าน lint บังคับให้ใช้ ห้ามเขียนเอง** |
 | ความสูง control | `ui/control-size.ts` + size ของ Input/Select | CONTROL_H / CONTROL_H_SM / CONTROL_MIN_H · ทุก size สูง 44px mobile / 36px desktop; `sm` ลด padding/อักษร, `dense` ลดเฉพาะอักษรสำหรับ editable grid |
 | ปุ่มไอคอนข้าง control | `ui/control-icon-button.tsx` | ปุ่มล้างค่า/ปิด overlay เป็น sibling ของ trigger เสมอ · 44px mobile / 36px desktop · ห้ามซ้อน interactive element ใน `<button>` |
 | ช่องทางจ่ายเงิน | `lib/payment-methods.ts` | ค่า+ป้ายที่เดียว |

@@ -17,7 +17,7 @@ import {
   User,
 } from "lucide-react";
 
-import { DASHED, TINT } from "@/components/ui/tokens";
+import { DASHED, FOCUS_BUTTON, TINT } from "@/components/ui/tokens";
 
 // ── ศูนย์บัญชาการผลิต (floor overview) — จอโฟกัสเดียวของงานผลิต ──
 // เบสเคาะ 2026-07-08: "เปิดมาต้องเห็นภาพรวมทั้งโรงงานก่อน" · ตอบ 3 คำถามใน 3 วิ:
@@ -354,7 +354,7 @@ function LaneTileButton({ tile, onClick }: { tile: LaneTile; onClick: () => void
     <button
       type="button"
       onClick={onClick}
-      className="card-surface card-surface-hover flex min-h-[76px] flex-col justify-between rounded-2xl p-3 text-left"
+      className={cn("card-surface card-surface-hover flex min-h-[76px] flex-col justify-between rounded-2xl p-3 text-left", FOCUS_BUTTON)}
     >
       <div className="flex items-start justify-between gap-1.5">
         <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">

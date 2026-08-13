@@ -21,6 +21,8 @@ import { trpc } from "@/lib/trpc";
 import { permAllows, type Permission } from "@/lib/permissions";
 import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 // หน้าตั้งค่า = hub ลิงก์ไปหน้าตั้งค่าจริงเท่านั้น (Gate B8) — ฟอร์มปลอม 4 section เดิม
 // (ข้อมูลโรงงาน/การผลิต/ความปลอดภัย/เชื่อมต่อภายนอก) ถูกถอดทิ้ง: input ไม่ผูกอะไร
@@ -181,9 +183,9 @@ export default function SettingsPage() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="group card-surface card-surface-hover flex items-center gap-3 rounded-2xl p-4 transition-colors"
+                  className={cn("group card-surface card-surface-hover flex items-center gap-3 rounded-2xl p-4 transition-colors", FOCUS_BUTTON)}
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors group-hover:bg-interactive-hover group-hover:text-strong dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-interactive-hover dark:group-hover:text-strong">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-muted text-muted transition-colors group-hover:bg-surface group-hover:text-strong">
                     <link.icon className="h-4 w-4" strokeWidth={1.75} />
                   </div>
                   <div className="min-w-0 flex-1">

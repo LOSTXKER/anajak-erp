@@ -3,13 +3,14 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
-import { FOCUS_BUTTON } from "./tokens";
+import { DISABLED_CONTROL_SURFACE, FOCUS_BUTTON } from "./tokens";
 
 const buttonVariants = cva(
   cn(
     CONTROL_MIN_H,
     FOCUS_BUTTON,
-    "inline-flex min-w-11 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all sm:min-w-0 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:pointer-events-none [&_svg]:size-[15px] [&_svg]:shrink-0",
+    "inline-flex min-w-11 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all sm:min-w-0 disabled:pointer-events-none active:scale-[0.98] disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[15px] [&_svg]:shrink-0",
+    DISABLED_CONTROL_SURFACE,
   ),
   {
     variants: {
@@ -19,13 +20,13 @@ const buttonVariants = cva(
         destructive:
           "bg-red-700 text-white shadow-sm hover:bg-red-800 active:bg-red-900 dark:bg-red-700 dark:hover:bg-red-800 dark:active:bg-red-900",
         outline:
-          "border border-transparent bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
+          "border border-border bg-surface text-secondary shadow-sm hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
         // ปุ่มรองมาตรฐานมีหน้าตาเดียว = outline — คงชื่อ secondary/subtle ไว้ไม่ให้หน้าเดิมพัง
         // แต่ยุบสไตล์ให้ชี้ตัวเดียวกัน (UX4.1: ปุ่มรอง 3 หน้าตาไม่มีเหตุผลเชิงความหมาย)
         secondary:
-          "border border-transparent bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
+          "border border-border bg-surface text-secondary shadow-sm hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
         subtle:
-          "border border-transparent bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
+          "border border-border bg-surface text-secondary shadow-sm hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
         ghost:
           "text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
         link:

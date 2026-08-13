@@ -203,6 +203,7 @@ export function ProductPickerDialog({
           {/* Search & Filters */}
           <div className="space-y-3 border-b border-slate-200 px-5 py-3 dark:border-slate-700">
             <SearchInput
+              surface="field"
               ref={inputRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -432,9 +433,8 @@ export function ProductPickerDialog({
                                             FOCUS_FIELD,
                                             FIELD_SURFACE,
                                             "w-14 rounded px-1 text-center text-sm sm:h-6 sm:min-h-0 sm:w-12 sm:text-xs",
-                                            exceedsStock
-                                              ? "border-amber-400 dark:border-amber-600"
-                                              : "border-transparent",
+                                            exceedsStock &&
+                                              "border-amber-400 dark:border-amber-600",
                                           )}
                                         />
                                         <button

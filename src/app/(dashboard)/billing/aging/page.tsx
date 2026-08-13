@@ -219,6 +219,7 @@ function AgingPageContent() {
           ตัวกรองช่วงอายุหนี้ + การเรียง อยู่กลุ่มเดียวกัน ห้ามแตกแถวคั่นกลาง */}
       <Toolbar>
         <SearchInput
+          surface="raised"
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อลูกค้าหรือบริษัท..."
@@ -231,6 +232,7 @@ function AgingPageContent() {
         <ToolbarGroup className="flex-wrap">
           <Select
             shape="pill"
+            surface="raised"
             aria-label="กรองช่วงอายุหนี้"
             value={status}
             onChange={(event) =>
@@ -246,6 +248,7 @@ function AgingPageContent() {
           </Select>
           <Select
             shape="pill"
+            surface="raised"
             aria-label="เรียงรายการลูกหนี้"
             value={sort}
             onChange={(event) =>

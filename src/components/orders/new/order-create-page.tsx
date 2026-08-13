@@ -731,6 +731,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
               <OrderCustomerSection
                 customerId={customerId}
                 selectedCustomer={selectedCustomer}
+                invalid={submitted && !customerId}
                 onSelect={(id, customer) => {
                   setHeaderField("customerId", id);
                   setSelectedCustomer(customer);

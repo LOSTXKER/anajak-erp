@@ -32,6 +32,8 @@ interface CustomerPickerProps {
   value: string;
   onChange: (customerId: string, customer: PickerCustomer | null) => void;
   required?: boolean;
+  /** ช่องเลือกหลักไม่ผ่าน validation — วาด/ประกาศที่ control จริง ไม่ใช่แค่ summary */
+  invalid?: boolean;
   /** ให้ฟอร์มโฟกัสกลับมาที่ช่องนี้ได้เมื่อตรวจไม่ผ่าน */
   id?: string;
   labelledBy?: string;
@@ -46,6 +48,7 @@ export function CustomerPicker({
   value,
   onChange,
   required,
+  invalid = false,
   labelledBy,
   id,
   layout = "stacked",
@@ -178,6 +181,7 @@ export function CustomerPicker({
           id={id}
           aria-labelledby={labelledBy}
           aria-label={labelledBy ? undefined : "เลือกลูกค้า"}
+          aria-invalid={invalid || undefined}
           value={value}
           onChange={(e) => pick(options.find((c) => c.id === e.target.value) ?? null)}
           required={required}

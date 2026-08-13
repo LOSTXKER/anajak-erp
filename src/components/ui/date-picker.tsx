@@ -20,7 +20,7 @@ import {
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ControlIconButton } from "./control-icon-button";
-import { FIELD_SURFACE, FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, controlShapeClass, type ControlShape } from "./tokens";
+import { DISABLED_CONTROL_SURFACE, FIELD_SURFACE, FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, controlShapeClass, type ControlShape } from "./tokens";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
 
 /* ============================================================
@@ -129,7 +129,8 @@ export function DatePicker({
               canClear && selected && !disabled && "pr-20",
               FIELD_SURFACE,
               FOCUS_FIELD,
-              "sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
+              DISABLED_CONTROL_SURFACE,
+              "sm:text-sm disabled:cursor-not-allowed",
               className,
             )}
           >

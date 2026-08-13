@@ -251,6 +251,7 @@ function WhtRegisterPageContent() {
       {/* ── filter แท็บ + ค้นหา ── */}
       <Toolbar>
         <SearchInput
+          surface="raised"
           ref={searchInputRef}
           placeholder="ค้นหาลูกค้า / เลขบิล / เลขใบรับรอง..."
           defaultValue={search}
@@ -261,6 +262,7 @@ function WhtRegisterPageContent() {
           {FILTER_TABS.map((t) => (
             <FilterChip
               key={t.key}
+              surface="raised"
               selected={tab === t.key}
               // "pending" = ค่า default → ส่ง null ให้ลบ param (URL สะอาด)
               onClick={() =>

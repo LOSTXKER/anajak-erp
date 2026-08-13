@@ -103,11 +103,10 @@ function check(name: string, html: string, must: string[], mustNot: string[] = [
 const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
 
-// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้น+โฟกัสชุดเดียว
-// เบสยืนยัน 2026-08-13 ว่า UI หลักต้องไร้กรอบ: ปกติใช้พื้นจมบอก affordance
-// และเก็บ border-transparent ไว้ให้ focus/error เปลี่ยนสีโดยความสูงไม่ขยับ
+// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้นขาว+functional boundary
+// card ยังไร้กรอบ แต่ field ต้องเห็นบนทั้ง card ขาวและกล่องจม — มติล่าสุด 2026-08-14
 const FIELD = [
-  "border-transparent",
+  "border-field-border",
   "bg-field",
   "placeholder:text-placeholder",
   "focus-visible:border-blue-500",
@@ -119,8 +118,8 @@ const FIELD = [
   "aria-invalid:focus-visible:ring-red-500/30",
   "dark:aria-invalid:border-red-400",
 ];
-// ห้ามเส้นถาวรกลับมา — field ปกติต้องอ่านจากพื้น ไม่ใช่วงขอบทุกช่อง
-const FIELD_NO = ["border-field-border", "border-border", "bg-[var(--field-bg)]"];
+// ห้าม field กลับไปยืมพื้น structural หรือปล่อย boundary โปร่งใส
+const FIELD_NO = ["border-transparent", "border-border", "bg-surface-muted", "bg-[var(--field-bg)]"];
 check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-[10px]"], [...FIELD_NO, "rounded-2xl"]);
 check(
   "ช่องเลือก (Select)",
@@ -173,12 +172,18 @@ check(
   ["rounded-full"],
   ["rounded-[10px]"],
 );
+check(
+  "ช่องเลือก inline โปร่งตอนพักแต่คงเส้น focus จริง",
+  renderToStaticMarkup(<Select surface="inline" value="" onChange={() => {}}><option value="">ก</option></Select>),
+  ["border-transparent", "bg-transparent", "focus-visible:border-blue-500", "focus-visible:ring-2"],
+  ["border-0", "border-field-border", "bg-field", "shadow-sm"],
+);
 
-// Toolbar บนผืนหน้าต้องยกขึ้นจาก page ด้วย surface+เงา ไม่ใช่เส้นขอบ
+// Toolbar บนผืนหน้าต้องยกขึ้นจาก page ด้วย surface+เงา ไม่ใช้ field-border เข้ม
 // และเมื่อกรองอยู่ selected blue ต้องชนะพื้น surface โดยเงายังคงอยู่
 {
   const searchHtml = renderToStaticMarkup(
-    <SearchInput className={RAISED_CONTROL_SURFACE} />,
+    <SearchInput surface="raised" />,
   );
   const searchControl = searchHtml.match(/<input[^>]*class="[^"]*shadow-sm[^"]*"[^>]*>/)?.[0] ?? "";
   check(
@@ -194,15 +199,14 @@ check(
       from="2026-08-01"
       to="2026-08-31"
       onChange={() => {}}
-      className={RAISED_CONTROL_SURFACE}
     />,
   );
   const dateTrigger = dateHtml.match(/<button[^>]*aria-label="ช่วงวันที่:[^"]*"[^>]*>/)?.[0] ?? "";
   check(
     "ช่วงวันที่ active คงเงาและให้ selected surface ชนะ",
     dateTrigger,
-    ["bg-interactive-selected", "shadow-sm"],
-    ["bg-surface", "border-border", "border-field-border"],
+    ["bg-interactive-selected", "border-border", "shadow-sm"],
+    ["bg-surface", "border-field-border"],
   );
 }
 {
@@ -211,7 +215,6 @@ check(
       activeCount={1}
       onClear={() => {}}
       resultLabel="ดูผลลัพธ์"
-      triggerClassName={RAISED_CONTROL_SURFACE}
     >
       ตัวเลือก
     </FilterPopover>,
@@ -220,8 +223,8 @@ check(
   check(
     "ปุ่มตัวกรอง active คงเงาและให้ selected surface ชนะ",
     filterTrigger,
-    ["bg-interactive-selected", "shadow-sm"],
-    ["bg-surface", "border-border", "border-field-border"],
+    ["bg-interactive-selected", "border-border", "shadow-sm"],
+    ["bg-surface", "border-field-border"],
   );
 }
 
@@ -277,11 +280,25 @@ check(
   ],
   ["hover:bg-slate-50", "hover:bg-slate-100"],
 );
+for (const variant of ["outline", "secondary", "subtle"] as const) {
+  check(
+    `ปุ่มรอง ${variant} แยกจาก field/structural surface`,
+    renderToStaticMarkup(<Button variant={variant}>ก</Button>),
+    ["border-border", "bg-surface", "shadow-sm"],
+    ["border-transparent", "border-field-border", "bg-field", "bg-surface-muted"],
+  );
+}
 check(
-  "ปุ่มรองไม่มีกรอบถาวร",
-  renderToStaticMarkup(<Button variant="outline">ก</Button>),
-  ["border-transparent", "bg-surface-muted"],
-  ["border-border", "border-field-border"],
+  "field disabled ใช้ muted surface โดยไม่จางทั้งก้อน",
+  renderToStaticMarkup(<Input disabled />),
+  ["disabled:border-border", "disabled:bg-surface-muted", "disabled:text-muted", "disabled:shadow-none", "disabled:opacity-100"],
+  ["disabled:opacity-50"],
+);
+check(
+  "ปุ่ม disabled ใช้ muted surface โดยไม่จางทั้งก้อน",
+  renderToStaticMarkup(<Button variant="outline" disabled>ก</Button>),
+  ["disabled:border-border", "disabled:bg-surface-muted", "disabled:text-muted", "disabled:shadow-none", "disabled:opacity-100"],
+  ["disabled:opacity-50"],
 );
 check(
   "ปุ่มอันตรายโหมดมืดไม่ย้อนเป็นแดงอ่อน",
@@ -311,6 +328,74 @@ check(
     console.log("❌ ชิปตัวกรองต้องมี aria-pressed + เครื่องหมายถูกที่ไม่พึ่งสีอย่างเดียว");
   } else {
     console.log("✅ ชิปตัวกรองบอก selected ด้วย aria-pressed + เครื่องหมายถูก");
+  }
+}
+
+// semantic surface ต้องถูกระบุผ่าน API ของ primitive ไม่ส่ง class สี/เงาจาก caller
+{
+  const surfaceOffenders: string[] = [];
+  const allowedRaisedOwners = new Set([
+    "src/components/ui/input.tsx",
+    "src/components/ui/select.tsx",
+    "src/components/ui/tokens.ts",
+  ]);
+
+  function walkControlCallers(dir: string) {
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) {
+        walkControlCallers(path);
+        continue;
+      }
+      if (!/\.tsx$/.test(name)) continue;
+      const source = readFileSync(path, "utf8");
+
+      if (
+        source.includes("RAISED_CONTROL_SURFACE") &&
+        !allowedRaisedOwners.has(path)
+      ) {
+        surfaceOffenders.push(`${path} (import/class patch ของ raised surface)`);
+      }
+
+      for (const match of source.matchAll(/<SearchInput\b([\s\S]*?)\/>/g)) {
+        const attrs = match[1] ?? "";
+        if (!/surface="(?:field|raised)"/.test(attrs)) {
+          const line = source.slice(0, match.index).split("\n").length;
+          surfaceOffenders.push(`${path}:${line} (SearchInput ไม่ระบุ semantic surface)`);
+        }
+      }
+
+      for (const match of source.matchAll(/<Select\b([\s\S]*?)>/g)) {
+        const attrs = match[1] ?? "";
+        const line = source.slice(0, match.index).split("\n").length;
+        if (attrs.includes('shape="pill"') && !attrs.includes('surface="raised"')) {
+          surfaceOffenders.push(`${path}:${line} (Select ทรง toolbar ไม่ใช้ surface=raised)`);
+        }
+        if (
+          /(?:border-transparent|bg-surface-muted)/.test(attrs) &&
+          !attrs.includes('surface="inline"')
+        ) {
+          surfaceOffenders.push(`${path}:${line} (caller ทับ surface ของ Select)`);
+        }
+      }
+
+      for (const match of source.matchAll(/<(?:Input|Textarea|DatePicker)\b([\s\S]*?)\/?\s*>/g)) {
+        const attrs = match[1] ?? "";
+        if (/(?:border-transparent|bg-surface-muted)/.test(attrs)) {
+          const line = source.slice(0, match.index).split("\n").length;
+          surfaceOffenders.push(`${path}:${line} (caller ทับ surface ของ field)`);
+        }
+      }
+    }
+  }
+  walkControlCallers("src");
+
+  if (surfaceOffenders.length > 0) {
+    failed++;
+    console.log("❌ semantic surface ของ field/toolbar ยังรั่วไปอยู่ที่ caller");
+    surfaceOffenders.forEach((offender) => console.log(`   ${offender}`));
+  } else {
+    console.log("✅ field/toolbar ระบุ semantic role ผ่าน primitive โดยไม่มี class patch");
   }
 }
 
@@ -530,7 +615,15 @@ check(
       const channels = hexRgb(value);
       return Math.max(...channels) - Math.min(...channels) <= 6;
     });
-  const sunkIsStructural = !/(?:hover|active|focus|data-\[)/.test(SUNK_PANEL);
+  const sunkIsStructural =
+    SUNK_PANEL === "bg-surface-muted" &&
+    !/(?:hover|active|focus|data-\[)/.test(SUNK_PANEL) &&
+    !globalsSource.includes(".sunk-panel");
+  const raisedControlIsSeparate =
+    RAISED_CONTROL_SURFACE.includes("border-transparent") &&
+    RAISED_CONTROL_SURFACE.includes("bg-surface") &&
+    RAISED_CONTROL_SURFACE.includes("shadow-sm") &&
+    !RAISED_CONTROL_SURFACE.includes("field");
   const brandBlueIsLocked = colorValues("blue-600")[0]?.toLowerCase() === "#3973b2";
   const selectedStaysBlue = [
     ...colorValues("interactive-selected"),
@@ -563,7 +656,8 @@ check(
     !selectedStaysBlue ||
     !focusStaysBlue ||
     !selectedControlStaysSelected ||
-    !sunkIsStructural
+    !sunkIsStructural ||
+    !raisedControlIsSeparate
   ) {
     failed++;
     console.log("❌ interaction state ยังผูกกับพื้นเทา หรือ token light/dark ไม่ครบ");
@@ -599,6 +693,9 @@ check(
     if (!sunkIsStructural) {
       console.log(`   SUNK_PANEL ต้องไม่มี interaction state: ${SUNK_PANEL}`);
     }
+    if (!raisedControlIsSeparate) {
+      console.log(`   raised control ต้องเป็น surface+เงาและไม่ใช้ field-border: ${RAISED_CONTROL_SURFACE}`);
+    }
   } else {
     console.log("✅ navigation/surface hover ขาวนวล · pressed แยกชั้น · primary/selected/focus ยังเป็นน้ำเงิน");
   }
@@ -609,6 +706,17 @@ check(
   const themes = [0, 1] as const;
   const surfaces = ["bg", "surface", "surface-muted", "interactive-hover", "interactive-pressed", "interactive-selected"] as const;
   const texts = ["strong", "secondary", "muted"] as const;
+  const fields = colorValues("field");
+  const fieldBorders = colorValues("field-border");
+  if (
+    fields.length !== 2 ||
+    fieldBorders.length !== 2 ||
+    fields[0] !== colorValues("surface")[0] ||
+    globalsSource.includes(".sunk-panel")
+  ) {
+    failed++;
+    console.log("❌ field ต้องมี Light/Dark อย่างละค่า, Light เป็นขาว และห้าม ancestor เปลี่ยนสีตามบริบท");
+  }
 
   for (const theme of themes) {
     for (const text of texts) {
@@ -629,6 +737,14 @@ check(
       hexRgb(colorValues("field")[theme]!),
       4.5,
     );
+    for (const adjacent of ["field", "surface", "surface-muted", "bg"] as const) {
+      checkContrast(
+        `${theme === 0 ? "light" : "dark"} ขอบ field บน ${adjacent}`,
+        hexRgb(fieldBorders[theme]!),
+        hexRgb(colorValues(adjacent)[theme]!),
+        3,
+      );
+    }
     checkContrast(
       `${theme === 0 ? "light" : "dark"} selected text`,
       hexRgb(colorValues("interactive-selected-text")[theme]!),

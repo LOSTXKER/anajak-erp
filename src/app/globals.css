@@ -163,7 +163,8 @@
 
        page            #f8f9fb  ผืนงานเกือบขาว
        chrome/surface  #ffffff  navigation / card
-       sunk            #f3f5f7  กลุ่มย่อยและช่องค้นหา
+       sunk            #f3f5f7  กลุ่มย่อยเชิงโครงสร้าง
+       field           #ffffff  ช่องกรอก (แยกด้วย functional boundary)
        elevated        #ffffff  menu / dialog
        hover/pressed   เทาอ่อน — บอกว่ากำลังโต้ตอบโดยไม่เป็นแถบเทาหนัก
 
@@ -173,10 +174,11 @@
   --color-surface: #ffffff;
   --color-surface-muted: #f3f5f7;
   --color-surface-elevated: #ffffff;
-  /* control นิ่งใช้พื้นจมแทนเส้นรอบ — focus/error ค่อยวาดเส้นตามสถานะ */
-  --color-field: #f3f5f7;
+  /* field เป็นพื้นที่กรอก ไม่ใช่กล่องจม: Light ใช้ขาวและเส้น functional
+     เพื่อให้ยังเห็นขอบเขตบน card ขาว; card เองยังไร้กรอบตาม visual contract */
+  --color-field: #ffffff;
   --color-border: #e2e6ea;
-  --color-field-border: #7f8995;
+  --color-field-border: #848e99;
   --color-placeholder: #65717f;
   --color-border-strong: #87919d;
   --color-divider: #e8ebef;
@@ -244,7 +246,7 @@
   --color-field: #101012;
   --color-chrome: #161618;
   --color-border: #343438;
-  --color-field-border: #74747c;
+  --color-field-border: #6f6f77;
   --color-placeholder: #9a9aa1;
   --color-border-strong: #74747c;
   --color-divider: #303034;
@@ -405,15 +407,6 @@ input[type="number"] {
   box-shadow:
     0 2px 6px rgb(0 0 0 / 0.5),
     0 16px 34px -12px rgb(0 0 0 / 0.7);
-}
-
-/* ช่องกรอกใช้พื้นจมแทนเส้นรอบ · เมื่ออยู่ในแผงจมให้สลับเป็นพื้นการ์ด
-   เพื่อไม่ให้เทาบนเทากลืนกัน (dark ใช้ field เข้มเดิมในทุกบริบท) */
-.sunk-panel {
-  --color-field: var(--color-surface);
-}
-.dark .sunk-panel {
-  --color-field: #101012;
 }
 
 /* ============================================================

@@ -114,6 +114,7 @@ function QuotationsPageContent() {
       headerChildren={
         <Toolbar>
           <SearchInput
+            surface="raised"
             ref={searchInputRef}
             containerClassName="@2xl:max-w-sm @2xl:flex-1"
             placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
@@ -124,6 +125,7 @@ function QuotationsPageContent() {
             {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}
             <Select
               shape="pill"
+              surface="raised"
               className="@2xl:w-52"
               aria-label="กรองตามสถานะใบเสนอราคา"
               value={status}
