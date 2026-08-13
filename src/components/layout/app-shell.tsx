@@ -32,11 +32,11 @@ import { CONTROL_H, CONTROL_MIN_H } from "@/components/ui/control-size";
 import {
   FOCUS_BUTTON,
   FOCUS_INSET,
+  INTERACTIVE_CHROME_HOVER,
   INTERACTIVE_CHROME_PRESSED,
   INTERACTIVE_HOVER,
   INTERACTIVE_PRESSED,
   INTERACTIVE_SELECTED,
-  NAVIGATION_HOVER,
   RADIUS,
   SUNK_PANEL,
 } from "@/components/ui/tokens";
@@ -69,7 +69,7 @@ function sidebarNavItemClass({
       : cn(
           alwaysMedium ? "font-medium" : "font-normal",
           "text-secondary",
-          NAVIGATION_HOVER,
+          onChrome ? INTERACTIVE_CHROME_HOVER : INTERACTIVE_HOVER,
           onChrome ? INTERACTIVE_CHROME_PRESSED : INTERACTIVE_PRESSED,
         ),
   );
@@ -78,7 +78,7 @@ function sidebarNavItemClass({
 function sidebarNavIconClass(active: boolean) {
   return active
     ? "text-interactive-selected-text"
-    : "text-muted group-hover/sidebar-item:text-strong group-active/sidebar-item:text-strong";
+    : "text-muted group-hover/sidebar-item:text-secondary group-active/sidebar-item:text-strong";
 }
 
 function MoreMenu({

@@ -152,7 +152,7 @@ function DesktopStatusButton({
         FOCUS_BUTTON,
         isOn
           ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-          : "hover:text-strong active:bg-interactive-pressed dark:active:bg-interactive-pressed",
+          : "hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed",
       )}
     >
       <span
@@ -161,7 +161,7 @@ function DesktopStatusButton({
           count === 0
             ? cn(
                 "font-normal text-slate-500 dark:text-slate-400",
-                !isOn && "group-hover:text-strong group-active:text-strong",
+                !isOn && "group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary",
               )
             : isOn
               ? "text-blue-700 dark:text-blue-300"
@@ -176,7 +176,7 @@ function DesktopStatusButton({
           isFlowStatus ? "block truncate" : "inline-flex items-center gap-1",
           isOn
             ? "font-medium text-blue-700 dark:text-blue-300"
-            : "text-slate-500 group-hover:text-strong group-active:text-strong dark:text-slate-400",
+            : "text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary",
         )}
       >
         {isFlowStatus ? null : (

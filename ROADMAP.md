@@ -463,6 +463,13 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] **คง state ที่จำเป็น** — selected/current มีพื้นฟ้าและ `aria-current` เดิม · keyboard focus ring เดิม · pressed บน touch ยังมีพื้นตอบสนอง · mobile bottom nav ไม่ถอย
 - [x] **ล็อก regression + ตรวจจอจริง** — guard ห้าม navigation/status step/card วาดพื้นตอน hover แต่บังคับ text/elevation/pressed/selected/focus ตามชนิด · ตรวจ Light/Dark desktop + drawer/mobile และรัน typecheck/lint/unit/verify:ui/build
 
+#### ใบงานคืน Surface Hover แบบสว่าง (เบสทักจากจอจริง 2026-08-13)
+> มติล่าสุดทับใบงาน text-only ข้างบน: ปัญหาไม่ใช่แถบ hover แต่เป็นเทาเดิมใกล้ผืนหน้าจนดูเหมือนแถวถูกเจาะ · คืน feedback เต็มพื้นที่แบบเดิม แล้วทำเฉด Light ให้ขาวและเบาลง โดยไม่เปลี่ยน page/card hierarchy
+
+- [x] **คืน full-surface feedback ตามพื้นที่กด** — sidebar/More drawer, ขั้นสถานะ desktop และ clickable card กลับมาเปลี่ยนพื้นทั้ง hit area · คง selected/current, focus, pressed และ mobile bottom nav เดิม
+- [x] **ปรับสีที่ token กลาง ไม่ patch รายหน้า** — Light hover ต้องขาวกว่า `#eceef1` แต่ยังแยกจาก card ขาวและ pressed · Dark คง neutral hierarchy ที่ผ่านจอจริง · ไม่แตะ page, card, field หรือสีแบรนด์
+- [x] **ล็อก regression + ตรวจจอจริง** — guard ตรวจ hover/pressed/selected/focus และลำดับสี · verify Light/Dark desktop + 390px บน orders/sidebar/status/card โดยไม่มี overflow, hydration, console error หรือ overlay · typecheck/lint/unit/verify:ui/build ผ่าน
+
 #### ใบงาน Impeccable UX integrity refactor (เบสให้ audit + รื้อได้ทั้งระบบ 2026-08-13)
 > Audit โค้ดและจอจริง desktop/mobile พบว่า visual world ล่าสุดมีลำดับและควรคงไว้ · หนี้ที่ควรรื้อคือความซื่อสัตย์ของ interaction, query ที่ยิงโดยไม่จำเป็น, คิวหลายคนที่ค้าง, draft ที่บอกว่ากู้ได้แต่เก็บไม่ครบ และชื่อ V2/dead shell ที่ทำให้คนแก้ผิดบ้าน
 

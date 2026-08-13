@@ -354,14 +354,12 @@ function LaneTileButton({ tile, onClick }: { tile: LaneTile; onClick: () => void
     <button
       type="button"
       onClick={onClick}
-      className="card-surface card-surface-hover group flex min-h-[76px] flex-col justify-between rounded-2xl p-3 text-left active:bg-interactive-pressed"
+      className="card-surface card-surface-hover flex min-h-[76px] flex-col justify-between rounded-2xl p-3 text-left"
     >
       <div className="flex items-start justify-between gap-1.5">
-        <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600 group-hover:text-strong group-active:text-strong dark:text-slate-300 dark:group-hover:text-strong dark:group-active:text-strong">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
           {tile.label}
-          {tile.isOutsource && (
-            <Truck className="h-3 w-3 text-slate-400 group-hover:text-secondary group-active:text-strong dark:group-hover:text-secondary dark:group-active:text-strong" />
-          )}
+          {tile.isOutsource && <Truck className="h-3 w-3 text-slate-400" />}
         </span>
         {tile.overdue > 0 && (
           <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-700 px-1 text-2xs font-semibold text-white">
@@ -373,7 +371,7 @@ function LaneTileButton({ tile, onClick }: { tile: LaneTile; onClick: () => void
         <span className="text-2xl font-semibold tabular-nums text-slate-900 dark:text-white">
           {tile.count}
         </span>
-        <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-secondary group-active:text-strong dark:text-slate-600 dark:group-hover:text-secondary dark:group-active:text-strong" />
+        <ChevronRight className="h-4 w-4 text-slate-300 dark:text-slate-600" />
       </div>
     </button>
   );

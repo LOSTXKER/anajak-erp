@@ -26,8 +26,8 @@ import {
   FOCUS_BUTTON,
   FOCUS_FIELD,
   FOCUS_INSET,
+  INTERACTIVE_CHROME_HOVER,
   INTERACTIVE_CHROME_PRESSED,
-  NAVIGATION_HOVER,
   RAISED_CONTROL_SURFACE,
   SUNK_PANEL,
 } from "../src/components/ui/tokens";
@@ -468,17 +468,18 @@ check(
   const hover = colorValues("interactive-hover");
   const pressed = colorValues("interactive-pressed");
   const chrome = colorValues("chrome");
+  const chromeHover = colorValues("interactive-chrome-hover");
   const chromePressed = colorValues("interactive-chrome-pressed");
   const tokenCountsValid = hover.length === 2 && pressed.length === 2 && surfaceMuted.length === 2;
   const chromeTokenCountsValid =
-    chrome.length === 2 && chromePressed.length === 2;
+    chrome.length === 2 && chromeHover.length === 2 && chromePressed.length === 2;
   const tokenLayersValid = tokenCountsValid && hover.every((value, index) =>
     new Set([surfaceMuted[index], value, pressed[index]]).size === 3
   );
-  const chromeTokenLayersValid = chromeTokenCountsValid && chromePressed.every((value, index) =>
-    value !== chrome[index]
+  const chromeTokenLayersValid = chromeTokenCountsValid && chromeHover.every((value, index) =>
+    new Set([chrome[index], value, chromePressed[index]]).size === 3
   );
-  const interactionIsNeutral = [...hover, ...pressed, ...chromePressed].every((value) => {
+  const interactionIsNeutral = [...hover, ...pressed, ...chromeHover, ...chromePressed].every((value) => {
     const channels = hexRgb(value);
     return Math.max(...channels) - Math.min(...channels) <= 6;
   });
@@ -486,27 +487,27 @@ check(
   const stateContrastIsBalanced = tokenCountsValid && surface.length === 2 && hover.every((value, index) => {
     const hoverFromSurface = contrast(hexRgb(value), hexRgb(surface[index]!));
     const pressedFromHover = contrast(hexRgb(pressed[index]!), hexRgb(value));
-    return hoverFromSurface >= 1.1 && hoverFromSurface <= 1.25 && pressedFromHover >= 1.05;
+    const hoverCeiling = index === 0 ? 1.13 : 1.25;
+    return hoverFromSurface >= 1.1 && hoverFromSurface <= hoverCeiling && pressedFromHover >= 1.05;
   });
-  const chromeStateContrastIsBalanced = chromeTokenCountsValid && chromePressed.every((value, index) => {
-    const pressedFromChrome = contrast(hexRgb(value), hexRgb(chrome[index]!));
-    return pressedFromChrome >= 1.1;
+  const chromeStateContrastIsBalanced = chromeTokenCountsValid && chromeHover.every((value, index) => {
+    const hoverFromChrome = contrast(hexRgb(value), hexRgb(chrome[index]!));
+    const pressedFromHover = contrast(hexRgb(chromePressed[index]!), hexRgb(value));
+    return hoverFromChrome >= 1.1 && hoverFromChrome <= 1.25 && pressedFromHover >= 1.05;
   });
   const chromeTokensAreWired =
-    NAVIGATION_HOVER.includes("hover:text-strong") &&
-    !NAVIGATION_HOVER.includes("hover:bg-") &&
+    INTERACTIVE_CHROME_HOVER.includes("bg-interactive-chrome-hover") &&
     INTERACTIVE_CHROME_PRESSED.includes("bg-interactive-chrome-pressed");
   const shellSource = readFileSync("src/components/layout/app-shell.tsx", "utf8");
   const navigationHelperSource =
     shellSource.match(/function sidebarNavItemClass[\s\S]*?function MoreMenu/)?.[0] ?? "";
   const navigationContractIsWired =
-    navigationHelperSource.includes("NAVIGATION_HOVER") &&
+    navigationHelperSource.includes("INTERACTIVE_CHROME_HOVER") &&
+    navigationHelperSource.includes("INTERACTIVE_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_CHROME_PRESSED") &&
     navigationHelperSource.includes("INTERACTIVE_SELECTED") &&
     navigationHelperSource.includes("FOCUS_INSET") &&
-    navigationHelperSource.includes("group-hover/sidebar-item:text-strong") &&
-    !navigationHelperSource.includes("INTERACTIVE_HOVER") &&
-    !navigationHelperSource.includes("INTERACTIVE_CHROME_HOVER") &&
+    navigationHelperSource.includes("group-hover/sidebar-item:text-secondary") &&
     !navigationHelperSource.includes("hover:bg-");
   const darkSurfacesAreNeutral = [
     "bg",
@@ -584,7 +585,7 @@ check(
       console.log("   hover ต้องเห็นบน surface แบบเบา และ pressed ต้องชัดกว่า hover");
     }
     if (!chromeStateContrastIsBalanced || !chromeTokensAreWired || !navigationContractIsWired) {
-      console.log("   navigation hover ต้องเปลี่ยนเฉพาะข้อความ โดยคง pressed/selected/focus ที่มองเห็น");
+      console.log("   navigation hover ต้องมีพื้นขาวนวลและคง pressed/selected/focus ที่มองเห็น");
     }
     if (!darkSurfacesAreNeutral) {
       console.log("   พื้น Dark ต้องเป็น neutral gray ไม่ใช่ blue-black");
@@ -599,7 +600,7 @@ check(
       console.log(`   SUNK_PANEL ต้องไม่มี interaction state: ${SUNK_PANEL}`);
     }
   } else {
-    console.log("✅ navigation hover ใช้ข้อความ · surface interaction สมดุล · primary/selected/focus ยังเป็นน้ำเงิน");
+    console.log("✅ navigation/surface hover ขาวนวล · pressed แยกชั้น · primary/selected/focus ยังเป็นน้ำเงิน");
   }
 }
 
@@ -742,6 +743,20 @@ check(
     console.log("✅ card-surface ไม่มีวงขอบทั้ง base/hover และ Light/Dark");
   }
 
+  const cardHoverBlock =
+    globalsSource.match(/\.card-surface-hover:hover\s*\{([^}]*)\}/)?.[1] ?? "";
+  const cardActiveBlock =
+    globalsSource.match(/\.card-surface-hover:active\s*\{([^}]*)\}/)?.[1] ?? "";
+  if (
+    !cardHoverBlock.includes("background-color: var(--color-interactive-hover)") ||
+    !cardActiveBlock.includes("background-color: var(--color-interactive-pressed)")
+  ) {
+    failed++;
+    console.log("❌ card-surface-hover ต้องมี semantic hover/pressed เต็ม hit area ทั้ง Light/Dark");
+  } else {
+    console.log("✅ card-surface-hover มี semantic hover/pressed เต็ม hit area ทั้ง Light/Dark");
+  }
+
   const callerOffenders: string[] = [];
   const cardOverrideOffenders: string[] = [];
   function walkCardCallers(dir: string) {
@@ -757,7 +772,7 @@ check(
             if (
               line.includes("card-surface") &&
               (/(?:^|\s)border(?:\s|["'`])|(?:hover|focus|active):border-(?!transparent)/.test(line) ||
-                /(?:^|\s)(?:dark:)?hover:bg-/.test(line))
+                /(?:^|\s)(?:dark:)?hover:bg-(?!interactive-hover)/.test(line))
             ) {
               callerOffenders.push(`${path}:${index + 1}`);
             }
@@ -776,10 +791,10 @@ check(
   const allCallerOffenders = [...callerOffenders, ...cardOverrideOffenders];
   if (allCallerOffenders.length > 0) {
     failed++;
-    console.log("❌ caller ของ card-surface เติมเส้นรอบกลับเอง");
+    console.log("❌ caller ของ card-surface เติมเส้นรอบหรือ hover สีเขียนมือกลับเอง");
     allCallerOffenders.forEach((offender) => console.log(`   ${offender}`));
   } else {
-    console.log("✅ caller ของ card-surface ไม่เติมเส้นรอบหรือย้อมพื้นตอน hover");
+    console.log("✅ caller ของ card-surface ไม่มีเส้นรอบ และใช้เฉพาะ semantic hover");
   }
 
   const ordersStatusSource = readFileSync(
@@ -810,14 +825,14 @@ check(
   const desktopStatusSource =
     ordersStatusSource.match(/function DesktopStatusButton[\s\S]*?\n}\n\nexport function/)?.[0] ?? "";
   if (
-    !desktopStatusSource.includes("hover:text-strong") ||
+    !desktopStatusSource.includes("hover:bg-interactive-hover") ||
     !desktopStatusSource.includes("active:bg-interactive-pressed") ||
-    desktopStatusSource.includes("hover:bg-")
+    !desktopStatusSource.includes("group-hover:text-secondary")
   ) {
     failed++;
-    console.log("❌ ขั้นสถานะ desktop ต้องชี้ด้วยข้อความ และใช้พื้นเฉพาะ pressed/selected");
+    console.log("❌ ขั้นสถานะ desktop ต้องชี้ด้วยพื้นขาวนวล และคง pressed/selected feedback");
   } else {
-    console.log("✅ ขั้นสถานะ desktop ชี้ด้วยข้อความ โดยคง pressed/selected feedback");
+    console.log("✅ ขั้นสถานะ desktop ชี้ด้วยพื้นขาวนวล โดยคง pressed/selected feedback");
   }
 }
 

@@ -109,10 +109,10 @@ export const INTERACTIVE_HOVER =
 export const INTERACTIVE_PRESSED =
   "active:bg-interactive-pressed active:text-strong dark:active:bg-interactive-pressed dark:active:text-strong";
 
-/** เมนูนำทางที่ยังไม่ถูกเลือก — hover เปลี่ยนเฉพาะข้อความ/ไอคอนเพื่อคง visual แบบ minimal
- *  ห้ามใช้กับปุ่ม, menu option, row หรือ card ที่ต้องบอกพื้นที่กดด้วยพื้นผิว */
-export const NAVIGATION_HOVER =
-  "hover:text-strong";
+/** interaction ที่วางบน navbar/sidebar — Light ใช้ hover ขาวนวลชุดเดียวกับ surface;
+ *  Dark เบาลงหนึ่งชั้นเพราะ chrome เข้มกว่า card ไม่เช่นนั้น hover จะเกือบเท่า selected */
+export const INTERACTIVE_CHROME_HOVER =
+  "hover:bg-interactive-chrome-hover hover:text-strong dark:hover:bg-interactive-chrome-hover dark:hover:text-strong";
 
 export const INTERACTIVE_CHROME_PRESSED =
   "active:bg-interactive-chrome-pressed active:text-strong dark:active:bg-interactive-chrome-pressed dark:active:text-strong";

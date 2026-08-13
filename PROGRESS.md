@@ -4,7 +4,13 @@
 
 ## ตอนนี้
 
+> **✅ คืน full-surface hover แบบขาวนวลแล้ว 2026-08-13 — feedback แบบเดิม แต่ไม่เป็นแถบเทาหนัก**
+> มติล่าสุดทับ text-only hover: navigation, More drawer, ขั้นสถานะ desktop และ clickable card กลับมาเปลี่ยนพื้นเต็ม hit area · `card-surface-hover` กลางคุมพื้น+เงา+pressed ให้ StatCard/สินค้า/ตั้งค่า/ผลิต/ใบเสนอใช้ภาษาเดียวกัน · Light ปรับ semantic hover กลางจาก `#eceef1` เป็น `#f1f3f5` โดยไม่แตะ page `#f8f9fb`, card ขาว, field หรือสีแบรนด์ · Dark คง content hover `#303034` และ chrome hover `#252528` · pressed/selected/focus/keyboard highlight เดิมไม่ถอย
+>
+> **ด่าน:** cold production `/orders` 1280×720 Light/Dark — row/sidebar/status hover ตรง token, selected คง `#d2e4f6/#173c61`, command highlight/focus ชัด · production LaneTile, Products Light/Dark และ Settings card เปลี่ยนพื้น+ยกเงาโดย border 0 · ไม่มี overflow, hydration/app console error หรือ overlay · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit **693/693** · `verify:ui`/Impeccable detector/build ผ่าน · ภาพอยู่ `anajak-final-hover-verify-2026-08-13/` และ `anajak-card-primitive-pass2-final-2026-08-13/`
+
 > **✅ Hover แบบ minimal แยกตามชนิด interaction แล้ว 2026-08-13 — ไม่มีแถบเต็มใน navigation/status/card**
+> _ประวัติการทดลองรอบก่อน — ถูกมติ full-surface hover ขาวนวลด้านบนทับแล้ว_
 > Sidebar, เมนูรอง, More drawer และขั้นสถานะบน rail เปลี่ยนเฉพาะสีข้อความ+ไอคอนตอนชี้ · clickable card ยกเงาและขยับข้อความ/ไอคอนโดยไม่ย้อมพื้น · current/selected คงพื้นฟ้า · keyboard focus และ touch pressed คง feedback เดิม · ปุ่ม, ตัวกรอง, menu highlight และตารางยังมี surface feedback เพื่อบอกพื้นที่กดและกันไล่ผิดแถว
 >
 > **ด่าน:** cold production Light/Dark 1280×720 + mobile 390×844 ผ่าน · inactive navigation และ status bg ก่อน/หลัง hover เท่าเดิม · production/quotation card bg คงเดิมและเงายก · Dark outsource lane label `#cbcbd0→#f5f5f7`, icon `#a4a4aa/#55555a→#cbcbd0` · selected/focus/60px bottom-nav target ผ่าน · ไม่มี overflow, hydration/app console error หรือ overlay · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit **693/693** · `verify:ui`/Impeccable detector/build ผ่าน · ภาพอยู่ `anajak-navigation-hover-confirm-pass1-2026-08-13/` และ `anajak-production-lane-confirm-pass2-2026-08-13/`
