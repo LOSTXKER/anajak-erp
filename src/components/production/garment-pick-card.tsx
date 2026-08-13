@@ -56,8 +56,7 @@ export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentP
   const needMore = data.lines.some((l) => l.issued - l.returned < l.needed);
 
   return (
-    // `border` ต้องมาคู่กับสีขอบ ไม่งั้นเส้นไม่ขึ้น (audit สี 2026-08-02)
-    <Card className="border border-blue-200 dark:border-blue-900">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
           <Shirt className="h-4 w-4" />
@@ -83,7 +82,7 @@ export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentP
           return (
             <div
               key={l.sku}
-              className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2 dark:border-slate-800"
+              className="flex items-center justify-between gap-3 rounded-lg bg-surface-muted px-3 py-2"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-slate-900 dark:text-white">

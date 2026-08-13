@@ -81,10 +81,10 @@ export const FOCUS_FIELD_INVALID =
    ผิวของพื้นผิวแต่ละแบบ
    ------------------------------------------------------------ */
 
-/** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — light เป็นขาว, dark เป็น neutral gray จมลง
- *  ขอบ field-border แยกจากขอบการ์ดโดยตั้งใจและผ่าน 3:1 กับ surface ทั้งสองธีม */
+/** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — พื้นจมบอก affordance โดยไม่ตีกรอบถาวร
+ *  คง border-transparent ไว้ให้ focus/error เปลี่ยนสีได้โดย control ไม่ขยับ */
 export const FIELD_SURFACE =
-  "border border-field-border bg-field text-strong placeholder:text-placeholder";
+  "border border-transparent bg-field text-strong placeholder:text-placeholder aria-invalid:border-red-500 aria-invalid:bg-red-50/50 aria-invalid:focus-visible:border-red-500 aria-invalid:focus-visible:ring-red-500/30 data-[invalid=true]:border-red-500 data-[invalid=true]:bg-red-50/50 data-[invalid=true]:focus-visible:border-red-500 data-[invalid=true]:focus-visible:ring-red-500/30 dark:aria-invalid:border-red-400 dark:aria-invalid:bg-red-950/20 dark:aria-invalid:focus-visible:border-red-400 dark:aria-invalid:focus-visible:ring-red-400/30 dark:data-[invalid=true]:border-red-400 dark:data-[invalid=true]:bg-red-950/20 dark:data-[invalid=true]:focus-visible:border-red-400 dark:data-[invalid=true]:focus-visible:ring-red-400/30";
 
 /** ช่องกรอกบรรทัดเดียวที่ยืนลำพัง — กว้างเท่า 1 คอลัมน์ของกริด 2 ช่อง (ขอบขวาตรงกับ
  *  ช่องที่อยู่เหนือมันพอดี) · เดิมยืดเต็มการ์ด 976px = กว้างกว่าข้อความที่จะพิมพ์ 5 เท่า
@@ -93,8 +93,8 @@ export const FIELD_SURFACE =
 export const FIELD_MEASURE = "max-w-[calc(50%-0.5rem)]";
 
 /** กล่องย่อยที่จมลงไปในการ์ด (กลุ่มฟอร์ม · แถบสรุป)
- *  ช่องกรอกเป็นพื้นขาว+ขอบ มองเห็นบนแผงเทาได้เอง — ไม่ต้องมีกลไกสลับสีอีก */
-export const SUNK_PANEL = "bg-surface-muted";
+ *  light สลับ field ข้างในเป็นขาว ไม่ให้พื้นเทากลืนกัน; dark คง field เข้มเดิม */
+export const SUNK_PANEL = "sunk-panel bg-surface-muted";
 
 /** ของที่กดได้ตอนชี้ — คนละชั้นกับ SUNK_PANEL เสมอ
  * แยก hover/pressed คนละ token เพื่อให้แถวที่ใช้แค่ช่วยไล่สายตาไม่หลอกว่ากดได้ */
@@ -200,4 +200,4 @@ export const FIELD_LABEL =
  *  (blue-400/blue-900) ทั้งที่หมายถึงเรื่องเดียวกัน — คนอ่านหน้าจอเห็นว่า
  *  "กรองอยู่" ด้วยสีที่ไม่เท่ากันในแต่ละหน้า */
 export const ACTIVE_FILTER =
-  "border-blue-200 bg-interactive-selected text-interactive-selected-text hover:bg-interactive-selected hover:text-interactive-selected-text active:bg-interactive-selected active:text-interactive-selected-text dark:border-blue-800";
+  "bg-interactive-selected text-interactive-selected-text hover:bg-interactive-selected hover:text-interactive-selected-text active:bg-interactive-selected active:text-interactive-selected-text";

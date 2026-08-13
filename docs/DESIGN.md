@@ -23,7 +23,7 @@ selected และ focus เพื่อให้สถานะชี้กั�
 | card | `#fff` | `#252528` | `bg-surface` / `card-surface` |
 | menu/dialog | `#fff` | `#252528` | `bg-surface-elevated` / `overlay-surface` |
 | กล่องจม | `#f3f5f7` | `#1d1d1f` | `bg-surface-muted` / `SUNK_PANEL` |
-| ช่องกรอก | `#fff` | `#101012` | `bg-field` / `FIELD_SURFACE` |
+| ช่องกรอก/ปุ่มรอง | `#f3f5f7` | `#101012` | `bg-field` / `FIELD_SURFACE` |
 | ขอบทั่วไป / เส้นคั่น | `#e2e6ea` / `#e8ebef` | `#343438` / `#303034` | `border-border` / `border-divider` |
 | Hover | `#eceef1` | `#303034` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
 | Pressed | `#e3e6e9` | `#38383c` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
@@ -47,7 +47,8 @@ selected และ focus เพื่อให้สถานะชี้กั�
 - ของที่ชี้ได้ใช้ `INTERACTIVE_HOVER`; ของที่กดได้จริงจึงค่อย compose `INTERACTIVE_PRESSED`
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
-- ช่องกรอกใช้ `FIELD_SURFACE` เสมอ เพื่อให้พื้น/ขอบ/placeholder/focus ผ่านทั้งสองธีม
+- พื้นผิวหลักไม่มีกรอบล้อม: card/table/status rail ใช้สีพื้น ระยะ และเงา · control นิ่งใช้พื้นจม · เส้นมีเฉพาะ focus/error, ขอบประพื้นที่เพิ่มของ และ divider ที่จำเป็นต่อการอ่าน
+- ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — ปกติ `border-transparent`; เมื่อ focus/error จึงเปลี่ยนเป็นเส้นสีที่บอกสถานะ โดยความสูงไม่ขยับ
 - สีสถานะใช้เฉพาะ **blue / red / amber / green** ผ่าน `Badge`, `Alert`, `StatusLabel`, `TINT`
 - `slate-*` เป็น compatibility ramp สำหรับ markup เก่า ไม่ใช่ทางหลักของ component ใหม่
 - เอกสารใน `.print-page` ล็อก grayscale ของตัวเองและ public/print บังคับ Light เสมอ
@@ -107,7 +108,8 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 |---|---|
 | ชิ้นเล็กในรายการ (ตัวเลือกในเมนู · ปุ่มในแถบสลับ) | `RADIUS.item` = 8px |
 | กล่องย่อยในการ์ด · รูปย่อ | `RADIUS.inner` = 12px |
-| การ์ด · ส่วน · ช่องกรอกทรงเหลี่ยม · กล่องเด้ง | `RADIUS.surface` = 16px |
+| การ์ด · ส่วน · กล่องเด้ง | `RADIUS.surface` = 16px |
+| ช่องกรอกทรงเหลี่ยม | `RADIUS.field` = 10px |
 | **ปุ่ม · ชิปตัวกรอง · ช่องค้นหา · สวิตช์** | `RADIUS.pill` = มนเต็ม |
 
 **ขนาดตัวอักษร** ใช้บันได 8 ขั้นใน `globals.css` (`text-2xs` … `text-3xl`) — **ห้ามสั่งเป็น px ดิบ มีด่าน lint ดักไว้**

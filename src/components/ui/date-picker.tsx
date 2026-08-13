@@ -62,6 +62,8 @@ export function DatePicker({
   onChange,
   id,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
   placeholder = "เลือกวันที่",
   disabled,
   className,
@@ -74,6 +76,8 @@ export function DatePicker({
   onChange: (value: string) => void;
   id?: string;
   "aria-label"?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: React.AriaAttributes["aria-invalid"];
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -86,6 +90,7 @@ export function DatePicker({
 }) {
   const selected = parseValue(value);
   const canClear = clearable && !required;
+  const invalid = ariaInvalid !== undefined && ariaInvalid !== false && ariaInvalid !== "false";
   const [open, setOpen] = React.useState(false);
   const [cursor, setCursor] = React.useState<Date>(selected ?? new Date());
 
@@ -111,6 +116,8 @@ export function DatePicker({
             type="button"
             id={id}
             aria-label={ariaLabel}
+            aria-describedby={ariaDescribedBy}
+            data-invalid={invalid || undefined}
             disabled={disabled}
             className={cn(
               controlShapeClass(shape),

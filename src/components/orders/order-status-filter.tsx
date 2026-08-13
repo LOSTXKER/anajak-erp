@@ -88,7 +88,7 @@ export function OrderStatusFilter({
             FOCUS_BUTTON,
             !selected
               ? "bg-blue-600 text-white"
-              : "bg-surface hairline-ring text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed",
+              : "bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed",
           )}
         >
           ทั้งหมด
@@ -110,8 +110,8 @@ export function OrderStatusFilter({
                 index >= 2 && "max-sm:hidden",
                 FOCUS_BUTTON,
                 active
-                  ? "bg-blue-50 font-medium text-blue-700 hairline-ring dark:bg-blue-950/50 dark:text-blue-300"
-                  : "bg-surface hairline-ring text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed",
+                  ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+                  : "bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed",
               )}
             >
               {INTERNAL_STATUS_LABELS[status]}
@@ -128,7 +128,7 @@ export function OrderStatusFilter({
             className={cn(
               RADIUS.pill,
               FOCUS_BUTTON,
-              "bg-surface hairline-ring flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 px-3.5 text-sm font-medium text-secondary transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed sm:w-fit sm:justify-start dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed [&::-webkit-details-marker]:hidden",
+              "flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 bg-surface-muted px-3.5 text-sm font-medium text-secondary transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed sm:w-fit sm:justify-start dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed [&::-webkit-details-marker]:hidden",
             )}
           >
             ทุกสถานะ

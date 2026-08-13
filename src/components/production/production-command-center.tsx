@@ -354,9 +354,7 @@ function LaneTileButton({ tile, onClick }: { tile: LaneTile; onClick: () => void
     <button
       type="button"
       onClick={onClick}
-      // border-transparent ไว้ก่อน แล้วค่อยเปลี่ยนสีตอนชี้ — ถ้าใส่ `border` เฉยๆ
-      // จะได้เส้นตลอดเวลาซึ่งผิดเจตนา · ถ้าไม่ใส่เลย สั่ง hover:border-* ไปก็ไม่ขึ้น
-      className="card-surface flex min-h-[76px] flex-col justify-between rounded-2xl border border-transparent p-3 text-left transition-colors hover:border-border-strong hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed"
+      className="card-surface card-surface-hover flex min-h-[76px] flex-col justify-between rounded-2xl p-3 text-left transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed"
     >
       <div className="flex items-start justify-between gap-1.5">
         <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">

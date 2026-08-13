@@ -84,10 +84,10 @@ function MobileStatusButton({
       title={`${fullLabel} · ${count} งาน`}
       onClick={onPress}
       className={cn(
-        "bg-surface hairline-ring active:scale-[0.98] flex min-h-11 items-center justify-between gap-2 rounded-2xl px-3 py-2 text-left",
+        "flex min-h-11 items-center justify-between gap-2 rounded-2xl bg-surface-muted px-3 py-2 text-left active:scale-[0.98]",
         FOCUS_BUTTON,
         isOn &&
-          "bg-blue-50 text-blue-700 hairline-ring dark:bg-blue-950/40 dark:text-blue-300",
+          "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
       )}
     >
       <span
@@ -151,7 +151,7 @@ function DesktopStatusButton({
         "group rounded-lg px-1 py-1.5 text-center transition-colors",
         FOCUS_BUTTON,
         isOn
-          ? "bg-blue-50 text-blue-700 hairline-ring dark:bg-blue-950/40 dark:text-blue-300"
+          ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
           : "hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed",
       )}
     >
@@ -229,7 +229,7 @@ export function OrderStatusFlowBar({
       <div
         role="group"
         aria-label="กรองตามสถานะงาน"
-        className="bg-surface hairline-ring hidden rounded-2xl px-3 py-3 @4xl:block"
+        className="hidden py-1 @4xl:block"
       >
         <div className="flex gap-3">
           <div className="min-w-0 flex-1">

@@ -13,7 +13,7 @@ import {
 
 /**
  * Minimal table primitive that gives every list page the same look-and-feel:
- * - subtle bordered container
+ * - soft elevated container without a decorative outline
  * - sentence-cased header (no UPPERCASE noise)
  * - uniform row hover & dividers
  *

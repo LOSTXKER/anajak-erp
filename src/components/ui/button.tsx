@@ -19,13 +19,13 @@ const buttonVariants = cva(
         destructive:
           "bg-red-700 text-white shadow-sm hover:bg-red-800 active:bg-red-900 dark:bg-red-700 dark:hover:bg-red-800 dark:active:bg-red-900",
         outline:
-          "border border-border bg-field text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
+          "border border-transparent bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
         // ปุ่มรองมาตรฐานมีหน้าตาเดียว = outline — คงชื่อ secondary/subtle ไว้ไม่ให้หน้าเดิมพัง
         // แต่ยุบสไตล์ให้ชี้ตัวเดียวกัน (UX4.1: ปุ่มรอง 3 หน้าตาไม่มีเหตุผลเชิงความหมาย)
         secondary:
-          "border border-border bg-field text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
+          "border border-transparent bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
         subtle:
-          "border border-border bg-field text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
+          "border border-transparent bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
         ghost:
           "text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
         link:

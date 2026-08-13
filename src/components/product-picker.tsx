@@ -434,7 +434,7 @@ export function ProductPickerDialog({
                                             "w-14 rounded px-1 text-center text-sm sm:h-6 sm:min-h-0 sm:w-12 sm:text-xs",
                                             exceedsStock
                                               ? "border-amber-400 dark:border-amber-600"
-                                              : "border-field-border",
+                                              : "border-transparent",
                                           )}
                                         />
                                         <button

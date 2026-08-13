@@ -14,8 +14,10 @@ import { join } from "node:path";
 import { Select } from "../src/components/ui/select";
 import { Input } from "../src/components/ui/input";
 import { Textarea } from "../src/components/ui/textarea";
+import { DatePicker } from "../src/components/ui/date-picker";
 import { Button } from "../src/components/ui/button";
 import { DataTable } from "../src/components/ui/data-table";
+import { FilterChip } from "../src/components/ui/filter-chip";
 import {
   ACTIVE_FILTER,
   FOCUS_BUTTON,
@@ -97,19 +99,24 @@ function check(name: string, html: string, must: string[], mustNot: string[] = [
 const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
 
-// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้น+ขอบ+โฟกัสชุดเดียว
-// เบสเคาะสุดท้าย 2026-08-04 หลังเห็นจอจริงทั้งสองแบบ: "พื้นขาว มีขอบบางๆ ธีมมืดสลับ"
-// (ลองพื้นเทาไร้ขอบแล้ว — ช่องกลืนกับพื้น/กล่องรอบตัวง่ายเกิน)
+// ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้น+โฟกัสชุดเดียว
+// เบสยืนยัน 2026-08-13 ว่า UI หลักต้องไร้กรอบ: ปกติใช้พื้นจมบอก affordance
+// และเก็บ border-transparent ไว้ให้ focus/error เปลี่ยนสีโดยความสูงไม่ขยับ
 const FIELD = [
-  "border-field-border",
+  "border-transparent",
   "bg-field",
   "placeholder:text-placeholder",
   "focus-visible:border-blue-500",
   "focus-visible:ring-blue-500/20",
   "dark:focus-visible:border-blue-300",
+  "aria-invalid:border-red-500",
+  "aria-invalid:bg-red-50/50",
+  "aria-invalid:focus-visible:border-red-500",
+  "aria-invalid:focus-visible:ring-red-500/30",
+  "dark:aria-invalid:border-red-400",
 ];
-// ห้ามย้อนไปพื้นเทา/ไร้ขอบ — เคยลองแล้วเบสตีกลับทั้งสองรอบ
-const FIELD_NO = ["bg-slate-100", "border-transparent", "bg-[var(--field-bg)]"];
+// ห้ามเส้นถาวรกลับมา — field ปกติต้องอ่านจากพื้น ไม่ใช่วงขอบทุกช่อง
+const FIELD_NO = ["border-field-border", "border-border", "bg-[var(--field-bg)]"];
 check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-[10px]"], [...FIELD_NO, "rounded-2xl"]);
 check(
   "ช่องเลือก (Select)",
@@ -118,6 +125,41 @@ check(
   [...FIELD_NO, "rounded-2xl"],
 );
 check("กล่องข้อความ (Textarea)", renderToStaticMarkup(<Textarea />), [...FIELD, "rounded-[10px]", "min-h-24"], [...FIELD_NO, "rounded-2xl"]);
+{
+  const dateHtml = renderToStaticMarkup(
+    <DatePicker
+      value=""
+      onChange={() => {}}
+      aria-invalid
+      aria-describedby="date-error"
+    />,
+  );
+  const dateTrigger = dateHtml.match(/<button[^>]*data-invalid="true"[^>]*>/)?.[0] ?? "";
+  check(
+    "ช่องวันที่รับสถานะผิดจาก Field",
+    dateTrigger,
+    [
+      ...FIELD,
+      "data-[invalid=true]:border-red-500",
+      "data-[invalid=true]:focus-visible:ring-red-500/30",
+    ],
+  );
+  if (!dateTrigger.includes('aria-describedby="date-error"')) {
+    failed++;
+    console.log("❌ ช่องวันที่ไม่ส่งต่อคำอธิบาย error จาก Field");
+  }
+}
+check(
+  "ช่องกรอกผิดต้องมีเส้น/พื้น/วงโฟกัสแดง",
+  renderToStaticMarkup(<Input aria-invalid />),
+  [
+    "aria-invalid:border-red-500",
+    "aria-invalid:bg-red-50/50",
+    "aria-invalid:focus-visible:border-red-500",
+    "aria-invalid:focus-visible:ring-red-500/30",
+    "dark:aria-invalid:border-red-400",
+  ],
+);
 
 // ② ทรงแคปซูลสำหรับแถบเครื่องมือ
 check("ช่องกรอกทรงแคปซูล", renderToStaticMarkup(<Input shape="pill" />), ["rounded-full"], ["rounded-[10px]"]);
@@ -181,11 +223,41 @@ check(
   ["hover:bg-slate-50", "hover:bg-slate-100"],
 );
 check(
+  "ปุ่มรองไม่มีกรอบถาวร",
+  renderToStaticMarkup(<Button variant="outline">ก</Button>),
+  ["border-transparent", "bg-surface-muted"],
+  ["border-border", "border-field-border"],
+);
+check(
   "ปุ่มอันตรายโหมดมืดไม่ย้อนเป็นแดงอ่อน",
   renderToStaticMarkup(<Button variant="destructive">ลบ</Button>),
   ["dark:bg-red-700", "dark:hover:bg-red-800", "dark:active:bg-red-900"],
   ["dark:bg-red-600", "dark:hover:bg-red-500"],
 );
+
+// สถานะเลือกของชิปต้องไม่พึ่งสีอย่างเดียว — aria-pressed บอก assistive tech
+// และเครื่องหมายถูกบอกคนที่มองเห็น (เก็บพื้นที่ไอคอนไว้ทั้งสองสถานะ ไม่ให้ label กระโดด)
+{
+  const selected = renderToStaticMarkup(
+    <FilterChip selected onClick={() => {}}>เลือกแล้ว</FilterChip>,
+  );
+  const idle = renderToStaticMarkup(
+    <FilterChip selected={false} onClick={() => {}}>ยังไม่เลือก</FilterChip>,
+  );
+  if (
+    !selected.includes('aria-pressed="true"') ||
+    !selected.includes("lucide-check") ||
+    selected.includes("invisible") ||
+    !idle.includes('aria-pressed="false"') ||
+    !idle.includes("lucide-check") ||
+    !idle.includes("invisible")
+  ) {
+    failed++;
+    console.log("❌ ชิปตัวกรองต้องมี aria-pressed + เครื่องหมายถูกที่ไม่พึ่งสีอย่างเดียว");
+  } else {
+    console.log("✅ ชิปตัวกรองบอก selected ด้วย aria-pressed + เครื่องหมายถูก");
+  }
+}
 
 // ⑥ หัวตารางอ่าน semantic surface/divider ชุดเดียวทั้งสองธีม
 check(
@@ -489,14 +561,6 @@ check(
       hexRgb(colorValues("field")[theme]!),
       4.5,
     );
-    for (const adjacent of ["surface", "surface-muted"] as const) {
-      checkContrast(
-        `${theme === 0 ? "light" : "dark"} ขอบ field บน ${adjacent}`,
-        hexRgb(colorValues("field-border")[theme]!),
-        hexRgb(colorValues(adjacent)[theme]!),
-        3,
-      );
-    }
     checkContrast(
       `${theme === 0 ? "light" : "dark"} selected text`,
       hexRgb(colorValues("interactive-selected-text")[theme]!),
@@ -593,6 +657,62 @@ check(
   );
 
   if (failed === 0) console.log("✅ contrast ของ text/control/focus/status ผ่านทั้ง light และ dark");
+}
+
+// ⑩ พื้นผิวหลักต้องไร้กรอบ — 406c0e6 เคยเติม zero-offset ring 1px กลับเข้า
+// card ทั้ง base+hover โดยขัดกับ contract minimal และ comment ข้าง primitive
+{
+  const blocks = [...globalsSource.matchAll(
+    /(?:\.dark\s+)?\.card-surface(?:-hover:hover)?\s*\{([^}]*)\}/g,
+  )].map((match) => match[1] ?? "");
+  const offenders = blocks.filter((block) =>
+    /0\s+0\s+0\s+(?:0\.5|1)px|--color-border(?:-strong)?/.test(block),
+  );
+  if (blocks.length !== 4 || offenders.length > 0) {
+    failed++;
+    console.log("❌ card-surface ต้องใช้เงาลึกเท่านั้น ห้ามวงขอบรอบ base/hover");
+  } else {
+    console.log("✅ card-surface ไม่มีวงขอบทั้ง base/hover และ Light/Dark");
+  }
+
+  const callerOffenders: string[] = [];
+  const cardOverrideOffenders: string[] = [];
+  function walkCardCallers(dir: string) {
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) {
+        walkCardCallers(path);
+      } else if (/\.tsx?$/.test(name)) {
+        const source = readFileSync(path, "utf8");
+        source
+          .split("\n")
+          .forEach((line, index) => {
+            if (
+              line.includes("card-surface") &&
+              /(?:^|\s)border(?:\s|["'`])|(?:hover|focus|active):border-(?!transparent)/.test(line)
+            ) {
+              callerOffenders.push(`${path}:${index + 1}`);
+            }
+          });
+        for (const match of source.matchAll(/<Card\b[^>]*className\s*=\s*"([^"]*)"/g)) {
+          const classes = match[1] ?? "";
+          if (/(?:^|\s)border(?:\s|$)|(?:^|\s)(?:hover:|focus:|active:)?border-(?!transparent)/.test(classes)) {
+            const line = source.slice(0, match.index).split("\n").length;
+            cardOverrideOffenders.push(`${path}:${line}`);
+          }
+        }
+      }
+    }
+  }
+  walkCardCallers("src");
+  const allCallerOffenders = [...callerOffenders, ...cardOverrideOffenders];
+  if (allCallerOffenders.length > 0) {
+    failed++;
+    console.log("❌ caller ของ card-surface เติมเส้นรอบกลับเอง");
+    allCallerOffenders.forEach((offender) => console.log(`   ${offender}`));
+  } else {
+    console.log("✅ caller ของ card-surface ไม่เติมเส้นรอบถาวร/ตอน interaction");
+  }
 }
 
 /* ── การ์ดชุดงานตอนยังว่าง: 3 ส่วนต้องหน้าตาเดียวกัน ────────────────────────

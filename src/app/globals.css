@@ -173,10 +173,11 @@
   --color-surface: #ffffff;
   --color-surface-muted: #f3f5f7;
   --color-surface-elevated: #ffffff;
-  --color-field: #ffffff;
+  /* control นิ่งใช้พื้นจมแทนเส้นรอบ — focus/error ค่อยวาดเส้นตามสถานะ */
+  --color-field: #f3f5f7;
   --color-border: #e2e6ea;
   --color-field-border: #7f8995;
-  --color-placeholder: #687482;
+  --color-placeholder: #65717f;
   --color-border-strong: #87919d;
   --color-divider: #e8ebef;
   --color-skeleton: #e2e6ea;
@@ -354,7 +355,7 @@ input[type="number"] {
 }
 
 /* ============================================================
-   การ์ดมาตรฐาน (ก้อน 6 / ทิศ A) — เงานุ่มลอย + ring 0.5px แทนเส้นขอบแข็ง
+   การ์ดมาตรฐาน — สีพื้น + เงานุ่มเท่านั้น ไม่มีเส้นรอบ
    ใช้แทน `border border-slate-200 bg-white` ทั่วระบบ ให้ทุกการ์ดลุคเดียวกัน
    ============================================================ */
 /* ⚠️ ทุกคลาสผิวข้างล่างนี้ต้องอยู่ใน @layer components — ห้ามย้ายออก
@@ -375,14 +376,14 @@ input[type="number"] {
 .card-surface {
   background-color: var(--color-surface);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-border) 72%, transparent),
-    0 8px 24px -18px rgb(15 23 42 / 0.16);
+    0 1px 2px rgb(15 23 42 / 0.03),
+    0 10px 26px -14px rgb(15 23 42 / 0.16);
 }
 .dark .card-surface {
   background-color: var(--color-surface);
   box-shadow:
-    0 0 0 1px var(--color-border),
-    0 14px 32px -18px rgb(0 0 0 / 0.68);
+    0 1px 3px rgb(0 0 0 / 0.4),
+    0 12px 28px -14px rgb(0 0 0 / 0.6);
 }
 /* ยกเงาเมื่อ hover — สำหรับการ์ดที่กดได้ */
 .card-surface-hover {
@@ -390,13 +391,22 @@ input[type="number"] {
 }
 .card-surface-hover:hover {
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-border-strong) 68%, transparent),
-    0 12px 30px -18px rgb(15 23 42 / 0.2);
+    0 2px 4px rgb(15 23 42 / 0.04),
+    0 14px 32px -12px rgb(15 23 42 / 0.22);
 }
 .dark .card-surface-hover:hover {
   box-shadow:
-    0 0 0 1px var(--color-border-strong),
-    0 18px 38px -16px rgb(0 0 0 / 0.78);
+    0 2px 6px rgb(0 0 0 / 0.5),
+    0 16px 34px -12px rgb(0 0 0 / 0.7);
+}
+
+/* ช่องกรอกใช้พื้นจมแทนเส้นรอบ · เมื่ออยู่ในแผงจมให้สลับเป็นพื้นการ์ด
+   เพื่อไม่ให้เทาบนเทากลืนกัน (dark ใช้ field เข้มเดิมในทุกบริบท) */
+.sunk-panel {
+  --color-field: var(--color-surface);
+}
+.dark .sunk-panel {
+  --color-field: #101012;
 }
 
 /* ============================================================
@@ -408,14 +418,7 @@ input[type="number"] {
      ยกตอนชี้     → .card-surface-hover  การ์ดที่กดได้
      ลอยจริง      → .overlay-surface     กล่องเด้ง เมนู ถาดมือถือ command palette
 
-   .hairline-ring = เส้นขอบบางกว่า 1px (ใช้แทนขอบแข็งบนพื้นโปร่ง เช่นชิปตัวกรอง
-   ช่องค้นหาบนแถบบน เมนูที่กำลังถูกเลือก) — ของเดิมเขียนมือ 0 0 0 0.5px 4 แบบไม่ตรงกัน
    ============================================================ */
-/* เส้นขอบบางรวมอยู่ในเงาแล้ว (เบสสั่ง 2026-08-01 "ตรวจดีๆ ว่ามีอะไรไม่เป็นมาตรฐาน")
-   — ของเดิมให้แค่พื้น+เงา ทำให้ 6 จุดต้องเขียน `border border-slate-200/70 bg-white
-   dark:border-slate-800/60 dark:bg-slate-900` เพิ่มเอง แล้วเขียนไม่ตรงกัน
-   บางจุดลืมเขียน = ไม่มีขอบเลย · ตอนนี้ครบในตัวเดียว ห้ามใส่ขอบ/พื้นซ้ำ
-   (ทำแบบเดียวกับ .card-surface ที่รวมขอบไว้ในเงาอยู่แล้ว) */
 /* กล่องลอยอาจทับทั้งผืนเทาและการ์ดขาว — ขอบกับเงาต้องแรงกว่าการ์ดธรรมดา
    เพื่อให้ยังแยกออกเมื่อเป็นขาวบนขาว ไม่ดูเหมือนเนื้อหาไหลต่อ */
 .overlay-surface {
@@ -425,9 +428,6 @@ input[type="number"] {
 .dark .overlay-surface {
   background-color: var(--color-surface-elevated);
   box-shadow: 0 0 0 1px var(--color-border-strong), 0 22px 64px rgb(0 0 0 / 0.72);
-}
-.hairline-ring {
-  box-shadow: 0 0 0 0.5px var(--color-border-strong);
 }
 /* แถบที่เลื่อนแนวนอนได้บนจอแคบ (แถบแท็บ) — ยังเลื่อนได้ปกติ แค่ไม่มีแถบเลื่อนมากินที่
    scroll-snap ให้แท็บหยุดตรงขอบพอดี ไม่ค้างครึ่งใบ */
