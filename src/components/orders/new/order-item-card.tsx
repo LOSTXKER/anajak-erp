@@ -25,7 +25,7 @@ import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
-import { FIELD_LABEL, FIELD_MEASURE, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { FIELD_LABEL, FIELD_MEASURE, FOCUS_BUTTON, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
 export const labelClass = FIELD_LABEL;
 
@@ -34,6 +34,7 @@ const groupLabelClass =
   "border-l-[3px] border-blue-500 pl-2 text-sm font-semibold text-slate-800 dark:border-blue-400 dark:text-slate-100";
 
 interface OrderItemCardProps {
+  cardId: string;
   item: OrderItemForm;
   itemIdx: number;
   canRemove: boolean;
@@ -67,11 +68,12 @@ interface OrderItemCardProps {
 
 // หัวการ์ดของแต่ละรายการ (ทุกรายการกางเห็นหมด ไม่ accordion — เบส: ไม่ต้องซ่อน)
 function OrderItemRow({
-  item, itemIdx, canRemove, onRemoveItem,
+  item, itemIdx, canRemove, headingId, onRemoveItem,
 }: {
   item: OrderItemForm;
   itemIdx: number;
   canRemove: boolean;
+  headingId: string;
   onRemoveItem: (idx: number) => void;
 }) {
   const itemPriceSummary = buildOrderItemPriceSummary(item);
@@ -79,14 +81,13 @@ function OrderItemRow({
   const empty = !itemHasContent(item);
 
   return (
-    // ไม่มีเส้นใต้ — เลขวงกลม+ตัวหนาแยกหัวออกจากเนื้อได้เองแล้ว (เบส 2026-08-04 "เส้นบางๆ ที่แบ่ง section รกเยอะไป")
-    <div className="flex items-center gap-2 pt-2">
+    <div className="flex min-h-11 items-center gap-2">
       <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
         {itemIdx + 1}
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+      <h3 id={headingId} className="min-w-0 flex-1 truncate text-sm font-semibold text-strong">
         รายการที่ {itemIdx + 1}
-      </span>
+      </h3>
       {/* จำนวน/ยอด โผล่เมื่อมีเลขจริงเท่านั้น — เดิมใส่ขีด "—" ไว้แทนค่าว่าง
           กลายเป็นขีดลอยสองอันบนหัวรายการที่ไม่ได้บอกอะไร (เบสถามเอง 2026-08-05
           "ขีดนี้คืออะไร" = สัญญาณว่ามันสื่อความไม่ได้) */}
@@ -138,7 +139,7 @@ function ItemTableCols() {
 // ============================================================
 
 export function OrderItemCard({
-  item, itemIdx, canRemove, isExpanded,
+  cardId, item, itemIdx, canRemove, isExpanded,
   allItems, printCatalog, addonCatalog,
   onUpdateItem, onRemoveItem,
   onAddPrint, onRemovePrint, onUpdatePrint,
@@ -202,6 +203,7 @@ export function OrderItemCard({
 
   const itemPriceSummary = buildOrderItemPriceSummary(item);
   const { totalQuantity: totalQty, subtotal } = itemPriceSummary;
+  const headingId = `${cardId}-heading`;
 
   // ── section: คำอธิบายงาน ──
   const descField = (
@@ -579,16 +581,27 @@ export function OrderItemCard({
   );
 
   return (
-    // แต่ละชุดงานเป็นกล่องมีขอบของตัวเอง — เบสลองพื้นจมแล้วขอเปลี่ยนเป็นเส้นขอบ
-    // (2026-08-04 "การแบ่งรายการ ขอลองแบบเส้นขอบดีกว่า")
-    <div className={cn(RADIUS.surface, "border border-slate-200 px-4 pb-4 pt-1 dark:border-white/10")}>
+    // หนึ่งชุดงาน = หนึ่ง card surface โดยตรง ไม่มี card ใหญ่ครอบและไม่มีเส้นรอบซ้อน
+    // (เบส 2026-08-14: รายการที่ 2 ต้องแยกเป็นการ์ดใหม่ และเอาขอบรายการออก)
+    <article
+      id={cardId}
+      tabIndex={-1}
+      role="listitem"
+      aria-labelledby={headingId}
+      className={cn(
+        "card-surface scroll-mt-24 p-4 outline-none sm:p-5",
+        FOCUS_BUTTON,
+        RADIUS.surface,
+      )}
+    >
       <OrderItemRow
         item={item} itemIdx={itemIdx} canRemove={canRemove}
+        headingId={headingId}
         onRemoveItem={onRemoveItem}
       />
 
       {expanded && (
-        <div className="space-y-4 py-4">
+        <div className="space-y-5 pt-4">
           {compact ? (
             <>
               {/* คำอธิบายงานอยู่บนสุด ใต้เลขรายการ (เบส: คำอธิบายไปอยู่ข้างบนกับเลข) */}
@@ -606,6 +619,6 @@ export function OrderItemCard({
           )}
         </div>
       )}
-    </div>
+    </article>
   );
 }

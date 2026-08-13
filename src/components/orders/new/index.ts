@@ -1,4 +1,5 @@
 export { OrderItemCard } from "./order-item-card";
+export { OrderItemsListHeader } from "./order-items-list-header";
 export { OrderFeeSection } from "./order-fee-section";
 export { OrderShippingSection } from "./order-shipping-section";
 export { OrderPriceSummary } from "./order-price-summary";

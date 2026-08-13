@@ -253,7 +253,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="grid h-dvh grid-cols-1 grid-rows-[4rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[15rem_minmax(0,1fr)]"
+      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[4rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[15rem_minmax(0,1fr)]"
       style={
         {
           "--app-bottom-nav-offset":
@@ -535,7 +535,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <Suspense
       fallback={
         <div
-          className="h-dvh bg-bg"
+          className="app-workspace h-dvh bg-bg"
           role="status"
           aria-label="กำลังโหลดพื้นที่ทำงาน"
         />

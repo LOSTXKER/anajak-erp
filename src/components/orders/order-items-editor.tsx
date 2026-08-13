@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
-import { Loader2, Plus, Trash2, Save, Pencil, Receipt } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, Receipt } from "lucide-react";
 import { validateOrderItem, validateOrderItemProduct, itemHasContent } from "@/types/order-form";
 import {
   mapItemsToMutationInput,
@@ -20,7 +20,7 @@ import { mergeStockVariantsIntoItems } from "@/lib/order-form-stock";
 import { useOrderItemsForm, useOrderFeesForm } from "@/hooks/use-order-items-form";
 // ฟอร์มรายการ "ชุดเดียวกับหน้าเปิดงาน" — แสดง inline บนหน้าออเดอร์เลย ไม่ใช่ popup
 // (เบสเคาะ 2026-06-11: เปิดงานเบาแล้วมาเติมทีหลัง ต้องเห็นฟอร์มเต็มกว้างตรงที่รายการอยู่)
-import { OrderItemCard } from "@/components/orders/new";
+import { OrderItemCard, OrderItemsListHeader } from "@/components/orders/new";
 import {
   MarginEstimateBlock,
   useMarginEstimate,
@@ -291,15 +291,19 @@ export function OrderItemsEditor({
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          {/* หัวการ์ด = ชื่อล้วน · ปุ่มยกเลิกอยู่แถบล่าง sticky (เลี่ยงปุ่มยกเลิกซ้ำ 2 จุด) */}
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Pencil className="h-4 w-4" />
-            {changeOrderMode ? "ออกใบแก้ไขออเดอร์" : "แก้ไขรายการสินค้า"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="space-y-6">
+        <section aria-labelledby="edit-order-items-heading" className="space-y-4">
+          <OrderItemsListHeader
+            headingId="edit-order-items-heading"
+            itemIdPrefix="edit-order-item"
+            title={changeOrderMode ? "รายการในใบแก้ไขออเดอร์" : "แก้ไขรายการสินค้า"}
+            count={items.length}
+            onAdd={() => {
+              addItem();
+              setExpandedItemIdx(items.length);
+            }}
+          />
+
           {catalogError && (
             <Alert variant="warning">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -318,11 +322,12 @@ export function OrderItemsEditor({
               </div>
             </Alert>
           )}
-          {/* รายการสินค้า — ฟอร์มชุดเดียวกับหน้าเปิดงาน (เลข "รายการที่ N" ขึ้นตั้งแต่ชุดแรก) */}
-          <div className="space-y-4">
+          {/* รายการสินค้า — หนึ่งรายการต่อหนึ่ง card และใช้ฟอร์มชุดเดียวกับหน้าเปิดงาน */}
+          <div role="list" className="space-y-4">
             {items.map((item, itemIdx) => (
               <OrderItemCard
                 key={itemIdx}
+                cardId={`edit-order-item-${itemIdx + 1}`}
                 item={item}
                 itemIdx={itemIdx}
                 canRemove={items.length > 1}
@@ -351,20 +356,13 @@ export function OrderItemsEditor({
               />
             ))}
           </div>
+        </section>
 
-
-          <button
-            type="button"
-            onClick={() => {
-              addItem();
-              setExpandedItemIdx(items.length);
-            }}
-            className={cn(DASHED_INTERACTIVE, "flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm text-muted transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed")}
-          >
-            <Plus className="h-4 w-4" />
-            เพิ่มรายการงานอีกชุด
-          </button>
-
+        <Card>
+          <CardHeader>
+            <CardTitle>ราคาและเงื่อนไข</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
           {/* ค่าธรรมเนียม + ส่วนลด — โชว์ตรงๆ ไม่พับซ่อน (เบส: ไม่ต้องซ่อน แต่ดูง่าย) */}
           <div className="space-y-3">
             <p className="border-l-[3px] border-blue-500 pl-2 text-sm font-semibold text-slate-800 dark:border-blue-400 dark:text-slate-100">
@@ -520,31 +518,33 @@ export function OrderItemsEditor({
             </div>
           )}
 
-          {/* ปุ่มบันทึก — sticky ล่างจอ มือถือกดถึงเสมอ */}
-          <div
-            className={cn(
-              "card-surface sticky flex justify-end gap-2 rounded-2xl p-3 backdrop-blur",
-              "bottom-[calc(var(--app-bottom-nav-offset)+0.75rem)] lg:bottom-3",
-            )}
+          </CardContent>
+        </Card>
+
+        {/* ปุ่มบันทึก — sticky ล่างจอ มือถือกดถึงเสมอ */}
+        <div
+          className={cn(
+            "card-surface sticky flex justify-end gap-2 rounded-2xl p-3 backdrop-blur",
+            "bottom-[calc(var(--app-bottom-nav-offset)+0.75rem)] lg:bottom-3",
+          )}
+        >
+          <Button variant="outline" onClick={onCancel} disabled={saving}>
+            ยกเลิก
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={items.length === 0 || saving}
+            className="gap-1.5"
           >
-            <Button variant="outline" onClick={onCancel} disabled={saving}>
-              ยกเลิก
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={items.length === 0 || saving}
-              className="gap-1.5"
-            >
-              {saving ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <Save />
-              )}
-              {changeOrderMode ? "ออกใบแก้ไข" : "บันทึกรายการ"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            {saving ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Save />
+            )}
+            {changeOrderMode ? "ออกใบแก้ไข" : "บันทึกรายการ"}
+          </Button>
+        </div>
+      </div>
 
       {/* picker สต๊อก — popup เฉพาะตัวเลือกชั่วคราว (ฟอร์มหลักอยู่บนหน้าแล้ว) */}
       <ProductPickerDialog

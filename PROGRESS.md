@@ -4,6 +4,13 @@
 
 ## ตอนนี้
 
+> **✅ แยกรายการงานเป็น card รายใบ + ยกผืนหลังบ้านใกล้ขาวแบบ Vercel แล้ว 2026-08-14**
+> หน้าเปิดงานและหน้าแก้รายการใช้ `OrderItemCard` ชุดเดียวกันแบบหนึ่งรายการต่อหนึ่ง `card-surface`: ถอด outer card และเส้นรอบรายการซ้ำออก · ย้าย CTA “เพิ่มรายการ” ไปไว้ก่อน list ทั้งสองหน้า พร้อม count เดียวกัน · เพิ่มแล้วพา focus+scroll ไป card ใหม่ทันที จึงไม่เห็นแค่ count เปลี่ยนทั้งที่รายการใหม่อยู่ไกลใต้ viewport · ราคา/เงื่อนไขและ sticky save ของหน้าแก้ไขยังเป็น card แยก และ business state/stock target/validation/mutation เดิมไม่เปลี่ยน
+>
+> **สีและขอบเขต:** Light workspace ใน AppShell ใช้ `#fafafa` เทียบกับ card `#fff`; Dark คง `#1a1a1c/#252528` · scope ผ่าน `.app-workspace` จึงไม่เปลี่ยน public/auth/print fallback `#f8f9fb` · field/toolbar/hover/selected เดิมไม่ถอย
+>
+> **ด่าน:** cold production create+edit Light/Dark ที่ 1280×720 และ 390×844 — สอง card เป็น sibling, gap 16px, border 0; CTA มือถือ 348×44px; mouse/Enter พา focus ไป `new/edit-order-item-2` และ auto-scroll · visible target ต่ำกว่า 44px = 0 · overflow/hydration/app console/overlay = 0 · ไม่ submit/save business data · typecheck/lint 0 error (warningเดิม 1 จุดใน targeted file/29 จุดทั้ง repo) · unit **693/693** · `verify:ui`/Impeccable detector (`[]`)/cold build/diff check ผ่าน · outsider review GO ไม่มี P0/P1 · ภาพอยู่ `anajak-order-item-final-verify-cold-2026-08-14/`
+
 > **✅ คืนขอบประพื้นที่เพิ่มเป็นแบบเดิมแล้ว 2026-08-14 — กล่องใหญ่ไม่เป็นกรอบเข้มทั้งหน้า**
 > ต้นเหตุคือ semantic color rewrite เคยเปลี่ยน `DASHED` จาก `slate-300/700` ไปเป็น `border-strong` ทำให้ CTA เพิ่มสินค้า/ลาย/ส่วนเสริมและ uploader ทั้งระบบมีน้ำหนักเส้นเกือบสองเท่า · คืน resting token เดิมเป็น Light `#c8d0d9` / Dark `#3f3f44` แล้วแยก `DASHED_INTERACTIVE` สำหรับของที่กดได้: hover ค่อยยกเป็น `#87919d/#74747c` พร้อม neutral fill ส่วน placeholder ที่อ่านอย่างเดียวไม่ตอบสนองหลอก
 >

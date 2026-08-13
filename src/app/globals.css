@@ -161,7 +161,7 @@
   /* ============================================================
      ระบบสีพื้นผิว 2026-08-13 — neutral สงบ + interaction เป็นเทากลาง
 
-       page            #f8f9fb  ผืนงานเกือบขาว
+       page            #f8f9fb  ค่า fallback ของหน้า public/auth
        chrome/surface  #ffffff  navigation / card
        sunk            #f3f5f7  กลุ่มย่อยเชิงโครงสร้าง
        field           #ffffff  ช่องกรอก (แยกด้วย functional boundary)
@@ -263,6 +263,15 @@
   --color-strong: #f5f5f7;
   --color-secondary: #cbcbd0;
   --color-muted: #a4a4aa;
+}
+
+/* ผืนทำงานหลังบ้านใกล้ขาวแบบ Vercel แต่ scope ไว้ใน AppShell เท่านั้น
+   เพื่อไม่เปลี่ยนหน้า public/login ที่เป็นคนละประสบการณ์โดยอ้อม */
+.app-workspace {
+  --color-bg: #fafafa;
+}
+.dark .app-workspace {
+  --color-bg: #1a1a1c;
 }
 
 html,

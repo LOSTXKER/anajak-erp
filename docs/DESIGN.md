@@ -12,14 +12,16 @@
 
 ## สี — semantic system (`src/app/globals.css`)
 
-รอบเก็บสี 2026-08-13 คง Light เกือบขาว คืน Dark เป็น neutral gray เข้มแบบเดิม
+รอบเก็บสี 2026-08-14 ใช้ Light workspace ใน AppShell `#fafafa` ใกล้ขาวแบบ Vercel โดย card/chrome คงขาวล้วน
+และคืน Dark เป็น neutral gray เข้มแบบเดิม
 และใช้ surface hover/pressed เป็นเทากลางแทนฟ้ากับพื้นที่กดทั้ง navigation/control/row/card ·
 hover Light เป็นขาวนวล ไม่ใช่แถบเทาหนัก · น้ำเงิน Anajak `#3973b2` สงวนให้ primary,
 selected และ focus เพื่อให้สถานะชี้กับสถานะเลือกไม่สื่อความหมายซ้ำกัน
 
 | บทบาท | Light | Dark | utility |
 |---|---|---|---|
-| พื้นหน้า | `#f8f9fb` | `#1a1a1c` | `bg-bg` |
+| พื้น workspace หลังบ้าน | `#fafafa` | `#1a1a1c` | `.app-workspace` + `bg-bg` |
+| พื้น fallback public/auth | `#f8f9fb` | `#1a1a1c` | `bg-bg` |
 | navbar/sidebar | `#fff` | `#161618` | `bg-chrome` |
 | card | `#fff` | `#252528` | `bg-surface` / `card-surface` |
 | menu/dialog | `#fff` | `#252528` | `bg-surface-elevated` / `overlay-surface` |
@@ -54,6 +56,7 @@ selected และ focus เพื่อให้สถานะชี้กั�
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
 - Minimal = ไม่มีเส้นกรอบ **ตกแต่ง**: card/table/status rail ใช้ surface+เงาโดยไร้ outline · field ใช้ขาว/เข้ม + เส้น resting อ่อนเพื่อช่วยเห็นรูปทรง · toolbar/secondary action ใช้ surface ยก · กล่องจมใช้ `surface-muted` เฉพาะโครงสร้าง
+- รายการงานในฟอร์มใช้หนึ่ง `card-surface` ต่อหนึ่งรายการโดยตรงบน page canvas · ห้ามวาง card ใหญ่ครอบ list แล้วเติม border รอบรายการซ้ำ · CTA “เพิ่มรายการ” อยู่ก่อน list ทั้งหน้าเปิดงานและหน้าแก้ไข
 - ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — `border-field-border bg-field` ไม่มีเงา; resting boundary ต้องอยู่ในช่วงที่ guard ล็อกไว้ไม่ให้จางจนกลืนหรือเข้มจนเป็นตาราง · focus/error ใช้เส้น contrast สูงและเปลี่ยนสีเส้นเดิมโดยความสูงไม่ขยับ · ห้าม ancestor เปลี่ยนสี field ตามตำแหน่ง
 - กล่องเพิ่มของ/อัปโหลดใช้ `DASHED_INTERACTIVE`; placeholder ที่อ่านอย่างเดียวใช้ `DASHED` — ขอบประตอนพักต้องอ่อนกว่าขอบเน้น เพราะพื้นที่ก้อนใหญ่ขยายน้ำหนักของเส้น; hover/pressed/focus เป็นผู้บอก interaction แทน · ห้ามใช้ `border-strong` เป็น resting state
 - `SearchInput`/`Select` ที่อยู่บน `Toolbar` ระบุ `surface="raised"`; ใน form/dialog ระบุ/default `field`; action ในแถวที่ตั้งใจโปร่งใช้ `surface="inline"` แทน class สีดิบ

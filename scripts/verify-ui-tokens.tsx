@@ -1041,6 +1041,7 @@ check(
   const noop = () => {};
   const html = renderToStaticMarkup(
     React.createElement(OrderItemCard, {
+      cardId: "verify-order-item-1",
       item: EMPTY_ITEM, itemIdx: 0, canRemove: false, isExpanded: true,
       compact: true, appearance: "intake", allItems: [EMPTY_ITEM],
       printCatalog: [], addonCatalog: [],
@@ -1086,6 +1087,89 @@ check(
     problems.forEach((x) => console.log(`   ${x}`));
   } else {
     console.log("✅ การ์ดชุดงานตอนว่าง — สินค้า/ลาย/ส่วนเสริม หน้าตาเดียวกัน");
+  }
+}
+
+/* ── รายการงาน: หนึ่งรายการต่อหนึ่ง card + CTA อยู่ก่อน list ───────────────
+   หน้าเปิดงานและหน้าแก้ไขใช้ form/state ชุดเดียวกัน แต่เคยวาง CTA คนละตำแหน่ง
+   และซ้อน outer card + inner border จนหลายรายการอ่านเป็นก้อนเดียว */
+{
+  const orderItemSource = readFileSync(
+    "src/components/orders/new/order-item-card.tsx",
+    "utf8",
+  );
+  const createSource = readFileSync(
+    "src/components/orders/new/order-create-page.tsx",
+    "utf8",
+  );
+  const editorSource = readFileSync(
+    "src/components/orders/order-items-editor.tsx",
+    "utf8",
+  );
+  const listHeaderSource = readFileSync(
+    "src/components/orders/new/order-items-list-header.tsx",
+    "utf8",
+  );
+  const appShellSource = readFileSync(
+    "src/components/layout/app-shell.tsx",
+    "utf8",
+  );
+  const itemWrapper =
+    orderItemSource.match(/<article[\s\S]*?<OrderItemRow/)?.[0] ?? "";
+
+  const problems: string[] = [];
+  if (
+    !itemWrapper.includes('role="listitem"') ||
+    !itemWrapper.includes("card-surface") ||
+    /(?:^|\s)border(?:\s|["'`])|(?:^|\s)ring-(?!0)/.test(itemWrapper)
+  ) {
+    problems.push("OrderItemCard ต้องเป็น listitem บน card-surface โดยไม่มี border/ring");
+  }
+
+  for (const [label, source] of [
+    ["create", createSource],
+    ["edit", editorSource],
+  ] as const) {
+    const headerIndex = source.indexOf("<OrderItemsListHeader");
+    const listIndex = source.indexOf('role="list"', headerIndex);
+    const mapIndex = source.indexOf("items.map", listIndex);
+    if (headerIndex < 0 || listIndex < 0 || mapIndex < 0 || headerIndex > listIndex) {
+      problems.push(`${label}: CTA ต้องอยู่ก่อน role=list และ items.map`);
+    }
+  }
+
+  if (
+    createSource.includes("เพิ่มชุดงาน") ||
+    editorSource.includes("เพิ่มรายการงานอีกชุด")
+  ) {
+    problems.push("ต้องไม่มี CTA รุ่นเก่าซ้ำท้าย list");
+  }
+  if (
+    !listHeaderSource.includes('type="button"') ||
+    !listHeaderSource.includes("เพิ่มรายการ") ||
+    !listHeaderSource.includes("w-full") ||
+    !listHeaderSource.includes("scrollIntoView") ||
+    !listHeaderSource.includes(".focus(")
+  ) {
+    problems.push("shared header ต้องมี CTA mobile เต็มแถวและพา focus ไป card ใหม่");
+  }
+  const pageColors = colorValues("bg");
+  if (
+    pageColors[0] !== "#f8f9fb" ||
+    pageColors[1] !== "#1a1a1c" ||
+    !appShellSource.includes("app-workspace") ||
+    !globalsSource.includes(".app-workspace") ||
+    !globalsSource.includes("--color-bg: #fafafa")
+  ) {
+    problems.push("AppShell workspace ต้องเป็น Light #fafafa โดยไม่เปลี่ยน public/auth fallback");
+  }
+
+  if (problems.length) {
+    failed++;
+    console.log("❌ รายการงานยังซ้อนการ์ดหรือ CTA ไม่ได้อยู่ก่อน list");
+    problems.forEach((problem) => console.log(`   ${problem}`));
+  } else {
+    console.log("✅ รายการงานแยก card ไร้ขอบ และ CTA อยู่ก่อน list ทั้ง create/edit");
   }
 }
 

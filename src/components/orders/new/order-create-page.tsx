@@ -42,7 +42,7 @@ import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing"
 import { cn, formatCurrency } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { Field } from "@/components/ui/field";
-import { Plus, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
@@ -77,6 +77,7 @@ import { mapItemsToMutationInput, mapFeesToMutationInput } from "@/lib/order-map
 import { mergeStockVariantsIntoItems } from "@/lib/order-form-stock";
 import {
   OrderItemCard,
+  OrderItemsListHeader,
   OrderFeeSection,
   OrderShippingSection,
   OrderPriceSummary,
@@ -85,7 +86,6 @@ import {
   OrderAttachmentsSection,
 } from "@/components/orders/new";
 import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
-import { Badge } from "@/components/ui/badge";
 import { FOCUS_BUTTON, RADIUS, SUNK_PANEL, TINT, DISPLAY_AMOUNT } from "@/components/ui/tokens";
 import { MoneyInput } from "@/components/ui/number-input";
 
@@ -776,69 +776,53 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
           </TabsContent>
 
           <TabsContent value="items" keepMounted className="mt-6">
-          <Section
+          <section
             id={STEP_IDS.items}
             tabIndex={-1}
-            action={
-              hasItemContent ? (
-                <Badge variant="default" size="sm">
-                  {items.length} ชุดงาน
-                </Badge>
-              ) : undefined
-            }
-            className={cn("scroll-mt-16 outline-none", FOCUS_BUTTON)}
+            aria-labelledby="new-order-items-heading"
+            className={cn("scroll-mt-16 space-y-4 outline-none", FOCUS_BUTTON)}
           >
-            <div className="space-y-4">
-              {/* เลข "รายการที่ N" ขึ้นตั้งแต่ชุดแรก — ไม่ต้องรอกดเพิ่มชุดที่ 2 ถึงจะมีเลข
-                  (เบสเคาะจาก mockup 2026-08-04) · เดิมมีโหมด solo ที่ซ่อนเลขตอนมีชุดเดียว
-                  ทำให้พอเพิ่มชุดที่ 2 เลขโผล่มาทีหลัง ผู้ใช้ต้องอ่านหน้าใหม่ */}
-              <div className="space-y-4">
-                {items.map((item, itemIdx) => (
-                  <OrderItemCard
-                    key={itemIdx}
-                    item={item}
-                    itemIdx={itemIdx}
-                    canRemove={items.length > 1}
-                    isExpanded
-                    compact
-                    appearance="intake"
-                    allItems={items}
-                    printCatalog={printCatalog}
-                    addonCatalog={addonCatalog}
-                    onUpdateItem={updateItem}
-                    onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
-                    onAddPrint={addPrint}
-                    onRemovePrint={removePrint}
-                    onUpdatePrint={updatePrint}
-                    onAddAddon={addAddon}
-                    onRemoveAddon={removeAddon}
-                    onUpdateAddon={updateAddon}
-                    onOpenPicker={() => setPickerOpen(true)}
-                    // setter ตรง — updater(items) แบบ eager ทำ multi-update ใน tick เดียวทับกันเอง
-                    onSetItems={setItems}
-                  />
-                ))}
-              </div>
+            <OrderItemsListHeader
+              headingId="new-order-items-heading"
+              itemIdPrefix="new-order-item"
+              title="รายการงาน"
+              count={items.length}
+              onAdd={() => {
+                addItem();
+                setExpandedItemIdx(items.length);
+              }}
+            />
 
-              {/* ปุ่มเพิ่มอยู่ล่างสุด — ต่อจากชุดงานสุดท้าย ตรงกับลำดับที่คนทำงานจริง
-                  (กรอกชุดนี้เสร็จ → ค่อยคิดว่าจะมีชุดต่อไปไหม) */}
-              <div className="flex">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    addItem();
-                    setExpandedItemIdx(items.length);
-                  }}
-                  className="w-full gap-1.5 text-muted sm:w-auto"
-                >
-                  <Plus />
-                  เพิ่มชุดงาน
-                </Button>
-              </div>
+            {/* หนึ่งรายการต่อหนึ่ง card — ไม่มี outer card ครอบ list ซ้ำ */}
+            <div role="list" className="space-y-4">
+              {items.map((item, itemIdx) => (
+                <OrderItemCard
+                  key={itemIdx}
+                  cardId={`new-order-item-${itemIdx + 1}`}
+                  item={item}
+                  itemIdx={itemIdx}
+                  canRemove={items.length > 1}
+                  isExpanded
+                  compact
+                  appearance="intake"
+                  allItems={items}
+                  printCatalog={printCatalog}
+                  addonCatalog={addonCatalog}
+                  onUpdateItem={updateItem}
+                  onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
+                  onAddPrint={addPrint}
+                  onRemovePrint={removePrint}
+                  onUpdatePrint={updatePrint}
+                  onAddAddon={addAddon}
+                  onRemoveAddon={removeAddon}
+                  onUpdateAddon={updateAddon}
+                  onOpenPicker={() => setPickerOpen(true)}
+                  // setter ตรง — updater(items) แบบ eager ทำ multi-update ใน tick เดียวทับกันเอง
+                  onSetItems={setItems}
+                />
+              ))}
             </div>
-          </Section>
+          </section>
           </TabsContent>
 
           <TabsContent value="pricing" keepMounted className="mt-6">
