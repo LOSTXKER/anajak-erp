@@ -144,8 +144,15 @@ export const TABLE_HEAD_SURFACE =
 
 /** ขอบประ = "ที่ว่างรอของ" — ปุ่มเพิ่มของ · ช่องอัปโหลด · กล่องว่างที่กดเพิ่มได้
  *  audit 2026-08-01: 21 จุดใช้ slate-200 สลับ slate-300 โดยไม่มีเหตุผล
- *  และครึ่งหนึ่งลืมใส่สีโหมดมืด → ขอบหายไปเลยบนพื้นดำ */
-export const DASHED = "border border-dashed border-border-strong";
+ *  และครึ่งหนึ่งลืมใส่สีโหมดมืด → ขอบหายไปเลยบนพื้นดำ
+ *  เบสเคาะจากจอจริง 2026-08-14 ให้คืน resting แบบเดิม: กล่องใหญ่ต้องเป็นเส้นนำสายตาเบาๆ
+ *  ไม่ใช่ strong boundary; caller ค่อยเพิ่ม strong/สีพื้นตอน hover และใช้ focus ring ตอน keyboard */
+export const DASHED = "border border-dashed border-slate-300 dark:border-slate-700";
+
+/** ขอบประที่กดได้ — resting ใช้ DASHED อ่อน แต่ pointer ต้องยกเส้นขึ้นทั้ง Light/Dark
+ *  แยกจาก DASHED เพราะกล่องว่าง/placeholder ที่อ่านอย่างเดียวไม่ควรตอบสนองตอนชี้ */
+export const DASHED_INTERACTIVE =
+  `${DASHED} hover:border-border-strong dark:hover:border-border-strong`;
 
 /** ตัวเลือกหนึ่งบรรทัดในเมนูที่กางออกมา — สถานะชี้/ถูกเลือก/กดไม่ได้ ชุดเดียวกันทุกเมนู */
 export const MENU_ITEM =

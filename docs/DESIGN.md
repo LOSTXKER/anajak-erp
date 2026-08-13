@@ -25,6 +25,7 @@ selected และ focus เพื่อให้สถานะชี้กั�
 | menu/dialog | `#fff` | `#252528` | `bg-surface-elevated` / `overlay-surface` |
 | กล่องจมเชิงโครงสร้าง/disabled | `#f3f5f7` | `#1d1d1f` | `bg-surface-muted` / `SUNK_PANEL` |
 | ช่องกรอก | `#fff` + ขอบ `#c8d0d9` | `#101012` + ขอบ `#3f3f44` | `FIELD_SURFACE` |
+| พื้นที่เพิ่ม/อัปโหลด | ขอบประ `slate-300` | ขอบประ `slate-700` | `DASHED` / `DASHED_INTERACTIVE` — resting เบา; hover/focus ค่อยเน้น |
 | control บน toolbar | `#fff` + เงา | `#252528` + เงา | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
 | ปุ่มรอง | `#fff` + ขอบบาง+เงา | `#252528` + ขอบบาง+เงา | `Button outline/secondary/subtle` |
 | ขอบทั่วไป / เส้นคั่น | `#e2e6ea` / `#e8ebef` | `#343438` / `#303034` | `border-border` / `border-divider` |
@@ -54,6 +55,7 @@ selected และ focus เพื่อให้สถานะชี้กั�
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
 - Minimal = ไม่มีเส้นกรอบ **ตกแต่ง**: card/table/status rail ใช้ surface+เงาโดยไร้ outline · field ใช้ขาว/เข้ม + เส้น resting อ่อนเพื่อช่วยเห็นรูปทรง · toolbar/secondary action ใช้ surface ยก · กล่องจมใช้ `surface-muted` เฉพาะโครงสร้าง
 - ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — `border-field-border bg-field` ไม่มีเงา; resting boundary ต้องอยู่ในช่วงที่ guard ล็อกไว้ไม่ให้จางจนกลืนหรือเข้มจนเป็นตาราง · focus/error ใช้เส้น contrast สูงและเปลี่ยนสีเส้นเดิมโดยความสูงไม่ขยับ · ห้าม ancestor เปลี่ยนสี field ตามตำแหน่ง
+- กล่องเพิ่มของ/อัปโหลดใช้ `DASHED_INTERACTIVE`; placeholder ที่อ่านอย่างเดียวใช้ `DASHED` — ขอบประตอนพักต้องอ่อนกว่าขอบเน้น เพราะพื้นที่ก้อนใหญ่ขยายน้ำหนักของเส้น; hover/pressed/focus เป็นผู้บอก interaction แทน · ห้ามใช้ `border-strong` เป็น resting state
 - `SearchInput`/`Select` ที่อยู่บน `Toolbar` ระบุ `surface="raised"`; ใน form/dialog ระบุ/default `field`; action ในแถวที่ตั้งใจโปร่งใช้ `surface="inline"` แทน class สีดิบ
 - field และ Button ที่ disabled ใช้ muted fill/text + `shadow-none` โดยไม่ลด opacity ทั้งก้อน เพื่อให้ยังอ่านค่าที่ล็อกอยู่ได้; icon-only/checkbox/switch คง feedback disabled ของ primitive ตัวเอง
 - สีสถานะใช้เฉพาะ **blue / red / amber / green** ผ่าน `Badge`, `Alert`, `StatusLabel`, `TINT`

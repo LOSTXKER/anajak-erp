@@ -16,7 +16,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **สถานะและสิทธิ์ไม่โกหก** — loading/error/retry/empty แยกกัน · ข้อมูลเงินและเมนู gated ตาม permission เดิม · ทางเข้าฟอร์มเปิดงานทุกจุดใช้กติกาเดียวกันและ fail closed
 - [x] **รายการออเดอร์เริ่มจากงาน ไม่เริ่มจากแผงสถานะ** — มือถือเห็นรายการหรือ empty/error ที่ลงมือทำได้ก่อน `y=600` · จอกว้างเห็น status rail ครบ · search/filter/sort/pagination/CSV ยังใช้งานจริง
 - [x] **เปิดงานและรายละเอียดคง flow เดิม** — draft/validation/upload/`next=quote`/duplicate/status/เอกสาร/แท็บ URL+Back ผ่าน service/server guard เดิม · แท็บเป็น underline minimal และไม่เสีย ARIA/keyboard
-- [x] **พื้นผิวแยกตามหน้าที่ ไม่กลืนกัน** — card/table/status rail เป็น surface สีขาวมีเงานุ่มและไม่มีกรอบตกแต่ง · field ในฟอร์มเป็นขาว Light/เข้ม Dark พร้อมเส้น resting อ่อนที่ไม่แข่งกับเนื้อหา · standalone toolbar/secondary action เป็น surface ยก · `surface-muted` สงวนให้โครงสร้างหรือ disabled · focus/error/selected ต้องชนะสถานะปกติอย่างชัดเจน
+- [x] **พื้นผิวแยกตามหน้าที่ ไม่กลืนกัน** — card/table/status rail เป็น surface สีขาวมีเงานุ่มและไม่มีกรอบตกแต่ง · field ในฟอร์มเป็นขาว Light/เข้ม Dark พร้อมเส้น resting อ่อนที่ไม่แข่งกับเนื้อหา · พื้นที่เพิ่ม/อัปโหลดใช้ขอบประอ่อนและค่อยเน้นตอน hover/focus · standalone toolbar/secondary action เป็น surface ยก · `surface-muted` สงวนให้โครงสร้างหรือ disabled · focus/error/selected ต้องชนะสถานะปกติอย่างชัดเจน
 
 ## 🧩 UX integrity refactor (Impeccable audit 2026-08-13)
 - [x] **โค้ด UI หลักมีบ้านเดียว** — shell/dashboard/order primitives ที่เป็น canonical ไม่ใช้ชื่อ V2 หลังเลื่อนขึ้นเป็นระบบจริงแล้ว · ถอด shell เก่าที่ไม่มี caller เพื่อกันแก้ผิดชุด

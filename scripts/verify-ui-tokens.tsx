@@ -23,6 +23,8 @@ import { DataTable } from "../src/components/ui/data-table";
 import { FilterChip } from "../src/components/ui/filter-chip";
 import {
   ACTIVE_FILTER,
+  DASHED,
+  DASHED_INTERACTIVE,
   FOCUS_BUTTON,
   FOCUS_FIELD,
   FOCUS_INSET,
@@ -118,6 +120,33 @@ function check(name: string, html: string, must: string[], mustNot: string[] = [
 
 const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
+
+check(
+  "ขอบประตอนพักเบาแบบเดิมและมีคู่ Dark",
+  `<div class="${DASHED}"></div>`,
+  ["border", "border-dashed", "border-slate-300", "dark:border-slate-700"],
+  ["border-border-strong"],
+);
+check(
+  "ขอบประที่กดได้ยกเส้นขึ้นทั้ง Light/Dark",
+  `<button class="${DASHED_INTERACTIVE}"></button>`,
+  ["border-slate-300", "dark:border-slate-700", "hover:border-border-strong", "dark:hover:border-border-strong"],
+  ["border-border-strong"],
+);
+checkContrastWindow(
+  "light ขอบประ resting บน surface",
+  hexRgb(colorValues("slate-300")[0]!),
+  hexRgb(colorValues("surface")[0]!),
+  1.35,
+  1.85,
+);
+checkContrastWindow(
+  "dark ขอบประ resting บน surface",
+  hexRgb(colorValues("slate-700")[1]!),
+  hexRgb(colorValues("surface")[1]!),
+  1.25,
+  1.85,
+);
 
 // ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้นขาว+ขอบ resting อ่อน
 // label/content/context บอกว่าเป็น control; เส้นช่วยเห็นรูปทรงแต่ห้ามเข้มจนฟอร์มเป็นตาราง
@@ -1032,6 +1061,20 @@ check(
   // การ์ดต้องกินเต็มแถว (เบส: "พื้นที่ปุ่ม CTA เอาเต็มแถวเลย")
   if (cards.some((c) => !c.split(/\s+/).includes("w-full"))) {
     problems.push("การ์ดขอบประบางใบไม่ได้ w-full");
+  }
+  for (const card of cards) {
+    const classes = new Set(card.split(/\s+/));
+    for (const expected of [
+      "border-slate-300",
+      "dark:border-slate-700",
+      "hover:border-border-strong",
+      "dark:hover:border-border-strong",
+    ]) {
+      if (!classes.has(expected)) problems.push(`การ์ดขอบประขาด state ${expected}`);
+    }
+    if (classes.has("border-border-strong")) {
+      problems.push("การ์ดขอบประใช้ strong boundary ตั้งแต่ resting");
+    }
   }
   // สินค้า 3 ใบ + ลาย 1 + ส่วนเสริม 1 · ทุกใบต้องใช้คลาสชุดเดียวกันเป๊ะ
   if (cards.length !== 5) problems.push(`การ์ดขอบประควรมี 5 ใบ แต่ได้ ${cards.length}`);

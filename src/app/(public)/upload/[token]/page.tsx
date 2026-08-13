@@ -13,7 +13,7 @@ import {
 } from "@/components/public/public-page";
 import { Upload, CheckCircle, FileCheck, Paperclip, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { DASHED } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 // หน้าอัปโหลดไฟล์ของลูกค้า (FLOW-REDESIGN ก้อน 4 ชิ้น 3) — เปิดผ่านลิงก์ token ไม่ต้อง login
@@ -153,7 +153,7 @@ export default function CustomerUploadPage({
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={busy}
-              className={cn(DASHED, "flex w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-8 text-sm text-slate-500 transition-colors hover:border-blue-400 hover:text-blue-500 disabled:pointer-events-none disabled:opacity-50")}
+              className={cn(DASHED_INTERACTIVE, "flex w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-8 text-sm text-slate-500 transition-colors hover:border-blue-400 hover:text-blue-500 disabled:pointer-events-none disabled:opacity-50")}
             >
               {busy ? (
                 <>

@@ -35,7 +35,7 @@ import { canIssueChangeOrder } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
 import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { DASHED, TINT } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE, TINT } from "@/components/ui/tokens";
 
 // ฟิลด์เงินเป็น number | null ตามชนิดจาก order.getById (นโยบาย ⑦ ปิดเงินให้ viewer นอกการเงิน)
 // — editor เปิดได้เฉพาะ flow ฝั่งขาย (role เห็นเงิน) ค่าจริงเลยเป็นตัวเลขเสมอ · ?? 0 แค่ให้ TS ผ่าน
@@ -359,7 +359,7 @@ export function OrderItemsEditor({
               addItem();
               setExpandedItemIdx(items.length);
             }}
-            className={cn(DASHED, "flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm text-muted transition-colors hover:border-border-strong hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed")}
+            className={cn(DASHED_INTERACTIVE, "flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm text-muted transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed")}
           >
             <Plus className="h-4 w-4" />
             เพิ่มรายการงานอีกชุด
@@ -375,7 +375,7 @@ export function OrderItemsEditor({
                 <button
                   type="button"
                   onClick={addFee}
-                  className={cn(DASHED, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:border-border-strong hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed")}
+                  className={cn(DASHED_INTERACTIVE, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed")}
                 >
                   <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
                   <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าธรรมเนียม — กดเพื่อเพิ่ม</span>

@@ -17,7 +17,7 @@ import { trpc } from "@/lib/trpc";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { Field } from "@/components/ui/field";
-import { DASHED, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 
@@ -68,7 +68,7 @@ function QuickAddPattern({
             placeholder="ชื่อแพทเทิร์น เช่น คอกลมแขนสั้น"
           />
           {/* เป้านิ้ว ≥44px บนจอเล็ก — เดิม py-1 ได้ราว 26px กดพลาดตลอดบนมือถือ */}
-          <label className={cn(DASHED, RADIUS.item, CONTROL_MIN_H, "flex w-fit cursor-pointer items-center gap-1.5 px-3 py-1 text-xs text-muted transition-colors hover:border-border-strong hover:text-strong")}>
+          <label className={cn(DASHED_INTERACTIVE, RADIUS.item, CONTROL_MIN_H, "flex w-fit cursor-pointer items-center gap-1.5 px-3 py-1 text-xs text-muted transition-colors hover:text-strong")}>
             <Plus className="h-3 w-3" />
             {file ? file.name : "แนบรูป/ไฟล์ (ไม่บังคับ)"}
             <input type="file" accept="image/*,.pdf,.ai,.psd" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />

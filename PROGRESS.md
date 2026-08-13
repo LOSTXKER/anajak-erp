@@ -4,6 +4,11 @@
 
 ## ตอนนี้
 
+> **✅ คืนขอบประพื้นที่เพิ่มเป็นแบบเดิมแล้ว 2026-08-14 — กล่องใหญ่ไม่เป็นกรอบเข้มทั้งหน้า**
+> ต้นเหตุคือ semantic color rewrite เคยเปลี่ยน `DASHED` จาก `slate-300/700` ไปเป็น `border-strong` ทำให้ CTA เพิ่มสินค้า/ลาย/ส่วนเสริมและ uploader ทั้งระบบมีน้ำหนักเส้นเกือบสองเท่า · คืน resting token เดิมเป็น Light `#c8d0d9` / Dark `#3f3f44` แล้วแยก `DASHED_INTERACTIVE` สำหรับของที่กดได้: hover ค่อยยกเป็น `#87919d/#74747c` พร้อม neutral fill ส่วน placeholder ที่อ่านอย่างเดียวไม่ตอบสนองหลอก
+>
+> **ด่าน:** AddCard 5 ใบยังใช้ primitive/class เดียวและ guard กัน base strong + ล็อกช่วง contrast · cold production `/orders/new?tab=items` 1280×720 + 390×844 Light/Dark ยืนยัน rest/hover/focus และ uploader 44px · Dark แนบไฟล์ keyboard focus เป็น `#9cbede` + ring · ไม่มี overflow, hydration, app console error หรือ overlay · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit **693/693** · `verify:ui`/build ผ่าน · Impeccable detector มี 2 warning ที่ตรวจแล้วเป็นของเดิมและตั้งใจ (protected `<img>` + hover state) · outsider review GO ไม่มี P0/P1/P2 · ภาพอยู่ `anajak-dashed-final-verify-2026-08-14/`
+
 > **✅ แยกพื้นผิว field/control และลดขอบกลับมา minimal แล้ว 2026-08-14 — ปิดราก UI กลืนพื้นหลังโดยไม่สร้างตารางเส้น**
 > รากปัญหาคือ `surface-muted`, field และปุ่มรองเคยถูกยุบเป็นเทา `#f3f5f7` ค่าเดียวกัน จึงแยกพื้นที่โครงสร้าง/พื้นที่กรอก/action ไม่ออก · semantic กลางยังคงแยกถาวร แต่ค่าขอบเข้ม `#848e99/#6f6f77` จากรอบแรกถูกจอจริงพิสูจน์ว่าหนักเกินและถูกมติล่าสุดทับแล้ว: field Light ใช้ขาว `#fff` + ขอบอ่อน `#c8d0d9`, Dark ใช้ `#101012/#3f3f44`, card คง surface+เงาไร้กรอบ, toolbar เป็น surface+เงา และ secondary action เป็น surface+ขอบบาง+เงา · `surface-muted` เหลือเฉพาะโครงสร้างหรือ disabled
 >

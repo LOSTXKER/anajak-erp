@@ -29,7 +29,7 @@ import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { DataTable } from "@/components/ui/data-table";
-import { DASHED } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
 import { PageShell } from "@/components/page-shell";
 
 const labelClass = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
@@ -261,7 +261,7 @@ export default function PatternsPage() {
                 </div>
                 <div>
                   <label htmlFor="pattern-file" className={labelClass}>ไฟล์แพทเทิร์น</label>
-                  <label className={cn(CONTROL_MIN_H, DASHED, "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted transition-colors hover:border-amber-600 hover:text-amber-700 focus-within:ring-2 focus-within:ring-blue-500 dark:hover:border-amber-400 dark:hover:text-amber-300 dark:focus-within:ring-blue-400")}>
+                  <label className={cn(CONTROL_MIN_H, DASHED_INTERACTIVE, "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted transition-colors hover:border-amber-600 hover:text-amber-700 focus-within:ring-2 focus-within:ring-blue-500 dark:hover:border-amber-400 dark:hover:text-amber-300 dark:focus-within:ring-blue-400")}>
                     <input
                       id="pattern-file"
                       type="file"

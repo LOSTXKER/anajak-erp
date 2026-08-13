@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { CONTROL_H } from "./control-size";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
-import { DASHED, FOCUS_BUTTON } from "./tokens";
+import { DASHED_INTERACTIVE, FOCUS_BUTTON } from "./tokens";
 import { Spinner } from "./spinner";
 
 interface FileUploadProps {
@@ -113,7 +113,7 @@ export function FileUpload({
           onClick={() => inputRef.current?.click()}
           disabled={disabled || uploading}
           className={cn(
-            DASHED, FOCUS_BUTTON, "flex w-full items-center justify-center gap-2 rounded-xl px-4 py-6 text-sm text-muted transition-colors hover:border-border-strong hover:text-strong dark:hover:text-strong",
+            DASHED_INTERACTIVE, FOCUS_BUTTON, "flex w-full items-center justify-center gap-2 rounded-xl px-4 py-6 text-sm text-muted transition-colors hover:text-strong dark:hover:text-strong",
             (disabled || uploading) && "pointer-events-none opacity-50"
           )}
         >

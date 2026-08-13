@@ -11,7 +11,7 @@ import { PRINT_POSITIONS } from "@/types/order-form";
 import type { ReferenceImage } from "@/types/order-form";
 import { ImageIcon, Upload, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { DASHED } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 // รูป/ไฟล์อ้างอิงจากแชท — แยกจาก orders/new/page.tsx ตอนรื้อฟอร์ม 2026-06-12
@@ -84,8 +84,8 @@ export function OrderAttachmentsSection({
   const uploadControl = images.length < 5 ? (
     <label
       className={cn(
-        DASHED,
-        "flex min-h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-surface-muted px-3 py-2 text-sm text-secondary transition-colors hover:border-border-strong hover:bg-interactive-hover hover:text-strong focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:hover:text-strong",
+        DASHED_INTERACTIVE,
+        "flex min-h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-surface-muted px-3 py-2 text-sm text-secondary transition-colors hover:bg-interactive-hover hover:text-strong focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:hover:text-strong dark:focus-within:border-blue-300 dark:focus-within:ring-blue-300/25",
         !embedded && "w-full px-4 py-3.5"
       )}
     >
