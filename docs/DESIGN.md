@@ -137,6 +137,54 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 - public token pages บังคับ light theme เพื่อให้เอกสารลูกค้าอ่านได้แน่นอน แม้เครื่องตั้ง system dark
 - animation ต้องเคารพ `prefers-reduced-motion`; ทุกหน้าหลังบ้านมี skip link ไป `<main id="main-content">`
 
+## Prototype world — ERP Command Center (/redesign)
+
+> **ขอบเขต ณ 2026-08-14:** world นี้ ship แล้วเฉพาะต้นแบบหลัง login ที่ `/redesign` · เป็น shell/composition ใหม่เพื่อทดลองกับข้อมูลจริง แต่ URL หลักและ route เดิมยังเป็น canonical · **ไม่ใช่สิทธิ์ให้ restyle public, print, factory หรือทุก canonical route** และไม่ทับกฎ P1.0 ด้าน accessibility, state, permission และ business invariant ด้านบน
+
+### การเลื่อนขึ้นเป็นระบบหลัก
+
+- promote ได้ทีละ surface เมื่อมีใบงานใน `ROADMAP.md` และเบสเคาะจาก render จริงแล้วเท่านั้น; จนกว่าจะมีมตินั้น `/redesign` ต้องอยู่แยกและมีทางกลับระบบหลัก
+- ตอน promote ให้ย้าย topology/interaction ที่พิสูจน์แล้วพร้อม auth, permission, navigation registry, query และ URL จริง · ห้ามคัดเฉพาะหน้าตาแล้วสร้างข้อมูลหรือกฎธุรกิจชุดที่สอง
+- token ชุดนี้ scope ใต้ `.redesign-shell`; ห้ามย้ายเข้า `globals.css` หรือแทน semantic token P1.0 เงียบ ๆ · การยกเป็น token กลางต้องมีใบงาน design-system และตรวจ Light/Dark + route ที่ได้รับผลครบก่อน
+
+### World และ token เฉพาะต้นแบบ
+
+**North star:** สายการผลิตสดบนกริดแบบ Swiss industrial manual — Anajak cobalt + กระดาษใบงาน + เส้น blueprint + หมึกเข้ม · seed key `953c4cb7` · ใช้ฟอนต์ Prompt และไอคอนเส้นเดิม
+
+| บทบาท | Light | Dark |
+|---|---|---|
+| brand / top bar | `#3973b2` | `#3973b2` |
+| brand deep | `#305f93` | `#305f93` |
+| workspace (`--redesign-canvas`) | `#f4f7fa` | `#151b21` |
+| work paper (`--redesign-paper`) | `#fff` | `#202a34` |
+| ink / muted | `#13202c` / `#5b6572` | `#f5f7fa` / `#a4adb7` |
+| blueprint rule / strong | `#dbe4ec` / `#bccbd8` | `#304253` / `#49647c` |
+| sunk surface | `#edf2f7` | `#1a242e` |
+| hover / pressed | `#eaf0f5` / `#dce7f0` | `#293847` / `#32485a` |
+
+พื้นผิวเป็นกระดาษเกือบแบน มีเงาตกลงเบา ๆ; control/item โค้ง 8px และ sheet 12px · เส้นโครง 1px, rail ที่ผ่านแล้ว 2px · **ห้าม gradient, glow, hero card หรือเส้นหนาตกแต่ง** · Dark คือกระดาษทำงาน blue-charcoal กับกฎ cobalt; Light คงกระดาษขาว
+
+### Topology ที่ ship
+
+- shell ใช้ top bar cobalt สูง 64px + sidebar 256px บน desktop; mobile ใช้ bottom nav คงที่ 5 จุด (`แดชบอร์ด`, `งานของฉัน`, `ออเดอร์`, `การผลิต`, `ทั้งหมด`) ตามรายการและสิทธิ์จาก navigation registry เดิม
+- macro flow มี 7 ช่วง: **รับงาน → อาร์ตเวิร์ก → ความพร้อม → DTF ภายใน → งานร้านนอก → QC / แพ็ค → ส่ง / ปิด** · DTF กับร้านนอกเป็น alternate lanes; งานผสมติดทั้งสองเลน
+- desktop (`xl` ขึ้นไป): Flow Matrix เป็นพระเอก มี recent order **5 แถวเต็ม** พร้อม legend และ capacity strip; exception docket อยู่ข้างกันใน first viewport
+- mobile: เรียง **ข้อยกเว้น → สรุปจำนวน 7 ช่วง → การ์ดออเดอร์ล่าสุด** · ห้ามย่อ desktop matrix ลงมือถือ
+
+### Interaction และ data truth
+
+- แถว matrix ใช้ hover และ `focus-within` ช่วยอ่าน rail ทั้งเส้น; ผ่านแล้ว = cobalt check+เส้น, ปัจจุบัน = วงขอบ+จุด, ยังไม่ถึง = วงเปล่า, ไม่เกี่ยว = วงเส้นประพร้อมขีดลบ, พัก/ระบุไม่ได้ = วงเส้นประเปล่า · motion ปิดเมื่อผู้ใช้เลือก reduced motion
+- ออเดอร์, ข้อยกเว้น, ค้นหา, CTA และ drill-through ทุกจุดเปิด record/route จริง · loading, error+retry, empty และกรณีไม่มีสิทธิ์ต้องแยกกัน
+- แหล่งข้อมูลมีเฉพาะ `analytics.dashboard`, `analytics.ownerPulse`, `user.me`, navigation registry, `buildDashboardAttentionItems` และ status/permission helper เดิม · เงิน เมนู และ owner pulse ต้อง fail closed ตามสิทธิ์
+- เว็บ custom-print แบบ self-serve ในอนาคตเป็นเพียง source ของออเดอร์เข้าสายงานเดียวกัน ไม่ใช่หลังบ้านอีกชุด · **ห้ามมี source badge ฝั่งผู้ใช้จนกว่าจะมี field/API จริง**
+
+### ห้ามคัดจาก comp/ต้นแบบไปใช้ตรง ๆ
+
+- ห้ามใช้โลโก้ตัว A ใน comp; brand ที่ ship ใช้ Printer mark + wordmark “Anajak ERP” เดิม
+- ห้ามคัดข้อมูลตัวอย่าง ตัวเลข ชื่อลูกค้า จำนวนแถว หรือ source badge จากภาพ comp
+- ห้ามคัด matrix ไปมือถือ, สร้าง dashboard การ์ดทั่วไปแทน flow, หรือเปิด POD back office แยก
+- ห้ามนำ palette/shell นี้ไปครอบ public, print, factory หรือ canonical route ก่อนผ่านกติกา promotion ข้างต้น
+
 ## ลิสต์หนี้ UI เก่า
 
 `npm run lint` — warning ที่เหลือ (react-hooks compiler/no-img/unused) คือหน้าเก่าที่รอ
