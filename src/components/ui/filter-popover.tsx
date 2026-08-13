@@ -27,6 +27,7 @@ export function FilterPopover({
   resultLabel,
   children,
   align = "start",
+  triggerClassName,
 }: {
   /** จำนวนตัวกรองที่เปิดอยู่ — โชว์เป็นตัวเลขบนปุ่มให้รู้ว่ากรองค้างไว้ */
   activeCount: number;
@@ -35,6 +36,8 @@ export function FilterPopover({
   resultLabel: string;
   children: React.ReactNode;
   align?: "start" | "center" | "end";
+  /** ผิวเฉพาะบริบทของปุ่มเปิด เช่น control ที่ยกขึ้นจากผืนหน้า */
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = React.useState(false);
   const hasFilters = activeCount > 0;
@@ -47,6 +50,7 @@ export function FilterPopover({
           variant="outline"
           className={cn(
             "font-medium",
+            triggerClassName,
             hasFilters &&
               ACTIVE_FILTER,
           )}

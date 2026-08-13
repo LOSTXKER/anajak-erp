@@ -96,6 +96,10 @@ export const FIELD_MEASURE = "max-w-[calc(50%-0.5rem)]";
  *  light สลับ field ข้างในเป็นขาว ไม่ให้พื้นเทากลืนกัน; dark คง field เข้มเดิม */
 export const SUNK_PANEL = "sunk-panel bg-surface-muted";
 
+/** control ที่ยืนเดี่ยวบนผืนหน้า (search/filter/sort ใน toolbar) — ยกขึ้นหนึ่งชั้น
+ *  ด้วยพื้น surface + เงาเบาโดยไม่วาดเส้นรอบ · อย่าใช้กับ field ในฟอร์มที่ต้องจมลง */
+export const RAISED_CONTROL_SURFACE = "bg-surface shadow-sm";
+
 /** ของที่กดได้ตอนชี้ — คนละชั้นกับ SUNK_PANEL เสมอ
  * แยก hover/pressed คนละ token เพื่อให้แถวที่ใช้แค่ช่วยไล่สายตาไม่หลอกว่ากดได้ */
 export const INTERACTIVE_HOVER =

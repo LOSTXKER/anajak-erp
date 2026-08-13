@@ -199,11 +199,11 @@ export function DateRangePicker({
             className={cn(
               "font-medium",
               label && "pr-10",
+              className,
               // มีช่วงวันที่เลือกอยู่ = กรองอยู่ ต้องเห็นตั้งแต่ยังไม่กดเข้าไป
               // ใช้สีชุดเดียวกับปุ่ม "ตัวกรอง" ที่ยืนข้างกัน (เบสทักว่าสีไม่เหมือนกัน 2026-08-01)
               label &&
                 ACTIVE_FILTER,
-              className,
             )}
           >
             <CalendarRange className="shrink-0" />

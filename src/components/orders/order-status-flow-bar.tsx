@@ -229,7 +229,7 @@ export function OrderStatusFlowBar({
       <div
         role="group"
         aria-label="กรองตามสถานะงาน"
-        className="hidden py-1 @4xl:block"
+        className="card-surface hidden rounded-2xl px-3 py-3 @4xl:block"
       >
         <div className="flex gap-3">
           <div className="min-w-0 flex-1">

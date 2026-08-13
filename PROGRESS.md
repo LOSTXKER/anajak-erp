@@ -4,12 +4,12 @@
 
 ## ตอนนี้
 
-> **✅ คืน visual contract แบบ minimal ไร้กรอบแล้ว 2026-08-13 — แก้ regression จากก้อนสีที่เติมวงขอบกลับมา**
-> Card/table/list ใช้พื้น+ambient shadow ไม่มี zero-offset ring · status rail ทั้งหน้ารวมและรายละเอียดวางราบกับหน้า · search/field/secondary button/filter ใช้พื้นจมแทนเส้นถาวร · production lane hover เปลี่ยนพื้น+ยกเงาโดยไม่วาดขอบ · overlay/sticky divider/drop target ยังเก็บ boundary ที่จำเป็น
+> **✅ คืน visual contract แบบ minimal มี hierarchy แล้ว 2026-08-13 — แก้ regression จากก้อนสีและแก้ over-flatten จากรอบแรก**
+> Card/table/list/status rail ใช้ surface สีขาว+ambient shadow ไม่มี zero-offset ring · search/sort/date/filter ที่ยืนบนผืนหน้าใช้ raised surface สีขาว+เงา จึงไม่กลืนกับ page · field ในฟอร์มและปุ่มรองทั่วไปยังใช้พื้นจมตามบริบท · production lane hover เปลี่ยนพื้น+ยกเงาโดยไม่วาดขอบ · overlay/sticky divider/drop target ยังเก็บ boundary ที่จำเป็น
 >
 > **interaction/a11y:** focus วาดเส้นน้ำเงิน+ring, error วาดเส้น/พื้น/วงแดงจาก primitive กลาง (DatePicker ใช้ `data-invalid` + `aria-describedby` ตาม role ที่รองรับ) · FilterChip มี `aria-pressed` + เครื่องหมายถูก ไม่พึ่งสีอย่างเดียว · target/keyboard/Escape/focus return เดิมไม่ถอย
 >
-> **ด่าน:** `/orders` Light/Dark ที่ 1280×720 + 390×844, order detail และ production ผ่านบน cold production build ไม่มี overflow/Next overlay · card/status/control computed ไม่มีเส้นตกแต่ง · detail rail keyboard focus และ lane hover ผ่าน · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit **693/693** · `verify:ui`/Impeccable detector ผ่าน · production build ผ่าน · outsider finish review **GO ไม่มี P0/P1** · ภาพอยู่ `anajak-production-final-confirmation-2026-08-13/`
+> **ด่าน:** cold production `/orders` Light/Dark 1280×720 + Light 390×844 ผ่าน · status rail เป็น `#fff/#252528` + ambient shadow และ `border: 0` · search/date/filter เป็น raised surface โดย active state ชนะพื้นปกติ · มือถือ control 44px และรายการแรกเริ่ม `y=512.8` · ไม่มี overflow, hydration/app console error หรือ Next overlay · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit **693/693** · `verify:ui`/Impeccable detector ผ่าน · production build ผ่าน · outsider finish review **GO ไม่มี P0/P1** · ภาพอยู่ `anajak-orders-production-confirm-pass2-2026-08-13/`
 
 > **✅ Impeccable UX integrity refactor จบแล้ว 2026-08-13 — เก็บ visual world เดิม แต่รื้อจุดที่ UI ไม่ซื่อสัตย์กับงานจริง**
 > UI หลักมี canonical home แล้ว: shell/dashboard/order route/filter/helper พ้นชื่อ `v2-*` และลบ Sidebar/Topbar/MobileSidebar เก่ารวม 561 บรรทัด โดยคง `/v2*` redirect กับ `v2-navigation` compatibility · dashboard shortcut ไม่ตัดคำ · DatePicker/DateRange clear เป็น sibling button จริง 44px mobile/36px desktop · delivery ที่ยังใช้ไม่ได้เป็น empty state ไม่ใช่ปุ่มหลอก · รางสถานะออเดอร์มือถือรับ focus/Arrow key ได้และ Axe 0 violation

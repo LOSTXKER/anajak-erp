@@ -15,6 +15,9 @@ import { Select } from "../src/components/ui/select";
 import { Input } from "../src/components/ui/input";
 import { Textarea } from "../src/components/ui/textarea";
 import { DatePicker } from "../src/components/ui/date-picker";
+import { DateRangePicker } from "../src/components/ui/date-range-picker";
+import { SearchInput } from "../src/components/ui/search-input";
+import { FilterPopover } from "../src/components/ui/filter-popover";
 import { Button } from "../src/components/ui/button";
 import { DataTable } from "../src/components/ui/data-table";
 import { FilterChip } from "../src/components/ui/filter-chip";
@@ -25,6 +28,7 @@ import {
   FOCUS_INSET,
   INTERACTIVE_CHROME_HOVER,
   INTERACTIVE_CHROME_PRESSED,
+  RAISED_CONTROL_SURFACE,
   SUNK_PANEL,
 } from "../src/components/ui/tokens";
 import {
@@ -169,6 +173,57 @@ check(
   ["rounded-full"],
   ["rounded-[10px]"],
 );
+
+// Toolbar บนผืนหน้าต้องยกขึ้นจาก page ด้วย surface+เงา ไม่ใช่เส้นขอบ
+// และเมื่อกรองอยู่ selected blue ต้องชนะพื้น surface โดยเงายังคงอยู่
+{
+  const searchHtml = renderToStaticMarkup(
+    <SearchInput className={RAISED_CONTROL_SURFACE} />,
+  );
+  const searchControl = searchHtml.match(/<input[^>]*class="[^"]*shadow-sm[^"]*"[^>]*>/)?.[0] ?? "";
+  check(
+    "ช่องค้นหาแบบยกบนผืนหน้า",
+    searchControl,
+    ["bg-surface", "shadow-sm", "border-transparent"],
+    ["border-border", "border-field-border"],
+  );
+}
+{
+  const dateHtml = renderToStaticMarkup(
+    <DateRangePicker
+      from="2026-08-01"
+      to="2026-08-31"
+      onChange={() => {}}
+      className={RAISED_CONTROL_SURFACE}
+    />,
+  );
+  const dateTrigger = dateHtml.match(/<button[^>]*aria-label="ช่วงวันที่:[^"]*"[^>]*>/)?.[0] ?? "";
+  check(
+    "ช่วงวันที่ active คงเงาและให้ selected surface ชนะ",
+    dateTrigger,
+    ["bg-interactive-selected", "shadow-sm"],
+    ["bg-surface", "border-border", "border-field-border"],
+  );
+}
+{
+  const filterHtml = renderToStaticMarkup(
+    <FilterPopover
+      activeCount={1}
+      onClear={() => {}}
+      resultLabel="ดูผลลัพธ์"
+      triggerClassName={RAISED_CONTROL_SURFACE}
+    >
+      ตัวเลือก
+    </FilterPopover>,
+  );
+  const filterTrigger = filterHtml.match(/<button[^>]*aria-haspopup="dialog"[^>]*>/)?.[0] ?? "";
+  check(
+    "ปุ่มตัวกรอง active คงเงาและให้ selected surface ชนะ",
+    filterTrigger,
+    ["bg-interactive-selected", "shadow-sm"],
+    ["bg-surface", "border-border", "border-field-border"],
+  );
+}
 
 // ③ ขนาดเล็ก — ความสูงยุบมาเท่ามาตรฐานแล้ว (2026-08-03 รอบ "ปรับสัดส่วน":
 // จอเดียวเคยมี 2 ความสูงปนกัน 32/36px ยืนติดกัน ขอบล่างไม่ตรง) เหลือต่างแค่ขนาดอักษร
@@ -712,6 +767,31 @@ check(
     allCallerOffenders.forEach((offender) => console.log(`   ${offender}`));
   } else {
     console.log("✅ caller ของ card-surface ไม่เติมเส้นรอบถาวร/ตอน interaction");
+  }
+
+  const ordersStatusSource = readFileSync(
+    "src/components/orders/order-status-flow-bar.tsx",
+    "utf8",
+  );
+  const detailStatusSource = readFileSync(
+    "src/components/orders/detail/order-status-bar.tsx",
+    "utf8",
+  );
+  const statusWrappers = [
+    ordersStatusSource.match(/className="([^"]*card-surface[^"]*)"/)?.[1] ?? "",
+    detailStatusSource.match(/className="([^"]*card-surface[^"]*)"/)?.[1] ?? "",
+  ];
+  if (
+    statusWrappers.some(
+      (classes) =>
+        !classes.includes("card-surface") ||
+        /(?:^|\s)border(?:\s|$)|(?:^|\s)ring-(?!0)/.test(classes),
+    )
+  ) {
+    failed++;
+    console.log("❌ status rail ต้องอยู่บน card surface มีเงา แต่ห้ามเส้นรอบตกแต่ง");
+  } else {
+    console.log("✅ status rail อยู่บน card surface โดยไม่มีเส้นรอบตกแต่ง");
   }
 }
 
