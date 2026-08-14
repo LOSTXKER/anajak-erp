@@ -927,13 +927,11 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
           </TabsContent>
         </Tabs>
 
-          {/* แถบยอด+ปุ่มติดขอบล่างจอ — ทึบ + เส้นขอบบน (เดิมโปร่ง 95% + blur จนตัวหนังสือ
-              ด้านบนอ่านทะลุกัน) · pb เผื่อแถบขีดกลับหน้าหลักของ iPhone ไม่ให้ทับปุ่ม "เปิดงาน" */}
+          {/* อยู่ท้ายฟอร์มตาม flow ทุกขนาด — sticky bottom เคยรับ pointer แทน field ที่เลื่อน
+              อยู่ด้านหลังทั้ง desktop/mobile และ padding เพิ่มก็แก้การวางทับระหว่างเลื่อนไม่ได้ */}
           <div
-            className={cn(
-              "card-surface sticky z-10 -mb-2 flex flex-wrap items-center gap-2 rounded-t-2xl border-t border-slate-200 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 dark:border-white/10",
-              "bottom-[var(--app-bottom-nav-offset)] lg:bottom-0",
-            )}
+            data-order-submit-bar=""
+            className="card-surface flex flex-wrap items-center gap-2 rounded-2xl border-t border-slate-200 px-5 py-3 sm:px-6 dark:border-white/10"
           >
             <div className="min-w-0 flex-1">
               {hasItemContent ? (

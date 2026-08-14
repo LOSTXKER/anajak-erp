@@ -70,26 +70,32 @@ export function CustomerEditDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>แก้ไขข้อมูลลูกค้า</DialogTitle>
           <DialogDescription>{customer.name}</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <CustomerFormFields
-            form={form}
-            set={set}
-            errors={validationErrors}
-            canEditCredit={canEditCredit}
-            mode="edit"
-          />
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col gap-3 overflow-hidden">
+          {/* เลื่อนเฉพาะ body — header/footer อยู่คนละแถว จึงไม่มีช่องกรอกลอดใต้ปุ่ม */}
+          <div
+            data-dialog-body=""
+            className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1"
+          >
+            <CustomerFormFields
+              form={form}
+              set={set}
+              errors={validationErrors}
+              canEditCredit={canEditCredit}
+              mode="edit"
+            />
 
-          {update.error && (
-            <Alert variant="error">
-              บันทึกไม่สำเร็จ: {update.error.message}
-            </Alert>
-          )}
+            {update.error && (
+              <Alert variant="error">
+                บันทึกไม่สำเร็จ: {update.error.message}
+              </Alert>
+            )}
+          </div>
 
           <DialogSubmitFooter
             pending={update.isPending}

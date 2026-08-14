@@ -198,11 +198,12 @@
 - **ปิดงาน 2026-08-03:** ใช้ origin สะอาดหลบ client state เก่าของ Turbopack ที่ `localhost:3000` ตาม incident ที่บันทึกไว้ · ตารางสินค้าจอกว้างมีหัวครบ 8 คอลัมน์และพื้นที่แคบใช้ card · interaction ทั้ง 4 จุดผ่าน · lint 0 error (38 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · ไม่รัน build ขณะ dev server ทำงาน
 
 ### 🐛 UX regression — แถบปุ่มติดจอทับพื้นที่ทำงาน (เบสส่งภาพ 2026-08-14)
-> ทำซ้ำได้ที่ viewport ปกติ 1280×720 โดยไม่ต้องซูม: `/orders/new` เปิดแท็บรับเรื่องแล้วแถบเปิดงานทับหัว “การจัดส่ง”; popup แก้ลูกค้าให้ footer ทับช่องหมายเหตุ · เป็น regression ของ sticky action ที่บันทึกไว้ในข้อ 196 และก้อน popup A ข้อ 211
+> ทำซ้ำได้ที่ viewport ปกติ 1280×720 โดยไม่ต้องซูม: `/orders/new` เปิดแท็บรับเรื่องแล้วแถบเปิดงานทับหัว “การจัดส่ง”; popup แก้ลูกค้าให้ footer ทับช่องหมายเหตุ · เป็น regression ของ sticky action ที่บันทึกไว้ในข้อ 196 และก้อน popup A ด้านล่าง
 
-- [ ] popup ยาวต้องแยก body ที่เลื่อนได้ออกจาก header/footer ให้ชัด ปุ่มเห็นตลอดโดยไม่วางทับช่องกรอก และ dialog สั้นยังยุบตามเนื้อหา
-- [ ] `/orders/new` ต้องกันพื้นที่ action bar ออกจากเนื้อหา ไม่ให้มุมโค้งเผยข้อความที่เลื่อนอยู่ด้านหลัง และทุก field เลื่อนขึ้นมาอ่าน/กดได้เต็ม
-- [ ] verify browser จริง Light/Dark ที่ 1280×720 และ 390×844: วัด overlap = 0, เลื่อนต้น–ท้ายครบ, ไม่มี horizontal overflow/console error · typecheck · lint · unit · `verify:ui` · detector
+- [x] popup ยาวแยก body ที่เลื่อนได้ออกจาก header/footer แล้ว ปุ่มเห็นตลอดโดยไม่วางทับช่องกรอก และคงเพดานเดิม `90dvh` ✅ 2026-08-14
+- [x] `/orders/new` ย้าย action bar กลับไปอยู่ท้าย flow ทุกขนาดจอ หลังจอจริงยืนยันว่า sticky รับ pointer แทน field ทั้ง desktop/mobile ✅ 2026-08-14
+- [x] verify browser จริง Light/Dark ที่ 1280×720, 1512×827 (ขนาดภาพที่เบสส่ง) และ 390×844: overlap = 0, เลื่อนต้น–ท้ายครบ, ปุ่มรับ click ตรงตัว, ไม่มี horizontal overflow/console error · typecheck ผ่าน · lint 0 error (29 warning เดิม) · unit 742/742 · `verify:ui` ผ่าน · detector `[]` ✅ 2026-08-14
+- **ปิดงาน 2026-08-14:** ต้นเหตุคือ sticky footer/action bar อยู่ใน scroll container เดียวกับ field โดยไม่แยกพื้นที่ จึงวางทับและรับ pointer แทนเนื้อหาเมื่อความสูงจอสั้น · แก้เชิงโครงที่ popup และเลิก sticky บนหน้าเปิดงาน; ไม่แตะข้อมูล validation permission ราคา หรือ mutation · ไม่รัน build ขณะ dev server 3002 ทำงาน
 
 ### 🎯 UX follow-up — เปิดข้อมูลสร้าง/รายละเอียดออเดอร์ทั้งหมด (เบสสั่ง 2026-07-18)
 - [x] `/orders/new`: กางข้อมูลงาน รายการ+ราคา ไฟล์ ที่อยู่ รายละเอียดลาย/สินค้า และสเปคตัดเย็บที่ UI มีอยู่เดิมตลอด · เลิกปุ่ม “เพิ่มเติม/ซ่อน” ที่ใช้เพื่อ declutter · ที่อยู่ยัง optional และเงื่อนไขตามชนิดลูกค้า/ช่องทาง/สินค้าเดิมต้องไม่เปลี่ยน — ✅ 2026-07-18

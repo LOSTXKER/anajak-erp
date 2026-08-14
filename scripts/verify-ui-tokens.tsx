@@ -1187,5 +1187,44 @@ check(
   }
 }
 
+/* ── sticky action ต้องไม่วางทับพื้นที่กรอกทุกขนาดจอ ───────────────────────
+   Regression 2026-08-14: popup เลื่อนทั้งก้อนจน footer ทับ textarea และ
+   /orders/new ปัก action bar จนทับ field ทั้ง desktop/mobile ตั้งแต่ยังไม่เลื่อน */
+{
+  const customerDialogSource = readFileSync(
+    "src/components/customers/customer-edit-dialog.tsx",
+    "utf8",
+  );
+  const orderCreateSource = readFileSync(
+    "src/components/orders/new/order-create-page.tsx",
+    "utf8",
+  );
+  const problems: string[] = [];
+
+  if (
+    !customerDialogSource.includes("grid-rows-[auto_minmax(0,1fr)]") ||
+    !customerDialogSource.includes("overflow-hidden sm:max-w-2xl") ||
+    !customerDialogSource.includes('data-dialog-body=""') ||
+    !customerDialogSource.includes("min-h-0 flex-1 space-y-4 overflow-y-auto")
+  ) {
+    problems.push("popup แก้ลูกค้าต้องแยก scroll body ออกจาก header/footer");
+  }
+  if (
+    !orderCreateSource.includes('data-order-submit-bar=""') ||
+    orderCreateSource.includes('className="card-surface sticky') ||
+    orderCreateSource.includes("bottom-[var(--app-bottom-nav-offset)]")
+  ) {
+    problems.push("action bar หน้าเปิดงานต้องอยู่ท้าย form โดยไม่ sticky ทับ field");
+  }
+
+  if (problems.length) {
+    failed++;
+    console.log("❌ sticky action ยังทับพื้นที่กรอก");
+    problems.forEach((problem) => console.log(`   ${problem}`));
+  } else {
+    console.log("✅ action bar แยกจากพื้นที่กรอกทุกขนาดจอ");
+  }
+}
+
 console.log(failed ? `\n❌ ไม่ผ่าน ${failed} ข้อ` : "\n✅ ผ่านครบ");
 process.exit(failed ? 1 : 0);

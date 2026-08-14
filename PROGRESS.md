@@ -4,6 +4,13 @@
 
 ## ตอนนี้
 
+> **✅ แก้แถบปุ่มทับช่องกรอก 2 จุดแล้ว 2026-08-14 — popup ลูกค้า + หน้าเปิดงาน**
+> ยืนยันว่าเป็น UI regression จริง ไม่ใช่ zoom/cache/HMR: sticky footer/action bar อยู่ใน scroll container เดียวกับ field จึงวางทับและรับ pointer แทนช่องกรอกเมื่อความสูงจอสั้น · popup แก้ลูกค้าแยก header/body/footer โดยเลื่อนเฉพาะ body และคงเพดาน `90dvh`; `/orders/new` วาง action bar ไว้ท้าย flow ทุกขนาดจอ จึงไม่มีเนื้อหาอยู่ด้านหลังแถบปุ่ม · ไม่แตะข้อมูล validation permission ราคา หรือ mutation
+>
+> **ด่าน:** browser จริง Light/Dark ที่ 1280×720, 1512×827 (ขนาดภาพที่เบสส่ง) และ 390×844 ทั้งบนสุด/เลื่อนสุด — overlap = 0, field และปุ่มรับ pointer ตรงตัว, มือถือห่าง bottom nav 39.2px, horizontal overflow/console error/Next overlay = 0 · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit **742/742** · `verify:ui` ผ่านพร้อม source guard กัน sticky กลับมา · Impeccable detector `[]` หนึ่งรอบ · ไม่รัน build ขณะ dev server 3002 ทำงาน
+>
+> **ต่อที่นี่:** งาน regression นี้จบแล้ว; ถ้าทำ sticky action ใหม่ ต้องแยก scroll body กับ footer เป็นคนละพื้นที่และวัด hit-test บน desktop/mobile ห้ามวาง sticky ทับ flow เดิม
+
 > **✅ หน้าเปิดงาน/แก้รายการใช้ UI เดียวกันแล้ว + ลายอยู่เหนือสินค้า 2026-08-14**
 > ลบ presentation branch `appearance=default|intake` ออกจาก `OrderItemCard` จึงเหลือ contract เดียวทั้ง `/orders/new?tab=items` และ `/orders/[id]?tab=items`: **ชื่อชุดงาน → ลายและงานพิมพ์ → สินค้าในชุดงาน → ส่วนเสริมในชุดงาน → หมายเหตุการผลิตชุดนี้** · ใช้คำเรียก หัวข้อเรียบ ความกว้าง field และ breakpoint ตาราง/การ์ดชุดเดียวกัน · หน้าแก้รายการจำกัดความกว้าง `max-w-5xl` เท่าหน้าเปิดงาน แต่คง shell/แท็บ/ปุ่มบันทึกและ `showPrints/showAddons` ตามสถานะเดิม · ไม่แตะ state, validation, ราคา, permission หรือ mutation
 >
