@@ -221,6 +221,8 @@ function RedesignShellContent({ children }: { children: ReactNode }) {
   const activeNavigationId =
     pathname === "/redesign"
       ? "dashboard"
+      : pathname.startsWith("/redesign/orders/")
+        ? "orders"
       : findActiveNavigationItem(pathname)?.id;
   const canCreateOrder = canCreateOrderWithPricing(me?.permissions);
 

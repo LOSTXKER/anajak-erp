@@ -2,12 +2,12 @@
 version: 1
 slug: "src-app-redesign-redesign-page-tsx"
 primary_target: "src/app/(redesign)/redesign/page.tsx"
-related_targets: ["src/app/(redesign)/redesign.css","src/components/redesign/redesign-shell.tsx","src/components/redesign/erp-command-center.tsx","src/lib/redesign-flow.ts"]
+related_targets: ["src/app/(redesign)/redesign.css","src/app/(redesign)/redesign/orders/[id]/page.tsx","src/components/redesign/redesign-shell.tsx","src/components/redesign/erp-command-center.tsx","src/components/redesign/redesign-order-detail.tsx","src/lib/redesign-flow.ts","src/lib/redesign-order-detail.ts","src/lib/redesign-order-detail.test.ts","src/server/routers/production.ts","src/server/routers/production.readiness-permission.test.ts"]
 ---
 
 # Scope and mode
 
-- Surface ที่ ship: ต้นแบบหลัง login แยกที่ `/redesign`; route เดิมยังเป็น canonical.
+- Surface ที่ ship: ต้นแบบหลัง login แยกที่ `/redesign` และ Order Workbench ที่ `/redesign/orders/[id]`; route เดิมยังเป็น canonical.
 - สถานะ: shipped prototype, ผ่าน finish review 2026-08-14.
 - Mode: Operate.
 - ผู้ใช้หลัก: เจ้าของ/ผู้จัดการ โดย navigation และข้อมูลของทีม 5 คนยังถูกกรองตามสิทธิ์.
@@ -55,6 +55,15 @@ related_targets: ["src/app/(redesign)/redesign.css","src/components/redesign/red
 - ผ่านแล้ว = check+rail cobalt; ปัจจุบัน = วงขอบ cobalt มีจุด; ยังไม่ถึง = วงทึบเปล่า; ไม่เกี่ยว = วงประมีขีดลบ; unknown/on hold = วงประเปล่า.
 - จำนวนช่วงอ่านจาก `ordersByStatus` จริง; สองเลนผลิตอ่าน `productionRouteCounts` จริงเพื่อไม่โกหกงานผสม.
 
+# Order Workbench extension
+
+- Command Center rows เปิด `/redesign/orders/[id]`; surface นี้อ่านและสรุปเพื่อช่วยตัดสินใจ ส่วน `/orders/[id]` ยังเป็น source of truth ของ controller, mutation และ deep work.
+- desktop: action docket + dispatch facts → lifecycle 7 ช่วง → work brief + operation snapshots. mobile: identity → action → warnings → facts → lifecycle → brief → snapshots โดยไม่มี horizontal tabs.
+- data มาจาก `order.getById`, `user.me`, conditional `production.orderContext` และ conditional `billing.listByOrder` ผ่าน pure model; action truth ใช้ `getOrderNextStep` และ `order-tabs` เดิม ทุก deep link กลับ canonical route และไม่มี status mutation ชุดที่สอง.
+- production drill-through ชี้ record เมื่อไม่กำกวม: มี active production หนึ่งรายการ หรือทั้งออเดอร์มีใบผลิตเดียว; นอกนั้นชี้ canonical production tab เพื่อไม่เลือกแทนผู้ใช้.
+- money fail closed ตาม `see_order_money`; billing overview คำนวณจาก `billing.listByOrder` รวม adjustment เท่านั้น. payment readiness ถูก sanitize ฝั่ง server สำหรับคนไม่มีสิทธิ์ และกรณี `SHIPPED` ไม่มีสิทธิ์เงินแสดงคำแนะนำทั่วไปเท่านั้น.
+- loading, not found, error+retry และ empty แยกกัน; mobile target ขั้นต่ำ 44px, ใช้ `<h1>`, ordered lifecycle และ `aria-current`; Light/Dark ไม่ล้นแนวนอน.
+
 # Implementation inventory
 
 | Comp commitment | Implementation medium |
@@ -65,6 +74,8 @@ related_targets: ["src/app/(redesign)/redesign.css","src/components/redesign/red
 | exception docket | ordered list จาก `ownerPulse` จริง; ทุก item คง canonical resolution href |
 | capacity strip / mobile stage summary | จำนวนจริง 7 ช่วง; เลนผลิตใช้ route count; progress bar ด้วย CSS ไม่มี canvas |
 | responsive order view | matrix ที่ `xl`; ต่ำกว่า `xl` เป็นการ์ดข้อมูลจริง ไม่บีบ table แนวนอน |
+| order workbench | route + read-only component + pure model; Command Center เชื่อมเข้าหน้านี้ ส่วน action เชื่อมกลับ canonical order tabs/status controller |
+| permission hardening | conditional billing/readiness query, server-sanitized payment detail และ router permission tests; ไม่มีเงินไหลผ่าน fallback copy |
 | state integrity | status badge, formatter, permission, query และ error primitive เดิม; ไม่มี business engine ชุดที่สอง |
 
 # Token and component grammar
@@ -89,4 +100,6 @@ related_targets: ["src/app/(redesign)/redesign.css","src/components/redesign/red
 - Comp ที่อนุมัติ: `.impeccable/mocks/flow-matrix.png`.
 - หลักฐาน desktop: `.impeccable/review/redesign-desktop-1440.png` — เห็น 5 แถวเต็ม, legend, capacity strip ครบ และ docket ข้างกัน.
 - หลักฐาน mobile: `.impeccable/review/redesign-mobile-390.png` — เริ่มด้วยข้อยกเว้น ต่อด้วยสรุปช่วงงานและ bottom nav คงที่; การ์ดออเดอร์อยู่ถัดลงไป.
-- Final reviewer disposition: **SHIP** · remaining: **clear**.
+- หลักฐาน Order Workbench: `.impeccable/review/order-workbench-desktop.png` และ `.impeccable/review/order-workbench-mobile.png`.
+- Order Workbench ผ่าน typecheck, targeted lint, 73 files / 711 tests, `verify:ui`, manual detector `[]`, production build และ browser desktop/mobile Light + mobile Dark โดยไม่มี overflow, console หรือ hydration error.
+- Final reviewer รอบแรก: **HOLD** พบ 2 P1 + 1 P2; หลังแก้และตรวจซ้ำ: **SHIP** · remaining: **clear**.

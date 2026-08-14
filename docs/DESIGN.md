@@ -139,7 +139,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 
 ## Prototype world — ERP Command Center (/redesign)
 
-> **ขอบเขต ณ 2026-08-14:** world นี้ ship แล้วเฉพาะต้นแบบหลัง login ที่ `/redesign` · เป็น shell/composition ใหม่เพื่อทดลองกับข้อมูลจริง แต่ URL หลักและ route เดิมยังเป็น canonical · **ไม่ใช่สิทธิ์ให้ restyle public, print, factory หรือทุก canonical route** และไม่ทับกฎ P1.0 ด้าน accessibility, state, permission และ business invariant ด้านบน
+> **ขอบเขต ณ 2026-08-14:** world นี้ ship แล้วเฉพาะต้นแบบหลัง login ที่ `/redesign` และ Order Workbench ที่ `/redesign/orders/[id]` · เป็น shell/composition ใหม่เพื่อทดลองกับข้อมูลจริง แต่ `/orders/[id]` และ route เดิมยังเป็น canonical · **ไม่ใช่สิทธิ์ให้ restyle public, print, factory หรือทุก canonical route** และไม่ทับกฎ P1.0 ด้าน accessibility, state, permission และ business invariant ด้านบน
 
 ### การเลื่อนขึ้นเป็นระบบหลัก
 
@@ -170,6 +170,16 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 - macro flow มี 7 ช่วง: **รับงาน → อาร์ตเวิร์ก → ความพร้อม → DTF ภายใน → งานร้านนอก → QC / แพ็ค → ส่ง / ปิด** · DTF กับร้านนอกเป็น alternate lanes; งานผสมติดทั้งสองเลน
 - desktop (`xl` ขึ้นไป): Flow Matrix เป็นพระเอก มี recent order **5 แถวเต็ม** พร้อม legend และ capacity strip; exception docket อยู่ข้างกันใน first viewport
 - mobile: เรียง **ข้อยกเว้น → สรุปจำนวน 7 ช่วง → การ์ดออเดอร์ล่าสุด** · ห้ามย่อ desktop matrix ลงมือถือ
+
+### Order Workbench — surface extension ที่ ship
+
+- แถวออเดอร์ใน Command Center เปิด `/redesign/orders/[id]`; หน้านี้เป็น decision cockpit แบบ read-only ส่วน `/orders/[id]` ยังเป็น source of truth ของ controller, mutation และงานเชิงลึกทั้งหมด
+- desktop เรียง **action docket + dispatch facts → lifecycle 7 ช่วง → work brief + operation snapshots**; mobile เรียง **identity → action → warnings → facts → lifecycle → brief → snapshots** และไม่ใช้แท็บแนวนอน
+- ใช้ `order.getById`, `user.me`, `production.orderContext` แบบมีเงื่อนไข และ `billing.listByOrder` แบบมีเงื่อนไขผ่าน pure view model; ขั้นถัดไปอิง `getOrderNextStep` กับ `order-tabs` เดิม และทุก deep action กลับ canonical route โดยไม่สร้าง status mutation ซ้ำ
+- เป้าหมายการผลิตเจาะ record เมื่อไม่กำกวมเท่านั้น: มี active production หนึ่งรายการ หรือทั้งออเดอร์มีใบผลิตเดียว; กรณีอื่นกลับ canonical production tab เพื่อไม่เดาผิด
+- ข้อมูลเงิน fail closed: โหลดและแสดงเฉพาะ `see_order_money`; สรุปบิลคำนวณจาก `billing.listByOrder` รวม adjustment เท่านั้น, payment detail ใน readiness ถูก sanitize ฝั่ง server สำหรับคนไม่มีสิทธิ์ และออเดอร์ `SHIPPED` ของคนไม่มีสิทธิ์ใช้คำแนะนำทั่วไปโดยไม่เผยข้อมูลเงิน
+- แยก loading, not found, error+retry และ empty จริง; mobile target ขั้นต่ำ 44px, มี `<h1>`, ordered lifecycle พร้อม `aria-current`, และตรวจทั้ง Light/Dark โดยไม่ล้นแนวนอน
+- หลักฐาน: `.impeccable/review/order-workbench-desktop.png` และ `.impeccable/review/order-workbench-mobile.png`; ผ่าน typecheck, targeted lint, 73 files / 711 tests, `verify:ui`, detector ว่าง, production build และ browser desktop/mobile Light + mobile Dark โดยไม่มี console/hydration error · final reviewer รอบแรก HOLD พบ 2 P1 + 1 P2, แก้แล้วรอบยืนยัน **SHIP · remaining clear**
 
 ### Interaction และ data truth
 

@@ -22,13 +22,40 @@ import {
   issueGarments,
   returnGarments,
 } from "@/server/services/garment-pick";
-import { getOrdersReadiness } from "@/server/services/production-readiness";
+import {
+  getOrdersReadiness,
+  type OrderReadiness,
+} from "@/server/services/production-readiness";
 import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
 import { getStockClientFromSettings } from "@/lib/stock-api";
 
 // วางแผนการผลิต = งานหัวหน้า (PERM3: default OWNER/MANAGER เดิมเป๊ะ + override รายคน)
 const managerUp = requirePermission("supervise_operations");
 const productionTeam = requirePermission("manage_production");
+
+// Readiness ต้องคำนวณจากยอดเงินจริง แต่ role ที่ไม่มี see_order_money ต้องไม่รับยอดนั้นใน
+// response ดิบ (UI ซ่อนอย่างเดียวไม่ใช่ permission boundary) · payment ที่ผ่านก็ต้องแทนข้อความ
+// เพราะ detail เดิมอาจมีทั้งยอดรับ/ยอดที่ต้องรับ หรือเลขวันเครดิต
+function sanitizeReadinessForViewer(
+  readiness: OrderReadiness | null,
+  canSeeOrderMoney: boolean
+): OrderReadiness | null {
+  if (!readiness || canSeeOrderMoney) return readiness;
+
+  return {
+    ...readiness,
+    checks: readiness.checks.map((check) =>
+      check.key === "payment"
+        ? {
+            ...check,
+            detail: check.ok
+              ? "เงื่อนไขชำระไม่กั้นการผลิต"
+              : (check.waitingOn ?? "รอฝ่ายขาย/การเงินตรวจเงื่อนไขชำระ"),
+          }
+        : check
+    ),
+  };
+}
 
 // select กลางของขั้นตอนผลิต — จงใจไม่มี field เงิน (estimatedCost/actualCost/unitCost/totalCost):
 // endpoint พวกนี้เปิดทุก role — เงินต้องไม่ไหลถึง browser แม้ UI ไม่ render
@@ -194,8 +221,10 @@ export const productionRouter = router({
         },
       });
       // ด่านพร้อมผลิตในจุดเปิดใบผลิต = soft-gate: หัวหน้าเปิดได้แต่ต้องเห็นว่าติดอะไร
-      const readiness =
-        (await getOrdersReadiness(ctx.prisma, [input.orderId])).get(input.orderId) ?? null;
+      const readiness = sanitizeReadinessForViewer(
+        (await getOrdersReadiness(ctx.prisma, [input.orderId])).get(input.orderId) ?? null,
+        hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money")
+      );
       return {
         orderNumber: order.orderNumber,
         title: order.title,
@@ -307,6 +336,11 @@ export const productionRouter = router({
       .map((o) => o.id);
     const readinessById = await getOrdersReadiness(ctx.prisma, queueIds);
 
+    const canSeeOrderMoney = hasPermission(
+      ctx.userRole,
+      ctx.permissionOverrides,
+      "see_order_money"
+    );
     return orders.map((o) => {
       const steps = o.productions.flatMap((p) => p.steps);
       const stepsDone = steps.filter((s) => s.status === "COMPLETED").length;
@@ -325,7 +359,10 @@ export const productionRouter = router({
         stepsDone,
         stepsTotal: steps.length,
         totalQuantity: o.items.reduce((s, it) => s + it.totalQuantity, 0),
-        readiness: readinessById.get(o.id) ?? null,
+        readiness: sanitizeReadinessForViewer(
+          readinessById.get(o.id) ?? null,
+          canSeeOrderMoney
+        ),
       };
     });
   }),

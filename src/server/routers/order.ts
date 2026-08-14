@@ -438,7 +438,7 @@ export const orderRouter = router({
   getById: protectedProcedure
     .input(byIdInput)
     .query(async ({ ctx, input }) => {
-      const order = await ctx.prisma.order.findUniqueOrThrow({
+      const order = await ctx.prisma.order.findUnique({
         where: { id: input.id },
         include: {
           customer: true,
@@ -493,6 +493,13 @@ export const orderRouter = router({
           costEntries: { orderBy: { createdAt: "desc" } },
         },
       });
+
+      if (!order) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "ไม่พบออเดอร์ใบนี้",
+        });
+      }
 
       // changedBy ในประวัติเก็บเป็น user id (หรือ literal เช่น "ลูกค้า") — แปลงเป็นชื่อคน
       // ฝั่ง server ที่เดียว หน้าไหนก็โชว์ชื่อได้เลย (เบสชี้: ประวัติโชว์รหัสดิบอ่านไม่รู้เรื่อง)

@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ ต่อยอดต้นแบบเป็น Order Workbench แล้ว 2026-08-14 — เปิดออเดอร์จาก `/redesign` แล้วรู้ทันทีว่าต้องทำอะไรต่อ**
+> เพิ่ม `/redesign/orders/[id]` ใต้ shell เดิม โดยใช้ record/สิทธิ์/next-step/สถานะ/แท็บจริง แต่คง `/orders/[id]` เป็น controller หลักสำหรับการแก้ข้อมูลและ mutation ทั้งหมด · first viewport เรียงเลขงาน+สถานะ → Action Docket ที่บอกเหตุผลและทางไปทำต่อ → dispatch facts → lifecycle 7 ช่วง; ถัดลงมาเป็นสเปกงาน 3 รายการแรกและ snapshot งานออกแบบ/ผลิต/ส่ง/บิลตามสิทธิ์ · Command Center ทั้ง desktop/mobile เปิด Workbench นี้แล้ว
+>
+> **ความจริงและสิทธิ์:** เงิน fail closed และคำนวณยอดค้างจาก `billing.listByOrder` ที่มี credit-note adjustment ครบเท่านั้น · ปิดช่อง readiness ส่งยอดเงินถึง browser โดย sanitize ฝั่ง `production.orderContext` และ `production.kanban` ตาม `see_order_money` · คนไม่เห็นเงินที่สถานะ SHIPPED จะไม่ถูกบอกว่าบิลครบ/ปิดงานได้ · เจาะใบผลิตตรงเมื่อเป้าหมายไม่กำกวมเท่านั้น ไม่งั้นกลับแท็บการผลิตรวม · `order.getById` คืน NOT_FOUND จริงแทน Prisma 500
+>
+> **ด่าน:** browser จริง 1440×900 + 390×844 Light และ mobile Dark ไม่มี overflow/hydration/console error, mobile target ≥44px, action→canonical tab และ invalid record ใช้งานจริง · typecheck/targeted lint ผ่าน · unit **711/711** · `verify:ui` ผ่าน · Impeccable detector `[]` · production build ผ่าน · finish review รอบแรก HOLD 2 P1 + 1 P2 แล้วแก้ครบ; รอบสอง **SHIP / remaining clear** · ภาพอยู่ `.impeccable/review/order-workbench-desktop.png` และ `order-workbench-mobile.png`
+>
+> **ต่อที่นี่:** ให้เบสเปิด `/redesign` แล้วเลือกออเดอร์ล่าสุดเพื่อเทียบ Command Center → Workbench → หน้าทำงานเดิม; ถ้าทิศนี้ใช่ ค่อยเคาะ surface ถัดไปทีละใบงาน ไม่ promote ทั้งระบบรวดเดียว
+
 > **✅ ไล่ Hydration mismatch ของ `/redesign` จบแล้ว 2026-08-14 — เป็น stale Turbopack client chunk บน origin เดิม ไม่ใช่ UI logic**
 > ทำซ้ำได้เมื่อ browser ยัง execute client chunk เก่าที่ URL dev เดิมหลังเคยมี Next server repo เดียวกันรันพร้อมกันที่ `3000`/`3002`; server/client `cn()` ให้ค่า byte-for-byte ตรงกัน, ไม่มี service worker และ probe ใน client response รุ่นใหม่ไม่ถูกรันบน `3000` · ย้าย `.next` เดิมไปสำรอง, รัน server เดียวบน origin ใหม่ `http://localhost:3002` แล้วตรวจ in-app browser หลังรอ hydration จริง: หน้า `/redesign` โหลดข้อมูลครบและ console error **0** โดยไม่เพิ่ม `suppressHydrationWarning`, client-only gate หรือ source workaround · กติกาต่อไป: รัน Next dev ต่อ repo ครั้งละหนึ่ง process; ถ้า warning ทั้งต้นไม้กลับมาหลัง restart ให้หยุดทุก process + สร้าง `.next` ใหม่ + hard reload/ใช้ origin สดก่อนแก้ component
 

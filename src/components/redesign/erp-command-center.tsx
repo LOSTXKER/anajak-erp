@@ -506,7 +506,7 @@ function OrderIdentity({ order }: { order: RecentOrder }) {
     <div className="redesign-order-identity min-w-0">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <Link
-          href={`/orders/${order.id}`}
+          href={`/redesign/orders/${order.id}`}
           aria-label={`เปิดออเดอร์ ${order.orderNumber}`}
           className={cn(
             FOCUS_BUTTON,
@@ -966,7 +966,7 @@ function MobileRecentOrders({
             return (
               <Link
                 key={order.id}
-                href={`/orders/${order.id}`}
+                href={`/redesign/orders/${order.id}`}
                 className={cn(
                   FOCUS_BUTTON,
                   "redesign-mobile-order-card card-surface card-surface-hover block rounded-xl p-4",
