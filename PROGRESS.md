@@ -4,6 +4,9 @@
 
 ## ตอนนี้
 
+> **✅ ไล่ Hydration mismatch ของ `/redesign` จบแล้ว 2026-08-14 — เป็น stale Turbopack client chunk บน origin เดิม ไม่ใช่ UI logic**
+> ทำซ้ำได้เมื่อ browser ยัง execute client chunk เก่าที่ URL dev เดิมหลังเคยมี Next server repo เดียวกันรันพร้อมกันที่ `3000`/`3002`; server/client `cn()` ให้ค่า byte-for-byte ตรงกัน, ไม่มี service worker และ probe ใน client response รุ่นใหม่ไม่ถูกรันบน `3000` · ย้าย `.next` เดิมไปสำรอง, รัน server เดียวบน origin ใหม่ `http://localhost:3002` แล้วตรวจ in-app browser หลังรอ hydration จริง: หน้า `/redesign` โหลดข้อมูลครบและ console error **0** โดยไม่เพิ่ม `suppressHydrationWarning`, client-only gate หรือ source workaround · กติกาต่อไป: รัน Next dev ต่อ repo ครั้งละหนึ่ง process; ถ้า warning ทั้งต้นไม้กลับมาหลัง restart ให้หยุดทุก process + สร้าง `.next` ใหม่ + hard reload/ใช้ origin สดก่อนแก้ component
+
 > **✅ ต้นแบบ ERP Command Center แบบออกแบบใหม่ทั้งระบบเสร็จแล้ว 2026-08-14 — รอเบสเคาะก่อนยกไป URL หลัก**
 > เพิ่ม route ทดลองหลัง login ที่ `/redesign` โดยแยก shell/presentation ออกจากระบบหลัก แต่ใช้ auth, สิทธิ์, navigation registry, tRPC, record และ URL จริงทั้งหมด · ภาพหลักไม่ใช่ dashboard การ์ดสถิติ: เป็นสายงานโรงงาน 7 ช่วง **รับงาน → อาร์ตเวิร์ก → ความพร้อม → DTF ภายใน → งานร้านนอก → QC/แพ็ค → ส่ง/ปิด** พร้อมตารางออเดอร์จริง, ผู้ดูแลจริง, กำหนดส่ง, กล่องเรื่องที่ต้องเช็ก และแถบสมดุลกำลังงาน · งานผสมติดทั้ง DTF/ร้านนอก, ขั้นที่ไม่ใช้แสดงเครื่องหมายขีดประ ไม่แต่งสถานะปลอม
 >
