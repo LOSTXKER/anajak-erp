@@ -1129,8 +1129,24 @@ check(
   ) {
     problems.push("create/edit ต้องไม่มี presentation branch แยกใน OrderItemCard");
   }
-  if (!editorSource.includes('className="mx-auto w-full max-w-5xl space-y-6"')) {
-    problems.push("edit form ต้องใช้ความกว้างเดียวกับหน้าเปิดงาน (max-w-5xl)");
+  if (
+    !editorSource.includes('className="w-full space-y-6"') ||
+    editorSource.includes('className="mx-auto w-full max-w-5xl space-y-6"')
+  ) {
+    problems.push("inline edit ต้องรับความกว้าง full จาก order detail และห้ามซ้อน page max-width");
+  }
+  if (
+    !createSource.includes("<OrderCatalogAlert") ||
+    !editorSource.includes("<OrderCatalogAlert") ||
+    !editorSource.includes("<OrderFeeSection") ||
+    !editorSource.includes("<OrderPriceSummary") ||
+    !editorSource.includes("<OrderFormActionBar") ||
+    !editorSource.includes('category: "FEE"') ||
+    !editorSource.includes("บันทึกครั้งนี้จะออกเป็นใบแก้ไขออเดอร์") ||
+    editorSource.includes("border-l-[3px]") ||
+    editorSource.includes("parseFloat(e.target.value)")
+  ) {
+    problems.push("create/edit ต้องใช้ catalog alert, fee, MoneyInput, price summary และ action bar ชุดกลาง");
   }
   if (
     !itemWrapper.includes('role="listitem"') ||
@@ -1180,10 +1196,10 @@ check(
 
   if (problems.length) {
     failed++;
-    console.log("❌ รายการงานยังซ้อนการ์ดหรือ CTA ไม่ได้อยู่ก่อน list");
+    console.log("❌ ฟอร์มรายการ create/edit ยังใช้โครงหรือความกว้างคนละชุด");
     problems.forEach((problem) => console.log(`   ${problem}`));
   } else {
-    console.log("✅ รายการงานแยก card ไร้ขอบ และ CTA อยู่ก่อน list ทั้ง create/edit");
+    console.log("✅ ฟอร์มรายการ create/edit ใช้โครงร่วมและความกว้างตาม host");
   }
 }
 
@@ -1197,6 +1213,14 @@ check(
   );
   const orderCreateSource = readFileSync(
     "src/components/orders/new/order-create-page.tsx",
+    "utf8",
+  );
+  const orderEditorSource = readFileSync(
+    "src/components/orders/order-items-editor.tsx",
+    "utf8",
+  );
+  const orderActionBarSource = readFileSync(
+    "src/components/orders/new/order-form-action-bar.tsx",
     "utf8",
   );
   const problems: string[] = [];
@@ -1215,6 +1239,15 @@ check(
     orderCreateSource.includes("bottom-[var(--app-bottom-nav-offset)]")
   ) {
     problems.push("action bar หน้าเปิดงานต้องอยู่ท้าย form โดยไม่ sticky ทับ field");
+  }
+  if (
+    !orderEditorSource.includes('data-order-editor-action-bar=""') ||
+    !orderActionBarSource.includes('data-order-form-action-bar=""') ||
+    orderEditorSource.includes("card-surface sticky") ||
+    orderEditorSource.includes("backdrop-blur") ||
+    orderActionBarSource.includes('"card-surface sticky')
+  ) {
+    problems.push("action bar หน้าแก้รายการต้องใช้ชุดกลางใน document flow โดยไม่ทับ field");
   }
 
   if (problems.length) {

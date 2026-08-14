@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ หน้าเปิดงาน/หน้าแก้ใช้ฟอร์มงานชุดเดียวครบทั้งก้อน + ล็อกมาตรฐานความกว้างแล้ว 2026-08-14**
+> รอบก่อนรวมเพียง `OrderItemCard` แล้วบังคับหน้าแก้เป็น `max-w-5xl` จึงยังเหลือ UI ราคาเก่าและทำ inline editor หดผิดบริบท · รอบนี้รวมต่อจนถึงสถานะแค็ตตาล็อก ค่าใช้จ่าย ส่วนลด สรุปยอด และ action bar; เพิ่ม FEE catalog/retry และคงคำเตือน+เหตุผลบังคับสำหรับใบแก้ไขออเดอร์ · ลำดับรายการยังเป็น **ลายและงานพิมพ์ → สินค้าในชุดงาน → ส่วนเสริมในชุดงาน** ทั้ง create/edit · ไม่แตะสูตรราคา validation permission หรือ mutation
+>
+> **มาตรฐาน width:** `full` = list/detail/inline editor · `wide` 1024px = standalone document form · `content` 896px = เนื้อหาอ่านโฟกัส · `form` 672px = ฟอร์มตั้งค่าสั้น · component ลูกห้ามฝัง page max-width ซ้ำ ดังนั้น create 1024px และ edit 1126px บนจอ 1440px คือถูกทั้งคู่เพราะอยู่คนละ host ไม่ใช่ UI คนละชุด
+>
+> **ด่าน:** browser จริง empty+populated 1440×900/390×844 Light+Dark — create 1024/348px, edit 1126/348px, mobile fee name จากของเก่าที่บีบเหลือ 26px เป็น 292px, table↔card ถูก, target ≥44px, action overlap/horizontal overflow/console error = 0 และไม่กดบันทึก · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit **742/742** · `verify:ui` ผ่าน · Impeccable detector `[]` หนึ่งรอบ · ไม่รัน build ขณะ dev server 3002 ทำงาน · audit ทั้ง repo แล้วบันทึก production/dashboard width debt กับ quotation/settings legacy form เป็น P2 แยกใน ROADMAP; public/print/auth/factory/dialog และ semantic timeline border เป็นสัญญาพื้นที่เฉพาะ ไม่กวาดทิ้ง
+>
+> **ต่อที่นี่:** regression ออเดอร์จบแล้ว; งานถัดไปค่อยเก็บ P2 width roles ของ production/dashboard แบบแยกใบงาน ห้ามรวมเป็น restyle ทั้งระบบ
+
 > **✅ แก้แถบปุ่มทับช่องกรอก 2 จุดแล้ว 2026-08-14 — popup ลูกค้า + หน้าเปิดงาน**
 > ยืนยันว่าเป็น UI regression จริง ไม่ใช่ zoom/cache/HMR: sticky footer/action bar อยู่ใน scroll container เดียวกับ field จึงวางทับและรับ pointer แทนช่องกรอกเมื่อความสูงจอสั้น · popup แก้ลูกค้าแยก header/body/footer โดยเลื่อนเฉพาะ body และคงเพดาน `90dvh`; `/orders/new` วาง action bar ไว้ท้าย flow ทุกขนาดจอ จึงไม่มีเนื้อหาอยู่ด้านหลังแถบปุ่ม · ไม่แตะข้อมูล validation permission ราคา หรือ mutation
 >

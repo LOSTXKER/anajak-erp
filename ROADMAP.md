@@ -140,6 +140,23 @@
 - [x] verify: source/render guard กัน UI แตกแขนงกลับ · typecheck · lint · unit · `verify:ui` · browser จริง create/edit ที่ desktop+mobile พร้อม Light/Dark, ไม่มี horizontal overflow/console error และไม่บันทึกข้อมูลธุรกิจ ✅ 2026-08-14
 - **ปิดงาน 2026-08-14:** ลบ prop/branch `appearance` ออกจาก `OrderItemCard` แล้วให้สอง caller ต่างกันเฉพาะกฎธุรกิจ · editor ใช้ `max-w-5xl` เท่าหน้าเปิดงาน · `verify:ui` ล็อกลำดับลายก่อนสินค้าและกัน presentation branch กลับมา · browser จริง 1440×900/390×844 Light+Dark วัด card 1024/348px และ CTA เท่ากันทั้งสองหน้า, populated edit สลับ table→card ถูก, target มือถือไม่ต่ำกว่า 44px, horizontal overflow/console error = 0 · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit 742/742 · Impeccable detector `[]` · ไม่รัน build ระหว่าง dev server ทำงาน
 
+### 🐛 UX regression — หน้าแก้ยังไม่เหมือนหน้าสร้างทั้งฟอร์ม + ถูกบีบความกว้างผิดบริบท (เบสส่งภาพ 2026-08-14)
+> รอบก่อนตรวจและรวมเฉพาะ `OrderItemCard` แล้วบังคับ `max-w-5xl` ให้ editor ทั้งก้อน จึงทำให้ส่วนลาย/สินค้าเหมือนกันแต่ค่าใช้จ่าย ส่วนลด สรุปยอด และ action bar ยังเป็น UI เก่า อีกทั้ง inline editor แคบกว่าหน้ารายละเอียดที่เป็น host · มติรอบนี้: **ความเหมือนวัดที่ component/composition ไม่ใช่บังคับ container คนละบริบทให้กว้างเท่ากัน**
+
+- [x] ล็อกมาตรฐานความกว้างเชิงบทบาทไว้ที่ `PageShell`/`DESIGN.md`: `full` สำหรับ list/detail/inline edit · `wide` สำหรับ standalone document form · `content` สำหรับเนื้อหาอ่านโฟกัส · `form` สำหรับฟอร์มตั้งค่าสั้น; component ลูกห้ามจำลอง width ของ page shell ซ้ำ ✅ 2026-08-14
+- [x] คืน `OrderItemsEditor` ให้เต็มพื้นที่แท็บของ order detail และใช้ `OrderFeeSection` + `OrderPriceSummary` ชุดเดียวกับหน้าเปิดงาน รวม fee catalog, MoneyInput, empty/mobile/table states และถ้อยคำมาตรฐาน โดยไม่แตะสูตรราคา/validation/permission/mutation ✅ 2026-08-14
+- [x] ทำ action bar ของ editor เป็น flow ปกติชุดเดียวกับหน้าเปิดงาน ไม่ sticky/blur ทับเนื้อหา และเพิ่ม guard กัน max-width ซ้อน, UI ราคาแตกแขนง และ sticky regression กลับมา ✅ 2026-08-14
+- [x] audit width roles + UI pattern ที่เกี่ยวทั้งระบบ แล้วแก้เฉพาะ regression ในขอบเขตนี้; หนี้หน้าอื่นบันทึกแยก ไม่ big-bang restyle · verify browser จริง create/edit empty+populated ที่ desktop/mobile Light/Dark, no overflow/console error พร้อม typecheck/lint/unit/`verify:ui`/detector ✅ 2026-08-14
+- **ปิดงาน 2026-08-14:** create/edit ใช้ component กลางครบตั้งแต่รายการ → catalog error/retry → ค่าใช้จ่าย → ส่วนลด → สรุปยอด → action bar; editor รับความกว้าง `full` จาก order detail ส่วน create คง `wide` 1024px · browser จริง empty+populated 1440×900/390×844 Light+Dark: editor 1126/348px, create 1024/348px, mobile fee name 292px, overlap/overflow/console error = 0 และไม่บันทึกข้อมูลธุรกิจ · ด่านโค้ดดูที่ `PROGRESS.md`
+
+#### หนี้ width roles จาก audit ทั้ง repo — แยกแก้ ไม่ปน regression ออเดอร์
+- [ ] P2: ย้าย production detail จาก `max-w-4xl` ที่เขียนซ้ำมาใช้ `PageShell width="content"` ให้ loading/error/not-found/normal กว้างตรงกัน
+- [ ] P2: เคาะบทบาท dashboard home ที่ซ่อน `max-w-6xl` ใน `className` ว่าจะเป็น `full` หรือเพิ่ม named role กลาง; ห้ามถอดเพดานโดยเดาแล้วทำ dashboard ยืดทั้งจอ
+
+#### หนี้ UI pattern จาก audit ทั้ง repo — คนละ workflow ต้องมีใบงาน/acceptance แยก
+- [ ] P2: หน้าเปิดใบเสนอราคายังเป็น Card/form row รุ่นเก่า; ค่อย migrate เป็น `Section`/`Field`/price composition มาตรฐานโดยคง state และ conversion logic เดิม
+- [ ] P2: settings company/cost-rates และฟอร์มแก้ใน patterns/services/users ยังมี raw label/Card ซ้อน; ทยอยย้ายทีละหน้า และห้ามกวาด editable grid ที่ใช้ `FIELD_LABEL` ถูกบทบาทอยู่แล้ว
+
 ### 🎯 UX follow-up — ช่องกรอกต้องเห็นว่าเป็นช่อง + คอลัมน์ตรงกัน (เบสเจอบนของจริง 2026-08-03)
 > เบส: "บางอย่างที่มันต้อง fill ข้อมูล ไม่ต้องซ่อน ช่อง user จะได้รู้ว่าช่องไหนต้องใส่ · ช่องบางช่องถูกกลืนไปกับพื้นหลังสีเทา · แถวคอลัมขอให้มันตรงกันทั้งหมด"
 > **บทเรียน:** รอบ "ลดเส้นทั้งเว็บ" ลดเลยจุดที่ควรลด — ขอบของ *กล่องครอบ* ถอดได้ แต่ **ขอบช่องกรอกถอดไม่ได้** เพราะมันคือสัญญาณเดียวที่บอกว่า "ตรงนี้กรอกได้"

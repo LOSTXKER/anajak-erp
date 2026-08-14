@@ -17,8 +17,10 @@ import { cn } from "@/lib/utils";
    ลำดับ = error → loading → denied → children
    (error/loading มาก่อน denied เพราะระหว่างเช็คสิทธิ์ยังตอบไม่ได้ว่า "ไม่มีสิทธิ์")
 
-   width: full = กว้างตาม layout กลาง (หน้า list) · content = max-w-4xl
-   (หน้า detail/ฟอร์มเอกสาร) · form = max-w-2xl (ฟอร์มตั้งค่า)
+   width เลือกตามบทบาท ไม่ใช่ตาม component ข้างใน:
+   full = กว้างตาม layout กลาง (list/detail/inline editor) · wide = max-w-5xl
+   (standalone document form) · content = max-w-4xl (เนื้อหาอ่านโฟกัส) ·
+   form = max-w-2xl (ฟอร์มตั้งค่าสั้น) · component ลูกห้ามใส่ max-width ซ้ำ
    ============================================================ */
 
 type PageWidth = "full" | "wide" | "content" | "form";

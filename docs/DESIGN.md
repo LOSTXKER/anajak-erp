@@ -100,6 +100,22 @@ selected และ focus เพื่อให้สถานะชี้กั�
 | **สีตัวหนังสือ** | `text-strong` / `text-secondary` / `text-muted` (globals.css) | สลับธีมในตัว — slate 900/700/500 เดี่ยวๆ ไม่มีคู่ `dark:` โดนด่านใน `verify:ui` ตีตก |
 | วันที่/เงิน (แสดงผล) | `lib/utils.ts` — formatDate/formatDateShort/formatDateTime/formatTime (ปัก Asia/Bangkok) · formatCurrency/formatBaht | ห้าม `toLocaleDateString` สดโดยไม่ปัก timezone |
 
+## มาตรฐานความกว้างของหน้า
+
+ความกว้างเลือกจาก **บทบาทของพื้นที่** ไม่ใช่จากชื่อ component ที่อยู่ข้างใน · จุดคุมกลางคือ
+`PageShell width` ซึ่งวางอยู่ใน AppShell ที่มีเพดาน `max-w-screen-2xl` อยู่แล้ว:
+
+| บทบาท | ค่า | ใช้เมื่อ |
+|---|---|---|
+| พื้นที่ทำงานเต็ม | `full` | list, dashboard, order detail, ตารางหลายคอลัมน์ และ inline editor ที่เปิดแทนเนื้อหาในหน้า detail |
+| ฟอร์มเอกสาร standalone | `wide` = `max-w-5xl` | สร้างออเดอร์/ใบเสนอที่เป็นงานยาวหลายตอนและเปิดเป็นหน้าของตัวเอง |
+| เนื้อหาอ่านแบบโฟกัส | `content` = `max-w-4xl` | รายละเอียดหรือบทความคอลัมน์เดียวที่ไม่มีตารางกว้าง |
+| ฟอร์มสั้น | `form` = `max-w-2xl` | ตั้งค่า/ข้อมูลบริษัทที่มีแนวกรอกเดียว |
+
+- component ร่วมต้องคุมโครง ลำดับ spacing ถ้อยคำ และ responsive state ให้เหมือนกัน แต่ **ห้ามฝัง `max-w-*` เพื่อเลียนความกว้างของ caller อื่น**
+- inline editor รับความกว้างจาก host เสมอ; ห้ามครอบ `mx-auto max-w-*` ซ้ำจนเกิด double narrowing
+- หากส่วนเดียวกันอยู่ใน `wide` และ `full` ให้ตาราง/field ขยายตามพื้นที่จริง ส่วนบรรทัดคำอธิบายยาวคุม measure ที่ตัวข้อความ ไม่บีบทั้งฟอร์ม
+
 ## Mobile-first (หน้า ops: task queue / production / งานหน้าเครื่อง)
 
 พนักงานใช้มือถือหน้างาน — หน้า ops ต้อง:

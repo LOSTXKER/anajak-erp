@@ -4,11 +4,12 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { MoneyInput } from "@/components/ui/number-input";
+import { Section } from "@/components/ui/section";
 import { formatCurrency } from "@/lib/utils";
 import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing";
-import { Loader2, Plus, Trash2, Save, Receipt } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { validateOrderItem, validateOrderItemProduct, itemHasContent } from "@/types/order-form";
 import {
   mapItemsToMutationInput,
@@ -20,11 +21,15 @@ import { mergeStockVariantsIntoItems } from "@/lib/order-form-stock";
 import { useOrderItemsForm, useOrderFeesForm } from "@/hooks/use-order-items-form";
 // ฟอร์มรายการ "ชุดเดียวกับหน้าเปิดงาน" — แสดง inline บนหน้าออเดอร์เลย ไม่ใช่ popup
 // (เบสเคาะ 2026-06-11: เปิดงานเบาแล้วมาเติมทีหลัง ต้องเห็นฟอร์มเต็มกว้างตรงที่รายการอยู่)
-import { OrderItemCard, OrderItemsListHeader } from "@/components/orders/new";
 import {
-  MarginEstimateBlock,
-  useMarginEstimate,
-} from "@/components/orders/new/order-price-summary";
+  OrderFeeSection,
+  OrderFormActionBar,
+  OrderCatalogAlert,
+  OrderItemCard,
+  OrderItemsListHeader,
+  OrderPriceSummary,
+} from "@/components/orders/new";
+import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
 import {
   ProductPickerDialog,
   type SelectedVariantItem,
@@ -35,7 +40,12 @@ import { canIssueChangeOrder } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
 import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { DASHED_INTERACTIVE, TINT } from "@/components/ui/tokens";
+import {
+  DISPLAY_AMOUNT,
+  RADIUS,
+  SUNK_PANEL,
+  TINT,
+} from "@/components/ui/tokens";
 
 // ฟิลด์เงินเป็น number | null ตามชนิดจาก order.getById (นโยบาย ⑦ ปิดเงินให้ viewer นอกการเงิน)
 // — editor เปิดได้เฉพาะ flow ฝั่งขาย (role เห็นเงิน) ค่าจริงเลยเป็นตัวเลขเสมอ · ?? 0 แค่ให้ TS ผ่าน
@@ -164,10 +174,18 @@ export function OrderItemsEditor({
     category: "ADDON",
     isActive: true,
   });
+  const feeCatalogQuery = trpc.serviceCatalog.list.useQuery({
+    category: "FEE",
+    isActive: true,
+  });
   const printCatalog = printCatalogQuery.data;
   const addonCatalog = addonCatalogQuery.data;
-  // catalog พังแล้วเงียบ = ตัวเลือกลาย/ส่วนเสริมหายเฉยๆ ผู้ใช้ไม่รู้ว่าระบบมีปัญหา
-  const catalogError = printCatalogQuery.isError || addonCatalogQuery.isError;
+  const feeCatalog = feeCatalogQuery.data;
+  // catalog พังแล้วเงียบ = ตัวเลือกลาย/ส่วนเสริม/ค่าใช้จ่ายหายเฉยๆ ผู้ใช้ไม่รู้ว่าระบบมีปัญหา
+  const catalogError =
+    printCatalogQuery.isError ||
+    addonCatalogQuery.isError ||
+    feeCatalogQuery.isError;
 
   const updateItemsMutation = useMutationWithInvalidation(trpc.order.updateItems, {
     invalidate: [utils.order.getById],
@@ -178,13 +196,14 @@ export function OrderItemsEditor({
   );
 
   // preview ใช้สูตร A เดียวกับ server (order.updateItems คิด VAT จาก taxRate ของออเดอร์เสมอ)
-  const { subtotalItems, subtotalFees, taxAmount, grandTotal: totalAmount } =
-    calculateOrderSummary({
-      itemSubtotals: items.map((item) => calculateFormItemSubtotal(item)),
-      feeAmounts: fees.map((f) => f.amount),
-      discount,
-      taxRate: order.taxRate,
-    });
+  const pricingSummary = calculateOrderSummary({
+    itemSubtotals: items.map((item) => calculateFormItemSubtotal(item)),
+    feeAmounts: fees.map((f) => f.amount),
+    discount,
+    taxRate: order.taxRate,
+  });
+  const { subtotalItems, subtotalFees, grandTotal: totalAmount } = pricingSummary;
+  const hasItemContent = items.some(itemHasContent);
 
   // กำไรขั้นต้นโดยประมาณ (ก้อน 2 ชิ้น 5b) — hook+บล็อกชุดเดียวกับหน้าเปิดงาน
   // revenue = ฐานก่อน VAT ที่ฟอร์มคำนวณแล้ว · role นอกการเงินโดน FORBIDDEN → null → ไม่ render
@@ -291,12 +310,12 @@ export function OrderItemsEditor({
 
   return (
     <>
-      <div className="mx-auto w-full max-w-5xl space-y-6">
+      <div className="w-full space-y-6">
         <section aria-labelledby="edit-order-items-heading" className="space-y-4">
           <OrderItemsListHeader
             headingId="edit-order-items-heading"
             itemIdPrefix="edit-order-item"
-            title={changeOrderMode ? "รายการในใบแก้ไขออเดอร์" : "แก้ไขรายการสินค้า"}
+            title="รายการงาน"
             count={items.length}
             onAdd={() => {
               addItem();
@@ -304,22 +323,17 @@ export function OrderItemsEditor({
             }}
           />
 
-          {catalogError && (
+          <OrderCatalogAlert
+            hasError={catalogError}
+            onRetry={() => {
+              if (printCatalogQuery.isError) void printCatalogQuery.refetch();
+              if (addonCatalogQuery.isError) void addonCatalogQuery.refetch();
+              if (feeCatalogQuery.isError) void feeCatalogQuery.refetch();
+            }}
+          />
+          {changeOrderMode && (
             <Alert variant="warning">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm">โหลดแค็ตตาล็อกลาย/ส่วนเสริมไม่สำเร็จ — ตัวเลือกจากแค็ตตาล็อกจะไม่ขึ้น</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (printCatalogQuery.isError) void printCatalogQuery.refetch();
-                    if (addonCatalogQuery.isError) void addonCatalogQuery.refetch();
-                  }}
-                >
-                  ลองใหม่
-                </Button>
-              </div>
+              บันทึกครั้งนี้จะออกเป็นใบแก้ไขออเดอร์ — ระบบจะให้ระบุเหตุผลก่อนบันทึก
             </Alert>
           )}
           {/* รายการสินค้า — หนึ่งรายการต่อหนึ่ง card และใช้ฟอร์มชุดเดียวกับหน้าเปิดงาน */}
@@ -358,180 +372,110 @@ export function OrderItemsEditor({
           </div>
         </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>ราคาและเงื่อนไข</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-          {/* ค่าธรรมเนียม + ส่วนลด — โชว์ตรงๆ ไม่พับซ่อน (เบส: ไม่ต้องซ่อน แต่ดูง่าย) */}
-          <div className="space-y-3">
-            <p className="border-l-[3px] border-blue-500 pl-2 text-sm font-semibold text-slate-800 dark:border-blue-400 dark:text-slate-100">
-              ค่าธรรมเนียม &amp; ส่วนลด
-            </p>
-            <div className="space-y-3">
-              {fees.length === 0 ? (
-                <button
-                  type="button"
-                  onClick={addFee}
-                  className={cn(DASHED_INTERACTIVE, "flex w-full flex-col items-center gap-2 rounded-xl py-6 text-center transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed")}
-                >
-                  <Receipt className="h-6 w-6 text-slate-300 dark:text-slate-600" />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">ยังไม่มีค่าธรรมเนียม — กดเพื่อเพิ่ม</span>
-                </button>
-              ) : (
-                <div className="space-y-2">
-                  {fees.map((fee, fi) => (
-                    <div
-                      key={fi}
-                      className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700"
-                    >
-                      <Input size="sm"
-                        type="text"
-                        value={fee.feeType}
-                        onChange={(e) => updateFee(fi, "feeType", e.target.value)}
-                        placeholder="ประเภท"
-                        className="w-28"
-                      />
-                      <Input size="sm"
-                        type="text"
-                        value={fee.name}
-                        onChange={(e) => updateFee(fi, "name", e.target.value)}
-                        placeholder="ชื่อ"
-                        className="flex-1"
-                      />
-                      <Input size="sm"
-                        type="number"
-                        value={fee.amount || ""}
-                        onChange={(e) => updateFee(fi, "amount", parseFloat(e.target.value) || 0)}
-                        placeholder="จำนวน"
-                        className="w-28"
-                        min="0"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                        onClick={() => removeFee(fi)}
-                      >
-                        <Trash2 />
-                      </Button>
-                    </div>
+        <Section title="ราคาและเงื่อนไข">
+          <div className="space-y-6">
+            <OrderFeeSection
+              fees={fees}
+              onAddFee={addFee}
+              onRemoveFee={removeFee}
+              onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
+              feeCatalog={feeCatalog}
+              embedded
+            />
+
+            <Section title="เงื่อนไขการขาย" bordered={false} headingLevel={3}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="ส่วนลดท้ายบิล" id="order-items-discount">
+                  <MoneyInput
+                    id="order-items-discount"
+                    value={discount}
+                    onValueChange={setDiscount}
+                  />
+                </Field>
+              </div>
+            </Section>
+
+            {/* Validation errors — เกณฑ์เดียวกับหน้าเปิดงาน จับก่อนถึง server */}
+            {formErrors.length > 0 && (
+              <Alert variant="error">
+                <ul className="list-inside list-disc space-y-0.5">
+                  {formErrors.map((err, i) => (
+                    <li key={i}>{err}</li>
                   ))}
-                  <Button variant="outline" size="sm" onClick={addFee} className="w-full gap-1.5">
-                    <Plus />
-                    เพิ่มค่าธรรมเนียม
-                  </Button>
-                </div>
-              )}
+                </ul>
+              </Alert>
+            )}
 
-              <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
-                <label htmlFor="order-items-discount" className="text-sm text-muted">ส่วนลด</label>
-                <Input size="sm"
-                  id="order-items-discount"
-                  type="number"
-                  value={discount || ""}
-                  onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                  className="w-32"
-                  min="0"
-                />
-                <span className="text-sm text-slate-400">บาท</span>
-              </div>
-            </div>
-          </div>
+            {/* เพดานขาที่สอง (B9) — ยอดใหม่ต่ำกว่าบิลที่ออกแล้ว */}
+            {belowBilledFloor && (
+              <Alert variant="warning" className="text-xs font-medium">
+                {changeOrderMode
+                  ? `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — ออกใบแก้ไขได้ แต่ต้องออกใบลดหนี้ตามให้ยอดบิลตรงยอดจริง`
+                  : `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — บันทึกไม่ผ่าน ต้องยกเลิกบิลเดิม (แล้วออกใหม่ตามยอดที่ถูก) ก่อนลดยอด`}
+              </Alert>
+            )}
 
-          {/* Validation errors — เกณฑ์เดียวกับหน้าเปิดงาน จับก่อนถึง server */}
-          {formErrors.length > 0 && (
-            <Alert variant="error">
-              <ul className="list-inside list-disc space-y-0.5">
-                {formErrors.map((err, i) => (
-                  <li key={i}>{err}</li>
-                ))}
-              </ul>
-            </Alert>
-          )}
-
-          {/* สรุปราคา (สูตร A เดียวกับ server) — โชว์เมื่อเริ่มมีตัวเลขจริง ไม่โชว์ ฿0 เปล่าๆ */}
-          {(subtotalItems > 0 || subtotalFees > 0 || discount > 0) && (
-          <div className="rounded-xl bg-blue-50 p-3 dark:bg-blue-950/30">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400">รวมสินค้า</span>
-              <span className="font-medium">{formatCurrency(subtotalItems)}</span>
-            </div>
-            {subtotalFees > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">ค่าธรรมเนียม</span>
-                <span className="font-medium">{formatCurrency(subtotalFees)}</span>
+            {/* โหมดใบแก้ไข — เหตุผลบังคับ (server ออกเลข CO + บันทึกยอดเก่า→ใหม่) */}
+            {changeOrderMode && (
+              <div className={cn(TINT.warning, "rounded-xl border p-3")}>
+                <Field
+                  label="เหตุผลการแก้ไข"
+                  id="order-change-reason"
+                  description="ออเดอร์อนุมัติแล้ว ระบบจะออกใบแก้ไขและบันทึกยอดเก่า → ใหม่"
+                  required
+                >
+                  <Textarea
+                    id="order-change-reason"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="เช่น ลูกค้าเพิ่มจำนวน 20 ตัว"
+                    rows={2}
+                  />
+                </Field>
               </div>
             )}
-            {discount > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">ส่วนลด</span>
-                <span className="font-medium text-red-500">-{formatCurrency(discount)}</span>
-              </div>
-            )}
-            {taxAmount > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">
-                  VAT ({order.taxRate}%)
-                </span>
-                <span className="font-medium">{formatCurrency(taxAmount)}</span>
-              </div>
-            )}
-            <div className="mt-1 flex justify-between border-t border-blue-200 pt-1 dark:border-blue-800">
-              <span className="font-semibold text-slate-900 dark:text-white">ยอดรวม</span>
-              <span className="font-semibold text-blue-600 dark:text-blue-400">
-                {formatCurrency(totalAmount)}
-              </span>
-            </div>
-          </div>
-          )}
 
-          {/* เพดานขาที่สอง (B9) — ยอดใหม่ต่ำกว่าบิลที่ออกแล้ว */}
-          {belowBilledFloor && (
-            <Alert variant="warning" className="text-xs font-medium">
-              {changeOrderMode
-                ? `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — ออกใบแก้ไขได้ แต่ต้องออกใบลดหนี้ตามให้ยอดบิลตรงยอดจริง`
-                : `ยอดใหม่ ${formatCurrency(totalAmount)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(orderBilledFloor)} — บันทึกไม่ผ่าน ต้องยกเลิกบิลเดิม (แล้วออกใหม่ตามยอดที่ถูก) ก่อนลดยอด`}
-            </Alert>
-          )}
-
-          {/* กำไรขั้นต้นโดยประมาณ — เฉพาะ role การเงิน (null = ไม่ render เลย) */}
-          {marginEstimate && (
-            <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
-              <MarginEstimateBlock estimate={marginEstimate} />
-            </div>
-          )}
-
-          {/* โหมดใบแก้ไข — เหตุผลบังคับ (server ออกเลข CO + บันทึกยอดเก่า→ใหม่) */}
-          {changeOrderMode && (
-            <div className={cn(TINT.warning, "space-y-2 rounded-xl border p-3")}>
-              <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
-                ออเดอร์อนุมัติแล้ว — การแก้ไขจะออกเป็น “ใบแก้ไขออเดอร์” (บันทึกยอดเก่า → ใหม่)
-              </p>
-              <Textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="เหตุผลการแก้ไข (บังคับ) — เช่น ลูกค้าเพิ่มจำนวน 20 ตัว"
-                rows={2}
-                className="text-sm"
+            <div className={cn(RADIUS.surface, SUNK_PANEL, "p-5")}>
+              <OrderPriceSummary
+                pricingSummary={{ ...pricingSummary, platformFee: 0 }}
+                showFeeSections
+                isMarketplace={false}
+                channelLabel=""
+                taxRate={order.taxRate}
+                platformFee={0}
+                discount={discount}
+                marginEstimate={marginEstimate}
+                embedded
               />
             </div>
-          )}
+          </div>
+        </Section>
 
-          </CardContent>
-        </Card>
-
-        {/* ปุ่มบันทึก — sticky ล่างจอ มือถือกดถึงเสมอ */}
-        <div
-          className={cn(
-            "card-surface sticky flex justify-end gap-2 rounded-2xl p-3 backdrop-blur",
-            "bottom-[calc(var(--app-bottom-nav-offset)+0.75rem)] lg:bottom-3",
-          )}
+        <OrderFormActionBar
+          data-order-editor-action-bar=""
+          summary={
+            hasItemContent ? (
+              <>
+                <p className="text-2xs text-muted">
+                  ยอดรวมทั้งหมด{order.taxRate > 0 ? " (รวม VAT)" : ""}
+                </p>
+                <p className={cn("truncate", DISPLAY_AMOUNT)}>
+                  {formatCurrency(totalAmount)}
+                </p>
+              </>
+            ) : (
+              <p className="text-xs leading-snug text-muted">
+                ยังไม่ใส่รายการ/ราคา
+              </p>
+            )
+          }
         >
-          <Button variant="outline" onClick={onCancel} disabled={saving}>
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={saving}>
             ยกเลิก
           </Button>
           <Button
+            type="button"
+            size="sm"
             onClick={handleSave}
             disabled={items.length === 0 || saving}
             className="gap-1.5"
@@ -543,7 +487,7 @@ export function OrderItemsEditor({
             )}
             {changeOrderMode ? "ออกใบแก้ไข" : "บันทึกรายการ"}
           </Button>
-        </div>
+        </OrderFormActionBar>
       </div>
 
       {/* picker สต๊อก — popup เฉพาะตัวเลือกชั่วคราว (ฟอร์มหลักอยู่บนหน้าแล้ว) */}

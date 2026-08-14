@@ -81,6 +81,8 @@ import {
   OrderFeeSection,
   OrderShippingSection,
   OrderPriceSummary,
+  OrderFormActionBar,
+  OrderCatalogAlert,
   OrderCustomerSection,
   OrderDetailFields,
   OrderAttachmentsSection,
@@ -318,15 +320,22 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     }
   }, [cancelPendingDraftSave, draftScope]);
 
-  const { data: printCatalog } = trpc.serviceCatalog.list.useQuery(
+  const printCatalogQuery = trpc.serviceCatalog.list.useQuery(
     { category: "PRINT", isActive: true },
   );
-  const { data: addonCatalog } = trpc.serviceCatalog.list.useQuery(
+  const addonCatalogQuery = trpc.serviceCatalog.list.useQuery(
     { category: "ADDON", isActive: true },
   );
-  const { data: feeCatalog } = trpc.serviceCatalog.list.useQuery(
+  const feeCatalogQuery = trpc.serviceCatalog.list.useQuery(
     { category: "FEE", isActive: true },
   );
+  const printCatalog = printCatalogQuery.data;
+  const addonCatalog = addonCatalogQuery.data;
+  const feeCatalog = feeCatalogQuery.data;
+  const catalogError =
+    printCatalogQuery.isError ||
+    addonCatalogQuery.isError ||
+    feeCatalogQuery.isError;
 
   const createOrder = trpc.order.create.useMutation({
     onSuccess: (data) => {
@@ -689,6 +698,15 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
           </Alert>
         )}
 
+        <OrderCatalogAlert
+          hasError={catalogError}
+          onRetry={() => {
+            if (printCatalogQuery.isError) void printCatalogQuery.refetch();
+            if (addonCatalogQuery.isError) void addonCatalogQuery.refetch();
+            if (feeCatalogQuery.isError) void feeCatalogQuery.refetch();
+          }}
+        />
+
         <Tabs value={tab} onValueChange={changeTab}>
           {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ (ที่เดียวกับที่แถบขั้นตอนเดิมอยู่)
               TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บ */}
@@ -929,16 +947,16 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
 
           {/* อยู่ท้ายฟอร์มตาม flow ทุกขนาด — sticky bottom เคยรับ pointer แทน field ที่เลื่อน
               อยู่ด้านหลังทั้ง desktop/mobile และ padding เพิ่มก็แก้การวางทับระหว่างเลื่อนไม่ได้ */}
-          <div
+          <OrderFormActionBar
             data-order-submit-bar=""
-            className="card-surface flex flex-wrap items-center gap-2 rounded-2xl border-t border-slate-200 px-5 py-3 sm:px-6 dark:border-white/10"
-          >
-            <div className="min-w-0 flex-1">
-              {hasItemContent ? (
+            summary={
+              hasItemContent ? (
                 <>
                   {/* ชื่อเดียวกับบรรทัดสุดท้ายของ "สรุปยอด" — เดิมเรียก "ยอดรวม" กับ
                       "ยอดรวมทั้งหมด" คนละที่คนละขนาด อ่านแล้วไม่แน่ใจว่าเลขเดียวกันไหม */}
-                  <p className="text-2xs text-muted">ยอดรวมทั้งหมด (รวม VAT)</p>
+                  <p className="text-2xs text-muted">
+                    ยอดรวมทั้งหมด{taxRate > 0 ? " (รวม VAT)" : ""}
+                  </p>
                   <p className={cn("truncate", DISPLAY_AMOUNT)}>
                     {formatCurrency(pricingSummary.grandTotal)}
                   </p>
@@ -947,8 +965,9 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
                 <p className="text-xs leading-snug text-muted">
                   ยังไม่ใส่รายการ/ราคา
                 </p>
-              )}
-            </div>
+              )
+            }
+          >
             {createOrder.isPending ? (
               <Button variant="outline" size="sm" disabled>
                 ยกเลิก
@@ -962,7 +981,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
               {createOrder.isPending && <Loader2 className="animate-spin" />}
               {createOrder.isPending ? "กำลังบันทึก..." : "เปิดงาน"}
             </Button>
-          </div>
+          </OrderFormActionBar>
       </form>
 
       <ProductPickerDialog
