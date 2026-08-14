@@ -88,6 +88,18 @@
   margin-inline: auto;
 }
 
+.redesign-orders-registry,
+.redesign-production-control {
+  width: 100%;
+  max-width: 96rem;
+  margin-inline: auto;
+}
+
+.redesign-production-card-focused {
+  outline: 2px solid var(--redesign-blue);
+  outline-offset: 2px;
+}
+
 .redesign-order-action {
   position: relative;
   overflow: hidden;

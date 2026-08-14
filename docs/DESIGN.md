@@ -139,7 +139,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 
 ## Prototype world — ERP Command Center (/redesign)
 
-> **ขอบเขต ณ 2026-08-14:** world นี้ ship แล้วเฉพาะต้นแบบหลัง login ที่ `/redesign` และ Order Workbench ที่ `/redesign/orders/[id]` · เป็น shell/composition ใหม่เพื่อทดลองกับข้อมูลจริง แต่ `/orders/[id]` และ route เดิมยังเป็น canonical · **ไม่ใช่สิทธิ์ให้ restyle public, print, factory หรือทุก canonical route** และไม่ทับกฎ P1.0 ด้าน accessibility, state, permission และ business invariant ด้านบน
+> **ขอบเขต ณ 2026-08-14:** world นี้ ship แล้วเฉพาะต้นแบบหลัง login ที่ `/redesign`, Orders Registry ที่ `/redesign/orders`, Order Workbench ที่ `/redesign/orders/[id]` และ Production Control ที่ `/redesign/production` · เป็น shell/composition ใหม่เพื่อทดลองกับข้อมูลจริง แต่ `/orders*`, `/production*` และ route เดิมยังเป็น canonical controller · **ไม่ใช่สิทธิ์ให้ restyle public, print, factory หรือทุก canonical route** และไม่ทับกฎ P1.0 ด้าน accessibility, state, permission และ business invariant ด้านบน
 
 ### การเลื่อนขึ้นเป็นระบบหลัก
 
@@ -181,11 +181,22 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 - แยก loading, not found, error+retry และ empty จริง; mobile target ขั้นต่ำ 44px, มี `<h1>`, ordered lifecycle พร้อม `aria-current`, และตรวจทั้ง Light/Dark โดยไม่ล้นแนวนอน
 - หลักฐาน: `.impeccable/review/order-workbench-desktop.png` และ `.impeccable/review/order-workbench-mobile.png`; ผ่าน typecheck, targeted lint, 73 files / 711 tests, `verify:ui`, detector ว่าง, production build และ browser desktop/mobile Light + mobile Dark โดยไม่มี console/hydration error · final reviewer รอบแรก HOLD พบ 2 P1 + 1 P2, แก้แล้วรอบยืนยัน **SHIP · remaining clear**
 
+### Connected Operations — Registry + Production Control ที่ ship
+
+- สายงานที่ต่อครบคือ **Command Center → `/redesign/orders` → `/redesign/orders/[id]` → `/redesign/production` → canonical action**; ต้นแบบช่วยค้นหา/ตัดสินใจ ส่วน mutation, dialog และ server guard ยังอยู่ที่ `/orders/new`, `/orders/[id]?tab=…`, `/production?create=…` และ `/production/[id]` โดยไม่มี controller หรือ status mutation ชุดที่สอง
+- Orders Registry ใช้ `order.list` + `user.me` จริงผ่าน contract กลาง; `q`, `attention`, `status`, `channel`, `type`, `from`, `to`, `sort` และ `page` อยู่ใน URL จึงแชร์ลิงก์และย้อนกลับได้ · เงิน, money sort และปุ่มเปิดงาน fail closed ตามสิทธิ์
+- Registry desktop เป็น semantic table ที่เรียงจากหัวคอลัมน์; mobile เปลี่ยนเป็นการ์ดทั้งใบและ bottom-sheet filter ไม่ย่อตารางกว้างลงจอ · loading, initial error+retry, background error ที่คง cache, filtered/system empty และ pagination แยกกัน
+- Production Control ใช้ `production.kanban` + `user.me` ผ่าน pure model: exception docket มาก่อนคิวพร้อมผลิต, งานของฉัน, lane จริง และช่วงหลังผลิต QC / PACK / READY · รอบตรวจมีทะเบียน 78 ออเดอร์ และ Production Control มี 21 work cards ใน 7 lanes โดยไม่ยุบงานผสมให้ดูน้อยกว่าความจริง
+- lane truth reuse `laneOf`, `LANE_ORDER`, `LANE_LABELS` และ gate รีดร้อน `evaluateHeatPressGate`; PACK แสดงได้เมื่อทุกขั้นนอก PACK จบเท่านั้น · lane card ใช้ `productionId` จาก production loop จริง ส่วน target ที่กำกวมหรือปิดหมดกลับ canonical order production tab
+- readiness แสดงเฉพาะ `label` กับ `waitingOn` ที่ server sanitize แล้ว; ห้ามคัด `detail` หรือคำนวณ/เผยเงินใน model และ surface นี้ · คนที่ไม่ควรเห็น blocked queue ได้ผลลัพธ์ fail closed
+- desktop ใช้ table/factory control board; mobile ใช้ exception → lens/filter → work cards พร้อม bottom nav เดิมและ touch target ≥44px · DTF lens กรองรายการจริงและ card link เดินถึง canonical production record จริง
+- หลักฐาน: `.impeccable/review/connected-operations-orders-desktop.png`, `.impeccable/review/connected-operations-orders-mobile.png`, `.impeccable/review/connected-operations-production-desktop.png` และ `.impeccable/review/connected-operations-production-mobile.png` · browser 1440×900 Light + 390×844 Dark ไม่มี overflow/console error; ผ่าน typecheck, lint 0 error (29 warning เดิม), 742 tests, `verify:ui`, detector `[]`, production build และ click journey DTF filter/link · finish review รอบแรก **HOLD**, แก้แล้วรอบยืนยัน **SHIP**
+
 ### Interaction และ data truth
 
 - แถว matrix ใช้ hover และ `focus-within` ช่วยอ่าน rail ทั้งเส้น; ผ่านแล้ว = cobalt check+เส้น, ปัจจุบัน = วงขอบ+จุด, ยังไม่ถึง = วงเปล่า, ไม่เกี่ยว = วงเส้นประพร้อมขีดลบ, พัก/ระบุไม่ได้ = วงเส้นประเปล่า · motion ปิดเมื่อผู้ใช้เลือก reduced motion
 - ออเดอร์, ข้อยกเว้น, ค้นหา, CTA และ drill-through ทุกจุดเปิด record/route จริง · loading, error+retry, empty และกรณีไม่มีสิทธิ์ต้องแยกกัน
-- แหล่งข้อมูลมีเฉพาะ `analytics.dashboard`, `analytics.ownerPulse`, `user.me`, navigation registry, `buildDashboardAttentionItems` และ status/permission helper เดิม · เงิน เมนู และ owner pulse ต้อง fail closed ตามสิทธิ์
+- แหล่งข้อมูลมีเฉพาะ query เดิม `analytics.dashboard`, `analytics.ownerPulse`, `order.list`, `order.getById`, `production.kanban`, conditional order context/billing, `user.me`, navigation registry และ pure status/permission/view-model helper เดิม · เงิน เมนู owner pulse และ blocked work ต้อง fail closed ตามสิทธิ์
 - เว็บ custom-print แบบ self-serve ในอนาคตเป็นเพียง source ของออเดอร์เข้าสายงานเดียวกัน ไม่ใช่หลังบ้านอีกชุด · **ห้ามมี source badge ฝั่งผู้ใช้จนกว่าจะมี field/API จริง**
 
 ### ห้ามคัดจาก comp/ต้นแบบไปใช้ตรง ๆ
@@ -193,7 +204,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 - ห้ามใช้โลโก้ตัว A ใน comp; brand ที่ ship ใช้ Printer mark + wordmark “Anajak ERP” เดิม
 - ห้ามคัดข้อมูลตัวอย่าง ตัวเลข ชื่อลูกค้า จำนวนแถว หรือ source badge จากภาพ comp
 - ห้ามคัด matrix ไปมือถือ, สร้าง dashboard การ์ดทั่วไปแทน flow, หรือเปิด POD back office แยก
-- ห้ามนำ palette/shell นี้ไปครอบ public, print, factory หรือ canonical route ก่อนผ่านกติกา promotion ข้างต้น
+- ห้ามนำ palette/shell นี้ไปครอบ public, print, factory หรือ canonical route ก่อนผ่านกติกา promotion ข้างต้น; Connected Operations ไม่ใช่ global restyle และ canonical routes ยังเป็น controller/source of truth
 
 ## ลิสต์หนี้ UI เก่า
 

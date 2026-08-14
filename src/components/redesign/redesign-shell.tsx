@@ -33,12 +33,16 @@ import {
 } from "@/components/ui/tokens";
 import { canCreateOrderWithPricing } from "@/lib/order-access";
 import {
-  findActiveNavigationItem,
   groupedNavigationItems,
   navigationItemsForSurface,
   type NavigationGroupId,
   type NavigationItem,
 } from "@/lib/navigation";
+import {
+  redesignActiveNavigationId,
+  redesignNavigationHref,
+  redesignOrderHref,
+} from "@/lib/redesign-navigation";
 import { ROLE_LABELS } from "@/lib/roles";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -101,7 +105,7 @@ function ShellNavigation({
               return (
                 <li key={item.id}>
                   <Link
-                    href={item.id === "dashboard" ? "/redesign" : item.href}
+                    href={redesignNavigationHref(item)}
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={navItemClass(active)}
@@ -218,12 +222,7 @@ function RedesignShellContent({ children }: { children: ReactNode }) {
 
   const me = meQuery.data;
   const unreadCount = unreadQuery.data ?? 0;
-  const activeNavigationId =
-    pathname === "/redesign"
-      ? "dashboard"
-      : pathname.startsWith("/redesign/orders/")
-        ? "orders"
-      : findActiveNavigationItem(pathname)?.id;
+  const activeNavigationId = redesignActiveNavigationId(pathname);
   const canCreateOrder = canCreateOrderWithPricing(me?.permissions);
 
   return (
@@ -398,7 +397,7 @@ function RedesignShellContent({ children }: { children: ReactNode }) {
             return (
               <Link
                 key={item.id}
-                href={item.id === "dashboard" ? "/redesign" : item.href}
+                href={redesignNavigationHref(item)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   CONTROL_MIN_H,
@@ -445,6 +444,8 @@ function RedesignShellContent({ children }: { children: ReactNode }) {
         open={paletteOpen}
         onOpenChange={setPaletteOpen}
         returnFocusRef={searchTriggerRef}
+        navigationHref={redesignNavigationHref}
+        orderHref={redesignOrderHref}
       />
       <MobileNavigationSheet
         open={mobileMenuOpen}

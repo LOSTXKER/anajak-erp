@@ -40,64 +40,19 @@ import type { CustomerStatus, InternalStatus, OrderType } from "@prisma/client";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { hasActiveOrderListFilters } from "@/lib/order-list-ui";
+import {
+  ATTENTION_FILTERS,
+  CHANNEL_FILTERS,
+  DEFAULT_SORT,
+  SORT_DEFAULT_DIRECTION,
+  TYPE_FILTERS,
+  resolveOrderListSort,
+  validDateParam,
+  type OrderAttention,
+  type SortDirection,
+  type SortKey,
+} from "@/lib/order-list-contract";
 import { ChatLink } from "@/components/customers/chat-link";
-
-// ────────────────────────────────────────────────────────────
-// Filter options
-// ────────────────────────────────────────────────────────────
-
-const CHANNEL_FILTERS = [
-  { value: "", label: "ทุกช่องทาง" },
-  ...Object.entries(CHANNEL_LABELS).map(([value, label]) => ({ value, label })),
-];
-
-const TYPE_FILTERS = [
-  { value: "", label: "ทุกประเภท" },
-  ...Object.entries(ORDER_TYPE_UI_LABELS).map(([value, label]) => ({
-    value,
-    label,
-  })),
-];
-
-// ทุกคอลัมน์มีครบสองทิศ — หัวตารางกดสลับทิศได้ ค่าที่ได้ต้องผ่านด่านตรวจ (validation) ตัวเดียวกัน
-const SORT_OPTIONS = [
-  { value: "createdAt:desc", label: "วันที่ (ล่าสุด)" },
-  { value: "createdAt:asc", label: "วันที่ (เก่าสุด)" },
-  { value: "deadline:asc", label: "กำหนดส่ง (ใกล้สุด)" },
-  { value: "deadline:desc", label: "กำหนดส่ง (ไกลสุด)" },
-  { value: "totalAmount:desc", label: "ยอดรวม (มาก→น้อย)" },
-  { value: "totalAmount:asc", label: "ยอดรวม (น้อย→มาก)" },
-  { value: "orderNumber:desc", label: "เลขออเดอร์ (ล่าสุด)" },
-  { value: "orderNumber:asc", label: "เลขออเดอร์ (เก่าสุด)" },
-];
-
-/** sort ค่า default ไม่เก็บใน URL (URL สะอาด) — caller ต้องแปลงเป็น null เอง
- *  ก่อนส่งเข้า replaceListState ของ hook กลาง เพราะ hook ไม่รู้จักกติกาเฉพาะหน้านี้ */
-const DEFAULT_SORT = "createdAt:desc";
-
-/** ทิศที่จะได้ตอนกดหัวคอลัมน์ครั้งแรก — งานใหม่/ยอดมากขึ้นก่อน, กำหนดส่งใกล้สุดขึ้นก่อน */
-const SORT_DEFAULT_DIRECTION = {
-  orderNumber: "desc",
-  totalAmount: "desc",
-  createdAt: "desc",
-  deadline: "asc",
-} as const;
-
-type SortKey = keyof typeof SORT_DEFAULT_DIRECTION;
-
-const ATTENTION_FILTERS = [
-  { value: "", label: "ทุกงาน" },
-  { value: "overdue", label: "เลยกำหนด" },
-  { value: "due-soon", label: "ใกล้กำหนด 48 ชม." },
-  { value: "stuck", label: "งานนิ่งเกิน 3 วัน" },
-] as const;
-
-type OrderAttention = Exclude<(typeof ATTENTION_FILTERS)[number]["value"], "">;
-
-function validDateParam(value: string | null) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
-  return Number.isNaN(new Date(`${value}T00:00:00.000Z`).getTime()) ? "" : value;
-}
 
 // ────────────────────────────────────────────────────────────
 // Payment status: dot + text (no pill)
@@ -316,26 +271,23 @@ function OrdersPageContent() {
   const attention = ATTENTION_FILTERS.some((option) => option.value === rawAttention)
     ? rawAttention
     : "";
-  const rawSort = searchParams.get("sort") ?? DEFAULT_SORT;
+  const rawSort = searchParams.get("sort");
 
   const { data: me } = trpc.user.me.useQuery();
   // เปิดออเดอร์ต้องสร้างเอกสารขายและเห็นราคาได้ — ใช้ด่านเดียวกับ route เพื่อไม่ให้ CTA พาไปชน AccessDenied
   const canCreateOrder = canCreateOrderWithPricing(me?.permissions);
   // ⑦ ช่าง/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนคอลัมน์ยอดรวม + sort ยอดรวม (ระหว่างโหลด me = ซ่อนไว้ก่อน ปลอดภัยกว่า)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
-  const sortOptions = canSeeMoney
-    ? SORT_OPTIONS
-    : SORT_OPTIONS.filter((o) => !o.value.startsWith("totalAmount"));
-  const sort = sortOptions.some((option) => option.value === rawSort)
-    ? rawSort
-    : DEFAULT_SORT;
-  const [sortBy, sortOrder] = sort.split(":") as [SortKey, "asc" | "desc"];
+  const { sortOptions, sort, sortBy, sortOrder } = resolveOrderListSort(
+    rawSort,
+    canSeeMoney
+  );
 
   /** props ให้หัวคอลัมน์ที่กดเรียงได้ — คอลัมน์ไหนกำลังเรียงอยู่ กดแล้วไปไหนต่อ */
   const sortColumn = (key: SortKey) => ({
     direction: sortBy === key ? sortOrder : null,
     defaultDirection: SORT_DEFAULT_DIRECTION[key],
-    onSort: (direction: "asc" | "desc") => {
+    onSort: (direction: SortDirection) => {
       const value = `${key}:${direction}`;
       replaceListState({
         sort: value === DEFAULT_SORT ? null : value,

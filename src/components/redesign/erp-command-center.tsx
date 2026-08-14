@@ -44,6 +44,7 @@ import {
   getRedesignStageLabel,
   type RedesignFlowState,
 } from "@/lib/redesign-flow";
+import { redesignOrderListHref } from "@/lib/redesign-navigation";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { cn, formatDateShort, formatTime } from "@/lib/utils";
 
@@ -403,7 +404,7 @@ function AttentionPanel({
           </ol>
           <div className="redesign-attention-footer border-t border-divider p-3">
             <Link
-              href="/orders"
+              href="/redesign/orders"
               className={cn(
                 CONTROL_MIN_H,
                 FOCUS_BUTTON,
@@ -610,7 +611,7 @@ function FlowMatrix({
           </p>
         </div>
         <Link
-          href="/orders"
+          href="/redesign/orders"
           className={cn(
             CONTROL_MIN_H,
             FOCUS_BUTTON,
@@ -921,7 +922,7 @@ function MobileRecentOrders({
           ออเดอร์ล่าสุด
         </h2>
         <Link
-          href="/orders"
+          href="/redesign/orders"
           className={cn(
             CONTROL_MIN_H,
             FOCUS_BUTTON,
@@ -1068,7 +1069,10 @@ export function ErpCommandCenter() {
     ? buildDashboardAttentionItems(pulseQuery.data, {
         canViewBilling,
         canViewQuotations,
-      })
+      }).map((item) => ({
+        ...item,
+        href: redesignOrderListHref(item.href),
+      }))
     : [];
   const pulseLoading =
     canViewPulse &&

@@ -9,7 +9,10 @@ import { OVERLAY_PANEL } from "@/components/ui/tokens";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { canCreateOrderWithPricing } from "@/lib/order-access";
-import { navigationItemsForSurface } from "@/lib/navigation";
+import {
+  navigationItemsForSurface,
+  type NavigationItem,
+} from "@/lib/navigation";
 import { Spinner } from "@/components/ui/spinner";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 
@@ -27,12 +30,16 @@ interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   returnFocusRef?: React.RefObject<HTMLButtonElement | null>;
+  navigationHref?: (item: NavigationItem) => string;
+  orderHref?: (orderId: string) => string;
 }
 
 export function CommandPalette({
   open,
   onOpenChange,
   returnFocusRef,
+  navigationHref,
+  orderHref,
 }: CommandPaletteProps) {
   const router = useRouter();
   const [query, setQuery] = React.useState("");
@@ -86,11 +93,11 @@ export function CommandPalette({
         group: "ไปที่",
         icon: item.icon,
         keywords: item.aliases.join(" "),
-        action: () => navigate(item.href),
+        action: () => navigate(navigationHref?.(item) ?? item.href),
       }))
     );
     return result;
-  }, [me?.permissions, navigate]);
+  }, [me?.permissions, navigate, navigationHref]);
 
   React.useEffect(() => {
     const trimmed = query.trim();
@@ -117,7 +124,7 @@ export function CommandPalette({
         hint: item.subtitle ?? undefined,
         group: "ออเดอร์",
         icon: ShoppingCart,
-        action: () => navigate(item.href),
+        action: () => navigate(orderHref?.(item.id) ?? item.href),
       })),
       ...data.customers.map((item) => ({
         id: `entity-customer-${item.id}`,
@@ -144,7 +151,7 @@ export function CommandPalette({
         action: () => navigate(item.href),
       })),
     ];
-  }, [debouncedQuery, entityQuery.data, navigate, query]);
+  }, [debouncedQuery, entityQuery.data, navigate, orderHref, query]);
 
   const filtered = React.useMemo(() => {
     if (!query.trim()) return items;

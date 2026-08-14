@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ Connected Operations ของต้นแบบใช้งานจริงครบสายแล้ว 2026-08-14 — Dashboard → ทะเบียนออเดอร์ → Workbench → ศูนย์ควบคุมการผลิต → หน้าทำงานหลัก**
+> เพิ่ม `/redesign/orders` เป็นทะเบียนออเดอร์ข้อมูลจริงที่ค้นหา/กรองความเร่งด่วน/สถานะ/ช่องทาง/ประเภท/วันที่/เรียง/pagination ผ่าน URL ได้ และเพิ่ม `/redesign/production` เป็น cockpit ที่เรียงข้อยกเว้นกับด่านพร้อมผลิตก่อนสมดุล 7 เลนและ work cards · sidebar, bottom nav, Command Palette และลิงก์ “ดูทั้งหมด” อยู่ใน prototype world เดียวกัน ส่วนการเปิดงานใหม่ เปลี่ยนสถานะ เปิดใบผลิต QC/แพ็ค/ส่ง ยังคงพาไป canonical page/dialog ที่มี server guard เดิม ไม่สร้าง mutation ซ้ำ
+>
+> **ความจริงและสิทธิ์:** เงินซ่อนก่อนรู้สิทธิ์และแสดงเฉพาะ `see_order_money` · readiness ใช้ข้อมูลที่ server sanitize แล้วและไม่อ่าน `detail` · blocked queue ใช้กติกา role/`supervise_operations` เดียวกับ production เดิม · ใบผลิตเปิดตรงเฉพาะเป้าหมาย active เดียว ไม่งั้นกลับแท็บรวม · HEAT_PRESS reuse `evaluateHeatPressGate`; งานที่ยังรอเสื้อ/ฟิล์มไม่อยู่ใน “งานที่ทำต่อได้” หรือ “งานของฉัน” แต่ย้ายไป exception พร้อมเหตุผล · วันที่ URL ตรวจ round-trip จริง ไม่ปล่อย 31 ก.พ. normalize เงียบ
+>
+> **ด่าน:** browser click journey จริง 1440×900 Light + 390×844 Dark — dev data 78 ออเดอร์, 20 แถว/การ์ดต่อหน้า, 21 work cards, 7 เลน; DTF filter เหลือ 2 งานและ URL ย้อนกลับได้; เปิด Registry → Workbench → Production → `/production/[id]` จริง · no horizontal overflow/hydration/console error, mobile first card อยู่ใน 535px แรกและ lane target 80px · typecheck ผ่าน · lint 0 error (29 warningเดิมนอก scope) · unit **742/742** · `verify:ui` ผ่าน · Impeccable detector `[]` หนึ่งรอบ · production build ผ่าน · finish review รอบแรก HOLD 1 P1 + 1 P2 แล้วปิดครบ; รอบยืนยัน **SHIP / remaining clear** · ภาพอยู่ `.impeccable/review/connected-operations-*.png`
+>
+> **ต่อที่นี่:** ให้เบสเปิด `/redesign` แล้วเดิน Dashboard → ออเดอร์ → เลือกงาน → ดูในศูนย์ควบคุมการผลิต; ถ้าทิศนี้ใช่ ค่อยเลือก surface canonical ที่จะ promote ก่อน โดยยังไม่ restyle public/print/factory หรือสร้างหลังบ้าน POD แยก
+
 > **✅ ต่อยอดต้นแบบเป็น Order Workbench แล้ว 2026-08-14 — เปิดออเดอร์จาก `/redesign` แล้วรู้ทันทีว่าต้องทำอะไรต่อ**
 > เพิ่ม `/redesign/orders/[id]` ใต้ shell เดิม โดยใช้ record/สิทธิ์/next-step/สถานะ/แท็บจริง แต่คง `/orders/[id]` เป็น controller หลักสำหรับการแก้ข้อมูลและ mutation ทั้งหมด · first viewport เรียงเลขงาน+สถานะ → Action Docket ที่บอกเหตุผลและทางไปทำต่อ → dispatch facts → lifecycle 7 ช่วง; ถัดลงมาเป็นสเปกงาน 3 รายการแรกและ snapshot งานออกแบบ/ผลิต/ส่ง/บิลตามสิทธิ์ · Command Center ทั้ง desktop/mobile เปิด Workbench นี้แล้ว
 >
