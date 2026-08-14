@@ -804,7 +804,6 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
                   canRemove={items.length > 1}
                   isExpanded
                   compact
-                  appearance="intake"
                   allItems={items}
                   printCatalog={printCatalog}
                   addonCatalog={addonCatalog}

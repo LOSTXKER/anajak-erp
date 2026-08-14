@@ -291,7 +291,7 @@ export function OrderItemsEditor({
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="mx-auto w-full max-w-5xl space-y-6">
         <section aria-labelledby="edit-order-items-heading" className="space-y-4">
           <OrderItemsListHeader
             headingId="edit-order-items-heading"

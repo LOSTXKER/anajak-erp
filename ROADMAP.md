@@ -132,6 +132,14 @@
 - [x] แยกราคา/ค่าใช้จ่าย/เงื่อนไขออกจากการ์ดรายการ และคง sticky bar ให้เหลือยอดหลัก + ยกเลิก + เปิดงาน ✅ 2026-08-02
 - **ปิดงาน 2026-08-02:** browser จริง `/orders/new` และ `?next=quote` ที่ 320/375/768/1024/1280/1440px + light/dark ไม่มี horizontal scroll หรือ error overlay · ทดลองเพิ่มสินค้า ลาย ส่วนเสริม ค่าใช้จ่าย เปิด/ปิดที่อยู่ และกดส่งเพื่อดูสรุปช่องที่ขาด · `/orders/[id]` editor ยังใช้หน้าตาเดิมเมื่อไม่ส่ง presentation prop · typecheck ผ่าน · lint 0 error (38 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · ไม่รัน build ขณะ dev server ทำงาน
 
+### 🎯 UX follow-up — รายการหน้าเปิดงาน/แก้ไขใช้ UI เดียว + ลายอยู่เหนือสินค้า (เบสสั่ง 2026-08-14)
+> มติล่าสุดทับข้อ 131 ที่เคยให้สินค้าอยู่ก่อนลาย · ขอบเขต presentation-only: คง state, validation, ราคา, permission และ mutation เดิมทั้งหมด · shell/แท็บและปุ่มบันทึกยังต่างตามบริบทได้
+
+- [x] ยุบ presentation branch ของ `OrderItemCard` ให้เหลือ contract เดียวทั้ง create/edit: ชื่อชุดงาน → ลายและงานพิมพ์ → สินค้าในชุดงาน → ส่วนเสริมในชุดงาน → หมายเหตุการผลิตชุดนี้ · ใช้หัวข้อ/ความกว้าง field/breakpoint ชุดเดียวกัน ✅ 2026-08-14
+- [x] พื้นที่แก้รายการใช้ความกว้างอ่านง่ายเดียวกับหน้าเปิดงาน โดยไม่เปลี่ยนส่วนอื่นของ order detail ✅ 2026-08-14
+- [x] verify: source/render guard กัน UI แตกแขนงกลับ · typecheck · lint · unit · `verify:ui` · browser จริง create/edit ที่ desktop+mobile พร้อม Light/Dark, ไม่มี horizontal overflow/console error และไม่บันทึกข้อมูลธุรกิจ ✅ 2026-08-14
+- **ปิดงาน 2026-08-14:** ลบ prop/branch `appearance` ออกจาก `OrderItemCard` แล้วให้สอง caller ต่างกันเฉพาะกฎธุรกิจ · editor ใช้ `max-w-5xl` เท่าหน้าเปิดงาน · `verify:ui` ล็อกลำดับลายก่อนสินค้าและกัน presentation branch กลับมา · browser จริง 1440×900/390×844 Light+Dark วัด card 1024/348px และ CTA เท่ากันทั้งสองหน้า, populated edit สลับ table→card ถูก, target มือถือไม่ต่ำกว่า 44px, horizontal overflow/console error = 0 · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit 742/742 · Impeccable detector `[]` · ไม่รัน build ระหว่าง dev server ทำงาน
+
 ### 🎯 UX follow-up — ช่องกรอกต้องเห็นว่าเป็นช่อง + คอลัมน์ตรงกัน (เบสเจอบนของจริง 2026-08-03)
 > เบส: "บางอย่างที่มันต้อง fill ข้อมูล ไม่ต้องซ่อน ช่อง user จะได้รู้ว่าช่องไหนต้องใส่ · ช่องบางช่องถูกกลืนไปกับพื้นหลังสีเทา · แถวคอลัมขอให้มันตรงกันทั้งหมด"
 > **บทเรียน:** รอบ "ลดเส้นทั้งเว็บ" ลดเลยจุดที่ควรลด — ขอบของ *กล่องครอบ* ถอดได้ แต่ **ขอบช่องกรอกถอดไม่ได้** เพราะมันคือสัญญาณเดียวที่บอกว่า "ตรงนี้กรอกได้"
@@ -188,6 +196,13 @@
 - [x] ลด empty surface ในรายการ/ราคา: CTA แหล่งสินค้า/ลาย/ส่วนเสริมเป็น action สั้น · ค่าใช้จ่ายระดับออเดอร์เป็นแถวสั้น · summary และ action footer ไม่สร้าง card ซ้อน ✅ 2026-08-03
 - [x] verify browser จริงแบบก่อน–หลังที่ 320/375/768/1024/1280/1440px · light ทุก breakpoint + dark 1280px · ไม่มี horizontal scroll/error overlay/console error · เพิ่มสินค้า ลาย ส่วนเสริม ค่าใช้จ่าย เปิดที่อยู่ และ shared `/orders/[id]` ไม่ถอย · typecheck/lint/unit/`verify:ui` ผ่าน ✅ 2026-08-03
 - **ปิดงาน 2026-08-03:** ใช้ origin สะอาดหลบ client state เก่าของ Turbopack ที่ `localhost:3000` ตาม incident ที่บันทึกไว้ · ตารางสินค้าจอกว้างมีหัวครบ 8 คอลัมน์และพื้นที่แคบใช้ card · interaction ทั้ง 4 จุดผ่าน · lint 0 error (38 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · ไม่รัน build ขณะ dev server ทำงาน
+
+### 🐛 UX regression — แถบปุ่มติดจอทับพื้นที่ทำงาน (เบสส่งภาพ 2026-08-14)
+> ทำซ้ำได้ที่ viewport ปกติ 1280×720 โดยไม่ต้องซูม: `/orders/new` เปิดแท็บรับเรื่องแล้วแถบเปิดงานทับหัว “การจัดส่ง”; popup แก้ลูกค้าให้ footer ทับช่องหมายเหตุ · เป็น regression ของ sticky action ที่บันทึกไว้ในข้อ 196 และก้อน popup A ข้อ 211
+
+- [ ] popup ยาวต้องแยก body ที่เลื่อนได้ออกจาก header/footer ให้ชัด ปุ่มเห็นตลอดโดยไม่วางทับช่องกรอก และ dialog สั้นยังยุบตามเนื้อหา
+- [ ] `/orders/new` ต้องกันพื้นที่ action bar ออกจากเนื้อหา ไม่ให้มุมโค้งเผยข้อความที่เลื่อนอยู่ด้านหลัง และทุก field เลื่อนขึ้นมาอ่าน/กดได้เต็ม
+- [ ] verify browser จริง Light/Dark ที่ 1280×720 และ 390×844: วัด overlap = 0, เลื่อนต้น–ท้ายครบ, ไม่มี horizontal overflow/console error · typecheck · lint · unit · `verify:ui` · detector
 
 ### 🎯 UX follow-up — เปิดข้อมูลสร้าง/รายละเอียดออเดอร์ทั้งหมด (เบสสั่ง 2026-07-18)
 - [x] `/orders/new`: กางข้อมูลงาน รายการ+ราคา ไฟล์ ที่อยู่ รายละเอียดลาย/สินค้า และสเปคตัดเย็บที่ UI มีอยู่เดิมตลอด · เลิกปุ่ม “เพิ่มเติม/ซ่อน” ที่ใช้เพื่อ declutter · ที่อยู่ยัง optional และเงื่อนไขตามชนิดลูกค้า/ช่องทาง/สินค้าเดิมต้องไม่เปลี่ยน — ✅ 2026-07-18

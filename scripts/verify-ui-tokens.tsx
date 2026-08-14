@@ -1043,7 +1043,7 @@ check(
     React.createElement(OrderItemCard, {
       cardId: "verify-order-item-1",
       item: EMPTY_ITEM, itemIdx: 0, canRemove: false, isExpanded: true,
-      compact: true, appearance: "intake", allItems: [EMPTY_ITEM],
+      compact: true, allItems: [EMPTY_ITEM],
       printCatalog: [], addonCatalog: [],
       onUpdateItem: noop, onRemoveItem: noop, onAddPrint: noop, onRemovePrint: noop,
       onUpdatePrint: noop, onAddAddon: noop, onRemoveAddon: noop, onUpdateAddon: noop,
@@ -1054,6 +1054,9 @@ check(
   const problems: string[] = [];
   for (const t of ["รายการที่ 1", "สินค้าในชุดงาน", "ลายและงานพิมพ์", "ส่วนเสริมในชุดงาน"]) {
     if (!html.includes(t)) problems.push(`ไม่เจอข้อความ "${t}"`);
+  }
+  if (html.indexOf("ลายและงานพิมพ์") > html.indexOf("สินค้าในชุดงาน")) {
+    problems.push("ลายและงานพิมพ์ต้องอยู่เหนือสินค้าในชุดงาน");
   }
   // เบสสั่งตัดทิ้ง 2026-08-04 — หัวข้อบอกอยู่แล้วว่าส่วนนี้คืออะไร การ์ดบอกว่ากดแล้วได้อะไร
   for (const t of ["ยังไม่มีสินค้า", "ยังไม่มีลาย", "ยังไม่มีส่วนเสริม"]) {
@@ -1118,6 +1121,17 @@ check(
     orderItemSource.match(/<article[\s\S]*?<OrderItemRow/)?.[0] ?? "";
 
   const problems: string[] = [];
+  if (
+    orderItemSource.includes("isIntake") ||
+    orderItemSource.includes("appearance?:") ||
+    createSource.includes("appearance=") ||
+    editorSource.includes("appearance=")
+  ) {
+    problems.push("create/edit ต้องไม่มี presentation branch แยกใน OrderItemCard");
+  }
+  if (!editorSource.includes('className="mx-auto w-full max-w-5xl space-y-6"')) {
+    problems.push("edit form ต้องใช้ความกว้างเดียวกับหน้าเปิดงาน (max-w-5xl)");
+  }
   if (
     !itemWrapper.includes('role="listitem"') ||
     !itemWrapper.includes("card-surface") ||

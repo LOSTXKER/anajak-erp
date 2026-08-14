@@ -30,9 +30,8 @@ import { FIELD_LABEL, FIELD_MEASURE, FOCUS_BUTTON, RADIUS, SUNK_PANEL, TABLE_HEA
 
 export const labelClass = FIELD_LABEL;
 
-// หัวข้อกลุ่ม — เด่นชัด (แถบน้ำเงิน + ตัวหนาเข้ม) แยกกลุ่มให้สายตาจับได้ทันที (เบส: highlight หัวข้อ)
-const groupLabelClass =
-  "border-l-[3px] border-blue-500 pl-2 text-sm font-semibold text-slate-800 dark:border-blue-400 dark:text-slate-100";
+const groupHeadingClass =
+  "text-sm font-semibold text-slate-800 dark:text-slate-100";
 
 interface OrderItemCardProps {
   cardId: string;
@@ -59,8 +58,6 @@ interface OrderItemCardProps {
   // โหมดกระชับ (หน้าแก้รายการ): ยุบ คำอธิบาย/ส่วนเสริม/หมายเหตุ เป็น "รายละเอียดเพิ่มเติม" ·
   // ตัดสรุปราคาต่อรายการ (sidebar มีรวมแล้ว) · ย่อหัวข้อ (redesign 2026-06-12)
   compact?: boolean;
-  /** presentation เฉพาะหน้าเปิดงานใหม่: สินค้าก่อนลาย + empty CTA กระชับ */
-  appearance?: "default" | "intake";
 }
 
 // ============================================================
@@ -148,13 +145,8 @@ export function OrderItemCard({
   onOpenPicker, onSetItems,
   showPrints = true, showAddons = true,
   compact = false,
-  appearance = "default",
 }: OrderItemCardProps) {
   const expanded = isExpanded;
-  const isIntake = appearance === "intake";
-  const groupHeadingClass = isIntake
-    ? "text-sm font-semibold text-slate-800 dark:text-slate-100"
-    : groupLabelClass;
   const otherItemsWithPrints = (allItems ?? []).map((it, idx) => ({ it, idx })).filter(({ idx }) => idx !== itemIdx).filter(({ it }) => it.prints.length > 0);
 
   const copyPrintsFrom = (sourceIdx: number) => {
@@ -212,8 +204,8 @@ export function OrderItemCard({
 
   // ── section: คำอธิบายงาน ──
   const descField = (
-    <Field label={isIntake ? "ชื่อชุดงาน" : "คำอธิบายงาน"} className={isIntake ? FIELD_MEASURE : undefined}>
-      <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder={isIntake ? "เช่น เสื้อทีมหน้าร้าน 30 ตัว" : "เช่น งานสกรีนทีม ABC, งานพิมพ์เสื้อกิจกรรม..."} />
+    <Field label="ชื่อชุดงาน" className={FIELD_MEASURE}>
+      <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder="เช่น เสื้อทีมหน้าร้าน 30 ตัว" />
     </Field>
   );
 
@@ -221,7 +213,7 @@ export function OrderItemCard({
   const printsSection = (
     <div className="@container">
       <div className="mb-2 flex items-center justify-between">
-          <span className={groupHeadingClass}>{isIntake ? "ลายและงานพิมพ์" : compact ? "ลาย" : "ลายที่ต้องการสั่งผลิต"}</span>
+          <span className={groupHeadingClass}>ลายและงานพิมพ์</span>
           <div className="flex items-center gap-1.5">
             {otherItemsWithPrints.length > 0 && (
               <div className="relative">
@@ -260,12 +252,7 @@ export function OrderItemCard({
         />
       ) : (
         <>
-          <div
-            className={cn(
-              "hidden overflow-hidden",
-              isIntake ? "@2xl:block" : "@3xl:block"
-            )}
-          >
+          <div className="hidden overflow-hidden @2xl:block">
             <table className="w-full table-fixed">
               <ItemTableCols />
               <thead className={TABLE_HEAD_SURFACE}>
@@ -301,7 +288,7 @@ export function OrderItemCard({
               </tbody>
             </table>
           </div>
-          <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
+          <div className="space-y-2.5 @2xl:hidden">
             {item.prints.map((print, printIdx) => (
               <PrintCardMobile
                 key={printIdx}
@@ -327,7 +314,7 @@ export function OrderItemCard({
   const productsSection = (
     <div className="@container">
       <div className="mb-2 flex items-center justify-between">
-        <span className={groupHeadingClass}>{isIntake ? "สินค้าในชุดงาน" : compact ? "สินค้า" : "สินค้าที่ต้องการสั่งผลิต"}</span>
+        <span className={groupHeadingClass}>สินค้าในชุดงาน</span>
         {item.products.length > 0 && (
           <AddProductPopover
             onAddFromStock={onOpenPicker}
@@ -370,12 +357,7 @@ export function OrderItemCard({
         ) : (
           <>
             {/* สินค้าจากสต็อกล้วนคงตารางเดิมที่เบสเคาะไว้ */}
-            <div
-              className={cn(
-                "hidden overflow-hidden",
-                isIntake ? "@2xl:block" : "@3xl:block"
-              )}
-            >
+            <div className="hidden overflow-hidden @2xl:block">
               <table className="w-full table-fixed">
                 <ItemTableCols />
                 <thead className={TABLE_HEAD_SURFACE}>
@@ -407,7 +389,7 @@ export function OrderItemCard({
               </table>
             </div>
             {/* จอแคบใช้การ์ด ไม่บีบตาราง 8 คอลัมน์ลงมือถือ/แท็บเล็ต */}
-            <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
+            <div className="space-y-2.5 @2xl:hidden">
               {item.products.map((prod, pIdx) => (
                 <ProductCardMobile
                   key={prod.formKey ?? `stock-mobile-${pIdx}`}
@@ -429,7 +411,7 @@ export function OrderItemCard({
   const addonsSection = (
     <div className="@container">
       <div className="mb-2 flex items-center justify-between">
-        <span className={groupHeadingClass}>{isIntake ? "ส่วนเสริมในชุดงาน" : "ส่วนเสริม (Add-ons)"}</span>
+        <span className={groupHeadingClass}>ส่วนเสริมในชุดงาน</span>
         {item.addons.length > 0 && (
           <Button type="button" variant="ghost" size="sm" onClick={() => onAddAddon(itemIdx)}>
             <Plus />เพิ่มส่วนเสริม
@@ -445,12 +427,7 @@ export function OrderItemCard({
         />
       ) : (
         <>
-        <div
-          className={cn(
-            "hidden overflow-hidden",
-            isIntake ? "@2xl:block" : "@3xl:block"
-          )}
-        >
+        <div className="hidden overflow-hidden @2xl:block">
           <table className="w-full table-fixed">
             <ItemTableCols />
             <thead className={TABLE_HEAD_SURFACE}>
@@ -486,7 +463,7 @@ export function OrderItemCard({
             </tbody>
           </table>
         </div>
-        <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
+        <div className="space-y-2.5 @2xl:hidden">
           {item.addons.map((addon, addonIdx) => (
             <div key={addonIdx} className={cn("space-y-3 rounded-xl p-3", SUNK_PANEL)}>
               <div className="flex items-center justify-between gap-2">
@@ -529,8 +506,8 @@ export function OrderItemCard({
 
   // ── section: หมายเหตุ ──
   const notesField = (
-    <Field label={isIntake ? "หมายเหตุการผลิตชุดนี้" : "หมายเหตุรายการ"} className={isIntake ? FIELD_MEASURE : undefined}>
-      <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder={isIntake ? "รายละเอียดที่ทีมผลิตต้องรู้..." : "หมายเหตุเพิ่มเติมสำหรับรายการนี้..."} />
+    <Field label="หมายเหตุการผลิตชุดนี้" className={FIELD_MEASURE}>
+      <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder="รายละเอียดที่ทีมผลิตต้องรู้..." />
     </Field>
   );
 
@@ -584,15 +561,9 @@ export function OrderItemCard({
     </div>
   ) : null;
 
-  // โหมดรับเรื่องเรียงสินค้าขึ้นก่อน (เลือกเสื้อ → ค่อยว่าจะพิมพ์อะไรลงไป)
-  // ทั้ง 3 ส่วนใช้หัวข้อ+การ์ดว่างชุดเดียวกัน ไม่มีทางลัดยุบรวมอีกแล้ว
-  const productionSections = isIntake ? (
-    <>
-      {productsSection}
-      {showPrints && printsSection}
-      {showAddons && addonsSection}
-    </>
-  ) : (
+  // หน้าเปิดงานและหน้าแก้ใช้ลำดับ/ถ้อยคำ/หน้าตาชุดเดียวกัน — ลายอยู่เหนือสินค้า
+  // ตามมติล่าสุด 2026-08-14 และไม่มี presentation branch ให้สองหน้ากลับมา drift
+  const productionSections = (
     <>
       {showPrints && printsSection}
       {productsSection}

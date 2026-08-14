@@ -4,6 +4,13 @@
 
 ## ตอนนี้
 
+> **✅ หน้าเปิดงาน/แก้รายการใช้ UI เดียวกันแล้ว + ลายอยู่เหนือสินค้า 2026-08-14**
+> ลบ presentation branch `appearance=default|intake` ออกจาก `OrderItemCard` จึงเหลือ contract เดียวทั้ง `/orders/new?tab=items` และ `/orders/[id]?tab=items`: **ชื่อชุดงาน → ลายและงานพิมพ์ → สินค้าในชุดงาน → ส่วนเสริมในชุดงาน → หมายเหตุการผลิตชุดนี้** · ใช้คำเรียก หัวข้อเรียบ ความกว้าง field และ breakpoint ตาราง/การ์ดชุดเดียวกัน · หน้าแก้รายการจำกัดความกว้าง `max-w-5xl` เท่าหน้าเปิดงาน แต่คง shell/แท็บ/ปุ่มบันทึกและ `showPrints/showAddons` ตามสถานะเดิม · ไม่แตะ state, validation, ราคา, permission หรือ mutation
+>
+> **ด่าน:** `verify:ui` เพิ่ม render/source guard บังคับลายก่อนสินค้าและห้าม presentation branch กลับมา · browser จริง empty create/edit + populated edit ที่ 1440×900 และ 390×844 Light/Dark: card กว้าง 1024/348px เท่ากัน, CTA ชุดเดียวกัน, populated desktop เป็น table และ mobile เป็น card, touch target ≥44px, horizontal overflow/console error = 0 · ไม่กดบันทึกข้อมูล · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit **742/742** · Impeccable detector `[]` · ไม่รัน build ขณะ dev server 3002 ทำงาน
+>
+> **ต่อที่นี่:** งานหน้าตาจบแล้ว; ใบงานก้อน 4 เดิมเรื่องรวม state/การบันทึกเฉพาะส่วนที่เปลี่ยนยังค้างและต้องทำเป็นคนละก้อน ห้ามนับว่าปิดจากงาน UI นี้
+
 > **✅ Connected Operations ของต้นแบบใช้งานจริงครบสายแล้ว 2026-08-14 — Dashboard → ทะเบียนออเดอร์ → Workbench → ศูนย์ควบคุมการผลิต → หน้าทำงานหลัก**
 > เพิ่ม `/redesign/orders` เป็นทะเบียนออเดอร์ข้อมูลจริงที่ค้นหา/กรองความเร่งด่วน/สถานะ/ช่องทาง/ประเภท/วันที่/เรียง/pagination ผ่าน URL ได้ และเพิ่ม `/redesign/production` เป็น cockpit ที่เรียงข้อยกเว้นกับด่านพร้อมผลิตก่อนสมดุล 7 เลนและ work cards · sidebar, bottom nav, Command Palette และลิงก์ “ดูทั้งหมด” อยู่ใน prototype world เดียวกัน ส่วนการเปิดงานใหม่ เปลี่ยนสถานะ เปิดใบผลิต QC/แพ็ค/ส่ง ยังคงพาไป canonical page/dialog ที่มี server guard เดิม ไม่สร้าง mutation ซ้ำ
 >
