@@ -4,6 +4,13 @@
 
 ## ตอนนี้
 
+> **✅ แก้ GitHub CI ให้ `npm ci` ทำซ้ำได้ด้วย npm 11.17 แล้ว 2026-08-15**
+> PR #1 merge สำเร็จแต่ CI เดิมหยุดก่อนเข้า test เพราะ `@rolldown/binding-wasm32-wasi` ต้องการ `@emnapi/core`/`runtime@1.10.0` แบบ exact ขณะที่ lockfile มีเพียงตัว hoist 1.11.1 · regenerate `package-lock.json` ด้วย npm 11.17 รุ่นเดียวกับ CI จึงเพิ่ม nested dependency/WASI bundle metadata ที่ขาดและ normalize `peer` flags โดยไม่เปลี่ยน `package.json` หรือ version/resolved/integrity/dependency เดิม
+>
+> **ด่าน:** npm 11.17 `npm ci` ผ่านจาก install สะอาดและ postinstall Prisma generate สำเร็จ · unit **824/824** · typecheck ผ่าน · lint 0 error (28 warningเดิม) · `verify:ui` ผ่าน · audit อิสระยืนยัน lockfile-only เพียงพอ ไม่ต้องแก้ workflow/packageManager · `npm audit` ยังรายงาน 13 รายการเดิม (2 low, 2 moderate, 9 high) และยังไม่ใช้ auto-fix เพราะเป็นงาน dependency/security แยก
+>
+> **ต่อที่นี่:** รอ GitHub CI ของ hotfix PR ยืนยันแล้ว merge เข้า `main`; จากนั้นค่อยเปิดงาน dependency audit แยกถ้าจะจัดการ 13 รายการ
+
 > **✅ ภาพรวมออเดอร์อ่านสาระสำคัญก่อนข้อมูลอ้างอิงแล้ว 2026-08-15**
 > หลังย้ายการแก้ไขไปหน้าเต็ม แท็บภาพรวมไม่จำลองฟอร์มอ่านอย่างเดียวอีกแล้ว: เรียง `สรุปออเดอร์ → ลูกค้าและผู้ติดต่อ → การจัดส่ง` ทั้ง DOM/desktop/mobile · สรุปแถวแรกตอบทันทีว่าลูกค้าคือใคร ส่งเมื่อไร เร่งด่วนแค่ไหน กี่ชิ้น และยอดเท่าไรตามสิทธิ์ · optional ว่างถอดทั้งแถว; สิ่งที่มีผลกับงานใช้ข้อความตรง เช่น “ยังไม่กำหนดส่ง / ยังไม่มีรายการ / ยังไม่ตีราคา / ยังไม่มีที่อยู่จัดส่ง” แทน `-`, `฿0` หรือสถานะสต๊อกหลอก
 >

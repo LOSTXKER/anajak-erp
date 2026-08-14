@@ -181,6 +181,13 @@
 - [x] verify browser จริง empty+populated ที่ 1440×900/390×844 Light+Dark: reading order, natural card height, no standalone dash/overflow/action overlap/console error, touch target และข้อมูลเงินไม่รั่ว พร้อม typecheck/lint/unit/`verify:ui`/Impeccable detector ✅ 2026-08-15
 - **ปิดงาน 2026-08-15:** ภาพรวมเรียง `สรุปออเดอร์ → ลูกค้าและผู้ติดต่อ → การจัดส่ง` ทั้ง DOM และภาพจริง · สรุปมือถือเป็น 2×2 ทำให้ข้อมูลหลักครบก่อน bottom nav โดยเหลือ safe margin 90.7px ในเคสแคบสุด · การ์ดรองสูงตามเนื้อหาและแยกเจ้าของข้อมูลตรง flow แก้ไขใหม่ · optional ว่างไม่สร้างแถว `-`; empty state ใช้ข้อความตรงและไม่แสดง `฿0`/สถานะสต๊อกหลอก · browser empty+populated Light/Dark ไม่มี overflow/ชน/console error, target ≥44px และ deep-link เงิน/ข้อมูล/จัดส่งกลับถูก · unit 824/824, typecheck, lint 0 error (28 warning เดิม), `verify:ui`, Impeccable layout detector `[]`, independent review **CLEAR** · ไม่รัน build ระหว่าง dev server 3002 ทำงาน
 
+#### CI hotfix — lockfile ต้องติดตั้งซ้ำได้ด้วย npm 11.17 (เบสอนุมัติ 2026-08-15)
+> PR #1 merge แล้วแต่ GitHub CI หยุดที่ `npm ci` ก่อนเข้า test เพราะ lockfile ขาดรายการ dependency ย่อยแบบ exact ที่ npm 11.17 บังคับตรวจ · แก้เฉพาะ lockfile ห้ามเปลี่ยน dependency ที่ประกาศใน `package.json`
+
+- [x] สร้าง `package-lock.json` ใหม่ด้วย npm 11.17 และยืนยัน diff ว่า `package.json`/dependency versions ไม่เปลี่ยน ✅ 2026-08-15
+- [x] รัน `npm ci` ด้วย npm 11.17 จาก install สะอาด แล้วผ่าน test/typecheck/lint/`verify:ui` ก่อนส่ง hotfix PR เข้า `main` ✅ 2026-08-15
+- **ปิดงาน 2026-08-15:** npm 11.17 เติม nested exact `@emnapi/core`/`runtime@1.10.0` ของ Rolldown และ WASI bundle metadata ที่ขาด พร้อม normalize `peer` flags โดยไม่แก้ `package.json` หรือ version/resolved/integrity/dependency เดิม · `npm ci` ผ่านจาก install สะอาด ตามด้วย unit 824/824, typecheck, lint 0 error (28 warning เดิม) และ `verify:ui` · `npm audit` ยังรายงาน 13 รายการเดิม (2 low, 2 moderate, 9 high) ให้ประเมินเป็นงาน dependency audit แยก ห้ามใช้ `npm audit fix` อัตโนมัติ
+
 ### 🎯 UX follow-up — ช่องกรอกต้องเห็นว่าเป็นช่อง + คอลัมน์ตรงกัน (เบสเจอบนของจริง 2026-08-03)
 > เบส: "บางอย่างที่มันต้อง fill ข้อมูล ไม่ต้องซ่อน ช่อง user จะได้รู้ว่าช่องไหนต้องใส่ · ช่องบางช่องถูกกลืนไปกับพื้นหลังสีเทา · แถวคอลัมขอให้มันตรงกันทั้งหมด"
 > **บทเรียน:** รอบ "ลดเส้นทั้งเว็บ" ลดเลยจุดที่ควรลด — ขอบของ *กล่องครอบ* ถอดได้ แต่ **ขอบช่องกรอกถอดไม่ได้** เพราะมันคือสัญญาณเดียวที่บอกว่า "ตรงนี้กรอกได้"
