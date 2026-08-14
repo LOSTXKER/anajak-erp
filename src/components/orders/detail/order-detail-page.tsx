@@ -793,6 +793,7 @@ function OrderDetailContent({
               totalAmount={totalAmount}
               totalQuantity={sumOrderQuantity(order.items ?? [])}
               onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}
+              onOpenDelivery={() => changeTab("delivery")}
               onEditInfo={
                 canUseEditForm
                   ? (section) => openInfoEditPage(section, "overview")

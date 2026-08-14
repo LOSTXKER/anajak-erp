@@ -1267,6 +1267,87 @@ check(
   }
 }
 
+/* ── ภาพรวมออเดอร์: สรุปก่อน + optional ว่างไม่สร้าง field dump ───────────
+   หลัง edit ย้ายไปหน้าเต็ม แท็บนี้ต้องเป็น read surface ไม่ใช่ฟอร์มแบบอ่านอย่างเดียว */
+{
+  const overviewSource = readFileSync(
+    "src/components/orders/detail/order-overview-tab.tsx",
+    "utf8",
+  );
+  const detailSource = readFileSync(
+    "src/components/orders/detail/order-detail-page.tsx",
+    "utf8",
+  );
+  const summaryIndex = overviewSource.indexOf(
+    'data-order-overview-card="summary"',
+  );
+  const customerIndex = overviewSource.indexOf(
+    'data-order-overview-card="customer"',
+  );
+  const shippingIndex = overviewSource.indexOf(
+    'data-order-overview-card="shipping"',
+  );
+  const problems: string[] = [];
+
+  if (
+    summaryIndex < 0 ||
+    customerIndex < 0 ||
+    shippingIndex < 0 ||
+    !(summaryIndex < customerIndex && customerIndex < shippingIndex)
+  ) {
+    problems.push("DOM ต้องเรียงสรุปออเดอร์ → ลูกค้า → การจัดส่ง");
+  }
+  if (
+    !overviewSource.includes('className="space-y-5"') ||
+    !overviewSource.includes("grid items-start gap-5") ||
+    !overviewSource.includes(
+      '"grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-x-8 sm:gap-y-5"',
+    )
+  ) {
+    problems.push(
+      "การ์ดภาพรวมต้องเต็มแถว สรุปมือถือเป็น 2×2 และการ์ดรองสูงตามเนื้อหาจริง",
+    );
+  }
+  if (
+    !overviewSource.includes("if (!filled && !emptyText) return null") ||
+    overviewSource.includes('emptyText ?? "-"') ||
+    overviewSource.includes('"ยังไม่จอง"') ||
+    !overviewSource.includes('"ยังไม่ตีราคา"')
+  ) {
+    problems.push("optional ว่างต้องหาย และ empty state หลักต้องบอกความหมายตรง");
+  }
+  if (
+    !overviewSource.includes(
+      "isMarketplace && showMoney && order.platformFee != null",
+    ) ||
+    !overviewSource.includes("showMoney && hasCustomerHistory") ||
+    !/\{showMoney && \(\s*<SummaryFact[\s\S]*?label="ยอดรวม"/.test(
+      overviewSource,
+    ) ||
+    !detailSource.includes(
+      'onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}',
+    ) ||
+    !/onEditInfo=\{\s*canUseEditForm\s*\?/.test(detailSource) ||
+    !detailSource.includes('openInfoEditPage(section, "overview")') ||
+    !detailSource.includes(
+      'router.push(buildOrderEditHref(id, { tab: "intake", focus, returnTab }))',
+    ) ||
+    !detailSource.includes("onOpenDelivery={() => changeTab(\"delivery\")}")
+  ) {
+    problems.push(
+      "เงิน/edit ต้อง gate เดิม พร้อม focus/return URL และ tracking ต้องเปิดแท็บจัดส่งจริง",
+    );
+  }
+
+  if (problems.length) {
+    failed++;
+    console.log("❌ ภาพรวมออเดอร์กลับไปเป็น field dump หรือเรียงผิดลำดับ");
+    problems.forEach((problem) => console.log(`   ${problem}`));
+  } else {
+    console.log("✅ ภาพรวมออเดอร์สรุปก่อนและแสดงเฉพาะข้อมูลที่มีความหมาย");
+  }
+}
+
 /* ── sticky action ต้องไม่วางทับพื้นที่กรอกทุกขนาดจอ ───────────────────────
    Regression 2026-08-14: popup เลื่อนทั้งก้อนจน footer ทับ textarea และ
    /orders/new ปัก action bar จนทับ field ทั้ง desktop/mobile ตั้งแต่ยังไม่เลื่อน */
