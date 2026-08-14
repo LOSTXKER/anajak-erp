@@ -186,7 +186,7 @@
 
 - [x] สร้าง `package-lock.json` ใหม่ด้วย npm 11.17 และยืนยัน diff ว่า `package.json`/dependency versions ไม่เปลี่ยน ✅ 2026-08-15
 - [x] รัน `npm ci` ด้วย npm 11.17 จาก install สะอาด แล้วผ่าน test/typecheck/lint/`verify:ui` ก่อนส่ง hotfix PR เข้า `main` ✅ 2026-08-15
-- **ปิดงาน 2026-08-15:** npm 11.17 เติม nested exact `@emnapi/core`/`runtime@1.10.0` ของ Rolldown และ WASI bundle metadata ที่ขาด พร้อม normalize `peer` flags โดยไม่แก้ `package.json` หรือ version/resolved/integrity/dependency เดิม · `npm ci` ผ่านจาก install สะอาด ตามด้วย unit 824/824, typecheck, lint 0 error (28 warning เดิม) และ `verify:ui` · `npm audit` ยังรายงาน 13 รายการเดิม (2 low, 2 moderate, 9 high) ให้ประเมินเป็นงาน dependency audit แยก ห้ามใช้ `npm audit fix` อัตโนมัติ
+- **ปิดงาน 2026-08-15:** npm 11.17 เติม nested exact `@emnapi/core`/`runtime@1.10.0` ของ Rolldown และ WASI bundle metadata ที่ขาด พร้อม normalize `peer` flags โดยไม่แก้ `package.json` หรือ version/resolved/integrity/dependency เดิม · `npm ci` ผ่านจาก install สะอาด ตามด้วย unit 824/824, typecheck, lint 0 error (28 warning เดิม) และ `verify:ui` · PR #2 merge เข้า `main` ที่ `a92e953` และ GitHub main-push CI run `31832013951` ผ่านครบ · `npm audit` ยังรายงาน 13 รายการเดิม (2 low, 2 moderate, 9 high) ให้ประเมินเป็นงาน dependency audit แยก ห้ามใช้ `npm audit fix` อัตโนมัติ
 
 ### 🎯 UX follow-up — ช่องกรอกต้องเห็นว่าเป็นช่อง + คอลัมน์ตรงกัน (เบสเจอบนของจริง 2026-08-03)
 > เบส: "บางอย่างที่มันต้อง fill ข้อมูล ไม่ต้องซ่อน ช่อง user จะได้รู้ว่าช่องไหนต้องใส่ · ช่องบางช่องถูกกลืนไปกับพื้นหลังสีเทา · แถวคอลัมขอให้มันตรงกันทั้งหมด"
