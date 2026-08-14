@@ -4,6 +4,13 @@
 
 ## ตอนนี้
 
+> **✅ popup แก้ลูกค้าพอดีกรอบจริงแล้ว 2026-08-14 — ปิด feedback รอบ 21:00**
+> ภาพล่าสุดชี้ปัญหาอีกชั้นหลังแก้ footer ทับ: primitive กลางเผื่อปุ่ม X ด้วยขอบขวา 56px ตลอดทั้งการ์ด แต่ซ้าย 24px; scrollbar ทำให้ field ขวาห่างถึง 70px และ local `90dvh` ตัดช่องหมายเหตุเหลือ 46.8/96px · แก้เฉพาะ popup นี้เป็น header/body/footer 3 พื้นที่: เผื่อ X เฉพาะ header, scroller เต็มกรอบโดยเนื้อหาถือ padding ซ้าย–ขวาเท่ากัน, footer static และเปลี่ยนกรอบนอกเป็น `overflow-clip` เพื่อให้ browser เลื่อนได้เฉพาะ body แม้ฟอร์มนิติบุคคล 19 ช่อง
+>
+> **ด่าน:** browserจริง Light/Dark — 1512×827 เห็นหมายเหตุครบ 96/96px, inset field 24/24px, footer/textarea overlap 0; 390×844 body/footer ไม่ทับ ปุ่ม 318×44px รับ hit ตรงตัว; 320×700 บุคคล/นิติบุคคลไม่มีแนวนอนล้นหรือกรอบนอกขยับ, field สุดท้ายเห็นครบเมื่อเลื่อน · no Next overlay · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit **742/742** · `verify:ui` ผ่านพร้อม source guard · React best-practices review PASS · Impeccable detector `[]` หนึ่งรอบ · ไม่รัน build ขณะ dev server 3002 ทำงาน
+>
+> **ต่อที่นี่:** feedback popup นี้จบแล้ว; dialog อื่นยังใช้ sticky primitive เดิมและไม่ได้ถูกเปลี่ยนพฤติกรรม
+
 > **✅ หน้าเปิดงาน/หน้าแก้ใช้ฟอร์มงานชุดเดียวครบทั้งก้อน + ล็อกมาตรฐานความกว้างแล้ว 2026-08-14**
 > รอบก่อนรวมเพียง `OrderItemCard` แล้วบังคับหน้าแก้เป็น `max-w-5xl` จึงยังเหลือ UI ราคาเก่าและทำ inline editor หดผิดบริบท · รอบนี้รวมต่อจนถึงสถานะแค็ตตาล็อก ค่าใช้จ่าย ส่วนลด สรุปยอด และ action bar; เพิ่ม FEE catalog/retry และคงคำเตือน+เหตุผลบังคับสำหรับใบแก้ไขออเดอร์ · ลำดับรายการยังเป็น **ลายและงานพิมพ์ → สินค้าในชุดงาน → ส่วนเสริมในชุดงาน** ทั้ง create/edit · ไม่แตะสูตรราคา validation permission หรือ mutation
 >

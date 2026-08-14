@@ -222,6 +222,14 @@
 - [x] verify browser จริง Light/Dark ที่ 1280×720, 1512×827 (ขนาดภาพที่เบสส่ง) และ 390×844: overlap = 0, เลื่อนต้น–ท้ายครบ, ปุ่มรับ click ตรงตัว, ไม่มี horizontal overflow/console error · typecheck ผ่าน · lint 0 error (29 warning เดิม) · unit 742/742 · `verify:ui` ผ่าน · detector `[]` ✅ 2026-08-14
 - **ปิดงาน 2026-08-14:** ต้นเหตุคือ sticky footer/action bar อยู่ใน scroll container เดียวกับ field โดยไม่แยกพื้นที่ จึงวางทับและรับ pointer แทนเนื้อหาเมื่อความสูงจอสั้น · แก้เชิงโครงที่ popup และเลิก sticky บนหน้าเปิดงาน; ไม่แตะข้อมูล validation permission ราคา หรือ mutation · ไม่รัน build ขณะ dev server 3002 ทำงาน
 
+### 🐛 UX regression follow-up — popup ลูกค้ายังไม่พอดีกรอบ (เบสส่งภาพ 2026-08-14 21:00)
+> หลังแยก scroll body แล้ว footer ไม่ทับ field แต่กรอบยังเว้นซ้าย 24px/ขวา 56px และ scrollbar ทำให้ขอบ field ขวาห่างถึง 70px; ที่ viewport จริง 1512×827 เพดาน `90dvh` บีบ body จนช่องหมายเหตุเห็นเพียง 46.8/96px ทั้งที่ safe frame มาตรฐานสูงพอ · ภาพล่าสุดเป็น crop DPR2 ขนาด 1616×1580; ที่ 320px ล้นแนวนอน 14px
+
+- [x] แยก header/body/footer เป็น 3 พื้นที่จริงใน popup ลูกค้า: เผื่อปุ่มปิดเฉพาะ header, body เลื่อนเอง, footer เป็น static และแต่ละส่วนถือ padding ซ้าย–ขวาเท่ากัน ✅ 2026-08-14
+- [x] ใช้ safe frame กลางแทน `90dvh`: viewport 1512×827 เห็นช่องหมายเหตุครบ 96/96px ตั้งแต่เปิด; จอสั้น/มือถือเลื่อนถึง field สุดท้ายเต็มโดยกรอบหัว/ท้ายไม่ขยับ ✅ 2026-08-14
+- [x] verify browserจริง Light/Dark ที่ 1512×827 (viewport ของภาพล่าสุด), 390×844 และ 320×700: desktop field inset 24/24px, mobile padding 20/20px โดย scrollbar แยกอยู่นอกเนื้อหา, overlap/horizontal overflow = 0, Escape ปิดได้, ปุ่มมือถือ 44px และ hit-test ตรงตัว · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit 742/742 · `verify:ui` ผ่าน · detector `[]` ✅ 2026-08-14
+- **ปิด follow-up 2026-08-14:** ต้นเหตุร่วมคือ `pr-14` กลางสำรองปุ่ม X ให้ทั้งการ์ด + local `90dvh` บีบความสูง; แก้เฉพาะ popup ลูกค้าเป็น row-owned padding และใช้ `overflow-clip` กัน browser เลื่อนกรอบนอกเมื่อโฟกัส field ล่าง · ไม่เปลี่ยนข้อมูล validation permission หรือ mutation · ไม่รัน build ขณะ dev server 3002 ทำงาน
+
 ### 🎯 UX follow-up — เปิดข้อมูลสร้าง/รายละเอียดออเดอร์ทั้งหมด (เบสสั่ง 2026-07-18)
 - [x] `/orders/new`: กางข้อมูลงาน รายการ+ราคา ไฟล์ ที่อยู่ รายละเอียดลาย/สินค้า และสเปคตัดเย็บที่ UI มีอยู่เดิมตลอด · เลิกปุ่ม “เพิ่มเติม/ซ่อน” ที่ใช้เพื่อ declutter · ที่อยู่ยัง optional และเงื่อนไขตามชนิดลูกค้า/ช่องทาง/สินค้าเดิมต้องไม่เปลี่ยน — ✅ 2026-07-18
 - [x] `/orders/[id]`: เลิกซ่อนเนื้อหาที่ UI มีอยู่เดิมหลังแท็บและเมนู “เพิ่มเติม” · แสดงรายการ งานผลิต จัดส่ง เงิน/บิล ไฟล์ และประวัติต่อกัน พร้อมปุ่มลัดแบบ scroll · กางเส้นทางสถานะและประวัติทั้งหมด โดยไม่เพิ่ม raw field จากฐานข้อมูลที่ยังไม่มี UI — ✅ 2026-07-18

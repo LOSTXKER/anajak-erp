@@ -1227,11 +1227,16 @@ check(
 
   if (
     !customerDialogSource.includes("grid-rows-[auto_minmax(0,1fr)]") ||
-    !customerDialogSource.includes("overflow-hidden sm:max-w-2xl") ||
+    !customerDialogSource.includes("gap-0 overflow-clip p-0 pr-0") ||
+    !customerDialogSource.includes("flex min-h-0 flex-col overflow-clip") ||
+    customerDialogSource.includes("max-h-[90dvh]") ||
     !customerDialogSource.includes('data-dialog-body=""') ||
-    !customerDialogSource.includes("min-h-0 flex-1 space-y-4 overflow-y-auto")
+    !customerDialogSource.includes("min-h-0 flex-1 overflow-y-auto") ||
+    !customerDialogSource.includes('data-dialog-fields=""') ||
+    !customerDialogSource.includes("space-y-4 px-5 sm:px-6") ||
+    !customerDialogSource.includes('className="static z-auto px-5 sm:px-6"')
   ) {
-    problems.push("popup แก้ลูกค้าต้องแยก scroll body ออกจาก header/footer");
+    problems.push("popup แก้ลูกค้าต้องแยก 3 พื้นที่และจัด padding ให้พอดีกรอบ");
   }
   if (
     !orderCreateSource.includes('data-order-submit-bar=""') ||
