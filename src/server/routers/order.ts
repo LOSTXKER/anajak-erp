@@ -24,7 +24,7 @@ import {
   optionalPostalCode,
 } from "@/lib/address-schema";
 import { normalizePhone } from "@/lib/phone";
-import { badRequest } from "@/server/errors";
+import { badRequest, forbidden } from "@/server/errors";
 import { nextDocumentNumber } from "@/server/services/document-number";
 import { priceOrderItems, computeOrderTotals, type PricedItem } from "@/server/services/pricing";
 import {
@@ -33,6 +33,7 @@ import {
   advanceOrderForward,
 } from "@/server/services/order-status";
 import {
+  STOCK_RESERVATION_PENDING_MESSAGE,
   syncOrderStockReservation,
   releaseOrderStockReservation,
 } from "@/server/services/stock-reservation";
@@ -48,6 +49,7 @@ import {
 } from "@/lib/revision-policy";
 import {
   assertSalesWithinCreditLimit,
+  lockCustomerCreditRow,
   UNCOMMITTED_STATUSES,
   RECEIVABLE_TYPES,
 } from "@/server/services/receivables";
@@ -62,6 +64,12 @@ import {
   ORDER_ATTENTIONS,
   orderAttentionWhere,
 } from "@/server/services/order-list-filter";
+import {
+  orderFeesFingerprint,
+  orderItemsFingerprint,
+  orderReferenceImagesFingerprint,
+} from "@/lib/order-form-concurrency";
+import { D } from "@/server/services/money";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ (PERM3: default = OWNER/MANAGER/SALES เดิมเป๊ะ + override รายคน)
 const salesUp = requirePermission("create_sales_docs");
@@ -140,6 +148,16 @@ const orderItemSchema = z.object({
   addons: z.array(addonSchema).default([]),
 });
 
+// identity ของแถวเดิมรับเฉพาะ contract หน้าแก้เต็มใบ ไม่เปิดให้ create/updateItems
+// รับ ID ใดก็ได้เข้ามาสร้าง เพื่อกันย้ายแถวข้ามออเดอร์หรือชน primary key โดยไม่ตั้งใจ
+const orderFormItemSchema = orderItemSchema.extend({
+  products: z.array(
+    orderItemProductSchema.extend({
+      savedProductId: z.string().min(1).optional(),
+    }),
+  ).min(1),
+});
+
 const orderFeeSchema = z.object({
   feeType: z.string(),
   name: z.string(),
@@ -148,12 +166,72 @@ const orderFeeSchema = z.object({
   notes: z.string().optional(),
 });
 
+function isStrictCalendarDate(value: string): boolean {
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
+}
+
+// หน้าแก้ออเดอร์เต็มใบใช้ contract เดียว แต่ส่งเฉพาะก้อนที่แตะจริง — หัวใบกับ
+// รายการจึง commit/rollback พร้อมกันได้โดยไม่ต้องยิง order.update + updateItems สองรอบ
+const orderFormMetaSchema = z.object({
+  title: z.string().trim().min(1, "กรุณาระบุชื่องาน").optional(),
+  description: z.string().nullable().optional(),
+  deadline: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "วันที่ต้องเป็นรูปแบบ YYYY-MM-DD")
+    .refine(isStrictCalendarDate, "วันที่กำหนดส่งไม่มีอยู่จริง")
+    .nullable()
+    .optional(),
+  notes: z.string().nullable().optional(),
+  externalOrderId: z.string().nullable().optional(),
+  platformFee: z.number().min(0).optional(),
+  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional(),
+  paymentTerms: z.enum(PAYMENT_TERMS_VALUES).nullable().optional(),
+  poNumber: z.string().nullable().optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  shippingRecipientName: nullableAddressLine(120),
+  shippingPhone: z
+    .string()
+    .trim()
+    .max(30)
+    .nullable()
+    .optional()
+    .transform((v) => (v ? normalizePhone(v) : v === undefined ? undefined : null)),
+  shippingAddress: nullableAddressLine(300),
+  shippingSubDistrict: nullableAddressLine(120),
+  shippingDistrict: nullableAddressLine(120),
+  shippingProvince: nullableAddressLine(120),
+  shippingPostalCode: nullablePostalCode,
+}).refine((meta) => Object.values(meta).some((value) => value !== undefined), {
+  message: "กรุณาระบุข้อมูลออเดอร์ที่ต้องการแก้ไข",
+});
+
+const orderFormWorkSchema = z.object({
+  items: z.array(orderFormItemSchema).min(1, "กรุณาเพิ่มรายการอย่างน้อย 1 รายการ").optional(),
+  fees: z.array(orderFeeSchema).optional(),
+  discount: z.number().min(0).optional(),
+}).refine((work) => Object.values(work).some((value) => value !== undefined), {
+  message: "กรุณาระบุรายการหรือราคาที่ต้องการแก้ไข",
+});
+
+const orderFormReferenceImageSchema = z.object({
+  id: z.string().optional(),
+  fileUrl: fileUrlSchema,
+  fileName: z.string().trim().min(1).max(255),
+  fileSize: z.number().int().min(0).optional(),
+  printPosition: z.string().trim().min(1).optional(),
+});
+
 // ============================================================
 // HELPERS
 // ============================================================
 
 // shape ของ item ที่ผ่าน priceOrderItems แล้ว (มี totalQuantity/subtotal/sortOrder ครบ)
 type ItemWithCalc = PricedItem<z.infer<typeof orderItemSchema>>;
+type OrderFormItemWithCalc = PricedItem<z.infer<typeof orderFormItemSchema>>;
 
 // tax-point ต่อ "รายการ" ตามเนื้องานจริง (ไม่เหมารวมทั้งใบ — ออเดอร์ผสมเสื้อเปล่า+งานพิมพ์
 // มีสองชนิดภาษีในใบเดียวได้): มีลายพิมพ์ = จ้างทำของ · เสื้อเปล่า = ขายสินค้า
@@ -197,7 +275,97 @@ async function assertNoDeletedProducts(
   }
 }
 
-function buildItemCreateData(item: ItemWithCalc, taxLineType: TaxLineType) {
+async function validateSavedOrderItemProductIds(
+  prisma: PrismaTx,
+  orderId: string,
+  items: z.infer<typeof orderFormItemSchema>[],
+) {
+  const existing = await prisma.orderItemProduct.findMany({
+    where: { orderItem: { orderId } },
+    select: {
+      id: true,
+      productId: true,
+      productType: true,
+      itemSource: true,
+      variants: { select: { size: true, color: true } },
+    },
+  });
+  const requestedIds = items
+    .flatMap((item) => item.products)
+    .map((product) => product.savedProductId)
+    .filter((id): id is string => !!id);
+
+  if (new Set(requestedIds).size !== requestedIds.length) {
+    badRequest("มีรหัสรายการสินค้าเดิมซ้ำกันในคำขอบันทึก");
+  }
+
+  const existingIds = new Set(existing.map((product) => product.id));
+  if (requestedIds.some((id) => !existingIds.has(id))) {
+    badRequest(
+      "มีรายการสินค้าที่ไม่ได้อยู่ในออเดอร์นี้ — โหลดหน้าใหม่ก่อนบันทึก",
+    );
+  }
+
+  // GoodsReceiptLine เก็บ OrderItemProduct.id เป็น String โดยไม่มี FK: ห้ามทั้งลบ
+  // identity และเปลี่ยนความหมายของ ID เดิม ไม่เช่นนั้นประวัติจะ orphan/ย้ายไปผูกสินค้าใหม่
+  const receiptLinkedIds = new Set<string>();
+  if (existing.length > 0) {
+    const linkedReceiptLines = await prisma.goodsReceiptLine.findMany({
+      where: { orderItemProductId: { in: [...existingIds] } },
+      select: { orderItemProductId: true },
+    });
+    for (const line of linkedReceiptLines) {
+      if (line.orderItemProductId) receiptLinkedIds.add(line.orderItemProductId);
+    }
+  }
+
+  const requestedIdSet = new Set(requestedIds);
+  const removedIds = existing
+    .map((product) => product.id)
+    .filter((id) => !requestedIdSet.has(id));
+  if (removedIds.some((id) => receiptLinkedIds.has(id))) {
+    badRequest(
+      "ลบรายการสินค้าที่มีประวัติใบตรวจรับแล้วไม่ได้ — แก้จำนวนหรือรายละเอียดแทน",
+    );
+  }
+
+  const requestedById = new Map(
+    items
+      .flatMap((item) => item.products)
+      .filter((product) => !!product.savedProductId)
+      .map((product) => [product.savedProductId as string, product]),
+  );
+  for (const current of existing) {
+    if (!receiptLinkedIds.has(current.id)) continue;
+    const requested = requestedById.get(current.id);
+    if (!requested) continue;
+
+    const currentVariantKeys = current.variants
+      .map((variant) => JSON.stringify([variant.size, variant.color ?? null]))
+      .sort();
+    const requestedVariantKeys = requested.variants
+      .map((variant) => JSON.stringify([variant.size, variant.color ?? null]))
+      .sort();
+    const semanticIdentityChanged =
+      (current.productId ?? null) !== (requested.productId ?? null) ||
+      current.productType !== requested.productType ||
+      (current.itemSource ?? null) !== (requested.itemSource ?? null) ||
+      currentVariantKeys.length !== requestedVariantKeys.length ||
+      currentVariantKeys.some((key, index) => key !== requestedVariantKeys[index]);
+    if (semanticIdentityChanged) {
+      badRequest(
+        "เปลี่ยนสินค้า แหล่งเสื้อ หรือไซส์/สีของรายการที่มีใบตรวจรับแล้วไม่ได้ — เพิ่มเป็นรายการใหม่แทน",
+      );
+    }
+  }
+
+  return existing;
+}
+
+function buildItemCreateData(
+  item: ItemWithCalc | OrderFormItemWithCalc,
+  taxLineType: TaxLineType,
+) {
   return {
     sortOrder: item.sortOrder,
     description: item.description || "",
@@ -207,6 +375,9 @@ function buildItemCreateData(item: ItemWithCalc, taxLineType: TaxLineType) {
     notes: item.notes,
     products: {
       create: item.products.map((p) => ({
+        ...("savedProductId" in p && p.savedProductId
+          ? { id: p.savedProductId }
+          : {}),
         sortOrder: p.sortOrder,
         productId: p.productId || undefined,
         productType: p.productType,
@@ -438,7 +609,7 @@ export const orderRouter = router({
   getById: protectedProcedure
     .input(byIdInput)
     .query(async ({ ctx, input }) => {
-      const order = await ctx.prisma.order.findUniqueOrThrow({
+      const order = await ctx.prisma.order.findUnique({
         where: { id: input.id },
         include: {
           customer: true,
@@ -493,6 +664,13 @@ export const orderRouter = router({
           costEntries: { orderBy: { createdAt: "desc" } },
         },
       });
+
+      if (!order) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "ไม่พบออเดอร์ใบนี้",
+        });
+      }
 
       // changedBy ในประวัติเก็บเป็น user id (หรือ literal เช่น "ลูกค้า") — แปลงเป็นชื่อคน
       // ฝั่ง server ที่เดียว หน้าไหนก็โชว์ชื่อได้เลย (เบสชี้: ประวัติโชว์รหัสดิบอ่านไม่รู้เรื่อง)
@@ -754,16 +932,6 @@ export const orderRouter = router({
           : getInitialStatus(derivedType);
       const customerStatus = getCustomerStatus(initialStatus);
 
-      // READY_MADE เกิดมาเป็น CONFIRMED ทันที — ต้องผ่านด่านวงเงินเดียวกับตอนยืนยันออเดอร์
-      if (initialStatus === "CONFIRMED") {
-        await assertSalesWithinCreditLimit(ctx.prisma, {
-          userRole: ctx.userRole,
-          customerId: orderData.customerId,
-          additionalAmount: totals.totalAmount,
-          actionLabel: "สร้างออเดอร์",
-        });
-      }
-
       // Use $transaction to ensure atomicity: order + customer stats + audit log
       // Retry up to 3 times on unique constraint violation (order number collision)
       const MAX_RETRIES = 3;
@@ -772,8 +940,24 @@ export const orderRouter = router({
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
           const result = await ctx.prisma.$transaction(async (tx) => {
-            // เลขออเดอร์รันต่อเนื่องจาก DocumentSequence — ต้องอยู่ใน transaction เดียวกับ create
+            // ลำดับ lock กลางของทุกเส้นที่สร้างออเดอร์ใหม่: ORDER sequence → customer
+            // (quotation.convert ใช้ลำดับเดียวกัน) กัน deadlock แบบ A ถือ customer รอ
+            // sequence แต่ B ถือ sequence รอ customer
             const orderNumber = await nextDocumentNumber(tx, "ORDER");
+
+            // READY_MADE เกิดมาเป็น CONFIRMED ทันที — lock ลูกค้าจนสร้างออเดอร์
+            // commit เพื่อไม่ให้หลายใบผ่านวงเงินจาก exposure snapshot เดียวกัน
+            if (initialStatus === "CONFIRMED") {
+              if (ctx.userRole === "SALES") {
+                await lockCustomerCreditRow(tx, orderData.customerId);
+              }
+              await assertSalesWithinCreditLimit(tx, {
+                userRole: ctx.userRole,
+                customerId: orderData.customerId,
+                additionalAmount: totals.totalAmount,
+                actionLabel: "สร้างออเดอร์",
+              });
+            }
 
             const order = await tx.order.create({
               data: {
@@ -1038,27 +1222,6 @@ export const orderRouter = router({
         }
       }
 
-      // ยืนยันออเดอร์ = ผูกพันวงเงิน — เฉพาะข้ามจากสถานะยังไม่ผูกพันเท่านั้น
-      // (ปลดพัก ON_HOLD → CONFIRMED ยอดใบนี้ถูกนับใน exposure อยู่แล้ว เช็คอีกรอบ = นับซ้ำ)
-      if (
-        input.internalStatus === "CONFIRMED" &&
-        (UNCOMMITTED_STATUSES as readonly string[]).includes(old.internalStatus)
-      ) {
-        // ฟอร์มใหม่เปิดงานเบาได้ (ไม่มีรายการ) — ด่านนี้กันออเดอร์เปล่า/ยอดเดาไหลเข้าโซ่บิล
-        const itemCount = await ctx.prisma.orderItem.count({ where: { orderId: input.id } });
-        if (itemCount === 0) {
-          badRequest(
-            'ยืนยันออเดอร์ไม่ได้ — ยังไม่มีรายการสินค้า/ราคา กด "แก้ไขรายการ" ใส่ของและตีราคาก่อน'
-          );
-        }
-        await assertSalesWithinCreditLimit(ctx.prisma, {
-          userRole: ctx.userRole,
-          customerId: old.customerId,
-          additionalAmount: old.totalAmount,
-          actionLabel: "ยืนยันออเดอร์",
-        });
-      }
-
       // ปิดงานต้องวางบิลครบก่อน — กติกาอยู่ที่ assertOrderFullyBilledForClose (payment-plan.ts)
       // เงื่อนไข totalAmount > 0 คงที่ router — ออเดอร์ยอด 0 ข้ามด่านได้โดยไม่ต้อง query บิล
       if (input.internalStatus === "COMPLETED" && old.totalAmount > 0) {
@@ -1076,6 +1239,43 @@ export const orderRouter = router({
       // ระหว่างทาง (review 2026-07-02: ยิง PACKING ตอน PRODUCING แล้ว finalize แทรก →
       // guard QC กับ promote ลายโดนข้ามทั้งคู่)
       const order = await ctx.prisma.$transaction(async (tx) => {
+        // ยืนยันออเดอร์ = ผูกพันวงเงิน เฉพาะข้ามจากสถานะยังไม่ผูกพัน
+        // ตรวจจากสถานะสดใน tx และถือทั้ง order/customer lock จน transition commit
+        if (input.internalStatus === "CONFIRMED") {
+          await lockOrderRow(tx, input.id);
+          const live = await tx.order.findUniqueOrThrow({
+            where: { id: input.id },
+            select: {
+              customerId: true,
+              internalStatus: true,
+              totalAmount: true,
+            },
+          });
+          if (
+            (UNCOMMITTED_STATUSES as readonly string[]).includes(
+              live.internalStatus,
+            )
+          ) {
+            const itemCount = await tx.orderItem.count({
+              where: { orderId: input.id },
+            });
+            if (itemCount === 0) {
+              badRequest(
+                'ยืนยันออเดอร์ไม่ได้ — ยังไม่มีรายการสินค้า/ราคา กด "แก้ไขรายการ" ใส่ของและตีราคาก่อน',
+              );
+            }
+            if (ctx.userRole === "SALES") {
+              await lockCustomerCreditRow(tx, live.customerId);
+            }
+            await assertSalesWithinCreditLimit(tx, {
+              userRole: ctx.userRole,
+              customerId: live.customerId,
+              additionalAmount: live.totalAmount,
+              actionLabel: "ยืนยันออเดอร์",
+            });
+          }
+        }
+
         const result = await transitionOrder(tx, {
           orderId: input.id,
           to: input.internalStatus,
@@ -1252,6 +1452,666 @@ export const orderRouter = router({
       });
 
       return stripOrderMoneyForRole(order, ctx.userRole, ctx.permissionOverrides);
+    }),
+
+  // บันทึกหน้าแก้ออเดอร์เต็มใบ — client ส่งเฉพาะ section ที่ dirty และ server ตัดสิน
+  // จากสถานะสดใต้ row lock ว่าแก้ตรง/ออก CO/ห้ามแก้ ห้ามแยกยิง update + updateItems
+  // เพราะคำสั่งหลังล้มแล้วหัวใบจะค้างครึ่งเดียว (โดยเฉพาะ billed floor และ CO)
+  saveForm: protectedProcedure
+    .use(salesUp)
+    .input(
+      z.object({
+        id: z.string(),
+        // token จากตอนโหลดฟอร์ม — row lock อย่างเดียวเรียงคิวได้ แต่ไม่รู้ว่าจอเก่า
+        // กำลัง replace รายการทั้งชุดทับงานที่อีกคนเพิ่งบันทึก
+        expectedUpdatedAt: z.date(),
+        expectedItemsFingerprint: z.string().min(1).optional(),
+        expectedFeesFingerprint: z.string().min(1).optional(),
+        expectedReferenceImagesFingerprint: z.string().min(1).optional(),
+        meta: orderFormMetaSchema.optional(),
+        work: orderFormWorkSchema.optional(),
+        // ส่งมา = desired set ทั้งชุดของ REFERENCE_IMAGE · ไม่ส่ง = ไม่แตะไฟล์
+        referenceImages: z.array(orderFormReferenceImageSchema).optional(),
+        reason: z.string().optional(),
+      }).superRefine((input, issue) => {
+        if (
+          input.work?.items !== undefined &&
+          input.expectedItemsFingerprint === undefined
+        ) {
+          issue.addIssue({
+            code: "custom",
+            path: ["expectedItemsFingerprint"],
+            message: "ไม่มีข้อมูลตั้งต้นของรายการ กรุณาโหลดหน้าแก้ไขใหม่",
+          });
+        }
+        if (
+          input.work?.fees !== undefined &&
+          input.expectedFeesFingerprint === undefined
+        ) {
+          issue.addIssue({
+            code: "custom",
+            path: ["expectedFeesFingerprint"],
+            message: "ไม่มีข้อมูลตั้งต้นของค่าธรรมเนียม กรุณาโหลดหน้าแก้ไขใหม่",
+          });
+        }
+        if (
+          input.referenceImages !== undefined &&
+          input.expectedReferenceImagesFingerprint === undefined
+        ) {
+          issue.addIssue({
+            code: "custom",
+            path: ["expectedReferenceImagesFingerprint"],
+            message: "ไม่มีข้อมูลตั้งต้นของไฟล์อ้างอิง กรุณาโหลดหน้าแก้ไขใหม่",
+          });
+        }
+      }).refine(
+        (input) =>
+          input.meta !== undefined ||
+          input.work !== undefined ||
+          input.referenceImages !== undefined,
+        { message: "ไม่มีข้อมูลออเดอร์ที่ต้องบันทึก" },
+      ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const touchesMetaMoney =
+        input.meta?.taxRate !== undefined ||
+        input.meta?.paymentTerms !== undefined ||
+        input.meta?.platformFee !== undefined;
+      const touchesWork = input.work !== undefined;
+
+      // ฟอร์มราคาใช้เงินขายทั้งใบ — permission override อาจให้ create_sales_docs แต่ตัด
+      // see_order_money ออก จึงต้องกันที่ mutation ไม่ใช่พึ่ง route ซ่อนฟอร์มอย่างเดียว
+      if (
+        (touchesMetaMoney || touchesWork) &&
+        !hasPermission(ctx.userRole, ctx.permissionOverrides, "see_order_money")
+      ) {
+        forbidden("คุณไม่มีสิทธิ์ดูหรือแก้ข้อมูลราคาออเดอร์");
+      }
+
+      const result = await ctx.prisma.$transaction(async (tx) => {
+        await lockOrderRow(tx, input.id);
+        const locked = await tx.order.findUniqueOrThrow({
+          where: { id: input.id },
+          select: {
+            id: true,
+            updatedAt: true,
+            customerId: true,
+            orderType: true,
+            internalStatus: true,
+            taxRate: true,
+            paymentTerms: true,
+            platformFee: true,
+            subtotalItems: true,
+            subtotalFees: true,
+            discount: true,
+            totalAmount: true,
+            stockReservedAt: true,
+          },
+        });
+
+        if (locked.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "ออเดอร์นี้มีการแก้ไขจากหน้าจออื่นแล้ว — โหลดหน้าใหม่ก่อนบันทึกเพื่อไม่ให้ข้อมูลทับกัน",
+          });
+        }
+
+        // updatedAt ของหัวใบไม่ขยับจาก writer ลูกทุกทาง (เช่น ตรวจรับเสื้อ)
+        // จึงเทียบ snapshot ของก้อนที่จะ replace อีกชั้น หลังได้ parent row lock แล้ว
+        if (input.work?.items !== undefined) {
+          const currentItems = await tx.orderItem.findMany({
+            where: { orderId: input.id },
+            include: {
+              products: { include: { variants: true } },
+              prints: true,
+              addons: true,
+            },
+          });
+          if (
+            orderItemsFingerprint(currentItems) !==
+            input.expectedItemsFingerprint
+          ) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message:
+                "รายการสินค้ามีการแก้ไขจากหน้าจออื่นแล้ว — โหลดหน้าใหม่ก่อนบันทึกเพื่อไม่ให้ข้อมูลทับกัน",
+            });
+          }
+        }
+        if (input.work?.fees !== undefined) {
+          const currentFees = await tx.orderFee.findMany({
+            where: { orderId: input.id },
+          });
+          if (
+            orderFeesFingerprint(currentFees) !==
+            input.expectedFeesFingerprint
+          ) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message:
+                "ค่าธรรมเนียมมีการแก้ไขจากหน้าจออื่นแล้ว — โหลดหน้าใหม่ก่อนบันทึกเพื่อไม่ให้ข้อมูลทับกัน",
+            });
+          }
+        }
+
+        const workChanged =
+          input.work?.items !== undefined ||
+          input.work?.fees !== undefined ||
+          (input.work?.discount !== undefined &&
+            input.work.discount !== locked.discount);
+        if (
+          !workChanged &&
+          input.meta === undefined &&
+          input.referenceImages === undefined
+        ) {
+          badRequest("ไม่มีข้อมูลออเดอร์ที่เปลี่ยนแปลง");
+        }
+
+        const changeOrderMode =
+          workChanged && canIssueChangeOrder(locked.internalStatus);
+        if (workChanged && isOrderLocked(locked.internalStatus) && !changeOrderMode) {
+          const subject = input.work?.items
+            ? "รายการ"
+            : input.work?.fees
+              ? "ค่าธรรมเนียม"
+              : "ข้อมูลการเงิน";
+          badRequest(orderEditLockedReason(locked.internalStatus, subject));
+        }
+        // CO อนุญาตเฉพาะ items/fees/discount ตามสัญญาเดิม · tax/terms/platform
+        // ยังเป็น field เงินที่ order.update ล็อกหลังอนุมัติ ห้ามแอบพ่วงมากับ full form
+        if (touchesMetaMoney && isOrderLocked(locked.internalStatus)) {
+          badRequest(orderEditLockedReason(locked.internalStatus, "ข้อมูลการเงิน"));
+        }
+        if (changeOrderMode && !input.reason?.trim()) {
+          badRequest("กรุณาระบุเหตุผลการแก้ไข (ใบแก้ไขออเดอร์)");
+        }
+
+        let itemsWithCalc: OrderFormItemWithCalc[] | undefined;
+        if (input.work?.items) {
+          // artworkId เป็น hint — ตรวจลูกค้า/รูปใน tx เดียวกับการแทนรายการ
+          await sanitizeArtworkLinks(
+            tx,
+            locked.customerId,
+            input.work.items,
+          );
+          const existingProducts = await validateSavedOrderItemProductIds(
+            tx,
+            input.id,
+            input.work.items,
+          );
+          await assertNoDeletedProducts(
+            tx,
+            input.work.items,
+            changeOrderMode ? "ออกใบแก้ไข" : "บันทึก",
+            new Set(
+              existingProducts
+                .map((entry) => entry.productId)
+                .filter((id): id is string => !!id),
+            ),
+          );
+          itemsWithCalc = priceOrderItems(input.work.items);
+        }
+
+        // work หรือ taxRate เปลี่ยน = คำนวณยอดครั้งเดียวจาก snapshot หลัง lock
+        // work ที่ไม่ส่ง items/fees หมายถึงคงแถวเดิมและใช้ subtotal ที่ server ถืออยู่
+        const shouldRecalculate = workChanged || input.meta?.taxRate !== undefined;
+        const totals = shouldRecalculate
+          ? computeOrderTotals({
+              itemSubtotals: itemsWithCalc
+                ? itemsWithCalc.map((item) => item.subtotal)
+                : [locked.subtotalItems],
+              feeAmounts: input.work?.fees
+                ? input.work.fees.map((fee) => fee.amount)
+                : [locked.subtotalFees],
+              discount: input.work?.discount ?? locked.discount,
+              taxRate: input.meta?.taxRate ?? locked.taxRate,
+            })
+          : null;
+
+        // direct edit เท่านั้นที่ติด billed floor · CO จงใจให้ลดต่ำกว่า floor ได้แล้วตามด้วย
+        // CN/คืนเงิน (พฤติกรรมเดิมของ applyChangeOrder ห้ามเปลี่ยน)
+        if (totals && !changeOrderMode) {
+          await assertOrderTotalCoversBilled(tx, {
+            orderId: input.id,
+            newTotal: totals.totalAmount,
+          });
+        }
+
+        const creditIncrease = totals
+          ? D(totals.totalAmount).minus(locked.totalAmount)
+          : D(0);
+        if (
+          creditIncrease.gt(0) &&
+          !(UNCOMMITTED_STATUSES as readonly string[]).includes(
+            locked.internalStatus,
+          )
+        ) {
+          // สองออเดอร์ของลูกค้ารายเดียวกันอาจเพิ่มยอดพร้อมกันได้ — lock ลูกค้า
+          // ไว้จน transaction นี้ commit เพื่อให้รอบถัดไปเห็น exposure หลังรอบแรกจริง
+          if (ctx.userRole === "SALES") {
+            await lockCustomerCreditRow(tx, locked.customerId);
+          }
+          await assertSalesWithinCreditLimit(tx, {
+            userRole: ctx.userRole,
+            customerId: locked.customerId,
+            additionalAmount: creditIncrease,
+            actionLabel: "แก้ยอดออเดอร์",
+          });
+        }
+
+        if (itemsWithCalc) {
+          await tx.orderItem.deleteMany({ where: { orderId: input.id } });
+          for (const item of itemsWithCalc) {
+            await tx.orderItem.create({
+              data: {
+                orderId: input.id,
+                ...buildItemCreateData(item, taxLineTypeForItem(item)),
+              },
+            });
+          }
+        }
+
+        if (input.work?.fees) {
+          await tx.orderFee.deleteMany({ where: { orderId: input.id } });
+          for (const fee of input.work.fees) {
+            await tx.orderFee.create({
+              data: {
+                orderId: input.id,
+                feeType: fee.feeType,
+                name: fee.name,
+                description: fee.description,
+                amount: fee.amount,
+                notes: fee.notes,
+              },
+            });
+          }
+        }
+
+        const meta = input.meta;
+        let deadline: Date | null | undefined;
+        if (meta?.deadline !== undefined) {
+          deadline = meta.deadline ? new Date(meta.deadline) : null;
+          if (deadline && Number.isNaN(deadline.getTime())) {
+            badRequest("วันที่กำหนดส่งไม่ถูกต้อง");
+          }
+        }
+        const rederiveType =
+          input.work?.items && ["DRAFT", "INQUIRY"].includes(locked.internalStatus)
+            ? deriveOrderType(input.work.items)
+            : undefined;
+        const shouldSyncStock =
+          !!itemsWithCalc &&
+          ([
+            "CONFIRMED",
+            "DESIGNING",
+            "DESIGN_APPROVED",
+            "PRODUCTION_QUEUE",
+          ].includes(locked.internalStatus) || !!locked.stockReservedAt);
+
+        // หัวใบ/ยอดทำให้ updatedAt ขยับเป็น optimistic token รอบถัดไปตามปกติ
+        let savedOrderId = locked.id;
+        let stockSyncUpdatedAt: Date | null = null;
+        if (meta || totals) {
+          const updatedOrder = await tx.order.update({
+            where: { id: input.id },
+            data: {
+              ...(meta?.title !== undefined ? { title: meta.title } : {}),
+              ...(meta?.description !== undefined
+                ? { description: meta.description }
+                : {}),
+              ...(meta?.deadline !== undefined ? { deadline } : {}),
+              ...(meta?.notes !== undefined ? { notes: meta.notes } : {}),
+              ...(meta?.externalOrderId !== undefined
+                ? { externalOrderId: meta.externalOrderId }
+                : {}),
+              ...(meta?.platformFee !== undefined
+                ? { platformFee: meta.platformFee }
+                : {}),
+              ...(meta?.priority !== undefined ? { priority: meta.priority } : {}),
+              ...(meta?.paymentTerms !== undefined
+                ? { paymentTerms: meta.paymentTerms }
+                : {}),
+              ...(meta?.poNumber !== undefined ? { poNumber: meta.poNumber } : {}),
+              ...(meta?.taxRate !== undefined ? { taxRate: meta.taxRate } : {}),
+              ...(meta?.shippingRecipientName !== undefined
+                ? { shippingRecipientName: meta.shippingRecipientName }
+                : {}),
+              ...(meta?.shippingPhone !== undefined
+                ? { shippingPhone: meta.shippingPhone }
+                : {}),
+              ...(meta?.shippingAddress !== undefined
+                ? { shippingAddress: meta.shippingAddress }
+                : {}),
+              ...(meta?.shippingSubDistrict !== undefined
+                ? { shippingSubDistrict: meta.shippingSubDistrict }
+                : {}),
+              ...(meta?.shippingDistrict !== undefined
+                ? { shippingDistrict: meta.shippingDistrict }
+                : {}),
+              ...(meta?.shippingProvince !== undefined
+                ? { shippingProvince: meta.shippingProvince }
+                : {}),
+              ...(meta?.shippingPostalCode !== undefined
+                ? { shippingPostalCode: meta.shippingPostalCode }
+                : {}),
+              ...(totals
+                ? {
+                    subtotalItems: totals.subtotalItems,
+                    subtotalFees: totals.subtotalFees,
+                    discount: totals.discount,
+                    taxAmount: totals.taxAmount,
+                    totalAmount: totals.totalAmount,
+                  }
+                : {}),
+              ...(itemsWithCalc ? { estimatedQuantity: null } : {}),
+              ...(rederiveType ? { orderType: rederiveType } : {}),
+              ...(shouldSyncStock
+                ? {
+                    // ปิดช่องว่างระหว่าง commit กับ HTTP ไป Stock: production readiness
+                    // ต้องหยุดไว้จนการจองใหม่สำเร็จหรือลง error จริง
+                    stockReservationError: STOCK_RESERVATION_PENDING_MESSAGE,
+                  }
+                : {}),
+            },
+            select: { id: true, updatedAt: true },
+          });
+          savedOrderId = updatedOrder.id;
+          stockSyncUpdatedAt = shouldSyncStock ? updatedOrder.updatedAt : null;
+        }
+
+        let changeNumber: string | null = null;
+        let invoicedWarning = false;
+        if (changeOrderMode && totals) {
+          invoicedWarning =
+            (await tx.invoice.count({
+              where: { orderId: input.id, isVoided: false },
+            })) > 0;
+          changeNumber = await nextDocumentNumber(tx, "CHANGE_ORDER");
+          const summaryParts = [
+            input.work?.items ? `รายการ ${input.work.items.length}` : null,
+            input.work?.fees ? `ค่าธรรมเนียม ${input.work.fees.length}` : null,
+            input.work?.discount !== undefined ? "ส่วนลด" : null,
+          ].filter((part): part is string => !!part);
+          await tx.changeOrder.create({
+            data: {
+              changeNumber,
+              orderId: input.id,
+              reason: input.reason!.trim(),
+              summary: summaryParts.join(" · "),
+              oldTotal: locked.totalAmount,
+              newTotal: totals.totalAmount,
+              invoicedWarning,
+              createdById: ctx.userId,
+            },
+          });
+
+          const revisionCount = await tx.orderRevision.count({
+            where: { orderId: input.id },
+          });
+          await tx.orderRevision.create({
+            data: {
+              orderId: input.id,
+              version: revisionCount + 1,
+              changedBy: ctx.userId,
+              changeType: "CHANGE_ORDER",
+              description: `ใบแก้ไขออเดอร์ ${changeNumber}: ${input.reason!.trim()}`,
+              oldValue: JSON.stringify({ totalAmount: locked.totalAmount }),
+              newValue: JSON.stringify({ totalAmount: totals.totalAmount }),
+            },
+          });
+        } else if (totals && (input.work?.items || input.work?.fees)) {
+          // รักษา timeline เดิม: items(+fees) = ITEMS · fees อย่างเดียว = FEES
+          const revisionCount = await tx.orderRevision.count({
+            where: { orderId: input.id },
+          });
+          const changedItems = !!input.work?.items;
+          await tx.orderRevision.create({
+            data: {
+              orderId: input.id,
+              version: revisionCount + 1,
+              changedBy: ctx.userId,
+              changeType: changedItems ? "ITEMS" : "FEES",
+              description: changedItems
+                ? `แก้ไขรายการสินค้า (${input.work!.items!.length} รายการ)${
+                    input.work?.fees
+                      ? ` + ค่าธรรมเนียม (${input.work.fees.length} รายการ)`
+                      : ""
+                  }`
+                : `แก้ไขค่าธรรมเนียม (${input.work!.fees!.length} รายการ)`,
+              oldValue: JSON.stringify({
+                subtotalItems: locked.subtotalItems,
+                subtotalFees: locked.subtotalFees,
+                totalAmount: locked.totalAmount,
+              }),
+              newValue: JSON.stringify({
+                subtotalItems: totals.subtotalItems,
+                subtotalFees: totals.subtotalFees,
+                totalAmount: totals.totalAmount,
+              }),
+            },
+          });
+        } else if (
+          !changeOrderMode &&
+          (totals ||
+            input.meta?.paymentTerms !== undefined ||
+            input.meta?.platformFee !== undefined)
+        ) {
+          const revisionCount = await tx.orderRevision.count({
+            where: { orderId: input.id },
+          });
+          const changedPriceFields = [
+            input.work?.discount !== undefined ? "ส่วนลด" : null,
+            input.meta?.taxRate !== undefined ? "ภาษี" : null,
+            input.meta?.paymentTerms !== undefined ? "เงื่อนไขชำระ" : null,
+            input.meta?.platformFee !== undefined ? "ค่าธรรมเนียมแพลตฟอร์ม" : null,
+          ].filter((field): field is string => !!field);
+          await tx.orderRevision.create({
+            data: {
+              orderId: input.id,
+              version: revisionCount + 1,
+              changedBy: ctx.userId,
+              changeType: "PRICE",
+              description: `แก้ไข${changedPriceFields.join(" · ")}`,
+              oldValue: JSON.stringify({
+                discount: locked.discount,
+                taxRate: locked.taxRate,
+                paymentTerms: locked.paymentTerms,
+                platformFee: locked.platformFee,
+                totalAmount: locked.totalAmount,
+              }),
+              newValue: JSON.stringify({
+                discount: totals?.discount ?? locked.discount,
+                taxRate: input.meta?.taxRate ?? locked.taxRate,
+                paymentTerms:
+                  input.meta?.paymentTerms !== undefined
+                    ? input.meta.paymentTerms
+                    : locked.paymentTerms,
+                platformFee: input.meta?.platformFee ?? locked.platformFee,
+                totalAmount: totals?.totalAmount ?? locked.totalAmount,
+              }),
+            },
+          });
+        }
+
+        if (input.referenceImages !== undefined) {
+          const requestedIds = input.referenceImages
+            .map((image) => image.id)
+            .filter((id): id is string => !!id);
+          if (new Set(requestedIds).size !== requestedIds.length) {
+            badRequest("มีไฟล์อ้างอิงซ้ำในคำขอบันทึก");
+          }
+
+          const existing = await tx.attachment.findMany({
+            where: {
+              entityType: "ORDER",
+              entityId: input.id,
+              category: "REFERENCE_IMAGE",
+            },
+            select: {
+              id: true,
+              fileUrl: true,
+              fileName: true,
+              fileType: true,
+              fileSize: true,
+              category: true,
+              printPosition: true,
+              uploadedById: true,
+              notes: true,
+            },
+          });
+          if (
+            orderReferenceImagesFingerprint(existing) !==
+            input.expectedReferenceImagesFingerprint
+          ) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message:
+                "ไฟล์อ้างอิงมีการแก้ไขจากหน้าจออื่นแล้ว — โหลดหน้าใหม่ก่อนบันทึกเพื่อไม่ให้ข้อมูลทับกัน",
+            });
+          }
+          const existingById = new Map(existing.map((image) => [image.id, image]));
+          const isManager = ctx.userRole === "OWNER" || ctx.userRole === "MANAGER";
+          const canManage = (uploadedById: string | null) =>
+            isManager || uploadedById === ctx.userId;
+
+          for (const image of input.referenceImages) {
+            if (!image.id) continue;
+            const current = existingById.get(image.id);
+            if (!current) {
+              badRequest("มีไฟล์อ้างอิงที่ไม่ได้อยู่ในออเดอร์นี้");
+            }
+            const nextPosition = image.printPosition ?? null;
+            const changed =
+              current.fileUrl !== image.fileUrl ||
+              current.fileName !== image.fileName ||
+              (image.fileSize !== undefined && current.fileSize !== image.fileSize) ||
+              current.printPosition !== nextPosition;
+            if (!changed) continue;
+            if (!canManage(current.uploadedById)) {
+              forbidden("แก้ไขได้เฉพาะไฟล์ที่คุณอัปโหลดเอง");
+            }
+            await tx.attachment.update({
+              where: { id: current.id },
+              data: {
+                fileUrl: image.fileUrl,
+                fileName: image.fileName,
+                fileType: image.fileName.split(".").pop()?.toLowerCase() ?? "unknown",
+                ...(image.fileSize !== undefined ? { fileSize: image.fileSize } : {}),
+                printPosition: nextPosition,
+              },
+            });
+          }
+
+          const requestedIdSet = new Set(requestedIds);
+          const removed = existing.filter((image) => !requestedIdSet.has(image.id));
+          const forbiddenRemoval = removed.find((image) => !canManage(image.uploadedById));
+          if (forbiddenRemoval) {
+            forbidden("ลบได้เฉพาะไฟล์ที่คุณอัปโหลดเอง");
+          }
+          if (removed.length > 0) {
+            await tx.attachment.deleteMany({
+              where: { id: { in: removed.map((image) => image.id) } },
+            });
+          }
+
+          const added = input.referenceImages.filter((image) => !image.id);
+          if (added.length > 0) {
+            await tx.attachment.createMany({
+              data: added.map((image) => ({
+                entityType: "ORDER",
+                entityId: input.id,
+                fileUrl: image.fileUrl,
+                fileName: image.fileName,
+                fileType: image.fileName.split(".").pop()?.toLowerCase() ?? "unknown",
+                fileSize: image.fileSize ?? 0,
+                category: "REFERENCE_IMAGE",
+                printPosition: image.printPosition,
+                uploadedById: ctx.userId,
+              })),
+            });
+          }
+
+          // ไฟล์อย่างเดียวก็ต้องขยับ token ไม่เช่นนั้น desired-set จากจอเก่า
+          // จะลบ/ย้อนงานแนบไฟล์ของจอที่บันทึกก่อนหน้าได้
+          if (!meta && !totals) {
+            await tx.order.update({
+              where: { id: input.id },
+              data: { updatedAt: new Date() },
+              select: { id: true },
+            });
+          }
+        }
+
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "ORDER",
+          entityId: input.id,
+          newValue: {
+            action: "saveForm",
+            metaFields: input.meta
+              ? Object.entries(input.meta)
+                  .filter(([, value]) => value !== undefined)
+                  .map(([key]) => key)
+              : [],
+            workFields: input.work
+              ? Object.entries(input.work)
+                  .filter(([, value]) => value !== undefined)
+                  .map(([key]) => key)
+              : [],
+            referenceImageCount: input.referenceImages?.length,
+            changeNumber,
+            money: {
+              old: {
+                discount: locked.discount,
+                taxRate: locked.taxRate,
+                paymentTerms: locked.paymentTerms,
+                platformFee: locked.platformFee,
+                subtotalItems: locked.subtotalItems,
+                subtotalFees: locked.subtotalFees,
+                totalAmount: locked.totalAmount,
+              },
+              new: {
+                discount: totals?.discount ?? locked.discount,
+                taxRate: input.meta?.taxRate ?? locked.taxRate,
+                paymentTerms:
+                  input.meta?.paymentTerms !== undefined
+                    ? input.meta.paymentTerms
+                    : locked.paymentTerms,
+                platformFee: input.meta?.platformFee ?? locked.platformFee,
+                subtotalItems: totals?.subtotalItems ?? locked.subtotalItems,
+                subtotalFees: totals?.subtotalFees ?? locked.subtotalFees,
+                totalAmount: totals?.totalAmount ?? locked.totalAmount,
+              },
+            },
+          },
+          reason: changeOrderMode ? input.reason!.trim() : undefined,
+        });
+
+        return {
+          id: savedOrderId,
+          changeNumber,
+          invoicedWarning,
+          shouldSyncStock,
+          stockSyncUpdatedAt,
+        };
+      });
+
+      // HTTP ไป Stock อยู่นอก DB transaction ตาม pattern เดิม · items ไม่เปลี่ยนไม่ยิง
+      if (result.shouldSyncStock) {
+        await syncOrderStockReservation(ctx.prisma, {
+          orderId: input.id,
+          changedBy: ctx.userId,
+          expectedUpdatedAt: result.stockSyncUpdatedAt!,
+        });
+      }
+
+      return {
+        id: result.id,
+        changeNumber: result.changeNumber,
+        invoicedWarning: result.invoicedWarning,
+      };
     }),
 
   updateItems: protectedProcedure
@@ -1828,37 +2688,51 @@ export const orderRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const product = await ctx.prisma.orderItemProduct.findUniqueOrThrow({
-        where: { id: input.orderItemProductId },
-        select: { orderItem: { select: { orderId: true } } },
-      });
+      return ctx.prisma.$transaction(async (tx) => {
+        const product = await tx.orderItemProduct.findUniqueOrThrow({
+          where: { id: input.orderItemProductId },
+          select: { orderItem: { select: { orderId: true } } },
+        });
+        const orderId = product.orderItem.orderId;
 
-      const updated = await ctx.prisma.orderItemProduct.update({
-        where: { id: input.orderItemProductId },
-        data: {
-          garmentCondition: input.garmentCondition || null,
-          receivedInspected: input.receivedInspected,
-          receiveNote: input.receiveNote || null,
-        },
-        // ⑦: แถวนี้มีเงินขายรายชิ้น (baseUnitPrice/discount/subtotal) ที่ getById ปิดจากช่าง —
-        // ช่างเป็นคนกดตรวจรับ (orderOps) เลยต้องคืนเฉพาะ field งานตรวจรับ · จอไม่ใช้คำตอบนี้
-        select: {
-          id: true,
-          garmentCondition: true,
-          receivedInspected: true,
-          receiveNote: true,
-        },
-      });
+        // shared parent lock เดียวกับ saveForm: ถ้าหน้าแก้กำลัง replace รายการ
+        // งานตรวจรับต้องรอ; ถ้างานตรวจรับมาก่อน updatedAt จะทำให้ฟอร์มเก่า conflict
+        await lockOrderRow(tx, orderId);
+        const updated = await tx.orderItemProduct.update({
+          where: { id: input.orderItemProductId },
+          data: {
+            garmentCondition: input.garmentCondition || null,
+            receivedInspected: input.receivedInspected,
+            receiveNote: input.receiveNote || null,
+          },
+          // ⑦: แถวนี้มีเงินขายรายชิ้น (baseUnitPrice/discount/subtotal) ที่ getById ปิดจากช่าง —
+          // ช่างเป็นคนกดตรวจรับ (orderOps) เลยต้องคืนเฉพาะ field งานตรวจรับ · จอไม่ใช้คำตอบนี้
+          select: {
+            id: true,
+            garmentCondition: true,
+            receivedInspected: true,
+            receiveNote: true,
+          },
+        });
+        await tx.order.update({
+          where: { id: orderId },
+          data: { updatedAt: new Date() },
+          select: { id: true },
+        });
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "ORDER",
+          entityId: orderId,
+          newValue: {
+            action: "updateReceiveTracking",
+            orderItemProductId: input.orderItemProductId,
+            receivedInspected: input.receivedInspected,
+          },
+        });
 
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "UPDATE",
-        entityType: "ORDER",
-        entityId: product.orderItem.orderId,
-        newValue: { action: "updateReceiveTracking", orderItemProductId: input.orderItemProductId, receivedInspected: input.receivedInspected },
+        return updated;
       });
-
-      return updated;
     }),
 
   duplicate: protectedProcedure

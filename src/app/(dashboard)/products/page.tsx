@@ -11,13 +11,14 @@ import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { Package, RefreshCw, Cloud, Settings } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 
 import { SyncDialog } from "@/components/sync-dialog";
 import { FilterChip } from "@/components/ui/filter-chip";
+import { FOCUS_BUTTON } from "@/components/ui/tokens";
 
 // ─── Product Group Tabs ─────────────────────────────────────
 const itemTypes = [
@@ -122,6 +123,7 @@ function ProductsPageContent() {
         {itemTypes.map((g) => (
           <FilterChip
             key={g.value}
+            surface="raised"
             selected={itemType === g.value}
             onClick={() => handleItemTypeChange(g.value)}
           >
@@ -134,6 +136,7 @@ function ProductsPageContent() {
           ไม่ใช่ความกว้างหน้าต่าง เลยใช้ @2xl: แทน sm: ที่เขียนไว้เดิม */}
       <Toolbar>
         <SearchInput
+          surface="raised"
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อสินค้า, SKU..."
           ref={searchInputRef}
@@ -144,6 +147,7 @@ function ProductsPageContent() {
         <ToolbarGroup>
           <Select
             shape="pill"
+            surface="raised"
             aria-label="กรองประเภทสินค้า"
             value={productType}
             onChange={(e) => replaceListState({ type: e.target.value || null, page: null })}
@@ -207,7 +211,7 @@ function ProductsPageContent() {
             };
 
             return (
-              <Link key={product.id} href={`/products/${product.id}`}>
+              <Link key={product.id} href={`/products/${product.id}`} className={cn("block rounded-2xl", FOCUS_BUTTON)}>
                 <div className="card-surface card-surface-hover group h-full overflow-hidden rounded-2xl transition-all">
                   <div className="relative flex h-44 items-center justify-center bg-slate-100 dark:bg-slate-800">
                     {product.imageUrl ? (
@@ -231,7 +235,7 @@ function ProductsPageContent() {
                   <div className="space-y-1.5 p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-sm font-medium text-slate-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                        <h3 className="truncate text-sm font-medium text-slate-900 group-hover:text-strong dark:text-white dark:group-hover:text-strong">
                           {product.name}
                         </h3>
                         <p className="truncate text-2xs text-slate-500 dark:text-slate-400">

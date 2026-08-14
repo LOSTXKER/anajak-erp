@@ -98,7 +98,13 @@ export default function SalesTaxReportPage() {
       breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ภาษีขาย" }]}
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={selected} onChange={(e) => setSelected(e.target.value)} shape="pill" className="w-[180px]">
+          <Select
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+            shape="pill"
+            surface="raised"
+            className="w-[180px]"
+          >
               {options.map((o) => (
                 <option key={`${o.year}-${o.month}`} value={`${o.year}-${o.month}`}>
                   {o.label}

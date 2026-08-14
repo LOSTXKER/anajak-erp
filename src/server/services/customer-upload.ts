@@ -18,7 +18,8 @@ import { TRPCError } from "@trpc/server";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { proxyFileUrl, safeFileExt } from "@/lib/file-urls";
 import { createNotification } from "@/server/helpers";
-import type { PrismaTx } from "@/lib/prisma";
+import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
+import { lockOrderRow } from "@/server/services/order-cost";
 
 const UPLOAD_TOKEN_TTL_DAYS = 30;
 export const UPLOAD_BUCKET = "designs";
@@ -121,7 +122,7 @@ export async function createCustomerUploadUrl(params: {
 
 /** บันทึก Attachment หลังลูกค้าอัปไฟล์สำเร็จ — ตรวจ path/มีไฟล์จริง/cap ก่อน */
 export async function confirmCustomerUpload(
-  prisma: PrismaTx,
+  prisma: ExtendedPrismaClient,
   params: {
     order: { id: string; orderNumber: string; title: string };
     path: string;
@@ -165,19 +166,39 @@ export async function confirmCustomerUpload(
     });
   }
 
-  // 4) บันทึก Attachment ชั้น 1 (RAW) — uploadedById = null (ลูกค้า ไม่มี user)
-  const attachment = await prisma.attachment.create({
-    data: {
-      entityType: "ORDER",
-      entityId: order.id,
-      fileName: params.fileName.slice(0, 255),
-      fileUrl: proxyFileUrl(UPLOAD_BUCKET, params.path),
-      fileType: params.fileType.slice(0, 100),
-      fileSize: params.fileSize,
-      category: "REFERENCE_IMAGE",
-      uploadedById: null,
-      notes: "อัปโหลดโดยลูกค้าผ่านลิงก์",
-    },
+  // 4) storage HTTP จบแล้วค่อยถือ parent lock — serialize กับ saveForm desired-set
+  // โดยไม่ล็อก DB ค้างระหว่างเรียก Supabase ภายนอก
+  const attachment = await prisma.$transaction(async (tx) => {
+    await lockOrderRow(tx, order.id);
+    // เช็ค cap ซ้ำใต้ lock: ลูกค้าสองคน confirm พร้อมกันต้องไม่ทะลุเพดาน
+    const currentCount = await tx.attachment.count({
+      where: { entityType: "ORDER", entityId: order.id, uploadedById: null },
+    });
+    if (currentCount >= MAX_CUSTOMER_FILES_PER_ORDER) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "ไฟล์เต็มจำนวนที่อัปได้แล้ว กรุณาติดต่อร้าน",
+      });
+    }
+    const created = await tx.attachment.create({
+      data: {
+        entityType: "ORDER",
+        entityId: order.id,
+        fileName: params.fileName.slice(0, 255),
+        fileUrl: proxyFileUrl(UPLOAD_BUCKET, params.path),
+        fileType: params.fileType.slice(0, 100),
+        fileSize: params.fileSize,
+        category: "REFERENCE_IMAGE",
+        uploadedById: null,
+        notes: "อัปโหลดโดยลูกค้าผ่านลิงก์",
+      },
+    });
+    await tx.order.update({
+      where: { id: order.id },
+      data: { updatedAt: new Date() },
+      select: { id: true },
+    });
+    return created;
   });
 
   // 5) กระดิ่งทีมที่ถือความสัมพันธ์ลูกค้า (ขาย/เจ้าของ/ผู้จัดการ) — ของจาก LINE เข้าออเดอร์แล้ว

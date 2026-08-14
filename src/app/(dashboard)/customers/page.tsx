@@ -182,6 +182,7 @@ function CustomersPageContent() {
 
       <Toolbar>
         <SearchInput
+          surface="raised"
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อ, บริษัท, โทร, อีเมล..."
@@ -192,6 +193,7 @@ function CustomersPageContent() {
         <ToolbarGroup>
           <Select
             shape="pill"
+            surface="raised"
             aria-label="กรองกลุ่มลูกค้า"
             value={segment}
             onChange={(event) =>

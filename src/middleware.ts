@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeAfterLoginHref } from "@/lib/auth-redirect";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
@@ -43,10 +44,7 @@ export async function middleware(request: NextRequest) {
 
   // redirect ต้อง copy cookies ที่ getUser() เพิ่ง refresh มาด้วย
   // ไม่งั้น browser ถือ refresh token เก่าที่ถูก rotate แล้ว → โดน sign out ก่อนเวลา
-  const redirectWithCookies = (to: string) => {
-    const url = request.nextUrl.clone();
-    url.pathname = to;
-    url.search = "";
+  const redirectWithCookies = (url: URL) => {
     const response = NextResponse.redirect(url);
     supabaseResponse.cookies
       .getAll()
@@ -58,10 +56,22 @@ export async function middleware(request: NextRequest) {
   // ให้ route handler อ่าน token สดต่อ) — ไม่เด้ง /login
   if (!isApi) {
     if (!user && !isLoginPage) {
-      return redirectWithCookies("/login");
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = "/login";
+      loginUrl.search = "";
+      loginUrl.searchParams.set(
+        "next",
+        safeAfterLoginHref(`${pathname}${request.nextUrl.search}`),
+      );
+      return redirectWithCookies(loginUrl);
     }
     if (user && isLoginPage) {
-      return redirectWithCookies("/home");
+      return redirectWithCookies(
+        new URL(
+          safeAfterLoginHref(request.nextUrl.searchParams.get("next")),
+          request.url,
+        ),
+      );
     }
   }
 

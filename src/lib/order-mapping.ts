@@ -1,5 +1,5 @@
 import type { OrderItemForm, OrderItemProductForm, PrintForm, AddonForm, OrderFeeForm } from "@/types/order-form";
-import { EMPTY_PRODUCT, deriveProcessingType } from "@/types/order-form";
+import { createOrderItemProduct, deriveProcessingType } from "@/types/order-form";
 
 type ItemSource = "FROM_STOCK" | "CUSTOM_MADE" | "CUSTOMER_PROVIDED";
 type ProcessingType = "PRINT_ONLY" | "CUT_AND_SEW_PRINT" | "CUT_AND_SEW_ONLY" | "PACK_ONLY" | "FULL_PRODUCTION";
@@ -19,6 +19,7 @@ export function mapItemsToMutationInput(items: OrderItemForm[]) {
 
 function mapProductToMutationInput(p: OrderItemProductForm, hasPrints: boolean) {
   return {
+    savedProductId: p.savedProductId || undefined,
     productId: p.productId || undefined,
     productType: p.productType,
     description: p.description,
@@ -68,8 +69,11 @@ function mapAddonToMutationInput(a: AddonForm) {
   return {
     addonType: a.addonType,
     name: a.name,
+    description: a.description || undefined,
     pricingType: a.pricingType as "PER_PIECE" | "PER_ORDER",
     unitPrice: a.unitPrice,
+    quantity: a.quantity,
+    notes: a.notes || undefined,
   };
 }
 
@@ -78,6 +82,8 @@ export function mapFeesToMutationInput(fees: OrderFeeForm[]) {
     feeType: f.feeType,
     name: f.name,
     amount: f.amount,
+    description: f.description || undefined,
+    notes: f.notes || undefined,
   }));
 }
 
@@ -91,8 +97,9 @@ export function mapApiItemsToForm(apiItems: ApiItem[]): OrderItemForm[] {
   return apiItems.map((item) => ({
     description: item.description || "",
     products: (item.products || []).flatMap((p: ApiItem) => {
-      const base: OrderItemProductForm = {
-        ...structuredClone(EMPTY_PRODUCT),
+      const base: OrderItemProductForm = createOrderItemProduct({
+        formKey: p.id ? `saved-product-${p.id}` : undefined,
+        savedProductId: p.id || undefined,
         productId: p.productId || undefined,
         productType: p.productType || "OTHER",
         description: p.description || "",
@@ -118,7 +125,7 @@ export function mapApiItemsToForm(apiItems: ApiItem[]): OrderItemForm[] {
         productName: p.product?.name,
         productSku: p.product?.sku,
         productImageUrl: p.product?.imageUrl,
-      };
+      });
       // เก็บ variants ทุกไซส์ไว้ใน product เดียว (ก้อน 4 / P1.12 — โชว์เป็น size matrix)
       // เดิม flatten >1 variant เป็นหลายแถวสินค้า · ตอนนี้ matrix รับหลายไซส์ในแถวเดียวได้แล้ว
       const variants = (p.variants || []) as ApiItem[];
@@ -144,8 +151,11 @@ export function mapApiItemsToForm(apiItems: ApiItem[]): OrderItemForm[] {
     addons: (item.addons || []).map((a: ApiItem) => ({
       addonType: a.addonType,
       name: a.name,
+      description: a.description || undefined,
       pricingType: a.pricingType,
       unitPrice: a.unitPrice,
+      quantity: a.quantity ?? undefined,
+      notes: a.notes || undefined,
     })),
     notes: item.notes || "",
   }));
@@ -159,5 +169,7 @@ export function mapApiFeesToForm(apiFees: ApiItem[]): OrderFeeForm[] {
     feeType: f.feeType,
     name: f.name,
     amount: f.amount,
+    description: f.description || undefined,
+    notes: f.notes || undefined,
   }));
 }

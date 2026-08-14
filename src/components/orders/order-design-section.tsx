@@ -394,7 +394,7 @@ export function OrderDesignSection({
               onError={(err) => setUploadError(err)}
             />
             {uploadError && (
-              <p className="text-sm text-red-500">{uploadError}</p>
+              <p className="text-sm text-red-600 dark:text-red-400">{uploadError}</p>
             )}
             {needsThumbnail && (
               <Alert variant="warning">

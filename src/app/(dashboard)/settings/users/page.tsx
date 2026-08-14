@@ -336,7 +336,7 @@ export default function UsersSettingsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => openPermissions(user)}
-                              className="h-8 px-2 text-muted hover:text-blue-600"
+                              className="h-8 px-2 text-muted hover:text-strong dark:hover:text-strong"
                             >
                               <ShieldCheck className="mr-1" />
                               สิทธิ์
@@ -356,7 +356,7 @@ export default function UsersSettingsPage() {
                             onClick={() =>
                               setResetTarget({ id: user.id, name: user.name })
                             }
-                            className="h-8 px-2 text-muted hover:text-blue-600"
+                            className="h-8 px-2 text-muted hover:text-strong dark:hover:text-strong"
                           >
                             <KeyRound className="mr-1" />
                             รีเซ็ตรหัส
@@ -472,7 +472,7 @@ export default function UsersSettingsPage() {
                           className={`${CONTROL_MIN_H} flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm ${
                             locked
                               ? "cursor-not-allowed opacity-50"
-                              : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                              : "cursor-pointer hover:bg-interactive-hover"
                           }`}
                         >
                           <span className="flex items-center gap-2">

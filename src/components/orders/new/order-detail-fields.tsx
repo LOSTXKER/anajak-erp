@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
 import { CHANNEL_LABELS, PRIORITY_LABELS } from "@/lib/order-status";
 import { FIELD_MEASURE } from "@/components/ui/tokens";
+import { cn } from "@/lib/utils";
 
 // ช่องข้อมูลงาน (ชื่อ/กำหนดส่ง/ช่องทาง/รายละเอียด/หมายเหตุ) — แยกจาก orders/new/page.tsx
 // ตอนรื้อฟอร์ม 2026-06-12 · ลำดับใหม่: รายละเอียดจากแชทขึ้นก่อน (จุด capture หลักตอนถือแชท)
@@ -35,6 +36,7 @@ interface OrderDetailFieldsProps {
   /** โหมดแก้ออเดอร์: ช่องทางเปลี่ยนไม่ได้ (ผูกกับเลขออเดอร์/สูตรภาษีที่คิดไปแล้ว)
    *  โชว์เป็นช่องเทาพร้อมเหตุผล — ห้ามซ่อน ไม่งั้นคนคิดว่าข้อมูลหาย (เบสสั่ง) */
   channelLockedReason?: string;
+  showGuidance?: boolean;
 }
 
 export function OrderDetailFields({
@@ -54,6 +56,7 @@ export function OrderDetailFields({
   notes,
   onNotesChange,
   channelLockedReason,
+  showGuidance = true,
 }: OrderDetailFieldsProps) {
   const id = useId();
 
@@ -63,7 +66,7 @@ export function OrderDetailFields({
       <Field
         label="ข้อความจากลูกค้า"
         id={`${id}-description`}
-        description="สรุปจากแชท: แบบ สี จำนวน งบ และสิ่งที่ลูกค้าเน้น"
+        description={showGuidance ? "สรุปจากแชท: แบบ สี จำนวน งบ และสิ่งที่ลูกค้าเน้น" : undefined}
       >
         <Textarea
           value={description}
@@ -105,7 +108,7 @@ export function OrderDetailFields({
         <Field
           label="ชื่องาน"
           id={`${id}-title`}
-          description="เว้นว่าง = ระบบตั้งชื่อจากลูกค้าให้"
+          description={showGuidance ? "เว้นว่าง = ระบบตั้งชื่อจากลูกค้าให้" : undefined}
         >
           <Input
             value={title}
@@ -125,7 +128,11 @@ export function OrderDetailFields({
         </Field>
       )}
 
-      <Field label="หมายเหตุภายใน (ลูกค้าไม่เห็น)" id={`${id}-notes`} className={FIELD_MEASURE}>
+      <Field
+        label="หมายเหตุภายใน (ลูกค้าไม่เห็น)"
+        id={`${id}-notes`}
+        className={cn(FIELD_MEASURE, "w-full max-sm:max-w-none")}
+      >
         <Input
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}

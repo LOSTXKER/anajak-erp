@@ -11,6 +11,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
+import { canCreateOrderWithPricing } from "@/lib/order-access";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { CustomerArtworksCard } from "@/components/customers/customer-artworks-card";
@@ -33,7 +34,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const [loggingComm, setLoggingComm] = useState(false);
   const { data: me } = trpc.user.me.useQuery();
   const canEdit = !!me && permAllows(me.permissions, "manage_customers");
-  const canCreateOrder = !!me && permAllows(me.permissions, "create_sales_docs");
+  const canCreateOrder = canCreateOrderWithPricing(me?.permissions);
   // Policy ⑦: ฝ่ายผลิต/กราฟิกไม่เห็นเงินฝั่งขาย — ซ่อนยอดสั่งรวม/ยอดออเดอร์ (server ส่ง null มาอยู่แล้ว)
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
   const { data: customer, isLoading, isError, refetch } = trpc.customer.getById.useQuery({ id });
@@ -117,12 +118,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader><CardTitle className="text-base">ข้อมูลติดต่อ</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               {customer.phone && (
-                <a href={`tel:${customer.phone}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-blue-700 dark:text-slate-300 dark:hover:text-blue-300">
+                <a href={`tel:${customer.phone}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-strong dark:text-slate-300 dark:hover:text-strong">
                   <Phone className="h-4 w-4" /> {customer.phone}
                 </a>
               )}
               {customer.email && (
-                <a href={`mailto:${customer.email}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-blue-700 dark:text-slate-300 dark:hover:text-blue-300">
+                <a href={`mailto:${customer.email}`} className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-strong dark:text-slate-300 dark:hover:text-strong">
                   <Mail className="h-4 w-4" /> {customer.email}
                 </a>
               )}
@@ -131,7 +132,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   href={`https://line.me/R/ti/p/~${encodeURIComponent(customer.lineId)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-blue-700 dark:text-slate-300 dark:hover:text-blue-300"
+                  className="flex min-h-11 items-center gap-2 rounded-lg text-slate-700 hover:text-strong dark:text-slate-300 dark:hover:text-strong"
                 >
                   <MessageCircle className="h-4 w-4" /> {customer.lineId}
                 </a>
@@ -329,11 +330,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     <Link
                       key={order.id}
                       href={`/orders/${order.id}`}
-                      className="flex items-center justify-between rounded-xl border border-slate-100 p-3 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                      className="group flex items-center justify-between rounded-xl border border-slate-100 p-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:border-slate-800 dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
                     >
                       <div>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{order.orderNumber}</p>
-                        <p className="text-xs text-muted">{order.title}</p>
+                        <p className="text-xs text-muted group-hover:text-secondary group-active:text-secondary">{order.title}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <OrderStatusBadge customerStatus={order.customerStatus} internalStatus={order.internalStatus} />

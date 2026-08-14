@@ -10,7 +10,7 @@ export interface ShippingState {
   postalCode: string;
 }
 
-const INITIAL_SHIPPING: ShippingState = {
+export const EMPTY_SHIPPING_STATE: ShippingState = {
   recipientName: "",
   phone: "",
   address: "",
@@ -20,13 +20,26 @@ const INITIAL_SHIPPING: ShippingState = {
   postalCode: "",
 };
 
-export function useOrderShippingState() {
-  const [includeShipping, setIncludeShipping] = useState(false);
+export interface OrderShippingInitialState {
+  includeShipping: boolean;
+  shipping: ShippingState;
+  filledFromCustomerId?: string | null;
+}
+
+export function useOrderShippingState(initial?: OrderShippingInitialState) {
+  const [includeShipping, setIncludeShipping] = useState(
+    () => initial?.includeShipping ?? false,
+  );
   const [shippingDirty, setShippingDirty] = useState(false);
-  const [shipping, setShipping] = useState<ShippingState>(INITIAL_SHIPPING);
+  const [shipping, setShipping] = useState<ShippingState>(() => ({
+    ...EMPTY_SHIPPING_STATE,
+    ...initial?.shipping,
+  }));
   // ที่อยู่ชุดนี้ก๊อปมาจากโปรไฟล์ลูกค้ารายไหน (null = คนพิมพ์เอง เช่นที่อยู่ไซต์งาน)
   // ใช้ตัดสินตอนสลับลูกค้าว่าต้องล้างทิ้งไหม — ดู shouldClearShippingOnCustomerChange
-  const [filledFromCustomerId, setFilledFromCustomerId] = useState<string | null>(null);
+  const [filledFromCustomerId, setFilledFromCustomerId] = useState<string | null>(
+    () => initial?.filledFromCustomerId ?? null,
+  );
 
   const updateShipping = useCallback(
     <K extends keyof ShippingState>(field: K, value: ShippingState[K]) => {
@@ -53,11 +66,26 @@ export function useOrderShippingState() {
   );
 
   const resetShipping = useCallback(() => {
-    setShipping(INITIAL_SHIPPING);
+    setShipping(EMPTY_SHIPPING_STATE);
     setIncludeShipping(false);
     setShippingDirty(false);
     setFilledFromCustomerId(null);
   }, []);
+
+  /** กู้ที่อยู่จาก draft เป็นก้อนเดียว เพื่อไม่ให้ includeShipping กับข้อมูลผู้รับเหลื่อมกัน */
+  const restoreShipping = useCallback(
+    (value: {
+      includeShipping: boolean;
+      shipping: ShippingState;
+      filledFromCustomerId?: string | null;
+    }) => {
+      setShipping({ ...EMPTY_SHIPPING_STATE, ...value.shipping });
+      setIncludeShipping(value.includeShipping);
+      setShippingDirty(false);
+      setFilledFromCustomerId(value.filledFromCustomerId ?? null);
+    },
+    [],
+  );
 
   const validateShipping = useCallback(() => {
     return validateShippingState(shipping, includeShipping);
@@ -76,6 +104,7 @@ export function useOrderShippingState() {
     updateShipping,
     fillShippingFromCustomer,
     resetShipping,
+    restoreShipping,
     validateShipping,
     shippingMutationInput: toMutationInput,
   };

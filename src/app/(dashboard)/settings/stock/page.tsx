@@ -425,7 +425,7 @@ export default function StockSettingsPage() {
                   อัพเดท: {lastStockResult.updated} รายการ
                 </p>
                 {lastStockResult.errors.length > 0 && (
-                  <p className="mt-1 text-xs text-red-500">
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
                     ข้อผิดพลาด: {lastStockResult.errors.length} รายการ
                   </p>
                 )}
@@ -489,7 +489,7 @@ export default function StockSettingsPage() {
           <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
             <div className="space-y-3">
               <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600 dark:bg-blue-900 dark:text-blue-400">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                   1
                 </div>
                 <div>
@@ -503,7 +503,7 @@ export default function StockSettingsPage() {
               </div>
 
               <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600 dark:bg-blue-900 dark:text-blue-400">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                   2
                 </div>
                 <div>
@@ -517,7 +517,7 @@ export default function StockSettingsPage() {
               </div>
 
               <div className="flex gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600 dark:bg-blue-900 dark:text-blue-400">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                   3
                 </div>
                 <div>

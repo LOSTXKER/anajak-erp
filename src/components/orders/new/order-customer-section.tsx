@@ -18,12 +18,16 @@ interface OrderCustomerSectionProps {
   customerId: string;
   selectedCustomer: PickerCustomer | null;
   onSelect: (id: string, customer: PickerCustomer | null) => void;
+  invalid?: boolean;
+  lockedReason?: string;
 }
 
 export function OrderCustomerSection({
   customerId,
   selectedCustomer,
   onSelect,
+  invalid = false,
+  lockedReason,
 }: OrderCustomerSectionProps) {
   const isCorporate = selectedCustomer?.customerType === "CORPORATE";
   const profileGaps = selectedCustomer
@@ -82,10 +86,16 @@ export function OrderCustomerSection({
         id="new-order-customer"
         value={customerId}
         onChange={onSelect}
+        initialSelected={selectedCustomer}
+        disabled={Boolean(lockedReason)}
         required
+        invalid={invalid}
         layout="inline"
-        autoFocusSearch
+        autoFocusSearch={!lockedReason}
       />
+      {lockedReason && (
+        <p className="mt-1.5 text-xs text-muted">{lockedReason}</p>
+      )}
       {hasCustomerContext && (
         <div className="mt-2 space-y-1.5 rounded-xl bg-slate-100/70 px-3 py-2.5 dark:bg-white/[0.04]">
           {selectedCustomer && isCorporate && (

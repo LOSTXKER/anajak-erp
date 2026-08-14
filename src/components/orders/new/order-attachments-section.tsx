@@ -11,7 +11,7 @@ import { PRINT_POSITIONS } from "@/types/order-form";
 import type { ReferenceImage } from "@/types/order-form";
 import { ImageIcon, Upload, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { DASHED } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 // รูป/ไฟล์อ้างอิงจากแชท — แยกจาก orders/new/page.tsx ตอนรื้อฟอร์ม 2026-06-12
@@ -84,8 +84,8 @@ export function OrderAttachmentsSection({
   const uploadControl = images.length < 5 ? (
     <label
       className={cn(
-        DASHED,
-        "flex min-h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-50/40 px-3 py-2 text-sm text-slate-600 transition-colors hover:border-blue-400 hover:bg-white hover:text-blue-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:bg-white/[0.02] dark:text-slate-300 dark:hover:border-blue-500",
+        DASHED_INTERACTIVE,
+        "flex min-h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-surface-muted px-3 py-2 text-sm text-secondary transition-colors hover:bg-interactive-hover hover:text-strong focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:hover:text-strong dark:focus-within:border-blue-300 dark:focus-within:ring-blue-300/25",
         !embedded && "w-full px-4 py-3.5"
       )}
     >
@@ -139,16 +139,18 @@ export function OrderAttachmentsSection({
                     <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
                   </div>
                 )}
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  onClick={() => onImagesChange((prev) => prev.filter((_, i) => i !== idx))}
-                  aria-label={`ลบไฟล์ ${img.fileName}`}
-                  className="absolute -right-2 -top-2 rounded-full opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-                >
-                  <X />
-                </Button>
+                {img.canEdit !== false && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => onImagesChange((prev) => prev.filter((_, i) => i !== idx))}
+                    aria-label={`ลบไฟล์ ${img.fileName}`}
+                    className="absolute -right-2 -top-2 rounded-full opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                  >
+                    <X />
+                  </Button>
+                )}
                 <Select
                   value={img.printPosition || ""}
                   onChange={(e) => {
@@ -159,6 +161,8 @@ export function OrderAttachmentsSection({
                     );
                   }}
                   aria-label={`ตำแหน่งพิมพ์ของ ${img.fileName}`}
+                  disabled={img.canEdit === false}
+                  title={img.canEdit === false ? "แก้ไขได้เฉพาะไฟล์ที่คุณอัปโหลดเอง" : undefined}
                   className="mt-1.5 w-24 px-1.5 py-0 text-sm sm:h-8 sm:text-xs"
                 >
                   <option value="">ทั่วไป</option>

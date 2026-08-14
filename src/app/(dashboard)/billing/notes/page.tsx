@@ -34,6 +34,7 @@ import { FileStack, Plus, Printer, Ban, Loader2 } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
 import { DASHED } from "@/components/ui/tokens";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 export default function BillingNotesPage() {
@@ -168,6 +169,7 @@ function BillingNotesPageContent() {
     >
       <Toolbar>
         <SearchInput
+          surface="raised"
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาเลขใบวางบิล, ชื่อลูกค้า..."
@@ -246,7 +248,7 @@ function BillingNotesPageContent() {
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          className="text-muted hover:text-red-700"
+                          className="text-muted hover:text-red-700 dark:hover:text-red-400"
                           aria-label={`ยกเลิกใบวางบิล ${note.billingNoteNumber}`}
                           onClick={() => {
                             setVoidReason("");
@@ -323,7 +325,7 @@ function BillingNotesPageContent() {
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      className="text-red-700"
+                      className="text-red-700 dark:text-red-400"
                       aria-label={`ยกเลิกใบวางบิล ${note.billingNoteNumber}`}
                       onClick={() => {
                         setVoidReason("");
@@ -422,8 +424,7 @@ function BillingNotesPageContent() {
                 ) : (
                   <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-slate-200 p-2 dark:border-slate-700">
                     <label className="flex cursor-pointer items-center gap-2 border-b border-slate-100 px-2 pb-1.5 text-sm font-medium dark:border-slate-800">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={allSelected}
                         onChange={() =>
                           setSelectedIds(
@@ -432,27 +433,24 @@ function BillingNotesPageContent() {
                               : new Set(eligibleList.map((inv) => inv.id))
                           )
                         }
-                        className="h-4 w-4 accent-blue-600"
                       />
                       เลือกทั้งหมด ({eligibleList.length} ใบ)
                     </label>
                     {eligibleList.map((inv) => (
                       <label
                         key={inv.id}
-                        className="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        className="group flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
                       >
                         <span className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={selectedIds.has(inv.id)}
                             onChange={() => toggleInvoice(inv.id)}
-                            className="h-4 w-4 accent-blue-600"
                           />
                           <span>
                             <span className="font-medium text-slate-900 dark:text-white">
                               {inv.invoiceNumber}
                             </span>
-                            <span className="ml-1.5 text-xs text-muted">
+                            <span className="ml-1.5 text-xs text-muted group-hover:text-secondary group-active:text-secondary">
                               {INVOICE_TYPE_LABELS[inv.type] ?? inv.type} · {inv.orderNumber}
                               {inv.dueDate && ` · ครบกำหนด ${formatDate(inv.dueDate)}`}
                             </span>

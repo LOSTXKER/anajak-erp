@@ -54,7 +54,7 @@ export const controlShapeClass = (shape: ControlShape = "box") =>
 /** ช่องที่ "พิมพ์ลงไปได้" — ช่องกรอก · กล่องข้อความ · ช่องเลือก
  *  เส้นขอบเปลี่ยนเป็นน้ำเงิน + เรืองจางๆ รอบนอก (เบาเพราะเคอร์เซอร์บอกตำแหน่งอยู่แล้ว) */
 export const FOCUS_FIELD =
-  "focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/15 dark:focus-visible:border-blue-400";
+  "focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:focus-visible:border-blue-300 dark:focus-visible:ring-blue-300/25";
 
 /** ของที่ "กดแล้วเกิดอะไรขึ้น" — ปุ่ม · ชิป · สวิตช์ · ปุ่มในแถบสลับ · แถวที่กดได้
  *  วงแหวนชัดกว่า + เว้นช่องว่างรอบตัว เพราะไม่มีเคอร์เซอร์ช่วยบอกว่าอยู่ตรงไหน
@@ -64,12 +64,12 @@ export const FOCUS_FIELD =
  *  ② ช่องว่างรอบวงแหวนเคยล็อกเป็นขาว/ดำสนิทตายตัว — พอพื้นเว็บเปลี่ยนเป็นขาว/ดำเทา
  *     โหมดมืดเลยได้ "แถบดำคาด" รอบปุ่ม · ผูกกับสีพื้นจริงแทน จะได้เปลี่ยนตามทุกครั้ง */
 export const FOCUS_BUTTON =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg dark:focus-visible:ring-blue-400";
 
 /** ของที่กดได้แต่เต็มพื้นที่จนไม่มีที่ให้เว้นขอบ — หัวคอลัมน์ตาราง · แถวในรายการ
  *  ใช้วงแหวนด้านใน เพราะ ring-offset จะโดนขอบตารางบังจนมองไม่เห็นว่าโฟกัสอยู่ไหน */
 export const FOCUS_INSET =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:focus-visible:ring-blue-300";
 
 /** ช่องที่กรอกผิด — วงแหวนแดงแทนน้ำเงิน (ใช้คู่กับ border-red-* บนตัวช่อง)
  *  ของเดิมเขียนเอง 4 แบบไม่ตรงกัน: ring-red-400 · ring-red-500 · ring-red-500/40 · ring-amber-400
@@ -81,13 +81,26 @@ export const FOCUS_FIELD_INVALID =
    ผิวของพื้นผิวแต่ละแบบ
    ------------------------------------------------------------ */
 
-/** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — **พื้นขาว + เส้นขอบบาง** · ธีมมืดสลับ
- *  (พื้นเข้มจม + ขอบขาวโปร่ง) — เบสเคาะสุดท้าย 2026-08-04 หลังเห็นจอจริงทั้งสองแบบ:
- *  "ช่องกรอก เอาเป็นสีขาว มีขอบบางๆดีกว่า ธีมมืดก็สลับกัน"
- *  (แบบพื้นเทาไร้ขอบที่ลองก่อนหน้า ช่องกลืนกับพื้น/กล่องรอบตัวง่ายเกิน)
- *  ขาว+ขอบเห็นชัดทุกบริบท — บนการ์ดขาว (ขอบบอก) และในกล่องจมเทา (พื้นขาวตัด) */
+/** ผิวช่องกรอก/ช่องเลือก/กล่องข้อความ — พื้น field + เส้น resting ที่สงบ
+ *  label/content/context บอกว่าเป็น control; เส้นมีไว้ช่วยเห็นรูปทรง ไม่ใช่สร้างตาราง
+ *  focus/error เปลี่ยนสีเส้นเดิมเป็น contrast สูง จึงไม่ทำให้ขนาด control ขยับ */
 export const FIELD_SURFACE =
-  "border border-slate-200 bg-surface text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500";
+  "border border-field-border bg-field text-strong placeholder:text-placeholder aria-invalid:border-red-500 aria-invalid:bg-red-50/50 aria-invalid:focus-visible:border-red-500 aria-invalid:focus-visible:ring-red-500/30 data-[invalid=true]:border-red-500 data-[invalid=true]:bg-red-50/50 data-[invalid=true]:focus-visible:border-red-500 data-[invalid=true]:focus-visible:ring-red-500/30 dark:aria-invalid:border-red-400 dark:aria-invalid:bg-red-950/20 dark:aria-invalid:focus-visible:border-red-400 dark:aria-invalid:focus-visible:ring-red-400/30 dark:data-[invalid=true]:border-red-400 dark:data-[invalid=true]:bg-red-950/20 dark:data-[invalid=true]:focus-visible:border-red-400 dark:data-[invalid=true]:focus-visible:ring-red-400/30";
+
+/** control ที่ยืนเดี่ยวบนผืนหน้า — ขาว+เงาเบา โดยไม่ใช้ field-border เข้ม
+ *  caller บอกเพียง semantic role ผ่าน prop; primitive เป็นเจ้าของผิว */
+export const RAISED_CONTROL_SURFACE =
+  "border-transparent bg-surface shadow-sm";
+
+/** inline ใช้กับ control ที่ทำหน้าที่เป็น action ในแถว ไม่ใช่พื้นที่กรอก เช่นเมนูคัดลอก */
+export type ControlSurface = "field" | "raised" | "inline";
+
+export const INLINE_CONTROL_SURFACE =
+  "border-transparent bg-transparent shadow-none";
+
+/** disabled ยังต้องอ่านค่าและเห็นรูปทรงได้ — ใช้ muted fill โดยไม่ลด opacity ทั้งก้อน */
+export const DISABLED_CONTROL_SURFACE =
+  "disabled:border-border disabled:bg-surface-muted disabled:text-muted disabled:shadow-none disabled:opacity-100";
 
 /** ช่องกรอกบรรทัดเดียวที่ยืนลำพัง — กว้างเท่า 1 คอลัมน์ของกริด 2 ช่อง (ขอบขวาตรงกับ
  *  ช่องที่อยู่เหนือมันพอดี) · เดิมยืดเต็มการ์ด 976px = กว้างกว่าข้อความที่จะพิมพ์ 5 เท่า
@@ -96,34 +109,59 @@ export const FIELD_SURFACE =
 export const FIELD_MEASURE = "max-w-[calc(50%-0.5rem)]";
 
 /** กล่องย่อยที่จมลงไปในการ์ด (กลุ่มฟอร์ม · แถบสรุป)
- *  ช่องกรอกเป็นพื้นขาว+ขอบ มองเห็นบนแผงเทาได้เอง — ไม่ต้องมีกลไกสลับสีอีก */
-// dark ใช้ black/25 (เข้มกว่าการ์ด) — เบสเคาะ 2026-08-04 "ของที่จม = เข้มกว่าเสมอ"
-// เดิม white/5 สว่างกว่าการ์ด → ลำดับซิกแซก การ์ด<แผง>ช่องกรอก อ่านทิศความลึกไม่ออก
-export const SUNK_PANEL = "bg-slate-100 dark:bg-black/25";
+ *  เป็น structural surface เท่านั้น ห้ามเปลี่ยนสี field ลูกตามตำแหน่ง */
+export const SUNK_PANEL = "bg-surface-muted";
+
+/** ของที่กดได้ตอนชี้ — คนละชั้นกับ SUNK_PANEL เสมอ
+ * แยก hover/pressed คนละ token เพื่อให้แถวที่ใช้แค่ช่วยไล่สายตาไม่หลอกว่ากดได้ */
+export const INTERACTIVE_HOVER =
+  "hover:bg-interactive-hover hover:text-strong dark:hover:bg-interactive-hover dark:hover:text-strong";
+
+/** feedback ตอนกำลังกด — compose เฉพาะ element ที่มี action จริง */
+export const INTERACTIVE_PRESSED =
+  "active:bg-interactive-pressed active:text-strong dark:active:bg-interactive-pressed dark:active:text-strong";
+
+/** interaction ที่วางบน navbar/sidebar — Light ใช้ hover ขาวนวลชุดเดียวกับ surface;
+ *  Dark เบาลงหนึ่งชั้นเพราะ chrome เข้มกว่า card ไม่เช่นนั้น hover จะเกือบเท่า selected */
+export const INTERACTIVE_CHROME_HOVER =
+  "hover:bg-interactive-chrome-hover hover:text-strong dark:hover:bg-interactive-chrome-hover dark:hover:text-strong";
+
+export const INTERACTIVE_CHROME_PRESSED =
+  "active:bg-interactive-chrome-pressed active:text-strong dark:active:bg-interactive-chrome-pressed dark:active:text-strong";
+
+/** ของที่กำลังถูกเลือก — เข้มกว่า hover แต่ยังไม่แย่งปุ่ม action หลัก */
+export const INTERACTIVE_SELECTED =
+  "bg-interactive-selected text-interactive-selected-text";
 
 /** กล่องที่ลอยขึ้นมาทับเนื้อหา — เมนู · ปฏิทิน · ตัวกรอง · กล่องเด้ง
  *  .overlay-surface (globals.css) ให้ทั้งพื้นและเงามาแล้ว — ห้ามใส่ bg-white/border ซ้ำ
  *  ของเดิม 6 จุดใส่ซ้ำ ทำให้ในโหมดมืดได้ขอบสว่างซ้อนเงา และมุมโค้งไม่ตรงกัน */
 export const OVERLAY_PANEL = `overlay-surface ${RADIUS.surface}`;
 
-/** หัวตารางที่วางบน surface ปกติ — light ต้องกลืนกับกล่องตารางตามแบบ A
- *  ส่วน dark คงชั้นขาวโปร่งเดิมที่อ่านง่ายและเบสชอบอยู่แล้ว */
+/** หัวตารางที่วางบน surface ปกติ — semantic ชุดเดียวทั้งสองธีม */
 export const TABLE_HEAD_SURFACE =
-  "border-b border-slate-200 bg-surface text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400";
+  "border-b border-divider bg-surface text-muted";
 
 /** ขอบประ = "ที่ว่างรอของ" — ปุ่มเพิ่มของ · ช่องอัปโหลด · กล่องว่างที่กดเพิ่มได้
  *  audit 2026-08-01: 21 จุดใช้ slate-200 สลับ slate-300 โดยไม่มีเหตุผล
- *  และครึ่งหนึ่งลืมใส่สีโหมดมืด → ขอบหายไปเลยบนพื้นดำ */
+ *  และครึ่งหนึ่งลืมใส่สีโหมดมืด → ขอบหายไปเลยบนพื้นดำ
+ *  เบสเคาะจากจอจริง 2026-08-14 ให้คืน resting แบบเดิม: กล่องใหญ่ต้องเป็นเส้นนำสายตาเบาๆ
+ *  ไม่ใช่ strong boundary; caller ค่อยเพิ่ม strong/สีพื้นตอน hover และใช้ focus ring ตอน keyboard */
 export const DASHED = "border border-dashed border-slate-300 dark:border-slate-700";
+
+/** ขอบประที่กดได้ — resting ใช้ DASHED อ่อน แต่ pointer ต้องยกเส้นขึ้นทั้ง Light/Dark
+ *  แยกจาก DASHED เพราะกล่องว่าง/placeholder ที่อ่านอย่างเดียวไม่ควรตอบสนองตอนชี้ */
+export const DASHED_INTERACTIVE =
+  `${DASHED} hover:border-border-strong dark:hover:border-border-strong`;
 
 /** ตัวเลือกหนึ่งบรรทัดในเมนูที่กางออกมา — สถานะชี้/ถูกเลือก/กดไม่ได้ ชุดเดียวกันทุกเมนู */
 export const MENU_ITEM =
-  "relative flex cursor-pointer select-none items-center justify-between gap-2 px-3 text-sm outline-none data-[highlighted]:bg-slate-100 data-[state=checked]:bg-blue-50 data-[state=checked]:font-medium data-[state=checked]:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:data-[highlighted]:bg-white/10 dark:data-[state=checked]:bg-blue-950/50 dark:data-[state=checked]:text-blue-300";
+  "relative flex cursor-pointer select-none items-center justify-between gap-2 px-3 text-sm outline-none data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong data-[state=checked]:bg-interactive-selected data-[state=checked]:font-medium data-[state=checked]:text-interactive-selected-text data-[disabled]:pointer-events-none data-[disabled]:opacity-50";
 
 /** เส้นคั่นในเมนูที่กางออกมา — เดิมเขียนซ้ำคำต่อคำ 4 จุด (เมนูโปรไฟล์ 2 · เมนู "…" ของออเดอร์ 2)
  *  โหมดมืดเคยใช้ slate-800 ซึ่งเข้มกว่าพื้นกล่องลอย = เส้นหายไปเลย
  *  ผลคือเส้นเหนือ "ออกจากระบบ" / "ยกเลิกออเดอร์" ไม่มี — เพิ่มโอกาสกดพลาดของอันตราย */
-export const MENU_SEPARATOR = "my-1 h-px bg-slate-200 dark:bg-white/10";
+export const MENU_SEPARATOR = "my-1 h-px bg-divider";
 
 /**
  * สีกล่องแจ้งเตือน 5 ระดับ — **แยกออกมาจาก <Alert> โดยตั้งใจ**
@@ -147,7 +185,7 @@ export const TINT = {
     "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
   /** บอกเฉยๆ ไม่มีสัญญาณดี/ร้าย — เดิมเขียนเองด้วย slate-200/slate-50 เฉดไม่ตรงกัน */
   neutral:
-    "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300",
+    "border-border bg-surface-muted text-secondary",
 } as const;
 
 /* ------------------------------------------------------------
@@ -178,11 +216,11 @@ export const DISPLAY_AMOUNT_LABEL = "text-xs text-muted";
  *  (Field ยังเป็นทางหลักของฟอร์ม — ตัวนี้สำหรับ editable grid เท่านั้น)
  *  เดิม labelClass ถูกประกาศซ้ำ 3 ไฟล์ค่าไม่เท่ากัน (บางไฟล์ไม่มี font-medium) */
 export const FIELD_LABEL =
-  "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
+  "mb-1 block text-xs font-medium text-muted";
 
 /** สถานะ "ตัวกรองนี้เปิดอยู่" — ปุ่มช่วงวันที่ · ปุ่มตัวกรอง · ปุ่มเลือกหลายชิ้น
  *  audit 2026-08-01: สูตรนี้ถูกเขียนซ้ำคำต่อคำใน 2 ไฟล์ และมีอีกที่ใช้เฉดต่างกัน
  *  (blue-400/blue-900) ทั้งที่หมายถึงเรื่องเดียวกัน — คนอ่านหน้าจอเห็นว่า
  *  "กรองอยู่" ด้วยสีที่ไม่เท่ากันในแต่ละหน้า */
 export const ACTIVE_FILTER =
-  "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300";
+  "bg-interactive-selected text-interactive-selected-text hover:bg-interactive-selected hover:text-interactive-selected-text active:bg-interactive-selected active:text-interactive-selected-text";

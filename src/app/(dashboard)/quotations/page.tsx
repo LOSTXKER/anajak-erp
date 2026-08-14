@@ -5,6 +5,7 @@ import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { useListPageState, usePageClamp } from "@/hooks/use-list-page-state";
 import { permAllows } from "@/lib/permissions";
+import { canCreateOrderWithPricing } from "@/lib/order-access";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -73,8 +74,8 @@ function QuotationsPageContent() {
     : "";
 
   const { data: me } = trpc.user.me.useQuery();
-  // สร้างใบเสนอ = สิทธิ์ขาย (quotation.create ใช้ salesUp) — ช่าง/กราฟิก/บัญชี ไม่โชว์ (B12)
-  const canCreateQuotation = permAllows(me?.permissions, "create_sales_docs");
+  // เริ่มใบเสนอผ่านฟอร์มเปิดงานที่มีราคา — ใช้ด่านเดียวกับปลายทาง ไม่ให้ CTA ชน AccessDenied
+  const canCreateQuotation = canCreateOrderWithPricing(me?.permissions);
   // ใบเสนอทั้งหน้าเป็นเรื่องราคาขาย — ช่าง/กราฟิกห้ามเห็น (Policy ⑦ · ตรงกับ requireRole ฝั่ง server)
   const canView = me ? permAllows(me.permissions, "see_order_money") : true;
 
@@ -113,6 +114,7 @@ function QuotationsPageContent() {
       headerChildren={
         <Toolbar>
           <SearchInput
+            surface="raised"
             ref={searchInputRef}
             containerClassName="@2xl:max-w-sm @2xl:flex-1"
             placeholder="ค้นหาเลขใบเสนอราคา, ชื่อ, ลูกค้า..."
@@ -123,6 +125,7 @@ function QuotationsPageContent() {
             {/* 7 ตัวเลือก = เกิน 5 → ดรอปดาวน์ (ชิป 7 ตัวล้นแถวบนมือถือ) · กติกาใน tokens.ts */}
             <Select
               shape="pill"
+              surface="raised"
               className="@2xl:w-52"
               aria-label="กรองตามสถานะใบเสนอราคา"
               value={status}
@@ -172,7 +175,7 @@ function QuotationsPageContent() {
               <Link
                 key={q.id}
                 href={`/quotations/${q.id}`}
-                className={cn("card-surface block rounded-2xl p-4 transition-colors hover:bg-slate-50", FOCUS_BUTTON, "dark:hover:bg-slate-900")}
+                className={cn("card-surface card-surface-hover group block rounded-2xl p-4", FOCUS_BUTTON)}
                 aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -193,7 +196,7 @@ function QuotationsPageContent() {
                     <p className="truncate text-sm text-slate-700 dark:text-slate-300">
                       {q.customer.name}
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-0.5 text-xs text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary">
                       {formatDate(q.createdAt)}
                     </p>
                   </div>

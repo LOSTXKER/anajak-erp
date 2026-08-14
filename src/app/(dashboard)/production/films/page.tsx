@@ -82,6 +82,7 @@ function FilmStockPageContent() {
       {/* ── ค้นหา + toggle แสดงที่หมดแล้ว — อยู่นอก list area กัน focus หลุดตอนโหลด ── */}
       <Toolbar>
         <SearchInput
+          surface="raised"
           ref={searchInputRef}
           placeholder="ค้นหาลาย / ชื่อลูกค้า / เลขออเดอร์..."
           defaultValue={search}
@@ -91,7 +92,11 @@ function FilmStockPageContent() {
         <ToolbarGroup className="shrink-0">
           {/* เดิมเป็นสวิตช์ + ปุ่มข้อความแยกกัน = ตัวกรองแบบที่ 5 ของระบบ
               เปลี่ยนเป็นชิปเปิด/ปิด ให้เหมือนหน้ารายการอื่น (กติกาใน tokens.ts) */}
-          <FilterChip selected={includeEmpty} onClick={() => setIncludeEmpty(!includeEmpty)}>
+          <FilterChip
+            surface="raised"
+            selected={includeEmpty}
+            onClick={() => setIncludeEmpty(!includeEmpty)}
+          >
             แสดงที่หมดแล้ว
           </FilterChip>
         </ToolbarGroup>

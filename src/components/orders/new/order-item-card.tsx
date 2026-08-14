@@ -17,23 +17,24 @@ import {
 import type { OrderItemForm } from "@/types/order-form";
 import {
   PRICING_TYPE_LABELS,
-  EMPTY_PRODUCT,
+  createOrderItemProduct,
   itemHasContent,
 } from "@/types/order-form";
 import { PrintTableRow } from "./print-table-row";
 import { PrintCardMobile } from "./print-card-mobile";
 import { ProductTableRow } from "./product-table-row";
 import { ProductCardMobile } from "./product-card-mobile";
+import { ProductAdaptiveCard } from "./product-adaptive-card";
 import { AddProductPopover, PRODUCT_TYPE_OPTIONS } from "./add-product-popover";
-import { FIELD_LABEL, FIELD_MEASURE, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { FIELD_LABEL, FIELD_MEASURE, FOCUS_BUTTON, RADIUS, SUNK_PANEL, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 
 export const labelClass = FIELD_LABEL;
 
-// หัวข้อกลุ่ม — เด่นชัด (แถบน้ำเงิน + ตัวหนาเข้ม) แยกกลุ่มให้สายตาจับได้ทันที (เบส: highlight หัวข้อ)
-const groupLabelClass =
-  "border-l-[3px] border-blue-500 pl-2 text-sm font-semibold text-slate-800 dark:border-blue-400 dark:text-slate-100";
+const groupHeadingClass =
+  "text-sm font-semibold text-slate-800 dark:text-slate-100";
 
 interface OrderItemCardProps {
+  cardId: string;
   item: OrderItemForm;
   itemIdx: number;
   canRemove: boolean;
@@ -57,8 +58,6 @@ interface OrderItemCardProps {
   // โหมดกระชับ (หน้าแก้รายการ): ยุบ คำอธิบาย/ส่วนเสริม/หมายเหตุ เป็น "รายละเอียดเพิ่มเติม" ·
   // ตัดสรุปราคาต่อรายการ (sidebar มีรวมแล้ว) · ย่อหัวข้อ (redesign 2026-06-12)
   compact?: boolean;
-  /** presentation เฉพาะหน้าเปิดงานใหม่: สินค้าก่อนลาย + empty CTA กระชับ */
-  appearance?: "default" | "intake";
 }
 
 // ============================================================
@@ -67,11 +66,12 @@ interface OrderItemCardProps {
 
 // หัวการ์ดของแต่ละรายการ (ทุกรายการกางเห็นหมด ไม่ accordion — เบส: ไม่ต้องซ่อน)
 function OrderItemRow({
-  item, itemIdx, canRemove, onRemoveItem,
+  item, itemIdx, canRemove, headingId, onRemoveItem,
 }: {
   item: OrderItemForm;
   itemIdx: number;
   canRemove: boolean;
+  headingId: string;
   onRemoveItem: (idx: number) => void;
 }) {
   const itemPriceSummary = buildOrderItemPriceSummary(item);
@@ -79,14 +79,13 @@ function OrderItemRow({
   const empty = !itemHasContent(item);
 
   return (
-    // ไม่มีเส้นใต้ — เลขวงกลม+ตัวหนาแยกหัวออกจากเนื้อได้เองแล้ว (เบส 2026-08-04 "เส้นบางๆ ที่แบ่ง section รกเยอะไป")
-    <div className="flex items-center gap-2 pt-2">
+    <div className="flex min-h-11 items-center gap-2">
       <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
         {itemIdx + 1}
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+      <h3 id={headingId} className="min-w-0 flex-1 truncate text-sm font-semibold text-strong">
         รายการที่ {itemIdx + 1}
-      </span>
+      </h3>
       {/* จำนวน/ยอด โผล่เมื่อมีเลขจริงเท่านั้น — เดิมใส่ขีด "—" ไว้แทนค่าว่าง
           กลายเป็นขีดลอยสองอันบนหัวรายการที่ไม่ได้บอกอะไร (เบสถามเอง 2026-08-05
           "ขีดนี้คืออะไร" = สัญญาณว่ามันสื่อความไม่ได้) */}
@@ -101,7 +100,7 @@ function OrderItemRow({
         </span>
       )}
       {canRemove && (
-        <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveItem(itemIdx)} aria-label="ลบรายการ" className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40">
+        <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveItem(itemIdx)} aria-label="ลบรายการ" className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400">
           <Trash2 />
         </Button>
       )}
@@ -138,7 +137,7 @@ function ItemTableCols() {
 // ============================================================
 
 export function OrderItemCard({
-  item, itemIdx, canRemove, isExpanded,
+  cardId, item, itemIdx, canRemove, isExpanded,
   allItems, printCatalog, addonCatalog,
   onUpdateItem, onRemoveItem,
   onAddPrint, onRemovePrint, onUpdatePrint,
@@ -146,13 +145,8 @@ export function OrderItemCard({
   onOpenPicker, onSetItems,
   showPrints = true, showAddons = true,
   compact = false,
-  appearance = "default",
 }: OrderItemCardProps) {
   const expanded = isExpanded;
-  const isIntake = appearance === "intake";
-  const groupHeadingClass = isIntake
-    ? "text-sm font-semibold text-slate-800 dark:text-slate-100"
-    : groupLabelClass;
   const otherItemsWithPrints = (allItems ?? []).map((it, idx) => ({ it, idx })).filter(({ idx }) => idx !== itemIdx).filter(({ it }) => it.prints.length > 0);
 
   const copyPrintsFrom = (sourceIdx: number) => {
@@ -183,7 +177,18 @@ export function OrderItemCard({
     onSetItems((prev) => {
       const copy = [...prev];
       const addons = [...copy[itemIdx].addons];
-      addons[aIdx] = { ...addons[aIdx], addonType: catalogItem.type, name: catalogItem.name, pricingType: catalogItem.pricingType as "PER_PIECE" | "PER_ORDER", unitPrice: catalogItem.defaultPrice };
+      addons[aIdx] = {
+        ...addons[aIdx],
+        addonType: catalogItem.type,
+        name: catalogItem.name,
+        pricingType: catalogItem.pricingType as "PER_PIECE" | "PER_ORDER",
+        unitPrice: catalogItem.defaultPrice,
+        // เปลี่ยน identity ของส่วนเสริมแล้วต้องไม่แบก metadata/จำนวน override
+        // ที่ UI ไม่ได้แสดงจากรายการเดิมไปคิดราคากับรายการใหม่
+        description: undefined,
+        quantity: undefined,
+        notes: undefined,
+      };
       copy[itemIdx] = { ...copy[itemIdx], addons };
       return copy;
     });
@@ -192,9 +197,10 @@ export function OrderItemCard({
   const addProductWithSource = (source: string) => {
     onSetItems((prev) => {
       const copy = [...prev];
-      const newProd = structuredClone(EMPTY_PRODUCT);
-      newProd.itemSource = source;
-      if (source === "CUSTOMER_PROVIDED") newProd.baseUnitPrice = 0;
+      const newProd = createOrderItemProduct({
+        itemSource: source,
+        ...(source === "CUSTOMER_PROVIDED" ? { baseUnitPrice: 0 } : {}),
+      });
       copy[itemIdx] = { ...copy[itemIdx], products: [...copy[itemIdx].products, newProd] };
       return copy;
     });
@@ -202,11 +208,15 @@ export function OrderItemCard({
 
   const itemPriceSummary = buildOrderItemPriceSummary(item);
   const { totalQuantity: totalQty, subtotal } = itemPriceSummary;
+  const headingId = `${cardId}-heading`;
+  const usesAdaptiveProductBlocks = item.products.some(
+    (product) => product.itemSource !== "FROM_STOCK",
+  );
 
   // ── section: คำอธิบายงาน ──
   const descField = (
-    <Field label={isIntake ? "ชื่อชุดงาน" : "คำอธิบายงาน"} className={isIntake ? FIELD_MEASURE : undefined}>
-      <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder={isIntake ? "เช่น เสื้อทีมหน้าร้าน 30 ตัว" : "เช่น งานสกรีนทีม ABC, งานพิมพ์เสื้อกิจกรรม..."} />
+    <Field label="ชื่อชุดงาน" className={FIELD_MEASURE}>
+      <Input value={item.description} onChange={(e) => onUpdateItem(itemIdx, "description", e.target.value)} placeholder="เช่น เสื้อทีมหน้าร้าน 30 ตัว" />
     </Field>
   );
 
@@ -214,17 +224,18 @@ export function OrderItemCard({
   const printsSection = (
     <div className="@container">
       <div className="mb-2 flex items-center justify-between">
-          <span className={groupHeadingClass}>{isIntake ? "ลายและงานพิมพ์" : compact ? "ลาย" : "ลายที่ต้องการสั่งผลิต"}</span>
+          <span className={groupHeadingClass}>ลายและงานพิมพ์</span>
           <div className="flex items-center gap-1.5">
             {otherItemsWithPrints.length > 0 && (
               <div className="relative">
                 <Select
+                  surface="inline"
                   aria-label="คัดลอกลายจากรายการอื่น"
                   value=""
                   onChange={(e) => {
                     if (e.target.value) copyPrintsFrom(parseInt(e.target.value));
                   }}
-                  className="w-auto appearance-none rounded-lg border-0 bg-transparent pl-7 pr-2 text-slate-600 hover:bg-slate-100 sm:text-xs dark:text-slate-400 dark:hover:bg-slate-800"
+                  className="w-auto appearance-none rounded-lg pl-7 pr-2 text-slate-600 hover:bg-interactive-hover hover:text-secondary sm:text-xs dark:text-slate-400 dark:hover:bg-interactive-hover dark:hover:text-secondary"
                 >
                   <option value="">คัดลอกลาย...</option>
                   {otherItemsWithPrints.map(({ it, idx }) => (
@@ -252,12 +263,7 @@ export function OrderItemCard({
         />
       ) : (
         <>
-          <div
-            className={cn(
-              "hidden overflow-hidden",
-              isIntake ? "@2xl:block" : "@3xl:block"
-            )}
-          >
+          <div className="hidden overflow-hidden @2xl:block">
             <table className="w-full table-fixed">
               <ItemTableCols />
               <thead className={TABLE_HEAD_SURFACE}>
@@ -293,7 +299,7 @@ export function OrderItemCard({
               </tbody>
             </table>
           </div>
-          <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
+          <div className="space-y-2.5 @2xl:hidden">
             {item.prints.map((print, printIdx) => (
               <PrintCardMobile
                 key={printIdx}
@@ -319,7 +325,7 @@ export function OrderItemCard({
   const productsSection = (
     <div className="@container">
       <div className="mb-2 flex items-center justify-between">
-        <span className={groupHeadingClass}>{isIntake ? "สินค้าในชุดงาน" : compact ? "สินค้า" : "สินค้าที่ต้องการสั่งผลิต"}</span>
+        <span className={groupHeadingClass}>สินค้าในชุดงาน</span>
         {item.products.length > 0 && (
           <AddProductPopover
             onAddFromStock={onOpenPicker}
@@ -346,49 +352,11 @@ export function OrderItemCard({
           ))}
         </div>
       ) : (
-        <>
-          {/* พื้นที่กว้างพอ (container ≥ 2xl): ตารางหนึ่งแถวต่อสินค้า พร้อมหัวคอลัมน์ครบ */}
-          <div
-            className={cn(
-              "hidden overflow-hidden",
-              isIntake ? "@2xl:block" : "@3xl:block"
-            )}
-          >
-            <table className="w-full table-fixed">
-              <ItemTableCols />
-              <thead className={TABLE_HEAD_SURFACE}>
-                <tr className="text-xs font-medium">
-                  <th className="px-2 py-2.5 text-left">แหล่ง</th>
-                  <th className="px-2 py-2.5 text-left">สินค้า</th>
-                  <th className="px-2 py-2.5 text-center">แพค</th>
-                  <th className="px-2 py-2.5 text-center">ราคา</th>
-                  <th className="px-2 py-2.5 text-center">ส่วนลด</th>
-                  <th className="px-2 py-2.5 text-center">จำนวน</th>
-                  <th className="px-2 py-2.5 text-center">รวม</th>
-                  <th className="py-2.5">
-                    <span className="sr-only">จัดลำดับและลบสินค้า</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {item.products.map((prod, pIdx) => (
-                  <ProductTableRow
-                    key={pIdx}
-                    product={prod}
-                    prodIdx={pIdx}
-                    itemIdx={itemIdx}
-                    totalProducts={item.products.length}
-                    onSetItems={onSetItems}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {/* จอแคบใช้การ์ด ไม่บีบตาราง 8 คอลัมน์ลงมือถือ/แท็บเล็ต */}
-          <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
+        usesAdaptiveProductBlocks ? (
+          <div className="space-y-3">
             {item.products.map((prod, pIdx) => (
-              <ProductCardMobile
-                key={pIdx}
+              <ProductAdaptiveCard
+                key={prod.formKey ?? `${prod.itemSource}-${pIdx}`}
                 product={prod}
                 prodIdx={pIdx}
                 itemIdx={itemIdx}
@@ -397,7 +365,55 @@ export function OrderItemCard({
               />
             ))}
           </div>
-        </>
+        ) : (
+          <>
+            {/* สินค้าจากสต็อกล้วนคงตารางเดิมที่เบสเคาะไว้ */}
+            <div className="hidden overflow-hidden @2xl:block">
+              <table className="w-full table-fixed">
+                <ItemTableCols />
+                <thead className={TABLE_HEAD_SURFACE}>
+                  <tr className="text-xs font-medium">
+                    <th className="px-2 py-2.5 text-left">แหล่ง</th>
+                    <th className="px-2 py-2.5 text-left">สินค้า</th>
+                    <th className="px-2 py-2.5 text-center">แพค</th>
+                    <th className="px-2 py-2.5 text-center">ราคา</th>
+                    <th className="px-2 py-2.5 text-center">ส่วนลด</th>
+                    <th className="px-2 py-2.5 text-center">จำนวน</th>
+                    <th className="px-2 py-2.5 text-center">รวม</th>
+                    <th className="py-2.5">
+                      <span className="sr-only">จัดลำดับและลบสินค้า</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {item.products.map((prod, pIdx) => (
+                    <ProductTableRow
+                      key={prod.formKey ?? `stock-table-${pIdx}`}
+                      product={prod}
+                      prodIdx={pIdx}
+                      itemIdx={itemIdx}
+                      totalProducts={item.products.length}
+                      onSetItems={onSetItems}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* จอแคบใช้การ์ด ไม่บีบตาราง 8 คอลัมน์ลงมือถือ/แท็บเล็ต */}
+            <div className="space-y-2.5 @2xl:hidden">
+              {item.products.map((prod, pIdx) => (
+                <ProductCardMobile
+                  key={prod.formKey ?? `stock-mobile-${pIdx}`}
+                  product={prod}
+                  prodIdx={pIdx}
+                  itemIdx={itemIdx}
+                  totalProducts={item.products.length}
+                  onSetItems={onSetItems}
+                />
+              ))}
+            </div>
+          </>
+        )
       )}
     </div>
   );
@@ -406,7 +422,7 @@ export function OrderItemCard({
   const addonsSection = (
     <div className="@container">
       <div className="mb-2 flex items-center justify-between">
-        <span className={groupHeadingClass}>{isIntake ? "ส่วนเสริมในชุดงาน" : "ส่วนเสริม (Add-ons)"}</span>
+        <span className={groupHeadingClass}>ส่วนเสริมในชุดงาน</span>
         {item.addons.length > 0 && (
           <Button type="button" variant="ghost" size="sm" onClick={() => onAddAddon(itemIdx)}>
             <Plus />เพิ่มส่วนเสริม
@@ -422,12 +438,7 @@ export function OrderItemCard({
         />
       ) : (
         <>
-        <div
-          className={cn(
-            "hidden overflow-hidden",
-            isIntake ? "@2xl:block" : "@3xl:block"
-          )}
-        >
+        <div className="hidden overflow-hidden @2xl:block">
           <table className="w-full table-fixed">
             <ItemTableCols />
             <thead className={TABLE_HEAD_SURFACE}>
@@ -457,20 +468,20 @@ export function OrderItemCard({
                   <td colSpan={2} className="px-2 py-1.5 align-middle"><Input aria-label={`ชื่อส่วนเสริม ${aIdx + 1}`} value={a.name} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "name", e.target.value)} placeholder="ชื่อ add-on" size="dense" /></td>
                   <td colSpan={2} className="px-2 py-1.5 align-middle"><Select aria-label={`วิธีคิดราคาส่วนเสริม ${aIdx + 1}`} value={a.pricingType} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "pricingType", e.target.value as "PER_PIECE" | "PER_ORDER")} size="dense"><option value="PER_PIECE">{PRICING_TYPE_LABELS.PER_PIECE}</option><option value="PER_ORDER">{PRICING_TYPE_LABELS.PER_ORDER}</option></Select></td>
                   <td className="px-2 py-1.5 align-middle"><Input aria-label={`ราคาส่วนเสริม ${aIdx + 1}`} type="number" min={0} step={0.01} value={a.unitPrice || ""} onChange={(e) => onUpdateAddon(itemIdx, aIdx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="0.00" size="dense" /></td>
-                  <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 /></Button></td>
+                  <td className="py-1.5 pl-1 text-right align-middle"><Button type="button" variant="ghost" size="icon" aria-label={`ลบส่วนเสริม ${aIdx + 1}`} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400" onClick={() => onRemoveAddon(itemIdx, aIdx)}><Trash2 /></Button></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className={cn("space-y-2.5", isIntake ? "@2xl:hidden" : "@3xl:hidden")}>
+        <div className="space-y-2.5 @2xl:hidden">
           {item.addons.map((addon, addonIdx) => (
             <div key={addonIdx} className={cn("space-y-3 rounded-xl p-3", SUNK_PANEL)}>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                   ส่วนเสริม #{addonIdx + 1}
                 </p>
-                <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40" onClick={() => onRemoveAddon(itemIdx, addonIdx)}><Trash2 /></Button>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบส่วนเสริม ${addonIdx + 1}`} className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400" onClick={() => onRemoveAddon(itemIdx, addonIdx)}><Trash2 /></Button>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="ประเภท">
@@ -506,8 +517,8 @@ export function OrderItemCard({
 
   // ── section: หมายเหตุ ──
   const notesField = (
-    <Field label={isIntake ? "หมายเหตุการผลิตชุดนี้" : "หมายเหตุรายการ"} className={isIntake ? FIELD_MEASURE : undefined}>
-      <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder={isIntake ? "รายละเอียดที่ทีมผลิตต้องรู้..." : "หมายเหตุเพิ่มเติมสำหรับรายการนี้..."} />
+    <Field label="หมายเหตุการผลิตชุดนี้" className={FIELD_MEASURE}>
+      <Input value={item.notes} onChange={(e) => onUpdateItem(itemIdx, "notes", e.target.value)} placeholder="รายละเอียดที่ทีมผลิตต้องรู้..." />
     </Field>
   );
 
@@ -561,15 +572,9 @@ export function OrderItemCard({
     </div>
   ) : null;
 
-  // โหมดรับเรื่องเรียงสินค้าขึ้นก่อน (เลือกเสื้อ → ค่อยว่าจะพิมพ์อะไรลงไป)
-  // ทั้ง 3 ส่วนใช้หัวข้อ+การ์ดว่างชุดเดียวกัน ไม่มีทางลัดยุบรวมอีกแล้ว
-  const productionSections = isIntake ? (
-    <>
-      {productsSection}
-      {showPrints && printsSection}
-      {showAddons && addonsSection}
-    </>
-  ) : (
+  // หน้าเปิดงานและหน้าแก้ใช้ลำดับ/ถ้อยคำ/หน้าตาชุดเดียวกัน — ลายอยู่เหนือสินค้า
+  // ตามมติล่าสุด 2026-08-14 และไม่มี presentation branch ให้สองหน้ากลับมา drift
+  const productionSections = (
     <>
       {showPrints && printsSection}
       {productsSection}
@@ -578,16 +583,27 @@ export function OrderItemCard({
   );
 
   return (
-    // แต่ละชุดงานเป็นกล่องมีขอบของตัวเอง — เบสลองพื้นจมแล้วขอเปลี่ยนเป็นเส้นขอบ
-    // (2026-08-04 "การแบ่งรายการ ขอลองแบบเส้นขอบดีกว่า")
-    <div className={cn(RADIUS.surface, "border border-slate-200 px-4 pb-4 pt-1 dark:border-white/10")}>
+    // หนึ่งชุดงาน = หนึ่ง card surface โดยตรง ไม่มี card ใหญ่ครอบและไม่มีเส้นรอบซ้อน
+    // (เบส 2026-08-14: รายการที่ 2 ต้องแยกเป็นการ์ดใหม่ และเอาขอบรายการออก)
+    <article
+      id={cardId}
+      tabIndex={-1}
+      role="listitem"
+      aria-labelledby={headingId}
+      className={cn(
+        "card-surface scroll-mt-24 p-4 outline-none sm:p-5",
+        FOCUS_BUTTON,
+        RADIUS.surface,
+      )}
+    >
       <OrderItemRow
         item={item} itemIdx={itemIdx} canRemove={canRemove}
+        headingId={headingId}
         onRemoveItem={onRemoveItem}
       />
 
       {expanded && (
-        <div className="space-y-4 py-4">
+        <div className="space-y-5 pt-4">
           {compact ? (
             <>
               {/* คำอธิบายงานอยู่บนสุด ใต้เลขรายการ (เบส: คำอธิบายไปอยู่ข้างบนกับเลข) */}
@@ -605,6 +621,6 @@ export function OrderItemCard({
           )}
         </div>
       )}
-    </div>
+    </article>
   );
 }

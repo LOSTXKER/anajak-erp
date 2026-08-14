@@ -251,6 +251,7 @@ function WhtRegisterPageContent() {
       {/* ── filter แท็บ + ค้นหา ── */}
       <Toolbar>
         <SearchInput
+          surface="raised"
           ref={searchInputRef}
           placeholder="ค้นหาลูกค้า / เลขบิล / เลขใบรับรอง..."
           defaultValue={search}
@@ -261,6 +262,7 @@ function WhtRegisterPageContent() {
           {FILTER_TABS.map((t) => (
             <FilterChip
               key={t.key}
+              surface="raised"
               selected={tab === t.key}
               // "pending" = ค่า default → ส่ง null ให้ลบ param (URL สะอาด)
               onClick={() =>
@@ -376,7 +378,7 @@ function WhtRegisterPageContent() {
                           asChild
                           variant="ghost"
                           size="icon-sm"
-                          className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+                          className="text-slate-400 hover:text-strong dark:hover:text-strong"
                         >
                           <a
                             href={row.fileUrl}
@@ -544,7 +546,7 @@ function WhtRegisterPageContent() {
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setFileUrl("")}
-                    className="shrink-0 text-slate-400 hover:text-red-600"
+                    className="shrink-0 text-slate-400 hover:text-red-600 dark:hover:text-red-400"
                     title="เอาไฟล์ออก"
                   >
                     <X />

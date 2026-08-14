@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildItemPriceLines,
+  calculateFormItemSubtotal,
   calculateItemSubtotal,
   sumOrderQuantity,
 } from "./pricing";
@@ -66,6 +67,29 @@ describe("buildItemPriceLines — แจกแจงราคาให้บว�
       const sum = buildItemPriceLines(c).reduce((s, l) => s + l.total, 0);
       expect(sum).toBeCloseTo(calculateItemSubtotal(c), 2);
     }
+  });
+});
+
+describe("calculateFormItemSubtotal — adapter จากฟอร์มต้องไม่ทำข้อมูลราคาหาย", () => {
+  it("คงจำนวน override ของส่วนเสริมต่อชิ้น แทนการใช้จำนวนเสื้อทั้งชุด", () => {
+    expect(
+      calculateFormItemSubtotal({
+        products: [
+          {
+            baseUnitPrice: 100,
+            variants: [{ quantity: 10 }],
+          },
+        ],
+        prints: [],
+        addons: [
+          {
+            pricingType: "PER_PIECE",
+            unitPrice: 50,
+            quantity: 3,
+          },
+        ],
+      }),
+    ).toBe(1_150);
   });
 });
 

@@ -17,7 +17,7 @@ import { trpc } from "@/lib/trpc";
 import { uploadFile } from "@/lib/supabase";
 import { safeFileExt } from "@/lib/file-urls";
 import { Field } from "@/components/ui/field";
-import { DASHED, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE, RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 
@@ -68,7 +68,7 @@ function QuickAddPattern({
             placeholder="ชื่อแพทเทิร์น เช่น คอกลมแขนสั้น"
           />
           {/* เป้านิ้ว ≥44px บนจอเล็ก — เดิม py-1 ได้ราว 26px กดพลาดตลอดบนมือถือ */}
-          <label className={cn(DASHED, RADIUS.item, CONTROL_MIN_H, "flex w-fit cursor-pointer items-center gap-1.5 px-3 py-1 text-xs text-muted transition-colors hover:border-blue-300 hover:text-strong")}>
+          <label className={cn(DASHED_INTERACTIVE, RADIUS.item, CONTROL_MIN_H, "flex w-fit cursor-pointer items-center gap-1.5 px-3 py-1 text-xs text-muted transition-colors hover:text-strong")}>
             <Plus className="h-3 w-3" />
             {file ? file.name : "แนบรูป/ไฟล์ (ไม่บังคับ)"}
             <input type="file" accept="image/*,.pdf,.ai,.psd" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
@@ -90,10 +90,11 @@ function QuickAddPattern({
 }
 
 export function CustomMadeDetail({
-  product, updateProduct,
+  product, updateProduct, embedded = false,
 }: {
   product: OrderItemProductForm;
   updateProduct: (field: string, value: unknown) => void;
+  embedded?: boolean;
 }) {
   const patternsQuery = trpc.pattern.list.useQuery({ isActive: true });
   const { isLoading: patternsLoading, isError: patternsError } = patternsQuery;
@@ -127,7 +128,7 @@ export function CustomMadeDetail({
        ② <Alert> ตั้ง role="alert" = พื้นที่ประกาศสด ที่ ui/tokens.ts เขียนกติกาไว้ว่า
           "ของที่กดได้/โฟกัสได้ไม่ควรอยู่ในนั้น" — ทั้งกล่องนี้เป็นช่องกรอกล้วน
        (เบสเคาะจาก mockup 2026-08-03) */
-    <div className={cn(SUNK_PANEL, "p-3", RADIUS.inner)}>
+    <div className={cn(!embedded && [SUNK_PANEL, "p-3", RADIUS.inner])}>
       {/* Pattern section */}
       <div className="mb-3">
         <div className="mb-2 flex items-center gap-2">
@@ -201,7 +202,7 @@ export function CustomMadeDetail({
       </div>
 
       {/* Fabric + Garment spec */}
-      <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-3">
         <Field label="ประเภทสินค้า">
           <Select size="sm" value={product.productType} onChange={(e) => updateProduct("productType", e.target.value)}>
             {Object.entries(PRODUCT_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

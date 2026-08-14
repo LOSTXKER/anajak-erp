@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import {
   User,
 } from "lucide-react";
 
-import { DASHED, TINT } from "@/components/ui/tokens";
+import { DASHED, FOCUS_BUTTON, TINT } from "@/components/ui/tokens";
 
 // ── ศูนย์บัญชาการผลิต (floor overview) — จอโฟกัสเดียวของงานผลิต ──
 // เบสเคาะ 2026-07-08: "เปิดมาต้องเห็นภาพรวมทั้งโรงงานก่อน" · ตอบ 3 คำถามใน 3 วิ:
@@ -101,6 +102,7 @@ export function ProductionCommandCenter({
   lanes,
   queue,
   myWork,
+  workPreview,
   prioritizeMyWork,
   canCreate,
   onPickLane,
@@ -110,6 +112,8 @@ export function ProductionCommandCenter({
   lanes: LaneTile[];
   queue: QueueItem[];
   myWork: MyWorkItem[];
+  /** การ์ดงานจริงที่ทำต่อได้ — แสดงก่อนตัวกรองสายเมื่อไม่มีงานไฟไหม้ */
+  workPreview?: ReactNode;
   // ช่างเปิดมาเห็นงานที่ตัวเองถือก่อน; หัวหน้ายังคงเห็นภาพรวมโรงงานก่อน
   prioritizeMyWork: boolean;
   // เปิด/ข้ามด่านใบผลิตได้ (หัวหน้าขึ้นไป — ตรง supervise_operations ฝั่ง server)
@@ -204,6 +208,8 @@ export function ProductionCommandCenter({
           </div>
         </section>
       )}
+
+      {workPreview}
 
       {/* ② สายการผลิต — กวาดตาเห็นงานเดินถึงไหนแต่ละสาย แตะ tile = เข้าไปดูรายการจริง */}
       <section className="space-y-3">
@@ -321,7 +327,7 @@ function MyWorkSection({ items, primary = false }: { items: MyWorkItem[]; primar
             <li key={work.stepId}>
               <Link
                 href={`/production/${work.productionId}`}
-                className="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/50"
+                className="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
@@ -348,9 +354,7 @@ function LaneTileButton({ tile, onClick }: { tile: LaneTile; onClick: () => void
     <button
       type="button"
       onClick={onClick}
-      // border-transparent ไว้ก่อน แล้วค่อยเปลี่ยนสีตอนชี้ — ถ้าใส่ `border` เฉยๆ
-      // จะได้เส้นตลอดเวลาซึ่งผิดเจตนา · ถ้าไม่ใส่เลย สั่ง hover:border-* ไปก็ไม่ขึ้น
-      className="card-surface flex min-h-[76px] flex-col justify-between rounded-2xl border border-transparent p-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
+      className={cn("card-surface card-surface-hover flex min-h-[76px] flex-col justify-between rounded-2xl p-3 text-left", FOCUS_BUTTON)}
     >
       <div className="flex items-start justify-between gap-1.5">
         <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
@@ -358,7 +362,7 @@ function LaneTileButton({ tile, onClick }: { tile: LaneTile; onClick: () => void
           {tile.isOutsource && <Truck className="h-3 w-3 text-slate-400" />}
         </span>
         {tile.overdue > 0 && (
-          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-2xs font-semibold text-white">
+          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-700 px-1 text-2xs font-semibold text-white">
             {tile.overdue}
           </span>
         )}

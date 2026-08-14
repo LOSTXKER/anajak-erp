@@ -270,7 +270,7 @@ export function CreateInvoiceDialog({
                       ))}
                     </Select>
                   {adjustableOriginals.length === 0 ? (
-                    <p className="mt-1 text-xs text-red-500">
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">
                       ออเดอร์นี้ยังไม่มีใบกำกับ/ใบแจ้งหนี้ให้อ้างอิง — ออกใบลดหนี้/เพิ่มหนี้ไม่ได้
                     </p>
                   ) : (

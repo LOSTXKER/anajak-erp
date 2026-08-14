@@ -5,6 +5,28 @@
 ## เป้าหมาย
 ERP หลังบ้านโรงงานสกรีนเสื้อ Anajak — ให้ทีม 5 คน+เจ้าของ จัดการ ขาย→ผลิต→outsource→ส่ง→ออกบิล/ภาษี ของลูกค้า B2B (เครดิตเทอม) ครบวงจร ออกเอกสารภาษีเต็มรูปเอง + เชื่อม Anajak Stock · **ห้าม deploy/ใช้จริงจนจบ P0** (ROADMAP.md:18)
 
+## 🧭 UI หลักแบบ minimal (เลื่อน V2 ขึ้นเป็นระบบจริง 2026-08-12)
+- [x] **URL หลักมีหน้าตาเดียว** — `/` และ `/orders*` ใช้ dashboard/shell/order presentation ที่ผ่านการทดลองใน V2 · ไม่มี branch classic/V2 ใน component หลัก · `/v2*` เป็น compatibility redirect มายัง URL หลักและรักษา query เดิม
+- [x] **เป็นของจริง ไม่ใช่ mockup** — อ่านข้อมูลจาก tRPC/service/permission ชุดเดิมและทุก action พาไป flow ที่ใช้งานได้จริง · ห้ามมีตัวเลข/รายการตัวอย่างเขียนค้างในหน้า
+- [x] **จุดโฟกัสชัดใน 3 วินาที** — งานเสี่ยง/งานค้างและ action หลักมาก่อนสถิติสะสม · navigation ชั้นแรกมีเฉพาะงานหลัก แต่ทุกโมดูลที่มีสิทธิ์ยังเข้าถึงได้จากเมนูหรือค้นหา
+- [x] **ชุดสีเดียวทั้งระบบทั้งสองธีม** — ล็อกน้ำเงินแบรนด์ `#3973b2` ไว้ · Light ใช้ผืนเกือบขาว · Dark เป็น neutral gray เข้ม · page, chrome, card, sunk, field, overlay, border และข้อความทุกระดับอ่านลำดับเดียวกัน · semantic text ผ่าน WCAG AA · public/print ไม่ถูกธีมหลังบ้านรบกวน
+- [x] **สถานะโต้ตอบชัดแต่ไม่เป็นแถบหนัก** — navigation/ขั้นสถานะ/clickable card ใช้ neutral surface hover ที่ขาวนวลและครอบ hit area จริง · pressed เข้มกว่า hover · selected/focus ใช้น้ำเงิน · disabled แยกชัด · ข้อความบนทุก state ผ่าน WCAG AA
+- [x] **แถบบนเป็นผืนเดียวเต็มจอ** — chrome และเส้นคั่นของ navbar พาดเต็ม viewport รวมส่วนโลโก้เหนือ sidebar · เนื้อหา/เมนูยังเลื่อนแยกกันและ mobile bottom navigation ไม่ถอย
+- [x] **ใช้ได้จริงหลายขนาดจอ** — 390px และ 1440px ไม่มี horizontal overflow · เป้ากดมือถือ ≥44px · sticky action ไม่ถูก bottom navigation ทับ · keyboard focus/ภาษาไทย/reduced-motion ใช้ได้ครบ
+- [x] **สถานะและสิทธิ์ไม่โกหก** — loading/error/retry/empty แยกกัน · ข้อมูลเงินและเมนู gated ตาม permission เดิม · ทางเข้าฟอร์มเปิดงานทุกจุดใช้กติกาเดียวกันและ fail closed
+- [x] **รายการออเดอร์เริ่มจากงาน ไม่เริ่มจากแผงสถานะ** — มือถือเห็นรายการหรือ empty/error ที่ลงมือทำได้ก่อน `y=600` · จอกว้างเห็น status rail ครบ · search/filter/sort/pagination/CSV ยังใช้งานจริง
+- [x] **เปิดงานและรายละเอียดคง flow เดิม** — draft/validation/upload/`next=quote`/duplicate/status/เอกสาร/แท็บ URL+Back ผ่าน service/server guard เดิม · แท็บเป็น underline minimal และไม่เสีย ARIA/keyboard
+- [x] **พื้นผิวแยกตามหน้าที่ ไม่กลืนกัน** — card/table/status rail เป็น surface สีขาวมีเงานุ่มและไม่มีกรอบตกแต่ง · field ในฟอร์มเป็นขาว Light/เข้ม Dark พร้อมเส้น resting อ่อนที่ไม่แข่งกับเนื้อหา · พื้นที่เพิ่ม/อัปโหลดใช้ขอบประอ่อนและค่อยเน้นตอน hover/focus · standalone toolbar/secondary action เป็น surface ยก · `surface-muted` สงวนให้โครงสร้างหรือ disabled · focus/error/selected ต้องชนะสถานะปกติอย่างชัดเจน
+- [x] **รายการงานแยกเป็นการ์ดที่อ่านออกทันที** — หน้าเปิดงานและหน้าแก้ไขใช้หนึ่งรายการต่อหนึ่ง card ขาวไร้ขอบ · CTA “เพิ่มรายการ” อยู่เหนือ list และเห็นได้ก่อนเลื่อน · Light workspace เป็น off-white ที่ต่างจาก card ขาวเพียงเล็กน้อย โดยยังแยก hierarchy ได้ทั้ง desktop/mobile
+
+## 🧩 UX integrity refactor (Impeccable audit 2026-08-13)
+- [x] **โค้ด UI หลักมีบ้านเดียว** — shell/dashboard/order primitives ที่เป็น canonical ไม่ใช้ชื่อ V2 หลังเลื่อนขึ้นเป็นระบบจริงแล้ว · ถอด shell เก่าที่ไม่มี caller เพื่อกันแก้ผิดชุด
+- [x] **แท็บโหลดเท่าที่ใช้** — หน้ารายละเอียดออเดอร์ mount/query เมื่อเปิดครั้งแรกแล้วรักษา state ของแท็บที่เคยเข้า · ฟอร์มเปิดงาน opt-in keep-mounted เพื่อไม่ทำข้อมูลที่พิมพ์ค้างหาย
+- [x] **interaction ไม่โกหก** — ไม่มี interactive element ซ้อนกัน · ปุ่มล้าง/ปิดบนมือถือมีเป้ากด≥44px · สถานะที่ยังทำไม่ได้ไม่วาดเป็นปุ่ม · ป้าย action ห้ามถูกตัดจนเดาความหมายไม่ได้
+- [x] **สิทธิ์และ deep link ชัดเจน** — order detail รอ permission ก่อนวาด action/แท็บ · query สิทธิ์พังเป็น error ระดับหน้า · ลิงก์ไปแท็บที่ไม่มีสิทธิ์ต้องบอกเหตุผลและกลับแท็บที่เข้าได้
+- [x] **คิวผลิตสดพอสำหรับหลายคน** — `/production` โพลล์ข้อมูลและ refetch เมื่อกลับแท็บ ไม่พึ่งเฉพาะ mutation ของเครื่องตัวเอง
+- [x] **กู้ร่างได้ตรงกับคำที่บอก** — `/orders/new` กู้ค่าหัวออเดอร์ เงื่อนไข ค่าใช้จ่าย ที่อยู่จัดส่ง และ metadata ไฟล์ที่อัปโหลดแล้ว · แยกตามผู้ใช้ มีอายุ 7 วัน ไม่เก็บ base64 preview และ debounce เก่าห้ามเขียนร่างกลับหลังสร้างสำเร็จ/reset
+
 ## 🔐 P0 deploy-gate — verified ครบแล้ว (audit 2026-07-02 อ่านโค้ดจริง + adversarial verify)
 - [x] **คนนอกเปิดเว็บแล้วเข้าไม่ได้** — `src/middleware.ts:31-78` refresh session ทุก request รวม /api · ยกเว้นเฉพาะหน้า public token (approve/upload/status/quote) + /api/mcp (auth ด้วย key เอง)
 - [x] **ทีม login จริงได้ตาม role** — login `signInWithPassword` + error ไทย (`(auth)/login/page.tsx:24-37`) · logout จริง (`user-menu.tsx:22`) · จัดการ user ครบวงจรถึง Supabase ban (`user.ts:87-226`)

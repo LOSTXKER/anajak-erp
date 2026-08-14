@@ -8,10 +8,14 @@ import { cn } from "@/lib/utils";
 import { OVERLAY_PANEL } from "@/components/ui/tokens";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { permAllows } from "@/lib/permissions";
-import { navigationItemsForSurface } from "@/lib/navigation";
+import { canCreateOrderWithPricing } from "@/lib/order-access";
+import {
+  navigationItemsForSurface,
+  type NavigationItem,
+} from "@/lib/navigation";
 import { Spinner } from "@/components/ui/spinner";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
+import { requestAppNavigation } from "@/lib/navigation-request";
 
 type CommandItem = {
   id: string;
@@ -27,9 +31,17 @@ interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   returnFocusRef?: React.RefObject<HTMLButtonElement | null>;
+  navigationHref?: (item: NavigationItem) => string;
+  orderHref?: (orderId: string) => string;
 }
 
-export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPaletteProps) {
+export function CommandPalette({
+  open,
+  onOpenChange,
+  returnFocusRef,
+  navigationHref,
+  orderHref,
+}: CommandPaletteProps) {
   const router = useRouter();
   const [query, setQuery] = React.useState("");
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
@@ -42,18 +54,20 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
 
   const navigate = React.useCallback(
     (path: string) => {
-      router.push(path);
-      onOpenChange(false);
+      requestAppNavigation(path, {
+        push: (href) => router.push(href),
+        replace: (href) => router.replace(href),
+        onProceed: () => onOpenChange(false),
+      });
     },
     [router, onOpenChange]
   );
 
   const items = React.useMemo(() => {
     const result: CommandItem[] = [];
-    const canCreateSalesDocs = permAllows(me?.permissions, "create_sales_docs");
-    const canSeeOrderMoney = permAllows(me?.permissions, "see_order_money");
+    const showCreateOrder = canCreateOrderWithPricing(me?.permissions);
 
-    if (canCreateSalesDocs) {
+    if (showCreateOrder) {
       result.push({
         id: "new-order",
         label: "เปิดงานใหม่",
@@ -64,7 +78,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
         action: () => navigate("/orders/new"),
       });
     }
-    if (canCreateSalesDocs && canSeeOrderMoney) {
+    if (showCreateOrder) {
       result.push({
         id: "new-quotation",
         label: "เปิดงานเพื่อทำใบเสนอ",
@@ -83,11 +97,11 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
         group: "ไปที่",
         icon: item.icon,
         keywords: item.aliases.join(" "),
-        action: () => navigate(item.href),
+        action: () => navigate(navigationHref?.(item) ?? item.href),
       }))
     );
     return result;
-  }, [me?.permissions, navigate]);
+  }, [me?.permissions, navigate, navigationHref]);
 
   React.useEffect(() => {
     const trimmed = query.trim();
@@ -114,7 +128,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
         hint: item.subtitle ?? undefined,
         group: "ออเดอร์",
         icon: ShoppingCart,
-        action: () => navigate(item.href),
+        action: () => navigate(orderHref?.(item.id) ?? item.href),
       })),
       ...data.customers.map((item) => ({
         id: `entity-customer-${item.id}`,
@@ -141,7 +155,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
         action: () => navigate(item.href),
       })),
     ];
-  }, [debouncedQuery, entityQuery.data, navigate, query]);
+  }, [debouncedQuery, entityQuery.data, navigate, orderHref, query]);
 
   const filtered = React.useMemo(() => {
     if (!query.trim()) return items;
@@ -204,7 +218,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-backdrop backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none" />
         <DialogPrimitive.Content
           onKeyDown={handleKey}
           onCloseAutoFocus={(event) => {
@@ -214,7 +228,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
           }}
           className={cn(
             OVERLAY_PANEL,
-            "fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none sm:top-[14%]",
+            "fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none sm:top-[14%] sm:max-h-[calc(86dvh-1rem)]",
           )}
         >
           <DialogPrimitive.Title className="sr-only">ค้นหา</DialogPrimitive.Title>
@@ -222,8 +236,8 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
             ค้นหาเมนู หน้า หรือคำสั่งที่ใช้บ่อย
           </DialogPrimitive.Description>
 
-          <div className="flex items-center gap-3 border-b border-slate-100 px-5 dark:border-slate-800">
-            <Search className="h-[18px] w-[18px] shrink-0 text-slate-400" strokeWidth={1.75} />
+          <div className="flex items-center gap-3 border-b border-divider px-5">
+            <Search className="h-[18px] w-[18px] shrink-0 text-muted" strokeWidth={1.75} />
             <input
               ref={inputRef}
               value={query}
@@ -234,9 +248,9 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
               placeholder="ค้นหาเมนู เลขออเดอร์ ลูกค้า ใบเสนอ หรือบิล..."
               aria-label="ค้นหาในระบบ"
               autoComplete="off"
-              className="min-w-0 flex-1 bg-transparent py-4 text-base text-slate-900 outline-none placeholder:text-slate-400 sm:text-sm dark:text-white"
+              className="min-w-0 flex-1 bg-transparent py-4 text-base text-strong outline-none placeholder:text-placeholder sm:text-sm"
             />
-            <kbd className="hidden rounded-lg bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500 sm:inline-block dark:bg-slate-800 dark:text-slate-400">
+            <kbd className="hidden rounded-lg bg-surface-muted px-1.5 py-0.5 text-xs font-medium text-muted sm:inline-block">
               ESC
             </kbd>
             <DialogPrimitive.Close asChild>
@@ -253,7 +267,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
 
           <div className="min-h-0 flex-1 overflow-y-auto py-2.5">
             {grouped.length === 0 && !entitySearchPending && !entitySearchFailed && (
-              <p className="px-4 py-10 text-center text-sm text-slate-400">
+              <p className="px-4 py-10 text-center text-sm text-muted">
                 {query.trim().length === 1
                   ? "พิมพ์อีก 1 ตัวอักษรเพื่อค้นหาออเดอร์ ลูกค้า และเอกสาร"
                   : "ไม่พบรายการที่ค้นหา"}
@@ -261,7 +275,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
             )}
             {grouped.map(([group, list]) => (
               <div key={group} className="mb-1.5 px-2">
-                <p className="px-3 pb-1 pt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                <p className="px-3 pb-1 pt-2 text-xs font-medium text-muted">
                   {group}
                 </p>
                 {list.map((item) => {
@@ -278,13 +292,13 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
                         CONTROL_MIN_H, "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
                         active
                           ? "bg-blue-600 text-white"
-                          : "text-slate-700 dark:text-slate-300"
+                          : "text-secondary"
                       )}
                     >
                       <item.icon
                         className={cn(
                           "h-[17px] w-[17px] shrink-0",
-                          active ? "text-white" : "text-slate-400"
+                          active ? "text-white" : "text-muted"
                         )}
                         strokeWidth={1.75}
                       />
@@ -294,7 +308,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
                           <span
                             className={cn(
                               "block truncate text-xs",
-                              active ? "text-white/75" : "text-slate-500 dark:text-slate-400"
+                              active ? "text-white" : "text-muted"
                             )}
                           >
                             {item.hint}
@@ -310,7 +324,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
               </div>
             ))}
 
-            <div aria-live="polite" className="px-5 py-1 text-xs text-slate-400">
+            <div aria-live="polite" className="px-5 py-1 text-xs text-muted">
               {entitySearchPending && (
                 <span className="flex items-center gap-2">
                   <Spinner size="sm" />
@@ -323,7 +337,7 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
                   <button
                     type="button"
                     onClick={() => entityQuery.refetch()}
-                    className={cn(CONTROL_MIN_H, "shrink-0 rounded-lg px-3 font-medium text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-950/40")}
+                    className={cn(CONTROL_MIN_H, "shrink-0 rounded-lg px-3 font-medium text-blue-700 hover:bg-interactive-hover dark:text-blue-300 dark:hover:bg-interactive-hover")}
                   >
                     ลองใหม่
                   </button>
@@ -332,18 +346,18 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: CommandPa
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-5 py-2.5 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+          <div className="flex items-center justify-end gap-3 border-t border-divider px-5 py-2.5 text-xs text-muted">
             <span className="flex items-center gap-1.5">
-              <kbd className="rounded-lg bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
+              <kbd className="rounded-lg bg-surface-muted px-1.5 py-0.5 text-xs">
                 ↑
               </kbd>
-              <kbd className="rounded-lg bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
+              <kbd className="rounded-lg bg-surface-muted px-1.5 py-0.5 text-xs">
                 ↓
               </kbd>
               เลื่อน
             </span>
             <span className="flex items-center gap-1.5">
-              <kbd className="rounded-lg bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
+              <kbd className="rounded-lg bg-surface-muted px-1.5 py-0.5 text-xs">
                 ↵
               </kbd>
               เลือก

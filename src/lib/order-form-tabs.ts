@@ -12,18 +12,16 @@ export type OrderFormTabKey = "intake" | "items" | "pricing" | "attachments";
 
 export interface OrderFormTabDef {
   key: OrderFormTabKey;
-  /** เลขลำดับ — โชว์บนจอกว้าง ซ่อนบนมือถือ (ป้ายเป็นชุดเดียวกันทั้งสองจอ) */
-  number: string;
   label: string;
 }
 
 // ลำดับและชื่อ = 4 ช่วงเดิมของหน้าเปิดงานเป๊ะ (เบสเคาะโครงนี้ 2026-08-03)
 // รอบนี้เปลี่ยนแค่ "กลไกนำทาง" จากแถบกระโดด → แท็บ ไม่ได้ย้ายของข้ามช่วง
 export const ORDER_FORM_TABS: OrderFormTabDef[] = [
-  { key: "intake", number: "01", label: "รับเรื่อง" },
-  { key: "items", number: "02", label: "รายการงาน" },
-  { key: "pricing", number: "03", label: "ราคาและเงื่อนไข" },
-  { key: "attachments", number: "04", label: "ไฟล์แนบ" },
+  { key: "intake", label: "รับเรื่อง" },
+  { key: "items", label: "รายการงาน" },
+  { key: "pricing", label: "ราคาและเงื่อนไข" },
+  { key: "attachments", label: "ไฟล์แนบ" },
 ];
 
 export const ORDER_FORM_DEFAULT_TAB: OrderFormTabKey = "intake";

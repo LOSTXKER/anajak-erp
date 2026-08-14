@@ -171,7 +171,7 @@ export function OrderDeliverySection({
             <button
               type="button"
               onClick={() => setShowBlindShipDialog(true)}
-              className={cn(CONTROL_MIN_H, "mt-1 flex w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-blue-500")}
+              className={cn(CONTROL_MIN_H, "mt-1 flex w-fit touch-manipulation items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-strong dark:hover:text-strong")}
             >
               <Settings2 className="h-3 w-3" />
               {packContext.data.blindShip ? "ตั้งค่า blind ship" : "ตั้งค่า blind ship (ปิดอยู่)"}
@@ -277,7 +277,7 @@ export function OrderDeliverySection({
                                 ) : actions.canEditTracking ? (
                                   <button
                                     type="button"
-                                    className={cn(CONTROL_MIN_H, "touch-manipulation text-xs text-slate-400 hover:text-blue-500")}
+                                    className={cn(CONTROL_MIN_H, "touch-manipulation text-xs text-slate-400 hover:text-strong dark:hover:text-strong")}
                                     onClick={() => {
                                       setEditTrackingId(delivery.id);
                                       setEditTrackingValue(delivery.trackingNumber || "");
@@ -331,7 +331,7 @@ export function OrderDeliverySection({
                                 rel="noreferrer"
                                 title="ใบรายการแนบกล่อง"
                                 aria-label={`พิมพ์ใบรายการแนบกล่องสำหรับ ${delivery.recipientName}`}
-                                className={cn(CONTROL_H, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 sm:w-9 dark:hover:bg-slate-800 dark:hover:text-blue-400")}
+                                className={cn(CONTROL_H, RADIUS.item, "flex w-11 items-center justify-center text-slate-400 transition-colors hover:bg-interactive-hover hover:text-strong sm:w-9 dark:hover:text-strong")}
                               >
                                 <Printer className="h-3.5 w-3.5" />
                               </a>

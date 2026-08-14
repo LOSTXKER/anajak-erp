@@ -32,7 +32,7 @@ import { toast } from "sonner";
 
 import { ImageRemoveButton } from "@/components/ui/image-remove-button";
 import { Alert } from "@/components/ui/alert";
-import { DASHED, TINT } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE, TINT } from "@/components/ui/tokens";
 
 // การ์ด "ตรวจนับ QC" บนหน้าออเดอร์ — นับของจุดที่ 2 ก่อนแพ็ค (FLOW-REDESIGN ก้อน 3)
 // นับจริง "ดีกี่ตัว เสียกี่ตัว" · ดีล้วน→เด้งแพ็คเอง · มีเสีย→ถอยกลับผลิต+งานแก้อัตโนมัติ
@@ -407,7 +407,7 @@ function QcCountForm({
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => removeRow(idx)}
-                  className="text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+                  className="text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                   aria-label="ลบแถวของเสีย"
                 >
                   <Trash2 />
@@ -520,7 +520,7 @@ function QcCountForm({
             type="button"
             variant="outline"
             onClick={addRow}
-            className={cn(DASHED, "h-11 w-full gap-1.5 text-sm")}
+            className={cn(DASHED_INTERACTIVE, "h-11 w-full gap-1.5 text-sm")}
           >
             <Plus />
             เพิ่มของเสีย

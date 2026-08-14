@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
-import { formatCurrency, isImageUrl } from "@/lib/utils";
+import { cn, formatCurrency, isImageUrl } from "@/lib/utils";
 import {
   COLLAR_TYPES,
   SLEEVE_TYPES,
@@ -35,7 +35,6 @@ import {
   Check,
 } from "lucide-react";
 import { FOCUS_BUTTON, SUNK_PANEL, TABLE_HEAD_SURFACE, TINT } from "@/components/ui/tokens";
-import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 
 type OrderData = RouterOutput["order"]["getById"];
@@ -77,7 +76,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
         ) : (
           <span className="text-slate-400">ยังไม่ได้ตรวจรับ</span>
         )}
-        <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1.5 px-2 text-2xs text-yellow-600 hover:text-yellow-800 dark:text-yellow-400">
+        <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1.5 px-2 text-2xs text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300">
           <Edit3 />{product.receivedInspected ? "แก้ไข" : "ตรวจรับ"}
         </Button>
       </div>
@@ -99,7 +98,10 @@ function ReceiveTrackingInline({ product, onSuccess }: {
           </Select>
         </div>
         <div>
-          <label className="flex items-center gap-2" htmlFor={`garment-inspected-${product.id}`}>
+          <label
+            className="flex min-h-11 cursor-pointer items-center gap-2"
+            htmlFor={`garment-inspected-${product.id}`}
+          >
             <Checkbox id={`garment-inspected-${product.id}`} checked={inspected} onChange={(e) => setInspected(e.target.checked)} />
             <span className="text-xs font-medium text-slate-700 dark:text-slate-300">ตรวจรับแล้ว</span>
           </label>
@@ -117,7 +119,7 @@ function ReceiveTrackingInline({ product, onSuccess }: {
           </Button>
         </div>
       </div>
-      {mutation.isError && <p className="mt-1 text-xs text-red-500">{mutation.error.message}</p>}
+      {mutation.isError && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{mutation.error.message}</p>}
     </Alert>
   );
 }
@@ -408,7 +410,16 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                 <tr key={p.id}>
                                   <td className="py-1.5 pr-4">
                                     {isImageUrl(p.designImageUrl) ? (
-                                      <a href={p.designImageUrl!} target="_blank" rel="noreferrer" title="เปิดภาพเต็ม">
+                                      <a
+                                        href={p.designImageUrl!}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        title="เปิดภาพเต็ม"
+                                        className={cn(
+                                          "inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg",
+                                          FOCUS_BUTTON,
+                                        )}
+                                      >
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
                                           src={p.designImageUrl!}
@@ -418,12 +429,20 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                       </a>
                                     ) : p.designImageUrl ? (
                                       // มีไฟล์แต่ไม่ใช่รูป (เช่น .ai/.pdf) — ยังต้องกดเปิดได้ ไม่ใช่ขึ้นว่าไม่มีไฟล์
-                                      <a href={p.designImageUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline dark:text-blue-400">
+                                      <a
+                                        href={p.designImageUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className={cn(
+                                          "inline-flex min-h-11 min-w-11 items-center rounded-lg text-xs text-blue-600 hover:underline dark:text-blue-400",
+                                          FOCUS_BUTTON,
+                                        )}
+                                      >
                                         เปิดไฟล์แบบ
                                       </a>
                                     ) : (
                                       // เขียนเป็นคำ ไม่ใช้ขีด — ขีดหน้าตาเหมือนช่อง "ไม่ต้องกรอก" ทั้งที่นี่คือ "งานเดินต่อไม่ได้"
-                                      <span className="text-2xs text-slate-400 dark:text-slate-500">ยังไม่มีไฟล์แบบ</span>
+                                      <span className="text-2xs text-muted">ยังไม่มีไฟล์แบบ</span>
                                     )}
                                   </td>
                                   {printsHavePosition && (
@@ -528,10 +547,10 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                                 <tr key={`${line.kind}-${line.index}`}>
                                   <td className="py-1 pr-2 [overflow-wrap:anywhere]">
                                     <span className="text-slate-700 dark:text-slate-200">{label}</span>
-                                    {detail && <span className="ml-1 text-slate-400">({detail})</span>}
+                                    {detail && <span className="ml-1 text-muted">({detail})</span>}
                                   </td>
-                                  <td className="px-2 py-1 text-right tabular-nums text-slate-400">{formatCurrency(line.unitPrice)}</td>
-                                  <td className="px-2 py-1 text-right tabular-nums text-slate-400">×{line.quantity}</td>
+                                  <td className="px-2 py-1 text-right tabular-nums text-muted">{formatCurrency(line.unitPrice)}</td>
+                                  <td className="px-2 py-1 text-right tabular-nums text-muted">×{line.quantity}</td>
                                   <td className="py-1 text-right tabular-nums">{formatCurrency(line.total)}</td>
                                 </tr>
                               );
@@ -542,7 +561,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                               <td colSpan={2} className="pt-2 text-sm font-semibold text-slate-900 dark:text-white">
                                 รวมทั้งหมด
                               </td>
-                              <td className="px-2 pt-2 text-right text-xs tabular-nums text-slate-400">
+                              <td className="px-2 pt-2 text-right text-xs tabular-nums text-muted">
                                 {itemTotalQty} ตัว
                               </td>
                               <td className="pt-2 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
@@ -551,7 +570,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
                             </tr>
                             {itemTotalQty > 0 && (
                               <tr>
-                                <td colSpan={3} className="text-xs text-slate-400">
+                                <td colSpan={3} className="text-xs text-muted">
                                   เฉลี่ย {formatCurrency(Math.round(((item.subtotal ?? 0) / itemTotalQty) * 100) / 100)}/ตัว
                                 </td>
                                 <td aria-hidden="true" />

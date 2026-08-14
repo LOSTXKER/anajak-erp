@@ -35,7 +35,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/30 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-backdrop backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -69,7 +69,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className={cn(CONTROL_H, "absolute right-2 top-2 inline-flex w-11 touch-manipulation items-center justify-center rounded-full opacity-70 ring-offset-white transition-opacity hover:opacity-100", FOCUS_BUTTON, "sm:right-3 sm:top-3 sm:w-9 disabled:pointer-events-none data-[state=open]:bg-slate-100 dark:ring-offset-slate-900 dark:data-[state=open]:bg-slate-800")}>
+      <DialogPrimitive.Close className={cn(CONTROL_H, "absolute right-2 top-2 inline-flex w-11 touch-manipulation items-center justify-center rounded-full opacity-70 transition-colors hover:bg-interactive-hover hover:opacity-100 active:bg-interactive-pressed", FOCUS_BUTTON, "sm:right-3 sm:top-3 sm:w-9 disabled:pointer-events-none data-[state=open]:bg-interactive-hover")}>
         <X className="h-4 w-4" />
         <span className="sr-only">ปิดหน้าต่าง</span>
       </DialogPrimitive.Close>
@@ -94,7 +94,7 @@ DialogHeader.displayName = "DialogHeader";
 /* ปุ่มท้าย dialog — ปักก้นกรอบเสมอ ไม่เลื่อนหนีไปกับเนื้อหา
    sticky เกาะ "บรรพบุรุษที่เลื่อนได้ตัวใกล้สุด" = DialogContent เอง จึงได้ผลแม้ปุ่ม
    ถูกห่ออยู่ใน <form> ลึกเข้าไปอีกชั้น (customer-edit-dialog เป็นแบบนั้น)
-   พื้นต้องตรงกับ .overlay-surface: light=surface · dark=surface-muted
+   พื้นต้องตรงกับ .overlay-surface: surface-elevated ทั้งสองธีม
    data-dialog-footer = ธงให้ DialogContent ยกที่ว่างล่างมาให้ footer ถือ */
 function DialogFooter({
   className,
@@ -104,7 +104,7 @@ function DialogFooter({
     <div
       data-dialog-footer=""
       className={cn(
-        "sticky bottom-0 z-10 flex flex-col-reverse gap-2 bg-surface pb-5 pt-3 sm:flex-row sm:justify-end sm:pb-6 dark:bg-surface-muted",
+        "sticky bottom-0 z-10 flex flex-col-reverse gap-2 bg-surface-elevated pb-5 pt-3 sm:flex-row sm:justify-end sm:pb-6",
         className
       )}
       {...props}
@@ -119,7 +119,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold leading-tight text-slate-900 dark:text-white", className)}
+    className={cn("text-lg font-semibold leading-tight text-strong", className)}
     {...props}
   />
 ));
@@ -131,7 +131,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-slate-500 dark:text-slate-400", className)}
+    className={cn("text-sm text-muted", className)}
     {...props}
   />
 ));

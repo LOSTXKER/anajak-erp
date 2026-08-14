@@ -35,6 +35,8 @@ export const analyticsRouter = router({
       completedThisMonth,
       ordersByStatus,
       recentOrders,
+      inHouseDtfProducing,
+      outsourceProducing,
     ] = await Promise.all([
       ctx.prisma.customer.count(),
       ctx.prisma.customer.count({ where: { createdAt: { gte: startOfMonth } } }),
@@ -63,6 +65,34 @@ export const analyticsRouter = router({
           internalStatus: true,
           customer: { select: { name: true, company: true } },
           items: { select: { prints: { select: { printType: true } } } },
+          productions: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: {
+              steps: {
+                where: { status: { in: ["IN_PROGRESS", "PENDING"] } },
+                orderBy: { sortOrder: "asc" },
+                take: 1,
+                select: { assignedTo: { select: { name: true } } },
+              },
+            },
+          },
+        },
+      }),
+      // แยกกำลังผลิตตามความจริงโรงงาน: DTF ทำเอง · เทคนิคอื่นเป็นงานร้านนอก
+      // งานผสมถูกนับทั้งสองเลน เพราะใช้กำลังการผลิตทั้งสองฝั่งจริง
+      ctx.prisma.order.count({
+        where: {
+          internalStatus: "PRODUCING",
+          items: { some: { prints: { some: { printType: "DTF" } } } },
+        },
+      }),
+      ctx.prisma.order.count({
+        where: {
+          internalStatus: "PRODUCING",
+          items: {
+            some: { prints: { some: { printType: { not: "DTF" } } } },
+          },
         },
       }),
     ]);
@@ -131,6 +161,10 @@ export const analyticsRouter = router({
         status: item.internalStatus,
         count: item._count.id,
       })),
+      productionRouteCounts: {
+        inHouseDtf: inHouseDtfProducing,
+        outsource: outsourceProducing,
+      },
       recentOrders: recentOrders.map((o) => {
         // ชนิดงานพิมพ์ของออเดอร์ — มีหลายชนิด = "ผสม" · ไม่มีลาย = ไม่โชว์ป้าย
         const types = new Set<string>();
@@ -150,6 +184,11 @@ export const analyticsRouter = router({
           customerStatus: o.customerStatus,
           internalStatus: o.internalStatus,
           printLabel,
+          productionRoutes: {
+            inHouseDtf: types.has("DTF"),
+            outsource: [...types].some((type) => type !== "DTF"),
+          },
+          assigneeName: o.productions[0]?.steps[0]?.assignedTo?.name ?? null,
           // ยอดเงินเห็นเฉพาะฝั่งบริหาร-บัญชี (เหมือน revenue/topCustomers)
           totalAmount: canSeeFinance ? o.totalAmount : null,
         };

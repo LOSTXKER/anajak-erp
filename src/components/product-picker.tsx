@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { trpc } from "@/lib/trpc";
 import { cn, formatCurrency } from "@/lib/utils";
-import { FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, RADIUS, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { FIELD_SURFACE, FOCUS_BUTTON, FOCUS_FIELD, INTERACTIVE_SELECTED, OVERLAY_PANEL, RADIUS, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -177,7 +177,7 @@ export function ProductPickerDialog({
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-backdrop backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <Dialog.Content
           className={cn(
             OVERLAY_PANEL,
@@ -203,6 +203,7 @@ export function ProductPickerDialog({
           {/* Search & Filters */}
           <div className="space-y-3 border-b border-slate-200 px-5 py-3 dark:border-slate-700">
             <SearchInput
+              surface="field"
               ref={inputRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -217,8 +218,8 @@ export function ProductPickerDialog({
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                     selectedGroup === g.key
-                      ? "bg-blue-600 text-white dark:bg-blue-500"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700",
+                      ? INTERACTIVE_SELECTED
+                      : "bg-surface-muted text-secondary hover:bg-interactive-hover active:bg-interactive-pressed",
                   )}
                 >
                   {g.label}
@@ -262,7 +263,7 @@ export function ProductPickerDialog({
                       <button
                         type="button"
                         onClick={() => toggleExpand(product.id)}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
                       >
                         {isExpanded ? (
                           <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-400" />
@@ -302,7 +303,7 @@ export function ProductPickerDialog({
                                     ? "text-green-600 dark:text-green-400"
                                     : totalStock > 0
                                       ? "text-amber-600 dark:text-amber-400"
-                                      : "text-red-500 dark:text-red-400",
+                                      : "text-red-700 dark:text-red-300",
                                 )}
                               >
                                 {totalStock}
@@ -354,19 +355,19 @@ export function ProductPickerDialog({
                                       {v.sku}
                                     </td>
                                     <td className="col-start-2 min-w-0 p-0 text-slate-600 dark:text-slate-400 sm:table-cell sm:px-3 sm:py-1.5">
-                                      <span className="block text-2xs text-slate-400 dark:text-slate-500 sm:hidden">
+                                      <span className="block text-2xs text-muted sm:hidden">
                                         สี
                                       </span>
                                       <span className="block truncate">{v.color || "-"}</span>
                                     </td>
                                     <td className="col-start-3 min-w-0 p-0 font-medium text-slate-700 dark:text-slate-300 sm:table-cell sm:px-3 sm:py-1.5">
-                                      <span className="block text-2xs font-normal text-slate-400 dark:text-slate-500 sm:hidden">
+                                      <span className="block text-2xs font-normal text-muted sm:hidden">
                                         ไซส์
                                       </span>
                                       <span className="block truncate">{v.size}</span>
                                     </td>
                                     <td className="col-start-2 p-0 sm:table-cell sm:px-3 sm:py-1.5 sm:text-right">
-                                      <span className="mb-1 block text-2xs text-slate-400 dark:text-slate-500 sm:hidden">
+                                      <span className="mb-1 block text-2xs text-muted sm:hidden">
                                         คงเหลือ
                                       </span>
                                       <Badge
@@ -384,7 +385,7 @@ export function ProductPickerDialog({
                                       </Badge>
                                     </td>
                                     <td className="col-start-3 min-w-0 p-0 font-medium text-slate-700 dark:text-slate-300 sm:table-cell sm:px-3 sm:py-1.5 sm:text-right">
-                                      <span className="block text-2xs font-normal text-slate-400 dark:text-slate-500 sm:hidden">
+                                      <span className="block text-2xs font-normal text-muted sm:hidden">
                                         ราคา
                                       </span>
                                       <span className="block break-words">
@@ -412,7 +413,7 @@ export function ProductPickerDialog({
                                             CONTROL_H_SM,
                                             FOCUS_BUTTON,
                                             RADIUS.item,
-                                            "flex w-11 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700",
+                                            "flex w-11 items-center justify-center text-muted hover:bg-interactive-hover hover:text-secondary active:bg-interactive-pressed sm:w-8",
                                           )}
                                         >
                                           <Minus className="h-3 w-3" />
@@ -430,10 +431,10 @@ export function ProductPickerDialog({
                                           className={cn(
                                             CONTROL_H_SM,
                                             FOCUS_FIELD,
-                                            "w-14 rounded border bg-white px-1 text-center text-sm dark:bg-slate-900 dark:text-slate-100 sm:h-6 sm:min-h-0 sm:w-12 sm:text-xs",
-                                            exceedsStock
-                                              ? "border-amber-400 dark:border-amber-600"
-                                              : "border-slate-200 dark:border-slate-700",
+                                            FIELD_SURFACE,
+                                            "w-14 rounded px-1 text-center text-sm sm:h-6 sm:min-h-0 sm:w-12 sm:text-xs",
+                                            exceedsStock &&
+                                              "border-amber-400 dark:border-amber-600",
                                           )}
                                         />
                                         <button
@@ -445,7 +446,7 @@ export function ProductPickerDialog({
                                             CONTROL_H_SM,
                                             FOCUS_BUTTON,
                                             RADIUS.item,
-                                            "flex w-11 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 sm:w-8 dark:hover:bg-slate-700",
+                                            "flex w-11 items-center justify-center text-muted hover:bg-interactive-hover hover:text-secondary active:bg-interactive-pressed sm:w-8",
                                           )}
                                         >
                                           <Plus className="h-3 w-3" />

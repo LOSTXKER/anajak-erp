@@ -148,7 +148,12 @@ interface OrderItemFormLike {
     variants: Array<{ quantity: number }>;
   }>;
   prints: Array<{ unitPrice: number; position?: string }>;
-  addons: Array<{ pricingType: string; unitPrice: number; name?: string }>;
+  addons: Array<{
+    pricingType: string;
+    unitPrice: number;
+    quantity?: number | null;
+    name?: string;
+  }>;
 }
 
 /**
@@ -174,6 +179,7 @@ export function orderItemFormToPricingItem(item: OrderItemFormLike): PricingItem
     addons: item.addons.map((a) => ({
       pricingType: a.pricingType,
       unitPrice: a.unitPrice,
+      quantity: a.quantity,
     })),
   };
 }

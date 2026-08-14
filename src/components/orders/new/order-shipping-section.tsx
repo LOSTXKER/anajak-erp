@@ -35,6 +35,9 @@ interface OrderShippingSectionProps {
    *  ด้วยการล้างช่องได้ตรงๆ (input เป็น nullable ตั้งแต่ 2026-08-12) สวิตช์จึงเป็น
    *  ขั้นตอนซ้ำที่ทำให้สับสนว่า "ปิดแล้วที่อยู่เดิมหายไหม" */
   alwaysOn?: boolean;
+  showGuidance?: boolean;
+  /** ซ่อนช่องที่อยู่ตอนสวิตช์ปิดโดยไม่ล้างค่าใน state */
+  collapseWhenInactive?: boolean;
 }
 
 export function OrderShippingSection({
@@ -48,6 +51,8 @@ export function OrderShippingSection({
   id,
   onUseCustomerAddress,
   alwaysOn = false,
+  showGuidance = true,
+  collapseWhenInactive = false,
 }: OrderShippingSectionProps) {
   const active = alwaysOn || includeShipping;
   return (
@@ -55,7 +60,13 @@ export function OrderShippingSection({
       id={id}
       tabIndex={id ? -1 : undefined}
       title={title}
-      description={alwaysOn ? "ล้างช่องให้ว่าง = ลบที่อยู่จัดส่งของงานนี้" : "ปิดอยู่ = ไม่บันทึกที่อยู่นี้"}
+      description={
+        showGuidance
+          ? alwaysOn
+            ? "ล้างช่องให้ว่าง = ลบที่อยู่จัดส่งของงานนี้"
+            : "ปิดอยู่ = ไม่บันทึกที่อยู่นี้"
+          : undefined
+      }
       bordered={!embedded}
       headingLevel={embedded ? 3 : 2}
       className={className}
@@ -79,10 +90,11 @@ export function OrderShippingSection({
           ใช้ที่อยู่ลูกค้า
         </UseAddressButton>
       )}
-      <fieldset
-        disabled={!active}
-        className={cn("space-y-3 transition-opacity", !active && "opacity-55")}
-      >
+      {(!collapseWhenInactive || active) && (
+        <fieldset
+          disabled={!active}
+          className={cn("space-y-3 transition-opacity", !active && "opacity-55")}
+        >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <Field label="ชื่อผู้รับ" required={active}>
               <Input
@@ -135,7 +147,8 @@ export function OrderShippingSection({
               />
             </Field>
           </div>
-      </fieldset>
+        </fieldset>
+      )}
     </Section>
   );
 }

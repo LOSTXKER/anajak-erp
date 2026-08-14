@@ -1,5 +1,9 @@
 import type { InternalStatus } from "@prisma/client";
 import { getCustomerStatus, isValidTransition, forwardPath } from "@/lib/order-status";
+import {
+  STOCK_RESERVATION_PENDING_MESSAGE,
+  STOCK_RESERVATION_PENDING_PRODUCTION_MESSAGE,
+} from "@/lib/stock-reservation-state";
 import { badRequest, conflict } from "@/server/errors";
 import type { PrismaTx } from "@/lib/prisma";
 
@@ -38,7 +42,11 @@ export async function addOrderRevision(
 export async function transitionOrder(tx: PrismaTx, params: TransitionParams) {
   const order = await tx.order.findUniqueOrThrow({
     where: { id: params.orderId },
-    select: { orderType: true, internalStatus: true },
+    select: {
+      orderType: true,
+      internalStatus: true,
+      stockReservationError: true,
+    },
   });
 
   if (order.internalStatus === params.to) {
@@ -47,6 +55,14 @@ export async function transitionOrder(tx: PrismaTx, params: TransitionParams) {
 
   if (!isValidTransition(order.orderType, order.internalStatus, params.to)) {
     badRequest(`ไม่สามารถเปลี่ยนสถานะจาก ${order.internalStatus} เป็น ${params.to} ได้`);
+  }
+
+  const enteringProduction = params.to === "PRODUCING";
+  if (
+    enteringProduction &&
+    order.stockReservationError === STOCK_RESERVATION_PENDING_MESSAGE
+  ) {
+    badRequest(STOCK_RESERVATION_PENDING_PRODUCTION_MESSAGE);
   }
 
   const data: {
@@ -70,10 +86,38 @@ export async function transitionOrder(tx: PrismaTx, params: TransitionParams) {
   }
 
   const updated = await tx.order.updateMany({
-    where: { id: params.orderId, internalStatus: order.internalStatus },
+    where: {
+      id: params.orderId,
+      internalStatus: order.internalStatus,
+      ...(enteringProduction
+        ? {
+            // saveForm อาจตั้ง pending หลัง SELECT ข้างบนแต่ก่อน UPDATE — ผูกด่านกับ
+            // แถวที่เปลี่ยนสถานะจริงเพื่อไม่ให้เริ่มผลิตระหว่าง HTTP จองสต๊อค
+            OR: [
+              { stockReservationError: null },
+              {
+                stockReservationError: {
+                  not: STOCK_RESERVATION_PENDING_MESSAGE,
+                },
+              },
+            ],
+          }
+        : {}),
+    },
     data,
   });
   if (updated.count === 0) {
+    if (enteringProduction) {
+      const latest = await tx.order.findUniqueOrThrow({
+        where: { id: params.orderId },
+        select: { stockReservationError: true },
+      });
+      if (
+        latest.stockReservationError === STOCK_RESERVATION_PENDING_MESSAGE
+      ) {
+        badRequest(STOCK_RESERVATION_PENDING_PRODUCTION_MESSAGE);
+      }
+    }
     conflict("สถานะออเดอร์เพิ่งถูกเปลี่ยนโดยคนอื่น กรุณารีเฟรชแล้วลองใหม่");
   }
 

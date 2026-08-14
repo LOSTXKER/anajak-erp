@@ -148,8 +148,16 @@ function usePrintRunInvalidate() {
 
 export default function PrintRunsPage() {
   const confirm = useConfirm();
-  const queueQuery = trpc.printRun.queue.useQuery();
-  const listQuery = trpc.printRun.list.useQuery();
+  const queueQuery = trpc.printRun.queue.useQuery(undefined, {
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+  const listQuery = trpc.printRun.list.useQuery(undefined, {
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
   const invalidate = usePrintRunInvalidate();
   // B8: ปุ่มสั่งงาน (เปิดรอบ/พิมพ์จบ/ยกเลิก/ตัดแยก) เฉพาะคนมีสิทธิ์ผลิต — role อื่นเห็นคิวอ่านอย่างเดียว
   const { data: me } = trpc.user.me.useQuery();
@@ -248,6 +256,7 @@ export default function PrintRunsPage() {
             icon={Printer}
             title="ยังไม่มีรอบที่ค้างอยู่"
             description="เลือกงานจากคิวพิมพ์ด้านล่างเพื่อเปิดรอบพิมพ์ม้วนใหม่"
+            density="compact"
           />
         ) : (
           <div className="space-y-3 p-3">
@@ -280,6 +289,7 @@ export default function PrintRunsPage() {
             icon={Film}
             title="คิวพิมพ์ว่าง"
             description="งานขั้นพิมพ์ฟิล์ม DTF ที่แบบอนุมัติแล้วจะเข้าคิวที่นี่เอง"
+            density="compact"
           />
         ) : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -308,6 +318,7 @@ export default function PrintRunsPage() {
             icon={History}
             title="ยังไม่มีประวัติรอบใน 7 วันล่าสุด"
             description="รอบที่ปิดเสร็จหรือยกเลิกแล้วจะมาแสดงที่นี่"
+            density="compact"
           />
         ) : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -338,7 +349,7 @@ export default function PrintRunsPage() {
 
       {/* ── แถบเปิดรอบ sticky ล่างจอ — โผล่เมื่อเลือกงานแล้ว (pattern เดียวกับ orders/new) · B8 เฉพาะคนมีสิทธิ์ผลิต ── */}
       {canManage && pickedEntries.length > 0 && (
-        <div className="card-surface sticky bottom-3 z-10 flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 backdrop-blur">
+        <div className="card-surface sticky bottom-[calc(var(--app-bottom-nav-offset)+0.75rem)] z-10 flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 backdrop-blur lg:bottom-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs text-slate-400">เข้ารอบพิมพ์ม้วนนี้</p>
             <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
@@ -449,7 +460,7 @@ function ActiveRunCard({
                 variant="outline"
                 disabled={busy}
                 onClick={onCancel}
-                className="h-11 text-red-600 hover:text-red-700"
+                className="h-11 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
               >
                 ยกเลิกรอบ
               </Button>
@@ -538,7 +549,7 @@ function QueueRow({
           onClick={onToggle}
           aria-pressed={selected}
           aria-label={`${selected ? "นำออกจาก" : "เพิ่มเข้า"}รอบพิมพ์ ${entry.orderNumber}`}
-          className={cn("flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-slate-50", FOCUS_INSET, "active:bg-slate-100 dark:hover:bg-slate-800/50 dark:active:bg-slate-800")}
+          className={cn("flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-interactive-hover", FOCUS_INSET, "active:bg-interactive-pressed")}
         >
           {summary}
         </button>

@@ -132,6 +132,55 @@
 - [x] แยกราคา/ค่าใช้จ่าย/เงื่อนไขออกจากการ์ดรายการ และคง sticky bar ให้เหลือยอดหลัก + ยกเลิก + เปิดงาน ✅ 2026-08-02
 - **ปิดงาน 2026-08-02:** browser จริง `/orders/new` และ `?next=quote` ที่ 320/375/768/1024/1280/1440px + light/dark ไม่มี horizontal scroll หรือ error overlay · ทดลองเพิ่มสินค้า ลาย ส่วนเสริม ค่าใช้จ่าย เปิด/ปิดที่อยู่ และกดส่งเพื่อดูสรุปช่องที่ขาด · `/orders/[id]` editor ยังใช้หน้าตาเดิมเมื่อไม่ส่ง presentation prop · typecheck ผ่าน · lint 0 error (38 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · ไม่รัน build ขณะ dev server ทำงาน
 
+### 🎯 UX follow-up — รายการหน้าเปิดงาน/แก้ไขใช้ UI เดียว + ลายอยู่เหนือสินค้า (เบสสั่ง 2026-08-14)
+> มติล่าสุดทับข้อ 131 ที่เคยให้สินค้าอยู่ก่อนลาย · ขอบเขต presentation-only: คง state, validation, ราคา, permission และ mutation เดิมทั้งหมด · shell/แท็บและปุ่มบันทึกยังต่างตามบริบทได้
+
+- [x] ยุบ presentation branch ของ `OrderItemCard` ให้เหลือ contract เดียวทั้ง create/edit: ชื่อชุดงาน → ลายและงานพิมพ์ → สินค้าในชุดงาน → ส่วนเสริมในชุดงาน → หมายเหตุการผลิตชุดนี้ · ใช้หัวข้อ/ความกว้าง field/breakpoint ชุดเดียวกัน ✅ 2026-08-14
+- [x] พื้นที่แก้รายการใช้ความกว้างอ่านง่ายเดียวกับหน้าเปิดงาน โดยไม่เปลี่ยนส่วนอื่นของ order detail ✅ 2026-08-14
+- [x] verify: source/render guard กัน UI แตกแขนงกลับ · typecheck · lint · unit · `verify:ui` · browser จริง create/edit ที่ desktop+mobile พร้อม Light/Dark, ไม่มี horizontal overflow/console error และไม่บันทึกข้อมูลธุรกิจ ✅ 2026-08-14
+- **ปิดงาน 2026-08-14:** ลบ prop/branch `appearance` ออกจาก `OrderItemCard` แล้วให้สอง caller ต่างกันเฉพาะกฎธุรกิจ · editor ใช้ `max-w-5xl` เท่าหน้าเปิดงาน · `verify:ui` ล็อกลำดับลายก่อนสินค้าและกัน presentation branch กลับมา · browser จริง 1440×900/390×844 Light+Dark วัด card 1024/348px และ CTA เท่ากันทั้งสองหน้า, populated edit สลับ table→card ถูก, target มือถือไม่ต่ำกว่า 44px, horizontal overflow/console error = 0 · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit 742/742 · Impeccable detector `[]` · ไม่รัน build ระหว่าง dev server ทำงาน
+
+### 🐛 UX regression — หน้าแก้ยังไม่เหมือนหน้าสร้างทั้งฟอร์ม + ถูกบีบความกว้างผิดบริบท (เบสส่งภาพ 2026-08-14)
+> รอบก่อนตรวจและรวมเฉพาะ `OrderItemCard` แล้วบังคับ `max-w-5xl` ให้ editor ทั้งก้อน จึงทำให้ส่วนลาย/สินค้าเหมือนกันแต่ค่าใช้จ่าย ส่วนลด สรุปยอด และ action bar ยังเป็น UI เก่า อีกทั้ง inline editor แคบกว่าหน้ารายละเอียดที่เป็น host · มติรอบนี้: **ความเหมือนวัดที่ component/composition ไม่ใช่บังคับ container คนละบริบทให้กว้างเท่ากัน**
+
+- [x] ล็อกมาตรฐานความกว้างเชิงบทบาทไว้ที่ `PageShell`/`DESIGN.md`: `full` สำหรับ list/detail/inline edit · `wide` สำหรับ standalone document form · `content` สำหรับเนื้อหาอ่านโฟกัส · `form` สำหรับฟอร์มตั้งค่าสั้น; component ลูกห้ามจำลอง width ของ page shell ซ้ำ ✅ 2026-08-14
+- [x] คืน `OrderItemsEditor` ให้เต็มพื้นที่แท็บของ order detail และใช้ `OrderFeeSection` + `OrderPriceSummary` ชุดเดียวกับหน้าเปิดงาน รวม fee catalog, MoneyInput, empty/mobile/table states และถ้อยคำมาตรฐาน โดยไม่แตะสูตรราคา/validation/permission/mutation ✅ 2026-08-14
+- [x] ทำ action bar ของ editor เป็น flow ปกติชุดเดียวกับหน้าเปิดงาน ไม่ sticky/blur ทับเนื้อหา และเพิ่ม guard กัน max-width ซ้อน, UI ราคาแตกแขนง และ sticky regression กลับมา ✅ 2026-08-14
+- [x] audit width roles + UI pattern ที่เกี่ยวทั้งระบบ แล้วแก้เฉพาะ regression ในขอบเขตนี้; หนี้หน้าอื่นบันทึกแยก ไม่ big-bang restyle · verify browser จริง create/edit empty+populated ที่ desktop/mobile Light/Dark, no overflow/console error พร้อม typecheck/lint/unit/`verify:ui`/detector ✅ 2026-08-14
+- **ปิดงาน 2026-08-14:** create/edit ใช้ component กลางครบตั้งแต่รายการ → catalog error/retry → ค่าใช้จ่าย → ส่วนลด → สรุปยอด → action bar; editor รับความกว้าง `full` จาก order detail ส่วน create คง `wide` 1024px · browser จริง empty+populated 1440×900/390×844 Light+Dark: editor 1126/348px, create 1024/348px, mobile fee name 292px, overlap/overflow/console error = 0 และไม่บันทึกข้อมูลธุรกิจ · ด่านโค้ดดูที่ `PROGRESS.md`
+- **ถูกทับด้วยมติล่าสุดด้านล่าง:** เลิก inline edit แล้วใช้ dedicated edit page ดังนั้น create/edit เป็น standalone document form ทั้งคู่และกว้าง `wide` 1024px เท่ากัน; order detail โหมดอ่านยังเป็น `full`
+
+#### หนี้ width roles จาก audit ทั้ง repo — แยกแก้ ไม่ปน regression ออเดอร์
+- [ ] P2: ย้าย production detail จาก `max-w-4xl` ที่เขียนซ้ำมาใช้ `PageShell width="content"` ให้ loading/error/not-found/normal กว้างตรงกัน
+- [ ] P2: เคาะบทบาท dashboard home ที่ซ่อน `max-w-6xl` ใน `className` ว่าจะเป็น `full` หรือเพิ่ม named role กลาง; ห้ามถอดเพดานโดยเดาแล้วทำ dashboard ยืดทั้งจอ
+
+#### หนี้ UI pattern จาก audit ทั้ง repo — คนละ workflow ต้องมีใบงาน/acceptance แยก
+- [ ] P2: หน้าเปิดใบเสนอราคายังเป็น Card/form row รุ่นเก่า; ค่อย migrate เป็น `Section`/`Field`/price composition มาตรฐานโดยคง state และ conversion logic เดิม
+- [ ] P2: settings company/cost-rates และฟอร์มแก้ใน patterns/services/users ยังมี raw label/Card ซ้อน; ทยอยย้ายทีละหน้า และห้ามกวาด editable grid ที่ใช้ `FIELD_LABEL` ถูกบทบาทอยู่แล้ว
+
+### 🎯 UX follow-up — แก้ออเดอร์เป็นหน้าเต็มและใช้ฟอร์มเดียวกับสร้างจริง (เบสสั่ง 2026-08-14)
+> คำสั่งล่าสุดทับ flow inline/dialog เดิม: จากหน้ารายละเอียด กดแก้ข้อมูลออเดอร์ ที่อยู่ หรือรายการงาน ต้องไป `/orders/[id]/edit` และเปิดแท็บที่เกี่ยวทันที · งานปฏิบัติการเฉพาะทาง เช่น ตรวจรับ อนุมัติแบบ ผลิต QC จัดส่ง บิล และรับเงิน คง flow/permission ของตัวเอง
+
+- [x] เพิ่ม dedicated edit route แบบ `PageShell width="wide"` พร้อม loading/error/not-found/denied ที่ตรงกับหน้าสร้าง และ deep link `?tab=`/Back/Cancel กลับรายละเอียดเดิม ✅ 2026-08-14
+- [x] ยกหน้า create เป็น form runtime เดียวที่รับ create/edit seed โดยใช้ component, hooks, validation, catalog, responsive state และ action bar ชุดเดียวจริง · edit ไม่อ่าน/เขียน draft localStorage และไม่รัน effect default ของการสร้างทับข้อมูลเดิม ✅ 2026-08-14
+- [x] prefill ลูกค้า ข้อมูลรับเรื่อง รายการ/ลาย/สินค้า/ส่วนเสริม ค่าใช้จ่าย/ส่วนลด เงื่อนไข ที่อยู่ และไฟล์อ้างอิงจาก record จริง · ลูกค้า/ช่องทางที่เปลี่ยนไม่ได้ยังมองเห็นพร้อมเหตุผล ไม่ซ่อน ✅ 2026-08-14
+- [x] บันทึกเฉพาะก้อนที่เปลี่ยนผ่าน `order.saveForm` ก้อนเดียวใน transaction: header/ที่อยู่ + รายการ/ค่าใช้จ่าย/ส่วนลด + ไฟล์อ้างอิง commit/rollback พร้อมกัน; `DESIGN_APPROVED`/`PRODUCTION_QUEUE` ออกใบแก้ไขพร้อมเหตุผล; สถานะหลังจากนั้นแสดงรายการ/ราคาอ่านอย่างเดียวโดยไม่ซ่อนแท็บ ✅ 2026-08-14
+- [x] เปลี่ยน edit entrypoint ของ order detail ทั้ง header menu, next-step, overview info/address และ items card ให้ไป route กลางตามแท็บ · คง action งานผลิต/ตรวจรับ/แบบ/QC/บิลไว้ที่เดิม และ fail-closed เมื่อขาด `create_sales_docs` หรือ `see_order_money` ✅ 2026-08-14
+- [x] เพิ่ม pure/source guard กัน form แตกแขนงและ inline/dialog กลับมา · verify browser empty+populated ที่ desktop/mobile Light/Dark, deep link/Back/Cancel/dirty state/read-only และ change-order ผ่าน unit/source guard (ฐานข้อมูลไม่มี fixture CO) พร้อม typecheck/lint/unit/`verify:ui`/Impeccable detector ✅ 2026-08-14
+- **ปิดงาน 2026-08-14:** `/orders/new` และ `/orders/[id]/edit` render `OrderFormPage` ตัวเดียวกันภายใต้ `PageShell width="wide"` (1024px desktop / 348px ที่ viewport 390px) ส่วน detail คง `full` · การบันทึกใหม่เป็น transaction เดียวพร้อม optimistic fingerprints, receipt identity, credit Decimal delta และ stock version/CAS · dirty guard ครอบ Back/Cancel/sidebar/link/Command Palette/logout ก่อนทิ้งค่า · browser จริง Light/Dark empty+populated/deep-link/locked ที่ desktop+mobile ไม่มี overflow หรือ console errorและไม่กดบันทึกข้อมูลธุรกิจ · unit 824/824, typecheck, lint 0 error (28 warning เดิม), `verify:ui`, Impeccable detector `[]`, independent review **SHIP/CLEAR** · ไม่รัน build ระหว่าง dev server 3002 ทำงาน
+
+#### Layout follow-up — แยกการจัดส่งออกจากการ์ดรับเรื่อง (เบสสั่ง 2026-08-14)
+- [x] ย้าย `OrderShippingSection` เป็น sibling card ใต้ข้อมูลรับเรื่องในแท็บเดิมของ shared `OrderFormPage` เพื่อให้ create/edit เปลี่ยนพร้อมกัน · คง state/validation/draft/mutation/deep-link เดิม และ verify desktop/mobile ทั้งสวิตช์เปิด–ปิด ไม่มี overflow หรือ action overlap ✅ 2026-08-14 — browser จริง 1440×900/390×844/320×700 Light+Dark: สองการ์ดกว้างแนวเดียวกัน gap 16px, deep-link โฟกัสสวิตช์ถูก, ปิดแล้วเหลือ header card, เปิดใหม่ค่ากลับครบ, console error 0 · unit 824/824, typecheck, lint 0 error (28 warning เดิม), `verify:ui`, Impeccable layout detector `[]`
+
+#### Layout follow-up — ภาพรวมออเดอร์ต้องอ่านสาระสำคัญได้ก่อนข้อมูลอ้างอิง (เบสสั่ง 2026-08-14)
+> หลังย้ายการแก้ไขไปหน้าเต็ม แท็บภาพรวมมีหน้าที่สรุปเพื่ออ่าน ไม่ใช่จำลองฟอร์มแบบอ่านอย่างเดียว · ข้อมูลจริง สิทธิ์ และปลายทางแก้ไขเดิมต้องคงอยู่ แต่ช่อง optional ว่างห้ามกินพื้นที่ด้วยเครื่องหมาย `-`
+
+- [x] วางสรุปออเดอร์เต็มแถวเป็นลำดับแรกทั้ง DOM/desktop/mobile โดยให้ลูกค้า กำหนดส่ง ความเร่งด่วน จำนวน และยอดตามสิทธิ์เห็นก่อนข้อมูลรอง ✅ 2026-08-15
+- [x] แสดงเฉพาะข้อมูล optional ที่มีจริง · ค่าว่างที่มีผลกับงานใช้ข้อความตรง เช่น ยังไม่มีกำหนดส่ง/รายการ/ที่อยู่จัดส่ง และห้ามทำ `฿0` หรือ “ยังไม่จองสต๊อก” ให้ดูเป็นสถานะธุรกิจโดยไม่มีบริบท ✅ 2026-08-15
+- [x] แยกเจ้าของข้อมูลให้ชัด: ข้อมูล/ที่อยู่ออกบิลอยู่การ์ดลูกค้า, ที่อยู่ส่งอยู่การ์ดการจัดส่ง, tracking พาไปแท็บจัดส่ง · คง `showMoney` gate ระดับ JSX และ edit route/deep-link เดิม ✅ 2026-08-15
+- [x] verify browser จริง empty+populated ที่ 1440×900/390×844 Light+Dark: reading order, natural card height, no standalone dash/overflow/action overlap/console error, touch target และข้อมูลเงินไม่รั่ว พร้อม typecheck/lint/unit/`verify:ui`/Impeccable detector ✅ 2026-08-15
+- **ปิดงาน 2026-08-15:** ภาพรวมเรียง `สรุปออเดอร์ → ลูกค้าและผู้ติดต่อ → การจัดส่ง` ทั้ง DOM และภาพจริง · สรุปมือถือเป็น 2×2 ทำให้ข้อมูลหลักครบก่อน bottom nav โดยเหลือ safe margin 90.7px ในเคสแคบสุด · การ์ดรองสูงตามเนื้อหาและแยกเจ้าของข้อมูลตรง flow แก้ไขใหม่ · optional ว่างไม่สร้างแถว `-`; empty state ใช้ข้อความตรงและไม่แสดง `฿0`/สถานะสต๊อกหลอก · browser empty+populated Light/Dark ไม่มี overflow/ชน/console error, target ≥44px และ deep-link เงิน/ข้อมูล/จัดส่งกลับถูก · unit 824/824, typecheck, lint 0 error (28 warning เดิม), `verify:ui`, Impeccable layout detector `[]`, independent review **CLEAR** · ไม่รัน build ระหว่าง dev server 3002 ทำงาน
+
 ### 🎯 UX follow-up — ช่องกรอกต้องเห็นว่าเป็นช่อง + คอลัมน์ตรงกัน (เบสเจอบนของจริง 2026-08-03)
 > เบส: "บางอย่างที่มันต้อง fill ข้อมูล ไม่ต้องซ่อน ช่อง user จะได้รู้ว่าช่องไหนต้องใส่ · ช่องบางช่องถูกกลืนไปกับพื้นหลังสีเทา · แถวคอลัมขอให้มันตรงกันทั้งหมด"
 > **บทเรียน:** รอบ "ลดเส้นทั้งเว็บ" ลดเลยจุดที่ควรลด — ขอบของ *กล่องครอบ* ถอดได้ แต่ **ขอบช่องกรอกถอดไม่ได้** เพราะมันคือสัญญาณเดียวที่บอกว่า "ตรงนี้กรอกได้"
@@ -189,6 +238,22 @@
 - [x] verify browser จริงแบบก่อน–หลังที่ 320/375/768/1024/1280/1440px · light ทุก breakpoint + dark 1280px · ไม่มี horizontal scroll/error overlay/console error · เพิ่มสินค้า ลาย ส่วนเสริม ค่าใช้จ่าย เปิดที่อยู่ และ shared `/orders/[id]` ไม่ถอย · typecheck/lint/unit/`verify:ui` ผ่าน ✅ 2026-08-03
 - **ปิดงาน 2026-08-03:** ใช้ origin สะอาดหลบ client state เก่าของ Turbopack ที่ `localhost:3000` ตาม incident ที่บันทึกไว้ · ตารางสินค้าจอกว้างมีหัวครบ 8 คอลัมน์และพื้นที่แคบใช้ card · interaction ทั้ง 4 จุดผ่าน · lint 0 error (38 warning เดิม) · unit 599/599 · `verify:ui` ผ่าน · ไม่รัน build ขณะ dev server ทำงาน
 
+### 🐛 UX regression — แถบปุ่มติดจอทับพื้นที่ทำงาน (เบสส่งภาพ 2026-08-14)
+> ทำซ้ำได้ที่ viewport ปกติ 1280×720 โดยไม่ต้องซูม: `/orders/new` เปิดแท็บรับเรื่องแล้วแถบเปิดงานทับหัว “การจัดส่ง”; popup แก้ลูกค้าให้ footer ทับช่องหมายเหตุ · เป็น regression ของ sticky action ที่บันทึกไว้ในข้อ 196 และก้อน popup A ด้านล่าง
+
+- [x] popup ยาวแยก body ที่เลื่อนได้ออกจาก header/footer แล้ว ปุ่มเห็นตลอดโดยไม่วางทับช่องกรอก และคงเพดานเดิม `90dvh` ✅ 2026-08-14
+- [x] `/orders/new` ย้าย action bar กลับไปอยู่ท้าย flow ทุกขนาดจอ หลังจอจริงยืนยันว่า sticky รับ pointer แทน field ทั้ง desktop/mobile ✅ 2026-08-14
+- [x] verify browser จริง Light/Dark ที่ 1280×720, 1512×827 (ขนาดภาพที่เบสส่ง) และ 390×844: overlap = 0, เลื่อนต้น–ท้ายครบ, ปุ่มรับ click ตรงตัว, ไม่มี horizontal overflow/console error · typecheck ผ่าน · lint 0 error (29 warning เดิม) · unit 742/742 · `verify:ui` ผ่าน · detector `[]` ✅ 2026-08-14
+- **ปิดงาน 2026-08-14:** ต้นเหตุคือ sticky footer/action bar อยู่ใน scroll container เดียวกับ field โดยไม่แยกพื้นที่ จึงวางทับและรับ pointer แทนเนื้อหาเมื่อความสูงจอสั้น · แก้เชิงโครงที่ popup และเลิก sticky บนหน้าเปิดงาน; ไม่แตะข้อมูล validation permission ราคา หรือ mutation · ไม่รัน build ขณะ dev server 3002 ทำงาน
+
+### 🐛 UX regression follow-up — popup ลูกค้ายังไม่พอดีกรอบ (เบสส่งภาพ 2026-08-14 21:00)
+> หลังแยก scroll body แล้ว footer ไม่ทับ field แต่กรอบยังเว้นซ้าย 24px/ขวา 56px และ scrollbar ทำให้ขอบ field ขวาห่างถึง 70px; ที่ viewport จริง 1512×827 เพดาน `90dvh` บีบ body จนช่องหมายเหตุเห็นเพียง 46.8/96px ทั้งที่ safe frame มาตรฐานสูงพอ · ภาพล่าสุดเป็น crop DPR2 ขนาด 1616×1580; ที่ 320px ล้นแนวนอน 14px
+
+- [x] แยก header/body/footer เป็น 3 พื้นที่จริงใน popup ลูกค้า: เผื่อปุ่มปิดเฉพาะ header, body เลื่อนเอง, footer เป็น static และแต่ละส่วนถือ padding ซ้าย–ขวาเท่ากัน ✅ 2026-08-14
+- [x] ใช้ safe frame กลางแทน `90dvh`: viewport 1512×827 เห็นช่องหมายเหตุครบ 96/96px ตั้งแต่เปิด; จอสั้น/มือถือเลื่อนถึง field สุดท้ายเต็มโดยกรอบหัว/ท้ายไม่ขยับ ✅ 2026-08-14
+- [x] verify browserจริง Light/Dark ที่ 1512×827 (viewport ของภาพล่าสุด), 390×844 และ 320×700: desktop field inset 24/24px, mobile padding 20/20px โดย scrollbar แยกอยู่นอกเนื้อหา, overlap/horizontal overflow = 0, Escape ปิดได้, ปุ่มมือถือ 44px และ hit-test ตรงตัว · typecheck ผ่าน · lint 0 error (29 warningเดิม) · unit 742/742 · `verify:ui` ผ่าน · detector `[]` ✅ 2026-08-14
+- **ปิด follow-up 2026-08-14:** ต้นเหตุร่วมคือ `pr-14` กลางสำรองปุ่ม X ให้ทั้งการ์ด + local `90dvh` บีบความสูง; แก้เฉพาะ popup ลูกค้าเป็น row-owned padding และใช้ `overflow-clip` กัน browser เลื่อนกรอบนอกเมื่อโฟกัส field ล่าง · ไม่เปลี่ยนข้อมูล validation permission หรือ mutation · ไม่รัน build ขณะ dev server 3002 ทำงาน
+
 ### 🎯 UX follow-up — เปิดข้อมูลสร้าง/รายละเอียดออเดอร์ทั้งหมด (เบสสั่ง 2026-07-18)
 - [x] `/orders/new`: กางข้อมูลงาน รายการ+ราคา ไฟล์ ที่อยู่ รายละเอียดลาย/สินค้า และสเปคตัดเย็บที่ UI มีอยู่เดิมตลอด · เลิกปุ่ม “เพิ่มเติม/ซ่อน” ที่ใช้เพื่อ declutter · ที่อยู่ยัง optional และเงื่อนไขตามชนิดลูกค้า/ช่องทาง/สินค้าเดิมต้องไม่เปลี่ยน — ✅ 2026-07-18
 - [x] `/orders/[id]`: เลิกซ่อนเนื้อหาที่ UI มีอยู่เดิมหลังแท็บและเมนู “เพิ่มเติม” · แสดงรายการ งานผลิต จัดส่ง เงิน/บิล ไฟล์ และประวัติต่อกัน พร้อมปุ่มลัดแบบ scroll · กางเส้นทางสถานะและประวัติทั้งหมด โดยไม่เพิ่ม raw field จากฐานข้อมูลที่ยังไม่มี UI — ✅ 2026-07-18
@@ -239,10 +304,10 @@
 - [x] **ก้อน 2 · ยกฟอร์มเป็นชิ้นกลาง** ✅ 2026-08-12 (`28396f5`) — `useOrderHeaderForm()` คุมหัวฟอร์ม 13 ช่องที่ 2 หน้าถือเหมือนกันแต่คนละรูป (หน้าเปิดงาน = useState กระจาย · กล่องแก้ = object ก้อนเดียว) · **ไม่ยุบรายการ/ค่าใช้จ่าย/ที่อยู่เข้ามาด้วย** — 3 ก้อนนั้นมี hook ของตัวเองและกติกาการบันทึกคนละแบบ · เจอ `isMarketplaceChannel` เขียนซ้ำ 3 ที่ ทั้งที่ `lib/order-status` มีอยู่แล้ว → รวมเป็นตัวเดียว
 - [x] **ก้อน 3 · โหมดแก้ “ข้อมูล + ที่อยู่”** ✅ 2026-08-12 (`923e75e`) — กล่องแก้ใช้ `OrderDetailFields` + `OrderShippingSection` ตัวเดียวกับหน้าเปิดงาน (เดิมเขียนช่องเอง เรียงคนละลำดับ ป้ายคนละคำ) · ช่องทางเป็นช่องเทาพร้อมเหตุผล ห้ามซ่อน · เลขออเดอร์มาร์เก็ตเพลสย้ายเข้าช่องข้อมูลงาน บล็อก "Marketplace" ที่ซ้ำถูกยุบ · ที่อยู่โหมดแก้ไม่มีสวิตช์ (`alwaysOn`) — ลบที่อยู่ด้วยการล้างช่องได้แล้วตั้งแต่ input เป็น nullable · ช่องภาษี % มีอยู่แล้วในกล่องแก้ (ที่ถอดไปคือหน้าเปิดงาน — ตั้งใจ ไม่ต้องคืน)
   - ⚠️ **ยังเหลือจากใบงานเดิม:** ปิดร่าง localStorage + effect อัตโนมัติ — ยังไม่ต้องทำ เพราะกล่องแก้ยังถือ state ของตัวเอง (ไม่ได้ใช้ `useOrderItemsForm` ที่มีร่าง) · จะจำเป็นตอนก้อน 4 ดึงรายการเข้าฟอร์มร่วม
-- [ ] **ก้อน 4 · ดึงรายการ/ค่าใช้จ่าย/ส่วนลด เข้าฟอร์มร่วม** + บันทึกเฉพาะส่วนที่แก้จริง (`discount` เป็นของฝั่งรายการเท่านั้น ห้ามส่งไปกับ `order.update`)
-- [ ] **ก้อน 5 · ใบแก้ไขออเดอร์ + สถานะที่แก้ไม่ได้** — `DESIGN_APPROVED` ปุ่มเป็น “บันทึก + ออกใบแก้ไข” บังคับเหตุผล · เลยเข้าคิวผลิตแล้วรายการอ่านอย่างเดียว **ห้ามซ่อนแท็บ** (ซ่อนแล้วคนคิดว่าข้อมูลหาย)
-- [ ] **ก้อน 6 · เก็บกวาด** — ลบ `OrderInfoEditDialog`
-- **⚠️ 2 เรื่องข้อมูลที่เจอระหว่างสำรวจ ยังไม่ได้แก้ ต้องให้เบสเคาะ:** (1) `order.update` ใช้ `z.string().optional()` → **ลบข้อความในช่องแล้วค่าเก่าไม่หาย** (แก้ = เปลี่ยนเป็น nullable รายช่อง = แตะ input สาธารณะ ต้องขออนุญาต) (2) `updateItems`/`applyChangeOrder` ใช้ deleteMany+create ใหม่ → **รหัสรายการเปลี่ยนหมด** แล้ว `GoodsReceiptLine.orderItemProductId` (ไม่มี FK) ชี้ไปที่รหัสที่ไม่มีอยู่ — มีอยู่ก่อนแล้ว แต่พอแก้ง่ายขึ้นจะเจอบ่อยขึ้น (แก้จริงต้องแตะ schema = คนละใบงาน)
+- [x] **ก้อน 4 · ดึงรายการ/ค่าใช้จ่าย/ส่วนลด เข้าฟอร์มร่วม** + บันทึกเฉพาะส่วนที่แก้จริง (`discount` เป็นของฝั่งรายการเท่านั้น ห้ามส่งไปกับ `order.update`) ✅ 2026-08-14 — ปิดด้วย shared form + atomic `order.saveForm`
+- [x] **ก้อน 5 · ใบแก้ไขออเดอร์ + สถานะที่แก้ไม่ได้** — `DESIGN_APPROVED` ปุ่มเป็น “บันทึก + ออกใบแก้ไข” บังคับเหตุผล · เลยเข้าคิวผลิตแล้วรายการอ่านอย่างเดียว **ห้ามซ่อนแท็บ** (ซ่อนแล้วคนคิดว่าข้อมูลหาย) ✅ 2026-08-14
+- [ ] **ก้อน 6 · เก็บกวาด** — caller/mount ถูกถอดและ guard ห้ามกลับมาแล้ว; ไฟล์ `OrderInfoEditDialog`/`OrderItemsEditor` เดิมยังเก็บไว้จนได้รับอนุญาตให้ลบไฟล์
+- **สถานะหนี้ข้อมูลเดิม:** (1) shared `order.saveForm` รับ nullable รายช่องแล้ว จึงล้างข้อความ/ที่อยู่จากหน้าใหม่ได้โดยไม่ค้างค่าเก่า; public `order.update` เดิมยังเป็น compatibility contract แยก (2) หน้าใหม่รักษา `OrderItemProduct.id` เดิมและห้ามลบ/เปลี่ยน identity ที่มีใบตรวจรับแล้วโดยไม่แก้ schema; mutation legacy `updateItems`/`applyChangeOrder` ยังเป็นหนี้แยกจน caller เดิมหมดทั้งหมด
 
 ### 🎯 UX follow-up — ปิดบั๊ก responsive + สถานะข้อมูลจาก audit ทั้งเว็บ (เบสสั่ง 2026-08-02 “ทำเลย”)
 > ขอบเขต surgical: แก้เฉพาะบั๊กใช้งานจริงที่ยืนยันจาก browser แล้ว · คงชุดสี/ความ minimal/โครงหน้าปัจจุบัน · ไม่มี schema หรือ dependency ใหม่
@@ -382,6 +447,192 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 **ก้อน 4 — ขอบลูกค้า (ภาค 2 `docs/flow-redesign-part2-2026-06-12.html`):** ไฟล์ 3 ชั้น (ดิบ/แบบอนุมัติ/ไฟล์พิมพ์ — ห้ามไฟล์ลอย) + ลิงก์อัปโหลดต่อออเดอร์ส่งใน LINE + ปุ่มแอดมินแนบแทนลูกค้า (attachment.create มี API ขาด UI) + **คลังลายต่อลูกค้า + สเปกติดลาย** (→ สั่งซ้ำ 1 คลิกเต็มรูป — duplicate มีแล้ว) + preflight DTF 3 เช็ค + นับรอบแก้แบบ (**เบสเคาะ: ฟรี 2 รอบ เกินคิด 100 บาท/รอบ** — เด้งเป็นรายการอัตโนมัติ) + ลิงก์ยืนยันใบเสนอ (ก๊อป token pattern จาก design) + **portal ขั้น 1: ลิงก์สถานะต่อออเดอร์/ต่อลูกค้า** (customerStatus พร้อมแล้ว · เบสเคาะ: โชว์เฉพาะส่วนของลูกค้า — สถานะ/กำหนดส่ง/แบบอนุมัติ/เอกสารของเขา/พัสดุ ห้ามมีข้อมูลภายใน) + size matrix (P1.12 เดิม) + Storage เปลี่ยน public URL → signed URL
 **ก้อน 5 — MCP เฟสแรก (เบสเคาะ: ไม่รีบ — ทำตามลำดับ):** embed ใน Next.js (`app/api/mcp/[transport]` + vercel/mcp-handler เรียก services ตรง — P0.4 ปูไว้แล้ว) · AgentApiKey model (key ต่อ agent ผูก Role เดิม + audit ทุก call) · เครื่องมือ read-only 4 ตัว: สถานะออเดอร์ (dual view) / คิววันนี้+งานเสี่ยงสาย / ลูกหนี้+ร่างทวง (ร่างให้คนส่ง) / เช็คสต๊อค · **ห้ามมี**: เปลี่ยนสถานะ/เงิน/ลบ · เฟสสอง: draft order จากแชท (DRAFT/INQUIRY เท่านั้น คนยืนยันใน UI)
 **ก้อน 6 — โฉมใหม่:** UI ทั้งระบบ (ทำภาพให้เบสเลือกก่อน) + ทางลัดงานชิ้นเดียว + ใบแก้ไขออเดอร์ (change order — อนุมัติแล้วล็อก แก้ผ่านใบแก้ไขเท่านั้น)
+
+### 🎯 UI V2 แบบคู่ขนาน — หน้าเริ่มงานจริงที่ `/v2` (เบสสั่ง 2026-08-12)
+> เบสขอข้าม mockup และให้ทำของจริงบน URL แยก เพื่อเทียบกับหน้าเดิมโดยไม่ทุบของที่ใช้อยู่ · รอบแรกแก้ปัญหา “ทุกอย่างดังเท่ากัน” ที่ dashboard/shell ก่อน แล้วค่อยตัดสินทิศทางทั้งระบบจาก render จริง
+>
+> ขอบเขต: UI + route ใหม่เท่านั้น · ใช้ query/permission/ข้อมูลจริงชุดเดิม · ลิงก์ทุก action ไป flow เดิมที่ใช้งานได้ · ไม่แตะ schema, business logic, dependency, config หรือ URL เดิม
+
+- [x] **โครง V2 แยกจริง** — `/v2` มี auth ชั้นเดียวกับ dashboard เดิม · มีทางกลับเวอร์ชันเดิม · URL/หน้าเดิมไม่เปลี่ยน
+- [x] **action-first hierarchy** — งานที่ควรเช็กก่อน + ทางลัดเปิดงาน/คิวงานอยู่เหนือสถิติสะสม · ไม่มี KPI ซ้ำชื่อ/ซ้ำความหมาย · ข้อมูลเงิน/เมนูเคารพ permission เดิม
+- [x] **navigation ลดเสียงรบกวน** — desktop เหลือเมนูงานหลัก + ค้นหาทุกเมนูผ่าน command palette · mobile ใช้ bottom navigation เป้านิ้ว ≥44px และมีทางเข้าฟังก์ชันครบ
+- [x] **minimal แต่ไม่จืด** — ใช้ token/สีแบรนด์เดิม เน้นสีเฉพาะ action/สถานะสำคัญ · มี micro-interaction ที่เคารพ reduced-motion · loading/error/empty ครบ
+- [x] **verify ของจริงก่อนเคาะทิศ** — desktop 1440px + mobile 390px ไม่มี horizontal overflow/error overlay · keyboard focus เห็นชัด · เปิด flow จาก `/v2` ไปงานจริงได้อย่างน้อย 1 รายการ · typecheck/lint/test/build ผ่าน
+
+#### ใบงาน V2 Orders — รวม / เปิดใหม่ / รายละเอียด (เบสสั่ง 2026-08-12)
+> ต่อจาก dashboard V2 ด้วยเส้นทางขายที่ใช้ทุกวัน · แชร์ business logic กับหน้าเดิม ไม่ copy ฟอร์ม/mutation · เพิ่มเฉพาะ route + composition V2
+
+- [x] **route + navigation ต่อเนื่อง** — เพิ่ม `/v2/orders`, `/v2/orders/new`, `/v2/orders/[id]` ใต้ auth layout เดิม · active nav ถูก route · command palette/recent order/new order พาเข้า V2 เฉพาะหน้าที่มีแล้ว
+- [x] **รายการ action-first** — ยุบแถบ 14 สถานะบนมือถือให้รายการจริงขึ้นก่อน `y=600` แต่ยังกรองสถานะครบ · search/filter/sort/pagination/CSV/loading/error/empty ใช้ query เดิม
+- [x] **เปิดออเดอร์ใช้ form เดิมร่วมกัน** — สูตรราคา/draft/validation/upload/`next=quote`/mutation ไม่แยกชุด · ผู้ไม่มี `create_sales_docs` เห็น forbidden ก่อนฟอร์ม
+- [x] **รายละเอียดใช้ flow เดิมร่วมกัน** — status transition/next step/design/รับเข้า/QC/delivery/money/document/duplicate ใช้ component+server guard เดิม · path กลับ/duplicate สำเร็จอยู่ใน V2
+- [x] **ไม่ทำของเดิมถอย + verify จริง** — `/orders*` พฤติกรรมเดิม · 390/1440 ไม่มี overflow · keyboard/focus/Thai/permission/loading/error/empty ผ่าน · typecheck/lint/test/verify:ui/build ผ่าน (build หลังหยุด dev)
+
+#### ใบงาน V2 ลดคำอธิบาย + คืนแถบสถานะเดิม (เบสสั่งจากจอจริง 2026-08-12)
+> ตัดข้อความที่หัวข้อ/ปุ่มสื่อความหมายได้อยู่แล้วออกจาก V2 ทั้ง dashboard, รายการ และหน้าเปิดงาน · คงข้อความผิดพลาด สิทธิ์ ผลกระทบ และข้อจำกัดที่ต้องรู้ก่อนกด · หน้ารวมออเดอร์จอกว้างกลับมาเห็นเส้นทางงานเต็มแบบเดิมตามภาพอ้างอิง ส่วนมือถือยังใช้ตัวกรองย่อเพื่อไม่ดันรายการพ้นจอแรก
+
+- [x] **quiet copy เฉพาะ V2** — ลดคำแนะนำซ้ำโดยไม่เปลี่ยนข้อความ validation/error/permission/safety และไม่ทำให้หน้าเดิม `/orders*` เปลี่ยน
+- [x] **status rail แบบเดิมบนจอกว้าง** — `/v2/orders` แสดงทุกช่วงงานในแถบเดียว กรอง/กดซ้ำเพื่อล้างได้เหมือนเดิม · จอแคบคงชิปย่อ + เปิดทุกสถานะได้
+- [x] **verify จอจริง** — 390px รายการแรกยังอยู่ก่อน `y=600` · 1440px เห็น rail เต็ม · ไม่มี overflow/hydration/error · typecheck/lint/test/verify:ui ผ่าน
+
+#### ใบงาน V2 แท็บ minimal แบบเส้นใต้ (เบสส่งภาพอ้างอิง 2026-08-12)
+> เปลี่ยนเฉพาะ V2 จากถาด segmented + แผ่นขาวมีเงา เป็นข้อความบนพื้นหน้าและเส้นใต้แท็บที่เลือก · คง Radix keyboard/ARIA, sticky, mobile horizontal scroll และจุดแดง/เขียวที่มีความหมาย · หน้าเดิมใช้ segmented เหมือนเดิม
+
+- [x] **appearance แยก V2/V1 ชัดเจน** — V2 หน้าเปิดงานและรายละเอียดใช้ underline · V1 ไม่เปลี่ยน · ไม่ผูก appearance กับ guidance หรือ bottom-nav
+- [x] **minimal แต่ไม่เสียสถานะ** — ตัดเลข 01–04 ใน V2 · คง label, validation dot, filled dot, focus ring และ active underline
+- [x] **verify ของจริง** — 390/1440 ไม่มี overflow · active tab เลื่อนเข้าจอ · Arrow/Home/End, URL/back/deep-link/validation ผ่าน · typecheck/lint/test/verify:ui/build ผ่าน
+
+#### ใบงาน Promote V2 → UI หลัก + พื้นขาวนวล (เบสเคาะจากจอจริง 2026-08-12)
+> ผลทดลอง V2 ผ่านแล้ว เบสให้แทน V1 บน URL เดิมและขอ refactor ไม่ให้มีสอง presentation ต่อกัน · ใช้ semantic token กลางปรับพื้นหน้าเป็น off-white/การ์ดขาว/พื้นจมอ่อน ลด halo ของเงา และคง brand/status/dark theme
+
+- [x] **canonical shell + routes ทางเดียว** — `/` และ `/orders*` ใช้ UI ที่เคยอยู่ V2 · navigation อ่าน canonical registry โดยตรง · `/v2*` redirect พร้อม query · ไม่มีลิงก์ “เวอร์ชันเดิม” หรือ runtime prefix resolver
+- [x] **ลด compatibility branch** — orders/create/detail/tabs/permission helper เหลือค่า production ชุดเดียว · ไม่ copy query/mutation/business logic · ไฟล์ shell V1 ที่ไม่มี caller ยังไม่ลบจนเบสอนุญาต
+- [x] **เมนูและสิทธิ์ไม่ถอย** — desktop/mobile เข้าถึงทุกโมดูลตาม permission ได้ · CTA เปิดงานทั้งหมดใช้ gate สร้างเอกสาร+เห็นเงินชุดเดียว · unauthenticated ยังเข้าไม่ได้
+- [x] **พื้นผิวสว่างขึ้นจาก token กลาง** — page bg `#f7f7f8` · surface/chrome ขาว · sunk `#f2f2f4` · semantic neutral ตรง ramp/ผ่าน AA · เงาการ์ด light เบาลง · dark/overlay/status color คงเดิม
+- [x] **shell regression ปิดครบ** — bottom-nav offset กลางครอบเปิดงาน/แก้รายการ/รอบพิมพ์ · ตารางกว้างไม่ถูกบีบ · active nav/⌘K/More/focus return/notifications link ใช้ได้
+- [x] **verify ของจริงก่อนจบ** — dashboard/orders/create/detail + อย่างน้อย production/billing/settings ที่ 390/1440 · redirect query/back-refresh · permission/loading/error/empty · ไม่มี overflow/hydration/console error · typecheck/lint/test/verify:ui/build ผ่าน
+
+#### ใบงานเก็บภาพจริง — hover แยกชั้น + Navbar เต็มจอ (เบสชี้จากภาพจริง 2026-08-12)
+> สี hover เทาเดิมชนกับ `sunk` จนชี้แล้วแทบไม่เปลี่ยน และ top chrome เริ่มหลัง sidebar ทำให้ navbar ดูขาดกลางจอ · แก้ที่ semantic interaction token + โครง AppShell กลาง ไม่ไล่ patch รายหน้า
+
+- [x] **hover มี feedback ชัดแต่ไม่ดัง** — neutral interactive ทั้ง primitives/shell/dashboard ใช้สี hover ชุดเดียว · pressed/focus ชัดกว่า · selected คงสีแบรนด์ · light/dark ไม่กลืนกับพื้นเดิม
+- [x] **navbar เต็ม viewport** — ย้าย brand block เข้า header ผืนเดียว แล้วให้ sidebar เริ่มใต้ header · คง scroll boundary, permission nav, command palette, mobile header/bottom nav และ safe-area เดิม
+- [x] **verify ของจริง** — 390/768/1024/1440 ไม่มี overflow · header/chrome/border เต็มจอ · hover/active/focus แยกได้ · dashboard→ออเดอร์ flow ใช้งานจบ · typecheck/lint/test/verify:ui/build ผ่าน
+
+#### ใบงานออกแบบระบบสีใหม่ทั้งเว็บ — Light + Dark (เบสชี้จากภาพจริง 2026-08-13)
+> รุ่นก่อนแก้ hover จาก “กลืน” ไปไกลเกินจนกลายเป็นแถบเทาหนัก · รอบนี้แก้ที่ระบบสีทั้งหมด ไม่ patch เฉพาะ dashboard: ล็อกน้ำเงินแบรนด์ `#3973b2` ค่าเดียว แล้วออกแบบ neutral/status/surface/interaction ใหม่ให้ทุกหน้ารับพร้อมกันจาก token กลาง
+
+- [x] **palette กลางชุดเดียว** — light/dark มี page, chrome, surface, sunk, border, field, overlay และข้อความ 3 ระดับที่สัมพันธ์กัน · neutral ramp ตรง semantic token · ไม่ใส่ hex ราย component
+- [x] **interaction เบาแต่ครบ state** — hover ไม่เป็นแถบเข้ม · pressed ชัดกว่า hover · selected ใช้น้ำเงินแบรนด์ · focus/disabled/keyboard-highlight ไม่ถูกสีอื่นกลบและข้อความผ่าน AA
+- [x] **สีสถานะเป็นระบบเดียว** — info/success/warning/error และ badge/tint อ่านได้ทั้งสองธีมโดยไม่แย่ง primary action · public/print คงพื้นขาวและเอกสารไม่ตามธีมหลังบ้าน
+- [x] **verify ของจริงทั้งระบบ** — dashboard/orders/create/detail + production/billing/settings ที่ 390/768/1024/1440 · light/dark, hover/pressed/selected/focus, dialog/menu/table/form/status ไม่มี overflow/hydration/console error · typecheck/lint/test/verify:ui/build ผ่าน
+
+#### ใบงานเก็บสีรอบสอง — Dark เทาเข้ม + Hover เทากลาง (เบสชี้จากจอจริง 2026-08-13)
+> เบสเคาะให้คืนบรรยากาศโหมดมืดเป็นเทาเข้มแบบก่อน redesign และไม่ใช้ฟ้าเป็น hover ทั้งสองธีม · น้ำเงิน Anajak ยังสงวนให้ primary, selected และ focus เท่านั้น · แก้ที่ semantic token กลางเพื่อให้ทั้งเว็บเปลี่ยนพร้อมกัน ไม่ไล่ patch ราย component
+
+- [x] **Dark กลับเป็น neutral gray ที่มี depth** — page/chrome/card/sunk/elevated/field เป็นบันไดเทาเข้มแบบเดิม โดย card ยังแยกจาก page และกล่องจม/กล่องลอยอ่านทิศถูก
+- [x] **Hover/pressed ไม่อมฟ้า** — light/dark ใช้ neutral gray · hover เบากว่ารุ่นแถบเทาเดิม · pressed ชัดกว่า hover · selected/focus/primary คงน้ำเงินเดิม
+- [x] **ด่านกันถอย + verify ของจริง** — token guard กัน hover กลับไปอมฟ้าหรือชนพื้น structural · text/control contrast ผ่าน · ตรวจ dashboard/orders/create/detail ทั้ง Light/Dark และ 390/1280 · typecheck/lint/test/verify:ui/build ผ่าน
+
+#### ใบงานเก็บ Sidebar ให้เข้าระบบสีล่าสุด (เบสทักต่อ 2026-08-13)
+> Sidebar ต้องใช้ semantic เดียวกับส่วนเนื้อหา ไม่ใช่แค่รับสีพื้นใหม่: inactive/hover/pressed/selected/focus ต้องอ่านลำดับเดียวกันทั้ง desktop, drawer และ bottom nav
+
+- [x] **สูตรรายการเดียวกัน** — primary/secondary/drawer ใช้ active label+icon สีเดียวกัน · inactive icon ขยับตาม hover/pressed · focus/radius/weight สอดคล้องกัน
+- [x] **mobile current state ไม่พึ่งสีอย่างเดียว** — active มีทั้งน้ำหนักและรูปทรง · “เพิ่มเติม” มี `aria-current` เมื่อ route ปัจจุบันอยู่ในกลุ่ม
+- [x] **verify Sidebar ของจริง** — Light/Dark desktop + 390px ไม่มี overflow · active/hover/pressed/focus แยกได้ · permission/navigation เดิมไม่ถอย · typecheck/lint/test/verify:ui/build ผ่าน
+
+#### ใบงานลด hover ของ navigation ให้เหลือ typography (เบสทักต่อ 2026-08-13)
+> Minimal ของระบบไม่ควรวาดแถบเต็มเมื่อเพียงชี้เมนู: navigation ที่ยังไม่ถูกเลือกเปลี่ยนน้ำหนักด้วยสีข้อความ+ไอคอนเท่านั้น · current/selected ยังคงพื้นฟ้า · focus และ touch pressed ยังคง feedback ที่มองเห็น
+
+- [x] **แยก semantic ตามชนิด interaction** — desktop sidebar, More drawer และขั้นสถานะบน rail ใช้ text/icon-only hover · clickable card ใช้เงา+ข้อความ/ไอคอน · ไม่แตะปุ่ม, icon control, filter/status choice บนมือถือ, menu highlight หรือตารางที่ต้องมี surface feedback
+- [x] **คง state ที่จำเป็น** — selected/current มีพื้นฟ้าและ `aria-current` เดิม · keyboard focus ring เดิม · pressed บน touch ยังมีพื้นตอบสนอง · mobile bottom nav ไม่ถอย
+- [x] **ล็อก regression + ตรวจจอจริง** — guard ห้าม navigation/status step/card วาดพื้นตอน hover แต่บังคับ text/elevation/pressed/selected/focus ตามชนิด · ตรวจ Light/Dark desktop + drawer/mobile และรัน typecheck/lint/unit/verify:ui/build
+
+#### ใบงานคืน Surface Hover แบบสว่าง (เบสทักจากจอจริง 2026-08-13)
+> มติล่าสุดทับใบงาน text-only ข้างบน: ปัญหาไม่ใช่แถบ hover แต่เป็นเทาเดิมใกล้ผืนหน้าจนดูเหมือนแถวถูกเจาะ · คืน feedback เต็มพื้นที่แบบเดิม แล้วทำเฉด Light ให้ขาวและเบาลง โดยไม่เปลี่ยน page/card hierarchy
+
+- [x] **คืน full-surface feedback ตามพื้นที่กด** — sidebar/More drawer, ขั้นสถานะ desktop และ clickable card กลับมาเปลี่ยนพื้นทั้ง hit area · คง selected/current, focus, pressed และ mobile bottom nav เดิม
+- [x] **ปรับสีที่ token กลาง ไม่ patch รายหน้า** — Light hover ต้องขาวกว่า `#eceef1` แต่ยังแยกจาก card ขาวและ pressed · Dark คง neutral hierarchy ที่ผ่านจอจริง · ไม่แตะ page, card, field หรือสีแบรนด์
+- [x] **ล็อก regression + ตรวจจอจริง** — guard ตรวจ hover/pressed/selected/focus และลำดับสี · verify Light/Dark desktop + 390px บน orders/sidebar/status/card โดยไม่มี overflow, hydration, console error หรือ overlay · typecheck/lint/unit/verify:ui/build ผ่าน
+
+#### ใบงาน Impeccable UX integrity refactor (เบสให้ audit + รื้อได้ทั้งระบบ 2026-08-13)
+> Audit โค้ดและจอจริง desktop/mobile พบว่า visual world ล่าสุดมีลำดับและควรคงไว้ · หนี้ที่ควรรื้อคือความซื่อสัตย์ของ interaction, query ที่ยิงโดยไม่จำเป็น, คิวหลายคนที่ค้าง, draft ที่บอกว่ากู้ได้แต่เก็บไม่ครบ และชื่อ V2/dead shell ที่ทำให้คนแก้ผิดบ้าน
+
+- [x] **R0 ยึด product truth ก่อนรื้อ** — เพิ่ม `PRODUCT.md` จาก SPEC/ROADMAP/flow และมติที่เบสเคยเคาะ · ล็อกผู้ใช้ งานหลัก ข้อห้าม และหลัก “จุดโฟกัสเดียว” ไว้ถาวร
+- [x] **R1 canonical UI architecture** — ย้าย shell/dashboard/order helpers ตัวจริงออกจากชื่อ `v2-*` · update import/test · ลบ Sidebar/Topbar/MobileSidebar เก่าที่ `rg` ยืนยันว่าไม่มี caller · คง `/v2*` compatibility redirect ไว้
+- [x] **R2 แท็บเบาและสิทธิ์นิ่ง** — `TabsContent` lazy เป็น default · ฟอร์มเปิดงาน opt-in `keepMounted` · detail mount เมื่อเข้าแล้ว preserve panel ที่เคยเปิด · รอ permission ก่อนวาด action และบอกเหตุผลเมื่อ deep-link ไปแท็บที่ไม่มีสิทธิ์
+- [x] **R3 interaction truth + accessibility** — DatePicker/DateRange ไม่มี button ซ้อน · clear/close target ≥44px บนมือถือ · เปลี่ยน delivery placeholder ที่ handler ว่างเป็น read-only state · แก้ป้ายทางลัด dashboard ไม่ให้ตัดคำจนเดาไม่ได้
+- [x] **R4 multi-user freshness** — `/production` และ `/production/print-runs` poll 30 วินาที + refetch เมื่อกลับแท็บ/ต่อเน็ตใหม่ โดยคง optimistic/mutation invalidation เดิม · ไม่เพิ่ม realtime infrastructure
+- [x] **R5 draft ครบใบ** — ใช้ header state ก้อนเดียวที่มีอยู่แล้ว · กู้ channel/deadline/notes/priority/payment terms/PO/discount/platform fee/tax รวมถึง fees/shipping และ metadata ไฟล์ที่อัปโหลดแล้ว · draft แยกผู้ใช้/หมดอายุ 7 วัน · ไม่เก็บ base64 preview ลง localStorage · cancel timer + revision guard กัน draft ฟื้นหลัง success/reset
+- [x] **R6 verify เหมือนงานจริง** — desktop 1280 + mobile 390 บน dashboard/orders/new/detail/production/print-runs · overflow/target/query/error/console · keyboard/Escape/focus return · typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน · finish review GO ไม่มี P0/P1 · อัปเดต DESIGN/PROGRESS
+
+#### ใบงานคืน visual contract แบบ minimal ไร้กรอบ (เบสส่งภาพ `/orders` 2026-08-13)
+
+> Regression จากก้อนสีล่าสุด: `.card-surface`, status rail และ field/control กลับมามีเส้นรอบ ทั้งที่มติระดับ 3 (`dc40932`, `dbbba71`) ให้ใช้สีพื้น+ระยะ+เงาแทนเส้น · เบสย้ำจากภาพจริงรอบสองว่า minimal ไม่ใช่ทุกอย่างแบน: status ต้องเป็น card สีขาว และ toolbar control ต้องยกขึ้นจากผืนหน้า
+
+- [x] **M1 พื้นผิวหลักไร้เส้นรอบ** — card/table/list/status rail ใช้ surface สีขาว+เงา · overlay ใช้เงาแยกชั้น · ห้าม ring ปลอมเป็น border กลับมา
+- [x] **M2 control อ่านออกโดยไม่ตีกรอบ** — field ในฟอร์มใช้พื้นจม · search/sort/date/filter ที่ยืนบนผืนหน้าใช้ raised control สีขาว+เงา · คงขอบเฉพาะ focus/error, ขอบประพื้นที่เพิ่มไฟล์/รายการ และเส้นคั่นที่จำเป็นต่อการอ่าน
+- [x] **M3 ล็อก regression + ตรวจจอจริง** — `verify:ui` กัน visible border กลับใน primitive/caller · `/orders` desktop/mobile Light/Dark และหน้า detail/production/form ผ่านบน production build · typecheck/lint 0 error/unit 693/build ผ่าน
+
+#### ใบงานแยก Surface ของโครงสร้างออกจาก Control (เบสชี้ซ้ำจากจอจริง 2026-08-14)
+
+> มติล่าสุดทับเฉพาะ M2 ด้านบน: การตีความ minimal = “control ไร้ขอบและใช้พื้นจม” ทำให้ช่องกรอกบน card ขาวกับปุ่มรองบนผืนหน้าอ่านไม่ออกซ้ำหลายรอบ · แก้ที่ semantic primitive กลาง ไม่ patch รายหน้า และไม่เปลี่ยนผืน page/card ที่ผ่านแล้ว
+
+- [x] **S1 แยกบทบาทพื้นผิวถาวร** — page = ผืนงาน, card = ขาว+เงาไร้เส้น, field = ขาว+boundary บาง, secondary control = ขาว+boundary/เงาเบา, `surface-muted` = กลุ่มโครงสร้างหรือ disabled เท่านั้น · Light/Dark มีทิศ depth เดียวกัน
+- [x] **S2 ย้าย primitive และ caller ที่หลุด** — Input/Textarea/Select/DatePicker/ProductPicker ใช้ field contract เดียว · Button outline/secondary/subtle ใช้ secondary-control contract · ตรวจ search/filter/date/status/chip/drop target/disabled/error/focus โดยไม่ทำ ghost/card/overlay ให้มีกรอบเกินหน้าที่
+- [x] **S3 ล็อก regression + ตรวจจอจริง** — `verify:ui` render primitive และกัน field/button กลับไปใช้ `surface-muted` หรือ border โปร่ง · ตรวจ dashboard/orders/new/detail/production/billing/settings ทั้ง Light/Dark ที่ 1280 และ 390 รวม hover/pressed/selected/focus/error/disabled · ไม่มี overflow/hydration/console error · typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน
+
+#### ใบงานลดน้ำหนักขอบ Field ให้กลับมา minimal (เบสชี้จากจอจริง 2026-08-14)
+
+> มติล่าสุดทับเฉพาะค่าน้ำหนักขอบ resting ของ S1–S3: field ยังเป็นสีขาวและแยก semantic จากพื้นโครงสร้างเหมือนเดิม แต่การบังคับ resting border ให้ผ่าน 3:1 ทำให้ทุกช่องกลายเป็นกรอบเข้มแข่งกับเนื้อหา · ลด contrast เฉพาะสถานะพัก แล้วสงวนเส้นเข้มไว้ให้ focus/error
+
+- [x] **Q1 resting boundary เบาแต่ไม่หาย** — เทียบ Light/Dark จากจอจริงและเลือกขอบอ่อนที่ยังเห็นรูปทรงบน card/page โดยไม่ทำฟอร์มเป็นตารางเส้น · ไม่เปลี่ยน field fill, page, card หรือ toolbar
+- [x] **Q2 state สำคัญยังชัด** — focus/error/invalid/disabled/placeholder และ inline control คง semantics, keyboard และ contrast เดิม · ไม่มี layout shift เมื่อสถานะเปลี่ยน
+- [x] **Q3 guard กันแกว่งสองขั้ว + verify** — ล็อกช่วง contrast ของ resting border ให้ไม่จางจนกลืนและไม่เข้มจนรก โดยแยกจากข้อบังคับ contrast ของ focus/error · ตรวจ Light/Dark 1280 + 390, typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน
+
+#### ใบงานคืนขอบประพื้นที่เพิ่มเป็นแบบเดิม (เบสชี้จากจอจริง 2026-08-14)
+
+> `DASHED` ถูก semantic color rewrite เปลี่ยนจาก `slate-300/700` เป็น `border-strong` จน CTA ขนาดใหญ่ 5 ใบดูเป็นกรอบเข้มทั้งหน้า · มติล่าสุดให้คืน resting boundary แบบเดิมเฉพาะพื้นที่เพิ่ม/อัปโหลด โดยคง hover, pressed และ keyboard focus ที่ชัดไว้
+
+- [x] **D1 คืน token กลาง ไม่ patch รายใบ** — `DASHED` ใช้ขอบอ่อนเดิมทั้ง Light/Dark และครอบ AddCard/drop target ทุก caller · ไม่แตะ field, card, divider หรือ `border-strong` ที่ยังมีหน้าที่อื่น
+- [x] **D2 ล็อก interaction + regression** — resting เบา แต่ hover/pressed/focus ยังบอกพื้นที่กดได้ · guard กัน `DASHED` กลับไปใช้ strong boundary และยืนยัน AddCard 5 ใบยังหน้าตาเดียวกัน
+- [x] **D3 ตรวจจอจริงและด่านครบ** — `/orders/new` Light/Dark 1280 + 390 ไม่มี overflow/hydration/console error · typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน
+
+#### ใบงานแยกรายการงานเป็นการ์ด + ยกผืนหน้าให้เกือบขาว (เบสชี้จากจอจริง 2026-08-14)
+
+> หน้าเปิดงานและฟอร์มแก้รายการมี card ใหญ่ครอบทุกชุดงาน แล้ววาดกรอบซ้ำรอบ “รายการที่ N” ทำให้หลายรายการอ่านเป็นก้อนเดียวและมีเส้นซ้อน · มติล่าสุดให้หนึ่งรายการยืนเป็น card ขาวไร้ขอบของตัวเอง มีปุ่มเพิ่มรายการอยู่ก่อนรายการเสมอ และให้ Light page ใช้ off-white ที่ต่างจากขาวเพียงเล็กน้อยตามภาพ Vercel โดยไม่เปลี่ยน business flow
+
+- [x] **E1 หนึ่งรายการต่อหนึ่ง card** — `OrderItemCard` เป็น surface ขาวมีเงานุ่ม ไม่มี border/ring ตกแต่ง · รายการที่ 2 เป็นต้นไปเป็น card แยกและมีระยะหายใจเท่ากัน · หน้าเปิดงานกับหน้าแก้ไขใช้ component เดียวกัน
+- [x] **E2 ปุ่มเพิ่มรายการอยู่บนและเห็นชัด** — มี CTA “เพิ่มรายการ” เหนือรายการทั้งสองหน้า · mobile กว้างเต็ม/เป้ากด ≥44px · ไม่มีปุ่มเพิ่มรายการซ้ำท้ายรายการ และ count/ลำดับยังตรงหลังเพิ่มหรือลบ
+- [x] **E3 ผืนหน้า Light เกือบขาว** — workspace ใน AppShell เป็น neutral off-white ใกล้ `#fff` มากขึ้น โดย card/chrome ยังขาวและอ่าน hierarchy ได้จากสี+เงา · ไม่เปลี่ยน field, hover, status, public/auth/print หรือ Dark ที่ผ่านจอจริงแล้ว
+- [x] **E4 ล็อก regression + ตรวจของจริง** — guard ยืนยัน item card ไร้ขอบและ CTA อยู่ก่อน list ทั้ง create/edit · ตรวจ 1/2 รายการ Light/Dark ที่ 1280 + 390, keyboard/focus/target/overflow/hydration/console · typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน
+
+#### ใบงานแยกฟอร์มสินค้าตามแหล่ง + จัดเครื่องมือเรียงลำดับใหม่ (เบสชี้จากจอจริง 2026-08-14)
+
+> ภาพจริงยืนยันว่าการใช้ตารางขาย 8 คอลัมน์กับ “ลูกค้าส่งมา” และ “ตัดเย็บใหม่” ทำให้ช่องที่ใช้ไม่ได้กลายเป็นขีดลอย และสินค้าเดียวแตกเป็นแถวหลัก/สเปค/ไซส์คนละก้อน · ปุ่มขึ้นลงยังซ้อนแนวตั้งในคอลัมน์ 44px แล้วเบียดถังขยะ จึงทั้งล้นและสื่อไม่ชัดว่ากำลังย้ายสินค้าทั้งก้อน
+
+- [x] **F1 adaptive product block ตามแหล่งสินค้า** — คงตารางเดิมเมื่อเป็นสินค้าจากสต็อกล้วน · ถ้ามีสินค้ากรอกเอง ให้แต่ละสินค้าเป็นก้อนพื้นจมตามลำดับจริง: ลูกค้าส่งมาเห็นชื่อ/แพค/ไซส์และจำนวนโดยไม่มีราคา–ส่วนลด–รวมปลอม; ตัดเย็บใหม่รวมข้อมูลสินค้า/สเปค/ไซส์ไว้ในขอบเขตเดียว · mixed source ห้ามแยกกลุ่มจนลำดับเปลี่ยน
+- [x] **F2 เครื่องมือจัดลำดับมีบ้านเดียว** — header ของก้อนสินค้ามี “สินค้า n/N” + ปุ่มขึ้น/ลงแนวนอนและลบที่แยกชัด · แถวตารางใช้เมนูจัดการหนึ่งปุ่มแทนก้อนลูกศรซ้อนสูง · mobile target ≥44px, keyboard/focus/aria-live ครบ และไม่เพิ่ม drag-and-drop
+- [x] **F3 ลำดับและ state ต้องติดสินค้าเดิม** — ใช้ client key คงที่แทน `key={index}` ในรายการสินค้า · ย้ายขึ้น/ลงต้องพา variants, สเปคตัดเย็บ, สี/ไซส์ และ local editor state ไปกับสินค้าเดิม · แก้ id ของ size matrix ไม่ให้ซ้ำระหว่างสินค้า/desktop/mobile พร้อม unit test pure reorder และ draft round-trip
+- [x] **F4 ล็อก regression + ตรวจของจริง** — จอจริง create ที่ 1→2 สินค้ากรอกเอง + shared `OrderItemCard` ของ create/edit · pure test ครอบ 2 ชุดงาน, 3 สินค้า, reorder กลาง/ขอบ และ draft round-trip · resize ข้าม layout, Light/Dark ที่ 1440 + 390 · ไม่มีขีดในช่องเงินของลูกค้าส่งมา ไม่มีปุ่ม “ปิดหลายไซส์” ในสองโหมดนี้ ไม่มี overflow/duplicate id/hydration/console error · typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน
+
+#### ใบงานต้นแบบ ERP Command Center — ออกแบบใหม่ทั้งระบบแบบไม่ตีกรอบ (เบสสั่ง 2026-08-14)
+
+> พิสูจน์ “ภาษาใหม่ทั้งระบบ” จากของจริงก่อนรื้อหน้าหลัก: แนว **สายการผลิตบนกริด** (Swiss industrial manual + ใบสั่งงานโรงงาน) และน้ำเงิน Anajak `#3973b2` · เว็บอนาคตเป็นอีกช่องทางรับออเดอร์เข้าสู่วงจรเดียว ไม่สร้างหลังบ้าน POD แยก
+>
+> ขอบเขต: route ทดลอง `/redesign` + shell/navigation + owner command center + drill-through ไป flow จริง · ใช้ auth/query/permission/navigation registry/service เดิม · ไม่แตะ schema, migration, dependency, config, business logic, public/print/factory หรือ URL หลัก
+
+- [x] **world + composition มีหลักฐาน** — เก็บ direction sketch + 3 comps ใน `.impeccable/` · เลือก Flow Matrix พร้อมเหตุผล/ความเสี่ยงและ design contract ที่ตรวจย้อนหลังได้
+- [x] **prototype แยกและปลอดภัย** — `/redesign` มี auth ชั้นเดียวกับหลังบ้าน แต่ใช้ shell/presentation แยก · มีทางกลับระบบหลัก · ไม่มีลิงก์หรือ action ปลอม
+- [x] **exception-first ด้วยข้อมูลจริง** — งานเสี่ยง/งานค้างและ action หลักมาก่อนสถิติ · flow matrix ใช้ข้อมูลจริงจาก analytics/permission เดิม · เงิน/เมนู fail closed ตามสิทธิ์
+- [x] **navigation พร้อมขยายช่องทาง** — เมนูจัดตาม วันนี้/งานขาย/ปฏิบัติการ/การเงิน/ทรัพยากร/ระบบ · ค้นหาและ drill-through กลับ route จริง · ช่องทางเว็บในอนาคตเป็น source ของออเดอร์เดิมเท่านั้น
+- [x] **responsive + accessibility** — 390px และ 1440px ไม่มี horizontal overflow · mobile เป็น bottom nav + priority queue ไม่ย่อตาราง desktop ลงจอ · เป้ากด ≥44px · focus/reduced-motion/semantic landmarks/ภาษาไทยครบ
+- [x] **verify ก่อนให้เคาะทิศ** — typecheck, lint, unit, `verify:ui`, build และ browser inspection desktop/mobile ผ่าน · loading/error/retry/empty แยกชัด · อัปเดต `docs/DESIGN.md`/surface brief/`PROGRESS.md` และ commit ก้อนเล็ก
+
+#### ใบงานต่อยอดต้นแบบ — Order Workbench ที่บอกงานถัดไปก่อนข้อมูลประกอบ (เบสเคาะให้ทำต่อ 2026-08-14)
+
+> พิสูจน์ว่า visual world ของ Command Center ใช้กับ record ที่ซับซ้อนได้จริง โดยเพิ่ม `/redesign/orders/[id]` ใต้ shell เดิมและเชื่อมจากแถวออเดอร์ในต้นแบบ · route หลัก `/orders/[id]` ยังเป็น canonical สำหรับ mutation/เอกสาร/ฟอร์มลึกทั้งหมด เพื่อลดการสร้าง controller ธุรกิจซ้ำระหว่างช่วงทดลอง
+>
+> ขอบเขต: presentation + pure view model จาก `order.getById`, `user.me`, permission/status/next-step helper เดิม · ไม่เพิ่ม schema, endpoint, mutation, dependency, config หรือ business rule · ทุก CTA ต้องเปิด canonical record/แท็บที่ทำงานจริง ไม่มี action จำลอง
+
+- [x] **O1 route จริงและ fail closed** — auth ผ่าน layout เดิม · โหลด record/สิทธิ์จริง · not-found/loading/error/retry แยกกัน · เงินและข้อมูลทุนไม่ปรากฏเมื่อไม่มีสิทธิ์
+- [x] **O2 งานถัดไปเป็นพระเอก** — first viewport บอกสถานะปัจจุบัน เหตุที่ต้องสนใจ และขั้นถัดไปหนึ่งเรื่องจาก `getOrderNextStep` เดิม · แสดง lifecycle 7 ช่วงโดย derive เลน DTF/ร้านนอกจากรายการจริง ไม่เดาสถานะหรือแต่งข้อมูล
+- [x] **O3 อ่านออเดอร์โดยไม่ไล่หลายแท็บ** — desktop จัด work brief + สเปก/จำนวน + production/delivery/finance snapshot ตามสิทธิ์ · mobile เรียง action → คำเตือน → สรุปที่จำเป็น และส่งงานลึกไป canonical tab ที่ตรงเรื่อง · เป้ากด ≥44px ไม่มี horizontal overflow
+- [x] **O4 เชื่อมประสบการณ์และมีทางกลับ** — แถวออเดอร์ใน Command Center เปิด workbench ใหม่ · breadcrumb/ปุ่มเปิดรายละเอียดเต็มกลับ canonical URL จริง · query string ของแท็บใช้ contract `order-tabs` เดิม
+- [x] **O5 ด่านก่อนส่งให้เคาะ** — pure tests ครอบ lifecycle/route mapping/permission-safe model · typecheck, targeted lint, unit, `verify:ui`, Impeccable detector และ build ผ่าน · browser 1440/390 ทั้ง Light/Dark ไม่มี hydration/console/overflow · finish review + อัปเดต `docs/DESIGN.md`, surface brief, `PROGRESS.md` และ commit ก้อนเล็ก
+
+#### ใบงานต่อยอดต้นแบบ — Connected Operations: ทะเบียนออเดอร์ → ศูนย์ควบคุมการผลิต (เบสสั่ง “เอาให้สุด มีข้อมูล กดได้จริง” 2026-08-14)
+
+> ทำให้ต้นแบบไม่ใช่ภาพหน้าเดียว แต่เดินงานหลักได้เป็นสายจาก Command Center → Orders Registry → Order Workbench → Production Control/flow หลัก · ใช้ query, permission, status/readiness และ URL จริงชุดเดิม โดยคง canonical `/orders*` และ `/production*` เป็นเจ้าของ mutation, dialog และกฎธุรกิจระหว่างช่วงทดลอง
+>
+> ขอบเขต: เพิ่ม `/redesign/orders` และ `/redesign/production` ใต้ auth/shell เดิม + pure presentation model/test + เชื่อม navigation/drill-through · ไม่เพิ่ม schema, endpoint, mutation, dependency, config หรือ business rule · เว็บ self-serve อนาคตยังเป็นแหล่งออเดอร์เดียวกัน ไม่สร้างหลังบ้านคู่ขนาน
+
+- [x] **C1 Orders Registry ใช้ข้อมูลจริงครบวงจร** — `order.list` เดิมรองรับค้นหา, สถานะ, ความเร่งด่วน, ช่องทาง, ประเภท, เรียง, pagination และ status count · เงิน fail closed ตาม `see_order_money` · URL filter แชร์/ย้อนกลับได้ · ทุกแถวเปิด `/redesign/orders/[id]` และปุ่มเปิดงานใหม่ไป canonical form จริง
+- [x] **C2 Production Control เห็นข้อยกเว้นก่อนกำลังงาน** — `production.kanban` + `user.me` เดิมสรุปงานติดด่าน/เลยกำหนด/มีปัญหา/งานของฉัน/คิวรอเปิดใบผลิต/เลน DTF-ร้านนอก-QC-แพ็ค-ส่ง โดยใช้ readiness ที่ sanitize แล้ว · ไม่คำนวณหรือเปิดเผยเงินใหม่ · HEAT_PRESS ใช้ `evaluateHeatPressGate` ชุดเดียวกับหน้า canonical และไม่นับงานที่ยังรอเสื้อ/ฟิล์มว่าเริ่มได้
+- [x] **C3 ทุก control มีผลจริง** — lane/lens/filter เปลี่ยนรายการจริง, retry/refetch ทำงาน, Orders Registry → Workbench → Production Control ต่อกันในต้นแบบ · action ลึกไป canonical `/production?create=`, `/production/[id]`, `/orders/[id]?tab=` ที่มี dialog/mutation/server guard จริง ไม่มีปุ่มจำลอง
+- [x] **C4 responsive เป็นคนละ composition** — desktop ใช้ registry table + factory control board; mobile เรียง exception → lens/flow → work cards ไม่ย่อตารางกว้างลงจอ · เป้ากด ≥44px, keyboard/focus/aria-live, reduced-motion, loading/error/empty และ no-results ครบ
+- [x] **C5 shell และ entry points ไม่หลุดโลก** — sidebar/bottom nav/ลิงก์ดูทั้งหมดใน Command Center พาเข้า surface `/redesign` ที่มีแล้ว; เมนูส่วนที่ยังไม่ redesign ไป canonical ตามเดิมและมีทางกลับระบบหลักชัด
+- [x] **C6 ด่านก่อนส่งให้เคาะ** — pure tests, typecheck, targeted lint, unit, `verify:ui`, Impeccable detector หนึ่งรอบและ build ผ่าน · browser เดิน click journey จริงที่ 1440×900 Light + 390×844 Dark ไม่มี hydration/console/overflow · finish review HOLD 1 P1 + 1 P2 แล้วแก้ครบและยืนยัน SHIP · screenshots + `docs/DESIGN.md`, surface brief, `PROGRESS.md` และ commit ก้อนเล็ก
 
 **เพิ่มเข้า P1 (เบสเคาะ 2026-06-12 — รื้อโมดูลผลิตตามความจริงโรงงาน):** ✅ ทำแล้ว 2026-06-12 — เบสชี้ "การผลิตเอาไปใช้จริงไม่ได้" + ให้ความจริงใหม่: **ทำเองมีแค่ DTF** (พิมพ์ฟิล์ม→รีดร้อน 2 ขั้น) · DTG/สกรีน/ปัก/Sublimation/ตัดเย็บใหม่/ป้ายคอเย็บติด = **outsource ทั้งหมด กด "ผ่านรวด" ปิดขั้นได้โดยไม่ต้องเปิดใบส่งร้าน/ไม่กรอกเงิน** → ใบผลิตเป็น "สายงานต่อเลน": เตรียมเสื้อ (เบิกสต๊อค/ตรวจรับเสื้อลูกค้า) · ตัดเย็บ (เลนแยก outsource) · เลนต่อเทคนิคพิมพ์ · ป้ายคอ (งอกเองจาก add-on) · แพ็ค (โผล่เมื่อสายอื่นเสร็จ) — ตัวแนะนำอ่านครบ 3 อย่าง: วิธีพิมพ์+แหล่งเสื้อ+add-on · หน้า /production = แท็บต่อเทคนิค + บอร์ดเลน (เบสเคาะ "เอาทั้งสองแบบ") · **มติใหญ่: เลิกคิดต้นทุนต่องานทั้งระบบ** (ดูกติกา 4)
 **เพิ่มเข้า P1 (เบสเคาะ 2026-06-11 — redesign การเปิดงาน):** ✅ **ฟอร์มเปิดงานโหมดเดียว + ไม่ถามชนิดออเดอร์** (ทำแล้ว 2026-06-11) — เบสชี้: 2 โหมด (สอบถาม/ระบุครบ) + คำถาม สำเร็จรูป/custom ทำให้ใช้ยาก ไม่มีจุดโฟกัส → ยุบเหลือฟอร์มเดียว เปิดงานได้ด้วยลูกค้า+ชื่องาน · ระบบ **derive ชนิดออเดอร์จากเนื้อรายการเอง** (มีรายการ+ไม่มีลายพิมพ์=สำเร็จรูป · นอกนั้น=custom · re-derive ตอนแก้รายการเฉพาะช่วง DRAFT/INQUIRY) + **ภาษีต่อรายการ** (มีลาย=จ้างทำของ · ไม่มี=ขายสินค้า — ออเดอร์ผสมถูกกฎหมายกว่าเหมาทั้งใบ) · ด่านชดเชยฝั่ง server: ยืนยันออเดอร์ต้องมีรายการ · การ์ด "ขั้นถัดไป" บนหน้าออเดอร์ (`src/lib/order-next-step.ts`) บอกจุดโฟกัสเดียวต่อสถานะ · **เบสเคาะเพิ่มรอบสอง: บังคับแค่ลูกค้าช่องเดียว** — ชื่องาน/รายละเอียดไม่บังคับ (ชื่อว่าง = server ตั้งให้จากรายการแรกหรือชื่อลูกค้า+วันที่) + ถอดจำนวนโดยประมาณออกจากฟอร์ม

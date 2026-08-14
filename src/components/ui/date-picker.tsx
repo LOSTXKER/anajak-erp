@@ -19,7 +19,8 @@ import {
 } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FIELD_SURFACE, FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, controlShapeClass, type ControlShape } from "./tokens";
+import { ControlIconButton } from "./control-icon-button";
+import { DISABLED_CONTROL_SURFACE, FIELD_SURFACE, FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, controlShapeClass, type ControlShape } from "./tokens";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
 
 /* ============================================================
@@ -61,6 +62,8 @@ export function DatePicker({
   onChange,
   id,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
   placeholder = "เลือกวันที่",
   disabled,
   className,
@@ -73,6 +76,8 @@ export function DatePicker({
   onChange: (value: string) => void;
   id?: string;
   "aria-label"?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: React.AriaAttributes["aria-invalid"];
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -85,6 +90,7 @@ export function DatePicker({
 }) {
   const selected = parseValue(value);
   const canClear = clearable && !required;
+  const invalid = ariaInvalid !== undefined && ariaInvalid !== false && ariaInvalid !== "false";
   const [open, setOpen] = React.useState(false);
   const [cursor, setCursor] = React.useState<Date>(selected ?? new Date());
 
@@ -104,57 +110,49 @@ export function DatePicker({
 
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
-      <PopoverPrimitive.Trigger asChild>
-        <button
-          type="button"
-          id={id}
-          aria-label={ariaLabel}
-          disabled={disabled}
-          className={cn(
-            controlShapeClass(shape),
-            CONTROL_H,
-            // ใช้ผิวช่องกรอกของกลาง — เดิมก๊อปสูตรมาเขียนเอง (ตัวเดียวใน ui/ ที่ทำแบบนี้)
-            // แล้ว **ตกสีตัวอักษรฝั่งสว่างไป** ช่องนี้จึงเป็นช่องเดียวที่สีตัวอักษรไม่เท่าช่องอื่น
-            // (audit สี 2026-08-02) · แก้แล้ววันหน้าเปลี่ยนผิวช่องกรอกทีเดียวจบทุกช่อง
-            "flex w-full items-center justify-between gap-2 px-3 py-1 text-base transition-colors",
-            FIELD_SURFACE,
-            FOCUS_FIELD,
-            "sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
-            className,
-          )}
-        >
-          <span className={cn("truncate", !selected && "text-slate-400 dark:text-slate-500")}>
-            {selected
-              ? `${selected.getDate()} ${MONTHS[selected.getMonth()]} ${buddhistYear(selected)}`
-              : placeholder}
-          </span>
-          <span className="flex shrink-0 items-center gap-1">
-            {canClear && selected && !disabled && (
-              <span
-                role="button"
-                tabIndex={0}
-                aria-label="ล้างวันที่"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onChange("");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onChange("");
-                  }
-                }}
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-secondary dark:hover:bg-slate-800"
-              >
-                <X className="h-3.5 w-3.5" />
-              </span>
+      <span className="relative block w-full">
+        <PopoverPrimitive.Trigger asChild>
+          <button
+            type="button"
+            id={id}
+            aria-label={ariaLabel}
+            aria-describedby={ariaDescribedBy}
+            data-invalid={invalid || undefined}
+            disabled={disabled}
+            className={cn(
+              controlShapeClass(shape),
+              CONTROL_H,
+              // ใช้ผิวช่องกรอกของกลาง — เดิมก๊อปสูตรมาเขียนเอง (ตัวเดียวใน ui/ ที่ทำแบบนี้)
+              // แล้ว **ตกสีตัวอักษรฝั่งสว่างไป** ช่องนี้จึงเป็นช่องเดียวที่สีตัวอักษรไม่เท่าช่องอื่น
+              // (audit สี 2026-08-02) · แก้แล้ววันหน้าเปลี่ยนผิวช่องกรอกทีเดียวจบทุกช่อง
+              "flex w-full items-center justify-between gap-2 px-3 py-1 text-base transition-colors",
+              canClear && selected && !disabled && "pr-20",
+              FIELD_SURFACE,
+              FOCUS_FIELD,
+              DISABLED_CONTROL_SURFACE,
+              "sm:text-sm disabled:cursor-not-allowed",
+              className,
             )}
-            <CalendarDays className="h-4 w-4 text-slate-400" />
-          </span>
-        </button>
-      </PopoverPrimitive.Trigger>
+          >
+            <span className={cn("truncate", !selected && "text-placeholder")}>
+              {selected
+                ? `${selected.getDate()} ${MONTHS[selected.getMonth()]} ${buddhistYear(selected)}`
+                : placeholder}
+            </span>
+            <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
+          </button>
+        </PopoverPrimitive.Trigger>
+
+        {canClear && selected && !disabled && (
+          <ControlIconButton
+            aria-label="ล้างวันที่"
+            onClick={() => onChange("")}
+            className="absolute right-9 top-1/2 -translate-y-1/2 text-slate-400"
+          >
+            <X className="h-3.5 w-3.5" />
+          </ControlIconButton>
+        )}
+      </span>
 
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
@@ -175,7 +173,7 @@ export function DatePicker({
               type="button"
               aria-label="เดือนก่อนหน้า"
               onClick={() => setCursor((c) => subMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-interactive-hover hover:text-secondary sm:w-8 dark:hover:bg-interactive-hover dark:hover:text-secondary")}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -186,7 +184,7 @@ export function DatePicker({
               type="button"
               aria-label="เดือนถัดไป"
               onClick={() => setCursor((c) => addMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-interactive-hover hover:text-secondary sm:w-8 dark:hover:bg-interactive-hover dark:hover:text-secondary")}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -196,7 +194,7 @@ export function DatePicker({
             {WEEKDAYS.map((w) => (
               <div
                 key={w}
-                className="pb-1 text-center text-2xs font-medium text-slate-400"
+                className="pb-1 text-center text-2xs font-medium text-muted"
               >
                 {w}
               </div>
@@ -219,12 +217,12 @@ export function DatePicker({
                     CONTROL_H,
                     "flex items-center justify-center rounded-lg text-sm tabular-nums transition-colors",
                     FOCUS_BUTTON,
-                    !inMonth && "text-slate-300 dark:text-slate-600",
-                    inMonth && "text-slate-700 dark:text-slate-200",
-                    !isSelected && "hover:bg-slate-100 dark:hover:bg-slate-800",
+                    !inMonth && "text-muted",
+                    inMonth && "text-secondary",
+                    !isSelected && "hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary",
                     isToday &&
                       !isSelected &&
-                      "font-semibold text-blue-600 dark:text-blue-400",
+                      "font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300",
                     isSelected &&
                       "bg-blue-600 font-semibold text-white hover:bg-blue-700",
                   )}
@@ -235,14 +233,14 @@ export function DatePicker({
             })}
           </div>
 
-          <div className="mt-2 flex gap-2 border-t border-slate-200 pt-2 dark:border-slate-800">
+          <div className="mt-2 flex gap-2 border-t border-divider pt-2">
             <button
               type="button"
               onClick={() => {
                 onChange(format(new Date(), "yyyy-MM-dd"));
                 setOpen(false);
               }}
-              className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40")}
+              className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-blue-600 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:text-blue-400 dark:hover:bg-interactive-hover")}
             >
               วันนี้
             </button>
@@ -253,7 +251,7 @@ export function DatePicker({
                   onChange("");
                   setOpen(false);
                 }}
-                className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-muted transition-colors hover:bg-slate-100 dark:hover:bg-slate-800")}
+                className={cn(CONTROL_MIN_H, "flex-1 rounded-full text-xs font-medium text-muted transition-colors hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary")}
               >
                 ล้าง
               </button>

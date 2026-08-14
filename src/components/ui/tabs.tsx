@@ -3,27 +3,24 @@
 import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
-import { FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, FOCUS_INSET } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 /**
- * แถบแท็บของทั้งระบบ — แคปซูลพื้นจม ปุ่มที่เลือกอยู่เป็นแผ่นขาวลอยขึ้นมา
- * (ภาษาเดียวกับตัวสลับอื่นในเว็บ ไม่ใช่แท็บขีดเส้นใต้ซึ่งจะเพิ่มเส้นให้หน้าอีก)
+ * แถบแท็บแบบเส้นใต้ของระบบ — ข้อความ + active line โดยคง semantics ของ Radix
  *
  * ที่ต้องรู้ก่อนใช้:
  * - จอแคบ: แถบเลื่อนแนวนอนได้ ป้ายชุดเดียวกับจอกว้าง (ห้ามมีป้ายคนละชุด 2 จอ — สอนงานกันไม่ได้)
- * - `TabsContent` ที่นี่ **บังคับ forceMount เสมอ** แล้วซ่อนด้วย CSS แทนการถอดออกจากหน้า
- *   เหตุผล: ของเดิมเป็นหน้าเดียวเลื่อนยาว ทุกส่วน mount อยู่แล้ว · ถ้าปล่อยให้ Radix ถอด DOM
- *   ทิ้งตามค่าเริ่มต้น คนที่กำลังพิมพ์แก้รายการแล้วสลับแท็บจะเสียของที่ยังไม่เซฟ
- *   (แลกด้วยการ render ทุกแท็บ = เท่าพฤติกรรมเดิมของหน้า ไม่ได้หนักขึ้นกว่าเดิม)
+ * - `TabsContent` lazy ตามค่าเริ่มต้น เพื่อไม่ยิง query/render panel ที่ยังไม่เปิด
+ * - ฟอร์มที่ต้องรักษาค่าระหว่างสลับแท็บให้ opt-in `keepMounted` เฉพาะจุด
  */
 export const Tabs = TabsPrimitive.Root;
 
 /**
  * แถบรองของ TabsList ตอนปักหมุด (sticky) — **ต้องใช้ทุกครั้งที่ TabsList เป็น sticky**
  *
- * ทำไมต้องมี: TabsList กว้างเท่าแท็บจริง (`w-fit`) พอปักหมุดแล้วเลื่อนหน้า
- * ที่ว่างข้างๆ แถบเป็นพื้นโปร่ง → ตัวหนังสือของฟอร์มวิ่งทะลุขึ้นมาอยู่ข้างแท็บ
+ * ทำไมต้องมี: TabsList เลื่อนได้ตามความกว้างเนื้อหา พอปักหมุดแล้วเลื่อนหน้า
+ * ถ้าไม่มีแถบพื้นเต็มความกว้าง ตัวหนังสือของฟอร์มจะวิ่งทะลุขึ้นมาอยู่ข้างแท็บ
  * (เบสเห็นบนจอจริง 2026-08-12: ช่อง "ช่องทาง" กับ "กำหนดส่ง" โผล่ข้างแถบ)
  *
  * สูตรนี้ยกมาจากแถบขั้นตอนเดิมของหน้าเปิดงานที่แก้ปัญหานี้ไปแล้ว —
@@ -37,8 +34,8 @@ export function TabsBar({
   return (
     <div
       className={cn(
-        "sticky top-0 z-20 -mx-1 border-b border-slate-200/70 bg-bg px-1 py-2 dark:border-white/10",
-        className
+        "sticky top-0 z-20 -mx-1 border-b border-divider bg-bg px-1",
+        className,
       )}
       {...props}
     />
@@ -49,26 +46,15 @@ export const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      // no-scrollbar: จอแคบเลื่อนได้แต่ไม่มีแถบเลื่อนมากินที่
-      // w-fit: ถาดกว้างเท่าแท็บจริง ไม่ยืดเต็มบรรทัด — ยืดแล้วมันจะไปพาดคลุมของที่ตัวเอง
-      // ไม่ได้คุม (เบสเห็นจอจริง 2026-08-11 แล้วบอกว่า "ไม่เห็นแยกหน้า tab ให้เลย")
-      // max-w-full ต้องมาคู่เสมอ ไม่งั้นจอแคบเลื่อนแถบไม่ได้
-      "no-scrollbar flex w-fit max-w-full gap-0.5 overflow-x-auto p-1",
-      // เดิมใช้ SUNK_PANEL (slate-100 #f1f1f3) วางบนพื้นหน้า (--bg #f3f4f6) — ต่างกัน 2 หน่วยสี
-      // ตามองไม่เห็นถาด เหลือแค่คำเทาลอยๆ ไม่มีอะไรมัดว่า "6 อันนี้เป็นชุดเดียว เลือกได้ทีละอัน"
-      // (SUNK_PANEL ออกแบบมาให้จมใน "การ์ดขาว" ไม่ใช่บนพื้นเทาของหน้า — ใช้ผิดบริบท)
-      // สูตรนี้ยกมาจาก SegmentedControl ที่เห็นชัดบนพื้นเทาเดียวกันอยู่แล้ว ไม่ได้เพิ่มสี/เส้นใหม่ให้ระบบ
-      "bg-surface-muted ring-1 ring-inset ring-slate-200 dark:ring-white/10",
-      // มุม 8px = "ปุ่มในแถบสลับ" ตามที่ RADIUS.item เขียนกำกับตัวเองไว้ · ทรงแคปซูลสงวนให้
-      // ชิปตัวกรอง ซึ่งกติกาสีกลับด้านกัน (ตัวกรอง: ขาว = ยังไม่เลือก · แท็บ: ขาว = เปิดอยู่)
-      RADIUS.item,
-      className
-    )}
-    {...props}
-  />
+    <TabsPrimitive.List
+      ref={ref}
+      className={cn(
+        // no-scrollbar: จอแคบเลื่อนได้แต่ไม่มีแถบเลื่อนมากินที่
+        "no-scrollbar flex w-full max-w-full gap-6 overflow-x-auto pr-1 sm:gap-8",
+        className
+      )}
+      {...props}
+    />
 ));
 TabsList.displayName = "TabsList";
 
@@ -78,41 +64,80 @@ export const TabsTrigger = React.forwardRef<
     /** จุดแดง = แท็บนี้มีของค้าง (คิดจากข้อมูลชุดเดียวกับแถบขั้นต่อไป ห้ามเขียนตรรกะใหม่) */
     hasPending?: boolean;
   }
->(({ className, children, hasPending = false, ...props }, ref) => (
-  <TabsPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      CONTROL_MIN_H,
-      FOCUS_BUTTON,
-      RADIUS.item,
-      "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-4 text-sm font-medium text-muted transition-colors",
-      "hover:text-secondary",
-      "data-[state=active]:bg-surface data-[state=active]:font-semibold data-[state=active]:text-strong data-[state=active]:shadow-sm",
-      className
-    )}
-    {...props}
-  >
-    {children}
-    {hasPending && (
-      <span
-        // ข้อความจริงอยู่ใน aria-label ของ trigger ที่ผู้เรียกส่งมา — จุดนี้เป็นภาพล้วน
-        aria-hidden="true"
-        className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
-      />
-    )}
-  </TabsPrimitive.Trigger>
-));
+>(({ className, children, hasPending = false, onClick, ...props }, forwardedRef) => {
+  const localRef = React.useRef<React.ElementRef<typeof TabsPrimitive.Trigger>>(null);
+  const ref = React.useCallback(
+    (node: React.ElementRef<typeof TabsPrimitive.Trigger> | null) => {
+      localRef.current = node;
+      if (typeof forwardedRef === "function") forwardedRef(node);
+      else if (forwardedRef) forwardedRef.current = node;
+    },
+    [forwardedRef],
+  );
+
+  const bringActiveTabIntoView = React.useCallback(() => {
+    requestAnimationFrame(() => {
+      if (localRef.current?.getAttribute("data-state") === "active") {
+        localRef.current.scrollIntoView({ inline: "nearest", block: "nearest" });
+      }
+    });
+  }, []);
+
+  React.useEffect(() => {
+    const node = localRef.current;
+    if (!node) return;
+
+    // Radix เปลี่ยน data-state ผ่าน context ตอน URL back / validation พาไปแท็บอื่น
+    // ซึ่งไม่ได้เกิดจาก click บน trigger เป้าหมายเสมอ จึงเฝ้า state จริงที่ DOM จุดเดียว
+    const observer = new MutationObserver(bringActiveTabIntoView);
+    observer.observe(node, { attributes: true, attributeFilter: ["data-state"] });
+    bringActiveTabIntoView();
+    return () => observer.disconnect();
+  }, [bringActiveTabIntoView]);
+
+  return (
+    <TabsPrimitive.Trigger
+      ref={ref}
+      className={cn(
+        CONTROL_MIN_H,
+        FOCUS_INSET,
+        "inline-flex min-w-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap text-sm font-medium text-muted transition-colors",
+        "hover:text-secondary",
+        "-mb-px border-b-2 border-transparent px-1 data-[state=active]:border-slate-900 data-[state=active]:font-semibold data-[state=active]:text-strong dark:data-[state=active]:border-white",
+        className,
+      )}
+      onClick={(event) => {
+        onClick?.(event);
+        bringActiveTabIntoView();
+      }}
+      {...props}
+    >
+      {children}
+      {hasPending && (
+        <span
+          // ข้อความจริงอยู่ใน aria-label ของ trigger ที่ผู้เรียกส่งมา — จุดนี้เป็นภาพล้วน
+          aria-hidden="true"
+          className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
+        />
+      )}
+    </TabsPrimitive.Trigger>
+  );
+});
 TabsTrigger.displayName = "TabsTrigger";
 
 export const TabsContent = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content> & {
+    /** คง panel ไว้ใน DOM ตอน inactive — ใช้เฉพาะฟอร์มที่มี state ยังไม่บันทึก */
+    keepMounted?: boolean;
+  }
+>(({ className, keepMounted = false, ...props }, ref) => (
   <TabsPrimitive.Content
     ref={ref}
-    forceMount
+    forceMount={keepMounted ? true : undefined}
     className={cn(
-      "outline-none data-[state=inactive]:hidden",
+      "outline-none",
+      keepMounted && "data-[state=inactive]:hidden",
       FOCUS_BUTTON,
       className
     )}

@@ -196,7 +196,7 @@ export function OutsourceShareDialog({ job, onClose }: OutsourceShareDialogProps
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      className="shrink-0 text-slate-400 hover:text-red-500"
+                      className="shrink-0 text-slate-400 hover:text-red-500 dark:hover:text-red-400"
                       disabled={deleteAttachment.isPending}
                       onClick={() => deleteAttachment.mutate({ id: a.id })}
                       title="ลบไฟล์"

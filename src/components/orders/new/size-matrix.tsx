@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { SUNK_PANEL } from "@/components/ui/tokens";
+import { RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { VariantForm } from "@/types/order-form";
@@ -12,11 +12,17 @@ import { buildSizeVariants, matrixColumns, sumVariantQty } from "@/lib/size-matr
 // ตารางกรอกหลายไซส์ในสินค้าเดียว (FLOW-REDESIGN ก้อน 4 / P1.12)
 // สีเดียวใช้ทุกไซส์ · จำนวนต่อไซส์ · เพิ่มไซส์อื่นได้ · รวมอัตโนมัติ → คืน variants[] (qty>0)
 export function SizeMatrix({
+  idPrefix,
   variants,
   onChange,
+  embedded = false,
+  title,
 }: {
+  idPrefix: string;
   variants: VariantForm[];
   onChange: (variants: VariantForm[]) => void;
+  embedded?: boolean;
+  title?: string;
 }) {
   const [extraSizes, setExtraSizes] = useState<string[]>([]);
   const [newSize, setNewSize] = useState("");
@@ -48,11 +54,14 @@ export function SizeMatrix({
   const total = sumVariantQty(variants.filter((v) => v.size.trim()));
 
   return (
-    <div className={cn("rounded-xl p-3", SUNK_PANEL)}>
+    <div className={cn(!embedded && [RADIUS.inner, SUNK_PANEL, "p-3"])}>
+      {title && (
+        <h4 className="mb-3 text-sm font-semibold text-strong">{title}</h4>
+      )}
       <div className="mb-2 flex items-center gap-2">
-        <label htmlFor="size-matrix-color" className="text-xs font-medium text-slate-600 dark:text-slate-300">สี (ใช้ทุกไซส์)</label>
+        <label htmlFor={`${idPrefix}-color`} className="text-xs font-medium text-slate-600 dark:text-slate-300">สี (ใช้ทุกไซส์)</label>
         <Input
-          id="size-matrix-color"
+          id={`${idPrefix}-color`}
           value={color}
           onChange={(e) => {
             setColor(e.target.value);
@@ -67,27 +76,30 @@ export function SizeMatrix({
       </div>
 
       <div className="flex flex-wrap items-end gap-2">
-        {columns.map((size) => (
-          <div key={size} className="w-14">
-            <label htmlFor={`size-matrix-${size}`} className="block text-center text-xs font-medium text-muted">{size}</label>
-            <Input size="sm"
-              id={`size-matrix-${size}`}
-              type="number"
-              min={0}
-              value={qtyOf(size) || ""}
-              onChange={(e) => rebuild(size, parseInt(e.target.value) || 0)}
-              placeholder="0"
-              className="px-1 text-center"
-            />
-          </div>
-        ))}
+        {columns.map((size, index) => {
+          const sizeId = `${idPrefix}-size-${index}`;
+          return (
+            <div key={size} className="w-14">
+              <label htmlFor={sizeId} className="block text-center text-xs font-medium text-muted">{size}</label>
+              <Input size="sm"
+                id={sizeId}
+                type="number"
+                min={0}
+                value={qtyOf(size) || ""}
+                onChange={(e) => rebuild(size, parseInt(e.target.value) || 0)}
+                placeholder="0"
+                className="px-1 text-center"
+              />
+            </div>
+          );
+        })}
 
         {/* เพิ่มไซส์อื่น (XS/4XL/เด็ก/ตัวเลข) */}
         <div className="flex items-end gap-1.5">
           <div className="w-16">
-            <label htmlFor="size-matrix-new-size" className="block text-center text-xs text-slate-400">เพิ่มไซส์</label>
+            <label htmlFor={`${idPrefix}-new-size`} className="block text-center text-xs text-muted">เพิ่มไซส์</label>
             <Input size="sm"
-              id="size-matrix-new-size"
+              id={`${idPrefix}-new-size`}
               value={newSize}
               onChange={(e) => setNewSize(e.target.value)}
               onKeyDown={(e) => {
@@ -100,7 +112,7 @@ export function SizeMatrix({
               className="px-1 text-center"
             />
           </div>
-          <Button type="button" variant="outline" size="icon-sm" onClick={addSize}>
+          <Button type="button" variant="outline" size="icon-sm" onClick={addSize} aria-label="เพิ่มไซส์">
             <Plus />
           </Button>
         </div>

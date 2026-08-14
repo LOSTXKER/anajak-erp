@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { createClient } from "@/lib/supabase";
 import { ROLE_LABELS } from "@/lib/roles";
+import { requestAppNavigation } from "@/lib/navigation-request";
 import { FOCUS_BUTTON, MENU_SEPARATOR, OVERLAY_PANEL } from "@/components/ui/tokens";
 import { CONTROL_H, CONTROL_MIN_H } from "@/components/ui/control-size";
 
@@ -15,7 +16,7 @@ const menuItemClass = cn(
   CONTROL_MIN_H,
   // โหมดมืด: แถบไฮไลต์เคยเป็น slate-800 ซึ่ง **เข้มกว่า** พื้นเมนู = ทำผิดทิศ
   // ไล่ลูกศรบนคีย์บอร์ดแล้วมองไม่ออกว่าค้างบรรทัดไหน (audit สี 2026-08-02)
-  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:text-slate-300 dark:data-[highlighted]:bg-white/10 dark:data-[highlighted]:text-white",
+  "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none transition-colors data-[highlighted]:bg-interactive-hover data-[highlighted]:text-strong dark:text-slate-300",
 );
 
 export function UserMenu() {
@@ -23,11 +24,23 @@ export function UserMenu() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { data: me } = trpc.user.me.useQuery();
 
-  const handleLogout = async () => {
+  const signOutAndNavigate = async (
+    href: string,
+    mode: "push" | "replace",
+  ) => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    if (mode === "replace") router.replace(href);
+    else router.push(href);
     router.refresh();
+  };
+  const handleLogout = () => {
+    // ออกจากระบบเป็นการนำทางที่ย้อนค่าในฟอร์มกลับไม่ได้: ขอผ่าน guard กลางก่อน
+    // แล้วค่อย sign out เมื่อไม่มีข้อมูลค้างหรือผู้ใช้ยืนยันว่าจะทิ้งจริง
+    requestAppNavigation("/login", {
+      push: (href) => void signOutAndNavigate(href, "push"),
+      replace: (href) => void signOutAndNavigate(href, "replace"),
+    });
   };
   const themeIcon =
     resolvedTheme === "dark" ? (

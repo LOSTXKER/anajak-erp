@@ -6,7 +6,6 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { isImageUrl, formatDate } from "@/lib/utils";
 import {
   FILE_LAYERS,
-  ATTACHMENT_CATEGORY_LABELS,
   layerForCategory,
   type AttachmentCategory,
 } from "@/lib/file-layers";
@@ -32,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 
 // ไฟล์ 3 ชั้นบนหน้าออเดอร์ (FLOW-REDESIGN ก้อน 4 — ดู src/lib/file-layers.ts)
 // ชั้น 1 = Attachment ทั่วไป (รวม REFERENCE_IMAGE เดิม) + ปุ่มแอดมินแนบแทนลูกค้า
@@ -280,11 +280,11 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
               {linkUrl ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <input
+                    <Input
                       readOnly
                       value={linkUrl}
                       onFocus={(e) => e.currentTarget.select()}
-                      className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                      className="min-w-0 flex-1 text-xs"
                     />
                     <Button size="sm" className="shrink-0 gap-1.5" onClick={copyUploadLink} >
                       {linkCopied ? (

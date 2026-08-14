@@ -328,7 +328,7 @@ export function CreateDeliveryDialog({
                 </div>
               )}
               {packInvalid && (
-                <p id="delivery-pack-error" role="alert" className="mt-1 text-xs text-red-500">
+                <p id="delivery-pack-error" role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
                   จำนวนเกินที่เหลือ — แก้ช่องขอบแดงก่อนสร้างใบส่ง
                 </p>
               )}

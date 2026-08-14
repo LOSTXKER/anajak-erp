@@ -37,7 +37,7 @@ export default function FactoryBoardPage() {
 
   if (query.isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center text-2xl text-neutral-500">
+      <div className="flex h-screen items-center justify-center text-2xl text-muted">
         กำลังโหลดคิวการผลิต…
       </div>
     );
@@ -61,7 +61,7 @@ export default function FactoryBoardPage() {
       {/* หัวจอ — ชื่อ + เวลาอัปเดต */}
       <header className="flex items-baseline justify-between">
         <h1 className="text-3xl font-semibold">
-          ANAJAK <span className="text-neutral-500">·</span> สายการผลิตวันนี้
+          ANAJAK <span className="text-muted">·</span> สายการผลิตวันนี้
         </h1>
         <div className="flex items-baseline gap-5 text-neutral-400">
           <span className="text-lg tabular-nums">
@@ -136,7 +136,7 @@ function Column({
 }
 
 function EmptyLane({ label }: { label: string }) {
-  return <p className="mt-2 text-lg text-neutral-600">{label}</p>;
+  return <p className="mt-2 text-lg text-muted">{label}</p>;
 }
 
 // ป้ายลูกค้า+ช่าง — เบสเคาะให้โชว์ทั้งคู่ (§4 ข้อ 2-3)
@@ -144,7 +144,7 @@ function CustomerLine({ customer, assignee }: { customer: string; assignee?: str
   return (
     <p className="truncate text-base text-neutral-400">
       {customer}
-      {assignee && <span className="text-neutral-500"> · {assignee}</span>}
+      {assignee && <span className="text-muted"> · {assignee}</span>}
     </p>
   );
 }
@@ -202,7 +202,7 @@ function DtfColumn({
             </div>
           ))}
           {printQueue.length > 0 && (
-            <p className="mt-1 text-xs uppercase tracking-wide text-neutral-500">คิวถัดไป</p>
+            <p className="mt-1 text-xs uppercase tracking-wide text-muted">คิวถัดไป</p>
           )}
           {printQueue.slice(0, 4).map((e) => (
             <div key={e.stepId} className="flex items-baseline justify-between gap-2 px-1">
@@ -238,7 +238,7 @@ function PressColumn({ pressQueue }: { pressQueue: Board["pressQueue"] }) {
               </span>
               <span className="shrink-0 text-lg font-bold tabular-nums text-neutral-200">
                 {s.qtyDone}
-                <span className="text-sm text-neutral-500">/{s.qtyTotal}</span>
+                <span className="text-sm text-muted">/{s.qtyTotal}</span>
               </span>
             </div>
             <CustomerLine customer={s.customerName} assignee={s.assignedToName} />
@@ -297,7 +297,7 @@ function FooterStrip({
     <footer className="grid grid-cols-2 gap-4">
       <div className="flex items-center gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/5 px-4 py-2.5">
         <Clock className="h-5 w-5 shrink-0 text-neutral-400" />
-        <span className="shrink-0 text-sm uppercase tracking-wide text-neutral-500">กำลังจะมา</span>
+        <span className="shrink-0 text-sm uppercase tracking-wide text-muted">กำลังจะมา</span>
         <span className="truncate text-lg tabular-nums text-neutral-300">
           {dueSoon.length === 0
             ? "—"
@@ -309,7 +309,7 @@ function FooterStrip({
       </div>
       <div className="flex items-center gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/5 px-4 py-2.5">
         <Truck className="h-5 w-5 shrink-0 text-neutral-400" />
-        <span className="shrink-0 text-sm uppercase tracking-wide text-neutral-500">รอร้านนอกส่งกลับ</span>
+        <span className="shrink-0 text-sm uppercase tracking-wide text-muted">รอร้านนอกส่งกลับ</span>
         <span className="truncate text-lg tabular-nums text-neutral-300">
           {outsourceDue.length === 0
             ? "—"
@@ -324,5 +324,5 @@ function FooterStrip({
 }
 
 function MoreRow({ n }: { n: number }) {
-  return <p className="px-1 text-base font-medium text-neutral-500">+ อีก {n} งาน</p>;
+  return <p className="px-1 text-base font-medium text-muted">+ อีก {n} งาน</p>;
 }

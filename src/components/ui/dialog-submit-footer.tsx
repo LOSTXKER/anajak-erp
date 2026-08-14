@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { DialogFooter } from "./dialog";
 import { Spinner } from "./spinner";
@@ -21,6 +22,7 @@ export function DialogSubmitFooter({
   onCancel,
   onSubmit,
   form,
+  className,
 }: {
   /** mutation.isPending — ปุ่มทั้งคู่ disabled + spinner ที่ปุ่มยืนยัน */
   pending?: boolean;
@@ -36,9 +38,11 @@ export function DialogSubmitFooter({
   onSubmit?: () => void;
   /** id ของ <form> ภายนอก (ปุ่มอยู่นอก form) */
   form?: string;
+  /** ปรับ layout เฉพาะ dialog โดยยังคงชุดปุ่ม/สถานะกลาง */
+  className?: string;
 }) {
   return (
-    <DialogFooter className="flex-col gap-2 sm:flex-row">
+    <DialogFooter className={cn("flex-col gap-2 sm:flex-row", className)}>
       <Button
         type="button"
         variant="outline"

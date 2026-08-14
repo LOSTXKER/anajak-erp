@@ -12,7 +12,7 @@ import {
   PRINT_SIZES,
   type PrintForm,
 } from "@/types/order-form";
-import { DASHED, FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE, FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 import { usePrintRow } from "./use-print-row";
@@ -38,7 +38,7 @@ export function PrintTableRow({
     imageUrl,
     sizePreset,
   } = usePrintRow(print, onUpdate);
-  const dash = <span className="text-xs text-slate-300 dark:text-slate-600">—</span>;
+  const dash = <span className="text-xs text-muted">—</span>;
 
   return (
     <tr>
@@ -79,10 +79,10 @@ export function PrintTableRow({
             disabled={uploading}
             aria-label={`เพิ่มไฟล์ลาย ${printIdx + 1}`}
             className={cn(
-              DASHED,
+              DASHED_INTERACTIVE,
               RADIUS.item,
               FOCUS_BUTTON,
-              "mx-auto flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500"
+              "mx-auto flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 transition-colors hover:text-strong dark:hover:text-strong"
             )}
           >
             {uploading ? <Spinner size="md" /> : <Plus />}
@@ -227,7 +227,7 @@ export function PrintTableRow({
           size="icon-sm"
           aria-label={`ลบจุดพิมพ์ ${printIdx + 1}`}
           onClick={onRemove}
-          className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+          className="text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
         >
           <Trash2 />
         </Button>

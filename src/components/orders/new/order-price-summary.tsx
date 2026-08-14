@@ -38,7 +38,7 @@ interface OrderPriceSummaryProps {
 
 // ============ กำไรขั้นต้นโดยประมาณ (FLOW-REDESIGN ก้อน 2 ชิ้น 5b) ============
 // "เข็มทิศตอนตั้งราคา" — ไม่ใช่ตัวเลขบัญชี ไม่บันทึกลงออเดอร์
-// ใช้ร่วม 2 ที่: หน้าเปิดงาน (ผ่าน prop marginEstimate) + ฟอร์มแก้รายการ (order-items-editor)
+// ใช้ใน form runtime กลางทั้งหน้าเปิดงานและหน้าแก้ออเดอร์
 
 /**
  * แปลงฟอร์มรายการ → input ของ settings.estimateMargin + debounce 500ms + query
@@ -272,7 +272,7 @@ export function OrderPriceSummary({
         <span className="text-sm font-medium text-slate-900 dark:text-white">
           ยอดรวมทั้งหมด
           {taxRate > 0 && (
-            <span className="ml-1 text-xs font-normal text-slate-400">
+            <span className="ml-1 text-xs font-normal text-muted">
               (รวม VAT)
             </span>
           )}

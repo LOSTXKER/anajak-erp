@@ -31,6 +31,31 @@ export interface OrderItemPriceSummary {
   lines: OrderItemPriceSummaryLine[];
 }
 
+export function moveOrderItemProduct(
+  items: readonly OrderItemForm[],
+  itemIdx: number,
+  productIdx: number,
+  direction: -1 | 1,
+): OrderItemForm[] {
+  const item = items[itemIdx];
+  const targetIdx = productIdx + direction;
+  if (
+    !item
+    || productIdx < 0
+    || productIdx >= item.products.length
+    || targetIdx < 0
+    || targetIdx >= item.products.length
+  ) {
+    return [...items];
+  }
+
+  const products = [...item.products];
+  [products[productIdx], products[targetIdx]] = [products[targetIdx], products[productIdx]];
+  const next = [...items];
+  next[itemIdx] = { ...item, products };
+  return next;
+}
+
 /**
  * สร้างข้อมูลสรุปเพื่อแสดงผลเท่านั้น โดยอาศัย pricing helper เดิมเป็นแหล่งจริงของยอดรวม
  * เพื่อให้ JSX ไม่ต้องตัดสินซ้ำว่าแถวไหนควรแสดงและใช้จำนวนใดคูณราคา

@@ -23,8 +23,9 @@ import {
 import { CalendarRange, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
+import { ControlIconButton } from "./control-icon-button";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
-import { ACTIVE_FILTER, FOCUS_BUTTON, OVERLAY_PANEL } from "./tokens";
+import { ACTIVE_FILTER, FOCUS_BUTTON, INTERACTIVE_SELECTED, OVERLAY_PANEL } from "./tokens";
 import { MONTHS, MONTHS_SHORT, WEEKDAYS, buddhistYear, parseValue } from "./date-picker";
 
 /* ============================================================
@@ -197,12 +198,12 @@ export function DateRangePicker({
             aria-label={label ? `ช่วงวันที่: ${label}` : "เลือกช่วงวันที่"}
             className={cn(
               "font-medium",
-              label && "pr-2",
+              label && "pr-10",
+              className,
               // มีช่วงวันที่เลือกอยู่ = กรองอยู่ ต้องเห็นตั้งแต่ยังไม่กดเข้าไป
               // ใช้สีชุดเดียวกับปุ่ม "ตัวกรอง" ที่ยืนข้างกัน (เบสทักว่าสีไม่เหมือนกัน 2026-08-01)
               label &&
                 ACTIVE_FILTER,
-              className,
             )}
           >
             <CalendarRange className="shrink-0" />
@@ -215,14 +216,13 @@ export function DateRangePicker({
         {/* ปุ่มล้างเป็นปุ่มจริงนอกตัวเปิด — เดิมเป็น span role="button" ซ้อนใน <button>
             ซึ่งผิดสเปค HTML และเครื่องอ่านหน้าจอส่วนใหญ่ไม่ประกาศให้ (audit ก่อน merge จับได้) */}
         {label && (
-          <button
-            type="button"
+          <ControlIconButton
             aria-label="ล้างช่วงวันที่"
             onClick={() => onChange("", "")}
-            className={cn(CONTROL_H, "-ml-7 inline-flex w-7 items-center justify-center rounded-full text-current opacity-60 transition-opacity hover:opacity-100")}
+            className="-ml-11 text-current opacity-60 hover:opacity-100 sm:-ml-9"
           >
             <X className="h-3.5 w-3.5" />
-          </button>
+          </ControlIconButton>
         )}
       </span>
 
@@ -258,8 +258,8 @@ export function DateRangePicker({
                     CONTROL_MIN_H,
                     "inline-flex items-center rounded-full px-3 text-xs transition-colors",
                     isOn
-                      ? "bg-blue-600 font-medium text-white"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700",
+                      ? cn(INTERACTIVE_SELECTED, "font-medium")
+                      : "bg-surface-muted text-secondary hover:bg-interactive-hover active:bg-interactive-pressed",
                   )}
                 >
                   {s.label}
@@ -273,7 +273,7 @@ export function DateRangePicker({
               type="button"
               aria-label="เดือนก่อนหน้า"
               onClick={() => setCursor((c) => subMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-interactive-hover hover:text-secondary sm:w-8 dark:hover:bg-interactive-hover dark:hover:text-secondary")}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -284,7 +284,7 @@ export function DateRangePicker({
               type="button"
               aria-label="เดือนถัดไป"
               onClick={() => setCursor((c) => addMonths(c, 1))}
-              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-slate-100 sm:w-8 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_H_SM, "inline-flex w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-interactive-hover hover:text-secondary sm:w-8 dark:hover:bg-interactive-hover dark:hover:text-secondary")}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -292,7 +292,7 @@ export function DateRangePicker({
 
           <div className="grid grid-cols-7 gap-y-0.5" onMouseLeave={() => setHovered(null)}>
             {WEEKDAYS.map((w) => (
-              <div key={w} className="pb-1 text-center text-2xs font-medium text-slate-400">
+              <div key={w} className="pb-1 text-center text-2xs font-medium text-muted">
                 {w}
               </div>
             ))}
@@ -321,10 +321,10 @@ export function DateRangePicker({
                     isEdgeStart && !isEdgeEnd && "rounded-l-lg",
                     isEdgeEnd && !isEdgeStart && "rounded-r-lg",
                     isEdge && "rounded-lg bg-blue-600 font-semibold text-white",
-                    !inRange && "rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800",
-                    !inMonth && !isEdge && "text-slate-300 dark:text-slate-600",
-                    inMonth && !isEdge && "text-slate-700 dark:text-slate-200",
-                    isToday && !isEdge && "font-semibold text-blue-600 dark:text-blue-400",
+                    !inRange && "rounded-lg hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary",
+                    !inMonth && !isEdge && "text-muted",
+                    inMonth && !isEdge && "text-secondary",
+                    isToday && !isEdge && "font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300",
                   )}
                 >
                   {day.getDate()}
@@ -333,8 +333,8 @@ export function DateRangePicker({
             })}
           </div>
 
-          <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-200 pt-2 text-xs dark:border-slate-800">
-            <span className="text-slate-500 dark:text-slate-400">
+          <div className="mt-3 flex items-center justify-between gap-2 border-t border-divider pt-2 text-xs">
+            <span className="text-muted">
               {draftStart
                 ? `เริ่ม ${shortDate(draftStart)} — เลือกวันสิ้นสุด`
                 : (label ?? "ยังไม่ได้เลือกช่วง")}
@@ -346,7 +346,7 @@ export function DateRangePicker({
                 setDraftStart(null);
                 setOpen(false);
               }}
-              className={cn(CONTROL_MIN_H, "inline-flex shrink-0 items-center rounded-full px-3 font-medium text-muted transition-colors hover:bg-slate-100 dark:hover:bg-slate-800")}
+              className={cn(CONTROL_MIN_H, "inline-flex shrink-0 items-center rounded-full px-3 font-medium text-muted transition-colors hover:bg-interactive-hover hover:text-secondary dark:hover:bg-interactive-hover dark:hover:text-secondary")}
             >
               ล้าง
             </button>

@@ -219,6 +219,7 @@ function AgingPageContent() {
           ตัวกรองช่วงอายุหนี้ + การเรียง อยู่กลุ่มเดียวกัน ห้ามแตกแถวคั่นกลาง */}
       <Toolbar>
         <SearchInput
+          surface="raised"
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
           placeholder="ค้นหาชื่อลูกค้าหรือบริษัท..."
@@ -231,6 +232,7 @@ function AgingPageContent() {
         <ToolbarGroup className="flex-wrap">
           <Select
             shape="pill"
+            surface="raised"
             aria-label="กรองช่วงอายุหนี้"
             value={status}
             onChange={(event) =>
@@ -246,6 +248,7 @@ function AgingPageContent() {
           </Select>
           <Select
             shape="pill"
+            surface="raised"
             aria-label="เรียงรายการลูกหนี้"
             value={sort}
             onChange={(event) =>
@@ -300,7 +303,7 @@ function AgingPageContent() {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        className="shrink-0 text-muted hover:text-blue-700 dark:hover:text-blue-300"
+                        className="shrink-0 text-muted hover:text-strong dark:hover:text-strong"
                         aria-label={`ร่างข้อความทวง ${row.company || row.name}`}
                         onClick={() => {
                           setTone("gentle");
@@ -320,7 +323,7 @@ function AgingPageContent() {
                       align="right"
                       className={`tabular-nums ${
                         row.buckets[bucket.key] === 0
-                          ? "text-slate-400 dark:text-slate-600"
+                          ? "text-muted"
                           : bucket.key === "current"
                             ? ""
                             : "font-medium text-red-700 dark:text-red-300"
@@ -471,7 +474,7 @@ function AgingPageContent() {
                 กำลังร่าง...
               </div>
             ) : draft.isError ? (
-              <p className="py-8 text-center text-sm text-red-500">ร่างข้อความไม่สำเร็จ</p>
+              <p className="py-8 text-center text-sm text-red-600 dark:text-red-400">ร่างข้อความไม่สำเร็จ</p>
             ) : draft.data?.text ? (
               <>
                 <Textarea

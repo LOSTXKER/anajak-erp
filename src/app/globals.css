@@ -72,8 +72,8 @@
      ห้ามใช้ใน component ตรงๆ — ใช้ผ่าน utility (blue-x, red-x) หรือ semantic ข้างล่าง
      ============================================================ */
   --color-anajak-blue: #3973b2;
-  --color-anajak-yellow: #fec91b;
-  --color-anajak-red: #e72f27;
+  --color-anajak-yellow: #f59e0b;
+  --color-anajak-red: #d92d20;
 
   /* ramp blue/red สร้างจากสีแบรนด์ — override สเกลของ Tailwind ทั้งระบบ
      ทุก utility เดิม (bg-blue-600, text-red-700 ฯลฯ) กลายเป็นโทนแบรนด์ทันที
@@ -83,101 +83,113 @@
   --color-blue-200: #c6daed;
   --color-blue-300: #9cbede;
   --color-blue-400: #6b9cca;
-  --color-blue-500: #4a83bc;
+  --color-blue-500: #3f79b7;
   --color-blue-600: #3973b2;
   --color-blue-700: #305f93;
   --color-blue-800: #2a5078;
   --color-blue-900: #25425f;
   --color-blue-950: #182c40;
 
-  --color-red-50: #fdf3f2;
-  --color-red-100: #fce5e3;
-  --color-red-200: #f9c9c6;
-  --color-red-300: #f4a09b;
-  --color-red-400: #ee6e66;
-  --color-red-500: #ea4a41;
-  --color-red-600: #e72f27;
-  --color-red-700: #c32219;
-  --color-red-800: #a12018;
-  --color-red-900: #85211b;
-  --color-red-950: #480e0a;
+  /* status ramps ใหม่: ออกแบบให้ข้อความระดับ 600+ อ่านบน surface/tint ได้จริง
+     ไม่ล็อกแดง/เหลืองเดิม—ผู้ใช้ขอเก็บเฉพาะน้ำเงินแบรนด์ */
+  --color-red-50: #fff5f5;
+  --color-red-100: #fee4e2;
+  --color-red-200: #fecdca;
+  --color-red-300: #fda29b;
+  --color-red-400: #f97066;
+  --color-red-500: #d83b31;
+  --color-red-600: #d92d20;
+  --color-red-700: #b42318;
+  --color-red-800: #912018;
+  --color-red-900: #7a271a;
+  --color-red-950: #450a0a;
 
-  /* ramp yellow สร้างจากสีแบรนด์เหลือง #fec91b — anchor ที่ 500
-     ปลายสว่าง (50-500) = เหลืองแบรนด์ · ปลายเข้ม (600-950) = ทองเข้มอ่านออกบนพื้นขาว
-     (เข้มพอๆ Tailwind yellow เดิม — ไฟล์ที่ใช้ text-yellow-700/bg-yellow-600 ไม่ regress)
-     + mirror ลง amber-* ด้วย: ทั่วระบบใช้ amber เป็นสี "รอ/เตือน" 81 จุด/34 ไฟล์ —
-     ชี้สเกลเดียวกันให้ "เหลืองแบรนด์ถูกใช้จริงทั้งระบบ" โดยไม่ต้องแตะ markup (เลียน blue/red) */
-  --color-yellow-50: #fffaeb;
-  --color-yellow-100: #fef2c8;
-  --color-yellow-200: #fde291;
-  --color-yellow-300: #fdd451;
-  --color-yellow-400: #fece2e;
-  --color-yellow-500: #fec91b;
-  --color-yellow-600: #cf9209;
-  --color-yellow-700: #a3720a;
-  --color-yellow-800: #855b0e;
-  --color-yellow-900: #6f4b11;
-  --color-yellow-950: #412a07;
+  --color-yellow-50: #fffbeb;
+  --color-yellow-100: #fef3c7;
+  --color-yellow-200: #fde68a;
+  --color-yellow-300: #fcd34d;
+  --color-yellow-400: #fbbf24;
+  --color-yellow-500: #a96508;
+  --color-yellow-600: #a15c07;
+  --color-yellow-700: #854d0e;
+  --color-yellow-800: #713f12;
+  --color-yellow-900: #5f370e;
+  --color-yellow-950: #451a03;
 
-  --color-amber-50: #fffaeb;
-  --color-amber-100: #fef2c8;
-  --color-amber-200: #fde291;
-  --color-amber-300: #fdd451;
-  --color-amber-400: #fece2e;
-  --color-amber-500: #fec91b;
-  --color-amber-600: #cf9209;
-  --color-amber-700: #a3720a;
-  --color-amber-800: #855b0e;
-  --color-amber-900: #6f4b11;
-  --color-amber-950: #412a07;
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #a96508;
+  --color-amber-600: #a15c07;
+  --color-amber-700: #854d0e;
+  --color-amber-800: #713f12;
+  --color-amber-900: #5f370e;
+  --color-amber-950: #451a03;
 
-  /* ramp slate — mirror เข้าตระกูล Apple gray (neutral เดียวทั้งระบบ)
-     slate ของ Tailwind อมฟ้า ไม่ตรงกับ semantic token (text #1d1d1f / muted #6e6e73)
-     override ที่นี่จุดเดียว ทุก utility slate-* (ใช้ 2,518 จุดทั้งแอป) สแนปเข้าโทน
-     Apple neutral โดยไม่แตะ markup · 900 = สี text หลัก · 500 = text-muted
-     คุม lightness ใกล้ Tailwind เดิมเพื่อไม่ให้ contrast ถอย (เลียน blue/red) */
-  --color-slate-50: #f7f7f8;
-  --color-slate-100: #f1f1f3;
-  --color-slate-200: #e2e2e6;
-  --color-slate-300: #cbcbd0;
-  --color-slate-400: #909095;
-  --color-slate-500: #6e6e73;
-  --color-slate-600: #55555a;
-  --color-slate-700: #3f3f44;
-  --color-slate-800: #2a2a2e;
-  --color-slate-900: #1d1d1f;
-  --color-slate-950: #101012;
+  /* neutral ramp ใหม่ — เทากลางอมฟ้าเล็กน้อยเพื่ออยู่กับ Anajak blue โดยไม่ดูเย็นจัด
+     900/700/500 ตรง semantic text และคุม contrast ให้ข้อความ 11–14px ผ่าน AA
+     บน surface/hover/selected ที่ใช้งานจริง · เปลี่ยน ramp กลางครั้งเดียวเพื่อให้ utility
+     slate-* รุ่นเก่ายังอยู่ในภาษาเดียวกัน โดยไม่ไล่ทาสีรายหน้า */
+  --color-slate-50: #f8f9fb;
+  --color-slate-100: #f3f5f7;
+  --color-slate-200: #e2e6ea;
+  --color-slate-300: #c8d0d9;
+  /* markup เก่าหลายร้อยจุดใช้ slate-400 เป็นข้อความจริง ไม่ใช่แค่ icon;
+     ผูกกับ muted เพื่อให้อ่านผ่าน AA แม้อยู่บน sunk/hover/pressed */
+  --color-slate-400: #5b6572;
+  --color-slate-500: #5b6572;
+  --color-slate-600: #4f5965;
+  --color-slate-700: #454b55;
+  --color-slate-800: #2d343d;
+  --color-slate-900: #181b20;
+  --color-slate-950: #0c0f13;
 
-  /* ramp green — anchor 600 = --color-success (#1a8754)
-     ทั่วระบบใช้ green-* เป็นสี "สำเร็จ/รับแล้ว" 100+ จุด แต่ semantic success
-     นิยามอีกค่า — override ให้เขียวเป็นเฉดเดียวกันทั้งแอปโดยไม่แตะ markup
-     (emerald-* ไม่ถูกใช้ใน component เลย จึงไม่ต้อง mirror) */
-  --color-green-50: #effaf3;
-  --color-green-100: #d8f3e2;
-  --color-green-200: #b5e6c9;
-  --color-green-300: #83d3a5;
-  --color-green-400: #4bb97e;
-  --color-green-500: #2aa268;
-  --color-green-600: #1a8754;
-  --color-green-700: #156b45;
-  --color-green-800: #135538;
-  --color-green-900: #10462f;
-  --color-green-950: #08271a;
+  --color-green-50: #f0fdf4;
+  --color-green-100: #dcfce7;
+  --color-green-200: #bbf7d0;
+  --color-green-300: #86efac;
+  --color-green-400: #4ade80;
+  --color-green-500: #168741;
+  --color-green-600: #15803d;
+  --color-green-700: #166534;
+  --color-green-800: #14532d;
+  --color-green-900: #124526;
+  --color-green-950: #052e16;
 
   /* ============================================================
-     พื้นผิว — พื้นหน้าเทา + กรอบเว็บขาว (เบสเคาะ 2026-08-03)
+     ระบบสีพื้นผิว 2026-08-13 — neutral สงบ + interaction เป็นเทากลาง
 
-       พื้นหน้า       #f3f4f6  ผืนหลักของหน้า
-       การ์ด/overlay  #ffffff  ก้อนข้อมูลหลักและตาราง
-       กรอบเว็บ       #ffffff  sidebar / topbar / เมนูมือถือ
-       พื้นจม         #eceff2  กล่องย่อย ช่องค้นหา พื้นที่เลือก
+       page            #f8f9fb  ค่า fallback ของหน้า public/auth
+       chrome/surface  #ffffff  navigation / card
+       sunk            #f3f5f7  กลุ่มย่อยเชิงโครงสร้าง
+       field           #ffffff  ช่องกรอก (แยกด้วย functional boundary)
+       elevated        #ffffff  menu / dialog
+       hover/pressed   เทาอ่อน — บอกว่ากำลังโต้ตอบโดยไม่เป็นแถบเทาหนัก
 
-     overlay/dialog คงใช้ surface ขาว เพราะเป็นของที่ลอยเหนือทุกชั้นและมีเงาแยกอยู่แล้ว
-     ธีมมืดใช้ลำดับเดิม ไม่เปลี่ยนทิศของความลึก
+     น้ำเงินแบรนด์ #3973b2 คงเดิมและสงวนให้ primary/selected/focus
      ============================================================ */
-  --color-bg: #f3f4f6;
+  --color-bg: #f8f9fb;
   --color-surface: #ffffff;
-  --color-surface-muted: #eceff2;
+  --color-surface-muted: #f3f5f7;
+  --color-surface-elevated: #ffffff;
+  /* field เป็นพื้นที่กรอก ไม่ใช่กล่องจม: Light ใช้ขาวและเส้น resting ที่เบา
+     พอให้เห็นรูปทรงโดยไม่แข่งกับ label; focus/error ค่อยใช้ contrast สูง */
+  --color-field: #ffffff;
+  --color-border: #e2e6ea;
+  --color-field-border: #c8d0d9;
+  --color-placeholder: #65717f;
+  --color-border-strong: #87919d;
+  --color-divider: #e8ebef;
+  --color-skeleton: #e2e6ea;
+  --color-interactive-hover: #f1f3f5;
+  --color-interactive-pressed: #e3e6e9;
+  --color-interactive-chrome-hover: #f1f3f5;
+  --color-interactive-chrome-pressed: #e3e6e9;
+  --color-interactive-selected: #d2e4f6;
+  --color-interactive-selected-text: #305f93;
+  --color-backdrop: rgb(15 23 42 / 0.28);
 
   /* กรอบของเว็บ (แถบเมนูซ้าย · แถบบน) — ขาวบนพื้นหน้าเทา
      เบสเคาะ 2026-08-03 ให้ Navbar/Sidebar เป็นขาวและย้ายเทาไปอยู่ผืนเนื้อหา
@@ -186,7 +198,7 @@
 
   /* สีตัวหนังสือหลักของ <body> — ที่เหลือทั้งเว็บใช้ ramp slate ตรงๆ
      (สี semantic อีก 17 ตัวลบทิ้ง 2026-08-02: ไม่มีใครใช้เลย และค่าที่ตั้งไว้ขัดกับสีจริง) */
-  --color-text: #1d1d1f;
+  --color-text: #181b20;
 
   /* ============================================================
      สีตัวหนังสือ semantic 3 ระดับ — สลับธีมในตัว ไม่ต้องเขียนคู่ dark: เอง
@@ -201,28 +213,65 @@
      โค้ดใหม่ใช้ 3 ตัวนี้ก่อนเสมอ — คู่ dark: เขียนมือเฉพาะเฉดที่ไม่ตรง 3 ระดับนี้
      หน้า (print) ไม่ใช้ (กระดาษต้องเป็นค่าตายตัว ไม่ตามธีม)
      ============================================================ */
-  --color-strong: #0f172a;
-  --color-secondary: #334155;
-  --color-muted: #64748b;
+  --color-strong: #181b20;
+  --color-secondary: #454b55;
+  --color-muted: #5b6572;
 }
 
 .dark {
-  /* โหมดมืด = ดำเทา ไม่ใช่ดำสนิท (เบสสั่ง 2026-08-01) — เดิม #000000
-     พื้นสว่างขึ้น → การ์ดต้องสว่างตามเพื่อให้ยัง "ลอย" อยู่เหนือพื้น
-     ค่าที่เลือกวางคร่อมบันได slate ที่ระบบ hardcode ไว้อยู่แล้ว จึงเข้าที่ทั้งชุด:
-       slate-950 #101012  ช่องกรอก  → จมสุด
-       slate-900 #1d1d1f  พื้นจมในการ์ด → เข้มกว่าการ์ด (ของเดิมเท่ากับการ์ดพอดี จึงมองไม่เห็น)
-       การ์ด     #252528
-       slate-800 #2a2a2e  พื้นตอนชี้/เน้น → สว่างกว่าการ์ด */
+  /* Dark กลับเป็น neutral gray ตามบริบทใช้งานในโรงงาน · depth อ่านทิศเดียวกับ light:
+     chrome < page < card ขณะที่ sunk/field จมลง และ elevated ใช้ border/เงาแยกจาก card
+     hover/pressed เป็นเทากลาง ไม่ใช้ hue น้ำเงินแข่งกับ selected/focus/primary */
+  /* compatibility utility: slate-400 ถูกใช้เป็นข้อความจริงใน markup เก่า จึงต้อง AA
+     ทั้งสองธีม; print-page ด้านล่างยังล็อก grayscale ของเอกสารเอง */
+  --color-slate-200: #e2e2e6;
+  --color-slate-300: #cbcbd0;
+  --color-slate-400: #a4a4aa;
+  --color-slate-600: #55555a;
+  --color-slate-700: #3f3f44;
+  --color-slate-800: #303034;
+  --color-slate-900: #1d1d1f;
+  --color-slate-950: #101012;
+  /* shade 500 เป็นสีข้อความได้บน Light; ใน Dark สลับเป็นเฉดสว่างเพื่อให้ utility
+     รุ่นเก่าที่ไม่มี dark: pair ยังอ่านได้ โดย 600 (Anajak blue) ไม่เปลี่ยน */
+  --color-blue-500: #6b9cca;
+  --color-red-500: #f97066;
+  --color-yellow-500: #fbbf24;
+  --color-amber-500: #fbbf24;
+  --color-green-500: #4ade80;
   --color-bg: #1a1a1c;
   --color-surface: #252528;
-  --color-surface-muted: #2e2e31;
+  --color-surface-muted: #1d1d1f;
+  --color-surface-elevated: #252528;
+  --color-field: #101012;
   --color-chrome: #161618;
+  --color-border: #343438;
+  --color-field-border: #3f3f44;
+  --color-placeholder: #9a9aa1;
+  --color-border-strong: #74747c;
+  --color-divider: #303034;
+  --color-skeleton: #343438;
+  --color-interactive-hover: #303034;
+  --color-interactive-pressed: #38383c;
+  --color-interactive-chrome-hover: #252528;
+  --color-interactive-chrome-pressed: #303034;
+  --color-interactive-selected: #173c61;
+  --color-interactive-selected-text: #c6daed;
+  --color-backdrop: rgb(0 0 0 / 0.62);
 
   --color-text: #f5f5f7;
   --color-strong: #f5f5f7;
-  --color-secondary: #cbd5e1;
-  --color-muted: #94a3b8;
+  --color-secondary: #cbcbd0;
+  --color-muted: #a4a4aa;
+}
+
+/* ผืนทำงานหลังบ้านใกล้ขาวแบบ Vercel แต่ scope ไว้ใน AppShell เท่านั้น
+   เพื่อไม่เปลี่ยนหน้า public/login ที่เป็นคนละประสบการณ์โดยอ้อม */
+.app-workspace {
+  --color-bg: #fafafa;
+}
+.dark .app-workspace {
+  --color-bg: #1a1a1c;
 }
 
 html,
@@ -317,7 +366,7 @@ input[type="number"] {
 }
 
 /* ============================================================
-   การ์ดมาตรฐาน (ก้อน 6 / ทิศ A) — เงานุ่มลอย + ring 0.5px แทนเส้นขอบแข็ง
+   การ์ดมาตรฐาน — สีพื้น + เงานุ่มเท่านั้น ไม่มีเส้นรอบ
    ใช้แทน `border border-slate-200 bg-white` ทั่วระบบ ให้ทุกการ์ดลุคเดียวกัน
    ============================================================ */
 /* ⚠️ ทุกคลาสผิวข้างล่างนี้ต้องอยู่ใน @layer components — ห้ามย้ายออก
@@ -330,36 +379,43 @@ input[type="number"] {
    พอย้ายเข้าชั้น utility ที่หน้าส่งมาจะชนะตามลำดับปกติของ Tailwind */
 @layer components {
 
-/* การ์ดคงพื้นขาวบนผืนหน้าเทา แยกชั้นด้วย "สีพื้น + เงานุ่ม" ไม่ใช่เส้นขอบ
-   (เบสเคาะ 2026-08-03 "อยากลดการใช้เส้น ขอบทั้งเว็บ ให้มัน minimal")
+/* การ์ดคงพื้นขาวบนผืน off-white แยกชั้นด้วย "สีพื้น + เงานุ่ม" ไม่ใช่เส้นขอบ
+   (เบสเคาะ 2026-08-12 ให้พื้นขาวขึ้นและลดความหนักของชั้นผิว)
    เดิมมี `0 0 0 1px` = เส้นบางรอบการ์ดทุกใบ ซึ่งไปซ้อนกับเส้นของกล่องย่อย/ตาราง/
    ช่องกรอกข้างใน จนจอฟอร์มเดียวมีเส้น 133 เส้น · ถอดวงแหวนออก แล้วขยายเงาให้
    ชัดขึ้นเล็กน้อยเพื่อให้การ์ดยัง "ลอย" เหนือพื้นเทาได้เท่าเดิม */
 .card-surface {
   background-color: var(--color-surface);
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.03),
-    0 10px 26px -14px rgba(0, 0, 0, 0.16);
+    0 1px 2px rgb(15 23 42 / 0.03),
+    0 10px 26px -14px rgb(15 23 42 / 0.16);
 }
 .dark .card-surface {
   background-color: var(--color-surface);
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.4),
-    0 12px 28px -14px rgba(0, 0, 0, 0.6);
+    0 1px 3px rgb(0 0 0 / 0.4),
+    0 12px 28px -14px rgb(0 0 0 / 0.6);
 }
-/* ยกเงาเมื่อ hover — สำหรับการ์ดที่กดได้ */
+/* การ์ดที่กดได้ใช้พื้น interaction เต็ม hit area + ยกเงา
+   เพื่อให้ทุก caller ตอบสนองภาษาเดียวกันโดยไม่ต้อง compose utility ซ้ำ */
 .card-surface-hover {
-  transition: box-shadow 150ms ease;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease;
 }
 .card-surface-hover:hover {
+  background-color: var(--color-interactive-hover);
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.04),
-    0 14px 32px -12px rgba(0, 0, 0, 0.22);
+    0 2px 4px rgb(15 23 42 / 0.04),
+    0 14px 32px -12px rgb(15 23 42 / 0.22);
+}
+.card-surface-hover:active {
+  background-color: var(--color-interactive-pressed);
 }
 .dark .card-surface-hover:hover {
   box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.5),
-    0 16px 34px -12px rgba(0, 0, 0, 0.7);
+    0 2px 6px rgb(0 0 0 / 0.5),
+    0 16px 34px -12px rgb(0 0 0 / 0.7);
 }
 
 /* ============================================================
@@ -371,26 +427,16 @@ input[type="number"] {
      ยกตอนชี้     → .card-surface-hover  การ์ดที่กดได้
      ลอยจริง      → .overlay-surface     กล่องเด้ง เมนู ถาดมือถือ command palette
 
-   .hairline-ring = เส้นขอบบางกว่า 1px (ใช้แทนขอบแข็งบนพื้นโปร่ง เช่นชิปตัวกรอง
-   ช่องค้นหาบนแถบบน เมนูที่กำลังถูกเลือก) — ของเดิมเขียนมือ 0 0 0 0.5px 4 แบบไม่ตรงกัน
    ============================================================ */
-/* เส้นขอบบางรวมอยู่ในเงาแล้ว (เบสสั่ง 2026-08-01 "ตรวจดีๆ ว่ามีอะไรไม่เป็นมาตรฐาน")
-   — ของเดิมให้แค่พื้น+เงา ทำให้ 6 จุดต้องเขียน `border border-slate-200/70 bg-white
-   dark:border-slate-800/60 dark:bg-slate-900` เพิ่มเอง แล้วเขียนไม่ตรงกัน
-   บางจุดลืมเขียน = ไม่มีขอบเลย · ตอนนี้ครบในตัวเดียว ห้ามใส่ขอบ/พื้นซ้ำ
-   (ทำแบบเดียวกับ .card-surface ที่รวมขอบไว้ในเงาอยู่แล้ว) */
 /* กล่องลอยอาจทับทั้งผืนเทาและการ์ดขาว — ขอบกับเงาต้องแรงกว่าการ์ดธรรมดา
    เพื่อให้ยังแยกออกเมื่อเป็นขาวบนขาว ไม่ดูเหมือนเนื้อหาไหลต่อ */
 .overlay-surface {
-  background-color: var(--color-surface);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.11), 0 20px 60px rgba(0, 0, 0, 0.16);
+  background-color: var(--color-surface-elevated);
+  box-shadow: 0 0 0 1px var(--color-border), 0 22px 64px rgb(15 23 42 / 0.18);
 }
 .dark .overlay-surface {
-  background-color: var(--color-surface-muted);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 20px 60px rgba(0, 0, 0, 0.6);
-}
-.hairline-ring {
-  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.09);
+  background-color: var(--color-surface-elevated);
+  box-shadow: 0 0 0 1px var(--color-border-strong), 0 22px 64px rgb(0 0 0 / 0.72);
 }
 /* แถบที่เลื่อนแนวนอนได้บนจอแคบ (แถบแท็บ) — ยังเลื่อนได้ปกติ แค่ไม่มีแถบเลื่อนมากินที่
    scroll-snap ให้แท็บหยุดตรงขอบพอดี ไม่ค้างครึ่งใบ */
@@ -408,16 +454,25 @@ input[type="number"] {
 .dot-glow {
   box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
 }
-.dark .hairline-ring {
-  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.08);
-}
-
 } /* ปิด @layer components */
 
 /* ============================================================
    เอกสารพิมพ์ A4 (P1 — ใบเสนอราคา/แจ้งหนี้/เสร็จ/ใบกำกับภาษี)
    ============================================================ */
 .print-page {
+  /* เอกสารธุรกิจต้องคง grayscale บนกระดาษ ไม่รับ blue-neutral ของ app shell
+     utility slate-* ข้างในอ่านตัวแปรเหล่านี้ จึงล็อกหน้าพิมพ์แยกโดยไม่ copy component */
+  --color-slate-50: #f7f7f8;
+  --color-slate-100: #f2f2f4;
+  --color-slate-200: #e2e2e6;
+  --color-slate-300: #cbcbd0;
+  --color-slate-400: #909095;
+  --color-slate-500: #6e6e73;
+  --color-slate-600: #55555a;
+  --color-slate-700: #3f3f44;
+  --color-slate-800: #2a2a2e;
+  --color-slate-900: #1d1d1f;
+  --color-slate-950: #101012;
   width: 210mm;
   min-height: 296mm;
   margin: 0 auto;

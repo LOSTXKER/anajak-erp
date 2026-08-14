@@ -17,9 +17,9 @@ import { cn } from "@/lib/utils";
 export type StatusTone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 const DOT: Record<StatusTone, string> = {
-  neutral: "bg-slate-400",
+  neutral: "bg-slate-500 dark:bg-slate-400",
   accent: "bg-blue-500",
-  success: "bg-green-500",
+  success: "bg-green-600 dark:bg-green-400",
   warning: "bg-amber-700 dark:bg-amber-500",
   danger: "bg-red-500",
 };
@@ -36,6 +36,7 @@ export function StatusLabel({
   sub,
   emphasize,
   className,
+  subClassName,
 }: {
   label: React.ReactNode;
   tone?: StatusTone;
@@ -44,6 +45,8 @@ export function StatusLabel({
   /** ย้อมข้อความตามโทน — ใช้กับสถานะปลายทาง (จบ/ยกเลิก/เกินกำหนด) */
   emphasize?: boolean;
   className?: string;
+  /** ปรับบรรทัดรองเฉพาะบริบท เช่น row ที่เปลี่ยนพื้นตอน hover */
+  subClassName?: string;
 }) {
   const showSub = sub != null && sub !== "" && sub !== label;
   return (
@@ -60,7 +63,7 @@ export function StatusLabel({
         {label}
       </span>
       {showSub && (
-        <span className="pl-3 text-2xs text-slate-500 dark:text-slate-400">
+        <span className={cn("pl-3 text-2xs text-slate-500 dark:text-slate-400", subClassName)}>
           {sub}
         </span>
       )}

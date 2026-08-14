@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Printer } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
+import { safeAfterLoginHref } from "@/lib/auth-redirect";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,7 +38,10 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace("/home");
+    const nextHref = safeAfterLoginHref(
+      new URL(window.location.href).searchParams.get("next"),
+    );
+    router.replace(nextHref);
     router.refresh();
   };
 

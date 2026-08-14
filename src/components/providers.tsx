@@ -44,13 +44,13 @@ function ThemedToaster() {
       toastOptions={{
         classNames: {
           toast:
-            cn(OVERLAY_PANEL, "border-0 gap-3 p-4 font-sans text-slate-900 dark:text-white"),
+            cn(OVERLAY_PANEL, "border-0 gap-3 p-4 font-sans text-strong"),
           title: "text-sm font-medium",
-          description: "text-xs text-slate-500 dark:text-slate-400",
+          description: "text-xs text-muted",
           actionButton:
             "rounded-full bg-blue-600 px-3 text-xs font-semibold text-white",
           cancelButton:
-            "rounded-full bg-slate-100 px-3 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+            "rounded-full bg-surface-muted px-3 text-xs font-medium text-secondary",
           success: "[&_[data-icon]]:text-green-600",
           warning: "[&_[data-icon]]:text-amber-600",
           error: "[&_[data-icon]]:text-red-600",

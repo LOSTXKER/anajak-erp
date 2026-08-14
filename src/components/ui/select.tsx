@@ -6,10 +6,14 @@ import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CONTROL_H, CONTROL_H_SM, CONTROL_MIN_H } from "./control-size";
 import {
+  type ControlSurface,
+  DISABLED_CONTROL_SURFACE,
   FIELD_SURFACE,
   FOCUS_FIELD,
+  INLINE_CONTROL_SURFACE,
   MENU_ITEM,
   OVERLAY_PANEL,
+  RAISED_CONTROL_SURFACE,
   RADIUS,
   controlShapeClass,
   type ControlShape,
@@ -77,7 +81,7 @@ function collectOptions(children: React.ReactNode, out: OptionItem[] = []) {
 }
 
 /** ขนาดของช่องเลือก — sm ใช้เฉพาะในแถวตารางที่ต้องอัดหลายช่องต่อแถว
- *  ให้ 44px บนมือถือ (เป้านิ้วขั้นต่ำ) · 32px บนเดสก์ท็อป — ดู control-size.ts
+ *  ให้ 44px บนมือถือ (เป้านิ้วขั้นต่ำ) · 36px บนเดสก์ท็อป — ดู control-size.ts
  *  dense = สูงมาตรฐาน + อักษร xs บนเดสก์ท็อป สำหรับ editable grid (ดู input.tsx) */
 type SelectSize = "default" | "sm" | "dense";
 
@@ -93,6 +97,8 @@ export type SelectProps = Omit<
   onChange?: (event: { target: { value: string } }) => void;
   /** ข้อความตอนยังไม่ได้เลือก — ไม่ใส่ก็ขึ้น "เลือก…" */
   placeholder?: string;
+  /** field = ช่องในฟอร์ม · raised = control ที่ยืนบนผืนหน้า/toolbar */
+  surface?: ControlSurface;
 };
 
 const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
@@ -109,6 +115,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       name,
       id,
       placeholder,
+      surface = "field",
       "aria-label": ariaLabel,
       ...rest
     },
@@ -135,8 +142,11 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           className={cn(
             controlShapeClass(shape),
             FIELD_SURFACE,
+            surface === "raised" && RAISED_CONTROL_SURFACE,
+            surface === "inline" && INLINE_CONTROL_SURFACE,
             FOCUS_FIELD,
-            "flex w-full items-center justify-between gap-2 px-3 py-1 text-base transition-colors sm:text-sm disabled:cursor-not-allowed disabled:opacity-50",
+            DISABLED_CONTROL_SURFACE,
+            "flex w-full items-center justify-between gap-2 px-3 py-1 text-base transition-colors sm:text-sm disabled:cursor-not-allowed",
             // หลังก้อนพื้นฐานเสมอ — twMerge ตัดสินจาก "ตัวหลังชนะ" (ดูคำอธิบายเดียวกันใน input.tsx)
             // มือถือคง text-base (16px) เสมอ — เหตุผลเดียวกับ input.tsx (iOS ซูมเมื่อ < 16px)
             size === "sm"
@@ -156,12 +166,12 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                 กวาดตาแล้วแยกช่องที่ยังไม่กรอกไม่ออก · คู่สีจางตรง placeholder
                 ของ FIELD_SURFACE (tokens.ts) ให้เท่ากันทุก control */}
             {(value ?? "") === "" ? (
-              <span className="text-slate-400 dark:text-slate-500">
+              <span className="text-placeholder">
                 {(current?.label || placeholder) ?? "เลือก…"}
               </span>
             ) : (
               current?.label ?? (
-                <span className="text-slate-400 dark:text-slate-500">
+                <span className="text-placeholder">
                   {placeholder ?? "เลือก…"}
                 </span>
               )

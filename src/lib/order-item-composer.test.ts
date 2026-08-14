@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildOrderItemPriceSummary,
   getProductSourcePresentation,
+  moveOrderItemProduct,
   resolveFeeCatalogSelection,
 } from "./order-item-composer";
 import { EMPTY_PRODUCT, type OrderItemForm } from "@/types/order-form";
@@ -153,6 +154,85 @@ describe("getProductSourcePresentation", () => {
     ["LEGACY_SOURCE", "LEGACY_SOURCE", "warning"],
   ] as const)("แปลง %s เป็น label และสี badge ที่ UI ใช้อยู่", (source, label, variant) => {
     expect(getProductSourcePresentation(source)).toEqual({ label, variant });
+  });
+});
+
+describe("moveOrderItemProduct", () => {
+  const customMade = product({
+    formKey: "custom-made",
+    itemSource: "CUSTOM_MADE",
+    description: "เสื้อโรงเย็บ",
+    patternId: "pattern-1",
+    material: "Cotton 100%",
+    variants: [
+      { color: "ดำ", size: "M", quantity: 12 },
+      { color: "ดำ", size: "L", quantity: 8 },
+    ],
+  });
+  const customerProvided = product({
+    formKey: "customer-provided",
+    itemSource: "CUSTOMER_PROVIDED",
+    description: "เสื้อลูกค้า",
+    garmentCondition: "GOOD",
+    receiveNote: "ครบทุกถุง",
+    variants: [{ color: "ขาว", size: "XL", quantity: 20 }],
+  });
+  const otherItemProduct = product({
+    formKey: "other-item",
+    itemSource: "FROM_STOCK",
+    description: "สินค้าอีกชุดงาน",
+  });
+
+  const items: OrderItemForm[] = [
+    {
+      description: "ชุดงานแรก",
+      notes: "",
+      products: [customMade, customerProvided],
+      prints: [],
+      addons: [],
+    },
+    {
+      description: "ชุดงานที่สอง",
+      notes: "",
+      products: [otherItemProduct],
+      prints: [],
+      addons: [],
+    },
+  ];
+
+  it("ย้ายสินค้าทั้งก้อนโดยคง variants และสเปคไว้กับ form key เดิม", () => {
+    const moved = moveOrderItemProduct(items, 0, 1, -1);
+
+    expect(moved[0].products.map((entry) => entry.formKey)).toEqual([
+      "customer-provided",
+      "custom-made",
+    ]);
+    expect(moved[0].products[0]).toMatchObject({
+      garmentCondition: "GOOD",
+      receiveNote: "ครบทุกถุง",
+      variants: [{ color: "ขาว", size: "XL", quantity: 20 }],
+    });
+    expect(moved[0].products[1]).toMatchObject({
+      patternId: "pattern-1",
+      material: "Cotton 100%",
+      variants: [
+        { color: "ดำ", size: "M", quantity: 12 },
+        { color: "ดำ", size: "L", quantity: 8 },
+      ],
+    });
+    expect(moved[1]).toBe(items[1]);
+    expect(items[0].products.map((entry) => entry.formKey)).toEqual([
+      "custom-made",
+      "customer-provided",
+    ]);
+  });
+
+  it("ไม่ข้ามขอบรายการและไม่แตะชุดงานอื่น", () => {
+    expect(moveOrderItemProduct(items, 0, 0, -1)).toEqual(items);
+    expect(moveOrderItemProduct(items, 0, 1, 1)).toEqual(items);
+    expect(moveOrderItemProduct(items, 0, -1, 1)).toEqual(items);
+    expect(moveOrderItemProduct(items, 0, 2, -1)).toEqual(items);
+    expect(moveOrderItemProduct(items, 9, 0, 1)).toEqual(items);
   });
 });
 

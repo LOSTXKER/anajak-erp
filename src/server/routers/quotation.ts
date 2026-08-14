@@ -7,8 +7,12 @@ import { byIdInput } from "@/server/schemas";
 import { badRequest } from "@/server/errors";
 import { nextDocumentNumber, withDocNumberRetry } from "@/server/services/document-number";
 import { computeQuotationTotals } from "@/server/services/pricing";
-import { moneyInput } from "@/server/services/money";
-import { assertSalesWithinCreditLimit } from "@/server/services/receivables";
+import { D, moneyInput } from "@/server/services/money";
+import {
+  assertSalesWithinCreditLimit,
+  lockCustomerCreditRow,
+  UNCOMMITTED_STATUSES,
+} from "@/server/services/receivables";
 // กติกาแปลงใบเสนอ → ออเดอร์ (pure gates/calc — unit test ได้ไม่ต้อง DB)
 import {
   assertQuotationConvertible,
@@ -17,6 +21,7 @@ import {
   quotationSkeletonItems,
 } from "@/server/services/quotation-convert";
 import { assertOrderTotalCoversBilled } from "@/server/services/payment-plan";
+import { lockOrderRow } from "@/server/services/order-cost";
 import { transitionOrder, addOrderRevision } from "@/server/services/order-status";
 import { syncOrderStockReservation } from "@/server/services/stock-reservation";
 // นิยาม "หมดอายุ" อยู่ที่ service เดียว (กัน drift กับลิงก์ยืนยันใบเสนอ ก้อน 4)
@@ -484,33 +489,12 @@ export const quotationRouter = router({
 
       assertQuotationConvertible(quotation);
 
-      // ออเดอร์ที่ผูกไว้ (ถ้ามี) — ตกลงแล้วยืนยัน "ใบเดิม" ไม่สร้างซ้ำ (audit ข้อ 8 BLOCKER:
-      // เดิมเส้นทาง เปิดงาน→ออกใบเสนอ→แปลง ได้ออเดอร์ 2 ใบ + สถิติลูกค้านับซ้ำ)
-      const linkedOrder = quotation.orderId
-        ? await ctx.prisma.order.findUnique({
-            where: { id: quotation.orderId },
-            include: { items: { select: { id: true } } },
-          })
-        : null;
+      const linkedOrderId = quotation.orderId;
 
       // เทอมชำระต้องไหลตาม ไม่งั้นด่าน "เรียกมัดจำก่อนเริ่มงาน" โดนข้ามเงียบ (audit ข้อ 9)
       const customer = await ctx.prisma.customer.findUniqueOrThrow({
         where: { id: quotation.customerId },
         select: { defaultPaymentTerms: true },
-      });
-
-      // ด่านวงเงินเดียวกับการยืนยันออเดอร์ — ใช้ยอดที่จะผูกพันจริง
-      const commitAmount = convertCommitAmount({
-        linkedOrder: linkedOrder
-          ? { totalAmount: linkedOrder.totalAmount, itemCount: linkedOrder.items.length }
-          : null,
-        quotationTotal: quotation.totalAmount,
-      });
-      await assertSalesWithinCreditLimit(ctx.prisma, {
-        userRole: ctx.userRole,
-        customerId: quotation.customerId,
-        additionalAmount: commitAmount,
-        actionLabel: "แปลงเป็นออเดอร์",
       });
 
       // แปลงภาษีบาทของใบเสนอ → อัตรา % ของ order (กันภาษีหายตอน recompute)
@@ -521,6 +505,80 @@ export const quotationRouter = router({
 
       const convertedOrder = await withDocNumberRetry(() =>
         ctx.prisma.$transaction(async (tx) => {
+          // ออเดอร์ผูกต้อง lock ทุก role ก่อนอ่าน snapshot จริง ไม่ใช่เฉพาะ SALES:
+          // OWNER/MANAGER ก็เขียนยอด/สถานะได้ และ snapshot นอก tx อาจเก่าระหว่างรอ lock
+          const liveLinkedOrder = linkedOrderId
+            ? await (async () => {
+                await lockOrderRow(tx, linkedOrderId);
+                return tx.order.findUniqueOrThrow({
+                  where: { id: linkedOrderId },
+                  select: {
+                    id: true,
+                    customerId: true,
+                    orderType: true,
+                    internalStatus: true,
+                    title: true,
+                    totalAmount: true,
+                    paymentTerms: true,
+                  },
+                });
+              })()
+            : null;
+          const liveLinkedItemCount = liveLinkedOrder
+            ? await tx.orderItem.count({ where: { orderId: liveLinkedOrder.id } })
+            : 0;
+
+          if (
+            liveLinkedOrder &&
+            liveLinkedOrder.customerId !== quotation.customerId
+          ) {
+            badRequest("ออเดอร์ที่ผูกไม่ใช่ของลูกค้ารายนี้");
+          }
+
+          // เส้นสร้างใหม่ต้องถือ ORDER sequence ก่อน customer lock ให้ตรง order.create
+          // ส่วนเส้นออเดอร์ผูกถือ order row ก่อน customer ตามลำดับกลางของ writer เดิม
+          const newOrderNumber = liveLinkedOrder
+            ? null
+            : await nextDocumentNumber(tx, "ORDER");
+
+          // serialize ภาระหนี้ทุกออเดอร์ของลูกค้ารายเดียวกันจนการแปลง commit
+          // ไม่ให้สองใบเสนอเห็น exposure เก่าแล้วผ่านวงเงินพร้อมกัน
+          if (ctx.userRole === "SALES") {
+            await lockCustomerCreditRow(tx, quotation.customerId);
+          }
+
+          // คำนวณจาก snapshot หลัง lock เท่านั้น ทั้งยอด สถานะ และจำนวนรายการ
+          // ถ้าออเดอร์ถูกยืนยันไปแล้วระหว่างเปิดหน้า ให้ตรวจเฉพาะยอดที่เพิ่มจริง
+          // (ยอดเดิมถูกนับใน exposure อยู่แล้ว ห้ามนับซ้ำจนฝ่ายขายถูกปฏิเสธผิด)
+          const targetCommitAmount = convertCommitAmount({
+            linkedOrder: liveLinkedOrder
+              ? {
+                  totalAmount: liveLinkedOrder.totalAmount,
+                  itemCount: liveLinkedItemCount,
+                }
+              : null,
+            quotationTotal: quotation.totalAmount,
+          });
+          const wasAlreadyCommitted =
+            liveLinkedOrder !== null &&
+            !(UNCOMMITTED_STATUSES as readonly string[]).includes(
+              liveLinkedOrder.internalStatus,
+            );
+          const committedDelta = liveLinkedOrder
+            ? D(targetCommitAmount).minus(liveLinkedOrder.totalAmount)
+            : D(0);
+          const commitAmount = wasAlreadyCommitted
+            ? committedDelta.gt(0)
+              ? committedDelta
+              : D(0)
+            : D(targetCommitAmount);
+          await assertSalesWithinCreditLimit(tx, {
+            userRole: ctx.userRole,
+            customerId: quotation.customerId,
+            additionalAmount: commitAmount,
+            actionLabel: "แปลงเป็นออเดอร์",
+          });
+
           // กันกดแปลงซ้ำ/สองจอพร้อมกัน — flip สถานะแบบมีเงื่อนไขใน tx คนช้าเจอ error
           // ไม่ใช่ได้ออเดอร์คู่ (audit ข้อ 13)
           const flipped = await tx.quotation.updateMany({
@@ -535,49 +593,45 @@ export const quotationRouter = router({
           }
 
           // ----- เส้นทางออเดอร์ผูก: ยืนยันใบเดิม -----
-          if (linkedOrder) {
-            // นับรายการ "ใน tx" — snapshot นอก tx อาจเก่า (updateItems แทรกระหว่างกดแปลง
-            // จะโดนล้าง fee/ทับยอดผิดเส้น · review จับ TOCTOU)
-            const liveItemCount = await tx.orderItem.count({
-              where: { orderId: linkedOrder.id },
-            });
+          if (liveLinkedOrder) {
             // ออเดอร์ยังไม่มีรายการ → เติมโครงจากใบเสนอ + ยอด/ภาษีตามใบเสนอ
-            if (liveItemCount === 0) {
+            if (liveLinkedItemCount === 0) {
               // เพดานขาที่สอง (B9): ออเดอร์เปิดเบา (fees ล้วน) ออกบิลได้ก่อนแปลง —
               // ยอดใบเสนอที่ต่อรองลงต้องไม่ต่ำกว่าบิลที่ออกแล้ว (review B9 จับช่องนี้)
               await assertOrderTotalCoversBilled(tx, {
-                orderId: linkedOrder.id,
+                orderId: liveLinkedOrder.id,
                 newTotal: quotation.totalAmount,
               });
               // ราคาใบเสนอ = ราคาเหมาทั้งงาน — ล้าง fee ตั้งต้นของออเดอร์เปิดเบาทิ้ง
               // ไม่งั้น recompute ครั้งแรก (แก้รายการ/ค่าธรรมเนียม) บวก fee เก่ากลับ
               // เข้ายอดเงียบๆ (คำถามค้าง B9 · เบสเคาะ 2026-07-06)
-              await tx.orderFee.deleteMany({ where: { orderId: linkedOrder.id } });
+              await tx.orderFee.deleteMany({ where: { orderId: liveLinkedOrder.id } });
               await tx.order.update({
-                where: { id: linkedOrder.id },
+                where: { id: liveLinkedOrder.id },
                 data: {
-                  title: linkedOrder.title || quotation.title,
+                  title: liveLinkedOrder.title || quotation.title,
                   discount: quotation.discount,
                   subtotalItems: quotation.subtotal,
                   subtotalFees: 0,
                   taxRate: derivedTaxRate.toNumber(),
                   taxAmount: quotation.tax,
                   totalAmount: quotation.totalAmount,
-                  paymentTerms: linkedOrder.paymentTerms ?? customer.defaultPaymentTerms,
+                  paymentTerms:
+                    liveLinkedOrder.paymentTerms ?? customer.defaultPaymentTerms,
                   items: { create: skeletonItems },
                 },
               });
             }
             // ยืนยันผ่าน state machine (DRAFT ต้องผ่าน INQUIRY ก่อน — สองก้าว valid ทั้งคู่)
-            if (linkedOrder.internalStatus === "DRAFT") {
+            if (liveLinkedOrder.internalStatus === "DRAFT") {
               await transitionOrder(tx, {
-                orderId: linkedOrder.id,
+                orderId: liveLinkedOrder.id,
                 to: "INQUIRY",
                 changedBy: ctx.userId,
               });
             }
             await transitionOrder(tx, {
-              orderId: linkedOrder.id,
+              orderId: liveLinkedOrder.id,
               to: "CONFIRMED",
               changedBy: ctx.userId,
               revision: {
@@ -591,14 +645,16 @@ export const quotationRouter = router({
               data: { lastOrderAt: new Date() },
             });
 
-            return tx.order.findUniqueOrThrow({ where: { id: linkedOrder.id } });
+            return tx.order.findUniqueOrThrow({
+              where: { id: liveLinkedOrder.id },
+            });
           }
 
           // ----- เส้นทางเดิม: ใบเสนอลอย (ไม่ผูกออเดอร์) → สร้างออเดอร์ใหม่ -----
-          const orderNumber = await nextDocumentNumber(tx, "ORDER");
           const order = await tx.order.create({
             data: {
-              orderNumber,
+              // liveLinkedOrder เป็น null จึง reserve เลขไว้ก่อน customer lock แล้วแน่นอน
+              orderNumber: newOrderNumber!,
               orderType: "CUSTOM",
               channel: "LINE",
               customerId: quotation.customerId,
