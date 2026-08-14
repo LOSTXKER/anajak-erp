@@ -1279,7 +1279,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
             </TabsList>
           </TabsBar>
 
-          <TabsContent value="intake" keepMounted className="mt-6">
+          <TabsContent value="intake" keepMounted className="mt-6 space-y-4">
           {/* รับเรื่อง — ลูกค้าเป็นช่องบังคับเพียงช่องเดียว */}
           <Section
             id={STEP_IDS.intake}
@@ -1318,26 +1318,26 @@ export default function OrderFormPage(props: OrderFormPageProps) {
                   showGuidance={false}
                 />
               </div>
-              {/* จัดส่งอยู่กับรับเรื่อง — ที่อยู่ผู้รับมาจากแชทรอบเดียวกับข้อมูลลูกค้า
-                  (เบสสั่ง 2026-08-04) · ไม่มีเส้นคั่น ใช้หัวข้อย่อย h3 แยกพอ */}
-              <div data-order-edit-focus="shipping" className="scroll-mt-24">
-                <OrderShippingSection
-                  includeShipping={includeShipping}
-                  onIncludeShippingChange={setIncludeShipping}
-                  shipping={shipping}
-                  onUpdate={updateShipping}
-                  embedded
-                  showGuidance={false}
-                  collapseWhenInactive
-                  onUseCustomerAddress={
-                    canUseCustomerAddress
-                      ? () => fillShippingFromCustomer(customerAddressFill, customerId || null)
-                      : undefined
-                  }
-                />
-              </div>
             </div>
           </Section>
+
+          {/* ที่อยู่ยังอยู่ในแท็บรับเรื่องตาม flow สนทนากับลูกค้า แต่เป็นคนละก้อนงาน
+              จึงแยกเป็น sibling card ให้สแกน/เลื่อนไปแก้ได้ชัดทั้ง create และ edit */}
+          <div data-order-edit-focus="shipping" className="scroll-mt-24">
+            <OrderShippingSection
+              includeShipping={includeShipping}
+              onIncludeShippingChange={setIncludeShipping}
+              shipping={shipping}
+              onUpdate={updateShipping}
+              showGuidance={false}
+              collapseWhenInactive
+              onUseCustomerAddress={
+                canUseCustomerAddress
+                  ? () => fillShippingFromCustomer(customerAddressFill, customerId || null)
+                  : undefined
+              }
+            />
+          </div>
           </TabsContent>
 
           <TabsContent value="items" keepMounted className="mt-6">

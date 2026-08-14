@@ -4,6 +4,13 @@
 
 ## ตอนนี้
 
+> **✅ แยก “การจัดส่ง” เป็นการ์ดของตัวเองแล้ว 2026-08-14**
+> ในแท็บรับเรื่อง การ์ดแรกจบหลังหมายเหตุภายใน ส่วนการจัดส่งเป็น sibling card เต็มแถวถัดลงมาด้วย gap 16px · ใช้ `OrderFormPage` กลางจุดเดียวจึงเปลี่ยนพร้อมกันทั้งหน้าเปิดงานและหน้าแก้ ไม่เพิ่ม component/state/validation/draft/mutation ชุดใหม่ · ตอนปิดสวิตช์การ์ดยังคงหัวข้อและ control ไว้ให้หาเจอ แต่ซ่อนช่อง; เปิดกลับแล้วค่าที่กรอกไว้ยังอยู่ · deep-link `focus=shipping` ยังเลื่อนและโฟกัสสวิตช์ถูก
+>
+> **ด่าน:** browser จริง create/edit 1440×900, 390×844 และ 320×700 Light+Dark — สองการ์ดแนว/ความกว้างตรงกัน, ระยะ 16px, header มือถือไม่ชน, layout ช่อง desktop/mobile เดิม, ไม่มี horizontal overflow/action overlap/console error และไม่กดบันทึกข้อมูลธุรกิจ · unit **824/824** · typecheck ผ่าน · lint 0 error (28 warningเดิม) · `verify:ui` ผ่านพร้อม source guard กัน nested/embedded regression · React best-practices review ผ่าน · Impeccable layout detector `[]` หนึ่งรอบ · ไม่รัน build ขณะ dev server 3002 ทำงาน
+>
+> **ต่อที่นี่:** feedback แยกการ์ดจัดส่งจบแล้ว; ข้อมูลและการบันทึกไม่เปลี่ยน
+
 > **✅ หน้าแก้ออเดอร์เป็นหน้าเต็มและใช้ฟอร์มเดียวกับหน้าเปิดงานจริงแล้ว 2026-08-14**
 > คำสั่งล่าสุดทับ flow inline/dialog เดิม: ปุ่มแก้ข้อมูลออเดอร์ แก้ที่อยู่ แก้รายการ การ์ดรายการว่าง และ next-step จากหน้ารายละเอียดพาไป `/orders/[id]/edit` พร้อมแท็บ/จุดโฟกัสที่ตรงเรื่อง · route ใหม่ render `OrderFormPage` ตัวเดียวกับ `/orders/new` จึงใช้ลำดับ field, รายการ, catalog, ราคา, validation, responsive และ action bar ชุดเดียวจริง ไม่ใช่ก๊อป JSX อีกหน้า · งานเฉพาะทางตรวจรับ/แบบ/ผลิต/QC/ส่ง/บิล/รับเงินยังอยู่ flow และ permission เดิม
 >

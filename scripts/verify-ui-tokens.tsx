@@ -1181,6 +1181,37 @@ check(
   ) {
     problems.push("create/edit ต้องใช้ runtime ชุดกลาง และ detail ห้าม mount editor/dialog รุ่นเก่า");
   }
+
+  const intakeTabStart = createSource.indexOf(
+    '<TabsContent value="intake"',
+  );
+  const intakeTabEnd = createSource.indexOf(
+    '<TabsContent value="items"',
+    intakeTabStart,
+  );
+  const intakeTabSource = createSource.slice(intakeTabStart, intakeTabEnd);
+  const intakeCardEnd = intakeTabSource.indexOf("</Section>");
+  const shippingSectionStart = intakeTabSource.indexOf(
+    "<OrderShippingSection",
+  );
+  const shippingSectionEnd = intakeTabSource.indexOf(
+    "/>",
+    shippingSectionStart,
+  );
+  const shippingCall = intakeTabSource.slice(
+    shippingSectionStart,
+    shippingSectionEnd,
+  );
+  if (
+    !intakeTabSource.includes('className="mt-6 space-y-4"') ||
+    intakeCardEnd < 0 ||
+    shippingSectionStart < intakeCardEnd ||
+    shippingCall.includes("embedded")
+  ) {
+    problems.push(
+      "การจัดส่งต้องเป็น sibling card แยกจากข้อมูลรับเรื่องใน shared form",
+    );
+  }
   if (legacyCallers.length > 0) {
     problems.push(
       `ห้ามเรียก editor/dialog รุ่นเก่าจากไฟล์อื่น: ${legacyCallers.join(", ")}`,
