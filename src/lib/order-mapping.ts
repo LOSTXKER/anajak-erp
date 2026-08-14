@@ -19,6 +19,7 @@ export function mapItemsToMutationInput(items: OrderItemForm[]) {
 
 function mapProductToMutationInput(p: OrderItemProductForm, hasPrints: boolean) {
   return {
+    savedProductId: p.savedProductId || undefined,
     productId: p.productId || undefined,
     productType: p.productType,
     description: p.description,
@@ -68,8 +69,11 @@ function mapAddonToMutationInput(a: AddonForm) {
   return {
     addonType: a.addonType,
     name: a.name,
+    description: a.description || undefined,
     pricingType: a.pricingType as "PER_PIECE" | "PER_ORDER",
     unitPrice: a.unitPrice,
+    quantity: a.quantity,
+    notes: a.notes || undefined,
   };
 }
 
@@ -78,6 +82,8 @@ export function mapFeesToMutationInput(fees: OrderFeeForm[]) {
     feeType: f.feeType,
     name: f.name,
     amount: f.amount,
+    description: f.description || undefined,
+    notes: f.notes || undefined,
   }));
 }
 
@@ -93,6 +99,7 @@ export function mapApiItemsToForm(apiItems: ApiItem[]): OrderItemForm[] {
     products: (item.products || []).flatMap((p: ApiItem) => {
       const base: OrderItemProductForm = createOrderItemProduct({
         formKey: p.id ? `saved-product-${p.id}` : undefined,
+        savedProductId: p.id || undefined,
         productId: p.productId || undefined,
         productType: p.productType || "OTHER",
         description: p.description || "",
@@ -144,8 +151,11 @@ export function mapApiItemsToForm(apiItems: ApiItem[]): OrderItemForm[] {
     addons: (item.addons || []).map((a: ApiItem) => ({
       addonType: a.addonType,
       name: a.name,
+      description: a.description || undefined,
       pricingType: a.pricingType,
       unitPrice: a.unitPrice,
+      quantity: a.quantity ?? undefined,
+      notes: a.notes || undefined,
     })),
     notes: item.notes || "",
   }));
@@ -159,5 +169,7 @@ export function mapApiFeesToForm(apiFees: ApiItem[]): OrderFeeForm[] {
     feeType: f.feeType,
     name: f.name,
     amount: f.amount,
+    description: f.description || undefined,
+    notes: f.notes || undefined,
   }));
 }

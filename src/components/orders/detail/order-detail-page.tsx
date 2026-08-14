@@ -19,6 +19,8 @@ import {
   getFlowSteps,
   getNextStatuses,
   canPermsSetStatus,
+  canIssueChangeOrder,
+  isOrderLocked,
   isMarketplaceChannel,
 } from "@/lib/order-status";
 import type { InternalStatus } from "@prisma/client";
@@ -37,12 +39,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
+import { canEditOrderWithPricing } from "@/lib/order-access";
+import { buildOrderEditHref, type OrderEditFocus } from "@/lib/order-edit-navigation";
 
 import { OrderDesignSection } from "@/components/orders/order-design-section";
 import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
 import { OrderDeliverySection } from "@/components/orders/order-delivery-section";
-import { OrderItemsEditor } from "@/components/orders/order-items-editor";
-import { OrderInfoEditDialog } from "@/components/orders/order-info-edit-dialog";
 import { OrderGoodsReceiptSection } from "@/components/goods-receipt/order-goods-receipt-section";
 import { OrderQcSection } from "@/components/qc/order-qc-section";
 import { getOrderNextStep } from "@/lib/order-next-step";
@@ -181,20 +183,13 @@ function OrderDetailContent({
   const searchParams = useSearchParams();
   const promptText = usePromptText();
   const confirm = useConfirm();
-  // แก้รายการ = ฟอร์มเต็มแสดง inline ตรงส่วนรายการสินค้า (เบสเคาะ: ไม่เอา popup)
-  const [editingItems, setEditingItems] = useState(false);
-  const [showInfoEditDialog, setShowInfoEditDialog] = useState(false);
-  // แต่ละการ์ดบนแท็บภาพรวมมีปุ่มแก้ไขของตัวเอง (เบสสั่ง 2026-08-11) — ฟอร์มใบเดียวเหมือนเดิม
-  // แต่จำว่ากดมาจากการ์ดไหน เพื่อเลื่อนไปหัวข้อนั้นให้ ไม่ต้องเลื่อนหาเอง
-  const [editSection, setEditSection] = useState<"info" | "shipping">("info");
   /* ── แท็บ (เบสเคาะกลับมาใช้ 2026-08-05) ────────────────────────────────
      URL เป็นแหล่งความจริงร่วม แต่ตัว state เก็บใน React — เขียน URL ด้วย
      history API ตรงๆ ไม่ผ่าน router.replace เพราะ router จะรีเฟรช RSC ทั้งหน้า
      ทำให้สลับแท็บกระตุก · ผลคือ refresh/back/ส่งลิงก์ให้กันได้แท็บเดิม */
   const initialTab = normalizeOrderTab(searchParams.get("tab")) ?? ORDER_DEFAULT_TAB;
   const [tab, setTabState] = useState<TabKey>(initialTab);
-  // detail lazy ตอนเปิดครั้งแรก แต่แท็บที่เคยเข้าแล้วต้องคง DOM ไว้
-  // ไม่งั้นสลับออกจากฟอร์มแก้รายการแล้วค่าที่ยังไม่บันทึกจะหาย
+  // detail lazy ตอนเปิดครั้งแรก แต่แท็บที่เคยเข้าแล้วต้องคง DOM ไว้ เพื่อไม่ให้ query/UI กระพริบ
   const [visitedTabs, setVisitedTabs] = useState<Set<TabKey>>(
     () => new Set([ORDER_DEFAULT_TAB, initialTab]),
   );
@@ -231,9 +226,12 @@ function OrderDetailContent({
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  function openItemsEditor() {
-    setEditingItems(true);
-    changeTab("items");
+  function openItemsEditPage() {
+    router.push(buildOrderEditHref(id, { tab: "items", returnTab: "items" }));
+  }
+
+  function openInfoEditPage(focus: OrderEditFocus, returnTab: TabKey) {
+    router.push(buildOrderEditHref(id, { tab: "intake", focus, returnTab }));
   }
   // ANCHOR ของแถบขั้นต่อไป → สลับไปแท็บที่เกี่ยว (แผนที่เดียวกับ tabForAnchor ไม่มีตรรกะใหม่)
   function handleAnchor(target: "billing" | "design" | "production" | "delivery" | "qc") {
@@ -398,6 +396,8 @@ function OrderDetailContent({
   const canCancel = nextStatuses.includes("CANCELLED") && roleCanSetStatus("CANCELLED");
   // เมนูฝั่งขาย (แก้ข้อมูล/รายการ/สำเนา/ออกใบเสนอ) — server เป็น create_sales_docs
   const isSalesUp = !!me && permAllows(me.permissions, "create_sales_docs");
+  // ฟอร์มแก้ทั้งใบมีราคาเหมือนหน้าสร้าง — ขาดสิทธิ์เห็นเงินต้องไม่ mount/เปิด route นี้
+  const canUseEditForm = canEditOrderWithPricing(me?.permissions);
 
   const currentStepIndex = flowSteps.indexOf(order.internalStatus);
 
@@ -432,11 +432,10 @@ function OrderDetailContent({
       ? ((totalAmount - totalCost) / totalAmount) * 100
       : null;
 
-  // ON_HOLD ปิดปุ่มแก้ให้ตรง server (B10 — แก้งานพักต้องปลดพักก่อน · next-step card ชี้ทางปลดพัก)
-  const canEditItems = ![
-    "PRODUCING", "QUALITY_CHECK", "PACKING", "READY_TO_SHIP",
-    "SHIPPED", "COMPLETED", "CANCELLED", "ON_HOLD",
-  ].includes(order.internalStatus);
+  // แก้ตรงก่อนอนุมัติ หรือออก CO ได้ก่อนเริ่มผลิต — ใช้กฎกลางเดียวกับ server
+  const canEditItems =
+    !isOrderLocked(order.internalStatus as InternalStatus) ||
+    canIssueChangeOrder(order.internalStatus as InternalStatus);
 
   // แถบ "ขั้นต่อไป" — ระบบจำว่างานนี้ต้องทำอะไรต่อ (logic lib/order-next-step.ts) แทนให้ผู้ใช้ไล่เดาจากการ์ด
   const nextStepInput = buildNextStepInput(order);
@@ -573,9 +572,8 @@ function OrderDetailContent({
               readiness={orderContext.data?.readiness ?? null}
               isPending={updateStatus.isPending}
               onStatus={handleStatusChange}
-              // gate เดียวกับปุ่มแก้รายการจุดอื่น — ช่างกดแล้วเจอฟอร์มราคา (0 จาก null)
-              // ก่อนไปตาย FORBIDDEN ตอนบันทึก (review ⑦ จับ)
-              onEditItems={isSalesUp ? openItemsEditor : undefined}
+              // ต้องผ่านทั้ง permission และ status gate เดียวกับปุ่มแก้รายการจุดอื่น
+              onEditItems={canUseEditForm && canEditItems ? openItemsEditPage : undefined}
               onAnchor={handleAnchor}
               canSeeMoney={canSeeMoney}
             />
@@ -602,24 +600,25 @@ function OrderDetailContent({
                     </DropdownMenu.Item>
                     {isSalesUp && (
                       <>
-                        <DropdownMenu.Item
-                          className={dropdownItemClass}
-                          onSelect={() => {
-                            setEditSection("info");
-                            setShowInfoEditDialog(true);
-                          }}
-                        >
-                          <FileText className="h-4 w-4" />
-                          แก้ไขข้อมูลออเดอร์
-                        </DropdownMenu.Item>
-                        {canEditItems && (
-                          <DropdownMenu.Item
-                            className={dropdownItemClass}
-                            onSelect={openItemsEditor}
-                          >
-                            <Edit3 className="h-4 w-4" />
-                            แก้ไขรายการ
-                          </DropdownMenu.Item>
+                        {canUseEditForm && (
+                          <>
+                            <DropdownMenu.Item
+                              className={dropdownItemClass}
+                              onSelect={() => openInfoEditPage("info", activeTab)}
+                            >
+                              <FileText className="h-4 w-4" />
+                              แก้ไขข้อมูลออเดอร์
+                            </DropdownMenu.Item>
+                            {canEditItems && (
+                              <DropdownMenu.Item
+                                className={dropdownItemClass}
+                                onSelect={openItemsEditPage}
+                              >
+                                <Edit3 className="h-4 w-4" />
+                                แก้ไขรายการ
+                              </DropdownMenu.Item>
+                            )}
+                          </>
                         )}
                         <DropdownMenu.Item
                           className={dropdownItemClass}
@@ -795,11 +794,8 @@ function OrderDetailContent({
               totalQuantity={sumOrderQuantity(order.items ?? [])}
               onOpenMoney={canSeeMoney ? () => changeTab("money") : undefined}
               onEditInfo={
-                isSalesUp
-                  ? (section) => {
-                      setEditSection(section);
-                      setShowInfoEditDialog(true);
-                    }
+                canUseEditForm
+                  ? (section) => openInfoEditPage(section, "overview")
                   : undefined
               }
               channelColor={channelColor}
@@ -808,24 +804,13 @@ function OrderDetailContent({
           </TabsContent>}
 
           {visitedTabs.has("items") && <TabsContent value="items" keepMounted className="space-y-6">
-              {editingItems && canEditItems ? (
-                <OrderItemsEditor
-                  orderId={id}
-                  orderType={order.orderType}
-                  internalStatus={order.internalStatus}
-                  order={order}
-                  onDone={() => setEditingItems(false)}
-                  onCancel={() => setEditingItems(false)}
-                />
-              ) : (
-                <OrderItemsDisplay
-                  orderId={id}
-                  items={order.items ?? []}
-                  fees={order.fees ?? []}
-                  onEditItems={canEditItems && isSalesUp ? openItemsEditor : undefined}
-                  showMoney={canSeeMoney}
-                />
-              )}
+            <OrderItemsDisplay
+              orderId={id}
+              items={order.items ?? []}
+              fees={order.fees ?? []}
+              onEditItems={canEditItems && canUseEditForm ? openItemsEditPage : undefined}
+              showMoney={canSeeMoney}
+            />
             <OrderChangeOrders orderId={id} />
           </TabsContent>}
 
@@ -919,15 +904,6 @@ function OrderDetailContent({
       </div>
       </Tabs>
 
-      {/* ====================================================
-          EDIT DIALOGS
-      ==================================================== */}
-      <OrderInfoEditDialog
-        open={showInfoEditDialog}
-        onOpenChange={setShowInfoEditDialog}
-        order={order}
-        focusSection={editSection}
-      />
     </div>
   );
 }

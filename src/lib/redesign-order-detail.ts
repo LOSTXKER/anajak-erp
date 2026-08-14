@@ -19,6 +19,7 @@ import {
   STEP_TYPE_LABELS,
 } from "@/lib/production-steps";
 import { ITEM_SOURCES, PRINT_TYPES } from "@/types/order-form";
+import { buildOrderEditHref } from "@/lib/order-edit-navigation";
 
 export const REDESIGN_ORDER_DETAIL_STAGES = [
   { key: "intake", label: "รับงาน" },
@@ -272,7 +273,10 @@ export function canonicalOrderActionHref(
 
   switch (action.type) {
     case "EDIT_ITEMS":
-      return `${base}?tab=items`;
+      return buildOrderEditHref(orderId, {
+        tab: "items",
+        returnTab: "items",
+      });
     case "ANCHOR": {
       const tab = tabForAnchor(action.target);
       return tab ? `${base}?tab=${tab}` : base;

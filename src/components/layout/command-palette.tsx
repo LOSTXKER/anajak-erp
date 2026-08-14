@@ -15,6 +15,7 @@ import {
 } from "@/lib/navigation";
 import { Spinner } from "@/components/ui/spinner";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
+import { requestAppNavigation } from "@/lib/navigation-request";
 
 type CommandItem = {
   id: string;
@@ -53,8 +54,11 @@ export function CommandPalette({
 
   const navigate = React.useCallback(
     (path: string) => {
-      router.push(path);
-      onOpenChange(false);
+      requestAppNavigation(path, {
+        push: (href) => router.push(href),
+        replace: (href) => router.replace(href),
+        onProceed: () => onOpenChange(false),
+      });
     },
     [router, onOpenChange]
   );

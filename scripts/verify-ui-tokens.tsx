@@ -1105,8 +1105,12 @@ check(
     "src/components/orders/new/order-create-page.tsx",
     "utf8",
   );
-  const editorSource = readFileSync(
-    "src/components/orders/order-items-editor.tsx",
+  const editRouteSource = readFileSync(
+    "src/components/orders/edit/order-edit-route.tsx",
+    "utf8",
+  );
+  const detailSource = readFileSync(
+    "src/components/orders/detail/order-detail-page.tsx",
     "utf8",
   );
   const listHeaderSource = readFileSync(
@@ -1119,34 +1123,68 @@ check(
   );
   const itemWrapper =
     orderItemSource.match(/<article[\s\S]*?<OrderItemRow/)?.[0] ?? "";
+  const legacyImplementations = new Set([
+    "src/components/orders/order-items-editor.tsx",
+    "src/components/orders/order-info-edit-dialog.tsx",
+  ]);
+  const legacyCallers: string[] = [];
+  function walkLegacyOrderEditors(dir: string) {
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) {
+        walkLegacyOrderEditors(path);
+      } else if (
+        /\.(?:ts|tsx)$/.test(name) &&
+        !legacyImplementations.has(path)
+      ) {
+        const source = readFileSync(path, "utf8");
+        if (
+          /(?:from\s+|import\s*\()\s*["'][^"']*(?:order-items-editor|order-info-edit-dialog)/.test(
+            source,
+          )
+        ) {
+          legacyCallers.push(path);
+        }
+      }
+    }
+  }
+  walkLegacyOrderEditors("src");
 
   const problems: string[] = [];
   if (
     orderItemSource.includes("isIntake") ||
     orderItemSource.includes("appearance?:") ||
-    createSource.includes("appearance=") ||
-    editorSource.includes("appearance=")
+    createSource.includes("appearance=")
   ) {
     problems.push("create/edit ต้องไม่มี presentation branch แยกใน OrderItemCard");
   }
   if (
-    !editorSource.includes('className="w-full space-y-6"') ||
-    editorSource.includes('className="mx-auto w-full max-w-5xl space-y-6"')
+    !createSource.includes('width="wide"') ||
+    !editRouteSource.includes('width="wide"') ||
+    !editRouteSource.includes('mode="edit"') ||
+    !editRouteSource.includes('from "@/components/orders/new/order-create-page"')
   ) {
-    problems.push("inline edit ต้องรับความกว้าง full จาก order detail และห้ามซ้อน page max-width");
+    problems.push("create/edit ต้องใช้ OrderFormPage ตัวเดียวและ PageShell wide เท่ากัน");
   }
   if (
     !createSource.includes("<OrderCatalogAlert") ||
-    !editorSource.includes("<OrderCatalogAlert") ||
-    !editorSource.includes("<OrderFeeSection") ||
-    !editorSource.includes("<OrderPriceSummary") ||
-    !editorSource.includes("<OrderFormActionBar") ||
-    !editorSource.includes('category: "FEE"') ||
-    !editorSource.includes("บันทึกครั้งนี้จะออกเป็นใบแก้ไขออเดอร์") ||
-    editorSource.includes("border-l-[3px]") ||
-    editorSource.includes("parseFloat(e.target.value)")
+    !createSource.includes("<OrderFeeSection") ||
+    !createSource.includes("<OrderPriceSummary") ||
+    !createSource.includes("<OrderFormActionBar") ||
+    !createSource.includes('category: "FEE"') ||
+    !createSource.includes('mode: "edit"') ||
+    !createSource.includes("trpc.order.saveForm.useMutation") ||
+    detailSource.includes("OrderItemsEditor") ||
+    detailSource.includes("OrderInfoEditDialog") ||
+    detailSource.includes("editingItems") ||
+    detailSource.includes("showInfoEditDialog")
   ) {
-    problems.push("create/edit ต้องใช้ catalog alert, fee, MoneyInput, price summary และ action bar ชุดกลาง");
+    problems.push("create/edit ต้องใช้ runtime ชุดกลาง และ detail ห้าม mount editor/dialog รุ่นเก่า");
+  }
+  if (legacyCallers.length > 0) {
+    problems.push(
+      `ห้ามเรียก editor/dialog รุ่นเก่าจากไฟล์อื่น: ${legacyCallers.join(", ")}`,
+    );
   }
   if (
     !itemWrapper.includes('role="listitem"') ||
@@ -1156,21 +1194,16 @@ check(
     problems.push("OrderItemCard ต้องเป็น listitem บน card-surface โดยไม่มี border/ring");
   }
 
-  for (const [label, source] of [
-    ["create", createSource],
-    ["edit", editorSource],
-  ] as const) {
-    const headerIndex = source.indexOf("<OrderItemsListHeader");
-    const listIndex = source.indexOf('role="list"', headerIndex);
-    const mapIndex = source.indexOf("items.map", listIndex);
-    if (headerIndex < 0 || listIndex < 0 || mapIndex < 0 || headerIndex > listIndex) {
-      problems.push(`${label}: CTA ต้องอยู่ก่อน role=list และ items.map`);
-    }
+  const headerIndex = createSource.indexOf("<OrderItemsListHeader");
+  const listIndex = createSource.indexOf('role="list"', headerIndex);
+  const mapIndex = createSource.indexOf("items.map", listIndex);
+  if (headerIndex < 0 || listIndex < 0 || mapIndex < 0 || headerIndex > listIndex) {
+    problems.push("shared form: CTA ต้องอยู่ก่อน role=list และ items.map");
   }
 
   if (
     createSource.includes("เพิ่มชุดงาน") ||
-    editorSource.includes("เพิ่มรายการงานอีกชุด")
+    createSource.includes("เพิ่มรายการงานอีกชุด")
   ) {
     problems.push("ต้องไม่มี CTA รุ่นเก่าซ้ำท้าย list");
   }
@@ -1215,8 +1248,8 @@ check(
     "src/components/orders/new/order-create-page.tsx",
     "utf8",
   );
-  const orderEditorSource = readFileSync(
-    "src/components/orders/order-items-editor.tsx",
+  const orderEditRouteSource = readFileSync(
+    "src/components/orders/edit/order-edit-route.tsx",
     "utf8",
   );
   const orderActionBarSource = readFileSync(
@@ -1246,13 +1279,11 @@ check(
     problems.push("action bar หน้าเปิดงานต้องอยู่ท้าย form โดยไม่ sticky ทับ field");
   }
   if (
-    !orderEditorSource.includes('data-order-editor-action-bar=""') ||
     !orderActionBarSource.includes('data-order-form-action-bar=""') ||
-    orderEditorSource.includes("card-surface sticky") ||
-    orderEditorSource.includes("backdrop-blur") ||
+    !orderEditRouteSource.includes('mode="edit"') ||
     orderActionBarSource.includes('"card-surface sticky')
   ) {
-    problems.push("action bar หน้าแก้รายการต้องใช้ชุดกลางใน document flow โดยไม่ทับ field");
+    problems.push("action bar หน้าแก้ออเดอร์ต้องใช้ shared form ใน document flow โดยไม่ทับ field");
   }
 
   if (problems.length) {

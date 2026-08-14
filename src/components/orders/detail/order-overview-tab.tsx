@@ -118,7 +118,7 @@ interface OrderOverviewTabProps {
   totalQuantity: number;
   // การ์ดบิล+สรุปราคาอยู่แท็บ "เงิน/บิล" — ที่นี่โชว์ยอดรวมบรรทัดเดียว กดแล้วเด้งไปแท็บนั้น
   onOpenMoney?: () => void;
-  // เปิด OrderInfoEditDialog — ไม่ส่งมา = ไม่มีสิทธิ์แก้ ปุ่มไม่ต้องขึ้น
+  // เปิดฟอร์มแก้เต็มหน้าโดยโฟกัสการ์ดที่กด — ไม่ส่งมา = ไม่มีสิทธิ์แก้ ปุ่มไม่ต้องขึ้น
   onEditInfo?: (section: "info" | "shipping") => void;
   channelColor: { bg: string; text: string };
   isMarketplace: boolean;

@@ -58,6 +58,8 @@ export function OrderFeeSection({
     if (catalogId === OTHER_FEE_OPTION) {
       // เลือก "อื่นๆ" = ตั้งประเภทเป็น CUSTOM แล้วปล่อยให้พิมพ์ชื่อ/ยอดเอง
       onUpdateFee(fIdx, "feeType", CUSTOM_FEE_TYPE);
+      onUpdateFee(fIdx, "description", undefined);
+      onUpdateFee(fIdx, "notes", undefined);
       return;
     }
     const selection = resolveFeeCatalogSelection(feeCatalog, catalogId);
@@ -65,6 +67,9 @@ export function OrderFeeSection({
     onUpdateFee(fIdx, "feeType", selection.feeType);
     onUpdateFee(fIdx, "name", selection.name);
     onUpdateFee(fIdx, "amount", selection.amount);
+    // เปลี่ยนรายการจาก catalog = เริ่ม metadata ของรายการใหม่ ไม่ปนคำอธิบายเดิมที่ซ่อนอยู่
+    onUpdateFee(fIdx, "description", undefined);
+    onUpdateFee(fIdx, "notes", undefined);
   };
 
   return (

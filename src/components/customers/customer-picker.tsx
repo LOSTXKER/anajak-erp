@@ -31,6 +31,9 @@ export type PickerCustomer = RouterOutput["customer"]["list"]["customers"][numbe
 interface CustomerPickerProps {
   value: string;
   onChange: (customerId: string, customer: PickerCustomer | null) => void;
+  /** ปักลูกค้าเดิมไว้แม้ไม่อยู่ใน 50 ผลลัพธ์ล่าสุด (สำคัญในโหมดแก้ออเดอร์) */
+  initialSelected?: PickerCustomer | null;
+  disabled?: boolean;
   required?: boolean;
   /** ช่องเลือกหลักไม่ผ่าน validation — วาด/ประกาศที่ control จริง ไม่ใช่แค่ summary */
   invalid?: boolean;
@@ -47,6 +50,8 @@ interface CustomerPickerProps {
 export function CustomerPicker({
   value,
   onChange,
+  initialSelected = null,
+  disabled = false,
   required,
   invalid = false,
   labelledBy,
@@ -58,12 +63,12 @@ export function CustomerPicker({
   const searchRef = useRef<HTMLInputElement>(null);
   // โฟกัสหลัง mount เฉพาะจอ ≥sm — ไม่ใช้ attribute autoFocus เพราะเลือก breakpoint ไม่ได้
   useEffect(() => {
-    if (!autoFocusSearch) return;
+    if (!autoFocusSearch || disabled) return;
     if (window.matchMedia("(min-width: 640px)").matches) searchRef.current?.focus();
-  }, [autoFocusSearch]);
+  }, [autoFocusSearch, disabled]);
   const [showCreate, setShowCreate] = useState(false);
   // ลูกค้าที่เลือกอยู่ — ปักไว้ใน dropdown แม้ผลค้นหาปัจจุบันไม่มีรายนี้
-  const [selected, setSelected] = useState<PickerCustomer | null>(null);
+  const [selected, setSelected] = useState<PickerCustomer | null>(initialSelected);
 
   // Quick create form
   const [newName, setNewName] = useState("");
@@ -76,10 +81,13 @@ export function CustomerPicker({
   const [isChecking, setIsChecking] = useState(false);
 
   const utils = trpc.useUtils();
-  const { data, isLoading, isError, refetch } = trpc.customer.list.useQuery({
-    search: search || undefined,
-    limit: 50,
-  });
+  const { data, isLoading, isError, refetch } = trpc.customer.list.useQuery(
+    {
+      search: search || undefined,
+      limit: 50,
+    },
+    { enabled: !disabled },
+  );
 
   const createCustomer = trpc.customer.create.useMutation({
     onSuccess: (customer) => {
@@ -161,6 +169,7 @@ export function CustomerPicker({
           aria-label="ค้นหาลูกค้า"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          disabled={disabled}
           // กัน Enter ไป submit ฟอร์มใหญ่ที่ครอบอยู่ (เช่นสร้างใบเสนอทั้งใบโดยไม่ตั้งใจ)
           onKeyDown={(e) => {
             if (e.key === "Enter") e.preventDefault();
@@ -185,6 +194,7 @@ export function CustomerPicker({
           value={value}
           onChange={(e) => pick(options.find((c) => c.id === e.target.value) ?? null)}
           required={required}
+          disabled={disabled}
           className="flex-1"
         >
           <option value="">
@@ -201,6 +211,7 @@ export function CustomerPicker({
           type="button"
           variant="outline"
           onClick={() => setShowCreate(true)}
+          disabled={disabled}
           className="shrink-0 gap-1.5"
           title="เพิ่มลูกค้าใหม่จากชื่อแชทได้เลย"
         >

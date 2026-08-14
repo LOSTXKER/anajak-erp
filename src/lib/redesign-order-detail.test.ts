@@ -260,7 +260,7 @@ describe("buildRedesignOrderDetailViewModel", () => {
 describe("canonicalOrderActionHref", () => {
   it("map action ไป canonical tab ผ่าน tabForAnchor และไม่สร้าง action ปลอม", () => {
     expect(canonicalOrderActionHref("order/1", { type: "EDIT_ITEMS" })).toBe(
-      "/orders/order%2F1?tab=items",
+      "/orders/order%2F1/edit?tab=items&returnTab=items",
     );
     expect(
       canonicalOrderActionHref("order-1", {

@@ -22,13 +22,19 @@ export type PrintForm = {
 export type AddonForm = {
   addonType: string;
   name: string;
+  /** ฟิลด์เดิมที่ UI ยังไม่เปิดให้แก้ แต่ต้อง round-trip ตอนแทนรายการ */
+  description?: string;
   pricingType: "PER_PIECE" | "PER_ORDER" | string;
   unitPrice: number;
+  quantity?: number;
+  notes?: string;
 };
 
 export type OrderItemProductForm = {
   // Stable UI identity — ไม่ส่งเข้า mutation/ฐานข้อมูล ใช้กัน local state ย้ายผิดสินค้าเมื่อ reorder
   formKey?: string;
+  /** ID ของ OrderItemProduct เดิมในโหมดแก้ ใช้รักษาการผูกใบตรวจรับเมื่อบันทึกแบบแทนทั้งชุด */
+  savedProductId?: string;
   productId?: string;
   productType: string;
   description: string;
@@ -73,14 +79,21 @@ export type OrderFeeForm = {
   feeType: string;
   name: string;
   amount: number;
+  /** เก็บข้อมูลเดิมไว้เมื่อหน้าแก้ส่ง replace ทั้งชุด */
+  description?: string;
+  notes?: string;
 };
 
 export type ReferenceImage = {
+  /** มีเฉพาะไฟล์ที่บันทึกอยู่แล้วในโหมดแก้ — ไฟล์ที่เพิ่งอัปโหลดจะยังไม่มี id */
+  id?: string;
   fileUrl: string;
   fileName: string;
   fileSize?: number;
   preview?: string;
   printPosition?: string;
+  /** false = ไฟล์ของผู้อื่นที่ดูได้ แต่แก้ตำแหน่ง/ลบไม่ได้ */
+  canEdit?: boolean;
 };
 
 export const EMPTY_VARIANT: VariantForm = { size: "", color: "", quantity: 1 };

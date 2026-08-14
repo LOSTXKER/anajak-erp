@@ -209,6 +209,17 @@ export function computeCreditExposure(params: {
 // สถานะกลุ่มนี้ไป CONFIRMED (ปลดพัก ON_HOLD ไม่ใช่ภาระหนี้ใหม่ — ยอดถูกนับใน exposure อยู่แล้ว)
 export const UNCOMMITTED_STATUSES = ["DRAFT", "INQUIRY", "CANCELLED"] as const;
 
+/**
+ * Serialize credit decisions for the same customer inside the caller's transaction.
+ *
+ * Reading exposure alone is not enough: two orders for one customer can otherwise
+ * both see the old balance and pass the limit at the same time. Call this before
+ * `assertSalesWithinCreditLimit`, and keep the lock until the order write commits.
+ */
+export async function lockCustomerCreditRow(db: PrismaTx, customerId: string) {
+  await db.$queryRaw`SELECT id FROM customers WHERE id = ${customerId} FOR UPDATE`;
+}
+
 // ด่านวงเงินตอนผูกพันออเดอร์ — เฉพาะ SALES: เกินวงเงินต้องส่งให้ผู้จัดการ/บัญชีทำแทน
 // (role อื่นเห็นคำเตือนใน UI แล้วตัดสินใจเองได้ · ลูกค้าไม่ตั้งวงเงิน = ไม่จำกัด)
 export async function assertSalesWithinCreditLimit(
@@ -216,7 +227,7 @@ export async function assertSalesWithinCreditLimit(
   params: {
     userRole: string | null;
     customerId: string;
-    additionalAmount: number;
+    additionalAmount: number | Prisma.Decimal;
     actionLabel: string; // เช่น "ยืนยันออเดอร์" / "แปลงเป็นออเดอร์"
   }
 ) {
@@ -227,9 +238,10 @@ export async function assertSalesWithinCreditLimit(
   });
   if (customer.creditLimit == null) return;
   const { exposure } = await creditExposureForCustomer(db, params.customerId);
-  if (D(exposure).plus(params.additionalAmount).gt(customer.creditLimit)) {
+  const additionalAmount = D(params.additionalAmount);
+  if (D(exposure).plus(additionalAmount).gt(customer.creditLimit)) {
     badRequest(
-      `เกินวงเงินเครดิตของลูกค้า (ภาระหนี้ ${exposure.toFixed(2)} + ออเดอร์นี้ ${params.additionalAmount.toFixed(2)} > วงเงิน ${customer.creditLimit.toFixed(2)} บาท) — ให้ผู้จัดการ/บัญชีเป็นคน${params.actionLabel}`
+      `เกินวงเงินเครดิตของลูกค้า (ภาระหนี้ ${exposure.toFixed(2)} + ออเดอร์นี้ ${additionalAmount.toFixed(2)} > วงเงิน ${customer.creditLimit.toFixed(2)} บาท) — ให้ผู้จัดการ/บัญชีเป็นคน${params.actionLabel}`
     );
   }
 }

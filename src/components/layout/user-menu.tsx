@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { createClient } from "@/lib/supabase";
 import { ROLE_LABELS } from "@/lib/roles";
+import { requestAppNavigation } from "@/lib/navigation-request";
 import { FOCUS_BUTTON, MENU_SEPARATOR, OVERLAY_PANEL } from "@/components/ui/tokens";
 import { CONTROL_H, CONTROL_MIN_H } from "@/components/ui/control-size";
 
@@ -23,11 +24,23 @@ export function UserMenu() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { data: me } = trpc.user.me.useQuery();
 
-  const handleLogout = async () => {
+  const signOutAndNavigate = async (
+    href: string,
+    mode: "push" | "replace",
+  ) => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    if (mode === "replace") router.replace(href);
+    else router.push(href);
     router.refresh();
+  };
+  const handleLogout = () => {
+    // ออกจากระบบเป็นการนำทางที่ย้อนค่าในฟอร์มกลับไม่ได้: ขอผ่าน guard กลางก่อน
+    // แล้วค่อย sign out เมื่อไม่มีข้อมูลค้างหรือผู้ใช้ยืนยันว่าจะทิ้งจริง
+    requestAppNavigation("/login", {
+      push: (href) => void signOutAndNavigate(href, "push"),
+      replace: (href) => void signOutAndNavigate(href, "replace"),
+    });
   };
   const themeIcon =
     resolvedTheme === "dark" ? (

@@ -148,6 +148,7 @@
 - [x] ทำ action bar ของ editor เป็น flow ปกติชุดเดียวกับหน้าเปิดงาน ไม่ sticky/blur ทับเนื้อหา และเพิ่ม guard กัน max-width ซ้อน, UI ราคาแตกแขนง และ sticky regression กลับมา ✅ 2026-08-14
 - [x] audit width roles + UI pattern ที่เกี่ยวทั้งระบบ แล้วแก้เฉพาะ regression ในขอบเขตนี้; หนี้หน้าอื่นบันทึกแยก ไม่ big-bang restyle · verify browser จริง create/edit empty+populated ที่ desktop/mobile Light/Dark, no overflow/console error พร้อม typecheck/lint/unit/`verify:ui`/detector ✅ 2026-08-14
 - **ปิดงาน 2026-08-14:** create/edit ใช้ component กลางครบตั้งแต่รายการ → catalog error/retry → ค่าใช้จ่าย → ส่วนลด → สรุปยอด → action bar; editor รับความกว้าง `full` จาก order detail ส่วน create คง `wide` 1024px · browser จริง empty+populated 1440×900/390×844 Light+Dark: editor 1126/348px, create 1024/348px, mobile fee name 292px, overlap/overflow/console error = 0 และไม่บันทึกข้อมูลธุรกิจ · ด่านโค้ดดูที่ `PROGRESS.md`
+- **ถูกทับด้วยมติล่าสุดด้านล่าง:** เลิก inline edit แล้วใช้ dedicated edit page ดังนั้น create/edit เป็น standalone document form ทั้งคู่และกว้าง `wide` 1024px เท่ากัน; order detail โหมดอ่านยังเป็น `full`
 
 #### หนี้ width roles จาก audit ทั้ง repo — แยกแก้ ไม่ปน regression ออเดอร์
 - [ ] P2: ย้าย production detail จาก `max-w-4xl` ที่เขียนซ้ำมาใช้ `PageShell width="content"` ให้ loading/error/not-found/normal กว้างตรงกัน
@@ -156,6 +157,17 @@
 #### หนี้ UI pattern จาก audit ทั้ง repo — คนละ workflow ต้องมีใบงาน/acceptance แยก
 - [ ] P2: หน้าเปิดใบเสนอราคายังเป็น Card/form row รุ่นเก่า; ค่อย migrate เป็น `Section`/`Field`/price composition มาตรฐานโดยคง state และ conversion logic เดิม
 - [ ] P2: settings company/cost-rates และฟอร์มแก้ใน patterns/services/users ยังมี raw label/Card ซ้อน; ทยอยย้ายทีละหน้า และห้ามกวาด editable grid ที่ใช้ `FIELD_LABEL` ถูกบทบาทอยู่แล้ว
+
+### 🎯 UX follow-up — แก้ออเดอร์เป็นหน้าเต็มและใช้ฟอร์มเดียวกับสร้างจริง (เบสสั่ง 2026-08-14)
+> คำสั่งล่าสุดทับ flow inline/dialog เดิม: จากหน้ารายละเอียด กดแก้ข้อมูลออเดอร์ ที่อยู่ หรือรายการงาน ต้องไป `/orders/[id]/edit` และเปิดแท็บที่เกี่ยวทันที · งานปฏิบัติการเฉพาะทาง เช่น ตรวจรับ อนุมัติแบบ ผลิต QC จัดส่ง บิล และรับเงิน คง flow/permission ของตัวเอง
+
+- [x] เพิ่ม dedicated edit route แบบ `PageShell width="wide"` พร้อม loading/error/not-found/denied ที่ตรงกับหน้าสร้าง และ deep link `?tab=`/Back/Cancel กลับรายละเอียดเดิม ✅ 2026-08-14
+- [x] ยกหน้า create เป็น form runtime เดียวที่รับ create/edit seed โดยใช้ component, hooks, validation, catalog, responsive state และ action bar ชุดเดียวจริง · edit ไม่อ่าน/เขียน draft localStorage และไม่รัน effect default ของการสร้างทับข้อมูลเดิม ✅ 2026-08-14
+- [x] prefill ลูกค้า ข้อมูลรับเรื่อง รายการ/ลาย/สินค้า/ส่วนเสริม ค่าใช้จ่าย/ส่วนลด เงื่อนไข ที่อยู่ และไฟล์อ้างอิงจาก record จริง · ลูกค้า/ช่องทางที่เปลี่ยนไม่ได้ยังมองเห็นพร้อมเหตุผล ไม่ซ่อน ✅ 2026-08-14
+- [x] บันทึกเฉพาะก้อนที่เปลี่ยนผ่าน `order.saveForm` ก้อนเดียวใน transaction: header/ที่อยู่ + รายการ/ค่าใช้จ่าย/ส่วนลด + ไฟล์อ้างอิง commit/rollback พร้อมกัน; `DESIGN_APPROVED`/`PRODUCTION_QUEUE` ออกใบแก้ไขพร้อมเหตุผล; สถานะหลังจากนั้นแสดงรายการ/ราคาอ่านอย่างเดียวโดยไม่ซ่อนแท็บ ✅ 2026-08-14
+- [x] เปลี่ยน edit entrypoint ของ order detail ทั้ง header menu, next-step, overview info/address และ items card ให้ไป route กลางตามแท็บ · คง action งานผลิต/ตรวจรับ/แบบ/QC/บิลไว้ที่เดิม และ fail-closed เมื่อขาด `create_sales_docs` หรือ `see_order_money` ✅ 2026-08-14
+- [x] เพิ่ม pure/source guard กัน form แตกแขนงและ inline/dialog กลับมา · verify browser empty+populated ที่ desktop/mobile Light/Dark, deep link/Back/Cancel/dirty state/read-only และ change-order ผ่าน unit/source guard (ฐานข้อมูลไม่มี fixture CO) พร้อม typecheck/lint/unit/`verify:ui`/Impeccable detector ✅ 2026-08-14
+- **ปิดงาน 2026-08-14:** `/orders/new` และ `/orders/[id]/edit` render `OrderFormPage` ตัวเดียวกันภายใต้ `PageShell width="wide"` (1024px desktop / 348px ที่ viewport 390px) ส่วน detail คง `full` · การบันทึกใหม่เป็น transaction เดียวพร้อม optimistic fingerprints, receipt identity, credit Decimal delta และ stock version/CAS · dirty guard ครอบ Back/Cancel/sidebar/link/Command Palette/logout ก่อนทิ้งค่า · browser จริง Light/Dark empty+populated/deep-link/locked ที่ desktop+mobile ไม่มี overflow หรือ console errorและไม่กดบันทึกข้อมูลธุรกิจ · unit 824/824, typecheck, lint 0 error (28 warning เดิม), `verify:ui`, Impeccable detector `[]`, independent review **SHIP/CLEAR** · ไม่รัน build ระหว่าง dev server 3002 ทำงาน
 
 ### 🎯 UX follow-up — ช่องกรอกต้องเห็นว่าเป็นช่อง + คอลัมน์ตรงกัน (เบสเจอบนของจริง 2026-08-03)
 > เบส: "บางอย่างที่มันต้อง fill ข้อมูล ไม่ต้องซ่อน ช่อง user จะได้รู้ว่าช่องไหนต้องใส่ · ช่องบางช่องถูกกลืนไปกับพื้นหลังสีเทา · แถวคอลัมขอให้มันตรงกันทั้งหมด"
@@ -280,10 +292,10 @@
 - [x] **ก้อน 2 · ยกฟอร์มเป็นชิ้นกลาง** ✅ 2026-08-12 (`28396f5`) — `useOrderHeaderForm()` คุมหัวฟอร์ม 13 ช่องที่ 2 หน้าถือเหมือนกันแต่คนละรูป (หน้าเปิดงาน = useState กระจาย · กล่องแก้ = object ก้อนเดียว) · **ไม่ยุบรายการ/ค่าใช้จ่าย/ที่อยู่เข้ามาด้วย** — 3 ก้อนนั้นมี hook ของตัวเองและกติกาการบันทึกคนละแบบ · เจอ `isMarketplaceChannel` เขียนซ้ำ 3 ที่ ทั้งที่ `lib/order-status` มีอยู่แล้ว → รวมเป็นตัวเดียว
 - [x] **ก้อน 3 · โหมดแก้ “ข้อมูล + ที่อยู่”** ✅ 2026-08-12 (`923e75e`) — กล่องแก้ใช้ `OrderDetailFields` + `OrderShippingSection` ตัวเดียวกับหน้าเปิดงาน (เดิมเขียนช่องเอง เรียงคนละลำดับ ป้ายคนละคำ) · ช่องทางเป็นช่องเทาพร้อมเหตุผล ห้ามซ่อน · เลขออเดอร์มาร์เก็ตเพลสย้ายเข้าช่องข้อมูลงาน บล็อก "Marketplace" ที่ซ้ำถูกยุบ · ที่อยู่โหมดแก้ไม่มีสวิตช์ (`alwaysOn`) — ลบที่อยู่ด้วยการล้างช่องได้แล้วตั้งแต่ input เป็น nullable · ช่องภาษี % มีอยู่แล้วในกล่องแก้ (ที่ถอดไปคือหน้าเปิดงาน — ตั้งใจ ไม่ต้องคืน)
   - ⚠️ **ยังเหลือจากใบงานเดิม:** ปิดร่าง localStorage + effect อัตโนมัติ — ยังไม่ต้องทำ เพราะกล่องแก้ยังถือ state ของตัวเอง (ไม่ได้ใช้ `useOrderItemsForm` ที่มีร่าง) · จะจำเป็นตอนก้อน 4 ดึงรายการเข้าฟอร์มร่วม
-- [ ] **ก้อน 4 · ดึงรายการ/ค่าใช้จ่าย/ส่วนลด เข้าฟอร์มร่วม** + บันทึกเฉพาะส่วนที่แก้จริง (`discount` เป็นของฝั่งรายการเท่านั้น ห้ามส่งไปกับ `order.update`)
-- [ ] **ก้อน 5 · ใบแก้ไขออเดอร์ + สถานะที่แก้ไม่ได้** — `DESIGN_APPROVED` ปุ่มเป็น “บันทึก + ออกใบแก้ไข” บังคับเหตุผล · เลยเข้าคิวผลิตแล้วรายการอ่านอย่างเดียว **ห้ามซ่อนแท็บ** (ซ่อนแล้วคนคิดว่าข้อมูลหาย)
-- [ ] **ก้อน 6 · เก็บกวาด** — ลบ `OrderInfoEditDialog`
-- **⚠️ 2 เรื่องข้อมูลที่เจอระหว่างสำรวจ ยังไม่ได้แก้ ต้องให้เบสเคาะ:** (1) `order.update` ใช้ `z.string().optional()` → **ลบข้อความในช่องแล้วค่าเก่าไม่หาย** (แก้ = เปลี่ยนเป็น nullable รายช่อง = แตะ input สาธารณะ ต้องขออนุญาต) (2) `updateItems`/`applyChangeOrder` ใช้ deleteMany+create ใหม่ → **รหัสรายการเปลี่ยนหมด** แล้ว `GoodsReceiptLine.orderItemProductId` (ไม่มี FK) ชี้ไปที่รหัสที่ไม่มีอยู่ — มีอยู่ก่อนแล้ว แต่พอแก้ง่ายขึ้นจะเจอบ่อยขึ้น (แก้จริงต้องแตะ schema = คนละใบงาน)
+- [x] **ก้อน 4 · ดึงรายการ/ค่าใช้จ่าย/ส่วนลด เข้าฟอร์มร่วม** + บันทึกเฉพาะส่วนที่แก้จริง (`discount` เป็นของฝั่งรายการเท่านั้น ห้ามส่งไปกับ `order.update`) ✅ 2026-08-14 — ปิดด้วย shared form + atomic `order.saveForm`
+- [x] **ก้อน 5 · ใบแก้ไขออเดอร์ + สถานะที่แก้ไม่ได้** — `DESIGN_APPROVED` ปุ่มเป็น “บันทึก + ออกใบแก้ไข” บังคับเหตุผล · เลยเข้าคิวผลิตแล้วรายการอ่านอย่างเดียว **ห้ามซ่อนแท็บ** (ซ่อนแล้วคนคิดว่าข้อมูลหาย) ✅ 2026-08-14
+- [ ] **ก้อน 6 · เก็บกวาด** — caller/mount ถูกถอดและ guard ห้ามกลับมาแล้ว; ไฟล์ `OrderInfoEditDialog`/`OrderItemsEditor` เดิมยังเก็บไว้จนได้รับอนุญาตให้ลบไฟล์
+- **สถานะหนี้ข้อมูลเดิม:** (1) shared `order.saveForm` รับ nullable รายช่องแล้ว จึงล้างข้อความ/ที่อยู่จากหน้าใหม่ได้โดยไม่ค้างค่าเก่า; public `order.update` เดิมยังเป็น compatibility contract แยก (2) หน้าใหม่รักษา `OrderItemProduct.id` เดิมและห้ามลบ/เปลี่ยน identity ที่มีใบตรวจรับแล้วโดยไม่แก้ schema; mutation legacy `updateItems`/`applyChangeOrder` ยังเป็นหนี้แยกจน caller เดิมหมดทั้งหมด
 
 ### 🎯 UX follow-up — ปิดบั๊ก responsive + สถานะข้อมูลจาก audit ทั้งเว็บ (เบสสั่ง 2026-08-02 “ทำเลย”)
 > ขอบเขต surgical: แก้เฉพาะบั๊กใช้งานจริงที่ยืนยันจาก browser แล้ว · คงชุดสี/ความ minimal/โครงหน้าปัจจุบัน · ไม่มี schema หรือ dependency ใหม่

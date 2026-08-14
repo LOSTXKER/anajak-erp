@@ -20,13 +20,26 @@ export const EMPTY_SHIPPING_STATE: ShippingState = {
   postalCode: "",
 };
 
-export function useOrderShippingState() {
-  const [includeShipping, setIncludeShipping] = useState(false);
+export interface OrderShippingInitialState {
+  includeShipping: boolean;
+  shipping: ShippingState;
+  filledFromCustomerId?: string | null;
+}
+
+export function useOrderShippingState(initial?: OrderShippingInitialState) {
+  const [includeShipping, setIncludeShipping] = useState(
+    () => initial?.includeShipping ?? false,
+  );
   const [shippingDirty, setShippingDirty] = useState(false);
-  const [shipping, setShipping] = useState<ShippingState>(EMPTY_SHIPPING_STATE);
+  const [shipping, setShipping] = useState<ShippingState>(() => ({
+    ...EMPTY_SHIPPING_STATE,
+    ...initial?.shipping,
+  }));
   // ที่อยู่ชุดนี้ก๊อปมาจากโปรไฟล์ลูกค้ารายไหน (null = คนพิมพ์เอง เช่นที่อยู่ไซต์งาน)
   // ใช้ตัดสินตอนสลับลูกค้าว่าต้องล้างทิ้งไหม — ดู shouldClearShippingOnCustomerChange
-  const [filledFromCustomerId, setFilledFromCustomerId] = useState<string | null>(null);
+  const [filledFromCustomerId, setFilledFromCustomerId] = useState<string | null>(
+    () => initial?.filledFromCustomerId ?? null,
+  );
 
   const updateShipping = useCallback(
     <K extends keyof ShippingState>(field: K, value: ShippingState[K]) => {

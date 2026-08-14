@@ -177,7 +177,18 @@ export function OrderItemCard({
     onSetItems((prev) => {
       const copy = [...prev];
       const addons = [...copy[itemIdx].addons];
-      addons[aIdx] = { ...addons[aIdx], addonType: catalogItem.type, name: catalogItem.name, pricingType: catalogItem.pricingType as "PER_PIECE" | "PER_ORDER", unitPrice: catalogItem.defaultPrice };
+      addons[aIdx] = {
+        ...addons[aIdx],
+        addonType: catalogItem.type,
+        name: catalogItem.name,
+        pricingType: catalogItem.pricingType as "PER_PIECE" | "PER_ORDER",
+        unitPrice: catalogItem.defaultPrice,
+        // เปลี่ยน identity ของส่วนเสริมแล้วต้องไม่แบก metadata/จำนวน override
+        // ที่ UI ไม่ได้แสดงจากรายการเดิมไปคิดราคากับรายการใหม่
+        description: undefined,
+        quantity: undefined,
+        notes: undefined,
+      };
       copy[itemIdx] = { ...copy[itemIdx], addons };
       return copy;
     });

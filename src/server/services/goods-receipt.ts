@@ -29,6 +29,7 @@ import {
   summarizeReceiptLines,
 } from "@/server/services/goods-receipt-plan";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
+import { lockOrderRow } from "@/server/services/order-cost";
 
 export { RECEIPT_TYPES, RECEIPT_TYPE_LABELS, type ReceiptType } from "@/lib/goods-receipt";
 
@@ -216,6 +217,9 @@ export async function createGoodsReceipt(
   );
 
   const receipt = await prisma.$transaction(async (tx) => {
+    // refreshReceivedInspected เขียน child ที่หน้าแก้ replace ได้ — ใช้ parent lock
+    // เดียวกับ saveForm และขยับ token ก่อนจบ tx เพื่อกันข้อมูลตรวจรับหาย
+    await lockOrderRow(tx, params.orderId);
     const created = await tx.goodsReceipt.create({
       data: {
         orderId: params.orderId,
@@ -289,6 +293,11 @@ export async function createGoodsReceipt(
       changedBy: params.userId,
       changeType: "STOCK",
       description: summaryParts.join(" — "),
+    });
+    await tx.order.update({
+      where: { id: params.orderId },
+      data: { updatedAt: new Date() },
+      select: { id: true },
     });
 
     return created;

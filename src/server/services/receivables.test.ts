@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   outstandingOf,
   creditedOf,
@@ -7,6 +7,7 @@ import {
   agingBucketOf,
   buildAgingReport,
   computeCreditExposure,
+  lockCustomerCreditRow,
   type AgingInvoiceInput,
 } from "./receivables";
 import { D } from "./money";
@@ -24,6 +25,17 @@ const inv = (over: Partial<AgingInvoiceInput>): AgingInvoiceInput => ({
   dueDate: null,
   customer: cust,
   ...over,
+});
+
+describe("credit-limit serialization", () => {
+  it("locks the customer row before a transactional credit decision", async () => {
+    const $queryRaw = vi.fn().mockResolvedValue([{ id: "c1" }]);
+
+    await lockCustomerCreditRow({ $queryRaw } as never, "c1");
+
+    expect($queryRaw).toHaveBeenCalledOnce();
+    expect($queryRaw.mock.calls[0]?.[1]).toBe("c1");
+  });
 });
 
 describe("outstandingOf", () => {

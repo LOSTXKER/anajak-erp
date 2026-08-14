@@ -139,16 +139,18 @@ export function OrderAttachmentsSection({
                     <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
                   </div>
                 )}
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  onClick={() => onImagesChange((prev) => prev.filter((_, i) => i !== idx))}
-                  aria-label={`ลบไฟล์ ${img.fileName}`}
-                  className="absolute -right-2 -top-2 rounded-full opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-                >
-                  <X />
-                </Button>
+                {img.canEdit !== false && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => onImagesChange((prev) => prev.filter((_, i) => i !== idx))}
+                    aria-label={`ลบไฟล์ ${img.fileName}`}
+                    className="absolute -right-2 -top-2 rounded-full opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                  >
+                    <X />
+                  </Button>
+                )}
                 <Select
                   value={img.printPosition || ""}
                   onChange={(e) => {
@@ -159,6 +161,8 @@ export function OrderAttachmentsSection({
                     );
                   }}
                   aria-label={`ตำแหน่งพิมพ์ของ ${img.fileName}`}
+                  disabled={img.canEdit === false}
+                  title={img.canEdit === false ? "แก้ไขได้เฉพาะไฟล์ที่คุณอัปโหลดเอง" : undefined}
                   className="mt-1.5 w-24 px-1.5 py-0 text-sm sm:h-8 sm:text-xs"
                 >
                   <option value="">ทั่วไป</option>

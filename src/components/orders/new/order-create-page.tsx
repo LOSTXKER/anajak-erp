@@ -12,8 +12,9 @@
 // ไม่มีพับซ่อน/wizard/สองฝั่ง ตามมติเดิม
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import type { InternalStatus } from "@prisma/client";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -42,9 +43,10 @@ import { calculateFormItemSubtotal, calculateOrderSummary } from "@/lib/pricing"
 import { cn, formatCurrency } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { Field } from "@/components/ui/field";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ProductPickerDialog,
   type SelectedVariantItem,
@@ -90,6 +92,36 @@ import {
 import { useMarginEstimate } from "@/components/orders/new/order-price-summary";
 import { FOCUS_BUTTON, RADIUS, SUNK_PANEL, TINT, DISPLAY_AMOUNT } from "@/components/ui/tokens";
 import { MoneyInput } from "@/components/ui/number-input";
+import {
+  buildOrderEditSavePlan,
+  getOrderEditBilledFloorState,
+  getOrderEditCapability,
+  getOrderEditEmptyWorkResiduals,
+  requiresOrderEditReason,
+  type OrderEditFormSeed,
+  type OrderEditFormValues,
+} from "@/lib/order-edit-form";
+import {
+  APP_NAVIGATION_REQUEST_EVENT,
+  isAppNavigationRequestEvent,
+} from "@/lib/navigation-request";
+
+type OrderFormPageProps =
+  | {
+      mode?: "create";
+      draftScope?: string;
+    }
+  | {
+      mode: "edit";
+      orderId: string;
+      orderNumber: string;
+      internalStatus: InternalStatus;
+      initialTab: OrderFormTabKey;
+      initialFocus?: "info" | "shipping";
+      returnTab?: string;
+      orderType: string;
+      editSeed: OrderEditFormSeed;
+    };
 
 /** id ของ 4 ตอน — เหลือไว้เป็นจุดโฟกัส/scroll-mt ของแต่ละแท็บ
  *  (แถบขั้นตอนที่เคยใช้ id พวกนี้กระโดด ถูกแทนด้วยแท็บแล้ว — เบสสั่ง 2026-08-11) */
@@ -100,7 +132,20 @@ const STEP_IDS = {
   attachments: "new-order-step-attachments",
 } as const;
 
-export default function OrderCreatePage({ draftScope }: { draftScope?: string }) {
+export default function OrderFormPage(props: OrderFormPageProps) {
+  const isEdit = props.mode === "edit";
+  const editSeed = isEdit ? props.editSeed : undefined;
+  const draftScope = !isEdit ? props.draftScope : undefined;
+  const editOrderId = isEdit ? props.orderId : null;
+  const editInitialFocus = isEdit ? props.initialFocus : undefined;
+  const editReturnTab = isEdit ? (props.returnTab || "overview") : "overview";
+  const canAddPrints =
+    !isEdit ||
+    props.orderType === "CUSTOM" ||
+    ["DRAFT", "INQUIRY"].includes(props.internalStatus);
+  const editReturnHref = isEdit
+    ? `/orders/${encodeURIComponent(props.orderId)}?tab=${encodeURIComponent(editReturnTab)}`
+    : "/orders";
   const router = useRouter();
   const confirmDialog = useConfirm();
   const utils = trpc.useUtils();
@@ -112,7 +157,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     patch: patchHeader,
     reset: resetHeader,
     isMarketplace,
-  } = useOrderHeaderForm();
+  } = useOrderHeaderForm(editSeed?.header);
   const {
     customerId,
     channel,
@@ -135,11 +180,11 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     addPrint, removePrint, updatePrint,
     addAddon, removeAddon, updateAddon,
     resetItems,
-  } = useOrderItemsForm();
+  } = useOrderItemsForm(editSeed?.items);
 
   const [expandedItemIdx, setExpandedItemIdx] = useState<number | null>(0);
 
-  const { fees, addFee, removeFee, updateFee, resetFees } = useOrderFeesForm();
+  const { fees, addFee, removeFee, updateFee, resetFees } = useOrderFeesForm(editSeed?.fees);
 
   const {
     includeShipping, setIncludeShipping,
@@ -147,15 +192,51 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     filledFromCustomerId, fillShippingFromCustomer, resetShipping,
     restoreShipping,
     validateShipping, shippingMutationInput,
-  } = useOrderShippingState();
+  } = useOrderShippingState(
+    editSeed
+      ? {
+          includeShipping: editSeed.includeShipping,
+          shipping: editSeed.shipping,
+        }
+      : undefined,
+  );
 
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
+  const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>(
+    () => editSeed?.referenceImages ?? [],
+  );
   const [formErrors, setFormErrors] = useState<OrderFormError[]>([]);
-  const [tab, setTabState] = useState<OrderFormTabKey>(ORDER_FORM_DEFAULT_TAB);
+  const [tab, setTabState] = useState<OrderFormTabKey>(
+    () => (isEdit ? props.initialTab : ORDER_FORM_DEFAULT_TAB),
+  );
   const [submitted, setSubmitted] = useState(false);
+  const [changeReason, setChangeReason] = useState("");
   const [draftStorageReady, setDraftStorageReady] = useState(false);
   const [restoredDraft, setRestoredDraft] = useState(false);
+  const dirtyRef = useRef(false);
+  const leavePromptOpenRef = useRef(false);
+  const editBackGuardActiveRef = useRef(false);
+  const editBackGuardUrlRef = useRef("");
+  const pendingEditExitRef = useRef<{
+    href: string | null;
+    completeNavigation?: () => void;
+  } | null>(null);
+
+  const navigateOutOfEdit = useCallback((
+    href: string,
+    completeNavigation?: () => void,
+  ) => {
+    dirtyRef.current = false;
+    if (editBackGuardActiveRef.current) {
+      // ถอยจาก guard entry กลับ entry ฟอร์มฐานก่อน แล้ว onPop ค่อย replace ปลายทาง
+      // เพื่อไม่เหลือหน้า edit อยู่ใต้ปุ่ม Back หลังออกจากฟอร์ม
+      pendingEditExitRef.current = { href, completeNavigation };
+      window.history.back();
+      return;
+    }
+    if (completeNavigation) completeNavigation();
+    else router.replace(href);
+  }, [router]);
 
   /* เขียนแท็บลง URL ด้วย history API ตรงๆ ไม่ผ่าน router — router.replace จะรีเฟรช RSC ทั้งหน้า
      (ฟอร์มที่กรอกค้างไว้จะกระตุก) · ใช้ URL เดิมแล้ว set เฉพาะ tab จึงไม่ทับ ?next=quote / ?customerId= */
@@ -164,7 +245,14 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     setTabState(next);
     const url = new URL(window.location.href);
     url.searchParams.set("tab", next);
-    window.history.pushState({}, "", url);
+    // หน้าแก้เป็น route ชั่วคราวจากหน้า detail — สลับแท็บต้องไม่กอง edit entries
+    // ไว้ข้างหลังจนกดยกเลิกแล้ว Back เด้งกลับเข้าฟอร์มอีก
+    if (isEdit) {
+      editBackGuardUrlRef.current = url.toString();
+      // รักษา state ภายในของ Next และ marker ของ dirty guard ไว้ขณะเปลี่ยนแท็บ
+      window.history.replaceState(window.history.state, "", url);
+    }
+    else window.history.pushState({}, "", url);
     // เนื้อแท็บที่ซ่อนอยู่สูงไม่เท่ากัน — สลับจากแท็บยาวไปแท็บสั้นแล้วจะค้างอยู่กลางจอว่าง
     requestAnimationFrame(() => {
       document.querySelector("main")?.scrollTo({
@@ -174,7 +262,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
           : "smooth",
       });
     });
-  }, []);
+  }, [isEdit]);
 
   /* อ่านแท็บจาก URL "หลัง mount" ไม่ใช่ตอนตั้งค่าเริ่มต้น — หน้านี้ไม่ได้ห่อด้วย <Suspense>
      (ต่างจากหน้ารายละเอียดออเดอร์) ฝั่ง server จึงมองไม่เห็น searchParams ตอน SSR
@@ -182,23 +270,69 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
      → hydration mismatch แล้ว React ไม่ patch ให้ = แท็บค้างผิดใบทั้งหน้า (เจอจริง 2026-08-12)
      แลกด้วยการกะพริบ 1 เฟรมตอนเปิดลิงก์ ?tab= ซึ่งเป็นทางเข้าที่ไม่บ่อย */
   useEffect(() => {
+    if (isEdit) return;
     const t = normalizeOrderFormTab(new URL(window.location.href).searchParams.get("tab"));
-    if (t) setTabState(t);
-  }, []);
+    if (!t) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setTabState(t);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit]);
 
-  // ปุ่มย้อนกลับของเบราว์เซอร์ต้องพากลับแท็บเดิม ไม่ใช่เด้งออกจากฟอร์มที่กรอกค้าง
+  // dirty guard มี history entry URL เดียวกันวางเหนือฟอร์มฐาน: Back ครั้งแรกจึงยังไม่ออก
+  // จาก route edit และ Next ไม่มีโอกาส unmount ฟอร์มก่อน dialog ตอบกลับ
   useEffect(() => {
     const onPop = () => {
-      const t = normalizeOrderFormTab(new URL(window.location.href).searchParams.get("tab"));
+      const pendingExit = pendingEditExitRef.current;
+      if (pendingExit) {
+        pendingEditExitRef.current = null;
+        editBackGuardActiveRef.current = false;
+        if (pendingExit.completeNavigation) pendingExit.completeNavigation();
+        else if (pendingExit.href) router.replace(pendingExit.href);
+        return;
+      }
+
+      const url = new URL(window.location.href);
+      if (isEdit && editBackGuardActiveRef.current && dirtyRef.current) {
+        const guardUrl = editBackGuardUrlRef.current || url.toString();
+        window.history.pushState(
+          { ...window.history.state, __orderEditDirtyGuard: editOrderId },
+          "",
+          guardUrl,
+        );
+        if (leavePromptOpenRef.current) return;
+        leavePromptOpenRef.current = true;
+        void confirmDialog({
+          title: "ทิ้งการแก้ไขที่ยังไม่ได้บันทึก?",
+          description: "หากย้อนกลับตอนนี้ ข้อมูลที่เปลี่ยนในฟอร์มจะหาย",
+          confirmText: "ทิ้งการแก้ไข",
+          destructive: true,
+        }).then((discard) => {
+          leavePromptOpenRef.current = false;
+          if (!discard) return;
+          dirtyRef.current = false;
+          editBackGuardActiveRef.current = false;
+          // ตอนนี้อยู่ guard entry ที่เพิ่งคืนไว้: ข้ามทั้ง guard + ฟอร์มฐาน
+          // ไป history entry ที่ผู้ใช้ตั้งใจกดย้อนกลับหาโดยตรง
+          window.history.go(-2);
+        });
+        return;
+      }
+      const t = normalizeOrderFormTab(url.searchParams.get("tab"));
       setTabState(t ?? ORDER_FORM_DEFAULT_TAB);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, []);
+  }, [confirmDialog, editOrderId, isEdit, router]);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
   // ลูกค้าเลือกผ่าน CustomerPicker (ค้นหา+เพิ่มด่วน) — เก็บ object ที่เลือกไว้ใช้ prefill
-  const [selectedCustomer, setSelectedCustomer] = useState<PickerCustomer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<PickerCustomer | null>(
+    () => editSeed?.selectedCustomer ?? null,
+  );
   // ตอนกู้ draft ห้าม effect "สลับลูกค้า" ล้าง PO ที่เพิ่งกู้กลับมา
   const restoredCustomerIdRef = useRef<string | null>(null);
   const draftStorageReadyRef = useRef(false);
@@ -214,6 +348,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
 
   // โหลด draft หลัง mount เท่านั้น — SSR เริ่มด้วยค่ามาตรฐานเหมือน client render แรก
   useEffect(() => {
+    if (isEdit) return;
     const draft = loadOrderDraft(draftScope);
     const requestedCustomerId = new URLSearchParams(window.location.search).get("customerId");
     let cancelled = false;
@@ -284,6 +419,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
   useEffect(() => {
     latestDraftRef.current = draftSnapshot;
     cancelPendingDraftSave();
+    if (isEdit) return;
     if (!draftStorageReady || skipDraftResaveOnUnmountRef.current) return;
 
     const scheduledRevision = ++draftSaveRevisionRef.current;
@@ -305,10 +441,11 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
       if (draftSaveTimerRef.current === timer) cancelPendingDraftSave();
       draftSaveRevisionRef.current += 1;
     };
-  }, [cancelPendingDraftSave, draftScope, draftSnapshot, draftStorageReady]);
+  }, [cancelPendingDraftSave, draftScope, draftSnapshot, draftStorageReady, isEdit]);
 
   // ปิดแท็บ/กดยกเลิกก่อน debounce ครบก็ต้องเก็บค่าล่าสุด · แต่ success ห้ามชุบ draft กลับหลัง clear
   useEffect(() => () => {
+    if (isEdit) return;
     cancelPendingDraftSave();
     draftSaveRevisionRef.current += 1;
     if (
@@ -318,7 +455,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     ) {
       saveOrderDraft(latestDraftRef.current, draftScope);
     }
-  }, [cancelPendingDraftSave, draftScope]);
+  }, [cancelPendingDraftSave, draftScope, isEdit]);
 
   const printCatalogQuery = trpc.serviceCatalog.list.useQuery(
     { category: "PRINT", isActive: true },
@@ -353,10 +490,40 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     },
   });
 
+  const saveOrder = trpc.order.saveForm.useMutation({
+    onSuccess: (data) => {
+      void utils.order.getById.invalidate({ id: data.id });
+      void utils.order.list.invalidate();
+      void utils.order.changeOrders.invalidate({ id: data.id });
+      void utils.attachment.listByEntity.invalidate({
+        entityType: "ORDER",
+        entityId: data.id,
+      });
+      if (data.invoicedWarning) {
+        toast.warning(
+          "ออเดอร์นี้ออกใบกำกับ/มัดจำไปแล้ว — ยอดเปลี่ยน ต้องออกใบลดหนี้/เพิ่มหนี้แยก",
+        );
+      } else if (data.changeNumber) {
+        toast.success(`ออกใบแก้ไขออเดอร์ ${data.changeNumber} แล้ว`);
+      } else {
+        toast.success("บันทึกการแก้ไขออเดอร์แล้ว");
+      }
+      navigateOutOfEdit(editReturnHref);
+    },
+    onError: (error) => {
+      toast.error(error.message || "บันทึกการแก้ไขออเดอร์ไม่สำเร็จ");
+      requestAnimationFrame(() => {
+        errorSummaryRef.current?.scrollIntoView({ block: "center" });
+        errorSummaryRef.current?.focus({ preventScroll: true });
+      });
+    },
+  });
+
   // มีเนื้อรายการจริงไหม — ตัวตัดสินเดียวแทนสวิตช์โหมดเดิม (สอบถาม/ระบุครบ):
   // ไม่มี = เปิดเป็นการสอบถาม (ตีราคาทีหลัง) · มี = validate + ส่งรายการไปคิดเงิน
   const hasItemContent = items.some(itemHasContent);
   useEffect(() => {
+    if (isEdit) return;
     if (!deadline) return;
     const deadlineDate = new Date(deadline);
     const now = new Date();
@@ -366,22 +533,25 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     } else if (daysUntil <= 7) {
       setHeaderField("priority", "HIGH");
     }
-  }, [deadline, setHeaderField]);
+  }, [deadline, isEdit, setHeaderField]);
 
   useEffect(() => {
+    if (isEdit) return;
     if (isMarketplace && !paymentTerms) {
       setHeaderField("paymentTerms", "COD");
     }
-  }, [isMarketplace, paymentTerms, setHeaderField]);
+  }, [isEdit, isMarketplace, paymentTerms, setHeaderField]);
 
   // ราคาช่องทาง marketplace (Shopee/Lazada/TikTok) รวม VAT ในตัวแล้ว — default 7%
   // จะบวกภาษีทับซ้ำ · สลับค่าตามช่องทางให้อัตโนมัติ (ฟอร์มนี้ไม่มีช่องให้กรอกภาษีแล้ว)
   useEffect(() => {
+    if (isEdit) return;
     if (isMarketplace && taxRate === 7) setHeaderField("taxRate", 0);
     if (!isMarketplace && taxRate === 0) setHeaderField("taxRate", 7);
-  }, [isMarketplace, setHeaderField, taxRate]);
+  }, [isEdit, isMarketplace, setHeaderField, taxRate]);
 
   useEffect(() => {
+    if (isEdit) return;
     // เลิกเติมที่อยู่ลูกค้าให้เงียบๆ แล้ว (เบสสั่ง 2026-08-12) — เดิมเติมให้แต่ไม่เปิดสวิตช์
     // "จัดส่งตามที่อยู่" ช่องเลยดูเหมือนกรอกแล้วแต่จาง และตอนกดเปิดงานที่อยู่ถูกทิ้งทั้งชุด
     // ไม่มีคำเตือน · ตอนนี้คนกดปุ่ม "ใช้ที่อยู่ลูกค้า" เอง (เห็นชัดว่าที่อยู่มาจากไหน)
@@ -393,7 +563,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     }
     // customerId เป็น trigger เดียว — filledFromCustomerId เปลี่ยนตอนกดปุ่มเติมเอง ไม่ต้องวิ่งซ้ำ
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerId]);
+  }, [customerId, isEdit]);
 
   // ที่อยู่ผู้ติดต่อของลูกค้าที่เลือก — พอก๊อปลงช่องจัดส่งได้ไหม (ปุ่มโผล่เมื่อมีของให้ก๊อปจริง)
   const customerAddressFill = fillFromCustomer(selectedCustomer);
@@ -401,6 +571,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
 
   const isCorporateCustomer = selectedCustomer?.customerType === "CORPORATE";
   useEffect(() => {
+    if (isEdit) return;
     if (restoredCustomerIdRef.current === customerId) {
       restoredCustomerIdRef.current = null;
       return;
@@ -422,7 +593,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerId]);
+  }, [customerId, isEdit]);
 
   const pricingSummary = useMemo(() => {
     if (!hasItemContent) {
@@ -438,6 +609,186 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     return { ...summary, platformFee: isMarketplace ? platformFee : 0 };
   }, [items, fees, platformFee, discount, isMarketplace, taxRate, hasItemContent]);
 
+  const editValues = useMemo<OrderEditFormValues | null>(
+    () =>
+      isEdit
+        ? {
+            header,
+            items,
+            fees,
+            includeShipping,
+            shipping,
+            referenceImages: referenceImages as OrderEditFormValues["referenceImages"],
+          }
+        : null,
+    [fees, header, includeShipping, isEdit, items, referenceImages, shipping],
+  );
+  const editPlan = useMemo(
+    () =>
+      isEdit && editValues
+        ? buildOrderEditSavePlan(editSeed!.originalSnapshot, editValues)
+        : null,
+    [editSeed, editValues, isEdit],
+  );
+  const editCapability = isEdit
+    ? getOrderEditCapability(props.internalStatus)
+    : "direct";
+  const workReadOnly = isEdit && editCapability === "read_only";
+  const changeOrderMode = isEdit && editCapability === "change_order";
+  const isDirty = Boolean(editPlan?.hasChanges);
+  const billedFloorState = isEdit
+    ? getOrderEditBilledFloorState({
+        capability: editCapability,
+        newTotal: pricingSummary.grandTotal,
+        billedFloor: editSeed!.billedFloor,
+        originalTotal: editSeed!.originalTotal,
+      })
+    : null;
+
+  useEffect(() => {
+    dirtyRef.current = isDirty;
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (!isEdit) return;
+
+    if (isDirty) {
+      if (editBackGuardActiveRef.current) return;
+      editBackGuardUrlRef.current = window.location.href;
+      window.history.pushState(
+        { ...window.history.state, __orderEditDirtyGuard: editOrderId },
+        "",
+        editBackGuardUrlRef.current,
+      );
+      editBackGuardActiveRef.current = true;
+      return;
+    }
+
+    // ผู้ใช้แก้กลับจนเหมือนค่าเดิม: ถอน guard ออกทันที ไม่ให้ Back ครั้งถัดไปดูเหมือนค้าง
+    if (
+      editBackGuardActiveRef.current &&
+      !pendingEditExitRef.current &&
+      window.location.pathname.endsWith("/edit")
+    ) {
+      pendingEditExitRef.current = { href: null };
+      window.history.back();
+    }
+  }, [editOrderId, isDirty, isEdit]);
+
+  useEffect(() => {
+    if (!isEdit || !isDirty) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty, isEdit]);
+
+  const confirmNavigationOutOfEdit = useCallback((
+    href: string,
+    completeNavigation?: () => void,
+  ) => {
+    if (leavePromptOpenRef.current) return;
+    leavePromptOpenRef.current = true;
+    void confirmDialog({
+      title: "ทิ้งการแก้ไขที่ยังไม่ได้บันทึก?",
+      description: "หากไปหน้าอื่นตอนนี้ ข้อมูลที่เปลี่ยนในฟอร์มจะหาย",
+      confirmText: "ทิ้งการแก้ไข",
+      destructive: true,
+    }).then((discard) => {
+      leavePromptOpenRef.current = false;
+      if (!discard) return;
+      dirtyRef.current = false;
+      navigateOutOfEdit(href, completeNavigation);
+    });
+  }, [confirmDialog, navigateOutOfEdit]);
+
+  // Next <Link> เปลี่ยน route ฝั่ง client จึงไม่ยิง beforeunload — ดัก anchor ภายในแอป
+  // ที่ capture phase ให้ครอบทั้ง sidebar/header และลิงก์ในลูก component ของฟอร์ม
+  useEffect(() => {
+    if (!isEdit || !isDirty) return;
+    const onInternalLink = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest<HTMLAnchorElement>("a[href]");
+      if (
+        !anchor ||
+        anchor.target === "_blank" ||
+        anchor.hasAttribute("download")
+      ) {
+        return;
+      }
+      const next = new URL(anchor.href, window.location.href);
+      const current = new URL(window.location.href);
+      if (
+        next.origin !== current.origin ||
+        (next.pathname === current.pathname && next.search === current.search)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      confirmNavigationOutOfEdit(
+        `${next.pathname}${next.search}${next.hash}`,
+      );
+    };
+    document.addEventListener("click", onInternalLink, true);
+    return () => document.removeEventListener("click", onInternalLink, true);
+  }, [confirmNavigationOutOfEdit, isDirty, isEdit]);
+
+  // Command Palette เป็นปุ่มใน portal ไม่ใช่ <a> จึงส่ง request กลางให้ฟอร์ม dirty
+  // หยุดไว้ก่อน แล้วค่อย resume หลังผู้ใช้ยืนยันโดยใช้ replace หลังถอน history guard
+  useEffect(() => {
+    if (!isEdit || !isDirty) return;
+    const onNavigationRequest = (event: Event) => {
+      if (!isAppNavigationRequestEvent(event)) return;
+      const next = new URL(event.detail.href, window.location.href);
+      const current = new URL(window.location.href);
+      if (
+        next.origin !== current.origin ||
+        (next.pathname === current.pathname && next.search === current.search)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      confirmNavigationOutOfEdit(
+        `${next.pathname}${next.search}${next.hash}`,
+        () => event.detail.proceed("replace"),
+      );
+    };
+    window.addEventListener(APP_NAVIGATION_REQUEST_EVENT, onNavigationRequest);
+    return () =>
+      window.removeEventListener(APP_NAVIGATION_REQUEST_EVENT, onNavigationRequest);
+  }, [confirmNavigationOutOfEdit, isDirty, isEdit]);
+
+  useEffect(() => {
+    if (!isEdit || !editInitialFocus) return;
+    const frame = requestAnimationFrame(() => {
+      const target = document.querySelector(
+        `[data-order-edit-focus="${editInitialFocus}"]`,
+      );
+      target?.scrollIntoView({ block: "start" });
+      const control = target?.querySelector<HTMLElement>(
+        "input:not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)",
+      );
+      control?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editInitialFocus, isEdit]);
+
   // กำไรขั้นต้นโดยประมาณ (ก้อน 2 ชิ้น 5b) — เข็มทิศตอนตีราคา เฉพาะ role การเงิน
   // revenue = ฐานก่อน VAT ที่ฟอร์มคำนวณแล้ว (รายการ+ค่าธรรมเนียม−ส่วนลด) — ไม่คิดสูตรใหม่
   // role อื่นโดน FORBIDDEN → ได้ null → ไม่โชว์บล็อกเลย (ไม่มี error UI)
@@ -452,7 +803,8 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
       const { items: merged, targetIdx } = mergeStockVariantsIntoItems(
         prev,
         selected,
-        expandedItemIdx
+        expandedItemIdx,
+        { pruneEmpty: !isEdit },
       );
       setExpandedItemIdx(targetIdx);
       return merged;
@@ -463,6 +815,105 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
      (กติกาจาก order-form-tabs.ts: จุดแดง/เด้งแท็บ ต้องคิดจากตัวตรวจตัวเดียวกับที่กันบันทึกอยู่แล้ว) */
   const validateForm = (): OrderFormError[] => {
     const errors: OrderFormError[] = [];
+
+    if (isEdit) {
+      if (!editPlan?.hasChanges) return errors;
+
+      const emptyWorkResiduals = getOrderEditEmptyWorkResiduals(editPlan, {
+        items,
+        fees,
+        discount,
+      });
+
+      if (editPlan.meta?.title !== undefined && !title.trim()) {
+        errors.push({ tab: "intake", message: "กรุณาระบุชื่องาน" });
+      }
+      if (editPlan.meta?.deadline) {
+        const deadlineDate = new Date(`${editPlan.meta.deadline}T23:59:59`);
+        if (deadlineDate < new Date()) {
+          errors.push({ tab: "intake", message: "กำหนดส่งต้องไม่เป็นวันที่ผ่านมาแล้ว" });
+        }
+      }
+      if (editPlan.shippingChanged) {
+        errors.push(
+          ...validateShipping().map((message) => ({ tab: "intake" as const, message })),
+        );
+      }
+
+      if (editPlan.work?.items) {
+        const contentItems = items.filter(itemHasContent);
+        if (contentItems.length === 0) {
+          errors.push({ tab: "items", message: "กรุณาเพิ่มรายการอย่างน้อย 1 รายการ" });
+        }
+        contentItems.forEach((item, idx) => {
+          const itemErrors = validateOrderItem(item);
+          const errMsgs = Object.values(itemErrors).filter(Boolean);
+          if (errMsgs.length > 0) {
+            errors.push({ tab: "items", message: `รายการ #${idx + 1}: ${errMsgs.join(", ")}` });
+          }
+          item.products.forEach((prod, pIdx) => {
+            const prodErrors = validateOrderItemProduct(prod);
+            const prodErrMsgs = Object.values(prodErrors).filter(Boolean);
+            if (prodErrMsgs.length > 0) {
+              errors.push({
+                tab: "items",
+                message: `รายการ #${idx + 1} สินค้า #${pIdx + 1}: ${prodErrMsgs.join(", ")}`,
+              });
+            }
+          });
+        });
+      }
+
+      if (emptyWorkResiduals.itemNotes) {
+        errors.push({
+          tab: "items",
+          message:
+            "มีหมายเหตุอยู่ในรายการเปล่า — เติมสินค้าให้รายการนั้น หรือลบหมายเหตุก่อนบันทึก",
+        });
+      }
+      if (emptyWorkResiduals.feesWithoutItems) {
+        errors.push({
+          tab: "pricing",
+          message:
+            "มีค่าใช้จ่ายที่กรอกไว้ แต่ยังไม่มีรายการสินค้า — เพิ่มรายการสินค้า หรือลบค่าใช้จ่ายก่อนบันทึก",
+        });
+      }
+      if (emptyWorkResiduals.discountWithoutItems) {
+        errors.push({
+          tab: "pricing",
+          message: "ใส่ส่วนลดไว้แต่ยังไม่มีรายการสินค้า — ล้างส่วนลดหรือเพิ่มรายการก่อน",
+        });
+      }
+
+      if (editPlan.work?.discount !== undefined && hasItemContent) {
+        const subtotal = pricingSummary.subtotalItems + pricingSummary.subtotalFees;
+        if (discount > subtotal) {
+          errors.push({
+            tab: "pricing",
+            message: `ส่วนลด (${formatCurrency(discount)}) มากกว่ายอดรวมก่อนหักส่วนลด (${formatCurrency(subtotal)})`,
+          });
+        }
+      }
+      if (
+        !emptyWorkResiduals.itemNotes &&
+        !emptyWorkResiduals.feesWithoutItems &&
+        !emptyWorkResiduals.discountWithoutItems &&
+        requiresOrderEditReason(props.internalStatus, editPlan) &&
+        !changeReason.trim()
+      ) {
+        errors.push({
+          tab: "pricing",
+          message: "กรุณาระบุเหตุผลการแก้ไขสำหรับใบแก้ไขออเดอร์",
+        });
+      }
+      if (workReadOnly && editPlan.work) {
+        errors.push({
+          tab: "items",
+          message: "สถานะปัจจุบันไม่อนุญาตให้แก้รายการหรือราคา",
+        });
+      }
+      return errors;
+    }
 
     if (!customerId) errors.push({ tab: "intake", message: "กรุณาเลือกลูกค้า" });
 
@@ -569,6 +1020,50 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
       return;
     }
 
+    if (isEdit) {
+      if (!editPlan?.hasChanges || !editOrderId) return;
+      const changedGroups = [
+        editPlan.headerChanged || editPlan.shippingChanged ? "ข้อมูลออเดอร์" : null,
+        editPlan.work ? "รายการและราคา" : null,
+        editPlan.referenceImages ? "ไฟล์อ้างอิง" : null,
+      ].filter((group): group is string => Boolean(group));
+      const ok = await confirmDialog({
+        title: changeOrderMode && editPlan.work
+          ? `บันทึกและออกใบแก้ไข ${props.orderNumber}?`
+          : `บันทึกการแก้ไข ${props.orderNumber}?`,
+        description: `ส่วนที่เปลี่ยน: ${changedGroups.join(" · ")}`,
+        confirmText: changeOrderMode && editPlan.work
+          ? "บันทึกและออกใบแก้ไข"
+          : "บันทึกการแก้ไข",
+      });
+      if (!ok) return;
+      saveOrder.mutate({
+        id: editOrderId,
+        expectedUpdatedAt: editSeed!.expectedUpdatedAt,
+        ...(editPlan.work?.items !== undefined
+          ? { expectedItemsFingerprint: editSeed!.expectedItemsFingerprint }
+          : {}),
+        ...(editPlan.work?.fees !== undefined
+          ? { expectedFeesFingerprint: editSeed!.expectedFeesFingerprint }
+          : {}),
+        ...(editPlan.referenceImages !== undefined
+          ? {
+              expectedReferenceImagesFingerprint:
+                editSeed!.expectedReferenceImagesFingerprint,
+            }
+          : {}),
+        ...(editPlan.meta ? { meta: editPlan.meta } : {}),
+        ...(editPlan.work ? { work: editPlan.work } : {}),
+        ...(editPlan.referenceImages
+          ? { referenceImages: editPlan.referenceImages }
+          : {}),
+        ...(changeOrderMode && editPlan.work
+          ? { reason: changeReason.trim() }
+          : {}),
+      });
+      return;
+    }
+
     const totalProducts = items.reduce((s, it) => s + it.products.length, 0);
     const dialogTitle = title.trim()
       ? `เปิดงาน "${title.trim()}"?`
@@ -627,16 +1122,51 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
     window.history.replaceState({}, "", url);
   };
 
+  const formPending = isEdit ? saveOrder.isPending : createOrder.isPending;
+  const handleCancel = async () => {
+    if (formPending) return;
+    if (isEdit && isDirty) {
+      const discard = await confirmDialog({
+        title: "ทิ้งการแก้ไขที่ยังไม่ได้บันทึก?",
+        description: "ข้อมูลที่เปลี่ยนในหน้านี้จะหาย และออเดอร์จะยังคงข้อมูลเดิม",
+        confirmText: "ทิ้งการแก้ไข",
+        destructive: true,
+      });
+      if (!discard) return;
+    }
+    if (isEdit) navigateOutOfEdit(editReturnHref);
+    else router.push(editReturnHref);
+  };
+
   return (
     <PageShell
       width="wide"
-      breadcrumb={[
-        { label: "ออเดอร์", href: "/orders" },
-        { label: "เปิดงานใหม่" },
-      ]}
-      title="เปิดงานใหม่"
+      breadcrumb={isEdit
+        ? [
+            { label: "ออเดอร์" },
+            { label: props.orderNumber },
+            { label: "แก้ไข" },
+          ]
+        : [
+            { label: "ออเดอร์", href: "/orders" },
+            { label: "เปิดงานใหม่" },
+          ]}
+      title={isEdit ? `แก้ไข ${props.orderNumber}` : "เปิดงานใหม่"}
+      action={isEdit ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={formPending}
+          onClick={() => void handleCancel()}
+          className="gap-1.5"
+        >
+          <ArrowLeft aria-hidden="true" />
+          กลับหน้าออเดอร์
+        </Button>
+      ) : undefined}
     >
-      {showDraftBanner && (
+      {!isEdit && showDraftBanner && (
         <div className={cn(TINT.warning, "flex flex-wrap items-center gap-3 rounded-2xl border px-3 py-2 text-xs")}>
           <span>
             พบข้อมูลร่างที่ยังไม่ได้บันทึก — กรอกต่อจากเดิมหรือเริ่มใหม่?
@@ -651,6 +1181,17 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
             เริ่มใหม่
           </Button>
         </div>
+      )}
+
+      {changeOrderMode && (
+        <Alert variant="warning" title="การแก้รายการหรือราคาจะออกใบแก้ไขออเดอร์">
+          ข้อมูลรับเรื่องและจัดส่งยังบันทึกได้ตามปกติ ส่วนรายการ ค่าใช้จ่าย และส่วนลดต้องระบุเหตุผลก่อนบันทึก
+        </Alert>
+      )}
+      {workReadOnly && (
+        <Alert variant="warning" title="รายการและราคาถูกล็อกตามสถานะงาน">
+          ยังแก้ชื่องาน รายละเอียด หมายเหตุ ที่อยู่จัดส่ง และไฟล์อ้างอิงได้
+        </Alert>
       )}
 
       {/* noValidate: ใช้ validateForm (กล่อง error เดียว) แทน native validation —
@@ -692,9 +1233,9 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
           </Alert>
         )}
 
-        {createOrder.isError && (
+        {(isEdit ? saveOrder.isError : createOrder.isError) && (
           <Alert variant="error">
-            {createOrder.error.message}
+            {isEdit ? saveOrder.error?.message : createOrder.error?.message}
           </Alert>
         )}
 
@@ -711,7 +1252,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
           {/* sticky — เลื่อนลงไปลึกแค่ไหนก็ยังสลับแท็บได้ (ที่เดียวกับที่แถบขั้นตอนเดิมอยู่)
               TabsBar = พื้นรองที่ทำให้เนื้อหาไม่วิ่งทะลุขึ้นมาอยู่ข้างแท็บ */}
           <TabsBar>
-            <TabsList aria-label="ตอนของฟอร์มเปิดงาน">
+            <TabsList aria-label={isEdit ? "ตอนของฟอร์มแก้ออเดอร์" : "ตอนของฟอร์มเปิดงาน"}>
               {tabMarks.map((t) => (
                 <TabsTrigger
                   key={t.key}
@@ -750,55 +1291,62 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
                 customerId={customerId}
                 selectedCustomer={selectedCustomer}
                 invalid={submitted && !customerId}
+                lockedReason={isEdit ? "ลูกค้าผูกกับออเดอร์และประวัติเดิมแล้ว — หากเลือกผิดให้ยกเลิกใบและเปิดใหม่" : undefined}
                 onSelect={(id, customer) => {
                   setHeaderField("customerId", id);
                   setSelectedCustomer(customer);
                 }}
               />
-              <OrderDetailFields
-                title={title}
-                onTitleChange={(value) => setHeaderField("title", value)}
-                deadline={deadline}
-                onDeadlineChange={(value) => setHeaderField("deadline", value)}
-                priority={priority}
-                onPriorityChange={(value) => setHeaderField("priority", value)}
-                channel={channel}
-                onChannelChange={(value) => setHeaderField("channel", value)}
-                isMarketplace={isMarketplace}
-                externalOrderId={externalOrderId}
-                onExternalOrderIdChange={(value) => setHeaderField("externalOrderId", value)}
-                description={description}
-                onDescriptionChange={(value) => setHeaderField("description", value)}
-                notes={notes}
-                onNotesChange={(value) => setHeaderField("notes", value)}
-                showGuidance={false}
-              />
+              <div data-order-edit-focus="info" className="scroll-mt-24">
+                <OrderDetailFields
+                  title={title}
+                  onTitleChange={(value) => setHeaderField("title", value)}
+                  deadline={deadline}
+                  onDeadlineChange={(value) => setHeaderField("deadline", value)}
+                  priority={priority}
+                  onPriorityChange={(value) => setHeaderField("priority", value)}
+                  channel={channel}
+                  onChannelChange={(value) => setHeaderField("channel", value)}
+                  channelLockedReason={isEdit ? "ช่องทางผูกกับเลขออเดอร์และสูตรภาษีเดิม จึงเปลี่ยนไม่ได้" : undefined}
+                  isMarketplace={isMarketplace}
+                  externalOrderId={externalOrderId}
+                  onExternalOrderIdChange={(value) => setHeaderField("externalOrderId", value)}
+                  description={description}
+                  onDescriptionChange={(value) => setHeaderField("description", value)}
+                  notes={notes}
+                  onNotesChange={(value) => setHeaderField("notes", value)}
+                  showGuidance={false}
+                />
+              </div>
               {/* จัดส่งอยู่กับรับเรื่อง — ที่อยู่ผู้รับมาจากแชทรอบเดียวกับข้อมูลลูกค้า
                   (เบสสั่ง 2026-08-04) · ไม่มีเส้นคั่น ใช้หัวข้อย่อย h3 แยกพอ */}
-              <OrderShippingSection
-                includeShipping={includeShipping}
-                onIncludeShippingChange={setIncludeShipping}
-                shipping={shipping}
-                onUpdate={updateShipping}
-                embedded
-                showGuidance={false}
-                collapseWhenInactive
-                onUseCustomerAddress={
-                  canUseCustomerAddress
-                    ? () => fillShippingFromCustomer(customerAddressFill, customerId || null)
-                    : undefined
-                }
-              />
+              <div data-order-edit-focus="shipping" className="scroll-mt-24">
+                <OrderShippingSection
+                  includeShipping={includeShipping}
+                  onIncludeShippingChange={setIncludeShipping}
+                  shipping={shipping}
+                  onUpdate={updateShipping}
+                  embedded
+                  showGuidance={false}
+                  collapseWhenInactive
+                  onUseCustomerAddress={
+                    canUseCustomerAddress
+                      ? () => fillShippingFromCustomer(customerAddressFill, customerId || null)
+                      : undefined
+                  }
+                />
+              </div>
             </div>
           </Section>
           </TabsContent>
 
           <TabsContent value="items" keepMounted className="mt-6">
-          <section
+          <fieldset
             id={STEP_IDS.items}
+            disabled={workReadOnly}
             tabIndex={-1}
             aria-labelledby="new-order-items-heading"
-            className={cn("scroll-mt-16 space-y-4 outline-none", FOCUS_BUTTON)}
+            className={cn("m-0 min-w-0 scroll-mt-16 space-y-4 border-0 p-0 outline-none", FOCUS_BUTTON)}
           >
             <OrderItemsListHeader
               headingId="new-order-items-heading"
@@ -825,6 +1373,8 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
                   allItems={items}
                   printCatalog={printCatalog}
                   addonCatalog={addonCatalog}
+                  showPrints={canAddPrints}
+                  showAddons={canAddPrints}
                   onUpdateItem={updateItem}
                   onRemoveItem={(idx) => { removeItem(idx); if (expandedItemIdx === idx) setExpandedItemIdx(null); else if (expandedItemIdx != null && expandedItemIdx > idx) setExpandedItemIdx(expandedItemIdx - 1); }}
                   onAddPrint={addPrint}
@@ -839,7 +1389,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
                 />
               ))}
             </div>
-          </section>
+          </fieldset>
           </TabsContent>
 
           <TabsContent value="pricing" keepMounted className="mt-6">
@@ -853,14 +1403,16 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
                 ไม่มีเส้นคั่นสักเส้น · ส่วนลดท้ายบิลอยู่ฝั่งช่องกรอก · สรุปยอดเป็นก้อนพื้นจมปิดท้าย */}
             <div className="space-y-6">
               <div className="space-y-6">
-                <OrderFeeSection
-                  fees={fees}
-                  onAddFee={addFee}
-                  onRemoveFee={removeFee}
-                  onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
-                  feeCatalog={feeCatalog}
-                  embedded
-                />
+                <fieldset disabled={workReadOnly} className="m-0 min-w-0 border-0 p-0">
+                  <OrderFeeSection
+                    fees={fees}
+                    onAddFee={addFee}
+                    onRemoveFee={removeFee}
+                    onUpdateFee={updateFee as (idx: number, field: string, value: unknown) => void}
+                    feeCatalog={feeCatalog}
+                    embedded
+                  />
+                </fieldset>
 
                 {/* ไม่มีช่อง "ภาษี (%)" แล้ว (เบสเคาะ 2026-08-04 "vat 7% ไม่ต้องมีให้กรอกก็ได้") —
                     ระบบตั้งให้เอง: ปกติ 7% · ช่องทางมาร์เก็ตเพลสเป็น 0% (ราคารวม VAT อยู่แล้ว)
@@ -871,6 +1423,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
                       <Select
                         value={paymentTerms}
                         onChange={(e) => setHeaderField("paymentTerms", e.target.value)}
+                        disabled={isEdit && editCapability !== "direct"}
                       >
                         <option value="">ไม่ระบุ</option>
                         {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
@@ -887,8 +1440,27 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
                         id="order-discount"
                         value={discount}
                         onValueChange={(value) => setHeaderField("discount", value)}
+                        disabled={workReadOnly}
                       />
                     </Field>
+                    {isEdit && (
+                      <Field
+                        label="ภาษีมูลค่าเพิ่ม (%)"
+                        id="order-tax-rate"
+                        description={editCapability !== "direct" ? "แก้ไม่ได้หลังอนุมัติรายการ" : "คงอัตราเดิมไว้ เว้นแต่งานนี้ได้รับการยกเว้นภาษี"}
+                      >
+                        <Input
+                          id="order-tax-rate"
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.01"
+                          value={taxRate}
+                          onChange={(e) => setHeaderField("taxRate", Number(e.target.value) || 0)}
+                          disabled={editCapability !== "direct"}
+                        />
+                      </Field>
+                    )}
                     {isMarketplace && (
                       <Field
                         label={`ค่าธรรมเนียม ${CHANNEL_LABELS[channel]}`}
@@ -899,6 +1471,7 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
                           id="order-platform-fee"
                           value={platformFee}
                           onValueChange={(value) => setHeaderField("platformFee", value)}
+                          disabled={isEdit && editCapability !== "direct"}
                         />
                       </Field>
                     )}
@@ -913,6 +1486,30 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
                     )}
                   </div>
                 </Section>
+
+                {changeOrderMode && (
+                  <Field
+                    label="เหตุผลการแก้ไขออเดอร์"
+                    id="order-change-reason"
+                    required={Boolean(editPlan?.work)}
+                    description="ใช้ประกอบใบแก้ไขและประวัติการเปลี่ยนแปลง เมื่อมีการแก้รายการ ค่าใช้จ่าย หรือส่วนลด"
+                  >
+                    <Textarea
+                      id="order-change-reason"
+                      value={changeReason}
+                      onChange={(e) => setChangeReason(e.target.value)}
+                      rows={3}
+                      placeholder="เช่น ลูกค้าเพิ่มจำนวนและเปลี่ยนตำแหน่งพิมพ์"
+                    />
+                  </Field>
+                )}
+                {billedFloorState && (
+                  <Alert variant="warning" className="text-xs font-medium">
+                    {billedFloorState === "credit_note"
+                      ? `ยอดใหม่ ${formatCurrency(pricingSummary.grandTotal)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(editSeed!.billedFloor)} — ออกใบแก้ไขได้ แต่ต้องออกใบลดหนี้ตามให้ยอดบิลตรงยอดจริง`
+                      : `ยอดใหม่ ${formatCurrency(pricingSummary.grandTotal)} ต่ำกว่ายอดบิลที่ออกแล้ว ${formatCurrency(editSeed!.billedFloor)} — บันทึกไม่ผ่าน ต้องยกเลิกบิลเดิมและออกใหม่ตามยอดที่ถูกก่อนลดยอด`}
+                  </Alert>
+                )}
               </div>
 
               {/* สรุปยอดเป็นก้อนพื้นจม — อ่านออกทันทีว่านี่คือผลลัพธ์ ไม่ใช่ช่องให้กรอกต่อ */}
@@ -968,18 +1565,29 @@ export default function OrderCreatePage({ draftScope }: { draftScope?: string })
               )
             }
           >
-            {createOrder.isPending ? (
-              <Button variant="outline" size="sm" disabled>
-                ยกเลิก
-              </Button>
-            ) : (
-              <Button asChild variant="outline" size="sm">
-                <Link href="/orders">ยกเลิก</Link>
-              </Button>
-            )}
-            <Button type="submit" size="sm" disabled={createOrder.isPending} className="gap-1.5">
-              {createOrder.isPending && <Loader2 className="animate-spin" />}
-              {createOrder.isPending ? "กำลังบันทึก..." : "เปิดงาน"}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={formPending}
+              onClick={() => void handleCancel()}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={formPending || (isEdit && !isDirty)}
+              className="gap-1.5"
+            >
+              {formPending && <Loader2 className="animate-spin" />}
+              {formPending
+                ? "กำลังบันทึก..."
+                : isEdit
+                  ? changeOrderMode && editPlan?.work
+                    ? "บันทึกและออกใบแก้ไข"
+                    : "บันทึกการแก้ไข"
+                  : "เปิดงาน"}
             </Button>
           </OrderFormActionBar>
       </form>

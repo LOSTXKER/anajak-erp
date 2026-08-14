@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ หน้าแก้ออเดอร์เป็นหน้าเต็มและใช้ฟอร์มเดียวกับหน้าเปิดงานจริงแล้ว 2026-08-14**
+> คำสั่งล่าสุดทับ flow inline/dialog เดิม: ปุ่มแก้ข้อมูลออเดอร์ แก้ที่อยู่ แก้รายการ การ์ดรายการว่าง และ next-step จากหน้ารายละเอียดพาไป `/orders/[id]/edit` พร้อมแท็บ/จุดโฟกัสที่ตรงเรื่อง · route ใหม่ render `OrderFormPage` ตัวเดียวกับ `/orders/new` จึงใช้ลำดับ field, รายการ, catalog, ราคา, validation, responsive และ action bar ชุดเดียวจริง ไม่ใช่ก๊อป JSX อีกหน้า · งานเฉพาะทางตรวจรับ/แบบ/ผลิต/QC/ส่ง/บิล/รับเงินยังอยู่ flow และ permission เดิม
+>
+> **มาตรฐาน width ล่าสุด:** หน้า create และ edit เป็น standalone document form ทั้งคู่ จึงใช้ `PageShell width="wide"` = 1024px บน desktop และ 348px ที่ viewport 390px; order detail โหมดอ่านยังใช้ `full` · มตินี้ทับบันทึกชั่วคราวที่เคยให้ inline editor กว้าง 1126px
+>
+> **ข้อมูลและความปลอดภัย:** edit prefill ลูกค้า/รับเรื่อง/ลาย/สินค้า/ส่วนเสริม/ค่าธรรมเนียม/ส่วนลด/เงื่อนไข/ที่อยู่/ไฟล์อ้างอิงครบ โดยไม่รัน default/draft ของ create ทับค่าเดิม · `order.saveForm` บันทึกเฉพาะก้อนที่เปลี่ยนใน transaction เดียวและตัดสิน direct/ใบแก้ไข/read-only จากสถานะสด · มี optimistic fingerprints กันสองจอทับกัน, รักษา identity สินค้าที่มีใบตรวจรับ, คิดส่วนต่างวงเงินด้วย Decimal, และใช้ version/CAS กันผลตอบกลับสต๊อกเก่าทับสถานะใหม่ · dirty guard ครอบ Back/Cancel/sidebar/link/Command Palette และ logout; sign out จะเกิดหลังผู้ใช้ยืนยันเท่านั้น
+>
+> **ด่าน:** browser จริง empty+populated/locked/deep-link ที่ 1440×900 และ 390×844 Light/Dark — create/edit 1024/348px เท่ากัน, ลาย → สินค้า → ส่วนเสริม, action overlap/horizontal overflow/console error = 0; ทดสอบ dirty Back/Command Palette/logout แล้ว cancel ยังอยู่ URL เดิมและค่าคงอยู่ · ไม่กดบันทึกข้อมูลธุรกิจ · unit **824/824** · typecheck ผ่าน · lint 0 error (28 warning เดิม) · `verify:ui` ผ่าน · Impeccable detector `[]` หนึ่งรอบ · independent review **SHIP/CLEAR** · ไม่รัน build ขณะ dev server 3002 ทำงาน
+>
+> **ต่อที่นี่:** flow ใหม่จบแล้ว; ไฟล์ legacy `OrderInfoEditDialog`/`OrderItemsEditor` ไม่มี caller/mount และมี guard กันกลับมา แต่ยังไม่ลบเพราะการลบไฟล์ต้องได้รับอนุญาตก่อน
+
 > **✅ popup แก้ลูกค้าพอดีกรอบจริงแล้ว 2026-08-14 — ปิด feedback รอบ 21:00**
 > ภาพล่าสุดชี้ปัญหาอีกชั้นหลังแก้ footer ทับ: primitive กลางเผื่อปุ่ม X ด้วยขอบขวา 56px ตลอดทั้งการ์ด แต่ซ้าย 24px; scrollbar ทำให้ field ขวาห่างถึง 70px และ local `90dvh` ตัดช่องหมายเหตุเหลือ 46.8/96px · แก้เฉพาะ popup นี้เป็น header/body/footer 3 พื้นที่: เผื่อ X เฉพาะ header, scroller เต็มกรอบโดยเนื้อหาถือ padding ซ้าย–ขวาเท่ากัน, footer static และเปลี่ยนกรอบนอกเป็น `overflow-clip` เพื่อให้ browser เลื่อนได้เฉพาะ body แม้ฟอร์มนิติบุคคล 19 ช่อง
 >

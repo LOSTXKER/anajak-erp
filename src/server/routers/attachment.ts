@@ -7,6 +7,7 @@ import { ATTACHMENT_CATEGORIES } from "@/lib/file-layers";
 import { hasPermission } from "@/lib/permissions";
 import { isOwnOutsourceFile } from "@/server/services/outsource-share";
 import type { PrismaTx } from "@/lib/prisma";
+import { lockOrderRow } from "@/server/services/order-cost";
 
 // entityType ที่แนบไฟล์ได้ + วิธีเช็คว่าปลายทางมีจริง — กันไฟล์ลอย/ยัด entityId มั่ว
 const ENTITY_LOOKUPS: Record<string, (prisma: PrismaTx, id: string) => Promise<unknown>> = {
@@ -105,12 +106,25 @@ export const attachmentRouter = router({
         });
       }
 
-      return ctx.prisma.attachment.create({
-        data: {
-          ...input,
-          uploadedById: ctx.userId,
-        },
-      });
+      const data = { ...input, uploadedById: ctx.userId };
+      if (
+        input.entityType === "ORDER" &&
+        input.category === "REFERENCE_IMAGE"
+      ) {
+        return ctx.prisma.$transaction(async (tx) => {
+          // serialize กับ saveForm desired-set; touch parent ให้จอที่โหลดก่อนหน้า conflict
+          await lockOrderRow(tx, input.entityId);
+          const attachment = await tx.attachment.create({ data });
+          await tx.order.update({
+            where: { id: input.entityId },
+            data: { updatedAt: new Date() },
+            select: { id: true },
+          });
+          return attachment;
+        });
+      }
+
+      return ctx.prisma.attachment.create({ data });
     }),
 
   delete: protectedProcedure
@@ -119,7 +133,12 @@ export const attachmentRouter = router({
       // ลบได้เฉพาะไฟล์ที่ตัวเองอัปโหลด — ยกเว้น OWNER/MANAGER ลบได้ทุกไฟล์
       const attachment = await ctx.prisma.attachment.findUniqueOrThrow({
         where: { id: input.id },
-        select: { uploadedById: true },
+        select: {
+          uploadedById: true,
+          entityType: true,
+          entityId: true,
+          category: true,
+        },
       });
       const isManagerUp = ctx.userRole === "OWNER" || ctx.userRole === "MANAGER";
       if (!isManagerUp && attachment.uploadedById !== ctx.userId) {
@@ -128,6 +147,24 @@ export const attachmentRouter = router({
           message: "ลบได้เฉพาะไฟล์ที่คุณอัปโหลดเอง",
         });
       }
+      if (
+        attachment.entityType === "ORDER" &&
+        attachment.category === "REFERENCE_IMAGE"
+      ) {
+        return ctx.prisma.$transaction(async (tx) => {
+          await lockOrderRow(tx, attachment.entityId);
+          const removed = await tx.attachment.delete({
+            where: { id: input.id },
+          });
+          await tx.order.update({
+            where: { id: attachment.entityId },
+            data: { updatedAt: new Date() },
+            select: { id: true },
+          });
+          return removed;
+        });
+      }
+
       return ctx.prisma.attachment.delete({ where: { id: input.id } });
     }),
 });

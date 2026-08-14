@@ -23,7 +23,13 @@ import {
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
-import { canPermsSetStatus, CHANNEL_LABELS } from "@/lib/order-status";
+import {
+  canIssueChangeOrder,
+  canPermsSetStatus,
+  CHANNEL_LABELS,
+  isOrderLocked,
+} from "@/lib/order-status";
+import { canEditOrderWithPricing } from "@/lib/order-access";
 import {
   shouldGateOnReadiness,
 } from "@/lib/order-tabs";
@@ -316,7 +322,7 @@ function RedesignOrderDetailContent({
   const order = orderQuery.data;
   const me = meQuery.data;
   const canSeeMoney = permAllows(me?.permissions, "see_order_money");
-  const canCreateSalesDocs = permAllows(me?.permissions, "create_sales_docs");
+  const canUseEditForm = canEditOrderWithPricing(me?.permissions);
   const shouldLoadReadiness = Boolean(
     order && ["CONFIRMED", "ON_HOLD"].includes(order.internalStatus),
   );
@@ -392,12 +398,14 @@ function RedesignOrderDetailContent({
   const readiness = readinessQuery.data?.readiness ?? null;
   const blockers = nextStepBlockers(nextStep, readiness);
   const action = nextStep?.action ?? null;
+  const canEditItems =
+    !isOrderLocked(order.internalStatus) || canIssueChangeOrder(order.internalStatus);
   const gatedByReadiness = Boolean(
     nextStep && shouldGateOnReadiness(nextStep.action, readiness),
   );
   const canUseAction = action
     ? action.type === "EDIT_ITEMS"
-      ? canCreateSalesDocs
+      ? canUseEditForm && canEditItems
       : action.type === "STATUS"
         ? canPermsSetStatus(
             me.permissions,
