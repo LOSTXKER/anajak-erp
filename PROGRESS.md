@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ PC3 รอบพิมพ์ฟิล์ม `/production/print-runs` จัดตามทางเดินหน้างานแล้ว 2026-08-15**
+> แยกรอบเป็น 4 ชั้นตามสิ่งที่ช่างต้องตัดสินใจจริง: **กำลังพิมพ์อยู่ → รอตัดแยก+ติดป้าย → คิวพิมพ์ → ประวัติ** · `PRINTED` ที่สร้างใหม่กว่าจะไม่ดันรอบ `PRINTING` บนเครื่องลงล่างอีก · desktop/laptop เป็นสองฝั่ง 4:6 และขยายเป็น 5:7 บนจอกว้าง เห็นรอบกับคิวพร้อมกัน ส่วน 390/320px ซ้อนลงตาม DOM เดียว ไม่มีการปัดสองแกน
+>
+> **การใช้งานจอทัช/สิทธิ์:** รูปลายเป็นลิงก์ sibling แยกจากปุ่มเลือกแถว จึงไม่มี `<a>` ซ้อน `<button>` · thumbnail, ช่องจำนวน และ action ใน flow นี้อย่างน้อย 44px · แถวคิวที่เลือกแล้วให้จำนวนลงบรรทัดสองบนมือถือ · แถบเปิดรอบย้ายเข้า context ของคิวและ sticky ด้านบนให้เห็นทันที พร้อม skip control ให้คีย์บอร์ดเดินต่อจากแถวไปช่องโน้ต/ปุ่มเปิดรอบ · จำนวนผิดประกาศ `aria-invalid` พร้อมเหตุผล · `user.me` อยู่ใน loading/error gate และคนไม่มี `manage_production` เห็นป้าย “ดูอย่างเดียว” โดยไม่มี selection/action โผล่ชั่วคราว
+>
+> **ไม่แตะกติกาธุรกิจ:** polling/refetch, endpoint, mutation, permission, due-date sort จาก service และสถานะ `PRINTING → PRINTED → COMPLETED` ชุดเดิมทั้งหมด · เพิ่มแค่ pure `splitPrintRunsByStage()` + test 2 เคส และ source guard กัน layout/order/nested-interactive ถอย
+>
+> **ด่าน:** typecheck · lint 0 error (28 warning เดิมนอกก้อน) · unit **855/855** · `verify:ui` ผ่าน · Impeccable layout detector `[]` · production build ผ่าน · browser จริง 1440×900 + 1180×800 + 1024×800 + 390×844 Light/Dark และ 320px: ลำดับหัวถูก, laptop/desktop เห็นรอบกับคิวพร้อมกัน, `scrollWidth=clientWidth`, ไม่มี app console error/hydration บน origin สด · ฐาน dev ตอนนี้ไม่มีคิว/รอบ จึงตรวจ browser ได้เฉพาะ empty state และตั้งใจไม่รัน `verify:printrun` ที่แก้ข้อมูล/เลข FR บนฐานแชร์
+>
+> **ต่อที่นี่:** PC4 ตรวจเรื่องราวทั้งชุด `/production` + `/production/[id]` + `/production/print-runs` รอบสุดท้าย และถ้าต้องพิสูจน์ populated print-run UI ให้ใช้ฐาน disposable หรือรอมีคิวจริง — ห้ามสร้างข้อมูลทดสอบบนฐานแชร์
+
 > **✅ ตรวจทาน "ทำไมไม่เหมือน mockup ทิศ A" แล้ว 2026-08-15 — เจอ 1 จุดที่ตัดเกิน แก้แล้ว**
 > เบสถามว่าทำไมบอร์ดไม่เหมือน mockup ที่ทำไว้ตอนแรก (`0ac53352-...`) · เทียบทีละจุดด้วย WebFetch ของจริง พบว่า 4 จุดต่างเพราะคำสั่งหลังทับ mockup ไปแล้ว (ถอดแถบ "ต้องแก้ก่อน" · ถอดปุ่ม CTA บนการ์ด · เพิ่ม sort/search · ถอดข้อความอธิบายยาว — ทั้งหมดตรงคำสั่งเบสที่ให้มาหลัง mockup) · ถามยืนยัน 2 จุดนั้นกับเบสอีกรอบ **คงตามปัจจุบัน ไม่เอากลับ**
 >

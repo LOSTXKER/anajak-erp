@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
+import { useRef, useState, type ComponentType } from "react";
 import { toast } from "sonner";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -23,6 +23,7 @@ import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { formatDate, formatDateTime, cn, isImageUrl } from "@/lib/utils";
 import { FOCUS_BUTTON, FOCUS_FIELD_INVALID, FOCUS_INSET } from "@/components/ui/tokens";
 import { permAllows } from "@/lib/permissions";
+import { splitPrintRunsByStage } from "@/lib/print-run-workspace";
 import {
   Printer,
   Film,
@@ -54,6 +55,7 @@ const RUN_STATUS_BADGE: Record<
 };
 
 const runTotalQty = (run: PrintRun) => run.items.reduce((s, i) => s + i.qty, 0);
+const PRINT_RUN_CONTROL_H = "h-11 min-h-11 sm:h-11 sm:min-h-11";
 
 // chip กำหนดส่ง — แดงเมื่อเลยกำหนด (pattern เดียวกับ my-tasks)
 function DeadlineChip({ deadline }: { deadline: Date | string | null }) {
@@ -86,15 +88,18 @@ function DesignThumb({
 }) {
   if (!design) return null;
   const img = [design.thumbnailUrl, design.fileUrl].find(isImageUrl) ?? null;
-  const box = size === "md" ? "h-14 w-14" : "h-10 w-10";
+  const box = size === "md" ? "h-14 w-14" : "h-11 w-11";
   return (
     <a
       href={design.fileUrl}
       target="_blank"
       rel="noreferrer"
-      onClick={(e) => e.stopPropagation()}
+      aria-label={`เปิดไฟล์ลาย v${design.versionNumber}`}
       title={`เปิดไฟล์ลาย v${design.versionNumber}`}
-      className={cn("relative shrink-0 overflow-hidden rounded-lg border border-slate-200 transition-opacity hover:opacity-90", FOCUS_BUTTON, "dark:border-slate-700")}
+      className={cn(
+        "relative shrink-0 overflow-hidden rounded-lg border border-divider transition-opacity hover:opacity-90",
+        FOCUS_BUTTON,
+      )}
     >
       {img ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -117,21 +122,26 @@ function BlockSection({
   title,
   count,
   hint,
+  stage,
   children,
 }: {
   icon: ComponentType<{ className?: string; strokeWidth?: number | string }>;
   title: string;
   count: number;
   hint?: string;
+  stage?: "printing" | "printed";
   children: React.ReactNode;
 }) {
   return (
-    <section className="card-surface overflow-hidden rounded-2xl">
-      <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+    <section
+      data-print-run-stage={stage}
+      className="card-surface overflow-clip rounded-2xl"
+    >
+      <div className="flex items-center gap-2 border-b border-divider px-4 py-3">
         <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" strokeWidth={1.75} />
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h2>
-        {hint && <span className="hidden text-xs text-slate-400 sm:inline">{hint}</span>}
-        <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+        <h2 className="text-sm font-semibold text-strong">{title}</h2>
+        {hint && <span className="hidden text-xs text-muted xl:inline">{hint}</span>}
+        <span className="ml-auto rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium tabular-nums text-secondary">
           {count}
         </span>
       </div>
@@ -160,13 +170,15 @@ export default function PrintRunsPage() {
   });
   const invalidate = usePrintRunInvalidate();
   // B8: ปุ่มสั่งงาน (เปิดรอบ/พิมพ์จบ/ยกเลิก/ตัดแยก) เฉพาะคนมีสิทธิ์ผลิต — role อื่นเห็นคิวอ่านอย่างเดียว
-  const { data: me } = trpc.user.me.useQuery();
+  const meQuery = trpc.user.me.useQuery();
+  const me = meQuery.data;
   const canManage = permAllows(me?.permissions, "manage_production");
 
   // งานที่เลือกเข้ารอบ: stepId → จำนวนที่จะพิมพ์รอบนี้
   const [picked, setPicked] = useState<Record<string, number>>({});
   const [note, setNote] = useState("");
   const [completing, setCompleting] = useState<PrintRun | null>(null);
+  const actionNoteRef = useRef<HTMLInputElement>(null);
 
   const create = useMutationWithInvalidation(trpc.printRun.create, {
     invalidate,
@@ -210,8 +222,7 @@ export default function PrintRunsPage() {
 
   const queue = queueQuery.data ?? [];
   const runs = listQuery.data ?? [];
-  const activeRuns = runs.filter((r) => r.status === "PRINTING" || r.status === "PRINTED");
-  const historyRuns = runs.filter((r) => r.status === "COMPLETED" || r.status === "CANCELLED");
+  const { printingRuns, printedRuns, historyRuns } = splitPrintRunsByStage(runs);
 
   const pickedEntries = queue.filter((q) => picked[q.stepId] !== undefined);
   const pickedTotal = pickedEntries.reduce((s, q) => s + (picked[q.stepId] ?? 0), 0);
@@ -230,6 +241,11 @@ export default function PrintRunsPage() {
     });
   }
 
+  function focusRunAction() {
+    actionNoteRef.current?.focus();
+    actionNoteRef.current?.scrollIntoView({ block: "nearest" });
+  }
+
   const busy = markPrinted.isPending || cancelRun.isPending;
 
   return (
@@ -237,156 +253,258 @@ export default function PrintRunsPage() {
       // ทางกลับหน้าการผลิตย้ายจากปุ่ม action มาเป็น breadcrumb ตามตำแหน่งมาตรฐาน
       breadcrumb={[{ label: "การผลิต", href: "/production" }, { label: "รอบพิมพ์ฟิล์ม" }]}
       title="รอบพิมพ์ฟิล์ม DTF"
-      loading={queueQuery.isLoading || listQuery.isLoading}
+      titleBadge={
+        me && !canManage ? (
+          <Badge variant="outline" size="sm">
+            ดูอย่างเดียว
+          </Badge>
+        ) : undefined
+      }
+      loading={queueQuery.isLoading || listQuery.isLoading || meQuery.isLoading}
+      error={
+        meQuery.isError
+          ? {
+              message: "โหลดสิทธิ์การผลิตไม่สำเร็จ",
+              onRetry: () => meQuery.refetch(),
+            }
+          : null
+      }
       skeleton={
-        <>
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-40 rounded-2xl" />
-          ))}
-        </>
+        <div className="space-y-6">
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(18rem,4fr)_minmax(0,6fr)] xl:grid-cols-[minmax(22rem,5fr)_minmax(0,7fr)]">
+            <div className="space-y-6">
+              <Skeleton className="h-32 rounded-2xl" />
+              <Skeleton className="h-32 rounded-2xl" />
+            </div>
+            <Skeleton className="h-72 rounded-2xl" />
+          </div>
+          <Skeleton className="h-24 rounded-2xl" />
+        </div>
       }
     >
-      {/* ── รอบค้าง — กำลังพิมพ์ / รอตัดแยก+ติดป้าย ── */}
-      <BlockSection icon={Printer} title="รอบที่ยังพิมพ์ไม่จบ" count={activeRuns.length}>
-        {/* query พัง (เน็ต/สิทธิ์) ต้องบอกตรงๆ + ปุ่มลองใหม่ — ห้ามโชว์ "ว่าง" หลอก */}
-        {listQuery.isError ? (
-          <QueryError onRetry={() => listQuery.refetch()} />
-        ) : activeRuns.length === 0 ? (
-          <EmptyState
-            icon={Printer}
-            title="ยังไม่มีรอบที่ค้างอยู่"
-            description="เลือกงานจากคิวพิมพ์ด้านล่างเพื่อเปิดรอบพิมพ์ม้วนใหม่"
-            density="compact"
-          />
-        ) : (
-          <div className="space-y-3 p-3">
-            {activeRuns.map((run) => (
-              <ActiveRunCard
-                key={run.id}
-                run={run}
+      <div
+        data-print-run-workspace=""
+        className="grid items-start gap-6 lg:grid-cols-[minmax(18rem,4fr)_minmax(0,6fr)] xl:grid-cols-[minmax(22rem,5fr)_minmax(0,7fr)]"
+      >
+        {/* ลำดับ DOM ตั้งใจให้ตรงทางเดินหน้างานบนมือถือ: พิมพ์ → ตัดแยก → คิว */}
+        <div data-print-run-stages="" className="space-y-6">
+          {listQuery.isError ? (
+            <BlockSection icon={Printer} title="รอบพิมพ์ที่กำลังเดิน" count={0}>
+              <QueryError onRetry={() => listQuery.refetch()} />
+            </BlockSection>
+          ) : (
+            <>
+              <RunStageSection
+                stage="printing"
+                runs={printingRuns}
                 busy={busy}
                 canManage={canManage}
-                onMarkPrinted={() => markPrinted.mutate({ runId: run.id })}
-                onCancel={() => handleCancel(run)}
-                onComplete={() => setCompleting(run)}
+                onMarkPrinted={(run) => markPrinted.mutate({ runId: run.id })}
+                onCancel={(run) => handleCancel(run)}
+                onComplete={(run) => setCompleting(run)}
               />
-            ))}
-          </div>
-        )}
-      </BlockSection>
-
-      {/* ── คิวพิมพ์ฟิล์ม — เฉพาะงานไฟล์พร้อม เรียงตามกำหนดส่ง ── */}
-      <BlockSection
-        icon={Film}
-        title="คิวพิมพ์ฟิล์ม"
-        count={queue.length}
-        hint="เฉพาะงานไฟล์พร้อม · เรียงตามกำหนดส่ง"
-      >
-        {queueQuery.isError ? (
-          <QueryError onRetry={() => queueQuery.refetch()} />
-        ) : queue.length === 0 ? (
-          <EmptyState
-            icon={Film}
-            title="คิวพิมพ์ว่าง"
-            description="งานขั้นพิมพ์ฟิล์ม DTF ที่แบบอนุมัติแล้วจะเข้าคิวที่นี่เอง"
-            density="compact"
-          />
-        ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-            {queue.map((entry) => (
-              <QueueRow
-                key={entry.stepId}
-                entry={entry}
+              <RunStageSection
+                stage="printed"
+                runs={printedRuns}
+                busy={busy}
                 canManage={canManage}
-                qty={picked[entry.stepId]}
-                onToggle={() => togglePick(entry)}
-                onQtyChange={(qty) =>
-                  setPicked((prev) => ({ ...prev, [entry.stepId]: qty }))
-                }
+                onMarkPrinted={(run) => markPrinted.mutate({ runId: run.id })}
+                onCancel={(run) => handleCancel(run)}
+                onComplete={(run) => setCompleting(run)}
               />
-            ))}
-          </ul>
-        )}
-      </BlockSection>
+            </>
+          )}
+        </div>
+
+        {/* คิวคงลำดับกำหนดส่งจาก service — ไม่เรียงซ้ำใน client */}
+        <div data-print-run-queue="">
+          <BlockSection
+            icon={Film}
+            title="คิวพิมพ์ฟิล์ม"
+            count={queue.length}
+            hint="เฉพาะงานไฟล์พร้อม · เรียงตามกำหนดส่ง"
+          >
+            {queueQuery.isError ? (
+              <QueryError onRetry={() => queueQuery.refetch()} />
+            ) : queue.length === 0 ? (
+              <EmptyState
+                icon={Film}
+                title="คิวพิมพ์ว่าง"
+                description="งานขั้นพิมพ์ฟิล์ม DTF ที่แบบอนุมัติแล้วจะเข้าคิวที่นี่เอง"
+                density="compact"
+              />
+            ) : (
+              <>
+                {/* อยู่ก่อน list เพื่อให้ sticky ตามช่างทันที แม้เลือกแถวล่างของคิวยาว */}
+                {canManage && pickedEntries.length > 0 && (
+                  <div
+                    data-print-run-selection-bar=""
+                    className="card-surface sticky top-3 z-20 m-3 flex flex-wrap items-center gap-2 rounded-xl px-3 py-3 backdrop-blur"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted">เข้ารอบพิมพ์ม้วนนี้</p>
+                      <p
+                        aria-live="polite"
+                        aria-atomic="true"
+                        className="text-sm font-semibold tabular-nums text-strong"
+                      >
+                        เลือก {pickedEntries.length} งาน · รวม {pickedTotal} ชิ้น
+                      </p>
+                    </div>
+                    <Input
+                      ref={actionNoteRef}
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      maxLength={500}
+                      aria-label="โน้ตรอบพิมพ์"
+                      placeholder="โน้ตรอบ เช่น ม้วนที่ 2 เครื่องซ้าย (ไม่บังคับ)"
+                      className={cn(
+                        PRINT_RUN_CONTROL_H,
+                        "order-3 w-full sm:order-none sm:w-64",
+                      )}
+                    />
+                    <Button
+                      disabled={create.isPending || hasInvalidQty || pickedTotal < 1}
+                      onClick={() =>
+                        create.mutate({
+                          items: pickedEntries.map((q) => ({
+                            stepId: q.stepId,
+                            qty: picked[q.stepId]!,
+                          })),
+                          note: note.trim() || undefined,
+                        })
+                      }
+                      className={cn(PRINT_RUN_CONTROL_H, "gap-1.5")}
+                    >
+                      {create.isPending ? <Loader2 className="animate-spin" /> : <Printer />}
+                      เปิดรอบพิมพ์
+                    </Button>
+                  </div>
+                )}
+                <ul className="divide-y divide-divider">
+                  {queue.map((entry) => (
+                    <QueueRow
+                      key={entry.stepId}
+                      entry={entry}
+                      canManage={canManage}
+                      qty={picked[entry.stepId]}
+                      onToggle={() => togglePick(entry)}
+                      onFocusAction={focusRunAction}
+                      onQtyChange={(qty) =>
+                        setPicked((prev) => ({ ...prev, [entry.stepId]: qty }))
+                      }
+                    />
+                  ))}
+                </ul>
+              </>
+            )}
+          </BlockSection>
+        </div>
+      </div>
 
       {/* ── ประวัติรอบ 7 วันล่าสุด ── */}
-      <BlockSection icon={History} title="ประวัติรอบ (7 วันล่าสุด)" count={historyRuns.length}>
-        {listQuery.isError ? (
-          <QueryError onRetry={() => listQuery.refetch()} />
-        ) : historyRuns.length === 0 ? (
-          <EmptyState
-            icon={History}
-            title="ยังไม่มีประวัติรอบใน 7 วันล่าสุด"
-            description="รอบที่ปิดเสร็จหรือยกเลิกแล้วจะมาแสดงที่นี่"
-            density="compact"
-          />
-        ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-            {historyRuns.map((run) => {
-              const badge = RUN_STATUS_BADGE[run.status] ?? RUN_STATUS_BADGE.CANCELLED;
-              const extraTotal = run.items.reduce((s, i) => s + i.extraQty, 0);
-              return (
-                <li key={run.id} className="flex min-h-[44px] flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
-                  <span className="text-sm font-medium text-slate-900 dark:text-white">
-                    {run.runNumber}
-                  </span>
-                  <Badge variant={badge.variant} size="sm">
-                    {badge.label}
-                  </Badge>
-                  <span className="min-w-0 flex-1 truncate text-xs tabular-nums text-slate-500 dark:text-slate-400">
-                    {run.items.length} งาน · รวม {runTotalQty(run)} ชิ้น
-                    {extraTotal > 0 && ` · เผื่อ ${extraTotal} ชิ้น`}
-                  </span>
-                  <span className="shrink-0 text-xs tabular-nums text-slate-400">
-                    {formatDateTime(run.completedAt ?? run.createdAt)}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </BlockSection>
-
-      {/* ── แถบเปิดรอบ sticky ล่างจอ — โผล่เมื่อเลือกงานแล้ว (pattern เดียวกับ orders/new) · B8 เฉพาะคนมีสิทธิ์ผลิต ── */}
-      {canManage && pickedEntries.length > 0 && (
-        <div className="card-surface sticky bottom-[calc(var(--app-bottom-nav-offset)+0.75rem)] z-10 flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 backdrop-blur lg:bottom-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-slate-400">เข้ารอบพิมพ์ม้วนนี้</p>
-            <p className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
-              เลือก {pickedEntries.length} งาน · รวม {pickedTotal} ชิ้น
+      <div data-print-run-history="">
+        <BlockSection icon={History} title="ประวัติรอบ (7 วันล่าสุด)" count={historyRuns.length}>
+          {listQuery.isError ? (
+            <QueryError onRetry={() => listQuery.refetch()} />
+          ) : historyRuns.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-muted">
+              ยังไม่มีรอบที่ปิดเสร็จหรือยกเลิกใน 7 วันล่าสุด
             </p>
-          </div>
-          <Input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            maxLength={500}
-            placeholder="โน้ตรอบ เช่น ม้วนที่ 2 เครื่องซ้าย (ไม่บังคับ)"
-            className="order-3 w-full sm:order-none sm:w-64"
-          />
-          <Button
-            disabled={create.isPending || hasInvalidQty || pickedTotal < 1}
-            onClick={() =>
-              create.mutate({
-                items: pickedEntries.map((q) => ({ stepId: q.stepId, qty: picked[q.stepId]! })),
-                note: note.trim() || undefined,
-              })
-            }
-            className="h-11 gap-1.5"
-          >
-            {create.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Printer />
-            )}
-            เปิดรอบพิมพ์
-          </Button>
-        </div>
-      )}
+          ) : (
+            <ul className="divide-y divide-divider">
+              {historyRuns.map((run) => {
+                const badge = RUN_STATUS_BADGE[run.status] ?? RUN_STATUS_BADGE.CANCELLED;
+                const extraTotal = run.items.reduce((s, i) => s + i.extraQty, 0);
+                return (
+                  <li key={run.id} className="flex min-h-[44px] flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
+                    <span className="text-sm font-medium text-strong">{run.runNumber}</span>
+                    <Badge variant={badge.variant} size="sm">
+                      {badge.label}
+                    </Badge>
+                    <span className="min-w-0 flex-1 truncate text-xs tabular-nums text-muted">
+                      {run.items.length} งาน · รวม {runTotalQty(run)} ชิ้น
+                      {extraTotal > 0 && ` · เผื่อ ${extraTotal} ชิ้น`}
+                    </span>
+                    <span className="shrink-0 text-xs tabular-nums text-muted">
+                      {formatDateTime(run.completedAt ?? run.createdAt)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </BlockSection>
+      </div>
 
       {completing && (
         <CompleteRunDialog run={completing} onClose={() => setCompleting(null)} />
       )}
     </PageShell>
+  );
+}
+
+function RunStageSection({
+  stage,
+  runs,
+  busy,
+  canManage,
+  onMarkPrinted,
+  onCancel,
+  onComplete,
+}: {
+  stage: "printing" | "printed";
+  runs: PrintRun[];
+  busy: boolean;
+  canManage: boolean;
+  onMarkPrinted: (run: PrintRun) => void;
+  onCancel: (run: PrintRun) => void;
+  onComplete: (run: PrintRun) => void;
+}) {
+  const printing = stage === "printing";
+  return (
+    <BlockSection
+      stage={stage}
+      icon={printing ? Printer : Scissors}
+      title={printing ? "กำลังพิมพ์อยู่" : "รอตัดแยก + ติดป้าย"}
+      count={runs.length}
+    >
+      {runs.length === 0 ? (
+        <div className="flex min-h-16 items-center gap-3 px-4 py-4">
+          <span
+            aria-hidden="true"
+            className={cn(
+              "h-2.5 w-2.5 shrink-0 rounded-full",
+              printing ? "bg-slate-300 dark:bg-slate-700" : "bg-blue-200 dark:bg-blue-900",
+            )}
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-strong">
+              {printing ? "ตอนนี้เครื่องยังไม่มีรอบพิมพ์" : "ไม่มีรอบที่รอตัดแยก"}
+            </p>
+            <p className="mt-0.5 text-xs text-muted">
+              {printing
+                ? "เลือกงานจากคิวเพื่อเปิดรอบม้วนใหม่"
+                : "รอบที่กดพิมพ์จบจะย้ายมาอยู่ตรงนี้"}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="divide-y divide-divider">
+          {runs.map((run) => (
+            <ActiveRunCard
+              key={run.id}
+              run={run}
+              busy={busy}
+              canManage={canManage}
+              onMarkPrinted={() => onMarkPrinted(run)}
+              onCancel={() => onCancel(run)}
+              onComplete={() => onComplete(run)}
+            />
+          ))}
+        </div>
+      )}
+    </BlockSection>
   );
 }
 
@@ -411,48 +529,55 @@ function ActiveRunCard({
 }) {
   const badge = RUN_STATUS_BADGE[run.status] ?? RUN_STATUS_BADGE.PRINTING;
   return (
-    <div className="card-surface rounded-2xl p-4">
+    <article className="p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-base font-semibold text-slate-900 dark:text-white">
+        <span className="text-base font-semibold text-strong">
           {run.runNumber}
         </span>
         <Badge variant={badge.variant}>{badge.label}</Badge>
-        <span className="ml-auto text-xs tabular-nums text-slate-400">
+        <span className="ml-auto text-xs tabular-nums text-muted">
           {run.items.length} งาน · รวม {runTotalQty(run)} ชิ้น
         </span>
       </div>
       {run.note && (
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{run.note}</p>
+        <p className="mt-1 text-xs text-muted">{run.note}</p>
       )}
 
-      <ul className="mt-2.5 divide-y divide-slate-100 rounded-lg border border-slate-100 dark:divide-slate-800 dark:border-slate-800">
+      <ul className="mt-3 divide-y divide-divider overflow-hidden rounded-xl bg-surface-muted">
         {run.items.map((item) => (
-          <li key={item.id} className="flex min-h-[44px] items-center gap-3 px-3 py-2">
+          <li
+            key={item.id}
+            className="grid min-h-[60px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2"
+          >
             <DesignThumb design={item.order.designs[0] ?? null} size="sm" />
-            <span className="shrink-0 text-sm font-medium text-slate-900 dark:text-white">
-              {item.order.orderNumber}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-sm text-slate-500 dark:text-slate-400">
-              {item.order.title ?? ""}
-            </span>
-            <span className="shrink-0 text-sm tabular-nums text-slate-600 dark:text-slate-300">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-strong">{item.order.orderNumber}</p>
+              {item.order.title && (
+                <p className="truncate text-xs text-muted">{item.order.title}</p>
+              )}
+            </div>
+            <span className="shrink-0 text-sm tabular-nums text-secondary">
               {item.qty} ชิ้น
             </span>
           </li>
         ))}
       </ul>
 
-      <p className="mt-2 text-xs text-slate-400">
+      <p className="mt-2 text-xs text-muted">
         เปิดรอบโดย {run.createdBy.name} · {formatDateTime(run.createdAt)}
         {run.printedAt && ` · พิมพ์จบ ${formatDateTime(run.printedAt)}`}
       </p>
 
       {/* B8: ปุ่มสั่งงานเฉพาะคนมีสิทธิ์ผลิต — role อื่นเห็นรอบเป็นอ่านอย่างเดียว */}
       {canManage && (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex flex-col gap-2 xl:flex-row">
           {run.status === "PRINTING" ? (
             <>
-              <Button disabled={busy} onClick={onMarkPrinted} className="h-11 flex-1 gap-1.5">
+              <Button
+                disabled={busy}
+                onClick={onMarkPrinted}
+                className={cn(PRINT_RUN_CONTROL_H, "flex-1 gap-1.5")}
+              >
                 <Printer />
                 พิมพ์จบทั้งม้วน
               </Button>
@@ -460,20 +585,27 @@ function ActiveRunCard({
                 variant="outline"
                 disabled={busy}
                 onClick={onCancel}
-                className="h-11 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                className={cn(
+                  PRINT_RUN_CONTROL_H,
+                  "text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300",
+                )}
               >
                 ยกเลิกรอบ
               </Button>
             </>
           ) : (
-            <Button disabled={busy} onClick={onComplete} className="h-11 w-full gap-1.5">
+            <Button
+              disabled={busy}
+              onClick={onComplete}
+              className={cn(PRINT_RUN_CONTROL_H, "w-full gap-1.5")}
+            >
               <Scissors />
               ตัดแยก+ติดป้ายเสร็จ
             </Button>
           )}
         </div>
       )}
-    </div>
+    </article>
   );
 }
 
@@ -485,100 +617,129 @@ function QueueRow({
   entry,
   qty,
   onToggle,
+  onFocusAction,
   onQtyChange,
   canManage,
 }: {
   entry: QueueEntry;
   qty: number | undefined;
   onToggle: () => void;
+  onFocusAction: () => void;
   onQtyChange: (qty: number) => void;
   canManage: boolean;
 }) {
-  const selected = qty !== undefined;
+  const selected = canManage && qty !== undefined;
   const cap = entry.remaining > 0 ? entry.remaining : undefined;
   const invalid =
     selected && (!Number.isInteger(qty) || qty < 1 || (cap !== undefined && qty > cap));
-  const summary = (
-    <>
-      {canManage && (
-        <span
-          aria-hidden="true"
-          className={cn(
-            "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
-            selected
-              ? "border-blue-600 bg-blue-600 text-white"
-              : "border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-900"
-          )}
-        >
-          {selected && <Check className="h-3.5 w-3.5" />}
+  const invalidMessage = invalid
+    ? cap !== undefined
+      ? `ใส่จำนวน 1–${cap} ชิ้น`
+      : "ใส่จำนวนอย่างน้อย 1 ชิ้น"
+    : null;
+  const errorId = `print-run-qty-error-${entry.stepId}`;
+  const details = (
+    <div className="min-w-0 flex-1 text-left">
+      <p className="truncate text-sm font-medium text-strong">
+        {entry.orderNumber}
+        {entry.orderName && ` · ${entry.orderName}`}
+      </p>
+      <p className="truncate text-xs text-muted">{entry.customerName}</p>
+      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+        <DeadlineChip deadline={entry.dueDate} />
+        <span className="text-xs tabular-nums text-muted">
+          {entry.qtyTotal > 0
+            ? `พิมพ์แล้ว ${entry.qtyDone}/${entry.qtyTotal} · เหลือ ${entry.remaining}`
+            : "ไม่ระบุจำนวน"}
         </span>
-      )}
-      <DesignThumb design={entry.design} />
-      <div className="min-w-0 flex-1 text-left">
-        <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
-          {entry.orderNumber}
-          {entry.orderName && ` · ${entry.orderName}`}
-        </p>
-        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-          {entry.customerName}
-        </p>
-        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          <DeadlineChip deadline={entry.dueDate} />
-          <span className="text-xs tabular-nums text-slate-400">
-            {entry.qtyTotal > 0
-              ? `พิมพ์แล้ว ${entry.qtyDone}/${entry.qtyTotal} · เหลือ ${entry.remaining}`
-              : "ไม่ระบุจำนวน"}
-          </span>
-        </div>
       </div>
-    </>
+    </div>
   );
   return (
     <li
       className={cn(
-        "flex min-h-[56px] items-center transition-colors",
-        selected
-          ? "bg-blue-50/60 dark:bg-blue-950/20"
-          : ""
+        "relative grid min-h-[80px] grid-cols-[auto_minmax(0,1fr)_auto] items-center transition-colors",
+        selected ? "bg-interactive-selected" : "",
       )}
     >
-      {/* checkbox เลือกเข้ารอบ — เฉพาะคนมีสิทธิ์ผลิต (B8) */}
+      {/* ลิงก์ไฟล์ลายเป็น sibling ของปุ่มเลือก — ไม่มี interactive ซ้อนกัน */}
+      <div className="py-3 pl-4">
+        <DesignThumb design={entry.design} />
+      </div>
       {canManage ? (
         <button
           type="button"
           onClick={onToggle}
           aria-pressed={selected}
           aria-label={`${selected ? "นำออกจาก" : "เพิ่มเข้า"}รอบพิมพ์ ${entry.orderNumber}`}
-          className={cn("flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-interactive-hover", FOCUS_INSET, "active:bg-interactive-pressed")}
+          className={cn(
+            "flex min-h-[80px] min-w-0 items-center gap-3 px-3 py-3 text-left hover:bg-interactive-hover active:bg-interactive-pressed",
+            FOCUS_INSET,
+          )}
         >
-          {summary}
+          <span
+            aria-hidden="true"
+            className={cn(
+              "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+              selected
+                ? "border-blue-600 bg-blue-600 text-white"
+                : "border-slate-300 bg-surface dark:border-slate-600",
+            )}
+          >
+            {selected && <Check className="h-3.5 w-3.5" />}
+          </span>
+          {details}
         </button>
       ) : (
-        <div className="flex min-h-[56px] min-w-0 flex-1 items-center gap-3 px-4 py-3">
-          {summary}
+        <div className="flex min-h-[80px] min-w-0 items-center px-3 py-3">
+          {details}
         </div>
       )}
       {selected ? (
-        <div className="shrink-0 py-3 pr-4 text-right">
-          <label htmlFor={`print-run-qty-${entry.stepId}`} className="mb-0.5 block text-xs text-slate-400">พิมพ์รอบนี้ (ชิ้น)</label>
-          <Input
-            id={`print-run-qty-${entry.stepId}`}
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={cap}
-            value={qty}
-            onChange={(e) => onQtyChange(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-            className={cn(
-              "h-10 w-24 text-center tabular-nums",
-              invalid && cn("border-red-300", FOCUS_FIELD_INVALID)
+        <div className="col-span-2 col-start-2 flex items-end justify-between gap-3 px-3 pb-3 sm:col-span-1 sm:col-start-3 sm:block sm:px-4 sm:py-3 sm:text-right">
+          <label htmlFor={`print-run-qty-${entry.stepId}`} className="mb-0.5 block text-xs text-muted">พิมพ์รอบนี้ (ชิ้น)</label>
+          <div>
+            <Input
+              id={`print-run-qty-${entry.stepId}`}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={cap}
+              value={qty}
+              aria-invalid={invalid || undefined}
+              aria-describedby={invalid ? errorId : undefined}
+              onChange={(e) =>
+                onQtyChange(Math.max(0, Math.floor(Number(e.target.value) || 0)))
+              }
+              className={cn(
+                PRINT_RUN_CONTROL_H,
+                "w-24 text-center tabular-nums",
+                invalid && cn("border-red-300", FOCUS_FIELD_INVALID),
+              )}
+            />
+            {invalidMessage && (
+              <p id={errorId} role="alert" className="mt-1 text-xs text-red-700 dark:text-red-300">
+                {invalidMessage}
+              </p>
             )}
-          />
+          </div>
         </div>
       ) : (
-        <span className="shrink-0 py-3 pr-4 text-sm tabular-nums text-slate-500 dark:text-slate-400">
+        <span className="shrink-0 py-3 pr-4 text-sm tabular-nums text-muted">
           {entry.remaining > 0 ? `${entry.remaining} ชิ้น` : "—"}
         </span>
+      )}
+      {selected && (
+        <button
+          type="button"
+          onClick={onFocusAction}
+          className={cn(
+            FOCUS_BUTTON,
+            "sr-only focus:not-sr-only focus:absolute focus:bottom-3 focus:right-3 focus:z-30 focus:rounded-lg focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-strong",
+          )}
+        >
+          ไปที่แถบเปิดรอบ
+        </button>
       )}
     </li>
   );
@@ -667,7 +828,10 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
                           },
                         }))
                       }
-                      className="h-10 w-24 text-center tabular-nums"
+                      className={cn(
+                        PRINT_RUN_CONTROL_H,
+                        "w-24 text-center tabular-nums",
+                      )}
                     />
                   </div>
                 </div>
@@ -687,7 +851,7 @@ function CompleteRunDialog({ run, onClose }: { run: PrintRun; onClose: () => voi
                         }))
                       }
                       placeholder={`เช่น โลโก้อกซ้าย 8cm ดำ (ว่าง = ลายงาน ${item.order.orderNumber})`}
-                      className="h-10"
+                      className={PRINT_RUN_CONTROL_H}
                     />
                   </div>
                 )}

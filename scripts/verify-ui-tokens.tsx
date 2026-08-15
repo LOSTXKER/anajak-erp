@@ -1409,5 +1409,112 @@ check(
   }
 }
 
+/* ── รอบพิมพ์: ทางเดินหน้างาน + workspace สองฝั่ง ─────────────────────────
+   PRINTED ใหม่กว่าเคยดัน PRINTING ลงล่างเพราะรวม activeRuns ก้อนเดียว และ
+   desktop เคยวางรอบ/คิวเต็มแถวต่อกันจนช่างมองสองอย่างพร้อมกันไม่ได้ */
+{
+  const printRunsSource = readFileSync(
+    "src/app/(dashboard)/production/print-runs/page.tsx",
+    "utf8",
+  );
+  const queueRowStart = printRunsSource.indexOf("function QueueRow");
+  const queueRowEnd = printRunsSource.indexOf(
+    "function CompleteRunDialog",
+    queueRowStart,
+  );
+  const queueRowSource = printRunsSource.slice(queueRowStart, queueRowEnd);
+  const printingIndex = printRunsSource.indexOf('stage="printing"');
+  const printedIndex = printRunsSource.indexOf('stage="printed"');
+  const queueIndex = printRunsSource.indexOf('data-print-run-queue=""');
+  const historyIndex = printRunsSource.indexOf('data-print-run-history=""');
+  const selectionIndex = printRunsSource.indexOf(
+    'data-print-run-selection-bar=""',
+  );
+  const queueListIndex = printRunsSource.indexOf(
+    '<ul className="divide-y divide-divider">',
+    queueIndex,
+  );
+  const problems: string[] = [];
+
+  if (
+    printingIndex < 0 ||
+    printedIndex < 0 ||
+    queueIndex < 0 ||
+    historyIndex < 0 ||
+    !(printingIndex < printedIndex &&
+      printedIndex < queueIndex &&
+      queueIndex < historyIndex)
+  ) {
+    problems.push("DOM ต้องเรียงกำลังพิมพ์ → รอตัดแยก → คิว → ประวัติ");
+  }
+  if (
+    !printRunsSource.includes('data-print-run-workspace=""') ||
+    !printRunsSource.includes(
+      "lg:grid-cols-[minmax(18rem,4fr)_minmax(0,6fr)] xl:grid-cols-[minmax(22rem,5fr)_minmax(0,7fr)]",
+    ) ||
+    !printRunsSource.includes("splitPrintRunsByStage(runs)") ||
+    printRunsSource.includes("activeRuns") ||
+    printRunsSource.includes(".sort(")
+  ) {
+    problems.push(
+      "desktop ต้องเห็นรอบกับคิวพร้อมกัน แยกสถานะ และคงลำดับคิวจาก service",
+    );
+  }
+  if (
+    !printRunsSource.includes("meQuery.isLoading") ||
+    !printRunsSource.includes("meQuery.isError") ||
+    !printRunsSource.includes("ดูอย่างเดียว")
+  ) {
+    problems.push("permission loading/error/read-only ต้องไม่กลายเป็นคิวเลือกได้ชั่วคราว");
+  }
+  if (
+    queueRowStart < 0 ||
+    queueRowEnd < 0 ||
+    queueRowSource.indexOf("<DesignThumb") < 0 ||
+    queueRowSource.indexOf("<button") < 0 ||
+    queueRowSource.indexOf("<DesignThumb") > queueRowSource.indexOf("<button") ||
+    /<button[\s\S]*?<DesignThumb/.test(queueRowSource)
+  ) {
+    problems.push("ลิงก์ไฟล์ลายต้องเป็น sibling ก่อนปุ่มเลือกแถว ห้ามซ้อนใน button");
+  }
+  if (
+    !printRunsSource.includes('size === "md" ? "h-14 w-14" : "h-11 w-11"') ||
+    !printRunsSource.includes(
+      'PRINT_RUN_CONTROL_H = "h-11 min-h-11 sm:h-11 sm:min-h-11"',
+    ) ||
+    !queueRowSource.includes("min-h-[80px]") ||
+    !queueRowSource.includes("PRINT_RUN_CONTROL_H") ||
+    queueRowSource.includes("h-10")
+  ) {
+    problems.push("thumbnail/แถวเลือก/ช่องจำนวนต้องมีเป้ากดอย่างน้อย 44px");
+  }
+  if (
+    !printRunsSource.includes('aria-live="polite"') ||
+    !printRunsSource.includes('aria-label="โน้ตรอบพิมพ์"') ||
+    !queueRowSource.includes("aria-invalid={invalid || undefined}") ||
+    !queueRowSource.includes("ไปที่แถบเปิดรอบ") ||
+    !queueRowSource.includes("onFocusAction")
+  ) {
+    problems.push("selection/validation ต้องประกาศสถานะและมีทาง keyboard ไป action bar");
+  }
+  if (
+    selectionIndex < queueIndex ||
+    queueListIndex < 0 ||
+    selectionIndex > queueListIndex ||
+    !printRunsSource.includes("sticky top-3") ||
+    !printRunsSource.includes('className="card-surface overflow-clip rounded-2xl"')
+  ) {
+    problems.push("แถบเปิดรอบต้องอยู่ในบริบทคิวและตามเห็นทันทีเมื่อเลือกงาน");
+  }
+
+  if (problems.length) {
+    failed++;
+    console.log("❌ รอบพิมพ์กลับไปเรียงงานหรือวาง workspace ผิด");
+    problems.forEach((problem) => console.log(`   ${problem}`));
+  } else {
+    console.log("✅ รอบพิมพ์เรียงตามหน้างานและเห็นรอบกับคิวพร้อมกัน");
+  }
+}
+
 console.log(failed ? `\n❌ ไม่ผ่าน ${failed} ข้อ` : "\n✅ ผ่านครบ");
 process.exit(failed ? 1 : 0);
