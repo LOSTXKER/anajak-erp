@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PC4 ปิดด่าน UI การผลิต canonical ครบทั้งชุดแล้ว 2026-08-15**
+> ตรวจเรื่องราวจริงต่อเนื่อง **บอร์ดโรงงาน `/production` → ใบผลิต `/production/[id]` → รอบพิมพ์ `/production/print-runs`** โดยคง query, polling, mutation, payload, permission, due sort และกฎสถานะฝั่ง server ชุดเดิมทั้งหมด · ไม่เปลี่ยนกติกาเลนงานผสมที่อนุญาตให้ลงมือคนละเลนพร้อมกัน
+>
+> **state/สิทธิ์ไม่หายเงียบ:** บอร์ดและใบผลิตรอ `user.me` พร้อม query งานก่อนวาด action; initial permission error มี retry และ background error ไม่ถอนข้อมูล cache · ใบผลิตใช้ `PageShell width="content"` จุดเดียวครบ loading/error/not-found/normal · เสื้อจากสต๊อคและวัตถุดิบแยก loading/error+retry/success-empty จริง ไม่ใช้ `null`/`[]` กลบ query พัง
+>
+> **จอทัชและการเข้าถึง:** control กลางคงเป้ากด ≥44px บน `pointer: coarse` แม้จอกว้าง 1024px ส่วนเมาส์ desktop ยังหนาแน่น 36px · เติมชื่อช่อง, `aria-invalid`/เหตุผล, initial focus ใน sheet, pending text + `aria-busy`, semantic contrast และ lazy thumbnail · รอบพิมพ์แยก pure presentation เพื่อ render fixture แบบไม่ต่อ DB: manager + คิวยาว 24 งาน + เลือก 2 งาน + รอบทุกสถานะ และ read-only ที่เห็นข้อมูลแต่ไม่มี mutation control
+>
+> **หลักฐานหน้าจริงแบบอ่านอย่างเดียว:** cold origin ตรวจทั้ง 3 route ที่ 1440×900 และ 390×844 ครบ Light/Dark · บอร์ดมีข้อมูลจริง 20 ออเดอร์, ใบ `ORD-2606-0001` โหลด action/แบบ/เสื้อ/วัตถุดิบครบ, รอบพิมพ์แสดง empty state ตามฐานปัจจุบัน · ทุกหน้ามี `scrollWidth=clientWidth`, มือถือทุก interactive ที่มองเห็นวัดได้อย่างน้อย 44×44px, console ไม่มี error และ API ที่เกี่ยวตอบ 200
+>
+> **ด่าน final:** typecheck ผ่าน · lint 0 error (28 warning เดิมนอกก้อน) · unit **855/855** · `verify:ui` ผ่านพร้อม source/SSR guard · Impeccable detector `[]` · production build ผ่าน · ไม่คลิก mutation, ไม่สร้างข้อมูลทดสอบ และไม่รัน `verify:printrun` บนฐานแชร์
+>
+> **ต่อที่นี่:** รอเบสเปิด `/production` ดูของจริงเพื่อรับงานเชิงสายตา; งานต่อใน ROADMAP คือ MFG ตัวชี้วัดฝ่ายผลิต ไม่ปนเข้าก้อน UI นี้
+
 > **✅ PC3 รอบพิมพ์ฟิล์ม `/production/print-runs` จัดตามทางเดินหน้างานแล้ว 2026-08-15**
 > แยกรอบเป็น 4 ชั้นตามสิ่งที่ช่างต้องตัดสินใจจริง: **กำลังพิมพ์อยู่ → รอตัดแยก+ติดป้าย → คิวพิมพ์ → ประวัติ** · `PRINTED` ที่สร้างใหม่กว่าจะไม่ดันรอบ `PRINTING` บนเครื่องลงล่างอีก · desktop/laptop เป็นสองฝั่ง 4:6 และขยายเป็น 5:7 บนจอกว้าง เห็นรอบกับคิวพร้อมกัน ส่วน 390/320px ซ้อนลงตาม DOM เดียว ไม่มีการปัดสองแกน
 >

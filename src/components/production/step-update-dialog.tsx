@@ -170,6 +170,7 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
         </div>
         <DialogSubmitFooter
           pending={updateStep.isPending}
+          pendingLabel="กำลังบันทึก..."
           submitLabel="บันทึก"
           submitIcon={<Check />}
           onCancel={onClose}

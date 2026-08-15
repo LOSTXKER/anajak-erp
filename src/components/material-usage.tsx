@@ -7,11 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, cn } from "@/lib/utils";
-import { Package, Plus, Minus, Check, AlertCircle, Search, Loader2, X } from "lucide-react";
+import { Package, Plus, Minus, Check, AlertCircle, Search, Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { DEFAULT_STOCK_LOCATION } from "@/lib/stock-constants";
 import { Spinner } from "@/components/ui/spinner";
-import { Alert } from "@/components/ui/alert";
 import { TINT } from "@/components/ui/tokens";
 
 // ---------------------------------------------------------------------------
@@ -57,18 +56,19 @@ export function MaterialUsage({
   const [localMaterials, setLocalMaterials] = useState<LocalMaterial[]>([]);
 
   // ---- search products query ----
-  const { data: searchResults, isLoading: isSearching } =
-    trpc.product.searchForOrder.useQuery(
-      { search: searchTerm || undefined, itemType: "RAW_MATERIAL", limit: 15 },
-      { enabled: showPicker && searchTerm.length >= 1 }
-    );
+  const searchQuery = trpc.product.searchForOrder.useQuery(
+    { search: searchTerm || undefined, itemType: "RAW_MATERIAL", limit: 15 },
+    { enabled: showPicker && searchTerm.length >= 1 }
+  );
+  const searchResults = searchQuery.data ?? [];
 
   // B11: โหลดประวัติเบิกจริงจาก DB (เดิมจำเฉพาะ local state — reload แล้วหาย)
   const utils = trpc.useUtils();
-  const { data: deductedMaterials = [] } = trpc.stockSync.listMaterials.useQuery(
+  const materialsQuery = trpc.stockSync.listMaterials.useQuery(
     { productionId },
     { enabled: !!productionId }
   );
+  const deductedMaterials = materialsQuery.data ?? [];
 
   // idempotencyKey "คงที่ต่อ batch" — retry หลัง error ต้องส่ง key เดิม เพื่อให้ Stock คืน
   // เอกสารเดิม (ไม่ตัดสต๊อคจริงซ้ำ) แล้ว server เขียนฝั่ง ERP ให้ครบ · เกิด key ใหม่เฉพาะ
@@ -198,9 +198,9 @@ export function MaterialUsage({
       <CardContent className="space-y-3">
         {/* ---- Material Picker ---- */}
         {showPicker && (
-          <Alert variant="info">
+          <div className={cn(TINT.info, "rounded-xl border p-3 text-sm leading-relaxed")}>
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted" />
               <Input size="sm"
                 placeholder="ค้นหาวัตถุดิบ (ชื่อ / SKU / บาร์โค้ด)..."
                 value={searchTerm}
@@ -210,20 +210,44 @@ export function MaterialUsage({
               />
             </div>
 
-            {isSearching && (
-              <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-400">
+            {searchTerm.length >= 1 && searchQuery.isLoading && (
+              <div
+                role="status"
+                aria-busy="true"
+                className="flex items-center justify-center gap-2 py-4 text-xs text-muted"
+              >
                 <Spinner size="sm" />
                 กำลังค้นหา...
               </div>
             )}
 
-            {searchResults && searchResults.length > 0 && (
+            {searchTerm.length >= 1 && searchQuery.isError && !searchQuery.data && (
+              <div className={cn(TINT.error, "mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2")}>
+                <p role="alert" className="flex items-center gap-1.5 text-xs">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  ค้นหาวัตถุดิบไม่สำเร็จ
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void searchQuery.refetch()}
+                  className="gap-1.5"
+                >
+                  <RefreshCw aria-hidden="true" />
+                  ลองใหม่
+                </Button>
+              </div>
+            )}
+
+            {searchResults.length > 0 && (
               <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
                 {searchResults.map((product) => (
                   <button
+                    type="button"
                     key={product.id}
                     onClick={() => addMaterial(product as never)}
-                    className="group flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
+                    className="group flex min-h-11 w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
                   >
                     <div>
                       <span className="font-medium text-slate-900 dark:text-white">
@@ -249,10 +273,40 @@ export function MaterialUsage({
               </div>
             )}
 
-            {searchResults && searchResults.length === 0 && searchTerm.length >= 1 && (
-              <p className="py-3 text-center text-xs text-slate-400">ไม่พบวัตถุดิบ</p>
+            {searchQuery.data !== undefined && searchResults.length === 0 && searchTerm.length >= 1 && (
+              <p className="py-3 text-center text-xs text-muted">ไม่พบวัตถุดิบ</p>
             )}
-          </Alert>
+          </div>
+        )}
+
+        {materialsQuery.isLoading && (
+          <div
+            role="status"
+            aria-busy="true"
+            className="flex items-center gap-2 rounded-lg bg-surface-muted px-3 py-2 text-xs text-muted"
+          >
+            <Spinner size="sm" />
+            กำลังโหลดประวัติเบิกวัตถุดิบ...
+          </div>
+        )}
+
+        {materialsQuery.isError && !materialsQuery.data && (
+          <div className={cn(TINT.error, "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2")}>
+            <p role="alert" className="flex items-center gap-1.5 text-xs">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              โหลดประวัติเบิกวัตถุดิบไม่สำเร็จ
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void materialsQuery.refetch()}
+              className="gap-1.5"
+            >
+              <RefreshCw aria-hidden="true" />
+              ลองใหม่
+            </Button>
+          </div>
         )}
 
         {/* ---- Already-deducted materials ---- */}
@@ -270,7 +324,7 @@ export function MaterialUsage({
                     <span className="text-xs font-medium text-slate-900 dark:text-white">
                       {m.name}
                     </span>
-                    <span className="ml-1.5 text-xs text-slate-400">{m.sku}</span>
+                    <span className="ml-1.5 text-xs text-muted">{m.sku}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -278,7 +332,7 @@ export function MaterialUsage({
                     {m.quantity} {m.unit}
                   </span>
                   {showCosts && (
-                    <span className="text-xs tabular-nums text-slate-400">
+                    <span className="text-xs tabular-nums text-muted">
                       {formatCurrency(m.totalCost)}
                     </span>
                   )}
@@ -286,7 +340,7 @@ export function MaterialUsage({
                     เบิกแล้ว
                   </Badge>
                   {m.stockMovementRef && (
-                    <span className="text-2xs text-slate-400">{m.stockMovementRef}</span>
+                    <span className="text-2xs text-muted">{m.stockMovementRef}</span>
                   )}
                 </div>
               </div>
@@ -311,7 +365,7 @@ export function MaterialUsage({
                     <span className="truncate text-xs font-medium text-slate-900 dark:text-white">
                       {m.name}
                     </span>
-                    <span className="shrink-0 text-2xs text-slate-400">{m.sku}</span>
+                    <span className="shrink-0 text-2xs text-muted">{m.sku}</span>
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-2xs">
                     <span
@@ -321,7 +375,7 @@ export function MaterialUsage({
                           ? "text-red-500"
                           : m.currentStock < m.quantity
                             ? "text-amber-500"
-                            : "text-slate-400"
+                            : "text-muted"
                       )}
                     >
                       คงเหลือ: {m.currentStock}
@@ -347,6 +401,7 @@ export function MaterialUsage({
                     variant="outline"
                     size="icon-sm"
                     onClick={() => updateQuantity(m.id, m.quantity - 1)}
+                    aria-label={`ลดจำนวน ${m.name}`}
                     className="h-6 w-6"
                   >
                     <Minus />
@@ -355,6 +410,7 @@ export function MaterialUsage({
                     type="number"
                     value={m.quantity}
                     onChange={(e) => updateQuantity(m.id, parseFloat(e.target.value) || 0)}
+                    aria-label={`จำนวน ${m.name}`}
                     className="h-6 w-16 text-center text-xs tabular-nums"
                     min={0.01}
                     step={0.01}
@@ -363,6 +419,7 @@ export function MaterialUsage({
                     variant="outline"
                     size="icon-sm"
                     onClick={() => updateQuantity(m.id, m.quantity + 1)}
+                    aria-label={`เพิ่มจำนวน ${m.name}`}
                     className="h-6 w-6"
                   >
                     <Plus />
@@ -370,7 +427,7 @@ export function MaterialUsage({
                 </div>
 
                 {/* Unit */}
-                <span className="w-8 text-center text-2xs text-slate-400">{m.unit}</span>
+                <span className="w-8 text-center text-2xs text-muted">{m.unit}</span>
 
                 {/* Unit cost + row total — เงินโชว์/แก้ได้เฉพาะหัวหน้า */}
                 {showCosts && (
@@ -380,6 +437,7 @@ export function MaterialUsage({
                         type="number"
                         value={m.unitCost}
                         onChange={(e) => updateUnitCost(m.id, parseFloat(e.target.value) || 0)}
+                        aria-label={`ต้นทุนต่อหน่วย ${m.name}`}
                         className="h-6 text-right text-xs tabular-nums"
                         min={0}
                         step={0.01}
@@ -397,7 +455,8 @@ export function MaterialUsage({
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => removeMaterial(m.id)}
-                  className="ml-1 h-5 w-5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 dark:hover:text-red-400"
+                  aria-label={`ลบ ${m.name} ออกจากรายการ`}
+                  className="ml-1 h-5 w-5 text-muted hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 dark:hover:text-red-400"
                 >
                   <X />
                 </Button>
@@ -421,24 +480,25 @@ export function MaterialUsage({
                 size="sm"
                 onClick={handleIssueMaterials}
                 disabled={localMaterials.length === 0 || issueMutation.isPending}
+                aria-busy={issueMutation.isPending || undefined}
                 className="h-8 gap-1.5 text-xs"
               >
                 {issueMutation.isPending ? (
-                  <Loader2 className="animate-spin" />
+                  <Loader2 aria-hidden="true" className="animate-spin" />
                 ) : (
-                  <Package />
+                  <Package aria-hidden="true" />
                 )}
-                เบิกวัตถุดิบ
+                {issueMutation.isPending ? "กำลังเบิก..." : "เบิกวัตถุดิบ"}
               </Button>
             </div>
           </div>
         )}
 
         {/* ---- Empty state ---- */}
-        {localMaterials.length === 0 && deductedMaterials.length === 0 && !showPicker && (
+        {materialsQuery.data !== undefined && localMaterials.length === 0 && deductedMaterials.length === 0 && !showPicker && (
           <div className="py-4 text-center">
             <Package className="mx-auto h-8 w-8 text-slate-200 dark:text-slate-700" />
-            <p className="mt-1.5 text-xs text-slate-400">ยังไม่มีวัตถุดิบ</p>
+            <p className="mt-1.5 text-xs text-muted">ยังไม่มีวัตถุดิบ</p>
             <p className="text-2xs text-muted">
               กดปุ่ม &quot;เพิ่มวัตถุดิบ&quot; เพื่อเริ่มเพิ่มรายการ
             </p>

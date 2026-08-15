@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,6 +39,8 @@ export function StepQtySheet({
   const done = step.qtyDone ?? 0;
   const remaining = Math.max(0, total - done);
   const [value, setValue] = useState<string>(String(remaining));
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const descriptionId = useId();
 
   const stepName = step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
   // จำนวนทำเพิ่มรอบนี้ clamp ไม่เกินที่เหลือ — server ไม่ validate เพดาน qtyDone
@@ -55,15 +57,18 @@ export function StepQtySheet({
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       {/* มือถือ: แผ่นติดขอบล่าง (นิ้วโป้งถึง) · จอใหญ่: dialog กลางจอปกติ ·
-          กัน autofocus — คีย์บอร์ดมือถือเด้งทับปุ่มยืนยันที่ติดขอบล่าง (เคสหลัก
-          "ครบ→ยืนยัน" ไม่ต้องพิมพ์เลย · คีย์บอร์ดเปิดเมื่อช่างแตะช่องเองเท่านั้น) */}
+          โฟกัสหัวเรื่องแทน input — คีย์บอร์ดมือถือไม่เด้งทับปุ่มยืนยันที่ติดขอบล่าง
+          (เคสหลัก "ครบ→ยืนยัน" ไม่ต้องพิมพ์เลย · คีย์บอร์ดเปิดเมื่อช่างแตะช่องเองเท่านั้น) */}
       <DialogContent
-        onOpenAutoFocus={(e) => e.preventDefault()}
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          titleRef.current?.focus();
+        }}
         className="bottom-0 left-0 right-0 top-auto max-w-full translate-x-0 translate-y-0 rounded-b-none rounded-t-2xl p-5 data-[state=closed]:slide-out-to-bottom-10 data-[state=open]:slide-in-from-bottom-10 sm:bottom-auto sm:left-[50%] sm:right-auto sm:top-[50%] sm:max-w-sm sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:p-6"
       >
         <div className="space-y-1">
-          <DialogTitle>{stepName}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle ref={titleRef} tabIndex={-1}>{stepName}</DialogTitle>
+          <DialogDescription id={descriptionId}>
             ทำแล้ว <span className="font-semibold tabular-nums">{done}/{total}</span> ตัว
             — รอบนี้ทำเพิ่มกี่ตัว?
           </DialogDescription>
@@ -76,6 +81,8 @@ export function StepQtySheet({
             min={0}
             max={remaining}
             value={value}
+            aria-label={`จำนวนที่ทำเพิ่มสำหรับ ${stepName}`}
+            aria-describedby={descriptionId}
             onChange={(e) => setValue(e.target.value)}
             // แตะช่องแล้วเลขเดิมถูก select ทั้งก้อน — พิมพ์ใหม่แทนที่ทันที (กัน "50"→"5010")
             onFocus={(e) => e.currentTarget.select()}
@@ -111,14 +118,19 @@ export function StepQtySheet({
           <Button
             onClick={handleConfirm}
             disabled={busy || added <= 0}
+            aria-busy={busy || undefined}
             className="h-11 flex-[2] gap-1.5"
           >
             {busy ? (
-              <Loader2 className="animate-spin" />
+              <Loader2 aria-hidden="true" className="animate-spin" />
             ) : (
-              <Check />
+              <Check aria-hidden="true" />
             )}
-            {willComplete ? "เสร็จครบ — ปิดขั้นนี้" : `บันทึก ${newDone}/${total}`}
+            {busy
+              ? "กำลังบันทึก..."
+              : willComplete
+                ? "เสร็จครบ — ปิดขั้นนี้"
+                : `บันทึก ${newDone}/${total}`}
           </Button>
         </div>
       </DialogContent>

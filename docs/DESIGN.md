@@ -119,7 +119,7 @@ selected และ focus เพื่อให้สถานะชี้กั�
 ## Mobile-first (หน้า ops: task queue / production / งานหน้าเครื่อง)
 
 พนักงานใช้มือถือหน้างาน — หน้า ops ต้อง:
-1. **เป้านิ้ว ≥ 44px**: control กลางทุกชนิดสูงอย่างน้อย 44px บนจอ < `sm`; desktop กลับเป็น 36px ได้ · แถว/ไอคอนที่กดได้มี hit area ≥ 44×44px
+1. **เป้านิ้ว ≥ 44px**: control กลางทุกชนิดสูงอย่างน้อย 44px บนจอ < `sm` และบนอุปกรณ์ `pointer: coarse` ทุกขนาด; desktop ที่ใช้เมาส์กลับเป็น 36px ได้ · แถว/ไอคอนที่กดได้มี hit area ≥ 44×44px
 2. **ตาราง → การ์ด**: ใช้ `ResponsiveList` (สลับที่ `lg` — จอแคบกว่านั้น sidebar กินพื้นที่จนตารางบีบ) — ห้ามเขียน `hidden lg:block`/`lg:hidden` เอง
 3. **action หลักติดจอ**: ปุ่มยืนยันงานใช้ sticky bottom bar บนมือถือ
 4. **dialog**: ConfirmDialog ทำให้แล้ว (ปุ่มเต็มแถวซ้อนกันบนจอเล็ก) — dialog ใหม่ทำตาม
@@ -152,6 +152,17 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 - action สำคัญห้ามพึ่ง hover; ปุ่มลบ/แก้ต้องมองเห็นและแตะได้บน coarse pointer
 - public token pages บังคับ light theme เพื่อให้เอกสารลูกค้าอ่านได้แน่นอน แม้เครื่องตั้ง system dark
 - animation ต้องเคารพ `prefers-reduced-motion`; ทุกหน้าหลังบ้านมี skip link ไป `<main id="main-content">`
+
+## Canonical production operations (`/production*`)
+
+> Surface นี้เป็นโต๊ะทำงานจริงของโรงงาน ไม่ใช่ dashboard สรุป: เจ้าของ/หัวหน้าใช้คอมและจอทัชตั้งโต๊ะเป็นหลัก ส่วน 390px เป็น fallback ที่ต้องไม่ล้มแนวนอน · ห้ามเพิ่มเงิน ต้นทุน กฎสถานะ หรือ mutation ชุดใหม่เข้ามาใน presentation
+
+- `/production` เป็นบอร์ดโรงงานล้วน: คอลัมน์เรียงตามสถานีจริงและการ์ดเรียงตามกำหนดส่ง; กดหัวคอลัมน์เพื่อโฟกัสสายเดียวผ่าน URL ได้ · การ์ดมีเฉพาะเลขงาน ลูกค้า ชื่องาน จำนวน กำหนดส่ง และจุดปัจจุบัน แล้วเปิดใบผลิตทั้งใบ ไม่มี CTA ซ้ำบนการ์ด
+- `/production/[id]` เป็นหน้าลงมือแบบคอลัมน์อ่านโฟกัส `PageShell width="content"`: **ตอนนี้ต้องทำ → แบบ/ไซส์ → ขั้นทั้งหมด → เบิกเสื้อ/วัตถุดิบ** · loading, error, not-found และหน้าปกติใช้ shell/ความกว้างเดียวกัน
+- `/production/print-runs` เรียง **กำลังพิมพ์ → รอตัดแยก+ติดป้าย → คิวตามกำหนดส่ง → ประวัติ** ตาม DOM เดียว · desktop วางรอบกับคิวคู่กัน 4:6 และขยาย 5:7; mobile ซ้อนลงโดยไม่สร้าง scroll สองแกน
+- ทุก route รอทั้ง query งานและ `user.me` ก่อนสรุปสิทธิ์; error มี retry และข้อมูลรองในใบผลิตต้องแยก loading/error/success-empty ไม่ใช้ `[]`/`null` กลบความผิดพลาด · คนอ่านอย่างเดียวยังเห็นข้อมูล แต่ไม่มี control ที่ server ไม่อนุญาต
+- รูปลายกับปุ่มเลือกต้องเป็น sibling ห้าม interactive ซ้อนกัน · action/field บนมือถือและ coarse pointer ≥44px · pending state ต้องมีข้อความ “กำลัง…”/`aria-busy` จึงยังสื่อความหมายเมื่อ reduced motion หยุด spinner
+- data truth มาจาก `production.kanban`, `production.getById`, `printRun.queue/list` และ `user.me`; mutation, permission, polling, due sort, `evaluateHeatPressGate` และ transition ของ server เป็น source of truth เดิม ห้าม presentation คำนวณกฎธุรกิจชุดที่สอง
 
 ## Prototype world — ERP Command Center (/redesign)
 

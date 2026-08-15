@@ -1409,32 +1409,385 @@ check(
   }
 }
 
+/* ── หน้าผลิตหลัก: shell/state/permission/touch contract ────────────────────
+   หน้า ops ต้องรอทั้งข้อมูลงานและสิทธิ์ก่อนวาด action; ใบผลิตทุก state ใช้
+   PageShell content จุดเดียว และจอทัชขนาดใหญ่ต้องไม่ยุบ control กลับเป็น 36px */
+{
+  const productionBoardSource = readFileSync(
+    "src/app/(dashboard)/production/page.tsx",
+    "utf8",
+  );
+  const productionDetailSource = readFileSync(
+    "src/app/(dashboard)/production/[id]/page.tsx",
+    "utf8",
+  );
+  const garmentPickSource = readFileSync(
+    "src/components/production/garment-pick-card.tsx",
+    "utf8",
+  );
+  const materialUsageSource = readFileSync(
+    "src/components/material-usage.tsx",
+    "utf8",
+  );
+  const controlSizeSource = readFileSync(
+    "src/components/ui/control-size.ts",
+    "utf8",
+  );
+  const buttonSource = readFileSync("src/components/ui/button.tsx", "utf8");
+  const dialogSource = readFileSync("src/components/ui/dialog.tsx", "utf8");
+  const dialogFooterSource = readFileSync(
+    "src/components/ui/dialog-submit-footer.tsx",
+    "utf8",
+  );
+  const productionDesignSource = readFileSync(
+    "src/components/production/production-design-card.tsx",
+    "utf8",
+  );
+  const printRunDialogSource = readFileSync(
+    "src/app/(dashboard)/production/print-runs/page.tsx",
+    "utf8",
+  );
+  const printRunViewSource = readFileSync(
+    "src/components/production/print-runs-page-view.tsx",
+    "utf8",
+  );
+  const problems: string[] = [];
+
+  if (
+    !productionBoardSource.includes("const meQuery = trpc.user.me.useQuery()") ||
+    !productionBoardSource.includes("loading={isLoading || meQuery.isLoading}") ||
+    !productionBoardSource.includes("meQuery.isError && !me") ||
+    !productionBoardSource.includes("onRetry: () => meQuery.refetch()") ||
+    !productionBoardSource.includes("isError && !orders") ||
+    !productionBoardSource.includes("onRetry: () => refetch()")
+  ) {
+    problems.push("บอร์ดผลิตต้องรอ permission และมี error+retry แบบ fail closed");
+  }
+
+  if (
+    (productionDetailSource.match(/<PageShell\b/g) ?? []).length !== 1 ||
+    !productionDetailSource.includes('width="content"') ||
+    !productionDetailSource.includes(
+      "loading={productionQuery.isLoading || meQuery.isLoading}",
+    ) ||
+    !productionDetailSource.includes("meQuery.isError && !me") ||
+    !productionDetailSource.includes("productionQuery.isError && !production") ||
+    !productionDetailSource.includes("onRetry: () => meQuery.refetch()") ||
+    !productionDetailSource.includes("onRetry: () => productionQuery.refetch()") ||
+    !productionDetailSource.includes("<RecordNotFound") ||
+    productionDetailSource.includes("max-w-4xl") ||
+    productionDetailSource.includes("PageHeader")
+  ) {
+    problems.push("ใบผลิตทุก state ต้องใช้ PageShell content จุดเดียวและแยก permission error");
+  }
+
+  if (
+    !garmentPickSource.includes("garmentPickQuery.isLoading") ||
+    !garmentPickSource.includes(
+      "garmentPickQuery.isError && !garmentPickQuery.data",
+    ) ||
+    !garmentPickSource.includes("garmentPickQuery.refetch()") ||
+    !materialUsageSource.includes("materialsQuery.isLoading") ||
+    !materialUsageSource.includes("materialsQuery.isError && !materialsQuery.data") ||
+    !materialUsageSource.includes("materialsQuery.data !== undefined") ||
+    !materialUsageSource.includes("searchQuery.isError && !searchQuery.data") ||
+    !materialUsageSource.includes("searchQuery.data !== undefined") ||
+    !materialUsageSource.includes("searchQuery.refetch()")
+  ) {
+    problems.push("ข้อมูลเสื้อ/วัตถุดิบต้องแยก loading, error+retry และ success-empty");
+  }
+
+  if (
+    (controlSizeSource.match(/\[@media\(pointer:coarse\)\]:min-h-11/g) ?? [])
+      .length < 3 ||
+    !buttonSource.includes("[@media(pointer:coarse)]:min-w-11") ||
+    !dialogSource.includes("[@media(pointer:coarse)]:w-11")
+  ) {
+    problems.push("control/ปุ่มปิด dialog ต้องคงเป้ากด 44px บน pointer coarse ทุกความกว้าง");
+  }
+
+  if (
+    !dialogFooterSource.includes("pendingLabel?: ReactNode") ||
+    !dialogFooterSource.includes("aria-busy={pending || undefined}") ||
+    !dialogFooterSource.includes("pending ? (pendingLabel ?? submitLabel) : submitLabel") ||
+    !printRunDialogSource.includes('pendingLabel="กำลังปิดรอบ..."')
+  ) {
+    problems.push("dialog mutation ต้องประกาศ busy และมีข้อความ pending ที่ไม่พึ่ง spinner");
+  }
+
+  if (
+    productionDesignSource.includes('text-slate-400">{pr.designNote}') ||
+    printRunDialogSource.includes('block text-xs text-slate-400') ||
+    printRunViewSource.includes('border-slate-300 bg-surface')
+  ) {
+    problems.push("ข้อความรองและขอบ control บนหน้าผลิตต้องใช้ token ที่ผ่าน contrast");
+  }
+
+  if (problems.length) {
+    failed++;
+    console.log("❌ หน้าผลิตหลักยังแยก state/permission/touch contract ไม่ครบ");
+    problems.forEach((problem) => console.log(`   ${problem}`));
+  } else {
+    console.log("✅ หน้าผลิตหลักแยก state/permission และคง touch target บนจอทัช");
+  }
+}
+
 /* ── รอบพิมพ์: ทางเดินหน้างาน + workspace สองฝั่ง ─────────────────────────
    PRINTED ใหม่กว่าเคยดัน PRINTING ลงล่างเพราะรวม activeRuns ก้อนเดียว และ
    desktop เคยวางรอบ/คิวเต็มแถวต่อกันจนช่างมองสองอย่างพร้อมกันไม่ได้ */
 {
-  const printRunsSource = readFileSync(
+  const printRunsControllerSource = readFileSync(
     "src/app/(dashboard)/production/print-runs/page.tsx",
     "utf8",
   );
-  const queueRowStart = printRunsSource.indexOf("function QueueRow");
-  const queueRowEnd = printRunsSource.indexOf(
-    "function CompleteRunDialog",
-    queueRowStart,
+  const printRunsViewSource = readFileSync(
+    "src/components/production/print-runs-page-view.tsx",
+    "utf8",
   );
-  const queueRowSource = printRunsSource.slice(queueRowStart, queueRowEnd);
-  const printingIndex = printRunsSource.indexOf('stage="printing"');
-  const printedIndex = printRunsSource.indexOf('stage="printed"');
-  const queueIndex = printRunsSource.indexOf('data-print-run-queue=""');
-  const historyIndex = printRunsSource.indexOf('data-print-run-history=""');
-  const selectionIndex = printRunsSource.indexOf(
+  const printRunsSource = `${printRunsControllerSource}\n${printRunsViewSource}`;
+  const queueRowStart = printRunsViewSource.indexOf("function QueueRow");
+  const queueRowSource = printRunsViewSource.slice(queueRowStart);
+  const printingIndex = printRunsViewSource.indexOf('stage="printing"');
+  const printedIndex = printRunsViewSource.indexOf('stage="printed"');
+  const queueIndex = printRunsViewSource.indexOf('data-print-run-queue=""');
+  const historyIndex = printRunsViewSource.indexOf('data-print-run-history=""');
+  const selectionIndex = printRunsViewSource.indexOf(
     'data-print-run-selection-bar=""',
   );
-  const queueListIndex = printRunsSource.indexOf(
-    '<ul className="divide-y divide-divider">',
+  const queueListIndex = printRunsViewSource.indexOf(
+    'data-print-run-queue-list=""',
     queueIndex,
   );
   const problems: string[] = [];
+
+  const { PrintRunsPageView } = require(
+    "../src/components/production/print-runs-page-view",
+  );
+  const noop = () => {};
+  const queueFixture = Array.from({ length: 24 }, (_, index) => {
+    const number = String(index + 1).padStart(2, "0");
+    return {
+      stepId: `queue-${number}`,
+      productionId: `production-${number}`,
+      orderId: `order-${number}`,
+      orderNumber: `ORD-VERIFY-${number}`,
+      orderName: `งานทดสอบ ${number}`,
+      customerName: `ลูกค้าทดสอบ ${number}`,
+      dueDate: `2099-08-${number}T03:00:00.000Z`,
+      qtyDone: 0,
+      qtyTotal: 10,
+      remaining: 10,
+      design: {
+        versionNumber: 1,
+        fileUrl: `/api/files/verify/queue-${number}.pdf`,
+        thumbnailUrl: null,
+      },
+    };
+  });
+  const runFixture = (status: string, runNumber: string) => ({
+    id: runNumber,
+    runNumber,
+    status,
+    note: null,
+    createdAt: "2026-08-15T02:00:00.000Z",
+    printedAt: status === "PRINTING" ? null : "2026-08-15T03:00:00.000Z",
+    completedAt:
+      status === "COMPLETED" || status === "CANCELLED"
+        ? "2026-08-15T04:00:00.000Z"
+        : null,
+    createdBy: { name: "ช่างทดสอบ" },
+    items: [
+      {
+        id: `${runNumber}-item`,
+        qty: 5,
+        extraQty: status === "COMPLETED" ? 1 : 0,
+        order: {
+          orderNumber: `ORD-${runNumber}`,
+          title: "งานในรอบทดสอบ",
+          designs: [
+            {
+              versionNumber: 2,
+              fileUrl: `/api/files/verify/${runNumber}.pdf`,
+              thumbnailUrl: null,
+            },
+          ],
+        },
+      },
+    ],
+  });
+  const picked = { "queue-02": 4, "queue-24": 3 };
+  const selection = {
+    picked,
+    entries: [queueFixture[1], queueFixture[23]],
+    total: 7,
+    hasInvalidQty: false,
+    note: "ม้วนทดสอบ",
+    createPending: false,
+    onNoteChange: noop,
+    onCreate: noop,
+    onToggle: noop,
+    onFocusAction: noop,
+    onQtyChange: noop,
+  };
+  const viewProps = {
+    queue: queueFixture,
+    printingRuns: [runFixture("PRINTING", "FR-VERIFY-PRINTING")],
+    printedRuns: [runFixture("PRINTED", "FR-VERIFY-PRINTED")],
+    historyRuns: [
+      runFixture("COMPLETED", "FR-VERIFY-COMPLETED"),
+      runFixture("CANCELLED", "FR-VERIFY-CANCELLED"),
+    ],
+    queueError: false,
+    listError: false,
+    onRetryQueue: noop,
+    onRetryList: noop,
+    actionNoteRef: { current: null },
+    selection,
+    runActions: {
+      busy: false,
+      onMarkPrinted: noop,
+      onCancel: noop,
+      onComplete: noop,
+    },
+  };
+  const managerHtml = renderToStaticMarkup(
+    React.createElement(PrintRunsPageView, { ...viewProps, canManage: true }),
+  );
+  const readOnlyHtml = renderToStaticMarkup(
+    React.createElement(PrintRunsPageView, { ...viewProps, canManage: false }),
+  );
+  const pendingHtml = renderToStaticMarkup(
+    React.createElement(PrintRunsPageView, {
+      ...viewProps,
+      canManage: true,
+      selection: { ...selection, createPending: true },
+    }),
+  );
+  const emptyHtml = renderToStaticMarkup(
+    React.createElement(PrintRunsPageView, {
+      ...viewProps,
+      queue: [],
+      printingRuns: [],
+      printedRuns: [],
+      historyRuns: [],
+      canManage: true,
+      selection: {
+        ...selection,
+        picked: {},
+        entries: [],
+        total: 0,
+      },
+    }),
+  );
+  const errorHtml = renderToStaticMarkup(
+    React.createElement(PrintRunsPageView, {
+      ...viewProps,
+      queue: [],
+      printingRuns: [],
+      printedRuns: [],
+      historyRuns: [],
+      canManage: true,
+      queueError: true,
+      listError: true,
+      selection: {
+        ...selection,
+        picked: {},
+        entries: [],
+        total: 0,
+      },
+    }),
+  );
+  const renderedPrintingIndex = managerHtml.indexOf('data-print-run-stage="printing"');
+  const renderedPrintedIndex = managerHtml.indexOf('data-print-run-stage="printed"');
+  const renderedQueueIndex = managerHtml.indexOf('data-print-run-queue=""');
+  const renderedHistoryIndex = managerHtml.indexOf('data-print-run-history=""');
+  const renderedSelectionIndex = managerHtml.indexOf('data-print-run-selection-bar=""');
+  const renderedQueueListIndex = managerHtml.indexOf('data-print-run-queue-list=""');
+  const renderedRows = [
+    ...managerHtml.matchAll(/data-print-run-queue-row="([^"]+)"/g),
+  ].map((match) => match[1]);
+
+  if (
+    !(
+      renderedPrintingIndex < renderedPrintedIndex &&
+      renderedPrintedIndex < renderedQueueIndex &&
+      renderedQueueIndex < renderedHistoryIndex
+    ) ||
+    !managerHtml
+      .slice(renderedPrintingIndex, renderedPrintedIndex)
+      .includes("FR-VERIFY-PRINTING") ||
+    !managerHtml
+      .slice(renderedPrintedIndex, renderedQueueIndex)
+      .includes("FR-VERIFY-PRINTED")
+  ) {
+    problems.push("fixture populated ต้อง render รอบตามลำดับสถานะจริง");
+  }
+  if (
+    renderedRows.length !== queueFixture.length ||
+    renderedRows.join(",") !== queueFixture.map((entry) => entry.stepId).join(",")
+  ) {
+    problems.push("fixture คิวยาวต้อง render ครบและรักษาลำดับจาก service");
+  }
+  if (
+    renderedSelectionIndex < renderedQueueIndex ||
+    renderedSelectionIndex > renderedQueueListIndex ||
+    !managerHtml.includes("เลือก 2 งาน · รวม 7 ชิ้น") ||
+    (managerHtml.match(/aria-pressed="true"/g) ?? []).length !== 2 ||
+    !managerHtml.includes('id="print-run-qty-queue-02"') ||
+    !managerHtml.includes('id="print-run-qty-queue-24"') ||
+    !managerHtml.includes("เปิดรอบพิมพ์") ||
+    !managerHtml.includes("พิมพ์จบทั้งม้วน") ||
+    !managerHtml.includes("ตัดแยก+ติดป้ายเสร็จ")
+  ) {
+    problems.push("fixture ผู้จัดการต้องเห็น selection และ action ครบ");
+  }
+  if (
+    !managerHtml.slice(renderedQueueIndex, renderedHistoryIndex).includes("sticky top-3") ||
+    !managerHtml
+      .slice(renderedQueueIndex, renderedHistoryIndex)
+      .includes("card-surface overflow-clip rounded-2xl")
+  ) {
+    problems.push("fixture คิวยาวต้องคง sticky bar ใต้ ancestor ที่ไม่เป็น scroll container");
+  }
+  if (
+    (readOnlyHtml.match(/data-print-run-queue-row=/g) ?? []).length !==
+      queueFixture.length ||
+    !readOnlyHtml.includes("ORD-VERIFY-01") ||
+    !readOnlyHtml.includes("ORD-VERIFY-24") ||
+    readOnlyHtml.includes("data-print-run-selection-bar") ||
+    readOnlyHtml.includes("aria-pressed=") ||
+    readOnlyHtml.includes('id="print-run-qty-') ||
+    readOnlyHtml.includes("<button")
+  ) {
+    problems.push("fixture read-only ต้องเห็นคิวครบโดยไม่มี selection หรือ mutation action");
+  }
+  if (
+    !pendingHtml.includes('aria-busy="true"') ||
+    !pendingHtml.includes("กำลังเปิดรอบ…") ||
+    !pendingHtml.includes('aria-hidden="true"') ||
+    !pendingHtml.includes("motion-reduce:animate-none")
+  ) {
+    problems.push("ปุ่มเปิดรอบระหว่างรอต้องประกาศ busy และหยุด animation เมื่อ reduce motion");
+  }
+  if (
+    !emptyHtml.includes("ตอนนี้เครื่องยังไม่มีรอบพิมพ์") ||
+    !emptyHtml.includes("ไม่มีรอบที่รอตัดแยก") ||
+    !emptyHtml.includes("คิวพิมพ์ว่าง") ||
+    !emptyHtml.includes("ยังไม่มีรอบที่ปิดเสร็จหรือยกเลิกใน 7 วันล่าสุด") ||
+    emptyHtml.includes('role="alert"') ||
+    emptyHtml.includes("data-print-run-selection-bar")
+  ) {
+    problems.push("fixture empty ต้องแยกข้อความครบทั้ง 4 ช่วงโดยไม่มี error/selection ปน");
+  }
+  if (
+    (errorHtml.match(/role="alert"/g) ?? []).length !== 3 ||
+    (errorHtml.match(/ลองใหม่/g) ?? []).length !== 3 ||
+    errorHtml.includes("ตอนนี้เครื่องยังไม่มีรอบพิมพ์") ||
+    errorHtml.includes("คิวพิมพ์ว่าง") ||
+    errorHtml.includes("ยังไม่มีรอบที่ปิดเสร็จหรือยกเลิกใน 7 วันล่าสุด")
+  ) {
+    problems.push("fixture error ต้องมี retry แยก stage/queue/history และไม่ปลอมเป็น empty");
+  }
 
   if (
     printingIndex < 0 ||
@@ -1462,14 +1815,15 @@ check(
   }
   if (
     !printRunsSource.includes("meQuery.isLoading") ||
-    !printRunsSource.includes("meQuery.isError") ||
+    !printRunsSource.includes("meQuery.isError && !me") ||
+    !printRunsSource.includes("queueQuery.isError && !queueQuery.data") ||
+    !printRunsSource.includes("listQuery.isError && !listQuery.data") ||
     !printRunsSource.includes("ดูอย่างเดียว")
   ) {
     problems.push("permission loading/error/read-only ต้องไม่กลายเป็นคิวเลือกได้ชั่วคราว");
   }
   if (
     queueRowStart < 0 ||
-    queueRowEnd < 0 ||
     queueRowSource.indexOf("<DesignThumb") < 0 ||
     queueRowSource.indexOf("<button") < 0 ||
     queueRowSource.indexOf("<DesignThumb") > queueRowSource.indexOf("<button") ||

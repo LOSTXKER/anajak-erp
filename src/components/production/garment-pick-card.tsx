@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -17,8 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { cn } from "@/lib/utils";
-import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
-import { Shirt, Check, AlertTriangle, PackageOpen, Undo2 } from "lucide-react";
+import { FOCUS_FIELD_INVALID, TINT } from "@/components/ui/tokens";
+import { Shirt, Check, AlertTriangle, PackageOpen, RefreshCw, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ProductionStep } from "./types";
 
@@ -47,7 +48,45 @@ const lineLabel = (l: GarmentLine) =>
 export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentPickCardProps) {
   const [showIssue, setShowIssue] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
-  const { data } = trpc.production.garmentPick.useQuery({ productionId });
+  const garmentPickQuery = trpc.production.garmentPick.useQuery({ productionId });
+
+  if (garmentPickQuery.isLoading) {
+    return (
+      <Card
+        role="status"
+        aria-busy="true"
+        className="flex items-center gap-2 p-4 text-sm text-muted"
+      >
+        <Spinner size="sm" />
+        กำลังโหลดข้อมูลเสื้อจากสต๊อค...
+      </Card>
+    );
+  }
+
+  if (garmentPickQuery.isError && !garmentPickQuery.data) {
+    return (
+      <Card className="p-4">
+        <div className={cn(TINT.error, "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2")}>
+          <p role="alert" className="flex items-center gap-1.5 text-xs">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            โหลดข้อมูลเสื้อจากสต๊อคไม่สำเร็จ
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void garmentPickQuery.refetch()}
+            className="gap-1.5"
+          >
+            <RefreshCw aria-hidden="true" />
+            ลองใหม่
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  const data = garmentPickQuery.data;
 
   if (!data || data.lines.length === 0) return null;
 
@@ -88,7 +127,7 @@ export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentP
                 <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
                   {lineLabel(l)}
                 </p>
-                <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                <p className="text-xs tabular-nums text-muted">
                   ต้องใช้ {l.needed} · เบิกแล้ว {l.issued}
                   {l.returned > 0 && ` · คืนแล้ว ${l.returned}`}
                 </p>
@@ -214,15 +253,16 @@ function IssueGarmentsDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          {lines.map((l) => {
+          {lines.map((l, index) => {
             const remaining = Math.max(0, l.needed - (l.issued - l.returned));
+            const helpId = `issue-garment-${index}-help`;
             return (
               <div key={l.sku} className="flex items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
                     {lineLabel(l)}
                   </p>
-                  <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  <p id={helpId} className="text-xs tabular-nums text-muted">
                     ต้องใช้ {l.needed} · ยังขาด {remaining}
                   </p>
                 </div>
@@ -231,6 +271,8 @@ function IssueGarmentsDialog({
                   inputMode="numeric"
                   min={0}
                   value={qty[l.sku] ?? 0}
+                  aria-label={`จำนวนเสื้อที่จะเบิก ${lineLabel(l)}`}
+                  aria-describedby={helpId}
                   onChange={(e) =>
                     setQty((prev) => ({
                       ...prev,
@@ -246,6 +288,7 @@ function IssueGarmentsDialog({
         <DialogSubmitFooter
           pending={issue.isPending}
           disabled={total <= 0}
+          pendingLabel="กำลังเบิก..."
           submitLabel={`เบิก ${total} ตัว`}
           submitIcon={<PackageOpen />}
           onCancel={onClose}
@@ -311,9 +354,10 @@ function ReturnGarmentsDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          {returnable.map((l) => {
+          {returnable.map((l, index) => {
             const max = l.issued - l.returned;
             const over = (qty[l.sku] ?? 0) > max;
+            const helpId = `return-garment-${index}-help`;
             return (
               <div key={l.sku} className="flex items-center gap-3">
                 <div className="min-w-0 flex-1">
@@ -321,12 +365,16 @@ function ReturnGarmentsDialog({
                     {lineLabel(l)}
                   </p>
                   <p
+                    id={helpId}
+                    aria-live="polite"
                     className={cn(
                       "text-xs tabular-nums",
-                      over ? "text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-400"
+                      over ? "text-red-600 dark:text-red-400" : "text-muted"
                     )}
                   >
-                    คืนได้ไม่เกิน {max}
+                    {over
+                      ? `กรอกเกินจำนวนที่คืนได้ — คืนได้ไม่เกิน ${max}`
+                      : `คืนได้ไม่เกิน ${max}`}
                   </p>
                 </div>
                 <Input
@@ -335,6 +383,9 @@ function ReturnGarmentsDialog({
                   min={0}
                   max={max}
                   value={qty[l.sku] ?? 0}
+                  aria-label={`จำนวนเสื้อที่จะคืน ${lineLabel(l)}`}
+                  aria-describedby={helpId}
+                  aria-invalid={over || undefined}
                   onChange={(e) =>
                     setQty((prev) => ({
                       ...prev,
@@ -352,6 +403,7 @@ function ReturnGarmentsDialog({
           <Textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            aria-label="หมายเหตุการคืนเศษ"
             rows={2}
             placeholder="หมายเหตุ (ถ้ามี) เช่น เหลือจากเผื่อเสีย"
           />
@@ -359,6 +411,7 @@ function ReturnGarmentsDialog({
         <DialogSubmitFooter
           pending={ret.isPending}
           disabled={total <= 0 || overLimit}
+          pendingLabel="กำลังคืน..."
           submitLabel={`คืน ${total} ตัว`}
           submitIcon={<Undo2 />}
           onCancel={onClose}

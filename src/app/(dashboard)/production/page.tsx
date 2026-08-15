@@ -34,7 +34,8 @@ function ProductionWorkspace() {
   const station = list.searchParams.get("lane") ?? STATION_ALL;
   const sort = list.searchParams.get("sort") ?? "due";
 
-  const { data: me } = trpc.user.me.useQuery();
+  const meQuery = trpc.user.me.useQuery();
+  const me = meQuery.data;
   const {
     data: orders,
     isLoading,
@@ -89,7 +90,7 @@ function ProductionWorkspace() {
           </Link>
         </Button>
       }
-      loading={isLoading}
+      loading={isLoading || meQuery.isLoading}
       skeleton={
         <>
           <Skeleton className="h-12 rounded-2xl" />
@@ -99,9 +100,14 @@ function ProductionWorkspace() {
       // บอร์ดโหลดไม่สำเร็จต้องบอกตรงๆ — ไม่งั้น orders ?? [] โชว์บอร์ดว่างเหมือน "ไม่มีงาน"
       // && !orders: พังเฉพาะโหลดแรก — refetch เบื้องหลังล้มทั้งที่มี cache ห้ามถอนบอร์ด
       error={
-        isError && !orders
-          ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
-          : null
+        meQuery.isError && !me
+          ? {
+              message: "โหลดสิทธิ์การผลิตไม่สำเร็จ",
+              onRetry: () => meQuery.refetch(),
+            }
+          : isError && !orders
+            ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
+            : null
       }
     >
       <ProductionBoardView

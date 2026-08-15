@@ -141,6 +141,7 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
         </div>
         <DialogSubmitFooter
           pending={createOutsource.isPending}
+          pendingLabel="กำลังส่งร้านนอก..."
           disabled={!vendorId || !description || !(parseInt(quantity, 10) > 0)}
           submitLabel="ส่งร้านนอก"
           submitIcon={<Truck />}

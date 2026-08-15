@@ -7,8 +7,7 @@ import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QueryError } from "@/components/ui/query-error";
-import { PageHeader } from "@/components/page-header";
+import { PageShell } from "@/components/page-shell";
 import { MaterialUsage } from "@/components/material-usage";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { ProductionDesignCard } from "@/components/production/production-design-card";
@@ -31,7 +30,6 @@ import { RecordNotFound } from "@/components/ui/record-not-found";
 function ProductionDetailSkeleton() {
   return (
     <div className="space-y-5">
-      <Skeleton className="h-16 w-72" />
       <Skeleton className="h-14 rounded-2xl" />
       <Skeleton className="h-64 rounded-2xl" />
     </div>
@@ -53,9 +51,10 @@ export default function ProductionDetailPage({
   // (sheet ส่ง qtyDone แบบ absolute ถ้าฐานเก่าจะทับของจริง)
   const [qtyStepId, setQtyStepId] = useState<string | null>(null);
 
-  const { data: production, isLoading, isError, refetch } =
-    trpc.production.getById.useQuery({ id });
-  const { data: me } = trpc.user.me.useQuery();
+  const productionQuery = trpc.production.getById.useQuery({ id });
+  const production = productionQuery.data;
+  const meQuery = trpc.user.me.useQuery();
+  const me = meQuery.data;
   const confirm = useConfirm();
   const utils = trpc.useUtils();
 
@@ -110,53 +109,50 @@ export default function ProductionDetailPage({
     quickPass.mutate({ stepId: step.id, status: "COMPLETED" });
   }
 
-  if (isLoading) return <ProductionDetailSkeleton />;
-  if (isError)
-    return (
-      <div className="mx-auto max-w-4xl space-y-5">
-        <PageHeader breadcrumb={[{ label: "การผลิต", href: "/production" }]} title="งานผลิต" />
-        <QueryError onRetry={() => refetch()} />
-      </div>
-    );
-  if (!production)
-    return (
-      <div className="mx-auto max-w-4xl space-y-5">
-        <PageHeader breadcrumb={[{ label: "การผลิต", href: "/production" }]} title="งานผลิต" />
-        <RecordNotFound what="งานผลิตใบนี้" backHref="/production" backLabel="กลับไปการผลิต" />
-      </div>
-    );
-
-  const order = production.order;
+  const order = production?.order;
   // step ของ sheet จำนวน — อ่านสดจาก query เสมอ (ดูคอมเมนต์ที่ qtyStepId)
-  const qtySheetStep = qtyStepId
+  const qtySheetStep = production && qtyStepId
     ? (production.steps.find((s) => s.id === qtyStepId) ?? null)
     : null;
-  const totalQty = order.items.reduce((s, it) => s + it.totalQuantity, 0);
-  const completedSteps = production.steps.filter((s) => s.status === "COMPLETED").length;
-  const totalSteps = production.steps.length;
+  const totalQty = order?.items.reduce((s, it) => s + it.totalQuantity, 0) ?? 0;
+  const completedSteps = production?.steps.filter((s) => s.status === "COMPLETED").length ?? 0;
+  const totalSteps = production?.steps.length ?? 0;
   const allStepsDone = totalSteps > 0 && completedSteps === totalSteps;
   // ขั้นที่ลงมือได้ตอนนี้ (เลนละไม่เกินหนึ่ง) — ใช้กติกาปุ่มชุดเดียวกับรายการขั้นตอนด้านล่าง
-  const nowSteps = selectNowSteps(production.steps, {
-    canOutsource,
-    canUpdateStep,
-    canSupervise: canOutsource,
-    meId: me?.id ?? null,
-    pressGate: evaluateHeatPressGate(production.steps),
-  });
-  const isOverdue =
-    order.deadline &&
-    new Date(order.deadline) < new Date() &&
-    !["SHIPPED", "COMPLETED", "CANCELLED"].includes(order.internalStatus);
+  const nowSteps = production
+    ? selectNowSteps(production.steps, {
+        canOutsource,
+        canUpdateStep,
+        canSupervise: canOutsource,
+        meId: me?.id ?? null,
+        pressGate: evaluateHeatPressGate(production.steps),
+      })
+    : [];
+  const isOverdue = !!(
+    order?.deadline &&
+    new Date(order.deadline) < new Date(productionQuery.dataUpdatedAt || 0) &&
+    !["SHIPPED", "COMPLETED", "CANCELLED"].includes(order.internalStatus)
+  );
 
   return (
-    // คุมความกว้างให้อ่านเป็นคอลัมน์เดียว — layout กลางเป็น max-w-screen-2xl (กว้างเกิน
-    // สำหรับหน้ารายละเอียด ทำให้การ์ดยืดโล่งบนจอคอม อ่านยาก)
-    <div className="mx-auto max-w-4xl space-y-5">
-      <PageHeader
-        breadcrumb={[{ label: "การผลิต", href: "/production" }, { label: order.orderNumber }]}
-        title={order.orderNumber}
-        description={[order.title, order.customer?.name].filter(Boolean).join(" · ")}
-        action={
+    <PageShell
+      width="content"
+      breadcrumb={
+        order
+          ? [{ label: "การผลิต", href: "/production" }, { label: order.orderNumber }]
+          : [{ label: "การผลิต", href: "/production" }]
+      }
+      title={order?.orderNumber ?? "งานผลิต"}
+      description={order ? [order.title, order.customer?.name].filter(Boolean).join(" · ") : undefined}
+      titleBadge={
+        me && !canUpdateStep && !canOutsource ? (
+          <Badge variant="outline" size="sm">
+            ดูอย่างเดียว
+          </Badge>
+        ) : undefined
+      }
+      action={
+        order ? (
           <>
             <Button variant="outline" size="sm" asChild>
               <a href={`/print/job-ticket/${order.id}`} target="_blank" rel="noreferrer">
@@ -171,107 +167,135 @@ export default function ProductionDetailPage({
               </Link>
             </Button>
           </>
-        }
-      />
-
-      {/* บริบทที่ช่างต้องรู้ก่อนจับงาน — กำหนดส่ง/ด่วน/จำนวน/ความคืบหน้า
-          ถอด "สถานะออเดอร์" ออกเพราะเป็นข้อมูลอ้างอิงของฝั่งขาย ไม่ใช่สิ่งที่ช่างใช้ */}
-      <div className="card-surface flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl px-4 py-3 text-sm">
-        {order.deadline && (
-          <span
-            className={cn(
-              "flex items-center gap-1.5",
-              isOverdue ? "font-medium text-red-700 dark:text-red-300" : "text-secondary",
+        ) : undefined
+      }
+      loading={productionQuery.isLoading || meQuery.isLoading}
+      error={
+        meQuery.isError && !me
+          ? {
+              message: "โหลดสิทธิ์การผลิตไม่สำเร็จ",
+              onRetry: () => meQuery.refetch(),
+            }
+          : productionQuery.isError && !production
+            ? {
+                message: "โหลดงานผลิตไม่สำเร็จ",
+                onRetry: () => productionQuery.refetch(),
+              }
+            : null
+      }
+      skeleton={<ProductionDetailSkeleton />}
+    >
+      {production && order ? (
+        <div className="space-y-5">
+          {/* บริบทที่ช่างต้องรู้ก่อนจับงาน — กำหนดส่ง/ด่วน/จำนวน/ความคืบหน้า
+              ถอด "สถานะออเดอร์" ออกเพราะเป็นข้อมูลอ้างอิงของฝั่งขาย ไม่ใช่สิ่งที่ช่างใช้ */}
+          <div className="card-surface flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl px-4 py-3 text-sm">
+            {order.deadline && (
+              <span
+                className={cn(
+                  "flex items-center gap-1.5",
+                  isOverdue ? "font-medium text-red-700 dark:text-red-300" : "text-secondary",
+                )}
+              >
+                {isOverdue ? (
+                  <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                ) : (
+                  <Clock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                )}
+                {isOverdue ? "เลยกำหนด " : "กำหนดส่ง "}
+                {formatDate(order.deadline)}
+              </span>
             )}
-          >
-            {isOverdue ? (
-              <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-            ) : (
-              <Clock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+            {order.priority && order.priority !== "NORMAL" && (
+              <Badge
+                variant={order.priority === "URGENT" ? "destructive" : "warning"}
+                size="sm"
+              >
+                {PRIORITY_LABELS[order.priority] ?? order.priority}
+              </Badge>
             )}
-            {isOverdue ? "เลยกำหนด " : "กำหนดส่ง "}
-            {formatDate(order.deadline)}
-          </span>
-        )}
-        {order.priority && order.priority !== "NORMAL" && (
-          <Badge variant={order.priority === "URGENT" ? "destructive" : "warning"} size="sm">
-            {PRIORITY_LABELS[order.priority] ?? order.priority}
-          </Badge>
-        )}
-        {totalQty > 0 && (
-          <span className="flex items-center gap-1.5 text-secondary">
-            <Shirt className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-            {totalQty.toLocaleString("th-TH")} ตัว
-          </span>
-        )}
-        <span className="ml-auto text-sm tabular-nums text-muted">
-          เสร็จ {completedSteps}/{totalSteps} ขั้น
-        </span>
-      </div>
+            {totalQty > 0 && (
+              <span className="flex items-center gap-1.5 text-secondary">
+                <Shirt className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                {totalQty.toLocaleString("th-TH")} ตัว
+              </span>
+            )}
+            <span className="ml-auto text-sm tabular-nums text-muted">
+              เสร็จ {completedSteps}/{totalSteps} ขั้น
+            </span>
+          </div>
 
-      {/* ตอนนี้ต้องทำ — บอร์ดผลิตไม่มีปุ่มแล้ว หน้านี้จึงเป็นที่เดียวที่ลงมือได้ */}
-      <ProductionNowCard
-        nowSteps={nowSteps}
-        allDone={allStepsDone}
-        busy={quickPass.isPending}
-        onStart={handleStartStep}
-        onComplete={handleCompleteStep}
-        onSendOutsource={setOutsourceStep}
-        onQuickPass={handleQuickPass}
-        onOpenStep={setSelectedStep}
-      />
+          {/* ตอนนี้ต้องทำ — บอร์ดผลิตไม่มีปุ่มแล้ว หน้านี้จึงเป็นที่เดียวที่ลงมือได้ */}
+          <ProductionNowCard
+            nowSteps={nowSteps}
+            allDone={allStepsDone}
+            busy={quickPass.isPending}
+            onStart={handleStartStep}
+            onComplete={handleCompleteStep}
+            onSendOutsource={setOutsourceStep}
+            onQuickPass={handleQuickPass}
+            onOpenStep={setSelectedStep}
+          />
 
-      {/* แบบ+ไซส์อยู่ติดกับ action หน้างาน — ช่างไม่ต้องเริ่มก่อนแล้วค่อยเลื่อนลงหาแบบ */}
-      <ProductionDesignCard order={order} />
+          {/* แบบ+ไซส์อยู่ติดกับ action หน้างาน — ช่างไม่ต้องเริ่มก่อนแล้วค่อยเลื่อนลงหาแบบ */}
+          <ProductionDesignCard order={order} />
 
-      {/* ขั้นตอนทั้งใบ — เช็กลิสต์เต็มไว้ไล่ดู ส่วนสิ่งที่ต้องกดอยู่ในกล่องด้านบนแล้ว */}
-      <div className="card-surface rounded-2xl p-4 sm:p-5">
-        <h2 className="mb-3 text-sm font-semibold text-muted">ขั้นตอนทั้งใบ</h2>
-        <ProductionStepsList
-          steps={production.steps}
-          canOutsource={canOutsource}
-          canUpdateStep={canUpdateStep}
-          canSupervise={canOutsource}
-          meId={me?.id ?? null}
-          busy={quickPass.isPending}
-          onSelectStep={setSelectedStep}
-          onOutsourceStep={setOutsourceStep}
-          onQuickPass={handleQuickPass}
-          onStartStep={handleStartStep}
-          onCompleteStep={handleCompleteStep}
+          {/* ขั้นตอนทั้งใบ — เช็กลิสต์เต็มไว้ไล่ดู ส่วนสิ่งที่ต้องกดอยู่ในกล่องด้านบนแล้ว */}
+          <div className="card-surface rounded-2xl p-4 sm:p-5">
+            <h2 className="mb-3 text-sm font-semibold text-muted">ขั้นตอนทั้งใบ</h2>
+            <ProductionStepsList
+              steps={production.steps}
+              canOutsource={canOutsource}
+              canUpdateStep={canUpdateStep}
+              canSupervise={canOutsource}
+              meId={me?.id ?? null}
+              busy={quickPass.isPending}
+              onSelectStep={setSelectedStep}
+              onOutsourceStep={setOutsourceStep}
+              onQuickPass={handleQuickPass}
+              onStartStep={handleStartStep}
+              onCompleteStep={handleCompleteStep}
+            />
+          </div>
+
+          {/* เสื้อจากสต๊อค: เบิก (ตัดยอดจอง) + คืนเศษ — ผูกขั้น GARMENT_PICK (ก้อน 1) */}
+          <GarmentPickCard
+            productionId={production.id}
+            steps={production.steps}
+            canUpdateStep={canUpdateStep}
+          />
+
+          {/* เบิกวัตถุดิบ — ช่างเบิกได้ แต่เงิน (ต้นทุน/หน่วย) โชว์เฉพาะหัวหน้า */}
+          <MaterialUsage
+            productionId={production.id}
+            orderNumber={order.orderNumber}
+            showCosts={canSeeCost}
+          />
+
+          {selectedStep && (
+            <StepUpdateDialog step={selectedStep} onClose={() => setSelectedStep(null)} />
+          )}
+          {outsourceStep && (
+            <StepOutsourceDialog step={outsourceStep} onClose={() => setOutsourceStep(null)} />
+          )}
+          {qtySheetStep && (
+            <StepQtySheet
+              // key ผูกยอดจริง — ยอดเปลี่ยน (refetch/คนอื่นบันทึกคั่น) input reset เป็นที่เหลือใหม่
+              key={`${qtySheetStep.id}:${qtySheetStep.qtyDone}`}
+              step={qtySheetStep}
+              busy={quickPass.isPending}
+              onSubmit={(payload) => quickPass.mutate({ stepId: qtySheetStep.id, ...payload })}
+              onClose={() => setQtyStepId(null)}
+            />
+          )}
+        </div>
+      ) : (
+        <RecordNotFound
+          what="งานผลิตใบนี้"
+          backHref="/production"
+          backLabel="กลับไปการผลิต"
         />
-      </div>
-
-      {/* เสื้อจากสต๊อค: เบิก (ตัดยอดจอง) + คืนเศษ — ผูกขั้น GARMENT_PICK (ก้อน 1) */}
-      <GarmentPickCard
-        productionId={production.id}
-        steps={production.steps}
-        canUpdateStep={canUpdateStep}
-      />
-
-      {/* เบิกวัตถุดิบ — ช่างเบิกได้ แต่เงิน (ต้นทุน/หน่วย) โชว์เฉพาะหัวหน้า */}
-      <MaterialUsage
-        productionId={production.id}
-        orderNumber={order.orderNumber}
-        showCosts={canSeeCost}
-      />
-
-      {selectedStep && (
-        <StepUpdateDialog step={selectedStep} onClose={() => setSelectedStep(null)} />
       )}
-      {outsourceStep && (
-        <StepOutsourceDialog step={outsourceStep} onClose={() => setOutsourceStep(null)} />
-      )}
-      {qtySheetStep && (
-        <StepQtySheet
-          // key ผูกยอดจริง — ยอดเปลี่ยน (refetch/คนอื่นบันทึกคั่น) input reset เป็นที่เหลือใหม่
-          key={`${qtySheetStep.id}:${qtySheetStep.qtyDone}`}
-          step={qtySheetStep}
-          busy={quickPass.isPending}
-          onSubmit={(payload) => quickPass.mutate({ stepId: qtySheetStep.id, ...payload })}
-          onClose={() => setQtyStepId(null)}
-        />
-      )}
-    </div>
+    </PageShell>
   );
 }

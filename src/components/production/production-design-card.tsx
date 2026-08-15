@@ -40,7 +40,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
   return (
     <div className="card-surface space-y-4 rounded-2xl p-4 sm:p-5">
       <div className="flex items-center gap-2">
-        <Palette className="h-4 w-4 text-slate-400" />
+        <Palette className="h-4 w-4 text-muted" />
         <h2 className="text-sm font-semibold text-slate-900 dark:text-white">แบบ + ไซส์</h2>
         {approvedDesign && (
           <Badge variant="success" size="sm">
@@ -62,11 +62,13 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
               <img
                 src={approvedImage}
                 alt={`แบบอนุมัติ v${approvedDesign.versionNumber}`}
+                loading="lazy"
+                decoding="async"
                 className="h-32 w-32 bg-white object-contain sm:h-40 sm:w-40"
               />
             </button>
           ) : (
-            <div className={cn(DASHED, "flex h-32 w-32 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl text-slate-400")}>
+            <div className={cn(DASHED, "flex h-32 w-32 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl text-muted")}>
               <ImageOff className="h-5 w-5" />
               <span className="text-xs">ไฟล์ไม่ใช่รูป</span>
             </div>
@@ -123,11 +125,13 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
                     <img
                       src={pr.designImageUrl!}
                       alt={`ลาย ${PRINT_POSITIONS[pr.position] ?? pr.position}`}
+                      loading="lazy"
+                      decoding="async"
                       className="h-14 w-14 bg-white object-contain"
                     />
                   </button>
                 ) : (
-                  <div className={cn(DASHED, "flex h-14 w-14 shrink-0 items-center justify-center rounded-lg text-slate-300")}>
+                  <div className={cn(DASHED, "flex h-14 w-14 shrink-0 items-center justify-center rounded-lg text-muted")}>
                     <ImageOff className="h-4 w-4" />
                   </div>
                 )}
@@ -145,7 +149,7 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
                     {pr.colorCount ? ` · ${pr.colorCount} สี` : ""}
                   </p>
                   {pr.designNote && (
-                    <p className="truncate text-slate-400">{pr.designNote}</p>
+                    <p className="truncate text-muted">{pr.designNote}</p>
                   )}
                 </div>
               </div>

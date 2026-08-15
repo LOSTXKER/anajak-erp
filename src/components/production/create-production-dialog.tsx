@@ -253,6 +253,7 @@ function StepBuilder({
       )}
       <DialogSubmitFooter
         pending={createProduction.isPending}
+        pendingLabel="กำลังสร้างใบผลิต..."
         disabled={steps.length === 0 || hasUnnamedCustom}
         submitLabel={`สร้างใบผลิต (${steps.length} ขั้นตอน)`}
         submitIcon={<Factory />}
