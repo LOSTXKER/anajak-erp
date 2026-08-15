@@ -28,6 +28,7 @@ export interface ProductionStepActionPolicy {
 export function getProductionStepActionPolicy(
   input: ProductionStepActionPolicyInput,
 ): ProductionStepActionPolicy {
+  const legacyPackaging = input.stepType === "PACKAGING";
   const structuralMode = isOutsourceStep(input.stepType)
     ? "outsource"
     : input.stepType === "GARMENT_PICK"
@@ -36,6 +37,7 @@ export function getProductionStepActionPolicy(
   const unfinished = input.status !== "COMPLETED";
   const available =
     unfinished &&
+    !legacyPackaging &&
     !input.ownedByOther &&
     !input.hasActiveOutsource &&
     !input.qcFailedBlocked;
@@ -46,6 +48,7 @@ export function getProductionStepActionPolicy(
     structuralMode === "outsource" && input.canUpdateStep && available;
   const canRunInternal =
     structuralMode === "internal" &&
+    input.stepType !== "DTF_PRINT" &&
     input.canUpdateStep &&
     available &&
     input.status !== "FAILED";
@@ -72,12 +75,14 @@ export interface LaneOrderStepLite {
 
 // UX4.10: "ขั้นแรกที่ยังไม่เสร็จ" ของแต่ละเลน — ปุ่ม primary เน้นเฉพาะขั้นนี้
 // ขั้นถัดๆ ไปในเลนเดียวกันถูกลดเป็นปุ่มรอง + ป้าย "รอขั้นก่อนหน้า"
-// (server ไม่กันการเริ่มข้ามลำดับ — จอเป็นด่านเดียว กันงาน IN_PROGRESS ผีข้ามขั้น)
+// server กันซ้ำอีกชั้นใน production.updateStep; ชั้นนี้มีไว้บอกเหตุผลก่อนคนกด
 export function firstPendingStepIdsByLane(steps: readonly LaneOrderStepLite[]): Set<string> {
   const claimed = new Set<string>(); // เลนที่มีขั้นค้างตัวแรกแล้ว
   const ids = new Set<string>();
   for (const step of [...steps].sort((a, b) => a.sortOrder - b.sortOrder)) {
-    if (step.status === "COMPLETED") continue;
+    // PACKAGING เคยถูกสร้างเป็น production step แต่ flow จริงต้อง QC ก่อนแล้วแพ็กผ่าน
+    // Delivery — เก็บแถวเก่าเพื่อ audit/display ได้ แต่ห้ามนับเป็นงานที่กดทำ
+    if (step.status === "COMPLETED" || step.stepType === "PACKAGING") continue;
     const lane = laneOf(step.stepType);
     if (claimed.has(lane)) continue;
     claimed.add(lane);
@@ -183,6 +188,15 @@ export function selectNowSteps<S extends NowStepInput>(
       }
       if (hasActiveOutsource) {
         return { step, action: null, waitingOn: [], note: "อยู่ที่ร้านนอก" };
+      }
+      // DTF_PRINT เดินด้วยรอบพิมพ์เท่านั้น — ห้ามชวนกดเริ่ม/ปิด generic
+      if (step.stepType === "DTF_PRINT") {
+        return {
+          step,
+          action: null,
+          waitingOn: [],
+          note: "จัดการผ่านหน้ารอบพิมพ์ฟิล์ม DTF",
+        };
       }
 
       const policy = getProductionStepActionPolicy({

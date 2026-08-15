@@ -69,9 +69,15 @@ export async function getOwnerPulse(prisma: ExtendedPrismaClient): Promise<Owner
     prisma.outsourceOrder.count({
       where: { status: { in: ["SENT", "IN_PROGRESS"] }, expectedBackAt: { lt: startOfTodayTh } },
     }),
-    prisma.productionStep.count({ where: { completedAt: { gte: startOfTodayTh } } }),
     prisma.productionStep.count({
       where: {
+        stepType: { not: "PACKAGING" },
+        completedAt: { gte: startOfTodayTh },
+      },
+    }),
+    prisma.productionStep.count({
+      where: {
+        stepType: { not: "PACKAGING" },
         status: { in: ["PENDING", "IN_PROGRESS"] },
         production: { order: { internalStatus: { notIn: ["CANCELLED", "ON_HOLD"] } } },
       },

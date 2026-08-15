@@ -73,7 +73,13 @@ async function makeOrder(
 }
 
 async function qcPassAll(caller: ReturnType<typeof appRouter.createCaller>, orderId: string) {
-  return caller.qc.create({ orderId, qtyGood: 5, defects: [], notes: `${MARK}` });
+  return caller.qc.create({
+    orderId,
+    idempotencyKey: "verify-artwork-qc-main",
+    qtyGood: 5,
+    defects: [],
+    notes: `${MARK}`,
+  });
 }
 
 async function main() {
@@ -350,7 +356,13 @@ async function main() {
     orderIds.push(C.id);
     // Gate B4: เข้าแพ็คมือต้องมีผลตรวจนับก่อน — นับบางส่วน (3/5 ไม่ครบ ไม่เด้งเอง
     // = เคสจริงลูกค้ารับของไม่ครบ) แล้วดัน PACKING ด้วยมือผ่าน updateStatus
-    await caller.qc.create({ orderId: C.id, qtyGood: 3, defects: [], notes: `${MARK}` });
+    await caller.qc.create({
+      orderId: C.id,
+      idempotencyKey: "verify-artwork-qc-c",
+      qtyGood: 3,
+      defects: [],
+      notes: `${MARK}`,
+    });
     await caller.order.updateStatus({ id: C.id, internalStatus: "PACKING" });
     const printsC = await prisma.orderItemPrint.findMany({
       where: { orderItem: { orderId: C.id } },

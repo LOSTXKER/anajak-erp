@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
+import { Alert } from "@/components/ui/alert";
 import { formatDate, formatDateTime, cn, isImageUrl } from "@/lib/utils";
-import { FOCUS_BUTTON, FOCUS_FIELD_INVALID, FOCUS_INSET } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, FOCUS_FIELD_INVALID, FOCUS_INSET, TINT } from "@/components/ui/tokens";
 import {
   Printer,
   Film,
@@ -132,6 +133,21 @@ function BlockSection({
   );
 }
 
+function StaleDataWarning({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div
+      role="status"
+      className={cn(TINT.warning, "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs")}
+    >
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <span className="min-w-0 flex-1">ข้อมูลเดิมยังแสดงอยู่ แต่อาจไม่ใช่สถานะล่าสุด</span>
+      <Button variant="ghost" size="sm" onClick={onRetry} className="shrink-0">
+        ลองใหม่
+      </Button>
+    </div>
+  );
+}
+
 type PrintRunSelectionView = {
   picked: Readonly<Record<string, number>>;
   entries: readonly QueueEntry[];
@@ -159,26 +175,36 @@ export function PrintRunsPageView({
   printedRuns,
   historyRuns,
   canManage,
+  canManageQueue = canManage,
+  canManageRuns = canManage,
   queueError,
   listError,
+  queueStale = false,
+  listStale = false,
   onRetryQueue,
   onRetryList,
   actionNoteRef,
   selection,
   runActions,
+  stationMode = false,
 }: {
   queue: readonly QueueEntry[];
   printingRuns: readonly PrintRun[];
   printedRuns: readonly PrintRun[];
   historyRuns: readonly PrintRun[];
   canManage: boolean;
+  canManageQueue?: boolean;
+  canManageRuns?: boolean;
   queueError: boolean;
   listError: boolean;
+  queueStale?: boolean;
+  listStale?: boolean;
   onRetryQueue: () => void;
   onRetryList: () => void;
   actionNoteRef: RefObject<HTMLInputElement | null>;
   selection: PrintRunSelectionView;
   runActions: PrintRunActionsView;
+  stationMode?: boolean;
 }) {
   return (
     <>
@@ -194,11 +220,12 @@ export function PrintRunsPageView({
             </BlockSection>
           ) : (
             <>
+              {listStale && <StaleDataWarning onRetry={onRetryList} />}
               <RunStageSection
                 stage="printing"
                 runs={printingRuns}
                 busy={runActions.busy}
-                canManage={canManage}
+                canManage={canManageRuns}
                 onMarkPrinted={runActions.onMarkPrinted}
                 onCancel={runActions.onCancel}
                 onComplete={runActions.onComplete}
@@ -207,7 +234,7 @@ export function PrintRunsPageView({
                 stage="printed"
                 runs={printedRuns}
                 busy={runActions.busy}
-                canManage={canManage}
+                canManage={canManageRuns}
                 onMarkPrinted={runActions.onMarkPrinted}
                 onCancel={runActions.onCancel}
                 onComplete={runActions.onComplete}
@@ -224,6 +251,7 @@ export function PrintRunsPageView({
             count={queue.length}
             hint="เฉพาะงานไฟล์พร้อม · เรียงตามกำหนดส่ง"
           >
+            {queueStale && <StaleDataWarning onRetry={onRetryQueue} />}
             {queueError ? (
               <QueryError onRetry={onRetryQueue} />
             ) : queue.length === 0 ? (
@@ -236,10 +264,15 @@ export function PrintRunsPageView({
             ) : (
               <>
                 {/* อยู่ก่อน list เพื่อให้ sticky ตามช่างทันที แม้เลือกแถวล่างของคิวยาว */}
-                {canManage && selection.entries.length > 0 && (
+                {canManageQueue && selection.entries.length > 0 && (
                   <div
                     data-print-run-selection-bar=""
-                    className="card-surface sticky top-3 z-20 m-3 flex flex-wrap items-center gap-2 rounded-xl px-3 py-3 backdrop-blur"
+                    className={cn(
+                      "card-surface sticky z-20 m-3 flex flex-wrap items-center gap-2 rounded-xl px-3 py-3 backdrop-blur",
+                      // Station header มีทั้งแถวชื่อจอและแถบเลือกสถานี (~124px)
+                      // จึงต้องเกาะใต้ header ไม่ถูก z-30 บังตอนคิวยาว
+                      stationMode ? "top-32" : "top-3",
+                    )}
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-xs text-muted">เข้ารอบพิมพ์ม้วนนี้</p>
@@ -295,7 +328,7 @@ export function PrintRunsPageView({
                     <QueueRow
                       key={entry.stepId}
                       entry={entry}
-                      canManage={canManage}
+                      canManage={canManageQueue}
                       qty={selection.picked[entry.stepId]}
                       onToggle={() => selection.onToggle(entry)}
                       onFocusAction={selection.onFocusAction}
@@ -426,6 +459,8 @@ function ActiveRunCard({
   canManage: boolean;
 }) {
   const badge = RUN_STATUS_BADGE[run.status] ?? RUN_STATUS_BADGE.PRINTING;
+  const canAdvance = canManage && !run.blockedReason;
+  const canCancelForRecovery = canManage && run.status === "PRINTING";
   return (
     <article className="p-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -436,6 +471,12 @@ function ActiveRunCard({
         </span>
       </div>
       {run.note && <p className="mt-1 text-xs text-muted">{run.note}</p>}
+
+      {run.blockedReason && (
+        <Alert variant="error" icon={AlertTriangle} className="mt-3 rounded-lg px-3 py-2">
+          <span>{run.blockedReason} — กลับไปตรวจสถานะออเดอร์ก่อน</span>
+        </Alert>
+      )}
 
       <ul className="mt-3 divide-y divide-divider overflow-hidden rounded-xl bg-surface-muted">
         {run.items.map((item) => (
@@ -458,31 +499,34 @@ function ActiveRunCard({
         {run.printedAt && ` · พิมพ์จบ ${formatDateTime(run.printedAt)}`}
       </p>
 
-      {canManage && (
+      {(canAdvance || canCancelForRecovery) && (
         <div className="mt-3 flex flex-col gap-2 xl:flex-row">
           {run.status === "PRINTING" ? (
             <>
-              <Button
-                disabled={busy}
-                onClick={onMarkPrinted}
-                className={cn(PRINT_RUN_CONTROL_H, "flex-1 gap-1.5")}
-              >
-                <Printer />
-                พิมพ์จบทั้งม้วน
-              </Button>
+              {canAdvance && (
+                <Button
+                  disabled={busy}
+                  onClick={onMarkPrinted}
+                  className={cn(PRINT_RUN_CONTROL_H, "flex-1 gap-1.5")}
+                >
+                  <Printer />
+                  พิมพ์จบทั้งม้วน
+                </Button>
+              )}
               <Button
                 variant="outline"
                 disabled={busy}
                 onClick={onCancel}
                 className={cn(
                   PRINT_RUN_CONTROL_H,
+                  !canAdvance && "w-full",
                   "text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300",
                 )}
               >
                 ยกเลิกรอบ
               </Button>
             </>
-          ) : (
+          ) : canAdvance ? (
             <Button
               disabled={busy}
               onClick={onComplete}
@@ -491,7 +535,7 @@ function ActiveRunCard({
               <Scissors />
               ตัดแยก+ติดป้ายเสร็จ
             </Button>
-          )}
+          ) : null}
         </div>
       )}
     </article>

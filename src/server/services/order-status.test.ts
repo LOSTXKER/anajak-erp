@@ -3,7 +3,7 @@ import {
   STOCK_RESERVATION_PENDING_MESSAGE,
   STOCK_RESERVATION_PENDING_PRODUCTION_MESSAGE,
 } from "@/lib/stock-reservation-state";
-import { transitionOrder } from "./order-status";
+import { finalizeProductionIfComplete, transitionOrder } from "./order-status";
 
 function transitionTx(params?: { pendingInitially?: boolean; pendingAfterRead?: boolean }) {
   const initial = {
@@ -92,5 +92,107 @@ describe("transitionOrder — pending stock reservation gate", () => {
     ).resolves.toEqual({ changed: true, from: "PRODUCTION_QUEUE" });
 
     expect(updateMany).toHaveBeenCalledOnce();
+  });
+});
+
+describe("finalizeProductionIfComplete — legacy PACKAGING compatibility", () => {
+  it("ไม่ปิดใบที่มีแต่ PACKAGING เก่าผ่าน finalizer ปกติ", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      productionStep: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: "step-pack", stepType: "PACKAGING", status: "PENDING" },
+        ]),
+        updateMany: vi.fn(),
+      },
+      production: { update: vi.fn() },
+    };
+
+    await expect(
+      finalizeProductionIfComplete(tx as never, {
+        productionId: "production-pack-only",
+        changedBy: "user-1",
+      }),
+    ).resolves.toBe(false);
+
+    expect(tx.productionStep.updateMany).not.toHaveBeenCalled();
+    expect(tx.production.update).not.toHaveBeenCalled();
+  });
+
+  it("ยอมปิดใบ PACKAGING-only เฉพาะทางกู้ที่ประกาศชัดว่าเป็นข้อมูลเก่า", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      productionStep: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: "step-pack", stepType: "PACKAGING", status: "PENDING" },
+        ]),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      production: {
+        update: vi.fn().mockResolvedValue({ orderId: "order-1" }),
+        count: vi.fn().mockResolvedValue(1),
+      },
+    };
+
+    await expect(
+      finalizeProductionIfComplete(tx as never, {
+        productionId: "production-pack-only",
+        changedBy: "user-1",
+        requireLegacyPackaging: true,
+      }),
+    ).resolves.toBe(true);
+
+    expect(tx.productionStep.updateMany).toHaveBeenCalledOnce();
+    expect(tx.production.update).toHaveBeenCalledOnce();
+  });
+
+  it("ปิด PACKAGING เก่าอัตโนมัติและดันเข้า QC เมื่อขั้นผลิตจริงเสร็จครบ", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      productionStep: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: "step-press", stepType: "HEAT_PRESS", status: "COMPLETED" },
+          { id: "step-pack", stepType: "PACKAGING", status: "PENDING" },
+        ]),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      production: {
+        update: vi.fn().mockResolvedValue({ orderId: "order-1" }),
+        count: vi.fn().mockResolvedValue(0),
+      },
+      order: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          orderType: "CUSTOM",
+          internalStatus: "PRODUCING",
+          stockReservationError: null,
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      orderRevision: {
+        count: vi.fn().mockResolvedValue(0),
+        create: vi.fn().mockResolvedValue({ id: "revision-1" }),
+      },
+    };
+
+    await expect(
+      finalizeProductionIfComplete(tx as never, {
+        productionId: "production-1",
+        changedBy: "user-1",
+      }),
+    ).resolves.toBe(true);
+
+    expect(tx.productionStep.updateMany).toHaveBeenCalledWith({
+      where: {
+        productionId: "production-1",
+        stepType: "PACKAGING",
+        status: { not: "COMPLETED" },
+      },
+      data: { status: "COMPLETED", completedAt: expect.any(Date) },
+    });
+    expect(tx.order.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ internalStatus: "QUALITY_CHECK" }),
+      }),
+    );
   });
 });

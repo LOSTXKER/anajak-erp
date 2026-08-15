@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { validateStepQtyInput } from "@/lib/step-qty-input";
 import { Loader2, Check } from "lucide-react";
-import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE, FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 // bottom sheet ปิดขั้นแบบนับจำนวน (UX1) — ช่างบอก "ทำเพิ่มกี่ตัว" ใน 2 แตะ
@@ -41,16 +42,18 @@ export function StepQtySheet({
   const [value, setValue] = useState<string>(String(remaining));
   const titleRef = useRef<HTMLHeadingElement>(null);
   const descriptionId = useId();
+  const errorId = useId();
 
   const stepName = step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
-  // จำนวนทำเพิ่มรอบนี้ clamp ไม่เกินที่เหลือ — server ไม่ validate เพดาน qtyDone
-  // (zod มีแค่ min(0)) จอนี้จึงเป็นด่านเดียวที่กันเลขเกิน
-  const added = Math.min(remaining, Math.max(0, Math.floor(Number(value) || 0)));
+  // ห้าม clamp เลขเกินเงียบๆ: คนทำต้องเห็นและแก้ตัวเลขก่อนปิดขั้น
+  // ไม่งั้นกรอก 99 ทั้งที่ทำ 9 ตัว จอจะแปลเป็น "ครบ" แล้วปิดงานผิด
+  const validation = validateStepQtyInput(value, remaining);
+  const added = validation.added;
   const newDone = done + added;
-  const willComplete = added === remaining && remaining > 0;
+  const willComplete = validation.error === null && added === remaining && remaining > 0;
 
   function handleConfirm() {
-    if (added <= 0) return;
+    if (validation.error !== null) return;
     onSubmit(willComplete ? { status: "COMPLETED" } : { qtyDone: newDone });
   }
 
@@ -78,16 +81,32 @@ export function StepQtySheet({
           <Input
             type="number"
             inputMode="numeric"
-            min={0}
+            min={1}
             max={remaining}
+            step={1}
             value={value}
             aria-label={`จำนวนที่ทำเพิ่มสำหรับ ${stepName}`}
-            aria-describedby={descriptionId}
+            aria-invalid={validation.error !== null || undefined}
+            aria-describedby={
+              validation.error === null ? descriptionId : `${descriptionId} ${errorId}`
+            }
             onChange={(e) => setValue(e.target.value)}
             // แตะช่องแล้วเลขเดิมถูก select ทั้งก้อน — พิมพ์ใหม่แทนที่ทันที (กัน "50"→"5010")
             onFocus={(e) => e.currentTarget.select()}
-            className="h-14 text-center text-2xl font-semibold tabular-nums"
+            className={cn(
+              "h-14 text-center text-2xl font-semibold tabular-nums",
+              validation.error !== null && cn("border-red-300", FOCUS_FIELD_INVALID),
+            )}
           />
+          {validation.error !== null && (
+            <p
+              id={errorId}
+              role="alert"
+              className="text-center text-sm font-medium text-red-700 dark:text-red-300"
+            >
+              {validation.error}
+            </p>
+          )}
           {!willComplete && (
             <button
               type="button"
@@ -117,7 +136,7 @@ export function StepQtySheet({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={busy || added <= 0}
+            disabled={busy || validation.error !== null}
             aria-busy={busy || undefined}
             className="h-11 flex-[2] gap-1.5"
           >

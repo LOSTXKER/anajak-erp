@@ -171,7 +171,12 @@ async function main() {
       () => caller.order.updateStatus({ id: o1.id, internalStatus: "PACKING" }),
       "ตรวจนับ"
     );
-    await caller.qc.create({ orderId: o1.id, qtyGood: 50, defects: [] });
+    await caller.qc.create({
+      orderId: o1.id,
+      idempotencyKey: "verify-ops-qc-o1",
+      qtyGood: 50,
+      defects: [],
+    });
     const o1AfterQc = await prisma.order.findUniqueOrThrow({ where: { id: o1.id } });
     ok(
       "2.0b นับของจริงแล้ว → งานเด้งเข้าแพ็คเอง (ออเดอร์ไม่มี variant ยอดคาด=0 นับแล้วถือว่าครบ)",
@@ -430,7 +435,12 @@ async function main() {
     );
 
     // ผ่านด่านตรวจด้วยการนับจริง (Gate B4 — เข้าแพ็คมือโดยไม่มีผลตรวจโดนกันแล้ว)
-    await caller.qc.create({ orderId: o6.id, qtyGood: 10, defects: [] });
+    await caller.qc.create({
+      orderId: o6.id,
+      idempotencyKey: "verify-ops-qc-o6",
+      qtyGood: 10,
+      defects: [],
+    });
     await caller.order.updateStatus({ id: o6.id, internalStatus: "READY_TO_SHIP" });
     await caller.delivery.create({
       orderId: o6.id,

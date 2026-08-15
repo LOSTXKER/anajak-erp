@@ -39,13 +39,20 @@ interface GarmentLine {
 interface GarmentPickCardProps {
   productionId: string;
   steps: ProductionStep[];
-  canUpdateStep: boolean;
+  canIssueGarments: boolean;
+  // คืนเศษเป็น recovery ที่ตั้งใจให้ทำได้จาก ERP หลังพัก/ยกเลิก แต่ Station ต้อง fail-closed
+  canReturnGarments: boolean;
 }
 
 const lineLabel = (l: GarmentLine) =>
   `${l.productName} · ${l.size}${l.color ? `/${l.color}` : ""}`;
 
-export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentPickCardProps) {
+export function GarmentPickCard({
+  productionId,
+  steps,
+  canIssueGarments,
+  canReturnGarments,
+}: GarmentPickCardProps) {
   const [showIssue, setShowIssue] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
   const garmentPickQuery = trpc.production.garmentPick.useQuery({ productionId });
@@ -148,15 +155,17 @@ export function GarmentPickCard({ productionId, steps, canUpdateStep }: GarmentP
         })}
         {/* ปุ่มปิดขั้น GARMENT_PICK อยู่การ์ดนี้ที่เดียว (steps list ไม่มีปุ่มเร็ว) —
             เป็นแถวเต็มความกว้างท้ายการ์ด มือถือเป้านิ้ว 44px ไม่ซุกมุม header (UX4) */}
-        {canUpdateStep && data.configured && ((pickStep && needMore) || outstanding > 0) && (
+        {data.configured &&
+          ((canIssueGarments && pickStep && needMore) ||
+            (canReturnGarments && outstanding > 0)) && (
           <div className="flex flex-col gap-2 pt-1 sm:flex-row">
-            {pickStep && needMore && (
+            {canIssueGarments && pickStep && needMore && (
               <Button className="w-full gap-1.5 sm:w-auto" onClick={() => setShowIssue(true)}>
                 <PackageOpen />
                 เบิกเสื้อ
               </Button>
             )}
-            {outstanding > 0 && (
+            {canReturnGarments && outstanding > 0 && (
               <Button
                 variant="outline"
                 className="w-full gap-1.5 sm:w-auto"
@@ -199,6 +208,7 @@ function useGarmentInvalidate() {
     utils.production.garmentPick,
     utils.production.getById,
     utils.production.getByOrderId,
+    utils.factory.stationQueue,
     utils.order.getById,
   ];
 }
@@ -340,9 +350,11 @@ function ReturnGarmentsDialog({
     },
   });
 
-  const returnable = lines.filter((l) => l.issued - l.returned > 0);
+  const surplusOf = (line: GarmentLine) =>
+    Math.max(0, line.issued - line.returned - line.needed);
+  const returnable = lines.filter((line) => surplusOf(line) > 0);
   const total = returnable.reduce((s, l) => s + (qty[l.sku] ?? 0), 0);
-  const overLimit = returnable.some((l) => (qty[l.sku] ?? 0) > l.issued - l.returned);
+  const overLimit = returnable.some((line) => (qty[line.sku] ?? 0) > surplusOf(line));
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -355,7 +367,7 @@ function ReturnGarmentsDialog({
         </DialogHeader>
         <div className="space-y-2">
           {returnable.map((l, index) => {
-            const max = l.issued - l.returned;
+            const max = surplusOf(l);
             const over = (qty[l.sku] ?? 0) > max;
             const helpId = `return-garment-${index}-help`;
             return (
@@ -373,8 +385,8 @@ function ReturnGarmentsDialog({
                     )}
                   >
                     {over
-                      ? `กรอกเกินจำนวนที่คืนได้ — คืนได้ไม่เกิน ${max}`
-                      : `คืนได้ไม่เกิน ${max}`}
+                      ? `กรอกเกินเศษที่คืนได้ — คืนได้ไม่เกิน ${max}`
+                      : `เศษที่คืนได้ ${max}`}
                   </p>
                 </div>
                 <Input

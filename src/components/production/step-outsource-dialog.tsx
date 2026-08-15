@@ -55,6 +55,7 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
       utils.production.getById,
       utils.production.getByOrderId,
       utils.production.kanban,
+      utils.factory.stationQueue,
       utils.outsource.listOrders,
       utils.order.getById,
     ],

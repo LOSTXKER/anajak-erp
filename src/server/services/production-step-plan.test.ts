@@ -10,7 +10,28 @@ import {
   stepDisplayName,
   stepCostEntryPlan,
   failedStepNotification,
+  normalizeStepUpdateForCurrentStatus,
 } from "./production-step-plan";
+
+describe("normalizeStepUpdateForCurrentStatus — กัน request เก่าทับสถานะ", () => {
+  it("ปฏิเสธการดึงขั้นที่เสร็จแล้วกลับไปสถานะเก่า", () => {
+    expect(() =>
+      normalizeStepUpdateForCurrentStatus({
+        currentStatus: "COMPLETED",
+        data: { status: "PENDING" },
+      }),
+    ).toThrow("ขั้นนี้ถูกปิดเสร็จแล้วโดยอีกจอ");
+  });
+
+  it("สถานะเดิมซ้ำถูกตัดออกเพื่อไม่ทับ startedAt/completedAt แต่เก็บ field อื่น", () => {
+    expect(
+      normalizeStepUpdateForCurrentStatus({
+        currentStatus: "IN_PROGRESS",
+        data: { status: "IN_PROGRESS", notes: "ตรวจซ้ำ" },
+      }),
+    ).toEqual({ notes: "ตรวจซ้ำ" });
+  });
+});
 
 describe("assertStaffFields — ด่าน field อำนาจหัวหน้า (มอบงาน/ต้นทุน)", () => {
   it("staff ส่ง assignedToId → ปฏิเสธ", () => {

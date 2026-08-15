@@ -78,7 +78,12 @@ async function main() {
     const A = await makeOrder(customer.id, owner.id, "A");
     const ctxA = await caller.qc.context({ orderId: A.order.id });
     check("1.1 context: ยอดคาด 10 (2 ไซส์)", ctxA.totalExpected === 10 && ctxA.lines.length === 2);
-    await caller.qc.create({ orderId: A.order.id, qtyGood: 10, defects: [] });
+    await caller.qc.create({
+      orderId: A.order.id,
+      idempotencyKey: "verify-qc-a-good",
+      qtyGood: 10,
+      defects: [],
+    });
     const aAfter = await prisma.order.findUniqueOrThrow({ where: { id: A.order.id } });
     check("1.2 ดีล้วน → ออเดอร์เด้ง PACKING", aAfter.internalStatus === "PACKING");
 
@@ -86,6 +91,7 @@ async function main() {
     const B = await makeOrder(customer.id, owner.id, "B");
     await caller.qc.create({
       orderId: B.order.id,
+      idempotencyKey: "verify-qc-b-defect",
       qtyGood: 8,
       defects: [
         { qty: 2, size: "L", reason: "PRINT_PEEL", printLabel: "อกซ้าย", photoUrls: [], note: "ลอกมุม" },
@@ -116,7 +122,12 @@ async function main() {
 
     // ── 3. ตรวจผิดจังหวะ → โดนกัน ──
     await caller.qc
-      .create({ orderId: B.order.id, qtyGood: 10, defects: [] })
+      .create({
+        orderId: B.order.id,
+        idempotencyKey: "verify-qc-b-wrong-stage",
+        qtyGood: 10,
+        defects: [],
+      })
       .then(
         () => check("3.1 ตรวจขณะ PRODUCING → โดนกัน", false),
         (e) => check("3.1 ตรวจขณะ PRODUCING → โดนกัน", String(e.message).includes("ขั้นตรวจคุณภาพ"))
@@ -128,16 +139,31 @@ async function main() {
 
     // ── 5. ดีบางส่วน — ค้างที่ด่านตรวจ + กันนับเกิน ──
     const D2 = await makeOrder(customer.id, owner.id, "D");
-    await caller.qc.create({ orderId: D2.order.id, qtyGood: 4, defects: [] });
+    await caller.qc.create({
+      orderId: D2.order.id,
+      idempotencyKey: "verify-qc-d2-partial-1",
+      qtyGood: 4,
+      defects: [],
+    });
     let dNow = await prisma.order.findUniqueOrThrow({ where: { id: D2.order.id } });
     check("5.1 ดีบางส่วน 4/10 → ยังอยู่ด่านตรวจ", dNow.internalStatus === "QUALITY_CHECK");
     await caller.qc
-      .create({ orderId: D2.order.id, qtyGood: 7, defects: [] })
+      .create({
+        orderId: D2.order.id,
+        idempotencyKey: "verify-qc-d2-over-count",
+        qtyGood: 7,
+        defects: [],
+      })
       .then(
         () => check("5.2 นับเกินยอดงาน (4+7>10) → โดนกัน", false),
         (e) => check("5.2 นับเกินยอดงาน (4+7>10) → โดนกัน", String(e.message).includes("นับเกินยอดงาน"))
       );
-    await caller.qc.create({ orderId: D2.order.id, qtyGood: 6, defects: [] });
+    await caller.qc.create({
+      orderId: D2.order.id,
+      idempotencyKey: "verify-qc-d2-partial-2",
+      qtyGood: 6,
+      defects: [],
+    });
     dNow = await prisma.order.findUniqueOrThrow({ where: { id: D2.order.id } });
     check("5.3 นับครบสะสม 10/10 → เด้ง PACKING", dNow.internalStatus === "PACKING");
 
@@ -150,7 +176,12 @@ async function main() {
         (e) => check("6.1 เข้าแพ็คมือโดยไม่เคยตรวจนับ → โดนกัน", String(e.message).includes("ตรวจนับ"))
       );
     // เคสจริงที่ต้องกดมือ: นับแล้วบางส่วน (ลูกค้ารับของไม่ครบ/รอบแก้) → มีใบตรวจ = ผ่านได้
-    await caller.qc.create({ orderId: E.order.id, qtyGood: 7, defects: [] });
+    await caller.qc.create({
+      orderId: E.order.id,
+      idempotencyKey: "verify-qc-e-good",
+      qtyGood: 7,
+      defects: [],
+    });
     await caller.order.updateStatus({
       id: E.order.id,
       internalStatus: "PACKING",

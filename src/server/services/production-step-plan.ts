@@ -33,6 +33,25 @@ export function assertStaffFields(params: {
   }
 }
 
+// request จากจอเก่าอาจมาถึงหลังอีกจอปิดขั้นแล้ว: COMPLETED เป็นปลายทาง ห้าม stale
+// request ดึงกลับไป PENDING/IN_PROGRESS · กดสถานะเดิมซ้ำต้องไม่ประทับ timestamp ใหม่
+export function normalizeStepUpdateForCurrentStatus(params: {
+  currentStatus: string;
+  data: UpdateStepInput;
+}): UpdateStepInput {
+  const requested = params.data.status;
+  if (requested === undefined) return params.data;
+  if (params.currentStatus === "COMPLETED" && requested !== "COMPLETED") {
+    badRequest("ขั้นนี้ถูกปิดเสร็จแล้วโดยอีกจอ — รีเฟรชก่อนอัปเดตต่อ");
+  }
+  if (requested === params.currentStatus) {
+    const rest = { ...params.data };
+    delete rest.status;
+    return rest;
+  }
+  return params.data;
+}
+
 // step ที่ยังไม่มีเจ้าของ → claim อัตโนมัติ (ระบบยังไม่มี UI มอบหมายงาน ถ้าบังคับ assign
 // ก่อน staff จะอัปเดตอะไรไม่ได้เลย) · step ของคนอื่น → ห้าม
 // router เรียกเฉพาะเมื่อ !canSupervise (คนมีสิทธิ์หัวหน้าไม่ต้องโหลด/ไม่ต้องเช็ค)

@@ -99,7 +99,7 @@ function buildTaskItems(data: TaskData): TaskListItem[] {
   for (const queue of data.packQueue) {
     items.push({
       key: `step:${queue.stepId}`,
-      href: `/production/${queue.productionId}`,
+      href: `/factory/station?station=final-pack&orderId=${queue.orderId}`,
       title: queue.title,
       description: `${queue.orderNumber} · ${queue.customerName}`,
       deadline: queue.deadline,

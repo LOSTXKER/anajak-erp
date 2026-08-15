@@ -4,7 +4,61 @@ import {
   assertValidQcCounts,
   assertQcNotOverCount,
   qcNextMove,
+  assertQcReadyForPacking,
 } from "./qc-count";
+
+describe("assertQcReadyForPacking — manual recovery ห้ามข้ามยอด QC", () => {
+  it("ดีบางส่วนหรือรอบล่าสุดยังมีของเสียเข้าแพ็กไม่ได้", () => {
+    expect(() =>
+      assertQcReadyForPacking({
+        totalExpected: 100,
+        records: [{ qtyGood: 40, qtyDefect: 0 }],
+      }),
+    ).toThrow("เหลือ 60 ตัว");
+    expect(() =>
+      assertQcReadyForPacking({
+        totalExpected: 100,
+        records: [
+          { qtyGood: 10, qtyDefect: 2 },
+          { qtyGood: 80, qtyDefect: 0 },
+        ],
+      }),
+    ).toThrow("รอบล่าสุดยังมีของเสีย");
+  });
+
+  it("ยอดดีสะสมครบจึงเข้าแพ็กได้", () => {
+    expect(() =>
+      assertQcReadyForPacking({
+        totalExpected: 100,
+        records: [
+          { qtyGood: 60, qtyDefect: 0 },
+          { qtyGood: 40, qtyDefect: 0 },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it("ยอดดีครบแล้วให้ถือของเสียส่วนเกินเป็นเสื้อเผื่อและเข้าแพ็กได้", () => {
+    expect(() =>
+      assertQcReadyForPacking({
+        totalExpected: 100,
+        records: [
+          { qtyGood: 10, qtyDefect: 5 },
+          { qtyGood: 90, qtyDefect: 0 },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it("งานไม่รู้ยอดและรอบล่าสุดยังมีของเสียยังเข้าแพ็กไม่ได้", () => {
+    expect(() =>
+      assertQcReadyForPacking({
+        totalExpected: 0,
+        records: [{ qtyGood: 1, qtyDefect: 1 }],
+      }),
+    ).toThrow("รอบล่าสุดยังมีของเสีย");
+  });
+});
 
 describe("spareAvailableOf — เสื้อสำรองคงเหลือจากแถวเบิก", () => {
   it("เบิกเผื่อเกินที่ต้องใช้ = สำรอง (เบิก 105 คืน 0 ต้องใช้ 100 → 5)", () => {
@@ -123,19 +177,19 @@ describe("qcNextMove — ทางไปต่อหลังบันทึก�
     ).toBe("REWORK");
   });
 
-  it("มีทั้งดีและเสียในรอบเดียว → ของเสียชนะ (กลับผลิตก่อน ค่อยตรวจรอบใหม่)", () => {
+  it("มีทั้งดีและเสียแต่ของดียังไม่ครบ → ของเสียชนะ (กลับผลิตก่อน ค่อยตรวจรอบใหม่)", () => {
     expect(
       qcNextMove({ ...base, qtyGood: 90, qtyDefect: 10, spareAvailable: 10 })
     ).toBe("REWORK");
-    // เคสชี้ขาดลำดับ branch (review จับ: 90/10 ไม่ครบยอด PACK เป็นเท็จอยู่แล้ว จับสลับ
-    // ลำดับไม่ได้) — ดีครบยอด 100/100 พร้อมของเสีย 5 จากตัวสำรอง ต้องยังไปทางของเสีย
-    // ไม่ใช่ประกาศเข้าแพ็คทั้งที่มีของเสียค้างไม่ถูกแก้
+  });
+
+  it("ของดีสะสมครบแล้ว + ของเสียจากเสื้อเผื่อ → PACK ไม่เปิดงานแก้ที่ไม่มีวันปิด", () => {
     expect(
       qcNextMove({ ...base, qtyGood: 100, qtyDefect: 5, spareAvailable: 10 })
-    ).toBe("REWORK");
+    ).toBe("PACK");
     expect(
-      qcNextMove({ ...base, qtyGood: 100, qtyDefect: 5, spareAvailable: 0 })
-    ).toBe("HOLD_FOR_STOCK");
+      qcNextMove({ ...base, qtyGood: 10, qtyDefect: 5, checkedGood: 90, spareAvailable: 0 })
+    ).toBe("PACK");
   });
 
   it("ดีล้วนครบยอด (รวมสะสมรอบก่อน) → PACK", () => {

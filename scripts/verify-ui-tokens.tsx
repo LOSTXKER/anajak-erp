@@ -1418,7 +1418,7 @@ check(
     "utf8",
   );
   const productionDetailSource = readFileSync(
-    "src/app/(dashboard)/production/[id]/page.tsx",
+    "src/components/production/production-detail-screen.tsx",
     "utf8",
   );
   const garmentPickSource = readFileSync(
@@ -1444,7 +1444,7 @@ check(
     "utf8",
   );
   const printRunDialogSource = readFileSync(
-    "src/app/(dashboard)/production/print-runs/page.tsx",
+    "src/components/production/print-runs-screen.tsx",
     "utf8",
   );
   const printRunViewSource = readFileSync(
@@ -1537,7 +1537,7 @@ check(
    desktop เคยวางรอบ/คิวเต็มแถวต่อกันจนช่างมองสองอย่างพร้อมกันไม่ได้ */
 {
   const printRunsControllerSource = readFileSync(
-    "src/app/(dashboard)/production/print-runs/page.tsx",
+    "src/components/production/print-runs-screen.tsx",
     "utf8",
   );
   const printRunsViewSource = readFileSync(
@@ -1595,6 +1595,7 @@ check(
       status === "COMPLETED" || status === "CANCELLED"
         ? "2026-08-15T04:00:00.000Z"
         : null,
+    blockedReason: null,
     createdBy: { name: "ช่างทดสอบ" },
     items: [
       {
@@ -1604,6 +1605,7 @@ check(
         order: {
           orderNumber: `ORD-${runNumber}`,
           title: "งานในรอบทดสอบ",
+          internalStatus: "PRODUCING",
           designs: [
             {
               versionNumber: 2,
@@ -1697,6 +1699,42 @@ check(
       },
     }),
   );
+  const blockedRun = {
+    ...runFixture("PRINTING", "FR-VERIFY-BLOCKED"),
+    blockedReason: "หยุดรอบนี้ — งาน ORD-BLOCKED อยู่สถานะ พักงาน",
+  };
+  const blockedHtml = renderToStaticMarkup(
+    React.createElement(PrintRunsPageView, {
+      ...viewProps,
+      queue: [],
+      printingRuns: [blockedRun],
+      printedRuns: [],
+      historyRuns: [],
+      canManage: true,
+      selection: { ...selection, picked: {}, entries: [], total: 0 },
+    }),
+  );
+  const blockedPrintedHtml = renderToStaticMarkup(
+    React.createElement(PrintRunsPageView, {
+      ...viewProps,
+      queue: [],
+      printingRuns: [],
+      printedRuns: [{ ...blockedRun, status: "PRINTED" }],
+      historyRuns: [],
+      canManage: true,
+      selection: { ...selection, picked: {}, entries: [], total: 0 },
+    }),
+  );
+  const staleHtml = renderToStaticMarkup(
+    React.createElement(PrintRunsPageView, {
+      ...viewProps,
+      canManage: true,
+      canManageQueue: false,
+      canManageRuns: false,
+      queueStale: true,
+      listStale: true,
+    }),
+  );
   const renderedPrintingIndex = managerHtml.indexOf('data-print-run-stage="printing"');
   const renderedPrintedIndex = managerHtml.indexOf('data-print-run-stage="printed"');
   const renderedQueueIndex = managerHtml.indexOf('data-print-run-queue=""');
@@ -1742,7 +1780,8 @@ check(
     problems.push("fixture ผู้จัดการต้องเห็น selection และ action ครบ");
   }
   if (
-    !managerHtml.slice(renderedQueueIndex, renderedHistoryIndex).includes("sticky top-3") ||
+    !managerHtml.slice(renderedQueueIndex, renderedHistoryIndex).includes("sticky z-20") ||
+    !managerHtml.slice(renderedQueueIndex, renderedHistoryIndex).includes("top-3") ||
     !managerHtml
       .slice(renderedQueueIndex, renderedHistoryIndex)
       .includes("card-surface overflow-clip rounded-2xl")
@@ -1787,6 +1826,27 @@ check(
     errorHtml.includes("ยังไม่มีรอบที่ปิดเสร็จหรือยกเลิกใน 7 วันล่าสุด")
   ) {
     problems.push("fixture error ต้องมี retry แยก stage/queue/history และไม่ปลอมเป็น empty");
+  }
+  if (
+    !blockedHtml.includes("หยุดรอบนี้") ||
+    !blockedHtml.includes("พักงาน") ||
+    blockedHtml.includes("พิมพ์จบทั้งม้วน") ||
+    !blockedHtml.includes("ยกเลิกรอบ") ||
+    blockedPrintedHtml.includes("พิมพ์จบทั้งม้วน") ||
+    blockedPrintedHtml.includes("ตัดแยก+ติดป้ายเสร็จ") ||
+    blockedPrintedHtml.includes("ยกเลิกรอบ")
+  ) {
+    problems.push("active run ที่ถูกบล็อกต้องเดินต่อไม่ได้ แต่ PRINTING ยังยกเลิกเพื่อ recovery ได้");
+  }
+  if (
+    (staleHtml.match(/ข้อมูลเดิมยังแสดงอยู่ แต่อาจไม่ใช่สถานะล่าสุด/g) ?? []).length !== 2 ||
+    !staleHtml.includes("FR-VERIFY-PRINTING") ||
+    !staleHtml.includes("ORD-VERIFY-01") ||
+    staleHtml.includes("เปิดรอบพิมพ์") ||
+    staleHtml.includes("พิมพ์จบทั้งม้วน") ||
+    staleHtml.includes("ตัดแยก+ติดป้ายเสร็จ")
+  ) {
+    problems.push("background error ต้องคง cached queue/list พร้อม stale warning และ fail closed");
   }
 
   if (
@@ -1855,7 +1915,7 @@ check(
     selectionIndex < queueIndex ||
     queueListIndex < 0 ||
     selectionIndex > queueListIndex ||
-    !printRunsSource.includes("sticky top-3") ||
+    !printRunsSource.includes('stationMode ? "top-32" : "top-3"') ||
     !printRunsSource.includes('className="card-surface overflow-clip rounded-2xl"')
   ) {
     problems.push("แถบเปิดรอบต้องอยู่ในบริบทคิวและตามเห็นทันทีเมื่อเลือกงาน");
@@ -1867,6 +1927,260 @@ check(
     problems.forEach((problem) => console.log(`   ${problem}`));
   } else {
     console.log("✅ รอบพิมพ์เรียงตามหน้างานและเห็นรอบกับคิวพร้อมกัน");
+  }
+}
+
+/* ── Station Mode: shell เดียวกับข้อมูลจริง แต่ไม่มี sidebar/เงิน ─────────────
+   Scan มีหน้าที่เปิดบริบทเท่านั้น; งานผลิต/QC/แพ็กต้อง reuse controller และ
+   server guard เดิม โดยคิววาง “กำลังทำ” ก่อน “พร้อมทำ” บนทุกขนาดจอ */
+{
+  const stationPageSource = readFileSync(
+    "src/components/factory/station-mode-screen.tsx",
+    "utf8",
+  );
+  const stationShellSource = readFileSync(
+    "src/components/factory/station-mode-shell.tsx",
+    "utf8",
+  );
+  const stationOrderSource = readFileSync(
+    "src/components/factory/station-order-workspace.tsx",
+    "utf8",
+  );
+  const factoryRouterSource = readFileSync(
+    "src/server/routers/factory.ts",
+    "utf8",
+  );
+  const orderRouterSource = readFileSync(
+    "src/server/routers/order.ts",
+    "utf8",
+  );
+  const productionRouterSource = readFileSync(
+    "src/server/routers/production.ts",
+    "utf8",
+  );
+  const deliveryDialogSource = readFileSync(
+    "src/components/orders/delivery/create-delivery-dialog.tsx",
+    "utf8",
+  );
+  const packingReadinessSource = readFileSync(
+    "src/server/services/packing-readiness.ts",
+    "utf8",
+  );
+  const jobTicketSource = readFileSync(
+    "src/app/(print)/print/job-ticket/[id]/page.tsx",
+    "utf8",
+  );
+  const productionSummarySource = readFileSync(
+    "src/components/orders/production-summary-card.tsx",
+    "utf8",
+  );
+  const factoryBoardSource = readFileSync(
+    "src/server/services/factory-board.ts",
+    "utf8",
+  );
+  const ownerPulseSource = readFileSync(
+    "src/server/services/owner-pulse.ts",
+    "utf8",
+  );
+  const productionDetailSource = readFileSync(
+    "src/components/production/production-detail-screen.tsx",
+    "utf8",
+  );
+  const stepQtySource = readFileSync(
+    "src/components/production/step-qty-sheet.tsx",
+    "utf8",
+  );
+  const qcSource = readFileSync(
+    "src/components/qc/order-qc-section.tsx",
+    "utf8",
+  );
+  const garmentServiceSource = readFileSync(
+    "src/server/services/garment-pick.ts",
+    "utf8",
+  );
+  const problems: string[] = [];
+
+  if (
+    stationPageSource.includes("AppShell") ||
+    stationPageSource.includes("Sidebar") ||
+    !stationShellSource.includes('href="/production"') ||
+    !stationShellSource.includes("จอประจำสถานี")
+  ) {
+    problems.push("Station Mode ต้องเต็มจอ ไม่มี sidebar ใหม่ และกลับ ERP ได้");
+  }
+  if (
+    !stationPageSource.includes('htmlFor="factory-station-scan"') ||
+    !stationPageSource.includes("resolveStationScan.fetch({ value })") ||
+    !stationPageSource.includes("สแกนมีหน้าที่เปิดใบงานเท่านั้น") ||
+    stationPageSource.includes("resolveStationScan.useMutation")
+  ) {
+    problems.push("สแกนต้องมีชื่อช่องและเปิดข้อมูลแบบ read-only เท่านั้น");
+  }
+  if (
+    !stationPageSource.includes("trpc.factory.stationQueue.useQuery") ||
+    stationPageSource.includes("trpc.production.kanban.useQuery") ||
+    !stationPageSource.includes("canManageProduction &&")
+  ) {
+    problems.push("คิว Station ต้องเป็น no-money DTO และทุก action ต้องเริ่มจากสิทธิ์ผลิต");
+  }
+  if (
+    !stationPageSource.includes("<ProductionDetailScreen") ||
+    !stationPageSource.includes('surface="station"') ||
+    !stationPageSource.includes("station={station}") ||
+    !stationPageSource.includes('<PrintRunsScreen surface="station"') ||
+    !stationOrderSource.includes("<OrderQcSection") ||
+    !stationOrderSource.includes("showShippingCost={false}") ||
+    !stationOrderSource.includes("trpc.factory.markReadyToShip.useMutation") ||
+    stationOrderSource.includes("trpc.order.updateStatus.useMutation")
+  ) {
+    problems.push("ใบผลิต/รอบ DTF/QC/แพ็กต้องใช้ controller จริงร่วมกับ ERP และไม่มีเงิน");
+  }
+  if (
+    !stationPageSource.includes('canCountQc={canManageProduction}') ||
+    !stationPageSource.includes('canCreateDelivery={canCreateDelivery}') ||
+    !stationPageSource.includes('canAdvancePacking={canAdvancePacking}') ||
+    !stationOrderSource.includes('canCount={canCountQc && station === "qc"}') ||
+    !stationOrderSource.includes('canUseStation={station === "final-pack"}') ||
+    !stationOrderSource.includes("เปิดสถานี QC ก่อน") ||
+    !stationOrderSource.includes("เปิดสถานีแพ็กสุดท้ายก่อน") ||
+    !stationPageSource.includes('aria-live="polite"') ||
+    !stationPageSource.includes("productionChoiceSummary") ||
+    !stationPageSource.includes("setMultiple(null)") ||
+    !productionDetailSource.includes("factoryStationKeyForStep(step.stepType) === station") ||
+    !productionDetailSource.includes("stationBlockMessage") ||
+    !productionDetailSource.includes('order?.internalStatus === "PRODUCING"')
+  ) {
+    problems.push("action Station ต้องตรงสถานี/สถานะและตัวเลือกหลายใบต้องแยกกันชัด");
+  }
+  if (
+    !stationOrderSource.includes('["ON_HOLD", "CANCELLED"]') ||
+    !stationOrderSource.includes("ห้ามเริ่ม เบิก ปิดขั้น หรือแพ็กต่อ") ||
+    !productionRouterSource.includes('liveOrder.internalStatus !== "PRODUCING"') ||
+    !garmentServiceSource.includes('liveOrder.internalStatus !== "PRODUCING"')
+  ) {
+    problems.push("งานพัก/ยกเลิกต้องอ่านได้แต่เขียน step หรือเบิกเสื้อต่อไม่ได้");
+  }
+  if (
+    !stepQtySource.includes("validateStepQtyInput(value, remaining)") ||
+    !stepQtySource.includes("aria-invalid={validation.error !== null || undefined}") ||
+    !productionRouterSource.includes("nextQtyDone > nextQtyTotal") ||
+    !qcSource.includes("qtyGoodOverLimit") ||
+    !qcSource.includes("ของดีสะสมครบยอด — งานจะเข้าคิวแพ็ก") ||
+    !qcSource.includes("[idempotencyKey, setIdempotencyKey]") ||
+    !qcSource.includes("setIdempotencyKey(crypto.randomUUID())") ||
+    !qcSource.includes("idempotencyKey,")
+  ) {
+    problems.push("จำนวนผลิต/QC เกินต้องถูกปฏิเสธ คำอธิบายต้องตรง server และ QC retry ต้องใช้ key เดิมเฉพาะรอบนั้น");
+  }
+  if (
+    !stationOrderSource.includes("StationQcReference") ||
+    !stationOrderSource.includes("BLIND SHIP — ห้ามใส่เอกสารหรือชื่อ Anajak ในกล่อง") ||
+    !factoryRouterSource.includes("inspection: { garmentLines, printChecks }")
+  ) {
+    problems.push("โต๊ะ QC/แพ็กต้องเห็นรายการตรวจและคำเตือน blind ship ณ จุดลงมือ");
+  }
+  if (
+    !factoryRouterSource.includes("stationOrderSelect") ||
+    /totalAmount|shippingCost|estimatedCost/.test(
+      factoryRouterSource.slice(
+        factoryRouterSource.indexOf("const stationOrderSelect"),
+        factoryRouterSource.indexOf("const scannedProductionSelect"),
+      ),
+    ) ||
+    !stationOrderSource.includes("nonReturnedDeliveryCount") ||
+    !orderRouterSource.includes("assertOrderPackingReadyToShip") ||
+    !productionRouterSource.includes("const updateStepResultSelect") ||
+    !deliveryDialogSource.includes("? { shippingCost: parseFloat(shippingCost) || 0 }") ||
+    !deliveryDialogSource.includes(": {}")
+  ) {
+    problems.push("station payload ต้องไม่มีเงิน และพร้อมส่งต้องมีหลักฐานแพ็กฝั่ง server");
+  }
+  if (
+    !stationShellSource.includes("min-h-11") ||
+    !stationPageSource.includes("canManageProduction") ||
+    !stationPageSource.includes("canCreateDelivery") ||
+    !stationPageSource.includes("canAdvancePacking") ||
+    !stationOrderSource.includes("disabled={!canUseStation || !canCreateDelivery}") ||
+    !stationOrderSource.includes("disabled={!canUseStation || !canAdvancePacking || !complete")
+  ) {
+    problems.push("จอทัชและ read-only ต้องคง target 44px พร้อม fail-closed ทุก action");
+  }
+  if (
+    !factoryRouterSource.includes('live.internalStatus !== "PACKING"') ||
+    !factoryRouterSource.includes("factoryStationKeyForOrderStatus(row.internalStatus)") ||
+    !packingReadinessSource.includes("packingLineKey(line.description") ||
+    !packingReadinessSource.includes("packingLineKey(product.description")
+  ) {
+    problems.push("สแกนหลังผลิตและด่านแพ็กต้องใช้สถานะสดพร้อมแยกสินค้า/ไซส์/สี");
+  }
+  if (
+    !jobTicketSource.includes("productionWorkflowSteps(") ||
+    !productionSummarySource.includes("productionWorkflowSteps(") ||
+    !factoryBoardSource.includes('stepType: { not: "PACKAGING" }') ||
+    !ownerPulseSource.includes('stepType: { not: "PACKAGING" }')
+  ) {
+    problems.push("PACKAGING รุ่นเก่าต้องไม่กลับมาเป็นคำสั่งผลิตก่อน QC บนทุกผิวงาน");
+  }
+
+  const { StationQueueView } = require(
+    "../src/components/factory/station-queue-view",
+  );
+  const { Shirt } = require("lucide-react");
+  const now = "2099-08-16T00:00:00.000Z";
+  const queueHtml = renderToStaticMarkup(
+    React.createElement(StationQueueView, {
+      stationLabel: "เตรียมเสื้อ",
+      stationDescription: "fixture",
+      icon: Shirt,
+      onOpen: () => {},
+      items: [
+        {
+          key: "active",
+          orderId: "order-active",
+          productionId: "production-active",
+          orderNumber: "ORD-STATION-ACTIVE",
+          title: "กำลังทำ",
+          customerName: "ลูกค้า A",
+          deadline: now,
+          priority: "NORMAL",
+          stepLabel: "เบิกเสื้อ",
+          status: "active",
+          qtyDone: 10,
+          qtyTotal: 20,
+          overdue: false,
+        },
+        {
+          key: "ready",
+          orderId: "order-ready",
+          productionId: "production-ready",
+          orderNumber: "ORD-STATION-READY",
+          title: "พร้อมทำ",
+          customerName: "ลูกค้า B",
+          deadline: now,
+          priority: "NORMAL",
+          stepLabel: "เบิกเสื้อ",
+          status: "ready",
+          qtyDone: 0,
+          qtyTotal: 20,
+          overdue: false,
+        },
+      ],
+    }),
+  );
+  if (
+    queueHtml.indexOf("กำลังทำ") < 0 ||
+    queueHtml.indexOf("คิวพร้อมทำ") < queueHtml.indexOf("กำลังทำ") ||
+    queueHtml.indexOf("ORD-STATION-ACTIVE") > queueHtml.indexOf("ORD-STATION-READY")
+  ) {
+    problems.push("DOM คิวสถานีต้องเรียงกำลังทำก่อนคิวพร้อมทำ");
+  }
+
+  if (problems.length) {
+    failed++;
+    console.log("❌ Station Mode หลุด shell/scan/permission/ลำดับงาน");
+    problems.forEach((problem) => console.log(`   ${problem}`));
+  } else {
+    console.log("✅ Station Mode ไม่มี sidebar/เงิน และคง scan/permission/ลำดับงานจริง");
   }
 }
 

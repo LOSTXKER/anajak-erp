@@ -6,6 +6,7 @@ import {
 } from "@/lib/stock-reservation-state";
 import { badRequest, conflict } from "@/server/errors";
 import type { PrismaTx } from "@/lib/prisma";
+import { productionWorkflowSteps } from "@/lib/production-steps";
 
 // จุดเดียวที่อนุญาตให้เปลี่ยน internalStatus ของออเดอร์ (นอกจากสถานะเริ่มต้นตอน create)
 // - validate ผ่าน isValidTransition เสมอ — ห้าม set ตรงจาก router ใดๆ
@@ -172,7 +173,12 @@ export async function advanceOrderForward(
 // ดันออเดอร์เฉพาะตอนยัง PRODUCING — ไม่แตะออเดอร์ที่เลยขั้นไปแล้ว/ปิดงานแล้ว · คืน true ถ้าเพิ่งปิดรอบนี้
 export async function finalizeProductionIfComplete(
   tx: PrismaTx,
-  params: { productionId: string; changedBy: string }
+  params: {
+    productionId: string;
+    changedBy: string;
+    /** ทางกู้ใบเก่า: ยอมปิดเฉพาะเมื่อยังมี PACKAGING เดิมค้างอยู่จริง */
+    requireLegacyPackaging?: boolean;
+  }
 ) {
   // ล็อกแถวใบผลิตก่อนอ่าน steps — สอง step สุดท้ายถูกกดเสร็จพร้อมกัน (ปุ่มเร็วบน
   // บอร์ดเลนทำให้เกิดง่ายขึ้น) ต่างคนต่างเห็นอีกขั้นยังไม่เสร็จ → ไม่มีใครปิดใบ
@@ -180,15 +186,37 @@ export async function finalizeProductionIfComplete(
   await tx.$queryRaw`SELECT id FROM productions WHERE id = ${params.productionId} FOR UPDATE`;
   const steps = await tx.productionStep.findMany({
     where: { productionId: params.productionId },
-    select: { status: true },
+    select: { stepType: true, status: true },
   });
-  if (steps.length === 0 || !steps.every((s) => s.status === "COMPLETED")) {
+  const productionSteps = productionWorkflowSteps(steps);
+  const hasPendingLegacyPackaging = steps.some(
+    (step) => step.stepType === "PACKAGING" && step.status !== "COMPLETED",
+  );
+  const allowLegacyOnlyRecovery =
+    params.requireLegacyPackaging === true && hasPendingLegacyPackaging;
+  if (
+    (productionSteps.length === 0 && !allowLegacyOnlyRecovery) ||
+    (params.requireLegacyPackaging && !hasPendingLegacyPackaging) ||
+    !productionSteps.every((s) => s.status === "COMPLETED")
+  ) {
     return false;
   }
 
+  // PACKAGING เก่าไม่ใช่ด่านผลิตแล้ว: เมื่อขั้นจริงครบ ให้ปิดแถวเก่าใน tx เดียวกัน
+  // เพื่อให้ประวัติ/ตัวนับเดิมสอดคล้อง โดยไม่ต้องให้คนกดแพ็กก่อนเข้า QC
+  const completedAt = new Date();
+  await tx.productionStep.updateMany({
+    where: {
+      productionId: params.productionId,
+      stepType: "PACKAGING",
+      status: { not: "COMPLETED" },
+    },
+    data: { status: "COMPLETED", completedAt },
+  });
+
   const production = await tx.production.update({
     where: { id: params.productionId },
-    data: { status: "COMPLETED", endDate: new Date() },
+    data: { status: "COMPLETED", endDate: completedAt },
     select: { orderId: true },
   });
 

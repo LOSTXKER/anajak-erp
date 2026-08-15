@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
@@ -39,6 +40,8 @@ export function ProductionNowCard({
   onSendOutsource,
   onQuickPass,
   onOpenStep,
+  canOpenStep = () => true,
+  printRunsHref = "/production/print-runs",
 }: {
   nowSteps: readonly NowStep<ProductionStep>[];
   allDone: boolean;
@@ -48,6 +51,8 @@ export function ProductionNowCard({
   onSendOutsource: (step: ProductionStep) => void;
   onQuickPass: (step: ProductionStep) => void;
   onOpenStep: (step: ProductionStep) => void;
+  canOpenStep?: (step: ProductionStep) => boolean;
+  printRunsHref?: string;
 }) {
   if (allDone) {
     return (
@@ -119,9 +124,15 @@ export function ProductionNowCard({
               ) : note ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm text-muted">{note}</p>
-                  <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
-                    เปิดดูขั้นนี้
-                  </Button>
+                  {step.stepType === "DTF_PRINT" && step.status !== "FAILED" ? (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={printRunsHref}>เปิดรอบพิมพ์ DTF</Link>
+                    </Button>
+                  ) : canOpenStep(step) ? (
+                    <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
+                      เปิดดูขั้นนี้
+                    </Button>
+                  ) : null}
                 </div>
               ) : action ? (
                 // ปุ่มเต็มความกว้างบนจอแคบ/จอทัช — นิ้วโดนแน่ ไม่ต้องเล็ง
@@ -144,11 +155,11 @@ export function ProductionNowCard({
                   {ACTION_LABEL[action]}
                   {action === "record-qty" && counting && ` (${step.qtyDone}/${step.qtyTotal})`}
                 </Button>
-              ) : (
+              ) : canOpenStep(step) ? (
                 <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
                   เปิดดูขั้นนี้
                 </Button>
-              )}
+              ) : null}
             </div>
           );
         })}

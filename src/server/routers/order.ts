@@ -59,6 +59,8 @@ import {
   billedFloor,
 } from "@/server/services/payment-plan";
 import { lockOrderRow } from "@/server/services/order-cost";
+import { assertOrderPackingReadyToShip } from "@/server/services/packing-readiness";
+import { assertQcReadyForPacking } from "@/server/services/qc-count";
 import type { OrderType, TaxLineType } from "@prisma/client";
 import {
   ORDER_ATTENTIONS,
@@ -1209,19 +1211,6 @@ export const orderRouter = router({
         }
       }
 
-      // กดส่งแล้วด้วยมือ ต้องมีใบส่งในระบบก่อน — กันข้อมูลส่ง (เลขพัสดุ/ที่อยู่) หายนอกระบบ
-      // (เส้นทางหลักคือกดส่งที่ใบส่ง แล้วออเดอร์เด้งเอง · audit ข้อ 22)
-      if (input.internalStatus === "SHIPPED" && old.internalStatus !== "SHIPPED") {
-        const deliveryCount = await ctx.prisma.delivery.count({
-          where: { orderId: input.id },
-        });
-        if (deliveryCount === 0) {
-          badRequest(
-            'ยังไม่มีใบส่งของ — สร้างใบส่งในส่วน "จัดส่ง" ก่อน (กดส่งของที่ใบส่งแล้วสถานะออเดอร์จะเดินให้เอง)'
-          );
-        }
-      }
-
       // ปิดงานต้องวางบิลครบก่อน — กติกาอยู่ที่ assertOrderFullyBilledForClose (payment-plan.ts)
       // เงื่อนไข totalAmount > 0 คงที่ router — ออเดอร์ยอด 0 ข้ามด่านได้โดยไม่ต้อง query บิล
       if (input.internalStatus === "COMPLETED" && old.totalAmount > 0) {
@@ -1276,6 +1265,15 @@ export const orderRouter = router({
           }
         }
 
+        // พร้อมส่งต้องตัดสินจาก evidence ชุดเดียวกับจอแพ็ค และ serialize กับการสร้าง/
+        // ตีกลับใบส่ง ไม่งั้นสองจอกดพร้อมกันอาจผ่านจาก snapshot คนละก้อน
+        if (
+          input.internalStatus === "READY_TO_SHIP" ||
+          input.internalStatus === "SHIPPED"
+        ) {
+          await lockOrderRow(tx, input.id);
+        }
+
         const result = await transitionOrder(tx, {
           orderId: input.id,
           to: input.internalStatus,
@@ -1283,21 +1281,67 @@ export const orderRouter = router({
           reason: input.reason,
         });
         const from = result.from;
+        if (
+          result.changed &&
+          from === "PACKING" &&
+          input.internalStatus === "READY_TO_SHIP"
+        ) {
+          // throw หลัง transition ยังปลอดภัย: อยู่ transaction เดียวกันจึง rollback สถานะ+revision ทั้งก้อน
+          await assertOrderPackingReadyToShip(tx, input.id);
+        }
+        if (result.changed && input.internalStatus === "SHIPPED") {
+          // count ใบส่งทุกสถานะไม่พอ: RETURNED ไม่ใช่หลักฐาน และยอดต่อไซส์ต้องครบ
+          await assertOrderPackingReadyToShip(tx, input.id);
+        }
         // QC ไม่ผ่าน ถอยกลับผลิต → reopen ใบผลิตที่ปิดแล้ว + เปิด step งานแก้
         // (งานแก้ต้องโผล่ในบอร์ด/คิว ไม่ใช่หายเงียบ · audit ข้อ 19/26)
         if (result.changed && from === "QUALITY_CHECK" && input.internalStatus === "PRODUCING") {
           await reopenProductionsForRework(tx, { orderId: input.id, reason: input.reason });
         }
         if (result.changed && from === "QUALITY_CHECK" && input.internalStatus === "PACKING") {
-          // ผ่านด่านตรวจเข้าแพ็คด้วยมือ ต้องมีผลตรวจนับ QC อย่างน้อย 1 รอบ — ปิดทาง
-          // bypass ด่านนับของ (Gate B4: เดิมกดข้ามได้ทุก role โดยไม่เคยนับเลย) · เคสจริง
-          // ที่ต้องกดมือ (ลูกค้ารับของไม่ครบ/ของตีกลับ) มีใบตรวจรอบก่อนเสมอ · เช็คใน tx
-          // แล้ว throw = rollback transition ทั้งก้อน
-          const qcCount = await tx.qcRecord.count({ where: { orderId: input.id } });
-          if (qcCount === 0) {
-            badRequest(
-              'ยังไม่เคยตรวจนับ QC เลย — กด "ตรวจนับ" บันทึกดีกี่ตัวเสียกี่ตัวก่อน (นับดีครบยอดแล้วงานเข้าคิวแพ็คเอง)'
-            );
+          // เส้นปกติบันทึก QC ครบแล้วเด้งเอง; ทางมือมีไว้ recovery แต่ต้องพิสูจน์
+          // ยอดดีครบ + รอบล่าสุดไม่มี defect + ไม่มีใบผลิตงานแก้ค้างจริง
+          const qcEvidence = await tx.order.findUniqueOrThrow({
+            where: { id: input.id },
+            select: {
+              items: {
+                select: {
+                  products: {
+                    select: {
+                      variants: { select: { quantity: true } },
+                    },
+                  },
+                },
+              },
+              qcRecords: {
+                orderBy: { checkedAt: "desc" },
+                select: { qtyGood: true, qtyDefect: true },
+              },
+            },
+          });
+          const totalExpected = qcEvidence.items.reduce(
+            (sum, item) =>
+              sum +
+              item.products.reduce(
+                (productSum, product) =>
+                  productSum +
+                  product.variants.reduce(
+                    (variantSum, variant) => variantSum + variant.quantity,
+                    0,
+                  ),
+                0,
+              ),
+            0,
+          );
+          assertQcReadyForPacking({
+            totalExpected,
+            records: qcEvidence.qcRecords,
+          });
+          const openProductions = await tx.production.count({
+            where: { orderId: input.id, status: { not: "COMPLETED" } },
+          });
+          if (openProductions > 0) {
+            badRequest("ยังมีใบผลิต/งานแก้ค้างอยู่ — ปิดงานผลิตและตรวจ QC ซ้ำก่อนเข้าแพ็ก");
           }
           // ลายต้องเข้าคลังเหมือนเส้น QC ปกติ ไม่งั้นหายเงียบ (idempotent)
           await promoteOrderArtworks(tx, { orderId: input.id });
@@ -1345,7 +1389,6 @@ export const orderRouter = router({
         });
       }
 
-      // ⑦ follow-up: ช่าง/กราฟิกกดเปลี่ยนสถานะได้ แต่แถวเต็มมีเงิน — จอใช้แค่สถานะจากคำตอบนี้
       return stripOrderMoneyForRole(order, ctx.userRole, ctx.permissionOverrides);
     }),
 

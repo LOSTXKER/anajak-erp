@@ -73,29 +73,38 @@ export function planGarmentIssue(
   };
 }
 
-// แผนคืนเศษ: กรอง qty ≤ 0 ทิ้ง → validate ต่อบรรทัด (sku → จำนวนเต็ม → เพดานเบิกค้าง)
+// แผนคืนเศษ: กรอง qty ≤ 0 ทิ้ง → รวม sku ซ้ำ → validate จำนวนเต็มและเพดานเบิกค้าง
 export function planGarmentReturn(
   stateLines: Array<{
     sku: string;
     productName: string;
     size: string;
     color: string | null;
+    needed: number;
     issued: number;
     returned: number;
   }>,
   inputLines: Array<{ sku: string; qty: number }>
 ): { requested: Array<{ sku: string; qty: number }>; returnedQty: number } {
   const stateBySku = new Map(stateLines.map((l) => [l.sku, l]));
-  const requested = inputLines.filter((l) => l.qty > 0);
-  if (requested.length === 0) badRequest("ยังไม่ได้ระบุจำนวนที่คืน");
-  for (const line of requested) {
+  const positive = inputLines.filter((line) => line.qty > 0);
+  if (positive.length === 0) badRequest("ยังไม่ได้ระบุจำนวนที่คืน");
+  const requestedBySku = new Map<string, number>();
+  for (const line of positive) {
     const ref = stateBySku.get(line.sku);
     if (!ref) badRequest(`รายการ ${line.sku} ไม่อยู่ในรายการเสื้อจากสต๊อคของออเดอร์นี้`);
     if (!Number.isInteger(line.qty)) badRequest(`จำนวนคืนของ ${line.sku} ต้องเป็นจำนวนเต็ม`);
-    const outstanding = ref.issued - ref.returned;
-    if (line.qty > outstanding) {
+    requestedBySku.set(line.sku, (requestedBySku.get(line.sku) ?? 0) + line.qty);
+  }
+  const requested = [...requestedBySku].map(([sku, qty]) => ({ sku, qty }));
+  for (const line of requested) {
+    const ref = stateBySku.get(line.sku)!;
+    // ปุ่มนี้คือ “คืนเศษ” ไม่ใช่ undo การเบิก: เสื้อที่ต้องใช้ผลิตต้องไม่ถูกคืน
+    // กลับเข้าสต๊อคจนตัวเลข Stock บวม ทั้งที่ขั้นผลิตยังถือว่าของครบอยู่
+    const returnableSurplus = Math.max(0, ref.issued - ref.returned - ref.needed);
+    if (line.qty > returnableSurplus) {
       badRequest(
-        `${ref.productName} ${ref.size}${ref.color ? `/${ref.color}` : ""}: คืนได้ไม่เกิน ${outstanding} ตัว (เบิกค้างอยู่)`
+        `${ref.productName} ${ref.size}${ref.color ? `/${ref.color}` : ""}: คืนเศษได้ไม่เกิน ${returnableSurplus} ตัว`
       );
     }
   }

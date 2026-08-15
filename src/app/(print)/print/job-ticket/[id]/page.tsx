@@ -13,7 +13,10 @@ import {
   PRINT_TYPES,
 } from "@/types/order-form";
 import { PRIORITY_LABELS, CHANNEL_LABELS } from "@/lib/order-status";
-import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import {
+  STEP_TYPE_LABELS,
+  productionWorkflowSteps,
+} from "@/lib/production-steps";
 import { isImageUrl } from "@/lib/utils";
 import { PrintPage, NotesBlock, formatDocDate } from "@/components/print/print-document";
 import { PrintActions } from "@/components/print/print-actions";
@@ -86,13 +89,13 @@ export default async function PrintJobTicketPage({
     ? [approvedDesign.thumbnailUrl, approvedDesign.fileUrl].find(isImageUrl) ?? null
     : null;
 
-  // UX8: QR ชี้หน้าใบผลิต (จอช่าง /production/<id>) — สแกนจากแฟ้มหน้าเครื่องตกจอทำงานเลย ไม่ต้องผ่านหน้าออเดอร์
-  // ยังไม่มีใบผลิต (ยังไม่เข้าคิวผลิต) → fallback หน้าออเดอร์ · ต้องเป็น URL เต็ม (ตั้ง NEXT_PUBLIC_APP_URL ตอน deploy)
+  // Station Mode: QR ใหม่เปิดจอหน้างานโดยตรง แต่ parser ยังรับ QR เก่า /production/<id>
+  // เสมอ · ยังไม่มีใบผลิตให้เปิดบริบทออเดอร์เพื่อบอกตรง ๆ ว่างานอยู่ขั้นไหน
+  // ต้องเป็น URL เต็ม (ตั้ง NEXT_PUBLIC_APP_URL ตอน deploy)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const productionId = order.productions[0]?.id;
-  const qrTarget = productionId
-    ? `${baseUrl}/production/${productionId}`
-    : `${baseUrl}/orders/${order.id}`;
+  // ใบนี้เป็นระดับออเดอร์และอาจมีหลายใบผลิต จึงส่ง orderId ให้ Station Mode เป็นคน
+  // แสดงตัวเลือกทุกใบแทนการหยิบ productions[0] เงียบ ๆ
+  const qrTarget = `${baseUrl}/factory/station?orderId=${order.id}`;
   const qrSvg = await QRCode.toString(qrTarget, {
     type: "svg",
     margin: 0,
@@ -100,7 +103,9 @@ export default async function PrintJobTicketPage({
   });
 
   const totalQty = order.items.reduce((s, it) => s + it.totalQuantity, 0);
-  const steps = order.productions.flatMap((p) => p.steps);
+  // PACKAGING รุ่นเก่าเคยอยู่ก่อน QC — ห้ามพิมพ์เป็นช่องให้ช่างติ๊กว่าแพ็กแล้ว
+  // เพราะแพ็กสุดท้ายเกิดหลัง QC ผ่าน Delivery เท่านั้น
+  const steps = productionWorkflowSteps(order.productions.flatMap((p) => p.steps));
   const isUrgent = order.priority === "URGENT" || order.priority === "HIGH";
 
   return (

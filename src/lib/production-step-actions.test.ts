@@ -19,11 +19,12 @@ const policy = (overrides: Partial<Parameters<typeof getProductionStepActionPoli
   });
 
 describe("getProductionStepActionPolicy", () => {
-  it("DTF ภายในไม่เสนอส่งร้านนอก", () => {
+  it("DTF เดินผ่านรอบพิมพ์ ไม่เสนอปุ่ม generic หรือส่งร้านนอก", () => {
     expect(policy({ stepType: "DTF_PRINT" })).toMatchObject({
       structuralMode: "internal",
-      primary: "start",
+      primary: null,
       canSendOutsource: false,
+      canRunInternal: false,
     });
   });
 
@@ -51,17 +52,26 @@ describe("getProductionStepActionPolicy", () => {
       canRunInternal: false,
     });
   });
+
+  it("PACKAGING เก่าเป็นข้อมูล compatibility เท่านั้น — ไม่เสนอ action ผลิต", () => {
+    expect(policy({ stepType: "PACKAGING" })).toMatchObject({
+      primary: null,
+      canSendOutsource: false,
+      canQuickPass: false,
+      canRunInternal: false,
+    });
+  });
 });
 
 describe("firstPendingStepIdsByLane", () => {
   it("เลือกเฉพาะขั้นแรกที่ยังไม่เสร็จของแต่ละเลน", () => {
-    // เลน DTF (พิมพ์→รีด) + เลนแพ็ค — ขั้นรีดต้อง 'รอขั้นก่อนหน้า' ส่วนแพ็คเป็นตัวแรกของเลนตัวเอง
+    // เลน DTF (พิมพ์→รีด) · PACKAGING เก่าไม่ใช่งานผลิตที่ลงมือได้แล้ว
     const ids = firstPendingStepIdsByLane([
       { id: "print", stepType: "DTF_PRINT", status: "PENDING", sortOrder: 1 },
       { id: "press", stepType: "HEAT_PRESS", status: "PENDING", sortOrder: 2 },
       { id: "pack", stepType: "PACKAGING", status: "PENDING", sortOrder: 3 },
     ]);
-    expect(ids).toEqual(new Set(["print", "pack"]));
+    expect(ids).toEqual(new Set(["print"]));
   });
 
   it("ขั้นเสร็จแล้วไม่ถูกนับ — ตัวถัดไปในเลนขึ้นเป็นขั้นแรกที่ค้างแทน", () => {
@@ -141,7 +151,7 @@ describe("selectNowSteps — ตอนนี้ต้องทำอะไร (�
   });
 
   it("งานของคนอื่นไม่ให้ปุ่มกับช่าง แต่หัวหน้าแตะได้", () => {
-    const step = mk({ stepType: "DTF_PRINT", assignedTo: { id: "u2" } });
+    const step = mk({ stepType: "HEAT_PRESS", assignedTo: { id: "u2" } });
     const [staff] = selectNowSteps([step], { ...PERMS, canSupervise: false });
     expect(staff!.action).toBeNull();
     expect(staff!.note).toBe("เป็นงานของคนอื่น");
@@ -177,5 +187,9 @@ describe("selectNowSteps — ตอนนี้ต้องทำอะไร (�
     expect(
       selectNowSteps([mk({ stepType: "DTF_PRINT", status: "COMPLETED" })], PERMS),
     ).toHaveLength(0);
+  });
+
+  it("ใบเก่าที่เหลือ PACKAGING ไม่เสนอเป็นงานปัจจุบัน", () => {
+    expect(selectNowSteps([mk({ stepType: "PACKAGING" })], PERMS)).toHaveLength(0);
   });
 });

@@ -5,6 +5,7 @@ import {
   STEP_TYPE_LABELS,
   evaluateHeatPressGate,
   laneOf,
+  productionWorkflowSteps,
   type ProductionLane,
 } from "@/lib/production-steps";
 import { BANGKOK_TZ } from "@/lib/utils";
@@ -160,6 +161,7 @@ export type ProductionBoard<O, S extends BoardStepLike> = {
 
 export const STATION_ALL = "";
 export const STATION_QUEUE = "queue";
+export const STATION_LEGACY_QC = "legacy:qc";
 
 const POST_SECTIONS = [
   { key: "post:qc", label: "ตรวจ QC", status: "QUALITY_CHECK" },
@@ -303,12 +305,16 @@ export function buildProductionBoard<
     // rail อ่านจากขั้นทั้งใบเสมอ แม้ออเดอร์จะผ่านด่านผลิตไปแล้ว — ไม่งั้นงานที่อยู่ QC/แพ็ค
     // จะแสดงว่าไม่เคยใช้สายไหนเลย ทั้งที่เพิ่งเดินผ่านมาหมาด ๆ
     for (const production of order.productions) {
-      allSteps.push(...production.steps);
+      allSteps.push(...productionWorkflowSteps(production.steps));
     }
 
     if (order.internalStatus === "PRODUCING") {
       for (const production of order.productions) {
-        const steps = [...production.steps].sort((a, b) => a.sortOrder - b.sortOrder);
+        const orderedSteps = [...production.steps].sort((a, b) => a.sortOrder - b.sortOrder);
+        const steps = productionWorkflowSteps(orderedSteps);
+        const hasPendingLegacyPackaging = orderedSteps.some(
+          (step) => step.stepType === "PACKAGING" && step.status !== "COMPLETED",
+        );
         const gate = evaluateHeatPressGate(steps);
 
         for (const step of steps) {
@@ -332,15 +338,9 @@ export function buildProductionBoard<
           const lane = laneOf(step.stepType);
           byLane.set(lane, [...(byLane.get(lane) ?? []), step]);
         }
-        // เลนแพ็คคือคิว "พร้อมแพ็ค" — โผล่เมื่อสายอื่นจบครบ ไม่งั้นทุกใบกองที่แพ็คตั้งแต่วันแรก
-        const nonPackDone = steps
-          .filter((s) => laneOf(s.stepType) !== "PACK")
-          .every((s) => s.status === "COMPLETED");
-
         for (const [lane, laneSteps] of byLane) {
           const pending = laneSteps.filter((s) => s.status !== "COMPLETED");
           if (pending.length === 0) continue;
-          if (lane === "PACK" && !nonPackDone) continue;
           const current = pending[0]!;
           const gated =
             current.stepType === "HEAT_PRESS" &&
@@ -363,6 +363,26 @@ export function buildProductionBoard<
             totalSteps: laneSteps.length,
             waitingOn: gated ? gate.waitingOn : [],
             ready: !gated,
+          });
+        }
+
+        // PACKAGING เคยอยู่ก่อน QC ในใบเก่า แต่ flow จริงคือผลิต → QC → แพ็กสุดท้าย
+        // จึงไม่คืนมันเป็น lane ผลิตอีก หากขั้นจริงครบแล้วให้หัวหน้าเห็นจุดกู้เข้า QC แทน
+        if (
+          hasPendingLegacyPackaging &&
+          steps.every((step) => step.status === "COMPLETED")
+        ) {
+          spots.push({
+            key: `${production.id}:legacy-qc`,
+            stationKey: STATION_LEGACY_QC,
+            stationLabel: "รอส่งเข้า QC",
+            kind: "post",
+            productionId: production.id,
+            step: null,
+            doneSteps: steps.length,
+            totalSteps: steps.length,
+            waitingOn: ["เปิดใบงานแล้วกดส่งเข้า QC"],
+            ready: false,
           });
         }
       }
@@ -438,6 +458,12 @@ export function buildProductionBoard<
         kind: "lane" as const,
         isOutsource: OUTSOURCE_LANES.has(lane),
       })),
+      {
+        key: STATION_LEGACY_QC,
+        label: "รอส่งเข้า QC",
+        kind: "post" as const,
+        isOutsource: false,
+      },
       ...POST_SECTIONS.map((s) => ({
         key: s.key,
         label: s.label,
@@ -493,6 +519,11 @@ export function buildProductionBoard<
       const item = ensure(order, href);
       item.reasons.push({ label: "รีดร้อนยังไม่พร้อม", tone: "amber" });
       item.waitingOn = [...new Set([...item.waitingOn, ...waiting])];
+    }
+    if (job.spots.some((spot) => spot.key.endsWith(":legacy-qc"))) {
+      const item = ensure(order, href);
+      item.reasons.push({ label: "รอส่งเข้า QC", tone: "amber" });
+      item.waitingOn = [...new Set([...item.waitingOn, "ข้อมูลแพ็กเดิมต้องปิดผ่านใบงาน"])];
     }
   }
 

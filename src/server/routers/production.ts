@@ -4,7 +4,12 @@ import { router, protectedProcedure, requirePermission } from "../trpc";
 import { hasPermission } from "@/lib/permissions";
 import { createAuditLog, createNotification } from "@/server/helpers";
 import { transitionOrder, finalizeProductionIfComplete } from "@/server/services/order-status";
-import { isValidTransition } from "@/lib/order-status";
+import { INTERNAL_STATUS_LABELS, isValidTransition } from "@/lib/order-status";
+import {
+  evaluateHeatPressGate,
+  productionWorkflowSteps,
+} from "@/lib/production-steps";
+import { firstPendingStepIdsByLane } from "@/lib/production-step-actions";
 import {
   assertStaffFields,
   planAutoClaim,
@@ -16,6 +21,7 @@ import {
   stepDisplayName,
   stepCostEntryPlan,
   failedStepNotification,
+  normalizeStepUpdateForCurrentStatus,
 } from "@/server/services/production-step-plan";
 import {
   getGarmentPickState,
@@ -101,6 +107,27 @@ const stepSelect = {
     },
     select: { printRun: { select: { runNumber: true, status: true } } },
   },
+} as const;
+
+// mutation จอสถานีต้องคืน DTO ที่ไม่มีเงินด้วยโครงสร้าง ห้ามคืน Production/ต้นทุนที่ Prisma
+// include มาใช้ภายใน transaction แม้ UI จะไม่ render ก็ตาม
+const updateStepResultSelect = {
+  id: true,
+  productionId: true,
+  stepType: true,
+  customStepName: true,
+  status: true,
+  sortOrder: true,
+  qtyDone: true,
+  qtyTotal: true,
+  assignedToId: true,
+  startedAt: true,
+  completedAt: true,
+  qcPassed: true,
+  qcNotes: true,
+  notes: true,
+  createdAt: true,
+  updatedAt: true,
 } as const;
 
 export const productionRouter = router({
@@ -342,7 +369,7 @@ export const productionRouter = router({
       "see_order_money"
     );
     return orders.map((o) => {
-      const steps = o.productions.flatMap((p) => p.steps);
+      const steps = productionWorkflowSteps(o.productions.flatMap((p) => p.steps));
       const stepsDone = steps.filter((s) => s.status === "COMPLETED").length;
       return {
         id: o.id,
@@ -384,6 +411,9 @@ export const productionRouter = router({
             sortOrder: z.number(),
             estimatedCost: z.number().optional(),
             notes: z.string().optional(),
+          }).refine((step) => step.stepType !== "PACKAGING", {
+            message: "แพ็กเป็นขั้นหลัง QC และเพิ่มในใบผลิตไม่ได้",
+            path: ["stepType"],
           })
         ).min(1, "ใบผลิตต้องมีอย่างน้อย 1 ขั้นตอน"),
         // ใบผลิตศูนย์ขั้นทำให้ออเดอร์ PRODUCING หายจากทุก section ของหน้าการผลิต
@@ -514,23 +544,133 @@ export const productionRouter = router({
         // (ระบบยังไม่มี UI มอบหมายงาน ถ้าบังคับ assign ก่อน staff จะอัปเดตอะไรไม่ได้เลย) ·
         // step ของคนอื่น → ห้าม (ด่าน field ต้องมาก่อนโหลด step — FORBIDDEN ก่อน NOT_FOUND)
         assertStaffFields({ canSupervise, data });
+
+        // ทุกการอัปเดตต้องถือ lock ก่อนอ่าน assignee/รอบพิมพ์/ใบ outsource — สองจอที่
+        // claim step ว่างพร้อมกันจึงอ่านค่าล่าสุดตามลำดับ และมีผู้ชนะได้เพียงคนเดียว
+        await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${stepId} FOR UPDATE`;
+
+        const existing = await tx.productionStep.findUniqueOrThrow({
+          where: { id: stepId },
+          select: {
+            assignedToId: true,
+            productionId: true,
+            stepType: true,
+            status: true,
+            qtyDone: true,
+            qtyTotal: true,
+          },
+        });
+
+        // สถานะออเดอร์เป็น guard ของการเขียน step ทั้งก้อน: ต้องอ่านสดหลังถือ lock ตามลำดับ
+        // step → production → order เพื่อกัน request เก่าปิด/แก้ขั้นหลังอีกจอพักหรือยกเลิกงานแล้ว
+        await tx.$queryRaw`SELECT id FROM productions WHERE id = ${existing.productionId} FOR UPDATE`;
+        const production = await tx.production.findUniqueOrThrow({
+          where: { id: existing.productionId },
+          select: { orderId: true },
+        });
+        await lockOrderRow(tx, production.orderId);
+        const liveOrder = await tx.order.findUniqueOrThrow({
+          where: { id: production.orderId },
+          select: { internalStatus: true },
+        });
+        if (liveOrder.internalStatus !== "PRODUCING") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `อัปเดตขั้นผลิตไม่ได้ — ออเดอร์อยู่สถานะ ${INTERNAL_STATUS_LABELS[liveOrder.internalStatus] ?? liveOrder.internalStatus}`,
+          });
+        }
+
+        if (existing.stepType === "PACKAGING") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นแพ็กเดิมแก้จากใบผลิตไม่ได้ — งานต้องผ่าน QC แล้วจึงแพ็กสุดท้าย",
+          });
+        }
+
+        const effectiveData = normalizeStepUpdateForCurrentStatus({
+          currentStatus: existing.status,
+          data,
+        });
+        const nextQtyDone = effectiveData.qtyDone ?? existing.qtyDone;
+        const nextQtyTotal =
+          effectiveData.qtyTotal !== undefined
+            ? effectiveData.qtyTotal
+            : existing.qtyTotal;
+        if (nextQtyTotal !== null && nextQtyDone > nextQtyTotal) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `จำนวนทำแล้วเกินยอดขั้นผลิต — บันทึกได้ไม่เกิน ${nextQtyTotal} ตัว`,
+          });
+        }
+
         let autoClaim = false;
         if (!canSupervise) {
-          const existing = await tx.productionStep.findUniqueOrThrow({
-            where: { id: stepId },
-            select: { assignedToId: true },
-          });
           autoClaim = planAutoClaim({
             existingAssignedToId: existing.assignedToId,
             userId: ctx.userId,
           }).autoClaim;
         }
 
+        // retry สถานะเดิมล้วน ๆ = no-op จริง ไม่แตะ updatedAt/audit และไม่ประทับเวลาใหม่
+        if (
+          !autoClaim &&
+          !Object.values(effectiveData).some((value) => value !== undefined)
+        ) {
+          return tx.productionStep.findUniqueOrThrow({
+            where: { id: stepId },
+            select: updateStepResultSelect,
+          });
+        }
+
+        // service เฉพาะทางเป็นเจ้าของจำนวน/สถานะของสองขั้นนี้: เบิกเสื้อต้องตัด Stock
+        // และ DTF ต้องผ่านรอบพิมพ์ ไม่ให้ API generic ปิดข้ามหลักฐานได้
+        if (touchesRunGuardedFields(effectiveData)) {
+          if (existing.stepType === "GARMENT_PICK") {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "ขั้นเบิกเสื้อต้องอัปเดตผ่านเมนูเบิก/คืนเสื้อ เพื่อให้สต๊อคตรงกัน",
+            });
+          }
+          if (existing.stepType === "DTF_PRINT") {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "ขั้นพิมพ์ DTF ต้องเดินผ่านหน้ารอบพิมพ์ฟิล์ม",
+            });
+          }
+
+          // อ่าน sibling หลังถือ lock ของ step ปัจจุบัน: งานขั้นถัดไปในเลนเดียวกันห้าม
+          // เริ่ม/ปิดข้ามตัวแรก และ HEAT_PRESS ต้องเห็นฟิล์ม+เสื้อพร้อมจากฐานจริง
+          const siblings = await tx.productionStep.findMany({
+            where: { productionId: existing.productionId },
+            select: {
+              id: true,
+              stepType: true,
+              status: true,
+              sortOrder: true,
+            },
+            orderBy: { sortOrder: "asc" },
+          });
+          if (!firstPendingStepIdsByLane(siblings).has(stepId)) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "ยังเริ่มขั้นนี้ไม่ได้ — ทำขั้นก่อนหน้าในสายงานเดียวกันให้เสร็จก่อน",
+            });
+          }
+          if (
+            existing.stepType === "HEAT_PRESS" &&
+            !evaluateHeatPressGate(siblings).ready
+          ) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `ยังรีดร้อนไม่ได้ — ${evaluateHeatPressGate(siblings).waitingOn.join(" และ ")}`,
+            });
+          }
+        }
+
         // ขั้นที่อยู่ในรอบพิมพ์ค้าง (PRINTING/PRINTED): สถานะ/จำนวนเดินผ่านรอบเท่านั้น —
         // จุดตัดแยกฟิล์มเป็นด่านบังคับ ปิดมือ = ข้ามด่าน + จำนวนถูกนับซ้อนตอนรอบปิด
-        // (guard pattern เดียวกับใบ outsource ค้างด้านล่าง — lock แถวก่อนเช็คกัน race กับเปิดรอบ)
-        if (touchesRunGuardedFields(data)) {
-          await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${stepId} FOR UPDATE`;
+        // lock กลางด้านบนกัน race กับการเปิด/ปิดรอบก่อนเช็คแล้ว
+        if (touchesRunGuardedFields(effectiveData)) {
           const activeRun = await tx.printRunItem.findFirst({
             where: {
               productionStepId: stepId,
@@ -543,11 +683,10 @@ export const productionRouter = router({
 
         // ปิดขั้น (รวมปุ่ม "ผ่านรวด" งานร้านนอก) ห้ามทับงานที่ยังค้างอยู่กับร้าน —
         // ใบ outsource ที่ยังไม่ตัดสิน QC ต้องเดินจบทางใบ outsource เท่านั้น
-        if (data.status === "COMPLETED") {
-          // ล็อกแถว step ก่อนเช็ค (lock เดียวกับ outsource.createOrder) — ไม่งั้น
+        if (effectiveData.status === "COMPLETED") {
+          // ใช้ lock กลางด้านบนร่วมกับ outsource.createOrder — ไม่งั้น
           // "ผ่านรวด" กับ "เปิดใบส่งร้าน" ที่ยิงพร้อมกันต่างคนต่างเช็คผ่าน:
           // step ปิดทั้งที่ใบส่งร้านเพิ่งเกิด แล้วใบนั้นเดินต่อบน step ที่ตายแล้ว
-          await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${stepId} FOR UPDATE`;
           const latestOutsource = await tx.outsourceOrder.findFirst({
             where: { productionStepId: stepId },
             orderBy: { createdAt: "desc" },
@@ -568,7 +707,7 @@ export const productionRouter = router({
         }
 
         const updateData = buildStepUpdateData({
-          data,
+          data: effectiveData,
           autoClaim,
           userId: ctx.userId,
           now: new Date(),
@@ -601,7 +740,7 @@ export const productionRouter = router({
         // ได้ไม่เบิ้ลแถว) — เฉพาะตัวเลขจริง ไม่สร้างแถว 0 บาท (UI ถอดช่องนี้แล้ว
         // ตามมติเลิกคิดต้นทุนต่องาน 2026-06-12 — เก็บ path ไว้รับ caller ตรงเท่านั้น)
         const cost = stepCostEntryPlan({
-          actualCost: data.actualCost,
+          actualCost: effectiveData.actualCost,
           stepId,
           customStepName: step.customStepName,
           stepType: step.stepType,
@@ -626,7 +765,7 @@ export const productionRouter = router({
         }
 
         // step มีปัญหา = ต้องมีคนมาดูด่วน — กระดิ่งหาผู้จัดการทันที ห้ามจมเงียบ (audit ข้อ 20)
-        if (data.status === "FAILED") {
+        if (effectiveData.status === "FAILED") {
           const order = await tx.order.findUniqueOrThrow({
             where: { id: step.production.orderId },
             select: { id: true, orderNumber: true, title: true },
@@ -643,7 +782,7 @@ export const productionRouter = router({
             orderNumber: order.orderNumber,
             orderTitle: order.title,
             stepName: stepDisplayName(step),
-            notes: data.notes,
+            notes: effectiveData.notes,
             productionId: step.productionId,
             orderId: order.id,
           });
@@ -657,10 +796,96 @@ export const productionRouter = router({
           action: "UPDATE",
           entityType: "PRODUCTION_STEP",
           entityId: stepId,
-          newValue: data,
+          newValue: effectiveData,
         });
 
-        return step;
+        return tx.productionStep.findUniqueOrThrow({
+          where: { id: stepId },
+          select: updateStepResultSelect,
+        });
+      });
+    }),
+
+  // ใบผลิตเก่าบางใบมี PACKAGING ค้างเป็นด่านก่อน QC ตาม flow เดิม — ห้ามให้คนกด
+  // PACKAGING ตรง ๆ เพราะจะทำให้เข้าใจว่าแพ็กจริงแล้ว ทางนี้ตรวจว่าขั้นผลิตจริงครบทุกขั้น
+  // แล้วปิดแถว compatibility + ส่งเข้า QC ใน transaction เดียวกัน
+  finalizeLegacyPackaging: protectedProcedure
+    .use(productionTeam)
+    .input(z.object({ productionId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        // ล็อก production ก่อน order ให้ลำดับตรงกับ updateStep → finalizer; ถ้ากลับลำดับ
+        // recovery จะถือ order รอ production ขณะอีกจอถือ production รอ orderจน deadlock
+        const reference = await tx.production.findUniqueOrThrow({
+          where: { id: input.productionId },
+          select: { orderId: true },
+        });
+        await tx.$queryRaw`SELECT id FROM productions WHERE id = ${input.productionId} FOR UPDATE`;
+        const current = await tx.production.findUniqueOrThrow({
+          where: { id: input.productionId },
+          select: {
+            status: true,
+            orderId: true,
+            steps: { select: { stepType: true, status: true } },
+          },
+        });
+        await lockOrderRow(tx, current.orderId || reference.orderId);
+        const liveOrder = await tx.order.findUniqueOrThrow({
+          where: { id: current.orderId },
+          select: { internalStatus: true },
+        });
+        const legacySteps = current.steps.filter((step) => step.stepType === "PACKAGING");
+        const hasPendingLegacy = legacySteps.some((step) => step.status !== "COMPLETED");
+
+        // ปุ่มอาจถูกกดซ้ำจาก timeout/refetch: ถ้าก้อนเดิมปิดแล้ว ให้ตอบผลปัจจุบันโดยไม่เขียนซ้ำ
+        if (
+          current.status === "COMPLETED" &&
+          legacySteps.length > 0 &&
+          !hasPendingLegacy
+        ) {
+          return {
+            finalized: true,
+            alreadyFinalized: true,
+            movedToQc: liveOrder.internalStatus === "QUALITY_CHECK",
+            orderStatus: liveOrder.internalStatus,
+          };
+        }
+        if (liveOrder.internalStatus !== "PRODUCING") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `ส่งเข้า QC ไม่ได้ — ออเดอร์อยู่สถานะ ${INTERNAL_STATUS_LABELS[liveOrder.internalStatus] ?? liveOrder.internalStatus}`,
+          });
+        }
+
+        const finalized = await finalizeProductionIfComplete(tx, {
+          productionId: input.productionId,
+          changedBy: ctx.userId,
+          requireLegacyPackaging: true,
+        });
+        if (!finalized) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ยังส่งเข้า QC ไม่ได้ — ขั้นผลิตจริงต้องเสร็จครบและมีขั้นแพ็กเดิมค้างอยู่",
+          });
+        }
+
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "PRODUCTION",
+          entityId: input.productionId,
+          newValue: { finalizedLegacyPackaging: true },
+        });
+        const after = await tx.order.findUniqueOrThrow({
+          where: { id: current.orderId },
+          select: { internalStatus: true },
+        });
+        return {
+          finalized: true,
+          alreadyFinalized: false,
+          movedToQc: after.internalStatus === "QUALITY_CHECK",
+          orderStatus: after.internalStatus,
+        };
       });
     }),
 
@@ -700,13 +925,15 @@ export const productionRouter = router({
         // PERM: กติกา own-work/auto-claim ตรง updateStep — ไม่ใช่หัวหน้า = แตะเฉพาะงานตัวเอง
         canSupervise: hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations"),
       });
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "CREATE",
-        entityType: "STOCK_ISSUE",
-        entityId: result.docNumber,
-        newValue: { productionId: input.productionId, lines: input.lines },
-      });
+      if (!result.alreadyRecorded) {
+        await createAuditLog(ctx.prisma, {
+          userId: ctx.userId,
+          action: "CREATE",
+          entityType: "STOCK_ISSUE",
+          entityId: result.docNumber,
+          newValue: { productionId: input.productionId, lines: input.lines },
+        });
+      }
       return result;
     }),
 
@@ -723,13 +950,15 @@ export const productionRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const result = await returnGarments(ctx.prisma, { ...input, userId: ctx.userId });
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "CREATE",
-        entityType: "STOCK_RETURN",
-        entityId: result.docNumber,
-        newValue: { productionId: input.productionId, lines: input.lines, note: input.note },
-      });
+      if (!result.alreadyRecorded) {
+        await createAuditLog(ctx.prisma, {
+          userId: ctx.userId,
+          action: "CREATE",
+          entityType: "STOCK_RETURN",
+          entityId: result.docNumber,
+          newValue: { productionId: input.productionId, lines: input.lines, note: input.note },
+        });
+      }
       return result;
     }),
 

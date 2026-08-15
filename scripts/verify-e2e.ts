@@ -223,7 +223,12 @@ async function main() {
       () => staff.order.updateStatus({ id: oa.id, internalStatus: "PACKING" }),
       "ตรวจนับ"
     );
-    await staff.qc.create({ orderId: oa.id, qtyGood: 20, defects: [] });
+    await staff.qc.create({
+      orderId: oa.id,
+      idempotencyKey: "verify-e2e-qc-oa",
+      qtyGood: 20,
+      defects: [],
+    });
     oaDb = await prisma.order.findUniqueOrThrow({ where: { id: oa.id } });
     ok("A9c นับดีครบยอด → ออเดอร์เด้ง PACKING เอง", oaDb.internalStatus === "PACKING", oaDb.internalStatus);
     const del = await staff.delivery.create({
@@ -317,7 +322,12 @@ async function main() {
     for (const s of ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK"] as const) {
       await manager.order.updateStatus({ id: ob.id, internalStatus: s });
     }
-    await staff.qc.create({ orderId: ob.id, qtyGood: 5, defects: [] });
+    await staff.qc.create({
+      orderId: ob.id,
+      idempotencyKey: "verify-e2e-qc-ob",
+      qtyGood: 5,
+      defects: [],
+    });
     await manager.order.updateStatus({ id: ob.id, internalStatus: "READY_TO_SHIP" });
     // ด่านใหม่ (audit ข้อ 22): กดส่งแล้วด้วยมือโดยไม่มีใบส่งในระบบ → โดนกัน
     await expectError(

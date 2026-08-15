@@ -15,7 +15,7 @@ import {
   filterBoardJobs,
   sortBoardJobs,
 } from "@/lib/production-board";
-import { Printer } from "lucide-react";
+import { MonitorUp, Printer } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 
 // หน้าการผลิต — บอร์ดโรงงาน (ใบงาน PC1.2 · เบสเคาะ 2026-08-15 "เอาแบบ A บอร์ดโรงงาน")
@@ -83,12 +83,20 @@ function ProductionWorkspace() {
           : "สายการผลิตทั้งโรงงาน"
       }
       action={
-        <Button variant="outline" size="sm" asChild className="gap-1.5">
-          <Link href="/production/print-runs">
-            <Printer />
-            รอบพิมพ์ฟิล์ม
-          </Link>
-        </Button>
+        <>
+          <Button variant="outline" size="sm" asChild className="gap-1.5">
+            <Link href="/production/print-runs">
+              <Printer />
+              รอบพิมพ์ฟิล์ม
+            </Link>
+          </Button>
+          <Button size="sm" asChild className="gap-1.5">
+            <Link href="/factory/station">
+              <MonitorUp />
+              เปิดจอประจำสถานี
+            </Link>
+          </Button>
+        </>
       }
       loading={isLoading || meQuery.isLoading}
       skeleton={

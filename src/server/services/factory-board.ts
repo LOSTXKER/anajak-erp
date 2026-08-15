@@ -1,6 +1,6 @@
 import type { ExtendedPrismaClient } from "@/lib/prisma";
 import { getPrintQueue } from "@/server/services/print-run";
-import { evaluateHeatPressGate, laneOf, STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { evaluateHeatPressGate, STEP_TYPE_LABELS } from "@/lib/production-steps";
 
 // ============================================================
 // factory-board — คิวการผลิตทั้งโรงงาน (จอเช้า myToday + ทีวี /factory ใช้ตัวเดียวกัน กัน drift)
@@ -8,11 +8,6 @@ import { evaluateHeatPressGate, laneOf, STEP_TYPE_LABELS } from "@/lib/productio
 // ============================================================
 
 const ACTIVE_RUN_STATUSES = ["PRINTING", "PRINTED"] as const;
-
-// ด่านแพ็ค: แพ็คได้เมื่อทุกขั้นนอกเลน PACK ของใบผลิตจบครบ (ย้ายจาก task.ts มาใช้ร่วม กัน drift)
-export function packGateReady(steps: { stepType: string; status: string }[]): boolean {
-  return steps.every((s) => laneOf(s.stepType) === "PACK" || s.status === "COMPLETED");
-}
 
 type StepQueueOpts = { userId?: string | null; ownWorkOnly?: boolean; limit?: number };
 
@@ -70,63 +65,41 @@ export async function buildPressQueue(prisma: ExtendedPrismaClient, opts: StepQu
     }));
 }
 
-// คิวแพ็ค: ขั้น PACKAGING ที่ของพร้อมแพ็คจริง (สายอื่นจบครบ) · ใบผลิตเดียวเอาขั้นแรกที่ค้าง
+// คิวแพ็กสุดท้าย: ออเดอร์เข้า PACKING ได้หลัง QC ผ่านเท่านั้น · ไม่มี assignee ระดับ step
+// เพราะแพ็กเป็นช่วงระดับออเดอร์/Delivery ไม่ใช่ ProductionStep แล้ว
 export async function buildPackQueue(prisma: ExtendedPrismaClient, opts: StepQueueOpts = {}) {
-  const { userId, ownWorkOnly = false, limit = 8 } = opts;
-  const steps = await prisma.productionStep.findMany({
-    where: {
-      stepType: "PACKAGING",
-      status: { in: ["PENDING", "IN_PROGRESS"] },
-      production: { order: { internalStatus: { notIn: ["CANCELLED", "ON_HOLD"] } } },
-      ...ownFilter(ownWorkOnly, userId),
-    },
+  const { limit = 8 } = opts;
+  const orders = await prisma.order.findMany({
+    where: { internalStatus: "PACKING" },
     select: {
       id: true,
-      assignedTo: { select: { name: true } },
-      production: {
-        select: {
-          id: true,
-          steps: { select: { stepType: true, status: true } },
-          order: {
-            select: {
-              orderNumber: true,
-              title: true,
-              deadline: true,
-              blindShip: true, // ธงแดงบนคิวแพ็ค — พลาดใส่เอกสาร Anajak ครั้งเดียวเสียลูกค้า reseller
-              customer: { select: { name: true } },
-            },
-          },
-        },
-      },
+      orderNumber: true,
+      title: true,
+      deadline: true,
+      blindShip: true, // ธงแดงบนคิวแพ็ก — พลาดใส่เอกสาร Anajak ครั้งเดียวเสียลูกค้า reseller
+      customer: { select: { name: true } },
     },
-    orderBy: [{ production: { order: { deadline: "asc" } } }, { sortOrder: "asc" }],
-    take: 100,
+    orderBy: { deadline: "asc" },
+    take: limit,
   });
-  const seen = new Set<string>();
-  return steps
-    .filter((s) => packGateReady(s.production.steps))
-    .filter((s) => {
-      if (seen.has(s.production.id)) return false;
-      seen.add(s.production.id);
-      return true;
-    })
-    .slice(0, limit)
-    .map((s) => ({
-      stepId: s.id,
-      productionId: s.production.id,
-      orderNumber: s.production.order.orderNumber,
-      title: s.production.order.title,
-      customerName: s.production.order.customer.name,
-      deadline: s.production.order.deadline,
-      blindShip: s.production.order.blindShip,
-      assignedToName: s.assignedTo?.name ?? null,
-    }));
+  return orders.map((order) => ({
+    stepId: `pack:${order.id}`,
+    orderId: order.id,
+    productionId: null,
+    orderNumber: order.orderNumber,
+    title: order.title,
+    customerName: order.customer.name,
+    deadline: order.deadline,
+    blindShip: order.blindShip,
+    assignedToName: null,
+  }));
 }
 
 // ปัญหาบนไลน์: ขั้นที่ FAILED/ON_HOLD — เด่นสุดบนทีวี (บอกลูกค้า+ช่าง+ด่านที่ติด · ไม่มีเงิน)
-async function buildProblems(prisma: ExtendedPrismaClient, limit = 10) {
+export async function buildProblems(prisma: ExtendedPrismaClient, limit = 10) {
   const steps = await prisma.productionStep.findMany({
     where: {
+      stepType: { not: "PACKAGING" },
       status: { in: ["FAILED", "ON_HOLD"] },
       production: {
         order: {

@@ -35,7 +35,8 @@ import { Alert } from "@/components/ui/alert";
 import { DASHED_INTERACTIVE, TINT } from "@/components/ui/tokens";
 
 // การ์ด "ตรวจนับ QC" บนหน้าออเดอร์ — นับของจุดที่ 2 ก่อนแพ็ค (FLOW-REDESIGN ก้อน 3)
-// นับจริง "ดีกี่ตัว เสียกี่ตัว" · ดีล้วน→เด้งแพ็คเอง · มีเสีย→ถอยกลับผลิต+งานแก้อัตโนมัติ
+// นับจริง "ดีกี่ตัว เสียกี่ตัว" · ของดีสะสมครบยอด→เข้าแพ็ก (ของเสียจากเสื้อเผื่อ
+// บันทึกเป็นสถิติ) · ของดียังไม่ครบและมีเสีย→ถอยกลับผลิต/พักรอของตามเสื้อสำรอง
 // โชว์เฉพาะตอนอยู่ขั้นตรวจคุณภาพ หรือมีประวัติตรวจแล้ว (mobile-first: คนนับถือมือถือหน้ากองเสื้อ)
 
 type QcContext = RouterOutput["qc"]["context"];
@@ -52,9 +53,20 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const isQualityCheck = internalStatus === "QUALITY_CHECK";
-  const { data: records, isError, refetch } = trpc.qc.listByOrder.useQuery({ orderId });
+  const { data: records, isLoading, isError, refetch } = trpc.qc.listByOrder.useQuery({ orderId });
 
-  if (isError) {
+  if (isLoading && !records) {
+    return (
+      <Card>
+        <CardContent className="space-y-2 py-5">
+          <Skeleton className="h-11 rounded-xl" />
+          <Skeleton className="h-16 rounded-xl" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError && !records) {
     return (
       <Card>
         <QueryError
@@ -278,6 +290,8 @@ function QcCountForm({
   const [qtyGood, setQtyGood] = useState(remaining);
   const [defects, setDefects] = useState<DefectRow[]>([]);
   const [notes, setNotes] = useState("");
+  // คง key เดิมตลอดฟอร์ม: network/response fail แล้วกดซ้ำต้องได้ผลเดิม ไม่เพิ่มยอด QC
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const sizes = [...new Set(context.lines.map((l) => l.size).filter(Boolean))] as string[];
 
@@ -287,7 +301,10 @@ function QcCountForm({
       utils.qc.listByOrder,
       utils.qc.context,
       utils.order.getById,
+      utils.production.getById,
       utils.production.kanban,
+      utils.factory.stationContext,
+      utils.factory.stationQueue,
       utils.task.myToday,
     ],
     // toast ต้องบอกผลจริงตาม flags จาก server (qc.ts) — พักรอของ/งานแก้เปิดหรือไม่/
@@ -303,6 +320,13 @@ function QcCountForm({
         toast.warning("เสื้อสำรองไม่พอ — งานพักรอของ คุยลูกค้าก่อน", {
           description: `ของเสีย ${data.qtyDefect} ตัว · เสื้อสำรองเหลือ ${data.spareAvailable} ตัว — แจ้งแอดมินแล้ว`,
         });
+      } else if (data.movedToPacking) {
+        toast.success("QC ผ่านครบ — งานเข้าคิวแพ็คแล้ว", {
+          description:
+            data.qtyDefect > 0
+              ? `พบของเสีย ${data.qtyDefect} ตัวจากของนอกยอดสั่ง/เสื้อเผื่อ และบันทึกสถิติไว้แล้ว`
+              : undefined,
+        });
       } else if (data.qtyDefect > 0 && data.reworkOpened) {
         toast.warning(`QC พบของเสีย ${data.qtyDefect} ตัว — ถอยกลับผลิต เปิดขั้นงานแก้แล้ว`, {
           description: `เสื้อสำรองเหลือ ${data.spareAvailable} ตัว`,
@@ -312,12 +336,13 @@ function QcCountForm({
           `QC พบของเสีย ${data.qtyDefect} ตัว — ถอยกลับผลิตแล้ว แต่ยังไม่มีใบผลิต`,
           { description: "ไปเปิดใบผลิตงานแก้ที่หน้าการผลิต" }
         );
-      } else if (data.movedToPacking) {
-        toast.success("QC ผ่านครบ — งานเข้าคิวแพ็คแล้ว");
       } else {
         // ดีบางส่วน — งานค้างที่ด่านตรวจ รอตรวจส่วนที่เหลือ
         toast.success(`บันทึกแล้ว — ยังเหลือตรวจอีก ${Math.max(0, remaining - qtyGood)} ตัว`);
       }
+      // success คือจบรอบตรวจนี้แล้ว; ถ้าผิวยังคง mount อยู่ รอบถัดไปต้องเป็น key ใหม่
+      // ส่วน error ไม่ reset เพื่อให้ network/response retry ใช้ key เดิม
+      setIdempotencyKey(crypto.randomUUID());
       onClose();
     },
     onError: (err: { message?: string }) => {
@@ -336,11 +361,14 @@ function QcCountForm({
 
   const qtyDefectTotal = defects.reduce((s, d) => s + d.qty, 0);
   const missingReason = defects.some((d) => d.qty <= 0 || !d.reason);
-  const canSave = !missingReason && qtyGood + qtyDefectTotal > 0;
+  const qtyGoodOverLimit = qtyGood > remaining;
+  const canSave =
+    !missingReason && !qtyGoodOverLimit && qtyGood + qtyDefectTotal > 0;
 
   function handleSave() {
     create.mutate({
       orderId,
+      idempotencyKey,
       qtyGood,
       notes: notes || undefined,
       defects: defects.map((d) => ({
@@ -369,23 +397,29 @@ function QcCountForm({
               นับดีเพิ่มโดนกันนับเกิน · เดินหน้าใช้ปุ่มเปลี่ยนสถานะ (มีผลตรวจแล้วระบบให้ผ่าน) */}
           {context.totalExpected > 0 && remaining === 0 && (
             <Alert variant="info" icon={CheckCircle2} className="px-3 py-2 text-xs">
-              นับดีครบยอดงานไปแล้ว — จะเดินหน้าเข้าแพ็ค กดเปลี่ยนสถานะที่หัวออเดอร์ได้เลย ·
-              ฟอร์มนี้ใช้บันทึก &quot;ของเสียที่เจอเพิ่ม&quot; (เช่น ของตีกลับ) ซึ่งจะถอยงานกลับผลิต
+              นับดีครบยอดงานไปแล้ว — บันทึกรอบนี้เพื่อเก็บสถิติของเสียจากเสื้อเผื่อ
+              แล้วระบบจะพางานเข้าแพ็ก
             </Alert>
           )}
           {/* ของดี — default เหลือที่ยังไม่ผ่านตรวจ นับตรงกดบันทึกได้เลย */}
           <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
             <div className="min-w-0">
               <p className="text-sm font-medium text-slate-900 dark:text-white">ของดี (ตัว)</p>
-              <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
-                เหลือที่ยังไม่ผ่านตรวจ {remaining} ตัว
+              <p id="qc-good-remaining" className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                {qtyGoodOverLimit
+                  ? `กรอกเกินยอดที่เหลือ — นับของดีได้ไม่เกิน ${remaining} ตัว`
+                  : `เหลือที่ยังไม่ผ่านตรวจ ${remaining} ตัว`}
               </p>
             </div>
             <Input
+              aria-label="จำนวนของดีที่ตรวจในรอบนี้"
+              aria-describedby="qc-good-remaining"
               type="number"
               inputMode="numeric"
               min={0}
+              max={remaining}
               value={qtyGood}
+              aria-invalid={qtyGoodOverLimit || undefined}
               onChange={(e) =>
                 setQtyGood(Math.max(0, Math.floor(Number(e.target.value) || 0)))
               }
@@ -527,7 +561,14 @@ function QcCountForm({
           </Button>
 
           {/* แถบเตือนผลที่จะเกิดก่อนกด — คนกดต้องรู้ว่างานจะไปทางไหน (ตรรกะเดียวกับ server) */}
-          {qtyDefectTotal > 0 ? (
+          {context.totalExpected > 0 && qtyGood >= remaining ? (
+            <Alert variant="success" icon={CheckCircle2} className="px-3 py-2 text-xs">
+              ของดีสะสมครบยอด — งานจะเข้าคิวแพ็ก
+              {qtyDefectTotal > 0
+                ? ` และบันทึกของเสียจากของเผื่อ ${qtyDefectTotal} ตัวไว้ในสถิติ`
+                : ""}
+            </Alert>
+          ) : qtyDefectTotal > 0 ? (
             context.spareAvailable < qtyDefectTotal ? (
               <Alert variant="error" icon={AlertTriangle} className="px-3 py-2 text-xs">
                 เสื้อสำรองไม่พอ (เหลือ {context.spareAvailable}/{qtyDefectTotal} ตัว) —
@@ -539,15 +580,9 @@ function QcCountForm({
               </Alert>
             )
           ) : qtyGood > 0 ? (
-            qtyGood >= remaining ? (
-              <Alert variant="success" icon={CheckCircle2} className="px-3 py-2 text-xs">
-                ครบแล้วงานจะเข้าคิวแพ็คเอง
-              </Alert>
-            ) : (
-              <Alert variant="neutral" icon={CheckCircle2} className="px-3 py-2 text-xs">
-                ดีบางส่วน — บันทึกแล้วงานยังอยู่ด่านตรวจ เหลือตรวจอีก {remaining - qtyGood} ตัว
-              </Alert>
-            )
+            <Alert variant="neutral" icon={CheckCircle2} className="px-3 py-2 text-xs">
+              ดีบางส่วน — บันทึกแล้วงานยังอยู่ด่านตรวจ เหลือตรวจอีก {remaining - qtyGood} ตัว
+            </Alert>
           ) : null}
 
           <Textarea

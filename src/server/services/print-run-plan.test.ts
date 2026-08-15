@@ -49,6 +49,13 @@ describe("printQueueSlotOf — ช่องในคิวพิมพ์ (null 
     ).toBeNull();
   });
 
+  it.each(["ON_HOLD", "CANCELLED", "QUALITY_CHECK", "PACKING", "COMPLETED"])(
+    "ออเดอร์พ้นช่วงกำลังผลิต (%s) → ไม่โผล่ในคิวแม้มีไฟล์พร้อม",
+    (orderInternalStatus) => {
+      expect(printQueueSlotOf({ ...base, orderInternalStatus })).toBeNull();
+    },
+  );
+
   it("ขั้นไม่รู้จำนวน → ใช้ยอดรวมออเดอร์แทน · ทั้งคู่ไม่รู้ (ยอด 0) → กัน entry ผี", () => {
     expect(printQueueSlotOf({ ...base, qtyTotal: null, orderQty: 80 })).toEqual({
       qtyTotal: 80,

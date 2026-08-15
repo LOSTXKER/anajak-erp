@@ -34,6 +34,9 @@ export function printQueueSlotOf(s: {
   qtyTotal: number | null; // ของขั้น — null ใช้ยอดรวมออเดอร์แทน
   orderQty: number;
 }): { qtyTotal: number; remaining: number } | null {
+  // คิวหน้าเครื่องเป็นงานที่ลงมือผลิตได้ "ตอนนี้" เท่านั้น — แบบอนุมัติหรือไฟล์พร้อม
+  // ไม่ใช่สิทธิ์ให้ดึงงานที่พัก/ยกเลิก/เลยไป QC แล้วกลับเข้ารอบพิมพ์
+  if (s.orderInternalStatus !== "PRODUCING") return null;
   if (s.inActiveRun) return null;
   if (!isFileReadyForPrint(s.hasApprovedDesign, s.orderInternalStatus)) return null;
   const qtyTotal = s.qtyTotal ?? s.orderQty;

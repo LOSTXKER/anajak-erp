@@ -87,7 +87,7 @@ describe("buildProductionBoard — จุดงาน", () => {
     expect(board.jobs[0]!.stationKeys.sort()).toEqual(["lane:DTF", "lane:EMBROIDERY"]);
   });
 
-  it("เลนแพ็คโผล่เฉพาะเมื่อสายอื่นเสร็จครบ", () => {
+  it("PACKAGING เก่าไม่กลับมาเป็นเลนแพ็กก่อน QC และใบที่ผลิตจริงครบถูกส่งไปจุดกู้เข้า QC", () => {
     const notReady = buildProductionBoard(
       [
         order({
@@ -103,6 +103,7 @@ describe("buildProductionBoard — จุดงาน", () => {
       OPTS,
     );
     expect(notReady.jobs[0]!.stationKeys).toEqual(["lane:DTF"]);
+    expect(notReady.jobs[0]!.stationKeys).not.toContain("lane:PACK");
 
     const ready = buildProductionBoard(
       [
@@ -121,7 +122,30 @@ describe("buildProductionBoard — จุดงาน", () => {
       ],
       OPTS,
     );
-    expect(ready.jobs[0]!.stationKeys).toEqual(["lane:PACK"]);
+    expect(ready.jobs[0]!.stationKeys).toEqual(["legacy:qc"]);
+    expect(ready.jobs[0]!.spots[0]).toMatchObject({
+      productionId: "p1",
+      step: null,
+      ready: false,
+    });
+    expect(ready.jobs[0]!.spots[0]!.waitingOn.join(" ")).toContain("ส่งเข้า QC");
+
+    const packOnly = buildProductionBoard(
+      [
+        order({
+          id: "pack-only",
+          productions: [
+            { id: "legacy-only", steps: [step({ stepType: "PACKAGING" })] },
+          ],
+        }),
+      ],
+      OPTS,
+    );
+    expect(packOnly.jobs[0]!.stationKeys).toEqual(["legacy:qc"]);
+    expect(packOnly.exceptions[0]).toMatchObject({
+      orderId: "pack-only",
+      reasons: [{ label: "รอส่งเข้า QC", tone: "amber" }],
+    });
   });
 
   it("คิวรีดที่ยังไม่พร้อมบอกว่ารออะไร และไม่ถูกทำเป็นงานที่ลงมือได้", () => {
