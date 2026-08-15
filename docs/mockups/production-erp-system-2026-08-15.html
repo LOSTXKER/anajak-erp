@@ -35,7 +35,7 @@
       --green-soft: #f0fdf4;
       --shadow: 0 1px 2px rgb(16 24 40 / .05), 0 0 0 1px rgb(16 24 40 / .04);
       --shadow-raised: 0 10px 30px rgb(16 24 40 / .11), 0 2px 5px rgb(16 24 40 / .06);
-      --sidebar: 224px;
+      --sidebar: 240px;
       --topbar: 64px;
       --radius: 14px;
       --radius-inner: 10px;
@@ -103,49 +103,26 @@
       @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
     }
 
-    .prototype-bar {
-      min-height: 38px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 8px 16px;
-      background: #181b20;
-      color: #fff;
-      font-size: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .prototype-bar strong { font-weight: 600; }
-    .prototype-bar span { color: #c8d0d9; }
-    .prototype-bar .proto-dot { width: 5px; height: 5px; border-radius: 999px; background: #87919d; }
-
     .app-shell {
-      min-height: calc(100vh - 38px);
+      height: 100vh;
       display: grid;
       grid-template-columns: var(--sidebar) minmax(0, 1fr);
       grid-template-rows: var(--topbar) minmax(0, 1fr);
-      grid-template-areas: "sidebar topbar" "sidebar main";
+      grid-template-areas: "topbar topbar" "sidebar main";
+      overflow: hidden;
     }
     .sidebar {
       grid-area: sidebar;
-      position: sticky;
-      top: 38px;
-      align-self: start;
-      height: calc(100vh - 38px);
+      min-height: 0;
       background: var(--surface);
       border-right: 1px solid var(--line-soft);
-      display: flex;
-      flex-direction: column;
-      padding: 18px 12px 14px;
-      z-index: 40;
+      padding: 16px 12px;
+      overflow-y: auto;
     }
-    .brand { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 0 10px 16px; }
-    .brand-mark { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #fff; background: #3973b2; font-size: 14px; font-weight: 600; letter-spacing: -.03em; }
-    .brand-name { font-size: 15px; font-weight: 600; line-height: 1.15; }
-    .brand-sub { color: var(--ink-3); font-size: 11px; margin-top: 2px; }
-    .nav-label { color: var(--ink-3); font-size: 11px; font-weight: 500; padding: 14px 12px 7px; }
+    .brand { width: var(--sidebar); height: 100%; flex: 0 0 auto; display: flex; align-items: center; gap: 12px; border: 0; border-right: 1px solid var(--line-soft); background: transparent; color: var(--ink); padding: 0 20px; text-align: left; }
+    .brand-mark { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: #fff; background: #3973b2; }
+    .brand-mark .icon { width: 18px; height: 18px; }
+    .brand-name { font-size: 14px; font-weight: 600; line-height: 1.15; }
     .nav-list { display: grid; gap: 2px; }
     .nav-button {
       border: 0;
@@ -163,31 +140,33 @@
     .nav-button:hover { background: var(--surface-hover); color: var(--ink); }
     .nav-button:active { background: var(--surface-pressed); }
     .nav-button[aria-current="page"] { background: var(--blue-soft); color: var(--blue-ink); font-weight: 500; }
-    .nav-button .nav-count { margin-left: auto; min-width: 22px; color: var(--ink-3); text-align: right; font-size: 12px; }
-    .sidebar-note { margin-top: auto; padding: 12px; border-radius: 10px; background: var(--surface-muted); color: var(--ink-3); font-size: 11px; line-height: 1.55; }
+    .shell-divider { height: 1px; background: var(--line-soft); margin: 16px 0; }
+    .shell-more summary { list-style: none; }
+    .shell-more summary::-webkit-details-marker { display: none; }
+    .shell-more summary .chevron { margin-left: auto; transition: transform .14s ease; }
+    .shell-more[open] summary .chevron { transform: rotate(90deg); }
+    .shell-more-body { padding: 10px 12px 2px 42px; color: var(--ink-3); font-size: 11px; line-height: 1.65; }
 
     .app-topbar {
       grid-area: topbar;
-      position: sticky;
-      top: 38px;
       z-index: 35;
       min-width: 0;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 20px;
-      background: color-mix(in srgb, var(--surface) 96%, transparent);
+      height: var(--topbar);
+      background: var(--surface);
       border-bottom: 1px solid var(--line-soft);
     }
-    .global-search { position: relative; flex: 1 1 520px; max-width: 660px; }
+    .topbar-main { min-width: 0; flex: 1; display: flex; align-items: center; gap: 10px; padding: 0 20px; }
+    .global-search { position: relative; flex: 1 1 520px; max-width: 520px; }
     .global-search .search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
     .global-search input {
       width: 100%;
       min-height: 44px;
       padding: 9px 48px 9px 42px;
       border: 1px solid var(--line);
-      border-radius: 10px;
-      background: var(--field);
+      border-radius: 999px;
+      background: var(--surface-muted);
       color: var(--ink);
       box-shadow: 0 1px 2px rgb(16 24 40 / .03);
     }
@@ -213,6 +192,7 @@
     .search-empty { padding: 16px 12px; color: var(--ink-3); text-align: center; }
 
     .top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .user-avatar { width: 44px; min-height: 44px; border: 0; border-radius: 999px; background: var(--blue); color: #fff; font-weight: 600; display: grid; place-items: center; }
     .control, .button, .icon-button {
       min-height: 44px;
       border: 1px solid var(--line);
@@ -240,7 +220,16 @@
     .scan-button { white-space: nowrap; }
     .role-select { max-width: 174px; }
 
-    .workspace { grid-area: main; min-width: 0; padding: 24px 24px 42px; overflow: hidden; }
+    .workspace { grid-area: main; min-width: 0; min-height: 0; padding: 20px 24px 42px; overflow-y: auto; outline: none; }
+    .module-bar { width: 100%; max-width: 1512px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .module-nav { min-width: 0; display: flex; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: thin; padding: 2px; }
+    .module-tab { min-height: 44px; border: 0; border-radius: 9px; background: transparent; color: var(--ink-3); padding: 8px 11px; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font-weight: 500; }
+    .module-tab:hover { background: var(--surface-hover); color: var(--ink); }
+    .module-tab[aria-current="page"] { background: var(--blue-soft); color: var(--blue-ink); }
+    .module-tab .icon { width: 17px; height: 17px; }
+    .prototype-tools { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+    .prototype-note { min-height: 32px; border-radius: 999px; background: var(--surface-muted); color: var(--ink-3); padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; white-space: nowrap; }
+    .prototype-note strong { color: var(--ink-2); font-weight: 600; }
     .page { width: 100%; max-width: 1512px; margin: 0 auto; }
     .page-head { display: flex; gap: 20px; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
     .page-head p { color: var(--ink-3); margin: 0; max-width: 72ch; }
@@ -318,7 +307,7 @@
     .row-status.working .status-dot { color: var(--blue); }
     .row-chevron { color: var(--ink-3); }
 
-    .context-panel { position: sticky; top: calc(38px + var(--topbar) + 18px); overflow: hidden; }
+    .context-panel { position: sticky; top: 18px; overflow: hidden; }
     .context-top { padding: 18px 18px 15px; border-bottom: 1px solid var(--line-soft); }
     .context-id { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
     .context-id h2 { color: var(--blue-ink); margin-bottom: 2px; }
@@ -377,7 +366,7 @@
     .check-button { width: 44px; height: 44px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); color: transparent; display: grid; place-items: center; }
     .check-button[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
     .qty-input { width: 82px; min-height: 44px; border: 1px solid var(--line); background: var(--field); color: var(--ink); border-radius: 8px; padding: 7px 9px; font-variant-numeric: tabular-nums; }
-    .selection-bar { position: sticky; top: calc(38px + var(--topbar) + 12px); z-index: 10; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 11px; background: var(--surface); box-shadow: var(--shadow-raised); margin-bottom: 10px; }
+    .selection-bar { position: sticky; top: 12px; z-index: 10; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 11px; background: var(--surface); box-shadow: var(--shadow-raised); margin-bottom: 10px; }
     .selection-bar .button { margin-left: auto; }
 
     .split-register { display: grid; grid-template-columns: minmax(330px, .78fr) minmax(0, 1.22fr); gap: 16px; align-items: start; }
@@ -448,7 +437,7 @@
     .mobile-nav { display: none; }
 
     @media (pointer: coarse) {
-      .control, .button, .icon-button, .filter-button, .check-button, .qty-input { min-height: 48px; }
+      .control, .button, .icon-button, .filter-button, .check-button, .qty-input, .module-tab { min-height: 48px; }
       .icon-button, .check-button { width: 48px; }
       .nav-button { min-height: 50px; }
       .work-table td { padding-top: 14px; padding-bottom: 14px; }
@@ -456,8 +445,11 @@
     }
 
     @media (max-width: 1180px) {
-      :root { --sidebar: 196px; }
       .workspace { padding-inline: 18px; }
+      .module-bar { align-items: flex-start; flex-direction: column; }
+      .module-nav { width: 100%; }
+      .prototype-tools { width: 100%; }
+      .prototype-note { margin-right: auto; }
       .flow-rail { grid-template-columns: repeat(7, minmax(108px, 1fr)); }
       .flow-step { min-width: 108px; padding-inline: 11px; }
       .work-layout { grid-template-columns: 1fr; }
@@ -469,25 +461,30 @@
       .queue-row { grid-template-columns: minmax(170px, 1fr) 110px 98px auto; }
     }
 
-    @media (max-width: 920px) {
+    @media (max-width: 1023px) {
       :root { --sidebar: 0px; }
       .app-shell { grid-template-columns: 1fr; grid-template-areas: "topbar" "main"; }
       .sidebar { display: none; }
-      .app-topbar { padding-inline: 14px; }
+      .brand { width: 64px; justify-content: center; padding: 0; border-right: 0; }
+      .brand-name { display: none; }
+      .topbar-main { padding-inline: 14px; }
       .workspace { padding: 18px 14px 92px; }
-      .role-select { display: none; }
       .work-layout { grid-template-columns: 1fr; }
       .context-panel { display: none; }
       .flow-rail { grid-template-columns: repeat(7, 132px); }
-      .mobile-nav { position: fixed; left: 10px; right: 10px; bottom: 10px; z-index: 80; display: grid; grid-template-columns: repeat(5, 1fr); padding: 5px; border-radius: 15px; background: var(--surface); box-shadow: var(--shadow-raised); }
-      .mobile-nav button { border: 0; background: transparent; color: var(--ink-3); min-height: 50px; border-radius: 10px; display: grid; place-items: center; gap: 2px; font-size: 10px; }
+      .mobile-nav { position: fixed; inset: auto 0 0; z-index: 80; display: grid; grid-template-columns: repeat(5, 1fr); padding: 5px 4px max(8px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line-soft); background: var(--surface); }
+      .mobile-nav button { border: 0; background: transparent; color: var(--ink-3); min-height: 52px; border-radius: 8px; display: grid; place-items: center; gap: 2px; font-size: 10px; }
       .mobile-nav button[aria-current="page"] { background: var(--blue-soft); color: var(--blue-ink); }
     }
 
     @media (max-width: 680px) {
-      .prototype-bar { justify-content: flex-start; overflow-x: auto; white-space: nowrap; }
-      .app-topbar { flex-wrap: wrap; height: auto; min-height: var(--topbar); }
-      .global-search { flex-basis: calc(100% - 108px); }
+      .topbar-main { padding-inline: 10px; }
+      .global-search { min-width: 0; }
+      .global-search input { padding-right: 34px; }
+      .search-key { display: none; }
+      .prototype-tools { flex-wrap: wrap; }
+      .prototype-note { flex: 1 1 100%; }
+      .role-select { flex: 1 1 150px; max-width: none; }
       .scan-button span, .theme-label { display: none; }
       .page-head { display: block; }
       .page-actions { justify-content: flex-start; margin-top: 14px; }
@@ -521,11 +518,11 @@
 <body>
   <!--
   THESIS: One production control flow that answers what needs action now; it refuses a KPI dashboard and duplicate board-plus-list views.
-  OWN-WORLD: Near-white/neutral Anajak ERP surfaces, Prompt workhorse type, cobalt only for selection and primary action, semantic status color only where operational meaning demands it.
+  OWN-WORLD: The canonical Anajak Print AppShell stays unchanged; production adds only a local work-area strip inside the main content, using the same neutral surfaces and cobalt interaction language.
   STORY: Find an order by number or QR, dispatch it to a real work center, execute the current task, then QC before one final packing step.
-  FIRST VIEWPORT: Persistent order lookup above a single station rail; on wide desktop the selected rail changes one due-ranked worklist while compact work-order context stays visible, and at 1024 touch width a row opens the same context as a focused work order.
-  FORM: Work-center flow rail plus master-detail worklist, grounded candidate 3, seed c44de785.
-  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+  FIRST VIEWPORT: Canonical ERP header and sidebar establish location first, then one local production strip leads into the station rail and due-ranked worklist; at 1024 touch width a row opens context as a focused work order.
+  FORM: Existing ERP shell plus one in-content production work-area strip, then the work-center flow rail and master-detail worklist; grounded candidate 3, seed c44de785.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with a bounded browser review and an explicit verdict.
   -->
 
   <svg class="icon-sprite" aria-hidden="true">
@@ -551,68 +548,82 @@
       <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-12-3L4 8M6 15a7 7 0 0 0 12 3l2-2"/></symbol>
       <symbol id="i-shirt" viewBox="0 0 24 24"><path d="m8 3-5 3 2 5 3-1v11h8V10l3 1 2-5-5-3a4 4 0 0 1-8 0z"/></symbol>
       <symbol id="i-boxes" viewBox="0 0 24 24"><path d="m2 7 5-3 5 3-5 3zM7 10v6M2 7v6l5 3 5-3V7"/><path d="m12 13 5-3 5 3-5 3zM17 16v6M12 13v6l5 3 5-3v-6"/></symbol>
+      <symbol id="i-factory" viewBox="0 0 24 24"><path d="M3 21V10l6 3V9l6 4V6l6 4v11z"/><path d="M7 21v-4h3v4M15 17h2M15 14h2"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></symbol>
     </defs>
   </svg>
 
-  <div class="prototype-bar" role="note">
-    <strong>ต้นแบบฝ่ายผลิต</strong><span class="proto-dot"></span><span>ข้อมูลตัวอย่าง</span><span class="proto-dot"></span><span>ทุกปุ่มไม่บันทึกจริง</span><span class="proto-dot"></span><span>ผลิต → QC → แพ็กส่ง</span>
-  </div>
-
   <div class="app-shell">
-    <aside class="sidebar" aria-label="เมนูต้นแบบฝ่ายผลิต">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">AP</div>
-        <div><div class="brand-name">Anajak ERP</div><div class="brand-sub">ฝ่ายผลิต</div></div>
-      </div>
-      <div class="nav-label">ควบคุมงาน</div>
-      <nav class="nav-list" id="sideNav">
-        <button class="nav-button" data-view="control"><svg class="icon"><use href="#i-grid"/></svg><span>ศูนย์ควบคุม</span><span class="nav-count">12</span></button>
-        <button class="nav-button" data-view="station"><svg class="icon"><use href="#i-list"/></svg><span>คิวประจำสถานี</span><span class="nav-count">12</span></button>
-        <button class="nav-button" data-view="job"><svg class="icon"><use href="#i-file"/></svg><span>ใบผลิต</span></button>
-      </nav>
-      <div class="nav-label">พื้นที่ทำงาน</div>
-      <nav class="nav-list">
-        <button class="nav-button" data-view="print"><svg class="icon"><use href="#i-printer"/></svg><span>ศูนย์ DTF</span><span class="nav-count">3</span></button>
-        <button class="nav-button" data-view="outsource"><svg class="icon"><use href="#i-store"/></svg><span>งานร้านนอก</span><span class="nav-count">3</span></button>
-        <button class="nav-button" data-view="qc"><svg class="icon"><use href="#i-shield"/></svg><span>QC และงานแก้</span><span class="nav-count">2</span></button>
-        <button class="nav-button" data-view="packing"><svg class="icon"><use href="#i-package"/></svg><span>แพ็กและพร้อมส่ง</span><span class="nav-count">2</span></button>
-      </nav>
-      <div class="nav-label" data-manager-only>หัวหน้าผลิต</div>
-      <nav class="nav-list" data-manager-only>
-        <button class="nav-button" data-view="performance"><svg class="icon"><use href="#i-chart"/></svg><span>ผลงานฝ่ายผลิต</span></button>
-      </nav>
-      <div class="sidebar-note">ต้นแบบนี้แยกจากระบบจริง ใช้เพื่อทดสอบลำดับงานและความเข้าใจก่อนเริ่มพัฒนา</div>
-    </aside>
-
     <header class="app-topbar">
-      <form class="global-search" id="globalSearch" role="search">
-        <svg class="icon search-icon"><use href="#i-search"/></svg>
-        <label class="sr-only" for="orderSearch">ค้นหาเลขออเดอร์ หรือสแกน QR</label>
-        <input id="orderSearch" autocomplete="off" placeholder="ค้นหาเลขออเดอร์ หรือสแกน QR" aria-controls="searchResults" aria-expanded="false">
-        <span class="search-key">/</span>
-        <div class="search-popover" id="searchResults" role="listbox"></div>
-      </form>
-      <div class="top-actions">
-        <button class="button scan-button" id="demoScan" type="button"><svg class="icon"><use href="#i-qr"/></svg><span>ลองสแกน QR</span></button>
-        <label class="sr-only" for="roleSelect">จำลองสิทธิ์ผู้ใช้</label>
-        <select class="control role-select" id="roleSelect">
-          <option value="manager">หัวหน้าผลิต</option>
-          <option value="operator">พนักงานสถานี</option>
-          <option value="readonly">ดูอย่างเดียว</option>
-        </select>
-        <button class="icon-button" id="themeToggle" type="button" aria-label="สลับธีม"><svg class="icon"><use href="#i-moon"/></svg></button>
+      <button class="brand" type="button" data-shell-action="ภาพรวม ERP" aria-label="ภาพรวม ERP">
+        <span class="brand-mark" aria-hidden="true"><svg class="icon"><use href="#i-printer"/></svg></span>
+        <span class="brand-name">Anajak Print</span>
+      </button>
+      <div class="topbar-main">
+        <form class="global-search" id="globalSearch" role="search">
+          <svg class="icon search-icon"><use href="#i-search"/></svg>
+          <label class="sr-only" for="orderSearch">ค้นหาเลขออเดอร์ หรือสแกน QR</label>
+          <input id="orderSearch" autocomplete="off" placeholder="ค้นหาเลขออเดอร์ หรือสแกน QR" aria-controls="searchResults" aria-expanded="false">
+          <span class="search-key">/</span>
+          <div class="search-popover" id="searchResults" role="listbox"></div>
+        </form>
+        <div class="top-actions">
+          <button class="icon-button" type="button" data-shell-action="การแจ้งเตือน" aria-label="การแจ้งเตือน"><svg class="icon"><use href="#i-bell"/></svg></button>
+          <button class="user-avatar" type="button" data-shell-action="เมนูผู้ใช้" aria-label="เมนูผู้ใช้">บ</button>
+        </div>
       </div>
     </header>
 
-    <main class="workspace" id="screenRoot" tabindex="-1"></main>
+    <aside class="sidebar" aria-label="เมนูหลัก ERP">
+      <nav class="nav-list" id="sideNav">
+        <button class="nav-button" type="button" data-shell-action="แดชบอร์ด"><svg class="icon"><use href="#i-grid"/></svg><span>แดชบอร์ด</span></button>
+        <button class="nav-button" type="button" data-shell-action="งานของฉัน"><svg class="icon"><use href="#i-list"/></svg><span>งานของฉัน</span></button>
+        <button class="nav-button" type="button" data-shell-action="ออเดอร์"><svg class="icon"><use href="#i-file"/></svg><span>ออเดอร์</span></button>
+        <button class="nav-button" type="button" data-production-root aria-current="page"><svg class="icon"><use href="#i-factory"/></svg><span>การผลิต</span></button>
+        <button class="nav-button" type="button" data-shell-action="ลูกค้า"><svg class="icon"><use href="#i-users"/></svg><span>ลูกค้า</span></button>
+      </nav>
+      <div class="shell-divider"></div>
+      <details class="shell-more">
+        <summary class="nav-button"><svg class="icon"><use href="#i-more"/></svg><span>เมนูทั้งหมด</span><svg class="icon chevron"><use href="#i-chevron"/></svg></summary>
+        <div class="shell-more-body">เมนูขาย · ผลิต · สินค้า · การเงิน · ระบบ ตามสิทธิ์ผู้ใช้เดิม</div>
+      </details>
+    </aside>
+
+    <main class="workspace" id="main-content" tabindex="-1">
+      <div class="module-bar">
+        <nav class="module-nav" aria-label="พื้นที่ในโมดูลการผลิต">
+          <button class="module-tab" type="button" data-view="control" data-module-view="control"><svg class="icon"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
+          <button class="module-tab" type="button" data-view="station" data-module-view="station"><svg class="icon"><use href="#i-list"/></svg><span>คิวสถานี</span></button>
+          <button class="module-tab" type="button" data-view="print" data-module-view="print"><svg class="icon"><use href="#i-printer"/></svg><span>DTF</span></button>
+          <button class="module-tab" type="button" data-view="outsource" data-module-view="outsource"><svg class="icon"><use href="#i-store"/></svg><span>ร้านนอก</span></button>
+          <button class="module-tab" type="button" data-view="qc" data-module-view="qc"><svg class="icon"><use href="#i-shield"/></svg><span>QC</span></button>
+          <button class="module-tab" type="button" data-view="packing" data-module-view="packing"><svg class="icon"><use href="#i-package"/></svg><span>แพ็กส่ง</span></button>
+          <button class="module-tab" type="button" data-view="performance" data-module-view="performance" data-manager-only><svg class="icon"><use href="#i-chart"/></svg><span>ผลงาน</span></button>
+        </nav>
+        <div class="prototype-tools" aria-label="เครื่องมือต้นแบบ">
+          <span class="prototype-note" role="note"><strong>ต้นแบบ</strong><span>ไม่บันทึกจริง</span></span>
+          <button class="button scan-button" id="demoScan" type="button"><svg class="icon"><use href="#i-qr"/></svg><span>สแกน QR</span></button>
+          <label class="sr-only" for="roleSelect">จำลองสิทธิ์ผู้ใช้</label>
+          <select class="control role-select" id="roleSelect">
+            <option value="manager">หัวหน้าผลิต</option>
+            <option value="operator">พนักงานสถานี</option>
+            <option value="readonly">ดูอย่างเดียว</option>
+          </select>
+          <button class="icon-button" id="themeToggle" type="button" aria-label="สลับธีมต้นแบบ"><svg class="icon"><use href="#i-moon"/></svg></button>
+        </div>
+      </div>
+      <div id="screenRoot" tabindex="-1"></div>
+    </main>
   </div>
 
-  <nav class="mobile-nav" aria-label="เมนูจอแคบ">
-    <button data-view="control"><svg class="icon"><use href="#i-grid"/></svg><span>ควบคุม</span></button>
-    <button data-view="station"><svg class="icon"><use href="#i-list"/></svg><span>สถานี</span></button>
-    <button data-view="print"><svg class="icon"><use href="#i-printer"/></svg><span>DTF</span></button>
-    <button data-view="qc"><svg class="icon"><use href="#i-shield"/></svg><span>QC</span></button>
-    <button data-view="packing"><svg class="icon"><use href="#i-package"/></svg><span>แพ็ก</span></button>
+  <nav class="mobile-nav" aria-label="เมนูหลัก ERP บนจอแคบ">
+    <button type="button" data-shell-action="แดชบอร์ด"><svg class="icon"><use href="#i-grid"/></svg><span>แดชบอร์ด</span></button>
+    <button type="button" data-shell-action="งานของฉัน"><svg class="icon"><use href="#i-list"/></svg><span>งานของฉัน</span></button>
+    <button type="button" data-shell-action="ออเดอร์"><svg class="icon"><use href="#i-file"/></svg><span>ออเดอร์</span></button>
+    <button type="button" data-production-root aria-current="page"><svg class="icon"><use href="#i-factory"/></svg><span>การผลิต</span></button>
+    <button type="button" data-shell-action="เมนูทั้งหมด"><svg class="icon"><use href="#i-more"/></svg><span>ทั้งหมด</span></button>
   </nav>
 
   <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
@@ -688,6 +699,7 @@
     };
 
     const screenRoot = document.getElementById("screenRoot");
+    const workspace = document.querySelector(".workspace");
     const searchInput = document.getElementById("orderSearch");
     const searchResults = document.getElementById("searchResults");
     const liveRegion = document.getElementById("liveRegion");
@@ -1049,7 +1061,9 @@
       const renderer = renderers[appState.view] || renderControl;
       document.body.dataset.role = appState.role;
       screenRoot.innerHTML = renderer();
-      document.querySelectorAll("[data-view]").forEach(button => button.setAttribute("aria-current", button.dataset.view === appState.view ? "page" : "false"));
+      const moduleView = ({rework:"qc"})[appState.view] || appState.view;
+      document.querySelectorAll("[data-module-view]").forEach(button => button.setAttribute("aria-current", button.dataset.moduleView === moduleView ? "page" : "false"));
+      document.querySelectorAll("[data-production-root]").forEach(button => button.setAttribute("aria-current", "page"));
       bindScreenEvents();
       liveRegion.textContent = `เปิดหน้า ${document.querySelector("h1")?.textContent || "ฝ่ายผลิต"}`;
     }
@@ -1059,7 +1073,7 @@
       appState.view = view;
       history.replaceState(null, "", `#${view}`);
       render();
-      window.scrollTo(0, 0);
+      workspace?.scrollTo({top:0, behavior:"auto"});
       requestAnimationFrame(() => screenRoot.focus({preventScroll:true}));
     }
 
@@ -1365,6 +1379,8 @@
     }
 
     document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => navigate(button.dataset.view)));
+    document.querySelectorAll("[data-production-root]").forEach(button => button.addEventListener("click", () => navigate("control")));
+    document.querySelectorAll("[data-shell-action]").forEach(button => button.addEventListener("click", () => showToast(button.dataset.shellAction, "ต้นแบบนี้เปิดให้ลองเฉพาะโมดูลการผลิต · ไม่บันทึกจริง")));
 
     document.getElementById("roleSelect").addEventListener("change", event => {
       appState.role = event.target.value;

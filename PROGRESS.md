@@ -5,13 +5,15 @@
 ## ตอนนี้
 
 > **✅ MOCK-PROD ต้นแบบ ERP ฝ่ายผลิตทั้งระบบพร้อมให้เบสกดตรวจแล้ว 2026-08-15**
-> เขียนเป็น UI จริงแบบ standalone ที่ `docs/mockups/production-erp-system-2026-08-15.html` — ไม่ใช่ภาพ, ไม่ใช้ `/redesign`, ไม่ต่อ tRPC/ฐานข้อมูล และไม่แตะหน้า canonical `/production*` · ทุกข้อมูลเป็น fixture/local state พร้อมแถบคงที่ว่า “ข้อมูลตัวอย่าง · ไม่บันทึกจริง”
+> เขียนเป็น UI จริงแบบ standalone ที่ `docs/mockups/production-erp-system-2026-08-15.html` — ไม่ใช่ภาพ, ไม่ใช้ `/redesign`, ไม่ต่อ tRPC/ฐานข้อมูล และไม่แตะหน้า canonical `/production*` · ทุกข้อมูลเป็น fixture/local state พร้อมป้ายในเนื้อหาว่า “ต้นแบบ · ไม่บันทึกจริง”
+>
+> **แก้ shell ตาม feedback เบสแล้ว:** ไม่ทำ Sidebar/ระบบฝ่ายผลิตแยกอีก · mockup ใช้กรอบ ERP เดิม: topbar 64px + Sidebar 240px (`แดชบอร์ด / งานของฉัน / ออเดอร์ / การผลิต / ลูกค้า / เมนูทั้งหมด`) และเลือก “การผลิต” ตลอด · `ภาพรวม / คิวสถานี / DTF / ร้านนอก / QC / แพ็กส่ง / ผลงาน` เป็นแถบพื้นที่ทำงานภายในหน้า ส่วนใบผลิต/เบิกวัตถุดิบ/งานแก้เปิดจากเลขออเดอร์หรือ QR ตามบริบท ไม่เป็นเมนูถาวร
 >
 > **โครงงานครบสาย:** ศูนย์ควบคุม → คิวประจำสถานี → ใบผลิต → เบิก/คืนวัตถุดิบ → รอบ DTF พิมพ์/ตัดติดป้าย/รีด → งานร้านนอก → QC → วงจรงานแก้ → แพ็กส่งครั้งเดียว → ผลงานหัวหน้า · ค้นเลขออเดอร์และจำลอง QR เปิดใบเดียวกันโดยไม่เปลี่ยนสถานะทันที · แยกหัวหน้าผลิต/พนักงานสถานี/ดูอย่างเดียว
 >
 > **scenario ที่กดพิสูจน์:** DTF เดิน stage จริงจน QC และแพ็ก · งานร้านนอกส่ง/รับกลับแล้วรวมก่อน QC · QC กันยอดเกินและจำยอดตรวจบางส่วน/คงเหลือ · QC fail เปิดงานแก้และต้องกลับมาตรวจซ้ำ · แพ็กถูกล็อกจน checklist ครบ · งานใน active print run ไม่กลับมาเลือกซ้ำ · read-only ไม่มี field/action ที่เขียน state
 >
-> **ด่าน mockup:** browser 10 หน้า ที่ 1440×900 + 1024×768 Light/Dark และ regression 390px ไม่มี horizontal overflow/console error · เป้ากดหลัก ≥44px · search/QR Enter, permission และ local state journey ผ่าน · `verify:ui` ผ่าน · Impeccable detector `[]` และ fresh finish review ไม่พบ P0/P1
+> **ด่าน mockup:** browser 10 หน้า ที่ 1440×900 + 1024×768 Light/Dark และ regression 390px ไม่มี horizontal overflow/console error · ที่ 1440 วัด topbar 1440×64, Sidebar 240px, workspace 1200px; ที่ 1024 ยังคง Sidebar 240px + workspace 784px · ทุกพื้นที่ 7 หน้าไม่ล้นและเป้ากดหลัก ≥44px · search/QR Enter, permission และ local state journey ผ่าน · `verify:ui` ผ่าน · Impeccable detector `[]` และ fresh finish reviewไม่พบ P0/P1
 >
 > **ต่อที่นี่:** รอเบสลองกดต้นแบบและเคาะโครง/ภาษา/ลำดับงานก่อนเปิดใบงานยกเข้า `/production*` จริง — ห้ามนำ mockup ไปต่อข้อมูลจริงก่อนรับ feedback
 
