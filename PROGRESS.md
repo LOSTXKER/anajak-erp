@@ -4,7 +4,24 @@
 
 ## ตอนนี้
 
-> **✅ MOCK-PROD ต้นแบบ ERP ฝ่ายผลิตทั้งระบบพร้อมให้เบสกดตรวจแล้ว 2026-08-15**
+> **✅ FACTORY-STATION ยก UX ที่เคาะขึ้นระบบจริงแล้ว 2026-08-16**
+> ใช้ `/production` ใน Sidebar ERP เดิมเป็นบอร์ดของหัวหน้า/เจ้าของ และเพิ่ม `/factory/station` เป็นจอเต็มสำหรับคอมกับจอทัชหน้าเครื่อง โดยคง `/factory` เป็นทีวี read-only · ไม่มี Sidebar ฝ่ายผลิตชุดใหม่ และมีปุ่ม “เปิดจอประจำสถานี” จากบอร์ดจริง
+>
+> **5 สถานีและ scan-first:** เตรียมเสื้อ → พิมพ์ DTF → รีดร้อน → QC → แพ็กสุดท้าย · เลขออเดอร์/QR ทำหน้าที่เปิดบริบทเท่านั้น ไม่เริ่มหรือปิดงานเอง · ถ้ามีหลายใบผลิตต้องให้คนเลือก · คิวแบ่ง “กำลังทำ/พร้อมทำ” เรียงตามกำหนดส่ง และไม่ปนงานที่ยังติดด่าน
+>
+> **flow จริงมีทางเดียว:** ใบผลิตใหม่ไม่สร้าง `PACKAGING` แล้ว · ขั้นผลิตครบจึงเข้า QC · QC นับของดี/เสียสะสมและเปิดงานแก้เมื่อยังไม่ครบ · ของดีครบจึงเข้าแพ็กสุดท้าย · ปุ่มพร้อมส่งเปิดเมื่อมี Delivery ที่ยังใช้ได้และแพ็กครบตามสินค้า/ไซส์/สี · ข้อมูล legacy PACKAGING ถูกซ่อนจากงานหน้างานและมีทางกู้กลับเข้า QC
+>
+> **สิทธิ์/ข้อมูลไม่โกหก:** Station ใช้บัญชีจริงและ action ตาม permission ฝั่ง server; ไม่มี `manage_production` เป็น read-only · action ถูกจำกัดตามสถานีและสถานะออเดอร์ · งานพัก/ยกเลิกลงมือต่อไม่ได้ · payload/query ของ Station ตัด field เงินตั้งแต่ server และฟอร์มแพ็กไม่ส่งค่าจัดส่งเมื่อเปิดจาก Station · mutation ใช้ row lock, transition และ transaction ชุดจริง ไม่สร้าง state จำลองใน browser
+>
+> **กันงานชนและกดซ้ำ:** DTF create/พิมพ์จบ/ตัดจบล็อก step→production→order→run แล้วอ่านสถานะสด; งานที่ถูกพักหรือพ้นช่วงผลิตเดินรอบต่อไม่ได้ แต่รอบที่ยังไม่พิมพ์จบยกเลิกเพื่อคืนคิวได้ · QC ใช้ idempotency key ต่อรอบ, ผลตรวจกับ audit commit พร้อมกัน, retry key เดิมไม่บวกยอดซ้ำ และใช้ลำดับ lock step→production→order เดียวกับ writer ผลิต
+>
+> **หลักฐาน:** browser แบบอ่านอย่างเดียวที่ 1440×900 และ 1024×768 ตรวจคิวรีดร้อนกับใบแพ็ก 10/10 แล้ว ไม่มี horizontal overflow, hydration/console/server error; Station ตั้งใจใช้ Dark สำหรับจอโรงงาน ส่วนทางเข้า `/production` ยังใช้ Light/Dark ของ ERP เดิม · ไม่คลิก mutation และไม่สร้าง fixture บนฐานแชร์ซึ่งมีเฉพาะบัญชี OWNER; flow QC partial/full/rework, permission, scan, concurrency และ packing gate ยืนยันด้วย router/service/pure tests
+>
+> **ด่าน final:** typecheck ผ่าน · lint 0 error (28 warning เดิม/ที่ยอมรับ) · unit **989/989** · `verify:ui` ผ่าน · production build ผ่าน · Impeccable detector (`type,layout` เฉพาะ surface ที่เปลี่ยน) 0 findings · เอกสาร `SPEC.md`, `ROADMAP.md`, `docs/DESIGN.md` และ Impeccable surface brief อัปเดตตาม flow จริง
+>
+> **ต่อที่นี่:** ให้เบสเปิด `/production` แล้วกด “เปิดจอประจำสถานี” หรือเปิด `/factory/station` เพื่อลองภาษากับจอจริงของโรงงาน; commit อยู่บน branch งานและยังไม่ push
+
+> **✅ MOCK-PROD ต้นแบบ ERP ฝ่ายผลิตทั้งระบบพร้อมให้เบสกดตรวจแล้ว 2026-08-15 (หลักฐานก่อนยกขึ้นของจริง)**
 > เขียนเป็น UI จริงแบบ standalone ที่ `docs/mockups/production-erp-system-2026-08-15.html` — ไม่ใช่ภาพ, ไม่ใช้ `/redesign`, ไม่ต่อ tRPC/ฐานข้อมูล และไม่แตะหน้า canonical `/production*` · ทุกข้อมูลเป็น fixture/local state พร้อมป้ายในเนื้อหาว่า “ต้นแบบ · ไม่บันทึกจริง”
 >
 > **แก้ shell ตาม feedback เบสแล้ว:** ไม่ทำ Sidebar/ระบบฝ่ายผลิตแยกอีก · mockup ใช้กรอบ ERP เดิม: topbar 64px + Sidebar 240px (`แดชบอร์ด / งานของฉัน / ออเดอร์ / การผลิต / ลูกค้า / เมนูทั้งหมด`) และเลือก “การผลิต” ตลอด · `ภาพรวม / คิวสถานี / DTF / ร้านนอก / QC / แพ็กส่ง / ผลงาน` เป็นแถบพื้นที่ทำงานภายในหน้า ส่วนใบผลิต/เบิกวัตถุดิบ/งานแก้เปิดจากเลขออเดอร์หรือ QR ตามบริบท ไม่เป็นเมนูถาวร
@@ -15,7 +32,7 @@
 >
 > **ด่าน mockup:** browser 10 หน้า ที่ 1440×900 + 1024×768 Light/Dark และ regression 390px ไม่มี horizontal overflow/console error · ที่ 1440 วัด topbar 1440×64, Sidebar 240px, workspace 1200px; ที่ 1024 ยังคง Sidebar 240px + workspace 784px · ทุกพื้นที่ 7 หน้าไม่ล้นและเป้ากดหลัก ≥44px · search/QR Enter, permission และ local state journey ผ่าน · `verify:ui` ผ่าน · Impeccable detector `[]` และ fresh finish reviewไม่พบ P0/P1
 >
-> **ต่อที่นี่:** รอเบสลองกดต้นแบบและเคาะโครง/ภาษา/ลำดับงานก่อนเปิดใบงานยกเข้า `/production*` จริง — ห้ามนำ mockup ไปต่อข้อมูลจริงก่อนรับ feedback
+> **สถานะต่อเนื่อง:** เบสเคาะทิศแล้วและยกแกน Station ขึ้นระบบจริงใน FACTORY-STATION ด้านบน · ไฟล์ mockup คงไว้เป็นหลักฐานการตัดสินใจเท่านั้น ไม่ใช่ controller หรือข้อมูลจริง
 
 > **✅ PC4 ปิดด่าน UI การผลิต canonical ครบทั้งชุดแล้ว 2026-08-15**
 > ตรวจเรื่องราวจริงต่อเนื่อง **บอร์ดโรงงาน `/production` → ใบผลิต `/production/[id]` → รอบพิมพ์ `/production/print-runs`** โดยคง query, polling, mutation, payload, permission, due sort และกฎสถานะฝั่ง server ชุดเดิมทั้งหมด · ไม่เปลี่ยนกติกาเลนงานผสมที่อนุญาตให้ลงมือคนละเลนพร้อมกัน

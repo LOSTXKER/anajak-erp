@@ -27,6 +27,15 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **คิวผลิตสดพอสำหรับหลายคน** — `/production` โพลล์ข้อมูลและ refetch เมื่อกลับแท็บ ไม่พึ่งเฉพาะ mutation ของเครื่องตัวเอง
 - [x] **กู้ร่างได้ตรงกับคำที่บอก** — `/orders/new` กู้ค่าหัวออเดอร์ เงื่อนไข ค่าใช้จ่าย ที่อยู่จัดส่ง และ metadata ไฟล์ที่อัปโหลดแล้ว · แยกตามผู้ใช้ มีอายุ 7 วัน ไม่เก็บ base64 preview และ debounce เก่าห้ามเขียนร่างกลับหลังสร้างสำเร็จ/reset
 
+## 🏭 Factory surfaces + Station Mode (audit โค้ดจริง 2026-08-16)
+- [x] **3 พื้นผิวแยกหน้าที่ชัด** — `/production` ยังอยู่ใน AppShell พร้อม sidebar/topbar เป็นบอร์ดหัวหน้า · `/factory/station` เป็นจอเต็มไม่มี sidebar/topbar ของ ERP · `/factory` เป็นทีวีคิวรวมแบบ read-only ที่ไม่มี action
+- [x] **Station Mode มี 5 จุดทำงานจริง** — เตรียมเสื้อ → พิมพ์ DTF → รีดร้อน → QC → แพ็กสุดท้าย · คิวโชว์เฉพาะงานกำลังทำ/พร้อมทำ และไม่ปนงานติดด่านเข้ากับคิวลงมือ
+- [x] **สแกนเปิด context เท่านั้น** — รับเลขออเดอร์/QR จาก ERP แล้วเปิดใบผลิตหรือบริบทออเดอร์ที่ตรงกัน · หลายใบผลิตต้องให้คนเลือก · การสแกนห้ามเริ่ม ปิด หรือเดินสถานะเอง
+- [x] **flow หลังผลิตมีทางเดียว** — ผลิตจริงครบ → `QUALITY_CHECK` นับของดี/เสียครบ → `PACKING` นับแพ็กผ่านใบส่ง → `READY_TO_SHIP` เมื่อมีหลักฐานและจำนวนครบ · `PACKAGING` เป็นเพียง compatibility ของใบเก่า ห้ามสร้าง/อัปเดตเป็นขั้นแพ็กของ flow ใหม่
+- [x] **สิทธิ์ตรงกับ server จริง** — ทุกจอ factory ต้อง login · ผู้ไม่มี `manage_production` เห็น Station แบบดูอย่างเดียว · การสร้างใบส่งต้องมี `manage_production` + `manage_delivery` · ยืนยันพร้อมส่งต้องมี `manage_production` + `update_order_status_production` · `supervise_operations` จึงเห็นงานข้ามผู้รับผิดชอบ
+- [x] **Station ไม่รับและไม่วาดเงิน** — `factory.stationQueue`, scan/context, ใบผลิต รอบพิมพ์ QC และ pack context ส่งเฉพาะข้อมูลหน้างาน · Station ไม่ mount การ์ดวัตถุดิบที่มีต้นทุน ไม่ส่ง readiness ด้านชำระเงิน และซ่อน/ไม่ส่งค่าจัดส่งในฟอร์มแพ็ก
+- [x] **ข้อมูลและ state ไม่โกหก** — Station ใช้ `factory.stationQueue/resolveStationScan/stationContext`, `production.getById`, `printRun.queue/list`, QC/pack endpoints และ `user.me` จริง · โพลล์ 30 วินาที · แยก initial loading/error/empty กับ background-stale และ mutation ทุกก้อนยังผ่าน service/guard เดิม
+
 ## 🔐 P0 deploy-gate — verified ครบแล้ว (audit 2026-07-02 อ่านโค้ดจริง + adversarial verify)
 - [x] **คนนอกเปิดเว็บแล้วเข้าไม่ได้** — `src/middleware.ts:31-78` refresh session ทุก request รวม /api · ยกเว้นเฉพาะหน้า public token (approve/upload/status/quote) + /api/mcp (auth ด้วย key เอง)
 - [x] **ทีม login จริงได้ตาม role** — login `signInWithPassword` + error ไทย (`(auth)/login/page.tsx:24-37`) · logout จริง (`user-menu.tsx:22`) · จัดการ user ครบวงจรถึง Supabase ban (`user.ts:87-226`)
@@ -64,7 +73,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **ใบเสนอราคา → แปลงเป็นออเดอร์** (กันซ้ำ) ผ่านลิงก์ public `/quote/<token>` accept→convert + ด่าน ACCEPTED/ไม่หมดอายุ (`quotation.ts:341-440`)
 - [x] **customer portal (ไม่ต้อง login · token):** อนุมัติแบบ `/approve/design/<token>` · ติดตามสถานะ `/status/<token>` (read-only, ไม่รั่วราคา/ต้นทุน/internalStatus · `customer-status.ts:40-193`) · อัปโหลดไฟล์ `/upload/<token>` (signed, server เลือก path) ⚠️ P0.1: เพิ่ม token expiry + กันตัดสินซ้ำฝั่ง server
 - [x] **outsource** ผูกขั้นผลิต → OutsourceOrder + step IN_PROGRESS (ล็อกแถว) → SENT→RECEIVED_BACK→QC (`outsource.ts:131-244`)
-- [x] **ผลิต→QC→แพ็ค→ส่ง** → ออเดอร์เด้ง "จัดส่งแล้ว" เมื่อทุกใบส่งครบ+จำนวนครบ (แบ่งกล่องได้) · RETURNED → กระดิ่ง (`production.ts`/`qc.ts`/`delivery.ts`)
+- [x] **ผลิต→QC→แพ็กสุดท้าย→พร้อมส่ง→ส่ง** → ผลิตครบทุกใบจึงเข้า QC · QC ของดีครบจึงเข้า PACKING · ใบส่งที่ไม่ถูกคืน+จำนวนแพ็กครบจึงเป็น READY_TO_SHIP · ออเดอร์เด้ง "จัดส่งแล้ว" เมื่อใบส่งครบ (แบ่งกล่องได้) · RETURNED → กระดิ่ง (`production.ts`/`qc.ts`/`delivery.ts`)
 - [x] **goods receipt + print run (ฟิล์ม FR-) + คลังฟิล์ม** (`goods-receipt.ts`/`print-run.ts`/`film-stock.ts`) ⚠️ verify กันฟิล์มติดลบ (FilmStock.qty Int "ห้ามติดลบ")
 - [x] **ออกบิล→ชำระ→WHT 50ทวิ อัตโนมัติ** เลขรัน + เพดานยอด (ใบแจ้งหนี้รวม ≤ ยอดออเดอร์) + นิติบุคคลหัก 3% สร้าง WhtCertificate (`billing.ts:86-339`)
 - [x] **พิมพ์เอกสารภาษีจริง** ใบกำกับ ม.86/4 (ต้นฉบับ+สำเนา · void มีลายน้ำ) + quotation/billing-note/job-ticket/packing-list (`(print)/print/*`)
