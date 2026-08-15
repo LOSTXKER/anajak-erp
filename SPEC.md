@@ -43,7 +43,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **ใบลดหนี้/เพิ่มหนี้ครบองค์กฎหมาย ม.86/10 + CN หักยอดค้างจริง** — ผูกใบเดิม+เหตุผลบังคับ · หักยอดค้างทุกเส้นทาง · ใบพิมพ์ครบองค์ (Gate B1 2026-07-02) ⚠️ activation: เบสรัน `npx prisma migrate deploy` (additive) + restart dev
 - [x] **VAT default 7%** — ออเดอร์ default 7 · marketplace (ราคารวม VAT) default 0 · ใบเสนอมีปุ่มลัด (Gate B2 2026-07-02 · เบส confirm จด VAT)
 - [x] **tax point จ้างทำของบังคับได้จริง** — ใบเสร็จ/ใบกำกับผูกงวดรับเงิน (1 งวด 1 ใบ · ยอดเท่าเงินรับ · issueDate = วันรับเงินจริง) + UI เตือนงวดค้างออกใบ (Gate B3 2026-07-02 · verify:terms 21/21)
-- [ ] **QC เชิงนับ bypass ไม่ได้** — QUALITY_CHECK→PACKING ต้องมี QcRecord (ตอนนี้ปุ่ม "ผ่าน→แพ็ค" ข้ามได้ทุก role)
+- [x] **QC เชิงนับ bypass ไม่ได้** — ทางเข้า PACKING มีสองทางและปิดครบทั้งคู่ (Gate B4 2026-07-02 · audit โค้ดจริง 2026-08-15): กดมือผ่าน `order.updateStatus` เช็ค `qcRecord.count === 0 → badRequest` ใต้ `$transaction` เดียวกับ transition จึง rollback ทั้งก้อน (`order.ts:1291-1301`) · อีกทางคือ `qc.create` นับดีครบแล้ว `advanceOrderForward(onlyFrom:["QUALITY_CHECK"])` ซึ่งมี QcRecord อยู่แล้วโดยนิยาม (`services/qc.ts:218-228`) ⚠️ หนี้ค้างจาก B4: ส่งของจริงผ่านใบส่งขณะ QUALITY_CHECK ยังทำได้ทาง API ตรง (UI ทำไม่ได้) — ปิดต้องเคาะ semantics ใบส่งกับเบสก่อน
 - [ ] **โครงพื้นฐาน production** — CI (lint+tsc+vitest) · backup/PITR + retention 5 ปี (Supabase audit จริง: bucket private/RLS) · rate-limit public token endpoints + security headers · env validate ตอน boot · ลบ lockfile ซ้ำ
 - [ ] **รายงานภาษีขายรายเดือน export ได้** (มติตัด GL ยืนบนข้อนี้) + **นักบัญชีรีวิว template ใบกำกับ/CN/DN + เลขรันจากเอกสารพิมพ์จริง**
 - [ ] **แก้ข้อมูลลูกค้าจาก UI ได้ + ลูกค้าเกิน 50 รายมองเห็น** (B2B เครดิตเทอมแก้ taxId/วงเงินไม่ได้ = สร้างซ้ำแน่)

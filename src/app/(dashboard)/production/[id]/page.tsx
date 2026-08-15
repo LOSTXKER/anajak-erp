@@ -13,19 +13,18 @@ import { MaterialUsage } from "@/components/material-usage";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { ProductionDesignCard } from "@/components/production/production-design-card";
 import { ProductionStepsList } from "@/components/production/production-steps-list";
+import { ProductionNowCard } from "@/components/production/production-now-card";
 import { StepUpdateDialog } from "@/components/production/step-update-dialog";
 import { StepOutsourceDialog } from "@/components/production/step-outsource-dialog";
 import { StepQtySheet } from "@/components/production/step-qty-sheet";
 import type { ProductionStep } from "@/components/production/types";
-import {
-  INTERNAL_STATUS_LABELS,
-  PRIORITY_LABELS,
-} from "@/lib/order-status";
-import { formatDate } from "@/lib/utils";
-import { ClipboardList, ExternalLink, Clock, AlertTriangle, Shirt, CheckCircle2 } from "lucide-react";
+import { PRIORITY_LABELS } from "@/lib/order-status";
+import { cn, formatDate } from "@/lib/utils";
+import { ClipboardList, ExternalLink, Clock, AlertTriangle, Shirt } from "lucide-react";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { STEP_TYPE_LABELS, evaluateHeatPressGate } from "@/lib/production-steps";
+import { selectNowSteps } from "@/lib/production-step-actions";
 import { toast } from "sonner";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 
@@ -135,21 +134,15 @@ export default function ProductionDetailPage({
   const totalQty = order.items.reduce((s, it) => s + it.totalQuantity, 0);
   const completedSteps = production.steps.filter((s) => s.status === "COMPLETED").length;
   const totalSteps = production.steps.length;
-  const progressPct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-  // ขั้นที่กำลังทำ/ต้องทำต่อ — ตอบ "ตอนนี้ถึงไหน" ทันทีที่เปิดหน้า (เบสเคาะ 2026-07-08)
-  // กำลังทำก่อน · ไม่มีก็ขั้นแรกที่ยังไม่เสร็จ (มีปัญหา FAILED ก็ถือว่าต้องจัดการต่อ)
-  const activeSteps = production.steps.filter((step) => step.status === "IN_PROGRESS");
-  const currentStep =
-    activeSteps[0] ??
-    production.steps.find((s) => s.status !== "COMPLETED") ??
-    null;
-  const currentStepName = currentStep
-    ? currentStep.customStepName || STEP_TYPE_LABELS[currentStep.stepType] || currentStep.stepType
-    : null;
   const allStepsDone = totalSteps > 0 && completedSteps === totalSteps;
-  const activeStepNames = activeSteps.map(
-    (step) => step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType
-  );
+  // ขั้นที่ลงมือได้ตอนนี้ (เลนละไม่เกินหนึ่ง) — ใช้กติกาปุ่มชุดเดียวกับรายการขั้นตอนด้านล่าง
+  const nowSteps = selectNowSteps(production.steps, {
+    canOutsource,
+    canUpdateStep,
+    canSupervise: canOutsource,
+    meId: me?.id ?? null,
+    pressGate: evaluateHeatPressGate(production.steps),
+  });
   const isOverdue =
     order.deadline &&
     new Date(order.deadline) < new Date() &&
@@ -181,18 +174,23 @@ export default function ProductionDetailPage({
         }
       />
 
-      {/* บริบทงานที่ช่างต้องเห็นก่อนจับงาน — กำหนดส่ง/ด่วน/จำนวน/สถานะออเดอร์ */}
-      <div className="card-surface flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl px-4 py-3 text-sm">
+      {/* บริบทที่ช่างต้องรู้ก่อนจับงาน — กำหนดส่ง/ด่วน/จำนวน/ความคืบหน้า
+          ถอด "สถานะออเดอร์" ออกเพราะเป็นข้อมูลอ้างอิงของฝั่งขาย ไม่ใช่สิ่งที่ช่างใช้ */}
+      <div className="card-surface flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl px-4 py-3 text-sm">
         {order.deadline && (
-          <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-            <Clock className="h-4 w-4 text-slate-400" />
-            กำหนดส่ง {formatDate(order.deadline)}
-          </span>
-        )}
-        {isOverdue && (
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            เลยกำหนด
+          <span
+            className={cn(
+              "flex items-center gap-1.5",
+              isOverdue ? "font-medium text-red-700 dark:text-red-300" : "text-secondary",
+            )}
+          >
+            {isOverdue ? (
+              <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+            ) : (
+              <Clock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+            )}
+            {isOverdue ? "เลยกำหนด " : "กำหนดส่ง "}
+            {formatDate(order.deadline)}
           </span>
         )}
         {order.priority && order.priority !== "NORMAL" && (
@@ -201,68 +199,34 @@ export default function ProductionDetailPage({
           </Badge>
         )}
         {totalQty > 0 && (
-          <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-            <Shirt className="h-4 w-4 text-slate-400" />
-            {totalQty.toLocaleString()} ชิ้น
+          <span className="flex items-center gap-1.5 text-secondary">
+            <Shirt className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+            {totalQty.toLocaleString("th-TH")} ตัว
           </span>
         )}
-        <span className="ml-auto text-xs text-slate-400">
-          สถานะออเดอร์:{" "}
-          {(INTERNAL_STATUS_LABELS as Record<string, string>)[order.internalStatus] ??
-            order.internalStatus}
+        <span className="ml-auto text-sm tabular-nums text-muted">
+          เสร็จ {completedSteps}/{totalSteps} ขั้น
         </span>
       </div>
+
+      {/* ตอนนี้ต้องทำ — บอร์ดผลิตไม่มีปุ่มแล้ว หน้านี้จึงเป็นที่เดียวที่ลงมือได้ */}
+      <ProductionNowCard
+        nowSteps={nowSteps}
+        allDone={allStepsDone}
+        busy={quickPass.isPending}
+        onStart={handleStartStep}
+        onComplete={handleCompleteStep}
+        onSendOutsource={setOutsourceStep}
+        onQuickPass={handleQuickPass}
+        onOpenStep={setSelectedStep}
+      />
 
       {/* แบบ+ไซส์อยู่ติดกับ action หน้างาน — ช่างไม่ต้องเริ่มก่อนแล้วค่อยเลื่อนลงหาแบบ */}
       <ProductionDesignCard order={order} />
 
-      {/* สถานะ + ขั้นตอน — "ตอนนี้ถึงไหน + ต้องทำอะไรต่อ" */}
-      <div className="card-surface space-y-4 rounded-2xl p-4 sm:p-5">
-        <div className="space-y-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            {allStepsDone ? (
-              <span className="flex items-center gap-1.5 text-sm font-semibold text-green-600 dark:text-green-400">
-                <CheckCircle2 className="h-4 w-4" />
-                ทุกขั้นเสร็จแล้ว
-              </span>
-            ) : activeSteps.length > 1 ? (
-              <div>
-                <span className="text-base font-semibold text-slate-900 dark:text-white">
-                  กำลังทำ {activeSteps.length} ขั้น
-                </span>
-                <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
-                  {activeStepNames.join(" · ")}
-                </p>
-              </div>
-            ) : currentStepName ? (
-              <span className="text-base">
-                <span className="text-slate-500 dark:text-slate-400">ตอนนี้: </span>
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  {currentStepName}
-                </span>
-              </span>
-            ) : (
-              <span className="text-sm text-slate-500 dark:text-slate-400">ยังไม่มีขั้นตอนผลิต</span>
-            )}
-            <span className="text-sm font-medium tabular-nums text-slate-500 dark:text-slate-400">
-              {completedSteps}/{totalSteps} ขั้น ({progressPct}%)
-            </span>
-          </div>
-          <div
-            role="progressbar"
-            aria-label="ความคืบหน้าใบผลิต"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={progressPct}
-            className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-white/10"
-          >
-            <div
-              className="h-full rounded-full bg-blue-500 transition-all"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-        </div>
-
+      {/* ขั้นตอนทั้งใบ — เช็กลิสต์เต็มไว้ไล่ดู ส่วนสิ่งที่ต้องกดอยู่ในกล่องด้านบนแล้ว */}
+      <div className="card-surface rounded-2xl p-4 sm:p-5">
+        <h2 className="mb-3 text-sm font-semibold text-muted">ขั้นตอนทั้งใบ</h2>
         <ProductionStepsList
           steps={production.steps}
           canOutsource={canOutsource}

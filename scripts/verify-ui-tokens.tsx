@@ -988,8 +988,10 @@ check(
     console.log("✅ caller ของ card-surface ไม่มีเส้นรอบ และใช้เฉพาะ semantic hover");
   }
 
+  // 2026-08-15: หน้าตาของแถบสถานะย้ายไปอยู่ primitive กลาง `ui/flow-filter-bar.tsx`
+  // เพื่อให้หน้าผลิตใช้ภาษาเดียวกัน — guard ตามไปตรวจที่เดียวกับของจริง
   const ordersStatusSource = readFileSync(
-    "src/components/orders/order-status-flow-bar.tsx",
+    "src/components/ui/flow-filter-bar.tsx",
     "utf8",
   );
   const detailStatusSource = readFileSync(
@@ -1014,7 +1016,7 @@ check(
   }
 
   const desktopStatusSource =
-    ordersStatusSource.match(/function DesktopStatusButton[\s\S]*?\n}\n\nexport function/)?.[0] ?? "";
+    ordersStatusSource.match(/function DesktopItemButton[\s\S]*?\n}\n\nexport function/)?.[0] ?? "";
   if (
     !desktopStatusSource.includes("hover:bg-interactive-hover") ||
     !desktopStatusSource.includes("active:bg-interactive-pressed") ||
