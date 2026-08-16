@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION-UX2.7 หัวตาราง Production Control เรียงได้เหมือนหน้ารวมออเดอร์แล้ว 2026-08-16**
+> รากของพื้นหัวตารางที่เปลี่ยนสีคือ `/production` ใช้แถวข้อมูล `DataTable.Row` อยู่ใน `<thead>` จึงรับ hover ของแถวกดได้ทั้งก้อน · เปลี่ยนเป็น `<tr>` หัวตารางจริงและใช้ `DataTable.SortableTh` กลางเหมือน `/orders` ทำให้ชี้แล้วเปลี่ยนเฉพาะข้อความ/ลูกศร ไม่ย้อมพื้นทั้งแถว
+>
+> เรียงได้ 4 คอลัมน์: เลขออเดอร์, ความคืบหน้า, จำนวน และกำหนดส่ง; กดซ้ำสลับขึ้น/ลงและมี `aria-sort` เพียงหัวเดียว · ค่าเริ่มต้น “ต้องจัดการก่อน” ยังดันข้อยกเว้นขึ้นก่อนพร้อมคงกำหนดส่ง/ระดับด่วนเดิม โดยไม่อ้างว่าเรียงตามคอลัมน์ ส่วนเมื่อกดหัวแล้วจะเรียงทั้งตารางตามค่านั้นจริง · งานไม่มีกำหนดส่งอยู่ท้ายทั้งสองทิศ และสูตรความคืบหน้าที่ใช้ sort เป็น helper เดียวกับค่าที่แสดง
+>
+> Select เรียงรายการยังอยู่เพื่อคืน preset “ต้องจัดการก่อน/ด่วนก่อน” และใช้บนหน้าการ์ด; ค่าหัวตาราง/Select/URL ตรงกัน พร้อมรักษา `q` และ `view` · browser Back จากหน้ารายละเอียดคืน URL, ลูกศร และลำดับเดิม · shared sortable header เพิ่ม cursor และเป้าแตะ 44px สำหรับ coarse pointer
+>
+> **หลักฐาน:** browser จริง 1440×900 และ 1024×768 Light/Dark: หัวตารางพื้นโปร่งตอน hover, เรียงเลขออเดอร์/ความคืบหน้า/จำนวนสองทิศ, default preset, URL/search/lens/Back และ overflow ผ่าน; console warn/error = 0 · typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1031/1031** · `verify:ui` ผ่าน · Impeccable detector `[]` · production buildผ่าน · ไม่คลิก mutationและไม่แตะฐานข้อมูล
+>
+> **ต่อที่นี่:** เปิด `/production` แล้วกดหัว `ออเดอร์ / ความคืบหน้า / จำนวน / กำหนดส่ง`; commit อยู่บน branch งานและยังไม่ push
+
 > **✅ NEXT16-THEME ปิด React client-script warning โดยไม่ทำให้ธีมกระพริบแล้ว 2026-08-16**
 > รากเหตุคือ `next-themes` สร้าง bootstrap `<script>` ใหม่เมื่อ `ThemeFallback` mount ฝั่ง client ระหว่าง Fast Refresh/Suspense; React 19.2 จึงเตือนว่าสคริปต์ที่สร้างระหว่าง render จะไม่ถูกรัน · แก้ให้ SSR คง `type="text/javascript"` เพื่อใช้ธีมก่อน hydration แต่ client remount ใช้ `type="text/plain"` เป็น data block แล้วให้ effect เดิม sync class โดยไม่เปลี่ยน provider topology หรือ dependency
 >

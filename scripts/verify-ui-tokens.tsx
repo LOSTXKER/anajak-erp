@@ -1476,6 +1476,14 @@ check(
     "src/components/production/production-module-nav.tsx",
     "utf8",
   );
+  const productionWorklistSource = readFileSync(
+    "src/components/production/production-control-worklist.tsx",
+    "utf8",
+  );
+  const dataTableSource = readFileSync(
+    "src/components/ui/data-table.tsx",
+    "utf8",
+  );
   const garmentPickSource = readFileSync(
     "src/components/production/garment-pick-card.tsx",
     "utf8",
@@ -1554,6 +1562,27 @@ check(
   ) {
     problems.push(
       "local navigation ของงานผลิตต้องวางเส้น active ทับ divider เดียวกันบน desktop/จอทัช",
+    );
+  }
+
+  if (
+    !productionWorklistSource.includes("<DataTable.Head>\n        <tr>") ||
+    productionWorklistSource.includes(
+      "<DataTable.Head>\n        <DataTable.Row>",
+    ) ||
+    (productionWorklistSource.match(/<DataTable\.SortableTh/g) ?? []).length !== 4 ||
+    !productionWorklistSource.includes('sortColumn("orderNumber")') ||
+    !productionWorklistSource.includes('sortColumn("progress")') ||
+    !productionWorklistSource.includes('sortColumn("totalQuantity")') ||
+    !productionWorklistSource.includes('sortColumn("deadline")') ||
+    !productionWorklistSource.includes("PRODUCTION_WORKLIST_SORT_OPTIONS.map") ||
+    !dataTableSource.includes(
+      "cursor-pointer touch-manipulation items-center",
+    ) ||
+    !dataTableSource.includes("[@media(pointer:coarse)]:min-h-11")
+  ) {
+    problems.push(
+      "หัวตารางผลิตต้องใช้ SortableTh 4 คอลัมน์โดยไม่ย้อมพื้นทั้งแถวและคงเป้าแตะ 44px",
     );
   }
 

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_PRODUCTION_WORKLIST_SORT,
   filterProductionWorklist,
+  productionWorklistProgress,
   productionWorklistCounts,
   productionWorklistHref,
+  resolveProductionWorklistSort,
+  sortProductionWorklist,
 } from "./production-worklist";
 import type {
   BoardJob,
@@ -20,18 +24,28 @@ function job({
   stationKey,
   productionId = null,
   overdue = false,
+  deadline = null,
+  priority = "NORMAL",
+  totalQuantity = 0,
+  rail = [],
 }: {
   id: string;
   status: string;
   stationKey: string;
   productionId?: string | null;
   overdue?: boolean;
+  deadline?: string | null;
+  priority?: string;
+  totalQuantity?: number;
+  rail?: TestJob["rail"];
 }): TestJob {
   const order: TestOrder = {
     id,
     orderNumber: `ORD-${id}`,
     title: `งาน ${id}`,
-    deadline: null,
+    deadline,
+    priority,
+    totalQuantity,
     internalStatus: status,
     productions: [],
   };
@@ -56,7 +70,7 @@ function job({
         ready: true,
       },
     ],
-    rail: [],
+    rail,
     searchText: id,
   };
 }
@@ -106,12 +120,12 @@ describe("production worklist", () => {
     });
   });
 
-  it("ทั้งหมดเรียงงานที่ต้องจัดการขึ้นก่อน โดยรักษาลำดับของรายการอื่น", () => {
+  it("กรองมุมงานโดยรักษาลำดับขาเข้าไว้ให้ sort contract เป็นเจ้าของลำดับ", () => {
     expect(filterProductionWorklist(value, jobs, "all").map((item) => item.key)).toEqual([
-      "problem",
-      "pack",
       "normal",
+      "problem",
       "qc",
+      "pack",
       "ready",
       "queue",
     ]);
@@ -119,6 +133,125 @@ describe("production worklist", () => {
       "qc",
     ]);
     expect(filterProductionWorklist(value, jobs, "unknown")).toHaveLength(6);
+  });
+
+  it("default/invalid เรียงงานต้องจัดการก่อน แล้วค่อยกำหนดส่ง", () => {
+    const sortable = [
+      job({
+        id: "normal",
+        status: "PRODUCING",
+        stationKey: "lane:DTF",
+        deadline: "2026-09-01T03:00:00.000Z",
+      }),
+      job({
+        id: "problem",
+        status: "PRODUCING",
+        stationKey: "lane:DTF",
+        deadline: "2026-09-20T03:00:00.000Z",
+      }),
+      job({ id: "no-due", status: "PRODUCING", stationKey: "lane:DTF" }),
+    ];
+    const sortableBoard = board(sortable);
+
+    expect(resolveProductionWorklistSort(null)).toBe(DEFAULT_PRODUCTION_WORKLIST_SORT);
+    expect(resolveProductionWorklistSort("unknown:sideways")).toBe(
+      DEFAULT_PRODUCTION_WORKLIST_SORT,
+    );
+    expect(
+      sortProductionWorklist(sortableBoard, sortable, null).map((item) => item.key),
+    ).toEqual(["problem", "normal", "no-due"]);
+
+    const sameDue = [
+      job({
+        id: "0001",
+        status: "PRODUCING",
+        stationKey: "lane:DTF",
+        deadline: "2026-09-01T03:00:00.000Z",
+        priority: "URGENT",
+        overdue: true,
+      }),
+      job({
+        id: "9999",
+        status: "PRODUCING",
+        stationKey: "lane:DTF",
+        deadline: "2026-09-01T03:00:00.000Z",
+        priority: "NORMAL",
+        overdue: true,
+      }),
+    ];
+    expect(
+      sortProductionWorklist(board(sameDue), sameDue, null).map((item) => item.key),
+    ).toEqual(["0001", "9999"]);
+  });
+
+  it("explicit sort เรียงทั้งตารางจริงและกำหนดส่งว่างอยู่ท้ายทั้งสองทิศ", () => {
+    const sortable = [
+      job({
+        id: "0002",
+        status: "PRODUCING",
+        stationKey: "lane:DTF",
+        deadline: "2026-09-20T03:00:00.000Z",
+        totalQuantity: 5,
+        rail: [
+          { key: "a", label: "A", state: "done" },
+          { key: "b", label: "B", state: "wait" },
+        ],
+      }),
+      job({
+        id: "0003",
+        status: "PRODUCING",
+        stationKey: "lane:DTF",
+        deadline: "2026-09-01T03:00:00.000Z",
+        totalQuantity: 10,
+        rail: [
+          { key: "a", label: "A", state: "wait" },
+          { key: "b", label: "B", state: "wait" },
+        ],
+      }),
+      job({
+        id: "0001",
+        status: "PRODUCING",
+        stationKey: "lane:DTF",
+        overdue: true,
+        totalQuantity: 1,
+        rail: [
+          { key: "a", label: "A", state: "done" },
+          { key: "b", label: "B", state: "done" },
+          { key: "na", label: "N/A", state: "na" },
+        ],
+      }),
+    ];
+    const sortableBoard = board(sortable);
+    const keys = (sort: string) =>
+      sortProductionWorklist(sortableBoard, sortable, sort).map((item) => item.key);
+
+    expect(productionWorklistCounts(sortableBoard).attention).toBe(1);
+    expect(keys("deadline:asc")).toEqual(["0003", "0002", "0001"]);
+    expect(keys("deadline:desc")).toEqual(["0002", "0003", "0001"]);
+    expect(keys("orderNumber:asc")).toEqual(["0001", "0002", "0003"]);
+    expect(keys("orderNumber:desc")).toEqual(["0003", "0002", "0001"]);
+    expect(keys("totalQuantity:asc")).toEqual(["0001", "0002", "0003"]);
+    expect(keys("totalQuantity:desc")).toEqual(["0003", "0002", "0001"]);
+    expect(keys("progress:asc")).toEqual(["0003", "0002", "0001"]);
+    expect(keys("progress:desc")).toEqual(["0001", "0002", "0003"]);
+    expect(sortable.map((item) => item.key)).toEqual(["0002", "0003", "0001"]);
+  });
+
+  it("ใช้สูตรความคืบหน้าเดียวกับค่าที่แสดงและรองรับงานที่ไม่มีช่วง", () => {
+    expect(
+      productionWorklistProgress([
+        { key: "a", label: "A", state: "done" },
+        { key: "b", label: "B", state: "wait" },
+        { key: "na", label: "N/A", state: "na" },
+      ]),
+    ).toEqual({ completed: 1, total: 2, percent: 50 });
+    expect(productionWorklistProgress([])).toEqual({ completed: 0, total: 0, percent: 0 });
+  });
+
+  it("normalize URL เก่าโดยไม่ปล่อยค่า blank เข้า Select", () => {
+    expect(resolveProductionWorklistSort("due")).toBe("attention");
+    expect(resolveProductionWorklistSort("newest")).toBe("orderNumber:desc");
+    expect(resolveProductionWorklistSort("urgent")).toBe("urgent");
   });
 
   it("พาไปจอที่ลงมือได้จริง และเปิด dialog จากคิวเมื่อมีสิทธิ์", () => {

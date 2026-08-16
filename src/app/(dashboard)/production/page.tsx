@@ -15,12 +15,14 @@ import { ProductionModuleNav } from "@/components/production/production-module-n
 import {
   buildProductionBoard,
   filterBoardJobs,
-  sortBoardJobs,
 } from "@/lib/production-board";
 import {
+  DEFAULT_PRODUCTION_WORKLIST_SORT,
   filterProductionWorklist,
   isProductionWorklistLens,
   productionWorklistCounts,
+  resolveProductionWorklistSort,
+  sortProductionWorklist,
 } from "@/lib/production-worklist";
 import { RefreshCw } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
@@ -36,7 +38,7 @@ function ProductionWorkspace() {
   const list = useListPageState();
   const router = useRouter();
 
-  const sort = list.searchParams.get("sort") ?? "due";
+  const sort = resolveProductionWorklistSort(list.searchParams.get("sort"));
   const rawLens = list.searchParams.get("view") ?? "all";
   const lens = isProductionWorklistLens(rawLens) ? rawLens : "all";
   const createOrderId = list.searchParams.get("create");
@@ -73,12 +75,16 @@ function ProductionWorkspace() {
   );
 
   const searchedJobs = useMemo(
-    () => sortBoardJobs(filterBoardJobs(board.jobs, board.stations, "", list.search), sort),
-    [board.jobs, board.stations, list.search, sort],
+    () => filterBoardJobs(board.jobs, board.stations, "", list.search),
+    [board.jobs, board.stations, list.search],
   );
-  const visibleJobs = useMemo(
+  const lensJobs = useMemo(
     () => filterProductionWorklist(board, searchedJobs, lens),
     [board, searchedJobs, lens],
+  );
+  const visibleJobs = useMemo(
+    () => sortProductionWorklist(board, lensJobs, sort),
+    [board, lensJobs, sort],
   );
   const worklistCounts = useMemo(() => productionWorklistCounts(board), [board]);
   const hasStaleData =
@@ -150,7 +156,9 @@ function ProductionWorkspace() {
           }
           onSearchChange={list.onSearchChange}
           onSelectSort={(value) =>
-            list.replaceListState({ sort: value === "due" ? null : value })
+            list.replaceListState({
+              sort: value === DEFAULT_PRODUCTION_WORKLIST_SORT ? null : value,
+            })
           }
           canCreateProduction={canCreateProduction}
         />

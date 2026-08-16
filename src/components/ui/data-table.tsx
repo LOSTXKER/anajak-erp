@@ -202,7 +202,7 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
             // ไม่ย้อมพื้นตอนเอาเมาส์ชี้ (เบสสั่ง 2026-08-02 "ไม่ชอบหัวตารางเปลี่ยนสีตอนชี้") —
             // แถบเทาโผล่เฉพาะช่องที่ชี้อยู่ ทำให้หัวตารางดูขาดเป็นท่อนๆ
             // บอกว่า "กดได้" ด้วยตัวหนังสือกับลูกศรที่เข้มขึ้นแทน — เบากว่าและไม่ทำให้แถวขาด
-            "group flex w-full items-center gap-1.5 px-5 py-3 text-xs font-medium transition-colors",
+            "group flex w-full cursor-pointer touch-manipulation items-center gap-1.5 px-5 py-3 text-xs font-medium transition-colors [@media(pointer:coarse)]:min-h-11",
             FOCUS_INSET,
             active
               ? "font-semibold text-blue-700 dark:text-blue-300"

@@ -22,7 +22,6 @@ import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn, formatDateShort } from "@/lib/utils";
 import {
-  BOARD_SORTS,
   type BoardException,
   type BoardJob,
   type BoardOrderLike,
@@ -31,10 +30,16 @@ import {
   type ProductionBoard,
 } from "@/lib/production-board";
 import {
+  PRODUCTION_WORKLIST_SORT_COLUMNS,
   PRODUCTION_WORKLIST_LENSES,
+  PRODUCTION_WORKLIST_SORT_OPTIONS,
+  productionWorklistProgress,
   productionWorklistCounts,
   productionWorklistHref,
+  resolveProductionWorklistSort,
   type ProductionWorklistLens,
+  type ProductionWorklistSort,
+  type ProductionWorklistSortColumn,
 } from "@/lib/production-worklist";
 
 const WORKLIST_LENS_ICONS = {
@@ -67,26 +72,23 @@ function WorkProgress({
 }: {
   rail: readonly BoardRailPoint[];
 }) {
-  const relevant = rail.filter((point) => point.state !== "na");
-  const completed = relevant.filter((point) => point.state === "done").length;
-  const total = relevant.length;
-  const value = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const { completed, total, percent } = productionWorklistProgress(rail);
 
   return (
     <div className="min-w-24">
       <div className="flex items-center justify-between gap-2 text-xs text-muted">
         <span>{completed}/{total} ช่วง</span>
-        <span>{value}%</span>
+        <span>{percent}%</span>
       </div>
       <div
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={value}
+        aria-valuenow={percent}
         aria-label={`ผ่านแล้ว ${completed} จาก ${total} ช่วง`}
         className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-muted"
       >
-        <div className="h-full rounded-full bg-blue-600" style={{ width: `${value}%` }} />
+        <div className="h-full rounded-full bg-blue-600" style={{ width: `${percent}%` }} />
       </div>
     </div>
   );
@@ -137,22 +139,50 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
   jobs,
   exceptionByOrderId,
   canCreateProduction,
+  sort,
+  onSelectSort,
 }: {
   jobs: readonly BoardJob<O, S>[];
   exceptionByOrderId: Map<string, BoardException>;
   canCreateProduction: boolean;
+  sort: ProductionWorklistSort;
+  onSelectSort: (sort: ProductionWorklistSort) => void;
 }) {
+  const sortColumn = (column: ProductionWorklistSortColumn) => {
+    const config = PRODUCTION_WORKLIST_SORT_COLUMNS[column];
+    return {
+      direction:
+        sort === config.asc ? "asc" as const
+          : sort === config.desc ? "desc" as const
+            : null,
+      defaultDirection: config.defaultDirection,
+      onSort: (direction: "asc" | "desc") => onSelectSort(config[direction]),
+    };
+  };
+
   return (
     <DataTable.Root>
       <DataTable.Head>
-        <DataTable.Row>
-          <DataTable.Th>ออเดอร์</DataTable.Th>
+        <tr>
+          <DataTable.SortableTh {...sortColumn("orderNumber")}>
+            ออเดอร์
+          </DataTable.SortableTh>
           <DataTable.Th>งานปัจจุบัน</DataTable.Th>
-          <DataTable.Th>ความคืบหน้า</DataTable.Th>
-          <DataTable.Th className="hidden xl:table-cell" align="right">จำนวน</DataTable.Th>
-          <DataTable.Th>กำหนดส่ง</DataTable.Th>
+          <DataTable.SortableTh {...sortColumn("progress")}>
+            ความคืบหน้า
+          </DataTable.SortableTh>
+          <DataTable.SortableTh
+            {...sortColumn("totalQuantity")}
+            className="hidden xl:table-cell"
+            align="right"
+          >
+            จำนวน
+          </DataTable.SortableTh>
+          <DataTable.SortableTh {...sortColumn("deadline")}>
+            กำหนดส่ง
+          </DataTable.SortableTh>
           <DataTable.Th className="w-12"><span className="sr-only">เปิด</span></DataTable.Th>
-        </DataTable.Row>
+        </tr>
       </DataTable.Head>
       <DataTable.Body>
         {jobs.map((job) => {
@@ -287,11 +317,11 @@ export function ProductionControlWorklist<
   board: ProductionBoard<O, S>;
   jobs: readonly BoardJob<O, S>[];
   lens: ProductionWorklistLens;
-  sort: string;
+  sort: ProductionWorklistSort;
   searchDefault: string;
   searchInputRef: Ref<HTMLInputElement>;
   onSelectLens: (lens: ProductionWorklistLens) => void;
-  onSelectSort: (sort: string) => void;
+  onSelectSort: (sort: ProductionWorklistSort) => void;
   onSearchChange: (value: string) => void;
   canCreateProduction: boolean;
 }) {
@@ -334,16 +364,19 @@ export function ProductionControlWorklist<
           containerClassName="w-full @2xl:max-w-md"
         />
         <ToolbarGroup align="end" className="w-full @2xl:w-auto">
+          {/* default/priority เป็น preset ที่ไม่ผูกหัวคอลัมน์ จึงคง Select ไว้บน desktop ด้วย */}
           <Select
             value={sort}
-            onChange={(event) => onSelectSort(event.target.value)}
+            onChange={(event) =>
+              onSelectSort(resolveProductionWorklistSort(event.target.value))
+            }
             aria-label="เรียงรายการงาน"
             shape="pill"
             surface="raised"
-            className="w-full @2xl:w-44"
+            className="w-full @2xl:w-52"
           >
-            {BOARD_SORTS.map((item) => (
-              <option key={item.key} value={item.key}>{item.label}</option>
+            {PRODUCTION_WORKLIST_SORT_OPTIONS.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
             ))}
           </Select>
         </ToolbarGroup>
@@ -364,6 +397,8 @@ export function ProductionControlWorklist<
             jobs={items}
             exceptionByOrderId={exceptionByOrderId}
             canCreateProduction={canCreateProduction}
+            sort={sort}
+            onSelectSort={onSelectSort}
           />
         )}
         renderMobile={(items) => (
