@@ -7,7 +7,7 @@
 ```
 src/app/            หน้าจอ (Next.js App Router)
   (auth)/login      หน้า login
-  (dashboard)/      ทุกหน้าหลังบ้าน — ผ่าน middleware + layout guard
+  (dashboard)/      ทุกหน้าหลังบ้าน — ผ่าน Proxy + layout guard
   approve/[token]   หน้าลูกค้าอนุมัติแบบ (token-based ไม่ต้อง login)
   api/trpc/         endpoint เดียวของ tRPC
   api/cron/overdue  cron กวาดบิลเลยกำหนด (Bearer CRON_SECRET · fail-closed)

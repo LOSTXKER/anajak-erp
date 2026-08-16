@@ -399,7 +399,7 @@
 - [x] แก้ `src/server/trpc.ts:26-28` — lookup user ด้วย `supabaseId` (ตอนนี้ใช้ `id` = ไม่มีวัน match)
 - [x] **ตัด dev-OWNER fallback ทิ้งทั้งหมด** (`getDevUserId`, fallback ใน `createContext`/`isAuthed`/`requireRole` — trpc.ts:13-20,38-39,53,58,68,75) → ไม่มี session = UNAUTHORIZED
 - [x] login จริง (`src/app/(auth)/login/page.tsx` ตอนนี้เป็น TODO redirect) — Supabase signInWithPassword + signOut (user-menu logout ตอนนี้เป็นปุ่มหลอก)
-- [x] สร้าง `src/middleware.ts` กัน route (dashboard)/(portal) + เช็ค session ใน layout
+- [x] สร้าง `src/proxy.ts` กัน route (dashboard)/(portal) + เช็ค session ใน layout
 - [x] หน้า invite/จัดการ user (6 คน) ผูก supabaseId ↔ User + Role
 - [x] ไล่ `requireRole` ให้ครบทุก mutation (✅ 97/97 — audit เต็ม 2026-07-15: requirePermission/requireRole 88 + inline role check + per-user scope + token flow · ตัวสุดท้าย attachment.create ปิดด่าน INVOICE แล้ว + test 5 เคส) ตามตาราง role ใน `Anajak-Print-Features.md` §7
 - [x] public procedures (design.getByToken/approveByToken) — เพิ่ม token expiry + กันตัดสินซ้ำฝั่ง server
@@ -725,6 +725,15 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] **UX2.3 Station work center `/factory/station`** — control เลือกสถานีมีจุดเดียวและคงใน URL · เมื่อเลือกแล้ว first viewport เป็น active job → ready queue → compact scan · ใช้ station-specific workspace ไม่ mount ERP page ทั้งก้อน · หนึ่งสถานะมี primary action เดียวและ wrong-station/read-only/blocked/stale บอกตรงจังหวะ
 - [x] **UX2.4 Factory TV `/factory`** — แสดง 5 สถานีตาม flowจริงในหนึ่ง viewport พร้อม active/queue/next และ exception rail · QC กับ final packแยกกัน · read-only 100%, poll/stale behavior และ factory-safe no-money DTO เดิม
 - [x] **UX2.5 ด่านก่อนส่ง** — pure/view tests ครอบ worklist grouping/filter/count/route, Station selected/unselected/active/empty/read-only และ TV 5 stage order · `verify:ui` guard โครงหลัก · browser read-only 1440×900 + 1024×768 Light/Dark ที่เกี่ยวข้อง ไม่มี overflow/hydration/console error และ coarse targets ≥44px · typecheck/lint/unit/build ผ่าน · Impeccable detector + fresh finish review · อัปเดต `docs/DESIGN.md`, surface brief, `PROGRESS.md` และ commit ก้อนเล็ก
+
+#### ใบงาน NEXT16-UPGRADE — อัปเกรด framework เป็น Next.js 16.3 (เบสสั่ง 2026-08-16)
+
+> เป้าหมาย: เปลี่ยน runtime จริงจาก Next 15.5.15 เป็น patch ล่าสุดในสาย 16.3 โดยยึด official upgrade guide/codemod · ห้ามใช้การแก้ banner หลอกเวอร์ชัน และห้ามพ่วง Cache Components/React Compiler หรือ refactor ที่ไม่จำเป็น
+
+- [x] **N16.1 dependency และ runtime ตรงกัน** — `package.json`, lockfile, local binary และ build ใช้ Next.js 16.3.x + `eslint-config-next` รุ่นเดียวกัน · React/React DOM/types อยู่ใน peer range · Node local/CI ผ่านขั้นต่ำ 20.9
+- [x] **N16.2 breaking changes ถูกย้ายครบ** — ใช้ official codemod เป็นฐาน · async Request APIs ไม่มี synchronous fallback · ย้าย middleware convention เป็น `proxy` โดยคง Supabase session refresh, public-token routes และ API behavior เดิม · Turbopack ใช้ default ของ Next 16 โดยไม่เปิด feature ใหม่
+- [x] **N16.3 regression gate** — typecheck, lint, unit, `verify:ui`, production build และ `next --version` ผ่าน · cold browser ตรวจ auth redirect/login, `/production`, `/production/[id]`, `/factory/station`, `/factory` และ public-token boundary โดยไม่มี hydration/console/server error ใหม่
+- [x] **N16.4 ส่งมอบ** — อัปเดต `SPEC.md`/`PROGRESS.md`, commit ก้อน upgrade แยกบน branch งาน และไม่ push
 
 **เพิ่มเข้า P1 (เบสเคาะ 2026-06-12 — รื้อโมดูลผลิตตามความจริงโรงงาน):** ✅ ทำแล้ว 2026-06-12 — เบสชี้ "การผลิตเอาไปใช้จริงไม่ได้" + ให้ความจริงใหม่: **ทำเองมีแค่ DTF** (พิมพ์ฟิล์ม→รีดร้อน 2 ขั้น) · DTG/สกรีน/ปัก/Sublimation/ตัดเย็บใหม่/ป้ายคอเย็บติด = **outsource ทั้งหมด กด "ผ่านรวด" ปิดขั้นได้โดยไม่ต้องเปิดใบส่งร้าน/ไม่กรอกเงิน** → ใบผลิตเป็น "สายงานต่อเลน": เตรียมเสื้อ (เบิกสต๊อค/ตรวจรับเสื้อลูกค้า) · ตัดเย็บ (เลนแยก outsource) · เลนต่อเทคนิคพิมพ์ · ป้ายคอ (งอกเองจาก add-on) · แพ็ค (โผล่เมื่อสายอื่นเสร็จ) — ตัวแนะนำอ่านครบ 3 อย่าง: วิธีพิมพ์+แหล่งเสื้อ+add-on · หน้า /production = แท็บต่อเทคนิค + บอร์ดเลน (เบสเคาะ "เอาทั้งสองแบบ") · **มติใหญ่: เลิกคิดต้นทุนต่องานทั้งระบบ** (ดูกติกา 4)
 **เพิ่มเข้า P1 (เบสเคาะ 2026-06-11 — redesign การเปิดงาน):** ✅ **ฟอร์มเปิดงานโหมดเดียว + ไม่ถามชนิดออเดอร์** (ทำแล้ว 2026-06-11) — เบสชี้: 2 โหมด (สอบถาม/ระบุครบ) + คำถาม สำเร็จรูป/custom ทำให้ใช้ยาก ไม่มีจุดโฟกัส → ยุบเหลือฟอร์มเดียว เปิดงานได้ด้วยลูกค้า+ชื่องาน · ระบบ **derive ชนิดออเดอร์จากเนื้อรายการเอง** (มีรายการ+ไม่มีลายพิมพ์=สำเร็จรูป · นอกนั้น=custom · re-derive ตอนแก้รายการเฉพาะช่วง DRAFT/INQUIRY) + **ภาษีต่อรายการ** (มีลาย=จ้างทำของ · ไม่มี=ขายสินค้า — ออเดอร์ผสมถูกกฎหมายกว่าเหมาทั้งใบ) · ด่านชดเชยฝั่ง server: ยืนยันออเดอร์ต้องมีรายการ · การ์ด "ขั้นถัดไป" บนหน้าออเดอร์ (`src/lib/order-next-step.ts`) บอกจุดโฟกัสเดียวต่อสถานะ · **เบสเคาะเพิ่มรอบสอง: บังคับแค่ลูกค้าช่องเดียว** — ชื่องาน/รายละเอียดไม่บังคับ (ชื่อว่าง = server ตั้งให้จากรายการแรกหรือชื่อลูกค้า+วันที่) + ถอดจำนวนโดยประมาณออกจากฟอร์ม

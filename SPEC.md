@@ -5,6 +5,11 @@
 ## เป้าหมาย
 ERP หลังบ้านโรงงานสกรีนเสื้อ Anajak — ให้ทีม 5 คน+เจ้าของ จัดการ ขาย→ผลิต→outsource→ส่ง→ออกบิล/ภาษี ของลูกค้า B2B (เครดิตเทอม) ครบวงจร ออกเอกสารภาษีเต็มรูปเอง + เชื่อม Anajak Stock · **ห้าม deploy/ใช้จริงจนจบ P0** (ROADMAP.md:18)
 
+## ⚙️ Framework runtime (ตรวจจริง 2026-08-16)
+- [x] **Runtime เป็น Next.js 16.3 จริงทั้งเครื่องพัฒนาและ production build** — pin `next`/`eslint-config-next` ที่ 16.3.1, React/React DOM 19.2.8 และ type packages ที่ตรง peer range · Node local/CI ผ่านขั้นต่ำ 20.9
+- [x] **ขอบเขต auth ใช้ Proxy convention ของ Next 16** — `src/proxy.ts` คง Supabase session refresh, dashboard redirect, public-token allowlist และ API 401 JSON เดิม · มี Proxy regression test ครบ matcher, refreshed cookie, redirect/`next` และ API no-redirect
+- [x] **ด่าน framework ไม่พึ่งไฟล์ generated เก่า** — `typecheck` รัน `next typegen` ก่อน TypeScript · lint ใช้ flat config ของ Next 16 โดยตรง · Turbopack เป็นค่าเริ่มต้นและไม่เปิด Cache Components/React Compiler เพิ่ม
+
 ## 🧭 UI หลักแบบ minimal (เลื่อน V2 ขึ้นเป็นระบบจริง 2026-08-12)
 - [x] **URL หลักมีหน้าตาเดียว** — `/` และ `/orders*` ใช้ dashboard/shell/order presentation ที่ผ่านการทดลองใน V2 · ไม่มี branch classic/V2 ใน component หลัก · `/v2*` เป็น compatibility redirect มายัง URL หลักและรักษา query เดิม
 - [x] **เป็นของจริง ไม่ใช่ mockup** — อ่านข้อมูลจาก tRPC/service/permission ชุดเดิมและทุก action พาไป flow ที่ใช้งานได้จริง · ห้ามมีตัวเลข/รายการตัวอย่างเขียนค้างในหน้า
@@ -47,7 +52,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **จอเป้าหมายและ state ผ่านจริง** — desktop 1440×900 และ touch 1024×768 ใช้งาน primary flow โดยไม่เลื่อนแนวนอน เป้ากด coarse ≥44px · keyboard/focus/label/contrast/reduced-motion ผ่าน · loading/error/retry/empty/read-only/blocked/background-stale แยกกัน · browser ไม่มี hydration/console error · typecheck/lint/unit/`verify:ui`/build ผ่าน
 
 ## 🔐 P0 deploy-gate — verified ครบแล้ว (audit 2026-07-02 อ่านโค้ดจริง + adversarial verify)
-- [x] **คนนอกเปิดเว็บแล้วเข้าไม่ได้** — `src/middleware.ts:31-78` refresh session ทุก request รวม /api · ยกเว้นเฉพาะหน้า public token (approve/upload/status/quote) + /api/mcp (auth ด้วย key เอง)
+- [x] **คนนอกเปิดเว็บแล้วเข้าไม่ได้** — `src/proxy.ts:31-78` refresh session ทุก request รวม /api · ยกเว้นเฉพาะหน้า public token (approve/upload/status/quote) + /api/mcp (auth ด้วย key เอง)
 - [x] **ทีม login จริงได้ตาม role** — login `signInWithPassword` + error ไทย (`(auth)/login/page.tsx:24-37`) · logout จริง (`user-menu.tsx:22`) · จัดการ user ครบวงจรถึง Supabase ban (`user.ts:87-226`)
 - [x] **auth context ถูก + fail-closed** — `trpc.ts:14-33` lookup ด้วย `supabaseId` + เช็ค `isActive` · dev-OWNER fallback ตัดทิ้งแล้ว (Supabase ล่ม = ไม่มี session ไม่หลุดเป็น OWNER)
 - [x] **`requireRole` ครอบ 27/31 routers** — 4 ที่เหลือ = public token routers โดยเจตนา (customer-status/customer-upload/design.getByToken/quotation-confirm) ⚠️ หนี้ตาม: rate-limit endpoints เหล่านี้ (go-live gate v2 ข้อ 7)

@@ -7,7 +7,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // ชั้นที่สองถัดจาก middleware — กันหลุดกรณี matcher ไม่ครอบ
+  // ชั้นที่สองถัดจาก Proxy — กันหลุดกรณี matcher ไม่ครอบ
   const user = await getServerSession();
   if (!user) {
     redirect("/login");

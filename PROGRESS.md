@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ NEXT16-UPGRADE อัป runtime จริงเป็น Next.js 16.3.1 แล้ว 2026-08-16**
+> เปลี่ยน `next` และ `eslint-config-next` จาก 15.5.15 เป็น 16.3.1 พร้อม React/React DOM 19.2.8 และ types ที่ตรง peer range · `next --version`, `next dev`, `next start` และ production build แสดง 16.3.1 จริง ไม่ใช่แก้ข้อความ banner
+>
+> **ย้าย breaking change เท่าที่จำเป็น:** รัน official upgrade codemod แล้วเปลี่ยน `src/middleware.ts` เป็น `src/proxy.ts` โดยคง Supabase session refresh, dashboard redirect, public-token allowlist และ API 401 JSON เดิม · เพิ่ม Proxy test 20 เคสทั้ง matcher และ behavior ของ redirect/`next`/refreshed cookie/API · ESLint เปลี่ยนจาก FlatCompat เป็น flat config ของ `eslint-config-next` โดยตรง · `typecheck` รัน `next typegen` ก่อน `tsc` เพื่อไม่พึ่ง `.next` จากเครื่องเดิม
+>
+> **หลักฐาน runtime/browser:** production build ผ่านด้วย Turbopack · cold `next start` เปิด `/production`, ใบ `ORD-2606-0001`, `/factory/station`, `/factory` และ `/orders` ด้วยข้อมูลจริงครบที่ 1280px; ทุกหน้ามี `scrollWidth=clientWidth`, ไม่มี alert, hydration หรือ console error · unauth dashboard/Station/TV redirect login, `/login` และ public `/status/*` ยังเข้าได้, API unauth ตอบ 401 JSON · ไม่คลิก mutationและไม่แตะฐานข้อมูล
+>
+> **ด่าน final:** clean `npm ci` ผ่าน · typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1027/1027** · `verify:ui` ผ่าน · production build ผ่าน · `git diff --check` ผ่าน · `npm audit` พบ 8 advisory ใน dependency ทางอ้อมที่มีอยู่ใน lock เดิมทั้งหมดและไม่พบ Next.js เป็นรายการเสี่ยง จึงไม่รัน `audit fix` ปนก้อนนี้
+>
+> **ต่อที่นี่:** runtime พร้อมใช้แล้ว; commit upgrade อยู่บน branch งานและยังไม่ push
+
 > **✅ PRODUCTION-UX2 รื้อ UX การผลิตทั้ง family เป็น ERP ใช้งานจริงแล้ว 2026-08-16**
 > แยกหน้าที่ชัดโดยอยู่ในระบบเดิม: `/production` เป็น worklist ของหัวหน้า, `/factory/station` เป็นจอลงมือของพนักงาน และ `/factory` เป็นจอ pulse อ่านอย่างเดียวของโรงงาน · ไม่มี sidebar ฝ่ายผลิตชุดใหม่ และหน้ารอบพิมพ์/คลังฟิล์ม/ร้านนอกใช้ navigation ของโมดูลเดียวกัน
 >

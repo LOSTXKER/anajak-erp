@@ -4,7 +4,7 @@ import { safeAfterLoginHref } from "@/lib/auth-redirect";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isLoginPage = pathname.startsWith("/login");
-  // /api/* : middleware รันเพื่อ "รีเฟรช session cookie" (getUser ด้านบนทำแล้ว) แต่ห้าม
+  // /api/* : Proxy รันเพื่อ "รีเฟรช session cookie" (getUser ด้านบนทำแล้ว) แต่ห้าม
   // redirect — เพราะ (1) มี route ที่ลูกค้าถือ token ไม่มี session: /api/files, public tRPC
   // (2) คำขอ data ที่ session หมดอายุต้องได้ cookie ใหม่กลับไป ไม่ใช่โดนเด้งไป HTML /login
   // เดิมยกเว้น /api/* ทั้งก้อนจาก matcher → คำขอ tRPC ไม่เคยถูกรีเฟรช → token หมดอายุแล้ว

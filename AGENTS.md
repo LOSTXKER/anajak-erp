@@ -3,7 +3,7 @@
 > 📌 แผนธุรกิจ/research ไม่อยู่ใน repo นี้ — อยู่ที่ระบบจัดการเจ้าของ (bestos `records/projects/anajak-erp/`) · ไฟล์ใน repo = สเปค+โค้ดเท่านั้น
 
 ## โปรเจคนี้คือ
-ERP หลังบ้านโรงงานสกรีนเสื้อ Anajak (**ทำเองมีแค่ DTF** — DTG/silkscreen/ปัก/sublimation/ตัดเย็บ/ป้ายคอ = outsource ทั้งหมด · เบสเคาะ 2026-06-12 · ทีม 5 คน + เจ้าของ · ลูกค้า B2B เครดิตเทอม = ฐานรายได้) — Next.js 15 + React 19 + tRPC 11 + Prisma 6 + Supabase + Tailwind 4 + shadcn
+ERP หลังบ้านโรงงานสกรีนเสื้อ Anajak (**ทำเองมีแค่ DTF** — DTG/silkscreen/ปัก/sublimation/ตัดเย็บ/ป้ายคอ = outsource ทั้งหมด · เบสเคาะ 2026-06-12 · ทีม 5 คน + เจ้าของ · ลูกค้า B2B เครดิตเทอม = ฐานรายได้) — Next.js 16.3 + React 19 + tRPC 11 + Prisma 6 + Supabase + Tailwind 4 + shadcn
 
 ## 🔄 วงจรการทำงาน (บังคับ — กันหลุด 3 อย่าง)
 1. **เริ่มงาน** → อ่าน `SPEC.md` (อะไรคือเสร็จ) + `ROADMAP.md` (แผน P0-P4 + ใบงาน · = PLAN) + `PROGRESS.md` (ทำถึงไหน · พร้อม `git log --oneline -10`) ก่อนแตะโค้ด · งานทุกชิ้น trace กลับ ROADMAP ได้ — ไม่อยู่ใน ROADMAP = ถามเบสก่อน ห้ามทำเงียบ
@@ -40,3 +40,13 @@ external: Anajak Stock app (sibling `../anajaktshirt-stock`) — ERP คุย�
 - ✅ ทำได้เลย: แก้โค้ดตามใบงาน · รัน test/lint/typecheck
 - ⚠️ ถามก่อน: ลบไฟล์ · แก้ schema/migration · เพิ่ม dependency · แตะ config/env · งานนอก ROADMAP
 - ⛔ ห้าม: push เข้า main ตรงๆ · commit secret · ลบ/ปิด test เพื่อให้ผ่าน · set status ตรง (ข้าม isValidTransition) · เพิ่ม Float ให้ฟิลด์เงิน
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
