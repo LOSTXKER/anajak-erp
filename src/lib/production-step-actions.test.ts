@@ -138,6 +138,7 @@ describe("selectNowSteps — ตอนนี้ต้องทำอะไร (�
       pressGate: { ready: false, waitingOn: ["รอฟิล์ม — พิมพ์/ตัดแยกยังไม่จบ"] },
     });
     expect(now!.action).toBeNull();
+    expect(now!.group).toBe("waiting");
     expect(now!.waitingOn).toEqual(["รอฟิล์ม — พิมพ์/ตัดแยกยังไม่จบ"]);
   });
 
@@ -147,6 +148,7 @@ describe("selectNowSteps — ตอนนี้ต้องทำอะไร (�
       PERMS,
     );
     expect(now!.action).toBeNull();
+    expect(now!.group).toBe("current");
     expect(now!.note).toContain("FR-2608-016");
   });
 
@@ -154,6 +156,7 @@ describe("selectNowSteps — ตอนนี้ต้องทำอะไร (�
     const step = mk({ stepType: "HEAT_PRESS", assignedTo: { id: "u2" } });
     const [staff] = selectNowSteps([step], { ...PERMS, canSupervise: false });
     expect(staff!.action).toBeNull();
+    expect(staff!.group).toBe("waiting");
     expect(staff!.note).toBe("เป็นงานของคนอื่น");
 
     const [boss] = selectNowSteps([step], PERMS);
@@ -166,6 +169,7 @@ describe("selectNowSteps — ตอนนี้ต้องทำอะไร (�
       PERMS,
     );
     expect(now!.action).toBeNull();
+    expect(now!.group).toBe("waiting");
     expect(now!.note).toBe("อยู่ที่ร้านนอก");
   });
 
@@ -181,6 +185,20 @@ describe("selectNowSteps — ตอนนี้ต้องทำอะไร (�
     const [now] = selectNowSteps([mk({ stepType: "DTF_PRINT", status: "FAILED" })], PERMS);
     expect(now!.action).toBeNull();
     expect(now!.note).toContain("มีปัญหา");
+  });
+
+  it("สิทธิ์อ่านอย่างเดียวจัดขั้นพร้อมทำไว้ใต้กลุ่มรอ และไม่เสนอทางเบิกเสื้อ", () => {
+    const readOnly = { ...PERMS, canOutsource: false, canUpdateStep: false };
+    const [internal] = selectNowSteps([mk({ stepType: "HEAT_PRESS" })], readOnly);
+    const [garment] = selectNowSteps([mk({ stepType: "GARMENT_PICK" })], readOnly);
+
+    expect(internal).toMatchObject({ group: "waiting", action: null });
+    expect(garment).toMatchObject({ group: "waiting", action: null });
+  });
+
+  it("เบิกเสื้อที่มีสิทธิ์ยังเป็นงานพร้อมทำผ่านการ์ดเบิกเฉพาะทาง", () => {
+    const [garment] = selectNowSteps([mk({ stepType: "GARMENT_PICK" })], PERMS);
+    expect(garment).toMatchObject({ group: "current", action: null });
   });
 
   it("ใบที่ทุกขั้นเสร็จแล้วไม่เหลืออะไรต้องทำ", () => {

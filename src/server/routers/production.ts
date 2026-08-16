@@ -34,6 +34,7 @@ import {
 } from "@/server/services/production-readiness";
 import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
 import { getStockClientFromSettings } from "@/lib/stock-api";
+import { notFound } from "@/server/errors";
 
 // วางแผนการผลิต = งานหัวหน้า (PERM3: default OWNER/MANAGER เดิมเป๊ะ + override รายคน)
 const managerUp = requirePermission("supervise_operations");
@@ -153,7 +154,7 @@ export const productionRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.production.findUniqueOrThrow({
+      const production = await ctx.prisma.production.findUnique({
         where: { id: input.id },
         select: {
           id: true,
@@ -224,6 +225,8 @@ export const productionRouter = router({
           steps: { orderBy: { sortOrder: "asc" }, select: stepSelect },
         },
       });
+      if (!production) notFound("งานผลิต", input.id);
+      return production;
     }),
 
   // บริบทออเดอร์สำหรับเปิดใบผลิต — dialog ดึงเอง (รับแค่ orderId)

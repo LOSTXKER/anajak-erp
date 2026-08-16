@@ -7,7 +7,16 @@ import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { TINT } from "@/components/ui/tokens";
 import type { NowStep } from "@/lib/production-step-actions";
 import type { ProductionStep } from "./types";
-import { CheckCircle2, Clock, Plus, Play, Truck, FastForward } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  Plus,
+  Play,
+  Truck,
+  FastForward,
+  Shirt,
+  Printer,
+} from "lucide-react";
 
 /* ============================================================
    กล่อง "ตอนนี้ต้องทำ" ของใบผลิต (ใบงาน PC2 · 2026-08-15)
@@ -42,8 +51,8 @@ export function ProductionNowCard({
   onQuickPass,
   onOpenStep,
   canOpenStep = () => true,
+  onGoToGarments,
   printRunsHref = "/production/print-runs",
-  garmentsHref = "#production-garments",
 }: {
   nowSteps: readonly NowStep<ProductionStep>[];
   allDone: boolean;
@@ -55,8 +64,8 @@ export function ProductionNowCard({
   onQuickPass: (step: ProductionStep) => void;
   onOpenStep: (step: ProductionStep) => void;
   canOpenStep?: (step: ProductionStep) => boolean;
+  onGoToGarments: () => void;
   printRunsHref?: string;
-  garmentsHref?: string;
 }) {
   if (allDone) {
     return (
@@ -78,119 +87,129 @@ export function ProductionNowCard({
     );
   }
 
+  const currentSteps = nowSteps.filter(({ group }) => group === "current");
+  const waitingSteps = nowSteps.filter(({ group }) => group === "waiting");
+
+  const renderStep = ({ step, group, action, waitingOn, note }: NowStep<ProductionStep>) => {
+    const counting = step.qtyTotal !== null && step.qtyTotal > 0;
+    const donePct = counting
+      ? Math.round(((step.qtyDone ?? 0) / (step.qtyTotal ?? 1)) * 100)
+      : 0;
+    const canOpen = canOpenStep(step);
+
+    return (
+      <div
+        key={step.id}
+        className="space-y-3 border-t border-divider py-4 first:border-t-0 first:pt-0 last:pb-0"
+      >
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <span className="text-lg font-semibold text-strong">{stepLabel(step)}</span>
+          {counting && (
+            <span className="text-sm tabular-nums text-muted">
+              {step.qtyDone}/{step.qtyTotal} ตัว
+            </span>
+          )}
+        </div>
+
+        {counting && (
+          <div
+            role="progressbar"
+            aria-label={`ความคืบหน้า ${stepLabel(step)}`}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={donePct}
+            className="h-2 w-full overflow-hidden rounded-full bg-surface-muted"
+          >
+            <div className="h-full rounded-full bg-blue-500" style={{ width: `${donePct}%` }} />
+          </div>
+        )}
+
+        {waitingOn.length > 0 ? (
+          <div className="space-y-1.5">
+            {waitingOn.map((reason) => (
+              <p
+                key={reason}
+                className={cn(
+                  TINT.warning,
+                  "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium",
+                )}
+              >
+                <Clock className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {reason}
+              </p>
+            ))}
+          </div>
+        ) : note ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-muted">{note}</p>
+            {step.stepType === "DTF_PRINT" && step.status !== "FAILED" ? (
+              <Button size="lg" asChild className="gap-2 sm:min-w-56">
+                <Link href={printRunsHref}>
+                  <Printer />
+                  เปิดรอบพิมพ์ DTF
+                </Link>
+              </Button>
+            ) : canOpen ? (
+              <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
+                เปิดรายละเอียด
+              </Button>
+            ) : null}
+          </div>
+        ) : action ? (
+          <div>
+            <Button
+              size="lg"
+              disabled={busy}
+              aria-busy={busy || undefined}
+              className="w-full gap-2 sm:w-auto sm:min-w-56"
+              onClick={() => {
+                if (action === "start") onStart(step);
+                else if (action === "complete" || action === "record-qty") onComplete(step);
+                else if (action === "send-outsource") onSendOutsource(step);
+                else if (action === "quick-pass") onQuickPass(step);
+              }}
+            >
+              {action === "start" && <Play />}
+              {action === "record-qty" && <Plus />}
+              {action === "complete" && <CheckCircle2 />}
+              {action === "send-outsource" && <Truck />}
+              {action === "quick-pass" && <FastForward />}
+              {ACTION_LABEL[action]}
+              {action === "record-qty" && counting && ` (${step.qtyDone}/${step.qtyTotal})`}
+            </Button>
+          </div>
+        ) : step.stepType === "GARMENT_PICK" && group === "current" ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-muted">เบิกเสื้อตามไซส์และจำนวนของใบงาน</p>
+            <Button size="lg" className="gap-2 sm:min-w-56" onClick={onGoToGarments}>
+              <Shirt />
+              ไปที่เบิกเสื้อ
+            </Button>
+          </div>
+        ) : canOpen ? (
+          <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
+            เปิดรายละเอียด
+          </Button>
+        ) : (
+          <p className="text-sm text-muted">สิทธิ์นี้ดูขั้นตอนนี้ได้อย่างเดียว</p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <section className="card-surface rounded-2xl p-5 sm:p-6" aria-labelledby="production-now">
       <h2 id="production-now" className="text-base font-semibold text-strong">
-        ตอนนี้ต้องทำ
+        งานที่ต้องทำตอนนี้
       </h2>
-      <div className="mt-4">
-        {nowSteps.map(({ step, action, waitingOn, note }) => {
-          const counting = step.qtyTotal !== null && step.qtyTotal > 0;
-          const donePct = counting
-            ? Math.round(((step.qtyDone ?? 0) / (step.qtyTotal ?? 1)) * 100)
-            : 0;
-          const canOpen = canOpenStep(step);
-          return (
-            <div
-              key={step.id}
-              className="space-y-3 border-t border-divider py-4 first:border-t-0 first:pt-0 last:pb-0"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <span className="text-lg font-semibold text-strong">{stepLabel(step)}</span>
-                {counting && (
-                  <span className="text-sm tabular-nums text-muted">
-                    {step.qtyDone}/{step.qtyTotal} ตัว
-                  </span>
-                )}
-              </div>
-
-              {counting && (
-                <div
-                  role="progressbar"
-                  aria-label={`ความคืบหน้า ${stepLabel(step)}`}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={donePct}
-                  className="h-2 w-full overflow-hidden rounded-full bg-surface-muted"
-                >
-                  <div className="h-full rounded-full bg-blue-500" style={{ width: `${donePct}%` }} />
-                </div>
-              )}
-
-              {waitingOn.length > 0 ? (
-                <div className="space-y-1.5">
-                  {waitingOn.map((reason) => (
-                    <p
-                      key={reason}
-                      className={cn(
-                        TINT.warning,
-                        "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium",
-                      )}
-                    >
-                      <Clock className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      {reason}
-                    </p>
-                  ))}
-                  {canOpen && (
-                    <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
-                      เปิดรายละเอียด
-                    </Button>
-                  )}
-                </div>
-              ) : note ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm text-muted">{note}</p>
-                  {step.stepType === "DTF_PRINT" && step.status !== "FAILED" ? (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={printRunsHref}>เปิดรอบพิมพ์ DTF</Link>
-                    </Button>
-                  ) : canOpen ? (
-                    <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
-                      เปิดรายละเอียด
-                    </Button>
-                  ) : null}
-                </div>
-              ) : action ? (
-                <div>
-                  {/* ปุ่มเต็มความกว้างบนจอแคบ/จอทัช — นิ้วโดนแน่ ไม่ต้องเล็ง */}
-                  <Button
-                    size="lg"
-                    disabled={busy}
-                    aria-busy={busy || undefined}
-                    className="w-full gap-2 sm:w-auto sm:min-w-56"
-                    onClick={() => {
-                      if (action === "start") onStart(step);
-                      else if (action === "complete" || action === "record-qty") onComplete(step);
-                      else if (action === "send-outsource") onSendOutsource(step);
-                      else if (action === "quick-pass") onQuickPass(step);
-                    }}
-                  >
-                    {action === "start" && <Play />}
-                    {action === "record-qty" && <Plus />}
-                    {action === "complete" && <CheckCircle2 />}
-                    {action === "send-outsource" && <Truck />}
-                    {action === "quick-pass" && <FastForward />}
-                    {ACTION_LABEL[action]}
-                    {action === "record-qty" && counting && ` (${step.qtyDone}/${step.qtyTotal})`}
-                  </Button>
-                </div>
-              ) : step.stepType === "GARMENT_PICK" ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm text-muted">เบิกเสื้อตามไซส์และจำนวนของใบงาน</p>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={garmentsHref}>ไปที่เบิกเสื้อ</a>
-                  </Button>
-                </div>
-              ) : canOpen ? (
-                <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
-                  เปิดรายละเอียด
-                </Button>
-              ) : (
-                <p className="text-sm text-muted">สิทธิ์นี้ดูขั้นตอนนี้ได้อย่างเดียว</p>
-              )}
-            </div>
-          );
-        })}
+      <div className="mt-4 space-y-5">
+        {currentSteps.length > 0 && <div>{currentSteps.map(renderStep)}</div>}
+        {waitingSteps.length > 0 && (
+          <div className="border-t border-divider pt-4">
+            <h3 className="text-sm font-semibold text-strong">รอต่อจากนี้</h3>
+            <div className="mt-3">{waitingSteps.map(renderStep)}</div>
+          </div>
+        )}
       </div>
     </section>
   );

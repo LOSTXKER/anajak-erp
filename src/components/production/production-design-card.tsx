@@ -15,7 +15,7 @@ import type { ProductionDetail } from "./types";
 import { DASHED, FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
-// การ์ด "แบบ + ไซส์" บนหน้าใบผลิต (UX1) — ช่างเห็นลายอนุมัติ+เวอร์ชัน+ตารางไซส์
+// ข้อมูลอ้างอิง “แบบและจำนวนที่ต้องผลิต” บน job traveler — ช่างเห็นลายอนุมัติ+เวอร์ชัน+ตารางไซส์
 // โดยไม่ต้องออกจากหน้า/พึ่งใบกระดาษ job ticket · ไม่มีตัวเลขเงินบน component นี้
 // ข้อมูลทั้งหมดมาจาก production.getById ที่ select ราย field (ไม่มี unitPrice ติดมา)
 export function ProductionDesignCard({ order }: { order: ProductionDetail["order"] }) {
@@ -38,10 +38,12 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
   }
 
   return (
-    <div className="card-surface space-y-4 rounded-2xl p-4 sm:p-5">
+    <section className="card-surface space-y-4 rounded-2xl p-4 sm:p-5">
       <div className="flex items-center gap-2">
         <Palette className="h-4 w-4 text-muted" />
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">แบบ + ไซส์</h2>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+          แบบและจำนวนที่ต้องผลิต
+        </h3>
         {approvedDesign && (
           <Badge variant="success" size="sm">
             อนุมัติ v{approvedDesign.versionNumber}
@@ -212,6 +214,6 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
           </Button>
         </DialogContent>
       </Dialog>
-    </div>
+    </section>
   );
 }

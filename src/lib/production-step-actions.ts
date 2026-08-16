@@ -122,6 +122,8 @@ export interface NowStepInput {
 
 export interface NowStep<S extends NowStepInput> {
   step: S;
+  /** กลุ่มบนใบงาน — current = งานที่พร้อมให้จัดการ, waiting = ยังติดเงื่อนไข/คนอื่น */
+  group: "current" | "waiting";
   /** ปุ่มหลักที่กดได้ตอนนี้ — null = ลงมือไม่ได้ ต้องอ่าน waitingOn/note แทน */
   action: NowStepAction | null;
   /** ลงมือไม่ได้เพราะรออะไร (คิวรีดที่ฟิล์ม/เสื้อยังไม่บรรจบ) */
@@ -163,7 +165,13 @@ export function selectNowSteps<S extends NowStepInput>(
         !options.pressGate.ready &&
         step.status !== "FAILED"
       ) {
-        return { step, action: null, waitingOn: options.pressGate.waitingOn, note: null };
+        return {
+          step,
+          group: "waiting" as const,
+          action: null,
+          waitingOn: options.pressGate.waitingOn,
+          note: null,
+        };
       }
 
       // อยู่ในรอบพิมพ์ค้าง — server บล็อก updateStep ไว้ ปุ่มกดได้แต่ error
@@ -171,6 +179,7 @@ export function selectNowSteps<S extends NowStepInput>(
       if (printRun) {
         return {
           step,
+          group: "current" as const,
           action: null,
           waitingOn: [],
           note: `อยู่ในรอบพิมพ์ ${printRun.runNumber}`,
@@ -178,21 +187,46 @@ export function selectNowSteps<S extends NowStepInput>(
       }
 
       if (step.status === "FAILED") {
-        return { step, action: null, waitingOn: [], note: "มีปัญหา — เปิดดูรายละเอียด" };
+        return {
+          step,
+          group: "current" as const,
+          action: null,
+          waitingOn: [],
+          note: "มีปัญหา — เปิดดูรายละเอียด",
+        };
       }
       if (ownedByOther) {
-        return { step, action: null, waitingOn: [], note: "เป็นงานของคนอื่น" };
+        return {
+          step,
+          group: "waiting" as const,
+          action: null,
+          waitingOn: [],
+          note: "เป็นงานของคนอื่น",
+        };
       }
       if (qcFailedBlocked) {
-        return { step, action: null, waitingOn: [], note: "QC ร้านไม่ผ่าน — รอหัวหน้าตัดสิน" };
+        return {
+          step,
+          group: "waiting" as const,
+          action: null,
+          waitingOn: [],
+          note: "QC ร้านไม่ผ่าน — รอหัวหน้าตัดสิน",
+        };
       }
       if (hasActiveOutsource) {
-        return { step, action: null, waitingOn: [], note: "อยู่ที่ร้านนอก" };
+        return {
+          step,
+          group: "waiting" as const,
+          action: null,
+          waitingOn: [],
+          note: "อยู่ที่ร้านนอก",
+        };
       }
       // DTF_PRINT เดินด้วยรอบพิมพ์เท่านั้น — ห้ามชวนกดเริ่ม/ปิด generic
       if (step.stepType === "DTF_PRINT") {
         return {
           step,
+          group: "current" as const,
           action: null,
           waitingOn: [],
           note: "จัดการผ่านหน้ารอบพิมพ์ฟิล์ม DTF",
@@ -210,10 +244,22 @@ export function selectNowSteps<S extends NowStepInput>(
       });
 
       if (policy.primary === "send-outsource") {
-        return { step, action: "send-outsource" as const, waitingOn: [], note: null };
+        return {
+          step,
+          group: "current" as const,
+          action: "send-outsource" as const,
+          waitingOn: [],
+          note: null,
+        };
       }
       if (policy.primary === "start") {
-        return { step, action: "start" as const, waitingOn: [], note: null };
+        return {
+          step,
+          group: "current" as const,
+          action: "start" as const,
+          waitingOn: [],
+          note: null,
+        };
       }
       if (policy.primary === "complete") {
         // ขั้นนับจำนวนที่ยังไม่ครบ → เปิดช่องบันทึกจำนวนแทนปิดรวด
@@ -221,6 +267,7 @@ export function selectNowSteps<S extends NowStepInput>(
         const remaining = counting && (step.qtyDone ?? 0) < (step.qtyTotal ?? 0);
         return {
           step,
+          group: "current" as const,
           action: remaining ? ("record-qty" as const) : ("complete" as const),
           waitingOn: [],
           note: null,
@@ -228,8 +275,23 @@ export function selectNowSteps<S extends NowStepInput>(
       }
       // ร้านนอกที่ยังไม่ได้เปิดใบส่ง — ผ่านรวดได้ถ้ามีสิทธิ์ผลิต
       if (policy.canQuickPass) {
-        return { step, action: "quick-pass" as const, waitingOn: [], note: null };
+        return {
+          step,
+          group: "current" as const,
+          action: "quick-pass" as const,
+          waitingOn: [],
+          note: null,
+        };
       }
-      return { step, action: null, waitingOn: [], note: null };
+      return {
+        step,
+        group:
+          step.stepType === "GARMENT_PICK" && options.canUpdateStep
+            ? ("current" as const)
+            : ("waiting" as const),
+        action: null,
+        waitingOn: [],
+        note: null,
+      };
     });
 }

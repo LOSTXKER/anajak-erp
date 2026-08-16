@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION-UX2.9 ใบผลิตเป็น job traveler ที่บอกงานถัดไปชัดแล้ว 2026-08-17**
+> หน้า `/production/[id]` ไม่มี breadcrumb และ local module tabs ที่ซ้ำกับ Sidebar/พาคนออกจากใบงานอีกแล้ว · หัวใบเหลือกลับคิว, เลขออเดอร์+สถานะ, ใบสั่งงาน/ดูออเดอร์ และ summary กำหนดส่ง/ความสำคัญ/จำนวน/ความคืบหน้าในแถวเดียว
+>
+> งานในใบแยกเป็น **“งานที่ต้องทำตอนนี้”** กับ **“รอต่อจากนี้”** ตามสถานะลงมือได้จริง ไม่เอางานรอเสื้อ, งานคนอื่น, งานร้านนอก, QC ไม่ผ่าน หรือผู้ใช้ดูอย่างเดียวมาปนเป็น action · ถ้าต้องเบิกเสื้อ การ์ดเบิกจริงอยู่ถัดจาก action ทันทีและปุ่มนำ focus ไปจุดนั้นโดยไม่เพิ่ม hash/history · ข้อมูลอ้างอิงเรียง แบบและจำนวน → ประวัติขั้นผลิต → วัตถุดิบ และไม่ซ้ำ action ใน step history
+>
+> Permission ฝั่งส่งร้านนอกตรงกับ server, ผู้ไม่มีสิทธิ์ไม่โหลดหน้าจัดการวัตถุดิบ, cached data ยังอยู่เมื่อ background refetch พัง และ production ID ที่ไม่มีจริงตอบ not-found โดยไม่ retry นานหรือกลายเป็น internal error · query/mutation/status payload, Station surface, DTF/garment/outsource flow และ legacy PACKAGING recovery เดิมไม่เปลี่ยน
+>
+> **หลักฐานหน้าจริงแบบอ่านอย่างเดียว:** cold production build ที่ 1440×900 และ 1024×768 ทั้ง Light/Dark แสดงลำดับหัวใบ → งานปัจจุบัน → งานรอ → ข้อมูลอ้างอิง ไม่มี horizontal overflow หรือ console error · focus การ์ดเบิกเสื้อทำงานและ URL ไม่มี hash · Station/read-only/not-found ผ่าน; ไม่คลิก mutationและไม่แตะฐานข้อมูล
+>
+> **ด่าน final:** targeted **39/39** · full unit **1036/1036** · typecheck ผ่าน · lint 0 error (27 warning เดิม) · `verify:ui` ผ่าน · production build Next.js 16.3.1 ผ่าน · Impeccable detector `[]` · finish review ไม่พบ P0/P1 · `git diff --check` ผ่าน
+>
+> **ต่อที่นี่:** เปิดใบผลิตจริงจากคิวและลองทำงานตามกล่อง “งานที่ต้องทำตอนนี้”; commit อยู่บน branch งานและยังไม่ push
+
 > **✅ PRODUCTION-UX2.8 เปิด Sidebar เป็นหมวดและตัด breadcrumb ซ้ำแล้ว 2026-08-16**
 > Desktop Sidebar ไม่แยกเมนูหลัก 5 รายการออกจากงานที่เกี่ยวกันและไม่ซ่อนส่วนที่เหลือหลัง “เมนูทั้งหมด” อีกแล้ว · แสดง 6 หมวดตามงาน ERP โดยตรง: ภาพรวม / งานขาย / การผลิต / สินค้า / การเงิน / ระบบ พร้อมคง route, icon, permission fail-closed และ longest-match active เดิม · รายการยาวเลื่อนอยู่ใน Sidebar เอง และ deep link จะเลื่อน active item เข้ามาเห็น
 >

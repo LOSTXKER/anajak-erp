@@ -172,10 +172,10 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 | `/factory/station` | full-screen Dark; ไม่มี ERP sidebar/top bar | เลือกหนึ่งใน 5 สถานี แล้วลงมือเฉพาะ action ของสถานีและสถานะปัจจุบัน |
 | `/factory` | full-screen Dark TV | pulse 5 ด่านแบบ read-only หนึ่ง viewport; ไม่มี action หรือ mutation path |
 
-- สี่หน้าใน `AppShell` ใช้ `ProductionModuleNav` ชุดเดียวและลำดับเดียว: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**; ทางเข้าเสริม **โหมดสถานี / จอโรงงาน** อยู่ท้ายแถบและไม่สร้าง sidebar ฝ่ายผลิตอีกชุด
+- สี่หน้ารวม/พื้นที่หัวหน้าใน `AppShell` ใช้ `ProductionModuleNav` ชุดเดียวและลำดับเดียว: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**; ทางเข้าเสริม **โหมดสถานี / จอโรงงาน** อยู่ท้ายแถบและไม่สร้าง sidebar ฝ่ายผลิตอีกชุด · ใบผลิต `/production/[id]` ไม่วาด local nav หรือ breadcrumb ซ้ำ เพราะเป็นบริบทลงมือที่มีทางกลับคิวเพียงจุดเดียว
 - `/production` ใช้ `production.kanban` กับ `user.me`; filter `ทั้งหมด`, `ต้องจัดการ`, `กำลังผลิต`, `รอ QC`, `แพ็ก / พร้อมส่ง`, จำนวน, search และ sort derive จาก board ชุดเดียว โดยเก็บ `view`, `q`, `sort` ใน URL
 - worklist เรียง exception ก่อนและไม่ทำให้ออเดอร์ผสมซ้ำหลายแถว; แถวเปิดปลายทางจริงตามสถานะ: ใบผลิต, หน้าออเดอร์แท็บผลิต/QC, หน้า delivery หรือ dialog เปิดใบผลิตตามสิทธิ์
-- `/production/[id]` วาง “ตอนนี้ต้องทำ” เป็น action region เดียวและมี primary action เดียวต่อบริบทที่ลงมือได้; แบบ/ไซส์, เบิกเสื้อ และวัตถุดิบเป็นข้อมูลประกอบ ส่วน `ProductionStepsList` ใน “เส้นทางการผลิต” เป็น read-only เพื่อไม่วาด action ซ้ำ
+- `/production/[id]` เรียง **สรุปใบงาน → งานที่ทำได้ตอนนี้ → งานที่รอต่อ → ข้อมูลสำหรับทำงาน**; action region มี primary action เดียวต่อบริบทที่ลงมือได้และแยก blocker ออกจากงานพร้อมทำ · แบบ/จำนวนมาก่อนประวัติขั้นบนจอแคบ แล้วจึงเสื้อ/วัตถุดิบ; `ProductionStepsList` เป็น read-only เพื่อไม่วาด action ซ้ำ
 - `/production/print-runs` คงลำดับ DOM ตามงานจริง: พิมพ์ก่อน ตัดแยก+ติดป้าย ถัดมาคิว และประวัติท้ายหน้า; desktop เป็น workspace สองฝั่ง ส่วนจอแคบเรียงตาม DOM เดิม
 - `/production/print-runs` ใช้ Sidebar + `ProductionModuleNav` เป็นลำดับชั้นนำทางอยู่แล้ว จึงไม่วาด breadcrumb ซ้ำเหนือชื่อหน้า
 - `/production/films` เป็น inventory หนาแน่นพอดี ไม่ใช้สถิติ hero; `/outsource` เรียงคิวรับกลับตามกำหนดและเรียก `QC_*` เดิมใน data layer ว่า “ตรวจรับ” ใน UI เพื่อไม่ให้สับสนกับ final QC หลัง production

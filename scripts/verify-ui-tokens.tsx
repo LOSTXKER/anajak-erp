@@ -1500,6 +1500,10 @@ check(
     "src/components/production/production-detail-screen.tsx",
     "utf8",
   );
+  const productionNowSource = readFileSync(
+    "src/components/production/production-now-card.tsx",
+    "utf8",
+  );
   const productionModuleNavSource = readFileSync(
     "src/components/production/production-module-nav.tsx",
     "utf8",
@@ -1619,15 +1623,25 @@ check(
     !productionDetailSource.includes(
       'width={surface === "erp" ? "full" : "content"}',
     ) ||
-    !productionDetailSource.includes(
-      'headerChildren={surface === "erp" ? <ProductionModuleNav /> : undefined}',
-    ) ||
-    !productionDetailSource.includes("<ProductionStepsList\n                  readOnly") ||
+    productionDetailSource.includes("ProductionModuleNav") ||
+    productionDetailSource.includes("breadcrumb=") ||
+    !productionDetailSource.includes('aria-label="สรุปใบผลิต"') ||
+    !productionDetailSource.includes("const garmentPickIsCurrent") ||
+    !productionDetailSource.includes("onGoToGarments={focusGarmentPick}") ||
+    productionDetailSource.indexOf("<ProductionNowCard") >
+      productionDetailSource.indexOf("<ProductionDesignCard") ||
+    !productionDetailSource.includes("<ProductionStepsList\n                    readOnly") ||
     !productionDetailSource.includes(
       "loading={productionQuery.isLoading || meQuery.isLoading}",
     ) ||
     !productionDetailSource.includes("meQuery.isError && !me") ||
-    !productionDetailSource.includes("productionQuery.isError && !production") ||
+    !productionDetailSource.includes(
+      "productionQuery.isError && !production && !productionNotFound",
+    ) ||
+    !productionDetailSource.includes(
+      'productionQuery.error?.data?.code === "NOT_FOUND"',
+    ) ||
+    !productionDetailSource.includes('error.data?.code !== "NOT_FOUND"') ||
     !productionDetailSource.includes("onRetry: () => meQuery.refetch()") ||
     !productionDetailSource.includes("onRetry: () => productionQuery.refetch()") ||
     !productionDetailSource.includes("canOwnOrSuperviseStep(step)") ||
@@ -1637,13 +1651,26 @@ check(
     !productionDetailSource.includes(
       '!meQuery.isError && permAllows(me?.permissions, "see_finance")',
     ) ||
+    !productionDetailSource.includes(
+      'permAllows(me.permissions, "manage_settings")',
+    ) ||
+    !productionDetailSource.includes(
+      'surface === "erp" && hasProductionPermission && (',
+    ) ||
     !productionDetailSource.includes("readOnly={!canUpdateStep}") ||
+    !productionNowSource.includes('group === "current"') ||
+    !productionNowSource.includes('group === "waiting"') ||
+    !productionNowSource.includes(
+      'step.stepType === "GARMENT_PICK" && group === "current"',
+    ) ||
+    !productionNowSource.includes("รอต่อจากนี้") ||
+    !productionNowSource.includes("onClick={onGoToGarments}") ||
     !productionDetailSource.includes("<RecordNotFound") ||
     productionDetailSource.includes("max-w-4xl") ||
     productionDetailSource.includes("PageHeader")
   ) {
     problems.push(
-      "ใบผลิตต้องใช้ PageShell จุดเดียว มี module nav, action เดียว และแยก permission error",
+      "ใบผลิตต้องใช้ PageShell จุดเดียว ไม่มี nav/breadcrumb ซ้ำ และแยก summary/action/waiting/state ตรงสิทธิ์",
     );
   }
 

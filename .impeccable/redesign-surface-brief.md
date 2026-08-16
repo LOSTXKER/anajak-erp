@@ -11,16 +11,16 @@
 | Route | Shell | UI contract | Real data / authority |
 |---|---|---|---|
 | `/production` | dashboard `AppShell` | Exception-first worklist, exactly one order per row; filters/count/search/sort share one source | `production.kanban`, `user.me`; read/triage only, then drill to a real destination |
-| `/production/[id]` | dashboard `AppShell` | Job traveler with one “ตอนนี้ต้องทำ” action region and read-only route history | `production.getById`; existing production mutations and guards only |
+| `/production/[id]` | dashboard `AppShell` | Focused job traveler: one back path, compact context, actionable-now/waiting split and read-only route history; no breadcrumb or module tabs | `production.getById`; existing production mutations and guards only |
 | `/production/print-runs` | dashboard `AppShell` | **printing → cut/label → queue → 7-day history** | `printRun.queue/list`; `manage_production` gates controls |
 | `/production/films` | dashboard `AppShell` | Compact film inventory: artwork/customer, source, quantity and consume action | `filmStock.list`; consume remains server-guarded |
 | `/outsource` | dashboard `AppShell` | Send/receive/**vendor receiving inspection**/history; inspection completes before order-level final QC | Existing outsource and goods-receipt queries/mutations; no new lifecycle |
 | `/factory/station` | full-screen Dark, no ERP sidebar/top bar | Select one of five stations, then **active → ready → compact scan** | Station-scoped actions when authorized; otherwise read-only |
 | `/factory` | full-screen Dark TV | Read-only five-stage pulse in one viewport, plus exception rail and ready output | `factory.board`; no control or mutation path |
 
-- `ProductionModuleNav` is the single local navigation inside `AppShell`: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**, followed by entry links to **โหมดสถานี / จอโรงงาน**. It does not create another sidebar.
+- `ProductionModuleNav` is the single local navigation on the four supervisor workspaces inside `AppShell`: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**, followed by entry links to **โหมดสถานี / จอโรงงาน**. It does not create another sidebar and does not render on `/production/[id]`.
 - `/production` stores `view`, `q` and `sort` in the URL. Worklist links resolve to the actual production record, production/QC order tab, delivery tab or create-production dialog according to current state and permission.
-- `/production/[id]` keeps mutations only in the “Now” region, one primary action per actionable context. Artwork/sizes, garment issue and materials support the decision; `ProductionStepsList` is historical/read-only and must not repeat actions.
+- `/production/[id]` keeps mutations in one focused job context: compact summary first, actionable work next, blocked/waiting work subordinate, then artwork/quantity → route history → garment/material support. The page has one back-to-queue path and no local tabs/breadcrumb. `ProductionStepsList` is historical/read-only and must not repeat actions; Station still limits the context to its selected work center.
 - Print-run DOM order follows the floor workflow. Desktop uses a two-column workspace; narrower layouts stack in the same operational order.
 - Film stock remains an inventory list, not a dashboard. Outsource UI calls legacy `QC_*` data states “ตรวจรับ” so staff do not confuse vendor receiving inspection with final QC.
 
