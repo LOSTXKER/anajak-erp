@@ -9,7 +9,7 @@ const buttonVariants = cva(
   cn(
     CONTROL_MIN_H,
     FOCUS_BUTTON,
-    "inline-flex min-w-11 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all sm:min-w-0 disabled:pointer-events-none active:scale-[0.98] disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[15px] [&_svg]:shrink-0",
+    "inline-flex min-w-11 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all sm:min-w-0 [@media(pointer:coarse)]:min-w-11 disabled:pointer-events-none active:scale-[0.98] disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[15px] [&_svg]:shrink-0",
     DISABLED_CONTROL_SURFACE,
   ),
   {

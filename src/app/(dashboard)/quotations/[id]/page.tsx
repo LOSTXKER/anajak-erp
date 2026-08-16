@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
@@ -71,6 +72,7 @@ export default function QuotationDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
 
   const { data: me } = trpc.user.me.useQuery();
   // ใบเสนอทั้งหน้าเป็นเรื่องราคาขาย — ช่าง/กราฟิกห้ามเห็น (Policy ⑦ · ตรงกับ requireRole ฝั่ง server)
@@ -104,8 +106,7 @@ export default function QuotationDetailPage({
     onSuccess: (data) => {
       utils.quotation.getById.invalidate({ id });
       utils.quotation.list.invalidate();
-      // Navigate to the new order
-      window.location.href = `/orders/${data.id}`;
+      router.push(`/orders/${data.id}`);
     },
   });
 

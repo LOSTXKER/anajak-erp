@@ -23,7 +23,9 @@ export const STEP_TYPE_LABELS: Record<string, string> = {
   CUSTOM: "อื่นๆ",
 };
 
-// ลำดับตัวเลือกใน dropdown — เรียงตามลำดับงานจริง: เตรียมเสื้อ → เทคนิค → ปิดงาน
+// ลำดับตัวเลือกใน dropdown — เรียงตามลำดับงานจริง: เตรียมเสื้อ → เทคนิค
+// PACKAGING เก็บไว้ใน label/lane เพื่ออ่านใบผลิตเก่าเท่านั้น; งานแพ็กจริงเกิดหลัง QC
+// ผ่าน Delivery จึงห้ามเพิ่มเป็น production step ใหม่
 export const STEP_TYPE_OPTIONS = [
   "GARMENT_PICK",
   "GARMENT_RECEIVE",
@@ -35,13 +37,25 @@ export const STEP_TYPE_OPTIONS = [
   "EMBROIDERY",
   "SUBLIMATION",
   "TAGGING",
-  "PACKAGING",
   "PATTERN_MAKING",
   "DTG_PRETREAT",
   "CURING",
   "SPECIAL_PRINT",
   "CUSTOM",
 ] as const;
+
+/**
+ * ขั้นที่เป็นงานผลิตจริงใน flow ปัจจุบัน
+ *
+ * PACKAGING เคยถูกเก็บเป็น ProductionStep ก่อน QC ในข้อมูลรุ่นเก่า แต่กติกาปัจจุบันคือ
+ * ผลิต → QC → แพ็กสุดท้ายผ่าน Delivery จึงต้องตัดแถว compatibility นี้ออกจากทุก surface
+ * ที่สื่อว่าเป็น checklist/progress/current step ของงานผลิต
+ */
+export function productionWorkflowSteps<T extends { stepType: string }>(
+  steps: readonly T[],
+): T[] {
+  return steps.filter((step) => step.stepType !== "PACKAGING");
+}
 
 // ───────────────────────── เลนต่อเทคนิค ─────────────────────────
 // เลน = สายงานบนหน้าการผลิต (แท็บ/คอลัมน์) — งานหนึ่งใบโผล่ทุกเลนที่มันมีขั้นตอนค้าง
@@ -186,7 +200,7 @@ export {
 // 1. แหล่งเสื้อต่อรายการ (OrderItemProduct.itemSource) → สายเตรียมเสื้อ
 // 2. วิธีพิมพ์ของลาย (OrderItemPrint.printType)        → สายเทคนิค
 // 3. add-on ป้ายเย็บติด (OrderItemAddon.addonType)      → สายป้ายคอ
-// ปิดท้ายด้วยแพ็คเสมอ
+// แพ็กเป็น flow หลัง QC ผ่าน Delivery ไม่ใช่ขั้นในใบผลิต
 
 export type ProductionPlanInput = {
   printTypes: string[];
@@ -232,6 +246,5 @@ export function suggestProductionPlan(input: ProductionPlanInput): string[] {
     steps.push("TAGGING");
   }
 
-  steps.push("PACKAGING");
   return steps;
 }

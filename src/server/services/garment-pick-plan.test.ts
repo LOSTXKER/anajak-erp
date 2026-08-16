@@ -126,29 +126,58 @@ describe("planGarmentReturn — ด่านคืนเศษ", () => {
       productName: "เสื้อยืดคอกลม",
       size: "M",
       color: "ดำ",
+      needed: 100,
       issued: 105,
       returned: 2,
     },
-    { sku: "TS-F", productName: "เสื้อฟรีไซส์", size: "FREE", color: null, issued: 10, returned: 0 },
+    {
+      sku: "TS-F",
+      productName: "เสื้อฟรีไซส์",
+      size: "FREE",
+      color: null,
+      needed: 9,
+      issued: 10,
+      returned: 0,
+    },
   ];
 
-  it("คืนไม่เกินเบิกค้าง → ผ่าน + รวมยอดคืนถูก (ขอบพอดีเป๊ะผ่าน)", () => {
+  it("คืนเฉพาะยอดเผื่อที่เหลือ → ผ่าน + รวมยอดคืนถูก (ขอบพอดีเป๊ะผ่าน)", () => {
     const plan = planGarmentReturn(state, [
-      { sku: "TS-M", qty: 103 },
+      { sku: "TS-M", qty: 3 },
       { sku: "TS-F", qty: 1 },
     ]);
-    expect(plan.returnedQty).toBe(104);
+    expect(plan.returnedQty).toBe(4);
     expect(plan.requested).toHaveLength(2);
   });
 
-  it("คืนเกินเบิกค้าง → ปฏิเสธพร้อมชื่อสินค้า/ไซส์/สี และเพดานจริง", () => {
-    expect(() => planGarmentReturn(state, [{ sku: "TS-M", qty: 104 }])).toThrow(
-      "เสื้อยืดคอกลม M/ดำ: คืนได้ไม่เกิน 103 ตัว (เบิกค้างอยู่)"
+  it("คืนเกินเศษเผื่อ → ปฏิเสธพร้อมชื่อสินค้า/ไซส์/สี และเพดานจริง", () => {
+    expect(() => planGarmentReturn(state, [{ sku: "TS-M", qty: 4 }])).toThrow(
+      "เสื้อยืดคอกลม M/ดำ: คืนเศษได้ไม่เกิน 3 ตัว"
     );
     // ไม่มีสี → ไม่มีเครื่องหมาย /
-    expect(() => planGarmentReturn(state, [{ sku: "TS-F", qty: 11 }])).toThrow(
-      "เสื้อฟรีไซส์ FREE: คืนได้ไม่เกิน 10 ตัว (เบิกค้างอยู่)"
+    expect(() => planGarmentReturn(state, [{ sku: "TS-F", qty: 2 }])).toThrow(
+      "เสื้อฟรีไซส์ FREE: คืนเศษได้ไม่เกิน 1 ตัว"
     );
+  });
+
+  it("รวม sku ซ้ำก่อนเช็คเพดาน — แยกหลายบรรทัดเพื่อคืนเกินไม่ได้", () => {
+    const oneSku = [
+      {
+        sku: "TS-M",
+        productName: "เสื้อยืดคอกลม",
+        size: "M",
+        color: "ดำ",
+        needed: 0,
+        issued: 100,
+        returned: 0,
+      },
+    ];
+    expect(() =>
+      planGarmentReturn(oneSku, [
+        { sku: "TS-M", qty: 60 },
+        { sku: "TS-M", qty: 60 },
+      ]),
+    ).toThrow("เสื้อยืดคอกลม M/ดำ: คืนเศษได้ไม่เกิน 100 ตัว");
   });
 
   it("ไม่ได้ระบุจำนวน / sku แปลก / ไม่ใช่จำนวนเต็ม → ปฏิเสธตามด่าน", () => {

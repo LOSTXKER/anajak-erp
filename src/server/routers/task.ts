@@ -1,9 +1,8 @@
 import { router, protectedProcedure } from "../trpc";
 import { getPrintQueue } from "@/server/services/print-run";
-import { laneOf } from "@/lib/production-steps";
 import { hasPermission, type Permission } from "@/lib/permissions";
-// คิวรีด/แพ็ค + ด่านแพ็ค ใช้ร่วมกับทีวี /factory (UX4) — จุดเดียว กัน drift
-import { packGateReady, buildPressQueue, buildPackQueue } from "@/server/services/factory-board";
+// คิวรีด/แพ็กสุดท้ายใช้ร่วมกับทีวี /factory (UX4) — จุดเดียว กัน drift
+import { buildPressQueue, buildPackQueue } from "@/server/services/factory-board";
 
 // "งานของฉันวันนี้" — รวมสิ่งที่ค้างอยู่บนโต๊ะของผู้ใช้ จุดเดียว · ทุก role เรียกได้
 // แต่ section โผล่ตามสิทธิ์จริงของคน (PERM3: default ตรงชุด role เดิมเป๊ะ — คนถูกติ๊ก
@@ -40,7 +39,7 @@ export const taskRouter = router({
           .findMany({
             where: {
               status: { in: ["PENDING", "IN_PROGRESS", "FAILED", "ON_HOLD"] },
-              stepType: { notIn: ["DTF_PRINT", "HEAT_PRESS"] },
+              stepType: { notIn: ["DTF_PRINT", "HEAT_PRESS", "PACKAGING"] },
               production: {
                 order: { internalStatus: { in: ["PRODUCTION_QUEUE", "PRODUCING"] } },
               },
@@ -57,8 +56,6 @@ export const taskRouter = router({
               production: {
                 select: {
                   id: true,
-                  // ขั้นทั้งใบผลิต — ด่านแพ็คต้องเห็นว่าสายอื่นจบครบหรือยัง
-                  steps: { select: { stepType: true, status: true } },
                   order: { select: orderSelect },
                 },
               },
@@ -68,8 +65,6 @@ export const taskRouter = router({
           })
           .then((steps) =>
             steps
-              // ขั้นแพ็คที่ของยังไม่พร้อม (สายอื่นยังไม่จบครบ) ห้ามโผล่ — ยังแพ็คไม่ได้จริง
-              .filter((s) => laneOf(s.stepType) !== "PACK" || packGateReady(s.production.steps))
               .map((s) => ({
                 stepId: s.id,
                 stepType: s.stepType,
@@ -98,8 +93,7 @@ export const taskRouter = router({
       ? buildPressQueue(ctx.prisma, { userId: ctx.userId, ownWorkOnly, limit: 8 })
       : [];
 
-    // ---- คิวแพ็ค: ขั้นแพ็คที่ของพร้อมแพ็คจริงเท่านั้น (ทุกขั้นนอกเลน PACK จบครบ) —
-    // งานติดเงื่อนไขห้ามโผล่ในคิวช่าง (คนแพ็คไม่ต้องเดินไปไล่เช็คว่าสายไหนยังค้าง) ----
+    // ---- คิวแพ็กสุดท้าย: ออเดอร์สถานะ PACKING เท่านั้น — แปลว่าผลิตและ QC ผ่านแล้ว ----
     const packQueueP = can("manage_production")
       ? buildPackQueue(ctx.prisma, { userId: ctx.userId, ownWorkOnly, limit: 8 })
       : [];

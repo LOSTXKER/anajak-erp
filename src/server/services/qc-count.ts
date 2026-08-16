@@ -2,8 +2,9 @@
  * QC เชิงนับ — สูตรตัดสินล้วน แยกจาก tx ใน qc.ts ให้ unit test ได้
  * (pattern billing-payment: pure calc แยกจาก writes · เทสไม่ต้องมี DB)
  *
- * กติกาตาม flow ก้อน 3: มีของเสีย → กลับผลิต หรือ "รอของ" (ON_HOLD) เมื่อเสื้อสำรอง
- * ไม่พอ — เฉพาะงานเสื้อจากสต๊อคที่ระบบรู้ยอดจริง · ดีครบยอด → เข้าแพ็ค · ดีบางส่วน → ตรวจต่อ
+ * กติกาตาม flow ก้อน 3: ของดียังไม่ครบและมีของเสีย → กลับผลิต หรือ "รอของ"
+ * (ON_HOLD) เมื่อเสื้อสำรองไม่พอ · ของดีครบยอดแล้ว = ของเสียส่วนเกินเป็นของนอกยอดสั่ง/
+ * เสื้อเผื่อ บันทึกสถิติไว้แต่เข้าแพ็คได้ · ดีบางส่วน → ตรวจต่อ
  */
 import { badRequest } from "@/server/errors";
 import { QC_DEFECT_REASONS } from "@/lib/qc";
@@ -53,7 +54,9 @@ export function assertQcNotOverCount(i: {
 }
 
 // ทางไปต่อหลังบันทึกผลรอบนี้ (เรียกหลัง validate แล้ว — good/defect ไม่เป็น 0 พร้อมกัน):
-// - มีของเสีย: สำรองพอ (หรือระบบไม่รู้ยอด = งานไม่มีแถวเบิกสต๊อค) → REWORK กลับผลิต ·
+// - ของดีครบยอดที่ต้องส่งแล้ว: PACK ก่อน — defect ที่นับเพิ่มเป็นของนอกยอดสั่ง/เสื้อเผื่อ
+//   จึงไม่ควรเปิดงานแก้ที่ไม่มีจำนวนของดีเหลือให้ตรวจซ้ำ
+// - ของดียังไม่ครบและมีของเสีย: สำรองพอ (หรือระบบไม่รู้ยอด) → REWORK กลับผลิต ·
 //   สำรองไม่พอ → HOLD_FOR_STOCK พักรอของ (งานแก้ห้ามเข้าคิวช่างทั้งที่ไม่มีเสื้อให้ทำ)
 // - ดีล้วน: ครบยอด (หรือยอดงาน 0 = ไม่รู้ยอด) → PACK · ดีบางส่วน → STAY ตรวจต่อ
 export type QcNextMove = "HOLD_FOR_STOCK" | "REWORK" | "PACK" | "STAY";
@@ -67,11 +70,41 @@ export function qcNextMove(i: {
   hasFromStock: boolean;
   spareAvailable: number;
 }): QcNextMove {
+  const checkedGoodAfter = i.checkedGood + i.qtyGood;
+  if (i.totalExpected > 0 && checkedGoodAfter >= i.totalExpected) {
+    return "PACK";
+  }
   if (i.qtyDefect > 0) {
     return i.hasFromStock && i.spareAvailable < i.qtyDefect ? "HOLD_FOR_STOCK" : "REWORK";
   }
-  if (i.qtyGood > 0 && (i.totalExpected === 0 || i.checkedGood + i.qtyGood >= i.totalExpected)) {
+  if (i.qtyGood > 0 && i.totalExpected === 0) {
     return "PACK";
   }
   return "STAY";
+}
+
+// ด่านสำหรับ recovery/manual status: เส้นปกติ createQcRecord เด้ง PACKING เองเมื่อครบ
+// แต่ API เปลี่ยนสถานะมือยังต้องพิสูจน์ด้วย evidence ชุดเดียวกัน ห้ามมีแค่ qcRecord 1 แถว
+export function assertQcReadyForPacking(params: {
+  totalExpected: number;
+  records: readonly { qtyGood: number; qtyDefect: number }[];
+}): void {
+  if (params.records.length === 0) {
+    badRequest("ยังไม่เคยตรวจนับ QC — บันทึกผลตรวจให้ครบก่อนเข้าแพ็ก");
+  }
+  const checkedGood = params.records.reduce((sum, record) => sum + record.qtyGood, 0);
+  // เมื่อของดีครบยอดที่ต้องส่งแล้ว defect เพิ่มเติมเป็นของนอกยอดสั่ง/เสื้อเผื่อ จึงไม่กั้นแพ็ค
+  // (กั้นด้วย latest defect ต่อจะทำให้ติด QC ถาวร เพราะยอดดีเต็มแล้วและกรอกเพิ่มไม่ได้)
+  if (params.totalExpected > 0 && checkedGood >= params.totalExpected) return;
+
+  const latest = params.records[0]!;
+  if (latest.qtyDefect > 0) {
+    badRequest("QC รอบล่าสุดยังมีของเสีย — ปิดงานแก้และตรวจซ้ำก่อนเข้าแพ็ก");
+  }
+  if (params.totalExpected > 0 || checkedGood === 0) {
+    const remaining = Math.max(0, params.totalExpected - checkedGood);
+    badRequest(
+      `QC ยังตรวจของดีไม่ครบ${params.totalExpected > 0 ? ` — เหลือ ${remaining} ตัว` : ""}`,
+    );
+  }
 }

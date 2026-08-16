@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { STEP_TYPE_LABELS, OUTSOURCE_ACTIVE_STATUSES } from "@/lib/production-steps";
+import {
+  STEP_TYPE_LABELS,
+  OUTSOURCE_ACTIVE_STATUSES,
+  productionWorkflowSteps,
+} from "@/lib/production-steps";
 import { Factory, Plus, ArrowRight, Truck, User } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 
@@ -76,12 +80,20 @@ export function ProductionSummaryCard({
         ) : (
           <div className="space-y-4">
             {productions.map((prod) => {
-              const completed = prod.steps.filter((s) => s.status === "COMPLETED").length;
-              const total = prod.steps.length;
+              const workflowSteps = productionWorkflowSteps(prod.steps);
+              const completed = workflowSteps.filter((s) => s.status === "COMPLETED").length;
+              const total = workflowSteps.length;
               const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
               // ขั้นที่กำลังทำอยู่ = ขั้นแรกที่ยังไม่เสร็จ
-              const currentStep = prod.steps.find((s) => s.status !== "COMPLETED");
-              const hasActiveOutsource = prod.steps.some((s) =>
+              const currentStep = workflowSteps.find((s) => s.status !== "COMPLETED");
+              const hasPendingLegacyPackaging = prod.steps.some(
+                (s) => s.stepType === "PACKAGING" && s.status !== "COMPLETED",
+              );
+              const legacyReadyForQc =
+                internalStatus === "PRODUCING" &&
+                hasPendingLegacyPackaging &&
+                workflowSteps.every((s) => s.status === "COMPLETED");
+              const hasActiveOutsource = workflowSteps.some((s) =>
                 s.outsourceOrders.some((os) => OUTSOURCE_ACTIVE_STATUSES.includes(os.status))
               );
 
@@ -105,7 +117,11 @@ export function ProductionSummaryCard({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-                    {currentStep ? (
+                    {legacyReadyForQc ? (
+                      <span className="font-medium text-amber-700 dark:text-amber-300">
+                        ขั้นผลิตจริงครบแล้ว · รอส่งเข้า QC จากใบผลิต
+                      </span>
+                    ) : currentStep ? (
                       <span>
                         ขั้นปัจจุบัน:{" "}
                         <span className="font-medium text-slate-700 dark:text-slate-200">

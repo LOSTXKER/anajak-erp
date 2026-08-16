@@ -36,6 +36,8 @@ import type { ProductionStep } from "./types";
 
 interface ProductionStepsListProps {
   steps: ProductionStep[];
+  /** ประวัติในใบงาน ERP อ่านอย่างเดียว; action หลักทั้งหมดอยู่ใน ProductionNowCard */
+  readOnly?: boolean;
   canOutsource: boolean;
   // ผ่านรวดยิง production.updateStep — โชว์เฉพาะ role ที่ server รับ (กันปุ่มกดแล้ว FORBIDDEN)
   canUpdateStep: boolean;
@@ -51,6 +53,10 @@ interface ProductionStepsListProps {
   // ปุ่มเร็ว UX1 — ยิง updateStep เดิมเท่านั้น (เริ่ม/เสร็จ · server auto-claim ให้ช่างเอง)
   onStartStep: (step: ProductionStep) => void;
   onCompleteStep: (step: ProductionStep) => void;
+  printRunsHref?: string;
+  /** Station Mode ส่ง true เฉพาะขั้นที่อยู่ตรงสถานีปัจจุบัน; ขั้นอื่นอ่านได้แต่กดไม่ได้ */
+  canActOnStep?: (step: ProductionStep) => boolean;
+  canOpenStepDetails?: (step: ProductionStep) => boolean;
 }
 
 // แถวขั้นตอนผลิต จัดกลุ่มตามเลนเทคนิค (เตรียมเสื้อ/DTF/DTG/สกรีน/ปัก/ป้ายคอ/แพ็ค)
@@ -58,6 +64,7 @@ interface ProductionStepsListProps {
 // ไม่มีตัวเลขเงินบน component นี้ (เบสเคาะ: ไม่คิดต้นทุนต่องานในระบบนี้)
 export function ProductionStepsList({
   steps,
+  readOnly = false,
   canOutsource,
   canUpdateStep,
   canSupervise,
@@ -68,6 +75,9 @@ export function ProductionStepsList({
   onQuickPass,
   onStartStep,
   onCompleteStep,
+  printRunsHref = "/production/print-runs",
+  canActOnStep = () => true,
+  canOpenStepDetails = () => true,
 }: ProductionStepsListProps) {
   // จัดกลุ่มตามเลน — เลนเรียงตามสายงานจริง ขั้นในเลนเรียงตาม sortOrder เดิม
   const byLane = new Map<ProductionLane, ProductionStep[]>();
@@ -79,10 +89,10 @@ export function ProductionStepsList({
   }
 
   // gate ฟิล์ม∧เสื้อของขั้นรีด — mirror บอร์ดเลน: ยังไม่บรรจบ = ไม่โชว์ปุ่มเริ่ม
-  // บอกตรงๆ ว่ารออะไรแทน (server ไม่มีด่านนี้ — จอเป็นด่านเดียว ห้ามชวนช่างเริ่มงานผี)
+  // บอกตรงๆ ว่ารออะไรแทน (server กันซ้ำอีกชั้นเพื่อปิด API bypass)
   const pressGate = evaluateHeatPressGate(steps);
   // UX4.10 — ต่อเลนมีขั้นเดียวที่ "ถึงคิว": ปุ่ม primary เน้นเฉพาะขั้นนี้
-  // ขั้นถัดไปได้ป้าย "รอขั้นก่อนหน้า" กันช่างเริ่มข้ามลำดับ (server ไม่กัน — จอเป็นด่านเดียว)
+  // ขั้นถัดไปได้ป้าย "รอขั้นก่อนหน้า" กันช่างเริ่มข้ามลำดับก่อน server ปฏิเสธ
   const laneNextIds = firstPendingStepIdsByLane(steps);
 
   return (
@@ -109,11 +119,14 @@ export function ProductionStepsList({
               <StepRow
                 key={step.id}
                 step={step}
+                readOnly={readOnly}
                 isLaneNext={laneNextIds.has(step.id)}
                 pressGate={pressGate}
-                canOutsource={canOutsource}
-                canUpdateStep={canUpdateStep}
-                canSupervise={canSupervise}
+                actionAllowed={canActOnStep(step)}
+                canOpenDetails={canOpenStepDetails(step)}
+                canOutsource={canOutsource && canActOnStep(step)}
+                canUpdateStep={canUpdateStep && canActOnStep(step)}
+                canSupervise={canSupervise && canActOnStep(step)}
                 meId={meId}
                 busy={busy}
                 onSelectStep={onSelectStep}
@@ -121,6 +134,7 @@ export function ProductionStepsList({
                 onQuickPass={onQuickPass}
                 onStartStep={onStartStep}
                 onCompleteStep={onCompleteStep}
+                printRunsHref={printRunsHref}
               />
             ))}
           </div>
@@ -132,8 +146,11 @@ export function ProductionStepsList({
 
 function StepRow({
   step,
+  readOnly,
   isLaneNext,
   pressGate,
+  actionAllowed,
+  canOpenDetails,
   canOutsource,
   canUpdateStep,
   canSupervise,
@@ -144,11 +161,15 @@ function StepRow({
   onQuickPass,
   onStartStep,
   onCompleteStep,
+  printRunsHref,
 }: {
   step: ProductionStep;
+  readOnly: boolean;
   /** ขั้นแรกที่ยังไม่เสร็จของเลนตัวเอง — ตัวเดียวที่ควรได้ปุ่ม primary */
   isLaneNext: boolean;
   pressGate: HeatPressGate;
+  actionAllowed: boolean;
+  canOpenDetails: boolean;
   canOutsource: boolean;
   canUpdateStep: boolean;
   canSupervise: boolean;
@@ -159,6 +180,7 @@ function StepRow({
   onQuickPass: (step: ProductionStep) => void;
   onStartStep: (step: ProductionStep) => void;
   onCompleteStep: (step: ProductionStep) => void;
+  printRunsHref: string;
 }) {
   const latestOutsource = step.outsourceOrders[0];
   const hasActiveOutsource = step.outsourceOrders.some((os) =>
@@ -194,7 +216,7 @@ function StepRow({
     <div
       className={`flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border p-3 ${
         // ขั้นที่ถึงคิว = กรอบ accent จางๆ นำสายตาโดยไม่ต้องอ่านทีละแถว
-        isLaneNext && step.status !== "COMPLETED"
+        !readOnly && isLaneNext && step.status !== "COMPLETED"
           ? "border-blue-200 dark:border-blue-900"
           : "border-slate-200 dark:border-slate-700"
       }`}
@@ -254,7 +276,15 @@ function StepRow({
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-        {actionPolicy.canSendOutsource && (
+        {!readOnly && actionAllowed && step.stepType === "DTF_PRINT" && step.status !== "COMPLETED" && (
+          <Button variant="outline" size="sm" asChild className="gap-1.5">
+            <Link href={printRunsHref}>
+              <Printer />
+              รอบพิมพ์ DTF
+            </Link>
+          </Button>
+        )}
+        {!readOnly && actionPolicy.canSendOutsource && (
           <Button
             size="sm"
             className="gap-1.5"
@@ -264,7 +294,7 @@ function StepRow({
             {step.outsourceOrders.length > 0 ? "ส่งแก้รอบใหม่" : "ส่งร้านนอก"}
           </Button>
         )}
-        {actionPolicy.canQuickPass && (
+        {!readOnly && actionPolicy.canQuickPass && (
           <Button
             variant="outline"
             size="sm"
@@ -292,7 +322,7 @@ function StepRow({
         {/* ทางเข้า dialog เต็ม (มอบงาน/QC/หมายเหตุ) — งานละเอียดย้ายมาหลังปุ่มนี้
             แถวทั้งแถวยังกดเปิด dialog ได้เหมือนเดิม (คง muscle memory) ·
             งานคนอื่น (ช่าง) ไม่โชว์ — บันทึกใน dialog จะโดน FORBIDDEN ทุกช่อง (B8) */}
-        {canUpdateStep && !ownedByOther && (
+        {!readOnly && canOpenDetails && canUpdateStep && !ownedByOther && (
           <Button
             variant="ghost"
             size="sm"
@@ -307,7 +337,7 @@ function StepRow({
 
       {/* ปุ่มเร็ว UX1 — มือถือเต็มแถวสูง 44px (เป้านิ้ว DESIGN.md) · จอใหญ่ปุ่มปกติ
           stopPropagation ที่กล่อง — กดปุ่มต้องไม่เผลอเปิด dialog เต็ม */}
-      {showQuickAction && (
+      {!readOnly && showQuickAction && (
         <div className="w-full sm:ml-auto sm:w-auto">
           {heatPressWaiting ? (
             // รีดยังเริ่มไม่ได้จริง (ฟิล์ม/เสื้อยังไม่บรรจบ) — บอกว่ารออะไรแทนปุ่ม
@@ -333,7 +363,7 @@ function StepRow({
             // ขั้นอยู่ในรอบพิมพ์ค้าง — updateStep ถูก server บล็อก จึงเป็นลิงก์ไปหน้ารอบแทน
             // (pattern เดียวกับการ์ดบอร์ดเลน — เดิมหน้านี้เงียบ ช่างเข้า dialog แล้วเจอ error)
             <Button variant="outline" size="sm" asChild className="w-full gap-1.5 sm:w-auto">
-              <Link href="/production/print-runs">
+              <Link href={printRunsHref}>
                 <Printer />
                 รอบพิมพ์ {activePrintRun.runNumber}
               </Link>

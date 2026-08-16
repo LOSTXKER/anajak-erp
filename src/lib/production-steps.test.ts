@@ -9,25 +9,41 @@ import {
   LANE_LABELS,
   LANE_ORDER,
   evaluateHeatPressGate,
+  productionWorkflowSteps,
 } from "./production-steps";
 
+describe("productionWorkflowSteps — flow จริงตัด PACKAGING รุ่นเก่า", () => {
+  it("ไม่คืนขั้นแพ็กเดิมให้ checklist/progress ก่อน QC และรักษาลำดับขั้นอื่น", () => {
+    const rows = [
+      { id: "press", stepType: "HEAT_PRESS", status: "COMPLETED" },
+      { id: "legacy-pack", stepType: "PACKAGING", status: "PENDING" },
+      { id: "tag", stepType: "TAGGING", status: "IN_PROGRESS" },
+    ];
+
+    expect(productionWorkflowSteps(rows).map((row) => row.id)).toEqual([
+      "press",
+      "tag",
+    ]);
+  });
+});
+
 describe("suggestProductionPlan", () => {
-  it("งาน DTF (ทำเอง) → พิมพ์ฟิล์ม + รีดร้อน + แพ็ค", () => {
+  it("งาน DTF (ทำเอง) → พิมพ์ฟิล์ม + รีดร้อน; แพ็กเป็น flow หลัง QC ไม่ใช่ production step", () => {
     expect(suggestProductionPlan({ printTypes: ["DTF"] })).toEqual([
-      "DTF_PRINT", "HEAT_PRESS", "PACKAGING",
+      "DTF_PRINT", "HEAT_PRESS",
     ]);
   });
 
   it("งาน DTG → ขั้น outsource ขั้นเดียว (เบสเคาะ: DTG ส่งร้านนอก ไม่ใช่พรีทรีต/อบเอง)", () => {
     expect(suggestProductionPlan({ printTypes: ["DTG"] })).toEqual([
-      "DTG_PRINT", "PACKAGING",
+      "DTG_PRINT",
     ]);
   });
 
   it("ปัก/สกรีน/sublimation → ขั้น outsource ของเทคนิคตัวเอง", () => {
     expect(
       suggestProductionPlan({ printTypes: ["SILK_SCREEN", "EMBROIDERY", "SUBLIMATION"] })
-    ).toEqual(["SCREEN_PRINTING", "EMBROIDERY", "SUBLIMATION", "PACKAGING"]);
+    ).toEqual(["SCREEN_PRINTING", "EMBROIDERY", "SUBLIMATION"]);
   });
 
   it("แหล่งเสื้อ → สายเตรียมเสื้อนำหน้าเสมอ: สต๊อค=เบิก · ตัดเย็บ=ร้านนอก · ลูกค้าส่ง=ตรวจรับ", () => {
@@ -38,34 +54,34 @@ describe("suggestProductionPlan", () => {
       })
     ).toEqual([
       "GARMENT_PICK", "SEWING", "GARMENT_RECEIVE",
-      "DTF_PRINT", "HEAT_PRESS", "PACKAGING",
+      "DTF_PRINT", "HEAT_PRESS",
     ]);
   });
 
   it("add-on ป้ายเย็บติด (ป้ายคอ/ไซส์/care) → งอกขั้นเย็บป้ายให้เอง", () => {
     expect(
       suggestProductionPlan({ printTypes: ["DTF"], addonTypes: ["NECK_LABEL", "POLY_BAG"] })
-    ).toEqual(["DTF_PRINT", "HEAT_PRESS", "TAGGING", "PACKAGING"]);
+    ).toEqual(["DTF_PRINT", "HEAT_PRESS", "TAGGING"]);
     // add-on ที่ไม่ต้องเย็บ (ถุง/กล่อง) ไม่งอกขั้น
     expect(
       suggestProductionPlan({ printTypes: ["DTF"], addonTypes: ["BOX"] })
-    ).toEqual(["DTF_PRINT", "HEAT_PRESS", "PACKAGING"]);
+    ).toEqual(["DTF_PRINT", "HEAT_PRESS"]);
     // addonType เป็น string อิสระ (แค็ตตาล็อกเพิ่มเอง) — อะไรที่ลงท้าย LABEL ต้องจับได้
     expect(
       suggestProductionPlan({ printTypes: ["DTF"], addonTypes: ["WOVEN_LABEL"] })
-    ).toEqual(["DTF_PRINT", "HEAT_PRESS", "TAGGING", "PACKAGING"]);
+    ).toEqual(["DTF_PRINT", "HEAT_PRESS", "TAGGING"]);
   });
 
   it("มีลายแต่ไม่รู้วิธีพิมพ์ → ชุด DTF (งานหลักโรงงาน)", () => {
     expect(suggestProductionPlan({ printTypes: ["UNKNOWN_TYPE"] })).toEqual([
-      "DTF_PRINT", "HEAT_PRESS", "PACKAGING",
+      "DTF_PRINT", "HEAT_PRESS",
     ]);
   });
 
-  it("เสื้อเปล่าไม่มีลาย → ไม่งอกสายพิมพ์ เหลือเตรียมเสื้อ + แพ็ค", () => {
+  it("เสื้อเปล่าไม่มีลาย → ไม่งอกสายพิมพ์ เหลือเฉพาะเตรียมเสื้อ", () => {
     expect(
       suggestProductionPlan({ printTypes: [], itemSources: ["FROM_STOCK"] })
-    ).toEqual(["GARMENT_PICK", "PACKAGING"]);
+    ).toEqual(["GARMENT_PICK"]);
   });
 
   it("ออเดอร์ครบเครื่อง: ตัดเย็บ + DTF + ปัก + ป้ายคอ → ทุกสายเรียงถูก", () => {
@@ -76,8 +92,13 @@ describe("suggestProductionPlan", () => {
         addonTypes: ["NECK_LABEL"],
       })
     ).toEqual([
-      "SEWING", "DTF_PRINT", "HEAT_PRESS", "EMBROIDERY", "TAGGING", "PACKAGING",
+      "SEWING", "DTF_PRINT", "HEAT_PRESS", "EMBROIDERY", "TAGGING",
     ]);
+  });
+
+  it("ไม่เสนอ PACKAGING ให้ใบผลิตใหม่ทั้งอัตโนมัติและตัวเลือกเพิ่มมือ", () => {
+    expect(suggestProductionPlan({ printTypes: ["DTF"] })).not.toContain("PACKAGING");
+    expect(STEP_TYPE_OPTIONS).not.toContain("PACKAGING");
   });
 });
 

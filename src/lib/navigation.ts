@@ -45,9 +45,9 @@ export type NavigationGroup = {
 };
 
 export const NAVIGATION_GROUPS: readonly NavigationGroup[] = [
-  { id: "main", label: null },
-  { id: "sales", label: "ขาย" },
-  { id: "production", label: "ผลิต" },
+  { id: "main", label: "ภาพรวม" },
+  { id: "sales", label: "งานขาย" },
+  { id: "production", label: "การผลิต" },
   { id: "products", label: "สินค้า" },
   { id: "finance", label: "การเงิน" },
   { id: "system", label: "ระบบ" },
@@ -117,16 +117,6 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     surfaces: BOTH,
   },
   {
-    id: "factory",
-    label: "จอโรงงาน",
-    href: "/factory",
-    icon: Monitor,
-    group: "production",
-    permission: "supervise_operations",
-    aliases: ["factory", "tv", "command center", "คิวรวม"],
-    surfaces: BOTH,
-  },
-  {
     id: "print-runs",
     label: "รอบพิมพ์ฟิล์ม",
     href: "/production/print-runs",
@@ -151,6 +141,16 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     icon: Truck,
     group: "production",
     aliases: ["outsource", "vendor", "ร้านนอก", "จ้างผลิต"],
+    surfaces: BOTH,
+  },
+  {
+    id: "factory",
+    label: "จอโรงงาน",
+    href: "/factory",
+    icon: Monitor,
+    group: "production",
+    permission: "supervise_operations",
+    aliases: ["factory", "tv", "command center", "คิวรวม"],
     surfaces: BOTH,
   },
   {

@@ -4,6 +4,14 @@ import { byIdInput } from "@/server/schemas";
 import { badRequest } from "@/server/errors";
 import { createAuditLog, createNotification } from "@/server/helpers";
 import { advanceOrderForward } from "@/server/services/order-status";
+import { lockOrderRow } from "@/server/services/order-cost";
+import {
+  assertOrderPackingReadyToShip,
+  findPackingOverflow,
+  getOrderPackingEvidence,
+  packingEvidenceFromOrder,
+} from "@/server/services/packing-readiness";
+import { hasPermission } from "@/lib/permissions";
 import { normalizePhone } from "@/lib/phone";
 import { addressLine, optionalAddressLine, optionalPostalCode } from "@/lib/address-schema";
 import { isValidDeliveryTransition, type DeliveryStatus } from "@/lib/delivery-status";
@@ -13,9 +21,23 @@ import { DELIVERY_STATUS_LABELS } from "@/lib/status-config";
 const salesOrProduction = requirePermission("manage_delivery");
 const managerUp = requirePermission("supervise_operations");
 
-// คีย์รวมยอดต่อแถวนับ — แพ็ค/เหลือเทียบกันที่ ไซส์+สี (description ไว้โชว์)
-const packKey = (size?: string | null, color?: string | null) =>
-  `${(size ?? "").trim().toLowerCase()}|${(color ?? "").trim().toLowerCase()}`;
+const deliveryCreateResultSelect = {
+  id: true,
+  orderId: true,
+  recipientName: true,
+  phone: true,
+  address: true,
+  subDistrict: true,
+  district: true,
+  province: true,
+  postalCode: true,
+  shippingMethod: true,
+  trackingNumber: true,
+  status: true,
+  notes: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
 
 // B4 (เบสเคาะ 2026-07-06): ของออกจากโรงงานได้เฉพาะงานที่เลย QC มาแล้ว — เดิม UI ซ่อน
 // ปุ่มไว้แต่ยิง API ตรงสร้าง/ส่งใบส่งได้ตั้งแต่ยังไม่นับของ (review B4 จับเป็นหนี้ PARTIAL)
@@ -61,42 +83,24 @@ export const deliveryRouter = router({
             },
           },
           deliveries: {
-            where: { status: { not: "RETURNED" } },
-            select: { lines: { select: { size: true, color: true, qty: true } } },
+            select: {
+              status: true,
+              lines: { select: { description: true, size: true, color: true, qty: true } },
+            },
           },
         },
       });
-
-      const packed = new Map<string, number>();
-      for (const d of order.deliveries) {
-        for (const l of d.lines) {
-          const k = packKey(l.size, l.color);
-          packed.set(k, (packed.get(k) ?? 0) + l.qty);
-        }
-      }
-
-      // รวมยอดสั่งต่อ ไซส์+สี (ออเดอร์มีหลายสินค้าไซส์ซ้ำได้ — ยุบเป็นแถวเดียว)
-      const byKey = new Map<
-        string,
-        { description: string; size: string | null; color: string | null; ordered: number }
-      >();
-      for (const it of order.items) {
-        for (const p of it.products) {
-          for (const v of p.variants) {
-            if (v.quantity <= 0) continue;
-            const k = packKey(v.size, v.color);
-            const row = byKey.get(k);
-            if (row) row.ordered += v.quantity;
-            else byKey.set(k, { description: p.description, size: v.size, color: v.color, ordered: v.quantity });
-          }
-        }
-      }
-
-      const lines = [...byKey.entries()].map(([k, row]) => ({
-        ...row,
-        packed: packed.get(k) ?? 0,
-        remaining: Math.max(0, row.ordered - (packed.get(k) ?? 0)),
-      }));
+      const evidence = packingEvidenceFromOrder(order);
+      const lines = evidence.lines.map(
+        ({ description, size, color, ordered, packed, remaining }) => ({
+          description,
+          size,
+          color,
+          ordered,
+          packed,
+          remaining,
+        }),
+      );
 
       return {
         orderNumber: order.orderNumber,
@@ -104,7 +108,7 @@ export const deliveryRouter = router({
         blindShipSenderName: order.blindShipSenderName,
         customerName: order.customer.company || order.customer.name,
         lines,
-        totalRemaining: lines.reduce((s, l) => s + l.remaining, 0),
+        totalRemaining: evidence.totalRemaining,
       };
     }),
 
@@ -149,68 +153,69 @@ export const deliveryRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const canHandleDeliveryMoney = hasPermission(
+        ctx.userRole,
+        ctx.permissionOverrides,
+        "see_order_money",
+      );
+      if (!canHandleDeliveryMoney && (input.shippingCost !== 0 || input.isPaid)) {
+        badRequest("ฝ่ายผลิตบันทึกค่าจัดส่ง/สถานะชำระเงินไม่ได้");
+      }
       const { saveAsCustomerAddress, lines, ...deliveryData } = input;
 
       return ctx.prisma.$transaction(async (tx) => {
-        // ด่าน B4: ใบส่งออกได้เฉพาะออเดอร์ที่เลย QC (PACKING ขึ้นไป)
-        const orderStatusRow = await tx.order.findUniqueOrThrow({
+        // ล็อกก่อนอ่านสถานะ/ยอดแพ็ค: สร้างใบส่งพร้อมกับกดพร้อมส่งหรือสร้างอีกกล่อง
+        // ต้องเห็นหลักฐานก้อนเดียวกัน และใบส่งเปล่าก็เป็น evidence สำหรับงานไม่มี variant
+        await lockOrderRow(tx, input.orderId);
+        const order = await tx.order.findUniqueOrThrow({
           where: { id: input.orderId },
-          select: { internalStatus: true },
+          select: {
+            internalStatus: true,
+            items: {
+              select: {
+                products: {
+                  select: {
+                    description: true,
+                    variants: {
+                      select: { size: true, color: true, quantity: true },
+                    },
+                  },
+                },
+              },
+            },
+            deliveries: {
+              select: {
+                status: true,
+                lines: { select: { description: true, size: true, color: true, qty: true } },
+              },
+            },
+          },
         });
-        if (!POST_QC_ORDER_STATUSES.includes(orderStatusRow.internalStatus)) {
+        if (!POST_QC_ORDER_STATUSES.includes(order.internalStatus)) {
           badRequest(
             "ออเดอร์ยังไม่ผ่านตรวจ QC/ยังไม่ถึงขั้นแพ็ค — สร้างใบส่งไม่ได้ (นับ QC แล้วเดินสถานะเข้าแพ็คก่อน)"
           );
         }
 
-        // กันแพ็คเกินยอดงานต่อไซส์ — lock แถวออเดอร์กันสองใบส่งนับพร้อมกัน
+        // กันแพ็คเกินยอดงานต่อไซส์ด้วย count/key ชุดเดียวกับ packContext และด่านพร้อมส่ง
         if (lines.length > 0) {
-          await tx.$queryRaw`SELECT id FROM orders WHERE id = ${input.orderId} FOR UPDATE`;
-          const order = await tx.order.findUniqueOrThrow({
-            where: { id: input.orderId },
-            select: {
-              items: {
-                select: {
-                  products: { select: { variants: { select: { size: true, color: true, quantity: true } } } },
-                },
-              },
-              deliveries: {
-                where: { status: { not: "RETURNED" } },
-                select: { lines: { select: { size: true, color: true, qty: true } } },
-              },
-            },
-          });
-          const ordered = new Map<string, number>();
-          for (const it of order.items)
-            for (const p of it.products)
-              for (const v of p.variants) {
-                const k = packKey(v.size, v.color);
-                ordered.set(k, (ordered.get(k) ?? 0) + v.quantity);
-              }
-          const packed = new Map<string, number>();
-          for (const d of order.deliveries)
-            for (const l of d.lines) {
-              const k = packKey(l.size, l.color);
-              packed.set(k, (packed.get(k) ?? 0) + l.qty);
-            }
-          for (const line of lines) {
-            const k = packKey(line.size, line.color);
-            const max = ordered.get(k);
-            // แถวที่ไม่ตรงกับไซส์ในออเดอร์ (เช่น ของแถม/รายการพิเศษ) — ไม่กั้น แค่บันทึก
-            if (max === undefined) continue;
-            const already = packed.get(k) ?? 0;
-            if (already + line.qty > max) {
-              const label = [line.size, line.color].filter(Boolean).join("/") || line.description;
-              badRequest(
-                `แพ็คเกินยอดงาน: ${label} สั่ง ${max} ตัว อยู่ในใบส่งแล้ว ${already} — รอบนี้ใส่ได้อีกไม่เกิน ${Math.max(0, max - already)}`
-              );
-            }
-            packed.set(k, already + line.qty);
+          const overflow = findPackingOverflow(
+            packingEvidenceFromOrder(order),
+            lines,
+          );
+          if (overflow) {
+            const label =
+              [overflow.line.size, overflow.line.color].filter(Boolean).join("/") ||
+              overflow.line.description;
+            badRequest(
+              `แพ็คเกินยอดงาน: ${label} สั่ง ${overflow.ordered} ตัว อยู่ในใบส่งแล้ว ${overflow.alreadyPacked} — รอบนี้ใส่ได้อีกไม่เกิน ${overflow.remaining}`
+            );
           }
         }
 
         const delivery = await tx.delivery.create({
           data: { ...deliveryData, lines: { create: lines } },
+          select: deliveryCreateResultSelect,
         });
 
         // จงใจให้ทุก role ที่สร้างใบส่งได้ (รวมฝ่ายผลิตที่แพ็คของ) เขียนผ่านช่องนี้ —
@@ -303,6 +308,17 @@ export const deliveryRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
+      const canHandleDeliveryMoney = hasPermission(
+        ctx.userRole,
+        ctx.permissionOverrides,
+        "see_order_money",
+      );
+      if (
+        !canHandleDeliveryMoney &&
+        (data.shippingCost !== undefined || data.isPaid !== undefined)
+      ) {
+        badRequest("ฝ่ายผลิตแก้ค่าจัดส่ง/สถานะชำระเงินไม่ได้");
+      }
       // แก้ใบส่งของต้องทิ้งร่องรอย (เบสสั่ง 2026-08-12) — เดิม update ตรงไม่มี audit เลย
       // ต่างจาก create ที่มีครบ · ที่อยู่/เลขพัสดุบนใบที่ส่งออกไปแล้วถูกแก้ได้เงียบๆ
       // แล้วไล่ไม่ได้ว่าใครแก้ตอนไหน (ของไปผิดบ้าน = ต้องสืบย้อนได้)
@@ -382,6 +398,10 @@ export const deliveryRouter = router({
             `ใบส่งสถานะ "${DELIVERY_STATUS_LABELS[fromStatus] ?? fromStatus}" เปลี่ยนเป็น "${DELIVERY_STATUS_LABELS[input.status] ?? input.status}" ไม่ได้ — เดินทีละขั้น`
           );
         }
+        if (statusChanged) {
+          // ใช้ lock ลำดับเดียวกับสร้างใบส่ง/กดพร้อมส่ง เพื่อไม่ให้ RETURNED แทรกหลังอ่าน evidence
+          await lockOrderRow(tx, current.orderId);
+        }
         // ด่าน B4 ขาส่ง: ของออกจริง (SHIPPED/DELIVERED) ได้เฉพาะออเดอร์ที่เลย QC —
         // กันเคสออเดอร์ถูกถอยกลับไปแก้งานแล้วยังกดส่งใบเดิมออก
         // ยกเว้น SHIPPED→DELIVERED: ของออกไปแล้วจริง การบันทึก "ถึงแล้ว" เป็นการจดตาม
@@ -414,6 +434,18 @@ export const deliveryRouter = router({
         }
         const delivery = await tx.delivery.findUniqueOrThrow({ where: { id: input.id } });
 
+        // READY_TO_SHIP ต้องมีหลักฐานแพ็คครบคงอยู่เสมอ: ตีกลับใบเดียวได้เมื่อยังมี
+        // ใบอื่นที่นับครบแทนเท่านั้น ไม่งั้น rollback การเปลี่ยนใบส่งทั้งก้อน
+        if (statusChanged && input.status === "RETURNED") {
+          const orderState = await tx.order.findUniqueOrThrow({
+            where: { id: delivery.orderId },
+            select: { internalStatus: true },
+          });
+          if (orderState.internalStatus === "READY_TO_SHIP") {
+            await assertOrderPackingReadyToShip(tx, delivery.orderId);
+          }
+        }
+
         // Also update order tracking number if provided
         if (input.trackingNumber) {
           await tx.order.update({
@@ -435,24 +467,9 @@ export const deliveryRouter = router({
               status: { in: ["PENDING", "PREPARING"] },
             },
           });
-          // แบ่งส่งแบบนับยืนยัน (ก้อน 3): เมื่อใบส่งของออเดอร์นี้มีรายการต่อกล่อง
-          // ต้องส่งครบ "จำนวนตัว" ด้วย — กล่องแรกออกก่อนสร้างใบที่เหลือ ห้ามประกาศ
-          // ทั้งออเดอร์ว่าส่งแล้ว (ใบส่งแบบเก่าไม่มีรายการ = นับจากจำนวนใบเหมือนเดิม)
-          let qtyComplete = true;
-          const shippedLines = await tx.deliveryLine.aggregate({
-            where: { delivery: { orderId: delivery.orderId, status: { not: "RETURNED" } } },
-            _sum: { qty: true },
-          });
-          const shippedQty = shippedLines._sum.qty ?? 0;
-          if (shippedQty > 0) {
-            const orderItems = await tx.orderItem.aggregate({
-              where: { orderId: delivery.orderId },
-              _sum: { totalQuantity: true },
-            });
-            const orderedQty = orderItems._sum.totalQuantity ?? 0;
-            qtyComplete = orderedQty === 0 || shippedQty >= orderedQty;
-          }
-          if (pendingSiblings === 0 && qtyComplete) {
+          // ใช้ evidence ต่อไซส์/สีชุดเดียวกับด่านพร้อมส่ง — ของแถมจึงนับแทนไซส์ที่ขาดไม่ได้
+          const evidence = await getOrderPackingEvidence(tx, delivery.orderId);
+          if (pendingSiblings === 0 && evidence.isReadyToShip) {
             await advanceOrderForward(tx, {
               orderId: delivery.orderId,
               target: "SHIPPED",
@@ -494,6 +511,21 @@ export const deliveryRouter = router({
     .use(managerUp)
     .input(byIdInput)
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.delivery.delete({ where: { id: input.id } });
+      return ctx.prisma.$transaction(async (tx) => {
+        const current = await tx.delivery.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { orderId: true },
+        });
+        await lockOrderRow(tx, current.orderId);
+        const deleted = await tx.delivery.delete({ where: { id: input.id } });
+        const orderState = await tx.order.findUniqueOrThrow({
+          where: { id: current.orderId },
+          select: { internalStatus: true },
+        });
+        if (orderState.internalStatus === "READY_TO_SHIP") {
+          await assertOrderPackingReadyToShip(tx, current.orderId);
+        }
+        return deleted;
+      });
     }),
 });

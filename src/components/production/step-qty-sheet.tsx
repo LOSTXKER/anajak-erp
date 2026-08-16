@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { validateStepQtyInput } from "@/lib/step-qty-input";
 import { Loader2, Check } from "lucide-react";
-import { DASHED_INTERACTIVE } from "@/components/ui/tokens";
+import { DASHED_INTERACTIVE, FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 // bottom sheet ปิดขั้นแบบนับจำนวน (UX1) — ช่างบอก "ทำเพิ่มกี่ตัว" ใน 2 แตะ
@@ -39,31 +40,38 @@ export function StepQtySheet({
   const done = step.qtyDone ?? 0;
   const remaining = Math.max(0, total - done);
   const [value, setValue] = useState<string>(String(remaining));
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const descriptionId = useId();
+  const errorId = useId();
 
   const stepName = step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
-  // จำนวนทำเพิ่มรอบนี้ clamp ไม่เกินที่เหลือ — server ไม่ validate เพดาน qtyDone
-  // (zod มีแค่ min(0)) จอนี้จึงเป็นด่านเดียวที่กันเลขเกิน
-  const added = Math.min(remaining, Math.max(0, Math.floor(Number(value) || 0)));
+  // ห้าม clamp เลขเกินเงียบๆ: คนทำต้องเห็นและแก้ตัวเลขก่อนปิดขั้น
+  // ไม่งั้นกรอก 99 ทั้งที่ทำ 9 ตัว จอจะแปลเป็น "ครบ" แล้วปิดงานผิด
+  const validation = validateStepQtyInput(value, remaining);
+  const added = validation.added;
   const newDone = done + added;
-  const willComplete = added === remaining && remaining > 0;
+  const willComplete = validation.error === null && added === remaining && remaining > 0;
 
   function handleConfirm() {
-    if (added <= 0) return;
+    if (validation.error !== null) return;
     onSubmit(willComplete ? { status: "COMPLETED" } : { qtyDone: newDone });
   }
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       {/* มือถือ: แผ่นติดขอบล่าง (นิ้วโป้งถึง) · จอใหญ่: dialog กลางจอปกติ ·
-          กัน autofocus — คีย์บอร์ดมือถือเด้งทับปุ่มยืนยันที่ติดขอบล่าง (เคสหลัก
-          "ครบ→ยืนยัน" ไม่ต้องพิมพ์เลย · คีย์บอร์ดเปิดเมื่อช่างแตะช่องเองเท่านั้น) */}
+          โฟกัสหัวเรื่องแทน input — คีย์บอร์ดมือถือไม่เด้งทับปุ่มยืนยันที่ติดขอบล่าง
+          (เคสหลัก "ครบ→ยืนยัน" ไม่ต้องพิมพ์เลย · คีย์บอร์ดเปิดเมื่อช่างแตะช่องเองเท่านั้น) */}
       <DialogContent
-        onOpenAutoFocus={(e) => e.preventDefault()}
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          titleRef.current?.focus();
+        }}
         className="bottom-0 left-0 right-0 top-auto max-w-full translate-x-0 translate-y-0 rounded-b-none rounded-t-2xl p-5 data-[state=closed]:slide-out-to-bottom-10 data-[state=open]:slide-in-from-bottom-10 sm:bottom-auto sm:left-[50%] sm:right-auto sm:top-[50%] sm:max-w-sm sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:p-6"
       >
         <div className="space-y-1">
-          <DialogTitle>{stepName}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle ref={titleRef} tabIndex={-1}>{stepName}</DialogTitle>
+          <DialogDescription id={descriptionId}>
             ทำแล้ว <span className="font-semibold tabular-nums">{done}/{total}</span> ตัว
             — รอบนี้ทำเพิ่มกี่ตัว?
           </DialogDescription>
@@ -73,14 +81,32 @@ export function StepQtySheet({
           <Input
             type="number"
             inputMode="numeric"
-            min={0}
+            min={1}
             max={remaining}
+            step={1}
             value={value}
+            aria-label={`จำนวนที่ทำเพิ่มสำหรับ ${stepName}`}
+            aria-invalid={validation.error !== null || undefined}
+            aria-describedby={
+              validation.error === null ? descriptionId : `${descriptionId} ${errorId}`
+            }
             onChange={(e) => setValue(e.target.value)}
             // แตะช่องแล้วเลขเดิมถูก select ทั้งก้อน — พิมพ์ใหม่แทนที่ทันที (กัน "50"→"5010")
             onFocus={(e) => e.currentTarget.select()}
-            className="h-14 text-center text-2xl font-semibold tabular-nums"
+            className={cn(
+              "h-14 text-center text-2xl font-semibold tabular-nums",
+              validation.error !== null && cn("border-red-300", FOCUS_FIELD_INVALID),
+            )}
           />
+          {validation.error !== null && (
+            <p
+              id={errorId}
+              role="alert"
+              className="text-center text-sm font-medium text-red-700 dark:text-red-300"
+            >
+              {validation.error}
+            </p>
+          )}
           {!willComplete && (
             <button
               type="button"
@@ -110,15 +136,20 @@ export function StepQtySheet({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={busy || added <= 0}
+            disabled={busy || validation.error !== null}
+            aria-busy={busy || undefined}
             className="h-11 flex-[2] gap-1.5"
           >
             {busy ? (
-              <Loader2 className="animate-spin" />
+              <Loader2 aria-hidden="true" className="animate-spin" />
             ) : (
-              <Check />
+              <Check aria-hidden="true" />
             )}
-            {willComplete ? "เสร็จครบ — ปิดขั้นนี้" : `บันทึก ${newDone}/${total}`}
+            {busy
+              ? "กำลังบันทึก..."
+              : willComplete
+                ? "เสร็จครบ — ปิดขั้นนี้"
+                : `บันทึก ${newDone}/${total}`}
           </Button>
         </div>
       </DialogContent>

@@ -1,0 +1,1429 @@
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ต้นแบบระบบฝ่ายผลิต — Anajak ERP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --font: "Prompt", "Noto Sans Thai", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --page: #fafafa;
+      --surface: #ffffff;
+      --surface-muted: #f3f5f7;
+      --surface-hover: #f1f3f5;
+      --surface-pressed: #e3e6e9;
+      --field: #ffffff;
+      --line: #e2e6ea;
+      --line-soft: #e8ebef;
+      --line-strong: #87919d;
+      --ink: #181b20;
+      --ink-2: #454b55;
+      --ink-3: #5b6572;
+      --blue: #3973b2;
+      --blue-hover: #305f93;
+      --blue-soft: #e4edf6;
+      --blue-ink: #305f93;
+      --red: #b42318;
+      --red-soft: #fff5f5;
+      --amber: #854d0e;
+      --amber-soft: #fffbeb;
+      --green: #166534;
+      --green-soft: #f0fdf4;
+      --shadow: 0 1px 2px rgb(16 24 40 / .05), 0 0 0 1px rgb(16 24 40 / .04);
+      --shadow-raised: 0 10px 30px rgb(16 24 40 / .11), 0 2px 5px rgb(16 24 40 / .06);
+      --sidebar: 240px;
+      --topbar: 64px;
+      --radius: 14px;
+      --radius-inner: 10px;
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #1a1a1c;
+      --surface: #252528;
+      --surface-muted: #1d1d1f;
+      --surface-hover: #303034;
+      --surface-pressed: #38383c;
+      --field: #101012;
+      --line: #343438;
+      --line-soft: #303034;
+      --line-strong: #777780;
+      --ink: #f5f5f7;
+      --ink-2: #d1d1d6;
+      --ink-3: #a1a1aa;
+      --blue: #3973b2;
+      --blue-hover: #305f93;
+      --blue-soft: #173c61;
+      --blue-ink: #d8e8f7;
+      --red: #fda29b;
+      --red-soft: #451a1a;
+      --amber: #fde68a;
+      --amber-soft: #3b2f12;
+      --green: #86efac;
+      --green-soft: #12351f;
+      --shadow: 0 1px 2px rgb(0 0 0 / .35), 0 0 0 1px rgb(255 255 255 / .05);
+      --shadow-raised: 0 14px 38px rgb(0 0 0 / .45), 0 2px 6px rgb(0 0 0 / .25);
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--page); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--ink);
+      font: 400 14px/1.5 var(--font);
+      letter-spacing: -.01em;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select, textarea { font: inherit; }
+    button, select { cursor: pointer; }
+    button:disabled { cursor: not-allowed; }
+    a { color: inherit; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: 24px; line-height: 1.2; letter-spacing: -.02em; font-weight: 600; margin-bottom: 6px; }
+    h2 { font-size: 18px; line-height: 1.35; letter-spacing: -.015em; font-weight: 600; margin-bottom: 4px; }
+    h3 { font-size: 15px; line-height: 1.4; font-weight: 600; margin-bottom: 4px; }
+    .muted { color: var(--ink-3); }
+    .secondary { color: var(--ink-2); }
+    .tnum { font-variant-numeric: tabular-nums; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+    .icon { width: 19px; height: 19px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    :focus-visible { outline: 3px solid color-mix(in srgb, var(--blue) 50%, transparent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: no-preference) {
+      .view-enter { animation: view-in .22s cubic-bezier(.2,.8,.2,1); }
+      .toast { animation: toast-in .2s cubic-bezier(.2,.8,.2,1); }
+      @keyframes view-in { from { opacity: .55; transform: translateY(4px); } }
+      @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
+    }
+
+    .app-shell {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: var(--sidebar) minmax(0, 1fr);
+      grid-template-rows: var(--topbar) minmax(0, 1fr);
+      grid-template-areas: "topbar topbar" "sidebar main";
+      overflow: hidden;
+    }
+    .sidebar {
+      grid-area: sidebar;
+      min-height: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--line-soft);
+      padding: 16px 12px;
+      overflow-y: auto;
+    }
+    .brand { width: var(--sidebar); height: 100%; flex: 0 0 auto; display: flex; align-items: center; gap: 12px; border: 0; border-right: 1px solid var(--line-soft); background: transparent; color: var(--ink); padding: 0 20px; text-align: left; }
+    .brand-mark { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: #fff; background: #3973b2; }
+    .brand-mark .icon { width: 18px; height: 18px; }
+    .brand-name { font-size: 14px; font-weight: 600; line-height: 1.15; }
+    .nav-list { display: grid; gap: 2px; }
+    .nav-button {
+      border: 0;
+      background: transparent;
+      color: var(--ink-2);
+      min-height: 44px;
+      padding: 9px 11px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      text-align: left;
+      transition: background .14s ease, color .14s ease;
+    }
+    .nav-button:hover { background: var(--surface-hover); color: var(--ink); }
+    .nav-button:active { background: var(--surface-pressed); }
+    .nav-button[aria-current="page"] { background: var(--blue-soft); color: var(--blue-ink); font-weight: 500; }
+    .shell-divider { height: 1px; background: var(--line-soft); margin: 16px 0; }
+    .shell-more summary { list-style: none; }
+    .shell-more summary::-webkit-details-marker { display: none; }
+    .shell-more summary .chevron { margin-left: auto; transition: transform .14s ease; }
+    .shell-more[open] summary .chevron { transform: rotate(90deg); }
+    .shell-more-body { padding: 10px 12px 2px 42px; color: var(--ink-3); font-size: 11px; line-height: 1.65; }
+
+    .app-topbar {
+      grid-area: topbar;
+      z-index: 35;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      height: var(--topbar);
+      background: var(--surface);
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .topbar-main { min-width: 0; flex: 1; display: flex; align-items: center; gap: 10px; padding: 0 20px; }
+    .global-search { position: relative; flex: 1 1 520px; max-width: 520px; }
+    .global-search .search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+    .global-search input {
+      width: 100%;
+      min-height: 44px;
+      padding: 9px 48px 9px 42px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-muted);
+      color: var(--ink);
+      box-shadow: 0 1px 2px rgb(16 24 40 / .03);
+    }
+    .global-search input::placeholder { color: var(--ink-3); }
+    .global-search input:focus { border-color: var(--blue); outline: 3px solid color-mix(in srgb, var(--blue) 18%, transparent); }
+    .search-key { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); border: 1px solid var(--line); background: var(--surface-muted); color: var(--ink-3); border-radius: 6px; padding: 1px 6px; font-size: 11px; }
+    .search-popover {
+      position: absolute;
+      inset: calc(100% + 6px) 0 auto 0;
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow-raised);
+      padding: 6px;
+      z-index: 80;
+    }
+    .search-popover.open { display: block; }
+    .search-result { width: 100%; border: 0; background: transparent; color: var(--ink); border-radius: 8px; padding: 9px 10px; min-height: 48px; display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; text-align: left; }
+    .search-result:hover, .search-result:focus-visible { background: var(--surface-hover); }
+    .search-result .result-main { font-weight: 500; }
+    .search-result .result-sub { color: var(--ink-3); font-size: 12px; }
+    .search-empty { padding: 16px 12px; color: var(--ink-3); text-align: center; }
+
+    .top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .user-avatar { width: 44px; min-height: 44px; border: 0; border-radius: 999px; background: var(--blue); color: #fff; font-weight: 600; display: grid; place-items: center; }
+    .control, .button, .icon-button {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface);
+      color: var(--ink-2);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 12px;
+      font-weight: 500;
+      transition: background .14s ease, border-color .14s ease, color .14s ease;
+    }
+    .control:hover, .button:hover, .icon-button:hover { background: var(--surface-hover); color: var(--ink); }
+    .control:active, .button:active, .icon-button:active { background: var(--surface-pressed); }
+    .control { appearance: none; padding-right: 34px; background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%); background-position: calc(100% - 16px) calc(50% - 2px), calc(100% - 12px) calc(50% - 2px); background-size: 4px 4px, 4px 4px; background-repeat: no-repeat; }
+    .icon-button { width: 44px; padding: 0; }
+    .button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .button.primary:hover { background: var(--blue-hover); border-color: var(--blue-hover); color: #fff; }
+    .button.danger { color: var(--red); }
+    .button.quiet { border-color: transparent; background: transparent; box-shadow: none; }
+    .button.full { width: 100%; }
+    .button:disabled { background: var(--surface-muted); border-color: var(--line); color: var(--ink-3); }
+    .scan-button { white-space: nowrap; }
+    .role-select { max-width: 174px; }
+
+    .workspace { grid-area: main; min-width: 0; min-height: 0; padding: 20px 24px 42px; overflow-y: auto; outline: none; }
+    .module-bar { width: 100%; max-width: 1512px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .module-nav { min-width: 0; display: flex; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: thin; padding: 2px; }
+    .module-tab { min-height: 44px; border: 0; border-radius: 9px; background: transparent; color: var(--ink-3); padding: 8px 11px; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font-weight: 500; }
+    .module-tab:hover { background: var(--surface-hover); color: var(--ink); }
+    .module-tab[aria-current="page"] { background: var(--blue-soft); color: var(--blue-ink); }
+    .module-tab .icon { width: 17px; height: 17px; }
+    .prototype-tools { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+    .prototype-note { min-height: 32px; border-radius: 999px; background: var(--surface-muted); color: var(--ink-3); padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; white-space: nowrap; }
+    .prototype-note strong { color: var(--ink-2); font-weight: 600; }
+    .page { width: 100%; max-width: 1512px; margin: 0 auto; }
+    .page-head { display: flex; gap: 20px; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+    .page-head p { color: var(--ink-3); margin: 0; max-width: 72ch; }
+    .page-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .breadcrumb { display: flex; gap: 5px; align-items: center; color: var(--ink-3); font-size: 12px; margin-bottom: 8px; }
+    .breadcrumb button { color: var(--blue-ink); background: transparent; border: 0; min-width: 44px; min-height: 44px; padding: 3px 0; }
+    .page-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; color: var(--ink-3); font-size: 12px; margin-top: 9px; }
+
+    .surface { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .section { padding: 18px; }
+    .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+    .section-head p { color: var(--ink-3); margin: 2px 0 0; font-size: 12px; }
+    .section-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .divider { height: 1px; background: var(--line-soft); margin: 16px 0; }
+
+    .badge { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .badge.neutral { background: var(--surface-muted); color: var(--ink-2); }
+    .badge.blue { background: var(--blue-soft); color: var(--blue-ink); }
+    .badge.red { background: var(--red-soft); color: var(--red); }
+    .badge.amber { background: var(--amber-soft); color: var(--amber); }
+    .badge.green { background: var(--green-soft); color: var(--green); }
+    .status-dot { width: 7px; height: 7px; border-radius: 999px; background: currentColor; }
+
+    .flow-rail {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(118px, 1fr));
+      gap: 0;
+      margin-bottom: 16px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .flow-step {
+      position: relative;
+      min-width: 118px;
+      min-height: 76px;
+      border: 0;
+      border-right: 1px solid var(--line-soft);
+      background: transparent;
+      color: var(--ink-2);
+      padding: 12px 14px;
+      text-align: left;
+    }
+    .flow-step:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+    .flow-step:last-child { border-right: 0; border-radius: 0 var(--radius) var(--radius) 0; }
+    .flow-step:hover { background: var(--surface-hover); }
+    .flow-step[aria-pressed="true"] { background: var(--blue-soft); color: var(--blue-ink); }
+    .flow-step .flow-name { display: block; font-weight: 500; margin-bottom: 5px; }
+    .flow-step .flow-count { display: block; font-size: 20px; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .flow-step .flow-note { display: block; color: var(--ink-3); font-size: 11px; margin-top: 4px; }
+    .flow-step[aria-pressed="true"] .flow-note { color: var(--blue-ink); }
+
+    .work-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+    .filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .filter-button { min-height: 44px; border: 1px solid transparent; background: transparent; color: var(--ink-3); border-radius: 8px; padding: 8px 10px; font-weight: 500; }
+    .filter-button:hover { background: var(--surface-hover); color: var(--ink); }
+    .filter-button[aria-pressed="true"] { background: var(--surface-muted); color: var(--ink); border-color: var(--line); }
+    .filter-button .filter-count { color: var(--ink-3); margin-left: 5px; font-variant-numeric: tabular-nums; }
+
+    .work-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .work-table th { color: var(--ink-3); font-size: 11px; font-weight: 500; text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+    .work-table td { padding: 11px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+    .work-table tbody tr { cursor: pointer; transition: background .12s ease; }
+    .work-table tbody tr:hover { background: var(--surface-hover); }
+    .work-table tbody tr.selected { background: var(--blue-soft); }
+    .work-table tbody tr:last-child td { border-bottom: 0; }
+    .order-cell { min-width: 190px; }
+    .order-link { min-height: 44px; border: 0; background: transparent; color: var(--blue-ink); font-weight: 600; padding: 0; text-align: left; display: inline-flex; align-items: center; }
+    .order-sub { color: var(--ink-3); font-size: 11px; margin-top: 2px; max-width: 34ch; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .due.overdue { color: var(--red); font-weight: 500; }
+    .due.today { color: var(--amber); font-weight: 500; }
+    .row-status { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+    .row-status .status-dot { color: var(--ink-3); }
+    .row-status.ready .status-dot { color: var(--green); }
+    .row-status.blocked .status-dot { color: var(--red); }
+    .row-status.working .status-dot { color: var(--blue); }
+    .row-chevron { color: var(--ink-3); }
+
+    .context-panel { position: sticky; top: 18px; overflow: hidden; }
+    .context-top { padding: 18px 18px 15px; border-bottom: 1px solid var(--line-soft); }
+    .context-id { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .context-id h2 { color: var(--blue-ink); margin-bottom: 2px; }
+    .context-body { padding: 16px 18px 18px; }
+    .next-task { padding: 14px; border-radius: 11px; background: var(--surface-muted); margin-bottom: 14px; }
+    .next-task-label { color: var(--ink-3); font-size: 11px; margin-bottom: 4px; }
+    .next-task strong { display: block; font-size: 16px; font-weight: 600; }
+    .next-task p { color: var(--ink-3); font-size: 12px; margin: 4px 0 0; }
+    .info-list { display: grid; gap: 0; }
+    .info-row { display: grid; grid-template-columns: 96px 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+    .info-row:last-child { border-bottom: 0; }
+    .info-row dt { color: var(--ink-3); }
+    .info-row dd { margin: 0; color: var(--ink-2); font-weight: 500; }
+
+    .station-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(310px, .75fr); gap: 16px; align-items: start; }
+    .active-job { display: grid; grid-template-columns: minmax(0, 1fr) 160px auto; gap: 16px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line-soft); }
+    .active-job:last-child { border-bottom: 0; }
+    .progress { height: 7px; border-radius: 999px; background: var(--surface-muted); overflow: hidden; margin-top: 8px; }
+    .progress > span { display: block; height: 100%; background: var(--blue); border-radius: inherit; }
+    .queue-list { display: grid; }
+    .queue-row { display: grid; grid-template-columns: minmax(180px, 1fr) 120px 116px auto; gap: 14px; align-items: center; min-height: 66px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+    .queue-row:last-child { border-bottom: 0; }
+
+    .job-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(340px, .85fr); gap: 16px; align-items: start; }
+    .now-card { padding: 20px; }
+    .now-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+    .task-block { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line-soft); }
+    .task-block:first-of-type { border-top: 0; }
+    .task-symbol { width: 46px; height: 46px; display: grid; place-items: center; color: var(--blue-ink); }
+    .task-symbol .icon { width: 25px; height: 25px; }
+    .task-copy p { color: var(--ink-3); margin: 2px 0 0; font-size: 12px; }
+    .blocker { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 10px; background: var(--amber-soft); color: var(--amber); margin-top: 12px; }
+    .blocker p { margin: 0; color: inherit; font-size: 12px; }
+    .ref-grid { display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: 14px; align-items: start; }
+    .design-thumb { min-height: 112px; border-radius: 10px; background: var(--surface-muted); display: grid; place-items: center; color: var(--ink-3); }
+    .size-grid { display: grid; grid-template-columns: repeat(6, minmax(42px, 1fr)); gap: 6px; margin-top: 14px; }
+    .size-cell { background: var(--surface-muted); border-radius: 8px; padding: 7px 5px; text-align: center; }
+    .size-cell span { display: block; color: var(--ink-3); font-size: 10px; }
+    .size-cell strong { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .step-list { display: grid; }
+    .step-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 54px; border-bottom: 1px solid var(--line-soft); }
+    .step-row:last-child { border-bottom: 0; }
+    .step-mark { width: 22px; height: 22px; border-radius: 999px; border: 1.5px solid var(--line-strong); display: grid; place-items: center; color: var(--ink-3); }
+    .step-row.done .step-mark { background: var(--green-soft); border-color: var(--green); color: var(--green); }
+    .step-row.current .step-mark { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .step-row.waiting { color: var(--ink-3); }
+
+    .two-pane { display: grid; grid-template-columns: minmax(340px, .9fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+    .run-card { padding: 15px 0; border-bottom: 1px solid var(--line-soft); }
+    .run-card:last-child { border-bottom: 0; }
+    .run-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .run-items { display: grid; gap: 7px; margin-top: 10px; }
+    .run-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ink-2); font-size: 12px; }
+    .select-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 92px 92px; gap: 12px; align-items: center; min-height: 64px; border-bottom: 1px solid var(--line-soft); }
+    .select-row:last-child { border-bottom: 0; }
+    .check-button { width: 44px; height: 44px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); color: transparent; display: grid; place-items: center; }
+    .check-button[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .qty-input { width: 82px; min-height: 44px; border: 1px solid var(--line); background: var(--field); color: var(--ink); border-radius: 8px; padding: 7px 9px; font-variant-numeric: tabular-nums; }
+    .selection-bar { position: sticky; top: 12px; z-index: 10; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 11px; background: var(--surface); box-shadow: var(--shadow-raised); margin-bottom: 10px; }
+    .selection-bar .button { margin-left: auto; }
+
+    .split-register { display: grid; grid-template-columns: minmax(330px, .78fr) minmax(0, 1.22fr); gap: 16px; align-items: start; }
+    .register-list { display: grid; }
+    .register-row { width: 100%; border: 0; background: transparent; color: var(--ink); text-align: left; padding: 12px 0; border-bottom: 1px solid var(--line-soft); display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 12px; }
+    .register-row:last-child { border-bottom: 0; }
+    .register-row:hover { background: var(--surface-hover); }
+    .register-row.selected { background: var(--blue-soft); margin-inline: -10px; padding-inline: 10px; border-radius: 8px; border-bottom-color: transparent; }
+    .register-row .register-title { font-weight: 500; }
+    .register-row .register-meta { color: var(--ink-3); font-size: 11px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field { display: grid; gap: 5px; }
+    .field label { color: var(--ink-2); font-size: 12px; font-weight: 500; }
+    .field input, .field select, .field textarea { width: 100%; min-height: 44px; border: 1px solid var(--line-strong); background: var(--field); color: var(--ink); border-radius: 9px; padding: 9px 11px; }
+    .field textarea { min-height: 84px; resize: vertical; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue); outline: 3px solid color-mix(in srgb, var(--blue) 18%, transparent); }
+    .field input:disabled, .field select:disabled, .field textarea:disabled, .qty-input:disabled { cursor: not-allowed; background: var(--surface-muted); color: var(--ink-3); }
+    .field [aria-invalid="true"] { border-color: var(--red); }
+    .field.full { grid-column: 1 / -1; }
+    .form-note { color: var(--ink-3); font-size: 11px; }
+    .form-error { min-height: 22px; margin-top: 8px; color: var(--red); font-size: 12px; }
+    .total-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line-soft); margin-top: 12px; }
+    .total-line strong { font-size: 18px; font-weight: 600; }
+    .checklist { display: grid; gap: 6px; }
+    .check-item { width: 100%; min-height: 44px; display: flex; align-items: center; gap: 10px; border: 0; border-radius: 9px; padding: 7px 9px; background: transparent; color: var(--ink); text-align: left; }
+    .check-item:hover { background: var(--surface-hover); }
+    .check-item:disabled { cursor: not-allowed; color: var(--ink-3); }
+    .check-mark { width: 20px; height: 20px; flex: 0 0 auto; display: grid; place-items: center; border: 1.5px solid var(--line-strong); border-radius: 4px; color: transparent; }
+    .check-mark .icon { width: 15px; height: 15px; }
+    .check-item[aria-checked="true"] .check-mark { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+    .role-note { display: flex; align-items: flex-start; gap: 9px; padding: 11px 12px; border-radius: 10px; background: var(--surface-muted); color: var(--ink-2); font-size: 12px; margin-bottom: 14px; }
+    .material-list { display: grid; gap: 8px; }
+    .material-row { display: grid; grid-template-columns: minmax(180px, 1fr) 110px 110px 110px; gap: 12px; align-items: end; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+    .material-row:last-child { border-bottom: 0; }
+    .material-name strong { display: block; }
+    .material-name span { display: block; color: var(--ink-3); font-size: 11px; margin-top: 2px; }
+    .material-row .field label { font-size: 11px; }
+    .history-list { display: grid; gap: 8px; }
+    .history-item { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+    .history-item:last-child { border-bottom: 0; }
+    .history-item time { color: var(--ink-3); font-size: 11px; }
+    .history-item strong { display: block; font-size: 12px; }
+    .history-item span { color: var(--ink-3); font-size: 11px; }
+    .rework-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+    .summary-cell { padding: 12px; border-radius: 10px; background: var(--surface-muted); }
+    .summary-cell span { display: block; color: var(--ink-3); font-size: 11px; }
+    .summary-cell strong { display: block; margin-top: 3px; font-size: 15px; }
+    body[data-role="operator"] [data-manager-only], body[data-role="readonly"] [data-manager-only] { display: none !important; }
+
+    .metric-line { display: grid; grid-template-columns: minmax(0, 1fr) 160px 110px; align-items: center; gap: 16px; min-height: 90px; border-bottom: 1px solid var(--line-soft); }
+    .metric-line:last-child { border-bottom: 0; }
+    .metric-value { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+    .delta { font-size: 12px; text-align: right; }
+    .defect-row { display: grid; grid-template-columns: minmax(150px, .8fr) minmax(180px, 1.2fr) 74px; gap: 12px; align-items: center; min-height: 48px; }
+    .defect-bar { height: 9px; border-radius: 999px; background: var(--surface-muted); overflow: hidden; }
+    .defect-bar span { display: block; height: 100%; border-radius: inherit; background: var(--amber); }
+
+    .empty { padding: 42px 20px; text-align: center; color: var(--ink-3); }
+    .empty .empty-icon { width: 48px; height: 48px; border-radius: 13px; margin: 0 auto 12px; display: grid; place-items: center; background: var(--surface-muted); }
+    .empty h3 { color: var(--ink); }
+    .empty p { max-width: 44ch; margin: 0 auto; }
+
+    .toast-wrap { position: fixed; right: 20px; bottom: 20px; z-index: 150; display: grid; gap: 8px; pointer-events: none; }
+    .toast { min-width: 300px; max-width: 420px; background: #181b20; color: #fff; border-radius: 12px; box-shadow: var(--shadow-raised); padding: 12px 14px; display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; }
+    .toast strong { display: block; font-weight: 600; margin-bottom: 2px; }
+    .toast span { color: #c8d0d9; font-size: 12px; }
+    .mobile-nav { display: none; }
+
+    @media (pointer: coarse) {
+      .control, .button, .icon-button, .filter-button, .check-button, .qty-input, .module-tab { min-height: 48px; }
+      .icon-button, .check-button { width: 48px; }
+      .nav-button { min-height: 50px; }
+      .work-table td { padding-top: 14px; padding-bottom: 14px; }
+      .queue-row, .select-row { min-height: 72px; }
+    }
+
+    @media (max-width: 1180px) {
+      .workspace { padding-inline: 18px; }
+      .module-bar { align-items: flex-start; flex-direction: column; }
+      .module-nav { width: 100%; }
+      .prototype-tools { width: 100%; }
+      .prototype-note { margin-right: auto; }
+      .flow-rail { grid-template-columns: repeat(7, minmax(108px, 1fr)); }
+      .flow-step { min-width: 108px; padding-inline: 11px; }
+      .work-layout { grid-template-columns: 1fr; }
+      .work-layout > .context-panel { display: none; }
+      .work-table th:nth-child(2), .work-table td:nth-child(2) { display: none; }
+      .station-layout, .job-grid, .two-pane, .split-register { grid-template-columns: 1fr; }
+      .context-panel { position: static; }
+      .station-layout > :last-child { order: -1; }
+      .queue-row { grid-template-columns: minmax(170px, 1fr) 110px 98px auto; }
+    }
+
+    @media (max-width: 1023px) {
+      :root { --sidebar: 0px; }
+      .app-shell { grid-template-columns: 1fr; grid-template-areas: "topbar" "main"; }
+      .sidebar { display: none; }
+      .brand { width: 64px; justify-content: center; padding: 0; border-right: 0; }
+      .brand-name { display: none; }
+      .topbar-main { padding-inline: 14px; }
+      .workspace { padding: 18px 14px 92px; }
+      .work-layout { grid-template-columns: 1fr; }
+      .context-panel { display: none; }
+      .flow-rail { grid-template-columns: repeat(7, 132px); }
+      .mobile-nav { position: fixed; inset: auto 0 0; z-index: 80; display: grid; grid-template-columns: repeat(5, 1fr); padding: 5px 4px max(8px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line-soft); background: var(--surface); }
+      .mobile-nav button { border: 0; background: transparent; color: var(--ink-3); min-height: 52px; border-radius: 8px; display: grid; place-items: center; gap: 2px; font-size: 10px; }
+      .mobile-nav button[aria-current="page"] { background: var(--blue-soft); color: var(--blue-ink); }
+    }
+
+    @media (max-width: 680px) {
+      .topbar-main { padding-inline: 10px; }
+      .global-search { min-width: 0; }
+      .global-search input { padding-right: 34px; }
+      .search-key { display: none; }
+      .prototype-tools { flex-wrap: wrap; }
+      .prototype-note { flex: 1 1 100%; }
+      .role-select { flex: 1 1 150px; max-width: none; }
+      .scan-button span, .theme-label { display: none; }
+      .page-head { display: block; }
+      .page-actions { justify-content: flex-start; margin-top: 14px; }
+      .section { padding: 15px; }
+      .work-table, .work-table thead, .work-table tbody, .work-table tr, .work-table th, .work-table td { display: block; }
+      .work-table thead { display: none; }
+      .work-table tbody { display: grid; gap: 8px; }
+      .work-table tbody tr { padding: 12px; border-radius: 11px; background: var(--surface); box-shadow: var(--shadow); }
+      .work-table td { border: 0; padding: 3px 0; }
+      .work-table td:last-child { display: none; }
+      .order-cell { min-width: 0; }
+      .active-job, .queue-row, .select-row, .task-block { grid-template-columns: 1fr; }
+      .task-symbol { display: none; }
+      .size-grid { grid-template-columns: repeat(3, 1fr); }
+      .ref-grid, .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .metric-line { grid-template-columns: 1fr auto; }
+      .metric-line .delta { grid-column: 1 / -1; text-align: left; }
+      .defect-row { grid-template-columns: minmax(0, 1fr) 36px; }
+      .defect-row .defect-bar { grid-column: 1 / -1; grid-row: 2; }
+      .material-row { grid-template-columns: 1fr 1fr; }
+      .material-name { grid-column: 1 / -1; }
+      .rework-summary { grid-template-columns: 1fr; }
+      .selection-bar { flex-wrap: wrap; }
+      .selection-bar .button { margin-left: 0; width: 100%; }
+      .toast-wrap { left: 10px; right: 10px; bottom: 78px; }
+      .toast { min-width: 0; max-width: none; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <!--
+  THESIS: One production control flow that answers what needs action now; it refuses a KPI dashboard and duplicate board-plus-list views.
+  OWN-WORLD: The canonical Anajak Print AppShell stays unchanged; production adds only a local work-area strip inside the main content, using the same neutral surfaces and cobalt interaction language.
+  STORY: Find an order by number or QR, dispatch it to a real work center, execute the current task, then QC before one final packing step.
+  FIRST VIEWPORT: Canonical ERP header and sidebar establish location first, then one local production strip leads into the station rail and due-ranked worklist; at 1024 touch width a row opens context as a focused work order.
+  FORM: Existing ERP shell plus one in-content production work-area strip, then the work-center flow rail and master-detail worklist; grounded candidate 3, seed c44de785.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with a bounded browser review and an explicit verdict.
+  -->
+
+  <svg class="icon-sprite" aria-hidden="true">
+    <defs>
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></symbol>
+      <symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol>
+      <symbol id="i-store" viewBox="0 0 24 24"><path d="M3 9l2-5h14l2 5"/><path d="M5 13v8h14v-8M9 21v-6h6v6"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
+      <symbol id="i-package" viewBox="0 0 24 24"><path d="m21 8-9-5-9 5 9 5z"/><path d="m3 8 9 5 9-5v8l-9 5-9-5zM12 13v8"/></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V2"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+      <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><path d="M15 15h2v2h-2zM19 15h2v6h-6v-2M15 19h2"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.7 2.2 18a2 2 0 0 0 1.7 3h16.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+      <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-12-3L4 8M6 15a7 7 0 0 0 12 3l2-2"/></symbol>
+      <symbol id="i-shirt" viewBox="0 0 24 24"><path d="m8 3-5 3 2 5 3-1v11h8V10l3 1 2-5-5-3a4 4 0 0 1-8 0z"/></symbol>
+      <symbol id="i-boxes" viewBox="0 0 24 24"><path d="m2 7 5-3 5 3-5 3zM7 10v6M2 7v6l5 3 5-3V7"/><path d="m12 13 5-3 5 3-5 3zM17 16v6M12 13v6l5 3 5-3v-6"/></symbol>
+      <symbol id="i-factory" viewBox="0 0 24 24"><path d="M3 21V10l6 3V9l6 4V6l6 4v11z"/><path d="M7 21v-4h3v4M15 17h2M15 14h2"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="app-shell">
+    <header class="app-topbar">
+      <button class="brand" type="button" data-shell-action="ภาพรวม ERP" aria-label="ภาพรวม ERP">
+        <span class="brand-mark" aria-hidden="true"><svg class="icon"><use href="#i-printer"/></svg></span>
+        <span class="brand-name">Anajak Print</span>
+      </button>
+      <div class="topbar-main">
+        <form class="global-search" id="globalSearch" role="search">
+          <svg class="icon search-icon"><use href="#i-search"/></svg>
+          <label class="sr-only" for="orderSearch">ค้นหาเลขออเดอร์ หรือสแกน QR</label>
+          <input id="orderSearch" autocomplete="off" placeholder="ค้นหาเลขออเดอร์ หรือสแกน QR" aria-controls="searchResults" aria-expanded="false">
+          <span class="search-key">/</span>
+          <div class="search-popover" id="searchResults" role="listbox"></div>
+        </form>
+        <div class="top-actions">
+          <button class="icon-button" type="button" data-shell-action="การแจ้งเตือน" aria-label="การแจ้งเตือน"><svg class="icon"><use href="#i-bell"/></svg></button>
+          <button class="user-avatar" type="button" data-shell-action="เมนูผู้ใช้" aria-label="เมนูผู้ใช้">บ</button>
+        </div>
+      </div>
+    </header>
+
+    <aside class="sidebar" aria-label="เมนูหลัก ERP">
+      <nav class="nav-list" id="sideNav">
+        <button class="nav-button" type="button" data-shell-action="แดชบอร์ด"><svg class="icon"><use href="#i-grid"/></svg><span>แดชบอร์ด</span></button>
+        <button class="nav-button" type="button" data-shell-action="งานของฉัน"><svg class="icon"><use href="#i-list"/></svg><span>งานของฉัน</span></button>
+        <button class="nav-button" type="button" data-shell-action="ออเดอร์"><svg class="icon"><use href="#i-file"/></svg><span>ออเดอร์</span></button>
+        <button class="nav-button" type="button" data-production-root aria-current="page"><svg class="icon"><use href="#i-factory"/></svg><span>การผลิต</span></button>
+        <button class="nav-button" type="button" data-shell-action="ลูกค้า"><svg class="icon"><use href="#i-users"/></svg><span>ลูกค้า</span></button>
+      </nav>
+      <div class="shell-divider"></div>
+      <details class="shell-more">
+        <summary class="nav-button"><svg class="icon"><use href="#i-more"/></svg><span>เมนูทั้งหมด</span><svg class="icon chevron"><use href="#i-chevron"/></svg></summary>
+        <div class="shell-more-body">เมนูขาย · ผลิต · สินค้า · การเงิน · ระบบ ตามสิทธิ์ผู้ใช้เดิม</div>
+      </details>
+    </aside>
+
+    <main class="workspace" id="main-content" tabindex="-1">
+      <div class="module-bar">
+        <nav class="module-nav" aria-label="พื้นที่ในโมดูลการผลิต">
+          <button class="module-tab" type="button" data-view="control" data-module-view="control"><svg class="icon"><use href="#i-grid"/></svg><span>ภาพรวม</span></button>
+          <button class="module-tab" type="button" data-view="station" data-module-view="station"><svg class="icon"><use href="#i-list"/></svg><span>คิวสถานี</span></button>
+          <button class="module-tab" type="button" data-view="print" data-module-view="print"><svg class="icon"><use href="#i-printer"/></svg><span>DTF</span></button>
+          <button class="module-tab" type="button" data-view="outsource" data-module-view="outsource"><svg class="icon"><use href="#i-store"/></svg><span>ร้านนอก</span></button>
+          <button class="module-tab" type="button" data-view="qc" data-module-view="qc"><svg class="icon"><use href="#i-shield"/></svg><span>QC</span></button>
+          <button class="module-tab" type="button" data-view="packing" data-module-view="packing"><svg class="icon"><use href="#i-package"/></svg><span>แพ็กส่ง</span></button>
+          <button class="module-tab" type="button" data-view="performance" data-module-view="performance" data-manager-only><svg class="icon"><use href="#i-chart"/></svg><span>ผลงาน</span></button>
+        </nav>
+        <div class="prototype-tools" aria-label="เครื่องมือต้นแบบ">
+          <span class="prototype-note" role="note"><strong>ต้นแบบ</strong><span>ไม่บันทึกจริง</span></span>
+          <button class="button scan-button" id="demoScan" type="button"><svg class="icon"><use href="#i-qr"/></svg><span>สแกน QR</span></button>
+          <label class="sr-only" for="roleSelect">จำลองสิทธิ์ผู้ใช้</label>
+          <select class="control role-select" id="roleSelect">
+            <option value="manager">หัวหน้าผลิต</option>
+            <option value="operator">พนักงานสถานี</option>
+            <option value="readonly">ดูอย่างเดียว</option>
+          </select>
+          <button class="icon-button" id="themeToggle" type="button" aria-label="สลับธีมต้นแบบ"><svg class="icon"><use href="#i-moon"/></svg></button>
+        </div>
+      </div>
+      <div id="screenRoot" tabindex="-1"></div>
+    </main>
+  </div>
+
+  <nav class="mobile-nav" aria-label="เมนูหลัก ERP บนจอแคบ">
+    <button type="button" data-shell-action="แดชบอร์ด"><svg class="icon"><use href="#i-grid"/></svg><span>แดชบอร์ด</span></button>
+    <button type="button" data-shell-action="งานของฉัน"><svg class="icon"><use href="#i-list"/></svg><span>งานของฉัน</span></button>
+    <button type="button" data-shell-action="ออเดอร์"><svg class="icon"><use href="#i-file"/></svg><span>ออเดอร์</span></button>
+    <button type="button" data-production-root aria-current="page"><svg class="icon"><use href="#i-factory"/></svg><span>การผลิต</span></button>
+    <button type="button" data-shell-action="เมนูทั้งหมด"><svg class="icon"><use href="#i-more"/></svg><span>ทั้งหมด</span></button>
+  </nav>
+
+  <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
+  <div class="sr-only" id="liveRegion" aria-live="polite"></div>
+
+  <script>
+    const icon = (name, label = "") => `<svg class="icon"${label ? ` aria-label="${label}" role="img"` : " aria-hidden=\"true\""}><use href="#i-${name}"/></svg>`;
+
+    const orders = [
+      { id:"ORD-2608-0041", customer:"BKK Street", title:"เสื้อทีมเปิดตัวสินค้า", work:"DTF · รีดร้อน", qty:120, due:"วันนี้ 17:00", dueType:"today", station:"heat", status:"ready", statusLabel:"พร้อมรีด", progress:55, next:"เริ่มรีดร้อน", nextView:"job", owner:"ยังไม่รับงาน", priority:true, blocker:"", lanes:["DTF","รีดร้อน"], size:{S:20,M:30,L:30,XL:20,"2XL":12,"3XL":8}},
+      { id:"ORD-2608-0042", customer:"Pine Club", title:"เสื้อทีมครบรอบ", work:"DTF", qty:64, due:"พรุ่งนี้ 14:00", dueType:"soon", station:"dtf", status:"ready", statusLabel:"พร้อมเข้าคิวพิมพ์", progress:15, next:"จัดเข้ารอบพิมพ์", nextView:"print", owner:"ยังไม่รับงาน", priority:false, blocker:"", lanes:["DTF","รีดร้อน"], size:{S:8,M:14,L:18,XL:12,"2XL":8,"3XL":4}},
+      { id:"ORD-2608-0036", customer:"Neon Wear", title:"เสื้อ Staff งานวิ่ง", work:"DTF", qty:80, due:"เลยกำหนด 1 วัน", dueType:"overdue", station:"dtf", status:"blocked", statusLabel:"ไฟล์ยังไม่พร้อม", progress:10, next:"ตรวจไฟล์พิมพ์", nextView:"job", owner:"ฝ่ายออกแบบ", priority:true, blocker:"รอไฟล์พิมพ์เวอร์ชันอนุมัติ", lanes:["DTF"], size:{S:10,M:20,L:25,XL:15,"2XL":10,"3XL":0}},
+      { id:"ORD-2608-0038", customer:"Blue Eagle", title:"ยูนิฟอร์มทีมขาย", work:"ปัก · DTF", qty:45, due:"วันนี้ 18:00", dueType:"today", station:"outsource", status:"working", statusLabel:"อยู่ร้านนอก", progress:42, next:"ติดตามรับกลับ", nextView:"outsource", owner:"เมย์", priority:true, blocker:"ร้านแจ้งส่งกลับช้ากว่าแผน 3 ชั่วโมง", lanes:["ร้านนอก","DTF"], size:{S:5,M:10,L:12,XL:10,"2XL":8,"3XL":0}},
+      { id:"ORD-2608-0040", customer:"The Club", title:"เสื้อสมาชิกล็อตสิงหาคม", work:"DTF · รีดร้อน", qty:85, due:"พรุ่งนี้", dueType:"soon", station:"dtf", status:"working", statusLabel:"กำลังพิมพ์", progress:28, next:"ดูรอบพิมพ์", nextView:"print", owner:"ต้น", priority:false, blocker:"", lanes:["DTF","รีดร้อน"], size:{S:10,M:18,L:22,XL:20,"2XL":10,"3XL":5}},
+      { id:"ORD-2608-0039", customer:"Alpha Team", title:"เสื้อทีมกิจกรรม", work:"สกรีนร้านนอก", qty:60, due:"พรุ่งนี้", dueType:"soon", station:"outsource", status:"ready", statusLabel:"พร้อมส่งร้าน", progress:20, next:"สร้างใบส่งร้าน", nextView:"outsource", owner:"ยังไม่รับงาน", priority:false, blocker:"", lanes:["ร้านนอก"], size:{S:8,M:14,L:18,XL:12,"2XL":8,"3XL":0}},
+      { id:"ORD-2608-0037", customer:"Infinity", title:"เสื้อกิจกรรมองค์กร", work:"DTF · รีดร้อน", qty:200, due:"24 ส.ค.", dueType:"normal", station:"heat", status:"working", statusLabel:"รีดแล้วบางส่วน", progress:68, next:"ยืนยันจำนวนรีด", nextView:"job", owner:"นัท", priority:false, blocker:"", lanes:["DTF","รีดร้อน"], size:{S:25,M:45,L:50,XL:40,"2XL":25,"3XL":15}},
+      { id:"ORD-2608-0035", customer:"Rider Co.", title:"เสื้อทีมทริปประจำปี", work:"DTF", qty:110, due:"25 ส.ค.", dueType:"normal", station:"qc", status:"ready", statusLabel:"รอตรวจ QC", progress:82, next:"เริ่มตรวจนับ", nextView:"qc", owner:"ยังไม่รับงาน", priority:false, blocker:"", lanes:["DTF","QC"], size:{S:15,M:25,L:30,XL:20,"2XL":12,"3XL":8}},
+      { id:"ORD-2608-0034", customer:"Local Brand", title:"เสื้อขายหน้าร้าน", work:"ปัก", qty:50, due:"26 ส.ค.", dueType:"normal", station:"packing", status:"ready", statusLabel:"พร้อมแพ็ก", progress:92, next:"เริ่มแพ็กส่ง", nextView:"packing", owner:"ปาล์ม", priority:false, blocker:"", lanes:["ร้านนอก","QC","แพ็กส่ง"], size:{S:5,M:10,L:15,XL:10,"2XL":7,"3XL":3}},
+      { id:"ORD-2608-0033", customer:"City Lab", title:"เสื้อทีมทดลอง", work:"DTF", qty:30, due:"27 ส.ค.", dueType:"normal", station:"release", status:"blocked", statusLabel:"รอเสื้อเข้า", progress:0, next:"ตรวจรับเสื้อ", nextView:"job", owner:"ยังไม่รับงาน", priority:false, blocker:"เสื้อลูกค้ายังตรวจรับไม่ครบ 30 ตัว", lanes:["เตรียมเสื้อ","DTF"], size:{S:5,M:8,L:8,XL:5,"2XL":4,"3XL":0}},
+      { id:"ORD-2608-0032", customer:"North Crew", title:"เสื้อคอลเลกชันพิเศษ", work:"DTF · ป้ายคอ", qty:70, due:"28 ส.ค.", dueType:"normal", station:"qc", status:"working", statusLabel:"QC พบของเสีย", progress:84, next:"เปิดงานแก้ 4 ตัว", nextView:"qc", owner:"เบนซ์", priority:true, blocker:"ลายหลังเยื้อง 4 ตัว ต้องพิมพ์แก้", lanes:["DTF","QC","งานแก้"], size:{S:8,M:15,L:18,XL:15,"2XL":9,"3XL":5}},
+      { id:"ORD-2608-0031", customer:"Mono Studio", title:"เสื้อทีมถ่ายทำ", work:"DTF", qty:36, due:"29 ส.ค.", dueType:"normal", station:"packing", status:"working", statusLabel:"กำลังแพ็ก", progress:95, next:"ยืนยัน 3 กล่อง", nextView:"packing", owner:"ปาล์ม", priority:false, blocker:"", lanes:["DTF","QC","แพ็กส่ง"], size:{S:4,M:8,L:10,XL:8,"2XL":6,"3XL":0}}
+    ];
+
+    const stationMeta = [
+      {key:"attention", label:"ต้องแก้ก่อน", note:"เลยกำหนด/ติดขัด"},
+      {key:"release", label:"พร้อมผลิต", note:"ผ่านด่านแล้ว"},
+      {key:"dtf", label:"DTF", note:"พิมพ์และตัด"},
+      {key:"outsource", label:"ร้านนอก", note:"ส่งและรับกลับ"},
+      {key:"heat", label:"รีดร้อน", note:"ฟิล์ม+เสื้อพร้อม"},
+      {key:"qc", label:"QC", note:"ตรวจก่อนแพ็ก"},
+      {key:"packing", label:"แพ็กส่ง", note:"ขั้นสุดท้าย"}
+    ];
+
+    const activeRunOrderIds = new Set(["ORD-2608-0040", "ORD-2608-0037"]);
+    const outsourceRecords = {
+      "ORD-2608-0038": {vendor:"Embroidery Partner A", stage:"working", sentQty:45, sentAt:"13 ส.ค. 10:20", expected:"วันนี้ 15:00", note:"ร้านแจ้งช้ากว่าแผน 3 ชั่วโมง", dtfReady:true},
+      "ORD-2608-0039": {vendor:"Screen Partner B", stage:"ready", sentQty:0, sentAt:"—", expected:"พรุ่งนี้", note:"รอยืนยันจำนวนและวันรับกลับ"},
+      "ORD-2608-0034": {vendor:"Embroidery Partner A", stage:"complete", sentQty:50, sentAt:"10 ส.ค. 09:15", returnedAt:"14 ส.ค. 16:20", expected:"14 ส.ค.", note:"รับกลับครบ 50 ตัว · QC ผ่านแล้ว"}
+    };
+
+    const appState = {
+      view: location.hash.replace("#", "") || "control",
+      selectedOrderId: "ORD-2608-0041",
+      station: "attention",
+      filter: "all",
+      role: "manager",
+      printSelected: new Set(["ORD-2608-0042"]),
+      printRun: {id:"FR-2608-0018", stage:"printing", orderIds:["ORD-2608-0040", "ORD-2608-0037"], started:"10:32", operator:"ต้น"},
+      qcSelected: "ORD-2608-0032",
+      qcProgress: {
+        "ORD-2608-0032": {good:66, defect:4}
+      },
+      outsourceSelected: "ORD-2608-0038",
+      packSelected: "ORD-2608-0034",
+      materialOrderId: "ORD-2608-0041",
+      materialBalances: {
+        "ORD-2608-0041": {
+          garment:{issued:120, returned:0}, film:{issued:120, returned:0}, adhesive:{issued:300, returned:0}, tape:{issued:1, returned:0}
+        }
+      },
+      materialHistory: {
+        "ORD-2608-0041": [{time:"วันนี้ 09:10", action:"เบิก", detail:"เสื้อ 120 ตัว · ฟิล์ม DTF 120 ชิ้น · โดยต้น"}]
+      },
+      reworkSelected: "ORD-2608-0032",
+      reworks: {
+        "ORD-2608-0032": {qty:4, reason:"ลายพิมพ์เยื้อง", note:"ลายหลังเยื้อง แยกเสื้อไว้ชั้นงานแก้", stage:"waiting", workCenter:"DTF", updated:"วันนี้ 11:05"}
+      },
+      packChecks: {
+        "ORD-2608-0034": [true, true, false, false],
+        "ORD-2608-0031": [false, false, false, false]
+      },
+      packed: new Set()
+    };
+
+    const screenRoot = document.getElementById("screenRoot");
+    const workspace = document.querySelector(".workspace");
+    const searchInput = document.getElementById("orderSearch");
+    const searchResults = document.getElementById("searchResults");
+    const liveRegion = document.getElementById("liveRegion");
+    const isManager = () => appState.role === "manager";
+    const canOperate = () => appState.role === "manager" || appState.role === "operator";
+    const isReadOnly = () => appState.role === "readonly";
+    const selectedOrder = () => orders.find(order => order.id === appState.selectedOrderId) || orders[0];
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[char]);
+    }
+
+    function statusBadge(order) {
+      const tone = order.status === "blocked" || order.statusLabel.includes("ของเสีย") ? "red" : order.status === "working" ? "blue" : "green";
+      return `<span class="badge ${tone}"><span class="status-dot"></span>${escapeHtml(order.statusLabel)}</span>`;
+    }
+
+    function dueClass(order) { return order.dueType === "overdue" ? "overdue" : order.dueType === "today" ? "today" : ""; }
+
+    function roleNote() {
+      if (isManager()) return `<div class="role-note">${icon("shield")}<span><strong>หัวหน้าผลิต</strong> · จัดคิว เปิดรอบ และลงมือแทนสถานีได้</span></div>`;
+      if (canOperate()) return `<div class="role-note">${icon("play")}<span><strong>พนักงานสถานี</strong> · ลงมือและบันทึกผลได้ แต่จัดคิวหรือดูผลงานรวมไม่ได้</span></div>`;
+      return `<div class="role-note">${icon("file")}<span><strong>ดูอย่างเดียว</strong> · เปิดใบงานและประวัติได้ แต่แก้ข้อมูลหรือเปลี่ยนสถานะไม่ได้</span></div>`;
+    }
+
+    function reconcileSelectedOrder(list) {
+      if (!list.length) return null;
+      const current = list.find(order => order.id === appState.selectedOrderId);
+      if (current) return current;
+      appState.selectedOrderId = list[0].id;
+      return list[0];
+    }
+
+    function hasDtf(order) {
+      return order.lanes.some(lane => lane === "DTF" || lane === "รีดร้อน");
+    }
+
+    function materialsForOrder(order) {
+      const materials = [{key:"garment", name:"เสื้อ", unit:"ตัว", required:order.qty, readiness:order.station === "release" ? `รับเข้า 18 / ${order.qty}` : `พร้อม ${order.qty}`}];
+      if (hasDtf(order)) {
+        materials.push({key:"film", name:"ฟิล์ม DTF ตัดตามชิ้น", unit:"ชิ้น", required:order.qty, readiness:["heat","qc","packing"].includes(order.station) ? "ตัดและติดป้ายแล้ว" : "รอจัดรอบพิมพ์"});
+        materials.push({key:"adhesive", name:"กาว DTF", unit:"กรัม", required:Math.max(100, Math.ceil(order.qty * 2.5)), readiness:"พร้อมเบิก"});
+        materials.push({key:"tape", name:"เทปกันเปื้อน", unit:"ม้วน", required:1, readiness:"พร้อมเบิก"});
+      }
+      if (order.station === "packing") materials.push({key:"box", name:"กล่องจัดส่ง", unit:"กล่อง", required:3, readiness:"พร้อมเบิก"});
+      return materials;
+    }
+
+    function designReference(order) {
+      if (hasDtf(order)) return {title:"ลายหน้าอกซ้าย + หลังเต็ม", detail:"DTF · หน้า 9 × 9 ซม. · หลัง 28 × 34 ซม. · ใช้ไฟล์อนุมัติ v3"};
+      if (order.work.includes("ปัก")) return {title:"ปักอกซ้าย", detail:"งานร้านนอก · ตำแหน่งอกซ้าย · ใช้ไฟล์ปักอนุมัติ v2"};
+      return {title:"แบบผลิตสำหรับร้านนอก", detail:`${order.work} · ใช้ใบสเปกและไฟล์อนุมัติล่าสุด`};
+    }
+
+    function pageHead(title, description, actions = "", breadcrumb = "") {
+      return `<div class="page-head"><div>${breadcrumb}${`<h1>${title}</h1>`}<p>${description}</p></div>${actions ? `<div class="page-actions">${actions}</div>` : ""}</div>`;
+    }
+
+    function countForStation(key) {
+      if (key === "attention") return orders.filter(order => order.priority || order.status === "blocked").length;
+      return orders.filter(order => order.station === key).length;
+    }
+
+    function renderFlowRail(active = appState.station) {
+      return `<div class="surface flow-rail" aria-label="เลือกสถานีผลิต">${stationMeta.map(item => `<button class="flow-step" data-station="${item.key}" aria-pressed="${active === item.key}"><span class="flow-name">${item.label}</span><span class="flow-count">${countForStation(item.key)}</span><span class="flow-note">${item.note}</span></button>`).join("")}</div>`;
+    }
+
+    function filteredOrders() {
+      let result = appState.station === "attention"
+        ? orders.filter(order => order.priority || order.status === "blocked")
+        : orders.filter(order => order.station === appState.station);
+      if (appState.filter !== "all") result = result.filter(order => order.status === appState.filter);
+      return result;
+    }
+
+    function renderOrderRows(list) {
+      if (!list.length) return `<tr><td colspan="7"><div class="empty"><div class="empty-icon">${icon("check")}</div><h3>ไม่มีงานในมุมมองนี้</h3><p>ลองเปลี่ยนสถานีหรือตัวกรองสถานะ</p></div></td></tr>`;
+      return list.map(order => `<tr data-order-id="${order.id}" class="${appState.selectedOrderId === order.id ? "selected" : ""}" tabindex="0">
+        <td class="order-cell"><button class="order-link" data-open-order="${order.id}">${order.id}</button><div class="order-sub">${escapeHtml(order.customer)} · ${escapeHtml(order.title)}</div></td>
+        <td>${escapeHtml(order.work)}</td>
+        <td class="tnum">${order.qty}</td>
+        <td class="due ${dueClass(order)}">${escapeHtml(order.due)}</td>
+        <td><span class="row-status ${order.status}"><span class="status-dot"></span>${escapeHtml(order.statusLabel)}</span></td>
+        <td>${escapeHtml(order.owner)}</td>
+        <td class="row-chevron">${icon("chevron")}</td>
+      </tr>`).join("");
+    }
+
+    function renderContext(order) {
+      const action = canOperate()
+        ? appState.reworks[order.id]
+          ? `<button class="button primary full" data-open-rework="${order.id}">เปิดงานแก้ ${appState.reworks[order.id].qty} ตัว</button>`
+          : `<button class="button primary full" data-open-view="${order.nextView}" data-order="${order.id}">${escapeHtml(order.next)}</button>`
+        : `<span class="badge neutral">ดูอย่างเดียว</span>`;
+      return `<aside class="surface context-panel" aria-label="สรุปใบผลิตที่เลือก">
+        <div class="context-top"><div class="context-id"><div><h2>${order.id}</h2><div class="muted">${escapeHtml(order.customer)} · ${escapeHtml(order.title)}</div></div>${statusBadge(order)}</div></div>
+        <div class="context-body">
+          <div class="next-task"><div class="next-task-label">ตอนนี้ต้องทำ</div><strong>${escapeHtml(order.next)}</strong><p>${order.blocker ? escapeHtml(order.blocker) : `เสร็จแล้วส่งต่อ ${order.nextView === "qc" ? "QC" : order.station === "packing" ? "พร้อมส่ง" : "สถานีถัดไป"}`}</p></div>
+          ${action}
+          <dl class="info-list"><div class="info-row"><dt>กำหนดส่ง</dt><dd class="${dueClass(order)}">${escapeHtml(order.due)}</dd></div><div class="info-row"><dt>จำนวน</dt><dd class="tnum">${order.qty} ตัว</dd></div><div class="info-row"><dt>สายงาน</dt><dd>${escapeHtml(order.lanes.join(" · "))}</dd></div><div class="info-row"><dt>ผู้รับงาน</dt><dd>${escapeHtml(order.owner)}</dd></div></dl>
+          <button class="button quiet full" data-open-order="${order.id}" style="margin-top:8px">เปิดใบผลิตเต็ม ${icon("chevron")}</button>
+        </div>
+      </aside>`;
+    }
+
+    function renderControl() {
+      const list = filteredOrders();
+      const stationTotal = appState.station === "attention" ? orders.filter(order => order.priority || order.status === "blocked").length : orders.filter(order => order.station === appState.station).length;
+      const order = reconcileSelectedOrder(list);
+      return `<div class="page view-enter">
+        ${pageHead("ศูนย์ควบคุมการผลิต", "เริ่มจากงานที่ต้องแก้ แล้วใช้สถานีเป็นตัวกรองคิวเดียว—ไม่ทำบอร์ดกับรายการซ้ำกัน", `<button class="button" data-view="station">เปิดโหมดจอประจำสถานี ${icon("chevron")}</button>`, `<div class="page-meta"><span>ศุกร์ 15 สิงหาคม 2569</span><span>กะหลัก 08:00–17:00</span><span class="badge neutral">ข้อมูลตัวอย่าง</span></div>`)}
+        ${roleNote()}
+        ${renderFlowRail()}
+        <div class="work-layout">
+          <section class="surface section" aria-labelledby="worklist-title">
+            <div class="section-head"><div><h2 id="worklist-title">${stationMeta.find(item => item.key === appState.station)?.label || "งานผลิต"}</h2><p>${list.length} งาน · เรียงกำหนดส่งก่อน</p></div><div class="filters"><button class="filter-button" data-filter="all" aria-pressed="${appState.filter === "all"}">ทั้งหมด <span class="filter-count">${stationTotal}</span></button><button class="filter-button" data-filter="ready" aria-pressed="${appState.filter === "ready"}">พร้อมทำ</button><button class="filter-button" data-filter="working" aria-pressed="${appState.filter === "working"}">กำลังทำ</button><button class="filter-button" data-filter="blocked" aria-pressed="${appState.filter === "blocked"}">ติดขัด</button></div></div>
+            <div style="overflow-x:auto"><table class="work-table"><thead><tr><th>ออเดอร์</th><th>งาน</th><th>จำนวน</th><th>กำหนดส่ง</th><th>สถานะ</th><th>ผู้รับงาน</th><th><span class="sr-only">เปิด</span></th></tr></thead><tbody>${renderOrderRows(list)}</tbody></table></div>
+          </section>
+          ${order ? renderContext(order) : ""}
+        </div>
+      </div>`;
+    }
+
+    function renderStation() {
+      const stationKey = appState.station === "attention" ? "dtf" : appState.station;
+      const meta = stationMeta.find(item => item.key === stationKey) || stationMeta[2];
+      const stationOrders = orders.filter(order => order.station === stationKey);
+      const active = stationOrders.filter(order => order.status === "working");
+      const queue = stationOrders.filter(order => order.status === "ready");
+      const blocked = stationOrders.filter(order => order.status === "blocked");
+      const stationControl = isManager()
+        ? `<select class="control" id="stationSelect" aria-label="เลือกสถานี">${stationMeta.slice(1).map(item => `<option value="${item.key}" ${item.key === stationKey ? "selected" : ""}>${item.label}</option>`).join("")}</select><span class="badge blue">จอประจำสถานี</span>`
+        : `<span class="badge blue">สถานี ${meta.label}</span>`;
+      return `<div class="page view-enter">
+        ${pageHead(`คิวสถานี · ${meta.label}`, "โหมดตั้งค้างบนจอทัช เห็นเฉพาะงานของสถานีนี้และงานที่พร้อมลงมือ", stationControl)}
+        ${roleNote()}
+        <div class="station-layout">
+          <section class="surface section"><div class="section-head"><div><h2>คิวพร้อมทำ</h2><p>แสดงเฉพาะงานที่เสื้อ แบบ และขั้นก่อนหน้าพร้อม</p></div><span class="badge neutral">${queue.length} งาน</span></div><div class="queue-list">${queue.length ? queue.map(order => `<div class="queue-row"><div><button class="order-link" data-open-order="${order.id}">${order.id}</button><div class="order-sub">${escapeHtml(order.customer)} · ${escapeHtml(order.title)}</div></div><div class="tnum">${order.qty} ตัว</div><div class="due ${dueClass(order)}">${escapeHtml(order.due)}</div>${canOperate() ? `<button class="button primary" data-simulate="รับงาน ${order.id}">รับงาน</button>` : `<span class="badge neutral">ดูอย่างเดียว</span>`}</div>`).join("") : `<div class="empty"><div class="empty-icon">${icon("check")}</div><h3>คิวสถานีนี้ว่าง</h3><p>งานใหม่จะเข้ามาเมื่อขั้นก่อนหน้าเสร็จและวัตถุดิบพร้อม</p></div>`}</div>${blocked.length ? `<div class="divider"></div><div class="blocker">${icon("alert")}<p><strong>ยังไม่เข้าคิวพร้อมทำ ${blocked.length} งาน</strong><br>${blocked.map(order => `${order.id}: ${escapeHtml(order.blocker)}`).join(" · ")}</p></div>` : ""}</section>
+          <section class="surface section"><div class="section-head"><div><h2>กำลังทำ</h2><p>งานที่สถานีรับแล้ว</p></div><span class="badge blue">${active.length} งาน</span></div>${active.length ? active.map(order => `<div class="active-job"><div><button class="order-link" data-open-order="${order.id}">${order.id}</button><div class="order-sub">${escapeHtml(order.customer)} · ${escapeHtml(order.title)}</div><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${order.progress}" aria-label="คืบหน้า ${order.progress}%"><span style="width:${order.progress}%"></span></div></div><div><strong class="tnum">${Math.round(order.qty * order.progress / 100)} / ${order.qty}</strong><div class="muted">ทำแล้ว</div></div><button class="button ${canOperate() ? "primary" : ""}" data-open-order="${order.id}">${canOperate() ? "ทำต่อ" : "เปิดดู"}</button></div>`).join("") : `<div class="empty"><div class="empty-icon">${icon("clock")}</div><h3>ยังไม่มีงานกำลังทำ</h3><p>รับงานจากคิวเมื่อพร้อมเริ่มที่สถานีนี้</p></div>`}</section>
+        </div>
+      </div>`;
+    }
+
+    function renderSizeGrid(order) {
+      return `<div class="size-grid">${Object.entries(order.size).map(([size, qty]) => `<div class="size-cell"><span>${size}</span><strong>${qty}</strong></div>`).join("")}</div>`;
+    }
+
+    function renderJob() {
+      const order = selectedOrder();
+      const isMixed = order.lanes.includes("ร้านนอก") && order.lanes.some(lane => lane === "DTF" || lane === "รีดร้อน");
+      const reference = designReference(order);
+      const materials = materialsForOrder(order);
+      const prepReady = order.station !== "release" && !(order.status === "blocked" && order.blocker.includes("ไฟล์"));
+      const productionDone = ["qc", "packing"].includes(order.station);
+      const productionCurrent = prepReady && !productionDone;
+      const rework = appState.reworks[order.id];
+      const mainAction = canOperate() ? `<button class="button primary" data-simulate="${order.next} · ${order.id}">${escapeHtml(order.next)}</button>` : `<span class="badge neutral">ดูอย่างเดียว</span>`;
+      return `<div class="page view-enter">
+        ${pageHead(order.id, `${escapeHtml(order.customer)} · ${escapeHtml(order.title)}`, `<button class="button" data-view="control">${icon("arrow-left")} กลับศูนย์ควบคุม</button>`, `<div class="breadcrumb"><button data-view="control">การผลิต</button>${icon("chevron")}<span>ใบผลิต</span></div><div class="page-meta"><span class="due ${dueClass(order)}">กำหนดส่ง ${escapeHtml(order.due)}</span><span>${order.qty} ตัว</span>${order.priority ? `<span class="badge red">ต้องติดตาม</span>` : ""}${statusBadge(order)}</div>`)}
+        ${roleNote()}
+        <div class="job-grid">
+          <div style="display:grid;gap:16px">
+            <section class="surface now-card"><div class="now-header"><div><h2>ตอนนี้ต้องทำ</h2><p class="muted">ระบบแสดงเฉพาะงานที่ลงมือได้และเหตุผลของงานที่ยังรอ</p></div>${isMixed ? `<span class="badge neutral">งานผสม 2 สาย</span>` : ""}</div>
+              <div class="task-block"><div class="task-symbol">${icon(order.nextView === "outsource" ? "store" : order.nextView === "qc" ? "shield" : order.nextView === "packing" ? "package" : "play")}</div><div class="task-copy"><h3>${escapeHtml(order.next)}</h3><p>${order.blocker ? escapeHtml(order.blocker) : `จำนวนเป้าหมาย ${order.qty} ตัว · เสร็จแล้วส่งต่อ ${order.nextView === "qc" ? "QC" : order.station === "packing" ? "พร้อมส่ง" : "สถานีถัดไป"}`}</p></div>${mainAction}</div>
+              ${order.blocker ? `<div class="blocker">${icon("alert")}<p><strong>ยังต้องแก้ก่อน:</strong> ${escapeHtml(order.blocker)}</p></div>` : ""}
+              ${isMixed ? `<div class="task-block"><div class="task-symbol">${icon("store")}</div><div class="task-copy"><h3>ติดตามงานร้านนอก</h3><p>สายงานเดินพร้อมกับ DTF ได้ แต่ต้องกลับและผ่าน QC ก่อนแพ็ก</p></div><button class="button" data-view="outsource">ดูร้านนอก</button></div>` : ""}
+              ${rework ? `<div class="task-block"><div class="task-symbol">${icon("refresh")}</div><div class="task-copy"><h3>งานแก้ ${rework.qty} ตัว</h3><p>${escapeHtml(rework.reason)} · สถานะ ${rework.stage === "waiting" ? "รอเริ่มแก้" : rework.stage === "working" ? "กำลังแก้" : "รอตรวจซ้ำ"}</p></div><button class="button" data-open-rework="${order.id}">เปิดงานแก้</button></div>` : ""}
+            </section>
+            <section class="surface section"><div class="section-head"><div><h2>ขั้นตอนทั้งหมด</h2><p>ผลิตทุกสายให้ครบ → QC → แพ็กส่งครั้งเดียว</p></div></div><div class="step-list">
+              <div class="step-row ${prepReady ? "done" : "current"}"><span class="step-mark">${prepReady ? icon("check") : "1"}</span><div><strong>เตรียมเสื้อและแบบ</strong><div class="muted">${prepReady ? "ของครบ · แบบอนุมัติแล้ว" : escapeHtml(order.blocker || "รอของและแบบให้พร้อม")}</div></div><span class="badge ${prepReady ? "green" : "amber"}">${prepReady ? "เสร็จ" : "ยังไม่พร้อม"}</span></div>
+              <div class="step-row ${productionDone ? "done" : productionCurrent ? "current" : "waiting"}"><span class="step-mark">${productionDone ? icon("check") : "2"}</span><div><strong>ผลิตตามสายงาน</strong><div class="muted">${escapeHtml(order.lanes.filter(lane => !["QC","แพ็กส่ง","งานแก้"].includes(lane)).join(" · "))}</div></div><span class="badge ${productionDone ? "green" : productionCurrent ? "blue" : "neutral"}">${productionDone ? "เสร็จ" : productionCurrent ? "กำลังทำ" : "รอขั้นเตรียม"}</span></div>
+              <div class="step-row ${order.station === "qc" ? "current" : order.station === "packing" ? "done" : "waiting"}"><span class="step-mark">3</span><div><strong>ตรวจคุณภาพ QC</strong><div class="muted">นับจำนวนดี/เสียและเปิดงานแก้เมื่อจำเป็น</div></div><span>${order.station === "qc" ? "ตอนนี้" : order.station === "packing" ? "ผ่านแล้ว" : "รอผลิตครบ"}</span></div>
+              <div class="step-row ${order.station === "packing" ? "current" : "waiting"}"><span class="step-mark">4</span><div><strong>แพ็กเพื่อจัดส่ง</strong><div class="muted">เกิดครั้งเดียวหลัง QC ผ่านครบ</div></div><span>${order.station === "packing" ? "ตอนนี้" : "รอ QC"}</span></div>
+            </div></section>
+          </div>
+          <div style="display:grid;gap:16px">
+            <section class="surface section"><div class="section-head"><div><h2>แบบและจำนวน</h2><p>ข้อมูลอ้างอิงที่ช่างต้องใช้ ไม่แสดงราคา</p></div></div><div class="ref-grid"><div class="design-thumb">${icon("shirt")}<span class="sr-only">ภาพแบบตัวอย่าง</span></div><div><h3>${escapeHtml(reference.title)}</h3><p class="muted">${escapeHtml(reference.detail)}</p><button class="button quiet" data-simulate="เปิดภาพแบบเต็ม">เปิดภาพแบบเต็ม</button></div></div>${renderSizeGrid(order)}</section>
+            <section class="surface section"><div class="section-head"><div><h2>เสื้อและวัตถุดิบ</h2><p>แสดงเฉพาะรายการที่ใช้กับสายงานนี้</p></div></div><dl class="info-list">${materials.map(item => `<div class="info-row"><dt>${escapeHtml(item.name)}</dt><dd><span class="badge ${item.readiness.includes("พร้อม") || item.readiness.includes("แล้ว") ? "green" : "amber"}">${escapeHtml(item.readiness)}</span></dd></div>`).join("")}</dl><button class="button full" data-open-materials="${order.id}" style="margin-top:12px">เบิก–คืนและดูประวัติ</button></section>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function renderMaterials() {
+      const order = selectedOrder();
+      const materials = materialsForOrder(order);
+      const balances = appState.materialBalances[order.id] || {};
+      const history = appState.materialHistory[order.id] || [];
+      const disabled = isReadOnly() ? "disabled aria-disabled=\"true\"" : "";
+      return `<div class="page view-enter">
+        ${pageHead("เบิก–คืนวัตถุดิบ", `${order.id} · ${escapeHtml(order.customer)} · ${escapeHtml(order.title)}`, `<button class="button" data-open-order="${order.id}">${icon("arrow-left")} กลับใบผลิต</button>`, `<div class="page-meta"><span>${order.qty} ตัว</span><span>${escapeHtml(order.work)}</span><span class="badge neutral">บันทึกในต้นแบบนี้เท่านั้น</span></div>`)}
+        ${roleNote()}
+        <div class="two-pane">
+          <section class="surface section">
+            <div class="section-head"><div><h2>รายการที่ใช้กับงานนี้</h2><p>เบิกและคืนเป็นยอดสะสม · ระบบกันยอดคืนมากกว่ายอดเบิก</p></div><span class="badge neutral">${materials.length} รายการ</span></div>
+            <form id="materialForm">
+              <div class="material-list">${materials.map(item => {
+                const balance = balances[item.key] || {issued:0, returned:0};
+                return `<div class="material-row" data-material-key="${item.key}"><div class="material-name"><strong>${escapeHtml(item.name)}</strong><span>ต้องใช้ ${item.required} ${escapeHtml(item.unit)} · ${escapeHtml(item.readiness)}</span></div><div class="field"><label for="issue-${item.key}">เบิกสะสม</label><input id="issue-${item.key}" data-material-issue="${item.key}" type="number" min="0" max="${item.required}" value="${balance.issued}" ${disabled}></div><div class="field"><label for="return-${item.key}">คืนสะสม</label><input id="return-${item.key}" data-material-return="${item.key}" type="number" min="0" max="${item.required}" value="${balance.returned}" ${disabled}></div><div class="summary-cell"><span>ใช้สุทธิ</span><strong class="tnum" data-material-net="${item.key}">${balance.issued - balance.returned} ${escapeHtml(item.unit)}</strong></div></div>`;
+              }).join("")}</div>
+              <div class="field" style="margin-top:14px"><label for="materialNote">หมายเหตุการเบิก–คืน</label><textarea id="materialNote" placeholder="เช่น คืนของเหลือหลังจบรอบ" ${disabled}></textarea></div>
+              <div class="form-error" id="materialError" role="alert" aria-live="polite"></div>
+              ${canOperate() ? `<button class="button primary" type="submit">บันทึกการเบิก–คืน</button>` : `<span class="badge neutral">ดูประวัติได้อย่างเดียว</span>`}
+            </form>
+          </section>
+          <section class="surface section">
+            <div class="section-head"><div><h2>ประวัติล่าสุด</h2><p>แยกผู้บันทึกและเวลา เพื่อย้อนตรวจได้</p></div></div>
+            <div class="history-list">${history.length ? history.map(entry => `<div class="history-item"><time>${escapeHtml(entry.time)}</time><div><strong>${escapeHtml(entry.action)}</strong><span>${escapeHtml(entry.detail)}</span></div></div>`).join("") : `<div class="empty"><div class="empty-icon">${icon("boxes")}</div><h3>ยังไม่มีรายการเบิก–คืน</h3><p>บันทึกครั้งแรกจากแบบฟอร์มด้านซ้าย</p></div>`}</div>
+          </section>
+        </div>
+      </div>`;
+    }
+
+    function renderPrint() {
+      const queue = orders.filter(order => order.station === "dtf" && order.status === "ready" && !activeRunOrderIds.has(order.id));
+      appState.printSelected = new Set([...appState.printSelected].filter(id => queue.some(order => order.id === id)));
+      const run = appState.printRun;
+      const runOrders = run.orderIds.map(id => orders.find(order => order.id === id)).filter(Boolean);
+      const stageIndex = {printing:0, cutting:1, heat:2, idle:3}[run.stage];
+      const runLabel = run.stage === "printing" ? "กำลังพิมพ์" : run.stage === "cutting" ? "รอตัดและติดป้าย" : run.stage === "heat" ? "ฟิล์มพร้อมรีด" : "ไม่มีรอบกำลังทำ";
+      const runTone = run.stage === "printing" ? "blue" : run.stage === "cutting" ? "amber" : "green";
+      const runAction = run.stage === "printing"
+        ? `<button class="button primary full" data-print-run-action="finish" style="margin-top:14px">ยืนยันพิมพ์จบทั้งม้วน</button>`
+        : run.stage === "cutting"
+          ? `<button class="button primary full" data-print-run-action="cut" style="margin-top:14px">ยืนยันตัดแยกและติดป้ายครบ</button>`
+          : run.stage === "heat"
+            ? `<button class="button primary full" data-print-run-action="qc" style="margin-top:14px">ยืนยันรีดครบ · ส่งเข้า QC</button>`
+            : "";
+      return `<div class="page view-enter">
+        ${pageHead("ศูนย์ DTF", "จัดรอบพิมพ์หลายออเดอร์ → ตัดแยกและติดป้าย → ส่งฟิล์มพร้อมรีด", `<button class="button" data-view="station">${icon("arrow-left")} กลับคิวสถานี</button>`)}
+        ${roleNote()}
+        <div class="two-pane">
+          <div style="display:grid;gap:16px">
+            <section class="surface section"><div class="section-head"><div><h2>${runLabel}</h2><p>${run.stage === "idle" ? "หัวหน้าผลิตเลือกรายการจากคิวเพื่อเปิดรอบใหม่" : "งานในรอบนี้ถูกถอดจากคิวเลือกซ้ำแล้ว"}</p></div>${run.stage === "idle" ? "" : `<span class="badge ${runTone}"><span class="status-dot"></span>${run.id}</span>`}</div>${run.stage === "idle" ? `<div class="empty"><div class="empty-icon">${icon("printer")}</div><h3>เครื่องพร้อมรับรอบใหม่</h3><p>เลือกรายการจากคิวด้านขวาแล้วเปิดรอบพิมพ์</p></div>` : `<div class="run-card"><div class="run-head"><div><strong>ม้วน DTF · ${runOrders.length} งาน</strong><div class="muted">เริ่ม ${run.started} · ${escapeHtml(run.operator)} เป็นผู้พิมพ์</div></div><strong class="tnum">${runOrders.reduce((sum, order) => sum + order.qty, 0)} ชิ้น</strong></div><div class="step-list" style="margin-top:12px"><div class="step-row ${stageIndex > 0 ? "done" : "current"}"><span class="step-mark">${stageIndex > 0 ? icon("check") : "1"}</span><div><strong>พิมพ์ทั้งม้วน</strong><div class="muted">ตรวจสีและความต่อเนื่องของลาย</div></div><span>${stageIndex > 0 ? "เสร็จ" : "ตอนนี้"}</span></div><div class="step-row ${stageIndex > 1 ? "done" : stageIndex === 1 ? "current" : "waiting"}"><span class="step-mark">${stageIndex > 1 ? icon("check") : "2"}</span><div><strong>ตัดแยกและติดป้าย</strong><div class="muted">แยกตามเลขออเดอร์ ป้องกันฟิล์มสลับงาน</div></div><span>${stageIndex === 1 ? "ตอนนี้" : stageIndex > 1 ? "เสร็จ" : "รอพิมพ์"}</span></div><div class="step-row ${stageIndex === 2 ? "current" : "waiting"}"><span class="step-mark">3</span><div><strong>รีดร้อน</strong><div class="muted">ยืนยันจำนวนครบก่อนส่ง QC</div></div><span>${stageIndex === 2 ? "ตอนนี้" : "รอตัด"}</span></div></div><div class="run-items">${runOrders.map(order => `<div class="run-item"><span>${order.id} · ${escapeHtml(order.customer)}</span><strong>${order.qty} ชิ้น</strong></div>`).join("")}</div>${canOperate() ? runAction : `<span class="badge neutral" style="margin-top:14px">ดูอย่างเดียว</span>`}</div>`}</section>
+            <section class="surface section"><div class="section-head"><div><h2>รอบที่ปิดแล้ว</h2><p>ประวัติสั้นสำหรับยืนยันว่ารอบก่อนหน้าไปขั้นถัดไปแล้ว</p></div><span class="badge green">1 รอบ</span></div><div class="run-card"><div class="run-head"><div><strong>FR-2608-0017</strong><div class="muted">3 งาน · ส่งเข้า QC 10:18</div></div><span class="badge green">ครบทุกขั้น</span></div></div></section>
+          </div>
+          <section class="surface section"><div class="section-head"><div><h2>คิวพิมพ์</h2><p>เรียงกำหนดส่ง · หัวหน้าผลิตเลือกหลายงานเข้ารอบเดียวกัน</p></div><span class="badge neutral">${queue.length} งาน</span></div>
+            ${appState.printSelected.size && isManager() ? `<div class="selection-bar"><strong>${appState.printSelected.size} งาน</strong><span class="muted">เลือกเข้ารอบ</span><button class="button primary" data-print-run-action="open" ${run.stage === "idle" ? "" : "disabled"}>${run.stage === "idle" ? "เปิดรอบพิมพ์" : "รอปิดรอบปัจจุบัน"}</button></div>` : ""}
+            ${!isManager() ? `<div class="role-note">${icon("shield")}<span>${canOperate() ? "พนักงานสถานีทำรอบที่เปิดแล้วได้ แต่หัวหน้าผลิตเป็นผู้จัดคิวและเปิดรอบใหม่" : "เปิดดูคิวได้ แต่เลือกหรือแก้จำนวนไม่ได้"}</span></div>` : ""}
+            <div>${queue.length ? queue.map(order => `<div class="select-row"><button class="check-button" data-print-select="${order.id}" aria-pressed="${appState.printSelected.has(order.id)}" aria-label="เลือก ${order.id}" ${isManager() ? "" : "disabled aria-disabled=\"true\""}>${icon("check")}</button><div><button class="order-link" data-open-order="${order.id}">${order.id}</button><div class="order-sub">${escapeHtml(order.customer)} · ${escapeHtml(order.title)}</div></div><label class="sr-only" for="qty-${order.id}">จำนวน ${order.id}</label><input class="qty-input" id="qty-${order.id}" type="number" min="1" max="${order.qty}" value="${order.qty}" ${isManager() ? "" : "disabled aria-disabled=\"true\""}><div class="due ${dueClass(order)}">${escapeHtml(order.due)}</div></div>`).join("") : `<div class="empty"><div class="empty-icon">${icon("check")}</div><h3>ไม่มีงานพร้อมจัดรอบ</h3><p>งานในรอบที่กำลังพิมพ์และงานติดขัดถูกแยกออกจากคิวนี้แล้ว</p></div>`}</div>
+          </section>
+        </div>
+      </div>`;
+    }
+
+    function renderOutsource() {
+      const stageRank = {working:0, ready:1, complete:2};
+      const jobs = orders.filter(order => order.lanes.includes("ร้านนอก")).sort((a, b) => stageRank[outsourceRecords[a.id]?.stage] - stageRank[outsourceRecords[b.id]?.stage]);
+      const current = orders.find(order => order.id === appState.outsourceSelected) || jobs[0];
+      const record = outsourceRecords[current.id];
+      const stageLabel = record.stage === "ready" ? "พร้อมสร้างใบส่งร้าน" : record.stage === "working" ? "อยู่ระหว่างทำที่ร้าน" : "รับกลับและ QC แล้ว";
+      const stageTone = record.stage === "working" ? "amber" : "green";
+      const steps = record.stage === "ready"
+        ? `<div class="step-row current"><span class="step-mark">1</span><div><strong>สร้างและยืนยันใบส่งร้าน</strong><div class="muted">ระบุจำนวน ร้าน และวันรับกลับ</div></div><span class="badge blue">ตอนนี้</span></div><div class="step-row waiting"><span class="step-mark">2</span><div><strong>อยู่ระหว่างทำ</strong><div class="muted">เริ่มหลังร้านยืนยันรับ</div></div><span>รอส่ง</span></div><div class="step-row waiting"><span class="step-mark">3</span><div><strong>รับของกลับ</strong><div class="muted">นับตามไซซ์และบันทึกตำหนิ</div></div><span>รอร้าน</span></div><div class="step-row waiting"><span class="step-mark">4</span><div><strong>QC ร้านนอก</strong><div class="muted">ผ่านก่อนเดินต่อสายอื่น</div></div><span>รอของ</span></div>`
+        : record.stage === "working"
+          ? `<div class="step-row done"><span class="step-mark">${icon("check")}</span><div><strong>ส่งร้าน</strong><div class="muted">ส่ง ${record.sentQty} ตัว</div></div><span>${escapeHtml(record.sentAt)}</span></div><div class="step-row current"><span class="step-mark">2</span><div><strong>อยู่ระหว่างทำ</strong><div class="muted">ร้านยืนยันรับงานแล้ว</div></div><span class="badge amber">ติดตาม</span></div><div class="step-row waiting"><span class="step-mark">3</span><div><strong>รับของกลับ</strong><div class="muted">นับตามไซซ์และบันทึกตำหนิ</div></div><span>รอรับ</span></div><div class="step-row waiting"><span class="step-mark">4</span><div><strong>QC ร้านนอก</strong><div class="muted">ผ่านก่อนเดินต่อสายอื่น</div></div><span>รอของ</span></div>`
+          : `<div class="step-row done"><span class="step-mark">${icon("check")}</span><div><strong>ส่งร้าน</strong><div class="muted">ส่งครบ ${record.sentQty} ตัว</div></div><span>${escapeHtml(record.sentAt)}</span></div><div class="step-row done"><span class="step-mark">${icon("check")}</span><div><strong>ร้านผลิตเสร็จ</strong><div class="muted">ปิดการติดตามร้านแล้ว</div></div><span>เสร็จ</span></div><div class="step-row done"><span class="step-mark">${icon("check")}</span><div><strong>รับของกลับ</strong><div class="muted">รับครบ ${record.sentQty} ตัว</div></div><span>${escapeHtml(record.returnedAt)}</span></div><div class="step-row done"><span class="step-mark">${icon("check")}</span><div><strong>QC ร้านนอก</strong><div class="muted">ผ่านครบและส่งต่อแพ็ก</div></div><span class="badge green">ผ่านแล้ว</span></div>`;
+      const actions = record.stage === "ready"
+        ? `<button class="button primary" data-outsource-action="send" data-order="${current.id}">สร้างและยืนยันใบส่งร้าน</button>`
+        : record.stage === "working"
+          ? `<button class="button" data-simulate="บันทึกการติดตาม ${current.id}">บันทึกการติดตาม</button><button class="button primary" data-outsource-action="receive" data-order="${current.id}">รับของกลับและส่ง QC</button>`
+          : `<span class="badge green">ปิดงานร้านนอกแล้ว</span>`;
+      return `<div class="page view-enter">
+        ${pageHead("งานร้านนอก", "ส่งร้าน ติดตาม รับกลับ และตรวจรับในทะเบียนเดียว—ไม่ปนข้อมูลค่าจ้างในหน้าผลิต", isManager() ? `<button class="button" data-simulate="แชร์ทะเบียนให้ร้านทาง LINE">${icon("store")} แชร์ใบงานร้าน</button>` : "")}
+        ${roleNote()}
+        <div class="split-register">
+          <section class="surface section"><div class="section-head"><div><h2>ทะเบียนงานร้าน</h2><p>งานกำลังทำขึ้นก่อน งานที่ปิดแล้วอยู่ท้ายรายการ</p></div><span class="badge neutral">${jobs.length} งาน</span></div><div class="register-list">${jobs.map(order => { const itemRecord = outsourceRecords[order.id]; const itemLabel = itemRecord.stage === "ready" ? "พร้อมส่งร้าน" : itemRecord.stage === "working" ? "อยู่ร้านนอก" : "รับกลับแล้ว"; return `<button class="register-row ${current.id === order.id ? "selected" : ""}" data-outsource-order="${order.id}"><span class="register-title">${order.id} · ${escapeHtml(order.customer)}</span><span class="badge ${itemRecord.stage === "working" ? "amber" : "green"}">${itemLabel}</span><span class="register-meta">${escapeHtml(order.work)} · ${order.qty} ตัว</span><span class="register-meta due ${dueClass(order)}">${escapeHtml(order.due)}</span></button>`; }).join("")}</div></section>
+          <section class="surface section"><div class="section-head"><div><h2>${current.id}</h2><p>${escapeHtml(current.customer)} · ${escapeHtml(current.title)}</p></div><span class="badge ${stageTone}">${stageLabel}</span></div><div class="page-meta" style="margin-bottom:16px"><span>ร้าน: ${escapeHtml(record.vendor)}</span><span>${record.sentQty ? `ส่งแล้ว ${record.sentQty} ตัว` : "ยังไม่ส่งร้าน"}</span><span>รับกลับตามแผน ${escapeHtml(record.expected)}</span>${hasDtf(current) ? `<span class="badge ${record.dtfReady ? "green" : "amber"}">สาย DTF ${record.dtfReady ? "เสร็จแล้ว" : "ยังไม่ครบ"}</span>` : ""}</div>
+            ${record.note ? `<div class="blocker" style="margin-bottom:12px">${icon(record.stage === "complete" ? "check" : "alert")}<p>${escapeHtml(record.note)}</p></div>` : ""}
+            <div class="step-list">${steps}</div>
+            <div class="divider"></div>${isManager() ? `<div class="section-actions">${actions}</div>` : `<span class="badge neutral">ดูประวัติได้อย่างเดียว</span>`}
+          </section>
+        </div>
+      </div>`;
+    }
+
+    function renderQc() {
+      const jobs = orders.filter(order => order.station === "qc").sort((a, b) => Number(b.statusLabel.includes("ของเสีย")) - Number(a.statusLabel.includes("ของเสีย")));
+      const current = jobs.find(order => order.id === appState.qcSelected) || jobs[0];
+      appState.qcSelected = current.id;
+      const rework = appState.reworks[current.id];
+      const progress = appState.qcProgress[current.id] || {good:0, defect:0};
+      const inspected = progress.good + progress.defect;
+      const remaining = Math.max(0, current.qty - inspected);
+      const isRecheck = rework?.stage === "recheck";
+      const qcLocked = Boolean(rework && ["waiting", "working"].includes(rework.stage));
+      const inspectionTarget = isRecheck ? Math.max(0, rework.qty - (rework.qcPassed || 0)) : remaining;
+      const disabled = isReadOnly() || qcLocked ? "disabled aria-disabled=\"true\"" : "";
+      return `<div class="page view-enter">
+        ${pageHead("QC และงานแก้", "ตรวจทุกงานหลังผลิตครบ ก่อนเข้าสู่แพ็กส่ง", `<span class="badge blue">ผลิต → QC → แพ็กส่ง</span>`)}
+        ${roleNote()}
+        <div class="split-register">
+          <section class="surface section"><div class="section-head"><div><h2>คิวรอตรวจ</h2><p>งานพบปัญหาขึ้นก่อนงานปกติ</p></div><span class="badge neutral">${jobs.length} งาน</span></div><div class="register-list">${jobs.map(order => `<button class="register-row ${current.id === order.id ? "selected" : ""}" data-qc-order="${order.id}"><span class="register-title">${order.id} · ${escapeHtml(order.customer)}</span>${statusBadge(order)}<span class="register-meta">${order.qty} ตัว · ${escapeHtml(order.work)}</span><span class="register-meta due ${dueClass(order)}">${escapeHtml(order.due)}</span></button>`).join("")}</div></section>
+          <section class="surface section"><div class="section-head"><div><h2>${isRecheck ? "ตรวจซ้ำ" : "ตรวจนับ"} ${current.id}</h2><p>${isRecheck ? `งานแก้คงเหลือ ${inspectionTarget} ตัว` : `ล็อตหลักคงเหลือ ${inspectionTarget} จาก ${current.qty} ตัว`} · รอบนี้เริ่ม 0 / 0</p></div><button class="button" data-open-order="${current.id}">เปิดใบผลิต</button></div>
+            ${inspected ? `<div class="page-meta" style="margin-bottom:14px"><span class="badge neutral">ตรวจสะสม ${inspected}/${current.qty}</span><span class="badge green">ดี ${progress.good}</span><span class="badge red">พบเสีย ${progress.defect}</span><span>คงเหลือล็อตหลัก ${remaining} ตัว</span></div>` : ""}
+            ${rework ? `<div class="blocker" style="margin-bottom:14px">${icon("refresh")}<p><strong>งานแก้ ${rework.qty} ตัว · ${rework.reason}</strong><br>${rework.stage === "waiting" ? "รอเริ่มแก้ก่อนตรวจซ้ำ" : rework.stage === "working" ? "กำลังแก้ ยังบันทึก QC ซ้ำไม่ได้" : rework.stage === "recheck" ? "ส่งกลับมาแล้ว พร้อมตรวจซ้ำ" : "ตรวจซ้ำผ่านแล้ว"} <button class="button quiet" type="button" data-open-rework="${current.id}">เปิดวงจรงานแก้</button></p></div>` : ""}
+            <form id="qcForm" data-order-id="${current.id}" data-target="${inspectionTarget}" data-recheck="${rework?.stage === "recheck" ? "true" : "false"}"><div class="form-grid"><div class="field"><label for="qtyGood">จำนวนดี</label><input id="qtyGood" type="number" inputmode="numeric" min="0" max="${inspectionTarget}" value="0" aria-describedby="qcError" ${disabled}></div><div class="field"><label for="qtyDefect">จำนวนเสีย/ต้องแก้</label><input id="qtyDefect" type="number" inputmode="numeric" min="0" max="${inspectionTarget}" value="0" aria-describedby="qcError" ${disabled}></div><div class="field full"><label for="defectReason">เหตุผลเมื่อมีของเสีย</label><select id="defectReason" aria-describedby="qcError" ${disabled}><option value="">เลือกเหตุผล</option><option>ลายพิมพ์เยื้อง</option><option>สีไม่ตรงแบบ</option><option>ตำแหน่งผิด</option><option>เสื้อเสียหาย</option></select><span class="form-note">ถ้าจำนวนเสียมากกว่า 0 ต้องเลือกเหตุผล ระบบจะเปิดงานแก้และกันออกจากคิวแพ็ก</span></div><div class="field full"><label for="qcNote">หมายเหตุ QC</label><textarea id="qcNote" placeholder="ระบุจุดที่ต้องแก้ให้ชัดเจน" ${disabled}></textarea></div></div><div class="total-line"><span>รวมจำนวนที่ตรวจ</span><strong class="tnum" id="qcTotal">0 / ${inspectionTarget}</strong></div><div class="form-error" id="qcError" role="alert" aria-live="polite">${qcLocked ? "ต้องส่งงานแก้กลับมาก่อน จึงเริ่มรอบตรวจซ้ำได้" : "กรอกจำนวนที่ตรวจมากกว่า 0 เพื่อบันทึกผล"}</div>${canOperate() && !qcLocked ? `<button class="button primary" id="qcSubmit" type="submit" disabled>${rework?.stage === "recheck" ? "ยืนยันผลตรวจซ้ำ" : "บันทึกผล QC รอบนี้"}</button>` : `<span class="badge neutral">${qcLocked ? "รอวงจรงานแก้" : "ดูอย่างเดียว"}</span>`}</form>
+          </section>
+        </div>
+      </div>`;
+    }
+
+    function renderRework() {
+      const entries = Object.entries(appState.reworks);
+      const selectedId = appState.reworkSelected && appState.reworks[appState.reworkSelected] ? appState.reworkSelected : entries[0]?.[0];
+      if (!selectedId) return `<div class="page view-enter">${pageHead("งานแก้", "งานเสียจาก QC จะเข้าวงจรนี้ก่อนกลับไปตรวจซ้ำ", `<button class="button" data-view="qc">${icon("arrow-left")} กลับ QC</button>`)}<section class="surface"><div class="empty"><div class="empty-icon">${icon("check")}</div><h3>ไม่มีงานแก้ค้าง</h3><p>งานที่ QC ผ่านจะไปแพ็กโดยไม่ผ่านหน้านี้</p></div></section></div>`;
+      const order = orders.find(item => item.id === selectedId);
+      const rework = appState.reworks[selectedId];
+      const stageIndex = {waiting:1, working:1, recheck:2, done:3}[rework.stage];
+      const disabled = isReadOnly() || ["recheck", "done"].includes(rework.stage) ? "disabled aria-disabled=\"true\"" : "";
+      const action = rework.stage === "waiting"
+        ? `<button class="button primary" data-rework-action="start" data-order="${order.id}">เริ่มงานแก้ ${rework.qty} ตัว</button>`
+        : rework.stage === "working"
+          ? `<button class="button primary" data-rework-action="submit" data-order="${order.id}">ส่งกลับตรวจ QC</button>`
+          : rework.stage === "recheck"
+            ? `<button class="button primary" data-open-qc-order="${order.id}">เปิดรอบตรวจซ้ำ</button>`
+            : `<span class="badge green">ตรวจซ้ำผ่านแล้ว</span>`;
+      return `<div class="page view-enter">
+        ${pageHead("วงจรงานแก้", `${order.id} · ${escapeHtml(order.customer)} · ${escapeHtml(order.title)}`, `<button class="button" data-view="qc">${icon("arrow-left")} กลับ QC</button>`, `<div class="page-meta"><span class="badge red">ของเสีย ${rework.qty} ตัว</span><span>${escapeHtml(rework.reason)}</span><span>อัปเดต ${escapeHtml(rework.updated)}</span></div>`)}
+        ${roleNote()}
+        <div class="two-pane">
+          <section class="surface section"><div class="section-head"><div><h2>ลำดับงานแก้</h2><p>งานนี้จะไม่เข้าแพ็กจนกว่าจะตรวจซ้ำผ่าน</p></div></div><div class="step-list"><div class="step-row done"><span class="step-mark">${icon("check")}</span><div><strong>QC พบของเสีย</strong><div class="muted">${rework.qty} ตัว · ${escapeHtml(rework.reason)}</div></div><span>บันทึกแล้ว</span></div><div class="step-row ${stageIndex > 1 ? "done" : "current"}"><span class="step-mark">${stageIndex > 1 ? icon("check") : "2"}</span><div><strong>ผลิตแก้</strong><div class="muted">ส่งกลับสถานี ${escapeHtml(rework.workCenter)}</div></div><span>${rework.stage === "waiting" ? "รอเริ่ม" : rework.stage === "working" ? "กำลังแก้" : "ส่งกลับแล้ว"}</span></div><div class="step-row ${stageIndex > 2 ? "done" : stageIndex === 2 ? "current" : "waiting"}"><span class="step-mark">${stageIndex > 2 ? icon("check") : "3"}</span><div><strong>QC ตรวจซ้ำ</strong><div class="muted">ตรวจเฉพาะ ${rework.qty} ตัวที่แก้</div></div><span>${rework.stage === "recheck" ? "ตอนนี้" : rework.stage === "done" ? "ผ่านแล้ว" : "รอผลิตแก้"}</span></div><div class="step-row ${rework.stage === "done" ? "done" : "waiting"}"><span class="step-mark">${rework.stage === "done" ? icon("check") : "4"}</span><div><strong>กลับเข้า flow หลัก</strong><div class="muted">QC ผ่านครบแล้วจึงไปแพ็ก</div></div><span>${rework.stage === "done" ? "พร้อมไปต่อ" : "รอ QC"}</span></div></div></section>
+          <section class="surface section"><div class="section-head"><div><h2>ใบงานแก้</h2><p>รายละเอียดที่สถานีต้องใช้ก่อนลงมือ</p></div><span class="badge ${rework.stage === "working" ? "blue" : rework.stage === "done" ? "green" : "amber"}">${rework.stage === "waiting" ? "รอเริ่มแก้" : rework.stage === "working" ? "กำลังแก้" : rework.stage === "recheck" ? "รอตรวจซ้ำ" : "เสร็จ"}</span></div><div class="rework-summary"><div class="summary-cell"><span>จำนวนแก้</span><strong>${rework.qty} ตัว</strong></div><div class="summary-cell"><span>สถานี</span><strong>${escapeHtml(rework.workCenter)}</strong></div><div class="summary-cell"><span>สาเหตุ</span><strong>${escapeHtml(rework.reason)}</strong></div></div><div class="field"><label for="reworkNote">วิธีแก้/หมายเหตุจากสถานี</label><textarea id="reworkNote" placeholder="เช่น พิมพ์ลายหลังใหม่ 4 ชิ้น" ${disabled}>${escapeHtml(rework.note)}</textarea></div><div class="divider"></div>${canOperate() ? action : `<span class="badge neutral">ดูอย่างเดียว</span>`}</section>
+        </div>
+      </div>`;
+    }
+
+    function renderPacking() {
+      const jobs = orders.filter(order => order.station === "packing");
+      const current = orders.find(order => order.id === appState.packSelected) || jobs[0];
+      const checks = appState.packChecks[current.id] || [false, false, false, false];
+      const checkLabels = ["ตรวจจำนวนตามไซซ์ครบ", "พับและใส่ถุงตามสเปก", "ติดฉลากกล่องและเลขออเดอร์", "ถ่ายรูปก่อนปิดกล่อง"];
+      const disabled = isReadOnly() || appState.packed.has(current.id) ? "disabled aria-disabled=\"true\"" : "";
+      return `<div class="page view-enter">
+        ${pageHead("แพ็กและพร้อมส่ง", "แพ็กครั้งเดียวหลัง QC ผ่านครบ แล้วส่งต่อฝ่ายจัดส่ง", `<span class="badge green">QC ผ่านแล้วเท่านั้น</span>`)}
+        ${roleNote()}
+        <div class="split-register">
+          <section class="surface section"><div class="section-head"><div><h2>คิวพร้อมแพ็ก</h2><p>เรียงกำหนดส่งและวิธีจัดส่ง</p></div><span class="badge neutral">${jobs.length} งาน</span></div><div class="register-list">${jobs.map(order => `<button class="register-row ${current.id === order.id ? "selected" : ""}" data-pack-order="${order.id}"><span class="register-title">${order.id} · ${escapeHtml(order.customer)}</span>${statusBadge(order)}<span class="register-meta">${order.qty} ตัว · ${order.id === "ORD-2608-0034" ? "Blind ship" : "ส่งปกติ"}</span><span class="register-meta due ${dueClass(order)}">${escapeHtml(order.due)}</span></button>`).join("")}</div></section>
+          <section class="surface section"><div class="section-head"><div><h2>แพ็ก ${current.id}</h2><p>${escapeHtml(current.customer)} · ${current.qty} ตัว</p></div><span class="badge green">${appState.packed.has(current.id) ? "แพ็กเสร็จแล้ว" : `QC ผ่าน ${current.qty}/${current.qty}`}</span></div>
+            <form id="packForm" data-order-id="${current.id}"><div class="checklist">${checkLabels.map((label, index) => `<button type="button" class="check-item" role="checkbox" aria-checked="${checks[index]}" data-pack-check="${index}" ${disabled}><span class="check-mark" aria-hidden="true">${checks[index] ? icon("check") : ""}</span><span>${label}</span></button>`).join("")}</div><div class="divider"></div><div class="form-grid"><div class="field"><label for="boxCount">จำนวนกล่อง</label><input id="boxCount" type="number" min="1" value="3" ${disabled}></div><div class="field"><label for="packMethod">รูปแบบจัดส่ง</label><select id="packMethod" ${disabled}><option>${current.id === "ORD-2608-0034" ? "Blind ship — ไม่ใช้ชื่อ Anajak" : "จัดส่งปกติ"}</option><option>ลูกค้ารับเอง</option></select></div><div class="field full"><label for="packNote">หมายเหตุกล่อง</label><textarea id="packNote" placeholder="เช่น กล่อง 1: S–M, กล่อง 2: L–XL" ${disabled}></textarea></div></div><div class="form-error" id="packError" role="alert" aria-live="polite">${appState.packed.has(current.id) ? "บันทึกการแพ็กแล้ว งานอยู่ในสถานะพร้อมจัดส่ง" : checks.every(Boolean) ? "" : `ต้องตรวจให้ครบอีก ${checks.filter(value => !value).length} ข้อก่อนยืนยัน`}</div>${canOperate() && !appState.packed.has(current.id) ? `<button class="button primary full" id="packSubmit" type="submit" ${checks.every(Boolean) ? "" : "disabled"}>ยืนยันแพ็กเสร็จ · ส่งต่อพร้อมจัดส่ง</button>` : `<span class="badge neutral">${appState.packed.has(current.id) ? "ปิดงานแพ็กแล้ว" : "ดูอย่างเดียว"}</span>`}</form>
+          </section>
+        </div>
+      </div>`;
+    }
+
+    function renderPerformance() {
+      if (!isManager()) return `<div class="page view-enter">${pageHead("ผลงานฝ่ายผลิต", "หน้านี้เปิดให้หัวหน้าผลิตเท่านั้น", `<button class="button" data-view="control">${icon("arrow-left")} กลับศูนย์ควบคุม</button>`)}${roleNote()}<section class="surface"><div class="empty"><div class="empty-icon">${icon("shield")}</div><h3>ไม่มีสิทธิ์ดูผลงานรวม</h3><p>พนักงานสถานีและผู้ดูอย่างเดียวกลับไปเปิดใบงานที่ได้รับมอบหมายได้</p></div></section></div>`;
+      return `<div class="page view-enter">
+        ${pageHead("ผลงานฝ่ายผลิต", "หน้าหัวหน้าแยกจากงานปฏิบัติ เพื่อไม่ให้ตัวเลขรบกวนการลงมือ", `<select class="control" aria-label="เลือกเดือน"><option>สิงหาคม 2569</option><option>กรกฎาคม 2569</option></select>`)}
+        ${roleNote()}
+        <div class="job-grid"><section class="surface section"><div class="section-head"><div><h2>สองตัวเลขที่ต้องเชื่อได้</h2><p>ทุกค่ากดลงไปดูออเดอร์ต้นทางได้</p></div></div><div class="metric-line"><div><h3>ส่งตรงเวลา</h3><p class="muted">ออเดอร์ที่ส่งแล้ว เทียบกำหนดส่ง</p></div><div class="metric-value">91.7%</div><button class="button" data-simulate="เปิด 2 ออเดอร์ที่ส่งช้า">ดู 2 งาน</button></div><div class="metric-line"><div><h3>ทำถูกตั้งแต่ครั้งแรก</h3><p class="muted">จำนวนดี ÷ จำนวนที่ผ่าน QC ทั้งหมด</p></div><div class="metric-value">96.3%</div><button class="button" data-view="qc">ดู QC</button></div><div class="blocker">${icon("alert")}<p>เดือนนี้ยังมี 6 งานไม่ส่ง ตัวเลขส่งตรงเวลาจึงยังไม่ใช่ผลปิดเดือน</p></div></section>
+          <section class="surface section"><div class="section-head"><div><h2>ของเสียตามสาเหตุ</h2><p>เรียงจำนวนมากไปน้อย เชื่อมกลับใบผลิตได้</p></div></div><div class="defect-row"><span>ลายพิมพ์เยื้อง</span><div class="defect-bar"><span style="width:100%"></span></div><strong class="tnum">8</strong></div><div class="defect-row"><span>สีไม่ตรงแบบ</span><div class="defect-bar"><span style="width:62%"></span></div><strong class="tnum">5</strong></div><div class="defect-row"><span>ตำแหน่งผิด</span><div class="defect-bar"><span style="width:38%"></span></div><strong class="tnum">3</strong></div><div class="defect-row"><span>เสื้อเสียหาย</span><div class="defect-bar"><span style="width:25%"></span></div><strong class="tnum">2</strong></div><button class="button full" data-simulate="เปิดรายละเอียดของเสียทั้งหมด" style="margin-top:16px">ดูรายการและรูป QC</button></section></div>
+      </div>`;
+    }
+
+    const renderers = {control:renderControl, station:renderStation, job:renderJob, materials:renderMaterials, print:renderPrint, outsource:renderOutsource, qc:renderQc, rework:renderRework, packing:renderPacking, performance:renderPerformance};
+
+    function render() {
+      const renderer = renderers[appState.view] || renderControl;
+      document.body.dataset.role = appState.role;
+      screenRoot.innerHTML = renderer();
+      const moduleView = ({rework:"qc"})[appState.view] || appState.view;
+      document.querySelectorAll("[data-module-view]").forEach(button => button.setAttribute("aria-current", button.dataset.moduleView === moduleView ? "page" : "false"));
+      document.querySelectorAll("[data-production-root]").forEach(button => button.setAttribute("aria-current", "page"));
+      bindScreenEvents();
+      liveRegion.textContent = `เปิดหน้า ${document.querySelector("h1")?.textContent || "ฝ่ายผลิต"}`;
+    }
+
+    function navigate(view, options = {}) {
+      if (options.orderId) appState.selectedOrderId = options.orderId;
+      appState.view = view;
+      history.replaceState(null, "", `#${view}`);
+      render();
+      workspace?.scrollTo({top:0, behavior:"auto"});
+      requestAnimationFrame(() => screenRoot.focus({preventScroll:true}));
+    }
+
+    function selectOrder(id, open = false) {
+      const order = orders.find(item => item.id === id);
+      if (!order) return;
+      appState.selectedOrderId = id;
+      if (open) navigate("job", {orderId:id}); else render();
+    }
+
+    function showToast(title, detail = "จำลองเฉพาะในต้นแบบ · ไม่บันทึกจริง") {
+      const wrap = document.getElementById("toastWrap");
+      const node = document.createElement("div");
+      node.className = "toast";
+      node.innerHTML = `${icon("check")}<div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span></div>`;
+      wrap.appendChild(node);
+      setTimeout(() => node.remove(), 3600);
+    }
+
+    function bindScreenEvents() {
+      screenRoot.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => navigate(button.dataset.view)));
+      screenRoot.querySelectorAll("[data-open-view]").forEach(button => button.addEventListener("click", () => navigate(button.dataset.openView, {orderId:button.dataset.order})));
+      screenRoot.querySelectorAll("[data-open-order]").forEach(button => button.addEventListener("click", event => { event.stopPropagation(); selectOrder(button.dataset.openOrder, true); }));
+      screenRoot.querySelectorAll("[data-open-materials]").forEach(button => button.addEventListener("click", () => navigate("materials", {orderId:button.dataset.openMaterials})));
+      screenRoot.querySelectorAll("[data-open-rework]").forEach(button => button.addEventListener("click", () => { appState.reworkSelected = button.dataset.openRework; appState.selectedOrderId = button.dataset.openRework; navigate("rework"); }));
+      screenRoot.querySelectorAll("[data-open-qc-order]").forEach(button => button.addEventListener("click", () => { appState.qcSelected = button.dataset.openQcOrder; navigate("qc"); }));
+      screenRoot.querySelectorAll("[data-order-id]").forEach(row => {
+        row.addEventListener("click", event => { if (!event.target.closest("button")) selectOrder(row.dataset.orderId, innerWidth <= 1180); });
+        row.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectOrder(row.dataset.orderId, innerWidth <= 1180); } });
+      });
+      screenRoot.querySelectorAll("[data-station]").forEach(button => button.addEventListener("click", () => { appState.station = button.dataset.station; appState.filter = "all"; render(); }));
+      screenRoot.querySelectorAll("[data-filter]").forEach(button => button.addEventListener("click", () => { appState.filter = button.dataset.filter; render(); }));
+      screenRoot.querySelectorAll("[data-simulate]").forEach(button => button.addEventListener("click", () => showToast(button.dataset.simulate)));
+      screenRoot.querySelectorAll("[data-print-select]").forEach(button => button.addEventListener("click", () => { const id = button.dataset.printSelect; if (!isManager() || activeRunOrderIds.has(id)) return; appState.printSelected.has(id) ? appState.printSelected.delete(id) : appState.printSelected.add(id); render(); }));
+      screenRoot.querySelectorAll("[data-print-run-action]").forEach(button => button.addEventListener("click", () => {
+        const action = button.dataset.printRunAction;
+        if (action === "open") {
+          if (!isManager() || appState.printRun.stage !== "idle" || !appState.printSelected.size) return;
+          const ids = [...appState.printSelected];
+          ids.forEach(id => {
+            activeRunOrderIds.add(id);
+            const order = orders.find(item => item.id === id);
+            order.status = "working";
+            order.statusLabel = "กำลังพิมพ์";
+            order.owner = "ต้น";
+          });
+          appState.printRun = {id:"FR-2608-0019", stage:"printing", orderIds:ids, started:"เมื่อสักครู่", operator:"ต้น"};
+          appState.printSelected.clear();
+          showToast("เปิดรอบพิมพ์ใหม่แล้ว", `${ids.length} งานถูกถอดจากคิวเลือกซ้ำ`);
+          render();
+          return;
+        }
+        if (!canOperate() || appState.printRun.stage === "idle") return;
+        if (action === "finish") {
+          appState.printRun.stage = "cutting";
+          showToast("พิมพ์จบทั้งม้วนแล้ว", "ขั้นถัดไปคือตัดแยกและติดป้ายตามออเดอร์");
+          render();
+        } else if (action === "cut") {
+          appState.printRun.stage = "heat";
+          showToast("ตัดแยกและติดป้ายครบแล้ว", "ฟิล์มพร้อมส่งเข้าสถานีรีดร้อน");
+          render();
+        } else if (action === "qc") {
+          const ids = [...appState.printRun.orderIds];
+          ids.forEach(id => {
+            activeRunOrderIds.delete(id);
+            const order = orders.find(item => item.id === id);
+            order.station = "qc";
+            order.status = "ready";
+            order.statusLabel = "รอตรวจ QC";
+            order.progress = 82;
+            order.next = "เริ่มตรวจนับ";
+            order.nextView = "qc";
+            appState.qcProgress[id] = {good:0, defect:0};
+          });
+          appState.printRun = {id:"", stage:"idle", orderIds:[], started:"", operator:""};
+          appState.qcSelected = ids[0];
+          showToast("รีดครบและส่งเข้า QC แล้ว", `${ids.length} งานออกจากศูนย์ DTF`);
+          navigate("qc");
+        }
+      }));
+      screenRoot.querySelectorAll("[data-outsource-order]").forEach(button => button.addEventListener("click", () => { appState.outsourceSelected = button.dataset.outsourceOrder; render(); }));
+      screenRoot.querySelectorAll("[data-outsource-action]").forEach(button => button.addEventListener("click", () => {
+        if (!isManager()) return;
+        const order = orders.find(item => item.id === button.dataset.order);
+        const record = outsourceRecords[order.id];
+        if (button.dataset.outsourceAction === "send") {
+          record.stage = "working";
+          record.sentQty = order.qty;
+          record.sentAt = "เมื่อสักครู่";
+          record.note = "ร้านยืนยันรับใบงานแล้ว";
+          order.status = "working";
+          order.statusLabel = "อยู่ร้านนอก";
+          order.owner = "เมย์";
+          showToast("ยืนยันส่งร้านแล้ว", `${order.qty} ตัว · ${record.vendor}`);
+          render();
+          return;
+        }
+        if (hasDtf(order) && !record.dtfReady) {
+          showToast("ยังส่ง QC ไม่ได้", "ต้องรอสาย DTF ครบก่อนรวมงานเข้าตรวจ");
+          return;
+        }
+        record.stage = "complete";
+        record.returnedAt = "เมื่อสักครู่";
+        record.note = `รับกลับครบ ${record.sentQty} ตัว${hasDtf(order) ? " · รวมกับสาย DTF แล้ว" : ""}`;
+        order.station = "qc";
+        order.status = "ready";
+        order.statusLabel = "รอตรวจ QC";
+        order.progress = 82;
+        order.blocker = "";
+        order.next = "เริ่มตรวจนับ";
+        order.nextView = "qc";
+        appState.qcProgress[order.id] = {good:0, defect:0};
+        appState.qcSelected = order.id;
+        showToast("รับของกลับครบและส่ง QC แล้ว", hasDtf(order) ? "สายร้านนอกและ DTF รวมครบก่อนตรวจ" : "งานออกจากทะเบียนร้านเข้าสู่คิว QC");
+        navigate("qc");
+      }));
+      screenRoot.querySelectorAll("[data-qc-order]").forEach(button => button.addEventListener("click", () => { appState.qcSelected = button.dataset.qcOrder; render(); }));
+      screenRoot.querySelectorAll("[data-pack-order]").forEach(button => button.addEventListener("click", () => { appState.packSelected = button.dataset.packOrder; render(); }));
+      const stationSelect = document.getElementById("stationSelect");
+      if (stationSelect) stationSelect.addEventListener("change", () => { appState.station = stationSelect.value; render(); });
+
+      const materialForm = document.getElementById("materialForm");
+      const materialError = document.getElementById("materialError");
+      const updateMaterialTotals = () => {
+        let error = "";
+        materialForm?.querySelectorAll("[data-material-key]").forEach(row => {
+          const key = row.dataset.materialKey;
+          const issue = Number(row.querySelector(`[data-material-issue="${key}"]`)?.value || 0);
+          const returned = Number(row.querySelector(`[data-material-return="${key}"]`)?.value || 0);
+          const max = Number(row.querySelector(`[data-material-issue="${key}"]`)?.max || 0);
+          const net = row.querySelector(`[data-material-net="${key}"]`);
+          if (net) net.textContent = `${issue - returned} ${materialsForOrder(selectedOrder()).find(item => item.key === key)?.unit || ""}`;
+          if (!Number.isInteger(issue) || !Number.isInteger(returned) || issue < 0 || returned < 0) error = "กรอกจำนวนเบิกและคืนเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป";
+          else if (issue > max) error = `ยอดเบิกต้องไม่เกินจำนวนที่ต้องใช้ ${max}`;
+          else if (returned > issue) error = "ยอดคืนต้องไม่มากกว่ายอดเบิก";
+        });
+        if (materialError) materialError.textContent = error;
+        return error;
+      };
+      materialForm?.querySelectorAll("input").forEach(input => input.addEventListener("input", updateMaterialTotals));
+      materialForm?.addEventListener("submit", event => {
+        event.preventDefault();
+        if (!canOperate() || updateMaterialTotals()) return;
+        const order = selectedOrder();
+        const balances = {};
+        materialForm.querySelectorAll("[data-material-key]").forEach(row => {
+          const key = row.dataset.materialKey;
+          balances[key] = {issued:Number(row.querySelector(`[data-material-issue="${key}"]`).value), returned:Number(row.querySelector(`[data-material-return="${key}"]`).value)};
+        });
+        appState.materialBalances[order.id] = balances;
+        const detail = materialsForOrder(order).map(item => { const value = balances[item.key]; return `${item.name} เบิก ${value.issued} คืน ${value.returned} ${item.unit}`; }).join(" · ");
+        const note = document.getElementById("materialNote")?.value.trim();
+        const actor = isManager() ? "หัวหน้าผลิต" : "พนักงานสถานี";
+        appState.materialHistory[order.id] = [{time:"เมื่อสักครู่", action:"บันทึกยอดเบิก–คืน", detail:`${detail}${note ? ` · ${note}` : ""} · โดย${actor}`}].concat(appState.materialHistory[order.id] || []);
+        showToast("บันทึกการเบิก–คืนแล้ว", "เก็บในสถานะของต้นแบบนี้เท่านั้น");
+        render();
+      });
+
+      const qcGood = document.getElementById("qtyGood");
+      const qcDefect = document.getElementById("qtyDefect");
+      const qcReason = document.getElementById("defectReason");
+      const qcForm = document.getElementById("qcForm");
+      const updateQcTotal = () => {
+        if (!qcForm) return "";
+        const good = Number(qcGood?.value || 0);
+        const defect = Number(qcDefect?.value || 0);
+        const total = good + defect;
+        const targetQty = Number(qcForm.dataset.target);
+        const totalNode = document.getElementById("qcTotal");
+        const errorNode = document.getElementById("qcError");
+        const submit = document.getElementById("qcSubmit");
+        let error = "";
+        if (![good, defect].every(Number.isInteger) || good < 0 || defect < 0) error = "กรอกจำนวนดีและเสียเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป";
+        else if (total === 0) error = "กรอกจำนวนที่ตรวจมากกว่า 0 เพื่อบันทึกผล";
+        else if (total > targetQty) error = `รวมจำนวนดีและเสียต้องไม่เกิน ${targetQty} ตัว`;
+        else if (defect > 0 && !qcReason?.value) error = "เลือกเหตุผลของเสียก่อนบันทึกผล";
+        else if (qcForm.dataset.recheck === "true" && defect > 0 && total < targetQty) error = `เมื่อตรวจซ้ำแล้วยังพบของเสีย ต้องกรอกผลให้ครบ ${targetQty} ตัวเพื่อเปิดงานแก้รอบถัดไป`;
+        if (totalNode) totalNode.textContent = `${total} / ${targetQty}`;
+        if (errorNode) errorNode.textContent = error;
+        [qcGood, qcDefect, qcReason].forEach(field => field?.setAttribute("aria-invalid", error ? "true" : "false"));
+        if (submit) submit.disabled = Boolean(error);
+        return error;
+      };
+      qcGood?.addEventListener("input", updateQcTotal);
+      qcDefect?.addEventListener("input", updateQcTotal);
+      qcReason?.addEventListener("change", updateQcTotal);
+      qcForm?.addEventListener("submit", event => {
+        event.preventDefault();
+        if (!canOperate() || updateQcTotal()) return;
+        const orderId = qcForm.dataset.orderId;
+        const good = Number(qcGood.value);
+        const defect = Number(qcDefect.value);
+        const targetQty = Number(qcForm.dataset.target);
+        const note = document.getElementById("qcNote")?.value.trim() || "";
+        const order = orders.find(item => item.id === orderId);
+        const isRecheck = qcForm.dataset.recheck === "true";
+        const progress = appState.qcProgress[orderId] || {good:0, defect:0};
+        if (!isRecheck) {
+          progress.good += good;
+          progress.defect += defect;
+          appState.qcProgress[orderId] = progress;
+        }
+        const inspected = progress.good + progress.defect;
+        const remaining = Math.max(0, order.qty - inspected);
+        if (defect > 0) {
+          appState.reworks[orderId] = {qty:defect, reason:qcReason.value, note:note || "รอสถานีระบุวิธีแก้", stage:"waiting", workCenter:hasDtf(order) ? "DTF" : "ร้านนอก", updated:"เมื่อสักครู่", qcPassed:0};
+          order.status = "working";
+          order.statusLabel = "QC พบของเสีย";
+          order.blocker = `${qcReason.value} ${defect} ตัว ต้องแก้และตรวจซ้ำ`;
+          order.next = `เปิดงานแก้ ${defect} ตัว`;
+          appState.reworkSelected = orderId;
+          appState.selectedOrderId = orderId;
+          showToast(isRecheck ? "ตรวจซ้ำยังพบของเสีย" : "เปิดงานแก้แล้ว", `${defect} ตัวถูกกันออกจากคิวแพ็ก${isRecheck ? "" : ` · ตรวจสะสม ${inspected}/${order.qty}`}`);
+          navigate("rework");
+          return;
+        }
+        if (isRecheck) {
+          const rework = appState.reworks[orderId];
+          rework.qcPassed = (rework.qcPassed || 0) + good;
+          if (good < targetQty) {
+            showToast("บันทึกผลตรวจซ้ำบางส่วนแล้ว", `ผ่านสะสม ${rework.qcPassed}/${rework.qty} · คงเหลือ ${rework.qty - rework.qcPassed}`);
+            render();
+            return;
+          }
+          rework.stage = "done";
+          rework.updated = "เมื่อสักครู่";
+          if (remaining > 0) {
+            order.status = "ready";
+            order.statusLabel = "รอตรวจ QC";
+            order.blocker = "";
+            order.next = "ตรวจล็อตหลักต่อ";
+            order.nextView = "qc";
+            showToast("ตรวจซ้ำผ่านแล้ว", `กลับตรวจล็อตหลักที่เหลือ ${remaining} ตัว`);
+            render();
+            return;
+          }
+        } else if (remaining > 0) {
+          showToast("บันทึกผล QC บางส่วนแล้ว", `ตรวจสะสม ${inspected}/${order.qty} · คงเหลือ ${remaining} ตัว`);
+          render();
+          return;
+        }
+        order.station = "packing";
+        order.status = "ready";
+        order.statusLabel = "พร้อมแพ็ก";
+        order.progress = 92;
+        order.blocker = "";
+        order.next = "เริ่มแพ็กส่ง";
+        order.nextView = "packing";
+        appState.packChecks[orderId] = [false, false, false, false];
+        appState.packSelected = orderId;
+        showToast(isRecheck ? "ตรวจซ้ำผ่านแล้ว" : "QC ผ่านครบแล้ว", "งานเข้าสู่คิวแพ็กครั้งสุดท้าย");
+        navigate("packing");
+      });
+
+      screenRoot.querySelectorAll("[data-rework-action]").forEach(button => button.addEventListener("click", () => {
+        if (!canOperate()) return;
+        const rework = appState.reworks[button.dataset.order];
+        const note = document.getElementById("reworkNote")?.value.trim();
+        if (note) rework.note = note;
+        if (button.dataset.reworkAction === "start") {
+          rework.stage = "working";
+          rework.updated = "เมื่อสักครู่";
+          showToast("เริ่มงานแก้แล้ว", `${rework.qty} ตัว · สถานี ${rework.workCenter}`);
+          render();
+        } else {
+          rework.stage = "recheck";
+          rework.updated = "เมื่อสักครู่";
+          appState.qcSelected = button.dataset.order;
+          showToast("ส่งงานแก้กลับ QC แล้ว", `รอตรวจซ้ำ ${rework.qty} ตัว`);
+          navigate("qc");
+        }
+      }));
+
+      const packForm = document.getElementById("packForm");
+      const updatePackGate = () => {
+        if (!packForm) return false;
+        const checks = [...packForm.querySelectorAll("[data-pack-check]")].map(button => button.getAttribute("aria-checked") === "true");
+        const boxCount = Number(document.getElementById("boxCount")?.value || 0);
+        const ready = checks.every(Boolean) && Number.isInteger(boxCount) && boxCount > 0;
+        const error = !checks.every(Boolean) ? `ต้องตรวจให้ครบอีก ${checks.filter(value => !value).length} ข้อก่อนยืนยัน` : boxCount < 1 ? "จำนวนกล่องต้องมากกว่า 0" : "";
+        const errorNode = document.getElementById("packError");
+        const submit = document.getElementById("packSubmit");
+        if (errorNode) errorNode.textContent = error;
+        if (submit) submit.disabled = !ready;
+        return ready;
+      };
+      packForm?.querySelectorAll("[data-pack-check]").forEach(button => button.addEventListener("click", () => {
+        const index = Number(button.dataset.packCheck);
+        const checked = button.getAttribute("aria-checked") !== "true";
+        button.setAttribute("aria-checked", String(checked));
+        button.querySelector(".check-mark").innerHTML = checked ? icon("check") : "";
+        appState.packChecks[packForm.dataset.orderId][index] = checked;
+        updatePackGate();
+      }));
+      document.getElementById("boxCount")?.addEventListener("input", updatePackGate);
+      packForm?.addEventListener("submit", event => {
+        event.preventDefault();
+        if (!canOperate() || !updatePackGate()) return;
+        appState.packed.add(packForm.dataset.orderId);
+        showToast("แพ็กเสร็จและพร้อมจัดส่ง", "ผ่าน checklist ครบทุกข้อแล้ว");
+        render();
+      });
+    }
+
+    document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => navigate(button.dataset.view)));
+    document.querySelectorAll("[data-production-root]").forEach(button => button.addEventListener("click", () => navigate("control")));
+    document.querySelectorAll("[data-shell-action]").forEach(button => button.addEventListener("click", () => showToast(button.dataset.shellAction, "ต้นแบบนี้เปิดให้ลองเฉพาะโมดูลการผลิต · ไม่บันทึกจริง")));
+
+    document.getElementById("roleSelect").addEventListener("change", event => {
+      appState.role = event.target.value;
+      render();
+      showToast(event.target.value === "readonly" ? "เปิดโหมดดูอย่างเดียว" : event.target.value === "operator" ? "เปิดโหมดพนักงานสถานี" : "เปิดโหมดหัวหน้าผลิต", "ปุ่มและข้อมูลปรับตามสิทธิ์จำลอง");
+    });
+
+    document.getElementById("themeToggle").addEventListener("click", () => {
+      const root = document.documentElement;
+      const dark = root.dataset.theme === "dark";
+      root.dataset.theme = dark ? "light" : "dark";
+      document.getElementById("themeToggle").innerHTML = icon(dark ? "moon" : "sun");
+      document.getElementById("themeToggle").setAttribute("aria-label", dark ? "เปิดธีมมืด" : "เปิดธีมสว่าง");
+    });
+
+    document.getElementById("demoScan").addEventListener("click", () => {
+      searchInput.value = "ORD-2608-0041";
+      showToast("อ่าน QR ได้ ORD-2608-0041", "เปิดใบผลิตอย่างเดียว ยังไม่เปลี่ยนสถานะ");
+      setTimeout(() => selectOrder("ORD-2608-0041", true), 320);
+    });
+
+    function updateSearchResults() {
+      const query = searchInput.value.trim().toLowerCase();
+      const results = query ? orders.filter(order => `${order.id} ${order.customer} ${order.title}`.toLowerCase().includes(query)).slice(0,5) : orders.slice(0,4);
+      searchResults.innerHTML = results.length ? results.map(order => `<button type="button" class="search-result" role="option" data-search-order="${order.id}"><span class="result-main">${order.id} · ${escapeHtml(order.customer)}</span>${statusBadge(order)}<span class="result-sub">${escapeHtml(order.title)} · ${order.qty} ตัว</span><span class="result-sub due ${dueClass(order)}">${escapeHtml(order.due)}</span></button>`).join("") : `<div class="search-empty">ไม่พบออเดอร์ ลอง ORD-2608-0041</div>`;
+      searchResults.classList.add("open");
+      searchInput.setAttribute("aria-expanded", "true");
+      searchResults.querySelectorAll("[data-search-order]").forEach(button => button.addEventListener("click", () => { searchResults.classList.remove("open"); selectOrder(button.dataset.searchOrder, true); }));
+    }
+
+    searchInput.addEventListener("focus", updateSearchResults);
+    searchInput.addEventListener("input", updateSearchResults);
+    document.getElementById("globalSearch").addEventListener("submit", event => {
+      event.preventDefault();
+      const exact = orders.find(order => order.id.toLowerCase() === searchInput.value.trim().toLowerCase());
+      if (exact) { searchResults.classList.remove("open"); selectOrder(exact.id, true); }
+      else { updateSearchResults(); showToast("ยังไม่พบเลขออเดอร์นี้", "ลองพิมพ์ ORD-2608-0041"); }
+    });
+    document.addEventListener("click", event => { if (!event.target.closest("#globalSearch")) { searchResults.classList.remove("open"); searchInput.setAttribute("aria-expanded", "false"); } });
+    document.addEventListener("keydown", event => { if (event.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { event.preventDefault(); searchInput.focus(); } });
+    window.addEventListener("hashchange", () => { const view = location.hash.replace("#", ""); if (renderers[view]) { appState.view = view; render(); } });
+
+    render();
+  </script>
+</body>
+</html>

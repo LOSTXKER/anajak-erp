@@ -16,6 +16,7 @@ export function DialogSubmitFooter({
   pending = false,
   disabled = false,
   submitLabel,
+  pendingLabel,
   submitIcon,
   destructive = false,
   cancelLabel = "ยกเลิก",
@@ -29,6 +30,8 @@ export function DialogSubmitFooter({
   /** เงื่อนไขห้ามกดเพิ่มเติม (ฟอร์มยังไม่ครบ ฯลฯ) */
   disabled?: boolean;
   submitLabel: ReactNode;
+  /** ข้อความสถานะระหว่าง mutation — ยังสื่อความหมายเมื่อ reduced motion หยุด spinner */
+  pendingLabel?: ReactNode;
   /** ไอคอนหน้าปุ่มยืนยัน — จะถูกแทนด้วย spinner ตอน pending */
   submitIcon?: ReactNode;
   destructive?: boolean;
@@ -58,10 +61,11 @@ export function DialogSubmitFooter({
         variant={destructive ? "destructive" : "default"}
         className="w-full gap-1.5 sm:w-auto"
         disabled={pending || disabled}
+        aria-busy={pending || undefined}
         onClick={onSubmit}
       >
         {pending ? <Spinner size="sm" /> : submitIcon}
-        {submitLabel}
+        {pending ? (pendingLabel ?? submitLabel) : submitLabel}
       </Button>
     </DialogFooter>
   );

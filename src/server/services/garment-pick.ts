@@ -9,8 +9,9 @@
  * กติกา:
  * - เบิกเกิน "ที่ต้องใช้" ได้ (เบิกเผื่อเสียคือเรื่องปกติ) — Stock เป็นคนกันของไม่พอ
  * - คืนเกินยอดที่เบิกค้างอยู่ไม่ได้ (กันยอดสต๊อคบวม)
- * - HTTP ไป Stock อยู่นอก DB transaction · idempotencyKey กันยิงซ้ำ — บันทึกฝั่ง ERP
- *   ลบ-สร้างตาม docNumber (เรียกซ้ำด้วย key เดิมได้แถวชุดเดิม ไม่เบิ้ล)
+ * - lock step/production → order แล้วอ่านสิทธิ์+ยอดสดก่อนยิง Stock; ต้องถือ lock ผ่าน HTTP
+ *   เพื่อให้ request key ต่างกันไม่ตัด/คืนจาก snapshot เดียวกันพร้อมกัน
+ * - idempotencyKey เดิมได้ docNumber เดิม; ถ้า ERP บันทึก doc นั้นแล้ว local write เป็น no-op
  * - ไม่มีเงินใน flow นี้ (มติเลิกคิดต้นทุนต่องาน 2026-06-12) — unitCost เก็บ 0
  */
 
@@ -32,9 +33,42 @@ import {
   planGarmentReturn,
 } from "@/server/services/garment-pick-plan";
 import { addOrderRevision, finalizeProductionIfComplete } from "@/server/services/order-status";
-import type { ExtendedPrismaClient } from "@/lib/prisma";
+import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
 
 const GARMENT_UNIT = "ตัว";
+const GARMENT_TRANSACTION_TIMEOUT_MS = 20_000;
+
+function garmentIdempotencyMarker(
+  movementType: "ISSUE" | "RETURN",
+  idempotencyKey: string,
+) {
+  return `[erp-garment:${movementType}:${idempotencyKey}]`;
+}
+
+async function findRecordedGarmentMovement(
+  tx: PrismaTx,
+  params: {
+    orderId: string;
+    movementType: "ISSUE" | "RETURN";
+    idempotencyKey: string;
+  },
+) {
+  const marker = garmentIdempotencyMarker(params.movementType, params.idempotencyKey);
+  const rows = await tx.materialUsage.findMany({
+    where: {
+      production: { orderId: params.orderId },
+      movementType: params.movementType,
+      note: { startsWith: marker },
+    },
+    select: { quantity: true, stockMovementRef: true },
+  });
+  const docNumber = rows.find((row) => row.stockMovementRef)?.stockMovementRef ?? null;
+  if (!docNumber) return null;
+  return {
+    docNumber,
+    quantity: rows.reduce((sum, row) => sum + row.quantity, 0),
+  };
+}
 
 // ============================================================
 // สถานะเบิก/คืนของออเดอร์ (รวมทุกใบผลิตของออเดอร์ — กันเบิกซ้ำข้ามใบ)
@@ -54,7 +88,7 @@ export interface GarmentPickState {
 }
 
 export async function getGarmentPickState(
-  prisma: ExtendedPrismaClient,
+  prisma: PrismaTx,
   orderId: string
 ): Promise<GarmentPickState> {
   const order = await prisma.order.findUniqueOrThrow({
@@ -134,70 +168,112 @@ export async function issueGarments(
   params: IssueGarmentsParams,
   clientOverride?: StockApiClient | null
 ) {
-  const production = await prisma.production.findUniqueOrThrow({
-    where: { id: params.productionId },
-    select: { id: true, orderId: true },
-  });
-  const step = await prisma.productionStep.findUniqueOrThrow({
-    where: { id: params.stepId },
-    select: { id: true, productionId: true, stepType: true, status: true, assignedToId: true },
-  });
-  if (step.productionId !== production.id) {
-    badRequest("ขั้นตอนนี้ไม่อยู่ในใบผลิตนี้");
-  }
-  if (step.stepType !== "GARMENT_PICK") {
-    badRequest("เบิกเสื้อได้เฉพาะขั้น 'เบิกเสื้อจากสต๊อค'");
-  }
-  // กติกาเดียวกับ updateStep (PERM): ไม่ใช่หัวหน้า → จับงานที่ยังไม่มีเจ้าของได้ (auto-claim)
-  // แต่ห้ามแตะงานคนอื่น
-  let autoClaim = false;
-  if (!params.canSupervise) {
-    if (step.assignedToId === null) autoClaim = true;
-    else if (step.assignedToId !== params.userId) {
-      forbidden("งานนี้ถูกมอบหมายให้คนอื่นแล้ว");
-    }
-  }
-
-  const state = await getGarmentPickState(prisma, production.orderId);
-  const stateBySku = new Map(state.lines.map((l) => [l.sku, l]));
-  const { requested, issuedThisRound, neededTotal, stepDone } = planGarmentIssue(
-    state.lines,
-    params.lines
-  );
-
-  const client =
-    clientOverride !== undefined ? clientOverride : await getStockClientFromSettings();
-  if (!client) {
-    badRequest("ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock — ไปที่ Settings → Stock ก่อน");
-  }
-
-  // HTTP นอก tx — ของถูกตัดจริงฝั่ง Stock ก่อน แล้วค่อยบันทึกฝั่ง ERP
-  // (พลาดกลางทาง: เรียกซ้ำด้วย idempotencyKey เดิม Stock คืนใบเดิม ERP บันทึกซ้ำแบบลบ-สร้าง)
-  let docNumber: string;
-  try {
-    const movement = await client.createMovement({
-      type: "ISSUE",
-      refNo: state.orderNumber,
-      idempotencyKey: params.idempotencyKey,
-      note: `เบิกเสื้อใบผลิต (ออเดอร์ ${state.orderNumber})`,
-      lines: requested.map((l) => ({
-        sku: l.sku,
-        qty: l.qty,
-        fromLocation: params.fromLocation ?? DEFAULT_STOCK_LOCATION,
-        orderRef: state.orderNumber,
-      })),
+  return prisma.$transaction(async (tx) => {
+    // ลำดับเดียวกับ updateStep/finalizer: step → production → order. order lock เป็นตัว
+    // serialize ยอด MaterialUsage รวมทุกใบผลิตของออเดอร์เดียวกัน และต้องถือผ่าน Stock HTTP
+    await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${params.stepId} FOR UPDATE`;
+    const step = await tx.productionStep.findUniqueOrThrow({
+      where: { id: params.stepId },
+      select: { id: true, productionId: true, stepType: true, status: true, assignedToId: true },
     });
-    docNumber = movement.data.docNumber;
-  } catch (err) {
-    if (err instanceof StockApiError) badRequest(err.message);
-    badRequest(
-      `เชื่อมต่อ Anajak Stock ไม่ได้ (${err instanceof Error ? err.message : "unknown"})`
-    );
-  }
+    if (step.productionId !== params.productionId) {
+      badRequest("ขั้นตอนนี้ไม่อยู่ในใบผลิตนี้");
+    }
+    if (step.stepType !== "GARMENT_PICK") {
+      badRequest("เบิกเสื้อได้เฉพาะขั้น 'เบิกเสื้อจากสต๊อค'");
+    }
 
-  await prisma.$transaction(async (tx) => {
-    // re-record แบบ idempotent ตามเลขเอกสาร — เรียกซ้ำไม่เบิ้ลแถว
-    await tx.materialUsage.deleteMany({ where: { stockMovementRef: docNumber } });
+    await tx.$queryRaw`SELECT id FROM productions WHERE id = ${params.productionId} FOR UPDATE`;
+    const production = await tx.production.findUniqueOrThrow({
+      where: { id: params.productionId },
+      select: { id: true, orderId: true },
+    });
+    await tx.$queryRaw`SELECT id FROM orders WHERE id = ${production.orderId} FOR UPDATE`;
+
+    // กติกาเดียวกับ updateStep (PERM) แต่ตัดสินจาก assignee หลัง lock เท่านั้น
+    let autoClaim = false;
+    if (!params.canSupervise) {
+      if (step.assignedToId === null) autoClaim = true;
+      else if (step.assignedToId !== params.userId) {
+        forbidden("งานนี้ถูกมอบหมายให้คนอื่นแล้ว");
+      }
+    }
+
+    // key เดิมที่ local transaction เคย commit แล้วต้องจบก่อน state-dependent plan:
+    // RETURN รอบแรกอาจคืนเต็มเพดานจน plan รอบ retry ไม่ผ่าน ทั้งที่ Stock/ERP สำเร็จแล้ว
+    const replay = await findRecordedGarmentMovement(tx, {
+      orderId: production.orderId,
+      movementType: "ISSUE",
+      idempotencyKey: params.idempotencyKey,
+    });
+    if (replay) {
+      return {
+        docNumber: replay.docNumber,
+        issuedQty: replay.quantity,
+        stepCompleted: step.status === "COMPLETED",
+        alreadyRecorded: true,
+      };
+    }
+
+    // replay ด้านบนเป็น no-op ที่ local commit แล้ว; operation ใหม่ต้องอ่านสถานะสดหลัง order
+    // lock และหยุดก่อน Stock side effect หากงานถูกพัก/ยกเลิกหรือออกจากช่วงผลิตแล้ว
+    const liveOrder = await tx.order.findUniqueOrThrow({
+      where: { id: production.orderId },
+      select: { internalStatus: true },
+    });
+    if (liveOrder.internalStatus !== "PRODUCING") {
+      badRequest("เบิกเสื้อไม่ได้ — ออเดอร์ไม่ได้อยู่ในสถานะกำลังผลิต");
+    }
+
+    const state = await getGarmentPickState(tx, production.orderId);
+    const stateBySku = new Map(state.lines.map((line) => [line.sku, line]));
+    const { requested, issuedThisRound, neededTotal, stepDone } = planGarmentIssue(
+      state.lines,
+      params.lines
+    );
+    const client =
+      clientOverride !== undefined ? clientOverride : await getStockClientFromSettings();
+    if (!client) {
+      badRequest("ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock — ไปที่ Settings → Stock ก่อน");
+    }
+
+    let docNumber: string;
+    try {
+      const movement = await client.createMovement({
+        type: "ISSUE",
+        refNo: state.orderNumber,
+        idempotencyKey: params.idempotencyKey,
+        note: `เบิกเสื้อใบผลิต (ออเดอร์ ${state.orderNumber})`,
+        lines: requested.map((line) => ({
+          sku: line.sku,
+          qty: line.qty,
+          fromLocation: params.fromLocation ?? DEFAULT_STOCK_LOCATION,
+          orderRef: state.orderNumber,
+        })),
+      });
+      docNumber = movement.data.docNumber;
+    } catch (err) {
+      if (err instanceof StockApiError) badRequest(err.message);
+      badRequest(
+        `เชื่อมต่อ Anajak Stock ไม่ได้ (${err instanceof Error ? err.message : "unknown"})`
+      );
+    }
+
+    // local transaction เดิมบันทึก usage+step+revision พร้อมกัน: พบ doc แล้วแปลว่า commit
+    // รอบแรกครบทั้งก้อน จึงต้อง no-op ไม่ increment qtyDone/revision ซ้ำ
+    const recorded = await tx.materialUsage.findMany({
+      where: { stockMovementRef: docNumber, movementType: "ISSUE" },
+      select: { quantity: true },
+    });
+    if (recorded.length > 0) {
+      return {
+        docNumber,
+        issuedQty: recorded.reduce((sum, usage) => sum + usage.quantity, 0),
+        stepCompleted: step.status === "COMPLETED",
+        alreadyRecorded: true,
+      };
+    }
+
     for (const line of requested) {
       const ref = stateBySku.get(line.sku)!;
       await tx.materialUsage.create({
@@ -208,6 +284,7 @@ export async function issueGarments(
           quantity: line.qty,
           unit: GARMENT_UNIT,
           movementType: "ISSUE",
+          note: garmentIdempotencyMarker("ISSUE", params.idempotencyKey),
           stockMovementRef: docNumber,
           deductedAt: new Date(),
         },
@@ -242,9 +319,14 @@ export async function issueGarments(
       changeType: "STOCK",
       description: `เบิกเสื้อจากสต๊อค ${issuedThisRound} ตัว (${docNumber})`,
     });
-  });
 
-  return { docNumber, issuedQty: issuedThisRound, stepCompleted: stepDone };
+    return {
+      docNumber,
+      issuedQty: issuedThisRound,
+      stepCompleted: stepDone,
+      alreadyRecorded: false,
+    };
+  }, { timeout: GARMENT_TRANSACTION_TIMEOUT_MS });
 }
 
 // ============================================================
@@ -265,45 +347,71 @@ export async function returnGarments(
   params: ReturnGarmentsParams,
   clientOverride?: StockApiClient | null
 ) {
-  const production = await prisma.production.findUniqueOrThrow({
-    where: { id: params.productionId },
-    select: { id: true, orderId: true },
-  });
-
-  const state = await getGarmentPickState(prisma, production.orderId);
-  const stateBySku = new Map(state.lines.map((l) => [l.sku, l]));
-  const { requested, returnedQty } = planGarmentReturn(state.lines, params.lines);
-
-  const client =
-    clientOverride !== undefined ? clientOverride : await getStockClientFromSettings();
-  if (!client) {
-    badRequest("ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock — ไปที่ Settings → Stock ก่อน");
-  }
-
-  let docNumber: string;
-  try {
-    const movement = await client.createMovement({
-      type: "RETURN",
-      refNo: state.orderNumber,
-      idempotencyKey: params.idempotencyKey,
-      note: params.note || `คืนเศษเข้าสต๊อค (ออเดอร์ ${state.orderNumber})`,
-      lines: requested.map((l) => ({
-        sku: l.sku,
-        qty: l.qty,
-        toLocation: params.toLocation ?? DEFAULT_STOCK_LOCATION,
-        orderRef: state.orderNumber,
-      })),
+  return prisma.$transaction(async (tx) => {
+    // RETURN ไม่มี stepId จึงเริ่มที่ production แล้วใช้ order lock serialize ยอดรวมทุกใบผลิต
+    await tx.$queryRaw`SELECT id FROM productions WHERE id = ${params.productionId} FOR UPDATE`;
+    const production = await tx.production.findUniqueOrThrow({
+      where: { id: params.productionId },
+      select: { id: true, orderId: true },
     });
-    docNumber = movement.data.docNumber;
-  } catch (err) {
-    if (err instanceof StockApiError) badRequest(err.message);
-    badRequest(
-      `เชื่อมต่อ Anajak Stock ไม่ได้ (${err instanceof Error ? err.message : "unknown"})`
-    );
-  }
+    await tx.$queryRaw`SELECT id FROM orders WHERE id = ${production.orderId} FOR UPDATE`;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.materialUsage.deleteMany({ where: { stockMovementRef: docNumber } });
+    const replay = await findRecordedGarmentMovement(tx, {
+      orderId: production.orderId,
+      movementType: "RETURN",
+      idempotencyKey: params.idempotencyKey,
+    });
+    if (replay) {
+      return {
+        docNumber: replay.docNumber,
+        returnedQty: replay.quantity,
+        alreadyRecorded: true,
+      };
+    }
+
+    const state = await getGarmentPickState(tx, production.orderId);
+    const stateBySku = new Map(state.lines.map((line) => [line.sku, line]));
+    const { requested, returnedQty } = planGarmentReturn(state.lines, params.lines);
+    const client =
+      clientOverride !== undefined ? clientOverride : await getStockClientFromSettings();
+    if (!client) {
+      badRequest("ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock — ไปที่ Settings → Stock ก่อน");
+    }
+
+    let docNumber: string;
+    try {
+      const movement = await client.createMovement({
+        type: "RETURN",
+        refNo: state.orderNumber,
+        idempotencyKey: params.idempotencyKey,
+        note: params.note || `คืนเศษเข้าสต๊อค (ออเดอร์ ${state.orderNumber})`,
+        lines: requested.map((line) => ({
+          sku: line.sku,
+          qty: line.qty,
+          toLocation: params.toLocation ?? DEFAULT_STOCK_LOCATION,
+          orderRef: state.orderNumber,
+        })),
+      });
+      docNumber = movement.data.docNumber;
+    } catch (err) {
+      if (err instanceof StockApiError) badRequest(err.message);
+      badRequest(
+        `เชื่อมต่อ Anajak Stock ไม่ได้ (${err instanceof Error ? err.message : "unknown"})`
+      );
+    }
+
+    const recorded = await tx.materialUsage.findMany({
+      where: { stockMovementRef: docNumber, movementType: "RETURN" },
+      select: { quantity: true },
+    });
+    if (recorded.length > 0) {
+      return {
+        docNumber,
+        returnedQty: recorded.reduce((sum, usage) => sum + usage.quantity, 0),
+        alreadyRecorded: true,
+      };
+    }
+
     for (const line of requested) {
       const ref = stateBySku.get(line.sku)!;
       await tx.materialUsage.create({
@@ -314,7 +422,7 @@ export async function returnGarments(
           quantity: line.qty,
           unit: GARMENT_UNIT,
           movementType: "RETURN",
-          note: params.note,
+          note: `${garmentIdempotencyMarker("RETURN", params.idempotencyKey)}${params.note ? `\n${params.note}` : ""}`,
           stockMovementRef: docNumber,
           deductedAt: new Date(),
         },
@@ -326,7 +434,7 @@ export async function returnGarments(
       changeType: "STOCK",
       description: `คืนเศษเข้าสต๊อค ${returnedQty} ตัว (${docNumber})${params.note ? ` — ${params.note}` : ""}`,
     });
-  });
 
-  return { docNumber, returnedQty };
+    return { docNumber, returnedQty, alreadyRecorded: false };
+  }, { timeout: GARMENT_TRANSACTION_TIMEOUT_MS });
 }

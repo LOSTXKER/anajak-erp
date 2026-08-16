@@ -32,8 +32,8 @@ import { Truck } from "lucide-react";
 type PackContextData = RouterOutput["delivery"]["packContext"];
 
 // คีย์แถวนับต่อไซส์+สี — ต้อง normalize เหมือนฝั่ง server (delivery.ts packKey) ให้ map ตรงกัน
-const lineKey = (size?: string | null, color?: string | null) =>
-  `${(size ?? "").trim().toLowerCase()}|${(color ?? "").trim().toLowerCase()}`;
+const lineKey = (description: string, size?: string | null, color?: string | null) =>
+  `${description.trim().toLowerCase()}|${(size ?? "").trim().toLowerCase()}|${(color ?? "").trim().toLowerCase()}`;
 
 // ป้ายไซส์/สีสั้นๆ ไว้โชว์ในสรุปต่อกล่อง เช่น "M ดำ" — ไม่มีทั้งคู่ค่อยถอยไปใช้ description
 // (export ให้ไฟล์แม่ใช้ในการ์ดใบส่งด้วย — ทิศทาง import แม่→dialog ทางเดียว ไม่วนกลับ)
@@ -54,6 +54,7 @@ export function CreateDeliveryDialog({
   customerAddress,
   orderShipping,
   packData,
+  showShippingCost = true,
   onClose,
 }: {
   orderId: string;
@@ -69,6 +70,8 @@ export function CreateDeliveryDialog({
   orderShipping?: OrderShippingSource | null;
   /** บริบทแพ็ค: เหลือเท่าไหร่ต่อไซส์ — parent เปิด dialog ได้ต่อเมื่อ data พร้อมแล้วเท่านั้น */
   packData: PackContextData;
+  /** จอประจำสถานีไม่มีข้อมูลเงินโดยโครงสร้าง — ค่าจัดส่งเป็นหน้าที่ ERP ฝั่งจัดส่ง */
+  showShippingCost?: boolean;
   onClose: () => void;
 }) {
   // seed จากที่อยู่จัดส่งของใบงานก่อน — ไม่มีค่อยถอยไปใช้ชื่อ/เบอร์ลูกค้าแบบเดิม
@@ -99,7 +102,7 @@ export function CreateDeliveryDialog({
   const [packQty, setPackQty] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const l of packData.lines) {
-      init[lineKey(l.size, l.color)] = String(l.remaining);
+      init[lineKey(l.description, l.size, l.color)] = String(l.remaining);
     }
     return init;
   });
@@ -111,6 +114,8 @@ export function CreateDeliveryDialog({
       utils.delivery.getByOrderId.invalidate({ orderId });
       utils.delivery.packContext.invalidate({ orderId });
       utils.order.getById.invalidate({ id: orderId });
+      utils.factory.stationContext.invalidate({ orderId });
+      utils.factory.stationQueue.invalidate();
       onClose();
     },
   });
@@ -119,7 +124,7 @@ export function CreateDeliveryDialog({
   const packLines = packData.lines;
   const totalRemaining = packData.totalRemaining;
   const packRows = packLines.map((l) => {
-    const key = lineKey(l.size, l.color);
+    const key = lineKey(l.description, l.size, l.color);
     const raw = packQty[key] ?? "";
     const qty = raw.trim() === "" ? 0 : Number(raw);
     // ห้ามเกิน remaining / ติดลบ / ไม่ใช่จำนวนเต็ม — ขอบแดง + กันกดสร้าง (server กันอีกชั้น)
@@ -152,7 +157,9 @@ export function CreateDeliveryDialog({
       province: province || undefined,
       postalCode: postalCode || undefined,
       shippingMethod,
-      shippingCost: parseFloat(shippingCost) || 0,
+      ...(showShippingCost
+        ? { shippingCost: parseFloat(shippingCost) || 0 }
+        : {}),
       notes: deliveryNotes || undefined,
       saveAsCustomerAddress,
       // ส่งเฉพาะแถวที่นับจริง (qty > 0) — ออเดอร์ไม่มีรายการไซส์ = [] ทำงานแบบเดิม
@@ -247,7 +254,12 @@ export function CreateDeliveryDialog({
               />
             </Field>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-3",
+              showShippingCost && "sm:grid-cols-2",
+            )}
+          >
             <div className="space-y-2">
               <Label htmlFor="delivery-shipping-method">วิธีจัดส่ง</Label>
               <Select value={shippingMethod} onChange={(e) => setShippingMethod(e.target.value)} id="delivery-shipping-method">
@@ -256,14 +268,16 @@ export function CreateDeliveryDialog({
                   ))}
                 </Select>
             </div>
-            <Field label="ค่าจัดส่ง (บาท)">
-              <Input
-                type="number"
-                value={shippingCost}
-                onChange={(e) => setShippingCost(e.target.value)}
-                min="0"
-              />
-            </Field>
+            {showShippingCost && (
+              <Field label="ค่าจัดส่ง (บาท)">
+                <Input
+                  type="number"
+                  value={shippingCost}
+                  onChange={(e) => setShippingCost(e.target.value)}
+                  min="0"
+                />
+              </Field>
+            )}
           </div>
           {/* รายการรอบนี้ (นับยืนยัน) — ออเดอร์ไม่มีรายการไซส์ → ซ่อน ทำงานแบบเดิม */}
           {packRows.length > 0 && (

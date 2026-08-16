@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { QueryError } from "@/components/ui/query-error";
+import { Alert } from "@/components/ui/alert";
 import { Check } from "lucide-react";
 import type { StepStatus } from "@prisma/client";
 import type { ProductionStep } from "./types";
@@ -46,6 +47,7 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
   const utils = trpc.useUtils();
   const { data: me } = trpc.user.me.useQuery();
   const canAssign = !!me && permAllows(me.permissions, "supervise_operations");
+  const serviceManaged = step.stepType === "GARMENT_PICK" || step.stepType === "DTF_PRINT";
 
   // รายชื่อมอบหมายงาน — โหลดเฉพาะหัวหน้า (endpoint เป็น managerUp)
   const assignables = trpc.user.assignables.useQuery(undefined, {
@@ -58,6 +60,7 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
       utils.production.getById,
       utils.production.getByOrderId,
       utils.production.kanban,
+      utils.factory.stationQueue,
       utils.order.getById,
       utils.task.myToday,
     ],
@@ -71,10 +74,12 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
     const parsedTotal = qtyTotal === "" ? null : Math.max(0, Math.floor(Number(qtyTotal) || 0));
     updateStep.mutate({
       stepId: step.id,
-      status: (status as StepStatus) || undefined,
+      status: serviceManaged ? undefined : (status as StepStatus) || undefined,
       assignedToId: assigneeChanged && assignee ? assignee : undefined,
-      qtyDone: parsedDone !== (step.qtyDone ?? 0) ? parsedDone : undefined,
-      qtyTotal: parsedTotal !== (step.qtyTotal ?? null) ? parsedTotal : undefined,
+      qtyDone:
+        !serviceManaged && parsedDone !== (step.qtyDone ?? 0) ? parsedDone : undefined,
+      qtyTotal:
+        !serviceManaged && parsedTotal !== (step.qtyTotal ?? null) ? parsedTotal : undefined,
       notes: notes || undefined,
       qcPassed: qcPassed === "" ? undefined : qcPassed === "true",
       qcNotes: qcNotes || undefined,
@@ -88,29 +93,37 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
           <DialogTitle>อัปเดตขั้นตอน</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <Field label="สถานะ">
-            <Select value={status} onChange={(e) => setStatus(e.target.value)}>
+          {serviceManaged ? (
+            <Alert variant="info">
+              {step.stepType === "DTF_PRINT"
+                ? "สถานะและจำนวนเดินผ่านรอบพิมพ์ DTF เท่านั้น"
+                : "สถานะและจำนวนเดินผ่านเมนูเบิก/คืนเสื้อเท่านั้น"}
+            </Alert>
+          ) : (
+            <>
+              <Field label="สถานะ">
+                <Select value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="PENDING">รอดำเนินการ</option>
                 <option value="IN_PROGRESS">กำลังทำ</option>
                 <option value="COMPLETED">เสร็จแล้ว</option>
                 <option value="ON_HOLD">พักไว้</option>
                 <option value="FAILED">มีปัญหา</option>
-              </Select>
-          </Field>
-          {/* บอกบางส่วนได้: พิมพ์ไปแล้ว 120 จาก 300 — ไม่บังคับกรอก (ติ๊กเสร็จ = ครบเอง) */}
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="ทำแล้ว (ตัว)">
-              <Input
+                </Select>
+              </Field>
+              {/* บอกบางส่วนได้: พิมพ์ไปแล้ว 120 จาก 300 — ไม่บังคับกรอก */}
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="ทำแล้ว (ตัว)">
+                  <Input
                 type="number"
                 inputMode="numeric"
                 min={0}
                 value={qtyDone}
                 onChange={(e) => setQtyDone(e.target.value)}
                 className="h-10 tabular-nums"
-              />
-            </Field>
-            <Field label="ทั้งหมด (ตัว)">
-              <Input
+                  />
+                </Field>
+                <Field label="ทั้งหมด (ตัว)">
+                  <Input
                 type="number"
                 inputMode="numeric"
                 min={0}
@@ -118,9 +131,11 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
                 onChange={(e) => setQtyTotal(e.target.value)}
                 placeholder="ไม่นับจำนวน"
                 className="h-10 tabular-nums"
-              />
-            </Field>
-          </div>
+                  />
+                </Field>
+              </div>
+            </>
+          )}
           {canAssign && (
             // มอบหมาย/ย้ายเจ้าของงาน — เดิม staff claim เองอย่างเดียวแล้วล็อกถาวร (audit ข้อ 18)
             assignables.isError ? (
@@ -170,6 +185,7 @@ export function StepUpdateDialog({ step, onClose }: StepUpdateDialogProps) {
         </div>
         <DialogSubmitFooter
           pending={updateStep.isPending}
+          pendingLabel="กำลังบันทึก..."
           submitLabel="บันทึก"
           submitIcon={<Check />}
           onCancel={onClose}

@@ -4,6 +4,7 @@ import {
   outsourceActionAvailability,
   outsourceQueueForStatus,
   outsourceStatusMeta,
+  sortOutsourceByExpectedReturn,
 } from "./outsource-ui";
 
 describe("outsource UI policy", () => {
@@ -19,7 +20,7 @@ describe("outsource UI policy", () => {
 
   it("คืนป้ายสถานะจากแหล่งเดียว และมี fallback สำหรับข้อมูลเก่า", () => {
     expect(outsourceStatusMeta("RECEIVED_BACK")).toEqual({
-      label: "รับกลับแล้ว รอ QC",
+      label: "รับกลับแล้ว รอตรวจรับ",
       variant: "warning",
     });
     expect(outsourceStatusMeta("LEGACY")).toEqual({
@@ -93,5 +94,22 @@ describe("outsource UI policy", () => {
         new Date(2026, 6, 12, 0, 0, 0)
       )
     ).toBe(false);
+  });
+
+  it("เรียงคิวรับกลับโดยเอางานเลยกำหนดและวันที่ใกล้สุดขึ้นก่อน", () => {
+    const now = new Date(2026, 6, 12, 9, 0, 0);
+    const orders = [
+      { id: "no-date", status: "SENT", expectedBackAt: null },
+      { id: "later", status: "SENT", expectedBackAt: new Date(2026, 6, 15) },
+      { id: "overdue", status: "SENT", expectedBackAt: new Date(2026, 6, 10) },
+      { id: "nearer", status: "SENT", expectedBackAt: new Date(2026, 6, 13) },
+    ];
+
+    expect(sortOutsourceByExpectedReturn(orders, now).map((order) => order.id)).toEqual([
+      "overdue",
+      "nearer",
+      "later",
+      "no-date",
+    ]);
   });
 });

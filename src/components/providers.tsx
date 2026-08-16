@@ -20,6 +20,13 @@ import { cn } from "@/lib/utils";
 //  และเสี่ยงพิมพ์ออกมาเป็นแถบดำเปลืองหมึก)
 const PUBLIC_LIGHT_PREFIXES = [...PUBLIC_CUSTOMER_PREFIXES, "/print"];
 
+// next-themes ต้องรัน bootstrap ก่อน hydration ฝั่ง server เพื่อกันธีมกระพริบ
+// แต่ React 19.2 จะเตือนเมื่อ Fast Refresh/Suspense สร้าง <script> ใหม่ฝั่ง client
+// จึงเปลี่ยน client remount เป็น data block; effect ของ next-themes ยัง sync class ตามเดิม
+const THEME_BOOTSTRAP_SCRIPT_PROPS = {
+  type: typeof window === "undefined" ? "text/javascript" : "text/plain",
+} as const;
+
 function isPublicLightPath(pathname: string): boolean {
   return PUBLIC_LIGHT_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
@@ -70,6 +77,7 @@ function AppThemeProvider({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
       forcedTheme={isPublicLightPath(pathname) ? "light" : undefined}
+      scriptProps={THEME_BOOTSTRAP_SCRIPT_PROPS}
     >
       {children}
     </ThemeProvider>
@@ -83,6 +91,7 @@ function ThemeFallback({ children }: { children: React.ReactNode }) {
       defaultTheme="system"
       enableSystem
       disableTransitionOnChange
+      scriptProps={THEME_BOOTSTRAP_SCRIPT_PROPS}
     >
       {children}
     </ThemeProvider>

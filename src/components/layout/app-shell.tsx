@@ -15,8 +15,6 @@ import { trpc } from "@/lib/trpc";
 import {
   findActiveNavigationItem,
   groupedNavigationItems,
-  navigationItemsForSurface,
-  type NavigationItem,
 } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/roles";
@@ -43,20 +41,14 @@ import {
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UserMenu } from "@/components/layout/user-menu";
 
-type AppNavItem = Pick<NavigationItem, "id" | "label" | "href" | "icon">;
-
-const PRIMARY_NAV_IDS = ["dashboard", "my-tasks", "orders", "production", "customers"] as const;
 const MOBILE_NAV_IDS = ["dashboard", "my-tasks", "orders", "production"] as const;
-const PRIMARY_NAV_ID_SET = new Set<string>(PRIMARY_NAV_IDS);
 const MOBILE_EXCLUDED_IDS = new Set<string>(MOBILE_NAV_IDS);
 
 function sidebarNavItemClass({
   active,
-  alwaysMedium = false,
   onChrome = false,
 }: {
   active: boolean;
-  alwaysMedium?: boolean;
   onChrome?: boolean;
 }) {
   return cn(
@@ -67,7 +59,7 @@ function sidebarNavItemClass({
     active
       ? cn("font-medium", INTERACTIVE_SELECTED)
       : cn(
-          alwaysMedium ? "font-medium" : "font-normal",
+          "font-normal",
           "text-secondary",
           onChrome ? INTERACTIVE_CHROME_HOVER : INTERACTIVE_HOVER,
           onChrome ? INTERACTIVE_CHROME_PRESSED : INTERACTIVE_PRESSED,
@@ -171,39 +163,26 @@ function AppShellContent({ children }: { children: ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
-  const activeSecondaryRef = useRef<HTMLAnchorElement>(null);
+  const activeSidebarRef = useRef<HTMLAnchorElement>(null);
   const { data: me } = trpc.user.me.useQuery();
   const { data: unreadCount } = trpc.notification.unreadCount.useQuery(undefined, {
     refetchInterval: 30_000,
   });
 
-  const primaryItems = useMemo(() => {
-    const visible = navigationItemsForSurface("sidebar", me?.permissions);
-    const byId = new Map(visible.map((item) => [item.id, item]));
-    return PRIMARY_NAV_IDS.flatMap((id) => {
-      const item = byId.get(id);
-      return item ? [item] : [];
-    });
-  }, [me?.permissions]);
+  const sidebarGroups = useMemo(
+    () => groupedNavigationItems("sidebar", me?.permissions),
+    [me?.permissions],
+  );
 
   const mobileItems = useMemo(() => {
-    const byId = new Map(primaryItems.map((item) => [item.id, item]));
+    const byId = new Map(
+      sidebarGroups.flatMap((group) => group.items).map((item) => [item.id, item]),
+    );
     return MOBILE_NAV_IDS.flatMap((id) => {
       const item = byId.get(id);
       return item ? [item] : [];
     });
-  }, [primaryItems]);
-
-  const secondaryGroups = useMemo(
-    () =>
-      groupedNavigationItems("sidebar", me?.permissions)
-        .map((group) => ({
-          ...group,
-          items: group.items.filter((item) => !PRIMARY_NAV_ID_SET.has(item.id)),
-        }))
-        .filter((group) => group.items.length > 0),
-    [me?.permissions],
-  );
+  }, [sidebarGroups]);
 
   const closeMoreMenu = () => {
     setMoreOpen(false);
@@ -225,31 +204,26 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   const count = unreadCount ?? 0;
   const activeNavigationId = findActiveNavigationItem(pathname)?.id;
-  const secondaryActive = secondaryGroups.some((group) =>
-    group.items.some((item) => item.id === activeNavigationId),
-  );
-  const mobileMoreActive = groupedNavigationItems("sidebar", me?.permissions).some(
+  const mobileMoreActive = sidebarGroups.some(
     (group) =>
       group.items.some(
         (item) =>
           !MOBILE_EXCLUDED_IDS.has(item.id) && item.id === activeNavigationId,
       ),
   );
-  const [allMenuOpen, setAllMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (!secondaryActive) return;
     let positionFrame = 0;
     const openFrame = requestAnimationFrame(() => {
       positionFrame = requestAnimationFrame(() => {
-        activeSecondaryRef.current?.scrollIntoView({ block: "nearest" });
+        activeSidebarRef.current?.scrollIntoView({ block: "nearest" });
       });
     });
     return () => {
       cancelAnimationFrame(openFrame);
       cancelAnimationFrame(positionFrame);
     };
-  }, [activeNavigationId, secondaryActive, secondaryGroups]);
+  }, [activeNavigationId, sidebarGroups]);
 
   return (
     <div
@@ -338,97 +312,36 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
       <aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-start-2 lg:flex lg:flex-col">
         <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-            <ul className="space-y-1">
-              {primaryItems.map((item: AppNavItem) => {
-                const active = activeNavigationId === item.id;
-                return (
-                  <li key={item.id}>
-                    <Link
-                      href={item.href}
-                      aria-current={active ? "page" : undefined}
-                      className={sidebarNavItemClass({ active, onChrome: true })}
-                    >
-                      <item.icon
-                        className={cn(
-                          "h-[18px] w-[18px]",
-                          sidebarNavIconClass(active),
-                        )}
-                        strokeWidth={1.75}
-                      />
-                      <span>{item.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-
-          <div className="my-4 h-px bg-divider" />
-          <details
-              className="group"
-              open={secondaryActive || allMenuOpen}
-              onToggle={(event) => {
-                if (!secondaryActive) setAllMenuOpen(event.currentTarget.open);
-              }}
-            >
-              <summary
-                className={cn(
-                  sidebarNavItemClass({
-                    active: false,
-                    alwaysMedium: true,
-                    onChrome: true,
-                  }),
-                  "cursor-pointer list-none [&::-webkit-details-marker]:hidden",
-                )}
-              >
-                <MoreHorizontal
-                  className={cn(
-                    "h-[18px] w-[18px]",
-                    sidebarNavIconClass(false),
-                  )}
-                  strokeWidth={1.75}
-                />
-                <span className="min-w-0 flex-1">เมนูทั้งหมด</span>
-                <ChevronRight
-                  className={cn(
-                    "h-4 w-4 transition-transform group-open:rotate-90",
-                    sidebarNavIconClass(false),
-                  )}
-                />
-              </summary>
-              <div className="mt-2 space-y-4 pl-2">
-                {secondaryGroups.map((group) => (
-                  <div key={group.id}>
-                    {group.label && (
-                      <p className="px-3 pb-1.5 text-2xs font-medium text-muted">{group.label}</p>
-                    )}
-                    <ul className="space-y-1">
-                      {group.items.map((item) => {
-                        const active = activeNavigationId === item.id;
-                        return (
-                          <li key={item.id}>
-                            <Link
-                              ref={active ? activeSecondaryRef : undefined}
-                              href={item.href}
-                              aria-current={active ? "page" : undefined}
-                              className={sidebarNavItemClass({ active, onChrome: true })}
-                            >
-                              <item.icon
-                                className={cn(
-                                  "h-4 w-4",
-                                  sidebarNavIconClass(active),
-                                )}
-                                strokeWidth={1.75}
-                              />
-                              <span>{item.label}</span>
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ))}
+          <div className="space-y-5">
+            {sidebarGroups.map((group) => (
+              <div key={group.id}>
+                <p className="px-3 pb-1.5 text-2xs font-semibold text-muted">
+                  {group.label}
+                </p>
+                <ul aria-label={group.label ?? undefined} className="space-y-1">
+                  {group.items.map((item) => {
+                    const active = activeNavigationId === item.id;
+                    return (
+                      <li key={item.id}>
+                        <Link
+                          ref={active ? activeSidebarRef : undefined}
+                          href={item.href}
+                          aria-current={active ? "page" : undefined}
+                          className={sidebarNavItemClass({ active, onChrome: true })}
+                        >
+                          <item.icon
+                            className={cn("h-4 w-4", sidebarNavIconClass(active))}
+                            strokeWidth={1.75}
+                          />
+                          <span>{item.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
-          </details>
+            ))}
+          </div>
         </nav>
       </aside>
 

@@ -8,6 +8,8 @@ interface FilterChipProps {
   selected: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  /** ไอคอนความหมายตอนยังไม่เลือก; เมื่อเลือกจะเปลี่ยนเป็น Check ในช่องเดิม */
+  icon?: React.ReactNode;
   className?: string;
   /** muted = ตัวเลือกในกลุ่ม/overlay · raised = ตัวกรองที่ยืนบนผืนหน้า */
   surface?: "muted" | "raised";
@@ -17,6 +19,7 @@ export function FilterChip({
   selected,
   onClick,
   children,
+  icon,
   className,
   surface = "muted",
 }: FilterChipProps) {
@@ -38,10 +41,22 @@ export function FilterChip({
         className,
       )}
     >
-      <Check
-        aria-hidden="true"
-        className={cn("h-3.5 w-3.5 shrink-0", !selected && "invisible")}
-      />
+      {icon ? (
+        <span
+          aria-hidden="true"
+          className="inline-flex h-4 w-4 shrink-0 items-center justify-center"
+        >
+          {selected ? <Check className="h-4 w-4" /> : icon}
+        </span>
+      ) : (
+        <Check
+          aria-hidden="true"
+          className={cn("h-3.5 w-3.5 shrink-0", !selected && "invisible")}
+          // คง inline fallback ไว้ด้วย: dev CSS แบบ incremental บางรอบเคยโหลด class
+          // ก่อน utility `invisible` ทำให้ชิปที่ไม่ได้เลือกยังเห็นเครื่องหมายถูกทุกอัน
+          style={selected ? undefined : { visibility: "hidden" }}
+        />
+      )}
       {children}
     </button>
   );

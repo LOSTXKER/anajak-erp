@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { fileUrlArraySchema } from "@/server/schemas";
-import { createAuditLog } from "@/server/helpers";
 import { getQcContext, createQcRecord } from "@/server/services/qc";
 import { QC_DEFECT_REASONS } from "@/lib/qc";
 
@@ -32,6 +31,7 @@ export const qcRouter = router({
     .input(
       z.object({
         orderId: z.string(),
+        idempotencyKey: z.string().min(8).max(100),
         qtyGood: z.number().int().min(0),
         defects: z
           .array(
@@ -50,15 +50,7 @@ export const qcRouter = router({
         notes: z.string().max(500).optional(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
-      const result = await createQcRecord(ctx.prisma, { ...input, userId: ctx.userId });
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "CREATE",
-        entityType: "QC_RECORD",
-        entityId: result.record.id,
-        newValue: { orderId: input.orderId, qtyGood: input.qtyGood, qtyDefect: result.qtyDefect },
-      });
-      return result;
-    }),
+    .mutation(({ ctx, input }) =>
+      createQcRecord(ctx.prisma, { ...input, userId: ctx.userId })
+    ),
 });

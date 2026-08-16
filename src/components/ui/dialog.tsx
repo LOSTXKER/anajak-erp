@@ -69,7 +69,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className={cn(CONTROL_H, "absolute right-2 top-2 inline-flex w-11 touch-manipulation items-center justify-center rounded-full opacity-70 transition-colors hover:bg-interactive-hover hover:opacity-100 active:bg-interactive-pressed", FOCUS_BUTTON, "sm:right-3 sm:top-3 sm:w-9 disabled:pointer-events-none data-[state=open]:bg-interactive-hover")}>
+      <DialogPrimitive.Close className={cn(CONTROL_H, "absolute right-2 top-2 inline-flex w-11 touch-manipulation items-center justify-center rounded-full opacity-70 transition-colors hover:bg-interactive-hover hover:opacity-100 active:bg-interactive-pressed", FOCUS_BUTTON, "sm:right-3 sm:top-3 sm:w-9 [@media(pointer:coarse)]:w-11 disabled:pointer-events-none data-[state=open]:bg-interactive-hover")}>
         <X className="h-4 w-4" />
         <span className="sr-only">ปิดหน้าต่าง</span>
       </DialogPrimitive.Close>

@@ -119,7 +119,7 @@ selected และ focus เพื่อให้สถานะชี้กั�
 ## Mobile-first (หน้า ops: task queue / production / งานหน้าเครื่อง)
 
 พนักงานใช้มือถือหน้างาน — หน้า ops ต้อง:
-1. **เป้านิ้ว ≥ 44px**: control กลางทุกชนิดสูงอย่างน้อย 44px บนจอ < `sm`; desktop กลับเป็น 36px ได้ · แถว/ไอคอนที่กดได้มี hit area ≥ 44×44px
+1. **เป้านิ้ว ≥ 44px**: control กลางทุกชนิดสูงอย่างน้อย 44px บนจอ < `sm` และบนอุปกรณ์ `pointer: coarse` ทุกขนาด; desktop ที่ใช้เมาส์กลับเป็น 36px ได้ · แถว/ไอคอนที่กดได้มี hit area ≥ 44×44px
 2. **ตาราง → การ์ด**: ใช้ `ResponsiveList` (สลับที่ `lg` — จอแคบกว่านั้น sidebar กินพื้นที่จนตารางบีบ) — ห้ามเขียน `hidden lg:block`/`lg:hidden` เอง
 3. **action หลักติดจอ**: ปุ่มยืนยันงานใช้ sticky bottom bar บนมือถือ
 4. **dialog**: ConfirmDialog ทำให้แล้ว (ปุ่มเต็มแถวซ้อนกันบนจอเล็ก) — dialog ใหม่ทำตาม
@@ -146,6 +146,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 ## Interaction / navigation / state contract (UX0)
 
 - Sidebar และ Command Palette อ่านจาก navigation registry เดียว: label/icon/href/permission/search aliases/visibility อยู่ที่เดียว · active route ใช้ exact หรือ longest match ห้าม `startsWith` ทื่อจนติดหลายเมนู
+- desktop Sidebar แสดงหมวด **ภาพรวม / งานขาย / การผลิต / สินค้า / การเงิน / ระบบ** ที่ผู้ใช้มีสิทธิ์ตลอดและเลื่อนภายในเอง · ห้ามซ่อนเมนูหลัง disclosure “เมนูทั้งหมด”; mobile คง bottom navigation 4 งานหลัก + “เพิ่มเติม”
 - list state ที่แชร์/ย้อนกลับได้อยู่ใน URL: `q`, `status`, `sort`, `page` + filter เฉพาะหน้า · Orders รองรับ `attention=overdue|due-soon|stuck`
 - query ต้องแยก loading/error/empty ชัดเจน; error มี retry และ live announcement · ห้ามแสดง error เป็น “ไม่มีข้อมูล”
 - dialog/sheet ต้องมี viewport gutter, `max-height`, body scroll, Escape, focus trap และคืน focus ให้ trigger
@@ -153,74 +154,59 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 - public token pages บังคับ light theme เพื่อให้เอกสารลูกค้าอ่านได้แน่นอน แม้เครื่องตั้ง system dark
 - animation ต้องเคารพ `prefers-reduced-motion`; ทุกหน้าหลังบ้านมี skip link ไป `<main id="main-content">`
 
-## Prototype world — ERP Command Center (/redesign)
+## Canonical factory operations (`/production*`, `/outsource`, `/factory*`)
 
-> **ขอบเขต ณ 2026-08-14:** world นี้ ship แล้วเฉพาะต้นแบบหลัง login ที่ `/redesign`, Orders Registry ที่ `/redesign/orders`, Order Workbench ที่ `/redesign/orders/[id]` และ Production Control ที่ `/redesign/production` · เป็น shell/composition ใหม่เพื่อทดลองกับข้อมูลจริง แต่ `/orders*`, `/production*` และ route เดิมยังเป็น canonical controller · **ไม่ใช่สิทธิ์ให้ restyle public, print, factory หรือทุก canonical route** และไม่ทับกฎ P1.0 ด้าน accessibility, state, permission และ business invariant ด้านบน
+> งานโรงงานเป็นโมดูลเดียวที่ใช้ record, permission, readiness และ transition ฝั่ง server ชุดเดียวกัน แต่แยกคำถามตามจอ:
+> หัวหน้าตัดสินลำดับที่ `/production`, พนักงานลงมือที่ `/factory/station` และทั้งโรงงานดู pulse แบบอ่านอย่างเดียวที่ `/factory` ·
+> presentation ห้ามสร้าง controller, lifecycle หรือข้อมูลตัวอย่างอีกชุด
 
-### การเลื่อนขึ้นเป็นระบบหลัก
+### Route, shell และ local navigation contract
 
-- promote ได้ทีละ surface เมื่อมีใบงานใน `ROADMAP.md` และเบสเคาะจาก render จริงแล้วเท่านั้น; จนกว่าจะมีมตินั้น `/redesign` ต้องอยู่แยกและมีทางกลับระบบหลัก
-- ตอน promote ให้ย้าย topology/interaction ที่พิสูจน์แล้วพร้อม auth, permission, navigation registry, query และ URL จริง · ห้ามคัดเฉพาะหน้าตาแล้วสร้างข้อมูลหรือกฎธุรกิจชุดที่สอง
-- token ชุดนี้ scope ใต้ `.redesign-shell`; ห้ามย้ายเข้า `globals.css` หรือแทน semantic token P1.0 เงียบ ๆ · การยกเป็น token กลางต้องมีใบงาน design-system และตรวจ Light/Dark + route ที่ได้รับผลครบก่อน
-
-### World และ token เฉพาะต้นแบบ
-
-**North star:** สายการผลิตสดบนกริดแบบ Swiss industrial manual — Anajak cobalt + กระดาษใบงาน + เส้น blueprint + หมึกเข้ม · seed key `953c4cb7` · ใช้ฟอนต์ Prompt และไอคอนเส้นเดิม
-
-| บทบาท | Light | Dark |
+| Route | Shell | หน้าที่ของจอ |
 |---|---|---|
-| brand / top bar | `#3973b2` | `#3973b2` |
-| brand deep | `#305f93` | `#305f93` |
-| workspace (`--redesign-canvas`) | `#f4f7fa` | `#151b21` |
-| work paper (`--redesign-paper`) | `#fff` | `#202a34` |
-| ink / muted | `#13202c` / `#5b6572` | `#f5f7fa` / `#a4adb7` |
-| blueprint rule / strong | `#dbe4ec` / `#bccbd8` | `#304253` / `#49647c` |
-| sunk surface | `#edf2f7` | `#1a242e` |
-| hover / pressed | `#eaf0f5` / `#dce7f0` | `#293847` / `#32485a` |
+| `/production` | shared dashboard `AppShell` | worklist แบบ exception-first หนึ่งออเดอร์ต่อหนึ่งแถว สำหรับตอบว่า “งานไหนต้องจัดการก่อน” |
+| `/production/[id]` | shared dashboard `AppShell` | job traveler: บริบทใบงาน + บ้านเดียวของ action “ตอนนี้ต้องทำ” + เส้นทางการผลิตย้อนหลังแบบ read-only |
+| `/production/print-runs` | shared dashboard `AppShell` | workspace รอบ DTF ตามลำดับ **กำลังพิมพ์ → ตัดแยก/ติดป้าย → คิวพิมพ์ → ประวัติ 7 วัน** |
+| `/production/films` | shared dashboard `AppShell` | คลังฟิล์มแบบ compact: ลาย/ลูกค้า, ต้นทาง, คงเหลือ และการหยิบใช้ |
+| `/outsource` | shared dashboard `AppShell` | คิวส่งร้าน/รับกลับ/**ตรวจรับจากร้าน**/ประวัติ; การตรวจรับนี้มาก่อน QC ขั้นสุดท้ายของออเดอร์ |
+| `/factory/station` | full-screen Dark; ไม่มี ERP sidebar/top bar | เลือกหนึ่งใน 5 สถานี แล้วลงมือเฉพาะ action ของสถานีและสถานะปัจจุบัน |
+| `/factory` | full-screen Dark TV | pulse 5 ด่านแบบ read-only หนึ่ง viewport; ไม่มี action หรือ mutation path |
 
-พื้นผิวเป็นกระดาษเกือบแบน มีเงาตกลงเบา ๆ; control/item โค้ง 8px และ sheet 12px · เส้นโครง 1px, rail ที่ผ่านแล้ว 2px · **ห้าม gradient, glow, hero card หรือเส้นหนาตกแต่ง** · Dark คือกระดาษทำงาน blue-charcoal กับกฎ cobalt; Light คงกระดาษขาว
+- สี่หน้ารวม/พื้นที่หัวหน้าใน `AppShell` ใช้ `ProductionModuleNav` ชุดเดียวและลำดับเดียว: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**; ทางเข้าเสริม **โหมดสถานี / จอโรงงาน** อยู่ท้ายแถบและไม่สร้าง sidebar ฝ่ายผลิตอีกชุด · ใบผลิต `/production/[id]` ไม่วาด local nav หรือ breadcrumb ซ้ำ เพราะเป็นบริบทลงมือที่มีทางกลับคิวเพียงจุดเดียว
+- `/production` ใช้ `production.kanban` กับ `user.me`; filter `ทั้งหมด`, `ต้องจัดการ`, `กำลังผลิต`, `รอ QC`, `แพ็ก / พร้อมส่ง`, จำนวน, search และ sort derive จาก board ชุดเดียว โดยเก็บ `view`, `q`, `sort` ใน URL
+- worklist เรียง exception ก่อนและไม่ทำให้ออเดอร์ผสมซ้ำหลายแถว; แถวเปิดปลายทางจริงตามสถานะ: ใบผลิต, หน้าออเดอร์แท็บผลิต/QC, หน้า delivery หรือ dialog เปิดใบผลิตตามสิทธิ์
+- `/production/[id]` เรียง **สรุปใบงาน → งานที่ทำได้ตอนนี้ → งานที่รอต่อ → ข้อมูลสำหรับทำงาน**; action region มี primary action เดียวต่อบริบทที่ลงมือได้และแยก blocker ออกจากงานพร้อมทำ · แบบ/จำนวนมาก่อนประวัติขั้นบนจอแคบ แล้วจึงเสื้อ/วัตถุดิบ; `ProductionStepsList` เป็น read-only เพื่อไม่วาด action ซ้ำ
+- `/production/print-runs` คงลำดับ DOM ตามงานจริง: พิมพ์ก่อน ตัดแยก+ติดป้าย ถัดมาคิว และประวัติท้ายหน้า; desktop เป็น workspace สองฝั่ง ส่วนจอแคบเรียงตาม DOM เดิม
+- `/production/print-runs` ใช้ Sidebar + `ProductionModuleNav` เป็นลำดับชั้นนำทางอยู่แล้ว จึงไม่วาด breadcrumb ซ้ำเหนือชื่อหน้า
+- `/production/films` เป็น inventory หนาแน่นพอดี ไม่ใช้สถิติ hero; `/outsource` เรียงคิวรับกลับตามกำหนดและเรียก `QC_*` เดิมใน data layer ว่า “ตรวจรับ” ใน UI เพื่อไม่ให้สับสนกับ final QC หลัง production
 
-### Topology ที่ ship
+### Station work center และ flow
 
-- shell ใช้ top bar cobalt สูง 64px + sidebar 256px บน desktop; mobile ใช้ bottom nav คงที่ 5 จุด (`แดชบอร์ด`, `งานของฉัน`, `ออเดอร์`, `การผลิต`, `ทั้งหมด`) ตามรายการและสิทธิ์จาก navigation registry เดิม
-- macro flow มี 7 ช่วง: **รับงาน → อาร์ตเวิร์ก → ความพร้อม → DTF ภายใน → งานร้านนอก → QC / แพ็ค → ส่ง / ปิด** · DTF กับร้านนอกเป็น alternate lanes; งานผสมติดทั้งสองเลน
-- desktop (`xl` ขึ้นไป): Flow Matrix เป็นพระเอก มี recent order **5 แถวเต็ม** พร้อม legend และ capacity strip; exception docket อยู่ข้างกันใน first viewport
-- mobile: เรียง **ข้อยกเว้น → สรุปจำนวน 7 ช่วง → การ์ดออเดอร์ล่าสุด** · ห้ามย่อ desktop matrix ลงมือถือ
+สถานีมี 5 ค่าแบบล็อก ไม่สร้าง lane ตามข้อมูลหน้างานเอง:
 
-### Order Workbench — surface extension ที่ ship
+| Station | งานที่รับผิดชอบ |
+|---|---|
+| `prep` — เตรียมเสื้อ | `GARMENT_PICK` / `GARMENT_RECEIVE` |
+| `dtf-print` — พิมพ์ DTF | คิวและรอบพิมพ์ DTF |
+| `heat-press` — รีดร้อน | `HEAT_PRESS` หลังผ่าน readiness gate |
+| `qc` — ตรวจคุณภาพ | ตรวจจำนวนดีหลัง production จบ |
+| `final-pack` — แพ็คสุดท้าย | บันทึกหลักฐานจัดส่งและปิดจำนวนก่อนพร้อมส่ง |
 
-- แถวออเดอร์ใน Command Center เปิด `/redesign/orders/[id]`; หน้านี้เป็น decision cockpit แบบ read-only ส่วน `/orders/[id]` ยังเป็น source of truth ของ controller, mutation และงานเชิงลึกทั้งหมด
-- desktop เรียง **action docket + dispatch facts → lifecycle 7 ช่วง → work brief + operation snapshots**; mobile เรียง **identity → action → warnings → facts → lifecycle → brief → snapshots** และไม่ใช้แท็บแนวนอน
-- ใช้ `order.getById`, `user.me`, `production.orderContext` แบบมีเงื่อนไข และ `billing.listByOrder` แบบมีเงื่อนไขผ่าน pure view model; ขั้นถัดไปอิง `getOrderNextStep` กับ `order-tabs` เดิม และทุก deep action กลับ canonical route โดยไม่สร้าง status mutation ซ้ำ
-- เป้าหมายการผลิตเจาะ record เมื่อไม่กำกวมเท่านั้น: มี active production หนึ่งรายการ หรือทั้งออเดอร์มีใบผลิตเดียว; กรณีอื่นกลับ canonical production tab เพื่อไม่เดาผิด
-- ข้อมูลเงิน fail closed: โหลดและแสดงเฉพาะ `see_order_money`; สรุปบิลคำนวณจาก `billing.listByOrder` รวม adjustment เท่านั้น, payment detail ใน readiness ถูก sanitize ฝั่ง server สำหรับคนไม่มีสิทธิ์ และออเดอร์ `SHIPPED` ของคนไม่มีสิทธิ์ใช้คำแนะนำทั่วไปโดยไม่เผยข้อมูลเงิน
-- แยก loading, not found, error+retry และ empty จริง; mobile target ขั้นต่ำ 44px, มี `<h1>`, ordered lifecycle พร้อม `aria-current`, และตรวจทั้ง Light/Dark โดยไม่ล้นแนวนอน
-- หลักฐาน: `.impeccable/review/order-workbench-desktop.png` และ `.impeccable/review/order-workbench-mobile.png`; ผ่าน typecheck, targeted lint, 73 files / 711 tests, `verify:ui`, detector ว่าง, production build และ browser desktop/mobile Light + mobile Dark โดยไม่มี console/hydration error · final reviewer รอบแรก HOLD พบ 2 P1 + 1 P2, แก้แล้วรอบยืนยัน **SHIP · remaining clear**
+- หน้าแรกของ Station มีตัวเลือก 5 สถานีเพียงชุดเดียว; เมื่อเลือกแล้วเก็บ `station` ใน URL และ first viewport เรียง **กำลังทำ → คิวพร้อมทำ → scan/search แบบ compact** (`dtf-print` ใช้ workspace รอบพิมพ์แทนคิวทั่วไป)
+- การสแกนรับเลขออเดอร์ตรงหรือ QR ต้นทาง ERP แล้ว **เปิดบริบทเท่านั้น**; ห้าม claim, เริ่ม, จบ, แพ็ก หรือเปลี่ยนสถานะอัตโนมัติ และเมื่อออเดอร์มีหลาย production ต้องให้ผู้ใช้เลือก record เอง
+- คิว Station แสดงเฉพาะงาน active/ready ของสถานี เรียงกำหนดส่งแล้วตาม priority; งานที่ gate ยัง block ต้องไม่หลุดเข้า actionable queue · ใบงาน Station แสดงเฉพาะบริบทและ action ของสถานีปัจจุบัน
+- ลำดับหลังผลิตที่ยอมรับมีชุดเดียว: **production → QC → final pack → ready**; การตรวจรับของร้านนอกอยู่ก่อน final QC · `PACKAGING` เป็น compatibility ของข้อมูลเก่าเท่านั้น ห้ามสร้างเป็น `ProductionStep` ใหม่ และ recovery ต้องส่งกลับเข้า QC
+- `/factory` เรียง pulse 5 ด่าน **เตรียมเสื้อ → พิมพ์ DTF → รีดร้อน → QC → แพ็กสุดท้าย** พร้อม active/queue/next, rail ด่วน/ติดปัญหา และผลลัพธ์พร้อมส่ง; QC กับแพ็กต้องเป็นคนละด่านเสมอ
+- กฎ due sort, readiness, `evaluateHeatPressGate`, จำนวนที่ทำได้ และ status transition เป็น source of truth ฝั่ง server ห้ามหน้า UI คำนวณกฎธุรกิจคู่ขนาน
 
-### Connected Operations — Registry + Production Control ที่ ship
+### Desktop/touch, permission, cache, error และ no-money contract
 
-- สายงานที่ต่อครบคือ **Command Center → `/redesign/orders` → `/redesign/orders/[id]` → `/redesign/production` → canonical action**; ต้นแบบช่วยค้นหา/ตัดสินใจ ส่วน mutation, dialog และ server guard ยังอยู่ที่ `/orders/new`, `/orders/[id]?tab=…`, `/production?create=…` และ `/production/[id]` โดยไม่มี controller หรือ status mutation ชุดที่สอง
-- Orders Registry ใช้ `order.list` + `user.me` จริงผ่าน contract กลาง; `q`, `attention`, `status`, `channel`, `type`, `from`, `to`, `sort` และ `page` อยู่ใน URL จึงแชร์ลิงก์และย้อนกลับได้ · เงิน, money sort และปุ่มเปิดงาน fail closed ตามสิทธิ์
-- Registry desktop เป็น semantic table ที่เรียงจากหัวคอลัมน์; mobile เปลี่ยนเป็นการ์ดทั้งใบและ bottom-sheet filter ไม่ย่อตารางกว้างลงจอ · loading, initial error+retry, background error ที่คง cache, filtered/system empty และ pagination แยกกัน
-- Production Control ใช้ `production.kanban` + `user.me` ผ่าน pure model: exception docket มาก่อนคิวพร้อมผลิต, งานของฉัน, lane จริง และช่วงหลังผลิต QC / PACK / READY · รอบตรวจมีทะเบียน 78 ออเดอร์ และ Production Control มี 21 work cards ใน 7 lanes โดยไม่ยุบงานผสมให้ดูน้อยกว่าความจริง
-- lane truth reuse `laneOf`, `LANE_ORDER`, `LANE_LABELS` และ gate รีดร้อน `evaluateHeatPressGate`; PACK แสดงได้เมื่อทุกขั้นนอก PACK จบเท่านั้น · lane card ใช้ `productionId` จาก production loop จริง ส่วน target ที่กำกวมหรือปิดหมดกลับ canonical order production tab
-- readiness แสดงเฉพาะ `label` กับ `waitingOn` ที่ server sanitize แล้ว; ห้ามคัด `detail` หรือคำนวณ/เผยเงินใน model และ surface นี้ · คนที่ไม่ควรเห็น blocked queue ได้ผลลัพธ์ fail closed
-- desktop ใช้ table/factory control board; mobile ใช้ exception → lens/filter → work cards พร้อม bottom nav เดิมและ touch target ≥44px · DTF lens กรองรายการจริงและ card link เดินถึง canonical production record จริง
-- หลักฐาน: `.impeccable/review/connected-operations-orders-desktop.png`, `.impeccable/review/connected-operations-orders-mobile.png`, `.impeccable/review/connected-operations-production-desktop.png` และ `.impeccable/review/connected-operations-production-mobile.png` · browser 1440×900 Light + 390×844 Dark ไม่มี overflow/console error; ผ่าน typecheck, lint 0 error (29 warning เดิม), 742 tests, `verify:ui`, detector `[]`, production build และ click journey DTF filter/link · finish review รอบแรก **HOLD**, แก้แล้วรอบยืนยัน **SHIP**
-
-### Interaction และ data truth
-
-- แถว matrix ใช้ hover และ `focus-within` ช่วยอ่าน rail ทั้งเส้น; ผ่านแล้ว = cobalt check+เส้น, ปัจจุบัน = วงขอบ+จุด, ยังไม่ถึง = วงเปล่า, ไม่เกี่ยว = วงเส้นประพร้อมขีดลบ, พัก/ระบุไม่ได้ = วงเส้นประเปล่า · motion ปิดเมื่อผู้ใช้เลือก reduced motion
-- ออเดอร์, ข้อยกเว้น, ค้นหา, CTA และ drill-through ทุกจุดเปิด record/route จริง · loading, error+retry, empty และกรณีไม่มีสิทธิ์ต้องแยกกัน
-- แหล่งข้อมูลมีเฉพาะ query เดิม `analytics.dashboard`, `analytics.ownerPulse`, `order.list`, `order.getById`, `production.kanban`, conditional order context/billing, `user.me`, navigation registry และ pure status/permission/view-model helper เดิม · เงิน เมนู owner pulse และ blocked work ต้อง fail closed ตามสิทธิ์
-- เว็บ custom-print แบบ self-serve ในอนาคตเป็นเพียง source ของออเดอร์เข้าสายงานเดียวกัน ไม่ใช่หลังบ้านอีกชุด · **ห้ามมี source badge ฝั่งผู้ใช้จนกว่าจะมี field/API จริง**
-
-### ห้ามคัดจาก comp/ต้นแบบไปใช้ตรง ๆ
-
-- ห้ามใช้โลโก้ตัว A ใน comp; brand ที่ ship ใช้ Printer mark + wordmark “Anajak ERP” เดิม
-- ห้ามคัดข้อมูลตัวอย่าง ตัวเลข ชื่อลูกค้า จำนวนแถว หรือ source badge จากภาพ comp
-- ห้ามคัด matrix ไปมือถือ, สร้าง dashboard การ์ดทั่วไปแทน flow, หรือเปิด POD back office แยก
-- ห้ามนำ palette/shell นี้ไปครอบ public, print, factory หรือ canonical route ก่อนผ่านกติกา promotion ข้างต้น; Connected Operations ไม่ใช่ global restyle และ canonical routes ยังเป็น controller/source of truth
+- composition ตั้งต้นที่ desktop `1440×900` และจอทัช `1024×768`; `390px` เป็น regression guard ที่ยังต้องใช้ flow ได้ครบและไม่เลื่อนแนวนอน · control บน mobile/`pointer: coarse` ≥44×44px ส่วน fine-pointer desktop ใช้ density 36px ได้
+- ทุก `/factory*` ต้องมี session และทุก query เป็น protected procedure; mutation control ต้อง **fail closed** จนรู้ permission และ server guard เป็นด่านสุดท้ายเสมอ
+- ไม่มี `manage_production` = Station/print run/film เป็น read-only; `supervise_operations` จึงเห็นงานข้ามผู้รับผิดชอบ และการตัดสินตรวจรับร้านนอกต้องมีทั้ง `manage_production` + `supervise_operations`; final pack ที่สร้าง delivery ต้องมี `manage_production` + `manage_delivery` และการเปลี่ยนเป็นพร้อมส่งต้องมี `update_order_status_production` เพิ่ม
+- live queue (`/production`, print runs, Station และ TV) poll ทุก 30 วินาทีตามจอที่กำหนดและ refetch เมื่อ focus/reconnect; initial loading, initial error+retry, empty, blocked และ read-only ต้องแยกกัน · background error ต้องคง cached data พร้อมคำเตือนแทนการล้างจอ
+- TV เตือน stale เมื่อไม่ได้ refresh สำเร็จเกิน 2 นาทีและคง snapshot ล่าสุด; pending action ใช้ข้อความ “กำลัง…” + `aria-busy`, error/retry มี label ที่อ่านได้ และ focus/keyboard/reduced-motion ไม่พึ่ง hover
+- worklist, print run, film และ outsource ไม่เพิ่มราคา/ยอดออเดอร์/ค่าจ้าง; job traveler ERP แสดงต้นทุนวัตถุดิบได้เฉพาะ `see_finance` ตาม component เดิม · Station/TV ต้องไม่ขนส่งหรือ render เงินแม้ role เป็น OWNER, ไม่ mount `MaterialUsage` และ final pack ไม่ส่ง shipping cost มาที่ client
 
 ## ลิสต์หนี้ UI เก่า
 

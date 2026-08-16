@@ -19,6 +19,7 @@
  */
 
 import { badRequest, notFound } from "@/server/errors";
+import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import { nextDocumentNumber } from "@/server/services/document-number";
 import { finalizeProductionIfComplete } from "@/server/services/order-status";
 import { resolveSoleOrderArtworkId } from "@/server/services/artwork";
@@ -34,6 +35,80 @@ import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
 
 // สถานะรอบที่ยังกินงานอยู่ — งานในรอบเหล่านี้ห้ามโผล่ในคิว/ห้ามเข้ารอบใหม่
 const ACTIVE_RUN_STATUSES = ["PRINTING", "PRINTED"] as const;
+
+type PrintRunOrderState = {
+  orderNumber: string;
+  internalStatus: string;
+};
+
+function orderStatusLabel(status: string) {
+  return (INTERNAL_STATUS_LABELS as Record<string, string>)[status] ?? status;
+}
+
+function assertPrintRunOrdersProducing(items: readonly { order: PrintRunOrderState }[]) {
+  const blocked = items.find((item) => item.order.internalStatus !== "PRODUCING");
+  if (!blocked) return;
+  badRequest(
+    `งาน ${blocked.order.orderNumber}: ทำรอบพิมพ์ต่อไม่ได้ — ออเดอร์อยู่สถานะ ${orderStatusLabel(blocked.order.internalStatus)}`,
+  );
+}
+
+function activeRunBlockedReason(run: {
+  status: string;
+  items: readonly { order: PrintRunOrderState }[];
+}) {
+  if (!ACTIVE_RUN_STATUSES.includes(run.status as (typeof ACTIVE_RUN_STATUSES)[number])) {
+    return null;
+  }
+  const blocked = run.items.find((item) => item.order.internalStatus !== "PRODUCING");
+  return blocked
+    ? `หยุดรอบนี้ — งาน ${blocked.order.orderNumber} อยู่สถานะ ${orderStatusLabel(blocked.order.internalStatus)}`
+    : null;
+}
+
+/**
+ * ล็อกเส้นทางเดียวกับ production.updateStep: step → production → order.
+ * ทุก id เรียงคงที่ก่อน lock เพื่อให้รอบหลายงานกับ writer รายขั้นไม่สร้างวงจร deadlock
+ * และ caller ต้อง re-read สถานะหลัง helper นี้เสมอ
+ */
+async function lockProductionChain(tx: PrismaTx, stepIds: readonly string[]) {
+  const sortedStepIds = [...new Set(stepIds)].sort();
+  for (const stepId of sortedStepIds) {
+    await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${stepId} FOR UPDATE`;
+  }
+
+  const stepRefs = await tx.productionStep.findMany({
+    where: { id: { in: sortedStepIds } },
+    select: { productionId: true },
+  });
+  const productionIds = [...new Set(stepRefs.map((step) => step.productionId))].sort();
+  for (const productionId of productionIds) {
+    await tx.$queryRaw`SELECT id FROM productions WHERE id = ${productionId} FOR UPDATE`;
+  }
+
+  const productionRefs = await tx.production.findMany({
+    where: { id: { in: productionIds } },
+    select: { orderId: true },
+  });
+  const orderIds = [...new Set(productionRefs.map((production) => production.orderId))].sort();
+  for (const orderId of orderIds) {
+    await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId} FOR UPDATE`;
+  }
+}
+
+/** Print-run mutations share the production lock order, then serialize the run row itself. */
+async function lockPrintRunChain(tx: PrismaTx, runId: string) {
+  const reference = await tx.printRun.findUnique({
+    where: { id: runId },
+    select: { items: { select: { productionStepId: true } } },
+  });
+  if (!reference) notFound("รอบพิมพ์", runId);
+  await lockProductionChain(
+    tx,
+    reference.items.map((item) => item.productionStepId),
+  );
+  await tx.$queryRaw`SELECT id FROM print_runs WHERE id = ${runId} FOR UPDATE`;
+}
 
 // ============================================================
 // คิวพิมพ์ฟิล์ม — ขั้น DTF_PRINT ที่ "ไฟล์พร้อม + ยังพิมพ์ไม่ครบ + ไม่ติดรอบอื่น"
@@ -59,7 +134,7 @@ export async function getPrintQueue(prisma: ExtendedPrismaClient): Promise<Print
     where: {
       stepType: "DTF_PRINT",
       status: { in: ["PENDING", "IN_PROGRESS"] },
-      production: { order: { internalStatus: { notIn: ["CANCELLED", "ON_HOLD"] } } },
+      production: { order: { internalStatus: "PRODUCING" } },
     },
     select: {
       id: true,
@@ -142,11 +217,8 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
   if (new Set(stepIds).size !== stepIds.length) badRequest("เลือกงานซ้ำกันในรอบเดียว");
 
   return prisma.$transaction(async (tx) => {
-    // lock ทุกขั้นก่อนตรวจ — กันสองรอบเปิดทับงานเดียวกันพร้อมกัน
-    // เรียง id เสมอ: ทุก path (เปิด/ปิด/ยกเลิกรอบ) ขอ lock ลำดับ global เดียวกัน กัน deadlock
-    for (const stepId of [...stepIds].sort()) {
-      await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${stepId} FOR UPDATE`;
-    }
+    // lock + re-read ถึงแถวออเดอร์ก่อนตรวจ — request เก่าจึงเดินต่อไม่ได้หลังอีกจอพัก/ยกเลิกงาน
+    await lockProductionChain(tx as PrismaTx, stepIds);
 
     const steps = await tx.productionStep.findMany({
       where: { id: { in: stepIds } },
@@ -185,10 +257,7 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
       if (step.stepType !== "DTF_PRINT") {
         badRequest(`งาน ${order.orderNumber}: รอบพิมพ์รับเฉพาะขั้นพิมพ์ฟิล์ม DTF`);
       }
-      // จอค้างเก่าพางานที่ถูกยกเลิก/พักเข้ารอบได้ — เช็คซ้ำฝั่ง server เสมอ (เปลืองม้วนจริง)
-      if (order.internalStatus === "CANCELLED" || order.internalStatus === "ON_HOLD") {
-        badRequest(`งาน ${order.orderNumber}: ออเดอร์ถูกยกเลิก/พักแล้ว — รีเฟรชคิวก่อน`);
-      }
+      assertPrintRunOrdersProducing([{ order }]);
       if (step.status !== "PENDING" && step.status !== "IN_PROGRESS") {
         badRequest(
           `งาน ${order.orderNumber}: ขั้นพิมพ์ฟิล์มไม่อยู่สถานะที่เข้ารอบได้ (${step.status}) — งานมีปัญหา/ถูกพักให้แก้ที่หน้าใบผลิตก่อน`
@@ -249,13 +318,28 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
 // ============================================================
 
 export async function markPrintRunPrinted(prisma: ExtendedPrismaClient, runId: string) {
-  const res = await prisma.printRun.updateMany({
-    where: { id: runId, status: "PRINTING" },
-    data: { status: "PRINTED", printedAt: new Date() },
+  return prisma.$transaction(async (tx) => {
+    await lockPrintRunChain(tx as PrismaTx, runId);
+    const run = await tx.printRun.findUniqueOrThrow({
+      where: { id: runId },
+      select: {
+        status: true,
+        items: {
+          select: {
+            order: { select: { orderNumber: true, internalStatus: true } },
+          },
+        },
+      },
+    });
+    assertPrintRunOrdersProducing(run.items);
+    const res = await tx.printRun.updateMany({
+      where: { id: runId, status: "PRINTING" },
+      data: { status: "PRINTED", printedAt: new Date() },
+    });
+    if (res.count === 0) {
+      badRequest("รอบนี้ไม่ได้อยู่สถานะกำลังพิมพ์ — รีเฟรชดูสถานะล่าสุดก่อน");
+    }
   });
-  if (res.count === 0) {
-    badRequest("รอบนี้ไม่ได้อยู่สถานะกำลังพิมพ์ — รีเฟรชดูสถานะล่าสุดก่อน");
-  }
 }
 
 export interface CompletePrintRunParams {
@@ -270,7 +354,27 @@ export async function completePrintRun(
   params: CompletePrintRunParams
 ) {
   return prisma.$transaction(async (tx) => {
-    // optimistic: ผ่านจุดตัดแยกได้เฉพาะรอบที่พิมพ์จบแล้ว — สองจอกดพร้อมกันเหลือคนเดียว
+    await lockPrintRunChain(tx as PrismaTx, params.runId);
+    const run = await tx.printRun.findUniqueOrThrow({
+      where: { id: params.runId },
+      include: {
+        items: {
+          include: {
+            order: {
+              select: {
+                id: true,
+                orderNumber: true,
+                title: true,
+                customerId: true,
+                internalStatus: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    assertPrintRunOrdersProducing(run.items);
+    // run row ถูก lock แล้ว: ผ่านจุดตัดแยกได้เฉพาะรอบที่พิมพ์จบ และสองจอกดซ้ำไม่ได้
     const res = await tx.printRun.updateMany({
       where: { id: params.runId, status: "PRINTED" },
       data: { status: "COMPLETED", completedAt: new Date() },
@@ -278,19 +382,6 @@ export async function completePrintRun(
     if (res.count === 0) {
       badRequest("รอบนี้ยังไม่ได้กดพิมพ์จบ หรือถูกปิดไปแล้ว — รีเฟรชดูสถานะล่าสุดก่อน");
     }
-
-    const run = await tx.printRun.findUniqueOrThrow({
-      where: { id: params.runId },
-      include: {
-        items: {
-          include: {
-            order: {
-              select: { id: true, orderNumber: true, title: true, customerId: true },
-            },
-          },
-        },
-      },
-    });
     const extraByItem = new Map(
       (params.extras ?? []).map((e) => [e.itemId, e] as const)
     );
@@ -301,8 +392,7 @@ export async function completePrintRun(
       a.productionStepId.localeCompare(b.productionStepId)
     );
     for (const item of sortedItems) {
-      // pattern เดียวกับ outsource QC_PASSED — lock แถวขั้นก่อนอ่าน-เขียน qty
-      await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${item.productionStepId} FOR UPDATE`;
+      // lockPrintRunChain ถือ lock แถวขั้นทั้งหมดตามลำดับ id ไว้แล้วก่อนอ่านสถานะออเดอร์
       const bumped = await tx.productionStep.update({
         where: { id: item.productionStepId },
         data: { qtyDone: { increment: item.qty } },
@@ -368,6 +458,9 @@ export async function completePrintRun(
 
 export async function cancelPrintRun(prisma: ExtendedPrismaClient, runId: string) {
   return prisma.$transaction(async (tx) => {
+    // recovery ยังยอมให้ยกเลิกรอบของงานที่ถูกพัก/ยกเลิก แต่ใช้ lock order เดียวกับ
+    // create/mark/complete ก่อนคืนขั้น เพื่อไม่ให้ cancel ถือ run แล้วรอ step สวนทางกัน
+    await lockPrintRunChain(tx as PrismaTx, runId);
     // ยกเลิกได้เฉพาะก่อนพิมพ์จบ — พิมพ์ไปแล้วฟิล์มเกิดขึ้นจริง ต้องเดินต่อให้จบรอบ
     const res = await tx.printRun.updateMany({
       where: { id: runId, status: "PRINTING" },
@@ -384,7 +477,7 @@ export async function cancelPrintRun(prisma: ExtendedPrismaClient, runId: string
       orderBy: { productionStepId: "asc" }, // ลำดับ lock global เดียวกันทุก path
     });
     for (const item of items) {
-      await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${item.productionStepId} FOR UPDATE`;
+      // lockPrintRunChain ถือ step lock ไว้แล้ว; ทาง recovery จึงคืนคิวได้โดยไม่สลับ lock order
       const otherRuns = await tx.printRunItem.count({
         where: {
           productionStepId: item.productionStepId,
@@ -407,7 +500,7 @@ export async function cancelPrintRun(prisma: ExtendedPrismaClient, runId: string
 // ============================================================
 
 export async function listPrintRuns(prisma: ExtendedPrismaClient) {
-  return prisma.printRun.findMany({
+  const runs = await prisma.printRun.findMany({
     where: {
       OR: [
         { status: { in: [...ACTIVE_RUN_STATUSES] } },
@@ -417,15 +510,26 @@ export async function listPrintRuns(prisma: ExtendedPrismaClient) {
     },
     orderBy: { createdAt: "desc" },
     take: 50,
-    include: {
+    select: {
+      id: true,
+      runNumber: true,
+      status: true,
+      note: true,
+      printedAt: true,
+      completedAt: true,
+      createdAt: true,
       createdBy: { select: { name: true } },
       items: {
-        include: {
+        select: {
+          id: true,
+          qty: true,
+          extraQty: true,
           order: {
             select: {
               orderNumber: true,
               title: true,
               deadline: true,
+              internalStatus: true,
               designs: {
                 where: { approvalStatus: "APPROVED" },
                 orderBy: { versionNumber: "desc" },
@@ -439,4 +543,8 @@ export async function listPrintRuns(prisma: ExtendedPrismaClient) {
       },
     },
   });
+  return runs.map((run) => ({
+    ...run,
+    blockedReason: activeRunBlockedReason(run),
+  }));
 }

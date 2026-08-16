@@ -8,6 +8,7 @@ import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidat
 import { useListPageState } from "@/hooks/use-list-page-state";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { SearchInput } from "@/components/ui/search-input";
@@ -28,8 +29,9 @@ import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { formatDate, cn } from "@/lib/utils";
 import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
 import { permAllows } from "@/lib/permissions";
-import { Film, Printer, Hand } from "lucide-react";
+import { Film, Hand } from "lucide-react";
 import { FilterChip } from "@/components/ui/filter-chip";
+import { ProductionModuleNav } from "@/components/production/production-module-nav";
 
 // คลังฟิล์มพร้อมรีด (FLOW-REDESIGN ก้อน 2) — ฟิล์มพิมพ์เผื่อจากรอบพิมพ์
 // "ลายไหน ของลูกค้าไหน เหลือกี่ชิ้น" — ลูกค้าสั่งซ้ำเช็คที่นี่ก่อน รีดได้เลยไม่ต้องพิมพ์ใหม่
@@ -54,8 +56,10 @@ function FilmStockPageContent() {
   const [includeEmpty, setIncludeEmpty] = useState(false);
   const [consuming, setConsuming] = useState<FilmStockItem | null>(null);
   // B8: ปุ่ม "หยิบใช้" (ตัดคงเหลือฟิล์ม) เฉพาะคนมีสิทธิ์ผลิต — role อื่นเห็นคลังอ่านอย่างเดียว
-  const { data: me } = trpc.user.me.useQuery();
-  const canManage = permAllows(me?.permissions, "manage_production");
+  const meQuery = trpc.user.me.useQuery();
+  const me = meQuery.data;
+  const canManage =
+    !meQuery.isError && permAllows(me?.permissions, "manage_production");
 
   const listQuery = trpc.filmStock.list.useQuery({
     search: search.trim() || undefined,
@@ -63,28 +67,34 @@ function FilmStockPageContent() {
   });
 
   const hasSearch = search.trim().length > 0;
+  const listStale = listQuery.isError && Boolean(listQuery.data);
+  const canWrite = canManage && !listStale;
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="คลังฟิล์มพร้อมรีด"
-        description="เช็คก่อนพิมพ์ใหม่ทุกครั้งที่ลูกค้าสั่งซ้ำ"
-        action={
-          <Button variant="outline" size="sm" asChild className="gap-1.5">
-            <Link href="/production/print-runs">
-              <Printer />
-              รอบพิมพ์ฟิล์ม
-            </Link>
-          </Button>
-        }
+        description="ค้นหาฟิล์มที่เหลือก่อนเปิดรอบพิมพ์ใหม่"
       />
+      <ProductionModuleNav />
+
+      {meQuery.isError && (
+        <Alert variant="warning">
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>โหลดสิทธิ์การผลิตไม่สำเร็จ — หน้านี้จึงเปิดให้อ่านอย่างเดียว</span>
+            <Button variant="outline" size="sm" onClick={() => void meQuery.refetch()}>
+              ลองใหม่
+            </Button>
+          </span>
+        </Alert>
+      )}
 
       {/* ── ค้นหา + toggle แสดงที่หมดแล้ว — อยู่นอก list area กัน focus หลุดตอนโหลด ── */}
       <Toolbar>
         <SearchInput
           surface="raised"
           ref={searchInputRef}
-          placeholder="ค้นหาลาย / ชื่อลูกค้า / เลขออเดอร์..."
+          placeholder="ค้นหาลาย ลูกค้า หรือเลขออเดอร์"
           defaultValue={search}
           onChange={(e) => onSearchChange(e.target.value)}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
@@ -97,10 +107,21 @@ function FilmStockPageContent() {
             selected={includeEmpty}
             onClick={() => setIncludeEmpty(!includeEmpty)}
           >
-            แสดงที่หมดแล้ว
+            รวมฟิล์มหมด
           </FilterChip>
         </ToolbarGroup>
       </Toolbar>
+
+      {listStale && (
+        <Alert variant="warning">
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>ข้อมูลคลังล่าสุดอาจยังไม่สด — ปิดปุ่มหยิบใช้ชั่วคราว</span>
+            <Button variant="outline" size="sm" onClick={() => void listQuery.refetch()}>
+              ลองใหม่
+            </Button>
+          </span>
+        </Alert>
+      )}
 
       {/* โหลด/พัง/ว่าง/สลับตาราง↔การ์ดที่ lg — ResponsiveList จัดการแทน branch ทำมือ */}
       <ResponsiveList
@@ -127,12 +148,9 @@ function FilmStockPageContent() {
           <DataTable.Root>
             <DataTable.Head>
               <tr>
-                <DataTable.Th>ป้ายลาย</DataTable.Th>
-                <DataTable.Th>ลูกค้า</DataTable.Th>
-                <DataTable.Th>ออเดอร์ต้นทาง</DataTable.Th>
-                <DataTable.Th>รอบพิมพ์</DataTable.Th>
+                <DataTable.Th>ฟิล์มพร้อมรีด</DataTable.Th>
+                <DataTable.Th>ต้นทาง</DataTable.Th>
                 <DataTable.Th align="right">คงเหลือ</DataTable.Th>
-                <DataTable.Th>เข้าคลัง</DataTable.Th>
                 <DataTable.Th align="right">
                   <span className="sr-only">หยิบใช้</span>
                 </DataTable.Th>
@@ -148,29 +166,30 @@ function FilmStockPageContent() {
                     {item.note && (
                       <p className="text-xs text-slate-500 dark:text-slate-400">{item.note}</p>
                     )}
-                  </DataTable.Td>
-                  <DataTable.Td>
                     <Link
                       href={`/customers/${item.customer.id}`}
-                      className="text-blue-600 hover:underline dark:text-blue-400"
+                      className="mt-1 inline-flex text-xs text-blue-600 hover:underline dark:text-blue-400"
                     >
                       {item.customer.name}
                     </Link>
                   </DataTable.Td>
                   <DataTable.Td>
-                    {item.order ? (
-                      <Link
-                        href={`/orders/${item.order.id}`}
-                        className="text-blue-600 hover:underline dark:text-blue-400"
-                      >
-                        {item.order.orderNumber}
-                      </Link>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </DataTable.Td>
-                  <DataTable.Td className="text-xs text-slate-500 dark:text-slate-400">
-                    {item.printRun?.runNumber ?? "—"}
+                    <p className="text-sm">
+                      {item.order ? (
+                        <Link
+                          href={`/orders/${item.order.id}`}
+                          className="text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {item.order.orderNumber}
+                        </Link>
+                      ) : (
+                        <span className="text-slate-400">ไม่ระบุออเดอร์</span>
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                      {item.printRun ? `รอบ ${item.printRun.runNumber} · ` : ""}
+                      เข้าคลัง {formatDate(item.createdAt)}
+                    </p>
                   </DataTable.Td>
                   <DataTable.Td align="right">
                     {item.qty > 0 ? (
@@ -186,11 +205,8 @@ function FilmStockPageContent() {
                       <StatusLabel label="หมดแล้ว" className="items-end" />
                     )}
                   </DataTable.Td>
-                  <DataTable.Td className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
-                    {formatDate(item.createdAt)}
-                  </DataTable.Td>
                   <DataTable.Td align="right">
-                    {canManage && item.qty > 0 && (
+                    {canWrite && item.qty > 0 && (
                       <Button
                         size="sm"
                         variant="subtle"
@@ -249,7 +265,7 @@ function FilmStockPageContent() {
                   <span className="font-medium text-slate-900 dark:text-white">{item.qty}</span>/
                   {item.initialQty} ชิ้น · เข้าคลัง {formatDate(item.createdAt)}
                 </p>
-                {canManage && item.qty > 0 && (
+                {canWrite && item.qty > 0 && (
                   <Button
                     onClick={() => setConsuming(item)}
                     className="mt-3 h-11 w-full gap-1.5"
@@ -264,7 +280,9 @@ function FilmStockPageContent() {
         )}
       />
 
-      {consuming && <ConsumeDialog item={consuming} onClose={() => setConsuming(null)} />}
+      {consuming && canWrite && (
+        <ConsumeDialog item={consuming} onClose={() => setConsuming(null)} />
+      )}
     </div>
   );
 }

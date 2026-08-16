@@ -2,7 +2,9 @@ import { z } from "zod";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { StockApiClient, getStockClientFromSettings } from "@/lib/stock-api";
 import { DEFAULT_STOCK_LOCATION } from "@/lib/stock-constants";
+import { hasPermission } from "@/lib/permissions";
 import { badRequest } from "@/server/errors";
+import { redactCostFields } from "@/server/services/cost-response";
 import {
   syncProductPage,
   syncStockLevels,
@@ -90,6 +92,11 @@ export const stockSyncRouter = router({
     .use(productionUp)
     .input(z.object({ productionId: z.string() }))
     .query(async ({ ctx, input }) => {
+      const canSeeCosts = hasPermission(
+        ctx.userRole,
+        ctx.permissionOverrides,
+        "see_finance",
+      );
       const usages = await ctx.prisma.materialUsage.findMany({
         where: {
           productionId: input.productionId,
@@ -98,20 +105,25 @@ export const stockSyncRouter = router({
         include: { product: { select: { name: true, sku: true } } },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       });
-      return usages.map((u) => ({
-        id: u.id,
-        productId: u.productId,
-        productVariantId: u.productVariantId,
-        name: u.product.name,
-        sku: u.product.sku,
-        quantity: u.quantity,
-        unit: u.unit,
-        unitCost: u.unitCost, // Decimal→number ผ่าน result extension
-        totalCost: u.totalCost,
-        movementType: u.movementType,
-        stockMovementRef: u.stockMovementRef,
-        deductedAt: u.deductedAt ? u.deductedAt.toISOString() : null,
-      }));
+      return usages.map((u) =>
+        redactCostFields(
+          {
+            id: u.id,
+            productId: u.productId,
+            productVariantId: u.productVariantId,
+            name: u.product.name,
+            sku: u.product.sku,
+            quantity: u.quantity,
+            unit: u.unit,
+            unitCost: u.unitCost, // Decimal→number ผ่าน result extension
+            totalCost: u.totalCost,
+            movementType: u.movementType,
+            stockMovementRef: u.stockMovementRef,
+            deductedAt: u.deductedAt ? u.deductedAt.toISOString() : null,
+          },
+          canSeeCosts,
+        ),
+      );
     }),
 
   issueMaterials: protectedProcedure
