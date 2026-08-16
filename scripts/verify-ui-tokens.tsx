@@ -400,6 +400,33 @@ check(
   }
 }
 
+// next-themes ต้องคง bootstrap ที่ execute ได้ตอน SSR เพื่อกันธีมกระพริบ
+// แต่ทุก provider ที่อาจ mount ใหม่ฝั่ง client ต้องส่งเป็น data block ให้ React 19.2
+// ไม่พยายาม execute <script> ที่เพิ่งสร้างระหว่าง Fast Refresh/Suspense
+{
+  const providersSource = readFileSync("src/components/providers.tsx", "utf8");
+  const scriptPropUsages =
+    providersSource.match(
+      /scriptProps=\{THEME_BOOTSTRAP_SCRIPT_PROPS\}/g,
+    ) ?? [];
+
+  if (
+    !providersSource.includes(
+      'type: typeof window === "undefined" ? "text/javascript" : "text/plain"',
+    ) ||
+    scriptPropUsages.length !== 2
+  ) {
+    failed++;
+    console.log(
+      "❌ theme bootstrap ต้อง execute ตอน SSR และเป็น data block ทุก client remount",
+    );
+  } else {
+    console.log(
+      "✅ theme bootstrap แยก SSR executable / client data block ครบทุก provider",
+    );
+  }
+}
+
 // semantic surface ต้องถูกระบุผ่าน API ของ primitive ไม่ส่ง class สี/เงาจาก caller
 {
   const surfaceOffenders: string[] = [];

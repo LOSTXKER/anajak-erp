@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ NEXT16-THEME ปิด React client-script warning โดยไม่ทำให้ธีมกระพริบแล้ว 2026-08-16**
+> รากเหตุคือ `next-themes` สร้าง bootstrap `<script>` ใหม่เมื่อ `ThemeFallback` mount ฝั่ง client ระหว่าง Fast Refresh/Suspense; React 19.2 จึงเตือนว่าสคริปต์ที่สร้างระหว่าง render จะไม่ถูกรัน · แก้ให้ SSR คง `type="text/javascript"` เพื่อใช้ธีมก่อน hydration แต่ client remount ใช้ `type="text/plain"` เป็น data block แล้วให้ effect เดิม sync class โดยไม่เปลี่ยน provider topology หรือ dependency
+>
+> **หลักฐาน runtime:** Fast Refresh บนแท็บเดิมไม่เกิด warning ซ้ำและ client script เหลือหนึ่งตัวแบบ `text/plain` · hard reload ได้ bootstrap หนึ่งตัวแบบ `text/javascript` ก่อนเนื้อหา · Light/Dark/System คงหลัง refresh · หน้าเอกสารบังคับ Light และกลับหน้าระบบแล้วคืนธีมเดิม · hard/soft navigation ไม่มี hydration หรือ console error
+>
+> **ด่าน:** typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1027/1027** · `verify:ui` ผ่านพร้อม regression guard · production build ผ่านใน worktree แยก · targeted ESLint และ `git diff --check` ผ่าน · ไม่แตะ dependency/ฐานข้อมูล และคง dev server ของเบสที่ port 3000 ไว้
+>
+> **ต่อที่นี่:** ถ้า console ยังเก็บ error เก่า ให้ hard refresh หนึ่งครั้ง; commit อยู่บน branch งานและยังไม่ push
+
 > **✅ PRODUCTION-UX2.6 เก็บส่วนหัวและตัวกรองสถานะตามภาพใช้งานจริงแล้ว 2026-08-16**
 > เส้น active ของ local navigation ไม่ลอยเป็นเส้นที่สองอีกแล้ว: ลด padding ของทางเข้า Station/จอโรงงานเฉพาะ desktop และจอทัช ทำให้ underline ทับ divider เดียวกันโดยไม่เปลี่ยน IA หรือเพิ่มไอคอนให้แท็บบนจนรก · browser วัดระยะจากเดิม 8.5–9px เหลือ 0.5px ซึ่งเป็นการซ้อนของเส้นหนา 2px บน divider 1px
 >
