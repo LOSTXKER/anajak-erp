@@ -2,7 +2,15 @@
 
 import type { Ref } from "react";
 import Link from "next/link";
-import { AlertTriangle, ChevronRight, Factory, SearchX } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronRight,
+  ClipboardCheck,
+  Factory,
+  LayoutList,
+  PackageCheck,
+  SearchX,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,6 +36,14 @@ import {
   productionWorklistHref,
   type ProductionWorklistLens,
 } from "@/lib/production-worklist";
+
+const WORKLIST_LENS_ICONS = {
+  all: LayoutList,
+  attention: AlertTriangle,
+  production: Factory,
+  qc: ClipboardCheck,
+  packing: PackageCheck,
+} as const;
 
 function unique(values: readonly string[]) {
   return [...new Set(values.filter(Boolean))];
@@ -285,17 +301,27 @@ export function ProductionControlWorklist<
   return (
     <div className="space-y-4" data-production-worklist>
       <section aria-label="มุมรายการงาน" className="flex flex-wrap items-center gap-2">
-        {PRODUCTION_WORKLIST_LENSES.map((item) => (
-          <FilterChip
-            key={item.key}
-            selected={lens === item.key}
-            onClick={() => onSelectLens(item.key)}
-            surface="raised"
-          >
-            {item.label}
-            <span className="tabular-nums text-muted">{counts[item.key]}</span>
-          </FilterChip>
-        ))}
+        {PRODUCTION_WORKLIST_LENSES.map((item) => {
+          const LensIcon = WORKLIST_LENS_ICONS[item.key];
+          return (
+            <FilterChip
+              key={item.key}
+              selected={lens === item.key}
+              onClick={() => onSelectLens(item.key)}
+              surface="raised"
+              icon={
+                <LensIcon
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  strokeWidth={1.75}
+                />
+              }
+            >
+              {item.label}
+              <span className="tabular-nums opacity-70">{counts[item.key]}</span>
+            </FilterChip>
+          );
+        })}
       </section>
 
       <Toolbar>

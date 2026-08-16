@@ -725,6 +725,7 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] **UX2.3 Station work center `/factory/station`** — control เลือกสถานีมีจุดเดียวและคงใน URL · เมื่อเลือกแล้ว first viewport เป็น active job → ready queue → compact scan · ใช้ station-specific workspace ไม่ mount ERP page ทั้งก้อน · หนึ่งสถานะมี primary action เดียวและ wrong-station/read-only/blocked/stale บอกตรงจังหวะ
 - [x] **UX2.4 Factory TV `/factory`** — แสดง 5 สถานีตาม flowจริงในหนึ่ง viewport พร้อม active/queue/next และ exception rail · QC กับ final packแยกกัน · read-only 100%, poll/stale behavior และ factory-safe no-money DTO เดิม
 - [x] **UX2.5 ด่านก่อนส่ง** — pure/view tests ครอบ worklist grouping/filter/count/route, Station selected/unselected/active/empty/read-only และ TV 5 stage order · `verify:ui` guard โครงหลัก · browser read-only 1440×900 + 1024×768 Light/Dark ที่เกี่ยวข้อง ไม่มี overflow/hydration/console error และ coarse targets ≥44px · typecheck/lint/unit/build ผ่าน · Impeccable detector + fresh finish review · อัปเดต `docs/DESIGN.md`, surface brief, `PROGRESS.md` และ commit ก้อนเล็ก
+- [x] **UX2.6 เก็บส่วนหัว Production Control ตามภาพใช้งานจริง** — ให้เส้น active ของ local module nav ทับเส้นฐานพอดีบน desktop/จอทัช · ตัวกรองสถานะ 5 มุมใช้ช่องไอคอน semantic เดียวและสลับเป็น Check เมื่อเลือกแทนช่องว่างเดิม โดย count/URL/keyboard/touch contract ไม่เปลี่ยน · ตรวจ 1440 desktop + 1024 touch layout, Light/Dark, overflow, console, `verify:ui` และ Impeccable detectorก่อน commit
 
 #### ใบงาน NEXT16-UPGRADE — อัปเกรด framework เป็น Next.js 16.3 (เบสสั่ง 2026-08-16)
 

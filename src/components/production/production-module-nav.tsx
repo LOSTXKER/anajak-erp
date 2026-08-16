@@ -76,7 +76,7 @@ export function ProductionModuleNav({ className }: { className?: string }) {
         <div
           role="group"
           aria-label="พื้นที่หน้างาน"
-          className="flex w-full shrink-0 items-center gap-1 border-t border-divider py-2 sm:w-auto sm:border-l sm:border-t-0 sm:pl-3"
+          className="flex w-full shrink-0 items-center gap-1 border-t border-divider py-2 sm:w-auto sm:border-l sm:border-t-0 sm:py-0 sm:pl-3"
         >
           {WORKSPACE_ITEMS.map((item) => (
             <Link

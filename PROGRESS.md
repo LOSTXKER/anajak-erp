@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION-UX2.6 เก็บส่วนหัวและตัวกรองสถานะตามภาพใช้งานจริงแล้ว 2026-08-16**
+> เส้น active ของ local navigation ไม่ลอยเป็นเส้นที่สองอีกแล้ว: ลด padding ของทางเข้า Station/จอโรงงานเฉพาะ desktop และจอทัช ทำให้ underline ทับ divider เดียวกันโดยไม่เปลี่ยน IA หรือเพิ่มไอคอนให้แท็บบนจนรก · browser วัดระยะจากเดิม 8.5–9px เหลือ 0.5px ซึ่งเป็นการซ้อนของเส้นหนา 2px บน divider 1px
+>
+> ตัวกรอง `ทั้งหมด / ต้องจัดการ / กำลังผลิต / รอ QC / แพ็กพร้อมส่ง` ใช้ช่องไอคอนเดียวตามความหมาย และเปลี่ยนเป็น Check เมื่อเลือก จึงไม่มีช่องว่างล่องหนหน้าข้อความและ label/count ไม่ขยับ · `aria-pressed`, keyboard, URL `?view=attention`, จำนวนแถว และ touch target เดิมไม่เปลี่ยน; `FilterChip` ที่หน้าอื่นใช้ยังคงพฤติกรรมเดิมเมื่อไม่ส่ง icon
+>
+> **หลักฐาน:** browser แบบอ่านอย่างเดียว 1440×900 และ 1024×768 ทั้ง Light/Dark ไม่มี horizontal overflow หรือ app console error; กด `ต้องจัดการ` แล้ว URL/selected/1 แถวตรงกันและคืน `ทั้งหมด` แล้ว · typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1027/1027** · `verify:ui` ผ่านพร้อม SSR/source guard · Impeccable detector `[]` · ไม่คลิก mutationและไม่แตะฐานข้อมูล
+>
+> **ต่อที่นี่:** refresh `/production` แล้วดูส่วนหัวกับตัวกรองบนจอจริง; commit อยู่บน branch งานและยังไม่ push
+
 > **✅ NEXT16-UPGRADE อัป runtime จริงเป็น Next.js 16.3.1 แล้ว 2026-08-16**
 > เปลี่ยน `next` และ `eslint-config-next` จาก 15.5.15 เป็น 16.3.1 พร้อม React/React DOM 19.2.8 และ types ที่ตรง peer range · `next --version`, `next dev`, `next start` และ production build แสดง 16.3.1 จริง ไม่ใช่แก้ข้อความ banner
 >

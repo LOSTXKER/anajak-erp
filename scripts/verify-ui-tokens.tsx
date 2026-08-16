@@ -11,6 +11,7 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { Factory } from "lucide-react";
 import { Select } from "../src/components/ui/select";
 import { Input } from "../src/components/ui/input";
 import { Textarea } from "../src/components/ui/textarea";
@@ -361,13 +362,36 @@ check(
   const idle = renderToStaticMarkup(
     <FilterChip selected={false} onClick={() => {}}>ยังไม่เลือก</FilterChip>,
   );
+  const selectedWithIcon = renderToStaticMarkup(
+    <FilterChip
+      selected
+      onClick={() => {}}
+      icon={<Factory aria-hidden="true" className="h-4 w-4" />}
+    >
+      เลือกแล้ว
+    </FilterChip>,
+  );
+  const idleWithIcon = renderToStaticMarkup(
+    <FilterChip
+      selected={false}
+      onClick={() => {}}
+      icon={<Factory aria-hidden="true" className="h-4 w-4" />}
+    >
+      ยังไม่เลือก
+    </FilterChip>,
+  );
   if (
     !selected.includes('aria-pressed="true"') ||
     !selected.includes("lucide-check") ||
     selected.includes("invisible") ||
     !idle.includes('aria-pressed="false"') ||
     !idle.includes("lucide-check") ||
-    !idle.includes("invisible")
+    !idle.includes("invisible") ||
+    !selectedWithIcon.includes("lucide-check") ||
+    selectedWithIcon.includes("lucide-factory") ||
+    !idleWithIcon.includes("lucide-factory") ||
+    idleWithIcon.includes("lucide-check") ||
+    idleWithIcon.includes("invisible")
   ) {
     failed++;
     console.log("❌ ชิปตัวกรองต้องมี aria-pressed + เครื่องหมายถูกที่ไม่พึ่งสีอย่างเดียว");
@@ -1421,6 +1445,10 @@ check(
     "src/components/production/production-detail-screen.tsx",
     "utf8",
   );
+  const productionModuleNavSource = readFileSync(
+    "src/components/production/production-module-nav.tsx",
+    "utf8",
+  );
   const garmentPickSource = readFileSync(
     "src/components/production/garment-pick-card.tsx",
     "utf8",
@@ -1489,6 +1517,16 @@ check(
   ) {
     problems.push(
       "บอร์ดผลิตต้องรอ permission มี error+retry และปิดการสร้างเมื่อข้อมูลล่าสุดไม่พร้อม",
+    );
+  }
+
+  if (
+    !productionModuleNavSource.includes('className={cn("border-b border-divider"') ||
+    !productionModuleNavSource.includes("no-scrollbar -mb-px") ||
+    !productionModuleNavSource.includes("sm:border-t-0 sm:py-0 sm:pl-3")
+  ) {
+    problems.push(
+      "local navigation ของงานผลิตต้องวางเส้น active ทับ divider เดียวกันบน desktop/จอทัช",
     );
   }
 
