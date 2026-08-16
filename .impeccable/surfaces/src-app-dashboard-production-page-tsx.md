@@ -47,6 +47,7 @@ related_targets: ["src/app/(dashboard)/production/[id]/page.tsx","src/app/(dashb
 - DOM และ mobile order: **กำลังพิมพ์ → รอตัดแยก+ติดป้าย → คิวพิมพ์ → ประวัติ**.
 - desktop/laptop เป็น first workspace สองฝั่ง 4:6 และขยาย 5:7; history อยู่นอก grid เต็มแถว.
 - queue รักษาลำดับจาก service; thumbnail link เป็น sibling ของ row selection. Selection bar อยู่ก่อน long queue, sticky ใน overflow context ที่ถูก และมี forward keyboard path ไป action.
+- Sidebar และ `ProductionModuleNav` เป็นเจ้าของลำดับชั้นนำทางของหน้านี้ จึงไม่มี breadcrumb ซ้ำเหนือชื่อหน้า.
 
 # Interaction, state, and accessibility contract
 

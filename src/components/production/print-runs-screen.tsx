@@ -152,17 +152,6 @@ export function PrintRunsScreen({
 
   return (
     <PageShell
-      // ทางกลับหน้าการผลิตย้ายจากปุ่ม action มาเป็น breadcrumb ตามตำแหน่งมาตรฐาน
-      breadcrumb={[
-        {
-          label: surface === "station" ? "จอประจำสถานี" : "การผลิต",
-          href:
-            surface === "station"
-              ? "/factory/station?station=dtf-print"
-              : "/production",
-        },
-        { label: "รอบพิมพ์ฟิล์ม" },
-      ]}
       title="รอบพิมพ์ฟิล์ม DTF"
       description="เปิดรอบจากคิว → พิมพ์ → ตัดแยกและติดป้าย"
       headerChildren={surface === "erp" ? <ProductionModuleNav /> : undefined}

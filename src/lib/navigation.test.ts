@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   findActiveNavigationItem,
+  groupedNavigationItems,
   navigationItemMatchesPath,
   navigationItemsForSurface,
   NAVIGATION_ITEMS,
@@ -43,5 +44,43 @@ describe("navigation registry", () => {
 
     const supervisor = navigationItemsForSurface("sidebar", ["supervise_operations"]);
     expect(supervisor.some((item) => item.id === "factory")).toBe(true);
+  });
+
+  it("จัด Sidebar เป็นหมวดครบและเรียงงานผลิตตามทางเดินจริง", () => {
+    const groups = groupedNavigationItems("sidebar", [
+      "see_order_money",
+      "supervise_operations",
+      "manage_billing_docs",
+      "see_finance",
+    ]);
+
+    expect(groups.map(({ id, label }) => ({ id, label }))).toEqual([
+      { id: "main", label: "ภาพรวม" },
+      { id: "sales", label: "งานขาย" },
+      { id: "production", label: "การผลิต" },
+      { id: "products", label: "สินค้า" },
+      { id: "finance", label: "การเงิน" },
+      { id: "system", label: "ระบบ" },
+    ]);
+    expect(groups.find((group) => group.id === "sales")?.items.map((item) => item.id)).toEqual([
+      "orders",
+      "quotations",
+      "customers",
+    ]);
+    expect(
+      groups.find((group) => group.id === "production")?.items.map((item) => item.id),
+    ).toEqual(["production", "print-runs", "films", "outsource", "factory"]);
+  });
+
+  it("ซ่อนเฉพาะหมวดที่ไม่มีสิทธิ์ ไม่ซ่อนเมนูที่มีสิทธิ์ไว้หลัง disclosure", () => {
+    const groups = groupedNavigationItems("sidebar", []);
+
+    expect(groups.some((group) => group.id === "finance")).toBe(false);
+    expect(groups.find((group) => group.id === "production")?.items.map((item) => item.id)).toEqual([
+      "production",
+      "print-runs",
+      "films",
+      "outsource",
+    ]);
   });
 });

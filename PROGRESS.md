@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION-UX2.8 เปิด Sidebar เป็นหมวดและตัด breadcrumb ซ้ำแล้ว 2026-08-16**
+> Desktop Sidebar ไม่แยกเมนูหลัก 5 รายการออกจากงานที่เกี่ยวกันและไม่ซ่อนส่วนที่เหลือหลัง “เมนูทั้งหมด” อีกแล้ว · แสดง 6 หมวดตามงาน ERP โดยตรง: ภาพรวม / งานขาย / การผลิต / สินค้า / การเงิน / ระบบ พร้อมคง route, icon, permission fail-closed และ longest-match active เดิม · รายการยาวเลื่อนอยู่ใน Sidebar เอง และ deep link จะเลื่อน active item เข้ามาเห็น
+>
+> มือถือยังคง bottom navigation 4 งานหลัก + “เพิ่มเติม” เพราะไม่ใช่ Sidebar; dialog ใช้ registry/permission ชุดเดียวกัน, Escape ปิดแล้วคืน focus ให้ปุ่มเดิม · หน้ารอบพิมพ์ DTF เอา breadcrumb ที่ซ้ำกับ Sidebar และ `ProductionModuleNav` ออก โดยคงชื่อหน้า คำอธิบาย และทางไปทุกส่วนงานผลิตเดิม
+>
+> **หลักฐานหน้าจริง:** cold dev origin ที่ 1440×900 และ 1024×768 Light/Dark แสดงครบ 6 หมวดโดยไม่มี disclosure, active deep route `/production/print-runs` และ `/settings/stock` ถูกเพียงรายการเดียว, Sidebar เลื่อนหา active ได้, ไม่มี breadcrumb/แนวนอนล้น/console error · 390×844 ยังเปิด “เพิ่มเติม”, Escape คืน focus และไม่มี overflow · ไม่คลิก mutationและไม่แตะฐานข้อมูล
+>
+> **ด่าน final:** typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1033/1033** · `verify:ui` ผ่านพร้อม guard Sidebar/mobile/breadcrumb · production build ผ่าน · React best-practices reviewไม่พบ regression · Impeccable detector `[]` · `git diff --check` ผ่าน
+>
+> **ต่อที่นี่:** เปิด `/production/print-runs` แล้วเลื่อน Sidebar เพื่อดูทุกหมวด; commit อยู่บน branch งานและยังไม่ push
+
 > **✅ PRODUCTION-UX2.7 หัวตาราง Production Control เรียงได้เหมือนหน้ารวมออเดอร์แล้ว 2026-08-16**
 > รากของพื้นหัวตารางที่เปลี่ยนสีคือ `/production` ใช้แถวข้อมูล `DataTable.Row` อยู่ใน `<thead>` จึงรับ hover ของแถวกดได้ทั้งก้อน · เปลี่ยนเป็น `<tr>` หัวตารางจริงและใช้ `DataTable.SortableTh` กลางเหมือน `/orders` ทำให้ชี้แล้วเปลี่ยนเฉพาะข้อความ/ลูกศร ไม่ย้อมพื้นทั้งแถว
 >

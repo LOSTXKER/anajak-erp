@@ -797,6 +797,34 @@ check(
   }
 }
 
+// ── Desktop Sidebar ต้องแสดงทุกหมวดที่มีสิทธิ์โดยไม่ซ่อนใน disclosure
+{
+  const shellSource = readFileSync("src/components/layout/app-shell.tsx", "utf8");
+  const sidebarStart = shellSource.indexOf('<aside className="hidden');
+  const sidebarEnd = shellSource.indexOf("<main", sidebarStart);
+  const desktopSidebarSource = shellSource.slice(sidebarStart, sidebarEnd);
+  const sidebarGroupsStayVisible =
+    shellSource.includes('const sidebarGroups = useMemo(') &&
+    desktopSidebarSource.includes("sidebarGroups.map((group)") &&
+    desktopSidebarSource.includes("activeSidebarRef") &&
+    shellSource.includes('scrollIntoView({ block: "nearest" })') &&
+    !desktopSidebarSource.includes("<details") &&
+    !desktopSidebarSource.includes("เมนูทั้งหมด") &&
+    !shellSource.includes("PRIMARY_NAV_IDS") &&
+    !shellSource.includes("allMenuOpen");
+  const mobileNavigationStaysCompact =
+    shellSource.includes("const MOBILE_NAV_IDS") &&
+    shellSource.includes("<MoreMenu") &&
+    shellSource.includes("<span>เพิ่มเติม</span>");
+
+  if (!sidebarGroupsStayVisible || !mobileNavigationStaysCompact) {
+    failed++;
+    console.log("❌ Sidebar desktop ต้องเปิดทุกหมวด ส่วนมือถือยังใช้เมนูเพิ่มเติม");
+  } else {
+    console.log("✅ Sidebar desktop เปิดทุกหมวดและคงเมนูเพิ่มเติมบนมือถือ");
+  }
+}
+
 // ⑨ ด่านสีจริง — class ถูกไม่ได้แปลว่าสีอ่านออก จึงคำนวณ WCAG จาก token กลาง
 {
   const themes = [0, 1] as const;
@@ -1906,6 +1934,15 @@ check(
   const renderedRows = [
     ...managerHtml.matchAll(/data-print-run-queue-row="([^"]+)"/g),
   ].map((match) => match[1]);
+
+  if (
+    printRunsControllerSource.includes("breadcrumb=") ||
+    !printRunsControllerSource.includes(
+      'headerChildren={surface === "erp" ? <ProductionModuleNav /> : undefined}',
+    )
+  ) {
+    problems.push("หน้ารอบพิมพ์ต้องใช้ local navigation โดยไม่มี breadcrumb ซ้ำ");
+  }
 
   if (
     !(
