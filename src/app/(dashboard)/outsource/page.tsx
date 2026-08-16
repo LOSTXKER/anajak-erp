@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryError } from "@/components/ui/query-error";
-import { StatCard } from "@/components/ui/stat-card";
+import { Alert } from "@/components/ui/alert";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Field } from "@/components/ui/field";
 import {
@@ -34,16 +34,17 @@ import {
   Settings2,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
 import { OutsourceShareDialog } from "@/components/outsource/outsource-share-dialog";
+import { ProductionModuleNav } from "@/components/production/production-module-nav";
 import {
   OUTSOURCE_QUEUE_FILTERS,
   isOutsourceOverdue,
   outsourceActionAvailability,
   outsourceQueueForStatus,
   outsourceStatusMeta,
+  sortOutsourceByExpectedReturn,
   type OutsourceQueue,
 } from "@/lib/outsource-ui";
 
@@ -57,19 +58,19 @@ const QUEUE_EMPTY_COPY: Record<OutsourceQueue, { title: string; description: str
     description: "งานที่ส่งร้านแล้วและยังไม่ได้รับของกลับจะแสดงที่นี่",
   },
   qc: {
-    title: "ไม่มีงานรอ QC",
-    description: "เมื่อนับรับของกลับแล้ว งานจะย้ายมารอหัวหน้าตัดสินที่คิวนี้",
+    title: "ไม่มีงานรอตรวจรับ",
+    description: "เมื่อนับรับของกลับแล้ว งานจะย้ายมารอหัวหน้าตรวจคุณภาพจากร้านที่คิวนี้",
   },
   done: {
     title: "ยังไม่มีประวัติงานจบ",
-    description: "งานที่ QC ผ่านหรือไม่ผ่านจะแสดงเป็นประวัติที่นี่",
+    description: "งานที่ตรวจรับผ่านหรือส่งกลับแก้จะแสดงเป็นประวัติที่นี่",
   },
 };
 
 export default function OutsourcePage() {
   const [queue, setQueue] = useState<OutsourceQueue>("send");
 
-  // QC fail dialog
+  // ตรวจรับจากร้านไม่ผ่าน (ชื่อ field/status ฝั่งข้อมูลเดิมยังเป็น QC_*)
   const [qcFailTarget, setQcFailTarget] = useState<string | null>(null);
   const [qcFailNotes, setQcFailNotes] = useState("");
 
@@ -91,14 +92,18 @@ export default function OutsourcePage() {
   } | null>(null);
 
   const utils = trpc.useUtils();
-  const { data: me } = trpc.user.me.useQuery();
+  const meQuery = trpc.user.me.useQuery();
+  const me = meQuery.data;
+  const permissionReady = !meQuery.isError;
   // รับส่งของ = ทีมผลิตขึ้นไป (ตรง productionUp ฝั่ง server) — role อื่นดูได้อย่างเดียว
-  const canHandleGoods = !!me && permAllows(me.permissions, "manage_production");
-  // ตัดสิน QC ต้องผ่านทั้ง productionUp และ supervise_operations ตาม middleware สองชั้นฝั่ง server
+  const canHandleGoods =
+    permissionReady && !!me && permAllows(me.permissions, "manage_production");
+  // ตัดสินผลตรวจรับต้องผ่านทั้ง productionUp และ supervise_operations ตาม middleware สองชั้นฝั่ง server
   const canJudgeQc =
     canHandleGoods && !!me && permAllows(me.permissions, "supervise_operations");
-  // ยกเลิกใบร่างใช้ manage_settings ฝั่ง server (แยกจากสิทธิ์ตัดสิน QC เมื่อมี override รายคน)
-  const canManageSettings = !!me && permAllows(me.permissions, "manage_settings");
+  // ยกเลิกใบร่างใช้ manage_settings ฝั่ง server (แยกจากสิทธิ์ตัดสินตรวจรับเมื่อมี override รายคน)
+  const canManageSettings =
+    permissionReady && !!me && permAllows(me.permissions, "manage_settings");
   const {
     data: orders,
     isLoading: loadingOrders,
@@ -147,6 +152,7 @@ export default function OutsourcePage() {
   // && !data: refetch เบื้องหลังล้มทั้งที่มี cache ห้ามถอนหน้า (dialog รับของ/แชร์ค้างอยู่)
   if (ordersError && !orders) return <QueryError onRetry={() => refetchOrders()} />;
 
+  const ordersStale = ordersError && Boolean(orders);
   const allOrders = orders ?? [];
   const queueCounts = OUTSOURCE_QUEUE_FILTERS.reduce<Record<OutsourceQueue, number>>(
     (counts, item) => {
@@ -158,15 +164,18 @@ export default function OutsourcePage() {
     { send: 0, receive: 0, qc: 0, done: 0 }
   );
   const overdueCount = allOrders.filter((order) => isOutsourceOverdue(order)).length;
-  const visibleOrders = allOrders
-    .filter((order) => outsourceQueueForStatus(order.status) === queue)
-    .sort((a, b) => Number(isOutsourceOverdue(b)) - Number(isOutsourceOverdue(a)));
+  const queueOrders = allOrders.filter(
+    (order) => outsourceQueueForStatus(order.status) === queue
+  );
+  const visibleOrders =
+    queue === "receive" ? sortOutsourceByExpectedReturn(queueOrders) : queueOrders;
   const currentQueue = OUTSOURCE_QUEUE_FILTERS.find((item) => item.value === queue)!;
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="งานร้านนอก"
+        description="ติดตามกำหนดรับ ตรวจรับจากร้าน แล้วส่งต่อเข้า QC ขั้นสุดท้าย"
         action={
           canManageSettings ? (
             <Button asChild variant="outline" size="sm">
@@ -178,38 +187,66 @@ export default function OutsourcePage() {
           ) : undefined
         }
       />
+      <ProductionModuleNav />
 
-      {/* หน้า ops ไม่มีค่าจ้าง/ทะเบียนร้าน — ให้คนหน้างานเห็นเฉพาะสิ่งที่ต้องทำต่อ */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatCard title="รอส่งร้าน" value={queueCounts.send} icon={Send} caption="งาน" />
-        <StatCard title="เลยกำหนดรับ" value={overdueCount} icon={AlertCircle} caption="งาน" />
-        <StatCard title="รอ QC" value={queueCounts.qc} icon={PackageCheck} caption="งาน" />
+      {meQuery.isError && (
+        <Alert variant="warning">
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>โหลดสิทธิ์งานร้านนอกไม่สำเร็จ — หน้านี้จึงเปิดให้อ่านอย่างเดียว</span>
+            <Button variant="outline" size="sm" onClick={() => void meQuery.refetch()}>
+              ลองใหม่
+            </Button>
+          </span>
+        </Alert>
+      )}
+
+      {ordersStale && (
+        <Alert variant="warning">
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>ข้อมูลงานร้านนอกล่าสุดอาจยังไม่สด — ปิดปุ่มบันทึกชั่วคราว</span>
+            <Button variant="outline" size="sm" onClick={() => void refetchOrders()}>
+              ลองใหม่
+            </Button>
+          </span>
+        </Alert>
+      )}
+
+      {overdueCount > 0 && (
+        <Alert variant="warning" icon={AlertCircle} title={`เลยกำหนดรับ ${overdueCount} งาน`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>เปิดคิวรับกลับเพื่อติดตามร้าน งานเลยกำหนดจะอยู่บนสุด</span>
+            <Button variant="outline" size="sm" onClick={() => setQueue("receive")}>
+              ดูงานเลยกำหนด
+            </Button>
+          </div>
+        </Alert>
+      )}
+
+      <div
+        role="group"
+        className="flex flex-wrap gap-2"
+        aria-label="เลือกคิวงานร้านนอก"
+      >
+        {OUTSOURCE_QUEUE_FILTERS.map((item) => (
+          <FilterChip
+            key={item.value}
+            selected={queue === item.value}
+            onClick={() => setQueue(item.value)}
+          >
+            {item.label} ({queueCounts[item.value]})
+          </FilterChip>
+        ))}
       </div>
 
-      <Section
-        title={`${currentQueue.label} (${visibleOrders.length})`}
-        bordered
-      >
-        <div
-          role="group"
-          className="mb-4 flex flex-wrap gap-2"
-          aria-label="เลือกคิวงานร้านนอก"
-        >
-          {OUTSOURCE_QUEUE_FILTERS.map((item) => (
-            <FilterChip
-              key={item.value}
-              selected={queue === item.value}
-              onClick={() => setQueue(item.value)}
-            >
-              {item.label} ({queueCounts[item.value]})
-            </FilterChip>
-          ))}
-        </div>
+      <section aria-labelledby="outsource-worklist-heading">
+        <h2 id="outsource-worklist-heading" className="sr-only">
+          {currentQueue.label} {visibleOrders.length} งาน
+        </h2>
 
         {loadingOrders ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-36 rounded-xl" />
+              <Skeleton key={i} className="h-32 rounded-xl" />
             ))}
           </div>
         ) : visibleOrders.length === 0 ? (
@@ -219,22 +256,22 @@ export default function OutsourcePage() {
             description={QUEUE_EMPTY_COPY[queue].description}
           />
         ) : (
-          <ul className="space-y-3">
+          <ul className="card-surface divide-y divide-divider overflow-hidden rounded-2xl">
             {visibleOrders.map((o) => {
               const status = outsourceStatusMeta(o.status);
               const order = o.productionStep.production.order;
               const overdue = isOutsourceOverdue(o);
               const actions = outsourceActionAvailability(o.status, {
-                canHandleGoods,
-                canJudgeQc,
-                canManageSettings,
+                canHandleGoods: canHandleGoods && !ordersStale,
+                canJudgeQc: canJudgeQc && !ordersStale,
+                canManageSettings: canManageSettings && !ordersStale,
               });
               const hasActions = Object.values(actions).some(Boolean);
 
               return (
                 <li
                   key={o.id}
-                  className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
+                  className="p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -252,7 +289,7 @@ export default function OutsourcePage() {
                       </p>
                     </div>
                     {/* จุดสี + ข้อความ (ภาษาเดียวกับหน้าอื่นทั้งเว็บ) —
-                        ย้อมข้อความเฉพาะสถานะปลายทางคือ QC จบรอบ ผ่าน/ไม่ผ่าน
+                        ย้อมข้อความเฉพาะผลตรวจรับจากร้าน ผ่าน/ไม่ผ่าน
                         ระหว่างทางปล่อยให้จุดสีบอก ไม่งั้นคิวจะกลายเป็นรุ้ง */}
                     <StatusLabel
                       label={status.label}
@@ -280,7 +317,7 @@ export default function OutsourcePage() {
                   </div>
                   {o.qcNotes && (
                     <p className="mt-2 break-words text-xs text-slate-600 dark:text-slate-300">
-                      <span className="font-medium">ผล QC:</span> {o.qcNotes}
+                      <span className="font-medium">ผลตรวจรับ:</span> {o.qcNotes}
                     </p>
                   )}
 
@@ -322,7 +359,7 @@ export default function OutsourcePage() {
                           }
                         >
                           <Check />
-                          QC ผ่าน
+                          ตรวจรับผ่าน
                         </Button>
                       )}
                       {actions.canFailQc && (
@@ -337,7 +374,7 @@ export default function OutsourcePage() {
                           }}
                         >
                           <X />
-                          QC ไม่ผ่าน
+                          ตรวจรับไม่ผ่าน
                         </Button>
                       )}
                       {actions.canShare && (
@@ -376,16 +413,16 @@ export default function OutsourcePage() {
             })}
           </ul>
         )}
-      </Section>
+      </section>
 
-      {/* QC fail dialog — ต้องบอกเหตุผล (ใช้คุยกับร้าน + เปิดรอบส่งแก้) */}
+      {/* ตรวจรับไม่ผ่าน — ต้องบอกเหตุผล (ใช้คุยกับร้าน + เปิดรอบส่งแก้) */}
       <Dialog
-        open={qcFailTarget !== null}
+        open={qcFailTarget !== null && !ordersStale && canJudgeQc}
         onOpenChange={(open) => !open && setQcFailTarget(null)}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>QC ไม่ผ่าน</DialogTitle>
+            <DialogTitle>ตรวจรับไม่ผ่าน</DialogTitle>
             <DialogDescription>
               ระบุปัญหาที่พบ — ขั้นตอนผลิตจะยังเปิดอยู่ ส่งแก้รอบใหม่ได้จากหน้าใบผลิต
             </DialogDescription>
@@ -402,7 +439,7 @@ export default function OutsourcePage() {
           <DialogSubmitFooter
             pending={updateStatus.isPending}
             disabled={!qcFailNotes}
-            submitLabel="ยืนยัน QC ไม่ผ่าน"
+            submitLabel="ยืนยันตรวจรับไม่ผ่าน"
             submitIcon={<X />}
             destructive
             onCancel={() => setQcFailTarget(null)}
@@ -422,11 +459,11 @@ export default function OutsourcePage() {
       {/* รับกลับร้านนอก: นับของก่อน (ใบตรวจรับ) → บันทึกแล้วค่อย flip สถานะรับกลับ
           ถ้า flip พลาด (ใบถูกคนอื่นขยับ) ใบตรวจรับยังอยู่ — กด "รับของกลับแล้ว" ซ้ำได้ */}
       {/* แชร์ใบงานให้ร้าน (B14) — ลิงก์ public + ไฟล์ลาย */}
-      {shareTarget && (
+      {shareTarget && !ordersStale && canHandleGoods && (
         <OutsourceShareDialog job={shareTarget} onClose={() => setShareTarget(null)} />
       )}
 
-      {receiveTarget && (
+      {receiveTarget && !ordersStale && canHandleGoods && (
         <GoodsReceiptDialog
           orderId={receiveTarget.orderId}
           receiptType="OUTSOURCE_RETURN"

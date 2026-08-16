@@ -99,7 +99,9 @@ export type BoardPermissions = {
    การ์ดจึงเป็นลิงก์ทั้งใบไปยังที่ที่ลงมือได้จริง — ปุ่มลงมือทั้งชุดอยู่ในหน้าใบผลิต ── */
 function cardHref(job: BoardJobOf<BoardStepFull>, spot: BoardSpot<BoardStepFull>) {
   if (spot.productionId) return `/production/${spot.productionId}`;
-  if (spot.stationKey === "post:ship") return `/orders/${job.order.id}?tab=delivery`;
+  if (spot.stationKey === "post:pack" || spot.stationKey === "post:ship") {
+    return `/orders/${job.order.id}?tab=delivery`;
+  }
   if (spot.kind === "queue") return `/orders/${job.order.id}`;
   return `/orders/${job.order.id}?tab=production`;
 }

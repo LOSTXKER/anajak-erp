@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { router, protectedProcedure, requireRole, requirePermission } from "../trpc";
 import { getStockClientFromSettings } from "@/lib/stock-api";
+import { hasPermission } from "@/lib/permissions";
 import { byIdInput, fileUrlSchema, fileUrlArraySchema } from "@/server/schemas";
+import { redactCostFields } from "@/server/services/cost-response";
 
 const managerUp = requirePermission("manage_settings");
 // ลบสินค้า = OWNER เท่านั้น — จงใจคง requireRole (จุด "คงเช็คเดิม" ตาม catalog PERM)
@@ -71,6 +73,11 @@ export const productRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
+      const canSeeCosts = hasPermission(
+        ctx.userRole,
+        ctx.permissionOverrides,
+        "see_finance",
+      );
       const where: Record<string, unknown> = { isActive: true, deletedAt: null };
 
       if (input.search) {
@@ -82,7 +89,7 @@ export const productRouter = router({
       }
       if (input.itemType) where.itemType = input.itemType;
 
-      return ctx.prisma.product.findMany({
+      const products = await ctx.prisma.product.findMany({
         where,
         include: {
           variants: {
@@ -104,6 +111,20 @@ export const productRouter = router({
         orderBy: { name: "asc" },
         take: input.limit,
       });
+
+      if (canSeeCosts) return products;
+
+      return products.map((product) =>
+        redactCostFields(
+          {
+            ...product,
+            variants: product.variants.map((variant) =>
+              redactCostFields(variant, false),
+            ),
+          },
+          false,
+        ),
+      );
     }),
 
   getById: protectedProcedure

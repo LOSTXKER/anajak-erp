@@ -210,10 +210,10 @@ export function PrintRunsPageView({
     <>
       <div
         data-print-run-workspace=""
-        className="grid items-start gap-6 lg:grid-cols-[minmax(18rem,4fr)_minmax(0,6fr)] xl:grid-cols-[minmax(22rem,5fr)_minmax(0,7fr)]"
+        className="grid items-start gap-4 lg:grid-cols-[minmax(18rem,4fr)_minmax(0,6fr)] xl:grid-cols-[minmax(22rem,5fr)_minmax(0,7fr)]"
       >
         {/* ลำดับ DOM ตั้งใจให้ตรงทางเดินหน้างานบนมือถือ: พิมพ์ → ตัดแยก → คิว */}
-        <div data-print-run-stages="" className="space-y-6">
+        <div data-print-run-stages="" className="space-y-4">
           {listError ? (
             <BlockSection icon={Printer} title="รอบพิมพ์ที่กำลังเดิน" count={0}>
               <QueryError onRetry={onRetryList} />
@@ -343,7 +343,7 @@ export function PrintRunsPageView({
       </div>
 
       <div data-print-run-history="">
-        <BlockSection icon={History} title="ประวัติรอบ (7 วันล่าสุด)" count={historyRuns.length}>
+        <BlockSection icon={History} title="ประวัติ 7 วัน" count={historyRuns.length}>
           {listError ? (
             <QueryError onRetry={onRetryList} />
           ) : historyRuns.length === 0 ? (
@@ -401,7 +401,7 @@ function RunStageSection({
     <BlockSection
       stage={stage}
       icon={printing ? Printer : Scissors}
-      title={printing ? "กำลังพิมพ์อยู่" : "รอตัดแยก + ติดป้าย"}
+      title={printing ? "กำลังพิมพ์" : "รอตัดแยก + ติดป้าย"}
       count={runs.length}
     >
       {runs.length === 0 ? (

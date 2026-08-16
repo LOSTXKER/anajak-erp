@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn, formatDateShort } from "@/lib/utils";
-import { ArrowRight, CheckCircle2, Clock3 } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircleDot, Clock3 } from "lucide-react";
 
 export type StationQueueItem = {
   key: string;
@@ -41,62 +41,98 @@ function QueueCard({
       onClick={() => onOpen(item)}
       className={cn(
         FOCUS_BUTTON,
-        "card-surface card-surface-hover flex min-h-24 w-full touch-manipulation items-center gap-4 rounded-2xl p-4 text-left",
+        "group flex min-h-20 w-full touch-manipulation items-center gap-3 rounded-xl border p-4 text-left shadow-sm transition-colors",
+        item.status === "active"
+          ? "border-blue-200 bg-blue-50/70 hover:border-blue-300 hover:bg-blue-50 dark:border-blue-900 dark:bg-blue-950/25 dark:hover:border-blue-800 dark:hover:bg-blue-950/40"
+          : "border-border bg-surface hover:border-border-strong hover:bg-interactive-hover",
       )}
     >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "h-10 w-1 shrink-0 rounded-full",
-          item.status === "active" ? "bg-blue-500" : "bg-border-strong",
-        )}
-      />
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-2">
           <span className="text-base font-semibold tabular-nums text-strong">
             {item.orderNumber}
           </span>
           {item.overdue ? (
-            <Badge variant="destructive" size="sm">เลยกำหนด</Badge>
+            <Badge variant="destructive" size="sm">
+              เลยกำหนด
+            </Badge>
           ) : item.priority === "URGENT" ? (
-            <Badge variant="destructive" size="sm">ด่วน</Badge>
+            <Badge variant="destructive" size="sm">
+              ด่วน
+            </Badge>
           ) : null}
           {item.status === "active" && (
-            <Badge variant="accent" size="sm">กำลังทำ</Badge>
+            <Badge variant="accent" size="sm">
+              กำลังทำ
+            </Badge>
           )}
         </span>
-        <span className="mt-1 block truncate text-sm text-secondary">
-          {[item.customerName, item.title].filter(Boolean).join(" · ") || "ไม่ระบุชื่องาน"}
+        <span className="mt-1 block truncate text-sm font-medium text-secondary">
+          {[item.customerName, item.title].filter(Boolean).join(" · ") ||
+            "ไม่ระบุชื่องาน"}
         </span>
-        <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+        <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           <span>{item.stepLabel}</span>
-          <span className={cn("tabular-nums", item.overdue && "font-medium text-red-300")}>
-            {item.deadline ? `ส่ง ${formatDateShort(item.deadline)}` : "ไม่กำหนดส่ง"}
+          <span
+            className={cn(
+              "tabular-nums",
+              item.overdue && "font-medium text-red-700 dark:text-red-300",
+            )}
+          >
+            {item.deadline
+              ? `ส่ง ${formatDateShort(item.deadline)}`
+              : "ไม่กำหนดส่ง"}
           </span>
-          {qty && <span className="tabular-nums">{qty} ตัว</span>}
+          {qty && <span className="tabular-nums sm:hidden">{qty} ตัว</span>}
         </span>
       </span>
-      <ArrowRight className="h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
+      <span className="flex shrink-0 items-center gap-2">
+        {qty && (
+          <span className="hidden text-right sm:block">
+            <span className="block text-sm font-semibold tabular-nums text-strong">
+              {qty}
+            </span>
+            <span className="block text-xs text-muted">ตัว</span>
+          </span>
+        )}
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-muted text-muted group-hover:text-strong">
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </span>
+      </span>
     </button>
   );
 }
 
 function QueueGroup({
+  id,
   title,
   hint,
+  emptyTitle,
+  emptyDescription,
+  emptyIcon: EmptyIcon,
   items,
   onOpen,
 }: {
+  id: string;
   title: string;
   hint: string;
+  emptyTitle: string;
+  emptyDescription: string;
+  emptyIcon: typeof CheckCircle2;
   items: readonly StationQueueItem[];
   onOpen: (item: StationQueueItem) => void;
 }) {
   return (
-    <section aria-labelledby={`station-group-${title}`} className="space-y-3">
-      <div className="flex items-end justify-between gap-3">
+    <section
+      aria-labelledby={id}
+      className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-5"
+    >
+      <div className="flex items-start justify-between gap-3 border-b border-divider pb-4">
         <div>
-          <h2 id={`station-group-${title}`} className="text-base font-semibold text-strong">
+          <h2
+            id={id}
+            className="text-lg font-semibold text-strong"
+          >
             {title}
           </h2>
           <p className="mt-0.5 text-sm text-muted">{hint}</p>
@@ -105,11 +141,22 @@ function QueueGroup({
           {items.length}
         </span>
       </div>
-      <div className="space-y-3">
-        {items.map((item) => (
-          <QueueCard key={item.key} item={item} onOpen={onOpen} />
-        ))}
-      </div>
+      {items.length === 0 ? (
+        <div className="mt-4 rounded-xl bg-surface-muted">
+          <EmptyState
+            density="compact"
+            icon={EmptyIcon}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
+        </div>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {items.map((item) => (
+            <QueueCard key={item.key} item={item} onOpen={onOpen} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -131,51 +178,52 @@ export function StationQueueView({
   const ready = items.filter((item) => item.status === "ready");
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <Icon className="h-5 w-5 text-blue-400" aria-hidden="true" />
-            <h1 className="text-2xl font-semibold text-strong">{stationLabel}</h1>
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+            <Icon className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted">งานที่ทำได้ตอนนี้</p>
+            <h1 className="truncate text-2xl font-semibold text-strong">
+              {stationLabel}
+            </h1>
+            <p className="mt-0.5 text-sm text-muted">{stationDescription}</p>
           </div>
-          <p className="mt-1 text-sm text-muted">{stationDescription}</p>
         </div>
-        <p className="text-sm tabular-nums text-muted">
-          งานที่ลงมือได้ {items.length.toLocaleString("th-TH")} รายการ
-        </p>
+        <div className="flex shrink-0 items-center gap-2 text-sm">
+          <span className="rounded-full bg-blue-50 px-3 py-1.5 font-medium tabular-nums text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+            กำลังทำ {active.length.toLocaleString("th-TH")}
+          </span>
+          <span className="rounded-full bg-surface-muted px-3 py-1.5 font-medium tabular-nums text-secondary">
+            พร้อม {ready.length.toLocaleString("th-TH")}
+          </span>
+        </div>
       </div>
 
-      {items.length === 0 ? (
-        <div className="card-surface rounded-2xl">
-          <EmptyState
-            icon={CheckCircle2}
-            title="ไม่มีงานพร้อมทำที่สถานีนี้"
-            description="สแกนเลขออเดอร์เพื่อตรวจงานเฉพาะใบ หรือเลือกสถานีอื่นได้ทันที"
-          />
-        </div>
-      ) : (
-        <div className="grid items-start gap-8 xl:grid-cols-[minmax(20rem,4fr)_minmax(0,6fr)]">
-          <QueueGroup
-            title="กำลังทำ"
-            hint="งานที่มีคนเริ่มแล้ว อยู่บนสุดเสมอ"
-            items={active}
-            onOpen={onOpen}
-          />
-          <QueueGroup
-            title="คิวพร้อมทำ"
-            hint="เรียงตามกำหนดส่ง งานที่ติดด่านไม่ปนในคิวนี้"
-            items={ready}
-            onOpen={onOpen}
-          />
-        </div>
-      )}
-
-      {items.length > 0 && active.length === 0 && (
-        <p className="flex items-center gap-2 text-sm text-muted">
-          <Clock3 className="h-4 w-4" aria-hidden="true" />
-          ยังไม่มีงานที่กำลังทำ — เปิดใบแรกจากคิวพร้อมทำได้เลย
-        </p>
-      )}
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(18rem,4fr)_minmax(0,6fr)]">
+        <QueueGroup
+          id="station-active-title"
+          title="กำลังทำ"
+          hint="เปิดงานที่เริ่มไว้แล้วเพื่อทำต่อ"
+          emptyTitle="ยังไม่มีงานที่เริ่มแล้ว"
+          emptyDescription="เลือกงานแรกจากคิวพร้อมทำ แล้วเริ่มที่ใบงานนั้น"
+          emptyIcon={CircleDot}
+          items={active}
+          onOpen={onOpen}
+        />
+        <QueueGroup
+          id="station-ready-title"
+          title="คิวพร้อมทำ"
+          hint="งานพร้อมจริง เรียงงานด่วนและกำหนดส่งก่อน"
+          emptyTitle="ไม่มีงานรอที่สถานีนี้"
+          emptyDescription="คิวนี้เคลียร์แล้ว งานที่ติดด่านจะไม่แสดงปน"
+          emptyIcon={items.length === 0 ? CheckCircle2 : Clock3}
+          items={ready}
+          onOpen={onOpen}
+        />
+      </div>
     </div>
   );
 }

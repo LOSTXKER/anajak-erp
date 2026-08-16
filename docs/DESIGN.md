@@ -153,25 +153,32 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 - public token pages บังคับ light theme เพื่อให้เอกสารลูกค้าอ่านได้แน่นอน แม้เครื่องตั้ง system dark
 - animation ต้องเคารพ `prefers-reduced-motion`; ทุกหน้าหลังบ้านมี skip link ไป `<main id="main-content">`
 
-## Canonical factory operations (`/production*`, `/factory*`)
+## Canonical factory operations (`/production*`, `/outsource`, `/factory*`)
 
-> งานโรงงานมี 3 พื้นผิวที่ใช้ข้อมูลและกฎฝั่ง server ชุดเดียวกัน แต่แยกตามบริบทใช้งานชัดเจน:
-> โต๊ะหัวหน้าที่ `/production`, หน้าลงมือของพนักงานที่ `/factory/station` และจอรวมแบบอ่านอย่างเดียวที่ `/factory` ·
-> ห้ามสร้าง production engine, transition หรือข้อมูลตัวอย่างอีกชุดใน presentation
+> งานโรงงานเป็นโมดูลเดียวที่ใช้ record, permission, readiness และ transition ฝั่ง server ชุดเดียวกัน แต่แยกคำถามตามจอ:
+> หัวหน้าตัดสินลำดับที่ `/production`, พนักงานลงมือที่ `/factory/station` และทั้งโรงงานดู pulse แบบอ่านอย่างเดียวที่ `/factory` ·
+> presentation ห้ามสร้าง controller, lifecycle หรือข้อมูลตัวอย่างอีกชุด
 
-### Route และ shell contract
+### Route, shell และ local navigation contract
 
-| Route | Shell | บทบาท |
+| Route | Shell | หน้าที่ของจอ |
 |---|---|---|
-| `/production` และ route ลูก | shared dashboard `AppShell` | หัวหน้า/เจ้าของดูภาพรวม เปิดใบผลิตและ print run แล้วเข้าสู่ Station Mode เมื่อจะทำงานหน้าเครื่อง |
-| `/factory/station` | full-screen Dark; ไม่มี sidebar/top bar ของ ERP | พนักงานเลือกสถานี เปิดบริบทงาน และลงมือเฉพาะ action ที่สิทธิ์ของสถานีนั้นอนุญาต |
-| `/factory` | full-screen Dark TV | จอรวมโรงงานแบบ read-only เท่านั้น; ไม่มีปุ่มหรือเส้นทาง mutation |
+| `/production` | shared dashboard `AppShell` | worklist แบบ exception-first หนึ่งออเดอร์ต่อหนึ่งแถว สำหรับตอบว่า “งานไหนต้องจัดการก่อน” |
+| `/production/[id]` | shared dashboard `AppShell` | job traveler: บริบทใบงาน + บ้านเดียวของ action “ตอนนี้ต้องทำ” + เส้นทางการผลิตย้อนหลังแบบ read-only |
+| `/production/print-runs` | shared dashboard `AppShell` | workspace รอบ DTF ตามลำดับ **กำลังพิมพ์ → ตัดแยก/ติดป้าย → คิวพิมพ์ → ประวัติ 7 วัน** |
+| `/production/films` | shared dashboard `AppShell` | คลังฟิล์มแบบ compact: ลาย/ลูกค้า, ต้นทาง, คงเหลือ และการหยิบใช้ |
+| `/outsource` | shared dashboard `AppShell` | คิวส่งร้าน/รับกลับ/**ตรวจรับจากร้าน**/ประวัติ; การตรวจรับนี้มาก่อน QC ขั้นสุดท้ายของออเดอร์ |
+| `/factory/station` | full-screen Dark; ไม่มี ERP sidebar/top bar | เลือกหนึ่งใน 5 สถานี แล้วลงมือเฉพาะ action ของสถานีและสถานะปัจจุบัน |
+| `/factory` | full-screen Dark TV | pulse 5 ด่านแบบ read-only หนึ่ง viewport; ไม่มี action หรือ mutation path |
 
-- `/production` ใช้ `production.kanban` กับ `user.me`; detail และ print run ใช้ `production.getById` กับ `printRun.queue/list` โดยยังอยู่ใน `AppShell`
-- Station Mode มี header/ตัวเลือกสถานีของตัวเองและทางกลับ `/production`; ผู้ไม่มีสิทธิ์แก้งานยังเปิดดูบริบทได้ แต่ต้องไม่เห็น action control
-- TV ใช้ `factory.board`, poll ทุก 30 วินาที และเตือนข้อมูลเก่าเมื่อไม่ได้ refresh สำเร็จเกิน 2 นาที โดยยังแสดง snapshot ล่าสุดแทนการล้างจอ
+- สี่หน้าใน `AppShell` ใช้ `ProductionModuleNav` ชุดเดียวและลำดับเดียว: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**; ทางเข้าเสริม **โหมดสถานี / จอโรงงาน** อยู่ท้ายแถบและไม่สร้าง sidebar ฝ่ายผลิตอีกชุด
+- `/production` ใช้ `production.kanban` กับ `user.me`; filter `ทั้งหมด`, `ต้องจัดการ`, `กำลังผลิต`, `รอ QC`, `แพ็ก / พร้อมส่ง`, จำนวน, search และ sort derive จาก board ชุดเดียว โดยเก็บ `view`, `q`, `sort` ใน URL
+- worklist เรียง exception ก่อนและไม่ทำให้ออเดอร์ผสมซ้ำหลายแถว; แถวเปิดปลายทางจริงตามสถานะ: ใบผลิต, หน้าออเดอร์แท็บผลิต/QC, หน้า delivery หรือ dialog เปิดใบผลิตตามสิทธิ์
+- `/production/[id]` วาง “ตอนนี้ต้องทำ” เป็น action region เดียวและมี primary action เดียวต่อบริบทที่ลงมือได้; แบบ/ไซส์, เบิกเสื้อ และวัตถุดิบเป็นข้อมูลประกอบ ส่วน `ProductionStepsList` ใน “เส้นทางการผลิต” เป็น read-only เพื่อไม่วาด action ซ้ำ
+- `/production/print-runs` คงลำดับ DOM ตามงานจริง: พิมพ์ก่อน ตัดแยก+ติดป้าย ถัดมาคิว และประวัติท้ายหน้า; desktop เป็น workspace สองฝั่ง ส่วนจอแคบเรียงตาม DOM เดิม
+- `/production/films` เป็น inventory หนาแน่นพอดี ไม่ใช้สถิติ hero; `/outsource` เรียงคิวรับกลับตามกำหนดและเรียก `QC_*` เดิมใน data layer ว่า “ตรวจรับ” ใน UI เพื่อไม่ให้สับสนกับ final QC หลัง production
 
-### Station map และ flow
+### Station work center และ flow
 
 สถานีมี 5 ค่าแบบล็อก ไม่สร้าง lane ตามข้อมูลหน้างานเอง:
 
@@ -183,20 +190,21 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 | `qc` — ตรวจคุณภาพ | ตรวจจำนวนดีหลัง production จบ |
 | `final-pack` — แพ็คสุดท้าย | บันทึกหลักฐานจัดส่งและปิดจำนวนก่อนพร้อมส่ง |
 
-- ลำดับหลังผลิตที่ยอมรับมีชุดเดียว: **production → QC → final pack → ready**; `PACKAGING` เป็น compatibility ของข้อมูลเก่าเท่านั้น ห้ามสร้างเป็น `ProductionStep` ใหม่ และ recovery ต้องส่งกลับเข้า QC
-- การสแกนรับเลขออเดอร์ตรงหรือ QR ต้นทาง ERP แล้ว **เปิดบริบทเท่านั้น**; ห้าม claim, เริ่ม, จบ หรือเปลี่ยนสถานะอัตโนมัติ และเมื่อออเดอร์มีหลาย production ต้องให้ผู้ใช้เลือก record เอง
-- คิว Station แสดงเฉพาะงาน active/ready ของสถานี เรียงกำหนดส่งแล้วตาม priority; งานที่ gate ยัง block ต้องไม่หลุดเข้า actionable queue
+- หน้าแรกของ Station มีตัวเลือก 5 สถานีเพียงชุดเดียว; เมื่อเลือกแล้วเก็บ `station` ใน URL และ first viewport เรียง **กำลังทำ → คิวพร้อมทำ → scan/search แบบ compact** (`dtf-print` ใช้ workspace รอบพิมพ์แทนคิวทั่วไป)
+- การสแกนรับเลขออเดอร์ตรงหรือ QR ต้นทาง ERP แล้ว **เปิดบริบทเท่านั้น**; ห้าม claim, เริ่ม, จบ, แพ็ก หรือเปลี่ยนสถานะอัตโนมัติ และเมื่อออเดอร์มีหลาย production ต้องให้ผู้ใช้เลือก record เอง
+- คิว Station แสดงเฉพาะงาน active/ready ของสถานี เรียงกำหนดส่งแล้วตาม priority; งานที่ gate ยัง block ต้องไม่หลุดเข้า actionable queue · ใบงาน Station แสดงเฉพาะบริบทและ action ของสถานีปัจจุบัน
+- ลำดับหลังผลิตที่ยอมรับมีชุดเดียว: **production → QC → final pack → ready**; การตรวจรับของร้านนอกอยู่ก่อน final QC · `PACKAGING` เป็น compatibility ของข้อมูลเก่าเท่านั้น ห้ามสร้างเป็น `ProductionStep` ใหม่ และ recovery ต้องส่งกลับเข้า QC
+- `/factory` เรียง pulse 5 ด่าน **เตรียมเสื้อ → พิมพ์ DTF → รีดร้อน → QC → แพ็กสุดท้าย** พร้อม active/queue/next, rail ด่วน/ติดปัญหา และผลลัพธ์พร้อมส่ง; QC กับแพ็กต้องเป็นคนละด่านเสมอ
 - กฎ due sort, readiness, `evaluateHeatPressGate`, จำนวนที่ทำได้ และ status transition เป็น source of truth ฝั่ง server ห้ามหน้า UI คำนวณกฎธุรกิจคู่ขนาน
 
-### Permission, data และ no-money contract
+### Desktop/touch, permission, cache, error และ no-money contract
 
-- ทุก `/factory*` ต้องมี session และทุก query เป็น protected procedure; action ต้องตรวจ permission ฝั่ง server ซ้ำตามสถานีและ **fail closed** เมื่อสิทธิ์หรือบริบทไม่ครบ
-- ไม่มี `manage_production` = Station read-only; action ผลิต/QC/DTF ต้องมี `manage_production`; final packing ที่สร้าง delivery ต้องมี `manage_production` + `manage_delivery`; การเปลี่ยนเป็นพร้อมส่งต้องมี `manage_production` + `update_order_status_production`
-- `supervise_operations` เห็นงานข้ามผู้รับผิดชอบได้; ถ้าไม่มี ให้เห็นเฉพาะงานของตัวเองหรืองานที่ยังไม่ assign และห้ามใช้ UI ขยายขอบเขตนี้
-- Station ใช้ `factory.stationQueue`, `factory.resolveStationScan`, `factory.stationContext`, `production.getById`, `printRun.queue/list`, endpoint ผลิต/QC/แพ็ค และ `user.me`; TV ใช้ `factory.board` เท่านั้น
-- payload ของ Station/TV ต้องไม่ขนส่ง field เงินตั้งแต่ server select/response และ UI ต้องไม่ render เงินแม้ role เป็น OWNER: ห้าม mount รายละเอียดต้นทุน/`MaterialUsage`; final packing ต้องซ่อนและไม่ส่ง shipping cost
-- query สด poll ทุก 30 วินาทีและ refetch เมื่อ focus/reconnect; initial loading, initial error+retry และ empty จริงต้องแยกจาก background stale/error ซึ่งต้องคง cached data ไว้
-- action/field บนมือถือและ coarse pointer ≥44px; pending state มีข้อความ “กำลัง…” พร้อม `aria-busy`; จอ 320px ต้องไม่มี page-level horizontal overflow
+- composition ตั้งต้นที่ desktop `1440×900` และจอทัช `1024×768`; `390px` เป็น regression guard ที่ยังต้องใช้ flow ได้ครบและไม่เลื่อนแนวนอน · control บน mobile/`pointer: coarse` ≥44×44px ส่วน fine-pointer desktop ใช้ density 36px ได้
+- ทุก `/factory*` ต้องมี session และทุก query เป็น protected procedure; mutation control ต้อง **fail closed** จนรู้ permission และ server guard เป็นด่านสุดท้ายเสมอ
+- ไม่มี `manage_production` = Station/print run/film เป็น read-only; `supervise_operations` จึงเห็นงานข้ามผู้รับผิดชอบ และการตัดสินตรวจรับร้านนอกต้องมีทั้ง `manage_production` + `supervise_operations`; final pack ที่สร้าง delivery ต้องมี `manage_production` + `manage_delivery` และการเปลี่ยนเป็นพร้อมส่งต้องมี `update_order_status_production` เพิ่ม
+- live queue (`/production`, print runs, Station และ TV) poll ทุก 30 วินาทีตามจอที่กำหนดและ refetch เมื่อ focus/reconnect; initial loading, initial error+retry, empty, blocked และ read-only ต้องแยกกัน · background error ต้องคง cached data พร้อมคำเตือนแทนการล้างจอ
+- TV เตือน stale เมื่อไม่ได้ refresh สำเร็จเกิน 2 นาทีและคง snapshot ล่าสุด; pending action ใช้ข้อความ “กำลัง…” + `aria-busy`, error/retry มี label ที่อ่านได้ และ focus/keyboard/reduced-motion ไม่พึ่ง hover
+- worklist, print run, film และ outsource ไม่เพิ่มราคา/ยอดออเดอร์/ค่าจ้าง; job traveler ERP แสดงต้นทุนวัตถุดิบได้เฉพาะ `see_finance` ตาม component เดิม · Station/TV ต้องไม่ขนส่งหรือ render เงินแม้ role เป็น OWNER, ไม่ mount `MaterialUsage` และ final pack ไม่ส่ง shipping cost มาที่ client
 
 ## ลิสต์หนี้ UI เก่า
 

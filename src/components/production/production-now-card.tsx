@@ -34,6 +34,7 @@ const ACTION_LABEL: Record<string, string> = {
 export function ProductionNowCard({
   nowSteps,
   allDone,
+  allDoneMessage = "ครบทุกขั้นการผลิตแล้ว",
   busy,
   onStart,
   onComplete,
@@ -42,9 +43,11 @@ export function ProductionNowCard({
   onOpenStep,
   canOpenStep = () => true,
   printRunsHref = "/production/print-runs",
+  garmentsHref = "#production-garments",
 }: {
   nowSteps: readonly NowStep<ProductionStep>[];
   allDone: boolean;
+  allDoneMessage?: string;
   busy: boolean;
   onStart: (step: ProductionStep) => void;
   onComplete: (step: ProductionStep) => void;
@@ -53,12 +56,16 @@ export function ProductionNowCard({
   onOpenStep: (step: ProductionStep) => void;
   canOpenStep?: (step: ProductionStep) => boolean;
   printRunsHref?: string;
+  garmentsHref?: string;
 }) {
   if (allDone) {
     return (
-      <section className={cn(TINT.success, "flex items-center gap-2 rounded-2xl border px-4 py-3")}>
+      <section className={cn(TINT.success, "flex items-center gap-3 rounded-2xl border px-5 py-4")}>
         <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
-        <p className="text-sm font-semibold">ทุกขั้นเสร็จแล้ว — งานพร้อมเข้าขั้นถัดไป</p>
+        <div>
+          <h2 className="font-semibold">งานผลิตส่วนนี้เสร็จแล้ว</h2>
+          <p className="mt-0.5 text-sm">{allDoneMessage}</p>
+        </div>
       </section>
     );
   }
@@ -72,18 +79,22 @@ export function ProductionNowCard({
   }
 
   return (
-    <section className="card-surface rounded-2xl p-4" aria-labelledby="production-now">
-      <h2 id="production-now" className="text-sm font-semibold text-muted">
+    <section className="card-surface rounded-2xl p-5 sm:p-6" aria-labelledby="production-now">
+      <h2 id="production-now" className="text-base font-semibold text-strong">
         ตอนนี้ต้องทำ
       </h2>
-      <div className="mt-3 space-y-3">
+      <div className="mt-4">
         {nowSteps.map(({ step, action, waitingOn, note }) => {
           const counting = step.qtyTotal !== null && step.qtyTotal > 0;
           const donePct = counting
             ? Math.round(((step.qtyDone ?? 0) / (step.qtyTotal ?? 1)) * 100)
             : 0;
+          const canOpen = canOpenStep(step);
           return (
-            <div key={step.id} className="space-y-2">
+            <div
+              key={step.id}
+              className="space-y-3 border-t border-divider py-4 first:border-t-0 first:pt-0 last:pb-0"
+            >
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <span className="text-lg font-semibold text-strong">{stepLabel(step)}</span>
                 {counting && (
@@ -120,6 +131,11 @@ export function ProductionNowCard({
                       {reason}
                     </p>
                   ))}
+                  {canOpen && (
+                    <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
+                      เปิดรายละเอียด
+                    </Button>
+                  )}
                 </div>
               ) : note ? (
                 <div className="flex flex-wrap items-center gap-2">
@@ -128,38 +144,50 @@ export function ProductionNowCard({
                     <Button variant="outline" size="sm" asChild>
                       <Link href={printRunsHref}>เปิดรอบพิมพ์ DTF</Link>
                     </Button>
-                  ) : canOpenStep(step) ? (
+                  ) : canOpen ? (
                     <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
-                      เปิดดูขั้นนี้
+                      เปิดรายละเอียด
                     </Button>
                   ) : null}
                 </div>
               ) : action ? (
-                // ปุ่มเต็มความกว้างบนจอแคบ/จอทัช — นิ้วโดนแน่ ไม่ต้องเล็ง
-                <Button
-                  size="lg"
-                  disabled={busy}
-                  className="w-full gap-2 sm:w-auto sm:min-w-56"
-                  onClick={() => {
-                    if (action === "start") onStart(step);
-                    else if (action === "complete" || action === "record-qty") onComplete(step);
-                    else if (action === "send-outsource") onSendOutsource(step);
-                    else if (action === "quick-pass") onQuickPass(step);
-                  }}
-                >
-                  {action === "start" && <Play />}
-                  {action === "record-qty" && <Plus />}
-                  {action === "complete" && <CheckCircle2 />}
-                  {action === "send-outsource" && <Truck />}
-                  {action === "quick-pass" && <FastForward />}
-                  {ACTION_LABEL[action]}
-                  {action === "record-qty" && counting && ` (${step.qtyDone}/${step.qtyTotal})`}
-                </Button>
-              ) : canOpenStep(step) ? (
+                <div>
+                  {/* ปุ่มเต็มความกว้างบนจอแคบ/จอทัช — นิ้วโดนแน่ ไม่ต้องเล็ง */}
+                  <Button
+                    size="lg"
+                    disabled={busy}
+                    aria-busy={busy || undefined}
+                    className="w-full gap-2 sm:w-auto sm:min-w-56"
+                    onClick={() => {
+                      if (action === "start") onStart(step);
+                      else if (action === "complete" || action === "record-qty") onComplete(step);
+                      else if (action === "send-outsource") onSendOutsource(step);
+                      else if (action === "quick-pass") onQuickPass(step);
+                    }}
+                  >
+                    {action === "start" && <Play />}
+                    {action === "record-qty" && <Plus />}
+                    {action === "complete" && <CheckCircle2 />}
+                    {action === "send-outsource" && <Truck />}
+                    {action === "quick-pass" && <FastForward />}
+                    {ACTION_LABEL[action]}
+                    {action === "record-qty" && counting && ` (${step.qtyDone}/${step.qtyTotal})`}
+                  </Button>
+                </div>
+              ) : step.stepType === "GARMENT_PICK" ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm text-muted">เบิกเสื้อตามไซส์และจำนวนของใบงาน</p>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={garmentsHref}>ไปที่เบิกเสื้อ</a>
+                  </Button>
+                </div>
+              ) : canOpen ? (
                 <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
-                  เปิดดูขั้นนี้
+                  เปิดรายละเอียด
                 </Button>
-              ) : null}
+              ) : (
+                <p className="text-sm text-muted">สิทธิ์นี้ดูขั้นตอนนี้ได้อย่างเดียว</p>
+              )}
             </div>
           );
         })}

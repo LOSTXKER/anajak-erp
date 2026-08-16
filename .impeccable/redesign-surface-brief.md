@@ -1,62 +1,64 @@
 # Scope and operating mode
 
-- Surface family: canonical authenticated factory operations across `/production`, `/factory/station` and `/factory`.
+- Surface family: canonical authenticated factory operations across `/production*`, `/outsource`, `/factory/station` and `/factory`.
 - Mode: Operate.
-- Audience: supervisors/owners at `/production`, factory staff at `/factory/station`, and the whole floor viewing `/factory` on a TV.
-- Job: move real work through the current station without losing order context, while giving supervisors and the team one consistent view of progress.
-- Primary action: choose a station and act on the next eligible queue item; scan is a context shortcut, never an action.
+- Primary devices: supervisor desktop at `1440×900` and factory touch display at `1024×768`; `390px` remains a complete no-overflow regression guard.
+- Audience: supervisors/owners triage at `/production`, factory staff act at `/factory/station`, and the whole floor reads `/factory` on a TV.
+- Product question by surface: **what needs attention → what must happen now → where is the factory blocked**.
 
-# Surface topology and authority
+# As-built route topology
 
-| Route | Shell | Interaction authority | Real data |
+| Route | Shell | UI contract | Real data / authority |
 |---|---|---|---|
-| `/production` | shared dashboard `AppShell` | Supervisor board, drill-through and entry to Station Mode | `production.kanban`, `user.me`; detail/print routes reuse `production.getById`, `printRun.queue/list` |
-| `/factory/station` | full-screen Dark, no ERP sidebar/top bar | Station-scoped actions when authorized; otherwise read-only | `factory.stationQueue`, `factory.resolveStationScan`, `factory.stationContext`, production/print/QC/packing endpoints, `user.me` |
-| `/factory` | full-screen Dark TV | Read-only only; no action controls or mutation path | `factory.board` |
+| `/production` | dashboard `AppShell` | Exception-first worklist, exactly one order per row; filters/count/search/sort share one source | `production.kanban`, `user.me`; read/triage only, then drill to a real destination |
+| `/production/[id]` | dashboard `AppShell` | Job traveler with one “ตอนนี้ต้องทำ” action region and read-only route history | `production.getById`; existing production mutations and guards only |
+| `/production/print-runs` | dashboard `AppShell` | **printing → cut/label → queue → 7-day history** | `printRun.queue/list`; `manage_production` gates controls |
+| `/production/films` | dashboard `AppShell` | Compact film inventory: artwork/customer, source, quantity and consume action | `filmStock.list`; consume remains server-guarded |
+| `/outsource` | dashboard `AppShell` | Send/receive/**vendor receiving inspection**/history; inspection completes before order-level final QC | Existing outsource and goods-receipt queries/mutations; no new lifecycle |
+| `/factory/station` | full-screen Dark, no ERP sidebar/top bar | Select one of five stations, then **active → ready → compact scan** | Station-scoped actions when authorized; otherwise read-only |
+| `/factory` | full-screen Dark TV | Read-only five-stage pulse in one viewport, plus exception rail and ready output | `factory.board`; no control or mutation path |
 
-- The three surfaces are different presentations of the same server-owned lifecycle, permissions and records; none may introduce a second production controller.
-- All `/factory*` routes require a session and all reads use protected procedures.
+- `ProductionModuleNav` is the single local navigation inside `AppShell`: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**, followed by entry links to **โหมดสถานี / จอโรงงาน**. It does not create another sidebar.
+- `/production` stores `view`, `q` and `sort` in the URL. Worklist links resolve to the actual production record, production/QC order tab, delivery tab or create-production dialog according to current state and permission.
+- `/production/[id]` keeps mutations only in the “Now” region, one primary action per actionable context. Artwork/sizes, garment issue and materials support the decision; `ProductionStepsList` is historical/read-only and must not repeat actions.
+- Print-run DOM order follows the floor workflow. Desktop uses a two-column workspace; narrower layouts stack in the same operational order.
+- Film stock remains an inventory list, not a dashboard. Outsource UI calls legacy `QC_*` data states “ตรวจรับ” so staff do not confuse vendor receiving inspection with final QC.
 
-# Station map and lifecycle
+# Station and lifecycle contract
 
 | Station | Scope |
 |---|---|
 | `prep` — เตรียมเสื้อ | `GARMENT_PICK` and `GARMENT_RECEIVE` |
-| `dtf-print` — พิมพ์ DTF | DTF print queue and print runs |
-| `heat-press` — รีดร้อน | `HEAT_PRESS` after the readiness gate |
-| `qc` — ตรวจคุณภาพ | Order-level quality check after production completes |
+| `dtf-print` — พิมพ์ DTF | DTF queue, printing, cut separation and labels |
+| `heat-press` — รีดร้อน | `HEAT_PRESS` only after the readiness gate |
+| `qc` — ตรวจคุณภาพ | Order-level good/defect count after production completes |
 | `final-pack` — แพ็คสุดท้าย | Delivery evidence and final quantity closure |
 
-- The canonical post-production flow is **production → QC → final pack → ready**.
-- `PACKAGING` exists only for legacy recovery: do not create a new `ProductionStep`; route recoverable legacy work back to QC.
-- Readiness, due ordering, quantities, `evaluateHeatPressGate` and status transitions remain server truth.
+- Station selection appears once and persists in `?station=`. The selected work center shows active work first, ready work second, and scan/search last; `dtf-print` substitutes the print-run workspace for the generic queue.
+- Scan accepts an exact order number or supported ERP-origin QR and opens context only. It never claims, starts, completes, packs or changes status. Multiple production records require explicit selection.
+- Station queues contain only actionable active/ready work for the selected station, sorted by due date and priority. Gate-blocked work stays out of the actionable queue.
+- The canonical flow is **production → QC → final pack → ready**. Vendor receiving inspection is upstream of final QC. `PACKAGING` is legacy recovery data only and must route back through QC.
+- `/factory` presents five distinct stages in order: **เตรียมเสื้อ → พิมพ์ DTF → รีดร้อน → QC → แพ็กสุดท้าย**. QC and final pack never collapse into one stage.
+- Due ordering, readiness, quantities, `evaluateHeatPressGate`, locks, idempotency and status transitions remain server truth.
 
-# Scan and queue contract
+# Permissions, cache, errors and no-money boundary
 
-- Scan accepts an exact order number or an ERP-origin QR, resolves the order and opens context only. It must never claim, start, complete, pack or change status.
-- Reject unsupported external QR origins. When an order has multiple production records, require explicit selection instead of guessing.
-- Station queues contain only active/ready work for the chosen station, sorted by due date then priority. Gate-blocked work does not enter the actionable queue.
-- Live queries poll every 30 seconds and refetch on focus/reconnect. Initial loading, initial error+retry and true empty states are distinct from background stale/error; background failure retains cached work.
-- The TV warns when refresh has been stale for more than two minutes while preserving its last successful snapshot.
+- Permission UI fails closed and mirrors server authority. Missing `manage_production` makes Station/print-run/film controls read-only; `supervise_operations` expands assignee visibility, while vendor inspection decisions require both `manage_production` + `supervise_operations`.
+- Final-pack delivery creation requires `manage_production` + `manage_delivery`; marking ready additionally requires `update_order_status_production`. Server guards remain authoritative for every mutation.
+- Live queue surfaces poll every 30 seconds as configured and refetch on focus/reconnect. Initial loading, initial error+retry, empty, blocked and read-only are distinct. A background failure preserves cached work and adds a stale warning.
+- Factory TV warns after two minutes without a successful refresh while retaining the last snapshot.
+- Worklist, print runs, film stock and outsource do not add order prices, totals or vendor charges. ERP job traveler may expose material cost only through the existing `see_finance` gate.
+- Station and TV payloads exclude all money at the server response boundary, including for OWNER. Station never mounts `MaterialUsage`; final packing omits shipping cost from the client payload.
 
-# Permissions and no-money boundary
+# Interaction and accessibility grammar
 
-- Permission checks are station-scoped and fail closed in both UI and server. Missing `manage_production` makes Station Mode read-only.
-- Production/QC/DTF actions require `manage_production`; delivery creation in final pack requires `manage_production` + `manage_delivery`; marking ready also requires `update_order_status_production`.
-- `supervise_operations` may see work across assignees. Without it, queue visibility is limited to the current user and unassigned work.
-- Station and TV response shapes exclude monetary fields at the server select/response boundary. They do not transport or render prices, costs, totals, payments or shipping cost, including for OWNER.
-- Station detail does not mount cost-bearing `MaterialUsage`; final packing hides and omits shipping cost rather than relying on visual masking.
-
-# State and component grammar
-
-- `/production` keeps the shared responsive dashboard grammar. Factory surfaces use the dedicated full-screen Dark shell and do not inherit dashboard chrome.
-- Touch controls are at least 44px on mobile/coarse pointers; pending actions retain an explicit “กำลัง…” label and `aria-busy`; 320px layouts must not create page-level horizontal overflow.
-- Read-only, loading, error, empty, blocked and stale are explicit states. A background refresh error must not erase usable cached context.
-- Mutation controls appear only when the same action is allowed by the server permission contract; no UI-only shortcut may widen authority.
+- Coarse-pointer controls and fields are at least `44×44px`; fine-pointer desktop may retain 36px density. No primary composition creates page-level horizontal overflow.
+- Pending controls keep an explicit “กำลัง…” label and `aria-busy`. Inputs/dialogs retain programmatic labels, validation relationships, keyboard focus and reduced-motion behavior.
+- Action availability never relies on hover. Scan, read-only, blocked, cached-stale and mutation-error feedback appear at the decision point.
 
 # Non-goals
 
-- No alternate command center, alternate shell, fake metrics or sample factory data.
-- No mutation from TV or from scan resolution.
-- No money in Station/TV payloads or presentation.
-- No second lifecycle, status transition, readiness calculation or queue engine in the frontend.
+- No second shell, lifecycle, status transition, readiness calculation or queue engine.
+- No mutation from Factory TV or scan resolution.
+- No monetary payload or presentation in Station/TV.
+- No mock/example route or fake factory metric in canonical operations.

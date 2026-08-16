@@ -4,9 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc, type RouterOutput } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
-import {
-  buildProductionBoard,
-} from "@/lib/production-board";
+import { buildProductionBoard } from "@/lib/production-board";
 import {
   FACTORY_STATIONS,
   buildFactoryStationQueue,
@@ -18,7 +16,10 @@ import {
 } from "@/lib/factory-station";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { STEP_STATUS_LABELS } from "@/lib/status-config";
-import { StationModeShell, type StationNavItem } from "@/components/factory/station-mode-shell";
+import {
+  StationModeShell,
+  type StationNavItem,
+} from "@/components/factory/station-mode-shell";
 import {
   StationQueueView,
   type StationQueueItem,
@@ -64,7 +65,8 @@ function productionChoiceSummary(
     ? step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType
     : "ไม่มีขั้นผลิต";
   const status = step
-    ? (STEP_STATUS_LABELS[step.status as keyof typeof STEP_STATUS_LABELS] ?? step.status)
+    ? (STEP_STATUS_LABELS[step.status as keyof typeof STEP_STATUS_LABELS] ??
+      step.status)
     : production.status;
   return {
     title: `ใบผลิต ${index + 1} · ${stepName}`,
@@ -114,12 +116,11 @@ const STATION_VISUALS: Record<
   },
 };
 
-const STATION_NAV: readonly StationNavItem<FactoryStationKey>[] = FACTORY_STATIONS.map(
-  (station) => ({
+const STATION_NAV: readonly StationNavItem<FactoryStationKey>[] =
+  FACTORY_STATIONS.map((station) => ({
     ...station,
     ...STATION_VISUALS[station.key],
-  }),
-);
+  }));
 
 function routeFor({
   station,
@@ -139,9 +140,7 @@ function routeFor({
 }
 
 function makeStationEntries(
-  board: ReturnType<
-    typeof buildProductionBoard<KanbanStep, KanbanOrder>
-  >,
+  board: ReturnType<typeof buildProductionBoard<KanbanStep, KanbanOrder>>,
 ): StationEntry[] {
   const entries: StationEntry[] = [];
   for (const job of board.jobs) {
@@ -180,7 +179,8 @@ export function StationModeScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawStation = searchParams.get("station");
-  const station = rawStation && isFactoryStationKey(rawStation) ? rawStation : null;
+  const station =
+    rawStation && isFactoryStationKey(rawStation) ? rawStation : null;
   const productionId = searchParams.get("productionId");
   const orderId = searchParams.get("orderId");
 
@@ -198,8 +198,11 @@ export function StationModeScreen() {
   const [scanPending, setScanPending] = useState(false);
   const [multiple, setMultiple] = useState<MultipleResolution | null>(null);
 
-  const canManageProduction = permAllows(me?.permissions, "manage_production");
-  const canSupervise = permAllows(me?.permissions, "supervise_operations");
+  const permissionStale = meQuery.isError && Boolean(me);
+  const canManageProduction =
+    !permissionStale && permAllows(me?.permissions, "manage_production");
+  const canSupervise =
+    !permissionStale && permAllows(me?.permissions, "supervise_operations");
   // จอปฏิบัติงานเป็นของทีมผลิตจริงเท่านั้น: SALES อาจมีสิทธิ์ใบส่ง/เดินสถานะ
   // แต่ไม่มี manage_production จึงต้องเห็นแบบ read-only ไม่ใช่ได้ปุ่มแพ็กจาก OR gate
   const canCreateDelivery =
@@ -211,24 +214,30 @@ export function StationModeScreen() {
 
   const board = useMemo(
     () =>
-      buildProductionBoard<KanbanStep, KanbanOrder>(stationQueueQuery.data ?? [], {
-        now:
-          stationQueueQuery.dataUpdatedAt > 0
-            ? new Date(stationQueueQuery.dataUpdatedAt)
-            : new Date(0),
-        viewerId: me?.id,
-        showBlocked: canSupervise,
-      }),
-    [stationQueueQuery.data, stationQueueQuery.dataUpdatedAt, me?.id, canSupervise],
+      buildProductionBoard<KanbanStep, KanbanOrder>(
+        stationQueueQuery.data ?? [],
+        {
+          now:
+            stationQueueQuery.dataUpdatedAt > 0
+              ? new Date(stationQueueQuery.dataUpdatedAt)
+              : new Date(0),
+          viewerId: me?.id,
+          showBlocked: canSupervise,
+        },
+      ),
+    [
+      stationQueueQuery.data,
+      stationQueueQuery.dataUpdatedAt,
+      me?.id,
+      canSupervise,
+    ],
   );
 
   const queueItems = useMemo(() => {
     if (!station || station === "dtf-print") return [];
     const candidates = makeStationEntries(board).filter(
       (entry) =>
-        canSupervise ||
-        !entry.assignedToId ||
-        entry.assignedToId === me?.id,
+        canSupervise || !entry.assignedToId || entry.assignedToId === me?.id,
     );
     const queue = buildFactoryStationQueue(station, candidates);
     return [...queue.active, ...queue.ready].map<StationQueueItem>((entry) => ({
@@ -249,14 +258,20 @@ export function StationModeScreen() {
   }, [board, canSupervise, me?.id, station]);
 
   useEffect(() => {
-    if (!productionId && !orderId) scanRef.current?.focus();
+    if (station && !productionId && !orderId) {
+      scanRef.current?.focus({ preventScroll: true });
+    }
   }, [productionId, orderId, station]);
 
-  function navigateToContext(result: Exclude<ScanResolution, { kind: "multiple" }>) {
-    const nextStation = result.station ?? station;
+  function navigateToContext(
+    result: Exclude<ScanResolution, { kind: "multiple" }>,
+  ) {
+    const nextStation = station ?? result.station;
     setMultiple(null);
     if (result.kind === "production") {
-      router.push(routeFor({ station: nextStation, productionId: result.productionId }));
+      router.push(
+        routeFor({ station: nextStation, productionId: result.productionId }),
+      );
     } else {
       router.push(routeFor({ station: nextStation, orderId: result.orderId }));
     }
@@ -283,7 +298,9 @@ export function StationModeScreen() {
         navigateToContext(result);
       }
     } catch (error) {
-      setScanError(error instanceof Error ? error.message : "ไม่พบงานจากข้อมูลที่สแกน");
+      setScanError(
+        error instanceof Error ? error.message : "ไม่พบงานจากข้อมูลที่สแกน",
+      );
       scanRef.current?.focus();
     } finally {
       setScanPending(false);
@@ -294,6 +311,13 @@ export function StationModeScreen() {
     setMultiple(null);
     setScanError(null);
     router.push(routeFor({ station: next }));
+  }
+
+  function changeStation() {
+    setMultiple(null);
+    setScanError(null);
+    setScanValue("");
+    router.push(routeFor({}));
   }
 
   function openQueueItem(item: StationQueueItem) {
@@ -320,190 +344,268 @@ export function StationModeScreen() {
       station={station}
       userName={me?.name}
       readOnly={readOnly}
-      onSelectStation={selectStation}
+      onChangeStation={changeStation}
     >
-      <div className="space-y-6">
-        <section className="card-surface rounded-2xl p-4 sm:p-5" aria-labelledby="station-scan-title">
-          <div className="grid gap-4 lg:grid-cols-[minmax(14rem,0.7fr)_minmax(24rem,1.3fr)] lg:items-end">
-            <div>
-              <div className="flex items-center gap-2">
-                <ScanLine className="h-5 w-5 text-blue-400" aria-hidden="true" />
-                <h1 id="station-scan-title" className="text-lg font-semibold text-strong">
-                  เปิดงานด้วยเลขออเดอร์หรือ QR
-                </h1>
-              </div>
-              <p className="mt-1 text-sm text-muted">
-                สแกนมีหน้าที่เปิดใบงานเท่านั้น ระบบจะยังไม่เริ่มหรือปิดงานเอง
-              </p>
-            </div>
-            <form onSubmit={handleScan} className="flex flex-col gap-2 sm:flex-row">
-              <label htmlFor="factory-station-scan" className="sr-only">
-                เลขออเดอร์หรือข้อมูลจาก QR
-              </label>
-              <div className="relative min-w-0 flex-1">
-                <QrCode className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" aria-hidden="true" />
-                <Input
-                  ref={scanRef}
-                  id="factory-station-scan"
-                  value={scanValue}
-                  onChange={(event) => {
-                    setScanValue(event.target.value);
-                    if (scanError) setScanError(null);
-                  }}
-                  autoComplete="off"
-                  spellCheck={false}
-                  enterKeyHint="go"
-                  placeholder="เช่น ORD-2608-0041"
-                  aria-invalid={!!scanError || undefined}
-                  aria-describedby={scanError ? "factory-station-scan-error" : undefined}
-                  className="pl-10 text-base sm:text-base"
-                />
-              </div>
-              <Button type="submit" disabled={scanPending} aria-busy={scanPending || undefined}>
-                <Search />
-                {scanPending ? "กำลังค้นหา..." : "เปิดงาน"}
-              </Button>
-            </form>
-          </div>
-          {scanError && (
-            <p id="factory-station-scan-error" role="alert" className="mt-3 text-sm text-red-300">
-              {scanError}
-            </p>
+      {permissionStale && (
+        <div
+          role="alert"
+          className={cn(
+            TINT.warning,
+            "flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm",
           )}
-          {multiple && (
-            <div
-              aria-live="polite"
-              className={cn(TINT.warning, "mt-4 rounded-xl border p-4")}
-            >
-              <p className="font-medium text-amber-100">
-                {multiple.orderNumber} มีหลายใบผลิต — เลือกใบที่อยู่ตรงหน้า
-              </p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {multiple.productions.map((production, index) => {
-                  const summary = productionChoiceSummary(production, index);
-                  return (
-                    <Button
-                      key={production.id}
-                      variant="outline"
-                      onClick={() =>
-                        navigateToContext({
-                          kind: "production",
-                          productionId: production.id,
-                          productionStatus: production.status,
-                          orderId: multiple.orderId,
-                          orderNumber: multiple.orderNumber,
-                          internalStatus: multiple.internalStatus,
-                          station: multiple.station,
-                        })
-                      }
-                      className="h-auto min-h-14 justify-start gap-3 py-2 text-left"
-                    >
-                      <Printer className="shrink-0" />
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium">{summary.title}</span>
-                        <span className="block truncate text-xs font-normal text-muted">
-                          {summary.detail}
-                        </span>
-                      </span>
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </section>
+        >
+          <span>โหลดสิทธิ์ล่าสุดไม่สำเร็จ — ปิดปุ่มทำงานไว้จนกว่าจะตรวจสิทธิ์ได้</span>
+          <Button variant="outline" size="sm" onClick={() => void meQuery.refetch()}>
+            ลองใหม่
+          </Button>
+        </div>
+      )}
 
-        {loadingInitial ? (
-          <div className="space-y-4">
-            <Skeleton className="h-20 rounded-2xl" />
-            <Skeleton className="h-72 rounded-2xl" />
+      {!station ? (
+        <section
+          className="mx-auto max-w-6xl py-4 sm:py-8"
+          aria-labelledby="station-picker-title"
+        >
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-medium text-blue-600 dark:text-blue-300">
+              เริ่มงานที่จุดไหน
+            </p>
+            <h1
+              id="station-picker-title"
+              className="mt-2 text-2xl font-semibold text-strong sm:text-3xl"
+            >
+              เลือกสถานีที่กำลังทำงาน
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-muted sm:text-base">
+              ระบบจะแสดงเฉพาะงานที่สถานีนี้ลงมือได้ พร้อมปุ่มทำงานตามลำดับจริง
+            </p>
           </div>
-        ) : initialError ? (
-          <div className="card-surface rounded-2xl">
-            <QueryError
-              message={meQuery.isError ? "โหลดสิทธิ์จอประจำสถานีไม่สำเร็จ" : "โหลดคิวสถานีไม่สำเร็จ"}
-              onRetry={() => {
-                void meQuery.refetch();
-                void stationQueueQuery.refetch();
-              }}
-            />
-          </div>
-        ) : productionId ? (
-          <ProductionDetailScreen
-            id={productionId}
-            surface="station"
-            station={station}
-          />
-        ) : orderId ? (
-          <StationOrderWorkspace
-            orderId={orderId}
-            station={station}
-            canCountQc={canManageProduction}
-            canCreateDelivery={canCreateDelivery}
-            canAdvancePacking={canAdvancePacking}
-            onBack={() => router.push(routeFor({ station }))}
-            onOpenProduction={(id) =>
-              router.push(routeFor({ station, productionId: id }))
-            }
-          />
-        ) : station === "dtf-print" ? (
-          <PrintRunsScreen surface="station" />
-        ) : station && visual ? (
-          <StationQueueView
-            stationLabel={FACTORY_STATIONS.find((item) => item.key === station)?.label ?? visual.shortLabel}
-            stationDescription={visual.description}
-            icon={visual.icon}
-            items={queueItems}
-            onOpen={openQueueItem}
-          />
-        ) : (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-2xl font-semibold text-strong">เลือกสถานีที่กำลังทำงาน</h2>
-              <p className="mt-1 text-sm text-muted">
-                คิวจะแสดงเฉพาะงานที่ลงมือได้จริง ส่วนงานติดด่านยังอยู่ที่บอร์ดหัวหน้า
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              {STATION_NAV.map((item) => {
-                const Icon = item.icon;
-                return (
+
+          <ul className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {STATION_NAV.map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.key}>
                   <button
-                    key={item.key}
                     type="button"
                     onClick={() => selectStation(item.key)}
                     className={cn(
                       FOCUS_BUTTON,
-                      "card-surface card-surface-hover min-h-40 touch-manipulation rounded-2xl p-5 text-left",
+                      "group min-h-36 w-full touch-manipulation rounded-2xl border border-border bg-surface p-5 text-left shadow-sm transition-colors hover:border-border-strong hover:bg-interactive-hover xl:h-full",
                     )}
                   >
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/15 text-blue-300">
-                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+                        <Icon className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      <span className="text-xs font-medium tabular-nums text-muted">
+                        {index + 1}/{STATION_NAV.length}
+                      </span>
                     </span>
-                    <span className="mt-4 block font-semibold text-strong">{item.label}</span>
-                    <span className="mt-1 block text-sm leading-relaxed text-muted">{item.description}</span>
+                    <span className="mt-4 block font-semibold text-strong">
+                      {item.label}
+                    </span>
+                    <span className="mt-1 block text-sm leading-relaxed text-muted">
+                      {item.description}
+                    </span>
                   </button>
-                );
-              })}
+                </li>
+              );
+            })}
+          </ul>
+
+          {readOnly && (
+            <div className="mt-5 rounded-2xl border border-border bg-surface">
+              <EmptyState
+                density="compact"
+                icon={ShieldCheck}
+                title="บัญชีนี้ดูคิวได้อย่างเดียว"
+                description="เข้าสู่ระบบด้วยบัญชีพนักงานผลิตเพื่อเริ่ม นับ QC หรือแพ็กงาน"
+              />
             </div>
-            {readOnly && (
-              <div className="card-surface rounded-2xl">
-                <EmptyState
-                  icon={ShieldCheck}
-                  title="บัญชีนี้ดูคิวได้อย่างเดียว"
-                  description="เข้าสู่ระบบด้วยบัญชีพนักงานผลิตเพื่อเริ่ม นับ QC หรือแพ็กงาน"
-                />
+          )}
+        </section>
+      ) : (
+        <div className="space-y-6">
+          {loadingInitial ? (
+            <div className="space-y-4">
+              <Skeleton className="h-20 rounded-2xl" />
+              <Skeleton className="h-72 rounded-2xl" />
+            </div>
+          ) : initialError ? (
+            <div className="card-surface rounded-2xl">
+              <QueryError
+                message={
+                  meQuery.isError
+                    ? "โหลดสิทธิ์จอประจำสถานีไม่สำเร็จ"
+                    : "โหลดคิวสถานีไม่สำเร็จ"
+                }
+                onRetry={() => {
+                  void meQuery.refetch();
+                  void stationQueueQuery.refetch();
+                }}
+              />
+            </div>
+          ) : productionId ? (
+            <ProductionDetailScreen
+              id={productionId}
+              surface="station"
+              station={station}
+            />
+          ) : orderId ? (
+            <StationOrderWorkspace
+              orderId={orderId}
+              station={station}
+              canCountQc={canManageProduction}
+              canCreateDelivery={canCreateDelivery}
+              canAdvancePacking={canAdvancePacking}
+              onBack={() => router.push(routeFor({ station }))}
+              onOpenProduction={(id) =>
+                router.push(routeFor({ station, productionId: id }))
+              }
+            />
+          ) : station === "dtf-print" ? (
+            <PrintRunsScreen surface="station" />
+          ) : station && visual ? (
+            <StationQueueView
+              stationLabel={
+                FACTORY_STATIONS.find((item) => item.key === station)?.label ??
+                visual.shortLabel
+              }
+              stationDescription={visual.description}
+              icon={visual.icon}
+              items={queueItems}
+              onOpen={openQueueItem}
+            />
+          ) : null}
+
+          <section
+            className="rounded-2xl border border-divider bg-surface px-4 py-3 shadow-sm sm:px-5"
+            aria-labelledby="station-scan-title"
+          >
+            <div className="grid gap-3 lg:grid-cols-[minmax(13rem,0.55fr)_minmax(24rem,1.45fr)] lg:items-center">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-secondary">
+                  <ScanLine className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <h2
+                    id="station-scan-title"
+                    className="text-sm font-semibold text-strong"
+                  >
+                    เปิดใบงานอื่น
+                  </h2>
+                  <p className="truncate text-xs text-muted">
+                    สแกนมีหน้าที่เปิดใบงานเท่านั้น
+                    ระบบจะยังไม่เริ่มหรือปิดงานเอง
+                  </p>
+                </div>
+              </div>
+              <form
+                onSubmit={handleScan}
+                className="flex min-w-0 flex-col gap-2 sm:flex-row"
+              >
+                <label htmlFor="factory-station-scan" className="sr-only">
+                  เลขออเดอร์หรือข้อมูลจาก QR
+                </label>
+                <div className="relative min-w-0 flex-1">
+                  <QrCode
+                    className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    ref={scanRef}
+                    id="factory-station-scan"
+                    value={scanValue}
+                    onChange={(event) => {
+                      setScanValue(event.target.value);
+                      if (scanError) setScanError(null);
+                    }}
+                    autoComplete="off"
+                    spellCheck={false}
+                    enterKeyHint="go"
+                    placeholder="เลขออเดอร์หรือ QR เช่น ORD-2608-0041"
+                    aria-invalid={!!scanError || undefined}
+                    aria-describedby={
+                      scanError ? "factory-station-scan-error" : undefined
+                    }
+                    className="pl-10 text-base sm:text-base"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={scanPending}
+                  aria-busy={scanPending || undefined}
+                >
+                  <Search />
+                  {scanPending ? "กำลังค้นหา..." : "เปิดงาน"}
+                </Button>
+              </form>
+            </div>
+            {scanError && (
+              <p
+                id="factory-station-scan-error"
+                role="alert"
+                className="mt-3 text-sm text-red-700 dark:text-red-300"
+              >
+                {scanError}
+              </p>
+            )}
+            {multiple && (
+              <div
+                aria-live="polite"
+                className={cn(TINT.warning, "mt-3 rounded-xl border p-4")}
+              >
+                <p className="font-medium">
+                  {multiple.orderNumber} มีหลายใบผลิต — เลือกใบที่อยู่ตรงหน้า
+                </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {multiple.productions.map((production, index) => {
+                    const summary = productionChoiceSummary(production, index);
+                    return (
+                      <Button
+                        key={production.id}
+                        variant="outline"
+                        onClick={() =>
+                          navigateToContext({
+                            kind: "production",
+                            productionId: production.id,
+                            productionStatus: production.status,
+                            orderId: multiple.orderId,
+                            orderNumber: multiple.orderNumber,
+                            internalStatus: multiple.internalStatus,
+                            station: multiple.station,
+                          })
+                        }
+                        className="h-auto min-h-14 justify-start gap-3 py-2 text-left"
+                      >
+                        <Printer className="shrink-0" />
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">
+                            {summary.title}
+                          </span>
+                          <span className="block truncate text-xs font-normal text-muted">
+                            {summary.detail}
+                          </span>
+                        </span>
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
             )}
-          </div>
-        )}
+          </section>
 
-        {stationQueueQuery.isError && stationQueueQuery.data && (
-          <p role="status" className="text-sm text-amber-300">
-            คิวล่าสุดอาจยังไม่สด — ระบบกำลังลองเชื่อมต่อใหม่
-          </p>
-        )}
-      </div>
+          {stationQueueQuery.isError && stationQueueQuery.data && (
+            <p
+              role="status"
+              className="text-sm text-amber-700 dark:text-amber-300"
+            >
+              คิวล่าสุดอาจยังไม่สด — ระบบกำลังลองเชื่อมต่อใหม่
+            </p>
+          )}
+        </div>
+      )}
     </StationModeShell>
   );
 }

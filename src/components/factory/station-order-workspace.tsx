@@ -85,6 +85,7 @@ export function StationOrderWorkspace({
   }
 
   const { order, customer, activeProductions } = context;
+  const contextStale = query.isError && Boolean(context);
   const isQc = order.internalStatus === "QUALITY_CHECK";
   const isPacking = order.internalStatus === "PACKING";
   const isReady = ["READY_TO_SHIP", "SHIPPED", "COMPLETED"].includes(
@@ -134,9 +135,14 @@ export function StationOrderWorkspace({
         </Badge>
       </div>
 
-      {query.isError && context && (
+      {contextStale && (
         <Alert variant="warning">
-          ข้อมูลล่าสุดอาจยังไม่สด — ระบบกำลังลองโหลดใหม่
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>ข้อมูลล่าสุดอาจยังไม่สด — ปิดปุ่มบันทึกชั่วคราว</span>
+            <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
+              ลองใหม่
+            </Button>
+          </span>
         </Alert>
       )}
 
@@ -160,7 +166,7 @@ export function StationOrderWorkspace({
           <OrderQcSection
             orderId={order.id}
             internalStatus={order.internalStatus}
-            canCount={canCountQc && station === "qc"}
+            canCount={canCountQc && station === "qc" && !contextStale}
           />
         </section>
       )}
@@ -174,6 +180,7 @@ export function StationOrderWorkspace({
           blindShipSenderName={order.blindShipSenderName}
           nonReturnedDeliveryCount={context.nonReturnedDeliveryCount}
           canUseStation={station === "final-pack"}
+          writeBlocked={contextStale}
           canCreateDelivery={canCreateDelivery}
           canAdvancePacking={canAdvancePacking}
           onChanged={() => void query.refetch()}
@@ -325,6 +332,7 @@ function StationPackingCard({
   blindShipSenderName,
   nonReturnedDeliveryCount,
   canUseStation,
+  writeBlocked,
   canCreateDelivery,
   canAdvancePacking,
   onChanged,
@@ -344,6 +352,7 @@ function StationPackingCard({
   blindShipSenderName: string | null;
   nonReturnedDeliveryCount: number;
   canUseStation: boolean;
+  writeBlocked: boolean;
   canCreateDelivery: boolean;
   canAdvancePacking: boolean;
   onChanged: () => void;
@@ -387,6 +396,8 @@ function StationPackingCard({
   const pack = packQuery.data;
   if (!pack) return null;
 
+  const packStale = packQuery.isError && Boolean(packQuery.data);
+  const canWritePack = canUseStation && !writeBlocked && !packStale;
   const hasEvidence = nonReturnedDeliveryCount > 0;
   const complete = hasEvidence && pack.totalRemaining === 0;
 
@@ -407,6 +418,17 @@ function StationPackingCard({
           <span className="font-semibold">BLIND SHIP — ห้ามใส่เอกสารหรือชื่อ Anajak ในกล่อง</span>
           <span className="mt-1 block text-sm">
             ชื่อผู้ส่งที่ต้องใช้: {blindShipSenderName || customer.name}
+          </span>
+        </Alert>
+      )}
+
+      {packStale && (
+        <Alert variant="warning">
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>รายการแพ็กล่าสุดอาจยังไม่สด — ปิดปุ่มบันทึกชั่วคราว</span>
+            <Button variant="outline" size="sm" onClick={() => void packQuery.refetch()}>
+              ลองใหม่
+            </Button>
           </span>
         </Alert>
       )}
@@ -454,14 +476,14 @@ function StationPackingCard({
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <Button
           variant="outline"
-          disabled={!canUseStation || !canCreateDelivery}
+          disabled={!canWritePack || !canCreateDelivery}
           onClick={() => setShowCreate(true)}
         >
           <Truck />
           {hasEvidence ? "เพิ่มกล่อง/ใบส่ง" : "บันทึกการแพ็ก"}
         </Button>
         <Button
-          disabled={!canUseStation || !canAdvancePacking || !complete || ready.isPending}
+          disabled={!canWritePack || !canAdvancePacking || !complete || ready.isPending}
           aria-busy={ready.isPending || undefined}
           onClick={() => ready.mutate({ orderId })}
         >
@@ -478,7 +500,7 @@ function StationPackingCard({
         </p>
       )}
 
-      {showCreate && (
+      {showCreate && canWritePack && (
         <CreateDeliveryDialog
           orderId={orderId}
           customerName={customer.name}

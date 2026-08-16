@@ -1411,7 +1411,7 @@ check(
 
 /* ── หน้าผลิตหลัก: shell/state/permission/touch contract ────────────────────
    หน้า ops ต้องรอทั้งข้อมูลงานและสิทธิ์ก่อนวาด action; ใบผลิตทุก state ใช้
-   PageShell content จุดเดียว และจอทัชขนาดใหญ่ต้องไม่ยุบ control กลับเป็น 36px */
+   PageShell จุดเดียว โดย ERP ใช้พื้นที่กว้างสำหรับ job traveler และจอสถานีคง content */
 {
   const productionBoardSource = readFileSync(
     "src/app/(dashboard)/production/page.tsx",
@@ -1427,6 +1427,26 @@ check(
   );
   const materialUsageSource = readFileSync(
     "src/components/material-usage.tsx",
+    "utf8",
+  );
+  const createProductionSource = readFileSync(
+    "src/components/production/create-production-dialog.tsx",
+    "utf8",
+  );
+  const outsourceSource = readFileSync(
+    "src/app/(dashboard)/outsource/page.tsx",
+    "utf8",
+  );
+  const filmStockSource = readFileSync(
+    "src/app/(dashboard)/production/films/page.tsx",
+    "utf8",
+  );
+  const stockSyncSource = readFileSync(
+    "src/server/routers/stock-sync.ts",
+    "utf8",
+  );
+  const productRouterSource = readFileSync(
+    "src/server/routers/product.ts",
     "utf8",
   );
   const controlSizeSource = readFileSync(
@@ -1459,14 +1479,28 @@ check(
     !productionBoardSource.includes("meQuery.isError && !me") ||
     !productionBoardSource.includes("onRetry: () => meQuery.refetch()") ||
     !productionBoardSource.includes("isError && !orders") ||
-    !productionBoardSource.includes("onRetry: () => refetch()")
+    !productionBoardSource.includes("onRetry: () => refetch()") ||
+    !productionBoardSource.includes(
+      "canSupervise && orders !== undefined && !isError && !meQuery.isError;",
+    ) ||
+    !productionBoardSource.includes("canCreateProduction={canCreateProduction}") ||
+    !productionBoardSource.includes("createOrderId && canCreateProduction") ||
+    !createProductionSource.includes("{isError ? (")
   ) {
-    problems.push("บอร์ดผลิตต้องรอ permission และมี error+retry แบบ fail closed");
+    problems.push(
+      "บอร์ดผลิตต้องรอ permission มี error+retry และปิดการสร้างเมื่อข้อมูลล่าสุดไม่พร้อม",
+    );
   }
 
   if (
     (productionDetailSource.match(/<PageShell\b/g) ?? []).length !== 1 ||
-    !productionDetailSource.includes('width="content"') ||
+    !productionDetailSource.includes(
+      'width={surface === "erp" ? "full" : "content"}',
+    ) ||
+    !productionDetailSource.includes(
+      'headerChildren={surface === "erp" ? <ProductionModuleNav /> : undefined}',
+    ) ||
+    !productionDetailSource.includes("<ProductionStepsList\n                  readOnly") ||
     !productionDetailSource.includes(
       "loading={productionQuery.isLoading || meQuery.isLoading}",
     ) ||
@@ -1474,11 +1508,21 @@ check(
     !productionDetailSource.includes("productionQuery.isError && !production") ||
     !productionDetailSource.includes("onRetry: () => meQuery.refetch()") ||
     !productionDetailSource.includes("onRetry: () => productionQuery.refetch()") ||
+    !productionDetailSource.includes("canOwnOrSuperviseStep(step)") ||
+    !productionDetailSource.includes(
+      "selectedStepLive && canOpenStepDetails(selectedStepLive)",
+    ) ||
+    !productionDetailSource.includes(
+      '!meQuery.isError && permAllows(me?.permissions, "see_finance")',
+    ) ||
+    !productionDetailSource.includes("readOnly={!canUpdateStep}") ||
     !productionDetailSource.includes("<RecordNotFound") ||
     productionDetailSource.includes("max-w-4xl") ||
     productionDetailSource.includes("PageHeader")
   ) {
-    problems.push("ใบผลิตทุก state ต้องใช้ PageShell content จุดเดียวและแยก permission error");
+    problems.push(
+      "ใบผลิตต้องใช้ PageShell จุดเดียว มี module nav, action เดียว และแยก permission error",
+    );
   }
 
   if (
@@ -1492,9 +1536,33 @@ check(
     !materialUsageSource.includes("materialsQuery.data !== undefined") ||
     !materialUsageSource.includes("searchQuery.isError && !searchQuery.data") ||
     !materialUsageSource.includes("searchQuery.data !== undefined") ||
-    !materialUsageSource.includes("searchQuery.refetch()")
+    !materialUsageSource.includes("searchQuery.refetch()") ||
+    !materialUsageSource.includes("readOnly?: boolean") ||
+    !materialUsageSource.includes("!readOnly && localMaterials.length > 0")
   ) {
     problems.push("ข้อมูลเสื้อ/วัตถุดิบต้องแยก loading, error+retry และ success-empty");
+  }
+
+  if (
+    !outsourceSource.includes(
+      "open={qcFailTarget !== null && !ordersStale && canJudgeQc}",
+    ) ||
+    !outsourceSource.includes("shareTarget && !ordersStale && canHandleGoods") ||
+    !outsourceSource.includes("receiveTarget && !ordersStale && canHandleGoods") ||
+    !filmStockSource.includes("const canWrite = canManage && !listStale") ||
+    !filmStockSource.includes("consuming && canWrite")
+  ) {
+    problems.push("dialog งานร้านนอกและคลังฟิล์มต้องปิดทันทีเมื่อสิทธิ์หรือข้อมูล stale");
+  }
+
+  if (
+    !stockSyncSource.includes('"see_finance"') ||
+    !stockSyncSource.includes("redactCostFields(") ||
+    !productRouterSource.includes('"see_finance"') ||
+    !productRouterSource.includes("variants: product.variants.map") ||
+    !productRouterSource.includes("redactCostFields(variant, false)")
+  ) {
+    problems.push("API วัตถุดิบต้องตัดต้นทุนทั้งรายการหลักและ variant ก่อนถึง browser ช่าง");
   }
 
   if (
@@ -1876,6 +1944,9 @@ check(
   if (
     !printRunsSource.includes("meQuery.isLoading") ||
     !printRunsSource.includes("meQuery.isError && !me") ||
+    !printRunsSource.includes("const permissionStale = meQuery.isError && Boolean(me)") ||
+    !printRunsSource.includes("!permissionStale && permAllows") ||
+    !printRunsSource.includes("canManage && !listQuery.isError && completing") ||
     !printRunsSource.includes("queueQuery.isError && !queueQuery.data") ||
     !printRunsSource.includes("listQuery.isError && !listQuery.data") ||
     !printRunsSource.includes("ดูอย่างเดียว")
@@ -2017,8 +2088,17 @@ check(
     problems.push("สแกนต้องมีชื่อช่องและเปิดข้อมูลแบบ read-only เท่านั้น");
   }
   if (
+    !stationPageSource.includes(
+      "const nextStation = station ?? result.station;",
+    )
+  ) {
+    problems.push("สแกนต้องคงสถานีที่เลือกไว้ และใช้สถานีจาก QR เฉพาะเมื่อยังไม่ได้เลือก");
+  }
+  if (
     !stationPageSource.includes("trpc.factory.stationQueue.useQuery") ||
     stationPageSource.includes("trpc.production.kanban.useQuery") ||
+    !stationPageSource.includes("const permissionStale = meQuery.isError && Boolean(me)") ||
+    !stationPageSource.includes("!permissionStale && permAllows") ||
     !stationPageSource.includes("canManageProduction &&")
   ) {
     problems.push("คิว Station ต้องเป็น no-money DTO และทุก action ต้องเริ่มจากสิทธิ์ผลิต");
@@ -2039,7 +2119,9 @@ check(
     !stationPageSource.includes('canCountQc={canManageProduction}') ||
     !stationPageSource.includes('canCreateDelivery={canCreateDelivery}') ||
     !stationPageSource.includes('canAdvancePacking={canAdvancePacking}') ||
-    !stationOrderSource.includes('canCount={canCountQc && station === "qc"}') ||
+    !stationOrderSource.includes(
+      'canCount={canCountQc && station === "qc" && !contextStale}',
+    ) ||
     !stationOrderSource.includes('canUseStation={station === "final-pack"}') ||
     !stationOrderSource.includes("เปิดสถานี QC ก่อน") ||
     !stationOrderSource.includes("เปิดสถานีแพ็กสุดท้ายก่อน") ||
@@ -2100,8 +2182,11 @@ check(
     !stationPageSource.includes("canManageProduction") ||
     !stationPageSource.includes("canCreateDelivery") ||
     !stationPageSource.includes("canAdvancePacking") ||
-    !stationOrderSource.includes("disabled={!canUseStation || !canCreateDelivery}") ||
-    !stationOrderSource.includes("disabled={!canUseStation || !canAdvancePacking || !complete")
+    !stationOrderSource.includes(
+      "const canWritePack = canUseStation && !writeBlocked && !packStale;",
+    ) ||
+    !stationOrderSource.includes("disabled={!canWritePack || !canCreateDelivery}") ||
+    !stationOrderSource.includes("disabled={!canWritePack || !canAdvancePacking || !complete")
   ) {
     problems.push("จอทัชและ read-only ต้องคง target 44px พร้อม fail-closed ทุก action");
   }

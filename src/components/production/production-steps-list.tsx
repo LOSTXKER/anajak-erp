@@ -36,6 +36,8 @@ import type { ProductionStep } from "./types";
 
 interface ProductionStepsListProps {
   steps: ProductionStep[];
+  /** ประวัติในใบงาน ERP อ่านอย่างเดียว; action หลักทั้งหมดอยู่ใน ProductionNowCard */
+  readOnly?: boolean;
   canOutsource: boolean;
   // ผ่านรวดยิง production.updateStep — โชว์เฉพาะ role ที่ server รับ (กันปุ่มกดแล้ว FORBIDDEN)
   canUpdateStep: boolean;
@@ -62,6 +64,7 @@ interface ProductionStepsListProps {
 // ไม่มีตัวเลขเงินบน component นี้ (เบสเคาะ: ไม่คิดต้นทุนต่องานในระบบนี้)
 export function ProductionStepsList({
   steps,
+  readOnly = false,
   canOutsource,
   canUpdateStep,
   canSupervise,
@@ -116,6 +119,7 @@ export function ProductionStepsList({
               <StepRow
                 key={step.id}
                 step={step}
+                readOnly={readOnly}
                 isLaneNext={laneNextIds.has(step.id)}
                 pressGate={pressGate}
                 actionAllowed={canActOnStep(step)}
@@ -142,6 +146,7 @@ export function ProductionStepsList({
 
 function StepRow({
   step,
+  readOnly,
   isLaneNext,
   pressGate,
   actionAllowed,
@@ -159,6 +164,7 @@ function StepRow({
   printRunsHref,
 }: {
   step: ProductionStep;
+  readOnly: boolean;
   /** ขั้นแรกที่ยังไม่เสร็จของเลนตัวเอง — ตัวเดียวที่ควรได้ปุ่ม primary */
   isLaneNext: boolean;
   pressGate: HeatPressGate;
@@ -210,7 +216,7 @@ function StepRow({
     <div
       className={`flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border p-3 ${
         // ขั้นที่ถึงคิว = กรอบ accent จางๆ นำสายตาโดยไม่ต้องอ่านทีละแถว
-        isLaneNext && step.status !== "COMPLETED"
+        !readOnly && isLaneNext && step.status !== "COMPLETED"
           ? "border-blue-200 dark:border-blue-900"
           : "border-slate-200 dark:border-slate-700"
       }`}
@@ -270,7 +276,7 @@ function StepRow({
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-        {actionAllowed && step.stepType === "DTF_PRINT" && step.status !== "COMPLETED" && (
+        {!readOnly && actionAllowed && step.stepType === "DTF_PRINT" && step.status !== "COMPLETED" && (
           <Button variant="outline" size="sm" asChild className="gap-1.5">
             <Link href={printRunsHref}>
               <Printer />
@@ -278,7 +284,7 @@ function StepRow({
             </Link>
           </Button>
         )}
-        {actionPolicy.canSendOutsource && (
+        {!readOnly && actionPolicy.canSendOutsource && (
           <Button
             size="sm"
             className="gap-1.5"
@@ -288,7 +294,7 @@ function StepRow({
             {step.outsourceOrders.length > 0 ? "ส่งแก้รอบใหม่" : "ส่งร้านนอก"}
           </Button>
         )}
-        {actionPolicy.canQuickPass && (
+        {!readOnly && actionPolicy.canQuickPass && (
           <Button
             variant="outline"
             size="sm"
@@ -316,7 +322,7 @@ function StepRow({
         {/* ทางเข้า dialog เต็ม (มอบงาน/QC/หมายเหตุ) — งานละเอียดย้ายมาหลังปุ่มนี้
             แถวทั้งแถวยังกดเปิด dialog ได้เหมือนเดิม (คง muscle memory) ·
             งานคนอื่น (ช่าง) ไม่โชว์ — บันทึกใน dialog จะโดน FORBIDDEN ทุกช่อง (B8) */}
-        {canOpenDetails && canUpdateStep && !ownedByOther && (
+        {!readOnly && canOpenDetails && canUpdateStep && !ownedByOther && (
           <Button
             variant="ghost"
             size="sm"
@@ -331,7 +337,7 @@ function StepRow({
 
       {/* ปุ่มเร็ว UX1 — มือถือเต็มแถวสูง 44px (เป้านิ้ว DESIGN.md) · จอใหญ่ปุ่มปกติ
           stopPropagation ที่กล่อง — กดปุ่มต้องไม่เผลอเปิด dialog เต็ม */}
-      {showQuickAction && (
+      {!readOnly && showQuickAction && (
         <div className="w-full sm:ml-auto sm:w-auto">
           {heatPressWaiting ? (
             // รีดยังเริ่มไม่ได้จริง (ฟิล์ม/เสื้อยังไม่บรรจบ) — บอกว่ารออะไรแทนปุ่ม

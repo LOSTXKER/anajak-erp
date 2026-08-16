@@ -24,9 +24,9 @@ export const OUTSOURCE_STATUS_CONFIG: Record<
   SENT: { label: "ส่งร้านแล้ว", variant: "accent" },
   IN_PROGRESS: { label: "ร้านกำลังทำ", variant: "accent" },
   COMPLETED: { label: "ร้านทำเสร็จ", variant: "accent" },
-  RECEIVED_BACK: { label: "รับกลับแล้ว รอ QC", variant: "warning" },
-  QC_PASSED: { label: "QC ผ่าน", variant: "success" },
-  QC_FAILED: { label: "QC ไม่ผ่าน", variant: "destructive" },
+  RECEIVED_BACK: { label: "รับกลับแล้ว รอตรวจรับ", variant: "warning" },
+  QC_PASSED: { label: "ตรวจรับผ่าน", variant: "success" },
+  QC_FAILED: { label: "ตรวจรับไม่ผ่าน", variant: "destructive" },
 };
 
 export const OUTSOURCE_STATUS_LABELS: Record<string, string> = Object.fromEntries(
@@ -48,7 +48,7 @@ export const OUTSOURCE_QUEUE_FILTERS: ReadonlyArray<{
 }> = [
   { value: "send", label: "รอส่งร้าน" },
   { value: "receive", label: "รับกลับ" },
-  { value: "qc", label: "รอ QC" },
+  { value: "qc", label: "รอตรวจรับ" },
   { value: "done", label: "ประวัติ" },
 ];
 
@@ -130,4 +130,30 @@ export function isOutsourceOverdue(
   if (Number.isNaN(due.getTime())) return false;
   due.setHours(23, 59, 59, 999);
   return due < now;
+}
+
+/**
+ * คิวรับกลับต้องอ่านตามกำหนดรับ ไม่ใช่ตามเวลาที่สร้างใบงาน:
+ * งานเลยกำหนดขึ้นก่อน แล้วตามด้วยวันที่ใกล้สุด โดยรักษาลำดับเดิมเมื่อไม่มีวันที่
+ */
+export function sortOutsourceByExpectedReturn<
+  T extends { expectedBackAt: Date | string | null; status: string },
+>(orders: readonly T[], now = new Date()): T[] {
+  return orders
+    .map((order, index) => ({ order, index }))
+    .sort((a, b) => {
+      const overdueDiff =
+        Number(isOutsourceOverdue(b.order, now)) -
+        Number(isOutsourceOverdue(a.order, now));
+      if (overdueDiff !== 0) return overdueDiff;
+
+      const expectedAt = (value: Date | string | null) => {
+        if (!value) return Number.POSITIVE_INFINITY;
+        const timestamp = new Date(value).getTime();
+        return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp;
+      };
+      const dueDiff = expectedAt(a.order.expectedBackAt) - expectedAt(b.order.expectedBackAt);
+      return dueDiff || a.index - b.index;
+    })
+    .map(({ order }) => order);
 }

@@ -4,6 +4,23 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION-UX2 รื้อ UX การผลิตทั้ง family เป็น ERP ใช้งานจริงแล้ว 2026-08-16**
+> แยกหน้าที่ชัดโดยอยู่ในระบบเดิม: `/production` เป็น worklist ของหัวหน้า, `/factory/station` เป็นจอลงมือของพนักงาน และ `/factory` เป็นจอ pulse อ่านอย่างเดียวของโรงงาน · ไม่มี sidebar ฝ่ายผลิตชุดใหม่ และหน้ารอบพิมพ์/คลังฟิล์ม/ร้านนอกใช้ navigation ของโมดูลเดียวกัน
+>
+> **หัวหน้าตัดสินงานได้จากหนึ่งแถวต่อหนึ่งออเดอร์:** บอร์ดเดิมที่ออเดอร์ผสมโผล่ซ้ำหลายเลนถูกแทนด้วยตัวกรอง `ต้องจัดการ / กำลังผลิต / รอ QC / รอแพ็ก / ทั้งหมด` พร้อม search/sort ใน URL · เห็นจุดปัจจุบัน กำหนดส่ง ความเสี่ยง ความคืบหน้า และเปิดไปใบผลิตหรือขั้นแพ็กที่ถูกต้อง · ทาง `?create=` กลับมาเปิดใบผลิตได้จริงและ fail-closed เมื่อข้อมูลหรือสิทธิ์พัง
+>
+> **พนักงานเห็นงานก่อนเครื่องมือ:** Station เลือกหนึ่งใน 5 สถานีครั้งเดียวแล้วจำใน URL · จอเรียง `กำลังทำ → พร้อมทำ → สแกน/ค้นหา` · QR/เลขออเดอร์เปิดบริบทเท่านั้น ไม่เปลี่ยนสถานะ · ใบผลิตเหลือ primary action เดียวตามสถานี/ผู้รับงาน/สถานะ และมีทางกลับคิวที่ชัด
+>
+> **TV ตรง flow โรงงาน:** เตรียมเสื้อ → พิมพ์ DTF → รีดร้อน → QC → แพ็กสุดท้าย พร้อมยอดจริงของ active/queue, exception ด่วน/เกินกำหนด, งานพร้อมส่ง และ stale timestamp · แยก QC ออกจากแพ็กและไม่รวมแพ็กกับส่ง
+>
+> **state/สิทธิ์/เงินไม่โกหก:** initial error, cached stale, empty, read-only และ blocked แยกกัน · permission query พังแล้วปิด action ทันที · ช่างเปิด dialog ของคนอื่นหรือผิดสถานีไม่ได้ · Station/TV ไม่มีเงิน และ Material/สินค้าใช้ server redaction ตาม `see_finance` จึงไม่มีต้นทุนรั่วผ่าน network/query cache แม้ UI ซ่อนอยู่
+>
+> **หลักฐานหน้าจริงแบบอ่านอย่างเดียว:** production build แบบ cold ตรวจ `/production`, `/production/[id]`, `/factory/station`, `/factory`, print runs, films และ outsource ที่ 1440×900/1280×720/1024×768 · ไม่มี horizontal overflow, hydration หรือ console error; ตัวกรอง “ต้องจัดการ”, ทางกลับ Station และ local navigation กดเดินจริง · ไม่คลิก mutationและไม่สร้าง fixtureบนฐานแชร์
+>
+> **ด่าน final:** typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1007/1007** · `verify:ui` ผ่าน · production build ผ่าน · Impeccable detector `[]` · fresh Impeccable + React review ไม่พบ P0/P1 · `SPEC.md`, `ROADMAP.md`, `docs/DESIGN.md` และ surface brief ตรงกับ UI จริง
+>
+> **ต่อที่นี่:** ให้เบสลองตามบทบาทจริง 3 ทาง: หัวหน้าที่ `/production` → พนักงานที่ `/factory/station` → ทีวีที่ `/factory`; commit อยู่บน branch งานและยังไม่ push
+
 > **✅ FACTORY-STATION ยก UX ที่เคาะขึ้นระบบจริงแล้ว 2026-08-16**
 > ใช้ `/production` ใน Sidebar ERP เดิมเป็นบอร์ดของหัวหน้า/เจ้าของ และเพิ่ม `/factory/station` เป็นจอเต็มสำหรับคอมกับจอทัชหน้าเครื่อง โดยคง `/factory` เป็นทีวี read-only · ไม่มี Sidebar ฝ่ายผลิตชุดใหม่ และมีปุ่ม “เปิดจอประจำสถานี” จากบอร์ดจริง
 >

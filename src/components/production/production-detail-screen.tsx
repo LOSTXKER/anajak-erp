@@ -13,6 +13,7 @@ import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { ProductionDesignCard } from "@/components/production/production-design-card";
 import { ProductionStepsList } from "@/components/production/production-steps-list";
 import { ProductionNowCard } from "@/components/production/production-now-card";
+import { ProductionModuleNav } from "@/components/production/production-module-nav";
 import { StepUpdateDialog } from "@/components/production/step-update-dialog";
 import { StepOutsourceDialog } from "@/components/production/step-outsource-dialog";
 import { StepQtySheet } from "@/components/production/step-qty-sheet";
@@ -42,10 +43,34 @@ import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 function ProductionDetailSkeleton() {
   return (
     <div className="space-y-5">
-      <Skeleton className="h-14 rounded-2xl" />
-      <Skeleton className="h-64 rounded-2xl" />
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
+        <Skeleton className="h-96 rounded-2xl" />
+        <Skeleton className="h-96 rounded-2xl" />
+      </div>
     </div>
   );
+}
+
+function productionCompletionMessage(status?: string) {
+  switch (status) {
+    case "QUALITY_CHECK":
+      return "ผลิตครบแล้ว — รอ QC ก่อนแพ็กสินค้า";
+    case "PACKING":
+      return "QC ผ่านแล้ว — อยู่ขั้นแพ็กสินค้า";
+    case "READY_TO_SHIP":
+      return "แพ็กแล้ว — พร้อมจัดส่ง";
+    case "SHIPPED":
+    case "COMPLETED":
+      return "งานผลิตและการจัดส่งเสร็จแล้ว";
+    case "CANCELLED":
+      return "ออเดอร์นี้ถูกยกเลิกแล้ว";
+    default:
+      return "ครบทุกขั้นการผลิตแล้ว";
+  }
 }
 
 // หน้าใบผลิต — บ้านของฝั่งโรงงาน (แยกจากหน้าออเดอร์ 2026-06-12 เบสเคาะ)
@@ -82,7 +107,8 @@ export function ProductionDetailScreen({
 
   // PERM: ต้นทุน/หน่วยเห็นเฉพาะสายการเงิน (server listMaterials คืน cost ให้ทุก role ที่ผ่าน
   // gate ผลิต — ชั้นนี้เป็น cosmetic กันช่างเห็นตัวเลขต้นทุนบนจอ)
-  const canSeeCost = permAllows(me?.permissions, "see_finance");
+  const canSeeCost =
+    !meQuery.isError && permAllows(me?.permissions, "see_finance");
   // เปิดใบส่งร้านนอก = ผู้จัดการขึ้นไป (ตรง managerUp ฝั่ง server)
   const hasOutsourcePermission =
     !!me && permAllows(me.permissions, "supervise_operations");
@@ -163,6 +189,9 @@ export function ProductionDetailScreen({
   const order = production?.order;
   // PACKAGING ในใบเก่าเป็น compatibility row เท่านั้น — flow จริงแพ็กหลัง QC ผ่านสถานะออเดอร์
   const workflowSteps = productionWorkflowSteps(production?.steps ?? []);
+  const selectedStepLive = selectedStep
+    ? (workflowSteps.find((step) => step.id === selectedStep.id) ?? null)
+    : null;
   const hasPendingLegacyPackaging =
     production?.steps.some(
       (step) => step.stepType === "PACKAGING" && step.status !== "COMPLETED",
@@ -178,24 +207,34 @@ export function ProductionDetailScreen({
   const totalQty = order?.items.reduce((s, it) => s + it.totalQuantity, 0) ?? 0;
   const completedSteps = workflowSteps.filter((s) => s.status === "COMPLETED").length;
   const totalSteps = workflowSteps.length;
+  const completedPct = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
   const allStepsDone = totalSteps > 0 && completedSteps === totalSteps;
   const orderCanProduce = order?.internalStatus === "PRODUCING";
+  const productionStale = productionQuery.isError && Boolean(production);
+  const permissionStale = meQuery.isError && Boolean(me);
+  const writeDataStale = productionStale || permissionStale;
   const stationOrderCanProduce = surface === "station" && orderCanProduce;
   const stationCanOperate =
     surface === "station" && !!station && stationOrderCanProduce;
   const canUpdateStep =
     hasProductionPermission &&
     orderCanProduce &&
+    !writeDataStale &&
     (surface === "erp" || stationCanOperate);
   // งานร้านนอกไม่มีสถานีใน Station Mode และ endpoint เดิมมีข้อมูลต้นทุนสำหรับหัวหน้า
   // จึงทำได้เฉพาะใน ERP canonical เท่านั้น ไม่ mount dialog/ยิง query จากจอสถานี
   const canOutsource =
-    surface === "erp" && orderCanProduce && hasOutsourcePermission;
+    surface === "erp" && orderCanProduce && hasOutsourcePermission && !writeDataStale;
+  const canSuperviseStep = hasOutsourcePermission && !writeDataStale;
   const canActOnStep = (step: ProductionStep) =>
     surface === "erp" ||
     (stationCanOperate && factoryStationKeyForStep(step.stepType) === station);
+  const canOwnOrSuperviseStep = (step: ProductionStep) =>
+    canSuperviseStep || !step.assignedTo || step.assignedTo.id === me?.id;
   const canOpenStepDetails = (step: ProductionStep) =>
+    canUpdateStep &&
     canActOnStep(step) &&
+    canOwnOrSuperviseStep(step) &&
     (surface === "erp" || !["GARMENT_PICK", "DTF_PRINT"].includes(step.stepType));
   const stationHref = station
     ? `/factory/station?station=${encodeURIComponent(station)}`
@@ -216,7 +255,7 @@ export function ProductionDetailScreen({
     ? selectNowSteps(workflowSteps, {
         canOutsource,
         canUpdateStep,
-        canSupervise: canOutsource,
+        canSupervise: canSuperviseStep,
         meId: me?.id ?? null,
         pressGate: evaluateHeatPressGate(workflowSteps),
       }).filter(({ step }) => canActOnStep(step))
@@ -226,10 +265,11 @@ export function ProductionDetailScreen({
     new Date(order.deadline) < new Date(productionQuery.dataUpdatedAt || 0) &&
     !["SHIPPED", "COMPLETED", "CANCELLED"].includes(order.internalStatus)
   );
+  const allDoneMessage = productionCompletionMessage(order?.internalStatus);
 
   return (
     <PageShell
-      width="content"
+      width={surface === "erp" ? "full" : "content"}
       breadcrumb={
         order
           ? [
@@ -248,6 +288,11 @@ export function ProductionDetailScreen({
       }
       title={order?.orderNumber ?? "งานผลิต"}
       description={order ? [order.title, order.customer?.name].filter(Boolean).join(" · ") : undefined}
+      back={
+        surface === "station"
+          ? { href: stationHref, label: "กลับคิวสถานี" }
+          : { href: "/production", label: "กลับคิวผลิต" }
+      }
       titleBadge={
         me && (!canUpdateStep || stationBlockMessage) && !canOutsource ? (
           <Badge variant="outline" size="sm">
@@ -275,6 +320,7 @@ export function ProductionDetailScreen({
           </>
         ) : undefined
       }
+      headerChildren={surface === "erp" ? <ProductionModuleNav /> : undefined}
       loading={productionQuery.isLoading || meQuery.isLoading}
       error={
         meQuery.isError && !me
@@ -293,168 +339,236 @@ export function ProductionDetailScreen({
     >
       {production && order ? (
         <div className="space-y-5">
-          {productionQuery.isError && production && (
+          {writeDataStale && (
             <Alert variant="warning">
-              ข้อมูลใบผลิตล่าสุดอาจยังไม่สด — ระบบกำลังลองเชื่อมต่อใหม่
+              ข้อมูลล่าสุดอาจยังไม่สด — ปิดปุ่มบันทึกชั่วคราวและกำลังลองเชื่อมต่อใหม่
             </Alert>
           )}
-          {/* บริบทที่ช่างต้องรู้ก่อนจับงาน — กำหนดส่ง/ด่วน/จำนวน/ความคืบหน้า
-              ถอด "สถานะออเดอร์" ออกเพราะเป็นข้อมูลอ้างอิงของฝั่งขาย ไม่ใช่สิ่งที่ช่างใช้ */}
-          <div className="card-surface flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl px-4 py-3 text-sm">
-            {order.deadline && (
-              <span
-                className={cn(
-                  "flex items-center gap-1.5",
-                  isOverdue ? "font-medium text-red-700 dark:text-red-300" : "text-secondary",
-                )}
-              >
-                {isOverdue ? (
-                  <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                ) : (
-                  <Clock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-                )}
-                {isOverdue ? "เลยกำหนด " : "กำหนดส่ง "}
-                {formatDate(order.deadline)}
-              </span>
-            )}
-            {order.priority && order.priority !== "NORMAL" && (
-              <Badge
-                variant={order.priority === "URGENT" ? "destructive" : "warning"}
-                size="sm"
-              >
-                {PRIORITY_LABELS[order.priority] ?? order.priority}
-              </Badge>
-            )}
-            {totalQty > 0 && (
-              <span className="flex items-center gap-1.5 text-secondary">
-                <Shirt className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-                {totalQty.toLocaleString("th-TH")} ตัว
-              </span>
-            )}
-            <span className="ml-auto text-sm tabular-nums text-muted">
-              เสร็จ {completedSteps}/{totalSteps} ขั้น
-            </span>
-          </div>
-
-          {/* ตอนนี้ต้องทำ — บอร์ดผลิตไม่มีปุ่มแล้ว หน้านี้จึงเป็นที่เดียวที่ลงมือได้ */}
-          {stationBlockMessage ? (
-            <Alert variant="warning" icon={AlertTriangle}>
-              <span className="font-semibold">อ่านใบงานได้ แต่ยังลงมือไม่ได้</span>
-              <span className="mt-0.5 block text-sm">
-                {stationBlockMessage}
-                {stationLabel ? ` · สถานีปัจจุบัน: ${stationLabel}` : ""}
-              </span>
-            </Alert>
-          ) : legacyPackagingReadyForQc ? (
-            <section
-              aria-labelledby="legacy-production-ready"
-              className={cn(
-                TINT.warning,
-                "flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between",
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+            {/* ตอนนี้ต้องทำ — action เปลี่ยนสถานะอยู่ตรงนี้จุดเดียว */}
+            <div className="min-w-0">
+              {stationBlockMessage ? (
+                <Alert variant="warning" icon={AlertTriangle}>
+                  <span className="font-semibold">อ่านใบงานได้ แต่ยังลงมือไม่ได้</span>
+                  <span className="mt-0.5 block text-sm">
+                    {stationBlockMessage}
+                    {stationLabel ? ` · สถานีปัจจุบัน: ${stationLabel}` : ""}
+                  </span>
+                </Alert>
+              ) : legacyPackagingReadyForQc ? (
+                <section
+                  aria-labelledby="legacy-production-ready"
+                  className={cn(
+                    TINT.warning,
+                    "flex flex-col gap-3 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between",
+                  )}
+                >
+                  <div className="flex min-w-0 gap-3">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                    <div>
+                      <h2 id="legacy-production-ready" className="font-semibold">
+                        ใบเก่านี้พร้อมส่งเข้า QC
+                      </h2>
+                      <p className="mt-0.5 text-sm">
+                        ระบบจะปิดขั้นแพ็กแบบเดิมและส่งเข้า QC โดยยังไม่ถือว่าแพ็กสินค้าแล้ว
+                      </p>
+                    </div>
+                  </div>
+                  {surface === "erp" && canUpdateStep ? (
+                    <Button
+                      className="shrink-0"
+                      disabled={legacyFinalize.isPending}
+                      aria-busy={legacyFinalize.isPending || undefined}
+                      onClick={() => legacyFinalize.mutate({ productionId: production.id })}
+                    >
+                      {legacyFinalize.isPending ? "กำลังส่ง..." : "ส่งเข้า QC"}
+                      <ArrowRight />
+                    </Button>
+                  ) : (
+                    <p className="shrink-0 text-sm font-medium">รอหัวหน้าหรือทีมผลิตส่งเข้า QC</p>
+                  )}
+                </section>
+              ) : (
+                <ProductionNowCard
+                  nowSteps={nowSteps}
+                  allDone={allStepsDone}
+                  allDoneMessage={allDoneMessage}
+                  busy={quickPass.isPending}
+                  onStart={handleStartStep}
+                  onComplete={handleCompleteStep}
+                  onSendOutsource={setOutsourceStep}
+                  onQuickPass={handleQuickPass}
+                  onOpenStep={setSelectedStep}
+                  canOpenStep={canOpenStepDetails}
+                  printRunsHref={
+                    surface === "station"
+                      ? "/factory/station?station=dtf-print"
+                      : "/production/print-runs"
+                  }
+                />
               )}
+            </div>
+
+            <aside
+              className="card-surface rounded-2xl p-5"
+              aria-labelledby="production-job-context"
             >
-              <div className="flex min-w-0 gap-3">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-                <div>
-                  <h2 id="legacy-production-ready" className="font-semibold">
-                    ใบเก่านี้พร้อมส่งเข้า QC
-                  </h2>
-                  <p className="mt-0.5 text-sm">
-                    ใบเก่านี้ยังมีขั้นแพ็กแบบเดิม ระบบจะปิดขั้นนั้นและส่งงานไป QC โดยยังไม่ถือว่าแพ็กสินค้าแล้ว
-                  </p>
+              <h2 id="production-job-context" className="text-sm font-semibold text-strong">
+                ข้อมูลใบงาน
+              </h2>
+              <dl className="mt-4 space-y-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-muted">สถานะ</dt>
+                  <dd>
+                    <Badge variant="outline" size="sm">
+                      {(INTERNAL_STATUS_LABELS as Record<string, string>)[
+                        order.internalStatus
+                      ] ?? order.internalStatus}
+                    </Badge>
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="flex items-center gap-1.5 text-muted">
+                    <Clock className="h-4 w-4" aria-hidden="true" />
+                    กำหนดส่ง
+                  </dt>
+                  <dd
+                    className={cn(
+                      "text-right font-medium",
+                      isOverdue ? "text-red-700 dark:text-red-300" : "text-strong",
+                    )}
+                  >
+                    {order.deadline ? formatDate(order.deadline) : "ไม่ระบุ"}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-muted">ความสำคัญ</dt>
+                  <dd>
+                    <Badge
+                      variant={
+                        order.priority === "URGENT"
+                          ? "destructive"
+                          : order.priority === "HIGH"
+                            ? "warning"
+                            : "outline"
+                      }
+                      size="sm"
+                    >
+                      {PRIORITY_LABELS[order.priority] ?? order.priority}
+                    </Badge>
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="flex items-center gap-1.5 text-muted">
+                    <Shirt className="h-4 w-4" aria-hidden="true" />
+                    จำนวน
+                  </dt>
+                  <dd className="font-medium tabular-nums text-strong">
+                    {totalQty.toLocaleString("th-TH")} ตัว
+                  </dd>
+                </div>
+              </dl>
+              <div className="mt-5 border-t border-divider pt-4">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted">ขั้นการผลิต</span>
+                  <span className="font-medium tabular-nums text-strong">
+                    {completedSteps}/{totalSteps}
+                  </span>
+                </div>
+                <div
+                  role="progressbar"
+                  aria-label="ความคืบหน้าขั้นการผลิต"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={completedPct}
+                  className="mt-2 h-2 overflow-hidden rounded-full bg-surface-muted"
+                >
+                  <div
+                    className="h-full rounded-full bg-blue-500"
+                    style={{ width: `${completedPct}%` }}
+                  />
                 </div>
               </div>
-              {surface === "erp" && hasProductionPermission ? (
-                <Button
-                  className="shrink-0"
-                  disabled={legacyFinalize.isPending}
-                  aria-busy={legacyFinalize.isPending || undefined}
-                  onClick={() => legacyFinalize.mutate({ productionId: production.id })}
-                >
-                  {legacyFinalize.isPending ? "กำลังส่ง..." : "ส่งเข้า QC"}
-                  <ArrowRight />
-                </Button>
-              ) : (
-                <p className="shrink-0 text-sm font-medium">รอหัวหน้าหรือทีมผลิตส่งเข้า QC</p>
-              )}
-            </section>
-          ) : (
-            <ProductionNowCard
-              nowSteps={nowSteps}
-              allDone={allStepsDone}
-              busy={quickPass.isPending}
-              onStart={handleStartStep}
-              onComplete={handleCompleteStep}
-              onSendOutsource={setOutsourceStep}
-              onQuickPass={handleQuickPass}
-              onOpenStep={setSelectedStep}
-              canOpenStep={canOpenStepDetails}
-              printRunsHref={
-                surface === "station"
-                  ? "/factory/station?station=dtf-print"
-                  : "/production/print-runs"
-              }
-            />
-          )}
-
-          {/* แบบ+ไซส์อยู่ติดกับ action หน้างาน — ช่างไม่ต้องเริ่มก่อนแล้วค่อยเลื่อนลงหาแบบ */}
-          <ProductionDesignCard order={order} />
-
-          {/* ขั้นตอนทั้งใบ — เช็กลิสต์เต็มไว้ไล่ดู ส่วนสิ่งที่ต้องกดอยู่ในกล่องด้านบนแล้ว */}
-          <div className="card-surface rounded-2xl p-4 sm:p-5">
-            <h2 className="mb-3 text-sm font-semibold text-muted">ขั้นตอนทั้งใบ</h2>
-            <ProductionStepsList
-              steps={workflowSteps}
-              canOutsource={canOutsource}
-              canUpdateStep={canUpdateStep}
-              canSupervise={canOutsource}
-              canActOnStep={canActOnStep}
-              canOpenStepDetails={canOpenStepDetails}
-              meId={me?.id ?? null}
-              busy={quickPass.isPending}
-              onSelectStep={setSelectedStep}
-              onOutsourceStep={setOutsourceStep}
-              onQuickPass={handleQuickPass}
-              onStartStep={handleStartStep}
-              onCompleteStep={handleCompleteStep}
-              printRunsHref={
-                surface === "station"
-                  ? "/factory/station?station=dtf-print"
-                  : "/production/print-runs"
-              }
-            />
+            </aside>
           </div>
 
-          {/* เสื้อจากสต๊อค: เบิก (ตัดยอดจอง) + คืนเศษ — ผูกขั้น GARMENT_PICK (ก้อน 1) */}
-          <GarmentPickCard
-            productionId={production.id}
-            steps={workflowSteps}
-            canIssueGarments={
-              canUpdateStep &&
-              (surface === "erp" || station === "prep")
-            }
-            canReturnGarments={
-              hasProductionPermission &&
-              (surface === "erp" || (stationCanOperate && station === "prep"))
-            }
-          />
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)] xl:items-start">
+            <div className="min-w-0 space-y-5">
+              {/* แบบ+ไซส์อยู่ใกล้ action เพื่อไม่ต้องออกจากใบงานไปหาไฟล์อ้างอิง */}
+              <ProductionDesignCard order={order} />
 
-          {/* เบิกวัตถุดิบ — ช่างเบิกได้ แต่เงิน (ต้นทุน/หน่วย) โชว์เฉพาะหัวหน้า */}
-          {surface === "erp" && (
-            <MaterialUsage
-              productionId={production.id}
-              orderNumber={order.orderNumber}
-              showCosts={canSeeCost}
-            />
-          )}
+              <div id="production-garments" className="scroll-mt-24">
+                <GarmentPickCard
+                  productionId={production.id}
+                  steps={workflowSteps}
+                  canIssueGarments={canUpdateStep && (surface === "erp" || station === "prep")}
+                  canReturnGarments={
+                    hasProductionPermission &&
+                    !writeDataStale &&
+                    (surface === "erp" || (stationCanOperate && station === "prep"))
+                  }
+                />
+              </div>
 
-          {selectedStep && (
-            <StepUpdateDialog step={selectedStep} onClose={() => setSelectedStep(null)} />
+              {/* เบิกวัตถุดิบ — ช่างเบิกได้ แต่ต้นทุนโชว์เฉพาะผู้มีสิทธิ์การเงิน */}
+              {surface === "erp" && (
+                <MaterialUsage
+                  productionId={production.id}
+                  orderNumber={order.orderNumber}
+                  showCosts={canSeeCost}
+                  readOnly={!canUpdateStep}
+                />
+              )}
+            </div>
+
+            {/* อ่านย้อนหลังเท่านั้น — ไม่ทำ action ซ้ำกับกล่อง "ตอนนี้ต้องทำ" */}
+            <section
+              className="card-surface rounded-2xl p-5 sm:p-6"
+              aria-labelledby="production-route"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 id="production-route" className="text-base font-semibold text-strong">
+                  เส้นทางการผลิต
+                </h2>
+                <span className="text-xs tabular-nums text-muted">
+                  {completedSteps}/{totalSteps} ขั้น
+                </span>
+              </div>
+              {workflowSteps.length > 0 ? (
+                <ProductionStepsList
+                  readOnly
+                  steps={workflowSteps}
+                  canOutsource={canOutsource}
+                  canUpdateStep={canUpdateStep}
+                  canSupervise={canSuperviseStep}
+                  canActOnStep={canActOnStep}
+                  canOpenStepDetails={canOpenStepDetails}
+                  meId={me?.id ?? null}
+                  busy={quickPass.isPending}
+                  onSelectStep={setSelectedStep}
+                  onOutsourceStep={setOutsourceStep}
+                  onQuickPass={handleQuickPass}
+                  onStartStep={handleStartStep}
+                  onCompleteStep={handleCompleteStep}
+                  printRunsHref={
+                    surface === "station"
+                      ? "/factory/station?station=dtf-print"
+                      : "/production/print-runs"
+                  }
+                />
+              ) : (
+                <p className="text-sm text-muted">ใบผลิตนี้ยังไม่มีขั้นตอน</p>
+              )}
+            </section>
+          </div>
+
+          {selectedStepLive && canOpenStepDetails(selectedStepLive) && (
+            <StepUpdateDialog step={selectedStepLive} onClose={() => setSelectedStep(null)} />
           )}
-          {outsourceStep && (
+          {outsourceStep && !writeDataStale && (
             <StepOutsourceDialog step={outsourceStep} onClose={() => setOutsourceStep(null)} />
           )}
-          {qtySheetStep && (
+          {qtySheetStep && !writeDataStale && (
             <StepQtySheet
               // key ผูกยอดจริง — ยอดเปลี่ยน (refetch/คนอื่นบันทึกคั่น) input reset เป็นที่เหลือใหม่
               key={`${qtySheetStep.id}:${qtySheetStep.qtyDone}`}

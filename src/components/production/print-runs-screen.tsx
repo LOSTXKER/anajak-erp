@@ -5,7 +5,9 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
 import { PageShell } from "@/components/page-shell";
+import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -23,6 +25,7 @@ import {
   type PrintRun,
   type QueueEntry,
 } from "@/components/production/print-runs-page-view";
+import { ProductionModuleNav } from "@/components/production/production-module-nav";
 import { cn } from "@/lib/utils";
 import { permAllows } from "@/lib/permissions";
 import { splitPrintRunsByStage } from "@/lib/print-run-workspace";
@@ -65,7 +68,9 @@ export function PrintRunsScreen({
   // B8: ปุ่มสั่งงาน (เปิดรอบ/พิมพ์จบ/ยกเลิก/ตัดแยก) เฉพาะคนมีสิทธิ์ผลิต — role อื่นเห็นคิวอ่านอย่างเดียว
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
-  const canManage = permAllows(me?.permissions, "manage_production");
+  const permissionStale = meQuery.isError && Boolean(me);
+  const canManage =
+    !permissionStale && permAllows(me?.permissions, "manage_production");
 
   // งานที่เลือกเข้ารอบ: stepId → จำนวนที่จะพิมพ์รอบนี้
   const [picked, setPicked] = useState<Record<string, number>>({});
@@ -117,7 +122,7 @@ export function PrintRunsScreen({
   const runs = listQuery.data ?? [];
   const { printingRuns, printedRuns, historyRuns } = splitPrintRunsByStage(runs);
   const completableRun =
-    !listQuery.isError && completing
+    canManage && !listQuery.isError && completing
       ? runs.find((run) => run.id === completing.id && run.status === "PRINTED" && !run.blockedReason) ?? null
       : null;
 
@@ -159,6 +164,8 @@ export function PrintRunsScreen({
         { label: "รอบพิมพ์ฟิล์ม" },
       ]}
       title="รอบพิมพ์ฟิล์ม DTF"
+      description="เปิดรอบจากคิว → พิมพ์ → ตัดแยกและติดป้าย"
+      headerChildren={surface === "erp" ? <ProductionModuleNav /> : undefined}
       titleBadge={
         me && !canManage ? (
           <Badge variant="outline" size="sm">
@@ -177,8 +184,8 @@ export function PrintRunsScreen({
       }
       skeleton={
         <div className="space-y-6">
-          <div className="grid items-start gap-6 lg:grid-cols-[minmax(18rem,4fr)_minmax(0,6fr)] xl:grid-cols-[minmax(22rem,5fr)_minmax(0,7fr)]">
-            <div className="space-y-6">
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(18rem,4fr)_minmax(0,6fr)] xl:grid-cols-[minmax(22rem,5fr)_minmax(0,7fr)]">
+            <div className="space-y-4">
               <Skeleton className="h-32 rounded-2xl" />
               <Skeleton className="h-32 rounded-2xl" />
             </div>
@@ -188,6 +195,17 @@ export function PrintRunsScreen({
         </div>
       }
     >
+      {permissionStale && (
+        <Alert variant="warning">
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>โหลดสิทธิ์ล่าสุดไม่สำเร็จ — ปิดปุ่มจัดการรอบพิมพ์ไว้ชั่วคราว</span>
+            <Button variant="outline" size="sm" onClick={() => void meQuery.refetch()}>
+              ลองใหม่
+            </Button>
+          </span>
+        </Alert>
+      )}
+
       <PrintRunsPageView
         queue={queue}
         printingRuns={printingRuns}

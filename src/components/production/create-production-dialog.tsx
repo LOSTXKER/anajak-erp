@@ -15,6 +15,7 @@ import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { Badge } from "@/components/ui/badge";
 import {
   STEP_TYPE_LABELS,
@@ -52,9 +53,14 @@ export function CreateProductionDialog({
   // gcTime 0 = ไม่ใช้ cache ข้ามการเปิด dialog — แก้ออเดอร์แล้วเปิด dialog ซ้ำต้องได้
   // สายงานจากข้อมูลสดเสมอ (StepBuilder seed ครั้งเดียวตอน mount ถ้าได้ cache เก่า =
   // แผนผลิตขาดสายที่เพิ่งเพิ่ม โดยไม่มีอะไรฟ้อง)
-  const { data: context, isLoading } = trpc.production.orderContext.useQuery(
+  const {
+    data: context,
+    isLoading,
+    isError,
+    refetch,
+  } = trpc.production.orderContext.useQuery(
     { orderId },
-    { gcTime: 0, staleTime: 0 }
+    { gcTime: 0, staleTime: 0 },
   );
 
   return (
@@ -70,7 +76,7 @@ export function CreateProductionDialog({
 
         {/* ด่านพร้อมผลิตยังไม่ผ่าน — soft-gate: เปิดได้ (งานด่วน/เคสยกเว้น) แต่ต้องเห็นว่าติดอะไร */}
         {context?.readiness && !context.readiness.ready && (
-          <Alert variant="warning" className=".5 text-xs">
+          <Alert variant="warning" className="text-xs">
             <p className="mb-1 flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300">
               <AlertTriangle className="h-3.5 w-3.5" />
               งานนี้ยังติดด่านพร้อมผลิต
@@ -89,7 +95,12 @@ export function CreateProductionDialog({
 
         {/* รอ context ก่อน seed ขั้นตอน — StepBuilder mount หลังได้ค่า จึง seed ตอน mount
             (ไม่ใช้ effect-setState — react-compiler clean) */}
-        {isLoading || !context ? (
+        {isError ? (
+          <QueryError
+            message="โหลดข้อมูลล่าสุดสำหรับเปิดใบผลิตไม่สำเร็จ — ปิดการสร้างไว้ชั่วคราว"
+            onRetry={() => refetch()}
+          />
+        ) : isLoading || !context ? (
           <div className="space-y-1.5 py-2">
             <Skeleton className="h-11 rounded-lg" />
             <Skeleton className="h-11 rounded-lg" />

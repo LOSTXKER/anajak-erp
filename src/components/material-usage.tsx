@@ -23,6 +23,7 @@ interface MaterialUsageProps {
   // เงิน (ต้นทุน/หน่วย+รวม) โชว์เฉพาะหัวหน้าขึ้นไป — ช่างเบิกของได้แต่ไม่เห็นเงิน
   // (ต้นทุนยังไหลเข้า mutation จาก costPrice ของแค็ตตาล็อกตามเดิม)
   showCosts?: boolean;
+  readOnly?: boolean;
 }
 
 interface LocalMaterial {
@@ -47,6 +48,7 @@ export function MaterialUsage({
   productionId,
   orderNumber,
   showCosts = true,
+  readOnly = false,
 }: MaterialUsageProps) {
   // ---- state for material picker ----
   const [showPicker, setShowPicker] = useState(false);
@@ -58,7 +60,7 @@ export function MaterialUsage({
   // ---- search products query ----
   const searchQuery = trpc.product.searchForOrder.useQuery(
     { search: searchTerm || undefined, itemType: "RAW_MATERIAL", limit: 15 },
-    { enabled: showPicker && searchTerm.length >= 1 }
+    { enabled: !readOnly && showPicker && searchTerm.length >= 1 }
   );
   const searchResults = searchQuery.data ?? [];
 
@@ -183,21 +185,23 @@ export function MaterialUsage({
             <Package className="h-4 w-4" />
             วัตถุดิบ / Materials
           </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowPicker(!showPicker)}
-            className="h-8 gap-1.5 border-blue-200 text-xs text-blue-700 hover:bg-interactive-hover dark:border-blue-800 dark:text-blue-300 dark:hover:bg-interactive-hover"
-          >
-            <Plus />
-            เพิ่มวัตถุดิบ
-          </Button>
+          {!readOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPicker(!showPicker)}
+              className="h-8 gap-1.5 border-blue-200 text-xs text-blue-700 hover:bg-interactive-hover dark:border-blue-800 dark:text-blue-300 dark:hover:bg-interactive-hover"
+            >
+              <Plus />
+              เพิ่มวัตถุดิบ
+            </Button>
+          )}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-3">
         {/* ---- Material Picker ---- */}
-        {showPicker && (
+        {!readOnly && showPicker && (
           <div className={cn(TINT.info, "rounded-xl border p-3 text-sm leading-relaxed")}>
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted" />
@@ -349,7 +353,7 @@ export function MaterialUsage({
         )}
 
         {/* ---- Local (pending) materials ---- */}
-        {localMaterials.length > 0 && (
+        {!readOnly && localMaterials.length > 0 && (
           <div className="space-y-1.5">
             {deductedMaterials.length > 0 && (
               <p className="text-xs font-medium text-muted">รอเบิก</p>
@@ -495,13 +499,17 @@ export function MaterialUsage({
         )}
 
         {/* ---- Empty state ---- */}
-        {materialsQuery.data !== undefined && localMaterials.length === 0 && deductedMaterials.length === 0 && !showPicker && (
+        {materialsQuery.data !== undefined &&
+          deductedMaterials.length === 0 &&
+          (readOnly || (localMaterials.length === 0 && !showPicker)) && (
           <div className="py-4 text-center">
             <Package className="mx-auto h-8 w-8 text-slate-200 dark:text-slate-700" />
             <p className="mt-1.5 text-xs text-muted">ยังไม่มีวัตถุดิบ</p>
-            <p className="text-2xs text-muted">
-              กดปุ่ม &quot;เพิ่มวัตถุดิบ&quot; เพื่อเริ่มเพิ่มรายการ
-            </p>
+            {!readOnly && (
+              <p className="text-2xs text-muted">
+                กดปุ่ม &quot;เพิ่มวัตถุดิบ&quot; เพื่อเริ่มเพิ่มรายการ
+              </p>
+            )}
           </div>
         )}
       </CardContent>

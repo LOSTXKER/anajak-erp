@@ -41,6 +41,9 @@ export function FilterChip({
       <Check
         aria-hidden="true"
         className={cn("h-3.5 w-3.5 shrink-0", !selected && "invisible")}
+        // คง inline fallback ไว้ด้วย: dev CSS แบบ incremental บางรอบเคยโหลด class
+        // ก่อน utility `invisible` ทำให้ชิปที่ไม่ได้เลือกยังเห็นเครื่องหมายถูกทุกอัน
+        style={selected ? undefined : { visibility: "hidden" }}
       />
       {children}
     </button>

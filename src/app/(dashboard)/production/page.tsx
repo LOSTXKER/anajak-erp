@@ -1,38 +1,45 @@
 "use client";
 
 import { useMemo, Suspense } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { permAllows } from "@/lib/permissions";
 import { useListPageState } from "@/hooks/use-list-page-state";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageShell } from "@/components/page-shell";
-import { ProductionBoardView } from "@/components/production/production-board-view";
+import { CreateProductionDialog } from "@/components/production/create-production-dialog";
+import { ProductionControlWorklist } from "@/components/production/production-control-worklist";
+import { ProductionModuleNav } from "@/components/production/production-module-nav";
 import {
-  STATION_ALL,
   buildProductionBoard,
   filterBoardJobs,
   sortBoardJobs,
 } from "@/lib/production-board";
-import { MonitorUp, Printer } from "lucide-react";
+import {
+  filterProductionWorklist,
+  isProductionWorklistLens,
+  productionWorklistCounts,
+} from "@/lib/production-worklist";
+import { RefreshCw } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 
-// หน้าการผลิต — บอร์ดโรงงาน (ใบงาน PC1.2 · เบสเคาะ 2026-08-15 "เอาแบบ A บอร์ดโรงงาน")
-// คอลัมน์ = สถานีจริงเรียงตามทางเดินงาน · การ์ดเป็นลิงก์ทั้งใบไปยังที่ที่ลงมือได้จริง
-// ไม่มีปุ่มสั่งงานบนบอร์ด (เบสสั่ง "ไม่ต้องมี CTA เพราะเราจะกดเข้าไปดูเป็นหลัก")
-// จึงไม่มี mutation บนหน้านี้ — สถานะทุกอย่างยังเปลี่ยนที่หน้าใบผลิต/ออเดอร์ตามกติกาเดิม
-//
-// ความจริงโรงงาน: ทำเอง = DTF เท่านั้น · DTG/สกรีน/ปัก/Sublimation/ตัดเย็บ/ป้ายคอ = ร้านนอก
+// ศูนย์ควบคุมการผลิตของหัวหน้า — หนึ่งออเดอร์ต่อหนึ่งแถวและเรียงข้อยกเว้นก่อน
+// หน้านี้เป็น read/triage layer เท่านั้น: การเปลี่ยนสถานะยังทำในใบผลิต/ออเดอร์
+// ผ่าน mutation และ permission เดิมทั้งหมด
 
 type KanbanOrder = RouterOutput["production"]["kanban"][number];
 type KanbanStep = KanbanOrder["productions"][number]["steps"][number];
 
 function ProductionWorkspace() {
   const list = useListPageState();
+  const router = useRouter();
 
-  const station = list.searchParams.get("lane") ?? STATION_ALL;
   const sort = list.searchParams.get("sort") ?? "due";
+  const rawLens = list.searchParams.get("view") ?? "all";
+  const lens = isProductionWorklistLens(rawLens) ? rawLens : "all";
+  const createOrderId = list.searchParams.get("create");
 
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
@@ -65,71 +72,98 @@ function ProductionWorkspace() {
     [orders, dataUpdatedAt, me?.id, showBlocked],
   );
 
-  const visibleJobs = useMemo(
-    () =>
-      sortBoardJobs(
-        filterBoardJobs(board.jobs, board.stations, station, list.search),
-        sort,
-      ),
-    [board.jobs, board.stations, station, list.search, sort],
+  const searchedJobs = useMemo(
+    () => sortBoardJobs(filterBoardJobs(board.jobs, board.stations, "", list.search), sort),
+    [board.jobs, board.stations, list.search, sort],
   );
+  const visibleJobs = useMemo(
+    () => filterProductionWorklist(board, searchedJobs, lens),
+    [board, searchedJobs, lens],
+  );
+  const worklistCounts = useMemo(() => productionWorklistCounts(board), [board]);
+  const hasStaleData =
+    (isError && Boolean(orders)) || (meQuery.isError && Boolean(me));
+  const canCreateProduction =
+    canSupervise && orders !== undefined && !isError && !meQuery.isError;
 
   return (
-    <PageShell
-      title={orders ? "บอร์ดผลิต" : "การผลิต"}
-      description={
-        orders
-          ? `${board.totalJobs.toLocaleString("th-TH")} ออเดอร์ในโรงงาน`
-          : "สายการผลิตทั้งโรงงาน"
-      }
-      action={
-        <>
-          <Button variant="outline" size="sm" asChild className="gap-1.5">
-            <Link href="/production/print-runs">
-              <Printer />
-              รอบพิมพ์ฟิล์ม
-            </Link>
-          </Button>
-          <Button size="sm" asChild className="gap-1.5">
-            <Link href="/factory/station">
-              <MonitorUp />
-              เปิดจอประจำสถานี
-            </Link>
-          </Button>
-        </>
-      }
-      loading={isLoading || meQuery.isLoading}
-      skeleton={
-        <>
-          <Skeleton className="h-12 rounded-2xl" />
-          <Skeleton className="h-96 rounded-2xl" />
-        </>
-      }
-      // บอร์ดโหลดไม่สำเร็จต้องบอกตรงๆ — ไม่งั้น orders ?? [] โชว์บอร์ดว่างเหมือน "ไม่มีงาน"
-      // && !orders: พังเฉพาะโหลดแรก — refetch เบื้องหลังล้มทั้งที่มี cache ห้ามถอนบอร์ด
-      error={
-        meQuery.isError && !me
-          ? {
-              message: "โหลดสิทธิ์การผลิตไม่สำเร็จ",
-              onRetry: () => meQuery.refetch(),
-            }
-          : isError && !orders
-            ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
-            : null
-      }
-    >
-      <ProductionBoardView
-        board={board}
-        jobs={visibleJobs}
-        station={station}
-        searchDefault={list.search}
-        searchInputRef={list.searchInputRef}
-        onSelectStation={(key) => list.replaceListState({ lane: key || null, page: null })}
-        onSearchChange={list.onSearchChange}
-        sort={sort}
-        onSelectSort={(value) => list.replaceListState({ sort: value === "due" ? null : value })}
-      />
-    </PageShell>
+    <>
+      <PageShell
+        title="ควบคุมการผลิต"
+        description={
+          orders
+            ? `${board.totalJobs.toLocaleString("th-TH")} ออเดอร์ · ${worklistCounts.attention.toLocaleString("th-TH")} รายการต้องจัดการ`
+            : "ติดตามงานตั้งแต่เปิดใบผลิตจนพร้อมส่ง"
+        }
+        headerChildren={<ProductionModuleNav />}
+        loading={isLoading || meQuery.isLoading}
+        skeleton={
+          <>
+            <Skeleton className="h-11 rounded-full" />
+            <Skeleton className="h-11 rounded-full" />
+            <Skeleton className="h-96 rounded-2xl" />
+          </>
+        }
+        // โหลดแรกพังต้องบอกตรง ๆ · background refetch พังให้คงข้อมูลเดิมแล้วเตือนในหน้า
+        error={
+          meQuery.isError && !me
+            ? {
+                message: "โหลดสิทธิ์การผลิตไม่สำเร็จ",
+                onRetry: () => meQuery.refetch(),
+              }
+            : isError && !orders
+              ? { message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", onRetry: () => refetch() }
+              : null
+        }
+      >
+        {hasStaleData ? (
+          <Alert variant="warning" title="ข้อมูลล่าสุดอาจยังไม่ครบ">
+            <span className="flex flex-wrap items-center justify-between gap-2">
+              <span>กำลังแสดงข้อมูลเดิมที่โหลดไว้ คุณยังเปิดดูงานได้ตามปกติ</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  void refetch();
+                  void meQuery.refetch();
+                }}
+              >
+                <RefreshCw />
+                ลองใหม่
+              </Button>
+            </span>
+          </Alert>
+        ) : null}
+
+        <ProductionControlWorklist
+          board={board}
+          jobs={visibleJobs}
+          lens={lens}
+          sort={sort}
+          searchDefault={list.search}
+          searchInputRef={list.searchInputRef}
+          onSelectLens={(value) =>
+            list.replaceListState({
+              view: value === "all" ? null : value,
+              page: null,
+            })
+          }
+          onSearchChange={list.onSearchChange}
+          onSelectSort={(value) =>
+            list.replaceListState({ sort: value === "due" ? null : value })
+          }
+          canCreateProduction={canCreateProduction}
+        />
+      </PageShell>
+
+      {createOrderId && canCreateProduction ? (
+        <CreateProductionDialog
+          orderId={createOrderId}
+          onClose={() => list.replaceListState({ create: null })}
+          onCreated={(production) => router.push(`/production/${production.id}`)}
+        />
+      ) : null}
+    </>
   );
 }
 
