@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION-UX2.10 ใบผลิตแบ่งข้อมูลตามเจตนางานแล้ว 2026-08-18**
+> `/production/[id]` คงหัวใบและ summary ไว้ตลอด แล้วแบ่งเฉพาะเนื้อหาในใบเป็น `ทำงาน / เบิกของ / ขั้นตอนทั้งหมด` · แท็บ default รวม action, blocker และแบบ/จำนวนไว้ในบริบทเดียว; งานเบิกเสื้อปัจจุบันใช้การ์ดจริงในแท็บทำงานโดยไม่สร้าง mutation ซ้ำ; เสื้อ/วัตถุดิบส่วนรองอยู่แท็บเบิกของ และประวัติขั้นเป็น read-only
+>
+> state แท็บอยู่ใน URL, refresh/Back/Forward/deep link ตรงกัน · panel ยังไม่ยิง query จนเปิดครั้งแรก และหลังเปิดใช้ keep-mounted จึงไม่ล้าง picker/ข้อความที่กรอกค้าง · invalid tab กลับ `ทำงาน`; not-found ไม่ mount tabs; `/factory/station` คง layout เส้นตรง ไม่มี tablist หรือ MaterialUsage
+>
+> ใบเก่า `ORD-2606-0001` ใช้เสื้อสต๊อคแต่ไม่มี `GARMENT_PICK` จึงเคยแสดง `เริ่มทำ` รีดร้อนโดยไม่อธิบายยอดเสื้อ · เพิ่ม exception warning ติดเหนือ action พร้อมทางไปตรวจยอดใน ERP/เลื่อนไปการ์ดเสื้อใน Station โดยไม่สร้าง server gate หรือทำใบ legacy ติดตาย
+>
+> **หลักฐานหน้าจริงแบบอ่านอย่างเดียว:** cold production build ที่ 1440×900 และ 1024×768 ตรวจ garment-current+blocked, heat-press legacy, ทั้ง 3 tabs, URL/refresh/Back/Forward, Arrow/Home/End, keep-mounted picker, not-found และ Station no-tabs · ไม่มี horizontal overflow, app console warning/error หรือ mutation/DB write
+>
+> **ด่าน final:** targeted **51/51** · full unit **1045/1045** · typecheck ผ่าน · lint 0 error (27 warning เดิม) · `verify:ui` ผ่าน · production build Next.js 16.3.1 ผ่าน · Impeccable detector `[]` · React/Scrutinize review ไม่พบ P0/P1 · `git diff --check` ผ่าน
+>
+> **ต่อที่นี่:** เปิดใบผลิตจริงจากคิวและลองสลับ `ทำงาน / เบิกของ / ขั้นตอนทั้งหมด`; commit อยู่บน branch งานและยังไม่ push
+
 > **✅ PRODUCTION-UX2.9 ใบผลิตเป็น job traveler ที่บอกงานถัดไปชัดแล้ว 2026-08-17**
 > หน้า `/production/[id]` ไม่มี breadcrumb และ local module tabs ที่ซ้ำกับ Sidebar/พาคนออกจากใบงานอีกแล้ว · หัวใบเหลือกลับคิว, เลขออเดอร์+สถานะ, ใบสั่งงาน/ดูออเดอร์ และ summary กำหนดส่ง/ความสำคัญ/จำนวน/ความคืบหน้าในแถวเดียว
 >

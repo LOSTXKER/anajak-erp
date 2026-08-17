@@ -1500,6 +1500,14 @@ check(
     "src/components/production/production-detail-screen.tsx",
     "utf8",
   );
+  const productionDetailPageSource = readFileSync(
+    "src/app/(dashboard)/production/[id]/page.tsx",
+    "utf8",
+  );
+  const productionDetailTabsSource = readFileSync(
+    "src/lib/production-detail-tabs.ts",
+    "utf8",
+  );
   const productionNowSource = readFileSync(
     "src/components/production/production-now-card.tsx",
     "utf8",
@@ -1627,10 +1635,14 @@ check(
     productionDetailSource.includes("breadcrumb=") ||
     !productionDetailSource.includes('aria-label="สรุปใบผลิต"') ||
     !productionDetailSource.includes("const garmentPickIsCurrent") ||
+    !productionDetailSource.includes("const legacyGarmentReadinessUnknown") ||
+    !productionDetailSource.includes("ใบผลิตเก่ายังยืนยันความพร้อมของเสื้อไม่ได้") ||
+    !productionDetailSource.includes('changeDetailTab("inventory")') ||
+    !productionDetailSource.includes("ตรวจยอดเสื้อด้านล่าง") ||
     !productionDetailSource.includes("onGoToGarments={focusGarmentPick}") ||
     productionDetailSource.indexOf("<ProductionNowCard") >
       productionDetailSource.indexOf("<ProductionDesignCard") ||
-    !productionDetailSource.includes("<ProductionStepsList\n                    readOnly") ||
+    !productionDetailSource.includes("<ProductionStepsList\n          readOnly") ||
     !productionDetailSource.includes(
       "loading={productionQuery.isLoading || meQuery.isLoading}",
     ) ||
@@ -1654,9 +1666,7 @@ check(
     !productionDetailSource.includes(
       'permAllows(me.permissions, "manage_settings")',
     ) ||
-    !productionDetailSource.includes(
-      'surface === "erp" && hasProductionPermission && (',
-    ) ||
+    !productionDetailSource.includes("{hasProductionPermission ? (") ||
     !productionDetailSource.includes("readOnly={!canUpdateStep}") ||
     !productionNowSource.includes('group === "current"') ||
     !productionNowSource.includes('group === "waiting"') ||
@@ -1671,6 +1681,45 @@ check(
   ) {
     problems.push(
       "ใบผลิตต้องใช้ PageShell จุดเดียว ไม่มี nav/breadcrumb ซ้ำ และแยก summary/action/waiting/state ตรงสิทธิ์",
+    );
+  }
+
+  if (
+    !productionDetailPageSource.includes("normalizeProductionDetailTab(rawTab)") ||
+    !productionDetailSource.includes(
+      '<Tabs value={detailTab} onValueChange={changeDetailTab}>',
+    ) ||
+    !productionDetailSource.includes('surface === "erp" ? (') ||
+    !productionDetailSource.includes('aria-label="ส่วนของใบผลิต"') ||
+    !productionDetailSource.includes(
+      '<TabsContent value="work" keepMounted',
+    ) ||
+    !productionDetailSource.includes(
+      '<TabsContent value="inventory" keepMounted',
+    ) ||
+    !productionDetailSource.includes(
+      '<TabsContent value="history" keepMounted',
+    ) ||
+    !productionDetailSource.includes('window.history.pushState({}, "", url)') ||
+    !productionDetailSource.includes('window.addEventListener("popstate"') ||
+    !productionDetailSource.includes("const [visitedDetailTabs") ||
+    !productionDetailSource.includes('visitedDetailTabs.has("work")') ||
+    !productionDetailSource.includes('visitedDetailTabs.has("inventory")') ||
+    !productionDetailSource.includes('visitedDetailTabs.has("history")') ||
+    (productionDetailSource.match(/id="production-garments"/g) ?? []).length !== 1 ||
+    !productionDetailSource.includes(
+      "{garmentPickIsCurrent ? garmentPickPanel : null}",
+    ) ||
+    !productionDetailTabsSource.includes('{ key: "work", label: "ทำงาน" }') ||
+    !productionDetailTabsSource.includes(
+      '{ key: "inventory", label: "เบิกของ" }',
+    ) ||
+    !productionDetailTabsSource.includes(
+      '{ key: "history", label: "ขั้นตอนทั้งหมด" }',
+    )
+  ) {
+    problems.push(
+      "ใบผลิต ERP ต้องมี content tabs ตามเจตนางาน คง state/URL และ Station ต้องอยู่ layout เส้นตรง",
     );
   }
 

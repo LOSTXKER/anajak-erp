@@ -165,7 +165,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 | Route | Shell | หน้าที่ของจอ |
 |---|---|---|
 | `/production` | shared dashboard `AppShell` | worklist แบบ exception-first หนึ่งออเดอร์ต่อหนึ่งแถว สำหรับตอบว่า “งานไหนต้องจัดการก่อน” |
-| `/production/[id]` | shared dashboard `AppShell` | job traveler: บริบทใบงาน + บ้านเดียวของ action “ตอนนี้ต้องทำ” + เส้นทางการผลิตย้อนหลังแบบ read-only |
+| `/production/[id]` | shared dashboard `AppShell` | job traveler: บริบทคงที่ + content tabs `ทำงาน / เบิกของ / ขั้นตอนทั้งหมด`; บ้านเดียวของ action และเส้นทางย้อนหลังแบบ read-only |
 | `/production/print-runs` | shared dashboard `AppShell` | workspace รอบ DTF ตามลำดับ **กำลังพิมพ์ → ตัดแยก/ติดป้าย → คิวพิมพ์ → ประวัติ 7 วัน** |
 | `/production/films` | shared dashboard `AppShell` | คลังฟิล์มแบบ compact: ลาย/ลูกค้า, ต้นทาง, คงเหลือ และการหยิบใช้ |
 | `/outsource` | shared dashboard `AppShell` | คิวส่งร้าน/รับกลับ/**ตรวจรับจากร้าน**/ประวัติ; การตรวจรับนี้มาก่อน QC ขั้นสุดท้ายของออเดอร์ |
@@ -175,7 +175,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 - สี่หน้ารวม/พื้นที่หัวหน้าใน `AppShell` ใช้ `ProductionModuleNav` ชุดเดียวและลำดับเดียว: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**; ทางเข้าเสริม **โหมดสถานี / จอโรงงาน** อยู่ท้ายแถบและไม่สร้าง sidebar ฝ่ายผลิตอีกชุด · ใบผลิต `/production/[id]` ไม่วาด local nav หรือ breadcrumb ซ้ำ เพราะเป็นบริบทลงมือที่มีทางกลับคิวเพียงจุดเดียว
 - `/production` ใช้ `production.kanban` กับ `user.me`; filter `ทั้งหมด`, `ต้องจัดการ`, `กำลังผลิต`, `รอ QC`, `แพ็ก / พร้อมส่ง`, จำนวน, search และ sort derive จาก board ชุดเดียว โดยเก็บ `view`, `q`, `sort` ใน URL
 - worklist เรียง exception ก่อนและไม่ทำให้ออเดอร์ผสมซ้ำหลายแถว; แถวเปิดปลายทางจริงตามสถานะ: ใบผลิต, หน้าออเดอร์แท็บผลิต/QC, หน้า delivery หรือ dialog เปิดใบผลิตตามสิทธิ์
-- `/production/[id]` เรียง **สรุปใบงาน → งานที่ทำได้ตอนนี้ → งานที่รอต่อ → ข้อมูลสำหรับทำงาน**; action region มี primary action เดียวต่อบริบทที่ลงมือได้และแยก blocker ออกจากงานพร้อมทำ · แบบ/จำนวนมาก่อนประวัติขั้นบนจอแคบ แล้วจึงเสื้อ/วัตถุดิบ; `ProductionStepsList` เป็น read-only เพื่อไม่วาด action ซ้ำ
+- `/production/[id]` คง **หัวใบ + สรุปใบงาน** เหนือ content tabs เสมอ · แท็บ default `ทำงาน` วาง action ที่ลงมือได้, blocker และแบบ/จำนวนไว้ในบริบทเดียวกัน; `เบิกของ` รวมเสื้อ/วัตถุดิบ; `ขั้นตอนทั้งหมด` ใช้ `ProductionStepsList readOnly` จึงไม่วาด action ซ้ำ · tab state อยู่ใน URL, panel lazy จนเปิดครั้งแรกแล้ว keep-mounted เพื่อรักษาฟอร์ม · Station reuse ข้อมูลเดียวกันเป็นหน้าเส้นตรงและไม่ mount tabs/MaterialUsage
 - `/production/print-runs` คงลำดับ DOM ตามงานจริง: พิมพ์ก่อน ตัดแยก+ติดป้าย ถัดมาคิว และประวัติท้ายหน้า; desktop เป็น workspace สองฝั่ง ส่วนจอแคบเรียงตาม DOM เดิม
 - `/production/print-runs` ใช้ Sidebar + `ProductionModuleNav` เป็นลำดับชั้นนำทางอยู่แล้ว จึงไม่วาด breadcrumb ซ้ำเหนือชื่อหน้า
 - `/production/films` เป็น inventory หนาแน่นพอดี ไม่ใช้สถิติ hero; `/outsource` เรียงคิวรับกลับตามกำหนดและเรียก `QC_*` เดิมใน data layer ว่า “ตรวจรับ” ใน UI เพื่อไม่ให้สับสนกับ final QC หลัง production
