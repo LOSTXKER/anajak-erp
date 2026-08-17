@@ -14,7 +14,6 @@ import {
   Play,
   Truck,
   FastForward,
-  Shirt,
   Printer,
 } from "lucide-react";
 
@@ -33,7 +32,6 @@ function stepLabel(step: ProductionStep) {
 }
 
 const ACTION_LABEL: Record<string, string> = {
-  start: "เริ่มทำ",
   complete: "เสร็จขั้นนี้",
   "record-qty": "บันทึกจำนวน",
   "send-outsource": "เปิดใบส่งร้าน",
@@ -51,8 +49,11 @@ export function ProductionNowCard({
   onQuickPass,
   onOpenStep,
   canOpenStep = () => true,
-  onGoToGarments,
   printRunsHref = "/production/print-runs",
+  embedded = false,
+  emptyMessage = "ยังไม่มีขั้นตอนผลิตในใบนี้",
+  getStartLabel,
+  getCompletionHint,
 }: {
   nowSteps: readonly NowStep<ProductionStep>[];
   allDone: boolean;
@@ -64,8 +65,12 @@ export function ProductionNowCard({
   onQuickPass: (step: ProductionStep) => void;
   onOpenStep: (step: ProductionStep) => void;
   canOpenStep?: (step: ProductionStep) => boolean;
-  onGoToGarments: () => void;
   printRunsHref?: string;
+  /** วางใน work workspace ก้อนเดียวกับคำสั่งงาน โดยไม่สร้าง card ซ้อน */
+  embedded?: boolean;
+  emptyMessage?: string;
+  getStartLabel?: (step: ProductionStep) => string | null;
+  getCompletionHint?: (step: ProductionStep) => string | null;
 }) {
   if (allDone) {
     return (
@@ -81,8 +86,8 @@ export function ProductionNowCard({
 
   if (nowSteps.length === 0) {
     return (
-      <section className="card-surface rounded-2xl px-4 py-3">
-        <p className="text-sm text-muted">ยังไม่มีขั้นตอนผลิตในใบนี้</p>
+      <section className={cn(!embedded && "card-surface rounded-2xl", "px-4 py-3")}>
+        <p className="text-sm text-muted">{emptyMessage}</p>
       </section>
     );
   }
@@ -96,6 +101,12 @@ export function ProductionNowCard({
       ? Math.round(((step.qtyDone ?? 0) / (step.qtyTotal ?? 1)) * 100)
       : 0;
     const canOpen = canOpenStep(step);
+    const actionLabel = action === "start"
+      ? (getStartLabel?.(step) ?? `เริ่ม${stepLabel(step)}`)
+      : action
+        ? ACTION_LABEL[action]
+        : null;
+    const completionHint = getCompletionHint?.(step) ?? null;
 
     return (
       <div
@@ -156,7 +167,7 @@ export function ProductionNowCard({
             ) : null}
           </div>
         ) : action ? (
-          <div>
+          <div className="space-y-2">
             <Button
               size="lg"
               disabled={busy}
@@ -174,18 +185,15 @@ export function ProductionNowCard({
               {action === "complete" && <CheckCircle2 />}
               {action === "send-outsource" && <Truck />}
               {action === "quick-pass" && <FastForward />}
-              {ACTION_LABEL[action]}
+              {actionLabel}
               {action === "record-qty" && counting && ` (${step.qtyDone}/${step.qtyTotal})`}
             </Button>
+            {completionHint ? (
+              <p className="text-xs text-muted">{completionHint}</p>
+            ) : null}
           </div>
         ) : step.stepType === "GARMENT_PICK" && group === "current" ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm text-muted">เบิกเสื้อตามไซส์และจำนวนของใบงาน</p>
-            <Button size="lg" className="gap-2 sm:min-w-56" onClick={onGoToGarments}>
-              <Shirt />
-              ไปที่เบิกเสื้อ
-            </Button>
-          </div>
+          <p className="text-sm text-muted">เบิกเสื้อตามไซส์และจำนวนในรายการถัดไป</p>
         ) : canOpen ? (
           <Button variant="outline" size="sm" onClick={() => onOpenStep(step)}>
             เปิดรายละเอียด
@@ -198,9 +206,12 @@ export function ProductionNowCard({
   };
 
   return (
-    <section className="card-surface rounded-2xl p-5 sm:p-6" aria-labelledby="production-now">
-      <h2 id="production-now" className="text-base font-semibold text-strong">
-        งานที่ต้องทำตอนนี้
+    <section
+      className={cn(!embedded && "card-surface rounded-2xl", embedded ? "p-0" : "p-5 sm:p-6")}
+      aria-labelledby="production-now"
+    >
+      <h2 id="production-now" className="text-xs font-semibold uppercase tracking-wide text-muted">
+        ทำตอนนี้
       </h2>
       <div className="mt-4 space-y-5">
         {currentSteps.length > 0 && <div>{currentSteps.map(renderStep)}</div>}

@@ -42,6 +42,8 @@ interface GarmentPickCardProps {
   canIssueGarments: boolean;
   // คืนเศษเป็น recovery ที่ตั้งใจให้ทำได้จาก ERP หลังพัก/ยกเลิก แต่ Station ต้อง fail-closed
   canReturnGarments: boolean;
+  /** ใบเก่าที่ไม่มี GARMENT_PICK: ตัวเลขเป็นหลักฐานที่บันทึกไว้ ไม่ใช่คำตัดสินของจริง */
+  legacyReadinessUnknown?: boolean;
 }
 
 const lineLabel = (l: GarmentLine) =>
@@ -52,6 +54,7 @@ export function GarmentPickCard({
   steps,
   canIssueGarments,
   canReturnGarments,
+  legacyReadinessUnknown = false,
 }: GarmentPickCardProps) {
   const [showIssue, setShowIssue] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
@@ -95,7 +98,28 @@ export function GarmentPickCard({
 
   const data = garmentPickQuery.data;
 
-  if (!data || data.lines.length === 0) return null;
+  if (!data || data.lines.length === 0) {
+    if (!legacyReadinessUnknown) return null;
+
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+            <Shirt className="h-4 w-4" />
+            เสื้อจากสต๊อค
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className={cn(TINT.warning, "rounded-lg border px-3 py-2")}>
+            <p className="text-sm font-medium">ไม่มีรายการเสื้อที่ตรวจยอดจากสต๊อคได้</p>
+            <p className="mt-1 text-xs">
+              ใบเก่านี้ไม่มี SKU เชื่อมสต๊อค ให้ตรวจเสื้อจริงตามใบสั่งงานก่อนเริ่มรีด
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const pickStep = steps.find((s) => s.stepType === "GARMENT_PICK");
   const outstanding = data.lines.reduce((s, l) => s + (l.issued - l.returned), 0);
@@ -131,12 +155,18 @@ export function GarmentPickCard({
               className="flex items-center justify-between gap-3 rounded-lg bg-surface-muted px-3 py-2"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                <p className="break-words text-sm font-medium text-slate-900 dark:text-white">
                   {lineLabel(l)}
                 </p>
                 <p className="text-xs tabular-nums text-muted">
-                  ต้องใช้ {l.needed} · เบิกแล้ว {l.issued}
-                  {l.returned > 0 && ` · คืนแล้ว ${l.returned}`}
+                  {legacyReadinessUnknown ? (
+                    <>ต้องใช้ {l.needed} · ระบบบันทึกเบิกสุทธิ {net}</>
+                  ) : (
+                    <>
+                      ต้องใช้ {l.needed} · เบิกแล้ว {l.issued}
+                      {l.returned > 0 && ` · คืนแล้ว ${l.returned}`}
+                    </>
+                  )}
                 </p>
               </div>
               <span
@@ -148,7 +178,13 @@ export function GarmentPickCard({
                 )}
               >
                 {done && <Check className="h-3 w-3" />}
-                {done ? "ครบ" : `ขาด ${l.needed - net}`}
+                {legacyReadinessUnknown
+                  ? done
+                    ? "บันทึกครบ"
+                    : `ยังไม่บันทึก ${l.needed - net}`
+                  : done
+                    ? "ครบ"
+                    : `ขาด ${l.needed - net}`}
               </span>
             </div>
           );

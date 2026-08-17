@@ -1636,10 +1636,12 @@ check(
     !productionDetailSource.includes('aria-label="สรุปใบผลิต"') ||
     !productionDetailSource.includes("const garmentPickIsCurrent") ||
     !productionDetailSource.includes("const legacyGarmentReadinessUnknown") ||
-    !productionDetailSource.includes("ใบผลิตเก่ายังยืนยันความพร้อมของเสื้อไม่ได้") ||
-    !productionDetailSource.includes('changeDetailTab("inventory")') ||
+    !productionDetailSource.includes("const legacyGarmentCheckRequired") ||
+    !productionDetailSource.includes("ต้องตรวจยอดเสื้อก่อนเริ่มรีดร้อน") ||
+    productionDetailSource.includes('changeDetailTab("inventory")') ||
     !productionDetailSource.includes("ตรวจยอดเสื้อด้านล่าง") ||
-    !productionDetailSource.includes("onGoToGarments={focusGarmentPick}") ||
+    !productionDetailSource.includes("legacyReadinessUnknown={legacyGarmentReadinessUnknown}") ||
+    !productionDetailSource.includes("ระบบส่งต่อ QC เมื่อทุกใบผลิตของออเดอร์ครบ") ||
     productionDetailSource.indexOf("<ProductionNowCard") >
       productionDetailSource.indexOf("<ProductionDesignCard") ||
     !productionDetailSource.includes("<ProductionStepsList\n          readOnly") ||
@@ -1674,7 +1676,7 @@ check(
       'step.stepType === "GARMENT_PICK" && group === "current"',
     ) ||
     !productionNowSource.includes("รอต่อจากนี้") ||
-    !productionNowSource.includes("onClick={onGoToGarments}") ||
+    productionNowSource.includes("onClick={onGoToGarments}") ||
     !productionDetailSource.includes("<RecordNotFound") ||
     productionDetailSource.includes("max-w-4xl") ||
     productionDetailSource.includes("PageHeader")
@@ -1686,30 +1688,19 @@ check(
 
   if (
     !productionDetailPageSource.includes("normalizeProductionDetailTab(rawTab)") ||
-    !productionDetailSource.includes(
-      '<Tabs value={detailTab} onValueChange={changeDetailTab}>',
-    ) ||
+    productionDetailSource.includes("<Tabs") ||
     !productionDetailSource.includes('surface === "erp" ? (') ||
-    !productionDetailSource.includes('aria-label="ส่วนของใบผลิต"') ||
-    !productionDetailSource.includes(
-      '<TabsContent value="work" keepMounted',
-    ) ||
-    !productionDetailSource.includes(
-      '<TabsContent value="inventory" keepMounted',
-    ) ||
-    !productionDetailSource.includes(
-      '<TabsContent value="history" keepMounted',
-    ) ||
-    !productionDetailSource.includes('window.history.pushState({}, "", url)') ||
-    !productionDetailSource.includes('window.addEventListener("popstate"') ||
-    !productionDetailSource.includes("const [visitedDetailTabs") ||
-    !productionDetailSource.includes('visitedDetailTabs.has("work")') ||
-    !productionDetailSource.includes('visitedDetailTabs.has("inventory")') ||
-    !productionDetailSource.includes('visitedDetailTabs.has("history")') ||
+    !productionDetailSource.includes('aria-label="พื้นที่ทำงานปัจจุบัน"') ||
+    !productionDetailSource.includes("const [visitedSecondarySections") ||
+    !productionDetailSource.includes('visitedSecondarySections.has("inventory")') ||
+    !productionDetailSource.includes('visitedSecondarySections.has("history")') ||
+    !productionDetailSource.includes('defaultOpen={initialTab === "inventory"}') ||
+    !productionDetailSource.includes('defaultOpen={initialTab === "history"}') ||
+    (productionDetailSource.match(/<ProductionSecondaryDisclosure/g) ?? []).length !== 2 ||
     (productionDetailSource.match(/id="production-garments"/g) ?? []).length !== 1 ||
-    !productionDetailSource.includes(
-      "{garmentPickIsCurrent ? garmentPickPanel : null}",
-    ) ||
+    !productionDetailSource.includes("garmentPickIsCurrent || legacyGarmentShownWithCurrentWork") ||
+    !productionDetailSource.includes("printSteps.every((step) => step.status === \"COMPLETED\")") ||
+    !productionDetailSource.includes("missingApprovalIsReference={allPrintStepsCompleted}") ||
     !productionDetailTabsSource.includes('{ key: "work", label: "ทำงาน" }') ||
     !productionDetailTabsSource.includes(
       '{ key: "inventory", label: "เบิกของ" }',
@@ -1719,7 +1710,7 @@ check(
     )
   ) {
     problems.push(
-      "ใบผลิต ERP ต้องมี content tabs ตามเจตนางาน คง state/URL และ Station ต้องอยู่ layout เส้นตรง",
+      "ใบผลิต ERP ต้องเป็น single-task workspace และเก็บ inventory/route ไว้ใน disclosure โดย Station ยังเป็นเส้นตรง",
     );
   }
 
@@ -1729,6 +1720,9 @@ check(
       "garmentPickQuery.isError && !garmentPickQuery.data",
     ) ||
     !garmentPickSource.includes("garmentPickQuery.refetch()") ||
+    !garmentPickSource.includes("legacyReadinessUnknown?: boolean") ||
+    !garmentPickSource.includes("ไม่มีรายการเสื้อที่ตรวจยอดจากสต๊อคได้") ||
+    !garmentPickSource.includes("ยังไม่บันทึก ${l.needed - net}") ||
     !materialUsageSource.includes("materialsQuery.isLoading") ||
     !materialUsageSource.includes("materialsQuery.isError && !materialsQuery.data") ||
     !materialUsageSource.includes("materialsQuery.data !== undefined") ||
@@ -1782,6 +1776,8 @@ check(
   }
 
   if (
+    !productionDesignSource.includes("missingApprovalIsReference?: boolean") ||
+    !productionDesignSource.includes("ไม่บล็อกขั้นปัจจุบัน") ||
     productionDesignSource.includes('text-slate-400">{pr.designNote}') ||
     printRunDialogSource.includes('block text-xs text-slate-400') ||
     printRunViewSource.includes('border-slate-300 bg-surface')

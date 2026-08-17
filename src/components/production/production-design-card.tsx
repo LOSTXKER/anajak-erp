@@ -18,7 +18,17 @@ import { cn } from "@/lib/utils";
 // ข้อมูลอ้างอิง “แบบและจำนวนที่ต้องผลิต” บน job traveler — ช่างเห็นลายอนุมัติ+เวอร์ชัน+ตารางไซส์
 // โดยไม่ต้องออกจากหน้า/พึ่งใบกระดาษ job ticket · ไม่มีตัวเลขเงินบน component นี้
 // ข้อมูลทั้งหมดมาจาก production.getById ที่ select ราย field (ไม่มี unitPrice ติดมา)
-export function ProductionDesignCard({ order }: { order: ProductionDetail["order"] }) {
+export function ProductionDesignCard({
+  order,
+  embedded = false,
+  missingApprovalIsReference = false,
+}: {
+  order: ProductionDetail["order"];
+  /** วางข้าง action ใน work workspace โดยไม่สร้าง card ซ้อน */
+  embedded?: boolean;
+  /** งานพิมพ์ผ่านไปแล้ว: ไม่มีไฟล์อนุมัติเป็นข้อมูลกำกับ ไม่ใช่ blocker ของขั้นปัจจุบัน */
+  missingApprovalIsReference?: boolean;
+}) {
   // รูปที่กดขยายเต็มจอ — ลายอนุมัติหรือภาพลายพิมพ์ต่อตำแหน่งก็ได้
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
 
@@ -38,11 +48,17 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
   }
 
   return (
-    <section className="card-surface space-y-4 rounded-2xl p-4 sm:p-5">
+    <section
+      className={cn(
+        "space-y-4",
+        embedded ? "p-0" : "card-surface rounded-2xl p-4 sm:p-5",
+      )}
+      aria-labelledby="production-work-spec"
+    >
       <div className="flex items-center gap-2">
         <Palette className="h-4 w-4 text-muted" />
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-          แบบและจำนวนที่ต้องผลิต
+        <h3 id="production-work-spec" className="text-sm font-semibold text-slate-900 dark:text-white">
+          คำสั่งงาน
         </h3>
         {approvedDesign && (
           <Badge variant="success" size="sm">
@@ -94,8 +110,17 @@ export function ProductionDesignCard({ order }: { order: ProductionDetail["order
         </div>
       ) : (
         prints.length > 0 && (
-          <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-            ยังไม่มีแบบที่ลูกค้าอนุมัติ — เช็คกับแอดมินก่อนพิมพ์
+          <p
+            className={cn(
+              "rounded-xl px-3 py-2 text-xs font-medium",
+              missingApprovalIsReference
+                ? "bg-surface text-muted"
+                : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+            )}
+          >
+            {missingApprovalIsReference
+              ? "ไม่พบไฟล์แบบอนุมัติในใบนี้ · ขั้นพิมพ์เสร็จแล้ว ข้อมูลด้านล่างใช้เป็นข้อมูลอ้างอิงและไม่บล็อกขั้นปัจจุบัน"
+              : "ไม่พบไฟล์แบบอนุมัติในใบนี้ — เช็กกับแอดมินก่อนเริ่มพิมพ์"}
           </p>
         )
       )}

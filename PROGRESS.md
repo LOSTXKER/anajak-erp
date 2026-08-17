@@ -4,18 +4,18 @@
 
 ## ตอนนี้
 
-> **✅ PRODUCTION-UX2.10 ใบผลิตแบ่งข้อมูลตามเจตนางานแล้ว 2026-08-18**
-> `/production/[id]` คงหัวใบและ summary ไว้ตลอด แล้วแบ่งเฉพาะเนื้อหาในใบเป็น `ทำงาน / เบิกของ / ขั้นตอนทั้งหมด` · แท็บ default รวม action, blocker และแบบ/จำนวนไว้ในบริบทเดียว; งานเบิกเสื้อปัจจุบันใช้การ์ดจริงในแท็บทำงานโดยไม่สร้าง mutation ซ้ำ; เสื้อ/วัตถุดิบส่วนรองอยู่แท็บเบิกของ และประวัติขั้นเป็น read-only
+> **✅ PRODUCTION-UX2.11 ใบผลิตเป็นพื้นที่ทำงานเดียวสำหรับคนหน้างานแล้ว 2026-08-18**
+> `/production/[id]` ไม่แยกข้อมูลที่ต้องใช้ตัดสินใจไว้คนละแท็บแล้ว · หัวใบเหลือเฉพาะบริบทที่มีความหมาย และ first viewport รวม **งานที่ทำตอนนี้ + ความพร้อม/สิ่งที่ติด + เสื้อที่เกี่ยวข้อง + แบบ/ตำแหน่ง/ไซส์/จำนวน** ไว้ใน workspace เดียว · ปุ่มหลักบอกชื่อขั้นตรงๆ เช่น `เริ่มรีดร้อน`; งานเบิกเสื้อใช้การ์ดจริงจุดเดียว ไม่มีปุ่มลัดซ้ำ
 >
-> state แท็บอยู่ใน URL, refresh/Back/Forward/deep link ตรงกัน · panel ยังไม่ยิง query จนเปิดครั้งแรก และหลังเปิดใช้ keep-mounted จึงไม่ล้าง picker/ข้อความที่กรอกค้าง · invalid tab กลับ `ทำงาน`; not-found ไม่ mount tabs; `/factory/station` คง layout เส้นตรง ไม่มี tablist หรือ MaterialUsage
+> ใบเก่า `ORD-2606-0001` ใช้เสื้อสต๊อคแต่ไม่มี `GARMENT_PICK` จึงระบุเป็นสถานะ “ระบบยังยืนยันไม่ได้” ไม่ตีความว่าพร้อมหรือขาดเอง · ปุ่มเป็น `ตรวจแล้ว เริ่มรีดร้อน` และเปิดกล่องยืนยันยอดเสื้อก่อนส่ง mutation · เสื้อ/วัตถุดิบที่ไม่ใช่งานปัจจุบันกับเส้นทางงานทั้งหมดลดเป็น disclosure สองแถว; query วัตถุดิบยังไม่ยิงจนเปิดครั้งแรก และลิงก์เก่า `?tab=inventory|history` เปิดส่วนที่ตรงกัน · ใบงานผสมจะลดคำเตือนแบบเป็นข้อมูลอ้างอิงก็ต่อเมื่อขั้นพิมพ์ทุกวิธีเสร็จครบ ไม่ใช่เสร็จเพียงเลนเดียว
 >
-> ใบเก่า `ORD-2606-0001` ใช้เสื้อสต๊อคแต่ไม่มี `GARMENT_PICK` จึงเคยแสดง `เริ่มทำ` รีดร้อนโดยไม่อธิบายยอดเสื้อ · เพิ่ม exception warning ติดเหนือ action พร้อมทางไปตรวจยอดใน ERP/เลื่อนไปการ์ดเสื้อใน Station โดยไม่สร้าง server gate หรือทำใบ legacy ติดตาย
+> `/factory/station` คงหน้าเส้นตรง ไม่มี tabs/disclosure ของ ERP/MaterialUsage/เงิน และใบ legacy มี warning + การ์ดเสื้อ + กล่องยืนยันแบบเดียวกัน · query, permission, action policy, mutation, payload และ transition เดิมไม่เปลี่ยน
 >
-> **หลักฐานหน้าจริงแบบอ่านอย่างเดียว:** cold production build ที่ 1440×900 และ 1024×768 ตรวจ garment-current+blocked, heat-press legacy, ทั้ง 3 tabs, URL/refresh/Back/Forward, Arrow/Home/End, keep-mounted picker, not-found และ Station no-tabs · ไม่มี horizontal overflow, app console warning/error หรือ mutation/DB write
+> **หลักฐานหน้าจริงแบบอ่านอย่างเดียว:** dev origin ใหม่ที่ 1440×900 และ 1024×768 ตรวจ garment-current+blocked, heat-press legacy, confirmation cancel, disclosure mouse/keyboard, legacy deep link, invalid tab, not-found, Station linear และ Light/Dark · ไม่มี horizontal overflow หรือ app console warning/error; ไม่ยืนยัน mutationและไม่แตะฐานข้อมูล
 >
-> **ด่าน final:** targeted **51/51** · full unit **1045/1045** · typecheck ผ่าน · lint 0 error (27 warning เดิม) · `verify:ui` ผ่าน · production build Next.js 16.3.1 ผ่าน · Impeccable detector `[]` · React/Scrutinize review ไม่พบ P0/P1 · `git diff --check` ผ่าน
+> **ด่าน final:** targeted **51/51** + business/permission regression **89/89** · full unit **1045/1045** · typecheck ผ่าน · lint 0 error (27 warning เดิมนอกก้อนนี้) · `verify:ui` ผ่าน · production build Next.js 16.3.1 ผ่าน · Impeccable detector `[]` · fresh browser หลัง cold restart ไม่มี overflow/hydration/app console error · independent UX/business review ไม่เหลือ P0/P1 · `git diff --check` ผ่าน
 >
-> **ต่อที่นี่:** เปิดใบผลิตจริงจากคิวและลองสลับ `ทำงาน / เบิกของ / ขั้นตอนทั้งหมด`; commit อยู่บน branch งานและยังไม่ push
+> **ต่อที่นี่:** ให้เบส refresh ใบผลิตจริงแล้วลองตามลำดับ `ทำตอนนี้ → เสื้อ → คำสั่งงาน`; ก้อนนี้ commit บน branch งานและยังไม่ push
 
 > **✅ PRODUCTION-UX2.9 ใบผลิตเป็น job traveler ที่บอกงานถัดไปชัดแล้ว 2026-08-17**
 > หน้า `/production/[id]` ไม่มี breadcrumb และ local module tabs ที่ซ้ำกับ Sidebar/พาคนออกจากใบงานอีกแล้ว · หัวใบเหลือกลับคิว, เลขออเดอร์+สถานะ, ใบสั่งงาน/ดูออเดอร์ และ summary กำหนดส่ง/ความสำคัญ/จำนวน/ความคืบหน้าในแถวเดียว

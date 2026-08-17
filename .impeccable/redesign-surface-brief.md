@@ -11,7 +11,7 @@
 | Route | Shell | UI contract | Real data / authority |
 |---|---|---|---|
 | `/production` | dashboard `AppShell` | Exception-first worklist, exactly one order per row; filters/count/search/sort share one source | `production.kanban`, `user.me`; read/triage only, then drill to a real destination |
-| `/production/[id]` | dashboard `AppShell` | Focused job traveler: persistent context plus `ทำงาน / เบิกของ / ขั้นตอนทั้งหมด` content tabs; no breadcrumb or module navigation | `production.getById`; existing production mutations and guards only |
+| `/production/[id]` | dashboard `AppShell` | Single-task job traveler: current action, readiness and work specification in one workspace; secondary inventory and route disclosures; no breadcrumb or module navigation | `production.getById`; existing production mutations and guards only |
 | `/production/print-runs` | dashboard `AppShell` | **printing → cut/label → queue → 7-day history** | `printRun.queue/list`; `manage_production` gates controls |
 | `/production/films` | dashboard `AppShell` | Compact film inventory: artwork/customer, source, quantity and consume action | `filmStock.list`; consume remains server-guarded |
 | `/outsource` | dashboard `AppShell` | Send/receive/**vendor receiving inspection**/history; inspection completes before order-level final QC | Existing outsource and goods-receipt queries/mutations; no new lifecycle |
@@ -20,7 +20,7 @@
 
 - `ProductionModuleNav` is the single local navigation on the four supervisor workspaces inside `AppShell`: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**, followed by entry links to **โหมดสถานี / จอโรงงาน**. It does not create another sidebar and does not render on `/production/[id]`.
 - `/production` stores `view`, `q` and `sort` in the URL. Worklist links resolve to the actual production record, production/QC order tab, delivery tab or create-production dialog according to current state and permission.
-- `/production/[id]` keeps one back-to-queue path, compact context and summary above three intent tabs. `ทำงาน` is the default and keeps actionable work, blockers and artwork/quantity together; `เบิกของ` owns garment/material support; `ขั้นตอนทั้งหมด` is historical/read-only. Tab state is URL-backed, lazy on first visit and then kept mounted. These are content tabs, not module navigation. Station stays linear, station-scoped and does not mount the tablist or `MaterialUsage`.
+- `/production/[id]` keeps one back-to-queue path and only meaningful context above one current-work workspace. Actionable work, readiness/unknown state, current garment evidence and artwork/quantity stay visible together. Non-current garment/material support and the read-only route live in two labelled disclosures that mount only after first open. Legacy `?tab=inventory|history` links open the matching disclosure. Station stays linear, station-scoped and does not mount ERP disclosures or `MaterialUsage`.
 - Print-run DOM order follows the floor workflow. Desktop uses a two-column workspace; narrower layouts stack in the same operational order.
 - Film stock remains an inventory list, not a dashboard. Outsource UI calls legacy `QC_*` data states “ตรวจรับ” so staff do not confuse vendor receiving inspection with final QC.
 
