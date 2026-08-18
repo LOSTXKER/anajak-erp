@@ -1,4 +1,3 @@
-import * as React from "react";
 import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { Button } from "./button";
