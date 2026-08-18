@@ -42,6 +42,8 @@ interface GarmentPickCardProps {
   canIssueGarments: boolean;
   // คืนเศษเป็น recovery ที่ตั้งใจให้ทำได้จาก ERP หลังพัก/ยกเลิก แต่ Station ต้อง fail-closed
   canReturnGarments: boolean;
+  /** ขั้น GARMENT_PICK ที่กำลังดูใน navigator; ไม่ส่งค่ายังคงใช้ขั้นแรกเพื่อรองรับ Station เดิม */
+  stepId?: string;
   /** ใบเก่าที่ไม่มี GARMENT_PICK: ตัวเลขเป็นหลักฐานที่บันทึกไว้ ไม่ใช่คำตัดสินของจริง */
   legacyReadinessUnknown?: boolean;
   /** วางใน workspace/disclosure ที่มี surface เป็นเจ้าของอยู่แล้ว เพื่อไม่สร้าง Card ซ้อน */
@@ -79,6 +81,7 @@ export function GarmentPickCard({
   steps,
   canIssueGarments,
   canReturnGarments,
+  stepId,
   legacyReadinessUnknown = false,
   embedded = false,
   primaryTask = false,
@@ -157,7 +160,9 @@ export function GarmentPickCard({
     );
   }
 
-  const pickStep = steps.find((s) => s.stepType === "GARMENT_PICK");
+  const pickStep = stepId
+    ? steps.find((step) => step.id === stepId && step.stepType === "GARMENT_PICK")
+    : steps.find((step) => step.stepType === "GARMENT_PICK");
   const outstanding = data.lines.reduce((s, l) => s + (l.issued - l.returned), 0);
   const totalNeeded = data.lines.reduce((sum, line) => sum + line.needed, 0);
   const fulfilledQty = data.lines.reduce(

@@ -84,4 +84,22 @@ describe("ProductionNowCard presentation contracts", () => {
     expect(html).not.toContain("งานที่กำลังรอ");
     expect(html).not.toContain("ขั้นถัดไป");
   });
+
+  it("โหมดโฟกัสแสดงชื่อขั้นครั้งเดียวและคง action เดิม", () => {
+    const html = render(
+      [
+        waitingStep({
+          group: "current",
+          action: "start",
+          step: step({ customStepName: "รีดตัวอย่างก่อนผลิตจริง" }),
+        }),
+      ],
+      { embedded: true, focused: true },
+    );
+
+    expect(html.match(/id="production-focused-step"/g)).toHaveLength(1);
+    expect(html).toContain(">รีดตัวอย่างก่อนผลิตจริง</h2>");
+    expect(html).toContain("เริ่มรีดตัวอย่างก่อนผลิตจริง");
+    expect(html).not.toContain("งานที่ต้องทำตอนนี้");
+  });
 });

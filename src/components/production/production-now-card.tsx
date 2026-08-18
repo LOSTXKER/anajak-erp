@@ -51,6 +51,7 @@ export function ProductionNowCard({
   canOpenStep = () => true,
   printRunsHref = "/production/print-runs",
   embedded = false,
+  focused = false,
   emptyMessage = "ยังไม่มีขั้นตอนผลิตในใบนี้",
   waitingHeading = "งานที่กำลังรอ",
   getStartLabel,
@@ -69,6 +70,8 @@ export function ProductionNowCard({
   printRunsHref?: string;
   /** วางใน work workspace ก้อนเดียวกับคำสั่งงาน โดยไม่สร้าง card ซ้อน */
   embedded?: boolean;
+  /** แสดง action ของขั้นที่ผู้ใช้เลือกเพียงขั้นเดียว โดยคง action policy เดิม */
+  focused?: boolean;
   emptyMessage?: string;
   /** ชื่อกลุ่มเมื่อไม่มีขั้นพร้อมทำ — primary ใช้ blocker, footer ใช้ขั้นถัดไป */
   waitingHeading?: string;
@@ -117,7 +120,9 @@ export function ProductionNowCard({
         className="space-y-3 border-t border-divider py-4 first:border-t-0 first:pt-0 last:pb-0"
       >
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <span className="text-lg font-semibold text-strong">{stepLabel(step)}</span>
+          {!focused ? (
+            <span className="text-lg font-semibold text-strong">{stepLabel(step)}</span>
+          ) : null}
           {counting && (
             <span className="text-sm tabular-nums text-muted">
               {step.qtyDone}/{step.qtyTotal} ตัว
@@ -227,7 +232,7 @@ export function ProductionNowCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <p className="font-medium text-strong">{stepLabel(step)}</p>
+            {!focused ? <p className="font-medium text-strong">{stepLabel(step)}</p> : null}
             {counting ? (
               <span className="shrink-0 text-xs tabular-nums text-muted">
                 {step.qtyDone}/{step.qtyTotal} ตัว
@@ -254,10 +259,18 @@ export function ProductionNowCard({
     <section
       className={cn(!embedded && "card-surface rounded-2xl", embedded ? "p-0" : "p-5 sm:p-6")}
       aria-labelledby={
-        embedded && currentSteps.length === 0 ? "production-next" : "production-now"
+        focused
+          ? "production-focused-step"
+          : embedded && currentSteps.length === 0
+            ? "production-next"
+            : "production-now"
       }
     >
-      {!embedded ? (
+      {focused ? (
+        <h2 id="production-focused-step" className="text-xl font-semibold text-strong">
+          {stepLabel(nowSteps[0]!.step)}
+        </h2>
+      ) : !embedded ? (
         <h2 id="production-now" className="text-xs font-semibold uppercase tracking-wide text-muted">
           ทำตอนนี้
         </h2>
@@ -273,7 +286,7 @@ export function ProductionNowCard({
       <div
         className={cn(
           "space-y-5",
-          embedded && currentSteps.length === 0 ? "mt-2" : "mt-4",
+          embedded && currentSteps.length === 0 && !focused ? "mt-2" : "mt-4",
         )}
       >
         {currentSteps.length > 0 ? <div>{currentSteps.map(renderStep)}</div> : null}

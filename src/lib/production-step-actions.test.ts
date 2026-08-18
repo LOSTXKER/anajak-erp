@@ -173,6 +173,22 @@ describe("selectNowSteps — ตอนนี้ต้องทำอะไร (�
     expect(now!.note).toBe("อยู่ที่ร้านนอก");
   });
 
+  it.each(["IN_PROGRESS", "COMPLETED"])(
+    "ขั้นร้านนอกสถานะ %s ยังเป็นงานค้างและไม่เสนอเปิดใบซ้ำ",
+    (status) => {
+      const [now] = selectNowSteps(
+        [mk({ stepType: "EMBROIDERY", outsourceOrders: [{ status }] })],
+        PERMS,
+      );
+
+      expect(now).toMatchObject({
+        action: null,
+        group: "waiting",
+        note: "อยู่ที่ร้านนอก",
+      });
+    },
+  );
+
   it("ขั้นร้านนอกที่ยังไม่เปิดใบส่ง — หัวหน้าเปิดใบได้ ช่างผ่านรวดได้", () => {
     const step = mk({ stepType: "EMBROIDERY" });
     expect(selectNowSteps([step], PERMS)[0]!.action).toBe("send-outsource");

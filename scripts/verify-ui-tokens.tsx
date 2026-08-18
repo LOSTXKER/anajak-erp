@@ -1512,6 +1512,14 @@ check(
     "src/components/production/production-now-card.tsx",
     "utf8",
   );
+  const productionStepNavigatorSource = readFileSync(
+    "src/components/production/production-step-navigator.tsx",
+    "utf8",
+  );
+  const productionStepActionsSource = readFileSync(
+    "src/lib/production-step-actions.ts",
+    "utf8",
+  );
   const productionStepsSource = readFileSync(
     "src/components/production/production-steps-list.tsx",
     "utf8",
@@ -1640,14 +1648,16 @@ check(
     !productionDetailSource.includes('aria-label="สรุปใบผลิต"') ||
     !productionDetailSource.includes("const garmentPickIsCurrent") ||
     !productionDetailSource.includes("const legacyGarmentReadinessUnknown") ||
+    !productionDetailSource.includes("const legacyGarmentCheckNowStep") ||
     !productionDetailSource.includes("const legacyGarmentCheckRequired") ||
+    !productionDetailSource.includes("legacyGarmentCheckNowStep?.step.id === step.id") ||
     !productionDetailSource.includes("ต้องตรวจยอดเสื้อก่อนเริ่มรีดร้อน") ||
     productionDetailSource.includes('changeDetailTab("inventory")') ||
     !productionDetailSource.includes("ตรวจยอดเสื้อด้านล่าง") ||
     !productionDetailSource.includes("legacyReadinessUnknown={legacyGarmentReadinessUnknown}") ||
     !productionDetailSource.includes("ระบบส่งต่อ QC เมื่อทุกใบผลิตของออเดอร์ครบ") ||
-    productionDetailSource.indexOf("<ProductionNowCard") >
-      productionDetailSource.indexOf("<ProductionDesignCard") ||
+    !productionDetailSource.includes("nowSteps.find(({ step: candidate }) => candidate.id === step.id)") ||
+    !productionDetailSource.includes("renderProductionNow([focusedNowStep]") ||
     !productionDetailSource.includes("<ProductionStepsList\n          readOnly") ||
     !productionDetailSource.includes(
       "loading={productionQuery.isLoading || meQuery.isLoading}",
@@ -1692,41 +1702,32 @@ check(
 
   if (
     !productionDetailPageSource.includes("normalizeProductionDetailTab(rawTab)") ||
-    productionDetailSource.includes("<Tabs") ||
     !productionDetailSource.includes('surface === "erp" ? (') ||
-    (productionDetailSource.match(/aria-label="พื้นที่ทำงานปัจจุบัน"/g) ?? []).length !== 1 ||
-    (productionDetailSource.match(/<ProductionNowCard\b/g) ?? []).length !== 1 ||
+    !productionDetailSource.includes("<ProductionStepNavigator") ||
     !productionDetailSource.includes(
-      'surface === "erp" && garmentPickIsCurrent\n      ? nowSteps.filter(({ step }) => step.stepType !== "GARMENT_PICK")',
+      "defaultProductionStepId(workflowSteps, nowSteps, viewedStepId)",
     ) ||
+    !productionDetailSource.includes("onValueChange={setViewedStepId}") ||
+    !productionDetailSource.includes("renderStep={renderFocusedStep}") ||
+    (productionDetailSource.match(/<ProductionNowCard\b/g) ?? []).length !== 1 ||
     !productionDetailSource.includes('garmentPickNowStep.group === "current"') ||
     !productionDetailSource.includes("garmentPickNowStep.waitingOn.length === 0") ||
     !productionDetailSource.includes("garmentPickNowStep.note === null") ||
-    !productionDetailSource.includes("const primaryNowSteps") ||
-    !productionDetailSource.includes("const deferredWaitingSteps") ||
     !productionDetailSource.includes("nowSteps={steps}") ||
-    !productionDetailSource.includes(
-      'renderProductionNow(deferredWaitingSteps, false, "ขั้นถัดไป")',
-    ) ||
+    !productionDetailSource.includes("focused={focused}") ||
     !productionDetailSource.includes("const [visitedSecondarySections") ||
     !productionDetailSource.includes('visitedSecondarySections.has("inventory")') ||
-    !productionDetailSource.includes('visitedSecondarySections.has("history")') ||
     !productionDetailSource.includes('defaultOpen={initialTab === "inventory"}') ||
-    !productionDetailSource.includes('defaultOpen={initialTab === "history"}') ||
     (productionDetailSource.match(/<details\b/g) ?? []).length !== 1 ||
     (productionDetailSource.match(/<summary\b/g) ?? []).length !== 1 ||
-    (productionDetailSource.match(/<ProductionSecondaryDisclosure/g) ?? []).length !== 2 ||
-    !productionDetailSource.includes(
-      'className="card-surface divide-y divide-divider overflow-hidden rounded-2xl"',
-    ) ||
+    (productionDetailSource.match(/<ProductionSecondaryDisclosure/g) ?? []).length !== 1 ||
     (productionDetailSource.match(/id="production-garments"/g) ?? []).length !== 1 ||
     (productionDetailSource.match(/<GarmentPickCard\b/g) ?? []).length !== 1 ||
-    !productionDetailSource.includes("garmentPickIsCurrent || legacyGarmentShownWithCurrentWork") ||
-    !productionDetailSource.includes(
-      'primaryTask={surface === "erp" && garmentPickIsCurrent}',
-    ) ||
+    !productionDetailSource.includes("viewedStep?.id === garmentPickNowStep?.step.id") ||
+    !productionDetailSource.includes("stepId={") ||
     !garmentPickSource.includes('aria-labelledby="production-garment-title"') ||
     !garmentPickSource.includes('id="production-garment-title"') ||
+    !garmentPickSource.includes("step.id === stepId") ||
     (productionDetailSource.match(/<MaterialUsage\b/g) ?? []).length !== 1 ||
     !/<MaterialUsage[\s\S]*?\n\s+embedded\n\s*\/>/.test(productionDetailSource) ||
     !materialUsageSource.includes('const Surface = embedded ? "div" : Card;') ||
@@ -1738,7 +1739,20 @@ check(
     productionStepsSource.indexOf("if (readOnly && compact) {") >
       productionStepsSource.indexOf("const actionPolicy") ||
     !productionDetailSource.includes("printSteps.every((step) => step.status === \"COMPLETED\")") ||
+    !productionDetailSource.includes("focusStepType={step.stepType}") ||
     !productionDetailSource.includes("missingApprovalIsReference={allPrintStepsCompleted}") ||
+    !productionStepNavigatorSource.includes("<Tabs") ||
+    !productionStepNavigatorSource.includes('activationMode="manual"') ||
+    !productionStepNavigatorSource.includes('aria-label="เลือกขั้นการผลิต"') ||
+    !productionStepNavigatorSource.includes("ขั้นตอนการผลิต") ||
+    !productionStepNavigatorSource.includes("กำลังดูขั้น") ||
+    !productionStepNavigatorSource.includes('"h-px flex-1 bg-divider"') ||
+    productionStepNavigatorSource.includes("aria-current") ||
+    !productionStepNavigatorSource.includes("renderStep(step)") ||
+    !productionStepNavigatorSource.includes("ทำพร้อมกันได้") ||
+    !productionDesignSource.includes("focusStepType?: string") ||
+    !productionDesignSource.includes("printTypesForProductionStep") ||
+    !productionStepActionsSource.includes("OUTSOURCE_ACTIVE_STATUSES.includes(os.status)") ||
     !productionDetailTabsSource.includes('{ key: "work", label: "ทำงาน" }') ||
     !productionDetailTabsSource.includes(
       '{ key: "inventory", label: "เบิกของ" }',
@@ -1748,7 +1762,7 @@ check(
     )
   ) {
     problems.push(
-      "ใบผลิต ERP ต้องเป็น workspace เดียว ไม่ซ้ำ GARMENT_PICK และฝัง inventory/route ใน native disclosure โดย history compact เฉพาะ ERP",
+      "ใบผลิต ERP ต้องเป็น process bar ที่เลือกดูได้ทีละขั้น ใช้ action policy เดิม ไม่ซ้ำ GARMENT_PICK และเก็บ inventory ทั้งใบใน disclosure เดียว",
     );
   }
 

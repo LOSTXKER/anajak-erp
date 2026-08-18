@@ -1,4 +1,8 @@
-import { isOutsourceStep, laneOf } from "@/lib/production-steps";
+import {
+  isOutsourceStep,
+  laneOf,
+  OUTSOURCE_ACTIVE_STATUSES,
+} from "@/lib/production-steps";
 
 export type ProductionStepUiAction =
   | "send-outsource"
@@ -132,8 +136,6 @@ export interface NowStep<S extends NowStepInput> {
   note: string | null;
 }
 
-const OUTSOURCE_ACTIVE_FOR_NOW = ["DRAFT", "SENT", "RECEIVED_BACK"];
-
 export function selectNowSteps<S extends NowStepInput>(
   steps: readonly S[],
   options: {
@@ -152,7 +154,7 @@ export function selectNowSteps<S extends NowStepInput>(
     .map((step) => {
       const latestOutsource = step.outsourceOrders?.[0];
       const hasActiveOutsource = (step.outsourceOrders ?? []).some((os) =>
-        OUTSOURCE_ACTIVE_FOR_NOW.includes(os.status),
+        OUTSOURCE_ACTIVE_STATUSES.includes(os.status),
       );
       const ownedByOther =
         !options.canSupervise && !!step.assignedTo && step.assignedTo.id !== options.meId;

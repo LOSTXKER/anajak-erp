@@ -13,6 +13,10 @@ import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { ProductionDesignCard } from "@/components/production/production-design-card";
 import { ProductionStepsList } from "@/components/production/production-steps-list";
 import { ProductionNowCard } from "@/components/production/production-now-card";
+import {
+  ProductionStepNavigator,
+  defaultProductionStepId,
+} from "@/components/production/production-step-navigator";
 import { StepUpdateDialog } from "@/components/production/step-update-dialog";
 import { StepOutsourceDialog } from "@/components/production/step-outsource-dialog";
 import { StepQtySheet } from "@/components/production/step-qty-sheet";
@@ -30,7 +34,6 @@ import {
   ListChecks,
   ChevronDown,
   PackageOpen,
-  Route,
   type LucideIcon,
 } from "lucide-react";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -41,6 +44,7 @@ import {
   productionWorkflowSteps,
 } from "@/lib/production-steps";
 import { selectNowSteps } from "@/lib/production-step-actions";
+import { STEP_STATUS_LABELS, STEP_STATUS_VARIANTS } from "@/lib/status-config";
 import { toast } from "sonner";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import { FOCUS_INSET, TINT } from "@/components/ui/tokens";
@@ -102,7 +106,7 @@ function ProductionJobFact({
   );
 }
 
-type ProductionSecondarySection = "inventory" | "history";
+type ProductionSecondarySection = "inventory";
 
 function ProductionSecondaryDisclosure({
   icon: Icon,
@@ -185,6 +189,8 @@ export function ProductionDetailScreen({
 }) {
   const [selectedStep, setSelectedStep] = useState<ProductionStep | null>(null);
   const [outsourceStep, setOutsourceStep] = useState<ProductionStep | null>(null);
+  // การเลือกขั้นใน navigator เป็น view state เท่านั้น — ห้ามใช้เป็น workflow status/action
+  const [viewedStepId, setViewedStepId] = useState<string | null>(null);
   // ขั้นนับจำนวนที่กด "เสร็จขั้นนี้" — เปิด sheet ถามจำนวน (UX1: 2 แตะ)
   // เก็บแค่ id แล้ว derive ตัว step สดจาก query ทุก render — snapshot เก่าทำยอดถอยหลังได้
   // (sheet ส่ง qtyDone แบบ absolute ถ้าฐานเก่าจะทับของจริง)
@@ -192,8 +198,8 @@ export function ProductionDetailScreen({
   const [visitedSecondarySections, setVisitedSecondarySections] = useState<
     ReadonlySet<ProductionSecondarySection>
   >(() => {
-    if (initialTab === "inventory" || initialTab === "history") {
-      return new Set([initialTab]);
+    if (initialTab === "inventory") {
+      return new Set(["inventory"]);
     }
     return new Set();
   });
@@ -390,6 +396,12 @@ export function ProductionDetailScreen({
         pressGate: evaluateHeatPressGate(workflowSteps),
       }).filter(({ step }) => canActOnStep(step))
     : [];
+  const activeViewedStepId = surface === "erp"
+    ? defaultProductionStepId(workflowSteps, nowSteps, viewedStepId)
+    : null;
+  const viewedStep = activeViewedStepId
+    ? (workflowSteps.find((step) => step.id === activeViewedStepId) ?? null)
+    : null;
   const garmentPickNowStep = nowSteps.find(
     ({ step }) => step.stepType === "GARMENT_PICK",
   );
@@ -407,30 +419,13 @@ export function ProductionDetailScreen({
     nowSteps.some(
       ({ step, group }) => step.stepType === "HEAT_PRESS" && group === "current",
     );
-  const legacyGarmentCheckRequired =
-    legacyGarmentReadinessUnknown &&
-    nowSteps.some(
-      ({ step, group, action }) =>
-        step.stepType === "HEAT_PRESS" && group === "current" && action === "start",
-    );
-  const displayedNowSteps =
-    surface === "erp" && garmentPickIsCurrent
-      ? nowSteps.filter(({ step }) => step.stepType !== "GARMENT_PICK")
-      : nowSteps;
-  const displayedCurrentSteps = displayedNowSteps.filter(
-    ({ group }) => group === "current",
-  );
-  const displayedWaitingSteps = displayedNowSteps.filter(
-    ({ group }) => group === "waiting",
-  );
-  const deferWaitingSteps =
-    surface === "erp" &&
-    displayedWaitingSteps.length > 0 &&
-    (garmentPickIsCurrent || displayedCurrentSteps.length > 0);
-  const primaryNowSteps = deferWaitingSteps ? displayedCurrentSteps : displayedNowSteps;
-  const deferredWaitingSteps = deferWaitingSteps ? displayedWaitingSteps : [];
-  const garmentPickIsOnlyCurrentTask =
-    surface === "erp" && garmentPickIsCurrent && primaryNowSteps.length === 0;
+  const legacyGarmentCheckNowStep = legacyGarmentReadinessUnknown
+    ? nowSteps.find(
+        ({ step, group, action }) =>
+          step.stepType === "HEAT_PRESS" && group === "current" && action === "start",
+      )
+    : undefined;
+  const legacyGarmentCheckRequired = !!legacyGarmentCheckNowStep;
   const printSteps = workflowSteps.filter((step) => PRINT_STEP_TYPES.has(step.stepType));
   const allPrintStepsCompleted =
     printSteps.length > 0 && printSteps.every((step) => step.status === "COMPLETED");
@@ -463,6 +458,7 @@ export function ProductionDetailScreen({
     steps: typeof nowSteps,
     showCompletionState = true,
     waitingHeading = "งานที่กำลังรอ",
+    focused = false,
   ) => (
     <ProductionNowCard
       nowSteps={steps}
@@ -481,6 +477,7 @@ export function ProductionDetailScreen({
           : "/production/print-runs"
       }
       embedded={surface === "erp"}
+      focused={focused}
       emptyMessage={
         surface === "station"
           ? `ไม่มีงานที่ลงมือได้สำหรับ${stationLabel ? `สถานี${stationLabel}` : "สถานีนี้"}`
@@ -566,7 +563,7 @@ export function ProductionDetailScreen({
             <p className="shrink-0 text-sm font-medium">รอหัวหน้าหรือทีมผลิตส่งเข้า QC</p>
           )}
         </section>
-      ) : garmentPickIsOnlyCurrentTask ? null : renderProductionNow(primaryNowSteps)}
+      ) : renderProductionNow(nowSteps)}
     </div>
   ) : null;
 
@@ -579,7 +576,17 @@ export function ProductionDetailScreen({
       <GarmentPickCard
         productionId={production.id}
         steps={workflowSteps}
-        canIssueGarments={canUpdateStep && (surface === "erp" || station === "prep")}
+        stepId={
+          surface === "erp" && viewedStep?.stepType === "GARMENT_PICK"
+            ? viewedStep.id
+            : undefined
+        }
+        canIssueGarments={
+          canUpdateStep &&
+          (surface === "erp"
+            ? garmentPickIsCurrent && viewedStep?.id === garmentPickNowStep?.step.id
+            : station === "prep")
+        }
         canReturnGarments={
           hasProductionPermission &&
           !writeDataStale &&
@@ -587,10 +594,157 @@ export function ProductionDetailScreen({
         }
         legacyReadinessUnknown={legacyGarmentReadinessUnknown}
         embedded={surface === "erp"}
-        primaryTask={surface === "erp" && garmentPickIsCurrent}
+        primaryTask={
+          surface === "erp"
+            ? garmentPickIsCurrent && viewedStep?.id === garmentPickNowStep?.step.id
+            : garmentPickIsCurrent
+        }
       />
     </div>
   ) : null;
+
+  const renderFocusedStep = (step: ProductionStep) => {
+    const focusedNowStep = nowSteps.find(({ step: candidate }) => candidate.id === step.id);
+    const stepName = step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType;
+    const counting = step.qtyTotal !== null && step.qtyTotal > 0;
+    const donePct = counting
+      ? Math.min(100, Math.round(((step.qtyDone ?? 0) / (step.qtyTotal ?? 1)) * 100))
+      : 0;
+    const showLegacyGarment = legacyGarmentCheckNowStep?.step.id === step.id;
+    const showSpec = hasProductionSpec && step.stepType !== "GARMENT_PICK";
+    const garmentWaitingMessage = focusedNowStep
+      ? focusedNowStep.waitingOn.join(" · ") ||
+        focusedNowStep.note ||
+        (focusedNowStep.group === "waiting"
+          ? "สิทธิ์นี้ดูขั้นตอนนี้ได้อย่างเดียว"
+          : null)
+      : step.status === "COMPLETED"
+        ? null
+        : "ขั้นนี้ยังไม่ถึงคิวในสายงานเดียวกัน";
+
+    return (
+      <div className="p-4 sm:p-6 lg:p-7">
+        {legacyPackagingReadyForQc ? <div className="mb-5">{currentActionRegion}</div> : null}
+        {allStepsDone && !legacyPackagingReadyForQc ? (
+          <section
+            className={cn(TINT.success, "mb-5 flex items-start gap-3 rounded-xl border px-4 py-3")}
+            aria-label="สถานะใบผลิต"
+          >
+            <ListChecks className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-semibold">ใบผลิตนี้ครบทุกขั้นแล้ว</p>
+              <p className="mt-0.5 text-sm">{allDoneMessage}</p>
+            </div>
+          </section>
+        ) : null}
+
+        <div
+          className={cn(
+            "grid gap-6",
+            showSpec && "xl:grid-cols-5",
+          )}
+        >
+          <div className={cn("min-w-0 space-y-4", showSpec && "xl:col-span-3")}>
+            {showLegacyGarment ? (
+              <Alert variant="warning" icon={AlertTriangle}>
+                <span className="font-semibold">ระบบยังยืนยันยอดเสื้อไม่ได้</span>
+                <span className="mt-0.5 block text-sm">
+                  ใบเก่านี้ไม่มีขั้นเบิกเสื้อ ตรวจเสื้อจริงตามรายการก่อนเริ่มรีดร้อน
+                </span>
+              </Alert>
+            ) : null}
+
+            {step.stepType === "GARMENT_PICK" ? (
+              <>
+                {garmentWaitingMessage ? (
+                  <div className={cn(TINT.warning, "rounded-xl border px-3 py-2 text-sm")}>
+                    {garmentWaitingMessage}
+                  </div>
+                ) : null}
+                {garmentPickPanel}
+              </>
+            ) : focusedNowStep ? (
+              renderProductionNow([focusedNowStep], false, "งานที่กำลังรอ", true)
+            ) : (
+              <section aria-labelledby={`production-viewed-step-${step.id}`} className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2
+                      id={`production-viewed-step-${step.id}`}
+                      className="text-xl font-semibold text-strong"
+                    >
+                      {stepName}
+                    </h2>
+                    {step.assignedTo ? (
+                      <p className="mt-1 text-sm text-muted">
+                        ผู้รับผิดชอบ {step.assignedTo.name}
+                      </p>
+                    ) : null}
+                  </div>
+                  <Badge variant={STEP_STATUS_VARIANTS[step.status]}>
+                    {STEP_STATUS_LABELS[step.status]}
+                  </Badge>
+                </div>
+
+                {counting ? (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-muted">จำนวนที่บันทึกแล้ว</span>
+                      <span className="font-medium tabular-nums text-strong">
+                        {step.qtyDone ?? 0}/{step.qtyTotal} ตัว
+                      </span>
+                    </div>
+                    <div
+                      role="progressbar"
+                      aria-label={`ความคืบหน้า ${stepName}`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={donePct}
+                      className="h-2 overflow-hidden rounded-full bg-surface-muted"
+                    >
+                      <div
+                        className="h-full rounded-full bg-blue-500"
+                        style={{ width: `${donePct}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className={cn(TINT.neutral, "rounded-xl border px-3 py-2 text-sm")}>
+                  {step.status === "COMPLETED"
+                    ? "ขั้นนี้เสร็จแล้ว เปิดไว้สำหรับตรวจสอบข้อมูลย้อนหลัง"
+                    : "ขั้นนี้ยังไม่ถึงคิวในสายงานเดียวกัน ข้อมูลส่วนนี้จึงเปิดให้อ่านอย่างเดียว"}
+                </div>
+              </section>
+            )}
+
+            {showLegacyGarment ? garmentPickPanel : null}
+
+            {step.notes || step.qcNotes ? (
+              <div className="border-t border-divider pt-4 text-sm">
+                <p className="font-medium text-strong">หมายเหตุของขั้นนี้</p>
+                {step.notes ? <p className="mt-1 whitespace-pre-wrap text-muted">{step.notes}</p> : null}
+                {step.qcNotes ? (
+                  <p className="mt-1 whitespace-pre-wrap text-muted">QC: {step.qcNotes}</p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          {showSpec ? (
+            <div className="min-w-0 border-t border-divider pt-5 xl:col-span-2 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
+              <ProductionDesignCard
+                order={order!}
+                embedded
+                focusStepType={step.stepType}
+                missingApprovalIsReference={allPrintStepsCompleted}
+              />
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
 
   const productionHistoryContent = (
     <div aria-label="เส้นทางงานทั้งหมด">
@@ -759,53 +913,24 @@ export function ProductionDetailScreen({
 
           {surface === "erp" ? (
             <>
-              <section
-                className="card-surface overflow-hidden rounded-2xl"
-                aria-label="พื้นที่ทำงานปัจจุบัน"
-              >
-                <div
-                  className={cn(
-                    "grid",
-                    hasProductionSpec &&
-                      "xl:grid-cols-[minmax(0,1.3fr)_minmax(21rem,0.7fr)]",
-                  )}
-                >
-                  <div className="min-w-0 space-y-5 p-5 sm:p-6 lg:p-7">
-                    {garmentPickIsCurrent || legacyGarmentShownWithCurrentWork
-                      ? garmentPickPanel
-                      : null}
-                    {currentActionRegion}
-                  </div>
-                  {hasProductionSpec ? (
-                    <div className="min-w-0 border-t border-divider p-5 sm:p-6 lg:p-7 xl:border-l xl:border-t-0">
-                      <ProductionDesignCard
-                        order={order}
-                        embedded
-                        missingApprovalIsReference={allPrintStepsCompleted}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-                {deferredWaitingSteps.length > 0 ? (
-                  <div className="border-t border-divider px-5 py-4 sm:px-6 lg:px-7">
-                    {renderProductionNow(deferredWaitingSteps, false, "ขั้นถัดไป")}
-                  </div>
-                ) : null}
-              </section>
+              <ProductionStepNavigator
+                steps={workflowSteps}
+                nowSteps={nowSteps}
+                value={activeViewedStepId ?? ""}
+                onValueChange={setViewedStepId}
+                readOnly={!canUpdateStep && !canOutsource}
+                renderStep={renderFocusedStep}
+              />
 
               <section className="space-y-3" aria-labelledby="production-secondary">
                 <h2 id="production-secondary" className="text-base font-semibold text-strong">
-                  รายละเอียดใบงาน
+                  ข้อมูลทั้งใบ
                 </h2>
-                <div className="card-surface divide-y divide-divider overflow-hidden rounded-2xl">
+                <div className="card-surface overflow-hidden rounded-2xl">
                   <ProductionSecondaryDisclosure
                     icon={PackageOpen}
                     title="เสื้อและวัตถุดิบ"
-                    description={
-                      garmentPickIsCurrent || legacyGarmentShownWithCurrentWork
-                        ? "ยอดเสื้อของงานปัจจุบันอยู่ด้านบน · เปิดดูวัตถุดิบเพิ่มเติม"
-                        : "เปิดดูยอดเสื้อ การคืนเศษ และวัตถุดิบเพิ่มเติม"
-                    }
+                    description="ข้อมูลที่ใช้ร่วมกันทั้งใบ เปิดดูเมื่อจำเป็น"
                     defaultOpen={initialTab === "inventory"}
                     onOpen={() => markSecondarySectionVisited("inventory")}
                   >
@@ -813,12 +938,13 @@ export function ProductionDetailScreen({
                       <div
                         className={cn(
                           "grid gap-6 xl:items-start",
-                          !garmentPickIsCurrent &&
-                            !legacyGarmentShownWithCurrentWork &&
+                          viewedStep?.stepType !== "GARMENT_PICK" &&
+                            viewedStep?.id !== legacyGarmentCheckNowStep?.step.id &&
                             "xl:grid-cols-2",
                         )}
                       >
-                        {!garmentPickIsCurrent && !legacyGarmentShownWithCurrentWork
+                        {viewedStep?.stepType !== "GARMENT_PICK" &&
+                        viewedStep?.id !== legacyGarmentCheckNowStep?.step.id
                           ? garmentPickPanel
                           : null}
                         {hasProductionPermission ? (
@@ -839,19 +965,6 @@ export function ProductionDetailScreen({
                         )}
                       </div>
                     ) : null}
-                  </ProductionSecondaryDisclosure>
-
-                  <ProductionSecondaryDisclosure
-                    icon={Route}
-                    title="เส้นทางงานทั้งหมด"
-                    description="ขั้นที่เสร็จแล้ว งานปัจจุบัน งานที่รอ และผู้รับผิดชอบ"
-                    meta={`${completedSteps}/${totalSteps} ขั้น`}
-                    defaultOpen={initialTab === "history"}
-                    onOpen={() => markSecondarySectionVisited("history")}
-                  >
-                    {visitedSecondarySections.has("history")
-                      ? productionHistoryContent
-                      : null}
                   </ProductionSecondaryDisclosure>
                 </div>
               </section>

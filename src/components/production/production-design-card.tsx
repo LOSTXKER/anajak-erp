@@ -15,6 +15,38 @@ import type { ProductionDetail } from "./types";
 import { DASHED, FOCUS_BUTTON, RADIUS, TINT } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
+const PRINT_TYPES_BY_STEP: Readonly<Record<string, readonly string[]>> = {
+  DTF_PRINT: ["DTF", "HEAT_TRANSFER"],
+  HEAT_PRESS: ["DTF", "HEAT_TRANSFER"],
+  DTG_PRETREAT: ["DTG"],
+  DTG_PRINT: ["DTG"],
+  CURING: ["DTG"],
+  SCREEN_PRINTING: ["SILK_SCREEN"],
+  EMBROIDERY: ["EMBROIDERY"],
+  SUBLIMATION: ["SUBLIMATION"],
+};
+
+const PRODUCT_ONLY_STEPS: ReadonlySet<string> = new Set([
+  "GARMENT_PICK",
+  "GARMENT_RECEIVE",
+  "PATTERN_MAKING",
+  "SEWING",
+  "TAGGING",
+  "PACKAGING",
+]);
+
+/**
+ * null = ไม่จำกัดชนิดงานพิมพ์ (พฤติกรรมเดิมหรือขั้นพิเศษ)
+ * [] = ขั้นสินค้าอย่างเดียว จึงไม่ควรพ่วงลายพิมพ์จากขั้นอื่นมาแสดง
+ */
+export function printTypesForProductionStep(
+  stepType?: string,
+): readonly string[] | null {
+  if (!stepType) return null;
+  if (PRODUCT_ONLY_STEPS.has(stepType)) return [];
+  return PRINT_TYPES_BY_STEP[stepType] ?? null;
+}
+
 // ข้อมูลอ้างอิง “แบบและจำนวนที่ต้องผลิต” บน job traveler — ช่างเห็นลายอนุมัติ+เวอร์ชัน+ตารางไซส์
 // โดยไม่ต้องออกจากหน้า/พึ่งใบกระดาษ job ticket · ไม่มีตัวเลขเงินบน component นี้
 // ข้อมูลทั้งหมดมาจาก production.getById ที่ select ราย field (ไม่มี unitPrice ติดมา)
@@ -22,23 +54,39 @@ export function ProductionDesignCard({
   order,
   embedded = false,
   missingApprovalIsReference = false,
+  focusStepType,
 }: {
   order: ProductionDetail["order"];
   /** วางข้าง action ใน work workspace โดยไม่สร้าง card ซ้อน */
   embedded?: boolean;
   /** งานพิมพ์ผ่านไปแล้ว: ไม่มีไฟล์อนุมัติเป็นข้อมูลกำกับ ไม่ใช่ blocker ของขั้นปัจจุบัน */
   missingApprovalIsReference?: boolean;
+  /** จำกัดลาย/สเปกให้เหลือเฉพาะสิ่งที่เกี่ยวกับขั้นที่เปิดใน process bar */
+  focusStepType?: string;
 }) {
   // รูปที่กดขยายเต็มจอ — ลายอนุมัติหรือภาพลายพิมพ์ต่อตำแหน่งก็ได้
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
 
-  const approvedDesign = order.designs[0] ?? null;
+  const focusedPrintTypes = printTypesForProductionStep(focusStepType);
+  const productOnly = focusedPrintTypes?.length === 0;
+  const approvedDesign = productOnly ? null : (order.designs[0] ?? null);
   const approvedImage = approvedDesign
     ? ([approvedDesign.thumbnailUrl, approvedDesign.fileUrl].find(isImageUrl) ?? null)
     : null;
 
-  const prints = order.items.flatMap((it) => it.prints);
-  const productsWithSizes = order.items.flatMap((it) =>
+  // งาน mixed-print ต้องกรองตั้งแต่ระดับ item ก่อน ไม่เช่นนั้นไซส์ของอีกวิธีพิมพ์
+  // จะถูกพ่วงมาในขั้นที่กำลังดู แม้ลายพิมพ์ถูกกรองถูกต้องแล้วก็ตาม
+  const focusedItems = focusedPrintTypes?.length
+    ? order.items.filter((item) =>
+        item.prints.some((print) => focusedPrintTypes.includes(print.printType)),
+      )
+    : order.items;
+  const prints = focusedPrintTypes
+    ? focusedItems
+        .flatMap((item) => item.prints)
+        .filter((print) => focusedPrintTypes.includes(print.printType))
+    : focusedItems.flatMap((item) => item.prints);
+  const productsWithSizes = focusedItems.flatMap((it) =>
     it.products.filter((p) => p.variants.length > 0)
   );
 
@@ -58,7 +106,11 @@ export function ProductionDesignCard({
       <div className="flex flex-wrap items-center gap-2">
         <Palette className="h-4 w-4 text-muted" />
         <h3 id="production-work-spec" className="text-sm font-semibold text-strong">
-          แบบและสเปกงาน
+          {productOnly
+            ? "สินค้าและจำนวน"
+            : focusStepType
+              ? "แบบและสเปกสำหรับขั้นนี้"
+              : "แบบและสเปกงาน"}
         </h3>
         {approvedDesign && (
           <Badge variant="success" size="sm">
