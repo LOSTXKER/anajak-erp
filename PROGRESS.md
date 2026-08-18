@@ -15,7 +15,7 @@
 >
 > **ด่าน final:** targeted **39/39** · full unit **1036/1036** · typecheck ผ่าน · lint 0 error (27 warning เดิม) · `verify:ui` ผ่าน · production build Next.js 16.3.1 ผ่าน · Impeccable detector `[]` · finish review ไม่พบ P0/P1 · `git diff --check` ผ่าน
 >
-> **ต่อที่นี่:** เปิดใบผลิตจริงจากคิวและลองทำงานตามกล่อง “งานที่ต้องทำตอนนี้”; commit อยู่บน branch งานและยังไม่ push
+> **ต่อที่นี่:** เปิดใบผลิตจริงจากคิวและลองทำงานตามกล่อง “งานที่ต้องทำตอนนี้”; merge เข้า main แล้ว (PR #4 · 17 ส.ค. 2026)
 
 > **✅ PRODUCTION-UX2.8 เปิด Sidebar เป็นหมวดและตัด breadcrumb ซ้ำแล้ว 2026-08-16**
 > Desktop Sidebar ไม่แยกเมนูหลัก 5 รายการออกจากงานที่เกี่ยวกันและไม่ซ่อนส่วนที่เหลือหลัง “เมนูทั้งหมด” อีกแล้ว · แสดง 6 หมวดตามงาน ERP โดยตรง: ภาพรวม / งานขาย / การผลิต / สินค้า / การเงิน / ระบบ พร้อมคง route, icon, permission fail-closed และ longest-match active เดิม · รายการยาวเลื่อนอยู่ใน Sidebar เอง และ deep link จะเลื่อน active item เข้ามาเห็น
@@ -26,7 +26,7 @@
 >
 > **ด่าน final:** typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1033/1033** · `verify:ui` ผ่านพร้อม guard Sidebar/mobile/breadcrumb · production build ผ่าน · React best-practices reviewไม่พบ regression · Impeccable detector `[]` · `git diff --check` ผ่าน
 >
-> **ต่อที่นี่:** เปิด `/production/print-runs` แล้วเลื่อน Sidebar เพื่อดูทุกหมวด; commit อยู่บน branch งานและยังไม่ push
+> **ต่อที่นี่:** เปิด `/production/print-runs` แล้วเลื่อน Sidebar เพื่อดูทุกหมวด; merge เข้า main แล้ว (PR #4 · 17 ส.ค. 2026)
 
 > **✅ PRODUCTION-UX2.7 หัวตาราง Production Control เรียงได้เหมือนหน้ารวมออเดอร์แล้ว 2026-08-16**
 > รากของพื้นหัวตารางที่เปลี่ยนสีคือ `/production` ใช้แถวข้อมูล `DataTable.Row` อยู่ใน `<thead>` จึงรับ hover ของแถวกดได้ทั้งก้อน · เปลี่ยนเป็น `<tr>` หัวตารางจริงและใช้ `DataTable.SortableTh` กลางเหมือน `/orders` ทำให้ชี้แล้วเปลี่ยนเฉพาะข้อความ/ลูกศร ไม่ย้อมพื้นทั้งแถว
@@ -37,7 +37,7 @@
 >
 > **หลักฐาน:** browser จริง 1440×900 และ 1024×768 Light/Dark: หัวตารางพื้นโปร่งตอน hover, เรียงเลขออเดอร์/ความคืบหน้า/จำนวนสองทิศ, default preset, URL/search/lens/Back และ overflow ผ่าน; console warn/error = 0 · typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1031/1031** · `verify:ui` ผ่าน · Impeccable detector `[]` · production buildผ่าน · ไม่คลิก mutationและไม่แตะฐานข้อมูล
 >
-> **ต่อที่นี่:** เปิด `/production` แล้วกดหัว `ออเดอร์ / ความคืบหน้า / จำนวน / กำหนดส่ง`; commit อยู่บน branch งานและยังไม่ push
+> **ต่อที่นี่:** เปิด `/production` แล้วกดหัว `ออเดอร์ / ความคืบหน้า / จำนวน / กำหนดส่ง`; merge เข้า main แล้ว (PR #4 · 17 ส.ค. 2026)
 
 > **✅ NEXT16-THEME ปิด React client-script warning โดยไม่ทำให้ธีมกระพริบแล้ว 2026-08-16**
 > รากเหตุคือ `next-themes` สร้าง bootstrap `<script>` ใหม่เมื่อ `ThemeFallback` mount ฝั่ง client ระหว่าง Fast Refresh/Suspense; React 19.2 จึงเตือนว่าสคริปต์ที่สร้างระหว่าง render จะไม่ถูกรัน · แก้ให้ SSR คง `type="text/javascript"` เพื่อใช้ธีมก่อน hydration แต่ client remount ใช้ `type="text/plain"` เป็น data block แล้วให้ effect เดิม sync class โดยไม่เปลี่ยน provider topology หรือ dependency
@@ -46,7 +46,7 @@
 >
 > **ด่าน:** typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1027/1027** · `verify:ui` ผ่านพร้อม regression guard · production build ผ่านใน worktree แยก · targeted ESLint และ `git diff --check` ผ่าน · ไม่แตะ dependency/ฐานข้อมูล และคง dev server ของเบสที่ port 3000 ไว้
 >
-> **ต่อที่นี่:** ถ้า console ยังเก็บ error เก่า ให้ hard refresh หนึ่งครั้ง; commit อยู่บน branch งานและยังไม่ push
+> **ต่อที่นี่:** ถ้า console ยังเก็บ error เก่า ให้ hard refresh หนึ่งครั้ง; merge เข้า main แล้ว (PR #4 · 17 ส.ค. 2026)
 
 > **✅ PRODUCTION-UX2.6 เก็บส่วนหัวและตัวกรองสถานะตามภาพใช้งานจริงแล้ว 2026-08-16**
 > เส้น active ของ local navigation ไม่ลอยเป็นเส้นที่สองอีกแล้ว: ลด padding ของทางเข้า Station/จอโรงงานเฉพาะ desktop และจอทัช ทำให้ underline ทับ divider เดียวกันโดยไม่เปลี่ยน IA หรือเพิ่มไอคอนให้แท็บบนจนรก · browser วัดระยะจากเดิม 8.5–9px เหลือ 0.5px ซึ่งเป็นการซ้อนของเส้นหนา 2px บน divider 1px
@@ -55,7 +55,7 @@
 >
 > **หลักฐาน:** browser แบบอ่านอย่างเดียว 1440×900 และ 1024×768 ทั้ง Light/Dark ไม่มี horizontal overflow หรือ app console error; กด `ต้องจัดการ` แล้ว URL/selected/1 แถวตรงกันและคืน `ทั้งหมด` แล้ว · typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1027/1027** · `verify:ui` ผ่านพร้อม SSR/source guard · Impeccable detector `[]` · ไม่คลิก mutationและไม่แตะฐานข้อมูล
 >
-> **ต่อที่นี่:** refresh `/production` แล้วดูส่วนหัวกับตัวกรองบนจอจริง; commit อยู่บน branch งานและยังไม่ push
+> **ต่อที่นี่:** refresh `/production` แล้วดูส่วนหัวกับตัวกรองบนจอจริง; merge เข้า main แล้ว (PR #4 · 17 ส.ค. 2026)
 
 > **✅ NEXT16-UPGRADE อัป runtime จริงเป็น Next.js 16.3.1 แล้ว 2026-08-16**
 > เปลี่ยน `next` และ `eslint-config-next` จาก 15.5.15 เป็น 16.3.1 พร้อม React/React DOM 19.2.8 และ types ที่ตรง peer range · `next --version`, `next dev`, `next start` และ production build แสดง 16.3.1 จริง ไม่ใช่แก้ข้อความ banner
@@ -66,7 +66,7 @@
 >
 > **ด่าน final:** clean `npm ci` ผ่าน · typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1027/1027** · `verify:ui` ผ่าน · production build ผ่าน · `git diff --check` ผ่าน · `npm audit` พบ 8 advisory ใน dependency ทางอ้อมที่มีอยู่ใน lock เดิมทั้งหมดและไม่พบ Next.js เป็นรายการเสี่ยง จึงไม่รัน `audit fix` ปนก้อนนี้
 >
-> **ต่อที่นี่:** runtime พร้อมใช้แล้ว; commit upgrade อยู่บน branch งานและยังไม่ push
+> **ต่อที่นี่:** runtime พร้อมใช้แล้ว; merge เข้า main แล้ว (PR #4 · 17 ส.ค. 2026)
 
 > **✅ PRODUCTION-UX2 รื้อ UX การผลิตทั้ง family เป็น ERP ใช้งานจริงแล้ว 2026-08-16**
 > แยกหน้าที่ชัดโดยอยู่ในระบบเดิม: `/production` เป็น worklist ของหัวหน้า, `/factory/station` เป็นจอลงมือของพนักงาน และ `/factory` เป็นจอ pulse อ่านอย่างเดียวของโรงงาน · ไม่มี sidebar ฝ่ายผลิตชุดใหม่ และหน้ารอบพิมพ์/คลังฟิล์ม/ร้านนอกใช้ navigation ของโมดูลเดียวกัน
@@ -83,7 +83,7 @@
 >
 > **ด่าน final:** typecheck ผ่าน · lint 0 error (27 warning เดิม) · unit **1007/1007** · `verify:ui` ผ่าน · production build ผ่าน · Impeccable detector `[]` · fresh Impeccable + React review ไม่พบ P0/P1 · `SPEC.md`, `ROADMAP.md`, `docs/DESIGN.md` และ surface brief ตรงกับ UI จริง
 >
-> **ต่อที่นี่:** ให้เบสลองตามบทบาทจริง 3 ทาง: หัวหน้าที่ `/production` → พนักงานที่ `/factory/station` → ทีวีที่ `/factory`; commit อยู่บน branch งานและยังไม่ push
+> **ต่อที่นี่:** ให้เบสลองตามบทบาทจริง 3 ทาง: หัวหน้าที่ `/production` → พนักงานที่ `/factory/station` → ทีวีที่ `/factory`; merge เข้า main แล้ว (PR #4 · 17 ส.ค. 2026)
 
 > **✅ FACTORY-STATION ยก UX ที่เคาะขึ้นระบบจริงแล้ว 2026-08-16**
 > ใช้ `/production` ใน Sidebar ERP เดิมเป็นบอร์ดของหัวหน้า/เจ้าของ และเพิ่ม `/factory/station` เป็นจอเต็มสำหรับคอมกับจอทัชหน้าเครื่อง โดยคง `/factory` เป็นทีวี read-only · ไม่มี Sidebar ฝ่ายผลิตชุดใหม่ และมีปุ่ม “เปิดจอประจำสถานี” จากบอร์ดจริง
@@ -100,7 +100,7 @@
 >
 > **ด่าน final:** typecheck ผ่าน · lint 0 error (28 warning เดิม/ที่ยอมรับ) · unit **989/989** · `verify:ui` ผ่าน · production build ผ่าน · Impeccable detector (`type,layout` เฉพาะ surface ที่เปลี่ยน) 0 findings · เอกสาร `SPEC.md`, `ROADMAP.md`, `docs/DESIGN.md` และ Impeccable surface brief อัปเดตตาม flow จริง
 >
-> **ต่อที่นี่:** ให้เบสเปิด `/production` แล้วกด “เปิดจอประจำสถานี” หรือเปิด `/factory/station` เพื่อลองภาษากับจอจริงของโรงงาน; commit อยู่บน branch งานและยังไม่ push
+> **ต่อที่นี่:** ให้เบสเปิด `/production` แล้วกด “เปิดจอประจำสถานี” หรือเปิด `/factory/station` เพื่อลองภาษากับจอจริงของโรงงาน; merge เข้า main แล้ว (PR #4 · 17 ส.ค. 2026)
 
 > **✅ MOCK-PROD ต้นแบบ ERP ฝ่ายผลิตทั้งระบบพร้อมให้เบสกดตรวจแล้ว 2026-08-15 (หลักฐานก่อนยกขึ้นของจริง)**
 > เขียนเป็น UI จริงแบบ standalone ที่ `docs/mockups/production-erp-system-2026-08-15.html` — ไม่ใช่ภาพ, ไม่ใช้ `/redesign`, ไม่ต่อ tRPC/ฐานข้อมูล และไม่แตะหน้า canonical `/production*` · ทุกข้อมูลเป็น fixture/local state พร้อมป้ายในเนื้อหาว่า “ต้นแบบ · ไม่บันทึกจริง”
