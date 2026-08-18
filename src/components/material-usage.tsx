@@ -24,6 +24,7 @@ interface MaterialUsageProps {
   // (ต้นทุนยังไหลเข้า mutation จาก costPrice ของแค็ตตาล็อกตามเดิม)
   showCosts?: boolean;
   readOnly?: boolean;
+  embedded?: boolean;
 }
 
 interface LocalMaterial {
@@ -49,6 +50,7 @@ export function MaterialUsage({
   orderNumber,
   showCosts = true,
   readOnly = false,
+  embedded = false,
 }: MaterialUsageProps) {
   // ---- state for material picker ----
   const [showPicker, setShowPicker] = useState(false);
@@ -172,25 +174,26 @@ export function MaterialUsage({
   };
 
   const totalCost = localMaterials.reduce((sum, m) => sum + m.quantity * m.unitCost, 0);
+  const Surface = embedded ? "div" : Card;
 
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
+    <Surface>
+      <CardHeader className={cn("pb-3", embedded && "p-0 pb-2")}>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
-            <Package className="h-4 w-4" />
-            วัตถุดิบ / Materials
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold text-strong">
+            <Package className="h-4 w-4 text-secondary" />
+            วัตถุดิบ
           </CardTitle>
           {!readOnly && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowPicker(!showPicker)}
-              className="h-8 gap-1.5 border-blue-200 text-xs text-blue-700 hover:bg-interactive-hover dark:border-blue-800 dark:text-blue-300 dark:hover:bg-interactive-hover"
+              className="gap-1.5"
             >
               <Plus />
               เพิ่มวัตถุดิบ
@@ -199,7 +202,7 @@ export function MaterialUsage({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className={cn("space-y-3", embedded && "p-0")}>
         {/* ---- Material Picker ---- */}
         {!readOnly && showPicker && (
           <div className={cn(TINT.info, "rounded-xl border p-3 text-sm leading-relaxed")}>
@@ -320,9 +323,12 @@ export function MaterialUsage({
             {deductedMaterials.map((m) => (
               <div
                 key={m.id}
-                className={cn(TINT.success, "flex items-center justify-between rounded-lg border px-3 py-2")}
+                className={cn(
+                  TINT.success,
+                  "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2",
+                )}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                   <div>
                     <span className="text-xs font-medium text-slate-900 dark:text-white">
@@ -331,7 +337,7 @@ export function MaterialUsage({
                     <span className="ml-1.5 text-xs text-muted">{m.sku}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
                   <span className="text-xs tabular-nums text-slate-600 dark:text-slate-300">
                     {m.quantity} {m.unit}
                   </span>
@@ -361,7 +367,7 @@ export function MaterialUsage({
             {localMaterials.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 dark:border-slate-800"
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-divider px-3 py-2"
               >
                 {/* Material info */}
                 <div className="min-w-0 flex-1">
@@ -406,7 +412,6 @@ export function MaterialUsage({
                     size="icon-sm"
                     onClick={() => updateQuantity(m.id, m.quantity - 1)}
                     aria-label={`ลดจำนวน ${m.name}`}
-                    className="h-6 w-6"
                   >
                     <Minus />
                   </Button>
@@ -415,7 +420,8 @@ export function MaterialUsage({
                     value={m.quantity}
                     onChange={(e) => updateQuantity(m.id, parseFloat(e.target.value) || 0)}
                     aria-label={`จำนวน ${m.name}`}
-                    className="h-6 w-16 text-center text-xs tabular-nums"
+                    size="sm"
+                    className="w-16 text-center text-xs tabular-nums"
                     min={0.01}
                     step={0.01}
                   />
@@ -424,7 +430,6 @@ export function MaterialUsage({
                     size="icon-sm"
                     onClick={() => updateQuantity(m.id, m.quantity + 1)}
                     aria-label={`เพิ่มจำนวน ${m.name}`}
-                    className="h-6 w-6"
                   >
                     <Plus />
                   </Button>
@@ -442,7 +447,8 @@ export function MaterialUsage({
                         value={m.unitCost}
                         onChange={(e) => updateUnitCost(m.id, parseFloat(e.target.value) || 0)}
                         aria-label={`ต้นทุนต่อหน่วย ${m.name}`}
-                        className="h-6 text-right text-xs tabular-nums"
+                        size="sm"
+                        className="text-right text-xs tabular-nums"
                         min={0}
                         step={0.01}
                         placeholder="ต้นทุน/หน่วย"
@@ -460,7 +466,7 @@ export function MaterialUsage({
                   size="icon-sm"
                   onClick={() => removeMaterial(m.id)}
                   aria-label={`ลบ ${m.name} ออกจากรายการ`}
-                  className="ml-1 h-5 w-5 text-muted hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 dark:hover:text-red-400"
+                  className="ml-1 text-muted hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 dark:hover:text-red-400"
                 >
                   <X />
                 </Button>
@@ -485,7 +491,7 @@ export function MaterialUsage({
                 onClick={handleIssueMaterials}
                 disabled={localMaterials.length === 0 || issueMutation.isPending}
                 aria-busy={issueMutation.isPending || undefined}
-                className="h-8 gap-1.5 text-xs"
+                className="gap-1.5"
               >
                 {issueMutation.isPending ? (
                   <Loader2 aria-hidden="true" className="animate-spin" />
@@ -502,17 +508,26 @@ export function MaterialUsage({
         {materialsQuery.data !== undefined &&
           deductedMaterials.length === 0 &&
           (readOnly || (localMaterials.length === 0 && !showPicker)) && (
-          <div className="py-4 text-center">
-            <Package className="mx-auto h-8 w-8 text-slate-200 dark:text-slate-700" />
-            <p className="mt-1.5 text-xs text-muted">ยังไม่มีวัตถุดิบ</p>
-            {!readOnly && (
-              <p className="text-2xs text-muted">
-                กดปุ่ม &quot;เพิ่มวัตถุดิบ&quot; เพื่อเริ่มเพิ่มรายการ
-              </p>
-            )}
-          </div>
+          embedded ? (
+            <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg bg-surface-muted px-3 py-2">
+              <p className="text-xs font-medium text-secondary">ยังไม่มีวัตถุดิบ</p>
+              {!readOnly && (
+                <p className="text-2xs text-muted">ใช้ปุ่ม &quot;เพิ่มวัตถุดิบ&quot; ด้านบน</p>
+              )}
+            </div>
+          ) : (
+            <div className="py-4 text-center">
+              <Package className="mx-auto h-8 w-8 text-slate-200 dark:text-slate-700" />
+              <p className="mt-1.5 text-xs text-muted">ยังไม่มีวัตถุดิบ</p>
+              {!readOnly && (
+                <p className="text-2xs text-muted">
+                  กดปุ่ม &quot;เพิ่มวัตถุดิบ&quot; เพื่อเริ่มเพิ่มรายการ
+                </p>
+              )}
+            </div>
+          )
         )}
       </CardContent>
-    </Card>
+    </Surface>
   );
 }

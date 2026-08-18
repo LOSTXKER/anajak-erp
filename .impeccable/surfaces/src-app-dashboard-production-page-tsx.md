@@ -2,7 +2,7 @@
 version: 1
 slug: "src-app-dashboard-production-page-tsx"
 primary_target: "src/app/(dashboard)/production/page.tsx"
-related_targets: ["src/app/(dashboard)/production/[id]/page.tsx","src/app/(dashboard)/production/print-runs/page.tsx","src/components/production/production-board-view.tsx","src/components/production/production-now-card.tsx","src/components/production/production-steps-list.tsx","src/components/production/garment-pick-card.tsx","src/components/material-usage.tsx","src/lib/production-board.ts","src/lib/production-step-actions.ts","src/lib/print-run-workspace.ts","src/server/routers/production.ts","src/server/routers/print-run.ts","src/server/services/print-run.ts"]
+related_targets: ["src/app/(dashboard)/production/[id]/page.tsx","src/app/(dashboard)/production/print-runs/page.tsx","src/components/production/production-board-view.tsx","src/components/production/production-detail-screen.tsx","src/components/production/production-now-card.tsx","src/components/production/production-design-card.tsx","src/components/production/production-steps-list.tsx","src/components/production/garment-pick-card.tsx","src/components/material-usage.tsx","src/lib/production-board.ts","src/lib/production-step-actions.ts","src/lib/print-run-workspace.ts","src/server/routers/production.ts","src/server/routers/print-run.ts","src/server/services/print-run.ts"]
 ---
 
 # Scope and mode
@@ -38,9 +38,11 @@ related_targets: ["src/app/(dashboard)/production/[id]/page.tsx","src/app/(dashb
 
 ## Production detail
 
-- ใช้ `PageShell width="content"` จุดเดียวทุก state.
-- ลำดับ: บริบทกำหนดส่ง/ด่วน/จำนวน/ความคืบหน้า → “ตอนนี้ต้องทำ” → แบบและไซส์ → ขั้นทั้งหมด → เบิกเสื้อ → วัตถุดิบ.
-- งานผสมคืน action ได้หลายเลนพร้อมกันตาม `selectNowSteps`; gate ที่มีอยู่บอกเหตุผลแทนปุ่มเมื่อกดไม่ได้.
+- ใช้ `PageShell width="full"` จุดเดียวทุก loading/error/not-found/permission/success state และย่อหัวใบเป็น context strip.
+- first workspace เป็น surface เดียว: desktop grid `1.3fr / 0.7fr` ให้งานหลักกว้างกว่าสเปก; mobile ใช้ DOM เดียวเรียง **งานปัจจุบัน + blocker + เสื้อ/จำนวน + primary action → แบบและสเปก → ขั้นถัดไป**.
+- `GARMENT_PICK` ที่เป็น current และลงมือได้ render ผ่าน `GarmentPickCard` เพียงครั้งเดียว; waiting/read-only/assigned/failed state ยังคงอยู่ใน generic task listเพื่อไม่ทำ blocker หาย.
+- เสื้อ/วัตถุดิบและเส้นทางงานรองอยู่ใน native disclosure surface เดียว; `MaterialUsage` กับ `ProductionStepsList readOnly` ใช้ embedded/compact mode และ `?tab=inventory|history` ยังเปิดส่วนเดิม.
+- งานผสมคืน action ได้หลายเลนพร้อมกันตาม `selectNowSteps`; gate ที่มีอยู่บอกเหตุผลแทนปุ่มเมื่อกดไม่ได้ และ `/factory/station` ใช้ non-embedded linear presentation เดิม.
 
 ## Print runs
 
@@ -62,8 +64,8 @@ related_targets: ["src/app/(dashboard)/production/[id]/page.tsx","src/app/(dashb
 | Commitment | Implementation |
 |---|---|
 | บอร์ดโรงงานและ URL state | `ProductionBoardView`, `buildProductionBoard`, `useListPageState` |
-| ใบผลิตแบบลงมือ | `PageShell`, `ProductionNowCard`, `selectNowSteps`, controller/mutation เดิม |
-| เบิกเสื้อ/วัตถุดิบ | compact query states + field/dialog primitives + mutations เดิม |
+| ใบผลิตแบบลงมือ | `PageShell`, `ProductionDetailScreen`, `ProductionNowCard`, `ProductionDesignCard`, `selectNowSteps`, controller/mutation เดิม |
+| เบิกเสื้อ/วัตถุดิบ | `GarmentPickCard` primary task + `MaterialUsage embedded` + field/dialog primitives + mutations เดิม |
 | รอบพิมพ์ 4 ชั้น | `splitPrintRunsByStage`, pure `PrintRunsPageView`, service order เดิม |
 | สิทธิ์/read-only | `user.me`, `permAllows`, PageShell gates และ router permission เดิม |
 | touch/a11y | control-size coarse-pointer token, semantic text token, labels/live state |
@@ -72,6 +74,6 @@ related_targets: ["src/app/(dashboard)/production/[id]/page.tsx","src/app/(dashb
 
 - Browser ใช้ข้อมูลจริงแบบ read-onlyบน cold dev origin; ไม่สร้าง demo transaction และไม่รัน `verify:printrun` บนฐานแชร์.
 - `/production` และ `/production/[id]` มี populated records จริง; print-run ใช้ runtime empty state + non-DB SSR fixtures สำหรับ populated manager/read-only DOM contract.
-- Browser final ผ่านทั้ง 3 route ที่ 1440×900 + 390×844 Light/Dark: ไม่มี horizontal overflow, hydration, console error หรือ action overlap; mobile interactive ที่มองเห็น ≥44×44px.
-- `typecheck`, lint 0 error (28 warning เดิม), unit 855/855, `verify:ui`, Impeccable detector `[]` และ production build ผ่านครบ.
+- Browser final ผ่านทั้ง production routes ที่เกี่ยวข้อง โดยใบผลิตตรวจ 1440×900 + 1024×768 + 390×844 Light/Dark: ไม่มี horizontal overflow, hydration, console error หรือ action overlap; mobile interactive ที่มองเห็น ≥44×44px และ Station ยังเป็น linear/no-money.
+- ใบผลิตตรวจ disclosure, legacy deep link, Back, not-found และ dialog Escape โดยไม่กด mutation; `typecheck`, lint 0 error (27 warning เดิม), unit 1048/1048, `verify:ui`, Impeccable detector `[]` และ production buildผ่านครบ.
 - Verdict: **SHIP** — canonical production UI ทั้ง PC1–PC4 พร้อมให้เบสตรวจรับเชิงสายตา; ไม่มี DB mutation หรือกฎธุรกิจใหม่ในก้อนนี้.

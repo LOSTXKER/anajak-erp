@@ -52,6 +52,7 @@ export function ProductionNowCard({
   printRunsHref = "/production/print-runs",
   embedded = false,
   emptyMessage = "ยังไม่มีขั้นตอนผลิตในใบนี้",
+  waitingHeading = "งานที่กำลังรอ",
   getStartLabel,
   getCompletionHint,
 }: {
@@ -69,6 +70,8 @@ export function ProductionNowCard({
   /** วางใน work workspace ก้อนเดียวกับคำสั่งงาน โดยไม่สร้าง card ซ้อน */
   embedded?: boolean;
   emptyMessage?: string;
+  /** ชื่อกลุ่มเมื่อไม่มีขั้นพร้อมทำ — primary ใช้ blocker, footer ใช้ขั้นถัดไป */
+  waitingHeading?: string;
   getStartLabel?: (step: ProductionStep) => string | null;
   getCompletionHint?: (step: ProductionStep) => string | null;
 }) {
@@ -205,20 +208,87 @@ export function ProductionNowCard({
     );
   };
 
+  const renderWaitingStep = ({ step, waitingOn, note }: NowStep<ProductionStep>) => {
+    const counting = step.qtyTotal !== null && step.qtyTotal > 0;
+    const waitingLabel = waitingOn.length > 0
+      ? waitingOn.join(" · ")
+      : note ||
+        (canOpenStep(step)
+          ? "รอขั้นก่อนหน้าเสร็จ"
+          : "สิทธิ์นี้ดูขั้นตอนนี้ได้อย่างเดียว");
+
+    return (
+      <div
+        key={step.id}
+        className="flex min-w-0 items-start gap-3 border-t border-divider py-3 first:border-t-0"
+      >
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-muted text-muted">
+          <Clock className="h-4 w-4" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <p className="font-medium text-strong">{stepLabel(step)}</p>
+            {counting ? (
+              <span className="shrink-0 text-xs tabular-nums text-muted">
+                {step.qtyDone}/{step.qtyTotal} ตัว
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 text-sm text-muted">{waitingLabel}</p>
+          {note && canOpenStep(step) ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => onOpenStep(step)}
+            >
+              เปิดรายละเอียด
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <section
       className={cn(!embedded && "card-surface rounded-2xl", embedded ? "p-0" : "p-5 sm:p-6")}
-      aria-labelledby="production-now"
+      aria-labelledby={
+        embedded && currentSteps.length === 0 ? "production-next" : "production-now"
+      }
     >
-      <h2 id="production-now" className="text-xs font-semibold uppercase tracking-wide text-muted">
-        ทำตอนนี้
-      </h2>
-      <div className="mt-4 space-y-5">
-        {currentSteps.length > 0 && <div>{currentSteps.map(renderStep)}</div>}
+      {!embedded ? (
+        <h2 id="production-now" className="text-xs font-semibold uppercase tracking-wide text-muted">
+          ทำตอนนี้
+        </h2>
+      ) : currentSteps.length > 0 ? (
+        <h2 id="production-now" className="text-lg font-semibold text-strong">
+          งานที่ต้องทำตอนนี้
+        </h2>
+      ) : (
+        <h2 id="production-next" className="text-base font-semibold text-strong">
+          {waitingHeading}
+        </h2>
+      )}
+      <div
+        className={cn(
+          "space-y-5",
+          embedded && currentSteps.length === 0 ? "mt-2" : "mt-4",
+        )}
+      >
+        {currentSteps.length > 0 ? <div>{currentSteps.map(renderStep)}</div> : null}
         {waitingSteps.length > 0 && (
-          <div className="border-t border-divider pt-4">
-            <h3 className="text-sm font-semibold text-strong">รอต่อจากนี้</h3>
-            <div className="mt-3">{waitingSteps.map(renderStep)}</div>
+          <div
+            className={cn(
+              (!embedded || currentSteps.length > 0) && "border-t border-divider pt-4",
+            )}
+          >
+            {!embedded || currentSteps.length > 0 ? (
+              <h3 className="text-sm font-semibold text-secondary">รอต่อจากนี้</h3>
+            ) : null}
+            <div className={cn((!embedded || currentSteps.length > 0) && "mt-2")}>
+              {waitingSteps.map(embedded ? renderWaitingStep : renderStep)}
+            </div>
           </div>
         )}
       </div>

@@ -1512,6 +1512,10 @@ check(
     "src/components/production/production-now-card.tsx",
     "utf8",
   );
+  const productionStepsSource = readFileSync(
+    "src/components/production/production-steps-list.tsx",
+    "utf8",
+  );
   const productionModuleNavSource = readFileSync(
     "src/components/production/production-module-nav.tsx",
     "utf8",
@@ -1690,15 +1694,49 @@ check(
     !productionDetailPageSource.includes("normalizeProductionDetailTab(rawTab)") ||
     productionDetailSource.includes("<Tabs") ||
     !productionDetailSource.includes('surface === "erp" ? (') ||
-    !productionDetailSource.includes('aria-label="พื้นที่ทำงานปัจจุบัน"') ||
+    (productionDetailSource.match(/aria-label="พื้นที่ทำงานปัจจุบัน"/g) ?? []).length !== 1 ||
+    (productionDetailSource.match(/<ProductionNowCard\b/g) ?? []).length !== 1 ||
+    !productionDetailSource.includes(
+      'surface === "erp" && garmentPickIsCurrent\n      ? nowSteps.filter(({ step }) => step.stepType !== "GARMENT_PICK")',
+    ) ||
+    !productionDetailSource.includes('garmentPickNowStep.group === "current"') ||
+    !productionDetailSource.includes("garmentPickNowStep.waitingOn.length === 0") ||
+    !productionDetailSource.includes("garmentPickNowStep.note === null") ||
+    !productionDetailSource.includes("const primaryNowSteps") ||
+    !productionDetailSource.includes("const deferredWaitingSteps") ||
+    !productionDetailSource.includes("nowSteps={steps}") ||
+    !productionDetailSource.includes(
+      'renderProductionNow(deferredWaitingSteps, false, "ขั้นถัดไป")',
+    ) ||
     !productionDetailSource.includes("const [visitedSecondarySections") ||
     !productionDetailSource.includes('visitedSecondarySections.has("inventory")') ||
     !productionDetailSource.includes('visitedSecondarySections.has("history")') ||
     !productionDetailSource.includes('defaultOpen={initialTab === "inventory"}') ||
     !productionDetailSource.includes('defaultOpen={initialTab === "history"}') ||
+    (productionDetailSource.match(/<details\b/g) ?? []).length !== 1 ||
+    (productionDetailSource.match(/<summary\b/g) ?? []).length !== 1 ||
     (productionDetailSource.match(/<ProductionSecondaryDisclosure/g) ?? []).length !== 2 ||
+    !productionDetailSource.includes(
+      'className="card-surface divide-y divide-divider overflow-hidden rounded-2xl"',
+    ) ||
     (productionDetailSource.match(/id="production-garments"/g) ?? []).length !== 1 ||
+    (productionDetailSource.match(/<GarmentPickCard\b/g) ?? []).length !== 1 ||
     !productionDetailSource.includes("garmentPickIsCurrent || legacyGarmentShownWithCurrentWork") ||
+    !productionDetailSource.includes(
+      'primaryTask={surface === "erp" && garmentPickIsCurrent}',
+    ) ||
+    !garmentPickSource.includes('aria-labelledby="production-garment-title"') ||
+    !garmentPickSource.includes('id="production-garment-title"') ||
+    (productionDetailSource.match(/<MaterialUsage\b/g) ?? []).length !== 1 ||
+    !/<MaterialUsage[\s\S]*?\n\s+embedded\n\s*\/>/.test(productionDetailSource) ||
+    !materialUsageSource.includes('const Surface = embedded ? "div" : Card;') ||
+    !materialUsageSource.includes('embedded && "p-0"') ||
+    !productionDetailSource.includes('compact={surface === "erp"}') ||
+    !productionStepsSource.includes("compact?: boolean") ||
+    !productionStepsSource.includes("const compactReadOnly = readOnly && compact;") ||
+    !productionStepsSource.includes("if (readOnly && compact) {") ||
+    productionStepsSource.indexOf("if (readOnly && compact) {") >
+      productionStepsSource.indexOf("const actionPolicy") ||
     !productionDetailSource.includes("printSteps.every((step) => step.status === \"COMPLETED\")") ||
     !productionDetailSource.includes("missingApprovalIsReference={allPrintStepsCompleted}") ||
     !productionDetailTabsSource.includes('{ key: "work", label: "ทำงาน" }') ||
@@ -1710,7 +1748,7 @@ check(
     )
   ) {
     problems.push(
-      "ใบผลิต ERP ต้องเป็น single-task workspace และเก็บ inventory/route ไว้ใน disclosure โดย Station ยังเป็นเส้นตรง",
+      "ใบผลิต ERP ต้องเป็น workspace เดียว ไม่ซ้ำ GARMENT_PICK และฝัง inventory/route ใน native disclosure โดย history compact เฉพาะ ERP",
     );
   }
 

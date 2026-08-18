@@ -38,6 +38,8 @@ interface ProductionStepsListProps {
   steps: ProductionStep[];
   /** ประวัติในใบงาน ERP อ่านอย่างเดียว; action หลักทั้งหมดอยู่ใน ProductionNowCard */
   readOnly?: boolean;
+  /** รายการอ่านอย่างเดียวแบบย่อสำหรับกวาดดูเส้นทางงานเร็ว */
+  compact?: boolean;
   canOutsource: boolean;
   // ผ่านรวดยิง production.updateStep — โชว์เฉพาะ role ที่ server รับ (กันปุ่มกดแล้ว FORBIDDEN)
   canUpdateStep: boolean;
@@ -65,6 +67,7 @@ interface ProductionStepsListProps {
 export function ProductionStepsList({
   steps,
   readOnly = false,
+  compact = false,
   canOutsource,
   canUpdateStep,
   canSupervise,
@@ -79,6 +82,8 @@ export function ProductionStepsList({
   canActOnStep = () => true,
   canOpenStepDetails = () => true,
 }: ProductionStepsListProps) {
+  const compactReadOnly = readOnly && compact;
+
   // จัดกลุ่มตามเลน — เลนเรียงตามสายงานจริง ขั้นในเลนเรียงตาม sortOrder เดิม
   const byLane = new Map<ProductionLane, ProductionStep[]>();
   for (const step of steps) {
@@ -101,8 +106,14 @@ export function ProductionStepsList({
         const laneSteps = byLane.get(lane)!;
         const done = laneSteps.filter((s) => s.status === "COMPLETED").length;
         return (
-          <div key={lane} className="space-y-2">
-            <div className="flex items-center gap-2 px-0.5">
+          <div key={lane} className={compactReadOnly ? "space-y-0" : "space-y-2"}>
+            <div
+              className={
+                compactReadOnly
+                  ? "flex items-center gap-2 px-0.5 pb-1.5"
+                  : "flex items-center gap-2 px-0.5"
+              }
+            >
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {LANE_LABELS[lane]}
               </span>
@@ -120,6 +131,7 @@ export function ProductionStepsList({
                 key={step.id}
                 step={step}
                 readOnly={readOnly}
+                compact={compactReadOnly}
                 isLaneNext={laneNextIds.has(step.id)}
                 pressGate={pressGate}
                 actionAllowed={canActOnStep(step)}
@@ -147,6 +159,7 @@ export function ProductionStepsList({
 function StepRow({
   step,
   readOnly,
+  compact,
   isLaneNext,
   pressGate,
   actionAllowed,
@@ -165,6 +178,7 @@ function StepRow({
 }: {
   step: ProductionStep;
   readOnly: boolean;
+  compact: boolean;
   /** ขั้นแรกที่ยังไม่เสร็จของเลนตัวเอง — ตัวเดียวที่ควรได้ปุ่ม primary */
   isLaneNext: boolean;
   pressGate: HeatPressGate;
@@ -183,6 +197,71 @@ function StepRow({
   printRunsHref: string;
 }) {
   const latestOutsource = step.outsourceOrders[0];
+
+  if (readOnly && compact) {
+    return (
+      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-x-3 border-t border-divider px-0.5 py-2.5 sm:grid-cols-[1.75rem_minmax(0,1fr)_auto] sm:items-center">
+        <div
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-muted text-2xs font-medium text-muted"
+          aria-hidden="true"
+        >
+          {step.sortOrder}
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <p className="text-sm font-medium text-strong">
+              {step.customStepName || STEP_TYPE_LABELS[step.stepType] || step.stepType}
+            </p>
+            {step.qtyTotal !== null && step.qtyTotal > 0 && (
+              <span
+                className={`text-xs tabular-nums ${
+                  step.qtyDone >= step.qtyTotal
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-muted"
+                }`}
+              >
+                {step.qtyDone}/{step.qtyTotal}
+              </span>
+            )}
+            {step.assignedTo && (
+              <span className="text-xs text-muted">ผู้รับผิดชอบ {step.assignedTo.name}</span>
+            )}
+          </div>
+          {latestOutsource && (
+            <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+              <Truck className="h-3 w-3 shrink-0" />
+              {latestOutsource.vendor.name} ·{" "}
+              {OUTSOURCE_STATUS_LABELS[latestOutsource.status] ?? latestOutsource.status}
+              {latestOutsource.expectedBackAt &&
+                !["QC_PASSED", "QC_FAILED"].includes(latestOutsource.status) &&
+                ` · กำหนดรับ ${formatDate(latestOutsource.expectedBackAt)}`}
+              {step.outsourceOrders.length > 1 &&
+                ` (รอบที่ ${step.outsourceOrders.length})`}
+            </p>
+          )}
+        </div>
+
+        <div className="col-start-2 mt-1.5 flex flex-wrap items-center gap-1.5 sm:col-start-3 sm:mt-0 sm:justify-end">
+          <Badge
+            variant={
+              STEP_STATUS_VARIANTS[step.status as keyof typeof STEP_STATUS_VARIANTS] ||
+              "default"
+            }
+          >
+            {STEP_STATUS_LABELS[step.status as keyof typeof STEP_STATUS_LABELS] ||
+              step.status}
+          </Badge>
+          {step.qcPassed !== null && (
+            <Badge variant={step.qcPassed ? "success" : "destructive"}>
+              {step.qcPassed ? "QC ผ่าน" : "QC ไม่ผ่าน"}
+            </Badge>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   const hasActiveOutsource = step.outsourceOrders.some((os) =>
     OUTSOURCE_ACTIVE_STATUSES.includes(os.status)
   );

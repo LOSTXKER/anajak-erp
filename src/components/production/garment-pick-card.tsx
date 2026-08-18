@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentPropsWithoutRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { SPOILAGE_RATE_PCT } from "@/lib/production-steps";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,10 +44,35 @@ interface GarmentPickCardProps {
   canReturnGarments: boolean;
   /** ใบเก่าที่ไม่มี GARMENT_PICK: ตัวเลขเป็นหลักฐานที่บันทึกไว้ ไม่ใช่คำตัดสินของจริง */
   legacyReadinessUnknown?: boolean;
+  /** วางใน workspace/disclosure ที่มี surface เป็นเจ้าของอยู่แล้ว เพื่อไม่สร้าง Card ซ้อน */
+  embedded?: boolean;
+  /** ขั้นเบิกเสื้อเป็นงานปัจจุบัน จึงใช้ชื่อ action และปุ่มหลักที่เด่นกว่าการ์ดอ้างอิง */
+  primaryTask?: boolean;
 }
 
 const lineLabel = (l: GarmentLine) =>
   `${l.productName} · ${l.size}${l.color ? `/${l.color}` : ""}`;
+
+function GarmentSurface({
+  embedded,
+  className,
+  children,
+  ...props
+}: ComponentPropsWithoutRef<"section"> & { embedded: boolean }) {
+  if (embedded) {
+    return (
+      <section className={className} {...props}>
+        {children}
+      </section>
+    );
+  }
+
+  return (
+    <Card className={className} {...props}>
+      {children}
+    </Card>
+  );
+}
 
 export function GarmentPickCard({
   productionId,
@@ -55,6 +80,8 @@ export function GarmentPickCard({
   canIssueGarments,
   canReturnGarments,
   legacyReadinessUnknown = false,
+  embedded = false,
+  primaryTask = false,
 }: GarmentPickCardProps) {
   const [showIssue, setShowIssue] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
@@ -62,20 +89,24 @@ export function GarmentPickCard({
 
   if (garmentPickQuery.isLoading) {
     return (
-      <Card
+      <GarmentSurface
+        embedded={embedded}
         role="status"
         aria-busy="true"
-        className="flex items-center gap-2 p-4 text-sm text-muted"
+        className={cn(
+          "flex items-center gap-2 text-sm text-muted",
+          embedded ? "py-2" : "p-4",
+        )}
       >
         <Spinner size="sm" />
         กำลังโหลดข้อมูลเสื้อจากสต๊อค...
-      </Card>
+      </GarmentSurface>
     );
   }
 
   if (garmentPickQuery.isError && !garmentPickQuery.data) {
     return (
-      <Card className="p-4">
+      <GarmentSurface embedded={embedded} className={cn(!embedded && "p-4")}>
         <div className={cn(TINT.error, "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2")}>
           <p role="alert" className="flex items-center gap-1.5 text-xs">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -92,48 +123,79 @@ export function GarmentPickCard({
             ลองใหม่
           </Button>
         </div>
-      </Card>
+      </GarmentSurface>
     );
   }
 
   const data = garmentPickQuery.data;
 
   if (!data || data.lines.length === 0) {
-    if (!legacyReadinessUnknown) return null;
+    if (!legacyReadinessUnknown && !primaryTask) return null;
 
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+      <GarmentSurface embedded={embedded} aria-labelledby="production-garment-title">
+        <CardHeader className={cn("pb-3", embedded && "p-0 pb-3")}>
+          <h2
+            id="production-garment-title"
+            className="flex items-center gap-2 text-base font-semibold text-strong"
+          >
             <Shirt className="h-4 w-4" />
-            เสื้อจากสต๊อค
-          </CardTitle>
+            {primaryTask ? "เบิกเสื้อจากสต๊อค" : "เสื้อจากสต๊อค"}
+          </h2>
         </CardHeader>
-        <CardContent>
+        <CardContent className={cn(embedded && "p-0")}>
           <div className={cn(TINT.warning, "rounded-lg border px-3 py-2")}>
             <p className="text-sm font-medium">ไม่มีรายการเสื้อที่ตรวจยอดจากสต๊อคได้</p>
             <p className="mt-1 text-xs">
-              ใบเก่านี้ไม่มี SKU เชื่อมสต๊อค ให้ตรวจเสื้อจริงตามใบสั่งงานก่อนเริ่มรีด
+              {legacyReadinessUnknown
+                ? "ใบเก่านี้ไม่มี SKU เชื่อมสต๊อค ให้ตรวจเสื้อจริงตามใบสั่งงานก่อนเริ่มรีด"
+                : "ยังไม่มีรายการเสื้อที่เชื่อมกับสต๊อค ให้ตรวจข้อมูลออเดอร์ก่อนเบิก"}
             </p>
           </div>
         </CardContent>
-      </Card>
+      </GarmentSurface>
     );
   }
 
   const pickStep = steps.find((s) => s.stepType === "GARMENT_PICK");
   const outstanding = data.lines.reduce((s, l) => s + (l.issued - l.returned), 0);
+  const totalNeeded = data.lines.reduce((sum, line) => sum + line.needed, 0);
+  const fulfilledQty = data.lines.reduce(
+    (sum, line) =>
+      sum + Math.min(line.needed, Math.max(0, line.issued - line.returned)),
+    0,
+  );
+  const missingQty = data.lines.reduce(
+    (sum, line) =>
+      sum + Math.max(0, line.needed - (line.issued - line.returned)),
+    0,
+  );
   const needMore = data.lines.some((l) => l.issued - l.returned < l.needed);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
-          <Shirt className="h-4 w-4" />
-          เสื้อจากสต๊อค
-        </CardTitle>
+    <GarmentSurface embedded={embedded} aria-labelledby="production-garment-title">
+      <CardHeader className={cn("pb-3", embedded && "p-0 pb-3")}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2
+              id="production-garment-title"
+              className="flex items-center gap-2 text-lg font-semibold text-strong"
+            >
+              <Shirt className="h-5 w-5 text-secondary" />
+              {primaryTask ? "เบิกเสื้อจากสต๊อค" : "เสื้อจากสต๊อค"}
+            </h2>
+            {primaryTask ? (
+              <p className="mt-1 text-sm text-muted">
+                ตรวจรุ่น สี และไซส์ให้ตรง ก่อนเบิกออกจากสต๊อค
+              </p>
+            ) : null}
+          </div>
+          <span className="shrink-0 text-sm font-medium tabular-nums text-secondary">
+            {fulfilledQty}/{totalNeeded} ตัว
+          </span>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className={cn("space-y-3", embedded && "p-0")}>
         {!data.configured && (
           <p className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-2 text-xs text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -196,9 +258,13 @@ export function GarmentPickCard({
             (canReturnGarments && outstanding > 0)) && (
           <div className="flex flex-col gap-2 pt-1 sm:flex-row">
             {canIssueGarments && pickStep && needMore && (
-              <Button className="w-full gap-1.5 sm:w-auto" onClick={() => setShowIssue(true)}>
+              <Button
+                size={primaryTask ? "lg" : "default"}
+                className={cn("w-full gap-1.5 sm:w-auto", primaryTask && "sm:min-w-56")}
+                onClick={() => setShowIssue(true)}
+              >
                 <PackageOpen />
-                เบิกเสื้อ
+                {primaryTask ? `เบิกเสื้อที่ยังขาด ${missingQty} ตัว` : "เบิกเสื้อ"}
               </Button>
             )}
             {canReturnGarments && outstanding > 0 && (
@@ -230,7 +296,7 @@ export function GarmentPickCard({
           onClose={() => setShowReturn(false)}
         />
       )}
-    </Card>
+    </GarmentSurface>
   );
 }
 

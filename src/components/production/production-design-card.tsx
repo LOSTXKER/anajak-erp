@@ -12,7 +12,7 @@ import { PRINT_POSITIONS, PRINT_TYPES } from "@/types/order-form";
 import { isImageUrl, formatDate } from "@/lib/utils";
 import { Palette, ExternalLink, ImageOff } from "lucide-react";
 import type { ProductionDetail } from "./types";
-import { DASHED, FOCUS_BUTTON } from "@/components/ui/tokens";
+import { DASHED, FOCUS_BUTTON, RADIUS, TINT } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 
 // ข้อมูลอ้างอิง “แบบและจำนวนที่ต้องผลิต” บน job traveler — ช่างเห็นลายอนุมัติ+เวอร์ชัน+ตารางไซส์
@@ -50,15 +50,15 @@ export function ProductionDesignCard({
   return (
     <section
       className={cn(
-        "space-y-4",
-        embedded ? "p-0" : "card-surface rounded-2xl p-4 sm:p-5",
+        embedded ? "space-y-3" : "card-surface space-y-4 p-4 sm:p-5",
+        !embedded && RADIUS.surface,
       )}
       aria-labelledby="production-work-spec"
     >
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Palette className="h-4 w-4 text-muted" />
-        <h3 id="production-work-spec" className="text-sm font-semibold text-slate-900 dark:text-white">
-          คำสั่งงาน
+        <h3 id="production-work-spec" className="text-sm font-semibold text-strong">
+          แบบและสเปกงาน
         </h3>
         {approvedDesign && (
           <Badge variant="success" size="sm">
@@ -69,12 +69,16 @@ export function ProductionDesignCard({
 
       {/* แบบอนุมัติล่าสุด — แตะขยายเต็มจอ · ไม่มีแบบอนุมัติ = บอกตรงๆ (B8 ห้ามจอเงียบ) */}
       {approvedDesign ? (
-        <div className="flex flex-wrap items-start gap-3">
+        <div className="flex flex-wrap items-start gap-3 border-t border-divider pt-3">
           {approvedImage ? (
             <button
               type="button"
               onClick={() => setZoom({ src: approvedImage, label: `แบบอนุมัติ v${approvedDesign.versionNumber}` })}
-              className={cn("shrink-0 overflow-hidden rounded-xl border border-slate-200 transition-opacity hover:opacity-90", FOCUS_BUTTON, "dark:border-slate-700")}
+              className={cn(
+                RADIUS.inner,
+                FOCUS_BUTTON,
+                "shrink-0 overflow-hidden border border-border transition-opacity hover:opacity-90",
+              )}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -82,17 +86,27 @@ export function ProductionDesignCard({
                 alt={`แบบอนุมัติ v${approvedDesign.versionNumber}`}
                 loading="lazy"
                 decoding="async"
-                className="h-32 w-32 bg-white object-contain sm:h-40 sm:w-40"
+                className={cn(
+                  "bg-white object-contain",
+                  embedded ? "h-24 w-24 sm:h-28 sm:w-28" : "h-32 w-32 sm:h-40 sm:w-40",
+                )}
               />
             </button>
           ) : (
-            <div className={cn(DASHED, "flex h-32 w-32 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl text-muted")}>
+            <div
+              className={cn(
+                DASHED,
+                RADIUS.inner,
+                "flex shrink-0 flex-col items-center justify-center gap-1.5 text-muted",
+                embedded ? "h-24 w-24 sm:h-28 sm:w-28" : "h-32 w-32 sm:h-40 sm:w-40",
+              )}
+            >
               <ImageOff className="h-5 w-5" />
               <span className="text-xs">ไฟล์ไม่ใช่รูป</span>
             </div>
           )}
           <div className="min-w-0 space-y-1 text-sm">
-            <p className="font-medium text-slate-900 dark:text-white">
+            <p className="font-medium text-strong">
               แบบอนุมัติล่าสุด — เวอร์ชัน {approvedDesign.versionNumber}
             </p>
             {approvedDesign.approvedAt && (
@@ -100,7 +114,7 @@ export function ProductionDesignCard({
                 อนุมัติ {formatDate(approvedDesign.approvedAt)}
               </p>
             )}
-            <Button variant="outline" size="sm" asChild className="h-9">
+            <Button variant="outline" size="sm" asChild>
               <a href={approvedDesign.fileUrl} target="_blank" rel="noreferrer">
                 <ExternalLink />
                 เปิดไฟล์เต็ม
@@ -112,10 +126,10 @@ export function ProductionDesignCard({
         prints.length > 0 && (
           <p
             className={cn(
-              "rounded-xl px-3 py-2 text-xs font-medium",
+              "text-xs font-medium",
               missingApprovalIsReference
-                ? "bg-surface text-muted"
-                : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+                ? "border-t border-divider pt-3 text-muted"
+                : cn(TINT.warning, RADIUS.inner, "border px-3 py-2"),
             )}
           >
             {missingApprovalIsReference
@@ -127,15 +141,22 @@ export function ProductionDesignCard({
 
       {/* ลายพิมพ์ต่อตำแหน่ง — ภาพ+ตำแหน่ง+วิธี+ขนาด (ข้อมูลเดียวกับใบ job ticket) */}
       {prints.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        <div className="space-y-2 border-t border-divider pt-3">
+          <p className="text-xs font-medium text-muted">
             ลายพิมพ์
           </p>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <ul
+            className={cn(
+              embedded ? "divide-y divide-divider" : "grid gap-2 sm:grid-cols-2",
+            )}
+          >
             {prints.map((pr) => (
-              <div
+              <li
                 key={pr.id}
-                className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700"
+                className={cn(
+                  "flex items-center gap-3",
+                  embedded ? "py-2.5 first:pt-0 last:pb-0" : cn(RADIUS.inner, "border border-border p-3"),
+                )}
               >
                 {isImageUrl(pr.designImageUrl) ? (
                   <button
@@ -146,7 +167,11 @@ export function ProductionDesignCard({
                         label: PRINT_POSITIONS[pr.position] ?? pr.position,
                       })
                     }
-                    className={cn("shrink-0 overflow-hidden rounded-lg border border-slate-200 transition-opacity hover:opacity-90", FOCUS_BUTTON, "dark:border-slate-700")}
+                    className={cn(
+                      RADIUS.item,
+                      FOCUS_BUTTON,
+                      "shrink-0 overflow-hidden border border-border transition-opacity hover:opacity-90",
+                    )}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -158,12 +183,18 @@ export function ProductionDesignCard({
                     />
                   </button>
                 ) : (
-                  <div className={cn(DASHED, "flex h-14 w-14 shrink-0 items-center justify-center rounded-lg text-muted")}>
+                  <div
+                    className={cn(
+                      DASHED,
+                      RADIUS.item,
+                      "flex h-14 w-14 shrink-0 items-center justify-center text-muted",
+                    )}
+                  >
                     <ImageOff className="h-4 w-4" />
                   </div>
                 )}
                 <div className="min-w-0 text-xs">
-                  <p className="font-semibold text-slate-900 dark:text-white">
+                  <p className="font-semibold text-strong">
                     {PRINT_POSITIONS[pr.position] ?? pr.position}
                     <span className="ml-1.5 font-normal text-muted">
                       {PRINT_TYPES[pr.printType] ?? pr.printType}
@@ -179,39 +210,41 @@ export function ProductionDesignCard({
                     <p className="truncate text-muted">{pr.designNote}</p>
                   )}
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
 
-      {/* ตารางไซส์ต่อสินค้า — chip ห่อบรรทัดเอง อ่านบนมือถือได้ไม่ต้อง scroll แนวนอน */}
+      {/* ตารางไซส์ต่อสินค้า — ข้อมูลห่อบรรทัดเอง อ่านบนมือถือได้โดยไม่ดูเหมือนปุ่ม */}
       {productsWithSizes.length > 0 && (
-        <div className="space-y-2.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        <div className="space-y-2.5 border-t border-divider pt-3">
+          <p className="text-xs font-medium text-muted">
             ไซส์
           </p>
           {productsWithSizes.map((p) => (
-            <div key={p.id} className="space-y-1.5">
-              <p className="text-xs text-slate-600 dark:text-slate-300">
-                {p.description}
-                {p.fabricColor ? ` · สี ${p.fabricColor}` : ""}
-              </p>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {p.variants.map((v) => (
-                  <span
-                    key={v.id}
-                    className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm tabular-nums text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
-                  >
-                    <span className="font-semibold">{v.size}</span>
-                    {v.color ? <span className="text-muted"> {v.color}</span> : null}
-                    <span className="font-semibold"> ×{v.quantity}</span>
-                  </span>
-                ))}
-                <span className="rounded-lg bg-slate-900 px-2.5 py-1.5 text-sm font-semibold tabular-nums text-white dark:bg-white dark:text-slate-900">
-                  รวม {p.totalQuantity}
-                </span>
+            <div key={p.id} className="space-y-2">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <p className="text-sm text-secondary">
+                  {p.description}
+                  {p.fabricColor ? ` · สี ${p.fabricColor}` : ""}
+                </p>
+                <p className="text-sm tabular-nums text-strong">
+                  <span className="text-muted">รวม</span>{" "}
+                  <span className="font-semibold">{p.totalQuantity} ตัว</span>
+                </p>
               </div>
+              <dl className="flex flex-wrap items-baseline gap-x-5 gap-y-1.5 text-sm tabular-nums">
+                {p.variants.map((v) => (
+                  <div key={v.id} className="inline-flex items-baseline gap-1.5">
+                    <dt className="text-muted">
+                      {v.size}
+                      {v.color ? ` ${v.color}` : ""}
+                    </dt>
+                    <dd className="font-semibold text-strong">×{v.quantity}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
           ))}
         </div>
@@ -226,7 +259,7 @@ export function ProductionDesignCard({
             <img
               src={zoom.src}
               alt={zoom.label}
-              className="max-h-[72vh] w-full rounded-lg bg-white object-contain"
+              className={cn(RADIUS.item, "max-h-[72vh] w-full bg-white object-contain")}
             />
           )}
           {/* มือถือ: X ของ dialog เล็กเกินเป้านิ้ว — ให้ปุ่มปิดเต็มแถวแทน */}
