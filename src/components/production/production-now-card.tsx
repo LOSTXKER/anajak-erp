@@ -267,7 +267,7 @@ export function ProductionNowCard({
       }
     >
       {focused ? (
-        <h2 id="production-focused-step" className="text-xl font-semibold text-strong">
+        <h2 id="production-focused-step" className="text-2xl font-semibold tracking-tight text-strong">
           {stepLabel(nowSteps[0]!.step)}
         </h2>
       ) : !embedded ? (

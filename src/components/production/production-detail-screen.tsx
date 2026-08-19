@@ -7,6 +7,15 @@ import { permAllows } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { PageShell } from "@/components/page-shell";
 import { MaterialUsage } from "@/components/material-usage";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
@@ -20,11 +29,12 @@ import {
 import { StepUpdateDialog } from "@/components/production/step-update-dialog";
 import { StepOutsourceDialog } from "@/components/production/step-outsource-dialog";
 import { StepQtySheet } from "@/components/production/step-qty-sheet";
-import type { ProductionStep } from "@/components/production/types";
+import type { ProductionDetail, ProductionStep } from "@/components/production/types";
 import { PRIORITY_LABELS } from "@/lib/order-status";
 import { cn, formatDate } from "@/lib/utils";
 import {
   ArrowRight,
+  ArrowLeft,
   ClipboardList,
   ExternalLink,
   CalendarClock,
@@ -32,8 +42,9 @@ import {
   AlertTriangle,
   Shirt,
   ListChecks,
-  ChevronDown,
   PackageOpen,
+  PanelRightOpen,
+  Route,
   type LucideIcon,
 } from "lucide-react";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -106,53 +117,234 @@ function ProductionJobFact({
   );
 }
 
-type ProductionSecondarySection = "inventory";
-
-function ProductionSecondaryDisclosure({
-  icon: Icon,
-  title,
-  description,
-  meta,
-  defaultOpen = false,
-  onOpen,
-  children,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  meta?: ReactNode;
-  defaultOpen?: boolean;
-  onOpen: () => void;
-  children: ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-
+function ProductionJacketSkeleton() {
   return (
-    <details
-      className="group"
-      open={open}
-      onToggle={(event) => {
-        const nextOpen = event.currentTarget.open;
-        setOpen(nextOpen);
-        if (nextOpen) onOpen();
-      }}
+    <div className="min-h-[34rem] bg-bg">
+      <div className="border-b border-divider bg-surface px-4 py-5 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-11 w-11 rounded-lg" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-7 w-56 max-w-full rounded-md" />
+            <Skeleton className="h-4 w-80 max-w-full rounded-md" />
+          </div>
+        </div>
+      </div>
+      <div className="border-b border-divider bg-surface px-4 py-5 sm:px-6 lg:px-8">
+        <Skeleton className="h-16 w-full rounded-lg" />
+      </div>
+      <div className="grid min-h-[26rem] bg-surface xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="space-y-5 px-5 py-7 sm:px-7 lg:px-9">
+          <Skeleton className="h-8 w-64 max-w-full rounded-md" />
+          <Skeleton className="h-20 w-full rounded-lg" />
+          <Skeleton className="h-11 w-60 max-w-full rounded-lg" />
+        </div>
+        <div className="hidden border-l border-divider bg-surface-muted p-7 xl:block">
+          <Skeleton className="h-56 w-full rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductionWorkbenchHeader({
+  order,
+  loading,
+  totalQty,
+  completedSteps,
+  totalSteps,
+  isOverdue,
+  readOnly,
+  onOpenInspector,
+}: {
+  order?: ProductionDetail["order"];
+  loading: boolean;
+  totalQty: number;
+  completedSteps: number;
+  totalSteps: number;
+  isOverdue: boolean;
+  readOnly: boolean;
+  onOpenInspector: () => void;
+}) {
+  return (
+    <header
+      data-production-workbench-header=""
+      className="border-b border-slate-800 bg-slate-950 text-white"
     >
-      <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed sm:px-5 [&::-webkit-details-marker]:hidden">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-secondary">
-          <Icon className="h-4 w-4" aria-hidden="true" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-strong">{title}</span>
-          <span className="mt-0.5 block text-xs text-muted">{description}</span>
-        </span>
-        {meta ? <span className="shrink-0 text-xs tabular-nums text-muted">{meta}</span> : null}
-        <ChevronDown
-          className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-180"
-          aria-hidden="true"
-        />
-      </summary>
-      <div className="border-t border-divider px-4 py-4 sm:px-5 sm:py-5">{children}</div>
-    </details>
+      <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:px-8 lg:py-5">
+        <div className="flex min-w-0 items-start gap-3 lg:flex-1">
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-slate-300 hover:bg-white/10 hover:text-white active:bg-white/15"
+          >
+            <Link href="/production" aria-label="กลับคิวผลิต">
+              <ArrowLeft />
+            </Link>
+          </Button>
+          {order ? (
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <h1 className="text-2xl font-semibold tracking-tight text-white">
+                  {order.orderNumber}
+                </h1>
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-200">
+                  <span className="h-2 w-2 rounded-full bg-blue-400" aria-hidden="true" />
+                  {INTERNAL_STATUS_LABELS[order.internalStatus] ?? order.internalStatus}
+                </span>
+                {readOnly ? (
+                  <span className="text-xs font-medium text-slate-400">ดูอย่างเดียว</span>
+                ) : null}
+              </div>
+              <p className="mt-1 break-words text-sm text-slate-300">
+                {[order.title, order.customer?.name].filter(Boolean).join(" · ") ||
+                  "ใบเดินงานฝ่ายผลิต"}
+              </p>
+            </div>
+          ) : loading ? (
+            <div className="min-w-0 flex-1 space-y-2 py-1">
+              <Skeleton className="h-7 w-56 max-w-full rounded-md" />
+              <Skeleton className="h-4 w-80 max-w-full rounded-md" />
+            </div>
+          ) : (
+            <div className="py-1">
+              <h1 className="text-2xl font-semibold text-white">งานผลิต</h1>
+              <p className="mt-1 text-sm text-slate-300">เปิดใบเดินงานไม่สำเร็จ</p>
+            </div>
+          )}
+        </div>
+
+        {order ? (
+          <div className="flex max-w-full flex-wrap items-center gap-2 lg:justify-end">
+            <Button size="sm" onClick={onOpenInspector}>
+              <PanelRightOpen />
+              ข้อมูลใบงาน
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="border border-slate-700 text-slate-200 shadow-none hover:bg-slate-800 hover:text-white active:bg-slate-700"
+              asChild
+            >
+              <a href={`/print/job-ticket/${order.id}`} target="_blank" rel="noreferrer">
+                <ClipboardList />
+                ใบสั่งงาน
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="border border-slate-700 text-slate-200 shadow-none hover:bg-slate-800 hover:text-white active:bg-slate-700"
+              asChild
+            >
+              <Link href={`/orders/${order.id}`}>
+                <ExternalLink />
+                ดูออเดอร์
+              </Link>
+            </Button>
+          </div>
+        ) : null}
+      </div>
+
+      {order ? (
+        <dl className="flex min-h-12 flex-wrap items-center gap-x-5 gap-y-2 border-t border-slate-800 bg-slate-900 px-4 py-2.5 text-sm sm:px-6 lg:px-8">
+          {order.deadline ? (
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-slate-400" aria-hidden="true" />
+              <dt className="sr-only">กำหนดส่ง</dt>
+              <dd className={cn("font-medium", isOverdue ? "text-red-300" : "text-slate-200")}>
+                ส่ง {formatDate(order.deadline)}
+              </dd>
+            </div>
+          ) : null}
+          <div className="flex items-center gap-2">
+            <Shirt className="h-4 w-4 text-slate-400" aria-hidden="true" />
+            <dt className="sr-only">จำนวน</dt>
+            <dd className="font-medium tabular-nums text-slate-200">
+              {totalQty.toLocaleString("th-TH")} ตัว
+            </dd>
+          </div>
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-4 w-4 text-slate-400" aria-hidden="true" />
+            <dt className="sr-only">ขั้นตอน</dt>
+            <dd className="font-medium tabular-nums text-slate-200">
+              {completedSteps}/{totalSteps} ขั้น
+            </dd>
+          </div>
+          {order.priority === "HIGH" || order.priority === "URGENT" ? (
+            <div className="flex items-center gap-2">
+              <Flag className="h-4 w-4 text-slate-400" aria-hidden="true" />
+              <dt className="sr-only">ความสำคัญ</dt>
+              <dd>
+                <Badge
+                  variant={order.priority === "URGENT" ? "destructive" : "warning"}
+                  size="sm"
+                >
+                  {PRIORITY_LABELS[order.priority] ?? order.priority}
+                </Badge>
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
+    </header>
+  );
+}
+
+type ProductionInspectorSection = Exclude<ProductionDetailTab, "work">;
+
+function ProductionJobInspector({
+  section,
+  onSectionChange,
+  onClose,
+  inventory,
+  history,
+}: {
+  section: ProductionInspectorSection;
+  onSectionChange: (section: ProductionInspectorSection) => void;
+  onClose: () => void;
+  inventory: ReactNode;
+  history: ReactNode;
+}) {
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        data-production-job-inspector=""
+        className="!bottom-0 !left-0 !right-0 !top-auto !flex !max-h-[88dvh] !w-full !max-w-none !translate-x-0 !translate-y-0 flex-col gap-0 overflow-hidden rounded-b-none rounded-t-2xl p-0 pr-0 sm:!bottom-auto sm:!left-auto sm:!right-0 sm:!top-0 sm:!h-dvh sm:!max-h-dvh sm:!w-[min(42rem,calc(100vw-2rem))] sm:rounded-none"
+      >
+        <DialogHeader className="border-b border-divider px-5 py-4 pr-14 sm:px-6 sm:py-5 sm:pr-14">
+          <DialogTitle>ข้อมูลใบงาน</DialogTitle>
+          <DialogDescription>
+            เสื้อ วัตถุดิบ และเส้นทางทั้งหมดที่ไม่ใช่งานของขั้นปัจจุบัน
+          </DialogDescription>
+        </DialogHeader>
+        <Tabs
+          value={section}
+          onValueChange={(value) => onSectionChange(value as ProductionInspectorSection)}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <TabsList
+            aria-label="เลือกข้อมูลใบงาน"
+            className="shrink-0 gap-5 border-b border-divider px-5 sm:px-6"
+          >
+            <TabsTrigger value="inventory">
+              <PackageOpen />
+              เสื้อและวัตถุดิบ
+            </TabsTrigger>
+            <TabsTrigger value="history">
+              <Route />
+              เส้นทางทั้งหมด
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="inventory" className="m-0 min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            {inventory}
+          </TabsContent>
+          <TabsContent value="history" className="m-0 min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            {history}
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -191,27 +383,13 @@ export function ProductionDetailScreen({
   const [outsourceStep, setOutsourceStep] = useState<ProductionStep | null>(null);
   // การเลือกขั้นใน navigator เป็น view state เท่านั้น — ห้ามใช้เป็น workflow status/action
   const [viewedStepId, setViewedStepId] = useState<string | null>(null);
+  const [inspectorSection, setInspectorSection] = useState<ProductionInspectorSection | null>(
+    initialTab === "inventory" || initialTab === "history" ? initialTab : null,
+  );
   // ขั้นนับจำนวนที่กด "เสร็จขั้นนี้" — เปิด sheet ถามจำนวน (UX1: 2 แตะ)
   // เก็บแค่ id แล้ว derive ตัว step สดจาก query ทุก render — snapshot เก่าทำยอดถอยหลังได้
   // (sheet ส่ง qtyDone แบบ absolute ถ้าฐานเก่าจะทับของจริง)
   const [qtyStepId, setQtyStepId] = useState<string | null>(null);
-  const [visitedSecondarySections, setVisitedSecondarySections] = useState<
-    ReadonlySet<ProductionSecondarySection>
-  >(() => {
-    if (initialTab === "inventory") {
-      return new Set(["inventory"]);
-    }
-    return new Set();
-  });
-
-  function markSecondarySectionVisited(section: ProductionSecondarySection) {
-    setVisitedSecondarySections((current) => {
-      if (current.has(section)) return current;
-      const next = new Set(current);
-      next.add(section);
-      return next;
-    });
-  }
 
   const productionQuery = trpc.production.getById.useQuery(
     { id },
@@ -623,28 +801,37 @@ export function ProductionDetailScreen({
         : "ขั้นนี้ยังไม่ถึงคิวในสายงานเดียวกัน";
 
     return (
-      <div className="p-4 sm:p-6 lg:p-7">
-        {legacyPackagingReadyForQc ? <div className="mb-5">{currentActionRegion}</div> : null}
-        {allStepsDone && !legacyPackagingReadyForQc ? (
-          <section
-            className={cn(TINT.success, "mb-5 flex items-start gap-3 rounded-xl border px-4 py-3")}
-            aria-label="สถานะใบผลิต"
-          >
-            <ListChecks className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            <div>
-              <p className="font-semibold">ใบผลิตนี้ครบทุกขั้นแล้ว</p>
-              <p className="mt-0.5 text-sm">{allDoneMessage}</p>
-            </div>
-          </section>
-        ) : null}
+      <article
+        data-production-active-step=""
+        className={cn(
+          "grid min-h-[28rem] bg-surface",
+          showSpec && "xl:grid-cols-[minmax(0,1fr)_24rem]",
+        )}
+      >
+        <section className="min-w-0 px-5 py-7 sm:px-7 sm:py-8 lg:px-9 lg:py-9">
+          {legacyPackagingReadyForQc ? <div className="mb-6">{currentActionRegion}</div> : null}
+          {allStepsDone && !legacyPackagingReadyForQc ? (
+            <section
+              className={cn(TINT.success, "mb-6 flex items-start gap-3 rounded-xl border px-4 py-3")}
+              aria-label="สถานะใบผลิต"
+            >
+              <ListChecks className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">ใบผลิตนี้ครบทุกขั้นแล้ว</p>
+                <p className="mt-0.5 text-sm">{allDoneMessage}</p>
+              </div>
+            </section>
+          ) : null}
 
-        <div
-          className={cn(
-            "grid gap-6",
-            showSpec && "xl:grid-cols-5",
-          )}
-        >
-          <div className={cn("min-w-0 space-y-4", showSpec && "xl:col-span-3")}>
+          <div className="min-w-0 space-y-5">
+            <div className="flex justify-end">
+              <StatusLabel
+                label={STEP_STATUS_LABELS[step.status]}
+                tone={toneFromBadgeVariant(STEP_STATUS_VARIANTS[step.status])}
+                emphasize={step.status === "COMPLETED" || step.status === "FAILED"}
+              />
+            </div>
+
             {showLegacyGarment ? (
               <Alert variant="warning" icon={AlertTriangle}>
                 <span className="font-semibold">ระบบยังยืนยันยอดเสื้อไม่ได้</span>
@@ -671,7 +858,7 @@ export function ProductionDetailScreen({
                   <div>
                     <h2
                       id={`production-viewed-step-${step.id}`}
-                      className="text-xl font-semibold text-strong"
+                      className="text-2xl font-semibold tracking-tight text-strong"
                     >
                       {stepName}
                     </h2>
@@ -681,9 +868,6 @@ export function ProductionDetailScreen({
                       </p>
                     ) : null}
                   </div>
-                  <Badge variant={STEP_STATUS_VARIANTS[step.status]}>
-                    {STEP_STATUS_LABELS[step.status]}
-                  </Badge>
                 </div>
 
                 {counting ? (
@@ -721,7 +905,7 @@ export function ProductionDetailScreen({
             {showLegacyGarment ? garmentPickPanel : null}
 
             {step.notes || step.qcNotes ? (
-              <div className="border-t border-divider pt-4 text-sm">
+              <div className="border-t border-divider pt-5 text-sm">
                 <p className="font-medium text-strong">หมายเหตุของขั้นนี้</p>
                 {step.notes ? <p className="mt-1 whitespace-pre-wrap text-muted">{step.notes}</p> : null}
                 {step.qcNotes ? (
@@ -730,9 +914,11 @@ export function ProductionDetailScreen({
               </div>
             ) : null}
           </div>
+        </section>
 
-          {showSpec ? (
-            <div className="min-w-0 border-t border-divider pt-5 xl:col-span-2 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
+        {showSpec ? (
+          <aside className="min-w-0 border-t border-divider bg-surface-muted px-5 py-7 sm:px-7 sm:py-8 xl:border-l xl:border-t-0">
+            <div className="xl:sticky xl:top-28">
               <ProductionDesignCard
                 order={order!}
                 embedded
@@ -740,9 +926,9 @@ export function ProductionDetailScreen({
                 missingApprovalIsReference={allPrintStepsCompleted}
               />
             </div>
-          ) : null}
-        </div>
-      </div>
+          </aside>
+        ) : null}
+      </article>
     );
   };
 
@@ -794,11 +980,62 @@ export function ProductionDetailScreen({
     </section>
   );
 
+  const productionInventoryContent = production && order ? (
+    <div
+      className={cn(
+        "grid gap-7",
+        viewedStep?.stepType !== "GARMENT_PICK" &&
+          viewedStep?.id !== legacyGarmentCheckNowStep?.step.id &&
+          "lg:grid-cols-2",
+      )}
+    >
+      {viewedStep?.stepType !== "GARMENT_PICK" &&
+      viewedStep?.id !== legacyGarmentCheckNowStep?.step.id
+        ? garmentPickPanel
+        : null}
+      {hasProductionPermission ? (
+        <MaterialUsage
+          productionId={production.id}
+          orderNumber={order.orderNumber}
+          showCosts={canSeeCost}
+          readOnly={!canUpdateStep}
+          embedded
+        />
+      ) : (
+        <div>
+          <h3 className="font-semibold text-strong">วัตถุดิบ</h3>
+          <p className="mt-1 text-sm text-muted">
+            บัญชีนี้ดูใบผลิตได้ แต่ไม่มีสิทธิ์จัดการรายการวัตถุดิบ
+          </p>
+        </div>
+      )}
+    </div>
+  ) : null;
+
   return (
     <PageShell
       width={surface === "erp" ? "full" : "content"}
+      className={
+        surface === "erp"
+          ? "-mx-4 -mt-6 min-h-[calc(100dvh-4rem)] sm:-mx-6 sm:-mt-8 lg:-mx-8"
+          : undefined
+      }
       title={order?.orderNumber ?? "งานผลิต"}
       description={order ? [order.title, order.customer?.name].filter(Boolean).join(" · ") : undefined}
+      header={
+        surface === "erp" ? (
+          <ProductionWorkbenchHeader
+            order={order}
+            loading={productionQuery.isLoading || meQuery.isLoading}
+            totalQty={totalQty}
+            completedSteps={completedSteps}
+            totalSteps={totalSteps}
+            isOverdue={isOverdue}
+            readOnly={!!me && !canUpdateStep && !canOutsource}
+            onOpenInspector={() => setInspectorSection("inventory")}
+          />
+        ) : undefined
+      }
       back={
         productionNotFound
           ? undefined
@@ -807,7 +1044,7 @@ export function ProductionDetailScreen({
             : { href: "/production", label: "กลับคิวผลิต" }
       }
       titleBadge={
-        order ? (
+        surface === "station" && order ? (
           <>
             <OrderStatusBadge internalStatus={order.internalStatus} compact />
             {me && (!canUpdateStep || stationBlockMessage) && !canOutsource ? (
@@ -819,27 +1056,17 @@ export function ProductionDetailScreen({
         ) : undefined
       }
       action={
-        order ? (
-          <>
-            <Button variant="outline" size="sm" asChild>
-              <a href={`/print/job-ticket/${order.id}`} target="_blank" rel="noreferrer">
-                <ClipboardList />
-                ใบสั่งงาน
-              </a>
-            </Button>
-            {surface === "erp" && (
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/orders/${order.id}`}>
-                  <ExternalLink />
-                  ดูออเดอร์
-                </Link>
-              </Button>
-            )}
-          </>
+        surface === "station" && order ? (
+          <Button variant="outline" size="sm" asChild>
+            <a href={`/print/job-ticket/${order.id}`} target="_blank" rel="noreferrer">
+              <ClipboardList />
+              ใบสั่งงาน
+            </a>
+          </Button>
         ) : undefined
       }
       headerChildren={
-        order ? (
+        surface === "station" && order ? (
           <dl
             aria-label="สรุปใบผลิต"
             className="grid grid-cols-2 gap-x-5 gap-y-3 rounded-2xl bg-surface-muted px-4 py-3 sm:flex sm:min-h-14 sm:flex-wrap sm:items-center sm:px-5"
@@ -901,14 +1128,16 @@ export function ProductionDetailScreen({
               }
             : null
       }
-      skeleton={<ProductionDetailSkeleton />}
+      skeleton={surface === "erp" ? <ProductionJacketSkeleton /> : <ProductionDetailSkeleton />}
     >
       {production && order ? (
-        <div className="space-y-5">
+        <div className={cn(surface === "erp" ? "min-w-0 bg-bg" : "space-y-5")}>
           {writeDataStale && (
-            <Alert variant="warning">
-              ข้อมูลล่าสุดอาจยังไม่สด — ปิดปุ่มบันทึกชั่วคราวและกำลังลองเชื่อมต่อใหม่
-            </Alert>
+            <div className={surface === "erp" ? "border-b border-divider px-4 py-3 sm:px-6 lg:px-8" : undefined}>
+              <Alert variant="warning">
+                ข้อมูลล่าสุดอาจยังไม่สด — ปิดปุ่มบันทึกชั่วคราวและกำลังลองเชื่อมต่อใหม่
+              </Alert>
+            </div>
           )}
 
           {surface === "erp" ? (
@@ -921,53 +1150,15 @@ export function ProductionDetailScreen({
                 readOnly={!canUpdateStep && !canOutsource}
                 renderStep={renderFocusedStep}
               />
-
-              <section className="space-y-3" aria-labelledby="production-secondary">
-                <h2 id="production-secondary" className="text-base font-semibold text-strong">
-                  ข้อมูลทั้งใบ
-                </h2>
-                <div className="card-surface overflow-hidden rounded-2xl">
-                  <ProductionSecondaryDisclosure
-                    icon={PackageOpen}
-                    title="เสื้อและวัตถุดิบ"
-                    description="ข้อมูลที่ใช้ร่วมกันทั้งใบ เปิดดูเมื่อจำเป็น"
-                    defaultOpen={initialTab === "inventory"}
-                    onOpen={() => markSecondarySectionVisited("inventory")}
-                  >
-                    {visitedSecondarySections.has("inventory") ? (
-                      <div
-                        className={cn(
-                          "grid gap-6 xl:items-start",
-                          viewedStep?.stepType !== "GARMENT_PICK" &&
-                            viewedStep?.id !== legacyGarmentCheckNowStep?.step.id &&
-                            "xl:grid-cols-2",
-                        )}
-                      >
-                        {viewedStep?.stepType !== "GARMENT_PICK" &&
-                        viewedStep?.id !== legacyGarmentCheckNowStep?.step.id
-                          ? garmentPickPanel
-                          : null}
-                        {hasProductionPermission ? (
-                          <MaterialUsage
-                            productionId={production.id}
-                            orderNumber={order.orderNumber}
-                            showCosts={canSeeCost}
-                            readOnly={!canUpdateStep}
-                            embedded
-                          />
-                        ) : (
-                          <div>
-                            <h3 className="font-semibold text-strong">วัตถุดิบ</h3>
-                            <p className="mt-1 text-sm text-muted">
-                              บัญชีนี้ดูใบผลิตได้ แต่ไม่มีสิทธิ์จัดการรายการวัตถุดิบ
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    ) : null}
-                  </ProductionSecondaryDisclosure>
-                </div>
-              </section>
+              {inspectorSection ? (
+                <ProductionJobInspector
+                  section={inspectorSection}
+                  onSectionChange={setInspectorSection}
+                  onClose={() => setInspectorSection(null)}
+                  inventory={productionInventoryContent}
+                  history={productionHistoryContent}
+                />
+              ) : null}
             </>
           ) : (
             <>
