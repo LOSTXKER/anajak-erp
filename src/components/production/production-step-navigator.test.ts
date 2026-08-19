@@ -77,9 +77,9 @@ describe("ProductionStepNavigator", () => {
     expect(html).toContain("ทำพร้อมกันได้ 2 งาน");
     expect(html.match(/ทำได้ตอนนี้/g)?.length).toBeGreaterThanOrEqual(2);
     expect(html.match(/data-workflow-state="current"/g)?.length).toBe(2);
-    expect(html).toContain("ขั้นตอนการผลิต");
+    expect(html).toContain("ขั้นตอนงาน");
     expect(html).toContain("กำลังดูขั้น 1 จาก 2");
-    expect(html).toContain("data-production-route-ribbon");
+    expect(html).toContain("data-production-stage-dock");
     expect(html).toContain('role="tablist"');
     expect(html).toContain('aria-selected="true"');
     expect(html).not.toContain("card-surface");

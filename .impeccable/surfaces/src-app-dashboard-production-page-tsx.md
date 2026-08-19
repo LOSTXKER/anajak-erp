@@ -38,11 +38,11 @@ related_targets: ["src/app/(dashboard)/production/[id]/page.tsx","src/app/(dashb
 
 ## Production detail
 
-- ใช้ `PageShell width="full"` จุดเดียวทุก loading/error/not-found/permission/success state และย่อหัวใบเป็น context strip.
-- first workspace เป็น surface เดียว: desktop grid `1.3fr / 0.7fr` ให้งานหลักกว้างกว่าสเปก; mobile ใช้ DOM เดียวเรียง **งานปัจจุบัน + blocker + เสื้อ/จำนวน + primary action → แบบและสเปก → ขั้นถัดไป**.
-- `GARMENT_PICK` ที่เป็น current และลงมือได้ render ผ่าน `GarmentPickCard` เพียงครั้งเดียว; waiting/read-only/assigned/failed state ยังคงอยู่ใน generic task listเพื่อไม่ทำ blocker หาย.
-- เสื้อ/วัตถุดิบและเส้นทางงานรองอยู่ใน native disclosure surface เดียว; `MaterialUsage` กับ `ProductionStepsList readOnly` ใช้ embedded/compact mode และ `?tab=inventory|history` ยังเปิดส่วนเดิม.
-- งานผสมคืน action ได้หลายเลนพร้อมกันตาม `selectNowSteps`; gate ที่มีอยู่บอกเหตุผลแทนปุ่มเมื่อกดไม่ได้ และ `/factory/station` ใช้ non-embedded linear presentation เดิม.
+- ใช้ `PageShell width="full"` จุดเดียวทุก loading/error/not-found/permission/success state; หัวใบเป็น context strip พื้นสว่างแบบ compact เห็นเลขงาน สถานะ ชื่องาน/ลูกค้า และข้อมูลกำหนดส่ง/จำนวน/ความคืบหน้าก่อน โดยปุ่มข้อมูลใบงาน ใบสั่งงาน และดูออเดอร์เป็น utility รอง.
+- ตั้งแต่ `xl` ใช้ stage dock แนวตั้งกว้าง `16rem` ทางซ้าย; ที่ 1024px และ mobile ใช้ stage selector แนวนอนชุดเดียวกัน. ขั้นเสร็จ/current/failed/waiting/queued แยก semantic tone ชัด และ selector เป็น manual tab/view state เท่านั้น ไม่เปลี่ยน workflow status.
+- ขั้นที่เลือกอยู่บน work canvas จำกัดความกว้างใน workspace; blocker จำนวนสินค้า/ยอดขาด และ primary action เดียวจาก controller เดิมอยู่รวมกันใน first viewport. แบบและสเปกเป็น reference sidecar ของขั้นเมื่อมีข้อมูล และซ้อนใต้ action ก่อน `xl`.
+- `GARMENT_PICK` render การ์ดเบิกจริงเพียงจุดเดียวในขั้นที่เลือก พร้อม **ต้องใช้ / เบิกสุทธิ / ยังขาด** และปุ่มเบิกหลัก; ห้ามสร้าง generic complete ซ้ำ. เสื้อ/วัตถุดิบและเส้นทางระดับทั้งใบอยู่ใน inspector เดียวแบบ drawer/bottom sheet; `?tab=inventory|history` ยังเปิด section เดิมและคืน focus ให้ trigger เมื่อปิด.
+- ใช้ P1.0 Prompt/neutral + Anajak blue `#3973b2`, semantic tokens และ one-primary-action; mutation, permission, readiness/status/action policy และ `selectNowSteps` เดิมทั้งหมด. `/factory/station` ยังคง non-embedded linear presentation เดิม.
 
 ## Print runs
 
@@ -74,6 +74,6 @@ related_targets: ["src/app/(dashboard)/production/[id]/page.tsx","src/app/(dashb
 
 - Browser ใช้ข้อมูลจริงแบบ read-onlyบน cold dev origin; ไม่สร้าง demo transaction และไม่รัน `verify:printrun` บนฐานแชร์.
 - `/production` และ `/production/[id]` มี populated records จริง; print-run ใช้ runtime empty state + non-DB SSR fixtures สำหรับ populated manager/read-only DOM contract.
-- Browser final ผ่านทั้ง production routes ที่เกี่ยวข้อง โดยใบผลิตตรวจ 1440×900 + 1024×768 + 390×844 Light/Dark: ไม่มี horizontal overflow, hydration, console error หรือ action overlap; mobile interactive ที่มองเห็น ≥44×44px และ Station ยังเป็น linear/no-money.
-- ใบผลิตตรวจ disclosure, legacy deep link, Back, not-found และ dialog Escape โดยไม่กด mutation; `typecheck`, lint 0 error (27 warning เดิม), unit 1048/1048, `verify:ui`, Impeccable detector `[]` และ production buildผ่านครบ.
-- Verdict: **SHIP** — canonical production UI ทั้ง PC1–PC4 พร้อมให้เบสตรวจรับเชิงสายตา; ไม่มี DB mutation หรือกฎธุรกิจใหม่ในก้อนนี้.
+- Browser final ของใบผลิตผ่าน 1440×900 + 1024×768 + 390×844 ทั้ง Light/Dark โดยไม่มี horizontal overflow; action บน mobile อยู่เหนือ bottom nav และ Station ยังคง linear/no-money.
+- ใบผลิตผ่าน manual keyboard tabs, Back, legacy deep link, not-found, inspector/dialog Escape และ focus return โดยไม่กด mutation; unit 1064/1064, lint 0 error, `verify:ui` และ production buildผ่านครบ.
+- Reviewer verdict: **SHIP WITH NITS** — พบ hydration mismatch เฉพาะ Codex in-app browser ที่ `AppShell` นอก diff; Chrome fresh tab สะอาด. canonical production UI พร้อมตรวจรับโดยไม่มี DB mutation หรือกฎธุรกิจใหม่ในก้อนนี้.

@@ -119,16 +119,21 @@ export function ProductionStepNavigator({
       value={value}
       onValueChange={onValueChange}
       activationMode="manual"
-      className="min-w-0"
+      className="mx-auto min-w-0 max-w-[96rem] xl:grid xl:grid-cols-[16rem_minmax(0,1fr)] xl:items-start"
     >
       <section
-        data-production-route-ribbon=""
-        className="sticky top-0 z-20 min-w-0 border-b border-divider bg-surface"
+        data-production-stage-dock=""
+        className="min-w-0 border-b border-divider bg-surface px-4 py-3 sm:px-6 xl:sticky xl:top-20 xl:z-10 xl:border-b-0 xl:border-r xl:px-5 xl:py-6"
         aria-labelledby="production-step-rail-title"
       >
-        <h2 id="production-step-rail-title" className="sr-only">
-          ขั้นตอนการผลิต
-        </h2>
+        <div className="mb-3 flex items-center justify-between gap-3 xl:mb-4">
+          <h2 id="production-step-rail-title" className="text-sm font-semibold text-strong">
+            ขั้นตอนงาน
+          </h2>
+          <span className="text-xs tabular-nums text-muted">
+            {selectedIndex + 1}/{sortedSteps.length}
+          </span>
+        </div>
         <p className="sr-only">
           กำลังดูขั้น {selectedIndex + 1} จาก {sortedSteps.length}
           {availableCount > 1 ? ` ทำพร้อมกันได้ ${availableCount} งาน` : ""}
@@ -136,7 +141,7 @@ export function ProductionStepNavigator({
 
         <TabsList
           aria-label="เลือกขั้นการผลิต"
-          className="items-start gap-0 px-4 py-3 sm:px-6 lg:px-8"
+          className="items-stretch gap-2 xl:flex-col xl:gap-1.5 xl:overflow-x-visible xl:pr-0"
         >
           {sortedSteps.map((step, index) => {
             const state = navigatorState(step, nowById.get(step.id), readOnly);
@@ -152,60 +157,58 @@ export function ProductionStepNavigator({
                 aria-label={`${stepLabel(step)} ${state.label}${countLabel}`}
                 data-workflow-state={state.workflow}
                 className={cn(
-                  "group -mb-0 h-auto min-h-[4.75rem] basis-28 grow shrink-0 flex-col justify-start gap-1.5 border-b-0 px-0 py-0 text-center whitespace-normal",
-                  "data-[state=active]:border-transparent data-[state=active]:text-strong",
+                  "group -mb-0 h-auto min-h-14 basis-40 shrink-0 justify-start gap-3 rounded-xl border-b-0 px-3 py-2.5 text-left whitespace-normal",
+                  "hover:bg-interactive-hover data-[state=active]:border-transparent data-[state=active]:bg-interactive-selected data-[state=active]:text-interactive-selected-text",
+                  "xl:w-full xl:basis-auto",
                 )}
               >
-                <span className="flex w-full items-center" aria-hidden="true">
-                  <span
-                    className={cn(
-                      "h-px flex-1 bg-divider",
-                      index === 0 && "bg-transparent",
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      "relative z-[1] flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold tabular-nums transition-[border-color,background-color,color,box-shadow]",
-                      state.workflow === "completed" &&
-                        "border-green-600 bg-green-600 text-white dark:border-green-500 dark:bg-green-700",
-                      (state.workflow === "current" || state.workflow === "in-progress") &&
-                        "border-blue-600 bg-blue-600 text-white dark:border-blue-400 dark:bg-blue-600",
-                      state.workflow === "failed" &&
-                        "border-red-500 bg-red-50 text-red-700 dark:border-red-500 dark:bg-red-950 dark:text-red-200",
-                      (state.workflow === "hold" || state.workflow === "waiting") &&
-                        "border-amber-500 bg-amber-50 text-amber-800 dark:border-amber-500 dark:bg-amber-950 dark:text-amber-200",
-                      state.workflow === "queued" &&
-                        "border-divider bg-surface-muted text-muted",
-                      "ring-offset-2 ring-offset-surface group-data-[state=active]:ring-3 group-data-[state=active]:ring-blue-200 dark:group-data-[state=active]:ring-blue-900",
-                    )}
-                  >
-                    {state.workflow === "completed" ? (
-                      <Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
-                    ) : (
-                      <span aria-hidden="true">{index + 1}</span>
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      "h-px flex-1 bg-divider",
-                      index === sortedSteps.length - 1 && "bg-transparent",
-                    )}
-                  />
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums",
+                    state.workflow === "completed" &&
+                      "border-green-600 bg-green-600 text-white dark:border-green-500 dark:bg-green-700",
+                    (state.workflow === "current" || state.workflow === "in-progress") &&
+                      "border-blue-600 bg-blue-600 text-white dark:border-blue-400 dark:bg-blue-600",
+                    state.workflow === "failed" &&
+                      "border-red-500 bg-red-50 text-red-700 dark:border-red-500 dark:bg-red-950 dark:text-red-200",
+                    (state.workflow === "hold" || state.workflow === "waiting") &&
+                      "border-amber-500 bg-amber-50 text-amber-800 dark:border-amber-500 dark:bg-amber-950 dark:text-amber-200",
+                    state.workflow === "queued" &&
+                      "border-divider bg-surface-muted text-muted",
+                  )}
+                >
+                  {state.workflow === "completed" ? (
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  ) : (
+                    index + 1
+                  )}
                 </span>
-                <span className="min-w-0 px-2">
+                <span className="min-w-0 flex-1">
                   <span
                     className={cn(
-                      "block break-words text-xs leading-snug text-muted transition-colors",
+                      "block break-words text-sm font-medium leading-snug text-strong transition-colors",
                       (state.workflow === "current" || state.workflow === "in-progress") &&
-                        "font-semibold text-blue-700 dark:text-blue-300",
+                        "text-blue-700 dark:text-blue-300",
                       state.workflow === "failed" &&
-                        "font-semibold text-red-700 dark:text-red-300",
+                        "text-red-700 dark:text-red-300",
                       (state.workflow === "hold" || state.workflow === "waiting") &&
                         "text-amber-800 dark:text-amber-300",
-                      "group-data-[state=active]:font-semibold group-data-[state=active]:text-strong",
+                      "group-data-[state=active]:font-semibold group-data-[state=active]:text-interactive-selected-text",
                     )}
                   >
                     {stepLabel(step)}
+                  </span>
+                  <span
+                    className={cn(
+                      "mt-0.5 block text-xs text-muted",
+                      "group-data-[state=active]:text-interactive-selected-text/80",
+                    )}
+                  >
+                    {state.label}
+                    {step.qtyTotal !== null && step.qtyTotal > 0
+                      ? ` · ${step.qtyDone ?? 0}/${step.qtyTotal} ตัว`
+                      : ""}
                   </span>
                 </span>
               </TabsTrigger>
@@ -218,7 +221,7 @@ export function ProductionStepNavigator({
         <TabsContent
           key={step.id}
           value={step.id}
-          className="m-0 p-0"
+          className="m-0 min-w-0 bg-bg p-4 sm:p-6 lg:p-7"
         >
           {renderStep(step)}
         </TabsContent>

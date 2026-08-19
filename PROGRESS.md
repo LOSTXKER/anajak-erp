@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION-UX2.15 รื้อใบผลิตเป็นใบงานหน้าเครื่องแล้ว 2026-08-20**
+> ทิ้งหัว graphite และ route ribbon ที่กินพื้นที่ของ UX2.14 · ERP `/production/[id]` ใช้หัวพื้นสว่างกระชับที่ให้เลขงาน/สถานะ/ลูกค้านำ และลดข้อมูลใบงาน/ใบสั่งงาน/ออเดอร์เป็น utility รอง · ผืนงานขั้นที่เลือกถูกจำกัดความกว้างให้อ่านและลงมือได้ทันที
+>
+> ตั้งแต่ `xl` ขึ้นไปใช้ stage dock แนวตั้งแคบซ้ายจอ; 1024px และมือถือใช้ selector แนวนอนจาก DOM เดียวกัน · manual tab เปลี่ยนเฉพาะมุมมอง ไม่เปลี่ยน workflow และยังแยก completed/current/failed/waiting/queued ด้วย semantic tone เดิม · inspector เสื้อ/วัตถุดิบ/เส้นทางทั้งใบ, deep link และ Escape/return-focus คงสัญญาเดิม
+>
+> `GARMENT_PICK` ไม่ปล่อยการ์ดยาวโล่งอีกแล้ว: แต่ละ SKU เห็นรุ่น/ไซส์/สี และตัวเลข **ต้องใช้ / เบิกสุทธิ / ยังขาด** ชัดเจน โดยยอดขาดและ primary action อยู่ใน first viewport เดียวกัน · query, mutation, permission, `selectNowSteps`, action policy, status transition, legacy recovery และ `/factory/station` ไม่เปลี่ยน
+>
+> **หลักฐานหน้าจริงแบบอ่านอย่างเดียว:** ใบ `ORD-2606-0021` ที่ 1440×900, 1024×768 และ 390×844 Light/Dark ไม่มี horizontal overflow; mobile action อยู่เหนือ bottom nav · เลือกขั้นงานด้วย keyboard และเปิด/ปิด inspector ด้วย Escape ผ่านโดยไม่กด mutation · Chrome fresh reload ไม่มี app console error; Codex in-app browser มี hydration mismatch ที่ `AppShell` นอก diff ซึ่ง reviewer แยกเป็น shell nit ไม่บล็อกงานนี้
+>
+> **ด่าน final:** targeted **28/28** · full unit **1064/1064** · typecheck ผ่าน · lint 0 error (27 warning เดิมนอกก้อน) · `verify:ui` ผ่าน · production build Next.js 16.3.1 ผ่าน · Impeccable detector `[]` · fresh independent finish review verdict **SHIP WITH NITS** โดยไม่มี material finding · `git diff --check` ผ่าน
+>
+> **ต่อที่นี่:** ให้เบส refresh ใบ `ORD-2606-0021` แล้วลองลำดับ เลขงาน → ขั้นปัจจุบัน → ยอดขาด → ปุ่มเบิก; ถ้าต้องรองรับ Codex in-app browser ให้เปิดใบงาน shell แยกก้อน
+
 > **✅ PRODUCTION-UX2.14 รื้อใบผลิตเป็น Job Jacket ใหม่ทั้งหน้าแล้ว 2026-08-19**
 > ERP `/production/[id]` ไม่ใช้ PageHeader + summary bubble + process bar ลอย + card stack แบบเดิมแล้ว · หน้าใหม่เรียงเป็น **แถบตัวตนงาน → route ribbon → operation canvas ของขั้นที่เลือก → primary action จุดเดียว** โดยขั้นที่เลือกกลายเป็นพื้นที่ทำงานทั้งหน้า ไม่ใช่การ์ดใบเดิมใต้ราง · หัวใหม่รวมเลขออเดอร์ ลูกค้า สถานะ จำนวน กำหนดส่ง และทางไปใบสั่งงาน/ออเดอร์โดยไม่ซ้ำ progress
 >

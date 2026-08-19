@@ -15,7 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StatusLabel, toneFromBadgeVariant } from "@/components/ui/status-label";
 import { PageShell } from "@/components/page-shell";
 import { MaterialUsage } from "@/components/material-usage";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
@@ -55,13 +54,10 @@ import {
   productionWorkflowSteps,
 } from "@/lib/production-steps";
 import { selectNowSteps } from "@/lib/production-step-actions";
-import { STEP_STATUS_LABELS, STEP_STATUS_VARIANTS } from "@/lib/status-config";
 import { toast } from "sonner";
 import { RecordNotFound } from "@/components/ui/record-not-found";
 import {
   FOCUS_INSET,
-  INTERACTIVE_CHROME_HOVER,
-  INTERACTIVE_CHROME_PRESSED,
   TINT,
 } from "@/components/ui/tokens";
 import { Alert } from "@/components/ui/alert";
@@ -125,26 +121,33 @@ function ProductionJobFact({
 function ProductionJacketSkeleton() {
   return (
     <div className="min-h-[34rem] bg-bg">
-      <div className="border-b border-divider bg-surface px-4 py-5 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-11 w-11 rounded-lg" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-7 w-56 max-w-full rounded-md" />
-            <Skeleton className="h-4 w-80 max-w-full rounded-md" />
+      <div className="border-b border-divider bg-surface">
+        <div className="mx-auto max-w-[96rem] px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-7 w-56 max-w-full rounded-md" />
+              <Skeleton className="h-4 w-80 max-w-full rounded-md" />
+            </div>
+            <Skeleton className="hidden h-9 w-72 rounded-full sm:block" />
           </div>
         </div>
       </div>
-      <div className="border-b border-divider bg-surface px-4 py-5 sm:px-6 lg:px-8">
-        <Skeleton className="h-16 w-full rounded-lg" />
-      </div>
-      <div className="grid min-h-[26rem] bg-surface xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <div className="space-y-5 px-5 py-7 sm:px-7 lg:px-9">
-          <Skeleton className="h-8 w-64 max-w-full rounded-md" />
-          <Skeleton className="h-20 w-full rounded-lg" />
-          <Skeleton className="h-11 w-60 max-w-full rounded-lg" />
+      <div className="mx-auto grid max-w-[96rem] xl:grid-cols-[16rem_minmax(0,1fr)]">
+        <div className="border-b border-divider bg-surface p-5 xl:min-h-[30rem] xl:border-b-0 xl:border-r">
+          <Skeleton className="h-5 w-24 rounded-md" />
+          <div className="mt-4 flex gap-2 xl:flex-col">
+            <Skeleton className="h-14 w-40 shrink-0 rounded-xl xl:w-full" />
+            <Skeleton className="h-14 w-40 shrink-0 rounded-xl xl:w-full" />
+            <Skeleton className="h-14 w-40 shrink-0 rounded-xl xl:w-full" />
+          </div>
         </div>
-        <div className="hidden border-l border-divider bg-surface-muted p-7 xl:block">
-          <Skeleton className="h-56 w-full rounded-lg" />
+        <div className="p-4 sm:p-6 lg:p-7">
+          <div className="card-surface mx-auto max-w-4xl space-y-5 rounded-2xl p-6 sm:p-8">
+            <Skeleton className="h-8 w-64 max-w-full rounded-md" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-11 w-60 max-w-full rounded-full" />
+          </div>
         </div>
       </div>
     </div>
@@ -175,19 +178,16 @@ function ProductionWorkbenchHeader({
   return (
     <header
       data-production-workbench-header=""
-      className="dark border-b border-slate-800 bg-slate-950 text-white"
+      className="border-b border-divider bg-surface"
     >
-      <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:px-8 lg:py-5">
-        <div className="flex min-w-0 items-start gap-3 lg:flex-1">
+      <div className="mx-auto max-w-[96rem]">
+        <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:px-8">
+          <div className="flex min-w-0 items-start gap-3 lg:flex-1">
           <Button
             asChild
             variant="ghost"
             size="icon"
-            className={cn(
-              "shrink-0 text-slate-300",
-              INTERACTIVE_CHROME_HOVER,
-              INTERACTIVE_CHROME_PRESSED,
-            )}
+            className="shrink-0 text-secondary"
           >
             <Link href="/production" aria-label="กลับคิวผลิต">
               <ArrowLeft />
@@ -196,18 +196,15 @@ function ProductionWorkbenchHeader({
           {order ? (
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <h1 className="text-2xl font-semibold tracking-tight text-white">
+                <h1 className="text-2xl font-semibold tracking-tight text-strong">
                   {order.orderNumber}
                 </h1>
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-200">
-                  <span className="h-2 w-2 rounded-full bg-blue-400" aria-hidden="true" />
-                  {INTERNAL_STATUS_LABELS[order.internalStatus] ?? order.internalStatus}
-                </span>
+                <OrderStatusBadge internalStatus={order.internalStatus} compact />
                 {readOnly ? (
-                  <span className="text-xs font-medium text-slate-400">ดูอย่างเดียว</span>
+                  <Badge variant="outline" size="sm">ดูอย่างเดียว</Badge>
                 ) : null}
               </div>
-              <p className="mt-1 break-words text-sm text-slate-300">
+              <p className="mt-1 break-words text-sm text-muted">
                 {[order.title, order.customer?.name].filter(Boolean).join(" · ") ||
                   "ใบเดินงานฝ่ายผลิต"}
               </p>
@@ -219,26 +216,29 @@ function ProductionWorkbenchHeader({
             </div>
           ) : (
             <div className="py-1">
-              <h1 className="text-2xl font-semibold text-white">งานผลิต</h1>
-              <p className="mt-1 text-sm text-slate-300">เปิดใบเดินงานไม่สำเร็จ</p>
+              <h1 className="text-2xl font-semibold text-strong">งานผลิต</h1>
+              <p className="mt-1 text-sm text-muted">เปิดใบเดินงานไม่สำเร็จ</p>
             </div>
           )}
-        </div>
+          </div>
 
-        {order ? (
-          <div className="flex max-w-full flex-wrap items-center gap-2 lg:justify-end">
-            <Button ref={inspectorButtonRef} size="sm" onClick={onOpenInspector}>
+          {order ? (
+            <div className="no-scrollbar flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto pb-1 sm:gap-2 sm:pb-0 lg:justify-end">
+            <Button
+              ref={inspectorButtonRef}
+              variant="outline"
+              size="sm"
+              className="shrink-0 px-3"
+              onClick={onOpenInspector}
+            >
               <PanelRightOpen />
-              ข้อมูลใบงาน
+              <span className="sm:hidden">ข้อมูล</span>
+              <span className="hidden sm:inline">ข้อมูลใบงาน</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className={cn(
-                "border border-slate-700 text-slate-200 shadow-none",
-                INTERACTIVE_CHROME_HOVER,
-                INTERACTIVE_CHROME_PRESSED,
-              )}
+              className="shrink-0 px-3"
               asChild
             >
               <a href={`/print/job-ticket/${order.id}`} target="_blank" rel="noreferrer">
@@ -249,50 +249,47 @@ function ProductionWorkbenchHeader({
             <Button
               variant="ghost"
               size="sm"
-              className={cn(
-                "border border-slate-700 text-slate-200 shadow-none",
-                INTERACTIVE_CHROME_HOVER,
-                INTERACTIVE_CHROME_PRESSED,
-              )}
+              className="shrink-0 px-3"
               asChild
             >
               <Link href={`/orders/${order.id}`}>
                 <ExternalLink />
-                ดูออเดอร์
+                <span className="sm:hidden">ออเดอร์</span>
+                <span className="hidden sm:inline">ดูออเดอร์</span>
               </Link>
             </Button>
           </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
 
-      {order ? (
-        <dl className="flex min-h-12 flex-wrap items-center gap-x-5 gap-y-2 border-t border-slate-800 bg-slate-900 px-4 py-2.5 text-sm sm:px-6 lg:px-8">
+        {order ? (
+          <dl className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2 border-t border-divider px-4 py-2 text-sm sm:px-6 lg:px-8">
           {order.deadline ? (
             <div className="flex items-center gap-2">
-              <CalendarClock className="h-4 w-4 text-slate-400" aria-hidden="true" />
+              <CalendarClock className="h-4 w-4 text-muted" aria-hidden="true" />
               <dt className="sr-only">กำหนดส่ง</dt>
-              <dd className={cn("font-medium", isOverdue ? "text-red-300" : "text-slate-200")}>
+              <dd className={cn("font-medium", isOverdue ? "text-red-700 dark:text-red-300" : "text-secondary")}>
                 ส่ง {formatDate(order.deadline)}
               </dd>
             </div>
           ) : null}
           <div className="flex items-center gap-2">
-            <Shirt className="h-4 w-4 text-slate-400" aria-hidden="true" />
+            <Shirt className="h-4 w-4 text-muted" aria-hidden="true" />
             <dt className="sr-only">จำนวน</dt>
-            <dd className="font-medium tabular-nums text-slate-200">
+            <dd className="font-medium tabular-nums text-secondary">
               {totalQty.toLocaleString("th-TH")} ตัว
             </dd>
           </div>
           <div className="flex items-center gap-2">
-            <ListChecks className="h-4 w-4 text-slate-400" aria-hidden="true" />
+            <ListChecks className="h-4 w-4 text-muted" aria-hidden="true" />
             <dt className="sr-only">ขั้นตอน</dt>
-            <dd className="font-medium tabular-nums text-slate-200">
+            <dd className="font-medium tabular-nums text-secondary">
               {completedSteps}/{totalSteps} ขั้น
             </dd>
           </div>
           {order.priority === "HIGH" || order.priority === "URGENT" ? (
             <div className="flex items-center gap-2">
-              <Flag className="h-4 w-4 text-slate-400" aria-hidden="true" />
+              <Flag className="h-4 w-4 text-muted" aria-hidden="true" />
               <dt className="sr-only">ความสำคัญ</dt>
               <dd>
                 <Badge
@@ -304,8 +301,9 @@ function ProductionWorkbenchHeader({
               </dd>
             </div>
           ) : null}
-        </dl>
-      ) : null}
+          </dl>
+        ) : null}
+      </div>
     </header>
   );
 }
@@ -830,11 +828,13 @@ export function ProductionDetailScreen({
       <article
         data-production-active-step=""
         className={cn(
-          "grid min-h-[28rem] bg-surface",
-          showSpec && "xl:grid-cols-[minmax(0,1fr)_24rem]",
+          "card-surface grid overflow-hidden rounded-2xl bg-surface",
+          showSpec
+            ? "xl:grid-cols-[minmax(0,1fr)_22rem]"
+            : "mx-auto w-full max-w-4xl",
         )}
       >
-        <section className="min-w-0 px-5 py-7 sm:px-7 sm:py-8 lg:px-9 lg:py-9">
+        <section className="min-w-0 px-5 py-6 sm:px-7 sm:py-7 lg:px-8 lg:py-8">
           {legacyPackagingReadyForQc ? <div className="mb-6">{currentActionRegion}</div> : null}
           {allStepsDone && !legacyPackagingReadyForQc ? (
             <section
@@ -850,14 +850,6 @@ export function ProductionDetailScreen({
           ) : null}
 
           <div className="min-w-0 space-y-5">
-            <div className="flex justify-end">
-              <StatusLabel
-                label={STEP_STATUS_LABELS[step.status]}
-                tone={toneFromBadgeVariant(STEP_STATUS_VARIANTS[step.status])}
-                emphasize={step.status === "COMPLETED" || step.status === "FAILED"}
-              />
-            </div>
-
             {showLegacyGarment ? (
               <Alert variant="warning" icon={AlertTriangle}>
                 <span className="font-semibold">ระบบยังยืนยันยอดเสื้อไม่ได้</span>
@@ -943,7 +935,7 @@ export function ProductionDetailScreen({
         </section>
 
         {showSpec ? (
-          <aside className="min-w-0 border-t border-divider bg-surface-muted px-5 py-7 sm:px-7 sm:py-8 xl:border-l xl:border-t-0">
+          <aside className="min-w-0 border-t border-divider bg-surface-muted px-5 py-6 sm:px-7 sm:py-7 xl:border-l xl:border-t-0">
             <div className="xl:sticky xl:top-28">
               <ProductionDesignCard
                 order={order!}

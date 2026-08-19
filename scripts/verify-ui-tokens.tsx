@@ -1490,7 +1490,7 @@ check(
 
 /* ── หน้าผลิตหลัก: shell/state/permission/touch contract ────────────────────
    หน้า ops ต้องรอทั้งข้อมูลงานและสิทธิ์ก่อนวาด action; ใบผลิตทุก state ใช้
-   PageShell จุดเดียว แต่ ERP แทนหัวมาตรฐานด้วย Job Jacket ส่วนสถานีคง content */
+   PageShell จุดเดียว แต่ ERP แทนหัวมาตรฐานด้วยใบงานหน้าเครื่อง ส่วนสถานีคง content */
 {
   const productionBoardSource = readFileSync(
     "src/app/(dashboard)/production/page.tsx",
@@ -1698,11 +1698,11 @@ check(
     !productionNowSource.includes("รอต่อจากนี้") ||
     productionNowSource.includes("onClick={onGoToGarments}") ||
     !productionDetailSource.includes("<RecordNotFound") ||
-    productionDetailSource.includes("max-w-4xl") ||
+    !productionDetailSource.includes("max-w-4xl") ||
     productionDetailSource.includes("PageHeader")
   ) {
     problems.push(
-      "ใบผลิตต้องใช้ PageShell จุดเดียวพร้อม Job Jacket เฉพาะ ERP ไม่มี summary/card stack เก่า และคง state/permission fail-closed",
+      "ใบผลิตต้องใช้ PageShell จุดเดียวพร้อมใบงานหน้าเครื่องเฉพาะ ERP ให้งานขั้นปัจจุบันอยู่ในผืนที่จำกัด และคง state/permission fail-closed",
     );
   }
 
@@ -1752,14 +1752,17 @@ check(
     !productionStepNavigatorSource.includes("<Tabs") ||
     !productionStepNavigatorSource.includes('activationMode="manual"') ||
     !productionStepNavigatorSource.includes('aria-label="เลือกขั้นการผลิต"') ||
-    !productionStepNavigatorSource.includes("ขั้นตอนการผลิต") ||
+    !productionStepNavigatorSource.includes("ขั้นตอนงาน") ||
     !productionStepNavigatorSource.includes("กำลังดูขั้น") ||
-    !productionStepNavigatorSource.includes('"h-px flex-1 bg-divider"') ||
     !productionStepNavigatorSource.includes("data-workflow-state={state.workflow}") ||
-    !productionStepNavigatorSource.includes("{index + 1}") ||
-    !productionStepNavigatorSource.includes("basis-28 grow shrink-0") ||
-    !productionStepNavigatorSource.includes('data-production-route-ribbon=""') ||
-    !productionStepNavigatorSource.includes('className="m-0 p-0"') ||
+    !productionStepNavigatorSource.includes("index + 1") ||
+    !productionStepNavigatorSource.includes("basis-40 shrink-0") ||
+    !productionStepNavigatorSource.includes('data-production-stage-dock=""') ||
+    !productionStepNavigatorSource.includes("xl:grid-cols-[16rem_minmax(0,1fr)]") ||
+    !productionStepNavigatorSource.includes("xl:flex-col") ||
+    !productionStepNavigatorSource.includes(
+      'className="m-0 min-w-0 bg-bg p-4 sm:p-6 lg:p-7"',
+    ) ||
     productionStepNavigatorSource.includes("card-surface") ||
     productionStepNavigatorSource.includes("LANE_LABELS") ||
     productionStepNavigatorSource.includes("variant={state.variant}") ||
@@ -1778,7 +1781,7 @@ check(
     )
   ) {
     problems.push(
-      "ใบผลิต ERP ต้องเป็น Job Jacket ที่เลือกดูทีละขั้น ใช้ action policy เดิม ไม่ซ้ำ GARMENT_PICK และย้าย inventory/history เข้า inspector เดียว",
+      "ใบผลิต ERP ต้องเป็นใบงานหน้าเครื่องที่เลือกดูทีละขั้น ใช้ action policy เดิม ไม่ซ้ำ GARMENT_PICK และย้าย inventory/history เข้า inspector เดียว",
     );
   }
 
@@ -1790,7 +1793,11 @@ check(
     !garmentPickSource.includes("garmentPickQuery.refetch()") ||
     !garmentPickSource.includes("legacyReadinessUnknown?: boolean") ||
     !garmentPickSource.includes("ไม่มีรายการเสื้อที่ตรวจยอดจากสต๊อคได้") ||
-    !garmentPickSource.includes("ยังไม่บันทึก ${l.needed - net}") ||
+    !garmentPickSource.includes("const totalNeeded = data.lines.reduce") ||
+    !garmentPickSource.includes("const fulfilledQty = data.lines.reduce") ||
+    !garmentPickSource.includes("const missingQty = data.lines.reduce") ||
+    !garmentPickSource.includes("เบิกสุทธิ") ||
+    !garmentPickSource.includes("ยังขาด") ||
     !materialUsageSource.includes("materialsQuery.isLoading") ||
     !materialUsageSource.includes("materialsQuery.isError && !materialsQuery.data") ||
     !materialUsageSource.includes("materialsQuery.data !== undefined") ||
