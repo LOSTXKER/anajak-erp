@@ -76,11 +76,37 @@ describe("ProductionStepNavigator", () => {
 
     expect(html).toContain("ทำพร้อมกันได้ 2 งาน");
     expect(html.match(/ทำได้ตอนนี้/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(html.match(/data-workflow-state="current"/g)?.length).toBe(2);
     expect(html).toContain("ขั้นตอนการผลิต");
-    expect(html).toContain("กำลังดูขั้น 1/2");
+    expect(html).toContain("กำลังดูขั้น 1 จาก 2");
     expect(html).toContain('role="tablist"');
     expect(html).toContain('aria-selected="true"');
     expect(html).not.toContain("aria-current");
+  });
+
+  it("เลือกดูขั้นอนาคตโดยไม่เปลี่ยนสถานะ workflow จริง", () => {
+    const current = step("s1", { customStepName: "ขั้นปัจจุบัน" });
+    const future = step("s2", { customStepName: "ขั้นอนาคต" });
+    const html = renderToStaticMarkup(
+      createElement(ProductionStepNavigator, {
+        steps: [current, future],
+        nowSteps: [now(current)],
+        value: "s2",
+        onValueChange: vi.fn(),
+        readOnly: false,
+        renderStep: (item) => createElement("p", null, item.id),
+      }),
+    );
+    const tabTags = html.match(/<button[^>]+role="tab"[^>]*>/g) ?? [];
+    const currentTab = tabTags.find((tag) => tag.includes("ขั้นปัจจุบัน"));
+    const futureTab = tabTags.find((tag) => tag.includes("ขั้นอนาคต"));
+
+    expect(currentTab).toContain('data-workflow-state="current"');
+    expect(currentTab).toContain('aria-selected="false"');
+    expect(futureTab).toContain('data-workflow-state="queued"');
+    expect(futureTab).toContain('aria-selected="true"');
+    expect(html).toContain("<p>s2</p>");
+    expect(html).not.toContain("<p>s1</p>");
   });
 
   it("บอกสถานะ workflow ว่ากำลังทำ แม้งานยังอยู่ร้านนอก", () => {

@@ -7,13 +7,15 @@
 > **✅ PRODUCTION-UX2.13 ใบผลิตใช้ process bar และทำงานทีละขั้นแล้ว 2026-08-19**
 > `/production/[id]` เปลี่ยนจาก workspace ที่ยังวางหลายเรื่องพร้อมกันเป็น process bar แบบจุดเชื่อมจากขั้นผลิตจริง · ค่าเริ่มต้นเปิดขั้นที่จัดการได้ก่อน ผู้ใช้เลือกดูขั้นเสร็จ/ปัจจุบัน/ที่รอได้โดยการเลือกเป็นเพียงสถานะการมอง ไม่เปลี่ยน workflow และไม่เพิ่ม mutation · งานหลายเลนยังเห็นหลายขั้นที่ทำพร้อมกันได้ ไม่ถูกบังคับให้ดูเป็นเส้นตรงปลอม
 >
+> **รอบปรับตามภาพอ้างอิง Bill Tracker:** รางเป็นเส้น neutral ต่อเนื่องและกระจาย node เต็มความกว้างบนพื้นหน้า ไม่ห่อรวมกับ panel เป็นการ์ดเดียว · ขั้นเสร็จใช้เครื่องหมายถูก ขั้นอื่นใช้เลขลำดับ ชื่อขั้นอยู่ใต้ node โดยตัด lane/badge ซ้ำออก · สี node ยังบอก workflow จริงได้หลาย current ส่วนวงแหวนบอกเฉพาะขั้นที่ผู้ใช้กำลังเปิดดู จึงเลือกดูอนาคตได้โดยไม่ทำให้สถานะดูเหมือนเปลี่ยน
+>
 > panel แสดงเฉพาะ blocker, จำนวน, ผู้รับผิดชอบ และ action ของขั้นที่เลือกผ่าน `selectNowSteps`/handler เดิม · `GARMENT_PICK` ใช้การ์ดเบิกจริงจุดเดียว, DTF ยังเข้ารอบพิมพ์, งานร้านนอก/FAILED/read-only ใช้ permission และเหตุผลเดิม · แบบและสเปกกรองตามวิธีผลิตของขั้นนั้น ส่วนขั้นสินค้าแสดงสินค้า/ไซส์โดยไม่พ่วงลายจากขั้นอื่น · เสื้อและวัตถุดิบระดับทั้งใบอยู่ใน disclosure เดียวที่โหลดเมื่อเปิด; `?tab=inventory|history` ไม่ลงจอว่าง
 >
 > `/factory/station` ไม่ mount navigator ใหม่และยังเป็นหน้าปฏิบัติงานเส้นตรง ไม่มีข้อมูลเงิน · ทั้งสองโหมดใช้ query, mutation, permission, action policy, lock และ transition ชุดเดียวกัน; รอบนี้แก้ source truth งานร้านนอกให้ `IN_PROGRESS/COMPLETED` ยังนับเป็นงานค้าง จึงไม่เสนอเปิดใบส่งหรือผ่านรวดซ้ำ
 >
-> **หลักฐานหน้าจริงแบบอ่านอย่างเดียว:** ใบ `ORD-2606-0021` ที่ 1440×900, 1024×768 และ 390×844 ทั้ง Light/Dark · process bar เป็น node เชื่อมกันและบอกขั้นที่กำลังดู, เลือก GARMENT/DTF/HEAT_PRESS แล้วเหลือ panel ที่มองเห็นหนึ่งชุดและ primary action จุดเดียว, manual keyboard ใช้ Arrow เปลี่ยน focus แล้ว Enter เลือก, mobile rail เลื่อนขั้นที่เลือกเข้ามาเห็น, CTA เต็มแถว และทุกขนาด `scrollWidth=clientWidth` · พบ hydration warning เดิมจาก AppShell sidebar (`div`/`ul` ต่างกันหลัง permission query) ซึ่งอยู่นอกไฟล์และขอบเขตก้อนนี้; ไม่มี regression จาก process bar ที่ตรวจพบ
+> **หลักฐานหน้าจริงแบบอ่านอย่างเดียว:** ใบ `ORD-2606-0021` ที่ Chrome 1512×722, 1024×768 และ 390×844 พร้อม Light/Dark · node 3 ขั้นกระจายเต็มรางที่จอใหญ่และย่อเท่ากันที่มือถือ, ทุกขนาด `scrollWidth=clientWidth`, มี tabpanel ที่มองเห็นเพียง 1 ชุด · เลือกขั้น `HEAT_PRESS` ที่รอยังคง `data-workflow-state="waiting"`; Arrow ย้าย focus โดยยังไม่เปลี่ยน panel และ Enter จึงเลือกขั้นใหม่ · app console ไม่มี warning/error จากหน้านี้ (warning ที่พบมาจาก Chrome extension)
 >
-> **ด่าน final:** targeted **82/82** · full unit **1062/1062** · typecheck ผ่าน · lint 0 error (27 warning เดิมนอกก้อน) · `verify:ui` ผ่าน · production build Next.js 16.3.1 ผ่าน · Impeccable detector `[]` · fresh finish review ไม่พบ P0/P1 · `git diff --check` ผ่าน
+> **ด่าน final:** targeted navigator **6/6** · full unit **1063/1063** · typecheck ผ่าน · lint 0 error (27 warning เดิมนอกก้อน) · `verify:ui` ผ่าน · production build Next.js 16.3.1 ผ่าน · Impeccable layout detector `[]` · fresh independent layout/contract review ผ่านหลังเข้ม Dark node ให้ contrast ขาว/น้ำเงิน **4.92:1** และขาว/เขียว **7.13:1** · `git diff --check` ผ่าน
 >
 > **ต่อที่นี่:** ให้เบส refresh ใบ `ORD-2606-0021` แล้วลองเลือกขั้นบนราง; งานต่อแยกก้อนคือแก้ hydration ของ AppShell โดยไม่ปนกับ flow การผลิต
 

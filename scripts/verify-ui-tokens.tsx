@@ -1747,6 +1747,14 @@ check(
     !productionStepNavigatorSource.includes("ขั้นตอนการผลิต") ||
     !productionStepNavigatorSource.includes("กำลังดูขั้น") ||
     !productionStepNavigatorSource.includes('"h-px flex-1 bg-divider"') ||
+    !productionStepNavigatorSource.includes("data-workflow-state={state.workflow}") ||
+    !productionStepNavigatorSource.includes("{index + 1}") ||
+    !productionStepNavigatorSource.includes("basis-28 grow shrink-0") ||
+    !productionStepNavigatorSource.includes(
+      'className="card-surface m-0 overflow-hidden rounded-2xl p-0"',
+    ) ||
+    productionStepNavigatorSource.includes("LANE_LABELS") ||
+    productionStepNavigatorSource.includes("variant={state.variant}") ||
     productionStepNavigatorSource.includes("aria-current") ||
     !productionStepNavigatorSource.includes("renderStep(step)") ||
     !productionStepNavigatorSource.includes("ทำพร้อมกันได้") ||

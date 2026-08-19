@@ -1,13 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TINT } from "@/components/ui/tokens";
 import type { NowStep } from "@/lib/production-step-actions";
-import { LANE_LABELS, STEP_TYPE_LABELS, laneOf } from "@/lib/production-steps";
+import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Check, Circle, CircleDot, Clock3 } from "lucide-react";
+import { Check } from "lucide-react";
 import type { ProductionStep } from "./types";
 
 function stepLabel(step: ProductionStep) {
@@ -43,32 +41,34 @@ function navigatorState(
   readOnly: boolean,
 ) {
   if (step.status === "COMPLETED") {
-    return { label: "เสร็จแล้ว", variant: "success" as const, icon: Check };
+    return { label: "เสร็จแล้ว", workflow: "completed" as const };
   }
   if (step.status === "FAILED") {
-    return { label: "มีปัญหา", variant: "destructive" as const, icon: AlertTriangle };
+    return { label: "มีปัญหา", workflow: "failed" as const };
   }
   if (step.status === "ON_HOLD") {
-    return { label: "พักไว้", variant: "warning" as const, icon: Clock3 };
+    return { label: "พักไว้", workflow: "hold" as const };
   }
   // สถานะ workflow มาก่อนสิทธิ์/action ของคนที่กำลังดู — ขั้นที่เริ่มแล้วต้องอ่านว่า
   // "กำลังทำ" แม้ panel จะบอกต่อว่าอยู่ร้านนอกหรือผู้ใช้นี้แก้ไม่ได้
   if (step.status === "IN_PROGRESS") {
-    return { label: "กำลังทำ", variant: "accent" as const, icon: CircleDot };
+    return { label: "กำลังทำ", workflow: "in-progress" as const };
   }
   if (nowStep?.group === "waiting") {
-    return { label: readOnly ? "ดูอย่างเดียว" : "ติดเงื่อนไข", variant: "warning" as const, icon: Clock3 };
+    return {
+      label: readOnly ? "ดูอย่างเดียว" : "ติดเงื่อนไข",
+      workflow: "waiting" as const,
+    };
   }
   if (nowStep?.group === "current") {
     const actionable = hasFocusedPrimaryAction(nowStep);
     return {
       label: readOnly ? "ดูอย่างเดียว" : actionable ? "ทำได้ตอนนี้" : "ต้องเปิดดู",
-      variant: readOnly ? ("secondary" as const) : ("accent" as const),
-      icon: CircleDot,
+      workflow: "current" as const,
     };
   }
 
-  return { label: "รอในสายงาน", variant: "secondary" as const, icon: Circle };
+  return { label: "รอในสายงาน", workflow: "queued" as const };
 }
 
 function hasFocusedPrimaryAction({ step, group, action }: NowStep<ProductionStep>) {
@@ -116,32 +116,23 @@ export function ProductionStepNavigator({
       value={value}
       onValueChange={onValueChange}
       activationMode="manual"
-      className="card-surface overflow-hidden rounded-2xl"
+      className="min-w-0 space-y-5"
     >
-      <div className="border-b border-divider px-4 pt-4 sm:px-6 sm:pt-5">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2 className="text-base font-semibold text-strong">ขั้นตอนการผลิต</h2>
-            <p className="mt-0.5 text-xs text-muted">
-              เลือกทีละขั้น แล้วทำเฉพาะงานในขั้นนั้น
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <span className="text-xs font-medium tabular-nums text-muted">
-              กำลังดูขั้น {selectedIndex + 1}/{sortedSteps.length}
-            </span>
-            {availableCount > 1 ? (
-              <Badge variant="accent" size="sm">
-                ทำพร้อมกันได้ {availableCount} งาน
-              </Badge>
-            ) : null}
-          </div>
-        </div>
+      <section className="min-w-0" aria-labelledby="production-step-rail-title">
+        <h2 id="production-step-rail-title" className="sr-only">
+          ขั้นตอนการผลิต
+        </h2>
+        <p className="sr-only">
+          กำลังดูขั้น {selectedIndex + 1} จาก {sortedSteps.length}
+          {availableCount > 1 ? ` ทำพร้อมกันได้ ${availableCount} งาน` : ""}
+        </p>
 
-        <TabsList aria-label="เลือกขั้นการผลิต" className="gap-0 pb-4 sm:gap-0">
+        <TabsList
+          aria-label="เลือกขั้นการผลิต"
+          className="items-start gap-0 px-1 py-2 sm:gap-0 sm:px-2"
+        >
           {sortedSteps.map((step, index) => {
             const state = navigatorState(step, nowById.get(step.id), readOnly);
-            const StateIcon = state.icon;
             const countLabel =
               step.qtyTotal !== null && step.qtyTotal > 0
                 ? ` ${step.qtyDone ?? 0} จาก ${step.qtyTotal} ตัว`
@@ -152,8 +143,9 @@ export function ProductionStepNavigator({
                 key={step.id}
                 value={step.id}
                 aria-label={`${stepLabel(step)} ${state.label}${countLabel}`}
+                data-workflow-state={state.workflow}
                 className={cn(
-                  "group -mb-0 h-auto min-h-20 min-w-40 flex-col justify-start gap-2 border-b-0 px-0 py-0 text-center whitespace-normal",
+                  "group -mb-0 h-auto min-h-20 basis-28 grow shrink-0 flex-col justify-start gap-2 border-b-0 px-0 py-0 text-center whitespace-normal",
                   "data-[state=active]:border-transparent data-[state=active]:text-strong",
                 )}
               >
@@ -166,18 +158,25 @@ export function ProductionStepNavigator({
                   />
                   <span
                     className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 bg-surface transition-colors",
-                      step.status === "COMPLETED"
-                        ? TINT.success
-                        : step.status === "FAILED"
-                          ? TINT.error
-                          : nowById.get(step.id)?.group === "current"
-                            ? TINT.info
-                            : TINT.neutral,
-                      "group-data-[state=active]:border-blue-600 group-data-[state=active]:ring-4 group-data-[state=active]:ring-blue-100 dark:group-data-[state=active]:border-blue-300 dark:group-data-[state=active]:ring-blue-950",
+                      "relative z-[1] flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold tabular-nums transition-[border-color,background-color,color,box-shadow]",
+                      state.workflow === "completed" &&
+                        "border-green-600 bg-green-600 text-white dark:border-green-500 dark:bg-green-700",
+                      (state.workflow === "current" || state.workflow === "in-progress") &&
+                        "border-blue-600 bg-blue-600 text-white dark:border-blue-400 dark:bg-blue-600",
+                      state.workflow === "failed" &&
+                        "border-red-500 bg-red-50 text-red-700 dark:border-red-500 dark:bg-red-950 dark:text-red-200",
+                      (state.workflow === "hold" || state.workflow === "waiting") &&
+                        "border-amber-500 bg-amber-50 text-amber-800 dark:border-amber-500 dark:bg-amber-950 dark:text-amber-200",
+                      state.workflow === "queued" &&
+                        "border-divider bg-surface-muted text-muted",
+                      "ring-offset-2 ring-offset-bg group-data-[state=active]:ring-4 group-data-[state=active]:ring-blue-200 dark:group-data-[state=active]:ring-blue-900",
                     )}
                   >
-                    <StateIcon className="h-4 w-4" aria-hidden="true" />
+                    {state.workflow === "completed" ? (
+                      <Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
+                    ) : (
+                      <span aria-hidden="true">{index + 1}</span>
+                    )}
                   </span>
                   <span
                     className={cn(
@@ -186,25 +185,34 @@ export function ProductionStepNavigator({
                     )}
                   />
                 </span>
-                <span className="min-w-0 px-2">
-                  <span className="block break-words text-sm font-semibold text-strong">
+                <span className="min-w-0 px-2 pb-1">
+                  <span
+                    className={cn(
+                      "block break-words text-sm leading-snug text-muted transition-colors",
+                      (state.workflow === "current" || state.workflow === "in-progress") &&
+                        "font-semibold text-blue-700 dark:text-blue-300",
+                      state.workflow === "failed" &&
+                        "font-semibold text-red-700 dark:text-red-300",
+                      (state.workflow === "hold" || state.workflow === "waiting") &&
+                        "text-amber-800 dark:text-amber-300",
+                      "group-data-[state=active]:font-semibold group-data-[state=active]:text-strong",
+                    )}
+                  >
                     {stepLabel(step)}
-                  </span>
-                  <span className="mt-1 flex flex-wrap items-center justify-center gap-1.5 text-xs text-muted">
-                    <span>{LANE_LABELS[laneOf(step.stepType)]}</span>
-                    <Badge variant={state.variant} size="sm">
-                      {state.label}
-                    </Badge>
                   </span>
                 </span>
               </TabsTrigger>
             );
           })}
         </TabsList>
-      </div>
+      </section>
 
       {sortedSteps.map((step) => (
-        <TabsContent key={step.id} value={step.id} className="m-0 p-0">
+        <TabsContent
+          key={step.id}
+          value={step.id}
+          className="card-surface m-0 overflow-hidden rounded-2xl p-0"
+        >
           {renderStep(step)}
         </TabsContent>
       ))}
