@@ -102,7 +102,10 @@ export function ProductionStepNavigator({
 
   if (sortedSteps.length === 0) {
     return (
-      <section className="card-surface rounded-2xl p-5 sm:p-6" aria-labelledby="production-empty-route">
+      <section
+        className="border-y border-divider bg-surface p-5 sm:p-6"
+        aria-labelledby="production-empty-route"
+      >
         <h2 id="production-empty-route" className="font-semibold text-strong">
           ยังไม่มีขั้นตอนการผลิต
         </h2>
@@ -116,9 +119,13 @@ export function ProductionStepNavigator({
       value={value}
       onValueChange={onValueChange}
       activationMode="manual"
-      className="min-w-0 space-y-5"
+      className="min-w-0"
     >
-      <section className="min-w-0" aria-labelledby="production-step-rail-title">
+      <section
+        data-production-route-ribbon=""
+        className="sticky top-0 z-20 min-w-0 border-b border-divider bg-surface"
+        aria-labelledby="production-step-rail-title"
+      >
         <h2 id="production-step-rail-title" className="sr-only">
           ขั้นตอนการผลิต
         </h2>
@@ -129,7 +136,7 @@ export function ProductionStepNavigator({
 
         <TabsList
           aria-label="เลือกขั้นการผลิต"
-          className="items-start gap-0 px-1 py-2 sm:gap-0 sm:px-2"
+          className="items-start gap-0 px-4 py-3 sm:px-6 lg:px-8"
         >
           {sortedSteps.map((step, index) => {
             const state = navigatorState(step, nowById.get(step.id), readOnly);
@@ -145,7 +152,7 @@ export function ProductionStepNavigator({
                 aria-label={`${stepLabel(step)} ${state.label}${countLabel}`}
                 data-workflow-state={state.workflow}
                 className={cn(
-                  "group -mb-0 h-auto min-h-20 basis-28 grow shrink-0 flex-col justify-start gap-2 border-b-0 px-0 py-0 text-center whitespace-normal",
+                  "group -mb-0 h-auto min-h-[4.75rem] basis-28 grow shrink-0 flex-col justify-start gap-1.5 border-b-0 px-0 py-0 text-center whitespace-normal",
                   "data-[state=active]:border-transparent data-[state=active]:text-strong",
                 )}
               >
@@ -169,7 +176,7 @@ export function ProductionStepNavigator({
                         "border-amber-500 bg-amber-50 text-amber-800 dark:border-amber-500 dark:bg-amber-950 dark:text-amber-200",
                       state.workflow === "queued" &&
                         "border-divider bg-surface-muted text-muted",
-                      "ring-offset-2 ring-offset-bg group-data-[state=active]:ring-4 group-data-[state=active]:ring-blue-200 dark:group-data-[state=active]:ring-blue-900",
+                      "ring-offset-2 ring-offset-surface group-data-[state=active]:ring-3 group-data-[state=active]:ring-blue-200 dark:group-data-[state=active]:ring-blue-900",
                     )}
                   >
                     {state.workflow === "completed" ? (
@@ -185,10 +192,10 @@ export function ProductionStepNavigator({
                     )}
                   />
                 </span>
-                <span className="min-w-0 px-2 pb-1">
+                <span className="min-w-0 px-2">
                   <span
                     className={cn(
-                      "block break-words text-sm leading-snug text-muted transition-colors",
+                      "block break-words text-xs leading-snug text-muted transition-colors",
                       (state.workflow === "current" || state.workflow === "in-progress") &&
                         "font-semibold text-blue-700 dark:text-blue-300",
                       state.workflow === "failed" &&
@@ -211,7 +218,7 @@ export function ProductionStepNavigator({
         <TabsContent
           key={step.id}
           value={step.id}
-          className="card-surface m-0 overflow-hidden rounded-2xl p-0"
+          className="m-0 p-0"
         >
           {renderStep(step)}
         </TabsContent>

@@ -1490,7 +1490,7 @@ check(
 
 /* ── หน้าผลิตหลัก: shell/state/permission/touch contract ────────────────────
    หน้า ops ต้องรอทั้งข้อมูลงานและสิทธิ์ก่อนวาด action; ใบผลิตทุก state ใช้
-   PageShell จุดเดียว โดย ERP ใช้พื้นที่กว้างสำหรับ job traveler และจอสถานีคง content */
+   PageShell จุดเดียว แต่ ERP แทนหัวมาตรฐานด้วย Job Jacket ส่วนสถานีคง content */
 {
   const productionBoardSource = readFileSync(
     "src/app/(dashboard)/production/page.tsx",
@@ -1508,6 +1508,7 @@ check(
     "src/lib/production-detail-tabs.ts",
     "utf8",
   );
+  const pageShellSource = readFileSync("src/components/page-shell.tsx", "utf8");
   const productionNowSource = readFileSync(
     "src/components/production/production-now-card.tsx",
     "utf8",
@@ -1643,9 +1644,14 @@ check(
     !productionDetailSource.includes(
       'width={surface === "erp" ? "full" : "content"}',
     ) ||
+    !pageShellSource.includes("header?: ReactNode") ||
+    !pageShellSource.includes("{header ?? (") ||
     productionDetailSource.includes("ProductionModuleNav") ||
     productionDetailSource.includes("breadcrumb=") ||
-    !productionDetailSource.includes('aria-label="สรุปใบผลิต"') ||
+    !productionDetailSource.includes('data-production-workbench-header=""') ||
+    !productionDetailSource.includes('data-production-active-step=""') ||
+    (productionDetailSource.match(/aria-label="สรุปใบผลิต"/g) ?? []).length !== 1 ||
+    productionDetailSource.includes("ข้อมูลทั้งใบ") ||
     !productionDetailSource.includes("const garmentPickIsCurrent") ||
     !productionDetailSource.includes("const legacyGarmentReadinessUnknown") ||
     !productionDetailSource.includes("const legacyGarmentCheckNowStep") ||
@@ -1696,7 +1702,7 @@ check(
     productionDetailSource.includes("PageHeader")
   ) {
     problems.push(
-      "ใบผลิตต้องใช้ PageShell จุดเดียว ไม่มี nav/breadcrumb ซ้ำ และแยก summary/action/waiting/state ตรงสิทธิ์",
+      "ใบผลิตต้องใช้ PageShell จุดเดียวพร้อม Job Jacket เฉพาะ ERP ไม่มี summary/card stack เก่า และคง state/permission fail-closed",
     );
   }
 
@@ -1715,12 +1721,14 @@ check(
     !productionDetailSource.includes("garmentPickNowStep.note === null") ||
     !productionDetailSource.includes("nowSteps={steps}") ||
     !productionDetailSource.includes("focused={focused}") ||
-    !productionDetailSource.includes("const [visitedSecondarySections") ||
-    !productionDetailSource.includes('visitedSecondarySections.has("inventory")') ||
-    !productionDetailSource.includes('defaultOpen={initialTab === "inventory"}') ||
-    (productionDetailSource.match(/<details\b/g) ?? []).length !== 1 ||
-    (productionDetailSource.match(/<summary\b/g) ?? []).length !== 1 ||
-    (productionDetailSource.match(/<ProductionSecondaryDisclosure/g) ?? []).length !== 1 ||
+    !productionDetailSource.includes("const [inspectorSection, setInspectorSection]") ||
+    !productionDetailSource.includes(
+      'initialTab === "inventory" || initialTab === "history"',
+    ) ||
+    !productionDetailSource.includes('data-production-job-inspector=""') ||
+    !productionDetailSource.includes('aria-label="เลือกข้อมูลใบงาน"') ||
+    productionDetailSource.includes("ProductionSecondaryDisclosure") ||
+    productionDetailSource.includes("<details") ||
     (productionDetailSource.match(/id="production-garments"/g) ?? []).length !== 1 ||
     (productionDetailSource.match(/<GarmentPickCard\b/g) ?? []).length !== 1 ||
     !productionDetailSource.includes("viewedStep?.id === garmentPickNowStep?.step.id") ||
@@ -1750,9 +1758,9 @@ check(
     !productionStepNavigatorSource.includes("data-workflow-state={state.workflow}") ||
     !productionStepNavigatorSource.includes("{index + 1}") ||
     !productionStepNavigatorSource.includes("basis-28 grow shrink-0") ||
-    !productionStepNavigatorSource.includes(
-      'className="card-surface m-0 overflow-hidden rounded-2xl p-0"',
-    ) ||
+    !productionStepNavigatorSource.includes('data-production-route-ribbon=""') ||
+    !productionStepNavigatorSource.includes('className="m-0 p-0"') ||
+    productionStepNavigatorSource.includes("card-surface") ||
     productionStepNavigatorSource.includes("LANE_LABELS") ||
     productionStepNavigatorSource.includes("variant={state.variant}") ||
     productionStepNavigatorSource.includes("aria-current") ||
@@ -1770,7 +1778,7 @@ check(
     )
   ) {
     problems.push(
-      "ใบผลิต ERP ต้องเป็น process bar ที่เลือกดูได้ทีละขั้น ใช้ action policy เดิม ไม่ซ้ำ GARMENT_PICK และเก็บ inventory ทั้งใบใน disclosure เดียว",
+      "ใบผลิต ERP ต้องเป็น Job Jacket ที่เลือกดูทีละขั้น ใช้ action policy เดิม ไม่ซ้ำ GARMENT_PICK และย้าย inventory/history เข้า inspector เดียว",
     );
   }
 

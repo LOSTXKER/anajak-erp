@@ -42,6 +42,12 @@ interface PageShellProps {
   back?: { href: string; label: string };
   /** เนื้อหาใต้หัว (แถบ filter/summary) — โชว์เฉพาะตอนปกติ ไม่โชว์ระหว่างโหลด/พัง */
   headerChildren?: ReactNode;
+  /**
+   * หน้าที่เป็น workspace เฉพาะทางสามารถแทนหัวมาตรฐานได้ โดย PageShell ยังคุม
+   * loading/error/denied และความกว้างให้เหมือนเดิม · caller อื่นไม่ส่งค่านี้
+   * จึงยังใช้ PageHeader กลางตามปกติ
+   */
+  header?: ReactNode;
 
   // ---- สถานะของหน้า ----
   /** query หลัก/เช็คสิทธิ์ ยังไม่มา */
@@ -66,6 +72,7 @@ export function PageShell({
   titleBadge,
   back,
   headerChildren,
+  header,
   loading = false,
   skeleton,
   error,
@@ -92,18 +99,20 @@ export function PageShell({
   const normal = !error && !loading && !denied;
 
   return (
-    <div className={cn("space-y-6", WIDTH_CLASS[width], className)}>
-      <PageHeader
-        title={title}
-        description={description}
-        // ปุ่ม action ใช้ไม่ได้ระหว่างโหลด/พัง/ไม่มีสิทธิ์ — ซ่อนกันกดแล้วพัง
-        action={normal ? action : undefined}
-        breadcrumb={breadcrumb}
-        titleBadge={normal ? titleBadge : undefined}
-        back={back}
-      >
-        {normal ? headerChildren : undefined}
-      </PageHeader>
+    <div className={cn(header ? "space-y-0" : "space-y-6", WIDTH_CLASS[width], className)}>
+      {header ?? (
+        <PageHeader
+          title={title}
+          description={description}
+          // ปุ่ม action ใช้ไม่ได้ระหว่างโหลด/พัง/ไม่มีสิทธิ์ — ซ่อนกันกดแล้วพัง
+          action={normal ? action : undefined}
+          breadcrumb={breadcrumb}
+          titleBadge={normal ? titleBadge : undefined}
+          back={back}
+        >
+          {normal ? headerChildren : undefined}
+        </PageHeader>
+      )}
       {body}
     </div>
   );

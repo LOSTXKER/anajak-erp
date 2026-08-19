@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION-UX2.14 รื้อใบผลิตเป็น Job Jacket ใหม่ทั้งหน้าแล้ว 2026-08-19**
+> ERP `/production/[id]` ไม่ใช้ PageHeader + summary bubble + process bar ลอย + card stack แบบเดิมแล้ว · หน้าใหม่เรียงเป็น **แถบตัวตนงาน → route ribbon → operation canvas ของขั้นที่เลือก → primary action จุดเดียว** โดยขั้นที่เลือกกลายเป็นพื้นที่ทำงานทั้งหน้า ไม่ใช่การ์ดใบเดิมใต้ราง · หัวใหม่รวมเลขออเดอร์ ลูกค้า สถานะ จำนวน กำหนดส่ง และทางไปใบสั่งงาน/ออเดอร์โดยไม่ซ้ำ progress
+>
+> operation canvas แสดง blocker, จำนวน, ผู้รับผิดชอบ และ action ของขั้นที่เลือกผ่าน `selectNowSteps`/handler เดิม · ขั้นพิมพ์กับรีดเห็น reference sidecar เฉพาะแบบ/ตำแหน่ง/SKU ที่เกี่ยวข้อง; `GARMENT_PICK` ยังใช้การ์ดเบิกจริงเพียงจุดเดียว, DTF ยังเข้ารอบพิมพ์, งานร้านนอก/FAILED/read-only/stale/legacy ใช้ permission และเหตุผลเดิม · การเลือกขั้นเป็น view state จึงเลือกดูขั้นเสร็จหรือขั้นรอได้โดย workflow state ทุก node ไม่เปลี่ยน และงานหลายเลนยังรองรับหลาย current
+>
+> เสื้อ วัตถุดิบ และเส้นทางทั้งใบย้ายออกจาก main scroll ไปอยู่ inspector เดียว: desktop เป็น drawer ขวา มือถือเป็น bottom sheet, สลับ inventory/history ด้วย Radix Tabs, Escape ปิดแล้วคืน focus ให้ปุ่ม `ข้อมูลใบงาน` · deep link `?tab=inventory|history` เปิดหัวข้อเดิมถูกต้อง · `/factory/station` ยังคง PageHeader, summary, flow เส้นตรง และ no-money เดิมโดยไม่ mount Job Jacket/route ribbon/inspector
+>
+> **หลักฐานหน้าจริงแบบอ่านอย่างเดียว:** ใบ `ORD-2606-0021` ที่ 1280×720 Light/Dark · garment current, DTF completed และ Heat Press waiting แสดงทีละ panel, เลือก future แล้วยังเป็น `waiting`, Home ย้าย focus โดยไม่เลือกและ Enter จึงเปลี่ยน panel · inspector inventory/history, deep link, Escape/return-focus, not-found และ Station surface ผ่าน · ทุก state ที่ตรวจ `scrollWidth=clientWidth`, ไม่กด mutation และคืนธีมเดิมก่อนปิด server; responsive one-column/rail-scroll/drawer-bottom-sheet ถูกล็อกใน source contract และ fresh finish review
+>
+> **ด่าน final:** targeted **44/44** · full unit **1064/1064** · typecheck ผ่าน · lint 0 error (27 warning เดิมนอกก้อน) · `verify:ui` ผ่าน · production build Next.js 16.3.1 ผ่าน · Impeccable detector `[]` · React best-practices reviewไม่พบ waterfall/effect/inline-component regression · fresh independent finish review verdict **SHIP** และไม่พบ P0/P1 · `git diff --check` ผ่าน
+>
+> **ต่อที่นี่:** ให้เบส refresh ใบ `ORD-2606-0021` แล้วเลือกขั้นบน route ribbon; ปุ่ม `ข้อมูลใบงาน` เปิดข้อมูลระดับทั้งใบเมื่อจำเป็น ส่วน Station ใช้หน้าปฏิบัติงานเดิม
+
 > **✅ PRODUCTION-UX2.13 ใบผลิตใช้ process bar และทำงานทีละขั้นแล้ว 2026-08-19**
 > `/production/[id]` เปลี่ยนจาก workspace ที่ยังวางหลายเรื่องพร้อมกันเป็น process bar แบบจุดเชื่อมจากขั้นผลิตจริง · ค่าเริ่มต้นเปิดขั้นที่จัดการได้ก่อน ผู้ใช้เลือกดูขั้นเสร็จ/ปัจจุบัน/ที่รอได้โดยการเลือกเป็นเพียงสถานะการมอง ไม่เปลี่ยน workflow และไม่เพิ่ม mutation · งานหลายเลนยังเห็นหลายขั้นที่ทำพร้อมกันได้ ไม่ถูกบังคับให้ดูเป็นเส้นตรงปลอม
 >

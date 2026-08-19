@@ -140,7 +140,10 @@ export function GarmentPickCard({
         <CardHeader className={cn("pb-3", embedded && "p-0 pb-3")}>
           <h2
             id="production-garment-title"
-            className="flex items-center gap-2 text-base font-semibold text-strong"
+            className={cn(
+              "flex items-center gap-2 font-semibold tracking-tight text-strong",
+              embedded && primaryTask ? "text-2xl" : "text-base",
+            )}
           >
             <Shirt className="h-4 w-4" />
             {primaryTask ? "เบิกเสื้อจากสต๊อค" : "เสื้อจากสต๊อค"}
@@ -184,7 +187,10 @@ export function GarmentPickCard({
           <div className="min-w-0">
             <h2
               id="production-garment-title"
-              className="flex items-center gap-2 text-lg font-semibold text-strong"
+              className={cn(
+                "flex items-center gap-2 font-semibold tracking-tight text-strong",
+                embedded && primaryTask ? "text-2xl" : "text-lg",
+              )}
             >
               <Shirt className="h-5 w-5 text-secondary" />
               {primaryTask ? "เบิกเสื้อจากสต๊อค" : "เสื้อจากสต๊อค"}
