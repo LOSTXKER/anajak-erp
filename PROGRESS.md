@@ -4,12 +4,12 @@
 
 ## ตอนนี้
 
-> **✅ APP-SHELL-HYDRATION วินิจฉัยแล้ว 2026-08-20 — ไม่ใช่ source regression ของ ERP**
+> **✅ APP-SHELL-HYDRATION กู้ browser สำเร็จแล้ว 2026-08-20 — ไม่ใช่ source regression ของ ERP**
 > Error ใน Codex in-app browser เทียบ client `<ul className="space-y-1">` กับ server `<div className="space-y-5">` ซึ่งตรงกับ AppShell ก่อน/หลัง commit `9ff238d` ทุกคำ; source, dev chunk และ HTTP response ปัจจุบันเป็นโครงแบ่งกลุ่ม `<div>` เหมือนกัน และ port 3000 ยืนยันว่าเป็น repo `anajak-erp`
 >
 > แท็บใหม่บน origin เดิม `localhost:3000` ยัง hydrate ด้วย client เก่า แต่ server เดิมผ่าน diagnostic proxy ที่ origin ใหม่ `localhost:3005` แสดง sidebar แบ่งกลุ่มโดยไม่มี console/hydration error; SHA-256 ของ chunk จาก disk/3000/3005 ตรงกัน จึงยืนยันว่าเป็น stale client cache ระดับ origin ไม่ใช่ permission/query/markup ปัจจุบัน · หลักฐานทั้งหมดชี้ตรงกับ root-scope service worker รุ่นเก่าของ `fitness-app` ที่เคย cache `/_next/static` บน localhost (stack ยังอ้าง `../fitness-app/.next/...` และ ERP `/sw.js` ปัจจุบัน redirect ไป login จึงแทน worker เก่าไม่ได้)
 >
-> **ไม่แก้ AppShell:** การกู้ที่ถูกต้องคือ unregister เฉพาะ service worker ของ `http://localhost:3000` + ลบ Cache Storage ของ origin นี้ แล้ว cold reload; ไม่ต้องล้างฐานข้อมูล/cookie หรือ cache ของ origin อื่น · production detail และ business flow ไม่ได้รับผล
+> **ไม่แก้ AppShell:** หลังเบสอนุญาต ล้างเฉพาะ service worker/`fitness-*` Cache Storage ของ `http://localhost:3000`; หน้าล้างรายงานว่าไม่มี registration/cache เหลือให้ลบแล้ว จึง unload client เดิมด้วย `about:blank` และ restart dev server · cold load URL เดิมบน port 3000 กลับมาใช้ grouped sidebar ถูกต้อง, Recoverable Error = 0, console warning/error = `[]`, ปุ่มเบิกเสื้อโหลดพร้อมใช้ และ `scrollWidth=clientWidth` โดยไม่ล้าง cookie/login, ฐานข้อมูล หรือ origin อื่น · production detail และ business flow ไม่ได้รับผล
 >
 > **หลักฐาน:** Next dev MCP `projectPath=/Users/lostxker/dev/Git/anajak-erp`, `sessionErrors=[]` · current chunk มี `sidebarGroups`/`space-y-5` · clean-origin browser console `[]` · working tree ก่อนบันทึกสะอาดและ `main` ตรง `origin/main`
 
