@@ -5,6 +5,10 @@
 ## ตอนนี้
 
 > **✅ PRODUCTION-UX2.16 PHASE 1 — Direction A แยก Production Control ออกจาก Station Execution แล้ว 2026-08-20**
+> **✅ HOTFIX-TOPOLOGY-VOID:** แก้ runtime ที่ทุก mutation ซึ่งเรียก production topology lock ล้มด้วย `Failed to deserialize column of type 'void'` เพราะ PostgreSQL `pg_advisory_xact_lock()` คืนชนิด `void` แต่ Prisma `$queryRaw` พยายาม deserialize ผลลัพธ์ · helper กลาง cast เฉพาะค่าคืนเป็น `text` โดย side effect/อายุของ transaction advisory lock เหมือนเดิม และเพิ่ม regression test ล็อก SQL contract ไว้
+>
+> ด่านเดิมพลาดเพราะ unit mock คืน `[]` จึงไม่ผ่าน Prisma driver จริง ส่วน browser QA เป็น read-only ตามขอบเขตจึงไม่ยิง mutation · หลักฐาน hotfix: real Prisma/PostgreSQL transaction smoke ผ่าน, targeted production/goods/garment/outsource/order **115/115**, full unit **1220/1220**, typecheck, scoped lint และ `git diff --check` ผ่าน
+>
 > รากของการรื้อภาพหลายรอบคือ contract ขัดกัน: เอกสารเรียก `/production` ว่าจอหัวหน้าและ `/factory/station` ว่าจอพนักงาน แต่ `/production/[id]` ยังทำหน้าที่เป็นใบงานหน้าเครื่องและมี routine mutation ซ้ำกับ Station · Phase 1 แก้ responsibility และ server boundary พร้อมกัน ไม่ใช่เปลี่ยน card shell
 >
 > **ERP `/production/[id]` เป็น exception control record:** identity/status/จำนวน/ความคืบหน้า/deadline/owner นำ, attention แสดงเรื่องที่ต้องตัดสินใจเพียงเรื่องเดียว, operation ledger เทียบผลจริง/ผู้รับผิดชอบ/blocker ทุก lane และมี readiness/handoff/activity ข้างกัน · default surface เหลือ semantic manager action สำหรับมอบหมาย/ยกเลิกมอบหมายและแก้ exception; ไม่มีเบิก เริ่ม บันทึกจำนวน หรือ complete ปนกับงานสถานี · ข้อมูล owner ระดับใบผลิต, plan/SLA ต่อขั้น และ actor/source ใน activity ที่ schema ยังไม่มีติดป้าย `ข้อมูลที่ต้องเพิ่ม` แทนการเดา
@@ -13,7 +17,7 @@
 >
 > **server boundary ปิดช่องซ้ำ:** report/resolve/assign เป็น semantic command แยก, generic step writer ห้ามข้าม current lane/FAILED/service-managed step, manual QC transition ต้องมีหลักฐานว่าทุก production จบ, Goods/Garment/DTF/Outsource ใช้ ownership, idempotency fingerprint, atomic audit และ global lock order ชุดเดียว · Stock ตอบ duplicate แต่ ERP ไม่มี local fingerprint จะ fail closed ไม่ผูกเอกสารข้ามออเดอร์
 >
-> **หลักฐาน:** full unit **1219/1219** · independent boundary review targeted **202/202** และ verdict `SHIP` · typecheck ผ่าน · lint 0 error (27 warning เดิม) · `verify:ui` ผ่าน · production build Next 16.3.1 ผ่าน 44 routes · browser production build แบบอ่านอย่างเดียวที่ ERP 1440×900/390×844 และ Station 1024×768/390×844 ไม่มี horizontal overflow, hydration/console error หรือ production mutation; manager/report dialog, min-length error, Escape/return-focus, touch target และ mobile single-scroll ผ่าน พร้อมเปิดตรวจภาพ capture จริงทุกขนาด
+> **หลักฐาน:** full unit **1220/1220** · independent boundary review targeted **202/202** และ verdict `SHIP` · typecheck ผ่าน · lint 0 error (27 warning เดิม) · `verify:ui` ผ่าน · production build Next 16.3.1 ผ่าน 44 routes · browser production build แบบอ่านอย่างเดียวที่ ERP 1440×900/390×844 และ Station 1024×768/390×844 ไม่มี horizontal overflow, hydration/console error หรือ production mutation; manager/report dialog, min-length error, Escape/return-focus, touch target และ mobile single-scroll ผ่าน พร้อมเปิดตรวจภาพ capture จริงทุกขนาด
 >
 > **ยังไม่ปิด UX2.16 ทั้งก้อน:** Phase ถัดไปต้องเพิ่ม target work center ให้ QC rework, event/จำนวน DTF deviation ที่ละเอียดกว่า lifecycle รอบพิมพ์ (partial/waste/reprint/defect), read model owner/plan/SLA/audit actor ระดับใบผลิต และตัดสิน supervisor material recovery กับ WIP ownership ของ QC/final pack ให้ครบโดยไม่คืน routine fallback บน ERP · branch `codex/production-control-station-redesign`
 >
