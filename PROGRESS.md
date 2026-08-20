@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **🧭 PRODUCTION-UX2.16 รอเบสเลือกทิศ Production Control + Station Execution 2026-08-20**
+> เบสตรวจ UX2.15 จากจอจริงแล้วไม่รับ เพราะการรื้อหลายรอบยังวาง `/production/[id]` เป็นใบงานหน้าเครื่องและไม่ได้ออกแบบร่วมกับ Station Mode · audit เอกสาร/โค้ดพบ contract ขัดกันจริง: `/production` ระบุเป็นจอหัวหน้าและ `/factory/station` เป็นจอพนักงาน แต่ทั้งสอง mount `ProductionDetailScreen` และ routine mutation ชุดเดียวกัน โดย ERP ทำได้ทุก step
+>
+> มติใหม่: **ERP ใช้ควบคุม/จัดลำดับ/มอบหมาย/แก้ exception; Station ใช้รับงาน ลงมือ บันทึกจำนวน/หลักฐาน แจ้งปัญหา และ complete ตาม work center** · ข้อมูลและ service ชุดเดียวกัน แต่ responsibility ต้องไม่ซ้ำและ server ต้องบังคับ ไม่เชื่อเพียง station ที่เลือกจาก client
+>
+> ทำ standalone mockup แล้ว 3 ทิศแบบคู่ ERP 1440×900 + Station 1024×768 ใน `docs/mockups/production-control-station-2026-08-20/`: A Exception Control Record (แนะนำ), B Split Control Desk, C Route Dossier · ใช้ state `ORD-2606-0021` เดียวกัน, ไม่มี production mutation, ค่าที่ยังไม่มีติดป้าย `ข้อมูลที่ต้องเพิ่ม` · render 12 ภาพตรวจเองครบ, 6 target ไม่มี horizontal overflow/console error และ Station button ที่เห็น ≥44px
+>
+> **ห้ามถอด ERP execution ทันที:** Station ยังขาด QC rework target, GARMENT_RECEIVE evidence, report problem, DTF partial/waste/reprint/defect, blocked visibility, QC/Pack ownership และ material path แบบ no-money · ต้องเติม parity เป็นราย operation แล้วค่อยปิด fallback
+>
+> **ต่อที่นี่:** รอเบสเลือก A/B/C หรือผสมส่วนที่ชอบก่อนแตะ production code · branch `codex/production-control-station-redesign` commit `b5adedf` push แล้ว
+
 > **✅ APP-SHELL-HYDRATION กู้ browser สำเร็จแล้ว 2026-08-20 — ไม่ใช่ source regression ของ ERP**
 > Error ใน Codex in-app browser เทียบ client `<ul className="space-y-1">` กับ server `<div className="space-y-5">` ซึ่งตรงกับ AppShell ก่อน/หลัง commit `9ff238d` ทุกคำ; source, dev chunk และ HTTP response ปัจจุบันเป็นโครงแบ่งกลุ่ม `<div>` เหมือนกัน และ port 3000 ยืนยันว่าเป็น repo `anajak-erp`
 >
