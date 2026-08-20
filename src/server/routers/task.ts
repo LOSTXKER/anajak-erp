@@ -84,7 +84,10 @@ export const taskRouter = router({
     // ---- คิวพิมพ์ฟิล์ม: เฉพาะงานที่ลงมือพิมพ์ได้ตอนนี้จริง (FLOW-REDESIGN ข้อ 8 —
     // ไฟล์ไม่พร้อม/ติดรอบ active ถูกกรองใน service แล้ว · เรียงกำหนดส่งมาแล้ว) ----
     const printQueueP = can("manage_production")
-      ? getPrintQueue(ctx.prisma).then((q) => q.slice(0, 8))
+      ? getPrintQueue(ctx.prisma, {
+          userId: ctx.userId,
+          canSupervise: !ownWorkOnly,
+        }).then((q) => q.slice(0, 8))
       : [];
 
     // ---- คิวรีด: ขั้นรีดร้อนที่ผ่าน gate ฟิล์มเสร็จ∧เสื้อพร้อมเท่านั้น —

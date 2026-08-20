@@ -16,14 +16,17 @@ import {
 } from "@/lib/factory-station";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { STEP_STATUS_LABELS } from "@/lib/status-config";
+import { currentProductionProblemReason } from "@/lib/production-problem";
 import {
   StationModeShell,
   type StationNavItem,
 } from "@/components/factory/station-mode-shell";
 import {
   StationQueueView,
+  tagStationQueueBuckets,
   type StationQueueItem,
 } from "@/components/factory/station-queue-view";
+import { StationCurrentLayout } from "@/components/factory/station-current-layout";
 import { StationOrderWorkspace } from "@/components/factory/station-order-workspace";
 import { ProductionDetailScreen } from "@/components/production/production-detail-screen";
 import { PrintRunsScreen } from "@/components/production/print-runs-screen";
@@ -79,6 +82,8 @@ type StationEntry = FactoryStationQueueEntry & {
   stepLabel: string;
   overdue: boolean;
   assignedToId: string | null;
+  waitingOn: readonly string[];
+  note: string | null;
 };
 
 const STATION_VISUALS: Record<
@@ -169,6 +174,8 @@ function makeStationEntries(
           spot.stationLabel,
         overdue: job.overdue,
         assignedToId: spot.step?.assignedTo?.id ?? null,
+        waitingOn: spot.waitingOn,
+        note: spot.step ? currentProductionProblemReason(spot.step) : null,
       });
     }
   }
@@ -197,6 +204,20 @@ export function StationModeScreen() {
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanPending, setScanPending] = useState(false);
   const [multiple, setMultiple] = useState<MultipleResolution | null>(null);
+  const previousSelectionRef = useRef(`${productionId ?? ""}|${orderId ?? ""}`);
+
+  useEffect(() => {
+    const selection = `${productionId ?? ""}|${orderId ?? ""}`;
+    const changed = previousSelectionRef.current !== selection;
+    previousSelectionRef.current = selection;
+    if (!changed || (!productionId && !orderId)) return;
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>("[data-station-current-job-heading]")
+        ?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [productionId, orderId]);
 
   const permissionStale = meQuery.isError && Boolean(me);
   const canManageProduction =
@@ -222,15 +243,12 @@ export function StationModeScreen() {
               ? new Date(stationQueueQuery.dataUpdatedAt)
               : new Date(0),
           viewerId: me?.id,
-          showBlocked: canSupervise,
+          // Station ต้องแยกคิวติดด่านให้เห็น ไม่ปล่อยให้งานหายไปจากหน้างาน.
+          // own/unassigned filter ด้านล่างยังคงจำกัดช่าง ส่วนหัวหน้าเห็นทั้งหมด.
+          showBlocked: true,
         },
       ),
-    [
-      stationQueueQuery.data,
-      stationQueueQuery.dataUpdatedAt,
-      me?.id,
-      canSupervise,
-    ],
+    [stationQueueQuery.data, stationQueueQuery.dataUpdatedAt, me?.id],
   );
 
   const queueItems = useMemo(() => {
@@ -240,7 +258,10 @@ export function StationModeScreen() {
         canSupervise || !entry.assignedToId || entry.assignedToId === me?.id,
     );
     const queue = buildFactoryStationQueue(station, candidates);
-    return [...queue.active, ...queue.ready].map<StationQueueItem>((entry) => ({
+    const toItem = (
+      entry: StationEntry,
+      status: StationQueueItem["status"],
+    ): StationQueueItem => ({
       key: entry.key,
       orderId: entry.orderId,
       productionId: entry.productionId,
@@ -250,12 +271,24 @@ export function StationModeScreen() {
       deadline: entry.deadline,
       priority: entry.priority ?? null,
       stepLabel: entry.stepLabel,
-      status: entry.status === "IN_PROGRESS" ? "active" : "ready",
+      // UI status มาจาก bucket ที่ pure queue model ตัดสินแล้ว ไม่ infer ซ้ำจาก
+      // step.status — งาน PENDING ที่ gate block จึงไม่หลุดเป็น "พร้อม".
+      status,
       qtyDone: entry.qtyDone ?? null,
       qtyTotal: entry.qtyTotal ?? null,
       overdue: entry.overdue,
-    }));
+      waitingOn: entry.waitingOn,
+      note: entry.note,
+    });
+    return tagStationQueueBuckets(queue).map(({ entry, status }) =>
+      toItem(entry, status),
+    );
   }, [board, canSupervise, me?.id, station]);
+  const selectedQueueStatus = queueItems.find((item) =>
+    productionId
+      ? item.productionId === productionId
+      : Boolean(orderId && item.orderId === orderId),
+  )?.status ?? null;
 
   useEffect(() => {
     if (station && !productionId && !orderId) {
@@ -327,6 +360,153 @@ export function StationModeScreen() {
         productionId: item.productionId,
         orderId: item.productionId ? null : item.orderId,
       }),
+    );
+  }
+
+  function renderScanPanel(compact: boolean) {
+    return (
+      <section
+        className={cn(
+          "rounded-2xl border border-divider bg-surface shadow-sm",
+          compact ? "p-3" : "px-4 py-3 sm:px-5",
+        )}
+        aria-labelledby={
+          compact ? "station-rail-scan-title" : "station-scan-title"
+        }
+        data-station-scan={compact ? "compact" : "full"}
+      >
+        <div
+          className={cn(
+            "gap-3",
+            compact
+              ? "grid"
+              : "grid lg:grid-cols-[minmax(13rem,0.55fr)_minmax(24rem,1.45fr)] lg:items-center",
+          )}
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-secondary">
+              <ScanLine className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <h2
+                id={compact ? "station-rail-scan-title" : "station-scan-title"}
+                className="text-sm font-semibold text-strong"
+              >
+                {compact ? "สแกน / ค้นหาเลขงาน" : "เปิดใบงานอื่น"}
+              </h2>
+              <p className={cn("text-xs text-muted", !compact && "truncate")}>
+                สแกนเพื่อเปิดบริบทเท่านั้น ไม่เริ่มหรือปิดงานอัตโนมัติ
+              </p>
+            </div>
+          </div>
+          <form
+            onSubmit={handleScan}
+            className={cn(
+              "flex min-w-0 flex-col gap-2",
+              !compact && "sm:flex-row",
+            )}
+          >
+            <label htmlFor="factory-station-scan" className="sr-only">
+              เลขออเดอร์หรือข้อมูลจาก QR
+            </label>
+            <div className="relative min-w-0 flex-1">
+              <QrCode
+                className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"
+                aria-hidden="true"
+              />
+              <Input
+                ref={scanRef}
+                id="factory-station-scan"
+                value={scanValue}
+                onChange={(event) => {
+                  setScanValue(event.target.value);
+                  if (scanError) setScanError(null);
+                }}
+                autoComplete="off"
+                spellCheck={false}
+                enterKeyHint="go"
+                placeholder={
+                  compact
+                    ? "เลขออเดอร์หรือ QR"
+                    : "เลขออเดอร์หรือ QR เช่น ORD-2608-0041"
+                }
+                aria-invalid={!!scanError || undefined}
+                aria-describedby={
+                  scanError ? "factory-station-scan-error" : undefined
+                }
+                className="pl-10 text-base sm:text-base"
+              />
+            </div>
+            <Button
+              type="submit"
+              variant={compact ? "outline" : "default"}
+              disabled={scanPending}
+              aria-busy={scanPending || undefined}
+              className={cn(compact && "w-full")}
+            >
+              <Search />
+              {scanPending ? "กำลังค้นหา..." : "เปิดงาน"}
+            </Button>
+          </form>
+        </div>
+        {scanError && (
+          <p
+            id="factory-station-scan-error"
+            role="alert"
+            className="mt-3 text-sm text-red-300"
+          >
+            {scanError}
+          </p>
+        )}
+        {multiple && (
+          <div
+            aria-live="polite"
+            className={cn(TINT.warning, "mt-3 rounded-xl border p-3")}
+          >
+            <p className="text-sm font-medium">
+              {multiple.orderNumber} มีหลายใบผลิต — เลือกใบที่อยู่ตรงหน้า
+            </p>
+            <div
+              className={cn(
+                "mt-3 grid gap-2",
+                !compact && "sm:grid-cols-2 lg:grid-cols-3",
+              )}
+            >
+              {multiple.productions.map((production, index) => {
+                const summary = productionChoiceSummary(production, index);
+                return (
+                  <Button
+                    key={production.id}
+                    variant="outline"
+                    onClick={() =>
+                      navigateToContext({
+                        kind: "production",
+                        productionId: production.id,
+                        productionStatus: production.status,
+                        orderId: multiple.orderId,
+                        orderNumber: multiple.orderNumber,
+                        internalStatus: multiple.internalStatus,
+                        station: multiple.station,
+                      })
+                    }
+                    className="h-auto min-h-14 justify-start gap-3 py-2 text-left"
+                  >
+                    <Printer className="shrink-0" />
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">
+                        {summary.title}
+                      </span>
+                      <span className="block truncate text-xs font-normal text-muted">
+                        {summary.detail}
+                      </span>
+                    </span>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
     );
   }
 
@@ -446,24 +626,34 @@ export function StationModeScreen() {
                 }}
               />
             </div>
-          ) : productionId ? (
-            <ProductionDetailScreen
-              id={productionId}
-              surface="station"
-              station={station}
-            />
-          ) : orderId ? (
-            <StationOrderWorkspace
-              orderId={orderId}
-              station={station}
-              canCountQc={canManageProduction}
-              canCreateDelivery={canCreateDelivery}
-              canAdvancePacking={canAdvancePacking}
-              onBack={() => router.push(routeFor({ station }))}
-              onOpenProduction={(id) =>
-                router.push(routeFor({ station, productionId: id }))
-              }
-            />
+          ) : productionId || orderId ? (
+            <StationCurrentLayout
+              items={queueItems}
+              selection={{ productionId, orderId }}
+              scan={renderScanPanel(true)}
+              onOpen={openQueueItem}
+            >
+              {productionId ? (
+                <ProductionDetailScreen
+                  id={productionId}
+                  surface="station"
+                  station={station}
+                  stationQueueStatus={selectedQueueStatus}
+                />
+              ) : orderId ? (
+                <StationOrderWorkspace
+                  orderId={orderId}
+                  station={station}
+                  canCountQc={canManageProduction}
+                  canCreateDelivery={canCreateDelivery}
+                  canAdvancePacking={canAdvancePacking}
+                  onBack={() => router.push(routeFor({ station }))}
+                  onOpenProduction={(id) =>
+                    router.push(routeFor({ station, productionId: id }))
+                  }
+                />
+              ) : null}
+            </StationCurrentLayout>
           ) : station === "dtf-print" ? (
             <PrintRunsScreen surface="station" />
           ) : station && visual ? (
@@ -479,122 +669,7 @@ export function StationModeScreen() {
             />
           ) : null}
 
-          <section
-            className="rounded-2xl border border-divider bg-surface px-4 py-3 shadow-sm sm:px-5"
-            aria-labelledby="station-scan-title"
-          >
-            <div className="grid gap-3 lg:grid-cols-[minmax(13rem,0.55fr)_minmax(24rem,1.45fr)] lg:items-center">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-secondary">
-                  <ScanLine className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <div className="min-w-0">
-                  <h2
-                    id="station-scan-title"
-                    className="text-sm font-semibold text-strong"
-                  >
-                    เปิดใบงานอื่น
-                  </h2>
-                  <p className="truncate text-xs text-muted">
-                    สแกนมีหน้าที่เปิดใบงานเท่านั้น
-                    ระบบจะยังไม่เริ่มหรือปิดงานเอง
-                  </p>
-                </div>
-              </div>
-              <form
-                onSubmit={handleScan}
-                className="flex min-w-0 flex-col gap-2 sm:flex-row"
-              >
-                <label htmlFor="factory-station-scan" className="sr-only">
-                  เลขออเดอร์หรือข้อมูลจาก QR
-                </label>
-                <div className="relative min-w-0 flex-1">
-                  <QrCode
-                    className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"
-                    aria-hidden="true"
-                  />
-                  <Input
-                    ref={scanRef}
-                    id="factory-station-scan"
-                    value={scanValue}
-                    onChange={(event) => {
-                      setScanValue(event.target.value);
-                      if (scanError) setScanError(null);
-                    }}
-                    autoComplete="off"
-                    spellCheck={false}
-                    enterKeyHint="go"
-                    placeholder="เลขออเดอร์หรือ QR เช่น ORD-2608-0041"
-                    aria-invalid={!!scanError || undefined}
-                    aria-describedby={
-                      scanError ? "factory-station-scan-error" : undefined
-                    }
-                    className="pl-10 text-base sm:text-base"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={scanPending}
-                  aria-busy={scanPending || undefined}
-                >
-                  <Search />
-                  {scanPending ? "กำลังค้นหา..." : "เปิดงาน"}
-                </Button>
-              </form>
-            </div>
-            {scanError && (
-              <p
-                id="factory-station-scan-error"
-                role="alert"
-                className="mt-3 text-sm text-red-700 dark:text-red-300"
-              >
-                {scanError}
-              </p>
-            )}
-            {multiple && (
-              <div
-                aria-live="polite"
-                className={cn(TINT.warning, "mt-3 rounded-xl border p-4")}
-              >
-                <p className="font-medium">
-                  {multiple.orderNumber} มีหลายใบผลิต — เลือกใบที่อยู่ตรงหน้า
-                </p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {multiple.productions.map((production, index) => {
-                    const summary = productionChoiceSummary(production, index);
-                    return (
-                      <Button
-                        key={production.id}
-                        variant="outline"
-                        onClick={() =>
-                          navigateToContext({
-                            kind: "production",
-                            productionId: production.id,
-                            productionStatus: production.status,
-                            orderId: multiple.orderId,
-                            orderNumber: multiple.orderNumber,
-                            internalStatus: multiple.internalStatus,
-                            station: multiple.station,
-                          })
-                        }
-                        className="h-auto min-h-14 justify-start gap-3 py-2 text-left"
-                      >
-                        <Printer className="shrink-0" />
-                        <span className="min-w-0">
-                          <span className="block truncate font-medium">
-                            {summary.title}
-                          </span>
-                          <span className="block truncate text-xs font-normal text-muted">
-                            {summary.detail}
-                          </span>
-                        </span>
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </section>
+          {!productionId && !orderId ? renderScanPanel(false) : null}
 
           {stationQueueQuery.isError && stationQueueQuery.data && (
             <p

@@ -53,6 +53,14 @@ describe("getProductionStepActionPolicy", () => {
     });
   });
 
+  it("GARMENT_RECEIVE ต้องปิดจากหลักฐานใบตรวจรับ ไม่เสนอปุ่ม generic", () => {
+    expect(policy({ stepType: "GARMENT_RECEIVE" })).toMatchObject({
+      structuralMode: "internal",
+      primary: null,
+      canRunInternal: false,
+    });
+  });
+
   it("PACKAGING เก่าเป็นข้อมูล compatibility เท่านั้น — ไม่เสนอ action ผลิต", () => {
     expect(policy({ stepType: "PACKAGING" })).toMatchObject({
       primary: null,
@@ -61,6 +69,23 @@ describe("getProductionStepActionPolicy", () => {
       canRunInternal: false,
     });
   });
+
+  it.each(["FAILED", "ON_HOLD"])(
+    "สถานะ exception %s ไม่เสนอเริ่ม/ส่งร้าน/ผ่านรวด",
+    (status) => {
+      expect(policy({ status })).toMatchObject({
+        primary: null,
+        canSendOutsource: false,
+        canQuickPass: false,
+        canRunInternal: false,
+      });
+      expect(policy({ stepType: "EMBROIDERY", status })).toMatchObject({
+        primary: null,
+        canSendOutsource: false,
+        canQuickPass: false,
+      });
+    },
+  );
 });
 
 describe("firstPendingStepIdsByLane", () => {
@@ -88,6 +113,14 @@ describe("firstPendingStepIdsByLane", () => {
       { id: "print", stepType: "DTF_PRINT", status: "PENDING", sortOrder: 1 },
     ]);
     expect(ids).toEqual(new Set(["print"]));
+  });
+
+  it("sortOrder เท่ากันใช้ id เป็น tie-break ให้ตรงทุก writer", () => {
+    const ids = firstPendingStepIdsByLane([
+      { id: "step-z", stepType: "DTF_PRINT", status: "PENDING", sortOrder: 1 },
+      { id: "step-a", stepType: "DTF_PRINT", status: "PENDING", sortOrder: 1 },
+    ]);
+    expect(ids).toEqual(new Set(["step-a"]));
   });
 });
 
@@ -198,10 +231,31 @@ describe("selectNowSteps — ตอนนี้ต้องทำอะไร (�
   });
 
   it("ขั้นที่มีปัญหาให้เปิดดูรายละเอียด ไม่ใช่กดปิดทับ", () => {
-    const [now] = selectNowSteps([mk({ stepType: "DTF_PRINT", status: "FAILED" })], PERMS);
-    expect(now!.action).toBeNull();
-    expect(now!.note).toContain("มีปัญหา");
+    const [now] = selectNowSteps([
+      mk({
+        stepType: "DTF_PRINT",
+        status: "FAILED",
+        notes: "[แจ้งปัญหาจากสถานี] ฟิล์มมีตำหนิ",
+      }),
+    ], PERMS);
+    expect(now).toMatchObject({
+      action: null,
+      group: "waiting",
+      note: "ฟิล์มมีตำหนิ",
+    });
   });
+
+  it.each(["HEAT_PRESS", "GARMENT_PICK"])(
+    "ขั้น %s ที่ ON_HOLD อยู่กลุ่มรอและบอกว่าถูกพัก ไม่เป็น primary task",
+    (stepType) => {
+      const [now] = selectNowSteps([mk({ stepType, status: "ON_HOLD" })], PERMS);
+      expect(now).toMatchObject({
+        group: "waiting",
+        action: null,
+        note: "พักไว้ — รอหัวหน้าตัดสินใจ",
+      });
+    },
+  );
 
   it("สิทธิ์อ่านอย่างเดียวจัดขั้นพร้อมทำไว้ใต้กลุ่มรอ และไม่เสนอทางเบิกเสื้อ", () => {
     const readOnly = { ...PERMS, canOutsource: false, canUpdateStep: false };
@@ -215,6 +269,15 @@ describe("selectNowSteps — ตอนนี้ต้องทำอะไร (�
   it("เบิกเสื้อที่มีสิทธิ์ยังเป็นงานพร้อมทำผ่านการ์ดเบิกเฉพาะทาง", () => {
     const [garment] = selectNowSteps([mk({ stepType: "GARMENT_PICK" })], PERMS);
     expect(garment).toMatchObject({ group: "current", action: null });
+  });
+
+  it("รับเสื้อลูกค้าให้เปิดใบตรวจรับเฉพาะทาง ไม่ส่ง generic action", () => {
+    const [receipt] = selectNowSteps([mk({ stepType: "GARMENT_RECEIVE" })], PERMS);
+    expect(receipt).toMatchObject({
+      group: "current",
+      action: null,
+      note: "บันทึกผ่านใบตรวจรับเสื้อลูกค้า",
+    });
   });
 
   it("ใบที่ทุกขั้นเสร็จแล้วไม่เหลืออะไรต้องทำ", () => {

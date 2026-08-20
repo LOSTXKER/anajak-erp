@@ -86,8 +86,12 @@ export function GarmentPickCard({
   embedded = false,
   primaryTask = false,
 }: GarmentPickCardProps) {
-  const [showIssue, setShowIssue] = useState(false);
+  // snapshot target ตอนเปิด: refetch จากอีกจอห้ามสลับ dialog ไปผูก GARMENT_PICK
+  // ตัวถัดไปเงียบ ๆ. ถ้า target ปัจจุบันเปลี่ยน dialog จะ unmount และให้เปิดใหม่.
+  const [issueStepId, setIssueStepId] = useState<string | null>(null);
+  const [issueErrorVersion, setIssueErrorVersion] = useState(0);
   const [showReturn, setShowReturn] = useState(false);
+  const [returnErrorVersion, setReturnErrorVersion] = useState(0);
   const garmentPickQuery = trpc.production.garmentPick.useQuery({ productionId });
 
   if (garmentPickQuery.isLoading) {
@@ -131,6 +135,7 @@ export function GarmentPickCard({
   }
 
   const data = garmentPickQuery.data;
+  const garmentDataStale = garmentPickQuery.isError;
 
   if (!data || data.lines.length === 0) {
     if (!legacyReadinessUnknown && !primaryTask) return null;
@@ -209,11 +214,33 @@ export function GarmentPickCard({
                 : "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-200",
             )}
           >
-            {needMore ? `ยังขาด ${missingQty} ตัว` : `ครบ ${fulfilledQty}/${totalNeeded} ตัว`}
+            {garmentDataStale
+              ? "ข้อมูลอาจไม่สด"
+              : needMore
+                ? `ยังขาด ${missingQty} ตัว`
+                : `ครบ ${fulfilledQty}/${totalNeeded} ตัว`}
           </span>
         </div>
       </CardHeader>
       <CardContent className={cn("space-y-3", embedded && "p-0")}>
+        {garmentDataStale ? (
+          <div className={cn(TINT.warning, "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2")}>
+            <p role="alert" className="flex items-start gap-1.5 text-xs font-medium">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              ตัวเลขนี้มาจากข้อมูลค้าง โหลดล่าสุดไม่สำเร็จ จึงปิดการเบิกและคืนชั่วคราว
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void garmentPickQuery.refetch()}
+              className="gap-1.5"
+            >
+              <RefreshCw aria-hidden="true" />
+              ลองใหม่
+            </Button>
+          </div>
+        ) : null}
         {!data.configured && (
           <p className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-2 text-xs text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -286,7 +313,7 @@ export function GarmentPickCard({
         })}
         {/* ปุ่มปิดขั้น GARMENT_PICK อยู่การ์ดนี้ที่เดียว (steps list ไม่มีปุ่มเร็ว) —
             เป็นแถวเต็มความกว้างท้ายการ์ด มือถือเป้านิ้ว 44px ไม่ซุกมุม header (UX4) */}
-        {data.configured &&
+        {!garmentDataStale && data.configured &&
           ((canIssueGarments && pickStep && needMore) ||
             (canReturnGarments && outstanding > 0)) && (
           <div className="flex flex-col gap-2 border-t border-divider pt-4 sm:flex-row">
@@ -294,7 +321,10 @@ export function GarmentPickCard({
               <Button
                 size={primaryTask ? "lg" : "default"}
                 className={cn("w-full gap-1.5 sm:w-auto", primaryTask && "sm:min-w-56")}
-                onClick={() => setShowIssue(true)}
+                onClick={() => {
+                  setIssueErrorVersion(garmentPickQuery.errorUpdatedAt);
+                  setIssueStepId(pickStep.id);
+                }}
               >
                 <PackageOpen />
                 {primaryTask ? `เบิกเสื้อที่ยังขาด ${missingQty} ตัว` : "เบิกเสื้อ"}
@@ -304,7 +334,10 @@ export function GarmentPickCard({
               <Button
                 variant="outline"
                 className="w-full gap-1.5 sm:w-auto"
-                onClick={() => setShowReturn(true)}
+                onClick={() => {
+                  setReturnErrorVersion(garmentPickQuery.errorUpdatedAt);
+                  setShowReturn(true);
+                }}
               >
                 <Undo2 />
                 คืนเศษ
@@ -314,15 +347,21 @@ export function GarmentPickCard({
         )}
       </CardContent>
 
-      {showIssue && pickStep && (
+      {!garmentDataStale &&
+        garmentPickQuery.errorUpdatedAt === issueErrorVersion &&
+        issueStepId &&
+        pickStep?.id === issueStepId && (
         <IssueGarmentsDialog
+          key={issueStepId}
           productionId={productionId}
-          stepId={pickStep.id}
+          stepId={issueStepId}
           lines={data.lines}
-          onClose={() => setShowIssue(false)}
+          onClose={() => setIssueStepId(null)}
         />
       )}
-      {showReturn && (
+      {!garmentDataStale &&
+        garmentPickQuery.errorUpdatedAt === returnErrorVersion &&
+        showReturn && (
         <ReturnGarmentsDialog
           productionId={productionId}
           lines={data.lines}

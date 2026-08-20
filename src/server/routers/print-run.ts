@@ -1,6 +1,7 @@
 import { z } from "zod";
+import type { Role } from "@prisma/client";
 import { router, protectedProcedure, requirePermission } from "../trpc";
-import { createAuditLog } from "@/server/helpers";
+import { hasPermission } from "@/lib/permissions";
 import {
   getPrintQueue,
   createPrintRun,
@@ -13,12 +14,29 @@ import {
 // จอช่างพิมพ์ DTF — staff กดเองได้ทั้ง flow (เร็วหน้างานสำคัญกว่า — มติเดียวกับผ่านรวด)
 const productionTeam = requirePermission("manage_production");
 
+function printRunAccess(ctx: {
+  userId: string;
+  userRole: Role;
+  permissionOverrides?: unknown;
+}) {
+  return {
+    userId: ctx.userId,
+    canSupervise: hasPermission(
+      ctx.userRole,
+      ctx.permissionOverrides,
+      "supervise_operations",
+    ),
+  };
+}
+
 export const printRunRouter = router({
   // อ่านเปิดทุก role (ไม่มีข้อมูลเงิน — sidebar ไม่ gate ตาม role: แอดมิน/ขายดูคิวได้
   // ตอบลูกค้าว่างานถึงไหน) · mutation = ทีมผลิตเท่านั้น
 
   /** คิวพิมพ์ฟิล์ม — งานไฟล์พร้อม เรียงตามกำหนดส่ง */
-  queue: protectedProcedure.query(({ ctx }) => getPrintQueue(ctx.prisma)),
+  queue: protectedProcedure.query(({ ctx }) =>
+    getPrintQueue(ctx.prisma, printRunAccess(ctx)),
+  ),
 
   /** รอบค้าง + ประวัติ 7 วัน */
   list: protectedProcedure.query(({ ctx }) => listPrintRuns(ctx.prisma)),
@@ -35,15 +53,7 @@ export const printRunRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const run = await createPrintRun(ctx.prisma, { ...input, userId: ctx.userId });
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "CREATE",
-        entityType: "PRINT_RUN",
-        entityId: run.id,
-        newValue: { runNumber: run.runNumber, items: run.items.length },
-      });
-      return run;
+      return createPrintRun(ctx.prisma, { ...input, ...printRunAccess(ctx) });
     }),
 
   /** พิมพ์จบทั้งม้วน — รอตัดแยก+ติดป้าย */
@@ -51,7 +61,10 @@ export const printRunRouter = router({
     .use(productionTeam)
     .input(z.object({ runId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await markPrintRunPrinted(ctx.prisma, input.runId);
+      await markPrintRunPrinted(ctx.prisma, {
+        runId: input.runId,
+        ...printRunAccess(ctx),
+      });
       return { ok: true };
     }),
 
@@ -73,14 +86,7 @@ export const printRunRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const run = await completePrintRun(ctx.prisma, { ...input, userId: ctx.userId });
-      await createAuditLog(ctx.prisma, {
-        userId: ctx.userId,
-        action: "UPDATE",
-        entityType: "PRINT_RUN",
-        entityId: run.id,
-        newValue: { runNumber: run.runNumber, status: "COMPLETED" },
-      });
+      await completePrintRun(ctx.prisma, { ...input, ...printRunAccess(ctx) });
       return { ok: true };
     }),
 
@@ -89,7 +95,10 @@ export const printRunRouter = router({
     .use(productionTeam)
     .input(z.object({ runId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await cancelPrintRun(ctx.prisma, input.runId);
+      await cancelPrintRun(ctx.prisma, {
+        runId: input.runId,
+        ...printRunAccess(ctx),
+      });
       return { ok: true };
     }),
 });

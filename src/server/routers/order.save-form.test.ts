@@ -116,7 +116,6 @@ function itemInput(savedProductId?: string) {
         variants: [
           { size: "M", color: undefined as string | undefined, quantity: 10 },
         ],
-        receivedInspected: false,
       },
     ],
     prints: [],
@@ -133,6 +132,7 @@ describe("order.saveForm", () => {
         productId: null,
         productType: "T_SHIRT",
         itemSource: null,
+        receivedInspected: true,
         variants: [{ size: "M", color: null }],
       },
     ]);
@@ -156,13 +156,39 @@ describe("order.saveForm", () => {
       data: expect.objectContaining({
         orderId: ORDER_ID,
         products: {
-          create: [expect.objectContaining({ id: "saved-product-1" })],
+          create: [
+            expect.objectContaining({
+              id: "saved-product-1",
+              receivedInspected: true,
+            }),
+          ],
         },
       }),
     });
     expect(tx.goodsReceiptLine.findMany).toHaveBeenCalledWith({
       where: { orderItemProductId: { in: ["saved-product-1"] } },
       select: { orderItemProductId: true },
+    });
+  });
+
+  it("ไม่รับ receivedInspected จาก client และแถวใหม่เริ่ม false เสมอ", async () => {
+    const tx = baseTx("INQUIRY");
+    const edited = itemInput();
+    Object.assign(edited.products[0], { receivedInspected: true });
+
+    await orderRouter.createCaller(makeContext(tx)).saveForm({
+      id: ORDER_ID,
+      expectedUpdatedAt: UPDATED_AT,
+      expectedItemsFingerprint: orderItemsFingerprint([]),
+      work: { items: [edited] },
+    });
+
+    expect(tx.orderItem.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        products: {
+          create: [expect.objectContaining({ receivedInspected: false })],
+        },
+      }),
     });
   });
 

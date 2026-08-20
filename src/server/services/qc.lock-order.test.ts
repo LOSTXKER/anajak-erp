@@ -127,6 +127,7 @@ describe("createQcRecord production lock contract", () => {
       select: { id: true, steps: { select: { id: true } } },
     });
     expect(log).toEqual([
+      "lock:unknown:order-1",
       "read:production-refs",
       "lock:production_steps:step-a",
       "lock:production_steps:step-b",

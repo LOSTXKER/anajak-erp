@@ -431,11 +431,11 @@ async function main() {
     });
     const recv = (await asStaff.order.updateReceiveTracking({
       orderItemProductId: oip.id,
-      receivedInspected: true,
+      garmentCondition: "GOOD",
     })) as Record<string, unknown>;
     check(
-      "7.20 order.updateReceiveTracking (ช่าง): คำตอบมีเฉพาะ field ตรวจรับ — ไม่มีเงินรายชิ้น",
-      recv.receivedInspected === true &&
+      "7.20 order.updateReceiveTracking (ช่าง): คำตอบมีเฉพาะ field สภาพ/หลักฐาน — ไม่มีเงินรายชิ้น",
+      recv.garmentCondition === "GOOD" &&
         recv.baseUnitPrice === undefined &&
         recv.discount === undefined &&
         recv.subtotal === undefined,

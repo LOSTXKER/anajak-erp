@@ -32,10 +32,13 @@ interface ConfirmOptions {
 interface PromptOptions {
   title: string;
   description?: string;
+  label?: string;
   placeholder?: string;
   confirmText?: string;
   cancelText?: string;
   required?: boolean;
+  minLength?: number;
+  validationMessage?: string;
   destructive?: boolean;
 }
 
@@ -51,14 +54,19 @@ const ConfirmContext = React.createContext<{
 export function ConfirmDialogProvider({ children }: { children: React.ReactNode }) {
   const [pending, setPending] = React.useState<PendingRequest | null>(null);
   const [inputValue, setInputValue] = React.useState("");
+  const returnFocusRef = React.useRef<HTMLElement | null>(null);
 
   const confirm = React.useCallback((options: ConfirmOptions) => {
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     return new Promise<boolean>((resolve) => {
       setPending({ kind: "confirm", options, resolve });
     });
   }, []);
 
   const promptText = React.useCallback((options: PromptOptions) => {
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setInputValue("");
     return new Promise<string | null>((resolve) => {
       setPending({ kind: "prompt", options, resolve });
@@ -81,8 +89,12 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
   const options = pending?.options;
   const promptInvalid =
     pending?.kind === "prompt" &&
-    (pending.options.required ?? true) &&
-    inputValue.trim() === "";
+    (((pending.options.required ?? true) && inputValue.trim() === "") ||
+      inputValue.trim().length < (pending.options.minLength ?? 0));
+  const promptTooShort =
+    pending?.kind === "prompt" &&
+    inputValue.trim().length > 0 &&
+    inputValue.trim().length < (pending.options.minLength ?? 0);
 
   const value = React.useMemo(() => ({ confirm, promptText }), [confirm, promptText]);
 
@@ -90,7 +102,14 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
     <ConfirmContext.Provider value={value}>
       {children}
       <Dialog open={pending !== null} onOpenChange={(open) => !open && close(false)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent
+          onCloseAutoFocus={(event) => {
+            if (!returnFocusRef.current?.isConnected) return;
+            event.preventDefault();
+            returnFocusRef.current.focus();
+          }}
+          className="max-w-sm"
+        >
           {options && (
             <>
               <DialogHeader>
@@ -103,13 +122,27 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
               </DialogHeader>
 
               {pending?.kind === "prompt" && (
-                <Textarea
-                  rows={3}
-                  aria-label={pending.options.placeholder || "กรอกข้อมูล"}
-                  value={inputValue}
-                  placeholder={pending.options.placeholder}
-                  onChange={(e) => setInputValue(e.target.value)}
-                />
+                <div className="space-y-1.5">
+                  <label htmlFor="confirm-dialog-prompt" className="text-sm font-medium text-strong">
+                    {pending.options.label ?? "รายละเอียด"}
+                  </label>
+                  <Textarea
+                    id="confirm-dialog-prompt"
+                    rows={3}
+                    aria-required={pending.options.required ?? true}
+                    aria-invalid={promptTooShort || undefined}
+                    aria-describedby={promptTooShort ? "confirm-dialog-prompt-error" : undefined}
+                    minLength={pending.options.minLength}
+                    value={inputValue}
+                    placeholder={pending.options.placeholder}
+                    onChange={(e) => setInputValue(e.target.value)}
+                  />
+                  {promptTooShort ? (
+                    <p id="confirm-dialog-prompt-error" role="alert" className="text-xs text-red-600 dark:text-red-300">
+                      {pending.options.validationMessage ?? `กรุณากรอกอย่างน้อย ${pending.options.minLength} ตัวอักษร`}
+                    </p>
+                  ) : null}
+                </div>
               )}
 
               {/* มือถือ: ปุ่มเต็มแถวซ้อนกัน (เป้านิ้วโต) · จอใหญ่: ชิดขวาตามปกติ */}

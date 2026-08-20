@@ -500,7 +500,7 @@ export async function getFactoryBoard(prisma: ExtendedPrismaClient) {
       buildProblems(prisma),
       buildPrepQueue(prisma),
       buildActiveRuns(prisma),
-      getPrintQueue(prisma),
+      getPrintQueue(prisma, { userId: "factory-board", canSupervise: true }),
       loadPressQueue(prisma),
       buildQcQueue(prisma),
       buildPackQueue(prisma, { limit: 8 }),

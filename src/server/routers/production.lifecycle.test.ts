@@ -48,6 +48,23 @@ describe("production lifecycle invariants", () => {
     expect(findMany).not.toHaveBeenCalled();
   });
 
+  it("คืนเศษเสื้อเป็น recovery ของหัวหน้าและ staff ยิง API ตรงไม่ได้", async () => {
+    const ctx: Context = {
+      prisma: {} as Context["prisma"],
+      userId: "production-staff-1",
+      userRole: "PRODUCTION_STAFF",
+      permissionOverrides: null,
+    };
+
+    await expect(
+      productionRouter.createCaller(ctx).returnGarments({
+        productionId: "production-1",
+        idempotencyKey: "return-staff-bypass",
+        lines: [{ sku: "TS-M", qty: 1 }],
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("ถือ row lock ก่อนอ่าน assignee เพื่อให้ staff สองจอ claim งานเดียวกันไม่ได้", async () => {
     const findUniqueOrThrow = vi
       .fn()
@@ -56,6 +73,15 @@ describe("production lifecycle invariants", () => {
         productionId: "production-1",
         stepType: "HEAT_PRESS",
         status: "PENDING",
+      })
+      .mockResolvedValueOnce({
+        id: "step-1",
+        assignedToId: null,
+        productionId: "production-1",
+        stepType: "HEAT_PRESS",
+        status: "PENDING",
+        qtyDone: 0,
+        qtyTotal: 10,
       })
       .mockResolvedValueOnce({
         id: "step-1",
@@ -80,7 +106,7 @@ describe("production lifecycle invariants", () => {
           production: { orderId: "order-1" },
         }),
         findMany: vi.fn().mockResolvedValue([
-          { stepType: "HEAT_PRESS", status: "PENDING" },
+          { id: "step-1", stepType: "HEAT_PRESS", status: "PENDING", sortOrder: 1 },
         ]),
       },
       auditLog: { create: vi.fn().mockResolvedValue({ id: "audit-1" }) },
@@ -91,12 +117,14 @@ describe("production lifecycle invariants", () => {
       .updateStep({ stepId: "step-1", notes: "เริ่มตรวจงาน" });
 
     expect(tx.$queryRaw).toHaveBeenCalled();
-    expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
-      tx.productionStep.findUniqueOrThrow.mock.invocationCallOrder[0],
+    expect(tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
+      tx.productionStep.findUniqueOrThrow.mock.invocationCallOrder[1],
     );
-    expect(String(tx.$queryRaw.mock.calls[0]?.[0])).toContain("production_steps");
-    expect(String(tx.$queryRaw.mock.calls[1]?.[0])).toContain("productions");
-    expect(String(tx.$queryRaw.mock.calls[2]?.[0])).toContain("orders");
+    expect(String(tx.$queryRaw.mock.calls[0]?.[0])).toContain("pg_advisory_xact_lock");
+    expect(String(tx.$queryRaw.mock.calls[1]?.[0])).toContain("production_steps");
+    expect(String(tx.$queryRaw.mock.calls[1]?.[0])).toContain("ORDER BY id");
+    expect(String(tx.$queryRaw.mock.calls[2]?.[0])).toContain("productions");
+    expect(String(tx.$queryRaw.mock.calls[3]?.[0])).toContain("orders");
     expect(tx.productionStep.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ assignedToId: "production-staff-1" }) }),
     );
@@ -104,6 +132,103 @@ describe("production lifecycle invariants", () => {
       /amount|price|cost/i,
     );
     expect(JSON.stringify(result)).not.toMatch(/amount|price|cost/i);
+  });
+
+  it("notes/QC-only ยิงขั้นอนาคตไม่ได้และไม่ auto-claim", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      productionStep: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          id: "step-future",
+          assignedToId: null,
+          productionId: "production-1",
+          stepType: "HEAT_PRESS",
+          status: "PENDING",
+          sortOrder: 2,
+          qtyDone: 0,
+          qtyTotal: 10,
+        }),
+        findMany: vi.fn().mockResolvedValue([
+          { id: "step-current", stepType: "DTF_PRINT", status: "PENDING", sortOrder: 1 },
+          { id: "step-future", stepType: "HEAT_PRESS", status: "PENDING", sortOrder: 2 },
+        ]),
+        update: vi.fn(),
+      },
+    };
+
+    await expect(
+      productionRouter
+        .createCaller(transactionContext(tx))
+        .updateStep({ stepId: "step-future", notes: "ขอจองงานนี้ไว้" }),
+    ).rejects.toThrow("ทำขั้นก่อนหน้า");
+
+    expect(tx.productionStep.update).not.toHaveBeenCalled();
+  });
+
+  it("สถานะเดิมบนขั้น unassigned เป็น no-op ไม่กลายเป็นการ claim", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      productionStep: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          id: "step-1",
+          assignedToId: null,
+          productionId: "production-1",
+          stepType: "HEAT_PRESS",
+          status: "PENDING",
+          qtyDone: 0,
+          qtyTotal: 10,
+        }),
+        findMany: vi.fn(),
+        update: vi.fn(),
+      },
+    };
+
+    await expect(
+      productionRouter
+        .createCaller(transactionContext(tx))
+        .updateStep({ stepId: "step-1", status: "PENDING" }),
+    ).resolves.toMatchObject({ status: "PENDING", assignedToId: null });
+
+    expect(tx.productionStep.findMany).not.toHaveBeenCalled();
+    expect(tx.productionStep.update).not.toHaveBeenCalled();
+  });
+
+  it("retry qty/notes/QC ค่าเดิมเป็น no-op ไม่ claim หรือสร้าง audit ซ้ำ", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      productionStep: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          id: "step-1",
+          assignedToId: null,
+          productionId: "production-1",
+          stepType: "HEAT_PRESS",
+          status: "PENDING",
+          qtyDone: 2,
+          qtyTotal: 10,
+          qcPassed: false,
+          qcNotes: "รอตรวจซ้ำ",
+          notes: "ตั้งแรงกด 6 bar",
+        }),
+        findMany: vi.fn(),
+        update: vi.fn(),
+      },
+      auditLog: { create: vi.fn() },
+    };
+
+    await expect(
+      productionRouter.createCaller(transactionContext(tx)).updateStep({
+        stepId: "step-1",
+        qtyDone: 2,
+        qtyTotal: 10,
+        qcPassed: false,
+        qcNotes: "รอตรวจซ้ำ",
+        notes: "ตั้งแรงกด 6 bar",
+      }),
+    ).resolves.toMatchObject({ assignedToId: null, qtyDone: 2 });
+
+    expect(tx.productionStep.findMany).not.toHaveBeenCalled();
+    expect(tx.productionStep.update).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
   });
 
   it.each(["ON_HOLD", "CANCELLED"])(
@@ -129,11 +254,52 @@ describe("production lifecycle invariants", () => {
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
       expect(tx.productionStep.update).not.toHaveBeenCalled();
-      expect(String(tx.$queryRaw.mock.calls[0]?.[0])).toContain("production_steps");
-      expect(String(tx.$queryRaw.mock.calls[1]?.[0])).toContain("productions");
-      expect(String(tx.$queryRaw.mock.calls[2]?.[0])).toContain("orders");
+      expect(String(tx.$queryRaw.mock.calls[0]?.[0])).toContain("pg_advisory_xact_lock");
+      expect(String(tx.$queryRaw.mock.calls[1]?.[0])).toContain("production_steps");
+      expect(String(tx.$queryRaw.mock.calls[2]?.[0])).toContain("productions");
+      expect(String(tx.$queryRaw.mock.calls[3]?.[0])).toContain("orders");
     },
   );
+
+  it("schema ปฏิเสธการสร้าง FAILED ผ่าน generic update ก่อนเปิด transaction", async () => {
+    const tx = { $queryRaw: vi.fn() };
+    const ctx = transactionContext(tx);
+
+    await expect(
+      productionRouter.createCaller(ctx).updateStep({
+        stepId: "step-1",
+        status: "FAILED",
+      } as never),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    expect(ctx.prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("generic update ออกจาก FAILED ไม่ได้ ต้องผ่าน resolveStationProblem", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      productionStep: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          id: "step-1",
+          assignedToId: "production-staff-1",
+          productionId: "production-1",
+          stepType: "HEAT_PRESS",
+          status: "FAILED",
+          qtyDone: 2,
+          qtyTotal: 10,
+        }),
+        update: vi.fn(),
+      },
+    };
+
+    await expect(
+      productionRouter
+        .createCaller(transactionContext(tx))
+        .updateStep({ stepId: "step-1", status: "PENDING" }),
+    ).rejects.toThrow("ต้องแก้ผ่านคำสั่งแก้ปัญหา");
+
+    expect(tx.productionStep.update).not.toHaveBeenCalled();
+  });
 
   it("retry สถานะ IN_PROGRESS เดิมไม่เขียนซ้ำและไม่ทับ startedAt", async () => {
     const tx = {
@@ -149,6 +315,7 @@ describe("production lifecycle invariants", () => {
           })
           .mockResolvedValueOnce({
             id: "step-1",
+            assignedToId: "production-staff-1",
             productionId: "production-1",
             stepType: "HEAT_PRESS",
             status: "IN_PROGRESS",
@@ -238,6 +405,7 @@ describe("production lifecycle invariants", () => {
 
   it.each([
     ["GARMENT_PICK", "ขั้นเบิกเสื้อต้องอัปเดตผ่านเมนูเบิก/คืนเสื้อ"],
+    ["GARMENT_RECEIVE", "ขั้นรับเสื้อลูกค้าต้องอัปเดตผ่านใบตรวจรับ"],
     ["DTF_PRINT", "ขั้นพิมพ์ DTF ต้องเดินผ่านหน้ารอบพิมพ์ฟิล์ม"],
   ])("ปฏิเสธปิด %s ตรงผ่าน updateStep", async (stepType, message) => {
     const tx = {
@@ -260,6 +428,37 @@ describe("production lifecycle invariants", () => {
     ).rejects.toThrow(message);
     expect(tx.productionStep.update).not.toHaveBeenCalled();
   });
+
+  it.each(["GARMENT_PICK", "GARMENT_RECEIVE", "DTF_PRINT"])(
+    "ปฏิเสธ notes/QC-only บน service-managed %s เพื่อไม่ forge หลักฐานหรือ claim งาน",
+    async (stepType) => {
+      const tx = {
+        $queryRaw: vi.fn().mockResolvedValue([]),
+        productionStep: {
+          findUniqueOrThrow: vi.fn().mockResolvedValue({
+            id: "step-1",
+            assignedToId: null,
+            productionId: "production-1",
+            stepType,
+            status: "PENDING",
+            qtyDone: 0,
+            qtyTotal: 1,
+          }),
+          findMany: vi.fn(),
+          update: vi.fn(),
+        },
+      };
+
+      await expect(
+        productionRouter
+          .createCaller(transactionContext(tx))
+          .updateStep({ stepId: "step-1", notes: "บันทึกผ่าน API ทั่วไป" }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+      expect(tx.productionStep.findMany).not.toHaveBeenCalled();
+      expect(tx.productionStep.update).not.toHaveBeenCalled();
+    },
+  );
 
   it("ปฏิเสธเริ่ม HEAT_PRESS เมื่อเสื้อยังไม่พร้อม แม้ยิง API ตรง", async () => {
     const tx = {
@@ -358,8 +557,11 @@ describe("production lifecycle invariants", () => {
         where: expect.objectContaining({ stepType: "PACKAGING" }),
       }),
     );
-    expect(String(tx.$queryRaw.mock.calls[0]?.[0])).toContain("productions");
-    expect(String(tx.$queryRaw.mock.calls[1]?.[0])).toContain("orders");
+    expect(String(tx.$queryRaw.mock.calls[0]?.[0])).toContain("pg_advisory_xact_lock");
+    expect(String(tx.$queryRaw.mock.calls[1]?.[0])).toContain("production_steps");
+    expect(String(tx.$queryRaw.mock.calls[1]?.[0])).toContain("ORDER BY id");
+    expect(String(tx.$queryRaw.mock.calls[2]?.[0])).toContain("productions");
+    expect(String(tx.$queryRaw.mock.calls[3]?.[0])).toContain("orders");
     expect(tx.auditLog.create).toHaveBeenCalled();
   });
 

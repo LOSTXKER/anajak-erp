@@ -3,6 +3,7 @@ import {
   laneOf,
   OUTSOURCE_ACTIVE_STATUSES,
 } from "@/lib/production-steps";
+import { currentProductionProblemReason } from "@/lib/production-problem";
 
 export type ProductionStepUiAction =
   | "send-outsource"
@@ -42,6 +43,7 @@ export function getProductionStepActionPolicy(
   const available =
     unfinished &&
     !legacyPackaging &&
+    !["FAILED", "ON_HOLD"].includes(input.status) &&
     !input.ownedByOther &&
     !input.hasActiveOutsource &&
     !input.qcFailedBlocked;
@@ -52,10 +54,9 @@ export function getProductionStepActionPolicy(
     structuralMode === "outsource" && input.canUpdateStep && available;
   const canRunInternal =
     structuralMode === "internal" &&
-    input.stepType !== "DTF_PRINT" &&
+    !["DTF_PRINT", "GARMENT_RECEIVE"].includes(input.stepType) &&
     input.canUpdateStep &&
-    available &&
-    input.status !== "FAILED";
+    available;
 
   return {
     structuralMode,
@@ -77,13 +78,18 @@ export interface LaneOrderStepLite {
   sortOrder: number;
 }
 
+function compareLaneSteps(left: LaneOrderStepLite, right: LaneOrderStepLite) {
+  if (left.sortOrder !== right.sortOrder) return left.sortOrder - right.sortOrder;
+  return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+}
+
 // UX4.10: "ขั้นแรกที่ยังไม่เสร็จ" ของแต่ละเลน — ปุ่ม primary เน้นเฉพาะขั้นนี้
 // ขั้นถัดๆ ไปในเลนเดียวกันถูกลดเป็นปุ่มรอง + ป้าย "รอขั้นก่อนหน้า"
 // server กันซ้ำอีกชั้นใน production.updateStep; ชั้นนี้มีไว้บอกเหตุผลก่อนคนกด
 export function firstPendingStepIdsByLane(steps: readonly LaneOrderStepLite[]): Set<string> {
   const claimed = new Set<string>(); // เลนที่มีขั้นค้างตัวแรกแล้ว
   const ids = new Set<string>();
-  for (const step of [...steps].sort((a, b) => a.sortOrder - b.sortOrder)) {
+  for (const step of [...steps].sort(compareLaneSteps)) {
     // PACKAGING เคยถูกสร้างเป็น production step แต่ flow จริงต้อง QC ก่อนแล้วแพ็กผ่าน
     // Delivery — เก็บแถวเก่าเพื่อ audit/display ได้ แต่ห้ามนับเป็นงานที่กดทำ
     if (step.status === "COMPLETED" || step.stepType === "PACKAGING") continue;
@@ -122,6 +128,8 @@ export interface NowStepInput {
   assignedTo?: { id: string } | null;
   outsourceOrders?: readonly { status: string }[];
   printRunItems?: readonly { printRun: { runNumber: string } }[];
+  notes?: string | null;
+  qcNotes?: string | null;
 }
 
 export interface NowStep<S extends NowStepInput> {
@@ -150,7 +158,7 @@ export function selectNowSteps<S extends NowStepInput>(
   const laneNext = firstPendingStepIdsByLane(steps);
   return [...steps]
     .filter((step) => laneNext.has(step.id))
-    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .sort(compareLaneSteps)
     .map((step) => {
       const latestOutsource = step.outsourceOrders?.[0];
       const hasActiveOutsource = (step.outsourceOrders ?? []).some((os) =>
@@ -161,11 +169,31 @@ export function selectNowSteps<S extends NowStepInput>(
       const qcFailedBlocked =
         latestOutsource?.status === "QC_FAILED" && !options.canSupervise;
 
+      // exception เป็น blocked context ไม่ใช่งานปัจจุบันที่ชวนลงมือ. แสดงเหตุที่ยังเปิด
+      // จาก structured trail และให้ outer Station/NowCard ใช้ heading ตรง bucket เดียวกัน.
+      if (step.status === "FAILED") {
+        return {
+          step,
+          group: "waiting" as const,
+          action: null,
+          waitingOn: [],
+          note: currentProductionProblemReason(step) || "มีปัญหา — รอหัวหน้าตัดสินใจ",
+        };
+      }
+      if (step.status === "ON_HOLD") {
+        return {
+          step,
+          group: "waiting" as const,
+          action: null,
+          waitingOn: [],
+          note: currentProductionProblemReason(step) || "พักไว้ — รอหัวหน้าตัดสินใจ",
+        };
+      }
+
       // ขั้นรีดที่ฟิล์ม/เสื้อยังไม่บรรจบ — ช่างเริ่มไม่ได้จริง บอกว่ารออะไรแทนโชว์ปุ่ม
       if (
         step.stepType === "HEAT_PRESS" &&
-        !options.pressGate.ready &&
-        step.status !== "FAILED"
+        !options.pressGate.ready
       ) {
         return {
           step,
@@ -188,15 +216,6 @@ export function selectNowSteps<S extends NowStepInput>(
         };
       }
 
-      if (step.status === "FAILED") {
-        return {
-          step,
-          group: "current" as const,
-          action: null,
-          waitingOn: [],
-          note: "มีปัญหา — เปิดดูรายละเอียด",
-        };
-      }
       if (ownedByOther) {
         return {
           step,
@@ -232,6 +251,18 @@ export function selectNowSteps<S extends NowStepInput>(
           action: null,
           waitingOn: [],
           note: "จัดการผ่านหน้ารอบพิมพ์ฟิล์ม DTF",
+        };
+      }
+
+      // ขั้นรับเสื้อลูกค้าปิดจากหลักฐานใบตรวจรับเท่านั้น — ห้ามมีปุ่ม generic
+      // ที่ข้ามยอดนับจริง/รูป/ตำหนิซึ่ง goods-receipt service ใช้ตัดสินความพร้อม
+      if (step.stepType === "GARMENT_RECEIVE") {
+        return {
+          step,
+          group: "current" as const,
+          action: null,
+          waitingOn: [],
+          note: "บันทึกผ่านใบตรวจรับเสื้อลูกค้า",
         };
       }
 

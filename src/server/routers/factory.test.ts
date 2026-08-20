@@ -20,6 +20,8 @@ function production(id: string) {
         sortOrder: 2,
         qtyDone: 0,
         qtyTotal: 50,
+        notes: "รอหัวหน้าตรวจแรงดันเครื่อง",
+        qcNotes: "ผิวงานไม่สม่ำเสมอ",
         assignedTo: null,
       },
     ],
@@ -101,6 +103,10 @@ describe("factory.stationQueue", () => {
     const result = await factoryRouter.createCaller(stub.ctx).stationQueue();
 
     const query = stub.findOrders.mock.calls[0][0];
+    expect(query.select.productions.select.steps.orderBy).toEqual([
+      { sortOrder: "asc" },
+      { id: "asc" },
+    ]);
     expect(JSON.stringify(query.select)).not.toMatch(/amount|price|cost|payment/i);
     expect(JSON.stringify(result)).not.toMatch(/amount|price|cost|payment/i);
     expect(result[0]).toMatchObject({
@@ -108,6 +114,16 @@ describe("factory.stationQueue", () => {
       customerName: "ลูกค้าเอ",
       totalQuantity: 50,
       readiness: null,
+      productions: [
+        {
+          steps: [
+            {
+              notes: "รอหัวหน้าตรวจแรงดันเครื่อง",
+              qcNotes: "ผิวงานไม่สม่ำเสมอ",
+            },
+          ],
+        },
+      ],
     });
   });
 });

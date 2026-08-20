@@ -18,11 +18,14 @@
  * - ไม่มีเงินใน flow นี้ (มติเลิกคิดต้นทุนต่องาน 2026-06-12)
  */
 
-import { badRequest, notFound } from "@/server/errors";
+import { badRequest, conflict, forbidden, notFound } from "@/server/errors";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
 import { nextDocumentNumber } from "@/server/services/document-number";
 import { finalizeProductionIfComplete } from "@/server/services/order-status";
 import { resolveSoleOrderArtworkId } from "@/server/services/artwork";
+import { lockProductionTopology } from "@/server/services/production-topology-lock";
+import { firstPendingStepIdsByLane } from "@/lib/production-step-actions";
+import { createAuditLog } from "@/server/helpers";
 // สูตรตัดสินล้วน (ช่องคิว/ไฟล์พร้อม/เพดานจำนวน/ปิดขั้น) — unit test ได้ไม่ต้องมี DB
 import {
   isFileReadyForPrint,
@@ -40,6 +43,31 @@ type PrintRunOrderState = {
   orderNumber: string;
   internalStatus: string;
 };
+
+export type PrintRunAccess = {
+  userId: string;
+  canSupervise: boolean;
+};
+
+type ManageablePrintRun = {
+  createdById: string;
+  items: readonly { productionStep: { assignedToId: string | null } }[];
+};
+
+function assertCanManagePrintRun(run: ManageablePrintRun, access: PrintRunAccess) {
+  if (access.canSupervise) return;
+  const allAssignedToActor =
+    run.items.length > 0 &&
+    run.items.every((item) => item.productionStep.assignedToId === access.userId);
+  const creatorStillOwnsRun =
+    run.createdById === access.userId &&
+    run.items.every((item) => {
+      const assignedToId = item.productionStep.assignedToId;
+      return assignedToId === null || assignedToId === access.userId;
+    });
+  if (allAssignedToActor || creatorStillOwnsRun) return;
+  forbidden("รอบพิมพ์นี้เป็นงานของผู้สร้างหรือผู้รับผิดชอบคนอื่น");
+}
 
 function orderStatusLabel(status: string) {
   return (INTERNAL_STATUS_LABELS as Record<string, string>)[status] ?? status;
@@ -66,33 +94,81 @@ function activeRunBlockedReason(run: {
     : null;
 }
 
+type PrintStepReference = {
+  id: string;
+  productionId: string;
+  production: { orderId: string };
+};
+
+async function readPrintStepReferences(
+  tx: PrismaTx,
+  stepIds: readonly string[],
+): Promise<PrintStepReference[]> {
+  const references = await tx.productionStep.findMany({
+    where: { id: { in: [...stepIds] } },
+    select: {
+      id: true,
+      productionId: true,
+      production: { select: { orderId: true } },
+    },
+  });
+  const byId = new Map(references.map((reference) => [reference.id, reference]));
+  return stepIds.map((stepId) => byId.get(stepId) ?? notFound("ขั้นตอนผลิต", stepId));
+}
+
+function samePrintStepMembership(
+  left: readonly PrintStepReference[],
+  right: readonly PrintStepReference[],
+) {
+  return left.every((reference, index) => {
+    const candidate = right[index];
+    return (
+      candidate?.id === reference.id &&
+      candidate.productionId === reference.productionId &&
+      candidate.production.orderId === reference.production.orderId
+    );
+  });
+}
+
 /**
- * ล็อกเส้นทางเดียวกับ production.updateStep: step → production → order.
- * ทุก id เรียงคงที่ก่อน lock เพื่อให้รอบหลายงานกับ writer รายขั้นไม่สร้างวงจร deadlock
- * และ caller ต้อง re-read สถานะหลัง helper นี้เสมอ
+ * Finalizer อาจปิด PACKAGING เก่าที่ไม่ใช่ target DTF จึงต้อง lock ทุก step ของ
+ * production ที่แตะ ตาม global order: topology mutex ของ order → steps ทั้งใบ
+ * ORDER BY id → productions → orders. รอบหลายออเดอร์จอง mutex ด้วย orderId ที่เรียงแล้ว
+ * ก่อนถือ row lock ใดๆ เพื่อกันรอบ A→B ชนกับ B→A.
  */
 async function lockProductionChain(tx: PrismaTx, stepIds: readonly string[]) {
   const sortedStepIds = [...new Set(stepIds)].sort();
-  for (const stepId of sortedStepIds) {
-    await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${stepId} FOR UPDATE`;
+  const before = await readPrintStepReferences(tx, sortedStepIds);
+  const orderIds = [
+    ...new Set(before.map((reference) => reference.production.orderId)),
+  ].sort();
+
+  for (const orderId of orderIds) {
+    await lockProductionTopology(tx, orderId);
   }
 
-  const stepRefs = await tx.productionStep.findMany({
-    where: { id: { in: sortedStepIds } },
-    select: { productionId: true },
-  });
-  const productionIds = [...new Set(stepRefs.map((step) => step.productionId))].sort();
+  // Snapshot ก่อน mutex ใช้แค่หา scope; ห้ามเชื่อถ้า membership เปลี่ยนระหว่างรอ
+  const afterTopology = await readPrintStepReferences(tx, sortedStepIds);
+  if (!samePrintStepMembership(before, afterTopology)) {
+    conflict("โครงรอบพิมพ์เปลี่ยนจากอีกหน้าจอแล้ว — กรุณาโหลดใหม่");
+  }
+
+  const productionIds = [
+    ...new Set(afterTopology.map((reference) => reference.productionId)),
+  ].sort();
+  for (const productionId of productionIds) {
+    await tx.$queryRaw`SELECT id FROM production_steps WHERE production_id = ${productionId} ORDER BY id FOR UPDATE`;
+  }
   for (const productionId of productionIds) {
     await tx.$queryRaw`SELECT id FROM productions WHERE id = ${productionId} FOR UPDATE`;
   }
-
-  const productionRefs = await tx.production.findMany({
-    where: { id: { in: productionIds } },
-    select: { orderId: true },
-  });
-  const orderIds = [...new Set(productionRefs.map((production) => production.orderId))].sort();
   for (const orderId of orderIds) {
     await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId} FOR UPDATE`;
+  }
+
+  const locked = await readPrintStepReferences(tx, sortedStepIds);
+  if (!samePrintStepMembership(afterTopology, locked)) {
+    conflict("โครงรอบพิมพ์เปลี่ยนจากอีกหน้าจอแล้ว — กรุณาโหลดใหม่");
   }
 }
 
@@ -108,6 +184,16 @@ async function lockPrintRunChain(tx: PrismaTx, runId: string) {
     reference.items.map((item) => item.productionStepId),
   );
   await tx.$queryRaw`SELECT id FROM print_runs WHERE id = ${runId} FOR UPDATE`;
+  const lockedReference = await tx.printRun.findUnique({
+    where: { id: runId },
+    select: { items: { select: { productionStepId: true } } },
+  });
+  if (!lockedReference) notFound("รอบพิมพ์", runId);
+  const beforeStepIds = reference.items.map((item) => item.productionStepId).sort();
+  const lockedStepIds = lockedReference.items.map((item) => item.productionStepId).sort();
+  if (JSON.stringify(beforeStepIds) !== JSON.stringify(lockedStepIds)) {
+    conflict("สมาชิกรอบพิมพ์เปลี่ยนจากอีกหน้าจอแล้ว — กรุณาโหลดใหม่");
+  }
 }
 
 // ============================================================
@@ -129,12 +215,37 @@ export interface PrintQueueEntry {
   design: { versionNumber: number; fileUrl: string; thumbnailUrl: string | null } | null;
 }
 
-export async function getPrintQueue(prisma: ExtendedPrismaClient): Promise<PrintQueueEntry[]> {
+type PrintLaneStep = {
+  id: string;
+  stepType: string;
+  status: string;
+  sortOrder: number;
+};
+
+function isCurrentPrintLaneStep(
+  stepId: string,
+  siblings: readonly PrintLaneStep[],
+) {
+  // production.create ยอม sortOrder ซ้ำได้ — id เป็น tiebreaker เดียวกันทั้ง queue/mutation
+  // ก่อนส่งเข้า helper ที่ sort แบบ stable ด้วย sortOrder เพื่อไม่ให้ DB row order ตัดสินคิว.
+  const deterministic = [...siblings].sort(
+    (a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id),
+  );
+  return firstPendingStepIdsByLane(deterministic).has(stepId);
+}
+
+export async function getPrintQueue(
+  prisma: ExtendedPrismaClient,
+  access: PrintRunAccess,
+): Promise<PrintQueueEntry[]> {
   const steps = await prisma.productionStep.findMany({
     where: {
       stepType: "DTF_PRINT",
       status: { in: ["PENDING", "IN_PROGRESS"] },
       production: { order: { internalStatus: "PRODUCING" } },
+      ...(access.canSupervise
+        ? {}
+        : { OR: [{ assignedToId: access.userId }, { assignedToId: null }] }),
     },
     select: {
       id: true,
@@ -147,6 +258,9 @@ export async function getPrintQueue(prisma: ExtendedPrismaClient): Promise<Print
       },
       production: {
         select: {
+          steps: {
+            select: { id: true, stepType: true, status: true, sortOrder: true },
+          },
           order: {
             select: {
               id: true,
@@ -172,6 +286,7 @@ export async function getPrintQueue(prisma: ExtendedPrismaClient): Promise<Print
   const entries: PrintQueueEntry[] = [];
   for (const s of steps) {
     const order = s.production.order;
+    if (!isCurrentPrintLaneStep(s.id, s.production.steps)) continue;
     const slot = printQueueSlotOf({
       inActiveRun: s.printRunItems.length > 0,
       hasApprovedDesign: order.designs.length > 0,
@@ -209,6 +324,7 @@ export interface CreatePrintRunParams {
   items: Array<{ stepId: string; qty: number }>;
   note?: string;
   userId: string;
+  canSupervise: boolean;
 }
 
 export async function createPrintRun(prisma: ExtendedPrismaClient, params: CreatePrintRunParams) {
@@ -226,6 +342,7 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
         id: true,
         stepType: true,
         status: true,
+        assignedToId: true,
         qtyDone: true,
         qtyTotal: true,
         printRunItems: {
@@ -234,6 +351,9 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
         },
         production: {
           select: {
+            steps: {
+              select: { id: true, stepType: true, status: true, sortOrder: true },
+            },
             order: {
               select: {
                 id: true,
@@ -258,9 +378,21 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
         badRequest(`งาน ${order.orderNumber}: รอบพิมพ์รับเฉพาะขั้นพิมพ์ฟิล์ม DTF`);
       }
       assertPrintRunOrdersProducing([{ order }]);
+      if (
+        !params.canSupervise &&
+        step.assignedToId !== null &&
+        step.assignedToId !== params.userId
+      ) {
+        forbidden(`งาน ${order.orderNumber}: ขั้นพิมพ์นี้ถูกมอบหมายให้คนอื่นแล้ว`);
+      }
       if (step.status !== "PENDING" && step.status !== "IN_PROGRESS") {
         badRequest(
           `งาน ${order.orderNumber}: ขั้นพิมพ์ฟิล์มไม่อยู่สถานะที่เข้ารอบได้ (${step.status}) — งานมีปัญหา/ถูกพักให้แก้ที่หน้าใบผลิตก่อน`
+        );
+      }
+      if (!isCurrentPrintLaneStep(step.id, step.production.steps)) {
+        badRequest(
+          `งาน ${order.orderNumber}: ยังเข้ารอบพิมพ์ขั้นนี้ไม่ได้ — ทำขั้นก่อนหน้าในสายงานเดียวกันให้เสร็จก่อน`,
         );
       }
       if (step.printRunItems.length > 0) {
@@ -304,10 +436,19 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
         data: {
           ...(p.seedQtyTotal !== null ? { qtyTotal: p.seedQtyTotal } : {}),
           status: "IN_PROGRESS",
+          assignedToId: byId.get(p.stepId)!.assignedToId ?? params.userId,
           startedAt: byId.get(p.stepId)!.status === "PENDING" ? new Date() : undefined,
         },
       });
     }
+
+    await createAuditLog(tx as PrismaTx, {
+      userId: params.userId,
+      action: "CREATE",
+      entityType: "PRINT_RUN",
+      entityId: run.id,
+      newValue: { runNumber: run.runNumber, items: run.items.length },
+    });
 
     return run;
   });
@@ -317,28 +458,43 @@ export async function createPrintRun(prisma: ExtendedPrismaClient, params: Creat
 // จังหวะของรอบ: พิมพ์จบทั้งม้วน → ตัดแยก+ติดป้ายเสร็จ (ปิดขั้นเป็นชุด)
 // ============================================================
 
-export async function markPrintRunPrinted(prisma: ExtendedPrismaClient, runId: string) {
+export async function markPrintRunPrinted(
+  prisma: ExtendedPrismaClient,
+  params: { runId: string } & PrintRunAccess,
+) {
   return prisma.$transaction(async (tx) => {
-    await lockPrintRunChain(tx as PrismaTx, runId);
+    await lockPrintRunChain(tx as PrismaTx, params.runId);
     const run = await tx.printRun.findUniqueOrThrow({
-      where: { id: runId },
+      where: { id: params.runId },
       select: {
+        runNumber: true,
+        createdById: true,
         status: true,
         items: {
           select: {
             order: { select: { orderNumber: true, internalStatus: true } },
+            productionStep: { select: { assignedToId: true } },
           },
         },
       },
     });
+    assertCanManagePrintRun(run, params);
     assertPrintRunOrdersProducing(run.items);
     const res = await tx.printRun.updateMany({
-      where: { id: runId, status: "PRINTING" },
+      where: { id: params.runId, status: "PRINTING" },
       data: { status: "PRINTED", printedAt: new Date() },
     });
     if (res.count === 0) {
       badRequest("รอบนี้ไม่ได้อยู่สถานะกำลังพิมพ์ — รีเฟรชดูสถานะล่าสุดก่อน");
     }
+    await createAuditLog(tx as PrismaTx, {
+      userId: params.userId,
+      action: "UPDATE",
+      entityType: "PRINT_RUN",
+      entityId: params.runId,
+      oldValue: { runNumber: run.runNumber, status: "PRINTING" },
+      newValue: { runNumber: run.runNumber, status: "PRINTED" },
+    });
   });
 }
 
@@ -347,6 +503,7 @@ export interface CompletePrintRunParams {
   /** ฟิล์มพิมพ์เผื่อต่องาน (optional) — เข้าคลังฟิล์มพร้อมรีด */
   extras?: Array<{ itemId: string; extraQty: number; label?: string }>;
   userId: string;
+  canSupervise: boolean;
 }
 
 export async function completePrintRun(
@@ -369,10 +526,12 @@ export async function completePrintRun(
                 internalStatus: true,
               },
             },
+            productionStep: { select: { assignedToId: true } },
           },
         },
       },
     });
+    assertCanManagePrintRun(run, params);
     assertPrintRunOrdersProducing(run.items);
     // run row ถูก lock แล้ว: ผ่านจุดตัดแยกได้เฉพาะรอบที่พิมพ์จบ และสองจอกดซ้ำไม่ได้
     const res = await tx.printRun.updateMany({
@@ -452,18 +611,40 @@ export async function completePrintRun(
       });
     }
 
+    await createAuditLog(tx as PrismaTx, {
+      userId: params.userId,
+      action: "UPDATE",
+      entityType: "PRINT_RUN",
+      entityId: run.id,
+      newValue: { runNumber: run.runNumber, status: "COMPLETED" },
+    });
+
     return run;
   });
 }
 
-export async function cancelPrintRun(prisma: ExtendedPrismaClient, runId: string) {
+export async function cancelPrintRun(
+  prisma: ExtendedPrismaClient,
+  params: { runId: string } & PrintRunAccess,
+) {
   return prisma.$transaction(async (tx) => {
     // recovery ยังยอมให้ยกเลิกรอบของงานที่ถูกพัก/ยกเลิก แต่ใช้ lock order เดียวกับ
     // create/mark/complete ก่อนคืนขั้น เพื่อไม่ให้ cancel ถือ run แล้วรอ step สวนทางกัน
-    await lockPrintRunChain(tx as PrismaTx, runId);
+    await lockPrintRunChain(tx as PrismaTx, params.runId);
+    const run = await tx.printRun.findUniqueOrThrow({
+      where: { id: params.runId },
+      select: {
+        runNumber: true,
+        createdById: true,
+        items: {
+          select: { productionStep: { select: { assignedToId: true } } },
+        },
+      },
+    });
+    assertCanManagePrintRun(run, params);
     // ยกเลิกได้เฉพาะก่อนพิมพ์จบ — พิมพ์ไปแล้วฟิล์มเกิดขึ้นจริง ต้องเดินต่อให้จบรอบ
     const res = await tx.printRun.updateMany({
-      where: { id: runId, status: "PRINTING" },
+      where: { id: params.runId, status: "PRINTING" },
       // completedAt = เวลาจบรอบ (รวมยกเลิก) — list ประวัติ 7 วันกรองจาก field นี้
       data: { status: "CANCELLED", completedAt: new Date() },
     });
@@ -472,7 +653,7 @@ export async function cancelPrintRun(prisma: ExtendedPrismaClient, runId: string
     }
     // คืนขั้นที่ยังไม่มีความคืบหน้าจริงกลับเข้าคิว
     const items = await tx.printRunItem.findMany({
-      where: { printRunId: runId },
+      where: { printRunId: params.runId },
       select: { productionStepId: true },
       orderBy: { productionStepId: "asc" }, // ลำดับ lock global เดียวกันทุก path
     });
@@ -481,7 +662,7 @@ export async function cancelPrintRun(prisma: ExtendedPrismaClient, runId: string
       const otherRuns = await tx.printRunItem.count({
         where: {
           productionStepId: item.productionStepId,
-          printRunId: { not: runId },
+          printRunId: { not: params.runId },
           printRun: { status: { in: [...ACTIVE_RUN_STATUSES] } },
         },
       });
@@ -492,6 +673,14 @@ export async function cancelPrintRun(prisma: ExtendedPrismaClient, runId: string
         });
       }
     }
+    await createAuditLog(tx as PrismaTx, {
+      userId: params.userId,
+      action: "UPDATE",
+      entityType: "PRINT_RUN",
+      entityId: params.runId,
+      oldValue: { runNumber: run.runNumber, status: "PRINTING" },
+      newValue: { runNumber: run.runNumber, status: "CANCELLED" },
+    });
   });
 }
 

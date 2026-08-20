@@ -7,6 +7,7 @@ import {
   parsePermissionOverrides,
   defaultPermissionsOf,
   effectivePermissions,
+  hasPermission,
   NON_OVERRIDABLE_PERMISSIONS,
   type Permission,
   type PermissionOverrides,
@@ -43,14 +44,19 @@ export const userRouter = router({
     return { ...user, permissions: effectivePermissions(user.role, permissionOverrides) };
   }),
 
-  // รายชื่อสำหรับมอบหมายงาน (id+ชื่อ+role) — หัวหน้าใช้เลือกคนรับผิดชอบ step ผลิต
+  // รายชื่อสำหรับมอบหมายงาน (id+ชื่อ+role) — เฉพาะบัญชี active ที่มีสิทธิ์งานผลิตจริง
   // (user.list เต็มเป็น ownerOnly — อันนี้ข้อมูลแคบพอให้ MANAGER ใช้ได้ · audit ข้อ 18)
   assignables: protectedProcedure.use(managerUp).query(async ({ ctx }) => {
-    return ctx.prisma.user.findMany({
+    const users = await ctx.prisma.user.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, role: true },
+      select: { id: true, name: true, role: true, permissionOverrides: true },
     });
+    return users
+      .filter((user) =>
+        hasPermission(user.role, user.permissionOverrides, "manage_production"),
+      )
+      .map((user) => ({ id: user.id, name: user.name, role: user.role }));
   }),
 
   list: protectedProcedure.use(ownerOnly).query(async ({ ctx }) => {

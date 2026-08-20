@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import type { OutsourceStatus } from "@prisma/client";
 import { router, protectedProcedure, requirePermission } from "../trpc";
 import { hasPermission } from "@/lib/permissions";
 import { createAuditLog, createNotification } from "@/server/helpers";
@@ -7,9 +8,18 @@ import { transitionOrder, finalizeProductionIfComplete } from "@/server/services
 import { INTERNAL_STATUS_LABELS, isValidTransition } from "@/lib/order-status";
 import {
   evaluateHeatPressGate,
+  OUTSOURCE_ACTIVE_STATUSES,
   productionWorkflowSteps,
 } from "@/lib/production-steps";
+import { factoryStationKeyForStep } from "@/lib/factory-station";
 import { firstPendingStepIdsByLane } from "@/lib/production-step-actions";
+import {
+  activeStationProblemReason,
+  normalizedProblemReason,
+  resolvedProblemMarker,
+  resolvedProblemNotes,
+  stationProblemNotes,
+} from "@/lib/production-problem";
 import {
   assertStaffFields,
   planAutoClaim,
@@ -33,8 +43,14 @@ import {
   type OrderReadiness,
 } from "@/server/services/production-readiness";
 import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
+import { lockProductionTopology } from "@/server/services/production-topology-lock";
+import {
+  netReceivedByVariant,
+  receiptInspectionOfVariants,
+} from "@/server/services/goods-receipt-plan";
 import { getStockClientFromSettings } from "@/lib/stock-api";
 import { notFound } from "@/server/errors";
+import type { PrismaTx } from "@/lib/prisma";
 
 // วางแผนการผลิต = งานหัวหน้า (PERM3: default OWNER/MANAGER เดิมเป๊ะ + override รายคน)
 const managerUp = requirePermission("supervise_operations");
@@ -130,6 +146,54 @@ const updateStepResultSelect = {
   createdAt: true,
   updatedAt: true,
 } as const;
+
+function productionStepWorkLink(stepType: string, productionId: string): string {
+  const station = factoryStationKeyForStep(stepType);
+  return station
+    ? `/factory/station?station=${encodeURIComponent(station)}&productionId=${encodeURIComponent(productionId)}`
+    : `/production/${encodeURIComponent(productionId)}`;
+}
+
+/**
+ * Production writers ทุกตัวใช้ลำดับเดียวกัน: topology mutex → steps ทั้งใบตาม id →
+ * production → order. การอ่านสองครั้งแรกมีไว้หา lock scope เท่านั้น ห้ามใช้ตัดสินงาน
+ * จนกว่าจะถือ lock ครบและอ่าน step สดอีกครั้ง
+ */
+async function lockProductionStepScope(tx: PrismaTx, stepId: string) {
+  const stepReference = await tx.productionStep.findUniqueOrThrow({
+    where: { id: stepId },
+    select: { productionId: true },
+  });
+  const productionReference = await tx.production.findUniqueOrThrow({
+    where: { id: stepReference.productionId },
+    select: { orderId: true },
+  });
+
+  await lockProductionTopology(tx, productionReference.orderId);
+  await tx.$queryRaw`SELECT id FROM production_steps WHERE production_id = ${stepReference.productionId} ORDER BY id FOR UPDATE`;
+  await tx.$queryRaw`SELECT id FROM productions WHERE id = ${stepReference.productionId} FOR UPDATE`;
+  await lockOrderRow(tx, productionReference.orderId);
+
+  const existing = await tx.productionStep.findUniqueOrThrow({
+    where: { id: stepId },
+    select: updateStepResultSelect,
+  });
+  const production = await tx.production.findUniqueOrThrow({
+    where: { id: existing.productionId },
+    select: { orderId: true },
+  });
+  if (
+    existing.productionId !== stepReference.productionId ||
+    production.orderId !== productionReference.orderId
+  ) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "โครงใบผลิตเปลี่ยนจากอีกหน้าจอแล้ว — กรุณาโหลดใหม่",
+    });
+  }
+
+  return { existing, production };
+}
 
 export const productionRouter = router({
   getByOrderId: protectedProcedure
@@ -424,47 +488,100 @@ export const productionRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // รายการที่ยังเป็น "โครงจากใบเสนอ" ทั้งใบ (OTHER + ไซส์ FREE ล้วน) ห้ามเข้าผลิต —
-      // ช่างไม่มีไซส์/สี/ลายให้ทำงาน ต้องแก้รายการเป็นของจริงก่อน (audit ข้อ 10)
-      // โครง = ไม่ผูกสินค้าจริง (productId null) และไม่มีแหล่งที่มา (itemSource null) เท่านั้น —
-      // สินค้าฟรีไซส์จากสต็อก/เสื้อลูกค้าส่งมา ก็เป็น OTHER+FREE ได้ ห้ามเหมาว่าโครง
-      // (เบสเจอจริง 2026-06-12: เสื้อ oversize ฟรีไซส์จากสต็อกโดนด่านนี้บล็อก)
-      const orderProducts = await ctx.prisma.orderItemProduct.findMany({
-        where: { orderItem: { orderId: input.orderId } },
-        select: {
-          productType: true,
-          productId: true,
-          itemSource: true,
-          variants: { select: { size: true, quantity: true } },
-        },
-      });
-      const allSkeleton =
-        orderProducts.length > 0 &&
-        orderProducts.every(
-          (p) =>
-            p.productType === "OTHER" &&
-            p.productId === null &&
-            p.itemSource === null &&
-            p.variants.every((v) => v.size === "FREE")
-        );
-      if (allSkeleton) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            'รายการออเดอร์ยังเป็นโครงจากใบเสนอ (ไม่มีสินค้า/ไซส์จริง) — กด "แก้ไขรายการ" ใส่ของจริงก่อนเปิดใบผลิต',
-        });
-      }
-
-      // จำนวนทั้งหมดต่อขั้นตั้งต้น = จำนวนเสื้อทั้งออเดอร์ (บอก "บางส่วน" ได้ — แก้ราย
-      // ขั้นทีหลังได้ใน dialog อัปเดต) · ออเดอร์ไม่มีจำนวน = ขั้นแบบติ๊กเฉยๆ (qtyTotal null)
-      const orderTotalQty = orderProducts.reduce(
-        (s, p) => s + p.variants.reduce((vs, v) => vs + v.quantity, 0),
-        0
-      );
-
       // ใบผลิต + เปลี่ยนสถานะ = ก้อนเดียวกัน — สถานะต้องเดินตาม machine เท่านั้น
       // (no-op ถ้าออเดอร์ PRODUCING อยู่แล้ว เช่นเปิดใบผลิตใบที่สอง)
       return ctx.prisma.$transaction(async (tx) => {
+        await lockProductionTopology(tx, input.orderId);
+        // topology mutex กันสมาชิกใบผลิตเปลี่ยน ส่วน parent row lock กัน order item writer
+        // แทนรายการระหว่างอ่าน receipt evidence กับ insert ใบผลิต
+        await lockOrderRow(tx, input.orderId);
+        // receipt อาจเกิดก่อนเปิดใบผลิต: ต้องอ่าน evidence สดหลังถือ topology mutex
+        // และ order row lock เดียวกับ Goods Receipt/หน้าแก้ ห้ามใช้ snapshot ก่อน transaction
+        // มิฉะนั้นสร้าง step ค้างหลอกหรือผูกกับรายการคนละชุด
+        const orderProducts = await tx.orderItemProduct.findMany({
+          where: { orderItem: { orderId: input.orderId } },
+          select: {
+            id: true,
+            productType: true,
+            productId: true,
+            itemSource: true,
+            variants: { select: { size: true, color: true, quantity: true } },
+          },
+        });
+
+        // รายการที่ยังเป็น "โครงจากใบเสนอ" ทั้งใบ (OTHER + ไซส์ FREE ล้วน) ห้ามเข้าผลิต —
+        // ช่างไม่มีไซส์/สี/ลายให้ทำงาน ต้องแก้รายการเป็นของจริงก่อน (audit ข้อ 10)
+        // สินค้าฟรีไซส์จากสต็อก/เสื้อลูกค้าส่งมา ก็เป็น OTHER+FREE ได้ ห้ามเหมาว่าโครง
+        const allSkeleton =
+          orderProducts.length > 0 &&
+          orderProducts.every(
+            (p) =>
+              p.productType === "OTHER" &&
+              p.productId === null &&
+              p.itemSource === null &&
+              p.variants.every((v) => v.size === "FREE")
+          );
+        if (allSkeleton) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              'รายการออเดอร์ยังเป็นโครงจากใบเสนอ (ไม่มีสินค้า/ไซส์จริง) — กด "แก้ไขรายการ" ใส่ของจริงก่อนเปิดใบผลิต',
+          });
+        }
+
+        // จำนวนทั้งหมดต่อขั้นตั้งต้น = จำนวนเสื้อทั้งออเดอร์ · ออเดอร์ไม่มีจำนวน = ขั้นติ๊ก
+        const orderTotalQty = orderProducts.reduce(
+          (sum, product) =>
+            sum + product.variants.reduce((variantSum, variant) => variantSum + variant.quantity, 0),
+          0
+        );
+        const customerProducts = orderProducts.filter(
+          (product) => product.itemSource === "CUSTOMER_PROVIDED"
+        );
+        const receiptLines =
+          customerProducts.length > 0
+            ? await tx.goodsReceiptLine.findMany({
+                where: {
+                  orderItemProductId: { in: customerProducts.map((product) => product.id) },
+                  receipt: {
+                    orderId: input.orderId,
+                    receiptType: { in: ["CUSTOMER_GARMENT", "CUSTOMER_RETURN"] },
+                  },
+                },
+                select: {
+                  orderItemProductId: true,
+                  size: true,
+                  color: true,
+                  qtyCounted: true,
+                  receipt: { select: { receiptType: true } },
+                },
+              })
+            : [];
+        const receivedNetByVariant = netReceivedByVariant(
+          receiptLines.map((line) => ({
+            orderItemProductId: line.orderItemProductId,
+            size: line.size,
+            color: line.color,
+            qtyCounted: line.qtyCounted,
+            receiptType: line.receipt.receiptType,
+          }))
+        );
+        const customerGarmentsAlreadyInspected =
+          customerProducts.length > 0 &&
+          customerProducts.every(
+            (product) =>
+              receiptInspectionOfVariants(
+                product.id,
+                product.variants,
+                receivedNetByVariant
+              ).receivedInspected
+          );
+        const completedAt = customerGarmentsAlreadyInspected ? new Date() : null;
+        const autoCompletedGarmentReceiveSteps = input.steps.filter(
+          (step) =>
+            step.stepType === "GARMENT_RECEIVE" && customerGarmentsAlreadyInspected
+        ).length;
+
         const production = await tx.production.create({
           data: {
             orderId: input.orderId,
@@ -472,6 +589,13 @@ export const productionRouter = router({
               create: input.steps.map((s) => ({
                 ...s,
                 qtyTotal: orderTotalQty > 0 ? orderTotalQty : null,
+                ...(s.stepType === "GARMENT_RECEIVE" && customerGarmentsAlreadyInspected
+                  ? {
+                      status: "COMPLETED" as const,
+                      completedAt,
+                      qtyDone: orderTotalQty,
+                    }
+                  : {}),
               })),
             },
           },
@@ -501,15 +625,408 @@ export const productionRouter = router({
           changedBy: ctx.userId,
         });
 
+        const createdWorkflowSteps = productionWorkflowSteps(production.steps);
+        if (
+          createdWorkflowSteps.length > 0 &&
+          createdWorkflowSteps.every((step) => step.status === "COMPLETED")
+        ) {
+          await finalizeProductionIfComplete(tx, {
+            productionId: production.id,
+            changedBy: ctx.userId,
+          });
+        }
+
         await createAuditLog(tx, {
           userId: ctx.userId,
           action: "CREATE",
           entityType: "PRODUCTION",
           entityId: production.id,
-          newValue: { orderId: input.orderId, stepsCount: input.steps.length },
+          newValue: {
+            orderId: input.orderId,
+            stepsCount: input.steps.length,
+            autoCompletedGarmentReceiveSteps,
+          },
         });
 
-        return production;
+        return tx.production.findUniqueOrThrow({
+          where: { id: production.id },
+          include: { steps: true },
+        });
+      });
+    }),
+
+  reportStationProblem: protectedProcedure
+    .use(productionTeam)
+    .input(
+      z.object({
+        stepId: z.string(),
+        reason: z.string().trim().min(3, "กรุณาระบุเหตุผลอย่างน้อย 3 ตัวอักษร"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const canSupervise = hasPermission(
+        ctx.userRole,
+        ctx.permissionOverrides,
+        "supervise_operations"
+      );
+
+      return ctx.prisma.$transaction(async (tx) => {
+        // semantic Station command รับแค่ stepId+reason: work center/source ต้อง derive
+        // จาก DB เท่านั้น เพื่อกัน client ปลอมสถานีหรือยิง request เก่าข้ามงาน
+        const { existing, production } = await lockProductionStepScope(tx, input.stepId);
+        const workCenter = factoryStationKeyForStep(existing.stepType);
+        if (!workCenter) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นนี้ไม่ได้อยู่ในสถานีโรงงานที่รองรับการแจ้งปัญหา",
+          });
+        }
+        if (existing.status === "COMPLETED") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นนี้เสร็จแล้ว — เปิดงานแก้ผ่านหัวหน้าฝ่ายผลิตแทน",
+          });
+        }
+        if (existing.status === "ON_HOLD") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นนี้ถูกพักอยู่ — ให้หัวหน้าตัดสินใจสถานะงานก่อนแจ้งปัญหาจากสถานี",
+          });
+        }
+
+        const order = await tx.order.findUniqueOrThrow({
+          where: { id: production.orderId },
+          select: {
+            id: true,
+            internalStatus: true,
+            orderNumber: true,
+            title: true,
+          },
+        });
+        if (order.internalStatus !== "PRODUCING") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `แจ้งปัญหาขั้นผลิตไม่ได้ — ออเดอร์อยู่สถานะ ${INTERNAL_STATUS_LABELS[order.internalStatus] ?? order.internalStatus}`,
+          });
+        }
+
+        const siblings = await tx.productionStep.findMany({
+          where: { productionId: existing.productionId },
+          select: {
+            id: true,
+            stepType: true,
+            status: true,
+            sortOrder: true,
+          },
+          orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        });
+        if (!firstPendingStepIdsByLane(siblings).has(input.stepId)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ยังแจ้งปัญหาขั้นนี้ไม่ได้ — ขั้นก่อนหน้าในสายงานเดียวกันยังไม่เสร็จ",
+          });
+        }
+        if (existing.stepType === "HEAT_PRESS") {
+          const pressGate = evaluateHeatPressGate(siblings);
+          if (!pressGate.ready) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `ยังแจ้งปัญหาขั้นรีดร้อนไม่ได้ — ${pressGate.waitingOn.join(" และ ")}`,
+            });
+          }
+        }
+
+        // ใบ legacy อาจมีงานร้านนอกบน step ที่ map กลับ Station ได้ แม้ createOrder
+        // รุ่นใหม่จะกันแล้ว: writer ของร้านนอกต้องเป็นเจ้าของสถานะจน QC จบ ห้าม Station
+        // แทรก FAILED กลางรอบแล้วปล่อยให้สอง command แข่งกันเขียนทับ.
+        const activeOutsource = await tx.outsourceOrder.findFirst({
+          where: {
+            productionStepId: input.stepId,
+            status: { in: OUTSOURCE_ACTIVE_STATUSES as OutsourceStatus[] },
+          },
+          select: { id: true },
+        });
+        if (activeOutsource) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นนี้อยู่ระหว่างงานร้านนอก — จัดการรับกลับและตัดสิน QC ที่ใบงานร้านก่อนแจ้งปัญหาจากสถานี",
+          });
+        }
+
+        let autoClaim = false;
+        if (!canSupervise) {
+          autoClaim = planAutoClaim({
+            existingAssignedToId: existing.assignedToId,
+            userId: ctx.userId,
+          }).autoClaim;
+        }
+
+        // DTF ที่อยู่ในรอบ active มี writer เฉพาะทางซึ่งจะเดินจำนวน/สถานะต่อเมื่อปิดรอบ
+        // จึงห้ามตั้ง FAILED แทรกกลางรอบใน Phase 1 มิฉะนั้น completePrintRun จะเขียนทับ
+        if (existing.stepType === "DTF_PRINT") {
+          const activeRun = await tx.printRunItem.findFirst({
+            where: {
+              productionStepId: input.stepId,
+              printRun: { status: { in: ["PRINTING", "PRINTED"] } },
+            },
+            select: {
+              printRun: { select: { runNumber: true, status: true } },
+            },
+          });
+          if (activeRun) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `งานอยู่ในรอบพิมพ์ ${activeRun.printRun.runNumber} — จัดการรอบตามสถานะปัจจุบันให้เรียบร้อยก่อนแจ้งปัญหาขั้นงาน`,
+            });
+          }
+        }
+
+        const alreadyReported =
+          existing.status === "FAILED" &&
+          activeStationProblemReason(existing.notes) ===
+            normalizedProblemReason(input.reason);
+        if (existing.status === "FAILED" && !alreadyReported) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นนี้แจ้งปัญหาไว้แล้ว — รอหัวหน้าแก้ปัญหาเดิมก่อนแจ้งเหตุใหม่",
+          });
+        }
+        if (alreadyReported && !autoClaim) {
+          return { ...existing, workCenter, operation: "REPORT_PROBLEM" as const };
+        }
+
+        const nextNotes = alreadyReported
+          ? existing.notes
+          : stationProblemNotes(existing.notes, input.reason);
+
+        const step = await tx.productionStep.update({
+          where: { id: input.stepId },
+          data: {
+            ...(!alreadyReported ? { status: "FAILED" as const, notes: nextNotes } : {}),
+            ...(autoClaim ? { assignedToId: ctx.userId } : {}),
+          },
+          select: updateStepResultSelect,
+        });
+
+        // retry ที่ state FAILED+notes เดิมไม่ควรส่งกระดิ่งซ้ำ; กรณี step เดิมไม่มี owner
+        // ยัง claim ให้ผู้รายงานใน transaction เดียวและเก็บ audit ของ write นั้นไว้
+        if (!alreadyReported) {
+          const activeUsers = await tx.user.findMany({
+            where: {
+              isActive: true,
+              id: { not: ctx.userId },
+            },
+            select: { id: true, role: true, permissionOverrides: true },
+          });
+          const supervisors = activeUsers.filter((user) =>
+            hasPermission(user.role, user.permissionOverrides, "supervise_operations")
+          );
+          const notification = failedStepNotification({
+            orderNumber: order.orderNumber,
+            orderTitle: order.title,
+            stepName: stepDisplayName(existing),
+            notes: input.reason,
+            productionId: existing.productionId,
+            orderId: order.id,
+          });
+          for (const supervisor of supervisors) {
+            await createNotification(tx, { userId: supervisor.id, ...notification });
+          }
+        }
+
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "PRODUCTION_STEP",
+          entityId: input.stepId,
+          oldValue: {
+            status: existing.status,
+            notes: existing.notes,
+            assignedToId: existing.assignedToId,
+          },
+          newValue: {
+            source: "STATION",
+            workCenter,
+            operation: "REPORT_PROBLEM",
+            status: "FAILED",
+            notes: nextNotes,
+            assignedToId: step.assignedToId,
+          },
+          reason: input.reason,
+        });
+
+        return { ...step, workCenter, operation: "REPORT_PROBLEM" as const };
+      });
+    }),
+
+  resolveStationProblem: protectedProcedure
+    .use(managerUp)
+    .input(
+      z.object({
+        stepId: z.string(),
+        resolutionReason: z.string().trim().min(3, "กรุณาระบุวิธีแก้อย่างน้อย 3 ตัวอักษร"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        const { existing, production } = await lockProductionStepScope(tx, input.stepId);
+        const order = await tx.order.findUniqueOrThrow({
+          where: { id: production.orderId },
+          select: {
+            id: true,
+            internalStatus: true,
+            orderNumber: true,
+            title: true,
+          },
+        });
+        if (order.internalStatus !== "PRODUCING") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `แก้ปัญหาขั้นผลิตไม่ได้ — ออเดอร์อยู่สถานะ ${INTERNAL_STATUS_LABELS[order.internalStatus] ?? order.internalStatus}`,
+          });
+        }
+
+        const resolutionMarker = resolvedProblemMarker(input.resolutionReason);
+        // retry หลัง response หลุด: PENDING + trail เดิมต้องไม่เขียน/audit/แจ้งซ้ำ
+        if (
+          existing.status === "PENDING" &&
+          existing.notes?.endsWith(resolutionMarker)
+        ) {
+          return { ...existing, operation: "RESOLVE_PROBLEM" as const };
+        }
+        if (existing.status !== "FAILED") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "แก้ปัญหาได้เฉพาะขั้นที่มีสถานะมีปัญหา และห้ามถอยขั้นที่เดินต่อแล้ว",
+          });
+        }
+        const nextNotes = resolvedProblemNotes(existing.notes, input.resolutionReason);
+
+        const step = await tx.productionStep.update({
+          where: { id: input.stepId },
+          data: {
+            status: "PENDING",
+            startedAt: null,
+            completedAt: null,
+            notes: nextNotes,
+          },
+          select: updateStepResultSelect,
+        });
+
+        if (existing.assignedToId && existing.assignedToId !== ctx.userId) {
+          const assignee = await tx.user.findUnique({
+            where: { id: existing.assignedToId },
+            select: { id: true, isActive: true },
+          });
+          if (assignee?.isActive) {
+            await createNotification(tx, {
+              userId: assignee.id,
+              type: "PRODUCTION",
+              title: `แก้ปัญหาแล้ว — ${order.orderNumber}`,
+              message: `${stepDisplayName(existing)} · ${input.resolutionReason}`,
+              link: productionStepWorkLink(existing.stepType, existing.productionId),
+              entityType: "PRODUCTION_STEP",
+              entityId: input.stepId,
+            });
+          }
+        }
+
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "PRODUCTION_STEP",
+          entityId: input.stepId,
+          oldValue: { status: existing.status, notes: existing.notes },
+          newValue: {
+            operation: "RESOLVE_PROBLEM",
+            status: "PENDING",
+            notes: nextNotes,
+          },
+          reason: input.resolutionReason,
+        });
+
+        return { ...step, operation: "RESOLVE_PROBLEM" as const };
+      });
+    }),
+
+  assignProductionStep: protectedProcedure
+    .use(managerUp)
+    .input(
+      z.object({
+        stepId: z.string(),
+        assignedToId: z.string().trim().min(1).nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        const { existing, production } = await lockProductionStepScope(tx, input.stepId);
+        const order = await tx.order.findUniqueOrThrow({
+          where: { id: production.orderId },
+          select: { internalStatus: true, orderNumber: true, title: true },
+        });
+        if (order.internalStatus !== "PRODUCING" || existing.status === "COMPLETED") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "มอบหมายได้เฉพาะขั้นที่ยังทำงานอยู่ในออเดอร์กำลังผลิต",
+          });
+        }
+
+        let assignee: { id: string; isActive: boolean } | null = null;
+        if (input.assignedToId) {
+          const candidate = await tx.user.findUnique({
+            where: { id: input.assignedToId },
+            select: {
+              id: true,
+              role: true,
+              permissionOverrides: true,
+              isActive: true,
+            },
+          });
+          if (
+            !candidate?.isActive ||
+            !hasPermission(candidate.role, candidate.permissionOverrides, "manage_production")
+          ) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "ผู้รับงานต้องเป็นผู้ใช้งานที่ยัง active และมีสิทธิ์งานผลิต",
+            });
+          }
+          assignee = candidate;
+        }
+
+        if (existing.assignedToId === input.assignedToId) {
+          return { ...existing, operation: "ASSIGN_STEP" as const };
+        }
+
+        const step = await tx.productionStep.update({
+          where: { id: input.stepId },
+          data: { assignedToId: input.assignedToId },
+          select: updateStepResultSelect,
+        });
+        if (assignee && assignee.id !== ctx.userId) {
+          await createNotification(tx, {
+            userId: assignee.id,
+            type: "PRODUCTION",
+            title: `ได้รับมอบหมายงาน — ${order.orderNumber}`,
+            message: `${order.title} · ${stepDisplayName(existing)}`,
+            link: productionStepWorkLink(existing.stepType, existing.productionId),
+            entityType: "PRODUCTION_STEP",
+            entityId: input.stepId,
+          });
+        }
+        await createAuditLog(tx, {
+          userId: ctx.userId,
+          action: "UPDATE",
+          entityType: "PRODUCTION_STEP",
+          entityId: input.stepId,
+          oldValue: { assignedToId: existing.assignedToId },
+          newValue: {
+            operation: "ASSIGN_STEP",
+            assignedToId: input.assignedToId,
+          },
+        });
+
+        return { ...step, operation: "ASSIGN_STEP" as const };
       });
     }),
 
@@ -518,8 +1035,9 @@ export const productionRouter = router({
     .input(
       z.object({
         stepId: z.string(),
-        status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "ON_HOLD", "FAILED"]).optional(),
-        assignedToId: z.string().optional(),
+        // FAILED เป็น exception command ที่ต้องมีเหตุผล/source/audit/notification ครบ
+        // จึงเข้าได้ทาง reportStationProblem และออกได้ทาง resolveStationProblem เท่านั้น
+        status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "ON_HOLD"]).optional(),
         actualCost: z.number().min(0).optional(),
         // บอก "บางส่วน" ได้ — ทำแล้ว/ทั้งหมด (qtyTotal null = ขั้นแบบติ๊กเฉยๆ)
         qtyDone: z.number().int().min(0).optional(),
@@ -548,30 +1066,9 @@ export const productionRouter = router({
         // step ของคนอื่น → ห้าม (ด่าน field ต้องมาก่อนโหลด step — FORBIDDEN ก่อน NOT_FOUND)
         assertStaffFields({ canSupervise, data });
 
-        // ทุกการอัปเดตต้องถือ lock ก่อนอ่าน assignee/รอบพิมพ์/ใบ outsource — สองจอที่
-        // claim step ว่างพร้อมกันจึงอ่านค่าล่าสุดตามลำดับ และมีผู้ชนะได้เพียงคนเดียว
-        await tx.$queryRaw`SELECT id FROM production_steps WHERE id = ${stepId} FOR UPDATE`;
-
-        const existing = await tx.productionStep.findUniqueOrThrow({
-          where: { id: stepId },
-          select: {
-            assignedToId: true,
-            productionId: true,
-            stepType: true,
-            status: true,
-            qtyDone: true,
-            qtyTotal: true,
-          },
-        });
-
-        // สถานะออเดอร์เป็น guard ของการเขียน step ทั้งก้อน: ต้องอ่านสดหลังถือ lock ตามลำดับ
-        // step → production → order เพื่อกัน request เก่าปิด/แก้ขั้นหลังอีกจอพักหรือยกเลิกงานแล้ว
-        await tx.$queryRaw`SELECT id FROM productions WHERE id = ${existing.productionId} FOR UPDATE`;
-        const production = await tx.production.findUniqueOrThrow({
-          where: { id: existing.productionId },
-          select: { orderId: true },
-        });
-        await lockOrderRow(tx, production.orderId);
+        // ล็อก topology + ทุก step ของใบก่อนอ่าน assignee/สถานะจริง เพื่อให้ finalizer
+        // ที่อาจแตะ PACKAGING และสองจอที่ claim พร้อมกันใช้ global lock order เดียวกัน
+        const { existing, production } = await lockProductionStepScope(tx, stepId);
         const liveOrder = await tx.order.findUniqueOrThrow({
           where: { id: production.orderId },
           select: { internalStatus: true },
@@ -590,10 +1087,24 @@ export const productionRouter = router({
           });
         }
 
-        const effectiveData = normalizeStepUpdateForCurrentStatus({
+        if (existing.status === "FAILED") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นที่มีปัญหาต้องแก้ผ่านคำสั่งแก้ปัญหาของหัวหน้าฝ่ายผลิต",
+          });
+        }
+
+        const effectiveData = { ...normalizeStepUpdateForCurrentStatus({
           currentStatus: existing.status,
           data,
-        });
+        }) };
+        // Absolute-value commands ต้อง retry ได้จริง: field ที่เท่ากับแถวหลัง lock คือ no-op
+        // ไม่ claim, ไม่เดิน lane, ไม่ประทับเวลา และไม่สร้าง audit ซ้ำ.
+        if (effectiveData.qtyDone === existing.qtyDone) delete effectiveData.qtyDone;
+        if (effectiveData.qtyTotal === existing.qtyTotal) delete effectiveData.qtyTotal;
+        if (effectiveData.qcPassed === existing.qcPassed) delete effectiveData.qcPassed;
+        if (effectiveData.qcNotes === existing.qcNotes) delete effectiveData.qcNotes;
+        if (effectiveData.notes === existing.notes) delete effectiveData.notes;
         const nextQtyDone = effectiveData.qtyDone ?? existing.qtyDone;
         const nextQtyTotal =
           effectiveData.qtyTotal !== undefined
@@ -606,6 +1117,59 @@ export const productionRouter = router({
           });
         }
 
+        const hasEffectiveChanges = Object.values(effectiveData).some(
+          (value) => value !== undefined,
+        );
+        // request ว่าง/สถานะเดิมคือ retry no-op จริง — ห้ามใช้ claim ขั้นที่ยังไม่มี owner
+        // และขั้นที่ปิดแล้วต้อง immutable นอก semantic recovery.
+        if (!hasEffectiveChanges) return existing;
+        if (existing.status === "COMPLETED") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นนี้ปิดเสร็จแล้ว — แก้ผลย้อนหลังผ่านกระบวนการงานแก้แทน",
+          });
+        }
+
+        // service เฉพาะทางเป็นเจ้าของทุก mutation ของขั้นเหล่านี้ ไม่ใช่แค่ status/qty:
+        // notes/QC-only ผ่าน generic endpoint ก็ forge หลักฐานและ auto-claim งานได้เหมือนกัน.
+        if (existing.stepType === "GARMENT_PICK") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นเบิกเสื้อต้องอัปเดตผ่านเมนูเบิก/คืนเสื้อ เพื่อให้สต๊อคตรงกัน",
+          });
+        }
+        if (existing.stepType === "GARMENT_RECEIVE") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นรับเสื้อลูกค้าต้องอัปเดตผ่านใบตรวจรับ เพื่อให้หลักฐานและจำนวนตรงกัน",
+          });
+        }
+        if (existing.stepType === "DTF_PRINT") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ขั้นพิมพ์ DTF ต้องเดินผ่านหน้ารอบพิมพ์ฟิล์ม",
+          });
+        }
+
+        // ทุก field ของ generic command (รวม notes/QC-only) ต้องอยู่บน current step
+        // ใน lane จริง ไม่เช่นนั้น staff ยิง field ที่ไม่ใช่ status เพื่อ claim ขั้นอนาคตได้.
+        const siblings = await tx.productionStep.findMany({
+          where: { productionId: existing.productionId },
+          select: {
+            id: true,
+            stepType: true,
+            status: true,
+            sortOrder: true,
+          },
+          orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        });
+        if (!firstPendingStepIdsByLane(siblings).has(stepId)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ยังอัปเดตขั้นนี้ไม่ได้ — ทำขั้นก่อนหน้าในสายงานเดียวกันให้เสร็จก่อน",
+          });
+        }
+
         let autoClaim = false;
         if (!canSupervise) {
           autoClaim = planAutoClaim({
@@ -614,51 +1178,8 @@ export const productionRouter = router({
           }).autoClaim;
         }
 
-        // retry สถานะเดิมล้วน ๆ = no-op จริง ไม่แตะ updatedAt/audit และไม่ประทับเวลาใหม่
-        if (
-          !autoClaim &&
-          !Object.values(effectiveData).some((value) => value !== undefined)
-        ) {
-          return tx.productionStep.findUniqueOrThrow({
-            where: { id: stepId },
-            select: updateStepResultSelect,
-          });
-        }
-
-        // service เฉพาะทางเป็นเจ้าของจำนวน/สถานะของสองขั้นนี้: เบิกเสื้อต้องตัด Stock
-        // และ DTF ต้องผ่านรอบพิมพ์ ไม่ให้ API generic ปิดข้ามหลักฐานได้
         if (touchesRunGuardedFields(effectiveData)) {
-          if (existing.stepType === "GARMENT_PICK") {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "ขั้นเบิกเสื้อต้องอัปเดตผ่านเมนูเบิก/คืนเสื้อ เพื่อให้สต๊อคตรงกัน",
-            });
-          }
-          if (existing.stepType === "DTF_PRINT") {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "ขั้นพิมพ์ DTF ต้องเดินผ่านหน้ารอบพิมพ์ฟิล์ม",
-            });
-          }
-
-          // อ่าน sibling หลังถือ lock ของ step ปัจจุบัน: งานขั้นถัดไปในเลนเดียวกันห้าม
-          // เริ่ม/ปิดข้ามตัวแรก และ HEAT_PRESS ต้องเห็นฟิล์ม+เสื้อพร้อมจากฐานจริง
-          const siblings = await tx.productionStep.findMany({
-            where: { productionId: existing.productionId },
-            select: {
-              id: true,
-              stepType: true,
-              status: true,
-              sortOrder: true,
-            },
-            orderBy: { sortOrder: "asc" },
-          });
-          if (!firstPendingStepIdsByLane(siblings).has(stepId)) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "ยังเริ่มขั้นนี้ไม่ได้ — ทำขั้นก่อนหน้าในสายงานเดียวกันให้เสร็จก่อน",
-            });
-          }
+          // current-lane ถูกตรวจสำหรับทุก field ด้านบนแล้ว; ที่นี่เหลือ gate เฉพาะ HEAT_PRESS.
           if (
             existing.stepType === "HEAT_PRESS" &&
             !evaluateHeatPressGate(siblings).ready
@@ -817,13 +1338,16 @@ export const productionRouter = router({
     .input(z.object({ productionId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.$transaction(async (tx) => {
-        // ล็อก production ก่อน order ให้ลำดับตรงกับ updateStep → finalizer; ถ้ากลับลำดับ
-        // recovery จะถือ order รอ production ขณะอีกจอถือ production รอ orderจน deadlock
+        // อ่านครั้งแรกเพื่อหา scope เท่านั้น จากนั้นใช้ global order เดียวกับทุก writer:
+        // topology mutex → steps ทั้งใบตาม id → production → order
         const reference = await tx.production.findUniqueOrThrow({
           where: { id: input.productionId },
           select: { orderId: true },
         });
+        await lockProductionTopology(tx, reference.orderId);
+        await tx.$queryRaw`SELECT id FROM production_steps WHERE production_id = ${input.productionId} ORDER BY id FOR UPDATE`;
         await tx.$queryRaw`SELECT id FROM productions WHERE id = ${input.productionId} FOR UPDATE`;
+        await lockOrderRow(tx, reference.orderId);
         const current = await tx.production.findUniqueOrThrow({
           where: { id: input.productionId },
           select: {
@@ -832,7 +1356,12 @@ export const productionRouter = router({
             steps: { select: { stepType: true, status: true } },
           },
         });
-        await lockOrderRow(tx, current.orderId || reference.orderId);
+        if (current.orderId !== reference.orderId) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "โครงใบผลิตเปลี่ยนจากอีกหน้าจอแล้ว — กรุณาโหลดใหม่",
+          });
+        }
         const liveOrder = await tx.order.findUniqueOrThrow({
           where: { id: current.orderId },
           select: { internalStatus: true },
@@ -922,27 +1451,17 @@ export const productionRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const result = await issueGarments(ctx.prisma, {
+      return issueGarments(ctx.prisma, {
         ...input,
         userId: ctx.userId,
         // PERM: กติกา own-work/auto-claim ตรง updateStep — ไม่ใช่หัวหน้า = แตะเฉพาะงานตัวเอง
         canSupervise: hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations"),
       });
-      if (!result.alreadyRecorded) {
-        await createAuditLog(ctx.prisma, {
-          userId: ctx.userId,
-          action: "CREATE",
-          entityType: "STOCK_ISSUE",
-          entityId: result.docNumber,
-          newValue: { productionId: input.productionId, lines: input.lines },
-        });
-      }
-      return result;
     }),
 
   // คืนเศษเข้าสต๊อค (เผื่อเสีย 3% ที่เหลือ) — คืนได้ไม่เกินยอดเบิกค้าง
   returnGarments: protectedProcedure
-    .use(productionTeam)
+    .use(managerUp)
     .input(
       z.object({
         productionId: z.string(),
@@ -952,17 +1471,7 @@ export const productionRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const result = await returnGarments(ctx.prisma, { ...input, userId: ctx.userId });
-      if (!result.alreadyRecorded) {
-        await createAuditLog(ctx.prisma, {
-          userId: ctx.userId,
-          action: "CREATE",
-          entityType: "STOCK_RETURN",
-          entityId: result.docNumber,
-          newValue: { productionId: input.productionId, lines: input.lines, note: input.note },
-        });
-      }
-      return result;
+      return returnGarments(ctx.prisma, { ...input, userId: ctx.userId });
     }),
 
 });

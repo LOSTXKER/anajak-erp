@@ -28,6 +28,7 @@ import {
 } from "@/server/services/order-status";
 import { getGarmentPickState } from "@/server/services/garment-pick";
 import { promoteOrderArtworks } from "@/server/services/artwork";
+import { lockProductionTopology } from "@/server/services/production-topology-lock";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
 
 // ============================================================
@@ -185,6 +186,9 @@ function readQcStoredOutcome(value: unknown): QcStoredOutcome | null {
  * ที่ต้อง lock; ห้ามนำ snapshot นี้ไปตัดสินสถานะหรือผล QC หลัง lock
  */
 async function lockQcProductionChain(tx: PrismaTx, orderId: string) {
+  // QC defect สร้าง step งานแก้ จึงต้อง serialize topology ก่อน snapshot/row locks
+  // เหมือน Goods Receipt และ production writers ทุกตัว
+  await lockProductionTopology(tx, orderId);
   const productionRefs = await tx.production.findMany({
     where: { orderId },
     select: { id: true, steps: { select: { id: true } } },

@@ -72,6 +72,8 @@ import {
   orderReferenceImagesFingerprint,
 } from "@/lib/order-form-concurrency";
 import { D } from "@/server/services/money";
+import { lockProductionTopology } from "@/server/services/production-topology-lock";
+import { productionWorkflowSteps } from "@/lib/production-steps";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ (PERM3: default = OWNER/MANAGER/SALES เดิมเป๊ะ + override รายคน)
 const salesUp = requirePermission("create_sales_docs");
@@ -138,7 +140,6 @@ const orderItemProductSchema = z.object({
   patternFileUrl: fileUrlSchema.optional(),
   patternNote: z.string().optional(),
   garmentCondition: z.string().optional(),
-  receivedInspected: z.boolean().optional(),
   receiveNote: z.string().optional(),
 });
 
@@ -289,6 +290,7 @@ async function validateSavedOrderItemProductIds(
       productId: true,
       productType: true,
       itemSource: true,
+      receivedInspected: true,
       variants: { select: { size: true, color: true } },
     },
   });
@@ -367,6 +369,7 @@ async function validateSavedOrderItemProductIds(
 function buildItemCreateData(
   item: ItemWithCalc | OrderFormItemWithCalc,
   taxLineType: TaxLineType,
+  receivedEvidenceById: ReadonlyMap<string, boolean> = new Map(),
 ) {
   return {
     sortOrder: item.sortOrder,
@@ -376,42 +379,48 @@ function buildItemCreateData(
     taxLineType,
     notes: item.notes,
     products: {
-      create: item.products.map((p) => ({
-        ...("savedProductId" in p && p.savedProductId
-          ? { id: p.savedProductId }
-          : {}),
-        sortOrder: p.sortOrder,
-        productId: p.productId || undefined,
-        productType: p.productType,
-        description: p.description,
-        material: p.material,
-        baseUnitPrice: p.baseUnitPrice,
-        discount: p.discount || 0,
-        totalQuantity: p.totalQuantity,
-        subtotal: p.subtotal,
-        itemSource: p.itemSource,
-        packagingOptionId: p.packagingOptionId || undefined,
-        fabricType: p.fabricType,
-        fabricWeight: p.fabricWeight,
-        fabricColor: p.fabricColor,
-        processingType: p.processingType,
-        patternId: p.patternId,
-        collarType: p.collarType,
-        sleeveType: p.sleeveType,
-        bodyFit: p.bodyFit,
-        patternFileUrl: p.patternFileUrl,
-        patternNote: p.patternNote,
-        garmentCondition: p.garmentCondition,
-        receivedInspected: p.receivedInspected ?? false,
-        receiveNote: p.receiveNote,
-        variants: {
-          create: p.variants.map((v) => ({
-            size: v.size,
-            color: v.color,
-            quantity: v.quantity,
-          })),
-        },
-      })),
+      create: item.products.map((p) => {
+        const savedProductId =
+          "savedProductId" in p && p.savedProductId ? p.savedProductId : null;
+        return {
+          ...(savedProductId ? { id: savedProductId } : {}),
+          sortOrder: p.sortOrder,
+          productId: p.productId || undefined,
+          productType: p.productType,
+          description: p.description,
+          material: p.material,
+          baseUnitPrice: p.baseUnitPrice,
+          discount: p.discount || 0,
+          totalQuantity: p.totalQuantity,
+          subtotal: p.subtotal,
+          itemSource: p.itemSource,
+          packagingOptionId: p.packagingOptionId || undefined,
+          fabricType: p.fabricType,
+          fabricWeight: p.fabricWeight,
+          fabricColor: p.fabricColor,
+          processingType: p.processingType,
+          patternId: p.patternId,
+          collarType: p.collarType,
+          sleeveType: p.sleeveType,
+          bodyFit: p.bodyFit,
+          patternFileUrl: p.patternFileUrl,
+          patternNote: p.patternNote,
+          garmentCondition: p.garmentCondition,
+          // receipt evidence เป็น server-owned: รักษาค่า DB เฉพาะ identity เดิม ส่วนแถวใหม่
+          // เริ่ม false เสมอและไม่เชื่อ boolean ที่ client echo/ปลอมมากับฟอร์มออเดอร์
+          receivedInspected: savedProductId
+            ? (receivedEvidenceById.get(savedProductId) ?? false)
+            : false,
+          receiveNote: p.receiveNote,
+          variants: {
+            create: p.variants.map((v) => ({
+              size: v.size,
+              color: v.color,
+              quantity: v.quantity,
+            })),
+          },
+        };
+      }),
     },
     prints: {
       create: item.prints.map((pr) => ({
@@ -1228,6 +1237,67 @@ export const orderRouter = router({
       // ระหว่างทาง (review 2026-07-02: ยิง PACKING ตอน PRODUCING แล้ว finalize แทรก →
       // guard QC กับ promote ลายโดนข้ามทั้งคู่)
       const order = await ctx.prisma.$transaction(async (tx) => {
+        // เส้น QC ตีกลับผลิตจะ reopen production/steps: ต้องถือ topology mutex ก่อน
+        // transitionOrder ซึ่งล็อก order เพื่อให้ global order ตรงกับ Goods/QC writers
+        if (
+          input.internalStatus === "PRODUCING" ||
+          input.internalStatus === "QUALITY_CHECK"
+        ) {
+          await lockProductionTopology(tx, input.id);
+        }
+
+        // PRODUCING → QUALITY_CHECK ปกติต้องเกิดจาก shared finalizer เท่านั้น.
+        // ถ้ามี client เก่าหรือ API ยิงสถานะตรง ต้องถือ lock set เดียวกับ production writers
+        // และพิสูจน์ใบผลิต/ขั้นจริงครบ เพื่อไม่ทำงานค้างหายจาก Station.
+        if (input.internalStatus === "QUALITY_CHECK") {
+          await tx.$queryRaw`
+            SELECT ps.id
+            FROM production_steps ps
+            INNER JOIN productions p ON p.id = ps.production_id
+            WHERE p.order_id = ${input.id}
+            ORDER BY ps.id
+            FOR UPDATE OF ps
+          `;
+          await tx.$queryRaw`
+            SELECT id FROM productions
+            WHERE order_id = ${input.id}
+            ORDER BY id
+            FOR UPDATE
+          `;
+          await lockOrderRow(tx, input.id);
+          const live = await tx.order.findUniqueOrThrow({
+            where: { id: input.id },
+            select: { internalStatus: true },
+          });
+          if (live.internalStatus === "PRODUCING") {
+            const productions = await tx.production.findMany({
+              where: { orderId: input.id },
+              select: {
+                id: true,
+                status: true,
+                steps: {
+                  select: { stepType: true, status: true },
+                },
+              },
+              orderBy: { id: "asc" },
+            });
+            const allProductionWorkComplete =
+              productions.length > 0 &&
+              productions.every(
+                (production) =>
+                  production.status === "COMPLETED" &&
+                  productionWorkflowSteps(production.steps).every(
+                    (step) => step.status === "COMPLETED",
+                  ),
+              );
+            if (!allProductionWorkComplete) {
+              badRequest(
+                "ส่งเข้า QC ไม่ได้ — ยังมีใบผลิตหรือขั้นงานค้างอยู่ ให้ปิดงานจริงจาก Station/บริการเฉพาะทางก่อน",
+              );
+            }
+          }
+        }
+
         // ยืนยันออเดอร์ = ผูกพันวงเงิน เฉพาะข้ามจากสถานะยังไม่ผูกพัน
         // ตรวจจากสถานะสดใน tx และถือทั้ง order/customer lock จน transition commit
         if (input.internalStatus === "CONFIRMED") {
@@ -1671,6 +1741,7 @@ export const orderRouter = router({
         }
 
         let itemsWithCalc: OrderFormItemWithCalc[] | undefined;
+        let receivedEvidenceById: ReadonlyMap<string, boolean> = new Map();
         if (input.work?.items) {
           // artworkId เป็น hint — ตรวจลูกค้า/รูปใน tx เดียวกับการแทนรายการ
           await sanitizeArtworkLinks(
@@ -1682,6 +1753,12 @@ export const orderRouter = router({
             tx,
             input.id,
             input.work.items,
+          );
+          receivedEvidenceById = new Map(
+            existingProducts.map((product) => [
+              product.id,
+              product.receivedInspected,
+            ]),
           );
           await assertNoDeletedProducts(
             tx,
@@ -1749,7 +1826,11 @@ export const orderRouter = router({
             await tx.orderItem.create({
               data: {
                 orderId: input.id,
-                ...buildItemCreateData(item, taxLineTypeForItem(item)),
+                ...buildItemCreateData(
+                  item,
+                  taxLineTypeForItem(item),
+                  receivedEvidenceById,
+                ),
               },
             });
           }
@@ -2726,7 +2807,6 @@ export const orderRouter = router({
       z.object({
         orderItemProductId: z.string(),
         garmentCondition: z.string().optional(),
-        receivedInspected: z.boolean(),
         receiveNote: z.string().optional(),
       }),
     )
@@ -2745,7 +2825,6 @@ export const orderRouter = router({
           where: { id: input.orderItemProductId },
           data: {
             garmentCondition: input.garmentCondition || null,
-            receivedInspected: input.receivedInspected,
             receiveNote: input.receiveNote || null,
           },
           // ⑦: แถวนี้มีเงินขายรายชิ้น (baseUnitPrice/discount/subtotal) ที่ getById ปิดจากช่าง —
@@ -2770,7 +2849,6 @@ export const orderRouter = router({
           newValue: {
             action: "updateReceiveTracking",
             orderItemProductId: input.orderItemProductId,
-            receivedInspected: input.receivedInspected,
           },
         });
 

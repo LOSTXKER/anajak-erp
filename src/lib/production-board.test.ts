@@ -63,6 +63,28 @@ describe("bucketOf — ใช้ปฏิทินไทย ไม่ใช่ U
 });
 
 describe("buildProductionBoard — จุดงาน", () => {
+  it("sortOrder เท่ากันเลือก id ต่ำสุดให้ตรง server current-lane guard", () => {
+    const board = buildProductionBoard(
+      [
+        order({
+          id: "equal-sort",
+          productions: [
+            {
+              id: "p1",
+              steps: [
+                step({ id: "step-z", stepType: "DTF_PRINT", sortOrder: 1 }),
+                step({ id: "step-a", stepType: "DTF_PRINT", sortOrder: 1 }),
+              ],
+            },
+          ],
+        }),
+      ],
+      OPTS,
+    );
+
+    expect(board.jobs[0]?.spots[0]?.step?.id).toBe("step-a");
+  });
+
   it("งานผสมโผล่ทุกสายที่ค้างอยู่ และนับจุดงานมากกว่าจำนวนออเดอร์", () => {
     const board = buildProductionBoard(
       [

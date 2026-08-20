@@ -310,7 +310,10 @@ export function buildProductionBoard<
 
     if (order.internalStatus === "PRODUCING") {
       for (const production of order.productions) {
-        const orderedSteps = [...production.steps].sort((a, b) => a.sortOrder - b.sortOrder);
+        const orderedSteps = [...production.steps].sort((left, right) => {
+          if (left.sortOrder !== right.sortOrder) return left.sortOrder - right.sortOrder;
+          return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+        });
         const steps = productionWorkflowSteps(orderedSteps);
         const hasPendingLegacyPackaging = orderedSteps.some(
           (step) => step.stepType === "PACKAGING" && step.status !== "COMPLETED",

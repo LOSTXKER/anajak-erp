@@ -52,6 +52,8 @@ interface GoodsReceiptDialogProps {
   // OUTSOURCE_RETURN ส่งบรรทัดมาเอง (จากใบ outsource) — ชนิดอื่น prefill จากเนื้อออเดอร์
   presetLines?: PresetLine[];
   outsourceOrderId?: string;
+  // จอสถานีต้องผูกคำสั่งกับ GARMENT_RECEIVE ที่กำลังทำจริง; หน้าออเดอร์ทั่วไปไม่ส่ง
+  productionStepId?: string;
   onClose: () => void;
   onCreated?: () => void;
 }
@@ -116,6 +118,7 @@ function ReceiptForm({
   orderId,
   receiptType,
   outsourceOrderId,
+  productionStepId,
   onClose,
   onCreated,
   initialLines,
@@ -132,6 +135,8 @@ function ReceiptForm({
   );
   const [notes, setNotes] = useState("");
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  // คง key เดิมตลอดอายุ dialog: network/notification error แล้วกดซ้ำต้องได้ใบเดิม
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
 
   const utils = trpc.useUtils();
   const create = useMutationWithInvalidation(trpc.goodsReceipt.create, {
@@ -151,22 +156,55 @@ function ReceiptForm({
       toast.error("บันทึกไม่สำเร็จ", { description: err.message });
     },
   });
+  const confirmExistingEvidence = useMutationWithInvalidation(
+    trpc.goodsReceipt.confirmCustomerGarmentEvidence,
+    {
+      invalidate: [
+        utils.goodsReceipt.listByOrder,
+        utils.goodsReceipt.context,
+        utils.order.getById,
+        utils.production.getById,
+        utils.production.kanban,
+      ],
+      onSuccess: () => {
+        toast.success("ยืนยันหลักฐานรับเสื้อและปิดขั้นแล้ว");
+        onCreated?.();
+        onClose();
+      },
+      onError: (err: { message?: string }) => {
+        toast.error("ยืนยันหลักฐานไม่สำเร็จ", { description: err.message });
+      },
+    },
+  );
 
   const update = (idx: number, patch: Partial<LineState>) =>
     setLines((prev) => prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
 
   const totalCounted = lines.reduce((s, l) => s + l.qtyCounted, 0);
   const totalDefect = lines.reduce((s, l) => s + l.defectQty, 0);
+  const isStationInspection =
+    receiptType === "CUSTOMER_GARMENT" && !!productionStepId;
+  const canConfirmExistingEvidence =
+    isStationInspection &&
+    lines.length > 0 &&
+    lines.every((line) => line.qtyExpected === 0);
 
   function handleSave() {
+    if (canConfirmExistingEvidence && productionStepId) {
+      confirmExistingEvidence.mutate({ productionStepId });
+      return;
+    }
     create.mutate({
       orderId,
+      idempotencyKey,
       receiptType,
       outsourceOrderId,
+      productionStepId,
       notes: notes || undefined,
       photoUrls,
-      lines: lines
-        .filter((l) => l.qtyCounted > 0 || l.defectQty > 0)
+      lines: (isStationInspection
+        ? lines
+        : lines.filter((l) => l.qtyCounted > 0 || l.defectQty > 0))
         .map((l) => ({
           orderItemProductId: l.orderItemProductId,
           description: l.description,
@@ -188,6 +226,8 @@ function ReceiptForm({
           <DialogDescription>
             {isReturn
               ? "ยอดคืนจะหักออกจากยอดรับของออเดอร์นี้"
+              : canConfirmExistingEvidence
+                ? "รายการนี้มีหลักฐานรับครบแล้ว — ยืนยันเพื่อปิดเฉพาะขั้นของสถานีนี้"
               : "นับจริงต่อไซส์ — ขาด/เกิน/มีตำหนิ ระบบแจ้งแอดมินให้ทันที"}
           </DialogDescription>
         </DialogHeader>
@@ -309,9 +349,20 @@ function ReceiptForm({
         </div>
 
         <DialogSubmitFooter
-          pending={create.isPending}
-          disabled={totalCounted <= 0 && totalDefect <= 0}
-          submitLabel={`บันทึก ${totalCounted} ตัว`}
+          pending={create.isPending || confirmExistingEvidence.isPending}
+          disabled={
+            !canConfirmExistingEvidence &&
+            !isStationInspection &&
+            totalCounted <= 0 &&
+            totalDefect <= 0
+          }
+          submitLabel={
+            canConfirmExistingEvidence
+              ? "ยืนยันหลักฐานเดิมและปิดขั้น"
+              : isStationInspection && totalCounted === 0 && totalDefect === 0
+                ? "บันทึกผลตรวจ: ไม่พบของ"
+                : `บันทึก ${totalCounted} ตัว`
+          }
           submitIcon={<ClipboardCheck />}
           onCancel={onClose}
           onSubmit={handleSave}

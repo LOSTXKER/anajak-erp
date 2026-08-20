@@ -4,16 +4,20 @@
 
 ## ตอนนี้
 
-> **🚧 PRODUCTION-UX2.16 เบสเลือก Direction A แล้ว — กำลังแยก Production Control + Station Execution 2026-08-20**
-> เบสตรวจ UX2.15 จากจอจริงแล้วไม่รับ เพราะการรื้อหลายรอบยังวาง `/production/[id]` เป็นใบงานหน้าเครื่องและไม่ได้ออกแบบร่วมกับ Station Mode · audit เอกสาร/โค้ดพบ contract ขัดกันจริง: `/production` ระบุเป็นจอหัวหน้าและ `/factory/station` เป็นจอพนักงาน แต่ทั้งสอง mount `ProductionDetailScreen` และ routine mutation ชุดเดียวกัน โดย ERP ทำได้ทุก step
+> **✅ PRODUCTION-UX2.16 PHASE 1 — Direction A แยก Production Control ออกจาก Station Execution แล้ว 2026-08-20**
+> รากของการรื้อภาพหลายรอบคือ contract ขัดกัน: เอกสารเรียก `/production` ว่าจอหัวหน้าและ `/factory/station` ว่าจอพนักงาน แต่ `/production/[id]` ยังทำหน้าที่เป็นใบงานหน้าเครื่องและมี routine mutation ซ้ำกับ Station · Phase 1 แก้ responsibility และ server boundary พร้อมกัน ไม่ใช่เปลี่ยน card shell
 >
-> มติใหม่: **ERP ใช้ควบคุม/จัดลำดับ/มอบหมาย/แก้ exception; Station ใช้รับงาน ลงมือ บันทึกจำนวน/หลักฐาน แจ้งปัญหา และ complete ตาม work center** · ข้อมูลและ service ชุดเดียวกัน แต่ responsibility ต้องไม่ซ้ำและ server ต้องบังคับ ไม่เชื่อเพียง station ที่เลือกจาก client
+> **ERP `/production/[id]` เป็น exception control record:** identity/status/จำนวน/ความคืบหน้า/deadline/owner นำ, attention แสดงเรื่องที่ต้องตัดสินใจเพียงเรื่องเดียว, operation ledger เทียบผลจริง/ผู้รับผิดชอบ/blocker ทุก lane และมี readiness/handoff/activity ข้างกัน · default surface เหลือ semantic manager action สำหรับมอบหมาย/ยกเลิกมอบหมายและแก้ exception; ไม่มีเบิก เริ่ม บันทึกจำนวน หรือ complete ปนกับงานสถานี · ข้อมูล owner ระดับใบผลิต, plan/SLA ต่อขั้น และ actor/source ใน activity ที่ schema ยังไม่มีติดป้าย `ข้อมูลที่ต้องเพิ่ม` แทนการเดา
 >
-> ทำ standalone mockup แล้ว 3 ทิศแบบคู่ ERP 1440×900 + Station 1024×768 ใน `docs/mockups/production-control-station-2026-08-20/` และเบสเลือก **A — Exception Control Record + Current-job-first Station** เป็น implementation target · ใช้ state `ORD-2606-0021` เดียวกัน, ไม่มี production mutation, ค่าที่ยังไม่มีติดป้าย `ข้อมูลที่ต้องเพิ่ม` · render 12 ภาพตรวจเองครบ, 6 target ไม่มี horizontal overflow/console error และ Station button ที่เห็น ≥44px
+> **Station `/factory/station` เป็น current-job-first:** งานที่เปิดอยู่กินผืนหลักพร้อม operation/spec/จำนวนและ primary action เดียว; rail แยกกำลังทำ/พร้อมถัดไป/ติดปัญหาและตัดงานปัจจุบันออก, scan เป็นเพียงทางเปิดบริบท · blocked/ready ไม่ถูกเรียกว่างานปัจจุบัน, มือถือใช้ page scroll เดียว และ `แจ้งปัญหา` บังคับเหตุผลอย่างน้อย 3 ตัวอักษรโดยไม่ปิด dialog ทิ้งข้อความ · GARMENT_PICK ใช้ Stock, GARMENT_RECEIVE ใช้ receipt evidence ต่อ variant, DTF ใช้ Print Run และทุก action ผูก exact current step/owner/readiness จาก server
 >
-> **ห้ามถอด ERP execution ทันที:** Station ยังขาด QC rework target, GARMENT_RECEIVE evidence, report problem, DTF partial/waste/reprint/defect, blocked visibility, QC/Pack ownership และ material path แบบ no-money · ต้องเติม parity เป็นราย operation แล้วค่อยปิด fallback
+> **server boundary ปิดช่องซ้ำ:** report/resolve/assign เป็น semantic command แยก, generic step writer ห้ามข้าม current lane/FAILED/service-managed step, manual QC transition ต้องมีหลักฐานว่าทุก production จบ, Goods/Garment/DTF/Outsource ใช้ ownership, idempotency fingerprint, atomic audit และ global lock order ชุดเดียว · Stock ตอบ duplicate แต่ ERP ไม่มี local fingerprint จะ fail closed ไม่ผูกเอกสารข้ามออเดอร์
 >
-> **ต่อที่นี่:** ทำ Station parity ตาม capability เป็นราย operationก่อนปิด fallback แล้วเปลี่ยน ERP เป็น attention-first control recordตาม A · branch `codex/production-control-station-redesign`
+> **หลักฐาน:** full unit **1219/1219** · independent boundary review targeted **202/202** และ verdict `SHIP` · typecheck ผ่าน · lint 0 error (27 warning เดิม) · `verify:ui` ผ่าน · production build Next 16.3.1 ผ่าน 44 routes · browser production build แบบอ่านอย่างเดียวที่ ERP 1440×900/390×844 และ Station 1024×768/390×844 ไม่มี horizontal overflow, hydration/console error หรือ production mutation; manager/report dialog, min-length error, Escape/return-focus, touch target และ mobile single-scroll ผ่าน พร้อมเปิดตรวจภาพ capture จริงทุกขนาด
+>
+> **ยังไม่ปิด UX2.16 ทั้งก้อน:** Phase ถัดไปต้องเพิ่ม target work center ให้ QC rework, event/จำนวน DTF deviation ที่ละเอียดกว่า lifecycle รอบพิมพ์ (partial/waste/reprint/defect), read model owner/plan/SLA/audit actor ระดับใบผลิต และตัดสิน supervisor material recovery กับ WIP ownership ของ QC/final pack ให้ครบโดยไม่คืน routine fallback บน ERP · branch `codex/production-control-station-redesign`
+>
+> **ต่อที่นี่:** ให้เบสตรวจ Direction A จาก branch นี้บนงานจริง แล้วค่อยจัด Phase 2 ตาม operation ที่ยังขาดก่อนติ๊ก UX2.16 หลัก
 
 > **✅ APP-SHELL-HYDRATION กู้ browser สำเร็จแล้ว 2026-08-20 — ไม่ใช่ source regression ของ ERP**
 > Error ใน Codex in-app browser เทียบ client `<ul className="space-y-1">` กับ server `<div className="space-y-5">` ซึ่งตรงกับ AppShell ก่อน/หลัง commit `9ff238d` ทุกคำ; source, dev chunk และ HTTP response ปัจจุบันเป็นโครงแบ่งกลุ่ม `<div>` เหมือนกัน และ port 3000 ยืนยันว่าเป็น repo `anajak-erp`

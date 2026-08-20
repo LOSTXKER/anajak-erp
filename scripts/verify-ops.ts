@@ -115,6 +115,7 @@ async function main() {
     );
     await caller.goodsReceipt.create({
       orderId: o1.id,
+      idempotencyKey: `verify-ops-${os1.id}`,
       receiptType: "OUTSOURCE_RETURN",
       outsourceOrderId: os1.id,
       lines: [{ description: "[OPS-VERIFY] สกรีนหน้าอก", qtyExpected: 50, qtyCounted: 50 }],
@@ -144,6 +145,7 @@ async function main() {
     await caller.outsource.updateOrderStatus({ id: os2.id, status: "SENT" });
     await caller.goodsReceipt.create({
       orderId: o1.id,
+      idempotencyKey: `verify-ops-${os2.id}`,
       receiptType: "OUTSOURCE_RETURN",
       outsourceOrderId: os2.id,
       lines: [{ description: "[OPS-VERIFY] ส่งแก้รอบ 2", qtyExpected: 5, qtyCounted: 5 }],
@@ -583,15 +585,44 @@ async function main() {
       where: { orderId: o7a.id },
       include: { steps: true },
     });
-    await caller.production.updateStep({
-      stepId: o7aProd.steps[0].id,
-      status: "FAILED",
-      notes: "หมึกหมดกลางงาน",
+    // semantic Station report ต้องเป็น step ที่มี work center จริง; สร้าง fixture แยกจาก
+    // CURING ด้านบนซึ่งตั้งใจอยู่ใน myToday แต่ยังไม่มี Station mapping
+    const reportOrder = await prisma.order.create({
+      data: {
+        orderNumber: "TEST-OPS-8-REPORT",
+        orderType: "CUSTOM",
+        channel: "LINE",
+        customerId: customer.id,
+        createdById: owner.id,
+        internalStatus: "PRODUCING",
+        customerStatus: "IN_PRODUCTION",
+        title: "[OPS-VERIFY] งานแจ้งปัญหาจากสถานี",
+        totalAmount: 0,
+      },
+    });
+    ids.orders.push(reportOrder.id);
+    const reportProduction = await prisma.production.create({
+      data: {
+        orderId: reportOrder.id,
+        steps: { create: [{ stepType: "HEAT_PRESS", sortOrder: 1, status: "PENDING" }] },
+      },
+      include: { steps: true },
+    });
+    await caller.production.reportStationProblem({
+      stepId: reportProduction.steps[0].id,
+      reason: "หมึกหมดกลางงาน",
     });
     const failNotif = await prisma.notification.count({
-      where: { userId: tmpMgr.id, entityId: o7a.id, title: { contains: "มีปัญหา" } },
+      where: { userId: tmpMgr.id, entityId: reportOrder.id, title: { contains: "มีปัญหา" } },
     });
-    ok("8.1 step ถูกกด 'มีปัญหา' → กระดิ่งแจ้งผู้จัดการ", failNotif === 1, failNotif);
+    ok("8.1 Station แจ้งปัญหา → กระดิ่งแจ้งผู้จัดการ", failNotif === 1, failNotif);
+
+    // queue contract ตรวจแยกจาก semantic command เพราะ CURING เป็นงาน myToday ที่ยังไม่มี
+    // Station work center; direct fixture นี้ไม่ใช่เส้นทาง production ของผู้ใช้
+    await prisma.productionStep.update({
+      where: { id: o7aProd.steps[0].id },
+      data: { status: "FAILED", notes: "เตาอบขัดข้อง" },
+    });
 
     const tasksWithFail = await caller.task.myToday();
     const failRow = tasksWithFail.production.find((p) => p.order.id === o7a.id);
@@ -602,6 +633,10 @@ async function main() {
     );
 
     // ผลิตครบ → QC → QC ไม่ผ่าน ถอยกลับ → ใบผลิต reopen + มี step งานแก้
+    await caller.production.resolveStationProblem({
+      stepId: o7aProd.steps[0].id,
+      resolutionReason: "เติมหมึกและทดสอบเครื่องแล้ว",
+    });
     await caller.production.updateStep({ stepId: o7aProd.steps[0].id, status: "COMPLETED" });
     const o7aDb = await prisma.order.findUniqueOrThrow({ where: { id: o7a.id } });
     ok("8.3 (precondition) ผลิตครบ → ออเดอร์เด้ง QUALITY_CHECK", o7aDb.internalStatus === "QUALITY_CHECK", o7aDb.internalStatus);
@@ -667,8 +702,11 @@ async function main() {
       { rows: stepCosts.length, amount: stepCosts[0]?.amount }
     );
 
-    // หัวหน้ามอบหมาย/ย้ายเจ้าของงานได้ (audit ข้อ 18 — UI ใหม่ยิง endpoint เดิม)
-    await caller.production.updateStep({ stepId: reworkStep.id, assignedToId: tmpMgr.id });
+    // หัวหน้ามอบหมาย/ย้ายเจ้าของงานผ่าน semantic command ที่ตรวจสิทธิ์ผู้รับงาน
+    await caller.production.assignProductionStep({
+      stepId: reworkStep.id,
+      assignedToId: tmpMgr.id,
+    });
     const assigned = await prisma.productionStep.findUniqueOrThrow({
       where: { id: reworkStep.id },
       select: { assignedToId: true },

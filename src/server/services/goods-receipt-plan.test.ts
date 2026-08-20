@@ -4,6 +4,7 @@ import {
   netReceivedByProduct,
   variantNetKey,
   receiptInspectionOf,
+  receiptInspectionOfVariants,
   assertValidReceiptLines,
   summarizeReceiptLines,
 } from "./goods-receipt-plan";
@@ -68,6 +69,40 @@ describe("receiptInspectionOf — ติ๊กตรวจรับ (ด่า�
   });
 });
 
+describe("receiptInspectionOfVariants — ครบทุกไซส์/สี", () => {
+  const variants = [
+    { size: "M", color: "ดำ", quantity: 10 },
+    { size: "L", color: "ดำ", quantity: 10 },
+  ];
+
+  it("ยอดรวมครบแต่ M เกินกลบ L ที่ขาดไม่ได้", () => {
+    const net = new Map([
+      [variantNetKey("p1", "M", "ดำ"), 20],
+      [variantNetKey("p1", "L", "ดำ"), 0],
+    ]);
+    expect(receiptInspectionOfVariants("p1", variants, net)).toEqual({
+      receivedInspected: false,
+      receiveNote: "รับสุทธิ 20/20",
+    });
+  });
+
+  it("ครบทุก canonical variant จึงติ๊กพร้อมผลิต", () => {
+    const net = new Map([
+      [variantNetKey("p1", "M", "ดำ"), 11],
+      [variantNetKey("p1", "L", "ดำ"), 10],
+    ]);
+    expect(receiptInspectionOfVariants("p1", variants, net).receivedInspected).toBe(true);
+  });
+
+  it("canonical key ซ้ำถูกรวม quantity ก่อนตัดสิน", () => {
+    const net = new Map([[variantNetKey("p1", "M", null), 5]]);
+    expect(receiptInspectionOfVariants("p1", [
+      { size: "M", color: null, quantity: 5 },
+      { size: "M", color: null, quantity: 5 },
+    ], net).receivedInspected).toBe(false);
+  });
+});
+
 describe("assertValidReceiptLines — ด่านกรอกใบตรวจรับ", () => {
   it("ทิ้งบรรทัดว่าง (นับ 0 + ตำหนิ 0) — บรรทัดมีแต่ตำหนิยังนับเป็นบรรทัดจริง", () => {
     const lines = assertValidReceiptLines([
@@ -82,6 +117,25 @@ describe("assertValidReceiptLines — ด่านกรอกใบตรวจ
     expect(() => assertValidReceiptLines([{ qtyCounted: 0, defectQty: 0 }])).toThrow(
       "ยังไม่ได้นับของ — ระบุจำนวนอย่างน้อย 1 บรรทัด"
     );
+  });
+
+  it("Station เก็บแถวนับ 0 เป็นหลักฐานของขาดได้", () => {
+    const lines = assertValidReceiptLines(
+      [
+        { qtyCounted: 0, defectQty: 0, size: "M" },
+        { qtyCounted: 3, defectQty: 0, size: "L" },
+      ],
+      { preserveZeroLines: true, allowAllZero: true },
+    );
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatchObject({ size: "M", qtyCounted: 0 });
+  });
+
+  it("Station ยอมรับผลนับทั้งใบเป็น 0 เมื่อ caller เปิดโหมดหลักฐาน", () => {
+    expect(assertValidReceiptLines(
+      [{ qtyCounted: 0, defectQty: 0 }],
+      { preserveZeroLines: true, allowAllZero: true },
+    )).toHaveLength(1);
   });
 
   it("จำนวนไม่ใช่จำนวนเต็ม / ติดลบ → ปฏิเสธ (ทั้งฝั่งนับและฝั่งตำหนิ)", () => {

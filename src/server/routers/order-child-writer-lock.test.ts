@@ -39,13 +39,20 @@ describe("order child writers share the saveForm parent lock", () => {
       orderRouter.createCaller(transactionContext(tx)).updateReceiveTracking({
         orderItemProductId: "saved-product-1",
         garmentCondition: "ครบ",
-        receivedInspected: true,
+        receivedInspected: false,
         receiveNote: "รับครบแล้ว",
-      }),
+      } as never),
     ).resolves.toMatchObject({
       id: "saved-product-1",
       receivedInspected: true,
     });
+
+    expect(tx.orderItemProduct.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: {
+        garmentCondition: "ครบ",
+        receiveNote: "รับครบแล้ว",
+      },
+    }));
 
     expect(tx.$queryRaw).toHaveBeenCalledOnce();
     expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(

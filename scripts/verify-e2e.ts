@@ -200,6 +200,7 @@ async function main() {
     );
     await staff.goodsReceipt.create({
       orderId: oa.id,
+      idempotencyKey: `verify-e2e-${os.id}`,
       receiptType: "OUTSOURCE_RETURN",
       outsourceOrderId: os.id,
       lines: [{ description: "[E2E-VERIFY] สกรีนแขน", qtyExpected: 20, qtyCounted: 20 }],

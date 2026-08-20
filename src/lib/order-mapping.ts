@@ -44,7 +44,6 @@ function mapProductToMutationInput(p: OrderItemProductForm, hasPrints: boolean) 
     patternFileUrl: p.patternFileUrl || undefined,
     patternNote: p.patternNote || undefined,
     garmentCondition: p.garmentCondition || undefined,
-    receivedInspected: p.receivedInspected,
     receiveNote: p.receiveNote || undefined,
   };
 }

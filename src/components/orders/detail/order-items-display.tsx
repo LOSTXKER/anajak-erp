@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
 import { cn, formatCurrency, isImageUrl } from "@/lib/utils";
 import {
@@ -55,7 +54,6 @@ function ReceiveTrackingInline({ product, onSuccess }: {
 }) {
   const [editing, setEditing] = useState(false);
   const [condition, setCondition] = useState(product.garmentCondition ?? "");
-  const [inspected, setInspected] = useState(product.receivedInspected);
   const [note, setNote] = useState(product.receiveNote ?? "");
 
   const mutation = trpc.order.updateReceiveTracking.useMutation({
@@ -74,10 +72,10 @@ function ReceiveTrackingInline({ product, onSuccess }: {
             {product.receiveNote && <span className="text-muted">({product.receiveNote})</span>}
           </>
         ) : (
-          <span className="text-slate-400">ยังไม่ได้ตรวจรับ</span>
+          <span className="text-slate-400">ยังไม่มีหลักฐานใบตรวจรับ</span>
         )}
         <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} className="ml-auto h-6 gap-1.5 px-2 text-2xs text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300">
-          <Edit3 />{product.receivedInspected ? "แก้ไข" : "ตรวจรับ"}
+          <Edit3 />แก้สภาพ/หมายเหตุ
         </Button>
       </div>
     );
@@ -87,7 +85,10 @@ function ReceiveTrackingInline({ product, onSuccess }: {
     <Alert variant="warning">
       <div className="mb-2 flex items-center gap-2">
         <Package className="h-3.5 w-3.5 text-yellow-600" />
-        <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">ตรวจรับของจากลูกค้า</span>
+        <div>
+          <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">ข้อมูลสภาพเสื้อจากลูกค้า</p>
+          <p className="text-2xs text-muted">สถานะตรวจรับอ้างอิงจากใบตรวจรับและยอดนับจริงเท่านั้น</p>
+        </div>
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <div>
@@ -97,24 +98,15 @@ function ReceiveTrackingInline({ product, onSuccess }: {
             {Object.entries(GARMENT_CONDITIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
         </div>
-        <div>
-          <label
-            className="flex min-h-11 cursor-pointer items-center gap-2"
-            htmlFor={`garment-inspected-${product.id}`}
-          >
-            <Checkbox id={`garment-inspected-${product.id}`} checked={inspected} onChange={(e) => setInspected(e.target.checked)} />
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">ตรวจรับแล้ว</span>
-          </label>
-        </div>
         <div className="min-w-[160px] flex-1">
           <label htmlFor={`garment-note-${product.id}`} className="mb-0.5 block text-2xs font-medium text-muted">หมายเหตุ</label>
           <Input size="sm" id={`garment-note-${product.id}`} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เสื้อสภาพดี มีถุงครบ" />
         </div>
         <div className="flex gap-1.5">
-          <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receivedInspected: inspected, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1.5 bg-yellow-600 text-xs text-white hover:bg-yellow-700">
+          <Button type="button" size="sm" onClick={() => mutation.mutate({ orderItemProductId: product.id, garmentCondition: condition || undefined, receiveNote: note || undefined })} disabled={mutation.isPending} className="h-8 gap-1.5 bg-yellow-600 text-xs text-white hover:bg-yellow-700">
             <Check />{mutation.isPending ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setCondition(product.garmentCondition ?? ""); setInspected(product.receivedInspected); setNote(product.receiveNote ?? ""); }} className="h-8 text-xs">
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setCondition(product.garmentCondition ?? ""); setNote(product.receiveNote ?? ""); }} className="h-8 text-xs">
             ยกเลิก
           </Button>
         </div>

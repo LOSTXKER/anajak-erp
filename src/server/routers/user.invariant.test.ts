@@ -6,7 +6,7 @@
  *
  * stub จงใจไม่มี user.update ในเคส block — ถ้า guard หลุด เทสพังเสียงดัง ไม่ใช่ผ่านเงียบ
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { userRouter } from "./user";
 import type { Context } from "../trpc";
 
@@ -83,5 +83,39 @@ describe("OWNER invariant ผ่าน user router", () => {
     await expect(
       userRouter.createCaller(ctx).update({ id: "other-owner", role: "SALES" })
     ).resolves.toMatchObject({ role: "SALES" });
+  });
+});
+
+describe("รายชื่อผู้รับผิดชอบงานผลิต", () => {
+  it("คืนเฉพาะบัญชี active ที่มีสิทธิ์ manage_production จริง รวม override รายคน", async () => {
+    const findMany = vi.fn(async () => [
+      { id: "owner", name: "เจ้าของ", role: "OWNER", permissionOverrides: null },
+      { id: "production", name: "ช่าง", role: "PRODUCTION_STAFF", permissionOverrides: null },
+      { id: "sales", name: "ฝ่ายขาย", role: "SALES", permissionOverrides: null },
+      {
+        id: "sales-override",
+        name: "ฝ่ายขายช่วยผลิต",
+        role: "SALES",
+        permissionOverrides: { manage_production: true },
+      },
+      {
+        id: "production-disabled",
+        name: "ช่างถูกถอดสิทธิ์",
+        role: "PRODUCTION_STAFF",
+        permissionOverrides: { manage_production: false },
+      },
+    ]);
+    const ctx = makeCtx({
+      findMany,
+    });
+
+    await expect(userRouter.createCaller(ctx).assignables()).resolves.toEqual([
+      { id: "owner", name: "เจ้าของ", role: "OWNER" },
+      { id: "production", name: "ช่าง", role: "PRODUCTION_STAFF" },
+      { id: "sales-override", name: "ฝ่ายขายช่วยผลิต", role: "SALES" },
+    ]);
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { isActive: true },
+    }));
   });
 });

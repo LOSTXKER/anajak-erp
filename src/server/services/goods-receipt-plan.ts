@@ -57,18 +57,61 @@ export function receiptInspectionOf(
   };
 }
 
+export interface ReceiptCanonicalVariant {
+  size: string | null;
+  color: string | null;
+  quantity: number;
+}
+
+/**
+ * หลักฐานพร้อมผลิตต้องครบ "ทุกไซส์/สี" ไม่ใช่แค่ยอดรวมต่อสินค้า มิฉะนั้นรับ M เกิน
+ * สามารถกลบ L ที่ยังขาดได้. รวม canonical key ซ้ำแบบ defensive เผื่อข้อมูล legacy.
+ */
+export function receiptInspectionOfVariants(
+  orderItemProductId: string,
+  variants: ReceiptCanonicalVariant[],
+  netByVariant: ReadonlyMap<string, number>
+): { receivedInspected: boolean; receiveNote: string } {
+  const expectedByVariant = new Map<string, number>();
+  for (const variant of variants) {
+    const key = variantNetKey(orderItemProductId, variant.size, variant.color);
+    expectedByVariant.set(key, (expectedByVariant.get(key) ?? 0) + variant.quantity);
+  }
+
+  let totalExpected = 0;
+  let totalNet = 0;
+  let everyVariantComplete = expectedByVariant.size > 0;
+  for (const [key, expected] of expectedByVariant) {
+    const net = netByVariant.get(key) ?? 0;
+    totalExpected += expected;
+    totalNet += net;
+    if (net < expected) everyVariantComplete = false;
+  }
+
+  return {
+    receivedInspected: totalExpected > 0 && everyVariantComplete,
+    receiveNote: `รับสุทธิ ${totalNet}/${totalExpected}`,
+  };
+}
+
 // ด่านกรอก: ทิ้งบรรทัดว่าง (นับ 0 + ตำหนิ 0) → ต้องเหลืออย่างน้อย 1 · จำนวนเต็ม · ห้ามติดลบ
 // คืนบรรทัดที่ใช้จริง (ข้อความ error คงเดิมเป๊ะ)
 export function assertValidReceiptLines<T extends { qtyCounted: number; defectQty: number }>(
-  inputLines: T[]
+  inputLines: T[],
+  options: { preserveZeroLines?: boolean; allowAllZero?: boolean } = {}
 ): T[] {
-  const lines = inputLines.filter((l) => l.qtyCounted > 0 || l.defectQty > 0);
-  if (lines.length === 0) badRequest("ยังไม่ได้นับของ — ระบุจำนวนอย่างน้อย 1 บรรทัด");
-  for (const l of lines) {
+  // validate ก่อน filter เพื่อไม่ให้ค่าติดลบ/ทศนิยมที่บังเอิญถูกทิ้งหลุดจาก service caller
+  for (const l of inputLines) {
     if (!Number.isInteger(l.qtyCounted) || !Number.isInteger(l.defectQty)) {
       badRequest("จำนวนต้องเป็นจำนวนเต็ม");
     }
     if (l.qtyCounted < 0 || l.defectQty < 0) badRequest("จำนวนติดลบไม่ได้");
+  }
+  const lines = options.preserveZeroLines
+    ? inputLines
+    : inputLines.filter((l) => l.qtyCounted > 0 || l.defectQty > 0);
+  if (lines.length === 0 || (!options.allowAllZero && lines.every((l) => l.qtyCounted === 0 && l.defectQty === 0))) {
+    badRequest("ยังไม่ได้นับของ — ระบุจำนวนอย่างน้อย 1 บรรทัด");
   }
   return lines;
 }

@@ -1,17 +1,19 @@
 import { z } from "zod";
-import { router, protectedProcedure, requirePermission } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import { router, protectedProcedure } from "../trpc";
 import { fileUrlArraySchema } from "@/server/schemas";
-import { createAuditLog } from "@/server/helpers";
+import { hasPermission } from "@/lib/permissions";
 import {
   RECEIPT_TYPES,
   getReceiptContext,
   createGoodsReceipt,
+  confirmCustomerGarmentEvidence,
   listGoodsReceipts,
 } from "@/server/services/goods-receipt";
 
 // ใบตรวจรับของเข้า/ใบคืนของลูกค้า — router เป็นแค่ผิว logic อยู่ services/goods-receipt
-// คนรับของหน้าโรงงาน = แอดมิน/ขาย/ทีมผลิต (DESIGNER/ACCOUNTANT ไม่เกี่ยวกับของเข้า)
-const receiver = requirePermission("manage_delivery");
+// ใบทั่วไปใช้ manage_delivery; คำสั่งจาก Station ผูก productionStepId และใช้ manage_production
+// ให้ตรงกับปุ่มปฏิบัติงานของจอสถานี (รวม permission override รายคน)
 
 const receiptLineSchema = z.object({
   orderItemProductId: z.string().optional(),
@@ -37,33 +39,64 @@ export const goodsReceiptRouter = router({
     .query(({ ctx, input }) => listGoodsReceipts(ctx.prisma, input.orderId)),
 
   create: protectedProcedure
-    .use(receiver)
     .input(
       z.object({
         orderId: z.string(),
+        idempotencyKey: z.string().min(8).max(100),
         receiptType: z.enum(RECEIPT_TYPES),
         outsourceOrderId: z.string().optional(),
+        productionStepId: z.string().optional(),
         notes: z.string().optional(),
         photoUrls: fileUrlArraySchema.default([]),
         lines: z.array(receiptLineSchema).min(1),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const receipt = await createGoodsReceipt(ctx.prisma, {
+      const stationCommand = input.productionStepId !== undefined;
+      const requiredPermission = stationCommand ? "manage_production" : "manage_delivery";
+      if (!hasPermission(ctx.userRole, ctx.permissionOverrides, requiredPermission)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: stationCommand
+            ? "บัญชีนี้ไม่มีสิทธิ์บันทึกงานผลิตที่สถานี"
+            : "บัญชีนี้ไม่มีสิทธิ์บันทึกใบตรวจรับของเข้า",
+        });
+      }
+      if (stationCommand && input.receiptType !== "CUSTOMER_GARMENT") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "คำสั่งจากสถานีรองรับเฉพาะการรับเสื้อลูกค้า",
+        });
+      }
+
+      return createGoodsReceipt(ctx.prisma, {
         ...input,
         userId: ctx.userId,
+        canSupervise: hasPermission(
+          ctx.userRole,
+          ctx.permissionOverrides,
+          "supervise_operations",
+        ),
       });
-      await createAuditLog(ctx.prisma, {
+    }),
+
+  confirmCustomerGarmentEvidence: protectedProcedure
+    .input(z.object({ productionStepId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      if (!hasPermission(ctx.userRole, ctx.permissionOverrides, "manage_production")) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "บัญชีนี้ไม่มีสิทธิ์ยืนยันงานผลิตที่สถานี",
+        });
+      }
+      return confirmCustomerGarmentEvidence(ctx.prisma, {
+        productionStepId: input.productionStepId,
         userId: ctx.userId,
-        action: "CREATE",
-        entityType: "GOODS_RECEIPT",
-        entityId: receipt.id,
-        newValue: {
-          orderId: input.orderId,
-          receiptType: input.receiptType,
-          lineCount: receipt.lines.length,
-        },
+        canSupervise: hasPermission(
+          ctx.userRole,
+          ctx.permissionOverrides,
+          "supervise_operations",
+        ),
       });
-      return receipt;
     }),
 });
