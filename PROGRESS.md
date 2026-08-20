@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ LOCAL-DEMO-DATA — ฐานทดลองสมจริงแยกจาก Supabase พร้อมเล่นแล้ว 2026-08-21**
+> ใช้ PostgreSQL local เฉพาะ `127.0.0.1:5433/anajak_erp_demo`; ฐาน Supabase เดิมไม่ถูกลบหรือเขียนระหว่างงานนี้ · ฐาน local เก็บ User mapping ที่จำเป็นต่อ login และ master Product/ProductVariant/Pattern/PackagingOption/ServiceCatalog แต่ไม่มี `stock_api_url`/`stock_api_key` เพื่อกันการทดลองไปตัด Stock จริง
+>
+> เพิ่ม `npm run db:seed:demo` สำหรับล้างเฉพาะข้อมูลธุรกิจในฐาน local แล้วสร้างใหม่ และ `npm run dev:demo` สำหรับเปิด Next ด้วยฐานเดียวกันโดยอ่าน credential จาก Docker แบบไม่พิมพ์ค่าออกมา · ทุกคำสั่ง fail closed หาก host/port/database ไม่ตรง `127.0.0.1:5433/anajak_erp_demo`; canonical `npm run db:seed` ยังเป็น master-only และไม่เปลี่ยน behavior
+>
+> ข้อมูลวันทำงาน: ลูกค้า 6, ออเดอร์ 14, ใบผลิต 11, ขั้นผลิต 32, Print Run 4, ร้านนอกเกินกำหนด 1, QC 5, Delivery 4 และเอกสาร Invoice/Receipt 23 ใบ · ครบ inquiry/design/รอผลิต, รับเสื้อ, DTF กำลังพิมพ์+รอตัด+ประวัติ, รีดร้อน, blocked stock, outsource, QC, แพ็ก, พร้อมส่ง, ส่งแล้ว, ปิดงาน และลูกหนี้เกินกำหนด โดยชื่อ/ข้อมูลติดต่อทั้งหมดเป็นข้อมูลสมมติ
+>
+> **หลักฐาน:** reset ซ้ำผ่านจากคำสั่ง public ของ repo · status mapping ผิด 0 · Stock credentials 0 + runtime kill switch ก่อน outbound request · Customer.totalSpent เท่ากับยอดรับเงินจริงทุกคน · invoice/payment/receipt, ลำดับเวลา และ DTF evidence mismatch 0 · full unit **1228/1228** · typecheck ผ่าน · scoped lint 0 · `verify:ui` ผ่าน · `git diff --check` ผ่าน · browser local เปิด `/production` (10 งาน/1 ต้องจัดการ), ERP blocked detail, Factory TV, Station ทั้ง 5 work center, Print Runs, Outsource, Billing และ Aging โดยไม่ redirect login, ไม่มี console warning/error และไม่มี horizontal overflow
+>
+> **ต่อที่นี่:** ใช้ `npm run dev:demo` แล้วลอง flow จาก `/production`; งานรับเสื้อ `ORD-2608-0004`, งานติดปัญหา `ORD-2608-0008`, DTF `0005–0007`, outsource `0009`, QC `0010` และแพ็ก `0011` เตรียมไว้ให้ทดสอบ
+
 > **✅ PRODUCTION-UX2.16 PHASE 1 — Direction A แยก Production Control ออกจาก Station Execution แล้ว 2026-08-20**
 > **✅ HOTFIX-TOPOLOGY-VOID:** แก้ runtime ที่ทุก mutation ซึ่งเรียก production topology lock ล้มด้วย `Failed to deserialize column of type 'void'` เพราะ PostgreSQL `pg_advisory_xact_lock()` คืนชนิด `void` แต่ Prisma `$queryRaw` พยายาม deserialize ผลลัพธ์ · helper กลาง cast เฉพาะค่าคืนเป็น `text` โดย side effect/อายุของ transaction advisory lock เหมือนเดิม และเพิ่ม regression test ล็อก SQL contract ไว้
 >
