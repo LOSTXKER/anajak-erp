@@ -15,12 +15,32 @@ import {
   getStockClientFromSettings,
   StockApiError,
   type StockApiClient,
-  type ReserveLine,
 } from "@/lib/stock-api";
 import { createNotification } from "@/server/helpers";
 import { addOrderRevision } from "@/server/services/order-status";
 import type { ExtendedPrismaClient } from "@/lib/prisma";
 import type { InternalStatus } from "@prisma/client";
+
+import {
+  buildReserveLines,
+  toReserveLines,
+} from "@/server/services/stock-reservation-plan";
+import {
+  getLocalDemoStockAvailability,
+  isLocalDemoStockMode,
+  lockLocalDemoStock,
+} from "@/server/services/local-demo-stock";
+
+export {
+  buildReserveLines,
+  toReserveLines,
+  type BuildReserveLinesResult,
+  type MirrorProduct,
+  type MirrorVariant,
+  type ReservableProduct,
+  type ReservableVariant,
+  type RichReserveLine,
+} from "@/server/services/stock-reservation-plan";
 
 export { STOCK_RESERVATION_PENDING_MESSAGE } from "@/lib/stock-reservation-state";
 
@@ -46,114 +66,6 @@ const MANUAL_RESERVATION_CONFLICT_MESSAGE =
   "สถานะออเดอร์เริ่มผลิตแล้วระหว่างอัปเดตสต๊อค — ตรวจยอดจองใน Anajak Stock และแก้ไขด้วยมือก่อนทำต่อ";
 
 // ============================================================
-// สร้างบรรทัดจองจากเนื้อออเดอร์ (pure — มี unit test)
-// ============================================================
-
-export interface ReservableVariant {
-  size: string;
-  color: string | null;
-  quantity: number;
-}
-
-export interface ReservableProduct {
-  itemSource: string | null;
-  productId: string | null;
-  description: string;
-  variants: ReservableVariant[];
-}
-
-export interface MirrorVariant {
-  id: string;
-  sku: string;
-  size: string;
-  color: string;
-}
-
-export interface MirrorProduct {
-  id: string;
-  sku: string;
-  name: string;
-  variants: MirrorVariant[];
-}
-
-// บรรทัดจอง/เบิก พร้อมข้อมูล variant ครบ — ตัวจอง map เหลือ {sku,qty,note} ตอนยิง API
-// ส่วนใบเบิก (garment-pick) ใช้ field เต็มทำรายการเตรียมของ/เบิกรายไซส์-สี
-export interface RichReserveLine {
-  sku: string;
-  qty: number;
-  note?: string;
-  productId: string;
-  variantId: string | null; // null = จองระดับสินค้า (variant ไม่ตรง/สินค้าไม่มี variant)
-  productName: string;
-  size: string;
-  color: string | null;
-}
-
-export interface BuildReserveLinesResult {
-  lines: RichReserveLine[];
-  totalQty: number;
-  // ปัญหาคุณภาพข้อมูล (เช่น หา variant ไม่เจอ) — จองต่อได้แต่ต้องโชว์ให้คนเห็น
-  problems: string[];
-}
-
-export function toReserveLines(lines: RichReserveLine[]): ReserveLine[] {
-  return lines.map((l) => ({ sku: l.sku, qty: l.qty, ...(l.note ? { note: l.note } : {}) }));
-}
-
-// จับคู่ variant แบบเดียวกับด่านเช็คสต๊อคตอนเปิดงาน (order.create):
-// size ตรงตัว · color ไม่ระบุ = จับตัวแรกที่ size ตรง
-export function buildReserveLines(
-  products: ReservableProduct[],
-  mirror: MirrorProduct[]
-): BuildReserveLinesResult {
-  const mirrorById = new Map(mirror.map((p) => [p.id, p]));
-  const bySku = new Map<string, RichReserveLine>();
-  const problems: string[] = [];
-
-  for (const prod of products) {
-    if (prod.itemSource !== "FROM_STOCK" || !prod.productId) continue;
-    const db = mirrorById.get(prod.productId);
-    if (!db) {
-      problems.push(`ไม่พบสินค้า "${prod.description}" ในข้อมูล sync จาก Stock`);
-      continue;
-    }
-    for (const v of prod.variants) {
-      if (v.quantity <= 0) continue;
-      const pv = db.variants.find(
-        (mv) => mv.size === v.size && (!v.color || mv.color === v.color)
-      );
-      let sku = pv?.sku;
-      let note: string | undefined;
-      if (!sku) {
-        // variant ไม่ตรง — จองระดับสินค้าไว้ก่อน (ดีกว่าไม่จองเลย) + จดปัญหาให้คนตามแก้
-        sku = db.sku;
-        note = `ไม่พบ variant ${v.size}${v.color ? `/${v.color}` : ""} — จองระดับสินค้า`;
-        problems.push(`${db.name}: ไม่พบ variant ไซส์ ${v.size}${v.color ? ` สี ${v.color}` : ""}`);
-      }
-      const entry = bySku.get(sku) ?? {
-        sku,
-        qty: 0,
-        productId: db.id,
-        variantId: pv?.id ?? null,
-        productName: db.name,
-        size: v.size,
-        color: v.color,
-      };
-      entry.qty += v.quantity;
-      if (note) entry.note = note;
-      bySku.set(sku, entry);
-    }
-  }
-
-  const lines = [...bySku.values()];
-  return {
-    lines,
-    totalQty: lines.reduce((s, l) => s + l.qty, 0),
-    problems,
-  };
-}
-
-// ============================================================
 // sync / release
 // ============================================================
 
@@ -163,11 +75,212 @@ export type ReservationOutcome =
   | { status: "skipped"; reason: string }
   | { status: "error"; message: string };
 
+async function syncLocalDemoOrderStockReservation(
+  prisma: ExtendedPrismaClient,
+  params: { orderId: string; changedBy: string },
+): Promise<ReservationOutcome> {
+  return prisma.$transaction(async (tx) => {
+    // ลำดับ lock ของเส้น reservation: order ปัจจุบัน → demo stock mutex เสมอ
+    await tx.$queryRaw`SELECT id FROM orders WHERE id = ${params.orderId} FOR UPDATE`;
+    const order = await tx.order.findUniqueOrThrow({
+      where: { id: params.orderId },
+      select: {
+        id: true,
+        orderNumber: true,
+        internalStatus: true,
+        stockReservedAt: true,
+        items: {
+          select: {
+            products: {
+              select: {
+                itemSource: true,
+                productId: true,
+                description: true,
+                variants: {
+                  select: { size: true, color: true, quantity: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    await lockLocalDemoStock(tx);
+
+    const products = order.items.flatMap((item) => item.products);
+    const fromStock = products.filter(
+      (product) => product.itemSource === "FROM_STOCK" && product.productId,
+    );
+    const shouldRelease =
+      VERSIONED_RELEASE_STATUSES.has(order.internalStatus) ||
+      fromStock.length === 0;
+    if (shouldRelease) {
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          stockReservedAt: null,
+          stockReservationError: null,
+          reservationExpiryWarnedAt: null,
+        },
+      });
+      if (order.stockReservedAt) {
+        await addOrderRevision(tx, {
+          orderId: order.id,
+          changedBy: params.changedBy,
+          changeType: "STOCK",
+          description: "ปลดจองสต๊อก demo local",
+        });
+        return { status: "released" };
+}
+      return { status: "skipped", reason: "ไม่มีรายการที่ต้องจอง" };
+}
+
+    if (!VERSIONED_RESERVE_STATUSES.has(order.internalStatus)) {
+      await tx.order.update({
+        where: { id: order.id },
+        data: { stockReservationError: MANUAL_RESERVATION_CONFLICT_MESSAGE },
+      });
+      return { status: "error", message: MANUAL_RESERVATION_CONFLICT_MESSAGE };
+}
+
+    const mirror = await tx.product.findMany({
+      where: {
+        id: {
+          in: [...new Set(fromStock.map((product) => product.productId!))],
+        },
+      },
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        variants: { select: { id: true, sku: true, size: true, color: true } },
+      },
+    });
+    const built = buildReserveLines(fromStock, mirror);
+    // Local demo ต้องจองได้ครบทุก product/variant เท่านั้น — ถ้ายอม subset
+    // GARMENT_PICK จะเห็นเฉพาะรายการที่ map ได้และอาจปิดขั้นทั้งที่เสื้ออีกตัวหายไป
+    if (built.lines.length === 0 || built.problems.length > 0) {
+      const message = `จองสต๊อก demo ไม่ได้ — ${built.problems.join(" · ") || "ไม่มีบรรทัดที่จองได้"}`;
+      await tx.order.update({
+        where: { id: order.id },
+        data: { stockReservedAt: null, stockReservationError: message },
+      });
+      return { status: "error", message };
+}
+
+    const usages = await tx.materialUsage.findMany({
+      where: { production: { orderId: order.id } },
+      select: {
+        productId: true,
+        productVariantId: true,
+        quantity: true,
+        movementType: true,
+      },
+    });
+    const usageByVariant = new Map<
+      string,
+      { issued: number; returned: number }
+    >();
+    for (const usage of usages) {
+      const key = `${usage.productId}:${usage.productVariantId ?? ""}`;
+      const totals = usageByVariant.get(key) ?? { issued: 0, returned: 0 };
+      if (usage.movementType === "RETURN") totals.returned += usage.quantity;
+      else totals.issued += usage.quantity;
+      usageByVariant.set(key, totals);
+    }
+    const stateLines = built.lines.map((line) => {
+      const totals = usageByVariant.get(
+        `${line.productId}:${line.variantId ?? ""}`,
+      ) ?? {
+        issued: 0,
+        returned: 0,
+      };
+      return { ...line, needed: line.qty, ...totals };
+    });
+    const availability = await getLocalDemoStockAvailability(
+      tx,
+      order.id,
+      stateLines,
+    );
+    const shortages = availability.filter((line) => line.shortage > 0);
+    if (shortages.length > 0) {
+      const message = `จองสต๊อก demo ไม่ได้ — ${shortages
+        .map((line) => `${line.sku} ขาด ${line.shortage} ตัว`)
+        .join(" · ")}`;
+      await tx.order.update({
+        where: { id: order.id },
+        data: { stockReservedAt: null, stockReservationError: message },
+      });
+      await addOrderRevision(tx, {
+        orderId: order.id,
+        changedBy: params.changedBy,
+        changeType: "STOCK",
+        description: message,
+      });
+      return { status: "error", message };
+  }
+
+    await tx.order.update({
+      where: { id: order.id },
+      data: {
+        stockReservedAt: new Date(),
+        stockReservationError: null,
+        reservationExpiryWarnedAt: null,
+      },
+    });
+    await addOrderRevision(tx, {
+      orderId: order.id,
+      changedBy: params.changedBy,
+      changeType: "STOCK",
+      description: `จองสต๊อก demo local ${built.lines.length} รายการ (${built.totalQty} ชิ้น)`,
+    });
+  return {
+      status: "reserved",
+      lineCount: built.lines.length,
+      totalQty: built.totalQty,
+  };
+  });
+}
+
+async function releaseLocalDemoOrderStockReservation(
+  prisma: ExtendedPrismaClient,
+  params: { orderId: string; changedBy: string; reason: string },
+): Promise<ReservationOutcome> {
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM orders WHERE id = ${params.orderId} FOR UPDATE`;
+    const order = await tx.order.findUniqueOrThrow({
+      where: { id: params.orderId },
+      select: { id: true, stockReservedAt: true, stockReservationError: true },
+    });
+    await lockLocalDemoStock(tx);
+    if (!order.stockReservedAt && !order.stockReservationError) {
+      return { status: "skipped", reason: "ไม่มียอดจอง" };
+    }
+    await tx.order.update({
+      where: { id: order.id },
+      data: {
+        stockReservedAt: null,
+        stockReservationError: null,
+        reservationExpiryWarnedAt: null,
+      },
+    });
+    if (order.stockReservedAt) {
+      await addOrderRevision(tx, {
+        orderId: order.id,
+        changedBy: params.changedBy,
+        changeType: "STOCK",
+        description: `ปลดจองสต๊อก demo local — ${params.reason}`,
+      });
+    }
+    return { status: "released" };
+  });
+}
+
 async function notifyReservationProblem(
   prisma: ExtendedPrismaClient,
   order: { id: string; orderNumber: string },
   title: string,
-  message: string
+  message: string,
 ) {
   const staff = await prisma.user.findMany({
     where: { role: { in: [...NOTIFY_ROLES] }, isActive: true },
@@ -187,9 +300,11 @@ async function notifyReservationProblem(
 }
 
 async function resolveClient(
-  clientOverride: StockApiClient | null | undefined
+  clientOverride: StockApiClient | null | undefined,
 ): Promise<StockApiClient | null> {
-  return clientOverride !== undefined ? clientOverride : getStockClientFromSettings();
+  return clientOverride !== undefined
+    ? clientOverride
+    : getStockClientFromSettings();
 }
 
 async function loadReservationSnapshot(
@@ -282,7 +397,11 @@ async function syncVersionedOrderStockReservation(
 ): Promise<ReservationOutcome> {
   let externalStateMayBeStale = false;
 
-  for (let attempt = 0; attempt < MAX_VERSIONED_RECONCILE_ATTEMPTS; attempt += 1) {
+  for (
+    let attempt = 0;
+    attempt < MAX_VERSIONED_RECONCILE_ATTEMPTS;
+    attempt += 1
+  ) {
     const order = await loadReservationSnapshot(prisma, params.orderId);
 
     if (
@@ -292,13 +411,12 @@ async function syncVersionedOrderStockReservation(
       // PRODUCING เป็นต้นไปอาจเริ่มเบิกและ consume reservation แล้ว: ห้าม replace/release
       // อัตโนมัติ เพราะจะสร้างยอดจองใหม่หรือปล่อยของที่ยังใช้จริง
       if (
-        await markManualReservationConflict(
-          prisma,
-          order,
-          params.changedBy,
-        )
+        await markManualReservationConflict(prisma, order, params.changedBy)
       ) {
-        return { status: "error", message: MANUAL_RESERVATION_CONFLICT_MESSAGE };
+        return {
+          status: "error",
+          message: MANUAL_RESERVATION_CONFLICT_MESSAGE,
+        };
       }
       continue;
     }
@@ -389,7 +507,9 @@ async function syncVersionedOrderStockReservation(
 
     const mirror = await prisma.product.findMany({
       where: {
-        id: { in: [...new Set(fromStock.map((product) => product.productId!))] },
+        id: {
+          in: [...new Set(fromStock.map((product) => product.productId!))],
+        },
       },
       select: {
         id: true,
@@ -496,9 +616,12 @@ async function syncVersionedOrderStockReservation(
 export async function syncOrderStockReservation(
   prisma: ExtendedPrismaClient,
   params: { orderId: string; changedBy: string; expectedUpdatedAt?: Date },
-  clientOverride?: StockApiClient | null
+  clientOverride?: StockApiClient | null,
 ): Promise<ReservationOutcome> {
   try {
+    if (isLocalDemoStockMode()) {
+      return await syncLocalDemoOrderStockReservation(prisma, params);
+    }
     if (params.expectedUpdatedAt) {
       return await syncVersionedOrderStockReservation(
         prisma,
@@ -523,7 +646,9 @@ export async function syncOrderStockReservation(
                 itemSource: true,
                 productId: true,
                 description: true,
-                variants: { select: { size: true, color: true, quantity: true } },
+                variants: {
+                  select: { size: true, color: true, quantity: true },
+                },
               },
             },
           },
@@ -532,7 +657,9 @@ export async function syncOrderStockReservation(
     });
 
     const products = order.items.flatMap((it) => it.products);
-    const fromStock = products.filter((p) => p.itemSource === "FROM_STOCK" && p.productId);
+    const fromStock = products.filter(
+      (p) => p.itemSource === "FROM_STOCK" && p.productId,
+    );
 
     // ไม่มีของจากสต๊อค: เคยจองไว้ → ปลดทิ้ง (รายการถูกแก้ออก) · ไม่เคย → ไม่ต้องทำอะไร
     if (fromStock.length === 0) {
@@ -550,8 +677,12 @@ export async function syncOrderStockReservation(
       }
       return releaseOrderStockReservation(
         prisma,
-        { orderId: params.orderId, changedBy: params.changedBy, reason: "รายการจากสต๊อคถูกแก้ออก" },
-        clientOverride
+        {
+          orderId: params.orderId,
+          changedBy: params.changedBy,
+          reason: "รายการจากสต๊อคถูกแก้ออก",
+        },
+        clientOverride,
       );
     }
 
@@ -612,7 +743,7 @@ export async function syncOrderStockReservation(
         prisma,
         order,
         `จองสต๊อคไม่สำเร็จ — ${order.orderNumber}`,
-        message
+        message,
       );
       return { status: "error", message };
     }
@@ -620,16 +751,27 @@ export async function syncOrderStockReservation(
     await prisma.order.update({
       where: { id: order.id },
       // จองใหม่ = เริ่มนับอายุการจองใหม่ → ล้างธงเตือนใกล้ปลดด้วย (auto-release)
-      data: { stockReservedAt: new Date(), stockReservationError: null, reservationExpiryWarnedAt: null },
+      data: {
+        stockReservedAt: new Date(),
+        stockReservationError: null,
+        reservationExpiryWarnedAt: null,
+      },
     });
-    const problemSuffix = built.problems.length > 0 ? ` · หมายเหตุ: ${built.problems.join(" · ")}` : "";
+    const problemSuffix =
+      built.problems.length > 0
+        ? ` · หมายเหตุ: ${built.problems.join(" · ")}`
+        : "";
     await addOrderRevision(prisma, {
       orderId: order.id,
       changedBy: params.changedBy,
       changeType: "STOCK",
       description: `จองสต๊อค ${built.lines.length} รายการ (${built.totalQty} ชิ้น)${problemSuffix}`,
     });
-    return { status: "reserved", lineCount: built.lines.length, totalQty: built.totalQty };
+    return {
+      status: "reserved",
+      lineCount: built.lines.length,
+      totalQty: built.totalQty,
+    };
   } catch (err) {
     // ห้าม throw — สถานะออเดอร์เปลี่ยนสำเร็จไปแล้ว อย่าทำให้ mutation ที่ commit แล้วล้ม
     console.error("syncOrderStockReservation error:", err);
@@ -644,9 +786,12 @@ export async function syncOrderStockReservation(
 export async function releaseOrderStockReservation(
   prisma: ExtendedPrismaClient,
   params: { orderId: string; changedBy: string; reason: string },
-  clientOverride?: StockApiClient | null
+  clientOverride?: StockApiClient | null,
 ): Promise<ReservationOutcome> {
   try {
+    if (isLocalDemoStockMode()) {
+      return await releaseLocalDemoOrderStockReservation(prisma, params);
+    }
     const order = await prisma.order.findUniqueOrThrow({
       where: { id: params.orderId },
       select: {
@@ -666,7 +811,8 @@ export async function releaseOrderStockReservation(
     if (!client) {
       if (order.stockReservedAt) {
         // เคยจองจริงแต่ตอนนี้ต่อท่อไม่ได้ — ยอดจองค้างฝั่ง Stock จะขวางงานอื่น ต้องมีคนตามแก้
-        const message = "ปลดจองไม่ได้ — ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock (ยอดจองค้างอยู่ฝั่ง Stock)";
+        const message =
+          "ปลดจองไม่ได้ — ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock (ยอดจองค้างอยู่ฝั่ง Stock)";
         await prisma.order.update({
           where: { id: order.id },
           data: { stockReservationError: message },
@@ -693,7 +839,7 @@ export async function releaseOrderStockReservation(
         prisma,
         order,
         `ปลดจองสต๊อคไม่สำเร็จ — ${order.orderNumber}`,
-        `${message} (${params.reason})`
+        `${message} (${params.reason})`,
       );
       return { status: "error", message };
     }
@@ -702,7 +848,11 @@ export async function releaseOrderStockReservation(
     // (HTTP release ด้านบน idempotent: ปลด orderRef เดิมซ้ำไม่ลดของเกิน — แต่ฝั่ง DB ต้องนับ/จดครั้งเดียว)
     const cleared = await prisma.order.updateMany({
       where: { id: order.id, stockReservedAt: { not: null } },
-      data: { stockReservedAt: null, stockReservationError: null, reservationExpiryWarnedAt: null },
+      data: {
+        stockReservedAt: null,
+        stockReservationError: null,
+        reservationExpiryWarnedAt: null,
+      },
     });
     if (cleared.count === 0) {
       if (order.stockReservedAt) {

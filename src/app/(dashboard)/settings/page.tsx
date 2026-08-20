@@ -63,8 +63,8 @@ const SETTING_LINKS: readonly SettingLink[] = [
     href: "/settings/stock",
     group: "ระบบและข้อมูล",
     icon: Cloud,
-    title: "เชื่อมต่อ Anajak Stock",
-    description: "API URL/Key ระบบสต๊อกเสื้อ — จอง/เบิก/คืนใช้ท่อนี้",
+    title: "สต๊อกเสื้อ",
+    description: "ดูโหมดสต๊อก หรือจัดการการเชื่อมต่อสำหรับจอง เบิก และคืนเสื้อ",
     permissionsAny: ["manage_settings"],
   },
   {

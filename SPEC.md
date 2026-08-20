@@ -40,6 +40,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **สิทธิ์ตรงกับ server จริง** — ทุกจอ factory ต้อง login · ผู้ไม่มี `manage_production` เห็น Station แบบดูอย่างเดียว · การสร้างใบส่งต้องมี `manage_production` + `manage_delivery` · ยืนยันพร้อมส่งต้องมี `manage_production` + `update_order_status_production` · `supervise_operations` จึงเห็นงานข้ามผู้รับผิดชอบ
 - [x] **Station ไม่รับและไม่วาดเงิน** — `factory.stationQueue`, scan/context, ใบผลิต รอบพิมพ์ QC และ pack context ส่งเฉพาะข้อมูลหน้างาน · Station ไม่ mount การ์ดวัตถุดิบที่มีต้นทุน ไม่ส่ง readiness ด้านชำระเงิน และซ่อน/ไม่ส่งค่าจัดส่งในฟอร์มแพ็ก
 - [x] **ข้อมูลและ state ไม่โกหก** — Station ใช้ `factory.stationQueue/resolveStationScan/stationContext`, `production.getById`, `printRun.queue/list`, QC/pack endpoints และ `user.me` จริง · โพลล์ 30 วินาที · แยก initial loading/error/empty กับ background-stale และ mutation ทุกก้อนยังผ่าน service/guard เดิม
+- [x] **สต๊อก local สำหรับทดลองไม่แตะระบบหลัก** — `dev:demo` ใช้เฉพาะฐาน `127.0.0.1:5433/anajak_erp_demo` และสินค้า `DEMO-*`; จอง/เบิก/คืน/ยอดคงเหลือ/ledger เปลี่ยนใน transaction เดียวพร้อมกันยอดจองงานอื่น · เปิด writer ได้เมื่อ flag+ฐานตรงทั้งคู่, ไม่มี Stock credential, ไม่มี Sync/API field และ outbound request ถูกปิดก่อน fetch
 
 ## 🧭 Production UX2 — ERP production operations ที่ใช้ทำงานจริง (เบสสั่งรื้อ 2026-08-16)
 - [x] **หนึ่งบทบาทมีหนึ่งคำถามหลัก** — `/production` ตอบ “งานไหนต้องจัดการก่อน” · `/factory/station` ตอบ “สถานีนี้กำลังทำอะไรและงานถัดไปคืออะไร” · `/factory` ตอบ “โรงงานติดตรงไหน” โดยไม่ยก presentation เดียวกันไปใช้ทั้งสามจอ

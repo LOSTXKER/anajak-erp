@@ -71,7 +71,10 @@ describe("production exception UI contract", () => {
     expect(detailSource).toContain('label: "รายละเอียดปัญหา"');
     expect(detailSource).toContain("minLength: 3");
     expect(garmentSource).toContain("const garmentDataStale = garmentPickQuery.isError");
-    expect(garmentSource).toContain("!garmentDataStale && data.configured");
+    expect(garmentSource).toMatch(/!garmentDataStale\s*&&\s*data\.configured/);
+    expect(garmentSource).toContain('data.stockMode === "demo-local"');
+    expect(garmentSource).toContain("สต๊อกทดสอบในเครื่อง");
+    expect(garmentSource).toContain("l.available");
     expect(stationModeSource).toContain("currentProductionProblemReason(spot.step)");
   });
 });

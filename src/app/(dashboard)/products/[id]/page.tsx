@@ -13,7 +13,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
 import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
-import { Package, Cloud, Trash2 } from "lucide-react";
+import { Package, Cloud, Database, Trash2 } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
@@ -24,7 +24,10 @@ import { RecordNotFound } from "@/components/ui/record-not-found";
 // CONSTANTS
 // ============================================================
 
-const typeConfig: Record<string, { label: string; variant: "default" | "secondary" | "accent" | "warning" }> = {
+const typeConfig: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "accent" | "warning" }
+> = {
   T_SHIRT: { label: "เสื้อยืด", variant: "default" },
   POLO: { label: "โปโล", variant: "accent" },
   HOODIE: { label: "ฮู้ดดี้", variant: "accent" },
@@ -55,7 +58,12 @@ export default function ProductDetailPage({
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [priceError, setPriceError] = useState<string | null>(null);
 
-  const { data: product, isLoading, isError, refetch } = trpc.product.getById.useQuery({ id });
+  const {
+    data: product,
+    isLoading,
+    isError,
+    refetch,
+  } = trpc.product.getById.useQuery({ id });
   const { data: me } = trpc.user.me.useQuery();
   const canManage = permAllows(me?.permissions, "manage_settings");
   const canSeeCost = permAllows(me?.permissions, "see_finance");
@@ -98,7 +106,10 @@ export default function ProductDetailPage({
   const handleDelete = async () => {
     const ok = await confirm({
       title: "ลบสินค้า?",
-      description: `สินค้า “${product?.name ?? ""}” จะถูกปิดออกจาก ERP และ Anajak Stock การทำงานนี้ย้อนกลับไม่ได้`,
+      description:
+        product?.source === "LOCAL"
+          ? `สินค้า “${product.name}” จะถูกปิดออกจาก ERP การทำงานนี้ย้อนกลับไม่ได้`
+          : `สินค้า “${product?.name ?? ""}” จะถูกปิดออกจาก ERP และ Anajak Stock การทำงานนี้ย้อนกลับไม่ได้`,
       confirmText: "ยืนยันลบ",
       destructive: true,
     });
@@ -109,7 +120,10 @@ export default function ProductDetailPage({
     updateVariant.mutate({ id: variantId, isActive: !isActive });
   };
 
-  const commitVariantPriceAdj = (variantId: string, currentPriceAdj: number) => {
+  const commitVariantPriceAdj = (
+    variantId: string,
+    currentPriceAdj: number,
+  ) => {
     const draft = priceDrafts[variantId];
     if (draft === undefined) return;
     const parsed = Number(draft);
@@ -152,7 +166,13 @@ export default function ProductDetailPage({
   if (isError && !product) return <QueryError onRetry={() => refetch()} />;
 
   if (!product)
-    return <RecordNotFound what="สินค้าชิ้นนี้" backHref="/products" backLabel="กลับไปรายการสินค้า" />;
+    return (
+      <RecordNotFound
+        what="สินค้าชิ้นนี้"
+        backHref="/products"
+        backLabel="กลับไปรายการสินค้า"
+      />
+    );
 
   const typ = typeConfig[product.productType] ?? {
     label: product.productType,
@@ -233,14 +253,22 @@ export default function ProductDetailPage({
             </div>
           </Card>
 
-          {/* Info card (read-only, synced from Stock) */}
+          {/* Info card — source badge ต้องตรงกับเจ้าของข้อมูล ไม่เหมารวมว่า sync จาก Stock */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 ข้อมูลสินค้า
                 <Badge variant="secondary" className="text-xs font-normal">
+                  {product.source === "LOCAL" ? (
+                    <Database className="mr-1 h-3 w-3" />
+                  ) : (
                   <Cloud className="mr-1 h-3 w-3" />
-                  จาก Anajak Stock
+                  )}
+                  {product.sku.startsWith("DEMO-")
+                    ? "สต๊อกทดสอบ"
+                    : product.source === "LOCAL"
+                      ? "สินค้า Local"
+                      : "จาก Anajak Stock"}
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -250,9 +278,12 @@ export default function ProductDetailPage({
                   const variantPrices = product.variants
                     .map((v) => v.sellingPrice)
                     .filter((p) => p > 0);
-                  const minPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
-                  const maxPrice = variantPrices.length > 0 ? Math.max(...variantPrices) : 0;
-                  const displayPrice = minPrice > 0
+                  const minPrice =
+                    variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
+                  const maxPrice =
+                    variantPrices.length > 0 ? Math.max(...variantPrices) : 0;
+                  const displayPrice =
+                    minPrice > 0
                     ? minPrice === maxPrice
                       ? formatCurrency(minPrice)
                       : `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`
@@ -375,7 +406,9 @@ export default function ProductDetailPage({
                         <DataTable.Td align="right" className="tabular-nums">
                           <span className="font-medium text-slate-900 dark:text-white">
                             {formatCurrency(
-                              (variant.sellingPrice > 0 ? variant.sellingPrice : product.basePrice) + variant.priceAdj
+                              (variant.sellingPrice > 0
+                                ? variant.sellingPrice
+                                : product.basePrice) + variant.priceAdj,
                             )}
                           </span>
                         </DataTable.Td>
@@ -385,7 +418,10 @@ export default function ProductDetailPage({
                               <Input
                                 type="number"
                                 step={0.01}
-                                value={priceDrafts[variant.id] ?? String(variant.priceAdj || 0)}
+                                value={
+                                  priceDrafts[variant.id] ??
+                                  String(variant.priceAdj || 0)
+                                }
                                 onChange={(event) => {
                                   setPriceError(null);
                                   setPriceDrafts((current) => ({
@@ -393,9 +429,15 @@ export default function ProductDetailPage({
                                     [variant.id]: event.target.value,
                                   }));
                                 }}
-                                onBlur={() => commitVariantPriceAdj(variant.id, variant.priceAdj)}
+                                onBlur={() =>
+                                  commitVariantPriceAdj(
+                                    variant.id,
+                                    variant.priceAdj,
+                                  )
+                                }
                                 onKeyDown={(event) => {
-                                  if (event.key === "Enter") event.currentTarget.blur();
+                                  if (event.key === "Enter")
+                                    event.currentTarget.blur();
                                   if (event.key === "Escape") {
                                     setPriceDrafts((current) => {
                                       const next = { ...current };
@@ -420,21 +462,31 @@ export default function ProductDetailPage({
                             </span>
                           )}
                         </DataTable.Td>
-                        <DataTable.Td align="right" className="tabular-nums text-slate-600 dark:text-slate-400">
+                        <DataTable.Td
+                          align="right"
+                          className="tabular-nums text-slate-600 dark:text-slate-400"
+                        >
                           {variant.totalStock || variant.stock}
                         </DataTable.Td>
                         <DataTable.Td align="center">
-                          {canManage ? <Switch
+                          {canManage ? (
+                            <Switch
                             checked={variant.isActive}
                             onCheckedChange={() =>
                               handleToggleVariantActive(
                                 variant.id,
-                                variant.isActive
+                                  variant.isActive,
                               )
                             }
                             aria-label={`${variant.isActive ? "ปิด" : "เปิด"}ตัวเลือก ${variant.color} ${variant.size}`}
-                          /> : (
-                            <Badge variant={variant.isActive ? "success" : "secondary"} size="sm">
+                            />
+                          ) : (
+                            <Badge
+                              variant={
+                                variant.isActive ? "success" : "secondary"
+                              }
+                              size="sm"
+                            >
                               {variant.isActive ? "ใช้งาน" : "ปิด"}
                             </Badge>
                           )}
@@ -450,7 +502,9 @@ export default function ProductDetailPage({
           {/* Error display */}
           {(updateProduct.isError || updateVariant.isError || priceError) && (
             <Alert variant="error">
-              {priceError || updateProduct.error?.message || updateVariant.error?.message}
+              {priceError ||
+                updateProduct.error?.message ||
+                updateVariant.error?.message}
             </Alert>
           )}
         </div>

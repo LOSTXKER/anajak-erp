@@ -43,7 +43,7 @@ export function mergePickUsage<T extends { productId: string; variantId: string 
 
 // แผนเบิกรอบนี้: กรองบรรทัด qty ≤ 0 ทิ้ง (ช่องว่างบนฟอร์ม) → validate (sku ต้องอยู่ในรายการ
 // เสื้อจากสต๊อคของออเดอร์ · จำนวนเต็ม) → คำนวณ stepDone: เบิกสุทธิสะสม (เบิก−คืน ทุกแถว
-// ไม่ clamp — คืนเกินแถวหนึ่งหักยอดรวมตามจริง) + รอบนี้ ≥ ที่ต้องใช้ทั้งหมด = ขั้นเบิกเสร็จ
+// ไม่ clamp — คืนเกินแถวหนึ่งหักยอดแถวนั้นตามจริง) + ทุกราย SKU ครบ = ขั้นเบิกเสร็จ
 export function planGarmentIssue(
   stateLines: Array<{ sku: string; issued: number; returned: number; needed: number }>,
   inputLines: Array<{ sku: string; qty: number }>
@@ -51,25 +51,38 @@ export function planGarmentIssue(
   requested: Array<{ sku: string; qty: number }>;
   issuedThisRound: number;
   neededTotal: number;
+  fulfilledTotal: number;
   stepDone: boolean;
 } {
   const stateBySku = new Set(stateLines.map((l) => l.sku));
-  const requested = inputLines.filter((l) => l.qty > 0);
-  if (requested.length === 0) badRequest("ยังไม่ได้ระบุจำนวนที่เบิก");
-  for (const line of requested) {
+  const positive = inputLines.filter((l) => l.qty > 0);
+  if (positive.length === 0) badRequest("ยังไม่ได้ระบุจำนวนที่เบิก");
+  const requestedBySku = new Map<string, number>();
+  for (const line of positive) {
     if (!stateBySku.has(line.sku)) {
       badRequest(`รายการ ${line.sku} ไม่อยู่ในรายการเสื้อจากสต๊อคของออเดอร์นี้`);
     }
     if (!Number.isInteger(line.qty)) badRequest(`จำนวนเบิกของ ${line.sku} ต้องเป็นจำนวนเต็ม`);
+    requestedBySku.set(line.sku, (requestedBySku.get(line.sku) ?? 0) + line.qty);
   }
-  const issuedTotalBefore = stateLines.reduce((s, l) => s + l.issued - l.returned, 0);
+  // Router รับ array จึงต้องรวม SKU ซ้ำก่อนส่งต่อ writer ไม่อย่างนั้นแต่ละบรรทัด
+  // อาจผ่านเพดาน availability เดียวกันแล้วรวมกันกินยอดจองของออเดอร์อื่นได้
+  const requested = [...requestedBySku].map(([sku, qty]) => ({ sku, qty }));
   const neededTotal = stateLines.reduce((s, l) => s + l.needed, 0);
   const issuedThisRound = requested.reduce((s, l) => s + l.qty, 0);
+  const fulfilledTotal = stateLines.reduce((sum, line) => {
+    const netAfter = line.issued - line.returned + (requestedBySku.get(line.sku) ?? 0);
+    return sum + Math.min(line.needed, Math.max(0, netAfter));
+  }, 0);
   return {
     requested,
     issuedThisRound,
     neededTotal,
-    stepDone: issuedTotalBefore + issuedThisRound >= neededTotal,
+    fulfilledTotal,
+    // ห้ามเอายอดเกินไซส์หนึ่งไปกลบยอดขาดอีกไซส์ — หน้างานต้องได้เสื้อครบทุก SKU จริง
+    stepDone: stateLines.every(
+      (line) => line.issued - line.returned + (requestedBySku.get(line.sku) ?? 0) >= line.needed,
+    ),
   };
 }
 

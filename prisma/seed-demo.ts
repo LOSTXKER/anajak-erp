@@ -4,10 +4,15 @@
  * ปลอดภัยโดยตั้งใจ:
  * - ไม่ใช่ canonical `prisma/seed.ts` และไม่ถูกเรียกอัตโนมัติ
  * - ยอมทำงานเฉพาะ 127.0.0.1:5433/anajak_erp_demo + --reset + token ตรงกัน
- * - เก็บ auth mapping, settings และ master ที่ sync/จัดการไว้ แล้วล้างเฉพาะข้อมูลธุรกิจ
- * - ปฏิเสธฐานที่มี Stock credentials เพื่อกัน demo ไปตัดสต๊อคจริง
+ * - เก็บ auth mapping/settings/master ที่ไม่ใช่สต๊อก แล้วสร้าง Product/ProductVariant DEMO-* ใหม่ทุก reset
+ * - ปฏิเสธฐานที่มี Stock credentials และไม่เรียก Stock API จริง
  */
-import { Prisma, PrismaClient, type CustomerStatus, type InternalStatus } from "@prisma/client";
+import {
+  Prisma,
+  PrismaClient,
+  type CustomerStatus,
+  type InternalStatus,
+} from "@prisma/client";
 import {
   assertDemoSeedPlan,
   buildDemoResetTableNames,
@@ -25,12 +30,70 @@ const DEMO_ART =
     '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480"><rect width="640" height="480" fill="#f4f4f5"/><circle cx="320" cy="210" r="112" fill="#2563eb"/><path d="M252 218h136v32H252z" fill="white"/><text x="320" y="390" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#18181b">ANAJAK DEMO</text></svg>',
   );
 
+const DEMO_STOCK_PRODUCTS = {
+  ready: {
+    id: "demo-stock-product-ready",
+    sku: "DEMO-POLO-READY",
+    name: "โปโล Dry-Tech · สต๊อกทดสอบ",
+    productType: "POLO",
+    variants: [
+      {
+        id: "demo-stock-ready-s",
+        sku: "DEMO-POLO-BLK-S",
+        size: "S",
+        color: "ดำ",
+        stock: 24,
+      },
+      {
+        id: "demo-stock-ready-m",
+        sku: "DEMO-POLO-BLK-M",
+        size: "M",
+        color: "ดำ",
+        stock: 24,
+      },
+      {
+        id: "demo-stock-ready-l",
+        sku: "DEMO-POLO-BLK-L",
+        size: "L",
+        color: "ดำ",
+        stock: 24,
+      },
+    ],
+  },
+  blocked: {
+    id: "demo-stock-product-blocked",
+    sku: "DEMO-TEE-SHORT",
+    name: "เสื้อยืด Heavy Cotton · สต๊อกทดสอบ",
+    productType: "T_SHIRT",
+    variants: [
+      {
+        id: "demo-stock-blocked-s",
+        sku: "DEMO-TEE-CREAM-S",
+        size: "S",
+        color: "ครีม",
+        stock: 20,
+      },
+      {
+        id: "demo-stock-blocked-m",
+        sku: "DEMO-TEE-CREAM-M",
+        size: "M",
+        color: "ครีม",
+        stock: 20,
+      },
+      {
+        id: "demo-stock-blocked-l",
+        sku: "DEMO-TEE-CREAM-L",
+        size: "L",
+        color: "ครีม",
+        stock: 6,
+      },
+    ],
+  },
+} as const;
+
 const money = (value: Prisma.Decimal.Value) => new Prisma.Decimal(value);
 const fromNow = (days: number, hours = 0) =>
   new Date(Date.now() + days * DAY_MS + hours * 60 * 60 * 1_000);
-const variantAvailable = (variant: { stock: number; totalStock: number }) =>
-  Math.max(variant.stock, variant.totalStock);
-
 function bangkokPeriod() {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Bangkok",
@@ -181,8 +244,25 @@ type SeededOrder = {
   stepIds: Partial<Record<"garment" | "dtf" | "heat" | "outsource", string>>;
 };
 
+type SeededDemoStockProduct = {
+  id: string;
+  name: string;
+  productType: string;
+  variants: Array<{
+    id: string;
+    sku: string;
+    size: string;
+    color: string;
+    stock: number;
+    totalStock: number;
+  }>;
+};
+
 async function main() {
-  validateDemoSeedInvocation(process.argv.slice(2), process.env.DEMO_SEED_RESET_TOKEN);
+  validateDemoSeedInvocation(
+    process.argv.slice(2),
+    process.env.DEMO_SEED_RESET_TOKEN,
+  );
   validateDemoDatabaseUrl(process.env.DATABASE_URL);
   assertDemoSeedPlan(DEMO_SEED_SCENARIOS);
 
@@ -200,37 +280,9 @@ async function main() {
     orderBy: { createdAt: "asc" },
   });
   if (!owner) {
-    throw new Error("Demo seed ต้องมี active OWNER ที่ copy จาก Supabase เพื่อให้ login ได้");
-  }
-
-  const stockProducts = await prisma.product.findMany({
-    where: { deletedAt: null, isActive: true, variants: { some: { isActive: true } } },
-    include: { variants: { where: { isActive: true }, orderBy: { sku: "asc" } } },
-    orderBy: { sku: "asc" },
-  });
-  const blockedQty =
-    DEMO_SEED_SCENARIOS.find((scenario) => scenario.key === "blocked-stock")?.quantity ?? 0;
-  const expectedPerVariant = Math.floor(blockedQty / 3);
-  const stockProduct = stockProducts
-    .map((product) => {
-      const variantsByAvailability = [...product.variants].sort(
-        (a, b) => variantAvailable(b) - variantAvailable(a) || a.sku.localeCompare(b.sku),
+    throw new Error(
+      "Demo seed ต้องมี active OWNER ที่ copy จาก Supabase เพื่อให้ login ได้",
       );
-      const enough = variantsByAvailability.find(
-        (variant) => variantAvailable(variant) >= expectedPerVariant,
-      );
-      const short = [...variantsByAvailability]
-        .reverse()
-        .find((variant) => variantAvailable(variant) < expectedPerVariant);
-      const third = variantsByAvailability.find(
-        (variant) => variant.id !== enough?.id && variant.id !== short?.id,
-      );
-      if (!enough || !short || !third) return null;
-      return { ...product, variants: [enough, third, short].sort((a, b) => a.sku.localeCompare(b.sku)) };
-    })
-    .find((product) => product !== null);
-  if (!stockProduct || stockProduct.variants.length === 0) {
-    throw new Error("Demo seed ต้องมี Product mirror ที่แสดงทั้งไซส์พอและไซส์ขาดได้");
   }
 
   const tableRows = await prisma.$queryRaw<Array<{ table_name: string }>>`
@@ -239,9 +291,12 @@ async function main() {
     WHERE schemaname = current_schema()
     ORDER BY tablename
   `;
-  const resetTables = buildDemoResetTableNames(tableRows.map((row) => row.table_name));
+  const resetTables = buildDemoResetTableNames(
+    tableRows.map((row) => row.table_name),
+  );
   for (const table of resetTables) {
-    if (!/^[a-z0-9_]+$/.test(table)) throw new Error(`ชื่อตารางไม่ปลอดภัย: ${table}`);
+    if (!/^[a-z0-9_]+$/.test(table))
+      throw new Error(`ชื่อตารางไม่ปลอดภัย: ${table}`);
   }
 
   const period = bangkokPeriod();
@@ -272,8 +327,124 @@ async function main() {
   await prisma.$transaction(
     async (tx) => {
       if (resetTables.length > 0) {
-        const quotedTables = resetTables.map((table) => `"${table}"`).join(", ");
-        await tx.$executeRawUnsafe(`TRUNCATE TABLE ${quotedTables} RESTART IDENTITY CASCADE`);
+        const quotedTables = resetTables
+          .map((table) => `"${table}"`)
+          .join(", ");
+        await tx.$executeRawUnsafe(
+          `TRUNCATE TABLE ${quotedTables} RESTART IDENTITY CASCADE`,
+        );
+      }
+
+      const seededStockProducts = {} as Record<
+        keyof typeof DEMO_STOCK_PRODUCTS,
+        SeededDemoStockProduct
+      >;
+      for (const [key, product] of Object.entries(DEMO_STOCK_PRODUCTS) as Array<
+        [
+          keyof typeof DEMO_STOCK_PRODUCTS,
+          (typeof DEMO_STOCK_PRODUCTS)[keyof typeof DEMO_STOCK_PRODUCTS],
+        ]
+      >) {
+        const totalStock = product.variants.reduce(
+          (sum, variant) => sum + variant.stock,
+          0,
+        );
+        await tx.product.upsert({
+          where: { id: product.id },
+          create: {
+            id: product.id,
+            sku: product.sku,
+            name: product.name,
+            description:
+              "สินค้า local สำหรับทดสอบการจอง เบิก และคืน โดยไม่เชื่อมระบบหลัก",
+            productType: product.productType,
+            category: "DEMO",
+            basePrice: money(105),
+            costPrice: money(0),
+            imageUrl: DEMO_ART,
+            isActive: true,
+            source: "LOCAL",
+            itemType: "FINISHED_GOOD",
+            unit: "PCS",
+            unitName: "ตัว",
+            totalStock,
+          },
+          update: {
+            sku: product.sku,
+            name: product.name,
+            description:
+              "สินค้า local สำหรับทดสอบการจอง เบิก และคืน โดยไม่เชื่อมระบบหลัก",
+            productType: product.productType,
+            category: "DEMO",
+            basePrice: money(105),
+            costPrice: money(0),
+            imageUrl: DEMO_ART,
+            isActive: true,
+            source: "LOCAL",
+            itemType: "FINISHED_GOOD",
+            stockProductId: null,
+            unit: "PCS",
+            unitName: "ตัว",
+            totalStock,
+            lastSyncAt: null,
+            deletedAt: null,
+          },
+        });
+        await tx.productVariant.deleteMany({
+          where: {
+            productId: product.id,
+            id: { notIn: product.variants.map((variant) => variant.id) },
+          },
+        });
+        for (const variant of product.variants) {
+          await tx.productVariant.upsert({
+            where: { id: variant.id },
+            create: {
+              id: variant.id,
+              productId: product.id,
+              sku: variant.sku,
+              size: variant.size,
+              color: variant.color,
+              stock: variant.stock,
+              totalStock: variant.stock,
+              isActive: true,
+              sellingPrice: money(105),
+              costPrice: money(0),
+            },
+            update: {
+              productId: product.id,
+              sku: variant.sku,
+              size: variant.size,
+              color: variant.color,
+              stock: variant.stock,
+              totalStock: variant.stock,
+              isActive: true,
+              stockVariantId: null,
+              sellingPrice: money(105),
+              costPrice: money(0),
+            },
+          });
+        }
+        seededStockProducts[key] = await tx.product.findUniqueOrThrow({
+          where: { id: product.id },
+          select: {
+            id: true,
+            name: true,
+            productType: true,
+            variants: {
+              where: { isActive: true },
+              orderBy: { sku: "asc" },
+              select: {
+                id: true,
+                sku: true,
+                size: true,
+                color: true,
+                stock: true,
+                totalStock: true,
+              },
+            },
+          },
+        });
       }
 
       const demoStaff = [
@@ -365,22 +536,32 @@ async function main() {
         const orderCompletedAt =
           scenario.internalStatus === "COMPLETED" ? fromNow(-1) : null;
         const isBlockedStock = features.has("BLOCKED_STOCK");
+        const isStockPickReady = features.has("STOCK_PICK_READY");
+        const stockProduct = isBlockedStock
+          ? seededStockProducts.blocked
+          : isStockPickReady
+            ? seededStockProducts.ready
+            : null;
+        const isDemoStock = stockProduct !== null;
         const received =
           scenario.internalStatus === "PRODUCTION_QUEUE" ||
-          (features.has("GARMENT_RECEIVE") && scenario.key !== "garment-receive");
-        const color = ["ดำ", "ขาว", "กรม", "ครีม", "เขียวเข้ม", "เทา"][scenario.customerIndex];
-        const blockedStockQtyPerVariant = Math.floor(
-          scenario.quantity / stockProduct.variants.length,
-        );
-        const variants = isBlockedStock
+          (features.has("GARMENT_RECEIVE") &&
+            scenario.key !== "garment-receive");
+        const color = ["ดำ", "ขาว", "กรม", "ครีม", "เขียวเข้ม", "เทา"][
+          scenario.customerIndex
+        ];
+        const stockQtyPerVariant = stockProduct
+          ? Math.floor(scenario.quantity / stockProduct.variants.length)
+          : 0;
+        const variants = stockProduct
           ? stockProduct.variants.map((variant, variantIndex) => ({
               size: variant.size,
               color: variant.color,
               quantity:
                 variantIndex === stockProduct.variants.length - 1
                   ? scenario.quantity -
-                    blockedStockQtyPerVariant * (stockProduct.variants.length - 1)
-                  : blockedStockQtyPerVariant,
+                    stockQtyPerVariant * (stockProduct.variants.length - 1)
+                  : stockQtyPerVariant,
             }))
           : splitQuantity(scenario.quantity, color);
         const stockShortages = isBlockedStock
@@ -388,19 +569,20 @@ async function main() {
               .map((variant, variantIndex) => ({
                 ...variant,
                 shortage: Math.max(
-                  variant.quantity - variantAvailable(stockProduct.variants[variantIndex]),
+                  variant.quantity -
+                    stockProduct!.variants[variantIndex]!.stock,
                   0,
                 ),
               }))
               .filter((variant) => variant.shortage > 0)
           : [];
         const stockBlockerReason = isBlockedStock
-          ? `สต๊อก snapshot ${stockShortages
+          ? `สต๊อกทดสอบ ${stockShortages
               .map(
                 (variant) =>
                   `${variant.size}${variant.color ? ` ${variant.color}` : ""} ขาด ${variant.shortage}`,
               )
-              .join(", ")} ตัว — ฐาน demo ปิดการเชื่อม Stock จริง`
+              .join(", ")} ตัว — ต้องเติมของทดสอบหรือปรับแผนก่อนเบิก`
           : null;
 
         await tx.order.create({
@@ -408,13 +590,15 @@ async function main() {
             id,
             orderNumber: number,
             orderType: "CUSTOM",
-            channel: index % 4 === 0 ? "WEBSITE" : index % 3 === 0 ? "PHONE" : "LINE",
+            channel:
+              index % 4 === 0 ? "WEBSITE" : index % 3 === 0 ? "PHONE" : "LINE",
             customerId: customer.id,
             createdById: owner.id,
             customerStatus: scenario.customerStatus as CustomerStatus,
             internalStatus: scenario.internalStatus as InternalStatus,
             title: scenario.title,
-            description: "งานตัวอย่างจากวันทำงานจริง เพื่อทดลอง ERP และ Station Mode",
+            description:
+              "งานตัวอย่างจากวันทำงานจริง เพื่อทดลอง ERP และ Station Mode",
             deadline: fromNow(scenario.deadlineInDays, 10),
             subtotalItems: price.subtotalItems,
             subtotalFees: price.subtotalFees,
@@ -429,7 +613,10 @@ async function main() {
                   ? "HIGH"
                   : "NORMAL",
             paymentTerms: customer.defaultPaymentTerms,
-            poNumber: customer.customerType === "CORPORATE" ? `PO-${period}-${index + 101}` : null,
+            poNumber:
+              customer.customerType === "CORPORATE"
+                ? `PO-${period}-${index + 101}`
+                : null,
             shippingRecipientName: customer.company ?? customer.name,
             shippingPhone: customer.phone,
             shippingAddress: `${99 + index}/1 ถนนตัวอย่าง`,
@@ -438,7 +625,9 @@ async function main() {
             shippingProvince: "กรุงเทพมหานคร",
             shippingPostalCode: "10260",
             blindShip: scenario.key === "packing",
-            blindShipSenderName: scenario.key === "packing" ? customer.company : null,
+            blindShipSenderName:
+              scenario.key === "packing" ? customer.company : null,
+            stockReservedAt: isStockPickReady ? fromNow(-2) : null,
             stockReservationError: stockBlockerReason,
             completedAt: orderCompletedAt,
             notes: "ข้อมูล demo local — ชื่อและข้อมูลติดต่อเป็นข้อมูลสมมติ",
@@ -453,7 +642,9 @@ async function main() {
           data: {
             id: itemId,
             orderId: id,
-            description: isBlockedStock ? stockProduct.name : `เสื้อยืด Cotton 100% สี${color}`,
+            description: isDemoStock
+              ? stockProduct.name
+              : `เสื้อยืด Cotton 100% สี${color}`,
             totalQuantity: scenario.quantity,
             subtotal: price.subtotalItems,
             taxLineType: "HIRE_OF_WORK",
@@ -463,14 +654,16 @@ async function main() {
           data: {
             id: productLineId,
             orderItemId: itemId,
-            productId: isBlockedStock ? stockProduct.id : null,
-            productType: isBlockedStock ? stockProduct.productType : "T_SHIRT",
-            description: isBlockedStock ? stockProduct.name : `เสื้อยืด Cotton 100% สี${color}`,
-            material: isBlockedStock ? null : "Cotton 100%",
+            productId: isDemoStock ? stockProduct.id : null,
+            productType: isDemoStock ? stockProduct.productType : "T_SHIRT",
+            description: isDemoStock
+              ? stockProduct.name
+              : `เสื้อยืด Cotton 100% สี${color}`,
+            material: isDemoStock ? null : "Cotton 100%",
             baseUnitPrice: price.productUnit,
             totalQuantity: scenario.quantity,
             subtotal: price.productUnit.mul(scenario.quantity),
-            itemSource: isBlockedStock ? "FROM_STOCK" : "CUSTOMER_PROVIDED",
+            itemSource: isDemoStock ? "FROM_STOCK" : "CUSTOMER_PROVIDED",
             garmentCondition: received ? "สภาพดี พร้อมผลิต" : null,
             receivedInspected: received,
             receiveNote: received ? "ตรวจจำนวนและสภาพครบตามใบรับ" : null,
@@ -519,8 +712,12 @@ async function main() {
               fileUrl: DEMO_ART,
               thumbnailUrl: DEMO_ART,
               approvalStatus: approved ? "APPROVED" : "PENDING",
-              designerNotes: approved ? "ลูกค้าอนุมัติขนาดและตำแหน่งแล้ว" : "รอลูกค้าตรวจตัวสะกด",
-              approvedAt: approved ? fromNow(-Math.max(1, scenario.ageDays - 2)) : null,
+              designerNotes: approved
+                ? "ลูกค้าอนุมัติขนาดและตำแหน่งแล้ว"
+                : "รอลูกค้าตรวจตัวสะกด",
+              approvedAt: approved
+                ? fromNow(-Math.max(1, scenario.ageDays - 2))
+                : null,
               createdAt: fromNow(-Math.max(1, scenario.ageDays - 1)),
             },
           });
@@ -538,7 +735,8 @@ async function main() {
               orderId: id,
               customerId: customer.id,
               createdById: owner.id,
-              status: scenario.internalStatus === "INQUIRY" ? "SENT" : "ACCEPTED",
+              status:
+                scenario.internalStatus === "INQUIRY" ? "SENT" : "ACCEPTED",
               title: scenario.title,
               validUntil: fromNow(10),
               terms: customer.defaultPaymentTerms,
@@ -574,10 +772,14 @@ async function main() {
           "SHIPPED",
           "COMPLETED",
         ];
-        if (productionStatuses.includes(scenario.internalStatus as InternalStatus)) {
+        if (
+          productionStatuses.includes(scenario.internalStatus as InternalStatus)
+        ) {
           const productionId = `demo-production-${scenario.key}`;
           const productionComplete = scenario.internalStatus !== "PRODUCING";
-          const productionCreatedAt = fromNow(-Math.max(1, scenario.ageDays - 2));
+          const productionCreatedAt = fromNow(
+            -Math.max(1, scenario.ageDays - 2),
+          );
           const productionEndOffset = productionEndDays(
             scenario.internalStatus as InternalStatus,
           );
@@ -596,26 +798,32 @@ async function main() {
             },
           });
 
-          if (isBlockedStock) {
+          if (isBlockedStock || isStockPickReady) {
             stepIds.garment = `demo-step-${scenario.key}-garment`;
+            stepIds.dtf = `demo-step-${scenario.key}-dtf`;
+            stepIds.heat = `demo-step-${scenario.key}-heat`;
             await tx.productionStep.createMany({
               data: [
                 {
                   id: stepIds.garment,
                   productionId,
                   stepType: "GARMENT_PICK",
-                  status: "FAILED",
+                  status: isBlockedStock ? "FAILED" : "PENDING",
                   sortOrder: 10,
                   qtyDone: 0,
                   qtyTotal: scenario.quantity,
-                  assignedToId: "demo-user-prep",
-                  notes: `[แจ้งปัญหาจากสถานี] ${stockBlockerReason}`,
-                  startedAt: fromNow(-1, -2),
+                  assignedToId: isBlockedStock ? "demo-user-prep" : null,
+                  notes: isBlockedStock
+                    ? `[แจ้งปัญหาจากสถานี] ${stockBlockerReason}`
+                    : null,
+                  startedAt: isBlockedStock ? fromNow(-1, -2) : null,
                   createdAt: productionCreatedAt,
-                  updatedAt: fromNow(-1, -2),
+                  updatedAt: isBlockedStock
+                    ? fromNow(-1, -2)
+                    : productionCreatedAt,
                 },
                 {
-                  id: `demo-step-${scenario.key}-dtf`,
+                  id: stepIds.dtf,
                   productionId,
                   stepType: "DTF_PRINT",
                   status: "PENDING",
@@ -626,7 +834,7 @@ async function main() {
                   updatedAt: productionCreatedAt,
                 },
                 {
-                  id: `demo-step-${scenario.key}-heat`,
+                  id: stepIds.heat,
                   productionId,
                   stepType: "HEAT_PRESS",
                   status: "PENDING",
@@ -679,8 +887,12 @@ async function main() {
             const dtfPrinted = features.has("DTF_PRINTED");
             const heatReady = features.has("HEAT_PRESS");
             const downstreamComplete = productionComplete;
-            const garmentStartedAt = downstreamComplete ? fromNow(-12) : fromNow(-8);
-            const garmentCompletedAt = downstreamComplete ? fromNow(-11) : fromNow(-7);
+            const garmentStartedAt = downstreamComplete
+              ? fromNow(-12)
+              : fromNow(-8);
+            const garmentCompletedAt = downstreamComplete
+              ? fromNow(-11)
+              : fromNow(-7);
             const dtfTimeline = dtfPrinting
               ? dtfTimelines.printing
               : dtfPrinted
@@ -713,24 +925,38 @@ async function main() {
                   startedAt: garmentPending ? null : garmentStartedAt,
                   completedAt: garmentPending ? null : garmentCompletedAt,
                   createdAt: productionCreatedAt,
-                  updatedAt: garmentPending ? productionCreatedAt : garmentCompletedAt,
+                  updatedAt: garmentPending
+                    ? productionCreatedAt
+                    : garmentCompletedAt,
                 },
                 {
                   id: stepIds.dtf,
                   productionId,
                   stepType: "DTF_PRINT",
-                  status: dtfPrinting || dtfPrinted ? "IN_PROGRESS" : downstreamComplete || heatReady ? "COMPLETED" : "PENDING",
+                  status:
+                    dtfPrinting || dtfPrinted
+                      ? "IN_PROGRESS"
+                      : downstreamComplete || heatReady
+                        ? "COMPLETED"
+                        : "PENDING",
                   sortOrder: 20,
-                  qtyDone: downstreamComplete || heatReady ? scenario.quantity : 0,
+                  qtyDone:
+                    downstreamComplete || heatReady ? scenario.quantity : 0,
                   qtyTotal: scenario.quantity,
-                  assignedToId: dtfPrinting || dtfPrinted ? "demo-user-dtf" : downstreamComplete || heatReady ? "demo-user-dtf" : null,
+                  assignedToId:
+                    dtfPrinting || dtfPrinted
+                      ? "demo-user-dtf"
+                      : downstreamComplete || heatReady
+                        ? "demo-user-dtf"
+                        : null,
                   startedAt:
                     dtfPrinting || dtfPrinted || downstreamComplete || heatReady
                       ? dtfStartedAt
                       : null,
                   completedAt: dtfCompletedAt,
                   createdAt: productionCreatedAt,
-                  updatedAt: dtfCompletedAt ?? dtfStartedAt ?? productionCreatedAt,
+                  updatedAt:
+                    dtfCompletedAt ?? dtfStartedAt ?? productionCreatedAt,
                 },
                 {
                   id: stepIds.heat,
@@ -766,7 +992,8 @@ async function main() {
               lines: {
                 create: variants.map((variant) => ({
                   orderItemProductId: productLineId,
-                  description: isBlockedStock ? stockProduct.name : `เสื้อยืด Cotton 100% สี${color}`,
+                  description:
+                    stockProduct?.name ?? `เสื้อยืด Cotton 100% สี${color}`,
                   size: variant.size,
                   color: variant.color,
                   qtyExpected: variant.quantity,
@@ -803,7 +1030,9 @@ async function main() {
           });
         }
 
-        const deliveryFeature = scenario.features.find((feature) => feature.startsWith("DELIVERY_"));
+        const deliveryFeature = scenario.features.find((feature) =>
+          feature.startsWith("DELIVERY_"),
+        );
         if (features.has("PACKING") || deliveryFeature) {
           const partial = features.has("PACKING");
           const deliveryStatus =
@@ -824,7 +1053,8 @@ async function main() {
               : deliveryStatus === "SHIPPED"
                 ? fromNow(-2)
                 : null;
-          const deliveredAt = deliveryStatus === "DELIVERED" ? fromNow(-2) : null;
+          const deliveredAt =
+            deliveryStatus === "DELIVERED" ? fromNow(-2) : null;
           await tx.delivery.create({
             data: {
               id: `demo-delivery-${scenario.key}`,
@@ -837,13 +1067,19 @@ async function main() {
               province: "กรุงเทพมหานคร",
               postalCode: "10260",
               shippingMethod: scenario.key === "packing" ? "FLASH" : "KERRY",
-              trackingNumber: deliveryStatus === "PREPARING" ? null : `THDEMO${period}${index + 1}`,
+              trackingNumber:
+                deliveryStatus === "PREPARING"
+                  ? null
+                  : `THDEMO${period}${index + 1}`,
               shippingCost: money(120),
               isPaid: true,
               status: deliveryStatus,
               shippedAt,
               deliveredAt,
-              notes: scenario.key === "packing" ? "Blind ship — ห้ามใส่เอกสารชื่อ Anajak" : null,
+              notes:
+                scenario.key === "packing"
+                  ? "Blind ship — ห้ามใส่เอกสารชื่อ Anajak"
+                  : null,
               createdAt: deliveryCreatedAt,
               updatedAt: deliveredAt ?? shippedAt ?? deliveryCreatedAt,
               lines: {
@@ -851,7 +1087,9 @@ async function main() {
                   description: scenario.title,
                   size: variant.size,
                   color: variant.color,
-                  qty: partial ? Math.floor(variant.quantity / 2) : variant.quantity,
+                  qty: partial
+                    ? Math.floor(variant.quantity / 2)
+                    : variant.quantity,
                 })),
               },
             },
@@ -898,7 +1136,11 @@ async function main() {
               tax: invoiceTax,
               totalAmount: invoiceTotal,
               paymentStatus,
-              dueDate: isCompleted ? null : isShipped ? fromNow(-5) : fromNow(7),
+              dueDate: isCompleted
+                ? null
+                : isShipped
+                  ? fromNow(-5)
+                  : fromNow(7),
               paidAt: paymentStatus === "PAID" ? paymentDate : null,
               issueDate: invoiceIssueDate,
               buyerName: customer.name,
@@ -907,7 +1149,8 @@ async function main() {
               buyerPhone: customer.phone,
               notes: "เอกสาร demo local",
               createdAt: invoiceIssueDate,
-              updatedAt: paymentStatus === "PAID" ? paymentDate : invoiceIssueDate,
+              updatedAt:
+                paymentStatus === "PAID" ? paymentDate : invoiceIssueDate,
             },
           });
           if (paymentStatus === "PAID") {
@@ -976,7 +1219,11 @@ async function main() {
         "shipped",
         "completed",
       ].map((key) => seeded.get(key));
-      if (!printing?.stepIds.dtf || !printed?.stepIds.dtf || !completedRunOrder?.stepIds.dtf) {
+      if (
+        !printing?.stepIds.dtf ||
+        !printed?.stepIds.dtf ||
+        !completedRunOrder?.stepIds.dtf
+      ) {
         throw new Error("Demo DTF scenario ไม่ครบ");
       }
       if (historicalRunOrders.some((order) => !order?.stepIds.dtf)) {
@@ -1080,7 +1327,8 @@ async function main() {
       });
 
       const outsource = seeded.get("outsource-overdue");
-      if (!outsource?.stepIds.outsource) throw new Error("Demo outsource scenario ไม่ครบ");
+      if (!outsource?.stepIds.outsource)
+        throw new Error("Demo outsource scenario ไม่ครบ");
       await tx.outsourceOrder.create({
         data: {
           id: "demo-outsource-overdue",
@@ -1116,7 +1364,10 @@ async function main() {
           createdAt: fromNow(-7),
           updatedAt: fromNow(-7),
           items: {
-            create: { invoiceId: overdueInvoice.id, amount: overdueInvoice.totalAmount },
+            create: {
+              invoiceId: overdueInvoice.id,
+              amount: overdueInvoice.totalAmount,
+            },
           },
         },
       });
@@ -1129,7 +1380,9 @@ async function main() {
         },
       });
       for (const customer of customerSeeds) {
-        const orders = [...seeded.values()].filter((order) => order.customerId === customer.id);
+        const orders = [...seeded.values()].filter(
+          (order) => order.customerId === customer.id,
+        );
         const spent = settledPayments
           .filter((payment) => payment.invoice.customerId === customer.id)
           .reduce(
@@ -1138,7 +1391,9 @@ async function main() {
           );
         const lastOrderAt = orders.reduce<Date | null>(
           (latest, order) =>
-            latest === null || order.createdAt > latest ? order.createdAt : latest,
+            latest === null || order.createdAt > latest
+              ? order.createdAt
+              : latest,
           null,
         );
         await tx.customer.update({
@@ -1156,10 +1411,16 @@ async function main() {
           {
             docType: "ORDER",
             period,
-            lastNumber: Math.max(...DEMO_SEED_SCENARIOS.map((scenario) => scenario.sequence)),
+            lastNumber: Math.max(
+              ...DEMO_SEED_SCENARIOS.map((scenario) => scenario.sequence),
+            ),
           },
           { docType: "QUOTATION", period, lastNumber: quotationNumber },
-          { docType: "DEPOSIT_INVOICE", period, lastNumber: depositInvoiceNumber },
+          {
+            docType: "DEPOSIT_INVOICE",
+            period,
+            lastNumber: depositInvoiceNumber,
+          },
           { docType: "FINAL_INVOICE", period, lastNumber: finalInvoiceNumber },
           { docType: "RECEIPT", period, lastNumber: receiptNumber },
           { docType: "PRINT_RUN", period, lastNumber: 4 },
@@ -1223,6 +1484,8 @@ async function main() {
         qcRows,
         deliveries,
         invoices,
+        demoStockRows,
+        demoStockOrders,
       ] = await Promise.all([
         tx.order.count(),
         tx.production.findMany({
@@ -1243,11 +1506,18 @@ async function main() {
         tx.printRunItem.findMany({
           include: {
             printRun: { select: { createdAt: true, completedAt: true } },
-            productionStep: { include: { production: { select: { orderId: true } } } },
+            productionStep: {
+              include: { production: { select: { orderId: true } } },
+            },
           },
         }),
         tx.printRun.findMany({
-          select: { id: true, createdAt: true, printedAt: true, completedAt: true },
+          select: {
+            id: true,
+            createdAt: true,
+            printedAt: true,
+            completedAt: true,
+          },
         }),
         tx.qcRecord.findMany({ include: { defects: true } }),
         tx.delivery.findMany({
@@ -1267,13 +1537,135 @@ async function main() {
             payments: { include: { receiptInvoice: true } },
           },
         }),
+        tx.product.findMany({
+          where: {
+            id: {
+              in: Object.values(DEMO_STOCK_PRODUCTS).map(
+                (product) => product.id,
+              ),
+            },
+          },
+          select: {
+            id: true,
+            sku: true,
+            source: true,
+            totalStock: true,
+            variants: {
+              where: { isActive: true },
+              select: {
+                sku: true,
+                size: true,
+                color: true,
+                stock: true,
+                totalStock: true,
+              },
+            },
+          },
+        }),
+        tx.order.findMany({
+          where: {
+            id: {
+              in: ["demo-order-stock-pick-ready", "demo-order-blocked-stock"],
+            },
+          },
+          select: {
+            id: true,
+            stockReservedAt: true,
+            stockReservationError: true,
+            items: {
+              select: {
+                products: {
+                  select: {
+                    productId: true,
+                    variants: {
+                      select: { size: true, color: true, quantity: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }),
       ]);
-      if (orderCount !== DEMO_SEED_SCENARIOS.length || productionRows.length < 8) {
+      if (
+        orderCount !== DEMO_SEED_SCENARIOS.length ||
+        productionRows.length < 8
+      ) {
         throw new Error("Demo seed จำนวนออเดอร์หรือใบผลิตไม่ครบ");
       }
+      if (demoStockRows.length !== Object.keys(DEMO_STOCK_PRODUCTS).length) {
+        throw new Error("Demo seed สินค้าสต๊อกทดสอบไม่ครบ");
+      }
+      for (const product of demoStockRows) {
+        if (product.source !== "LOCAL" || !product.sku.startsWith("DEMO-")) {
+          throw new Error(`Demo product ${product.id} ไม่ได้แยกจาก Stock หลัก`);
+        }
+        const variantTotal = product.variants.reduce((sum, variant) => {
+          if (variant.stock !== variant.totalStock || variant.stock < 0) {
+            throw new Error(
+              `Demo variant ${variant.sku} มียอด local ไม่ตรงกัน`,
+            );
+          }
+          return sum + variant.stock;
+        }, 0);
+        if (variantTotal !== product.totalStock) {
+          throw new Error(`Demo product ${product.id} รวมยอดรายไซส์ไม่ตรง`);
+        }
+      }
+      const demoProductById = new Map(
+        demoStockRows.map((product) => [product.id, product]),
+      );
+      for (const order of demoStockOrders) {
+        const isReady = order.id === "demo-order-stock-pick-ready";
+        if (
+          isReady &&
+          (!order.stockReservedAt || order.stockReservationError)
+        ) {
+          throw new Error(
+            "Demo stock-pick-ready ต้องจองสำเร็จก่อนเปิด Station",
+          );
+        }
+        if (
+          !isReady &&
+          (order.stockReservedAt || !order.stockReservationError)
+        ) {
+          throw new Error("Demo blocked-stock ต้องมีของขาดจริงและยังไม่จอง");
+        }
+        const hasShortage = order.items
+          .flatMap((item) => item.products)
+          .some((line) => {
+            const product = line.productId
+              ? demoProductById.get(line.productId)
+              : null;
+            return line.variants.some((ordered) => {
+              const stock = product?.variants.find(
+                (variant) =>
+                  variant.size === ordered.size &&
+                  variant.color === ordered.color,
+              )?.stock;
+              if (stock === undefined) return true;
+              const required = isReady
+                ? Math.ceil(ordered.quantity * 1.03)
+                : ordered.quantity;
+              return stock < required;
+            });
+          });
+        if (isReady ? hasShortage : !hasShortage) {
+          throw new Error(
+            isReady
+              ? "Demo stock-pick-ready มีของไม่พอสำหรับเบิกเผื่อ 3%"
+              : "Demo blocked-stock ไม่มี shortage จริงตามข้อความ",
+          );
+        }
+      }
       for (const production of productionRows) {
-        if (production.startDate && production.startDate < production.createdAt) {
-          throw new Error(`Demo production ${production.id} เริ่มก่อนสร้างใบผลิต`);
+        if (
+          production.startDate &&
+          production.startDate < production.createdAt
+        ) {
+          throw new Error(
+            `Demo production ${production.id} เริ่มก่อนสร้างใบผลิต`,
+          );
         }
         if (
           production.startDate &&
@@ -1284,13 +1676,20 @@ async function main() {
         }
       }
       for (const step of stepRows) {
-        if (step.qtyDone < 0 || (step.qtyTotal !== null && step.qtyDone > step.qtyTotal)) {
+        if (
+          step.qtyDone < 0 ||
+          (step.qtyTotal !== null && step.qtyDone > step.qtyTotal)
+        ) {
           throw new Error(`Demo step ${step.id} มีจำนวนเกินขอบเขต`);
         }
         if (step.startedAt && step.startedAt < step.createdAt) {
           throw new Error(`Demo step ${step.id} เริ่มก่อนสร้างขั้น`);
         }
-        if (step.startedAt && step.completedAt && step.completedAt < step.startedAt) {
+        if (
+          step.startedAt &&
+          step.completedAt &&
+          step.completedAt < step.startedAt
+        ) {
           throw new Error(`Demo step ${step.id} จบก่อนเริ่ม`);
         }
         if (step.stepType === "DTF_PRINT" && step.status === "COMPLETED") {
@@ -1298,45 +1697,63 @@ async function main() {
             .filter((item) => item.productionStepId === step.id)
             .reduce((sum, item) => sum + item.qty, 0);
           if (printedQty < step.qtyDone) {
-            throw new Error(`Demo DTF step ${step.id} ไม่มีหลักฐาน Print Run ครบ`);
+            throw new Error(
+              `Demo DTF step ${step.id} ไม่มีหลักฐาน Print Run ครบ`,
+            );
           }
         }
       }
       for (const item of runItems) {
         if (item.orderId !== item.productionStep.production.orderId) {
-          throw new Error(`Demo print run item ${item.id} อ้างคนละออเดอร์กับ step`);
+          throw new Error(
+            `Demo print run item ${item.id} อ้างคนละออเดอร์กับ step`,
+          );
         }
         if (
           !item.productionStep.startedAt ||
-          item.productionStep.startedAt.getTime() !== item.printRun.createdAt.getTime()
+          item.productionStep.startedAt.getTime() !==
+            item.printRun.createdAt.getTime()
         ) {
-          throw new Error(`Demo print run item ${item.id} เริ่ม step ไม่ตรงเวลาเปิดรอบ`);
+          throw new Error(
+            `Demo print run item ${item.id} เริ่ม step ไม่ตรงเวลาเปิดรอบ`,
+          );
         }
         if (
           item.printRun.completedAt &&
           (!item.productionStep.completedAt ||
             item.productionStep.completedAt < item.printRun.completedAt)
         ) {
-          throw new Error(`Demo print run item ${item.id} ปิด step ก่อนรอบพิมพ์เสร็จ`);
+          throw new Error(
+            `Demo print run item ${item.id} ปิด step ก่อนรอบพิมพ์เสร็จ`,
+          );
         }
       }
       for (const run of printRuns) {
         if (run.printedAt && run.printedAt < run.createdAt) {
           throw new Error(`Demo Print Run ${run.id} พิมพ์ก่อนสร้างรอบ`);
         }
-        if (run.printedAt && run.completedAt && run.completedAt < run.printedAt) {
+        if (
+          run.printedAt &&
+          run.completedAt &&
+          run.completedAt < run.printedAt
+        ) {
           throw new Error(`Demo Print Run ${run.id} จบก่อนพิมพ์`);
         }
       }
       for (const qc of qcRows) {
-        const defectSum = qc.defects.reduce((sum, defect) => sum + defect.qty, 0);
-        if (defectSum !== qc.qtyDefect) throw new Error(`Demo QC ${qc.id} รวมของเสียไม่ตรง`);
+        const defectSum = qc.defects.reduce(
+          (sum, defect) => sum + defect.qty,
+          0,
+        );
+        if (defectSum !== qc.qtyDefect)
+          throw new Error(`Demo QC ${qc.id} รวมของเสียไม่ตรง`);
       }
       for (const delivery of deliveries) {
         const latestQcAt = qcRows
           .filter((qc) => qc.orderId === delivery.orderId)
           .reduce<Date | null>(
-            (latest, qc) => (!latest || qc.checkedAt > latest ? qc.checkedAt : latest),
+            (latest, qc) =>
+              !latest || qc.checkedAt > latest ? qc.checkedAt : latest,
             null,
           );
         if (
@@ -1344,7 +1761,8 @@ async function main() {
           delivery.createdAt < latestQcAt ||
           (delivery.shippedAt && delivery.shippedAt < latestQcAt) ||
           (delivery.deliveredAt && delivery.deliveredAt < latestQcAt) ||
-          (delivery.order.completedAt && delivery.order.completedAt < latestQcAt)
+          (delivery.order.completedAt &&
+            delivery.order.completedAt < latestQcAt)
         ) {
           throw new Error(`Demo delivery ${delivery.id} เกิดก่อนผ่าน QC`);
         }
@@ -1359,7 +1777,8 @@ async function main() {
           throw new Error(`Demo delivery ${delivery.id} ถึงก่อนส่ง`);
         }
         if (delivery.order.internalStatus === "COMPLETED") {
-          const latestProductionEnd = delivery.order.productions.reduce<Date | null>(
+          const latestProductionEnd =
+            delivery.order.productions.reduce<Date | null>(
             (latest, production) =>
               production.endDate && (!latest || production.endDate > latest)
                 ? production.endDate
@@ -1368,10 +1787,14 @@ async function main() {
           );
           if (
             !delivery.order.completedAt ||
-            (delivery.deliveredAt && delivery.order.completedAt < delivery.deliveredAt) ||
-            (latestProductionEnd && delivery.order.completedAt < latestProductionEnd)
+            (delivery.deliveredAt &&
+              delivery.order.completedAt < delivery.deliveredAt) ||
+            (latestProductionEnd &&
+              delivery.order.completedAt < latestProductionEnd)
           ) {
-            throw new Error(`Demo order ของ delivery ${delivery.id} ปิดก่อนงานจริงเสร็จ`);
+            throw new Error(
+              `Demo order ของ delivery ${delivery.id} ปิดก่อนงานจริงเสร็จ`,
+            );
           }
         }
       }
@@ -1384,14 +1807,24 @@ async function main() {
             invoice.type !== "RECEIPT" ||
             !invoice.forPayment ||
             !invoice.issueDate ||
-            invoice.issueDate.getTime() !== invoice.forPayment.createdAt.getTime()
+            invoice.issueDate.getTime() !==
+              invoice.forPayment.createdAt.getTime()
           ) {
-            throw new Error(`Demo receipt ${invoice.id} ผูกงวดรับเงินไม่ตรง tax point`);
+            throw new Error(
+              `Demo receipt ${invoice.id} ผูกงวดรับเงินไม่ตรง tax point`,
+            );
           }
         }
-        if (["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"].includes(invoice.type)) {
+        if (
+          ["DEPOSIT_INVOICE", "FINAL_INVOICE", "DEBIT_NOTE"].includes(
+            invoice.type,
+          )
+        ) {
           for (const payment of invoice.payments) {
-            if (payment.amount.plus(payment.whtAmount).gt(0) && !payment.receiptInvoice) {
+            if (
+              payment.amount.plus(payment.whtAmount).gt(0) &&
+              !payment.receiptInvoice
+            ) {
               throw new Error(`Demo payment ${payment.id} ไม่มีใบเสร็จผูกงวด`);
             }
           }

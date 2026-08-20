@@ -6,8 +6,11 @@
 
 - ยอมทำงานเฉพาะ PostgreSQL `127.0.0.1:5433/anajak_erp_demo`
 - `npm run db:seed:demo` ล้างเฉพาะข้อมูลธุรกิจในฐาน demo แล้วสร้างใหม่ทั้งชุด
-- เก็บ User mapping สำหรับ Supabase login และ master data ได้แก่ Product, ProductVariant, Pattern, PackagingOption และ ServiceCatalog
+- เก็บ User mapping สำหรับ Supabase login รวมถึง Pattern, PackagingOption และ ServiceCatalog
+- ล้าง Product/ProductVariant เดิมในฐาน demo แล้วสร้างเฉพาะสินค้า `DEMO-*` พร้อมยอดทดสอบใหม่ทุกครั้ง จึงไม่ใช้ mirror จาก Anajak Stock
 - ฐาน demo ต้องไม่มี `stock_api_url` หรือ `stock_api_key`; ถ้ามี script จะหยุดก่อนล้างข้อมูล
+- local stock writer เปิดได้เมื่อทั้ง `ANAJAK_ERP_DEMO_MODE=1` และ DATABASE_URL ตรงฐาน demo เท่านั้น; flag ที่ชี้ฐานอื่นจะหยุดก่อนอ่านหรือเขียนข้อมูล
+- หน้า Products/Settings ซ่อนการ Sync และช่อง API ในโหมด demo; outbound Stock request ถูกปิดอีกชั้นก่อน `fetch`
 - ชื่อลูกค้า บริษัท เบอร์โทร อีเมล และเอกสารทั้งหมดเป็นข้อมูลสมมติ
 - canonical `npm run db:seed` ยังเป็น master data เท่านั้น และไม่ล้างข้อมูลธุรกิจ
 
@@ -22,12 +25,21 @@ npm run dev:demo
 
 ## สิ่งที่ต้องมีครั้งแรก
 
-ฐาน `anajak_erp_demo` ต้องถูกสร้างและ apply migrations ครบก่อน จากนั้นต้องมี active OWNER ที่ `supabaseId` ตรงกับ session ของผู้ทดสอบ รวมถึง Product/ProductVariant mirror อย่างน้อยหนึ่งรายการ Script จะ fail closed หากเงื่อนไขนี้ไม่ครบ และจะไม่พยายามสร้างบัญชี Supabase หรือนำ Stock credentials เข้ามาเอง
+ฐาน `anajak_erp_demo` ต้องถูกสร้างและ apply migrations ครบก่อน จากนั้นต้องมี active OWNER ที่ `supabaseId` ตรงกับ session ของผู้ทดสอบ Script จะ fail closed หากเงื่อนไขนี้ไม่ครบ และจะไม่พยายามสร้างบัญชี Supabase หรือนำ Product/credential จาก Stock เข้ามาเอง
 
 ## ภาพวันทำงานที่สร้าง
 
-- 14 ออเดอร์ ตั้งแต่ inquiry, ออกแบบ, รอเปิดผลิต, กำลังผลิต, QC, แพ็ก, พร้อมส่ง, ส่งแล้ว และเสร็จสิ้น
-- 11 ใบผลิต / 32 ขั้น พร้อมงานรับเสื้อ, DTF, รีดร้อน, blocked stock และร้านนอกเกินกำหนด
+- 15 ออเดอร์ ตั้งแต่ inquiry, ออกแบบ, รอเปิดผลิต, กำลังผลิต, QC, แพ็ก, พร้อมส่ง, ส่งแล้ว และเสร็จสิ้น
+- 12 ใบผลิต / 35 ขั้น พร้อมงานรับเสื้อ, เบิกสต๊อกทดสอบ, DTF, รีดร้อน, blocked stock และร้านนอกเกินกำหนด
 - Print Run กำลังพิมพ์ 1, รอตัดแยก 1 และประวัติเสร็จแล้ว 2 รอบ โดย DTF ที่ปิดแล้วทุกขั้นมี item หลักฐาน
 - QC, Delivery, Invoice, Payment, Billing Note, Notification และ Audit ที่สัมพันธ์กับออเดอร์จริง
-- งาน Stock แสดงกรณีติดปัญหาแบบอ่านได้ แต่ปุ่มเชื่อม Stock จริงจะใช้ไม่ได้โดยตั้งใจ
+- สินค้าทดสอบพร้อมเบิก `DEMO-POLO-READY` มี 24 ตัวต่อไซส์ S/M/L; สินค้าขาดจริง `DEMO-TEE-SHORT` มี L เพียง 6 ตัว
+
+## ลอง flow สต๊อก
+
+1. เปิด `/factory/station?station=prep` แล้วเลือก `ORD-2608-0015`
+2. กด **เบิกเสื้อที่ยังขาด 24 ตัว** ค่าเริ่มต้นเผื่อเสียเป็น 9/9/9; ledger จะออกเลข `DEMO-ISSUE-*` และขั้นปิดที่ 24/24
+3. เปิด `/production/demo-production-stock-pick-ready?tab=inventory` แล้วกด **คืนเศษ** เพื่อคืนส่วนเกิน; ledger จะออกเลข `DEMO-RETURN-*`
+4. เลือก `ORD-2608-0008` ที่ Station เพื่อดูงานติดปัญหาจากสต๊อก L ที่ขาดจริง โดยไม่มีปุ่มลงมือ
+
+การเบิก/คืนเปลี่ยน `ProductVariant.stock`, `ProductVariant.totalStock`, `Product.totalStock`, MaterialUsage และ audit ใน transaction เดียว พร้อมกันยอดจองของออเดอร์อื่นไว้ หากต้องการเริ่มใหม่ให้รัน `npm run db:seed:demo` อีกครั้ง

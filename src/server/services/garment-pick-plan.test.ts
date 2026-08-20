@@ -62,6 +62,19 @@ describe("planGarmentIssue — แผนเบิกรอบนี้ + stepDon
     expect(plan.requested).toEqual([{ sku: "TS-M", qty: 5 }]);
   });
 
+  it("รวม SKU ซ้ำก่อนส่งต่อ writer เพื่อใช้เพดานสต๊อกก้อนเดียว", () => {
+    const plan = planGarmentIssue(state, [
+      { sku: "TS-M", qty: 60 },
+      { sku: "TS-M", qty: 45 },
+      { sku: "TS-L", qty: 50 },
+    ]);
+    expect(plan.requested).toEqual([
+      { sku: "TS-M", qty: 105 },
+      { sku: "TS-L", qty: 50 },
+    ]);
+    expect(plan.issuedThisRound).toBe(155);
+  });
+
   it("ไม่ได้ระบุจำนวนเลย → ปฏิเสธ", () => {
     expect(() => planGarmentIssue(state, [{ sku: "TS-M", qty: 0 }])).toThrow(
       "ยังไม่ได้ระบุจำนวนที่เบิก"
@@ -86,6 +99,7 @@ describe("planGarmentIssue — แผนเบิกรอบนี้ + stepDon
       { sku: "TS-L", qty: 50 },
     ]);
     expect(plan.issuedThisRound).toBe(155);
+    expect(plan.fulfilledTotal).toBe(150);
     expect(plan.stepDone).toBe(true);
   });
 
@@ -104,18 +118,14 @@ describe("planGarmentIssue — แผนเบิกรอบนี้ + stepDon
     expect(planGarmentIssue(withReturn, [{ sku: "TS-M", qty: 10 }]).stepDone).toBe(true);
   });
 
-  // pin invariant ที่คอมเมนต์ในโค้ดประกาศไว้: สุทธิ "ไม่ clamp ต่อแถว" — แถวที่คืนมากกว่าเบิก
-  // (เกิดได้จาก usage re-key ตอนรายการออเดอร์เปลี่ยน) ต้องหักยอดรวมตามจริง ไม่ใช่นับเป็น 0
-  // (review จับด้วย mutation: ใส่ Math.max(0,·) ต่อแถวแล้วเทสชุดเดิมผ่านหมด — ขั้นเบิกจะปิดก่อน
-  // ของครบจริง)
-  it("ไม่ clamp ต่อแถว — แถวคืนมากกว่าเบิกหักยอดรวมตามจริง", () => {
-    const rekeyed = [
-      { sku: "A", issued: 10, returned: 0, needed: 10 },
-      { sku: "B", issued: 0, returned: 4, needed: 0 },
+  it("ยอดเกิน SKU หนึ่งกลบยอดขาดอีก SKU ไม่ได้", () => {
+    const uneven = [
+      { sku: "A", issued: 20, returned: 0, needed: 10 },
+      { sku: "B", issued: 0, returned: 0, needed: 10 },
     ];
-    // สุทธิสะสม = 10 + (0−4) = 6 → เบิกอีก 3 = 9 < 10 ยังไม่จบ · อีก 4 = 10 พอดีจบ
-    expect(planGarmentIssue(rekeyed, [{ sku: "A", qty: 3 }]).stepDone).toBe(false);
-    expect(planGarmentIssue(rekeyed, [{ sku: "A", qty: 4 }]).stepDone).toBe(true);
+    // ยอดรวมก่อนรอบนี้เท่ากับยอดต้องใช้แล้ว แต่ B ยังขาดจริง 10 ตัว
+    expect(planGarmentIssue(uneven, [{ sku: "B", qty: 9 }]).stepDone).toBe(false);
+    expect(planGarmentIssue(uneven, [{ sku: "B", qty: 10 }]).stepDone).toBe(true);
   });
 });
 

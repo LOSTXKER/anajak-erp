@@ -11,8 +11,6 @@ export const DEMO_SEED_PRESERVED_TABLES = [
   "users",
   "settings",
   "agent_api_keys",
-  "products",
-  "product_variants",
   "patterns",
   "packaging_options",
   "service_catalog",
@@ -22,6 +20,7 @@ export type DemoSeedFeature =
   | "QUOTATION"
   | "DESIGN"
   | "STATION_READY"
+  | "STOCK_PICK_READY"
   | "GARMENT_RECEIVE"
   | "DTF_PRINTING"
   | "DTF_PRINTED"
@@ -232,14 +231,33 @@ export const DEMO_SEED_SCENARIOS = [
     customerIndex: 1,
     features: ["GARMENT_RECEIVE", "QC", "DELIVERY_COMPLETED", "FINANCE"],
   },
+  {
+    key: "stock-pick-ready",
+    sequence: 15,
+    title: "เสื้อโปโลทีมหน้าร้าน — พร้อมเบิกสต๊อกทดสอบ",
+    internalStatus: "PRODUCING",
+    customerStatus: "IN_PRODUCTION",
+    quantity: 24,
+    ageDays: 5,
+    deadlineInDays: 5,
+    customerIndex: 2,
+    features: ["STOCK_PICK_READY", "FINANCE"],
+  },
 ] as const satisfies readonly DemoSeedScenario[];
 
-export function validateDemoSeedInvocation(args: readonly string[], token: string | undefined) {
+export function validateDemoSeedInvocation(
+  args: readonly string[],
+  token: string | undefined,
+) {
   if (args.length !== 1 || args[0] !== "--reset") {
-    throw new Error("Demo seed ถูกปิดไว้: ต้องระบุ --reset เพียง argument เดียว");
+    throw new Error(
+      "Demo seed ถูกปิดไว้: ต้องระบุ --reset เพียง argument เดียว",
+    );
   }
   if (token !== DEMO_RESET_TOKEN) {
-    throw new Error("Demo seed ถูกปิดไว้: DEMO_SEED_RESET_TOKEN ไม่ตรงกับคำยืนยัน");
+    throw new Error(
+      "Demo seed ถูกปิดไว้: DEMO_SEED_RESET_TOKEN ไม่ตรงกับคำยืนยัน",
+    );
   }
 }
 
@@ -250,11 +268,14 @@ export function validateDemoDatabaseUrl(databaseUrl: string | undefined) {
   try {
     parsed = new URL(databaseUrl);
   } catch {
-    throw new Error("Demo seed ถูกปิดไว้: DATABASE_URL ไม่ใช่ PostgreSQL URL ที่ถูกต้อง");
+    throw new Error(
+      "Demo seed ถูกปิดไว้: DATABASE_URL ไม่ใช่ PostgreSQL URL ที่ถูกต้อง",
+    );
   }
 
   const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
-  const isPostgres = parsed.protocol === "postgresql:" || parsed.protocol === "postgres:";
+  const isPostgres =
+    parsed.protocol === "postgresql:" || parsed.protocol === "postgres:";
   if (
     !isPostgres ||
     parsed.hostname !== DEMO_DATABASE_TARGET.hostname ||
@@ -267,7 +288,9 @@ export function validateDemoDatabaseUrl(databaseUrl: string | undefined) {
   }
 }
 
-export function buildDemoResetTableNames(allPrismaTables: readonly string[]): string[] {
+export function buildDemoResetTableNames(
+  allPrismaTables: readonly string[],
+): string[] {
   const preserved = new Set<string>(DEMO_SEED_PRESERVED_TABLES);
   return [...new Set(allPrismaTables)]
     .filter((table) => !preserved.has(table))
@@ -275,13 +298,18 @@ export function buildDemoResetTableNames(allPrismaTables: readonly string[]): st
 }
 
 export function assertDemoSeedPlan(scenarios: readonly DemoSeedScenario[]) {
-  if (scenarios.length < 10 || scenarios.length > 14) {
-    throw new Error("Demo seed ต้องมี 10–14 ออเดอร์");
+  if (scenarios.length < 10 || scenarios.length > 15) {
+    throw new Error("Demo seed ต้องมี 10–15 ออเดอร์");
   }
 
   const uniqueKeys = new Set(scenarios.map((scenario) => scenario.key));
-  const uniqueSequences = new Set(scenarios.map((scenario) => scenario.sequence));
-  if (uniqueKeys.size !== scenarios.length || uniqueSequences.size !== scenarios.length) {
+  const uniqueSequences = new Set(
+    scenarios.map((scenario) => scenario.sequence),
+  );
+  if (
+    uniqueKeys.size !== scenarios.length ||
+    uniqueSequences.size !== scenarios.length
+  ) {
     throw new Error("Demo seed key และเลขลำดับต้องไม่ซ้ำ");
   }
 
@@ -296,7 +324,9 @@ export function assertDemoSeedPlan(scenarios: readonly DemoSeedScenario[]) {
     "SHIPPED",
     "COMPLETED",
   ];
-  const statuses = new Set(scenarios.map((scenario) => scenario.internalStatus));
+  const statuses = new Set(
+    scenarios.map((scenario) => scenario.internalStatus),
+  );
   for (const status of requiredStatuses) {
     if (!statuses.has(status as DemoSeedScenario["internalStatus"])) {
       throw new Error(`Demo seed ขาดสถานะ ${status}`);
@@ -320,7 +350,8 @@ export function assertDemoSeedPlan(scenarios: readonly DemoSeedScenario[]) {
   ];
   const features = new Set(scenarios.flatMap((scenario) => scenario.features));
   for (const feature of requiredFeatures) {
-    if (!features.has(feature)) throw new Error(`Demo seed ขาด scenario ${feature}`);
+    if (!features.has(feature))
+      throw new Error(`Demo seed ขาด scenario ${feature}`);
   }
 
   const customerStatusByInternal: Record<
@@ -342,7 +373,8 @@ export function assertDemoSeedPlan(scenarios: readonly DemoSeedScenario[]) {
     if (scenario.quantity <= 0 || !Number.isInteger(scenario.quantity)) {
       throw new Error(`Demo seed ${scenario.key} มีจำนวนไม่ถูกต้อง`);
     }
-    const expectedCustomerStatus = customerStatusByInternal[scenario.internalStatus];
+    const expectedCustomerStatus =
+      customerStatusByInternal[scenario.internalStatus];
     if (scenario.customerStatus !== expectedCustomerStatus) {
       throw new Error(
         `Demo seed ${scenario.key} ต้องมี customerStatus ${expectedCustomerStatus}`,

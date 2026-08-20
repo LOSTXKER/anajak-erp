@@ -34,9 +34,16 @@ import {
   planGarmentReturn,
 } from "@/server/services/garment-pick-plan";
 import { firstPendingStepIdsByLane } from "@/lib/production-step-actions";
-import { addOrderRevision, finalizeProductionIfComplete } from "@/server/services/order-status";
+import {
+  addOrderRevision,
+  finalizeProductionIfComplete,
+} from "@/server/services/order-status";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
 import { createAuditLog } from "@/server/helpers";
+import {
+  applyLocalDemoStockMovement,
+  isLocalDemoStockEnabled,
+} from "@/server/services/local-demo-stock";
 import type { ExtendedPrismaClient, PrismaTx } from "@/lib/prisma";
 
 const GARMENT_UNIT = "ตัว";
@@ -57,7 +64,9 @@ function canonicalGarmentLines(lines: Array<{ sku: string; qty: number }>) {
   }
   return [...quantityBySku]
     .map(([sku, qty]) => ({ sku, qty }))
-    .sort((left, right) => (left.sku < right.sku ? -1 : left.sku > right.sku ? 1 : 0));
+    .sort((left, right) =>
+      left.sku < right.sku ? -1 : left.sku > right.sku ? 1 : 0,
+    );
 }
 
 function garmentRequestFingerprint(params: {
@@ -111,11 +120,15 @@ function assertRecordedGarmentFingerprint(
 ) {
   const stored = rows.map((row) => fingerprintFromGarmentNote(row.note));
   if (stored.some((fingerprint) => fingerprint === null)) {
-    internal("พบรายการเบิก/คืนเดิมแต่ไม่พบข้อมูลยืนยันคำขอ กรุณาแจ้งผู้ดูแลระบบ");
+    internal(
+      "พบรายการเบิก/คืนเดิมแต่ไม่พบข้อมูลยืนยันคำขอ กรุณาแจ้งผู้ดูแลระบบ",
+    );
   }
   const fingerprints = [...new Set(stored)];
   if (fingerprints.length !== 1 || fingerprints[0] !== expectedFingerprint) {
-    conflict("คำขอเบิก/คืน key นี้ถูกใช้กับข้อมูลคนละชุดแล้ว กรุณาเปิดรายการใหม่");
+    conflict(
+      "คำขอเบิก/คืน key นี้ถูกใช้กับข้อมูลคนละชุดแล้ว กรุณาเปิดรายการใหม่",
+    );
   }
 }
 
@@ -128,7 +141,10 @@ async function findRecordedGarmentMovement(
     requestFingerprint: string;
   },
 ) {
-  const marker = garmentIdempotencyMarker(params.movementType, params.idempotencyKey);
+  const marker = garmentIdempotencyMarker(
+    params.movementType,
+    params.idempotencyKey,
+  );
   const rows = await tx.materialUsage.findMany({
     where: {
       production: { orderId: params.orderId },
@@ -137,11 +153,15 @@ async function findRecordedGarmentMovement(
     },
     select: { quantity: true, stockMovementRef: true, note: true },
   });
-  const docNumber = rows.find((row) => row.stockMovementRef)?.stockMovementRef ?? null;
+  const docNumber =
+    rows.find((row) => row.stockMovementRef)?.stockMovementRef ?? null;
   if (!docNumber) return null;
   const storedDocNumbers = rows.map((row) => row.stockMovementRef);
   const docNumbers = [...new Set(storedDocNumbers)];
-  if (storedDocNumbers.some((storedDocNumber) => !storedDocNumber) || docNumbers.length !== 1) {
+  if (
+    storedDocNumbers.some((storedDocNumber) => !storedDocNumber) ||
+    docNumbers.length !== 1
+  ) {
     internal("พบรายการเบิก/คืน key เดียวกันผูกหลายเอกสาร กรุณาแจ้งผู้ดูแลระบบ");
   }
   assertRecordedGarmentFingerprint(rows, params.requestFingerprint);
@@ -164,7 +184,8 @@ async function ensureGarmentMovementAudit(
     note?: string;
   },
 ) {
-  const entityType = params.movementType === "ISSUE" ? "STOCK_ISSUE" : "STOCK_RETURN";
+  const entityType =
+    params.movementType === "ISSUE" ? "STOCK_ISSUE" : "STOCK_RETURN";
   const existing = await tx.auditLog.findFirst({
     where: {
       action: "CREATE",
@@ -209,7 +230,7 @@ export interface GarmentPickState {
 
 export async function getGarmentPickState(
   prisma: PrismaTx,
-  orderId: string
+  orderId: string,
 ): Promise<GarmentPickState> {
   const order = await prisma.order.findUniqueOrThrow({
     where: { id: orderId },
@@ -265,7 +286,12 @@ export async function getGarmentPickState(
   });
   const lines: GarmentPickLine[] = mergePickUsage(built.lines, usages);
 
-  return { orderId, orderNumber: order.orderNumber, lines, problems: built.problems };
+  return {
+    orderId,
+    orderNumber: order.orderNumber,
+    lines,
+    problems: built.problems,
+  };
 }
 
 // ============================================================
@@ -286,9 +312,10 @@ interface IssueGarmentsParams {
 export async function issueGarments(
   prisma: ExtendedPrismaClient,
   params: IssueGarmentsParams,
-  clientOverride?: StockApiClient | null
+  clientOverride?: StockApiClient | null,
 ) {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(
+    async (tx) => {
     // สอง read แรกใช้หา lock scope เท่านั้น; คำสั่งจริงตัดสินจากข้อมูลที่อ่านซ้ำหลังถือ
     // topology mutex → steps ทั้งใบตาม id → production → order ครบแล้ว
     const stepReference = await tx.productionStep.findUniqueOrThrow({
@@ -306,7 +333,13 @@ export async function issueGarments(
 
     const step = await tx.productionStep.findUniqueOrThrow({
       where: { id: params.stepId },
-      select: { id: true, productionId: true, stepType: true, status: true, assignedToId: true },
+        select: {
+          id: true,
+          productionId: true,
+          stepType: true,
+          status: true,
+          assignedToId: true,
+        },
     });
     if (step.productionId !== params.productionId) {
       badRequest("ขั้นตอนนี้ไม่อยู่ในใบผลิตนี้");
@@ -370,7 +403,9 @@ export async function issueGarments(
     // replay ที่ commit แล้วต้องตอบซ้ำได้แม้ step เปลี่ยนสถานะภายหลัง แต่คำสั่งใหม่
     // ห้ามเขียนทับ exception/พักงาน และห้ามเบิกจาก deep-link ของขั้นอนาคต
     if (step.status === "FAILED") {
-      badRequest("เบิกเสื้อไม่ได้ — ขั้นนี้มีปัญหาและต้องให้หัวหน้าแก้ปัญหาก่อน");
+        badRequest(
+          "เบิกเสื้อไม่ได้ — ขั้นนี้มีปัญหาและต้องให้หัวหน้าแก้ปัญหาก่อน",
+        );
     }
     if (step.status === "ON_HOLD") {
       badRequest("เบิกเสื้อไม่ได้ — ขั้นนี้ถูกพักอยู่");
@@ -401,18 +436,38 @@ export async function issueGarments(
 
     const state = await getGarmentPickState(tx, production.orderId);
     const stateBySku = new Map(state.lines.map((line) => [line.sku, line]));
-    const { requested, issuedThisRound, neededTotal, stepDone } = planGarmentIssue(
-      state.lines,
-      params.lines
-    );
+      const {
+        requested,
+        issuedThisRound,
+        neededTotal,
+        fulfilledTotal,
+        stepDone,
+      } = planGarmentIssue(state.lines, params.lines);
+      let docNumber: string;
+      let duplicated = false;
+      if (isLocalDemoStockEnabled()) {
+        const movement = await applyLocalDemoStockMovement(tx, {
+          movementType: "ISSUE",
+          orderId: production.orderId,
+          idempotencyKey: stockGarmentIdempotencyKey(
+            production.orderId,
+            "ISSUE",
+            params.idempotencyKey,
+          ),
+          requested,
+          stateLines: state.lines,
+        });
+        docNumber = movement.docNumber;
+      } else {
     const client =
-      clientOverride !== undefined ? clientOverride : await getStockClientFromSettings();
+          clientOverride !== undefined
+            ? clientOverride
+            : await getStockClientFromSettings();
     if (!client) {
-      badRequest("ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock — ไปที่ Settings → Stock ก่อน");
+          badRequest(
+            "ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock — ไปที่ Settings → Stock ก่อน",
+          );
     }
-
-    let docNumber: string;
-    let duplicated = false;
     try {
       const movement = await client.createMovement({
         type: "ISSUE",
@@ -435,9 +490,10 @@ export async function issueGarments(
     } catch (err) {
       if (err instanceof StockApiError) badRequest(err.message);
       badRequest(
-        `เชื่อมต่อ Anajak Stock ไม่ได้ (${err instanceof Error ? err.message : "unknown"})`
+            `เชื่อมต่อ Anajak Stock ไม่ได้ (${err instanceof Error ? err.message : "unknown"})`,
       );
     }
+      }
 
     // local transaction เดิมบันทึก usage+step+revision พร้อมกัน: พบ doc แล้วแปลว่า commit
     // รอบแรกครบทั้งก้อน จึงต้อง no-op ไม่ increment qtyDone/revision ซ้ำ
@@ -451,7 +507,10 @@ export async function issueGarments(
     });
     if (recorded.length > 0) {
       assertRecordedGarmentFingerprint(recorded, requestFingerprint);
-      const recordedQuantity = recorded.reduce((sum, usage) => sum + usage.quantity, 0);
+        const recordedQuantity = recorded.reduce(
+          (sum, usage) => sum + usage.quantity,
+          0,
+        );
       await ensureGarmentMovementAudit(tx, {
         movementType: "ISSUE",
         docNumber,
@@ -484,7 +543,11 @@ export async function issueGarments(
           quantity: line.qty,
           unit: GARMENT_UNIT,
           movementType: "ISSUE",
-          note: garmentRequestMarker("ISSUE", params.idempotencyKey, requestFingerprint),
+            note: garmentRequestMarker(
+              "ISSUE",
+              params.idempotencyKey,
+              requestFingerprint,
+            ),
           stockMovementRef: docNumber,
           deductedAt: new Date(),
         },
@@ -497,7 +560,8 @@ export async function issueGarments(
       await tx.productionStep.update({
         where: { id: step.id },
         data: {
-          qtyDone: { increment: issuedThisRound },
+            // แสดงยอดที่ครบตามใบงาน ไม่ใช่ยอดหยิบจริงซึ่งอาจเผื่อเสียเกิน qtyTotal
+            qtyDone: fulfilledTotal,
           qtyTotal: neededTotal > 0 ? neededTotal : null,
           ...(autoClaim ? { assignedToId: params.userId } : {}),
           ...(stepDone
@@ -535,7 +599,9 @@ export async function issueGarments(
       stepCompleted: stepDone,
       alreadyRecorded: false,
     };
-  }, { timeout: GARMENT_TRANSACTION_TIMEOUT_MS });
+    },
+    { timeout: GARMENT_TRANSACTION_TIMEOUT_MS },
+  );
 }
 
 // ============================================================
@@ -554,9 +620,10 @@ interface ReturnGarmentsParams {
 export async function returnGarments(
   prisma: ExtendedPrismaClient,
   params: ReturnGarmentsParams,
-  clientOverride?: StockApiClient | null
+  clientOverride?: StockApiClient | null,
 ) {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(
+    async (tx) => {
     // RETURN ไม่มี stepId แต่ยังใช้ topology mutex ก่อน row lock เพื่อไม่กลับลำดับกับ
     // production writer อื่น; read แรกมีไว้หา order scope เท่านั้น
     const reference = await tx.production.findUniqueOrThrow({
@@ -609,15 +676,35 @@ export async function returnGarments(
 
     const state = await getGarmentPickState(tx, production.orderId);
     const stateBySku = new Map(state.lines.map((line) => [line.sku, line]));
-    const { requested, returnedQty } = planGarmentReturn(state.lines, params.lines);
+      const { requested, returnedQty } = planGarmentReturn(
+        state.lines,
+        params.lines,
+      );
+      let docNumber: string;
+      let duplicated = false;
+      if (isLocalDemoStockEnabled()) {
+        const movement = await applyLocalDemoStockMovement(tx, {
+          movementType: "RETURN",
+          orderId: production.orderId,
+          idempotencyKey: stockGarmentIdempotencyKey(
+            production.orderId,
+            "RETURN",
+            params.idempotencyKey,
+          ),
+          requested,
+          stateLines: state.lines,
+        });
+        docNumber = movement.docNumber;
+      } else {
     const client =
-      clientOverride !== undefined ? clientOverride : await getStockClientFromSettings();
+          clientOverride !== undefined
+            ? clientOverride
+            : await getStockClientFromSettings();
     if (!client) {
-      badRequest("ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock — ไปที่ Settings → Stock ก่อน");
+          badRequest(
+            "ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock — ไปที่ Settings → Stock ก่อน",
+          );
     }
-
-    let docNumber: string;
-    let duplicated = false;
     try {
       const movement = await client.createMovement({
         type: "RETURN",
@@ -627,7 +714,8 @@ export async function returnGarments(
           "RETURN",
           params.idempotencyKey,
         ),
-        note: params.note || `คืนเศษเข้าสต๊อค (ออเดอร์ ${state.orderNumber})`,
+            note:
+              params.note || `คืนเศษเข้าสต๊อค (ออเดอร์ ${state.orderNumber})`,
         lines: requested.map((line) => ({
           sku: line.sku,
           qty: line.qty,
@@ -640,9 +728,10 @@ export async function returnGarments(
     } catch (err) {
       if (err instanceof StockApiError) badRequest(err.message);
       badRequest(
-        `เชื่อมต่อ Anajak Stock ไม่ได้ (${err instanceof Error ? err.message : "unknown"})`
+            `เชื่อมต่อ Anajak Stock ไม่ได้ (${err instanceof Error ? err.message : "unknown"})`,
       );
     }
+      }
 
     const recorded = await tx.materialUsage.findMany({
       where: {
@@ -654,7 +743,10 @@ export async function returnGarments(
     });
     if (recorded.length > 0) {
       assertRecordedGarmentFingerprint(recorded, requestFingerprint);
-      const recordedQuantity = recorded.reduce((sum, usage) => sum + usage.quantity, 0);
+        const recordedQuantity = recorded.reduce(
+          (sum, usage) => sum + usage.quantity,
+          0,
+        );
       await ensureGarmentMovementAudit(tx, {
         movementType: "RETURN",
         docNumber,
@@ -711,5 +803,7 @@ export async function returnGarments(
     });
 
     return { docNumber, returnedQty, alreadyRecorded: false };
-  }, { timeout: GARMENT_TRANSACTION_TIMEOUT_MS });
+    },
+    { timeout: GARMENT_TRANSACTION_TIMEOUT_MS },
+  );
 }

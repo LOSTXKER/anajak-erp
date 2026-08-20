@@ -251,7 +251,7 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   },
   {
     id: "stock",
-    label: "เชื่อมต่อ Stock",
+    label: "สต๊อก",
     href: "/settings/stock",
     icon: Cloud,
     group: "system",

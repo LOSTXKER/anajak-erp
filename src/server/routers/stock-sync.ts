@@ -10,6 +10,7 @@ import {
   syncStockLevels,
   getSyncStatus,
 } from "@/lib/stock-sync";
+import { isLocalDemoStockEnabled } from "@/server/services/local-demo-stock";
 
 // PERM3: ฝั่ง admin เชื่อม Stock = ตั้งค่าระบบ · ฝั่งปฏิบัติการ (sync/เบิกวัสดุ/รับของ) = งานผลิต
 const managerUp = requirePermission("manage_settings");
@@ -79,7 +80,10 @@ export const stockSyncRouter = router({
 
   // ── Sync status ───────────────────────────────────────────
   status: protectedProcedure.query(async () => {
-    return getSyncStatus();
+    return {
+      ...(await getSyncStatus()),
+      demoMode: isLocalDemoStockEnabled(),
+    };
   }),
 
   // ── Issue materials to Stock ──────────────────────────────

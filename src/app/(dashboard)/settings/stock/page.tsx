@@ -42,16 +42,38 @@ const STOCK_SETTING_KEYS = [STOCK_API_URL_KEY, STOCK_API_KEY_KEY];
 
 // ─── Item Type Mapping Data ──────────────────────────────────
 const itemTypeMappings = [
-  { stockCategory: "เสื้อ", erpItemType: "สินค้าสำเร็จรูป", erpCode: "FINISHED_GOOD" },
-  { stockCategory: "กางเกง", erpItemType: "สินค้าสำเร็จรูป", erpCode: "FINISHED_GOOD" },
-  { stockCategory: "เสื้อแจ็คเก็ต", erpItemType: "สินค้าสำเร็จรูป", erpCode: "FINISHED_GOOD" },
-  { stockCategory: "วัตถุดิบ", erpItemType: "วัตถุดิบ", erpCode: "RAW_MATERIAL" },
-  { stockCategory: "อุปกรณ์", erpItemType: "วัสดุสิ้นเปลือง", erpCode: "CONSUMABLE" },
+  {
+    stockCategory: "เสื้อ",
+    erpItemType: "สินค้าสำเร็จรูป",
+    erpCode: "FINISHED_GOOD",
+  },
+  {
+    stockCategory: "กางเกง",
+    erpItemType: "สินค้าสำเร็จรูป",
+    erpCode: "FINISHED_GOOD",
+  },
+  {
+    stockCategory: "เสื้อแจ็คเก็ต",
+    erpItemType: "สินค้าสำเร็จรูป",
+    erpCode: "FINISHED_GOOD",
+  },
+  {
+    stockCategory: "วัตถุดิบ",
+    erpItemType: "วัตถุดิบ",
+    erpCode: "RAW_MATERIAL",
+  },
+  {
+    stockCategory: "อุปกรณ์",
+    erpItemType: "วัสดุสิ้นเปลือง",
+    erpCode: "CONSUMABLE",
+  },
 ];
 
 export default function StockSettingsPage() {
   // ─── Form State ─────────────────────────────────────────
-  const [draft, setDraft] = useState<{ apiUrl: string; apiKey: string } | null>(null);
+  const [draft, setDraft] = useState<{ apiUrl: string; apiKey: string } | null>(
+    null,
+  );
   const [showApiKey, setShowApiKey] = useState(false);
 
   // ─── Connection State ────────────────────────────────────
@@ -80,7 +102,7 @@ export default function StockSettingsPage() {
     refetch: refetchSettings,
   } = trpc.settings.getMany.useQuery(
     { keys: STOCK_SETTING_KEYS },
-    { enabled: canManage }
+    { enabled: canManage },
   );
 
   const savedApiUrl = savedSettings?.[STOCK_API_URL_KEY] ?? "";
@@ -90,8 +112,13 @@ export default function StockSettingsPage() {
   const isSaved = apiUrl === savedApiUrl && apiKey === savedApiKey;
 
   // ─── Queries ──────────────────────────────────────────────
-  const { data: syncStatus, isLoading: statusLoading, isError: statusError, refetch: refetchStatus } =
-    trpc.stockSync.status.useQuery(undefined, { enabled: canManage });
+  const {
+    data: syncStatus,
+    isLoading: statusLoading,
+    isError: statusError,
+    refetch: refetchStatus,
+  } = trpc.stockSync.status.useQuery(undefined, { enabled: canManage });
+  const demoMode = syncStatus?.demoMode === true;
 
   // ─── Mutations ────────────────────────────────────────────
   const utils = trpc.useUtils();
@@ -104,7 +131,7 @@ export default function StockSettingsPage() {
           ...(savedSettings ?? {}),
           [STOCK_API_URL_KEY]: apiUrl.trim(),
           [STOCK_API_KEY_KEY]: apiKey.trim(),
-        }
+        },
       );
       setDraft(null);
       toast.success("บันทึกการตั้งค่าสำเร็จ");
@@ -167,8 +194,8 @@ export default function StockSettingsPage() {
   return (
     <PageShell
       back={{ href: "/settings", label: "ย้อนกลับ" }}
-      title="เชื่อมต่อ Anajak Stock"
-      loading={meQuery.isLoading}
+      title={demoMode ? "สต๊อกทดสอบ" : "เชื่อมต่อ Anajak Stock"}
+      loading={meQuery.isLoading || (canManage && statusLoading)}
       error={
         meQuery.isError
           ? {
@@ -177,7 +204,7 @@ export default function StockSettingsPage() {
             }
           : // โหลด settings ไม่สำเร็จ → ไม่ render ฟอร์มค่าว่าง กันบันทึกทับค่าเชื่อมต่อจริง
             // && !data: refetch เบื้องหลังล้มระหว่างแก้ฟอร์มอยู่ ห้ามถอนฟอร์ม (ของที่พิมพ์หาย)
-            settingsError && !savedSettings
+            settingsError && !savedSettings && !demoMode
             ? {
                 message: "โหลดค่าการเชื่อมต่อ Stock ไม่สำเร็จ",
                 onRetry: () => void refetchSettings(),
@@ -192,6 +219,31 @@ export default function StockSettingsPage() {
       }
     >
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {demoMode ? (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Database className="h-4 w-4" />
+                ใช้สต๊อกทดสอบในเครื่อง
+              </CardTitle>
+              <CardDescription>
+                ยอดจอง เบิก และคืนจะเปลี่ยนเฉพาะฐาน demo local เท่านั้น
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert variant="info">
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  โหมดนี้ไม่เชื่อม ไม่ Sync และไม่ส่งข้อมูลไป Anajak Stock
+                </p>
+                <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
+                  รีเซ็ตยอดและงานตัวอย่างได้ด้วย npm run db:seed:demo
+                  แล้วทดลองเบิกจาก Station Mode
+                </p>
+              </Alert>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
         {/* ─── Connection Section ─────────────────────────────── */}
         <Card>
           <CardHeader>
@@ -218,13 +270,18 @@ export default function StockSettingsPage() {
               <>
                 {/* API URL */}
                 <div>
-                  <label htmlFor="stock-api-url" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <label
+                        htmlFor="stock-api-url"
+                        className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
+                      >
                     API URL
                   </label>
                   <Input
                     id="stock-api-url"
                     value={apiUrl}
-                    onChange={(e) => setDraft({ apiUrl: e.target.value, apiKey })}
+                        onChange={(e) =>
+                          setDraft({ apiUrl: e.target.value, apiKey })
+                        }
                     placeholder="https://stock.anajak.com/api"
                     className="font-mono text-sm"
                   />
@@ -235,7 +292,10 @@ export default function StockSettingsPage() {
 
                 {/* API Key */}
                 <div>
-                  <label htmlFor="stock-api-key" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <label
+                        htmlFor="stock-api-key"
+                        className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
+                      >
                     API Key
                   </label>
                   <div className="flex gap-2">
@@ -244,7 +304,9 @@ export default function StockSettingsPage() {
                         id="stock-api-key"
                         type={showApiKey ? "text" : "password"}
                         value={apiKey}
-                        onChange={(e) => setDraft({ apiUrl, apiKey: e.target.value })}
+                            onChange={(e) =>
+                              setDraft({ apiUrl, apiKey: e.target.value })
+                            }
                         placeholder="sk_xxxxxxxxxxxxxxxx"
                         className="pr-10 font-mono text-sm"
                       />
@@ -253,19 +315,18 @@ export default function StockSettingsPage() {
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => setShowApiKey(!showApiKey)}
-                        aria-label={showApiKey ? "ซ่อน API Key" : "แสดง API Key"}
+                            aria-label={
+                              showApiKey ? "ซ่อน API Key" : "แสดง API Key"
+                            }
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                       >
-                        {showApiKey ? (
-                          <EyeOff />
-                        ) : (
-                          <Eye />
-                        )}
+                            {showApiKey ? <EyeOff /> : <Eye />}
                       </Button>
                     </div>
                   </div>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    สร้าง API Key ได้ที่ระบบ Stock &gt; ตั้งค่า &gt; เชื่อมต่อระบบ &gt; เพิ่ม Custom ERP
+                        สร้าง API Key ได้ที่ระบบ Stock &gt; ตั้งค่า &gt;
+                        เชื่อมต่อระบบ &gt; เพิ่ม Custom ERP
                   </p>
                 </div>
 
@@ -282,11 +343,15 @@ export default function StockSettingsPage() {
                     ) : (
                       <Plug />
                     )}
-                    {testConnection.isPending ? "กำลังทดสอบ..." : "ทดสอบเชื่อมต่อ"}
+                        {testConnection.isPending
+                          ? "กำลังทดสอบ..."
+                          : "ทดสอบเชื่อมต่อ"}
                   </Button>
                   <Button
                     onClick={handleSave}
-                    disabled={saveSettings.isPending || isSaved || !hasCredentials}
+                        disabled={
+                          saveSettings.isPending || isSaved || !hasCredentials
+                        }
                     className="flex-1"
                   >
                     {saveSettings.isPending ? (
@@ -294,7 +359,11 @@ export default function StockSettingsPage() {
                     ) : (
                       <Save />
                     )}
-                    {saveSettings.isPending ? "กำลังบันทึก..." : isSaved ? "บันทึกแล้ว" : "บันทึก"}
+                        {saveSettings.isPending
+                          ? "กำลังบันทึก..."
+                          : isSaved
+                            ? "บันทึกแล้ว"
+                            : "บันทึก"}
                   </Button>
                 </div>
 
@@ -319,13 +388,17 @@ export default function StockSettingsPage() {
                         <CheckCircle2 className="h-4 w-4 shrink-0" />
                         <span>
                           เชื่อมต่อสำเร็จ
-                          {connectionResult.name && ` — ${connectionResult.name}`}
+                              {connectionResult.name &&
+                                ` — ${connectionResult.name}`}
                         </span>
                       </>
                     ) : (
                       <>
                         <XCircle className="h-4 w-4 shrink-0" />
-                        <span>{connectionResult.error || "ไม่สามารถเชื่อมต่อได้"}</span>
+                            <span>
+                              {connectionResult.error ||
+                                "ไม่สามารถเชื่อมต่อได้"}
+                            </span>
                       </>
                     )}
                   </div>
@@ -359,7 +432,9 @@ export default function StockSettingsPage() {
               ) : syncStatus ? (
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">อัพเดทล่าสุด</span>
+                        <span className="text-slate-500 dark:text-slate-400">
+                          อัพเดทล่าสุด
+                        </span>
                     <span className="font-medium text-slate-900 dark:text-white">
                       {syncStatus.lastSyncAt
                         ? formatDateTime(syncStatus.lastSyncAt)
@@ -367,19 +442,25 @@ export default function StockSettingsPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">สินค้าจาก Stock</span>
+                        <span className="text-slate-500 dark:text-slate-400">
+                          สินค้าจาก Stock
+                        </span>
                     <span className="font-medium text-slate-900 dark:text-white">
                       {syncStatus.totalStockProducts} รายการ
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">สินค้า Local</span>
+                        <span className="text-slate-500 dark:text-slate-400">
+                          สินค้า Local
+                        </span>
                     <span className="font-medium text-slate-900 dark:text-white">
                       {syncStatus.totalLocalProducts} รายการ
                     </span>
                   </div>
                   <div className="flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
-                    <span className="text-slate-500 dark:text-slate-400">สินค้าทั้งหมด</span>
+                        <span className="text-slate-500 dark:text-slate-400">
+                          สินค้าทั้งหมด
+                        </span>
                     <span className="font-semibold text-blue-600 dark:text-blue-400">
                       {syncStatus.totalProducts} รายการ
                     </span>
@@ -433,6 +514,8 @@ export default function StockSettingsPage() {
             )}
           </CardContent>
         </Card>
+          </>
+        )}
 
         {/* ─── Category Mapping ──────────────────────────────── */}
         <Card>
@@ -450,18 +533,31 @@ export default function StockSettingsPage() {
               <DataTable.Head>
                 <tr>
                   <DataTable.Th>หมวดหมู่ Stock</DataTable.Th>
-                  <DataTable.Th aria-label="แมปไปยัง" align="center">→</DataTable.Th>
+                  <DataTable.Th aria-label="แมปไปยัง" align="center">
+                    →
+                  </DataTable.Th>
                   <DataTable.Th>ประเภทสินค้า ERP</DataTable.Th>
                 </tr>
               </DataTable.Head>
               <DataTable.Body>
                 {itemTypeMappings.map((mapping, i) => (
                   <DataTable.Row key={i}>
-                    <th scope="row" className="px-5 py-3 text-left text-sm font-normal text-slate-900 dark:text-white">
+                    <th
+                      scope="row"
+                      className="px-5 py-3 text-left text-sm font-normal text-slate-900 dark:text-white"
+                    >
                       {mapping.stockCategory}
                     </th>
-                    <DataTable.Td aria-hidden="true" align="center" className="text-slate-400">→</DataTable.Td>
-                    <DataTable.Td aria-label={`${mapping.erpItemType} ${mapping.erpCode}`}>
+                    <DataTable.Td
+                      aria-hidden="true"
+                      align="center"
+                      className="text-slate-400"
+                    >
+                      →
+                    </DataTable.Td>
+                    <DataTable.Td
+                      aria-label={`${mapping.erpItemType} ${mapping.erpCode}`}
+                    >
                       <div className="flex items-center gap-2">
                         <span className="text-slate-900 dark:text-white">
                           {mapping.erpItemType}
@@ -479,6 +575,7 @@ export default function StockSettingsPage() {
         </Card>
 
         {/* ─── Info / How-to Section ────────────────────────── */}
+        {!demoMode ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -497,7 +594,9 @@ export default function StockSettingsPage() {
                     สร้าง API Key ในระบบ Stock
                   </p>
                   <p className="text-xs">
-                    ไปที่ Anajak Stock &gt; ตั้งค่า &gt; เชื่อมต่อระบบ &gt; เพิ่มการเชื่อมต่อ &gt; เลือก &quot;Custom ERP&quot; &gt; กด &quot;สร้าง&quot; API Key
+                      ไปที่ Anajak Stock &gt; ตั้งค่า &gt; เชื่อมต่อระบบ &gt;
+                      เพิ่มการเชื่อมต่อ &gt; เลือก &quot;Custom ERP&quot; &gt;
+                      กด &quot;สร้าง&quot; API Key
                   </p>
                 </div>
               </div>
@@ -511,7 +610,8 @@ export default function StockSettingsPage() {
                     คัดลอก API URL และ API Key
                   </p>
                   <p className="text-xs">
-                    ในหน้า Integrations ของ Stock จะแสดง API URL (เช่น https://stock.anajak.com/api) และ API Key ที่สร้างไว้
+                      ในหน้า Integrations ของ Stock จะแสดง API URL (เช่น
+                      https://stock.anajak.com/api) และ API Key ที่สร้างไว้
                   </p>
                 </div>
               </div>
@@ -525,7 +625,8 @@ export default function StockSettingsPage() {
                     วาง URL + Key ในฟอร์มด้านบน แล้วกดบันทึก
                   </p>
                   <p className="text-xs">
-                    กด &quot;ทดสอบเชื่อมต่อ&quot; เพื่อตรวจสอบ แล้วกด &quot;บันทึก&quot; เพื่อเก็บไว้ในระบบ
+                      กด &quot;ทดสอบเชื่อมต่อ&quot; เพื่อตรวจสอบ แล้วกด
+                      &quot;บันทึก&quot; เพื่อเก็บไว้ในระบบ
                   </p>
                 </div>
               </div>
@@ -533,18 +634,23 @@ export default function StockSettingsPage() {
 
             <Alert variant="info" className="mt-4">
               <p className="text-xs text-blue-700 dark:text-blue-400">
-                <strong>Tip:</strong> ไม่ต้องตั้งค่า ENV แล้ว เพียงใส่ข้อมูลผ่านหน้าเว็บนี้ ระบบจะเก็บไว้ในฐานข้อมูลอัตโนมัติ
+                  <strong>Tip:</strong> ไม่ต้องตั้งค่า ENV แล้ว
+                  เพียงใส่ข้อมูลผ่านหน้าเว็บนี้
+                  ระบบจะเก็บไว้ในฐานข้อมูลอัตโนมัติ
               </p>
             </Alert>
           </CardContent>
         </Card>
+        ) : null}
       </div>
 
       {/* ─── Sync Dialog ─────────────────────────────────────── */}
+      {!demoMode ? (
       <SyncDialog
         open={syncDialogOpen}
         onClose={() => setSyncDialogOpen(false)}
       />
+      ) : null}
     </PageShell>
   );
 }

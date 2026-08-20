@@ -13,7 +13,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
-import { Package, RefreshCw, Cloud, Settings } from "lucide-react";
+import { Package, RefreshCw, Cloud, Database, Settings } from "lucide-react";
 import { permAllows } from "@/lib/permissions";
 
 import { SyncDialog } from "@/components/sync-dialog";
@@ -57,8 +57,14 @@ export default function ProductsPage() {
 }
 
 function ProductsPageContent() {
-  const { search, page, searchParams, replaceListState, onSearchChange, searchInputRef } =
-    useListPageState();
+  const {
+    search,
+    page,
+    searchParams,
+    replaceListState,
+    onSearchChange,
+    searchInputRef,
+  } = useListPageState();
   const productType = searchParams.get("type") ?? "";
   const itemType = searchParams.get("itemType") ?? "";
   const limit = 24;
@@ -76,9 +82,11 @@ function ProductsPageContent() {
 
   usePageClamp(page, data?.pages, replaceListState);
 
-  const { data: syncStatus } = trpc.stockSync.status.useQuery(undefined, {
+  const { data: syncStatus, isLoading: syncStatusLoading } =
+    trpc.stockSync.status.useQuery(undefined, {
     enabled: canManageStock,
   });
+  const demoMode = syncStatus?.demoMode === true;
 
   // ─── Sync Dialog State ───────────────────────────────────
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
@@ -94,29 +102,43 @@ function ProductsPageContent() {
     <div className="space-y-5">
       <PageHeader
         title="สินค้า"
-        action={canManageStock ? (
+        action={
+          canManageStock ? (
           <>
             <Button asChild variant="ghost" size="icon-sm">
-              <Link href="/settings/stock" aria-label="ตั้งค่าการเชื่อมต่อ Stock">
+                <Link
+                  href="/settings/stock"
+                  aria-label={
+                    demoMode ? "ดูสต๊อกทดสอบ" : "ตั้งค่าการเชื่อมต่อ Stock"
+                  }
+                >
                 <Settings />
               </Link>
             </Button>
+              {!syncStatusLoading && !demoMode ? (
             <Button size="sm" onClick={() => setSyncDialogOpen(true)}>
               <RefreshCw />
               Sync
             </Button>
+              ) : null}
           </>
-        ) : undefined}
+          ) : undefined
+        }
       />
 
-      {syncStatus?.lastSyncAt && (
+      {demoMode ? (
+        <div className="flex items-center gap-2 text-xs font-medium text-blue-700 dark:text-blue-300">
+          <Database className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>สต๊อกทดสอบในเครื่อง · ไม่เชื่อม Anajak Stock</span>
+        </div>
+      ) : syncStatus?.lastSyncAt ? (
         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
           <Cloud className="h-3.5 w-3.5" />
           <span>Sync ล่าสุด: {formatDateTime(syncStatus.lastSyncAt)}</span>
           <span className="text-slate-300 dark:text-slate-600">·</span>
           <span>ทั้งหมด {syncStatus.totalProducts} รายการ</span>
         </div>
-      )}
+      ) : null}
 
       {/* ≤5 ตัวเลือก → ชิป (กติกาเดียวกับ /quotations, /notifications · ดู tokens.ts) */}
       <div className="flex flex-wrap gap-2">
@@ -150,7 +172,9 @@ function ProductsPageContent() {
             surface="raised"
             aria-label="กรองประเภทสินค้า"
             value={productType}
-            onChange={(e) => replaceListState({ type: e.target.value || null, page: null })}
+            onChange={(e) =>
+              replaceListState({ type: e.target.value || null, page: null })
+            }
             className="@2xl:w-44"
           >
             {productTypes.map((t) => (
@@ -168,10 +192,7 @@ function ProductsPageContent() {
       ) : isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(8)].map((_, i) => (
-            <div
-              key={i}
-              className="card-surface overflow-hidden rounded-2xl"
-            >
+            <div key={i} className="card-surface overflow-hidden rounded-2xl">
               <Skeleton className="h-44 w-full rounded-none" />
               <div className="space-y-2 p-3">
                 <Skeleton className="h-4 w-3/4" />
@@ -186,13 +207,24 @@ function ProductsPageContent() {
           <EmptyState
             icon={Package}
             title="ไม่พบสินค้า"
-            description="สินค้าจะถูกดึงมาจาก Anajak Stock อัตโนมัติ"
-            action={canManageStock ? (
+            description={
+              demoMode
+                ? "รีเซ็ต demo seed เพื่อสร้างสินค้าสต๊อกทดสอบ"
+                : "สินค้าจะถูกดึงมาจาก Anajak Stock อัตโนมัติ"
+            }
+            action={
+              canManageStock ? (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setSyncDialogOpen(true)}>
+                  {!syncStatusLoading && !demoMode ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSyncDialogOpen(true)}
+                    >
                   <RefreshCw />
                   Sync ตอนนี้
                 </Button>
+                  ) : null}
                 <Button asChild variant="ghost" size="sm">
                   <Link href="/settings/stock">
                     <Settings />
@@ -200,7 +232,8 @@ function ProductsPageContent() {
                   </Link>
                 </Button>
               </div>
-            ) : undefined}
+              ) : undefined
+            }
           />
         </div>
       ) : (
@@ -211,7 +244,11 @@ function ProductsPageContent() {
             };
 
             return (
-              <Link key={product.id} href={`/products/${product.id}`} className={cn("block rounded-2xl", FOCUS_BUTTON)}>
+              <Link
+                key={product.id}
+                href={`/products/${product.id}`}
+                className={cn("block rounded-2xl", FOCUS_BUTTON)}
+              >
                 <div className="card-surface card-surface-hover group h-full overflow-hidden rounded-2xl transition-all">
                   <div className="relative flex h-44 items-center justify-center bg-slate-100 dark:bg-slate-800">
                     {product.imageUrl ? (
@@ -221,12 +258,17 @@ function ProductsPageContent() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <Package className="h-10 w-10 text-slate-300 dark:text-slate-600" strokeWidth={1.25} />
+                      <Package
+                        className="h-10 w-10 text-slate-300 dark:text-slate-600"
+                        strokeWidth={1.25}
+                      />
                     )}
 
                     <span
                       className={`absolute right-2 top-2 h-2 w-2 rounded-full ring-2 ring-white dark:ring-slate-900 ${
-                        product.isActive ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"
+                        product.isActive
+                          ? "bg-green-500"
+                          : "bg-slate-300 dark:bg-slate-600"
                       }`}
                       title={product.isActive ? "ใช้งาน" : "ไม่ใช้งาน"}
                     />
@@ -276,7 +318,7 @@ function ProductsPageContent() {
       )}
 
       {/* ─── Sync Dialog ─────────────────────────────────────── */}
-      {canManageStock && (
+      {canManageStock && !demoMode && (
         <SyncDialog
           open={syncDialogOpen}
           onClose={() => setSyncDialogOpen(false)}
@@ -292,16 +334,15 @@ function ProductsPageContent() {
                 variant="outline"
                 size="sm"
                 disabled={page <= 1}
-                onClick={() => replaceListState({ page: String(Math.max(1, page - 1)) })}
+                onClick={() =>
+                  replaceListState({ page: String(Math.max(1, page - 1)) })
+                }
               >
                 ก่อนหน้า
               </Button>
               {Array.from({ length: totalPages }, (_, i) => i + 1)
                 .filter(
-                  (p) =>
-                    p === 1 ||
-                    p === totalPages ||
-                    Math.abs(p - page) <= 2
+                  (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2,
                 )
                 .reduce<(number | "...")[]>((acc, p, idx, arr) => {
                   if (idx > 0 && p - (arr[idx - 1] as number) > 1) {
@@ -328,13 +369,17 @@ function ProductsPageContent() {
                     >
                       {p}
                     </Button>
-                  )
+                  ),
                 )}
               <Button
                 variant="outline"
                 size="sm"
                 disabled={page >= totalPages}
-                onClick={() => replaceListState({ page: String(Math.min(totalPages, page + 1)) })}
+                onClick={() =>
+                  replaceListState({
+                    page: String(Math.min(totalPages, page + 1)),
+                  })
+                }
               >
                 ถัดไป
               </Button>

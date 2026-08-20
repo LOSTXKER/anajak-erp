@@ -97,10 +97,13 @@ function garmentHarness(params?: {
       }),
       update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         log.push("step-write");
-        if (typeof data.assignedToId === "string") step.assignedToId = data.assignedToId;
+        if (typeof data.assignedToId === "string")
+          step.assignedToId = data.assignedToId;
         if (typeof data.status === "string") step.status = data.status;
-        const qtyDone = data.qtyDone as { increment?: number } | undefined;
-        if (qtyDone?.increment) step.qtyDone += qtyDone.increment;
+        const qtyDone = data.qtyDone as
+          number | { increment?: number } | undefined;
+        if (typeof qtyDone === "number") step.qtyDone = qtyDone;
+        else if (qtyDone?.increment) step.qtyDone += qtyDone.increment;
         return { ...step };
       }),
       findMany: vi.fn(async () =>
@@ -140,7 +143,8 @@ function garmentHarness(params?: {
       ]),
     },
     materialUsage: {
-      findMany: vi.fn(async (args?: {
+      findMany: vi.fn(
+        async (args?: {
         where?: {
           stockMovementRef?: string;
           productionId?: string;
@@ -153,36 +157,51 @@ function garmentHarness(params?: {
           return usages
             .filter(
               (usage) =>
-                (!args.where!.movementType || usage.movementType === args.where!.movementType) &&
+                  (!args.where!.movementType ||
+                    usage.movementType === args.where!.movementType) &&
                 usage.note?.startsWith(args.where!.note!.startsWith),
             )
-            .map(({ quantity, stockMovementRef, note }) => ({ quantity, stockMovementRef, note }));
+              .map(({ quantity, stockMovementRef, note }) => ({
+                quantity,
+                stockMovementRef,
+                note,
+              }));
         }
         if (args?.where?.stockMovementRef) {
           return usages
             .filter(
               (usage) =>
                 usage.stockMovementRef === args.where!.stockMovementRef &&
-                (!args.where!.movementType || usage.movementType === args.where!.movementType),
+                  (!args.where!.movementType ||
+                    usage.movementType === args.where!.movementType),
             )
             .map(({ quantity, note }) => ({ quantity, note }));
         }
-        return usages.map(({ productId, productVariantId, quantity, movementType }) => ({
+          return usages.map(
+            ({ productId, productVariantId, quantity, movementType }) => ({
           productId,
           productVariantId,
           quantity,
           movementType,
-        }));
       }),
-      findFirst: vi.fn(async ({ where }: { where: { stockMovementRef: string } }) =>
-        usages.find((usage) => usage.stockMovementRef === where.stockMovementRef) ?? null,
+          );
+        },
       ),
-      deleteMany: vi.fn(async ({ where }: { where: { stockMovementRef: string } }) => {
+      findFirst: vi.fn(
+        async ({ where }: { where: { stockMovementRef: string } }) =>
+          usages.find(
+            (usage) => usage.stockMovementRef === where.stockMovementRef,
+          ) ?? null,
+      ),
+      deleteMany: vi.fn(
+        async ({ where }: { where: { stockMovementRef: string } }) => {
         for (let index = usages.length - 1; index >= 0; index -= 1) {
-          if (usages[index]!.stockMovementRef === where.stockMovementRef) usages.splice(index, 1);
+            if (usages[index]!.stockMovementRef === where.stockMovementRef)
+              usages.splice(index, 1);
         }
         return { count: 1 };
-      }),
+        },
+      ),
       create: vi.fn(async ({ data }: { data: Omit<Usage, "id"> }) => {
         log.push("usage-write");
         const usage = { ...data, id: `usage-${++usageSeq}` };
@@ -198,7 +217,8 @@ function garmentHarness(params?: {
       }),
     },
     auditLog: {
-      findFirst: vi.fn(async ({
+      findFirst: vi.fn(
+        async ({
         where,
       }: {
         where: { action: string; entityType: string; entityId: string };
@@ -223,7 +243,8 @@ function garmentHarness(params?: {
   let transactionTail = Promise.resolve();
   const prisma = {
     ...tx,
-    $transaction: vi.fn(async <T>(callback: (client: typeof tx) => Promise<T>) => {
+    $transaction: vi.fn(
+      async <T>(callback: (client: typeof tx) => Promise<T>) => {
       const previous = transactionTail;
       let release: () => void = () => {};
       transactionTail = new Promise<void>((resolve) => {
@@ -254,7 +275,8 @@ function garmentHarness(params?: {
         log.push("transaction-end");
         release();
       }
-    }),
+      },
+    ),
   };
 
   const documents = params?.stockDocuments ?? new Map<string, string>();
@@ -302,14 +324,18 @@ describe("garment pick concurrency", () => {
   it("ยอม ISSUE เมื่อ order ยังเป็น PRODUCING และ response ไม่มีเงิน", async () => {
     const harness = garmentHarness({ orderStatus: "PRODUCING" });
 
-    const result = await issueGarments(harness.prisma as never, {
+    const result = await issueGarments(
+      harness.prisma as never,
+      {
       productionId: "production-1",
       stepId: "step-pick",
       lines: [{ sku: "TS-M", qty: 4 }],
       idempotencyKey: "issue-producing",
       userId: "user-a",
       canSupervise: false,
-    }, harness.client);
+      },
+      harness.client,
+    );
 
     expect(harness.createMovement).toHaveBeenCalledOnce();
     expect(result).toMatchObject({ issuedQty: 4, alreadyRecorded: false });
@@ -324,11 +350,21 @@ describe("garment pick concurrency", () => {
     expect(harness.log.indexOf("audit-write")).toBeLessThan(
       harness.log.indexOf("transaction-commit"),
     );
-    expect(String(harness.prisma.$queryRaw.mock.calls[0]?.[0])).toContain("pg_advisory_xact_lock");
-    expect(String(harness.prisma.$queryRaw.mock.calls[1]?.[0])).toContain("production_steps");
-    expect(String(harness.prisma.$queryRaw.mock.calls[1]?.[0])).toContain("ORDER BY id");
-    expect(String(harness.prisma.$queryRaw.mock.calls[2]?.[0])).toContain("productions");
-    expect(String(harness.prisma.$queryRaw.mock.calls[3]?.[0])).toContain("orders");
+    expect(String(harness.prisma.$queryRaw.mock.calls[0]?.[0])).toContain(
+      "pg_advisory_xact_lock",
+    );
+    expect(String(harness.prisma.$queryRaw.mock.calls[1]?.[0])).toContain(
+      "production_steps",
+    );
+    expect(String(harness.prisma.$queryRaw.mock.calls[1]?.[0])).toContain(
+      "ORDER BY id",
+    );
+    expect(String(harness.prisma.$queryRaw.mock.calls[2]?.[0])).toContain(
+      "productions",
+    );
+    expect(String(harness.prisma.$queryRaw.mock.calls[3]?.[0])).toContain(
+      "orders",
+    );
     expect(
       harness.prisma.order.findUniqueOrThrow.mock.invocationCallOrder[0],
     ).toBeLessThan(harness.createMovement.mock.invocationCallOrder[0]);
@@ -340,14 +376,18 @@ describe("garment pick concurrency", () => {
       const harness = garmentHarness({ orderStatus });
 
       await expect(
-        issueGarments(harness.prisma as never, {
+        issueGarments(
+          harness.prisma as never,
+          {
           productionId: "production-1",
           stepId: "step-pick",
           lines: [{ sku: "TS-M", qty: 4 }],
           idempotencyKey: `issue-${orderStatus.toLowerCase()}`,
           userId: "user-a",
           canSupervise: false,
-        }, harness.client),
+          },
+          harness.client,
+        ),
       ).rejects.toThrow("เบิกเสื้อไม่ได้");
 
       expect(harness.createMovement).not.toHaveBeenCalled();
@@ -361,14 +401,18 @@ describe("garment pick concurrency", () => {
       const harness = garmentHarness({ stepStatus });
 
       await expect(
-        issueGarments(harness.prisma as never, {
+        issueGarments(
+          harness.prisma as never,
+          {
           productionId: "production-1",
           stepId: "step-pick",
           lines: [{ sku: "TS-M", qty: 4 }],
           idempotencyKey: `issue-step-${stepStatus.toLowerCase()}`,
           userId: "user-a",
           canSupervise: false,
-        }, harness.client),
+          },
+          harness.client,
+        ),
       ).rejects.toThrow("เบิกเสื้อไม่ได้");
 
       expect(harness.createMovement).not.toHaveBeenCalled();
@@ -379,20 +423,34 @@ describe("garment pick concurrency", () => {
   it("ปฏิเสธ GARMENT_PICK ขั้นอนาคตใน lane เดียวกันก่อนยิง Stock", async () => {
     const harness = garmentHarness({
       siblings: [
-        { id: "step-pick-before", stepType: "GARMENT_PICK", status: "PENDING", sortOrder: 0 },
-        { id: "step-pick", stepType: "GARMENT_PICK", status: "PENDING", sortOrder: 1 },
+        {
+          id: "step-pick-before",
+          stepType: "GARMENT_PICK",
+          status: "PENDING",
+          sortOrder: 0,
+        },
+        {
+          id: "step-pick",
+          stepType: "GARMENT_PICK",
+          status: "PENDING",
+          sortOrder: 1,
+        },
       ],
     });
 
     await expect(
-      issueGarments(harness.prisma as never, {
+      issueGarments(
+        harness.prisma as never,
+        {
         productionId: "production-1",
         stepId: "step-pick",
         lines: [{ sku: "TS-M", qty: 4 }],
         idempotencyKey: "issue-future-pick",
         userId: "user-a",
         canSupervise: false,
-      }, harness.client),
+        },
+        harness.client,
+      ),
     ).rejects.toThrow("ขั้นก่อนหน้า");
 
     expect(harness.createMovement).not.toHaveBeenCalled();
@@ -404,12 +462,16 @@ describe("garment pick concurrency", () => {
       const harness = garmentHarness({ issued: 13, orderStatus });
 
       await expect(
-        returnGarments(harness.prisma as never, {
+        returnGarments(
+          harness.prisma as never,
+          {
           productionId: "production-1",
           lines: [{ sku: "TS-M", qty: 3 }],
           idempotencyKey: `return-${orderStatus.toLowerCase()}`,
           userId: "user-a",
-        }, harness.client),
+          },
+          harness.client,
+        ),
       ).resolves.toMatchObject({ returnedQty: 3, alreadyRecorded: false });
 
       expect(harness.createMovement).toHaveBeenCalledOnce();
@@ -419,7 +481,9 @@ describe("garment pick concurrency", () => {
       expect(String(harness.prisma.$queryRaw.mock.calls[1]?.[0])).toContain(
         "productions",
       );
-      expect(String(harness.prisma.$queryRaw.mock.calls[2]?.[0])).toContain("orders");
+      expect(String(harness.prisma.$queryRaw.mock.calls[2]?.[0])).toContain(
+        "orders",
+      );
       expect(harness.audits[0]?.entityType).toBe("STOCK_RETURN");
       expect(harness.log.indexOf("audit-write")).toBeLessThan(
         harness.log.indexOf("transaction-commit"),
@@ -431,62 +495,98 @@ describe("garment pick concurrency", () => {
     const harness = garmentHarness();
 
     const results = await Promise.allSettled([
-      issueGarments(harness.prisma as never, {
+      issueGarments(
+        harness.prisma as never,
+        {
         productionId: "production-1",
         stepId: "step-pick",
         lines: [{ sku: "TS-M", qty: 5 }],
         idempotencyKey: "issue-user-a",
         userId: "user-a",
         canSupervise: false,
-      }, harness.client),
-      issueGarments(harness.prisma as never, {
+        },
+        harness.client,
+      ),
+      issueGarments(
+        harness.prisma as never,
+        {
         productionId: "production-1",
         stepId: "step-pick",
         lines: [{ sku: "TS-M", qty: 5 }],
         idempotencyKey: "issue-user-b",
         userId: "user-b",
         canSupervise: false,
-      }, harness.client),
+        },
+        harness.client,
+      ),
     ]);
 
-    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
-    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
     expect(harness.createMovement).toHaveBeenCalledOnce();
-    expect(harness.usages.filter((usage) => usage.movementType === "ISSUE")).toHaveLength(1);
+    expect(
+      harness.usages.filter((usage) => usage.movementType === "ISSUE"),
+    ).toHaveLength(1);
     expect(["user-a", "user-b"]).toContain(harness.step.assignedToId);
-    expect(harness.log.indexOf("lock")).toBeLessThan(harness.log.indexOf("stock"));
-    expect(harness.log.indexOf("step-read")).toBeLessThan(harness.log.indexOf("stock"));
-    expect(harness.log.indexOf("usage-read")).toBeLessThan(harness.log.indexOf("stock"));
+    expect(harness.log.indexOf("lock")).toBeLessThan(
+      harness.log.indexOf("stock"),
+    );
+    expect(harness.log.indexOf("step-read")).toBeLessThan(
+      harness.log.indexOf("stock"),
+    );
+    expect(harness.log.indexOf("usage-read")).toBeLessThan(
+      harness.log.indexOf("stock"),
+    );
   });
 
   it("serialize และอ่านยอดคืนสดก่อน RETURN — สอง key คืนเศษก้อนเดียวได้ครั้งเดียว", async () => {
     const harness = garmentHarness({ issued: 13 });
 
     const results = await Promise.allSettled([
-      returnGarments(harness.prisma as never, {
+      returnGarments(
+        harness.prisma as never,
+        {
         productionId: "production-1",
         lines: [{ sku: "TS-M", qty: 3 }],
         idempotencyKey: "return-user-a",
         userId: "user-a",
-      }, harness.client),
-      returnGarments(harness.prisma as never, {
+        },
+        harness.client,
+      ),
+      returnGarments(
+        harness.prisma as never,
+        {
         productionId: "production-1",
         lines: [{ sku: "TS-M", qty: 3 }],
         idempotencyKey: "return-user-b",
         userId: "user-b",
-      }, harness.client),
+        },
+        harness.client,
+      ),
     ]);
 
-    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
-    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
     expect(harness.createMovement).toHaveBeenCalledOnce();
     expect(
       harness.usages
         .filter((usage) => usage.movementType === "RETURN")
         .reduce((sum, usage) => sum + usage.quantity, 0),
     ).toBe(3);
-    expect(harness.log.indexOf("lock")).toBeLessThan(harness.log.indexOf("stock"));
-    expect(harness.log.indexOf("usage-read")).toBeLessThan(harness.log.indexOf("stock"));
+    expect(harness.log.indexOf("lock")).toBeLessThan(
+      harness.log.indexOf("stock"),
+    );
+    expect(harness.log.indexOf("usage-read")).toBeLessThan(
+      harness.log.indexOf("stock"),
+    );
   });
 
   it("retry ISSUE ด้วย key เดิมไม่เพิ่ม usage, qtyDone หรือ revision ซ้ำ", async () => {
@@ -504,11 +604,53 @@ describe("garment pick concurrency", () => {
     await issueGarments(harness.prisma as never, input, harness.client);
 
     expect(harness.createMovement).toHaveBeenCalledOnce();
-    expect(harness.usages.filter((usage) => usage.movementType === "ISSUE")).toHaveLength(1);
+    expect(
+      harness.usages.filter((usage) => usage.movementType === "ISSUE"),
+    ).toHaveLength(1);
     expect(harness.step.qtyDone).toBe(4);
     expect(harness.revisionCount).toBe(1);
     expect(harness.audits).toHaveLength(1);
     expect(harness.prisma.auditLog.create).toHaveBeenCalledOnce();
+  });
+
+  it("เบิกเผื่อเสียได้ แต่ qtyDone ถูก cap ที่ยอดต้องใช้", async () => {
+    const harness = garmentHarness({
+      siblings: [
+        {
+          id: "step-pick",
+          stepType: "GARMENT_PICK",
+          status: "PENDING",
+          sortOrder: 1,
+        },
+        {
+          id: "step-dtf",
+          stepType: "DTF_PRINT",
+          status: "PENDING",
+          sortOrder: 2,
+        },
+      ],
+    });
+
+    await issueGarments(
+      harness.prisma as never,
+      {
+        productionId: "production-1",
+        stepId: "step-pick",
+        lines: [{ sku: "TS-M", qty: 12 }],
+        idempotencyKey: "issue-with-spares",
+        userId: "user-a",
+        canSupervise: false,
+      },
+      harness.client,
+    );
+
+    expect(harness.step.qtyDone).toBe(10);
+    expect(harness.step.status).toBe("COMPLETED");
+    expect(
+      harness.usages
+        .filter((usage) => usage.movementType === "ISSUE")
+        .reduce((sum, usage) => sum + usage.quantity, 0),
+    ).toBe(12);
   });
 
   it("retry ISSUE ที่ commit แล้วตอบซ้ำได้แม้ step ถูกแจ้ง FAILED ภายหลัง", async () => {
@@ -626,7 +768,11 @@ describe("garment pick concurrency", () => {
       issueGarments(harness.prisma as never, input, harness.client),
     ).rejects.toThrow("audit unavailable");
     expect(harness.usages).toHaveLength(0);
-    expect(harness.step).toMatchObject({ status: "PENDING", qtyDone: 0, assignedToId: null });
+    expect(harness.step).toMatchObject({
+      status: "PENDING",
+      qtyDone: 0,
+      assignedToId: null,
+    });
     expect(harness.revisionCount).toBe(0);
     expect(harness.audits).toHaveLength(0);
 
@@ -640,7 +786,9 @@ describe("garment pick concurrency", () => {
     ).rejects.toMatchObject({ code: "CONFLICT" });
 
     expect(harness.createMovement).toHaveBeenCalledTimes(2);
-    expect(harness.usages.filter((usage) => usage.movementType === "ISSUE")).toHaveLength(0);
+    expect(
+      harness.usages.filter((usage) => usage.movementType === "ISSUE"),
+    ).toHaveLength(0);
     expect(harness.audits).toHaveLength(0);
     expect(harness.revisionCount).toBe(0);
   });
@@ -657,8 +805,12 @@ describe("garment pick concurrency", () => {
     await expect(
       returnGarments(harness.prisma as never, input, harness.client),
     ).rejects.toThrow("audit unavailable");
-    expect(harness.usages.filter((usage) => usage.movementType === "RETURN")).toHaveLength(0);
-    expect(harness.usages.filter((usage) => usage.movementType === "ISSUE")).toHaveLength(1);
+    expect(
+      harness.usages.filter((usage) => usage.movementType === "RETURN"),
+    ).toHaveLength(0);
+    expect(
+      harness.usages.filter((usage) => usage.movementType === "ISSUE"),
+    ).toHaveLength(1);
     expect(harness.revisionCount).toBe(0);
 
     harness.setAuditFails(false);
@@ -670,8 +822,12 @@ describe("garment pick concurrency", () => {
       ),
     ).rejects.toMatchObject({ code: "CONFLICT" });
     expect(harness.createMovement).toHaveBeenCalledTimes(2);
-    expect(harness.usages.filter((usage) => usage.movementType === "RETURN")).toHaveLength(0);
-    expect(harness.usages.filter((usage) => usage.movementType === "ISSUE")).toHaveLength(1);
+    expect(
+      harness.usages.filter((usage) => usage.movementType === "RETURN"),
+    ).toHaveLength(0);
+    expect(
+      harness.usages.filter((usage) => usage.movementType === "ISSUE"),
+    ).toHaveLength(1);
     expect(harness.audits).toHaveLength(0);
     expect(harness.revisionCount).toBe(0);
   });
@@ -766,13 +922,25 @@ describe("garment pick concurrency", () => {
 
     await issueGarments(
       harness.prisma as never,
-      { ...base, lines: [{ sku: "TS-M", qty: 1 }, { sku: "TS-M", qty: 3 }] },
+      {
+        ...base,
+        lines: [
+          { sku: "TS-M", qty: 1 },
+          { sku: "TS-M", qty: 3 },
+        ],
+      },
       harness.client,
     );
     await expect(
       issueGarments(
         harness.prisma as never,
-        { ...base, lines: [{ sku: "TS-M", qty: 3 }, { sku: "TS-M", qty: 1 }] },
+        {
+          ...base,
+          lines: [
+            { sku: "TS-M", qty: 3 },
+            { sku: "TS-M", qty: 1 },
+          ],
+        },
         harness.client,
       ),
     ).resolves.toMatchObject({ alreadyRecorded: true, issuedQty: 4 });
@@ -795,8 +963,16 @@ describe("garment pick concurrency", () => {
       canSupervise: false,
     };
 
-    const first = await issueGarments(orderA.prisma as never, input, orderA.client);
-    const second = await issueGarments(orderB.prisma as never, input, orderB.client);
+    const first = await issueGarments(
+      orderA.prisma as never,
+      input,
+      orderA.client,
+    );
+    const second = await issueGarments(
+      orderB.prisma as never,
+      input,
+      orderB.client,
+    );
 
     expect(first.docNumber).not.toBe(second.docNumber);
     expect(stockDocuments).toHaveLength(2);

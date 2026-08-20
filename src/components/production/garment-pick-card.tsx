@@ -19,7 +19,15 @@ import {
 import { DialogSubmitFooter } from "@/components/ui/dialog-submit-footer";
 import { cn } from "@/lib/utils";
 import { FOCUS_FIELD_INVALID, TINT } from "@/components/ui/tokens";
-import { Shirt, Check, AlertTriangle, PackageOpen, RefreshCw, Undo2 } from "lucide-react";
+import {
+  Shirt,
+  Check,
+  AlertTriangle,
+  PackageOpen,
+  RefreshCw,
+  Undo2,
+  Database,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { ProductionStep } from "./types";
 
@@ -34,6 +42,7 @@ interface GarmentLine {
   needed: number;
   issued: number;
   returned: number;
+  available: number | null;
 }
 
 interface GarmentPickCardProps {
@@ -92,7 +101,9 @@ export function GarmentPickCard({
   const [issueErrorVersion, setIssueErrorVersion] = useState(0);
   const [showReturn, setShowReturn] = useState(false);
   const [returnErrorVersion, setReturnErrorVersion] = useState(0);
-  const garmentPickQuery = trpc.production.garmentPick.useQuery({ productionId });
+  const garmentPickQuery = trpc.production.garmentPick.useQuery({
+    productionId,
+  });
 
   if (garmentPickQuery.isLoading) {
     return (
@@ -114,9 +125,17 @@ export function GarmentPickCard({
   if (garmentPickQuery.isError && !garmentPickQuery.data) {
     return (
       <GarmentSurface embedded={embedded} className={cn(!embedded && "p-4")}>
-        <div className={cn(TINT.error, "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2")}>
+        <div
+          className={cn(
+            TINT.error,
+            "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2",
+          )}
+        >
           <p role="alert" className="flex items-center gap-1.5 text-xs">
-            <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <AlertTriangle
+              className="h-3.5 w-3.5 shrink-0"
+              aria-hidden="true"
+            />
             โหลดข้อมูลเสื้อจากสต๊อคไม่สำเร็จ
           </p>
           <Button
@@ -141,7 +160,10 @@ export function GarmentPickCard({
     if (!legacyReadinessUnknown && !primaryTask) return null;
 
     return (
-      <GarmentSurface embedded={embedded} aria-labelledby="production-garment-title">
+      <GarmentSurface
+        embedded={embedded}
+        aria-labelledby="production-garment-title"
+      >
         <CardHeader className={cn("pb-3", embedded && "p-0 pb-3")}>
           <h2
             id="production-garment-title"
@@ -156,7 +178,9 @@ export function GarmentPickCard({
         </CardHeader>
         <CardContent className={cn(embedded && "p-0")}>
           <div className={cn(TINT.warning, "rounded-lg border px-3 py-2")}>
-            <p className="text-sm font-medium">ไม่มีรายการเสื้อที่ตรวจยอดจากสต๊อคได้</p>
+            <p className="text-sm font-medium">
+              ไม่มีรายการเสื้อที่ตรวจยอดจากสต๊อคได้
+            </p>
             <p className="mt-1 text-xs">
               {legacyReadinessUnknown
                 ? "ใบเก่านี้ไม่มี SKU เชื่อมสต๊อค ให้ตรวจเสื้อจริงตามใบสั่งงานก่อนเริ่มรีด"
@@ -169,9 +193,14 @@ export function GarmentPickCard({
   }
 
   const pickStep = stepId
-    ? steps.find((step) => step.id === stepId && step.stepType === "GARMENT_PICK")
+    ? steps.find(
+        (step) => step.id === stepId && step.stepType === "GARMENT_PICK",
+      )
     : steps.find((step) => step.stepType === "GARMENT_PICK");
-  const outstanding = data.lines.reduce((s, l) => s + (l.issued - l.returned), 0);
+  const outstanding = data.lines.reduce(
+    (s, l) => s + (l.issued - l.returned),
+    0,
+  );
   const totalNeeded = data.lines.reduce((sum, line) => sum + line.needed, 0);
   const fulfilledQty = data.lines.reduce(
     (sum, line) =>
@@ -186,7 +215,10 @@ export function GarmentPickCard({
   const needMore = data.lines.some((l) => l.issued - l.returned < l.needed);
 
   return (
-    <GarmentSurface embedded={embedded} aria-labelledby="production-garment-title">
+    <GarmentSurface
+      embedded={embedded}
+      aria-labelledby="production-garment-title"
+    >
       <CardHeader className={cn("pb-3", embedded && "p-0 pb-3")}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -224,10 +256,22 @@ export function GarmentPickCard({
       </CardHeader>
       <CardContent className={cn("space-y-3", embedded && "p-0")}>
         {garmentDataStale ? (
-          <div className={cn(TINT.warning, "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2")}>
-            <p role="alert" className="flex items-start gap-1.5 text-xs font-medium">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              ตัวเลขนี้มาจากข้อมูลค้าง โหลดล่าสุดไม่สำเร็จ จึงปิดการเบิกและคืนชั่วคราว
+          <div
+            className={cn(
+              TINT.warning,
+              "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2",
+            )}
+          >
+            <p
+              role="alert"
+              className="flex items-start gap-1.5 text-xs font-medium"
+            >
+              <AlertTriangle
+                className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                aria-hidden="true"
+              />
+              ตัวเลขนี้มาจากข้อมูลค้าง โหลดล่าสุดไม่สำเร็จ
+              จึงปิดการเบิกและคืนชั่วคราว
             </p>
             <Button
               type="button"
@@ -241,10 +285,26 @@ export function GarmentPickCard({
             </Button>
           </div>
         ) : null}
+        {data.stockMode === "demo-local" ? (
+          <p
+            className={cn(
+              TINT.info,
+              "flex items-start gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-medium",
+            )}
+          >
+            <Database
+              className="mt-0.5 h-3.5 w-3.5 shrink-0"
+              aria-hidden="true"
+            />
+            สต๊อกทดสอบในเครื่อง — เบิกและคืนได้จริงในฐาน demo นี้
+            โดยไม่เชื่อมและไม่แตะ Anajak Stock
+          </p>
+        ) : null}
         {!data.configured && (
           <p className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-2 text-xs text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock — เบิก/คืนผ่านระบบไม่ได้ (Settings → Stock)
+            ยังไม่ได้ตั้งค่าเชื่อม Anajak Stock — เบิก/คืนผ่านระบบไม่ได้
+            (Settings → Stock)
           </p>
         )}
         {data.problems.length > 0 && (
@@ -275,19 +335,31 @@ export function GarmentPickCard({
                   ) : null}
                 </div>
                 <p className="mt-1 text-sm text-muted">
-                  ไซส์ {l.size}{l.color ? ` · สี ${l.color}` : ""}
+                  ไซส์ {l.size}
+                  {l.color ? ` · สี ${l.color}` : ""}
                 </p>
               </div>
-              <dl className="grid grid-cols-3 divide-x divide-divider text-center tabular-nums">
+              <dl
+                className={cn(
+                  "grid divide-divider text-center tabular-nums",
+                  data.stockMode === "demo-local"
+                    ? "grid-cols-2 gap-y-3 sm:grid-cols-4 sm:divide-x"
+                    : "grid-cols-3 divide-x",
+                )}
+              >
                 <div className="px-2 first:pl-0">
                   <dt className="text-xs text-muted">ต้องใช้</dt>
-                  <dd className="mt-0.5 text-lg font-semibold text-strong">{l.needed}</dd>
+                  <dd className="mt-0.5 text-lg font-semibold text-strong">
+                    {l.needed}
+                  </dd>
                 </div>
                 <div className="px-2">
                   <dt className="text-xs text-muted">
                     {legacyReadinessUnknown ? "ระบบบันทึก" : "เบิกสุทธิ"}
                   </dt>
-                  <dd className="mt-0.5 text-lg font-semibold text-strong">{net}</dd>
+                  <dd className="mt-0.5 text-lg font-semibold text-strong">
+                    {net}
+                  </dd>
                 </div>
                 <div className="px-2 last:pr-0">
                   <dt className="text-xs text-muted">
@@ -296,12 +368,29 @@ export function GarmentPickCard({
                   <dd
                     className={cn(
                       "mt-0.5 text-lg font-semibold",
-                      missing > 0 ? "text-amber-700 dark:text-amber-300" : "text-green-700 dark:text-green-300",
+                      missing > 0
+                        ? "text-amber-700 dark:text-amber-300"
+                        : "text-green-700 dark:text-green-300",
                     )}
                   >
                     {missing}
                   </dd>
                 </div>
+                {data.stockMode === "demo-local" ? (
+                  <div className="px-2 last:pr-0">
+                    <dt className="text-xs text-muted">คงเหลือทดสอบ</dt>
+                    <dd
+                      className={cn(
+                        "mt-0.5 text-lg font-semibold",
+                        (l.available ?? 0) < missing
+                          ? "text-red-700 dark:text-red-300"
+                          : "text-strong",
+                      )}
+                    >
+                      {l.available ?? "—"}
+                    </dd>
+                  </div>
+                ) : null}
               </dl>
               {l.returned > 0 ? (
                 <p className="text-xs tabular-nums text-muted sm:col-span-2">
@@ -313,21 +402,27 @@ export function GarmentPickCard({
         })}
         {/* ปุ่มปิดขั้น GARMENT_PICK อยู่การ์ดนี้ที่เดียว (steps list ไม่มีปุ่มเร็ว) —
             เป็นแถวเต็มความกว้างท้ายการ์ด มือถือเป้านิ้ว 44px ไม่ซุกมุม header (UX4) */}
-        {!garmentDataStale && data.configured &&
+        {!garmentDataStale &&
+          data.configured &&
           ((canIssueGarments && pickStep && needMore) ||
             (canReturnGarments && outstanding > 0)) && (
           <div className="flex flex-col gap-2 border-t border-divider pt-4 sm:flex-row">
             {canIssueGarments && pickStep && needMore && (
               <Button
                 size={primaryTask ? "lg" : "default"}
-                className={cn("w-full gap-1.5 sm:w-auto", primaryTask && "sm:min-w-56")}
+                  className={cn(
+                    "w-full gap-1.5 sm:w-auto",
+                    primaryTask && "sm:min-w-56",
+                  )}
                 onClick={() => {
                   setIssueErrorVersion(garmentPickQuery.errorUpdatedAt);
                   setIssueStepId(pickStep.id);
                 }}
               >
                 <PackageOpen />
-                {primaryTask ? `เบิกเสื้อที่ยังขาด ${missingQty} ตัว` : "เบิกเสื้อ"}
+                  {primaryTask
+                    ? `เบิกเสื้อที่ยังขาด ${missingQty} ตัว`
+                    : "เบิกเสื้อ"}
               </Button>
             )}
             {canReturnGarments && outstanding > 0 && (
@@ -356,6 +451,7 @@ export function GarmentPickCard({
           productionId={productionId}
           stepId={issueStepId}
           lines={data.lines}
+            stockMode={data.stockMode}
           onClose={() => setIssueStepId(null)}
         />
       )}
@@ -365,6 +461,7 @@ export function GarmentPickCard({
         <ReturnGarmentsDialog
           productionId={productionId}
           lines={data.lines}
+            stockMode={data.stockMode}
           onClose={() => setShowReturn(false)}
         />
       )}
@@ -391,11 +488,13 @@ function IssueGarmentsDialog({
   productionId,
   stepId,
   lines,
+  stockMode,
   onClose,
 }: {
   productionId: string;
   stepId: string;
   lines: GarmentLine[];
+  stockMode: "demo-local" | "api" | "unconfigured";
   onClose: () => void;
 }) {
   // key เดียวต่อการเปิด dialog — กดซ้ำ/เน็ตสะดุดแล้วลองใหม่ ไม่ตัดสต๊อคซ้ำ
@@ -407,13 +506,17 @@ function IssueGarmentsDialog({
       lines.map((l) => {
         const target = Math.ceil(l.needed * (1 + SPOILAGE_RATE_PCT / 100));
         return [l.sku, Math.max(0, target - (l.issued - l.returned))];
-      })
-    )
+      }),
+    ),
   );
   const invalidate = useGarmentInvalidate();
   const issue = useMutationWithInvalidation(trpc.production.issueGarments, {
     invalidate,
-    onSuccess: (r: { docNumber: string; issuedQty: number; stepCompleted: boolean }) => {
+    onSuccess: (r: {
+      docNumber: string;
+      issuedQty: number;
+      stepCompleted: boolean;
+    }) => {
       toast.success(`เบิกเสื้อแล้ว ${r.issuedQty} ตัว`, {
         description: `เอกสาร ${r.docNumber}${r.stepCompleted ? " · ขั้นเบิกเสื้อปิดให้แล้ว" : ""}`,
       });
@@ -432,8 +535,10 @@ function IssueGarmentsDialog({
         <DialogHeader>
           <DialogTitle>เบิกเสื้อจากสต๊อค</DialogTitle>
           <DialogDescription>
-            ระบบตัดยอดจองของออเดอร์นี้ให้อัตโนมัติ — ตัวเลขตั้งต้นรวมเผื่อเสีย{" "}
-            {SPOILAGE_RATE_PCT}% แล้ว (แก้ได้ · เศษเหลือคืนผ่านปุ่มคืนเศษ)
+            {stockMode === "demo-local"
+              ? `ตัดจากสต๊อกทดสอบในเครื่องเท่านั้น — ตัวเลขตั้งต้นรวมเผื่อเสีย ${SPOILAGE_RATE_PCT}% แล้ว`
+              : `ระบบตัดยอดจองของออเดอร์นี้ให้อัตโนมัติ — ตัวเลขตั้งต้นรวมเผื่อเสีย ${SPOILAGE_RATE_PCT}% แล้ว`}{" "}
+            (แก้ได้ · เศษเหลือคืนผ่านปุ่มคืนเศษ)
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
@@ -448,6 +553,9 @@ function IssueGarmentsDialog({
                   </p>
                   <p id={helpId} className="text-xs tabular-nums text-muted">
                     ต้องใช้ {l.needed} · ยังขาด {remaining}
+                    {stockMode === "demo-local" && l.available !== null
+                      ? ` · สต๊อกทดสอบเหลือ ${l.available}`
+                      : ""}
                   </p>
                 </div>
                 <Input
@@ -460,7 +568,10 @@ function IssueGarmentsDialog({
                   onChange={(e) =>
                     setQty((prev) => ({
                       ...prev,
-                      [l.sku]: Math.max(0, Math.floor(Number(e.target.value) || 0)),
+                      [l.sku]: Math.max(
+                        0,
+                        Math.floor(Number(e.target.value) || 0),
+                      ),
                     }))
                   }
                   className="h-10 w-24 text-center tabular-nums"
@@ -499,15 +610,17 @@ function IssueGarmentsDialog({
 function ReturnGarmentsDialog({
   productionId,
   lines,
+  stockMode,
   onClose,
 }: {
   productionId: string;
   lines: GarmentLine[];
+  stockMode: "demo-local" | "api" | "unconfigured";
   onClose: () => void;
 }) {
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [qty, setQty] = useState<Record<string, number>>(() =>
-    Object.fromEntries(lines.map((l) => [l.sku, 0]))
+    Object.fromEntries(lines.map((l) => [l.sku, 0])),
   );
   const [note, setNote] = useState("");
   const invalidate = useGarmentInvalidate();
@@ -528,7 +641,9 @@ function ReturnGarmentsDialog({
     Math.max(0, line.issued - line.returned - line.needed);
   const returnable = lines.filter((line) => surplusOf(line) > 0);
   const total = returnable.reduce((s, l) => s + (qty[l.sku] ?? 0), 0);
-  const overLimit = returnable.some((line) => (qty[line.sku] ?? 0) > surplusOf(line));
+  const overLimit = returnable.some(
+    (line) => (qty[line.sku] ?? 0) > surplusOf(line),
+  );
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -536,7 +651,9 @@ function ReturnGarmentsDialog({
         <DialogHeader>
           <DialogTitle>คืนเศษเข้าสต๊อค</DialogTitle>
           <DialogDescription>
-            เสื้อที่เบิกเผื่อแล้วเหลือ — คืนกลับเข้าสต๊อคให้ตัวเลขตรงของจริง
+            เสื้อที่เบิกเผื่อแล้วเหลือ — คืนกลับเข้า
+            {stockMode === "demo-local" ? "สต๊อกทดสอบในเครื่อง" : "สต๊อค"}
+            ให้ตัวเลขตรงของจริง
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
@@ -555,7 +672,7 @@ function ReturnGarmentsDialog({
                     aria-live="polite"
                     className={cn(
                       "text-xs tabular-nums",
-                      over ? "text-red-600 dark:text-red-400" : "text-muted"
+                      over ? "text-red-600 dark:text-red-400" : "text-muted",
                     )}
                   >
                     {over
@@ -575,12 +692,15 @@ function ReturnGarmentsDialog({
                   onChange={(e) =>
                     setQty((prev) => ({
                       ...prev,
-                      [l.sku]: Math.max(0, Math.floor(Number(e.target.value) || 0)),
+                      [l.sku]: Math.max(
+                        0,
+                        Math.floor(Number(e.target.value) || 0),
+                      ),
                     }))
                   }
                   className={cn(
                     "h-10 w-24 text-center tabular-nums",
-                    over && cn("border-red-300", FOCUS_FIELD_INVALID)
+                    over && cn("border-red-300", FOCUS_FIELD_INVALID),
                   )}
                 />
               </div>
