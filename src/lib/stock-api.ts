@@ -202,6 +202,9 @@ export class StockApiClient {
     path: string,
     options?: RequestInit
   ): Promise<T> {
+    if (process.env.ANAJAK_ERP_DEMO_MODE === "1") {
+      throw new StockApiError("Local demo mode ปิดการเชื่อม Anajak Stock", 503);
+    }
     const url = `${this.baseUrl}${path}`;
     // กัน fetch ค้างไม่จำกัด (เช่น Stock TCP-hang) — สำคัญเมื่อถูกเรียกจาก read path เช่น sweep ใน orders.list
     // caller ส่ง signal เองได้ (override) · 15 วิ พอเหลือเฟือสำหรับ API ปกติ และต่ำกว่า maxDuration 60 วิ
@@ -374,6 +377,7 @@ export class StockApiClient {
  * Returns null if not configured.
  */
 export function getStockClient(): StockApiClient | null {
+  if (process.env.ANAJAK_ERP_DEMO_MODE === "1") return null;
   const url = process.env.ANAJAK_STOCK_API_URL;
   const key = process.env.ANAJAK_STOCK_API_KEY;
   if (!url || !key || key === "your-api-key") return null;
@@ -385,6 +389,7 @@ export function getStockClient(): StockApiClient | null {
  * This is the preferred method — settings are saved via the web UI.
  */
 export async function getStockClientFromSettings(): Promise<StockApiClient | null> {
+  if (process.env.ANAJAK_ERP_DEMO_MODE === "1") return null;
   try {
     // Dynamic import to avoid circular deps at module level
     const { prisma } = await import("@/lib/prisma");
