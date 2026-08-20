@@ -1,6 +1,6 @@
 # Production Control + Station Execution mockups
 
-Standalone HTML สำหรับเลือกทิศ UX2.16 ก่อนแตะ production code
+Standalone HTML สำหรับเลือกทิศ UX2.16 ก่อนแตะ production code · เบสเลือก Direction A วันที่ 2026-08-20
 
 ## Shared scenario
 
@@ -16,9 +16,9 @@ Standalone HTML สำหรับเลือกทิศ UX2.16 ก่อน�
 
 | Direction | ERP | Station | เหมาะกับ |
 |---|---|---|---|
-| A — Exception Control Record (แนะนำ) | attention + operation ledger + readiness/audit | current job focus + compact queue | สมดุลที่สุดและ role ชัด |
-| B — Split Control Desk | worklist ค้างซ้าย + selected record ขวา | queue/current split | ไล่หลายงานเร็วบนจอกว้าง |
-| C — Route Dossier | multi-lane route + evidence | operation traveler + next handoff | งานหลายเส้นทางและ rework |
+| **A — Exception Control Record (เลือกแล้ว)** | attention + operation ledger + readiness/audit | current job focus + compact queue | implementation target ของ UX2.16 |
+| B — Split Control Desk (เก็บเป็นทางเลือกเดิม) | worklist ค้างซ้าย + selected record ขวา | queue/current split | ไล่หลายงานเร็วบนจอกว้าง |
+| C — Route Dossier (เก็บเป็นทางเลือกเดิม) | multi-lane route + evidence | operation traveler + next handoff | งานหลายเส้นทางและ rework |
 
 ไฟล์ HTML และ PNG อยู่ในโฟลเดอร์นี้และ `renders/` ตามชื่อ direction
 
@@ -28,4 +28,3 @@ Standalone HTML สำหรับเลือกทิศ UX2.16 ก่อน�
 - target ทั้ง 6 หน้าไม่มี horizontal overflow หรือ console error
 - Station buttons ที่มองเห็นมีความสูงอย่างน้อย 44px
 - HTML ไม่มี network dependency และ mockup ไม่ส่ง mutation
-
