@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Direction C — Production Route Dossier</title>
+  <style>
+    :root{--bg:#f3f5f7;--paper:#fff;--ink:#171b23;--muted:#667085;--line:#dfe3e8;--blue:#2769ad;--blue-soft:#eaf2fb;--green:#087a44;--green-soft:#e9f7ef;--amber:#9a5b00;--amber-soft:#fff4d9;--red:#a53b27;--red-soft:#fff0eb;--nav:#28384b}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Noto Sans Thai","Leelawadee UI",Tahoma,system-ui,sans-serif;color:var(--ink);background:var(--bg)}button,input{font:inherit}button{cursor:pointer}.app{min-height:100vh;display:grid;grid-template-columns:232px minmax(0,1fr)}
+    aside{background:#fff;border-right:1px solid var(--line);padding:22px 16px;position:relative}.brand{height:52px;display:flex;align-items:center;gap:11px;padding:0 8px;font-size:19px;font-weight:800}.logo{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#3274b8;color:#fff;font-size:20px}.nav-label{margin:27px 12px 8px;color:#8390a0;font-size:11px;font-weight:800;letter-spacing:.08em}.nav-item{display:flex;align-items:center;gap:11px;min-height:46px;padding:0 12px;border-radius:10px;color:#4c5868;font-size:14px;font-weight:650}.nav-item.active{background:#eaf2fb;color:#245f9c}.nav-ico{width:22px;text-align:center;font-size:17px}.prototype{position:absolute;left:16px;right:16px;bottom:18px;padding:12px;border:1px dashed #b6c1ce;border-radius:10px;color:#5d6978;font-size:11px;line-height:1.5;background:#fafbfc}
+    .topbar{height:68px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px}.search{width:430px;height:42px;border-radius:22px;background:#f2f4f7;color:#7b8490;display:flex;align-items:center;padding:0 18px;font-size:14px}.user{display:flex;align-items:center;gap:10px}.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#3274b8;color:#fff;font-weight:800}.main{min-width:0}.content{padding:22px 28px 40px;max-width:1500px;margin:0 auto}.utility{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.back{color:#596474;font-size:14px}.direction{font-size:11px;font-weight:800;color:#506175;border:1px solid #cdd5df;border-radius:999px;padding:6px 10px;background:#fff;letter-spacing:.04em}.record-head{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.eyebrow{display:flex;align-items:center;gap:8px;color:#657180;font-size:12px;font-weight:750}.status-dot{width:8px;height:8px;border-radius:50%;background:#607080}.title{font-size:27px;line-height:1.2;font-weight:850;margin:7px 0 5px}.sub{color:#606b79;font-size:13px}.head-actions{display:flex;gap:8px}.btn{height:42px;border-radius:9px;border:1px solid #cbd3dd;background:#fff;color:#394757;padding:0 15px;font-weight:750;font-size:13px}.btn.primary{border-color:#2769ad;background:#2769ad;color:#fff}.btn.ghost{background:#f8fafb}.summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}.metric{padding:14px 17px;border-right:1px solid var(--line);min-height:70px}.metric:last-child{border:0}.metric .k{font-size:11px;color:#718093;font-weight:700;margin-bottom:7px}.metric .v{font-size:15px;font-weight:800}.gap-tag{display:inline-flex;align-items:center;margin-left:6px;border:1px dashed #ba8a3a;background:#fff8e8;color:#805300;border-radius:999px;padding:2px 6px;font-size:9px;font-weight:800}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;margin-top:16px}.panel{background:#fff;border:1px solid var(--line);border-radius:14px}.panel-head{padding:17px 19px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.panel-title{font-size:15px;font-weight:850}.panel-note{font-size:11px;color:#788493}.route{padding:18px 19px 20px}.lane-labels{display:grid;grid-template-columns:112px repeat(3,1fr);gap:10px;align-items:center;margin-bottom:8px;color:#788493;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.lane-row{display:grid;grid-template-columns:112px repeat(3,1fr);gap:10px;align-items:stretch;position:relative;margin-bottom:10px}.lane-name{display:flex;align-items:center;gap:8px;color:#485668;font-size:12px;font-weight:800}.lane-mark{width:9px;height:9px;border-radius:50%;background:#8796a8}.lane-mark.blue{background:#2c72b7}.step{min-height:122px;border:1px solid var(--line);border-radius:11px;padding:13px;background:#fff;position:relative}.step.empty{border-style:dashed;background:#fafbfc;color:#98a1ad;display:grid;place-items:center;text-align:center;font-size:11px}.step.done{border-color:#b9dfc9;background:#fbfffc}.step.problem{border-color:#e5b087;background:#fffaf4}.step.wait{border-color:#cfd6df;background:#fafbfc}.step-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.step-name{font-size:13px;font-weight:850}.pill{border-radius:999px;padding:3px 7px;font-size:9px;font-weight:850;white-space:nowrap}.pill.green{background:var(--green-soft);color:var(--green)}.pill.amber{background:var(--amber-soft);color:var(--amber)}.pill.gray{background:#edf0f3;color:#596677}.step-desc{margin-top:7px;font-size:11px;color:#687585;line-height:1.45}.step-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:11px}.mini{padding-top:7px;border-top:1px solid #e9edf1}.mini b{display:block;font-size:12px}.mini span{font-size:9px;color:#7f8a98}.converge{display:grid;grid-template-columns:112px 1fr;gap:10px;margin:2px 0 11px}.merge-line{height:24px;position:relative}.merge-line:before{content:"";position:absolute;left:4px;right:12%;top:11px;border-top:1px dashed #91a0b1}.merge-line:after{content:"";position:absolute;right:12%;top:7px;width:7px;height:7px;border-right:2px solid #91a0b1;border-top:2px solid #91a0b1;transform:rotate(45deg)}.merge-copy{font-size:10px;color:#657283;padding-top:4px}.event-strip{border-top:1px solid var(--line);padding:15px 19px}.event{display:grid;grid-template-columns:78px 12px 1fr;gap:8px;align-items:start;margin:8px 0;font-size:11px}.event time{color:#7b8795}.event-dot{width:8px;height:8px;margin-top:3px;border-radius:50%;background:#2c72b7;box-shadow:0 0 0 3px #eaf2fb}.event strong{font-size:11px}.event p{margin:2px 0;color:#687585;line-height:1.4}
+    .attention{padding:16px}.alert{border:1px solid #efc49e;background:#fff9f2;border-radius:11px;padding:14px}.alert-label{font-size:10px;color:#995900;font-weight:850;letter-spacing:.05em}.alert h3{font-size:16px;margin:6px 0 5px}.alert p{font-size:11px;color:#6c604f;line-height:1.5;margin:0}.impact{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.impact div{background:#fff;border:1px solid #eadac5;border-radius:8px;padding:9px}.impact span{display:block;font-size:9px;color:#887763}.impact b{font-size:13px}.owner{margin-top:13px;padding:12px;border:1px solid var(--line);border-radius:10px}.owner-row{display:flex;justify-content:space-between;gap:8px;font-size:11px}.owner-row + .owner-row{margin-top:9px;padding-top:9px;border-top:1px solid #edf0f3}.owner-row span{color:#758191}.owner-row b{text-align:right}.attention .btn{width:100%;margin-top:10px}.attention .btn.primary{margin-top:14px}.readiness{padding:0 16px 16px}.ready-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #edf0f3;font-size:11px}.ready-row:last-child{border:0}.ready-left{display:flex;align-items:center;gap:8px}.r-dot{width:8px;height:8px;border-radius:50%;background:#c27a0a}.r-dot.green{background:#16834a}.r-dot.gray{background:#95a0ad}.ready-row b{font-size:11px}.footnote{margin-top:13px;color:#6e7b8b;font-size:10px;line-height:1.5}
+    @media(max-width:1050px){.app{grid-template-columns:72px minmax(0,1fr)}aside{padding:16px 9px}.brand span,.nav-label,.nav-item span:not(.nav-ico),.prototype{display:none}.brand{padding:0;justify-content:center}.nav-item{justify-content:center;padding:0}.layout{grid-template-columns:1fr}.summary{grid-template-columns:repeat(3,1fr)}.metric:nth-child(3){border-right:0}.metric:nth-child(n+4){border-top:1px solid var(--line)}.content{padding:18px}.search{width:330px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand"><div class="logo">พ</div><span>Anajak Print</span></div>
+      <div class="nav-label">ภาพรวม</div>
+      <div class="nav-item"><span class="nav-ico">▦</span><span>แดชบอร์ด</span></div>
+      <div class="nav-item"><span class="nav-ico">☷</span><span>งานของฉัน</span></div>
+      <div class="nav-label">งานขาย</div>
+      <div class="nav-item"><span class="nav-ico">□</span><span>ออเดอร์</span></div>
+      <div class="nav-item"><span class="nav-ico">♙</span><span>ลูกค้า</span></div>
+      <div class="nav-label">การผลิต</div>
+      <div class="nav-item active"><span class="nav-ico">♜</span><span>การผลิต</span></div>
+      <div class="nav-item"><span class="nav-ico">▤</span><span>รอบพิมพ์ฟิล์ม</span></div>
+      <div class="nav-item"><span class="nav-ico">▣</span><span>คลังฟิล์ม</span></div>
+      <div class="nav-item"><span class="nav-ico">▱</span><span>โหมดสถานี</span></div>
+      <div class="prototype"><b>ต้นแบบ C</b><br />เส้นทาง + หลักฐาน<br />ไม่มีการเชื่อมข้อมูลจริง</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="search">⌕ &nbsp; ค้นหาเลขงาน ลูกค้า หรือเมนู</div>
+        <div class="user"><span style="font-size:12px;color:#6c7887">หัวหน้าฝ่ายผลิต</span><div class="avatar">ศ</div></div>
+      </header>
+      <div class="content">
+        <div class="utility"><div class="back">← กลับคิวควบคุมการผลิต</div><div class="direction">DIRECTION C · ROUTE DOSSIER</div></div>
+
+        <section class="record-head">
+          <div>
+            <div class="eyebrow"><span class="status-dot"></span> ใบควบคุมการผลิต · กำลังผลิต</div>
+            <div class="title">ORD-2606-0021</div>
+            <div class="sub">PO.2-VERIFY1 ใบเสนอราคา · PO.2-VERIFY1 ลูกค้าทดสอบ</div>
+          </div>
+          <div class="head-actions"><button class="btn ghost">ใบสั่งงาน</button><button class="btn ghost">ดูออเดอร์</button></div>
+        </section>
+
+        <section class="summary">
+          <div class="metric"><div class="k">ใบผลิตนี้</div><div class="v">1 ตัว</div></div>
+          <div class="metric"><div class="k">ออเดอร์รวม</div><div class="v">1 ตัว</div></div>
+          <div class="metric"><div class="k">ความคืบหน้า</div><div class="v">1 / 3 ขั้น</div></div>
+          <div class="metric"><div class="k">กำหนดส่ง</div><div class="v">— <span class="gap-tag">ข้อมูลที่ต้องเพิ่ม</span></div></div>
+          <div class="metric"><div class="k">ผู้ดูแลงาน</div><div class="v">ยังไม่มอบหมาย</div></div>
+        </section>
+
+        <div class="layout">
+          <section class="panel">
+            <div class="panel-head"><div><div class="panel-title">เส้นทางการผลิตของใบนี้</div><div class="panel-note">แยก lane จริง และรวมเมื่อ readiness ครบ</div></div><div class="panel-note">เวลาอัปเดต <span class="gap-tag">ข้อมูลที่ต้องเพิ่ม</span></div></div>
+            <div class="route">
+              <div class="lane-labels"><div>LANE</div><div>เตรียม</div><div>ดำเนินการ</div><div>ส่งต่อ</div></div>
+
+              <div class="lane-row">
+                <div class="lane-name"><span class="lane-mark"></span>เสื้อ</div>
+                <article class="step problem">
+                  <div class="step-top"><div class="step-name">เบิกเสื้อ</div><span class="pill amber">ต้องจัดการ</span></div>
+                  <div class="step-desc">Anajak Oversize CVC · FREE · ดำ</div>
+                  <div class="step-stats"><div class="mini"><b>0 / 1</b><span>เบิกสุทธิ</span></div><div class="mini"><b>ขาด 1</b><span>ยอดคงเหลือ</span></div></div>
+                </article>
+                <div class="step empty">ไม่มี operation<br />ใน lane นี้</div>
+                <article class="step wait">
+                  <div class="step-top"><div class="step-name">ส่งเข้ารีด</div><span class="pill gray">รอ</span></div>
+                  <div class="step-desc">รอเสื้อครบก่อนรวมกับ lane ลายพิมพ์</div>
+                  <div class="step-stats"><div class="mini"><b>0 / 1</b><span>พร้อมส่งต่อ</span></div><div class="mini"><b>—</b><span>ผู้รับ</span></div></div>
+                </article>
+              </div>
+
+              <div class="lane-row">
+                <div class="lane-name"><span class="lane-mark blue"></span>ลายพิมพ์</div>
+                <div class="step empty">ไม่มี operation<br />ใน lane นี้</div>
+                <article class="step done">
+                  <div class="step-top"><div class="step-name">พิมพ์ฟิล์ม DTF</div><span class="pill green">เสร็จแล้ว</span></div>
+                  <div class="step-desc">ฟิล์มพร้อมติดป้ายและส่งต่อ</div>
+                  <div class="step-stats"><div class="mini"><b>1 / 1</b><span>จำนวนดี</span></div><div class="mini"><b>0</b><span>ของเสีย</span></div></div>
+                </article>
+                <article class="step done">
+                  <div class="step-top"><div class="step-name">พร้อมเข้ารีด</div><span class="pill green">พร้อม</span></div>
+                  <div class="step-desc">lane ลายพิมพ์ครบ รอ lane เสื้อ</div>
+                  <div class="step-stats"><div class="mini"><b>1 / 1</b><span>พร้อมส่งต่อ</span></div><div class="mini"><b>—</b><span>เวลา: ต้องเพิ่ม</span></div></div>
+                </article>
+              </div>
+
+              <div class="converge"><div></div><div class="merge-line"></div></div>
+              <div class="lane-row">
+                <div class="lane-name"><span class="lane-mark"></span>งานหลัก</div>
+                <article class="step wait" style="grid-column:2/5;min-height:96px">
+                  <div class="step-top"><div class="step-name">รีดร้อน · รอ readiness 2 lane</div><span class="pill amber">รอเสื้อ 1 ตัว</span></div>
+                  <div class="step-desc">ฟิล์มพร้อม 1/1 · เสื้อพร้อม 0/1 · ยังเริ่มไม่ได้ตาม gate จริง</div>
+                  <div class="step-stats" style="grid-template-columns:repeat(3,1fr)"><div class="mini"><b>0 / 1</b><span>ทำแล้ว</span></div><div class="mini"><b>ยังไม่มี</b><span>ผู้รับผิดชอบ</span></div><div class="mini"><b>—</b><span>เวลาเริ่ม</span></div></div>
+                </article>
+              </div>
+            </div>
+            <div class="event-strip">
+              <div class="panel-title" style="margin-bottom:10px">หลักฐานและการส่งต่องานล่าสุด</div>
+              <div class="event"><time>—</time><span class="event-dot"></span><div><strong>ระบบตรวจ readiness ใหม่</strong><p>ฟิล์มพร้อม แต่เสื้อยังขาด 1 ตัว งานรีดยังคงรอ · เวลาเป็นข้อมูลที่ต้องเพิ่ม</p></div></div>
+              <div class="event"><time>—</time><span class="event-dot" style="background:#18834b;box-shadow:0 0 0 3px #e8f6ee"></span><div><strong>พิมพ์ฟิล์ม DTF เสร็จ 1 ชิ้น</strong><p>ส่งต่อจากสถานีพิมพ์ DTF · ผู้ทำและเวลาเป็นข้อมูลที่ต้องเพิ่ม</p></div></div>
+              <div class="event"><time>—</time><span class="event-dot" style="background:#a8b1bc;box-shadow:0 0 0 3px #f0f2f4"></span><div><strong>ยังไม่มีรายการเบิกเสื้อ</strong><p>ไม่สร้างเวลา ผู้ทำ หรือเอกสารสต๊อกจำลอง</p></div></div>
+            </div>
+          </section>
+
+          <aside class="panel" style="position:static;padding:0;background:#fff;border-right:1px solid var(--line)">
+            <div class="panel-head"><div class="panel-title">เรื่องที่หัวหน้าต้องจัดการ</div><span class="pill amber">1 เรื่อง</span></div>
+            <div class="attention">
+              <div class="alert">
+                <div class="alert-label">MATERIAL SHORTAGE</div>
+                <h3>เสื้อยังขาด 1 ตัว</h3>
+                <p>งานรีดเริ่มไม่ได้จนสถานีเตรียมเสื้อเบิก Anajak Oversize CVC ไซส์ FREE สีดำครบ</p>
+                <div class="impact"><div><span>ผลกระทบ</span><b>รีดร้อนรอ</b></div><div><span>อายุปัญหา</span><b>— <i class="gap-tag">ข้อมูลที่ต้องเพิ่ม</i></b></div></div>
+              </div>
+              <div class="owner"><div class="owner-row"><span>ผู้รับผิดชอบ</span><b>ยังไม่มอบหมาย</b></div><div class="owner-row"><span>จุดทำงาน</span><b>เตรียมเสื้อ</b></div><div class="owner-row"><span>ความรุนแรง</span><b>— <span class="gap-tag">ต้องกำหนด</span></b></div></div>
+              <button class="btn primary">มอบหมายผู้รับผิดชอบ</button>
+              <button class="btn">เปิดบริบท Station เตรียมเสื้อ ↗</button>
+              <div class="footnote">ไม่มีปุ่มเบิกเสื้อใน ERP — การเบิกเป็น routine execution ของ Station</div>
+            </div>
+            <div class="panel-head" style="border-top:1px solid var(--line)"><div class="panel-title">Readiness</div></div>
+            <div class="readiness">
+              <div class="ready-row"><div class="ready-left"><span class="r-dot"></span><span>เสื้อ</span></div><b>ขาด 1</b></div>
+              <div class="ready-row"><div class="ready-left"><span class="r-dot green"></span><span>ฟิล์ม DTF</span></div><b>พร้อม 1</b></div>
+              <div class="ready-row"><div class="ready-left"><span class="r-dot gray"></span><span>งานร้านนอก</span></div><b>ไม่เกี่ยวข้อง</b></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Direction A — Prep Station</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --font: "Noto Sans Thai", "Leelawadee UI", Tahoma, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --page: #0b1016;
+      --panel: #131a23;
+      --panel-2: #19222e;
+      --panel-3: #202b38;
+      --line: #2a3645;
+      --line-strong: #3d4b5d;
+      --ink: #f5f7fa;
+      --ink-2: #bdc7d4;
+      --ink-3: #8b98a9;
+      --blue: #4d8fd2;
+      --blue-hover: #5c9ce0;
+      --blue-soft: #172d43;
+      --amber: #f1b75b;
+      --amber-soft: #332614;
+      --red: #ef7e78;
+      --red-soft: #351d20;
+      --green: #64c991;
+      --green-soft: #163326;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .2);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-width: 320px; min-height: 100%; background: var(--page); }
+    body { color: var(--ink); font: 400 15px/1.45 var(--font); letter-spacing: -.01em; -webkit-font-smoothing: antialiased; }
+    button { font: inherit; cursor: pointer; }
+    h1, h2, h3, p { margin-top: 0; }
+    .tnum { font-variant-numeric: tabular-nums; }
+    .muted { color: var(--ink-3); }
+
+    .station-shell { min-height: 100vh; display: grid; grid-template-rows: 72px minmax(0, 1fr); }
+    .station-bar {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      background: #0e151d;
+      border-bottom: 1px solid var(--line);
+    }
+    .station-mark { width: 42px; height: 42px; border-radius: 12px; background: var(--blue); display: grid; place-items: center; color: white; }
+    .station-mark svg { width: 22px; height: 22px; }
+    .station-name { min-width: 0; }
+    .station-name span { display: block; color: var(--ink-3); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+    .station-name strong { display: block; font-size: 19px; line-height: 1.25; }
+    .station-context { display: flex; align-items: center; gap: 8px; margin-left: 12px; }
+    .context-pill { min-height: 30px; padding: 5px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink-2); font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+    .context-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .bar-spacer { flex: 1; }
+    .bar-button {
+      min-height: 46px;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      background: var(--panel);
+      color: var(--ink-2);
+      padding: 9px 14px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .bar-button svg { width: 18px; height: 18px; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--blue-soft); border: 1px solid #315577; display: grid; place-items: center; color: #cfe7ff; font-weight: 800; }
+
+    main { min-height: 0; padding: 18px 20px 20px; }
+    .workspace { height: 100%; max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 292px; gap: 16px; }
+    .panel { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+    .current-job { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+    .job-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px 15px; border-bottom: 1px solid var(--line); }
+    .job-kicker { display: flex; align-items: center; gap: 8px; color: #9fc8f0; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+    .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 5px rgba(77, 143, 210, .13); }
+    h1 { margin-bottom: 4px; font-size: 28px; line-height: 1.15; letter-spacing: -.025em; }
+    .job-sub { margin: 0; color: var(--ink-2); font-size: 13px; }
+    .job-position { min-width: 96px; text-align: right; }
+    .job-position span { display: block; color: var(--ink-3); font-size: 11px; }
+    .job-position strong { display: block; margin-top: 2px; font-size: 20px; }
+
+    .job-body { min-height: 0; padding: 16px 20px; display: grid; align-content: start; gap: 14px; overflow-y: auto; }
+    .instruction { display: flex; align-items: center; gap: 12px; }
+    .instruction-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--blue-soft); color: #9fc8f0; display: grid; place-items: center; flex: 0 0 auto; }
+    .instruction-icon svg { width: 23px; height: 23px; }
+    .instruction h2 { margin: 0 0 2px; font-size: 20px; }
+    .instruction p { margin: 0; color: var(--ink-2); font-size: 13px; }
+
+    .garment-card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 13px; padding: 14px 15px; }
+    .garment-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
+    .garment-top h3 { margin-bottom: 3px; font-size: 17px; }
+    .garment-top p { margin: 0; color: var(--ink-2); }
+    .short-badge { min-height: 30px; padding: 5px 10px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); font-weight: 800; font-size: 12px; white-space: nowrap; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; background: #111820; }
+    .metric { min-height: 70px; padding: 9px 10px; border-left: 1px solid var(--line); display: grid; place-items: center; align-content: center; text-align: center; }
+    .metric:first-child { border-left: 0; }
+    .metric span { color: var(--ink-3); font-size: 11px; font-weight: 700; }
+    .metric strong { margin-top: 1px; font-size: 25px; line-height: 1.05; }
+    .metric.short strong { color: var(--amber); }
+
+    .check-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .check { min-height: 58px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px; background: #101720; }
+    .check-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--panel-3); color: var(--ink-2); display: grid; place-items: center; font-weight: 900; }
+    .check strong { display: block; font-size: 13px; }
+    .check span { color: var(--ink-3); font-size: 11px; }
+
+    .action-bar { display: grid; grid-template-columns: minmax(0, 1fr) 170px; gap: 10px; padding: 14px 20px 18px; border-top: 1px solid var(--line); background: #101720; }
+    .primary-action, .secondary-action {
+      min-height: 58px;
+      border-radius: 12px;
+      border: 1px solid var(--line-strong);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 16px;
+    }
+    .primary-action { background: var(--blue); color: white; border-color: var(--blue); }
+    .primary-action:hover { background: var(--blue-hover); }
+    .secondary-action { background: var(--panel-2); color: var(--red); border-color: #5e3235; }
+    .primary-action svg, .secondary-action svg { width: 22px; height: 22px; }
+
+    .queue-rail { min-height: 0; display: grid; grid-template-rows: auto 1fr auto; gap: 12px; }
+    .rail-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .summary-cell { min-height: 66px; border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 9px 8px; text-align: center; display: grid; place-items: center; align-content: center; }
+    .summary-cell span { color: var(--ink-3); font-size: 10px; font-weight: 700; }
+    .summary-cell strong { font-size: 22px; line-height: 1.05; }
+    .summary-cell.blocked strong { color: var(--amber); }
+    .queue-panel { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+    .rail-head { padding: 14px 15px 11px; border-bottom: 1px solid var(--line); }
+    .rail-head h2 { margin: 0 0 3px; font-size: 16px; }
+    .rail-head p { margin: 0; color: var(--ink-3); font-size: 11px; }
+    .queue-body { min-height: 0; padding: 12px; display: grid; align-content: start; gap: 10px; overflow-y: auto; }
+    .empty { min-height: 104px; border: 1px dashed var(--line-strong); border-radius: 11px; display: grid; place-items: center; text-align: center; color: var(--ink-3); padding: 14px; }
+    .empty strong { color: var(--ink-2); display: block; margin-bottom: 2px; }
+    .blocked-card { border: 1px solid #594420; background: var(--amber-soft); border-radius: 11px; padding: 12px; }
+    .blocked-card .tag { display: inline-flex; min-height: 24px; align-items: center; padding: 3px 7px; border-radius: 999px; background: rgba(241, 183, 91, .12); color: var(--amber); font-size: 10px; font-weight: 800; margin-bottom: 7px; }
+    .blocked-card strong { display: block; font-size: 14px; }
+    .blocked-card p { margin: 3px 0 0; color: #d4b982; font-size: 11px; }
+    .scan-panel { padding: 12px; }
+    .scan-button { width: 100%; min-height: 54px; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--panel-2); color: var(--ink); display: flex; align-items: center; justify-content: center; gap: 9px; font-weight: 800; }
+    .scan-button svg { width: 22px; height: 22px; }
+    .scan-note { color: var(--ink-3); font-size: 10px; text-align: center; margin: 7px 0 0; }
+
+    @media (max-width: 800px) {
+      .station-context { display: none; }
+      .workspace { grid-template-columns: 1fr; height: auto; }
+      .current-job { min-height: 620px; }
+      .queue-rail { grid-template-rows: auto auto auto; }
+      .bar-button span { display: none; }
+    }
+    @media (max-width: 520px) {
+      .station-bar { padding: 0 12px; gap: 10px; }
+      .station-name strong { font-size: 16px; }
+      main { padding: 12px; }
+      .job-head, .job-body { padding-left: 14px; padding-right: 14px; }
+      .job-position { display: none; }
+      .action-bar { grid-template-columns: 1fr; padding-left: 14px; padding-right: 14px; }
+      .check-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="station-shell">
+    <header class="station-bar">
+      <div class="station-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M20 7h-4V3H8v4H4a2 2 0 0 0-2 2v10h20V9a2 2 0 0 0-2-2Z"/><path d="M8 7h8M7 13h10M9 19v2h6v-2"/></svg>
+      </div>
+      <div class="station-name">
+        <span>Station mode</span>
+        <strong>สถานีเตรียมเสื้อ</strong>
+      </div>
+      <div class="station-context">
+        <span class="context-pill"><span class="dot"></span>งานปัจจุบัน 1</span>
+        <span class="context-pill">Prep</span>
+      </div>
+      <div class="bar-spacer"></div>
+      <button class="bar-button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h18M12 3v18"/></svg>
+        <span>เปลี่ยนสถานี</span>
+      </button>
+      <div class="avatar" aria-label="ผู้ใช้งานที่เข้าสู่ระบบ">ศ</div>
+    </header>
+
+    <main>
+      <div class="workspace">
+        <section class="panel current-job" aria-label="งานปัจจุบัน">
+          <div class="job-head">
+            <div>
+              <div class="job-kicker"><span class="pulse"></span>งานปัจจุบัน</div>
+              <h1 class="tnum">ORD-2606-0021</h1>
+              <p class="job-sub">[PO.2-VERIFY1] ลูกค้าทดสอบ · 1 ตัว</p>
+            </div>
+            <div class="job-position">
+              <span>ขั้นตอนนี้</span>
+              <strong class="tnum">1 / 3</strong>
+            </div>
+          </div>
+
+          <div class="job-body">
+            <div class="instruction">
+              <span class="instruction-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 4 3 2 3-2 4 2-2 5-2-1v10H9V10l-2 1-2-5z"/></svg>
+              </span>
+              <div>
+                <h2>เบิกเสื้อจากสต๊อก</h2>
+                <p>ตรวจรุ่น สี และไซส์ให้ตรงก่อนยืนยันการเบิก</p>
+              </div>
+            </div>
+
+            <div class="garment-card">
+              <div class="garment-top">
+                <div>
+                  <h3>Anajak Oversize CVC</h3>
+                  <p>ไซส์ FREE · สี ดำ</p>
+                </div>
+                <span class="short-badge">ยังขาด 1 ตัว</span>
+              </div>
+              <div class="metrics" aria-label="จำนวนเสื้อ">
+                <div class="metric"><span>ต้องใช้</span><strong class="tnum">1</strong></div>
+                <div class="metric"><span>เบิกสุทธิ</span><strong class="tnum">0</strong></div>
+                <div class="metric short"><span>ยังขาด</span><strong class="tnum">1</strong></div>
+              </div>
+            </div>
+
+            <div class="check-row" aria-label="สิ่งที่ต้องตรวจ">
+              <div class="check">
+                <span class="check-mark">1</span>
+                <div><strong>รุ่นและสี</strong><span>Anajak Oversize CVC · ดำ</span></div>
+              </div>
+              <div class="check">
+                <span class="check-mark">2</span>
+                <div><strong>ไซส์และจำนวน</strong><span>FREE · 1 ตัว</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <button class="primary-action">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="m12 2 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/></svg>
+              เบิกเสื้อ 1 ตัว
+            </button>
+            <button class="secondary-action">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg>
+              แจ้งปัญหา
+            </button>
+          </div>
+        </section>
+
+        <aside class="queue-rail" aria-label="คิวสถานี">
+          <div class="rail-summary">
+            <div class="summary-cell"><span>กำลังทำ</span><strong class="tnum">1</strong></div>
+            <div class="summary-cell"><span>พร้อมถัดไป</span><strong class="tnum">0</strong></div>
+            <div class="summary-cell blocked"><span>ติดปัญหา</span><strong class="tnum">0</strong></div>
+          </div>
+
+          <section class="panel queue-panel">
+            <div class="rail-head">
+              <h2>คิวสถานี</h2>
+              <p>พร้อมทำและติดปัญหาแยกจากกัน</p>
+            </div>
+            <div class="queue-body">
+              <div class="empty">
+                <div><strong>ยังไม่มีงานพร้อมถัดไป</strong><span>สแกน QR หรือรอหัวหน้าส่งงาน</span></div>
+              </div>
+              <div class="blocked-card">
+                <span class="tag">งานติดปัญหา</span>
+                <strong>ยังไม่มีรายการที่ถูกแจ้ง</strong>
+                <p>หากกด “แจ้งปัญหา” งานจะยังอยู่ในสถานีนี้จนกว่าจะได้รับการแก้ไข</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel scan-panel">
+            <button class="scan-button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5V3h2M19 3h2v2M21 19v2h-2M5 21H3v-2M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7zM14 14h1M17 14v3h-3"/></svg>
+              สแกน QR / ค้นหาเลขงาน
+            </button>
+            <p class="scan-note">สแกนเพื่อเปิดงาน ไม่เริ่มหรือปิดงานอัตโนมัติ</p>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
