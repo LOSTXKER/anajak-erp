@@ -18,6 +18,10 @@ import { STEP_TYPE_LABELS } from "@/lib/production-steps";
 import { STEP_STATUS_LABELS } from "@/lib/status-config";
 import { currentProductionProblemReason } from "@/lib/production-problem";
 import {
+  resolveStationContinuation,
+  type StationContinuationResult,
+} from "@/lib/station-continuation";
+import {
   StationModeShell,
   type StationNavItem,
 } from "@/components/factory/station-mode-shell";
@@ -38,6 +42,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FOCUS_BUTTON, TINT } from "@/components/ui/tokens";
 import { cn, formatDate } from "@/lib/utils";
 import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
   Flame,
   PackageCheck,
   Printer,
@@ -84,7 +91,27 @@ type StationEntry = FactoryStationQueueEntry & {
   assignedToId: string | null;
   waitingOn: readonly string[];
   note: string | null;
+  sortOrder: number | null;
 };
+
+type RoutedStationQueueItem = StationQueueItem & {
+  station: FactoryStationKey;
+  stepId: string | null;
+  sortOrder: number | null;
+};
+
+function stationLabelFor(key: FactoryStationKey): string {
+  return FACTORY_STATIONS.find((station) => station.key === key)?.label ?? key;
+}
+
+function continuationActionLabel(item: RoutedStationQueueItem): string {
+  const stationLabel = stationLabelFor(item.station);
+  if (item.status === "blocked") return `เปิดดูที่สถานี ${stationLabel}`;
+  if (item.station === "dtf-print") {
+    return item.status === "ready" ? "เปิดรอบพิมพ์ DTF" : "เปิดงาน DTF นี้";
+  }
+  return `ไป ${stationLabel} ต่อ`;
+}
 
 const STATION_VISUALS: Record<
   FactoryStationKey,
@@ -127,19 +154,28 @@ const STATION_NAV: readonly StationNavItem<FactoryStationKey>[] =
     ...STATION_VISUALS[station.key],
   }));
 
+const STATION_QUEUE_ORDER_STATUSES = new Set([
+  "PRODUCING",
+  "QUALITY_CHECK",
+  "PACKING",
+]);
+
 function routeFor({
   station,
   productionId,
   orderId,
+  focusStepId,
 }: {
   station?: FactoryStationKey | null;
   productionId?: string | null;
   orderId?: string | null;
+  focusStepId?: string | null;
 }) {
   const params = new URLSearchParams();
   if (station) params.set("station", station);
   if (productionId) params.set("productionId", productionId);
   if (orderId) params.set("orderId", orderId);
+  if (focusStepId) params.set("focusStepId", focusStepId);
   const query = params.toString();
   return query ? `/factory/station?${query}` : "/factory/station";
 }
@@ -176,10 +212,190 @@ function makeStationEntries(
         assignedToId: spot.step?.assignedTo?.id ?? null,
         waitingOn: spot.waitingOn,
         note: spot.step ? currentProductionProblemReason(spot.step) : null,
+        sortOrder: spot.step?.sortOrder ?? null,
       });
     }
   }
   return entries;
+}
+
+function StationContinuationCard({
+  continuation,
+  onContinue,
+}: {
+  continuation: StationContinuationResult<RoutedStationQueueItem>;
+  onContinue: (item: RoutedStationQueueItem) => void;
+}) {
+  const item = continuation.primary;
+  const stationLabel = stationLabelFor(item.station);
+  const blocked = item.status === "blocked";
+  const details = [
+    ...new Set(
+      [...item.waitingOn, item.note]
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
+  const Icon = blocked ? AlertTriangle : CheckCircle2;
+
+  return (
+    <section
+      className={cn(
+        "rounded-3xl border p-5 shadow-sm sm:p-7",
+        blocked
+          ? "border-amber-800/70 bg-amber-950/25"
+          : "border-blue-800/70 bg-blue-950/20",
+      )}
+      aria-labelledby="station-continuation-title"
+      data-station-continuation
+    >
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+        <span
+          className={cn(
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl",
+            blocked
+              ? "bg-amber-900/50 text-amber-200"
+              : "bg-blue-900/50 text-blue-200",
+          )}
+        >
+          <Icon className="h-6 w-6" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p
+            className={cn(
+              "text-sm font-medium",
+              blocked ? "text-amber-200" : "text-blue-200",
+            )}
+          >
+            {blocked
+              ? "งานต่อของออเดอร์นี้ยังติดเงื่อนไข"
+              : "ออเดอร์เดิมมีงานต่อแล้ว"}
+          </p>
+          <h1
+            id="station-continuation-title"
+            data-station-current-job-heading
+            tabIndex={-1}
+            className="mt-1 text-2xl font-semibold text-strong outline-none sm:text-3xl"
+          >
+            {item.orderNumber} · {stationLabel}
+          </h1>
+          <p className="mt-2 text-base text-secondary">
+            {item.stepLabel}
+            {item.customerName ? ` · ${item.customerName}` : ""}
+          </p>
+
+          {blocked && details.length > 0 ? (
+            <ul className="mt-4 space-y-1.5 text-sm text-amber-100">
+              {details.slice(0, 3).map((detail) => (
+                <li key={detail} className="flex gap-2">
+                  <span aria-hidden="true">•</span>
+                  <span>{detail}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 text-sm leading-relaxed text-muted">
+              ระบบคงออเดอร์เดิมไว้ให้ และจะเปลี่ยนเฉพาะจุดทำงานเมื่อคุณกดไปต่อ
+              — ยังไม่เริ่มหรือปิดขั้นให้อัตโนมัติ
+            </p>
+          )}
+
+          <Button
+            type="button"
+            onClick={() => onContinue(item)}
+            className="mt-5 min-h-12 w-full touch-manipulation sm:w-auto sm:min-w-56"
+          >
+            {continuationActionLabel(item)}
+            <ArrowRight aria-hidden="true" />
+          </Button>
+
+          {continuation.alternatives.length > 0 && (
+            <div className="mt-5 border-t border-divider pt-4">
+              <p className="text-xs font-medium text-muted">
+                งานอื่นของออเดอร์นี้
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {continuation.alternatives.slice(0, 3).map((alternative) => (
+                  <Button
+                    key={[
+                      alternative.station,
+                      alternative.productionId,
+                      alternative.stepId,
+                    ].join("|")}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onContinue(alternative)}
+                  >
+                    {stationLabelFor(alternative.station)} · {alternative.stepLabel}
+                  </Button>
+                ))}
+              </div>
+              {continuation.alternativeCount > 3 && (
+                <p className="mt-2 text-xs text-muted">
+                  และอีก {(continuation.alternativeCount - 3).toLocaleString("th-TH")} จุด
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StationContinuationUnavailableCard({
+  orderNumber,
+  onBackToQueue,
+  onOpenErp,
+}: {
+  orderNumber: string;
+  onBackToQueue: () => void;
+  onOpenErp: () => void;
+}) {
+  return (
+    <section
+      className="rounded-3xl border border-amber-800/70 bg-amber-950/25 p-5 shadow-sm sm:p-7"
+      aria-labelledby="station-continuation-unavailable-title"
+      data-station-continuation-unavailable
+    >
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-900/50 text-amber-200">
+          <AlertTriangle className="h-6 w-6" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-amber-200">
+            ส่งต่ออัตโนมัติไม่ได้
+          </p>
+          <h1
+            id="station-continuation-unavailable-title"
+            data-station-current-job-heading
+            tabIndex={-1}
+            className="mt-1 text-2xl font-semibold text-strong outline-none sm:text-3xl"
+          >
+            {orderNumber} · ยังไม่พบสถานีถัดไป
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-secondary">
+            ออเดอร์ยังอยู่ในงานโรงงาน แต่จุดถัดไปอาจเป็นงานนอก งานแก้
+            หรือถูกมอบหมายให้คนอื่น ระบบจึงไม่เลือกสถานีแทนโดยเดา
+          </p>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <Button type="button" onClick={onBackToQueue} className="min-h-12">
+              กลับคิวสถานี
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onOpenErp}
+              className="min-h-12"
+            >
+              เปิดตรวจใน ERP
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export function StationModeScreen() {
@@ -190,6 +406,7 @@ export function StationModeScreen() {
     rawStation && isFactoryStationKey(rawStation) ? rawStation : null;
   const productionId = searchParams.get("productionId");
   const orderId = searchParams.get("orderId");
+  const focusStepId = searchParams.get("focusStepId");
 
   const meQuery = trpc.user.me.useQuery();
   const me = meQuery.data;
@@ -198,6 +415,19 @@ export function StationModeScreen() {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
+  const selectedContextInput = productionId
+    ? { productionId }
+    : orderId
+      ? { orderId }
+      : null;
+  const stationQueueContextQuery = trpc.factory.stationQueueContext.useQuery(
+    selectedContextInput ?? {},
+    {
+      enabled: Boolean(selectedContextInput),
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+    },
+  );
   const utils = trpc.useUtils();
   const scanRef = useRef<HTMLInputElement>(null);
   const [scanValue, setScanValue] = useState("");
@@ -205,6 +435,7 @@ export function StationModeScreen() {
   const [scanPending, setScanPending] = useState(false);
   const [multiple, setMultiple] = useState<MultipleResolution | null>(null);
   const previousSelectionRef = useRef(`${productionId ?? ""}|${orderId ?? ""}`);
+  const contextSyncRef = useRef({ selection: "", queueUpdatedAt: 0 });
 
   useEffect(() => {
     const selection = `${productionId ?? ""}|${orderId ?? ""}`;
@@ -218,6 +449,31 @@ export function StationModeScreen() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [productionId, orderId]);
+
+  useEffect(() => {
+    const selection = productionId
+      ? `production|${productionId}`
+      : orderId
+        ? `order|${orderId}`
+        : "";
+    const queueUpdatedAt = stationQueueQuery.dataUpdatedAt;
+    if (!selection || queueUpdatedAt === 0) {
+      contextSyncRef.current = { selection, queueUpdatedAt };
+      return;
+    }
+    if (contextSyncRef.current.selection !== selection) {
+      contextSyncRef.current = { selection, queueUpdatedAt };
+      return;
+    }
+    if (contextSyncRef.current.queueUpdatedAt === queueUpdatedAt) return;
+    contextSyncRef.current.queueUpdatedAt = queueUpdatedAt;
+    void stationQueueContextQuery.refetch();
+  }, [
+    orderId,
+    productionId,
+    stationQueueContextQuery,
+    stationQueueQuery.dataUpdatedAt,
+  ]);
 
   const permissionStale = meQuery.isError && Boolean(me);
   const canManageProduction =
@@ -233,10 +489,20 @@ export function StationModeScreen() {
     permAllows(me?.permissions, "update_order_status_production");
   const readOnly = !!me && !canManageProduction;
 
+  const stationOrders = useMemo(() => {
+    const rows = stationQueueQuery.data ?? [];
+    const exact = stationQueueContextQuery.data;
+    if (!exact) return rows;
+    const withoutExact = rows.filter((order) => order.id !== exact.id);
+    return STATION_QUEUE_ORDER_STATUSES.has(exact.internalStatus)
+      ? [exact, ...withoutExact]
+      : withoutExact;
+  }, [stationQueueContextQuery.data, stationQueueQuery.data]);
+
   const board = useMemo(
     () =>
       buildProductionBoard<KanbanStep, KanbanOrder>(
-        stationQueueQuery.data ?? [],
+        stationOrders,
         {
           now:
             stationQueueQuery.dataUpdatedAt > 0
@@ -248,23 +514,23 @@ export function StationModeScreen() {
           showBlocked: true,
         },
       ),
-    [stationQueueQuery.data, stationQueueQuery.dataUpdatedAt, me?.id],
+    [stationOrders, stationQueueQuery.dataUpdatedAt, me?.id],
   );
 
-  const queueItems = useMemo(() => {
-    if (!station || station === "dtf-print") return [];
+  const allQueueItems = useMemo(() => {
     const candidates = makeStationEntries(board).filter(
       (entry) =>
         canSupervise || !entry.assignedToId || entry.assignedToId === me?.id,
     );
-    const queue = buildFactoryStationQueue(station, candidates);
     const toItem = (
       entry: StationEntry,
       status: StationQueueItem["status"],
-    ): StationQueueItem => ({
+    ): RoutedStationQueueItem => ({
       key: entry.key,
+      station: entry.station,
       orderId: entry.orderId,
       productionId: entry.productionId,
+      stepId: entry.stepId,
       orderNumber: entry.orderNumber,
       title: entry.title,
       customerName: entry.customerName,
@@ -279,11 +545,121 @@ export function StationModeScreen() {
       overdue: entry.overdue,
       waitingOn: entry.waitingOn,
       note: entry.note,
+      sortOrder: entry.sortOrder,
     });
-    return tagStationQueueBuckets(queue).map(({ entry, status }) =>
-      toItem(entry, status),
+    return FACTORY_STATIONS.flatMap(({ key }) =>
+      tagStationQueueBuckets(buildFactoryStationQueue(key, candidates)).map(
+        ({ entry, status }) => toItem(entry, status),
+      ),
     );
-  }, [board, canSupervise, me?.id, station]);
+  }, [board, canSupervise, me?.id]);
+
+  const queueItems = useMemo(() => {
+    if (!station || station === "dtf-print") return [];
+    return allQueueItems.filter((item) => item.station === station);
+  }, [allQueueItems, station]);
+
+  const selectedOrderContext = useMemo(() => {
+    if (stationQueueContextQuery.data) return stationQueueContextQuery.data;
+    if (productionId) {
+      return (
+        stationQueueQuery.data?.find((order) =>
+          order.productions.some((production) => production.id === productionId),
+        ) ?? null
+      );
+    }
+    if (orderId) {
+      return (
+        stationQueueQuery.data?.find((order) => order.id === orderId) ?? null
+      );
+    }
+    return null;
+  }, [
+    orderId,
+    productionId,
+    stationQueueContextQuery.data,
+    stationQueueQuery.data,
+  ]);
+
+  const selectedProductionOrderId = productionId
+    ? (selectedOrderContext?.id ?? null)
+    : null;
+
+  const continuation = useMemo(() => {
+    if (
+      !station ||
+      (!productionId && !orderId) ||
+      stationQueueQuery.isError ||
+      stationQueueQuery.isLoading ||
+      stationQueueContextQuery.isError ||
+      stationQueueContextQuery.isLoading
+    ) {
+      return null;
+    }
+    return resolveStationContinuation({
+      currentStation: station,
+      selection: { productionId, orderId },
+      productionOrderId: selectedProductionOrderId,
+      entries: allQueueItems,
+    });
+  }, [
+    allQueueItems,
+    orderId,
+    productionId,
+    selectedProductionOrderId,
+    station,
+    stationQueueQuery.isError,
+    stationQueueQuery.isLoading,
+    stationQueueContextQuery.isError,
+    stationQueueContextQuery.isLoading,
+  ]);
+
+  const continuationKey = continuation
+    ? [
+        continuation.primary.station,
+        continuation.primary.orderId,
+        continuation.primary.productionId,
+        continuation.primary.stepId,
+      ].join("|")
+    : null;
+
+  const selectionStillAtCurrentStation = Boolean(
+    station &&
+      allQueueItems.some(
+        (item) =>
+          item.station === station &&
+          (productionId
+            ? item.productionId === productionId
+            : Boolean(orderId && item.orderId === orderId)),
+      ),
+  );
+  const continuationUnavailable = Boolean(
+    station &&
+      selectedOrderContext &&
+      STATION_QUEUE_ORDER_STATUSES.has(selectedOrderContext.internalStatus) &&
+      !selectionStillAtCurrentStation &&
+      !continuation &&
+      !stationQueueQuery.isLoading &&
+      !stationQueueQuery.isError &&
+      !stationQueueContextQuery.isLoading &&
+      !stationQueueContextQuery.isError,
+  );
+  const continuationFocusKey =
+    continuationKey ??
+    (continuationUnavailable && selectedOrderContext
+      ? `unavailable|${selectedOrderContext.id}`
+      : null);
+
+  useEffect(() => {
+    if (!continuationFocusKey) return;
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>("[data-station-current-job-heading]")
+        ?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [continuationFocusKey]);
+
   const selectedQueueStatus = queueItems.find((item) =>
     productionId
       ? item.productionId === productionId
@@ -291,7 +667,7 @@ export function StationModeScreen() {
   )?.status ?? null;
 
   useEffect(() => {
-    if (station && !productionId && !orderId) {
+    if (station && station !== "dtf-print" && !productionId && !orderId) {
       scanRef.current?.focus({ preventScroll: true });
     }
   }, [productionId, orderId, station]);
@@ -359,6 +735,20 @@ export function StationModeScreen() {
         station,
         productionId: item.productionId,
         orderId: item.productionId ? null : item.orderId,
+      }),
+    );
+  }
+
+  function openContinuation(item: RoutedStationQueueItem) {
+    const opensDtfBatch =
+      item.station === "dtf-print" && item.status === "ready";
+    router.replace(
+      routeFor({
+        station: item.station,
+        productionId: opensDtfBatch ? null : item.productionId,
+        orderId:
+          opensDtfBatch || item.productionId ? null : item.orderId,
+        focusStepId: opensDtfBatch ? item.stepId : null,
       }),
     );
   }
@@ -633,7 +1023,24 @@ export function StationModeScreen() {
               scan={renderScanPanel(true)}
               onOpen={openQueueItem}
             >
-              {productionId ? (
+              {continuation ? (
+                <StationContinuationCard
+                  continuation={continuation}
+                  onContinue={openContinuation}
+                />
+              ) : continuationUnavailable && selectedOrderContext ? (
+                <StationContinuationUnavailableCard
+                  orderNumber={selectedOrderContext.orderNumber}
+                  onBackToQueue={() => router.replace(routeFor({ station }))}
+                  onOpenErp={() =>
+                    router.push(
+                      productionId
+                        ? `/production/${productionId}`
+                        : `/orders/${selectedOrderContext.id}?tab=production`,
+                    )
+                  }
+                />
+              ) : productionId ? (
                 <ProductionDetailScreen
                   id={productionId}
                   surface="station"
@@ -655,7 +1062,7 @@ export function StationModeScreen() {
               ) : null}
             </StationCurrentLayout>
           ) : station === "dtf-print" ? (
-            <PrintRunsScreen surface="station" />
+            <PrintRunsScreen surface="station" focusStepId={focusStepId} />
           ) : station && visual ? (
             <StationQueueView
               stationLabel={

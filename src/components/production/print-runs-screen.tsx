@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useMutationWithInvalidation } from "@/hooks/use-mutation-with-invalidation";
@@ -50,8 +50,10 @@ function usePrintRunInvalidate() {
 
 export function PrintRunsScreen({
   surface = "erp",
+  focusStepId = null,
 }: {
   surface?: "erp" | "station";
+  focusStepId?: string | null;
 }) {
   const confirm = useConfirm();
   const queueQuery = trpc.printRun.queue.useQuery(undefined, {
@@ -77,6 +79,7 @@ export function PrintRunsScreen({
   const [note, setNote] = useState("");
   const [completing, setCompleting] = useState<PrintRun | null>(null);
   const actionNoteRef = useRef<HTMLInputElement>(null);
+  const handledFocusStepRef = useRef<string | null>(null);
 
   const create = useMutationWithInvalidation(trpc.printRun.create, {
     invalidate,
@@ -133,6 +136,38 @@ export function PrintRunsScreen({
     if (!Number.isInteger(qty) || qty < 1) return true;
     return q.remaining > 0 && qty > q.remaining;
   });
+
+  useEffect(() => {
+    if (
+      !focusStepId ||
+      queueQuery.isLoading ||
+      handledFocusStepRef.current === focusStepId
+    ) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      const row = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-print-run-queue-row]"),
+      ).find(
+        (candidate) =>
+          candidate.getAttribute("data-print-run-queue-row") === focusStepId,
+      );
+      const target = row?.querySelector<HTMLElement>("button");
+      if (target) {
+        handledFocusStepRef.current = focusStepId;
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({ block: "center" });
+        return;
+      }
+      const heading = document.querySelector<HTMLElement>("main h1");
+      if (heading) {
+        handledFocusStepRef.current = focusStepId;
+        heading.tabIndex = -1;
+        heading.focus({ preventScroll: true });
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusStepId, queueQuery.dataUpdatedAt, queueQuery.isLoading]);
 
   function togglePick(entry: QueueEntry) {
     setPicked((prev) => {

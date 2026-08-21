@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ STATION-CONTINUATION — คนเดียวตามออเดอร์เดิมข้ามสถานีได้แล้ว 2026-08-21**
+> รากเดิมคือ URL คง `station` เก่าไว้ แต่ mutation/refetch ย้ายงานไป bucket ของ work center ถัดไป จึงเหลือหน้า “ไม่พบขั้นที่ตรงกับสถานีนี้” ทั้งที่ออเดอร์เดินถูก · แก้ที่ Station controller กลาง: เมื่อ record เดิมหลุดจากสถานี ให้หา current/ready ของ production เดิมก่อน แล้วค่อย fallback ไป order เดิม; blocked เปิดดูเหตุจริง, หลาย lane มีตัวเลือกรอง และ unmapped/CUSTOM/outsource/owner อื่นหยุดพร้อมทาง ERP แทนการเดา
+>
+> handoff เป็น navigation เท่านั้น ไม่ claim/start/complete อัตโนมัติ และใช้ `router.replace` ไม่พา Back กลับสถานีที่จบ · DTF ready เปิด batch workspace โดยโฟกัส exact queue row ของออเดอร์เดิมเพียงครั้งเดียว; DTF active คง production context · Goods Receipt ทั้ง create/confirm invalidate Station queue ทันที และ exact `factory.stationQueueContext` อ่าน record ที่เปิดอยู่แบบ no-money โดยไม่ติดเพดานคิวรวม 200 งาน พร้อม sync ใหม่หลังคิวเปลี่ยน
+>
+> **หลักฐาน:** demo `ORD-2608-0004` จาก prep แสดง “ออเดอร์เดิมมีงานต่อแล้ว → เปิดรอบพิมพ์ DTF”, ปลายทางโฟกัสปุ่ม `เพิ่มเข้ารอบพิมพ์ ORD-2608-0004`; wrong-station ของ `ORD-2608-0007` เสนอรีดร้อนถูกจุด · browser desktop/390 ไม่มี horizontal overflow/console error, รอ refetch 31–32 วินาทีไม่ขโมย focus · independent review verdict `SHIP` · full unit **1255/1255** · typecheck ผ่าน · lint 0 error (27 warning เดิม) · `verify:ui` และ `git diff --check` ผ่าน · ไม่ reset หรือ mutate ความคืบหน้าฐาน demo ของเบส
+>
+> **ต่อที่นี่:** refresh Station แล้วลองจบงานในบริบทเดิม; งานทั่วไปจะได้ handoff ไป work center ถัดไป ส่วน DTF จะเข้าหน้ารอบรวมและชี้ exact ออเดอร์เดิม
+
 > **✅ LOCAL-DEMO-STOCK — ฐานทดลองสมจริงและสต๊อกทดสอบแยกจากระบบหลักพร้อมเล่นแล้ว 2026-08-21**
 > ใช้ PostgreSQL local เฉพาะ `127.0.0.1:5433/anajak_erp_demo`; ฐาน Supabase และ Anajak Stock เดิมไม่ถูกลบ เขียน หรือเรียก API ระหว่างงานนี้ · demo mode ต้องผ่านทั้ง flag และฐาน exact นี้ก่อนอ่าน/เขียนสต๊อก หากเปิด flag ผิดฐานจะหยุดก่อนแตะข้อมูล และ runtime มี outbound kill switch ก่อน `fetch` อีกชั้น
 >

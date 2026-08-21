@@ -139,6 +139,23 @@ const stationQueueOrderSelect = {
 } satisfies Prisma.OrderSelect;
 
 type StationOrderRow = Prisma.OrderGetPayload<{ select: typeof stationOrderSelect }>;
+type StationQueueOrderRow = Prisma.OrderGetPayload<{
+  select: typeof stationQueueOrderSelect;
+}>;
+
+const stationQueueContextInput = z
+  .object({
+    productionId: z.string().min(1).optional(),
+    orderId: z.string().min(1).optional(),
+  })
+  .superRefine((input, ctx) => {
+    if (Boolean(input.productionId) === Boolean(input.orderId)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "ระบุ productionId หรือ orderId อย่างใดอย่างหนึ่ง",
+      });
+    }
+  });
 
 function notFound(message: string): never {
   throw new TRPCError({ code: "NOT_FOUND", message });
@@ -213,6 +230,23 @@ function toStationContext(row: StationOrderRow) {
   };
 }
 
+function toStationQueueItem(row: StationQueueOrderRow) {
+  return {
+    id: row.id,
+    orderNumber: row.orderNumber,
+    title: row.title,
+    internalStatus: row.internalStatus,
+    deadline: row.deadline,
+    priority: row.priority,
+    blindShip: row.blindShip,
+    customerName: row.customer.name,
+    totalQuantity: row.items.reduce((sum, item) => sum + item.totalQuantity, 0),
+    productions: row.productions,
+    // จอสถานีไม่เปิดงานใหม่ จึงไม่ต้องรับ readiness ฝั่งชำระเงินแม้แต่ข้อความ
+    readiness: null,
+  };
+}
+
 function resolveOrderRow(row: StationOrderRow, station: FactoryStationKey | null) {
   const postProductionStation = factoryStationKeyForOrderStatus(row.internalStatus);
   const base = {
@@ -275,21 +309,29 @@ export const factoryRouter = router({
       take: 200,
     });
 
-    return rows.map((row) => ({
-      id: row.id,
-      orderNumber: row.orderNumber,
-      title: row.title,
-      internalStatus: row.internalStatus,
-      deadline: row.deadline,
-      priority: row.priority,
-      blindShip: row.blindShip,
-      customerName: row.customer.name,
-      totalQuantity: row.items.reduce((sum, item) => sum + item.totalQuantity, 0),
-      productions: row.productions,
-      // จอสถานีไม่เปิดงานใหม่ จึงไม่ต้องรับ readiness ฝั่งชำระเงินแม้แต่ข้อความ
-      readiness: null,
-    }));
+    return rows.map(toStationQueueItem);
   }),
+
+  // อ่านออเดอร์ที่ผู้ใช้เปิดอยู่โดยตรง ไม่ติดเพดานคิวรวมและไม่กรองสถานะ
+  // เพื่อให้ Station แยกได้ว่างานไปสถานีถัดไป จบแล้ว หรืออยู่นอกเส้นทางที่รู้จัก
+  stationQueueContext: protectedProcedure
+    .input(stationQueueContextInput)
+    .query(async ({ ctx, input }) => {
+      const order = input.productionId
+        ? (
+            await ctx.prisma.production.findUnique({
+              where: { id: input.productionId },
+              select: { order: { select: stationQueueOrderSelect } },
+            })
+          )?.order
+        : await ctx.prisma.order.findUnique({
+            where: { id: input.orderId! },
+            select: stationQueueOrderSelect,
+          });
+
+      if (!order) notFound("ไม่พบออเดอร์หรือใบผลิตนี้");
+      return toStationQueueItem(order);
+    }),
 
   // mutation เฉพาะจอสถานี: ใช้ status/evidence จริง แต่คืน ack ไม่มีเงินเสมอ
   markReadyToShip: protectedProcedure

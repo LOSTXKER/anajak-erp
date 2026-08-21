@@ -128,6 +128,78 @@ describe("factory.stationQueue", () => {
   });
 });
 
+describe("factory.stationQueueContext", () => {
+  it("อ่านออเดอร์ตรงด้วย orderId โดยไม่กรองสถานะและคืน shape เดียวกับคิว", async () => {
+    const stub = makeCtx("OWNER");
+    stub.findOrder.mockResolvedValueOnce(orderRecord([], "COMPLETED"));
+
+    const result = await factoryRouter
+      .createCaller(stub.ctx)
+      .stationQueueContext({ orderId: "order-1" });
+
+    expect(stub.findOrder).toHaveBeenCalledWith({
+      where: { id: "order-1" },
+      select: expect.any(Object),
+    });
+    const query = stub.findOrder.mock.calls[0][0];
+    expect(query).not.toHaveProperty("take");
+    expect(query).not.toHaveProperty("where.internalStatus");
+    expect(JSON.stringify(query.select)).not.toMatch(/amount|price|cost|payment/i);
+    expect(result).toMatchObject({
+      id: "order-1",
+      orderNumber: "ORD-2608-0041",
+      internalStatus: "COMPLETED",
+      customerName: "ลูกค้าเอ",
+      totalQuantity: 50,
+      productions: [],
+      readiness: null,
+    });
+    expect(JSON.stringify(result)).not.toMatch(/amount|price|cost|payment/i);
+  });
+
+  it("อ่านออเดอร์ตรงจาก productionId ด้วย select no-money เดียวกับคิว", async () => {
+    const stub = makeCtx("OWNER");
+    stub.findProduction.mockResolvedValueOnce({
+      order: orderRecord([production("prod-1")], "PRODUCING"),
+    });
+
+    const result = await factoryRouter
+      .createCaller(stub.ctx)
+      .stationQueueContext({ productionId: "prod-1" });
+
+    expect(stub.findProduction).toHaveBeenCalledWith({
+      where: { id: "prod-1" },
+      select: { order: { select: expect.any(Object) } },
+    });
+    const query = stub.findProduction.mock.calls[0][0];
+    expect(JSON.stringify(query.select)).not.toMatch(/amount|price|cost|payment/i);
+    expect(result).toMatchObject({
+      id: "order-1",
+      orderNumber: "ORD-2608-0041",
+      internalStatus: "PRODUCING",
+      customerName: "ลูกค้าเอ",
+      totalQuantity: 50,
+      readiness: null,
+    });
+    expect(stub.findOrder).not.toHaveBeenCalled();
+  });
+
+  it("ปฏิเสธ selector ที่ให้มาพร้อมกันหรือไม่ให้เลยก่อนยิงฐานข้อมูล", async () => {
+    const stub = makeCtx();
+    const caller = factoryRouter.createCaller(stub.ctx);
+
+    await expect(
+      caller.stationQueueContext({ orderId: "order-1", productionId: "prod-1" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.stationQueueContext({})).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+
+    expect(stub.findOrder).not.toHaveBeenCalled();
+    expect(stub.findProduction).not.toHaveBeenCalled();
+  });
+});
+
 describe("factory.markReadyToShip", () => {
   it("ยืนยันผ่าน status service + packing evidence และคืน ack ไม่มีเงิน", async () => {
     const tx = {

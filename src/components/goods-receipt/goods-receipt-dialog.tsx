@@ -146,6 +146,7 @@ function ReceiptForm({
       utils.order.getById,
       utils.production.getById,
       utils.production.kanban,
+      utils.factory.stationQueue,
     ],
     onSuccess: () => {
       toast.success(`บันทึก${RECEIPT_TYPE_LABELS[receiptType]}แล้ว`);
@@ -165,6 +166,7 @@ function ReceiptForm({
         utils.order.getById,
         utils.production.getById,
         utils.production.kanban,
+        utils.factory.stationQueue,
       ],
       onSuccess: () => {
         toast.success("ยืนยันหลักฐานรับเสื้อและปิดขั้นแล้ว");
