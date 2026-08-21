@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderQcSection } from "@/components/qc/order-qc-section";
+import { StationGarmentPreview } from "@/components/factory/station-garment-preview";
 import { CreateDeliveryDialog } from "@/components/orders/delivery/create-delivery-dialog";
 import { formatDate } from "@/lib/utils";
 import { INTERNAL_STATUS_LABELS } from "@/lib/order-status";
@@ -268,59 +269,52 @@ function StationQcReference({
   inspection,
 }: {
   inspection: {
-    garmentLines: Array<{
-      product: string;
-      size: string | null;
-      color: string | null;
-      quantity: number;
-    }>;
-    printChecks: Array<{
-      position: string;
-      printType: string;
-      printSize: string | null;
-      note: string | null;
+    approvedDesign: {
+      versionNumber: number;
+      fileUrl: string;
+      thumbnailUrl: string | null;
+      approvedAt: Date | null;
+    } | null;
+    workGroups: Array<{
+      id: string;
+      showShirtDiagram: boolean;
+      garmentLines: Array<{
+        product: string;
+        size: string | null;
+        color: string | null;
+        quantity: number;
+      }>;
+      prints: Array<{
+        position: string;
+        printType: string;
+        printSize: string | null;
+        width: number | null;
+        height: number | null;
+        note: string | null;
+        imageUrl: string | null;
+      }>;
     }>;
   };
 }) {
   return (
-    <div className="card-surface grid gap-4 rounded-2xl p-4 lg:grid-cols-2">
+    <section className="space-y-3" aria-labelledby="station-qc-reference-title">
       <div>
-        <h3 className="text-sm font-semibold text-strong">เสื้อ/ไซส์ที่ต้องตรวจ</h3>
-        {inspection.garmentLines.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">ไม่มีรายการไซส์ในออเดอร์</p>
-        ) : (
-          <ul className="mt-2 space-y-1.5 text-sm text-secondary">
-            {inspection.garmentLines.map((line, index) => (
-              <li key={`${line.product}|${line.size ?? ""}|${line.color ?? ""}|${index}`} className="flex gap-3">
-                <span className="min-w-0 flex-1 truncate">
-                  {line.product}
-                  {[line.size, line.color].filter(Boolean).length > 0
-                    ? ` · ${[line.size, line.color].filter(Boolean).join("/")}`
-                    : ""}
-                </span>
-                <span className="shrink-0 tabular-nums">{line.quantity} ตัว</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <h3 id="station-qc-reference-title" className="text-base font-semibold text-strong">
+          ตรวจตามรายการงานก่อนแพ็ก
+        </h3>
+        <p className="mt-0.5 text-sm text-muted">
+          ยึดสินค้า จุดที่ต้องทำ ขนาด และหมายเหตุด้านล่างเป็นหลัก
+          {inspection.approvedDesign
+            ? " · ไฟล์อนุมัติใช้เปิดเทียบภาพรวมเท่านั้น ห้ามเดาตำแหน่งจากไฟล์"
+            : " · ใบนี้ไม่มีไฟล์อนุมัติ ให้ตรวจจากข้อมูลที่บันทึกไว้โดยไม่เดาเพิ่ม"}
+        </p>
       </div>
-      <div>
-        <h3 className="text-sm font-semibold text-strong">ลาย/ตำแหน่งที่ต้องตรวจ</h3>
-        {inspection.printChecks.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">ไม่มีรายการพิมพ์ในออเดอร์</p>
-        ) : (
-          <ul className="mt-2 space-y-1.5 text-sm text-secondary">
-            {inspection.printChecks.map((print, index) => (
-              <li key={`${print.position}|${print.printType}|${index}`}>
-                {[print.position, print.printType, print.printSize, print.note]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
+      <StationGarmentPreview
+        approvedDesign={inspection.approvedDesign}
+        workGroups={inspection.workGroups}
+        missingApprovalIsReference
+      />
+    </section>
   );
 }
 

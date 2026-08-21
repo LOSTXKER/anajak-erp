@@ -238,12 +238,14 @@ export function ProductionDetailScreen({
   surface = "erp",
   station = null,
   stationQueueStatus = null,
+  stationFocusStepId = null,
   initialTab = PRODUCTION_DETAIL_DEFAULT_TAB,
 }: {
   id: string;
   surface?: "erp" | "station";
   station?: FactoryStationKey | null;
   stationQueueStatus?: "active" | "ready" | "blocked" | null;
+  stationFocusStepId?: string | null;
   initialTab?: ProductionDetailTab;
 }) {
   const inspectorButtonRef = useRef<HTMLButtonElement>(null);
@@ -508,8 +510,16 @@ export function ProductionDetailScreen({
       }).filter(({ step }) => canActOnStep(step))
     : [];
   const stationCurrentNowStep = surface === "station"
-    ? (nowSteps.find(({ group }) => group === "current") ?? nowSteps[0] ?? null)
+    ? (nowSteps.find(({ step }) => step.id === stationFocusStepId) ??
+      nowSteps.find(({ group }) => group === "current") ??
+      nowSteps[0] ??
+      null)
     : null;
+  // Station เป็น one-task kiosk: แสดง action ของงานที่อยู่ตรงหน้าเพียงขั้นเดียว
+  // พอปิดขั้น query จะ refetch แล้วเลื่อนขั้นถัดไปของออเดอร์เดิมขึ้นมาแทนเอง
+  const actionNowSteps = surface === "station"
+    ? (stationCurrentNowStep ? [stationCurrentNowStep] : [])
+    : nowSteps;
   const stationCurrentStep = stationCurrentNowStep?.step ?? (
     surface === "station"
       ? workflowSteps.find(
@@ -647,6 +657,7 @@ export function ProductionDetailScreen({
       }
       embedded={surface === "erp"}
       focused={focused}
+      stationMode={surface === "station"}
       emptyMessage={
         surface === "station"
           ? `ไม่มีงานที่ลงมือได้สำหรับ${stationLabel ? `สถานี${stationLabel}` : "สถานีนี้"}`
@@ -732,7 +743,7 @@ export function ProductionDetailScreen({
             <p className="shrink-0 text-sm font-medium">รอหัวหน้าหรือทีมผลิตส่งเข้า QC</p>
           )}
         </section>
-      ) : renderProductionNow(nowSteps)}
+      ) : renderProductionNow(actionNowSteps)}
     </div>
   ) : null;
 
@@ -771,6 +782,7 @@ export function ProductionDetailScreen({
             ? garmentPickIsCurrent && viewedStep?.id === garmentPickNowStep?.step.id
             : garmentPickIsCurrent
         }
+        stationMode={surface === "station"}
       />
     </div>
   ) : null;
@@ -778,7 +790,7 @@ export function ProductionDetailScreen({
   const stationCurrentJob = production && order ? (
     <article
       data-station-current-job=""
-      className="flex min-h-[34rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm lg:min-h-[calc(100dvh-8rem)]"
+      className="flex min-h-[34rem] min-w-0 flex-col rounded-2xl border border-border bg-surface shadow-sm lg:min-h-[calc(100dvh-8rem)]"
     >
       <header className="flex flex-col gap-3 border-b border-divider px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
@@ -819,7 +831,7 @@ export function ProductionDetailScreen({
         </dl>
       </header>
 
-      <div className="min-w-0 flex-1 space-y-5 px-5 py-5 sm:px-6">
+      <div className="min-w-0 flex-1 space-y-5 px-5 pb-32 pt-5 sm:px-6">
         {stationCurrentStep?.stepType === "GARMENT_PICK" ? (
           garmentPickPanel
         ) : stationCurrentStep?.stepType === "GARMENT_RECEIVE" ? (
@@ -839,17 +851,24 @@ export function ProductionDetailScreen({
               order={order}
               embedded
               focusStepType="GARMENT_RECEIVE"
+              presentation="station-work-sheet"
             />
             {station === "prep" &&
             stationCurrentActionTarget?.stepType === "GARMENT_RECEIVE" ? (
-              <Button
-                size="lg"
-                className="w-full gap-2 sm:w-auto sm:min-w-64"
-                onClick={() => setGoodsReceiptStepId(stationCurrentActionTarget.id)}
+              <div
+                data-station-action-bar=""
+                className="fixed left-1/2 z-40 w-[calc(100%-1.5rem)] max-w-3xl -translate-x-1/2 rounded-2xl border border-border bg-surface p-3 shadow-lg sm:w-[calc(100%-3rem)]"
+                style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
               >
-                <ClipboardCheck />
-                นับและรับเสื้อลูกค้า
-              </Button>
+                <Button
+                  size="lg"
+                  className="h-14 w-full gap-2 text-base"
+                  onClick={() => setGoodsReceiptStepId(stationCurrentActionTarget.id)}
+                >
+                  <ClipboardCheck />
+                  นับและรับเสื้อลูกค้า
+                </Button>
+              </div>
             ) : (
               <p className="rounded-xl border border-divider bg-surface-muted px-4 py-3 text-sm text-muted">
                 {!hasProductionPermission
@@ -860,18 +879,17 @@ export function ProductionDetailScreen({
           </section>
         ) : (
           <>
+            {stationCurrentStep && hasProductionSpec ? (
+              <ProductionDesignCard
+                order={order}
+                embedded
+                focusStepType={stationCurrentStep.stepType}
+                missingApprovalIsReference={allPrintStepsCompleted}
+                presentation="station-work-sheet"
+              />
+            ) : null}
             {currentActionRegion}
             {legacyGarmentShownWithCurrentWork ? garmentPickPanel : null}
-            {stationCurrentStep && hasProductionSpec ? (
-              <div className="border-t border-divider pt-5">
-                <ProductionDesignCard
-                  order={order}
-                  embedded
-                  focusStepType={stationCurrentStep.stepType}
-                  missingApprovalIsReference={allPrintStepsCompleted}
-                />
-              </div>
-            ) : null}
           </>
         )}
       </div>

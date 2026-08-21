@@ -59,6 +59,8 @@ interface GarmentPickCardProps {
   embedded?: boolean;
   /** ขั้นเบิกเสื้อเป็นงานปัจจุบัน จึงใช้ชื่อ action และปุ่มหลักที่เด่นกว่าการ์ดอ้างอิง */
   primaryTask?: boolean;
+  /** ขยายเฉพาะปุ่มเบิกหลักบน Station โดยไม่แตะปุ่มรองหรือ presentation ฝั่ง ERP */
+  stationMode?: boolean;
 }
 
 const lineLabel = (l: GarmentLine) =>
@@ -94,6 +96,7 @@ export function GarmentPickCard({
   legacyReadinessUnknown = false,
   embedded = false,
   primaryTask = false,
+  stationMode = false,
 }: GarmentPickCardProps) {
   // snapshot target ตอนเปิด: refetch จากอีกจอห้ามสลับ dialog ไปผูก GARMENT_PICK
   // ตัวถัดไปเงียบ ๆ. ถ้า target ปัจจุบันเปลี่ยน dialog จะ unmount และให้เปิดใหม่.
@@ -406,14 +409,28 @@ export function GarmentPickCard({
           data.configured &&
           ((canIssueGarments && pickStep && needMore) ||
             (canReturnGarments && outstanding > 0)) && (
-          <div className="flex flex-col gap-2 border-t border-divider pt-4 sm:flex-row">
+          <div
+            data-station-action-bar={stationMode ? "" : undefined}
+            className={cn(
+              "flex flex-col gap-2 border-t border-divider pt-4 sm:flex-row",
+              stationMode &&
+                "fixed left-1/2 z-40 w-[calc(100%-1.5rem)] max-w-3xl -translate-x-1/2 rounded-2xl border border-border bg-surface p-3 pt-3 shadow-lg sm:w-[calc(100%-3rem)]",
+            )}
+            style={
+              stationMode
+                ? { bottom: "max(0.75rem, env(safe-area-inset-bottom))" }
+                : undefined
+            }
+          >
             {canIssueGarments && pickStep && needMore && (
               <Button
                 size={primaryTask ? "lg" : "default"}
-                  className={cn(
-                    "w-full gap-1.5 sm:w-auto",
-                    primaryTask && "sm:min-w-56",
-                  )}
+                data-station-primary-action={stationMode ? "" : undefined}
+                className={cn(
+                  "w-full gap-1.5",
+                  stationMode ? "h-14 text-base sm:w-full" : "sm:w-auto",
+                  primaryTask && !stationMode && "sm:min-w-56",
+                )}
                 onClick={() => {
                   setIssueErrorVersion(garmentPickQuery.errorUpdatedAt);
                   setIssueStepId(pickStep.id);

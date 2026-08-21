@@ -52,6 +52,7 @@ export function ProductionNowCard({
   printRunsHref = "/production/print-runs",
   embedded = false,
   focused = false,
+  stationMode = false,
   emptyMessage = "ยังไม่มีขั้นตอนผลิตในใบนี้",
   waitingHeading = "งานที่กำลังรอ",
   getStartLabel,
@@ -72,6 +73,8 @@ export function ProductionNowCard({
   embedded?: boolean;
   /** แสดง action ของขั้นที่ผู้ใช้เลือกเพียงขั้นเดียว โดยคง action policy เดิม */
   focused?: boolean;
+  /** ปุ่มลงมือของ Station เป็นเป้านิ้วเต็มแถว โดยไม่เปลี่ยน presentation ฝั่ง ERP */
+  stationMode?: boolean;
   emptyMessage?: string;
   /** ชื่อกลุ่มเมื่อไม่มีขั้นพร้อมทำ — primary ใช้ blocker, footer ใช้ขั้นถัดไป */
   waitingHeading?: string;
@@ -159,10 +162,26 @@ export function ProductionNowCard({
             ))}
           </div>
         ) : note ? (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="space-y-2">
             <p className="text-sm text-muted">{note}</p>
             {step.stepType === "DTF_PRINT" && step.status !== "FAILED" ? (
-              <Button size="lg" asChild className="gap-2 sm:min-w-56">
+              <Button
+                size="lg"
+                asChild
+                data-station-primary-action={stationMode ? "" : undefined}
+                data-station-action-bar={stationMode ? "" : undefined}
+                className={cn(
+                  "gap-2",
+                  stationMode
+                    ? "fixed left-1/2 z-40 h-14 w-[calc(100%-1.5rem)] max-w-3xl -translate-x-1/2 text-base shadow-lg ring-1 ring-border sm:w-[calc(100%-3rem)]"
+                    : "sm:min-w-56",
+                )}
+                style={
+                  stationMode
+                    ? { bottom: "max(0.75rem, env(safe-area-inset-bottom))" }
+                    : undefined
+                }
+              >
                 <Link href={printRunsHref}>
                   <Printer />
                   เปิดรอบพิมพ์ DTF
@@ -175,12 +194,28 @@ export function ProductionNowCard({
             ) : null}
           </div>
         ) : action ? (
-          <div className="space-y-2">
+          <div
+            data-station-action-bar={stationMode ? "" : undefined}
+            className={cn(
+              "space-y-2",
+              stationMode &&
+                "fixed left-1/2 z-40 w-[calc(100%-1.5rem)] max-w-3xl -translate-x-1/2 rounded-2xl border border-border bg-surface p-3 shadow-lg sm:w-[calc(100%-3rem)]",
+            )}
+            style={
+              stationMode
+                ? { bottom: "max(0.75rem, env(safe-area-inset-bottom))" }
+                : undefined
+            }
+          >
             <Button
               size="lg"
               disabled={busy}
               aria-busy={busy || undefined}
-              className="w-full gap-2 sm:w-auto sm:min-w-56"
+              data-station-primary-action={stationMode ? "" : undefined}
+              className={cn(
+                "w-full gap-2",
+                stationMode ? "h-14 text-base" : "sm:w-auto sm:min-w-56",
+              )}
               onClick={() => {
                 if (action === "start") onStart(step);
                 else if (action === "complete" || action === "record-qty") onComplete(step);

@@ -53,11 +53,21 @@ function orderRecord(
       phone: "0899999999",
       address: "88 ถนนพระราม 9",
     },
+    designs: [
+      {
+        versionNumber: 3,
+        fileUrl: "https://files.example.com/approved-v3.pdf",
+        thumbnailUrl: "https://files.example.com/approved-v3.png",
+        approvedAt: new Date("2026-08-18T04:00:00.000Z"),
+      },
+    ],
     items: [
       {
+        id: "item-1",
         totalQuantity: 50,
         products: [
           {
+            productType: "T_SHIRT",
             description: "เสื้อทีม",
             fabricColor: "ดำ",
             totalQuantity: 50,
@@ -69,7 +79,10 @@ function orderRecord(
             position: "FRONT",
             printType: "DTF",
             printSize: "A4",
+            width: 21,
+            height: 29.7,
             designNote: "กลางอก",
+            designImageUrl: "https://files.example.com/front-art.png",
           },
         ],
       },
@@ -472,11 +485,31 @@ describe("factory.stationContext", () => {
       activeProductions: [{ id: "prod-1" }],
       nonReturnedDeliveryCount: 2,
       inspection: {
-        garmentLines: [
-          { product: "เสื้อทีม · ดำ", size: "M", color: "ดำ", quantity: 50 },
-        ],
-        printChecks: [
-          { position: "FRONT", printType: "DTF", printSize: "A4", note: "กลางอก" },
+        approvedDesign: {
+          versionNumber: 3,
+          fileUrl: "https://files.example.com/approved-v3.pdf",
+          thumbnailUrl: "https://files.example.com/approved-v3.png",
+          approvedAt: new Date("2026-08-18T04:00:00.000Z"),
+        },
+        workGroups: [
+          {
+            id: "item-1",
+            showShirtDiagram: true,
+            garmentLines: [
+              { product: "เสื้อทีม", size: "M", color: "ดำ", quantity: 50 },
+            ],
+            prints: [
+              {
+                position: "FRONT",
+                printType: "DTF",
+                printSize: "A4",
+                width: 21,
+                height: 29.7,
+                note: "กลางอก",
+                imageUrl: "https://files.example.com/front-art.png",
+              },
+            ],
+          },
         ],
       },
     });

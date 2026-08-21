@@ -86,6 +86,26 @@ function renderFocused(stepType: string) {
   );
 }
 
+function renderStationWorkSheet(stepType: string) {
+  return renderToStaticMarkup(
+    createElement(ProductionDesignCard, {
+      order: {
+        ...order,
+        designs: [
+          {
+            ...order.designs[0],
+            thumbnailUrl:
+              "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E",
+          },
+        ],
+      } as ProductionDetail["order"],
+      focusStepType: stepType,
+      presentation: "station-work-sheet",
+      embedded: true,
+    }),
+  );
+}
+
 describe("printTypesForProductionStep", () => {
   it("จำกัดงาน DTF และรีดร้อนให้เห็นเฉพาะลายที่นำไปรีด", () => {
     expect(printTypesForProductionStep("DTF_PRINT")).toEqual([
@@ -148,5 +168,56 @@ describe("printTypesForProductionStep", () => {
     expect(html).not.toContain("Silk Screen");
     expect(html).not.toContain("เสื้อสำหรับงาน Silk Screen");
     expect(html).not.toContain("×3");
+  });
+
+  it("station work sheet ใช้ visual สำหรับหน้างานและยังกรองสินค้า/ลายตามขั้น DTF", () => {
+    const html = renderStationWorkSheet("DTF_PRINT");
+
+    expect(html).toContain("data-station-garment-preview");
+    expect(html).toContain("data-station-approved-reference");
+    expect(html).toContain("เสื้อสำหรับงาน DTF");
+    expect(html).toContain("หน้า");
+    expect(html).not.toContain("เสื้อสำหรับงาน Silk Screen");
+    expect(html).not.toContain("หลัง");
+  });
+
+  it("station work sheet คงการจับคู่ item เมื่อเสื้อสองแบบมีลาย FRONT เหมือนกัน", () => {
+    const samePositionOrder = {
+      ...order,
+      items: order.items.map((item, index) => ({
+        ...item,
+        prints: item.prints.map((print) => ({
+          ...print,
+          id: `front-${index + 1}`,
+          position: "FRONT",
+          printType: "DTF",
+          designImageUrl: `/front-${index + 1}.png`,
+        })),
+      })),
+    } as ProductionDetail["order"];
+
+    const html = renderToStaticMarkup(
+      createElement(ProductionDesignCard, {
+        order: samePositionOrder,
+        focusStepType: "HEAT_PRESS",
+        presentation: "station-work-sheet",
+        embedded: true,
+      }),
+    );
+
+    expect(html).toContain('data-station-work-group="item-1"');
+    expect(html).toContain('data-station-work-group="item-2"');
+    expect(html).toContain("ใช้กับ เสื้อสำหรับงาน DTF · ดำ");
+    expect(html).toContain("ใช้กับ เสื้อสำหรับงาน Silk Screen · ขาว");
+    expect(html).toContain("front-1.png");
+    expect(html).toContain("front-2.png");
+  });
+
+  it("presentation เดิมของ ERP ไม่ถูกเปลี่ยนเป็น station work sheet", () => {
+    const html = renderFocused("DTF_PRINT");
+
+    expect(html).toContain("แบบและสเปกสำหรับขั้นนี้");
+    expect(html).not.toContain("data-station-garment-preview");
+    expect(html).not.toContain("แบบและจุดที่ต้องทำ");
   });
 });

@@ -2237,6 +2237,10 @@ check(
     "src/components/factory/station-order-workspace.tsx",
     "utf8",
   );
+  const stationGarmentPreviewSource = readFileSync(
+    "src/components/factory/station-garment-preview.tsx",
+    "utf8",
+  );
   const factoryRouterSource = readFileSync(
     "src/server/routers/factory.ts",
     "utf8",
@@ -2337,7 +2341,9 @@ check(
   }
   if (
     !stationPageSource.includes("<StationCurrentLayout") ||
-    !stationPageSource.includes("selection={{ productionId, orderId }}") ||
+    !stationPageSource.includes(
+      "selection={{ productionId, orderId, stepId: selectedStepId }}",
+    ) ||
     !stationPageSource.includes("showBlocked: true") ||
     !stationPageSource.includes("renderScanPanel(true)") ||
     !stationPageSource.includes("renderScanPanel(false)") ||
@@ -2397,10 +2403,20 @@ check(
   }
   if (
     !stationOrderSource.includes("StationQcReference") ||
+    !stationOrderSource.includes("<StationGarmentPreview") ||
     !stationOrderSource.includes("BLIND SHIP — ห้ามใส่เอกสารหรือชื่อ Anajak ในกล่อง") ||
-    !factoryRouterSource.includes("inspection: { garmentLines, printChecks }")
+    !factoryRouterSource.includes("approvedDesign: row.designs[0] ?? null") ||
+    !factoryRouterSource.includes("const workGroups = row.items.map") ||
+    !factoryRouterSource.includes("workGroups,") ||
+    !stationGarmentPreviewSource.includes('data-station-approved-reference=""') ||
+    !stationGarmentPreviewSource.includes("ใช้เป็นไฟล์อ้างอิงเท่านั้น ห้ามวางตำแหน่งจากภาพนี้") ||
+    !stationGarmentPreviewSource.includes("แผนภาพบอกด้านเท่านั้น · ไม่ระบุตำแหน่งย่อย") ||
+    !stationGarmentPreviewSource.includes("รูปลายแยกในใบงาน · ไม่ใช่ภาพวางบนเสื้อ") ||
+    !stationGarmentPreviewSource.includes("ห้ามเดาจุดวาง") ||
+    !stationGarmentPreviewSource.includes("data-station-work-group") ||
+    !stationGarmentPreviewSource.includes("data-station-no-shirt-diagram")
   ) {
-    problems.push("โต๊ะ QC/แพ็กต้องเห็นรายการตรวจและคำเตือน blind ship ณ จุดลงมือ");
+    problems.push("โต๊ะ QC ต้องเห็นแบบอนุมัติ/ตำแหน่งอย่างซื่อสัตย์ และโต๊ะแพ็กต้องคงคำเตือน blind ship");
   }
   if (
     !factoryRouterSource.includes("stationOrderSelect") ||

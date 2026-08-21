@@ -1,4 +1,5 @@
-import { createElement } from "react";
+import { readFileSync } from "node:fs";
+import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { Shirt } from "lucide-react";
@@ -10,6 +11,11 @@ import {
   type StationQueueItem,
 } from "./station-queue-view";
 
+const layoutSource = readFileSync(
+  new URL("./station-current-layout.tsx", import.meta.url),
+  "utf8",
+);
+
 function queueItem(
   key: string,
   status: StationQueueItem["status"],
@@ -19,6 +25,7 @@ function queueItem(
     key,
     orderId: `order-${key}`,
     productionId: `production-${key}`,
+    stepId: `step-${key}`,
     orderNumber: `ORD-${key.toUpperCase()}`,
     title: `งาน ${key}`,
     customerName: "ลูกค้าทดสอบ",
@@ -68,36 +75,69 @@ describe("Station queue presentation", () => {
     expect(groups.blocked.map((item) => item.key)).toEqual(["blocked"]);
   });
 
+  it("ตัดเฉพาะ step ที่เปิด โดยคง lane อื่นของ production เดียวกันไว้ในคิว", () => {
+    const firstLane = queueItem("lane-1", "active", {
+      productionId: "production-mixed",
+      stepId: "step-lane-1",
+    });
+    const secondLane = queueItem("lane-2", "ready", {
+      productionId: "production-mixed",
+      stepId: "step-lane-2",
+    });
+    const groups = groupStationQueueItems(
+      [firstLane, secondLane],
+      {
+        productionId: "production-mixed",
+        stepId: "step-lane-1",
+      },
+    );
+
+    expect(groups.selected?.stepId).toBe("step-lane-1");
+    expect(groups.ready.map((item) => item.stepId)).toEqual(["step-lane-2"]);
+  });
+
   it("render current ก่อน ready ก่อน blocked และแสดงเหตุจริงโดยไม่มีข้อความเงิน", () => {
     const selected = queueItem("selected", "ready");
+    const layoutProps: ComponentProps<typeof StationCurrentLayout> = {
+      items: [
+        selected,
+        queueItem("ready", "ready"),
+        queueItem("blocked", "blocked", {
+          waitingOn: ["รอฟิล์มจากรอบพิมพ์"],
+          note: "เครื่องรีดหยุดตรวจอุณหภูมิ",
+        }),
+      ],
+      selection: { productionId: selected.productionId },
+      scan: createElement("div", { "data-test-scan": "" }, "สแกนเลขงาน"),
+      onOpen: vi.fn(),
+      children: createElement(
+        "article",
+        { "data-station-current-job": "" },
+        "งานปัจจุบัน",
+      ),
+    };
     const html = renderToStaticMarkup(
-      StationCurrentLayout({
-        items: [
-          selected,
-          queueItem("ready", "ready"),
-          queueItem("blocked", "blocked", {
-            waitingOn: ["รอฟิล์มจากรอบพิมพ์"],
-            note: "เครื่องรีดหยุดตรวจอุณหภูมิ",
-          }),
-        ],
-        selection: { productionId: selected.productionId },
-        scan: createElement("div", { "data-test-scan": "" }, "สแกนเลขงาน"),
-        onOpen: vi.fn(),
-        children: createElement(
-          "article",
-          { "data-station-current-job": "" },
-          "งานปัจจุบัน",
-        ),
-      }),
+      createElement(StationCurrentLayout, layoutProps),
     );
 
     const currentIndex = html.indexOf('data-station-region="current"');
+    const queueDisclosureIndex = html.indexOf("<details");
     const readyIndex = html.indexOf('data-station-region="ready"');
     const blockedIndex = html.indexOf('data-station-region="blocked"');
+    const scanIndex = html.indexOf('data-test-scan=""');
 
     expect(currentIndex).toBeGreaterThanOrEqual(0);
-    expect(readyIndex).toBeGreaterThan(currentIndex);
+    expect(queueDisclosureIndex).toBeGreaterThan(currentIndex);
+    expect(readyIndex).toBeGreaterThan(queueDisclosureIndex);
     expect(blockedIndex).toBeGreaterThan(readyIndex);
+    expect(scanIndex).toBeGreaterThan(blockedIndex);
+    expect(html).toContain("คิวและสแกนงาน");
+    expect(html).toContain("เปิดคิว");
+    expect(html).toContain("ปิดคิว");
+    expect(html).toContain("data-station-queue-rail");
+    expect(html).toContain("pb-24");
+    expect(html).not.toMatch(/<details[^>]*\sopen(?:=|\s|>)/);
+    expect(html).not.toContain("lg:grid-cols");
     expect(html).not.toContain(selected.orderNumber);
     expect(html).toContain("รอฟิล์มจากรอบพิมพ์");
     expect(html).toContain("เครื่องรีดหยุดตรวจอุณหภูมิ");
@@ -106,20 +146,30 @@ describe("Station queue presentation", () => {
 
   it("การเปิดบริบทไม่ย้าย bucket ready/blocked ไปเป็นงานกำลังทำ", () => {
     const selected = queueItem("selected-blocked", "blocked");
+    const layoutProps: ComponentProps<typeof StationCurrentLayout> = {
+      items: [selected, queueItem("ready", "ready")],
+      selection: { productionId: selected.productionId },
+      scan: createElement("div"),
+      onOpen: vi.fn(),
+      children: createElement("article", null, "บริบทงานติดปัญหา"),
+    };
     const html = renderToStaticMarkup(
-      StationCurrentLayout({
-        items: [selected, queueItem("ready", "ready")],
-        selection: { productionId: selected.productionId },
-        scan: createElement("div"),
-        onOpen: vi.fn(),
-        children: createElement("article", null, "บริบทงานติดปัญหา"),
-      }),
+      createElement(StationCurrentLayout, layoutProps),
     );
 
-    expect(html).toMatch(/กำลังทำ<\/dt><dd[^>]*>0<\/dd>/);
-    expect(html).toMatch(/พร้อมถัดไป<\/dt><dd[^>]*>1<\/dd>/);
-    expect(html).toMatch(/ติดปัญหา<\/dt><dd[^>]*>1<\/dd>/);
+    expect(html).toContain("กำลังทำ 0 · พร้อม 1 · ติดปัญหา 1");
+    expect(html).not.toContain("สรุปคิวสถานี");
     expect(html).toContain('aria-label="บริบทงานติดปัญหาที่เปิดดู"');
+  });
+
+  it("พัก CTA งานเดิมตลอดเวลาที่เปิดคิวหรือโฟกัสช่องสแกนใน disclosure", () => {
+    expect(layoutSource).toContain(
+      "onToggle={(event) => setQueueOpen(event.currentTarget.open)}",
+    );
+    expect(layoutSource).toContain(
+      'queueOpen && "[&_[data-station-action-bar]]:hidden"',
+    );
+    expect(layoutSource).toContain("ช่องสแกนอยู่ภายใน disclosure นี้เสมอ");
   });
 
   it("หน้า queue เต็มเรียง active/ready/blocked และคง no-money contract", () => {

@@ -13,6 +13,7 @@ import { lockOrderRow } from "@/server/services/order-cost";
 import { assertOrderPackingReadyToShip } from "@/server/services/packing-readiness";
 import { transitionOrder } from "@/server/services/order-status";
 import { createAuditLog } from "@/server/helpers";
+import { canUseStationShirtDiagram } from "@/lib/station-work-visual";
 
 const productionTeam = requirePermission("manage_production");
 
@@ -58,14 +59,29 @@ const stationOrderSelect = {
       address: true,
     },
   },
+  // แบบที่ลูกค้าอนุมัติล่าสุดสำหรับเทียบงานที่โต๊ะ QC — เลือกเฉพาะ metadata ไฟล์
+  // ไม่มีราคา/ต้นทุน และไม่ถือว่าไฟล์นี้เป็น garment mockup โดยอัตโนมัติ
+  designs: {
+    where: { approvalStatus: "APPROVED" },
+    orderBy: { versionNumber: "desc" },
+    take: 1,
+    select: {
+      versionNumber: true,
+      fileUrl: true,
+      thumbnailUrl: true,
+      approvedAt: true,
+    },
+  },
   // เช็กลิสต์ QC แบบไม่มีราคา: รุ่น/สี/ไซส์/จำนวนและตำแหน่งพิมพ์เท่านั้น
   items: {
     orderBy: { sortOrder: "asc" },
     select: {
+      id: true,
       totalQuantity: true,
       products: {
         orderBy: { sortOrder: "asc" },
         select: {
+          productType: true,
           description: true,
           fabricColor: true,
           totalQuantity: true,
@@ -81,7 +97,10 @@ const stationOrderSelect = {
           position: true,
           printType: true,
           printSize: true,
+          width: true,
+          height: true,
           designNote: true,
+          designImageUrl: true,
         },
       },
     },
@@ -162,20 +181,18 @@ function notFound(message: string): never {
 }
 
 function toStationContext(row: StationOrderRow) {
-  const garmentLines: Array<{
-    product: string;
-    size: string | null;
-    color: string | null;
-    quantity: number;
-  }> = [];
-  for (const item of row.items) {
+  const workGroups = row.items.map((item) => {
+    const garmentLines: Array<{
+      product: string;
+      size: string | null;
+      color: string | null;
+      quantity: number;
+    }> = [];
     for (const product of item.products) {
-      const productName = [product.description, product.fabricColor]
-        .filter(Boolean)
-        .join(" · ");
+      const productName = product.description || "สินค้า";
       if (product.variants.length === 0) {
         garmentLines.push({
-          product: productName || "สินค้า",
+          product: productName,
           size: null,
           color: product.fabricColor,
           quantity: product.totalQuantity,
@@ -184,22 +201,30 @@ function toStationContext(row: StationOrderRow) {
       }
       for (const variant of product.variants) {
         garmentLines.push({
-          product: productName || "สินค้า",
+          product: productName,
           size: variant.size,
           color: variant.color ?? product.fabricColor,
           quantity: variant.quantity,
         });
       }
     }
-  }
-  const printChecks = row.items.flatMap((item) =>
-    item.prints.map((print) => ({
-      position: print.position,
-      printType: print.printType,
-      printSize: print.printSize,
-      note: print.designNote,
-    })),
-  );
+    return {
+      id: item.id,
+      garmentLines,
+      showShirtDiagram: canUseStationShirtDiagram(
+        item.products.map((product) => product.productType),
+      ),
+      prints: item.prints.map((print) => ({
+        position: print.position,
+        printType: print.printType,
+        printSize: print.printSize,
+        width: print.width,
+        height: print.height,
+        note: print.designNote,
+        imageUrl: print.designImageUrl,
+      })),
+    };
+  });
   return {
     order: {
       id: row.id,
@@ -226,7 +251,10 @@ function toStationContext(row: StationOrderRow) {
     },
     activeProductions: row.productions,
     nonReturnedDeliveryCount: row.deliveries.length,
-    inspection: { garmentLines, printChecks },
+    inspection: {
+      approvedDesign: row.designs[0] ?? null,
+      workGroups,
+    },
   };
 }
 

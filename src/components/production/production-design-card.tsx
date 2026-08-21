@@ -14,6 +14,12 @@ import { Palette, ExternalLink, ImageOff } from "lucide-react";
 import type { ProductionDetail } from "./types";
 import { DASHED, FOCUS_BUTTON, RADIUS, TINT } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
+import { canUseStationShirtDiagram } from "@/lib/station-work-visual";
+import {
+  StationGarmentPreview,
+  type StationGarmentLine,
+  type StationPreviewWorkGroup,
+} from "@/components/factory/station-garment-preview";
 
 const PRINT_TYPES_BY_STEP: Readonly<Record<string, readonly string[]>> = {
   DTF_PRINT: ["DTF", "HEAT_TRANSFER"],
@@ -55,6 +61,7 @@ export function ProductionDesignCard({
   embedded = false,
   missingApprovalIsReference = false,
   focusStepType,
+  presentation = "default",
 }: {
   order: ProductionDetail["order"];
   /** วางข้าง action ใน work workspace โดยไม่สร้าง card ซ้อน */
@@ -63,6 +70,8 @@ export function ProductionDesignCard({
   missingApprovalIsReference?: boolean;
   /** จำกัดลาย/สเปกให้เหลือเฉพาะสิ่งที่เกี่ยวกับขั้นที่เปิดใน process bar */
   focusStepType?: string;
+  /** Station จัดแบบเป็น picture work sheet; default คง job traveler ฝั่ง ERP เดิม */
+  presentation?: "default" | "station-work-sheet";
 }) {
   // รูปที่กดขยายเต็มจอ — ลายอนุมัติหรือภาพลายพิมพ์ต่อตำแหน่งก็ได้
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
@@ -70,10 +79,6 @@ export function ProductionDesignCard({
   const focusedPrintTypes = printTypesForProductionStep(focusStepType);
   const productOnly = focusedPrintTypes?.length === 0;
   const approvedDesign = productOnly ? null : (order.designs[0] ?? null);
-  const approvedImage = approvedDesign
-    ? ([approvedDesign.thumbnailUrl, approvedDesign.fileUrl].find(isImageUrl) ?? null)
-    : null;
-
   // งาน mixed-print ต้องกรองตั้งแต่ระดับ item ก่อน ไม่เช่นนั้นไซส์ของอีกวิธีพิมพ์
   // จะถูกพ่วงมาในขั้นที่กำลังดู แม้ลายพิมพ์ถูกกรองถูกต้องแล้วก็ตาม
   const focusedItems = focusedPrintTypes?.length
@@ -86,14 +91,83 @@ export function ProductionDesignCard({
         .flatMap((item) => item.prints)
         .filter((print) => focusedPrintTypes.includes(print.printType))
     : focusedItems.flatMap((item) => item.prints);
-  const productsWithSizes = focusedItems.flatMap((it) =>
-    it.products.filter((p) => p.variants.length > 0)
+  const focusedProducts = focusedItems.flatMap((item) => item.products);
+  const productsWithSizes = focusedProducts.filter(
+    (product) => product.variants.length > 0,
   );
 
   // ไม่มีอะไรให้โชว์เลย (งานไม่มีลาย+ไม่มีไซส์ เช่นงานบริการล้วน) — ไม่ render การ์ดเปล่า
-  if (!approvedDesign && prints.length === 0 && productsWithSizes.length === 0) {
+  const productsForPresentation =
+    presentation === "station-work-sheet" ? focusedProducts : productsWithSizes;
+  if (!approvedDesign && prints.length === 0 && productsForPresentation.length === 0) {
     return null;
   }
+
+  if (presentation === "station-work-sheet") {
+    const workGroups: StationPreviewWorkGroup[] = focusedItems.map((item) => {
+      const garmentLines: StationGarmentLine[] = [];
+      for (const product of item.products) {
+        if (product.variants.length > 0) {
+          garmentLines.push(
+            ...product.variants.map((variant) => ({
+              id: variant.id,
+              product: product.description,
+              size: variant.size,
+              color: variant.color ?? product.fabricColor,
+              quantity: variant.quantity,
+            })),
+          );
+        } else {
+          garmentLines.push({
+            id: product.id,
+            product: product.description,
+            size: null,
+            color: product.fabricColor,
+            quantity: product.totalQuantity,
+          });
+        }
+      }
+
+      const itemPrints = (focusedPrintTypes
+        ? item.prints.filter((print) =>
+            focusedPrintTypes.includes(print.printType),
+          )
+        : item.prints
+      ).map((print) => ({
+        id: print.id,
+        position: print.position,
+        printType: print.printType,
+        printSize: print.printSize,
+        width: print.width,
+        height: print.height,
+        colorCount: print.colorCount,
+        note: print.designNote,
+        imageUrl: print.designImageUrl,
+      }));
+
+      return {
+        id: item.id,
+        garmentLines,
+        prints: itemPrints,
+        showShirtDiagram: canUseStationShirtDiagram(
+          item.products.map((product) => product.productType),
+        ),
+      };
+    });
+
+    return (
+      <StationGarmentPreview
+        approvedDesign={approvedDesign}
+        workGroups={workGroups}
+        embedded={embedded}
+        missingApprovalIsReference={missingApprovalIsReference}
+      />
+    );
+  }
+
+  const approvedImage = approvedDesign
+    ? ([approvedDesign.thumbnailUrl, approvedDesign.fileUrl].find(isImageUrl) ?? null)
+    : null;
 
   return (
     <section

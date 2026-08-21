@@ -102,4 +102,31 @@ describe("ProductionNowCard presentation contracts", () => {
     expect(html).toContain("เริ่มรีดตัวอย่างก่อนผลิตจริง");
     expect(html).not.toContain("งานที่ต้องทำตอนนี้");
   });
+
+  it("ขยายปุ่มลงมือเต็มแถวเฉพาะ Station โดยคงขนาดเดิมของ ERP", () => {
+    const actionable = [
+      waitingStep({
+        group: "current",
+        action: "start",
+      }),
+    ];
+    const stationHtml = render(actionable, { stationMode: true });
+    const erpHtml = render(actionable);
+    const stationButton = stationHtml.match(
+      /<button[^>]*data-station-primary-action=""[^>]*>/,
+    )?.[0];
+    const stationActionBar = stationHtml.match(
+      /<div[^>]*data-station-action-bar=""[^>]*>/,
+    )?.[0];
+
+    expect(stationButton).toContain("h-14");
+    expect(stationButton).toContain("w-full");
+    expect(stationButton).not.toContain("sm:w-auto");
+    expect(stationActionBar).toContain("fixed");
+    expect(stationActionBar).toContain("z-40");
+    expect(stationHtml).toContain("safe-area-inset-bottom");
+    expect(erpHtml).toContain("sm:w-auto");
+    expect(erpHtml).toContain("sm:min-w-56");
+    expect(erpHtml).not.toContain("data-station-primary-action");
+  });
 });

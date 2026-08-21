@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { TINT } from "@/components/ui/tokens";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   StationQueueRailGroup,
@@ -23,6 +23,8 @@ export function StationCurrentLayout({
   scan: ReactNode;
   onOpen: (item: StationQueueItem) => void;
 }) {
+  const queueDisclosureRef = useRef<HTMLDetailsElement>(null);
+  const [queueOpen, setQueueOpen] = useState(false);
   const { selected, active, ready, blocked } = groupStationQueueItems(
     items,
     selection,
@@ -40,11 +42,28 @@ export function StationCurrentLayout({
         ? "งานปัจจุบัน"
         : "บริบทงานที่เปิดดู";
 
+  useEffect(() => {
+    if (queueDisclosureRef.current) queueDisclosureRef.current.open = false;
+  }, [selection.orderId, selection.productionId, selection.stepId]);
+
+  function openQueueItem(item: StationQueueItem) {
+    if (queueDisclosureRef.current) queueDisclosureRef.current.open = false;
+    onOpen(item);
+  }
+
   return (
     <div
       data-station-current-layout
       data-selected-queue-key={selected?.key}
-      className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] xl:grid-cols-[minmax(0,1fr)_20rem]"
+      data-station-queue-open={queueOpen ? "" : undefined}
+      className={cn(
+        // กันพื้นที่ท้ายหน้าให้ summary ของคิวพ้น CTA แบบ fixed เสมอ
+        // โดยเฉพาะตอน browser เลื่อน element ล่างสุดมาไว้ชิดขอบจอ.
+        "min-w-0 space-y-4 pb-24",
+        // ช่องสแกนอยู่ภายใน disclosure นี้เสมอ: เปิดคิวหรือใช้ keyboard สแกน
+        // ต้องพัก CTA ของงานเดิม เพื่อไม่ให้ปิดงานผิดใบระหว่างเปลี่ยนบริบท.
+        queueOpen && "[&_[data-station-action-bar]]:hidden",
+      )}
     >
       <section
         aria-label={currentRegionLabel}
@@ -54,85 +73,74 @@ export function StationCurrentLayout({
         {children}
       </section>
 
-      <aside
+      <details
+        ref={queueDisclosureRef}
+        onToggle={(event) => setQueueOpen(event.currentTarget.open)}
         aria-label="คิวสถานี"
         data-station-queue-rail
-        className="min-w-0 space-y-3 lg:sticky lg:top-20"
+        className="group min-w-0 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
       >
-        <dl
-          aria-label="สรุปคิวสถานี"
-          className="grid grid-cols-3 gap-2 text-center"
-        >
-          <div
-            className={cn(
-              TINT.info,
-              "flex min-h-16 flex-col items-center justify-center rounded-xl border px-2 py-2",
-            )}
-          >
-            <dt className="text-2xs font-medium text-blue-300">กำลังทำ</dt>
-            <dd className="text-xl font-semibold tabular-nums text-strong">
-              {currentCount.toLocaleString("th-TH")}
-            </dd>
-          </div>
-          <div className="flex min-h-16 flex-col items-center justify-center rounded-xl border border-border bg-surface px-2 py-2">
-            <dt className="text-2xs font-medium text-muted">พร้อมถัดไป</dt>
-            <dd className="text-xl font-semibold tabular-nums text-strong">
-              {readyCount.toLocaleString("th-TH")}
-            </dd>
-          </div>
-          <div
-            className={cn(
-              TINT.warning,
-              "flex min-h-16 flex-col items-center justify-center rounded-xl border px-2 py-2",
-            )}
-          >
-            <dt className="text-2xs font-medium text-amber-300">ติดปัญหา</dt>
-            <dd className="text-xl font-semibold tabular-nums text-amber-200">
+        <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 outline-none hover:bg-interactive-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          <div className="min-w-0">
+            <h2 className="font-semibold text-strong">คิวและสแกนงาน</h2>
+            <p className="mt-0.5 text-sm text-muted">
+              กำลังทำ {currentCount.toLocaleString("th-TH")} · พร้อม{" "}
+              {readyCount.toLocaleString("th-TH")} · ติดปัญหา{" "}
               {blockedCount.toLocaleString("th-TH")}
-            </dd>
-          </div>
-        </dl>
-
-        <section className="rounded-2xl border border-border bg-surface shadow-sm">
-          <header className="border-b border-divider px-4 py-3">
-            <h2 className="text-base font-semibold text-strong">คิวสถานี</h2>
-            <p className="mt-0.5 text-xs text-muted">
-              งานที่เปิดอยู่ไม่แสดงซ้ำในคิว
             </p>
-          </header>
-          <div className="space-y-3 px-3 pb-4 pt-2 lg:max-h-[50rem] lg:overflow-y-auto">
-            {active.length > 0 ? (
-              <StationQueueRailGroup
-                id="station-rail-active-title"
-                region="active"
-                title="กำลังทำอื่น"
-                items={active}
-                emptyLabel=""
-                onOpen={onOpen}
-              />
-            ) : null}
-            <StationQueueRailGroup
-              id="station-rail-ready-title"
-              region="ready"
-              title="พร้อมถัดไป"
-              items={ready}
-              emptyLabel="ยังไม่มีงานพร้อมถัดไป"
-              onOpen={onOpen}
-            />
-            <StationQueueRailGroup
-              id="station-rail-blocked-title"
-              region="blocked"
-              title="ติดปัญหา"
-              items={blocked}
-              emptyLabel="ไม่มีงานติดปัญหา"
-              tone="warning"
-              onOpen={onOpen}
+          </div>
+          <div className="flex shrink-0 items-center gap-2 text-sm font-medium text-secondary">
+            <span className="hidden group-open:hidden sm:inline">เปิดคิว</span>
+            <span className="hidden group-open:inline">ปิดคิว</span>
+            <ChevronDown
+              className="h-5 w-5 transition-transform group-open:rotate-180"
+              aria-hidden="true"
             />
           </div>
-        </section>
+        </summary>
 
-        {scan}
-      </aside>
+        <div className="space-y-3 border-t border-divider p-3 sm:p-4">
+          <section className="rounded-2xl border border-border bg-surface-muted/35">
+            <header className="border-b border-divider px-4 py-3">
+              <h2 className="text-base font-semibold text-strong">คิวสถานี</h2>
+              <p className="mt-0.5 text-xs text-muted">
+                งานที่เปิดอยู่ไม่แสดงซ้ำในคิว
+              </p>
+            </header>
+            <div className="space-y-3 px-3 pb-4 pt-2">
+              {active.length > 0 ? (
+                <StationQueueRailGroup
+                  id="station-rail-active-title"
+                  region="active"
+                  title="กำลังทำอื่น"
+                  items={active}
+                  emptyLabel=""
+                  onOpen={openQueueItem}
+                />
+              ) : null}
+              <StationQueueRailGroup
+                id="station-rail-ready-title"
+                region="ready"
+                title="พร้อมถัดไป"
+                items={ready}
+                emptyLabel="ยังไม่มีงานพร้อมถัดไป"
+                onOpen={openQueueItem}
+              />
+              <StationQueueRailGroup
+                id="station-rail-blocked-title"
+                region="blocked"
+                title="ติดปัญหา"
+                items={blocked}
+                emptyLabel="ไม่มีงานติดปัญหา"
+                tone="warning"
+                onOpen={openQueueItem}
+              />
+            </div>
+          </section>
+
+          {scan}
+        </div>
+      </details>
     </div>
   );
 }

@@ -17,6 +17,7 @@ export type StationQueueItem = {
   key: string;
   orderId: string;
   productionId: string | null;
+  stepId: string | null;
   orderNumber: string;
   title: string;
   customerName: string | null;
@@ -36,6 +37,7 @@ export type StationQueueItem = {
 export type StationQueueSelection = {
   productionId?: string | null;
   orderId?: string | null;
+  stepId?: string | null;
 };
 
 export type StationQueueGroups = {
@@ -62,7 +64,10 @@ function matchesSelection(
   selection?: StationQueueSelection,
 ): boolean {
   if (selection?.productionId) {
-    return item.productionId === selection.productionId;
+    return (
+      item.productionId === selection.productionId &&
+      (!selection.stepId || item.stepId === selection.stepId)
+    );
   }
   return Boolean(selection?.orderId && item.orderId === selection.orderId);
 }

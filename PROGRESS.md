@@ -4,14 +4,16 @@
 
 ## ตอนนี้
 
-> **🧭 STATION LOW-TECH UX — mockup A/B พร้อมให้เลือก 2026-08-21 (ยังไม่แก้ app source)**
-> ตรวจ Station ปัจจุบันบน demo local ทั้ง desktop/mobile แล้วพบว่ารากไม่ใช่สี แต่เป็น current job, queue, scanner และรายละเอียดรองแย่งกัน พร้อมภาษาที่ปน “ยังไม่ได้ทำ” กับ “ของขาดจริง” · วาง contract ใหม่ให้คนหน้างานเรียนเพียง `งานตรงหน้า → สิ่งที่ต้องดู → next decision → handoff` แต่คง work object จริงของ Prep/Heat, DTF batch, QC และ Pack ต่างกันตาม backend; ownership, multi-lane, no-money, scan-only navigation และ no auto-claim เดิมไม่เปลี่ยน
+> **✅ STATION LOW-TECH UX — เห็นภาพแล้วทำตามบนระบบจริง 2026-08-22**
+> ลงทิศ A `One Task Kiosk` เป็นโครงหลักและดึง Picture Work Sheet มาเฉพาะส่วนที่ช่วยลงมือ: งานปัจจุบันเต็มผืน, แต่ละลายอยู่กับสินค้า/สี/ไซส์/จำนวนของ item เดียวกัน, เห็นรูปลาย→ด้านเสื้อ→ขนาด→หมายเหตุ ก่อน primary action ใหญ่หนึ่งจุด · แผนภาพบอกเฉพาะหน้า/หลัง/แขน/ปกโดยไม่เดาจุดย่อยหรือสเกล; หมวก/ถุงผ้า/ชนิดไม่ชัดใช้กล่องสินค้ากลาง ไม่ถูกวาดเป็นเสื้อ
 >
-> ทำ HTML prototype 2 ทิศใน `docs/mockups/station-lowtech-2026-08-21/`: A `One Task Kiosk` อ่านน้อยที่สุด และ B `Picture-led Work Sheet` ใช้ภาพตำแหน่ง/สเปกเป็นแกน · ทั้งคู่มี ready, blocked, QC fork, DTF active+cut+incoming, multi-work, stale, unknown outcome และ same-order handoff; critic ปิดช่อง DTF multi-order, assigned-other, routine wait, stock spare quantity และ commit/refetch truth ก่อนอนุญาต mockup
+> ไฟล์ DesignVersion ที่ schema ยังไม่บอกว่าเป็น mockup เต็มหรือลายแยกถูกเก็บเป็น “ไฟล์อ้างอิง” รองพร้อมคำห้ามเดาตำแหน่ง ไม่ยกขึ้นเป็นภาพหลักเท็จ · Prep ใช้สินค้า/ไซส์/จำนวน, DTF/Heat ใช้ลายและวิธีผลิต, QC/Pack ใช้ inspection context แบบ no-money เดียวกัน; query, mutation, permission, ownership, stale, multi-lane, DTF batch, QC correctness และ same-order handoff เดิมไม่เปลี่ยน
 >
-> **หลักฐาน:** root เปิดตรวจภาพทุก state ที่ 1024×768 และ 390×844; automated sweep 2 directions × 8 states × 2 viewports = **32/32** ไม่มี page error, horizontal overflow, prototype control หลุด หรือ target ต่ำกว่า 48px · click test `เริ่มรีด → กำลังทำ` และ QC choice → review ผ่านทั้ง A/B · รอบนี้ไม่เรียก mutation, ไม่แก้ฐาน demo และไม่แตะ query/permission/status transition
+> คิวกับ scanner ยุบอยู่ท้ายงานและไม่แสดงงานที่เปิดซ้ำ; exact `stepId` ทำให้ lane อื่นของ production เดียวกันยังอยู่ในคิว · primary action เป็น fixed footer สูง 56px แต่เผื่อพื้นที่ท้ายหน้าไม่ทับ summary คิว; เมื่อเปิดคิวหรือโฟกัสช่องสแกน CTA งานเดิมถูกพัก และกลับมาเมื่อปิดคิว เพื่อกันคนกดปิดงานผิดใบระหว่างเปลี่ยนบริบท
 >
-> **ต่อที่นี่:** ให้เบสเลือก A, B หรือ A + ภาพเฉพาะงานจาก B ก่อน; หลังเลือกจึงลง station-only presentation, แก้ QC good/defect invariant เป็น server/client test แยก และ dogfood กับพนักงานจริงก่อน rollout
+> **หลักฐาน:** browser จริง `ORD-2608-0004` ที่ 1024×768/390×844 — visual order ถูก, รูป 2 ภาพโหลดครบ, horizontal overflow 0, CTA เห็นตั้งแต่ viewport แรก; เปิดคิว→โฟกัส scan แล้ว CTA `display:none`, ปิดคิวแล้ว CTA กลับมา และแถบคิวมีระยะพ้น CTA 52.8px/45.2px · console มีเฉพาะ React DevTools/HMR info ไม่มี warning/error/hydration · full unit **1278/1278**, typecheck, lint 0 error, `verify:ui`, production build 44 หน้า และ `git diff --check` ผ่าน · independent final review ไม่พบ P0/P1 · ไม่กด mutation และไม่แก้ฐาน demo ระหว่าง browser QA
+>
+> **ต่อที่นี่:** ให้เบสลอง Station ที่ `dtf-print` หรือ `heat-press` กับออเดอร์ที่มีลายจริง; ถ้าจะยกไฟล์อนุมัติเป็น mockup เสื้อหลัก ต้องเพิ่ม asset type ที่เชื่อถือได้ก่อน เพื่อไม่ให้แรงงานยึดรูปลายเดี่ยวเป็นตำแหน่งบนเสื้อ
 
 > **✅ PRODUCTION CONTROL RECORD — อ่านง่าย ซื่อสัตย์ และไม่เผยหนี้ระบบแล้ว 2026-08-21**
 > หน้า `/production/[id]` ฝั่ง ERP ถูกจัดองค์ประกอบใหม่ให้หัวใบเหลือเลขงาน/สถานะ/ความคืบหน้า/จำนวน/กำหนดส่งที่ใช้ตัดสินใจจริง ตามด้วยข้อยกเว้นนำหนึ่งเรื่องและเส้นทางงานแบบ responsive; ความพร้อมกับกิจกรรมย้ายเป็นข้อมูลรอง · ถอดกรอบเส้นปะ `DataGap` ซึ่งเป็นภาษาของทีมพัฒนาออกจาก default surface: field ที่ยังไม่มีและไม่ช่วยตัดสินใจถูกซ่อน ส่วนขอบเขตหลักฐานอธิบายด้วยข้อความธรรมดา

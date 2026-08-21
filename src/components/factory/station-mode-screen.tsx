@@ -96,7 +96,6 @@ type StationEntry = FactoryStationQueueEntry & {
 
 type RoutedStationQueueItem = StationQueueItem & {
   station: FactoryStationKey;
-  stepId: string | null;
   sortOrder: number | null;
 };
 
@@ -434,11 +433,13 @@ export function StationModeScreen() {
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanPending, setScanPending] = useState(false);
   const [multiple, setMultiple] = useState<MultipleResolution | null>(null);
-  const previousSelectionRef = useRef(`${productionId ?? ""}|${orderId ?? ""}`);
+  const previousSelectionRef = useRef(
+    `${productionId ?? ""}|${orderId ?? ""}|${focusStepId ?? ""}`,
+  );
   const contextSyncRef = useRef({ selection: "", queueUpdatedAt: 0 });
 
   useEffect(() => {
-    const selection = `${productionId ?? ""}|${orderId ?? ""}`;
+    const selection = `${productionId ?? ""}|${orderId ?? ""}|${focusStepId ?? ""}`;
     const changed = previousSelectionRef.current !== selection;
     previousSelectionRef.current = selection;
     if (!changed || (!productionId && !orderId)) return;
@@ -448,7 +449,7 @@ export function StationModeScreen() {
         ?.focus();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [productionId, orderId]);
+  }, [productionId, orderId, focusStepId]);
 
   useEffect(() => {
     const selection = productionId
@@ -559,6 +560,17 @@ export function StationModeScreen() {
     return allQueueItems.filter((item) => item.station === station);
   }, [allQueueItems, station]);
 
+  const selectedQueueItem = productionId
+    ? (queueItems.find(
+        (item) =>
+          item.productionId === productionId &&
+          (!focusStepId || item.stepId === focusStepId),
+      ) ?? queueItems.find((item) => item.productionId === productionId))
+    : queueItems.find((item) => Boolean(orderId && item.orderId === orderId));
+  const selectedStepId = productionId
+    ? (selectedQueueItem?.stepId ?? focusStepId)
+    : null;
+
   const selectedOrderContext = useMemo(() => {
     if (stationQueueContextQuery.data) return stationQueueContextQuery.data;
     if (productionId) {
@@ -660,11 +672,7 @@ export function StationModeScreen() {
     return () => window.cancelAnimationFrame(frame);
   }, [continuationFocusKey]);
 
-  const selectedQueueStatus = queueItems.find((item) =>
-    productionId
-      ? item.productionId === productionId
-      : Boolean(orderId && item.orderId === orderId),
-  )?.status ?? null;
+  const selectedQueueStatus = selectedQueueItem?.status ?? null;
 
   useEffect(() => {
     if (station && station !== "dtf-print" && !productionId && !orderId) {
@@ -735,6 +743,7 @@ export function StationModeScreen() {
         station,
         productionId: item.productionId,
         orderId: item.productionId ? null : item.orderId,
+        focusStepId: item.stepId,
       }),
     );
   }
@@ -748,7 +757,7 @@ export function StationModeScreen() {
         productionId: opensDtfBatch ? null : item.productionId,
         orderId:
           opensDtfBatch || item.productionId ? null : item.orderId,
-        focusStepId: opensDtfBatch ? item.stepId : null,
+        focusStepId: item.stepId,
       }),
     );
   }
@@ -1019,7 +1028,7 @@ export function StationModeScreen() {
           ) : productionId || orderId ? (
             <StationCurrentLayout
               items={queueItems}
-              selection={{ productionId, orderId }}
+              selection={{ productionId, orderId, stepId: selectedStepId }}
               scan={renderScanPanel(true)}
               onOpen={openQueueItem}
             >
@@ -1046,6 +1055,7 @@ export function StationModeScreen() {
                   surface="station"
                   station={station}
                   stationQueueStatus={selectedQueueStatus}
+                  stationFocusStepId={selectedStepId}
                 />
               ) : orderId ? (
                 <StationOrderWorkspace

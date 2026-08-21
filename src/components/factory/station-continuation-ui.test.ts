@@ -25,7 +25,7 @@ describe("Station continuation UI contract", () => {
     expect(stationModeSource).toContain("router.replace(");
     expect(stationModeSource).toContain('item.station === "dtf-print"');
     expect(stationModeSource).toContain("opensDtfBatch ? null : item.productionId");
-    expect(stationModeSource).toContain("focusStepId: opensDtfBatch ? item.stepId : null");
+    expect(stationModeSource).toContain("focusStepId: item.stepId");
     expect(stationModeSource).toContain("continuation.alternatives.slice(0, 3)");
     expect(stationModeSource).toContain("data-station-continuation-unavailable");
     expect(stationModeSource).toContain("ระบบจึงไม่เลือกสถานีแทนโดยเดา");
