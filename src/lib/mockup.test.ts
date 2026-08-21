@@ -7,6 +7,7 @@ import {
   mockupImages,
   mockupPositionLabel,
   mockupPreviewUrl,
+  orderMockupCover,
 } from "./mockup";
 
 describe("mockupPreviewUrl", () => {
@@ -136,6 +137,51 @@ describe("canSubmitMockupSet / mockupFilesNeedingPreview", () => {
     ];
     expect(mockupFilesNeedingPreview(files)).toEqual([1]);
     expect(canSubmitMockupSet(files)).toBe(false);
+  });
+});
+
+describe("orderMockupCover", () => {
+  it("ม็อกอัพอนุมัติมาก่อนรูปลายเสมอ (ตรงกับของที่จะผลิตที่สุด)", () => {
+    expect(
+      orderMockupCover({
+        designs: [{ fileUrl: "/mockup.png", files: [{ fileUrl: "/mockup.png" }] }],
+        items: [{ prints: [{ designImageUrl: "/print.png" }] }],
+      }),
+    ).toBe("/mockup.png");
+  });
+
+  it("ไม่มีม็อกอัพ → ถอยไปรูปลายบนรายการ", () => {
+    expect(
+      orderMockupCover({
+        designs: [],
+        items: [{ prints: [{ designImageUrl: "/print.png" }] }],
+      }),
+    ).toBe("/print.png");
+  });
+
+  it("ไม่มีรูปลายบนรายการ → ถอยไปรูปในคลังลาย", () => {
+    expect(
+      orderMockupCover({
+        items: [
+          { prints: [{ designImageUrl: null, artwork: { imageUrl: "/artwork.png" } }] },
+        ],
+      }),
+    ).toBe("/artwork.png");
+  });
+
+  it("ม็อกอัพที่เปิดดูไม่ได้ (.ai ล้วน) ต้องไม่บังรูปลายที่ดูได้", () => {
+    expect(
+      orderMockupCover({
+        designs: [{ fileUrl: "/master.ai", files: [{ fileUrl: "/master.ai" }] }],
+        items: [{ prints: [{ designImageUrl: "/print.png" }] }],
+      }),
+    ).toBe("/print.png");
+  });
+
+  it("ไม่มีอะไรเลยคืน null และรับ null/undefined ได้", () => {
+    expect(orderMockupCover({})).toBeNull();
+    expect(orderMockupCover(null)).toBeNull();
+    expect(orderMockupCover({ designs: null, items: null })).toBeNull();
   });
 });
 

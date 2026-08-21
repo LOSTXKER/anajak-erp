@@ -19,6 +19,7 @@ import { MaterialUsage } from "@/components/material-usage";
 import { GoodsReceiptDialog } from "@/components/goods-receipt/goods-receipt-dialog";
 import { GarmentPickCard } from "@/components/production/garment-pick-card";
 import { ProductionDesignCard } from "@/components/production/production-design-card";
+import { ProductionMockupTab } from "@/components/production/production-mockup-tab";
 import { ProductionStepsList } from "@/components/production/production-steps-list";
 import { ProductionNowCard } from "@/components/production/production-now-card";
 import { ProductionControlRecord } from "@/components/production/production-control-record";
@@ -158,6 +159,7 @@ function ProductionJobInspector({
   onClose,
   returnFocusRef,
   inventory,
+  mockup,
   history,
 }: {
   section: ProductionInspectorSection;
@@ -165,6 +167,7 @@ function ProductionJobInspector({
   onClose: () => void;
   returnFocusRef: RefObject<HTMLButtonElement | null>;
   inventory: ReactNode;
+  mockup: ReactNode;
   history: ReactNode;
 }) {
   return (
@@ -196,6 +199,10 @@ function ProductionJobInspector({
               <PackageOpen />
               เสื้อและวัตถุดิบ
             </TabsTrigger>
+            <TabsTrigger value="mockup">
+              <Shirt />
+              ม็อกอัพ
+            </TabsTrigger>
             <TabsTrigger value="history">
               <Route />
               เส้นทางทั้งหมด
@@ -203,6 +210,9 @@ function ProductionJobInspector({
           </TabsList>
           <TabsContent value="inventory" className="m-0 min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
             {inventory}
+          </TabsContent>
+          <TabsContent value="mockup" className="m-0 min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            {mockup}
           </TabsContent>
           <TabsContent value="history" className="m-0 min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
             {history}
@@ -258,7 +268,9 @@ export function ProductionDetailScreen({
   // การเลือกขั้นใน navigator เป็น view state เท่านั้น — ห้ามใช้เป็น workflow status/action
   const [viewedStepId] = useState<string | null>(null);
   const [inspectorSection, setInspectorSection] = useState<ProductionInspectorSection | null>(
-    initialTab === "inventory" || initialTab === "history" ? initialTab : null,
+    initialTab === "inventory" || initialTab === "mockup" || initialTab === "history"
+      ? initialTab
+      : null,
   );
   // ขั้นนับจำนวนที่กด "เสร็จขั้นนี้" — เปิด sheet ถามจำนวน (UX1: 2 แตะ)
   // เก็บแค่ id แล้ว derive ตัว step สดจาก query ทุก render — snapshot เก่าทำยอดถอยหลังได้
@@ -943,6 +955,10 @@ export function ProductionDetailScreen({
     </article>
   ) : null;
 
+  const productionMockupContent = order ? (
+    <ProductionMockupTab order={order} />
+  ) : null;
+
   const productionHistoryContent = (
     <div aria-label="เส้นทางงานทั้งหมด">
       {workflowSteps.length > 0 ? (
@@ -1136,6 +1152,7 @@ export function ProductionDetailScreen({
                   onClose={() => setInspectorSection(null)}
                   returnFocusRef={inspectorButtonRef}
                   inventory={productionInventoryContent}
+                  mockup={productionMockupContent}
                   history={productionHistoryContent}
                 />
               ) : null}

@@ -246,16 +246,30 @@ export const productionRouter = router({
               priority: true,
               internalStatus: true,
               customer: { select: { id: true, name: true } },
-              // แบบที่ลูกค้าอนุมัติล่าสุด — อ้างเวอร์ชันชัด กันพิมพ์ผิดเวอร์ชัน (pattern job ticket)
+              // ม็อกอัพที่ลูกค้าอนุมัติ — อ้างเวอร์ชันชัด กันพิมพ์ผิดเวอร์ชัน (pattern job ticket)
+              // เก็บหลายรุ่นล่าสุดให้แท็บม็อกอัพเทียบย้อนได้ · designs[0] ยังเป็นรุ่นอนุมัติ
+              // ล่าสุดตาม orderBy desc เสมอ จอที่อ่านตัวเดียวจึงไม่เปลี่ยนพฤติกรรม
               designs: {
                 where: { approvalStatus: "APPROVED" as const },
                 orderBy: { versionNumber: "desc" as const },
-                take: 1,
+                take: 5,
                 select: {
+                  id: true,
                   versionNumber: true,
                   fileUrl: true,
                   thumbnailUrl: true,
                   approvedAt: true,
+                  customerComment: true,
+                  designerNotes: true,
+                  files: {
+                    orderBy: { sortOrder: "asc" as const },
+                    select: {
+                      fileUrl: true,
+                      thumbnailUrl: true,
+                      position: true,
+                      caption: true,
+                    },
+                  },
                 },
               },
               items: {
@@ -297,6 +311,16 @@ export const productionRouter = router({
                       colorCount: true,
                       designNote: true,
                       designImageUrl: true,
+                      // สเปกรีดกรอกครั้งเดียวที่คลังลาย — จอสถานี/แท็บม็อกอัพอ่านจากที่นี่
+                      // แทนให้ช่างเปิดไปหน้าคลังลายเอง · imageUrl เผื่อ designImageUrl ว่าง
+                      artwork: {
+                        select: {
+                          imageUrl: true,
+                          heatTempC: true,
+                          heatPressSec: true,
+                          heatPressure: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -443,7 +467,34 @@ export const productionRouter = router({
             },
           },
         },
-        items: { select: { totalQuantity: true } },
+        // รูปปกม็อกอัพหนึ่งรูปต่อออเดอร์ — หัวหน้าจำงานจากภาพได้เร็วกว่าเลขออเดอร์
+        // เอาเฉพาะ URL ที่ต้องใช้วาดรูปย่อ ไม่มีเงินและไม่มี token อนุมัติติดมา
+        designs: {
+          where: { approvalStatus: "APPROVED" as const },
+          orderBy: { versionNumber: "desc" as const },
+          take: 1,
+          select: {
+            versionNumber: true,
+            fileUrl: true,
+            thumbnailUrl: true,
+            files: {
+              orderBy: { sortOrder: "asc" as const },
+              select: { fileUrl: true, thumbnailUrl: true, position: true },
+            },
+          },
+        },
+        items: {
+          select: {
+            totalQuantity: true,
+            // ออเดอร์ที่ยังไม่มีม็อกอัพอนุมัติ (งานสต๊อค/งานลายเดิม) ยังพอมีรูปลายให้จำงาน
+            prints: {
+              select: {
+                designImageUrl: true,
+                artwork: { select: { imageUrl: true } },
+              },
+            },
+          },
+        },
       },
       orderBy: { deadline: "asc" },
       take: 200,

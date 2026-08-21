@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RADIUS, SUNK_PANEL } from "@/components/ui/tokens";
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_VARIANTS } from "@/lib/status-config";
 import { cn } from "@/lib/utils";
-import { mockupImageCount } from "@/lib/mockup";
+import { mockupCoverImage, mockupImageCount } from "@/lib/mockup";
 import { MockupThumbnail } from "./mockup-thumbnail";
 import { ArrowRight } from "lucide-react";
 
@@ -48,8 +48,9 @@ export function OrderMockupHandoff({
     >
       <div className="flex min-w-0 items-center gap-3">
         <MockupThumbnail
-          version={latest}
-          versionNumber={latest?.versionNumber}
+          cover={latest ? mockupCoverImage(latest) : null}
+          alt={latest ? `ม็อกอัพ v${latest.versionNumber}` : "ม็อกอัพ"}
+          count={imageCount}
           size="md"
         />
         <div className="min-w-0 space-y-1">

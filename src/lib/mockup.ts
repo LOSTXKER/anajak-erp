@@ -97,3 +97,43 @@ export function mockupFilesNeedingPreview(files: readonly MockupFileLike[]): num
 export function canSubmitMockupSet(files: readonly MockupFileLike[]): boolean {
   return files.length > 0 && mockupFilesNeedingPreview(files).length === 0;
 }
+
+/** รูปเดียวที่ใช้แทนออเดอร์บนแถวคิวผลิต — ดูจากม็อกอัพก่อน ไม่มีค่อยถอยไปรูปลาย */
+export interface OrderMockupSourceLike {
+  designs?: readonly MockupVersionLike[] | null;
+  items?:
+    | readonly {
+        prints?:
+          | readonly {
+              designImageUrl?: string | null;
+              artwork?: { imageUrl?: string | null } | null;
+            }[]
+          | null;
+      }[]
+    | null;
+}
+
+/**
+ * ม็อกอัพที่ลูกค้าอนุมัติคือภาพที่ตรงกับของที่จะผลิตที่สุด จึงมาก่อนเสมอ
+ * ออเดอร์ที่ยังไม่มีม็อกอัพ (งานสต๊อค/ลายเดิมที่ผูกคลังลายไว้) ยังพอมีรูปลายให้จำงาน
+ * ดีกว่าปล่อยแถวว่างจนหัวหน้าต้องเปิดทีละใบเพื่อดูว่างานไหนคืองานไหน
+ */
+export function orderMockupCover(
+  order: OrderMockupSourceLike | null | undefined,
+): string | null {
+  if (!order) return null;
+
+  for (const version of order.designs ?? []) {
+    const cover = mockupCoverImage(version);
+    if (cover) return cover;
+  }
+
+  for (const item of order.items ?? []) {
+    for (const print of item.prints ?? []) {
+      if (isImageUrl(print.designImageUrl)) return print.designImageUrl!;
+      if (isImageUrl(print.artwork?.imageUrl)) return print.artwork!.imageUrl!;
+    }
+  }
+
+  return null;
+}

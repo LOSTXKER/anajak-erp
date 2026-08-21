@@ -19,7 +19,9 @@ import { ResponsiveList } from "@/components/ui/responsive-list";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Toolbar, ToolbarGroup } from "@/components/ui/toolbar";
-import { FOCUS_BUTTON } from "@/components/ui/tokens";
+import { FOCUS_BUTTON, RADIUS } from "@/components/ui/tokens";
+import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
+import { orderMockupCover } from "@/lib/mockup";
 import { cn, formatDateShort } from "@/lib/utils";
 import {
   type BoardException,
@@ -35,8 +37,10 @@ import {
   PRODUCTION_WORKLIST_SORT_OPTIONS,
   productionWorklistProgress,
   productionWorklistCounts,
+  productionWorklistDaySummary,
   productionWorklistHref,
   resolveProductionWorklistSort,
+  type ProductionWorklistDaySummary,
   type ProductionWorklistLens,
   type ProductionWorklistSort,
   type ProductionWorklistSortColumn,
@@ -196,17 +200,25 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
                   href={href}
                   className={cn(
                     FOCUS_BUTTON,
-                    "inline-flex min-h-11 min-w-0 flex-col justify-center rounded-lg",
+                    "inline-flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg",
                   )}
                 >
-                  <span className="flex items-center gap-1.5 font-semibold tabular-nums text-strong">
-                    {job.order.orderNumber}
-                    {job.order.priority === "URGENT" ? (
-                      <Badge variant="destructive" size="sm">ด่วน</Badge>
-                    ) : null}
-                  </span>
-                  <span className="max-w-48 truncate text-xs text-muted">
-                    {job.order.customerName || job.order.title || "ไม่ระบุลูกค้า"}
+                  {/* รูปม็อกอัพนำหน้า — หัวหน้าไล่คิวจำงานจากภาพได้เร็วกว่าอ่านเลขออเดอร์ */}
+                  <MockupThumbnail
+                    cover={orderMockupCover(job.order)}
+                    alt={`ม็อกอัพของ ${job.order.orderNumber}`}
+                    size="sm"
+                  />
+                  <span className="flex min-w-0 flex-col justify-center">
+                    <span className="flex items-center gap-1.5 font-semibold tabular-nums text-strong">
+                      {job.order.orderNumber}
+                      {job.order.priority === "URGENT" ? (
+                        <Badge variant="destructive" size="sm">ด่วน</Badge>
+                      ) : null}
+                    </span>
+                    <span className="max-w-48 truncate text-xs text-muted">
+                      {job.order.customerName || job.order.title || "ไม่ระบุลูกค้า"}
+                    </span>
                   </span>
                 </Link>
               </DataTable.Td>
@@ -263,13 +275,20 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
             )}
           >
             <span className="flex items-start justify-between gap-3">
-              <span className="min-w-0">
-                <span className="flex flex-wrap items-center gap-1.5 font-semibold tabular-nums text-strong">
-                  {job.order.orderNumber}
-                  <DeadlineBadge job={job} />
-                </span>
-                <span className="mt-0.5 block truncate text-sm text-secondary">
-                  {job.order.customerName || job.order.title || "ไม่ระบุลูกค้า"}
+              <span className="flex min-w-0 items-start gap-3">
+                <MockupThumbnail
+                  cover={orderMockupCover(job.order)}
+                  alt={`ม็อกอัพของ ${job.order.orderNumber}`}
+                  size="md"
+                />
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-1.5 font-semibold tabular-nums text-strong">
+                    {job.order.orderNumber}
+                    <DeadlineBadge job={job} />
+                  </span>
+                  <span className="mt-0.5 block truncate text-sm text-secondary">
+                    {job.order.customerName || job.order.title || "ไม่ระบุลูกค้า"}
+                  </span>
                 </span>
               </span>
               <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
@@ -296,6 +315,36 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
         );
       })}
     </div>
+  );
+}
+
+/**
+ * สรุปวันนี้ 3 ตัวเลข — เลยกำหนด / ครบวันนี้ / กำลังลงมือ
+ *
+ * เลือกสามตัวนี้เพราะเป็นคำถามที่หัวหน้าถามก่อนเปิดคิวเสมอ · จงใจไม่ใส่ยอดเงินหรือ
+ * ยอดสะสมรายเดือน — หน้านี้ตัดสินลำดับงานวันนี้ ไม่ใช่รายงานผู้บริหาร
+ */
+function DaySummaryBar({ summary }: { summary: ProductionWorklistDaySummary }) {
+  const cells = [
+    { key: "late", label: "เลยกำหนด", value: summary.late, tone: "text-red-700 dark:text-red-300" },
+    { key: "today", label: "ครบกำหนดวันนี้", value: summary.today, tone: "text-amber-700 dark:text-amber-300" },
+    { key: "inProgress", label: "กำลังลงมือ", value: summary.inProgress, tone: "text-strong" },
+  ] as const;
+
+  return (
+    <dl className="grid grid-cols-3 gap-2" aria-label="สรุปงานวันนี้">
+      {cells.map((cell) => (
+        <div
+          key={cell.key}
+          className={cn("card-surface px-3 py-2.5", RADIUS.surface)}
+        >
+          <dt className="text-2xs text-muted sm:text-xs">{cell.label}</dt>
+          <dd className={cn("text-xl font-semibold tabular-nums", cell.tone)}>
+            {cell.value.toLocaleString("th-TH")}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -326,10 +375,15 @@ export function ProductionControlWorklist<
   canCreateProduction: boolean;
 }) {
   const counts = productionWorklistCounts(board);
+  // สรุปนับจากทั้งบอร์ด ไม่ใช่ jobs ที่กรองแล้ว — "วันนี้มีอะไรต้องห่วง" ต้องไม่เปลี่ยน
+  // ตามชิปที่เพิ่งกด ไม่งั้นตัวเลขที่ใช้ตัดสินใจขยับใต้มือทุกครั้งที่เปลี่ยนมุมมอง
+  const daySummary = productionWorklistDaySummary(board.jobs);
   const exceptionByOrderId = new Map(board.exceptions.map((item) => [item.orderId, item]));
 
   return (
     <div className="space-y-4" data-production-worklist>
+      <DaySummaryBar summary={daySummary} />
+
       <section aria-label="มุมรายการงาน" className="flex flex-wrap items-center gap-2">
         {PRODUCTION_WORKLIST_LENSES.map((item) => {
           const LensIcon = WORKLIST_LENS_ICONS[item.key];

@@ -1,10 +1,5 @@
 import { RADIUS, DASHED } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
-import {
-  mockupCoverImage,
-  mockupImageCount,
-  type MockupVersionLike,
-} from "@/lib/mockup";
 import { ImageOff } from "lucide-react";
 
 const SIZE_CLASS = {
@@ -16,23 +11,26 @@ const SIZE_CLASS = {
 /**
  * รูปปกม็อกอัพใบเดียวสำหรับแถวรายการและการ์ด — หัวหน้าจำงานจากภาพได้เร็วกว่าเลขออเดอร์
  *
+ * รับ URL ที่หาไว้แล้ว ไม่ใช่ record: คนเรียกมีข้อมูลคนละรูปแบบ (เวอร์ชันม็อกอัพบ้าง
+ * ทั้งออเดอร์บ้าง) — สูตรเลือกรูปอยู่ที่ mockupCoverImage/orderMockupCover ใน lib/mockup.ts
+ *
  * ไม่กดได้โดยตัวเอง: ปกติแถวทั้งแถวเป็นลิงก์อยู่แล้ว ถ้าทำปุ่มซ้อนในลิงก์จะได้
  * nested interactive ที่ keyboard/screen reader อ่านไม่ออก
  */
 export function MockupThumbnail({
-  version,
-  versionNumber,
+  cover,
+  alt = "ม็อกอัพ",
+  count,
   size = "md",
   className,
 }: {
-  version: MockupVersionLike | null | undefined;
-  versionNumber?: number;
+  cover: string | null;
+  alt?: string;
+  /** จำนวนรูปในชุด — โชว์มุมล่างขวาเมื่อมีมากกว่า 1 ให้รู้ว่ายังมีด้านอื่นให้ดู */
+  count?: number;
   size?: keyof typeof SIZE_CLASS;
   className?: string;
 }) {
-  const cover = version ? mockupCoverImage(version) : null;
-  const count = version ? mockupImageCount(version) : 0;
-
   if (!cover) {
     return (
       <div
@@ -62,12 +60,12 @@ export function MockupThumbnail({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={cover}
-        alt={versionNumber ? `ม็อกอัพ v${versionNumber}` : "ม็อกอัพ"}
+        alt={alt}
         loading="lazy"
         decoding="async"
         className="h-full w-full object-cover"
       />
-      {count > 1 ? (
+      {count && count > 1 ? (
         <span className="absolute bottom-0 right-0 bg-black/60 px-1 text-2xs font-medium tabular-nums text-white">
           {count}
         </span>

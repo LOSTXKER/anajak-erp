@@ -9,6 +9,7 @@ import {
   type ProductionLane,
 } from "@/lib/production-steps";
 import { BANGKOK_TZ } from "@/lib/utils";
+import type { OrderMockupSourceLike } from "@/lib/mockup";
 
 /* ============================================================
    บอร์ดการผลิต — view model ของหน้า /production (ทิศ C · ใบงาน PC1)
@@ -60,7 +61,9 @@ export type BoardOrderLike<S extends BoardStepLike> = {
   totalQuantity?: number;
   productions: readonly BoardProductionLike<S>[];
   readiness?: { ready: boolean; checks: readonly BoardReadinessCheck[] } | null;
-};
+  // รูปแทนงานบนแถวคิว — optional เพราะ board ใช้กับ test fixture และจอที่ไม่ได้ query
+  // ส่วนนี้มาด้วย · สูตรเลือกรูปอยู่ที่ orderMockupCover ใน src/lib/mockup.ts ที่เดียว
+} & OrderMockupSourceLike;
 
 /** ช่วงกำหนดส่ง — หัวกลุ่มของรายการงาน (เรียงตามนี้เสมอ) */
 export type BoardBucketKey =
