@@ -200,7 +200,7 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
                   href={href}
                   className={cn(
                     FOCUS_BUTTON,
-                    "inline-flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg",
+                    "inline-flex min-h-11 min-w-0 items-center gap-3 rounded-lg",
                   )}
                 >
                   {/* รูปม็อกอัพนำหน้า — หัวหน้าไล่คิวจำงานจากภาพได้เร็วกว่าอ่านเลขออเดอร์ */}

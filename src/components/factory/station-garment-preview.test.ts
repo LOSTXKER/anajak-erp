@@ -101,7 +101,7 @@ describe("StationGarmentPreview", () => {
       html.indexOf("data-station-approved-reference"),
     );
     expect(html).toContain("ม็อกอัพที่ลูกค้าอนุมัติ");
-    expect(html).toContain("ขนาดและจุดวางให้ยึดตัวเลขในใบงาน ห้ามวัดจากภาพนี้");
+    expect(html).toContain("ขนาดและจุดวางยึดตัวเลขในใบงาน ห้ามวางตำแหน่งจากภาพนี้");
     expect(html).toContain("v3");
     expect(html).toContain("data-station-standalone-art");
     expect(html).toContain("รูปลายแยกในใบงาน · ไม่ใช่ภาพวางบนเสื้อ");

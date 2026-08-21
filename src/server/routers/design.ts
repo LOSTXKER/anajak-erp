@@ -288,18 +288,16 @@ export const designRouter = router({
       // ไฟล์เป็น proxy URL (bucket private) — ลูกค้าไม่มี session ต้องพก token
       // ไปกับ URL ให้ /api/files เช็คว่าเป็นไฟล์ของแบบใบนี้จริง · ต้องติด token ให้
       // "ทุกรูปในชุด" ไม่ใช่แค่รูปปก ไม่งั้นลูกค้าเห็นด้านหน้าด้านเดียวแล้วรูปอื่นแตก
+      // `?? ค่าเดิม` เพราะ withFileToken คืน null เฉพาะตอน url ว่าง ซึ่ง fileUrl ไม่มีทางว่าง
+      // (schema บังคับ) — เขียนแบบนี้แทน non-null assertion เพื่อไม่ให้พังเงียบถ้า schema เปลี่ยน
       return {
         ...design,
-        fileUrl: withFileToken(design.fileUrl, input.token),
-        thumbnailUrl: design.thumbnailUrl
-          ? withFileToken(design.thumbnailUrl, input.token)
-          : null,
+        fileUrl: withFileToken(design.fileUrl, input.token) ?? design.fileUrl,
+        thumbnailUrl: withFileToken(design.thumbnailUrl, input.token),
         files: design.files.map((file) => ({
           ...file,
-          fileUrl: withFileToken(file.fileUrl, input.token),
-          thumbnailUrl: file.thumbnailUrl
-            ? withFileToken(file.thumbnailUrl, input.token)
-            : null,
+          fileUrl: withFileToken(file.fileUrl, input.token) ?? file.fileUrl,
+          thumbnailUrl: withFileToken(file.thumbnailUrl, input.token),
         })),
       };
     }),

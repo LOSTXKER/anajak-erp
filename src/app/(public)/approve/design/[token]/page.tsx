@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { isImageUrl } from "@/lib/utils";
+import { mockupImages } from "@/lib/mockup";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,6 +55,8 @@ export default function DesignApprovalPage({
 
   const d = design.data;
   const alreadyDecided = d.approvalStatus !== "PENDING";
+  // เวอร์ชันเก่าที่มีรูปเดียวจะได้ลิสต์ยาว 1 — หน้านี้จึงใช้โค้ดทางเดียวกันทั้งของเก่าและใหม่
+  const images = mockupImages(d);
 
   // Thank you screen after submission
   if (submitted) {
@@ -125,12 +127,17 @@ export default function DesignApprovalPage({
           </CardContent>
         </Card>
 
-        {/* Design Preview */}
+        {/* ม็อกอัพทั้งชุด — ลูกค้าตัดสินครั้งเดียวจึงต้องเห็นครบทุกด้านก่อนกด */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">
-                แบบเวอร์ชัน {d.versionNumber}
+                ม็อกอัพเวอร์ชัน {d.versionNumber}
+                {images.length > 1 ? (
+                  <span className="ml-1.5 font-normal text-slate-500">
+                    ({images.length} รูป)
+                  </span>
+                ) : null}
               </CardTitle>
               <Badge
                 variant={
@@ -150,34 +157,58 @@ export default function DesignApprovalPage({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* ไฟล์ .ai/.psd/.pdf แสดงเป็นรูปตรงๆ ไม่ได้ — โชว์กล่องดาวน์โหลดแทนรูปแตก */}
-            {d.fileUrl && isImageUrl(d.fileUrl) ? (
-              <div className="overflow-hidden rounded-lg border border-slate-200">
-                <img
-                  src={d.fileUrl}
-                  alt={`Design v${d.versionNumber}`}
-                  className="w-full object-contain"
-                />
-              </div>
-            ) : d.fileUrl ? (
-              <div className={cn(DASHED, "rounded-xl p-6 text-center text-sm text-slate-500")}>
-                ไฟล์แบบเป็นไฟล์งาน (เปิดดูตัวอย่างในหน้านี้ไม่ได้) — กด &quot;เปิดไฟล์แบบ&quot;
-                ด้านล่างเพื่อดูก่อนตัดสินใจ
-              </div>
-            ) : null}
-            {d.fileUrl && (
-              <div className="text-center">
-                <a
-                  href={d.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  {isImageUrl(d.fileUrl) ? "เปิดภาพเต็ม" : "เปิดไฟล์แบบ"}
-                </a>
-              </div>
-            )}
+            {/* กางรูปใหญ่เรียงลงมา ไม่ใช่ตารางรูปย่อ — ลูกค้าส่วนใหญ่เปิดบนมือถือและ
+                ต้องเห็นรายละเอียดลายชัดพอจะตัดสินใจ ไม่ใช่แค่รู้ว่ามีกี่รูป */}
+            {images.map((image, index) => (
+              <figure key={`${image.fileUrl}-${index}`} className="space-y-1.5">
+                {image.positionLabel ? (
+                  <figcaption className="text-sm font-medium text-slate-700">
+                    ด้าน{image.positionLabel}
+                  </figcaption>
+                ) : null}
+
+                {image.previewUrl ? (
+                  <a
+                    href={image.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block overflow-hidden rounded-lg border border-slate-200"
+                  >
+                    <img
+                      src={image.previewUrl}
+                      alt={
+                        image.positionLabel
+                          ? `ม็อกอัพ v${d.versionNumber} ด้าน${image.positionLabel}`
+                          : `ม็อกอัพ v${d.versionNumber} รูปที่ ${index + 1}`
+                      }
+                      className="w-full object-contain"
+                    />
+                  </a>
+                ) : (
+                  // .ai/.psd/.pdf แสดงเป็นรูปตรงๆ ไม่ได้ — บอกทางแทนปล่อยรูปแตก
+                  <div className={cn(DASHED, "rounded-xl p-6 text-center text-sm text-slate-500")}>
+                    ไฟล์นี้เป็นไฟล์งาน เปิดดูตัวอย่างในหน้านี้ไม่ได้ — กดลิงก์ด้านล่างเพื่อดูก่อนตัดสินใจ
+                  </div>
+                )}
+
+                {image.caption ? (
+                  <p className="text-sm text-slate-500">{image.caption}</p>
+                ) : null}
+
+                <p className="text-center">
+                  <a
+                    href={image.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {image.previewUrl ? "เปิดภาพเต็ม" : "เปิดไฟล์"}
+                  </a>
+                </p>
+              </figure>
+            ))}
+
             {d.designerNotes && (
               <Alert variant="info">
                 <strong>โน้ตจากดีไซเนอร์:</strong> {d.designerNotes}

@@ -2409,7 +2409,10 @@ check(
     !factoryRouterSource.includes("const workGroups = row.items.map") ||
     !factoryRouterSource.includes("workGroups,") ||
     !stationGarmentPreviewSource.includes('data-station-approved-reference=""') ||
-    !stationGarmentPreviewSource.includes("ใช้เป็นไฟล์อ้างอิงเท่านั้น ห้ามวางตำแหน่งจากภาพนี้") ||
+    // เดิมด่านนี้ล็อกทั้งประโยค "ใช้เป็นไฟล์อ้างอิงเท่านั้น ห้ามวางตำแหน่งจากภาพนี้" ซึ่งครึ่งแรก
+    // ผูกกับข้อจำกัดที่หมดไปแล้ว (2026-08-22: ม็อกอัพระบุตำแหน่งต่อรูปได้ ระบบไม่ได้เดาอีกต่อไป)
+    // สิ่งที่ต้องกันไม่ให้หลุดคือคำสั่ง "ห้ามวางตำแหน่งจากภาพนี้" — ช่างต้องยึดตัวเลขในใบงาน
+    !stationGarmentPreviewSource.includes("ห้ามวางตำแหน่งจากภาพนี้") ||
     !stationGarmentPreviewSource.includes("แผนภาพบอกด้านเท่านั้น · ไม่ระบุตำแหน่งย่อย") ||
     !stationGarmentPreviewSource.includes("รูปลายแยกในใบงาน · ไม่ใช่ภาพวางบนเสื้อ") ||
     !stationGarmentPreviewSource.includes("ห้ามเดาจุดวาง") ||
