@@ -995,10 +995,35 @@ model DesignVersion {
   createdAt       DateTime             @default(now()) @map("created_at")
 
   // Relations
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  files DesignVersionFile[]
 
   @@unique([orderId, versionNumber])
   @@map("design_versions")
+}
+
+// ม็อกอัพหนึ่งเวอร์ชัน = หลายรูป (หน้า/หลัง/แขน) — ลูกค้าอนุมัติ "ทั้งชุด" ครั้งเดียว
+// เดิม 1 เวอร์ชัน = 1 รูป ทำให้เสื้อที่พิมพ์หลายจุดต้องยัดทุกด้านลงรูปเดียว หรือแตกเป็น
+// หลายเวอร์ชันจนประวัติการอนุมัติอ่านไม่รู้เรื่อง
+//
+// `DesignVersion.fileUrl` ยังเป็น "รูปปก" ของเวอร์ชันเหมือนเดิม ไม่ย้ายไม่ backfill —
+// ใบสั่งผลิต/station/ลิงก์ลูกค้าที่อ่าน fileUrl อยู่จึงทำงานต่อได้ทันทีแม้ยังไม่มีแถวในตารางนี้
+model DesignVersionFile {
+  id           String   @id @default(cuid())
+  designId     String   @map("design_id")
+  sortOrder    Int      @default(0) @map("sort_order")
+  fileUrl      String   @map("file_url")
+  thumbnailUrl String?  @map("thumbnail_url")
+  // ค่าเดียวกับ OrderItemPrint.position — FRONT, BACK, SLEEVE_L, SLEEVE_R, COLLAR, POCKET, OTHER
+  // ไม่บังคับ: ดีไซเนอร์อัปรูปรวมหลายด้านในไฟล์เดียวได้ ระบุตำแหน่งไม่ได้ก็ไม่บล็อกงาน
+  position     String?
+  caption      String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  design DesignVersion @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  @@index([designId])
+  @@map("design_version_files")
 }
 
 // ============================================================
