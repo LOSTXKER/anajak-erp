@@ -19,6 +19,13 @@ export interface StationPreviewDesign {
   fileUrl: string;
   thumbnailUrl: string | null;
   approvedAt: Date | null;
+  /** รูปทั้งชุดของม็อกอัพเวอร์ชันนี้ (หน้า/หลัง/แขน) — ว่าง = เวอร์ชันเก่าที่มีแค่รูปปก */
+  files?: readonly {
+    fileUrl: string;
+    thumbnailUrl?: string | null;
+    position?: string | null;
+    caption?: string | null;
+  }[];
 }
 
 export interface StationPreviewPrint {
@@ -31,6 +38,12 @@ export interface StationPreviewPrint {
   colorCount?: number | null;
   note: string | null;
   imageUrl: string | null;
+  /** สเปกรีดจากคลังลายลูกค้า (CustomerArtwork) — มีเมื่อลายถูก promote แล้ว (mockup v2) */
+  heat?: {
+    tempC: number | null;
+    pressSec: number | null;
+    pressure: string | null;
+  } | null;
 }
 
 export interface StationGarmentLine {
@@ -187,8 +200,24 @@ function ApprovedDesignReference({
   onZoom: (image: { src: string; label: string }) => void;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const label = `ไฟล์แบบที่ลูกค้าอนุมัติ v${design.versionNumber}`;
+  const label = `ม็อกอัพที่ลูกค้าอนุมัติ v${design.versionNumber}`;
   const showImage = Boolean(image && !imageFailed);
+  // รูปเพิ่มเติมในชุดนอกจากรูปที่กางใหญ่อยู่ — ด้านหลัง/แขนที่ช่างต้องเห็นด้วย
+  const extraImages: { src: string; sideLabel: string | null }[] = [];
+  for (const file of design.files ?? []) {
+    const src = isStationPreviewImageUrl(file.thumbnailUrl)
+      ? file.thumbnailUrl
+      : isStationPreviewImageUrl(file.fileUrl)
+        ? file.fileUrl
+        : null;
+    if (!src || src === image) continue;
+    extraImages.push({
+      src,
+      sideLabel: file.position
+        ? (stationSideForPosition(file.position)?.sideLabel ?? null)
+        : null,
+    });
+  }
 
   return (
     <section
@@ -202,7 +231,7 @@ function ApprovedDesignReference({
             id="station-approved-reference-title"
             className="text-base font-semibold text-strong"
           >
-            ไฟล์อนุมัติสำหรับเปิดเทียบ
+            ม็อกอัพอนุมัติสำหรับเปิดเทียบ
           </h4>
           <Badge variant="success" size="sm">
             v{design.versionNumber}
@@ -221,7 +250,7 @@ function ApprovedDesignReference({
           "border-b px-4 py-2 text-xs font-medium sm:px-5",
         )}
       >
-        ระบบยังไม่รู้ว่าไฟล์นี้เป็น mockup สินค้าหรือรูปลาย · ใช้เป็นไฟล์อ้างอิงเท่านั้น ห้ามวางตำแหน่งจากภาพนี้
+        ใช้เทียบหน้าตางานที่ลูกค้าตกลง · ขนาดและจุดวางให้ยึดตัวเลขในใบงาน ห้ามวัดจากภาพนี้
       </p>
 
       {showImage && image ? (
@@ -259,6 +288,44 @@ function ApprovedDesignReference({
         </div>
       )}
 
+      {/* ด้านอื่นในชุดเดียวกัน — งานพิมพ์หน้า+หลังต้องเห็นครบ ไม่งั้นช่างทำเฉพาะด้านที่เห็น */}
+      {extraImages.length > 0 ? (
+        <ul
+          data-station-approved-reference-extra=""
+          className="flex flex-wrap gap-3 border-t border-divider px-4 py-3 sm:px-5"
+        >
+          {extraImages.map((item, index) => (
+            <li key={`${item.src}-${index}`}>
+              <button
+                type="button"
+                onClick={() =>
+                  onZoom({
+                    src: item.src,
+                    label: item.sideLabel ? `${label} — ${item.sideLabel}` : label,
+                  })
+                }
+                className="block overflow-hidden rounded-xl border border-border bg-white outline-none ring-inset focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`ขยาย${label}${item.sideLabel ? ` ${item.sideLabel}` : ""}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.src}
+                  alt={item.sideLabel ? `${label} ${item.sideLabel}` : label}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-20 w-20 object-contain"
+                />
+                {item.sideLabel ? (
+                  <span className="block bg-surface-muted px-1 py-0.5 text-2xs text-secondary">
+                    {item.sideLabel}
+                  </span>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-divider px-4 py-3 sm:px-5">
         <p className="text-xs text-muted">
           {showImage ? "แตะเพื่อขยายไฟล์อ้างอิง" : "เปิดไฟล์เพื่อตรวจข้อมูลอ้างอิง"}
@@ -272,6 +339,15 @@ function ApprovedDesignReference({
       </div>
     </section>
   );
+}
+
+export function stationHeatLabel(heat: StationPreviewPrint["heat"]): string | null {
+  if (!heat) return null;
+  const parts: string[] = [];
+  if (heat.tempC != null) parts.push(`${heat.tempC}°C`);
+  if (heat.pressSec != null) parts.push(`${heat.pressSec} วิ`);
+  if (heat.pressure) parts.push(heat.pressure);
+  return parts.length > 0 ? `รีด ${parts.join(" · ")}` : null;
 }
 
 function StationPrintRow({
@@ -291,6 +367,7 @@ function StationPrintRow({
   const artImage = isStationPreviewImageUrl(print.imageUrl)
     ? print.imageUrl
     : null;
+  const heatLabel = stationHeatLabel(print.heat);
 
   return (
     <li className="space-y-4 px-4 py-5 sm:px-5">
@@ -300,10 +377,20 @@ function StationPrintRow({
           <p className="mt-1 text-sm text-secondary">{typeLabel}</p>
           <p className="mt-1 text-xs font-medium text-muted">ใช้กับ {workLabel}</p>
         </div>
-        <p className="rounded-lg bg-surface-muted px-3 py-2 text-base font-semibold tabular-nums text-strong">
-          {printDimensionLabel(print)}
-          {print.colorCount ? ` · ${print.colorCount} สี` : ""}
-        </p>
+        <div className="text-right">
+          <p className="rounded-lg bg-surface-muted px-3 py-2 text-base font-semibold tabular-nums text-strong">
+            {printDimensionLabel(print)}
+            {print.colorCount ? ` · ${print.colorCount} สี` : ""}
+          </p>
+          {heatLabel ? (
+            <p
+              data-station-heat-spec=""
+              className="mt-1.5 inline-block rounded-lg bg-blue-100 px-3 py-1.5 text-sm font-semibold tabular-nums text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+            >
+              {heatLabel}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div

@@ -92,7 +92,7 @@ describe("station preview image boundary", () => {
 });
 
 describe("StationGarmentPreview", () => {
-  it("ให้จุดทำงานนำ และเก็บไฟล์อนุมัติชนิดไม่ชัดเป็นข้อมูลอ้างอิงรอง", () => {
+  it("ให้จุดทำงานนำ และเก็บม็อกอัพอนุมัติเป็นข้อมูลอ้างอิงรอง", () => {
     const html = renderPreview();
 
     expect(html).toContain("data-station-approved-reference");
@@ -100,8 +100,8 @@ describe("StationGarmentPreview", () => {
     expect(html.indexOf("data-station-work-group")).toBeLessThan(
       html.indexOf("data-station-approved-reference"),
     );
-    expect(html).toContain("ไฟล์แบบที่ลูกค้าอนุมัติ");
-    expect(html).toContain("ใช้เป็นไฟล์อ้างอิงเท่านั้น ห้ามวางตำแหน่งจากภาพนี้");
+    expect(html).toContain("ม็อกอัพที่ลูกค้าอนุมัติ");
+    expect(html).toContain("ขนาดและจุดวางให้ยึดตัวเลขในใบงาน ห้ามวัดจากภาพนี้");
     expect(html).toContain("v3");
     expect(html).toContain("data-station-standalone-art");
     expect(html).toContain("รูปลายแยกในใบงาน · ไม่ใช่ภาพวางบนเสื้อ");
@@ -113,6 +113,26 @@ describe("StationGarmentPreview", () => {
     expect(html).toContain("Anajak Oversize CVC");
     expect(html).toContain("L · ดำ");
     expect(html).toContain("×12");
+  });
+
+  it("ม็อกอัพหลายด้านต้องขึ้นครบ ไม่ใช่เห็นแค่ด้านที่เป็นรูปปก", () => {
+    const html = renderPreview({
+      design: {
+        ...approvedDesign,
+        files: [
+          { fileUrl: "https://example.com/v3-front.png", position: "FRONT" },
+          { fileUrl: "https://example.com/v3-back.png", position: "BACK" },
+        ],
+      },
+    });
+
+    expect(html).toContain("data-station-approved-reference-extra");
+    expect(html).toContain("v3-back.png");
+    expect(html).toContain("ด้านหลัง");
+  });
+
+  it("เวอร์ชันเก่าที่มีรูปเดียวไม่ขึ้นแถวรูปเพิ่ม (ไม่ต้อง backfill ฐานข้อมูล)", () => {
+    expect(renderPreview()).not.toContain("data-station-approved-reference-extra");
   });
 
   it("ไฟล์อนุมัติที่ไม่ใช่รูปยังบอกให้เปิดไฟล์เต็ม และแสดงลายแยกโดยไม่ปลอม mockup", () => {

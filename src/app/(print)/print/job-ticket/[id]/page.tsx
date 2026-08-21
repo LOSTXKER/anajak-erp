@@ -18,6 +18,7 @@ import {
   productionWorkflowSteps,
 } from "@/lib/production-steps";
 import { isImageUrl } from "@/lib/utils";
+import { mockupImages } from "@/lib/mockup";
 import { PrintPage, NotesBlock, formatDocDate } from "@/components/print/print-document";
 import { PrintActions } from "@/components/print/print-actions";
 
@@ -73,21 +74,32 @@ export default async function PrintJobTicketPage({
           },
         },
       },
-      // แบบที่ลูกค้าอนุมัติล่าสุด — ช่างหน้าเครื่องต้องเห็นลายจริง ไม่ใช่แค่ชื่อไฟล์
+      // ม็อกอัพที่ลูกค้าอนุมัติล่าสุด — ช่างหน้าเครื่องต้องเห็นลายจริง ไม่ใช่แค่ชื่อไฟล์
+      // ดึงทั้งชุด: งานพิมพ์หน้า+หลังถ้าพิมพ์แค่รูปปกลงกระดาษ ช่างจะทำเฉพาะด้านที่เห็น
       designs: {
         where: { approvalStatus: "APPROVED" },
         orderBy: { versionNumber: "desc" },
         take: 1,
-        select: { versionNumber: true, fileUrl: true, thumbnailUrl: true, approvedAt: true },
+        select: {
+          versionNumber: true,
+          fileUrl: true,
+          thumbnailUrl: true,
+          approvedAt: true,
+          files: {
+            orderBy: { sortOrder: "asc" },
+            select: { fileUrl: true, thumbnailUrl: true, position: true },
+          },
+        },
       },
     },
   });
   if (!order) notFound();
 
   const approvedDesign = order.designs[0] ?? null;
-  const approvedDesignImage = approvedDesign
-    ? [approvedDesign.thumbnailUrl, approvedDesign.fileUrl].find(isImageUrl) ?? null
-    : null;
+  // ทุกรูปในชุดที่พิมพ์ลงกระดาษได้จริง — เวอร์ชันเก่าที่ยังไม่มี files จะได้รูปปกใบเดียว
+  const approvedDesignImages = approvedDesign
+    ? mockupImages(approvedDesign).filter((image) => image.previewUrl)
+    : [];
 
   // Station Mode: QR ใหม่เปิดจอหน้างานโดยตรง แต่ parser ยังรับ QR เก่า /production/<id>
   // เสมอ · ยังไม่มีใบผลิตให้เปิดบริบทออเดอร์เพื่อบอกตรง ๆ ว่างานอยู่ขั้นไหน
@@ -170,25 +182,36 @@ export default async function PrintJobTicketPage({
           <MetaCell label="จำนวนรายการ" value={`${order.items.length} รายการ`} />
         </div>
 
-        {/* แบบที่ลูกค้าอนุมัติล่าสุด — อ้างอิงเวอร์ชันชัดเจน กันพิมพ์ผิดเวอร์ชัน */}
+        {/* ม็อกอัพที่ลูกค้าอนุมัติล่าสุด — อ้างอิงเวอร์ชันชัดเจน กันพิมพ์ผิดเวอร์ชัน */}
         {approvedDesign && (
           <div className="mt-3 rounded border border-slate-300 px-4 py-2.5">
             <p className="text-[10.5px] uppercase tracking-wide text-slate-500">
-              แบบอนุมัติล่าสุด — เวอร์ชัน {approvedDesign.versionNumber}
+              ม็อกอัพอนุมัติล่าสุด — เวอร์ชัน {approvedDesign.versionNumber}
               {approvedDesign.approvedAt
                 ? ` (อนุมัติ ${formatDocDate(approvedDesign.approvedAt)})`
                 : ""}
             </p>
-            {approvedDesignImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={approvedDesignImage}
-                alt={`แบบอนุมัติ v${approvedDesign.versionNumber}`}
-                className="mt-1.5 max-h-44 rounded border border-slate-200 object-contain"
-              />
+            {approvedDesignImages.length > 0 ? (
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {approvedDesignImages.map((image, index) => (
+                  <figure key={`${image.fileUrl}-${index}`} className="max-w-[32%]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={image.previewUrl!}
+                      alt={`ม็อกอัพ v${approvedDesign.versionNumber}${image.positionLabel ? ` ด้าน${image.positionLabel}` : ""}`}
+                      className="max-h-44 rounded border border-slate-200 object-contain"
+                    />
+                    {image.positionLabel ? (
+                      <figcaption className="mt-0.5 text-center text-[10.5px] font-semibold text-slate-600">
+                        {image.positionLabel}
+                      </figcaption>
+                    ) : null}
+                  </figure>
+                ))}
+              </div>
             ) : (
               <p className="mt-1 text-[12px] text-slate-600">
-                ไฟล์แบบไม่ใช่รูปภาพ (เปิดดูในระบบ: สแกน QR → ส่วนงานออกแบบ)
+                ไฟล์ม็อกอัพไม่ใช่รูปภาพ (เปิดดูในระบบ: สแกน QR → แท็บม็อกอัพ)
               </p>
             )}
           </div>
