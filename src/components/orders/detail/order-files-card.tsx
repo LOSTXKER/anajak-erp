@@ -23,7 +23,6 @@ import {
   ImageIcon,
   Link2,
   Lock,
-  Palette,
   Printer,
   Trash2,
   Upload,
@@ -35,8 +34,11 @@ import { Input } from "@/components/ui/input";
 
 // ไฟล์ 3 ชั้นบนหน้าออเดอร์ (FLOW-REDESIGN ก้อน 4 — ดู src/lib/file-layers.ts)
 // ชั้น 1 = Attachment ทั่วไป (รวม REFERENCE_IMAGE เดิม) + ปุ่มแอดมินแนบแทนลูกค้า
-// ชั้น 2 = DesignVersion (สรุป+ลิงก์ไปการ์ดงานออกแบบ — ไม่ทำซ้ำ UI)
 // ชั้น 3 = Attachment category PRINT_FILE — ภายในเท่านั้น
+//
+// ชั้น 2 (ม็อกอัพ = DesignVersion) **ไม่อยู่ในไฟล์นี้** — MockupPanel กางเต็มตัวอยู่เหนือ
+// การ์ดนี้ในแท็บเดียวกัน (2026-08-22) · เดิมไฟล์นี้มีแถบสรุปชั้น 2 ที่ยิง design.listByOrder
+// ซ้ำกับการ์ดงานออกแบบอีกแท็บ แล้วมีปุ่มพาข้ามแท็บไปมา — ม็อกอัพต้องมีบ้านเดียว
 
 interface OrderFilesCardProps {
   orderId: string;
@@ -44,20 +46,11 @@ interface OrderFilesCardProps {
   attachments: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   userId?: string;
   userRole?: string;
-  // ปุ่ม "ไปที่งานออกแบบ" — การ์ดงานออกแบบอยู่คนละแท็บ (production) ต้องให้ page สลับแท็บ+scroll ให้
-  onGoToDesign?: () => void;
 }
 
 const POSITION_LABELS: Record<string, string> = {
   FRONT: "หน้า", BACK: "หลัง", SLEEVE_L: "แขนซ้าย", SLEEVE_R: "แขนขวา",
   COLLAR: "ปก", POCKET: "กระเป๋า", OTHER: "อื่นๆ",
-};
-
-const DESIGN_STATUS_LABELS: Record<string, string> = {
-  PENDING: "รอลูกค้าตัดสิน",
-  APPROVED: "อนุมัติแล้ว",
-  REVISION_REQUESTED: "ขอแก้ไข",
-  REJECTED: "ไม่อนุมัติ",
 };
 
 function FileThumb({
@@ -119,7 +112,7 @@ function FileThumb({
   );
 }
 
-export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToDesign }: OrderFilesCardProps) {
+export function OrderFilesCard({ orderId, attachments, userId, userRole }: OrderFilesCardProps) {
   const utils = trpc.useUtils();
   const confirm = useConfirm();
   const [uploadingLayer, setUploadingLayer] = React.useState<"RAW" | "PRINT" | null>(null);
@@ -127,9 +120,6 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
   const [linkCopied, setLinkCopied] = React.useState(false);
   // รูปที่เปิด popup (lightbox) — คลิกรูปดูในหน้า ไม่เด้งหน้าใหม่
   const [preview, setPreview] = React.useState<{ fileUrl: string; fileName: string; uploadedById?: string | null } | null>(null);
-
-  // cache ร่วมกับ OrderDesignSection (query key เดียวกัน) — ไม่ยิงซ้ำ
-  const designs = trpc.design.listByOrder.useQuery({ orderId });
 
   // ลิงก์อัปโหลดลูกค้า (ก้อน 4 ชิ้น 3) — เฉพาะคนถือความสัมพันธ์ลูกค้า (server gate ด้วย)
   const canManageLink =
@@ -176,8 +166,6 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
   const canDelete = (att: { uploadedById?: string }) =>
     isManagerUp || (!!userId && att.uploadedById === userId);
 
-  const latestDesign = designs.data?.[0];
-
   function handleUploaded(layer: "RAW" | "PRINT", url: string, fileName: string, file: File) {
     createAttachment.mutate({
       entityType: "ORDER",
@@ -188,15 +176,6 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
       fileSize: file.size,
       category: (layer === "PRINT" ? "PRINT_FILE" : "OTHER") as AttachmentCategory,
     });
-  }
-
-  function scrollToDesign() {
-    // การ์ดงานออกแบบอยู่แท็บ production (คนละแท็บกับไฟล์) — ให้ page สลับแท็บก่อน scroll
-    // fallback getElementById เผื่อใช้นอกบริบทแท็บ (element อยู่หน้าเดียวกัน)
-    if (onGoToDesign) return onGoToDesign();
-    document
-      .getElementById("order-section-design")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   const linkData = uploadLink.data;
@@ -249,7 +228,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <FolderOpen className="h-4 w-4" />
-          ไฟล์ของออเดอร์
+          ไฟล์อื่นของออเดอร์
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -387,29 +366,8 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole, onGoToD
           ))}
         </section>
 
-        {/* ===== ชั้น 2 — แบบขออนุมัติ (สรุป — ตัวจริงอยู่การ์ดงานออกแบบ) ===== */}
-        <section className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Palette className="h-4 w-4 text-blue-600" />
-              <span className="font-medium text-slate-700 dark:text-slate-300">
-                {FILE_LAYERS.APPROVAL.label}
-              </span>
-              {latestDesign ? (
-                <span className="text-xs text-muted">
-                  {designs.data!.length} เวอร์ชัน · ล่าสุด v{latestDesign.versionNumber}{" "}
-                  {DESIGN_STATUS_LABELS[latestDesign.approvalStatus] ?? latestDesign.approvalStatus}
-                </span>
-              ) : (
-                <span className="text-xs text-slate-400">ยังไม่มีแบบ</span>
-              )}
-            </div>
-            <Button variant="outline" size="sm" onClick={scrollToDesign}>
-              ไปที่งานออกแบบ
-            </Button>
-          </div>
-          <p className="mt-1 text-xs text-slate-400">{FILE_LAYERS.APPROVAL.description}</p>
-        </section>
+        {/* ชั้น 2 (ม็อกอัพ) ไม่อยู่ในการ์ดนี้ — MockupPanel กางเต็มตัวอยู่เหนือการ์ดในแท็บเดียวกัน
+            เดิมตรงนี้เป็นแถบสรุปที่ยิง design.listByOrder ซ้ำแล้วมีปุ่มพาข้ามไปอีกแท็บ */}
 
         {/* ===== ชั้น 3 — ไฟล์พิมพ์จริง (ภายในเท่านั้น) ===== */}
         <section>

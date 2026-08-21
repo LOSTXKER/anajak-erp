@@ -122,7 +122,7 @@ async function main() {
     await sales.order.updateStatus({ id: oa.id, internalStatus: "DESIGNING" });
     const d1 = await designer.design.upload({
       orderId: oa.id,
-      fileUrl: "https://example.com/e2e-v1.png",
+      files: [{ fileUrl: "https://example.com/e2e-v1.png" }],
     });
     await sales.design.approveByToken({
       token: d1.approvalToken!,
@@ -134,7 +134,10 @@ async function main() {
 
     const d2 = await designer.design.upload({
       orderId: oa.id,
-      fileUrl: "https://example.com/e2e-v2.png",
+      files: [
+        { fileUrl: "https://example.com/e2e-v2-front.png", position: "FRONT" },
+        { fileUrl: "https://example.com/e2e-v2-back.png", position: "BACK" },
+      ],
     });
     await expectError(
       "A5 ลูกค้าถือลิงก์ v1 (ตัดสินไปแล้ว) ตัดสินซ้ำ/กลับคำไม่ได้",

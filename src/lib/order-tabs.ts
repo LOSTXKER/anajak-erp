@@ -33,7 +33,10 @@ export const ORDER_TAB_DEFS: OrderTabDef[] = [
   { key: "production", label: "งานผลิต" },
   { key: "delivery", label: "จัดส่ง" },
   { key: "money", label: "เงิน & บิล" },
-  { key: "files", label: "ไฟล์" },
+  // 2026-08-22 ม็อกอัพย้ายมาอยู่แท็บนี้เป็นบ้านเดียว — เดิมโผล่สองที่ (การ์ดงานออกแบบ
+  // ในแท็บงานผลิต + สรุปในแท็บไฟล์) ยิง query เดียวกันซ้ำและคนอ่านไม่รู้ว่าอันไหนของจริง
+  // ป้ายบอกทั้งสองอย่างเพราะข้างในเรียงตามชั้นไฟล์: ม็อกอัพ (ชั้น 2) → ไฟล์ดิบ/ไฟล์พิมพ์
+  { key: "files", label: "ม็อกอัพ & ไฟล์" },
   { key: "history", label: "ประวัติ" },
 ];
 
@@ -74,7 +77,10 @@ export function tabForAnchor(
   target: "billing" | "design" | "production" | "delivery" | "qc"
 ): TabKey | null {
   switch (target) {
+    // 2026-08-22 งานออกแบบ = ม็อกอัพ ย้ายไปอยู่แท็บไฟล์แล้ว — เดิมชี้มาแท็บงานผลิต
+    // ซึ่งตอนนี้ไม่มีตัวจัดการม็อกอัพอยู่ กดแล้วจะไปเจอแท็บที่ทำงานนั้นไม่ได้
     case "design":
+      return "files";
     case "production":
     case "qc": // การ์ดตรวจนับ QC อยู่แท็บงานผลิต (Gate B4: แถบขั้นต่อไปพาไปนับ ไม่พาข้ามด่าน)
       return "production";

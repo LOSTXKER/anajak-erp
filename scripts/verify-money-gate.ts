@@ -271,7 +271,7 @@ async function main() {
     });
     const uploadedWithoutLinkPermission = await asDesignerNoLinks.design.upload({
       orderId: uploadOrder.id,
-      fileUrl: "https://example.com/mgate-upload.png",
+      files: [{ fileUrl: "https://example.com/mgate-upload.png" }],
     });
     ids.designs.push(uploadedWithoutLinkPermission.id);
     const storedUpload = await prisma.designVersion.findUniqueOrThrow({

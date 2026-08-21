@@ -38,11 +38,13 @@ describe("defaultTabForStatus — แท็บเริ่มต้นตาม�
 });
 
 describe("tabForAnchor — ANCHOR → แท็บ", () => {
-  it("design/production/qc → production · delivery → delivery", () => {
-    expect(tabForAnchor("design")).toBe("production");
+  it("production/qc → production · delivery → delivery", () => {
     expect(tabForAnchor("production")).toBe("production");
     expect(tabForAnchor("qc")).toBe("production");
     expect(tabForAnchor("delivery")).toBe("delivery");
+  });
+  it("design → files (ม็อกอัพย้ายไปอยู่แท็บ ม็อกอัพ & ไฟล์ 2026-08-22)", () => {
+    expect(tabForAnchor("design")).toBe("files");
   });
   it("billing → money (การ์ดบิลย้ายมาเป็นแท็บ เงิน/บิล แล้ว UX6)", () => {
     expect(tabForAnchor("billing")).toBe("money");

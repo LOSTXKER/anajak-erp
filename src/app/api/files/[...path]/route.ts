@@ -83,15 +83,26 @@ export async function GET(
     const os = req.nextUrl.searchParams.get("os"); // share token ใบงานร้านนอก (B14)
 
     if (t) {
-      // เปิดได้เฉพาะไฟล์/รูปตัวอย่างของแบบใบนั้น
+      // เปิดได้เฉพาะไฟล์/รูปตัวอย่างของแบบใบนั้น — รวมทุกรูปในชุดม็อกอัพเวอร์ชันนั้น
+      // (หน้าอนุมัติโชว์ทั้งชุด allowlist จึงต้องกว้างเท่าที่หน้าโชว์ ไม่กว้างกว่านั้น)
       const design = await prisma.designVersion.findUnique({
         where: { approvalToken: t },
-        select: { fileUrl: true, thumbnailUrl: true, tokenExpiresAt: true },
+        select: {
+          fileUrl: true,
+          thumbnailUrl: true,
+          tokenExpiresAt: true,
+          files: { select: { fileUrl: true, thumbnailUrl: true } },
+        },
       });
       if (!design || !design.tokenExpiresAt || design.tokenExpiresAt < new Date()) {
         return deny(403, "ลิงก์หมดอายุหรือไม่ถูกต้อง");
       }
-      if (!matches([design.fileUrl, design.thumbnailUrl])) {
+      const designUrls = [
+        design.fileUrl,
+        design.thumbnailUrl,
+        ...design.files.flatMap((f) => [f.fileUrl, f.thumbnailUrl]),
+      ];
+      if (!matches(designUrls)) {
         return deny(403, "ลิงก์นี้เปิดไฟล์นี้ไม่ได้");
       }
     } else if (s) {

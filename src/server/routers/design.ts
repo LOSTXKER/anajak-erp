@@ -9,6 +9,7 @@ import { transitionOrder, processDesignApproval } from "@/server/services/order-
 import type { InternalStatus } from "@prisma/client";
 import type { PrismaTx } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { MOCKUP_MAX_FILES_PER_VERSION } from "@/lib/mockup";
 
 const designerUp = requirePermission("manage_design_files");
 // บันทึกผลอนุมัติแทนลูกค้า = คนถือความสัมพันธ์ลูกค้า — ไม่ให้ DESIGNER อนุมัติแบบตัวเอง
@@ -99,6 +100,7 @@ export const designRouter = router({
       const designs = await ctx.prisma.designVersion.findMany({
         where: { orderId: input.orderId },
         orderBy: { versionNumber: "desc" },
+        include: { files: { orderBy: { sortOrder: "asc" } } },
       });
       const canManageApprovalLinks = hasPermission(
         ctx.userRole,
@@ -115,8 +117,20 @@ export const designRouter = router({
     .input(
       z.object({
         orderId: z.string(),
-        fileUrl: fileUrlSchema,
-        thumbnailUrl: fileUrlSchema.optional(),
+        // ม็อกอัพหนึ่งเวอร์ชัน = หลายรูป (หน้า/หลัง/แขน) ลูกค้าอนุมัติทั้งชุดครั้งเดียว
+        // รูปแรกเป็นรูปปก → ลงคอลัมน์ fileUrl เดิม ใบสั่งผลิต/station/ลิงก์สถานะที่อ่าน
+        // คอลัมน์นั้นอยู่จึงทำงานต่อได้ทันทีโดยไม่ต้องแก้
+        files: z
+          .array(
+            z.object({
+              fileUrl: fileUrlSchema,
+              thumbnailUrl: fileUrlSchema.optional(),
+              position: z.string().max(32).optional(),
+              caption: z.string().max(200).optional(),
+            })
+          )
+          .min(1, "ต้องแนบม็อกอัพอย่างน้อย 1 รูป")
+          .max(MOCKUP_MAX_FILES_PER_VERSION),
         designerNotes: z.string().optional(),
       })
     )
@@ -147,16 +161,27 @@ export const designRouter = router({
           data: { tokenExpiresAt: new Date() },
         });
 
+        const [cover] = input.files;
         const created = await tx.designVersion.create({
           data: {
             orderId: input.orderId,
             versionNumber: (lastVersion?.versionNumber ?? 0) + 1,
-            fileUrl: input.fileUrl,
-            thumbnailUrl: input.thumbnailUrl,
+            fileUrl: cover.fileUrl,
+            thumbnailUrl: cover.thumbnailUrl,
             designerNotes: input.designerNotes,
             approvalToken: randomBytes(32).toString("hex"),
             tokenExpiresAt: approvalTokenExpiry(),
+            files: {
+              create: input.files.map((file, index) => ({
+                sortOrder: index,
+                fileUrl: file.fileUrl,
+                thumbnailUrl: file.thumbnailUrl,
+                position: file.position,
+                caption: file.caption,
+              })),
+            },
           },
+          include: { files: { orderBy: { sortOrder: "asc" } } },
         });
 
         // เปลี่ยนสถานะผ่าน service กลาง — ตอกย้ำสถานะ DESIGNING (อยู่แล้ว = no-op
@@ -175,7 +200,11 @@ export const designRouter = router({
         action: "CREATE",
         entityType: "DESIGN_VERSION",
         entityId: design.id,
-        newValue: { orderId: input.orderId, version: design.versionNumber },
+        newValue: {
+          orderId: input.orderId,
+          version: design.versionNumber,
+          fileCount: design.files.length,
+        },
       });
 
       return visibleDesignForApprovalPermission(
@@ -232,10 +261,20 @@ export const designRouter = router({
         select: {
           versionNumber: true,
           fileUrl: true,
+          thumbnailUrl: true,
           approvalStatus: true,
           customerComment: true,
           designerNotes: true,
           tokenExpiresAt: true,
+          files: {
+            orderBy: { sortOrder: "asc" },
+            select: {
+              fileUrl: true,
+              thumbnailUrl: true,
+              position: true,
+              caption: true,
+            },
+          },
           order: {
             select: {
               orderNumber: true,
@@ -247,10 +286,21 @@ export const designRouter = router({
       });
       assertTokenNotExpired(design);
       // ไฟล์เป็น proxy URL (bucket private) — ลูกค้าไม่มี session ต้องพก token
-      // ไปกับ URL ให้ /api/files เช็คว่าเป็นไฟล์ของแบบใบนี้จริง
+      // ไปกับ URL ให้ /api/files เช็คว่าเป็นไฟล์ของแบบใบนี้จริง · ต้องติด token ให้
+      // "ทุกรูปในชุด" ไม่ใช่แค่รูปปก ไม่งั้นลูกค้าเห็นด้านหน้าด้านเดียวแล้วรูปอื่นแตก
       return {
         ...design,
         fileUrl: withFileToken(design.fileUrl, input.token),
+        thumbnailUrl: design.thumbnailUrl
+          ? withFileToken(design.thumbnailUrl, input.token)
+          : null,
+        files: design.files.map((file) => ({
+          ...file,
+          fileUrl: withFileToken(file.fileUrl, input.token),
+          thumbnailUrl: file.thumbnailUrl
+            ? withFileToken(file.thumbnailUrl, input.token)
+            : null,
+        })),
       };
     }),
 

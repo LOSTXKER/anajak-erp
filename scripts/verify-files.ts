@@ -159,7 +159,8 @@ async function main() {
 
     const design = await ownerCaller.design.upload({
       orderId: order.id,
-      fileUrl: FAKE_PUBLIC(storagePath), // จงใจส่ง public URL — ต้องถูก normalize
+      // จงใจส่ง public URL — ต้องถูก normalize
+      files: [{ fileUrl: FAKE_PUBLIC(storagePath) }],
     });
     check(
       "3.1 design.upload แปลง public URL → proxy URL",

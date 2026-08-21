@@ -42,7 +42,8 @@ import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
 import { canEditOrderWithPricing } from "@/lib/order-access";
 import { buildOrderEditHref, type OrderEditFocus } from "@/lib/order-edit-navigation";
 
-import { OrderDesignSection } from "@/components/orders/order-design-section";
+import { MockupPanel } from "@/components/mockup/mockup-panel";
+import { OrderMockupHandoff } from "@/components/mockup/mockup-handoff";
 import { ProductionSummaryCard } from "@/components/orders/production-summary-card";
 import { OrderDeliverySection } from "@/components/orders/order-delivery-section";
 import { OrderGoodsReceiptSection } from "@/components/goods-receipt/order-goods-receipt-section";
@@ -114,12 +115,10 @@ function OrderFilesPanel({
   orderId,
   userId,
   userRole,
-  onGoToDesign,
 }: {
   orderId: string;
   userId: string;
   userRole: string;
-  onGoToDesign: () => void;
 }) {
   const attachmentsQuery = trpc.attachment.listByEntity.useQuery({
     entityType: "ORDER",
@@ -152,7 +151,6 @@ function OrderFilesPanel({
       attachments={attachmentsQuery.data ?? []}
       userId={userId}
       userRole={userRole}
-      onGoToDesign={onGoToDesign}
     />
   );
 }
@@ -816,10 +814,12 @@ function OrderDetailContent({
           </TabsContent>}
 
           {visitedTabs.has("production") && <TabsContent value="production" keepMounted className="space-y-6">
-            <OrderDesignSection
+            {/* ม็อกอัพย้ายไปแท็บ "ม็อกอัพ & ไฟล์" เป็นบ้านเดียว (2026-08-22) — ตรงนี้เหลือ
+                แถบสรุปพาไป ไม่ทำ UI จัดการซ้ำ เดิมกางการ์ดอัป/อนุมัติเต็มตัวไว้บนสุดของแท็บ
+                แล้วแท็บไฟล์ก็มีสรุปของเรื่องเดียวกันอีก คนอ่านไม่รู้ว่าอันไหนของจริง */}
+            <OrderMockupHandoff
               orderId={id}
-              internalStatus={order.internalStatus}
-              canSeeMoney={canSeeMoney}
+              onOpenMockup={() => changeTab("files")}
             />
 
             {/* ของเข้า/ตรวจรับ — เสื้อลูกค้า/เสื้อโรงเย็บ นับจริงต่อไซส์ (ก้อน 1) */}
@@ -890,11 +890,17 @@ function OrderDetailContent({
           )}
 
           {visitedTabs.has("files") && <TabsContent value="files" keepMounted className="space-y-6">
+            {/* ชั้น 2 (ม็อกอัพ) มาก่อนเพราะเป็นของที่คนเปิดแท็บนี้มาหาบ่อยที่สุด —
+                ชั้น 1 ไฟล์ดิบลูกค้า และชั้น 3 ไฟล์พิมพ์ อยู่ในการ์ดถัดลงไป */}
+            <MockupPanel
+              orderId={id}
+              internalStatus={order.internalStatus}
+              canSeeMoney={canSeeMoney}
+            />
             <OrderFilesPanel
               orderId={id}
               userId={me.id}
               userRole={me.role}
-              onGoToDesign={() => changeTab("production")}
             />
           </TabsContent>}
 

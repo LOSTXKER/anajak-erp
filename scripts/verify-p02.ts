@@ -208,7 +208,7 @@ async function main() {
   const o3 = await caller.order.create({ ...orderInput, channel: "LINE" as const, title: "[P0.2-VERIFY] design flow", externalOrderId: undefined, platformFee: undefined });
   await caller.order.updateStatus({ id: o3.id, internalStatus: "CONFIRMED" });
   await caller.order.updateStatus({ id: o3.id, internalStatus: "DESIGNING" });
-  const design = await caller.design.upload({ orderId: o3.id, fileUrl: "https://example.com/design-v1.png" });
+  const design = await caller.design.upload({ orderId: o3.id, files: [{ fileUrl: "https://example.com/design-v1.png" }] });
   let o3Db = await prisma.order.findUniqueOrThrow({ where: { id: o3.id } });
   ok("5.1 upload แบบ → DESIGNING", o3Db.internalStatus === "DESIGNING", o3Db.internalStatus);
 
