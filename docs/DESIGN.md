@@ -154,6 +154,29 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 - public token pages บังคับ light theme เพื่อให้เอกสารลูกค้าอ่านได้แน่นอน แม้เครื่องตั้ง system dark
 - animation ต้องเคารพ `prefers-reduced-motion`; ทุกหน้าหลังบ้านมี skip link ไป `<main id="main-content">`
 
+## ม็อกอัพของออเดอร์ — บ้านเดียว ใช้ร่วมทุกจอ (2026-08-22)
+
+> "ม็อกอัพ" = ไฟล์ชั้น 2 (APPROVAL) ตาม `src/lib/file-layers.ts` เก็บใน `DesignVersion`
+> **หนึ่งเวอร์ชัน = หลายรูป** (`DesignVersionFile` — หน้า/หลัง/แขน) ลูกค้าอนุมัติทั้งชุดครั้งเดียว
+> ไม่เปลี่ยนชื่อตาราง `design_versions` โดยตั้งใจ: audit log, token ที่ส่งลูกค้าไปแล้ว และ migration
+> เดิมอ้างชื่อนี้อยู่ · เปลี่ยนเฉพาะคำที่หน้าจอเรียก
+
+- ทุกจอที่แสดงม็อกอัพต้องเรียก `src/components/mockup/` ชุดเดียว — `MockupPanel` (จัดการเต็ม) ·
+  `MockupGallery` (อ่านอย่างเดียว) · `MockupThumbnail` (รูปปกในแถวรายการ) · `OrderMockupHandoff` (แถบสรุปพาไปบ้านจริง)
+  **ห้ามสร้างตัวที่สอง** — ก่อนหน้านี้หน้าออเดอร์มีสองชุด ยิง `design.listByOrder` ซ้ำ และคนอ่านไม่รู้ว่าอันไหนของจริง
+- สูตรอ่านม็อกอัพอยู่ที่ `src/lib/mockup.ts` ที่เดียว (`mockupImages` / `mockupCoverImage` / `orderMockupCover`)
+  ห้ามจอไหนคำนวณเอง · `files` ว่าง = เวอร์ชันก่อน migration ต้องถอยไปใช้ `fileUrl` เป็นรูปปกเสมอ ไม่ backfill
+- **บ้านของม็อกอัพคือหน้าออเดอร์แท็บ `ม็อกอัพ & ไฟล์`** เท่านั้น — จัดเรียงตามชั้นไฟล์: ชั้น 2 ม็อกอัพ (บนสุด
+  เพราะเป็นของที่คนเปิดแท็บนี้มาหา) แล้วค่อยชั้น 1 ไฟล์ดิบลูกค้า และชั้น 3 ไฟล์พิมพ์ในการ์ด "ไฟล์อื่นของออเดอร์"
+- แท็บ `งานผลิต` และ `/production/[id]` **อ่านอย่างเดียว** — ห้ามมีปุ่มอัป/อนุมัติ/สร้างลิงก์ลูกค้าซ้ำ
+  (`MockupPanel readOnly` ตัดทั้งปุ่มและก้อนค่าแก้แบบออกทั้งหมด — no-money contract)
+- ไฟล์ที่เบราว์เซอร์แสดงไม่ได้ (`.ai/.psd/.pdf`) **ต้องแนบรูปตัวอย่างก่อนส่งลูกค้า** — บังคับที่ dialog อัป
+  (`canSubmitMockupSet`) ไม่ใช่ปล่อยให้ลูกค้าตัดสินทั้งที่มองไม่เห็นแบบ
+- ทุกรูปในชุดต้องติด approval token ผ่าน `withFileToken` และ `/api/files` ต้องอนุญาตครบทั้งชุด —
+  allowlist **กว้างเท่าที่หน้าโชว์ ไม่กว้างกว่านั้น** (ลิงก์สถานะกับใบงานร้านนอกยังโชว์แค่รูปปก จึงไม่ขยาย)
+- จอสถานีแสดงม็อกอัพเป็น **ข้อมูลอ้างอิงรอง** ต่อจากจุดงาน และต้องคงข้อความ `ห้ามวางตำแหน่งจากภาพนี้`
+  (ขนาด/จุดวางยึดตัวเลขในใบงานเสมอ — `verify:ui` ล็อกไว้)
+
 ## Canonical factory operations (`/production*`, `/outsource`, `/factory*`)
 
 > งานโรงงานเป็นโมดูลเดียวที่ใช้ record, permission, readiness และ transition ฝั่ง server ชุดเดียวกัน แต่แยกคำถามตามจอ:
@@ -165,7 +188,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 | Route | Shell | หน้าที่ของจอ |
 |---|---|---|
 | `/production` | shared dashboard `AppShell` | worklist แบบ exception-first หนึ่งออเดอร์ต่อหนึ่งแถว สำหรับตอบว่า “งานไหนต้องจัดการก่อน” |
-| `/production/[id]` | shared dashboard `AppShell` | exception control record ของหัวหน้า: attention, plan/actual, owner, blocker, readiness, handoff และหลักฐานทั้งใบ; routine execution ไป Station |
+| `/production/[id]` | shared dashboard `AppShell` | exception control record ของหัวหน้า: attention, plan/actual, owner, blocker, readiness, handoff และหลักฐานทั้งใบ; routine execution ไป Station · inspector มีแท็บ **เสื้อและวัตถุดิบ / ม็อกอัพ / เส้นทางทั้งหมด** |
 | `/production/print-runs` | shared dashboard `AppShell` | workspace รอบ DTF ตามลำดับ **กำลังพิมพ์ → ตัดแยก/ติดป้าย → คิวพิมพ์ → ประวัติ 7 วัน** |
 | `/production/films` | shared dashboard `AppShell` | คลังฟิล์มแบบ compact: ลาย/ลูกค้า, ต้นทาง, คงเหลือ และการหยิบใช้ |
 | `/outsource` | shared dashboard `AppShell` | คิวส่งร้าน/รับกลับ/**ตรวจรับจากร้าน**/ประวัติ; การตรวจรับนี้มาก่อน QC ขั้นสุดท้ายของออเดอร์ |
@@ -174,6 +197,8 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 
 - สี่หน้ารวม/พื้นที่หัวหน้าใน `AppShell` ใช้ `ProductionModuleNav` ชุดเดียวและลำดับเดียว: **คิวผลิต / รอบพิมพ์ DTF / คลังฟิล์ม / งานร้านนอก**; ทางเข้าเสริม **โหมดสถานี / จอโรงงาน** อยู่ท้ายแถบและไม่สร้าง sidebar ฝ่ายผลิตอีกชุด · control record `/production/[id]` มี breadcrumb กลับคิวและ handoff ไป work center ที่เกี่ยวข้อง แต่ไม่เพิ่ม local nav ซ้ำ
 - `/production` ใช้ `production.kanban` กับ `user.me`; filter `ทั้งหมด`, `ต้องจัดการ`, `กำลังผลิต`, `รอ QC`, `แพ็ก / พร้อมส่ง`, จำนวน, search และ sort derive จาก board ชุดเดียว โดยเก็บ `view`, `q`, `sort` ใน URL
+- `/production` มีสรุปวันนี้ 3 ตัวเลขเหนือชิปตัวกรอง: **เลยกำหนด / ครบกำหนดวันนี้ / กำลังลงมือ** — นับจาก `board.jobs` ทั้งกระดาน **ห้ามนับจากรายการที่กรองแล้ว** ไม่งั้นตัวเลขที่ใช้ตัดสินใจขยับใต้มือทุกครั้งที่เปลี่ยนมุมมอง · ห้ามเพิ่มยอดเงินหรือสถิติรายเดือนในแถบนี้ (หน้านี้ตัดสินลำดับงานวันนี้ ไม่ใช่รายงานผู้บริหาร)
+- ทุกแถวคิว (ทั้งตาราง desktop และการ์ดมือถือ) นำหน้าด้วยรูปม็อกอัพผ่าน `MockupThumbnail` + `orderMockupCover` — หัวหน้าจำงานจากภาพเร็วกว่าเลขออเดอร์ · ไม่มีม็อกอัพอนุมัติให้ถอยไปรูปลาย/คลังลาย ไม่มีเลยจึงเป็นกรอบว่าง
 - worklist เรียง exception ก่อนและไม่ทำให้ออเดอร์ผสมซ้ำหลายแถว; แถวเปิดปลายทางจริงตามสถานะ: ใบผลิต, หน้าออเดอร์แท็บผลิต/QC, หน้า delivery หรือ dialog เปิดใบผลิตตามสิทธิ์
 - `/production/[id]` ฝั่ง ERP เป็น **exception control record**: หัวใบกระชับแสดงสถานะ จำนวน ความคืบหน้า และ deadline; attention แสดงข้อยกเว้นจริงเพียงเรื่องนำ; operation ledger แสดงทุก lane พร้อม actual/owner/blocker; readiness/handoff/activity เป็นข้อมูลรองเพื่อให้หัวหน้าตัดสินใจโดยไม่ทำ routine operation แทนสถานี · ฟิลด์ที่ schema/DTO ยังไม่มี เช่น production owner, per-operation plan/SLA และ audit actor/source ห้ามสร้างข้อมูลตัวอย่างหรือแสดงกรอบ data-gap ของทีมพัฒนาบน default surface: ซ่อนเมื่อไม่ช่วยตัดสินใจ และบอกขอบเขตหลักฐานด้วยภาษาผู้ใช้แบบข้อความรองเมื่อจำเป็น · งานร้านนอกที่ยัง active และเลย `expectedBackAt` ต้องยกเป็น warning attention ก่อน `IN_PROGRESS` ทั่วไป · ปุ่มบน default surface จำกัดที่มอบหมาย/แก้ exception และเปิดบริบท Station; operation ที่ยังไม่มี parity เช่น QC rework ที่ไม่มี target work center หรือ DTF deviation ที่ยังไม่มี event model ต้องเป็น read-only/หนี้ Phase ถัดไป ไม่คืน routine fallback บน ERP · compatibility inventory deep link คงได้เฉพาะ supervisor recovery ที่มี audit และไม่อยู่บน default control surface
 - `/factory/station` เป็น **current-job-first execution surface**: งานที่เปิดอยู่เป็นผืนหลักพร้อม operation/จำนวน/spec และ one primary action; rail ขวาที่ 1024px แยกกำลังทำอื่น/พร้อมถัดไป/ติดปัญหาและตัด record ปัจจุบันออก; scan อยู่ใน railเมื่อมี current และอยู่ใต้ queueเมื่อยังไม่ได้เปิดงาน · `GARMENT_PICK` เดินผ่านบริการเบิก/คืน Stock, `GARMENT_RECEIVE` เดินผ่าน Goods Receipt evidence, DTF เดินผ่าน Print Run, QC/Pack ใช้ controller เฉพาะ และ `HEAT_PRESS` คง readiness gate · `แจ้งปัญหา` เป็น semantic command ที่ server derive work center/source จาก step, lock step→production→order, ตรวจ PRODUCING/ownership, บันทึก FAILED+เหตุผล+audit+notification ใน transaction เดียว และไม่รับ station/source จาก client
