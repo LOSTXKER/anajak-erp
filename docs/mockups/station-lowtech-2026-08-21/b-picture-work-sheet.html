@@ -1,0 +1,2682 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Direction B — Picture-led Work Sheet</title>
+    <style>
+      :root {
+        --ink: #17212b;
+        --muted: #59636b;
+        --line: #cfc7b8;
+        --paper: #fffdf7;
+        --canvas: #eee8db;
+        --safety: #c7440a;
+        --safety-dark: #943000;
+        --amber: #9a5a00;
+        --amber-soft: #fff0c7;
+        --red: #aa2525;
+        --red-soft: #fde8e4;
+        --green: #116149;
+        --green-soft: #dcf4e9;
+        --blue: #1d5678;
+        --blue-soft: #e4f1f7;
+        --violet: #61409b;
+        --violet-soft: #f0eaff;
+        --shadow: 0 16px 42px rgb(52 45 34 / 12%);
+        --dock-space: 108px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 320px;
+        background: var(--canvas);
+      }
+
+      body {
+        min-height: 100vh;
+        min-height: 100svh;
+        margin: 0;
+        overflow-x: hidden;
+        background:
+          linear-gradient(rgb(23 33 43 / 2%) 1px, transparent 1px),
+          linear-gradient(90deg, rgb(23 33 43 / 2%) 1px, transparent 1px),
+          var(--canvas);
+        background-size: 24px 24px;
+        color: var(--ink);
+        font-family:
+          "Noto Sans Thai", "Leelawadee UI", Tahoma, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 18px;
+        line-height: 1.45;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button {
+        touch-action: manipulation;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      summary:focus-visible {
+        outline: 4px solid #1267a0;
+        outline-offset: 3px;
+      }
+
+      .station-app {
+        min-height: 100vh;
+        min-height: 100svh;
+        padding-bottom: var(--dock-space);
+      }
+
+      .station-bar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: 70px;
+        border-bottom: 4px solid var(--safety);
+        background: var(--ink);
+        color: white;
+      }
+
+      .station-id,
+      .station-tools {
+        display: flex;
+        align-items: center;
+      }
+
+      .station-id {
+        min-width: 0;
+        gap: 14px;
+        padding: 10px 22px;
+      }
+
+      .station-mark {
+        display: grid;
+        width: 44px;
+        height: 44px;
+        flex: 0 0 auto;
+        place-items: center;
+        border: 2px solid rgb(255 255 255 / 72%);
+        border-radius: 10px;
+        background: var(--safety);
+        font-size: 24px;
+        font-weight: 900;
+      }
+
+      .eyebrow {
+        color: #d8dfe3;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+
+      .station-name {
+        overflow: hidden;
+        font-size: clamp(21px, 2.4vw, 28px);
+        font-weight: 900;
+        line-height: 1.15;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .station-tools {
+        gap: 14px;
+        padding: 10px 20px;
+        border-left: 1px solid rgb(255 255 255 / 20%);
+      }
+
+      .connection,
+      .operator {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .connection svg,
+      .operator svg,
+      .status-ribbon svg,
+      .button svg,
+      .lane-state svg,
+      .wait-line svg {
+        width: 22px;
+        height: 22px;
+        flex: 0 0 auto;
+      }
+
+      .station-main {
+        width: min(1180px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 20px 0 28px;
+      }
+
+      .status-ribbon {
+        display: flex;
+        min-height: 50px;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding: 10px 16px;
+        border: 2px solid currentColor;
+        border-radius: 12px;
+        background: var(--paper);
+        color: var(--green);
+        font-size: 18px;
+        font-weight: 900;
+      }
+
+      .status-ribbon.ready,
+      .status-ribbon.success {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .status-ribbon.blocked {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .status-ribbon.waiting,
+      .status-ribbon.stale {
+        background: var(--amber-soft);
+        color: #754300;
+      }
+
+      .status-ribbon.info {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .status-ribbon.unknown {
+        background: var(--violet-soft);
+        color: var(--violet);
+      }
+
+      .work-sheet {
+        overflow: hidden;
+        border: 2px solid var(--ink);
+        border-radius: 22px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+
+      .work-heading {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 20px;
+        align-items: start;
+        padding: 18px 24px;
+        border-bottom: 2px solid var(--ink);
+      }
+
+      .order-id {
+        margin: 0 0 3px;
+        color: var(--ink);
+        font-size: clamp(28px, 4vw, 42px);
+        font-weight: 950;
+        letter-spacing: -0.035em;
+        line-height: 1.08;
+      }
+
+      .order-name {
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(16px, 2vw, 20px);
+        font-weight: 700;
+      }
+
+      .paper-tag {
+        display: inline-flex;
+        min-height: 46px;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 13px;
+        border: 2px solid var(--ink);
+        border-radius: 10px;
+        background: #f8d864;
+        color: var(--ink);
+        font-size: 16px;
+        font-weight: 900;
+        white-space: nowrap;
+        transform: rotate(1deg);
+      }
+
+      .work-grid {
+        display: grid;
+        grid-template-columns: minmax(300px, 0.9fr) minmax(380px, 1.1fr);
+        min-height: 430px;
+      }
+
+      .picture-zone {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        justify-content: center;
+        padding: 22px;
+        border-right: 2px solid var(--ink);
+        background:
+          linear-gradient(135deg, transparent 75%, rgb(199 68 10 / 7%) 75%),
+          #f5f0e4;
+        background-size: 18px 18px;
+      }
+
+      .diagram-label {
+        align-self: flex-start;
+        margin: 0 0 8px;
+        padding: 5px 10px;
+        border-radius: 7px;
+        background: var(--ink);
+        color: white;
+        font-size: 15px;
+        font-weight: 900;
+      }
+
+      .garment-diagram {
+        display: block;
+        width: min(100%, 380px);
+        max-height: 292px;
+        margin: auto;
+      }
+
+      .diagram-note {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .task-zone {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        padding: 24px 26px 20px;
+      }
+
+      .task-label {
+        margin: 0 0 2px;
+        color: var(--safety-dark);
+        font-size: 17px;
+        font-weight: 900;
+      }
+
+      .task-title {
+        margin: 0;
+        color: var(--ink);
+        font-size: clamp(34px, 5vw, 54px);
+        font-weight: 950;
+        letter-spacing: -0.04em;
+        line-height: 1.07;
+      }
+
+      .task-title .qty {
+        color: var(--safety-dark);
+        white-space: nowrap;
+      }
+
+      .task-subtitle {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .spec-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: 20px 0 18px;
+        border-block: 2px solid var(--line);
+      }
+
+      .spec-item {
+        min-width: 0;
+        padding: 12px 12px 11px;
+        text-align: center;
+      }
+
+      .spec-item + .spec-item {
+        border-left: 2px solid var(--line);
+      }
+
+      .spec-name {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .spec-value {
+        display: block;
+        overflow: hidden;
+        margin-top: 1px;
+        color: var(--ink);
+        font-size: clamp(21px, 2.6vw, 30px);
+        font-weight: 950;
+        line-height: 1.15;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .instruction {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-top: auto;
+        padding: 14px 16px;
+        border-left: 7px solid var(--safety);
+        background: #f1ede3;
+      }
+
+      .instruction-icon {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--ink);
+        color: white;
+        font-size: 21px;
+        font-weight: 950;
+      }
+
+      .instruction strong {
+        display: block;
+        margin-bottom: 2px;
+        font-size: 19px;
+      }
+
+      .instruction p {
+        margin: 0;
+        color: #39434b;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .more-details {
+        margin-top: 12px;
+        color: var(--ink);
+        font-size: 16px;
+        font-weight: 800;
+      }
+
+      .more-details summary {
+        min-height: 48px;
+        padding: 11px 4px;
+        cursor: pointer;
+      }
+
+      .more-details p {
+        margin: 2px 0 8px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .action-dock {
+        position: fixed;
+        z-index: 30;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        border-top: 3px solid var(--ink);
+        background: rgb(255 253 247 / 97%);
+        box-shadow: 0 -10px 28px rgb(23 33 43 / 12%);
+        backdrop-filter: blur(10px);
+      }
+
+      .dock-inner {
+        display: grid;
+        width: min(1180px, calc(100% - 40px));
+        min-height: 96px;
+        margin: 0 auto;
+        grid-template-columns: minmax(142px, 0.28fr) minmax(300px, 1fr) minmax(
+            160px,
+            0.32fr
+          );
+        gap: 12px;
+        align-items: center;
+        padding: 12px 0;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 54px;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        border: 2px solid var(--ink);
+        border-radius: 12px;
+        background: white;
+        color: var(--ink);
+        font-weight: 900;
+        line-height: 1.15;
+        text-align: center;
+        cursor: pointer;
+      }
+
+      .button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 0 rgb(23 33 43 / 16%);
+      }
+
+      .button:active:not(:disabled) {
+        transform: translateY(1px);
+        box-shadow: none;
+      }
+
+      .button.primary {
+        min-height: 68px;
+        border-color: var(--safety-dark);
+        background: var(--safety);
+        color: white;
+        font-size: clamp(20px, 2.5vw, 28px);
+        box-shadow: inset 0 -4px 0 rgb(90 25 0 / 25%);
+      }
+
+      .button.primary.safe {
+        border-color: #083e2e;
+        background: var(--green);
+      }
+
+      .button.primary.dark {
+        border-color: #000;
+        background: var(--ink);
+      }
+
+      .button.secondary {
+        min-height: 56px;
+        padding: 8px 13px;
+        font-size: 16px;
+      }
+
+      .button.problem {
+        border-color: #8b2a19;
+        background: #fff7f3;
+        color: #782211;
+      }
+
+      .button:disabled {
+        border-color: #788087;
+        background: #dfe2e3;
+        color: #4b545b;
+        box-shadow: none;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .solo-dock .dock-inner {
+        grid-template-columns: minmax(140px, 0.32fr) minmax(320px, 1fr);
+      }
+
+      .solo-dock .button.primary {
+        grid-column: 2;
+      }
+
+      .no-dock {
+        --dock-space: 28px;
+      }
+
+      .stop-grid,
+      .handoff-grid,
+      .wait-grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.82fr) minmax(380px, 1.18fr);
+        min-height: 430px;
+      }
+
+      .stop-grid .picture-zone,
+      .handoff-grid .picture-zone,
+      .wait-grid .picture-zone {
+        min-height: 430px;
+      }
+
+      .stop-panel,
+      .handoff-panel,
+      .wait-panel {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 28px;
+      }
+
+      .stop-title,
+      .handoff-title,
+      .wait-title {
+        margin: 0;
+        font-size: clamp(34px, 5vw, 54px);
+        font-weight: 950;
+        letter-spacing: -0.035em;
+        line-height: 1.08;
+      }
+
+      .stop-title {
+        color: var(--red);
+      }
+
+      .handoff-title {
+        color: var(--green);
+      }
+
+      .wait-title {
+        color: #754300;
+      }
+
+      .big-fact {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 15px;
+        align-items: center;
+        margin: 22px 0 15px;
+        padding: 17px 18px;
+        border: 2px solid currentColor;
+        border-radius: 14px;
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .big-fact .number {
+        font-size: clamp(48px, 7vw, 72px);
+        font-weight: 950;
+        line-height: 0.9;
+      }
+
+      .big-fact strong {
+        display: block;
+        font-size: 20px;
+      }
+
+      .big-fact span {
+        display: block;
+        color: #5d3029;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .wait-line {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 13px;
+        padding: 13px 14px;
+        border-radius: 10px;
+        background: #f0ece2;
+        color: var(--ink);
+        font-weight: 850;
+      }
+
+      .truth-note {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 16px;
+        font-weight: 650;
+      }
+
+      .success-symbol {
+        display: grid;
+        width: 166px;
+        height: 166px;
+        margin: auto;
+        place-items: center;
+        border: 8px solid var(--green);
+        border-radius: 50%;
+        background: var(--green-soft);
+        color: var(--green);
+        font-size: 94px;
+        font-weight: 950;
+        line-height: 1;
+      }
+
+      .handoff-arrow {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin: 22px 0 10px;
+      }
+
+      .handoff-stop {
+        flex: 1;
+        padding: 13px;
+        border: 2px solid var(--ink);
+        border-radius: 12px;
+        background: white;
+        font-weight: 900;
+        text-align: center;
+      }
+
+      .handoff-stop.next {
+        border-color: var(--green);
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .handoff-chevron {
+        color: var(--green);
+        font-size: 30px;
+        font-weight: 950;
+      }
+
+      .qc-grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.8fr) minmax(420px, 1.2fr);
+        min-height: 448px;
+      }
+
+      .qc-visual {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 24px;
+        border-right: 2px solid var(--ink);
+        background: #f2ede1;
+      }
+
+      .pile-visual {
+        position: relative;
+        width: min(100%, 330px);
+        height: 210px;
+        margin: 0 auto 16px;
+      }
+
+      .shirt-fold {
+        position: absolute;
+        right: 15%;
+        left: 15%;
+        height: 105px;
+        border: 3px solid var(--ink);
+        border-radius: 14px;
+        background: #f7f8f6;
+        box-shadow: 0 7px 0 rgb(23 33 43 / 12%);
+      }
+
+      .shirt-fold:nth-child(1) {
+        top: 10px;
+        transform: rotate(-3deg);
+      }
+
+      .shirt-fold:nth-child(2) {
+        top: 48px;
+        transform: rotate(2deg);
+      }
+
+      .shirt-fold:nth-child(3) {
+        top: 88px;
+        display: grid;
+        place-items: center;
+        background: var(--blue-soft);
+        font-size: 48px;
+        font-weight: 950;
+      }
+
+      .qty-equation {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .qty-equation div {
+        padding: 10px 6px;
+        border: 2px solid var(--ink);
+        border-radius: 9px;
+        background: white;
+        text-align: center;
+      }
+
+      .qty-equation strong {
+        display: block;
+        font-size: 30px;
+        line-height: 1;
+      }
+
+      .qty-equation span {
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 750;
+      }
+
+      .qc-panel {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        padding: 26px 28px;
+      }
+
+      .qc-title {
+        margin: 0;
+        font-size: clamp(32px, 4.5vw, 48px);
+        font-weight: 950;
+        line-height: 1.08;
+      }
+
+      .qc-help {
+        margin: 8px 0 18px;
+        color: var(--muted);
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .choice-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: auto;
+      }
+
+      .choice-button {
+        display: flex;
+        min-height: 126px;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 4px;
+        padding: 17px;
+        border: 3px solid var(--ink);
+        border-radius: 16px;
+        background: white;
+        color: var(--ink);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .choice-button:hover {
+        background: #f4efe3;
+      }
+
+      .choice-icon {
+        font-size: 32px;
+        font-weight: 950;
+        line-height: 1;
+      }
+
+      .choice-button strong {
+        font-size: 22px;
+      }
+
+      .choice-button span:last-child {
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .qc-form {
+        display: grid;
+        gap: 15px;
+        margin-top: 12px;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 16px;
+        font-weight: 900;
+      }
+
+      .field input,
+      .field select {
+        width: 100%;
+        min-height: 54px;
+        border: 2px solid var(--ink);
+        border-radius: 9px;
+        background: white;
+        color: var(--ink);
+        padding: 8px 12px;
+        font-size: 19px;
+        font-weight: 750;
+      }
+
+      .qc-result-line {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .qc-result-line div {
+        padding: 11px 13px;
+        border: 2px solid var(--line);
+        border-radius: 10px;
+        background: #f3efe6;
+      }
+
+      .qc-result-line strong {
+        display: block;
+        font-size: 27px;
+      }
+
+      .qc-result-line span {
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 750;
+      }
+
+      .form-error {
+        min-height: 24px;
+        margin: 0;
+        color: var(--red);
+        font-size: 15px;
+        font-weight: 850;
+      }
+
+      .inline-actions {
+        display: grid;
+        grid-template-columns: minmax(120px, 0.35fr) minmax(220px, 1fr);
+        gap: 12px;
+        margin-top: auto;
+      }
+
+      .inline-actions .button.primary {
+        min-height: 62px;
+      }
+
+      .mock-note {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .dtf-sheet {
+        padding: 22px;
+      }
+
+      .dtf-heading {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 16px;
+      }
+
+      .dtf-heading h1 {
+        margin: 0;
+        font-size: clamp(32px, 4.5vw, 46px);
+        font-weight: 950;
+        line-height: 1.05;
+      }
+
+      .dtf-heading p {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .dtf-heading .paper-tag {
+        flex: 0 0 auto;
+      }
+
+      .dtf-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+        gap: 16px;
+      }
+
+      .run-card {
+        overflow: hidden;
+        border: 3px solid var(--ink);
+        border-radius: 16px;
+        background: white;
+      }
+
+      .run-card.active {
+        background: var(--ink);
+        color: white;
+      }
+
+      .run-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 15px 17px;
+        border-bottom: 2px solid currentColor;
+      }
+
+      .run-head strong {
+        font-size: 25px;
+      }
+
+      .run-phase {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 15px;
+        font-weight: 900;
+      }
+
+      .run-body {
+        display: grid;
+        grid-template-columns: minmax(130px, 0.6fr) minmax(0, 1fr);
+        gap: 18px;
+        align-items: center;
+        padding: 18px;
+      }
+
+      .film-roll {
+        position: relative;
+        width: 150px;
+        height: 128px;
+        margin: auto;
+      }
+
+      .roll-circle {
+        position: absolute;
+        bottom: 4px;
+        left: 0;
+        display: grid;
+        width: 94px;
+        height: 94px;
+        place-items: center;
+        border: 8px solid currentColor;
+        border-radius: 50%;
+        font-size: 19px;
+        font-weight: 950;
+      }
+
+      .roll-tail {
+        position: absolute;
+        right: 1px;
+        bottom: 2px;
+        width: 88px;
+        height: 82px;
+        border: 5px solid currentColor;
+        border-left: 0;
+        border-radius: 0 8px 8px 0;
+        transform: skewY(-7deg);
+      }
+
+      .run-metric {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 750;
+      }
+
+      .run-metric strong {
+        display: block;
+        font-size: clamp(34px, 5vw, 52px);
+        font-weight: 950;
+        line-height: 1;
+      }
+
+      .run-copy {
+        margin: 8px 0 0;
+        color: inherit;
+        font-size: 15px;
+        font-weight: 650;
+        opacity: 0.84;
+      }
+
+      .cut-card .run-body {
+        grid-template-columns: 100px minmax(0, 1fr);
+      }
+
+      .cut-symbol {
+        display: grid;
+        width: 92px;
+        height: 92px;
+        place-items: center;
+        border: 3px dashed var(--amber);
+        border-radius: 13px;
+        background: var(--amber-soft);
+        color: #6e3e00;
+        font-size: 44px;
+      }
+
+      .run-action {
+        width: 100%;
+        min-height: 54px;
+        margin-top: 14px;
+      }
+
+      .incoming-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 13px;
+        align-items: center;
+        margin-top: 16px;
+        padding: 14px 16px;
+        border: 2px dashed var(--ink);
+        border-radius: 12px;
+        background: #f4efe3;
+      }
+
+      .incoming-symbol {
+        display: grid;
+        width: 48px;
+        height: 48px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-size: 23px;
+        font-weight: 950;
+      }
+
+      .incoming-row strong,
+      .incoming-row span {
+        display: block;
+      }
+
+      .incoming-row strong {
+        font-size: 19px;
+      }
+
+      .incoming-row span {
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .waiting-chip {
+        padding: 6px 10px;
+        border: 2px solid var(--blue);
+        border-radius: 999px;
+        color: var(--blue);
+        font-size: 14px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .lane-sheet {
+        padding: 22px;
+      }
+
+      .lane-intro h1 {
+        margin: 0;
+        font-size: clamp(31px, 4.5vw, 44px);
+        line-height: 1.1;
+      }
+
+      .lane-intro p {
+        margin: 6px 0 17px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .lane-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .lane-card {
+        min-width: 0;
+        padding: 17px;
+        border: 3px solid var(--ink);
+        border-radius: 15px;
+        background: white;
+      }
+
+      .lane-card.active {
+        border-color: var(--safety-dark);
+        background: #fff1e7;
+      }
+
+      .lane-card.other {
+        border-color: #6e777d;
+        background: #eef0f1;
+      }
+
+      .lane-state {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 18px;
+        font-size: 15px;
+        font-weight: 900;
+      }
+
+      .lane-card h2 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.12;
+      }
+
+      .lane-card p {
+        min-height: 50px;
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .lane-number {
+        margin-top: 22px;
+        font-size: 38px;
+        font-weight: 950;
+        line-height: 1;
+      }
+
+      .lane-owner {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        margin-top: 16px;
+        padding: 7px 10px;
+        border: 2px solid currentColor;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 850;
+      }
+
+      .safety-sheet {
+        display: grid;
+        min-height: 465px;
+        grid-template-columns: minmax(280px, 0.78fr) minmax(420px, 1.22fr);
+      }
+
+      .safety-visual {
+        display: grid;
+        place-items: center;
+        padding: 28px;
+        border-right: 2px solid var(--ink);
+        background: #f2ede1;
+      }
+
+      .safety-symbol {
+        display: grid;
+        width: min(240px, 75%);
+        aspect-ratio: 1;
+        place-items: center;
+        border: 8px solid currentColor;
+        border-radius: 50%;
+        background: white;
+        color: var(--amber);
+        font-size: clamp(72px, 12vw, 122px);
+        font-weight: 950;
+        line-height: 1;
+      }
+
+      .safety-symbol.unknown {
+        color: var(--violet);
+      }
+
+      .safety-symbol.success {
+        color: var(--green);
+      }
+
+      .safety-panel {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 30px;
+      }
+
+      .safety-panel h1 {
+        margin: 0;
+        font-size: clamp(34px, 5vw, 52px);
+        font-weight: 950;
+        letter-spacing: -0.035em;
+        line-height: 1.08;
+      }
+
+      .safety-panel > p {
+        margin: 12px 0;
+        color: var(--muted);
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .do-not {
+        margin: 12px 0 0;
+        padding: 14px 15px;
+        border-left: 7px solid var(--red);
+        background: var(--red-soft);
+        color: #70201c;
+        font-size: 17px;
+        font-weight: 900;
+      }
+
+      .do-not svg {
+        width: 24px;
+        height: 24px;
+        margin-right: 6px;
+        vertical-align: -5px;
+      }
+
+      .prototype-panel {
+        position: fixed;
+        z-index: 60;
+        right: 16px;
+        bottom: calc(var(--dock-space) + 12px);
+        width: min(310px, calc(100vw - 32px));
+        border: 2px solid #315678;
+        border-radius: 11px;
+        background: #f4f8fc;
+        color: #163149;
+        box-shadow: 0 10px 32px rgb(23 33 43 / 18%);
+        font-size: 14px;
+      }
+
+      .prototype-panel summary {
+        display: flex;
+        min-height: 46px;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 12px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-weight: 900;
+        list-style: none;
+      }
+
+      .prototype-panel summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .prototype-panel:not([open]) {
+        width: 52px;
+        border-radius: 50%;
+        opacity: 0.72;
+      }
+
+      .prototype-panel:not([open]) summary {
+        width: 48px;
+        height: 48px;
+        min-height: 48px;
+        overflow: hidden;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 0;
+      }
+
+      .prototype-panel:not([open]) summary::after {
+        content: "ลอง";
+        font-size: 13px;
+        font-weight: 950;
+      }
+
+      .prototype-panel[open] summary {
+        border-bottom: 1px solid #9db2c5;
+        border-radius: 9px 9px 0 0;
+      }
+
+      .prototype-content {
+        max-height: min(480px, calc(100vh - var(--dock-space) - 90px));
+        overflow: auto;
+        padding: 10px;
+      }
+
+      .prototype-content p {
+        margin: 0 0 8px;
+        color: #455c70;
+        font-weight: 700;
+      }
+
+      .state-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .state-buttons button {
+        min-height: 42px;
+        border: 1px solid #4f6f8a;
+        border-radius: 7px;
+        background: white;
+        color: #163149;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .state-buttons button[aria-current="true"] {
+        background: #244f70;
+        color: white;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-width: 760px) {
+        :root {
+          --dock-space: 154px;
+        }
+
+        body {
+          font-size: 17px;
+        }
+
+        .station-bar {
+          min-height: 62px;
+        }
+
+        .station-id {
+          gap: 9px;
+          padding: 8px 12px;
+        }
+
+        .station-mark {
+          width: 40px;
+          height: 40px;
+          font-size: 21px;
+        }
+
+        .eyebrow {
+          font-size: 12px;
+        }
+
+        .station-name {
+          max-width: 190px;
+          font-size: 20px;
+        }
+
+        .station-tools {
+          gap: 8px;
+          padding: 8px 11px;
+        }
+
+        .connection span,
+        .operator svg {
+          display: none;
+        }
+
+        .operator {
+          display: inline-flex;
+          min-height: 40px;
+          font-size: 13px;
+        }
+
+        .station-main {
+          width: calc(100% - 20px);
+          padding-top: 10px;
+        }
+
+        .status-ribbon {
+          min-height: 44px;
+          margin-bottom: 9px;
+          padding: 7px 11px;
+          border-radius: 9px;
+          font-size: 16px;
+        }
+
+        .work-sheet {
+          border-radius: 15px;
+        }
+
+        .work-heading {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 7px;
+          padding: 11px 14px;
+        }
+
+        .order-id {
+          font-size: 27px;
+        }
+
+        .order-name {
+          font-size: 15px;
+          line-height: 1.3;
+        }
+
+        .paper-tag {
+          min-height: 36px;
+          justify-self: start;
+          padding: 4px 9px;
+          font-size: 13px;
+        }
+
+        .work-grid,
+        .stop-grid,
+        .handoff-grid,
+        .wait-grid,
+        .qc-grid,
+        .safety-sheet {
+          display: block;
+          min-height: 0;
+        }
+
+        .picture-zone,
+        .stop-grid .picture-zone,
+        .handoff-grid .picture-zone,
+        .wait-grid .picture-zone,
+        .qc-visual,
+        .safety-visual {
+          min-height: 0;
+          padding: 10px 14px;
+          border-right: 0;
+          border-bottom: 2px solid var(--ink);
+        }
+
+        .diagram-label {
+          margin-bottom: 4px;
+          font-size: 12px;
+        }
+
+        .garment-diagram {
+          width: 180px;
+          max-height: 135px;
+        }
+
+        .diagram-note {
+          margin-top: 2px;
+          font-size: 12px;
+        }
+
+        .task-zone,
+        .stop-panel,
+        .handoff-panel,
+        .wait-panel,
+        .qc-panel,
+        .safety-panel {
+          padding: 14px;
+        }
+
+        .task-label {
+          font-size: 14px;
+        }
+
+        .task-title,
+        .stop-title,
+        .handoff-title,
+        .wait-title,
+        .qc-title,
+        .safety-panel h1 {
+          font-size: 31px;
+        }
+
+        .task-subtitle,
+        .safety-panel > p {
+          margin-top: 5px;
+          font-size: 15px;
+        }
+
+        .spec-strip {
+          margin: 11px 0 10px;
+        }
+
+        .spec-item {
+          padding: 8px 5px;
+        }
+
+        .spec-name {
+          font-size: 11px;
+        }
+
+        .spec-value {
+          font-size: 19px;
+        }
+
+        .instruction {
+          gap: 9px;
+          padding: 9px 10px;
+          border-left-width: 5px;
+        }
+
+        .instruction-icon {
+          width: 30px;
+          height: 30px;
+          font-size: 17px;
+        }
+
+        .instruction strong {
+          font-size: 16px;
+        }
+
+        .instruction p {
+          font-size: 13px;
+        }
+
+        .more-details {
+          margin-top: 2px;
+          font-size: 14px;
+        }
+
+        .more-details summary {
+          min-height: 40px;
+          padding: 8px 2px;
+        }
+
+        .dock-inner,
+        .solo-dock .dock-inner {
+          width: calc(100% - 20px);
+          min-height: 142px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+          padding: 9px 0;
+        }
+
+        .dock-inner .button.primary,
+        .solo-dock .button.primary {
+          grid-row: 1;
+          grid-column: 1 / -1;
+          min-height: 68px;
+          font-size: 21px;
+        }
+
+        .dock-inner .button.secondary {
+          min-height: 48px;
+          padding: 6px;
+          font-size: 14px;
+        }
+
+        .solo-dock .dock-inner .button.secondary {
+          grid-column: 1 / -1;
+        }
+
+        .big-fact {
+          margin: 13px 0 9px;
+          padding: 10px 12px;
+        }
+
+        .big-fact .number {
+          font-size: 46px;
+        }
+
+        .big-fact strong {
+          font-size: 17px;
+        }
+
+        .big-fact span,
+        .truth-note,
+        .wait-line {
+          font-size: 14px;
+        }
+
+        .wait-line {
+          margin-top: 8px;
+          padding: 9px 10px;
+        }
+
+        .success-symbol {
+          width: 112px;
+          height: 112px;
+          border-width: 6px;
+          font-size: 66px;
+        }
+
+        .handoff-arrow {
+          gap: 7px;
+          margin: 13px 0 6px;
+        }
+
+        .handoff-stop {
+          padding: 9px 5px;
+          font-size: 14px;
+        }
+
+        .qc-visual {
+          display: grid;
+          grid-template-columns: 0.8fr 1.2fr;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .pile-visual {
+          width: 118px;
+          height: 96px;
+          margin: 0 auto;
+        }
+
+        .shirt-fold {
+          right: 8%;
+          left: 8%;
+          height: 48px;
+          border-width: 2px;
+          border-radius: 8px;
+        }
+
+        .shirt-fold:nth-child(1) {
+          top: 2px;
+        }
+
+        .shirt-fold:nth-child(2) {
+          top: 21px;
+        }
+
+        .shirt-fold:nth-child(3) {
+          top: 41px;
+          font-size: 24px;
+        }
+
+        .qty-equation {
+          gap: 4px;
+        }
+
+        .qty-equation div {
+          padding: 6px 2px;
+          border-width: 1px;
+        }
+
+        .qty-equation strong {
+          font-size: 21px;
+        }
+
+        .qty-equation span {
+          font-size: 10px;
+        }
+
+        .qc-help {
+          margin: 5px 0 10px;
+          font-size: 14px;
+        }
+
+        .choice-grid {
+          gap: 8px;
+        }
+
+        .choice-button {
+          min-height: 106px;
+          padding: 10px;
+          border-width: 2px;
+        }
+
+        .choice-icon {
+          font-size: 25px;
+        }
+
+        .choice-button strong {
+          font-size: 17px;
+        }
+
+        .choice-button span:last-child {
+          font-size: 12px;
+        }
+
+        .qc-form {
+          gap: 8px;
+          margin-top: 5px;
+        }
+
+        .field label,
+        .form-error {
+          font-size: 13px;
+        }
+
+        .field input,
+        .field select {
+          min-height: 48px;
+          font-size: 16px;
+        }
+
+        .qc-result-line div {
+          padding: 6px 8px;
+        }
+
+        .qc-result-line strong {
+          font-size: 22px;
+        }
+
+        .inline-actions {
+          gap: 8px;
+        }
+
+        .inline-actions .button,
+        .inline-actions .button.primary {
+          min-height: 54px;
+          font-size: 15px;
+        }
+
+        .dtf-sheet,
+        .lane-sheet {
+          padding: 13px;
+        }
+
+        .dtf-heading,
+        .dtf-grid {
+          display: block;
+        }
+
+        .dtf-heading h1,
+        .lane-intro h1 {
+          font-size: 29px;
+        }
+
+        .dtf-heading p,
+        .lane-intro p {
+          font-size: 13px;
+        }
+
+        .dtf-heading .paper-tag {
+          margin-top: 9px;
+        }
+
+        .run-card + .run-card {
+          margin-top: 10px;
+        }
+
+        .run-head {
+          padding: 10px 12px;
+        }
+
+        .run-head strong {
+          font-size: 20px;
+        }
+
+        .run-body,
+        .cut-card .run-body {
+          grid-template-columns: 85px minmax(0, 1fr);
+          gap: 10px;
+          padding: 12px;
+        }
+
+        .film-roll {
+          width: 84px;
+          height: 76px;
+        }
+
+        .roll-circle {
+          width: 62px;
+          height: 62px;
+          border-width: 5px;
+          font-size: 13px;
+        }
+
+        .roll-tail {
+          width: 48px;
+          height: 52px;
+          border-width: 4px;
+          border-left: 0;
+        }
+
+        .cut-symbol {
+          width: 76px;
+          height: 76px;
+          font-size: 34px;
+        }
+
+        .run-metric {
+          font-size: 14px;
+        }
+
+        .run-metric strong {
+          font-size: 31px;
+        }
+
+        .run-copy {
+          margin-top: 4px;
+          font-size: 12px;
+        }
+
+        .run-action {
+          min-height: 48px;
+          margin-top: 7px;
+          font-size: 13px;
+        }
+
+        .incoming-row {
+          grid-template-columns: auto minmax(0, 1fr);
+          margin-top: 10px;
+          padding: 9px;
+        }
+
+        .incoming-symbol {
+          width: 39px;
+          height: 39px;
+        }
+
+        .incoming-row strong {
+          font-size: 15px;
+        }
+
+        .incoming-row span {
+          font-size: 12px;
+        }
+
+        .waiting-chip {
+          display: none;
+        }
+
+        .lane-grid {
+          display: block;
+        }
+
+        .lane-card {
+          padding: 11px 13px;
+        }
+
+        .lane-card + .lane-card {
+          margin-top: 9px;
+        }
+
+        .lane-state {
+          margin-bottom: 7px;
+          font-size: 13px;
+        }
+
+        .lane-card h2 {
+          font-size: 22px;
+        }
+
+        .lane-card p {
+          min-height: 0;
+          margin-top: 3px;
+          font-size: 12px;
+        }
+
+        .lane-number {
+          margin-top: 8px;
+          font-size: 27px;
+        }
+
+        .lane-owner {
+          min-height: 36px;
+          margin-top: 7px;
+          padding: 4px 7px;
+          font-size: 12px;
+        }
+
+        .safety-visual {
+          padding: 12px;
+        }
+
+        .safety-symbol {
+          width: 104px;
+          border-width: 5px;
+          font-size: 59px;
+        }
+
+        .safety-panel > p {
+          margin: 7px 0;
+        }
+
+        .do-not {
+          margin-top: 6px;
+          padding: 9px 10px;
+          font-size: 14px;
+        }
+
+        .prototype-panel {
+          right: 10px;
+          bottom: calc(var(--dock-space) + 7px);
+          width: min(285px, calc(100vw - 20px));
+        }
+
+        .no-dock .prototype-panel {
+          bottom: 10px;
+        }
+      }
+
+      @media (max-width: 420px) and (max-height: 760px) {
+        .diagram-note,
+        .more-details,
+        .task-subtitle {
+          display: none;
+        }
+
+        .garment-diagram {
+          width: 145px;
+          max-height: 108px;
+        }
+
+        .instruction p {
+          display: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+
+      @media print {
+        .station-bar,
+        .action-dock,
+        .prototype-panel {
+          display: none !important;
+        }
+
+        .station-app {
+          padding: 0;
+        }
+
+        .station-main {
+          width: 100%;
+        }
+
+        .work-sheet {
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" aria-live="polite"></div>
+
+    <details class="prototype-panel" id="prototypePanel" hidden>
+      <summary id="prototypeSummary">ต้นแบบ · เลือกสถานะ</summary>
+      <div class="prototype-content">
+        <p>เปลี่ยนข้อมูลตัวอย่างเท่านั้น ไม่เรียก API และไม่บันทึกฐานข้อมูล</p>
+        <div class="state-buttons" id="stateButtons"></div>
+      </div>
+    </details>
+
+    <script>
+      (() => {
+        "use strict";
+
+        const app = document.querySelector("#app");
+        const stateButtons = document.querySelector("#stateButtons");
+        const prototypePanel = document.querySelector("#prototypePanel");
+        const prototypeSummary = document.querySelector("#prototypeSummary");
+
+        prototypePanel.hidden =
+          new URLSearchParams(window.location.search).get("controls") !== "1";
+
+        const states = [
+          ["ready", "พร้อมเริ่ม"],
+          ["inprogress", "กำลังทำ"],
+          ["blocked", "ของขาด"],
+          ["wait", "รอของ"],
+          ["assigned", "ส่งต่อคนอื่น"],
+          ["handoff", "ส่งต่อ QC"],
+          ["qc", "ตรวจคุณภาพ"],
+          ["dtf", "รอบ DTF"],
+          ["multilane", "หลายส่วน"],
+          ["stale", "ข้อมูลไม่สด"],
+          ["pending", "กำลังบันทึก"],
+          ["sync", "บันทึกแล้ว/รอสด"],
+          ["unknown", "ผลยังไม่ทราบ"],
+        ];
+
+        const allowedStates = new Set(states.map(([key]) => key));
+        const requestedState = new URLSearchParams(window.location.search).get(
+          "state",
+        );
+        let currentState = allowedStates.has(requestedState)
+          ? requestedState
+          : "ready";
+        let qcMode = "choose";
+        let dtfPrintedDone = false;
+        let dtfCutDone = false;
+
+        const icons = {
+          wifi: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5a14 14 0 0 1 18 0M6.5 13a9 9 0 0 1 11 0M10 16.5a4 4 0 0 1 4 0" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="20" r="1.7" fill="currentColor"/></svg>`,
+          user: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 21c.7-4.2 3.2-6.3 7.5-6.3s6.8 2.1 7.5 6.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+          play: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="m10 8 6 4-6 4Z" fill="currentColor"/></svg>`,
+          check: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="m7.5 12 3 3 6.5-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+          stop: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 3-5 5v8l5 5h8l5-5V8l-5-5Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="17" r="1.3" fill="currentColor"/></svg>`,
+          wait: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+          arrow: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+          queue: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/></svg>`,
+          scan: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4m6 0h4a1 1 0 0 1 1 1v4m0 6v4a1 1 0 0 1-1 1h-4m-6 0H5a1 1 0 0 1-1-1v-4M7 12h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+          alert: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9v5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="17.5" r="1.2" fill="currentColor"/></svg>`,
+          refresh: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 12a7 7 0 0 0-11.8-4.8L4 10m16 4-2.7 2.8A7 7 0 0 1 5.5 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+          lock: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+        };
+
+        function header(station, mark, online = true) {
+          return `
+            <header class="station-bar">
+              <div class="station-id">
+                <span class="station-mark" aria-hidden="true">${mark}</span>
+                <div>
+                  <div class="eyebrow">จอประจำสถานี</div>
+                  <div class="station-name">${station}</div>
+                </div>
+              </div>
+              <div class="station-tools">
+                <span class="connection" title="${online ? "เชื่อมต่อแล้ว" : "ข้อมูลไม่สด"}">
+                  ${online ? icons.wifi : icons.alert}
+                  <span>${online ? "เชื่อมต่อแล้ว" : "ข้อมูลไม่สด"}</span>
+                </span>
+                <span class="operator">${icons.user}<span>ศรุจ</span></span>
+              </div>
+            </header>`;
+        }
+
+        function statusRibbon(kind, icon, text, extra = "") {
+          return `<div class="status-ribbon ${kind}" role="status">${icons[icon]}<span>${text}</span>${extra}</div>`;
+        }
+
+        function heading(id, customer, product, tag) {
+          return `
+            <div class="work-heading">
+              <div>
+                <h1 class="order-id">${id}</h1>
+                <p class="order-name">${customer} · ${product}</p>
+              </div>
+              <span class="paper-tag">${tag}</span>
+            </div>`;
+        }
+
+        function heatDiagram(position = "ด้านหลัง", size = "A3") {
+          return `
+            <span class="diagram-label">ภาพบอกตำแหน่งจากใบงาน</span>
+            <svg class="garment-diagram" viewBox="0 0 380 300" role="img" aria-labelledby="heatDiagramTitle heatDiagramDesc">
+              <title id="heatDiagramTitle">แผนภาพเสื้อ${position} ตำแหน่งพิมพ์ขนาด ${size}</title>
+              <desc id="heatDiagramDesc">แผนภาพเสื้อสำหรับบอกให้รีดภาพขนาด ${size} ตรงกึ่งกลาง${position} ไม่ใช่ภาพสินค้าจริง</desc>
+              <path d="M116 38 76 55 25 111l42 36 31-31v153h184V116l31 31 42-36-51-56-40-17c-11 23-34 37-74 37s-63-14-74-37Z" fill="#ede8dc" stroke="#17212b" stroke-width="6" stroke-linejoin="round"/>
+              <path d="M148 41c5 13 19 21 42 21s37-8 42-21" fill="none" stroke="#17212b" stroke-width="6" stroke-linecap="round"/>
+              <rect x="124" y="103" width="132" height="112" rx="4" fill="#fff0c7" stroke="#c7440a" stroke-width="6" stroke-dasharray="12 8"/>
+              <text x="190" y="150" text-anchor="middle" fill="#943000" font-family="Tahoma, sans-serif" font-size="21" font-weight="900">${position}</text>
+              <text x="190" y="185" text-anchor="middle" fill="#943000" font-family="Tahoma, sans-serif" font-size="39" font-weight="900">${size}</text>
+              <path d="M190 91v-23" stroke="#c7440a" stroke-width="5" stroke-linecap="round"/>
+              <path d="m179 79 11 12 11-12" fill="none" stroke="#c7440a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="diagram-note">${position} · ขนาด ${size} · แผนภาพตำแหน่ง ไม่ใช่ภาพสินค้าจริง</p>`;
+        }
+
+        function poloDiagram() {
+          return `
+            <span class="diagram-label">รุ่น / สี / ไซส์ที่ขาด</span>
+            <svg class="garment-diagram" viewBox="0 0 380 300" role="img" aria-labelledby="poloTitle poloDesc">
+              <title id="poloTitle">เสื้อโปโลสีดำ ไซส์ L</title>
+              <desc id="poloDesc">แผนภาพระบุเสื้อโปโลสีดำ ไซส์ L ที่ของไม่พอ ไม่ใช่ภาพสินค้าจริง</desc>
+              <path d="M118 45 76 60 27 112l42 36 31-31v150h180V117l31 31 42-36-49-52-42-15-29 26h-46l-29-26Z" fill="#22282d" stroke="#050708" stroke-width="6" stroke-linejoin="round"/>
+              <path d="m158 45 29 26-22 31 25-12 25 12-22-31 29-26" fill="#555e65" stroke="#050708" stroke-width="5" stroke-linejoin="round"/>
+              <path d="M190 92v53" stroke="#bfc5c9" stroke-width="4"/>
+              <rect x="122" y="169" width="136" height="70" rx="11" fill="#fde8e4" stroke="#aa2525" stroke-width="5"/>
+              <text x="190" y="198" text-anchor="middle" fill="#7d1919" font-family="Tahoma, sans-serif" font-size="18" font-weight="900">สีดำ · ไซส์</text>
+              <text x="190" y="229" text-anchor="middle" fill="#7d1919" font-family="Tahoma, sans-serif" font-size="38" font-weight="900">L</text>
+            </svg>
+            <p class="diagram-note">แผนภาพระบุรุ่น สี และไซส์จากใบงาน</p>`;
+        }
+
+        function dock({
+          primary,
+          primaryAction,
+          primaryIcon = "play",
+          primaryClass = "",
+          disabled = false,
+          left = "คิวอื่น 3 งาน",
+          leftAction = "queue",
+          right = "ทำต่อไม่ได้",
+          rightAction = "problem",
+          rightClass = "problem",
+          solo = false,
+        }) {
+          return `
+            <div class="action-dock ${solo ? "solo-dock" : ""}">
+              <div class="dock-inner">
+                <button class="button secondary" type="button" data-action="${leftAction}">${icons.queue}<span>${left}</span></button>
+                <button class="button primary ${primaryClass}" type="button" data-action="${primaryAction}" ${disabled ? "disabled" : ""}>${icons[primaryIcon]}<span>${primary}</span></button>
+                ${
+                  solo
+                    ? ""
+                    : `<button class="button secondary ${rightClass}" type="button" data-action="${rightAction}">${rightAction === "problem" ? icons.alert : icons.scan}<span>${right}</span></button>`
+                }
+              </div>
+            </div>`;
+        }
+
+        function heatReady() {
+          return `
+            <div class="station-app">
+              ${header("รีดร้อน", "♨")}
+              <main class="station-main">
+                ${statusRibbon("ready", "play", "พร้อมเริ่ม · งานนี้เป็นของคุณ")}
+                <section class="work-sheet" aria-labelledby="readyTask">
+                  ${heading("ORD-2608-0007", "บริษัท นอร์ทสตาร์ รีเทล จำกัด", "เสื้อครบรอบสตูดิโอโยคะ", "ใบงานรีดร้อน")}
+                  <div class="work-grid">
+                    <div class="picture-zone">${heatDiagram()}</div>
+                    <div class="task-zone">
+                      <p class="task-label">งานที่ต้องทำตอนนี้</p>
+                      <h2 class="task-title" id="readyTask">รีดร้อน <span class="qty">54 ตัว</span></h2>
+                      <p class="task-subtitle">ดูภาพตำแหน่ง แล้วเริ่มงานได้เลย</p>
+                      <div class="spec-strip" aria-label="ข้อมูลสำคัญ">
+                        <div class="spec-item"><span class="spec-name">จำนวน</span><strong class="spec-value">54 ตัว</strong></div>
+                        <div class="spec-item"><span class="spec-name">ตำแหน่ง</span><strong class="spec-value">ด้านหลัง</strong></div>
+                        <div class="spec-item"><span class="spec-name">ขนาด</span><strong class="spec-value">A3</strong></div>
+                      </div>
+                      <div class="instruction">
+                        <span class="instruction-icon" aria-hidden="true">↧</span>
+                        <div><strong>วางภาพกึ่งกลางด้านหลัง</strong><p>ตรวจด้านเสื้อและขนาด A3 ให้ตรง ก่อนกดเริ่ม</p></div>
+                      </div>
+                      <details class="more-details"><summary>ดูวิธีรีดและรายละเอียดเพิ่ม</summary><p>ใช้ค่าความร้อนและเวลาตามใบตั้งเครื่องประจำสถานี</p></details>
+                    </div>
+                  </div>
+                </section>
+              </main>
+              ${dock({ primary: "เริ่มรีด 54 ตัว", primaryAction: "startHeat" })}
+            </div>`;
+        }
+
+        function heatInProgress() {
+          return `
+            <div class="station-app">
+              ${header("รีดร้อน", "♨")}
+              <main class="station-main">
+                ${statusRibbon("info", "play", "กำลังทำ · เริ่มรีดแล้ว")}
+                <section class="work-sheet" aria-labelledby="activeTask">
+                  ${heading("ORD-2608-0007", "บริษัท นอร์ทสตาร์ รีเทล จำกัด", "เสื้อครบรอบสตูดิโอโยคะ", "กำลังรีด")}
+                  <div class="work-grid">
+                    <div class="picture-zone">${heatDiagram()}</div>
+                    <div class="task-zone">
+                      <p class="task-label">ทำงานนี้ให้ครบก่อน</p>
+                      <h2 class="task-title" id="activeTask">รีดร้อน <span class="qty">54 ตัว</span></h2>
+                      <p class="task-subtitle">เมื่อรีดครบทั้งกอง ให้กดบันทึกด้านล่าง</p>
+                      <div class="spec-strip" aria-label="ข้อมูลสำคัญ">
+                        <div class="spec-item"><span class="spec-name">ต้องทำ</span><strong class="spec-value">54 ตัว</strong></div>
+                        <div class="spec-item"><span class="spec-name">ตำแหน่ง</span><strong class="spec-value">ด้านหลัง</strong></div>
+                        <div class="spec-item"><span class="spec-name">ขนาด</span><strong class="spec-value">A3</strong></div>
+                      </div>
+                      <div class="instruction"><span class="instruction-icon" aria-hidden="true">!</span><div><strong>อย่ากดจบก่อนนับครบ</strong><p>ถ้าทำต่อไม่ได้ ให้หยุดงานและแจ้งปัญหา</p></div></div>
+                    </div>
+                  </div>
+                </section>
+              </main>
+              ${dock({ primary: "บันทึกว่ารีดครบ 54 ตัว", primaryAction: "finishHeat", primaryIcon: "check", primaryClass: "safe" })}
+            </div>`;
+        }
+
+        function blocked() {
+          return `
+            <div class="station-app">
+              ${header("เตรียมเสื้อ", "▦")}
+              <main class="station-main">
+                ${statusRibbon("blocked", "stop", "หยุด — รอหัวหน้า")}
+                <section class="work-sheet" aria-labelledby="blockedTask">
+                  ${heading("ORD-2608-0008", "บริษัท เอเวอร์กรีน เซลส์ จำกัด", "เสื้อโปโลทีมขาย", "หยุดงาน")}
+                  <div class="stop-grid">
+                    <div class="picture-zone">${poloDiagram()}</div>
+                    <div class="stop-panel">
+                      <h2 class="stop-title" id="blockedTask">หยุดหยิบไซส์ L</h2>
+                      <div class="big-fact">
+                        <span class="number">7</span>
+                        <div><strong>ตัวที่ขาดจากยอดออเดอร์</strong><span>ต้องใช้ 13 · มีในชั้น 6</span></div>
+                      </div>
+                      <div class="wait-line">${icons.user}<span>หัวหน้ากำลังรับเรื่องแล้ว</span></div>
+                      <p class="truth-note">ห้ามใช้ไซส์อื่นแทน และไม่มีปุ่มเริ่มงานในสถานะนี้</p>
+                    </div>
+                  </div>
+                </section>
+              </main>
+              ${dock({ primary: "สแกนงานอื่น", primaryAction: "scan", primaryIcon: "scan", primaryClass: "dark", left: "กลับคิว", leftAction: "queue", solo: true })}
+            </div>`;
+        }
+
+        function routineWait() {
+          return `
+            <div class="station-app">
+              ${header("รีดร้อน", "♨")}
+              <main class="station-main">
+                ${statusRibbon("waiting", "wait", "รอก่อน · ยังเริ่มรีดไม่ได้")}
+                <section class="work-sheet" aria-labelledby="waitTask">
+                  ${heading("ORD-2608-0009", "มูลนิธิก้าวไปด้วยกัน", "เสื้อวิ่งการกุศล", "รอฟิล์ม")}
+                  <div class="wait-grid">
+                    <div class="picture-zone">${heatDiagram("ด้านหน้า", "A4")}</div>
+                    <div class="wait-panel">
+                      <h2 class="wait-title" id="waitTask">รอฟิล์ม DTF</h2>
+                      <p class="task-subtitle">งานนี้เป็นการรอตามปกติ ไม่ใช่ของเสียหรือปัญหา</p>
+                      <div class="wait-line">${icons.wait}<span>สถานีพิมพ์ DTF กำลังเตรียมฟิล์ม</span></div>
+                      <p class="truth-note">เมื่อฟิล์มพร้อม งานจะกลับมาอยู่ในคิวรีดร้อน</p>
+                    </div>
+                  </div>
+                </section>
+              </main>
+              ${dock({ primary: "สแกนงานอื่น", primaryAction: "scan", primaryIcon: "scan", primaryClass: "dark", left: "กลับคิว", leftAction: "queue", solo: true })}
+            </div>`;
+        }
+
+        function assignedOther() {
+          return `
+            <div class="station-app">
+              ${header("ตรวจคุณภาพ", "◎")}
+              <main class="station-main">
+                ${statusRibbon("info", "user", "ส่งต่อให้คนอื่น · งานนี้ไม่ใช่ของคุณแล้ว")}
+                <section class="work-sheet" aria-labelledby="assignedTask">
+                  ${heading("ORD-2608-0011", "บริษัท สยามฟู้ด มาร์เก็ต จำกัด", "เสื้อทีมเปิดสาขาใหม่", "ส่งต่อแล้ว")}
+                  <div class="handoff-grid">
+                    <div class="picture-zone"><div class="success-symbol" aria-hidden="true">→</div><p class="diagram-note">ส่งงานตามผู้รับผิดชอบ ไม่ได้เริ่มแทนกันอัตโนมัติ</p></div>
+                    <div class="handoff-panel">
+                      <h2 class="handoff-title" id="assignedTask">สมชายรับงาน QC</h2>
+                      <p class="task-subtitle">คุณดูสถานะได้ แต่ไม่มีปุ่มทำงานแทน</p>
+                      <div class="wait-line">${icons.user}<span>ผู้รับงาน: สมชาย · สถานีตรวจคุณภาพ</span></div>
+                      <p class="truth-note">หากมอบหมายผิด ให้หัวหน้าแก้จาก ERP</p>
+                    </div>
+                  </div>
+                </section>
+              </main>
+              ${dock({ primary: "สแกนงานของฉัน", primaryAction: "scan", primaryIcon: "scan", primaryClass: "dark", left: "กลับคิว", leftAction: "queue", solo: true })}
+            </div>`;
+        }
+
+        function handoff() {
+          return `
+            <div class="station-app">
+              ${header("รีดร้อน", "♨")}
+              <main class="station-main">
+                ${statusRibbon("success", "check", "บันทึกแล้ว · รีดครบ 54 ตัว")}
+                <section class="work-sheet" aria-labelledby="handoffTask">
+                  ${heading("ORD-2608-0007", "บริษัท นอร์ทสตาร์ รีเทล จำกัด", "เสื้อครบรอบสตูดิโอโยคะ", "พร้อมส่งต่อ")}
+                  <div class="handoff-grid">
+                    <div class="picture-zone"><div class="success-symbol" aria-hidden="true">✓</div><p class="diagram-note">ผลสำเร็จค้างอยู่จนผู้ใช้เลือกไปต่อ</p></div>
+                    <div class="handoff-panel">
+                      <h2 class="handoff-title" id="handoffTask">รีดครบ 54 ตัว</h2>
+                      <p class="task-subtitle">ออเดอร์เดิมพร้อมไปตรวจคุณภาพต่อ</p>
+                      <div class="handoff-arrow" aria-label="ส่งจากรีดร้อนไปตรวจคุณภาพ">
+                        <div class="handoff-stop">รีดร้อน<br />เสร็จแล้ว</div>
+                        <span class="handoff-chevron" aria-hidden="true">→</span>
+                        <div class="handoff-stop next">ตรวจคุณภาพ<br />พร้อมไปต่อ</div>
+                      </div>
+                      <p class="truth-note">การกดด้านล่างพาไปหน้าคิว QC ไม่ได้เริ่มหรือนับงานแทนคุณ</p>
+                    </div>
+                  </div>
+                </section>
+              </main>
+              ${dock({ primary: "ไปคิวตรวจคุณภาพ", primaryAction: "openQcHandoff", primaryIcon: "arrow", primaryClass: "safe", left: "คิวอื่น 3 งาน", leftAction: "queue", solo: true })}
+            </div>`;
+        }
+
+        function qcVisual() {
+          return `
+            <div class="pile-visual" aria-hidden="true"><div class="shirt-fold"></div><div class="shirt-fold"></div><div class="shirt-fold">30</div></div>
+            <div class="qty-equation" aria-label="ยอดตรวจคุณภาพ"><div><strong>50</strong><span>ยอดออเดอร์</span></div><div><strong>20</strong><span>ผ่านแล้ว</span></div><div><strong>30</strong><span>กองนี้</span></div></div>`;
+        }
+
+        function qcChoose() {
+          return `
+            <div class="qc-grid">
+              <div class="qc-visual">${qcVisual()}</div>
+              <div class="qc-panel">
+                <p class="task-label">ดูเสื้อกองนี้แล้วเลือกผล</p>
+                <h2 class="qc-title" id="qcTask">ตรวจเสื้อ 30 ตัว</h2>
+                <p class="qc-help">สองทางนี้สำคัญเท่ากัน ยังไม่บันทึกทันทีเมื่อกด</p>
+                <div class="choice-grid">
+                  <button class="choice-button" type="button" data-action="qcGood"><span class="choice-icon" aria-hidden="true">✓</span><strong>ทั้งหมดดี 30 ตัว</strong><span>เปิดหน้าทวนก่อนบันทึก</span></button>
+                  <button class="choice-button" type="button" data-action="qcDefect"><span class="choice-icon" aria-hidden="true">!</span><strong>พบของเสีย</strong><span>กรอกจำนวนและเหตุผล</span></button>
+                </div>
+              </div>
+            </div>`;
+        }
+
+        function qcGoodConfirm() {
+          return `
+            <div class="qc-grid">
+              <div class="qc-visual">${qcVisual()}</div>
+              <div class="qc-panel">
+                <p class="task-label">ทวนผลก่อนบันทึก</p>
+                <h2 class="qc-title">ทั้งหมดดี 30 ตัว</h2>
+                <p class="qc-help">ผลรวมกองนี้ต้องเท่ากับ 30 ตัว</p>
+                <div class="qc-result-line"><div><strong>30</strong><span>ของดี</span></div><div><strong>0</strong><span>ของเสีย</span></div></div>
+                <div class="instruction"><span class="instruction-icon" aria-hidden="true">30</span><div><strong>กองนี้ครบ 30 ตัว</strong><p>การกดยืนยันจริงต้องผ่าน server invariant ก่อนส่งไปแพ็ก</p></div></div>
+                <div class="inline-actions"><button class="button secondary" type="button" data-action="qcBack">ย้อนกลับ</button><button class="button primary safe" type="button" data-action="qcConfirmGood">${icons.check}<span>ยืนยันผล 30 ตัว</span></button></div>
+                <p class="mock-note">ต้นแบบนี้ไม่เขียนฐานข้อมูล</p>
+              </div>
+            </div>`;
+        }
+
+        function qcDefectForm() {
+          return `
+            <div class="qc-grid">
+              <div class="qc-visual">${qcVisual()}</div>
+              <div class="qc-panel">
+                <p class="task-label">บอกของเสียจากกอง 30 ตัว</p>
+                <h2 class="qc-title">พบของเสีย</h2>
+                <form class="qc-form" id="qcDefectForm" novalidate>
+                  <div class="field"><label for="defectCount">เสียกี่ตัว</label><input id="defectCount" name="defectCount" type="number" min="1" max="30" inputmode="numeric" placeholder="เช่น 2" /></div>
+                  <div class="field"><label for="defectReason">เกิดอะไรขึ้น</label><select id="defectReason" name="defectReason"><option value="">เลือกเหตุผล</option><option>ภาพเอียง / ผิดตำแหน่ง</option><option>สีหรือฟิล์มไม่ติด</option><option>เสื้อเสียหาย</option><option>อื่น ๆ — ให้หัวหน้าตรวจ</option></select></div>
+                  <div class="qc-result-line"><div><strong id="goodComputed">30</strong><span>ของดี (ระบบคำนวณ)</span></div><div><strong id="badComputed">0</strong><span>ของเสีย</span></div></div>
+                  <p class="form-error" id="qcError" role="alert"></p>
+                </form>
+                <div class="inline-actions"><button class="button secondary" type="button" data-action="qcBack">ย้อนกลับ</button><button class="button primary" id="qcReviewButton" type="button" data-action="qcReviewDefect" disabled>${icons.arrow}<span>ทวนผลตรวจ</span></button></div>
+                <p class="mock-note">ของดีคำนวณจาก 30 − ของเสีย จึงบันทึกเกินกองเดียวกันไม่ได้</p>
+              </div>
+            </div>`;
+        }
+
+        function qcDefectConfirm() {
+          const defectCount = Number(app.dataset.defectCount || 0);
+          const defectReason = app.dataset.defectReason || "—";
+          const goodCount = 30 - defectCount;
+          return `
+            <div class="qc-grid">
+              <div class="qc-visual">${qcVisual()}</div>
+              <div class="qc-panel">
+                <p class="task-label">ทวนผลก่อนบันทึก</p>
+                <h2 class="qc-title">ดี ${goodCount} · เสีย ${defectCount}</h2>
+                <p class="qc-help">เหตุผล: ${defectReason}</p>
+                <div class="qc-result-line"><div><strong>${goodCount}</strong><span>ของดี</span></div><div><strong>${defectCount}</strong><span>ของเสีย</span></div></div>
+                <div class="instruction"><span class="instruction-icon" aria-hidden="true">30</span><div><strong>รวม ${goodCount + defectCount} ตัว</strong><p>ผลรวมไม่เกินกองที่กำลังตรวจ</p></div></div>
+                <div class="inline-actions"><button class="button secondary" type="button" data-action="qcEditDefect">แก้จำนวน</button><button class="button primary safe" type="button" data-action="qcConfirmDefect">${icons.check}<span>ยืนยันผล 30 ตัว</span></button></div>
+                <p class="mock-note">ต้นแบบนี้ไม่เขียนฐานข้อมูล</p>
+              </div>
+            </div>`;
+        }
+
+        function qcDone() {
+          return `
+            <div class="handoff-grid">
+              <div class="picture-zone"><div class="success-symbol" aria-hidden="true">✓</div><p class="diagram-note">ตัวอย่างผลหลัง server ยืนยันเท่านั้น</p></div>
+              <div class="handoff-panel">
+                <h2 class="handoff-title">ตรวจครบกองนี้แล้ว</h2>
+                <p class="task-subtitle">ผลตัวอย่างพร้อมส่งต่อขั้นตอนถัดไป</p>
+                <div class="wait-line">${icons.check}<span>ผลรวมของดีและของเสียครบ 30 ตัว</span></div>
+                <p class="mock-note">นี่เป็น interaction prototype ไม่ได้บันทึกข้อมูลจริง</p>
+                <div class="inline-actions"><button class="button secondary" type="button" data-action="qcBack">ดูทางเลือกอีกครั้ง</button><button class="button primary safe" type="button" data-action="queue">${icons.arrow}<span>กลับคิว QC</span></button></div>
+              </div>
+            </div>`;
+        }
+
+        function qc() {
+          let content = qcChoose();
+          if (qcMode === "good") content = qcGoodConfirm();
+          if (qcMode === "defect") content = qcDefectForm();
+          if (qcMode === "defectConfirm") content = qcDefectConfirm();
+          if (qcMode === "done") content = qcDone();
+          return `
+            <div class="station-app no-dock">
+              ${header("ตรวจคุณภาพ", "◎")}
+              <main class="station-main">
+                ${statusRibbon(qcMode === "done" ? "success" : "ready", qcMode === "done" ? "check" : "play", qcMode === "done" ? "ตัวอย่างผลหลังยืนยัน" : "พร้อมตรวจ · กองนี้ 30 ตัว")}
+                <section class="work-sheet" aria-labelledby="qcTask">
+                  ${heading("ORD-2608-0010", "บริษัท เมืองไทย ไลฟ์สไตล์ จำกัด", "เสื้อพนักงานกิจกรรม", "ใบตรวจ QC")}
+                  ${content}
+                </section>
+              </main>
+            </div>`;
+        }
+
+        function dtf() {
+          return `
+            <div class="station-app no-dock">
+              ${header("พิมพ์ DTF", "▥")}
+              <main class="station-main">
+                ${statusRibbon("info", "play", "มีงานที่ต้องทำตอนนี้ 2 อย่าง · ไม่รวมเป็นขั้นตอนเดียว")}
+                <section class="work-sheet dtf-sheet" aria-labelledby="dtfTitle">
+                  <div class="dtf-heading"><div><h1 id="dtfTitle">งานหน้าสถานี DTF</h1><p>งานกำลังพิมพ์อยู่บนสุดเสมอ · ไม่มีการแต่งชื่อเครื่อง</p></div><span class="paper-tag">รอบจริง + งานเข้า</span></div>
+                  <div class="dtf-grid">
+                    <article class="run-card active">
+                      <div class="run-head"><strong>FR-2608-0001</strong><span class="run-phase">${icons.play}${dtfPrintedDone ? "พิมพ์จบแล้ว" : "กำลังพิมพ์"}</span></div>
+                      <div class="run-body">
+                        <div class="film-roll" aria-hidden="true"><div class="roll-circle">DTF</div><div class="roll-tail"></div></div>
+                        <div><p class="run-metric"><strong>1 ม้วน</strong>รวม 3 ออเดอร์</p><p class="run-copy">จบการพิมพ์ทั้งม้วนก่อนส่งไปตัดแยก</p>${dtfPrintedDone ? `<div class="wait-line">${icons.check}<span>ตัวอย่าง: พิมพ์จบแล้ว</span></div>` : `<button class="button primary run-action" type="button" data-action="dtfFinishPrint">${icons.check}<span>พิมพ์จบทั้งม้วน</span></button>`}</div>
+                      </div>
+                    </article>
+                    <article class="run-card cut-card">
+                      <div class="run-head"><strong>FR-2608-0002</strong><span class="run-phase">${icons.wait}${dtfCutDone ? "ตัดเสร็จแล้ว" : "พิมพ์แล้ว · รอตัด"}</span></div>
+                      <div class="run-body">
+                        <div class="cut-symbol" aria-hidden="true">✂</div>
+                        <div><p class="run-metric"><strong>2 ออเดอร์</strong>ตัดแยกและติดป้าย</p><p class="run-copy">ป้ายแต่ละชุดต้องตรงเลขออเดอร์</p>${dtfCutDone ? `<div class="wait-line">${icons.check}<span>ตัวอย่าง: ตัดและติดป้ายแล้ว</span></div>` : `<button class="button secondary run-action" type="button" data-action="dtfFinishCut">${icons.check}<span>ตัดและติดป้ายเสร็จ</span></button>`}</div>
+                      </div>
+                    </article>
+                  </div>
+                  <div class="incoming-row"><span class="incoming-symbol" aria-hidden="true">＋</span><div><strong>ORD-2608-0004 · งานใหม่พร้อมเข้ารอบ</strong><span>งานนี้รออยู่ ไม่ได้ดันรอบที่กำลังพิมพ์ออกจากจอ</span></div><span class="waiting-chip">รอเข้ารอบ DTF</span></div>
+                </section>
+              </main>
+            </div>`;
+        }
+
+        function multiLane() {
+          return `
+            <div class="station-app">
+              ${header("งานหลายส่วน", "≋")}
+              <main class="station-main">
+                ${statusRibbon("info", "play", "ออเดอร์เดียวมีหลายส่วนพร้อมกัน · ไม่ใช่ขั้นตอนเรียงเส้นเดียว")}
+                <section class="work-sheet lane-sheet" aria-labelledby="laneTitle">
+                  <div class="lane-intro"><h1 id="laneTitle">ORD-2608-0012 · เสื้ออีเวนต์ 80 ตัว</h1><p>แต่ละส่วนมีเจ้าของและความพร้อมของตัวเอง</p></div>
+                  <div class="lane-grid">
+                    <article class="lane-card active"><div class="lane-state">${icons.play}<span>กำลังทำ · งานรีดด้านหน้า</span></div><h2>รีดร้อน</h2><p>ด้านหน้า · ขนาด A4</p><div class="lane-number">24 / 80</div><span class="lane-owner">ผู้ทำ: ศรุจ</span></article>
+                    <article class="lane-card"><div class="lane-state">${icons.check}<span>พร้อมเริ่ม · งานเย็บป้าย</span></div><h2>เย็บป้าย</h2><p>พร้อมจริง แต่ยังไม่แทรกงานที่กำลังทำ</p><div class="lane-number">0 / 80</div><span class="lane-owner">ยังไม่มีผู้รับงาน</span></article>
+                    <article class="lane-card other"><div class="lane-state">${icons.lock}<span>คนอื่นกำลังทำ · งานแพ็กชุดพิเศษ</span></div><h2>แพ็กชุดพิเศษ</h2><p>แสดงให้เห็นบริบท แต่ไม่มีปุ่มทำแทน</p><div class="lane-number">12 / 20</div><span class="lane-owner">ผู้ทำ: สมชาย</span></article>
+                  </div>
+                </section>
+              </main>
+              ${dock({ primary: "บันทึกจำนวนที่รีดเสร็จ", primaryAction: "laneProgress", primaryIcon: "check", left: "กลับคิว", leftAction: "queue", right: "ทำต่อไม่ได้", rightAction: "problem" })}
+            </div>`;
+        }
+
+        function safetyState(type) {
+          const configs = {
+            stale: {
+              online: false,
+              ribbon: statusRibbon("stale", "alert", "ข้อมูลไม่สด · อัปเดตล่าสุด 12:14"),
+              symbol: "!",
+              symbolClass: "",
+              title: "เริ่มงานไม่ได้",
+              text: "ยังอ่านใบงานเดิมได้ แต่ต้องอัปเดตข้อมูลก่อน เพราะงานอาจถูกเปลี่ยนจากอีกเครื่อง",
+              warn: "อย่ากดเริ่มหรือทำงานจริงจากข้อมูลเก่า",
+              primary: "ลองอัปเดตอีกครั้ง",
+              action: "refreshToReady",
+              icon: "refresh",
+            },
+            pending: {
+              online: true,
+              ribbon: statusRibbon("info", "wait", "กำลังบันทึกคำสั่งเริ่มรีด"),
+              symbol: "…",
+              symbolClass: "",
+              title: "กำลังบันทึก",
+              text: "รอคำตอบจากระบบก่อน ปุ่มงานทุกปุ่มถูกล็อกชั่วคราว",
+              warn: "อย่ากดซ้ำ อย่าปิดหน้า และอย่าเริ่มนับงานรอบใหม่",
+              primary: "กำลังบันทึก…",
+              action: "noop",
+              icon: "lock",
+              disabled: true,
+            },
+            sync: {
+              online: false,
+              ribbon: statusRibbon("success", "check", "บันทึกแล้ว 12:21 · แต่ข้อมูลใหม่ยังโหลดไม่สำเร็จ"),
+              symbol: "✓",
+              symbolClass: "success",
+              title: "คำสั่งถูกบันทึกแล้ว",
+              text: "ไม่ต้องกดเริ่มซ้ำ ระบบยืนยันผลแล้ว แต่ยังไม่เปิดงานถัดไปจนกว่าข้อมูลจะสด",
+              warn: "ห้ามทำคำสั่งเดิมซ้ำ",
+              primary: "อัปเดตหน้าจอ",
+              action: "refreshToProgress",
+              icon: "refresh",
+            },
+            unknown: {
+              online: false,
+              ribbon: statusRibbon("unknown", "alert", "ผลยังไม่ทราบ · กำลังตรวจคำสั่งเดิม"),
+              symbol: "?",
+              symbolClass: "unknown",
+              title: "ยังไม่รู้ว่าบันทึกหรือยัง",
+              text: "การเชื่อมต่อขาดก่อนเห็นผล ระบบต้องตรวจคำสั่งเดิมก่อน ไม่สร้างคำสั่งใหม่",
+              warn: "อย่ากดเริ่มซ้ำ และอย่าเริ่มงานกองใหม่",
+              primary: "ตรวจผลอีกครั้ง",
+              action: "resolveUnknown",
+              icon: "refresh",
+            },
+          };
+          const config = configs[type];
+          return `
+            <div class="station-app">
+              ${header("รีดร้อน", "♨", config.online)}
+              <main class="station-main">
+                ${config.ribbon}
+                <section class="work-sheet" aria-labelledby="safetyTitle">
+                  ${heading("ORD-2608-0007", "บริษัท นอร์ทสตาร์ รีเทล จำกัด", "เสื้อครบรอบสตูดิโอโยคะ", "ใบงานรีดร้อน")}
+                  <div class="safety-sheet">
+                    <div class="safety-visual"><div class="safety-symbol ${config.symbolClass}" aria-hidden="true">${config.symbol}</div></div>
+                    <div class="safety-panel"><h1 id="safetyTitle">${config.title}</h1><p>${config.text}</p><div class="do-not">${icons.stop} ${config.warn}</div><div class="spec-strip"><div class="spec-item"><span class="spec-name">งาน</span><strong class="spec-value">รีดร้อน</strong></div><div class="spec-item"><span class="spec-name">จำนวน</span><strong class="spec-value">54 ตัว</strong></div><div class="spec-item"><span class="spec-name">ตำแหน่ง</span><strong class="spec-value">ด้านหลัง</strong></div></div></div>
+                  </div>
+                </section>
+              </main>
+              ${dock({ primary: config.primary, primaryAction: config.action, primaryIcon: config.icon, primaryClass: type === "sync" ? "safe" : "dark", disabled: config.disabled, left: "กลับคิว", leftAction: "queue", solo: true })}
+            </div>`;
+        }
+
+        function render() {
+          document.documentElement.style.setProperty(
+            "--dock-space",
+            ["qc", "dtf"].includes(currentState) ? "28px" : "108px",
+          );
+
+          const renderers = {
+            ready: heatReady,
+            inprogress: heatInProgress,
+            blocked,
+            wait: routineWait,
+            assigned: assignedOther,
+            handoff,
+            qc,
+            dtf,
+            multilane: multiLane,
+            stale: () => safetyState("stale"),
+            pending: () => safetyState("pending"),
+            sync: () => safetyState("sync"),
+            unknown: () => safetyState("unknown"),
+          };
+
+          app.innerHTML = renderers[currentState]();
+          app.dataset.state = currentState;
+          renderStateButtons();
+          bindFormState();
+          window.requestAnimationFrame(() => {
+            const mainHeading = app.querySelector("h1, h2");
+            if (mainHeading) mainHeading.setAttribute("tabindex", "-1");
+          });
+        }
+
+        function renderStateButtons() {
+          const activeLabel = states.find(([key]) => key === currentState)?.[1];
+          prototypeSummary.textContent = `ต้นแบบ · ${activeLabel}`;
+          stateButtons.innerHTML = states
+            .map(
+              ([key, label]) =>
+                `<button type="button" data-state="${key}" aria-current="${key === currentState}">${label}</button>`,
+            )
+            .join("");
+        }
+
+        function setState(next, { focus = true } = {}) {
+          if (!allowedStates.has(next)) return;
+          currentState = next;
+          qcMode = "choose";
+          const nextUrl = new URL(window.location.href);
+          nextUrl.searchParams.set("state", next);
+          window.history.replaceState({ state: next }, "", nextUrl);
+          render();
+          if (focus) {
+            window.requestAnimationFrame(() => {
+              const headingElement = app.querySelector("h1, h2");
+              headingElement?.focus({ preventScroll: true });
+            });
+          }
+        }
+
+        function bindFormState() {
+          if (currentState !== "qc" || qcMode !== "defect") return;
+          const countInput = document.querySelector("#defectCount");
+          const reasonSelect = document.querySelector("#defectReason");
+          const goodComputed = document.querySelector("#goodComputed");
+          const badComputed = document.querySelector("#badComputed");
+          const error = document.querySelector("#qcError");
+          const review = document.querySelector("#qcReviewButton");
+
+          const update = () => {
+            const rawCount = countInput.value.trim();
+            const count = Number(rawCount);
+            const countValid = rawCount !== "" && Number.isInteger(count) && count >= 1 && count <= 30;
+            const reasonValid = reasonSelect.value !== "";
+            const shownCount = countValid ? count : 0;
+            goodComputed.textContent = String(30 - shownCount);
+            badComputed.textContent = String(shownCount);
+            review.disabled = !(countValid && reasonValid);
+            if (rawCount !== "" && !countValid) {
+              error.textContent = "ใส่จำนวนของเสียตั้งแต่ 1 ถึง 30 ตัว";
+            } else if (countValid && !reasonValid) {
+              error.textContent = "เลือกเหตุผลของเสียก่อน";
+            } else {
+              error.textContent = "";
+            }
+          };
+
+          countInput.addEventListener("input", update);
+          reasonSelect.addEventListener("change", update);
+          update();
+        }
+
+        function showPrototypeNotice(message) {
+          const existing = document.querySelector("#prototypeNotice");
+          existing?.remove();
+          const notice = document.createElement("div");
+          notice.id = "prototypeNotice";
+          notice.setAttribute("role", "status");
+          notice.style.cssText =
+            "position:fixed;z-index:80;left:50%;top:82px;transform:translateX(-50%);max-width:calc(100vw - 24px);padding:12px 16px;border:2px solid #17212b;border-radius:10px;background:#fffdf7;color:#17212b;font-weight:900;box-shadow:0 8px 24px rgb(23 33 43 / 22%);text-align:center";
+          notice.textContent = message;
+          document.body.appendChild(notice);
+          window.setTimeout(() => notice.remove(), 2400);
+        }
+
+        document.addEventListener("click", (event) => {
+          const stateButton = event.target.closest("#stateButtons [data-state]");
+          if (stateButton) {
+            setState(stateButton.dataset.state);
+            document.querySelector("#prototypePanel").open = false;
+            return;
+          }
+
+          const actionButton = event.target.closest("[data-action]");
+          if (!actionButton || actionButton.disabled) return;
+          const action = actionButton.dataset.action;
+
+          if (action === "startHeat") setState("inprogress");
+          else if (action === "finishHeat") setState("handoff");
+          else if (action === "refreshToReady") setState("ready");
+          else if (action === "refreshToProgress") setState("inprogress");
+          else if (action === "resolveUnknown") setState("inprogress");
+          else if (action === "openQcHandoff") {
+            showPrototypeNotice("ต้นแบบ: เปิดคิว QC ของออเดอร์เดิม โดยยังไม่เริ่มงานแทน");
+          } else if (action === "qcGood") {
+            qcMode = "good";
+            render();
+          } else if (action === "qcDefect") {
+            qcMode = "defect";
+            render();
+            window.requestAnimationFrame(() => document.querySelector("#defectCount")?.focus());
+          } else if (action === "qcBack") {
+            qcMode = "choose";
+            render();
+          } else if (action === "qcEditDefect") {
+            qcMode = "defect";
+            render();
+          } else if (action === "qcReviewDefect") {
+            const countInput = document.querySelector("#defectCount");
+            const reasonSelect = document.querySelector("#defectReason");
+            const count = Number(countInput?.value);
+            if (!Number.isInteger(count) || count < 1 || count > 30 || !reasonSelect?.value) return;
+            app.dataset.defectCount = String(count);
+            app.dataset.defectReason = reasonSelect.value;
+            qcMode = "defectConfirm";
+            render();
+          } else if (action === "qcConfirmGood" || action === "qcConfirmDefect") {
+            qcMode = "done";
+            render();
+          } else if (action === "dtfFinishPrint") {
+            dtfPrintedDone = true;
+            render();
+          } else if (action === "dtfFinishCut") {
+            dtfCutDone = true;
+            render();
+          } else if (["queue", "scan", "problem", "laneProgress"].includes(action)) {
+            const labels = {
+              queue: "ต้นแบบ: เปิดคิวอื่น โดยไม่เปลี่ยนสถานะงาน",
+              scan: "ต้นแบบ: เปิดหน้าสแกน งานจะยังไม่ถูกเริ่มอัตโนมัติ",
+              problem: "ต้นแบบ: เปิดฟอร์มแจ้งปัญหา โดยยังไม่ส่งข้อมูล",
+              laneProgress: "ต้นแบบ: เปิดฟอร์มนับจำนวนงานรีดด้านหน้า โดยไม่แตะงานส่วนอื่น",
+            };
+            showPrototypeNotice(labels[action]);
+          }
+        });
+
+        window.addEventListener("popstate", () => {
+          const next = new URLSearchParams(window.location.search).get("state");
+          currentState = allowedStates.has(next) ? next : "ready";
+          qcMode = "choose";
+          render();
+        });
+
+        render();
+      })();
+    </script>
+  </body>
+</html>
