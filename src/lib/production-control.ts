@@ -10,6 +10,7 @@ import {
 } from "@/lib/production-steps";
 import { firstPendingStepIdsByLane } from "@/lib/production-step-actions";
 import { currentProductionProblemReason } from "@/lib/production-problem";
+import { BANGKOK_TZ } from "@/lib/utils";
 
 export type ProductionControlTone =
   | "danger"
@@ -30,9 +31,38 @@ export type ProductionControlStep = {
   qcNotes?: string | null;
   assignedTo?: { id: string; name: string } | null;
   completedAt?: Date | string | null;
-  outsourceOrders?: readonly { status: string }[];
+  outsourceOrders?: readonly {
+    status: string;
+    expectedBackAt?: Date | string | null;
+  }[];
   printRunItems?: readonly { printRun: { runNumber: string } }[];
 };
+
+const DAY_MS = 24 * 60 * 60 * 1_000;
+const OUTSOURCE_AWAITING_RETURN_STATUSES = new Set([
+  "DRAFT",
+  "SENT",
+  "IN_PROGRESS",
+  "COMPLETED",
+]);
+
+function bangkokDayStart(value: Date) {
+  const dayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BANGKOK_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value);
+  return Date.parse(`${dayKey}T00:00:00Z`);
+}
+
+function overdueDays(value: Date | string | null | undefined, now: Date) {
+  if (!value) return null;
+  const expectedBackAt = new Date(value);
+  if (Number.isNaN(expectedBackAt.getTime())) return null;
+  const elapsed = bangkokDayStart(now) - bangkokDayStart(expectedBackAt);
+  return elapsed > 0 ? elapsed / DAY_MS : null;
+}
 
 export type GarmentControlLine = {
   sku: string;
@@ -220,6 +250,7 @@ function dtfReadiness<S extends ProductionControlStep>(
 export function buildProductionControlView<S extends ProductionControlStep>(
   steps: readonly S[],
   garmentEvidence: GarmentControlEvidence,
+  now = new Date(),
 ): ProductionControlView<S> {
   const ordered = [...steps].sort((left, right) => left.sortOrder - right.sortOrder);
   const firstPending = firstPendingStepIdsByLane(ordered);
@@ -230,6 +261,14 @@ export function buildProductionControlView<S extends ProductionControlStep>(
     const activeOutsource = (step.outsourceOrders ?? []).find((order) =>
       OUTSOURCE_ACTIVE_STATUSES.includes(order.status),
     );
+    let overdueOutsourceDays: number | null = null;
+    for (const order of step.outsourceOrders ?? []) {
+      if (!OUTSOURCE_AWAITING_RETURN_STATUSES.has(order.status)) continue;
+      const days = overdueDays(order.expectedBackAt, now);
+      if (days !== null && (overdueOutsourceDays === null || days > overdueOutsourceDays)) {
+        overdueOutsourceDays = days;
+      }
+    }
     const activeRun = step.printRunItems?.[0]?.printRun;
     let tone: ProductionControlTone = "neutral";
     let statusLabel = "รอดำเนินการ";
@@ -249,6 +288,21 @@ export function buildProductionControlView<S extends ProductionControlStep>(
     } else if (step.status === "COMPLETED") {
       tone = "success";
       statusLabel = "เสร็จแล้ว";
+    } else if (overdueOutsourceDays !== null) {
+      tone = "warning";
+      statusLabel = "เลยกำหนดรับกลับ";
+      blocker = `ร้านนอกเลยกำหนดรับกลับ ${overdueOutsourceDays.toLocaleString("th-TH")} วัน`;
+      requiresAttention = true;
+    } else if (activeRun) {
+      tone = "active";
+      statusLabel = "อยู่ในรอบพิมพ์";
+      blocker = `รอบ ${activeRun.runNumber}`;
+    } else if (activeOutsource) {
+      tone = "active";
+      statusLabel = activeOutsource.status === "RECEIVED_BACK" ? "รอตรวจรับ" : "อยู่ร้านนอก";
+      blocker = activeOutsource.status === "RECEIVED_BACK"
+        ? "รับกลับแล้ว รอตรวจ QC"
+        : "รอรับกลับและตรวจ QC";
     } else if (step.status === "IN_PROGRESS") {
       tone = "active";
       statusLabel = "กำลังทำ";
@@ -265,14 +319,6 @@ export function buildProductionControlView<S extends ProductionControlStep>(
       tone = "neutral";
       statusLabel = "รอเงื่อนไข";
       blocker = pressGate.waitingOn.join(" · ") || "รอเงื่อนไขก่อนรีดร้อน";
-    } else if (activeRun) {
-      tone = "active";
-      statusLabel = "อยู่ในรอบพิมพ์";
-      blocker = `รอบ ${activeRun.runNumber}`;
-    } else if (activeOutsource) {
-      tone = "active";
-      statusLabel = "อยู่ร้านนอก";
-      blocker = "รอรับกลับและตรวจ QC";
     } else if (step.stepType === "CUSTOM" && !station) {
       tone = "warning";
       statusLabel = "ต้องจัดเส้นทาง";
@@ -336,7 +382,11 @@ export function buildProductionControlView<S extends ProductionControlStep>(
       step,
       label: stepLabel(step),
       station,
-      stationLabel: station ? (STATION_LABELS.get(station) ?? station) : "ไม่มีสถานีรองรับ",
+      stationLabel: station
+        ? (STATION_LABELS.get(station) ?? station)
+        : activeOutsource
+          ? "ร้านนอก"
+          : "ไม่มีสถานีรองรับ",
       statusLabel,
       tone,
       actualLabel: actualLabel(step),
@@ -348,11 +398,15 @@ export function buildProductionControlView<S extends ProductionControlStep>(
   });
 
   const stepAttention = [...rows]
-    .filter((row) => row.requiresAttention && row.blocker !== null)
+    .filter((row) => {
+      if (!row.requiresAttention || row.blocker === null) return false;
+      if (["FAILED", "ON_HOLD"].includes(row.step.status)) return true;
+      return garmentEvidence.kind !== "unknown" || row.blocker !== garmentEvidence.reason;
+    })
     .sort((left, right) => rowRank(left) - rowRank(right))[0] ?? null;
   const garmentUnknownAttention = garmentEvidence.kind === "unknown"
     ? {
-        rank: 1,
+        rank: 4,
         value: {
           kind: "garment-readiness" as const,
           step: ordered.find((step) => step.stepType === "GARMENT_PICK") ?? null,

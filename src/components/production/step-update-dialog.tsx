@@ -166,7 +166,13 @@ export function StepUpdateDialog({
       >
         <DialogHeader>
           <DialogTitle>
-            {failedProblem ? "จัดการปัญหา" : managerOnly ? "มอบหมายงาน" : "อัปเดตขั้นตอน"}
+            {failedProblem
+              ? "จัดการปัญหา"
+              : managerOnly
+                ? step.assignedTo
+                  ? "เปลี่ยนผู้รับผิดชอบ"
+                  : "มอบหมายงาน"
+                : "อัปเดตขั้นตอน"}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
@@ -233,6 +239,9 @@ export function StepUpdateDialog({
               />
             ) : <Field label="ผู้รับผิดชอบ">
               <Select value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder="ยังไม่มอบหมาย">
+                  {step.assignedTo && !(assignables.data ?? []).some((user) => user.id === step.assignedTo?.id) ? (
+                    <option value={step.assignedTo.id}>{step.assignedTo.name} · ผู้รับผิดชอบปัจจุบัน</option>
+                  ) : null}
                   {(assignables.data ?? []).map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.name}

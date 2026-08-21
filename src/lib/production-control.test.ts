@@ -182,6 +182,91 @@ describe("production control projection", () => {
     });
   });
 
+  it("ยกร้านนอกที่เลยกำหนดรับกลับเป็น attention ก่อนสถานะ IN_PROGRESS ทั่วไป", () => {
+    const result = buildProductionControlView(
+      [
+        step("embroidery", "EMBROIDERY", "IN_PROGRESS", 1, {
+          qtyDone: 0,
+          qtyTotal: 30,
+          assignedTo: { id: "owner-1", name: "พี่ก้อย" },
+          outsourceOrders: [
+            {
+              status: "IN_PROGRESS",
+              expectedBackAt: new Date("2026-08-20T12:00:00+07:00"),
+            },
+          ],
+        }),
+      ],
+      { kind: "not-applicable" },
+      new Date("2026-08-21T12:00:00+07:00"),
+    );
+
+    expect(result.rows[0]).toMatchObject({
+      tone: "warning",
+      statusLabel: "เลยกำหนดรับกลับ",
+      blocker: "ร้านนอกเลยกำหนดรับกลับ 1 วัน",
+      ownerLabel: "พี่ก้อย",
+      requiresAttention: true,
+    });
+    expect(result.attention).toMatchObject({
+      kind: "step",
+      blocker: "ร้านนอกเลยกำหนดรับกลับ 1 วัน",
+    });
+    expect(result.overallLabel).toBe("ต้องจัดการ");
+  });
+
+  it("ไม่แจ้งเลยกำหนดรับกลับซ้ำเมื่อใบร้านนอกถูกรับกลับแล้ว", () => {
+    const result = buildProductionControlView(
+      [
+        step("embroidery", "EMBROIDERY", "IN_PROGRESS", 1, {
+          outsourceOrders: [
+            {
+              status: "RECEIVED_BACK",
+              expectedBackAt: new Date("2026-08-18T12:00:00+07:00"),
+            },
+          ],
+        }),
+      ],
+      { kind: "not-applicable" },
+      new Date("2026-08-21T12:00:00+07:00"),
+    );
+
+    expect(result.rows[0]).toMatchObject({
+      statusLabel: "รอตรวจรับ",
+      blocker: "รับกลับแล้ว รอตรวจ QC",
+      requiresAttention: false,
+    });
+    expect(result.attention).toBeNull();
+  });
+
+  it("ตรวจทุกใบร้านนอกและยกใบที่เลยกำหนดนานที่สุดแม้ใบล่าสุดไม่มีกำหนด", () => {
+    const result = buildProductionControlView(
+      [
+        step("embroidery", "EMBROIDERY", "IN_PROGRESS", 1, {
+          outsourceOrders: [
+            { status: "IN_PROGRESS", expectedBackAt: null },
+            {
+              status: "SENT",
+              expectedBackAt: new Date("2026-08-18T12:00:00+07:00"),
+            },
+            {
+              status: "COMPLETED",
+              expectedBackAt: new Date("2026-08-20T12:00:00+07:00"),
+            },
+          ],
+        }),
+      ],
+      { kind: "not-applicable" },
+      new Date("2026-08-21T12:00:00+07:00"),
+    );
+
+    expect(result.rows[0]).toMatchObject({
+      statusLabel: "เลยกำหนดรับกลับ",
+      blocker: "ร้านนอกเลยกำหนดรับกลับ 3 วัน",
+      requiresAttention: true,
+    });
+  });
+
   it("สรุปฟิล์มพร้อมเมื่อทุก DTF step เสร็จเท่านั้น", () => {
     const partial = buildProductionControlView(
       [

@@ -149,15 +149,28 @@ describe("ProductionControlRecord Direction A contract", () => {
     expect(html).toContain("data-production-control-record");
     expect(html).toContain("ORD-2606-0021");
     expect(html).not.toContain("ยังไม่กำหนด");
-    expect(html).toContain("ยังไม่มีข้อมูลระดับใบผลิต");
     expect(html).toContain("นามิ");
-    expect(html.match(/มอบหมายงาน/g)).toHaveLength(1);
+    expect(html.match(/มอบหมายผู้รับผิดชอบ/g)).toHaveLength(1);
     expect(html).not.toContain("จัดการข้อยกเว้น");
     expect(html).not.toContain("ใบสั่งงาน");
     expect(html).not.toContain("ดูออเดอร์");
     expect(html).not.toContain("กลับหน้าควบคุมการผลิต");
-    expect(html.match(/<th scope="col"/g)).toHaveLength(5);
-    expect(html).toContain("ผู้กดจริง · ต้นทาง ERP/Station · เหตุผลแก้ไข · หลักฐาน — ข้อมูลที่ต้องเพิ่ม");
+    expect(html).toContain("<ol");
+    expect(html).toContain("หลักฐานที่ระบบบันทึกตอนนี้");
+    expect(html).not.toContain("ข้อมูลที่ต้องเพิ่ม");
+    expect(html).not.toContain("border-dashed");
+  });
+
+  it("ขั้นที่มีผู้รับผิดชอบแล้วใช้คำว่าเปลี่ยน ไม่หลอกว่าเป็นงานที่ยังไม่มีเจ้าของ", () => {
+    const detail = production();
+    const pick = detail.steps.find((step) => step.id === "pick");
+    if (!pick) throw new Error("missing fixture step");
+    pick.assignedTo = { id: "user-2", name: "พี่ก้อย" };
+
+    const html = renderRecord(detail);
+
+    expect(html).toContain("เปลี่ยนผู้รับผิดชอบ");
+    expect(html).not.toContain("มอบหมายผู้รับผิดชอบ");
   });
 
   it("ขั้นที่สถานีแจ้ง FAILED ใช้ CTA จัดการปัญหา ไม่เรียกแค่มอบหมาย", () => {
@@ -172,6 +185,47 @@ describe("ProductionControlRecord Direction A contract", () => {
     expect(html).toContain("จัดการปัญหา");
     expect(html).not.toContain(">มอบหมายผู้แก้ไข<");
     expect(html).toContain("เสื้อขาด 1 ตัว");
+  });
+
+  it("ยังแสดง FAILED และ CTA หลักระหว่างกำลังโหลดหลักฐานเสื้อ", () => {
+    const detail = production();
+    const pick = detail.steps.find((step) => step.id === "pick");
+    if (!pick) throw new Error("missing fixture step");
+    pick.status = "FAILED";
+    pick.notes = "เสื้อขาด 1 ตัว";
+    mocks.useGarmentQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      refetch: vi.fn(),
+    });
+
+    const html = renderRecord(detail);
+
+    expect(html).toContain("เสื้อขาด 1 ตัว");
+    expect(html).toContain("จัดการปัญหา");
+    expect(html).toContain("กำลังตรวจหลักฐานการเบิกเสื้อ");
+  });
+
+  it("ยังแสดง FAILED และ CTA หลักเมื่อโหลดหลักฐานเสื้อไม่สำเร็จ", () => {
+    const detail = production();
+    const pick = detail.steps.find((step) => step.id === "pick");
+    if (!pick) throw new Error("missing fixture step");
+    pick.status = "FAILED";
+    pick.notes = "เสื้อขาด 1 ตัว";
+    mocks.useGarmentQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      refetch: vi.fn(),
+    });
+
+    const html = renderRecord(detail);
+
+    expect(html).toContain("เสื้อขาด 1 ตัว");
+    expect(html).toContain("จัดการปัญหา");
+    expect(html).toContain("ตรวจความพร้อมเสื้อไม่ได้");
+    expect(html).toContain("ลองใหม่");
   });
 
   it("ใบเก่าที่ไม่มี GARMENT_PICK แสดง unknown แม้ query mock มียอดขาด", () => {

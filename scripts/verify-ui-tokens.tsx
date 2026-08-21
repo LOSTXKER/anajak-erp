@@ -1664,12 +1664,17 @@ check(
     !productionDetailSource.includes("onRetry: () => productionQuery.refetch()") ||
     !productionDetailSource.includes("<RecordNotFound") ||
     !productionControlSource.includes('data-production-control-record=""') ||
-    !productionControlSource.includes("สถานะทุกขั้นตอน") ||
+    !productionControlSource.includes("เส้นทางงาน") ||
     !productionControlSource.includes("กิจกรรมและหลักฐาน") ||
-    !productionControlSource.includes("ข้อมูลที่ต้องเพิ่ม")
+    !productionControlSource.includes("หลักฐานที่ระบบบันทึกตอนนี้") ||
+    !productionControlSource.includes('min-[1500px]:grid-cols') ||
+    !productionControlSource.includes('<dl className="contents">') ||
+    productionControlSource.includes('min-[1380px]:grid-cols') ||
+    productionControlSource.includes("border-dashed") ||
+    productionControlSource.includes("ข้อมูลที่ต้องเพิ่ม")
   ) {
     problems.push(
-      "ใบผลิตต้องแยก ERP control record กับ Station current job และคง loading/error/permission fail-closed",
+      "ใบผลิตต้องแยก ERP control record กับ Station current job, ไม่เผย developer data-gap และคง loading/error/permission fail-closed",
     );
   }
 
@@ -1682,6 +1687,7 @@ check(
     !stepUpdateDialogSource.includes('const managerOnly = mode === "manager"') ||
     !stepUpdateDialogSource.includes("trpc.production.assignProductionStep") ||
     !stepUpdateDialogSource.includes("trpc.production.resolveStationProblem") ||
+    !stepUpdateDialogSource.includes("ผู้รับผิดชอบปัจจุบัน") ||
     !stepUpdateDialogSource.includes("แก้ปัญหาแล้ว ส่งกลับสถานี") ||
     !stepUpdateDialogSource.includes("{!managerOnly ? (") ||
     stepUpdateDialogSource.includes('managerOnly ? "หมายเหตุสำหรับทีม"') ||
@@ -1700,6 +1706,9 @@ check(
     !productionControlProjectionSource.includes('kind: "known"') ||
     !productionControlProjectionSource.includes("requiresAttention") ||
     !productionControlProjectionSource.includes("factoryStationKeyForStep") ||
+    !productionControlProjectionSource.includes("overdueOutsourceDays") ||
+    !productionControlProjectionSource.includes("OUTSOURCE_AWAITING_RETURN_STATUSES") ||
+    !productionControlProjectionSource.includes('activeOutsource.status === "RECEIVED_BACK"') ||
     !productionStepActionsSource.includes('["DTF_PRINT", "GARMENT_RECEIVE"]') ||
     !productionDetailTabsSource.includes('{ key: "inventory", label: "เบิกของ" }') ||
     (productionDetailSource.match(/<MaterialUsage\b/g) ?? []).length !== 1 ||

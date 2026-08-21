@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION CONTROL RECORD — อ่านง่าย ซื่อสัตย์ และไม่เผยหนี้ระบบแล้ว 2026-08-21**
+> หน้า `/production/[id]` ฝั่ง ERP ถูกจัดองค์ประกอบใหม่ให้หัวใบเหลือเลขงาน/สถานะ/ความคืบหน้า/จำนวน/กำหนดส่งที่ใช้ตัดสินใจจริง ตามด้วยข้อยกเว้นนำหนึ่งเรื่องและเส้นทางงานแบบ responsive; ความพร้อมกับกิจกรรมย้ายเป็นข้อมูลรอง · ถอดกรอบเส้นปะ `DataGap` ซึ่งเป็นภาษาของทีมพัฒนาออกจาก default surface: field ที่ยังไม่มีและไม่ช่วยตัดสินใจถูกซ่อน ส่วนขอบเขตหลักฐานอธิบายด้วยข้อความธรรมดา
+>
+> แก้ความจริงของ demo `outsource-overdue` ที่เดิมขึ้นเขียวทั้งที่เลยกำหนด: projection ตรวจ `expectedBackAt` ตามวันประเทศไทยจากทุกใบที่ยังรอรับกลับและยกใบที่ค้างนานที่สุดเป็น attention; ใบ `RECEIVED_BACK` ไม่ถูกแจ้งเลยกำหนดซ้ำและแสดง “รอตรวจรับ” · ปัญหา FAILED/ON_HOLD/ร้านนอกยังคงนำ แม้ query ความพร้อมเสื้อกำลังโหลดหรือพัง และ dialog ของขั้นที่มีเจ้าของแล้วใช้ “เปลี่ยนผู้รับผิดชอบ” พร้อมรักษาเจ้าของปัจจุบันในตัวเลือก
+>
+> **หลักฐาน:** `npm test`, typecheck, lint 0 error (warning เดิมนอกก้อน), `verify:ui`, production build, Impeccable layout detector และ `git diff --check` ผ่าน · browser route เดิมที่ 390/1024/1380/1440/1500 Light/Dark ไม่มี horizontal overflow, clipping หรือ console/hydration error; Escape คืน focus จาก dialog และคืน theme/viewport เดิมแล้ว · independent final review verdict `SHIP` · mutation, permission และ status transition เดิมไม่เปลี่ยน
+>
+> **ต่อที่นี่:** refresh `/production/demo-production-outsource-overdue`; อ่านจากเลขงาน → กล่องเลยกำหนด → เส้นทางงาน แล้วลอง “เปลี่ยนผู้รับผิดชอบ” โดยยังไม่ต้องกดบันทึก
+
 > **✅ STATION-CONTINUATION — คนเดียวตามออเดอร์เดิมข้ามสถานีได้แล้ว 2026-08-21**
 > รากเดิมคือ URL คง `station` เก่าไว้ แต่ mutation/refetch ย้ายงานไป bucket ของ work center ถัดไป จึงเหลือหน้า “ไม่พบขั้นที่ตรงกับสถานีนี้” ทั้งที่ออเดอร์เดินถูก · แก้ที่ Station controller กลาง: เมื่อ record เดิมหลุดจากสถานี ให้หา current/ready ของ production เดิมก่อน แล้วค่อย fallback ไป order เดิม; blocked เปิดดูเหตุจริง, หลาย lane มีตัวเลือกรอง และ unmapped/CUSTOM/outsource/owner อื่นหยุดพร้อมทาง ERP แทนการเดา
 >
@@ -33,7 +42,7 @@
 >
 > รากของการรื้อภาพหลายรอบคือ contract ขัดกัน: เอกสารเรียก `/production` ว่าจอหัวหน้าและ `/factory/station` ว่าจอพนักงาน แต่ `/production/[id]` ยังทำหน้าที่เป็นใบงานหน้าเครื่องและมี routine mutation ซ้ำกับ Station · Phase 1 แก้ responsibility และ server boundary พร้อมกัน ไม่ใช่เปลี่ยน card shell
 >
-> **ERP `/production/[id]` เป็น exception control record:** identity/status/จำนวน/ความคืบหน้า/deadline/owner นำ, attention แสดงเรื่องที่ต้องตัดสินใจเพียงเรื่องเดียว, operation ledger เทียบผลจริง/ผู้รับผิดชอบ/blocker ทุก lane และมี readiness/handoff/activity ข้างกัน · default surface เหลือ semantic manager action สำหรับมอบหมาย/ยกเลิกมอบหมายและแก้ exception; ไม่มีเบิก เริ่ม บันทึกจำนวน หรือ complete ปนกับงานสถานี · ข้อมูล owner ระดับใบผลิต, plan/SLA ต่อขั้น และ actor/source ใน activity ที่ schema ยังไม่มีติดป้าย `ข้อมูลที่ต้องเพิ่ม` แทนการเดา
+> **ERP `/production/[id]` เป็น exception control record:** status/จำนวน/ความคืบหน้า/deadline นำ, attention แสดงเรื่องที่ต้องตัดสินใจเพียงเรื่องเดียว, operation ledger เทียบผลจริง/ผู้รับผิดชอบ/blocker ทุก lane และมี readiness/handoff/activity เป็นข้อมูลรอง · default surface เหลือ semantic manager action สำหรับมอบหมาย/ยกเลิกมอบหมายและแก้ exception; ไม่มีเบิก เริ่ม บันทึกจำนวน หรือ complete ปนกับงานสถานี · ข้อมูล owner ระดับใบผลิตและ plan/SLA ที่ยังไม่มีถูกซ่อนจาก default surface ส่วนขอบเขต actor/source ใน activity ใช้ข้อความธรรมดาแทนป้ายหนี้ระบบ
 >
 > **Station `/factory/station` เป็น current-job-first:** งานที่เปิดอยู่กินผืนหลักพร้อม operation/spec/จำนวนและ primary action เดียว; rail แยกกำลังทำ/พร้อมถัดไป/ติดปัญหาและตัดงานปัจจุบันออก, scan เป็นเพียงทางเปิดบริบท · blocked/ready ไม่ถูกเรียกว่างานปัจจุบัน, มือถือใช้ page scroll เดียว และ `แจ้งปัญหา` บังคับเหตุผลอย่างน้อย 3 ตัวอักษรโดยไม่ปิด dialog ทิ้งข้อความ · GARMENT_PICK ใช้ Stock, GARMENT_RECEIVE ใช้ receipt evidence ต่อ variant, DTF ใช้ Print Run และทุก action ผูก exact current step/owner/readiness จาก server
 >
