@@ -22,7 +22,6 @@ import { ProductionDesignCard } from "@/components/production/production-design-
 import { ProductionStepsList } from "@/components/production/production-steps-list";
 import { ProductionNowCard } from "@/components/production/production-now-card";
 import { ProductionControlRecord } from "@/components/production/production-control-record";
-import { ProductionDesignHistory } from "@/components/production/production-design-history";
 import { defaultProductionStepId } from "@/components/production/production-step-navigator";
 import { StepUpdateDialog } from "@/components/production/step-update-dialog";
 import { StepOutsourceDialog } from "@/components/production/step-outsource-dialog";
@@ -159,7 +158,6 @@ function ProductionJobInspector({
   onClose,
   returnFocusRef,
   inventory,
-  mockup,
   history,
 }: {
   section: ProductionInspectorSection;
@@ -167,7 +165,6 @@ function ProductionJobInspector({
   onClose: () => void;
   returnFocusRef: RefObject<HTMLButtonElement | null>;
   inventory: ReactNode;
-  mockup: ReactNode;
   history: ReactNode;
 }) {
   return (
@@ -183,7 +180,7 @@ function ProductionJobInspector({
         <DialogHeader className="border-b border-divider px-5 py-4 pr-14 sm:px-6 sm:py-5 sm:pr-14">
           <DialogTitle>ข้อมูลใบงาน</DialogTitle>
           <DialogDescription>
-            ม็อกอัพ เสื้อ วัตถุดิบ และเส้นทางทั้งหมดที่ไม่ใช่งานของขั้นปัจจุบัน
+            เสื้อ วัตถุดิบ และเส้นทางทั้งหมดที่ไม่ใช่งานของขั้นปัจจุบัน
           </DialogDescription>
         </DialogHeader>
         <Tabs
@@ -195,10 +192,6 @@ function ProductionJobInspector({
             aria-label="เลือกข้อมูลใบงาน"
             className="shrink-0 gap-5 border-b border-divider px-5 sm:px-6"
           >
-            <TabsTrigger value="mockup">
-              <Shirt />
-              ม็อกอัพ
-            </TabsTrigger>
             <TabsTrigger value="inventory">
               <PackageOpen />
               เสื้อและวัตถุดิบ
@@ -208,9 +201,6 @@ function ProductionJobInspector({
               เส้นทางทั้งหมด
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="mockup" className="m-0 min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-            {mockup}
-          </TabsContent>
           <TabsContent value="inventory" className="m-0 min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
             {inventory}
           </TabsContent>
@@ -268,9 +258,7 @@ export function ProductionDetailScreen({
   // การเลือกขั้นใน navigator เป็น view state เท่านั้น — ห้ามใช้เป็น workflow status/action
   const [viewedStepId] = useState<string | null>(null);
   const [inspectorSection, setInspectorSection] = useState<ProductionInspectorSection | null>(
-    initialTab === "inventory" || initialTab === "history" || initialTab === "mockup"
-      ? initialTab
-      : null,
+    initialTab === "inventory" || initialTab === "history" ? initialTab : null,
   );
   // ขั้นนับจำนวนที่กด "เสร็จขั้นนี้" — เปิด sheet ถามจำนวน (UX1: 2 แตะ)
   // เก็บแค่ id แล้ว derive ตัว step สดจาก query ทุก render — snapshot เก่าทำยอดถอยหลังได้
@@ -1018,21 +1006,6 @@ export function ProductionDetailScreen({
     </div>
   ) : null;
 
-  // แท็บม็อกอัพ (mockup v2 §2+§4) — design card เดิม + ประวัติ/เทียบรุ่นจาก DesignVersion
-  // ฝ่ายผลิตดูอย่างเดียว: แก้แบบทำที่หน้าออเดอร์ของขั้นออกแบบเท่านั้น
-  const productionMockupContent = production && order ? (
-    <div className="space-y-4" aria-label="ม็อกอัพและแบบที่อนุมัติ">
-      <ProductionDesignCard order={order} />
-      <ProductionDesignHistory designs={order.designs} />
-      {order.designs.length === 0 &&
-      order.items.every((item) => item.prints.length === 0) ? (
-        <p className="text-sm text-muted">
-          ใบผลิตนี้ไม่มีแบบอนุมัติและไม่มีลายพิมพ์ — งานบริการล้วนหรือยังไม่ได้แนบแบบ
-        </p>
-      ) : null}
-    </div>
-  ) : null;
-
   return (
     <PageShell
       width="full"
@@ -1163,7 +1136,6 @@ export function ProductionDetailScreen({
                   onClose={() => setInspectorSection(null)}
                   returnFocusRef={inspectorButtonRef}
                   inventory={productionInventoryContent}
-                  mockup={productionMockupContent}
                   history={productionHistoryContent}
                 />
               ) : null}

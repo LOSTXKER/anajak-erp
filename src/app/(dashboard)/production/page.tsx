@@ -10,16 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageShell } from "@/components/page-shell";
 import { CreateProductionDialog } from "@/components/production/create-production-dialog";
-import { ProductionControlWorklist, ProductionDaySummary } from "@/components/production/production-control-worklist";
-import { ProductionBoardView } from "@/components/production/production-board-view";
+import { ProductionControlWorklist } from "@/components/production/production-control-worklist";
 import { ProductionModuleNav } from "@/components/production/production-module-nav";
-import { CONTROL_MIN_H } from "@/components/ui/control-size";
-import { FOCUS_BUTTON, INTERACTIVE_HOVER, INTERACTIVE_PRESSED } from "@/components/ui/tokens";
-import { cn } from "@/lib/utils";
 import {
   buildProductionBoard,
   filterBoardJobs,
-  sortBoardJobs,
 } from "@/lib/production-board";
 import {
   DEFAULT_PRODUCTION_WORKLIST_SORT,
@@ -29,37 +24,23 @@ import {
   resolveProductionWorklistSort,
   sortProductionWorklist,
 } from "@/lib/production-worklist";
-import { LayoutGrid, List, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import type { RouterOutput } from "@/lib/trpc";
 
-// ศูนย์ควบคุมการผลิตของหัวหน้า — mockup v2 (เบสอนุมัติ 2026-08-22):
-// บอร์ดโรงงานเป็นมุมหลัก สลับเป็นรายการควบคุมได้ · หน้านี้เป็น read/triage
-// layer เท่านั้น: การเปลี่ยนสถานะยังอยู่ในใบผลิต/ออเดอร์ผ่าน mutation เดิม
-// · URL: ?layout=board|list (default board) · ?lane= โฟกัสสายบนบอร์ด
+// ศูนย์ควบคุมการผลิตของหัวหน้า — หนึ่งออเดอร์ต่อหนึ่งแถวและเรียงข้อยกเว้นก่อน
+// หน้านี้เป็น read/triage layer เท่านั้น: การเปลี่ยนสถานะยังทำในใบผลิต/ออเดอร์
+// ผ่าน mutation และ permission เดิมทั้งหมด
 
 type KanbanOrder = RouterOutput["production"]["kanban"][number];
 type KanbanStep = KanbanOrder["productions"][number]["steps"][number];
-
-const LAYOUTS = [
-  { key: "board", label: "บอร์ด", icon: LayoutGrid },
-  { key: "list", label: "รายการ", icon: List },
-] as const;
-
-type ProductionLayout = (typeof LAYOUTS)[number]["key"];
-
-function resolveLayout(value: string | null): ProductionLayout {
-  return value === "list" ? "list" : "board";
-}
 
 function ProductionWorkspace() {
   const list = useListPageState();
   const router = useRouter();
 
-  const layout = resolveLayout(list.searchParams.get("layout"));
   const sort = resolveProductionWorklistSort(list.searchParams.get("sort"));
   const rawLens = list.searchParams.get("view") ?? "all";
   const lens = isProductionWorklistLens(rawLens) ? rawLens : "all";
-  const lane = list.searchParams.get("lane") ?? "";
   const createOrderId = list.searchParams.get("create");
 
   const meQuery = trpc.user.me.useQuery();
@@ -104,12 +85,6 @@ function ProductionWorkspace() {
   const visibleJobs = useMemo(
     () => sortProductionWorklist(board, lensJobs, sort),
     [board, lensJobs, sort],
-  );
-  // บอร์ดใช้ sort ของตัวเอง (due/urgent/newest) จาก param เดียวกัน — ค่าของ worklist
-  // ที่ติดมาจะ fall back เป็น due ใน sortBoardJobs อยู่แล้ว
-  const boardJobs = useMemo(
-    () => sortBoardJobs(searchedJobs, list.searchParams.get("sort") ?? "due"),
-    [searchedJobs, list.searchParams],
   );
   const worklistCounts = useMemo(() => productionWorklistCounts(board), [board]);
   const hasStaleData =
@@ -166,88 +141,27 @@ function ProductionWorkspace() {
           </Alert>
         ) : null}
 
-        {/* สรุปวันนี้ + ตัวสลับมุม (mockup v2 §1) — เห็นก่อนเข้าเครื่องมือใด ๆ */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <ProductionDaySummary jobs={board.jobs} />
-          <div
-            role="group"
-            aria-label="เลือกมุมมอง"
-            className="flex overflow-hidden rounded-lg border border-border"
-          >
-            {LAYOUTS.map((item) => {
-              const Icon = item.icon;
-              const selected = layout === item.key;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() =>
-                    list.replaceListState({
-                      layout: item.key === "board" ? null : item.key,
-                      lane: null,
-                    })
-                  }
-                  className={cn(
-                    CONTROL_MIN_H,
-                    FOCUS_BUTTON,
-                    INTERACTIVE_HOVER,
-                    INTERACTIVE_PRESSED,
-                    "inline-flex items-center gap-1.5 px-3 text-sm font-medium",
-                    selected
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
-                      : "bg-surface text-secondary",
-                  )}
-                >
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {layout === "board" ? (
-          <ProductionBoardView
-            board={board}
-            jobs={boardJobs}
-            station={lane}
-            searchDefault={list.search}
-            searchInputRef={list.searchInputRef}
-            onSelectStation={(key) =>
-              list.replaceListState({ lane: key || null })
-            }
-            onSearchChange={list.onSearchChange}
-            sort={list.searchParams.get("sort") ?? "due"}
-            onSelectSort={(value) =>
-              list.replaceListState({
-                sort: value === "due" ? null : value,
-              })
-            }
-          />
-        ) : (
-          <ProductionControlWorklist
-            board={board}
-            jobs={visibleJobs}
-            lens={lens}
-            sort={sort}
-            searchDefault={list.search}
-            searchInputRef={list.searchInputRef}
-            onSelectLens={(value) =>
-              list.replaceListState({
-                view: value === "all" ? null : value,
-                page: null,
-              })
-            }
-            onSearchChange={list.onSearchChange}
-            onSelectSort={(value) =>
-              list.replaceListState({
-                sort: value === DEFAULT_PRODUCTION_WORKLIST_SORT ? null : value,
-              })
-            }
-            canCreateProduction={canCreateProduction}
-          />
-        )}
+        <ProductionControlWorklist
+          board={board}
+          jobs={visibleJobs}
+          lens={lens}
+          sort={sort}
+          searchDefault={list.search}
+          searchInputRef={list.searchInputRef}
+          onSelectLens={(value) =>
+            list.replaceListState({
+              view: value === "all" ? null : value,
+              page: null,
+            })
+          }
+          onSearchChange={list.onSearchChange}
+          onSelectSort={(value) =>
+            list.replaceListState({
+              sort: value === DEFAULT_PRODUCTION_WORKLIST_SORT ? null : value,
+            })
+          }
+          canCreateProduction={canCreateProduction}
+        />
       </PageShell>
 
       {createOrderId && canCreateProduction ? (

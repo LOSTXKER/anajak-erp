@@ -4,11 +4,11 @@ import {
   filterProductionWorklist,
   productionWorklistProgress,
   productionWorklistCounts,
-  productionWorklistDaySummary,
   productionWorklistHref,
   resolveProductionWorklistSort,
   sortProductionWorklist,
-} from "./production-worklist";import type {
+} from "./production-worklist";
+import type {
   BoardJob,
   BoardOrderLike,
   BoardStepLike,
@@ -263,62 +263,5 @@ describe("production worklist", () => {
     expect(productionWorklistHref(jobs[5]!, false)).toBe(
       "/orders/queue?tab=production",
     );
-  });
-});
-
-describe("productionWorklistDaySummary — สรุปวันนี้ (mockup v2)", () => {
-  const step = (status: string): BoardStepLike => ({
-    id: `step-${status}`,
-    stepType: "DTF_PRINT",
-    status,
-    sortOrder: 1,
-    qtyDone: 0,
-    qtyTotal: 10,
-  });
-
-  function dayJob(id: string, overrides: Partial<TestJob>): TestJob {
-    const base = job({ id, status: "PRODUCING", stationKey: "lane:DTF", productionId: `prod-${id}` });
-    return { ...base, ...overrides };
-  }
-
-  it("นับเลยกำหนด/ส่งวันนี้จากทั้ง job และกำลังทำจากขั้น IN_PROGRESS จริง", () => {
-    const summary = productionWorklistDaySummary([
-      dayJob("late", { overdue: true }),
-      dayJob("today", { bucket: "today" }),
-      dayJob("today-late", { overdue: true, bucket: "today" }),
-      dayJob("doing", {
-        spots: [
-          {
-            ...job({ id: "doing", status: "PRODUCING", stationKey: "lane:DTF", productionId: "prod-doing" }).spots[0]!,
-            step: step("IN_PROGRESS"),
-          },
-        ],
-      }),
-      dayJob("idle", {
-        spots: [
-          {
-            ...job({ id: "idle", status: "PRODUCING", stationKey: "lane:DTF", productionId: "prod-idle" }).spots[0]!,
-            step: step("PENDING"),
-          },
-        ],
-      }),
-    ]);
-    // today-late ถูกนับทั้งเลยกำหนดและส่งวันนี้ — งานเดียวมีได้สองธง
-    expect(summary).toEqual({ late: 2, today: 2, inProgress: 1 });
-  });
-
-  it("ไม่มีงานไฟลุกเลย = ศูนย์ทุกช่อง (UI ซ่อนแถบนี้)", () => {
-    expect(
-      productionWorklistDaySummary([
-        dayJob("calm", {
-          spots: [
-            {
-              ...job({ id: "calm", status: "PRODUCING", stationKey: "lane:DTF", productionId: "prod-calm" }).spots[0]!,
-              step: step("PENDING"),
-            },
-          ],
-        }),
-      ]),
-    ).toEqual({ late: 0, today: 0, inProgress: 0 });
   });
 });

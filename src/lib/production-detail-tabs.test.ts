@@ -10,13 +10,12 @@ describe("production detail tabs", () => {
     expect(PRODUCTION_DETAIL_TABS.map((tab) => tab.key)).toEqual([
       "work",
       "inventory",
-      "mockup",
       "history",
     ]);
     expect(PRODUCTION_DETAIL_DEFAULT_TAB).toBe("work");
   });
 
-  it.each(["work", "inventory", "mockup", "history"])("accepts %s", (value) => {
+  it.each(["work", "inventory", "history"])("accepts %s", (value) => {
     expect(normalizeProductionDetailTab(value)).toBe(value);
   });
 

@@ -148,29 +148,6 @@ export function isProductionWorklistLens(value: string): value is ProductionWork
   return PRODUCTION_WORKLIST_LENSES.some((lens) => lens.key === value);
 }
 
-/** สรุปวันนี้แบบ operational — ตัวเลขที่หัวหน้าใช้ตัดสินใจ ไม่ใช่ metric อวด (mockup v2) */
-export type ProductionWorklistDaySummary = {
-  /** เลยกำหนดส่งแล้ว */
-  late: number;
-  /** กำหนดส่งวันนี้ (ปฏิทินไทย) */
-  today: number;
-  /** มีขั้นกำลังทำอยู่จริง (IN_PROGRESS) */
-  inProgress: number;
-};
-
-export function productionWorklistDaySummary<
-  S extends BoardStepLike,
-  O extends BoardOrderLike<S>,
->(jobs: readonly BoardJob<O, S>[]): ProductionWorklistDaySummary {
-  return {
-    late: jobs.filter((job) => job.overdue).length,
-    today: jobs.filter((job) => job.bucket === "today").length,
-    inProgress: jobs.filter((job) =>
-      job.spots.some((spot) => spot.step?.status === "IN_PROGRESS"),
-    ).length,
-  };
-}
-
 export function productionWorklistCounts<
   S extends BoardStepLike,
   O extends BoardOrderLike<S>,
