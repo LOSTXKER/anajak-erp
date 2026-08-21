@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { canUseStationShirtDiagram } from "@/lib/station-work-visual";
 import {
   StationGarmentPreview,
+  stationHeatLabel,
   type StationGarmentLine,
   type StationPreviewWorkGroup,
 } from "@/components/factory/station-garment-preview";
@@ -142,7 +143,15 @@ export function ProductionDesignCard({
         height: print.height,
         colorCount: print.colorCount,
         note: print.designNote,
-        imageUrl: print.designImageUrl,
+        // รูปลายแยกของใบงานมาก่อน — ไม่มีค่อยใช้รูปคลังลายลูกค้า (mockup v2)
+        imageUrl: print.designImageUrl ?? print.artwork?.imageUrl ?? null,
+        heat: print.artwork
+          ? {
+              tempC: print.artwork.heatTempC,
+              pressSec: print.artwork.heatPressSec,
+              pressure: print.artwork.heatPressure,
+            }
+          : null,
       }));
 
       return {
@@ -332,6 +341,22 @@ export function ProductionDesignCard({
                       : (pr.printSize ?? "ไม่ระบุขนาด")}
                     {pr.colorCount ? ` · ${pr.colorCount} สี` : ""}
                   </p>
+                  {(() => {
+                    const heat = stationHeatLabel(
+                      pr.artwork
+                        ? {
+                            tempC: pr.artwork.heatTempC,
+                            pressSec: pr.artwork.heatPressSec,
+                            pressure: pr.artwork.heatPressure,
+                          }
+                        : null,
+                    );
+                    return heat ? (
+                      <p className="font-medium text-blue-700 dark:text-blue-300">
+                        {heat}
+                      </p>
+                    ) : null;
+                  })()}
                   {pr.designNote && (
                     <p className="truncate text-muted">{pr.designNote}</p>
                   )}

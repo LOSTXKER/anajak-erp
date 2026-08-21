@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ UX2.16 PHASE 3 — MOCKUP v2 LANDING บน /production ใบผลิต และ Station 2026-08-22**
+> เบสอนุมัติ mockup `docs/mockup-production-redesign-2026-08-22.html` แล้วสั่ง "เอาตาม mockup เลย อะไรไม่มีก็ทำเพิ่ม" · `/production` กลับมามีบอร์ด kanban เป็นมุมหลัก (สลับ `?layout=board|list`, default board) ทับมติ 2026-08-15 "บอร์ดล้วน" — worklist ทิศ A ยังอยู่ครบในมุม "รายการ" · เพิ่ม ticker สรุปวันนี้ (เลยกำหนด/ส่งวันนี้/กำลังทำ — pure `productionWorklistDaySummary`), assignee ทั้งการ์ดบอร์ดและแถว worklist, และ thumbnail ลายบนการ์ดบอร์ด (ค่าแรกจาก `prints.designImageUrl` → `artwork.imageUrl`, guard ฝั่ง UI)
+>
+> ใบผลิต `/production/[id]` inspector เพิ่มแท็บ **ม็อกอัพ** (`?tab=mockup`): design card เดิม + ค่ารีดต่อลาย (heatTempC/heatPressSec/heatPressure จาก `CustomerArtwork` ผ่าน relation `prints.artwork` ที่เพิ่มใน select) + `ProductionDesignHistory` ประวัติ/เทียบรุ่นจาก `DesignVersion` (select ขยาย take 1→5 + customerComment; designs[0] ยังเป็นรุ่นใช้งานเสมอ) · Station work sheet เพิ่ม chip ค่ารีด (`data-station-heat-spec`) และรูปคลังลายเป็น fallback เมื่อรูปลายแยกว่าง — zoom เต็มจอ/ป้ายรุ่น vN ใช้ของเดิมจากก้อนก่อน
+>
+> **ผลสำรวจ P3.4: ไม่ต้องแตะ schema** — `CustomerArtwork.imageUrl` (schema ระบุ "ชั้น mockup") + `DesignVersion` ครอบคลื่อน viewer เทียบรุ่นแล้ว; asset type "mockup เสื้อเต็มต่อตำแหน่ง" ยังเป็นงานอนาคตถ้าเบสอยากได้มากกว่าไฟล์อนุมัติระดับออเดอร์ (โน้ต Phase ก่อนยังตั้งอยู่)
+>
+> **หลักฐาน:** full unit **1281/1281** (เพิ่ม day-summary + ปรับ tabs sequence), typecheck, scoped lint 0 error, `verify:ui`, production build 44 routes และ Impeccable detector `[]` ผ่าน · browser ตรวจ unauth path ได้ (307 → `/login?next=/production`) แต่ **ยังตรวจ logged-in ไม่ได้** — login ใช้ Supabase จริงของเบส (ฐาน demo ต้องมี OWNER ที่ supabaseId ตรง session) จึงฝากเบสเปิด `/production` และ `/production/[id]?tab=mockup` ด้วยบัญชีจริง · mutation/permission/transition ไม่แตะทั้งก้อน (query เพิ่มเฉพาะ field ปลอดเงิน)
+>
+> **ต่อที่นี่:** เบส login แล้วเปิด `/production` (บอร์ด default) → กดสลับ "รายการ" → เปิดใบผลิตที่มีลายแล้วกดแท็บ "ม็อกอัพ" → จอสถานี DTF/รีดร้อนดู chip ค่ารีด; ถ้าอยากให้ thumbnail บอร์ดใช้รูปอื่นหรืออยากได้ mockup เสื้อเต็มต่อตำแหน่ง บอกได้เลย
+
 > **✅ STATION LOW-TECH UX — เห็นภาพแล้วทำตามบนระบบจริง 2026-08-22**
 > ลงทิศ A `One Task Kiosk` เป็นโครงหลักและดึง Picture Work Sheet มาเฉพาะส่วนที่ช่วยลงมือ: งานปัจจุบันเต็มผืน, แต่ละลายอยู่กับสินค้า/สี/ไซส์/จำนวนของ item เดียวกัน, เห็นรูปลาย→ด้านเสื้อ→ขนาด→หมายเหตุ ก่อน primary action ใหญ่หนึ่งจุด · แผนภาพบอกเฉพาะหน้า/หลัง/แขน/ปกโดยไม่เดาจุดย่อยหรือสเกล; หมวก/ถุงผ้า/ชนิดไม่ชัดใช้กล่องสินค้ากลาง ไม่ถูกวาดเป็นเสื้อ
 >

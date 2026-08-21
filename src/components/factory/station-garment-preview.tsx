@@ -31,6 +31,12 @@ export interface StationPreviewPrint {
   colorCount?: number | null;
   note: string | null;
   imageUrl: string | null;
+  /** สเปกรีดจากคลังลายลูกค้า (CustomerArtwork) — มีเมื่อลายถูก promote แล้ว (mockup v2) */
+  heat?: {
+    tempC: number | null;
+    pressSec: number | null;
+    pressure: string | null;
+  } | null;
 }
 
 export interface StationGarmentLine {
@@ -274,6 +280,15 @@ function ApprovedDesignReference({
   );
 }
 
+export function stationHeatLabel(heat: StationPreviewPrint["heat"]): string | null {
+  if (!heat) return null;
+  const parts: string[] = [];
+  if (heat.tempC != null) parts.push(`${heat.tempC}°C`);
+  if (heat.pressSec != null) parts.push(`${heat.pressSec} วิ`);
+  if (heat.pressure) parts.push(heat.pressure);
+  return parts.length > 0 ? `รีด ${parts.join(" · ")}` : null;
+}
+
 function StationPrintRow({
   print,
   workLabel,
@@ -291,6 +306,7 @@ function StationPrintRow({
   const artImage = isStationPreviewImageUrl(print.imageUrl)
     ? print.imageUrl
     : null;
+  const heatLabel = stationHeatLabel(print.heat);
 
   return (
     <li className="space-y-4 px-4 py-5 sm:px-5">
@@ -300,10 +316,20 @@ function StationPrintRow({
           <p className="mt-1 text-sm text-secondary">{typeLabel}</p>
           <p className="mt-1 text-xs font-medium text-muted">ใช้กับ {workLabel}</p>
         </div>
-        <p className="rounded-lg bg-surface-muted px-3 py-2 text-base font-semibold tabular-nums text-strong">
-          {printDimensionLabel(print)}
-          {print.colorCount ? ` · ${print.colorCount} สี` : ""}
-        </p>
+        <div className="text-right">
+          <p className="rounded-lg bg-surface-muted px-3 py-2 text-base font-semibold tabular-nums text-strong">
+            {printDimensionLabel(print)}
+            {print.colorCount ? ` · ${print.colorCount} สี` : ""}
+          </p>
+          {heatLabel ? (
+            <p
+              data-station-heat-spec=""
+              className="mt-1.5 inline-block rounded-lg bg-blue-100 px-3 py-1.5 text-sm font-semibold tabular-nums text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+            >
+              {heatLabel}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div

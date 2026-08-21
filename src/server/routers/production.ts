@@ -246,16 +246,19 @@ export const productionRouter = router({
               priority: true,
               internalStatus: true,
               customer: { select: { id: true, name: true } },
-              // แบบที่ลูกค้าอนุมัติล่าสุด — อ้างเวอร์ชันชัด กันพิมพ์ผิดเวอร์ชัน (pattern job ticket)
+              // แบบที่ลูกค้าอนุมัติ — อ้างเวอร์ชันชัด กันพิมพ์ผิดเวอร์ชัน (pattern job ticket)
+              // เก็บหลายรุ่นล่าสุดเพื่อประวัติ/เทียบรุ่นในแท็บม็อกอัพ (mockup v2) ·
+              // designs[0] ยังเป็นรุ่นอนุมัติล่าสุดตาม orderBy desc เสมอ
               designs: {
                 where: { approvalStatus: "APPROVED" as const },
                 orderBy: { versionNumber: "desc" as const },
-                take: 1,
+                take: 5,
                 select: {
                   versionNumber: true,
                   fileUrl: true,
                   thumbnailUrl: true,
                   approvedAt: true,
+                  customerComment: true,
                 },
               },
               items: {
@@ -297,6 +300,16 @@ export const productionRouter = router({
                       colorCount: true,
                       designNote: true,
                       designImageUrl: true,
+                      // สเปกรีดจากคลังลาย — ใช้บนจอสถานี/แท็บม็อกอัพ (mockup v2) ·
+                      // เผื่อไว้ให้จอใช้ imageUrl ของลายเมื่อ designImageUrl ว่าง
+                      artwork: {
+                        select: {
+                          imageUrl: true,
+                          heatTempC: true,
+                          heatPressSec: true,
+                          heatPressure: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -443,7 +456,19 @@ export const productionRouter = router({
             },
           },
         },
-        items: { select: { totalQuantity: true } },
+        items: {
+          select: {
+            totalQuantity: true,
+            // รูปลายหนึ่งรูปต่อออเดอร์สำหรับ thumbnail การ์ดบนบอร์ด (mockup v2) —
+            // เอาเฉพาะ URL ดิบ ไม่มีเงิน และ UI ต้อง guard ด้วย isImageUrl เอง
+            prints: {
+              select: {
+                designImageUrl: true,
+                artwork: { select: { imageUrl: true } },
+              },
+            },
+          },
+        },
       },
       orderBy: { deadline: "asc" },
       take: 200,

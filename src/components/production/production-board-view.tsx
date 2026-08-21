@@ -33,7 +33,10 @@ import { ChevronRight, Clock, Factory, User, X } from "lucide-react";
    คอลัมน์ = สถานีจริง เรียงซ้ายไปขวาตามทางเดินของงาน · การ์ดในคอลัมน์เรียง
    ตามกำหนดส่ง · เปิดจอเดียวเห็นทั้งโรงงานว่าอะไรกองอยู่ตรงไหน
 
-   บอร์ดล้วนทั้งหน้า ไม่มีโหมดอื่น (เบสเคาะ) — ไม่มีตาราง ไม่มีปุ่มสลับมุมมอง
+   mockup v2 (เบสอนุมัติ 2026-08-22): บอร์ดเป็นมุมหลักของ /production โดยมี
+   มุม "รายการ" (ProductionControlWorklist) สลับผ่านตัวเลือกที่หน้าหลัก —
+   ทับมติ 2026-08-15 "บอร์ดล้วน" · การ์ดเพิ่ม thumbnail ลาย + ผู้รับผิดชอบ
+
    กดหัวคอลัมน์ = โฟกัสสายนั้นสายเดียว (อยู่ใน URL ตั้งค้างที่จอโรงงานได้)
    ซึ่งยังเป็นบอร์ดเหมือนเดิม แค่เหลือคอลัมน์เดียว ไม่ใช่เปลี่ยนรูปแบบ
 
@@ -78,6 +81,13 @@ export type BoardOrderFull = {
   blindShip?: boolean;
   customerName?: string | null;
   totalQuantity?: number;
+  /** รูปลายหนึ่งรูปสำหรับ thumbnail การ์ด (mockup v2) — มีเฉพาะ kanban ที่ select prints มา */
+  items?: readonly {
+    prints?: readonly {
+      designImageUrl?: string | null;
+      artwork?: { imageUrl?: string | null } | null;
+    }[];
+  }[];
 };
 
 export type BoardJobOf<S extends BoardStepFull> = BoardJob<BoardOrderFull, S>;
@@ -106,6 +116,18 @@ function cardHref(job: BoardJobOf<BoardStepFull>, spot: BoardSpot<BoardStepFull>
   return `/orders/${job.order.id}?tab=production`;
 }
 
+/** รูปลายแรกที่ใช้ได้จากออเดอร์ — thumbnail การ์ดบอร์ด (mockup v2 §1)
+    designImageUrl ของลายพิมพ์มาก่อน ไม่มีค่อยใช้รูปคลังลายลูกค้า · ไม่มีเลย = ไม่วาด */
+function orderThumbImage(order: BoardOrderFull): string | null {
+  for (const item of order.items ?? []) {
+    for (const print of item.prints ?? []) {
+      const found = [print.designImageUrl, print.artwork?.imageUrl].find(Boolean);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 function BoardCard<S extends BoardStepFull>({
   card,
 }: {
@@ -114,6 +136,8 @@ function BoardCard<S extends BoardStepFull>({
   const { job, spot } = card;
   const step = spot.step;
   const otherLanes = job.spots.length - 1;
+  const thumb = orderThumbImage(job.order);
+  const assignee = step?.assignedTo ?? null;
   const qty =
     step?.qtyTotal != null && step.qtyTotal > 0
       ? `${step.qtyDone ?? 0}/${step.qtyTotal}`
@@ -126,11 +150,26 @@ function BoardCard<S extends BoardStepFull>({
     <Link
       href={cardHref(job as BoardJobOf<BoardStepFull>, spot as BoardSpot<BoardStepFull>)}
       className={cn(
-        "card-surface card-surface-hover block rounded-xl p-3",
+        "card-surface card-surface-hover relative block rounded-xl p-3",
         FOCUS_BUTTON,
       )}
     >
-      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      {thumb ? (
+        <span
+          aria-hidden="true"
+          className="absolute right-2.5 top-2.5 block h-9 w-9 overflow-hidden rounded-lg border border-border bg-white"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={thumb}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-contain"
+          />
+        </span>
+      ) : null}
+      <span className={cn("flex flex-wrap items-center gap-x-2 gap-y-1", thumb && "pr-11")}>
         <span className="text-sm font-semibold tabular-nums text-strong">
           {job.order.orderNumber}
         </span>
@@ -147,7 +186,7 @@ function BoardCard<S extends BoardStepFull>({
           )}
       </span>
 
-      <span className="mt-1 block truncate text-sm text-secondary">
+      <span className={cn("mt-1 block truncate text-sm text-secondary", thumb && "pr-11")}>
         {job.order.customerName || job.order.title || "ไม่ระบุลูกค้า"}
       </span>
 
@@ -189,6 +228,14 @@ function BoardCard<S extends BoardStepFull>({
             {step.customStepName || spot.stationLabel}
           </span>
           {qty && <span className="shrink-0 tabular-nums text-muted">{qty}</span>}
+          {assignee ? (
+            <span
+              title={`ผู้รับผิดชอบ: ${assignee.name}`}
+              className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-2xs font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+            >
+              {assignee.name.slice(0, 1)}
+            </span>
+          ) : null}
         </span>
       ) : null}
     </Link>

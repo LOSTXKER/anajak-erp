@@ -35,6 +35,7 @@ import {
   PRODUCTION_WORKLIST_SORT_OPTIONS,
   productionWorklistProgress,
   productionWorklistCounts,
+  productionWorklistDaySummary,
   productionWorklistHref,
   resolveProductionWorklistSort,
   type ProductionWorklistLens,
@@ -98,6 +99,38 @@ function currentWork<S extends BoardStepLike, O extends BoardOrderLike<S>>(
   job: BoardJob<O, S>,
 ) {
   return unique(job.spots.map((spot) => spot.stationLabel));
+}
+
+/** ผู้รับผิดชอบของจุดงานที่ยังไม่จบ — mockup v2: รู้ทันทีว่าใครถืองานอยู่ */
+function ownersOf<S extends BoardStepLike, O extends BoardOrderLike<S>>(
+  job: BoardJob<O, S>,
+) {
+  return unique(
+    job.spots.map((spot) => spot.step?.assignedTo?.name ?? "").filter(Boolean),
+  );
+}
+
+function OwnerChips({ names }: { names: readonly string[] }) {
+  if (names.length === 0) return null;
+  const shown = names.slice(0, 2);
+  return (
+    <span className="flex min-w-0 items-center gap-1">
+      {shown.map((name) => (
+        <span
+          key={name}
+          title={name}
+          className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-2xs font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+        >
+          {name.slice(0, 1)}
+        </span>
+      ))}
+      {names.length > shown.length ? (
+        <span className="text-2xs text-muted">+{names.length - shown.length}</span>
+      ) : (
+        <span className="truncate text-2xs text-muted">{shown[shown.length - 1]}</span>
+      )}
+    </span>
+  );
 }
 
 function waitingOn<S extends BoardStepLike, O extends BoardOrderLike<S>>(
@@ -188,6 +221,7 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
         {jobs.map((job) => {
           const exception = exceptionByOrderId.get(job.order.id);
           const waits = waitingOn(job);
+          const owners = ownersOf(job);
           const href = productionWorklistHref(job, canCreateProduction);
           return (
             <DataTable.Row key={job.key} href={href} className="h-[76px]">
@@ -212,9 +246,12 @@ function DesktopRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
               </DataTable.Td>
               <DataTable.Td className="min-w-48 py-2">
                 <WorkBadges job={job} exception={exception} />
-                <p className={cn("mt-1 truncate text-xs", waits.length ? "text-amber-700 dark:text-amber-300" : "text-muted")}>
-                  {waits[0] || (job.order.title && job.order.customerName ? job.order.title : "พร้อมทำต่อ")}
-                </p>
+                <span className="mt-1 flex items-center gap-2">
+                  <p className={cn("min-w-0 flex-1 truncate text-xs", waits.length ? "text-amber-700 dark:text-amber-300" : "text-muted")}>
+                    {waits[0] || (job.order.title && job.order.customerName ? job.order.title : "พร้อมทำต่อ")}
+                  </p>
+                  <OwnerChips names={owners} />
+                </span>
               </DataTable.Td>
               <DataTable.Td className="w-32 py-2">
                 <WorkProgress rail={job.rail} />
@@ -274,7 +311,10 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
               </span>
               <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
             </span>
-            <span className="mt-3 block"><WorkBadges job={job} exception={exceptionByOrderId.get(job.order.id)} /></span>
+            <span className="mt-3 flex items-center justify-between gap-2">
+              <WorkBadges job={job} exception={exceptionByOrderId.get(job.order.id)} />
+              <OwnerChips names={ownersOf(job)} />
+            </span>
             {waits.length ? (
               <span className="mt-2 flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -296,6 +336,38 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
         );
       })}
     </div>
+  );
+}
+
+/* ── สรุปวันนี้ (mockup v2) — แถบตัวเลขที่หัวหน้าใช้ตัดสินใจ ไม่ใช่ metric อวด
+   ใช้ร่วมทั้งมุมบอร์ดและมุมรายการ · ซ่อนเมื่อทุกตัวเป็นศูนย์ (หน้าไม่รกเปล่า ๆ) ── */
+export function ProductionDaySummary<
+  S extends BoardStepLike,
+  O extends BoardOrderLike<S>,
+>({ jobs }: {
+  jobs: readonly BoardJob<O, S>[];
+}) {
+  const day = productionWorklistDaySummary(jobs);
+  if (day.late + day.today + day.inProgress === 0) return null;
+  return (
+    <section
+      aria-label="สรุปงานวันนี้"
+      className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted"
+    >
+      <span aria-hidden="true" className="hidden h-1.5 w-1.5 rounded-full bg-border sm:block" />
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className={cn("h-1.5 w-1.5 rounded-full", day.late ? "bg-red-600" : "bg-border")} />
+        เลยกำหนด <b className="tabular-nums font-semibold text-strong">{day.late.toLocaleString("th-TH")}</b>
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className={cn("h-1.5 w-1.5 rounded-full", day.today ? "bg-amber-500" : "bg-border")} />
+        ส่งวันนี้ <b className="tabular-nums font-semibold text-strong">{day.today.toLocaleString("th-TH")}</b>
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className={cn("h-1.5 w-1.5 rounded-full", day.inProgress ? "bg-blue-600" : "bg-border")} />
+        กำลังทำ <b className="tabular-nums font-semibold text-strong">{day.inProgress.toLocaleString("th-TH")}</b>
+      </span>
+    </section>
   );
 }
 

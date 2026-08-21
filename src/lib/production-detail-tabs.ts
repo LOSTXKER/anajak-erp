@@ -1,6 +1,7 @@
 export const PRODUCTION_DETAIL_TABS = [
   { key: "work", label: "ทำงาน" },
   { key: "inventory", label: "เบิกของ" },
+  { key: "mockup", label: "ม็อกอัพ" },
   { key: "history", label: "ขั้นตอนทั้งหมด" },
 ] as const;
 
