@@ -2,10 +2,12 @@
 
 ## Visual identity contract (2026-08-22)
 
-- ทุก `PageHeader` มาตรฐานมี module marker จาก Lucide ในกรอบ cobalt/neutral เดียวกัน; `<h1>` ต้องมีข้อความจริงเพียงชุดเดียวและ marker เป็นของตกแต่งที่ `aria-hidden` พร้อมชื่อหน้าเดิมเป็น accessible name
-- ความแตกต่างของโมดูลมาจาก icon, scale, composition และภาพงานจริง ไม่สร้างสีประจำโมดูลแบบรุ้ง; น้ำเงิน Anajakยังสงวนให้ primary, selected และ focus
+- ทุก `PageHeader` มาตรฐานมี module marker จาก Lucide และ `VisualTone` กลาง; `<h1>` ต้องมีข้อความจริงเพียงชุดเดียวและ marker เป็นของตกแต่งที่ `aria-hidden` พร้อมชื่อหน้าเดิมเป็น accessible name
+- ความแตกต่างของโมดูลมาจาก icon, scale, composition, ภาพงานจริง และสีบริบทขนาดเล็ก: Sales/Brand = Anajak Blue, Production = teal, Product = saffron, Finance = violet, System = graphite; primary, selected, link และ focus ยังคง Anajak Blue
 - `EntityMark` ใช้เฉพาะสิ่งที่มีตัวตนและเรียง fallback เป็น **ภาพจริง → initials → icon**; ช่องจำนวน เงิน วันที่ และสถานะไม่ต้องมี icon
-- `ContextPanel` ใช้กับคำอธิบายคงที่/วิธีทำงานและไม่มี live-region role; error/warning/success ที่เกิดตาม state ยังใช้ `Alert`/`QueryError` เดิม
+- `PageHeader`/`PageShell`/`Section` ไม่มี `description`; ใช้ `meta` กับข้อเท็จจริงสั้น และ `help` เมื่อเป็นความรู้เสริมที่ต้องย้อนดูจริงเท่านั้น
+- `HelpTip` ใช้ Radix Popover เปิดด้วย click/tap/Enter/Space ปิดด้วย Escape/คลิกนอกและคืน focus; เนื้อหาไม่เกิน 2–3 ประโยค ส่วน error, validation, permission denial, blocker, กฎหมาย และผลกระทบจาก action ต้องเห็นตรงหน้า
+- `ContextPanel` ใช้กับคำอธิบายสำคัญที่ต้องเห็นค้างและไม่มี live-region role; error/warning/success ที่เกิดตาม state ยังใช้ `Alert`/`QueryError` เดิม
 - Public token ใช้ masthead กลางและรักษา blind-ship; print ใช้ `DocHeader` กลาง มีตราประเภทเอกสารที่ขาวดำยังแยกได้ และไม่เปลี่ยน contract ข้อมูล/กฎหมาย/ยอดรวม
 - ห้ามแสดงคำสั่ง CLI, ชื่อ environment หรือศัพท์ implementation ต่อผู้ใช้ เช่น `npm run ...` และ `demo-local`; ใช้คำงานจริง เช่น “ข้อมูลสำหรับทดลอง” และ “คืนข้อมูลตัวอย่าง”
 
@@ -21,7 +23,7 @@
 
 ## สี — semantic system (`src/app/globals.css`)
 
-รอบเก็บสี 2026-08-14 ใช้ Light workspace ใน AppShell `#fafafa` ใกล้ขาวแบบ Vercel โดย card/chrome คงขาวล้วน
+รอบ Industrial Fresh 2026-08-22 ใช้ Light workspace ใน AppShell `#f6f8fb` โดย card/chrome คงขาวล้วน
 และคืน Dark เป็น neutral gray เข้มแบบเดิม
 และใช้ surface hover/pressed เป็นเทากลางแทนฟ้ากับพื้นที่กดทั้ง navigation/control/row/card ·
 hover Light เป็นขาวนวล ไม่ใช่แถบเทาหนัก · น้ำเงิน Anajak `#3973b2` สงวนให้ primary,
@@ -29,7 +31,7 @@ selected และ focus เพื่อให้สถานะชี้กั�
 
 | บทบาท | Light | Dark | utility |
 |---|---|---|---|
-| พื้น workspace หลังบ้าน | `#fafafa` | `#1a1a1c` | `.app-workspace` + `bg-bg` |
+| พื้น workspace หลังบ้าน | `#f6f8fb` | `#1a1a1c` | `.app-workspace` + `bg-bg` |
 | พื้น fallback public/auth | `#f8f9fb` | `#1a1a1c` | `bg-bg` |
 | navbar/sidebar | `#fff` | `#161618` | `bg-chrome` |
 | card | `#fff` | `#252528` | `bg-surface` / `card-surface` |
@@ -45,6 +47,18 @@ selected และ focus เพื่อให้สถานะชี้กั�
 | Hover บน navbar/sidebar | `#f1f3f5` | `#252528` | `bg-interactive-chrome-hover` / `INTERACTIVE_CHROME_HOVER` |
 | Pressed บน navbar/sidebar | `#e3e6e9` | `#303034` | `bg-interactive-chrome-pressed` / `INTERACTIVE_CHROME_PRESSED` |
 | Selected | `#d2e4f6` | `#173c61` | `bg-interactive-selected text-interactive-selected-text` |
+
+สีบริบททุกตัวประกาศที่ token กลางและต้องผ่านคู่ `solid/surface/text/border` ทั้ง Light/Dark:
+
+| บริบท | solid | ใช้กับ |
+|---|---|---|
+| Brand/Sales | `#3973b2` | งานขาย ลูกค้า ออเดอร์ และ CTA/selected/focus ทั้งระบบ |
+| Production | `#0f766e` | marker ฝ่ายผลิต work center และร้านนอก |
+| Product | `#a66a12` | สินค้า แพทเทิร์น บรรจุภัณฑ์ และบริการ |
+| Finance | `#6d5bd0` | บิล ภาษี ลูกหนี้ และรายงาน |
+| System | `#59636f` | ตั้งค่า ผู้ใช้ ประวัติ และระบบ |
+
+สีบริบทเป็น cue บน marker/icon/shortcut เท่านั้น; active navigation ยังเป็นน้ำเงิน และ `StatusLabel` ยังใช้ neutral/active/success/warning/danger เดิม เอกสารพิมพ์ไม่รับสีบริบท
 
 **ข้อความใช้ semantic ก่อน** — ทุกค่าข้างล่างสลับธีมเองและผ่าน AA บน surface กับ interaction states:
 
@@ -93,11 +107,12 @@ selected และ focus เพื่อให้สถานะชี้กั�
 | **ติ๊ก** | `ui/checkbox.tsx` | ห้าม `<input type="checkbox">` ดิบ |
 | **ช่องตัวเลข/เงิน** | `ui/number-input.tsx` (NumberInput / MoneyInput) | คุม empty/fallback/tabular-nums — ห้ามเขียน parseFloat เองรายช่อง |
 | สถานะออเดอร์ | `components/order-status-badge.tsx` | dot + customer status + internal มาตรฐานเดียว |
-| badge อื่น | `ui/badge.tsx` (variant: default/accent/success/warning/destructive/outline) | อย่าเพิ่มสีใหม่ |
+| badge อื่น | `ui/badge.tsx` | alias violet/saffron/teal ใช้ได้เมื่อบอกประเภทข้อมูล; สถานะจริงยังใช้ default/accent/success/warning/destructive/outline |
 | ว่างเปล่า | `ui/empty-state.tsx` | ทุก list ที่ว่างต้องมี |
 | โหลด/พัง | `ui/skeleton.tsx` + `ui/query-error.tsx` | ทุก query หลักของหน้า |
 | หัวข้อกลุ่ม/สถิติ | `ui/section.tsx` · `ui/stat-card.tsx` | StatCard รับ `tone`/`href` สำหรับเลขเสี่ยง (ตัวเลขที่ต้องเด่น+กดไปดูได้ — UX4.3) |
-| ฟอร์ม | `ui/field.tsx` ครอบ `input\|textarea\|select\|switch` + Zod เมื่อมี validation ซับซ้อน | label/id/required/description/error/aria ต้องมาจาก Field · **`native-select` ถูกยุบเข้า `ui/select.tsx` แล้ว** ไม่มีไฟล์นั้น |
+| ฟอร์ม | `ui/field.tsx` ครอบ `input\|textarea\|select\|switch` + Zod เมื่อมี validation ซับซ้อน | label/id/required/help/description/error/aria ต้องมาจาก Field · static guidance ใช้ `help`; `description` เหลือเฉพาะ dynamic/actionable ที่ต้องเห็น · **`native-select` ถูกยุบเข้า `ui/select.tsx` แล้ว** ไม่มีไฟล์นั้น |
+| คำอธิบายเสริม | `ui/help-tip.tsx` | วางข้างหัวข้อ/label เฉพาะข้อมูลที่ต้องย้อนดู; ห้ามซ่อนคำเตือน กฎหมาย validation หรือผลกระทบจาก action |
 | list responsive | `ui/responsive-list.tsx` | desktop table + mobile card เฉพาะหน้าจอ · ใช้ loading/error/empty/pagination ชุดเดียว · มี `emptyAction` ใส่ปุ่มก้าวถัดไปตอน list ว่าง (UX4.7) |
 | สิทธิ์ UI | `permAllows` จาก `lib/permissions` | action ที่ server ไม่อนุญาตต้องไม่เปิดให้กรอกก่อนแล้วค่อย error · (เอกสารเคยอ้าง `ui/capability-gate.tsx` — **ไฟล์นั้นไม่มีอยู่จริง** ลบข้อมูลผิดออก 2026-08-02) |
 | ภาษาหน้าตา (มุมโค้ง · วงแหวนโฟกัส · ผิวช่องกรอก · สีกล่องเตือน) | `ui/tokens.ts` | RADIUS · FOCUS_FIELD/BUTTON/INSET · FIELD/RAISED/INLINE/DISABLED surface · OVERLAY_PANEL · MENU_ITEM · MENU_SEPARATOR · TINT · DASHED · ACTIVE_FILTER — **ด่าน lint บังคับให้ใช้ ห้ามเขียนเอง** |

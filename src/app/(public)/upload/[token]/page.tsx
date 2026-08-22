@@ -116,6 +116,7 @@ export default function CustomerUploadPage({
     <PublicPageShell
       icon={<Paperclip className="h-6 w-6 text-blue-600" />}
       subtitle="ส่งไฟล์งานให้ทีมงาน"
+      tone="product"
     >
         {/* Order Info */}
         <Card>

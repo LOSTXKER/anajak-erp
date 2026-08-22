@@ -4,16 +4,18 @@
 
 ## ตอนนี้
 
-> **✅ SYSTEM VISUAL IDENTITY — code-first ครบ ERP / Factory / Public / Print 2026-08-22**
-> เพิ่ม visual contract กลางโดย `PageHeader`/`PageShell` มี module marker ที่อ่านชื่อได้และยังคง `<h1>` เป็นข้อความล้วน, `Section` รับ icon ตามความหมาย, `EntityMark` เลือกภาพจริง → initials → icon และ `ContextPanel` แยกคำอธิบายคงที่ออกจาก alert · รายการออเดอร์ ลูกค้า ใบเสนอราคา เอกสารการเงิน ร้านนอก และผู้ใช้มี object identity เฉพาะคอลัมน์ตัวตน ไม่ใส่ icon ซ้ำในตัวเลข/วันที่/status
+> **✅ INDUSTRIAL FRESH + PROGRESSIVE HELP — code-first ครบ ERP / Factory / Public / Print 2026-08-23**
+> คง Anajak Blue `#3973b2` สำหรับ primary/link/selected/focus และเพิ่ม semantic tone กลางทั้ง Light/Dark: Production teal, Product saffron, Finance violet, System graphite · `VisualTone` ผูก PageHeader/PageShell/Section/EntityMark/Public masthead, navigation group และ dashboard shortcut จากแหล่งกลาง โดย active navigation/status/print ไม่เปลี่ยนความหมาย
 >
-> Production/Station คง flow ที่ผ่านแล้วและใช้ภาพม็อกอัพ/ตัวตนงานเดิม; Factory TV ได้ work-center marker โดย Station/TV ยังไม่มีข้อมูลเงินและ primary action เดิมไม่เปลี่ยน · public shell/token error ได้ customer-facing masthead กลางและรักษา blind-ship · เอกสาร QT/BN/TX/PL/JT ใช้ document stamp/header กลางที่ light-only/grayscale-safe โดยไม่แตะข้อความกฎหมาย ภาษี ยอดรวม หรือลำดับหน้า · ลบคำสั่ง seed/ชื่อโหมดภายในออกจาก Settings Stock และบันทึกทางเลือก `code-first` ใน `.impeccable/config.json`
+> PageHeader/PageShell/Section เลิกแสดง `description` ค้างใต้หัวข้อ ใช้ `meta` กับข้อเท็จจริงสั้นและ `HelpTip` กับความรู้เสริมที่ต้องย้อนดูจริง · Field static guidance ที่เหมาะสมย้ายเข้า HelpTip ส่วน error, validation, permission denial, blocker, กฎหมาย และผลกระทบก่อน action ยังเห็นตรงหน้า · Station/Factory TV ใช้ teal เฉพาะตัวตน work center, คง flow/primary action เดิมและไม่มีข้อมูลเงิน
 >
-> **หลักฐาน:** component/unit full suite **1292/1292**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build 41 static pages/route tree, `git diff --check` และ Impeccable detector `[]` ผ่าน · browser เดโมจริง: dashboard ทุกโมดูล 1440×900, orders/settings 390×844 Light/Dark, Station 1024×768 + 390×844, Factory TV 1440×900, public invalid-token shared error และ print ทั้ง 5 ชนิดบน A4 screen ไม่มี horizontal overflow; Station/TV/Job Ticket ไม่พบราคา และ console ไม่มี warning/error · คืน theme เป็น “ตามระบบ”, reset viewport และปิด dev server แล้ว
+> **Public/PDF:** ใช้ fixture เฉพาะ `127.0.0.1:5433/anajak_erp_demo` เดิน quote, design approval, customer status, upload และ outsource job ครบ normal/success/expired/error/blind-ship; fixture เก็บ URL ในไฟล์ชั่วคราวสิทธิ์ `0600`, ไม่พิมพ์ token เอง และ cleanup ข้อมูลใน `finally` · export QT/BN/TX/PL/JT จากหน้า print จริงเป็น A4 รวม 6 หน้า, render ทุกหน้าเป็น PNG แล้วตรวจ clipping, page break, table, totals, Thai glyph, header/footer และ grayscale; TX มีต้นฉบับ+สำเนา 2 หน้า ที่เหลือชนิดละ 1 หน้า
 >
-> **ขอบเขตหลักฐาน:** รอบนี้ไม่สร้าง/เปลี่ยน public token จึงไม่ได้กด flow valid/success ด้วย browser และไม่ได้ export ไฟล์ PDF จริง; blind-ship, public composition และ print marker ถูกล็อกด้วย test ส่วน print ทั้ง 5 ตรวจจาก screen/print CSS เท่านั้น · ไม่มี dependency/schema/API/query/mutation/permission/status/business-flow change และไม่แตะฐานจริง
+> **หลักฐาน:** full unit **1294/1294**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build Next.js 16.3.1, `git diff --check` ผ่าน · browser 1440×900 และ 390×844 Light/Dark ครบตัวแทนทุก tone, Station 1024×768 + 390×844, Factory TV 1440×900, HelpTip click/Escape/คืน focus, long Thai/overflow/hydration/console ผ่าน · Impeccable detector รอบเดียวพบ warning เดิม 3 จุดนอกไฟล์ที่แก้ (`goods-receipt`/`order-qc`) และไม่พบ finding จากก้อนนี้
 >
-> **ต่อที่นี่:** ก่อน deploy ให้ใช้ token เดโมที่มีอายุจริงเดิน public success/blind-ship และ export PDF ทั้ง 5 ชนิดจาก print preview เพื่อตรวจ page break/clipping รอบสุดท้าย
+> **ขอบเขต:** ไม่มี dependency/schema/API/query/mutation/permission/status transition/business flow change · fixture และไฟล์ PDF/PNG ชั่วคราวถูกล้างแล้ว · ไม่แตะฐานจริง ไม่ push/merge/deploy และรักษา `scripts/verify-artwork.ts`, `.cursor/`, `public/` ไว้นอก commit
+>
+> **ต่อที่นี่:** ให้เบสเปิด Dashboard, Production และ Settings บน branch นี้เพื่อเทียบความอ่านง่ายและความเข้มของสีรอง ก่อนตัดสินใจ push/merge
 
 > **↩️ ย้อนก้อน A/B กลับมาที่จุดม็อกอัพล่าสุด (เบสสั่ง 2026-08-22 14:0x)**
 > เบสไปลองทำต่อที่อื่นแล้วไม่ได้ดั่งใจ จึงสั่งย้อนทุกอย่างกลับมาที่ `ec681af` ซึ่งเป็นจุดล่าสุดที่ตรวจจอจริงผ่านแล้ว · `git reset --hard` ตัด `b142a4f` (route ชั่วคราว `/production/concepts` + `production-control-concepts.tsx` 734 บรรทัด) ออกจากกิ่ง โดย **สำรองไว้ครบที่กิ่ง `backup/ab-concepts-2026-08-22`** ก่อนย้อน — อยากดู/ดึงกลับทีหลังได้ ไม่มีอะไรหาย · กิ่งนี้ยังไม่เคย push (ahead origin 8 ก้อน) จึงไม่ต้อง force-push

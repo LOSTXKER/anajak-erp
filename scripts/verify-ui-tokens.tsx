@@ -41,6 +41,8 @@ import {
 import { PageHeader } from "../src/components/page-header";
 import { EntityMark } from "../src/components/ui/entity-mark";
 import { ContextPanel } from "../src/components/ui/context-panel";
+import { HelpTip } from "../src/components/ui/help-tip";
+import { VISUAL_TONE_CLASSES } from "../src/lib/visual-tone";
 
 let failed = 0;
 const globalsSource = readFileSync("src/app/globals.css", "utf8");
@@ -133,16 +135,56 @@ const hSm = CONTROL_H_SM.split(" ");
   const contextHtml = renderToStaticMarkup(
     <ContextPanel title="ข้อมูลประกอบ">ข้อความคงที่</ContextPanel>,
   );
+  const helpHtml = renderToStaticMarkup(
+    <HelpTip label="อายุหนี้">นับจากวันครบกำหนด</HelpTip>,
+  );
   if (
     !headerHtml.includes("page-module-mark") ||
     !headerHtml.includes("data-page-identity") ||
     !entityHtml.includes('data-entity-mark="icon"') ||
-    contextHtml.includes('role="alert"')
+    contextHtml.includes('role="alert"') ||
+    helpHtml.includes('role="alert"') ||
+    !helpHtml.includes("ดูคำอธิบาย: อายุหนี้")
   ) {
     failed++;
     console.log("❌ visual identity กลางต้องมี marker จริงและ ContextPanel ห้ามปลอมเป็น alert");
   } else {
     console.log("✅ visual identity กลางมี marker และ semantic role ถูกต้อง");
+  }
+}
+
+{
+  const primary = colorValues("anajak-blue")[0];
+  const toneNames = ["brand", "production", "product", "finance", "system"] as const;
+  const missingToneClass = toneNames.some((tone) =>
+    Object.values(VISUAL_TONE_CLASSES[tone]).some((value) => !value.includes(`module-${tone}`)),
+  );
+  if (primary !== "#3973b2" || missingToneClass) {
+    failed++;
+    console.log("❌ Industrial Fresh ต้องคง Anajak Blue และอ้าง module token กลาง");
+  } else {
+    console.log("✅ Industrial Fresh คง Anajak Blue และใช้ module token กลาง");
+  }
+
+  for (const tone of toneNames) {
+    const foregrounds = colorValues(`module-${tone}-text`);
+    const backgrounds = colorValues(`module-${tone}-surface`);
+    checkContrast(`${tone} Light text/surface`, hexRgb(foregrounds[0]!), hexRgb(backgrounds[0]!), 4.5);
+    checkContrast(`${tone} Dark text/surface`, hexRgb(foregrounds[1]!), hexRgb(backgrounds[1]!), 4.5);
+    checkContrast(`${tone} marker/white`, hexRgb(colorValues(`module-${tone}-solid`)[0]!), [255, 255, 255], 3);
+  }
+}
+
+{
+  const headerSource = readFileSync("src/components/page-header.tsx", "utf8");
+  const shellSource = readFileSync("src/components/page-shell.tsx", "utf8");
+  const sectionSource = readFileSync("src/components/ui/section.tsx", "utf8");
+  const shellHeaderContract = shellSource.slice(0, shellSource.indexOf("  // ---- สถานะของหน้า ----"));
+  if ([headerSource, shellHeaderContract, sectionSource].some((source) => /description\?\s*:/.test(source))) {
+    failed++;
+    console.log("❌ PageHeader/PageShell/Section ห้ามมี description ค้างใต้หัวข้อ");
+  } else {
+    console.log("✅ หัวหน้าและ Section ใช้ meta/HelpTip แทน description ค้างใต้หัวข้อ");
   }
 }
 
@@ -1372,9 +1414,9 @@ check(
     pageColors[1] !== "#1a1a1c" ||
     !appShellSource.includes("app-workspace") ||
     !globalsSource.includes(".app-workspace") ||
-    !globalsSource.includes("--color-bg: #fafafa")
+    !globalsSource.includes("--color-bg: #f6f8fb")
   ) {
-    problems.push("AppShell workspace ต้องเป็น Light #fafafa โดยไม่เปลี่ยน public/auth fallback");
+    problems.push("AppShell workspace ต้องเป็น Light #f6f8fb โดยไม่เปลี่ยน public/auth fallback");
   }
 
   if (problems.length) {

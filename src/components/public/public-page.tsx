@@ -1,4 +1,6 @@
 import { Spinner } from "@/components/ui/spinner";
+import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
+import { cn } from "@/lib/utils";
 
 /* โครงหน้า public (ลิงก์ลูกค้า/ร้านนอก) — แหล่งเดียวของ กล่องครอบ + header + footer
    เดิม 5 หน้า (quote/status/upload/approve/job) ก๊อปโครงกันเองแล้วเพี้ยน:
@@ -11,6 +13,7 @@ export function PublicPageShell({
   subtitle,
   footer,
   hideFooter = false,
+  tone = "brand",
   children,
 }: {
   /** ไอคอนหัวหน้า — ส่งมาพร้อมสไตล์ เช่น <FileText className="h-6 w-6 text-blue-600" /> */
@@ -22,15 +25,16 @@ export function PublicPageShell({
   footer?: React.ReactNode;
   /** ซ่อน footer ทั้งแถบ (blind ship — ห้ามโผล่ชื่อร้าน) */
   hideFooter?: boolean;
+  tone?: VisualTone;
   children: React.ReactNode;
 }) {
   return (
     <div className="min-h-screen bg-bg px-4 py-5 sm:py-10">
       <div className="mx-auto max-w-2xl space-y-5">
         <header className="card-surface relative overflow-hidden rounded-2xl p-5 sm:p-6">
-          <div className="absolute inset-x-0 top-0 h-1 bg-blue-600" aria-hidden="true" />
+          <div className={cn("absolute inset-x-0 top-0 h-1", VISUAL_TONE_CLASSES[tone].solid)} aria-hidden="true" />
           <div className="flex items-start gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-blue-600 text-white shadow-sm [&_svg]:h-5.5 [&_svg]:w-5.5 [&_svg]:text-white" aria-hidden="true">
+            <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] text-white shadow-sm [&_svg]:h-5.5 [&_svg]:w-5.5 [&_svg]:text-white", VISUAL_TONE_CLASSES[tone].solid)} aria-hidden="true">
               {icon}
             </span>
             <div className="min-w-0 pt-0.5">

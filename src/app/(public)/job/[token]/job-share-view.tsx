@@ -42,6 +42,7 @@ export function JobShareView({ token }: { token: string }) {
       icon={<Shirt className="h-6 w-6 text-blue-600" />}
       title="ใบงานผลิต"
       subtitle={`สำหรับ ${d.vendorName} · อ้างอิง ${d.orderNumber}`}
+      tone="production"
       footer="เปิดจากลิงก์ที่ได้รับเท่านั้น — หากข้อมูลไม่ตรงกับที่คุยไว้ กรุณาติดต่อผู้ส่งงาน"
     >
 

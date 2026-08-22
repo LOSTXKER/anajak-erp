@@ -445,6 +445,15 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] ลบศัพท์นักพัฒนาออกจาก UI ผู้ใช้ เช่นคำสั่ง seed และชื่อโหมดภายใน
 - [x] เพิ่ม regression test/`verify:ui` และตรวจ real browser ตัวแทนทุก surface ตาม desktop/mobile/touch, public error, print A4 screen, overflow, hydration และ console; blind-ship/semantics/fallback ล็อกด้วย component test
 
+### P1.0-COLOR-COPY — Industrial Fresh + Progressive Help (เบสอนุมัติ 2026-08-22)
+
+- [x] คง Anajak Blue `#3973b2` เป็น primary/selected/focus และเพิ่ม module tone กลาง: Production teal, Product saffron, Finance violet, System graphite
+- [x] เพิ่ม `VisualTone` ให้ visual primitives/navigation/public โดยสีสถานะและ print grayscale ไม่เปลี่ยนความหมาย
+- [x] เพิ่ม `HelpTip` ที่ใช้ mouse/keyboard/touch ได้ และย้ายเฉพาะคำอธิบายคงที่ที่ไม่จำเป็นต่อการตัดสินใจเข้า progressive disclosure
+- [x] ถอด `description` ออกจาก PageHeader/PageShell/Section; เก็บ factual metadata แบบสั้น และคง warning/error/validation/blocker/legal/action consequence ให้เห็นตรงหน้า
+- [x] ตรวจ public token normal/success/expired/error/blind-ship บน demo local และ export PDF A4 จริงทั้ง 5 ชนิด
+- [x] เพิ่ม component/`verify:ui` guard, full gates, browser Light/Dark/mobile และ Impeccable detector
+
 **เพิ่มเข้า P1 (เบสอนุมัติ 2026-06-11 จากผล audit flow ทั้งระบบ):** แพ็คเก็บตกหน้างาน — ขั้นตอนผลิต DTF/DTG จริง (เดิม enum เป็นชุดโรงเย็บ) + โชว์ลายอนุมัติบน order detail/Job Ticket + แจ้งกระดิ่งเมื่อลูกค้าตัดสินแบบ + ด่านปิดงานต้องวางบิลครบ · **Outsource UI ทั้งก้อนดึงจาก P2 มาทำเลย** (silkscreen ส่งร้านนอก 100% แต่ระบบใช้ไม่ได้จริง) — ส่วน AP vendor/WHT ขาจ่าย ยังอยู่ P2 ตามเดิม
 ## 🏭 FLOW-REDESIGN — รื้อทั้งระบบตามผังใหม่ (เบสเคาะครบ 2026-06-12 · แบบเต็ม: `docs/flow-redesign-2026-06-12.html`)
 > เบสสั่ง: "มองมุมโรงงาน วาด flow ก่อน" → ศึกษา 5 มุม + ตอบคำถาม 10 ข้อ → เคาะครบ · **งานชุดนี้มาก่อน P1 ที่เหลือ** (WHT เลื่อนไปทำพร้อมก้อน 3 ขาเงิน)

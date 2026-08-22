@@ -96,6 +96,7 @@ export default function DesignApprovalPage({
     <PublicPageShell
       icon={<Palette className="h-6 w-6 text-blue-600" />}
       subtitle="ตรวจสอบและอนุมัติแบบ"
+      tone="production"
     >
 
         {/* Order Info */}
