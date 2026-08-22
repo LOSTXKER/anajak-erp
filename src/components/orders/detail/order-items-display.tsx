@@ -597,7 +597,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
 
               return (
                 // กล่องย่อยแยกชั้นด้วยพื้นที่จมกว่าการ์ด ไม่ใช้เส้นขอบ (มาตรฐานหน้าตาปี 2026-08)
-                <div key={item.id} className={cn("overflow-hidden rounded-xl", SUNK_PANEL)}>
+                <div key={item.id} className={cn("overflow-hidden rounded-lg", SUNK_PANEL)}>
                   {/* Item header — ชื่อนำ · จำนวนเป็นบรรทัดจาง (เลิก badge ซ้อน ลดความรก) */}
                   <div className="flex items-start justify-between gap-3 px-4 pt-3">
                     <div className="flex min-w-0 items-start gap-2">

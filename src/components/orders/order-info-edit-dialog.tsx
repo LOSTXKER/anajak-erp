@@ -265,7 +265,7 @@ export function OrderInfoEditDialog({
   }
 
   const sectionClass =
-    "space-y-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700";
+    "space-y-3 rounded-lg border border-border p-4";
   const sectionTitleClass =
     "mb-3 text-xs font-semibold uppercase tracking-wider text-muted";
 
@@ -307,7 +307,7 @@ export function OrderInfoEditDialog({
             <p className={sectionTitleClass}>การเงิน</p>
             {/* ล็อกอยู่ → ปิดช่องเงิน + บอกเหตุ (ที่อยู่/หมายเหตุ/PO ยังแก้ได้) */}
             {moneyLocked && (
-              <p className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
+              <p className="rounded-lg border border-border bg-surface-muted px-2.5 py-2 text-xs text-muted">
                 {moneyLockHint}
               </p>
             )}

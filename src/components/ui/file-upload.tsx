@@ -113,7 +113,7 @@ export function FileUpload({
           onClick={() => inputRef.current?.click()}
           disabled={disabled || uploading}
           className={cn(
-            DASHED_INTERACTIVE, FOCUS_BUTTON, "flex w-full items-center justify-center gap-2 rounded-xl px-4 py-6 text-sm text-muted transition-colors hover:text-strong dark:hover:text-strong",
+            DASHED_INTERACTIVE, FOCUS_BUTTON, "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-6 text-sm text-muted transition-colors hover:text-strong dark:hover:text-strong",
             (disabled || uploading) && "pointer-events-none opacity-50"
           )}
         >

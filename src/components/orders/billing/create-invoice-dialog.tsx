@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { TINT } from "@/components/ui/tokens";
 import { PAYMENT_TERMS_LABELS } from "@/lib/payment-terms";
 import { customerProfileGaps } from "@/lib/customer-gaps";
 import { INVOICE_TYPE_LABELS } from "@/lib/invoice-labels";
@@ -233,7 +234,7 @@ export function CreateInvoiceDialog({
             )}
             {suggestion.data &&
               (suggestion.data.paymentTerms || suggestion.data.remaining !== null) && (
-              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-1.5 text-xs text-muted">
                 {suggestion.data.paymentTerms && (
                   <>
                     เงื่อนไขชำระ:{" "}
@@ -275,7 +276,7 @@ export function CreateInvoiceDialog({
                     </p>
                   ) : (
                     invoiceType === "CREDIT_NOTE" && (
-                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      <p className="mt-1 text-xs text-muted">
                         อ้างใบแจ้งหนี้ = หักยอดค้างของใบนั้นให้อัตโนมัติ · อ้างใบเสร็จ
                         (ลดหนี้หลังรับเงินแล้ว) = ใช้คู่กับ &quot;บันทึกคืนเงิน&quot;
                       </p>
@@ -383,9 +384,9 @@ export function CreateInvoiceDialog({
               placeholder="หมายเหตุเพิ่มเติม..."
             />
           </Field>
-          <div className="rounded-xl bg-blue-50 p-3 text-sm dark:bg-blue-950/30">
-            <span className="text-slate-600 dark:text-slate-400">ยอดรวมบิล: </span>
-            <span className="font-semibold text-slate-900 dark:text-white">
+          <div className={cn(TINT.neutral, "rounded-lg border p-3 text-sm")}>
+            <span className="text-current">ยอดรวมบิล: </span>
+            <span className="font-semibold text-strong">
               {formatCurrency(
                 (parseFloat(invoiceAmount) || 0) -
                   (parseFloat(invoiceDiscount) || 0) +

@@ -10,6 +10,8 @@
 - `ContextPanel` ใช้กับคำอธิบายสำคัญที่ต้องเห็นค้างและไม่มี live-region role; error/warning/success ที่เกิดตาม state ยังใช้ `Alert`/`QueryError` เดิม
 - `Alert`, `ContextPanel`, `AddCard`, mobile record และพื้นที่ loading ใช้ panel geometry เดียวกันคือมุม 8px ขอบ semantic และไม่มีเงาตกแต่ง; ห้ามสร้าง visual island มุม 12–16px แทรกใน panel 8px
 - Production control/detail และ Station ใช้ panel geometry เดียวกับหลังบ้าน แม้ Station จะคงเป้ากดใหญ่และลำดับ current/ready/blocked; status pill, switch และ overlay ที่ลอยจริงเป็นข้อยกเว้นตามหน้าที่ ไม่ใช่รูปทรงเริ่มต้น
+- Factory TV ใช้ geometry 8px ชุดเดียวกับ Production/Station แม้คง dark-first และ density สำหรับจอแขวน · dialog หลังบ้านใช้ overlay กลาง แต่ panel/summary/list ภายในกลับเป็น 8px + semantic token; Product Picker ใช้ `FilterChip` ข้อความ+เส้นใต้เหมือนตัวกรองอื่น
+- dialog แบบ conditional mount เก็บ element ที่เปิดไว้ใน `DialogContent` กลางและคืน focus เมื่อปิด/Escape; caller ไม่ต้องสร้าง focus recovery ซ้ำ เว้นแต่ workflow มี target เฉพาะที่ชัดกว่า
 - Public token ใช้ masthead กลางและรักษา blind-ship; print ใช้ `DocHeader` กลาง มีตราประเภทเอกสารที่ขาวดำยังแยกได้ และไม่เปลี่ยน contract ข้อมูล/กฎหมาย/ยอดรวม
 - ห้ามแสดงคำสั่ง CLI, ชื่อ environment หรือศัพท์ implementation ต่อผู้ใช้ เช่น `npm run ...` และ `demo-local`; ใช้คำงานจริง เช่น “ข้อมูลสำหรับทดลอง” และ “คืนข้อมูลตัวอย่าง”
 

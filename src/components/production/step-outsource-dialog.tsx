@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Field } from "@/components/ui/field";
 import { STEP_TYPE_LABELS } from "@/lib/production-steps";
+import { cn } from "@/lib/utils";
+import { TINT } from "@/components/ui/tokens";
 import { Truck } from "lucide-react";
 import type { ProductionStep } from "./types";
 
@@ -92,8 +94,8 @@ export function StepOutsourceDialog({ step, onClose }: StepOutsourceDialogProps)
                 </Select>
             </Field>
             {vendors.data?.length === 0 && (
-              <div className="mt-2 rounded-xl bg-amber-50 p-3 dark:bg-amber-950/30">
-                <p className="text-xs text-amber-800 dark:text-amber-300">
+              <div className={cn(TINT.warning, "mt-2 rounded-lg border p-3")}>
+                <p className="text-xs text-current">
                   ยังไม่มีร้านในระบบ
                 </p>
                 <Button asChild variant="outline" size="sm" className="mt-2">

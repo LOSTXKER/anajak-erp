@@ -192,11 +192,11 @@ function StepBuilder({
             return (
               <div key={index}>
                 {showLaneHeader && (
-                  <p className="mb-1 mt-2 px-0.5 text-xs font-semibold uppercase tracking-wide text-slate-400 first:mt-0">
+                  <p className="mb-1 mt-2 px-0.5 text-xs font-semibold uppercase tracking-wide text-muted first:mt-0">
                     {LANE_LABELS[lane]}
                   </p>
                 )}
-                <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700">
+                <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
                     {index + 1}
                   </span>
@@ -214,7 +214,7 @@ function StepBuilder({
                       className="flex-1"
                     />
                   ) : (
-                    <span className="flex-1 text-sm font-medium text-slate-800 dark:text-slate-200">
+                    <span className="flex-1 text-sm font-medium text-strong">
                       {STEP_TYPE_LABELS[step.stepType] ?? step.stepType}
                     </span>
                   )}
@@ -228,7 +228,7 @@ function StepBuilder({
                       variant="ghost"
                       size="icon-sm"
                       aria-label="ลบขั้นตอน"
-                      className="text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+                      className="text-muted hover:text-red-600 dark:hover:text-red-400"
                       onClick={() => removeStep(index)}
                     >
                       <X />

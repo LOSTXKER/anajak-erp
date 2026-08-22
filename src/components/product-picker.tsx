@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { trpc } from "@/lib/trpc";
 import { cn, formatCurrency } from "@/lib/utils";
-import { FIELD_SURFACE, FOCUS_BUTTON, FOCUS_FIELD, INTERACTIVE_SELECTED, OVERLAY_PANEL, RADIUS, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
+import { FIELD_SURFACE, FOCUS_BUTTON, FOCUS_FIELD, OVERLAY_PANEL, RADIUS, TABLE_HEAD_SURFACE } from "@/components/ui/tokens";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FilterChip } from "@/components/ui/filter-chip";
 import { Spinner } from "@/components/ui/spinner";
 import { QueryError } from "@/components/ui/query-error";
 import { SearchInput } from "@/components/ui/search-input";
@@ -185,8 +186,8 @@ export function ProductPickerDialog({
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
-            <Dialog.Title className="flex min-w-0 items-start gap-2 text-lg font-semibold leading-tight text-slate-900 dark:text-white">
+          <div className="flex items-center justify-between border-b border-divider px-5 py-4">
+            <Dialog.Title className="flex min-w-0 items-start gap-2 text-lg font-semibold leading-tight text-strong">
               <Package className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
               เลือกสินค้าจากแค็ตตาล็อก
             </Dialog.Title>
@@ -201,7 +202,7 @@ export function ProductPickerDialog({
           </Dialog.Description>
 
           {/* Search & Filters */}
-          <div className="space-y-3 border-b border-slate-200 px-5 py-3 dark:border-slate-700">
+          <div className="space-y-3 border-b border-divider px-5 py-3">
             <SearchInput
               surface="field"
               ref={inputRef}
@@ -209,21 +210,15 @@ export function ProductPickerDialog({
               onChange={(e) => setSearch(e.target.value)}
               placeholder="ค้นหาชื่อสินค้า, SKU, บาร์โค้ด..."
             />
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-x-3">
               {ITEM_TYPE_FILTERS.map((g) => (
-                <button
+                <FilterChip
                   key={g.label}
-                  type="button"
+                  selected={selectedGroup === g.key}
                   onClick={() => setSelectedGroup(g.key)}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                    selectedGroup === g.key
-                      ? INTERACTIVE_SELECTED
-                      : "bg-surface-muted text-secondary hover:bg-interactive-hover active:bg-interactive-pressed",
-                  )}
                 >
                   {g.label}
-                </button>
+                </FilterChip>
               ))}
             </div>
           </div>
@@ -231,7 +226,7 @@ export function ProductPickerDialog({
           {/* Product list */}
           <div className="flex-1 overflow-y-auto px-2 py-2">
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
+              <div className="flex flex-col items-center justify-center py-12 text-muted">
                 <Spinner size="xl" />
                 <p className="mt-3 text-sm">กำลังโหลด...</p>
               </div>
@@ -239,7 +234,7 @@ export function ProductPickerDialog({
               // query พัง ≠ ไม่มีสินค้า — เดิมโชว์ "ไม่พบสินค้า" ตอนเน็ตล่ม ผู้ใช้เข้าใจผิด
               <QueryError message="โหลดรายการสินค้าไม่สำเร็จ" onRetry={() => void refetch()} />
             ) : !products || products.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
+              <div className="flex flex-col items-center justify-center py-12 text-muted">
                 <Package className="h-10 w-10" />
                 <p className="mt-3 text-sm">ไม่พบสินค้า</p>
                 {search && (
@@ -263,19 +258,19 @@ export function ProductPickerDialog({
                       <button
                         type="button"
                         onClick={() => toggleExpand(product.id)}
-                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
+                        className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-interactive-hover active:bg-interactive-pressed"
                       >
                         {isExpanded ? (
-                          <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-400" />
+                          <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted" />
                         ) : (
-                          <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-400" />
+                          <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted" />
                         )}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                            <span className="truncate text-sm font-medium text-strong">
                               {product.name}
                             </span>
-                            <span className="inline-flex flex-shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                            <span className="inline-flex flex-shrink-0 items-center rounded-full bg-surface-muted px-2 py-0.5 text-2xs font-medium text-secondary">
                               {PRODUCT_TYPE_LABELS[product.productType] ?? product.productType}
                             </span>
                             {selectedFromProduct > 0 && (
@@ -284,16 +279,16 @@ export function ProductPickerDialog({
                               </span>
                             )}
                           </div>
-                          <div className="mt-0.5 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                          <div className="mt-0.5 flex items-center gap-3 text-xs text-muted">
                             <span className="font-mono">{product.sku}</span>
-                            <span className="text-slate-300 dark:text-slate-600">|</span>
+                            <span className="text-divider">|</span>
                             <span>
                               ราคา{" "}
-                              <span className="font-medium text-slate-700 dark:text-slate-300">
+                              <span className="font-medium text-secondary">
                                 {formatCurrency(product.basePrice)}
                               </span>
                             </span>
-                            <span className="text-slate-300 dark:text-slate-600">|</span>
+                            <span className="text-divider">|</span>
                             <span>
                               คงเหลือ{" "}
                               <span
@@ -338,7 +333,7 @@ export function ProductPickerDialog({
                                 return (
                                   <tr
                                     key={v.id}
-                                    className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] gap-x-3 gap-y-2 border-b border-slate-100 px-3 py-3 last:border-0 dark:border-slate-700/50 sm:table-row sm:p-0"
+                                    className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] gap-x-3 gap-y-2 border-b border-divider px-3 py-3 last:border-0 sm:table-row sm:p-0"
                                   >
                                     <td className="col-start-1 row-span-2 row-start-1 flex p-0 sm:table-cell sm:px-2 sm:py-1.5 sm:text-center">
                                       <label htmlFor={`variant-select-${v.id}`} className="flex h-11 w-11 cursor-pointer items-center justify-center sm:inline-flex sm:h-auto sm:w-auto">
@@ -351,16 +346,16 @@ export function ProductPickerDialog({
                                         />
                                       </label>
                                     </td>
-                                    <td className="col-span-2 col-start-2 row-start-1 min-w-0 break-all p-0 font-mono text-slate-500 dark:text-slate-400 sm:table-cell sm:truncate sm:px-3 sm:py-1.5">
+                                    <td className="col-span-2 col-start-2 row-start-1 min-w-0 break-all p-0 font-mono text-muted sm:table-cell sm:truncate sm:px-3 sm:py-1.5">
                                       {v.sku}
                                     </td>
-                                    <td className="col-start-2 min-w-0 p-0 text-slate-600 dark:text-slate-400 sm:table-cell sm:px-3 sm:py-1.5">
+                                    <td className="col-start-2 min-w-0 p-0 text-secondary sm:table-cell sm:px-3 sm:py-1.5">
                                       <span className="block text-2xs text-muted sm:hidden">
                                         สี
                                       </span>
                                       <span className="block truncate">{v.color || "-"}</span>
                                     </td>
-                                    <td className="col-start-3 min-w-0 p-0 font-medium text-slate-700 dark:text-slate-300 sm:table-cell sm:px-3 sm:py-1.5">
+                                    <td className="col-start-3 min-w-0 p-0 font-medium text-secondary sm:table-cell sm:px-3 sm:py-1.5">
                                       <span className="block text-2xs font-normal text-muted sm:hidden">
                                         ไซส์
                                       </span>
@@ -384,7 +379,7 @@ export function ProductPickerDialog({
                                         {vStock}
                                       </Badge>
                                     </td>
-                                    <td className="col-start-3 min-w-0 p-0 font-medium text-slate-700 dark:text-slate-300 sm:table-cell sm:px-3 sm:py-1.5 sm:text-right">
+                                    <td className="col-start-3 min-w-0 p-0 font-medium text-secondary sm:table-cell sm:px-3 sm:py-1.5 sm:text-right">
                                       <span className="block text-2xs font-normal text-muted sm:hidden">
                                         ราคา
                                       </span>
@@ -397,11 +392,11 @@ export function ProductPickerDialog({
                                     <td className="col-span-3 col-start-1 p-0 sm:table-cell sm:w-28 sm:px-3 sm:py-1.5">
                                       <div
                                         className={cn(
-                                          "mt-1 items-center justify-between gap-3 border-t border-slate-200 pt-3 dark:border-slate-700 sm:mt-0 sm:justify-center sm:gap-1.5 sm:border-0 sm:pt-0",
+                                          "mt-1 items-center justify-between gap-3 border-t border-divider pt-3 sm:mt-0 sm:justify-center sm:gap-1.5 sm:border-0 sm:pt-0",
                                           isChecked ? "flex" : "hidden sm:flex sm:invisible",
                                         )}
                                       >
-                                        <span className="font-medium text-slate-600 dark:text-slate-300 sm:hidden">
+                                        <span className="font-medium text-secondary sm:hidden">
                                           จำนวน
                                         </span>
                                         <button
@@ -480,13 +475,13 @@ export function ProductPickerDialog({
           </div>
 
           {/* Footer */}
-          <div className="flex flex-col gap-2 border-t border-slate-200 px-5 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
+          <div className="flex flex-col gap-2 border-t border-divider px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
               onClick={handleManualEntry}
               className={cn(
                 FOCUS_BUTTON,
-                "min-h-11 text-center text-sm text-slate-500 underline-offset-2 transition-colors hover:text-slate-700 hover:underline sm:min-h-0 sm:text-left dark:text-slate-400 dark:hover:text-slate-300",
+                "min-h-11 text-center text-sm text-muted underline-offset-2 transition-colors hover:text-secondary hover:underline sm:min-h-0 sm:text-left",
               )}
             >
               เพิ่มรายการด้วยตนเอง

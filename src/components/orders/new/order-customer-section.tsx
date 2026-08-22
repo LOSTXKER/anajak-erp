@@ -97,7 +97,7 @@ export function OrderCustomerSection({
         <p className="mt-1.5 text-xs text-muted">{lockedReason}</p>
       )}
       {hasCustomerContext && (
-        <div className="mt-2 space-y-1.5 rounded-xl bg-slate-100/70 px-3 py-2.5 dark:bg-white/[0.04]">
+        <div className="mt-2 space-y-1.5 rounded-lg bg-surface-muted px-3 py-2.5">
           {selectedCustomer && isCorporate && (
             <div className="flex flex-wrap items-center gap-1.5">
               <Badge variant="accent" size="sm">

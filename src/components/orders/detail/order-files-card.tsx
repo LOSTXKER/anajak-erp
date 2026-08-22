@@ -72,12 +72,12 @@ function FileThumb({
           alt={att.fileName}
           loading="lazy"
           decoding="async"
-          className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700"
+          className="h-28 w-28 rounded-lg border border-border object-cover transition-colors hover:border-border-strong"
         />
       ) : (
         <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-border bg-surface-muted transition-colors hover:border-border-strong hover:bg-interactive-hover">
-          <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
-          <span className="mt-1 text-2xs text-slate-400">
+          <ImageIcon className="h-8 w-8 text-muted" />
+          <span className="mt-1 text-2xs text-muted">
             {att.fileName.split(".").pop()?.toUpperCase()}
           </span>
         </div>
@@ -107,7 +107,7 @@ function FileThumb({
           {thumbInner}
         </a>
       )}
-      <p className="mt-0.5 max-w-[7rem] truncate text-2xs text-slate-400">{att.fileName}</p>
+      <p className="mt-0.5 max-w-[7rem] truncate text-2xs text-muted">{att.fileName}</p>
     </div>
   );
 }
@@ -235,10 +235,10 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
         {/* ===== ชั้น 1 — ไฟล์ดิบลูกค้า ===== */}
         <section>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <p className="text-sm font-medium text-secondary">
               {FILE_LAYERS.RAW.label}
             </p>
-            <span className="text-xs text-slate-400">({rawFiles.length})</span>
+            <span className="text-xs text-muted">({rawFiles.length})</span>
             <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setUploadingLayer(uploadingLayer === "RAW" ? null : "RAW")}
             >
               {uploadingLayer === "RAW" ? <X /> : <Upload />}
@@ -326,7 +326,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
           )}
 
           {rawFiles.length === 0 && uploadingLayer !== "RAW" && (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted">
               ยังไม่มีไฟล์จากลูกค้า — แนบแทนลูกค้าได้
             </p>
           )}
@@ -372,7 +372,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
         {/* ===== ชั้น 3 — ไฟล์พิมพ์จริง (ภายในเท่านั้น) ===== */}
         <section>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <p className="flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-secondary">
               <Printer className="h-4 w-4" />
               {FILE_LAYERS.PRINT.label}
             </p>
@@ -380,7 +380,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
               <Lock className="h-2.5 w-2.5" />
               ภายในเท่านั้น
             </Badge>
-            <span className="text-xs text-slate-400">({printFiles.length})</span>
+            <span className="text-xs text-muted">({printFiles.length})</span>
             {canAttachPrint && (
               <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setUploadingLayer(uploadingLayer === "PRINT" ? null : "PRINT")}
               >
@@ -405,7 +405,7 @@ export function OrderFilesCard({ orderId, attachments, userId, userRole }: Order
           )}
 
           {printFiles.length === 0 && uploadingLayer !== "PRINT" ? (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted">
               ยังไม่มีไฟล์พิมพ์ — gang sheet/ไฟล์ production เก็บที่นี่
             </p>
           ) : (

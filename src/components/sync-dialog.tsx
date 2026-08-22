@@ -218,7 +218,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
 
               {/* Last sync info */}
               {syncStatus?.lastSyncAt && (
-                <p className="mt-2 text-xs text-slate-400">
+                <p className="mt-2 text-xs text-muted">
                   Sync ล่าสุด: {formatDateTime(syncStatus.lastSyncAt)}
                 </p>
               )}
@@ -283,12 +283,12 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
               {/* Progress bar */}
               {totalProducts > 0 && (
                 <div className="mt-4">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
+                  <div className="flex items-center justify-between text-xs text-muted">
                     <span>{progressPct}%</span>
                     <span>{elapsed} วินาที</span>
                   </div>
                   <div
-                    className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+                    className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-border"
                     role="progressbar"
                     aria-label="ความคืบหน้าการ Sync"
                     aria-valuemin={0}
@@ -306,13 +306,13 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
               {/* Live running counters */}
               {(totals.productsCreated + totals.productsUpdated > 0 ||
                 totals.variantsCreated + totals.variantsUpdated > 0) && (
-                <div className="mt-3 flex items-center justify-center gap-3 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                <div className="mt-3 flex items-center justify-center gap-3 text-xs tabular-nums text-muted">
                   <span>
                     <Package className="mr-1 inline h-3 w-3" />
                     สินค้า{" "}
                     {totals.productsCreated + totals.productsUpdated}
                   </span>
-                  <span className="text-slate-300 dark:text-slate-600">|</span>
+                  <span className="text-divider">|</span>
                   <span>
                     <Layers className="mr-1 inline h-3 w-3" />
                     ตัวเลือก{" "}
@@ -320,7 +320,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   </span>
                   {totals.errors.length > 0 && (
                     <>
-                      <span className="text-slate-300 dark:text-slate-600">|</span>
+                      <span className="text-divider">|</span>
                       <span className="text-red-700 dark:text-red-300">
                         <AlertTriangle className="mr-1 inline h-3 w-3" />
                         {totals.errors.length}
@@ -332,7 +332,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
 
               {/* Live log — always visible */}
               <div
-                className={cn(TINT.neutral, "mt-4 max-h-44 overflow-y-auto rounded-xl border p-2 text-left")}
+                className={cn(TINT.neutral, "mt-4 max-h-44 overflow-y-auto rounded-lg border p-2 text-left")}
                 role="log"
                 aria-live="polite"
                 aria-relevant="additions text"
@@ -356,7 +356,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                           className={`flex items-center gap-2 py-1 text-xs ${
                             isLast
                               ? "font-medium text-blue-600 dark:text-blue-400"
-                              : "text-slate-500 dark:text-slate-400"
+                              : "text-muted"
                           }`}
                         >
                           {isLast ? (
@@ -364,7 +364,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                               className="inline-block h-2 w-2 flex-shrink-0 animate-pulse rounded-full bg-blue-400"
                             />
                           ) : (
-                            <span className="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-slate-300 dark:bg-slate-600" />
+                            <span className="inline-block h-2 w-2 flex-shrink-0 rounded-full bg-border-strong" />
                           )}
                           <span className="truncate">{entry.text}</span>
                         </div>
@@ -392,8 +392,8 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                         key={`log-${i}`}
                         className={`flex items-start gap-2 py-1 text-xs ${
                           isLast
-                            ? "font-medium text-slate-700 dark:text-slate-200"
-                            : "text-slate-500 dark:text-slate-400"
+                            ? "font-medium text-strong"
+                            : "text-muted"
                         }`}
                       >
                         {pe.status === "error" ? (
@@ -470,25 +470,21 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   icon={<Package className="h-4 w-4" />}
                   label="สินค้าใหม่"
                   value={totals.productsCreated}
-                  color="blue"
                 />
                 <StatCard
                   icon={<Package className="h-4 w-4" />}
                   label="สินค้าอัปเดต"
                   value={totals.productsUpdated}
-                  color="indigo"
                 />
                 <StatCard
                   icon={<Layers className="h-4 w-4" />}
                   label="ตัวเลือกใหม่"
                   value={totals.variantsCreated}
-                  color="purple"
                 />
                 <StatCard
                   icon={<Layers className="h-4 w-4" />}
                   label="ตัวเลือกอัปเดต"
                   value={totals.variantsUpdated}
-                  color="violet"
                 />
               </div>
 
@@ -517,7 +513,7 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
                   {showErrors && (
                     <div
                       id="sync-error-list"
-                      className={cn(TINT.warning, "mt-2 max-h-32 overflow-y-auto rounded-xl border p-3")}
+                      className={cn(TINT.warning, "mt-2 max-h-32 overflow-y-auto rounded-lg border p-3")}
                     >
                       {totals.errors.map((err, i) => (
                         <p
@@ -534,8 +530,8 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
 
               {/* No changes */}
               {totalChanges === 0 && !hasErrors && !isCancelled && (
-                <div className={cn(TINT.neutral, "mt-4 rounded-xl border p-3 text-center")}>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                <div className={cn(TINT.neutral, "mt-4 rounded-lg border p-3 text-center")}>
+                  <p className="text-sm text-muted">
                     ไม่มีการเปลี่ยนแปลง — สินค้าทั้งหมดตรงกับ Anajak Stock แล้ว
                   </p>
                 </div>
@@ -566,12 +562,12 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
 
               {/* Partial progress info */}
               {processedCount > 0 && (
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-muted">
                   สำเร็จ {processedCount} สินค้า ก่อนเกิดข้อผิดพลาด
                 </p>
               )}
 
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs text-muted">
                 ตรวจสอบการเชื่อมต่อ API ที่หน้าตั้งค่า
               </p>
 
@@ -605,38 +601,19 @@ function SyncDialogSession({ onClose }: Pick<SyncDialogProps, "onClose">) {
 
 // ─── Stat Card ─────────────────────────────────────────────
 
-const colorMap: Record<string, string> = {
-  blue: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
-  indigo:
-    "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
-  purple:
-    "bg-slate-50 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300",
-  violet:
-    "bg-slate-50 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300",
-};
-
-const iconColorMap: Record<string, string> = {
-  blue: "text-blue-500",
-  indigo: "text-blue-500",
-  purple: "text-muted",
-  violet: "text-muted",
-};
-
 function StatCard({
   icon,
   label,
   value,
-  color,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
-  color: string;
 }) {
   return (
-    <div className={`rounded-xl p-3 ${colorMap[color] || colorMap.blue}`}>
+    <div className="rounded-lg border border-border bg-surface-muted p-3 text-secondary">
       <div className="flex items-center gap-2">
-        <span className={iconColorMap[color] || iconColorMap.blue}>{icon}</span>
+        <span className="text-muted">{icon}</span>
         <span className="text-xs">{label}</span>
       </div>
       <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>

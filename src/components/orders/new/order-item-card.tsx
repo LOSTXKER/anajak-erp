@@ -476,7 +476,7 @@ export function OrderItemCard({
         </div>
         <div className="space-y-2.5 @2xl:hidden">
           {item.addons.map((addon, addonIdx) => (
-            <div key={addonIdx} className={cn("space-y-3 rounded-xl p-3", SUNK_PANEL)}>
+            <div key={addonIdx} className={cn("space-y-3 rounded-lg p-3", SUNK_PANEL)}>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                   ส่วนเสริม #{addonIdx + 1}

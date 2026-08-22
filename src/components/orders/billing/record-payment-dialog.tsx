@@ -141,7 +141,7 @@ export function RecordPaymentDialog({
             />
           </Field>
           {/* ลูกค้านิติบุคคลหักภาษี ณ ที่จ่าย 3% ค่าจ้างทำของ — โอนมา 97% + หนังสือรับรอง 3% */}
-          <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+          <div className="rounded-lg border border-border bg-surface-muted p-3">
             <div className="flex items-center justify-between gap-2">
               <Label htmlFor="billing-wht-enabled">
                 ลูกค้าหักภาษี ณ ที่จ่าย (นิติบุคคล)
@@ -182,14 +182,14 @@ export function RecordPaymentDialog({
                     />
                   </Field>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-muted">
                   ยังไม่ได้หนังสือรับรองก็เว้นว่างได้ — กรอกทีหลังได้ที่ทะเบียน 50ทวิ
                 </p>
                 <p
                   className={
                     settleExceeds
                       ? "text-xs font-medium text-red-600 dark:text-red-400"
-                      : "text-xs text-slate-500 dark:text-slate-400"
+                      : "text-xs text-muted"
                   }
                 >
                   เงินสด {formatCurrency(parseFloat(paymentAmount) || 0)} + หัก ณ ที่จ่าย{" "}
@@ -219,7 +219,7 @@ export function RecordPaymentDialog({
             />
           </Field>
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <legend className="text-sm font-medium text-secondary">
               สลิปโอน (ถ้ามี)
             </legend>
             {evidenceUrl ? (
@@ -229,7 +229,7 @@ export function RecordPaymentDialog({
                 <img
                   src={evidenceUrl}
                   alt="สลิปโอน"
-                  className="h-full w-full rounded-lg border border-slate-200 object-cover dark:border-slate-700"
+                  className="h-full w-full rounded-lg border border-border object-cover"
                 />
                 <ImageRemoveButton
                   onClick={() => setEvidenceUrl("")}

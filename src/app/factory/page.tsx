@@ -52,7 +52,7 @@ export default function FactoryBoardPage() {
   if (query.isError && !query.data) {
     return (
       <main className="flex h-dvh items-center justify-center overflow-hidden p-6">
-        <div className="max-w-xl rounded-2xl border border-red-500/40 bg-red-500/10 px-10 py-8 text-center">
+        <div className="max-w-xl rounded-lg border border-red-500/40 bg-red-500/10 px-10 py-8 text-center">
           <AlertTriangle className="mx-auto h-12 w-12 text-red-400" aria-hidden="true" />
           <h1 className="mt-4 text-3xl font-semibold text-strong">โหลดสถานะโรงงานไม่ได้</h1>
           <p className="mt-2 text-lg text-secondary">
@@ -272,7 +272,7 @@ function StagePanel({
   children: ReactNode;
 }) {
   return (
-    <article className="relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface">
+    <article className="relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-surface">
       <div className="border-b border-divider bg-surface-muted px-3 py-2.5">
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-xs font-semibold tabular-nums text-muted">
@@ -459,7 +459,7 @@ function BoardRail({ board }: { board: Board }) {
       aria-label="งานที่ต้องจัดการและงานพร้อมส่ง"
       className="grid h-36 shrink-0 grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] gap-2.5"
     >
-      <div className="min-w-0 rounded-xl border border-border bg-surface p-3">
+      <div className="min-w-0 rounded-lg border border-border bg-surface p-3">
         <div className="flex items-center gap-2">
           <AlertTriangle
             className={cn("h-4 w-4", board.alertTotal > 0 ? "text-yellow-300" : "text-green-400")}
@@ -491,7 +491,7 @@ function BoardRail({ board }: { board: Board }) {
         )}
       </div>
 
-      <div className="min-w-0 rounded-xl border border-green-500/35 bg-green-500/10 p-3">
+      <div className="min-w-0 rounded-lg border border-green-500/35 bg-green-500/10 p-3">
         <div className="flex items-center gap-2">
           <Truck className="h-4 w-4 text-green-400" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-green-200">ผลลัพธ์ · พร้อมส่ง</h2>
@@ -534,13 +534,13 @@ function MoreJobs({ count }: { count: number }) {
 function FactoryBoardLoading() {
   return (
     <main className="flex h-dvh min-h-[640px] flex-col gap-3 overflow-hidden p-4" aria-busy="true">
-      <div className="h-14 animate-pulse rounded-xl bg-surface" />
+      <div className="h-14 animate-pulse rounded-lg bg-surface" />
       <div className="grid min-h-0 flex-1 grid-cols-5 gap-2.5">
         {Array.from({ length: 5 }, (_, index) => (
-          <div key={index} className="animate-pulse rounded-xl border border-border bg-surface" />
+          <div key={index} className="animate-pulse rounded-lg border border-border bg-surface" />
         ))}
       </div>
-      <div className="h-36 animate-pulse rounded-xl bg-surface" />
+      <div className="h-36 animate-pulse rounded-lg bg-surface" />
       <span className="sr-only">กำลังโหลดสถานะการผลิต</span>
     </main>
   );

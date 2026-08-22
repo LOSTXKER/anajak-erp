@@ -1287,6 +1287,51 @@ check(
     console.log("✅ Production/Station panel หลักใช้มุม 8px และไม่มี decorative shadow");
   }
 
+  const factoryTvSource = readFileSync("src/app/factory/page.tsx", "utf8");
+  const operationalDialogSources = [
+    "src/components/orders/billing/create-invoice-dialog.tsx",
+    "src/components/orders/billing/record-payment-dialog.tsx",
+    "src/components/orders/delivery/create-delivery-dialog.tsx",
+    "src/components/orders/order-info-edit-dialog.tsx",
+    "src/components/production/create-production-dialog.tsx",
+    "src/components/production/step-outsource-dialog.tsx",
+    "src/components/goods-receipt/goods-receipt-dialog.tsx",
+    "src/components/sync-dialog.tsx",
+  ].map((path) => [path, readFileSync(path, "utf8")] as const);
+  const operationalDialogOffenders = operationalDialogSources.filter(
+    ([, source]) => /rounded-(?:xl|2xl|3xl)|shadow-sm/.test(source),
+  );
+  if (
+    /rounded-(?:xl|2xl|3xl)|shadow-sm/.test(factoryTvSource) ||
+    operationalDialogOffenders.length > 0
+  ) {
+    failed++;
+    console.log("❌ Factory TV และ dialog หลังบ้านต้องใช้มุม 8px โดยไม่คืน decorative shadow");
+    operationalDialogOffenders.forEach(([path]) => console.log(`   ${path}`));
+  } else {
+    console.log("✅ Factory TV และ dialog หลังบ้านใช้มุม 8px โดยไม่คืน decorative shadow");
+  }
+
+  const productPickerSource = readFileSync("src/components/product-picker.tsx", "utf8");
+  const orderFilesSource = readFileSync(
+    "src/components/orders/detail/order-files-card.tsx",
+    "utf8",
+  );
+  const dialogPrimitiveSource = readFileSync("src/components/ui/dialog.tsx", "utf8");
+  if (
+    !productPickerSource.includes("<FilterChip") ||
+    productPickerSource.includes("INTERACTIVE_SELECTED") ||
+    /rounded-xl/.test(productPickerSource) ||
+    /hover:shadow-md/.test(orderFilesSource) ||
+    !dialogPrimitiveSource.includes("returnFocusElement") ||
+    !dialogPrimitiveSource.includes("onCloseAutoFocus={handleCloseAutoFocus}")
+  ) {
+    failed++;
+    console.log("❌ picker/filter/file/dialog interaction ต้อง minimal ไม่มี hover shadow และคืน focus");
+  } else {
+    console.log("✅ picker/filter/file/dialog interaction minimal ไม่มี hover shadow และคืน focus");
+  }
+
   // Primitive สถานะคง divider ภายใน; หน้า orders เป็นผู้ครอบ panel ตาม Vercel Panel System
   const ordersStatusSource = readFileSync(
     "src/components/ui/flow-filter-bar.tsx",

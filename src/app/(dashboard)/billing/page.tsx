@@ -233,7 +233,7 @@ function BillingPageContent() {
                 <article key={inv.id} className="card-surface rounded-lg p-4">
                   <Link
                     href={moneyHref}
-                    className={cn("block rounded-xl", FOCUS_BUTTON)}
+                    className={cn("block rounded-lg", FOCUS_BUTTON)}
                     aria-label={`เปิดออเดอร์ ${inv.order.orderNumber} ที่แท็บเงินและบิล`}
                   >
                     <div className="flex items-start justify-between gap-3">

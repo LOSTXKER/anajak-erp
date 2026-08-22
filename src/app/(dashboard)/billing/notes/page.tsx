@@ -418,7 +418,7 @@ function BillingNotesPageContent() {
                 ) : eligible.isLoading ? (
                   <Skeleton className="h-16 w-full" />
                 ) : eligibleList.length === 0 ? (
-                  <p className={cn(DASHED, "rounded-xl p-3 text-sm text-muted")}>
+                  <p className={cn(DASHED, "rounded-lg p-3 text-sm text-muted")}>
                     ลูกค้ารายนี้ไม่มีใบแจ้งหนี้ค้างชำระที่วางบิลได้
                   </p>
                 ) : (

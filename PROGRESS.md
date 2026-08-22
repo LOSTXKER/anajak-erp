@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ VERCEL EDGE SURFACES — จอโรงงานและ dialog หลังบ้าน 2026-08-23**
+> Factory TV ทั้ง stage/rail/loading/error ใช้มุม 8px ไม่มี decorative shadow ตรงกับ Production/Station แล้ว โดยคง dark-first, 5 work center, refresh 30 วินาที และ no-money/read-only เดิม
+>
+> dialog การเงิน/ส่งของ/ตรวจรับ/ผลิต/ร้านนอก/แก้ข้อมูล/Sync, Product Picker และไฟล์แนบเปลี่ยน panel ย่อยจากมุม 12px/สี slate เขียนตรงเป็น semantic surface/divider/text/TINT ชุดกลาง · Product Picker ถอดปุ่มกรอง pill สีออกเป็นข้อความ+เส้นใต้ · attachment hover ไม่ยกเงา และ Sync summary กลับเป็น neutral โดย primary action ยังใช้น้ำเงินเดิม
+>
+> **keyboard defect ที่พบระหว่าง QA:** dialog แบบ conditional mount ปิดด้วย Escape แล้ว focus เคยหล่นไป `<body>`; แก้ที่ `DialogContent` กลางให้คืน control ที่เปิด และยืนยันจอจริงว่าปิด “สร้างบิล” แล้ว focus กลับปุ่ม “สร้างบิล”
+>
+> **หลักฐานจอจริง:** Factory TV 1440×900 + 1024×768 Dark, dialog สร้างบิล 1440 Light + 390×844 Dark และ Product Picker 1440 + 390 Light — panel หลุด 12–16px/decorative shadow/horizontal overflow = 0; filter โปร่ง radius 0 และ mobile target 44px · Escape/focus return ผ่าน
+>
+> **ด่านส่งมอบ:** `verify:ui`, typecheck, lint, full unit, production build และ `git diff --check` ผ่าน · Impeccable detector รันหนึ่งรอบพบเฉพาะ false positive จาก comment หน้า image element ที่มี `src`/`alt` จริงและแก้คำอธิบายไม่ให้ rule อ่านผิด
+>
+> **ขอบเขต:** presentation/a11y/test/docs เท่านั้น ไม่มี dependency, schema, API, query, mutation, permission, validation, status transition หรือ business flow เปลี่ยน · public/print ยังรอเบสตัดสินใจแยก · รักษา `scripts/verify-artwork.ts`, `.cursor/` และ `public/` ที่ค้างอยู่ไว้นอก commit
+
 > **✅ VERCEL CONSISTENCY — เก็บส่วนที่ยังพูดคนละภาษา 2026-08-23**
 > primitive กลาง `Card`, `StatCard`, `Alert`, `ContextPanel`, `AddCard`, list/pagination และ loading ใช้มุม 8px, border/divider semantic และไม่มีเงาตกแต่งชุดเดียวกันแล้ว · `Card` ล็อกระยะในหลักที่ 20px · mobile record, ฟอร์ม และข้อความเตือนที่เคยค้างมุม 12–16px ถูกดึงกลับเข้าระบบโดยไม่ทำ card ซ้อน
 >

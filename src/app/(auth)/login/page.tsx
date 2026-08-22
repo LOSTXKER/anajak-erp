@@ -49,7 +49,7 @@ export default function LoginPage() {
     <div className="flex min-h-dvh items-center justify-center bg-bg px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 text-white">
             <Printer className="h-6 w-6" />
           </div>
           <CardTitle className="text-xl">Anajak Print</CardTitle>

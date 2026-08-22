@@ -679,6 +679,16 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] **VC4 responsive + states** — ตรวจ desktop 1440, tablet 640/1024 และ mobile 390 ทั้ง Light/Dark; loading/empty/error/disabled/hover/focus ไม่กระโดดข้ามภาษา และไม่มี overflow/card ซ้อน ✅ 2026-08-23
 - [x] **VC5 verify + handoff** — browser representative ครบ dashboard/orders/order detail/create/production/detail/billing/settings/stock/products/detail/quotations/detail/outsource/Station · typecheck/lint/unit/verify:ui/detector/build ผ่าน อัปเดต SPEC/DESIGN/PROGRESS/surface brief และ commit แยกก้อน ✅ 2026-08-23
 
+#### ใบงาน VERCEL-EDGE-SURFACES — จอโรงงานและ dialog หลังบ้าน (เบสสั่งต่อ 2026-08-23)
+
+> audit รอบสองพบ visual island ที่ยังไม่อยู่ในเส้นทางหน้าหลัก: Factory TV, dialog การเงิน/ส่งของ/ตรวจรับ/ผลิต, picker และ sync state บางชุดยังใช้มุม 12–16px หรือสี slate เขียนตรง · แก้เฉพาะ presentation ของหลังบ้านและจอโรงงาน ไม่เปลี่ยน query, mutation, permission, validation, status transition, payload/no-money หรือ public/print ซึ่งรอเบสตัดสินใจแยก
+
+- [x] **VE1 Factory TV geometry** — stage, rail, loading และ error ใช้มุม 8px/semantic border เดียวกับ Production/Station โดยคง dark-first, 5 work center, 30-second refresh และ read-only/no-money ✅ 2026-08-23
+- [x] **VE2 operational dialogs** — create invoice/payment/delivery/production/outsource, goods receipt, order info และ sync state ใช้ `TINT`/surface/text/divider token กลาง; panel ย่อย 8px ส่วน dialog/sheet ที่ลอยจริงคง overlay elevation ✅ 2026-08-23
+- [x] **VE3 picker + file interaction** — product picker/add-product/file upload และ attachment hover ใช้ semantic state, 8px และไม่สร้าง decorative shadow; ปุ่มลบวงกลม/overlay control คง elevation ได้เพื่อแยกจากรูป ✅ 2026-08-23
+- [x] **VE4 responsive + states** — ตรวจ Factory TV, billing create dialog และ order form picker เป็น representative ของจอแขวน/overlay/form ที่ desktop-mobile ทั้ง Light/Dark พร้อม Escape/focus return และไม่มี overflow; dialog ผลิตชุดเดียวกันตรวจ source/guard ครบ ✅ 2026-08-23
+- [x] **VE5 verify + handoff** — typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน อัปเดต DESIGN/PROGRESS และ commit แยกก้อน โดยไม่รวม public/print หรือไฟล์ค้างของเบส ✅ 2026-08-23
+
 #### ใบงานต้นแบบ ERP Command Center — ออกแบบใหม่ทั้งระบบแบบไม่ตีกรอบ (เบสสั่ง 2026-08-14)
 
 > พิสูจน์ “ภาษาใหม่ทั้งระบบ” จากของจริงก่อนรื้อหน้าหลัก: แนว **สายการผลิตบนกริด** (Swiss industrial manual + ใบสั่งงานโรงงาน) และน้ำเงิน Anajak `#3973b2` · เว็บอนาคตเป็นอีกช่องทางรับออเดอร์เข้าสู่วงจรเดียว ไม่สร้างหลังบ้าน POD แยก

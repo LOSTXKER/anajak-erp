@@ -119,33 +119,33 @@ export function OrderBillingSection({
         </CardHeader>
         <CardContent>
           {/* Summary */}
-          <div className="mb-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-4 dark:bg-slate-800/50">
+          <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-surface-muted p-3 sm:grid-cols-4">
             <div className="text-center">
-              <p className="text-xs text-slate-500 dark:text-slate-400">ยอดรวม</p>
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+              <p className="text-xs text-muted">ยอดรวม</p>
+              <p className="text-sm font-semibold text-strong">
                 {formatCurrency(totalAmount)}
               </p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-slate-500 dark:text-slate-400">วางบิลแล้ว</p>
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+              <p className="text-xs text-muted">วางบิลแล้ว</p>
+              <p className="text-sm font-semibold text-strong">
                 {formatCurrency(totalInvoiced)}
               </p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-slate-500 dark:text-slate-400">ชำระแล้ว</p>
+              <p className="text-xs text-muted">ชำระแล้ว</p>
               <p className="text-sm font-semibold text-green-600 dark:text-green-400">
                 {formatCurrency(totalPaid)}
               </p>
             </div>
             {/* เลขที่คนหน้างานถามบ่อยสุด "เหลือเก็บอีกเท่าไร" — แดงเมื่อยังค้าง (UX4) */}
             <div className="text-center">
-              <p className="text-xs text-slate-500 dark:text-slate-400">ค้างชำระ</p>
+              <p className="text-xs text-muted">ค้างชำระ</p>
               <p
                 className={`text-sm font-semibold tabular-nums ${
                   totalOutstanding > 0
                     ? "text-red-600 dark:text-red-400"
-                    : "text-slate-900 dark:text-white"
+                    : "text-strong"
                 }`}
               >
                 {formatCurrency(totalOutstanding)}
@@ -179,7 +179,7 @@ export function OrderBillingSection({
               กำลังโหลดข้อมูลบิล
             </div>
           ) : !invoices.data || invoices.data.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-muted">
               ยังไม่มีบิล
             </p>
           ) : (
@@ -196,13 +196,13 @@ export function OrderBillingSection({
                 return (
                   <div
                     key={inv.id}
-                    className="rounded-lg border border-slate-200 dark:border-slate-700"
+                    className="rounded-lg border border-border"
                   >
                     <div className="flex items-stretch gap-1.5 p-1">
                       <div className="flex min-h-11 min-w-0 flex-1 flex-col items-stretch justify-between gap-2 rounded-lg px-2 py-2 text-left sm:flex-row sm:items-center">
                         <div className="min-w-0 space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-medium text-slate-900 dark:text-white">
+                            <span className="text-sm font-medium text-strong">
                               {inv.invoiceNumber}
                             </span>
                             <Badge variant="secondary">
@@ -230,7 +230,7 @@ export function OrderBillingSection({
                           </p>
                         </div>
                         <div className="flex items-center justify-between gap-2 sm:justify-end">
-                          <span className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                          <span className="text-sm font-semibold tabular-nums text-strong">
                             {formatCurrency(inv.totalAmount)}
                           </span>
                         </div>
@@ -241,7 +241,7 @@ export function OrderBillingSection({
                         rel="noreferrer"
                         aria-label={`พิมพ์หรือเปิด PDF ${inv.invoiceNumber}`}
                         title="พิมพ์ / PDF"
-                        className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-interactive-hover hover:text-strong", FOCUS_BUTTON, "sm:h-9 sm:w-9 dark:hover:text-strong")}
+                        className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-interactive-hover hover:text-strong", FOCUS_BUTTON, "sm:h-9 sm:w-9")}
                       >
                         <Printer className="h-3.5 w-3.5" />
                       </a>
@@ -249,7 +249,7 @@ export function OrderBillingSection({
 
                       <div
                         id={`invoice-details-${inv.id}`}
-                        className="border-t border-slate-100 p-3 dark:border-slate-700"
+                        className="border-t border-divider p-3"
                       >
                         {/* Invoice details */}
                         <div className="mb-3 grid grid-cols-3 gap-2 text-xs">
@@ -280,7 +280,7 @@ export function OrderBillingSection({
                         {/* Payments */}
                         {inv.payments && inv.payments.length > 0 && (
                           <div className="mb-3 space-y-1.5">
-                            <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                            <p className="text-xs font-medium text-secondary">
                               การชำระเงิน
                             </p>
                             {inv.payments.map((p) => (
@@ -290,11 +290,11 @@ export function OrderBillingSection({
                               >
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                                   <DollarSign className="h-3 w-3 text-green-600" />
-                                  <span className="text-slate-700 dark:text-slate-300">
+                                  <span className="text-secondary">
                                     {PAYMENT_METHOD_LABELS[p.method] || p.method}
                                   </span>
                                   {p.reference && (
-                                    <span className="text-slate-400">
+                                    <span className="text-muted">
                                       #{p.reference}
                                     </span>
                                   )}

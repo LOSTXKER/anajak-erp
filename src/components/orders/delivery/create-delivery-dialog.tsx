@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
-import { FOCUS_FIELD_INVALID } from "@/components/ui/tokens";
+import { FOCUS_FIELD_INVALID, TINT } from "@/components/ui/tokens";
 import { SHIPPING_METHODS } from "@/lib/shipping-methods";
 import {
   fillFromCustomer,
@@ -282,31 +282,31 @@ export function CreateDeliveryDialog({
           {/* รายการรอบนี้ (นับยืนยัน) — ออเดอร์ไม่มีรายการไซส์ → ซ่อน ทำงานแบบเดิม */}
           {packRows.length > 0 && (
             <fieldset>
-              <legend className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              <legend className="mb-1 block text-sm font-medium text-secondary">
                 รายการรอบนี้ (นับยืนยัน)
               </legend>
               {totalRemaining === 0 ? (
-                <p className="rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950/40 dark:text-green-400">
+                <p className={cn(TINT.success, "rounded-lg border px-3 py-2 text-sm")}>
                   ของครบทุกใบส่งแล้ว
                 </p>
               ) : (
-                <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="overflow-hidden rounded-lg border border-border">
                   {packRows.map((r) => (
                     <div
                       key={r.key}
-                      className="flex items-center gap-2 border-b border-slate-100 px-3 py-2 dark:border-slate-800"
+                      className="flex items-center gap-2 border-b border-divider px-3 py-2"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm text-slate-900 dark:text-white">
+                        <p className="truncate text-sm text-strong">
                           {r.description}
                           {(r.size || r.color) && (
-                            <span className="text-slate-500 dark:text-slate-400">
+                            <span className="text-muted">
                               {" — "}
                               {[r.size, r.color].filter(Boolean).join(" / ")}
                             </span>
                           )}
                         </p>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-muted">
                           สั่ง {r.ordered} · ส่งแล้ว {r.packed}
                         </p>
                       </div>
@@ -331,11 +331,11 @@ export function CreateDeliveryDialog({
                       />
                     </div>
                   ))}
-                  <div className="flex items-center justify-between bg-slate-50 px-3 py-2 dark:bg-slate-800/50">
-                    <span className="text-sm font-medium text-slate-900 dark:text-white">
+                  <div className="flex items-center justify-between bg-surface-muted px-3 py-2">
+                    <span className="text-sm font-medium text-strong">
                       รวมรอบนี้ {packTotal} ตัว
                     </span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-muted">
                       เหลือทั้งหมด {totalRemaining} ตัว
                     </span>
                   </div>
@@ -360,7 +360,7 @@ export function CreateDeliveryDialog({
               ที่อยู่ผู้ติดต่อ = ที่อยู่สำรองบนใบกำกับภาษี ห้ามให้ที่อยู่ปลายทางรอบเดียวมาทับ */}
           <label
             className={cn(
-              "flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300",
+              "flex items-start gap-2 text-sm text-secondary",
               canSaveAsCustomerAddress ? "cursor-pointer" : "cursor-not-allowed opacity-60",
             )}
           >
@@ -377,7 +377,7 @@ export function CreateDeliveryDialog({
                   ลูกค้ารายนี้ยังไม่มีที่อยู่ในระบบ — เติมไว้แล้วใช้บนเอกสารได้เลย
                 </span>
               ) : (
-                <span className="block text-xs text-slate-400">
+                <span className="block text-xs text-muted">
                   ลูกค้ามีที่อยู่ผู้ติดต่ออยู่แล้ว — ที่อยู่นี้เป็นของใบส่งรอบนี้เท่านั้น
                   ถ้าต้องการเปลี่ยนที่อยู่ประจำ ให้แก้ที่หน้าลูกค้า
                 </span>

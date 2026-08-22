@@ -236,18 +236,18 @@ function ReceiptForm({
 
         <div className="space-y-3">
           {lines.length === 0 && (
-            <p className="py-3 text-center text-sm text-slate-400">
+            <p className="py-3 text-center text-sm text-muted">
               ไม่มีรายการให้{isReturn ? "คืน" : "ตรวจรับ"}
             </p>
           )}
           {lines.map((l, idx) => (
             <div
               key={`${l.orderItemProductId ?? "x"}-${l.size ?? ""}-${l.color ?? ""}-${idx}`}
-              className="space-y-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700"
+              className="space-y-2 rounded-lg border border-border p-3"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                  <p className="truncate text-sm font-medium text-strong">
                     {l.description}
                     {l.size && (
                       <span className="ml-1.5 text-muted">
@@ -256,7 +256,7 @@ function ReceiptForm({
                       </span>
                     )}
                   </p>
-                  <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  <p className="text-xs tabular-nums text-muted">
                     {isReturn ? `รับมาแล้วสุทธิ ${l.qtyExpected}` : `ที่คาด ${l.qtyExpected}`}
                   </p>
                 </div>
@@ -318,7 +318,7 @@ function ReceiptForm({
               <div className="flex flex-wrap gap-2">
                 {photoUrls.map((url) => (
                   <div key={url} className="group relative h-16 w-16">
-                    {/* <img> ธรรมดา — รูปเสิร์ฟผ่าน /api/files (เช็ค session)
+                    {/* ใช้ image element ตรง — รูปเสิร์ฟผ่าน /api/files (เช็ค session)
                         next/image optimizer fetch ฝั่ง server ไม่มี cookie จะ 401 */}
                     <img
                       src={url}
