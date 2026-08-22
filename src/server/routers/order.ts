@@ -546,6 +546,19 @@ export const orderRouter = router({
                 chatUrl: true,
               },
             },
+            // หน้า registry ใช้เฉพาะรูปม็อกอัพจริงล่าสุด ไม่มี approval token และไม่ถอยไปใช้รูปลาย
+            designs: {
+              orderBy: { versionNumber: "desc" },
+              take: 1,
+              select: {
+                fileUrl: true,
+                thumbnailUrl: true,
+                files: {
+                  orderBy: { sortOrder: "asc" },
+                  select: { fileUrl: true, thumbnailUrl: true, position: true },
+                },
+              },
+            },
             _count: { select: { items: true, designs: true, deliveries: true } },
             invoices: {
               where: { isVoided: false },

@@ -32,7 +32,6 @@ import {
 } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
-import { EntityMark } from "@/components/ui/entity-mark";
 
 // ภาษาสีสถานะการชำระใช้ชุดกลางที่เดียว (UX4.2) — ห้ามประกาศ local ซ้ำ
 // ป้าย+สีจะได้ตรงกับแท็บเงินในออเดอร์ที่ทีมเปิดคู่กันทุกวัน
@@ -238,16 +237,13 @@ function BillingPageContent() {
                     aria-label={`เปิดออเดอร์ ${inv.order.orderNumber} ที่แท็บเงินและบิล`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <EntityMark label={inv.invoiceNumber} icon={FileText} fallback="icon" tone="finance" />
-                        <div className="min-w-0">
-                          <p className="font-semibold text-blue-700 dark:text-blue-300">
-                            {inv.invoiceNumber}
-                          </p>
-                          <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
-                            {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}
-                          </p>
-                        </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-blue-700 dark:text-blue-300">
+                          {inv.invoiceNumber}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                          {INVOICE_TYPE_LABELS[inv.type] ?? inv.type}
+                        </p>
                       </div>
                       <StatusLabel
                         label={status.label}
@@ -328,9 +324,8 @@ function BillingPageContent() {
                 return (
                   <DataTable.Row key={inv.id}>
                     <DataTable.Td className="p-0 font-medium text-slate-900 dark:text-white">
-                      <Link href={moneyHref} className="flex items-center gap-3 px-5 py-3 text-blue-700 dark:text-blue-300">
-                        <EntityMark label={inv.invoiceNumber} icon={FileText} fallback="icon" size="sm" tone="finance" />
-                        <span>{inv.invoiceNumber}</span>
+                      <Link href={moneyHref} className="block px-5 py-3 text-blue-700 dark:text-blue-300">
+                        {inv.invoiceNumber}
                       </Link>
                     </DataTable.Td>
                     <DataTable.Td className="p-0 text-xs text-slate-500 dark:text-slate-400">

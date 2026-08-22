@@ -12,13 +12,15 @@ import { HelpTip } from "./ui/help-tip";
 import { visualToneForLabel } from "@/lib/visual-tone";
 
 describe("system visual identity", () => {
-  it("วาด module marker โดย h1 ยังมีข้อความหัวข้อชุดเดียว", () => {
+  it("วาด module marker แบบเส้นเรียบโดย h1 ยังมีข้อความหัวข้อชุดเดียว", () => {
     const html = renderToStaticMarkup(createElement(PageHeader, { title: "ควบคุมการผลิต" }));
     expect(html).toContain('data-page-identity="ควบคุมการผลิต"');
     expect(html).toContain("page-module-mark");
     expect(html.match(/<h1/g)).toHaveLength(1);
     expect(html).toContain("ควบคุมการผลิต");
-    expect(html).toContain("bg-module-production-solid");
+    expect(html).toContain("text-module-production-text");
+    expect(html).not.toContain("bg-module-production-solid");
+    expect(html).not.toContain("shadow-sm");
   });
 
   it("ผูกสีตามบริบทโดยไม่เปลี่ยนน้ำเงินของงานขาย", () => {

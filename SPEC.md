@@ -11,7 +11,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **ด่าน framework ไม่พึ่งไฟล์ generated เก่า** — `typecheck` รัน `next typegen` ก่อน TypeScript · lint ใช้ flat config ของ Next 16 โดยตรง · Turbopack เป็นค่าเริ่มต้นและไม่เปิด Cache Components/React Compiler เพิ่ม
 
 ## 🧭 UI หลักแบบ minimal (เลื่อน V2 ขึ้นเป็นระบบจริง 2026-08-12)
-- [x] **ทุก surface มี visual identity ที่สแกนได้** — หน้ามาตรฐานมี module marker ที่มีชื่อเข้าถึงได้, รายการใช้รูป/initials/icon เฉพาะช่องตัวตน, section สำคัญมีสัญลักษณ์ตามความหมาย และไม่มีศัพท์คำสั่งพัฒนาหลุดไปหาผู้ใช้
+- [x] **ทุก surface มี visual identity ที่สแกนได้โดยไม่รก** — หน้ามาตรฐานมี module marker แบบเส้นล้วนที่มีชื่อเข้าถึงได้และไม่มีพื้น/กรอบ/เงา; registry ใช้ข้อความเป็นหลักและไม่สร้าง object icon/initials ซ้ำ ส่วนรายการออเดอร์แสดงเฉพาะม็อกอัพจริงล่าสุดหรือเว้นว่างเมื่อไม่มีรูป; section สำคัญมีสัญลักษณ์ตามความหมาย และไม่มีศัพท์คำสั่งพัฒนาหลุดไปหาผู้ใช้
 - [x] **ความเด่นไม่ทำลายงาน** — โครงสร้าง ขนาด ภาพงานจริง และ object identity เป็นตัวนำ; น้ำเงิน Anajak ใช้กับ primary/selected/focus, สีสถานะใช้เฉพาะความหมายจริง, หนึ่งหน้ามี primary action เดียว และ Station/TV ไม่มีเงิน
 - [x] **public และ print เป็นครอบครัวเดียวกัน** — public token ทั้ง 5 surface มี masthead/customer context โดยรักษา blind-ship/token/action เดิม; เอกสารทั้ง 5 ชนิดมี document marker/metadata hierarchy กลางและยัง A4, light-only, grayscale-safe, ข้อความกฎหมาย/ภาษี/ยอด/ลำดับหน้าเดิม
 - [x] **สีรองช่วยบอกบริบทโดยไม่แย่ง primary** — sales ใช้น้ำเงินเดิม, production teal, product saffron, finance violet และ system graphite ผ่าน semantic token กลางทั้ง Light/Dark; selected/focus/CTA ยังเป็น Anajak Blue และ status/print ไม่ถูกเปลี่ยนความหมาย

@@ -108,7 +108,7 @@ export function PageHeader({
         ) : null;
       })()}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3 sm:min-w-64 sm:flex-1">
+        <div className="flex min-w-0 items-start gap-2 sm:min-w-64 sm:flex-1">
           {back && (
             <Button asChild variant="ghost" size="icon" className="mt-0.5 shrink-0">
               <Link href={back.href} aria-label={back.label}>
@@ -118,9 +118,8 @@ export function PageHeader({
           )}
           <span
             className={cn(
-              "page-module-mark flex shrink-0 items-center justify-center shadow-sm",
-              VISUAL_TONE_CLASSES[resolvedTone].solid,
-              back ? "h-10 w-10 rounded-xl" : "h-12 w-12 rounded-[14px]",
+              "page-module-mark mt-1 flex h-6 w-6 shrink-0 items-center justify-center",
+              VISUAL_TONE_CLASSES[resolvedTone].text,
             )}
             role={eyebrow ? "img" : undefined}
             aria-label={eyebrow}
@@ -130,11 +129,11 @@ export function PageHeader({
               <>{/* component จาก caller เป็น contract คงที่ ไม่ได้สร้างจาก resolver ระหว่าง render */}
                 {(() => {
                   const Icon = icon;
-                  return <Icon className={back ? "h-5 w-5" : "h-5.5 w-5.5"} strokeWidth={1.8} />;
+                  return <Icon className="h-5 w-5" strokeWidth={1.8} />;
                 })()}
               </>
             ) : (
-              <PageIdentityIcon label={identityLabel} className={back ? "h-5 w-5" : "h-5.5 w-5.5"} strokeWidth={1.8} />
+              <PageIdentityIcon label={identityLabel} className="h-5 w-5" strokeWidth={1.8} />
             )}
           </span>
           <div className="min-w-0 space-y-1 pt-0.5">

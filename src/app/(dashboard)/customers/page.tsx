@@ -30,10 +30,9 @@ import {
   type CustomerEditForm,
 } from "@/lib/customer-form";
 import { PageHeader } from "@/components/page-header";
-import { Plus, Users, UserPlus, Crown, UserX, Building2, ChevronRight } from "lucide-react";
+import { Plus, Users, UserPlus, Crown, UserX, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
-import { EntityMark } from "@/components/ui/entity-mark";
 
 const segmentConfig: Record<string, { label: string; variant: "default" | "accent" | "success" | "warning" | "destructive" }> = {
   VIP: { label: "VIP", variant: "success" },
@@ -239,28 +238,23 @@ function CustomersPageContent() {
                 return (
                   <DataTable.Row key={customer.id}>
                     <DataTable.Td>
-                      <div className="flex items-center gap-3">
-                        <EntityMark label={customer.company || customer.name} shape="avatar" size="sm" tone="brand" />
-                        <div className="min-w-0">
-                          <Link
-                            href={`/customers/${customer.id}`}
-                            className="font-medium text-blue-600 hover:underline dark:text-blue-400"
-                          >
-                            {customer.name}
-                          </Link>
-                          {customer.company && (
-                            <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                              {customer.company}
-                            </p>
-                          )}
-                        </div>
+                      <div className="min-w-0">
+                        <Link
+                          href={`/customers/${customer.id}`}
+                          className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {customer.name}
+                        </Link>
+                        {customer.company && (
+                          <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                            {customer.company}
+                          </p>
+                        )}
                       </div>
                     </DataTable.Td>
                     <DataTable.Td>
                       {customer.customerType === "CORPORATE" ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-                          <Building2 className="h-3 w-3" /> นิติบุคคล
-                        </span>
+                        <span className="text-xs text-slate-600 dark:text-slate-400">นิติบุคคล</span>
                       ) : (
                         <span className="text-xs text-slate-500 dark:text-slate-400">บุคคล</span>
                       )}
@@ -303,9 +297,7 @@ function CustomersPageContent() {
                     aria-label={`เปิดข้อมูลลูกค้า ${customer.name}`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <EntityMark label={customer.company || customer.name} shape="avatar" tone="brand" />
-                        <div className="min-w-0">
+                      <div className="min-w-0">
                         <p className="font-semibold text-strong">
                           {customer.company || customer.name}
                         </p>
@@ -314,16 +306,12 @@ function CustomersPageContent() {
                             ผู้ติดต่อ {customer.name}
                           </p>
                         )}
-                        </div>
                       </div>
                       <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-slate-400" />
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Badge variant={seg.variant}>{seg.label}</Badge>
-                      <span className="inline-flex items-center gap-1.5 text-xs text-muted">
-                        {customer.customerType === "CORPORATE" && (
-                          <Building2 aria-hidden="true" className="h-3.5 w-3.5" />
-                        )}
+                      <span className="text-xs text-muted">
                         {customer.customerType === "CORPORATE" ? "นิติบุคคล" : "บุคคล"}
                       </span>
                     </div>

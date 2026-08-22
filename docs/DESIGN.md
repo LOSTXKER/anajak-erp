@@ -2,9 +2,9 @@
 
 ## Visual identity contract (2026-08-22)
 
-- ทุก `PageHeader` มาตรฐานมี module marker จาก Lucide และ `VisualTone` กลาง; `<h1>` ต้องมีข้อความจริงเพียงชุดเดียวและ marker เป็นของตกแต่งที่ `aria-hidden` พร้อมชื่อหน้าเดิมเป็น accessible name
+- ทุก `PageHeader` มาตรฐานมี module marker จาก Lucide และ `VisualTone` กลางแบบเส้นล้วนขนาดเล็ก โดยไม่มีพื้น กรอบ หรือเงา; `<h1>` ต้องมีข้อความจริงเพียงชุดเดียวและ marker เป็นของตกแต่งที่ `aria-hidden` พร้อมชื่อหน้าเดิมเป็น accessible name
 - ความแตกต่างของโมดูลมาจาก icon, scale, composition, ภาพงานจริง และสีบริบทขนาดเล็ก: Sales/Brand = Anajak Blue, Production = teal, Product = saffron, Finance = violet, System = graphite; primary, selected, link และ focus ยังคง Anajak Blue
-- `EntityMark` ใช้เฉพาะสิ่งที่มีตัวตนและเรียง fallback เป็น **ภาพจริง → initials → icon**; ช่องจำนวน เงิน วันที่ และสถานะไม่ต้องมี icon
+- registry table/list ใช้ข้อความเป็นหลักและไม่วาด object icon หรือ initials ซ้ำกับชื่อ; รายการออเดอร์ใช้เฉพาะม็อกอัพจริงล่าสุด และเว้นว่างเมื่อไม่มีรูปโดยไม่ถอยไปใช้ artwork, initials หรือ placeholder icon; ช่องจำนวน เงิน วันที่ และสถานะไม่ต้องมี icon
 - `PageHeader`/`PageShell`/`Section` ไม่มี `description`; ใช้ `meta` กับข้อเท็จจริงสั้น และ `help` เมื่อเป็นความรู้เสริมที่ต้องย้อนดูจริงเท่านั้น
 - `HelpTip` ใช้ Radix Popover เปิดด้วย click/tap/Enter/Space ปิดด้วย Escape/คลิกนอกและคืน focus; เนื้อหาไม่เกิน 2–3 ประโยค ส่วน error, validation, permission denial, blocker, กฎหมาย และผลกระทบจาก action ต้องเห็นตรงหน้า
 - `ContextPanel` ใช้กับคำอธิบายสำคัญที่ต้องเห็นค้างและไม่มี live-region role; error/warning/success ที่เกิดตาม state ยังใช้ `Alert`/`QueryError` เดิม

@@ -39,7 +39,6 @@ import {
   CONTROL_H_SM,
 } from "../src/components/ui/control-size";
 import { PageHeader } from "../src/components/page-header";
-import { EntityMark } from "../src/components/ui/entity-mark";
 import { ContextPanel } from "../src/components/ui/context-panel";
 import { HelpTip } from "../src/components/ui/help-tip";
 import { VISUAL_TONE_CLASSES } from "../src/lib/visual-tone";
@@ -128,10 +127,7 @@ const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
 
 {
-  const headerHtml = renderToStaticMarkup(<PageHeader title="ออเดอร์" />);
-  const entityHtml = renderToStaticMarkup(
-    <EntityMark label="ORD-2608-0015" icon={Factory} fallback="icon" />,
-  );
+  const headerHtml = renderToStaticMarkup(<PageHeader title="ควบคุมการผลิต" />);
   const contextHtml = renderToStaticMarkup(
     <ContextPanel title="ข้อมูลประกอบ">ข้อความคงที่</ContextPanel>,
   );
@@ -140,16 +136,62 @@ const hSm = CONTROL_H_SM.split(" ");
   );
   if (
     !headerHtml.includes("page-module-mark") ||
+    !headerHtml.includes("text-module-production-text") ||
+    headerHtml.includes("bg-module-production-solid") ||
+    headerHtml.includes("shadow-sm") ||
     !headerHtml.includes("data-page-identity") ||
-    !entityHtml.includes('data-entity-mark="icon"') ||
     contextHtml.includes('role="alert"') ||
     helpHtml.includes('role="alert"') ||
     !helpHtml.includes("ดูคำอธิบาย: อายุหนี้")
   ) {
     failed++;
-    console.log("❌ visual identity กลางต้องมี marker จริงและ ContextPanel ห้ามปลอมเป็น alert");
+    console.log("❌ visual identity กลางต้องใช้ไอคอนเส้นเรียบและ ContextPanel ห้ามปลอมเป็น alert");
   } else {
-    console.log("✅ visual identity กลางมี marker และ semantic role ถูกต้อง");
+    console.log("✅ visual identity กลางใช้ไอคอนเส้นเรียบและ semantic role ถูกต้อง");
+  }
+}
+
+{
+  const registrySources = [
+    "src/components/orders/orders-page.tsx",
+    "src/app/(dashboard)/customers/page.tsx",
+    "src/app/(dashboard)/quotations/page.tsx",
+    "src/app/(dashboard)/billing/page.tsx",
+    "src/app/(dashboard)/settings/users/page.tsx",
+    "src/app/(dashboard)/outsource/page.tsx",
+  ].map((file) => readFileSync(file, "utf8"));
+  const ordersSource = registrySources[0]!;
+  if (
+    registrySources.some((source) => source.includes("EntityMark")) ||
+    !ordersSource.includes("MockupThumbnail") ||
+    !ordersSource.includes("mockupCoverImage") ||
+    !ordersSource.includes('data-order-mockup="empty"') ||
+    ordersSource.includes("orderMockupCover")
+  ) {
+    failed++;
+    console.log("❌ registry ต้องไร้ object icon และออเดอร์ใช้ม็อกอัพจริงหรือช่องว่างเท่านั้น");
+  } else {
+    console.log("✅ registry ไร้ object icon และออเดอร์ใช้ม็อกอัพจริงหรือช่องว่างเท่านั้น");
+  }
+}
+
+{
+  const customHeaderSources = [
+    readFileSync("src/components/factory/station-mode-shell.tsx", "utf8"),
+    readFileSync("src/app/factory/page.tsx", "utf8"),
+  ];
+  if (
+    customHeaderSources.some(
+      (source) =>
+        !source.includes("text-module-production-text") ||
+        source.includes("bg-module-production-solid") ||
+        source.includes("shadow-sm"),
+    )
+  ) {
+    failed++;
+    console.log("❌ หัว Station/Factory TV ต้องเป็นไอคอนเส้นล้วน ไม่มีพื้นหรือเงา");
+  } else {
+    console.log("✅ หัว Station/Factory TV เป็นไอคอนเส้นล้วน ไม่มีพื้นหรือเงา");
   }
 }
 

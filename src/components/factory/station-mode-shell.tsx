@@ -37,7 +37,7 @@ export function StationModeShell<K extends string>({
       <header className="sticky top-0 z-30 border-b border-divider bg-bg/95 backdrop-blur">
         <div className="mx-auto flex min-h-16 max-w-[1600px] items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:px-8">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-module-production-solid text-white shadow-sm">
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-module-production-text">
               <CurrentIcon className="h-5 w-5" aria-hidden="true" />
             </span>
             <div className="min-w-0">

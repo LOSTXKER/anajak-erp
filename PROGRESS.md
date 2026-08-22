@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ DISTILL VISUAL IDENTITY — ลดไอคอนตามจอจริง 2026-08-23**
+> หัวข้อหน้ามาตรฐานรวมถึง Station/Factory TV เปลี่ยนเป็นไอคอนเส้นล้วน 24px ตามสีบริบท ไม่มีพื้น กรอบ หรือเงา · registry ออเดอร์ ลูกค้า ใบเสนอ บิล ผู้ใช้ และร้านนอกถอด object icon/initials ที่ซ้ำกับข้อความออก โดยคง action/status icon ที่ช่วยใช้งานจริง
+>
+> รายการออเดอร์อ่านม็อกอัพจริงล่าสุดจาก `DesignVersion` และแสดงรูปปกด้วย component กลาง; ไม่มีม็อกอัพให้เว้นว่าง ไม่ใช้ไอคอนรถเข็น initials หรือ artwork มาปลอมเป็นม็อกอัพ · query เพิ่มเฉพาะ read shape ของรายการ ไม่ส่ง approval token และไม่เปลี่ยน mutation, permission, status transition หรือ business flow
+>
+> **หลักฐานจอจริง:** `/orders` desktop มีม็อกอัพจริง 4 แถวและแถวว่าง 11 แถวโดยไม่มี `EntityMark`; mobile 390x844 แสดงรูป 38px เฉพาะ 4 งานและไม่มีช่อง placeholder ที่มองเห็น · Light/Dark horizontal overflow 0 · หัว Orders, Station และ Factory TV วัดได้ 24x24px, background โปร่งและ shadow ไม่มี · คืน theme เป็น “ตามระบบ” และ viewport เดิมหลังตรวจแล้ว
+>
+> **ด่านส่งมอบ:** full unit **1294/1294**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build ผ่าน (generate 41 pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector ไม่พบ finding (`[]`)
+>
+> **ขอบเขต:** รักษา `scripts/verify-artwork.ts`, `.cursor/`, `public/` ไว้นอกงานนี้ · ไม่แตะฐานจริง ไม่ push/merge/deploy
+>
+> **ต่อที่นี่:** เปิด `/orders` เทียบกับภาพที่เบสส่ง โดยดูทั้งแถวมีม็อกอัพและแถวไม่มีรูป; ถ้าผ่านค่อย push/merge ตามคำสั่งแยก
+
 > **✅ INDUSTRIAL FRESH + PROGRESSIVE HELP — code-first ครบ ERP / Factory / Public / Print 2026-08-23**
 > คง Anajak Blue `#3973b2` สำหรับ primary/link/selected/focus และเพิ่ม semantic tone กลางทั้ง Light/Dark: Production teal, Product saffron, Finance violet, System graphite · `VisualTone` ผูก PageHeader/PageShell/Section/EntityMark/Public masthead, navigation group และ dashboard shortcut จากแหล่งกลาง โดย active navigation/status/print ไม่เปลี่ยนความหมาย
 >

@@ -53,7 +53,30 @@ import {
   type SortKey,
 } from "@/lib/order-list-contract";
 import { ChatLink } from "@/components/customers/chat-link";
-import { EntityMark } from "@/components/ui/entity-mark";
+import { MockupThumbnail } from "@/components/mockup/mockup-thumbnail";
+import { mockupCoverImage } from "@/lib/mockup";
+
+function OrderMockupMark({
+  cover,
+  orderNumber,
+  reserveSpace = false,
+}: {
+  cover: string | null;
+  orderNumber: string;
+  reserveSpace?: boolean;
+}) {
+  if (!cover) {
+    return reserveSpace ? (
+      <span
+        className="block h-10 w-10 shrink-0"
+        aria-hidden="true"
+        data-order-mockup="empty"
+      />
+    ) : null;
+  }
+
+  return <MockupThumbnail cover={cover} alt={`ม็อกอัพ ${orderNumber}`} size="sm" />;
+}
 
 // ────────────────────────────────────────────────────────────
 // Payment status: dot + text (no pill)
@@ -565,11 +588,19 @@ function OrdersPageContent() {
               </tr>
             </DataTable.Head>
             <DataTable.Body>
-              {orders.map((order) => (
-                <DataTable.Row key={order.id} href={`/orders/${order.id}`}>
+              {orders.map((order) => {
+                const mockupCover = order.designs[0]
+                  ? mockupCoverImage(order.designs[0])
+                  : null;
+                return (
+                  <DataTable.Row key={order.id} href={`/orders/${order.id}`}>
                   <DataTable.Td>
                     <div className="flex items-center gap-3">
-                      <EntityMark label={order.orderNumber} icon={ShoppingCart} fallback="icon" size="sm" tone="brand" />
+                      <OrderMockupMark
+                        cover={mockupCover}
+                        orderNumber={order.orderNumber}
+                        reserveSpace
+                      />
                       <Link
                         href={`/orders/${order.id}`}
                         className="font-medium text-blue-600 hover:underline dark:text-blue-400"
@@ -579,9 +610,7 @@ function OrdersPageContent() {
                     </div>
                   </DataTable.Td>
                   <DataTable.Td>
-                    <div className="flex min-w-0 items-start gap-3">
-                      <EntityMark label={order.customer?.name ?? order.orderNumber} size="sm" shape="avatar" tone="brand" />
-                      <div className="min-w-0">
+                    <div className="min-w-0">
                       <p className="truncate text-slate-900 dark:text-white">
                         {order.customer?.name ?? "—"}
                         {order.orderType === "CUSTOM" && (
@@ -597,7 +626,6 @@ function OrdersPageContent() {
                         name={order.customer?.chatName}
                         url={order.customer?.chatUrl}
                       />
-                      </div>
                     </div>
                   </DataTable.Td>
                   <DataTable.Td className="text-xs text-slate-600 dark:text-slate-400">
@@ -648,16 +676,21 @@ function OrdersPageContent() {
                       {order.deadline ? formatDate(order.deadline) : "—"}
                     </DataTable.Td>
                   )}
-                </DataTable.Row>
-              ))}
+                  </DataTable.Row>
+                );
+              })}
             </DataTable.Body>
           </DataTable.Root>
           );
         }}
         renderMobile={(orders) => (
           <div role="list" aria-label="รายการออเดอร์" className="space-y-3">
-            {orders.map((order) => (
-              <article key={order.id} role="listitem" className="card-surface rounded-2xl">
+            {orders.map((order) => {
+              const mockupCover = order.designs[0]
+                ? mockupCoverImage(order.designs[0])
+                : null;
+              return (
+                <article key={order.id} role="listitem" className="card-surface rounded-2xl">
                 <Link
                   href={`/orders/${order.id}`}
                   className={cn("block min-h-11 rounded-2xl p-4", FOCUS_BUTTON)}
@@ -665,7 +698,10 @@ function OrdersPageContent() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
-                      <EntityMark label={order.orderNumber} icon={ShoppingCart} fallback="icon" tone="brand" />
+                      <OrderMockupMark
+                        cover={mockupCover}
+                        orderNumber={order.orderNumber}
+                      />
                       <div className="min-w-0">
                         <p className="font-semibold text-blue-700 dark:text-blue-300">
                           {order.orderNumber}
@@ -736,8 +772,9 @@ function OrdersPageContent() {
                     )}
                   </div>
                 </Link>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
         emptyState={

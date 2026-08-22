@@ -454,6 +454,13 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] ตรวจ public token normal/success/expired/error/blind-ship บน demo local และ export PDF A4 จริงทั้ง 5 ชนิด
 - [x] เพิ่ม component/`verify:ui` guard, full gates, browser Light/Dark/mobile และ Impeccable detector
 
+### P1.0-DISTILL — ลดไอคอนหลังตรวจจอจริง (เบสสั่ง 2026-08-23)
+
+- [x] หัวหน้ามาตรฐานและหัว custom ของ Station/Factory TV ใช้ไอคอนเส้นเรียบตามสีบริบท โดยไม่มีกรอบ พื้นสี หรือเงา
+- [x] registry table/list ไม่วาด object icon หรือ initials ซ้ำกับข้อความ; action/status icon ที่มีความหมายยังคงได้
+- [x] รายการออเดอร์ใช้รูปม็อกอัพจริงล่าสุดเท่านั้น; ถ้าไม่มีรูปให้เว้นช่องว่างโดยไม่สร้าง placeholder icon, initials หรือภาพลายอื่นมาปลอมเป็นม็อกอัพ
+- [x] ล็อกด้วย component/`verify:ui`, ตรวจจอจริง desktop/mobile Light/Dark และรัน final gates โดยไม่เปลี่ยน business flow
+
 **เพิ่มเข้า P1 (เบสอนุมัติ 2026-06-11 จากผล audit flow ทั้งระบบ):** แพ็คเก็บตกหน้างาน — ขั้นตอนผลิต DTF/DTG จริง (เดิม enum เป็นชุดโรงเย็บ) + โชว์ลายอนุมัติบน order detail/Job Ticket + แจ้งกระดิ่งเมื่อลูกค้าตัดสินแบบ + ด่านปิดงานต้องวางบิลครบ · **Outsource UI ทั้งก้อนดึงจาก P2 มาทำเลย** (silkscreen ส่งร้านนอก 100% แต่ระบบใช้ไม่ได้จริง) — ส่วน AP vendor/WHT ขาจ่าย ยังอยู่ P2 ตามเดิม
 ## 🏭 FLOW-REDESIGN — รื้อทั้งระบบตามผังใหม่ (เบสเคาะครบ 2026-06-12 · แบบเต็ม: `docs/flow-redesign-2026-06-12.html`)
 > เบสสั่ง: "มองมุมโรงงาน วาด flow ก่อน" → ศึกษา 5 มุม + ตอบคำถาม 10 ข้อ → เคาะครบ · **งานชุดนี้มาก่อน P1 ที่เหลือ** (WHT เลื่อนไปทำพร้อมก้อน 3 ขาเงิน)

@@ -47,7 +47,6 @@ import {
   sortOutsourceByExpectedReturn,
   type OutsourceQueue,
 } from "@/lib/outsource-ui";
-import { EntityMark } from "@/components/ui/entity-mark";
 
 const QUEUE_EMPTY_COPY: Record<OutsourceQueue, { title: string; description: string }> = {
   send: {
@@ -275,9 +274,7 @@ export default function OutsourcePage() {
                   className="p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 flex-1 items-start gap-3">
-                      <EntityMark label={o.vendor.name} icon={Truck} shape="avatar" tone="production" />
-                      <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <h3 className="break-words text-sm font-medium text-slate-900 dark:text-white">
                         <Link
                           href={`/orders/${o.productionStep.production.orderId}`}
@@ -290,7 +287,6 @@ export default function OutsourcePage() {
                       <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
                         {o.vendor.name} · {o.quantity} ชิ้น · {order.customer.name}
                       </p>
-                      </div>
                     </div>
                     {/* จุดสี + ข้อความ (ภาษาเดียวกับหน้าอื่นทั้งเว็บ) —
                         ย้อมข้อความเฉพาะผลตรวจรับจากร้าน ผ่าน/ไม่ผ่าน
