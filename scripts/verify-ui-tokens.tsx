@@ -511,8 +511,8 @@ check(
   ["dark:bg-red-600", "dark:hover:bg-red-500"],
 );
 
-// ชิปตัวกรองเป็นปุ่มแบนเหลี่ยมมน ไม่ใช้ pill/เงา/Check ล่องหนที่ทำให้ปุ่มกว้างเกินจำเป็น
-// สถานะเลือกใช้พื้น + เส้น + font weight ร่วมกัน และ aria-pressed บอก assistive tech
+// ตัวกรองเป็นข้อความสี neutral + เส้นใต้ ไม่วาดพื้น กรอบกล่อง เงา หรือ Check ล่องหน
+// สถานะเลือกใช้เส้น + font weight ร่วมกัน และ aria-pressed บอก assistive tech
 {
   const selected = renderToStaticMarkup(
     <FilterChip selected onClick={() => {}}>เลือกแล้ว</FilterChip>,
@@ -540,10 +540,17 @@ check(
   );
   if (
     !selected.includes('aria-pressed="true"') ||
-    !selected.includes("rounded-lg") ||
+    !selected.includes("border-b-2") ||
+    !selected.includes("border-slate-900") ||
+    !selected.includes("dark:border-white") ||
     !selected.includes("font-semibold") ||
+    !selected.includes("bg-transparent") ||
+    selected.includes("rounded-lg") ||
     selected.includes("rounded-full") ||
     selected.includes("shadow-sm") ||
+    selected.includes("bg-interactive-selected") ||
+    selected.includes("text-interactive-selected-text") ||
+    selected.includes("border-blue") ||
     selected.includes("lucide-check") ||
     !idle.includes('aria-pressed="false"') ||
     idle.includes("invisible") ||
@@ -554,9 +561,9 @@ check(
     idleWithIcon.includes("lucide-check")
   ) {
     failed++;
-    console.log("❌ ชิปตัวกรองต้องแบน เหลี่ยมมน ไม่มีเงา/Check ล่องหน และมี aria-pressed");
+    console.log("❌ ตัวกรองต้องเป็นข้อความ neutral + เส้นใต้ ไม่มีพื้น/กล่อง/เงา/สี selected และมี aria-pressed");
   } else {
-    console.log("✅ ชิปตัวกรองแบน เหลี่ยมมน กะทัดรัด และคง aria-pressed/icon");
+    console.log("✅ ตัวกรองเป็นข้อความ neutral + เส้นใต้ และคง aria-pressed/icon");
   }
 }
 

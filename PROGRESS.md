@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ FILTER MINIMAL V2 — ตัดสีและหน้าตาปุ่มออก 2026-08-23**
+> feedback รอบสองแทนที่ปุ่มเหลี่ยมมนพื้นน้ำเงินของรอบแรก: `FilterChip` กลางเหลือข้อความสี neutral บนพื้นโปร่ง ไม่มีกรอบกล่อง พื้น selected เงา radius หรือ Check · ตัวเลือกปัจจุบันบอกด้วยเส้นใต้ดำ/ขาวและน้ำหนักข้อความ พร้อม `aria-pressed` เดิม
+>
+> ครอบคลุมหน้า สินค้า, แจ้งเตือน, ร้านนอก, หัก ณ ที่จ่าย, ออเดอร์, คลังฟิล์ม และคิวผลิตผ่าน component เดียว · filter ที่มีไอคอน/ตัวเลขยังคงข้อมูลเดิม แต่ไม่เปลี่ยนเป็นสีหรือ Check ตอนเลือก
+>
+> **หลักฐานจอจริง:** `/products` ที่ 1440×900 Dark และ 390×844 Light — พื้นโปร่ง, `border-radius: 0`, `box-shadow: none`, active line เป็น neutral; desktop สูง 36px, mobile สูง 44px · 320px ยังอยู่แถวเดียวและ horizontal overflow 0 · กด `สินค้าสำเร็จรูป` แล้ว URL เป็น `?itemType=FINISHED_GOOD`, เส้นใต้และ `aria-pressed` ย้ายตรงตัวเลือก · console ไม่มี warning/error
+>
+> **ด่านส่งมอบ:** full unit **1296/1296**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build (generate 41 pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector ไม่พบ finding (`[]`)
+>
+> **ขอบเขต:** presentation/test/docs เท่านั้น ไม่มี dependency, schema, API, query, mutation, permission, status transition หรือ business flow เปลี่ยน
+>
+> **ต่อที่นี่:** ให้เบสดู `/products` และ `/production`; ตัวกรองรอบนี้ไม่มีสีและไม่อ่านเป็นปุ่มแล้ว
+
 > **✅ SIDEBAR MINIMAL — ถอดชั้นตกแต่งออก 2026-08-23**
 > Sidebar desktop กลับมากว้าง 240px และใช้โครงแบน: ถอดพื้น neutral ที่ครอบหมวด, marker สี และ padding แบบการ์ดออก · เหลือชื่อหมวดตัวเล็ก, รายการเมนู และ active item สีน้ำเงินจุดเดียว จึงอ่านทางเดินได้โดยไม่เกิดกล่องซ้อนกล่อง
 >

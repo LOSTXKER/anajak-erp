@@ -1,16 +1,16 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { FOCUS_BUTTON, RADIUS } from "./tokens";
+import { FOCUS_INSET } from "./tokens";
 import { CONTROL_MIN_H } from "./control-size";
 
 interface FilterChipProps {
   selected: boolean;
   onClick: () => void;
   children: React.ReactNode;
-  /** ไอคอนความหมายตอนยังไม่เลือก; เมื่อเลือกจะเปลี่ยนเป็น Check ในช่องเดิม */
+  /** ไอคอนความหมายของตัวกรอง แสดงเหมือนเดิมทั้งสองสถานะ */
   icon?: React.ReactNode;
   className?: string;
-  /** muted = ตัวเลือกในกลุ่ม/overlay · raised = ตัวกรองที่ยืนบนผืนหน้า */
+  /** คง prop ไว้ให้ caller เดิมใช้ต่อได้; filter แบบ minimal ไม่มีผิวแยกชั้นแล้ว */
   surface?: "muted" | "raised";
 }
 
@@ -20,7 +20,6 @@ export function FilterChip({
   children,
   icon,
   className,
-  surface = "muted",
 }: FilterChipProps) {
   return (
     <button
@@ -29,15 +28,11 @@ export function FilterChip({
       onClick={onClick}
       className={cn(
         CONTROL_MIN_H,
-        "inline-flex touch-manipulation items-center gap-1.5 whitespace-nowrap border px-3 py-1 text-xs transition-colors active:scale-[0.98]",
-        RADIUS.item,
-        FOCUS_BUTTON,
+        "-mb-px inline-flex touch-manipulation items-center gap-1.5 whitespace-nowrap border-0 border-b-2 bg-transparent px-1 py-1 text-xs transition-colors",
+        FOCUS_INSET,
         selected
-          // สถานะเลือกใช้พื้น + เส้น + น้ำหนักข้อความ ไม่พึ่ง Check หรือสีอย่างเดียว
-          ? "border-blue-200 bg-interactive-selected font-semibold text-interactive-selected-text dark:border-blue-800"
-          : surface === "raised"
-            ? "border-border bg-surface font-medium text-secondary hover:border-border-strong hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong"
-            : "border-border bg-transparent font-medium text-secondary hover:border-border-strong hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
+          ? "border-slate-900 font-semibold text-strong dark:border-white"
+          : "border-transparent font-medium text-muted hover:text-secondary active:text-strong",
         className,
       )}
     >
