@@ -53,6 +53,7 @@ import {
   type SortKey,
 } from "@/lib/order-list-contract";
 import { ChatLink } from "@/components/customers/chat-link";
+import { EntityMark } from "@/components/ui/entity-mark";
 
 // ────────────────────────────────────────────────────────────
 // Payment status: dot + text (no pill)
@@ -567,15 +568,20 @@ function OrdersPageContent() {
               {orders.map((order) => (
                 <DataTable.Row key={order.id} href={`/orders/${order.id}`}>
                   <DataTable.Td>
-                    <Link
-                      href={`/orders/${order.id}`}
-                      className="font-medium text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      {order.orderNumber}
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      <EntityMark label={order.orderNumber} icon={ShoppingCart} fallback="icon" size="sm" />
+                      <Link
+                        href={`/orders/${order.id}`}
+                        className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        {order.orderNumber}
+                      </Link>
+                    </div>
                   </DataTable.Td>
                   <DataTable.Td>
-                    <div className="min-w-0">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <EntityMark label={order.customer?.name ?? order.orderNumber} size="sm" shape="avatar" />
+                      <div className="min-w-0">
                       <p className="truncate text-slate-900 dark:text-white">
                         {order.customer?.name ?? "—"}
                         {order.orderType === "CUSTOM" && (
@@ -591,6 +597,7 @@ function OrdersPageContent() {
                         name={order.customer?.chatName}
                         url={order.customer?.chatUrl}
                       />
+                      </div>
                     </div>
                   </DataTable.Td>
                   <DataTable.Td className="text-xs text-slate-600 dark:text-slate-400">
@@ -657,16 +664,19 @@ function OrdersPageContent() {
                   aria-label={`เปิดออเดอร์ ${order.orderNumber} ${order.customer?.name ?? ""}`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-blue-700 dark:text-blue-300">
-                        {order.orderNumber}
-                      </p>
-                      <p className="mt-1 truncate font-medium text-slate-900 dark:text-white">
-                        {order.customer?.name ?? "—"}
-                      </p>
-                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        {order.title}
-                      </p>
+                    <div className="flex min-w-0 items-start gap-3">
+                      <EntityMark label={order.orderNumber} icon={ShoppingCart} fallback="icon" />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-blue-700 dark:text-blue-300">
+                          {order.orderNumber}
+                        </p>
+                        <p className="mt-1 truncate font-medium text-slate-900 dark:text-white">
+                          {order.customer?.name ?? "—"}
+                        </p>
+                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                          {order.title}
+                        </p>
+                      </div>
                     </div>
                     <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-slate-400" />
                   </div>

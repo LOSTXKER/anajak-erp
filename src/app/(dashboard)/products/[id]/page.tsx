@@ -188,6 +188,7 @@ export default function ProductDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={Package}
         back={{ href: "/products", label: "กลับไปหน้าสินค้า" }}
         title={product.name}
         titleBadge={

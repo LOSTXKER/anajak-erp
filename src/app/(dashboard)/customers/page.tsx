@@ -33,6 +33,7 @@ import { PageHeader } from "@/components/page-header";
 import { Plus, Users, UserPlus, Crown, UserX, Building2, ChevronRight } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
+import { EntityMark } from "@/components/ui/entity-mark";
 
 const segmentConfig: Record<string, { label: string; variant: "default" | "accent" | "success" | "warning" | "destructive" }> = {
   VIP: { label: "VIP", variant: "success" },
@@ -156,7 +157,7 @@ function CustomersPageContent() {
       )}
 
       {showForm && canManageCustomers && (
-        <Section title="เพิ่มลูกค้าใหม่">
+        <Section title="เพิ่มลูกค้าใหม่" icon={UserPlus}>
           <form onSubmit={handleSubmit} className="space-y-4">
               <CustomerFormFields
                 form={form}
@@ -238,17 +239,22 @@ function CustomersPageContent() {
                 return (
                   <DataTable.Row key={customer.id}>
                     <DataTable.Td>
-                      <Link
-                        href={`/customers/${customer.id}`}
-                        className="font-medium text-blue-600 hover:underline dark:text-blue-400"
-                      >
-                        {customer.name}
-                      </Link>
-                      {customer.company && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {customer.company}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-3">
+                        <EntityMark label={customer.company || customer.name} shape="avatar" size="sm" />
+                        <div className="min-w-0">
+                          <Link
+                            href={`/customers/${customer.id}`}
+                            className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                          >
+                            {customer.name}
+                          </Link>
+                          {customer.company && (
+                            <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                              {customer.company}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </DataTable.Td>
                     <DataTable.Td>
                       {customer.customerType === "CORPORATE" ? (
@@ -297,7 +303,9 @@ function CustomersPageContent() {
                     aria-label={`เปิดข้อมูลลูกค้า ${customer.name}`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <EntityMark label={customer.company || customer.name} shape="avatar" />
+                        <div className="min-w-0">
                         <p className="font-semibold text-strong">
                           {customer.company || customer.name}
                         </p>
@@ -306,6 +314,7 @@ function CustomersPageContent() {
                             ผู้ติดต่อ {customer.name}
                           </p>
                         )}
+                        </div>
                       </div>
                       <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-slate-400" />
                     </div>

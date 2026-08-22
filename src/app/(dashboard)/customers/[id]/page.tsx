@@ -71,6 +71,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     <div className="space-y-6">
       {/* โทร/LINE/อีเมล/บันทึกการคุย ไม่อยู่ header — ซ้ำกับการ์ดข้อมูลติดต่อ+บันทึกการสื่อสารด้านล่าง */}
       <PageHeader
+        icon={User}
         breadcrumb={[
           { label: "ลูกค้า", href: "/customers" },
           { label: customer.name },

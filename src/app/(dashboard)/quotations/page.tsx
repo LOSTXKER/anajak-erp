@@ -18,10 +18,11 @@ import { ResponsiveList } from "@/components/ui/responsive-list";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { QUOTATION_STATUS_LABELS, QUOTATION_STATUS_VARIANTS } from "@/lib/status-config";
 import { PageShell } from "@/components/page-shell";
-import { Plus, ClipboardList, ChevronRight } from "lucide-react";
+import { Plus, ClipboardList, ChevronRight, FileText } from "lucide-react";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
 import { Select } from "@/components/ui/select";
+import { EntityMark } from "@/components/ui/entity-mark";
 
 const QUOTATION_STATUSES = [
   { value: "", label: "ทั้งหมด" },
@@ -179,13 +180,16 @@ function QuotationsPageContent() {
                 aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <EntityMark label={q.quotationNumber} icon={FileText} fallback="icon" />
+                    <div className="min-w-0">
                     <p className="font-semibold text-blue-700 dark:text-blue-300">
                       {q.quotationNumber}
                     </p>
                     <p className="mt-1 truncate text-sm font-medium text-slate-900 dark:text-white">
                       {q.title}
                     </p>
+                    </div>
                   </div>
                   <div className="shrink-0">
                     <QuotationStatusLabel status={q.status} />
@@ -227,12 +231,15 @@ function QuotationsPageContent() {
               {quotations.map((q) => (
                 <DataTable.Row key={q.id}>
                   <DataTable.Td>
-                    <Link
-                      href={`/quotations/${q.id}`}
-                      className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      {q.quotationNumber}
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      <EntityMark label={q.quotationNumber} icon={FileText} fallback="icon" size="sm" />
+                      <Link
+                        href={`/quotations/${q.id}`}
+                        className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        {q.quotationNumber}
+                      </Link>
+                    </div>
                   </DataTable.Td>
                   <DataTable.Td className="text-slate-900 dark:text-white">
                     {q.title}

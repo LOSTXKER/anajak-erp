@@ -34,6 +34,7 @@ import { SyncDialog } from "@/components/sync-dialog";
 import { Alert } from "@/components/ui/alert";
 import { DataTable } from "@/components/ui/data-table";
 import { PageShell } from "@/components/page-shell";
+import { ContextPanel } from "@/components/ui/context-panel";
 
 // ─── Setting Keys ──────────────────────────────────────────
 const STOCK_API_URL_KEY = "stock_api_url";
@@ -227,19 +228,13 @@ export default function StockSettingsPage() {
                 ใช้สต๊อกทดสอบในเครื่อง
               </CardTitle>
               <CardDescription>
-                ยอดจอง เบิก และคืนจะเปลี่ยนเฉพาะฐาน demo local เท่านั้น
+                ยอดจอง เบิก และคืนจะเปลี่ยนเฉพาะข้อมูลสำหรับทดลองเท่านั้น
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Alert variant="info">
-                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                  โหมดนี้ไม่เชื่อม ไม่ Sync และไม่ส่งข้อมูลไป Anajak Stock
-                </p>
-                <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
-                  รีเซ็ตยอดและงานตัวอย่างได้ด้วย npm run db:seed:demo
-                  แล้วทดลองเบิกจาก Station Mode
-                </p>
-              </Alert>
+              <ContextPanel tone="info" title="พื้นที่ทดลองแยกจาก Anajak Stock">
+                ข้อมูลในหน้านี้ไม่ถูกส่งไปคลังหลัก หากต้องการเริ่มใหม่ให้ผู้ดูแลระบบคืนข้อมูลตัวอย่าง แล้วทดลองเบิกจากจอสถานี
+              </ContextPanel>
             </CardContent>
           </Card>
         ) : (

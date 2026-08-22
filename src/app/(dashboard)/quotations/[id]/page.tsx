@@ -260,6 +260,7 @@ export default function QuotationDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={FileText}
         back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
         title={quotation.quotationNumber}
         titleBadge={

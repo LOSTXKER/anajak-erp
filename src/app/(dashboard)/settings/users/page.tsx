@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { QueryError } from "@/components/ui/query-error";
 import { DataTable } from "@/components/ui/data-table";
+import { EntityMark } from "@/components/ui/entity-mark";
 import { PageShell } from "@/components/page-shell";
 import {
   Dialog,
@@ -279,14 +280,19 @@ export default function UsersSettingsPage() {
                         className={!user.isActive ? "opacity-50" : undefined}
                       >
                         <DataTable.Td>
-                          <span className="text-sm font-medium text-slate-900 dark:text-white">
-                            {user.name}
-                          </span>
-                          {isSelf && (
-                            <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-2xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-                              คุณ
-                            </span>
-                          )}
+                          <div className="flex items-center gap-3">
+                            <EntityMark label={user.name} shape="avatar" size="sm" />
+                            <div>
+                              <span className="text-sm font-medium text-slate-900 dark:text-white">
+                                {user.name}
+                              </span>
+                              {isSelf && (
+                                <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-2xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                                  คุณ
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </DataTable.Td>
                         <DataTable.Td className="text-slate-500 dark:text-slate-400">
                           {user.email}

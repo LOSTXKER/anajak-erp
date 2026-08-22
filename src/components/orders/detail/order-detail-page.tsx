@@ -36,6 +36,7 @@ import {
   AlertTriangle,
   Share2,
   Truck,
+  ShoppingCart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MENU_SEPARATOR, OVERLAY_PANEL, TINT } from "@/components/ui/tokens";
@@ -554,6 +555,7 @@ function OrderDetailContent({
   return (
     <div className="space-y-6">
       <PageHeader
+        icon={ShoppingCart}
         breadcrumb={[
           { label: "ออเดอร์", href: "/orders" },
           { label: order.orderNumber },
