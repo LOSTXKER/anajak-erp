@@ -20,6 +20,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterPopover } from "@/components/ui/filter-popover";
 import { QueryError } from "@/components/ui/query-error";
 import { ResponsiveList } from "@/components/ui/responsive-list";
 import { SearchInput } from "@/components/ui/search-input";
@@ -78,7 +79,7 @@ function oneOf<T extends readonly string[]>(value: string | null, options: T) {
 function Progress({ done, total }: { done: number; total: number }) {
   const percent = progressPercent(done, total);
   return (
-    <div className="min-w-28 space-y-1.5">
+    <div className="min-w-32 space-y-2">
       <div className="flex items-center justify-between gap-3 text-xs">
         <span className="font-medium text-strong">
           {done.toLocaleString("th-TH")}/{total.toLocaleString("th-TH")} ขั้น
@@ -105,16 +106,21 @@ function CurrentOperations({ item }: { item: ControlItem }) {
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2.5">
       {item.currentOperations.slice(0, 2).map((operation) => {
         const meta = operationStatusMeta(operation.state);
+        const centerName = operation.workCenter?.name ?? "ยังไม่ระบุจุดทำงาน";
         return (
           <div key={operation.id} className="min-w-0">
             <p className="truncate text-sm font-medium text-strong">{operation.name}</p>
             <StatusLabel
-              label={meta.label}
+              label={
+                <>
+                  {meta.label}
+                  <span className="font-normal text-muted">· {centerName}</span>
+                </>
+              }
               tone={meta.tone}
-              sub={operation.workCenter?.name ?? "ยังไม่ระบุจุดทำงาน"}
             />
           </div>
         );
@@ -152,45 +158,44 @@ function WorkOrderDesktopRows({ items }: { items: readonly ControlItem[] }) {
       <DataTable.Head>
         <DataTable.Row>
           <DataTable.Th>งานผลิต</DataTable.Th>
-          <DataTable.Th>สถานะ</DataTable.Th>
-          <DataTable.Th>จุดที่กำลังทำ</DataTable.Th>
+          <DataTable.Th>ขั้นตอนปัจจุบัน</DataTable.Th>
           <DataTable.Th>ความคืบหน้า</DataTable.Th>
-          <DataTable.Th>กำหนดส่ง</DataTable.Th>
+          <DataTable.Th>กำหนดส่งและปัญหา</DataTable.Th>
           <DataTable.Th align="right">
             <span className="sr-only">เปิดงาน</span>
           </DataTable.Th>
         </DataTable.Row>
       </DataTable.Head>
-      <DataTable.Body>
+      <DataTable.Body className="divide-y divide-divider">
         {items.map((item) => {
           const status = workOrderStatusMeta(item.state);
           return (
-            <DataTable.Row key={item.id} href={`/production/${item.id}`}>
-              <DataTable.Td className="max-w-xs">
-                <Link href={`/production/${item.id}`} className="font-semibold text-strong hover:underline">
-                  {item.order.orderNumber}
-                </Link>
+            <DataTable.Row key={item.id} href={`/production/${item.id}`} className="align-top">
+              <DataTable.Td className="w-[34%] max-w-sm py-4">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <Link href={`/production/${item.id}`} className="font-semibold text-strong hover:underline">
+                    {item.order.orderNumber}
+                  </Link>
+                  <StatusLabel label={status.label} tone={status.tone} />
+                </div>
                 <p className="mt-0.5 truncate text-sm text-secondary">{item.order.title}</p>
                 <p className="truncate text-xs text-muted">
                   {item.order.customerName} · {item.workOrderNumber ?? "ยังไม่มีเลขใบผลิต"}
                 </p>
               </DataTable.Td>
-              <DataTable.Td>
-                <StatusLabel label={status.label} tone={status.tone} />
-              </DataTable.Td>
-              <DataTable.Td className="max-w-xs">
+              <DataTable.Td className="w-[25%] max-w-xs py-4">
                 <CurrentOperations item={item} />
               </DataTable.Td>
-              <DataTable.Td>
+              <DataTable.Td className="w-[18%] py-4">
                 <Progress
                   done={item.progress.operationsCompleted}
                   total={item.progress.operationsTotal}
                 />
               </DataTable.Td>
-              <DataTable.Td>
+              <DataTable.Td className="w-[23%] py-4">
                 <DueAndException item={item} />
               </DataTable.Td>
-              <DataTable.Td align="right">
+              <DataTable.Td align="right" className="py-4">
                 <ChevronRight className="ml-auto h-4 w-4 text-muted" aria-hidden />
               </DataTable.Td>
             </DataTable.Row>
@@ -210,7 +215,7 @@ function WorkOrderMobileCards({ items }: { items: readonly ControlItem[] }) {
           <Link
             key={item.id}
             href={`/production/${item.id}`}
-            className={cn("card-surface-hover block rounded-2xl p-5", FOCUS_BUTTON)}
+            className={cn("card-surface-hover block rounded-2xl p-4 sm:p-5", FOCUS_BUTTON)}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -220,15 +225,22 @@ function WorkOrderMobileCards({ items }: { items: readonly ControlItem[] }) {
               </div>
               <StatusLabel label={status.label} tone={status.tone} />
             </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 border-t border-divider pt-4">
+              <p className="mb-2 text-xs font-medium text-muted">ขั้นตอนปัจจุบัน</p>
               <CurrentOperations item={item} />
-              <DueAndException item={item} />
             </div>
-            <div className="mt-4">
-              <Progress
-                done={item.progress.operationsCompleted}
-                total={item.progress.operationsTotal}
-              />
+            <div className="mt-4 grid grid-cols-[minmax(0,1fr)_minmax(7.5rem,0.75fr)] gap-4 border-t border-divider pt-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted">ความคืบหน้า</p>
+                <Progress
+                  done={item.progress.operationsCompleted}
+                  total={item.progress.operationsTotal}
+                />
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted">กำหนดส่ง</p>
+                <DueAndException item={item} />
+              </div>
             </div>
           </Link>
         );
@@ -300,6 +312,7 @@ function WorkOrderList() {
   const items = useMemo(() => query.data?.pages.flatMap((page) => page.items), [query.data]);
   const stale = query.isError && Boolean(items?.length);
   const hasFilters = Boolean(search || state || centerCode || exceptionState);
+  const activeFilterCount = [state, centerCode, exceptionState].filter(Boolean).length;
 
   if (centerCode && centersQuery.isError && !centersQuery.data) {
     return (
@@ -334,57 +347,77 @@ function WorkOrderList() {
           defaultValue={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="ค้นหาเลขออเดอร์ ชื่องาน หรือลูกค้า"
-          containerClassName="@2xl:min-w-72 @2xl:flex-1"
+          containerClassName="@2xl:min-w-80 @2xl:flex-1"
         />
-        <ToolbarGroup className="min-w-0 flex-wrap">
-          <Select
-            surface="raised"
-            aria-label="กรองสถานะใบสั่งผลิต"
-            value={state ?? ""}
-            onChange={(event) => replaceListState({ state: event.target.value || null })}
-            className="min-w-36"
-          >
-            <option value="">ทุกสถานะ</option>
-            {WORK_ORDER_STATES.map((value) => (
-              <option key={value} value={value}>{workOrderStatusMeta(value).label}</option>
-            ))}
-          </Select>
-          <Select
-            surface="raised"
-            aria-label="กรองศูนย์งาน"
-            value={centerCode}
-            onChange={(event) => replaceListState({ center: event.target.value || null })}
-            className="min-w-40"
-            disabled={centersQuery.isLoading || centersQuery.isError}
-          >
-            <option value="">ทุกศูนย์งาน</option>
-            {(centersQuery.data ?? []).map((item) => (
-              <option key={item.workCenter.id} value={item.workCenter.code}>{item.workCenter.name}</option>
-            ))}
-          </Select>
-          <Select
-            surface="raised"
-            aria-label="กรองปัญหา"
-            value={exceptionState ?? ""}
-            onChange={(event) => replaceListState({ exception: event.target.value || null })}
-            className="min-w-36"
-          >
-            <option value="">ทุกสถานะปัญหา</option>
-            {EXCEPTION_STATES.map((value) => (
-              <option key={value} value={value}>{exceptionStatusMeta(value).label}</option>
-            ))}
-          </Select>
+        <ToolbarGroup align="end" className="w-full min-w-0 @2xl:w-auto">
           <Select
             surface="raised"
             aria-label="เรียงรายการ"
             value={sort}
             onChange={(event) => replaceListState({ sort: event.target.value === "dueDate" ? null : event.target.value })}
-            className="min-w-36"
+            className="min-w-0 flex-1 @2xl:w-44 @2xl:flex-none"
           >
             <option value="dueDate">กำหนดส่งใกล้สุด</option>
             <option value="priority">ความสำคัญสูงสุด</option>
             <option value="updatedAt">อัปเดตล่าสุด</option>
           </Select>
+          <FilterPopover
+            activeCount={activeFilterCount}
+            onClear={() => replaceListState({ state: null, center: null, exception: null })}
+            resultLabel="ดูรายการ"
+            align="end"
+            triggerClassName="flex-1 @2xl:flex-none"
+          >
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted" htmlFor="production-state-filter">
+                สถานะงาน
+              </label>
+              <Select
+                id="production-state-filter"
+                aria-label="กรองสถานะใบสั่งผลิต"
+                value={state ?? ""}
+                onChange={(event) => replaceListState({ state: event.target.value || null })}
+              >
+                <option value="">ทุกสถานะ</option>
+                {WORK_ORDER_STATES.map((value) => (
+                  <option key={value} value={value}>{workOrderStatusMeta(value).label}</option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted" htmlFor="production-center-filter">
+                ศูนย์งาน
+              </label>
+              <Select
+                id="production-center-filter"
+                aria-label="กรองศูนย์งาน"
+                value={centerCode}
+                onChange={(event) => replaceListState({ center: event.target.value || null })}
+                disabled={centersQuery.isLoading || centersQuery.isError}
+              >
+                <option value="">ทุกศูนย์งาน</option>
+                {(centersQuery.data ?? []).map((item) => (
+                  <option key={item.workCenter.id} value={item.workCenter.code}>{item.workCenter.name}</option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted" htmlFor="production-exception-filter">
+                สถานะปัญหา
+              </label>
+              <Select
+                id="production-exception-filter"
+                aria-label="กรองปัญหา"
+                value={exceptionState ?? ""}
+                onChange={(event) => replaceListState({ exception: event.target.value || null })}
+              >
+                <option value="">ทุกสถานะปัญหา</option>
+                {EXCEPTION_STATES.map((value) => (
+                  <option key={value} value={value}>{exceptionStatusMeta(value).label}</option>
+                ))}
+              </Select>
+            </div>
+          </FilterPopover>
         </ToolbarGroup>
       </Toolbar>
 

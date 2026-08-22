@@ -4,6 +4,15 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION V2 — ปรับรายการควบคุมงานตาม UAT (2026-08-22)**
+> หน้า `/production` ใช้ช่องค้นหาเป็นจุดนำและยุบตัวกรองสถานะ/ศูนย์งาน/ปัญหาไว้ในปุ่มเดียวที่บอกจำนวนตัวกรองค้าง โดยยังให้การเรียงลำดับอยู่บนผิวหลัก · ตารางรวมสถานะใบผลิตเข้ากับตัวตนงาน ลดคอลัมน์ที่แย่งสายตา รวมชื่อขั้น+สถานะ+ศูนย์งานให้จบเป็นกลุ่ม และเพิ่มเส้นคั่นบางเพื่อไล่แถวกว้างได้โดยไม่หลุด
+>
+> มือถือเรียงตัวตนงาน → ขั้นตอนปัจจุบัน → ความคืบหน้า+กำหนดส่งในแถวเดียว จึงเห็นงานถัดไปเร็วขึ้นแต่ยังคงปัญหาและสถานะด้วยข้อความร่วมกับสี · query, URL state, polling, permission และ deep link เดิมไม่เปลี่ยน
+>
+> **หลักฐาน:** `npm run typecheck`, `npm run verify:ui`, ESLint เฉพาะไฟล์, production V2 UI boundary test, Impeccable detector และ `git diff --check` ผ่าน · browser จริงที่ 1440×900 และ 390×844 เปิดรายการ/ตัวกรอง/งานหลายขั้นพร้อมปัญหาแล้ว ไม่มี horizontal overflow หรือ app console error
+>
+> **ต่อที่นี่:** ให้เบสรีเฟรช `/production` แล้วลองสแกนจากงาน → ขั้นตอน → ความคืบหน้า → กำหนดส่ง; ถ้าทิศนี้ผ่านจึงค่อยใช้ rhythm เดียวกันกับมุมมองปัญหาและศูนย์งาน
+
 > **✅ PRODUCTION V2 พร้อมให้เบสทำ UAT บน feature branch (2026-08-22)**
 > รื้อแกนข้อมูลและ UX การผลิตเป็น contract เดียวแล้ว: `Production`/`ProductionStep` ทำหน้าที่ Manufacturing Order/Operation Job โดยคง ID และความสัมพันธ์เดิม; routing เก็บ version+snapshot, quantity แยกรายการ, event เป็น append-only, exception/rework มี lifecycle และ command ทุกตัวใช้ `commandId` กับ `expectedRevision` · schema/migration เป็น additive และทำงานบน worktree/ฐานทดสอบแยก ไม่ apply/reset ฐาน shared หรือ remote
 >
