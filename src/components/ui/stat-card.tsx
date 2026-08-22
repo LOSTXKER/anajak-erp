@@ -55,7 +55,7 @@ export function StatCard({
   const card = (
     <div
       className={cn(
-        "card-surface rounded-2xl p-5",
+        "card-surface rounded-xl p-5",
         href && "card-surface-hover",
         !href && className
       )}
@@ -115,7 +115,7 @@ export function StatCard({
       href={href}
       aria-label={`ดูรายการ ${title}: ${value}`}
       className={cn(
-        "block h-full rounded-2xl", FOCUS_BUTTON,
+        "block h-full rounded-xl", FOCUS_BUTTON,
         className
       )}
     >

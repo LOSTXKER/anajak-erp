@@ -648,6 +648,16 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] **F3 ลำดับและ state ต้องติดสินค้าเดิม** — ใช้ client key คงที่แทน `key={index}` ในรายการสินค้า · ย้ายขึ้น/ลงต้องพา variants, สเปคตัดเย็บ, สี/ไซส์ และ local editor state ไปกับสินค้าเดิม · แก้ id ของ size matrix ไม่ให้ซ้ำระหว่างสินค้า/desktop/mobile พร้อม unit test pure reorder และ draft round-trip
 - [x] **F4 ล็อก regression + ตรวจของจริง** — จอจริง create ที่ 1→2 สินค้ากรอกเอง + shared `OrderItemCard` ของ create/edit · pure test ครอบ 2 ชุดงาน, 3 สินค้า, reorder กลาง/ขอบ และ draft round-trip · resize ข้าม layout, Light/Dark ที่ 1440 + 390 · ไม่มีขีดในช่องเงินของลูกค้าส่งมา ไม่มีปุ่ม “ปิดหลายไซส์” ในสองโหมดนี้ ไม่มี overflow/duplicate id/hydration/console error · typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน
 
+#### ใบงาน WHITE-CANVAS — เปลี่ยนพื้นผิวทั้งเว็บเป็น minimal บนผืนขาว (เบสสั่ง 2026-08-23)
+
+> เบสไม่ต้องการ UI ที่ใช้สีและกล่องเป็นโครงหลักอีกแล้ว: เนื้อหาต้องวางบนพื้นหลังขาวโดยตรง ใช้ card เฉพาะข้อมูลรองที่เป็นก้อนจริง และ Dark ต้องกลับค่าชั้นผิวแบบเดียวกัน · ขอบเขต presentation/design-system ทั้งเว็บเท่านั้น คง query, mutation, permission, validation, status transition, public/print และ flow งานเดิมทั้งหมด
+
+- [x] **WC1 แกนพื้นผิวเดียวทั้งระบบ** — Light page/workspace/chrome เป็นขาวต่อเนื่อง; Dark เป็น neutral ดำต่อเนื่อง · direct content ไม่มี card/เงาครอบ · secondary object card ใช้พื้น neutral ต่างชั้นเล็กน้อยและไม่มีเงา · overlay เท่านั้นที่ลอยด้วยเงา ✅ 2026-08-23
+- [x] **WC2 primitive เรียบธรรมดา** — Section/DataTable เป็นเนื้อหาตรงพร้อมเส้นคั่นเท่าที่จำเป็น · Button/Search/toolbar control เป็นทรงเหลี่ยมมนเล็ก ไม่มีเงาตกแต่ง · field ยังคง boundary ที่บอกว่ากรอกได้ และ semantic status/primary/focus คงสีตามหน้าที่ ✅ 2026-08-23
+- [x] **WC3 shell และลำดับสายตา** — Sidebar/mobile nav ไม่มีพื้นสีเป็นก้อนตอน active; ใช้น้ำเงินเฉพาะข้อความ/ไอคอน/เส้นบอกตำแหน่ง · ลด marker สีประจำ module ใน PageHeader/Section ให้เป็น neutral โดยไม่เสียชื่อที่เข้าถึงได้หรือ deep-route state ✅ 2026-08-23
+- [x] **WC4 ครอบคลุมและไม่เปลี่ยนงาน** — ปรับ caller ที่ยังใช้ card ใหญ่เป็น page scaffold; เก็บ card สำหรับ mobile record, stat, bounded item, alert และ overlay ตาม semantic จริง · ไม่แตะข้อมูล เงิน สิทธิ์ สถานะ หรือ Station handoff ✅ 2026-08-23
+- [x] **WC5 verify ของจริงก่อนปิด** — dashboard/orders/production/billing/settings/products/factory representative ที่ 1440×900 + 390×844 ทั้ง Light/Dark · ไม่มี overflow/hydration/console error · keyboard/focus/loading/error/empty/disabled ยังชัด · typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน แล้วอัปเดต SPEC/DESIGN/PROGRESS และ commit ก้อนเล็ก ✅ 2026-08-23
+
 #### ใบงานต้นแบบ ERP Command Center — ออกแบบใหม่ทั้งระบบแบบไม่ตีกรอบ (เบสสั่ง 2026-08-14)
 
 > พิสูจน์ “ภาษาใหม่ทั้งระบบ” จากของจริงก่อนรื้อหน้าหลัก: แนว **สายการผลิตบนกริด** (Swiss industrial manual + ใบสั่งงานโรงงาน) และน้ำเงิน Anajak `#3973b2` · เว็บอนาคตเป็นอีกช่องทางรับออเดอร์เข้าสู่วงจรเดียว ไม่สร้างหลังบ้าน POD แยก

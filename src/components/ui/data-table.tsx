@@ -13,7 +13,7 @@ import {
 
 /**
  * Minimal table primitive that gives every list page the same look-and-feel:
- * - soft elevated container without a decorative outline
+ * - direct-on-canvas table with only structural dividers
  * - sentence-cased header (no UPPERCASE noise)
  * - uniform row hover & dividers
  *
@@ -38,7 +38,7 @@ const Root = React.forwardRef<HTMLDivElement, RootProps>(
     <div
       ref={ref}
       className={cn(
-        bordered && "card-surface overflow-hidden rounded-2xl",
+        bordered && "border-y border-divider",
         className
       )}
       {...props}

@@ -64,7 +64,7 @@ function AuditLogContent() {
         renderMobile={(logs) => (
           <ul className="space-y-3">
             {logs.map((log) => (
-              <li key={log.id} className="card-surface rounded-2xl p-4">
+              <li key={log.id} className="card-surface rounded-xl p-4">
                 <div className="flex items-center justify-between gap-2">
                   <Badge size="sm">{log.action}</Badge>
                   <time className="text-xs text-slate-500 dark:text-slate-400">

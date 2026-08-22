@@ -58,7 +58,7 @@ export function FilterPopover({
           <Filter />
           ตัวกรอง
           {hasFilters && (
-            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-2xs font-medium text-white">
+            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-700 px-1 text-2xs font-medium text-white dark:bg-slate-300 dark:text-slate-950">
               {activeCount}
             </span>
           )}

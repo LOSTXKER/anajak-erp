@@ -84,15 +84,15 @@ export function OrderStatusFilter({
           aria-pressed={!selected}
           onClick={() => onSelect("")}
           className={cn(
-            "group inline-flex min-h-11 items-center gap-2 rounded-full px-3.5 text-sm font-medium transition-colors",
+            "group inline-flex min-h-11 items-center gap-2 border-b-2 bg-transparent px-1 text-sm transition-colors",
             FOCUS_BUTTON,
             !selected
-              ? "bg-blue-600 text-white"
-              : "bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed",
+              ? "border-slate-900 font-semibold text-strong dark:border-white"
+              : "border-transparent font-medium text-muted hover:text-secondary active:text-strong",
           )}
         >
           ทั้งหมด
-          <span className={cn("text-xs tabular-nums", !selected ? "text-white" : "text-muted group-hover:text-secondary group-active:text-secondary")}>
+          <span className="text-xs tabular-nums text-muted group-hover:text-secondary group-active:text-secondary">
             {countLabel(allCount)}
           </span>
         </button>
@@ -106,12 +106,12 @@ export function OrderStatusFilter({
               aria-pressed={active}
               onClick={() => onSelect(active ? "" : status)}
               className={cn(
-                "group inline-flex min-h-11 items-center gap-2 rounded-full px-3.5 text-sm transition-colors",
+                "group inline-flex min-h-11 items-center gap-2 border-b-2 bg-transparent px-1 text-sm transition-colors",
                 index >= 2 && "max-sm:hidden",
                 FOCUS_BUTTON,
                 active
-                  ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
-                  : "bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed",
+                  ? "border-slate-900 font-semibold text-strong dark:border-white"
+                  : "border-transparent font-medium text-muted hover:text-secondary active:text-strong",
               )}
             >
               {INTERNAL_STATUS_LABELS[status]}
@@ -126,15 +126,15 @@ export function OrderStatusFilter({
           <summary
             ref={summaryRef}
             className={cn(
-              RADIUS.pill,
+              RADIUS.item,
               FOCUS_BUTTON,
-              "flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 bg-surface-muted px-3.5 text-sm font-medium text-secondary transition-colors hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed sm:w-fit sm:justify-start dark:hover:bg-interactive-hover dark:hover:text-strong dark:active:bg-interactive-pressed [&::-webkit-details-marker]:hidden",
+              "flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 border-b border-divider bg-transparent px-1 text-sm font-medium text-secondary transition-colors hover:text-strong active:text-strong sm:w-fit sm:justify-start [&::-webkit-details-marker]:hidden",
             )}
           >
             ทุกสถานะ
             <ChevronDown className="h-4 w-4 text-muted transition-transform group-hover:text-secondary group-active:text-secondary group-open:rotate-180" />
           </summary>
-          <div className="mt-3 w-full max-w-full rounded-2xl bg-surface-muted p-3">
+          <div className="mt-3 w-full max-w-full border-t border-divider pt-3">
             <OrderStatusFlowBar
               counts={counts}
               selected={selected}

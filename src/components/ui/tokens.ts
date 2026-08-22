@@ -32,8 +32,8 @@ export const RADIUS = {
   field: "rounded-[10px]",
   /** 12px — กล่องย่อยที่ซ้อนอยู่ในการ์ด · รูปย่อ · ป้ายสี่เหลี่ยม */
   inner: "rounded-xl",
-  /** 16px — ของชิ้นใหญ่: การ์ด · ส่วน · ช่องกรอกทรงเหลี่ยม · กล่องเด้ง · เมนูที่กางออกมา */
-  surface: "rounded-2xl",
+  /** 12px — การ์ดรองและกล่องเด้ง; ผิวหลักของหน้าไม่ใช้ radius ครอบ */
+  surface: "rounded-xl",
   /** เต็ม — ของทรงแคปซูล: ปุ่ม · ช่องค้นหา · สวิตช์ */
   pill: "rounded-full",
 } as const;
@@ -44,8 +44,11 @@ export const RADIUS = {
  *  อยู่ที่นี่ไม่ได้อยู่ในไฟล์ช่องเลือกแล้ว — ของเดิม input.tsx ต้อง import จาก
  *  native-select.tsx ทั้งที่ไม่เกี่ยวกัน ถ้าไฟล์นั้นถูกลบช่องกรอกทั้งระบบพัง */
 export type ControlShape = "box" | "pill";
-export const controlShapeClass = (shape: ControlShape = "box") =>
-  shape === "pill" ? RADIUS.pill : RADIUS.field;
+/** `pill` คงเป็น compatibility API แต่ visual contract ใหม่ใช้ทรง field ธรรมดาทั้งคู่ */
+export const controlShapeClass = (shape: ControlShape = "box") => {
+  void shape;
+  return RADIUS.field;
+};
 
 /* ------------------------------------------------------------
    วงแหวนตอนโฟกัส — มี 2 ความหมายเท่านั้น ห้ามคิดแบบที่ 3
@@ -87,10 +90,9 @@ export const FOCUS_FIELD_INVALID =
 export const FIELD_SURFACE =
   "border border-field-border bg-field text-strong placeholder:text-placeholder aria-invalid:border-red-500 aria-invalid:bg-red-50/50 aria-invalid:focus-visible:border-red-500 aria-invalid:focus-visible:ring-red-500/30 data-[invalid=true]:border-red-500 data-[invalid=true]:bg-red-50/50 data-[invalid=true]:focus-visible:border-red-500 data-[invalid=true]:focus-visible:ring-red-500/30 dark:aria-invalid:border-red-400 dark:aria-invalid:bg-red-950/20 dark:aria-invalid:focus-visible:border-red-400 dark:aria-invalid:focus-visible:ring-red-400/30 dark:data-[invalid=true]:border-red-400 dark:data-[invalid=true]:bg-red-950/20 dark:data-[invalid=true]:focus-visible:border-red-400 dark:data-[invalid=true]:focus-visible:ring-red-400/30";
 
-/** control ที่ยืนเดี่ยวบนผืนหน้า — ขาว+เงาเบา โดยไม่ใช้ field-border เข้ม
- *  caller บอกเพียง semantic role ผ่าน prop; primitive เป็นเจ้าของผิว */
+/** control ที่ยืนเดี่ยวบนผืนหน้า — boundary บางแบบ control ธรรมดา ไม่มี elevation */
 export const RAISED_CONTROL_SURFACE =
-  "border-transparent bg-surface shadow-sm";
+  "border-field-border bg-transparent shadow-none";
 
 /** inline ใช้กับ control ที่ทำหน้าที่เป็น action ในแถว ไม่ใช่พื้นที่กรอก เช่นเมนูคัดลอก */
 export type ControlSurface = "field" | "raised" | "inline";
@@ -223,4 +225,4 @@ export const FIELD_LABEL =
  *  (blue-400/blue-900) ทั้งที่หมายถึงเรื่องเดียวกัน — คนอ่านหน้าจอเห็นว่า
  *  "กรองอยู่" ด้วยสีที่ไม่เท่ากันในแต่ละหน้า */
 export const ACTIVE_FILTER =
-  "bg-interactive-selected text-interactive-selected-text hover:bg-interactive-selected hover:text-interactive-selected-text active:bg-interactive-selected active:text-interactive-selected-text";
+  "border-border-strong bg-transparent text-strong hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong";

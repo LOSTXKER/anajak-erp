@@ -7,7 +7,7 @@ import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
 import { PageIdentityIcon, pageDescriptionForLabel } from "@/lib/page-identity";
 import { HelpTip } from "@/components/ui/help-tip";
-import { VISUAL_TONE_CLASSES, visualToneForLabel, type VisualTone } from "@/lib/visual-tone";
+import type { VisualTone } from "@/lib/visual-tone";
 
 export interface BreadcrumbItem {
   label: string;
@@ -50,7 +50,6 @@ export function PageHeader({
   titleBadge,
   back,
   icon,
-  tone,
   eyebrow,
   children,
 }: PageHeaderProps) {
@@ -58,10 +57,6 @@ export function PageHeader({
     typeof title === "string"
       ? title
       : breadcrumb?.at(-1)?.label;
-  const toneSource = [...(breadcrumb?.map((item) => item.label) ?? []), identityLabel]
-    .filter(Boolean)
-    .join(" ");
-  const resolvedTone = tone ?? visualToneForLabel(toneSource);
   const descriptionSource = [identityLabel, ...(breadcrumb?.map((item) => item.label) ?? [])]
     .filter(Boolean)
     .join(" ");
@@ -130,7 +125,7 @@ export function PageHeader({
           <span
             className={cn(
               "page-module-mark mt-1 flex h-6 w-6 shrink-0 items-center justify-center",
-              VISUAL_TONE_CLASSES[resolvedTone].text,
+              "text-secondary",
             )}
             role={eyebrow ? "img" : undefined}
             aria-label={eyebrow}

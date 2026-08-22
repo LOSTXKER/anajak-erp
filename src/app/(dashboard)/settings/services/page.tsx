@@ -213,7 +213,7 @@ export default function ServicesPage() {
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="card-surface mb-4 space-y-3 rounded-2xl p-4"
+              className="card-surface mb-4 space-y-3 rounded-xl p-4"
             >
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div>

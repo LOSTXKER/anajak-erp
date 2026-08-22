@@ -118,7 +118,7 @@ function BlockSection({
   return (
     <section
       data-print-run-stage={stage}
-      className="card-surface overflow-clip rounded-2xl"
+      className="card-surface overflow-clip rounded-xl"
     >
       <div className="flex items-center gap-2 border-b border-divider px-4 py-3">
         <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" strokeWidth={1.75} />

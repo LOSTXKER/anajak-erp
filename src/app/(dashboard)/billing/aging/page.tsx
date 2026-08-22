@@ -361,7 +361,7 @@ function AgingPageContent() {
         renderMobile={(rows) => (
           <div role="list" aria-label="รายการลูกหนี้" className="space-y-3">
             {rows.map((row) => (
-              <article key={row.customerId} role="listitem" className="card-surface rounded-2xl p-4">
+              <article key={row.customerId} role="listitem" className="card-surface rounded-xl p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <Link

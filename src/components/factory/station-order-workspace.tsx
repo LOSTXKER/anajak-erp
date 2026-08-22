@@ -64,7 +64,7 @@ export function StationOrderWorkspace({
   }
   if (query.isError && !context) {
     return (
-      <div className="card-surface rounded-2xl">
+      <div className="card-surface rounded-xl">
         <QueryError
           message="โหลดบริบทงานไม่สำเร็จ"
           onRetry={() => void query.refetch()}
@@ -74,7 +74,7 @@ export function StationOrderWorkspace({
   }
   if (!context) {
     return (
-      <div className="card-surface rounded-2xl">
+      <div className="card-surface rounded-xl">
         <EmptyState
           icon={ClipboardCheck}
           title="ไม่พบออเดอร์นี้"
@@ -189,7 +189,7 @@ export function StationOrderWorkspace({
       )}
 
       {isReady && (
-        <div className="card-surface rounded-2xl">
+        <div className="card-surface rounded-xl">
           <EmptyState
             icon={CheckCircle2}
             title={order.internalStatus === "READY_TO_SHIP" ? "แพ็กครบและพร้อมส่งแล้ว" : "งานออกจากสถานีแพ็กแล้ว"}
@@ -211,7 +211,7 @@ export function StationOrderWorkspace({
       )}
 
       {!isQc && !isPacking && !isReady && !isStopped && (
-        <div className="card-surface rounded-2xl p-5">
+        <div className="card-surface rounded-xl p-5">
           <div className="flex items-start gap-3">
             <Printer className="mt-0.5 h-5 w-5 text-blue-400" aria-hidden="true" />
             <div className="min-w-0 flex-1">
@@ -379,7 +379,7 @@ function StationPackingCard({
   }
   if (packQuery.isError && !packQuery.data) {
     return (
-      <div className="card-surface rounded-2xl">
+      <div className="card-surface rounded-xl">
         <QueryError
           message="โหลดรายการแพ็กไม่สำเร็จ"
           onRetry={() => void packQuery.refetch()}
@@ -427,7 +427,7 @@ function StationPackingCard({
         </Alert>
       )}
 
-      <div className="card-surface overflow-hidden rounded-2xl">
+      <div className="card-surface overflow-hidden rounded-xl">
         <div className="flex flex-wrap items-center gap-2 border-b border-divider px-4 py-3">
           <span className="text-sm font-semibold text-strong">รายการนับแพ็ก</span>
           <span className="ml-auto text-sm tabular-nums text-muted">

@@ -34,7 +34,6 @@ import {
   INTERACTIVE_CHROME_PRESSED,
   INTERACTIVE_HOVER,
   INTERACTIVE_PRESSED,
-  INTERACTIVE_SELECTED,
   RADIUS,
   SUNK_PANEL,
 } from "@/components/ui/tokens";
@@ -57,7 +56,7 @@ function sidebarNavItemClass({
     RADIUS.item,
     "group/sidebar-item flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
     active
-      ? cn("font-medium", INTERACTIVE_SELECTED)
+      ? "relative font-medium text-blue-700 before:absolute before:bottom-2 before:left-0 before:top-2 before:w-px before:bg-blue-600 dark:text-blue-300"
       : cn(
           "font-normal",
           "text-secondary",
@@ -291,7 +290,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
             className={cn(
               CONTROL_H,
               FOCUS_BUTTON,
-              RADIUS.pill,
+              RADIUS.field,
               SUNK_PANEL,
               INTERACTIVE_HOVER,
               INTERACTIVE_PRESSED,
@@ -394,9 +393,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
               >
                 <span
                   className={cn(
-                    RADIUS.pill,
                     "flex h-6 min-w-10 items-center justify-center",
-                    active && "bg-interactive-selected",
                   )}
                 >
                   <item.icon className="h-5 w-5" strokeWidth={active ? 2 : 1.75} />
@@ -424,9 +421,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
           >
             <span
               className={cn(
-                RADIUS.pill,
                 "flex h-6 min-w-10 items-center justify-center",
-                mobileMoreActive && "bg-interactive-selected",
               )}
             >
               <MoreHorizontal className="h-5 w-5" strokeWidth={1.75} />

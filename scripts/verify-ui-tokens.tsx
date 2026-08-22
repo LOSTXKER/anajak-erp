@@ -136,7 +136,7 @@ const hSm = CONTROL_H_SM.split(" ");
   );
   if (
     !headerHtml.includes("page-module-mark") ||
-    !headerHtml.includes("text-module-production-text") ||
+    !headerHtml.includes("text-secondary") ||
     !headerHtml.includes('data-page-description=""') ||
     !headerHtml.includes("ดูคิวผลิต งานที่ติดขัด และขั้นตอนที่ต้องจัดการต่อ") ||
     headerHtml.includes("bg-module-production-solid") ||
@@ -368,13 +368,13 @@ check(
   ],
 );
 
-// ② ทรงแคปซูลสำหรับแถบเครื่องมือ
-check("ช่องกรอกทรงแคปซูล", renderToStaticMarkup(<Input shape="pill" />), ["rounded-full"], ["rounded-[10px]"]);
+// ② compatibility shape เดิมต้องถูกยุบเป็น control ทรงธรรมดา
+check("ช่องกรอก compatibility pill ใช้ทรงธรรมดา", renderToStaticMarkup(<Input shape="pill" />), ["rounded-[10px]"], ["rounded-full"]);
 check(
-  "ช่องเลือกทรงแคปซูล",
+  "ช่องเลือก compatibility pill ใช้ทรงธรรมดา",
   renderToStaticMarkup(<Select shape="pill" value="" onChange={() => {}}><option value="">ก</option></Select>),
-  ["rounded-full"],
   ["rounded-[10px]"],
+  ["rounded-full"],
 );
 check(
   "ช่องเลือก inline โปร่งตอนพักแต่คงเส้น focus จริง",
@@ -383,18 +383,17 @@ check(
   ["border-0", "border-field-border", "bg-field", "shadow-sm"],
 );
 
-// Toolbar บนผืนหน้าต้องยกขึ้นจาก page ด้วย surface+เงา ไม่ใช้ field-border เข้ม
-// และเมื่อกรองอยู่ selected blue ต้องชนะพื้น surface โดยเงายังคงอยู่
+// Toolbar เป็น control ธรรมดาบนผืนหน้า ไม่มีเงาหรือ selected fill ตกแต่ง
 {
   const searchHtml = renderToStaticMarkup(
     <SearchInput surface="raised" />,
   );
-  const searchControl = searchHtml.match(/<input[^>]*class="[^"]*shadow-sm[^"]*"[^>]*>/)?.[0] ?? "";
+  const searchControl = searchHtml.match(/<input[^>]*>/)?.[0] ?? "";
   check(
     "ช่องค้นหาแบบยกบนผืนหน้า",
     searchControl,
+    ["bg-transparent", "shadow-none", "border-field-border"],
     ["bg-surface", "shadow-sm", "border-transparent"],
-    ["border-border", "border-field-border"],
   );
 }
 {
@@ -407,10 +406,10 @@ check(
   );
   const dateTrigger = dateHtml.match(/<button[^>]*aria-label="ช่วงวันที่:[^"]*"[^>]*>/)?.[0] ?? "";
   check(
-    "ช่วงวันที่ active คงเงาและให้ selected surface ชนะ",
+    "ช่วงวันที่ active คงรูปทรง neutral",
     dateTrigger,
-    ["bg-interactive-selected", "border-border", "shadow-sm"],
-    ["bg-surface", "border-field-border"],
+    ["border-border-strong", "bg-transparent", "shadow-none"],
+    ["bg-interactive-selected", "shadow-sm"],
   );
 }
 {
@@ -425,10 +424,10 @@ check(
   );
   const filterTrigger = filterHtml.match(/<button[^>]*aria-haspopup="dialog"[^>]*>/)?.[0] ?? "";
   check(
-    "ปุ่มตัวกรอง active คงเงาและให้ selected surface ชนะ",
+    "ปุ่มตัวกรอง active คงรูปทรง neutral",
     filterTrigger,
-    ["bg-interactive-selected", "border-border", "shadow-sm"],
-    ["bg-surface", "border-field-border"],
+    ["border-border-strong", "bg-transparent", "shadow-none"],
+    ["bg-interactive-selected", "shadow-sm"],
   );
 }
 
@@ -463,7 +462,7 @@ check("สั่งความสูงทับเองได้", renderToSt
 // ⑤ ปุ่ม = วงแหวนโฟกัสคนละสูตรกับช่องกรอก (ชัดกว่า + เว้นขอบ)
 check("ปุ่ม", renderToStaticMarkup(<Button>ก</Button>), [
   ...h,
-  "rounded-full",
+  "rounded-lg",
   "focus-visible:ring-2",
   "focus-visible:ring-blue-500",
   "focus-visible:ring-offset-2",
@@ -488,8 +487,8 @@ for (const variant of ["outline", "secondary", "subtle"] as const) {
   check(
     `ปุ่มรอง ${variant} แยกจาก field/structural surface`,
     renderToStaticMarkup(<Button variant={variant}>ก</Button>),
-    ["border-border", "bg-surface", "shadow-sm"],
-    ["border-transparent", "border-field-border", "bg-field", "bg-surface-muted"],
+    ["border-border", "bg-transparent", "shadow-none"],
+    ["border-transparent", "border-field-border", "bg-field", "bg-surface", "bg-surface-muted", "shadow-sm"],
   );
 }
 check(
@@ -853,7 +852,7 @@ check(
     navigationHelperSource.includes("INTERACTIVE_CHROME_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_CHROME_PRESSED") &&
-    navigationHelperSource.includes("INTERACTIVE_SELECTED") &&
+    navigationHelperSource.includes("before:bg-blue-600") &&
     navigationHelperSource.includes("FOCUS_INSET") &&
     navigationHelperSource.includes("group-hover/sidebar-item:text-secondary") &&
     !navigationHelperSource.includes("hover:bg-");
@@ -883,10 +882,9 @@ check(
     !/(?:hover|active|focus|data-\[)/.test(SUNK_PANEL) &&
     !globalsSource.includes(".sunk-panel");
   const raisedControlIsSeparate =
-    RAISED_CONTROL_SURFACE.includes("border-transparent") &&
-    RAISED_CONTROL_SURFACE.includes("bg-surface") &&
-    RAISED_CONTROL_SURFACE.includes("shadow-sm") &&
-    !RAISED_CONTROL_SURFACE.includes("field");
+    RAISED_CONTROL_SURFACE.includes("border-field-border") &&
+    RAISED_CONTROL_SURFACE.includes("bg-transparent") &&
+    RAISED_CONTROL_SURFACE.includes("shadow-none");
   const brandBlueIsLocked = colorValues("blue-600")[0]?.toLowerCase() === "#3973b2";
   const selectedStaysBlue = [
     ...colorValues("interactive-selected"),
@@ -897,11 +895,12 @@ check(
   });
   const focusStaysBlue = [FOCUS_FIELD, FOCUS_BUTTON, FOCUS_INSET]
     .every((token) => token.includes("blue-"));
-  const selectedControlStaysSelected =
-    ACTIVE_FILTER.includes("hover:bg-interactive-selected") &&
-    ACTIVE_FILTER.includes("active:bg-interactive-selected") &&
-    !ACTIVE_FILTER.includes("hover:bg-interactive-hover") &&
-    !ACTIVE_FILTER.includes("active:bg-interactive-pressed");
+  const activeFilterStaysNeutral =
+    ACTIVE_FILTER.includes("border-border-strong") &&
+    ACTIVE_FILTER.includes("bg-transparent") &&
+    ACTIVE_FILTER.includes("hover:bg-interactive-hover") &&
+    ACTIVE_FILTER.includes("active:bg-interactive-pressed") &&
+    !ACTIVE_FILTER.includes("bg-interactive-selected");
   if (
     offenders.length ||
     blueHoverOffenders.length ||
@@ -918,7 +917,7 @@ check(
     !brandBlueIsLocked ||
     !selectedStaysBlue ||
     !focusStaysBlue ||
-    !selectedControlStaysSelected ||
+    !activeFilterStaysNeutral ||
     !sunkIsStructural ||
     !raisedControlIsSeparate
   ) {
@@ -950,14 +949,14 @@ check(
     if (!brandBlueIsLocked || !selectedStaysBlue || !focusStaysBlue) {
       console.log("   น้ำเงิน #3973b2 ต้องสงวนอยู่ที่ primary/selected/focus");
     }
-    if (!selectedControlStaysSelected) {
-      console.log(`   selected control ต้องไม่กลับเป็น neutral ตอนชี้/กด: ${ACTIVE_FILTER}`);
+    if (!activeFilterStaysNeutral) {
+      console.log(`   active filter ต้องเป็น neutral control: ${ACTIVE_FILTER}`);
     }
     if (!sunkIsStructural) {
       console.log(`   SUNK_PANEL ต้องไม่มี interaction state: ${SUNK_PANEL}`);
     }
     if (!raisedControlIsSeparate) {
-      console.log(`   raised control ต้องเป็น surface+เงาและไม่ใช้ field-border: ${RAISED_CONTROL_SURFACE}`);
+      console.log(`   toolbar control ต้องเป็น boundary ธรรมดาไร้เงา: ${RAISED_CONTROL_SURFACE}`);
     }
   } else {
     console.log("✅ navigation/surface hover ขาวนวล · pressed แยกชั้น · primary/selected/focus ยังเป็นน้ำเงิน");
@@ -1002,7 +1001,7 @@ check(
   if (
     fields.length !== 2 ||
     fieldBorders.length !== 2 ||
-    fields[0] !== colorValues("surface")[0] ||
+    fields[0] !== colorValues("bg")[0] ||
     globalsSource.includes(".sunk-panel")
   ) {
     failed++;
@@ -1244,34 +1243,32 @@ check(
     "src/components/orders/detail/order-status-bar.tsx",
     "utf8",
   );
-  const statusWrappers = [
-    ordersStatusSource.match(/className="([^"]*card-surface[^"]*)"/)?.[1] ?? "",
-    detailStatusSource.match(/className="([^"]*card-surface[^"]*)"/)?.[1] ?? "",
-  ];
+  const statusWrappers = [ordersStatusSource, detailStatusSource];
   if (
     statusWrappers.some(
-      (classes) =>
-        !classes.includes("card-surface") ||
-        /(?:^|\s)border(?:\s|$)|(?:^|\s)ring-(?!0)/.test(classes),
+      (source) =>
+        !source.includes("border-y border-divider") ||
+        source.includes("card-surface"),
     )
   ) {
     failed++;
-    console.log("❌ status rail ต้องอยู่บน card surface มีเงา แต่ห้ามเส้นรอบตกแต่ง");
+    console.log("❌ status rail ต้องวางตรงบนผืนหน้าและใช้เฉพาะ structural divider");
   } else {
-    console.log("✅ status rail อยู่บน card surface โดยไม่มีเส้นรอบตกแต่ง");
+    console.log("✅ status rail วางตรงบนผืนหน้าและใช้ structural divider");
   }
 
   const desktopStatusSource =
     ordersStatusSource.match(/function DesktopItemButton[\s\S]*?\n}\n\nexport function/)?.[0] ?? "";
   if (
-    !desktopStatusSource.includes("hover:bg-interactive-hover") ||
-    !desktopStatusSource.includes("active:bg-interactive-pressed") ||
-    !desktopStatusSource.includes("group-hover:text-secondary")
+    !desktopStatusSource.includes("border-b-2") ||
+    !desktopStatusSource.includes("border-slate-900") ||
+    !desktopStatusSource.includes("border-transparent") ||
+    !desktopStatusSource.includes("hover:text-strong")
   ) {
     failed++;
-    console.log("❌ ขั้นสถานะ desktop ต้องชี้ด้วยพื้นขาวนวล และคง pressed/selected feedback");
+    console.log("❌ ขั้นสถานะ desktop ต้องใช้ข้อความ neutral และเส้นใต้สถานะเลือก");
   } else {
-    console.log("✅ ขั้นสถานะ desktop ชี้ด้วยพื้นขาวนวล โดยคง pressed/selected feedback");
+    console.log("✅ ขั้นสถานะ desktop ใช้ข้อความ neutral และเส้นใต้สถานะเลือก");
   }
 }
 
@@ -1497,13 +1494,13 @@ check(
   }
   const pageColors = colorValues("bg");
   if (
-    pageColors[0] !== "#f8f9fb" ||
-    pageColors[1] !== "#1a1a1c" ||
+    pageColors[0] !== "#ffffff" ||
+    pageColors[1] !== "#111113" ||
     !appShellSource.includes("app-workspace") ||
     !globalsSource.includes(".app-workspace") ||
-    !globalsSource.includes("--color-bg: #f6f8fb")
+    !globalsSource.includes("--color-bg: #ffffff")
   ) {
-    problems.push("AppShell workspace ต้องเป็น Light #f6f8fb โดยไม่เปลี่ยน public/auth fallback");
+    problems.push("AppShell workspace ต้องเป็นผืนขาวต่อเนื่องและ Dark เป็นผืนดำต่อเนื่อง");
   }
 
   if (problems.length) {
@@ -2231,7 +2228,7 @@ check(
     !managerHtml.slice(renderedQueueIndex, renderedHistoryIndex).includes("top-3") ||
     !managerHtml
       .slice(renderedQueueIndex, renderedHistoryIndex)
-      .includes("card-surface overflow-clip rounded-2xl")
+      .includes("card-surface overflow-clip rounded-xl")
   ) {
     problems.push("fixture คิวยาวต้องคง sticky bar ใต้ ancestor ที่ไม่เป็น scroll container");
   }
@@ -2366,7 +2363,7 @@ check(
     queueListIndex < 0 ||
     selectionIndex > queueListIndex ||
     !printRunsSource.includes('stationMode ? "top-32" : "top-3"') ||
-    !printRunsSource.includes('className="card-surface overflow-clip rounded-2xl"')
+    !printRunsSource.includes('className="card-surface overflow-clip rounded-xl"')
   ) {
     problems.push("แถบเปิดรอบต้องอยู่ในบริบทคิวและตามเห็นทันทีเมื่อเลือกงาน");
   }

@@ -495,7 +495,7 @@ function OrdersPageContent() {
               ถ้าไม่มีอะไรบอกเลย คนกดมาจากแดชบอร์ดจะเห็นรายการถูกกรองอยู่โดยไม่รู้ว่ากรองอะไร
               และล้างไม่ได้ — จึงโชว์ป้ายเดียวเฉพาะตอนกรองค้างอยู่ กดกากบาทเพื่อล้าง */}
           {attention && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 py-1 pl-3 pr-1 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+            <span className="inline-flex items-center gap-1.5 border-b-2 border-slate-900 py-1 pl-1 text-xs font-semibold text-strong dark:border-white">
               {ATTENTION_FILTERS.find((f) => f.value === attention)?.label}
               <Button
                 variant="ghost"
@@ -677,7 +677,7 @@ function OrdersPageContent() {
                 ? mockupCoverImage(order.designs[0])
                 : null;
               return (
-                <article key={order.id} role="listitem" className="card-surface rounded-2xl">
+                <article key={order.id} role="listitem" className="card-surface rounded-xl">
                 <Link
                   href={`/orders/${order.id}`}
                   className={cn("block min-h-11 rounded-2xl p-4", FOCUS_BUTTON)}

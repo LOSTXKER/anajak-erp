@@ -1,9 +1,9 @@
 # มาตรฐาน UI Anajak ERP (P1.0)
 
-## Visual identity contract (2026-08-22)
+## Visual identity contract — White Working Sheet (2026-08-23)
 
-- ทุก `PageHeader` มาตรฐานมี module marker จาก Lucide และ `VisualTone` กลางแบบเส้นล้วนขนาดเล็ก โดยไม่มีพื้น กรอบ หรือเงา; `<h1>` ต้องมีข้อความจริงเพียงชุดเดียวและ marker เป็นของตกแต่งที่ `aria-hidden` พร้อมชื่อหน้าเดิมเป็น accessible name
-- ความแตกต่างของโมดูลมาจาก icon, scale, composition, ภาพงานจริง และสีบริบทขนาดเล็ก: Sales/Brand = Anajak Blue, Production = teal, Product = saffron, Finance = violet, System = graphite; primary, selected, link และ focus ยังคง Anajak Blue
+- ทุก `PageHeader` มาตรฐานมี module marker จาก Lucide แบบเส้น neutral ขนาดเล็ก โดยไม่มีพื้น กรอบ เงา หรือสีประจำหมวด; `<h1>` ต้องมีข้อความจริงเพียงชุดเดียวและ marker เป็นของตกแต่งที่ `aria-hidden` พร้อมชื่อหน้าเดิมเป็น accessible name
+- ความแตกต่างของโมดูลมาจาก icon, scale, composition, ภาพงานจริง และลำดับข้อมูล ไม่ใช้สีเป็นโครงหน้า; น้ำเงิน Anajak สงวนให้ primary action, link, active navigation indicator และ focus ส่วนสีสถานะใช้เฉพาะความหมายจริง
 - registry table/list ใช้ข้อความเป็นหลักและไม่วาด object icon หรือ initials ซ้ำกับชื่อ; รายการออเดอร์ใช้เฉพาะม็อกอัพจริงล่าสุด และเว้นว่างเมื่อไม่มีรูปโดยไม่ถอยไปใช้ artwork, initials หรือ placeholder icon; ช่องจำนวน เงิน วันที่ และสถานะไม่ต้องมี icon
 - ทุก `PageHeader`/`PageShell` มี `description` สั้นหนึ่งประโยคใต้หัวข้อโดยอัตโนมัติจาก `pageDescriptionForLabel`; หน้าเฉพาะ override ได้เมื่อบริบทต่างกัน · `description` บอกว่าหน้านี้ใช้ทำอะไร, `meta` เป็นข้อเท็จจริงเฉพาะรายการ/สถานะ และ `help` ใช้เฉพาะสูตร กติกา หรือรายละเอียดเสริมที่ยาว · `Section` ไม่รับ `description` เพื่อไม่ให้ทุกกล่องมีข้อความซ้ำจนรก
 - `HelpTip` ใช้ Radix Popover เปิดด้วย click/tap/Enter/Space ปิดด้วย Escape/คลิกนอกและคืน focus; เนื้อหาไม่เกิน 2–3 ประโยค ส่วน error, validation, permission denial, blocker, กฎหมาย และผลกระทบจาก action ต้องเห็นตรงหน้า
@@ -23,24 +23,23 @@
 
 ## สี — semantic system (`src/app/globals.css`)
 
-รอบ Industrial Fresh 2026-08-22 ใช้ Light workspace ใน AppShell `#f6f8fb` โดย card/chrome คงขาวล้วน
-และคืน Dark เป็น neutral gray เข้มแบบเดิม
-และใช้ surface hover/pressed เป็นเทากลางแทนฟ้ากับพื้นที่กดทั้ง navigation/control/row/card ·
-hover Light เป็นขาวนวล ไม่ใช่แถบเทาหนัก · น้ำเงิน Anajak `#3973b2` สงวนให้ primary,
-selected และ focus เพื่อให้สถานะชี้กับสถานะเลือกไม่สื่อความหมายซ้ำกัน
+White Working Sheet ใช้ page/workspace/chrome เป็นผืนเดียว: Light ขาว `#fff`, Dark ดำ neutral `#111113` ·
+เนื้อหาหลักวางบนผืนโดยตรง; `Section`, `DataTable` และ status rail ใช้ระยะกับ divider เท่าที่จำเป็น
+แทน card ครอบ · card เหลือเฉพาะ bounded secondary object และใช้ neutral fill ไร้เงา ·
+menu/dialog เป็นชั้นเดียวที่ลอยด้วยเงา · น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link,
+active navigation indicator และ focus
 
 | บทบาท | Light | Dark | utility |
 |---|---|---|---|
-| พื้น workspace หลังบ้าน | `#f6f8fb` | `#1a1a1c` | `.app-workspace` + `bg-bg` |
-| พื้น fallback public/auth | `#f8f9fb` | `#1a1a1c` | `bg-bg` |
-| navbar/sidebar | `#fff` | `#161618` | `bg-chrome` |
-| card | `#fff` | `#252528` | `bg-surface` / `card-surface` |
-| menu/dialog | `#fff` | `#252528` | `bg-surface-elevated` / `overlay-surface` |
-| กล่องจมเชิงโครงสร้าง/disabled | `#f3f5f7` | `#1d1d1f` | `bg-surface-muted` / `SUNK_PANEL` |
-| ช่องกรอก | `#fff` + ขอบ `#c8d0d9` | `#101012` + ขอบ `#3f3f44` | `FIELD_SURFACE` |
+| พื้น workspace/fallback หลังบ้าน | `#fff` | `#111113` | `.app-workspace` + `bg-bg` |
+| navbar/sidebar | `#fff` | `#111113` | `bg-chrome` |
+| card รอง | `#f7f7f8` | `#1b1b1e` | `bg-surface` / `card-surface` |
+| menu/dialog | `#fff` | `#242428` | `bg-surface-elevated` / `overlay-surface` |
+| กล่องจมเชิงโครงสร้าง/disabled | `#f1f1f2` | `#18181b` | `bg-surface-muted` / `SUNK_PANEL` |
+| ช่องกรอก | `#fff` + ขอบ `#c8d0d9` | `#151517` + ขอบ `#3f3f44` | `FIELD_SURFACE` |
 | พื้นที่เพิ่ม/อัปโหลด | ขอบประ `slate-300` | ขอบประ `slate-700` | `DASHED` / `DASHED_INTERACTIVE` — resting เบา; hover/focus ค่อยเน้น |
-| control บน toolbar | `#fff` + เงา | `#252528` + เงา | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
-| ปุ่มรอง | `#fff` + ขอบบาง+เงา | `#252528` + ขอบบาง+เงา | `Button outline/secondary/subtle` |
+| control บน toolbar | โปร่ง + ขอบบาง | โปร่ง + ขอบบาง | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
+| ปุ่มรอง | โปร่ง + ขอบบาง | โปร่ง + ขอบบาง | `Button outline/secondary/subtle` |
 | ขอบทั่วไป / เส้นคั่น | `#e2e6ea` / `#e8ebef` | `#343438` / `#303034` | `border-border` / `border-divider` |
 | Hover | `#f1f3f5` | `#303034` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
 | Pressed | `#e3e6e9` | `#38383c` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
@@ -73,16 +72,16 @@ selected และ focus เพื่อให้สถานะชี้กั�
 
 กติกา interaction:
 
-- navigation, ขั้นสถานะ, control, menu option, row และ clickable card ใช้พื้น hover ครอบ hit area จริง; Light ใช้ขาวนวลเพื่อไม่ให้ดูเป็นแถบเทาหนัก
-- clickable card compose `card-surface-hover` เพื่อรับพื้น hover เต็ม hit area + elevation + pressed จาก primitive กลาง; ห้ามเขียนสีซ้ำที่ caller
+- navigation, control, menu option, row และ clickable card ใช้ neutral hover/pressed ครอบ hit area จริง; active navigation ใช้ข้อความน้ำเงิน+indicator 1px ไม่ใช้พื้นสี
+- clickable card compose `card-surface-hover` เพื่อรับ neutral fill hover/pressed โดยไม่มี elevation; ห้ามเขียนสีซ้ำที่ caller
 - ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
-- Minimal = ไม่มีเส้นกรอบ **ตกแต่ง**: card/table/status rail ใช้ surface+เงาโดยไร้ outline · field ใช้ขาว/เข้ม + เส้น resting อ่อนเพื่อช่วยเห็นรูปทรง · toolbar/secondary action ใช้ surface ยก · กล่องจมใช้ `surface-muted` เฉพาะโครงสร้าง
+- Minimal = เนื้อหาหลักอยู่บน page canvas โดยตรง: `Section`/table/status rail ใช้ divider เชิงโครงสร้างเท่าที่ต้องอ่าน · card รองใช้ neutral fill ไร้เงา · field ใช้ขาว/เข้ม + resting boundary · toolbar/secondary action เป็น control โปร่งมีขอบบาง · overlay เท่านั้นที่ลอยด้วยเงา
 - รายการงานในฟอร์มใช้หนึ่ง `card-surface` ต่อหนึ่งรายการโดยตรงบน page canvas · ห้ามวาง card ใหญ่ครอบ list แล้วเติม border รอบรายการซ้ำ · CTA “เพิ่มรายการ” อยู่ก่อน list ทั้งหน้าเปิดงานและหน้าแก้ไข
 - ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — `border-field-border bg-field` ไม่มีเงา; resting boundary ต้องอยู่ในช่วงที่ guard ล็อกไว้ไม่ให้จางจนกลืนหรือเข้มจนเป็นตาราง · focus/error ใช้เส้น contrast สูงและเปลี่ยนสีเส้นเดิมโดยความสูงไม่ขยับ · ห้าม ancestor เปลี่ยนสี field ตามตำแหน่ง
 - กล่องเพิ่มของ/อัปโหลดใช้ `DASHED_INTERACTIVE`; placeholder ที่อ่านอย่างเดียวใช้ `DASHED` — ขอบประตอนพักต้องอ่อนกว่าขอบเน้น เพราะพื้นที่ก้อนใหญ่ขยายน้ำหนักของเส้น; hover/pressed/focus เป็นผู้บอก interaction แทน · ห้ามใช้ `border-strong` เป็น resting state
-- `SearchInput`/`Select` ที่อยู่บน `Toolbar` ระบุ `surface="raised"`; ใน form/dialog ระบุ/default `field`; action ในแถวที่ตั้งใจโปร่งใช้ `surface="inline"` แทน class สีดิบ
+- `SearchInput`/`Select` ที่อยู่บน `Toolbar` ยังระบุ `surface="raised"` เพื่อ semantic contract แต่หน้าตาเป็น control ขอบบางไร้เงา; ใน form/dialog ระบุ/default `field`; action ในแถวที่ตั้งใจโปร่งใช้ `surface="inline"`
 - field และ Button ที่ disabled ใช้ muted fill/text + `shadow-none` โดยไม่ลด opacity ทั้งก้อน เพื่อให้ยังอ่านค่าที่ล็อกอยู่ได้; icon-only/checkbox/switch คง feedback disabled ของ primitive ตัวเอง
 - สีสถานะใช้เฉพาะ **blue / red / amber / green** ผ่าน `Badge`, `Alert`, `StatusLabel`, `TINT`
 - `slate-*` เป็น compatibility ramp สำหรับ markup เก่า ไม่ใช่ทางหลักของ component ใหม่
@@ -160,9 +159,10 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 |---|---|
 | ชิ้นเล็กในรายการ (ตัวเลือกในเมนู · ปุ่มในแถบสลับ) | `RADIUS.item` = 8px |
 | กล่องย่อยในการ์ด · รูปย่อ | `RADIUS.inner` = 12px |
-| การ์ด · ส่วน · กล่องเด้ง | `RADIUS.surface` = 16px |
+| การ์ดรอง · กล่องเด้ง | `RADIUS.surface` = 12px; `Section` หลักไม่มีกรอบครอบ |
 | ช่องกรอกทรงเหลี่ยม | `RADIUS.field` = 10px |
-| **ปุ่ม · ช่องค้นหา · สวิตช์** | `RADIUS.pill` = มนเต็ม |
+| **ปุ่ม / ช่องค้นหา / compatibility `pill`** | ปุ่ม 8px · ช่องค้นหา/เลือก 10px |
+| **สวิตช์** | `RADIUS.pill` = มนเต็ม |
 | **ตัวกรองไม่เกิน 5 ตัวเลือก** | ไม่มีกรอบ/พื้น/radius · ข้อความสี neutral + เส้นใต้สถานะเลือก |
 
 **ขนาดตัวอักษร** ใช้บันได 8 ขั้นใน `globals.css` (`text-2xs` … `text-3xl`) — **ห้ามสั่งเป็น px ดิบ มีด่าน lint ดักไว้**

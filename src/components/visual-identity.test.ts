@@ -19,7 +19,7 @@ describe("system visual identity", () => {
     expect(html).toContain("page-module-mark");
     expect(html.match(/<h1/g)).toHaveLength(1);
     expect(html).toContain("ควบคุมการผลิต");
-    expect(html).toContain("text-module-production-text");
+    expect(html).toContain("text-secondary");
     expect(html).not.toContain("bg-module-production-solid");
     expect(html).not.toContain("shadow-sm");
     expect(html).toContain('data-page-description=""');

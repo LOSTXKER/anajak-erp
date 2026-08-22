@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ WHITE WORKING SHEET — เปลี่ยนพื้นผิวทั้งเว็บเป็น minimal 2026-08-23**
+> Light page/workspace/chrome เป็นผืนขาวเดียว และ Dark กลับเป็นผืนดำ neutral เดียว · `Section`, `DataTable` และ status rail วางเนื้อหาตรงบนผืนพร้อม divider เท่าที่จำเป็น · card เหลือเฉพาะข้อมูลรอง/record บนมือถือ/ก้อนงานจริง ใช้ neutral fill มุม 12px และไม่มีเงา · overlay เท่านั้นที่ยังลอยด้วยเงา
+>
+> ปุ่มและ search/select บน toolbar เป็นทรงเหลี่ยมมนเล็กไร้เงา; field ยังมี resting boundary เพื่อบอกว่ากรอกได้ · PageHeader/Section icon เป็น neutral · Sidebar ใช้ active text+indicator 1px, mobile nav ไม่มี blue pill · ตัวกรองสถานะ Orders/production ทั้ง quick/expanded/desktop ใช้ข้อความ neutral+เส้นใต้แทนเม็ดยาสีน้ำเงิน/เทา · query, mutation, permission, status transition, URL state, public/print และ Station handoff เดิมทั้งหมด
+>
+> **หลักฐานจอจริง:** `/`, `/orders`, `/production`, `/billing`, `/settings`, `/products`, `/factory/station` ที่ 1440×900 และ 390×844 ทั้ง Light/Dark — page/workspace = `#fff`/`#111113`, card รอง = `#f7f7f8`/`#1b1b1e`, `box-shadow: none`, Section/table ไม่อยู่ใน card, active mobile fill โปร่ง, เป้ากดที่เห็น ≥44px, horizontal overflow 0 และ console warning/error/hydration 0 · theme สลับผ่านเมนูผู้ใช้จริง
+>
+> **ด่านส่งมอบ:** full unit **1296/1296**, typecheck, lint 0 error (warning เดิม), `verify:ui`, production build (41 static pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/test/docs เท่านั้น ไม่มี dependency, schema, API, query, mutation, permission, status transition หรือ business flow เปลี่ยน · รักษา `scripts/verify-artwork.ts`, `.cursor/` และ `public/` ที่ค้างอยู่ไว้นอก commit
+>
+> **ต่อที่นี่:** ให้เบสลอง `/orders`, `/production` และฟอร์มที่ใช้จริงใน Light/Dark; ถ้าจะปรับต่อ ให้ชี้เฉพาะก้อนที่ยังควรแบนหรือควรเป็น card โดยไม่แก้ flow งาน
+
 > **✅ FILTER MINIMAL V2 — ตัดสีและหน้าตาปุ่มออก 2026-08-23**
 > feedback รอบสองแทนที่ปุ่มเหลี่ยมมนพื้นน้ำเงินของรอบแรก: `FilterChip` กลางเหลือข้อความสี neutral บนพื้นโปร่ง ไม่มีกรอบกล่อง พื้น selected เงา radius หรือ Check · ตัวเลือกปัจจุบันบอกด้วยเส้นใต้ดำ/ขาวและน้ำหนักข้อความ พร้อม `aria-pressed` เดิม
 >

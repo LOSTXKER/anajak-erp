@@ -69,16 +69,16 @@ function MobileItemButton({
       title={`${fullLabel} · ${item.count} งาน`}
       onClick={onPress}
       className={cn(
-        "flex min-h-11 items-center justify-between gap-2 rounded-2xl bg-surface-muted px-3 py-2 text-left active:scale-[0.98]",
+        "flex min-h-11 items-center justify-between gap-2 border-b-2 bg-transparent px-1 py-2 text-left transition-colors",
         FOCUS_BUTTON,
-        isOn && "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
+        isOn ? "border-slate-900 text-strong dark:border-white" : "border-transparent",
       )}
     >
       <span
         className={cn(
           "flex min-w-0 items-center gap-1.5 text-xs leading-tight",
           isOn
-            ? "font-medium text-blue-700 dark:text-blue-300"
+            ? "font-semibold text-strong"
             : item.count === 0
               ? "text-slate-500 dark:text-slate-400"
               : "text-slate-600 dark:text-slate-400",
@@ -94,7 +94,7 @@ function MobileItemButton({
             item.count === 0
               ? "font-normal text-slate-500 dark:text-slate-400"
               : isOn
-                ? "text-blue-700 dark:text-blue-300"
+                ? "text-strong"
                 : "text-slate-900 dark:text-white",
           )}
         >
@@ -108,7 +108,7 @@ function MobileItemButton({
               item.count === 0
                 ? "font-normal text-slate-500 dark:text-slate-400"
                 : isOn
-                  ? "text-blue-700 dark:text-blue-300"
+                  ? "text-strong"
                   : "text-slate-900 dark:text-white",
             )}
           >
@@ -145,11 +145,11 @@ function DesktopItemButton({
       title={`${fullLabel} · ${item.count} งาน`}
       onClick={onPress}
       className={cn(
-        "group rounded-lg px-1 py-1.5 text-center transition-colors",
+        "group border-b-2 px-1 py-1.5 text-center transition-colors",
         FOCUS_BUTTON,
         isOn
-          ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-          : "hover:bg-interactive-hover active:bg-interactive-pressed dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed",
+          ? "border-slate-900 text-strong dark:border-white"
+          : "border-transparent hover:text-strong active:text-strong",
       )}
     >
       <span
@@ -162,7 +162,7 @@ function DesktopItemButton({
                   "group-hover:text-secondary group-active:text-secondary dark:group-hover:text-secondary dark:group-active:text-secondary",
               )
             : isOn
-              ? "text-blue-700 dark:text-blue-300"
+              ? "text-strong"
               : "text-slate-900 dark:text-white",
         )}
       >
@@ -173,7 +173,7 @@ function DesktopItemButton({
           "mt-1 max-w-full text-2xs leading-tight",
           inFlow ? "block truncate" : "inline-flex items-center gap-1",
           isOn
-            ? "font-medium text-blue-700 dark:text-blue-300"
+            ? "font-semibold text-strong"
             : "text-slate-500 group-hover:text-secondary group-active:text-secondary dark:text-slate-400 dark:group-hover:text-secondary dark:group-active:text-secondary",
         )}
       >
@@ -235,7 +235,7 @@ export function FlowFilterBar({
   return (
     <div className={cn("@container transition-opacity duration-200", isLoading && "opacity-60")}>
       {/* ── เส้นทางงาน (พื้นที่กว้างพอ) ── */}
-      <div role="group" aria-label={ariaLabel} className="card-surface hidden rounded-2xl px-3 py-3 @4xl:block">
+      <div role="group" aria-label={ariaLabel} className="hidden border-y border-divider py-3 @4xl:block">
         <div className="flex gap-3">
           <div className="min-w-0 flex-1">
             {groups && groups.length > 0 && (

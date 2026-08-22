@@ -414,7 +414,7 @@ function WhtRegisterPageContent() {
             {items.map((row) => (
               <div
                 key={row.id}
-                className="card-surface rounded-2xl p-4"
+                className="card-surface rounded-xl p-4"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">

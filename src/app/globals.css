@@ -83,7 +83,7 @@
   --color-blue-200: #c6daed;
   --color-blue-300: #9cbede;
   --color-blue-400: #6b9cca;
-  --color-blue-500: #3f79b7;
+  --color-blue-500: #3973b2;
   --color-blue-600: #3973b2;
   --color-blue-700: #305f93;
   --color-blue-800: #2a5078;
@@ -97,7 +97,7 @@
   --color-red-200: #fecdca;
   --color-red-300: #fda29b;
   --color-red-400: #f97066;
-  --color-red-500: #d83b31;
+  --color-red-500: #d92d20;
   --color-red-600: #d92d20;
   --color-red-700: #b42318;
   --color-red-800: #912018;
@@ -109,7 +109,7 @@
   --color-yellow-200: #fde68a;
   --color-yellow-300: #fcd34d;
   --color-yellow-400: #fbbf24;
-  --color-yellow-500: #a96508;
+  --color-yellow-500: #a15c07;
   --color-yellow-600: #a15c07;
   --color-yellow-700: #854d0e;
   --color-yellow-800: #713f12;
@@ -121,7 +121,7 @@
   --color-amber-200: #fde68a;
   --color-amber-300: #fcd34d;
   --color-amber-400: #fbbf24;
-  --color-amber-500: #a96508;
+  --color-amber-500: #a15c07;
   --color-amber-600: #a15c07;
   --color-amber-700: #854d0e;
   --color-amber-800: #713f12;
@@ -151,7 +151,7 @@
   --color-green-200: #bbf7d0;
   --color-green-300: #86efac;
   --color-green-400: #4ade80;
-  --color-green-500: #168741;
+  --color-green-500: #15803d;
   --color-green-600: #15803d;
   --color-green-700: #166534;
   --color-green-800: #14532d;
@@ -193,9 +193,9 @@
 
      น้ำเงินแบรนด์ #3973b2 คงเดิมและสงวนให้ primary/selected/focus
      ============================================================ */
-  --color-bg: #f8f9fb;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f3f5f7;
+  --color-bg: #ffffff;
+  --color-surface: #f7f7f8;
+  --color-surface-muted: #f1f1f2;
   --color-surface-elevated: #ffffff;
   /* field เป็นพื้นที่กรอก ไม่ใช่กล่องจม: Light ใช้ขาวและเส้น resting ที่เบา
      พอให้เห็นรูปทรงโดยไม่แข่งกับ label; focus/error ค่อยใช้ contrast สูง */
@@ -203,13 +203,13 @@
   --color-border: #e2e6ea;
   --color-field-border: #c8d0d9;
   --color-placeholder: #65717f;
-  --color-border-strong: #87919d;
+  --color-border-strong: #818b97;
   --color-divider: #e8ebef;
   --color-skeleton: #e2e6ea;
-  --color-interactive-hover: #f1f3f5;
-  --color-interactive-pressed: #e3e6e9;
-  --color-interactive-chrome-hover: #f1f3f5;
-  --color-interactive-chrome-pressed: #e3e6e9;
+  --color-interactive-hover: #ececee;
+  --color-interactive-pressed: #e2e2e5;
+  --color-interactive-chrome-hover: #f1f1f2;
+  --color-interactive-chrome-pressed: #e7e7e9;
   --color-interactive-selected: #d2e4f6;
   --color-interactive-selected-text: #305f93;
   --color-backdrop: rgb(15 23 42 / 0.28);
@@ -277,22 +277,22 @@
   --color-module-system-surface: #292e35;
   --color-module-system-text: #d5dae0;
   --color-module-system-border: #47505b;
-  --color-bg: #1a1a1c;
-  --color-surface: #252528;
-  --color-surface-muted: #1d1d1f;
-  --color-surface-elevated: #252528;
-  --color-field: #101012;
-  --color-chrome: #161618;
+  --color-bg: #111113;
+  --color-surface: #1b1b1e;
+  --color-surface-muted: #18181b;
+  --color-surface-elevated: #242428;
+  --color-field: #151517;
+  --color-chrome: #111113;
   --color-border: #343438;
   --color-field-border: #3f3f44;
   --color-placeholder: #9a9aa1;
   --color-border-strong: #74747c;
   --color-divider: #303034;
   --color-skeleton: #343438;
-  --color-interactive-hover: #303034;
-  --color-interactive-pressed: #38383c;
-  --color-interactive-chrome-hover: #252528;
-  --color-interactive-chrome-pressed: #303034;
+  --color-interactive-hover: #242428;
+  --color-interactive-pressed: #2c2c30;
+  --color-interactive-chrome-hover: #1c1c1f;
+  --color-interactive-chrome-pressed: #252529;
   --color-interactive-selected: #173c61;
   --color-interactive-selected-text: #c6daed;
   --color-backdrop: rgb(0 0 0 / 0.62);
@@ -303,13 +303,12 @@
   --color-muted: #a4a4aa;
 }
 
-/* ผืนทำงานหลังบ้านใกล้ขาวแบบ Vercel แต่ scope ไว้ใน AppShell เท่านั้น
-   เพื่อไม่เปลี่ยนหน้า public/login ที่เป็นคนละประสบการณ์โดยอ้อม */
+/* White Working Sheet — chrome กับ workspace เป็นผืนเดียวกัน เนื้อหาวางบนพื้นโดยตรง */
 .app-workspace {
-  --color-bg: #f6f8fb;
+  --color-bg: #ffffff;
 }
 .dark .app-workspace {
-  --color-bg: #1a1a1c;
+  --color-bg: #111113;
 }
 
 html,
@@ -417,43 +416,28 @@ input[type="number"] {
    พอย้ายเข้าชั้น utility ที่หน้าส่งมาจะชนะตามลำดับปกติของ Tailwind */
 @layer components {
 
-/* การ์ดคงพื้นขาวบนผืน off-white แยกชั้นด้วย "สีพื้น + เงานุ่ม" ไม่ใช่เส้นขอบ
-   (เบสเคาะ 2026-08-12 ให้พื้นขาวขึ้นและลดความหนักของชั้นผิว)
-   เดิมมี `0 0 0 1px` = เส้นบางรอบการ์ดทุกใบ ซึ่งไปซ้อนกับเส้นของกล่องย่อย/ตาราง/
-   ช่องกรอกข้างใน จนจอฟอร์มเดียวมีเส้น 133 เส้น · ถอดวงแหวนออก แล้วขยายเงาให้
-   ชัดขึ้นเล็กน้อยเพื่อให้การ์ดยัง "ลอย" เหนือพื้นเทาได้เท่าเดิม */
+/* การ์ดมีไว้กับ bounded secondary object เท่านั้น: ใช้ neutral fill โดยไม่ทำให้ทุกก้อนลอย */
 .card-surface {
   background-color: var(--color-surface);
-  box-shadow:
-    0 1px 2px rgb(15 23 42 / 0.03),
-    0 10px 26px -14px rgb(15 23 42 / 0.16);
+  box-shadow: none;
 }
 .dark .card-surface {
   background-color: var(--color-surface);
-  box-shadow:
-    0 1px 3px rgb(0 0 0 / 0.4),
-    0 12px 28px -14px rgb(0 0 0 / 0.6);
+  box-shadow: none;
 }
-/* การ์ดที่กดได้ใช้พื้น interaction เต็ม hit area + ยกเงา
-   เพื่อให้ทุก caller ตอบสนองภาษาเดียวกันโดยไม่ต้อง compose utility ซ้ำ */
+/* การ์ดที่กดได้ตอบสนองด้วย neutral fill เท่านั้น; elevation สงวนให้ overlay */
 .card-surface-hover {
-  transition:
-    background-color 150ms ease,
-    box-shadow 150ms ease;
+  transition: background-color 150ms ease;
 }
 .card-surface-hover:hover {
   background-color: var(--color-interactive-hover);
-  box-shadow:
-    0 2px 4px rgb(15 23 42 / 0.04),
-    0 14px 32px -12px rgb(15 23 42 / 0.22);
+  box-shadow: none;
 }
 .card-surface-hover:active {
   background-color: var(--color-interactive-pressed);
 }
 .dark .card-surface-hover:hover {
-  box-shadow:
-    0 2px 6px rgb(0 0 0 / 0.5),
-    0 16px 34px -12px rgb(0 0 0 / 0.7);
+  box-shadow: none;
 }
 
 /* ============================================================

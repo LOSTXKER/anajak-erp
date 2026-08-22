@@ -291,7 +291,7 @@ export default function SalesTaxReportPage() {
         renderMobile={(items) => (
           <div className="space-y-3">
             {items.map((r) => (
-              <div key={r.invoiceNumber} className="card-surface rounded-2xl p-4">
+              <div key={r.invoiceNumber} className="card-surface rounded-xl p-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs tabular-nums text-slate-400">#{r.seq}</span>

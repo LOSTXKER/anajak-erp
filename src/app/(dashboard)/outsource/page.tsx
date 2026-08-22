@@ -256,7 +256,7 @@ export default function OutsourcePage() {
             description={QUEUE_EMPTY_COPY[queue].description}
           />
         ) : (
-          <ul className="card-surface divide-y divide-divider overflow-hidden rounded-2xl">
+          <ul className="card-surface divide-y divide-divider overflow-hidden rounded-xl">
             {visibleOrders.map((o) => {
               const status = outsourceStatusMeta(o.status);
               const order = o.productionStep.production.order;

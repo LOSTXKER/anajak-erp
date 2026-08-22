@@ -163,7 +163,7 @@ export default function UsersSettingsPage() {
           {showAddForm && (
             <form
               onSubmit={handleCreate}
-              className="card-surface mb-4 grid grid-cols-1 items-end gap-3 rounded-2xl p-4 sm:grid-cols-2 lg:grid-cols-5"
+              className="card-surface mb-4 grid grid-cols-1 items-end gap-3 rounded-xl p-4 sm:grid-cols-2 lg:grid-cols-5"
             >
               <div>
                 <label htmlFor="new-user-name" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">

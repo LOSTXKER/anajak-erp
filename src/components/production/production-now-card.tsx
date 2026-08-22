@@ -95,7 +95,7 @@ export function ProductionNowCard({
 
   if (nowSteps.length === 0) {
     return (
-      <section className={cn(!embedded && "card-surface rounded-2xl", "px-4 py-3")}>
+      <section className={cn(!embedded && "card-surface rounded-xl", "px-4 py-3")}>
         <p className="text-sm text-muted">{emptyMessage}</p>
       </section>
     );
@@ -292,7 +292,7 @@ export function ProductionNowCard({
 
   return (
     <section
-      className={cn(!embedded && "card-surface rounded-2xl", embedded ? "p-0" : "p-5 sm:p-6")}
+      className={cn(!embedded && "card-surface rounded-xl", embedded ? "p-0" : "p-5 sm:p-6")}
       aria-labelledby={
         focused
           ? "production-focused-step"

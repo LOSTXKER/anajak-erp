@@ -18,7 +18,7 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
           ref={ref}
-          shape="pill"
+          shape="box"
           surface={surface}
           aria-label={props["aria-label"] ?? props.placeholder ?? "ค้นหา"}
           className={cn("pl-9", className)}
