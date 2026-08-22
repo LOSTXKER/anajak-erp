@@ -24,11 +24,11 @@
 >
 > **หลักฐาน browser จริง (ก่อนปิด guard รอบสุดท้าย):** ตรวจ Production/Control Record ที่ desktop+tablet+mobile, Station ที่ mobile, TV ที่ Full HD, role OWNER และ PRODUCTION_STAFF, loading/error/retry/empty/success, refresh/deep link/Back/Escape/focus/overflow/console · สแกนเปิดบริบทโดยไม่เริ่มงาน, DTF เห็น film good/scrap/reprint, QC มี Hold/Rework/Scrap, Pack ไม่มี action ส่ง, Delivery อยู่แท็บออฟฟิศ และทดสอบ Heat Press จบจริงแล้ว Station คงออเดอร์เดิมพร้อมพาไป Final QC · ไม่มี horizontal overflow, hydration หรือ app console error
 >
-> **delta หลัง browser:** ปิด bypass ของ parent/work center/resource, ให้ทุกหน้ารับ `availableCommands` จาก server, ใช้แบบ snapshot ที่ Release บน Station, รองรับ Prep รับเกิน→คืนและตำหนิ→คืน→รับทดแทน, และคง `SHIPPED → COMPLETED` ผ่านกฎปิดงานเดิม · ผ่าน regression/full tests, typecheck, lint, UI contract, schema validate และ build แล้ว แต่ยังต้องให้เบส walkthrough จอจริงรอบ PV2.8 ก่อน merge/deploy
+> **delta หลัง browser:** ปิด bypass ของ parent/work center/resource, ให้ทุกหน้ารับ `availableCommands` จาก server, ใช้แบบ snapshot ที่ Release บน Station, รองรับ Prep รับเกิน→คืนและตำหนิ→คืน→รับทดแทน, และคง `SHIPPED → COMPLETED` ผ่านกฎปิดงานเดิม · ผ่าน regression/full tests, typecheck, lint, UI contract, schema validate และ build แล้ว; checklist walkthrough PV2.8 ยังคงเป็นด่านก่อนเปิด flag และเปลี่ยนฐาน production
 >
-> **ยังไม่ release:** `ROADMAP.md` ปิด PV2.1–PV2.7 แล้ว; PV2.8 รอเบส walkthrough หัวหน้า+พนักงานครบ flow และกดยอมรับก่อน · branch คือ `codex/production-v2`; ห้าม merge/push `main` หรือ deploy ตอนนี้ · old UI ยังอยู่หลัง flag หนึ่ง rollout window สำหรับ rollback แล้วต้องลบพร้อม legacy writers รอบถัดไป
+> **source ขึ้น `main` แล้ว:** เบสสั่ง `commit push main` หลังตรวจหน้ารายการจริง; remote `main` รับก้อน Production V2 แบบ fast-forward แล้ว · สถานะ deployment, migration ฐานจริง และการเปิด `PRODUCTION_V2_ENABLED` ยังไม่ได้ยืนยัน; ค่าเริ่มต้นของ flag ยังปิด และ old UI ยังคงอยู่หนึ่ง rollout window สำหรับ rollback
 >
-> **ต่อที่นี่:** ให้เบสเปิด branch นี้กับฐานทดสอบแยก แล้วลอง `Production → Control Record → Station → QC/Rework → Final Pack → Delivery`; ถ้าผ่านจึงวาง cutover target+backup และเปิดทั้ง module พร้อมกัน
+> **ต่อที่นี่:** ระบุ deployment/ฐานเป้าหมายและ backup ให้ชัดก่อน apply migration หรือเปิด flag จากนั้น walkthrough `Production → Control Record → Station → QC/Rework → Final Pack → Delivery` บน environment นั้นก่อนตัด old UI
 
 > **↩️ ย้อนก้อน A/B กลับมาที่จุดม็อกอัพล่าสุด (เบสสั่ง 2026-08-22 14:0x)**
 > เบสไปลองทำต่อที่อื่นแล้วไม่ได้ดั่งใจ จึงสั่งย้อนทุกอย่างกลับมาที่ `ec681af` ซึ่งเป็นจุดล่าสุดที่ตรวจจอจริงผ่านแล้ว · `git reset --hard` ตัด `b142a4f` (route ชั่วคราว `/production/concepts` + `production-control-concepts.tsx` 734 บรรทัด) ออกจากกิ่ง โดย **สำรองไว้ครบที่กิ่ง `backup/ab-concepts-2026-08-22`** ก่อนย้อน — อยากดู/ดึงกลับทีหลังได้ ไม่มีอะไรหาย · กิ่งนี้ยังไม่เคย push (ahead origin 8 ก้อน) จึงไม่ต้อง force-push
