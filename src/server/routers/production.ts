@@ -537,6 +537,10 @@ export const productionRouter = router({
         stepsDone,
         stepsTotal: steps.length,
         totalQuantity: o.items.reduce((s, it) => s + it.totalQuantity, 0),
+        // รูปปกม็อกอัพบนแถวคิว — query ด้านบนดึง designs/items มาแล้ว ต้องส่งต่อด้วย
+        // ไม่งั้น orderMockupCover(job.order) ได้ null ทุกแถวแม้ฐานมีรูป
+        designs: o.designs,
+        items: o.items,
         readiness: sanitizeReadinessForViewer(
           readinessById.get(o.id) ?? null,
           canSeeOrderMoney,

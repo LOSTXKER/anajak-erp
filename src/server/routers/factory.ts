@@ -70,6 +70,15 @@ const stationOrderSelect = {
       fileUrl: true,
       thumbnailUrl: true,
       approvedAt: true,
+      files: {
+        orderBy: { sortOrder: "asc" as const },
+        select: {
+          fileUrl: true,
+          thumbnailUrl: true,
+          position: true,
+          caption: true,
+        },
+      },
     },
   },
   // เช็กลิสต์ QC แบบไม่มีราคา: รุ่น/สี/ไซส์/จำนวนและตำแหน่งพิมพ์เท่านั้น
