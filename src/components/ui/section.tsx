@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
@@ -16,6 +17,7 @@ interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> 
   compact?: boolean;
   /** ใช้ 3 เมื่อนำ Section แบบไม่มีผิวไปเป็นกลุ่มย่อยภายใน Section หลัก */
   headingLevel?: 2 | 3;
+  icon?: LucideIcon;
 }
 
 /**
@@ -33,6 +35,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
       flush = false,
       compact = false,
       headingLevel = 2,
+      icon: Icon,
       className,
       children,
       ...props
@@ -64,7 +67,13 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
                 : "pb-4"
             )}
           >
-            <div className="min-w-0 space-y-0.5">
+            <div className="flex min-w-0 items-start gap-3">
+              {Icon && !compact && (
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-secondary" aria-hidden="true">
+                  <Icon className="h-4.5 w-4.5" strokeWidth={1.8} />
+                </span>
+              )}
+              <div className="min-w-0 space-y-0.5">
               {title &&
                 (compact ? (
                   <Heading className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -80,6 +89,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
                   {description}
                 </p>
               )}
+              </div>
             </div>
             {action && <div className="shrink-0">{action}</div>}
           </header>

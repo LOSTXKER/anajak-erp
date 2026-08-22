@@ -1,5 +1,14 @@
 # มาตรฐาน UI Anajak ERP (P1.0)
 
+## Visual identity contract (2026-08-22)
+
+- ทุก `PageHeader` มาตรฐานมี module marker จาก Lucide ในกรอบ cobalt/neutral เดียวกัน; `<h1>` ต้องมีข้อความจริงเพียงชุดเดียวและ marker เป็นของตกแต่งที่ `aria-hidden` พร้อมชื่อหน้าเดิมเป็น accessible name
+- ความแตกต่างของโมดูลมาจาก icon, scale, composition และภาพงานจริง ไม่สร้างสีประจำโมดูลแบบรุ้ง; น้ำเงิน Anajakยังสงวนให้ primary, selected และ focus
+- `EntityMark` ใช้เฉพาะสิ่งที่มีตัวตนและเรียง fallback เป็น **ภาพจริง → initials → icon**; ช่องจำนวน เงิน วันที่ และสถานะไม่ต้องมี icon
+- `ContextPanel` ใช้กับคำอธิบายคงที่/วิธีทำงานและไม่มี live-region role; error/warning/success ที่เกิดตาม state ยังใช้ `Alert`/`QueryError` เดิม
+- Public token ใช้ masthead กลางและรักษา blind-ship; print ใช้ `DocHeader` กลาง มีตราประเภทเอกสารที่ขาวดำยังแยกได้ และไม่เปลี่ยน contract ข้อมูล/กฎหมาย/ยอดรวม
+- ห้ามแสดงคำสั่ง CLI, ชื่อ environment หรือศัพท์ implementation ต่อผู้ใช้ เช่น `npm run ...` และ `demo-local`; ใช้คำงานจริง เช่น “ข้อมูลสำหรับทดลอง” และ “คืนข้อมูลตัวอย่าง”
+
 > หน้าใหม่ + หน้าที่ถูกแตะใน P1-P3 ต้องตามนี้ทันที · หน้าเก่าที่ยังไม่มีงานไปแตะ ปล่อยไว้ก่อน
 > (รอบเก็บตกอยู่ปลาย P1 ตาม ROADMAP) — **ห้าม redesign หน้าที่ไม่มีงาน functional**
 >

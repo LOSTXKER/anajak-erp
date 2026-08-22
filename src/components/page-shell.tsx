@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { PageHeader, type BreadcrumbItem } from "@/components/page-header";
 import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,6 +41,8 @@ interface PageShellProps {
   breadcrumb?: BreadcrumbItem[];
   titleBadge?: ReactNode;
   back?: { href: string; label: string };
+  icon?: LucideIcon;
+  eyebrow?: string;
   /** เนื้อหาใต้หัว (แถบ filter/summary) — โชว์เฉพาะตอนปกติ ไม่โชว์ระหว่างโหลด/พัง */
   headerChildren?: ReactNode;
   /**
@@ -71,6 +74,8 @@ export function PageShell({
   breadcrumb,
   titleBadge,
   back,
+  icon,
+  eyebrow,
   headerChildren,
   header,
   loading = false,
@@ -109,6 +114,8 @@ export function PageShell({
           breadcrumb={breadcrumb}
           titleBadge={normal ? titleBadge : undefined}
           back={back}
+          icon={icon}
+          eyebrow={eyebrow}
         >
           {normal ? headerChildren : undefined}
         </PageHeader>

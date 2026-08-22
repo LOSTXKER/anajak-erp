@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
+import { PageIdentityIcon } from "@/lib/page-identity";
 
 export interface BreadcrumbItem {
   label: string;
@@ -20,6 +22,10 @@ interface PageHeaderProps {
   titleBadge?: ReactNode;
   /** ปุ่มย้อนกลับหน้าหัวข้อ — หน้ารายละเอียดใช้ */
   back?: { href: string; label: string };
+  /** Visual identity ของโมดูล; ถ้าไม่ส่งจะอนุมานจากชื่อหน้า/เส้นทาง breadcrumb */
+  icon?: LucideIcon;
+  /** บริบทสำหรับ assistive technology เท่านั้น; ไม่วาด kicker เหนือ h1 */
+  eyebrow?: string;
   children?: ReactNode;
 }
 
@@ -34,10 +40,16 @@ export function PageHeader({
   breadcrumb,
   titleBadge,
   back,
+  icon,
+  eyebrow,
   children,
 }: PageHeaderProps) {
+  const identityLabel =
+    typeof title === "string"
+      ? title
+      : breadcrumb?.at(-1)?.label;
   return (
-    <div className="space-y-4">
+    <div className="page-header space-y-4" data-page-identity={identityLabel ?? "custom"}>
       {(() => {
         // ตัวสุดท้ายที่ซ้ำกับชื่อหน้า (h1 บรรทัดถัดไป) คำต่อคำ — ตัดทิ้ง เหลือ path พ่อแม่
         // (benchmark: Stripe ใส่แค่ทางเดิน ให้หัวหน้าเป็นชื่อหน้าเอง)
@@ -94,9 +106,29 @@ export function PageHeader({
               </Link>
             </Button>
           )}
-          <div className="min-w-0 space-y-1">
+          <span
+            className={cn(
+              "page-module-mark flex shrink-0 items-center justify-center bg-blue-600 text-white shadow-sm",
+              back ? "h-10 w-10 rounded-xl" : "h-12 w-12 rounded-[14px]",
+            )}
+            role={eyebrow ? "img" : undefined}
+            aria-label={eyebrow}
+            aria-hidden={eyebrow ? undefined : "true"}
+          >
+            {icon ? (
+              <>{/* component จาก caller เป็น contract คงที่ ไม่ได้สร้างจาก resolver ระหว่าง render */}
+                {(() => {
+                  const Icon = icon;
+                  return <Icon className={back ? "h-5 w-5" : "h-5.5 w-5.5"} strokeWidth={1.8} />;
+                })()}
+              </>
+            ) : (
+              <PageIdentityIcon label={identityLabel} className={back ? "h-5 w-5" : "h-5.5 w-5.5"} strokeWidth={1.8} />
+            )}
+          </span>
+          <div className="min-w-0 space-y-1 pt-0.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">
+              <h1 className="text-[1.65rem] font-semibold leading-tight tracking-[-0.025em] text-slate-900 dark:text-white">
                 {title}
               </h1>
               {titleBadge}
