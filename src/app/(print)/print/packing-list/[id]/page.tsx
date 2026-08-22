@@ -11,6 +11,7 @@ import {
   NotesBlock,
   SignatureRow,
   formatDocDate,
+  DocumentStamp,
 } from "@/components/print/print-document";
 import { PrintActions } from "@/components/print/print-actions";
 
@@ -69,6 +70,9 @@ export default async function PrintPackingListPage({
         {/* หัวใบ — ไม่ใช้ DocHeader เพราะ DocHeader พิมพ์หัวบริษัทเสมอ (ผิดกติกา blind ship) */}
         <div className="flex items-start justify-between gap-6 border-b-2 border-slate-900 pb-4">
           <div className="min-w-0">
+            <div className="mb-2">
+              <DocumentStamp title="ใบรายการสินค้า" label="Packing document" code="PL" />
+            </div>
             <p className="text-[20px] font-bold leading-tight">ใบรายการสินค้า</p>
             <p className="text-[12px] tracking-wide text-slate-600">PACKING LIST</p>
             <p className="mt-1 text-[12.5px] font-medium">{order.title}</p>

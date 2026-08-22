@@ -24,6 +24,34 @@ export function PrintPage({ children }: { children: React.ReactNode }) {
   return <div className="print-page font-sans">{children}</div>;
 }
 
+const DOCUMENT_CODE: ReadonlyArray<[RegExp, string]> = [
+  [/ใบเสนอราคา/, "QT"],
+  [/ใบวางบิล/, "BN"],
+  [/ใบแจ้งหนี้|ใบเสร็จ|ใบกำกับ|ใบลดหนี้|ใบเพิ่มหนี้/, "TX"],
+  [/ใบรายการสินค้า/, "PL"],
+  [/ใบสั่งงาน/, "JT"],
+];
+
+export function DocumentStamp({
+  title,
+  label = "เอกสารธุรกิจ",
+  code,
+}: {
+  title: string;
+  label?: string;
+  code?: string;
+}) {
+  const resolvedCode = code ?? DOCUMENT_CODE.find(([pattern]) => pattern.test(title))?.[1] ?? "AP";
+  return (
+    <div className="flex items-center gap-2" data-document-stamp={resolvedCode}>
+      <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-slate-900 text-[11px] font-bold tracking-tight text-white" aria-hidden="true">
+        {resolvedCode}
+      </span>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</span>
+    </div>
+  );
+}
+
 /**
  * ลายน้ำ "ยกเลิก" บนใบกำกับภาษี/ใบวางบิลที่ถูกยกเลิก
  *
@@ -69,6 +97,7 @@ export function DocHeader({
   return (
     <div className="flex items-start justify-between gap-6 border-b-2 border-slate-900 pb-4">
       <div className="min-w-0">
+        <div className="mb-2"><DocumentStamp title={title} label="Anajak document" /></div>
         <p className="text-[17px] font-bold leading-snug">{company.name || "(ยังไม่ตั้งค่าข้อมูลกิจการ — Settings → ข้อมูลกิจการ)"}</p>
         <p className="whitespace-pre-line text-[12px] text-slate-700">{company.address}</p>
         <p className="text-[12px] text-slate-700">
@@ -87,7 +116,7 @@ export function DocHeader({
             {copyLabel}
           </p>
         )}
-        <p className="text-[19px] font-bold leading-tight">{title}</p>
+        <p className="inline-block bg-slate-900 px-2.5 py-1 text-[19px] font-bold leading-tight text-white">{title}</p>
         {subtitle && <p className="text-[12px] text-slate-600">{subtitle}</p>}
         <table className="mt-2 ml-auto text-[12.5px]">
           <tbody>

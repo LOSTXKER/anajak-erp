@@ -25,14 +25,19 @@ export function PublicPageShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-bg p-4">
-      <div className="mx-auto max-w-2xl space-y-5 py-6">
-        <header className="text-center">
-          <div className="mb-1 flex items-center justify-center gap-2">
-            {icon}
-            <h1 className="text-xl font-semibold text-strong">{title}</h1>
+    <div className="min-h-screen bg-bg px-4 py-5 sm:py-10">
+      <div className="mx-auto max-w-2xl space-y-5">
+        <header className="card-surface relative overflow-hidden rounded-2xl p-5 sm:p-6">
+          <div className="absolute inset-x-0 top-0 h-1 bg-blue-600" aria-hidden="true" />
+          <div className="flex items-start gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-blue-600 text-white shadow-sm [&_svg]:h-5.5 [&_svg]:w-5.5 [&_svg]:text-white" aria-hidden="true">
+              {icon}
+            </span>
+            <div className="min-w-0 pt-0.5">
+              <h1 className="text-xl font-semibold tracking-[-0.02em] text-strong sm:text-2xl">{title}</h1>
+              <p className="mt-1 text-sm leading-relaxed text-muted">{subtitle}</p>
+            </div>
           </div>
-          <p className="text-sm text-muted">{subtitle}</p>
         </header>
         {children}
         {!hideFooter && (

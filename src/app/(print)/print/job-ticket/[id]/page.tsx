@@ -19,8 +19,9 @@ import {
 } from "@/lib/production-steps";
 import { isImageUrl } from "@/lib/utils";
 import { mockupImages } from "@/lib/mockup";
-import { PrintPage, NotesBlock, formatDocDate } from "@/components/print/print-document";
+import { PrintPage, NotesBlock, formatDocDate, DocumentStamp } from "@/components/print/print-document";
 import { PrintActions } from "@/components/print/print-actions";
+import { ShieldAlert } from "lucide-react";
 
 function MetaCell({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
@@ -128,6 +129,9 @@ export default async function PrintJobTicketPage({
         {/* หัวใบงาน */}
         <div className="flex items-start justify-between gap-4 border-b-4 border-slate-900 pb-3">
           <div>
+            <div className="mb-2">
+              <DocumentStamp title="ใบสั่งงาน" label="Production document" code="JT" />
+            </div>
             <p className="text-[12px] font-semibold tracking-wide text-slate-500">
               ใบสั่งงาน / JOB TICKET
             </p>
@@ -154,8 +158,9 @@ export default async function PrintJobTicketPage({
             (query ใช้ include → blindShip/blindShipSenderName เป็น scalar มาครบอยู่แล้ว) */}
         {order.blindShip && (
           <div className="mt-3 rounded border-4 border-red-600 bg-red-50 px-4 py-2.5">
-            <p className="text-[16px] font-bold leading-snug text-red-700">
-              🚫 BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
+            <p className="flex items-center gap-2 text-[16px] font-bold leading-snug text-red-700">
+              <ShieldAlert className="h-5 w-5" aria-hidden="true" />
+              BLIND SHIP — ห้ามใส่เอกสาร/ชื่อ Anajak ในกล่อง
             </p>
             <p className="mt-0.5 text-[13px] font-semibold text-red-700">
               ผู้ส่งบนใบ: {order.blindShipSenderName || order.customer.name}
