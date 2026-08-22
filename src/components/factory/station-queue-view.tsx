@@ -337,7 +337,7 @@ export function StationQueueView({
     <div className="space-y-5" data-station-queue-view>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-950/50 text-blue-300">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-module-production-surface text-module-production-text">
             <Icon className="h-5 w-5" aria-hidden="true" />
           </span>
           <div className="min-w-0">

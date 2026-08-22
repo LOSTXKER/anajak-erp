@@ -974,7 +974,7 @@ export function StationModeScreen() {
                     )}
                   >
                     <span className="flex items-start justify-between gap-3">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-module-production-surface text-module-production-text">
                         <Icon className="h-5 w-5" aria-hidden="true" />
                       </span>
                       <span className="text-xs font-medium tabular-nums text-muted">

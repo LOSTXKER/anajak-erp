@@ -42,7 +42,6 @@ export default function AnalyticsPage() {
   return (
     <PageShell
       title="รายงาน"
-      description="ดูแนวโน้มระยะยาว"
       loading={isLoading}
       skeleton={
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">

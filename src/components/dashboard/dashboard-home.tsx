@@ -44,6 +44,7 @@ import {
   RADIUS,
   SUNK_PANEL,
 } from "@/components/ui/tokens";
+import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 const ATTENTION_ICONS: Record<DashboardAttentionKind, ComponentType<{ className?: string }>> = {
   "overdue-order": CalendarClock,
@@ -193,11 +194,13 @@ function QuickLink({
   icon: Icon,
   label,
   primary,
+  tone = "brand",
 }: {
   href: string;
   icon: ComponentType<{ className?: string }>;
   label: string;
   primary?: boolean;
+  tone?: VisualTone;
 }) {
   return (
     <Link
@@ -216,7 +219,7 @@ function QuickLink({
         className={cn(
           RADIUS.item,
           "flex h-9 w-9 shrink-0 items-center justify-center",
-          primary ? "bg-white/15" : "bg-surface text-blue-600 dark:text-blue-300",
+          primary ? "bg-white/15" : VISUAL_TONE_CLASSES[tone].soft,
         )}
       >
         <Icon className="h-4 w-4" />
@@ -319,11 +322,13 @@ export function DashboardHome() {
               href="/production"
               icon={Factory}
               label="การผลิต"
+              tone="production"
             />
             <QuickLink
               href={canViewBilling ? "/billing" : "/customers"}
               icon={canViewBilling ? FileClock : Users}
               label={canViewBilling ? "บิล" : "ลูกค้า"}
+              tone={canViewBilling ? "finance" : "brand"}
             />
           </div>
         </Section>

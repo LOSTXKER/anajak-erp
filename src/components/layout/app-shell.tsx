@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/tokens";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UserMenu } from "@/components/layout/user-menu";
+import { NAVIGATION_GROUP_TONE, VISUAL_TONE_CLASSES } from "@/lib/visual-tone";
 
 const MOBILE_NAV_IDS = ["dashboard", "my-tasks", "orders", "production"] as const;
 const MOBILE_EXCLUDED_IDS = new Set<string>(MOBILE_NAV_IDS);
@@ -117,7 +118,10 @@ function MoreMenu({
           {groups.map((group) => (
             <div key={group.id} className="mb-4 last:mb-0">
               {group.label && (
-                <p className="px-3 pb-2 text-xs font-medium text-muted">{group.label}</p>
+                <p className="flex items-center gap-2 px-3 pb-2 text-xs font-medium text-muted">
+                  <span className={cn("h-2 w-2 rounded-full", VISUAL_TONE_CLASSES[NAVIGATION_GROUP_TONE[group.id]].solid)} aria-hidden="true" />
+                  {group.label}
+                </p>
               )}
               <ul className="space-y-1">
                 {group.items.map((item) => (
@@ -315,7 +319,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
           <div className="space-y-5">
             {sidebarGroups.map((group) => (
               <div key={group.id}>
-                <p className="px-3 pb-1.5 text-2xs font-semibold text-muted">
+                <p className="flex items-center gap-2 px-3 pb-1.5 text-2xs font-semibold text-muted">
+                  <span className={cn("h-2 w-2 rounded-full", VISUAL_TONE_CLASSES[NAVIGATION_GROUP_TONE[group.id]].solid)} aria-hidden="true" />
                   {group.label}
                 </p>
                 <ul aria-label={group.label ?? undefined} className="space-y-1">

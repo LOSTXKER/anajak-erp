@@ -561,7 +561,7 @@ function OrderDetailContent({
           { label: order.orderNumber },
         ]}
         title={order.orderNumber}
-        description={order.title || undefined}
+        meta={order.title || undefined}
         action={
           <>
             {/* ปุ่มขั้นต่อไป (เบสสั่งถอดแถบฟ้าออก 2026-08-11 → ย้ายปุ่มมาไว้ตรงนี้)

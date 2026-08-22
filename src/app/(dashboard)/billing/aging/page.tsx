@@ -182,7 +182,7 @@ function AgingPageContent() {
   return (
     <PageShell
       title="ลูกหนี้ค้างชำระ"
-      description="อายุหนี้นับจากวันครบกำหนด"
+      help="อายุหนี้นับจากวันครบกำหนดของเอกสาร"
       breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ลูกหนี้" }]}
       denied={
         me && !canView

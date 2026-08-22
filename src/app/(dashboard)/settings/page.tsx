@@ -23,6 +23,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FOCUS_BUTTON } from "@/components/ui/tokens";
 import { cn } from "@/lib/utils";
+import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 // หน้าตั้งค่า = hub ลิงก์ไปหน้าตั้งค่าจริงเท่านั้น (Gate B8) — ฟอร์มปลอม 4 section เดิม
 // (ข้อมูลโรงงาน/การผลิต/ความปลอดภัย/เชื่อมต่อภายนอก) ถูกถอดทิ้ง: input ไม่ผูกอะไร
@@ -34,7 +35,8 @@ interface SettingLink {
   href: string;
   icon: LucideIcon;
   title: string;
-  description: string;
+  meta: string;
+  tone: VisualTone;
   permissionsAny?: readonly Permission[];
   // จัดกลุ่ม hub ให้สแกนเจอเร็ว (UX4) — เดิม 10 ลิงก์แบนเรียงติดกันไม่มีหมวด
   group: "กิจการและทีม" | "การผลิตและบริการ" | "ระบบและข้อมูล";
@@ -48,7 +50,8 @@ const SETTING_LINKS: readonly SettingLink[] = [
     group: "กิจการและทีม",
     icon: Building,
     title: "ข้อมูลกิจการ",
-    description: "ชื่อ/ที่อยู่/เลขผู้เสียภาษี — ขึ้นหัวเอกสารและใบกำกับภาษี",
+    meta: "ชื่อ · ที่อยู่ · เลขผู้เสียภาษี",
+    tone: "system",
     permissionsAny: ["manage_settings"],
   },
   {
@@ -56,7 +59,8 @@ const SETTING_LINKS: readonly SettingLink[] = [
     group: "กิจการและทีม",
     icon: Users,
     title: "จัดการผู้ใช้",
-    description: "บัญชีพนักงาน สิทธิ์ และรหัสผ่าน",
+    meta: "บัญชี · สิทธิ์ · รหัสผ่าน",
+    tone: "system",
     permissionsAny: ["manage_users"],
   },
   {
@@ -64,7 +68,8 @@ const SETTING_LINKS: readonly SettingLink[] = [
     group: "ระบบและข้อมูล",
     icon: Cloud,
     title: "สต๊อกเสื้อ",
-    description: "ดูโหมดสต๊อก หรือจัดการการเชื่อมต่อสำหรับจอง เบิก และคืนเสื้อ",
+    meta: "จอง · เบิก · คืนเสื้อ",
+    tone: "product",
     permissionsAny: ["manage_settings"],
   },
   {
@@ -72,7 +77,8 @@ const SETTING_LINKS: readonly SettingLink[] = [
     group: "การผลิตและบริการ",
     icon: Store,
     title: "ร้านรับจ้างภายนอก",
-    description: "ทะเบียนร้านสำหรับงาน DTG, สกรีน, ปัก, ตัดเย็บ และป้ายคอ",
+    meta: "DTG · สกรีน · ปัก · ตัดเย็บ",
+    tone: "production",
     permissionsAny: ["manage_settings"],
   },
   {
@@ -80,7 +86,8 @@ const SETTING_LINKS: readonly SettingLink[] = [
     group: "การผลิตและบริการ",
     icon: Calculator,
     title: "เรตต้นทุนกลาง",
-    description: "เรตฟิล์ม/ค่าแรงเหมา — กำไรขั้นต้นโดยประมาณตอนตีราคา",
+    meta: "ฟิล์ม · ค่าแรง · กำไรประมาณการ",
+    tone: "finance",
     permissionsAny: ["see_finance"],
   },
   {
@@ -88,7 +95,8 @@ const SETTING_LINKS: readonly SettingLink[] = [
     group: "การผลิตและบริการ",
     icon: Wrench,
     title: "จัดการบริการ",
-    description: "Add-ons, สกรีน, ค่าบริการ",
+    meta: "Add-ons · สกรีน · ค่าบริการ",
+    tone: "product",
     permissionsAny: ["manage_settings"],
   },
   {
@@ -96,7 +104,8 @@ const SETTING_LINKS: readonly SettingLink[] = [
     group: "การผลิตและบริการ",
     icon: Scissors,
     title: "จัดการแพทเทิร์น",
-    description: "แพทเทิร์นสำเร็จรูปสำหรับงานตัดเย็บ",
+    meta: "แพทเทิร์นงานตัดเย็บ",
+    tone: "product",
     permissionsAny: ["create_design_assets", "manage_design_files", "manage_settings"],
   },
   {
@@ -104,7 +113,8 @@ const SETTING_LINKS: readonly SettingLink[] = [
     group: "การผลิตและบริการ",
     icon: Package,
     title: "จัดการแพ็คเกจ",
-    description: "ตัวเลือกแพ็คเกจสำหรับจัดส่ง",
+    meta: "ตัวเลือกสำหรับจัดส่ง",
+    tone: "product",
     permissionsAny: ["manage_settings"],
   },
   {
@@ -112,7 +122,8 @@ const SETTING_LINKS: readonly SettingLink[] = [
     group: "ระบบและข้อมูล",
     icon: HardDriveDownload,
     title: "สำรองข้อมูล",
-    description: "ดาวน์โหลดข้อมูลทั้งระบบเก็บไว้เอง (เจ้าของเท่านั้น)",
+    meta: "ดาวน์โหลดข้อมูล · เจ้าของเท่านั้น",
+    tone: "system",
     permissionsAny: ["manage_users"],
   },
   {
@@ -120,7 +131,8 @@ const SETTING_LINKS: readonly SettingLink[] = [
     group: "ระบบและข้อมูล",
     icon: History,
     title: "ประวัติระบบ",
-    description: "ตรวจว่าใครเปลี่ยนข้อมูลอะไร เมื่อไหร่",
+    meta: "ผู้แก้ไข · รายการ · เวลา",
+    tone: "system",
     permissionsAny: ["view_admin_reports"],
   },
 ];
@@ -146,7 +158,7 @@ export default function SettingsPage() {
   const header = (
     <PageHeader
       title="ตั้งค่า"
-      description="แก้แล้วมีผลกับงานจริงทันที"
+      meta="การเปลี่ยนค่ามีผลกับงานจริงทันที"
     />
   );
 
@@ -185,7 +197,7 @@ export default function SettingsPage() {
                   href={link.href}
                   className={cn("group card-surface card-surface-hover flex items-center gap-3 rounded-2xl p-4 transition-colors", FOCUS_BUTTON)}
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-muted text-muted transition-colors group-hover:bg-surface group-hover:text-strong">
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg transition-colors", VISUAL_TONE_CLASSES[link.tone].soft)}>
                     <link.icon className="h-4 w-4" strokeWidth={1.75} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -193,7 +205,7 @@ export default function SettingsPage() {
                       {link.title}
                     </p>
                     <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                      {link.description}
+                      {link.meta}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 dark:text-slate-600" />

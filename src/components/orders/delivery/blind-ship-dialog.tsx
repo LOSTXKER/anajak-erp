@@ -84,7 +84,7 @@ export function BlindShipDialog({
           {blindShipOn && (
             <Field
               label="ชื่อผู้ส่งบนใบจ่าหน้า"
-              description={`เว้นว่าง = ใช้ชื่อลูกค้า (${customerName || "-"})`}
+              help={`เว้นว่างเพื่อใช้ชื่อลูกค้า (${customerName || "-"})`}
             >
               <Input
                 type="text"

@@ -206,7 +206,7 @@ export default function ProductDetailPage({
             </span>
           </>
         }
-        description={product.sku}
+        meta={product.sku}
         action={
           (canManage || canDelete) && (
             <>

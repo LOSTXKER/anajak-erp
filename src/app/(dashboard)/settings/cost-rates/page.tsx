@@ -92,7 +92,7 @@ export default function CostRatesSettingsPage() {
       width="form"
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="เรตต้นทุนกลาง"
-      description="ใช้ทุกออเดอร์ — ประเมินกำไรขั้นต้นตอนตีราคา ไม่ใช่ตัวเลขบัญชีจริง"
+      meta="ใช้ประเมินกำไรขั้นต้น ไม่ใช่ตัวเลขบัญชีจริง"
       loading={meQuery.isLoading}
       error={
         meQuery.isError

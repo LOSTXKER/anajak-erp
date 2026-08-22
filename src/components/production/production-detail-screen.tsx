@@ -1031,7 +1031,6 @@ export function ProductionDetailScreen({
           : undefined
       }
       title={order?.orderNumber ?? "งานผลิต"}
-      description={order ? [order.title, order.customer?.name].filter(Boolean).join(" · ") : undefined}
       header={<></>}
       back={
         productionNotFound

@@ -94,7 +94,7 @@ export default function SalesTaxReportPage() {
   return (
     <PageShell
       title="ภาษีขาย"
-      description="งวดตามวันที่ในเอกสาร"
+      help="จัดงวดตามวันที่ที่ระบุบนเอกสาร"
       breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "ภาษีขาย" }]}
       action={
         <div className="flex flex-wrap items-center gap-2">

@@ -96,7 +96,7 @@ function ProductionWorkspace() {
     <>
       <PageShell
         title="ควบคุมการผลิต"
-        description={
+        meta={
           orders
             ? `${board.totalJobs.toLocaleString("th-TH")} ออเดอร์ · ${worklistCounts.attention.toLocaleString("th-TH")} รายการต้องจัดการ`
             : "ติดตามงานตั้งแต่เปิดใบผลิตจนพร้อมส่ง"

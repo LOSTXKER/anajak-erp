@@ -189,7 +189,7 @@ function WhtRegisterPageContent() {
   return (
     <PageShell
       title="ทะเบียนหัก ณ ที่จ่าย (50ทวิ)"
-      description="ลูกค้าหัก 3% แล้วต้องส่งหนังสือรับรองมาให้ — ไม่มีใบ เครดิตภาษีหายฟรี"
+      meta="ต้องมีหนังสือรับรองเพื่อใช้เครดิตภาษี"
       breadcrumb={[{ label: "บิล/การเงิน", href: "/billing" }, { label: "หัก ณ ที่จ่าย" }]}
       action={
         <Button

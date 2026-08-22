@@ -381,7 +381,7 @@ export default function MyTasksPage() {
     <PageShell
       title="งานของฉัน"
       // ระหว่างโหลด/พังยังไม่รู้จำนวนงาน — ใช้ข้อความกลางเดิม (header อยู่ครบทุก state)
-      description={
+      meta={
         !data
           ? "เรียงสิ่งที่ต้องทำก่อนให้แล้ว"
           : total > 0

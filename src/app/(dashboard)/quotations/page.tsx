@@ -181,7 +181,7 @@ function QuotationsPageContent() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
-                    <EntityMark label={q.quotationNumber} icon={FileText} fallback="icon" />
+                    <EntityMark label={q.quotationNumber} icon={FileText} fallback="icon" tone="brand" />
                     <div className="min-w-0">
                     <p className="font-semibold text-blue-700 dark:text-blue-300">
                       {q.quotationNumber}
@@ -232,7 +232,7 @@ function QuotationsPageContent() {
                 <DataTable.Row key={q.id}>
                   <DataTable.Td>
                     <div className="flex items-center gap-3">
-                      <EntityMark label={q.quotationNumber} icon={FileText} fallback="icon" size="sm" />
+                      <EntityMark label={q.quotationNumber} icon={FileText} fallback="icon" size="sm" tone="brand" />
                       <Link
                         href={`/quotations/${q.id}`}
                         className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"

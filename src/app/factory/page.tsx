@@ -213,7 +213,7 @@ function BoardHeader({
 
   return (
     <header className="flex min-h-14 items-center gap-4 border-b border-divider pb-3">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm" aria-hidden="true">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-module-production-solid text-white shadow-sm" aria-hidden="true">
         <Factory className="h-5 w-5" />
       </span>
       <div className="min-w-0">

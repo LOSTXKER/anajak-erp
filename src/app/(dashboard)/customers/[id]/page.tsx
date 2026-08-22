@@ -77,7 +77,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           { label: customer.name },
         ]}
         title={customer.name}
-        description={customer.company || undefined}
+        meta={customer.company || undefined}
         action={
           <>
             {customer.customerType === "CORPORATE" ? (

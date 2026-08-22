@@ -289,7 +289,7 @@ function QuotationFormPage() {
       width="wide"
       back={{ href: "/quotations", label: "กลับไปรายการใบเสนอราคา" }}
       title={editId ? "แก้ไขใบเสนอราคา (ฉบับร่าง)" : "สร้างใบเสนอราคาใหม่"}
-      description={
+      meta={
         fromOrderId
           ? `ผูกกับออเดอร์ ${linkedOrder?.orderNumber ?? "..."} — ลูกค้าตกลงแล้วระบบจะยืนยันออเดอร์ใบเดิม ไม่สร้างซ้ำ`
           : editId

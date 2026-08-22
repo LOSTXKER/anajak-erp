@@ -176,7 +176,7 @@ export default function OutsourcePage() {
     <div className="space-y-5">
       <PageHeader
         title="งานร้านนอก"
-        description="ติดตามกำหนดรับ ตรวจรับจากร้าน แล้วส่งต่อเข้า QC ขั้นสุดท้าย"
+        help="ติดตามกำหนดรับ ตรวจรับจากร้าน และส่งต่อเข้า QC ขั้นสุดท้าย"
         action={
           canManageSettings ? (
             <Button asChild variant="outline" size="sm">
@@ -276,7 +276,7 @@ export default function OutsourcePage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 flex-1 items-start gap-3">
-                      <EntityMark label={o.vendor.name} icon={Truck} shape="avatar" />
+                      <EntityMark label={o.vendor.name} icon={Truck} shape="avatar" tone="production" />
                       <div className="min-w-0">
                       <h3 className="break-words text-sm font-medium text-slate-900 dark:text-white">
                         <Link

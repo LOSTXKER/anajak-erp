@@ -60,7 +60,7 @@ export function OrderShippingSection({
       id={id}
       tabIndex={id ? -1 : undefined}
       title={title}
-      description={
+      help={
         showGuidance
           ? alwaysOn
             ? "ล้างช่องให้ว่าง = ลบที่อยู่จัดส่งของงานนี้"

@@ -157,7 +157,7 @@ function CustomersPageContent() {
       )}
 
       {showForm && canManageCustomers && (
-        <Section title="เพิ่มลูกค้าใหม่" icon={UserPlus}>
+        <Section title="เพิ่มลูกค้าใหม่" icon={UserPlus} tone="brand">
           <form onSubmit={handleSubmit} className="space-y-4">
               <CustomerFormFields
                 form={form}
@@ -240,7 +240,7 @@ function CustomersPageContent() {
                   <DataTable.Row key={customer.id}>
                     <DataTable.Td>
                       <div className="flex items-center gap-3">
-                        <EntityMark label={customer.company || customer.name} shape="avatar" size="sm" />
+                        <EntityMark label={customer.company || customer.name} shape="avatar" size="sm" tone="brand" />
                         <div className="min-w-0">
                           <Link
                             href={`/customers/${customer.id}`}
@@ -304,7 +304,7 @@ function CustomersPageContent() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-start gap-3">
-                        <EntityMark label={customer.company || customer.name} shape="avatar" />
+                        <EntityMark label={customer.company || customer.name} shape="avatar" tone="brand" />
                         <div className="min-w-0">
                         <p className="font-semibold text-strong">
                           {customer.company || customer.name}

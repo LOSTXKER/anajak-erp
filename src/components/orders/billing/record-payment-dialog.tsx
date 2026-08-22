@@ -156,7 +156,7 @@ export function RecordPaymentDialog({
               <div className="mt-3 space-y-3">
                 <Field
                   label="ยอดที่หัก (บาท)"
-                  description={`มาตรฐาน 3% ของฐานก่อน VAT = ${formatCurrency(whtSuggested)}`}
+                  help={`มาตรฐาน 3% ของฐานก่อน VAT = ${formatCurrency(whtSuggested)}`}
                 >
                   <Input
                     type="number"

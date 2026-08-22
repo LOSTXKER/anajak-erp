@@ -1465,7 +1465,7 @@ export default function OrderFormPage(props: OrderFormPageProps) {
                       <Field
                         label={`ค่าธรรมเนียม ${CHANNEL_LABELS[channel]}`}
                         id="order-platform-fee"
-                        description="หักจากยอดโอนเข้าร้าน — ไม่รวมในยอดบิล"
+                        help="หักจากยอดโอนเข้าร้านและไม่รวมในยอดบิล"
                       >
                         <MoneyInput
                           id="order-platform-fee"

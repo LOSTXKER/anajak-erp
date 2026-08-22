@@ -239,7 +239,7 @@ function BillingPageContent() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-start gap-3">
-                        <EntityMark label={inv.invoiceNumber} icon={FileText} fallback="icon" />
+                        <EntityMark label={inv.invoiceNumber} icon={FileText} fallback="icon" tone="finance" />
                         <div className="min-w-0">
                           <p className="font-semibold text-blue-700 dark:text-blue-300">
                             {inv.invoiceNumber}
@@ -329,7 +329,7 @@ function BillingPageContent() {
                   <DataTable.Row key={inv.id}>
                     <DataTable.Td className="p-0 font-medium text-slate-900 dark:text-white">
                       <Link href={moneyHref} className="flex items-center gap-3 px-5 py-3 text-blue-700 dark:text-blue-300">
-                        <EntityMark label={inv.invoiceNumber} icon={FileText} fallback="icon" size="sm" />
+                        <EntityMark label={inv.invoiceNumber} icon={FileText} fallback="icon" size="sm" tone="finance" />
                         <span>{inv.invoiceNumber}</span>
                       </Link>
                     </DataTable.Td>

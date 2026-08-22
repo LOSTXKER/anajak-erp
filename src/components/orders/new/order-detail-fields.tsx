@@ -66,7 +66,7 @@ export function OrderDetailFields({
       <Field
         label="ข้อความจากลูกค้า"
         id={`${id}-description`}
-        description={showGuidance ? "สรุปจากแชท: แบบ สี จำนวน งบ และสิ่งที่ลูกค้าเน้น" : undefined}
+        help={showGuidance ? "สรุปจากแชทให้ครบแบบ สี จำนวน งบ และสิ่งที่ลูกค้าเน้น" : undefined}
       >
         <Textarea
           value={description}
@@ -108,7 +108,7 @@ export function OrderDetailFields({
         <Field
           label="ชื่องาน"
           id={`${id}-title`}
-          description={showGuidance ? "เว้นว่าง = ระบบตั้งชื่อจากลูกค้าให้" : undefined}
+          help={showGuidance ? "เว้นว่างเพื่อให้ระบบตั้งชื่อจากลูกค้า" : undefined}
         >
           <Input
             value={title}

@@ -281,7 +281,7 @@ export default function UsersSettingsPage() {
                       >
                         <DataTable.Td>
                           <div className="flex items-center gap-3">
-                            <EntityMark label={user.name} shape="avatar" size="sm" />
+                            <EntityMark label={user.name} shape="avatar" size="sm" tone="system" />
                             <div>
                               <span className="text-sm font-medium text-slate-900 dark:text-white">
                                 {user.name}

@@ -117,7 +117,7 @@ export function CustomerFormFields({
             placeholder="เช่น ร้านเสื้อพี่หนึ่ง"
           />
         </Field>
-        <Field label="ลิงก์แชท" description="กดจากรายการออเดอร์แล้วเปิดห้องแชทได้เลย">
+        <Field label="ลิงก์แชท" help="ใช้เปิดห้องแชทจากรายการออเดอร์">
           <Input
             type="url"
             inputMode="url"
@@ -141,7 +141,7 @@ export function CustomerFormFields({
         <Field
           label="ที่อยู่ผู้ติดต่อ"
           className="sm:col-span-2"
-          description="ที่อยู่ประจำของลูกค้า · ใช้พิมพ์บนใบเสนอราคา/ใบกำกับ ถ้าไม่ได้กรอกที่อยู่ออกใบกำกับภาษีแยกไว้"
+          help="ใช้เป็นที่อยู่ประจำบนใบเสนอราคาและใบกำกับ เมื่อไม่ได้กรอกที่อยู่ออกเอกสารแยกไว้"
         >
           <Input value={form.address} onChange={(e) => set({ address: e.target.value })} />
         </Field>

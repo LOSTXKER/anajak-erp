@@ -138,7 +138,7 @@ export default function VendorsSettingsPage() {
     <PageShell
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ร้านรับจ้างภายนอก"
-      description="ทะเบียนร้านสำหรับงาน DTG, สกรีน, ปัก, ตัดเย็บ และป้ายคอ"
+      help="ทะเบียนร้านสำหรับงาน DTG, สกรีน, ปัก, ตัดเย็บ และป้ายคอ"
       error={
         meQuery.isError
           ? {
@@ -278,7 +278,7 @@ export default function VendorsSettingsPage() {
             </Field>
             <Field
               label="ประเภทงานที่รับ"
-              description="คั่นด้วยจุลภาค เช่น สกรีน, ปัก, เย็บ"
+              help="คั่นแต่ละประเภทด้วยจุลภาค เช่น สกรีน, ปัก, เย็บ"
             >
               <Input
                 value={form.capabilities}

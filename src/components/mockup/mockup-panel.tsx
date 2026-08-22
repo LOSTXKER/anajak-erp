@@ -194,7 +194,7 @@ export function MockupPanel({
     <>
       <Section
         title={title}
-        description={
+        help={
           description ??
           (readOnly
             ? "แบบที่ลูกค้าอนุมัติแล้ว ใช้อ้างอิงหน้างาน"

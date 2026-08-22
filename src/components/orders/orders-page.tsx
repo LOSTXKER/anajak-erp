@@ -569,7 +569,7 @@ function OrdersPageContent() {
                 <DataTable.Row key={order.id} href={`/orders/${order.id}`}>
                   <DataTable.Td>
                     <div className="flex items-center gap-3">
-                      <EntityMark label={order.orderNumber} icon={ShoppingCart} fallback="icon" size="sm" />
+                      <EntityMark label={order.orderNumber} icon={ShoppingCart} fallback="icon" size="sm" tone="brand" />
                       <Link
                         href={`/orders/${order.id}`}
                         className="font-medium text-blue-600 hover:underline dark:text-blue-400"
@@ -580,7 +580,7 @@ function OrdersPageContent() {
                   </DataTable.Td>
                   <DataTable.Td>
                     <div className="flex min-w-0 items-start gap-3">
-                      <EntityMark label={order.customer?.name ?? order.orderNumber} size="sm" shape="avatar" />
+                      <EntityMark label={order.customer?.name ?? order.orderNumber} size="sm" shape="avatar" tone="brand" />
                       <div className="min-w-0">
                       <p className="truncate text-slate-900 dark:text-white">
                         {order.customer?.name ?? "—"}
@@ -665,7 +665,7 @@ function OrdersPageContent() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
-                      <EntityMark label={order.orderNumber} icon={ShoppingCart} fallback="icon" />
+                      <EntityMark label={order.orderNumber} icon={ShoppingCart} fallback="icon" tone="brand" />
                       <div className="min-w-0">
                         <p className="font-semibold text-blue-700 dark:text-blue-300">
                           {order.orderNumber}

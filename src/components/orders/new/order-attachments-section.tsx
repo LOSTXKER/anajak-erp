@@ -117,7 +117,7 @@ export function OrderAttachmentsSection({
       tabIndex={id ? -1 : undefined}
       className={className}
       title={title}
-      description={images.length > 0 ? `${images.length}/5 ไฟล์` : "สูงสุด 5 ไฟล์"}
+      meta={images.length > 0 ? `${images.length}/5 ไฟล์` : "สูงสุด 5 ไฟล์"}
       bordered={!embedded}
       headingLevel={embedded ? 3 : 2}
       action={embedded ? uploadControl : undefined}
