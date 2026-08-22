@@ -1,8 +1,6 @@
-"use client";
-
-import { use } from "react";
-import { ProductionDetailScreen } from "@/components/production/production-detail-screen";
-import { normalizeProductionDetailTab } from "@/lib/production-detail-tabs";
+import { LegacyProductionDetailPage } from "@/components/production/legacy-production-detail-page";
+import { ProductionV2ControlRecord } from "@/components/production-v2/production-v2-control-record";
+import { productionV2Enabled } from "@/lib/production-v2-flag";
 
 export default function ProductionDetailPage({
   params,
@@ -11,15 +9,9 @@ export default function ProductionDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string | string[] }>;
 }) {
-  const { id } = use(params);
-  const query = use(searchParams);
-  const rawTab = Array.isArray(query.tab) ? query.tab[0] : query.tab;
+  if (!productionV2Enabled()) {
+    return <LegacyProductionDetailPage params={params} searchParams={searchParams} />;
+  }
 
-  return (
-    <ProductionDetailScreen
-      key={id}
-      id={id}
-      initialTab={normalizeProductionDetailTab(rawTab) ?? undefined}
-    />
-  );
+  return <ProductionV2ControlRecord params={params} />;
 }

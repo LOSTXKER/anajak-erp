@@ -160,7 +160,12 @@ export async function sanitizeArtworkLinks<
     ),
   ];
   if (ids.length === 0) return;
-  const valid = await prisma.customerArtwork.findMany({
+  // Prisma's extended client and transaction client expose the same delegate at
+  // runtime, but a large schema makes the union of their generic signatures too
+  // deep for TypeScript to compare. Narrow only this read delegate; query logic
+  // and the public caller contract stay unchanged.
+  const artworkReader = prisma as unknown as Prisma.TransactionClient;
+  const valid = await artworkReader.customerArtwork.findMany({
     where: { id: { in: ids }, customerId },
     select: { id: true, imageUrl: true },
   });

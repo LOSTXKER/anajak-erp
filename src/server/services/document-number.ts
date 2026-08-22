@@ -13,6 +13,7 @@ export type DocType =
   | "DEBIT_NOTE"
   | "BILLING_NOTE"
   | "PRINT_RUN"
+  | "WORK_ORDER"
   | "CHANGE_ORDER";
 
 const DOC_PREFIXES: Record<DocType, string> = {
@@ -25,6 +26,7 @@ const DOC_PREFIXES: Record<DocType, string> = {
   DEBIT_NOTE: "DN",
   BILLING_NOTE: "BN",
   PRINT_RUN: "FR", // รอบพิมพ์ฟิล์ม (Film Run) — เลขอ้างบนป้ายฟิล์ม/หน้าจอช่างพิมพ์
+  WORK_ORDER: "MO", // ใบสั่งผลิต (Manufacturing Order)
   CHANGE_ORDER: "CO", // ใบแก้ไขออเดอร์ (Change Order) — ออเดอร์อนุมัติแล้วแก้ผ่านใบนี้
 };
 

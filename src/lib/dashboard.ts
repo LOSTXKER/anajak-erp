@@ -74,7 +74,7 @@ export function buildDashboardAttentionItems(
           ? `เลยกำหนดรับ ${pulse.outsource.overduePickup} งาน`
           : "กำลังรอรับงานกลับ",
       count: pulse.outsource.pending,
-      href: "/outsource",
+      href: "/production?view=outsource",
       tone: pulse.outsource.overduePickup > 0 ? "danger" : "warning",
       priority: pulse.outsource.overduePickup > 0 ? 90 : 60,
     });

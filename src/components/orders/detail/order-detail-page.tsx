@@ -161,20 +161,27 @@ function OrderFilesPanel({
 
 export default function OrderDetailPage({
   params,
+  productionV2Enabled,
 }: {
   params: Promise<{ id: string }>;
+  productionV2Enabled: boolean;
 }) {
   return (
     <Suspense fallback={<OrderDetailSkeleton />}>
-      <OrderDetailContent params={params} />
+      <OrderDetailContent
+        params={params}
+        productionV2Enabled={productionV2Enabled}
+      />
     </Suspense>
   );
 }
 
 function OrderDetailContent({
   params,
+  productionV2Enabled,
 }: {
   params: Promise<{ id: string }>;
+  productionV2Enabled: boolean;
 }) {
   const { id } = use(params);
   const router = useRouter();
@@ -385,17 +392,39 @@ function OrderDetailContent({
   // ----------------------------------------------------------
   // Derived data
   // ----------------------------------------------------------
+  const hasV2Production =
+    Boolean(order.productionCompletionOwnerId) ||
+    (order.productions ?? []).some(
+      (production) =>
+        Boolean(production.workOrderNumber) ||
+        Boolean(production.completionOwnerStepId) ||
+        production.steps.some((step) => step.executionEnabled),
+    );
   const flowSteps = getFlowSteps(order.orderType);
   const nextStatuses = getNextStatuses(order.orderType, order.internalStatus);
   // ซ่อนปุ่มที่คนนี้กดแล้ว server ปฏิเสธ (PERM4: ชุดสิทธิ์จริงเดียวกับด่าน server — audit ข้อ 29)
-  const roleCanSetStatus = (to: string) =>
-    canPermsSetStatus(me?.permissions, order.internalStatus, to as InternalStatus);
+  const roleCanSetStatus = (to: string) => {
+    const target = to as InternalStatus;
+    if (hasV2Production && target !== "COMPLETED") {
+      return false;
+    }
+    return canPermsSetStatus(
+      me?.permissions,
+      order.internalStatus,
+      target,
+      productionV2Enabled,
+    );
+  };
   const forwardStatuses = nextStatuses.filter((s) => s !== "CANCELLED" && roleCanSetStatus(s));
   const canCancel = nextStatuses.includes("CANCELLED") && roleCanSetStatus("CANCELLED");
   // เมนูฝั่งขาย (แก้ข้อมูล/รายการ/สำเนา/ออกใบเสนอ) — server เป็น create_sales_docs
   const isSalesUp = !!me && permAllows(me.permissions, "create_sales_docs");
   // ฟอร์มแก้ทั้งใบมีราคาเหมือนหน้าสร้าง — ขาดสิทธิ์เห็นเงินต้องไม่ mount/เปิด route นี้
   const canUseEditForm = canEditOrderWithPricing(me?.permissions);
+  const canEditReceiveTracking =
+    !productionV2Enabled &&
+    !hasV2Production &&
+    permAllows(me?.permissions, ["manage_production", "supervise_operations"]);
 
   const currentStepIndex = flowSteps.indexOf(order.internalStatus);
 
@@ -432,12 +461,26 @@ function OrderDetailContent({
 
   // แก้ตรงก่อนอนุมัติ หรือออก CO ได้ก่อนเริ่มผลิต — ใช้กฎกลางเดียวกับ server
   const canEditItems =
-    !isOrderLocked(order.internalStatus as InternalStatus) ||
-    canIssueChangeOrder(order.internalStatus as InternalStatus);
+    !hasV2Production &&
+    (!isOrderLocked(order.internalStatus as InternalStatus) ||
+      canIssueChangeOrder(order.internalStatus as InternalStatus));
 
   // แถบ "ขั้นต่อไป" — ระบบจำว่างานนี้ต้องทำอะไรต่อ (logic lib/order-next-step.ts) แทนให้ผู้ใช้ไล่เดาจากการ์ด
   const nextStepInput = buildNextStepInput(order);
-  const nextStep = getOrderNextStep(nextStepInput);
+  const legacyNextStep = getOrderNextStep(nextStepInput);
+  const nextStep =
+    productionV2Enabled &&
+    ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING"].includes(
+      order.internalStatus,
+    )
+      ? {
+          title: "งานกำลังเดินในฝ่ายผลิต",
+          description:
+            "ดูสถานะและปัญหาที่หน้างานผลิต ส่วนพนักงานลงมือและปิดขั้นในโหมดสถานี",
+          buttonLabel: "เปิดงานผลิต",
+          action: { type: "ANCHOR" as const, target: "production" as const },
+        }
+      : legacyNextStep;
   /* แท็บที่คนนี้เห็น — ซ่อนได้ตาม "สิทธิ์" เท่านั้น ห้ามซ่อนตามสถานะ
      (สิทธิ์ผูกกับคน = ชุดแท็บคงที่ตลอดการใช้งาน · สถานะเดินหลายรอบต่อวัน
       ถ้าซ่อนตามสถานะ ตำแหน่งแท็บจะขยับใต้มือ) */
@@ -809,6 +852,7 @@ function OrderDetailContent({
               fees={order.fees ?? []}
               onEditItems={canEditItems && canUseEditForm ? openItemsEditPage : undefined}
               showMoney={canSeeMoney}
+              canEditReceiveTracking={canEditReceiveTracking}
             />
             <OrderChangeOrders orderId={id} />
           </TabsContent>}
@@ -822,23 +866,27 @@ function OrderDetailContent({
               onOpenMockup={() => changeTab("files")}
             />
 
-            {/* ของเข้า/ตรวจรับ — เสื้อลูกค้า/เสื้อโรงเย็บ นับจริงต่อไซส์ (ก้อน 1) */}
-            <OrderGoodsReceiptSection
-              orderId={id}
-              itemSources={(order.items ?? []).flatMap((it) =>
-                (it.products ?? [])
-                  .map((p) => p.itemSource)
-                  .filter((s): s is string => s !== null)
-              )}
-              canReceive={!!me && permAllows(me.permissions, "manage_delivery")}
-            />
+            {/* V2 ให้ Prep/QC ทำจาก Station เท่านั้น หน้าออเดอร์คงเป็น summary + deep link.
+                หน้าเดิมยังอยู่ครบหลัง flag หนึ่ง release เพื่อ rollback. */}
+            {!productionV2Enabled ? (
+              <>
+                <OrderGoodsReceiptSection
+                  orderId={id}
+                  itemSources={(order.items ?? []).flatMap((it) =>
+                    (it.products ?? [])
+                      .map((p) => p.itemSource)
+                      .filter((s): s is string => s !== null)
+                  )}
+                  canReceive={!!me && permAllows(me.permissions, "manage_delivery")}
+                />
 
-            {/* ตรวจนับ QC — นับของจุดที่ 2 ก่อนแพ็ค (ก้อน 3): ดีล้วนเด้งแพ็ค · มีเสียถอยกลับผลิต */}
-            <OrderQcSection
-              orderId={id}
-              internalStatus={order.internalStatus}
-              canCount={!!me && permAllows(me.permissions, "manage_production")}
-            />
+                <OrderQcSection
+                  orderId={id}
+                  internalStatus={order.internalStatus}
+                  canCount={!!me && permAllows(me.permissions, "manage_production")}
+                />
+              </>
+            ) : null}
 
             {/* การ์ดสรุปอ่านอย่างเดียว — ตัวจัดการผลิตจริงอยู่ /production/[id] (เบสเคาะแยกโมดูล) */}
             <ProductionSummaryCard
@@ -846,6 +894,7 @@ function OrderDetailContent({
               internalStatus={order.internalStatus}
               productions={order.productions ?? []}
               isManagerUp={!!me && permAllows(me.permissions, "supervise_operations")}
+              productionV2Enabled={productionV2Enabled}
             />
           </TabsContent>}
 

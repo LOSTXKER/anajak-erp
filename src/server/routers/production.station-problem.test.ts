@@ -20,6 +20,7 @@ type StepState = {
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
+  executionEnabled: boolean;
 };
 
 const baseStep: StepState = {
@@ -39,6 +40,7 @@ const baseStep: StepState = {
   notes: null,
   createdAt: new Date("2026-08-20T00:00:00.000Z"),
   updatedAt: new Date("2026-08-20T01:00:00.000Z"),
+  executionEnabled: false,
 };
 
 function makeHarness(options: {
@@ -787,6 +789,22 @@ describe("production.assignProductionStep", () => {
 });
 
 describe("production.updateStep assignment boundary", () => {
+  it("legacy writer ปฏิเสธ Operation Job ของ Production V2", async () => {
+    const harness = makeHarness({
+      step: { executionEnabled: true },
+      role: "MANAGER",
+      userId: "manager-2",
+    });
+
+    await expect(
+      productionRouter.createCaller(harness.ctx).updateStep({
+        stepId: "step-1",
+        qtyDone: 3,
+      }),
+    ).rejects.toThrow("Production V2");
+    expect(harness.tx.productionStep.update).not.toHaveBeenCalled();
+  });
+
   it("schema ไม่ expose assignedToId และ unknown input ถูก strip โดยไม่เปลี่ยน owner", async () => {
     const harness = makeHarness({ role: "MANAGER", userId: "manager-2" });
 

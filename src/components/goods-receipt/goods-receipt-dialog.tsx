@@ -54,6 +54,9 @@ interface GoodsReceiptDialogProps {
   outsourceOrderId?: string;
   // จอสถานีต้องผูกคำสั่งกับ GARMENT_RECEIVE ที่กำลังทำจริง; หน้าออเดอร์ทั่วไปไม่ส่ง
   productionStepId?: string;
+  // V2 ผูกหลักฐานกับ Operation Job และ revision เดียวกับที่ผู้ใช้กำลังเห็น
+  operationJobId?: string;
+  expectedRevision?: number;
   onClose: () => void;
   onCreated?: () => void;
 }
@@ -107,7 +110,10 @@ export function GoodsReceiptDialog(props: GoodsReceiptDialogProps) {
       // ใบรับ: คาดว่าจะได้ส่วนที่ยังขาด · ใบคืน: คืนจากที่รับมาแล้ว (default 0 ให้คนกรอกเอง)
       qtyExpected:
         props.receiptType === "CUSTOMER_RETURN"
-          ? Math.max(0, l.qtyReceivedNet)
+          ? Math.max(
+              0,
+              props.operationJobId ? l.qtyReturnable : l.qtyReceivedNet,
+            )
           : Math.max(0, l.qtyExpected - l.qtyReceivedNet),
     }));
 
@@ -119,6 +125,8 @@ function ReceiptForm({
   receiptType,
   outsourceOrderId,
   productionStepId,
+  operationJobId,
+  expectedRevision,
   onClose,
   onCreated,
   initialLines,
@@ -147,6 +155,10 @@ function ReceiptForm({
       utils.production.getById,
       utils.production.kanban,
       utils.factory.stationQueue,
+      utils.manufacturing.stationDispatch,
+      utils.manufacturing.stationJob,
+      utils.manufacturing.workOrder,
+      utils.manufacturing.controlList,
     ],
     onSuccess: () => {
       toast.success(`บันทึก${RECEIPT_TYPE_LABELS[receiptType]}แล้ว`);
@@ -167,6 +179,10 @@ function ReceiptForm({
         utils.production.getById,
         utils.production.kanban,
         utils.factory.stationQueue,
+        utils.manufacturing.stationDispatch,
+        utils.manufacturing.stationJob,
+        utils.manufacturing.workOrder,
+        utils.manufacturing.controlList,
       ],
       onSuccess: () => {
         toast.success("ยืนยันหลักฐานรับเสื้อและปิดขั้นแล้ว");
@@ -185,15 +201,26 @@ function ReceiptForm({
   const totalCounted = lines.reduce((s, l) => s + l.qtyCounted, 0);
   const totalDefect = lines.reduce((s, l) => s + l.defectQty, 0);
   const isStationInspection =
-    receiptType === "CUSTOMER_GARMENT" && !!productionStepId;
+    (receiptType === "CUSTOMER_GARMENT" &&
+      !!(productionStepId || operationJobId)) ||
+    (receiptType === "CUSTOMER_RETURN" && !!operationJobId);
   const canConfirmExistingEvidence =
+    receiptType === "CUSTOMER_GARMENT" &&
     isStationInspection &&
     lines.length > 0 &&
     lines.every((line) => line.qtyExpected === 0);
 
   function handleSave() {
-    if (canConfirmExistingEvidence && productionStepId) {
-      confirmExistingEvidence.mutate({ productionStepId });
+    if (canConfirmExistingEvidence && (productionStepId || operationJobId)) {
+      confirmExistingEvidence.mutate(
+        operationJobId
+          ? {
+              operationJobId,
+              expectedRevision: expectedRevision!,
+              commandId: idempotencyKey,
+            }
+          : { productionStepId: productionStepId! },
+      );
       return;
     }
     create.mutate({
@@ -202,6 +229,8 @@ function ReceiptForm({
       receiptType,
       outsourceOrderId,
       productionStepId,
+      operationJobId,
+      expectedRevision,
       notes: notes || undefined,
       photoUrls,
       lines: (isStationInspection
@@ -257,7 +286,11 @@ function ReceiptForm({
                     )}
                   </p>
                   <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
-                    {isReturn ? `รับมาแล้วสุทธิ ${l.qtyExpected}` : `ที่คาด ${l.qtyExpected}`}
+                    {isReturn
+                      ? operationJobId
+                        ? `คืนได้ ${l.qtyExpected}`
+                        : `รับมาแล้วสุทธิ ${l.qtyExpected}`
+                      : `ที่คาด ${l.qtyExpected}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -353,10 +386,12 @@ function ReceiptForm({
         <DialogSubmitFooter
           pending={create.isPending || confirmExistingEvidence.isPending}
           disabled={
-            !canConfirmExistingEvidence &&
-            !isStationInspection &&
-            totalCounted <= 0 &&
-            totalDefect <= 0
+            isReturn
+              ? totalCounted <= 0
+              : !canConfirmExistingEvidence &&
+                !isStationInspection &&
+                totalCounted <= 0 &&
+                totalDefect <= 0
           }
           submitLabel={
             canConfirmExistingEvidence

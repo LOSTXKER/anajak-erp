@@ -5,6 +5,7 @@ import { issueGarments, returnGarments } from "./garment-pick";
 type Usage = {
   id: string;
   productionId: string;
+  productionStepId?: string | null;
   productId: string;
   productVariantId: string | null;
   quantity: number;
@@ -29,6 +30,7 @@ function garmentHarness(params?: {
   stepStatus?: string;
   auditFails?: boolean;
   orderId?: string;
+  executionEnabled?: boolean;
   stockDocuments?: Map<string, string>;
   siblings?: Array<{
     id: string;
@@ -53,6 +55,7 @@ function garmentHarness(params?: {
     sortOrder: 1,
     assignedToId: null as string | null,
     qtyDone: 0,
+    executionEnabled: params?.executionEnabled ?? false,
   };
 
   if ((params?.issued ?? 0) > 0) {
@@ -89,8 +92,36 @@ function garmentHarness(params?: {
         log.push("production-read");
         return { id: "production-1", orderId };
       }),
+      update: vi.fn().mockResolvedValue({ id: "production-1" }),
     },
     productionStep: {
+      findFirst: vi.fn().mockResolvedValue(
+        params?.executionEnabled ? { id: "step-pick" } : null,
+      ),
+      findUnique: vi.fn().mockResolvedValue({
+        id: "step-pick",
+        productionId: "production-1",
+        operationCode: "PREP",
+        operationState: "RUNNING",
+        executionEnabled: true,
+        workCenterId: "wc-prep",
+        assignedToId: null,
+        qtyPlanned: 10,
+        qtyGood: 0,
+        qtyScrap: 0,
+        qtyRework: 0,
+        revision: 0,
+        workCenter: { code: "PREP", isActive: true },
+        workResourceId: null,
+        workResource: null,
+        predecessorLinks: [],
+        exceptions: [],
+        production: {
+          orderId,
+          workOrderState: "IN_PROGRESS",
+          order: { internalStatus: params?.orderStatus ?? "PRODUCING" },
+        },
+      }),
       findUniqueOrThrow: vi.fn(async () => {
         log.push("step-read");
         return { ...step };
@@ -142,6 +173,30 @@ function garmentHarness(params?: {
         },
       ]),
     },
+    orderItemProduct: {
+      findMany: vi.fn().mockResolvedValue([
+        { id: "order-product-1", productId: "product-1" },
+      ]),
+    },
+    operationQuantity: {
+      findMany: vi.fn().mockResolvedValue([{
+        id: "quantity-prep-1",
+        productionStepId: "step-pick",
+        sourceOrderItemProductId: "order-product-1",
+        size: "M",
+        color: "ดำ",
+        printPosition: null,
+        qtyPlanned: 10,
+        qtyGood: 0,
+        qtyScrap: 0,
+        qtyRework: 0,
+      }]),
+      update: vi.fn().mockResolvedValue({ id: "quantity-prep-1" }),
+    },
+    workCenterMember: {
+      findUnique: vi.fn().mockResolvedValue({ isActive: true }),
+    },
+    operationEvent: { create: vi.fn().mockResolvedValue({ id: "event-1" }) },
     materialUsage: {
       findMany: vi.fn(
         async (args?: {
@@ -321,6 +376,81 @@ function garmentHarness(params?: {
 }
 
 describe("garment pick concurrency", () => {
+  it("V2 ISSUE ผูกยอด fulfilled กับ quantity line ตามสินค้า/ไซซ์/สี", async () => {
+    const harness = garmentHarness({ orderStatus: "PRODUCING" });
+
+    await issueGarments(
+      harness.prisma as never,
+      {
+        productionId: "production-1",
+        operationJobId: "step-pick",
+        expectedRevision: 0,
+        lines: [{ sku: "TS-M", qty: 4 }],
+        idempotencyKey: "issue-v2-quantity-line",
+        userId: "user-a",
+        canSupervise: false,
+      },
+      harness.client,
+    );
+
+    expect(harness.prisma.operationQuantity.update).toHaveBeenCalledWith({
+      where: { id: "quantity-prep-1" },
+      data: {
+        qtyGood: { increment: 4 },
+        qtyScrap: { increment: 0 },
+        qtyRework: { increment: 0 },
+        revision: { increment: 1 },
+      },
+    });
+    expect(harness.prisma.operationEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ qtyGoodDelta: 4 }),
+    });
+  });
+
+  it("ปฏิเสธการส่ง V2 Operation Job ผ่าน legacy stepId หลังถือ lock", async () => {
+    const harness = garmentHarness({ executionEnabled: true });
+
+    await expect(
+      issueGarments(
+        harness.prisma as never,
+        {
+          productionId: "production-1",
+          stepId: "step-pick",
+          lines: [{ sku: "TS-M", qty: 4 }],
+          idempotencyKey: "legacy-v2-operation-issue",
+          userId: "user-a",
+          canSupervise: true,
+        },
+        harness.client,
+      ),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    expect(harness.prisma.$queryRaw).toHaveBeenCalled();
+    expect(harness.createMovement).not.toHaveBeenCalled();
+    expect(harness.prisma.operationEvent.create).not.toHaveBeenCalled();
+  });
+
+  it("ปฏิเสธ V2 RETURN ที่ไม่ผูก operationJobId หลังถือ lock", async () => {
+    const harness = garmentHarness({ issued: 13, executionEnabled: true });
+
+    await expect(
+      returnGarments(
+        harness.prisma as never,
+        {
+          productionId: "production-1",
+          lines: [{ sku: "TS-M", qty: 3 }],
+          idempotencyKey: "legacy-v2-operation-return",
+          userId: "user-a",
+        },
+        harness.client,
+      ),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    expect(harness.prisma.$queryRaw).toHaveBeenCalled();
+    expect(harness.createMovement).not.toHaveBeenCalled();
+    expect(harness.prisma.operationEvent.create).not.toHaveBeenCalled();
+  });
+
   it("ยอม ISSUE เมื่อ order ยังเป็น PRODUCING และ response ไม่มีเงิน", async () => {
     const harness = garmentHarness({ orderStatus: "PRODUCING" });
 
@@ -339,6 +469,9 @@ describe("garment pick concurrency", () => {
 
     expect(harness.createMovement).toHaveBeenCalledOnce();
     expect(result).toMatchObject({ issuedQty: 4, alreadyRecorded: false });
+    expect(harness.usages).toEqual([
+      expect.objectContaining({ productionStepId: "step-pick" }),
+    ]);
     expect(JSON.stringify(result)).not.toMatch(/amount|price|cost/i);
     expect(harness.audits).toHaveLength(1);
     expect(harness.audits[0]).toMatchObject({
@@ -490,6 +623,58 @@ describe("garment pick concurrency", () => {
       );
     },
   );
+
+  it("V2 RETURN บันทึก material/event-only โดยไม่ลด quantity ผลผลิต", async () => {
+    const harness = garmentHarness({ issued: 13, orderStatus: "PRODUCING" });
+    await returnGarments(
+      harness.prisma as never,
+      {
+        productionId: "production-1",
+        operationJobId: "step-pick",
+        expectedRevision: 0,
+        lines: [{ sku: "TS-M", qty: 3 }],
+        idempotencyKey: "return-v2-event-only",
+        userId: "user-a",
+        canSupervise: false,
+      },
+      harness.client,
+    );
+
+    expect(harness.prisma.operationEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        eventType: "MATERIAL_RETURNED",
+        qtyGoodDelta: 0,
+        qtyScrapDelta: 0,
+        qtyReworkDelta: 0,
+      }),
+    });
+    expect(harness.prisma.operationQuantity.update).not.toHaveBeenCalled();
+  });
+
+  it("V2 RETURN ยังคืนเสื้อได้หลังออเดอร์ถูกยกเลิก", async () => {
+    const harness = garmentHarness({ issued: 13, orderStatus: "CANCELLED" });
+
+    await expect(
+      returnGarments(
+        harness.prisma as never,
+        {
+          productionId: "production-1",
+          operationJobId: "step-pick",
+          expectedRevision: 0,
+          lines: [{ sku: "TS-M", qty: 3 }],
+          idempotencyKey: "return-v2-after-cancel",
+          userId: "user-a",
+          canSupervise: false,
+        },
+        harness.client,
+      ),
+    ).resolves.toMatchObject({ returnedQty: 3 });
+
+    expect(harness.createMovement).toHaveBeenCalledOnce();
+    expect(harness.prisma.operationEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ eventType: "MATERIAL_RETURNED" }),
+    });
+  });
 
   it("serialize และอ่าน assignee สดก่อน ISSUE — สอง staff/key ตัด Stock ได้ครั้งเดียว", async () => {
     const harness = garmentHarness();

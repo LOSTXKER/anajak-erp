@@ -40,6 +40,15 @@ import { DASHED_INTERACTIVE, TINT } from "@/components/ui/tokens";
 // โชว์เฉพาะตอนอยู่ขั้นตรวจคุณภาพ หรือมีประวัติตรวจแล้ว (mobile-first: คนนับถือมือถือหน้ากองเสื้อ)
 
 type QcContext = RouterOutput["qc"]["context"];
+type ManufacturingQuantityLine = {
+  id: string;
+  description: string | null;
+  size: string | null;
+  color: string | null;
+  printPosition: string | null;
+  qtyPlanned: number;
+  qtyGood: number;
+};
 
 interface OrderQcSectionProps {
   orderId: string;
@@ -224,7 +233,23 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
 // export ให้หน้า /production ใช้ตัวเดียวกัน (Gate B4: ปุ่มผ่านด่านตรวจ = เปิดใบนับ ไม่ใช่ข้ามด่าน)
 // ============================================================
 
-export function QcCountDialog({ orderId, onClose }: { orderId: string; onClose: () => void }) {
+export function QcCountDialog({
+  orderId,
+  operationJobId,
+  expectedRevision,
+  operationRemaining,
+  quantityLines,
+  onClose,
+  onCreated,
+}: {
+  orderId: string;
+  operationJobId?: string;
+  expectedRevision?: number;
+  operationRemaining?: number;
+  quantityLines?: readonly ManufacturingQuantityLine[];
+  onClose: () => void;
+  onCreated?: () => void;
+}) {
   const { data: context, isLoading, isError, refetch } = trpc.qc.context.useQuery(
     { orderId },
     { gcTime: 0, staleTime: 0 }
@@ -262,16 +287,30 @@ export function QcCountDialog({ orderId, onClose }: { orderId: string; onClose: 
     );
   }
 
-  return <QcCountForm orderId={orderId} context={context} onClose={onClose} />;
+  return (
+    <QcCountForm
+      orderId={orderId}
+      context={context}
+      operationJobId={operationJobId}
+      expectedRevision={expectedRevision}
+      operationRemaining={operationRemaining}
+      quantityLines={quantityLines}
+      onClose={onClose}
+      onCreated={onCreated}
+    />
+  );
 }
 
 const NONE = "__NONE__";
 
 interface DefectRow {
+  quantityLineId: string;
   qty: number;
   size: string; // "" = ไม่ระบุ
+  color: string;
   printLabel: string; // "" = ไม่ระบุ
   reason: QcDefectReason | "";
+  disposition: "HOLD" | "REWORK" | "SCRAP" | "";
   photoUrls: string[];
   note: string;
 }
@@ -279,15 +318,38 @@ interface DefectRow {
 function QcCountForm({
   orderId,
   context,
+  operationJobId,
+  expectedRevision,
+  operationRemaining,
+  quantityLines,
   onClose,
+  onCreated,
 }: {
   orderId: string;
   context: QcContext;
+  operationJobId?: string;
+  expectedRevision?: number;
+  operationRemaining?: number;
+  quantityLines?: readonly ManufacturingQuantityLine[];
   onClose: () => void;
+  onCreated?: () => void;
 }) {
   // default = เหลือที่ยังไม่ผ่านตรวจ (ดีล้วนกดบันทึกเดียวจบ — ห้ามเพิ่มงานกรอกหน้างาน)
-  const remaining = Math.max(0, context.totalExpected - context.checkedGood);
-  const [qtyGood, setQtyGood] = useState(remaining);
+  const remaining = Math.max(
+    0,
+    operationJobId
+      ? (operationRemaining ?? context.totalExpected - context.checkedGood)
+      : context.totalExpected - context.checkedGood,
+  );
+  const [legacyQtyGood, setLegacyQtyGood] = useState(remaining);
+  const [goodByLine, setGoodByLine] = useState<Record<string, number>>(() =>
+    Object.fromEntries(
+      (quantityLines ?? []).map((line) => [
+        line.id,
+        Math.max(0, line.qtyPlanned - line.qtyGood),
+      ]),
+    ),
+  );
   const [defects, setDefects] = useState<DefectRow[]>([]);
   const [notes, setNotes] = useState("");
   // คง key เดิมตลอดฟอร์ม: network/response fail แล้วกดซ้ำต้องได้ผลเดิม ไม่เพิ่มยอด QC
@@ -306,6 +368,10 @@ function QcCountForm({
       utils.factory.stationContext,
       utils.factory.stationQueue,
       utils.task.myToday,
+      utils.manufacturing.stationDispatch,
+      utils.manufacturing.stationJob,
+      utils.manufacturing.workOrder,
+      utils.manufacturing.controlList,
     ],
     // toast ต้องบอกผลจริงตาม flags จาก server (qc.ts) — พักรอของ/งานแก้เปิดหรือไม่/
     // เข้าแพ็คหรือยังเหลือตรวจ ห้ามเดาเองจากแค่จำนวนเสีย
@@ -316,7 +382,15 @@ function QcCountForm({
       heldForStock: boolean;
       reworkOpened: boolean;
     }) => {
-      if (data.heldForStock) {
+      if (operationJobId) {
+        if (data.qtyDefect > 0) {
+          toast.warning(`บันทึก QC แล้ว · ไม่ผ่าน ${data.qtyDefect} ตัว`, {
+            description: "รายการ Hold/Rework ถูกหยุดไว้ให้หัวหน้าจัดการก่อนเดินต่อ",
+          });
+        } else {
+          toast.success(`บันทึก QC ผ่าน ${qtyGood} ตัวแล้ว`);
+        }
+      } else if (data.heldForStock) {
         toast.warning("เสื้อสำรองไม่พอ — งานพักรอของ คุยลูกค้าก่อน", {
           description: `ของเสีย ${data.qtyDefect} ตัว · เสื้อสำรองเหลือ ${data.spareAvailable} ตัว — แจ้งแอดมินแล้ว`,
         });
@@ -343,6 +417,7 @@ function QcCountForm({
       // success คือจบรอบตรวจนี้แล้ว; ถ้าผิวยังคง mount อยู่ รอบถัดไปต้องเป็น key ใหม่
       // ส่วน error ไม่ reset เพื่อให้ network/response retry ใช้ key เดิม
       setIdempotencyKey(crypto.randomUUID());
+      onCreated?.();
       onClose();
     },
     onError: (err: { message?: string }) => {
@@ -350,32 +425,129 @@ function QcCountForm({
     },
   });
 
-  const update = (idx: number, patch: Partial<DefectRow>) =>
-    setDefects((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
-  const removeRow = (idx: number) => setDefects((prev) => prev.filter((_, i) => i !== idx));
+  function defectQtyForLine(rows: readonly DefectRow[], quantityLineId: string) {
+    return rows.reduce(
+      (sum, defect) =>
+        sum + (defect.quantityLineId === quantityLineId ? defect.qty : 0),
+      0,
+    );
+  }
+
+  function syncGoodWithDefects(
+    previous: readonly DefectRow[],
+    next: readonly DefectRow[],
+  ) {
+    if (!operationJobId) return;
+    setGoodByLine((current) =>
+      Object.fromEntries(
+        (quantityLines ?? []).map((line) => {
+          const lineRemaining = Math.max(0, line.qtyPlanned - line.qtyGood);
+          const previousMaximum = Math.max(
+            0,
+            lineRemaining - defectQtyForLine(previous, line.id),
+          );
+          const nextMaximum = Math.max(
+            0,
+            lineRemaining - defectQtyForLine(next, line.id),
+          );
+          const currentGood = current[line.id] ?? 0;
+          return [
+            line.id,
+            currentGood === previousMaximum
+              ? nextMaximum
+              : Math.min(currentGood, nextMaximum),
+          ];
+        }),
+      ),
+    );
+  }
+
+  const update = (idx: number, patch: Partial<DefectRow>) => {
+    const next = defects.map((defect, index) =>
+      index === idx ? { ...defect, ...patch } : defect,
+    );
+    syncGoodWithDefects(defects, next);
+    setDefects(next);
+  };
+  const removeRow = (idx: number) => {
+    const next = defects.filter((_, index) => index !== idx);
+    syncGoodWithDefects(defects, next);
+    setDefects(next);
+  };
   const addRow = () =>
     setDefects((prev) => [
       ...prev,
-      { qty: 1, size: "", printLabel: "", reason: "", photoUrls: [], note: "" },
+      {
+        quantityLineId: "",
+        qty: 1,
+        size: "",
+        color: "",
+        printLabel: "",
+        reason: "",
+        disposition: "",
+        photoUrls: [],
+        note: "",
+      },
     ]);
 
   const qtyDefectTotal = defects.reduce((s, d) => s + d.qty, 0);
-  const missingReason = defects.some((d) => d.qty <= 0 || !d.reason);
-  const qtyGoodOverLimit = qtyGood > remaining;
+  const qtyGood = operationJobId
+    ? Object.values(goodByLine).reduce((sum, value) => sum + value, 0)
+    : legacyQtyGood;
+  const missingReason = defects.some(
+    (d) =>
+      d.qty <= 0 ||
+      !d.reason ||
+      (operationJobId ? !d.disposition || !d.quantityLineId : false),
+  );
+  const lineGoodOverLimit = (quantityLines ?? []).some(
+    (line) => {
+      const lineRemaining = Math.max(0, line.qtyPlanned - line.qtyGood);
+      const lineGood = goodByLine[line.id] ?? 0;
+      return (
+        lineGood < 0 ||
+        lineGood + defectQtyForLine(defects, line.id) > lineRemaining
+      );
+    },
+  );
+  const qtyGoodOverLimit = qtyGood > remaining || lineGoodOverLimit;
+  const missingV2Lines = Boolean(
+    operationJobId &&
+      qtyGood > 0 &&
+      (!quantityLines || quantityLines.length === 0),
+  );
   const canSave =
-    !missingReason && !qtyGoodOverLimit && qtyGood + qtyDefectTotal > 0;
+    !missingReason &&
+    !qtyGoodOverLimit &&
+    !missingV2Lines &&
+    qtyGood + qtyDefectTotal > 0;
+
+  function allocateGoodToLines() {
+    return (quantityLines ?? [])
+      .map((line) => ({
+        quantityLineId: line.id,
+        qtyGood: goodByLine[line.id] ?? 0,
+      }))
+      .filter((line) => line.qtyGood > 0);
+  }
 
   function handleSave() {
     create.mutate({
       orderId,
       idempotencyKey,
+      operationJobId,
+      expectedRevision,
       qtyGood,
+      quantityLines: operationJobId ? allocateGoodToLines() : undefined,
       notes: notes || undefined,
       defects: defects.map((d) => ({
+        quantityLineId: d.quantityLineId || undefined,
         qty: d.qty,
         size: d.size || undefined,
+        color: d.color || undefined,
         printLabel: d.printLabel || undefined,
         reason: d.reason as QcDefectReason,
+        disposition: d.disposition || undefined,
         photoUrls: d.photoUrls,
         note: d.note || undefined,
       })),
@@ -402,30 +574,100 @@ function QcCountForm({
             </Alert>
           )}
           {/* ของดี — default เหลือที่ยังไม่ผ่านตรวจ นับตรงกดบันทึกได้เลย */}
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-slate-900 dark:text-white">ของดี (ตัว)</p>
-              <p id="qc-good-remaining" className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
-                {qtyGoodOverLimit
-                  ? `กรอกเกินยอดที่เหลือ — นับของดีได้ไม่เกิน ${remaining} ตัว`
-                  : `เหลือที่ยังไม่ผ่านตรวจ ${remaining} ตัว`}
-              </p>
+          {operationJobId ? (
+            <section aria-labelledby="qc-good-lines-title" className="space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 id="qc-good-lines-title" className="text-sm font-medium text-strong">
+                  ของดีตามรายการ
+                </h3>
+                <p className="text-xs tabular-nums text-muted">
+                  รวม {qtyGood.toLocaleString("th-TH")} ตัว
+                </p>
+              </div>
+              {(quantityLines ?? []).map((line) => {
+                const lineRemaining = Math.max(0, line.qtyPlanned - line.qtyGood);
+                const lineDefect = defectQtyForLine(defects, line.id);
+                const lineGoodMaximum = Math.max(0, lineRemaining - lineDefect);
+                const value = goodByLine[line.id] ?? 0;
+                const invalid = value < 0 || value + lineDefect > lineRemaining;
+                return (
+                  <div
+                    key={line.id}
+                    className="grid gap-3 rounded-xl border border-divider p-3 sm:grid-cols-[minmax(0,1fr)_7rem] sm:items-end"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-strong">
+                        {[line.description, line.color, line.size, line.printPosition]
+                          .filter(Boolean)
+                          .join(" · ") || "รายการผลิต"}
+                      </p>
+                      <p className={cn("mt-0.5 text-xs", invalid ? "text-red-700" : "text-muted")}>
+                        {invalid
+                          ? `ของดีและไม่ผ่านรวมกันเกิน ${lineRemaining.toLocaleString("th-TH")} ตัว`
+                          : lineDefect > 0
+                            ? `ไม่ผ่าน ${lineDefect.toLocaleString("th-TH")} · ของดีได้ไม่เกิน ${lineGoodMaximum.toLocaleString("th-TH")}`
+                            : `เหลือตรวจ ${lineRemaining.toLocaleString("th-TH")} ตัว`}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <label htmlFor={`qc-good-line-${line.id}`} className="text-xs text-muted">
+                        ผ่าน
+                      </label>
+                      <Input
+                        id={`qc-good-line-${line.id}`}
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={lineGoodMaximum}
+                        value={value}
+                        aria-invalid={invalid || undefined}
+                        onChange={(event) =>
+                          setGoodByLine((current) => ({
+                            ...current,
+                            [line.id]: Math.max(
+                              0,
+                              Math.floor(Number(event.target.value) || 0),
+                            ),
+                          }))
+                        }
+                        className="text-center text-base tabular-nums"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              {missingV2Lines ? (
+                <Alert variant="error">ไม่พบรายการจำนวนของ Operation Job นี้</Alert>
+              ) : null}
+            </section>
+          ) : (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-900 dark:text-white">ของดี (ตัว)</p>
+                <p id="qc-good-remaining" className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  {qtyGoodOverLimit
+                    ? `กรอกเกินยอดที่เหลือ — นับของดีได้ไม่เกิน ${remaining} ตัว`
+                    : `เหลือที่ยังไม่ผ่านตรวจ ${remaining} ตัว`}
+                </p>
+              </div>
+              <Input
+                aria-label="จำนวนของดีที่ตรวจในรอบนี้"
+                aria-describedby="qc-good-remaining"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={remaining}
+                value={qtyGood}
+                aria-invalid={qtyGoodOverLimit || undefined}
+                onChange={(event) =>
+                  setLegacyQtyGood(
+                    Math.max(0, Math.floor(Number(event.target.value) || 0)),
+                  )
+                }
+                className="w-24 text-center text-base tabular-nums"
+              />
             </div>
-            <Input
-              aria-label="จำนวนของดีที่ตรวจในรอบนี้"
-              aria-describedby="qc-good-remaining"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={remaining}
-              value={qtyGood}
-              aria-invalid={qtyGoodOverLimit || undefined}
-              onChange={(e) =>
-                setQtyGood(Math.max(0, Math.floor(Number(e.target.value) || 0)))
-              }
-              className="w-24 text-center text-base tabular-nums"
-            />
-          </div>
+          )}
 
           {/* ของเสีย — default ว่าง เพิ่มเฉพาะตอนเจอจริง */}
           {defects.map((d, idx) => (
@@ -463,19 +705,52 @@ function QcCountForm({
                     className="text-center text-base tabular-nums"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label htmlFor={`qc-defect-size-${idx}`} className="text-xs text-muted">ไซส์</label>
-                  <Select value={d.size === "" ? NONE : d.size}
-                    onChange={(e) => update(idx, { size: e.target.value === NONE ? "" : e.target.value })} id={`qc-defect-size-${idx}`}>
-                      <option value={NONE}>ไม่ระบุ</option>
-                      {sizes.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
+                {operationJobId ? (
+                  <div className="space-y-1">
+                    <label htmlFor={`qc-defect-line-${idx}`} className="text-xs text-muted">
+                      รายการที่ไม่ผ่าน
+                    </label>
+                    <Select
+                      id={`qc-defect-line-${idx}`}
+                      value={d.quantityLineId}
+                      onChange={(event) => {
+                        const line = quantityLines?.find(
+                          (item) => item.id === event.target.value,
+                        );
+                        update(idx, {
+                          quantityLineId: event.target.value,
+                          size: line?.size ?? "",
+                          color: line?.color ?? "",
+                          printLabel: line?.printPosition ?? "",
+                        });
+                      }}
+                      className={cn(!d.quantityLineId && "border-amber-400")}
+                      placeholder="เลือกสินค้า / สี / ไซซ์ / จุดพิมพ์"
+                    >
+                      {(quantityLines ?? []).map((line) => (
+                        <option key={line.id} value={line.id}>
+                          {[line.description, line.color, line.size, line.printPosition]
+                            .filter(Boolean)
+                            .join(" · ") || "รายการผลิต"}
                         </option>
                       ))}
                     </Select>
-                </div>
-                {context.printLabels.length > 0 && (
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label htmlFor={`qc-defect-size-${idx}`} className="text-xs text-muted">ไซส์</label>
+                    <Select value={d.size === "" ? NONE : d.size}
+                      onChange={(e) => update(idx, { size: e.target.value === NONE ? "" : e.target.value })} id={`qc-defect-size-${idx}`}>
+                        <option value={NONE}>ไม่ระบุ</option>
+                        {sizes.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </Select>
+                  </div>
+                )}
+                {!operationJobId && context.printLabels.length > 0 && (
                   <div className="space-y-1">
                     <label htmlFor={`qc-defect-print-${idx}`} className="text-xs text-muted">ลาย</label>
                     <Select value={d.printLabel === "" ? NONE : d.printLabel}
@@ -492,7 +767,7 @@ function QcCountForm({
                 <div
                   className={cn(
                     "space-y-1",
-                    context.printLabels.length === 0 && "col-span-2"
+                    (operationJobId || context.printLabels.length === 0) && "col-span-2"
                   )}
                 >
                   <label htmlFor={`qc-defect-reason-${idx}`} className="text-xs text-muted">สาเหตุ</label>
@@ -506,6 +781,34 @@ function QcCountForm({
                       ))}
                     </Select>
                 </div>
+                {operationJobId ? (
+                  <div className="col-span-2 space-y-1">
+                    <label
+                      htmlFor={`qc-defect-disposition-${idx}`}
+                      className="text-xs text-muted"
+                    >
+                      งานที่ไม่ผ่านต้องไปทางไหน
+                    </label>
+                    <Select
+                      id={`qc-defect-disposition-${idx}`}
+                      value={d.disposition || undefined}
+                      onChange={(event) =>
+                        update(idx, {
+                          disposition: event.target.value as
+                            | "HOLD"
+                            | "REWORK"
+                            | "SCRAP",
+                        })
+                      }
+                      className={cn(!d.disposition && "border-amber-400")}
+                      placeholder="เลือกการจัดการ"
+                    >
+                      <option value="HOLD">พักไว้ให้หัวหน้าตัดสินใจ</option>
+                      <option value="REWORK">ส่งกลับแก้และตรวจซ้ำ</option>
+                      <option value="SCRAP">ตัดเป็นของเสีย</option>
+                    </Select>
+                  </div>
+                ) : null}
               </div>
 
               {/* รูปจุดเสีย — แนบได้หลายรูป */}
@@ -561,7 +864,17 @@ function QcCountForm({
           </Button>
 
           {/* แถบเตือนผลที่จะเกิดก่อนกด — คนกดต้องรู้ว่างานจะไปทางไหน (ตรรกะเดียวกับ server) */}
-          {context.totalExpected > 0 && qtyGood >= remaining ? (
+          {operationJobId ? (
+            qtyDefectTotal > 0 ? (
+              <Alert variant="warning" icon={AlertTriangle} className="px-3 py-2 text-xs">
+                ของที่ไม่ผ่านทุกบรรทัดจะเดินตามทางที่เลือกไว้ ของดีเท่านั้นที่ส่งต่อได้
+              </Alert>
+            ) : qtyGood > 0 ? (
+              <Alert variant="success" icon={CheckCircle2} className="px-3 py-2 text-xs">
+                บันทึกของดี {qtyGood} ตัวเข้ายอดผ่าน QC
+              </Alert>
+            ) : null
+          ) : context.totalExpected > 0 && qtyGood >= remaining ? (
             <Alert variant="success" icon={CheckCircle2} className="px-3 py-2 text-xs">
               ของดีสะสมครบยอด — งานจะเข้าคิวแพ็ก
               {qtyDefectTotal > 0

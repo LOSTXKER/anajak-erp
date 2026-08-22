@@ -32,6 +32,7 @@ import { customerUploadRouter } from "./customer-upload";
 import { customerStatusRouter } from "./customer-status";
 import { quotationConfirmRouter } from "./quotation-confirm";
 import { searchRouter } from "./search";
+import { manufacturingRouter } from "./manufacturing";
 
 export const appRouter = router({
   user: userRouter,
@@ -67,6 +68,7 @@ export const appRouter = router({
   customerStatus: customerStatusRouter,
   quotationConfirm: quotationConfirmRouter,
   search: searchRouter,
+  manufacturing: manufacturingRouter,
 });
 
 export type AppRouter = typeof appRouter;

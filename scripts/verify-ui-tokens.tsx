@@ -1492,8 +1492,12 @@ check(
    ERP เป็น exception/control record; routine execution อยู่ Station และทั้งสอง
    ต้อง fail-closed จากข้อมูล/สิทธิ์จริง ไม่สร้าง readiness หรือ owner ปลอม */
 {
-  const productionBoardSource = readFileSync(
+  const productionBoardRouteSource = readFileSync(
     "src/app/(dashboard)/production/page.tsx",
+    "utf8",
+  );
+  const productionBoardSource = readFileSync(
+    "src/components/production/legacy-production-page.tsx",
     "utf8",
   );
   const productionDetailSource = readFileSync(
@@ -1512,8 +1516,12 @@ check(
     "src/components/production/step-update-dialog.tsx",
     "utf8",
   );
-  const productionDetailPageSource = readFileSync(
+  const productionDetailRouteSource = readFileSync(
     "src/app/(dashboard)/production/[id]/page.tsx",
+    "utf8",
+  );
+  const productionDetailPageSource = readFileSync(
+    "src/components/production/legacy-production-detail-page.tsx",
     "utf8",
   );
   const productionDetailTabsSource = readFileSync(
@@ -1549,12 +1557,20 @@ check(
     "src/components/production/create-production-dialog.tsx",
     "utf8",
   );
-  const outsourceSource = readFileSync(
+  const outsourceRouteSource = readFileSync(
     "src/app/(dashboard)/outsource/page.tsx",
     "utf8",
   );
-  const filmStockSource = readFileSync(
+  const outsourceSource = readFileSync(
+    "src/components/outsource/legacy-outsource-page.tsx",
+    "utf8",
+  );
+  const filmStockRouteSource = readFileSync(
     "src/app/(dashboard)/production/films/page.tsx",
+    "utf8",
+  );
+  const filmStockSource = readFileSync(
+    "src/components/production/legacy-film-stock-page.tsx",
     "utf8",
   );
   const stockSyncSource = readFileSync(
@@ -1587,7 +1603,57 @@ check(
     "src/components/production/print-runs-page-view.tsx",
     "utf8",
   );
+  const productionV2WorkspaceSource = readFileSync(
+    "src/components/production-v2/production-v2-workspace.tsx",
+    "utf8",
+  );
+  const productionV2ControlSource = readFileSync(
+    "src/components/production-v2/production-v2-control-record.tsx",
+    "utf8",
+  );
+  const manufacturingStationSource = readFileSync(
+    "src/components/factory/manufacturing-station-screen.tsx",
+    "utf8",
+  );
+  const manufacturingFactorySource = readFileSync(
+    "src/components/factory/manufacturing-factory-board.tsx",
+    "utf8",
+  );
   const problems: string[] = [];
+
+  if (
+    !productionBoardRouteSource.includes("productionV2Enabled()") ||
+    !productionBoardRouteSource.includes("<ProductionV2Workspace />") ||
+    !productionBoardRouteSource.includes("<LegacyProductionPage />") ||
+    !productionDetailRouteSource.includes("<ProductionV2ControlRecord") ||
+    !productionDetailRouteSource.includes("<LegacyProductionDetailPage") ||
+    !outsourceRouteSource.includes('redirect("/production?view=outsource")') ||
+    !filmStockRouteSource.includes(
+      'redirect("/production?view=work-centers&center=DTF_PRINT")',
+    ) ||
+    !productionV2WorkspaceSource.includes(
+      "trpc.manufacturing.controlList.useInfiniteQuery",
+    ) ||
+    !productionV2WorkspaceSource.includes("query.fetchNextPage()") ||
+    !productionV2WorkspaceSource.includes("QueryError") ||
+    !productionV2ControlSource.includes("trpc.manufacturing.workOrder.useQuery") ||
+    !manufacturingStationSource.includes("availableCommands") ||
+    !manufacturingStationSource.includes("primaryStationCommand") ||
+    !manufacturingStationSource.includes(
+      "trpc.manufacturing.stationHandoff.useQuery",
+    ) ||
+    !manufacturingStationSource.includes(
+      "trpc.manufacturing.stationOrderContext.useQuery",
+    ) ||
+    manufacturingStationSource.includes(
+      "trpc.manufacturing.workOrder.useQuery",
+    ) ||
+    !manufacturingFactorySource.includes("trpc.manufacturing.workCenterLoad.useQuery")
+  ) {
+    problems.push(
+      "Production V2 ต้องมี canonical list/control/station/TV หลัง flag และ legacy route ต้องเหลือแค่ rollback/redirect",
+    );
+  }
 
   if (
     !productionBoardSource.includes("const meQuery = trpc.user.me.useQuery()") ||
@@ -1745,11 +1811,17 @@ check(
   }
 
   if (
+    !outsourceSource.includes("currentQcFailTarget !== null") ||
     !outsourceSource.includes(
-      "open={qcFailTarget !== null && !ordersStale && canJudgeQc}",
+      'currentQcFailTarget.availableCommands.includes("failQc")',
     ) ||
-    !outsourceSource.includes("shareTarget && !ordersStale && canHandleGoods") ||
-    !outsourceSource.includes("receiveTarget && !ordersStale && canHandleGoods") ||
+    !outsourceSource.includes(
+      'currentShareTarget?.availableCommands.includes("share")',
+    ) ||
+    !outsourceSource.includes(
+      'currentReceiveTarget.availableCommands.includes("receiveBack")',
+    ) ||
+    !outsourceSource.includes("enabled: !ordersStale") ||
     !filmStockSource.includes("const canWrite = canManage && !listStale") ||
     !filmStockSource.includes("consuming && canWrite")
   ) {

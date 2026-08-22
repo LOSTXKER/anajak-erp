@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Context } from "../trpc";
 import { deliveryRouter } from "./delivery";
 
-function ctxFor(tx: Record<string, unknown>, role: Context["userRole"] = "PRODUCTION_STAFF") {
+function ctxFor(tx: Record<string, unknown>, role: Context["userRole"] = "SALES") {
   return {
     prisma: {
       $transaction: vi.fn(
@@ -82,8 +82,8 @@ describe("delivery packing evidence persistence", () => {
     ).rejects.toThrow("ยังไม่มีใบส่งของที่ใช้งานอยู่");
   });
 
-  it("ฝ่ายผลิตส่งค่าจัดส่งเข้าช่องสร้างใบส่งไม่ได้", async () => {
-    const ctx = ctxFor({});
+  it("ฝ่ายผลิตสร้างใบส่งไม่ได้ — การแพ็กย้ายไป Station และการส่งเป็นงานออฟฟิศ", async () => {
+    const ctx = ctxFor({}, "PRODUCTION_STAFF");
     await expect(
       deliveryRouter.createCaller(ctx).create({
         orderId: "order-1",
@@ -96,6 +96,236 @@ describe("delivery packing evidence persistence", () => {
         saveAsCustomerAddress: false,
         lines: [],
       }),
-    ).rejects.toThrow("ฝ่ายผลิตบันทึกค่าจัดส่ง/สถานะชำระเงินไม่ได้");
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("ปฏิเสธ SHIPPED เมื่อ owner Final Pack ยังทำไม่ครบ", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      delivery: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
+          id: "delivery-1",
+          status: "PREPARING",
+          orderId: "order-1",
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      order: {
+        findUniqueOrThrow: vi
+          .fn()
+          .mockResolvedValueOnce({ internalStatus: "PACKING" })
+          .mockResolvedValueOnce({
+            productionCompletionOwnerId: "production-1",
+            productions: [
+              { id: "production-1", workOrderNumber: "MO-2608-0001" },
+            ],
+            productionCompletionOwner: {
+              id: "production-1",
+              workOrderNumber: "MO-2608-0001",
+              completionOwnerStepId: "pack-1",
+              steps: [
+                {
+                  id: "pack-1",
+                  operationState: "RUNNING",
+                  quantities: [
+                    {
+                      description: "เสื้อยืด",
+                      size: "M",
+                      color: "ดำ",
+                      qtyPlanned: 5,
+                      qtyGood: 4,
+                      qtyRework: 0,
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+      },
+    };
+
+    await expect(
+      deliveryRouter
+        .createCaller(ctxFor(tx))
+        .updateStatus({ id: "delivery-1", status: "SHIPPED" }),
+    ).rejects.toThrow("ต้องปิด Final Pack");
+    expect(tx.delivery.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("สร้าง Delivery lines จาก Final Pack ledger เมื่อออฟฟิศไม่กรอกยอดซ้ำ", async () => {
+    const createDelivery = vi.fn().mockResolvedValue({
+      id: "delivery-1",
+      orderId: "order-1",
+      status: "PENDING",
+    });
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      order: {
+        findUniqueOrThrow: vi
+          .fn()
+          .mockResolvedValueOnce({
+            internalStatus: "READY_TO_SHIP",
+            items: [
+              {
+                products: [
+                  {
+                    description: "เสื้อยืด",
+                    variants: [{ size: "M", color: "ดำ", quantity: 5 }],
+                  },
+                ],
+              },
+            ],
+            deliveries: [],
+          })
+          .mockResolvedValueOnce({
+            productionCompletionOwnerId: "production-1",
+            productions: [
+              { id: "production-1", workOrderNumber: "MO-2608-0001" },
+            ],
+            productionCompletionOwner: {
+              id: "production-1",
+              workOrderNumber: "MO-2608-0001",
+              completionOwnerStepId: "pack-1",
+              steps: [
+                {
+                  id: "pack-1",
+                  operationState: "COMPLETED",
+                  quantities: [
+                    {
+                      description: "เสื้อยืด",
+                      size: "M",
+                      color: "ดำ",
+                      qtyPlanned: 5,
+                      qtyGood: 5,
+                      qtyRework: 0,
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+      },
+      delivery: { create: createDelivery },
+      auditLog: { create: vi.fn().mockResolvedValue({ id: "audit-1" }) },
+    };
+
+    await deliveryRouter.createCaller(ctxFor(tx)).create({
+      orderId: "order-1",
+      recipientName: "ผู้รับ",
+      phone: "0812345678",
+      address: "1 ถนนสุขุมวิท",
+      shippingMethod: "KERRY",
+      shippingCost: 0,
+      isPaid: false,
+      saveAsCustomerAddress: false,
+      lines: [],
+    });
+
+    expect(createDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          lines: {
+            create: [
+              {
+                description: "เสื้อยืด",
+                size: "M",
+                color: "ดำ",
+                qty: 5,
+              },
+            ],
+          },
+        }),
+      }),
+    );
+  });
+
+  it("เติม lines ให้ใบส่งเดิมจาก Final Pack ledger ก่อนเปลี่ยนเป็น SHIPPED", async () => {
+    const createMany = vi.fn().mockResolvedValue({ count: 1 });
+    const packedOrder = {
+      items: [
+        {
+          products: [
+            {
+              description: "เสื้อยืด",
+              variants: [{ size: "M", color: "ดำ", quantity: 5 }],
+            },
+          ],
+        },
+      ],
+      deliveries: [{ status: "PREPARING", lines: [] }],
+    };
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      delivery: {
+        findUniqueOrThrow: vi
+          .fn()
+          .mockResolvedValueOnce({
+            id: "delivery-1",
+            status: "PREPARING",
+            orderId: "order-1",
+          })
+          .mockResolvedValueOnce({
+            id: "delivery-1",
+            status: "SHIPPED",
+            orderId: "order-1",
+          }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        count: vi.fn().mockResolvedValue(1),
+      },
+      deliveryLine: {
+        count: vi.fn().mockResolvedValue(0),
+        createMany,
+      },
+      order: {
+        findUniqueOrThrow: vi
+          .fn()
+          .mockResolvedValueOnce({ internalStatus: "READY_TO_SHIP" })
+          .mockResolvedValueOnce({
+            productionCompletionOwnerId: "production-1",
+            productions: [
+              { id: "production-1", workOrderNumber: "MO-2608-0001" },
+            ],
+            productionCompletionOwner: {
+              id: "production-1",
+              workOrderNumber: "MO-2608-0001",
+              completionOwnerStepId: "pack-1",
+              steps: [
+                {
+                  id: "pack-1",
+                  operationState: "COMPLETED",
+                  quantities: [
+                    {
+                      description: "เสื้อยืด",
+                      size: "M",
+                      color: "ดำ",
+                      qtyPlanned: 5,
+                      qtyGood: 5,
+                      qtyRework: 0,
+                    },
+                  ],
+                },
+              ],
+            },
+          })
+          .mockResolvedValueOnce(packedOrder)
+          .mockResolvedValueOnce(packedOrder),
+      },
+    };
+
+    await deliveryRouter
+      .createCaller(ctxFor(tx))
+      .updateStatus({ id: "delivery-1", status: "SHIPPED" });
+
+    expect(createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          deliveryId: "delivery-1",
+          description: "เสื้อยืด",
+          size: "M",
+          color: "ดำ",
+          qty: 5,
+        },
+      ],
+    });
   });
 });

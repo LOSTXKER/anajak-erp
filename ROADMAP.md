@@ -20,6 +20,19 @@
    - สีตัวหนังสือ = `text-strong` / `text-secondary` / `text-muted` (สลับธีมในตัว — ห้ามเขียนคู่ `dark:` เองสำหรับ 3 ระดับนี้ · ด่านใน `verify:ui`) · ช่องตัวเลข/เงิน = `NumberInput` / `MoneyInput` · ติ๊ก = `Checkbox`
    - สถานะ→สี/ป้าย ประกาศที่ `lib/status-config.ts` (+ `*_LABELS_CUSTOMER` สำหรับหน้า public) · วิธีส่ง `lib/shipping-methods.ts` · ช่องทางจ่าย `lib/payment-methods.ts` — ห้ามประกาศ map ซ้ำในหน้า
 
+## 🏭 PRODUCTION-V2 — หนึ่งข้อมูลจริง หนึ่งบ้านต่อหนึ่งงาน (เบสเคาะ 2026-08-22)
+
+> เป้าหมาย: รื้อแกนการผลิตและ UX เป็นโครงการเดียวตามบทบาท ERP/MES — ERP ใช้วางแผน/ควบคุม/ตรวจย้อนหลัง, Station ใช้ลงมือ, Factory TV อ่านอย่างเดียว · ทำบน branch/worktree แยกจาก checkpoint `5972e65` · schema เพิ่มแบบ additive และห้าม apply/reset ฐาน shared หรือ remote ระหว่างสร้าง
+
+- [x] **PV2.1 Core manufacturing** — เก็บ `Production` เป็น Manufacturing Order และยกระดับ `ProductionStep` เป็น Operation Job โดยคง ID/FK เดิม · เพิ่ม Work Center/Resource/สมาชิก/ปฏิทิน, routing แบบ versioned+immutable หลัง releaseและทุก lane รวมที่ Final Pack terminal เดียว, dependency ขนาน, quantity line แยกสินค้า/สี/ไซซ์/ตำแหน่งพิมพ์, append-only event, structured exception/rework และ reference snapshot
+- [x] **PV2.2 Command contract** — เพิ่ม `manufacturing` query/command กลาง · ทุก command รับ `commandId` + `expectedRevision`, retry/concurrency ไม่เพิ่มจำนวน/stock/event ซ้ำ, readiness/dependency คำนวณบน server, `qtyGood` เท่านั้นเดินต่อ, reject ต้องมี disposition และ rework ต้องตรวจซ้ำ
+- [x] **PV2.3 Permission and truth** — เพิ่ม `ship_orders` ให้ OWNER/MANAGER/SALES; Production Staff แพ็กได้แต่ส่งไม่ได้ · Station/Factory DTO ไม่มีราคา/ต้นทุนโดยโครงสร้างและใช้ `availableCommands` จาก server · Order status เปลี่ยนผ่าน transition service กลางเท่านั้น
+- [x] **PV2.4 Canonical surfaces** — `/production` เป็นรายการทุกงานแบบ server-side pagination; `/production/[id]` เป็น Control Record ไม่มี action แทนพนักงาน; `/factory/station` เป็น current-job-first+same-order handoff; `/factory` เป็น TV read-only; Order/My Tasks เหลือ summary/deep link ตาม role
+- [x] **PV2.5 Vertical flow** — Prep รับ/เบิก/คืน → DTF batch good/scrap/reprint → Heat Press partial → QC Hold/Rework/Scrap+ตรวจซ้ำ → Final Pack ตามสินค้า/สี/ไซซ์ → Office Delivery/ship; Outsource เป็น worklist ใน Production และ vendor public page เดิมยัง read-only
+- [x] **PV2.6 Remove duplicate homes** — ย้ายทุก surface ให้ใช้ read/command contract ชุดเดียว · legacy writer ปฏิเสธ V2 record หลัง lock และ Order/Change Order แก้นิยามงานหรือหลักฐาน Prep ทับ snapshot ไม่ได้ · redirect `/production/print-runs`, `/production/films`, `/outsource` ไปบ้าน canonical · เก็บ old UI หลัง `PRODUCTION_V2_ENABLED` เพียง rollout window เดียว แล้วลบ old UI กับ legacy writers
+- [x] **PV2.7 Isolated fixtures and verification** — seed เฉพาะฐาน V2 local ครอบ multi-variant/parallel lane/DTF หลายออเดอร์/defect-rework/outsource pass-fail/partial pack · ผ่าน domain, integration, permission, typecheck, lint, build และ browser จริงตาม viewport/สถานะที่ระบุใน acceptance plan ก่อนขอ cutover
+- [ ] **PV2.8 Acceptance and release** — เบส walkthrough บทบาทหัวหน้าและพนักงานครบ flow จริงก่อนเปิดทั้ง module · ไม่มี backfill ประวัติปลอม · การเปลี่ยน/reset ฐานต้องระบุ target+backup แยก · ห้าม push main หรือ deploy ก่อนเบสตรวจรับ
+
 ---
 
 ## 🚦 แผนแนวทางใหม่ 2026-07-02 — เส้นทางสู่ go-live (จาก audit ใหญ่ 47 agents · adversarial verify 26/28 CONFIRMED)

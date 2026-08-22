@@ -29,13 +29,9 @@ describe("outsource UI policy", () => {
     });
   });
 
-  it("ไม่เปิดปุ่มที่ permission ฝั่ง server จะปฏิเสธ", () => {
+  it("เปิดปุ่มจาก availableCommands ของ server เท่านั้น", () => {
     expect(
-      outsourceActionAvailability("DRAFT", {
-        canHandleGoods: true,
-        canJudgeQc: false,
-        canManageSettings: false,
-      })
+      outsourceActionAvailability(["share", "markSent"]),
     ).toMatchObject({
       canShare: true,
       canMarkSent: true,
@@ -45,11 +41,7 @@ describe("outsource UI policy", () => {
     });
 
     expect(
-      outsourceActionAvailability("RECEIVED_BACK", {
-        canHandleGoods: true,
-        canJudgeQc: true,
-        canManageSettings: false,
-      })
+      outsourceActionAvailability(["share", "passQc", "failQc"]),
     ).toMatchObject({
       canShare: true,
       canMarkSent: false,
@@ -59,11 +51,27 @@ describe("outsource UI policy", () => {
     });
 
     expect(
-      outsourceActionAvailability("QC_PASSED", {
-        canHandleGoods: true,
-        canJudgeQc: true,
-        canManageSettings: true,
-      })
+      outsourceActionAvailability([]),
+    ).toEqual({
+      canShare: false,
+      canMarkSent: false,
+      canReceiveBack: false,
+      canPassQc: false,
+      canFailQc: false,
+      canCancelDraft: false,
+    });
+
+    expect(
+      outsourceActionAvailability(["cancelDraft"]),
+    ).toMatchObject({ canCancelDraft: true });
+  });
+
+  it("ปิดทุกปุ่มเมื่อข้อมูล cache ไม่สดโดยไม่เดากติกาจาก status", () => {
+    expect(
+      outsourceActionAvailability(
+        ["share", "markSent", "cancelDraft"],
+        { enabled: false },
+      ),
     ).toEqual({
       canShare: false,
       canMarkSent: false,

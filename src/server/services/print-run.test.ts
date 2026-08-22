@@ -57,6 +57,7 @@ function printRunHarness(params?: {
     productionId: "production-1",
     stepType: "DTF_PRINT",
     status: "PENDING",
+    executionEnabled: false,
     assignedToId,
     qtyDone: 0,
     qtyTotal: 10,
@@ -311,6 +312,20 @@ describe("DTF print-run order status guard", () => {
     expect(harness.log.indexOf("tx:commit")).toBeGreaterThan(
       harness.log.indexOf("write:audit"),
     );
+  });
+
+  it("ห้าม V2 operation หลุดเข้าทาง legacy stepId แล้วข้าม revision/event contract", async () => {
+    const harness = printRunHarness();
+    harness.step.executionEnabled = true;
+
+    await expect(createPrintRun(harness.prisma, {
+      items: [{ stepId: "step-1", qty: 10 }],
+      userId: "user-1",
+      canSupervise: false,
+    })).rejects.toThrow("ต้องส่ง operationJobId พร้อม revision");
+
+    expect(harness.log).not.toContain("write:run");
+    expect(harness.log).not.toContain("write:step");
   });
 
   it("รอบหลายออเดอร์จอง topology ตาม orderId sorted แล้วล็อกทุก sibling step ก่อน finalizer", async () => {
@@ -685,10 +700,38 @@ describe("DTF queue/list DTO", () => {
 
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
-        production: { order: { internalStatus: "PRODUCING" } },
-        OR: [{ assignedToId: "user-1" }, { assignedToId: null }],
+        OR: expect.arrayContaining([
+          expect.objectContaining({
+            executionEnabled: false,
+            production: { order: { internalStatus: "PRODUCING" } },
+            AND: [{ OR: [{ assignedToId: "user-1" }, { assignedToId: null }] }],
+          }),
+          expect.objectContaining({
+            executionEnabled: true,
+            production: {
+              workOrderState: { in: ["RELEASED", "IN_PROGRESS"] },
+              order: {
+                internalStatus: {
+                  in: ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING"],
+                },
+              },
+            },
+            AND: expect.arrayContaining([
+              { OR: [{ assignedToId: "user-1" }, { assignedToId: null }] },
+            ]),
+          }),
+        ]),
       }),
     }));
+    expect(result[0]).toMatchObject({
+      stepId: "step-1",
+      operationJobId: null,
+      revision: null,
+      executionEnabled: false,
+      operationState: null,
+      qtyGood: 0,
+      qtyPlanned: 10,
+    });
     expect(JSON.stringify(result)).not.toMatch(/amount|price|cost/i);
   });
 
@@ -701,8 +744,184 @@ describe("DTF queue/list DTO", () => {
     );
 
     const query = findMany.mock.calls[0]?.[0];
-    expect(query.where).not.toHaveProperty("OR");
+    const legacyWhere = query.where.OR.find(
+      (branch: { executionEnabled?: boolean }) => branch.executionEnabled === false,
+    );
+    const v2Where = query.where.OR.find(
+      (branch: { executionEnabled?: boolean }) => branch.executionEnabled === true,
+    );
+    expect(legacyWhere).not.toHaveProperty("AND");
+    expect(v2Where.AND).toEqual([
+      expect.objectContaining({
+        OR: expect.arrayContaining([{ workResourceId: null }]),
+      }),
+    ]);
     expect(JSON.stringify(query.select)).not.toMatch(/amount|price|cost/i);
+  });
+
+  it("คิว V2 คืน operation revision/จำนวน canonical และบังคับ readiness + สมาชิก DTF", async () => {
+    const findMany = vi.fn().mockResolvedValue([{
+      id: "operation-dtf-1",
+      productionId: "production-1",
+      executionEnabled: true,
+      operationState: "READY",
+      revision: 7,
+      qtyGood: 4,
+      qtyPlanned: 10,
+      qtyDone: 99,
+      qtyTotal: 999,
+      predecessorLinks: [{ predecessorStep: { operationState: "COMPLETED" } }],
+      exceptions: [],
+      workCenter: {
+        code: "DTF_PRINT",
+        members: [{ id: "membership-1" }],
+      },
+      quantities: [{
+        id: "quantity-line-1",
+        scopeKey: "variant:black:m:front",
+        description: "เสื้อดำ M · อกหน้า",
+        sku: "TS-BLK-M",
+        size: "M",
+        color: "ดำ",
+        printPosition: "อกหน้า",
+        qtyPlanned: 10,
+        qtyGood: 4,
+        qtyScrap: 0,
+        qtyRework: 0,
+        revision: 2,
+      }],
+      printRunItems: [],
+      production: {
+        steps: [
+          { id: "legacy-earlier", stepType: "OTHER", status: "PENDING", sortOrder: 1 },
+          { id: "operation-dtf-1", stepType: "DTF_PRINT", status: "PENDING", sortOrder: 2 },
+        ],
+        order: {
+          id: "order-1",
+          orderNumber: "ORD-1",
+          title: "งานทดสอบ V2",
+          internalStatus: "PRODUCING",
+          deadline: null,
+          customer: { name: "ลูกค้า" },
+          items: [{ totalQuantity: 100 }],
+          designs: [{ versionNumber: 1, fileUrl: "/design.pdf", thumbnailUrl: null }],
+        },
+      },
+    }]);
+
+    const result = await getPrintQueue(
+      { productionStep: { findMany } } as never,
+      { userId: "worker-1", canSupervise: false },
+    );
+
+    const query = findMany.mock.calls[0]?.[0];
+    const v2Where = query.where.OR.find(
+      (branch: { executionEnabled?: boolean }) => branch.executionEnabled === true,
+    );
+    expect(v2Where).toMatchObject({
+      operationState: { in: ["READY", "RUNNING"] },
+      production: {
+        workOrderState: { in: ["RELEASED", "IN_PROGRESS"] },
+        order: {
+          internalStatus: {
+            in: ["PRODUCTION_QUEUE", "PRODUCING", "QUALITY_CHECK", "PACKING"],
+          },
+        },
+      },
+      predecessorLinks: {
+        every: { predecessorStep: { operationState: "COMPLETED" } },
+      },
+      exceptions: {
+        none: {
+          state: { in: ["OPEN", "ACKNOWLEDGED"] },
+          blocksJob: true,
+        },
+      },
+      workCenter: {
+        is: {
+          code: "DTF_PRINT",
+          isActive: true,
+          members: { some: { userId: "worker-1", isActive: true } },
+        },
+      },
+    });
+    expect(result).toEqual([
+      expect.objectContaining({
+        stepId: "operation-dtf-1",
+        operationJobId: "operation-dtf-1",
+        revision: 7,
+        executionEnabled: true,
+        operationState: "READY",
+        qtyDone: 4,
+        qtyTotal: 10,
+        qtyGood: 4,
+        qtyPlanned: 10,
+        remaining: 6,
+        quantityLines: [expect.objectContaining({
+          id: "quantity-line-1",
+          label: "เสื้อดำ M · อกหน้า",
+          description: "เสื้อดำ M · อกหน้า",
+          qtyPlanned: 10,
+          qtyGood: 4,
+          revision: 2,
+        })],
+      }),
+    ]);
+  });
+
+  it("คิว V2 กัน defensive เมื่อ dependency/blocker/membership ไม่พร้อมแม้ adapter ส่งแถวคืน", async () => {
+    const base = {
+      productionId: "production-1",
+      executionEnabled: true,
+      operationState: "READY",
+      revision: 1,
+      qtyGood: 0,
+      qtyPlanned: 10,
+      qtyDone: 0,
+      qtyTotal: 10,
+      printRunItems: [],
+      production: {
+        steps: [],
+        order: {
+          id: "order-1",
+          orderNumber: "ORD-1",
+          title: "งานทดสอบ V2",
+          internalStatus: "PRODUCING",
+          deadline: null,
+          customer: { name: "ลูกค้า" },
+          items: [{ totalQuantity: 10 }],
+          designs: [{ versionNumber: 1, fileUrl: "/design.pdf", thumbnailUrl: null }],
+        },
+      },
+    };
+    const findMany = vi.fn().mockResolvedValue([
+      {
+        ...base,
+        id: "operation-waiting",
+        predecessorLinks: [{ predecessorStep: { operationState: "RUNNING" } }],
+        exceptions: [],
+        workCenter: { code: "DTF_PRINT", members: [{ id: "member-1" }] },
+      },
+      {
+        ...base,
+        id: "operation-blocked",
+        predecessorLinks: [],
+        exceptions: [{ id: "exception-1" }],
+        workCenter: { code: "DTF_PRINT", members: [{ id: "member-1" }] },
+      },
+      {
+        ...base,
+        id: "operation-non-member",
+        predecessorLinks: [],
+        exceptions: [],
+        workCenter: { code: "DTF_PRINT", members: [] },
+      },
+    ]);
+
+    await expect(getPrintQueue(
+      { productionStep: { findMany } } as never,
+      { userId: "worker-1", canSupervise: false },
+    )).resolves.toEqual([]);
   });
 
   it("คิวซ่อน DTF อนาคตใน lane เดียวกัน", async () => {
@@ -745,11 +964,16 @@ describe("DTF queue/list DTO", () => {
       printedAt: new Date(0),
       completedAt: null,
       createdAt: new Date(0),
+      createdById: "worker-1",
       createdBy: { name: "ช่างพิมพ์" },
       items: [{
         id: "item-1",
         qty: 10,
         extraQty: 0,
+        qtyGood: 8,
+        qtyScrap: 1,
+        qtyReprint: 1,
+        resultReportedAt: new Date(0),
         order: {
           orderNumber: "ORD-1",
           title: "งานทดสอบ",
@@ -757,14 +981,269 @@ describe("DTF queue/list DTO", () => {
           internalStatus: "ON_HOLD",
           designs: [],
         },
-        productionStep: { status: "IN_PROGRESS", qtyDone: 0, qtyTotal: 10 },
+        productionStep: {
+          id: "operation-dtf-1",
+          status: "IN_PROGRESS",
+          qtyDone: 8,
+          qtyTotal: 10,
+          executionEnabled: true,
+          operationState: "RUNNING",
+          revision: 5,
+          qtyGood: 8,
+          qtyPlanned: 10,
+          assignedToId: "worker-1",
+          workCenterId: "wc-dtf",
+          workCenter: { code: "DTF_PRINT", isActive: true, members: [] },
+          workResource: null,
+          production: {
+            workOrderState: "IN_PROGRESS",
+            order: { internalStatus: "PRODUCING" },
+          },
+          exceptions: [],
+          quantities: [{
+            id: "quantity-line-1",
+            scopeKey: "variant:black:m:front",
+            description: "เสื้อดำ M · อกหน้า",
+            sku: "TS-BLK-M",
+            size: "M",
+            color: "ดำ",
+            printPosition: "อกหน้า",
+            qtyPlanned: 10,
+            qtyGood: 8,
+            qtyScrap: 1,
+            qtyRework: 0,
+            revision: 5,
+          }],
+        },
       }],
     }]);
-    const result = await listPrintRuns({ printRun: { findMany } } as never);
+    const result = await listPrintRuns(
+      { printRun: { findMany } } as never,
+      { userId: "manager-1", canOperate: true, canSupervise: true },
+    );
 
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ select: expect.any(Object) }));
     expect(findMany.mock.calls[0]?.[0]).not.toHaveProperty("include");
     expect(result[0]?.blockedReason).toContain("พักงาน");
+    expect(result[0]?.items[0]).toMatchObject({
+      qtyGood: 8,
+      qtyScrap: 1,
+      qtyReprint: 1,
+      resultReportedAt: new Date(0),
+      productionStep: {
+        id: "operation-dtf-1",
+        executionEnabled: true,
+        operationState: "RUNNING",
+        revision: 5,
+        qtyGood: 8,
+        qtyPlanned: 10,
+        quantityLines: [expect.objectContaining({
+          id: "quantity-line-1",
+          label: "เสื้อดำ M · อกหน้า",
+          description: "เสื้อดำ M · อกหน้า",
+          qtyGood: 8,
+          qtyScrap: 1,
+          revision: 5,
+        })],
+      },
+    });
+    expect(findMany.mock.calls[0]?.[0].select.items.select).toMatchObject({
+      qtyGood: true,
+      qtyScrap: true,
+      qtyReprint: true,
+      resultReportedAt: true,
+      productionStep: {
+        select: expect.objectContaining({
+          id: true,
+          executionEnabled: true,
+          operationState: true,
+          revision: true,
+          qtyGood: true,
+          qtyPlanned: true,
+          quantities: {
+            orderBy: { scopeKey: "asc" },
+            select: expect.objectContaining({
+              id: true,
+              description: true,
+              size: true,
+              color: true,
+              printPosition: true,
+              qtyPlanned: true,
+              qtyGood: true,
+              revision: true,
+            }),
+          },
+        }),
+      },
+    });
     expect(JSON.stringify(result)).not.toMatch(/amount|price|cost/i);
+  });
+
+  it("active V2 run คืน availableCommands ตาม actor/state และเหตุผลที่กดไม่ได้", async () => {
+    const operation = {
+      id: "operation-dtf-1",
+      status: "IN_PROGRESS",
+      qtyDone: 0,
+      qtyTotal: 10,
+      executionEnabled: true,
+      operationState: "RUNNING",
+      revision: 4,
+      qtyGood: 0,
+      qtyPlanned: 10,
+      assignedToId: "worker-1",
+      workCenterId: "wc-dtf",
+      workCenter: {
+        code: "DTF_PRINT",
+        isActive: true,
+        members: [{ id: "member-1" }],
+      },
+      workResource: null as null | {
+        isActive: boolean;
+        state: "AVAILABLE" | "IN_USE" | "DOWN" | "INACTIVE";
+      },
+      production: {
+        workOrderState: "IN_PROGRESS" as
+          | "DRAFT"
+          | "RELEASED"
+          | "IN_PROGRESS"
+          | "COMPLETED"
+          | "CANCELLED",
+        order: {
+          internalStatus: "PRODUCING" as
+            | "PRODUCTION_QUEUE"
+            | "PRODUCING"
+            | "QUALITY_CHECK"
+            | "PACKING"
+            | "ON_HOLD",
+        },
+      },
+      exceptions: [] as Array<{ id: string }>,
+      quantities: [],
+    };
+    const run = {
+      id: "run-1",
+      runNumber: "FR-1",
+      status: "PRINTING",
+      note: null,
+      printedAt: null,
+      completedAt: null,
+      createdAt: new Date(0),
+      createdById: "worker-1",
+      createdBy: { name: "ช่างพิมพ์" },
+      items: [{
+        id: "item-1",
+        qty: 10,
+        extraQty: 0,
+        qtyGood: 0,
+        qtyScrap: 0,
+        qtyReprint: 0,
+        resultReportedAt: null,
+        order: {
+          orderNumber: "ORD-1",
+          title: "งาน DTF",
+          deadline: null,
+          internalStatus: "PRODUCING",
+          designs: [],
+        },
+        productionStep: operation,
+      }],
+    };
+    const findMany = vi.fn().mockImplementation(async () => [run]);
+    const prisma = { printRun: { findMany } } as never;
+
+    const worker = await listPrintRuns(prisma, {
+      userId: "worker-1",
+      canOperate: true,
+      canSupervise: false,
+    });
+    expect(worker[0]).toMatchObject({
+      availableCommands: ["cancel", "markPrinted"],
+      blockedReason: null,
+    });
+
+    const viewer = await listPrintRuns(prisma, {
+      userId: "viewer-1",
+      canOperate: false,
+      canSupervise: false,
+    });
+    expect(viewer[0]).toMatchObject({
+      availableCommands: [],
+      blockedReason: "บัญชีนี้ดูรอบพิมพ์ได้อย่างเดียว",
+    });
+
+    run.status = "PRINTED";
+    const cutting = await listPrintRuns(prisma, {
+      userId: "worker-1",
+      canOperate: true,
+      canSupervise: false,
+    });
+    expect(cutting[0]).toMatchObject({
+      availableCommands: ["complete"],
+      blockedReason: null,
+    });
+
+    operation.exceptions = [{ id: "exception-1" }];
+    const blocked = await listPrintRuns(prisma, {
+      userId: "worker-1",
+      canOperate: true,
+      canSupervise: false,
+    });
+    expect(blocked[0]).toMatchObject({
+      availableCommands: [],
+      blockedReason: "Operation Job ในรอบนี้มีปัญหาที่บล็อกอยู่",
+    });
+
+    operation.exceptions = [];
+    run.status = "PRINTING";
+    operation.production.workOrderState = "COMPLETED";
+    const closedParent = await listPrintRuns(prisma, {
+      userId: "worker-1",
+      canOperate: true,
+      canSupervise: false,
+    });
+    expect(closedParent[0]).toMatchObject({
+      availableCommands: ["cancel"],
+      blockedReason: expect.stringContaining("ปิดแล้ว"),
+    });
+
+    operation.production.workOrderState = "IN_PROGRESS";
+    operation.workCenter.isActive = false;
+    const inactiveCenter = await listPrintRuns(prisma, {
+      userId: "worker-1",
+      canOperate: true,
+      canSupervise: false,
+    });
+    expect(inactiveCenter[0]).toMatchObject({
+      availableCommands: ["cancel"],
+      blockedReason: "จุดทำงานนี้ปิดใช้งานอยู่ จึงทำงานต่อไม่ได้",
+    });
+
+    operation.workCenter.isActive = true;
+    operation.workResource = { isActive: true, state: "DOWN" };
+    const downResource = await listPrintRuns(prisma, {
+      userId: "worker-1",
+      canOperate: true,
+      canSupervise: false,
+    });
+    expect(downResource[0]).toMatchObject({
+      availableCommands: ["cancel"],
+      blockedReason: "เครื่องหรืออุปกรณ์ที่เลือกไม่พร้อมใช้งาน",
+    });
+
+    expect(findMany.mock.calls[0]?.[0].select.items.select.productionStep.select)
+      .toMatchObject({
+        workCenter: {
+          select: expect.objectContaining({ code: true, isActive: true }),
+        },
+        workResource: {
+          select: { isActive: true, state: true },
+        },
+        production: {
+          select: {
+            workOrderState: true,
+            order: { select: { internalStatus: true } },
+          },
+        },
+      });
   });
 });

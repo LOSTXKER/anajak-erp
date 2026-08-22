@@ -7,9 +7,11 @@ import { advanceOrderForward } from "@/server/services/order-status";
 import { lockOrderRow } from "@/server/services/order-cost";
 import {
   assertOrderPackingReadyToShip,
+  assertV2FinalPackReadyToShip,
   findPackingOverflow,
   getOrderPackingEvidence,
   packingEvidenceFromOrder,
+  unallocatedDeliveryLinesFromFinalPack,
 } from "@/server/services/packing-readiness";
 import { hasPermission } from "@/lib/permissions";
 import { normalizePhone } from "@/lib/phone";
@@ -17,8 +19,9 @@ import { addressLine, optionalAddressLine, optionalPostalCode } from "@/lib/addr
 import { isValidDeliveryTransition, type DeliveryStatus } from "@/lib/delivery-status";
 import { DELIVERY_STATUS_LABELS } from "@/lib/status-config";
 
-// PERM3: สร้าง/แก้/ยืนยันส่งใบส่ง = manage_delivery (default O/M/S/ช่าง เดิมเป๊ะ) · ลบใบส่ง = งานหัวหน้า
-const salesOrProduction = requirePermission("manage_delivery");
+// Production V2 แยก “แพ็กที่ Station” ออกจาก “สร้างขนส่ง/เลขพัสดุ/ส่งของ”
+// ชัดเจน: ฝ่ายผลิตใช้ manufacturing commands เท่านั้น ส่วน writer ใบส่งเป็นงานออฟฟิศ
+const shippingOffice = requirePermission("ship_orders");
 const managerUp = requirePermission("supervise_operations");
 
 const deliveryCreateResultSelect = {
@@ -113,7 +116,7 @@ export const deliveryRouter = router({
     }),
 
   create: protectedProcedure
-    .use(salesOrProduction)
+    .use(shippingOffice)
     .input(
       z.object({
         orderId: z.string(),
@@ -161,7 +164,11 @@ export const deliveryRouter = router({
       if (!canHandleDeliveryMoney && (input.shippingCost !== 0 || input.isPaid)) {
         badRequest("ฝ่ายผลิตบันทึกค่าจัดส่ง/สถานะชำระเงินไม่ได้");
       }
-      const { saveAsCustomerAddress, lines, ...deliveryData } = input;
+      const {
+        saveAsCustomerAddress,
+        lines: requestedLines,
+        ...deliveryData
+      } = input;
 
       return ctx.prisma.$transaction(async (tx) => {
         // ล็อกก่อนอ่านสถานะ/ยอดแพ็ค: สร้างใบส่งพร้อมกับกดพร้อมส่งหรือสร้างอีกกล่อง
@@ -197,10 +204,31 @@ export const deliveryRouter = router({
           );
         }
 
+        // V2 ใช้ Final Pack ledger เป็นหลักฐานแพ็กจริง ส่วน Delivery เป็นการจัดสรร
+        // ของที่แพ็กแล้วไปยังรอบส่งเท่านั้น. ถ้าหน้าเก่าไม่ส่ง lines มา ให้เติมยอด
+        // ที่ยังไม่ได้จัดลงใบส่งจาก ledger โดยไม่ให้ผู้ใช้นับซ้ำอีกบ้านหนึ่ง.
+        const packingEvidence = packingEvidenceFromOrder(order);
+        const finalPackLedger = await assertV2FinalPackReadyToShip(
+          tx,
+          input.orderId,
+        );
+        const lines =
+          finalPackLedger && requestedLines.length === 0
+            ? unallocatedDeliveryLinesFromFinalPack(
+                finalPackLedger,
+                packingEvidence,
+              )
+            : requestedLines;
+        if (finalPackLedger && lines.length === 0) {
+          badRequest(
+            "ยอด Final Pack ถูกจัดลงใบส่งครบแล้ว — ไม่มีสินค้าเหลือสำหรับใบส่งใหม่",
+          );
+        }
+
         // กันแพ็คเกินยอดงานต่อไซส์ด้วย count/key ชุดเดียวกับ packContext และด่านพร้อมส่ง
         if (lines.length > 0) {
           const overflow = findPackingOverflow(
-            packingEvidenceFromOrder(order),
+            packingEvidence,
             lines,
           );
           if (overflow) {
@@ -218,8 +246,8 @@ export const deliveryRouter = router({
           select: deliveryCreateResultSelect,
         });
 
-        // จงใจให้ทุก role ที่สร้างใบส่งได้ (รวมฝ่ายผลิตที่แพ็คของ) เขียนผ่านช่องนี้ —
-        // คนแพ็คคือคนที่ได้ที่อยู่มา · ขอบเขตแคบ: **เติมเฉพาะตอนโปรไฟล์ยังว่าง** · มี audit เต็ม
+        // จงใจให้เฉพาะ role ออฟฟิศที่สร้างใบส่งได้เขียนผ่านช่องนี้ — ผู้ประสานงาน
+        // เป็นคนได้ที่อยู่มา · ขอบเขตแคบ: **เติมเฉพาะตอนโปรไฟล์ยังว่าง** · มี audit เต็ม
         //
         // เดิมช่องนี้ทับที่อยู่เดิมได้เสมอ (เบสสั่งปิด 2026-08-12): customer.address คือที่อยู่
         // สำรองบนใบกำกับภาษี/ใบเสนอราคา/ใบวางบิล (`billingAddress || address`) → ที่อยู่
@@ -284,7 +312,7 @@ export const deliveryRouter = router({
     }),
 
   update: protectedProcedure
-    .use(salesOrProduction)
+    .use(shippingOffice)
     .input(
       byIdInput.extend({
         recipientName: optionalAddressLine(120),
@@ -369,7 +397,7 @@ export const deliveryRouter = router({
     }),
 
   updateStatus: protectedProcedure
-    .use(salesOrProduction)
+    .use(shippingOffice)
     .input(
       byIdInput.extend({
         status: z.enum(["PENDING", "PREPARING", "SHIPPED", "DELIVERED", "RETURNED"]),
@@ -419,6 +447,39 @@ export const deliveryRouter = router({
             badRequest(
               "ออเดอร์ยังไม่ผ่านตรวจ QC/ถูกถอยกลับไปแก้งาน — ส่งของได้เมื่อออเดอร์กลับถึงขั้นแพ็ค/พร้อมส่ง"
             );
+          }
+          const finalPackLedger = await assertV2FinalPackReadyToShip(
+            tx,
+            current.orderId,
+          );
+          if (finalPackLedger) {
+            const currentLineCount = await tx.deliveryLine.count({
+              where: { deliveryId: input.id },
+            });
+            if (currentLineCount === 0) {
+              const packingEvidence = await getOrderPackingEvidence(
+                tx,
+                current.orderId,
+              );
+              const lines = unallocatedDeliveryLinesFromFinalPack(
+                finalPackLedger,
+                packingEvidence,
+              );
+              if (lines.length === 0) {
+                badRequest(
+                  "ใบส่งนี้ยังไม่มีรายการสินค้า และยอด Final Pack ถูกจัดลงใบส่งอื่นครบแล้ว",
+                );
+              }
+              await tx.deliveryLine.createMany({
+                data: lines.map((line) => ({
+                  deliveryId: input.id,
+                  description: line.description,
+                  size: line.size ?? null,
+                  color: line.color ?? null,
+                  qty: line.qty,
+                })),
+              });
+            }
           }
         }
         // timestamp ตั้งเฉพาะตอน "เปลี่ยนสถานะจริง" มา SHIPPED/DELIVERED — self แก้เลขพัสดุ

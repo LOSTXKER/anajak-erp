@@ -115,6 +115,11 @@ describe("order.updateStatus — packing evidence", () => {
             stockReservationError: null,
           })
           .mockResolvedValueOnce({
+            productionCompletionOwnerId: null,
+            productions: [],
+            productionCompletionOwner: null,
+          })
+          .mockResolvedValueOnce({
             items: [],
             deliveries: [{ status: "RETURNED", lines: [] }],
           }),
@@ -133,6 +138,62 @@ describe("order.updateStatus — packing evidence", () => {
         internalStatus: "SHIPPED",
       }),
     ).rejects.toThrow("ยังไม่มีใบส่งของที่ใช้งานอยู่");
+    expect(auditCreate).not.toHaveBeenCalled();
+  });
+
+  it("ปฏิเสธกด SHIPPED มือเมื่อ Final Pack V2 ยังไม่ครบ", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      order: {
+        findUniqueOrThrow: vi
+          .fn()
+          .mockResolvedValueOnce({
+            orderType: "CUSTOM",
+            internalStatus: "READY_TO_SHIP",
+            stockReservationError: null,
+          })
+          .mockResolvedValueOnce({
+            productionCompletionOwnerId: "production-1",
+            productions: [
+              { id: "production-1", workOrderNumber: "MO-2608-0001" },
+            ],
+            productionCompletionOwner: {
+              id: "production-1",
+              workOrderNumber: "MO-2608-0001",
+              completionOwnerStepId: "pack-1",
+              steps: [
+                {
+                  id: "pack-1",
+                  operationState: "RUNNING",
+                  quantities: [
+                    {
+                      description: "เสื้อยืด",
+                      size: "M",
+                      color: "ดำ",
+                      qtyPlanned: 5,
+                      qtyGood: 4,
+                      qtyRework: 0,
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      orderRevision: {
+        count: vi.fn().mockResolvedValue(0),
+        create: vi.fn().mockResolvedValue({ id: "revision-1" }),
+      },
+    };
+    const { ctx, auditCreate } = orderContext(tx, "READY_TO_SHIP");
+
+    await expect(
+      orderRouter.createCaller(ctx).updateStatus({
+        id: "order-1",
+        internalStatus: "SHIPPED",
+      }),
+    ).rejects.toThrow("ต้องปิด Final Pack");
     expect(auditCreate).not.toHaveBeenCalled();
   });
 });

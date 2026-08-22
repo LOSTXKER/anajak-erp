@@ -55,8 +55,11 @@ describe("production exception UI contract", () => {
     expect(detailSource).toContain('stationCurrentActionTarget?.stepType === "GARMENT_RECEIVE"');
     expect(detailSource).toContain("stationCurrentActionTarget.id === goodsReceiptStepId");
     expect(detailSource).toContain("productionStepId={goodsReceiptStepId}");
-    expect(garmentSource).toContain("pickStep?.id === issueStepId");
-    expect(garmentSource).toContain("stepId={issueStepId}");
+    expect(garmentSource).toContain("operationJobId ?? pickStep?.id ?? null");
+    expect(garmentSource).toContain("pickStepId === issueStepId");
+    expect(garmentSource).toContain(
+      "stepId={operationJobId ? undefined : issueStepId}",
+    );
     expect(detailSource).toContain("readOnly={!canUpdateStep || !canSuperviseStep}");
     expect(detailSource).toMatch(/canReturnGarments=\{[\s\S]*?surface === "erp" &&[\s\S]*?canSuperviseStep/);
     expect(detailSource).toContain("returnFocusRef={stepDialogReturnFocusRef}");

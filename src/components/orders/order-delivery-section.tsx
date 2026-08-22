@@ -103,9 +103,9 @@ export function OrderDeliverySection({
   const confirm = useConfirm();
   const me = trpc.user.me.useQuery();
   const canDelete = permAllows(me.data?.permissions, "supervise_operations");
-  // สร้าง/แก้/ยืนยันส่งใบส่ง = manage_delivery (server: delivery.create/update/updateStatus) —
-  // PERM5: เดิม canCreate เช็คแค่สถานะ + ปุ่มอัปเดตไม่เช็คสิทธิ์เลย (บั๊กคลาส "ยืนยันส่ง" เหลือจุดนี้)
-  const canManageDelivery = permAllows(me.data?.permissions, "manage_delivery");
+  // สร้าง/แก้เลขติดตาม/ยืนยันส่ง = ship_orders (server ใช้สิทธิ์ชุดเดียวกัน)
+  // พนักงานผลิตแพ็กได้ใน Station แต่ไม่มีปุ่มส่งของในหน้าออเดอร์
+  const canShipOrders = permAllows(me.data?.permissions, "ship_orders");
   // ตั้งค่า blind ship = ฝ่ายขายขึ้นไป (server: order.setBlindShip) — role อื่นเห็นธงอย่างเดียว
   const canSetBlindShip = permAllows(me.data?.permissions, "create_sales_docs");
 
@@ -121,7 +121,7 @@ export function OrderDeliverySection({
 
   // packContext ต้องพร้อมก่อนเปิดสร้าง ไม่เช่นนั้นผู้ใช้อาจยืนยันจำนวนโดยไม่มีข้อมูลที่เหลือ
   const canCreate =
-    canCreateDelivery(internalStatus, canManageDelivery) &&
+    canCreateDelivery(internalStatus, canShipOrders) &&
     Boolean(packContext.data) &&
     !packContext.isError;
   const hasDeliveries = Boolean(deliveries.data?.length);
@@ -212,7 +212,7 @@ export function OrderDeliverySection({
                   {deliveries.data!.map((delivery) => {
                     const actions = deliveryActionAvailability({
                       status: delivery.status as DeliveryStatus,
-                      canManageDelivery,
+                      canManageDelivery: canShipOrders,
                       canDeleteDelivery: canDelete,
                     });
 

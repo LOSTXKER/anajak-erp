@@ -12,6 +12,9 @@ import {
   INTERNAL_STATUS_STAGES,
   ORDER_TYPE_LABELS,
   ORDER_TYPE_UI_LABELS,
+  canPermsSetStatus,
+  isProductionV2FlowStatusTarget,
+  isProductionV2OwnedStatusTarget,
 } from "./order-status";
 
 // เกราะของ status machine — ทุก transition ใหม่/ที่แก้ ต้องบันทึกไว้ที่นี่
@@ -156,6 +159,64 @@ describe("getCustomerStatus — แปลงสถานะภายในเป
     expect(getCustomerStatus("READY_TO_SHIP")).toBe("READY_TO_SHIP");
     expect(getCustomerStatus("COMPLETED")).toBe("COMPLETED");
     expect(getCustomerStatus("ON_HOLD")).toBe("PREPARING");
+  });
+});
+
+describe("canPermsSetStatus — Production V2 canonical writers", () => {
+  const productionOnly = ["update_order_status_production"];
+  const shippingOffice = ["update_order_status_production", "ship_orders"];
+
+  it("V2 ซ่อนทุก transition ที่ release/station/QC/pack/delivery เป็นเจ้าของ", () => {
+    for (const [from, to] of [
+      ["DESIGN_APPROVED", "PRODUCTION_QUEUE"],
+      ["PRODUCTION_QUEUE", "PRODUCING"],
+      ["PRODUCING", "QUALITY_CHECK"],
+      ["QUALITY_CHECK", "PACKING"],
+      ["PACKING", "READY_TO_SHIP"],
+      ["READY_TO_SHIP", "SHIPPED"],
+    ] as const) {
+      expect(canPermsSetStatus(productionOnly, from, to, true)).toBe(false);
+    }
+  });
+
+  it("flag เปิดยังคงพัก/ยกเลิกออเดอร์ legacy ได้ และ flag rollback ไม่เปลี่ยนพฤติกรรม", () => {
+    expect(isProductionV2FlowStatusTarget("ON_HOLD")).toBe(false);
+    expect(isProductionV2FlowStatusTarget("CANCELLED")).toBe(false);
+    expect(isProductionV2OwnedStatusTarget("ON_HOLD")).toBe(true);
+    expect(isProductionV2OwnedStatusTarget("CANCELLED")).toBe(true);
+    expect(isProductionV2OwnedStatusTarget("DESIGNING")).toBe(true);
+    expect(isProductionV2OwnedStatusTarget("COMPLETED")).toBe(false);
+    expect(
+      canPermsSetStatus(["update_order_status_sales"], "PRODUCING", "ON_HOLD", true),
+    ).toBe(true);
+    expect(
+      canPermsSetStatus(["update_order_status_sales"], "PRODUCING", "CANCELLED", true),
+    ).toBe(true);
+    expect(
+      canPermsSetStatus(["update_order_status_sales"], "PRODUCING", "ON_HOLD", false),
+    ).toBe(true);
+    expect(
+      canPermsSetStatus(["update_order_status_sales"], "PRODUCING", "CANCELLED", false),
+    ).toBe(true);
+  });
+
+  it("V2 ซ่อน SHIPPED จาก generic Order แม้สำนักงานมีสิทธิ์ และ legacy คงเดิม", () => {
+    expect(
+      canPermsSetStatus(
+        shippingOffice,
+        "READY_TO_SHIP",
+        "SHIPPED",
+        true,
+      ),
+    ).toBe(false);
+    expect(
+      canPermsSetStatus(
+        productionOnly,
+        "READY_TO_SHIP",
+        "SHIPPED",
+        false,
+      ),
+    ).toBe(true);
   });
 });
 

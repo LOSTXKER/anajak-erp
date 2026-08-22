@@ -4,6 +4,8 @@ import {
   findPackingOverflow,
   packingEvidenceFromOrder,
   packingLineKey,
+  unallocatedDeliveryLinesFromFinalPack,
+  v2FinalPackLedgerFromOrder,
 } from "./packing-readiness";
 
 type Variant = {
@@ -255,5 +257,89 @@ describe("assertOrderPackingReadyToShip", () => {
     await expect(
       assertOrderPackingReadyToShip(tx as never, "order-1"),
     ).resolves.toMatchObject({ isReadyToShip: true, totalRemaining: 0 });
+  });
+});
+
+describe("V2 Final Pack shipping boundary", () => {
+  const finalPackOrder = (overrides?: {
+    ownerId?: string | null;
+    operationState?: string;
+    qtyGood?: number;
+    completionOwnerStepId?: string | null;
+  }) => ({
+    productionCompletionOwnerId:
+      overrides?.ownerId === undefined ? "production-1" : overrides.ownerId,
+    productions: [{ id: "production-1", workOrderNumber: "MO-2608-0001" }],
+    productionCompletionOwner:
+      overrides?.ownerId === null
+        ? null
+        : {
+            id: "production-1",
+            workOrderNumber: "MO-2608-0001",
+            completionOwnerStepId:
+              overrides?.completionOwnerStepId === undefined
+                ? "pack-1"
+                : overrides.completionOwnerStepId,
+            steps: [
+              {
+                id: "pack-1",
+                operationState: overrides?.operationState ?? "COMPLETED",
+                quantities: [
+                  {
+                    description: "เสื้อยืด",
+                    size: "M",
+                    color: "ดำ",
+                    qtyPlanned: 5,
+                    qtyGood: overrides?.qtyGood ?? 5,
+                    qtyRework: 0,
+                  },
+                ],
+              },
+            ],
+          },
+  });
+
+  it("รับเฉพาะ owner Final Pack ที่ปิดงานและแพ็กครบทุก line", () => {
+    expect(v2FinalPackLedgerFromOrder(finalPackOrder())).toMatchObject({
+      operationJobId: "pack-1",
+      isReadyToShip: true,
+    });
+    expect(
+      v2FinalPackLedgerFromOrder(
+        finalPackOrder({ operationState: "RUNNING", qtyGood: 4 }),
+      ),
+    ).toMatchObject({ isReadyToShip: false });
+  });
+
+  it("fail closed เมื่อ owner หายหรือไม่ตรงกับ Final Pack", () => {
+    expect(() =>
+      v2FinalPackLedgerFromOrder(finalPackOrder({ ownerId: null })),
+    ).toThrow("เจ้าของการปิดงาน");
+    expect(() =>
+      v2FinalPackLedgerFromOrder(
+        finalPackOrder({ completionOwnerStepId: "other-step" }),
+      ),
+    ).toThrow("ไม่ตรงกับเจ้าของการปิดงาน");
+  });
+
+  it("สร้าง delivery lines จากยอด Final Pack ที่ยังไม่ถูกจัดลงใบส่ง", () => {
+    const ledger = v2FinalPackLedgerFromOrder(finalPackOrder())!;
+    const evidence = packingEvidenceFromOrder(
+      packingOrder({
+        variants: [{ size: "M", color: "ดำ", quantity: 5 }],
+        deliveries: [
+          {
+            status: "PREPARING",
+            lines: [
+              { description: "เสื้อยืด", size: "M", color: "ดำ", qty: 2 },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(unallocatedDeliveryLinesFromFinalPack(ledger, evidence)).toEqual([
+      { description: "เสื้อยืด", size: "M", color: "ดำ", qty: 3 },
+    ]);
   });
 });

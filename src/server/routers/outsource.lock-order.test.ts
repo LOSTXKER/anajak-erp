@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Context } from "../trpc";
 
 const serviceMocks = vi.hoisted(() => ({
@@ -20,6 +20,7 @@ type HarnessOptions = {
   outsourceStatus?: string;
   siblings?: Array<{ id: string; stepType: string; status: string; sortOrder: number }>;
   remainingOrders?: number;
+  executionEnabled?: boolean;
 };
 
 function makeHarness(options: HarnessOptions = {}) {
@@ -33,6 +34,7 @@ function makeHarness(options: HarnessOptions = {}) {
     sortOrder: 2,
     qtyDone: options.qtyDone ?? 0,
     qtyTotal: options.qtyTotal === undefined ? 10 : options.qtyTotal,
+    executionEnabled: options.executionEnabled ?? false,
   };
   const siblings = options.siblings ?? [
     { id: step.id, stepType: step.stepType, status: step.status, sortOrder: step.sortOrder },
@@ -52,6 +54,7 @@ function makeHarness(options: HarnessOptions = {}) {
       stepType: step.stepType,
       status: step.status,
       qtyDone: step.qtyDone,
+      executionEnabled: step.executionEnabled,
       production: { orderId: "order-1" },
     },
   };
@@ -162,6 +165,16 @@ function makeHarness(options: HarnessOptions = {}) {
   const ctx: Context = {
     prisma: {
       $transaction: vi.fn(async <T>(callback: (client: typeof tx) => Promise<T>) => callback(tx)),
+      productionStep: {
+        findUnique: vi.fn().mockResolvedValue({
+          executionEnabled: step.executionEnabled,
+        }),
+      },
+      outsourceOrder: {
+        findUnique: vi.fn().mockResolvedValue({
+          productionStep: { executionEnabled: step.executionEnabled },
+        }),
+      },
     } as unknown as Context["prisma"],
     userId: "manager-1",
     userRole: "MANAGER",
@@ -189,7 +202,51 @@ beforeEach(() => {
   serviceMocks.finalizeProductionIfComplete.mockResolvedValue(false);
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe("outsource production boundary + lock order", () => {
+  it("ปิด V2 lifecycle API เมื่อ rollout flag ปิด โดย legacy path ไม่ถูกแตะ", async () => {
+    vi.stubEnv("PRODUCTION_V2_ENABLED", "0");
+    const harness = makeHarness({
+      stepStatus: "PENDING",
+      executionEnabled: true,
+    });
+
+    await expect(
+      outsourceRouter.createCaller(harness.ctx).createOrder({
+        productionStepId: "step-outsource",
+        vendorId: "vendor-1",
+        description: "ส่งปักโลโก้",
+        quantity: 10,
+        unitCost: 0,
+        commandId: "outsource-command-1",
+        expectedRevision: 0,
+      }),
+    ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    expect(harness.log).not.toContain("write:outsource-create");
+  });
+
+  it("legacy outsource writer ปฏิเสธ Operation Job ของ Production V2", async () => {
+    const harness = makeHarness({
+      stepStatus: "PENDING",
+      executionEnabled: true,
+    });
+
+    await expect(
+      outsourceRouter.createCaller(harness.ctx).createOrder({
+        productionStepId: "step-outsource",
+        vendorId: "vendor-1",
+        description: "ส่งปักโลโก้",
+        quantity: 10,
+        unitCost: 0,
+      }),
+    ).rejects.toThrow("Production V2");
+    expect(harness.log).not.toContain("write:outsource-create");
+    expect(harness.log).not.toContain("write:step");
+  });
+
   it("เปิดใบร้านบน current outsource step หลัง topology → all steps → production → order", async () => {
     const harness = makeHarness({ stepStatus: "PENDING" });
 

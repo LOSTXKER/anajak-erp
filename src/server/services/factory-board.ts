@@ -38,9 +38,39 @@ const ACTIVE_FACTORY_ORDER_STATUSES = [
   "READY_TO_SHIP",
 ] as const;
 
+// ให้คิวที่เปิด Station ใช้ขอบเขตเดียวกับ manufacturing dispatch จนกว่าจะย้าย
+// factory board มาอ่าน dispatch contract ชุดเดียวกันทั้งหมด
+const ACTIVE_STATION_WORK_ORDER_STATES = ["RELEASED", "IN_PROGRESS"] as const;
+const ACTIVE_STATION_ORDER_STATUSES = [
+  "PRODUCTION_QUEUE",
+  "PRODUCING",
+  "QUALITY_CHECK",
+  "PACKING",
+] as const;
+
+const ACTIVE_STATION_RESOURCE_WHERE = {
+  OR: [
+    { workResourceId: null },
+    {
+      workResource: {
+        is: {
+          isActive: true,
+          state: { in: ["AVAILABLE" as const, "IN_USE" as const] },
+        },
+      },
+    },
+  ],
+} satisfies Prisma.ProductionStepWhereInput;
+
 // ไม่ใช่หัวหน้า = เห็นเฉพาะงานของตัวเอง/ยังไม่มีเจ้าของ · หัวหน้า/ทีวี = ทั้งโรงงาน (ownWorkOnly=false)
-function ownFilter(ownWorkOnly: boolean, userId?: string | null) {
-  return ownWorkOnly ? { OR: [{ assignedToId: userId ?? undefined }, { assignedToId: null }] } : {};
+function ownFilter(
+  ownWorkOnly: boolean,
+  userId?: string | null,
+): Prisma.ProductionStepWhereInput | null {
+  const actorId = userId ?? "__no_station_actor__";
+  return ownWorkOnly
+    ? { OR: [{ assignedToId: actorId }, { assignedToId: null }] }
+    : null;
 }
 
 // คิวเตรียมเสื้อบน TV: รวมเบิกสต๊อคและตรวจรับเสื้อลูกค้า แต่ตัดงานเสีย/พักออกไป
@@ -91,15 +121,53 @@ export async function buildPrepQueue(prisma: ExtendedPrismaClient, limit = 8) {
 // คิวรีดร้อน: ขั้น HEAT_PRESS ที่ผ่าน gate ฟิล์มเสร็จ∧เสื้อพร้อมเท่านั้น (งานติดเงื่อนไขไม่โผล่)
 async function loadPressQueue(prisma: ExtendedPrismaClient, opts: StepQueueOpts = {}) {
   const { userId, ownWorkOnly = false } = opts;
+  const actorId = userId ?? "__no_station_actor__";
+  const assignmentWhere = ownFilter(ownWorkOnly, userId);
   const steps = await prisma.productionStep.findMany({
     where: {
       stepType: "HEAT_PRESS",
       status: { in: ["PENDING", "IN_PROGRESS"] },
-      production: { order: { internalStatus: { notIn: ["CANCELLED", "ON_HOLD"] } } },
-      ...ownFilter(ownWorkOnly, userId),
+      AND: [
+        {
+          OR: [
+            {
+              executionEnabled: false,
+              production: {
+                order: { internalStatus: { notIn: ["CANCELLED", "ON_HOLD"] } },
+              },
+            },
+            {
+              executionEnabled: true,
+              operationState: { in: ["READY", "RUNNING"] },
+              production: {
+                workOrderState: { in: [...ACTIVE_STATION_WORK_ORDER_STATES] },
+                order: {
+                  internalStatus: { in: [...ACTIVE_STATION_ORDER_STATUSES] },
+                },
+              },
+              workCenter: {
+                is: {
+                  code: "HEAT_PRESS",
+                  isActive: true,
+                  ...(ownWorkOnly
+                    ? {
+                        members: {
+                          some: { userId: actorId, isActive: true },
+                        },
+                      }
+                    : {}),
+                },
+              },
+              AND: [ACTIVE_STATION_RESOURCE_WHERE],
+            },
+          ],
+        },
+        ...(assignmentWhere ? [assignmentWhere] : []),
+      ],
     },
     select: {
       id: true,
+      executionEnabled: true,
       status: true,
       qtyDone: true,
       qtyTotal: true,
@@ -122,7 +190,10 @@ async function loadPressQueue(prisma: ExtendedPrismaClient, opts: StepQueueOpts 
     orderBy: { production: { order: { deadline: "asc" } } },
   });
   return steps
-    .filter((s) => evaluateHeatPressGate(s.production.steps).ready)
+    .filter(
+      (step) =>
+        step.executionEnabled || evaluateHeatPressGate(step.production.steps).ready,
+    )
     .map((s) => ({
       stepId: s.id,
       productionId: s.production.id,
@@ -145,9 +216,46 @@ export async function buildPressQueue(prisma: ExtendedPrismaClient, opts: StepQu
 // คิวแพ็กสุดท้าย: ออเดอร์เข้า PACKING ได้หลัง QC ผ่านเท่านั้น · ไม่มี assignee ระดับ step
 // เพราะแพ็กเป็นช่วงระดับออเดอร์/Delivery ไม่ใช่ ProductionStep แล้ว
 export async function buildPackQueue(prisma: ExtendedPrismaClient, opts: StepQueueOpts = {}) {
-  const { limit = 8 } = opts;
+  const { limit = 8, ownWorkOnly = false, userId } = opts;
+  const actorId = userId ?? "__no_station_actor__";
+  const assignmentWhere = ownFilter(ownWorkOnly, userId);
   const orders = await prisma.order.findMany({
-    where: { internalStatus: "PACKING" },
+    where: {
+      internalStatus: "PACKING",
+      OR: [
+        { productionCompletionOwnerId: null },
+        {
+          productionCompletionOwner: {
+            is: {
+              workOrderState: { in: [...ACTIVE_STATION_WORK_ORDER_STATES] },
+              completionOwnerStep: {
+                is: {
+                  executionEnabled: true,
+                  operationCode: "FINAL_PACK",
+                  operationState: { in: ["READY", "RUNNING", "BLOCKED"] },
+                  workCenter: {
+                    is: {
+                      isActive: true,
+                      ...(ownWorkOnly
+                        ? {
+                            members: {
+                              some: { userId: actorId, isActive: true },
+                            },
+                          }
+                        : {}),
+                    },
+                  },
+                  AND: [
+                    ACTIVE_STATION_RESOURCE_WHERE,
+                    ...(assignmentWhere ? [assignmentWhere] : []),
+                  ],
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
     select: {
       id: true,
       orderNumber: true,
@@ -157,23 +265,33 @@ export async function buildPackQueue(prisma: ExtendedPrismaClient, opts: StepQue
       blindShip: true, // ธงแดงบนคิวแพ็ก — พลาดใส่เอกสาร Anajak ครั้งเดียวเสียลูกค้า reseller
       customer: { select: { name: true } },
       items: { select: { totalQuantity: true } },
+      productionCompletionOwner: {
+        select: {
+          id: true,
+          completionOwnerStep: { select: { id: true } },
+        },
+      },
     },
     orderBy: { deadline: "asc" },
     take: limit,
   });
-  return orders.map((order) => ({
-    stepId: `pack:${order.id}`,
-    orderId: order.id,
-    productionId: null,
-    orderNumber: order.orderNumber,
-    title: order.title,
-    customerName: order.customer.name,
-    deadline: order.deadline,
-    priority: order.priority,
-    totalQuantity: order.items.reduce((sum, item) => sum + item.totalQuantity, 0),
-    blindShip: order.blindShip,
-    assignedToName: null,
-  }));
+  return orders.map((order) => {
+    const production = order.productionCompletionOwner;
+    const finalPack = production?.completionOwnerStep;
+    return {
+      stepId: finalPack?.id ?? `pack:${order.id}`,
+      orderId: order.id,
+      productionId: finalPack ? production.id : null,
+      orderNumber: order.orderNumber,
+      title: order.title,
+      customerName: order.customer.name,
+      deadline: order.deadline,
+      priority: order.priority,
+      totalQuantity: order.items.reduce((sum, item) => sum + item.totalQuantity, 0),
+      blindShip: order.blindShip,
+      assignedToName: null,
+    };
+  });
 }
 
 type PostProductionStatus = "QUALITY_CHECK" | "READY_TO_SHIP";

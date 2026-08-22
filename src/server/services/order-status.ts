@@ -186,8 +186,13 @@ export async function finalizeProductionIfComplete(
   await tx.$queryRaw`SELECT id FROM productions WHERE id = ${params.productionId} FOR UPDATE`;
   const steps = await tx.productionStep.findMany({
     where: { productionId: params.productionId },
-    select: { stepType: true, status: true },
+    select: { stepType: true, status: true, executionEnabled: true },
   });
+  if (steps.some((step) => step.executionEnabled)) {
+    badRequest(
+      "Production V2 ต้องปิด Operation Job ผ่านคำสั่ง Manufacturing เท่านั้น",
+    );
+  }
   const productionSteps = productionWorkflowSteps(steps);
   const hasPendingLegacyPackaging = steps.some(
     (step) => step.stepType === "PACKAGING" && step.status !== "COMPLETED",
@@ -246,8 +251,23 @@ export async function reopenProductionsForRework(
 ) {
   const closed = await tx.production.findMany({
     where: { orderId: params.orderId, status: "COMPLETED" },
-    select: { id: true, steps: { select: { sortOrder: true } } },
+    select: {
+      id: true,
+      workOrderNumber: true,
+      steps: { select: { sortOrder: true, executionEnabled: true } },
+    },
   });
+  if (
+    closed.some(
+      (production) =>
+        Boolean(production.workOrderNumber) ||
+        production.steps.some((step) => step.executionEnabled === true),
+    )
+  ) {
+    badRequest(
+      "Production V2 ต้องเปิดงานแก้ผ่าน Rework Case ใน Manufacturing เท่านั้น",
+    );
+  }
   for (const p of closed) {
     const maxSort = Math.max(0, ...p.steps.map((s) => s.sortOrder));
     await tx.production.update({

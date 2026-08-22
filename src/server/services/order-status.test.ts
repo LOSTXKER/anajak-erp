@@ -3,7 +3,11 @@ import {
   STOCK_RESERVATION_PENDING_MESSAGE,
   STOCK_RESERVATION_PENDING_PRODUCTION_MESSAGE,
 } from "@/lib/stock-reservation-state";
-import { finalizeProductionIfComplete, transitionOrder } from "./order-status";
+import {
+  finalizeProductionIfComplete,
+  reopenProductionsForRework,
+  transitionOrder,
+} from "./order-status";
 
 function transitionTx(params?: { pendingInitially?: boolean; pendingAfterRead?: boolean }) {
   const initial = {
@@ -96,6 +100,32 @@ describe("transitionOrder — pending stock reservation gate", () => {
 });
 
 describe("finalizeProductionIfComplete — legacy PACKAGING compatibility", () => {
+  it("legacy finalizer ปฏิเสธ Operation Job ของ Production V2", async () => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      productionStep: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            stepType: "HEAT_PRESS",
+            status: "COMPLETED",
+            executionEnabled: true,
+          },
+        ]),
+        updateMany: vi.fn(),
+      },
+      production: { update: vi.fn() },
+    };
+
+    await expect(
+      finalizeProductionIfComplete(tx as never, {
+        productionId: "production-v2",
+        changedBy: "worker-1",
+      }),
+    ).rejects.toThrow("Production V2");
+    expect(tx.productionStep.updateMany).not.toHaveBeenCalled();
+    expect(tx.production.update).not.toHaveBeenCalled();
+  });
+
   it("ไม่ปิดใบที่มีแต่ PACKAGING เก่าผ่าน finalizer ปกติ", async () => {
     const tx = {
       $queryRaw: vi.fn().mockResolvedValue([]),
@@ -194,5 +224,32 @@ describe("finalizeProductionIfComplete — legacy PACKAGING compatibility", () =
         data: expect.objectContaining({ internalStatus: "QUALITY_CHECK" }),
       }),
     );
+  });
+});
+
+describe("reopenProductionsForRework — V2 boundary", () => {
+  it("ไม่สร้าง legacy CUSTOM step ลง Work Order V2", async () => {
+    const tx = {
+      production: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "production-1",
+            workOrderNumber: "MO-2608-0001",
+            steps: [{ sortOrder: 5, executionEnabled: true }],
+          },
+        ]),
+        update: vi.fn(),
+      },
+      productionStep: { create: vi.fn() },
+    };
+
+    await expect(
+      reopenProductionsForRework(tx as never, {
+        orderId: "order-1",
+        reason: "QC ไม่ผ่าน",
+      }),
+    ).rejects.toThrow("Rework Case");
+    expect(tx.production.update).not.toHaveBeenCalled();
+    expect(tx.productionStep.create).not.toHaveBeenCalled();
   });
 });

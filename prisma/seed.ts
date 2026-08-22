@@ -5,6 +5,17 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// จุดทำงานมาตรฐานของ Production V2 — เป็น master data เท่านั้น ไม่มีตัวเลข
+// กำลังผลิตสมมติ ค่า capacity จึงคงเป็น NULL จนหัวหน้าประเมินจากงานจริง
+const workCenters = [
+  { code: "PREP", name: "เตรียมงาน", sortOrder: 10 },
+  { code: "DTF_PRINT", name: "พิมพ์ DTF", sortOrder: 20 },
+  { code: "HEAT_PRESS", name: "รีดร้อน", sortOrder: 30 },
+  { code: "FINAL_QC", name: "ตรวจคุณภาพขั้นสุดท้าย", sortOrder: 40 },
+  { code: "FINAL_PACK", name: "แพ็กขั้นสุดท้าย", sortOrder: 50 },
+  { code: "OUTSOURCE", name: "งานส่งผลิตภายนอก", sortOrder: 60 },
+] as const;
+
 // ============================================================
 // SERVICE CATALOG — รายการบริการมาตรฐานของโรงงาน (แก้ราคาจริงได้ใน Settings → Services)
 // ============================================================
@@ -44,6 +55,19 @@ const catalogItems = [
 
 async function main() {
   console.log("🌱 Seeding master data (idempotent)...");
+
+  for (const center of workCenters) {
+    await prisma.workCenter.upsert({
+      where: { code: center.code },
+      create: center,
+      update: {
+        name: center.name,
+        sortOrder: center.sortOrder,
+        isActive: true,
+      },
+    });
+  }
+  console.log("✅ Work Centers: อัปเดต master data แล้ว (ไม่เดากำลังผลิต)");
 
   // ServiceCatalog ไม่มี unique key ธรรมชาติ — เทียบด้วย (category, type, name):
   // มีแล้ว = อัปเดตเฉพาะ sortOrder/pricingType (ไม่ทับราคาที่ผู้ใช้แก้เอง) · ยังไม่มี = สร้าง

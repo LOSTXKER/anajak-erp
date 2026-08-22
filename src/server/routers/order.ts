@@ -12,6 +12,7 @@ import {
   PRODUCTION_STAFF_STATUSES,
   DESIGNER_STATUSES,
   ACCOUNTANT_STATUSES,
+  isProductionV2FlowStatusTarget,
 } from "@/lib/order-status";
 import { createAuditLog } from "@/server/helpers";
 import type { PrismaTx } from "@/lib/prisma";
@@ -59,7 +60,10 @@ import {
   billedFloor,
 } from "@/server/services/payment-plan";
 import { lockOrderRow } from "@/server/services/order-cost";
-import { assertOrderPackingReadyToShip } from "@/server/services/packing-readiness";
+import {
+  assertOrderPackingReadyToShip,
+  assertV2FinalPackReadyToShip,
+} from "@/server/services/packing-readiness";
 import { assertQcReadyForPacking } from "@/server/services/qc-count";
 import type { OrderType, TaxLineType } from "@prisma/client";
 import {
@@ -74,6 +78,7 @@ import {
 import { D } from "@/server/services/money";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
 import { productionWorkflowSteps } from "@/lib/production-steps";
+import { productionV2Enabled } from "@/lib/production-v2-flag";
 
 // สร้าง/แก้ออเดอร์+เงินในใบ (PERM3: default = OWNER/MANAGER/SALES เดิมเป๊ะ + override รายคน)
 const salesUp = requirePermission("create_sales_docs");
@@ -274,6 +279,39 @@ async function assertNoDeletedProducts(
   if (deleted.length > 0) {
     badRequest(
       `มีสินค้าที่ถูกลบไปแล้วในรายการ (${deleted.map((p) => p.name).join(", ")}) — เอาออกหรือเลือกสินค้าปัจจุบันก่อน${actionLabel}`
+    );
+  }
+}
+
+// Writer เก่าที่อาจชนกับใบสั่งผลิตต้องถือ mutex ของ topology ก่อนล็อกหัวออเดอร์
+// แล้วค่อยอ่าน owner จริงจากฐาน เพื่อให้การสร้างใบสั่งผลิตพร้อมกันไม่มีช่อง TOCTOU.
+async function lockOrderAndReadProductionOwnership(
+  tx: PrismaTx,
+  orderId: string,
+): Promise<boolean> {
+  await lockProductionTopology(tx, orderId);
+  await lockOrderRow(tx, orderId);
+  const productions = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT id
+    FROM productions
+    WHERE order_id = ${orderId}
+      AND (
+        work_order_number IS NOT NULL
+        OR completion_owner_step_id IS NOT NULL
+      )
+    ORDER BY id
+    LIMIT 1
+  `;
+  return productions.length > 0;
+}
+
+async function assertProductionDefinitionCanChange(
+  tx: PrismaTx,
+  orderId: string,
+): Promise<void> {
+  if (await lockOrderAndReadProductionOwnership(tx, orderId)) {
+    badRequest(
+      "ออเดอร์นี้มีใบสั่งผลิตแล้ว จึงแก้สินค้า สี ไซซ์ หรือตำแหน่งพิมพ์ไม่ได้ ให้หัวหน้าตรวจใบผลิตก่อน",
     );
   }
 }
@@ -1158,6 +1196,11 @@ export const orderRouter = router({
       // DESIGNING · บัญชี = COMPLETED) · override รายคนจาก /settings/users
       const can = (p: Permission) => hasPermission(ctx.userRole, ctx.permissionOverrides, p);
       const to = input.internalStatus;
+      if (productionV2Enabled() && isProductionV2FlowStatusTarget(to)) {
+        forbidden(
+          "สถานะนี้ต้องเปลี่ยนจากขั้นงานจริงในหน้าการผลิตหรือการจัดส่ง ไม่สามารถเปลี่ยนจากหน้าออเดอร์ได้",
+        );
+      }
       const statusAllowed = (PRODUCTION_STAFF_STATUSES as readonly string[]).includes(to)
         ? can("update_order_status_production")
         : (DESIGNER_STATUSES as readonly string[]).includes(to)
@@ -1237,13 +1280,17 @@ export const orderRouter = router({
       // ระหว่างทาง (review 2026-07-02: ยิง PACKING ตอน PRODUCING แล้ว finalize แทรก →
       // guard QC กับ promote ลายโดนข้ามทั้งคู่)
       const order = await ctx.prisma.$transaction(async (tx) => {
-        // เส้น QC ตีกลับผลิตจะ reopen production/steps: ต้องถือ topology mutex ก่อน
-        // transitionOrder ซึ่งล็อก order เพื่อให้ global order ตรงกับ Goods/QC writers
+        // serialize กับการสร้างใบสั่งผลิต แล้วอ่าน record จริงหลัง order lock เสมอ:
+        // เมื่อมีใบสั่งผลิตแล้ว สถานะการทำงาน/ถอย/พัก/ยกเลิกต้องมาจากเจ้าของ flow
+        // เฉพาะทางทั้งหมด ยกเว้น SHIPPED → COMPLETED ซึ่งยังมีหน้า Order เป็นบ้าน
+        // ปิดงานเพียงจุดเดียว และยังผ่าน transition graph + ด่านวางบิลเดิมครบ.
         if (
-          input.internalStatus === "PRODUCING" ||
-          input.internalStatus === "QUALITY_CHECK"
+          (await lockOrderAndReadProductionOwnership(tx, input.id)) &&
+          input.internalStatus !== "COMPLETED"
         ) {
-          await lockProductionTopology(tx, input.id);
+          badRequest(
+            "งานนี้มีใบสั่งผลิตอยู่ จึงเปลี่ยนสถานะจากหน้าออเดอร์ไม่ได้ ให้หัวหน้าตรวจงานที่กำลังทำก่อน",
+          );
         }
 
         // PRODUCING → QUALITY_CHECK ปกติต้องเกิดจาก shared finalizer เท่านั้น.
@@ -1361,6 +1408,7 @@ export const orderRouter = router({
         }
         if (result.changed && input.internalStatus === "SHIPPED") {
           // count ใบส่งทุกสถานะไม่พอ: RETURNED ไม่ใช่หลักฐาน และยอดต่อไซส์ต้องครบ
+          await assertV2FinalPackReadyToShip(tx, input.id);
           await assertOrderPackingReadyToShip(tx, input.id);
         }
         // QC ไม่ผ่าน ถอยกลับผลิต → reopen ใบผลิตที่ปิดแล้ว + เปิด step งานแก้
@@ -1642,7 +1690,11 @@ export const orderRouter = router({
       }
 
       const result = await ctx.prisma.$transaction(async (tx) => {
-        await lockOrderRow(tx, input.id);
+        if (input.work?.items !== undefined) {
+          await assertProductionDefinitionCanChange(tx, input.id);
+        } else {
+          await lockOrderRow(tx, input.id);
+        }
         const locked = await tx.order.findUniqueOrThrow({
           where: { id: input.id },
           select: {
@@ -2282,7 +2334,7 @@ export const orderRouter = router({
       // เปิดช่อง TOCTOU: mutation เงินสองตัวชนกัน ตัวหลังเขียนยอดจากสภาพเก่า →
       // totalAmount ไม่ตรงแถวจริง → เพดานวางบิลขาแรกพองเกินมูลค่างาน
       const { updatedOrder, totals, oldTotals } = await ctx.prisma.$transaction(async (tx) => {
-        await lockOrderRow(tx, input.id);
+        await assertProductionDefinitionCanChange(tx, input.id);
         const locked = await tx.order.findUniqueOrThrow({
           where: { id: input.id },
           select: { taxRate: true, subtotalItems: true, totalAmount: true },
@@ -2564,7 +2616,7 @@ export const orderRouter = router({
         // "ลูกค้าลดงานหลังจ่ายมัดจำ+ออกใบกำกับแล้ว" เงินรับถูกกฎหมาย void ใบไม่ได้ และ
         // CN อ้างใบเสร็จก็ไม่ลด floor → block = ทางตันถาวร · ทางที่ถูกคือ CO แล้วออก
         // ใบลดหนี้/คืนเงินตาม (invoicedWarning + UI พายอด billedFloor เตือนอยู่แล้ว)
-        await lockOrderRow(tx, input.id);
+        await assertProductionDefinitionCanChange(tx, input.id);
         const locked = await tx.order.findUniqueOrThrow({
           where: { id: input.id },
           select: { taxRate: true, totalAmount: true },
@@ -2811,6 +2863,13 @@ export const orderRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const canRecordReceipt =
+        hasPermission(ctx.userRole, ctx.permissionOverrides, "manage_production") ||
+        hasPermission(ctx.userRole, ctx.permissionOverrides, "supervise_operations");
+      if (!canRecordReceipt) {
+        forbidden("คุณไม่มีสิทธิ์บันทึกข้อมูลรับเสื้อ");
+      }
+
       return ctx.prisma.$transaction(async (tx) => {
         const product = await tx.orderItemProduct.findUniqueOrThrow({
           where: { id: input.orderItemProductId },
@@ -2818,9 +2877,18 @@ export const orderRouter = router({
         });
         const orderId = product.orderItem.orderId;
 
-        // shared parent lock เดียวกับ saveForm: ถ้าหน้าแก้กำลัง replace รายการ
-        // งานตรวจรับต้องรอ; ถ้างานตรวจรับมาก่อน updatedAt จะทำให้ฟอร์มเก่า conflict
-        await lockOrderRow(tx, orderId);
+        // Resolve FK ก่อนเพื่อหา mutex จากนั้นอ่านซ้ำใต้ topology+order lock ก่อนเขียน:
+        // ถ้าหน้าแก้ replace แถวระหว่างทาง จะไม่เขียนทับแถวเก่าหรือหลักฐานของจุดเตรียมงาน.
+        if (await lockOrderAndReadProductionOwnership(tx, orderId)) {
+          badRequest("ข้อมูลรับเสื้อของงานนี้ต้องบันทึกจากจุดเตรียมงานเท่านั้น");
+        }
+        const lockedProduct = await tx.orderItemProduct.findUniqueOrThrow({
+          where: { id: input.orderItemProductId },
+          select: { orderItem: { select: { orderId: true } } },
+        });
+        if (lockedProduct.orderItem.orderId !== orderId) {
+          badRequest("รายการรับเสื้อมีการเปลี่ยนแปลง กรุณาโหลดหน้าใหม่");
+        }
         const updated = await tx.orderItemProduct.update({
           where: { id: input.orderItemProductId },
           data: {

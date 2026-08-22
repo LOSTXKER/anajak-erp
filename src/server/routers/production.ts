@@ -47,6 +47,7 @@ import {
 } from "@/server/services/production-readiness";
 import { lockOrderRow, recalcOrderCost } from "@/server/services/order-cost";
 import { lockProductionTopology } from "@/server/services/production-topology-lock";
+import { assertProductionV2ApiEnabled } from "@/server/services/production-v2-gate";
 import {
   netReceivedByVariant,
   receiptInspectionOfVariants,
@@ -186,10 +187,18 @@ async function lockProductionStepScope(tx: PrismaTx, stepId: string) {
   await tx.$queryRaw`SELECT id FROM productions WHERE id = ${stepReference.productionId} FOR UPDATE`;
   await lockOrderRow(tx, productionReference.orderId);
 
-  const existing = await tx.productionStep.findUniqueOrThrow({
+  const lockedStep = await tx.productionStep.findUniqueOrThrow({
     where: { id: stepId },
-    select: updateStepResultSelect,
+    select: { ...updateStepResultSelect, executionEnabled: true },
   });
+  const { executionEnabled, ...existing } = lockedStep;
+  if (executionEnabled) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        "ขั้นงาน Production V2 ต้องอัปเดตจากโหมดสถานีหรือคำสั่ง Manufacturing เท่านั้น",
+    });
+  }
   const production = await tx.production.findUniqueOrThrow({
     where: { id: existing.productionId },
     select: { orderId: true },
@@ -599,6 +608,19 @@ export const productionRouter = router({
         // topology mutex กันสมาชิกใบผลิตเปลี่ยน ส่วน parent row lock กัน order item writer
         // แทนรายการระหว่างอ่าน receipt evidence กับ insert ใบผลิต
         await lockOrderRow(tx, input.orderId);
+        const v2WorkOrder = await tx.production.findFirst({
+          where: {
+            orderId: input.orderId,
+            workOrderNumber: { not: null },
+          },
+          select: { workOrderNumber: true },
+        });
+        if (v2WorkOrder) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `ออเดอร์นี้ใช้ Production V2 (${v2WorkOrder.workOrderNumber}) แล้ว — เปิดใบผลิตแบบเดิมไม่ได้`,
+          });
+        }
         // receipt อาจเกิดก่อนเปิดใบผลิต: ต้องอ่าน evidence สดหลังถือ topology mutex
         // และ order row lock เดียวกับ Goods Receipt/หน้าแก้ ห้ามใช้ snapshot ก่อน transaction
         // มิฉะนั้นสร้าง step ค้างหลอกหรือผูกกับรายการคนละชุด
@@ -1655,15 +1677,33 @@ export const productionRouter = router({
     .input(
       z.object({
         productionId: z.string(),
-        stepId: z.string(),
+        stepId: z.string().optional(),
+        operationJobId: z.string().optional(),
+        expectedRevision: z.number().int().nonnegative().optional(),
         // กันยิงซ้ำ (กดเบิ้ล/เน็ตสะดุดแล้วลองใหม่) — UI สร้างครั้งเดียวต่อการเปิด dialog
         idempotencyKey: z.string().min(8),
         lines: z
           .array(z.object({ sku: z.string(), qty: z.number().int().min(0) }))
           .min(1),
+      }).superRefine((value, refinement) => {
+        if (!!value.stepId === !!value.operationJobId) {
+          refinement.addIssue({
+            code: "custom",
+            path: ["operationJobId"],
+            message: "ต้องระบุ stepId หรือ operationJobId อย่างใดอย่างหนึ่ง",
+          });
+        }
+        if (value.operationJobId && value.expectedRevision === undefined) {
+          refinement.addIssue({
+            code: "custom",
+            path: ["expectedRevision"],
+            message: "Production V2 ต้องระบุ expectedRevision",
+          });
+        }
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      if (input.operationJobId) assertProductionV2ApiEnabled();
       return issueGarments(ctx.prisma, {
         ...input,
         userId: ctx.userId,
@@ -1678,18 +1718,45 @@ export const productionRouter = router({
 
   // คืนเศษเข้าสต๊อค (เผื่อเสีย 3% ที่เหลือ) — คืนได้ไม่เกินยอดเบิกค้าง
   returnGarments: protectedProcedure
-    .use(managerUp)
     .input(
       z.object({
         productionId: z.string(),
+        operationJobId: z.string().optional(),
+        expectedRevision: z.number().int().nonnegative().optional(),
         idempotencyKey: z.string().min(8),
         note: z.string().optional(),
         lines: z
           .array(z.object({ sku: z.string(), qty: z.number().int().min(0) }))
           .min(1),
+      }).superRefine((value, refinement) => {
+        if (value.operationJobId && value.expectedRevision === undefined) {
+          refinement.addIssue({
+            code: "custom",
+            path: ["expectedRevision"],
+            message: "Production V2 ต้องระบุ expectedRevision",
+          });
+        }
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return returnGarments(ctx.prisma, { ...input, userId: ctx.userId });
+      if (input.operationJobId) assertProductionV2ApiEnabled();
+      const requiredPermission = input.operationJobId
+        ? "manage_production"
+        : "supervise_operations";
+      if (!hasPermission(ctx.userRole, ctx.permissionOverrides, requiredPermission)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "บัญชีนี้ไม่มีสิทธิ์คืนเสื้อเข้าสต๊อค",
+        });
+      }
+      return returnGarments(ctx.prisma, {
+        ...input,
+        userId: ctx.userId,
+        canSupervise: hasPermission(
+          ctx.userRole,
+          ctx.permissionOverrides,
+          "supervise_operations",
+        ),
+      });
     }),
 });

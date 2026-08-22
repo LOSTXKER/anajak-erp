@@ -22,6 +22,7 @@ interface ProductionSummaryCardProps {
   internalStatus: string;
   productions: OrderProductions;
   isManagerUp: boolean;
+  productionV2Enabled: boolean;
 }
 
 export function ProductionSummaryCard({
@@ -29,6 +30,7 @@ export function ProductionSummaryCard({
   internalStatus,
   productions,
   isManagerUp,
+  productionV2Enabled,
 }: ProductionSummaryCardProps) {
   const hasProduction = productions.length > 0;
 
@@ -151,7 +153,7 @@ export function ProductionSummaryCard({
 
                   <Button variant="outline" size="sm" asChild className="gap-1.5">
                     <Link href={`/production/${prod.id}`}>
-                      จัดการการผลิต
+                      {productionV2Enabled ? "เปิดใบสั่งผลิต" : "จัดการการผลิต"}
                       <ArrowRight />
                     </Link>
                   </Button>

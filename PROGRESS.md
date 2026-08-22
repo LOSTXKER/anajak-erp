@@ -4,6 +4,23 @@
 
 ## ตอนนี้
 
+> **✅ PRODUCTION V2 พร้อมให้เบสทำ UAT บน feature branch (2026-08-22)**
+> รื้อแกนข้อมูลและ UX การผลิตเป็น contract เดียวแล้ว: `Production`/`ProductionStep` ทำหน้าที่ Manufacturing Order/Operation Job โดยคง ID และความสัมพันธ์เดิม; routing เก็บ version+snapshot, quantity แยกรายการ, event เป็น append-only, exception/rework มี lifecycle และ command ทุกตัวใช้ `commandId` กับ `expectedRevision` · schema/migration เป็น additive และทำงานบน worktree/ฐานทดสอบแยก ไม่ apply/reset ฐาน shared หรือ remote
+>
+> บ้านงานปัจจุบันคือ `/production` รายการทุกงาน → `/production/[id]` Control Record ของหัวหน้า, `/factory/station` สำหรับลงมือ+handoff ออเดอร์เดิม, `/factory` TV อ่านอย่างเดียว และ Outsource เป็นมุมมองใน Production · Order/My Tasks เหลือ summary/deep link ตามบทบาท; route เก่า redirect เข้าบ้านใหม่ · generic Order status ถูกปิดไม่ให้เขียนสถานะที่ Release/Station/QC/Pack/Delivery เป็นเจ้าของ เพื่อไม่ให้มีปุ่ม “แพ็คเสร็จ” ซ้ำกับ Final Pack Station
+>
+> ด่านรอบปิดบังคับให้ออเดอร์หนึ่งใช้ topology การผลิตชนิดเดียว, ทุก routing lane ต้องรวมที่ Final Pack ซึ่งเป็นจุดจบเดียว และ “พร้อมส่ง” เกิดเมื่อทุก operation จบจริงเท่านั้น · เมื่อสร้างใบสั่งผลิตแล้ว Order/Change Order แก้สินค้า สี ไซซ์ จุดพิมพ์ หรือหลักฐานรับเสื้อทับ snapshot ไม่ได้; legacy PREP/QC/ready-to-ship writers ปฏิเสธ V2 record หลัง lock และ Station ตัดงานที่ถูกพัก ยกเลิก หรือปิดออกจากคิวพร้อมปฏิเสธ start/report/complete ฝั่ง server
+>
+> **หลักฐานอัตโนมัติ:** `npm test`, `npm run typecheck`, `npm run lint`, `npm run verify:ui`, `npm run build`, `npx prisma validate`, `scripts/verify-production-v2-migration.sql` และ `scripts/verify-manufacturing-v2.ts` ผ่านบนฐาน disposable หลัง reset/seed · fixture ครอบหลายสินค้า/สี/ไซซ์, parallel operation, DTF batch, partial output, defect/rework, outsource และ partial pack
+>
+> **หลักฐาน browser จริง (ก่อนปิด guard รอบสุดท้าย):** ตรวจ Production/Control Record ที่ desktop+tablet+mobile, Station ที่ mobile, TV ที่ Full HD, role OWNER และ PRODUCTION_STAFF, loading/error/retry/empty/success, refresh/deep link/Back/Escape/focus/overflow/console · สแกนเปิดบริบทโดยไม่เริ่มงาน, DTF เห็น film good/scrap/reprint, QC มี Hold/Rework/Scrap, Pack ไม่มี action ส่ง, Delivery อยู่แท็บออฟฟิศ และทดสอบ Heat Press จบจริงแล้ว Station คงออเดอร์เดิมพร้อมพาไป Final QC · ไม่มี horizontal overflow, hydration หรือ app console error
+>
+> **delta หลัง browser:** ปิด bypass ของ parent/work center/resource, ให้ทุกหน้ารับ `availableCommands` จาก server, ใช้แบบ snapshot ที่ Release บน Station, รองรับ Prep รับเกิน→คืนและตำหนิ→คืน→รับทดแทน, และคง `SHIPPED → COMPLETED` ผ่านกฎปิดงานเดิม · ผ่าน regression/full tests, typecheck, lint, UI contract, schema validate และ build แล้ว แต่ยังต้องให้เบส walkthrough จอจริงรอบ PV2.8 ก่อน merge/deploy
+>
+> **ยังไม่ release:** `ROADMAP.md` ปิด PV2.1–PV2.7 แล้ว; PV2.8 รอเบส walkthrough หัวหน้า+พนักงานครบ flow และกดยอมรับก่อน · branch คือ `codex/production-v2`; ห้าม merge/push `main` หรือ deploy ตอนนี้ · old UI ยังอยู่หลัง flag หนึ่ง rollout window สำหรับ rollback แล้วต้องลบพร้อม legacy writers รอบถัดไป
+>
+> **ต่อที่นี่:** ให้เบสเปิด branch นี้กับฐานทดสอบแยก แล้วลอง `Production → Control Record → Station → QC/Rework → Final Pack → Delivery`; ถ้าผ่านจึงวาง cutover target+backup และเปิดทั้ง module พร้อมกัน
+
 > **↩️ ย้อนก้อน A/B กลับมาที่จุดม็อกอัพล่าสุด (เบสสั่ง 2026-08-22 14:0x)**
 > เบสไปลองทำต่อที่อื่นแล้วไม่ได้ดั่งใจ จึงสั่งย้อนทุกอย่างกลับมาที่ `ec681af` ซึ่งเป็นจุดล่าสุดที่ตรวจจอจริงผ่านแล้ว · `git reset --hard` ตัด `b142a4f` (route ชั่วคราว `/production/concepts` + `production-control-concepts.tsx` 734 บรรทัด) ออกจากกิ่ง โดย **สำรองไว้ครบที่กิ่ง `backup/ab-concepts-2026-08-22`** ก่อนย้อน — อยากดู/ดึงกลับทีหลังได้ ไม่มีอะไรหาย · กิ่งนี้ยังไม่เคย push (ahead origin 8 ก้อน) จึงไม่ต้อง force-push
 >

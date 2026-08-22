@@ -70,6 +70,71 @@ describe("goodsReceipt.create permission by surface", () => {
     );
   });
 
+  it("V2 Station รับ operationJobId+expectedRevision และไม่ยอม revision หาย", async () => {
+    await expect(
+      caller("PRODUCTION_STAFF").create({
+        ...input,
+        operationJobId: "operation-prep-1",
+        expectedRevision: 2,
+      }),
+    ).resolves.toMatchObject({ id: "receipt-1" });
+    expect(serviceMocks.createGoodsReceipt).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        operationJobId: "operation-prep-1",
+        expectedRevision: 2,
+      }),
+    );
+    await expect(
+      caller("PRODUCTION_STAFF").create({
+        ...input,
+        operationJobId: "operation-prep-1",
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("V2 PREP คืนเสื้อลูกค้าได้จาก operation เดิม แต่ legacy target ยังใช้ทางนี้ไม่ได้", async () => {
+    const customerReturn = {
+      ...input,
+      idempotencyKey: "customer-return-v2-0001",
+      receiptType: "CUSTOMER_RETURN" as const,
+      lines: [{
+        orderItemProductId: "product-1",
+        description: "เสื้อลูกค้า",
+        qtyExpected: 0,
+        qtyCounted: 3,
+      }],
+    };
+    await expect(
+      caller("PRODUCTION_STAFF").create({
+        ...customerReturn,
+        operationJobId: "operation-prep-1",
+        expectedRevision: 3,
+      }),
+    ).resolves.toMatchObject({ id: "receipt-1" });
+    expect(serviceMocks.createGoodsReceipt).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        receiptType: "CUSTOMER_RETURN",
+        operationJobId: "operation-prep-1",
+        expectedRevision: 3,
+      }),
+    );
+
+    await expect(
+      caller("PRODUCTION_STAFF").create({
+        ...customerReturn,
+        productionStepId: "legacy-prep-1",
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      caller("PRODUCTION_STAFF").create({
+        ...customerReturn,
+        operationJobId: "operation-prep-1",
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
   it("ยืนยัน evidence เดิมใช้ manage_production และส่ง target เดียว", async () => {
     await expect(
       caller("SALES").confirmCustomerGarmentEvidence({ productionStepId: "step-receive-1" }),
@@ -83,5 +148,39 @@ describe("goodsReceipt.create permission by surface", () => {
       expect.anything(),
       expect.objectContaining({ productionStepId: "step-receive-1", userId: "user-1" }),
     );
+  });
+
+  it("ยืนยัน evidence V2 รับ operationJobId+commandId+expectedRevision เท่านั้น", async () => {
+    await expect(
+      caller("PRODUCTION_STAFF").confirmCustomerGarmentEvidence({
+        operationJobId: "operation-prep-1",
+        commandId: "confirm-evidence-0001",
+        expectedRevision: 3,
+      }),
+    ).resolves.toMatchObject({ status: "COMPLETED" });
+    expect(serviceMocks.confirmCustomerGarmentEvidence).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        operationJobId: "operation-prep-1",
+        commandId: "confirm-evidence-0001",
+        expectedRevision: 3,
+        userId: "user-1",
+      }),
+    );
+
+    await expect(
+      caller("PRODUCTION_STAFF").confirmCustomerGarmentEvidence({
+        operationJobId: "operation-prep-1",
+        expectedRevision: 3,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      caller("PRODUCTION_STAFF").confirmCustomerGarmentEvidence({
+        productionStepId: "step-receive-1",
+        operationJobId: "operation-prep-1",
+        commandId: "confirm-evidence-0002",
+        expectedRevision: 3,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });

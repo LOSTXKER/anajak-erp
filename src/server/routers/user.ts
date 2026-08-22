@@ -46,9 +46,21 @@ export const userRouter = router({
 
   // รายชื่อสำหรับมอบหมายงาน (id+ชื่อ+role) — เฉพาะบัญชี active ที่มีสิทธิ์งานผลิตจริง
   // (user.list เต็มเป็น ownerOnly — อันนี้ข้อมูลแคบพอให้ MANAGER ใช้ได้ · audit ข้อ 18)
-  assignables: protectedProcedure.use(managerUp).query(async ({ ctx }) => {
+  assignables: protectedProcedure
+    .use(managerUp)
+    .input(z.object({ workCenterId: z.string().min(1).optional() }).optional())
+    .query(async ({ ctx, input }) => {
     const users = await ctx.prisma.user.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(input?.workCenterId
+          ? {
+              workCenterMemberships: {
+                some: { workCenterId: input.workCenterId, isActive: true },
+              },
+            }
+          : {}),
+      },
       orderBy: { name: "asc" },
       select: { id: true, name: true, role: true, permissionOverrides: true },
     });
@@ -57,7 +69,7 @@ export const userRouter = router({
         hasPermission(user.role, user.permissionOverrides, "manage_production"),
       )
       .map((user) => ({ id: user.id, name: user.name, role: user.role }));
-  }),
+    }),
 
   list: protectedProcedure.use(ownerOnly).query(async ({ ctx }) => {
     return ctx.prisma.user.findMany({
