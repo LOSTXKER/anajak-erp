@@ -412,7 +412,8 @@ function OrdersPageContent() {
         isLoading={isLoading}
       />
 
-      <Toolbar>
+      <div className="space-y-4 lg:space-y-0 lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-surface">
+      <Toolbar className="lg:border-b lg:border-divider lg:px-4 lg:py-3">
         <SearchInput
           ref={searchInputRef}
           containerClassName="@2xl:max-w-sm @2xl:flex-1"
@@ -544,7 +545,7 @@ function OrdersPageContent() {
           const showCountdown = hasTrackableDeadline || sortBy === "deadline";
           const showDeadline = hasDeadline;
           return (
-          <DataTable.Root>
+          <DataTable.Root bordered={false}>
             <DataTable.Head>
               <tr>
                 {/* การเรียงย้ายมาอยู่ที่หัวคอลัมน์แล้ว (เบสสั่ง 2026-07-31) — กดซ้ำสลับทิศ
@@ -677,10 +678,10 @@ function OrdersPageContent() {
                 ? mockupCoverImage(order.designs[0])
                 : null;
               return (
-                <article key={order.id} role="listitem" className="card-surface rounded-xl">
+                <article key={order.id} role="listitem" className="card-surface rounded-lg">
                 <Link
                   href={`/orders/${order.id}`}
-                  className={cn("block min-h-11 rounded-2xl p-4", FOCUS_BUTTON)}
+                  className={cn("block min-h-11 rounded-lg p-4", FOCUS_BUTTON)}
                   aria-label={`เปิดออเดอร์ ${order.orderNumber} ${order.customer?.name ?? ""}`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -803,6 +804,7 @@ function OrdersPageContent() {
           ) : undefined
         }
       />
+      </div>
     </div>
   );
 }

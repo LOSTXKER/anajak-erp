@@ -1012,7 +1012,7 @@ export function StationModeScreen() {
               <Skeleton className="h-72 rounded-2xl" />
             </div>
           ) : initialError ? (
-            <div className="card-surface rounded-xl">
+            <div className="card-surface rounded-lg">
               <QueryError
                 message={
                   meQuery.isError

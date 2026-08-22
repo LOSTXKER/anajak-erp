@@ -192,7 +192,7 @@ export default function PatternsPage() {
           {showAddForm && canCreate && (
             <form
               onSubmit={handleCreate}
-              className="card-surface mb-4 space-y-3 rounded-xl p-4"
+              className="card-surface mb-4 space-y-3 rounded-lg p-4"
             >
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>

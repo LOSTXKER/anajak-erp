@@ -271,7 +271,7 @@ function MobileRows<S extends BoardStepLike, O extends BoardOrderLike<S>>({
             href={href}
             className={cn(
               FOCUS_BUTTON,
-              "card-surface card-surface-hover block min-h-11 rounded-xl p-4",
+              "card-surface card-surface-hover block min-h-11 rounded-lg p-4",
             )}
           >
             <span className="flex items-start justify-between gap-3">

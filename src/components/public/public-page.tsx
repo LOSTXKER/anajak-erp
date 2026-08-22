@@ -31,7 +31,7 @@ export function PublicPageShell({
   return (
     <div className="min-h-screen bg-bg px-4 py-5 sm:py-10">
       <div className="mx-auto max-w-2xl space-y-5">
-        <header className="card-surface relative overflow-hidden rounded-xl p-5 sm:p-6">
+        <header className="card-surface relative overflow-hidden rounded-lg p-5 sm:p-6">
           <div className={cn("absolute inset-x-0 top-0 h-1", VISUAL_TONE_CLASSES[tone].solid)} aria-hidden="true" />
           <div className="flex items-start gap-4">
             <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] text-white shadow-sm [&_svg]:h-5.5 [&_svg]:w-5.5 [&_svg]:text-white", VISUAL_TONE_CLASSES[tone].solid)} aria-hidden="true">

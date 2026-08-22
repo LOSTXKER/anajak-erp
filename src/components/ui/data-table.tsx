@@ -13,7 +13,7 @@ import {
 
 /**
  * Minimal table primitive that gives every list page the same look-and-feel:
- * - direct-on-canvas table with only structural dividers
+ * - one bordered panel that groups the whole dataset
  * - sentence-cased header (no UPPERCASE noise)
  * - a quiet full-width header band and uniform row hover
  *
@@ -38,7 +38,7 @@ const Root = React.forwardRef<HTMLDivElement, RootProps>(
     <div
       ref={ref}
       className={cn(
-        bordered && "border-y border-divider",
+        bordered && "card-surface overflow-hidden rounded-lg",
         className
       )}
       {...props}
@@ -73,11 +73,8 @@ const Body = React.forwardRef<
   <tbody
     ref={ref}
     className={cn(
-      // ไม่มีเส้นคั่นแถว (เบสเคาะระดับ 3 จาก mockup 2026-08-03 "ลดเส้นทั้งเว็บ")
-      // แถวแยกกันด้วยระยะห่างของ Td + พื้นตอนชี้ของ Row · เส้นเดียวที่เหลือในตาราง
-      // คือเส้นใต้หัวตาราง (TABLE_HEAD_SURFACE)
-      // ⚠️ ตัวอย่างที่เบสดูมี 3 แถว ส่วนหน้า /orders จริงมี 50+ แถว — ถ้าไล่สายตาแล้ว
-      //    หลุดแถว ใส่กลับที่จุดนี้จุดเดียวได้ (`divide-y divide-slate-100`)
+      // Vercel-like dataset panel ใช้ divider บางช่วยไล่แถว โดยไม่ทำ cell grid
+      "divide-y divide-divider",
       className
     )}
     {...props}

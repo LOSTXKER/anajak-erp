@@ -268,7 +268,7 @@ function BillingNotesPageContent() {
         renderMobile={(notesList) => (
           <div role="list" aria-label="รายการใบวางบิล" className="space-y-3">
             {notesList.map((note) => (
-              <article key={note.id} role="listitem" className="card-surface rounded-xl p-4">
+              <article key={note.id} role="listitem" className="card-surface rounded-lg p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold text-slate-900 dark:text-white">

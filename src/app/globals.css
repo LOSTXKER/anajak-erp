@@ -182,34 +182,34 @@
   --color-module-system-border: #d7dde3;
 
   /* ============================================================
-     ระบบสีพื้นผิว 2026-08-13 — neutral สงบ + interaction เป็นเทากลาง
+     Vercel Panel System 2026-08-23 — พื้นฉาก + panel ขอบบาง
 
-       page/chrome     #ffffff  ผืนงานหลังบ้านต่อเนื่อง
-       surface         #ffffff  card จริง แยกด้วย depth ของ primitive
-       sunk            #f7f7f8  กลุ่มย่อยเชิงโครงสร้าง/หัวตาราง
+       page            #fafafa  ฉากหลัง workspace
+       chrome/surface  #ffffff  navigation / panel / card
+       sunk            #fafafa  กลุ่มย่อยเชิงโครงสร้าง/หัวตาราง
        field           #ffffff  ช่องกรอก (แยกด้วย functional boundary)
        elevated        #ffffff  menu / dialog
        hover/pressed   เทาอ่อน — บอกว่ากำลังโต้ตอบโดยไม่เป็นแถบเทาหนัก
 
      น้ำเงินแบรนด์ #3973b2 คงเดิมและสงวนให้ primary/selected/focus
      ============================================================ */
-  --color-bg: #ffffff;
+  --color-bg: #fafafa;
   --color-surface: #ffffff;
-  --color-surface-muted: #f7f7f8;
+  --color-surface-muted: #fafafa;
   --color-surface-elevated: #ffffff;
   /* field เป็นพื้นที่กรอก ไม่ใช่กล่องจม: Light ใช้ขาวและเส้น resting ที่เบา
      พอให้เห็นรูปทรงโดยไม่แข่งกับ label; focus/error ค่อยใช้ contrast สูง */
   --color-field: #ffffff;
-  --color-border: #e2e6ea;
-  --color-field-border: #c8d0d9;
+  --color-border: #e5e5e5;
+  --color-field-border: #d4d4d4;
   --color-placeholder: #65717f;
   --color-border-strong: #818b97;
-  --color-divider: #e8ebef;
-  --color-skeleton: #e2e6ea;
-  --color-interactive-hover: #f1f1f2;
-  --color-interactive-pressed: #e7e7e9;
-  --color-interactive-chrome-hover: #f1f1f2;
-  --color-interactive-chrome-pressed: #e7e7e9;
+  --color-divider: #ededed;
+  --color-skeleton: #e5e5e5;
+  --color-interactive-hover: #f3f3f3;
+  --color-interactive-pressed: #ebebeb;
+  --color-interactive-chrome-hover: #ebebeb;
+  --color-interactive-chrome-pressed: #e1e1e1;
   --color-interactive-selected: #d2e4f6;
   --color-interactive-selected-text: #305f93;
   --color-backdrop: rgb(15 23 42 / 0.28);
@@ -251,7 +251,7 @@
   --color-slate-300: #cbcbd0;
   --color-slate-400: #a4a4aa;
   --color-slate-600: #55555a;
-  --color-slate-700: #3f3f44;
+  --color-slate-700: #3a3a3e;
   --color-slate-800: #303034;
   --color-slate-900: #1d1d1f;
   --color-slate-950: #101012;
@@ -277,22 +277,22 @@
   --color-module-system-surface: #292e35;
   --color-module-system-text: #d5dae0;
   --color-module-system-border: #47505b;
-  --color-bg: #111113;
-  --color-surface: #1b1b1e;
-  --color-surface-muted: #18181b;
-  --color-surface-elevated: #242428;
-  --color-field: #151517;
-  --color-chrome: #111113;
-  --color-border: #343438;
-  --color-field-border: #3f3f44;
+  --color-bg: #000000;
+  --color-surface: #0a0a0a;
+  --color-surface-muted: #111111;
+  --color-surface-elevated: #171717;
+  --color-field: #0a0a0a;
+  --color-chrome: #000000;
+  --color-border: #2e2e2e;
+  --color-field-border: #3a3a3a;
   --color-placeholder: #9a9aa1;
   --color-border-strong: #74747c;
-  --color-divider: #303034;
-  --color-skeleton: #343438;
-  --color-interactive-hover: #242428;
-  --color-interactive-pressed: #2c2c30;
-  --color-interactive-chrome-hover: #1c1c1f;
-  --color-interactive-chrome-pressed: #252529;
+  --color-divider: #262626;
+  --color-skeleton: #2e2e2e;
+  --color-interactive-hover: #1a1a1a;
+  --color-interactive-pressed: #242424;
+  --color-interactive-chrome-hover: #1a1a1a;
+  --color-interactive-chrome-pressed: #242424;
   --color-interactive-selected: #173c61;
   --color-interactive-selected-text: #c6daed;
   --color-backdrop: rgb(0 0 0 / 0.62);
@@ -303,12 +303,12 @@
   --color-muted: #a4a4aa;
 }
 
-/* White Working Sheet — chrome กับ workspace เป็นผืนเดียวกัน เนื้อหาวางบนพื้นโดยตรง */
+/* Vercel Panel System — workspace เป็นฉาก ส่วน chrome/panel ยกด้วยสีและเส้นบาง */
 .app-workspace {
-  --color-bg: #ffffff;
+  --color-bg: #fafafa;
 }
 .dark .app-workspace {
-  --color-bg: #111113;
+  --color-bg: #000000;
 }
 
 html,
@@ -403,7 +403,7 @@ input[type="number"] {
 }
 
 /* ============================================================
-   การ์ดมาตรฐาน — พื้นตามธีม + hairline edge + เงาสั้น
+   การ์ดมาตรฐาน — panel ขอบ 1px แบบ Vercel ไม่มี decorative shadow
    ใช้แทน `border border-slate-200 bg-white` ทั่วระบบ ให้ทุกการ์ดลุคเดียวกัน
    ============================================================ */
 /* ⚠️ ทุกคลาสผิวข้างล่างนี้ต้องอยู่ใน @layer components — ห้ามย้ายออก
@@ -416,42 +416,35 @@ input[type="number"] {
    พอย้ายเข้าชั้น utility ที่หน้าส่งมาจะชนะตามลำดับปกติของ Tailwind */
 @layer components {
 
-/* การ์ดมีไว้กับ bounded secondary object เท่านั้น: ขอบเส้นผม+เงาสั้นช่วยแยกจากผืนขาว
-   โดยไม่กลายเป็น page scaffold หรือแข่งกับ overlay */
+/* panel/card ใช้สีพื้นเดียวกันและขอบกลางชุดเดียว; hierarchy มาจาก grouping ไม่ใช่เงา */
 .card-surface {
   background-color: var(--color-surface);
-  box-shadow: 0 0 0 1px rgb(24 27 32 / 0.07), 0 1px 2px rgb(24 27 32 / 0.06);
+  border: 1px solid var(--color-border);
+  box-shadow: none;
 }
 .dark .card-surface {
   background-color: var(--color-surface);
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 1px 2px rgb(0 0 0 / 0.42);
+  border-color: var(--color-border);
+  box-shadow: none;
 }
-/* การ์ดที่กดได้ยกเพียง 1px ตอนชี้ และคืนที่เดิมตอนกด; overlay ยังเป็นชั้นลอยสูงสุด */
+/* clickable panel เปลี่ยน fill/เส้นเท่านั้น ไม่ลอยหรือขยับหนี pointer */
 .card-surface-hover {
-  transition: background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  transition: background-color 150ms ease, border-color 150ms ease;
 }
 .card-surface-hover:hover {
   background-color: var(--color-interactive-hover);
-  box-shadow: 0 0 0 1px rgb(24 27 32 / 0.09), 0 5px 14px rgb(24 27 32 / 0.09);
-  transform: translateY(-1px);
+  border-color: var(--color-border-strong);
+  box-shadow: none;
 }
 .card-surface-hover:active {
   background-color: var(--color-interactive-pressed);
-  box-shadow: 0 0 0 1px rgb(24 27 32 / 0.08), 0 1px 2px rgb(24 27 32 / 0.06);
-  transform: translateY(0);
+  box-shadow: none;
 }
 .dark .card-surface-hover:hover {
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.11), 0 7px 18px rgb(0 0 0 / 0.5);
+  box-shadow: none;
 }
 .dark .card-surface-hover:active {
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.09), 0 1px 2px rgb(0 0 0 / 0.42);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card-surface-hover:hover,
-  .card-surface-hover:active {
-    transform: none;
-  }
+  box-shadow: none;
 }
 
 /* ============================================================

@@ -56,7 +56,7 @@ function sidebarNavItemClass({
     RADIUS.item,
     "group/sidebar-item flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
     active
-      ? "relative font-medium text-blue-700 before:absolute before:bottom-2 before:left-0 before:top-2 before:w-px before:bg-blue-600 dark:text-blue-300"
+      ? "bg-interactive-chrome-hover font-medium text-strong"
       : cn(
           "font-normal",
           "text-secondary",
@@ -80,7 +80,7 @@ function SidebarGroupLabel({
 
 function sidebarNavIconClass(active: boolean) {
   return active
-    ? "text-interactive-selected-text"
+    ? "text-strong"
     : "text-muted group-hover/sidebar-item:text-secondary group-active/sidebar-item:text-strong";
 }
 
@@ -359,7 +359,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
         tabIndex={-1}
         className="relative col-start-1 row-start-2 min-h-0 min-w-0 overflow-y-auto outline-none lg:col-start-2"
       >
-        <div className="mx-auto w-full max-w-screen-2xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
+        <div className="mx-auto w-full max-w-screen-2xl px-4 pb-[calc(var(--app-bottom-nav-offset)+2rem)] pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pb-10">
           {children}
         </div>
       </main>

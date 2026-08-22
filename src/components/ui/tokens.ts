@@ -25,15 +25,12 @@
 export const RADIUS = {
   /** 8px — ชิ้นเล็กในรายการ: ตัวเลือกในเมนู · ปุ่มในแถบสลับ · แถบโครงร่างตอนโหลด */
   item: "rounded-lg",
-  /** 10px — ช่องกรอก/ช่องเลือก/กล่องข้อความ (เบสเคาะ 2026-08-03 รอบ "ปรับสัดส่วน")
-   *  เดิมช่องกรอกใช้ 16px เท่าการ์ด — สูง 36px แต่โค้ง 16px = โค้งเกือบครึ่งความสูง
-   *  จึงดูเป็น "เม็ดยา" และทำให้การ์ด/กล่องย่อย/ช่องกรอกโค้งเท่ากันหมด 69 จุดบนจอเดียว
-   *  จนสายตาอ่านลำดับชั้นไม่ออก · ตอนนี้เป็นบันได การ์ด 16 › กล่องย่อย 12 › ช่องกรอก 10 › ชิ้นเล็ก 8 */
-  field: "rounded-[10px]",
-  /** 12px — กล่องย่อยที่ซ้อนอยู่ในการ์ด · รูปย่อ · ป้ายสี่เหลี่ยม */
-  inner: "rounded-xl",
-  /** 12px — การ์ดรองและกล่องเด้ง; ผิวหลักของหน้าไม่ใช้ radius ครอบ */
-  surface: "rounded-xl",
+  /** 8px — ช่องกรอก/ช่องเลือก/กล่องข้อความ ตาม panel language แบบ Vercel */
+  field: "rounded-lg",
+  /** 8px — กล่องย่อย · รูปย่อ · ป้ายสี่เหลี่ยม */
+  inner: "rounded-lg",
+  /** 8px — panel/card/overlay แบบ Vercel ใช้มุมเดียวที่สงบ */
+  surface: "rounded-lg",
   /** เต็ม — ของทรงแคปซูล: ปุ่ม · ช่องค้นหา · สวิตช์ */
   pill: "rounded-full",
 } as const;
@@ -92,7 +89,7 @@ export const FIELD_SURFACE =
 
 /** control ที่ยืนเดี่ยวบนผืนหน้า — boundary บางแบบ control ธรรมดา ไม่มี elevation */
 export const RAISED_CONTROL_SURFACE =
-  "border-field-border bg-transparent shadow-none";
+  "border-field-border bg-surface shadow-none";
 
 /** inline ใช้กับ control ที่ทำหน้าที่เป็น action ในแถว ไม่ใช่พื้นที่กรอก เช่นเมนูคัดลอก */
 export type ControlSurface = "field" | "raised" | "inline";

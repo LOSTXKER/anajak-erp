@@ -42,9 +42,7 @@ import {
   INTERACTIVE_HOVER,
   INTERACTIVE_PRESSED,
   RADIUS,
-  SUNK_PANEL,
 } from "@/components/ui/tokens";
-import { VISUAL_TONE_CLASSES, type VisualTone } from "@/lib/visual-tone";
 
 const ATTENTION_ICONS: Record<DashboardAttentionKind, ComponentType<{ className?: string }>> = {
   "overdue-order": CalendarClock,
@@ -195,13 +193,11 @@ function QuickLink({
   icon: Icon,
   label,
   primary,
-  tone = "brand",
 }: {
   href: string;
   icon: ComponentType<{ className?: string }>;
   label: string;
   primary?: boolean;
-  tone?: VisualTone;
 }) {
   return (
     <Link
@@ -209,18 +205,17 @@ function QuickLink({
       className={cn(
         CONTROL_MIN_H,
         FOCUS_BUTTON,
-        RADIUS.inner,
-        "group flex min-h-16 items-center gap-3 p-3 transition-all hover:-translate-y-0.5",
+        "group flex min-h-16 items-center gap-3 p-3 transition-colors",
         primary
           ? "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800"
-          : cn(SUNK_PANEL, INTERACTIVE_HOVER, INTERACTIVE_PRESSED, "text-secondary"),
+          : cn("bg-surface", INTERACTIVE_HOVER, INTERACTIVE_PRESSED, "text-secondary"),
       )}
     >
       <div
         className={cn(
           RADIUS.item,
           "flex h-9 w-9 shrink-0 items-center justify-center",
-          primary ? "bg-white/15" : VISUAL_TONE_CLASSES[tone].soft,
+          primary ? "bg-white/15" : "bg-surface-muted text-secondary",
         )}
       >
         <Icon className="h-4 w-4" />
@@ -303,8 +298,8 @@ export function DashboardHome() {
           items={attentionItems}
         />
 
-        <Section title="ทางลัด" compact surface="card">
-          <div className="grid grid-cols-2 gap-2">
+        <Section title="ทางลัด" compact surface="card" flush>
+          <div className="grid grid-cols-2 gap-px bg-divider">
             {canCreateOrder && (
               <QuickLink
                 href="/orders/new"
@@ -323,13 +318,11 @@ export function DashboardHome() {
               href="/production"
               icon={Factory}
               label="การผลิต"
-              tone="production"
             />
             <QuickLink
               href={canViewBilling ? "/billing" : "/customers"}
               icon={canViewBilling ? FileClock : Users}
               label={canViewBilling ? "บิล" : "ลูกค้า"}
-              tone={canViewBilling ? "finance" : "brand"}
             />
           </div>
         </Section>

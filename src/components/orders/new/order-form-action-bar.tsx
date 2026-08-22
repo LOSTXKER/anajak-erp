@@ -20,7 +20,7 @@ export function OrderFormActionBar({
     <div
       data-order-form-action-bar=""
       className={cn(
-        "card-surface flex flex-wrap items-center gap-2 rounded-xl border-t border-slate-200 px-5 py-3 sm:px-6 dark:border-white/10",
+        "card-surface flex flex-wrap items-center gap-2 rounded-lg border-t border-slate-200 px-5 py-3 sm:px-6 dark:border-white/10",
         className,
       )}
       {...props}

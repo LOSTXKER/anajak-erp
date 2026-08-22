@@ -304,7 +304,7 @@ checkContrastWindow(
   hexRgb(colorValues("slate-700")[1]!),
   hexRgb(colorValues("surface")[1]!),
   1.25,
-  1.85,
+  1.95,
 );
 
 // ① ช่องกรอก/ช่องเลือก/กล่องข้อความ = ตระกูลเดียวกัน พื้นขาว+ขอบ resting อ่อน
@@ -324,14 +324,14 @@ const FIELD = [
 ];
 // ห้าม field กลับไปยืมพื้น structural หรือปล่อย boundary โปร่งใส
 const FIELD_NO = ["border-transparent", "border-border", "bg-surface-muted", "bg-[var(--field-bg)]"];
-check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-[10px]"], [...FIELD_NO, "rounded-2xl"]);
+check("ช่องกรอก (Input)", renderToStaticMarkup(<Input />), [...h, ...FIELD, "rounded-lg"], [...FIELD_NO, "rounded-2xl"]);
 check(
   "ช่องเลือก (Select)",
   renderToStaticMarkup(<Select value="" onChange={() => {}}><option value="">ก</option></Select>),
-  [...h, ...FIELD, "rounded-[10px]"],
+  [...h, ...FIELD, "rounded-lg"],
   [...FIELD_NO, "rounded-2xl"],
 );
-check("กล่องข้อความ (Textarea)", renderToStaticMarkup(<Textarea />), [...FIELD, "rounded-[10px]", "min-h-24"], [...FIELD_NO, "rounded-2xl"]);
+check("กล่องข้อความ (Textarea)", renderToStaticMarkup(<Textarea />), [...FIELD, "rounded-lg", "min-h-24"], [...FIELD_NO, "rounded-2xl"]);
 {
   const dateHtml = renderToStaticMarkup(
     <DatePicker
@@ -369,11 +369,11 @@ check(
 );
 
 // ② compatibility shape เดิมต้องถูกยุบเป็น control ทรงธรรมดา
-check("ช่องกรอก compatibility pill ใช้ทรงธรรมดา", renderToStaticMarkup(<Input shape="pill" />), ["rounded-[10px]"], ["rounded-full"]);
+check("ช่องกรอก compatibility pill ใช้ทรงธรรมดา", renderToStaticMarkup(<Input shape="pill" />), ["rounded-lg"], ["rounded-full"]);
 check(
   "ช่องเลือก compatibility pill ใช้ทรงธรรมดา",
   renderToStaticMarkup(<Select shape="pill" value="" onChange={() => {}}><option value="">ก</option></Select>),
-  ["rounded-[10px]"],
+  ["rounded-lg"],
   ["rounded-full"],
 );
 check(
@@ -383,7 +383,7 @@ check(
   ["border-0", "border-field-border", "bg-field", "shadow-sm"],
 );
 
-// Toolbar เป็น control ธรรมดาบนผืนหน้า ไม่มีเงาหรือ selected fill ตกแต่ง
+// Toolbar ยืนบน workspace off-white จึงใช้พื้น panel ขาว + boundary บางแบบ Vercel
 {
   const searchHtml = renderToStaticMarkup(
     <SearchInput surface="raised" />,
@@ -392,8 +392,8 @@ check(
   check(
     "ช่องค้นหาแบบยกบนผืนหน้า",
     searchControl,
-    ["bg-transparent", "shadow-none", "border-field-border"],
-    ["bg-surface", "shadow-sm", "border-transparent"],
+    ["bg-surface", "shadow-none", "border-field-border"],
+    ["bg-transparent", "shadow-sm", "border-transparent"],
   );
 }
 {
@@ -487,8 +487,8 @@ for (const variant of ["outline", "secondary", "subtle"] as const) {
   check(
     `ปุ่มรอง ${variant} แยกจาก field/structural surface`,
     renderToStaticMarkup(<Button variant={variant}>ก</Button>),
-    ["border-border", "bg-transparent", "shadow-none"],
-    ["border-transparent", "border-field-border", "bg-field", "bg-surface", "bg-surface-muted", "shadow-sm"],
+    ["border-border", "bg-surface", "shadow-none"],
+    ["border-transparent", "border-field-border", "bg-field", "bg-transparent", "bg-surface-muted", "shadow-sm"],
   );
 }
 check(
@@ -852,7 +852,9 @@ check(
     navigationHelperSource.includes("INTERACTIVE_CHROME_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_HOVER") &&
     navigationHelperSource.includes("INTERACTIVE_CHROME_PRESSED") &&
-    navigationHelperSource.includes("before:bg-blue-600") &&
+    navigationHelperSource.includes("bg-interactive-chrome-hover") &&
+    navigationHelperSource.includes("font-medium text-strong") &&
+    !navigationHelperSource.includes("before:bg-blue-600") &&
     navigationHelperSource.includes("FOCUS_INSET") &&
     navigationHelperSource.includes("group-hover/sidebar-item:text-secondary") &&
     !navigationHelperSource.includes("hover:bg-");
@@ -883,7 +885,7 @@ check(
     !globalsSource.includes(".sunk-panel");
   const raisedControlIsSeparate =
     RAISED_CONTROL_SURFACE.includes("border-field-border") &&
-    RAISED_CONTROL_SURFACE.includes("bg-transparent") &&
+    RAISED_CONTROL_SURFACE.includes("bg-surface") &&
     RAISED_CONTROL_SURFACE.includes("shadow-none");
   const brandBlueIsLocked = colorValues("blue-600")[0]?.toLowerCase() === "#3973b2";
   const selectedStaysBlue = [
@@ -1001,7 +1003,7 @@ check(
   if (
     fields.length !== 2 ||
     fieldBorders.length !== 2 ||
-    fields[0] !== colorValues("bg")[0] ||
+    fields[0] !== colorValues("surface")[0] ||
     globalsSource.includes(".sunk-panel")
   ) {
     failed++;
@@ -1163,23 +1165,22 @@ check(
   if (failed === 0) console.log("✅ contrast ของ text/control/focus/status ผ่านทั้ง light และ dark");
 }
 
-// ⑩ true card ใช้ depth กลางชุดเดียว — card ไม่ใช่ page scaffold แต่ต้องอ่านออกบนผืนขาว
-// ด้วย hairline edge + เงาสั้น และ clickable card ต้องยก/คืนตำแหน่งแบบ restrained
+// ⑩ Vercel-like panel ใช้ border กลาง 1px และไม่มี decorative shadow
 {
   const cardBlock =
     globalsSource.match(/\.card-surface\s*\{([^}]*)\}/)?.[1] ?? "";
   const darkCardBlock =
     globalsSource.match(/\.dark\s+\.card-surface\s*\{([^}]*)\}/)?.[1] ?? "";
   if (
-    !cardBlock.includes("0 1px 2px") ||
-    !darkCardBlock.includes("0 1px 2px") ||
-    cardBlock.includes("box-shadow: none") ||
-    darkCardBlock.includes("box-shadow: none")
+    !cardBlock.includes("border: 1px solid var(--color-border)") ||
+    !darkCardBlock.includes("border-color: var(--color-border)") ||
+    !cardBlock.includes("box-shadow: none") ||
+    !darkCardBlock.includes("box-shadow: none")
   ) {
     failed++;
-    console.log("❌ card-surface ต้องมี hairline edge + เงาสั้นชุดกลางทั้ง Light/Dark");
+    console.log("❌ card-surface ต้องมี border 1px และไม่มีเงาทั้ง Light/Dark");
   } else {
-    console.log("✅ card-surface มี depth เบาชุดกลางทั้ง Light/Dark");
+    console.log("✅ card-surface เป็น bordered panel ไม่มี decorative shadow");
   }
 
   const cardHoverBlock =
@@ -1188,14 +1189,15 @@ check(
     globalsSource.match(/\.card-surface-hover:active\s*\{([^}]*)\}/)?.[1] ?? "";
   if (
     !cardHoverBlock.includes("background-color: var(--color-interactive-hover)") ||
-    !cardHoverBlock.includes("transform: translateY(-1px)") ||
+    !cardHoverBlock.includes("border-color: var(--color-border-strong)") ||
+    cardHoverBlock.includes("transform:") ||
     !cardActiveBlock.includes("background-color: var(--color-interactive-pressed)") ||
-    !cardActiveBlock.includes("transform: translateY(0)")
+    !cardActiveBlock.includes("box-shadow: none")
   ) {
     failed++;
-    console.log("❌ card-surface-hover ต้องมี semantic hover/pressed และ tactile lift");
+    console.log("❌ card-surface-hover ต้องเปลี่ยน fill/border โดยไม่ยกหรือใส่เงา");
   } else {
-    console.log("✅ card-surface-hover มี semantic hover/pressed และ tactile lift");
+    console.log("✅ card-surface-hover เปลี่ยน fill/border โดยไม่ยกหรือใส่เงา");
   }
 
   const callerOffenders: string[] = [];
@@ -1238,8 +1240,7 @@ check(
     console.log("✅ caller ของ card-surface ไม่มีเส้นรอบ และใช้เฉพาะ semantic hover");
   }
 
-  // 2026-08-15: หน้าตาของแถบสถานะย้ายไปอยู่ primitive กลาง `ui/flow-filter-bar.tsx`
-  // เพื่อให้หน้าผลิตใช้ภาษาเดียวกัน — guard ตามไปตรวจที่เดียวกับของจริง
+  // Primitive สถานะคง divider ภายใน; หน้า orders เป็นผู้ครอบ panel ตาม Vercel Panel System
   const ordersStatusSource = readFileSync(
     "src/components/ui/flow-filter-bar.tsx",
     "utf8",
@@ -1257,9 +1258,23 @@ check(
     )
   ) {
     failed++;
-    console.log("❌ status rail ต้องวางตรงบนผืนหน้าและใช้เฉพาะ structural divider");
+    console.log("❌ primitive status rail ต้องใช้ structural divider โดยไม่สร้าง card ซ้อน");
   } else {
-    console.log("✅ status rail วางตรงบนผืนหน้าและใช้ structural divider");
+    console.log("✅ primitive status rail ใช้ structural divider โดยไม่สร้าง card ซ้อน");
+  }
+
+  const orderStatusFilterSource = readFileSync(
+    "src/components/orders/order-status-filter.tsx",
+    "utf8",
+  );
+  if (
+    !orderStatusFilterSource.includes("xl:border xl:border-border xl:bg-surface") ||
+    !orderStatusFilterSource.includes("xl:rounded-lg")
+  ) {
+    failed++;
+    console.log("❌ ภาพรวมสถานะ desktop ต้องอยู่ใน panel ขาว/ดำ เส้น 1px มุม 8px");
+  } else {
+    console.log("✅ ภาพรวมสถานะ desktop อยู่ใน panel ขาว/ดำ เส้น 1px มุม 8px");
   }
 
   const desktopStatusSource =
@@ -1499,13 +1514,13 @@ check(
   }
   const pageColors = colorValues("bg");
   if (
-    pageColors[0] !== "#ffffff" ||
-    pageColors[1] !== "#111113" ||
+    pageColors[0] !== "#fafafa" ||
+    pageColors[1] !== "#000000" ||
     !appShellSource.includes("app-workspace") ||
     !globalsSource.includes(".app-workspace") ||
-    !globalsSource.includes("--color-bg: #ffffff")
+    !globalsSource.includes("--color-bg: #fafafa")
   ) {
-    problems.push("AppShell workspace ต้องเป็นผืนขาวต่อเนื่องและ Dark เป็นผืนดำต่อเนื่อง");
+    problems.push("AppShell workspace ต้องเป็น off-white และ Dark ดำตาม Vercel panel system");
   }
 
   if (problems.length) {
@@ -2233,7 +2248,7 @@ check(
     !managerHtml.slice(renderedQueueIndex, renderedHistoryIndex).includes("top-3") ||
     !managerHtml
       .slice(renderedQueueIndex, renderedHistoryIndex)
-      .includes("card-surface overflow-clip rounded-xl")
+      .includes("card-surface overflow-clip rounded-lg")
   ) {
     problems.push("fixture คิวยาวต้องคง sticky bar ใต้ ancestor ที่ไม่เป็น scroll container");
   }
@@ -2368,7 +2383,7 @@ check(
     queueListIndex < 0 ||
     selectionIndex > queueListIndex ||
     !printRunsSource.includes('stationMode ? "top-32" : "top-3"') ||
-    !printRunsSource.includes('className="card-surface overflow-clip rounded-xl"')
+    !printRunsSource.includes('className="card-surface overflow-clip rounded-lg"')
   ) {
     problems.push("แถบเปิดรอบต้องอยู่ในบริบทคิวและตามเห็นทันทีเมื่อเลือกงาน");
   }

@@ -1,9 +1,9 @@
 # มาตรฐาน UI Anajak ERP (P1.0)
 
-## Visual identity contract — White Working Sheet (2026-08-23)
+## Visual identity contract — Vercel Panel System (2026-08-23)
 
 - ทุก `PageHeader` มาตรฐานมี module marker จาก Lucide แบบเส้น neutral ขนาดเล็ก โดยไม่มีพื้น กรอบ เงา หรือสีประจำหมวด; `<h1>` ต้องมีข้อความจริงเพียงชุดเดียวและ marker เป็นของตกแต่งที่ `aria-hidden` พร้อมชื่อหน้าเดิมเป็น accessible name
-- ความแตกต่างของโมดูลมาจาก icon, scale, composition, ภาพงานจริง และลำดับข้อมูล ไม่ใช้สีเป็นโครงหน้า; น้ำเงิน Anajak สงวนให้ primary action, link, active navigation indicator และ focus ส่วนสีสถานะใช้เฉพาะความหมายจริง
+- ความแตกต่างของโมดูลมาจาก icon, scale, composition, ภาพงานจริง และลำดับข้อมูล ไม่ใช้สีเป็นโครงหน้า; น้ำเงิน Anajak สงวนให้ primary action, link และ focus ส่วน active navigation ใช้ neutral fill และสีสถานะใช้เฉพาะความหมายจริง
 - registry table/list ใช้ข้อความเป็นหลักและไม่วาด object icon หรือ initials ซ้ำกับชื่อ; รายการออเดอร์ใช้เฉพาะม็อกอัพจริงล่าสุด และเว้นว่างเมื่อไม่มีรูปโดยไม่ถอยไปใช้ artwork, initials หรือ placeholder icon; ช่องจำนวน เงิน วันที่ และสถานะไม่ต้องมี icon
 - ทุก `PageHeader`/`PageShell` มี `description` สั้นหนึ่งประโยคใต้หัวข้อโดยอัตโนมัติจาก `pageDescriptionForLabel`; หน้าเฉพาะ override ได้เมื่อบริบทต่างกัน · `description` บอกว่าหน้านี้ใช้ทำอะไร, `meta` เป็นข้อเท็จจริงเฉพาะรายการ/สถานะ และ `help` ใช้เฉพาะสูตร กติกา หรือรายละเอียดเสริมที่ยาว · `Section` ไม่รับ `description` เพื่อไม่ให้ทุกกล่องมีข้อความซ้ำจนรก
 - `HelpTip` ใช้ Radix Popover เปิดด้วย click/tap/Enter/Space ปิดด้วย Escape/คลิกนอกและคืน focus; เนื้อหาไม่เกิน 2–3 ประโยค ส่วน error, validation, permission denial, blocker, กฎหมาย และผลกระทบจาก action ต้องเห็นตรงหน้า
@@ -23,28 +23,27 @@
 
 ## สี — semantic system (`src/app/globals.css`)
 
-White Working Sheet ใช้ page/workspace/chrome เป็นผืนเดียว: Light ขาว `#fff`, Dark ดำ neutral `#111113` ·
-เนื้อหาหลักวางบนผืนโดยตรง; `Section`, `DataTable` และ status rail ใช้ระยะกับ divider เท่าที่จำเป็น
-แทน card ครอบ · card เหลือเฉพาะ bounded secondary object และใช้ hairline edge+เงาสั้น ·
-menu/dialog เป็นชั้นลอยสูงสุด · น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link,
-active navigation indicator และ focus
+Vercel Panel System ใช้ workspace เป็นฉากหลังและ panel เป็นขอบเขตข้อมูล: Light workspace off-white `#fafafa`
+กับ chrome/panel ขาว; Dark workspace ดำ `#000` กับ panel `#0a0a0a` · `Section` ที่มีขอบและ `DataTable`
+รวมเนื้อหาที่สัมพันธ์กันใน panel เส้น 1px มุม 8px โดยไม่มีเงาตกแต่ง · menu/dialog เป็นชั้นลอยสูงสุด ·
+น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link และ focus; active navigation ใช้ neutral fill
 
 | บทบาท | Light | Dark | utility |
 |---|---|---|---|
-| พื้น workspace/fallback หลังบ้าน | `#fff` | `#111113` | `.app-workspace` + `bg-bg` |
-| navbar/sidebar | `#fff` | `#111113` | `bg-chrome` |
-| card รอง | `#fff` + hairline/เงาสั้น | `#1b1b1e` + hairline/เงาสั้น | `bg-surface` / `card-surface` |
-| menu/dialog | `#fff` | `#242428` | `bg-surface-elevated` / `overlay-surface` |
-| กล่องจมเชิงโครงสร้าง/disabled/หัวตาราง | `#f7f7f8` | `#18181b` | `bg-surface-muted` / `SUNK_PANEL` / `TABLE_HEAD_SURFACE` |
-| ช่องกรอก | `#fff` + ขอบ `#c8d0d9` | `#151517` + ขอบ `#3f3f44` | `FIELD_SURFACE` |
+| พื้น workspace/fallback หลังบ้าน | `#fafafa` | `#000` | `.app-workspace` + `bg-bg` |
+| navbar/sidebar | `#fff` | `#000` | `bg-chrome` |
+| panel/card | `#fff` + ขอบ `#e5e5e5` | `#0a0a0a` + ขอบ `#2e2e2e` | `bg-surface` / `card-surface` |
+| menu/dialog | `#fff` | `#171717` | `bg-surface-elevated` / `overlay-surface` |
+| กล่องจมเชิงโครงสร้าง/disabled/หัวตาราง | `#fafafa` | `#111` | `bg-surface-muted` / `SUNK_PANEL` / `TABLE_HEAD_SURFACE` |
+| ช่องกรอก | `#fff` + ขอบ `#d4d4d4` | `#0a0a0a` + ขอบ `#3a3a3a` | `FIELD_SURFACE` |
 | พื้นที่เพิ่ม/อัปโหลด | ขอบประ `slate-300` | ขอบประ `slate-700` | `DASHED` / `DASHED_INTERACTIVE` — resting เบา; hover/focus ค่อยเน้น |
-| control บน toolbar | โปร่ง + ขอบบาง | โปร่ง + ขอบบาง | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
-| ปุ่มรอง | โปร่ง + ขอบบาง | โปร่ง + ขอบบาง | `Button outline/secondary/subtle` |
-| ขอบทั่วไป / เส้นคั่น | `#e2e6ea` / `#e8ebef` | `#343438` / `#303034` | `border-border` / `border-divider` |
-| Hover | `#f1f1f2` | `#242428` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
-| Pressed | `#e7e7e9` | `#2c2c30` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
-| Hover บน navbar/sidebar | `#f1f3f5` | `#252528` | `bg-interactive-chrome-hover` / `INTERACTIVE_CHROME_HOVER` |
-| Pressed บน navbar/sidebar | `#e3e6e9` | `#303034` | `bg-interactive-chrome-pressed` / `INTERACTIVE_CHROME_PRESSED` |
+| control บน toolbar | ขาว + ขอบบาง | panel dark + ขอบบาง | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
+| ปุ่มรอง | ขาว + ขอบบาง | panel dark + ขอบบาง | `Button outline/secondary/subtle` |
+| ขอบทั่วไป / เส้นคั่น | `#e5e5e5` / `#ededed` | `#2e2e2e` / `#262626` | `border-border` / `border-divider` |
+| Hover | `#f3f3f3` | `#1a1a1a` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
+| Pressed | `#ebebeb` | `#242424` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
+| Hover บน navbar/sidebar | `#ebebeb` | `#1a1a1a` | `bg-interactive-chrome-hover` / `INTERACTIVE_CHROME_HOVER` |
+| Pressed บน navbar/sidebar | `#e1e1e1` | `#242424` | `bg-interactive-chrome-pressed` / `INTERACTIVE_CHROME_PRESSED` |
 | Selected | `#d2e4f6` | `#173c61` | `bg-interactive-selected text-interactive-selected-text` |
 
 สีบริบททุกตัวประกาศที่ token กลางและต้องผ่านคู่ `solid/surface/text/border` ทั้ง Light/Dark:
@@ -72,13 +71,13 @@ active navigation indicator และ focus
 
 กติกา interaction:
 
-- navigation, control, menu option, row และ clickable card ใช้ neutral hover/pressed ครอบ hit area จริง; active navigation ใช้ข้อความน้ำเงิน+indicator 1px ไม่ใช้พื้นสี
-- clickable card compose `card-surface-hover` เพื่อรับ neutral fill, ยก 1px ตอน hover และคืนตำแหน่งตอน pressed; ห้ามเขียนสี/เงาซ้ำที่ caller
+- navigation, control, menu option, row และ clickable card ใช้ neutral hover/pressed ครอบ hit area จริง; active navigation ใช้ neutral filled row ไม่ใช้แถบน้ำเงิน
+- clickable card compose `card-surface-hover` เพื่อเปลี่ยน neutral fill/เส้นขอบโดยไม่ขยับตำแหน่งและไม่มีเงา; ห้ามเขียนสี/เงาซ้ำที่ caller
 - ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
-- Minimal = เนื้อหาหลักอยู่บน page canvas โดยตรง: `Section`/table/status rail ใช้ divider เชิงโครงสร้างเท่าที่ต้องอ่าน · card รองใช้ hairline+เงาสั้นเฉพาะ bounded object · field ใช้ขาว/เข้ม + resting boundary · toolbar/secondary action เป็น control โปร่งมีขอบบาง · overlay ลอยสูงสุด
-- รายการงานในฟอร์มใช้หนึ่ง `card-surface` ต่อหนึ่งรายการโดยตรงบน page canvas · ห้ามวาง card ใหญ่ครอบ list แล้วเติม border รอบรายการซ้ำ · CTA “เพิ่มรายการ” อยู่ก่อน list ทั้งหน้าเปิดงานและหน้าแก้ไข
+- Minimal = workspace เป็นฉากเรียบและใช้ panel เฉพาะกลุ่มเนื้อหาที่อ่านเป็นหน่วยเดียว: `Section` ที่มีขอบและ `DataTable` ใช้ `card-surface`; หัว/แถวคั่นด้วย divider · panel ไม่มีเงา · field/toolbar/secondary action ใช้พื้น panel+ขอบบาง · overlay ลอยสูงสุด
+- รายการงานในฟอร์มใช้หนึ่ง `card-surface` ต่อหนึ่งรายการโดยตรงบน workspace · ห้ามวาง card ใหญ่ครอบ list แล้วเติม card รอบรายการซ้ำ · CTA “เพิ่มรายการ” อยู่ก่อน list ทั้งหน้าเปิดงานและหน้าแก้ไข
 - ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — `border-field-border bg-field` ไม่มีเงา; resting boundary ต้องอยู่ในช่วงที่ guard ล็อกไว้ไม่ให้จางจนกลืนหรือเข้มจนเป็นตาราง · focus/error ใช้เส้น contrast สูงและเปลี่ยนสีเส้นเดิมโดยความสูงไม่ขยับ · ห้าม ancestor เปลี่ยนสี field ตามตำแหน่ง
 - กล่องเพิ่มของ/อัปโหลดใช้ `DASHED_INTERACTIVE`; placeholder ที่อ่านอย่างเดียวใช้ `DASHED` — ขอบประตอนพักต้องอ่อนกว่าขอบเน้น เพราะพื้นที่ก้อนใหญ่ขยายน้ำหนักของเส้น; hover/pressed/focus เป็นผู้บอก interaction แทน · ห้ามใช้ `border-strong` เป็น resting state
 - `SearchInput`/`Select` ที่อยู่บน `Toolbar` ยังระบุ `surface="raised"` เพื่อ semantic contract แต่หน้าตาเป็น control ขอบบางไร้เงา; ใน form/dialog ระบุ/default `field`; action ในแถวที่ตั้งใจโปร่งใช้ `surface="inline"`
@@ -158,10 +157,10 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 | ของชิ้นไหน | ค่า |
 |---|---|
 | ชิ้นเล็กในรายการ (ตัวเลือกในเมนู · ปุ่มในแถบสลับ) | `RADIUS.item` = 8px |
-| กล่องย่อยในการ์ด · รูปย่อ | `RADIUS.inner` = 12px |
-| การ์ดรอง · กล่องเด้ง | `RADIUS.surface` = 12px; `Section` หลักไม่มีกรอบครอบ |
-| ช่องกรอกทรงเหลี่ยม | `RADIUS.field` = 10px |
-| **ปุ่ม / ช่องค้นหา / compatibility `pill`** | ปุ่ม 8px · ช่องค้นหา/เลือก 10px |
+| กล่องย่อยในการ์ด · รูปย่อ | `RADIUS.inner` = 8px |
+| panel/card · กล่องเด้ง | `RADIUS.surface` = 8px; `Section` ที่มี `bordered` เป็น panel |
+| ช่องกรอกทรงเหลี่ยม | `RADIUS.field` = 8px |
+| **ปุ่ม / ช่องค้นหา / compatibility `pill`** | 8px |
 | **สวิตช์** | `RADIUS.pill` = มนเต็ม |
 | **ตัวกรองไม่เกิน 5 ตัวเลือก** | ไม่มีกรอบ/พื้น/radius · ข้อความสี neutral + เส้นใต้สถานะเลือก |
 

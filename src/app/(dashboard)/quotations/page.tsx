@@ -151,7 +151,7 @@ function QuotationsPageContent() {
         onRetry={() => refetch()}
         label="ใบเสนอราคา"
         emptyState={
-          <div className="card-surface rounded-xl">
+          <div className="card-surface rounded-lg">
             <EmptyState
               icon={ClipboardList}
               title="ไม่พบใบเสนอราคา"
@@ -175,7 +175,7 @@ function QuotationsPageContent() {
               <Link
                 key={q.id}
                 href={`/quotations/${q.id}`}
-                className={cn("card-surface card-surface-hover group block rounded-xl p-4", FOCUS_BUTTON)}
+                className={cn("card-surface card-surface-hover group block rounded-lg p-4", FOCUS_BUTTON)}
                 aria-label={`เปิดใบเสนอ ${q.quotationNumber} ของ ${q.customer.name}`}
               >
                 <div className="flex items-start justify-between gap-3">

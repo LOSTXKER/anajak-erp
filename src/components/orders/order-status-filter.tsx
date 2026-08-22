@@ -68,7 +68,13 @@ export function OrderStatusFilter({
   };
 
   return (
-    <section aria-label="กรองตามสถานะ" className={cn("space-y-2", isLoading && "opacity-60")}>
+    <section
+      aria-label="กรองตามสถานะ"
+      className={cn(
+        "space-y-2 xl:overflow-hidden xl:rounded-lg xl:border xl:border-border xl:bg-surface xl:px-5 xl:py-3",
+        isLoading && "opacity-60",
+      )}
+    >
       <div className="hidden xl:block">
         <OrderStatusFlowBar
           counts={counts}
@@ -84,7 +90,7 @@ export function OrderStatusFilter({
           aria-pressed={!selected}
           onClick={() => onSelect("")}
           className={cn(
-            "group inline-flex min-h-11 items-center gap-2 border-b-2 bg-transparent px-1 text-sm transition-colors",
+            "group hidden min-h-11 items-center gap-2 border-b-2 bg-transparent px-1 text-sm transition-colors sm:inline-flex",
             FOCUS_BUTTON,
             !selected
               ? "border-slate-900 font-semibold text-strong dark:border-white"
@@ -106,7 +112,7 @@ export function OrderStatusFilter({
               aria-pressed={active}
               onClick={() => onSelect(active ? "" : status)}
               className={cn(
-                "group inline-flex min-h-11 items-center gap-2 border-b-2 bg-transparent px-1 text-sm transition-colors",
+                "group hidden min-h-11 items-center gap-2 border-b-2 bg-transparent px-1 text-sm transition-colors sm:inline-flex",
                 index >= 2 && "max-sm:hidden",
                 FOCUS_BUTTON,
                 active
@@ -122,7 +128,7 @@ export function OrderStatusFilter({
           );
         })}
 
-        <details ref={detailsRef} className="group w-full">
+        <details ref={detailsRef} className="group w-full sm:w-auto">
           <summary
             ref={summaryRef}
             className={cn(
@@ -131,10 +137,13 @@ export function OrderStatusFilter({
               "flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 border-b border-divider bg-transparent px-1 text-sm font-medium text-secondary transition-colors hover:text-strong active:text-strong sm:w-fit sm:justify-start [&::-webkit-details-marker]:hidden",
             )}
           >
-            ทุกสถานะ
+            <span className="sm:hidden">
+              {selected ? `สถานะ: ${INTERNAL_STATUS_LABELS[selected as InternalStatus]}` : "สถานะ: ทั้งหมด"}
+            </span>
+            <span className="hidden sm:inline">ทุกสถานะ</span>
             <ChevronDown className="h-4 w-4 text-muted transition-transform group-hover:text-secondary group-active:text-secondary group-open:rotate-180" />
           </summary>
-          <div className="mt-3 w-full max-w-full border-t border-divider pt-3">
+          <div className="mt-3 w-full max-w-full border-t border-divider pt-3 sm:w-[38rem] sm:max-w-[calc(100vw-3rem)]">
             <OrderStatusFlowBar
               counts={counts}
               selected={selected}

@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ VERCEL PANEL SYSTEM — เนื้อหาอยู่บน panel เรียบแบบ Vercel 2026-08-23**
+> Light workspace เปลี่ยนเป็น off-white `#fafafa` โดย chrome/panel ขาว; Dark ใช้พื้นดำกับ panel `#0a0a0a` · panel ทุกชนิดใช้เส้น 1px มุม 8px ไม่มีเงาตกแต่ง และ overlay เท่านั้นที่ลอย · `Section` ที่มีขอบกับ `DataTable` รวมข้อมูลที่สัมพันธ์กันเป็นก้อนเดียวโดยไม่เกิด card ซ้อน card
+>
+> `/orders` รวมแถบสถานะเป็น panel และต่อ toolbar เข้ากับตารางด้วย divider; หัวตารางยังเป็น neutral band ต่อเนื่องและแถวมี hover/pressed กลาง · Sidebar active ใช้ neutral filled row · dashboard “ทางลัด” เปลี่ยนเป็น action grid แบ่งเส้นใน panel เดียว · มือถือยุบตัวกรองสถานะเหลือ control เดียวก่อนกาง ทำให้ออเดอร์แรกขึ้นเร็วราว 60px และกำหนด bottom padding จากความสูง navigation+safe area โดยรายการสุดท้ายเลื่อนพ้นแถบล่าง 39px
+>
+> **หลักฐานจอจริง:** ชุดเต็ม `/`, `/orders`, `/production`, `/billing`, `/settings`, `/products`, `/factory/station` ที่ 1440×900 และ `/`, `/orders`, `/production`, `/settings` ที่ 390×844 ทั้ง Light/Dark ไม่มี horizontal overflow, nested card หรือ console warning/error · รอบยืนยันหลังเก็บ feedback ตรวจ `/orders` Light desktop/mobile และ dashboard Dark อีกครั้ง; independent Impeccable review = **APPROVE** · ภาพอยู่ที่ `.impeccable/review/vercel-panels-*`
+>
+> **ด่านส่งมอบ:** full unit **1296/1296**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build (41 static pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/test/docs เท่านั้น ไม่มี dependency, schema, API, query, mutation, permission, status transition หรือ business flow เปลี่ยน · รักษา `scripts/verify-artwork.ts`, `.cursor/` และ `public/` ที่ค้างอยู่ไว้นอก commit
+>
+> **ต่อที่นี่:** ให้เบสลอง `/orders`, dashboard และ settings ใน Light/Dark; ถ้าจะเพิ่ม panel ต่อ ให้รวมเฉพาะข้อมูลที่สัมพันธ์กันและห้ามวาง card ซ้อนเพราะแค่ต้องการขอบ
+
 > **✅ INTERACTION + CARD POLISH — เก็บหัวตาราง hover ปุ่ม และก้อนงาน 2026-08-23**
 > คง White Working Sheet เดิมไว้: เนื้อหาหลักยังวางบนพื้นขาว/ดำโดยตรง แต่ bounded object ที่เป็นก้อนจริงอ่านออกเป็น card ด้วยพื้นขาว Light / `#1b1b1e` Dark, hairline edge และเงาสั้น · dashboard ใช้ card เฉพาะ “ต้องเช็กก่อน” กับ “ทางลัด”; Section อื่น ตาราง และ status rail ยังแบนบน canvas จึงไม่กลับไปเป็นกล่องทั้งหน้า
 >

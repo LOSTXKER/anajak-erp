@@ -659,6 +659,16 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] **WC5 verify ของจริงก่อนปิด** — dashboard/orders/production/billing/settings/products/factory representative ที่ 1440×900 + 390×844 ทั้ง Light/Dark · ไม่มี overflow/hydration/console error · keyboard/focus/loading/error/empty/disabled ยังชัด · typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน แล้วอัปเดต SPEC/DESIGN/PROGRESS และ commit ก้อนเล็ก ✅ 2026-08-23
 - [x] **WC6 เก็บรายละเอียด interaction และ card hierarchy** — หัวตารางต้องอ่านเป็นหัวตารางโดยไม่แตกเป็นช่องสี, row hover ชัดแต่เบา, ปุ่มมี tactile pressed state และ card ใช้เฉพาะ bounded object/กลุ่มงานที่ควรถูกอ่านเป็นหนึ่งก้อนพร้อม depth เบา ๆ · คง direct content บนผืนขาวและกลับชั้นผิวแบบเดียวกันใน Dark · verify desktop/mobile Light/Dark ก่อนปิด ✅ 2026-08-23
 
+#### ใบงาน VERCEL-PANELS — เนื้อหาบนแผงพื้นหลังแบบ Vercel (เบสสั่ง 2026-08-23)
+
+> มติใหม่นี้ทับ White Working Sheet เฉพาะวิธีจัดชั้นผิว: ใช้พื้น workspace off-white/ดำเป็นฉาก และรวมเนื้อหาที่สัมพันธ์กันไว้ใน panel ขาว/ดำมีเส้นบางแบบ Vercel · ไม่ย้อนกลับไปใช้สีหลายก้อน เงาฟู หรือ card ซ้อน card · ตัวกรองข้อความ minimal, ข้อมูล, สิทธิ์, mutation, status transition, public/print และ Station flow เดิมทั้งหมด
+
+- [x] **VP1 surface system แบบ Vercel** — Light workspace `#fafafa`, chrome/card ขาว, Dark workspace ดำและ card ยกขึ้นหนึ่ง neutral step · card/panel ใช้ border 1px, radius 8px, ไม่มี decorative shadow; overlay ลอยด้วยเงาเฉพาะชั้นที่ทับเนื้อหา ✅ 2026-08-23
+- [x] **VP2 content grouping** — `Section` ที่เป็นกลุ่มหลักและ `DataTable` กลับมาอยู่ใน panel; หัว panel/หัวตาราง/แถวใช้ divider ต่อเนื่อง · bounded card ลูกใช้เฉพาะ object จริงและห้ามเกิด nested card ที่ไม่ช่วยความหมาย ✅ 2026-08-23
+- [x] **VP3 navigation + controls** — Sidebar active ใช้ neutral filled row แบบ reference ไม่ใช้แถบน้ำเงิน; น้ำเงิน Anajak ยังสงวนให้ primary/link/focus · filter แบบข้อความและ field/control contract เดิมไม่ถอย ✅ 2026-08-23
+- [x] **VP4 responsive + Dark** — desktop/tablet/mobile ใช้ panel เดียวกันโดยไม่ล้น; mobile record card ยังแตะ ≥44px และ spacing ไม่แน่นเพราะ card ซ้อน · Dark กลับพื้น/card/border/hover ครบ ✅ 2026-08-23
+- [x] **VP5 verify + handoff** — ตรวจ `/`, `/orders`, `/production`, `/billing`, `/settings`, `/products`, `/factory/station` ที่ 1440×900 + 390×844 Light/Dark พร้อม hover/focus/loading/error/empty · typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน อัปเดต SPEC/DESIGN/PROGRESS/surface brief และ commit ก้อนเล็ก ✅ 2026-08-23
+
 #### ใบงานต้นแบบ ERP Command Center — ออกแบบใหม่ทั้งระบบแบบไม่ตีกรอบ (เบสสั่ง 2026-08-14)
 
 > พิสูจน์ “ภาษาใหม่ทั้งระบบ” จากของจริงก่อนรื้อหน้าหลัก: แนว **สายการผลิตบนกริด** (Swiss industrial manual + ใบสั่งงานโรงงาน) และน้ำเงิน Anajak `#3973b2` · เว็บอนาคตเป็นอีกช่องทางรับออเดอร์เข้าสู่วงจรเดียว ไม่สร้างหลังบ้าน POD แยก

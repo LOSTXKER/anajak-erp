@@ -22,7 +22,7 @@ interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> 
   headingLevel?: 2 | 3;
   icon?: LucideIcon;
   tone?: VisualTone;
-  /** card ใช้เฉพาะเมื่อทั้ง section เป็นก้อนงานเดียว; ค่าเริ่มต้นยังวางตรงบน page canvas */
+  /** ค่าเริ่มต้นของ bordered section คือ panel; ใช้ plain เฉพาะกลุ่มย่อยใน panel แม่ */
   surface?: "plain" | "card";
 }
 
@@ -43,7 +43,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
       compact = false,
       headingLevel = 2,
       icon: Icon,
-      surface = "plain",
+      surface,
       className,
       children,
       ...props
@@ -52,13 +52,12 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
   ) => {
     const Heading = headingLevel === 3 ? "h3" : "h2";
     const hasHeader = Boolean(title || meta || help || action);
+    const isCard = surface === "card" || (surface !== "plain" && bordered);
     return (
       <section
         ref={ref}
         className={cn(
-          surface === "card"
-            ? "card-surface rounded-xl"
-            : bordered && "border-b border-divider pb-6",
+          isCard ? "card-surface overflow-hidden rounded-lg" : bordered && "border-b border-divider pb-6",
           className
         )}
         {...props}
@@ -69,8 +68,9 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
               "flex items-start justify-between gap-3",
               // ขอบ 28px (เบสเคาะ 2026-08-03 รอบ "ปรับสัดส่วน") — การ์ดกว้าง 1,024px
               // ขอบ 24px แน่นเกินสัดส่วน · หัวข้อ→เนื้อหา 20px ให้เป็นบันได 8/16/20/28
-              compact ? "pb-3" : "pb-4",
-              surface === "card" && "px-5 pt-5"
+              isCard
+                ? cn("px-5 pt-4", compact ? "pb-3" : "pb-4", flush && "border-b border-divider")
+                : compact ? "pb-3" : "pb-4"
             )}
           >
             <div className="flex min-w-0 items-start gap-3">
@@ -104,8 +104,8 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
         )}
         <div
           className={cn(
-            !flush && bordered && !hasHeader && "pt-0",
-            surface === "card" && !flush && "px-5 pb-5"
+            !flush && isCard && "px-5 pb-5",
+            !flush && isCard && !hasHeader && "pt-5"
           )}
         >
           {children}

@@ -33,7 +33,7 @@ export function ListCardItem({
   children: React.ReactNode;
 }) {
   return (
-    <article role="listitem" className={cn("card-surface rounded-xl", className)}>
+    <article role="listitem" className={cn("card-surface rounded-lg", className)}>
       {children}
     </article>
   );

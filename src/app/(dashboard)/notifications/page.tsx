@@ -171,7 +171,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* List */}
-      <div className="card-surface overflow-hidden rounded-xl">
+      <div className="card-surface overflow-hidden rounded-lg">
         {isLoading && (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {[...Array(5)].map((_, i) => (

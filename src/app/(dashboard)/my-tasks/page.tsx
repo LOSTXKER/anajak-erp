@@ -315,7 +315,7 @@ function TaskGroupCard({ group }: { group: TaskGroup }) {
   return (
     <section
       className={cn(
-        "card-surface overflow-hidden rounded-xl",
+        "card-surface overflow-hidden rounded-lg",
         // ต้องมี `border` คู่ด้วย ไม่งั้นสั่งแค่สีขอบ = เส้นไม่ขึ้นเลย (audit สี 2026-08-02)
         group.id === "attention" && "border border-red-200 dark:border-red-900"
       )}
@@ -403,7 +403,7 @@ export default function MyTasksPage() {
       }
     >
       {groups.length === 0 ? (
-        <div className="card-surface rounded-xl">
+        <div className="card-surface rounded-lg">
           <EmptyState
             icon={CheckCircle2}
             title="ไม่มีงานค้างบนโต๊ะคุณ"

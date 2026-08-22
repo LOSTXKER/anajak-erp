@@ -228,7 +228,7 @@ function FilmStockPageContent() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="card-surface rounded-xl p-4"
+                className="card-surface rounded-lg p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-base font-semibold text-slate-900 dark:text-white">
