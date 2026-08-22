@@ -181,17 +181,18 @@ const hSm = CONTROL_H_SM.split(" ");
 {
   const appShellSource = readFileSync("src/components/layout/app-shell.tsx", "utf8");
   if (
-    !appShellSource.includes('lg:grid-cols-[16rem_minmax(0,1fr)]') ||
+    !appShellSource.includes('lg:grid-cols-[15rem_minmax(0,1fr)]') ||
     !appShellSource.includes("SidebarGroupLabel") ||
-    !appShellSource.includes('data-active-group={groupActive ? "true" : undefined}') ||
-    !appShellSource.includes('groupActive && "bg-surface-muted"') ||
+    appShellSource.includes("data-active-group") ||
+    appShellSource.includes('groupActive && "bg-surface-muted"') ||
+    appShellSource.includes("NAVIGATION_GROUP_TONE") ||
     !appShellSource.includes('aria-label="เมนูหลักบนมือถือ"') ||
     !appShellSource.includes('groupedNavigationItems("sidebar", me?.permissions)')
   ) {
     failed++;
-    console.log("❌ Sidebar ต้องแบ่งหมวดชัด โฟกัสหมวดปัจจุบัน และคง mobile navigation/permission registry เดิม");
+    console.log("❌ Sidebar ต้องเป็นโครงแบน ไม่มีพื้น/สีครอบหมวด และคง mobile navigation/permission registry เดิม");
   } else {
-    console.log("✅ Sidebar แบ่งหมวดชัด โฟกัสหมวดปัจจุบัน และคง navigation contract เดิม");
+    console.log("✅ Sidebar เป็นโครงแบน minimal และคง navigation contract เดิม");
   }
 }
 

@@ -40,7 +40,6 @@ import {
 } from "@/components/ui/tokens";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UserMenu } from "@/components/layout/user-menu";
-import { NAVIGATION_GROUP_TONE, VISUAL_TONE_CLASSES } from "@/lib/visual-tone";
 
 const MOBILE_NAV_IDS = ["dashboard", "my-tasks", "orders", "production"] as const;
 const MOBILE_EXCLUDED_IDS = new Set<string>(MOBILE_NAV_IDS);
@@ -56,7 +55,7 @@ function sidebarNavItemClass({
     CONTROL_MIN_H,
     FOCUS_INSET,
     RADIUS.item,
-    "group/sidebar-item flex scroll-m-4 items-center gap-3 px-2.5 py-2 text-sm transition-colors",
+    "group/sidebar-item flex scroll-m-4 items-center gap-3 px-3 py-2 text-sm transition-colors",
     active
       ? cn("font-medium", INTERACTIVE_SELECTED)
       : cn(
@@ -69,30 +68,14 @@ function sidebarNavItemClass({
 }
 
 function SidebarGroupLabel({
-  id,
   label,
-  active = false,
 }: {
-  id: keyof typeof NAVIGATION_GROUP_TONE;
   label: string | null;
-  active?: boolean;
 }) {
   if (!label) return null;
 
-  const tone = VISUAL_TONE_CLASSES[NAVIGATION_GROUP_TONE[id]];
   return (
-    <p
-      className={cn(
-        "flex h-7 items-center gap-2 px-2.5 text-2xs font-semibold",
-        active ? tone.text : "text-muted",
-      )}
-    >
-      <span
-        className={cn("h-3.5 w-1 rounded-full", tone.solid)}
-        aria-hidden="true"
-      />
-      {label}
-    </p>
+    <p className="px-3 pb-1.5 text-2xs font-medium text-muted">{label}</p>
   );
 }
 
@@ -146,9 +129,7 @@ function MoreMenu({
           {groups.map((group) => (
             <div key={group.id} className="mb-4 last:mb-0">
               <SidebarGroupLabel
-                id={group.id}
                 label={group.label}
-                active={group.items.some((item) => item.id === activeNavigationId)}
               />
               <ul className="space-y-1">
                 {group.items.map((item) => (
@@ -258,7 +239,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[4rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[16rem_minmax(0,1fr)]"
+      className="app-workspace grid h-dvh grid-cols-1 grid-rows-[4rem_minmax(0,1fr)] overflow-hidden bg-bg lg:grid-cols-[15rem_minmax(0,1fr)]"
       style={
         {
           "--app-bottom-nav-offset":
@@ -284,7 +265,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
           aria-label="ภาพรวม"
           className={cn(
             FOCUS_BUTTON,
-            "flex h-full w-16 shrink-0 items-center justify-center lg:w-64 lg:justify-start lg:gap-3 lg:border-r lg:border-divider lg:px-5",
+            "flex h-full w-16 shrink-0 items-center justify-center lg:w-60 lg:justify-start lg:gap-3 lg:border-r lg:border-divider lg:px-5",
           )}
         >
           <div
@@ -342,51 +323,34 @@ function AppShellContent({ children }: { children: ReactNode }) {
       </header>
 
       <aside className="hidden min-h-0 border-r border-divider bg-chrome lg:col-start-1 lg:row-start-2 lg:flex lg:flex-col">
-        <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-2.5 py-3">
-          <div className="space-y-2">
-            {sidebarGroups.map((group) => {
-              const groupActive = group.items.some(
-                (item) => item.id === activeNavigationId,
-              );
-              return (
-                <div
-                  key={group.id}
-                  data-active-group={groupActive ? "true" : undefined}
-                  className={cn(
-                    RADIUS.surface,
-                    "p-2 transition-colors",
-                    groupActive && "bg-surface-muted",
-                  )}
-                >
-                  <SidebarGroupLabel
-                    id={group.id}
-                    label={group.label}
-                    active={groupActive}
-                  />
-                  <ul aria-label={group.label ?? undefined} className="space-y-1">
-                    {group.items.map((item) => {
-                      const active = activeNavigationId === item.id;
-                      return (
-                        <li key={item.id}>
-                          <Link
-                            ref={active ? activeSidebarRef : undefined}
-                            href={item.href}
-                            aria-current={active ? "page" : undefined}
-                            className={sidebarNavItemClass({ active, onChrome: true })}
-                          >
-                            <item.icon
-                              className={cn("h-4 w-4", sidebarNavIconClass(active))}
-                              strokeWidth={1.75}
-                            />
-                            <span>{item.label}</span>
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              );
-            })}
+        <nav aria-label="เมนูหลัก" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+          <div className="space-y-4">
+            {sidebarGroups.map((group) => (
+              <div key={group.id}>
+                <SidebarGroupLabel label={group.label} />
+                <ul aria-label={group.label ?? undefined} className="space-y-1">
+                  {group.items.map((item) => {
+                    const active = activeNavigationId === item.id;
+                    return (
+                      <li key={item.id}>
+                        <Link
+                          ref={active ? activeSidebarRef : undefined}
+                          href={item.href}
+                          aria-current={active ? "page" : undefined}
+                          className={sidebarNavItemClass({ active, onChrome: true })}
+                        >
+                          <item.icon
+                            className={cn("h-4 w-4", sidebarNavIconClass(active))}
+                            strokeWidth={1.75}
+                          />
+                          <span>{item.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           </div>
         </nav>
       </aside>
