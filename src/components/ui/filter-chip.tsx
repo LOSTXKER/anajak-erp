@@ -1,7 +1,6 @@
 import * as React from "react";
-import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FOCUS_BUTTON } from "./tokens";
+import { FOCUS_BUTTON, RADIUS } from "./tokens";
 import { CONTROL_MIN_H } from "./control-size";
 
 interface FilterChipProps {
@@ -30,14 +29,15 @@ export function FilterChip({
       onClick={onClick}
       className={cn(
         CONTROL_MIN_H,
-        "inline-flex touch-manipulation items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors active:scale-[0.98]",
+        "inline-flex touch-manipulation items-center gap-1.5 whitespace-nowrap border px-3 py-1 text-xs transition-colors active:scale-[0.98]",
+        RADIUS.item,
         FOCUS_BUTTON,
         selected
-          // "กรองอยู่" = ฟ้าอ่อนชุด ACTIVE_FILTER ทั้งระบบ — น้ำเงินทึบสงวนให้ปุ่มหลัก
-          ? "border-transparent bg-interactive-selected text-interactive-selected-text"
+          // สถานะเลือกใช้พื้น + เส้น + น้ำหนักข้อความ ไม่พึ่ง Check หรือสีอย่างเดียว
+          ? "border-blue-200 bg-interactive-selected font-semibold text-interactive-selected-text dark:border-blue-800"
           : surface === "raised"
-            ? "border-border bg-surface text-secondary shadow-sm hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong"
-            : "border-transparent bg-surface-muted text-secondary hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
+            ? "border-border bg-surface font-medium text-secondary hover:border-border-strong hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong"
+            : "border-border bg-transparent font-medium text-secondary hover:border-border-strong hover:bg-interactive-hover hover:text-strong active:bg-interactive-pressed active:text-strong",
         className,
       )}
     >
@@ -46,17 +46,9 @@ export function FilterChip({
           aria-hidden="true"
           className="inline-flex h-4 w-4 shrink-0 items-center justify-center"
         >
-          {selected ? <Check className="h-4 w-4" /> : icon}
+          {icon}
         </span>
-      ) : (
-        <Check
-          aria-hidden="true"
-          className={cn("h-3.5 w-3.5 shrink-0", !selected && "invisible")}
-          // คง inline fallback ไว้ด้วย: dev CSS แบบ incremental บางรอบเคยโหลด class
-          // ก่อน utility `invisible` ทำให้ชิปที่ไม่ได้เลือกยังเห็นเครื่องหมายถูกทุกอัน
-          style={selected ? undefined : { visibility: "hidden" }}
-        />
-      )}
+      ) : null}
       {children}
     </button>
   );

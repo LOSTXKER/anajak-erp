@@ -510,8 +510,8 @@ check(
   ["dark:bg-red-600", "dark:hover:bg-red-500"],
 );
 
-// สถานะเลือกของชิปต้องไม่พึ่งสีอย่างเดียว — aria-pressed บอก assistive tech
-// และเครื่องหมายถูกบอกคนที่มองเห็น (เก็บพื้นที่ไอคอนไว้ทั้งสองสถานะ ไม่ให้ label กระโดด)
+// ชิปตัวกรองเป็นปุ่มแบนเหลี่ยมมน ไม่ใช้ pill/เงา/Check ล่องหนที่ทำให้ปุ่มกว้างเกินจำเป็น
+// สถานะเลือกใช้พื้น + เส้น + font weight ร่วมกัน และ aria-pressed บอก assistive tech
 {
   const selected = renderToStaticMarkup(
     <FilterChip selected onClick={() => {}}>เลือกแล้ว</FilterChip>,
@@ -539,21 +539,23 @@ check(
   );
   if (
     !selected.includes('aria-pressed="true"') ||
-    !selected.includes("lucide-check") ||
-    selected.includes("invisible") ||
+    !selected.includes("rounded-lg") ||
+    !selected.includes("font-semibold") ||
+    selected.includes("rounded-full") ||
+    selected.includes("shadow-sm") ||
+    selected.includes("lucide-check") ||
     !idle.includes('aria-pressed="false"') ||
-    !idle.includes("lucide-check") ||
-    !idle.includes("invisible") ||
-    !selectedWithIcon.includes("lucide-check") ||
-    selectedWithIcon.includes("lucide-factory") ||
+    idle.includes("invisible") ||
+    idle.includes("lucide-check") ||
+    !selectedWithIcon.includes("lucide-factory") ||
+    selectedWithIcon.includes("lucide-check") ||
     !idleWithIcon.includes("lucide-factory") ||
-    idleWithIcon.includes("lucide-check") ||
-    idleWithIcon.includes("invisible")
+    idleWithIcon.includes("lucide-check")
   ) {
     failed++;
-    console.log("❌ ชิปตัวกรองต้องมี aria-pressed + เครื่องหมายถูกที่ไม่พึ่งสีอย่างเดียว");
+    console.log("❌ ชิปตัวกรองต้องแบน เหลี่ยมมน ไม่มีเงา/Check ล่องหน และมี aria-pressed");
   } else {
-    console.log("✅ ชิปตัวกรองบอก selected ด้วย aria-pressed + เครื่องหมายถูก");
+    console.log("✅ ชิปตัวกรองแบน เหลี่ยมมน กะทัดรัด และคง aria-pressed/icon");
   }
 }
 

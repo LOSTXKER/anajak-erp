@@ -471,9 +471,15 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 ### P1.0-SIDEBAR-MOCKUP — รูปออเดอร์ตรงคิวผลิต + Sidebar ใหม่ (เบสสั่ง 2026-08-23)
 
 - [x] รายการออเดอร์ใช้ `MockupThumbnail` ชุดเดียวกับคิวผลิตทั้งรูปจริงและช่องว่างขอบประ บน desktop/mobile โดยไม่สร้าง icon รูปแบบใหม่
-- [x] จัด Sidebar desktop ให้หมวดอ่านออกชัดและโฟกัสหมวดปัจจุบันได้เร็วขึ้น โดยคงรายการ เมนู สิทธิ์ route และ active สีน้ำเงินเดิมทั้งหมด
+- [x] feedback รอบถัดมาลด Sidebar เป็นโครงแบน 240px: ไม่มีพื้นครอบหมวด/marker สี เหลือชื่อหมวดเบา ๆ และ active สีน้ำเงินจุดเดียว โดยคงรายการ เมนู สิทธิ์ และ route เดิมทั้งหมด
 - [x] คง mobile bottom navigation และ More sheet flow เดิม พร้อมตรวจ active route, keyboard/focus, overflow และ Light/Dark
 - [x] เพิ่ม regression guard, อัปเดต SPEC/DESIGN/PROGRESS, รัน final gates + Impeccable detector และตรวจ browser จริงก่อน commit
+
+### P1.0-FILTER-MINIMAL — ลดน้ำหนักปุ่มกรองทั้งระบบ (เบสสั่ง 2026-08-23)
+
+- [x] เปลี่ยน `FilterChip` กลางจากปุ่ม pill มีเงาเป็นปุ่มเหลี่ยมมนแบบแบน โดยคง selected, icon, count, URL และพฤติกรรมเดิม
+- [x] ใช้สถานะเลือกด้วยพื้น/เส้น/น้ำหนักข้อความร่วมกับ `aria-pressed`; ไม่จองช่อง Check ล่องหนจนปุ่มกว้างเกินจำเป็น
+- [x] ตรวจหน้าสินค้าเป็นตัวแทน desktop/mobile Light/Dark, รัน regression guard + Impeccable detector และไม่แตะ business flow
 
 **เพิ่มเข้า P1 (เบสอนุมัติ 2026-06-11 จากผล audit flow ทั้งระบบ):** แพ็คเก็บตกหน้างาน — ขั้นตอนผลิต DTF/DTG จริง (เดิม enum เป็นชุดโรงเย็บ) + โชว์ลายอนุมัติบน order detail/Job Ticket + แจ้งกระดิ่งเมื่อลูกค้าตัดสินแบบ + ด่านปิดงานต้องวางบิลครบ · **Outsource UI ทั้งก้อนดึงจาก P2 มาทำเลย** (silkscreen ส่งร้านนอก 100% แต่ระบบใช้ไม่ได้จริง) — ส่วน AP vendor/WHT ขาจ่าย ยังอยู่ P2 ตามเดิม
 ## 🏭 FLOW-REDESIGN — รื้อทั้งระบบตามผังใหม่ (เบสเคาะครบ 2026-06-12 · แบบเต็ม: `docs/flow-redesign-2026-06-12.html`)

@@ -162,7 +162,8 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 | กล่องย่อยในการ์ด · รูปย่อ | `RADIUS.inner` = 12px |
 | การ์ด · ส่วน · กล่องเด้ง | `RADIUS.surface` = 16px |
 | ช่องกรอกทรงเหลี่ยม | `RADIUS.field` = 10px |
-| **ปุ่ม · ชิปตัวกรอง · ช่องค้นหา · สวิตช์** | `RADIUS.pill` = มนเต็ม |
+| **ปุ่ม · ช่องค้นหา · สวิตช์** | `RADIUS.pill` = มนเต็ม |
+| **ชิปตัวกรอง** | `RADIUS.item` = 8px · แบน ไม่มีเงา |
 
 **ขนาดตัวอักษร** ใช้บันได 8 ขั้นใน `globals.css` (`text-2xs` … `text-3xl`) — **ห้ามสั่งเป็น px ดิบ มีด่าน lint ดักไว้**
 หัวเรื่องหน้า = `PageHeader` (`text-2xl` = 24px · แก้ข้อมูลผิด 2026-08-02: เอกสารเคยเขียน `text-[26px]` ซึ่ง**ด่าน lint ตีตกทันที**ทั้งที่ทำตามเอกสารเป๊ะ) — ทุกหน้าใช้ผ่าน component นี้ **ห้ามเขียน `<h1>` เอง** · หัว section ภายในหน้า = `Section`
@@ -170,7 +171,7 @@ mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px
 ## Interaction / navigation / state contract (UX0)
 
 - Sidebar และ Command Palette อ่านจาก navigation registry เดียว: label/icon/href/permission/search aliases/visibility อยู่ที่เดียว · active route ใช้ exact หรือ longest match ห้าม `startsWith` ทื่อจนติดหลายเมนู
-- desktop Sidebar กว้าง 256px แสดงหมวด **ภาพรวม / งานขาย / การผลิต / สินค้า / การเงิน / ระบบ** ที่ผู้ใช้มีสิทธิ์ตลอดและเลื่อนภายในเอง · ใช้ marker สีประจำบริบทที่หัวหมวด, neutral surface เฉพาะหมวดปัจจุบัน และน้ำเงิน Anajak เฉพาะ active item · ห้ามซ่อนเมนูหลัง disclosure “เมนูทั้งหมด”; mobile คง bottom navigation 4 งานหลัก + “เพิ่มเติม”
+- desktop Sidebar กว้าง 240px เป็นโครงแบน: ใช้ชื่อหมวดตัวเล็กกับระยะห่างเท่านั้น ไม่มีพื้นครอบหมวด ไม่มี marker สี และใช้น้ำเงิน Anajak เฉพาะ active item · แสดงหมวด **ภาพรวม / งานขาย / การผลิต / สินค้า / การเงิน / ระบบ** ที่ผู้ใช้มีสิทธิ์ตลอดและเลื่อนภายในเอง · ห้ามซ่อนเมนูหลัง disclosure “เมนูทั้งหมด”; mobile คง bottom navigation 4 งานหลัก + “เพิ่มเติม”
 - list state ที่แชร์/ย้อนกลับได้อยู่ใน URL: `q`, `status`, `sort`, `page` + filter เฉพาะหน้า · Orders รองรับ `attention=overdue|due-soon|stuck`
 - query ต้องแยก loading/error/empty ชัดเจน; error มี retry และ live announcement · ห้ามแสดง error เป็น “ไม่มีข้อมูล”
 - dialog/sheet ต้องมี viewport gutter, `max-height`, body scroll, Escape, focus trap และคืน focus ให้ trigger

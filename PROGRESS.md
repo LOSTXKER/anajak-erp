@@ -4,6 +4,32 @@
 
 ## ตอนนี้
 
+> **✅ SIDEBAR MINIMAL — ถอดชั้นตกแต่งออก 2026-08-23**
+> Sidebar desktop กลับมากว้าง 240px และใช้โครงแบน: ถอดพื้น neutral ที่ครอบหมวด, marker สี และ padding แบบการ์ดออก · เหลือชื่อหมวดตัวเล็ก, รายการเมนู และ active item สีน้ำเงินจุดเดียว จึงอ่านทางเดินได้โดยไม่เกิดกล่องซ้อนกล่อง
+>
+> navigation/permission registry, current-route matching, deep-route auto-scroll, hover/focus, mobile bottom navigation และ More sheet เดิมทั้งหมด · More sheet ใช้ชื่อหมวดแบบตัวอักษรเหมือน desktop และไม่มี module marker สี
+>
+> **หลักฐานจอจริง:** `/orders` ที่ 1440×900 Light/Dark — Sidebar 240px, `aria-current` หนึ่งจุด, ไม่มี group panel/marker สี และ horizontal overflow 0 · 390×844 Light/Dark คง bottom navigation เดิมและซ่อน desktop Sidebar · `/settings/stock` current item ยังเลื่อนเข้า viewport · More sheet ปิดด้วย Escape และคืน focus ไป “เพิ่มเติม” · console ไม่มี warning/error/hydration
+>
+> **ด่านส่งมอบ:** full unit **1296/1296**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build (generate 41 pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector ไม่พบ finding (`[]`)
+>
+> **ขอบเขต:** presentation/test/docs เท่านั้น ไม่มี dependency, schema, API, query, mutation, permission, status transition หรือ business flow เปลี่ยน · งาน `FILTER-MINIMAL`, `scripts/verify-artwork.ts`, `.cursor/` และ `public/` ที่ค้างอยู่ถูกรักษาไว้นอก commit นี้
+>
+> **ต่อที่นี่:** ให้เบสดู Sidebar ที่ `/orders`; ถ้ายังอยากเบากว่านี้ จุดถัดไปคือทำ active item เป็นข้อความน้ำเงิน + indicator บางแทนพื้นน้ำเงิน โดยไม่เปลี่ยน navigation contract
+
+> **✅ FILTER MINIMAL — ลดน้ำหนักปุ่มกรองทั้งระบบ 2026-08-23**
+> `FilterChip` กลางเปลี่ยนจากปุ่ม pill มีเงาและจองช่อง Check ทุกตัว เป็นปุ่มแบนมุม 8px ไม่มีเงา · สถานะเลือกใช้พื้นน้ำเงินอ่อน เส้น และน้ำหนักข้อความพร้อม `aria-pressed`; filter ที่มีไอคอนคงไอคอนความหมายเดิมทั้งก่อนและหลังเลือก จึงไม่สลับภาพใต้มือ
+>
+> ครอบคลุมหน้า สินค้า, แจ้งเตือน, ร้านนอก, หัก ณ ที่จ่าย, ออเดอร์, คลังฟิล์ม และคิวผลิตผ่าน component เดียว · คง query, URL, count, permission และ logic การกรองเดิมทั้งหมด
+>
+> **หลักฐานจอจริง:** `/products` ที่ 1440×900 Light/Dark และ 390×844 Light — desktop สูง 36px, mobile สูง 44px, `border-radius: 8px`, `box-shadow: none`, horizontal overflow 0 · กด `สินค้าสำเร็จรูป` แล้ว URL เป็น `?itemType=FINISHED_GOOD` และ `aria-pressed` ย้ายตรงตัวเลือก · console ไม่มี warning/error
+>
+> **ด่านส่งมอบ:** full unit **1296/1296**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build (generate 41 pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector ไม่พบ finding (`[]`)
+>
+> **ขอบเขต:** presentation/test/docs เท่านั้น ไม่มี dependency, schema, API, query, mutation, permission, status transition หรือ business flow เปลี่ยน
+>
+> **ต่อที่นี่:** ให้เบสดูตัวกรองใน `/products` และ `/production`; ถ้าอยากเบากว่านี้อีก รอบถัดไปค่อยลดเส้นของสถานะที่ยังไม่เลือกโดยไม่เปลี่ยน component หรือ flow
+
 > **✅ ORDER MOCKUP PLACEHOLDER + SIDEBAR ใหม่ 2026-08-23**
 > รายการออเดอร์ใช้ `MockupThumbnail` ตัวเดียวกับคิวผลิตแล้วทั้ง desktop/mobile: มีรูปให้แสดงรูปจริงล่าสุด, ไม่มีรูปให้แสดงช่องขอบประ `ImageOff` ขนาด 40×40 แทนพื้นที่ล่องหน และเลขออเดอร์คงหนึ่งบรรทัด · ไม่มี object icon/initials กลับเข้าตาราง
 >
