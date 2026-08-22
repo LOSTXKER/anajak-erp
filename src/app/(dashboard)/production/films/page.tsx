@@ -41,7 +41,7 @@ type FilmStockItem = RouterOutput["filmStock"]["list"][number];
 
 export default function FilmStockPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <FilmStockPageContent />
     </Suspense>
   );
@@ -318,7 +318,7 @@ function ConsumeDialog({ item, onClose }: { item: FilmStockItem; onClose: () => 
             ตัดจำนวนออกจากคลัง
           </DialogDescription>
         </DialogHeader>
-        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-800/40">
+        <div className="rounded-lg border border-border bg-surface-muted p-3">
           <p className="text-sm font-medium text-slate-900 dark:text-white">{item.label}</p>
           <p className="mt-0.5 text-xs tabular-nums text-slate-500 dark:text-slate-400">
             {item.customer.name} · คงเหลือ {item.qty} ชิ้น

@@ -645,7 +645,7 @@ export function OrderItemsDisplay({ orderId, items, fees, onEditItems, showMoney
               {fees.map((fee, i) => (
                   <div
                     key={fee.id ?? i}
-                    className="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-2.5 dark:border-slate-800"
+                    className="flex items-center justify-between rounded-lg border border-border px-4 py-2.5"
                   >
                     <div className="flex items-center gap-2">
                       {fee.feeType && (

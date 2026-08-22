@@ -85,7 +85,7 @@ export function OrderAttachmentsSection({
     <label
       className={cn(
         DASHED_INTERACTIVE,
-        "flex min-h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-surface-muted px-3 py-2 text-sm text-secondary transition-colors hover:bg-interactive-hover hover:text-strong focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:hover:text-strong dark:focus-within:border-blue-300 dark:focus-within:ring-blue-300/25",
+        "flex min-h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-surface-muted px-3 py-2 text-sm text-secondary transition-colors hover:bg-interactive-hover hover:text-strong focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:hover:text-strong dark:focus-within:border-blue-300 dark:focus-within:ring-blue-300/25",
         !embedded && "w-full px-4 py-3.5"
       )}
     >
@@ -132,10 +132,10 @@ export function OrderAttachmentsSection({
                   <img
                     src={img.preview}
                     alt={img.fileName}
-                    className="h-24 w-24 rounded-xl border border-slate-200/60 object-cover dark:border-slate-700/60"
+                    className="h-24 w-24 rounded-lg border border-border object-cover"
                   />
                 ) : (
-                  <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-slate-200/60 bg-slate-50 dark:border-white/10 dark:bg-white/[0.06]">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-border bg-surface-muted">
                     <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
                   </div>
                 )}

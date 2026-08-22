@@ -59,8 +59,8 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
     return (
       <Card>
         <CardContent className="space-y-2 py-5">
-          <Skeleton className="h-11 rounded-xl" />
-          <Skeleton className="h-16 rounded-xl" />
+          <Skeleton className="h-11 rounded-lg" />
+          <Skeleton className="h-16 rounded-lg" />
         </CardContent>
       </Card>
     );
@@ -191,7 +191,7 @@ export function OrderQcSection({ orderId, internalStatus, canCount }: OrderQcSec
                                   rel="noreferrer"
                                   className="relative block h-14 w-14"
                                 >
-                                  {/* <img> ธรรมดา — รูปเสิร์ฟผ่าน /api/files (เช็ค session)
+                                  {/* ใช้ image element ตรง — รูปเสิร์ฟผ่าน /api/files (เช็ค session)
                                       next/image optimizer fetch ฝั่ง server ไม่มี cookie จะ 401 */}
                                   <img
                                     src={url}
@@ -402,7 +402,7 @@ function QcCountForm({
             </Alert>
           )}
           {/* ของดี — default เหลือที่ยังไม่ผ่านตรวจ นับตรงกดบันทึกได้เลย */}
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
             <div className="min-w-0">
               <p className="text-sm font-medium text-slate-900 dark:text-white">ของดี (ตัว)</p>
               <p id="qc-good-remaining" className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
@@ -431,7 +431,7 @@ function QcCountForm({
           {defects.map((d, idx) => (
             <div
               key={idx}
-              className={cn(TINT.warning, "space-y-2 rounded-xl border p-3")}
+              className={cn(TINT.warning, "space-y-2 rounded-lg border p-3")}
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-medium text-slate-900 dark:text-white">
@@ -441,7 +441,7 @@ function QcCountForm({
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => removeRow(idx)}
-                  className="text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                  className="text-amber-700 hover:bg-red-50 hover:text-red-600 dark:text-amber-300 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                   aria-label="ลบแถวของเสีย"
                 >
                   <Trash2 />

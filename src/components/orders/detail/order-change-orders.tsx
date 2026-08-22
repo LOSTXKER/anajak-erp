@@ -56,7 +56,7 @@ export function OrderChangeOrders({ orderId }: OrderChangeOrdersProps) {
             return (
               <div
                 key={co.id}
-                className="rounded-xl border border-slate-200/70 p-3 dark:border-slate-700/60"
+                className="rounded-lg border border-border p-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-mono text-sm font-medium text-slate-900 dark:text-white">

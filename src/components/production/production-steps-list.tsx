@@ -293,7 +293,7 @@ function StepRow({
 
   return (
     <div
-      className={`flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border p-3 ${
+      className={`flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border p-3 ${
         // ขั้นที่ถึงคิว = กรอบ accent จางๆ นำสายตาโดยไม่ต้องอ่านทีละแถว
         !readOnly && isLaneNext && step.status !== "COMPLETED"
           ? "border-blue-200 dark:border-blue-900"

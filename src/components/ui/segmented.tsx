@@ -95,7 +95,7 @@ export function SegmentedControl<T extends string = string>({
             className={cn(CONTROL_H_SM, "inline-flex touch-manipulation items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition-colors", FOCUS_BUTTON,
               size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-xs",
               active
-                ? "bg-interactive-selected text-interactive-selected-text shadow-sm"
+                ? "bg-interactive-selected text-interactive-selected-text"
                 : "text-muted hover:bg-interactive-hover hover:text-strong",
             )}
           >

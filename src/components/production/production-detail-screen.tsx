@@ -82,14 +82,14 @@ const PRINT_STEP_TYPES: ReadonlySet<string> = new Set([
 function ProductionDetailSkeleton() {
   return (
     <div className="space-y-5">
-      <Skeleton className="h-24 rounded-2xl" />
-      <Skeleton className="h-64 rounded-2xl" />
+      <Skeleton className="h-24 rounded-lg" />
+      <Skeleton className="h-64 rounded-lg" />
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
         <div className="space-y-5">
-          <Skeleton className="h-80 rounded-2xl" />
-          <Skeleton className="h-56 rounded-2xl" />
+          <Skeleton className="h-80 rounded-lg" />
+          <Skeleton className="h-56 rounded-lg" />
         </div>
-        <Skeleton className="h-96 rounded-2xl" />
+        <Skeleton className="h-96 rounded-lg" />
       </div>
     </div>
   );
@@ -134,15 +134,15 @@ function ProductionJacketSkeleton() {
         <div className="border-b border-divider bg-surface p-5 xl:min-h-[30rem] xl:border-b-0 xl:border-r">
           <Skeleton className="h-5 w-24 rounded-md" />
           <div className="mt-4 flex gap-2 xl:flex-col">
-            <Skeleton className="h-14 w-40 shrink-0 rounded-xl xl:w-full" />
-            <Skeleton className="h-14 w-40 shrink-0 rounded-xl xl:w-full" />
-            <Skeleton className="h-14 w-40 shrink-0 rounded-xl xl:w-full" />
+            <Skeleton className="h-14 w-40 shrink-0 rounded-lg xl:w-full" />
+            <Skeleton className="h-14 w-40 shrink-0 rounded-lg xl:w-full" />
+            <Skeleton className="h-14 w-40 shrink-0 rounded-lg xl:w-full" />
           </div>
         </div>
         <div className="p-4 sm:p-6 lg:p-7">
           <div className="card-surface mx-auto max-w-4xl space-y-5 rounded-lg p-6 sm:p-8">
             <Skeleton className="h-8 w-64 max-w-full rounded-md" />
-            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-lg" />
             <Skeleton className="h-11 w-60 max-w-full rounded-full" />
           </div>
         </div>
@@ -727,7 +727,7 @@ export function ProductionDetailScreen({
           aria-labelledby="legacy-production-ready"
           className={cn(
             TINT.warning,
-            "flex flex-col gap-3 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between",
+            "flex flex-col gap-3 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between",
           )}
         >
           <div className="flex min-w-0 gap-3">
@@ -763,7 +763,7 @@ export function ProductionDetailScreen({
     <div
       id="production-garments"
       tabIndex={-1}
-      className={cn("scroll-mt-24 rounded-2xl", FOCUS_INSET)}
+      className={cn("scroll-mt-24 rounded-lg", FOCUS_INSET)}
     >
       <GarmentPickCard
         productionId={production.id}
@@ -802,7 +802,7 @@ export function ProductionDetailScreen({
   const stationCurrentJob = production && order ? (
     <article
       data-station-current-job=""
-      className="flex min-h-[34rem] min-w-0 flex-col rounded-2xl border border-border bg-surface shadow-sm lg:min-h-[calc(100dvh-8rem)]"
+      className="card-surface flex min-h-[34rem] min-w-0 flex-col rounded-lg lg:min-h-[calc(100dvh-8rem)]"
     >
       <header className="flex flex-col gap-3 border-b border-divider px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
@@ -882,7 +882,7 @@ export function ProductionDetailScreen({
                 </Button>
               </div>
             ) : (
-              <p className="rounded-xl border border-divider bg-surface-muted px-4 py-3 text-sm text-muted">
+              <p className="rounded-lg border border-divider bg-surface-muted px-4 py-3 text-sm text-muted">
                 {!hasProductionPermission
                   ? "บัญชีนี้เปิดดูได้ แต่ไม่มีสิทธิ์บันทึกใบตรวจรับ"
                   : "ขั้นนี้ยังไม่ใช่งานที่ลงมือได้ของสถานี ดูเหตุที่รอจากคิวก่อนรับเสื้อ"}
@@ -1065,7 +1065,7 @@ export function ProductionDetailScreen({
         surface === "station" && order ? (
           <dl
             aria-label="สรุปใบผลิต"
-            className="grid grid-cols-2 gap-x-5 gap-y-3 rounded-2xl bg-surface-muted px-4 py-3 sm:flex sm:min-h-14 sm:flex-wrap sm:items-center sm:px-5"
+            className="grid grid-cols-2 gap-x-5 gap-y-3 rounded-lg bg-surface-muted px-4 py-3 sm:flex sm:min-h-14 sm:flex-wrap sm:items-center sm:px-5"
           >
             {order.deadline ? (
               <ProductionJobFact icon={CalendarClock} label="กำหนดส่ง">

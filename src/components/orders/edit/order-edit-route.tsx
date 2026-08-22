@@ -141,8 +141,8 @@ function OrderEditRouteSession({
       loading={loading}
       skeleton={
         <div role="status" aria-label="กำลังโหลดฟอร์มแก้ออเดอร์" className="space-y-4">
-          <Skeleton className="h-12 rounded-2xl" />
-          <Skeleton className="h-72 rounded-2xl" />
+          <Skeleton className="h-12 rounded-lg" />
+          <Skeleton className="h-72 rounded-lg" />
         </div>
       }
       error={

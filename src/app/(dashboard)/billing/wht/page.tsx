@@ -118,7 +118,7 @@ function exportWhtCsv(rows: WhtRow[]) {
 
 export default function WhtRegisterPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <WhtRegisterPageContent />
     </Suspense>
   );
@@ -531,7 +531,7 @@ function WhtRegisterPageContent() {
                 แนบสแกนหนังสือรับรอง (ถ้ามี)
               </p>
               {fileUrl && (
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm">
                   <a
                     href={fileUrl}
                     target="_blank"

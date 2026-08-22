@@ -24,7 +24,7 @@ export function TablePagination({
   const to = limit ? Math.min(page * limit, total) : null;
 
   return (
-    <nav aria-label="การแบ่งหน้า" className="flex items-center justify-between border-t border-slate-100 px-4 py-3 dark:border-white/10">
+    <nav aria-label="การแบ่งหน้า" className="flex items-center justify-between border-t border-divider px-4 py-3">
       <p className="text-xs tabular-nums text-muted">
         {from != null ? `แสดง ${from}–${to} จาก ${total} ${label}` : `ทั้งหมด ${total} ${label}`}
       </p>

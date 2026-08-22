@@ -29,7 +29,7 @@ export function OrderMockupHandoff({
   const designs = trpc.design.listByOrder.useQuery({ orderId });
 
   if (designs.isLoading) {
-    return <Skeleton className="h-20 rounded-2xl" />;
+    return <Skeleton className="h-20 rounded-lg" />;
   }
   // โหลดพังตรงนี้ไม่ใช่เรื่องคอขาดบาดตาย — แท็บม็อกอัพมี error+retry เต็มรูปแบบอยู่แล้ว
   // แถบสรุปจึงเงียบไปแทนที่จะเอา error มาขวางงานตรวจรับ/QC ที่อยู่ใต้ลงไป

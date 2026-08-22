@@ -219,7 +219,7 @@ export function OrderDeliverySection({
                     return (
                       <div
                         key={delivery.id}
-                        className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
+                        className="rounded-lg border border-border p-4"
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0 space-y-2">

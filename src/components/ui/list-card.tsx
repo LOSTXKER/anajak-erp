@@ -52,7 +52,7 @@ export function ListCardMetaGrid({
   return (
     <div
       className={cn(
-        "mt-3 grid gap-3 border-t border-slate-100 pt-3 text-xs dark:border-slate-800",
+        "mt-3 grid gap-3 border-t border-divider pt-3 text-xs",
         columns === 3 ? "grid-cols-3" : "grid-cols-2",
         className
       )}

@@ -249,7 +249,7 @@ function exportOrdersCsv(
 
 export default function OrdersPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <OrdersPageContent />
     </Suspense>
   );

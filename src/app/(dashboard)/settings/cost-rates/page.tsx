@@ -247,7 +247,7 @@ export default function CostRatesSettingsPage() {
               </div>
 
               {/* ตัวอย่างคำนวณสด — อัปเดตตามค่าที่กรอก */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/60">
+              <div className="rounded-lg border border-border bg-surface-muted p-3">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                   ตัวอย่างคำนวณ
                 </p>

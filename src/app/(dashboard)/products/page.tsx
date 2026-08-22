@@ -50,7 +50,7 @@ const typeConfig: Record<string, { label: string }> = {
 
 export default function ProductsPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <ProductsPageContent />
     </Suspense>
   );
@@ -247,7 +247,7 @@ function ProductsPageContent() {
               <Link
                 key={product.id}
                 href={`/products/${product.id}`}
-                className={cn("block rounded-2xl", FOCUS_BUTTON)}
+                className={cn("block rounded-lg", FOCUS_BUTTON)}
               >
                 <div className="card-surface card-surface-hover group h-full overflow-hidden rounded-lg transition-all">
                   <div className="relative flex h-44 items-center justify-center bg-slate-100 dark:bg-slate-800">

@@ -115,7 +115,7 @@ export function StatCard({
       href={href}
       aria-label={`ดูรายการ ${title}: ${value}`}
       className={cn(
-        "block h-full rounded-xl", FOCUS_BUTTON,
+        "block h-full rounded-lg", FOCUS_BUTTON,
         className
       )}
     >

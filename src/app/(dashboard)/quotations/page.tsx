@@ -59,7 +59,7 @@ function QuotationStatusLabel({ status }: { status: string }) {
 
 export default function QuotationsPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <QuotationsPageContent />
     </Suspense>
   );

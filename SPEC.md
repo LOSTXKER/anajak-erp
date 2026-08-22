@@ -28,6 +28,7 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **รายการออเดอร์เริ่มจากงาน ไม่เริ่มจากแผงสถานะ** — มือถือเห็นรายการหรือ empty/error ที่ลงมือทำได้ก่อน `y=600` · จอกว้างเห็น status rail ครบ · search/filter/sort/pagination/CSV ยังใช้งานจริง
 - [x] **เปิดงานและรายละเอียดคง flow เดิม** — draft/validation/upload/`next=quote`/duplicate/status/เอกสาร/แท็บ URL+Back ผ่าน service/server guard เดิม · แท็บเป็น underline minimal และไม่เสีย ARIA/keyboard
 - [x] **พื้นผิวแยกตามหน้าที่ ไม่กลืนกัน** — `Section` ที่เป็นกลุ่มหลักและ `DataTable` อยู่ใน panel เดียวกับเนื้อหาที่สัมพันธ์กัน; หัว panel/หัวตาราง/แถวใช้ divider ต่อเนื่องและไม่ย้อม hover รายช่อง · panel เป็นขาว/neutral dark พร้อม hairline edgeไร้เงา · field/toolbar/secondary action ใช้พื้น panel+ขอบบาง · overlay มี elevation สูงสุด · focus/error/selected ต้องชนะสถานะปกติอย่างชัดเจน
+- [x] **ไม่มี visual island หลุดจากระบบกลาง** — panel, mobile record, alert, context, loading และพื้นที่ทำงาน Production/Station ใช้มุม 8px ขอบ semantic ระยะภายใน 20px ตามพื้นที่ และไม่มีเงาตกแต่ง; pill คงไว้เฉพาะ status/switch และเงาคงไว้เฉพาะ overlay ที่ลอยจริง โดยไม่ลดเป้ากด Station หรือเปลี่ยน no-money boundary
 - [x] **รายการงานแยกเป็นการ์ดที่อ่านออกทันที** — หน้าเปิดงานและหน้าแก้ไขใช้หนึ่งรายการต่อหนึ่ง card โดยตรงบน workspace และห้าม card ซ้อนโดยไม่เพิ่มความหมาย · CTA “เพิ่มรายการ” อยู่เหนือ list และเห็นได้ก่อนเลื่อน · hierarchy อ่านได้ทั้ง desktop/mobile และกลับชั้นผิวครบใน Dark
 
 ## 🧩 UX integrity refactor (Impeccable audit 2026-08-13)

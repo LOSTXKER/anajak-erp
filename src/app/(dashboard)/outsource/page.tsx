@@ -246,7 +246,7 @@ export default function OutsourcePage() {
         {loadingOrders ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-xl" />
+              <Skeleton key={i} className="h-32 rounded-lg" />
             ))}
           </div>
         ) : visibleOrders.length === 0 ? (

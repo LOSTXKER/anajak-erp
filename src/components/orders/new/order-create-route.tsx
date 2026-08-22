@@ -27,8 +27,8 @@ export function OrderCreateRoute() {
       loading={meQuery.isLoading}
       skeleton={
         <div role="status" aria-label="กำลังตรวจสอบสิทธิ์" className="space-y-4">
-          <Skeleton className="h-12 rounded-2xl" />
-          <Skeleton className="h-72 rounded-2xl" />
+          <Skeleton className="h-12 rounded-lg" />
+          <Skeleton className="h-72 rounded-lg" />
         </div>
       }
       error={

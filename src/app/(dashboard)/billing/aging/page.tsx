@@ -58,7 +58,7 @@ const PAGE_SIZE = 20;
 
 export default function AgingPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <AgingPageContent />
     </Suspense>
   );

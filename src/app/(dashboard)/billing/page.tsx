@@ -73,7 +73,7 @@ function paymentActionLabel(status: string, type: string) {
 
 export default function BillingPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <BillingPageContent />
     </Suspense>
   );

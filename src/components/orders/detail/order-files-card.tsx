@@ -75,7 +75,7 @@ function FileThumb({
           className="h-28 w-28 rounded-lg border border-slate-200 object-cover transition-shadow hover:shadow-md dark:border-slate-700"
         />
       ) : (
-        <div className="flex h-28 w-28 flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+        <div className="flex h-28 w-28 flex-col items-center justify-center rounded-lg border border-border bg-surface-muted transition-colors hover:border-border-strong hover:bg-interactive-hover">
           <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-600" />
           <span className="mt-1 text-2xs text-slate-400">
             {att.fileName.split(".").pop()?.toUpperCase()}

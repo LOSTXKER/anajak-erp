@@ -57,11 +57,11 @@ function DashboardSkeleton() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-3">
-        <Skeleton className="h-72 rounded-2xl lg:col-span-2" />
-        <Skeleton className="h-72 rounded-2xl" />
+        <Skeleton className="h-72 rounded-lg lg:col-span-2" />
+        <Skeleton className="h-72 rounded-lg" />
       </div>
-      <Skeleton className="h-32 rounded-2xl" />
-      <Skeleton className="h-80 rounded-2xl" />
+      <Skeleton className="h-32 rounded-lg" />
+      <Skeleton className="h-80 rounded-lg" />
     </div>
   );
 }
@@ -153,7 +153,7 @@ function AttentionPanel({
       ) : loading ? (
         <div className="space-y-1 p-5">
           {[0, 1, 2].map((index) => (
-            <Skeleton key={index} className="h-16 rounded-xl" />
+            <Skeleton key={index} className="h-16 rounded-lg" />
           ))}
         </div>
       ) : error ? (

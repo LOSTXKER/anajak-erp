@@ -59,7 +59,7 @@ const sectionLabelClass =
 export default function NewQuotationPage() {
   // useSearchParams ต้องอยู่ใต้ Suspense (ข้อบังคับ Next.js ตอน prerender)
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <QuotationFormPage />
     </Suspense>
   );
@@ -312,7 +312,7 @@ function QuotationFormPage() {
             : null
       }
       loading={redirectToCanonicalIntake}
-      skeleton={<Skeleton className="h-96 rounded-2xl" />}
+      skeleton={<Skeleton className="h-96 rounded-lg" />}
       denied={
         !!me &&
         !canAuthor && {
@@ -412,7 +412,7 @@ function QuotationFormPage() {
               return (
                 <div
                   key={idx}
-                  className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/30"
+                  className="space-y-3 rounded-lg border border-border bg-surface-muted p-4"
                 >
                   {/* Item header */}
                   <div className="flex items-center justify-between">

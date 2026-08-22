@@ -669,6 +669,16 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 - [x] **VP4 responsive + Dark** — desktop/tablet/mobile ใช้ panel เดียวกันโดยไม่ล้น; mobile record card ยังแตะ ≥44px และ spacing ไม่แน่นเพราะ card ซ้อน · Dark กลับพื้น/card/border/hover ครบ ✅ 2026-08-23
 - [x] **VP5 verify + handoff** — ตรวจ `/`, `/orders`, `/production`, `/billing`, `/settings`, `/products`, `/factory/station` ที่ 1440×900 + 390×844 Light/Dark พร้อม hover/focus/loading/error/empty · typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน อัปเดต SPEC/DESIGN/PROGRESS/surface brief และ commit ก้อนเล็ก ✅ 2026-08-23
 
+#### ใบงาน VERCEL-CONSISTENCY — เก็บส่วนที่ยังพูดคนละภาษา (เบสสั่งต่อ 2026-08-23)
+
+> audit จอจริงพบว่าหน้าหลักใช้ panel 8px ไร้เงาแล้ว แต่ใบผลิต, Station, mobile record link, alert/context และ loading บางชุดยังค้างมุม 12–16px หรือ `shadow-sm` จาก visual system รุ่นก่อน · งานนี้แก้ presentation contract ที่ component กลางและ surface เฉพาะเท่านั้น ไม่เปลี่ยน flow, query, mutation, permission, status transition, public/print contract หรือ no-money boundary
+
+- [x] **VC1 primitive rhythm เดียว** — `Card`, `Section`, `StatCard`, `ListCard`, `Alert`, `ContextPanel`, `AddCard`, skeleton และ pagination ใช้มุม/spacing/divider ตาม Vercel Panel System; pill/overlay/รูปทรงเฉพาะหน้าที่ยังคงได้เมื่อมี semantic จริง ✅ 2026-08-23
+- [x] **VC2 production + Station ไม่เป็น visual island** — panel หลักของ production control/detail และ Station ใช้ 8px + border semantic + ไม่มี decorative shadow โดยคงโครง current/ready/blocked, เป้ากด, sticky action และ no-money เดิม ✅ 2026-08-23
+- [x] **VC3 record/list consistency** — ลิงก์ครอบ card, mobile record, alert และ context panel ไม่เผย radius 12–16px รอบ card 8px; table/list divider และ padding ใช้ token กลาง ✅ 2026-08-23
+- [x] **VC4 responsive + states** — ตรวจ desktop 1440, tablet 640/1024 และ mobile 390 ทั้ง Light/Dark; loading/empty/error/disabled/hover/focus ไม่กระโดดข้ามภาษา และไม่มี overflow/card ซ้อน ✅ 2026-08-23
+- [x] **VC5 verify + handoff** — browser representative ครบ dashboard/orders/order detail/create/production/detail/billing/settings/stock/products/detail/quotations/detail/outsource/Station · typecheck/lint/unit/verify:ui/detector/build ผ่าน อัปเดต SPEC/DESIGN/PROGRESS/surface brief และ commit แยกก้อน ✅ 2026-08-23
+
 #### ใบงานต้นแบบ ERP Command Center — ออกแบบใหม่ทั้งระบบแบบไม่ตีกรอบ (เบสสั่ง 2026-08-14)
 
 > พิสูจน์ “ภาษาใหม่ทั้งระบบ” จากของจริงก่อนรื้อหน้าหลัก: แนว **สายการผลิตบนกริด** (Swiss industrial manual + ใบสั่งงานโรงงาน) และน้ำเงิน Anajak `#3973b2` · เว็บอนาคตเป็นอีกช่องทางรับออเดอร์เข้าสู่วงจรเดียว ไม่สร้างหลังบ้าน POD แยก

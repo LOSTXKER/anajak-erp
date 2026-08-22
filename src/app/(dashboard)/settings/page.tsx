@@ -172,8 +172,8 @@ export default function SettingsPage() {
           <div key={group} className="space-y-2">
             <Skeleton className="h-4 w-32" />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <Skeleton className="h-20 rounded-2xl" />
-              <Skeleton className="h-20 rounded-2xl" />
+              <Skeleton className="h-20 rounded-lg" />
+              <Skeleton className="h-20 rounded-lg" />
             </div>
           </div>
         ))}

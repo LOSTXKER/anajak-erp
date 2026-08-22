@@ -57,8 +57,8 @@ export function StationOrderWorkspace({
   if (query.isLoading && !context) {
     return (
       <div className="space-y-5">
-        <Skeleton className="h-20 rounded-2xl" />
-        <Skeleton className="h-72 rounded-2xl" />
+        <Skeleton className="h-20 rounded-lg" />
+        <Skeleton className="h-72 rounded-lg" />
       </div>
     );
   }
@@ -375,7 +375,7 @@ function StationPackingCard({
   });
 
   if (packQuery.isLoading && !packQuery.data) {
-    return <Skeleton className="h-72 rounded-2xl" />;
+    return <Skeleton className="h-72 rounded-lg" />;
   }
   if (packQuery.isError && !packQuery.data) {
     return (

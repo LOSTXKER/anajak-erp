@@ -11,7 +11,7 @@ import { TINT } from "./tokens";
  */
 
 const alertVariants = cva(
-  "flex gap-2 rounded-xl border p-3 text-sm leading-relaxed",
+  "flex gap-2 rounded-lg border p-3 text-sm leading-relaxed",
   {
     variants: { variant: TINT },
     defaultVariants: { variant: "info" },

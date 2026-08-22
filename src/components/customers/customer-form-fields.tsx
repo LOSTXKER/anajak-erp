@@ -148,7 +148,7 @@ export function CustomerFormFields({
       </div>
 
       {(isCorporate || hasCorporateLeftover) && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+        <div className="rounded-lg border border-border bg-surface-muted p-4">
           <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
             ข้อมูลนิติบุคคล
           </h4>

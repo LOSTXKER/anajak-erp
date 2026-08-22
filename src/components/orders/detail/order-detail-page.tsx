@@ -96,7 +96,7 @@ function OrderDetailSkeleton() {
           <Skeleton className="h-4 w-36" />
         </div>
       </div>
-      <Skeleton className="h-20 rounded-xl" />
+      <Skeleton className="h-20 rounded-lg" />
       {/* โครงต้องตรงกับของจริง (แถบแท็บ + เนื้อหาเต็มความกว้าง) ไม่งั้นจอกระโดดตอนโหลดเสร็จ */}
       <div className="flex h-11 items-center gap-6 overflow-hidden border-b border-slate-200/70 dark:border-white/10">
         <Skeleton className="h-4 w-16 rounded" />
@@ -104,9 +104,9 @@ function OrderDetailSkeleton() {
         <Skeleton className="h-4 w-16 rounded" />
       </div>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Skeleton className="h-40 rounded-xl md:col-span-2" />
-        <Skeleton className="h-64 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-40 rounded-lg md:col-span-2" />
+        <Skeleton className="h-64 rounded-lg" />
+        <Skeleton className="h-64 rounded-lg" />
       </div>
     </div>
   );
@@ -132,7 +132,7 @@ function OrderFilesPanel({
   if (isInitialLoading) {
     return (
       <div role="status" aria-label="กำลังโหลดไฟล์แนบออเดอร์">
-        <Skeleton className="h-56 rounded-xl" />
+        <Skeleton className="h-56 rounded-lg" />
       </div>
     );
   }
@@ -708,7 +708,7 @@ function OrderDetailContent({
       {/* จองสต๊อคมีปัญหา — ต้องเห็นทันทีบนหน้าออเดอร์ (ด่านพร้อมผลิตจะกั้นงานไม่ให้เข้าคิวช่างอยู่แล้ว
           แต่คนแก้ต้นเหตุคือคนที่เปิดหน้านี้) · จองสำเร็จดูได้จากประวัติออเดอร์ */}
       {order.stockReservationError && (
-        <div className={cn(TINT.error, "flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 text-sm")}>
+        <div className={cn(TINT.error, "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-sm")}>
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span className="min-w-0 flex-1">
             <span className="font-medium">จองสต๊อคไม่สำเร็จ:</span> {order.stockReservationError}
@@ -736,7 +736,7 @@ function OrderDetailContent({
           อยู่นอกแท็บเพราะคนแพ็คทำงานอยู่แท็บ "จัดส่ง" — เดิมอยู่ในการ์ดแท็บภาพรวมที่ไม่มีใครกลับไปเปิด
           เขียนเป็นประโยคเต็ม ไม่ใช้ไอคอน/สีล้วน (สีบอกว่า "มีอะไรบางอย่าง" แต่ไม่บอกว่าต้องทำอะไร) */}
       {order.blindShip && (
-        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-xl border px-4 py-3 text-sm")}>
+        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
           <span className="font-medium">ส่งแบบไม่ระบุผู้ส่ง</span>
           <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
             ชื่อผู้ส่งบนกล่อง:{" "}
@@ -746,7 +746,7 @@ function OrderDetailContent({
       )}
 
       {order.notes?.trim() && (
-        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-xl border px-4 py-3 text-sm")}>
+        <div className={cn(TINT.warning, "flex flex-wrap gap-x-2 gap-y-1 rounded-lg border px-4 py-3 text-sm")}>
           <span className="font-medium">หมายเหตุใบนี้</span>
           <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{order.notes}</span>
         </div>

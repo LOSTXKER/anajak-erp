@@ -315,7 +315,7 @@ export function ProductPickerDialog({
 
                       {/* Expanded: variant selection with checkboxes + qty */}
                       {isExpanded && product.variants.length > 0 && (
-                        <div className="mx-1 mb-1 overflow-hidden rounded-xl border border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50 sm:ml-10 sm:mr-3">
+                        <div className="mx-1 mb-1 overflow-hidden rounded-lg border border-border bg-surface-muted sm:ml-10 sm:mr-3">
                           <table className="block w-full text-xs sm:table sm:table-fixed">
                             <thead className={cn(TABLE_HEAD_SURFACE, "hidden sm:table-header-group")}>
                               <tr>
@@ -468,7 +468,7 @@ export function ProductPickerDialog({
 
                       {/* No variants -- allow direct manual add */}
                       {isExpanded && product.variants.length === 0 && (
-                        <div className="mb-1 ml-10 mr-3 rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-center text-xs text-slate-400 dark:border-slate-800 dark:bg-slate-800/50">
+                        <div className="mb-1 ml-10 mr-3 rounded-lg border border-border bg-surface-muted p-3 text-center text-xs text-muted">
                           สินค้านี้ไม่มี variant -- ใช้ &quot;เพิ่มรายการด้วยตนเอง&quot; แทน
                         </div>
                       )}

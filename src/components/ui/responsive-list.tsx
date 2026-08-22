@@ -29,7 +29,7 @@ function DefaultLoadingState() {
     <div role="status" aria-label="กำลังโหลดข้อมูล" className="space-y-3 py-2">
       <span className="sr-only">กำลังโหลดข้อมูล</span>
       {Array.from({ length: 4 }, (_, index) => (
-        <Skeleton key={index} className="h-20 w-full rounded-2xl" />
+        <Skeleton key={index} className="h-20 w-full rounded-lg" />
       ))}
     </div>
   );

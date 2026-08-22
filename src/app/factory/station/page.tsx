@@ -7,8 +7,8 @@ export default function FactoryStationPage() {
     <Suspense
       fallback={
         <div className="space-y-4 p-6">
-          <Skeleton className="h-16 rounded-2xl" />
-          <Skeleton className="h-80 rounded-2xl" />
+          <Skeleton className="h-16 rounded-lg" />
+          <Skeleton className="h-80 rounded-lg" />
         </div>
       }
     >

@@ -26,8 +26,8 @@ export function ContextPanel({
   const Icon = icon ?? config.icon;
 
   return (
-    <aside className={cn("flex gap-3 rounded-2xl p-4", config.shell, className)}>
-      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", config.mark)} aria-hidden="true">
+    <aside className={cn("flex gap-3 rounded-lg p-4", config.shell, className)}>
+      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", config.mark)} aria-hidden="true">
         <Icon className="h-4.5 w-4.5" />
       </span>
       <div className="min-w-0 pt-0.5 text-sm leading-relaxed">

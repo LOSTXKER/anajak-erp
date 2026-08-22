@@ -413,7 +413,7 @@ export default function StockSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Sync status summary */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+            <div className="rounded-lg border border-border bg-surface-muted p-4">
               {statusError ? (
                 <QueryError
                   message="โหลดสถานะ Stock ไม่สำเร็จ"

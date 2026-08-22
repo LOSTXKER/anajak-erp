@@ -83,7 +83,7 @@ export function ProductionNowCard({
 }) {
   if (allDone) {
     return (
-      <section className={cn(TINT.success, "flex items-center gap-3 rounded-2xl border px-5 py-4")}>
+      <section className={cn(TINT.success, "flex items-center gap-3 rounded-lg border px-5 py-4")}>
         <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
         <div>
           <h2 className="font-semibold">งานผลิตส่วนนี้เสร็จแล้ว</h2>

@@ -107,7 +107,7 @@ function ProductionWorkspace() {
           <>
             <Skeleton className="h-11 rounded-full" />
             <Skeleton className="h-11 rounded-full" />
-            <Skeleton className="h-96 rounded-2xl" />
+            <Skeleton className="h-96 rounded-lg" />
           </>
         }
         // โหลดแรกพังต้องบอกตรง ๆ · background refetch พังให้คงข้อมูลเดิมแล้วเตือนในหน้า
@@ -178,7 +178,7 @@ function ProductionWorkspace() {
 export default function ProductionPage() {
   // useSearchParams ต้องอยู่ใต้ Suspense (ข้อบังคับ Next.js ตอน prerender)
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <ProductionWorkspace />
     </Suspense>
   );

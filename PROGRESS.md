@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ VERCEL CONSISTENCY — เก็บส่วนที่ยังพูดคนละภาษา 2026-08-23**
+> primitive กลาง `Card`, `StatCard`, `Alert`, `ContextPanel`, `AddCard`, list/pagination และ loading ใช้มุม 8px, border/divider semantic และไม่มีเงาตกแต่งชุดเดียวกันแล้ว · `Card` ล็อกระยะในหลักที่ 20px · mobile record, ฟอร์ม และข้อความเตือนที่เคยค้างมุม 12–16px ถูกดึงกลับเข้าระบบโดยไม่ทำ card ซ้อน
+>
+> Production control/detail และ Station ใช้ panel geometry เดียวกับหลังบ้านครบ โดยยังรักษา current/ready/blocked, touch target, sticky action และ no-money boundary เดิม · pill/overlay ที่มีหน้าที่จริงยังคงรูปทรง/elevation ของมัน
+>
+> **หลักฐานจอจริง:** ตรวจ 44 ชุด route/viewport/theme ครอบคลุม dashboard, orders/list/detail/create, production/list/detail, billing, settings/stock, products/list/detail, quotations/list/detail/create, outsource และ Station ที่ 1440/1024/640/390px ทั้ง Light/Dark — ไม่พบ panel มุม 12–16px, decorative shadow, nested card หรือ horizontal overflow · ภาพอยู่ `.impeccable/review/vercel-consistency-*`
+>
+> **ด่านส่งมอบ:** `verify:ui`, typecheck, lint, full unit, production build และ `git diff --check` ผ่าน · Impeccable detector รันหนึ่งรอบ พบ 2 จุดและแก้ครบ: สีปุ่มลบให้ตรง warning surface และแก้ comment ที่ทำให้ rule อ่านเป็น image element ผิด
+>
+> **ขอบเขต:** presentation/test/docs เท่านั้น ไม่มี dependency, schema, API, query, mutation, permission, status transition หรือ business flow เปลี่ยน · รักษา `scripts/verify-artwork.ts`, `.cursor/` และ `public/` ที่ค้างอยู่ไว้นอก commit
+>
+> **ต่อที่นี่:** ให้เบสลองใบผลิต, Station และฟอร์มที่ใช้ประจำใน Light/Dark; ถ้ายังเจอจุดหลุด ให้ชี้ surface นั้นแล้วแก้ที่ primitive เจ้าของก่อน caller
+
 > **✅ VERCEL PANEL SYSTEM — เนื้อหาอยู่บน panel เรียบแบบ Vercel 2026-08-23**
 > Light workspace เปลี่ยนเป็น off-white `#fafafa` โดย chrome/panel ขาว; Dark ใช้พื้นดำกับ panel `#0a0a0a` · panel ทุกชนิดใช้เส้น 1px มุม 8px ไม่มีเงาตกแต่ง และ overlay เท่านั้นที่ลอย · `Section` ที่มีขอบกับ `DataTable` รวมข้อมูลที่สัมพันธ์กันเป็นก้อนเดียวโดยไม่เกิด card ซ้อน card
 >

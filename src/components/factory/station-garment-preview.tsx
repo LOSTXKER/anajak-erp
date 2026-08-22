@@ -112,7 +112,7 @@ function GarmentPlacementDiagram({
     return (
       <figure
         data-station-no-shirt-diagram=""
-        className="flex min-h-44 flex-col items-center justify-center rounded-xl border border-divider bg-surface-muted p-4 text-center"
+        className="flex min-h-44 flex-col items-center justify-center rounded-lg border border-divider bg-surface-muted p-4 text-center"
       >
         <Package className="h-8 w-8 text-muted" aria-hidden="true" />
         <figcaption className="mt-3">
@@ -129,7 +129,7 @@ function GarmentPlacementDiagram({
   }
 
   return (
-    <figure className="flex h-full flex-col rounded-xl border border-divider bg-surface-muted p-3">
+    <figure className="flex h-full flex-col rounded-lg border border-divider bg-surface-muted p-3">
       <div
         className="relative mx-auto aspect-[4/3] w-full max-w-44 text-slate-500 dark:text-slate-300"
         role="img"
@@ -222,7 +222,7 @@ function ApprovedDesignReference({
   return (
     <section
       data-station-approved-reference=""
-      className="overflow-hidden rounded-2xl border border-border bg-surface"
+      className="overflow-hidden rounded-lg border border-border bg-surface"
       aria-labelledby="station-approved-reference-title"
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
@@ -304,7 +304,7 @@ function ApprovedDesignReference({
                     label: item.sideLabel ? `${label} — ${item.sideLabel}` : label,
                   })
                 }
-                className="block overflow-hidden rounded-xl border border-border bg-white outline-none ring-inset focus-visible:ring-2 focus-visible:ring-ring"
+                className="block overflow-hidden rounded-lg border border-border bg-white outline-none ring-inset focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label={`ขยาย${label}${item.sideLabel ? ` ${item.sideLabel}` : ""}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -400,7 +400,7 @@ function StationPrintRow({
         )}
       >
         {artImage ? (
-          <figure className="flex h-full flex-col overflow-hidden rounded-xl border border-divider bg-surface-muted">
+          <figure className="flex h-full flex-col overflow-hidden rounded-lg border border-divider bg-surface-muted">
             {artImageFailed ? (
               <div
                 data-station-art-image-error=""
@@ -492,7 +492,7 @@ function StationGarmentSummary({
       ) : null}
       <div
         className={cn(
-          "divide-y divide-divider overflow-hidden rounded-xl border border-border bg-surface",
+          "divide-y divide-divider overflow-hidden rounded-lg border border-border bg-surface",
           showHeading && "mt-3",
         )}
       >
@@ -556,7 +556,7 @@ function StationWorkGroupSection({
     <section
       data-station-work-group={groupKey}
       aria-labelledby={`station-work-group-${groupKey}`}
-      className="space-y-4 rounded-2xl border border-border bg-surface p-4 sm:p-5"
+      className="space-y-4 rounded-lg border border-border bg-surface p-4 sm:p-5"
     >
       <header>
         <p className="text-xs font-semibold text-blue-600 dark:text-blue-300">
@@ -577,7 +577,7 @@ function StationWorkGroupSection({
       {group.prints.length > 0 ? (
         <section aria-label={`จุดที่ต้องทำสำหรับ ${workLabel}`}>
           <h5 className="text-base font-semibold text-strong">จุดที่ต้องทำ</h5>
-          <ul className="mt-3 divide-y divide-divider overflow-hidden rounded-xl border border-border bg-surface">
+          <ul className="mt-3 divide-y divide-divider overflow-hidden rounded-lg border border-border bg-surface">
             {group.prints.map((print, printIndex) => (
               <StationPrintRow
                 key={`${print.id ?? `${print.position}|${print.printType}|${printIndex}`}|${print.imageUrl ?? ""}`}

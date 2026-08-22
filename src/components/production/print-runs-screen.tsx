@@ -210,12 +210,12 @@ export function PrintRunsScreen({
         <div className="space-y-6">
           <div className="grid items-start gap-4 lg:grid-cols-[minmax(18rem,4fr)_minmax(0,6fr)] xl:grid-cols-[minmax(22rem,5fr)_minmax(0,7fr)]">
             <div className="space-y-4">
-              <Skeleton className="h-32 rounded-2xl" />
-              <Skeleton className="h-32 rounded-2xl" />
+              <Skeleton className="h-32 rounded-lg" />
+              <Skeleton className="h-32 rounded-lg" />
             </div>
-            <Skeleton className="h-72 rounded-2xl" />
+            <Skeleton className="h-72 rounded-lg" />
           </div>
-          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-lg" />
         </div>
       }
     >

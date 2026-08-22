@@ -136,11 +136,11 @@ export function ProductionControlRecord({
   const firstMissingGarment = missingGarmentLines[0];
   const aggregateGarmentMetrics = (garment?.lines.length ?? 0) > 1;
   const garmentQueryNotice = garmentQuery.isLoading && hasGarmentPickStep ? (
-    <Skeleton className="h-24 rounded-xl" role="status" aria-label="กำลังตรวจหลักฐานการเบิกเสื้อ" />
+    <Skeleton className="h-24 rounded-lg" role="status" aria-label="กำลังตรวจหลักฐานการเบิกเสื้อ" />
   ) : hasGarmentPickStep && garmentQuery.isError && !garmentQuery.data ? (
     <section
       aria-labelledby="garment-readiness-error-title"
-      className={cn(TINT.error, "flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between")}
+      className={cn(TINT.error, "flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between")}
     >
       <div className="flex items-start gap-3 text-red-800 dark:text-red-200">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
@@ -156,7 +156,7 @@ export function ProductionControlRecord({
   ) : garmentDataStale ? (
     <section
       aria-label="คำเตือนข้อมูลเสื้อไม่สด"
-      className={cn(TINT.warning, "flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between")}
+      className={cn(TINT.warning, "flex flex-col gap-3 rounded-lg border px-4 py-3 sm:flex-row sm:items-center sm:justify-between")}
     >
       <p role="alert" className="flex items-start gap-2 text-sm font-medium">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -181,7 +181,7 @@ export function ProductionControlRecord({
       className="min-h-[calc(100dvh-4rem)] bg-bg px-4 py-5 sm:px-6 lg:px-8 lg:py-6"
     >
       <div className="mx-auto max-w-[78rem] space-y-5">
-        <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+        <section className="card-surface overflow-hidden rounded-lg">
           <div className="px-4 py-4 sm:px-5 sm:py-5">
             <nav aria-label="ตำแหน่งปัจจุบัน" className="flex items-center gap-1.5 text-xs text-muted">
               <Link href="/production" className="font-medium text-blue-700 hover:underline dark:text-blue-300">
@@ -265,7 +265,7 @@ export function ProductionControlRecord({
           <section
             aria-labelledby="production-attention-title"
             className={cn(
-              "overflow-hidden rounded-2xl border shadow-sm",
+              "overflow-hidden rounded-lg border",
               attention.tone === "danger" ? TINT.error : TINT.warning,
             )}
           >
@@ -298,7 +298,7 @@ export function ProductionControlRecord({
                         ไซส์ {firstMissingGarment.size}{firstMissingGarment.color ? ` · สี ${firstMissingGarment.color}` : ""}
                       </p>
                     </div>
-                    <dl className="grid shrink-0 grid-cols-3 divide-x divide-divider overflow-hidden rounded-xl border border-border bg-surface text-center tabular-nums">
+                    <dl className="grid shrink-0 grid-cols-3 divide-x divide-divider overflow-hidden rounded-lg border border-border bg-surface text-center tabular-nums">
                       <div className="px-3 py-2">
                         <dt className="text-2xs text-muted">{aggregateGarmentMetrics ? "ต้องใช้รวม" : "ต้องใช้"}</dt>
                         <dd className="mt-0.5 text-lg font-semibold text-strong">{garment.totalNeeded}</dd>
@@ -314,7 +314,7 @@ export function ProductionControlRecord({
                     </dl>
                   </div>
                 ) : attentionRow ? (
-                  <dl className="grid grid-cols-2 gap-3 rounded-xl bg-surface px-3 py-3">
+                  <dl className="grid grid-cols-2 gap-3 rounded-lg bg-surface px-3 py-3">
                     <div>
                       <dt className="text-2xs font-medium text-muted">ผลจริง</dt>
                       <dd className="mt-1 font-semibold tabular-nums text-strong">{attentionRow.actualLabel}</dd>
@@ -325,7 +325,7 @@ export function ProductionControlRecord({
                     </div>
                   </dl>
                 ) : (
-                  <p className="rounded-xl bg-surface px-3 py-2 text-sm text-secondary">
+                  <p className="rounded-lg bg-surface px-3 py-2 text-sm text-secondary">
                     {attention.detail || "ยังไม่มีรายละเอียดเพิ่มเติม"}
                   </p>
                 )}
@@ -358,7 +358,7 @@ export function ProductionControlRecord({
         {attention?.kind === "step" ? garmentQueryNotice : null}
 
         <div className="grid items-start gap-5 min-[1500px]:grid-cols-[minmax(0,1.75fr)_minmax(19rem,0.75fr)]">
-          <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm" aria-labelledby="production-ledger-title">
+          <section className="card-surface overflow-hidden rounded-lg" aria-labelledby="production-ledger-title">
             <header className="border-b border-divider px-4 py-4 sm:px-5">
               <h2 id="production-ledger-title" className="font-semibold text-strong">เส้นทางงาน</h2>
               <p className="mt-0.5 text-xs text-muted">ผลจริง ผู้รับผิดชอบ และสิ่งที่ต้องรอในแต่ละขั้น</p>
@@ -433,7 +433,7 @@ export function ProductionControlRecord({
           </section>
 
           <div className="grid gap-4">
-            <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm" aria-labelledby="production-readiness-title">
+            <section className="card-surface overflow-hidden rounded-lg" aria-labelledby="production-readiness-title">
               <header className="border-b border-divider px-4 py-3.5">
                 <h2 id="production-readiness-title" className="font-semibold text-strong">ความพร้อม</h2>
                 <p className="mt-0.5 text-xs text-muted">เงื่อนไขก่อนส่งต่องาน</p>
@@ -476,7 +476,7 @@ export function ProductionControlRecord({
               ) : null}
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm" aria-labelledby="production-activity-title">
+            <section className="card-surface overflow-hidden rounded-lg" aria-labelledby="production-activity-title">
               <header className="border-b border-divider px-4 py-3.5">
                 <h2 id="production-activity-title" className="font-semibold text-strong">กิจกรรมและหลักฐาน</h2>
                 <p className="mt-0.5 text-xs text-muted">เหตุการณ์ล่าสุดของใบผลิตนี้</p>

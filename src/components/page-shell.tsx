@@ -97,7 +97,7 @@ export function PageShell({
   if (error) {
     body = <QueryError message={error.message} onRetry={error.onRetry} />;
   } else if (loading) {
-    body = skeleton ?? <Skeleton className="h-72 rounded-2xl" />;
+    body = skeleton ?? <Skeleton className="h-72 rounded-lg" />;
   } else if (denied) {
     body =
       typeof denied === "object" ? (

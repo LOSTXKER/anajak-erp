@@ -392,7 +392,7 @@ export default function MyTasksPage() {
       skeleton={
         <>
           {[0, 1, 2].map((index) => (
-            <Skeleton key={index} className="h-44 rounded-2xl" />
+            <Skeleton key={index} className="h-44 rounded-lg" />
           ))}
         </>
       }

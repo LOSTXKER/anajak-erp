@@ -40,7 +40,7 @@ export function ProductCardMobile({
   const fieldLabel = "mb-1 block text-xs text-slate-500 dark:text-slate-400";
 
   return (
-    <div className="space-y-2.5 rounded-xl border border-slate-200 p-3 dark:border-slate-700/60">
+    <div className="space-y-2.5 rounded-lg border border-border p-3">
       {/* หัวการ์ด: แหล่ง + เลื่อนลำดับ/ลบ */}
       <div className="flex items-center justify-between gap-2">
         {product.itemSource ? (

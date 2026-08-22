@@ -8,6 +8,8 @@
 - ทุก `PageHeader`/`PageShell` มี `description` สั้นหนึ่งประโยคใต้หัวข้อโดยอัตโนมัติจาก `pageDescriptionForLabel`; หน้าเฉพาะ override ได้เมื่อบริบทต่างกัน · `description` บอกว่าหน้านี้ใช้ทำอะไร, `meta` เป็นข้อเท็จจริงเฉพาะรายการ/สถานะ และ `help` ใช้เฉพาะสูตร กติกา หรือรายละเอียดเสริมที่ยาว · `Section` ไม่รับ `description` เพื่อไม่ให้ทุกกล่องมีข้อความซ้ำจนรก
 - `HelpTip` ใช้ Radix Popover เปิดด้วย click/tap/Enter/Space ปิดด้วย Escape/คลิกนอกและคืน focus; เนื้อหาไม่เกิน 2–3 ประโยค ส่วน error, validation, permission denial, blocker, กฎหมาย และผลกระทบจาก action ต้องเห็นตรงหน้า
 - `ContextPanel` ใช้กับคำอธิบายสำคัญที่ต้องเห็นค้างและไม่มี live-region role; error/warning/success ที่เกิดตาม state ยังใช้ `Alert`/`QueryError` เดิม
+- `Alert`, `ContextPanel`, `AddCard`, mobile record และพื้นที่ loading ใช้ panel geometry เดียวกันคือมุม 8px ขอบ semantic และไม่มีเงาตกแต่ง; ห้ามสร้าง visual island มุม 12–16px แทรกใน panel 8px
+- Production control/detail และ Station ใช้ panel geometry เดียวกับหลังบ้าน แม้ Station จะคงเป้ากดใหญ่และลำดับ current/ready/blocked; status pill, switch และ overlay ที่ลอยจริงเป็นข้อยกเว้นตามหน้าที่ ไม่ใช่รูปทรงเริ่มต้น
 - Public token ใช้ masthead กลางและรักษา blind-ship; print ใช้ `DocHeader` กลาง มีตราประเภทเอกสารที่ขาวดำยังแยกได้ และไม่เปลี่ยน contract ข้อมูล/กฎหมาย/ยอดรวม
 - ห้ามแสดงคำสั่ง CLI, ชื่อ environment หรือศัพท์ implementation ต่อผู้ใช้ เช่น `npm run ...` และ `demo-local`; ใช้คำงานจริง เช่น “ข้อมูลสำหรับทดลอง” และ “คืนข้อมูลตัวอย่าง”
 
@@ -151,6 +153,8 @@ Vercel Panel System ใช้ workspace เป็นฉากหลังแล�
 
 ตามที่ component มาตรฐานใช้อยู่: ฟอนต์ Prompt · ตัวเลขเงิน `tabular-nums` เสมอ ·
 mobile input ต้อง 16px กัน browser zoom; desktop control/body 14px · metadata อย่างน้อย 12px และต้องผ่าน contrast
+
+`Card` มาตรฐานใช้ inset แนวนอน 20px (`px-5`), หัวเริ่มที่ 16px และเว้นถึงเนื้อหา 12–16px, เนื้อหาจบที่ 20px; ใช้ระยะนี้กับ panel หลักก่อน override และห้ามลด/เพิ่มเพียงเพื่อชดเชยมุมหรือเงาของระบบเก่า
 
 **มุมโค้ง — ใช้ `RADIUS` จาก `ui/tokens.ts` เท่านั้น** (แก้ข้อมูลผิด 2026-08-02: เอกสารเคยบอกว่าปุ่ม/ช่องกรอกเป็น 8px ซึ่งไม่ตรงของจริง ทำตามแล้วมุมไม่เท่าหน้าอื่น):
 

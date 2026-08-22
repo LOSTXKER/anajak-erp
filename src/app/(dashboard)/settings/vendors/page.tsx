@@ -169,7 +169,7 @@ export default function VendorsSettingsPage() {
         {meQuery.isLoading || vendorsQuery.isLoading ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {[...Array(4)].map((_, index) => (
-              <Skeleton key={index} className="h-32 rounded-xl" />
+              <Skeleton key={index} className="h-32 rounded-lg" />
             ))}
           </div>
         ) : vendorsQuery.isError && !vendorsQuery.data ? (
@@ -194,7 +194,7 @@ export default function VendorsSettingsPage() {
             {vendorsQuery.data.map((vendor) => (
               <li
                 key={vendor.id}
-                className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
+                className="rounded-lg border border-border p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">

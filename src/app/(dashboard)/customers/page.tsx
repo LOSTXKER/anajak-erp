@@ -53,7 +53,7 @@ const SEGMENT_FILTERS = [
 
 export default function CustomersPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <CustomersPageContent />
     </Suspense>
   );
@@ -293,7 +293,7 @@ function CustomersPageContent() {
                 <ListCardItem key={customer.id}>
                   <Link
                     href={`/customers/${customer.id}`}
-                    className={cn("block min-h-11 rounded-2xl p-4", FOCUS_BUTTON)}
+                    className={cn("block min-h-11 rounded-lg p-4", FOCUS_BUTTON)}
                     aria-label={`เปิดข้อมูลลูกค้า ${customer.name}`}
                   >
                     <div className="flex items-start justify-between gap-3">

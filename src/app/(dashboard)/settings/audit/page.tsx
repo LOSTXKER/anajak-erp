@@ -16,7 +16,7 @@ import { PageShell } from "@/components/page-shell";
 
 export default function AuditLogPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <AuditLogContent />
     </Suspense>
   );

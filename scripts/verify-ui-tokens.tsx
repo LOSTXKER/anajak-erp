@@ -1240,6 +1240,53 @@ check(
     console.log("✅ caller ของ card-surface ไม่มีเส้นรอบ และใช้เฉพาะ semantic hover");
   }
 
+  const panelPrimitiveSources = [
+    "src/components/ui/card.tsx",
+    "src/components/ui/stat-card.tsx",
+    "src/components/ui/alert.tsx",
+    "src/components/ui/context-panel.tsx",
+    "src/components/ui/add-card.tsx",
+  ].map((path) => [path, readFileSync(path, "utf8")] as const);
+  const panelPrimitiveOffenders = panelPrimitiveSources.filter(
+    ([, source]) => /rounded-(?:xl|2xl|3xl)|shadow-sm/.test(source),
+  );
+  const cardPrimitiveSource = panelPrimitiveSources[0]?.[1] ?? "";
+  if (
+    panelPrimitiveOffenders.length > 0 ||
+    !cardPrimitiveSource.includes("px-5 pb-3 pt-4") ||
+    !cardPrimitiveSource.includes("px-5 pb-5 pt-0")
+  ) {
+    failed++;
+    console.log("❌ primitive panel/alert/context ต้องใช้มุม 8px ไร้เงาและจังหวะขอบ 20px ชุดเดียว");
+    panelPrimitiveOffenders.forEach(([path]) => console.log(`   ${path}`));
+  } else {
+    console.log("✅ primitive panel/alert/context ใช้มุม 8px ไร้เงาและจังหวะขอบ 20px ชุดเดียว");
+  }
+
+  const productionPanelSource = readFileSync(
+    "src/components/production/production-control-record.tsx",
+    "utf8",
+  );
+  const stationPanelSources = [
+    "src/components/factory/station-mode-screen.tsx",
+    "src/components/factory/station-current-layout.tsx",
+    "src/components/factory/station-queue-view.tsx",
+  ].map((path) => [path, readFileSync(path, "utf8")] as const);
+  const stationPanelOffenders = stationPanelSources.filter(
+    ([, source]) => /rounded-(?:xl|2xl|3xl)|shadow-sm/.test(source),
+  );
+  if (
+    /rounded-(?:xl|2xl|3xl)|shadow-sm/.test(productionPanelSource) ||
+    !productionPanelSource.includes('className="card-surface overflow-hidden rounded-lg"') ||
+    stationPanelOffenders.length > 0
+  ) {
+    failed++;
+    console.log("❌ Production/Station panel หลักต้องใช้มุม 8px และไม่มี decorative shadow");
+    stationPanelOffenders.forEach(([path]) => console.log(`   ${path}`));
+  } else {
+    console.log("✅ Production/Station panel หลักใช้มุม 8px และไม่มี decorative shadow");
+  }
+
   // Primitive สถานะคง divider ภายใน; หน้า orders เป็นผู้ครอบ panel ตาม Vercel Panel System
   const ordersStatusSource = readFileSync(
     "src/components/ui/flow-filter-bar.tsx",

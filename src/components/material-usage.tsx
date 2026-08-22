@@ -205,7 +205,7 @@ export function MaterialUsage({
       <CardContent className={cn("space-y-3", embedded && "p-0")}>
         {/* ---- Material Picker ---- */}
         {!readOnly && showPicker && (
-          <div className={cn(TINT.info, "rounded-xl border p-3 text-sm leading-relaxed")}>
+          <div className={cn(TINT.info, "rounded-lg border p-3 text-sm leading-relaxed")}>
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted" />
               <Input size="sm"

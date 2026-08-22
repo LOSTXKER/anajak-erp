@@ -272,7 +272,7 @@ export function CustomerPicker({
             </Field>
 
             {similar && similar.length > 0 && (
-              <div className={cn(TINT.warning, "space-y-1.5 rounded-xl border p-3")}>
+              <div className={cn(TINT.warning, "space-y-1.5 rounded-lg border p-3")}>
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
                   เจอลูกค้าที่คล้ายกันในระบบ — ใช่คนเดียวกันไหม?
                 </p>
@@ -284,7 +284,7 @@ export function CustomerPicker({
                       pick(c);
                       closeCreate();
                     }}
-                    className="group flex w-full items-center justify-between rounded-lg bg-white px-2.5 py-1.5 text-left text-sm shadow-sm hover:bg-interactive-hover active:bg-interactive-pressed dark:bg-slate-900 dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
+                    className="group flex w-full items-center justify-between rounded-lg bg-surface px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-interactive-hover active:bg-interactive-pressed"
                   >
                     <span>
                       {c.name}

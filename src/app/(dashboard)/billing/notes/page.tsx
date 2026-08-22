@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 
 export default function BillingNotesPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
       <BillingNotesPageContent />
     </Suspense>
   );

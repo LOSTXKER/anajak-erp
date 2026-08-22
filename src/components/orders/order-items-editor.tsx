@@ -417,7 +417,7 @@ export function OrderItemsEditor({
 
             {/* โหมดใบแก้ไข — เหตุผลบังคับ (server ออกเลข CO + บันทึกยอดเก่า→ใหม่) */}
             {changeOrderMode && (
-              <div className={cn(TINT.warning, "rounded-xl border p-3")}>
+              <div className={cn(TINT.warning, "rounded-lg border p-3")}>
                 <Field
                   label="เหตุผลการแก้ไข"
                   id="order-change-reason"

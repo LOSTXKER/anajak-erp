@@ -478,7 +478,7 @@ function ActiveRunCard({
         </Alert>
       )}
 
-      <ul className="mt-3 divide-y divide-divider overflow-hidden rounded-xl bg-surface-muted">
+      <ul className="mt-3 divide-y divide-divider overflow-hidden rounded-lg bg-surface-muted">
         {run.items.map((item) => (
           <li
             key={item.id}

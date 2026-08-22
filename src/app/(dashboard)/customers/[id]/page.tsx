@@ -299,7 +299,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   </div>
                 )}
                 {customer.billingAddress && (
-                  <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                  <div className="mt-3 rounded-lg border border-border bg-surface-muted p-3">
                     <p className="mb-1 text-xs font-semibold text-muted">ที่อยู่ออกใบกำกับภาษี</p>
                     <p className="text-sm text-slate-700 dark:text-slate-300">
                       {customer.billingAddress}
@@ -331,7 +331,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     <Link
                       key={order.id}
                       href={`/orders/${order.id}`}
-                      className="group flex items-center justify-between rounded-xl border border-slate-100 p-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed dark:border-slate-800 dark:hover:bg-interactive-hover dark:active:bg-interactive-pressed"
+                      className="group flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-interactive-hover active:bg-interactive-pressed"
                     >
                       <div>
                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{order.orderNumber}</p>

@@ -323,7 +323,7 @@ export function GarmentPickCard({
           return (
             <div
               key={l.sku}
-              className="grid gap-4 rounded-xl bg-surface-muted p-4 sm:grid-cols-[minmax(0,1fr)_minmax(18rem,0.8fr)] sm:items-center"
+              className="grid gap-4 rounded-lg bg-surface-muted p-4 sm:grid-cols-[minmax(0,1fr)_minmax(18rem,0.8fr)] sm:items-center"
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">

@@ -157,7 +157,7 @@ export function ProductionStepNavigator({
                 aria-label={`${stepLabel(step)} ${state.label}${countLabel}`}
                 data-workflow-state={state.workflow}
                 className={cn(
-                  "group -mb-0 h-auto min-h-14 basis-40 shrink-0 justify-start gap-3 rounded-xl border-b-0 px-3 py-2.5 text-left whitespace-normal",
+                  "group -mb-0 h-auto min-h-14 basis-40 shrink-0 justify-start gap-3 rounded-lg border-b-0 px-3 py-2.5 text-left whitespace-normal",
                   "hover:bg-interactive-hover data-[state=active]:border-transparent data-[state=active]:bg-interactive-selected data-[state=active]:text-interactive-selected-text",
                   "xl:w-full xl:basis-auto",
                 )}

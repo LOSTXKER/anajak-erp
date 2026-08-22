@@ -129,7 +129,7 @@ function QueueCard({
       onClick={() => onOpen(item)}
       className={cn(
         FOCUS_BUTTON,
-        "group flex min-h-20 w-full touch-manipulation items-center gap-3 rounded-xl border text-left shadow-sm transition-colors",
+        "group flex min-h-20 w-full touch-manipulation items-center gap-3 rounded-lg border text-left transition-colors",
         compact ? "p-3" : "p-4",
         item.status === "active"
           ? "border-blue-800/70 bg-blue-950/25 hover:border-blue-700 hover:bg-blue-950/40"
@@ -237,7 +237,7 @@ function QueueGroup({
     <section
       aria-labelledby={id}
       data-station-region={region}
-      className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-5"
+      className="card-surface rounded-lg p-4 sm:p-5"
     >
       <div className="flex items-start justify-between gap-3 border-b border-divider pb-4">
         <div>
@@ -251,7 +251,7 @@ function QueueGroup({
         </span>
       </div>
       {items.length === 0 ? (
-        <div className="mt-4 rounded-xl bg-surface-muted">
+        <div className="mt-4 rounded-lg bg-surface-muted">
           <EmptyState
             density="compact"
             icon={EmptyIcon}
@@ -304,7 +304,7 @@ export function StationQueueRailGroup({
         </span>
       </div>
       {items.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border-strong px-3 py-4 text-center text-xs text-muted">
+        <p className="rounded-lg border border-dashed border-border-strong px-3 py-4 text-center text-xs text-muted">
           {emptyLabel}
         </p>
       ) : (
@@ -337,7 +337,7 @@ export function StationQueueView({
     <div className="space-y-5" data-station-queue-view>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-module-production-surface text-module-production-text">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-module-production-surface text-module-production-text">
             <Icon className="h-5 w-5" aria-hidden="true" />
           </span>
           <div className="min-w-0">
@@ -348,19 +348,19 @@ export function StationQueueView({
           </div>
         </div>
         <dl className="grid shrink-0 grid-cols-3 gap-2 text-center text-sm">
-          <div className={cn(TINT.info, "rounded-xl border px-3 py-2")}>
+          <div className={cn(TINT.info, "rounded-lg border px-3 py-2")}>
             <dt className="text-xs text-blue-300">กำลังทำ</dt>
             <dd className="font-semibold tabular-nums text-strong">
               {active.length.toLocaleString("th-TH")}
             </dd>
           </div>
-          <div className="rounded-xl border border-border bg-surface px-3 py-2">
+          <div className="rounded-lg border border-border bg-surface px-3 py-2">
             <dt className="text-xs text-muted">พร้อม</dt>
             <dd className="font-semibold tabular-nums text-strong">
               {ready.length.toLocaleString("th-TH")}
             </dd>
           </div>
-          <div className={cn(TINT.warning, "rounded-xl border px-3 py-2")}>
+          <div className={cn(TINT.warning, "rounded-lg border px-3 py-2")}>
             <dt className="text-xs text-amber-300">ติดปัญหา</dt>
             <dd className="font-semibold tabular-nums text-amber-200">
               {blocked.length.toLocaleString("th-TH")}

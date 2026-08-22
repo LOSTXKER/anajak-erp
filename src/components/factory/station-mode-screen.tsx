@@ -240,7 +240,7 @@ function StationContinuationCard({
   return (
     <section
       className={cn(
-        "rounded-3xl border p-5 shadow-sm sm:p-7",
+        "rounded-lg border p-5 sm:p-7",
         blocked
           ? "border-amber-800/70 bg-amber-950/25"
           : "border-blue-800/70 bg-blue-950/20",
@@ -251,7 +251,7 @@ function StationContinuationCard({
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
         <span
           className={cn(
-            "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl",
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-lg",
             blocked
               ? "bg-amber-900/50 text-amber-200"
               : "bg-blue-900/50 text-blue-200",
@@ -354,16 +354,16 @@ function StationContinuationUnavailableCard({
 }) {
   return (
     <section
-      className="rounded-3xl border border-amber-800/70 bg-amber-950/25 p-5 shadow-sm sm:p-7"
+      className={cn(TINT.warning, "rounded-lg border p-5 sm:p-7")}
       aria-labelledby="station-continuation-unavailable-title"
       data-station-continuation-unavailable
     >
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-900/50 text-amber-200">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
           <AlertTriangle className="h-6 w-6" aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-amber-200">
+          <p className="text-sm font-medium text-current">
             ส่งต่ออัตโนมัติไม่ได้
           </p>
           <h1
@@ -766,7 +766,7 @@ export function StationModeScreen() {
     return (
       <section
         className={cn(
-          "rounded-2xl border border-divider bg-surface shadow-sm",
+          "card-surface rounded-lg",
           compact ? "p-3" : "px-4 py-3 sm:px-5",
         )}
         aria-labelledby={
@@ -783,7 +783,7 @@ export function StationModeScreen() {
           )}
         >
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-secondary">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-secondary">
               <ScanLine className="h-5 w-5" aria-hidden="true" />
             </span>
             <div className="min-w-0">
@@ -860,7 +860,7 @@ export function StationModeScreen() {
         {multiple && (
           <div
             aria-live="polite"
-            className={cn(TINT.warning, "mt-3 rounded-xl border p-3")}
+            className={cn(TINT.warning, "mt-3 rounded-lg border p-3")}
           >
             <p className="text-sm font-medium">
               {multiple.orderNumber} มีหลายใบผลิต — เลือกใบที่อยู่ตรงหน้า
@@ -930,7 +930,7 @@ export function StationModeScreen() {
           role="alert"
           className={cn(
             TINT.warning,
-            "flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm",
+            "flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm",
           )}
         >
           <span>โหลดสิทธิ์ล่าสุดไม่สำเร็จ — ปิดปุ่มทำงานไว้จนกว่าจะตรวจสิทธิ์ได้</span>
@@ -970,11 +970,11 @@ export function StationModeScreen() {
                     onClick={() => selectStation(item.key)}
                     className={cn(
                       FOCUS_BUTTON,
-                      "group min-h-36 w-full touch-manipulation rounded-2xl border border-border bg-surface p-5 text-left shadow-sm transition-colors hover:border-border-strong hover:bg-interactive-hover xl:h-full",
+                      "group min-h-36 w-full touch-manipulation rounded-lg border border-border bg-surface p-5 text-left transition-colors hover:border-border-strong hover:bg-interactive-hover xl:h-full",
                     )}
                   >
                     <span className="flex items-start justify-between gap-3">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-module-production-surface text-module-production-text">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-module-production-surface text-module-production-text">
                         <Icon className="h-5 w-5" aria-hidden="true" />
                       </span>
                       <span className="text-xs font-medium tabular-nums text-muted">
@@ -994,7 +994,7 @@ export function StationModeScreen() {
           </ul>
 
           {readOnly && (
-            <div className="mt-5 rounded-2xl border border-border bg-surface">
+            <div className="mt-5 rounded-lg border border-border bg-surface">
               <EmptyState
                 density="compact"
                 icon={ShieldCheck}
@@ -1008,8 +1008,8 @@ export function StationModeScreen() {
         <div className="space-y-6">
           {loadingInitial ? (
             <div className="space-y-4">
-              <Skeleton className="h-20 rounded-2xl" />
-              <Skeleton className="h-72 rounded-2xl" />
+              <Skeleton className="h-20 rounded-lg" />
+              <Skeleton className="h-72 rounded-lg" />
             </div>
           ) : initialError ? (
             <div className="card-surface rounded-lg">
