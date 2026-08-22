@@ -11,6 +11,9 @@ ERP หลังบ้านโรงงานสกรีนเสื้อ Ana
 - [x] **ด่าน framework ไม่พึ่งไฟล์ generated เก่า** — `typecheck` รัน `next typegen` ก่อน TypeScript · lint ใช้ flat config ของ Next 16 โดยตรง · Turbopack เป็นค่าเริ่มต้นและไม่เปิด Cache Components/React Compiler เพิ่ม
 
 ## 🧭 UI หลักแบบ minimal (เลื่อน V2 ขึ้นเป็นระบบจริง 2026-08-12)
+- [x] **ทุก surface มี visual identity ที่สแกนได้** — หน้ามาตรฐานมี module marker ที่มีชื่อเข้าถึงได้, รายการใช้รูป/initials/icon เฉพาะช่องตัวตน, section สำคัญมีสัญลักษณ์ตามความหมาย และไม่มีศัพท์คำสั่งพัฒนาหลุดไปหาผู้ใช้
+- [x] **ความเด่นไม่ทำลายงาน** — โครงสร้าง ขนาด ภาพงานจริง และ object identity เป็นตัวนำ; น้ำเงิน Anajak ใช้กับ primary/selected/focus, สีสถานะใช้เฉพาะความหมายจริง, หนึ่งหน้ามี primary action เดียว และ Station/TV ไม่มีเงิน
+- [x] **public และ print เป็นครอบครัวเดียวกัน** — public token ทั้ง 5 surface มี masthead/customer context โดยรักษา blind-ship/token/action เดิม; เอกสารทั้ง 5 ชนิดมี document marker/metadata hierarchy กลางและยัง A4, light-only, grayscale-safe, ข้อความกฎหมาย/ภาษี/ยอด/ลำดับหน้าเดิม
 - [x] **URL หลักมีหน้าตาเดียว** — `/` และ `/orders*` ใช้ dashboard/shell/order presentation ที่ผ่านการทดลองใน V2 · ไม่มี branch classic/V2 ใน component หลัก · `/v2*` เป็น compatibility redirect มายัง URL หลักและรักษา query เดิม
 - [x] **เป็นของจริง ไม่ใช่ mockup** — อ่านข้อมูลจาก tRPC/service/permission ชุดเดิมและทุก action พาไป flow ที่ใช้งานได้จริง · ห้ามมีตัวเลข/รายการตัวอย่างเขียนค้างในหน้า
 - [x] **จุดโฟกัสชัดใน 3 วินาที** — งานเสี่ยง/งานค้างและ action หลักมาก่อนสถิติสะสม · desktop Sidebar แสดงทุกโมดูลที่มีสิทธิ์เป็นหมวดตลอดโดยไม่ซ่อนใน disclosure ส่วนมือถือคงงานหลัก 4 รายการและเปิดที่เหลือผ่าน “เพิ่มเติม”

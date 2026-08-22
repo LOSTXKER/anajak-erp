@@ -436,6 +436,15 @@
 ## P1 — เอกสาร + การเงินไทย + งานรายวัน (สรุป — รายละเอียด: plan.md ใน bestos)
 **P1.0 Design System + UI มาตรฐานใหม่ (เบสสั่ง 2026-06-10 — ทำเป็นงานแรกของ P1):** design tokens (สี/ฟอนต์/spacing/radius — ฐาน Tailwind 4 + shadcn ที่มีอยู่) · component มาตรฐาน (table/form/dialog/status badge/empty state) · เลิก `window.prompt/confirm` ทั้งระบบ → dialog จริง · **mobile-first สำหรับหน้า ops** (task queue/production — พนักงานใช้มือถือหน้างาน) · หน้าใหม่+หน้าที่แตะใน P1-P3 ใช้มาตรฐานนี้ทันที · ปิดท้าย P1 มีรอบเก็บตกหน้าเก่าที่เหลือ — เกณฑ์: ดูเป็นระบบเดียวกันทุกหน้า ใช้บนมือถือได้จริง ·
 PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็จ+**ใบกำกับเต็มรูป ม.86/4** · ยกเลิก-ออกใหม่ห้ามลบ · ใบลดหนี้-เพิ่มหนี้) · **Job Ticket ใบสั่งงานหน้างาน+QR** · WHT ขารับ (ทะเบียน 50ทวิ + reconcile 97/3) · มัดจำตาม payment terms + overdue cron · **ใบวางบิล + ลูกหนี้ aging + เช็ค credit limit** · approval gate ส่วนลด/void · **ปฏิทินภาระงาน+เช็คทันไหม (เบา)** · **ราคาต่อลูกค้า + quote expiry + แก้ใบเสนอ** · **task queue "งานของฉันวันนี้"** · notification จริงจาก event · multi-size matrix · รายงานภาษีขาย export CSV/Excel
+### P1.0-VISUAL — Visual Identity ทั้งระบบ (code-first · เบสอนุมัติ 2026-08-22)
+
+- [x] เพิ่ม visual contract กลางให้ `PageHeader`/`PageShell` และ `Section` โดยหัวข้อหลักยังเป็นข้อความล้วนสำหรับ screen reader
+- [x] เพิ่ม `EntityMark` (ภาพจริง → initials → icon) และ `ContextPanel` สำหรับบริบทคงที่ที่ไม่ใช่ alert
+- [x] ใช้ object identity เฉพาะช่องตัวตนของออเดอร์ ลูกค้า เอกสาร สินค้า งานผลิต ร้านนอก และผู้ใช้; ไม่ใส่ icon ในตัวเลข วันที่ หรือ status ทุกช่อง
+- [x] กระจาย visual hierarchy ครบ dashboard, Production/Station/Factory TV, public token 5 surface และ print A4 5 ชนิด โดยไม่เปลี่ยน query/mutation/permission/status/business flow
+- [x] ลบศัพท์นักพัฒนาออกจาก UI ผู้ใช้ เช่นคำสั่ง seed และชื่อโหมดภายใน
+- [x] เพิ่ม regression test/`verify:ui` และตรวจ real browser ตัวแทนทุก surface ตาม desktop/mobile/touch, public error, print A4 screen, overflow, hydration และ console; blind-ship/semantics/fallback ล็อกด้วย component test
+
 **เพิ่มเข้า P1 (เบสอนุมัติ 2026-06-11 จากผล audit flow ทั้งระบบ):** แพ็คเก็บตกหน้างาน — ขั้นตอนผลิต DTF/DTG จริง (เดิม enum เป็นชุดโรงเย็บ) + โชว์ลายอนุมัติบน order detail/Job Ticket + แจ้งกระดิ่งเมื่อลูกค้าตัดสินแบบ + ด่านปิดงานต้องวางบิลครบ · **Outsource UI ทั้งก้อนดึงจาก P2 มาทำเลย** (silkscreen ส่งร้านนอก 100% แต่ระบบใช้ไม่ได้จริง) — ส่วน AP vendor/WHT ขาจ่าย ยังอยู่ P2 ตามเดิม
 ## 🏭 FLOW-REDESIGN — รื้อทั้งระบบตามผังใหม่ (เบสเคาะครบ 2026-06-12 · แบบเต็ม: `docs/flow-redesign-2026-06-12.html`)
 > เบสสั่ง: "มองมุมโรงงาน วาด flow ก่อน" → ศึกษา 5 มุม + ตอบคำถาม 10 ข้อ → เคาะครบ · **งานชุดนี้มาก่อน P1 ที่เหลือ** (WHT เลื่อนไปทำพร้อมก้อน 3 ขาเงิน)

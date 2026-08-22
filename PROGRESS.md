@@ -4,6 +4,17 @@
 
 ## ตอนนี้
 
+> **✅ SYSTEM VISUAL IDENTITY — code-first ครบ ERP / Factory / Public / Print 2026-08-22**
+> เพิ่ม visual contract กลางโดย `PageHeader`/`PageShell` มี module marker ที่อ่านชื่อได้และยังคง `<h1>` เป็นข้อความล้วน, `Section` รับ icon ตามความหมาย, `EntityMark` เลือกภาพจริง → initials → icon และ `ContextPanel` แยกคำอธิบายคงที่ออกจาก alert · รายการออเดอร์ ลูกค้า ใบเสนอราคา เอกสารการเงิน ร้านนอก และผู้ใช้มี object identity เฉพาะคอลัมน์ตัวตน ไม่ใส่ icon ซ้ำในตัวเลข/วันที่/status
+>
+> Production/Station คง flow ที่ผ่านแล้วและใช้ภาพม็อกอัพ/ตัวตนงานเดิม; Factory TV ได้ work-center marker โดย Station/TV ยังไม่มีข้อมูลเงินและ primary action เดิมไม่เปลี่ยน · public shell/token error ได้ customer-facing masthead กลางและรักษา blind-ship · เอกสาร QT/BN/TX/PL/JT ใช้ document stamp/header กลางที่ light-only/grayscale-safe โดยไม่แตะข้อความกฎหมาย ภาษี ยอดรวม หรือลำดับหน้า · ลบคำสั่ง seed/ชื่อโหมดภายในออกจาก Settings Stock และบันทึกทางเลือก `code-first` ใน `.impeccable/config.json`
+>
+> **หลักฐาน:** component/unit full suite **1292/1292**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build 41 static pages/route tree, `git diff --check` และ Impeccable detector `[]` ผ่าน · browser เดโมจริง: dashboard ทุกโมดูล 1440×900, orders/settings 390×844 Light/Dark, Station 1024×768 + 390×844, Factory TV 1440×900, public invalid-token shared error และ print ทั้ง 5 ชนิดบน A4 screen ไม่มี horizontal overflow; Station/TV/Job Ticket ไม่พบราคา และ console ไม่มี warning/error · คืน theme เป็น “ตามระบบ”, reset viewport และปิด dev server แล้ว
+>
+> **ขอบเขตหลักฐาน:** รอบนี้ไม่สร้าง/เปลี่ยน public token จึงไม่ได้กด flow valid/success ด้วย browser และไม่ได้ export ไฟล์ PDF จริง; blind-ship, public composition และ print marker ถูกล็อกด้วย test ส่วน print ทั้ง 5 ตรวจจาก screen/print CSS เท่านั้น · ไม่มี dependency/schema/API/query/mutation/permission/status/business-flow change และไม่แตะฐานจริง
+>
+> **ต่อที่นี่:** ก่อน deploy ให้ใช้ token เดโมที่มีอายุจริงเดิน public success/blind-ship และ export PDF ทั้ง 5 ชนิดจาก print preview เพื่อตรวจ page break/clipping รอบสุดท้าย
+
 > **↩️ ย้อนก้อน A/B กลับมาที่จุดม็อกอัพล่าสุด (เบสสั่ง 2026-08-22 14:0x)**
 > เบสไปลองทำต่อที่อื่นแล้วไม่ได้ดั่งใจ จึงสั่งย้อนทุกอย่างกลับมาที่ `ec681af` ซึ่งเป็นจุดล่าสุดที่ตรวจจอจริงผ่านแล้ว · `git reset --hard` ตัด `b142a4f` (route ชั่วคราว `/production/concepts` + `production-control-concepts.tsx` 734 บรรทัด) ออกจากกิ่ง โดย **สำรองไว้ครบที่กิ่ง `backup/ab-concepts-2026-08-22`** ก่อนย้อน — อยากดู/ดึงกลับทีหลังได้ ไม่มีอะไรหาย · กิ่งนี้ยังไม่เคย push (ahead origin 8 ก้อน) จึงไม่ต้อง force-push
 >

@@ -38,6 +38,9 @@ import {
   CONTROL_H,
   CONTROL_H_SM,
 } from "../src/components/ui/control-size";
+import { PageHeader } from "../src/components/page-header";
+import { EntityMark } from "../src/components/ui/entity-mark";
+import { ContextPanel } from "../src/components/ui/context-panel";
 
 let failed = 0;
 const globalsSource = readFileSync("src/app/globals.css", "utf8");
@@ -121,6 +124,41 @@ function check(name: string, html: string, must: string[], mustNot: string[] = [
 
 const h = CONTROL_H.split(" ");
 const hSm = CONTROL_H_SM.split(" ");
+
+{
+  const headerHtml = renderToStaticMarkup(<PageHeader title="ออเดอร์" />);
+  const entityHtml = renderToStaticMarkup(
+    <EntityMark label="ORD-2608-0015" icon={Factory} fallback="icon" />,
+  );
+  const contextHtml = renderToStaticMarkup(
+    <ContextPanel title="ข้อมูลประกอบ">ข้อความคงที่</ContextPanel>,
+  );
+  if (
+    !headerHtml.includes("page-module-mark") ||
+    !headerHtml.includes("data-page-identity") ||
+    !entityHtml.includes('data-entity-mark="icon"') ||
+    contextHtml.includes('role="alert"')
+  ) {
+    failed++;
+    console.log("❌ visual identity กลางต้องมี marker จริงและ ContextPanel ห้ามปลอมเป็น alert");
+  } else {
+    console.log("✅ visual identity กลางมี marker และ semantic role ถูกต้อง");
+  }
+}
+
+{
+  const dashboardSources = readdirSync("src/app/(dashboard)", { recursive: true })
+    .filter((name): name is string => typeof name === "string" && name.endsWith("page.tsx"))
+    .map((name) => readFileSync(join("src/app/(dashboard)", name), "utf8"))
+    .join("\n");
+  const forbiddenCopy = [/npm run db:seed:demo/, /demo local/i, /demo-local/i];
+  if (forbiddenCopy.some((pattern) => pattern.test(dashboardSources))) {
+    failed++;
+    console.log("❌ dashboard มีคำสั่งพัฒนาหรือชื่อโหมดภายในหลุดไปยังข้อความ UI");
+  } else {
+    console.log("✅ dashboard ไม่มีคำสั่งพัฒนาหรือชื่อโหมดภายในในข้อความ UI");
+  }
+}
 
 check(
   "ขอบประตอนพักเบาแบบเดิมและมีคู่ Dark",
