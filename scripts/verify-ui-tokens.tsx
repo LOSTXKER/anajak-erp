@@ -663,7 +663,7 @@ check(
 
 // ⑥ หัวตารางอ่าน semantic surface/divider ชุดเดียวทั้งสองธีม
 check(
-  "หัวตารางบนกล่อง",
+  "หัวตารางเป็นแถบ neutral ต่อเนื่อง",
   renderToStaticMarkup(
     <table>
       <DataTable.Head>
@@ -671,7 +671,7 @@ check(
       </DataTable.Head>
     </table>,
   ),
-  ["border-divider", "bg-surface", "text-muted"],
+  ["border-divider", "bg-surface-muted", "text-secondary"],
   ["bg-slate-50", "bg-slate-100"],
 );
 
@@ -1163,20 +1163,23 @@ check(
   if (failed === 0) console.log("✅ contrast ของ text/control/focus/status ผ่านทั้ง light และ dark");
 }
 
-// ⑩ พื้นผิวหลักต้องไร้กรอบ — 406c0e6 เคยเติม zero-offset ring 1px กลับเข้า
-// card ทั้ง base+hover โดยขัดกับ contract minimal และ comment ข้าง primitive
+// ⑩ true card ใช้ depth กลางชุดเดียว — card ไม่ใช่ page scaffold แต่ต้องอ่านออกบนผืนขาว
+// ด้วย hairline edge + เงาสั้น และ clickable card ต้องยก/คืนตำแหน่งแบบ restrained
 {
-  const blocks = [...globalsSource.matchAll(
-    /(?:\.dark\s+)?\.card-surface(?:-hover:hover)?\s*\{([^}]*)\}/g,
-  )].map((match) => match[1] ?? "");
-  const offenders = blocks.filter((block) =>
-    /0\s+0\s+0\s+(?:0\.5|1)px|--color-border(?:-strong)?/.test(block),
-  );
-  if (blocks.length !== 4 || offenders.length > 0) {
+  const cardBlock =
+    globalsSource.match(/\.card-surface\s*\{([^}]*)\}/)?.[1] ?? "";
+  const darkCardBlock =
+    globalsSource.match(/\.dark\s+\.card-surface\s*\{([^}]*)\}/)?.[1] ?? "";
+  if (
+    !cardBlock.includes("0 1px 2px") ||
+    !darkCardBlock.includes("0 1px 2px") ||
+    cardBlock.includes("box-shadow: none") ||
+    darkCardBlock.includes("box-shadow: none")
+  ) {
     failed++;
-    console.log("❌ card-surface ต้องใช้เงาลึกเท่านั้น ห้ามวงขอบรอบ base/hover");
+    console.log("❌ card-surface ต้องมี hairline edge + เงาสั้นชุดกลางทั้ง Light/Dark");
   } else {
-    console.log("✅ card-surface ไม่มีวงขอบทั้ง base/hover และ Light/Dark");
+    console.log("✅ card-surface มี depth เบาชุดกลางทั้ง Light/Dark");
   }
 
   const cardHoverBlock =
@@ -1185,12 +1188,14 @@ check(
     globalsSource.match(/\.card-surface-hover:active\s*\{([^}]*)\}/)?.[1] ?? "";
   if (
     !cardHoverBlock.includes("background-color: var(--color-interactive-hover)") ||
-    !cardActiveBlock.includes("background-color: var(--color-interactive-pressed)")
+    !cardHoverBlock.includes("transform: translateY(-1px)") ||
+    !cardActiveBlock.includes("background-color: var(--color-interactive-pressed)") ||
+    !cardActiveBlock.includes("transform: translateY(0)")
   ) {
     failed++;
-    console.log("❌ card-surface-hover ต้องมี semantic hover/pressed เต็ม hit area ทั้ง Light/Dark");
+    console.log("❌ card-surface-hover ต้องมี semantic hover/pressed และ tactile lift");
   } else {
-    console.log("✅ card-surface-hover มี semantic hover/pressed เต็ม hit area ทั้ง Light/Dark");
+    console.log("✅ card-surface-hover มี semantic hover/pressed และ tactile lift");
   }
 
   const callerOffenders: string[] = [];

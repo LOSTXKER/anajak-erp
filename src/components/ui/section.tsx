@@ -22,6 +22,8 @@ interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> 
   headingLevel?: 2 | 3;
   icon?: LucideIcon;
   tone?: VisualTone;
+  /** card ใช้เฉพาะเมื่อทั้ง section เป็นก้อนงานเดียว; ค่าเริ่มต้นยังวางตรงบน page canvas */
+  surface?: "plain" | "card";
 }
 
 /**
@@ -41,6 +43,7 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
       compact = false,
       headingLevel = 2,
       icon: Icon,
+      surface = "plain",
       className,
       children,
       ...props
@@ -53,7 +56,9 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
       <section
         ref={ref}
         className={cn(
-          bordered && "border-b border-divider pb-6",
+          surface === "card"
+            ? "card-surface rounded-xl"
+            : bordered && "border-b border-divider pb-6",
           className
         )}
         {...props}
@@ -64,7 +69,8 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
               "flex items-start justify-between gap-3",
               // ขอบ 28px (เบสเคาะ 2026-08-03 รอบ "ปรับสัดส่วน") — การ์ดกว้าง 1,024px
               // ขอบ 24px แน่นเกินสัดส่วน · หัวข้อ→เนื้อหา 20px ให้เป็นบันได 8/16/20/28
-              compact ? "pb-3" : "pb-4"
+              compact ? "pb-3" : "pb-4",
+              surface === "card" && "px-5 pt-5"
             )}
           >
             <div className="flex min-w-0 items-start gap-3">
@@ -98,7 +104,8 @@ export const Section = React.forwardRef<HTMLDivElement, SectionProps>(
         )}
         <div
           className={cn(
-            !flush && bordered && !hasHeader && "pt-0"
+            !flush && bordered && !hasHeader && "pt-0",
+            surface === "card" && !flush && "px-5 pb-5"
           )}
         >
           {children}

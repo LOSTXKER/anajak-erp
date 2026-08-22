@@ -184,9 +184,9 @@
   /* ============================================================
      ระบบสีพื้นผิว 2026-08-13 — neutral สงบ + interaction เป็นเทากลาง
 
-       page            #f8f9fb  ค่า fallback ของหน้า public/auth
-       chrome/surface  #ffffff  navigation / card
-       sunk            #f3f5f7  กลุ่มย่อยเชิงโครงสร้าง
+       page/chrome     #ffffff  ผืนงานหลังบ้านต่อเนื่อง
+       surface         #ffffff  card จริง แยกด้วย depth ของ primitive
+       sunk            #f7f7f8  กลุ่มย่อยเชิงโครงสร้าง/หัวตาราง
        field           #ffffff  ช่องกรอก (แยกด้วย functional boundary)
        elevated        #ffffff  menu / dialog
        hover/pressed   เทาอ่อน — บอกว่ากำลังโต้ตอบโดยไม่เป็นแถบเทาหนัก
@@ -194,8 +194,8 @@
      น้ำเงินแบรนด์ #3973b2 คงเดิมและสงวนให้ primary/selected/focus
      ============================================================ */
   --color-bg: #ffffff;
-  --color-surface: #f7f7f8;
-  --color-surface-muted: #f1f1f2;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7f7f8;
   --color-surface-elevated: #ffffff;
   /* field เป็นพื้นที่กรอก ไม่ใช่กล่องจม: Light ใช้ขาวและเส้น resting ที่เบา
      พอให้เห็นรูปทรงโดยไม่แข่งกับ label; focus/error ค่อยใช้ contrast สูง */
@@ -206,8 +206,8 @@
   --color-border-strong: #818b97;
   --color-divider: #e8ebef;
   --color-skeleton: #e2e6ea;
-  --color-interactive-hover: #ececee;
-  --color-interactive-pressed: #e2e2e5;
+  --color-interactive-hover: #f1f1f2;
+  --color-interactive-pressed: #e7e7e9;
   --color-interactive-chrome-hover: #f1f1f2;
   --color-interactive-chrome-pressed: #e7e7e9;
   --color-interactive-selected: #d2e4f6;
@@ -403,7 +403,7 @@ input[type="number"] {
 }
 
 /* ============================================================
-   การ์ดมาตรฐาน — สีพื้น + เงานุ่มเท่านั้น ไม่มีเส้นรอบ
+   การ์ดมาตรฐาน — พื้นตามธีม + hairline edge + เงาสั้น
    ใช้แทน `border border-slate-200 bg-white` ทั่วระบบ ให้ทุกการ์ดลุคเดียวกัน
    ============================================================ */
 /* ⚠️ ทุกคลาสผิวข้างล่างนี้ต้องอยู่ใน @layer components — ห้ามย้ายออก
@@ -416,28 +416,42 @@ input[type="number"] {
    พอย้ายเข้าชั้น utility ที่หน้าส่งมาจะชนะตามลำดับปกติของ Tailwind */
 @layer components {
 
-/* การ์ดมีไว้กับ bounded secondary object เท่านั้น: ใช้ neutral fill โดยไม่ทำให้ทุกก้อนลอย */
+/* การ์ดมีไว้กับ bounded secondary object เท่านั้น: ขอบเส้นผม+เงาสั้นช่วยแยกจากผืนขาว
+   โดยไม่กลายเป็น page scaffold หรือแข่งกับ overlay */
 .card-surface {
   background-color: var(--color-surface);
-  box-shadow: none;
+  box-shadow: 0 0 0 1px rgb(24 27 32 / 0.07), 0 1px 2px rgb(24 27 32 / 0.06);
 }
 .dark .card-surface {
   background-color: var(--color-surface);
-  box-shadow: none;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 1px 2px rgb(0 0 0 / 0.42);
 }
-/* การ์ดที่กดได้ตอบสนองด้วย neutral fill เท่านั้น; elevation สงวนให้ overlay */
+/* การ์ดที่กดได้ยกเพียง 1px ตอนชี้ และคืนที่เดิมตอนกด; overlay ยังเป็นชั้นลอยสูงสุด */
 .card-surface-hover {
-  transition: background-color 150ms ease;
+  transition: background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 .card-surface-hover:hover {
   background-color: var(--color-interactive-hover);
-  box-shadow: none;
+  box-shadow: 0 0 0 1px rgb(24 27 32 / 0.09), 0 5px 14px rgb(24 27 32 / 0.09);
+  transform: translateY(-1px);
 }
 .card-surface-hover:active {
   background-color: var(--color-interactive-pressed);
+  box-shadow: 0 0 0 1px rgb(24 27 32 / 0.08), 0 1px 2px rgb(24 27 32 / 0.06);
+  transform: translateY(0);
 }
 .dark .card-surface-hover:hover {
-  box-shadow: none;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.11), 0 7px 18px rgb(0 0 0 / 0.5);
+}
+.dark .card-surface-hover:active {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.09), 0 1px 2px rgb(0 0 0 / 0.42);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-surface-hover:hover,
+  .card-surface-hover:active {
+    transform: none;
+  }
 }
 
 /* ============================================================

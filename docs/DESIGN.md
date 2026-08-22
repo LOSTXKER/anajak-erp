@@ -25,24 +25,24 @@
 
 White Working Sheet ใช้ page/workspace/chrome เป็นผืนเดียว: Light ขาว `#fff`, Dark ดำ neutral `#111113` ·
 เนื้อหาหลักวางบนผืนโดยตรง; `Section`, `DataTable` และ status rail ใช้ระยะกับ divider เท่าที่จำเป็น
-แทน card ครอบ · card เหลือเฉพาะ bounded secondary object และใช้ neutral fill ไร้เงา ·
-menu/dialog เป็นชั้นเดียวที่ลอยด้วยเงา · น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link,
+แทน card ครอบ · card เหลือเฉพาะ bounded secondary object และใช้ hairline edge+เงาสั้น ·
+menu/dialog เป็นชั้นลอยสูงสุด · น้ำเงิน Anajak `#3973b2` สงวนให้ primary, link,
 active navigation indicator และ focus
 
 | บทบาท | Light | Dark | utility |
 |---|---|---|---|
 | พื้น workspace/fallback หลังบ้าน | `#fff` | `#111113` | `.app-workspace` + `bg-bg` |
 | navbar/sidebar | `#fff` | `#111113` | `bg-chrome` |
-| card รอง | `#f7f7f8` | `#1b1b1e` | `bg-surface` / `card-surface` |
+| card รอง | `#fff` + hairline/เงาสั้น | `#1b1b1e` + hairline/เงาสั้น | `bg-surface` / `card-surface` |
 | menu/dialog | `#fff` | `#242428` | `bg-surface-elevated` / `overlay-surface` |
-| กล่องจมเชิงโครงสร้าง/disabled | `#f1f1f2` | `#18181b` | `bg-surface-muted` / `SUNK_PANEL` |
+| กล่องจมเชิงโครงสร้าง/disabled/หัวตาราง | `#f7f7f8` | `#18181b` | `bg-surface-muted` / `SUNK_PANEL` / `TABLE_HEAD_SURFACE` |
 | ช่องกรอก | `#fff` + ขอบ `#c8d0d9` | `#151517` + ขอบ `#3f3f44` | `FIELD_SURFACE` |
 | พื้นที่เพิ่ม/อัปโหลด | ขอบประ `slate-300` | ขอบประ `slate-700` | `DASHED` / `DASHED_INTERACTIVE` — resting เบา; hover/focus ค่อยเน้น |
 | control บน toolbar | โปร่ง + ขอบบาง | โปร่ง + ขอบบาง | prop `surface="raised"` → `RAISED_CONTROL_SURFACE` |
 | ปุ่มรอง | โปร่ง + ขอบบาง | โปร่ง + ขอบบาง | `Button outline/secondary/subtle` |
 | ขอบทั่วไป / เส้นคั่น | `#e2e6ea` / `#e8ebef` | `#343438` / `#303034` | `border-border` / `border-divider` |
-| Hover | `#f1f3f5` | `#303034` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
-| Pressed | `#e3e6e9` | `#38383c` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
+| Hover | `#f1f1f2` | `#242428` | `bg-interactive-hover` / `INTERACTIVE_HOVER` |
+| Pressed | `#e7e7e9` | `#2c2c30` | `bg-interactive-pressed` / `INTERACTIVE_PRESSED` |
 | Hover บน navbar/sidebar | `#f1f3f5` | `#252528` | `bg-interactive-chrome-hover` / `INTERACTIVE_CHROME_HOVER` |
 | Pressed บน navbar/sidebar | `#e3e6e9` | `#303034` | `bg-interactive-chrome-pressed` / `INTERACTIVE_CHROME_PRESSED` |
 | Selected | `#d2e4f6` | `#173c61` | `bg-interactive-selected text-interactive-selected-text` |
@@ -73,11 +73,11 @@ active navigation indicator และ focus
 กติกา interaction:
 
 - navigation, control, menu option, row และ clickable card ใช้ neutral hover/pressed ครอบ hit area จริง; active navigation ใช้ข้อความน้ำเงิน+indicator 1px ไม่ใช้พื้นสี
-- clickable card compose `card-surface-hover` เพื่อรับ neutral fill hover/pressed โดยไม่มี elevation; ห้ามเขียนสีซ้ำที่ caller
+- clickable card compose `card-surface-hover` เพื่อรับ neutral fill, ยก 1px ตอน hover และคืนตำแหน่งตอน pressed; ห้ามเขียนสี/เงาซ้ำที่ caller
 - ของที่กดได้จริง compose `INTERACTIVE_PRESSED` ให้ตอนกดเข้มกว่า hover; selected/current คงพื้นฟ้า
 - ของที่ถูกเลือกใช้ `INTERACTIVE_SELECTED` — ห้ามใช้ hover เป็น selected เพราะความหมายคนละอย่าง
 - Primary action ใช้ `blue-600` → hover `blue-700` → pressed `blue-800`; น้ำเงิน 600 ต้องคง `#3973b2`
-- Minimal = เนื้อหาหลักอยู่บน page canvas โดยตรง: `Section`/table/status rail ใช้ divider เชิงโครงสร้างเท่าที่ต้องอ่าน · card รองใช้ neutral fill ไร้เงา · field ใช้ขาว/เข้ม + resting boundary · toolbar/secondary action เป็น control โปร่งมีขอบบาง · overlay เท่านั้นที่ลอยด้วยเงา
+- Minimal = เนื้อหาหลักอยู่บน page canvas โดยตรง: `Section`/table/status rail ใช้ divider เชิงโครงสร้างเท่าที่ต้องอ่าน · card รองใช้ hairline+เงาสั้นเฉพาะ bounded object · field ใช้ขาว/เข้ม + resting boundary · toolbar/secondary action เป็น control โปร่งมีขอบบาง · overlay ลอยสูงสุด
 - รายการงานในฟอร์มใช้หนึ่ง `card-surface` ต่อหนึ่งรายการโดยตรงบน page canvas · ห้ามวาง card ใหญ่ครอบ list แล้วเติม border รอบรายการซ้ำ · CTA “เพิ่มรายการ” อยู่ก่อน list ทั้งหน้าเปิดงานและหน้าแก้ไข
 - ช่องกรอกใช้ `FIELD_SURFACE` เสมอ — `border-field-border bg-field` ไม่มีเงา; resting boundary ต้องอยู่ในช่วงที่ guard ล็อกไว้ไม่ให้จางจนกลืนหรือเข้มจนเป็นตาราง · focus/error ใช้เส้น contrast สูงและเปลี่ยนสีเส้นเดิมโดยความสูงไม่ขยับ · ห้าม ancestor เปลี่ยนสี field ตามตำแหน่ง
 - กล่องเพิ่มของ/อัปโหลดใช้ `DASHED_INTERACTIVE`; placeholder ที่อ่านอย่างเดียวใช้ `DASHED` — ขอบประตอนพักต้องอ่อนกว่าขอบเน้น เพราะพื้นที่ก้อนใหญ่ขยายน้ำหนักของเส้น; hover/pressed/focus เป็นผู้บอก interaction แทน · ห้ามใช้ `border-strong` เป็น resting state

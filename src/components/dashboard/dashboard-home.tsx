@@ -133,6 +133,7 @@ function AttentionPanel({
     <Section
       title={allowed ? "ต้องเช็กก่อน" : "คิวงานของคุณ"}
       flush
+      surface="card"
       className="overflow-hidden lg:col-span-2"
       action={
         allowed && !loading && !error ? (
@@ -302,7 +303,7 @@ export function DashboardHome() {
           items={attentionItems}
         />
 
-        <Section title="ทางลัด" compact>
+        <Section title="ทางลัด" compact surface="card">
           <div className="grid grid-cols-2 gap-2">
             {canCreateOrder && (
               <QuickLink

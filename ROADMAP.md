@@ -652,11 +652,12 @@ PDF ครบชุด (ใบเสนอ/แจ้งหนี้/เสร็
 
 > เบสไม่ต้องการ UI ที่ใช้สีและกล่องเป็นโครงหลักอีกแล้ว: เนื้อหาต้องวางบนพื้นหลังขาวโดยตรง ใช้ card เฉพาะข้อมูลรองที่เป็นก้อนจริง และ Dark ต้องกลับค่าชั้นผิวแบบเดียวกัน · ขอบเขต presentation/design-system ทั้งเว็บเท่านั้น คง query, mutation, permission, validation, status transition, public/print และ flow งานเดิมทั้งหมด
 
-- [x] **WC1 แกนพื้นผิวเดียวทั้งระบบ** — Light page/workspace/chrome เป็นขาวต่อเนื่อง; Dark เป็น neutral ดำต่อเนื่อง · direct content ไม่มี card/เงาครอบ · secondary object card ใช้พื้น neutral ต่างชั้นเล็กน้อยและไม่มีเงา · overlay เท่านั้นที่ลอยด้วยเงา ✅ 2026-08-23
+- [x] **WC1 แกนพื้นผิวเดียวทั้งระบบ** — Light page/workspace/chrome เป็นขาวต่อเนื่อง; Dark เป็น neutral ดำต่อเนื่อง · direct content ไม่มี card/เงาครอบ · secondary object card ใช้พื้นตามธีมพร้อม hairline edge/เงาสั้นเท่าที่ต้องแยกจาก canvas · overlay เป็นชั้นที่ลอยสูงสุด ✅ 2026-08-23
 - [x] **WC2 primitive เรียบธรรมดา** — Section/DataTable เป็นเนื้อหาตรงพร้อมเส้นคั่นเท่าที่จำเป็น · Button/Search/toolbar control เป็นทรงเหลี่ยมมนเล็ก ไม่มีเงาตกแต่ง · field ยังคง boundary ที่บอกว่ากรอกได้ และ semantic status/primary/focus คงสีตามหน้าที่ ✅ 2026-08-23
 - [x] **WC3 shell และลำดับสายตา** — Sidebar/mobile nav ไม่มีพื้นสีเป็นก้อนตอน active; ใช้น้ำเงินเฉพาะข้อความ/ไอคอน/เส้นบอกตำแหน่ง · ลด marker สีประจำ module ใน PageHeader/Section ให้เป็น neutral โดยไม่เสียชื่อที่เข้าถึงได้หรือ deep-route state ✅ 2026-08-23
 - [x] **WC4 ครอบคลุมและไม่เปลี่ยนงาน** — ปรับ caller ที่ยังใช้ card ใหญ่เป็น page scaffold; เก็บ card สำหรับ mobile record, stat, bounded item, alert และ overlay ตาม semantic จริง · ไม่แตะข้อมูล เงิน สิทธิ์ สถานะ หรือ Station handoff ✅ 2026-08-23
 - [x] **WC5 verify ของจริงก่อนปิด** — dashboard/orders/production/billing/settings/products/factory representative ที่ 1440×900 + 390×844 ทั้ง Light/Dark · ไม่มี overflow/hydration/console error · keyboard/focus/loading/error/empty/disabled ยังชัด · typecheck/lint/unit/verify:ui/Impeccable detector/build ผ่าน แล้วอัปเดต SPEC/DESIGN/PROGRESS และ commit ก้อนเล็ก ✅ 2026-08-23
+- [x] **WC6 เก็บรายละเอียด interaction และ card hierarchy** — หัวตารางต้องอ่านเป็นหัวตารางโดยไม่แตกเป็นช่องสี, row hover ชัดแต่เบา, ปุ่มมี tactile pressed state และ card ใช้เฉพาะ bounded object/กลุ่มงานที่ควรถูกอ่านเป็นหนึ่งก้อนพร้อม depth เบา ๆ · คง direct content บนผืนขาวและกลับชั้นผิวแบบเดียวกันใน Dark · verify desktop/mobile Light/Dark ก่อนปิด ✅ 2026-08-23
 
 #### ใบงานต้นแบบ ERP Command Center — ออกแบบใหม่ทั้งระบบแบบไม่ตีกรอบ (เบสสั่ง 2026-08-14)
 

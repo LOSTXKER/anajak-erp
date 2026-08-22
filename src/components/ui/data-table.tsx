@@ -15,7 +15,7 @@ import {
  * Minimal table primitive that gives every list page the same look-and-feel:
  * - direct-on-canvas table with only structural dividers
  * - sentence-cased header (no UPPERCASE noise)
- * - uniform row hover & dividers
+ * - a quiet full-width header band and uniform row hover
  *
  * Usage:
  *   <DataTable.Root>
@@ -113,7 +113,7 @@ const Row = React.forwardRef<HTMLTableRowElement, RowProps>(
         className={cn(
           // ชี้แถวไหนต้องรู้ทันที — ตารางกว้างแล้วกดผิดแถวคือกดผิดออเดอร์
           INTERACTIVE_HOVER,
-          "group transition-colors hover:[&_.text-muted]:text-secondary hover:[&_.text-slate-500]:text-secondary dark:hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-slate-500]:text-secondary",
+          "group transition-colors duration-150 hover:[&_.text-muted]:text-secondary hover:[&_.text-slate-500]:text-secondary dark:hover:[&_.text-muted]:text-secondary dark:hover:[&_.text-slate-500]:text-secondary",
           href && cn("cursor-pointer", INTERACTIVE_PRESSED),
           className
         )}
@@ -134,7 +134,7 @@ const Th = React.forwardRef<HTMLTableCellElement, ThProps>(
       ref={ref}
       scope={scope}
       className={cn(
-        "px-5 py-3 text-xs font-medium text-slate-500 dark:text-slate-400",
+        "px-5 py-3 text-xs font-semibold text-secondary",
         align === "right" && "text-right",
         align === "center" && "text-center",
         align === "left" && "text-left",
@@ -202,11 +202,11 @@ const SortableTh = React.forwardRef<HTMLTableCellElement, SortableThProps>(
             // ไม่ย้อมพื้นตอนเอาเมาส์ชี้ (เบสสั่ง 2026-08-02 "ไม่ชอบหัวตารางเปลี่ยนสีตอนชี้") —
             // แถบเทาโผล่เฉพาะช่องที่ชี้อยู่ ทำให้หัวตารางดูขาดเป็นท่อนๆ
             // บอกว่า "กดได้" ด้วยตัวหนังสือกับลูกศรที่เข้มขึ้นแทน — เบากว่าและไม่ทำให้แถวขาด
-            "group flex w-full cursor-pointer touch-manipulation items-center gap-1.5 px-5 py-3 text-xs font-medium transition-colors [@media(pointer:coarse)]:min-h-11",
+            "group flex w-full cursor-pointer touch-manipulation items-center gap-1.5 px-5 py-3 text-xs font-semibold transition-colors [@media(pointer:coarse)]:min-h-11",
             FOCUS_INSET,
             active
               ? "font-semibold text-blue-700 dark:text-blue-300"
-              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100",
+              : "text-secondary hover:text-strong",
             align === "right" && "justify-end",
             align === "center" && "justify-center"
           )}

@@ -142,7 +142,7 @@ export const OVERLAY_PANEL = `overlay-surface ${RADIUS.surface}`;
 
 /** หัวตารางที่วางบน surface ปกติ — semantic ชุดเดียวทั้งสองธีม */
 export const TABLE_HEAD_SURFACE =
-  "border-b border-divider bg-surface text-muted";
+  "border-b border-divider bg-surface-muted text-secondary";
 
 /** ขอบประ = "ที่ว่างรอของ" — ปุ่มเพิ่มของ · ช่องอัปโหลด · กล่องว่างที่กดเพิ่มได้
  *  audit 2026-08-01: 21 จุดใช้ slate-200 สลับ slate-300 โดยไม่มีเหตุผล

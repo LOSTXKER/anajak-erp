@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ INTERACTION + CARD POLISH — เก็บหัวตาราง hover ปุ่ม และก้อนงาน 2026-08-23**
+> คง White Working Sheet เดิมไว้: เนื้อหาหลักยังวางบนพื้นขาว/ดำโดยตรง แต่ bounded object ที่เป็นก้อนจริงอ่านออกเป็น card ด้วยพื้นขาว Light / `#1b1b1e` Dark, hairline edge และเงาสั้น · dashboard ใช้ card เฉพาะ “ต้องเช็กก่อน” กับ “ทางลัด”; Section อื่น ตาราง และ status rail ยังแบนบน canvas จึงไม่กลับไปเป็นกล่องทั้งหน้า
+>
+> `DataTable` ใช้ neutral header band ต่อเนื่องทั้งแถว (`#f1f1f2` / `#18181b`) พร้อมน้ำหนักหัวชัดขึ้น โดย sortable header เปลี่ยนเฉพาะข้อความ/ลูกศร ไม่ย้อมพื้นเป็นท่อน · row hover/pressed ใช้ semantic neutral state กลาง · Button ทุก variant มี tactile press 1px, disabled/reduced-motion ไม่ขยับ · clickable card ยก 1px ตอน hover และคืนที่เดิมตอนกด โดย overlay ยังเป็นชั้นลอยสูงสุด
+>
+> **หลักฐานจอจริง:** `/`, `/orders`, `/production`, `/billing`, `/settings`, `/products`, `/factory/station` ที่ 1440×900 และ `/`, `/orders`, `/production`, `/settings` ที่ 390×844 ทั้ง Light/Dark — ข้อมูลโหลดจริง, card มุม 12px/depth ตรง token, table header สูง 40.5px, mobile control ≥44px, horizontal overflow 0 และ console ไม่มี warning/error/hydration · สลับธีมผ่านเมนูผู้ใช้จริง
+>
+> **ด่านส่งมอบ:** full unit **1296/1296**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build (41 static pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector `[]`
+>
+> **ขอบเขต:** presentation/test/docs เท่านั้น ไม่มี dependency, schema, API, query, mutation, permission, status transition หรือ business flow เปลี่ยน · รักษา `scripts/verify-artwork.ts`, `.cursor/` และ `public/` ที่ค้างอยู่ไว้นอก commit
+>
+> **ต่อที่นี่:** ให้เบสลองชี้แถวตาราง กดปุ่ม และเปิด dashboard/settings ใน Light/Dark; ถ้าจะเพิ่ม card ต่อ ให้เลือกเฉพาะก้อนงานที่ต้องอ่านเป็นหนึ่งหน่วย ไม่ใช้ card เป็นโครงทั้งหน้า
+
 > **✅ WHITE WORKING SHEET — เปลี่ยนพื้นผิวทั้งเว็บเป็น minimal 2026-08-23**
 > Light page/workspace/chrome เป็นผืนขาวเดียว และ Dark กลับเป็นผืนดำ neutral เดียว · `Section`, `DataTable` และ status rail วางเนื้อหาตรงบนผืนพร้อม divider เท่าที่จำเป็น · card เหลือเฉพาะข้อมูลรอง/record บนมือถือ/ก้อนงานจริง ใช้ neutral fill มุม 12px และไม่มีเงา · overlay เท่านั้นที่ยังลอยด้วยเงา
 >

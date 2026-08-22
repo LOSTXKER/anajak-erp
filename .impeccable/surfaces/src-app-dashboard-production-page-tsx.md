@@ -25,7 +25,7 @@ related_targets: ["src/app/(dashboard)/production/[id]/page.tsx","src/app/(dashb
 
 - Thesis: กระดานหน้าโรงงานที่พาไปยังโต๊ะลงมือจริง ไม่ใช่ dashboard ที่เล่าเรื่องซ้ำ.
 - Story: **ตำแหน่งกองงาน → สิ่งที่ต้องทำตอนนี้ → รอบ DTF ที่กำลังไหล**.
-- World: White Working Sheet — Light workspace/chrome ขาวต่อเนื่องและ Dark ดำ neutral ต่อเนื่อง, เนื้อหาหลักวางบนผืนโดยตรง, card รองใช้ neutral fill ไร้เงา, overlay เท่านั้นที่ลอย; Anajak cobalt ใช้เฉพาะ primary/link/navigation indicator/focus, Prompt และ Lucide เดิม.
+- World: White Working Sheet — Light workspace/chrome ขาวต่อเนื่องและ Dark ดำ neutral ต่อเนื่อง, เนื้อหาหลักวางบนผืนโดยตรง, card รองใช้ hairline edge+เงาสั้นเฉพาะ bounded object, overlay ลอยสูงสุด; table header เป็น neutral band ต่อเนื่อง, Anajak cobalt ใช้เฉพาะ primary/link/navigation indicator/focus, Prompt และ Lucide เดิม.
 - ข้อมูลบนการ์ดจำกัดเฉพาะสิ่งที่ใช้เลือกงาน; ไม่มี hero metrics, nested cards, CTA ซ้ำ หรือข้อความอธิบายยาว.
 
 # As-built topology
