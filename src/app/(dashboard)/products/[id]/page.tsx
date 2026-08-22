@@ -191,6 +191,7 @@ export default function ProductDetailPage({
         icon={Package}
         back={{ href: "/products", label: "กลับไปหน้าสินค้า" }}
         title={product.name}
+        description="ดู SKU ตัวเลือกสินค้า ราคา และสถานะที่ใช้เปิดงาน"
         titleBadge={
           <>
             <Badge variant={typ.variant}>{typ.label}</Badge>

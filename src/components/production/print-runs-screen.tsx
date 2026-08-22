@@ -188,7 +188,7 @@ export function PrintRunsScreen({
   return (
     <PageShell
       title="รอบพิมพ์ฟิล์ม DTF"
-      help="เปิดรอบจากคิว แล้วพิมพ์ ตัดแยก และติดป้ายตามลำดับ"
+      description="เปิดรอบจากคิว แล้วพิมพ์ ตัดแยก และติดป้ายตามลำดับ"
       headerChildren={surface === "erp" ? <ProductionModuleNav /> : undefined}
       titleBadge={
         me && !canManage ? (

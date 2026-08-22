@@ -175,7 +175,7 @@ export default function OutsourcePage() {
     <div className="space-y-5">
       <PageHeader
         title="งานร้านนอก"
-        help="ติดตามกำหนดรับ ตรวจรับจากร้าน และส่งต่อเข้า QC ขั้นสุดท้าย"
+        description="ติดตามกำหนดรับ ตรวจรับจากร้าน และส่งต่อเข้า QC ขั้นสุดท้าย"
         action={
           canManageSettings ? (
             <Button asChild variant="outline" size="sm">

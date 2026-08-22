@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CONTROL_MIN_H } from "@/components/ui/control-size";
 import { cn } from "@/lib/utils";
-import { PageIdentityIcon } from "@/lib/page-identity";
+import { PageIdentityIcon, pageDescriptionForLabel } from "@/lib/page-identity";
 import { HelpTip } from "@/components/ui/help-tip";
 import { VISUAL_TONE_CLASSES, visualToneForLabel, type VisualTone } from "@/lib/visual-tone";
 
@@ -16,6 +16,9 @@ export interface BreadcrumbItem {
 
 interface PageHeaderProps {
   title: ReactNode;
+  /** หน้านี้ใช้ทำอะไร — สั้นหนึ่งประโยคและเห็นเสมอใต้หัวข้อ */
+  description?: ReactNode;
+  /** ข้อเท็จจริงเฉพาะรายการ/สถานะ เช่น SKU จำนวนงาน หรือชื่อโปรเจกต์ */
   meta?: ReactNode;
   help?: ReactNode;
   action?: ReactNode;
@@ -39,6 +42,7 @@ interface PageHeaderProps {
    ให้รองรับ แทนที่จะปล่อยให้ก๊อปต่อไป (ก๊อปแล้วมันจะเพี้ยนวันที่แก้ที่นี่) */
 export function PageHeader({
   title,
+  description,
   meta,
   help,
   action,
@@ -58,6 +62,13 @@ export function PageHeader({
     .filter(Boolean)
     .join(" ");
   const resolvedTone = tone ?? visualToneForLabel(toneSource);
+  const descriptionSource = [identityLabel, ...(breadcrumb?.map((item) => item.label) ?? [])]
+    .filter(Boolean)
+    .join(" ");
+  const resolvedDescription =
+    description === undefined
+      ? pageDescriptionForLabel(descriptionSource)
+      : description;
   return (
     <div className="page-header space-y-4" data-page-identity={identityLabel ?? "custom"}>
       {(() => {
@@ -144,7 +155,19 @@ export function PageHeader({
               {titleBadge}
               {help && <HelpTip label={typeof title === "string" ? title : "หัวข้อนี้"}>{help}</HelpTip>}
             </div>
-            {meta && <p className="text-xs leading-relaxed text-muted">{meta}</p>}
+            {resolvedDescription && (
+              <p
+                className="max-w-[72ch] text-sm leading-relaxed text-secondary"
+                data-page-description=""
+              >
+                {resolvedDescription}
+              </p>
+            )}
+            {meta && (
+              <p className="text-xs leading-relaxed text-muted" data-page-meta="">
+                {meta}
+              </p>
+            )}
           </div>
         </div>
         {action && (

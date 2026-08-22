@@ -137,6 +137,8 @@ const hSm = CONTROL_H_SM.split(" ");
   if (
     !headerHtml.includes("page-module-mark") ||
     !headerHtml.includes("text-module-production-text") ||
+    !headerHtml.includes('data-page-description=""') ||
+    !headerHtml.includes("ดูคิวผลิต งานที่ติดขัด และขั้นตอนที่ต้องจัดการต่อ") ||
     headerHtml.includes("bg-module-production-solid") ||
     headerHtml.includes("shadow-sm") ||
     !headerHtml.includes("data-page-identity") ||
@@ -221,12 +223,27 @@ const hSm = CONTROL_H_SM.split(" ");
   const headerSource = readFileSync("src/components/page-header.tsx", "utf8");
   const shellSource = readFileSync("src/components/page-shell.tsx", "utf8");
   const sectionSource = readFileSync("src/components/ui/section.tsx", "utf8");
+  const identitySource = readFileSync("src/lib/page-identity.tsx", "utf8");
   const shellHeaderContract = shellSource.slice(0, shellSource.indexOf("  // ---- สถานะของหน้า ----"));
-  if ([headerSource, shellHeaderContract, sectionSource].some((source) => /description\?\s*:/.test(source))) {
+  const pageHelpSources = [
+    readFileSync("src/app/(dashboard)/outsource/page.tsx", "utf8"),
+    readFileSync("src/app/(dashboard)/production/films/page.tsx", "utf8"),
+    readFileSync("src/components/production/print-runs-screen.tsx", "utf8"),
+    readFileSync("src/app/(dashboard)/settings/company/page.tsx", "utf8"),
+    readFileSync("src/app/(dashboard)/settings/vendors/page.tsx", "utf8"),
+  ].join("\n");
+  if (
+    !/description\?\s*:/.test(headerSource) ||
+    !/description\?\s*:/.test(shellHeaderContract) ||
+    /description\?\s*:/.test(sectionSource) ||
+    !headerSource.includes("data-page-description") ||
+    !identitySource.includes("pageDescriptionForLabel") ||
+    /help=\"(?:ติดตามกำหนดรับ|ค้นหาฟิล์ม|เปิดรอบจากคิว|ข้อมูลนี้ใช้บนหัวเอกสาร|ทะเบียนร้านสำหรับงาน)/.test(pageHelpSources)
+  ) {
     failed++;
-    console.log("❌ PageHeader/PageShell/Section ห้ามมี description ค้างใต้หัวข้อ");
+    console.log("❌ ทุกหน้าต้องมี description สั้นที่เห็นตรง และ Section/คำอธิบายทั่วไปห้ามสร้าง tooltip เกินจำเป็น");
   } else {
-    console.log("✅ หัวหน้าและ Section ใช้ meta/HelpTip แทน description ค้างใต้หัวข้อ");
+    console.log("✅ ทุกหน้ามี description สั้น ส่วน meta/HelpTip แยกตามหน้าที่");
   }
 }
 

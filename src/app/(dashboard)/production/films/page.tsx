@@ -74,7 +74,7 @@ function FilmStockPageContent() {
     <div className="space-y-5">
       <PageHeader
         title="คลังฟิล์มพร้อมรีด"
-        help="ค้นหาฟิล์มที่เหลือก่อนเปิดรอบพิมพ์ใหม่"
+        description="ค้นหาฟิล์มที่เหลือและตรวจจำนวนก่อนเปิดรอบพิมพ์ใหม่"
       />
       <ProductionModuleNav />
 

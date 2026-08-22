@@ -4,6 +4,19 @@
 
 ## ตอนนี้
 
+> **✅ PAGE DESCRIPTION — ทุกหน้าบอกหน้าที่ตรงใต้หัวข้อ 2026-08-23**
+> `PageHeader`/`PageShell` รับ `description` และมี fallback กลางจาก `pageDescriptionForLabel` ครบกลุ่ม Dashboard, งาน, ลูกค้า, ใบเสนอ, ผลิต, สินค้า, การเงิน และตั้งค่า · คำอธิบายเป็นหนึ่งประโยคว่าหน้านี้ใช้ทำอะไร ส่วน `meta` คงไว้สำหรับชื่อโปรเจกต์ SKU จำนวนงาน หรือข้อเท็จจริงเฉพาะรายการ จึงไม่เอาข้อมูลสองชนิดมาปนกัน
+>
+> ย้ายคำอธิบายระดับหน้าของงานร้านนอก คลังฟิล์ม รอบพิมพ์ ข้อมูลกิจการ และทะเบียนร้านออกจาก HelpTip มาแสดงตรง · tooltip ระดับหน้าคงเฉพาะรายละเอียดที่ต้องย้อนดูจริง เช่น สูตรอายุหนี้และกติกาจัดงวดภาษี; public token มี subtitle กลางอยู่แล้ว และหัว custom ของ Factory/Station/Production แสดงคำอธิบายงานตรงใต้หัวข้อเดิม
+>
+> **หลักฐานจอจริง:** 1440x900 และ 390x844 Light/Dark บน Dashboard, Orders, Production, Billing, Settings, รายละเอียดออเดอร์ และข้อมูลกิจการ — คำอธิบายห่อได้ ไม่ชน action, horizontal overflow 0 และไม่มี application error · หน้า Production แยก description กับ meta จำนวนงานชัด · HelpTip อายุหนี้เปิดได้ ปิดด้วย Escape และคืน focus · คืน theme เป็น “ตามระบบ” และ viewport เดิมหลังตรวจ
+>
+> **ด่านส่งมอบ:** full unit **1296/1296**, typecheck, lint 0 error (26 warning เดิม), `verify:ui`, production build (generate 41 pages), `git diff --check` และ Impeccable detector รอบเดียวผ่าน; detector ไม่พบ finding (`[]`)
+>
+> **ขอบเขต:** presentation/copy เท่านั้น ไม่มี dependency, schema, API, query, mutation, permission, status transition หรือ business flow เปลี่ยน · รักษา `scripts/verify-artwork.ts`, `.cursor/`, `public/` ไว้นอก commit และไม่ push/merge/deploy
+>
+> **ต่อที่นี่:** ให้เบสเปิด `/orders`, `/production` และหน้ารายละเอียดหนึ่งหน้าเพื่อดูระดับความยาวจริง; ถ้าชอบทิศนี้ค่อยไล่ปรับถ้อยคำรายหน้าในรอบถัดไปโดยไม่เพิ่ม tooltip
+
 > **✅ DISTILL VISUAL IDENTITY — ลดไอคอนตามจอจริง 2026-08-23**
 > หัวข้อหน้ามาตรฐานรวมถึง Station/Factory TV เปลี่ยนเป็นไอคอนเส้นล้วน 24px ตามสีบริบท ไม่มีพื้น กรอบ หรือเงา · registry ออเดอร์ ลูกค้า ใบเสนอ บิล ผู้ใช้ และร้านนอกถอด object icon/initials ที่ซ้ำกับข้อความออก โดยคง action/status icon ที่ช่วยใช้งานจริง
 >

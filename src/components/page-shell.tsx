@@ -37,6 +37,7 @@ const WIDTH_CLASS: Record<PageWidth, string> = {
 interface PageShellProps {
   // ---- ส่งต่อ PageHeader ทั้งชุด (เขียนครั้งเดียว ใช้ทุก state) ----
   title: ReactNode;
+  description?: ReactNode;
   meta?: ReactNode;
   help?: ReactNode;
   action?: ReactNode;
@@ -72,6 +73,7 @@ interface PageShellProps {
 
 export function PageShell({
   title,
+  description,
   meta,
   help,
   action,
@@ -113,6 +115,7 @@ export function PageShell({
       {header ?? (
         <PageHeader
           title={title}
+          description={description}
           meta={meta}
           help={help}
           // ปุ่ม action ใช้ไม่ได้ระหว่างโหลด/พัง/ไม่มีสิทธิ์ — ซ่อนกันกดแล้วพัง

@@ -138,7 +138,7 @@ export default function VendorsSettingsPage() {
     <PageShell
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ร้านรับจ้างภายนอก"
-      help="ทะเบียนร้านสำหรับงาน DTG, สกรีน, ปัก, ตัดเย็บ และป้ายคอ"
+      description="จัดการทะเบียนร้านสำหรับงาน DTG สกรีน ปัก ตัดเย็บ และป้ายคอ"
       error={
         meQuery.isError
           ? {

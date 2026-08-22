@@ -47,7 +47,7 @@ export default function CompanySettingsPage() {
       width="form"
       back={{ href: "/settings", label: "ย้อนกลับ" }}
       title="ข้อมูลกิจการ"
-      help="ข้อมูลนี้ใช้บนหัวเอกสารที่ส่งให้ลูกค้าทุกใบ"
+      description="แก้ข้อมูลกิจการที่ใช้บนหัวเอกสารส่งให้ลูกค้าทุกใบ"
       error={
         meQuery.isError
           ? {

@@ -9,6 +9,7 @@ import { Section } from "./ui/section";
 import { PublicPageShell } from "./public/public-page";
 import { DocumentStamp } from "./print/print-document";
 import { HelpTip } from "./ui/help-tip";
+import { pageDescriptionForLabel } from "@/lib/page-identity";
 import { visualToneForLabel } from "@/lib/visual-tone";
 
 describe("system visual identity", () => {
@@ -21,6 +22,41 @@ describe("system visual identity", () => {
     expect(html).toContain("text-module-production-text");
     expect(html).not.toContain("bg-module-production-solid");
     expect(html).not.toContain("shadow-sm");
+    expect(html).toContain('data-page-description=""');
+    expect(html).toContain("ดูคิวผลิต งานที่ติดขัด และขั้นตอนที่ต้องจัดการต่อ");
+  });
+
+  it("แยกคำอธิบายหน้าที่เห็นเสมอออกจาก metadata ของรายการ", () => {
+    const html = renderToStaticMarkup(
+      createElement(PageHeader, {
+        title: "สินค้า Demo Tee",
+        description: "ดู SKU ตัวเลือกสินค้า ราคา และสถานะที่ใช้เปิดงาน",
+        meta: "DEMO-TEE-001",
+      }),
+    );
+    expect(html).toContain('data-page-description=""');
+    expect(html).toContain("ดู SKU ตัวเลือกสินค้า ราคา และสถานะที่ใช้เปิดงาน");
+    expect(html).toContain('data-page-meta=""');
+    expect(html).toContain("DEMO-TEE-001");
+  });
+
+  it("มีคำอธิบายสั้น fallback ครบทุกกลุ่มหน้าหลัก", () => {
+    const labels = [
+      "ภาพรวมวันนี้",
+      "ออเดอร์ทั้งหมด",
+      "ลูกค้า",
+      "ใบเสนอราคา",
+      "ควบคุมการผลิต",
+      "บิล/การเงิน",
+      "สินค้า",
+      "ตั้งค่า",
+      "หน้าระบบอื่น",
+    ];
+    for (const label of labels) {
+      const description = pageDescriptionForLabel(label);
+      expect(description.length).toBeGreaterThan(10);
+      expect(description.length).toBeLessThanOrEqual(80);
+    }
   });
 
   it("ผูกสีตามบริบทโดยไม่เปลี่ยนน้ำเงินของงานขาย", () => {
